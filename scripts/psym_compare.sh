@@ -25,9 +25,13 @@
 #
 #   Environment: PSYM_MAX_PAIRS -- how many UNCLASSIFIED instruction pairs the
 #     classifier PRINTS per symbol before it collapses the rest into
-#     "... and N more". Default 5; `0` means unbounded. OUTPUT ONLY: it changes
-#     no verdict, no count and no exit status, and the `UNCLASSIFIED n` figure
-#     on every COUNTS line is the full count either way. It exists because a
+#     "... and N more". Default 5; `0` means unbounded. OUTPUT ONLY, with one
+#     stated qualification: for every VALID value it changes no verdict, no
+#     count and no exit status, and the `UNCLASSIFIED n` figure on every COUNTS
+#     line is the full count at any cap -- but an INVALID value (not a
+#     non-negative integer) is refused with exit 2 before any comparison runs,
+#     so the knob can affect the exit status only by declining to run at all,
+#     never by changing a comparison's outcome. It exists because a
 #     class of change whose whole transcript is one repeated instruction shape
 #     (M6 W5 T1's member-displacement shift) cannot be audited from a listing
 #     that hides all but five pairs per symbol -- a claim of "every pair is the
@@ -288,8 +292,11 @@
 #         The section NAME is stable under a split and is compared.
 #
 #       - A COMPILER-LOCAL LABEL (`.L.str.137`, `.LCPI8_0`, `.Lswitch.table._Z...`)
-#         is compared by its FAMILY: digit runs outside any embedded mangled
-#         name are replaced by `N`, and the addend is neutralised as above. An
+#         is compared by its FAMILY: the NUMERIC SUFFIX outside any embedded
+#         mangled name is stripped (M6 W5 T1 fix1; it used to replace every
+#         digit RUN with `N`, which left the un-suffixed `.L.str` with nothing
+#         to replace, so it never compared equal to `.L.str.48` -- two members
+#         of one family), and the addend is neutralised as above. An
 #         assembler-local label is a name the compiler mints per TU in emission
 #         order; splitting a TU or adding one string literal renumbers it
 #         wholesale, and it names data in a non-executable section, so its
@@ -575,6 +582,19 @@
 #                   Split on the FIRST ` ## `. The name is the NEW-side name
 #                   for a symbol that exists after, the OLD-side name for one
 #                   that existed only before, and either for a mapped pair.
+#                   Since M6 W5 T1 fix1 a name may carry the FINDING KIND it
+#                   excuses -- `<name> [ONLY-BEFORE]`, `[ONLY-AFTER]`,
+#                   `[DIFFERS]`, `[SECTION]` -- and the qualified form is tried
+#                   first. It matters because this namespace is GLOBAL while
+#                   findings are per object: one weak COMDAT body is
+#                   legitimately ONLY-BEFORE in the object that lost its copy
+#                   and, in the same comparison, a DIFFERS in the object that
+#                   gained the strong one, so an unqualified entry written for
+#                   the first silently covers the second. A plain-name entry
+#                   still excuses any kind, and a plain entry SPENT on a section
+#                   move stops covering that symbol's body. A COMPILER-LOCAL
+#                   FAMILY name (`.L.str`, `GCC_except_table`) excuses a family
+#                   whose per-object count changed.
 #
 # CALIBRATION, so a later run has a baseline to recognize. Phase-C task C0.3
 # (commit 6875712, a comments-and-docs-only change) was measured with exactly
@@ -647,6 +667,74 @@
 #   same-shape substitution pair (fix2 PASSed with a transcript that said both
 #   "the relocation targets are not literally equal" and "0 relocation records
 #   compared"; fix3 FAILs it with a `RELOC-BLIND` line).
+
+# ---------------------------------------------------------------------------
+# M6 W5 T1 fix1: SECTION MOVES, AND THE COMPILER-LOCAL FAMILY RULE ONE LAYER UP
+# ---------------------------------------------------------------------------
+#
+# Two DECLARED changes to what a P-SYM verdict asserts, both found by T1's own
+# transcripts and ruled on before T6 (which splits a TU and would hit both at a
+# larger scale). Each is stated here because CLAUDE.md section 7 makes a change
+# to a pinned instrument a declared event, not a discovery.
+#
+#   * A SECTION MOVE NO LONGER SKIPS THE BODY, AND IS EXCUSABLE BY NAME. Until
+#     now `SECTION-MOVED` printed, incremented the difference count and
+#     `continue`d -- ahead of the exception lookup every other finding class
+#     goes through, and without comparing a single instruction. An `inline`
+#     function that becomes a strong out-of-line definition necessarily leaves
+#     its COMDAT `.text.<SYM>` for plain `.text`, so NO exception set could
+#     make a "move a body out of line" commit pass, however well understood the
+#     move was, and the transcript said nothing at all about whether the code
+#     had changed. Now: the line is still printed, the body is compared anyway
+#     on the same per-symbol path as every other symbol, and the move is
+#     excusable by name. The exception key `<name> [SECTION]` excuses the MOVE
+#     alone; a PLAIN-name entry excuses the move and is then SPENT, so a body
+#     that also differs is still a finding. That is one half of ONE EXCEPTION,
+#     ONE FINDING; the other half is the KIND-QUALIFIED exception key documented
+#     under FILE FORMATS, without which an entry written about the object that
+#     LOST a weak copy (`ONLY-BEFORE`) silently excuses the changed body in the
+#     object that GAINED the strong one -- measured on this very commit. Both
+#     halves are what keep the falsifier live: change one instruction inside a
+#     moved body and the run still FAILS.
+#
+#     Companion sections move with the body. A relocation whose target is the
+#     ENCLOSING symbol's own `.rodata.<SELF>` / `.gcc_except_table.<SELF>` /
+#     `.text.<SELF>` (its jump table, its LSDA, its own text) is rendered as the
+#     BASE section, because those COMDAT companions merge into the plain
+#     sections exactly when the body does. Without that rule an excused
+#     `SECTION-MOVED` is immediately followed by a `DIFFERS` on the jump-table
+#     relocation, which is the same layout fact reported twice. A companion
+#     section naming SOME OTHER symbol is untouched: that really is a different
+#     datum.
+#
+#   * THE SYMBOL CENSUS NOW COMPARES `.L*` AND `GCC_except_table<n>` BY FAMILY
+#     COUNT. The RELOCATION layer has always compared a compiler-local label by
+#     its family, with the reason stated in the RELOCATION TARGETS block: the
+#     number is minted per TU in emission order and carries no information this
+#     comparison is entitled to assert on. The census compared the same names
+#     LITERALLY, so any change that shifted a TU's emission order produced
+#     hundreds of `ONLY-BEFORE`/`ONLY-AFTER` findings with no code difference
+#     behind them (M6 W5 T1 measured 1744/1714 on a commit whose callers had no
+#     source change) and needed a generated exception line per label to say
+#     nothing. The census now counts them PER OBJECT PER FAMILY and compares the
+#     counts, so a renumbering is silent and a family that GAINS or LOSES a
+#     member is a `LOCAL-FAMILY` finding, excusable by the family name. The
+#     family is the name with its NUMERIC SUFFIX removed -- a suffix, not every
+#     digit run, so `.L.str` and `.L.str.48` are one family, which the older
+#     digit-run rule could not express. Families covered: `.L*` and
+#     `GCC_except_table<n>`, both DATA.
+#
+#     `__cxx_global_var_init.<n>` is deliberately OUTSIDE that rule: it is a
+#     FUNCTION, and excusing a renumbering must never excuse a body. Its number
+#     is dropped in demangle_table() instead, which routes the family through
+#     the per-symbol layer's `[#n]` rank fallback so the bodies are compared
+#     pairwise. (Measured: this tree defines none, so the routing is exercised
+#     only by fixture.)
+#
+#   Both changes make a former FAIL able to pass -- the first only with a named
+#   exception, the second only where the count is equal -- and neither can turn
+#   a passing comparison into a failing one except by finding something: a
+#   family whose count moved, or a moved body whose instructions differ.
 
 set -euo pipefail
 
@@ -1051,7 +1139,19 @@ demangle_table() {
                 if (p > 0) t = t "[" substr(mg, p, 2) "]"
                 return t
             }
-            { mg[NR] = $1; bare[NR] = $2; cnt[$2]++ }
+            # `__cxx_global_var_init.<n>` is a per-TU static-initialiser
+            # FUNCTION whose number is emission order, not identity. It is NOT
+            # in the census family rule (that rule excuses a renumbering, and a
+            # renumbering must never excuse a BODY); collapsing the number here
+            # instead puts the whole family through the `[#n]` rank fallback, so
+            # the per-symbol layer pairs them by rank and COMPARES their
+            # instructions rather than reading every renumbering as one deleted
+            # and one added symbol.
+            function barename(d) {
+                if (d ~ /^__cxx_global_var_init\.[0-9]+$/) return "__cxx_global_var_init"
+                return d
+            }
+            { mg[NR] = $1; bare[NR] = barename($2); cnt[bare[NR]]++ }
             END {
                 for (i = 1; i <= NR; i++) {
                     tg[i] = (cnt[bare[i]] > 1) ? tagof(mg[i]) : ""
@@ -1123,6 +1223,73 @@ function load_pairs_into(f, arr,   line, n) {
     while ((getline line < f) > 0) { n = index(line, "\t"); arr[substr(line, 1, n - 1)] = substr(line, n + 1) }
     close(f)
 }
+# ---- COMPILER-LOCAL LABEL FAMILIES, for the symbol CENSUS ------------------
+# `.L*` (`.L.str.137`, `.LCPI8_0`, `.Lswitch.table._Z...`) and
+# `GCC_except_table<n>` are names the compiler mints per TU in EMISSION ORDER.
+# Adding one string literal, or moving anything ahead of them, renumbers the
+# whole family wholesale; they name DATA in sections this comparison does not
+# read; and their numbers therefore carry no information the census is entitled
+# to assert on. That is the SAME argument the RELOCATION layer has always made
+# for the same names ("A COMPILER-LOCAL LABEL ... is compared by its FAMILY"),
+# and until M6 W5 T1 fix1 the census did not make it -- so a header change that
+# renumbered 1700 labels needed 1700 generated exception lines to say nothing.
+#
+# What the census asserts instead is the per-object per-family COUNT (a
+# multiset, not a set): a family that GAINS or LOSES a member is still a
+# finding, so a genuinely added string literal or a removed LSDA is still seen.
+#
+# `__cxx_global_var_init.<n>` is deliberately NOT in this set. Those are
+# FUNCTIONS -- a renumbering must never excuse a body -- and they are routed
+# through the per-symbol layer by the `[#n]` rank fallback instead (see
+# demangle_table).
+function is_local_family(nm) {
+    return nm ~ /^\.L/ || nm ~ /^GCC_except_table[0-9]+$/
+}
+# The family of a compiler-local name: its NUMERIC SUFFIX removed. A suffix, not
+# every digit run, because `.L.str` and `.L.str.48` are one family and a rule
+# that replaced digit runs left the un-suffixed member with nothing to replace,
+# so the two never compared equal. An embedded mangled name is kept verbatim
+# (`.Lswitch.table._ZN...` is that function'"'"'s table and no other'"'"'s).
+function famnum(s) {
+    sub(/[0-9]+_[0-9]+$/, "", s)
+    while (sub(/\.[0-9]+$/, "", s)) { }
+    sub(/[0-9]+$/, "", s)
+    return s
+}
+# ---- EXCEPTION LOOKUP -----------------------------------------------------
+# The key an exception file entry may take, most specific first:
+#
+#   <full key> [<KIND>]   excuses THIS finding kind on this exact key
+#   <bare name> [<KIND>]  ... written in the plain demangled form
+#   <full key>            excuses ANY finding on this key
+#   <bare name>           ... written in the plain demangled form
+#
+# KIND is ONLY-BEFORE, ONLY-AFTER, DIFFERS or SECTION. The kind-qualified forms
+# arrived with M6 W5 T1 fix1, and the reason is that the exception namespace is
+# GLOBAL while findings are per object: one weak COMDAT body can be legitimately
+# ONLY-BEFORE in the object that lost its copy and, in the SAME comparison, a
+# DIFFERS in the object that gained the strong definition. A plain-name entry
+# written for the first excuses the second too, which is exactly the case a
+# move-out-of-line commit produces -- so without the kind, a changed instruction
+# inside a moved body could be excused by an entry written about a different
+# object. Returns the key to charge, or "" for none. `nofallback` suppresses the
+# two unqualified forms, which is how a plain entry already SPENT on a section
+# move stops covering the body as well.
+function excfind(k, bare, kind, nofallback,   c) {
+    c = k " [" kind "]";    if (c in exc) return c
+    if (bare != "") { c = bare " [" kind "]"; if (c in exc) return c }
+    if (nofallback) return ""
+    if (k in exc) return k
+    if (bare != "" && bare in exc) return bare
+    return ""
+}
+function famof(nm,   pre) {
+    if (match(nm, /_Z[A-Za-z0-9_$]+/)) {
+        pre = substr(nm, 1, RSTART - 1)
+        return famnum(pre) substr(nm, RSTART)
+    }
+    return famnum(nm)
+}
 # ---- relocation TARGETS ---------------------------------------------------
 # A relocation names a SYMBOL, not a variant, so the disambiguating tag keyof()
 # appends is deliberately NOT applied here: `[D1]` distinguishes two definitions
@@ -1140,7 +1307,26 @@ function reldem_of(mangled, is_before,   d) {
     if (is_before && (d in m)) { relmapped = 1; relmapold = d; d = m[d] }
     return d
 }
-function normnum(s) { gsub(/[0-9]+/, "N", s); return s }
+# ---- COMDAT companion sections that name their OWN function ---------------
+# A section-relative relocation target may be the enclosing function'"'"'s own
+# COMDAT companion section: `.rodata.<SELF>` (its jump table or constant pool),
+# `.gcc_except_table.<SELF>` (its LSDA), `.text.<SELF>` (its own body). When an
+# inline function becomes a strong out-of-line definition those companions
+# merge into the plain `.rodata` / `.gcc_except_table` / `.text` with the body,
+# so the two arms name the same datum through two section names that differ
+# only by the SELF suffix. Rendering such a target as its BASE section is the
+# same SELF rule flatten_symbols() already applies to the section HEADER
+# (`.text._Zfoo` -> `.text.<SYM>`) and that the branch/call path applies to
+# self-relative targets: the part that moved is the enclosing symbol'"'"'s own
+# name, which is not a code difference. A companion section naming SOME OTHER
+# symbol is left alone -- that really is a different datum.
+function strip_self_section(t, selfmg,   n) {
+    if (selfmg == "" || substr(t, 1, 1) != ".") return t
+    n = length(selfmg)
+    if (length(t) > n + 1 && substr(t, length(t) - n) == "." selfmg)
+        return substr(t, 1, length(t) - n - 1)
+    return t
+}
 # ---- section-relative targets that name CODE ------------------------------
 # `xsec[arm, name]` is the executable-section set and `saddr[arm, sec, off]`
 # the defined-function-by-address table, both per ARM (1 = before, 2 = after)
@@ -1199,15 +1385,15 @@ function render_reloc_target(t, is_before,   pre, mg, suf) {
         pre = substr(t, 1, RSTART - 1)
         mg  = substr(t, RSTART, RLENGTH)
         suf = substr(t, RSTART + RLENGTH)
-        if (substr(t, 1, 2) == ".L") pre = normnum(pre)
+        if (substr(t, 1, 2) == ".L") pre = famnum(pre)
         return pre reldem_of(mg, is_before) suf
     }
-    return (substr(t, 1, 2) == ".L") ? normnum(t) : t
+    return (substr(t, 1, 2) == ".L") ? famnum(t) : t
 }
 # The comparable rendering of one relocation. Deliberately NOT prefixed with a
 # tab: the classifier counts tab-led lines as instructions, and a relocation is
 # an annotation ON an instruction, not one of its own.
-function reloc_text(type, target, addend, is_before,   t, armn, rs) {
+function reloc_text(type, target, addend, is_before, selfmg,   t, armn, rs) {
     relmapped = 0; relmapold = ""
     armn = is_before ? 1 : 2
     if (substr(target, 1, 1) == "." && ((armn SUBSEP target) in xsec)) {
@@ -1220,9 +1406,9 @@ function reloc_text(type, target, addend, is_before,   t, armn, rs) {
         # Code, but nothing defined at that address (or two objects of a split
         # arm disagree about it): compare the LITERAL addend. R17'"'"'s stated
         # fallback, in its stated direction -- a false DIFFERS, never a mask.
-        return "RELOC " type " " render_reloc_target(target, is_before) " " (addend == "" ? "+0x0" : addend)
+        return "RELOC " type " " render_reloc_target(strip_self_section(target, selfmg), is_before) " " (addend == "" ? "+0x0" : addend)
     }
-    t = render_reloc_target(target, is_before)
+    t = render_reloc_target(strip_self_section(target, selfmg), is_before)
     if (substr(target, 1, 1) == ".") addend = "+LOCAL"
     else if (addend == "") addend = "+0x0"
     return "RELOC " type " " t " " addend
@@ -1249,6 +1435,7 @@ BEGIN {
     for (x in tag) if (index(tag[x], "[#")) nrank++
 }
 NR == FNR {
+    if (is_local_family($2)) { bfam[famof($2)]++; nlocb++; next }
     key = keyof($2, 1)
     if (key in b) { printf "  COLLISION     two before-arm symbols claim one name: %s\n", key; coll++ }
     b[key] = $1
@@ -1256,31 +1443,48 @@ NR == FNR {
     if (bareof($2) in m) { wasmapped[key] = 1; mapused[bareof($2)] = 1 }
     next
 }
-{ akey = keyof($2, 0); a[akey] = $1; aorig[akey] = bareof($2) }
+{ if (is_local_family($2)) { afam[famof($2)]++; nloca++; next }
+  akey = keyof($2, 0); a[akey] = $1; aorig[akey] = bareof($2) }
 END {
     for (k in b) {
         if (k in a) { matched++; if (k in wasmapped) mapped++; continue }
-        if (k in exc) { excused++; used[k] = 1; printf "  EXCEPTION     ONLY-BEFORE %s ## %s\n", k, exc[k]; continue }
-        if (borig[k] in exc) { excused++; used[borig[k]] = 1; printf "  EXCEPTION     ONLY-BEFORE %s ## %s\n", borig[k], exc[borig[k]]; continue }
+        ek = excfind(k, borig[k], "ONLY-BEFORE", 0)
+        if (ek != "") { excused++; used[ek] = 1; printf "  EXCEPTION     ONLY-BEFORE %s ## %s\n", ek, exc[ek]; continue }
         onlyb++
         if (onlyb <= 20) printf "  ONLY-BEFORE   %s\n", k
     }
     if (onlyb > 20) printf "  ... and %d more symbols present only in the before arm\n", onlyb - 20
     for (k in a) {
         if (k in b) continue
-        if (k in exc) { excused++; used[k] = 1; printf "  EXCEPTION     ONLY-AFTER  %s ## %s\n", k, exc[k]; continue }
-        if (aorig[k] in exc) { excused++; used[aorig[k]] = 1; printf "  EXCEPTION     ONLY-AFTER  %s ## %s\n", aorig[k], exc[aorig[k]]; continue }
+        ek = excfind(k, aorig[k], "ONLY-AFTER", 0)
+        if (ek != "") { excused++; used[ek] = 1; printf "  EXCEPTION     ONLY-AFTER  %s ## %s\n", ek, exc[ek]; continue }
         onlya++
         if (onlya <= 20) printf "  ONLY-AFTER    %s\n", k
     }
     if (onlya > 20) printf "  ... and %d more symbols present only in the after arm\n", onlya - 20
+    # Compiler-local label families, by COUNT. An unequal count -- including a
+    # family present on one arm only -- is a finding, excusable by the FAMILY
+    # name in the exceptions file.
+    for (f in bfam) {
+        if ((f in afam) && bfam[f] == afam[f]) { famok++; continue }
+        if (f in exc) { excused++; used[f] = 1; printf "  EXCEPTION     LOCAL-FAMILY %s: %d before, %d after ## %s\n", f, bfam[f], afam[f] + 0, exc[f]; continue }
+        famdiff++
+        if (famdiff <= 20) printf "  LOCAL-FAMILY  %s: %d before, %d after\n", f, bfam[f], afam[f] + 0
+    }
+    for (f in afam) {
+        if (f in bfam) continue
+        if (f in exc) { excused++; used[f] = 1; printf "  EXCEPTION     LOCAL-FAMILY %s: 0 before, %d after ## %s\n", f, afam[f], exc[f]; continue }
+        famdiff++
+        if (famdiff <= 20) printf "  LOCAL-FAMILY  %s: 0 before, %d after\n", f, afam[f]
+    }
+    if (famdiff > 20) printf "  ... and %d more compiler-local families whose count differs\n", famdiff - 20
     for (k in used) print k >> f_used
     close(f_used)
     for (k in mapused) print k >> f_mapused
     close(f_mapused)
-    printf "%d\t%d\t%d\t%d\t%d\t%d\t%d\n", matched + 0, mapped + 0, onlyb + 0, onlya + 0, excused + 0, coll + 0, nrank + 0 > f_stat
+    printf "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", matched + 0, mapped + 0, onlyb + 0, onlya + 0, excused + 0, coll + 0, nrank + 0, famok + 0, famdiff + 0, nlocb + 0, nloca + 0 > f_stat
     close(f_stat)
-    exit (onlyb + onlya + coll > 0) ? 1 : 0
+    exit (onlyb + onlya + coll + famdiff > 0) ? 1 : 0
 }
 '
 
@@ -1326,7 +1530,7 @@ NR == FNR {
     if ($1 == "R") {
         if (!bskip && bcur != "") {
             bn[bcur]++
-            bi[bcur, bn[bcur]] = reloc_text($3, $4, $5, 1)
+            bi[bcur, bn[bcur]] = reloc_text($3, $4, $5, 1, $2)
             brel[bcur]++
             if (relmapped) { brelmap[bcur]++; relmapused[relmapold] = 1 }
         }
@@ -1349,7 +1553,7 @@ NR == FNR {
 {
     if ($1 == "R") {
         if (acur != "") {
-            rtxt = reloc_text($3, $4, $5, 0)
+            rtxt = reloc_text($3, $4, $5, 0, $2)
             if (adupmode) { c = adup[acur]; adn[acur, c]++; adi[acur, c, adn[acur, c]] = rtxt }
             else { an[acur]++; ai[acur, an[acur]] = rtxt }
         }
@@ -1382,16 +1586,40 @@ NR == FNR {
 END {
     for (k in bsec) {
         if (!(k in asec)) {
-            if (k in exc) { excused++; used[k] = 1; printf "  EXCEPTION     ONLY-BEFORE %s ## %s\n", k, exc[k]; continue }
-            if (borig[k] in exc) { excused++; used[borig[k]] = 1; printf "  EXCEPTION     ONLY-BEFORE %s ## %s\n", borig[k], exc[borig[k]]; continue }
+            ek = excfind(k, borig[k], "ONLY-BEFORE", 0)
+            if (ek != "") { excused++; used[ek] = 1; printf "  EXCEPTION     ONLY-BEFORE %s ## %s\n", ek, exc[ek]; continue }
             onlyb++
             printf "  ONLY-BEFORE   %s\n", k
             continue
         }
+        # A SECTION MOVE is reported on its own line, is excusable BY NAME on
+        # the same terms as DIFFERS -- and does NOT stop the body from being
+        # compared. Moving a function out of line necessarily moves it from its
+        # COMDAT `.text.<SYM>` into plain `.text`, so before M6 W5 T1 fix1 no
+        # exception set could make such a commit pass however well understood
+        # the move was, and the transcript said nothing about the instructions.
+        # It now carries the instruction and relocation verdict beside the
+        # section note. The exception key `<name> [SECTION]` excuses the MOVE
+        # alone; a plain-name entry excuses the move and is then SPENT, so a
+        # body that also differs is still a finding -- one exception, one
+        # finding, and the falsifier (change one instruction in a moved body)
+        # stays live.
         if (bsec[k] != asec[k]) {
-            printf "  SECTION-MOVED %s: %s -> %s\n", k, bsec[k], asec[k]
-            diff++
-            continue
+            ek = excfind(k, borig[k], "SECTION", 0)
+            secexc = ""
+            if (ek != "") {
+                excused++; used[ek] = 1; secexc = exc[ek]
+                # An UNqualified entry is now SPENT: it excused the move, and it
+                # no longer covers the body this comparison is about to make.
+                if (ek == k || ek == borig[k]) spent[k] = 1
+            }
+            if (secexc != "")
+                printf "  EXCEPTION     SECTION-MOVED %s: %s -> %s ## %s\n", k, bsec[k], asec[k], secexc
+            else {
+                printf "  SECTION-MOVED %s: %s -> %s\n", k, bsec[k], asec[k]
+                diff++
+            }
+            secmoved++
         }
         nreloc += brel[k] + 0
         nrelmap += brelmap[k] + 0
@@ -1415,12 +1643,9 @@ END {
             noise++
             if (k in bmapped) mapped++
             printf "  NOISE-ONLY    %s\n                %s\n", k, verdict
-        } else if (k in exc) {
-            excused++; used[k] = 1
-            printf "  EXCEPTION     DIFFERS %s ## %s\n", k, exc[k]
-        } else if (borig[k] in exc) {
-            excused++; used[borig[k]] = 1
-            printf "  EXCEPTION     DIFFERS %s ## %s\n", borig[k], exc[borig[k]]
+        } else if ((ek = excfind(k, borig[k], "DIFFERS", (k in spent))) != "") {
+            excused++; used[ek] = 1
+            printf "  EXCEPTION     DIFFERS %s ## %s\n", ek, exc[ek]
         } else {
             diff++
             printf "  DIFFERS       %s\n", k
@@ -1430,8 +1655,8 @@ END {
     }
     for (k in asec) {
         if (k in bsec) continue
-        if (k in exc) { excused++; used[k] = 1; printf "  EXCEPTION     ONLY-AFTER  %s ## %s\n", k, exc[k]; continue }
-        if (aorig[k] in exc) { excused++; used[aorig[k]] = 1; printf "  EXCEPTION     ONLY-AFTER  %s ## %s\n", aorig[k], exc[aorig[k]]; continue }
+        ek = excfind(k, aorig[k], "ONLY-AFTER", 0)
+        if (ek != "") { excused++; used[ek] = 1; printf "  EXCEPTION     ONLY-AFTER  %s ## %s\n", ek, exc[ek]; continue }
         onlya++
         printf "  ONLY-AFTER    %s\n", k
     }
@@ -1474,8 +1699,8 @@ END {
     close(f_mapused)
     printf "%d\t%d\n", nreloc + 0, nrelmap + 0 > f_relstat
     close(f_relstat)
-    printf "PERSYM %d identical, %d noise-only, %d differing, %d only-before, %d only-after, %d excepted, %d collisions, %d matched through the symbol map, %d with unequal trailing alignment padding, %d duplicate copies identical, %d rank-tagged, %d relocation records compared (%d through the symbol map)\n",
-           ident + 0, noise + 0, diff + 0, onlyb + 0, onlya + 0, excused + 0, coll + 0, mapped + 0, padtrim + 0, dupok + 0, nrank + 0, nreloc + 0, nrelmap + 0
+    printf "PERSYM %d identical, %d noise-only, %d differing, %d only-before, %d only-after, %d excepted, %d collisions, %d matched through the symbol map, %d with unequal trailing alignment padding, %d duplicate copies identical, %d rank-tagged, %d section moves, %d relocation records compared (%d through the symbol map)\n",
+           ident + 0, noise + 0, diff + 0, onlyb + 0, onlya + 0, excused + 0, coll + 0, mapped + 0, padtrim + 0, dupok + 0, nrank + 0, secmoved + 0, nreloc + 0, nrelmap + 0
     exit (diff + onlyb + onlya + coll > 0) ? 1 : 0
 }
 '
@@ -1507,20 +1732,80 @@ END {
 #   section, which needs no relocation), nothing is rewritten: the absolute
 #   target survives, and a split that moves the callee reports a DIFFERS. That
 #   is the conservative direction -- a false finding, never a masked one.
+#
+#   THE LABEL IS NOT A RELIABLE WITNESS, AND SINCE M6 W5 T1 fix1 IT IS NOT THE
+#   ONLY ONE. objdump names a target by the nearest symbol at or below its
+#   ADDRESS, and in a relocatable object every section starts at 0, so the
+#   nearest symbol by address can sit in a completely different section. A
+#   function alone in its COMDAT `.text.<SYM>` therefore gets its own end-of-
+#   body target -- the placeholder of a relocated `call`, which is just the
+#   next instruction -- labelled with whatever `.rodata` symbol happens to be
+#   at that offset, while the SAME instruction in plain `.text` is labelled
+#   `<SELF+off>`. That is a labelling artifact, not a code difference, and it
+#   is exactly what an inline-to-out-of-line move produces.
+#
+#   So the rule now has a second, address-based limb: a bare control-transfer
+#   target inside the ENCLOSING symbol's own address range is rendered
+#   `SELF+off` whatever objdump called it. The range is [symbol start, last
+#   instruction's address + 16] -- one maximum-length x86 instruction past the
+#   last instruction is the tightest end bound a disassembly listing alone
+#   affords, and the placeholder target of a trailing relocated call lands
+#   exactly there. This cannot equate two DIFFERENT callees: a bare target in a
+#   relocatable object is one the assembler resolved, which it only does within
+#   a section, and a sibling function in the same section is by construction
+#   OUTSIDE the enclosing symbol's range, so it is left absolute exactly as
+#   before. It needs the block to be buffered, which is why this awk holds one
+#   symbol at a time rather than streaming.
 # ---------------------------------------------------------------------------
 flatten_symbols() {
     awk '
+        # objdump labels a target by the nearest symbol at or below it, and in a
+        # COMDAT text section the candidates include the SECTION symbol, whose
+        # name is `.text.<the enclosing function it holds>`. A control transfer
+        # to the very end of such a function -- the placeholder target of a
+        # relocated call, which is simply the next instruction -- lands on the
+        # section boundary and gets labelled with the section rather than with
+        # the function. The section holds exactly that one function at offset 0,
+        # so the offset is the same number either way, and the label names the
+        # enclosing symbol just as much as a bare `<sym+off>` does. Treating it
+        # as SELF is what lets a function that moved out of its own COMDAT group
+        # match the same function inside plain `.text` (M6 W5 T1 fix1); a label
+        # naming SOME OTHER symbol or section is untouched.
+        function is_self_label(gname, cur) {
+            if (gname == cur) return 1
+            if (substr(gname, 1, 1) != "." || cur == "") return 0
+            if (length(gname) <= length(cur) + 1) return 0
+            return substr(gname, length(gname) - length(cur)) == "." cur
+        }
+        # Emits the buffered block, applying the address-based SELF rule now
+        # that the block s extent is known. btgt[i] is -1 for every line that
+        # carries no bare control-transfer target.
+        function flushblk(   i, l) {
+            for (i = 1; i <= nbuf; i++) {
+                l = buf[i]
+                if (btgt[i] >= sstart && btgt[i] <= imax + 16)
+                    sub(/[0-9a-f]+$/, sprintf("SELF+0x%x", btgt[i] - sstart), l)
+                printf "%s\t%s\t%s\n", btyp[i], curblk, l
+            }
+            nbuf = 0
+        }
         /^Disassembly of section / {
+            flushblk()
+            cur = ""
             sec = $0
             sub(/^Disassembly of section /, "", sec)
             sub(/:$/, "", sec)
             next
         }
         /^[0-9a-f]+ <.*>:$/ {
+            flushblk()
             name = $0
             sub(/^[0-9a-f]+ </, "", name)
             sub(/>:$/, "", name)
             cur = name
+            curblk = name
+            sstart = strtonum("0x" $1)
+            imax = sstart
             printf "S\t%s\t%s\n", cur, sec
             next
         }
@@ -1542,11 +1827,19 @@ flatten_symbols() {
                 radd = substr(rtarget, RSTART)
                 rtarget = substr(rtarget, 1, RSTART - 1)
             }
-            printf "R\t%s\t%s\t%s\t%s\n", cur, rtype, rtarget, radd
+            nbuf++
+            btyp[nbuf] = "R"
+            buf[nbuf] = rtype "\t" rtarget "\t" radd
+            btgt[nbuf] = -1
             next
         }
         /^ *[0-9a-f]+:\t/ {
             if (cur == "") next
+            ahex = $0
+            sub(/:.*$/, "", ahex)
+            gsub(/[ \t]/, "", ahex)
+            iaddr = strtonum("0x" ahex)
+            if (iaddr > imax) imax = iaddr
             line = $0
             sub(/^ *[0-9a-f]*:/, "", line)
             sub(/[ \t]+#.*$/, "", line)
@@ -1560,14 +1853,31 @@ flatten_symbols() {
                     gname = substr(grp, 1, p - 1)
                     goff = substr(grp, p)
                 }
-                if (gname == cur && line ~ /[ \t][0-9a-f]+[ \t]*<[^<>]*>[ \t]*$/) {
-                    sub(/[ \t]*<[^<>]*>[ \t]*$/, "", line)
-                    sub(/[0-9a-f]+$/, "SELF" goff, line)
+                if (line ~ /[ \t][0-9a-f]+[ \t]*<[^<>]*>[ \t]*$/) {
+                    if (is_self_label(gname, cur)) {
+                        sub(/[ \t]*<[^<>]*>[ \t]*$/, "", line)
+                        sub(/[0-9a-f]+$/, "SELF" goff, line)
+                    } else {
+                        # A bare target objdump labelled with SOME OTHER symbol.
+                        # Whether it is nonetheless inside this symbol is a
+                        # question about the block s extent, which is known only
+                        # once the block ends -- so record the address and let
+                        # flushblk() decide.
+                        tline = line
+                        sub(/[ \t]*<[^<>]*>[ \t]*$/, "", tline)
+                        if (match(tline, /[0-9a-f]+$/))
+                            tgt = strtonum("0x" substr(tline, RSTART, RLENGTH))
+                    }
                 }
             }
             sub(/[ \t]*<[^<>]*>[ \t]*$/, "", line)
-            printf "I\t%s\t%s\n", cur, line
+            nbuf++
+            btyp[nbuf] = "I"
+            buf[nbuf] = line
+            btgt[nbuf] = (tgt == "") ? -1 : tgt
+            tgt = ""
         }
+        END { flushblk() }
     ' "$1"
 }
 
@@ -1696,6 +2006,7 @@ do_compare() {
     local mapped_objects=0 unmatched_after=0 persym_objects=0 persym_pass=0
     local sym_matched=0 sym_mapped=0 sym_only_before=0 sym_only_after=0
     local sym_exception=0 sym_collision=0 sym_rank_tagged=0
+    local fam_ok=0 fam_diff=0 loc_before=0 loc_after=0
     local reloc_compared=0 reloc_mapped=0
     local rc=0
 
@@ -1795,6 +2106,10 @@ do_compare() {
             sym_exception=$((sym_exception + $(echo "${st}" | cut -f5)))
             sym_collision=$((sym_collision + $(echo "${st}" | cut -f6)))
             sym_rank_tagged=$((sym_rank_tagged + $(echo "${st}" | cut -f7)))
+            fam_ok=$((fam_ok + $(echo "${st}" | cut -f8)))
+            fam_diff=$((fam_diff + $(echo "${st}" | cut -f9)))
+            loc_before=$((loc_before + $(echo "${st}" | cut -f10)))
+            loc_after=$((loc_after + $(echo "${st}" | cut -f11)))
             if [ "${sym_rc}" -ne 0 ]; then
                 rc=1
                 echo "SYMBOLS     ${rel}: COVERAGE FINDINGS"
@@ -2022,7 +2337,7 @@ do_compare() {
         echo "               (a false finding, never a masked one), but read such a finding by hand."
     fi
     echo "P-SYM: ${total} objects — ${identical} byte-identical, ${noise} differing within the accepted noise class, ${unclassified} with unclassified differences, ${moved} matched by basename after a path move, ${missing} missing"
-    echo "P-SYM coverage: ${mapped_objects} objects matched through the object map, ${persym_objects} compared per symbol, ${persym_pass} objects passed per symbol, ${unmatched_after} after-arm objects unaccounted for; symbols — ${sym_matched} matched (${sym_mapped} through the symbol map), ${sym_only_before} only-before, ${sym_only_after} only-after, ${sym_exception} excepted, ${sym_collision} collisions, ${sym_rank_tagged} rank-tagged, ${stale} stale exceptions, ${stale_map} stale map entries; relocations — ${reloc_compared} records compared (${reloc_mapped} through the symbol map)"
+    echo "P-SYM coverage: ${mapped_objects} objects matched through the object map, ${persym_objects} compared per symbol, ${persym_pass} objects passed per symbol, ${unmatched_after} after-arm objects unaccounted for; symbols — ${sym_matched} matched (${sym_mapped} through the symbol map), ${sym_only_before} only-before, ${sym_only_after} only-after, ${sym_exception} excepted, ${sym_collision} collisions, ${sym_rank_tagged} rank-tagged, ${stale} stale exceptions, ${stale_map} stale map entries; compiler-local label families — ${fam_ok} matched by count, ${fam_diff} differing (${loc_before} before-arm and ${loc_after} after-arm symbols accounted by family); relocations — ${reloc_compared} records compared (${reloc_mapped} through the symbol map)"
     if [ "${rc}" -eq 0 ]; then
         echo "P-SYM: PASS — read the DELTAS summaries above before accepting (see this script's header)"
     else
