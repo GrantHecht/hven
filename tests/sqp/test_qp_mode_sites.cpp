@@ -258,9 +258,9 @@ TEST(QpModeSites, TheLadderRungCountIsTheClimbAndNotTheMajorCount) {
 // It is no loophole: a bare call carries no marker, so it becomes an EMITTING
 // site and must find an emit of its own.
 //
-// TWO NEGATIVE PROBES the previous, window-based rule ACCEPTED and this one
-// rejects. Both were run against a mutated copy of the driver and both now
-// fail; neither mutant is committed.
+// THREE NEGATIVE PROBES earlier rules ACCEPTED and this one rejects. Each was
+// run against a mutated copy of the driver and each now fails; no mutant is
+// committed.
 //
 //   (a) A SECOND BARE CALL. Insert `(void)engine.solve(qp, overrides);` on the
 //       line after `certified_feasibility_fallback`'s unfired-path walk.
@@ -284,9 +284,45 @@ TEST(QpModeSites, TheLadderRungCountIsTheClimbAndNotTheMajorCount) {
 //       It fails TWICE: the malformed check names the line, and the pairing then
 //       reports its call site ("sqp_driver.cpp:4131: ... found 0") as uncovered.
 //
+//   (c) A CALL SHARING A MARKER'S WINDOW (fix round 2, I-1). Plant
+//       `const QpSolution extra = engine_.solve(qp, ipqp_overrides);` ONE line
+//       below the marked `refine_on_face` at :4132.
+//
+//       That is three lines below the marker itself, so inside `kMarkerBefore`.
+//       Fix round 1 PASSED it at one and at two lines below, with the silent
+//       list still printing (4).
+//
+//       The upward search bound the SAME marker to both calls, so both dropped
+//       out of the pairing; only at five lines below -- outside the window --
+//       did it fail.
+//
+//       The binding is now ONE-TO-ONE: the marker is consumed by its nearest
+//       site below (the refine call), so the planted call is unclaimed and
+//       therefore EMITTING.
+//
+//       All three offsets now fail alike, with "sqp_driver.cpp:4133: expected
+//       exactly 1 qp.mode emit ... found 0".
+//
 // WHAT IT DELIBERATELY DOES NOT DO. It does not parse C++. It reads LINES, skips
 // comment lines when looking for invocations, and asks one counting question per
 // call site.
+//
+// THREE LIMITS OF THAT, stated rather than discovered:
+//
+//   1. A SHAPE MATCHER SEES ONLY THE SHAPES IT KNOWS. A kernel reached through a
+//      wrapper whose call does not read `.solve(` / `->solve(` /
+//      `.refine_on_face(` is invisible here.
+//
+//   2. THE COUNT IS TEXTUAL, NOT DYNAMIC. The kIpm arm's single written emit
+//      (inside `emit_ipqp_route_and_mode`) fires once per ROUTE at run time, so
+//      the scan sees one emit and family (i) checks the per-route count.
+//
+//   3. THE COMMENT SKIP IS PER LINE, NOT PER TOKEN. `is_call_line` and
+//      `is_emit_call` skip only FULL-line comments, so a trailing comment on a
+//      code line that names an emit helper counts as an emit.
+//
+//      And `is_emit_call`'s `"void "` test is a HEURISTIC for "this is a
+//      definition" that a future call could trip.
 //
 // A NEW MARKER IS A THING TO QUESTION, not to accept: it says a kernel runs and
 // writes nothing. The test PRINTS every marker with its reason so a reviewer
@@ -412,18 +448,83 @@ std::vector<CallSite> call_sites(const std::vector<std::string> &lines) {
     return out;
 }
 
+/// Every well-formed marker in the file, with wrapped reasons joined so the
+/// printed list is worth reading, and every line that CLAIMS to be a marker
+/// without being one.
+struct MarkerScan {
+    std::vector<Marker> markers;
+    std::vector<std::string> malformed;
+};
+
+MarkerScan scan_markers(const std::vector<std::string> &lines) {
+    MarkerScan out;
+    for (std::size_t i = 0; i < lines.size(); ++i) {
+        const std::string r = marker_reason(lines[i]);
+        if (r.empty()) {
+            if (claims_to_be_marker(lines[i])) {
+                out.malformed.push_back(std::to_string(i + 1) + ": " + lines[i]);
+            }
+            continue;
+        }
+        Marker m{static_cast<int>(i) + 1, r};
+        for (std::size_t j = i + 1;
+             j < lines.size() && is_comment_line(lines[j]) && marker_reason(lines[j]).empty() &&
+             !claims_to_be_marker(lines[j]);
+             ++j) {
+            const std::string t = rstrip(lines[j]);
+            const std::string body = t.substr(t.find("//") + 2);
+            const auto nb = body.find_first_not_of(" \t");
+            if (nb == std::string::npos) {
+                break;
+            }
+            m.reason += " " + body.substr(nb);
+        }
+        out.markers.push_back(m);
+    }
+    return out;
+}
+
 /// How far ABOVE a call site's first line a marker binds to it.
 constexpr int kMarkerBefore = 4;
 
-/// The marker bound to this call site, or -1. A marker binds to at most one
-/// site: the search is downward from the marker, and the nearest site wins.
-int marker_for(const std::vector<std::string> &lines, const CallSite &site) {
-    for (int j = site.first - 2; j >= site.first - 1 - kMarkerBefore && j >= 0; --j) {
-        if (!marker_reason(lines[static_cast<std::size_t>(j)]).empty()) {
-            return j + 1;
+/// The one-to-one marker-to-site binding, built ONCE for the whole file.
+///
+/// ONE MARKER, ONE SITE (fix round 2, I-1). The first version searched UPWARD
+/// from each call independently, so two calls within `kMarkerBefore` lines of
+/// the same marker BOTH bound to it and both dropped out of the pairing -- the
+/// borrow-your-neighbour's-emit hole reappearing on the marker arm. Probe (c)
+/// is that mutation.
+///
+/// The search now runs DOWNWARD from each marker, in file order, and the marker
+/// is CONSUMED by the nearest unclaimed site below it. A second call in the same
+/// window is unclaimed, therefore EMITTING, and must pair with an emit of its
+/// own.
+struct MarkerBinding {
+    /// Per call site: the line of the marker that claimed it, or -1.
+    std::vector<int> marker_of_site;
+    /// Markers that claimed no site -- decoration that has drifted from the call
+    /// it once explained.
+    std::vector<Marker> orphans;
+};
+
+MarkerBinding bind_markers(const std::vector<CallSite> &sites, const std::vector<Marker> &markers) {
+    MarkerBinding b;
+    b.marker_of_site.assign(sites.size(), -1);
+    for (const Marker &m : markers) {
+        bool claimed = false;
+        for (std::size_t k = 0; k < sites.size() && !claimed; ++k) {
+            if (b.marker_of_site[k] >= 0 || sites[k].first <= m.line ||
+                sites[k].first - m.line > kMarkerBefore) {
+                continue;
+            }
+            b.marker_of_site[k] = m.line; // the NEAREST unclaimed site wins
+            claimed = true;
+        }
+        if (!claimed) {
+            b.orphans.push_back(m);
         }
     }
-    return -1;
+    return b;
 }
 
 TEST(QpModeSiteScan, TheScanActuallyReadsTheDriverAndFindsItsKernelCalls) {
@@ -449,34 +550,9 @@ TEST(QpModeSiteScan, TheScanActuallyReadsTheDriverAndFindsItsKernelCalls) {
 
     // BOTH COVERAGE KINDS MUST BE IN USE, or a rule that only ever sees one of
     // them is not the rule this file claims to enforce.
-    std::vector<Marker> markers;
-    std::vector<std::string> malformed;
-    for (std::size_t i = 0; i < lines.size(); ++i) {
-        const std::string r = marker_reason(lines[i]);
-        if (r.empty()) {
-            if (claims_to_be_marker(lines[i])) {
-                malformed.push_back(std::to_string(i + 1) + ": " + lines[i]);
-            }
-            continue;
-        }
-        // A reason may WRAP, and the printed list is worth reading, so the
-        // continuation comment lines below it join it.
-        Marker m{static_cast<int>(i) + 1, r};
-        for (std::size_t j = i + 1;
-             j < lines.size() && is_comment_line(lines[j]) && marker_reason(lines[j]).empty() &&
-             !claims_to_be_marker(lines[j]);
-             ++j) {
-            const std::string t = rstrip(lines[j]);
-            const auto b = t.find("//");
-            const std::string body = t.substr(b + 2);
-            const auto nb = body.find_first_not_of(" \t");
-            if (nb == std::string::npos) {
-                break;
-            }
-            m.reason += " " + body.substr(nb);
-        }
-        markers.push_back(m);
-    }
+    const MarkerScan ms = scan_markers(lines);
+    const std::vector<Marker> &markers = ms.markers;
+    const std::vector<std::string> &malformed = ms.malformed;
     EXPECT_GE(markers.size(), 4u) << "no silent markers found -- that arm of the rule is dead";
 
     // AND NO LINE MAY CLAIM TO BE A MARKER WITHOUT BEING ONE. An empty or
@@ -503,25 +579,19 @@ TEST(QpModeSiteScan, TheScanActuallyReadsTheDriverAndFindsItsKernelCalls) {
         listing += "\n  sqp_driver.cpp:" + std::to_string(m.line) + "  " + m.reason;
     }
     std::cout << "qp.mode SILENT CALL SITES (" << markers.size() << "):" << listing << "\n";
-    // Every marker must bind to a call site, or it is decoration that has drifted
-    // away from the call it once explained.
-    std::vector<std::string> orphans;
-    for (const Marker &m : markers) {
-        bool bound = false;
-        for (const CallSite &s : sites) {
-            bound = bound || marker_for(lines, s) == m.line;
-        }
-        if (!bound) {
-            orphans.push_back("sqp_driver.cpp:" + std::to_string(m.line) + "  " + m.reason);
-        }
-    }
+    // Every marker must CONSUME a call site, or it is decoration that has drifted
+    // away from the call it once explained. The binding is one-to-one, so this
+    // reads it rather than re-deriving it.
+    const MarkerBinding binding = bind_markers(sites, markers);
     std::string orphan_report;
-    for (const std::string &o : orphans) {
-        orphan_report += "\n  " + o;
+    for (const Marker &m : binding.orphans) {
+        orphan_report += "\n  sqp_driver.cpp:" + std::to_string(m.line) + "  " + m.reason;
     }
-    EXPECT_TRUE(orphans.empty()) << "a silent marker must sit within " << kMarkerBefore
-                                 << " lines above the call it explains; these bind to no call:"
-                                 << orphan_report;
+    EXPECT_TRUE(binding.orphans.empty())
+        << "a silent marker must sit within " << kMarkerBefore
+        << " lines above the call it explains, and CONSUMES that one call. These claimed none "
+           "-- either they have drifted, or a nearer call took the marker they were written for:"
+        << orphan_report;
 }
 
 TEST(QpModeSiteScan, EveryKernelCallSitePairsWithItsOwnQpModeEmit) {
@@ -537,16 +607,21 @@ TEST(QpModeSiteScan, EveryKernelCallSitePairsWithItsOwnQpModeEmit) {
         return n;
     };
 
-    // THE EMITTING SITES, in file order. A site marked silent drops out here and
-    // consumes nothing; its marker is checked, printed and bound by the test
+    // THE EMITTING SITES, in file order. A site that CONSUMED a marker drops out
+    // here and pays nothing; its marker is checked, printed and bound by the test
     // above, so it is accounted for -- just not by the emit count.
+    //
+    // The binding is ONE-TO-ONE (fix round 2), so a second call sharing a
+    // marker's window does not share its silence: it is emitting, and it lands
+    // in this list.
+    const MarkerBinding binding = bind_markers(sites, scan_markers(lines).markers);
     std::vector<CallSite> emitting;
     Index silent = 0;
-    for (const CallSite &s : sites) {
-        if (marker_for(lines, s) >= 0) {
+    for (std::size_t k = 0; k < sites.size(); ++k) {
+        if (binding.marker_of_site[k] >= 0) {
             ++silent;
         } else {
-            emitting.push_back(s);
+            emitting.push_back(sites[k]);
         }
     }
     ASSERT_FALSE(emitting.empty());

@@ -35,6 +35,11 @@ enum class IpqpTraceQpMode { kIpqp, kWalk, kSsn };
 enum class IpqpTraceOutcome { kOptimal, kRouted, kEscaped };
 /// WHICH CALL SITE ran this kernel (schema `qp.mode`'s `site`, M6 W4 T5).
 ///
+/// NAMED WITHOUT THIS HEADER'S `IpqpTrace` PREFIX, deliberately and as the ODD
+/// ONE OUT today: W5's registered rename moves this interface out of
+/// `detail/qp/` and drops that prefix, so this is the target spelling arriving
+/// early rather than an oversight. Registered with that rename.
+///
 /// `kDispatch` is the major's own dispatch -- the walk invocation, the kSsn arm,
 /// and the kIpm arm's routing chain -- and is the only site whose count is one
 /// per major. The other four run INSIDE a dispatch arm that has already written

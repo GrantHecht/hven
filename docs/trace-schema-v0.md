@@ -205,15 +205,16 @@ whole depth-1 solve, and a reader joining on `seq` must expect it.
   `escaped` on a genuine escape to the walk.
 
 **THE FIVE SITES, and the counter each reconciles against.** Every kernel
-invocation in `src/drivers/sqp_driver.cpp` writes a line; the list is held in
-place by a SOURCE SCAN (`tests/sqp/test_qp_mode_sites.cpp`) that fails when a
-call site is added without an emit or an explicit `// trace:` marker.
+invocation the dispatch CHOOSES BETWEEN writes a line — the two exclusions below
+are the whole of the difference — and the list is held in place by a SOURCE SCAN
+(`tests/sqp/test_qp_mode_sites.cpp`) that fails when a call site is added without
+an emit of its own or an explicit `// trace: qp.mode silent -- <reason>` marker.
 
 | `site` | the call | count identity |
 |---|---|---|
 | `dispatch` | the major's own arm: the walk invocation, the kSsn arm, the kIpm routing chain | between 1 and 2 per major with `qp_solved` — one for the arm, one more when an arm hands off to the walk |
 | `ssn_warm_grade` | `route_through_ssn_warm_grade`'s SSN call | `== ipqp_to_ssn` |
-| `fallback_rung_b` | `certified_feasibility_fallback`'s cold walk, at both return sites | `== unfired entries + ipqp_fallback_rung_b` |
+| `fallback_rung_b` | `certified_feasibility_fallback`'s cold walk, at both return sites | `== unfired entries + ipqp_fallback_rung_b` — the first term is a STREAM quantity, the `fallback.verdict` lines reading `unfired`, not a counter; §4.11 gives it in counters |
 | `elastic_rung` | `run_elastic_ladder`'s walk, ONCE PER RUNG | `== elastic_activations + elastic_escalations` |
 | `soc_resolve` | the second-order correction's re-solve | `== soc_steps` |
 
@@ -532,9 +533,9 @@ non-additive is v1.
 | `ipqp.escape` | W4 T1 | — |
 | `fallback.verdict` | W4 T1 | — |
 | `qp.mode` | W4 T1 | T2 (the `walk` / `ssn` mode strings); **T5 (the trailing `site` key)** |
-| `sqp.major` | **W4 T5** | added T2; T3 (six activity fields, §6) |
-| `sqp.solve.begin` | **W4 T5** | added T2 |
-| `sqp.solve.end` | **W4 T5** | added T2; T3 (four folds, through the counters tables) |
+| `sqp.major` | **W4 T5** | added T2; T2 fix1 (the lower-snake enum spellings its `qp_status` / `verdict` keys share with `sqp.solve.end`); T3 (six activity fields, §6) |
+| `sqp.solve.begin` | **W4 T5** | added T2; T2 fix1 (the lower-snake enum spellings its `qp_mode` / `ws_algebra` keys carry) |
+| `sqp.solve.end` | **W4 T5** | added T2; **T2 fix1** (the lower-snake enum spellings, `StartLevel` `cold\|seeded\|warm\|hot` included, over core's PascalCase display form; and the three absence sentinels serializing as `null` — §5); T3 (four folds, through the counters tables) |
 | `ipm.iter` | **W4 T5** | added T4; T4 fix1 (`p_pivots` and `h_facs` null sentinels) |
 | `ipm.solve.begin` | **W4 T5** | added T4 |
 | `ipm.solve.end` | **W4 T5** | added T4 |

@@ -99,11 +99,17 @@ asserts it is written to run there.
 
 ## 2. The telemetry census — the first per-family reading M7 starts from
 
-`telemetry-census-rows.csv` (770 rows, one per major) and
+`telemetry-census-rows.csv` (770 rows, one per exported history row) and
 `telemetry-census-cells.csv` (81 cells: the 27 shipped HS models × three QP
 modes). The row file carries the six W4 T3 activity fields verbatim; the cell
 file carries the four `SqpCounters` folds beside the per-site `qp.mode` counts
 and the counters they are checked against.
+
+**`majors` (cell column 4) is `SqpCounters::major_iters`, and it is NOT the row
+count.** Each cell has exactly ONE more row than majors — 770 rows against 689
+summed majors, +1 × 81 — because the final converged iterate is pushed as a row
+of its own. A reader recomputing "rows per cell == majors" gets 81 mismatches;
+that is the off-by-one, not a defect.
 
 | reading | over the 81 cells |
 |---|---|
@@ -212,9 +218,18 @@ clang++ -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -fPIE -Wabsolute-value -pthread 
         -o trace-exemplar-probe
 ```
 
-Run it as `MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 taskset -c 2 ./trace-exemplar-probe
-<this directory> <a provenance header file>`; it writes the four exemplars and
-the two census CSVs, each behind the header it is handed.
+Run it as `mkdir -p <out>/exemplars && MKL_NUM_THREADS=1 OMP_NUM_THREADS=1
+taskset -c 2 ./trace-exemplar-probe <out> <a provenance header file>`; it writes
+the four exemplars and the two census CSVs, each behind the header it is handed.
+
+**The `mkdir -p` is required, not decorative.** The probe opens each exemplar
+with a plain `ofstream` and does not create the directory: into a fresh output
+directory without `exemplars/`, the four exemplar writes fail SILENTLY while the
+probe still prints their line counts and exits 0. The probe itself is left
+unchanged because its sha256-16 is pinned in every artifact's provenance header;
+editing it would invalidate that pin and force a re-run of everything for a
+usability fix. REGISTERED for whoever next touches the probe:
+`create_directories` plus an `if (!out) abort` at each open.
 
 The probe includes `tests/sqp/support/hs_problems.h` rather than copying the
 fixtures. The interior-point cell is the exception it cannot avoid: `NLPProblem`
