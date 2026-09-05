@@ -89,9 +89,9 @@ struct NLPSolver final {
     ///
     /// Construction order is the folded base's, argument steal included: the
     /// optimizer is made and the default partitioning applied first, and
-    /// @p problem is moved into this solver only after that -- so a caller
-    /// whose make_shared throws still owns its problem, exactly as before the
-    /// fold.
+    /// @p problem is moved into this solver only after that -- so an LVALUE
+    /// caller whose make_shared throws still holds its own reference (a sole
+    /// owner handed over by std::move was already empty), as before the fold.
     ///
     /// @throws std::invalid_argument if @p problem is null.
     explicit NLPSolver(std::shared_ptr<NLPProblem> problem);
