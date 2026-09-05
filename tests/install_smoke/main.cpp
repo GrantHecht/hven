@@ -39,7 +39,7 @@ struct Hs071Problem : hven::solvers::NLPProblem {
         f = x[0] * x[3] * (x[0] + x[1] + x[2]) + x[2];
     }
     void eval_grad_f(hven::ConstEigenRef<Eigen::VectorXd> x,
-                      Eigen::Ref<Eigen::VectorXd> g) const override {
+                     Eigen::Ref<Eigen::VectorXd> g) const override {
         g[0] = x[3] * (2.0 * x[0] + x[1] + x[2]);
         g[1] = x[0] * x[3];
         g[2] = x[0] * x[3] + 1.0;
@@ -51,12 +51,12 @@ struct Hs071Problem : hven::solvers::NLPProblem {
         g[1] = x[0] * x[0] + x[1] * x[1] + x[2] * x[2] + x[3] * x[3];
     }
     void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
+                       Eigen::Ref<Eigen::VectorXi> c) const override {
         r << 0, 0, 0, 0, 1, 1, 1, 1;
         c << 0, 1, 2, 3, 0, 1, 2, 3;
     }
     void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                         Eigen::Ref<Eigen::VectorXi> c) const override {
+                        Eigen::Ref<Eigen::VectorXi> c) const override {
         r << 0, 1, 1, 2, 2, 2, 3, 3, 3, 3;
         c << 0, 0, 1, 0, 1, 2, 0, 1, 2, 3;
     }
@@ -90,7 +90,31 @@ struct Hs071Problem : hven::solvers::NLPProblem {
 };
 } // namespace
 
+// The standalone-include TUs (M6 W5 T0), summed so the six objects are LINKED
+// and not merely compiled: a header that compiles alone but needs a symbol the
+// installed libhven.a does not export is equally broken, and only a link says so.
+namespace hven_install_smoke {
+int standalone_include_trace_writer();
+int standalone_include_ipqp_trace();
+int standalone_include_nlp_problem();
+int standalone_include_nlp_aggregate();
+int standalone_include_aggregate_declaration();
+int standalone_include_nlp_model_aggregate();
+} // namespace hven_install_smoke
+
 int main() {
+    const int standalone_tus = hven_install_smoke::standalone_include_trace_writer() +
+                               hven_install_smoke::standalone_include_ipqp_trace() +
+                               hven_install_smoke::standalone_include_nlp_problem() +
+                               hven_install_smoke::standalone_include_nlp_aggregate() +
+                               hven_install_smoke::standalone_include_aggregate_declaration() +
+                               hven_install_smoke::standalone_include_nlp_model_aggregate();
+    if (standalone_tus != 6) {
+        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 6\n",
+                     standalone_tus);
+        return 1;
+    }
+
     hven::solvers::NLPSolver solver(std::make_shared<Hs071Problem>());
 
     Eigen::VectorXd x0(4);
@@ -115,7 +139,8 @@ int main() {
         return 1;
     }
 
-    std::printf("install smoke: hven::solvers::NLPSolver converged, objective = %.7f (OK)\n",
-                f_actual);
+    std::printf("install smoke: hven::solvers::NLPSolver converged, objective = %.7f (OK); "
+                "%d standalone-include TUs compiled and linked\n",
+                f_actual, standalone_tus);
     return 0;
 }
