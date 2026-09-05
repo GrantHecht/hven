@@ -28,6 +28,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <sstream>
@@ -243,14 +244,69 @@ TEST(QpModeSites, TheLadderRungCountIsTheClimbAndNotTheMajorCount) {
 // `qp.mode` line -- leaving the schema document quietly wrong about what the
 // stream reconciles against. This test is the thing that fails.
 //
-// WHAT IT DOES NOT DO. It does not parse C++. It reads LINES, skips comment
-// lines when looking for invocations, and asks one question per invocation:
-// is there an emit close after it, or an explicit marker beside it?
+// THE RULE IS COUNT-MATCHED PAIRING IN FILE ORDER, not "some emit nearby"
+// (fix round 1, astra's F1). Between one EMITTING kernel call site and the next
+// there is EXACTLY ONE `qp.mode` emit.
+//
+// So every emit is consumed by exactly one call, and a call that borrows its
+// neighbour's emit fails.
+//
+// A SITE MARKED SILENT IS TRANSPARENT to that count: it consumes no emit, which
+// is what "silent" means. The kSsn arm needs this -- its own emit is written at
+// the end of the arm, past two `refine_on_face` calls silent by kind.
+//
+// It is no loophole: a bare call carries no marker, so it becomes an EMITTING
+// site and must find an emit of its own.
+//
+// TWO NEGATIVE PROBES the previous, window-based rule ACCEPTED and this one
+// rejects. Both were run against a mutated copy of the driver and both now
+// fail; neither mutant is committed.
+//
+//   (a) A SECOND BARE CALL. Insert `(void)engine.solve(qp, overrides);` on the
+//       line after `certified_feasibility_fallback`'s unfired-path walk.
+//
+//       The old rule PASSED it: the emit two lines below was inside its 20-line
+//       window and covered both calls.
+//
+//       The new rule sees two EMITTING sites with ZERO emits between the first
+//       and the second, and fails naming the FIRST -- "sqp_driver.cpp:1169:
+//       expected exactly 1 qp.mode emit ... found 0".
+//
+//   (b) AN EMPTY MARKER. Truncate one silent marker to
+//       `// trace: qp.mode silent --`.
+//
+//       The old rule matched the prefix and ACCEPTED it, so the call it covered
+//       vanished from the check.
+//
+//       A reason must now carry at least `kMinReason` non-space characters, so
+//       the truncated line is not a marker.
+//
+//       It fails TWICE: the malformed check names the line, and the pairing then
+//       reports its call site ("sqp_driver.cpp:4131: ... found 0") as uncovered.
+//
+// WHAT IT DELIBERATELY DOES NOT DO. It does not parse C++. It reads LINES, skips
+// comment lines when looking for invocations, and asks one counting question per
+// call site.
+//
+// A NEW MARKER IS A THING TO QUESTION, not to accept: it says a kernel runs and
+// writes nothing. The test PRINTS every marker with its reason so a reviewer
+// sees the whole silent list without opening the driver.
 
-/// One kernel invocation, with enough context to name it in a failure message.
-struct Invocation {
-    int line = 0; // 1-based
-    std::string text;
+/// A maximal run of consecutive call LINES that form one invocation expression.
+///
+/// The run extends only across a line that does NOT end in `;` -- the walk
+/// dispatch's four-armed ternary is one site spread over four lines, while a
+/// second statement beside an existing call is its own site, which is exactly
+/// what probe (a) turns on.
+struct CallSite {
+    int first = 0; // 1-based
+    int last = 0;
+    std::string text; // the first line, for the failure message
+};
+
+struct Marker {
+    int line = 0;
+    std::string reason;
 };
 
 std::vector<std::string> read_driver_source() {
@@ -269,11 +325,33 @@ bool is_comment_line(const std::string &l) {
     return first != std::string::npos && l.compare(first, 2, "//") == 0;
 }
 
+std::string rstrip(const std::string &l) {
+    const auto e = l.find_last_not_of(" \t\r");
+    return e == std::string::npos ? std::string() : l.substr(0, e + 1);
+}
+
+/// A KERNEL INVOCATION LINE, matched by SHAPE rather than by a receiver list:
+/// any `.solve(` / `->solve(` / `.refine_on_face(` in a code line. Matching by
+/// shape is the fail-safe direction -- a call through a receiver nobody
+/// anticipated is CAUGHT rather than missed.
+///
+/// ONE EXCLUSION, and it is by kind: `sub.solve(...)` is the restoration
+/// sub-driver, a whole nested SQP solve that writes its own stream at depth 1
+/// (its own dispatch lines included), not a kernel this driver dispatches to.
+bool is_call_line(const std::string &l) {
+    if (is_comment_line(l)) {
+        return false;
+    }
+    const bool call = l.find(".solve(") != std::string::npos ||
+                      l.find("->solve(") != std::string::npos ||
+                      l.find(".refine_on_face(") != std::string::npos;
+    return call && l.find("sub.solve(") == std::string::npos;
+}
+
 /// AN EMIT **CALL**, not the emit helper's own definition. Without this the
-/// window would count `void SqpDriver::emit_trace_qp_mode(...) {` as coverage
-/// for anything within 20 lines of it -- proven by mutation: a bare
-/// `e.solve(q, ...)` planted beside that definition passed the rule until this
-/// predicate was added.
+/// count would treat `void SqpDriver::emit_trace_qp_mode(...) {` as an emit --
+/// proven by mutation before fix round 1, when a bare call planted beside that
+/// definition passed.
 bool is_emit_call(const std::string &l) {
     if (is_comment_line(l)) {
         return false;
@@ -285,47 +363,68 @@ bool is_emit_call(const std::string &l) {
     return l.find("void ") == std::string::npos; // a definition, not a call
 }
 
-/// The two SANCTIONED marker forms. Anything else spelled `// trace:` is a typo
-/// or a new convention, and either way must not satisfy the rule silently.
-bool is_trace_marker(const std::string &l) {
-    return l.find("// trace: qp.mode") != std::string::npos ||
-           l.find("// trace: silent -- ") != std::string::npos;
+/// THE ONE SANCTIONED MARKER FORM: `// trace: qp.mode silent -- <reason>`, with
+/// at least `kMinReason` non-space characters of reason. An empty or
+/// whitespace-only reason is NOT a marker -- probe (b).
+constexpr std::size_t kMinReason = 3;
+constexpr std::string_view kMarkerPrefix = "// trace: qp.mode silent --";
+
+/// Does this line CLAIM to be a marker? Any `// trace:` line does, which is what
+/// makes a malformed one a loud failure rather than a silent non-match.
+bool claims_to_be_marker(const std::string &l) { return l.find("// trace:") != std::string::npos; }
+
+/// The reason text, or empty when the line is not a well-formed marker.
+std::string marker_reason(const std::string &l) {
+    const auto p = l.find(kMarkerPrefix);
+    if (p == std::string::npos) {
+        return {};
+    }
+    std::string r = rstrip(l.substr(p + kMarkerPrefix.size()));
+    const auto b = r.find_first_not_of(" \t");
+    if (b == std::string::npos) {
+        return {};
+    }
+    r = r.substr(b);
+    return r.size() >= kMinReason ? r : std::string();
 }
 
-/// THE KERNEL INVOCATIONS, matched by SHAPE rather than by a receiver list: any
-/// `.solve(` / `->solve(` / `.refine_on_face(` in a code line. Matching by shape
-/// is the fail-safe direction -- a call through a receiver nobody anticipated is
-/// CAUGHT rather than missed.
-///
-/// ONE EXCLUSION, and it is by kind: `sub.solve(...)` is the restoration
-/// sub-driver, a whole nested SQP solve that writes its own stream at depth 1
-/// (its own dispatch lines included), not a kernel this driver dispatches to.
-std::vector<Invocation> kernel_invocations(const std::vector<std::string> &lines) {
-    std::vector<Invocation> out;
-    for (std::size_t i = 0; i < lines.size(); ++i) {
-        const std::string &l = lines[i];
-        if (is_comment_line(l)) {
+std::vector<CallSite> call_sites(const std::vector<std::string> &lines) {
+    std::vector<CallSite> out;
+    for (std::size_t i = 0; i < lines.size();) {
+        if (!is_call_line(lines[i])) {
+            ++i;
             continue;
         }
-        const bool is_call = l.find(".solve(") != std::string::npos ||
-                             l.find("->solve(") != std::string::npos ||
-                             l.find(".refine_on_face(") != std::string::npos;
-        if (!is_call || l.find("sub.solve(") != std::string::npos) {
-            continue;
+        CallSite s;
+        s.first = static_cast<int>(i) + 1;
+        s.text = lines[i];
+        std::size_t j = i;
+        // Extend across a continuation only: a line ending in `;` closes the
+        // statement, so the next call is a site of its own.
+        while (!rstrip(lines[j]).ends_with(';') && j + 1 < lines.size() &&
+               is_call_line(lines[j + 1])) {
+            ++j;
         }
-        out.push_back(Invocation{static_cast<int>(i) + 1, l});
+        s.last = static_cast<int>(j) + 1;
+        out.push_back(s);
+        i = j + 1;
     }
     return out;
 }
 
-/// How far after an invocation an emit still counts as ITS emit. Wide enough
-/// for the accumulate block that follows every kernel call, narrow enough that
-/// a distant emit belonging to some other site cannot stand in -- and where an
-/// arm genuinely defers its line further than this, the marker form is what
-/// says so.
-constexpr int kEmitWindow = 20;
-/// How far BEFORE (and one line after) an invocation a marker binds to it.
+/// How far ABOVE a call site's first line a marker binds to it.
 constexpr int kMarkerBefore = 4;
+
+/// The marker bound to this call site, or -1. A marker binds to at most one
+/// site: the search is downward from the marker, and the nearest site wins.
+int marker_for(const std::vector<std::string> &lines, const CallSite &site) {
+    for (int j = site.first - 2; j >= site.first - 1 - kMarkerBefore && j >= 0; --j) {
+        if (!marker_reason(lines[static_cast<std::size_t>(j)]).empty()) {
+            return j + 1;
+        }
+    }
+    return -1;
+}
 
 TEST(QpModeSiteScan, TheScanActuallyReadsTheDriverAndFindsItsKernelCalls) {
     // THE VACUOUS-PASS GUARD, and it comes first for the reason
@@ -337,83 +436,161 @@ TEST(QpModeSiteScan, TheScanActuallyReadsTheDriverAndFindsItsKernelCalls) {
     const std::vector<std::string> lines = read_driver_source();
     ASSERT_GT(lines.size(), 1000u) << "the driver TU is far shorter than it should be";
 
-    const std::vector<Invocation> calls = kernel_invocations(lines);
-    // NINE distinct sites at W4 T5 (the four-way ternary counts as four lines):
-    // the ladder rung, rung B twice, the kSsn arm, the tier, the walk ternary,
-    // the SOC re-solve, the warm grade, and four `refine_on_face` calls.
-    EXPECT_GE(calls.size(), 12u) << "the scan found only " << calls.size()
-                                 << " kernel invocations in the driver, which means the reader is "
+    const std::vector<CallSite> sites = call_sites(lines);
+    EXPECT_GE(sites.size(), 10u) << "the scan found only " << sites.size()
+                                 << " kernel call sites in the driver, which means the reader is "
                                     "broken, not that the driver stopped solving QPs";
+
+    Index emits = 0;
+    for (const std::string &l : lines) {
+        emits += is_emit_call(l) ? 1 : 0;
+    }
+    EXPECT_GE(emits, 5) << "no qp.mode emits found -- the pairing rule would be vacuous";
 
     // BOTH COVERAGE KINDS MUST BE IN USE, or a rule that only ever sees one of
     // them is not the rule this file claims to enforce.
-    int markers = 0;
-    for (const std::string &l : lines) {
-        markers += is_trace_marker(l) ? 1 : 0;
-    }
-    EXPECT_GE(markers, 4) << "no `// trace:` markers found -- the marker arm of the rule is dead";
-
-    // AND NO MARKER MAY BE MALFORMED. A `// trace:` line that matches neither
-    // sanctioned form is a typo that would silently stop covering its site.
+    std::vector<Marker> markers;
     std::vector<std::string> malformed;
     for (std::size_t i = 0; i < lines.size(); ++i) {
-        if (lines[i].find("// trace:") != std::string::npos && !is_trace_marker(lines[i])) {
-            malformed.push_back(std::to_string(i + 1) + ": " + lines[i]);
+        const std::string r = marker_reason(lines[i]);
+        if (r.empty()) {
+            if (claims_to_be_marker(lines[i])) {
+                malformed.push_back(std::to_string(i + 1) + ": " + lines[i]);
+            }
+            continue;
         }
+        // A reason may WRAP, and the printed list is worth reading, so the
+        // continuation comment lines below it join it.
+        Marker m{static_cast<int>(i) + 1, r};
+        for (std::size_t j = i + 1;
+             j < lines.size() && is_comment_line(lines[j]) && marker_reason(lines[j]).empty() &&
+             !claims_to_be_marker(lines[j]);
+             ++j) {
+            const std::string t = rstrip(lines[j]);
+            const auto b = t.find("//");
+            const std::string body = t.substr(b + 2);
+            const auto nb = body.find_first_not_of(" \t");
+            if (nb == std::string::npos) {
+                break;
+            }
+            m.reason += " " + body.substr(nb);
+        }
+        markers.push_back(m);
     }
+    EXPECT_GE(markers.size(), 4u) << "no silent markers found -- that arm of the rule is dead";
+
+    // AND NO LINE MAY CLAIM TO BE A MARKER WITHOUT BEING ONE. An empty or
+    // truncated reason is the second blind spot fix round 1 closed (probe (b)):
+    // it must fail here rather than quietly covering a call site.
     std::string report;
     for (const std::string &m : malformed) {
         report += "\n  " + m;
     }
     EXPECT_TRUE(malformed.empty())
-        << "a `// trace:` marker must read either `// trace: qp.mode <where>` or "
-           "`// trace: silent -- <reason>`; these read neither:"
+        << "a silent marker must read `// trace: qp.mode silent -- <reason>` with at least "
+        << kMinReason
+        << " characters of reason. These lines claim to be markers and are not, so the call "
+           "sites they were meant to cover are UNCOVERED:"
         << report;
+
+    // THE SILENT LIST, PRINTED. A reviewer sees every kernel call the driver
+    // makes without a `qp.mode` line, and the reason each gives.
+    //
+    // A NEW ENTRY IS A THING TO QUESTION: it says a kernel ran and the stream
+    // does not know.
+    std::string listing;
+    for (const Marker &m : markers) {
+        listing += "\n  sqp_driver.cpp:" + std::to_string(m.line) + "  " + m.reason;
+    }
+    std::cout << "qp.mode SILENT CALL SITES (" << markers.size() << "):" << listing << "\n";
+    // Every marker must bind to a call site, or it is decoration that has drifted
+    // away from the call it once explained.
+    std::vector<std::string> orphans;
+    for (const Marker &m : markers) {
+        bool bound = false;
+        for (const CallSite &s : sites) {
+            bound = bound || marker_for(lines, s) == m.line;
+        }
+        if (!bound) {
+            orphans.push_back("sqp_driver.cpp:" + std::to_string(m.line) + "  " + m.reason);
+        }
+    }
+    std::string orphan_report;
+    for (const std::string &o : orphans) {
+        orphan_report += "\n  " + o;
+    }
+    EXPECT_TRUE(orphans.empty()) << "a silent marker must sit within " << kMarkerBefore
+                                 << " lines above the call it explains; these bind to no call:"
+                                 << orphan_report;
 }
 
-TEST(QpModeSiteScan, EveryKernelCallSiteEmitsAQpModeLineOrSaysWhyItDoesNot) {
+TEST(QpModeSiteScan, EveryKernelCallSitePairsWithItsOwnQpModeEmit) {
     const std::vector<std::string> lines = read_driver_source();
-    const std::vector<Invocation> calls = kernel_invocations(lines);
+    const std::vector<CallSite> sites = call_sites(lines);
+    ASSERT_FALSE(sites.empty());
 
-    std::vector<std::string> uncovered;
-    for (const Invocation &c : calls) {
-        const int idx = c.line - 1;
-        bool covered = false;
-        for (int j = idx; j <= idx + kEmitWindow && j < static_cast<int>(lines.size()); ++j) {
-            if (is_emit_call(lines[static_cast<std::size_t>(j)])) {
-                covered = true;
-                break;
-            }
+    const auto emits_in = [&](int from, int to) {
+        Index n = 0;
+        for (int j = from; j < to && j < static_cast<int>(lines.size()); ++j) {
+            n += is_emit_call(lines[static_cast<std::size_t>(j)]) ? 1 : 0;
         }
-        for (int j = std::max(0, idx - kMarkerBefore);
-             !covered && j <= idx + 1 && j < static_cast<int>(lines.size()); ++j) {
-            covered = is_trace_marker(lines[static_cast<std::size_t>(j)]);
+        return n;
+    };
+
+    // THE EMITTING SITES, in file order. A site marked silent drops out here and
+    // consumes nothing; its marker is checked, printed and bound by the test
+    // above, so it is accounted for -- just not by the emit count.
+    std::vector<CallSite> emitting;
+    Index silent = 0;
+    for (const CallSite &s : sites) {
+        if (marker_for(lines, s) >= 0) {
+            ++silent;
+        } else {
+            emitting.push_back(s);
         }
-        if (!covered) {
-            uncovered.push_back("src/drivers/sqp_driver.cpp:" + std::to_string(c.line) + ": " +
-                                c.text);
+    }
+    ASSERT_FALSE(emitting.empty());
+    ASSERT_GT(silent, 0) << "non-vacuous: the silent arm of the rule is exercised";
+
+    std::vector<std::string> problems;
+    // Nothing may emit before the first call site: such an emit belongs to no
+    // invocation at all.
+    if (const Index before = emits_in(0, emitting.front().first - 1); before != 0) {
+        problems.push_back("an emit appears BEFORE the first kernel call site (" +
+                           std::to_string(before) + " of them)");
+    }
+    for (std::size_t k = 0; k < emitting.size(); ++k) {
+        const CallSite &s = emitting[k];
+        const int stop =
+            (k + 1 < emitting.size()) ? emitting[k + 1].first - 1 : static_cast<int>(lines.size());
+        const Index found = emits_in(s.last, stop);
+        if (found == 1) {
+            continue;
         }
+        problems.push_back("sqp_driver.cpp:" + std::to_string(s.first) +
+                           (s.last != s.first ? "-" + std::to_string(s.last) : "") +
+                           ": expected exactly 1 qp.mode emit before the next EMITTING kernel "
+                           "call, found " +
+                           std::to_string(found) + "  |" + s.text);
     }
 
     std::string report;
-    for (const std::string &u : uncovered) {
-        report += "\n  " + u;
+    for (const std::string &p : problems) {
+        report += "\n  " + p;
     }
-    EXPECT_TRUE(uncovered.empty())
+    EXPECT_TRUE(problems.empty())
         << "Since M6 W4 T5 EVERY kernel invocation in the SQP driver writes a `qp.mode` line, "
            "tagged by `site`, so the stream reconciles against invocation counts "
-           "(docs/trace-schema-v0.md). A call site that writes none makes the schema document "
-           "wrong about what the stream contains.\n"
-           "Each site below must either emit within "
-        << kEmitWindow
-        << " lines (`emit_trace_qp_mode` for a driver member, `emit_qp_mode_line` for a free "
-           "function) or carry a marker within "
+           "(docs/trace-schema-v0.md). The pairing is COUNT-MATCHED in file order: between one "
+           "EMITTING kernel call site and the next there is exactly one emit "
+           "(`emit_trace_qp_mode` for a driver member, `emit_qp_mode_line` for a free function), "
+           "so every emit is consumed by exactly one call and a call that borrows its "
+           "neighbour's emit fails here. A site carrying `// trace: qp.mode silent -- <reason>` "
+           "within "
         << kMarkerBefore
-        << " lines above it: `// trace: qp.mode <where the line is written>` when the emit is "
-           "further off, or `// trace: silent -- <reason>` when the call is not a dispatched "
-           "kernel at all. Adding a `site` value means updating `QpModeSite`, the serializer's "
-           "spelling, the identity table in this file, and the schema document.\n"
-           "Uncovered site(s):"
+        << " lines above it consumes none. Adding a `site` value means updating `QpModeSite`, the "
+           "serializer's spelling, the identity table in this file, and the schema document.\n"
+           "Unpaired site(s):"
         << report;
 }
 

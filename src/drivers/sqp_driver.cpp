@@ -3744,8 +3744,8 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // its sentinel too and the two kernels would agree even if this
             // line forwarded it.
             SsnResult sres;
-            // trace: qp.mode at the end of this arm (site dispatch) -- the line
-            // reports the ARM's outcome, which the hand-off branches below decide.
+            // THIS ARM'S `qp.mode` line is written at the END of the arm, not
+            // here: it reports the ARM's outcome, which the branches below decide.
             ssn_engine().solve(qp, ssn_start_from_qp_seed(have_seed ? &seed : nullptr), sopts,
                                ssn_overrides, &sres);
             // GOULD'S LEMMA (R5).
@@ -3787,8 +3787,8 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             if (sres.certification_deferred) {
                 if (ssn_exit_is_a_usable_step(sres, sopts.fb_tol)) {
                     const QpSolution r5_face = ssn_result_to_qp_solution(sres);
-                    // trace: silent -- refine_on_face is the tier-3 face EQP on a face a
-                    // kernel already produced, not a kernel the dispatch chooses between.
+                    // trace: qp.mode silent -- the tier-3 face EQP on a face the SSN
+                    // already produced, not a kernel the dispatch chooses between.
                     r5_took = engine_.refine_on_face(qp, r5_face, ssn_overrides, r5_refined);
                     r5_have = true;
                     if (r5_took) {
@@ -3875,7 +3875,8 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                     took = r5_took;
                     refined = std::move(r5_refined);
                 } else {
-                    // trace: silent -- the tier-3 face EQP, excluded by kind (QpModeTraceEvent).
+                    // trace: qp.mode silent -- the tier-3 face EQP on the certifying
+                    // SSN exit's face; excluded by kind (QpModeTraceEvent).
                     took = engine_.refine_on_face(qp, qs, ssn_overrides, refined);
                 }
                 const Index refine_facts = refined.counters.factorizations;
@@ -4043,8 +4044,8 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // task 8: the trace `major` field -- the one fact the engine
             // cannot know on its own (no `major` parameter on solve()).
             ipqp_engine().set_trace_major(iter + 1);
-            // trace: qp.mode via emit_ipqp_route_and_mode below (site dispatch) --
-            // one line per routing destination, which is what this chain decides.
+            // THIS CHAIN'S `qp.mode` line comes from emit_ipqp_route_and_mode
+            // below -- one per routing destination, which is what it decides.
             const IpqpResult ires = ipqp_engine().solve(qp, ipqp_seed, iopts, ipqp_overrides);
             ipqp_staged_seed_.reset();
             ipqp_analysis_epoch = seam.epoch();
@@ -4126,7 +4127,8 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 // partition -- see `ipqp_to_refine`'s own doc comment.
                 ++out.counters.ipqp.ipqp_to_refine;
                 QpSolution refined;
-                // trace: silent -- the tier-3 face EQP, excluded by kind (QpModeTraceEvent).
+                // trace: qp.mode silent -- the tier-3 face EQP on the IPQP tier's own
+                // face; excluded by kind, and it reports no minor count for `iters`.
                 const bool took = engine_.refine_on_face(qp, face, ipqp_overrides, refined);
                 const Index refine_facts = refined.counters.factorizations;
                 const Index refine_steps = refined.counters.eqp_refine_steps;
@@ -4828,7 +4830,7 @@ bool SqpDriver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResu
     start.box_center = ires.box.centre;
     assert_ssn_warm_grade_window(ires, start, ssn_overrides, opts_.qp);
     SsnResult sres;
-    // trace: qp.mode below (site ssn_warm_grade), once the usability verdict is in.
+    // THE GRADE'S `qp.mode` line is written below, once its usability verdict is in.
     ssn_engine().solve(qp, start, sopts, ssn_overrides, &sres);
     accumulate_ssn_counters(counters.ssn, sres.counters);
     ssn_budget_charge += sres.factorizations;
@@ -4876,7 +4878,8 @@ bool SqpDriver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResu
     // EVERY certifying SSN exit, and reaching SSN through the IPQP chain does not stop
     // section 2.3 item 1 applying. THE COUNTERS ARE THE SSN TIER'S, not the IPQP pair's.
     QpSolution refined;
-    // trace: silent -- the tier-3 face EQP, excluded by kind (QpModeTraceEvent).
+    // trace: qp.mode silent -- the tier-3 face EQP on the warm grade's face; excluded
+    // by kind (QpModeTraceEvent), on the same terms as the kSsn arm's own.
     const bool took = engine_.refine_on_face(qp, qs, ssn_overrides, refined);
     const Index refine_facts = refined.counters.factorizations;
     const Index refine_steps = refined.counters.eqp_refine_steps;
