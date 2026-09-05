@@ -32,12 +32,22 @@ Landed as `refactor(model): M6 W5 T1 (1/3)` (the fold) and `(2/3)` (the break).
 4. **`NLPSolver` is `final` and NOT polymorphic.** No virtual functions, no
    virtual destructor, no vtable. `static_assert(std::is_final_v<NLPSolver>)`
    and `static_assert(!std::is_polymorphic_v<NLPSolver>)` hold.
-5. **The public header provides fewer includes than the deleted one did.** After
-   `(3/3)`, `hven/model/nlp_solver.h` no longer pulls in `<algorithm>`,
-   `<fmt/color.h>`, `<fmt/format.h>`,
-   `hven/detail/interior/utils/thread_pool.h` or
-   `hven/detail/interior/utils/get_core_count.h`. A TU that relied on getting
-   any of those transitively must include them itself.
+5. **The public header GUARANTEES fewer includes than the deleted one did.**
+   After `(3/3)`, `hven/model/nlp_solver.h` directly includes none of these
+   seven: `<algorithm>`, `<fmt/color.h>`, `<fmt/core.h>`, `<fmt/format.h>`,
+   `<stdexcept>`, `hven/detail/interior/utils/thread_pool.h`,
+   `hven/detail/interior/utils/get_core_count.h`.
+
+   Measured at this head, all seven are still REACHABLE through the header, via
+   `hven/drivers/interior_point_solver.h` (each verified by a one-TU
+   `-fsyntax-only` probe that includes `hven/model/nlp_solver.h` and nothing
+   else). So nothing breaks today. What changed is the guarantee: they are no
+   longer provided by this header's own include list, and a later window that
+   trims `interior_point_solver.h` will take them away without touching
+   `nlp_solver.h`. **Do not rely on them transitively — a TU that uses any of
+   them should include it itself.** `<stdexcept>` is the one that bites first:
+   catching the `std::invalid_argument` these entry points throw is the normal
+   use of this surface.
 
 ### What did NOT change
 
@@ -139,6 +149,7 @@ written out so the fairness argument still holds:
 #include <algorithm>
 #include "hven/detail/interior/utils/get_core_count.h"
 #include "hven/drivers/interior_point_solver.h"
+#include "hven/model/nlp_solver.h" // NLPSolver::default_num_partitions()
 
 struct ConvEquivNativeDoor {
     std::shared_ptr<hven::solvers::InteriorPointSolver> optimizer_;
