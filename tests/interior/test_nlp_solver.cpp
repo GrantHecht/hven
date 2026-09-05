@@ -7,8 +7,11 @@
 #include <cstddef>
 #include <limits>
 #include <memory>
+#include <set>
+#include <string>
 #include <vector>
 
+#include "hven/detail/qp/ipqp_trace.h"
 #include "hven/drivers/interior_point_solver.h"
 #include "hven/model/nlp_solver.h"
 
@@ -1132,4 +1135,267 @@ TEST(NLPSolverTest, TheKktResidualsOfASolverThatHasNotSolvedAreUnmeasured) {
     EXPECT_TRUE(std::isnan(result.barr_inf_));
     EXPECT_TRUE(std::isnan(result.econ_inf_));
     EXPECT_TRUE(std::isnan(result.icon_inf_));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// THE FOLDED SURFACE (M6 W5 T1): what OptimizationProblemBase declared and
+// NLPSolver now owns outright -- the job-mode vocabulary and its four refusal
+// messages, the jet lifecycle's ORDER, and the five modes' semantics.
+//
+// None of it was pinned before the fold: a grep of the test tree for
+// strto_jet_job_mode, jet_run, DoNothing or NotSet found nothing. These are
+// new assertions about old behaviour, taken from the base's own contract.
+//
+// They land WITH the fold so that the two commits after it are checked by
+// them, rather than by the suite those commits inherited.
+///////////////////////////////////////////////////////////////////////////////
+
+using JetJobModes = NLPSolver::JetJobModes;
+
+// (1) THE VOCABULARY. Every spelling the parser's doc block lists, round-
+// tripped; the refusal carries the spelling it refused.
+TEST(NLPSolverJobModeTest, EveryAcceptedSpellingParsesToItsMode) {
+    EXPECT_EQ(NLPSolver::strto_jet_job_mode("solve"), JetJobModes::Solve);
+    EXPECT_EQ(NLPSolver::strto_jet_job_mode("Solve"), JetJobModes::Solve);
+    EXPECT_EQ(NLPSolver::strto_jet_job_mode("optimize"), JetJobModes::Optimize);
+    EXPECT_EQ(NLPSolver::strto_jet_job_mode("Optimize"), JetJobModes::Optimize);
+    EXPECT_EQ(NLPSolver::strto_jet_job_mode("solve_optimize"), JetJobModes::SolveOptimize);
+    EXPECT_EQ(NLPSolver::strto_jet_job_mode("SolveOptimize"), JetJobModes::SolveOptimize);
+    EXPECT_EQ(NLPSolver::strto_jet_job_mode("Solve_Optimize"), JetJobModes::SolveOptimize);
+    EXPECT_EQ(NLPSolver::strto_jet_job_mode("solve_optimize_solve"),
+              JetJobModes::SolveOptimizeSolve);
+    EXPECT_EQ(NLPSolver::strto_jet_job_mode("SolveOptimizeSolve"), JetJobModes::SolveOptimizeSolve);
+    EXPECT_EQ(NLPSolver::strto_jet_job_mode("Solve_Optimize_Solve"),
+              JetJobModes::SolveOptimizeSolve);
+    EXPECT_EQ(NLPSolver::strto_jet_job_mode("optimize_solve"), JetJobModes::OptimizeSolve);
+    EXPECT_EQ(NLPSolver::strto_jet_job_mode("OptimizeSolve"), JetJobModes::OptimizeSolve);
+    EXPECT_EQ(NLPSolver::strto_jet_job_mode("Optimize_Solve"), JetJobModes::OptimizeSolve);
+    EXPECT_EQ(NLPSolver::strto_jet_job_mode("DoNothing"), JetJobModes::DoNothing);
+    EXPECT_EQ(NLPSolver::strto_jet_job_mode("do_nothing"), JetJobModes::DoNothing);
+    EXPECT_EQ(NLPSolver::strto_jet_job_mode("Do_Nothing"), JetJobModes::DoNothing);
+}
+
+TEST(NLPSolverJobModeTest, AnUnknownSpellingIsRefusedAndNamedInTheMessage) {
+    try {
+        NLPSolver::strto_jet_job_mode("Solve_Then_Give_Up");
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        const std::string what(e.what());
+        EXPECT_NE(what.find("Unrecognized jet_job_mode: "), std::string::npos) << what;
+        EXPECT_NE(what.find("Solve_Then_Give_Up"), std::string::npos) << what;
+    }
+}
+
+// The string overload of the setter is the parser plus the enum setter, and
+// nothing else: an accepted spelling lands on jet_job_mode_ and a refused one
+// leaves it where it was.
+TEST(NLPSolverJobModeTest, TheStringSetterParsesAndTheRefusalLeavesTheModeAlone) {
+    NLPSolver solver(std::make_shared<EqOnlyProblem>());
+    solver.optimizer_->set_print_level(10);
+    EXPECT_EQ(solver.jet_job_mode_, JetJobModes::NotSet);
+
+    solver.set_jet_job_mode("Solve_Optimize");
+    EXPECT_EQ(solver.jet_job_mode_, JetJobModes::SolveOptimize);
+
+    EXPECT_THROW(solver.set_jet_job_mode("nonsense"), std::invalid_argument);
+    EXPECT_EQ(solver.jet_job_mode_, JetJobModes::SolveOptimize);
+
+    solver.set_jet_job_mode(JetJobModes::OptimizeSolve);
+    EXPECT_EQ(solver.jet_job_mode_, JetJobModes::OptimizeSolve);
+}
+
+// (2) THE TWO REFUSALS THAT ARE NOT THE PARSER'S. DoNothing parses -- it is a
+// named enumerator -- and is then dispatched by nothing, on two different
+// paths with two different messages. NotSet is the third.
+TEST(NLPSolverJobModeTest, JetRunRefusesNotSetAndDoNothingWithDistinctMessages) {
+    NLPSolver notset(std::make_shared<EqOnlyProblem>());
+    notset.optimizer_->set_print_level(10);
+    try {
+        notset.jet_run();
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_EQ(std::string(e.what()), "jet_job_mode_ not set");
+    }
+
+    NLPSolver donothing(std::make_shared<EqOnlyProblem>());
+    donothing.optimizer_->set_print_level(10);
+    donothing.set_jet_job_mode(JetJobModes::DoNothing);
+    try {
+        donothing.jet_run();
+        FAIL() << "expected std::invalid_argument";
+    } catch (const std::invalid_argument &e) {
+        EXPECT_EQ(std::string(e.what()), "Unrecognized jet_job_mode");
+    }
+}
+
+TEST(NLPSolverJobModeTest, RunNlpSolverRefusesDoNothingAndNotSetWithItsOwnMessage) {
+    NLPSolver solver(std::make_shared<EqOnlyProblem>());
+    solver.optimizer_->set_print_level(10);
+    const Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
+    for (JetJobModes mode : {JetJobModes::DoNothing, JetJobModes::NotSet}) {
+        try {
+            solver.run_nlp_solver(mode, x0);
+            FAIL() << "expected std::invalid_argument";
+        } catch (const std::invalid_argument &e) {
+            EXPECT_EQ(std::string(e.what()), "Unrecognized NLP solve mode");
+        }
+    }
+}
+
+// (3) THE JET LIFECYCLE'S ORDER, made observable. num_partitions_ == 1 after
+// jet_run() holds whichever order initialize and release ran in, so it is not
+// the pin; the transcription COUNT is.
+//
+// jet_initialize() transcribes and clears do_transcription_; run() transcribes
+// only when it is set; jet_release() sets it again and nulls nlp_.
+//
+// So exactly one transcription per jet_run() is initialize-mode-release and
+// nothing else: a release that ran before the mode would show two.
+TEST(NLPSolverJobModeTest, JetRunTranscribesExactlyOnceAndReleasesAfterTheMode) {
+    auto problem = std::make_shared<TranscriptionCountingProblem>();
+    NLPSolver solver(problem);
+    solver.optimizer_->set_print_level(10);
+    solver.set_jet_job_mode(JetJobModes::Optimize);
+    solver.active_variables_ = Eigen::VectorXd::Zero(2);
+
+    ASSERT_EQ(solver.jet_run(), hven::ConvergenceFlags::CONVERGED);
+
+    EXPECT_EQ(problem->n_bounds_, 1);
+    EXPECT_EQ(problem->n_jac_structure_, 1);
+    EXPECT_EQ(problem->n_hess_structure_, 1);
+    EXPECT_TRUE(solver.do_transcription_);
+    EXPECT_EQ(solver.nlp_, nullptr);
+    EXPECT_EQ(solver.num_partitions_, 1);
+
+    ASSERT_EQ(solver.jet_run(), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(problem->n_bounds_, 2);
+    EXPECT_TRUE(solver.do_transcription_);
+    EXPECT_EQ(solver.nlp_, nullptr);
+    solver.optimizer_->set_print_level(10);
+}
+
+// (4) THE MODE SEMANTICS, as the folded base documented them.
+//
+// The observable is NOT the ipm.solve pair: one is written per entry-point
+// call however many phases run, and its `phases` counts the phases REQUESTED,
+// a conditional one later skipped included.
+//
+// It is `ipm.iter`'s `phase` key. The driver takes current_phase_idx BEFORE
+// the conditional-skip check, so a skipped step leaves a GAP in the phases
+// that reach the sink, and every executed phase writes an iteration line.
+struct IpmPhaseRecordingSink : hven::solvers::IpqpTraceSink {
+    std::vector<int> iter_phases_;
+    int begin_phases_ = -1;
+    int begins_ = 0;
+    int ends_ = 0;
+
+    void on_ipm_iter(const hven::solvers::IpmIterTraceEvent &event) override {
+        this->iter_phases_.push_back(static_cast<int>(event.phase));
+    }
+    void on_ipm_solve_begin(const hven::solvers::IpmSolveBeginTraceEvent &event) override {
+        this->begin_phases_ = static_cast<int>(event.phases);
+        this->begins_++;
+    }
+    void on_ipm_solve_end(const hven::solvers::IpmSolveEndTraceEvent &) override { this->ends_++; }
+
+    // The eight QP-side events are pure on the sink and unreachable from the
+    // interior-point driver; they are stubbed, not recorded.
+    void on_ipqp_iter(const hven::solvers::IpqpTraceIterEvent &) override {}
+    void on_ipqp_reg(const hven::solvers::IpqpTraceRegEvent &) override {}
+    void on_ipqp_restart(const hven::solvers::IpqpTraceRestartEvent &) override {}
+    void on_ipqp_route(const hven::solvers::IpqpTraceRouteEvent &) override {}
+    void on_ipqp_certify(const hven::solvers::IpqpTraceCertifyEvent &) override {}
+    void on_ipqp_escape(const hven::solvers::IpqpTraceEscapeEvent &) override {}
+    void on_qp_mode(const hven::solvers::QpModeTraceEvent &) override {}
+    void on_fallback_verdict(const hven::solvers::SqpFallbackVerdictTraceEvent &) override {}
+
+    std::vector<int> distinct_phases() const {
+        std::set<int> s(this->iter_phases_.begin(), this->iter_phases_.end());
+        return std::vector<int>(s.begin(), s.end());
+    }
+};
+
+namespace {
+
+/// Runs one entry point on a fresh EqOnlyProblem solver with a phase-recording
+/// sink attached, optionally capped at @p max_iters so the OPT phase cannot
+/// report CONVERGED, and returns the sink.
+IpmPhaseRecordingSink run_with_phase_sink(JetJobModes mode, int max_iters,
+                                          hven::ConvergenceFlags *flag_out) {
+    NLPSolver solver(std::make_shared<EqOnlyProblem>());
+    solver.optimizer_->set_print_level(10);
+    if (max_iters > 0) {
+        solver.optimizer_->set_max_iters(max_iters);
+    }
+    // run_nlp_solver IS the dispatch point under test, and it is below the
+    // lazy-transcription step run() performs, so the program is adopted here.
+    solver.transcribe();
+    IpmPhaseRecordingSink sink;
+    solver.optimizer_->attach_trace(&sink);
+    const Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
+    *flag_out = solver.run_nlp_solver(mode, x0).flag_;
+    return sink;
+}
+
+} // namespace
+
+TEST(NLPSolverModeSemanticsTest, SolveOptimizeSolveSkipsTheTrailingSoeOnlyWhenOptConverged) {
+    hven::ConvergenceFlags flag = hven::ConvergenceFlags::NOTCONVERGED;
+    const IpmPhaseRecordingSink converged =
+        run_with_phase_sink(JetJobModes::SolveOptimizeSolve, 0, &flag);
+    ASSERT_EQ(flag, hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(converged.begins_, 1);
+    EXPECT_EQ(converged.ends_, 1);
+    EXPECT_EQ(converged.begin_phases_, 3); // three REQUESTED, one of them skipped
+    EXPECT_EQ(converged.distinct_phases(), (std::vector<int>{0, 1}));
+
+    const IpmPhaseRecordingSink capped =
+        run_with_phase_sink(JetJobModes::SolveOptimizeSolve, 1, &flag);
+    ASSERT_NE(flag, hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(capped.begin_phases_, 3);
+    EXPECT_EQ(capped.distinct_phases(), (std::vector<int>{0, 1, 2}));
+}
+
+TEST(NLPSolverModeSemanticsTest, OptimizeSolveSkipsTheTrailingSoeOnlyWhenOptConverged) {
+    hven::ConvergenceFlags flag = hven::ConvergenceFlags::NOTCONVERGED;
+    const IpmPhaseRecordingSink converged =
+        run_with_phase_sink(JetJobModes::OptimizeSolve, 0, &flag);
+    ASSERT_EQ(flag, hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(converged.begin_phases_, 2);
+    EXPECT_EQ(converged.distinct_phases(), (std::vector<int>{0}));
+
+    const IpmPhaseRecordingSink capped = run_with_phase_sink(JetJobModes::OptimizeSolve, 1, &flag);
+    ASSERT_NE(flag, hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(capped.begin_phases_, 2);
+    EXPECT_EQ(capped.distinct_phases(), (std::vector<int>{0, 1}));
+}
+
+// solve_optimize has no conditional step at all: both phases run whatever the
+// OPT phase reported, which is what separates it from the two above.
+TEST(NLPSolverModeSemanticsTest, SolveOptimizeAlwaysRunsBothPhases) {
+    hven::ConvergenceFlags flag = hven::ConvergenceFlags::NOTCONVERGED;
+    const IpmPhaseRecordingSink converged =
+        run_with_phase_sink(JetJobModes::SolveOptimize, 0, &flag);
+    ASSERT_EQ(flag, hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(converged.begin_phases_, 2);
+    EXPECT_EQ(converged.distinct_phases(), (std::vector<int>{0, 1}));
+
+    const IpmPhaseRecordingSink capped = run_with_phase_sink(JetJobModes::SolveOptimize, 1, &flag);
+    ASSERT_NE(flag, hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(capped.begin_phases_, 2);
+    EXPECT_EQ(capped.distinct_phases(), (std::vector<int>{0, 1}));
+}
+
+// The two single-phase modes, for the contrast: one requested phase, one
+// executed, and nothing conditional to skip.
+TEST(NLPSolverModeSemanticsTest, SolveAndOptimizeEachRunExactlyOnePhase) {
+    hven::ConvergenceFlags flag = hven::ConvergenceFlags::NOTCONVERGED;
+    for (JetJobModes mode : {JetJobModes::Solve, JetJobModes::Optimize}) {
+        const IpmPhaseRecordingSink sink = run_with_phase_sink(mode, 0, &flag);
+        ASSERT_EQ(flag, hven::ConvergenceFlags::CONVERGED);
+        EXPECT_EQ(sink.begins_, 1);
+        EXPECT_EQ(sink.ends_, 1);
+        EXPECT_EQ(sink.begin_phases_, 1);
+        EXPECT_EQ(sink.distinct_phases(), (std::vector<int>{0}));
+    }
 }
