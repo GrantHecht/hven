@@ -511,14 +511,19 @@ static_assert(::hven::detail::aggregate_initializable_with<SqpSolveEndTraceEvent
 
 // --- the `ipm.iter` record and the `ipm.solve` pair (W4 T4) ---------------
 //
-// 27 is `IterateInfo`'s own declared field count. The record is serialized in
+// 28 is `IterateInfo`'s own declared field count. The record is serialized in
 // DECLARATION ORDER with the trailing underscores dropped, so a field added
 // there stops the build here until it gets a key.
-constexpr std::size_t kIterateInfoFieldCount = 27;
+//
+// 27 OF THE 28 ARE KEYS. `p_pivots_observed_` is the ABSENCE PREDICATE for
+// `p_pivots` and carries no key of its own -- the same shape the counters
+// tables' `absent` column has (fix round 1, R2).
+constexpr std::size_t kIterateInfoFieldCount = 28;
 static_assert(::hven::detail::kAggregateArity<IterateInfo> == kIterateInfoFieldCount,
               "IterateInfo's field count moved: give the new field a key in "
-              "JsonLinesTraceSink::on_ipm_iter (in DECLARATION order, ahead of `phase`), "
-              "re-derive the ipm.iter golden line, and then update this count.");
+              "JsonLinesTraceSink::on_ipm_iter (in DECLARATION order, ahead of `phase`) -- or, "
+              "if it is an absence PREDICATE like p_pivots_observed_, wire it to the field it "
+              "gates -- re-derive the ipm.iter golden lines, and then update this count.");
 
 // `IpmIterTraceEvent` HOLDS A REFERENCE, so `kAggregateArity` reads 0 for it --
 // the two-sided form is the exact net for that shape, exactly as for
@@ -808,13 +813,18 @@ void JsonLinesTraceSink::on_ipm_iter(const IpmIterTraceEvent &event) {
     key_double(b, first, "alpha_d", r.alpha_d_);
     key_double(b, first, "alpha_t", r.alpha_t_);
     key_double(b, first, "h_pert", r.h_pert_);
-    key_index(b, first, "h_facs", r.h_facs_);
+    // Rule 5, SENTINEL: -1 is "the Newton direction was non-finite, so no
+    // inertia ladder ran", not a step count of -1 (fix round 1, R1).
+    key_value(b, first, "h_facs", static_cast<Index>(r.h_facs_), r.h_facs_ < 0);
     key_double(b, first, "h_pert_cum", r.h_pert_cum_);
     // Rule 5, SENTINEL ONE OF TWO: negative is "proximal mode off", not a shift
     // of -1. The classic path writes it on every iteration.
     key_value(b, first, "prox_reg_primal", r.prox_reg_primal_, r.prox_reg_primal_ < 0.0);
     key_value(b, first, "prox_reg_dual", r.prox_reg_dual_, r.prox_reg_dual_ < 0.0);
-    key_index(b, first, "p_pivots", r.p_pivots_);
+    // Rule 5, ABSENCE: the projection substitutes 0 for a backend that reports
+    // no perturbed-pivot count, and an unfactorized record never had one.
+    // Repeating that 0 fabricates an Apple value -- CLAUDE.md section 6.
+    key_value(b, first, "p_pivots", static_cast<Index>(r.p_pivots_), !r.p_pivots_observed_);
     key_double(b, first, "max_e_mult", r.max_e_mult_);
     key_double(b, first, "max_i_mult", r.max_i_mult_);
     key_double(b, first, "merit_val", r.merit_val_);

@@ -302,6 +302,28 @@ struct SqpSolveEndTraceEvent {
 ///
 /// `XSL`/`RHS` -- the two vectors the callback also receives -- are NOT carried:
 /// schema v0 has no vector-valued field anywhere.
+///
+/// THE ABSENCE CONTRACT, PER FIELD (plan section 2 rule 5; fix round 1 R3).
+/// Six keys can read `null`, for FIVE different reasons, and a reader that
+/// collapses them to one loses the distinction:
+///
+///   * `prox_reg_primal`, `prox_reg_dual` -- proximal regularization is OFF,
+///     OR this iteration never factorized (the converge-check exit's record
+///     keeps both -1 defaults even with proximal mode on).
+///   * `first_rejection_iter` -- no rejection was recorded this line search.
+///     `0` is a READING, not an absence: the FIRST trial was rejected.
+///   * `theta_at_first_rejection` -- unavailable: no rejection was recorded,
+///     OR the LANG acceptance variant ran, which records no theta
+///     (iterate_info.h). `0.0` is a feasible reading, not an absence.
+///   * `h_facs` -- the Newton direction came back non-finite, so no inertia
+///     ladder ran and there is no step count (alg_impl's `!GoodStep` branch
+///     writes -1). `0` is a reading: the factorization needed no ladder step,
+///     and an unfactorized converge-check record honestly took none.
+///   * `p_pivots` -- no perturbed-pivot count was OBSERVED: the backend keeps
+///     none (Apple Accelerate), or this iterate was never factorized. The
+///     engine's own projection substitutes the integer 0 for an absent count
+///     and the stream must not repeat that fabrication (CLAUDE.md section 6);
+///     `IterateInfo::p_pivots_observed_` is the predicate and carries no key.
 struct IpmIterTraceEvent {
     /// The iteration record, valid for the duration of the `on_ipm_iter` call
     /// only.

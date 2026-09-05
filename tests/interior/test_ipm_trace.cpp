@@ -448,6 +448,47 @@ TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolve
     }
 }
 
+TEST(IpmTrace, ThePerturbedPivotCountIsTheBackendsOwnAndNeverAFabricatedZero) {
+    // R2 / CLAUDE.md section 6. `KktFactorization::ppivs()` projects an ABSENT
+    // backend count to the integer 0 (`.value_or(0)`), so the stream must read
+    // the factorization's own optional instead of repeating that 0.
+    //
+    // BOTH ARMS ARE COMPILED FROM ONE SOURCE and the backend picks which runs,
+    // so the macOS lane executes the Accelerate arm without an edit here.
+    NLPSolver solver(std::make_shared<Hs071Problem>());
+    solver.optimizer_->set_print_level(10);
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    solver.optimizer_->attach_trace(&sink);
+    ASSERT_EQ(solver.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
+
+    const std::vector<std::string> iter_lines = lines_of_event(os.str(), "ipm.iter");
+    ASSERT_GT(iter_lines.size(), 1u);
+    int factorized = 0;
+    for (const std::string &l : iter_lines) {
+        if (looks_like_the_early_exit_site(l)) {
+            // NEVER FACTORIZED, so there is no pivot count to report on either
+            // backend -- `null`, not the record's untouched 0 default.
+            EXPECT_EQ(field(l, "p_pivots"), "null") << l;
+            continue;
+        }
+        ++factorized;
+#if defined(USE_ACCELERATE_SPARSE)
+        // Accelerate reports NO perturbed-pivot count at all, so every
+        // factorized line is `null` too. UNOBSERVED here; the macOS lane runs
+        // this arm.
+        EXPECT_EQ(field(l, "p_pivots"), "null") << l;
+#else
+        // MKL Pardiso does count them, so a factorized line carries a NUMBER --
+        // which is what makes the `null`s above a reading rather than a blanket.
+        const std::string v = field(l, "p_pivots");
+        EXPECT_NE(v, "null") << l;
+        EXPECT_GE(std::stoll(v), 0) << l;
+#endif
+    }
+    EXPECT_GT(factorized, 0) << "the cell must actually factorize";
+}
+
 // ===========================================================================
 // (iii) `ipm.solve`
 // ===========================================================================
@@ -515,13 +556,27 @@ TEST(IpmTrace, SolveOptimizeReportsTwoPhasesAndNumbersItsIterLinesByPhase) {
     // ONE pair for the whole entry point, not one per phase -- which is why the
     // per-line `phase` key exists: `iter` restarts at 0 in each phase.
     EXPECT_EQ(lines_of_event(os.str(), "ipm.solve.end").size(), 1u);
+    // BOTH phases must appear (fix round 1, M-3): tracking only phase 1 would
+    // be satisfied by an entirely phase-1 stream, which is exactly the bug a
+    // mis-set `trace_phase_` would produce.
+    bool saw_phase_zero = false;
     bool saw_phase_one = false;
     for (const std::string &l : lines_of_event(os.str(), "ipm.iter")) {
         const std::string p = field(l, "phase");
         EXPECT_TRUE(p == "0" || p == "1") << p;
+        saw_phase_zero = saw_phase_zero || p == "0";
         saw_phase_one = saw_phase_one || p == "1";
     }
+    EXPECT_TRUE(saw_phase_zero);
     EXPECT_TRUE(saw_phase_one);
+    // ... and the FIRST phase's lines precede the second's, so `phase` is
+    // monotone over the stream rather than merely present in both values.
+    Index last = 0;
+    for (const std::string &l : lines_of_event(os.str(), "ipm.iter")) {
+        const Index p = static_cast<Index>(std::stoll(field(l, "phase")));
+        EXPECT_GE(p, last);
+        last = p;
+    }
 }
 
 TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {

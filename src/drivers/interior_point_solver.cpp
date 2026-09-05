@@ -1094,6 +1094,10 @@ void hven::solvers::InteriorPointSolver::fill_iter_info(KKTVector &xsl, KKTVecto
     iter.barr_obj_ = bobj;
     iter.mu_ = mu;
     iter.p_pivots_ = this->kkt_sol_.ppivs();
+    // R2: the projection above substitutes 0 for an ABSENT backend count, so
+    // the trace needs to know which of the two a 0 is. Read from the
+    // unprojected evidence the factor keeps; the projected int is untouched.
+    iter.p_pivots_observed_ = this->kkt_sol_.inertia_evidence().perturbed_pivots.has_value();
 }
 
 void hven::solvers::InteriorPointSolver::eval_nlp(
@@ -4421,9 +4425,12 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         // below, so a skipped conditional step still keeps phase_idx aligned
         // with the position first_opt_phase_idx was computed against.
         const int current_phase_idx = phase_idx++;
-        // Instrumentation only: the `ipm.iter` lines this phase writes carry it,
-        // because IterateInfo::iter_ restarts at 0 in every phase.
-        this->trace_phase_ = current_phase_idx;
+        // Instrumentation only, and SINK-GATED like every other trace statement
+        // in this file (fix round 1, M-1): the `ipm.iter` lines this phase writes
+        // carry it, because IterateInfo::iter_ restarts at 0 in every phase.
+        if (this->trace_ != nullptr) {
+            this->trace_phase_ = current_phase_idx;
+        }
 
         // Single application site: whichever XSL is current when the loop
         // reaches the first OPT/OPTNO-mode phase -- the entry init_impl's

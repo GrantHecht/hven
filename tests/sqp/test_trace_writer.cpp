@@ -3202,9 +3202,9 @@ TEST(JsonLinesTraceSink, TheRequestingRowIsWrittenAFTERTheNestedSolveItAskedFor)
 // the oracle, the null sink, the two exit statuses, the mixed stream) are in
 // tests/interior/test_ipm_trace.cpp; these four are the serializer's.
 
-/// @brief The classic path's record: every field distinct, and BOTH -1
-/// conventions active -- `prox_reg_*` at "proximal mode off" and the rejection
-/// pair at "no rejection recorded". Four `null`s, two different meanings.
+/// @brief The classic path's record: every field distinct, with `prox_reg_*` at
+/// "proximal mode off", the rejection pair at "no rejection recorded", and the
+/// perturbed-pivot count NOT OBSERVED. Five `null`s, three different meanings.
 IterateInfo golden_ipm_iter_sentinels() {
     IterateInfo r;
     r.iter_ = 7;
@@ -3227,6 +3227,9 @@ IterateInfo golden_ipm_iter_sentinels() {
     r.prox_reg_primal_ = -1.0;
     r.prox_reg_dual_ = -1.0;
     r.p_pivots_ = 5;
+    // NOT observed: the projected 5 is the substitute an absent backend count
+    // leaves behind, so the line must read `null` and not repeat it.
+    r.p_pivots_observed_ = false;
     r.max_e_mult_ = 11.0;
     r.max_i_mult_ = 12.5;
     r.merit_val_ = 13.25;
@@ -3264,6 +3267,7 @@ IterateInfo golden_ipm_iter_present() {
     r.prox_reg_primal_ = 1e-6;
     r.prox_reg_dual_ = 2e-6;
     r.p_pivots_ = 9;
+    r.p_pivots_observed_ = true;
     r.max_e_mult_ = 1e3;
     r.max_i_mult_ = 1e4;
     r.merit_val_ = 0.1;
@@ -3285,7 +3289,7 @@ TEST(JsonLinesTraceSink, GoldenLineIpmIterWithBothMinusOneConventionsActive) {
               "\"econ_inf\":0.0625,\"icon_inf\":0.03125,\"pen_par1\":3.5,\"pen_par2\":4.75,"
               "\"ls_iters\":2,\"alpha_p\":0.90000000000000002,\"alpha_d\":0.80000000000000004,"
               "\"alpha_t\":0.69999999999999996,\"h_pert\":1e-08,\"h_facs\":3,\"h_pert_cum\":2e-08,"
-              "\"prox_reg_primal\":null,\"prox_reg_dual\":null,\"p_pivots\":5,\"max_e_mult\":11,"
+              "\"prox_reg_primal\":null,\"prox_reg_dual\":null,\"p_pivots\":null,\"max_e_mult\":11,"
               "\"max_i_mult\":12.5,\"merit_val\":13.25,\"accepted\":false,"
               "\"first_rejection_iter\":null,\"theta_at_first_rejection\":null,"
               "\"eval_exceptions\":4,\"phase\":1}\n");
@@ -3308,24 +3312,80 @@ TEST(JsonLinesTraceSink, GoldenLineIpmIterWithEverySentinelBearingFieldPresent) 
               "\"theta_at_first_rejection\":0,\"eval_exceptions\":0,\"phase\":0}\n");
 }
 
-TEST(JsonLinesTraceSink, TheTwoIpmIterGoldenLinesDifferInEveryBoolAndSentinelSlot) {
-    // FALSIFIABILITY, the T1 convention: two lines that differ in the `accepted`
-    // bool AND in all four sentinel slots, so a swapped key or a dropped
-    // predicate cannot leave both golden lines passing.
-    std::ostringstream a_os;
-    JsonLinesTraceSink a(a_os);
-    a.on_ipm_iter(IpmIterTraceEvent{golden_ipm_iter_sentinels(), 1});
-    std::ostringstream b_os;
-    JsonLinesTraceSink b(b_os);
-    b.on_ipm_iter(IpmIterTraceEvent{golden_ipm_iter_present(), 0});
-    EXPECT_NE(a_os.str(), b_os.str());
-    EXPECT_EQ(raw_field(a_os.str(), "accepted"), "false");
-    EXPECT_EQ(raw_field(b_os.str(), "accepted"), "true");
+/// @brief The NON-FINITE NEWTON record (fix round 1, R1): `alg_impl`'s
+/// `!GoodStep` branch writes `h_facs_ = -1` and that record reaches the ordinary
+/// emit site before the driver reports DIVERGING, so the stream really can carry
+/// it. Everything else here is a real reading, so this line isolates the third
+/// sentinel from the other two.
+IterateInfo golden_ipm_iter_nonfinite_newton() {
+    IterateInfo r = golden_ipm_iter_present();
+    r.iter_ = 4;
+    r.h_facs_ = -1;
+    r.h_pert_ = 0.0;
+    r.h_pert_cum_ = 0.0;
+    r.accepted_ = false;
+    r.merit_val_ = 6.5;
+    r.kkt_inf_ = 2.0;
+    r.barr_inf_ = 1.5;
+    r.econ_inf_ = 1.25;
+    r.icon_inf_ = 0.75;
+    return r;
+}
+
+TEST(JsonLinesTraceSink, GoldenLineIpmIterWithTheNonFiniteNewtonLadderMarker) {
+    const IterateInfo r = golden_ipm_iter_nonfinite_newton();
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_ipm_iter(IpmIterTraceEvent{r, 2});
+    EXPECT_EQ(os.str(),
+              "{\"v\":0,\"ev\":\"ipm.iter\",\"seq\":1,\"depth\":0,\"iter\":4,"
+              "\"mu\":0.10000000000000001,\"prim_obj\":-0.5,\"barr_obj\":-0.25,\"kkt_inf\":2,"
+              "\"barr_inf\":1.5,\"econ_inf\":1.25,\"icon_inf\":0.75,\"pen_par1\":100,"
+              "\"pen_par2\":1000,\"ls_iters\":1,\"alpha_p\":0.5,\"alpha_d\":0.25,"
+              "\"alpha_t\":0.125,\"h_pert\":0,\"h_facs\":null,\"h_pert_cum\":0,"
+              "\"prox_reg_primal\":9.9999999999999995e-07,"
+              "\"prox_reg_dual\":1.9999999999999999e-06,\"p_pivots\":9,\"max_e_mult\":1000,"
+              "\"max_i_mult\":10000,\"merit_val\":6.5,\"accepted\":false,"
+              "\"first_rejection_iter\":0,\"theta_at_first_rejection\":0,\"eval_exceptions\":0,"
+              "\"phase\":2}\n");
+}
+
+TEST(JsonLinesTraceSink, TheThreeIpmIterGoldenLinesIsolateEverySentinelSlot) {
+    // FALSIFIABILITY, the T1 convention, over SIX null-bearing keys and THREE
+    // records: every key reads `null` in at least one line and a number in at
+    // least one other, so no predicate can be dropped without moving a line.
+    const auto line = [](const IterateInfo &r, Index phase) {
+        std::ostringstream os;
+        JsonLinesTraceSink s(os);
+        s.on_ipm_iter(IpmIterTraceEvent{r, phase});
+        return os.str();
+    };
+    const std::string a = line(golden_ipm_iter_sentinels(), 1);
+    const std::string b = line(golden_ipm_iter_present(), 0);
+    const std::string c = line(golden_ipm_iter_nonfinite_newton(), 2);
+    EXPECT_NE(a, b);
+    EXPECT_NE(b, c);
+    EXPECT_NE(a, c);
+    EXPECT_EQ(raw_field(a, "accepted"), "false");
+    EXPECT_EQ(raw_field(b, "accepted"), "true");
+
+    // The four `< 0` doubles/ints of the two -1 conventions: null in A only.
     for (const char *k :
          {"prox_reg_primal", "prox_reg_dual", "first_rejection_iter", "theta_at_first_rejection"}) {
-        EXPECT_EQ(raw_field(a_os.str(), k), "null") << k;
-        EXPECT_NE(raw_field(b_os.str(), k), "null") << k;
+        EXPECT_EQ(raw_field(a, k), "null") << k;
+        EXPECT_NE(raw_field(b, k), "null") << k;
+        EXPECT_NE(raw_field(c, k), "null") << k;
     }
+    // The perturbed-pivot ABSENCE: null in A only, and NOT the projected 5.
+    EXPECT_EQ(raw_field(a, "p_pivots"), "null");
+    EXPECT_EQ(raw_field(b, "p_pivots"), "9");
+    EXPECT_EQ(raw_field(c, "p_pivots"), "9");
+    // The non-finite-Newton ladder marker: null in C only, and NOT -1.
+    EXPECT_EQ(raw_field(c, "h_facs"), "null");
+    EXPECT_EQ(raw_field(a, "h_facs"), "3");
+    EXPECT_EQ(raw_field(b, "h_facs"), "2");
+    EXPECT_EQ(a.find("-1"), std::string::npos) << "no sentinel escapes as a negative count";
+    EXPECT_EQ(c.find("h_facs\":-1"), std::string::npos);
 }
 
 TEST(JsonLinesTraceSink, GoldenLineIpmSolveBegin) {
@@ -3339,7 +3399,7 @@ TEST(JsonLinesTraceSink, GoldenLineIpmSolveBegin) {
     e.vars_upper_only = 3;
     e.vars_ranged = 4;
     e.vars_fixed = 5;
-    e.phases = 3;
+    e.phases = 9;
     e.max_iters = 200;
     e.max_acc_iters = 25;
     e.kkt_tol = 1e-6;
@@ -3355,7 +3415,7 @@ TEST(JsonLinesTraceSink, GoldenLineIpmSolveBegin) {
     sink.on_ipm_solve_begin(e);
     EXPECT_EQ(os.str(), "{\"v\":0,\"ev\":\"ipm.solve.begin\",\"seq\":1,\"depth\":0,\"n\":15,"
                         "\"n_reduced\":10,\"me\":6,\"mi\":7,\"vars_free\":1,\"vars_lower_only\":2,"
-                        "\"vars_upper_only\":3,\"vars_ranged\":4,\"vars_fixed\":5,\"phases\":3,"
+                        "\"vars_upper_only\":3,\"vars_ranged\":4,\"vars_fixed\":5,\"phases\":9,"
                         "\"max_iters\":200,\"max_acc_iters\":25,\"kkt_tol\":9.9999999999999995e-07,"
                         "\"econ_tol\":1.9999999999999999e-06,\"icon_tol\":3.0000000000000001e-06,"
                         "\"bar_tol\":3.9999999999999998e-06,\"init_mu\":0.001,\"obj_scale\":2.5,"
@@ -3415,6 +3475,7 @@ TEST(JsonLinesTraceSink, NoIpmLineCarriesAnUnknownEnumString) {
     JsonLinesTraceSink sink(os);
     sink.on_ipm_solve_begin(IpmSolveBeginTraceEvent{});
     sink.on_ipm_iter(IpmIterTraceEvent{golden_ipm_iter_present(), 0});
+    sink.on_ipm_iter(IpmIterTraceEvent{golden_ipm_iter_nonfinite_newton(), 0});
     sink.on_ipm_solve_end(IpmSolveEndTraceEvent{});
     EXPECT_EQ(os.str().find("unknown"), std::string::npos);
 }
