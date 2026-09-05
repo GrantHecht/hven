@@ -1,0 +1,92 @@
+M6 W4 T5 ACCEPTANCE EVIDENCE -- PROVENANCE (CLAUDE.md section 7)
+================================================================
+Read this first: it governs every number in this directory.
+
+WHAT THIS DIRECTORY IS
+  The W4 close evidence run for the machine-trace schema v0: the U0 27-cell
+  three-arm replay against the W4 window's own BASE, the FOUR v0 exemplar
+  streams, the telemetry census over the HS battery at all three QP modes, and
+  the per-site `qp.mode` count identities recomputed over all 81 census cells.
+  Produced by M6 W4 T5. The schema these artifacts instantiate is
+  docs/trace-schema-v0.md, which is the document of record.
+
+COMMITS
+  Code head measured:    1df1ae8  "feat(drivers): M6 W4 T5 -- per-site qp.mode
+                                   + call-site scan"
+  Docs on top of it:     6d40940  "docs(trace): schema v0", then THIS directory.
+  Both are docs-only, so the compiled tree that produced every number here IS
+  the code head 1df1ae8. The exemplar/census probe is committed IN this
+  directory, so its own provenance header cannot name the commit that carries
+  it; it names the code head, which is what the numbers depend on.
+  The corpus binary's configure-time stamp
+  (`git describe --always --dirty --abbrev=12`) reads `1df1ae8c4124` in the head
+  replay CSVs, because the tree was reconfigured at the code head before the
+  legs ran; the stamp names the checked-out commit and is not edited to match
+  prose.
+
+  Replay BASE:           fb46802  "docs(m6): ledger -- W4 T4 closed"
+  The W4 T5 brief's declared BASE. Built in a detached git worktree at
+  .scratch/w4t5-base with its submodules initialised, so its stamp is CLEAN
+  (`fb4680226f6e`) rather than the symlinked `-dirty` form.
+
+  ONE COMMIT SITS BETWEEN THEM AND IS NOT CODE: a7ac8b9, the owner's CLAUDE.md
+  section 4 ruling on aggregate member naming (docs only, 2026-09-04).
+
+TOOLCHAIN AND HARDWARE
+  clang 22.1.8 (Fedora 22.1.8-4.fc44); CMake; Ninja; ccache
+  Intel oneAPI MKL 2026.1 (/opt/intel/oneapi/mkl/latest)
+  AMD Ryzen 7 5800X3D (8 cores / 16 threads), Fedora 44, kernel 7.1.9-200.fc44
+  Build trees: build-w02/debug, build-w02/release (uniform flag regime;
+  HVEN_BUILD_TESTS=ON, HVEN_BUILD_BENCH=ON, HVEN_A4_GATE=OFF). The Release tree
+  was FRESHLY reconfigured before the replay (the configure-time git-describe
+  trap: a tree rebuilt without reconfiguring emits a stale stamp).
+
+  APPLE / ACCELERATE: UNOBSERVED. Every number in this directory is
+  MKL-on-Linux. No Apple value is inferred, interpolated or zero-filled from it,
+  and none is quoted anywhere here. Two schema fields are backend-dependent and
+  the schema document says so: `ipqp.iter.perturbed` and `ipm.iter.p_pivots`
+  both read `null` where a backend reports no perturbed-pivot count, which is
+  Accelerate's case -- WRITTEN to run there, UNOBSERVED here.
+
+THE SERIAL RULE, AS DECLARED (CLAUDE.md section 7)
+  Every measurement leg ran SOLO -- one process alone on the machine, one leg at
+  a time, each held under the box build lock (`flock /tmp/box-build.lock`) with
+  `pgrep` verified clean before it started. Measurement legs (the six replay
+  legs and the exemplar/census probe) additionally ran pinned with
+  `taskset -c 2` at MKL_NUM_THREADS=1 and OMP_NUM_THREADS=1. NO CO-RUN PROTOCOL
+  WAS USED and none is declared: nothing here was measured under contention.
+
+  The SMT sibling of the pinned core (cpu10) was left idle and measured from
+  /proc/stat across the replay window:
+
+      six-leg U0 replay window (2026-09-05 06:04:36Z - 06:12:53Z) .. 0.1148 % busy
+
+  NO WALL-CLOCK NUMBER IN THIS DIRECTORY IS ASSERTED. Counters, statuses and the
+  stream's own line counts are the asserted currency; every `wall_s` column,
+  every `_s` field in an `ipm.solve.end` line, and every suite duration is
+  informational and is excluded from every comparison below (75 of the corpus
+  schema's 76 columns are compared).
+
+WHAT WAS COMPARED, AND THE RESULT
+  base-walk vs head-walk .................... 27 cells x 75 columns, 0 diffs
+  base-ssn  vs head-ssn  .................... 27 cells x 75 columns, 0 diffs
+  base-ipm  vs head-ipm  .................... 27 cells x 75 columns, 0 diffs
+  committed t10b ipm baseline vs head-ipm ... 27 cells x 75 columns, 0 diffs
+  committed t10b ipm baseline vs base-ipm ... 27 cells x 75 columns, 0 diffs
+
+  The fifth line is the CONTROL: the BASE binary also reproduces the committed
+  t10b baseline (bench/baselines/2026-09-02-t10b-ipm/ipm_baseline.csv), so the
+  fourth is a statement about the tree rather than about this run's conditions.
+
+  No deviation was observed, so no cell was re-run as a candidate and no
+  DECLARED BREAK on the corpus is claimed by T5. T5 touches the SQP driver at
+  seven call sites; every one of them is sink-gated or writes only when a sink
+  is attached, and the corpus attaches none.
+
+WHAT THIS WINDOW DID DECLARE
+  ONE golden line moved, and it is a STREAM line, not a corpus cell:
+  `qp.mode`'s, by exactly one additive trailing key (`site`). That is a declared
+  additive re-derivation under plan section 2 rule 6 as the settler clarified it
+  (see docs/trace-schema-v0.md section 8). Four driver-level stream pins moved
+  with it, each declared in the T5 commit message. Nothing in the 76-column
+  corpus schema moved.

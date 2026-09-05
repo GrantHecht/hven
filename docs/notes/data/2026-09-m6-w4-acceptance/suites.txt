@@ -1,0 +1,44 @@
+M6 W4 T5 -- the test suites, both configs, split (Debug first).
+Every leg under the box build lock, MKL_NUM_THREADS=1 OMP_NUM_THREADS=1.
+Wall figures are INFORMATIONAL (CLAUDE.md section 7) and are not quoted as
+measurements: the split legs ran at ctest -j4.
+
+TREE: 6d40940 (docs(trace): schema v0), code head 1df1ae8.
+BASE for the counts: fb46802, built in a detached worktree at .scratch/w4t5-base.
+
+  config    leg                                                      result
+  --------  -------------------------------------------------------  ---------------------------
+  Debug     ctest -j4 -LE a4_gate -E ProbeBudgetBoundsAFailingProposal  100% passed, 0 of 2352
+  Debug     ctest -R Continuation.ProbeBudgetBoundsAFailingProposal     100% passed, 0 of 1
+  Release   ctest -j4 -LE a4_gate -E ProbeBudgetBoundsAFailingProposal  100% passed, 0 of 2352
+  Release   ctest -R Continuation.ProbeBudgetBoundsAFailingProposal     100% passed, 0 of 1
+
+REGISTERED TESTS (ctest -N):
+  BASE fb46802 .... 2350
+  HEAD ............ 2355     (+5)
+
+The five are named rather than netted out, and NO test was removed -- the two
+`ctest -N` name lists differ by exactly these five lines:
+
+  JsonLinesTraceSink.GoldenLineQpModeAtANonDispatchSite
+  QpModeSiteScan.EveryKernelCallSiteEmitsAQpModeLineOrSaysWhyItDoesNot
+  QpModeSiteScan.TheScanActuallyReadsTheDriverAndFindsItsKernelCalls
+  QpModeSites.EveryKernelInvocationIsAccountedForBySite
+  QpModeSites.TheLadderRungCountIsTheClimbAndNotTheMajorCount
+
+THE ARITHMETIC, stated rather than netted out:
+  2355 registered
+  -  1  Continuation.ProbeBudgetBoundsAFailingProposal, excluded from the split
+        leg by -E and run SOLO as its own leg above
+  -  2  EqpRefinementAb.FootprintRuleProbe and EqpRefinementAb.FullBattery,
+        which are DISABLED (the A/B probe battery)
+  = 2352 in the split leg, in both configs.
+
+Two of those 2352 report SKIPPED rather than passing, in both configs, and are
+named rather than hidden:
+  FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas
+        -- no OLD-SEAM adapter in this build
+  JetMklGuard.RestoresThreadDefaultOnExit
+
+`-LE a4_gate` selects nothing away: HVEN_A4_GATE=OFF, so that label registers
+zero tests in these trees.
