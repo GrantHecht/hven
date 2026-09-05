@@ -2186,10 +2186,17 @@ struct ElasticSeedSource {
 /// ladder climbs only while the relaxation is OPEN, so a top cap would turn a closable row into
 /// an EXHAUSTION and send it to restoration off a false signal. W2 T6b covers the misfire at the
 /// QP engine's own verdict site, in border mode; the margin is the cheaper first-rung guard.
+///
+/// @param sink  OPTIONAL trace sink, DEFAULTED so every direct caller (the W2
+///        pins call this function without a driver) keeps compiling unchanged.
+///        Non-null makes each RUNG's walk write its own `qp.mode` line at
+///        `site` `elastic_rung` -- the only way the stream reconciles against a
+///        climb whose length is not known in advance (M6 W4 T5).
 ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
                                        const ElasticSeedSource &seed, double window,
                                        const SqpOptions &opts, SqpCounters &out,
-                                       std::optional<double> rho_0_override = std::nullopt);
+                                       std::optional<double> rho_0_override = std::nullopt,
+                                       IpqpTraceSink *sink = nullptr);
 
 // THE W2 HOOK, AND THE ESCAPE BRANCH'S SINGLE ENTRY POINT (spec 2.3 item 5,
 // section 6.3's Amendment C registration).
@@ -2235,6 +2242,10 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
 /// @param verdict   OVERWRITTEN on every entry, fired or not: this entry's own
 ///        `fallback.verdict` trace event, which the caller emits (the counters' partition,
 ///        the placement, and the retry flag, for one entry).
+/// @param sink      OPTIONAL trace sink, DEFAULTED for the same reason the ladder's is.
+///        Non-null makes rung B's cold walk write a `qp.mode` line at `site`
+///        `fallback_rung_b` at BOTH of its return sites, and is FORWARDED into rung A's
+///        ladder so its rungs write theirs (M6 W4 T5).
 /// @return rung A's step in the ORIGINAL variables, or rung B's walk solution unchanged.
 QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp, const NlpEval &ev,
                                           const QpSolution *seed,
@@ -2242,7 +2253,8 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
                                           const SolveOverrides &overrides, const SqpOptions &opts,
                                           double window, SqpCounters &out, SqpIterate &row,
                                           std::optional<ElasticLadderReport> &fallback_report,
-                                          SqpFallbackVerdictTraceEvent &verdict);
+                                          SqpFallbackVerdictTraceEvent &verdict,
+                                          IpqpTraceSink *sink = nullptr);
 
 // =============================================================================
 // ADAPTIVE DUAL REGULARIZATION. Caller-visible surface:

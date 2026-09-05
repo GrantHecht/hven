@@ -324,6 +324,12 @@ TEST(JsonLinesTraceSink, GoldenLineIpqpEscapeCarriesBothTypedEvidenceBlocksAndNo
 }
 
 TEST(JsonLinesTraceSink, GoldenLineQpMode) {
+    // RE-DERIVED AT M6 W4 T5 (DECLARED; settler ruling, brief addendum 3). This
+    // is the ONE W1/W2 golden line the window moves, and it moves by EXACTLY
+    // one trailing key: every byte before `,"site"` is T1's, unchanged.
+    //
+    // Rule 6 as clarified in docs/trace-schema-v0.md: a frozen event's golden
+    // line moves only by a declared additive TRAILING key, never otherwise.
     QpModeTraceEvent e;
     e.mode = IpqpTraceQpMode::kIpqp;
     e.outcome = IpqpTraceOutcome::kEscaped;
@@ -332,7 +338,27 @@ TEST(JsonLinesTraceSink, GoldenLineQpMode) {
     JsonLinesTraceSink sink(os);
     sink.on_qp_mode(e);
     EXPECT_EQ(os.str(), "{\"v\":0,\"ev\":\"qp.mode\",\"seq\":1,\"depth\":0,\"mode\":\"ipqp\","
-                        "\"outcome\":\"escaped\",\"facts\":\"\",\"iters\":12}\n");
+                        "\"outcome\":\"escaped\",\"facts\":\"\",\"iters\":12,"
+                        "\"site\":\"dispatch\"}\n");
+}
+
+TEST(JsonLinesTraceSink, GoldenLineQpModeAtANonDispatchSite) {
+    // THE FALSIFIER FOR THE LINE ABOVE. `kDispatch` is the field's DEFAULT, so
+    // that golden cannot tell "the key is written from `event.site`" from "the
+    // key is a literal".
+    //
+    // This one differs in every field, so a hard-coded `dispatch` fails here.
+    QpModeTraceEvent e;
+    e.mode = IpqpTraceQpMode::kWalk;
+    e.outcome = IpqpTraceOutcome::kOptimal;
+    e.iters = 3;
+    e.site = QpModeSite::kElasticRung;
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_qp_mode(e);
+    EXPECT_EQ(os.str(), "{\"v\":0,\"ev\":\"qp.mode\",\"seq\":1,\"depth\":0,\"mode\":\"walk\","
+                        "\"outcome\":\"optimal\",\"facts\":\"\",\"iters\":3,"
+                        "\"site\":\"elastic_rung\"}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineFallbackVerdictWithAPlacement) {
@@ -474,6 +500,23 @@ const char *spec_spelling(IpqpTraceQpMode v) {
         return "\"walk\"";
     case IpqpTraceQpMode::kSsn:
         return "\"ssn\"";
+    }
+    return kUnspelled;
+}
+
+/// M6 W4 T5's fifth alphabet on `qp.mode`.
+const char *spec_spelling(QpModeSite v) {
+    switch (v) {
+    case QpModeSite::kDispatch:
+        return "\"dispatch\"";
+    case QpModeSite::kSsnWarmGrade:
+        return "\"ssn_warm_grade\"";
+    case QpModeSite::kFallbackRungB:
+        return "\"fallback_rung_b\"";
+    case QpModeSite::kElasticRung:
+        return "\"elastic_rung\"";
+    case QpModeSite::kSocResolve:
+        return "\"soc_resolve\"";
     }
     return kUnspelled;
 }
@@ -734,6 +777,21 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     outcome(IpqpTraceOutcome::kOptimal);
     outcome(IpqpTraceOutcome::kRouted);
     outcome(IpqpTraceOutcome::kEscaped);
+
+    // W4 T5's `site`, on the same event.
+    const auto site = [](QpModeSite v) {
+        QpModeTraceEvent e;
+        e.site = v;
+        std::ostringstream os;
+        JsonLinesTraceSink s(os);
+        s.on_qp_mode(e);
+        EXPECT_EQ(raw_field(os.str(), "site"), spec_spelling(v));
+    };
+    site(QpModeSite::kDispatch);
+    site(QpModeSite::kSsnWarmGrade);
+    site(QpModeSite::kFallbackRungB);
+    site(QpModeSite::kElasticRung);
+    site(QpModeSite::kSocResolve);
 
     const auto verdict = [](SqpFallbackVerdict v) {
         SqpFallbackVerdictTraceEvent e;
@@ -2204,10 +2262,13 @@ TEST(JsonLinesTraceSink, QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWa
     //
     // HS38 ESCAPES, and an escape is serviced by `certified_feasibility_fallback`,
     // which runs its own walk INSIDE itself -- so `ipqp_to_walk` moves while the
-    // dispatch's walk site never runs and writes no line.
+    // dispatch's walk site never runs.
     //
-    // That is a real gap in the stream (registered for T5's doc), and it is
-    // pinned here rather than papered over.
+    // RE-DERIVED AT M6 W4 T5 (declared, additive): that walk is no longer
+    // MISSING from the stream, it is TAGGED. The registered gap is closed.
+    //
+    // The line exists at `site` `fallback_rung_b` while the dispatch site still
+    // reads 0 -- the distinction the `site` key was added to carry.
     //
     // THE PINNED-VARIABLE MODEL DECLINES instead: the domain gate refuses the
     // subproblem before the engine is entered, `walk_owns_this_qp` becomes true,
@@ -2232,8 +2293,19 @@ TEST(JsonLinesTraceSink, QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWa
         EXPECT_EQ(at("\"ipqp\"") + at("\"walk\"") + at("\"ssn\""), tee.modes);
         ASSERT_GT(at("\"ipqp\""), 0);
         ASSERT_GT(sol.counters.ipqp.ipqp_to_walk, 0) << "non-vacuous: the cell really escapes";
-        EXPECT_EQ(at("\"walk\""), 0) << "the fallback's own walk is not a dispatch invocation";
-        EXPECT_EQ(at("\"ssn\""), 0) << "the kSsn ARM did not run; the warm grade is not it";
+        EXPECT_EQ(at("\"ssn\""), 0) << "the kSsn ARM did not run, and neither did the warm grade";
+        // THE WALK LINES ARE THE FALLBACK'S, NOT THE DISPATCH'S -- split by site.
+        Index walk_dispatch = 0, walk_rung_b = 0;
+        for (const std::string &l : split_lines(os.str())) {
+            if (event_name(l) != "qp.mode" || raw_field(l, "mode") != "\"walk\"") {
+                continue;
+            }
+            walk_dispatch += (raw_field(l, "site") == "\"dispatch\"") ? 1 : 0;
+            walk_rung_b += (raw_field(l, "site") == "\"fallback_rung_b\"") ? 1 : 0;
+        }
+        EXPECT_EQ(walk_dispatch, 0) << "the fallback's own walk is not a dispatch invocation";
+        EXPECT_EQ(walk_rung_b, at("\"walk\"")) << "and every walk line here is the fallback's";
+        EXPECT_GT(walk_rung_b, 0) << "non-vacuous: T5 made that walk visible";
     }
     {
         PinnedVariableModel model;
@@ -2412,10 +2484,17 @@ TEST(JsonLinesTraceSink, SqpSolvePartitionsTwoSolvesOnOneSinkAndSeqStaysContiguo
     }
     EXPECT_EQ(open, 0);
     EXPECT_EQ(pairs, 2);
-    EXPECT_EQ(lines_inside,
-              static_cast<Index>(first.history.size() + second.history.size() +
-                                 first.counters.major_iters + second.counters.major_iters))
-        << "one row and one walk qp.mode line per major, and nothing else on a walk cell";
+    // RE-DERIVED AT M6 W4 T5 (declared, additive): HS11 runs the elastic ladder,
+    // and since T5 each of its RUNGS writes a `qp.mode` line of its own.
+    //
+    // The rung term is `elastic_activations + elastic_escalations` -- one walk
+    // per ladder, plus one per escalation. HS24 contributes 0 to it.
+    const Index rungs = first.counters.elastic_activations + first.counters.elastic_escalations +
+                        second.counters.elastic_activations + second.counters.elastic_escalations;
+    ASSERT_GT(rungs, 0) << "non-vacuous: HS11 really climbs";
+    EXPECT_EQ(lines_inside, static_cast<Index>(first.history.size() + second.history.size()) +
+                                first.counters.major_iters + second.counters.major_iters + rungs)
+        << "one row and one dispatch qp.mode line per major, plus the ladder's own rungs";
     EXPECT_EQ(json.lines_written(), static_cast<Index>(lines.size()));
     EXPECT_EQ(json.depth(), 0);
 }
@@ -3154,8 +3233,23 @@ TEST(JsonLinesTraceSink, TheRowsModeAndTheDispatchRecordDifferOnTheSsnWarmGrade)
         }
     }
     EXPECT_GT(rows_reading_ssn, 0) << "some row's step came from the warm grade";
-    EXPECT_EQ(qp_mode_census(os.str()).count("\"ssn\""), 0u)
-        << "and no ssn dispatch record exists: the two readings are different questions";
+    // RE-DERIVED AT M6 W4 T5 (declared, additive). The grade now writes a line
+    // of its own, so "no ssn line exists" is no longer the right statement --
+    // "no ssn DISPATCH line exists" is.
+    //
+    // The grade's line carries `site` `ssn_warm_grade`: the same distinction,
+    // now stated in the stream rather than by absence.
+    Index ssn_dispatch = 0, ssn_grade = 0;
+    for (const std::string &l : split_lines(os.str())) {
+        if (event_name(l) != "qp.mode" || raw_field(l, "mode") != "\"ssn\"") {
+            continue;
+        }
+        ssn_dispatch += (raw_field(l, "site") == "\"dispatch\"") ? 1 : 0;
+        ssn_grade += (raw_field(l, "site") == "\"ssn_warm_grade\"") ? 1 : 0;
+    }
+    EXPECT_EQ(ssn_dispatch, 0)
+        << "no ssn dispatch record exists: the two readings are different questions";
+    EXPECT_EQ(ssn_grade, sol.counters.ipqp.ipqp_to_ssn) << "one grade line per routed subproblem";
 }
 
 TEST(JsonLinesTraceSink, TheRequestingRowIsWrittenAFTERTheNestedSolveItAskedFor) {

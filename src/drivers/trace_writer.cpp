@@ -232,6 +232,22 @@ const char *to_json(IpqpTraceQpMode v) {
     return "unknown";
 }
 
+const char *to_json(QpModeSite v) {
+    switch (v) {
+    case QpModeSite::kDispatch:
+        return "dispatch";
+    case QpModeSite::kSsnWarmGrade:
+        return "ssn_warm_grade";
+    case QpModeSite::kFallbackRungB:
+        return "fallback_rung_b";
+    case QpModeSite::kElasticRung:
+        return "elastic_rung";
+    case QpModeSite::kSocResolve:
+        return "soc_resolve";
+    }
+    return "unknown";
+}
+
 // Two DRIVER enums the `sqp.major` row carries. Lower-case snake per plan
 // section 2 rule 8, not the PascalCase display strings core/ has -- those name
 // a column in a printed table, and this is machine text.
@@ -491,6 +507,17 @@ static_assert(::hven::detail::kAggregateArity<SqpIterate> == kSqpIterateFieldCou
               "JsonLinesTraceSink::on_sqp_major (in DECLARATION order, ahead of `major`), "
               "re-derive the sqp.major golden line, and then update this count.");
 
+// AND ON `qp.mode`, WHICH W4 T5 GREW A TRAILING KEY (`site`). 5 is a count of
+// initializers, not a sizeof.
+//
+// The event is written key by key below, so a sixth field would be silently
+// dropped from a line the golden pins compare byte for byte.
+static_assert(::hven::detail::kAggregateArity<QpModeTraceEvent> == 5,
+              "QpModeTraceEvent gained or lost a field: give it a key in "
+              "JsonLinesTraceSink::on_qp_mode, re-derive the qp.mode golden lines as a DECLARED "
+              "additive trailing key (this event is frozen by plan section 2 rule 6), and "
+              "update this count.");
+
 // THE SAME NET ON THE PAIR'S OWN STRUCTS (fix round 2, F3). Both are written key
 // by key below, so a field added to either would be silently dropped from a line
 // the golden pins compare byte for byte -- and the pin would still pass.
@@ -695,6 +722,10 @@ void JsonLinesTraceSink::on_qp_mode(const QpModeTraceEvent &event) {
     key(b, first, "facts");
     append_string(b, event.facts);
     key_index(b, first, "iters", event.iters);
+    // THE TRAILING KEY, and it is trailing because rule 6 freezes this event:
+    // a frozen event's golden line moves only by a declared additive TRAILING
+    // key. W4 T5 declared this one (docs/trace-schema-v0.md, the freeze table).
+    key_enum(b, first, "site", to_json(event.site));
     write_line("qp.mode", b);
 }
 

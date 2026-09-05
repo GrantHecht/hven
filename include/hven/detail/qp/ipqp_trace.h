@@ -33,6 +33,14 @@ enum class IpqpTraceEscapeReason { kBudget, kStall, kIndefinite, kNumerical, kIn
 /// arms name themselves in the stream instead of being read off by absence.
 enum class IpqpTraceQpMode { kIpqp, kWalk, kSsn };
 enum class IpqpTraceOutcome { kOptimal, kRouted, kEscaped };
+/// WHICH CALL SITE ran this kernel (schema `qp.mode`'s `site`, M6 W4 T5).
+///
+/// `kDispatch` is the major's own dispatch -- the walk invocation, the kSsn arm,
+/// and the kIpm arm's routing chain -- and is the only site whose count is one
+/// per major. The other four run INSIDE a dispatch arm that has already written
+/// its line, so a stream is read as "one dispatch line per major, plus whatever
+/// the arm then paid".
+enum class QpModeSite { kDispatch, kSsnWarmGrade, kFallbackRungB, kElasticRung, kSocResolve };
 
 /// @brief One completed predictor+corrector pair (schema `ipqp.iter`).
 struct IpqpTraceIterEvent {
@@ -112,44 +120,45 @@ struct IpqpTraceEscapeEvent {
     IpqpTraceEscapeEvidence evidence;
 };
 
-/// @brief ONE DISPATCH DECISION on one subproblem (schema `qp.mode`),
-/// driver-emitted from the three dispatch arms since M6 W4 T2(b).
+/// @brief ONE KERNEL INVOCATION on one subproblem (schema `qp.mode`),
+/// driver-emitted. W4 T2(b) made the three DISPATCH arms write it; M6 W4 T5
+/// (settler ruling) made EVERY kernel call site in the driver write it, tagged
+/// by `site`, so the stream reconciles against invocation counts rather than
+/// against majors alone.
 ///
-/// EXACTLY THREE SITES EMIT, and they are the dispatch's own arms: the walk
-/// invocation the dispatch makes, the kSsn arm, and the kIpm arm's routing
-/// chain. A hand-off between ARMS therefore writes two lines -- the handing
-/// arm's and its successor's -- so the chain a major walked is readable.
+/// THE FIVE SITES, and what each one costs a reader (`QpModeSite`):
 ///
-/// SIX KERNEL CALL SITES RUN INSIDE AN ARM THAT HAS ALREADY WRITTEN ITS LINE,
-/// and write none of their own (fix round 2, F2 -- the fix-round-1 list said
-/// "four walk invocations" and was wrong in both halves). Enumerated from every
-/// `QpEngine::solve` and SSN `solve` call site in `sqp_driver.cpp`:
+///   * `kDispatch` -- the major's own dispatch: the walk invocation, the kSsn
+///     arm, and the kIpm arm's routing chain. ONE PER MAJOR THAT SOLVED A QP; a
+///     hand-off between ARMS writes two, the handing arm's and its successor's,
+///     so the chain a major walked is readable.
+///   * `kSsnWarmGrade` -- `route_through_ssn_warm_grade`'s SSN kernel call, NOT
+///     a walk, made once per subproblem the kIpm chain routes to the grade.
+///   * `kFallbackRungB` -- `certified_feasibility_fallback`'s cold walk, at both
+///     of its return sites (the evidence never fired; rung A was declined).
+///   * `kElasticRung` -- `run_elastic_ladder`'s walk on the elastic QP, ONCE PER
+///     RUNG of its climb, reached from the fallback's rung A (entry and floor
+///     retry) and from the driver's own elastic branch. UNBOUNDED per major, and
+///     the reason the count identity for this site is written against
+///     `elastic_activations + elastic_escalations` rather than against majors.
+///   * `kSocResolve` -- the second-order correction's walk re-solve.
 ///
-///   * `route_through_ssn_warm_grade` -- an SSN kernel call, NOT a walk, that
-///     the kIpm arm's routing chain makes once per routed subproblem;
-///   * `certified_feasibility_fallback`'s rung-B WALK, at its two call sites
-///     (the evidence never fired; rung A was declined);
-///   * `run_elastic_ladder`'s WALK on the elastic QP, ONCE PER RUNG of its
-///     climb, reached from the fallback's rung A (entry and floor retry) and
-///     from the driver's own elastic branch -- so this one is UNBOUNDED per
-///     major, which is why the stream cannot be read as an invocation count;
-///   * the second-order correction's WALK re-solve.
+/// The restoration sub-solve is NOT a site: it is a whole nested SQP solve and
+/// writes its own stream, dispatch lines included, at depth 1.
+/// `QpEngine::refine_on_face` is excluded BY KIND -- it is the tier-3 face EQP
+/// run on a face a kernel already produced, not a kernel the dispatch chooses
+/// between, and it reports no minor count for `iters` to carry.
 ///
-/// All six are REGISTERED for T5's ruling. The restoration sub-solve is NOT one
-/// of them: it is a whole nested SQP solve and writes its own stream at depth 1.
-/// `QpEngine::refine_on_face` is excluded by kind -- it is the tier-3 face EQP,
-/// not a kernel the dispatch chooses between.
-///
-/// THE OUTCOME MAP, per arm, is the driver's and is stated here because the
-/// three arms report three different objects:
+/// THE OUTCOME MAP, per mode, is the driver's and is stated here because the
+/// three kernels report three different objects:
 ///   * `kWalk` -- `QpStatus::kOptimal` is `kOptimal`; kMaxIter, kInfeasible and
 ///     kNumericalError are all `kEscaped`. The walk has no successor kernel, so
 ///     nothing it exits with is a route; a kInfeasible walk hands to the
 ///     ELASTIC tier, which is the same kernel again.
 ///   * `kSsn` -- a usable, certified exit is `kOptimal`; every other exit
 ///     (engine escape or the trust-region gate's refusal) is `kRouted`, since
-///     the walk re-solves the subproblem. `kEscaped` is UNREACHABLE in this arm
-///     today: no SSN exit ends a subproblem.
+///     the walk re-solves the subproblem. `kEscaped` is UNREACHABLE in both SSN
+///     sites today: no SSN exit ends a subproblem.
 ///   * `kIpqp` -- unchanged (W2): `kOptimal` on the refine route, `kRouted` to
 ///     the SSN warm grade, `kEscaped` on a genuine escape to the walk.
 /// `iters` is the invocation's own minor count.
@@ -158,6 +167,10 @@ struct QpModeTraceEvent {
     IpqpTraceOutcome outcome = IpqpTraceOutcome::kOptimal;
     std::string facts; ///< Opaque, undefined by spec v0; always empty from W1.
     Index iters = 0;
+    /// THE TRAILING KEY (M6 W4 T5), and it is trailing because `qp.mode` is one
+    /// of the events plan section 2 rule 6 freezes: a frozen event's golden line
+    /// moves only by a declared additive TRAILING key, never otherwise.
+    QpModeSite site = QpModeSite::kDispatch;
 };
 
 /// @brief The certified fallback's own outcome for one escaped subproblem (schema
@@ -210,11 +223,14 @@ struct SqpMajorTraceEvent {
     /// an outcome.
     ///
     /// They agree at kWalk and kSsn. Under kIpm they DIFFER on exactly the
-    /// majors the tier routes to the SSN warm grade: the row reads `ssn`
-    /// (the grade produced the step) while no `ssn` `qp.mode` line exists (the
-    /// grade is not the kSsn arm). A kernel that runs INSIDE the kIpm arm --
-    /// the fallback's rung B, either elastic ladder, the SOC re-solve --
-    /// leaves the reading at `ipqp`, because no other ARM owned the major.
+    /// majors the tier routes to the SSN warm grade: the row reads `ssn` (the
+    /// grade produced the step) while the major's DISPATCH line reads `ipqp`
+    /// with `outcome` `routed`. Since M6 W4 T5 the grade does write an `ssn`
+    /// `qp.mode` line of its own, at `site` `ssn_warm_grade` -- so the two
+    /// readings are reconciled by the `site` key, not by absence. A kernel that
+    /// runs INSIDE the kIpm arm -- the fallback's rung B, either elastic
+    /// ladder, the SOC re-solve -- leaves the ROW's reading at `ipqp`, because
+    /// no other ARM owned the major, and writes its own non-dispatch line.
     ///
     /// On a row with `qp_solved == false` no kernel ran and this reports the
     /// solve's CONFIGURED mode; the same line's `qp_solved` tells the two

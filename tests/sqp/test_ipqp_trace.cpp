@@ -572,29 +572,43 @@ TEST(IpqpTrace, DriverRouteAndQpModeEventsMatchTheRoutingCounters) {
     // R3: an exact fold-sum against the aggregated counter, not a per-event
     // bound -- every `uncertain` value is accounted for, not merely >= 0.
     EXPECT_EQ(uncertain_sum, total_uncertain);
-    // RE-DERIVED AT M6 W4 T2(b) (declared, additive). Until T2 the kIpm arm was
-    // the only emitter, so `routes` and `modes` were the same length.
+    // RE-DERIVED AT M6 W4 T2(b), AND AGAIN AT T5 (both declared, both additive).
+    // Until T2 the kIpm arm was the only emitter, so `routes` and `modes` were
+    // the same length.
     //
-    // The WALK now writes its own `qp.mode` line at the invocation, so a
+    // T2: the WALK writes its own `qp.mode` line at the invocation, so a
     // subproblem the tier declines or retires past adds a walk line with no
     // route beside it.
     //
-    // The TIER's own pairing is unchanged and is what is asserted; the walk's
-    // lines are counted separately below.
-    Index ipqp_mode_events = 0, walk_mode_events = 0;
+    // T5: EVERY kernel call site writes one, tagged by `site`. Under kIpm that
+    // adds the SSN WARM GRADE's own line -- mode `ssn`, site `ssn_warm_grade`,
+    // which is NOT the kSsn arm -- and the elastic/fallback/SOC walks.
+    //
+    // So the partition below is by SITE first: the tier pairs with `dispatch`.
+    Index ipqp_mode_events = 0, walk_dispatch_events = 0, non_dispatch_events = 0;
     for (const QpModeTraceEvent &ev : sink.modes) {
+        if (ev.site != QpModeSite::kDispatch) {
+            EXPECT_NE(ev.mode, IpqpTraceQpMode::kIpqp)
+                << "the tier is only ever reached through the dispatch";
+            ++non_dispatch_events;
+            continue;
+        }
         if (ev.mode == IpqpTraceQpMode::kIpqp) {
             ++ipqp_mode_events;
         } else {
             EXPECT_EQ(ev.mode, IpqpTraceQpMode::kWalk) << "the kSsn ARM cannot run under kIpm";
             EXPECT_NE(ev.outcome, IpqpTraceOutcome::kRouted) << "the walk has no successor";
-            ++walk_mode_events;
+            ++walk_dispatch_events;
         }
     }
     EXPECT_EQ(sink.routes.size(), static_cast<std::size_t>(ipqp_mode_events))
         << "the two are emitted together, one pair per consulted subproblem";
-    EXPECT_GT(walk_mode_events, 0) << "non-vacuous: some subproblem reaches the dispatch's walk";
-    EXPECT_EQ(sink.modes.size(), static_cast<std::size_t>(ipqp_mode_events + walk_mode_events));
+    EXPECT_GT(walk_dispatch_events, 0)
+        << "non-vacuous: some subproblem reaches the dispatch's walk";
+    EXPECT_GT(non_dispatch_events, 0)
+        << "non-vacuous: these three cells run kernels inside an arm (T5)";
+    EXPECT_EQ(sink.modes.size(), static_cast<std::size_t>(ipqp_mode_events + walk_dispatch_events +
+                                                          non_dispatch_events));
 
     Index optimal_count = 0, routed_count = 0, escaped_count = 0;
     Index iters_sum = 0;
@@ -602,6 +616,7 @@ TEST(IpqpTrace, DriverRouteAndQpModeEventsMatchTheRoutingCounters) {
         if (ev.mode != IpqpTraceQpMode::kIpqp) {
             continue;
         }
+        EXPECT_EQ(ev.site, QpModeSite::kDispatch);
         EXPECT_EQ(ev.facts, "");
         EXPECT_GE(ev.iters, 0);
         iters_sum += ev.iters;

@@ -61,6 +61,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_qp_engine_border.cpp
     test_qp_engine_indefinite.cpp
     test_qp_engine_tr.cpp
+    test_qp_mode_sites.cpp
     test_qp_warm_start.cpp
     test_scaffold.cpp
     test_scale_problems.cpp
@@ -88,6 +89,17 @@ target_compile_options(hven_sqp_tests PRIVATE ${COMPILE_FLAGS})
 # directory (bench/), which has no support/ subdirectory — so this target
 # needs tests/sqp/ itself on the include path, and ONLY that.
 target_include_directories(hven_sqp_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+
+# The driver TU test_qp_mode_sites.cpp SCANS (M6 W4 T5). It reads the source
+# text -- it does not parse C++ -- and requires every kernel invocation in it to
+# be covered by a nearby `qp.mode` emit or to carry an explicit `// trace:`
+# marker, so the schema's per-site list cannot go stale as the driver grows call
+# sites. Rooted at THIS directory for the same reason HVEN_CORE_INCLUDE_DIR is,
+# and absolute so the test does not depend on ctest's working directory; the
+# test asserts the file exists and contains the invocations it expects, so a
+# wrong path fails loudly rather than scanning nothing.
+target_compile_definitions(hven_sqp_tests
+    PRIVATE HVEN_SQP_DRIVER_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}/../../src/drivers/sqp_driver.cpp")
 
 # The committed walk baseline, so test_corpus_cells.cpp can re-score THE
 # ARTIFACT ITSELF through the offline --from-csv path and pin the verdict.

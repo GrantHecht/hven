@@ -957,12 +957,37 @@ QpSolution elastic_evidence_seed(const ElasticQp &e, const QpProblem &qp,
     return s;
 }
 
+/// @brief The WALK's own exit, in the trace's alphabet (the map is stated at
+/// `QpModeTraceEvent`): the walk has no successor kernel, so every non-optimal
+/// exit is an escape rather than a route.
+IpqpTraceOutcome trace_outcome_of(QpStatus status) {
+    return status == QpStatus::kOptimal ? IpqpTraceOutcome::kOptimal : IpqpTraceOutcome::kEscaped;
+}
+
+/// @brief THE FREE EMIT (M6 W4 T5), for the two kernel call sites that live in
+/// free functions and so have no `SqpDriver::emit_trace_qp_mode` to reach.
+///
+/// The null check is HERE, once, so a caller with no sink pays one predictable
+/// branch and no event construction -- the same shape the driver's member has.
+void emit_qp_mode_line(IpqpTraceSink *sink, IpqpTraceQpMode mode, IpqpTraceOutcome outcome,
+                       QpModeSite site, Index iters) {
+    if (sink == nullptr) {
+        return;
+    }
+    QpModeTraceEvent mev;
+    mev.mode = mode;
+    mev.outcome = outcome;
+    mev.iters = iters;
+    mev.site = site;
+    sink->on_qp_mode(mev);
+}
+
 } // namespace
 
 ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
                                        const ElasticSeedSource &seed, double window,
                                        const SqpOptions &opts, SqpCounters &out,
-                                       std::optional<double> rho_0_override) {
+                                       std::optional<double> rho_0_override, IpqpTraceSink *sink) {
     // VALIDATED AT THE BOUNDARY (CLAUDE.md section 4): a negative or NaN window crosses the
     // elastic box silently -- `build_elastic_subproblem` clamps lo/up against it with no check.
     if (!(window >= 0.0)) {
@@ -1018,6 +1043,12 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
         out.verdict_refine_steps += qs_e.counters.verdict_refine_steps;
         out.suspect_escalations += qs_e.counters.suspect_escalations;
         out.symbolic_analyses += qs_e.counters.symbolic_analyses;
+        // ONE LINE PER RUNG (M6 W4 T5), written where the rung has run and
+        // BEFORE the four breaks below, so a climb stopping here still reports.
+        //
+        // The count over a solve is `elastic_activations + elastic_escalations`.
+        emit_qp_mode_line(sink, IpqpTraceQpMode::kWalk, trace_outcome_of(qs_e.status),
+                          QpModeSite::kElasticRung, qs_e.counters.minor_iters);
         if (qs_e.status != QpStatus::kOptimal) {
             break;
         }
@@ -1113,7 +1144,8 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
                                           const SolveOverrides &overrides, const SqpOptions &opts,
                                           double window, SqpCounters &out, SqpIterate &row,
                                           std::optional<ElasticLadderReport> &fallback_report,
-                                          SqpFallbackVerdictTraceEvent &verdict) {
+                                          SqpFallbackVerdictTraceEvent &verdict,
+                                          IpqpTraceSink *sink) {
     // VALIDATED AT THE BOUNDARY, on the same terms as the ladder's own (CLAUDE.md section 4).
     // P6's "no evidence CONTENT throws" is untouched: this is the window, not the block.
     if (!(window >= 0.0)) {
@@ -1134,7 +1166,10 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
     // evidence, so a caller carrying none gets W1's body exactly -- one cold walk, no
     // activation charged and NO counter in the partition (pin P5).
     if (!evidence.fired) {
-        return engine.solve(qp, overrides);
+        QpSolution cold = engine.solve(qp, overrides);
+        emit_qp_mode_line(sink, IpqpTraceQpMode::kWalk, trace_outcome_of(cold.status),
+                          QpModeSite::kFallbackRungB, cold.counters.minor_iters);
+        return cold;
     }
 
     // RUNG A -- THE ELASTIC QP, ALWAYS. Feasible by construction, so the suspicion is answered
@@ -1146,7 +1181,7 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
     // below charges its own -- `elastic_activations == walk-route + elastic_from_ipqp_escape`.
     ++out.elastic_from_ipqp_escape;
     ElasticLadderReport report =
-        run_elastic_ladder(engine, qp, elastic_seed_source, window, opts, out);
+        run_elastic_ladder(engine, qp, elastic_seed_source, window, opts, out, std::nullopt, sink);
     // THE ENTRY'S CLAMP, kept across the retry below: an OVERRIDE placement reads UNCLAMPED, and
     // a clamp the engine then declined is the most interesting row this telemetry has.
     const bool entry_ceiling_hit = report.rho0_ceiling_hit;
@@ -1157,8 +1192,8 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
         ++out.elastic_floor_retries;
         ++out.elastic_from_ipqp_escape;
         verdict.floor_retry = true;
-        report =
-            run_elastic_ladder(engine, qp, elastic_seed_source, window, opts, out, kElasticRhoInit);
+        report = run_elastic_ladder(engine, qp, elastic_seed_source, window, opts, out,
+                                    kElasticRhoInit, sink);
     }
     // ONE BOOL ACROSS THE RETRY, so the row, the event and `elastic_rho0_ceiling_hits` all read
     // THIS ENTRY's placement rather than the surviving ladder's.
@@ -1174,7 +1209,10 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
     if (report.qp_status != QpStatus::kOptimal) {
         ++out.ipqp_fallback_rung_b;
         verdict.verdict = SqpFallbackVerdict::kRungB;
-        return engine.solve(qp, overrides);
+        QpSolution cold = engine.solve(qp, overrides);
+        emit_qp_mode_line(sink, IpqpTraceQpMode::kWalk, trace_outcome_of(cold.status),
+                          QpModeSite::kFallbackRungB, cold.counters.minor_iters);
+        return cold;
     }
     // RUNG A OWNS THE ANSWER, whichever verdict it carries: the three arms below are the
     // rung-A-owned side of the ENTRY partition, whose fourth arm is the rung-B return above.
@@ -1203,13 +1241,6 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
 }
 
 namespace {
-
-/// @brief The WALK's own exit, in the trace's alphabet (the map is stated at
-/// `QpModeTraceEvent`): the walk has no successor kernel, so every non-optimal
-/// exit is an escape rather than a route.
-IpqpTraceOutcome trace_outcome_of(QpStatus status) {
-    return status == QpStatus::kOptimal ? IpqpTraceOutcome::kOptimal : IpqpTraceOutcome::kEscaped;
-}
 
 /// @brief The CONFIGURED mode, in the trace's own alphabet.
 ///
@@ -3713,6 +3744,8 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // its sentinel too and the two kernels would agree even if this
             // line forwarded it.
             SsnResult sres;
+            // trace: qp.mode at the end of this arm (site dispatch) -- the line
+            // reports the ARM's outcome, which the hand-off branches below decide.
             ssn_engine().solve(qp, ssn_start_from_qp_seed(have_seed ? &seed : nullptr), sopts,
                                ssn_overrides, &sres);
             // GOULD'S LEMMA (R5).
@@ -3754,6 +3787,8 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             if (sres.certification_deferred) {
                 if (ssn_exit_is_a_usable_step(sres, sopts.fb_tol)) {
                     const QpSolution r5_face = ssn_result_to_qp_solution(sres);
+                    // trace: silent -- refine_on_face is the tier-3 face EQP on a face a
+                    // kernel already produced, not a kernel the dispatch chooses between.
                     r5_took = engine_.refine_on_face(qp, r5_face, ssn_overrides, r5_refined);
                     r5_have = true;
                     if (r5_took) {
@@ -3840,6 +3875,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                     took = r5_took;
                     refined = std::move(r5_refined);
                 } else {
+                    // trace: silent -- the tier-3 face EQP, excluded by kind (QpModeTraceEvent).
                     took = engine_.refine_on_face(qp, qs, ssn_overrides, refined);
                 }
                 const Index refine_facts = refined.counters.factorizations;
@@ -3933,6 +3969,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 mev.outcome =
                     walk_owns_this_qp ? IpqpTraceOutcome::kRouted : IpqpTraceOutcome::kOptimal;
                 mev.iters = sres.counters.ssn_iters;
+                mev.site = QpModeSite::kDispatch;
                 emit_trace_qp_mode(mev);
             }
             break;
@@ -4006,6 +4043,8 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // task 8: the trace `major` field -- the one fact the engine
             // cannot know on its own (no `major` parameter on solve()).
             ipqp_engine().set_trace_major(iter + 1);
+            // trace: qp.mode via emit_ipqp_route_and_mode below (site dispatch) --
+            // one line per routing destination, which is what this chain decides.
             const IpqpResult ires = ipqp_engine().solve(qp, ipqp_seed, iopts, ipqp_overrides);
             ipqp_staged_seed_.reset();
             ipqp_analysis_epoch = seam.epoch();
@@ -4071,6 +4110,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 mev.mode = IpqpTraceQpMode::kIpqp; // M4: explicit -- this arm's only mode.
                 mev.outcome = outcome;
                 mev.iters = ires.counters.ipqp_iters;
+                mev.site = QpModeSite::kDispatch;
                 emit_trace_qp_mode(mev);
             };
 
@@ -4086,6 +4126,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 // partition -- see `ipqp_to_refine`'s own doc comment.
                 ++out.counters.ipqp.ipqp_to_refine;
                 QpSolution refined;
+                // trace: silent -- the tier-3 face EQP, excluded by kind (QpModeTraceEvent).
                 const bool took = engine_.refine_on_face(qp, face, ipqp_overrides, refined);
                 const Index refine_facts = refined.counters.factorizations;
                 const Index refine_steps = refined.counters.eqp_refine_steps;
@@ -4145,7 +4186,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 qs = certified_feasibility_fallback(
                     engine_, qp, ev, have_seed ? &seed : nullptr, ires.infeasibility_evidence,
                     overrides, opts_, std::min(delta, opts_.qp.tr_radius), out.counters, row,
-                    fallback_report, fallback_verdict);
+                    fallback_report, fallback_verdict, ipqp_trace_);
                 emit_trace_fallback_verdict(fallback_verdict);
                 emit_ipqp_route_and_mode(IpqpTraceRouteTo::kWalk, IpqpTraceOutcome::kEscaped);
             }
@@ -4181,6 +4222,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 mev.mode = IpqpTraceQpMode::kWalk;
                 mev.outcome = trace_outcome_of(qs.status);
                 mev.iters = qs.counters.minor_iters;
+                mev.site = QpModeSite::kDispatch;
                 emit_trace_qp_mode(mev);
             }
         }
@@ -4246,9 +4288,10 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // CONSUMED, NEVER RE-RUN: `++elastic_activations` lives inside the ladder, so a
             // second run on the fallback's own report would double-charge the activation.
             const ElasticLadderReport report =
-                fallback_report ? std::move(*fallback_report)
-                                : run_elastic_ladder(engine_, qp, elastic_seed_source, window,
-                                                     opts_, out.counters);
+                fallback_report
+                    ? std::move(*fallback_report)
+                    : run_elastic_ladder(engine_, qp, elastic_seed_source, window, opts_,
+                                         out.counters, std::nullopt, ipqp_trace_);
             rho0_ceiling_hit = report.rho0_ceiling_hit;
 
             if (!report.usable) {
@@ -4479,6 +4522,17 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             SolveOverrides soc_overrides;
             soc_overrides.tr_radius = delta;
             qs_soc = engine_.solve(soc_qp, seed_soc, soc_overrides);
+            // ONE LINE FOR THE CORRECTION'S OWN WALK (M6 W4 T5), at `site`
+            // `soc_resolve`: it runs INSIDE a major whose dispatch line is
+            // already written, so it is priced by `soc_steps`, not by majors.
+            if (ipqp_trace_ != nullptr) {
+                QpModeTraceEvent mev;
+                mev.mode = IpqpTraceQpMode::kWalk;
+                mev.outcome = trace_outcome_of(qs_soc.status);
+                mev.iters = qs_soc.counters.minor_iters;
+                mev.site = QpModeSite::kSocResolve;
+                emit_trace_qp_mode(mev);
+            }
 
             out.counters.qp_minor_iters += qs_soc.counters.minor_iters;
             out.counters.factorizations += qs_soc.counters.factorizations;
@@ -4774,6 +4828,7 @@ bool SqpDriver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResu
     start.box_center = ires.box.centre;
     assert_ssn_warm_grade_window(ires, start, ssn_overrides, opts_.qp);
     SsnResult sres;
+    // trace: qp.mode below (site ssn_warm_grade), once the usability verdict is in.
     ssn_engine().solve(qp, start, sopts, ssn_overrides, &sres);
     accumulate_ssn_counters(counters.ssn, sres.counters);
     ssn_budget_charge += sres.factorizations;
@@ -4781,7 +4836,24 @@ bool SqpDriver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResu
     // CENTRE only from a usable exit. Both rules are the kSsn arm's own, and its notes there
     // carry the reasoning.
     ssn_prox_sigma_out_ = std::max(ssn_prox_sigma_out_, sres.prox_sigma);
-    if (!ssn_exit_is_a_usable_step(sres, sopts.fb_tol)) {
+    // HOISTED so the trace line below can read it once (M6 W4 T5): the verdict
+    // is what tells the grade's own `qp.mode` outcome apart, and computing it
+    // twice would let the two readings drift.
+    const bool grade_is_usable = ssn_exit_is_a_usable_step(sres, sopts.fb_tol);
+    // ONE LINE FOR THE GRADE'S OWN SSN INVOCATION, at `site` `ssn_warm_grade`:
+    // it runs INSIDE the kIpm arm, whose `dispatch` line already reads `routed`,
+    // so this is the second half of that hand-off, not a second dispatch.
+    //
+    // A grade the walk then re-solves is itself `routed`.
+    if (ipqp_trace_ != nullptr) {
+        QpModeTraceEvent mev;
+        mev.mode = IpqpTraceQpMode::kSsn;
+        mev.outcome = grade_is_usable ? IpqpTraceOutcome::kOptimal : IpqpTraceOutcome::kRouted;
+        mev.iters = sres.counters.ssn_iters;
+        mev.site = QpModeSite::kSsnWarmGrade;
+        emit_trace_qp_mode(mev);
+    }
+    if (!grade_is_usable) {
         // THE SSN TIER'S OWN HAND-OFF, counted in the SSN tier's own census and not in the
         // IPQP routing pair: `ipqp_to_ssn` records where the routing chain SENT this
         // subproblem; what the SSN tier then did is `ssn_escapes`' business, as under kSsn.
@@ -4804,6 +4876,7 @@ bool SqpDriver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResu
     // EVERY certifying SSN exit, and reaching SSN through the IPQP chain does not stop
     // section 2.3 item 1 applying. THE COUNTERS ARE THE SSN TIER'S, not the IPQP pair's.
     QpSolution refined;
+    // trace: silent -- the tier-3 face EQP, excluded by kind (QpModeTraceEvent).
     const bool took = engine_.refine_on_face(qp, qs, ssn_overrides, refined);
     const Index refine_facts = refined.counters.factorizations;
     const Index refine_steps = refined.counters.eqp_refine_steps;
