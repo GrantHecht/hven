@@ -151,6 +151,11 @@
 
 #include "hs_problems.h"
 
+#include "hven/core/compiler.h"
+
+// by-value oracle of the in-place hot path; migration is a separate task
+HVEN_SUPPRESS_DEPRECATED_BEGIN
+
 namespace hven::solvers::test_support {
 
 // One Hock-Schittkowski problem re-posed along a scalar parameter -- see this
@@ -349,3 +354,5 @@ inline std::unique_ptr<HsSweep> make_hs_sweep(int number) {
 }
 
 } // namespace hven::solvers::test_support
+
+HVEN_SUPPRESS_DEPRECATED_END

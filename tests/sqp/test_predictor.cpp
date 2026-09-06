@@ -105,6 +105,11 @@
 #include "support/parametric_families.h"
 #include "support/scale_problems.h"
 
+#include "hven/core/compiler.h"
+
+// by-value oracle of the in-place hot path; migration is a separate task
+HVEN_SUPPRESS_DEPRECATED_BEGIN
+
 namespace hven::solvers {
 namespace {
 
@@ -1457,3 +1462,5 @@ TEST(Predictor, TheFrozenSetStepAlsoEmitsANonNegativePrice) {
 }
 } // namespace
 } // namespace hven::solvers
+
+HVEN_SUPPRESS_DEPRECATED_END

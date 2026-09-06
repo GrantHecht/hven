@@ -48,6 +48,11 @@
 #include "support/derivative_check.h"
 #include "support/hs_problems.h"
 
+#include "hven/core/compiler.h"
+
+// by-value oracle of the in-place hot path; migration is a separate task
+HVEN_SUPPRESS_DEPRECATED_BEGIN
+
 using namespace hven::solvers;
 using hven::Index;
 using hven::SpMatRM;
@@ -1837,3 +1842,5 @@ TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
            "in-place upgrade adds an eval_ce and breaks this";
     EXPECT_GT(model.n_jac_e, 0);
 }
+
+HVEN_SUPPRESS_DEPRECATED_END

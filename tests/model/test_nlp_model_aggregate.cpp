@@ -41,6 +41,11 @@
 
 #include "sqp/support/hs_problems.h"
 
+#include "hven/core/compiler.h"
+
+// by-value oracle of the in-place hot path; migration is a separate task
+HVEN_SUPPRESS_DEPRECATED_BEGIN
+
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
@@ -1597,3 +1602,5 @@ TEST(NlpModelAggregateBoundary, RefusesADeclarationWhoseBoundsIntersectToNothing
         { NlpModelAggregate bridge(std::make_shared<InvertedBoundsModel>()); },
         std::invalid_argument);
 }
+
+HVEN_SUPPRESS_DEPRECATED_END

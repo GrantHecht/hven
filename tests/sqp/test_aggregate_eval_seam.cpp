@@ -60,6 +60,11 @@
 #include "support/hs_problems.h"
 #include "support/parametric_families.h"
 
+#include "hven/core/compiler.h"
+
+// by-value oracle of the in-place hot path; migration is a separate task
+HVEN_SUPPRESS_DEPRECATED_BEGIN
+
 namespace hven::solvers {
 
 /// The permutation-corruption hook the falsification battery needs, declared as
@@ -1204,3 +1209,5 @@ TEST(SqpDriverEntryEquivalence, WarmArmAgreesOnF1AndF3n50) {
     check_warm_arm([] { return hven::solvers::test_support::F3SpringChain(50, 0.5, 0.25); },
                    "F3n50");
 }
+
+HVEN_SUPPRESS_DEPRECATED_END

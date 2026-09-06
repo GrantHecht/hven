@@ -14,6 +14,11 @@
 // from a neighbouring TU; M6 W4 T4 re-batched the suite and exposed it).
 #include "hven/model/non_linear_program.h"
 
+#include "hven/core/compiler.h"
+
+// by-value oracle of the in-place hot path; migration is a separate task
+HVEN_SUPPRESS_DEPRECATED_BEGIN
+
 // UNITY-BUILD NOTE: this suite is compiled with UNITY_BUILD ON, so an anonymous
 // namespace does not isolate these helpers from the other test TUs merged into
 // the same batch. Every name below carries an npm_/Npm prefix for that reason.
@@ -1068,3 +1073,5 @@ TEST(NlpAdapterHostTest, AnEmptyMultiplierBlockIsNotReadAsAllZeroAtTheHessianOwn
     longer_i << -0.5, 8.0;
     EXPECT_NO_THROW(core.eval_hessian_values(x, 1.0, longer_e, longer_i));
 }
+
+HVEN_SUPPRESS_DEPRECATED_END

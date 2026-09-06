@@ -34,13 +34,14 @@ set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
     include_nlp_aggregate.cpp
     include_aggregate_declaration.cpp
     include_nlp_model_aggregate.cpp
-    include_nlp_solver.cpp)
+    include_nlp_solver.cpp
+    include_compiler.cpp)
 
 add_executable(hven_install_smoke main.cpp ${HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES})
 target_link_libraries(hven_install_smoke PRIVATE hven::hven)
 
 # No unity build and no precompiled header, stated rather than inherited. A
-# unity build would concatenate the eight TUs above into one, and the first
+# unity build would concatenate the nine TUs above into one, and the first
 # header to include <vector> would then satisfy all the others -- which is
 # precisely the failure this target exists to catch. CMAKE_UNITY_BUILD is a
 # cache variable a caller can set from the command line (hven's own test

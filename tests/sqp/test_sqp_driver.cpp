@@ -124,6 +124,11 @@
 #include "support/ipqp_test_support.h"
 #include "support/nlp_kkt_check.h"
 
+#include "hven/core/compiler.h"
+
+// by-value oracle of the in-place hot path; migration is a separate task
+HVEN_SUPPRESS_DEPRECATED_BEGIN
+
 using namespace hven::solvers;
 using hven::Index;
 using hven::SpMatRM;
@@ -11203,3 +11208,5 @@ TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeM
     EXPECT_GE(walk.symbolic_analyses - ipm.symbolic_analyses, majors)
         << "at least one original-pattern walk solve saved per major -- F-1's expectation";
 }
+
+HVEN_SUPPRESS_DEPRECATED_END

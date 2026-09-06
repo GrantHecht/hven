@@ -164,3 +164,60 @@ foreach(_probe ${_hven_adapter_probes})
     set_tests_properties(hven_compile_fail_${_probe} PROPERTIES
         RESOURCE_LOCK hven_compile_fail_nested_build)
 endforeach()
+
+################################################################################
+# DEPRECATION PROBES (M6 W5 T3).
+#
+# The six by-value NlpModel evaluations carry [[deprecated]]. That attribute is
+# the whole migration notice, and a warning nobody looks at is not a pin -- so
+# each one gets a probe TU that calls it under -Werror=deprecated-declarations
+# and must fail to build. The flag is per-target: the shared COMPILE_FLAGS must
+# not carry it, because the tree still calls the by-value forms on purpose in
+# nlp_model.h's own defaults and in every test that keeps a by-value oracle.
+#
+# Each probe TU also calls the IN-PLACE replacement, so the forbidden pattern
+# below ("<name>_in_place' is deprecated") makes "the replacement is not itself
+# deprecated" a tested claim rather than an assumption, and EXPECT_SINGLE_ERROR
+# makes "the by-value call is the ONLY error" one too -- which is also how the
+# scoped suppression inside nlp_model.h's defaults is proven to work: those
+# bodies call the deprecated forms in the same TU and must stay silent.
+################################################################################
+set(_hven_deprecation_probes
+    deprecated_eval_grad
+    deprecated_eval_ce
+    deprecated_eval_ci
+    deprecated_eval_hess
+    deprecated_eval_jac_e
+    deprecated_eval_jac_i
+)
+set(_hven_probe_regex_deprecated_eval_grad  "'eval_grad' is deprecated")
+set(_hven_probe_regex_deprecated_eval_ce    "'eval_ce' is deprecated")
+set(_hven_probe_regex_deprecated_eval_ci    "'eval_ci' is deprecated")
+set(_hven_probe_regex_deprecated_eval_hess  "'eval_hess' is deprecated")
+set(_hven_probe_regex_deprecated_eval_jac_e "'eval_jac_e' is deprecated")
+set(_hven_probe_regex_deprecated_eval_jac_i "'eval_jac_i' is deprecated")
+set(_hven_probe_forbid_deprecated_eval_grad  "eval_grad_in_place' is deprecated")
+set(_hven_probe_forbid_deprecated_eval_ce    "eval_ce_in_place' is deprecated")
+set(_hven_probe_forbid_deprecated_eval_ci    "eval_ci_in_place' is deprecated")
+set(_hven_probe_forbid_deprecated_eval_hess  "eval_hess_in_place' is deprecated")
+set(_hven_probe_forbid_deprecated_eval_jac_e "eval_jac_e_in_place' is deprecated")
+set(_hven_probe_forbid_deprecated_eval_jac_i "eval_jac_i_in_place' is deprecated")
+
+foreach(_probe ${_hven_deprecation_probes})
+    add_library(hven_compile_fail_${_probe} OBJECT EXCLUDE_FROM_ALL
+        compile_fail/${_probe}.cpp)
+    target_link_libraries(hven_compile_fail_${_probe} PRIVATE hven::hven)
+    target_compile_options(hven_compile_fail_${_probe} PRIVATE
+        ${COMPILE_FLAGS} -Werror=deprecated-declarations)
+    add_test(NAME hven_compile_fail_${_probe}
+        COMMAND ${CMAKE_COMMAND}
+            -DBINARY_DIR=${CMAKE_BINARY_DIR}
+            -DTARGET=hven_compile_fail_${_probe}
+            -DCONFIG=$<CONFIG>
+            "-DEXPECTED_REGEX=${_hven_probe_regex_${_probe}}"
+            "-DFORBIDDEN_REGEX=${_hven_probe_forbid_${_probe}}"
+            -DEXPECT_SINGLE_ERROR=ON
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/compile_fail/run_build_must_fail.cmake)
+    set_tests_properties(hven_compile_fail_${_probe} PROPERTIES
+        RESOURCE_LOCK hven_compile_fail_nested_build)
+endforeach()

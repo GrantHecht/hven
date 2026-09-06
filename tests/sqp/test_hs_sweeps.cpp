@@ -123,6 +123,11 @@
 #include "support/hs_sweeps.h"
 #include "support/nlp_kkt_check.h"
 
+#include "hven/core/compiler.h"
+
+// by-value oracle of the in-place hot path; migration is a separate task
+HVEN_SUPPRESS_DEPRECATED_BEGIN
+
 namespace hven::solvers {
 namespace {
 
@@ -1527,3 +1532,5 @@ TEST(HsSweepModels, Hs15BranchEndsAtAPointWhereLicqFails) {
 
 } // namespace
 } // namespace hven::solvers
+
+HVEN_SUPPRESS_DEPRECATED_END

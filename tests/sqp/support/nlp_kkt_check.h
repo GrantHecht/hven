@@ -49,6 +49,11 @@
 #include <hven/drivers/sqp_types.h>
 #include <hven/model/nlp_model.h>
 
+#include <hven/core/compiler.h>
+
+// by-value oracle of the in-place hot path; migration is a separate task
+HVEN_SUPPRESS_DEPRECATED_BEGIN
+
 namespace hven::solvers::test_support {
 
 struct NlpKktResidual {
@@ -181,3 +186,5 @@ inline NlpKktResidual self_check_kkt(const NlpModel &model, const SqpSolution &s
 }
 
 } // namespace hven::solvers::test_support
+
+HVEN_SUPPRESS_DEPRECATED_END

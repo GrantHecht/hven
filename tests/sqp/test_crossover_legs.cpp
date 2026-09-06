@@ -38,6 +38,11 @@
 
 #include "../../bench/crossover_legs.h"
 
+#include "hven/core/compiler.h"
+
+// by-value oracle of the in-place hot path; migration is a separate task
+HVEN_SUPPRESS_DEPRECATED_BEGIN
+
 namespace {
 
 using hven::Index;
@@ -480,3 +485,5 @@ TEST(CrossoverLegs, MarginsAreColdMinusWarmAndAbsentWhenUndefined) {
     EXPECT_FALSE(margin_against_cold(cold, never).defined);
     EXPECT_FALSE(margin_against_cold(never, warm).defined);
 }
+
+HVEN_SUPPRESS_DEPRECATED_END
