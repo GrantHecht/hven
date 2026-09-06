@@ -405,3 +405,110 @@ and `hven/drivers/trace`: **zero matches**. tycho does not attach a trace sink
 today, so T4 costs its consume nothing. The first tycho consumer includes
 `hven/drivers/trace.h` for the sink and the events, `hven/drivers/trace_writer.h`
 for the writer, and derives from `hven::solvers::TraceSink`.
+
+---
+
+## T3 — the six by-value `NlpModel` evaluations are `[[deprecated]]`
+
+Landed as `refactor(model): M6 W5 T3 — deprecate the six by-value evaluations;
+migrate library and bench calls to in-place (DECLARED BREAK)`.
+
+### What changed
+
+1. **Six pure virtuals carry `[[deprecated]]`.** Nothing is removed, no
+   signature moves, and every model in the world still compiles and still
+   works — a call site gets a warning naming its replacement.
+
+   | deprecated | replacement |
+   |---|---|
+   | `Vec eval_grad(const Vec &x) const` | `void eval_grad_in_place(const Vec &x, Vec &out) const` |
+   | `Vec eval_ce(const Vec &x) const` | `void eval_ce_in_place(const Vec &x, Vec &out) const` |
+   | `Vec eval_ci(const Vec &x) const` | `void eval_ci_in_place(const Vec &x, Vec &out) const` |
+   | `SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &le, const Vec &li) const` | `void eval_hess_in_place(const Vec &x, double obj_scale, const Vec &le, const Vec &li, SpMatRM &out) const` |
+   | `SpMatRM eval_jac_e(const Vec &x) const` | `void eval_jac_e_in_place(const Vec &x, SpMatRM &out) const` |
+   | `SpMatRM eval_jac_i(const Vec &x) const` | `void eval_jac_i_in_place(const Vec &x, SpMatRM &out) const` |
+
+   The in-place forms are not new — they have shipped since M5 with a default
+   that delegates to the by-value counterpart, so a model that overrides only
+   the by-value forms already answers both. That default is why deprecating the
+   by-value entry point breaks nothing.
+2. **`eval_f` is NOT deprecated** (plan Q-S2). It returns a `double`; the
+   in-place twins exist to remove a vector allocation, and there is none to
+   remove. Six deprecations, not seven. `eval_values` is not deprecated either.
+3. **REMOVAL IS NOT PROMISED HERE** (plan Q-O2). The by-value forms stay pure
+   virtual and required. A later removal is its own declared break, decided on
+   its own evidence — this entry makes no commitment about when, or that it
+   happens at all.
+4. **OVERRIDING a deprecated virtual does not warn** on any clang-family
+   frontend. A model that implements `eval_grad` and friends needs **no change
+   at all**: the override definition is silent, and callers that hold the model
+   by its own concrete type are silent too. What warns is a CALL that resolves
+   to `NlpModel`'s declaration — the shape a driver, a wrapper, or a generic
+   helper taking `const NlpModel &` has.
+5. **hven's own library and bench calls migrated**: 47 call sites in 7 files
+   — `sqp_driver.cpp` 9, `nlp_model_aggregate.cpp` 10,
+   `soc_elastic_restoration.cpp` 5, `predictor.h` 8, `crossover_legs.h` 8,
+   `snopt_f7_driver.h` 6, `corpus_cells.h` 1. Evaluation COUNT, guards,
+   ordering, destination shape, compression and aliasing are unchanged at every
+   one. `src/model/nlp_adapter.cpp` (the IPM path) already used the in-place
+   forms and is untouched.
+6. **`hven/core/compiler.h` is new**, carrying
+   `HVEN_SUPPRESS_DEPRECATED_BEGIN` / `HVEN_SUPPRESS_DEPRECATED_END`.
+
+### Migrating a call
+
+```diff
+-ev.grad = model.eval_grad(x);
++model.eval_grad_in_place(x, ev.grad);
+
+-qp.H = model.eval_hess(x, obj_scale, le, li);
++model.eval_hess_in_place(x, obj_scale, le, li, qp.H);
+ qp.H.makeCompressed();   // unchanged: the contract still requires compressed
+```
+
+Three rules the migration inside hven followed, and a consumer should too:
+
+* **Never substitute `eval_values` for a single-quantity call.** It evaluates
+  f, cE and cI; a site that wanted one of them would pay for three.
+* **A guarded call stays guarded, and the else branch stays explicit.** A
+  ternary like `dst = rows > 0 ? model.eval_ce(x) : Vec(0);` becomes an `if`
+  with an `else dst = Vec(0);` — dropping the else leaves a reused destination
+  at whatever size it last had.
+* **The destination must be a real `Vec &` / `SpMatRM &`.** An `Eigen::Ref`
+  destination cannot receive an in-place call; fill a local and assign, which
+  is the same one temporary the by-value call already made.
+
+### If you WANT to keep calling the by-value form
+
+A consumer mid-migration, a model that overrides the by-value forms and calls
+them itself, or a test that keeps a by-value evaluation as an independent oracle
+of the in-place path: bracket it.
+
+```cpp
+#include <hven/core/compiler.h>
+
+HVEN_SUPPRESS_DEPRECATED_BEGIN
+// by-value on purpose: <the reason>
+const hven::Vec g = model.eval_grad(x);
+HVEN_SUPPRESS_DEPRECATED_END
+```
+
+The pair is a scoped push/pop and has clang, gcc and MSVC branches. It is the
+same bracket `nlp_model.h` uses around its own six in-place defaults, which
+delegate to the deprecated forms by design.
+
+### tycho
+
+Read-only grep of tycho at `48038a2f` (the tree consuming hven pin `b62dbc5`),
+excluding `dep/`. Nothing BREAKS; the sites below warn on the next consume.
+
+| file | by-value sites | shape |
+|---|---|---|
+| `tests/cpp/solvers/test_conversion_equivalence.cpp` | 12 calls + 3 in-place-default delegations | `conv_equiv_expect_models_agree(const NlpModel &native, const NlpModel &converted, …)` at `:347-362` is the base-reference shape and WARNS (7 calls); `:1068-1076` compares in-place results against by-value ones — a genuine oracle, bracket it rather than rewrite it; `:519,:522,:526` are `out = this->eval_jac_e(x)` inside tycho's own `ConvEquivEqBoundNativeInPlace`, the same mutual-default shape `nlp_model.h` brackets |
+| `tests/cpp/solvers/test_model_contract_pins.cpp` | 7 calls | all `model.eval_hess(...)` inside `EXPECT_THROW`/`EXPECT_NO_THROW` — contract pins on the by-value entry, so bracket, do not migrate |
+| `psiopt/src/nlp_adapter.cpp:258` | 1 | `problem_->eval_hess(...)` on `NLPProblem`, a DIFFERENT interface. Untouched by T3 |
+
+`src/solvers/engines.cpp`'s five `eval_*` definitions are OVERRIDES and stay
+silent. tycho's own models need no edit; only the call sites above take the
+bracket (or the in-place migration, at tycho's discretion — it is not forced).
+No tycho file was edited by this task.
