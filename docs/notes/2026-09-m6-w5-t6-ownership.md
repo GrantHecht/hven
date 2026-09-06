@@ -530,7 +530,25 @@ The dispatch is `src/drivers/sqp_driver.cpp:3723-4205`; the shared successor is 
 `:4216`) · `qs` (`:3702`) · `fallback_report` (`:3705`) · `walk_owns_this_qp` (`:3706`, **initialised
 true**) · `ipqp_chain_owns_the_step` (`:3710`) · `row_qp_mode` (`:2702`) · `ssn_prox_ingested`
 (`:2407`) · `ipqp_ladder` (`:2046`) · `ipqp_analysis_epoch` (`:2056`) · both budget charges (`:2442`,
-`:2449`) · `delta`, `seed`, `have_seed`, `ev`, `x`.
+`:2449`) · `delta`, `seed`, `have_seed`, `ev` · **`seam`** and **`iter`**.
+
+**CORRECTED AT CUT (b) (2026-09-06), because this list is what (b)'s parameters were named from and
+it was wrong in both directions.** Four items, each re-derived at cut (b)'s BASE `03e1b34` by
+reading the two arm bodies:
+
+* **`seam` ADDED.** The kIpm arm reads `seam.epoch()` TWICE — the symbolic hoist's epoch gate
+  (`structure_epoch_moved`) and the post-solve stamp into `ipqp_analysis_epoch`. The list named the
+  epoch and not the object the epoch is read from, so an extraction typed from it alone would have
+  had no way to compute either. `seam` is BORROWED (§2.1) and crosses as a parameter.
+* **`iter` ADDED.** The kIpm arm reads the major index three times: `set_trace_major(iter + 1)`, the
+  escape ladder's `record(ladder_outcome, iter + 1)`, and the engine-invariant throw's message. It
+  is the loop variable and is in neither state bundle, so it too crosses as a parameter.
+* **`x` REMOVED.** No routing arm reads the iterate. Every `x` inside the two arm bodies is
+  `ires.x`, `ipqp_carry_across_majors.x`, `qp.n()` or prose; the arms work on `qp`, `seed` and
+  `ires`, and the trial point is built AFTER the dispatch.
+* **`last_dual_mu` REMOVED** (`row.mu` stays: the kIpm chain corrects it in the successor block).
+  `last_dual_mu` is WRITTEN before the switch (`last_dual_mu = row.mu`) and read only at the
+  `finish` sites, never inside the switch or by the successor.
 
 **Written inside the switch and read after it:** `qs` (every arm or the successor) ·
 `walk_owns_this_qp` (`:3919`, `:3994`, `:4007`, `:4156`, `:4168`) · `ipqp_chain_owns_the_step`
@@ -692,8 +710,11 @@ hoisted face solve — the thing that owns a pending certification — is not on
 stay.
 
 **The pin T6.b's claim names**:
-`tests/sqp/test_sqp_driver.cpp:8178`,
+`tests/sqp/test_sqp_driver.cpp:8179`,
 `TEST(SqpDriverSsnMode, ARefusedFaceRefinementIsChargedEvenWhenTheCertificateIsWithdrawn)`.
+(`:8178` as first written, and §12 item 10's gloss with it, were off by one in the other direction —
+see §12 item 16. The file is byte-identical at `50f616a` and at cut (b)'s BASE `03e1b34`, so the
+number is the same at both.)
 
 ---
 
@@ -724,6 +745,20 @@ or (c) taking `SolveState &` COULD write `st.n`, and the loop's copy would not s
 (c)'s P-SYM claim names these five as write-forbidden**, and the alternative (taking them as
 `const &`) is available only with a neutrality argument, since a const reference into an object
 whose address has escaped may cost reloads the copies do not.
+
+**WHAT CUT (b) ACTUALLY BUILT (landed 2026-09-06), so cut (c) inherits a written record rather than
+a reading of the code.** `MajorState` exists and holds the FOUR ROUTING OUTPUTS — `qs`,
+`fallback_report`, `walk_owns_this_qp`, `ipqp_chain_owns_the_step` — and it is constructed WHERE
+THOSE FOUR WERE DECLARED, at the dispatch, NOT at the loop top. The reason is the
+construction-timing paragraph immediately below, applied to the bundle itself: all four are declared
+after push sites 1 and 2, either of which can leave the major, so a bundle built at the loop top
+would construct a `QpSolution` on paths that never build one today. The table's remaining per-major
+names — `kkt`, `row`, `row_qp_mode`, `caller_row` and the trial/SOC objects — do NOT join it at (b);
+they cross into the routing functions as explicit parameters and join the bundle at **cut (c)**,
+which is where the loop top, the three lambdas and the ten push sites are restructured and where the
+bundle's construction therefore moves to the loop top. `row_qp_mode` in particular cannot join at (b)
+at all: it is live from the loop top (`push_history` reads it) and a bundle built at the dispatch
+cannot hold it.
 
 **Construction timing (astra G6).** Putting the trial/SOC objects into `MajorState` must not
 eagerly evaluate or touch an engine before the existing early exits. `x_trial` (`:4473`) and
@@ -922,8 +957,9 @@ at T6's close and this result is one of the contributions it will be measured ag
    `_hven_expected_source_count 41` at `src/CMakeLists.txt:446`. §1.6.
 10. **Two citation offsets** in the reviews, recorded so no one re-derives them: astra's
     `sqp_driver.cpp:4810` points at the comment head; the statement
-    `sopts.defer_certification = false;` is at `:4813`. Astra's `test_sqp_driver.cpp:8179` is the
-    test's first body line; the `TEST(...)` is at `:8178`.
+    `sopts.defer_certification = false;` is at `:4813`. The second half of this item was WRONG in
+    the other direction and is corrected in item 16: astra's `test_sqp_driver.cpp:8179` is the
+    `TEST(...)` line itself.
 11. **Cut (d)'s MOVING SET is named** (§1.7): the two kernels plus anonymous namespace #2's three
     kernels-only helpers, with `trace_outcome_of` the one linkage change and `predicted_decrease`
     the one already-declared shared symbol; four test TUs call the kernels directly, so the moving
@@ -943,6 +979,16 @@ at T6's close and this result is one of the contributions it will be measured ag
     Every number in the addendum and in the astra review that falls inside `:2025-4732` was
     re-checked at BASE and holds. The one number that differs is the W5 inventory's, taken at
     `d0c7aa0`: `solve_impl_body` `2026-4733` there, `2025-4732` here — a uniform one-line shift.
+16. **§6's crossing list was wrong in BOTH directions, and §9's pin line was off by one** — found
+    at cut (b), which typed its parameters from them. `seam` and `iter` were MISSING (the kIpm arm
+    reads `seam.epoch()` twice and the major index three times); `x` and `last_dual_mu` were
+    OVER-LISTED (no arm reads either inside the switch). §6 now carries all four with the
+    re-derivation. And the withdrawal pin's `TEST(...)` is at `tests/sqp/test_sqp_driver.cpp:8179`,
+    not `:8178` — `:8178` is a blank line; §12 item 10's gloss had astra's citation inverted, and
+    astra's `:8179` was right. §6, §9, §12 item 10.
+17. **Cut (b)'s `MajorState` is the ROUTING OUTPUTS ONLY and is built at the dispatch**, not at the
+    loop top; `kkt`, `row`, `row_qp_mode`, `caller_row` and the trial/SOC objects join it at cut (c).
+    Recorded in §10.2 so (c) inherits the decision and its reason rather than re-deriving them.
 
 ---
 
