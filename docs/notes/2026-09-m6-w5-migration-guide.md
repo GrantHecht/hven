@@ -214,3 +214,103 @@ destructor. Hold `std::shared_ptr<NLPSolver>` (or the concrete type by value).
 Nothing in hven ever held a base pointer, and `Jet::map` is a template over the
 problem type — it calls `optprobs[i]->jet_run()` through
 `std::shared_ptr<T>`, which is a direct call and needs nothing polymorphic.
+
+---
+
+## T2 — the early callback's three vectors are read-only
+
+Landed as `refactor(interior): M6 W5 T2 — early-callback views const; restoration
+entry takes RHS const (DECLARED BREAK)`.
+
+### What changed
+
+`InteriorPointSolver::EarlyCallBackType`'s three VECTOR arguments — XSL, PGX and
+RHS — are now `hven::ConstEigenRef<Eigen::VectorXd>`, i.e.
+`const Eigen::Ref<const Eigen::VectorXd> &`. The KKT matrix argument is
+unchanged and still mutable: writing new values into the entries the matrix
+already carries is a use this callback exists for, it is documented on
+`EarlyCallBackType`, and it is pinned. `LateCallBackType` was already const in
+both of its vectors and is untouched.
+
+### The break, stated plainly
+
+Callers lose the ability to WRITE XSL, PGX or RHS from the early callback. That
+was never a documented mutation point — the documented mutation contract is the
+KKT matrix's alone — but it is not true that a write would have been discarded.
+Measured at the call site, a write to any of the three reached the solve:
+
+* **PGX** is not overwritten after the call; it is READ six lines later, where
+  `v_rhs.prim_grad() += PGX` folds the objective gradient into the Newton
+  right-hand side.
+* **RHS**'s constraint blocks are not written again between the hand-out and the
+  factorization, so they ARE the right-hand side the step is computed from. Its
+  primal block is added to, not replaced.
+* **XSL** is the iterate. It is never overwritten; the step commits with
+  `XSL += alpha*DXSL`.
+
+So a consumer that relied on writing one of them changes BEHAVIOUR, not merely
+compilation. No such consumer is known: all eleven early-callback lambdas in
+this repository read only, and so does tycho's single one (below). If you have
+one, there is no in-flight replacement — re-declare the problem and solve again.
+
+What the three views ARE is now pinned rather than described
+(`tests/interior/test_structure_epoch_gating.cpp`, `EarlyCallbackViews`): at
+iteration i the callback's XSL primal block is the x the model was evaluated at,
+PGX is `obj_scale` times the gradient the model returned, and the RHS constraint
+blocks are the residuals it returned less the row bounds — exactly, as the same
+doubles. They are a snapshot in place at the iteration's evaluation stage: the
+model has been evaluated and the KKT matrix assembled, and the factorization has
+not run.
+
+### Migration — the lambda signature
+
+```diff
+ solver.set_early_callback(
+-    [&](int iter, double obj_scale, Eigen::Ref<Eigen::VectorXd> xsl, double prim_obj,
+-        Eigen::Ref<Eigen::VectorXd> pgx, Eigen::Ref<Eigen::VectorXd> rhs,
++    [&](int iter, double obj_scale, hven::ConstEigenRef<Eigen::VectorXd> xsl, double prim_obj,
++        hven::ConstEigenRef<Eigen::VectorXd> pgx, hven::ConstEigenRef<Eigen::VectorXd> rhs,
+         Eigen::SparseMatrix<double, Eigen::RowMajor> &kkt) -> int {
+         // reads unchanged; kkt stays writable
+         return 0;
+     });
+```
+
+`hven::ConstEigenRef<Eigen::VectorXd>` and
+`const Eigen::Ref<const Eigen::VectorXd> &` are the same type; either spelling
+compiles. A lambda that took its vectors by non-const `Eigen::Ref` does not
+merely warn — `std::function` refuses to store it — so this is a compile error,
+found at every site, not a silent behaviour change.
+
+### tycho
+
+At tycho `48038a2f` (the tree consuming hven pin `b62dbc5`) there is exactly one
+consumer, `tests/cpp/solvers/test_feasibility_switch.cpp:813` — a friend-test
+lambda that captures elastic step state from the component and writes none of
+its vectors. Its three parameter types change and nothing else:
+
+```diff
+-    [comp, &cap](int i, double, Eigen::Ref<Eigen::VectorXd>, double,
+-                 Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
++    [comp, &cap](int i, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
++                 hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
+                  Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
+```
+
+`psiopt/`'s own copy of the engine is the pre-move one and is not consumed here.
+
+### Internal, named for completeness
+
+`hven::solvers::ConstKKTVector` is new in
+`include/hven/detail/interior/kkt_vector.h`: the read-only twin of `KKTVector`,
+same four-block layout, const accessors only, implicitly convertible FROM
+`KKTVector`. `KKTVector` itself is unchanged, and so is every signature that
+names it — the twin is a second non-template class precisely so that no
+`KKTVector` consumer's mangled name moves.
+
+Three private member signatures took the read-only view with it:
+`InteriorPointSolver::constraint_violation_l1`,
+`enter_feasibility_restoration` and `dispatch_restoration_entry` (the last two
+now take `const Eigen::VectorXd &RHS`). They are private, so this is not a
+source break for any consumer; it is listed because a friend test harness that
+reaches them — tycho has such harnesses for other members — sees the change.
