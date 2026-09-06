@@ -932,6 +932,28 @@ statement about MAJORS, not about n. So:
   `OMP_NUM_THREADS=1`, pinned; `pgrep` pasted; wall-clock quoted only under these terms (CLAUDE.md
   §7).
 
+**THE COUNTER SET GAINS A FRONT-END-BOUND COUNTER — REQUIRED BEFORE CUT (c) IS BENCHED** (the SQP
+lane's T6.b review §10.4, its second required-before-(c) item, beside commit 0 fix3). Every leg from
+(c) on carries, beside `instructions:u,branches:u,cycles:u,branch-misses:u,L1-icache-load-misses:u`,
+a front-end-bound counter: **`topdown-fe-bound`**, or `idq.dsb_uops`/`idq.mite_uops` where the
+topdown group is unavailable, recorded on the same discipline as the rest (3× alternating, solo,
+pinned) and reported with its ratio.
+
+**Why, and what it changes.** At cut (b) the walk mode came in LAYOUT-MOVED with an accounting gap
+the existing counters could not close: instructions and branches identical to 1e-5, cycles +0.59 %
+(≈ 24 M), L1-icache-load-misses DOWN (×0.76), and the ~45 k extra branch misses worth only ~1 M
+cycles. The remaining cycles are front-end PLACEMENT the default set does not name — decoded-uop-cache
+residency and fetch alignment as loop heads move by +16 bytes — and inferring it from icache alone is
+inference, not measurement. A front-end-bound counter NAMES the mechanism in every mode instead.
+
+**And the classification rule states what it rests on when the accounting does not close.** §11.1's
+LAYOUT-MOVED reads "instruction and branch counts identical within 1e-4, AND the cycle delta
+accounted for by the icache/branch-miss deltas". When the first half holds and the second does not,
+the verdict rests on the INSTRUCTION-IDENTITY half — that is the half that distinguishes work from
+placement — and **the unexplained cycle fraction is STATED as a gap in the evidence, with the
+counters that failed to close it.** It is not rounded away and it is not called explained. Cut (b)'s
+walk figure is the first result recorded on those terms (§11.5).
+
 ### §11.4 The rest of the CLAUDE.md §5 proof
 
 * **Effective compile-flags diff** — the actual flags the two TUs receive, with the PCH disposition
@@ -979,6 +1001,47 @@ times inside the 1e-4 band — **cycles 1.0059**, and **L1-icache load misses ×
 is PLACEMENT, not work: the same instructions and the same branches, fetched from a different place.
 That is **LAYOUT-MOVED** under §11.1, and the owner ruled **KEEP**. The cumulative bar still applies
 at T6's close and this result is one of the contributions it will be measured against.
+
+**CUT (b) — LAYOUT-MOVED in all three modes, NO REDRAW** (the SQP lane's T6.b review §10, run on
+their own binaries from both commits; the immediate comparison is BASE `03e1b34` vs code head
+`25f586e`):
+
+| mode | corpus | per-cell envelope | cells outside 0.99–1.01 | verdict |
+|---|---|---|---|---|
+| ipm | **0.9995** (−0.05 %) | 0.996–1.006 | none | FLAT |
+| ssn | **1.0013** (+0.13 %) | 0.997–1.008 | none | FLAT |
+| walk | **1.0029** (+0.29 %) | 0.991–1.011 | one — `f7_n800_path_warm` at 1.011 | inside the corpus bar |
+
+| counter (user), ratio HEAD/BASE | ipm | ssn | walk |
+|---|---|---|---|
+| instructions | 1.00000 | 1.00000 | 1.00000 |
+| branches | 1.00000 | 1.00000 | 1.00000 |
+| cycles | 0.99786 | 1.00173 | 1.00589 |
+| branch-misses | 0.99616 | 1.00454 | 1.00402 |
+| L1-icache-load-misses | 0.47328 | 0.62228 | 0.76125 |
+
+**Instructions and branches are identical in every mode** — the extraction of the three arms into
+calls taking `st` and `mj` by reference added no executed work — so all three are **LAYOUT-MOVED**,
+not WORK-MOVED, and there is no redraw trigger. ipm's icache count swung back from cut (a)'s ×1.92
+to ×0.47.
+
+**The walk figure carries a STATED ACCOUNTING GAP**, on the terms §11.3 now sets out. Its +0.59 % of
+cycles (≈ 24 M) is NOT closed by the two named counters: icache misses went DOWN, and the extra
+~45 k branch misses are worth ~1 M cycles. The residue is front-end placement the default counter
+set does not name. The classification rests on the instruction-identity half of §11.1's rule, and
+the gap is recorded here rather than papered over. The one cell at 1.011 is a §11.1 veto-trigger cell
+BY THE LETTER of the wall-clock band and is classified by the counters under the owner's amendment.
+This is exactly the case the front-end-bound counter is added for, from cut (c) on.
+
+**THE CUMULATIVE READING TODAY — post-T3 `50f616a` vs post-(b), ipm: +0.70 %, ABOVE the ±0.5 %
+corpus bar, and it is all cut (a)'s.** The arithmetic: (a) +0.72 %, (b) −0.05 %, cumulative +0.70 %.
+Cumulatively instructions are 1.00001 and icache misses are FLAT (0.99) — so the cycles cut (a)
+booked against icache ×1.92 are still there after (b) restored the icache count, which says the
+mechanism is broader front-end placement than icache alone (branch-misses +1.5 % cumulatively is
+~5 M of the ~68 M extra cycles). **This is a reading, not a ruling.** Per §11.1 the cumulative bar
+is READ AT T6's CLOSE against the post-(d) head, and (c) — which restructures the loop top, the three
+lambdas and the ten push sites — will re-place everything again. If the close reading is still above
++0.5 %, Grant rules with the numbers, as §11.1 says.
 
 ---
 
