@@ -276,11 +276,18 @@ NlpModelAggregate::LaidStructures NlpModelAggregate::lay(int partition_count) co
     const Vec zero_equality = Vec::Zero(equality_rows_);
     const Vec zero_inequality = Vec::Zero(inequality_rows_);
 
-    const SpMatRM hessian = model_->eval_hess(x, 1.0, zero_equality, zero_inequality);
-    const SpMatRM equality_jacobian =
-        equality_rows_ > 0 ? model_->eval_jac_e(x) : SpMatRM(0, primal_vars_);
-    const SpMatRM inequality_jacobian =
-        inequality_rows_ > 0 ? model_->eval_jac_i(x) : SpMatRM(0, primal_vars_);
+    SpMatRM hessian;
+    model_->eval_hess_in_place(x, 1.0, zero_equality, zero_inequality, hessian);
+    // A block with no rows is not evaluated, and its destination carries the
+    // empty shape explicitly -- as the by-value ternary's else arm did.
+    SpMatRM equality_jacobian(0, primal_vars_);
+    if (equality_rows_ > 0) {
+        model_->eval_jac_e_in_place(x, equality_jacobian);
+    }
+    SpMatRM inequality_jacobian(0, primal_vars_);
+    if (inequality_rows_ > 0) {
+        model_->eval_jac_i_in_place(x, inequality_jacobian);
+    }
 
     // Dimensions before anything is read out of these three. Every claim below
     // takes its coordinates from the matrix it walks, so a block the model sized
@@ -402,8 +409,16 @@ void NlpModelAggregate::evaluate_values(const Vec &x, double &objective) {
 void NlpModelAggregate::evaluate_constraint_values(const Vec &x) {
     // The same skip eval_values applies: a block the model declares no rows for
     // is not evaluated.
-    equality_residual_scratch_ = equality_rows_ > 0 ? model_->eval_ce(x) : Vec(0);
-    inequality_residual_scratch_ = inequality_rows_ > 0 ? model_->eval_ci(x) : Vec(0);
+    if (equality_rows_ > 0) {
+        model_->eval_ce_in_place(x, equality_residual_scratch_);
+    } else {
+        equality_residual_scratch_ = Vec(0);
+    }
+    if (inequality_rows_ > 0) {
+        model_->eval_ci_in_place(x, inequality_residual_scratch_);
+    } else {
+        inequality_residual_scratch_ = Vec(0);
+    }
     require_block_size(equality_residual_scratch_.size(), equality_rows_, "eval_ce");
     require_block_size(inequality_residual_scratch_.size(), inequality_rows_, "eval_ci");
 }
@@ -419,14 +434,14 @@ void NlpModelAggregate::evaluate_jacobians(const Vec &x) {
     // this model's block at all, and saying so names a plainer fault than a
     // nonzero count that happens to disagree.
     if (equality_rows_ > 0) {
-        equality_jacobian_scratch_ = model_->eval_jac_e(x);
+        model_->eval_jac_e_in_place(x, equality_jacobian_scratch_);
         require_matrix_dimensions(equality_jacobian_scratch_, equality_rows_, primal_vars_,
                                   "eval_jac_e");
         require_claimed_nonzeros(equality_jacobian_scratch_, laid_.equality_jacobian_.count_,
                                  "eval_jac_e");
     }
     if (inequality_rows_ > 0) {
-        inequality_jacobian_scratch_ = model_->eval_jac_i(x);
+        model_->eval_jac_i_in_place(x, inequality_jacobian_scratch_);
         require_matrix_dimensions(inequality_jacobian_scratch_, inequality_rows_, primal_vars_,
                                   "eval_jac_i");
         require_claimed_nonzeros(inequality_jacobian_scratch_, laid_.inequality_jacobian_.count_,
@@ -495,7 +510,7 @@ void NlpModelAggregate::assemble_impl(const CandidatePoint &point, EvalRequest r
         this->evaluate_constraint_values(x);
     }
     if (want_gradient) {
-        gradient_scratch_ = model_->eval_grad(x);
+        model_->eval_grad_in_place(x, gradient_scratch_);
         require_block_size(gradient_scratch_.size(), primal_vars_, "eval_grad");
     }
     if (want_jacobian || want_adjoint_gradient) {
@@ -507,9 +522,9 @@ void NlpModelAggregate::assemble_impl(const CandidatePoint &point, EvalRequest r
         // naming only the adjoint half asks for it at obj_scale 0, which
         // nlp_model.h defines as the objective block dropped to a structural
         // zero.
-        hessian_scratch_ =
-            model_->eval_hess(x, want_objective_hessian ? scale : 0.0, equality_multiplier_scratch_,
-                              inequality_multiplier_scratch_);
+        model_->eval_hess_in_place(x, want_objective_hessian ? scale : 0.0,
+                                   equality_multiplier_scratch_, inequality_multiplier_scratch_,
+                                   hessian_scratch_);
         require_matrix_dimensions(hessian_scratch_, primal_vars_, primal_vars_, "eval_hess");
         require_claimed_nonzeros(hessian_scratch_, laid_.hessian_.count_, "eval_hess");
     }
@@ -577,7 +592,7 @@ void NlpModelAggregate::evaluate_candidate_first_order_impl(const CandidatePoint
     out.values_.equality_residuals_ = equality_residual_scratch_;
     out.values_.inequality_residuals_ = inequality_residual_scratch_;
 
-    gradient_scratch_ = model_->eval_grad(x);
+    model_->eval_grad_in_place(x, gradient_scratch_);
     require_block_size(gradient_scratch_.size(), primal_vars_, "eval_grad");
     out.objective_gradient_ = point.objective_scale_ * gradient_scratch_;
 

@@ -1404,7 +1404,8 @@ struct IpIterate {
 inline IpIterate f7_ip_iterate(const F7CollocationChain &model, double p, double mu, const Vec &x) {
     const Vec x_star = model.x_star(p);
     const Vec lambda_i_star = model.lambda_i_star(p);
-    const Vec ci_star = model.eval_ci(x_star);
+    Vec ci_star;
+    model.eval_ci_in_place(x_star, ci_star);
     const auto analytic = model.active_set(p);
 
     IpIterate it;

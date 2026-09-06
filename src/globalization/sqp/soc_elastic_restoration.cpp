@@ -302,7 +302,8 @@ Vec RestorationModel::eval_ce(const Vec &y) const {
     if (me_ == 0) {
         return Vec(0);
     }
-    Vec c = model_.eval_ce(original_x(y));
+    Vec c;
+    model_.eval_ce_in_place(original_x(y), c);
     for (Index k = 0; k < me_; ++k) {
         c(k) += sigma_e_(k) * (y(nx_ + k) - y(nx_ + me_ + k));
     }
@@ -313,7 +314,8 @@ Vec RestorationModel::eval_ci(const Vec &y) const {
     if (mi_ == 0) {
         return Vec(0);
     }
-    Vec c = model_.eval_ci(original_x(y));
+    Vec c;
+    model_.eval_ci_in_place(original_x(y), c);
     for (Index j = 0; j < mi_; ++j) {
         c(j) -= sigma_i_(j) * y(nx_ + 2 * me_ + j);
     }
@@ -322,7 +324,8 @@ Vec RestorationModel::eval_ci(const Vec &y) const {
 
 SpMatRM RestorationModel::eval_hess(const Vec &y, double, const Vec &lambda_e,
                                     const Vec &lambda_i) const {
-    const SpMatRM inner = model_.eval_hess(original_x(y), 0.0, lambda_e, lambda_i);
+    SpMatRM inner;
+    model_.eval_hess_in_place(original_x(y), 0.0, lambda_e, lambda_i, inner);
     std::vector<Eigen::Triplet<double>> t;
     t.reserve(static_cast<std::size_t>(inner.nonZeros()));
     for (Index i = 0; i < nx_; ++i) {
@@ -341,7 +344,8 @@ Eigen::SparseMatrix<double, Eigen::RowMajor> RestorationModel::eval_jac_e(const 
     if (me_ == 0) {
         return J;
     }
-    const Eigen::SparseMatrix<double, Eigen::RowMajor> Je = model_.eval_jac_e(original_x(y));
+    Eigen::SparseMatrix<double, Eigen::RowMajor> Je;
+    model_.eval_jac_e_in_place(original_x(y), Je);
     std::vector<Eigen::Triplet<double>> t;
     t.reserve(static_cast<std::size_t>(Je.nonZeros() + 2 * me_));
     for (Index k = 0; k < me_; ++k) {
@@ -361,7 +365,8 @@ Eigen::SparseMatrix<double, Eigen::RowMajor> RestorationModel::eval_jac_i(const 
     if (mi_ == 0) {
         return J;
     }
-    const Eigen::SparseMatrix<double, Eigen::RowMajor> Ji = model_.eval_jac_i(original_x(y));
+    Eigen::SparseMatrix<double, Eigen::RowMajor> Ji;
+    model_.eval_jac_i_in_place(original_x(y), Ji);
     std::vector<Eigen::Triplet<double>> t;
     t.reserve(static_cast<std::size_t>(Ji.nonZeros() + mi_));
     for (Index j = 0; j < mi_; ++j) {

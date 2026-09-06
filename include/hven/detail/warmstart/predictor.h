@@ -421,15 +421,19 @@ struct ModelSample {
 inline ModelSample sample_model(const NlpModel &model, const Vec &x, const Vec &lambda_e,
                                 const Vec &lambda_i) {
     ModelSample s;
-    s.grad_lagrangian = model.eval_grad(x);
+    model.eval_grad_in_place(x, s.grad_lagrangian);
     if (model.me() > 0) {
-        s.grad_lagrangian += model.eval_jac_e(x).transpose() * lambda_e;
+        SpMatRM Je;
+        model.eval_jac_e_in_place(x, Je);
+        s.grad_lagrangian += Je.transpose() * lambda_e;
     }
     if (model.mi() > 0) {
-        s.grad_lagrangian += model.eval_jac_i(x).transpose() * lambda_i;
+        SpMatRM Ji;
+        model.eval_jac_i_in_place(x, Ji);
+        s.grad_lagrangian += Ji.transpose() * lambda_i;
     }
-    s.ce = model.eval_ce(x);
-    s.ci = model.eval_ci(x);
+    model.eval_ce_in_place(x, s.ce);
+    model.eval_ci_in_place(x, s.ci);
     s.lower = model.lower();
     s.upper = model.upper();
     return s;
@@ -615,11 +619,14 @@ inline WarmStart predict(ParametricNlpModel &model, const WarmStart &warm, const
         const Vec &x = warm.x;
         const predictor_detail::ModelSample base =
             predictor_detail::sample_model(model, x, warm.lambda_e, warm.lambda_i);
-        SpMatRM H = model.eval_hess(x, 1.0, warm.lambda_e, warm.lambda_i);
+        SpMatRM H;
+        model.eval_hess_in_place(x, 1.0, warm.lambda_e, warm.lambda_i, H);
         H.makeCompressed();
-        Eigen::SparseMatrix<double, Eigen::RowMajor> Je = model.eval_jac_e(x);
+        Eigen::SparseMatrix<double, Eigen::RowMajor> Je;
+        model.eval_jac_e_in_place(x, Je);
         Je.makeCompressed();
-        Eigen::SparseMatrix<double, Eigen::RowMajor> Ji = model.eval_jac_i(x);
+        Eigen::SparseMatrix<double, Eigen::RowMajor> Ji;
+        model.eval_jac_i_in_place(x, Ji);
         Ji.makeCompressed();
 
         // ---- THE ONE EXTRA MODEL EVALUATION ------------------------------

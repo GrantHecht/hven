@@ -342,7 +342,7 @@ NlpEval eval_nlp(const NlpModel &model, const Vec &x) {
     }
     NlpEval ev;
     ev.f = model.eval_f(x);
-    ev.grad = model.eval_grad(x);
+    model.eval_grad_in_place(x, ev.grad);
     if (ev.grad.size() != n) {
         throw std::invalid_argument(
             fmt::format("eval_nlp: model.eval_grad returned size {}, expected {} (= model.n())",
@@ -351,13 +351,13 @@ NlpEval eval_nlp(const NlpModel &model, const Vec &x) {
     ev.all_finite = std::isfinite(ev.f) && ev.grad.allFinite();
 
     if (model.me() > 0) {
-        ev.ce = model.eval_ce(x);
+        model.eval_ce_in_place(x, ev.ce);
         if (ev.ce.size() != model.me()) {
             throw std::invalid_argument(
                 fmt::format("eval_nlp: model.eval_ce returned size {}, expected {} (= model.me())",
                             ev.ce.size(), model.me()));
         }
-        ev.Je = model.eval_jac_e(x);
+        model.eval_jac_e_in_place(x, ev.Je);
         if (ev.Je.rows() != model.me() || ev.Je.cols() != n) {
             throw std::invalid_argument(
                 fmt::format("eval_nlp: model.eval_jac_e returned a {}x{} matrix, expected {}x{} "
@@ -370,13 +370,13 @@ NlpEval eval_nlp(const NlpModel &model, const Vec &x) {
         ev.Je = Eigen::SparseMatrix<double, Eigen::RowMajor>(0, n);
     }
     if (model.mi() > 0) {
-        ev.ci = model.eval_ci(x);
+        model.eval_ci_in_place(x, ev.ci);
         if (ev.ci.size() != model.mi()) {
             throw std::invalid_argument(
                 fmt::format("eval_nlp: model.eval_ci returned size {}, expected {} (= model.mi())",
                             ev.ci.size(), model.mi()));
         }
-        ev.Ji = model.eval_jac_i(x);
+        model.eval_jac_i_in_place(x, ev.Ji);
         if (ev.Ji.rows() != model.mi() || ev.Ji.cols() != n) {
             throw std::invalid_argument(
                 fmt::format("eval_nlp: model.eval_jac_i returned a {}x{} matrix, expected {}x{} "
@@ -426,14 +426,14 @@ NlpEval eval_nlp_values(const NlpModel &model, const Vec &x) {
 
 void upgrade_to_full(const NlpModel &model, const Vec &x, NlpEval &ev) {
     const Index n = model.n();
-    ev.grad = model.eval_grad(x);
+    model.eval_grad_in_place(x, ev.grad);
     if (ev.grad.size() != n) {
         throw std::invalid_argument(fmt::format(
             "upgrade_to_full: model.eval_grad returned size {}, expected {} (= model.n())",
             ev.grad.size(), n));
     }
     if (model.me() > 0) {
-        ev.Je = model.eval_jac_e(x);
+        model.eval_jac_e_in_place(x, ev.Je);
         if (ev.Je.rows() != model.me() || ev.Je.cols() != n) {
             throw std::invalid_argument(fmt::format(
                 "upgrade_to_full: model.eval_jac_e returned a {}x{} matrix, expected {}x{} "
@@ -442,7 +442,7 @@ void upgrade_to_full(const NlpModel &model, const Vec &x, NlpEval &ev) {
         }
     }
     if (model.mi() > 0) {
-        ev.Ji = model.eval_jac_i(x);
+        model.eval_jac_i_in_place(x, ev.Ji);
         if (ev.Ji.rows() != model.mi() || ev.Ji.cols() != n) {
             throw std::invalid_argument(fmt::format(
                 "upgrade_to_full: model.eval_jac_i returned a {}x{} matrix, expected {}x{} "
@@ -559,7 +559,7 @@ SqpKkt evaluate_kkt(const NlpModel &model, const Vec &x, const Vec &lambda_e, co
 QpProblem build_subproblem(const NlpModel &model, const NlpEval &ev, const Vec &x,
                            const Vec &lambda_e, const Vec &lambda_i, double obj_scale) {
     QpProblem qp;
-    qp.H = model.eval_hess(x, obj_scale, lambda_e, lambda_i);
+    model.eval_hess_in_place(x, obj_scale, lambda_e, lambda_i, qp.H);
     qp.H.makeCompressed();
     qp.g = obj_scale * ev.grad;
 

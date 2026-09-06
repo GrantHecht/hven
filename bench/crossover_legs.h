@@ -152,15 +152,23 @@ class ModelAsNlpProblem final : public NLPProblem {
 
     void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
                      Eigen::Ref<Eigen::VectorXd> grad) const override {
-        grad = model_->eval_grad(x);
+        // The destination is an Eigen::Ref, which the in-place form cannot take;
+        // the local is the same one temporary the by-value call already made.
+        Vec g;
+        model_->eval_grad_in_place(x, g);
+        grad = g;
     }
 
     void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
         if (me_ > 0) {
-            g.head(me_) = model_->eval_ce(x);
+            Vec ce;
+            model_->eval_ce_in_place(x, ce);
+            g.head(me_) = ce;
         }
         if (mi_ > 0) {
-            g.tail(mi_) = model_->eval_ci(x);
+            Vec ci;
+            model_->eval_ci_in_place(x, ci);
+            g.tail(mi_) = ci;
         }
     }
 
@@ -188,7 +196,8 @@ class ModelAsNlpProblem final : public NLPProblem {
         // g = [cE; cI], so lambda splits into the model's pair by a head/tail cut.
         const Vec lambda_e = me_ > 0 ? Vec(lambda.head(me_)) : Vec(0);
         const Vec lambda_i = mi_ > 0 ? Vec(lambda.tail(mi_)) : Vec(0);
-        const SpRM upper = model_->eval_hess(Vec(x), obj_factor, lambda_e, lambda_i);
+        SpRM upper;
+        model_->eval_hess_in_place(Vec(x), obj_factor, lambda_e, lambda_i, upper);
         merge_into_slots(hess_pattern_, upper, "Hessian", vals);
     }
 
@@ -216,8 +225,16 @@ class ModelAsNlpProblem final : public NLPProblem {
     }
 
     SpRM stacked_jacobian(const Vec &x) const {
-        const SpRM je = me_ > 0 ? model_->eval_jac_e(x) : SpRM(0, n_);
-        const SpRM ji = mi_ > 0 ? model_->eval_jac_i(x) : SpRM(0, n_);
+        // A block with no rows is not evaluated, and its destination carries the
+        // empty shape explicitly -- as the by-value ternary's else arm did.
+        SpRM je(0, n_);
+        if (me_ > 0) {
+            model_->eval_jac_e_in_place(x, je);
+        }
+        SpRM ji(0, n_);
+        if (mi_ > 0) {
+            model_->eval_jac_i_in_place(x, ji);
+        }
         std::vector<Eigen::Triplet<double>> t;
         t.reserve(static_cast<std::size_t>(je.nonZeros() + ji.nonZeros()));
         for (Index r = 0; r < je.outerSize(); ++r) {
@@ -321,8 +338,11 @@ class ModelAsNlpProblem final : public NLPProblem {
         // contribution at once.
         const Vec ones_e = Vec::Ones(me_);
         const Vec ones_i = Vec::Ones(mi_);
-        hess_pattern_ = pattern_union(model_->eval_hess(x_start, 1.0, ones_e, ones_i),
-                                      model_->eval_hess(x_origin, 1.0, ones_e, ones_i));
+        SpRM hess_start;
+        model_->eval_hess_in_place(x_start, 1.0, ones_e, ones_i, hess_start);
+        SpRM hess_origin;
+        model_->eval_hess_in_place(x_origin, 1.0, ones_e, ones_i, hess_origin);
+        hess_pattern_ = pattern_union(hess_start, hess_origin);
         hess_rows_.resize(hess_pattern_.nonZeros());
         hess_cols_.resize(hess_pattern_.nonZeros());
         {

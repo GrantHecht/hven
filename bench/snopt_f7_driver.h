@@ -570,7 +570,8 @@ class SnoptF7Driver {
     // CONTRACT with usrfun_callback below: "usrfun must define the values of
     // G in exactly the same order" (guide section 3.4, iGfun/jGvar, p.16).
     void build_structure() {
-        const Eigen::SparseMatrix<double, Eigen::RowMajor> je = model_.eval_jac_e(Vec::Zero(n_));
+        Eigen::SparseMatrix<double, Eigen::RowMajor> je;
+        model_.eval_jac_e_in_place(Vec::Zero(n_), je);
         nea_ = static_cast<int>(je.nonZeros());
         iafun_.reserve(static_cast<std::size_t>(nea_));
         javar_.reserve(static_cast<std::size_t>(nea_));
@@ -624,7 +625,8 @@ class SnoptF7Driver {
     // cE is affine, so its constant vector is -cE(0) and the equality rows
     // become Flow = Fupp = that constant. THIS is the only thing p moves.
     void refresh_parameter_dependent_bounds() {
-        const Vec ce0 = model_.eval_ce(Vec::Zero(n_));
+        Vec ce0;
+        model_.eval_ce_in_place(Vec::Zero(n_), ce0);
         for (int r = 0; r < me_; ++r) {
             const double c = -ce0(r);
             flow_[static_cast<std::size_t>(1 + r)] = c;
@@ -714,8 +716,10 @@ class SnoptF7Driver {
         const double f_model = model_.eval_f(x);
         r.f = f_model;
         r.f_err_rel = std::abs(f_model - fstar) / std::max(1.0, std::abs(fstar));
-        const Vec ce = model_.eval_ce(x);
-        const Vec ci = model_.eval_ci(x);
+        Vec ce;
+        model_.eval_ce_in_place(x, ce);
+        Vec ci;
+        model_.eval_ci_in_place(x, ci);
         double viol = ce.size() > 0 ? ce.lpNorm<Eigen::Infinity>() : 0.0;
         for (Index k = 0; k < ci.size(); ++k) {
             viol = std::max(viol, ci(k)); // cI <= 0, so only positive parts violate
@@ -763,14 +767,16 @@ class SnoptF7Driver {
                 f[i] = 0.0; // the equality rows' nonlinear part IS zero
             }
             f[0] = self->model_.eval_f(xv);
-            const Vec ci = self->model_.eval_ci(xv);
+            Vec ci;
+            self->model_.eval_ci_in_place(xv, ci);
             for (int k = 0; k < self->mi_; ++k) {
                 f[1 + self->me_ + k] = ci(k);
             }
         }
         if (*need_g > 0) {
             // Written in exactly the order build_structure() declared.
-            const Vec gr = self->model_.eval_grad(xv);
+            Vec gr;
+            self->model_.eval_grad_in_place(xv, gr);
             for (int j = 0; j < nn; ++j) {
                 g[j] = gr(j);
             }
