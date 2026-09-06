@@ -320,3 +320,88 @@ Three private member signatures took the read-only view with it:
 now take `const Eigen::VectorXd &RHS`). They are private, so this is not a
 source break for any consumer; it is listed because a friend test harness that
 reaches them — tycho has such harnesses for other members — sees the change.
+
+---
+
+## T4 — the trace sink is public: `hven/drivers/trace.h`, and `IpqpTraceSink` is `TraceSink`
+
+Landed as `refactor(drivers): M6 W5 T4 — trace sink to drivers/trace.h,
+IpqpTraceSink → TraceSink, evidence structs to detail/qp/ipqp_evidence.h
+(DECLARED BREAK)`.
+
+### What changed
+
+1. **The schema header MOVED out of `detail/`.**
+   `hven/detail/qp/ipqp_trace.h` → **`hven/drivers/trace.h`**. It was always a
+   public surface in fact — a harness consumes the writer and its events — and
+   `drivers/trace_writer.h` already included it, so the only thing `detail/` was
+   doing was telling consumers not to.
+2. **`hven::solvers::IpqpTraceSink` → `hven::solvers::TraceSink`.** Same 14
+   virtuals, same signatures, same pure/non-pure split, same out-of-line
+   destructor. **No alias for the old name is kept**: the rename IS the break, so
+   a consumer that still names `IpqpTraceSink` gets a compile error rather than a
+   deprecation it can ignore.
+3. **The `Ipqp*` EVENT names are UNCHANGED.** `IpqpTraceIterEvent`,
+   `IpqpTraceRegEvent`, `IpqpTraceRestartEvent`, `IpqpTraceRouteEvent`,
+   `IpqpTraceCertifyEvent`, `IpqpTraceEscapeEvent`, `IpqpTraceEscapeEvidence`,
+   `QpModeTraceEvent`, `SqpFallbackVerdictTraceEvent`, the three `Sqp*` and three
+   `Ipm*` whole-solve events, every enum, `VariableBoundCensus` and
+   `census_variable_bounds` all keep their spelling and all move with the header.
+   Only the SINK is renamed here; T8 is the naming sweep and this is not it.
+4. **The two escape-evidence blocks SPLIT out of the engine header.**
+   `IpqpStallEvidence` and `IpqpInfeasibilityEvidence` — the only two engine
+   types the schema names — now live in **`hven/detail/qp/ipqp_evidence.h`**,
+   whose entire include list is `hven/core/types.h`. Their definitions are
+   unchanged: same fields, same order, same defaults, same documentation.
+   `ipqp_engine.h` includes the new header, so `IpqpResult` still carries both
+   and **a TU that already included `ipqp_engine.h` needs no change**. What the
+   split buys is that `drivers/trace.h` no longer includes `ipqp_engine.h` at
+   all.
+5. **The .cpp moved with it**: `src/qp/ipqp_trace.cpp` → `src/drivers/trace.cpp`.
+   Internal, listed so a downstream build that names hven's sources sees it.
+
+### What a consumer includes now
+
+| you want | include |
+|---|---|
+| the sink to derive from, and the event structs | `hven/drivers/trace.h` |
+| the JSON-lines writer (`JsonLinesTraceSink`) | `hven/drivers/trace_writer.h` — it includes `trace.h` for you |
+| `attach_trace` on `SqpDriver` / `InteriorPointSolver` / `IpqpEngine` | nothing new: `sqp_driver.h` includes the schema, and `interior_point_solver.h` forward-declares `class TraceSink;`, which is all a pointer argument needs |
+
+`JsonLinesTraceSink`'s own surface is untouched: same constructor, same
+`failed()`, `lines_written()`, `depth()` and `reset_nesting()`, same 14
+overrides, same bytes on the wire. **Every golden line in
+`tests/sqp/test_trace_writer.cpp`, `tests/sqp/test_ipqp_trace.cpp` and
+`tests/interior/test_ipm_trace.cpp` is byte-unchanged** — the JSON schema carries
+no C++ names — and `docs/trace-schema-v0.md` is untouched.
+
+### Migration
+
+```diff
+-#include <hven/detail/qp/ipqp_trace.h>
++#include <hven/drivers/trace.h>
+
+-class MySink : public hven::solvers::IpqpTraceSink {
++class MySink : public hven::solvers::TraceSink {
+     void on_ipqp_iter(const hven::solvers::IpqpTraceIterEvent &e) override;
+     // ... the other seven pure virtuals; the six W4 defaults are optional
+ };
+
+-void attach(hven::solvers::SqpDriver &d, hven::solvers::IpqpTraceSink *s) {
++void attach(hven::solvers::SqpDriver &d, hven::solvers::TraceSink *s) {
+     d.attach_trace(s);
+ }
+```
+
+That is the whole change: one include path, one type name. Nothing else about
+writing or reading a trace moves.
+
+### tycho
+
+**No consumer, either way.** A read-only grep of tycho at `48038a2f` (the tree
+consuming hven pin `b62dbc5`) and at `origin/main` `599f506a`, excluding `dep/`,
+for `ipqp_trace`, `IpqpTraceSink`, `TraceSink`, `attach_trace`, `trace_writer.h`
+and `hven/drivers/trace`: **zero matches**. tycho does not attach a trace sink
+today, so T4 costs its consume nothing. The first tycho consumer includes
+`hven/drivers/trace.h` for the sink and the events, `hven/drivers/trace_writer.h`
+for the writer, and derives from `hven::solvers::TraceSink`.
