@@ -113,6 +113,7 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
+#include <hven/core/detail/aggregate_arity.h>
 #include <hven/core/ledger.h>
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/drivers/sqp_driver.h>
@@ -8641,15 +8642,18 @@ double w2_final_rho(double rho_0, Index escalations) {
 } // namespace
 
 // W5 T5 -- ONE ENGINE INVOCATION PER `w2_escaped` CALL. The observable is the engine's
-// `ipqp.restart` event (one per `solve()`, cold included), NOT `IpqpCounters`:
+// `ipqp.restart` event (one per NON-DECLINED solve, cold included), NOT `IpqpCounters`:
 // `ipqp_solves` counts backend triangular solves and the result's counters are a per-call delta.
+// The qualifier is load-bearing: a pinned-domain decline returns at `ipqp_engine.cpp:~806`,
+// BEFORE the sole restart emission at ~:2597, and so emits nothing. These W2 calls are cold and
+// not declined.
 TEST(SqpDriverW2Fixtures, TheEscapeHelperInvokesTheTierExactlyOncePerCall) {
     class RestartCountingSink : public TraceSink {
       public:
-        Index restarts = 0;
+        Index restarts_ = 0;
         void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
         void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
-        void on_ipqp_restart(const IpqpTraceRestartEvent &) override { ++restarts; }
+        void on_ipqp_restart(const IpqpTraceRestartEvent &) override { ++restarts_; }
         void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
         void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
         void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
@@ -8660,27 +8664,55 @@ TEST(SqpDriverW2Fixtures, TheEscapeHelperInvokesTheTierExactlyOncePerCall) {
 
     RestartCountingSink whole;
     const IpqpResult ires = w2_escaped(blocked, std::numeric_limits<double>::infinity(), &whole);
-    EXPECT_EQ(whole.restarts, 1) << "a helper that grew a second solve() would read 2";
+    EXPECT_EQ(whole.restarts_, 1) << "a helper that grew a second solve() would read 2";
     ASSERT_EQ(ires.escape_reason, IpqpEscape::kInfeasibleSuspect) << "or the pin is vacuous";
 
     // The BY-VALUE EVIDENCE IDIOM the trace suite now uses is the same one call.
     RestartCountingSink idiom;
     const IpqpInfeasibilityEvidence ev =
         w2_escaped(blocked, std::numeric_limits<double>::infinity(), &idiom).infeasibility_evidence;
-    EXPECT_EQ(idiom.restarts, 1);
+    EXPECT_EQ(idiom.restarts_, 1);
 
-    // ... and it carries what the deleted `w2_escaped_evidence` carried: the same
-    // engine, the same options, the same +inf window.
+    // ... and it carries what the deleted `w2_escaped_evidence` carried, FIELD FOR FIELD -- same
+    // engine, same options, same +inf window, so `EXPECT_EQ` on the doubles is right and a
+    // tolerance would hide a real divergence. The arity guard keeps that claim honest.
+    static_assert(::hven::detail::kAggregateArity<IpqpInfeasibilityEvidence> == 20,
+                  "IpqpInfeasibilityEvidence gained or lost a field. This pin claims to compare "
+                  "EVERY field of the two evidence blocks, so add the new one to the comparison "
+                  "below -- a Vec by SIZE AND VALUES -- and then update this count.");
+
     const IpqpInfeasibilityEvidence &whole_ev = ires.infeasibility_evidence;
-    ASSERT_TRUE(ev.fired);
+    ASSERT_TRUE(ev.fired) << "or the comparison below is over two default blocks";
+    EXPECT_EQ(ev.fired, whole_ev.fired);
+    EXPECT_EQ(ev.exhaustion_route, whole_ev.exhaustion_route);
     EXPECT_EQ(ev.window, whole_ev.window);
+    EXPECT_EQ(ev.primal_start, whole_ev.primal_start);
+    EXPECT_EQ(ev.primal_end, whole_ev.primal_end);
+    EXPECT_EQ(ev.primal_improvement, whole_ev.primal_improvement);
     EXPECT_EQ(ev.dual_norm_start, whole_ev.dual_norm_start);
     EXPECT_EQ(ev.dual_norm_end, whole_ev.dual_norm_end);
-    EXPECT_EQ(ev.primal_start, whole_ev.primal_start);
+    EXPECT_EQ(ev.dual_growth, whole_ev.dual_growth);
+    EXPECT_EQ(ev.dual_step_growth, whole_ev.dual_step_growth);
+    EXPECT_EQ(ev.farkas_corroborated, whole_ev.farkas_corroborated);
+    EXPECT_EQ(ev.farkas_residual, whole_ev.farkas_residual);
+    EXPECT_EQ(ev.farkas_gap, whole_ev.farkas_gap);
     EXPECT_EQ(ev.least_infeasible_primal, whole_ev.least_infeasible_primal);
-    ASSERT_EQ(ev.least_infeasible_x.size(), whole_ev.least_infeasible_x.size());
-    EXPECT_EQ((ev.least_infeasible_x - whole_ev.least_infeasible_x).squaredNorm(), 0.0)
-        << "the same point, not merely the same shape";
+    EXPECT_EQ(ev.least_infeasible_mu, whole_ev.least_infeasible_mu);
+
+    // Sizes here: x/zl/zu are 2, s and lambda_i are 0 -- the fixture is BOX-blocked (mi == 0),
+    // so those two are compared as empty, which is still a real claim about the two blocks.
+    const auto same_vec = [](const char *name, const Vec &lhs, const Vec &rhs) {
+        ASSERT_EQ(lhs.size(), rhs.size()) << name;
+        EXPECT_EQ((lhs - rhs).squaredNorm(), 0.0)
+            << name << ": the same point, not merely the same shape";
+    };
+    ASSERT_GT(ev.least_infeasible_x.size(), 0) << "or the point comparison is vacuous";
+    same_vec("least_infeasible_x", ev.least_infeasible_x, whole_ev.least_infeasible_x);
+    same_vec("least_infeasible_s", ev.least_infeasible_s, whole_ev.least_infeasible_s);
+    same_vec("least_infeasible_lambda_i", ev.least_infeasible_lambda_i,
+             whole_ev.least_infeasible_lambda_i);
+    same_vec("least_infeasible_zl", ev.least_infeasible_zl, whole_ev.least_infeasible_zl);
+    same_vec("least_infeasible_zu", ev.least_infeasible_zu, whole_ev.least_infeasible_zu);
 }
 
 TEST(SqpDriverElasticSeed, TheFirstRungsPenaltyIsFlooredAtTodaysStartAndPlacedByTheEvidence) {
