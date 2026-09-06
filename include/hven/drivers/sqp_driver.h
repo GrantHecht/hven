@@ -2965,6 +2965,21 @@ class SqpDriver {
                                 const WarmStart &warm, Index minor_budget,
                                 std::unique_ptr<GlobalizationStrategy> strategy);
 
+    /// @brief The solve-scope state `solve_impl_body` owns, DEFINED IN THE .cpp.
+    ///
+    /// Forward-declared and nothing more: it is a `.cpp`-internal shape, not a
+    /// surface, and no consumer of this header can name it or depend on it.
+    /// docs/notes/2026-09-m6-w5-t6-ownership.md section 2 is what it is typed from.
+    struct SolveState;
+
+    /// @brief The pre-loop setup, extracted whole (M6 W5 T6 cut (a)).
+    ///
+    /// Initialises `st` IN PLACE -- it never returns state, because the bundle
+    /// holds a pointer into itself. Everything it needs beyond the driver's own
+    /// members is a parameter, and it consumes `strategy`.
+    void prepare_solve(SolveState &st, AggregateEvalSeam &seam, const Vec &x0,
+                       const WarmStart &warm, std::unique_ptr<GlobalizationStrategy> strategy);
+
     // See this header's SUBPROBLEM FAILURE ROUTING note. Reached only after the
     // one-shot retry has already been spent -- and never with kInfeasible (the
     // elastic tier consumes that status upstream), which is why the
