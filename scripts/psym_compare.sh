@@ -171,10 +171,12 @@
 #       gap being papered over.
 #
 #   (c) MERGED-PAD-class -- an intra-function alignment-nop run whose LENGTH
-#       moved, with every non-pad opcode and every relocation record identical
-#       and at most one shared control-transfer shift. Arrived at M6 W5 T6
-#       commit 0; the rule, its five conditions, its limit and its falsifier are
-#       stated in full at PSYM_CLASSIFY_AWK.
+#       moved, with every non-pad opcode and every relocation record identical,
+#       at most one shared control-transfer shift, and that shift accounted for
+#       by the pad bytes plus any control transfers the pad change itself
+#       re-encoded. Arrived at M6 W5 T6 commit 0 and widened to the re-encoding
+#       term at commit 0 fix3; the rule, its SIX conditions, its limit and its
+#       falsifiers are stated in full at PSYM_CLASSIFY_AWK.
 #
 # NORMALIZATION NOTE: `objdump -d --no-show-raw-insn` appends a trailing
 # annotation comment to rip-relative and branch/call instructions -- e.g.
@@ -956,8 +958,8 @@
 #     rank fallback used to pass on a coincidence.
 #
 #   * A MERGED INTRA-FUNCTION ALIGNMENT PAD IS ACCEPTED NOISE, CLASS (c). The
-#     accepted noise class above gains a third member; the rule, its five
-#     conditions, its stated limit and its falsifier are written out in full at
+#     accepted noise class above gains a third member; the rule, its six
+#     conditions, its stated limit and its falsifiers are written out in full at
 #     PSYM_CLASSIFY_AWK, because that is the ONE classifier both paths call and
 #     widening it must stay a single visible act. It answers the T3 ledger item:
 #     `require_claimed_nonzeros`, an UNEDITED file-local neighbour of an edited
@@ -977,6 +979,22 @@
 #     type and target are identical and whose addend differs, excluding an
 #     executable-section target. The SQP lane registered it at T5 (M1). Its
 #     reasoning and its stated limit are in that file.
+#
+#   * COMMIT 0 fix3: EVERY INSTRUCTION CARRIES ITS BYTE LENGTH, class (c) gains
+#     a SIXTH condition, and rule 5 gains a re-encoding term. flatten_symbols()
+#     annotates every non-pad instruction line with ` ;LEN=<n>` beside the
+#     ` ;PAD=<n>` it already put on pads, and the `S` record carries the symbol
+#     start as a fifth field. Rule 5 now reads
+#     `shift == pad delta + control-transfer widening`, and rule 6 forbids a
+#     length change anywhere else, so the residual the widening term opens is
+#     bounded rather than free. The PAD-MERGED / PAD-ROUTE DECLINED lines print
+#     the widening count and both arms symbol start mod 32, which is the CAUSE
+#     of the class on a `-falign-loops=32` toolchain. `psym_bin_pairs.awk` gains
+#     a WIDTH bin for the pairs this makes visible. Direction: a former FAIL can
+#     pass (the widening term), AND a former pass can fail (rule 6, and any
+#     length change that used to be invisible). Registered by the SQP lane and
+#     by Codex at the T6.b review, from the `push_history` symbol that had to be
+#     excused by name on a hand audit.
 #
 # THE CLAIM TEMPLATE. A P-SYM gate is a CLAIM made BEFORE the run and checked
 # against the transcript, not a transcript read afterwards for whatever it
@@ -1366,30 +1384,76 @@ function imm(s) { if (match(s, /\$0x[0-9a-f]+/)) return substr(s, RSTART + 3, RL
 # streams that follows a passing verdict is what asserts them; that comparison
 # strips the within-section OFFSET, which is the only thing a merged pad moves.
 #
-#   5. the shared nonzero shift EQUALS the BYTE-LENGTH CHANGE of the pad run
-#      (inserted pad bytes minus deleted pad bytes). Rule 5 is the tightening
-#      the SQP lane required at the T6.0 review, and it is what makes this a
-#      layout rule rather than a licence. Without it rules 3 and 4 accept ANY
-#      single shared shift, and the lane exhibited the mask on its own listings:
-#      a function whose trailing pad lost one 3-byte nop and whose SOLE branch
-#      was retargeted by -32 passed as noise, and one whose 16-byte pad merged
-#      while both targets moved by -8 passed too. That is not a coincidence to
-#      be waved at -- retargeting a branch can change its encoding length
-#      (rel8 <-> rel32), which changes how long the function is and therefore its
-#      padding, so "the only nonzero delta AND the pad count moved" is a
-#      MECHANISM for a small function whose last branch is the retargeted one.
-#      With rule 5 both are rejected (-32 != -3, -8 != -16) and the T3 shape is
-#      kept (-16 = -16).
+#   5. the shared nonzero shift EQUALS the BYTE-LENGTH CHANGE OF THE PAD RUN
+#      PLUS the summed BYTE-LENGTH CHANGE OF THE CONTROL TRANSFERS that were
+#      re-encoded (both sides AFTER minus BEFORE). Rule 5 is the tightening the
+#      SQP lane required at the T6.0 review, and it is what makes this a layout
+#      rule rather than a licence. Without it rules 3 and 4 accept ANY single
+#      shared shift, and the lane exhibited the mask on its own listings: a
+#      function whose trailing pad lost one 3-byte nop and whose SOLE branch was
+#      retargeted by -32 passed as noise, and one whose 16-byte pad merged while
+#      both targets moved by -8 passed too. With rule 5 both are rejected
+#      (-32 != -3, -8 != -16) and the T3 shape is kept (-16 = -16).
 #
-# WHERE THE BYTE LENGTHS COME FROM. The byte length of a pad is NOT derivable from
-# its rendered text: objdump prints both `0f 1f 40 00` (4 bytes) and
-# `0f 1f 80 00 00 00 00` (7 bytes) as `nopl 0x0(%rax)`. flatten_symbols() knows
-# it -- it has the address of each instruction, so the length of a line is the
-# address of the next minus its own -- and since M6 W5 T6 commit 0 fix1 it ANNOTATES
-# every pad line it emits with ` ;PAD=<n>` (`;PAD=?` where the block gives no
-# successor and no size). The annotation is part of the compared text, which is
-# a second, free strictness: two pads that render identically but occupy
-# different numbers of bytes now DIFFER.
+#      THE RE-ENCODING TERM ARRIVED AT COMMIT 0 fix3, on the SQP lane §6
+#      ruling and the Codex I2 at the T6.b review, and the reason it had to is the
+#      MECHANISM the rule 5 text already named: retargeting -- or merely
+#      MOVING -- a branch can change its encoding length (rel8 <-> rel32), and a
+#      branch that widens then pushes everything after it further along, so the
+#      shift a listing shows is the pad delta AND the widening, not the pad
+#      delta alone. T6.b measured exactly that on `push_history`, an unedited
+#      lambda of the edited function: pad 7 -> 19 bytes (+12), ONE `je` re-encoded
+#      2 -> 6 bytes (+4), 24 self-targets shifted +16 and 5 unshifted, 216 non-pad
+#      lines otherwise identical. 12 + 4 = 16 closes; 12 alone does not, so the
+#      pre-fix3 rule declined and the symbol had to be excused BY NAME on a hand
+#      audit of all 223 instructions. A by-name exception is symbol-granular and
+#      does not scale to a cut that moves many lambdas at once.
+#
+#      "THE SAME LOGICAL TARGET", NOT "THE SAME RENDERED TARGET TEXT". The
+#      registration in the T6.b transcript said the contributing branches are
+#      those "whose rendered target text is unchanged"; taken literally that
+#      would have excluded the very `je` it was written about, whose rendered
+#      target moved `SELF+0x284` -> `SELF+0x294` with the rest of the body. What
+#      is unchanged is the target INSTRUCTION, and rules 3 and 4 are already
+#      exactly that assertion: same mnemonic, same leading operands, same
+#      rendering kind, and a target delta of 0 or the ONE shared shift. So the
+#      contributing set is the control transfers those rules accepted, and the
+#      wording is corrected here rather than reproduced.
+#
+#   6. NO NON-CONTROL-TRANSFER INSTRUCTION CHANGED BYTE LENGTH. A pad run and a
+#      relative branch are the two things whose encoding LAYOUT is entitled to
+#      move; anything else that occupies a different number of bytes while
+#      rendering the same text -- `add $0x1,%eax` as `83 c0 01` on one arm and
+#      `05 01 00 00 00` on the other, which objdump prints identically -- is a
+#      RE-ENCODING, and it would pay part of the shift rule 5 is checking
+#      without appearing in either term. Rule 6 is what keeps the rule 5 residual
+#      term from being a hole: the residual may be paid by pads and by branches,
+#      by nothing else, and a length change anywhere else is a finding.
+#
+# WHERE THE BYTE LENGTHS COME FROM. The byte length of an instruction is NOT
+# derivable from its rendered text: objdump prints both `0f 1f 40 00` (4 bytes)
+# and `0f 1f 80 00 00 00 00` (7 bytes) as `nopl 0x0(%rax)`, and it prints a
+# rel8 `je` and a rel32 `je` to one target identically too. It IS derivable in
+# flatten_symbols(), which has the address of each instruction -- the length of
+# a line is the address of the next minus its own, and for the last line of a
+# block it is the symbol end, where the symbol table gives a size. Since
+# M6 W5 T6 commit 0 fix1 it ANNOTATES every pad line with ` ;PAD=<n>`, and since
+# commit 0 fix3 every OTHER instruction line with ` ;LEN=<n>` (`?` in place of
+# the number where the block gives no successor and no size). The pad annotation
+# is part of the compared text, which is a second, free strictness: two pads that
+# render identically but occupy different numbers of bytes DIFFER. The `;LEN=`
+# annotation is NOT part of any text comparison -- rules 3 and 4, the
+# immediate-move class and the printed pair all read the line through
+# strip_len() -- because a widened branch must still be RECOGNISED as the same
+# branch; what it does instead is make rules 5 and 6 answerable, and make a
+# length change visible to a reader and to the WIDTH bin of psym_bin_pairs.awk.
+#
+# PARTIAL INFORMATION IS NOT USED. Where a re-encoded control transfer carries
+# no length (`;LEN=?`, or an unannotated hand-written listing), the residual
+# term is dropped WHOLE and rule 5 falls back to the pad-only equality it
+# asserted before fix3. A listing cannot be told from one in which a second,
+# unseen re-encoding cancels the visible one, so half a sum is worth less than
+# none; the fallback is never weaker than the pre-fix3 rule.
 #
 # SO THE POSITIONAL PATH CANNOT TAKE THIS ROUTE WHENEVER RULE 5 HAS ANYTHING TO
 # SAY: its input is the listing normalize_raw() makes, which carries no
@@ -1409,11 +1473,20 @@ function imm(s) { if (match(s, /\$0x[0-9a-f]+/)) return substr(s, RSTART + 3, RL
 #
 # THE RESIDUAL LIMIT, stated so that it is not re-discovered: after rule 5 a
 # retargeting is masked ONLY if its delta coincidentally EQUALS the NET RETAINED
-# INTERIOR-PAD DELTA. The earlier gloss "lands at the merged-pad boundary" was
-# wrong and is corrected here (Codex Minor, T6 commit 0 fix2): this code does not
-# retain pad POSITIONS at all, and where a body has several interior pad runs it
-# compares against their NET total, so the residual is an arithmetic coincidence
-# and not a positional one. Note also the SIGN, since one review stated it
+# INTERIOR-PAD DELTA PLUS THE NET CONTROL-TRANSFER WIDENING. The earlier gloss
+# "lands at the merged-pad boundary" was wrong and is corrected here (Codex
+# Minor, T6 commit 0 fix2): this code does not retain pad POSITIONS at all, and
+# where a body has several interior pad runs it compares against their NET
+# total, so the residual is an arithmetic coincidence and not a positional one.
+# COMMIT 0 fix3 WIDENS THAT RESIDUAL BY EXACTLY ONE TERM, and says so rather
+# than leaving it to be found: a retarget whose delta happens to equal
+# `pad delta + widening delta` is now masked where before only
+# `pad delta` masked it. The term is bounded by rule 6 (nothing but a pad or a
+# relative branch may change length) and by rules 3 and 4 (the widened branch
+# must be the SAME instruction to a target that moved by 0 or by the one shared
+# shift), and the widening count and its byte total are PRINTED on the
+# PAD-MERGED line, so a reader can see how much of the shift the branches paid.
+# Note also the SIGN, since one review stated it
 # backwards: both sides are AFTER minus BEFORE -- the target shift is
 # `target_after - target_before` and the pad delta is
 # `padbytes_after - padbytes_before` -- not "deleted minus inserted".
@@ -1430,8 +1503,21 @@ function imm(s) { if (match(s, /\$0x[0-9a-f]+/)) return substr(s, RSTART + 3, RL
 # The falsifiers this rule is answerable to, all run at every landing: a pad
 # merge that ALSO changes one non-pad opcode (rule 3), one whose relocation
 # record names a different callee (rule 3), one with two distinct nonzero
-# shifts (rule 4), one that adds a non-pad instruction (rule 2), and the two
-# masks the lane exhibited (rule 5).
+# shifts (rule 4), one that adds a non-pad instruction (rule 2), the two masks
+# the lane exhibited (rule 5), and -- since fix3 -- a widened branch whose
+# target ALSO moved to somewhere the shared shift does not explain (rules 4/5),
+# a NON-control-transfer length change (rule 6), and a widening sum that does
+# not close the residual (rule 5).
+#
+# THE ALIGNMENT DIAGNOSTIC. The PAD-MERGED and PAD-ROUTE DECLINED lines carry
+# the symbol s ABSOLUTE start on both arms and that start modulo 32, wherever
+# the caller supplied them (the per-symbol path always does). That is the CAUSE
+# of this whole class on this toolchain: it builds with `-falign-loops=32`, so a
+# body whose absolute start moved off a 32-byte boundary needs a longer interior
+# pad run to land its loop back on one -- and it was the fact that took a hand
+# disassembly to establish at T6.b. It is a diagnostic and nothing is decided by
+# it: no rule reads it, and a symbol whose starts are unknown classifies exactly
+# as it did.
 function is_pad_line(s) {
     return s ~ /^\t((data16|cs|rex[0-9a-z.]*)[ \t]+)*(nop[lwqb]?([ \t]|$)|xchg[ \t]+%ax,%ax([ \t]|$))/
 }
@@ -1443,13 +1529,34 @@ function pad_len(s) {
     if (s ~ /[ \t];PAD=\?$/) return -2
     return -1
 }
+# The byte length flatten_symbols() annotated onto a NON-pad instruction line
+# (M6 W5 T6 commit 0 fix3), or -1 for an unannotated line (the positional path,
+# and every hand-written fixture written before fix3) and -2 for an explicitly
+# unknown one.
+function insn_len(s) {
+    if (match(s, /[ \t];LEN=[0-9]+$/)) return substr(s, RSTART + 6, RLENGTH - 6) + 0
+    if (s ~ /[ \t];LEN=\?$/) return -2
+    return -1
+}
+# The line WITHOUT its length annotation. Everything that reads an instruction
+# as TEXT -- rules 3 and 4, the immediate-move class, the printed pair -- reads
+# it through this, so adding the annotation did not move any text comparison.
+function strip_len(s) { sub(/[ \t];LEN=([0-9]+|\?)$/, "", s); return s }
+# A control transfer whose ENCODING LENGTH depends on how far its target is:
+# a relative jump, conditional jump, call or loop. An INDIRECT form (`call *%rax`,
+# `jmp *0x8(%rip)`) is excluded -- its length is fixed by its operand, not by
+# layout, so a change in it is a re-encoding this class does not explain.
+function is_ct_line(s) {
+    if (s !~ /^\t(bnd[ \t]+|notrack[ \t]+|cs[ \t]+|ds[ \t]+)*(j[a-z]+|call[a-z]?|loop[a-z]*|xbegin)[ \t]/) return 0
+    return s !~ /[ \t]\*/
+}
 function ct_target(s) {
     if (match(s, /[ \t](SELF\+0x[0-9a-f]+|[0-9a-f]+)$/)) return substr(s, RSTART + 1, RLENGTH - 1)
     return ""
 }
 function ct_key(s) { sub(/[ \t](SELF\+0x[0-9a-f]+|[0-9a-f]+)$/, " @T@", s); return s }
 function ct_val(t) { sub(/^SELF\+/, "", t); if (t !~ /^0x/) t = "0x" t; return strtonum(t) }
-function pad_only(   i, npb, npa, d, tb, ta, L) {
+function pad_only(   i, npb, npa, d, tb, ta, L, xb, xa, lb, la) {
     npb = 0; npa = 0; padb = 0; pada = 0; padbytes_b = 0; padbytes_a = 0; padunlen = 0
     for (i = 1; i <= nb; i++) {
         if (is_pad_line(b[i])) { padb++; L = pad_len(b[i]); if (L < 0) padunlen++; else padbytes_b += L; continue }
@@ -1464,12 +1571,26 @@ function pad_only(   i, npb, npa, d, tb, ta, L) {
     if (padb == pada && padbytes == 0) return 0
     if (npb != npa) { padreason = "a non-pad line was added or removed (rule 2)"; return 0 }
     padnp = npb; padeq = 0; padshift = 0; padnz = 0
+    ctdelta = 0; ctwide = 0; ctunlen = 0
     for (i = 1; i <= npb; i++) {
-        if (pb[i] == pa[i]) { padeq++; continue }
-        tb = ct_target(pb[i]); ta = ct_target(pa[i])
+        xb = strip_len(pb[i]); xa = strip_len(pa[i])
+        lb = insn_len(pb[i]);  la = insn_len(pa[i])
+        # RULE 6 and the rule-5 residual term, decided together because both
+        # turn on the same question: did this line change LENGTH, and is it a
+        # control transfer whose length layout is entitled to move?
+        if (lb != la) {
+            if (!is_ct_line(xb) || !is_ct_line(xa)) {
+                padreason = sprintf("a NON-control-transfer instruction changed byte length (%d -> %d bytes) (rule 6): %s", lb, la, xb)
+                return 0
+            }
+            if (lb < 0 || la < 0) ctunlen++
+            else { ctdelta += la - lb; ctwide++ }
+        }
+        if (xb == xa) { padeq++; continue }
+        tb = ct_target(xb); ta = ct_target(xa)
         if (tb == "" || ta == "") { padreason = "a non-pad line differs somewhere other than a control-transfer target (rule 3)"; return 0 }
         if ((tb ~ /^SELF/) != (ta ~ /^SELF/)) { padreason = "a control-transfer target changed RENDERING kind (rule 3)"; return 0 }
-        if (ct_key(pb[i]) != ct_key(pa[i])) { padreason = "a non-pad opcode or its leading operands changed (rule 3)"; return 0 }
+        if (ct_key(xb) != ct_key(xa)) { padreason = "a non-pad opcode or its leading operands changed (rule 3)"; return 0 }
         d = ct_val(ta) - ct_val(tb)
         if (d == 0) { padeq++; continue }
         if (padnz == 0) { padshift = d; padnz = 1 }
@@ -1478,24 +1599,50 @@ function pad_only(   i, npb, npa, d, tb, ta, L) {
     }
     # RULE 5. Nothing observable shifted -> there is nothing for the byte
     # length to have to explain, and the route is taken on rules 1-4 alone.
-    # Otherwise the shared shift must BE the byte-length change of the pad run, and
-    # a listing that does not carry the lengths cannot make that claim.
+    # Otherwise the shared shift must BE what the bytes AHEAD of it actually
+    # moved: the byte change of the pad run PLUS the byte change of the control
+    # transfers that were re-encoded on the way (see the header). A listing that
+    # does not carry the lengths cannot make either half of that claim.
     if (padnz > 0) {
         if (padunlen > 0) {
             padreason = sprintf("no pad byte lengths in this listing (%d unannotated pad line(s)), so the shared shift of %+d cannot be checked against the byte change of the pad run (rule 5) -- the per-symbol layer, which has them, is the verdict", padunlen, padshift)
             return 0
         }
-        if (padshift != padbytes) {
-            padreason = sprintf("the shared control-transfer shift is %+d but the pad run changed by %+d bytes (%d -> %d) (rule 5)", padshift, padbytes, padbytes_b, padbytes_a)
+        # PARTIAL INFORMATION IS NOT USED. A listing in which SOME re-encoded
+        # control transfer carries no length cannot be told from one in which
+        # an unseen second re-encoding cancels the one that is visible, so the
+        # residual term is dropped WHOLE and rule 5 falls back to the pad-only
+        # equality it asserted before fix3 -- never weaker than that.
+        padexp = (ctunlen > 0) ? padbytes : padbytes + ctdelta
+        if (padshift != padexp) {
+            if (ctunlen > 0)
+                padreason = sprintf("the shared control-transfer shift is %+d but the pad run changed by %+d bytes (%d -> %d) and %d re-encoded control transfer(s) carry no byte length, so the widening term cannot be used (rule 5)", padshift, padbytes, padbytes_b, padbytes_a, ctunlen)
+            else if (ctwide > 0)
+                padreason = sprintf("the shared control-transfer shift is %+d but the pad run changed by %+d bytes (%d -> %d) and %d re-encoded control transfer(s) by %+d bytes, which sum to %+d (rule 5)", padshift, padbytes, padbytes_b, padbytes_a, ctwide, ctdelta, padexp)
+            else
+                padreason = sprintf("the shared control-transfer shift is %+d but the pad run changed by %+d bytes (%d -> %d) (rule 5)", padshift, padbytes, padbytes_b, padbytes_a)
             return 0
         }
     }
     return 1
 }
-function report_pad_merged() {
+# The symbol s ABSOLUTE placement on the two arms, and what it is modulo the
+# loop-alignment boundary this toolchain uses (`-falign-loops=32`). It is the
+# CAUSE of the whole merged-pad class -- a body that starts 16 bytes off the
+# boundary needs 16 more pad bytes to land its interior loop on it -- and it is
+# printed so a reader sees that cause without disassembling anything
+# (M6 W5 T6 commit 0 fix3). Empty when the caller supplied no addresses, which
+# is every hand-written fixture and the positional path.
+function align_note(   vb, va) {
+    if (sym_start_b == "" || sym_start_a == "") return ""
+    vb = strtonum("0x" sym_start_b); va = strtonum("0x" sym_start_a)
+    return sprintf("; start 0x%s (mod 32 = %d) -> 0x%s (mod 32 = %d)", sym_start_b, vb % 32, sym_start_a, va % 32)
+}
+function report_pad_merged(   w) {
+    w = (ctwide > 0) ? sprintf("; %d control transfer(s) re-encoded %+d bytes", ctwide, ctdelta) : ""
     printf "COUNTS %d insns; CHANGED %d; UNCLASSIFIED 0; DELTAS (pad-merged)\n", padnp, padnp - padeq
-    printf "PAD-MERGED %d alignment-pad lines vs %d (%d -> %d bytes, %+d); %d non-pad lines, %d identical, %d control-transfer targets shifted %+d\n", \
-           padb, pada, padbytes_b, padbytes_a, padbytes, padnp, padeq, padnz, padshift
+    printf "PAD-MERGED %d alignment-pad lines vs %d (%d -> %d bytes, %+d); %d non-pad lines, %d identical, %d control-transfer targets shifted %+d%s%s\n", \
+           padb, pada, padbytes_b, padbytes_a, padbytes, padnp, padeq, padnz, padshift, w, align_note()
 }
 
 NR == FNR { b[FNR] = $0; nb = FNR; next }
@@ -1505,10 +1652,10 @@ END {
         if (pad_only()) { report_pad_merged(); exit 0 }
         # Say that the pad route was TRIED and why it declined, so a reader of
         # a STRUCTURAL line on a pair whose pad count moved is not left to
-        # guess which of the five rules it failed.
+        # guess which of the six rules it failed.
         if (padb != pada || padbytes != 0)
-            printf "PAD-ROUTE DECLINED: %d alignment-pad lines vs %d (%d -> %d bytes) -- %s\n", \
-                   padb, pada, padbytes_b, padbytes_a, \
+            printf "PAD-ROUTE DECLINED: %d alignment-pad lines vs %d (%d -> %d bytes)%s -- %s\n", \
+                   padb, pada, padbytes_b, padbytes_a, align_note(), \
                    (padreason == "" ? "the non-pad streams are not equal modulo ONE shared control-transfer shift" : padreason)
         printf "STRUCTURAL: normalized listing is %d lines vs %d -- instructions were added or removed\n", nb, na
         exit 2
@@ -1524,8 +1671,14 @@ END {
         if (b[i] ~ /^\t/) insn_b++
         if (b[i] == a[i]) continue
         changed++
-        if (is_imm_move(b[i]) && is_imm_move(a[i]) && redact(b[i]) == redact(a[i])) {
-            d = strtonum("0x" imm(a[i])) - strtonum("0x" imm(b[i]))
+        # Class (a) is a TEXT class -- the same instruction to the same
+        # destination with a different immediate -- so it reads both sides
+        # without the fix3 length annotation. A pair whose annotation ALSO
+        # moved is not equal after redaction on the length either, so it falls
+        # through to the buffered pairs below and the pad route decides it.
+        ilb = strip_len(b[i]); ila = strip_len(a[i])
+        if (insn_len(b[i]) == insn_len(a[i]) && is_imm_move(ilb) && is_imm_move(ila) && redact(ilb) == redact(ila)) {
+            d = strtonum("0x" imm(ila)) - strtonum("0x" imm(ilb))
             deltas[d]++
         } else {
             # BUFFERED, not printed here (M6 W5 T6.a fix1). Rule 1 now admits an
@@ -1542,8 +1695,8 @@ END {
     if (bad > 0) {
         if (pad_only()) { report_pad_merged(); exit 0 }
         if (padreason != "")
-            printf "PAD-ROUTE DECLINED: %d alignment-pad lines vs %d (%d -> %d bytes) -- %s\n", \
-                   padb, pada, padbytes_b, padbytes_a, padreason
+            printf "PAD-ROUTE DECLINED: %d alignment-pad lines vs %d (%d -> %d bytes)%s -- %s\n", \
+                   padb, pada, padbytes_b, padbytes_a, align_note(), padreason
     }
     for (i = 1; i <= bad; i++) {
         if (cap != 0 && i > cap) break
@@ -2292,6 +2445,7 @@ NR == FNR {
             bn[k] = 0
             bskip = 0
             borig[k] = bareof($2)
+            bstart[k] = $5
             if (bareof($2) in m) bmapped[k] = 1
         }
     } else if (!bskip && bcur != "") { bn[bcur]++; bi[bcur, bn[bcur]] = render_insn(field3($0), 1) }
@@ -2323,6 +2477,7 @@ NR == FNR {
             asec[k] = lit_replace($3, $2, "<SYM>")
             an[k] = 0
             aorig[k] = bareof($2)
+            astart[k] = $5
             adupmode = 0
         }
     } else if (acur != "") {
@@ -2383,7 +2538,13 @@ END {
         for (i = 1; i <= na; i++) print ai[k, i] > fa
         close(fb)
         close(fa)
-        cmd = "awk -f " f_cls " " fb " " fa " 2>&1"
+        # The two ABSOLUTE symbol starts ride into the classifier so its
+        # merged-pad verdict can name the alignment fact that CAUSED the pad to
+        # move (M6 W5 T6 commit 0 fix3). They are hex digits from flatten_symbols(),
+        # so they need no quoting beyond this.
+        cmd = "awk -v sym_start_b=" (bstart[k] == "" ? "\"\"" : bstart[k]) \
+              " -v sym_start_a=" (astart[k] == "" ? "\"\"" : astart[k]) \
+              " -f " f_cls " " fb " " fa " 2>&1"
         verdict = ""
         while ((cmd | getline l) > 0) verdict = verdict (verdict == "" ? "" : "\n") l
         status = close(cmd)
@@ -2676,28 +2837,43 @@ flatten_symbols() {
         # Emits the buffered block, applying the four limbs above now that the
         # block s extent is known. btgt[i] is -1 for every line that carries no
         # bare control-transfer target.
-        function flushblk(   i, j, l, nm, selfsz, nxt) {
+        function flushblk(   i, j, l, nm, selfsz, nxt, ilen) {
             selfsz = ((cursec SUBSEP curstart SUBSEP curblk) in ssize) \
                      ? ssize[cursec SUBSEP curstart SUBSEP curblk] : 0
             for (i = 1; i <= nbuf; i++) {
                 l = buf[i]
-                if (btyp[i] == "I" && is_pad_f(l)) {
+                # The byte length of EVERY instruction, not only of a pad
+                # (M6 W5 T6 commit 0 fix3). Same derivation as before -- the
+                # address of the next instruction of this block minus its own,
+                # falling back to the symbol end where the table gives a size --
+                # now computed once and annotated onto both kinds of line.
+                ilen = -1
+                if (btyp[i] == "I" && baddr[i] >= 0) {
                     nxt = -1
                     for (j = i + 1; j <= nbuf; j++) if (btyp[j] == "I") { nxt = baddr[j]; break }
                     if (nxt < 0 && selfsz > 0 && sstart + selfsz > baddr[i]) nxt = sstart + selfsz
-                    l = (nxt < 0) ? l " ;PAD=?" : sprintf("%s ;PAD=%d", l, nxt - baddr[i])
+                    if (nxt >= 0) ilen = nxt - baddr[i]
                 }
-                else if (btyp[i] == "I" && btgt[i] >= 0) {
-                    if (selfsz > 0 && btgt[i] >= sstart && btgt[i] < sstart + selfsz)
-                        l = retarget(l, sprintf("SELF+0x%x", btgt[i] - sstart))
-                    else if (i < nbuf && btyp[i + 1] == "R")
-                        l = retarget(l, sprintf("SELF+0x%x", btgt[i] - sstart))
-                    else if ((nm = containing(cursec, btgt[i])) != "")
-                        l = (nm == curblk) \
-                            ? retarget(l, sprintf("SELF+0x%x", btgt[i] - sstart)) \
-                            : retarget(l, sprintf("@SYM@%s@+0x%x", nm, btgt[i] - chit_st))
-                    else if (selfsz <= 0 && bself[i])
-                        l = retarget(l, sprintf("SELF+0x%x", btgt[i] - sstart))
+                if (btyp[i] == "I" && is_pad_f(l)) {
+                    l = (ilen < 0) ? l " ;PAD=?" : sprintf("%s ;PAD=%d", l, ilen)
+                }
+                else if (btyp[i] == "I") {
+                    if (btgt[i] >= 0) {
+                        if (selfsz > 0 && btgt[i] >= sstart && btgt[i] < sstart + selfsz)
+                            l = retarget(l, sprintf("SELF+0x%x", btgt[i] - sstart))
+                        else if (i < nbuf && btyp[i + 1] == "R")
+                            l = retarget(l, sprintf("SELF+0x%x", btgt[i] - sstart))
+                        else if ((nm = containing(cursec, btgt[i])) != "")
+                            l = (nm == curblk) \
+                                ? retarget(l, sprintf("SELF+0x%x", btgt[i] - sstart)) \
+                                : retarget(l, sprintf("@SYM@%s@+0x%x", nm, btgt[i] - chit_st))
+                        else if (selfsz <= 0 && bself[i])
+                            l = retarget(l, sprintf("SELF+0x%x", btgt[i] - sstart))
+                    }
+                    # AFTER the retarget, because retarget() splices at the end
+                    # of the line and the annotation would otherwise be the
+                    # thing it replaced.
+                    l = (ilen < 0) ? l " ;LEN=?" : sprintf("%s ;LEN=%d", l, ilen)
                 }
                 # An R record carries the OBJECT it was read from as a fifth
                 # field, so the per-symbol layer resolves an executable-section
@@ -2735,8 +2911,11 @@ flatten_symbols() {
             # `__cxx_global_var_init`s, one per half), so a per-arm table keyed
             # by the name alone merges them. The per-symbol layer reads the
             # SECTION from $3 and never slices an S record to end of line, so a
-            # trailing field is invisible to it.
-            printf "S\t%s\t%s\t%s\n", cur, sec, objid
+            # trailing field is invisible to it -- which is why the symbol s
+            # ABSOLUTE START can ride along as a FIFTH field (M6 W5 T6 commit 0
+            # fix3) for the merged-pad class s alignment diagnostic, without
+            # disturbing anything that already read this record.
+            printf "S\t%s\t%s\t%s\t%x\n", cur, sec, objid, sstart
             next
         }
         # A relocation line: three tabs, the within-section offset, ": ", the

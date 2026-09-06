@@ -92,6 +92,14 @@
 #           psym_compare.sh states for its own neutralisations, at the same
 #           grain, and it is why the bin is reported with its addend deltas
 #           rather than folded into RENAME.
+#   WIDTH   the same instruction TEXT at two encoding LENGTHS, read off the
+#           ` ;LEN=` annotation psym_compare.sh adds to every non-pad
+#           instruction since M6 W5 T6 commit 0 fix3: a relative control
+#           transfer re-encoded rel8 <-> rel32 because its target moved nearer
+#           or further. This is the term rule 5 of the merged-pad class now
+#           carries beside the pad byte delta, and it is binned separately --
+#           with its length deltas printed -- because a width change is a
+#           LAYOUT consequence and a reader must be able to count them.
 #   OTHER   anything else: a finding.
 #
 # THE ADDR BIN IS DELIBERATELY NARROW (M6 W5 T1 fix1). It used to be "the two
@@ -126,6 +134,16 @@ function nreloc(s) { gsub(/hven::solvers::(OptimizationProblemBase|NLPSolver)/, 
 # OTHER. Kept in step with is_pad_line()/is_pad_f() there.
 function ispad(s) { sub(/[ \t];PAD=([0-9]+|\?)$/, "", s)
                     return s ~ /^\t((data16 |cs |rex[0-9a-z.]* )*nop[wl]?( +[^ ]+)?|nop|xchg +%ax,%ax)$/ }
+# The ` ;LEN=<n>` psym_compare.sh s flatten_symbols() annotates onto every
+# NON-pad instruction line (M6 W5 T6 commit 0 fix3) is part of the compared
+# text there, so it reaches this transcript too. Every bin below tests the
+# instruction, so the annotation is taken OFF first and kept in `lenb`/`lena`;
+# a pair that is equal once it is off, and differs only in it, is the WIDTH
+# bin. Kept in step with insn_len()/strip_len() there.
+function anlen(s) { if (match(s, /[ \t];LEN=[0-9]+$/)) return substr(s, RSTART + 6, RLENGTH - 6) + 0
+                    if (s ~ /[ \t];LEN=\?$/) return -2
+                    return -1 }
+function striplen(s) { sub(/[ \t];LEN=([0-9]+|\?)$/, "", s); return s }
 # The (%rsp)-relative displacement a line addresses, or "NA". An INDEX register
 # is allowed in the memory operand (`0x328(%rsp,%rcx,1)`): it is a runtime
 # offset into an array whose BASE is the frame slot, and the displacement is
@@ -185,6 +203,14 @@ function has_stk(s) { return s ~ /\((%rsp|%rbp)(,%[a-z0-9]+,[0-9])?\)/ }
 
 /^ *UNCLASSIFIED  - /{ b = $0; sub(/^ *UNCLASSIFIED  - /, "", b); getline a; sub(/^ *\+ */, "", a)
   tot++
+  lenb = anlen(b); lena = anlen(a); b = striplen(b); a = striplen(a)
+  # WIDTH: the same instruction text at two ENCODING LENGTHS -- a relative
+  # control transfer re-encoded rel8 <-> rel32 as its target moved nearer or
+  # further, which is the mechanism the merged-pad class rule 5 now accounts
+  # for. Reported with its deltas, and only for a line the two arms agree on
+  # textually: a length change on a line whose text ALSO moved is left to the
+  # bins below, where its text difference is what gets classified.
+  if (b == a && lenb != lena) { width++; wdeltas[sprintf("%d -> %d", lenb, lena)]++; next }
   if (b ~ /^RELOC / && a ~ /^RELOC /) {
     if (nreloc(b) == nreloc(a)) { ren++; next }
     if (reloc_head(b) == reloc_head(a) && reloc_is_data_section(reloc_target(b)) &&
@@ -212,8 +238,9 @@ function has_stk(s) { return s ~ /\((%rsp|%rbp)(,%[a-z0-9]+,[0-9])?\)/ }
   if (has_stk(b) && has_stk(a) && stkonly(b) == stkonly(a)) { a_stk++; addr++; next }
   other++; printf "OTHER  - %s\n       + %s\n", b, a
 }
-END { printf "BINS  total=%d  D8=%d  FRAME=%d  VPTR=%d  V2D=%d  NOP=%d  REND=%d  SLIP=%d  ADDR=%d (BR=%d RIP=%d STK=%d)  RENAME=%d  RDATA=%d  OTHER=%d\n",
-             tot+0, d8+0, frame+0, vptr+0, v2d+0, nop+0, rend+0, slip+0, addr+0, a_br+0, a_rip+0, a_stk+0, ren+0, rdata+0, other+0
+END { printf "BINS  total=%d  D8=%d  FRAME=%d  VPTR=%d  V2D=%d  NOP=%d  REND=%d  SLIP=%d  ADDR=%d (BR=%d RIP=%d STK=%d)  RENAME=%d  RDATA=%d  WIDTH=%d  OTHER=%d\n",
+             tot+0, d8+0, frame+0, vptr+0, v2d+0, nop+0, rend+0, slip+0, addr+0, a_br+0, a_rip+0, a_stk+0, ren+0, rdata+0, width+0, other+0
+      if (width > 0) { printf "WIDTH-DELTAS"; for (d in wdeltas) printf "  %s bytes (x%d)", d, wdeltas[d]; printf "\n" }
       # The RDATA deltas, printed for the same reason class (a) prints its
       # immediate deltas: a shift shared by many records is one inserted datum,
       # a lone odd one is worth reading.
