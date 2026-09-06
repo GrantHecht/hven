@@ -175,7 +175,7 @@
 #       at most one shared control-transfer shift, and that shift accounted for
 #       by the pad bytes plus any control transfers the pad change itself
 #       re-encoded. Arrived at M6 W5 T6 commit 0 and widened to the re-encoding
-#       term at commit 0 fix3; the rule, its SIX conditions, its limit and its
+#       term at commit 0 fix3; the rule, its SEVEN conditions, its limit and its
 #       falsifiers are stated in full at PSYM_CLASSIFY_AWK.
 #
 # NORMALIZATION NOTE: `objdump -d --no-show-raw-insn` appends a trailing
@@ -958,7 +958,7 @@
 #     rank fallback used to pass on a coincidence.
 #
 #   * A MERGED INTRA-FUNCTION ALIGNMENT PAD IS ACCEPTED NOISE, CLASS (c). The
-#     accepted noise class above gains a third member; the rule, its six
+#     accepted noise class above gains a third member; the rule, its seven
 #     conditions, its stated limit and its falsifiers are written out in full at
 #     PSYM_CLASSIFY_AWK, because that is the ONE classifier both paths call and
 #     widening it must stay a single visible act. It answers the T3 ledger item:
@@ -995,6 +995,19 @@
 #     length change that used to be invisible). Registered by the SQP lane and
 #     by Codex at the T6.b review, from the `push_history` symbol that had to be
 #     excused by name on a hand audit.
+#
+#   * COMMIT 0 fix4: RULE 7 -- TARGET IDENTITY BY INSTRUCTION ORDINAL. fix3 s
+#     header claimed the contributing set was "the same instruction to the same
+#     LOGICAL target" and asserted rules 3 and 4 already said so. They did not:
+#     rule 4 asserts a DELTA. Each arm is now walked once from its own ` ;LEN=`
+#     and ` ;PAD=` annotations, every instruction start is indexed by its ordinal
+#     in the non-pad stream, and every accepted control transfer -- shifted and
+#     UNSHIFTED alike -- must resolve to the SAME ordinal on both arms. An
+#     unresolvable target declines. Direction: strictly tightening; two
+#     pre-fix3 hand fixtures whose instruction lines carry no lengths now decline
+#     as partial information, with annotated twins carrying their positives.
+#     Registered by Codex (Important 1) and the SQP lane (R3 residual, L4 cell)
+#     at the fix1 review.
 #
 # THE CLAIM TEMPLATE. A P-SYM gate is a CLAIM made BEFORE the run and checked
 # against the transcript, not a transcript read afterwards for whatever it
@@ -1403,8 +1416,14 @@ function imm(s) { if (match(s, /\$0x[0-9a-f]+/)) return substr(s, RSTART + 3, RL
 #      shift a listing shows is the pad delta AND the widening, not the pad
 #      delta alone. T6.b measured exactly that on `push_history`, an unedited
 #      lambda of the edited function: pad 7 -> 19 bytes (+12), ONE `je` re-encoded
-#      2 -> 6 bytes (+4), 24 self-targets shifted +16 and 5 unshifted, 216 non-pad
-#      lines otherwise identical. 12 + 4 = 16 closes; 12 alone does not, so the
+#      2 -> 6 bytes (+4), and -- AT THIS TOOL S OWN GRAIN -- 216 non-pad lines of
+#      which 196 are identical and 20 are control-transfer targets shifted +16.
+#      (An objdump-grain census of the same pair counts 24 shifted and 5
+#      unshifted self-targets; the extra four are rip-relative lines whose
+#      trailing `# addr <sym+off>` annotation also moved, and which this tool
+#      strips by design. The tool s own number is the one its PAD-MERGED line
+#      prints, and the one quoted here -- SQP lane M1 at the fix1 review.)
+#      12 + 4 = 16 closes; 12 alone does not, so the
 #      pre-fix3 rule declined and the symbol had to be excused BY NAME on a hand
 #      audit of all 223 instructions. A by-name exception is symbol-granular and
 #      does not scale to a cut that moves many lambdas at once.
@@ -1414,11 +1433,16 @@ function imm(s) { if (match(s, /\$0x[0-9a-f]+/)) return substr(s, RSTART + 3, RL
 #      those "whose rendered target text is unchanged"; taken literally that
 #      would have excluded the very `je` it was written about, whose rendered
 #      target moved `SELF+0x284` -> `SELF+0x294` with the rest of the body. What
-#      is unchanged is the target INSTRUCTION, and rules 3 and 4 are already
-#      exactly that assertion: same mnemonic, same leading operands, same
-#      rendering kind, and a target delta of 0 or the ONE shared shift. So the
-#      contributing set is the control transfers those rules accepted, and the
-#      wording is corrected here rather than reproduced.
+#      is unchanged is the target INSTRUCTION. **THAT IS RULE 7, AND UNTIL
+#      COMMIT 0 fix4 IT WAS ONLY A CLAIM.** fix3 said here that rules 3 and 4
+#      "are already exactly that assertion"; they are not, and Codex demonstrated
+#      it at the fix1 review with a read-only probe: rule 3 asserts the mnemonic
+#      and the leading operands, rule 4 asserts the DELTA, and a branch retargeted
+#      to a DIFFERENT instruction that happens to sit exactly the shared shift
+#      away satisfies both. The probe -- a widened branch retargeted across the
+#      growth point with the +16 = +12 pad + +4 width arithmetic preserved --
+#      returned PAD-MERGED rc=0. The sentence has been replaced by the rule that
+#      now makes the assertion.
 #
 #   6. NO NON-CONTROL-TRANSFER INSTRUCTION CHANGED BYTE LENGTH. A pad run and a
 #      relative branch are the two things whose encoding LAYOUT is entitled to
@@ -1426,9 +1450,58 @@ function imm(s) { if (match(s, /\$0x[0-9a-f]+/)) return substr(s, RSTART + 3, RL
 #      rendering the same text -- `add $0x1,%eax` as `83 c0 01` on one arm and
 #      `05 01 00 00 00` on the other, which objdump prints identically -- is a
 #      RE-ENCODING, and it would pay part of the shift rule 5 is checking
-#      without appearing in either term. Rule 6 is what keeps the rule 5 residual
-#      term from being a hole: the residual may be paid by pads and by branches,
-#      by nothing else, and a length change anywhere else is a finding.
+#      without appearing in either term. Rule 6 is one of the bounds on the rule 5
+#      residual term: the residual may be paid by pads and by branches, by nothing
+#      else, and a length change anywhere else is a finding. **ITS OWN
+#      CONTRIBUTION IS NARROW, AND fix4 NARROWED IT FURTHER.** fix3 claimed rule 6
+#      "makes the widening term bounded rather than free"; the SQP lane corrected
+#      that at the fix1 review (M3) and rule 7 has now taken most of what was
+#      left. A same-text re-encoding anywhere a target still points PAST it moves
+#      that target off an instruction start, and rule 7 declines without rule 6.
+#      What is left to rule 6 alone is a re-encoding that sits after the LAST
+#      thing any target points at -- including the end-of-body address a relocated
+#      tail call targets -- where nothing downstream can give it away. Ablation on
+#      the retained fixtures: with rule 6 deleted, W3, and the lane L3/L6/L7 all
+#      still decline (rule 7); only the R6 fixture, whose re-encoding sits after
+#      the last target in a body with no relocated tail call, PASSES. Rule 6 is
+#      kept because it is cheap, strictly tightening, fires FIRST, and names the
+#      cause directly instead of reporting the downstream symptom.
+#
+#   7. EVERY ACCEPTED CONTROL TRANSFER POINTS AT THE SAME INSTRUCTION ON BOTH
+#      ARMS -- resolved, not assumed. Each arm s listing is walked once in order,
+#      accumulating each line s SYMBOL-RELATIVE START OFFSET from the ` ;LEN=`
+#      and ` ;PAD=` annotations, and each instruction start is recorded against
+#      the ORDINAL of its line in the non-pad stream -- which is the index rules
+#      2 and 3 pair the arms by. A control transfer s rendered `SELF+0xN` is then
+#      looked up in its own arm s table, and the two ordinals must be EQUAL. One
+#      past the last instruction is in the table too: objdump renders a RELOCATED
+#      call s operand as the address of the NEXT instruction, so a body whose tail
+#      is a relocated call targets exactly its own end, and the trailing
+#      inter-function pad that occupies that address is trimmed before the
+#      classifier sees the listing.
+#
+#      IT COVERS THE UNSHIFTED TRANSFERS TOO, and that is not incidental. A
+#      transfer whose rendered target did NOT move while the body around it
+#      shifted is either pointing at something before the growth point --
+#      legitimate -- or pointing at a different instruction. The lane registered
+#      that cell as L4 at the fix3 review and judged it inert; ordinal identity
+#      CLOSES it, and L4 is a retained negative fixture.
+#
+#      IT RUNS ONLY WHERE A SHARED SHIFT EXISTS. With nothing shifted there is no
+#      shift for a target to be inconsistent with, no walk is needed, and a
+#      listing that carries no instruction lengths -- the POSITIONAL path, and
+#      every fixture written before fix3 -- keeps the verdict it had.
+#
+#      PARTIAL INFORMATION IS A DECLINE, NOT A PASS. A target that renders as a
+#      bare absolute address (no symbol-relative offset to look up), or that is
+#      not the start of any walked instruction -- because the walk stopped at a
+#      missing length, or because the listing s own byte accounting disagrees
+#      with its own targets -- DECLINES. That is stricter than rule 5 s fallback,
+#      which drops the widening term and re-asserts the older equality; there is
+#      no older equality to fall back to here, so the only sound answer is to
+#      decline. Two hand-written pre-fix3 fixtures (P1, M5) decline for exactly
+#      this reason and are retained as the partial-information negatives, with
+#      consistently annotated twins (P1x, M5x) carrying the positive.
 #
 # WHERE THE BYTE LENGTHS COME FROM. The byte length of an instruction is NOT
 # derivable from its rendered text: objdump prints both `0f 1f 40 00` (4 bytes)
@@ -1478,14 +1551,29 @@ function imm(s) { if (match(s, /\$0x[0-9a-f]+/)) return substr(s, RSTART + 3, RL
 # Minor, T6 commit 0 fix2): this code does not retain pad POSITIONS at all, and
 # where a body has several interior pad runs it compares against their NET
 # total, so the residual is an arithmetic coincidence and not a positional one.
-# COMMIT 0 fix3 WIDENS THAT RESIDUAL BY EXACTLY ONE TERM, and says so rather
-# than leaving it to be found: a retarget whose delta happens to equal
-# `pad delta + widening delta` is now masked where before only
-# `pad delta` masked it. The term is bounded by rule 6 (nothing but a pad or a
-# relative branch may change length) and by rules 3 and 4 (the widened branch
-# must be the SAME instruction to a target that moved by 0 or by the one shared
-# shift), and the widening count and its byte total are PRINTED on the
-# PAD-MERGED line, so a reader can see how much of the shift the branches paid.
+# COMMIT 0 fix3 WIDENED THAT RESIDUAL BY EXACTLY ONE TERM: a retarget whose delta
+# happened to equal `pad delta + widening delta` was masked where before only
+# `pad delta` masked it. **COMMIT 0 fix4 CLOSES IT.** Rule 7 resolves both ends
+# of every accepted control transfer to an instruction ORDINAL and requires them
+# equal, so a retarget is no longer masked by ANY delta, coincidental or not --
+# the shared shift included. The widening count, its byte total and the number of
+# targets resolved are PRINTED on the PAD-MERGED line.
+#
+# WHAT REMAINS IN THIS CLASS AFTER fix4, stated so it is not re-discovered:
+#   * A retarget WITHIN one instruction -- a target that moves to an address
+#     that is not an instruction start -- declines rather than masks, so it is
+#     not a residual.
+#   * A target rendered as a BARE ABSOLUTE address, which limb 4 of the SELF rule
+#     leaves alone when nothing resolves it, cannot be looked up and DECLINES.
+#     That is a false finding, never a mask, and it is the conservative direction
+#     this file takes everywhere else.
+#   * The remaining residual is NOT in the target class at all: it is rule 3 s,
+#     and it is the standing one -- two instructions with the same mnemonic, the
+#     same leading operands and the same rendered target are compared EQUAL, so a
+#     difference this listing does not render (an operand-size prefix objdump
+#     prints identically, say) is invisible. `;LEN=` narrowed even that at fix3,
+#     since such a difference usually changes the encoding length. Nothing in the
+#     merged-pad class now excuses a control transfer that goes somewhere else.
 # Note also the SIGN, since one review stated it
 # backwards: both sides are AFTER minus BEFORE -- the target shift is
 # `target_after - target_before` and the pad delta is
@@ -1507,7 +1595,11 @@ function imm(s) { if (match(s, /\$0x[0-9a-f]+/)) return substr(s, RSTART + 3, RL
 # the lane exhibited (rule 5), and -- since fix3 -- a widened branch whose
 # target ALSO moved to somewhere the shared shift does not explain (rules 4/5),
 # a NON-control-transfer length change (rule 6), and a widening sum that does
-# not close the residual (rule 5).
+# not close the residual (rule 5); and -- since fix4 -- a branch retargeted by
+# EXACTLY the shared shift to a different instruction (rule 7, the Codex probe at
+# the fix1 review), a widened branch whose rendered target did not move at all
+# while the body shifted (rule 7, the SQP lane L4), and a listing whose own byte
+# lengths cannot resolve a target (rule 7, partial information).
 #
 # THE ALIGNMENT DIAGNOSTIC. The PAD-MERGED and PAD-ROUTE DECLINED lines carry
 # the symbol s ABSOLUTE start on both arms and that start modulo 32, wherever
@@ -1550,28 +1642,102 @@ function is_ct_line(s) {
     if (s !~ /^\t(bnd[ \t]+|notrack[ \t]+|cs[ \t]+|ds[ \t]+)*(j[a-z]+|call[a-z]?|loop[a-z]*|xbegin)[ \t]/) return 0
     return s !~ /[ \t]\*/
 }
+# RULE 7 (M6 W5 T6 commit 0 fix4): the two rendered targets of a SHIFTED control
+# transfer must be the SAME INSTRUCTION, not merely two offsets a shared delta
+# apart. Each side is resolved through its arm s offset walk to the ORDINAL of
+# the non-pad line that STARTS at that offset, and the ordinals must be equal.
+# Returns 1 on a resolved match; on anything else it sets `ctidwhy` and returns 0.
+#
+# It refuses in three ways, all of them DECLINES and none of them a guess:
+#   * a target that is not rendered SELF-relative -- a bare absolute address the
+#     symbol table could not resolve -- has no symbol-relative offset to look up;
+#   * a target that is not the start of any walked instruction, which is either a
+#     listing whose lengths ran out before it or a target in the middle of one;
+#   * a target that resolves on both arms to DIFFERENT ordinals: the retarget.
+function ct_ident(tb, ta,   ob, oa) {
+    ctidwhy = ""
+    if (tb !~ /^SELF\+/ || ta !~ /^SELF\+/) {
+        ctidwhy = "a shifted control transfer renders its target as a bare address rather than SELF-relative, so it has no symbol-relative offset to resolve"
+        return 0
+    }
+    ob = ct_val(tb); oa = ct_val(ta)
+    if (!(ob in boff) || !(oa in aoff)) {
+        if (bunlen > 0 || aunlen > 0)
+            ctidwhy = sprintf("the listing carries no byte length for %d before-arm and %d after-arm instruction line(s), so the offset walk stops before the target SELF+0x%x / SELF+0x%x and it cannot be resolved to an instruction -- the per-symbol layer, which has the lengths, is the verdict", bunlen, aunlen, ob, oa)
+        else
+            ctidwhy = sprintf("the target SELF+0x%x / SELF+0x%x is not the start of any instruction in this listing", ob, oa)
+        return 0
+    }
+    if (boff[ob] != aoff[oa]) {
+        ctidwhy = sprintf("the target moved from line #%d to line #%d of the non-pad stream -- a RETARGET, not a shift (SELF+0x%x -> SELF+0x%x)", boff[ob], aoff[oa], ob, oa)
+        return 0
+    }
+    return 1
+}
 function ct_target(s) {
     if (match(s, /[ \t](SELF\+0x[0-9a-f]+|[0-9a-f]+)$/)) return substr(s, RSTART + 1, RLENGTH - 1)
     return ""
 }
 function ct_key(s) { sub(/[ \t](SELF\+0x[0-9a-f]+|[0-9a-f]+)$/, " @T@", s); return s }
 function ct_val(t) { sub(/^SELF\+/, "", t); if (t !~ /^0x/) t = "0x" t; return strtonum(t) }
+# THE OFFSET WALK (M6 W5 T6 commit 0 fix4). Splits one arm into its pad and
+# non-pad lines AND, in the same pass, accumulates each line s SYMBOL-RELATIVE
+# START OFFSET from the ` ;LEN=` / ` ;PAD=` annotations, in listing order. Every
+# INSTRUCTION line whose offset is known is recorded in `map[offset] = ordinal`,
+# where the ordinal is its index in the non-pad array -- which is the index rules
+# 2 and 3 pair the two arms by, so equal ordinals means the SAME line of the
+# comparison. A relocation record is a non-pad line with NO bytes and no offset
+# of its own; it is given an ordinal (it is in the array) but never an entry in
+# the map, so it can never be mistaken for the start of the instruction after it.
+#
+# The walk STOPS at the first line whose length is unknown, and everything past
+# that point is simply absent from the map: rule 7 then declines rather than
+# guessing, which is the same "partial information is not used" discipline rule 5
+# applies to the widening term.
+function walk_arm(src, n, np, pad, mapn,   i, l, L, off, ok, unlen) {
+    off = 0; ok = 1; unlen = 0
+    np[0] = 0; pad[0] = 0; pad[1] = 0; pad[2] = 0
+    for (i = 1; i <= n; i++) {
+        l = src[i]
+        if (is_pad_line(l)) {
+            pad[0]++
+            L = pad_len(l)
+            if (L < 0) { pad[2]++; ok = 0 } else { pad[1] += L; if (ok) off += L }
+            continue
+        }
+        np[0]++
+        np[np[0]] = l
+        if (substr(l, 1, 1) != "\t") continue          # a relocation record: no bytes, no offset
+        if (ok) mapn[off] = np[0]
+        L = insn_len(l)
+        if (L < 0) { unlen++; ok = 0 } else if (ok) off += L
+    }
+    # ONE PAST THE LAST INSTRUCTION is a real, resolvable position and it has to
+    # be in the map. objdump renders the operand of a RELOCATED call as the
+    # address of the NEXT instruction (the SELF rule s limb 2), so the last
+    # relocated call of a body targets exactly the end of it -- and the trailing
+    # inter-function pad, which is where that offset lands, is TRIMMED before the
+    # classifier ever sees the listing. Without this sentinel every body whose
+    # tail is a relocated call would decline at rule 7. Its ordinal is one past
+    # the last non-pad line, which rule 2 has already made equal on both arms.
+    if (ok) mapn[off] = np[0] + 1
+    return unlen
+}
 function pad_only(   i, npb, npa, d, tb, ta, L, xb, xa, lb, la) {
-    npb = 0; npa = 0; padb = 0; pada = 0; padbytes_b = 0; padbytes_a = 0; padunlen = 0
-    for (i = 1; i <= nb; i++) {
-        if (is_pad_line(b[i])) { padb++; L = pad_len(b[i]); if (L < 0) padunlen++; else padbytes_b += L; continue }
-        npb++; pb[npb] = b[i]
-    }
-    for (i = 1; i <= na; i++) {
-        if (is_pad_line(a[i])) { pada++; L = pad_len(a[i]); if (L < 0) padunlen++; else padbytes_a += L; continue }
-        npa++; pa[npa] = a[i]
-    }
+    delete pb; delete pa; delete boff; delete aoff
+    bunlen = walk_arm(b, nb, pb, bpad, boff)
+    aunlen = walk_arm(a, na, pa, apad, aoff)
+    npb = pb[0]; npa = pa[0]
+    padb = bpad[0]; pada = apad[0]
+    padbytes_b = bpad[1]; padbytes_a = apad[1]
+    padunlen = bpad[2] + apad[2]
     padreason = ""
     padbytes = padbytes_a - padbytes_b
     if (padb == pada && padbytes == 0) return 0
     if (npb != npa) { padreason = "a non-pad line was added or removed (rule 2)"; return 0 }
     padnp = npb; padeq = 0; padshift = 0; padnz = 0
-    ctdelta = 0; ctwide = 0; ctunlen = 0
+    ctdelta = 0; ctwide = 0; ctunlen = 0; ctid = 0
+    nct = 0; delete ctb; delete cta
     for (i = 1; i <= npb; i++) {
         xb = strip_len(pb[i]); xa = strip_len(pa[i])
         lb = insn_len(pb[i]);  la = insn_len(pa[i])
@@ -1586,11 +1752,22 @@ function pad_only(   i, npb, npa, d, tb, ta, L, xb, xa, lb, la) {
             if (lb < 0 || la < 0) ctunlen++
             else { ctdelta += la - lb; ctwide++ }
         }
-        if (xb == xa) { padeq++; continue }
+        if (xb == xa) {
+            padeq++
+            # An UNSHIFTED control transfer is collected for rule 7 too. Its
+            # rendered target did not move; whether that is legitimate depends
+            # on whether the instruction at that offset moved, and only the
+            # ordinal walk can say. This is the L4 cell the SQP lane registered
+            # at the fix3 review.
+            tb = ct_target(xb)
+            if (tb != "" && is_ct_line(xb)) { nct++; ctb[nct] = tb; cta[nct] = tb }
+            continue
+        }
         tb = ct_target(xb); ta = ct_target(xa)
         if (tb == "" || ta == "") { padreason = "a non-pad line differs somewhere other than a control-transfer target (rule 3)"; return 0 }
         if ((tb ~ /^SELF/) != (ta ~ /^SELF/)) { padreason = "a control-transfer target changed RENDERING kind (rule 3)"; return 0 }
         if (ct_key(xb) != ct_key(xa)) { padreason = "a non-pad opcode or its leading operands changed (rule 3)"; return 0 }
+        nct++; ctb[nct] = tb; cta[nct] = ta
         d = ct_val(ta) - ct_val(tb)
         if (d == 0) { padeq++; continue }
         if (padnz == 0) { padshift = d; padnz = 1 }
@@ -1623,6 +1800,20 @@ function pad_only(   i, npb, npa, d, tb, ta, L, xb, xa, lb, la) {
                 padreason = sprintf("the shared control-transfer shift is %+d but the pad run changed by %+d bytes (%d -> %d) (rule 5)", padshift, padbytes, padbytes_b, padbytes_a)
             return 0
         }
+        # RULE 7, LAST, because it is the residual closer and not the primary
+        # statement: rule 5 says the bytes account for the shift, and rule 7 says
+        # the shift is a shift and not a retarget. Run only where a shared shift
+        # EXISTS -- with nothing shifted there is no shift for a target to be
+        # inconsistent with, no walk is needed, and a listing that carries no
+        # instruction lengths (the positional path, and every fixture written
+        # before fix3) keeps the verdict it had.
+        for (i = 1; i <= nct; i++) {
+            if (!ct_ident(ctb[i], cta[i])) {
+                padreason = sprintf("a control transfer does not point at the same instruction on the two arms (rule 7): %s", ctidwhy)
+                return 0
+            }
+        }
+        ctid = nct
     }
     return 1
 }
@@ -1640,6 +1831,7 @@ function align_note(   vb, va) {
 }
 function report_pad_merged(   w) {
     w = (ctwide > 0) ? sprintf("; %d control transfer(s) re-encoded %+d bytes", ctwide, ctdelta) : ""
+    w = w ((ctid > 0) ? sprintf("; %d control-transfer target(s) resolved to the SAME instruction", ctid) : "")
     printf "COUNTS %d insns; CHANGED %d; UNCLASSIFIED 0; DELTAS (pad-merged)\n", padnp, padnp - padeq
     printf "PAD-MERGED %d alignment-pad lines vs %d (%d -> %d bytes, %+d); %d non-pad lines, %d identical, %d control-transfer targets shifted %+d%s%s\n", \
            padb, pada, padbytes_b, padbytes_a, padbytes, padnp, padeq, padnz, padshift, w, align_note()
@@ -1652,7 +1844,7 @@ END {
         if (pad_only()) { report_pad_merged(); exit 0 }
         # Say that the pad route was TRIED and why it declined, so a reader of
         # a STRUCTURAL line on a pair whose pad count moved is not left to
-        # guess which of the six rules it failed.
+        # guess which of the seven rules it failed.
         if (padb != pada || padbytes != 0)
             printf "PAD-ROUTE DECLINED: %d alignment-pad lines vs %d (%d -> %d bytes)%s -- %s\n", \
                    padb, pada, padbytes_b, padbytes_a, align_note(), \
