@@ -43,8 +43,9 @@
 #   ADDR    a pure ADDRESS move, in one of the three shapes that word actually
 #           covers -- see the next block. Reported with its split.
 #   RENAME  a relocation record differing only in the callee's demangled name.
-#   RDATA   a relocation record whose type and TARGET are identical and whose
-#           ADDEND differs, where the target is NOT an executable section. The
+#   RDATA   a relocation record whose type and TARGET are identical, whose
+#           ADDEND differs, and whose target is POSITIVELY IDENTIFIED AS A
+#           NON-EXECUTABLE SECTION. The
 #           addend of such a record is a byte offset into a datum this
 #           comparison does not read, and it moves whenever anything ahead of
 #           that datum in its section changes size -- the same layout property
@@ -57,16 +58,40 @@
 #           SQP lane at M6 W5 T5 (M1), whose ten non-caller DIFFERS symbols
 #           were exactly this shape and were reported as "real".
 #
-#           THE LIMIT, stated rather than left to be inferred: this bin cannot
-#           tell an addend that MOVED from an addend that now names a DIFFERENT
-#           datum of the same kind. It is the same limit psym_compare.sh states
-#           for its own neutralisations, at the same grain, and it is why the
-#           bin is reported with its addend deltas rather than folded into
-#           RENAME. A target in an EXECUTABLE section is excluded outright: for
-#           that class psym_compare.sh resolves the addend to the callee's
-#           NAME, and a literal `.text+0xN` reaching this audit means the
-#           resolution FELL BACK, where the addend is the callee's identity and
-#           a changed one is a changed call.
+#           POSITIVE EVIDENCE, NOT THE ABSENCE OF A `.text` PREFIX (M6 W5 T6
+#           commit 0 fix2, Codex Important 1). As first landed this bin excluded
+#           only names matching `.text`, so a same-target NAMED FUNCTION whose
+#           addend moved, and any non-`.text` executable section such as `.init`,
+#           were binned RDATA -- which is the opposite of what the paragraph
+#           above claims and of what G4 requires. The admission now needs the
+#           target to be a section name on an ALLOWLIST of known non-executable
+#           sections; a NAMED target (no leading dot) and any section not on the
+#           list stay OTHER, where they must be explained rather than counted.
+#
+#           WHAT THAT COSTS, said plainly rather than left to be discovered: on
+#           transcripts THIS tool chain produces the bin is now UNREACHABLE, and
+#           deliberately so. psym_compare.sh already neutralises the addend of a
+#           non-executable SECTION target to `+LOCAL` (its RELOCATION TARGETS
+#           block, the class (b) argument), so two arms can never disagree about
+#           one; the only differing-addend pairs that reach a transcript name a
+#           SYMBOL, and those are exactly the class this bin may no longer
+#           admit without knowing whether the symbol is code or data. The
+#           SQP lane's T5 M1 case -- `_ZN4hven3tblE+0x28` -> `+0x30`, one
+#           inserted datum ahead of it -- therefore lands in OTHER again and is
+#           explained by hand.
+#
+#           THE ROUTE BACK, registered rather than built here: carry TARGET-KIND
+#           metadata from psym_compare.sh into the rendered relocation (it can
+#           read the nm type letter of any symbol DEFINED anywhere in the arm),
+#           and admit a named target whose kind is data. That is a change to
+#           what every transcript looks like and it belongs in its own round.
+#
+#           THE LIMIT that remains, stated rather than left to be inferred: this
+#           bin cannot tell an addend that MOVED from an addend that now names a
+#           DIFFERENT datum of the same kind. It is the same limit
+#           psym_compare.sh states for its own neutralisations, at the same
+#           grain, and it is why the bin is reported with its addend deltas
+#           rather than folded into RENAME.
 #   OTHER   anything else: a finding.
 #
 # THE ADDR BIN IS DELIBERATELY NARROW (M6 W5 T1 fix1). It used to be "the two
@@ -142,11 +167,19 @@ function ripkey(s) { gsub(/-?0x[0-9a-f]+\(%rip\)/, "RIP", s); return s }
 function reloc_head(s) { sub(/ [+-]?(0x[0-9a-f]+|LOCAL)$/, "", s); return s }
 function reloc_addend(s) { if (match(s, / [+-]?(0x[0-9a-f]+|LOCAL)$/)) return substr(s, RSTART + 1); return "NA" }
 # The target field of a relocation record: everything between the type and the
-# addend. Used only to exclude an EXECUTABLE-section target from RDATA.
-function reloc_is_exec_section(s,   h, i) {
+# addend.
+function reloc_target(s,   h) {
     h = reloc_head(s)
     sub(/^RELOC +[^ ]+ +/, "", h)
-    return h ~ /^\.text(\.|$)/ }
+    return h }
+# POSITIVE evidence that a relocation target is NON-EXECUTABLE DATA: it must be
+# a section name, and that section must be one this list knows to hold data.
+# Anything else -- a named symbol, `.text` and its variants, `.init`/`.fini`,
+# a section this list has not seen -- is NOT admitted. See the RDATA block for
+# why the test is an allowlist and not "does not look like .text".
+function reloc_is_data_section(t) {
+    if (substr(t, 1, 1) != ".") return 0
+    return t ~ /^\.(rodata|data|bss|sdata|sbss|data\.rel\.ro|tdata|tbss|init_array|fini_array|preinit_array|eh_frame|eh_frame_hdr|gcc_except_table|comment|note)([.$]|$)/ }
 function stkonly(s) { gsub(/(-?0x[0-9a-f]+)?\((%rsp|%rbp)(,%[a-z0-9]+,[0-9])?\)/, "S", s); return s }
 function has_stk(s) { return s ~ /\((%rsp|%rbp)(,%[a-z0-9]+,[0-9])?\)/ }
 
@@ -154,7 +187,7 @@ function has_stk(s) { return s ~ /\((%rsp|%rbp)(,%[a-z0-9]+,[0-9])?\)/ }
   tot++
   if (b ~ /^RELOC / && a ~ /^RELOC /) {
     if (nreloc(b) == nreloc(a)) { ren++; next }
-    if (reloc_head(b) == reloc_head(a) && !reloc_is_exec_section(b) &&
+    if (reloc_head(b) == reloc_head(a) && reloc_is_data_section(reloc_target(b)) &&
         reloc_addend(b) != "NA" && reloc_addend(a) != "NA") {
       rdata++
       rdeltas[reloc_addend(b) " -> " reloc_addend(a)]++

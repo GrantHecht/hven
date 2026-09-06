@@ -173,7 +173,7 @@
 #   (c) MERGED-PAD-class -- an intra-function alignment-nop run whose LENGTH
 #       moved, with every non-pad opcode and every relocation record identical
 #       and at most one shared control-transfer shift. Arrived at M6 W5 T6
-#       commit 0; the rule, its four conditions, its limit and its falsifier are
+#       commit 0; the rule, its five conditions, its limit and its falsifier are
 #       stated in full at PSYM_CLASSIFY_AWK.
 #
 # NORMALIZATION NOTE: `objdump -d --no-show-raw-insn` appends a trailing
@@ -956,7 +956,7 @@
 #     rank fallback used to pass on a coincidence.
 #
 #   * A MERGED INTRA-FUNCTION ALIGNMENT PAD IS ACCEPTED NOISE, CLASS (c). The
-#     accepted noise class above gains a third member; the rule, its four
+#     accepted noise class above gains a third member; the rule, its five
 #     conditions, its stated limit and its falsifier are written out in full at
 #     PSYM_CLASSIFY_AWK, because that is the ONE classifier both paths call and
 #     widening it must stay a single visible act. It answers the T3 ledger item:
@@ -1012,6 +1012,45 @@ usage() {
 
 OBJDUMP="${OBJDUMP:-objdump}"
 NM="${NM:-nm}"
+
+# ---------------------------------------------------------------------------
+# THE DISASSEMBLER IS PART OF THE INSTRUMENT, AND IT IS CHECKED (M6 W5 T6
+# commit 0 fix2, Codex Important 3).
+#
+# `OBJDUMP` is configurable, and two of this script's parsers are written to
+# GNU binutils' exact output shapes: exec_sections() reads the `CODE` flag from
+# `objdump -h`, and flatten_symbols() requires an instruction line whose address
+# is followed IMMEDIATELY by a colon and a tab. `llvm-objdump` prints `TEXT`
+# rather than `CODE` and puts spaces before that tab. Pointed at it, this script
+# would parse ZERO executable sections and ZERO instructions -- and a mapped or
+# split comparison would then hold symbols with EMPTY bodies and compare them
+# EQUAL. A silent all-pass is the worst failure an identity instrument can have,
+# so the disassembler is verified before any comparison runs and a symbol that
+# parses to zero instructions is a HARD ERROR, never "identical".
+#
+# The check is a version probe here plus a per-object self-check in do_compare()
+# (see REFUSE-EMPTY below). `capture` does not disassemble and is not gated.
+# ---------------------------------------------------------------------------
+require_gnu_objdump() {
+    local v
+    if ! v="$("${OBJDUMP}" --version 2>/dev/null | head -1)"; then
+        echo "psym_compare: cannot run '${OBJDUMP} --version'." >&2
+        exit 2
+    fi
+    case "${v}" in
+        *"GNU objdump"*) : ;;
+        *)
+            echo "psym_compare: REFUSING to run: '${OBJDUMP}' is not GNU objdump." >&2
+            echo "              version line: ${v}" >&2
+            echo "              This script parses GNU binutils' exact output shapes -- the" >&2
+            echo "              CODE flag of 'objdump -h' and an address followed immediately" >&2
+            echo "              by ':<TAB>' on an instruction line. Another disassembler" >&2
+            echo "              (llvm-objdump prints TEXT and puts spaces before the tab)" >&2
+            echo "              parses to ZERO sections and ZERO instructions here, and empty" >&2
+            echo "              bodies compare EQUAL. Set OBJDUMP to GNU objdump." >&2
+            exit 2 ;;
+    esac
+}
 
 # Normalized and EXPORTED so the classifier's ENVIRON lookup sees it whether or
 # not the caller exported it, and refused when it is not a count: a typo that
@@ -1297,8 +1336,20 @@ function imm(s) { if (match(s, /\$0x[0-9a-f]+/)) return substr(s, RSTART + 3, RL
 # act -- a pair is PAD-MERGED iff, after DELETING every alignment-pad line from
 # both sides:
 #
-#   1. the pad-line COUNTS actually differ (otherwise this is not the class and
-#      the ordinary verdict stands);
+#   1. the pad run actually CHANGED -- either its LINE COUNT moved, or its BYTE
+#      TOTAL did at an unchanged line count (M6 W5 T6.a fix1, from the SQP lane
+#      ruling and the Claude-substitute F-I2). The second half is a nop
+#      RE-ENCODING: the assembler picked `nopl 0x0(%rax)` at 7 bytes where it
+#      had picked it at 3, or the other way, and the line reads the same either
+#      way because objdump renders both the disp8 and the disp32 forms
+#      identically. T6.a met it in the `push_history` lambda of `solve_impl_body` --
+#      201 instructions, ONE changed line, and that line a pad -- and had to
+#      excuse the whole symbol BY NAME, which is symbol-granular and would
+#      therefore swallow a real one-line change sitting beside it at cut (b).
+#      Rule 5 is unchanged and still governs: with the count equal the byte
+#      delta is the only thing that moved, and every target shift must equal it.
+#      If NOTHING moved -- equal count AND equal byte total -- this is not the
+#      class and the ordinary verdict stands;
 #   2. the two non-pad sequences have the SAME length -- no non-pad line was
 #      added or removed;
 #   3. every non-pad pair is either literally equal, or differs ONLY in a
@@ -1357,9 +1408,16 @@ function imm(s) { if (match(s, /\$0x[0-9a-f]+/)) return substr(s, RSTART + 3, RL
 # with nothing after it in the symbol, which is exactly a trailing pad.
 #
 # THE RESIDUAL LIMIT, stated so that it is not re-discovered: after rule 5 a
-# retargeting is masked ONLY if its delta EQUALS the pad delta exactly -- i.e.
-# only if the retarget happens to land at the merged-pad boundary. Everything
-# else is now a finding. The deltas and the pad byte change are PRINTED, exactly
+# retargeting is masked ONLY if its delta coincidentally EQUALS the NET RETAINED
+# INTERIOR-PAD DELTA. The earlier gloss "lands at the merged-pad boundary" was
+# wrong and is corrected here (Codex Minor, T6 commit 0 fix2): this code does not
+# retain pad POSITIONS at all, and where a body has several interior pad runs it
+# compares against their NET total, so the residual is an arithmetic coincidence
+# and not a positional one. Note also the SIGN, since one review stated it
+# backwards: both sides are AFTER minus BEFORE -- the target shift is
+# `target_after - target_before` and the pad delta is
+# `padbytes_after - padbytes_before` -- not "deleted minus inserted".
+# Everything else is now a finding. The deltas and the pad byte change are PRINTED, exactly
 # as class (a) prints its immediate deltas, and they are the half of the
 # classification a regex cannot do for the reader. THE NEXT TIGHTENING, if a
 # real case of that residual ever appears, is POSITIONAL: a merged pad shifts
@@ -1402,7 +1460,8 @@ function pad_only(   i, npb, npa, d, tb, ta, L) {
         npa++; pa[npa] = a[i]
     }
     padreason = ""
-    if (padb == pada) return 0
+    padbytes = padbytes_a - padbytes_b
+    if (padb == pada && padbytes == 0) return 0
     if (npb != npa) { padreason = "a non-pad line was added or removed (rule 2)"; return 0 }
     padnp = npb; padeq = 0; padshift = 0; padnz = 0
     for (i = 1; i <= npb; i++) {
@@ -1421,7 +1480,6 @@ function pad_only(   i, npb, npa, d, tb, ta, L) {
     # length to have to explain, and the route is taken on rules 1-4 alone.
     # Otherwise the shared shift must BE the byte-length change of the pad run, and
     # a listing that does not carry the lengths cannot make that claim.
-    padbytes = padbytes_a - padbytes_b
     if (padnz > 0) {
         if (padunlen > 0) {
             padreason = sprintf("no pad byte lengths in this listing (%d unannotated pad line(s)), so the shared shift of %+d cannot be checked against the byte change of the pad run (rule 5) -- the per-symbol layer, which has them, is the verdict", padunlen, padshift)
@@ -1447,9 +1505,10 @@ END {
         if (pad_only()) { report_pad_merged(); exit 0 }
         # Say that the pad route was TRIED and why it declined, so a reader of
         # a STRUCTURAL line on a pair whose pad count moved is not left to
-        # guess which of the four rules it failed.
-        if (padb != pada)
-            printf "PAD-ROUTE DECLINED: %d alignment-pad lines vs %d -- %s\n", padb, pada, \
+        # guess which of the five rules it failed.
+        if (padb != pada || padbytes != 0)
+            printf "PAD-ROUTE DECLINED: %d alignment-pad lines vs %d (%d -> %d bytes) -- %s\n", \
+                   padb, pada, padbytes_b, padbytes_a, \
                    (padreason == "" ? "the non-pad streams are not equal modulo ONE shared control-transfer shift" : padreason)
         printf "STRUCTURAL: normalized listing is %d lines vs %d -- instructions were added or removed\n", nb, na
         exit 2
@@ -1469,9 +1528,26 @@ END {
             d = strtonum("0x" imm(a[i])) - strtonum("0x" imm(b[i]))
             deltas[d]++
         } else {
+            # BUFFERED, not printed here (M6 W5 T6.a fix1). Rule 1 now admits an
+            # equal-LINE-COUNT pad run whose BYTE TOTAL moved, and that case has
+            # nb == na, so the pad route has to be tried AFTER this loop -- which
+            # means this loop must not have printed a verdict it may not reach.
             bad++
-            if (cap == 0 || bad <= cap) printf "  UNCLASSIFIED  - %s\n                + %s\n", b[i], a[i]
+            ub[bad] = b[i]; ua[bad] = a[i]
         }
+    }
+    # The equal-line-count pad route: a nop re-encoded at an unchanged count (see
+    # rule 1). Tried only where the ordinary rules already failed, so a pair they
+    # accept is never re-described.
+    if (bad > 0) {
+        if (pad_only()) { report_pad_merged(); exit 0 }
+        if (padreason != "")
+            printf "PAD-ROUTE DECLINED: %d alignment-pad lines vs %d (%d -> %d bytes) -- %s\n", \
+                   padb, pada, padbytes_b, padbytes_a, padreason
+    }
+    for (i = 1; i <= bad; i++) {
+        if (cap != 0 && i > cap) break
+        printf "  UNCLASSIFIED  - %s\n                + %s\n", ub[i], ua[i]
     }
     if (cap != 0 && bad > cap) printf "  ... and %d more unclassified differences\n", bad - cap
     ds = ""
@@ -2734,6 +2810,7 @@ flatten_symbols() {
 }
 
 do_compare() {
+    require_gnu_objdump
     local before="" after=""
     local object_map="" symbol_map="" exceptions="" allow_foreign=0
 
@@ -3056,6 +3133,19 @@ do_compare() {
         obj_layout "${path_b}" > "${tmp}/lay-b.txt"
         exec_sections 1 < "${tmp}/lay-b.txt" | LC_ALL=C sort -u > "${tmp}/xsec-b.txt"
         sym_addrs 1 < "${tmp}/lay-b.txt" > "${tmp}/saddr-b.tsv"
+        # REFUSE-BLIND-SECTIONS, the other half of the shape self-check: this
+        # object has a `.text` section in its header listing, so exec_sections()
+        # must have found at least one CODE section. None means the `CODE` flag
+        # was not there to read -- the llvm-objdump `TEXT` shape -- and every
+        # executable-section relocation would then quietly fall back to a
+        # layout-dependent literal addend instead of resolving to a callee name.
+        if grep -qE '^[ ]*[0-9]+[ ]+\.text' "${tmp}/lay-b.txt" && [ ! -s "${tmp}/xsec-b.txt" ]; then
+            echo "psym_compare: REFUSING: ${rel} has a .text section but ${OBJDUMP} reported no" >&2
+            echo "              CODE section. This script reads GNU binutils' CODE flag from" >&2
+            echo "              'objdump -h'; without it every executable-section relocation" >&2
+            echo "              falls back to a literal addend and resolves no callee by name." >&2
+            exit 2
+        fi
         : > "${tmp}/xsec-a.txt"
         : > "${tmp}/saddr-a.tsv"
         oi=0
@@ -3123,6 +3213,28 @@ do_compare() {
             flatten_symbols "${tmp}/raw-a-${oi}.txt" "${tmp}/saddr-a-${oi}.tsv" "${oi}" \
                 >> "${tmp}/flat-a.tsv"
         done
+        # REFUSE-EMPTY (M6 W5 T6 commit 0 fix2). flatten_symbols() only walks
+        # `Disassembly of section` blocks, which for `objdump -d` are executable
+        # sections, so EVERY `S` record it emits names a function in code and
+        # must carry at least one `I` record. A symbol with none means the
+        # instruction shape was not parsed -- the llvm-objdump failure mode --
+        # and an empty body compares EQUAL to another empty body. That is the
+        # one outcome this instrument must never produce quietly.
+        local empty_syms
+        empty_syms="$(awk -F'\t' '
+            $1 == "S" { if (cur != "" && n == 0) print cur; cur = $2; n = 0; next }
+            $1 == "I" { n++ }
+            END { if (cur != "" && n == 0) print cur }' \
+            "${tmp}/flat-b.tsv" "${tmp}/flat-a.tsv" | head -5)"
+        if [ -n "${empty_syms}" ]; then
+            echo "psym_compare: REFUSING: symbols in ${rel} parsed to ZERO instructions." >&2
+            echo "${empty_syms}" | sed 's/^/              /' >&2
+            echo "              Every symbol flatten_symbols() emits comes from an EXECUTABLE" >&2
+            echo "              section, so a body with no instructions means the disassembly" >&2
+            echo "              shape was not parsed -- and two empty bodies compare EQUAL." >&2
+            echo "              This is the llvm-objdump failure mode; check OBJDUMP." >&2
+            exit 2
+        fi
         cut -f2 "${tmp}/flat-b.tsv" "${tmp}/flat-a.tsv" | LC_ALL=C sort -u > "${tmp}/mangled.txt"
         demangle_table < "${tmp}/mangled.txt" > "${tmp}/demangle.tsv"
         # Relocation targets get their OWN plain table -- see plain_demangle().
