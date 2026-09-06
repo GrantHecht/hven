@@ -1082,27 +1082,54 @@ statement about MAJORS, not about n. So:
   `OMP_NUM_THREADS=1`, pinned; `pgrep` pasted; wall-clock quoted only under these terms (CLAUDE.md
   §7).
 
-**THE COUNTER SET GAINS A FRONT-END-BOUND COUNTER — REQUIRED BEFORE CUT (c) IS BENCHED** (the SQP
-lane's T6.b review §10.4, its second required-before-(c) item, beside commit 0 fix3). Every leg from
-(c) on carries, beside `instructions:u,branches:u,cycles:u,branch-misses:u,L1-icache-load-misses:u`,
-a front-end-bound counter: **`topdown-fe-bound`**, or `idq.dsb_uops`/`idq.mite_uops` where the
-topdown group is unavailable, recorded on the same discipline as the rest (3× alternating, solo,
-pinned) and reported with its ratio.
+**THE COUNTER SET GAINS A FRONT-END MEASUREMENT — REQUIRED BEFORE CUT (c) IS BENCHED** (the SQP
+lane's T6.b review §10.4, its second required-before-(c) item, beside commit 0 fix3).
 
-**Why, and what it changes.** At cut (b) the walk mode came in LAYOUT-MOVED with an accounting gap
-the existing counters could not close: instructions and branches identical to 1e-5, cycles +0.59 %
-(≈ 24 M), L1-icache-load-misses DOWN (×0.76), and the ~45 k extra branch misses worth only ~1 M
-cycles. The remaining cycles are front-end PLACEMENT the default set does not name — decoded-uop-cache
-residency and fetch alignment as loop heads move by +16 bytes — and inferring it from icache alone is
-inference, not measurement. A front-end-bound counter NAMES the mechanism in every mode instead.
+**The requirement is stated by MECHANISM, because event NAMES are per-vendor and the wrong ones are
+unmeetable on the machine that runs the leg.** Every leg from (c) on must measure, beside
+instructions and cycles: **(i) a front-end-bound fraction** — how much of the cycle budget the front
+end failed to deliver uops for — **and (ii) a decoded-uop-cache hit/miss pair**. Those two are the
+mechanism cut (b)'s walk figure points at; the events that carry them differ by vendor.
 
-**And the classification rule states what it rests on when the accounting does not close.** §11.1's
-LAYOUT-MOVED reads "instruction and branch counts identical within 1e-4, AND the cycle delta
-accounted for by the icache/branch-miss deltas". When the first half holds and the second does not,
-the verdict rests on the INSTRUCTION-IDENTITY half — that is the half that distinguishes work from
-placement — and **the unexplained cycle fraction is STATED as a gap in the evidence, with the
-counters that failed to close it.** It is not rounded away and it is not called explained. Cut (b)'s
-walk figure is the first result recorded on those terms (§11.5).
+| | events |
+|---|---|
+| **pass A** — unchanged, on every leg | `instructions:u,branches:u,cycles:u,branch-misses:u,L1-icache-load-misses:u` |
+| **pass B — Zen 3 (this box, AMD Ryzen 7 5800X3D)** | `instructions:u,cycles:u,de_dis_uop_queue_empty_di0:u,op_cache_hit_miss.op_cache_miss:u,op_cache_hit_miss.op_cache_hit:u,ic_fetch_stall.ic_stall_any:u` |
+| **pass B — Intel** | `topdown-fe-bound`, or `idq.dsb_uops`/`idq.mite_uops`. **UNOBSERVED** — no leg has run on such a machine, and no value is recorded for them until one does |
+
+**TWO PASSES, NOT ONE, and the reason is measured rather than assumed.** Zen 3 has six programmable
+counters; a single combined seven-event probe MULTIPLEXES and the lane's trial of one returned
+`<not counted>`. Pass B is exactly six events. Both passes run per binary per mode on the same
+discipline as the wall clock (3× alternating, solo, pinned, `MKL_NUM_THREADS=1`,
+`OMP_NUM_THREADS=1`), and `instructions` + `cycles` appear in BOTH so the two passes are tied to each
+other. Reported per arm beside the existing rows: **`de_dis_uop_queue_empty_di0/cycles`** (the
+front-end-bound fraction) and the **op-cache miss ratio**.
+
+Pass A is unchanged so that cut (a)'s and cut (b)'s recorded rows stay comparable with everything
+that follows.
+
+**Why.** At cut (b) the walk mode arrived with an accounting gap the existing counters could not
+close: instructions and branches identical to 1e-5, cycles +0.59 % (≈ 24 M), L1-icache-load-misses
+DOWN (×0.76), and the ~45 k extra branch misses worth only ~1 M cycles. The remaining cycles are
+front-end PLACEMENT the pass-A set does not name — decoded-uop-cache residency and fetch alignment as
+loop heads move by +16 bytes — and inferring that from an icache counter that moved the OTHER way is
+inference, not measurement.
+
+**WHAT AN UNCLOSED ACCOUNTING MEANS FOR THE VERDICT — §11.1 IS CANONICAL AND IS NOT REINTERPRETED
+HERE.** §11.1 requires, for LAYOUT-MOVED, instruction and branch counts identical within 1e-4 **AND**
+the cycle delta accounted for by the icache/branch-miss deltas; a result that is neither that nor
+WORK-MOVED is **UNRESOLVED pending re-measurement**. That rule stands as the owner gave it. Two
+things follow, and they are not in tension:
+
+* **An unexplained cycle gap is NOT a veto signal and NOT a redraw trigger.** Instruction identity is
+  the half that distinguishes work from placement, and with instructions identical there is no work
+  to veto. Cut (c) is not gated on such a cell.
+* **But the verdict is UNRESOLVED, not LAYOUT-MOVED, until the accounting closes.** The pass-B
+  measurement is the DISCHARGE: it either names the mechanism, at which point the cell is
+  LAYOUT-MOVED, or it does not, at which point the cell is a finding to take to the owner. Recording
+  it as LAYOUT-MOVED before that is the thing §11.1 forbids.
+
+Cut (b)'s walk cell is the first result recorded on those terms (§11.5).
 
 ### §11.4 The rest of the CLAUDE.md §5 proof
 
@@ -1158,9 +1185,9 @@ their own binaries from both commits; the immediate comparison is BASE `03e1b34`
 
 | mode | corpus | per-cell envelope | cells outside 0.99–1.01 | verdict |
 |---|---|---|---|---|
-| ipm | **0.9995** (−0.05 %) | 0.996–1.006 | none | FLAT |
-| ssn | **1.0013** (+0.13 %) | 0.997–1.008 | none | FLAT |
-| walk | **1.0029** (+0.29 %) | 0.991–1.011 | one — `f7_n800_path_warm` at 1.011 | inside the corpus bar |
+| ipm | **0.9995** (−0.05 %) | 0.996–1.006 | none | FLAT, **LAYOUT-MOVED** — accounting closed |
+| ssn | **1.0013** (+0.13 %) | 0.997–1.008 | none | FLAT, **LAYOUT-MOVED** — accounting closed |
+| walk | **1.0029** (+0.29 %) | 0.991–1.011 | one — `f7_n800_path_warm` at 1.011 | inside the corpus bar; **UNRESOLVED PENDING RE-MEASUREMENT** |
 
 | counter (user), ratio HEAD/BASE | ipm | ssn | walk |
 |---|---|---|---|
@@ -1171,17 +1198,30 @@ their own binaries from both commits; the immediate comparison is BASE `03e1b34`
 | L1-icache-load-misses | 0.47328 | 0.62228 | 0.76125 |
 
 **Instructions and branches are identical in every mode** — the extraction of the three arms into
-calls taking `st` and `mj` by reference added no executed work — so all three are **LAYOUT-MOVED**,
-not WORK-MOVED, and there is no redraw trigger. ipm's icache count swung back from cut (a)'s ×1.92
-to ×0.47.
+calls taking `st` and `mj` by reference added no executed work — so **nothing here is WORK-MOVED and
+there is no redraw trigger anywhere in cut (b)**. ipm's icache count swung back from cut (a)'s ×1.92
+to ×0.47, and in ipm and ssn the cycle delta IS accounted for by the icache/branch-miss deltas, which
+is the whole of §11.1's LAYOUT-MOVED test. Those two cells are closed.
 
-**The walk figure carries a STATED ACCOUNTING GAP**, on the terms §11.3 now sets out. Its +0.59 % of
-cycles (≈ 24 M) is NOT closed by the two named counters: icache misses went DOWN, and the extra
-~45 k branch misses are worth ~1 M cycles. The residue is front-end placement the default counter
-set does not name. The classification rests on the instruction-identity half of §11.1's rule, and
-the gap is recorded here rather than papered over. The one cell at 1.011 is a §11.1 veto-trigger cell
-BY THE LETTER of the wall-clock band and is classified by the counters under the owner's amendment.
-This is exactly the case the front-end-bound counter is added for, from cut (c) on.
+**THE WALK CELL IS UNRESOLVED PENDING RE-MEASUREMENT, and is recorded as such rather than as
+LAYOUT-MOVED.** Its +0.59 % of cycles (≈ 24 M) is NOT closed by the two named counters: icache misses
+went DOWN (×0.76), and the extra ~45 k branch misses are worth ~1 M cycles. The residue is front-end
+placement the pass-A counter set does not name. §11.1 is explicit that a result which is neither
+accounted-for LAYOUT-MOVED nor WORK-MOVED is UNRESOLVED pending re-measurement, and the fix1 text
+that classified this cell LAYOUT-MOVED on instruction identity alone was reading the canonical rule
+against itself (Codex Important 2 at the fix1 review). Instruction identity is why it is **not a
+veto and not a redraw trigger**; it is not why it would be resolved.
+
+The one cell at 1.011 (`f7_n800_path_warm`) is a §11.1 veto-trigger cell BY THE LETTER of the
+wall-clock band, with the same sign in all three runs; it is inside the same unresolved figure and
+carried with it.
+
+**THE DISCHARGE IS REGISTERED, and it is cheap because the binaries are retained.** The SQP lane
+re-measures cut (a) vs cut (b) in WALK mode with **pass B** (§11.3) on its retained post-(a) and
+post-(b) binaries, as part of the cut (c) bench leg, and **this row is closed from that measurement
+at cut (c)'s ledger line** — LAYOUT-MOVED if the front-end-bound fraction and the op-cache ratio
+name the mechanism, a finding for the owner if they do not. **Cut (c) is NOT gated on it**: no
+instruction moved, so nothing about (c)'s dispatch waits on this cell.
 
 **THE CUMULATIVE READING TODAY — post-T3 `50f616a` vs post-(b), ipm: +0.70 %, ABOVE the ±0.5 %
 corpus bar, and it is all cut (a)'s.** The arithmetic: (a) +0.72 %, (b) −0.05 %, cumulative +0.70 %.
@@ -1280,6 +1320,16 @@ lambdas and the ten push sites — will re-place everything again. If the close 
     follow it; site 7's original-trial qualification stays. **And item 6**: cut (c) is TWO commits,
     and "no alias survives (c)" means the transitional aliases in `solve_impl_body` only — the
     routing functions' own local aliases stay (§10.3.2).
+19. **The cut (b) WALK cell is UNRESOLVED, not LAYOUT-MOVED, and §11.3's front-end events were
+    Intel names on an AMD box** — both found at the T6.b fix1 review. Codex Important 2: §11.1 makes
+    an unexplained cycle delta UNRESOLVED pending re-measurement, and the fix1 text classified the
+    walk cell LAYOUT-MOVED on instruction identity alone, which reads the canonical rule against
+    itself. §11.1 is the owner's ruling and is NOT reinterpreted; §11.3 and §11.5 are corrected to
+    it, with the discharge registered against cut (c)'s bench leg on the lane's retained binaries.
+    Settler addendum: `perf list` on the bench box (AMD Ryzen 7 5800X3D) has none of
+    `topdown-fe-bound` / `idq.dsb_uops` / `idq.mite_uops`, so §11.3 as first written was unmeetable
+    on the machine that runs the leg; the requirement is now stated by MECHANISM with per-vendor
+    event names, Zen 3 pass B named explicitly, and the Intel names kept as UNOBSERVED.
 ---
 
 ## §13. What T6 must not change (restated so the cuts are checked against it)
