@@ -655,6 +655,29 @@ arm-emit → successor-emit is preserved by construction.
 
 The assertions are the W4 trace goldens and the `sqp.major` count == `history.size()` pin.
 
+**THOSE PINS DO NOT ESTABLISH THAT AN ACCEPTED ROW IS EMITTED BEFORE THE COMMIT MUTATES STATE, and
+this document said they did** (astra's cut-(c) design review, F3,
+`.superpowers/w5-t6-c-design-review-astra.md`). What they pin is the row SCHEMA and BYTES, the row
+COUNT, the field VALUES including the caller-scale export, the per-major event bracketing, and the
+restoration-seed agreement between history row and stream — every one of them a statement about
+CONTENT. Moving the push BELOW the radius growth and the iterate commit would preserve all of it:
+the row was already measured, so its values do not change, and neither does the count. Row-value
+equality is not a proof of execution order and must not be described as one.
+
+**Two additions close it, and (c) owns both.**
+
+* **A registered ORDERING ASSERTION.** Reuse `ThrowsOnSecondGradientModel`
+  (`tests/sqp/test_trace_writer.cpp:2984`, `:3040`): the test today checks nesting recovery, and
+  must additionally REQUIRE that the accepted major row is ALREADY PRESENT in the trace when the
+  second gradient throws. That is the smallest boundary observation that detects moving emission
+  after the direct-accept derivative refresh, and it is a real execution-order assertion rather than
+  a value comparison.
+* **A SOURCE-ORDER AUDIT, as (c)'s own gate.** The ordering assertion does NOT independently detect
+  moving only the SILENT radius and iterate assignments, which throw nothing. Cut (c) therefore
+  audits, at source and in its claim, the sequence **emit → return `CommitAccepted` → commit
+  updates** at site 10, and states it as a gate the reviewer checks. A narrow internal ordering pin
+  is the alternative if executable coverage of those assignments is required; it is not built here.
+
 ---
 
 ## §8. The ten push sites
@@ -671,7 +694,7 @@ The assertions are the W4 trace goldens and the `sqp.major` count == `history.si
 | 6 | `:4437` | **EARLY EXIT** | QP failure, retries exhausted / not retryable | push → check `:4442` → `return finish(… map_status(qs.status), kkt, row.f …)` `:4443-4446` |
 | 7 | `:4630` | **RECOVERY** | trial REJECTED (`:4612`) with the radius **at its floor** (`:4625`) → `enter_restoration({&x_trial, &ev_trial})` `:4629` | restoration → push → `if (restored) continue` `:4631-4633` → else check `:4638` → `return finish(…, restoration_exit_*, …)` `:4639-4645` |
 | 8 | `:4647` | **RECOVERY** | trial rejected, shrink | push → `delta = shrunk_radius(delta)` `:4648` → `seed = std::move(qs)` `:4649` → `seed.x.setZero()` `:4650` → `have_seed = true` `:4651` → `continue` `:4652` |
-| 9 | `:4660` | **RECOVERY** | verdict `kRestore` (`:4655`), **NO floor condition** → `enter_restoration({&x_trial, &ev_trial})` `:4659` — the **ORIGINAL measured trial**, even when SOC ran | restoration → push → `if (restored) continue` `:4661-4663` → else check `:4666` → `return finish(…, restoration_exit_*, …)` `:4667-4672` |
+| 9 | `:4660` | **RECOVERY** | verdict `kRestore` (`:4655`), **NO floor condition** → `enter_restoration({&x_trial, &ev_trial})` `:4659` — the **ORIGINAL measured trial** | restoration → push → `if (restored) continue` `:4661-4663` → else check `:4666` → `return finish(…, restoration_exit_*, …)` `:4667-4672` |
 | 10 | `:4675` | **ACCEPTED COMMIT** | the step is accepted | push **FIRST**, then radius growth `:4689-4693`, then the iterate/multiplier/seed commit `:4695-4722`, then counters `:4723`, `rejections_at_iterate = 0` `:4724`, `subproblem_is_stale = true` `:4725`, `seed.x.setZero()` `:4729`, `have_seed = true` `:4730`, loop |
 
 **3 early exits (1, 2, 6) / 6 recoveries (3, 4, 5, 7, 8, 9 — four through restoration, two by
@@ -707,6 +730,17 @@ the absolute link targets were converted to repo-relative.
 The SQP-lane skeleton's rows 4 and 9 were wrong and are superseded by this table: #4 follows a
 retryable QP failure at floor, not an infeasible-QP result; #9 handles `kRestore` with no floor
 condition and passes the ORIGINAL measured trial (not the SOC-corrected one).
+
+**BINDING QUALIFICATION ON THE LAST ROW — the historical table OVERSTATES the derivative ordering**
+(astra's cut-(c) design review, F1, `.superpowers/w5-t6-c-design-review-astra.md`). The quoted row
+reads "push precedes radius, iterate, derivative-refresh, and seed updates", and the
+derivative-refresh half is true of ONE of the two acceptance routes only. What binds cut (c) is:
+
+> **Direct-accept derivative refresh FOLLOWS the push (`:5048`); promoted-SOC refresh remains BEFORE
+> the push (`:4907`). Both iterate commits and radius growth follow the push.**
+
+The table above is left VERBATIM because it is a quoted artefact; this qualification is what (c) is
+held to, and a claim that repeats the unqualified sentence is wrong about the SOC route.
 
 ---
 
@@ -834,8 +868,124 @@ A routing outcome that reshapes this must preserve those fields and the optional
 
 Separate MAJOR and RESTORATION outcome types (continue / finish / accepted-step commit). Each path's
 push/check/return order preserved exactly as §8.1 writes it. `row.restoration_seed_used` set before
-the row is emitted; accepted rows emitted before radius/iterate updates; both exactly-once checks
-stay; trace emit ORDER unchanged (§7). The restoration outcome obeys §5 in full.
+the row is emitted; accepted rows emitted before radius/iterate updates — subject to §8.2's binding
+qualification on the two acceptance routes; both exactly-once checks stay; trace emit ORDER
+unchanged (§7), with §7's registered ordering assertion and source-order audit as (c)'s own gate.
+The restoration outcome obeys §5 in full.
+
+#### §10.3.1 THE OUTCOME-TYPE CONTRACT — astra's cut-(c) design review, item 3, VERBATIM
+
+From `.superpowers/w5-t6-c-design-review-astra.md` item 3 (its F2). The table CONTENT and the code
+are verbatim; only the absolute link targets were converted to repo-relative. **This is the contract
+cut (c) is dispatched against**, and it settles what §10.3's one-line "continue / finish /
+accepted-step commit" left open: how `Finish` distinguishes manual assembly, budget-best output,
+ordinary output, failed-QP output, and the two restoration activity sources.
+
+> I recommend two payload-free discriminants:
+>
+> ```cpp
+> enum class RestorationOutcome { Refused, Resumed, Exited };
+>
+> enum class MajorOutcome {
+>     Continue,
+>     CommitAccepted,
+>     FinishManual,
+>     FinishCurrent,
+>     FinishBudgetBest,
+>     FinishQpFailure,
+>     FinishRestorationSeed,
+>     FinishRestorationQp
+> };
+> ```
+>
+> `MajorOutcome` encodes the three requested action classes, with finish provenance encoded in the
+> same tag. An equivalent `Kind` plus finish-only `FinishRoute` representation is reasonable; the
+> single discriminant avoids invalid combinations.
+>
+> What crosses **by value** is the control decision. Neither outcome needs a `SqpSolution`, vector,
+> evaluation, KKT, objective, warm start, or restoration flag.
+>
+> - `st.resto` retains `used`, `status`, `kkt`, `f`, `multipliers_are_caller_scale`, and `moved_x`,
+>   as implemented at [driver:2053](src/drivers/sqp_driver.cpp:2053).
+> - `st.fs` and `st.mb` retain their independent snapshots; neither belongs in an outcome.
+>   [driver:2074](src/drivers/sqp_driver.cpp:2074), [driver:2096](src/drivers/sqp_driver.cpp:2096)
+> - `MajorState` retains requesting measurements, convergence decision, dispatch outputs, trial/SOC
+>   objects, context and SOC-selection flag through caller dispatch.
+>
+> The finish refinements are necessary information if finalization moves to the caller:
+>
+> | Finish tag | Caller selects |
+> |---|---|
+> | Manual | Already assembled `st.out`; check, then move it. |
+> | Current | Current iterate/multipliers, major KKT and row objective; status from preserved convergence decision. |
+> | BudgetBest | `st.mb` vectors/KKT/objective; compute `best_is_current` before checking, preserving the existing warm-start probe arguments. |
+> | QpFailure | Current measurements, mapped `mj.qs.status`, activity from `mj.qs`. |
+> | RestorationSeed | `st.resto` payload; activity from `st.seed` only when `!moved_x && have_seed`. |
+> | RestorationQp | `st.resto` payload; activity from `mj.qs` only when `!moved_x`. |
+>
+> Do not merge the last two by assuming every restoration requester has usable `qs` activity: site 3
+> deliberately falls back to the prior seed. Preserve `finish` itself, including its scaling copy,
+> multiplier-scale handling and restoration bound-price exception.
+> [driver:4676](src/drivers/sqp_driver.cpp:4676), [driver:5316](src/drivers/sqp_driver.cpp:5316),
+> [driver:5341](src/drivers/sqp_driver.cpp:5341), [driver:5428](src/drivers/sqp_driver.cpp:5428)
+>
+> The doc leaves finalization placement open. **Recommend caller finalization after an emitted-row
+> outcome**, with manual assembly completed before returning its tag. Keep the terminal check before
+> every actual solve return and before `make_warm_start`/`finish` on ordinary terminal paths.
+
+**THE PER-SITE OUTCOME COLUMN**, from the same review's item 1 table, against §8.1's ten sites.
+The line numbers here are astra's, taken at `f9ca2bd`; §8.1's are the BASE-derived ones.
+
+| site (§8.1 #) | HEAD push | outcome to return / caller action |
+|---|---|---|
+| 1 | `:3615` | `FinishManual` after assembly; caller checks and moves `st.out`, bypassing `finish`. |
+| 2 | `:3917` | `FinishBudgetBest` or `FinishCurrent`; caller preserves those respective sequences. |
+| 3 | `:4663` | `Continue` or `FinishRestorationSeed`. |
+| 4 | `:4737` | `Continue` or `FinishRestorationQp`. |
+| 5 | `:4755` | `Continue` after shrink → move `qs` into seed → zero primal → `have_seed`. |
+| 6 | `:4770` | `FinishQpFailure`; caller checks, then finalizes using this QP's activity. |
+| 7 | `:4963` | `Continue` or `FinishRestorationQp` (restoration on the ORIGINAL `{x_trial, ev_trial}`). |
+| 8 | `:4980` | `Continue` after shrink → move `qs` into seed → zero primal → `have_seed`. |
+| 9 | `:4993` | `Continue` or `FinishRestorationQp`. |
+| 10 | `:5008` | `CommitAccepted` IMMEDIATELY after the push; the caller performs the commit sequence while `MajorState` is still alive. |
+
+**THE RESTORATION SIGNATURE, and the decide/run split stays REGISTERED** (astra item 4). The bare
+`(SolveState &, MajorState &, RestorationOutcome &)` shorthand at §4 is INCOMPLETE with the bundles
+as defined: the closure also needs the borrowed seam and model, the major index, and its by-value
+candidate descriptor, and it reaches the driver through `this` for options, restoration permission,
+the trace sink and the restart-radius policy. The complete private member interface is:
+
+```cpp
+RestorationOutcome enter_restoration(
+    SolveState &, MajorState &,
+    AggregateEvalSeam &, NlpModelAggregate &,
+    Index iter, RestorationCandidate cand = {});
+```
+
+An output-reference form is equivalent; returning the enum is simpler. The candidate's two pointers
+stay temporary borrows and the pointed-to evaluation is consumed only at the existing conditional
+move (§5, G1). **Adding these explicit parameters resolves the captures WITHOUT splitting decision
+from execution: the decide/run split remains REGISTERED and outside (c).**
+
+#### §10.3.2 CUT (c) IS TWO COMMITS (astra item 6)
+
+A single commit is mechanically possible; two is what (c) does.
+
+1. **Outcome types, restoration extraction and caller dispatch**, consuming the aliases that belong
+   to the extracted blocks.
+2. **The alias removal** — the remaining `solve_impl_body` bindings replaced by direct `st.` / `mj.`
+   accesses — **with its own claim: `solve_impl_body` is the ONLY intentional code difference**,
+   file-local layout movement subject to the established P-SYM rules (§11.4, and the tool's own
+   class (c)).
+
+Splitting the commits relaxes nothing: each verifies the five write-forbidden members (§10.2), and
+each compares against its IMMEDIATE PREDECESSOR **and** cumulatively.
+
+**"NO ALIAS SURVIVES (c)" MEANS THE TRANSITIONAL ALIASES IN `solve_impl_body`, AND NOTHING ELSE.**
+The 53 `SolveState` bindings of the body's prologue and the two per-major `mj.` aliases cut (b)
+declared in advance are the set. The routing functions cut (b) created have their OWN local aliases
+(e.g. `src/drivers/sqp_driver.cpp:3141`) and those STAY: if the rule meant the whole TU, removing
+them would edit those functions too, and a body-only P-SYM claim would then be false.
 
 ### §10.4 Cut (d) — the kernels TU (EXPERIMENT with a VETO)
 
@@ -1113,6 +1263,23 @@ lambdas and the ten push sites — will re-place everything again. If the close 
     loop top; `kkt`, `row`, `row_qp_mode`, `caller_row` and the trial/SOC objects join it at cut (c).
     Recorded in §10.2 so (c) inherits the decision and its reason rather than re-deriving them.
 
+18. **astra's cut-(c) design review (VERDICT AMEND, no Criticals) lands four corrections and one
+    contract**, `.superpowers/w5-t6-c-design-review-astra.md`. **F1**: §8.2's quoted accepted-commit
+    row overstates the derivative ordering — direct-accept refresh FOLLOWS the push (`:5048`),
+    promoted-SOC refresh remains BEFORE it (`:4907`); both iterate commits and radius growth follow
+    the push. The quote stays verbatim and the qualification beside it is what binds. **F2**: the
+    outcome names had no caller contract; §10.3.1 now carries astra's item 3 verbatim — the two
+    payload-free enums, the finish-tag → caller-selects table, the per-site outcome column, and the
+    complete `enter_restoration` signature, with the decide/run split staying REGISTERED and outside
+    (c). **F3**: §7 claimed the trace goldens and the `history.size()` pin establish accepted
+    emission before mutation; they do not — they pin CONTENT, and moving the push below the updates
+    preserves all of it. §7 now names a registered ordering assertion
+    (`ThrowsOnSecondGradientModel` must require the accepted row already present when the second
+    gradient throws) and a source-order audit as (c)'s own gate. **F4**: §8.1 site 9's "even when
+    SOC ran" is removed — SOC runs only for the original `kReject` and the `kRestore` route does not
+    follow it; site 7's original-trial qualification stays. **And item 6**: cut (c) is TWO commits,
+    and "no alias survives (c)" means the transitional aliases in `solve_impl_body` only — the
+    routing functions' own local aliases stay (§10.3.2).
 ---
 
 ## §13. What T6 must not change (restated so the cuts are checked against it)
