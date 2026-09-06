@@ -4515,7 +4515,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
         // this point and not the loop top, and for what joins it at cut (c).
         MajorState mj;
         // `qs` and the rung-A report are named through ALIASES because the rest of this
-        // major reads them 49 and 10 times; cut (c) turns those uses into `mj.` as the
+        // major has many uses of each; cut (c) turns those uses into `mj.` as the
         // blocks around them become functions in their turn.
         QpSolution &qs = mj.qs;
         std::optional<ElasticLadderReport> &fallback_report = mj.fallback_report;

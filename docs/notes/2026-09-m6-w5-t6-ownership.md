@@ -219,7 +219,10 @@ The two state types of §5 F1 are not the whole universe (astra §2). Four dispo
 * **`SolveState`** — ONE authoritative mutable instance, initialised in place by `prepare_solve`,
   alive for the whole solve.
 * **`MajorState`** — constructed at the loop top, dies with the major; nothing in `SolveState` may
-  reference it and no reference to it may escape.
+  reference it and no reference to it may escape. **"At the loop top" is the POST-(c) TARGET STATE,
+  not what stands today: at cut (b) the bundle is the four routing outputs and is constructed AT THE
+  DISPATCH, for the construction-timing reason §10.2 gives. The loop top is where it lands once
+  `kkt`, `row`, `row_qp_mode`, `caller_row` and the trial/SOC objects join it at (c). See §10.2.**
 * **LOCAL SCRATCH** — setup-only probes, arm-local objects, restoration-only objects. Not a third
   state type; ordinary locals in whatever function ends up owning the block.
 
@@ -345,6 +348,12 @@ from `:2017`). **POINTER IDENTITY.** `reset` `:2870`; `dynamic_cast` `:2892`, `:
 `SolveState` member, not re-derived and not re-wrapped.
 
 ### §2.3 `MajorState` — constructed at the loop top, dies with the major
+
+**THIS TABLE IS THE POST-(c) TARGET, AND THE HEADING WITH IT.** At cut (b) `MajorState` holds only
+the four routing outputs (`qs`, `fallback_report`, `walk_owns_this_qp`, `ipqp_chain_owns_the_step`)
+and is constructed **at the dispatch**, where those four were declared — see §10.2 for the decision
+and the construction-timing hazard that forced it. Every other row below joins the bundle at cut (c),
+and that is when the construction moves to the loop top.
 
 | name | decl | notes |
 |---|---|---|
@@ -523,18 +532,29 @@ decision and the sub-solve *is* the run. The brief's §2 clause resolves in the 
 
 The dispatch is `src/drivers/sqp_driver.cpp:3723-4205`; the shared successor is `:4209-4229`.
 
-**Set before the switch and read inside or after it:** `tr_shrink_retry` (`:3610`, read `:4030`,
+**Set before the switch and read BY A ROUTING ARM OR THE SHARED ROUTING SUCCESSOR:**
+`tr_shrink_retry` (`:3610`, read `:4030`,
 `:4076`) · `qp` rebuilt if stale (`:3611-3615`) · `overrides.tr_radius` (`:3618`) and
-`overrides.dual_mu` (`:3654`, adaptive-mu only) · `row.mu` / `last_dual_mu` (`:3656-3657`) ·
+`overrides.dual_mu` (`:3654`, adaptive-mu only) · `row.mu` (`:3656`) ·
 `offer_hot` (`:3670`, read `:4214`, `:4230`) · `use_crash` / `crash_seed` (`:3678-3689`, read
-`:4216`) · `qs` (`:3702`) · `fallback_report` (`:3705`) · `walk_owns_this_qp` (`:3706`, **initialised
-true**) · `ipqp_chain_owns_the_step` (`:3710`) · `row_qp_mode` (`:2702`) · `ssn_prox_ingested`
+`:4216`) · **`warm`** (read `:4214` — the successor passes it, and `warm.hot` is read inside
+`solve_with_walk`) · `qs` (`:3702`) · `fallback_report` (`:3705`) · `walk_owns_this_qp` (`:3706`,
+**initialised true**) · `ipqp_chain_owns_the_step` (`:3710`) · `row_qp_mode` (`:2702`) ·
+`ssn_prox_ingested`
 (`:2407`) · `ipqp_ladder` (`:2046`) · `ipqp_analysis_epoch` (`:2056`) · both budget charges (`:2442`,
 `:2449`) · `delta`, `seed`, `have_seed`, `ev` · **`seam`** and **`iter`**.
 
+**THE HEADING IS THE SCOPE, and it was widened once and narrowed once.** It read "read inside or
+after it", which is TOO BROAD: `x` and `last_dual_mu` are both read later in the major — at the
+trial point and at the `finish` sites — and a list headed that way has no reason to exclude them,
+which is how they got in. What this list is FOR is the extraction: it is the set an arm or the one
+shared successor needs, and therefore the set that has to cross a function boundary. Anything the
+rest of the major reads is cut (c)'s and (d)'s business, not this list's.
+
 **CORRECTED AT CUT (b) (2026-09-06), because this list is what (b)'s parameters were named from and
-it was wrong in both directions.** Four items, each re-derived at cut (b)'s BASE `03e1b34` by
-reading the two arm bodies:
+it was wrong in both directions; the `last_dual_mu` entry and the missing `warm` were caught in the
+FIX ROUND on that correction, so the list above is the third state, not the second.** Five items,
+each re-derived at cut (b)'s BASE `03e1b34` by reading the two arm bodies:
 
 * **`seam` ADDED.** The kIpm arm reads `seam.epoch()` TWICE — the symbolic hoist's epoch gate
   (`structure_epoch_moved`) and the post-solve stamp into `ipqp_analysis_epoch`. The list named the
@@ -548,7 +568,13 @@ reading the two arm bodies:
   `ires`, and the trial point is built AFTER the dispatch.
 * **`last_dual_mu` REMOVED** (`row.mu` stays: the kIpm chain corrects it in the successor block).
   `last_dual_mu` is WRITTEN before the switch (`last_dual_mu = row.mu`) and read only at the
-  `finish` sites, never inside the switch or by the successor.
+  `finish` sites, never inside the switch or by the successor. **It was struck from the bullet list
+  at the first correction but LEFT STANDING in the set above, which is the contradiction the fix
+  round closed; the set above no longer names it.**
+* **`warm` ADDED.** It was missing altogether. `warm` crosses EXPLICITLY into the shared successor
+  (`solve_with_walk(st, mj, warm, …)`) and `warm.hot` is read inside it, so it is a parameter of the
+  one function every route can reach. A list that omits it cannot name the successor's signature,
+  which is exactly what this list is for.
 
 **Written inside the switch and read after it:** `qs` (every arm or the successor) ·
 `walk_owns_this_qp` (`:3919`, `:3994`, `:4007`, `:4156`, `:4168`) · `ipqp_chain_owns_the_step`
@@ -715,6 +741,36 @@ stay.
 (`:8178` as first written, and §12 item 10's gloss with it, were off by one in the other direction —
 see §12 item 16. The file is byte-identical at `50f616a` and at cut (b)'s BASE `03e1b34`, so the
 number is the same at both.)
+
+### §9.1 REGISTERED PIN — the duplicated producer no driver counter can see
+
+**Owner: the T7 test round, and BEFORE any `ssn_certify_from_face` default flip.** Registered at the
+T6.b review (Codex D5 and the SQP lane §4, which reached the same finding independently). NOT built
+at (b) or (c) — it is a test-side pin, it is inert at the shipped default, and neither cut touches
+the SSN arm, which is now a function.
+
+**The gap.** Falsifier 2 of the T6.b pin — consumer A re-runs the producer and DROPS the hoisted
+result unread — moves NO driver counter, and the suite passes 87/87 with the mutation in place. That
+is not a weak test; it is a property of where the counters come from. The driver FOLDS its counts out
+of the returned `QpSolution` (`refined.counters.factorizations`), and `refine_on_face` RESETS its
+output counters on entry (`src/qp/qp_engine.cpp:77`) and records only that call
+(`:160`). A dropped result therefore drops its count, by construction. No existing
+cumulative driver counter can see the duplication.
+
+**The counter that DOES see it is one layer down.** The linear layer counts work DONE, not work
+READ: `SymmetricFactor`'s `factorize_count` (`include/hven/linear/symmetric_factor.h:656`) is
+incremented once per `factorize()` that reached the backend
+(`src/linear/symmetric_factor_mkl.cpp:678`), and the golden rig already pins on it
+(`tests/golden_rig/traces_sqp.cpp:90,156,250,348,626`). A doubled `refine_on_face` doubles it.
+
+**What has to be built.** A test-side path from the driver's walk engine to its factor's counters —
+an `HVEN_TESTING` seam in the Apache-2.0 adapter (CLAUDE §6/§8), or an engine accessor; the rig has
+its own handle and is the model — asserting on the accepted-deferred path that
+`factorize_count` delta == `ssn_refine_factorizations` delta.
+
+**Why the deadline is the flip, not just T7.** `ssn_certify_from_face`'s default flip already carries
+one stated precondition from the Phase-7 record (a weak-active-indefinite fixture). This is a SECOND
+one: the deferral path is what the flip turns on, and it is the path with no cumulative observer.
 
 ---
 
@@ -982,8 +1038,12 @@ at T6's close and this result is one of the contributions it will be measured ag
 16. **§6's crossing list was wrong in BOTH directions, and §9's pin line was off by one** — found
     at cut (b), which typed its parameters from them. `seam` and `iter` were MISSING (the kIpm arm
     reads `seam.epoch()` twice and the major index three times); `x` and `last_dual_mu` were
-    OVER-LISTED (no arm reads either inside the switch). §6 now carries all four with the
-    re-derivation. And the withdrawal pin's `TEST(...)` is at `tests/sqp/test_sqp_driver.cpp:8179`,
+    OVER-LISTED (no arm reads either inside the switch); and `warm`, which crosses explicitly into
+    the shared successor, was missing too. **The first correction (`f9ca2bd`) struck `last_dual_mu`
+    in its bullet but left it standing in the set itself, and did not add `warm`** — both closed in
+    the T6.b fix round, together with the heading, which said "read inside or after it" when the set
+    it heads is "read by a routing arm or the shared routing successor". §6 now carries all five with
+    the re-derivation. And the withdrawal pin's `TEST(...)` is at `tests/sqp/test_sqp_driver.cpp:8179`,
     not `:8178` — `:8178` is a blank line; §12 item 10's gloss had astra's citation inverted, and
     astra's `:8179` was right. §6, §9, §12 item 10.
 17. **Cut (b)'s `MajorState` is the ROUTING OUTPUTS ONLY and is built at the dispatch**, not at the
