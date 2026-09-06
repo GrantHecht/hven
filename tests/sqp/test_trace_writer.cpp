@@ -1118,7 +1118,7 @@ TEST(JsonLinesTraceSink, RoundTripReachesInsideTheNestedEvidenceObject) {
 
 /// @brief Forwards to the writer AND records, so one solve produces both the
 /// stream under test and the arrival-order oracle it is checked against.
-class TeeSink final : public IpqpTraceSink {
+class TeeSink final : public TraceSink {
   public:
     explicit TeeSink(JsonLinesTraceSink &json) : json_(json) {}
 

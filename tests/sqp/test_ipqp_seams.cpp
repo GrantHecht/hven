@@ -20,7 +20,7 @@
 
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/ipqp_fault_injection.h>
-#include <hven/detail/qp/ipqp_trace.h>
+#include <hven/drivers/trace.h>
 
 #include "support/indefinite_fixtures.h"
 
@@ -159,7 +159,7 @@ InertiaEvidence perturbed(Index n_pos, Index n_neg) {
 
 /// R1 fix round 2: a minimal trace sink, this file's own (not
 /// test_ipqp_trace.cpp's), so the seam pin below stays self-contained.
-class RecordingIterSink : public IpqpTraceSink {
+class RecordingIterSink : public TraceSink {
   public:
     std::vector<IpqpTraceIterEvent> iters;
     void on_ipqp_iter(const IpqpTraceIterEvent &e) override { iters.push_back(e); }

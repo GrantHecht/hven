@@ -26,7 +26,7 @@
 #include <stdexcept>
 
 #include "hven/detail/interior/aggregate_views.h"
-#include "hven/detail/qp/ipqp_trace.h"
+#include "hven/drivers/trace.h"
 #include "hven/detail/interior/barrier_math.h"
 #include "hven/detail/drivers/solver_init.h"
 #include "hven/detail/interior/utils/timer.h"
@@ -263,7 +263,7 @@ bool hven::solvers::InteriorPointSolver::claim_kkt_analysis() {
 
 // Release
 
-void hven::solvers::InteriorPointSolver::attach_trace(IpqpTraceSink *sink) { trace_ = sink; }
+void hven::solvers::InteriorPointSolver::attach_trace(TraceSink *sink) { trace_ = sink; }
 
 void hven::solvers::InteriorPointSolver::release() {
     this->kkt_sol_.release();

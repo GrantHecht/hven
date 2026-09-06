@@ -1150,13 +1150,13 @@
 #include <hven/detail/globalization/sqp/globalization.h>
 #include <hven/detail/globalization/sqp/trust_region.h>
 #include <hven/detail/qp/ipqp_engine.h>
-#include <hven/detail/qp/ipqp_trace.h>
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/detail/qp/ssn_engine.h>
 #include <hven/detail/qp/working_set.h>
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/sqp_types.h>
+#include <hven/drivers/trace.h>
 #include <hven/model/nlp_model.h>
 #include <hven/model/nlp_model_aggregate.h>
 #include <hven/qp/qp_types.h>
@@ -2196,7 +2196,7 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
                                        const ElasticSeedSource &seed, double window,
                                        const SqpOptions &opts, SqpCounters &out,
                                        std::optional<double> rho_0_override = std::nullopt,
-                                       IpqpTraceSink *sink = nullptr);
+                                       TraceSink *sink = nullptr);
 
 // THE W2 HOOK, AND THE ESCAPE BRANCH'S SINGLE ENTRY POINT (spec 2.3 item 5,
 // section 6.3's Amendment C registration).
@@ -2254,7 +2254,7 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
                                           double window, SqpCounters &out, SqpIterate &row,
                                           std::optional<ElasticLadderReport> &fallback_report,
                                           SqpFallbackVerdictTraceEvent &verdict,
-                                          IpqpTraceSink *sink = nullptr);
+                                          TraceSink *sink = nullptr);
 
 // =============================================================================
 // ADAPTIVE DUAL REGULARIZATION. Caller-visible surface:
@@ -2502,7 +2502,7 @@ class SqpDriver {
     /// Attach a trace sink (task 8; nullptr = off, default off). Forwards to
     /// the internal `IpqpEngine` (its five events); this driver additionally
     /// emits `ipqp.route`/`qp.mode` itself, in the kIpm dispatch arm.
-    void attach_trace(IpqpTraceSink *sink);
+    void attach_trace(TraceSink *sink);
 
     /// Solves from an explicit start point; thin wrapper around solve_impl
     /// (the actual major loop, now private) whose only job is the ledger
@@ -3250,7 +3250,7 @@ class SqpDriver {
     // task 8's trace sink, held here because `ipqp_engine_` is lazy --
     // `ipqp_engine()` applies it at first-use construction. See
     // `attach_trace`'s own doc comment.
-    IpqpTraceSink *ipqp_trace_ = nullptr;
+    TraceSink *ipqp_trace_ = nullptr;
 
     // task 8's two driver-owned emit sites (see `attach_trace`'s doc
     // comment): `ipqp.route`/`qp.mode`, the kIpm dispatch arm's own facts.

@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // test_ipqp_trace.cpp -- M6 W1 task 8: the IPQP tier's ledger-record pin and
-// the seven schema v0 event-struct pins, via a small recording IpqpTraceSink,
+// the seven schema v0 event-struct pins, via a small recording TraceSink,
 // plus W2 T5's driver-side eighth event (`fallback.verdict`).
 // See .superpowers/w1-t8-report.md FIX ROUND 1 for the falsifiability evidence.
 
@@ -15,8 +15,8 @@
 
 #include <hven/core/ledger.h>
 #include <hven/detail/qp/ipqp_engine.h>
-#include <hven/detail/qp/ipqp_trace.h>
 #include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/trace.h>
 
 #include "support/hs_problems.h"
 
@@ -131,7 +131,7 @@ QpProblem infeasible_scalar_qp() {
 
 /// A recording sink: every event is appended to its own vector, in arrival
 /// order, so a test can inspect exactly what the emit sites built.
-class RecordingTraceSink : public IpqpTraceSink {
+class RecordingTraceSink : public TraceSink {
   public:
     std::vector<IpqpTraceIterEvent> iters;
     std::vector<IpqpTraceRegEvent> regs;

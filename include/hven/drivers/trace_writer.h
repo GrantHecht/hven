@@ -3,7 +3,7 @@
 
 #pragma once
 
-// trace_writer.h -- schema v0's ONE serializer: `IpqpTraceSink`'s eight events
+// trace_writer.h -- schema v0's ONE serializer: `TraceSink`'s eight events
 // written as JSON lines to a caller-owned `std::ostream`.
 //
 // The contract is FIXED by docs/notes/2026-09-m6-w4-plan.md section 2 and is not
@@ -29,7 +29,7 @@
 #include <string>
 
 #include <hven/core/types.h>
-#include <hven/detail/qp/ipqp_trace.h>
+#include <hven/drivers/trace.h>
 
 namespace hven::solvers {
 
@@ -57,7 +57,7 @@ namespace hven::solvers {
 /// THREADING: one sink serves one solve at a time on one thread. `seq_`,
 /// `depth_` and the write are unsynchronized; T2's nested restoration driver
 /// shares the sink SEQUENTIALLY, which is the only sharing v0 supports.
-class JsonLinesTraceSink final : public IpqpTraceSink {
+class JsonLinesTraceSink final : public TraceSink {
   public:
     explicit JsonLinesTraceSink(std::ostream &out);
     ~JsonLinesTraceSink() override;

@@ -9912,7 +9912,7 @@ TEST(SqpDriverCertifiedFallback, TheDriverEmitsOneFallbackVerdictPerEscapeAndHS3
     // THE EVENT AT THE DRIVER, through the sink every other schema event uses, plus the UNFIRED
     // entry's driver-level shape: HS38 reaches the fallback once with a block that never fired,
     // so it charges nothing in the partition and runs W1's cold walk (P5 at the driver).
-    class Sink : public IpqpTraceSink {
+    class Sink : public TraceSink {
       public:
         std::vector<SqpFallbackVerdictTraceEvent> fallbacks;
         void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
@@ -10594,7 +10594,7 @@ class W2T7BoxBlockedRowModel : public NlpModel {
 };
 
 /// Collects `fallback.verdict` through the ordinary sink, as the T5 driver pins do.
-class W2T7FallbackSink : public IpqpTraceSink {
+class W2T7FallbackSink : public TraceSink {
   public:
     std::vector<SqpFallbackVerdictTraceEvent> fallbacks;
     void on_ipqp_iter(const IpqpTraceIterEvent &) override {}

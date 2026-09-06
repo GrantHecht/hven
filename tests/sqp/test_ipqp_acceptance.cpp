@@ -17,10 +17,10 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/qp/ipqp_engine.h>
-#include <hven/detail/qp/ipqp_trace.h>
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/drivers/sqp_driver.h>
 #include <hven/drivers/sqp_types.h>
+#include <hven/drivers/trace.h>
 
 #include "../../bench/bench_cli.h"
 #include "../../bench/corpus_cells.h"
@@ -541,7 +541,7 @@ namespace {
 /// The certification reads and the escapes, each escape tagged with the major
 /// the last `ipqp.iter` event named -- which is how a solve-level census gets
 /// back to the SUBPROBLEM a stall was charged to (fix round 1, R4).
-class AcceptanceTraceSink : public IpqpTraceSink {
+class AcceptanceTraceSink : public TraceSink {
   public:
     struct TaggedEscape {
         IpqpTraceEscapeReason reason;

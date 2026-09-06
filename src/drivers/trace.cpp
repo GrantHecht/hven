@@ -9,20 +9,20 @@
 
 #include <fmt/format.h>
 
-#include <hven/detail/qp/ipqp_trace.h>
+#include <hven/drivers/trace.h>
 
 namespace hven::solvers {
 
-IpqpTraceSink::~IpqpTraceSink() = default;
+TraceSink::~TraceSink() = default;
 
 // The W4 events' defaults are EMPTY, not pure (plan section 6 Q-S3): a sink
 // written for the eight W1/W2 events keeps compiling and simply ignores them.
-void IpqpTraceSink::on_sqp_major(const SqpMajorTraceEvent &) {}
-void IpqpTraceSink::on_sqp_solve_begin(const SqpSolveBeginTraceEvent &) {}
-void IpqpTraceSink::on_sqp_solve_end(const SqpSolveEndTraceEvent &) {}
-void IpqpTraceSink::on_ipm_iter(const IpmIterTraceEvent &) {}
-void IpqpTraceSink::on_ipm_solve_begin(const IpmSolveBeginTraceEvent &) {}
-void IpqpTraceSink::on_ipm_solve_end(const IpmSolveEndTraceEvent &) {}
+void TraceSink::on_sqp_major(const SqpMajorTraceEvent &) {}
+void TraceSink::on_sqp_solve_begin(const SqpSolveBeginTraceEvent &) {}
+void TraceSink::on_sqp_solve_end(const SqpSolveEndTraceEvent &) {}
+void TraceSink::on_ipm_iter(const IpmIterTraceEvent &) {}
+void TraceSink::on_ipm_solve_begin(const IpmSolveBeginTraceEvent &) {}
+void TraceSink::on_ipm_solve_end(const IpmSolveEndTraceEvent &) {}
 
 // THE ONE COPY (M6 W4 T4). It lived in `sqp_driver.cpp`'s anonymous namespace
 // through T2/T3 and moved here unchanged the moment a second caller appeared;

@@ -48,9 +48,9 @@
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/ipqp_fault_injection.h>
 #include <hven/detail/qp/ipqp_math.h>
-#include <hven/detail/qp/ipqp_trace.h>
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/detail/qp/ssn_engine.h>
+#include <hven/drivers/trace.h>
 
 namespace hven::solvers {
 
@@ -692,7 +692,7 @@ void IpqpEngine::attach_ledger(Ledger *ledger, std::string label_prefix) {
     solve_counter_ = 0;
 }
 
-void IpqpEngine::attach_trace(IpqpTraceSink *sink) {
+void IpqpEngine::attach_trace(TraceSink *sink) {
     trace_ = sink;
     trace_solve_counter_ = 0;
     last_trace_solve_id_ = 0; // R5: a reattach must not leak the prior attach's id.

@@ -197,12 +197,12 @@ target_sources(hven PRIVATE
     drivers/sqp_driver.cpp
     drivers/sqp_options.cpp
     drivers/sqp_print.cpp
+    drivers/trace.cpp
     drivers/trace_writer.cpp
     globalization/sqp/funnel.cpp
     globalization/sqp/soc_elastic_restoration.cpp
     qp/ipqp_engine.cpp
     qp/ipqp_kkt_layout.cpp
-    qp/ipqp_trace.cpp
     qp/qp_engine.cpp
     qp/ssn_engine.cpp
     warmstart/continuation.cpp
@@ -432,14 +432,14 @@ endif()
 # prefixes, and that property has failed bar 2 for every SQP-side TU measured
 # so far.
 #
-# 40 as of qp/ipqp_trace.cpp (M6 W1 task 8 fix round 1, R6): one out-of-line
-# defaulted destructor for IpqpTraceSink, one include. Stays OUT on the same
-# unmeasured-default footing as the eleven above -- there is nothing here for
-# a shared PCH to save.
+# 40 as of qp/ipqp_trace.cpp (M6 W1 task 8 fix round 1, R6; the file is
+# drivers/trace.cpp since M6 W5 T4): one out-of-line defaulted destructor for
+# TraceSink, one include. Stays OUT on the same unmeasured-default footing as
+# the eleven above -- there is nothing here for a shared PCH to save.
 #
 # 41 as of drivers/trace_writer.cpp (M6 W4 task 1): the machine-trace schema v0
 # serializer. Stays OUT on the same unmeasured-default footing as the twelve
-# above. It includes its own header (core/types.h plus detail/qp/ipqp_trace.h),
+# above. It includes its own header (core/types.h plus drivers/trace.h),
 # fmt/format.h and four standard headers -- a different set in a different
 # order from the one src/hven_pch.h prefixes, which is the SQP-side prior that
 # has failed bar 2 for every such TU measured so far.

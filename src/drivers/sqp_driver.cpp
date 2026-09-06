@@ -969,7 +969,7 @@ IpqpTraceOutcome trace_outcome_of(QpStatus status) {
 ///
 /// The null check is HERE, once, so a caller with no sink pays one predictable
 /// branch and no event construction -- the same shape the driver's member has.
-void emit_qp_mode_line(IpqpTraceSink *sink, IpqpTraceQpMode mode, IpqpTraceOutcome outcome,
+void emit_qp_mode_line(TraceSink *sink, IpqpTraceQpMode mode, IpqpTraceOutcome outcome,
                        QpModeSite site, Index iters) {
     if (sink == nullptr) {
         return;
@@ -987,7 +987,7 @@ void emit_qp_mode_line(IpqpTraceSink *sink, IpqpTraceQpMode mode, IpqpTraceOutco
 ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
                                        const ElasticSeedSource &seed, double window,
                                        const SqpOptions &opts, SqpCounters &out,
-                                       std::optional<double> rho_0_override, IpqpTraceSink *sink) {
+                                       std::optional<double> rho_0_override, TraceSink *sink) {
     // VALIDATED AT THE BOUNDARY (CLAUDE.md section 4): a negative or NaN window crosses the
     // elastic box silently -- `build_elastic_subproblem` clamps lo/up against it with no check.
     if (!(window >= 0.0)) {
@@ -1144,8 +1144,7 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
                                           const SolveOverrides &overrides, const SqpOptions &opts,
                                           double window, SqpCounters &out, SqpIterate &row,
                                           std::optional<ElasticLadderReport> &fallback_report,
-                                          SqpFallbackVerdictTraceEvent &verdict,
-                                          IpqpTraceSink *sink) {
+                                          SqpFallbackVerdictTraceEvent &verdict, TraceSink *sink) {
     // VALIDATED AT THE BOUNDARY, on the same terms as the ladder's own (CLAUDE.md section 4).
     // P6's "no evidence CONTENT throws" is untouched: this is the window, not the block.
     if (!(window >= 0.0)) {
@@ -1486,7 +1485,7 @@ void SqpDriver::attach_ledger(Ledger *ledger, std::string label_prefix) {
     engine_.attach_ledger(ledger, label_prefix_ + "_qp");
 }
 
-void SqpDriver::attach_trace(IpqpTraceSink *sink) {
+void SqpDriver::attach_trace(TraceSink *sink) {
     ipqp_trace_ = sink;
     if (ipqp_engine_ != nullptr) {
         ipqp_engine_->attach_trace(sink);

@@ -3,10 +3,14 @@
 
 #pragma once
 
-// ipqp_trace.h -- the IPQP tier's machine-trace schema v0 (spec section 7,
-// :733-749), plus W2's driver-side `fallback.verdict` and W4 T2's whole-solve
-// events. The event structs + the sink interface; `v`/`ev`/`seq`/`depth` are
-// the serializer's envelope, not carried on any struct here.
+// trace.h -- the machine-trace schema v0 (spec section 7, :733-749), plus W2's
+// driver-side `fallback.verdict` and W4 T2's whole-solve events. The event
+// structs + the sink interface; `v`/`ev`/`seq`/`depth` are the serializer's
+// envelope, not carried on any struct here.
+//
+// PUBLIC since M6 W5 T4: a harness consumes the writer (`trace_writer.h`) and
+// these events, so the schema is not a `detail/` header. `IpqpTraceSink` is
+// `TraceSink` here; the `Ipqp*` EVENT prefixes are unchanged.
 
 #include <array>
 #include <optional>
@@ -16,7 +20,7 @@
 #include <hven/core/types.h>
 #include <hven/detail/drivers/interior_point_solver_fwd.h>
 #include <hven/detail/interior/iterate_info.h>
-#include <hven/detail/qp/ipqp_engine.h>
+#include <hven/detail/qp/ipqp_evidence.h>
 #include <hven/drivers/sqp_types.h>
 #include <hven/qp/qp_types.h>
 
@@ -422,10 +426,10 @@ struct IpmSolveEndTraceEvent {
 /// the off state every emit site checks before EMITTING; the seven tier
 /// events are also built there, while `fallback.verdict` is the judge's own
 /// out-param and is filled whether or not a sink is attached (a handful of
-/// scalars). Destructor out-of-line (ipqp_trace.cpp, CLAUDE.md section 5).
-class IpqpTraceSink {
+/// scalars). Destructor out-of-line (src/drivers/trace.cpp, CLAUDE.md section 5).
+class TraceSink {
   public:
-    virtual ~IpqpTraceSink();
+    virtual ~TraceSink();
     virtual void on_ipqp_iter(const IpqpTraceIterEvent &event) = 0;
     virtual void on_ipqp_reg(const IpqpTraceRegEvent &event) = 0;
     virtual void on_ipqp_restart(const IpqpTraceRestartEvent &event) = 0;

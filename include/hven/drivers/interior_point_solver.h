@@ -150,11 +150,11 @@ class RestorationStrategy;
 struct ProgressMeasures;
 struct FeasibilityStallDetector;
 
-/// @brief FORWARD-DECLARED, NOT INCLUDED (M6 W4 T4): `detail/qp/ipqp_trace.h`
-/// pulls `ipqp_engine.h`, `sqp_types.h`, `qp_types.h` and `solver_status.h`,
-/// none of which this driver has any other use for. Only `attach_trace`'s
+/// @brief FORWARD-DECLARED, NOT INCLUDED (M6 W4 T4; W5 T4 moved and renamed it):
+/// `drivers/trace.h` pulls `sqp_types.h`, `qp_types.h`, `solver_status.h` and the
+/// evidence blocks, none of which this driver uses. Only `attach_trace`'s
 /// parameter and one member pointer name the type here; the .cpp includes it.
-class IpqpTraceSink;
+class TraceSink;
 
 /// Primal-dual interior-point solver for continuous NLPs, driving a phase
 /// sequence over barrier/line-search modes with pluggable step acceptance, a
@@ -1465,7 +1465,7 @@ class InteriorPointSolver {
     /// Mirrors `SqpDriver::attach_trace` with one difference the schema names:
     /// this driver has no sub-engine to forward to, and its `ipm.solve` pair
     /// moves no `depth` because it nests no driver of its own.
-    void attach_trace(IpqpTraceSink *sink);
+    void attach_trace(TraceSink *sink);
 
     // --- Constraint-multiplier seeding ---
     /// Floor applied to seeded inequality multipliers when they are installed:
@@ -2067,7 +2067,7 @@ class InteriorPointSolver {
     bool late_callback_enabled_ = false;
 
     /// The attached trace sink, or null. Never owned; see attach_trace().
-    IpqpTraceSink *trace_ = nullptr;
+    TraceSink *trace_ = nullptr;
 
     /// The 0-based index of the phase `alg_impl` is currently running, written
     /// by run_phase_sequence() before each call and read only by the `ipm.iter`

@@ -12,8 +12,8 @@
 #include <type_traits>
 #include <vector>
 
-#include "hven/detail/qp/ipqp_trace.h"
 #include "hven/drivers/interior_point_solver.h"
+#include "hven/drivers/trace.h"
 #include "hven/model/nlp_solver.h"
 
 namespace {
@@ -1335,7 +1335,7 @@ TEST(NLPSolverJobModeTest, JetRunTranscribesExactlyOnceAndReleasesAfterTheMode) 
 // It is `ipm.iter`'s `phase` key. The driver takes current_phase_idx BEFORE
 // the conditional-skip check, so a skipped step leaves a GAP in the phases
 // that reach the sink, and every executed phase writes an iteration line.
-struct IpmPhaseRecordingSink : hven::solvers::IpqpTraceSink {
+struct IpmPhaseRecordingSink : hven::solvers::TraceSink {
     std::vector<int> iter_phases_;
     int begin_phases_ = -1;
     int begins_ = 0;
