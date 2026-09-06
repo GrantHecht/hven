@@ -11,9 +11,14 @@
 // non-owning view giving those four blocks names, and ConstKKTVector is its
 // read-only twin for storage the holder may not write. Deliberately a standalone
 // header with no InteriorPointSolver dependency: the solver and every
-// globalization component build views from the SAME type, so the segment
-// expressions encoding the layout exist once. Each component supplies its own
-// kkt_view() factory, since dimensions come from different places.
+// globalization component build views from the SAME two types, so ONE layout
+// contract governs every compound KKT vector in the engine. The two views
+// duplicate the short accessor expressions that spell that contract out -- see
+// ConstKKTVector's own note for why it is a second class and not a template
+// instantiation -- and tests/interior/test_structure_epoch_gating.cpp pins the
+// duplication accessor for accessor, since nothing else holds them in step.
+// Each component supplies its own kkt_view() factory, since dimensions come
+// from different places.
 //
 // Not every multiplier lives here: the native bound multipliers (z_L, z_U) are
 // held separately in the solver-owned BoundDualState (bound_set.h) because the

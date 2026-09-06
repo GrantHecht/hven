@@ -971,8 +971,13 @@ class InteriorPointSolver {
     /// constraint blocks are not written again between this call and the
     /// factorization, so they ARE the right-hand side the step is computed
     /// from, and its primal block is added to rather than replaced; and XSL is
-    /// the iterate itself, which is updated by `XSL += alpha*DXSL` and never
-    /// overwritten. T2 removes that undocumented ability. No callback in this
+    /// the LIVE ITERATE, so a write to it landed in the solve in flight. (That
+    /// storage is not the callback's last word on it either way: the step
+    /// commits with `XSL += alpha*DXSL`, the restoration entry re-initialises
+    /// its two multiplier blocks, and a return-best exit replaces the whole
+    /// vector -- but every one of those happens AFTER the step this iteration
+    /// computes from what the callback left there.)
+    /// T2 removes that undocumented ability. No callback in this
     /// repository or in tycho relied on it -- every one of them only reads --
     /// but a consumer that did would change behaviour, not merely fail to
     /// compile.
@@ -2084,6 +2089,14 @@ class InteriorPointSolver {
     ConstKKTVector kkt_view(const Eigen::VectorXd &v) const {
         return ConstKKTVector(v, primal_vars_, slack_vars_, equal_cons_, inequal_cons_);
     }
+    /// @brief Refused for a TEMPORARY. The overload above binds an rvalue --
+    ///        `kkt_view(expr.eval())` compiles -- and ConstKKTVector holds a
+    ///        reference, so the view would outlive its storage. Before T2 the
+    ///        only overload took `Eigen::VectorXd &` and the mistake could not
+    ///        be spelled; this keeps it that way. Const-qualified so the refusal
+    ///        also covers a call from a const member function, where the
+    ///        non-const candidate above is not viable.
+    ConstKKTVector kkt_view(const Eigen::VectorXd &&) const = delete;
 
     // --- Phase sequence ---
     // Describes one phase in a multi-phase solve strategy. run_phase_sequence
