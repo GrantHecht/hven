@@ -18,7 +18,11 @@
 #
 #     --object-map <file>   old-object-relpath => new-object-relpath
 #     --symbol-map <file>   old-demangled-symbol => new-demangled-symbol
-#     --exceptions <file>   demangled-symbol ## reason it may differ
+#     --exceptions <file>   <object>::<symbol> [KIND] ## reason it may differ
+#                           (the object qualifier is MANDATORY, `*::` is the
+#                           explicit wildcard, and `[KIND]` is optional -- see
+#                           the EXCEPTION LOOKUP block for the full key
+#                           grammar and its precedence)
 #     --allow-foreign-captures
 #                           compare a pair of captures made by a DIFFERENT
 #                           version of this script (refused by default)
@@ -827,6 +831,42 @@
 #     for an earlier version of this script has to be rewritten, which is
 #     deliberate: a file that still parses would be a file whose masking was
 #     never re-examined.
+#
+# ---------------------------------------------------------------------------
+# M6 W5 T2 commit 0: A SIZE-ZERO SYMBOL IS STILL A NAME, AND THE OBJECT WINS
+# ---------------------------------------------------------------------------
+#
+# Four DECLARED changes, three of them from the reviewer re-check of fix2 and
+# one from the SQP lane. None moved a verdict on the population fix2 gated --
+# each is checked by its own falsifier, and both directions are stated.
+#
+#   * THE EXACT-START LOOKUP SEES A SIZE-ZERO FUNCTION. fix2 bounded the SELF
+#     rule by the symbol size and resolved an out-of-range target through the
+#     symbols that CONTAIN it, but containment skips a size-zero row -- there
+#     is no range to be inside -- so two arms whose caller reached two
+#     DIFFERENT size-zero siblings at one offset still rendered the same bare
+#     address and compared IDENTICAL. containing() now tries an exact
+#     (section, start) lookup FIRST, over every defined function row whatever
+#     its size. Same start, same size, different names is an alias pair and the
+#     lexicographically smallest MANGLED name is taken (deterministic on both
+#     arms, so an alias never DIFFERS and a rename still does); same start,
+#     different sizes is genuine ambiguity and the limb declines, leaving the
+#     containment limb to decide exactly as it did before. STRICTER only: it
+#     adds resolution and removes none.
+#
+#   * AN OBJECT-SPECIFIC EXCEPTION BEATS A WILDCARD, WHICH IS WHAT THE HEADER
+#     ALWAYS SAID. A kind-qualified `*::` entry used to be probed BEFORE an
+#     object-specific kindless one, so the reason attached to the wildcard
+#     could be printed for a finding an object-specific entry was written
+#     about, and that entry then reported STALE. The four kindless probes now
+#     sit with their own specificity level. Inert on every exception file this
+#     tree has written (all carry zero wildcards) -- closed before one does.
+#
+#   * TRAILING-PAD PREFIXES ARE ORDER-FREE, matching psym_bin_pairs.awk. See
+#     is_pad().
+#
+#   * The usage synopsis states the object-qualified exception key fix2 made
+#     mandatory.
 
 set -euo pipefail
 
@@ -1398,27 +1438,36 @@ function famnum(s) {
 #
 #   <obj>::<full key> [<KIND>]  excuses THIS finding kind on this key, HERE
 #   <obj>::<bare name> [<KIND>] ... written in the plain demangled form
-#   *::<full key> [<KIND>]      ... in every object (an explicit wildcard)
-#   *::<bare name> [<KIND>]
 #   <obj>::<full key>           excuses ANY finding on this key, here
 #   <obj>::<bare name>
-#   *::<full key>               ... in every object
+#   *::<full key> [<KIND>]      ... in every object (an explicit wildcard)
+#   *::<bare name> [<KIND>]
+#   *::<full key>               ... any finding, in every object
 #   *::<bare name>
 #
 # KIND is ONLY-BEFORE, ONLY-AFTER, DIFFERS, SECTION or LOCAL-FAMILY. Object
 # specificity is tried before kind specificity, so the entry written about THIS
-# object always wins over a wildcard, whichever kinds they carry. Returns the
-# key to charge, or "" for none. `nofallback` suppresses the four unqualified
-# forms, which is how an entry already SPENT on a section move stops covering
-# the body as well.
+# object always wins over a wildcard, whichever kinds they carry -- the order
+# above IS that rule, and M6 W5 T2 commit 0 (Codex, T1 fix2 re-check, Minor 3)
+# is where the code was reordered to match it: a kind-qualified WILDCARD used
+# to be probed before an object-specific KINDLESS key, so the reason attached to
+# the WILDCARD could be printed for a finding an object-specific entry was
+# written about, leaving that entry stale. No gate moved -- every exception file this
+# tree has written carries zero wildcards -- which is precisely why the
+# contradiction had to be closed before one is written.
+# Returns the key to charge, or "" for none. `nofallback` suppresses the four
+# KINDLESS forms, which is how an entry already SPENT on a section move stops
+# covering the body as well.
 function excfind(k, bare, kind, nofallback,   c) {
     c = obj "::" k " [" kind "]";                   if (c in exc) return c
     if (bare != "") { c = obj "::" bare " [" kind "]"; if (c in exc) return c }
+    if (!nofallback) {
+        c = obj "::" k;                             if (c in exc) return c
+        if (bare != "") { c = obj "::" bare;          if (c in exc) return c }
+    }
     c = "*::" k " [" kind "]";                      if (c in exc) return c
     if (bare != "") { c = "*::" bare " [" kind "]";   if (c in exc) return c }
     if (nofallback) return ""
-    c = obj "::" k;                                 if (c in exc) return c
-    if (bare != "") { c = obj "::" bare;              if (c in exc) return c }
     c = "*::" k;                                    if (c in exc) return c
     if (bare != "") { c = "*::" bare;                 if (c in exc) return c }
     return ""
@@ -1681,8 +1730,18 @@ function lit_replace(hay, needle, repl,   p, out) {
 # not a code change. Only a run at the very END of a block is trimmed, and only
 # on the per-symbol path; padding INSIDE a function (loop alignment) is code and
 # is compared. The positional path is untouched by this.
+#
+# The prefix run is order-FREE (M6 W5 T2 commit 0, lane M1): the dominant
+# multi-byte nop clang emits is `data16 data16 ... cs nopw 0x0(%rax,%rax,1)`,
+# which the fix2 shape -- `cs` only BEFORE `data16` -- did not match, while the
+# `ispad` in psym_bin_pairs.awk already accepted any order. The two now agree on
+# the same prefix set (`data16`, `cs`, `rex*`) in any order. Direction: a line
+# this recognises is TRAILING padding that gets trimmed, so recognising more of
+# them can only remove a false DIFFERS between two arms whose last function
+# gained or lost its inter-function padding; it can never hide a difference
+# INSIDE a body, which the trailing-run trim never reaches.
 function is_pad(s) {
-    return s ~ /^\t(cs[ \t]+)?(data16[ \t]+)*(nop[lwqb]?([ \t]|$)|xchg[ \t]+%ax,%ax$)/
+    return s ~ /^\t((data16|cs|rex[0-9a-z.]*)[ \t]+)*(nop[lwqb]?([ \t]|$)|xchg[ \t]+%ax,%ax$)/
 }
 BEGIN {
     FS = "\t"
@@ -1996,12 +2055,55 @@ flatten_symbols() {
             }
             close(symtab)
         }
+        # The symbol DEFINED EXACTLY AT `addr` in `section`, size irrelevant --
+        # a SIZE-ZERO function is a symbol like any other here, and this limb
+        # exists for it. Two arms whose caller reached two DIFFERENT size-zero
+        # siblings at one offset used to render the same bare address and
+        # compare identical, because the containment limb below skips a
+        # zero-size row (there is no range to be inside). M6 W5 T2 commit 0
+        # (Codex, T1 fix2 re-check, Important 1) closes that: this runs FIRST,
+        # so an exact hit names the target whatever its size.
+        #
+        # Candidates all share `addr` by construction. Same name (an alias row
+        # repeated in the table) is one candidate. DIFFERENT names sharing the
+        # start AND the size are true aliases -- a C1/C2 pair, an
+        # `.symver`-style second name -- and the lexicographically smallest
+        # MANGLED name is taken, which is a deterministic choice made the same
+        # way on both arms, so a rename still DIFFERS and an alias never does.
+        # Different names with different SIZES are genuinely ambiguous -- a
+        # size-zero marker sitting on the first byte of a real function is the
+        # shape -- and this limb REFUSES to pick between them, returning "" so
+        # that the containment limb below decides on its own (pre-existing)
+        # terms, with its own ambiguity refusal. The tool never guesses which
+        # of two disagreeing candidates a target meant, and this limb can
+        # therefore only ADD resolution, never take away a name the fix2 tool
+        # already resolved.
+        function exact_at(section, addr,   i, hit, hsz, nm) {
+            hit = ""; hsz = 0
+            for (i = 1; i <= nsec[section]; i++) {
+                if (secst[section, i] != addr) continue
+                nm = secnm[section, i]
+                if (hit == "") { hit = nm; hsz = secsz[section, i]; continue }
+                if (nm == hit) continue
+                if (secsz[section, i] != hsz) return ""
+                if (nm < hit) hit = nm
+            }
+            return hit
+        }
         # The symbol whose [start, start+size) contains `addr` in `section`, or
-        # "" for none and for an ambiguous one. Sets chit_st to its start.
+        # "" for none and for an ambiguous one -- preceded by the exact-start
+        # lookup above, which sees size-zero symbols the containment limb
+        # cannot. Sets chit_st to its start.
         # Memoized because a body branches to the same few addresses repeatedly.
         function containing(section, addr,   i, hit, hst, k) {
             k = section SUBSEP addr
             if (k in cmemo) { chit_st = cmemost[k]; return cmemo[k] }
+            hit = exact_at(section, addr)
+            if (hit != "") {
+                cmemo[k] = hit; cmemost[k] = addr
+                chit_st = addr
+                return hit
+            }
             hit = ""; hst = 0
             for (i = 1; i <= nsec[section]; i++) {
                 if (secsz[section, i] <= 0) continue
