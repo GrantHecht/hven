@@ -239,14 +239,20 @@ was never a documented mutation point — the documented mutation contract is th
 KKT matrix's alone — but it is not true that a write would have been discarded.
 Measured at the call site, a write to any of the three reached the solve:
 
-* **PGX** is not overwritten after the call; it is READ six lines later, where
-  `v_rhs.prim_grad() += PGX` folds the objective gradient into the Newton
-  right-hand side.
+* **PGX** is READ six lines later into the Newton right-hand side, where
+  `v_rhs.prim_grad() += PGX` folds the objective gradient in — before any later
+  refill of that storage. (It is refilled eventually: on the soft-step path it
+  is handed to `try_soft_feasibility_step` as `GX` and zeroed and rewritten. That
+  is well after the step this iteration computes, so it does not make a callback
+  write harmless.)
 * **RHS**'s constraint blocks are not written again between the hand-out and the
   factorization, so they ARE the right-hand side the step is computed from. Its
   primal block is added to, not replaced.
-* **XSL** is the iterate. It is never overwritten; the step commits with
-  `XSL += alpha*DXSL`.
+* **XSL** is the live iterate, so a write to it lands in the solve in flight.
+  The solver may later restore or re-initialise it — the step commits with
+  `XSL += alpha*DXSL`, the restoration entry re-initialises its two multiplier
+  blocks, and a return-best exit replaces the whole vector — but every one of
+  those happens after the step computed from what the callback left there.
 
 So a consumer that relied on writing one of them changes BEHAVIOUR, not merely
 compilation. No such consumer is known: all eleven early-callback lambdas in
