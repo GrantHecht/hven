@@ -170,6 +170,12 @@
 #       nothing about `.rodata`; that is exactly the licensed difference, not a
 #       gap being papered over.
 #
+#   (c) MERGED-PAD-class -- an intra-function alignment-nop run whose LENGTH
+#       moved, with every non-pad opcode and every relocation record identical
+#       and at most one shared control-transfer shift. Arrived at M6 W5 T6
+#       commit 0; the rule, its four conditions, its limit and its falsifier are
+#       stated in full at PSYM_CLASSIFY_AWK.
+#
 # NORMALIZATION NOTE: `objdump -d --no-show-raw-insn` appends a trailing
 # annotation comment to rip-relative and branch/call instructions -- e.g.
 # `lea 0x0(%rip),%rax        # 7 <sym+0x7>` -- carrying an absolute or
@@ -775,20 +781,23 @@
 #     digit-run rule could not express. Families covered: `.L*` and
 #     `GCC_except_table<n>`, both DATA.
 #
-#     `__cxx_global_var_init.<n>` is deliberately OUTSIDE that rule: it is a
-#     FUNCTION, and excusing a renumbering must never excuse a body. Its number
-#     is dropped in demangle_table() instead, which routes the family through
-#     the per-symbol layer's `[#n]` rank fallback so the bodies are compared
-#     pairwise. MEASURED, and corrected in fix2 (the fix1 text here said this
-#     tree defines none): the tree defines 40 of them in 20 objects, and 38
-#     carry a rank tag in every comparison -- the two objects with a single
-#     initialiser need none. They are the whole of the `N rank-tagged` figure
-#     on the coverage line, and they are there BECAUSE of the barename collapse
-#     above: before it, the 40 numbered names were all distinct and none needed
-#     the fallback. On a stable TU the rank is emission order and the pairing is
-#     exact; across a TU SPLIT it is not, which is why the tool prints a
-#     `P-SYM warning:` when it mints one while a symbol map is in play, and why
-#     T6 should key the family by the global each initialiser touches instead.
+#     `__cxx_global_var_init.<n>` was deliberately OUTSIDE that rule at fix1:
+#     it is a FUNCTION, and excusing a renumbering must never excuse a body. Its
+#     number is dropped in demangle_table() instead, which routed the family
+#     through the per-symbol layer's `[#n]` rank fallback so the bodies were
+#     compared pairwise. MEASURED, and corrected in fix2 (the fix1 text here
+#     said this tree defines none): the tree defines 40 of them in 20 objects,
+#     and 38 carry a rank tag in every comparison -- the two objects with a
+#     single initialiser need none. On a stable TU the rank is emission order
+#     and the pairing is exact; across a TU SPLIT it is not, which is why the
+#     tool prints a `P-SYM warning:` when it mints one while a symbol map is in
+#     play, and why "T6 should key the family by the global each initialiser
+#     touches instead."
+#
+#     SUPERSEDED AT M6 W5 T6 COMMIT 0, which does exactly that. The per-symbol
+#     layer now keys each initialiser by the global it touches, and the family
+#     therefore JOINED the census count rule -- see is_local_family() for why
+#     that is now sound and what each layer asserts.
 #
 #   Both changes make a former FAIL able to pass -- the first only with a named
 #   exception, the second only where the count is equal -- and neither can turn
@@ -867,6 +876,130 @@
 #
 #   * The usage synopsis states the object-qualified exception key fix2 made
 #     mandatory.
+
+# ---------------------------------------------------------------------------
+# M6 W5 T6 commit 0: WHAT A SPLIT NEEDS -- AN EMPTY BUILD DIRECTORY, A
+# PER-OBJECT RESOLUTION TABLE, INITIALISERS KEYED BY THEIR GLOBAL, AND A
+# MERGED ALIGNMENT PAD THAT IS NOT A FINDING
+# ---------------------------------------------------------------------------
+#
+# Five DECLARED changes, landed BEFORE the T6 driver restructure rather than
+# discovered inside it. Four are registered items (M6 W5 T0 F-D, T1 fix1's own
+# note, T2 fix1's class, the T3 ledger); one is the SQP lane's T5 M1, in
+# psym_bin_pairs.awk. Each carries its own falsifier, and both directions are
+# stated. The rules the fifth item states also apply to the audit script.
+#
+#   * A CAPTURE TAKEN AFTER A TU MOVE, RENAME OR DELETE MUST START FROM AN
+#     EMPTY BUILD DIRECTORY. The PRECONDITION block above says both arms must
+#     be built at the same absolute build-directory path, and that stands. This
+#     is the second half of it, and M6 W5 T4 (D2) is where it was learned the
+#     expensive way. `ninja -t clean` removes the outputs of the CURRENT build
+#     graph, and a renamed, moved or deleted TU is not in it -- so its stale
+#     `.o` survives, `capture` enumerates it from the target directory, and the
+#     after arm carries an object the after source tree cannot produce. T4's
+#     transcript is the record: one `ONLY-AFTER ... ipqp_trace.cpp.o`,
+#     `1 after-arm objects unaccounted for`, `P-SYM: FAIL`. The tool caught it
+#     THERE only because the object was gone from the before arm; a stale object
+#     present in BOTH arms is byte-identical and passes, while asserting
+#     something about a file that no longer exists.
+#
+#     MEASURED at M6 W5 T6 commit 0, on ninja 1.13.2, with a two-TU probe whose
+#     second TU is renamed (`.scratch/w5t6-0/ninja`, reproduced in that task's
+#     report). Objects present after the rename and a rebuild:
+#
+#       no clean at all                        alpha.o  beta.o(STALE)  gamma.o
+#       ninja -t clean                         alpha.o  beta.o(STALE)  gamma.o
+#       ninja -t cleandead                     alpha.o                 gamma.o
+#       ninja -t cleandead && ninja -t clean   alpha.o                 gamma.o
+#       rm -rf <build> && configure again      alpha.o                 gamma.o
+#
+#     So `cleandead` DOES remove it on this ninja -- which is a statement about
+#     ninja 1.13.2 and about a `.ninja_log` that survived, not a guarantee: the
+#     dead-output list is reconstructed from that log, and a log that was
+#     truncated, deleted, or written by a ninja whose cleandead behaviour
+#     differs takes the tool straight back to the first two rows.
+#
+#     THE RULE, which needs no version caveat: for any comparison whose change
+#     ADDS, MOVES, RENAMES or DELETES a translation unit -- every T6 landing
+#     from cut (d) on, and T4 and T8 besides -- `rm -rf` the build directory and
+#     CONFIGURE AGAIN for BOTH arms, at the same absolute path. A comparison
+#     whose change only edits existing TUs may rebuild in place as before. This
+#     script cannot check the rule for you, for the same reason it cannot check
+#     the path precondition: a snapshot records object bytes, not the history of
+#     the directory they came from.
+#
+#   * THE EXECUTABLE-SECTION RESOLUTION TABLE IS KEYED PER OBJECT (T0 F-D). A
+#     split arm is the UNION of several objects, and every relocatable object
+#     starts each of its sections at offset 0, so `.text+0x1cdc` names a
+#     different function in each half. Keyed by (arm, section, offset) alone the
+#     table saw two names for one key, refused to guess -- correctly -- and fell
+#     back to the LITERAL addend, which then differed from the resolved name the
+#     before arm produced on EVERY internal-linkage call across the split. The
+#     key now carries the object the relocation was read from, and the after arm
+#     is disassembled, laid out and flattened ONE OBJECT AT A TIME, so each
+#     target is resolved in the object that carries it. `@ambiguous@` survives
+#     and now means what it says: two functions at one address WITHIN one
+#     object. Direction: STRICTER -- it replaces a layout-dependent literal with
+#     a comparison by NAME. Falsifier: a callee substituted across the split
+#     must still DIFFER (see the negative fixtures below).
+#
+#   * `__cxx_global_var_init.<n>` IS KEYED BY THE GLOBAL IT INITIALISES. T1
+#     fix1 recorded the need for this in its own text ("T6 should key the family
+#     by the global each initialiser touches instead"): the number is emission
+#     order, each half of a split renumbers from zero, and the `[#n]` rank
+#     fallback then pairs two unrelated bodies. See the block above
+#     gvi_identities() for the identity, and for the two cases in which it is
+#     DECLINED rather than approximated. A declined initialiser is counted on
+#     the PERSYM line, and is a FINDING when the after arm is a split. Direction:
+#     both -- it can turn a false ONLY-BEFORE/ONLY-AFTER pair into a match, and
+#     it can FAIL a split whose initialisers cannot be identified, which the
+#     rank fallback used to pass on a coincidence.
+#
+#   * A MERGED INTRA-FUNCTION ALIGNMENT PAD IS ACCEPTED NOISE, CLASS (c). The
+#     accepted noise class above gains a third member; the rule, its four
+#     conditions, its stated limit and its falsifier are written out in full at
+#     PSYM_CLASSIFY_AWK, because that is the ONE classifier both paths call and
+#     widening it must stay a single visible act. It answers the T3 ledger item:
+#     `require_claimed_nonzeros`, an UNEDITED file-local neighbour of an edited
+#     function, differed by one merged 16-byte pad with 307 non-pad opcodes and
+#     12 relocation records identical, and had to be excused by hand and audited
+#     from raw disassembly because the line COUNT moved and the classifier said
+#     STRUCTURAL. This also carries T2 fix1's trailing-pad class INWARD, which
+#     is the registered "intra-function alignment-nop normalisation on the
+#     per-symbol path": the per-symbol layer already trimmed a TRAILING pad run
+#     before comparing, and now a pad run inside the body reaches the classifier
+#     instead of the STRUCTURAL exit. Direction: a former FAIL can pass. A
+#     transcript names it -- a `PAD-MERGED` line with the pad counts and the
+#     control-transfer shift, or a `PAD-ROUTE DECLINED` line saying the route
+#     was tried and refused -- so it is never silent.
+#
+#   * `psym_bin_pairs.awk` GAINS AN RDATA BIN for a relocation record whose
+#     type and target are identical and whose addend differs, excluding an
+#     executable-section target. The SQP lane registered it at T5 (M1). Its
+#     reasoning and its stated limit are in that file.
+#
+# THE CLAIM TEMPLATE. A P-SYM gate is a CLAIM made BEFORE the run and checked
+# against the transcript, not a transcript read afterwards for whatever it
+# happens to say. The template a task's claim follows:
+#
+#     "<the named functions/objects> DIFFERS, by name, with <the reason> as the
+#      cause; <the named class> is ONLY-AFTER / ONLY-BEFORE, excused by name;
+#      everything else identical -- AND ITS FILE-LOCAL NEIGHBOURS MAY SHIFT
+#      WITHIN `.text`."
+#
+# The last clause arrived with the T3 ledger and is part of the template, not a
+# hedge. At `-O3`, without `-ffunction-sections`, every function of a TU shares
+# one `.text`: editing one function moves the ones after it, changes what
+# alignment padding the assembler inserts around them, and shifts every
+# self-relative target inside them -- with no source change and no opcode
+# change anywhere. A claim that says "only the edited functions move" is
+# therefore FALSE as stated on this toolchain, and a reviewer holding the
+# transcript to it will either reject a correct commit or accept a widened
+# exception list to make it true. The classifier now classifies the common case
+# (class (c) above) instead of leaving it to prose, but the claim still has to
+# ADMIT the class, because a neighbour can still land outside it.
+#
+# ---------------------------------------------------------------------------
 
 set -euo pipefail
 
@@ -1053,12 +1186,12 @@ obj_layout() {
 # code, and a section named `.textual` would not be code at all. Reads a cached
 # `objdump -h -t` listing on stdin.
 exec_sections() {
-    awk '
+    awk -v objid="${1:-1}" '
         /^Sections:/ { inh = 1; next }
         /^SYMBOL TABLE:/ { inh = 0; next }
         !inh { next }
         /^[ \t]*[0-9]+[ \t]+[^ \t]+[ \t]/ { sec = $2; next }
-        { if (sec != "" && $0 ~ /(^|[ ,])CODE([ ,]|$)/) print sec; sec = "" }'
+        { if (sec != "" && $0 ~ /(^|[ ,])CODE([ ,]|$)/) print objid "\t" sec; sec = "" }'
 }
 
 # "<section>\t<offset in hex, no leading zeros>\t<SIZE in hex>\t<mangled name>"
@@ -1081,7 +1214,7 @@ exec_sections() {
 # instead of being compared as a bare address. Both are the same fact read from
 # the one table that states it, rather than guessed from a disassembly listing.
 sym_addrs() {
-    awk '
+    awk -v objid="${1:-1}" '
         /^SYMBOL TABLE:/ { ins = 1; next }
         !ins { next }
         {
@@ -1105,7 +1238,7 @@ sym_addrs() {
             if (sz !~ /^[0-9a-fA-F]+$/) next
             nm = substr(rest, q + 1)
             if (nm == "") next
-            printf "%s\t%x\t%x\t%s\n", sec, strtonum("0x" val), strtonum("0x" sz), nm
+            printf "%s\t%x\t%x\t%s\t%s\n", sec, strtonum("0x" val), strtonum("0x" sz), nm, objid
         }'
 }
 
@@ -1147,10 +1280,94 @@ function is_imm_move(s) {
 function redact(s) { gsub(/\$0x[0-9a-f]+/, "$IMM", s); return s }
 function imm(s) { if (match(s, /\$0x[0-9a-f]+/)) return substr(s, RSTART + 3, RLENGTH - 3); return "" }
 
+# ---- accepted noise class (c): A MERGED INTRA-FUNCTION ALIGNMENT PAD -------
+# M6 W5 T6 commit 0, from the T3 ledger. The assembler emits alignment padding
+# INSIDE a function (a loop or branch-target alignment) as well as between
+# functions, and the length of an intra-function run is decided by where the
+# preceding instructions happened to land -- so an edit ELSEWHERE in the same
+# `.text`, or a neighbour that grew, can merge two pad runs into one or split
+# one into two without changing a single opcode. T3 measured exactly that on
+# `require_claimed_nonzeros`, an UNEDITED file-local neighbour of an edited
+# function: 307 non-pad opcodes and 12 relocation records identical, one
+# 16-byte pad merged, 57 self-relative targets shifted by -0x10 and 4
+# unchanged. The line COUNT moves, so the classifier called it STRUCTURAL and
+# the pair had to be excused by hand and audited from raw disassembly.
+#
+# It is now classified. The rule, stated so that widening it stays a visible
+# act -- a pair is PAD-MERGED iff, after DELETING every alignment-pad line from
+# both sides:
+#
+#   1. the pad-line COUNTS actually differ (otherwise this is not the class and
+#      the ordinary verdict stands);
+#   2. the two non-pad sequences have the SAME length -- no non-pad line was
+#      added or removed;
+#   3. every non-pad pair is either literally equal, or differs ONLY in a
+#      trailing CONTROL-TRANSFER TARGET (bare hex, or `SELF+0xN`) with the same
+#      mnemonic, the same leading operands and the same RENDERING kind; and
+#   4. the target deltas take at most TWO values, 0 and ONE shared nonzero
+#      shift -- which is what a SINGLE merged or split pad produces, everything
+#      before it unmoved and everything after it moved by the same amount.
+#
+# On the PER-SYMBOL path the relocation records are lines of the compared
+# stream and are never pads, so rule 2 and rule 3 assert them identical, target
+# for target and addend for addend. On the POSITIONAL path the relocation lines
+# were deleted before comparison, and the `cmp -s` on the raw relocation
+# streams that follows a passing verdict is what asserts them; that comparison
+# strips the within-section OFFSET, which is the only thing a merged pad moves.
+#
+# THE STATED LIMIT: rule 3 lets a control-transfer target change, and rules 3
+# and 4 together mean a genuine retargeting is masked only if it is the ONLY
+# nonzero delta in the symbol AND the pad count moved in the same body. The
+# deltas are PRINTED, exactly as class (a) prints its immediate deltas, and
+# they are the half of the classification a regex cannot do for the reader. The
+# falsifier this rule is answerable to: a pad merge that ALSO changes one
+# non-pad opcode fails rule 3 and stays DIFFERS.
+function is_pad_line(s) {
+    return s ~ /^\t((data16|cs|rex[0-9a-z.]*)[ \t]+)*(nop[lwqb]?([ \t]|$)|xchg[ \t]+%ax,%ax$)/
+}
+function ct_target(s) {
+    if (match(s, /[ \t](SELF\+0x[0-9a-f]+|[0-9a-f]+)$/)) return substr(s, RSTART + 1, RLENGTH - 1)
+    return ""
+}
+function ct_key(s) { sub(/[ \t](SELF\+0x[0-9a-f]+|[0-9a-f]+)$/, " @T@", s); return s }
+function ct_val(t) { sub(/^SELF\+/, "", t); if (t !~ /^0x/) t = "0x" t; return strtonum(t) }
+function pad_only(   i, npb, npa, d, tb, ta) {
+    npb = 0; npa = 0; padb = 0; pada = 0
+    for (i = 1; i <= nb; i++) { if (is_pad_line(b[i])) { padb++; continue } npb++; pb[npb] = b[i] }
+    for (i = 1; i <= na; i++) { if (is_pad_line(a[i])) { pada++; continue } npa++; pa[npa] = a[i] }
+    if (padb == pada) return 0
+    if (npb != npa) return 0
+    padnp = npb; padeq = 0; padshift = 0; padnz = 0
+    for (i = 1; i <= npb; i++) {
+        if (pb[i] == pa[i]) { padeq++; continue }
+        tb = ct_target(pb[i]); ta = ct_target(pa[i])
+        if (tb == "" || ta == "") return 0
+        if ((tb ~ /^SELF/) != (ta ~ /^SELF/)) return 0
+        if (ct_key(pb[i]) != ct_key(pa[i])) return 0
+        d = ct_val(ta) - ct_val(tb)
+        if (d == 0) { padeq++; continue }
+        if (padnz == 0) { padshift = d; padnz = 1 }
+        else if (d != padshift) return 0
+        else padnz++
+    }
+    return 1
+}
+function report_pad_merged() {
+    printf "COUNTS %d insns; CHANGED %d; UNCLASSIFIED 0; DELTAS (pad-merged)\n", padnp, padnp - padeq
+    printf "PAD-MERGED %d alignment-pad lines vs %d; %d non-pad lines, %d identical, %d control-transfer targets shifted %+d\n", \
+           padb, pada, padnp, padeq, padnz, padshift
+}
+
 NR == FNR { b[FNR] = $0; nb = FNR; next }
 { a[FNR] = $0; na = FNR }
 END {
     if (nb != na) {
+        if (pad_only()) { report_pad_merged(); exit 0 }
+        # Say that the pad route was TRIED and why it declined, so a reader of
+        # a STRUCTURAL line on a pair whose pad count moved is not left to
+        # guess which of the four rules it failed.
+        if (padb != pada)
+            printf "PAD-ROUTE DECLINED: %d alignment-pad lines vs %d, and the non-pad streams are not equal modulo ONE shared control-transfer shift\n", padb, pada
         printf "STRUCTURAL: normalized listing is %d lines vs %d -- instructions were added or removed\n", nb, na
         exit 2
     }
@@ -1221,11 +1438,32 @@ load_pairs() {
 # Emits "<type letter>\t<mangled name>".
 # ---------------------------------------------------------------------------
 obj_symbols() {
-    local obj
+    local obj i=0
     for obj in "$@"; do
-        "${NM}" --defined-only "${obj}" 2>/dev/null
-    done | sed -nE 's/^[0-9a-fA-F]+[[:space:]]+([A-Za-z?])[[:space:]]+(.*)$/\1\t\2/p' \
-         | awk -F'\t' '!seen[$2]++'
+        i=$((i + 1))
+        "${NM}" --defined-only "${obj}" 2>/dev/null | sed "s/\$/ @@${i}@@/"
+    done | sed -nE 's/^[0-9a-fA-F]+[[:space:]]+([A-Za-z?])[[:space:]]+(.*) @@([0-9]+)@@$/\1\t\2\t\3/p' \
+         | awk -F'\t' '
+             # The cross-object dedup keeps a weak COMDAT body emitted into
+             # BOTH halves of a split from being listed twice; the census
+             # compares SETS of names, so one entry is the right number.
+             #
+             # `__cxx_global_var_init` is the exception, and it is why this
+             # carries the object ordinal at all (M6 W5 T6 commit 0): each half
+             # of a split defines its OWN bare `__cxx_global_var_init`, and
+             # those are two different functions initialising two different
+             # globals, not one body emitted twice. Deduping them made the
+             # after arm carry one where the before arm carried three, which
+             # the family COUNT rule below then read as a lost initialiser.
+             # Keyed per object they are counted correctly, and the per-symbol
+             # layer tells them apart by the global each one touches.
+             # The ordinal is KEPT as a third column on these rows, and on
+             # no others: the caller pipes this through `sort -u`, which would
+             # otherwise re-merge the two halves and their identically-named bare
+             # initialisers right back into one. The census reads columns 1
+             # and 2 and ignores the rest.
+             $2 ~ /^__cxx_global_var_init(\.[0-9]+)?$/ { if (!gseen[$3, $2]++) print $1 "\t" $2 "\t" $3; next }
+             !seen[$2]++ { print $1 "\t" $2 }'
 }
 
 # ---------------------------------------------------------------------------
@@ -1362,14 +1600,91 @@ reloc_names() {
 }
 
 # ---------------------------------------------------------------------------
+# `__cxx_global_var_init.<n>` KEYED BY THE GLOBAL IT INITIALISES
+# (M6 W5 T6 commit 0, registered by M6 W5 T1 fix1: "T6 should key the family by
+# the global each initialiser touches instead").
+#
+# These are per-TU static-initialiser FUNCTIONS whose NUMBER is emission order,
+# not identity. demangle_table() drops the number, which routes the family
+# through the `[#n]` rank fallback so their bodies are compared pairwise rather
+# than read as one deleted and one added symbol. On a stable TU the rank IS
+# emission order and the pairing is exact. Across a TU SPLIT it is not: each
+# half renumbers from zero, so rank 2 of the before arm is compared against
+# whichever initialiser happens to be second in the union of the after arm.
+# That pairs two unrelated bodies and reports the difference between two
+# different globals as a finding -- or, worse, equates them.
+#
+# The identity used instead is what the body actually TOUCHES: the ordered list
+# of NAMED relocation targets in the block, each with its addend
+# (`_ZN4hven6thingE+0x0,__cxa_atexit-0x4,...`). It is derived from the same
+# flattened listing the comparison reads, it is a property of the body rather
+# than of emission order, and a split does not change which globals an
+# initialiser constructs. Emission order within ONE body is used as read: the
+# body is what is stable, and re-sorting would discard the one ordering that is.
+#
+# NO GUESSED ASSOCIATION. An identity is DECLINED, not approximated, in two
+# cases: an initialiser with no named relocation target at all (a constant
+# initialiser referencing only `.bss+off`), and two initialisers of ONE ARM
+# whose identity strings are equal. A declined initialiser falls back to the
+# rank tag exactly as before and is COUNTED on the PERSYM line, and where the
+# after arm is a SPLIT -- the one situation in which rank is unsound -- it is a
+# FINDING, because there the fallback is a guess this tool is not entitled to
+# make.
+# ---------------------------------------------------------------------------
+gvi_identities() {
+    awk -F'\t' '
+        $1 == "S" {
+            oid = ($4 == "") ? 1 : $4 + 0
+            cur = ($2 ~ /^__cxx_global_var_init(\.[0-9]+)?$/) ? (oid SUBSEP $2) : ""
+            curname = $2
+            if (cur != "") { if (!(cur in seen)) { seen[cur] = 1; ord[++nord] = cur; onm[cur] = curname; ooid[cur] = oid } }
+            next
+        }
+        $1 == "R" && cur != "" {
+            if (substr($4, 1, 1) == ".") next
+            k = $4 $5
+            if ((cur SUBSEP k) in have) next
+            have[cur, k] = 1
+            parts[cur] = parts[cur] (parts[cur] == "" ? "" : ",") k
+            next
+        }
+        END {
+            # The collision test is ARM-WIDE, across every object of the arm:
+            # two initialisers with one identity cannot be told apart wherever
+            # they sit, so neither gets one.
+            for (i = 1; i <= nord; i++) if (parts[ord[i]] != "") ndup[parts[ord[i]]]++
+            for (i = 1; i <= nord; i++) {
+                c = ord[i]
+                if (parts[c] == "") continue
+                if (ndup[parts[c]] > 1) continue
+                printf "%s\t%s\t%s\n", ooid[c], onm[c], parts[c]
+            }
+        }' "$@"
+}
+
+# ---------------------------------------------------------------------------
 # The keying both comparison layers share: a symbol is identified by its
 # DEMANGLED name, with the symbol map applied on the before arm, plus the
 # disambiguating tag demangle_table() computed. Prepended verbatim to both awk
 # programs so the two layers cannot key differently.
 # ---------------------------------------------------------------------------
 PSYM_KEYING_AWK='
-function keyof(mangled, is_before,   d) {
+function keyof(mangled, is_before, oid,   d, gid) {
     d = (mangled in dem) ? dem[mangled] : mangled
+    # `__cxx_global_var_init` keyed by the global it initialises, where an
+    # identity was derivable; see the block above gvi_identities(). Only the
+    # per-symbol layer loads these tables, so the symbol CENSUS -- which checks
+    # presence and absence, not bodies, and whose per-family counts are equal
+    # across a split by construction -- keeps the rank behaviour it had.
+    if (d == "__cxx_global_var_init") {
+        if (oid == "") oid = 1
+        gid = ""
+        if (is_before) { if ((oid, mangled) in gvib) gid = gvib[oid, mangled] }
+        else           { if ((oid, mangled) in gvia) gid = gvia[oid, mangled] }
+        if (gid != "") { gvikeyed[oid, mangled] = 1; return d "{" gid "}" }
+        gviun[oid, mangled] = 1
+        return d ((mangled in tag) ? tag[mangled] : "")
+    }
     if (is_before && (d in m)) d = m[d]
     return d ((mangled in tag) ? tag[mangled] : "")
 }
@@ -1387,6 +1702,18 @@ function load_pairs_into(f, arr,   line, n) {
     while ((getline line < f) > 0) { n = index(line, "\t"); arr[substr(line, 1, n - 1)] = substr(line, n + 1) }
     close(f)
 }
+# `<object ordinal>\t<mangled>\t<identity>` into arr[oid, mangled]. Keyed by
+# OBJECT as well as name because a split defines the same
+# `__cxx_global_var_init` in both halves; see gvi_identities().
+function load_gvi(f, arr,   line, n1, n2) {
+    if (f == "") return
+    while ((getline line < f) > 0) {
+        n1 = index(line, "\t"); if (n1 == 0) continue
+        n2 = index(substr(line, n1 + 1), "\t") + n1; if (n2 == n1) continue
+        arr[substr(line, 1, n1 - 1) + 0, substr(line, n1 + 1, n2 - n1 - 1)] = substr(line, n2 + 1)
+    }
+    close(f)
+}
 # ---- COMPILER-LOCAL LABEL FAMILIES, for the symbol CENSUS ------------------
 # `.L*` (`.L.str.137`, `.LCPI8_0`, `.Lswitch.table._Z...`) and
 # `GCC_except_table<n>` are names the compiler mints per TU in EMISSION ORDER.
@@ -1402,12 +1729,21 @@ function load_pairs_into(f, arr,   line, n) {
 # multiset, not a set): a family that GAINS or LOSES a member is still a
 # finding, so a genuinely added string literal or a removed LSDA is still seen.
 #
-# `__cxx_global_var_init.<n>` is deliberately NOT in this set. Those are
-# FUNCTIONS -- a renumbering must never excuse a body -- and they are routed
-# through the per-symbol layer by the `[#n]` rank fallback instead (see
-# demangle_table).
+# `__cxx_global_var_init.<n>` JOINED THIS SET AT M6 W5 T6 commit 0, and the
+# reason it was excluded before is the reason it can join now. T1 fix1 kept it
+# out because these are FUNCTIONS and "a renumbering must never excuse a body"
+# -- true while the census was the only thing keeping the family accounted, and
+# while the per-symbol layer could only pair them by a RANK that a split
+# renumbers. The per-symbol layer now identifies each one by the GLOBAL it
+# initialises and compares the bodies pairwise on that key (see
+# gvi_identities()), so the census counting the family excuses nothing: an
+# added or removed initialiser still moves the count and is still a
+# `LOCAL-FAMILY` finding, and a CHANGED one is still a per-symbol `DIFFERS`.
+# What it stops doing is reading a split -- three initialisers becoming two in
+# one half and one in the other -- as a lost symbol.
 function is_local_family(nm) {
-    return nm ~ /^\.L/ || nm ~ /^GCC_except_table[0-9]+$/
+    return nm ~ /^\.L/ || nm ~ /^GCC_except_table[0-9]+$/ ||
+           nm ~ /^__cxx_global_var_init(\.[0-9]+)?$/
 }
 # The family of a compiler-local name: its NUMERIC SUFFIX removed. A suffix, not
 # every digit run, because `.L.str` and `.L.str.48` are one family and a rule
@@ -1550,21 +1886,41 @@ function strip_self_section(t, selfmg,   n) {
 # and both built from the same arm'"'"'s own objects, since a target must be
 # resolved in the object that carries the relocation. See the EXECUTABLE
 # SECTION class in the RELOCATION TARGETS block at the head of this file.
-function load_execsec(f, armn,   line) {
+function load_execsec(f, armn,   line, t) {
     if (f == "") return
-    while ((getline line < f) > 0) if (line != "") xsec[armn, line] = 1
+    while ((getline line < f) > 0) {
+        if (line == "") continue
+        t = index(line, "\t")
+        if (t == 0) continue
+        xsec[armn, substr(line, 1, t - 1) + 0, substr(line, t + 1)] = 1
+    }
     close(f)
 }
-function load_symaddr(f, armn,   line, nf, fld, sec, off, nm, k) {
+# THE RESOLUTION TABLE IS KEYED PER OBJECT (M6 W5 T6 commit 0, from T0 F-D).
+# A split arm is the UNION of several objects, and every relocatable object
+# starts each of its sections at 0, so `.text+0x1cdc` names a DIFFERENT
+# function in each half of a split. Keyed by (arm, section, offset) alone, the
+# table saw two names for one key, correctly refused to guess between them, and
+# fell back to the LITERAL addend -- which then differed from the resolved name
+# the before arm produced, on EVERY internal-linkage call across the split. That is a
+# false DIFFERS per call site, on exactly the comparison T6 exists to make.
+#
+# The key now carries the OBJECT the relocation was read from, so each target
+# is resolved in the object that carries it, exactly as it would be if that
+# object were compared alone. `@ambiguous@` survives for the case it was
+# written for and now means what it says: two functions defined at one address
+# WITHIN ONE OBJECT (an alias row whose sizes disagree). The direction is
+# STRICTER -- it removes a fallback to a layout-dependent literal and replaces
+# it with a comparison by NAME; it can only turn a false DIFFERS into a match
+# or a real callee change into a named finding.
+function load_symaddr(f, armn,   line, nf, fld, sec, off, nm, oid, k) {
     if (f == "") return
     while ((getline line < f) > 0) {
         nf = split(line, fld, "\t")
         if (nf < 4) continue
         sec = fld[1]; off = fld[2]; nm = fld[4]
-        k = armn SUBSEP sec SUBSEP off
-        # A split arm is the UNION of several objects, so two of them can
-        # define different functions at the same (section, offset). Refuse to
-        # guess: an ambiguous address falls back to the literal addend.
+        oid = (nf >= 5) ? fld[5] + 0 : 1
+        k = armn SUBSEP oid SUBSEP sec SUBSEP off
         if (!(k in saddr)) saddr[k] = nm
         else if (saddr[k] != nm) saddr[k] = "@ambiguous@"
     }
@@ -1582,11 +1938,11 @@ function hexnum(s,   neg) {
 # The 32-bit PC-relative forms fold the width of the displacement field into
 # the addend, so the callee sits at addend + 4. The absolute forms do not.
 function is_pcrel(type) { return type ~ /(PLT32|PC32|PCREL)/ }
-function exec_target_symbol(sec, type, addend, armn,   tgt, k, nm) {
-    if (!((armn SUBSEP sec) in xsec)) return ""
+function exec_target_symbol(sec, type, addend, armn, oid,   tgt, k, nm) {
+    if (!((armn SUBSEP oid SUBSEP sec) in xsec)) return ""
     tgt = hexnum(addend) + (is_pcrel(type) ? 4 : 0)
     if (tgt < 0) return ""
-    k = armn SUBSEP sec SUBSEP sprintf("%x", tgt)
+    k = armn SUBSEP oid SUBSEP sec SUBSEP sprintf("%x", tgt)
     if (!(k in saddr)) return ""
     nm = saddr[k]
     return (nm == "@ambiguous@") ? "" : nm
@@ -1607,11 +1963,12 @@ function render_reloc_target(t, is_before,   pre, mg, suf) {
 # The comparable rendering of one relocation. Deliberately NOT prefixed with a
 # tab: the classifier counts tab-led lines as instructions, and a relocation is
 # an annotation ON an instruction, not one of its own.
-function reloc_text(type, target, addend, is_before, selfmg,   t, armn, rs) {
+function reloc_text(type, target, addend, is_before, selfmg, oid,   t, armn, rs) {
     relmapped = 0; relmapold = ""
     armn = is_before ? 1 : 2
-    if (substr(target, 1, 1) == "." && ((armn SUBSEP target) in xsec)) {
-        rs = exec_target_symbol(target, type, addend, armn)
+    if (oid == "") oid = 1
+    if (substr(target, 1, 1) == "." && ((armn SUBSEP oid SUBSEP target) in xsec)) {
+        rs = exec_target_symbol(target, type, addend, armn, oid)
         # Resolved: rendered exactly as a NAMED target is -- demangled, mapped,
         # untagged -- with the residual addend a direct reference to that
         # symbol would have carried. The section and the byte offset, both pure
@@ -1748,6 +2105,8 @@ BEGIN {
     load_pairs_into(f_map, m)
     load_pairs_into(f_exc, exc)
     load_pairs_into(f_reldem, rdem)
+    load_gvi(f_gvib, gvib)
+    load_gvi(f_gvia, gvia)
     load_execsec(f_xsec_b, 1); load_execsec(f_xsec_a, 2)
     load_symaddr(f_saddr_b, 1); load_symaddr(f_saddr_a, 2)
     load_demangle(f_dem)
@@ -1759,14 +2118,14 @@ NR == FNR {
     if ($1 == "R") {
         if (!bskip && bcur != "") {
             bn[bcur]++
-            bi[bcur, bn[bcur]] = reloc_text($3, $4, $5, 1, $2)
+            bi[bcur, bn[bcur]] = reloc_text($3, $4, $5, 1, $2, ($6 == "" ? 1 : $6 + 0))
             brel[bcur]++
             if (relmapped) { brelmap[bcur]++; relmapused[relmapold] = 1 }
         }
         next
     }
     if ($1 == "S") {
-        k = keyof($2, 1)
+        k = keyof($2, 1, ($4 == "" ? 1 : $4 + 0))
         bcur = k
         if (k in bsec) { printf "  COLLISION     two before-arm symbols claim one name: %s\n", k; coll++; bskip = 1 }
         else {
@@ -1782,14 +2141,14 @@ NR == FNR {
 {
     if ($1 == "R") {
         if (acur != "") {
-            rtxt = reloc_text($3, $4, $5, 0, $2)
+            rtxt = reloc_text($3, $4, $5, 0, $2, ($6 == "" ? 1 : $6 + 0))
             if (adupmode) { c = adup[acur]; adn[acur, c]++; adi[acur, c, adn[acur, c]] = rtxt }
             else { an[acur]++; ai[acur, an[acur]] = rtxt }
         }
         next
     }
     if ($1 == "S") {
-        k = keyof($2, 0)
+        k = keyof($2, 0, ($4 == "" ? 1 : $4 + 0))
         acur = k
         # A split can legitimately place the SAME weak/COMDAT body into both
         # new objects. Copy 1 is the one compared against the before arm;
@@ -1923,15 +2282,28 @@ END {
         }
     }
     if (dupok > 20) printf "  ... and %d more identical duplicate copies\n", dupok - 20
+    ngvik = 0; for (x in gvikeyed) ngvik++
+    ngviu = 0; for (x in gviun)    ngviu++
+    # NO GUESSED ASSOCIATION. Across a SPLIT the `[#n]` rank is emission order
+    # in each half independently, so an initialiser whose identity could not be
+    # derived (or which collided with another in its own arm) would be paired
+    # by a number that means nothing. Report it as a finding rather than
+    # compare two bodies that may belong to two different globals. On a
+    # non-split comparison the rank IS emission order for one TU, and the
+    # fallback stays what it has always been.
+    if (nsplit > 1 && ngviu > 0) {
+        printf "  GVI-UNRESOLVED %d of %d __cxx_global_var_init symbols have no derivable global identity (no named relocation target, or an identity shared with another initialiser of the same arm) -- across a split the rank fallback is emission order in each half and pairs nothing in particular\n", ngviu, ngviu + ngvik
+        gvifail = ngviu
+    }
     for (k in used) print k "\t" obj >> f_used
     close(f_used)
     for (k in relmapused) print k >> f_mapused
     close(f_mapused)
     printf "%d\t%d\n", nreloc + 0, nrelmap + 0 > f_relstat
     close(f_relstat)
-    printf "PERSYM %d identical, %d noise-only, %d differing, %d only-before, %d only-after, %d excepted, %d collisions, %d matched through the symbol map, %d with unequal trailing alignment padding, %d duplicate copies identical, %d rank-tagged, %d section moves, %d relocation records compared (%d through the symbol map)\n",
-           ident + 0, noise + 0, diff + 0, onlyb + 0, onlya + 0, excused + 0, coll + 0, mapped + 0, padtrim + 0, dupok + 0, nrank + 0, secmoved + 0, nreloc + 0, nrelmap + 0
-    exit (diff + onlyb + onlya + coll > 0) ? 1 : 0
+    printf "PERSYM %d identical, %d noise-only, %d differing, %d only-before, %d only-after, %d excepted, %d collisions, %d matched through the symbol map, %d with unequal trailing alignment padding, %d duplicate copies identical, %d rank-tagged, %d section moves, %d relocation records compared (%d through the symbol map), %d global-var-init keyed by identity (%d unresolved)\n",
+           ident + 0, noise + 0, diff + 0, onlyb + 0, onlya + 0, excused + 0, coll + 0, mapped + 0, padtrim + 0, dupok + 0, nrank + 0, secmoved + 0, nreloc + 0, nrelmap + 0, ngvik + 0, ngviu + 0
+    exit (diff + onlyb + onlya + coll + gvifail > 0) ? 1 : 0
 }
 '
 
@@ -2022,7 +2394,7 @@ END {
 #   Limbs 1 and 3 need the block's extent and the whole symbol table, so this
 #   awk buffers one symbol at a time rather than streaming.
 flatten_symbols() {
-    awk -v symtab="${2:-}" '
+    awk -v symtab="${2:-}" -v objid="${3:-1}" '
         # objdump labels a target by the nearest symbol at or below it, and in a
         # COMDAT text section the candidates include the SECTION symbol, whose
         # name is `.text.<the enclosing function it holds>`. Such a label names
@@ -2036,11 +2408,15 @@ flatten_symbols() {
             if (length(gname) <= length(cur) + 1) return 0
             return substr(gname, length(gname) - length(cur)) == "." cur
         }
-        # This arm s defined-function table: sizes for the SELF range, and a
-        # per-section list for the containment lookup limb 3 makes. A split
-        # arm is the UNION of several objects, so two of them can define
-        # different functions at one (section, offset) -- both are kept, and a
-        # lookup that finds two DIFFERENT names refuses to guess.
+        # THIS OBJECT s defined-function table: sizes for the SELF range, and
+        # a per-section list for the containment lookup limb 3 makes. Since
+        # M6 W5 T6 commit 0 the caller runs one flatten per OBJECT with that
+        # object s own table, rather than once per ARM over the union of a
+        # split s objects -- every relocatable object starts each section at 0,
+        # so the union made two halves of a split disagree about what sits at
+        # one (section, offset), and the lookup then refused to guess and left
+        # the bare address in place. Ambiguity WITHIN one object is still
+        # refused, and still means what it says.
         function loadsym(   line, nf, fld, k) {
             if (symtab == "") return
             while ((getline line < symtab) > 0) {
@@ -2142,7 +2518,15 @@ flatten_symbols() {
                     else if (selfsz <= 0 && bself[i])
                         l = retarget(l, sprintf("SELF+0x%x", btgt[i] - sstart))
                 }
-                printf "%s\t%s\t%s\n", btyp[i], curblk, l
+                # An R record carries the OBJECT it was read from as a fifth
+                # field, so the per-symbol layer resolves an executable-section
+                # addend in the object that owns it. An S record carries it too
+                # (fourth field, see the S rule below). An I record does NOT:
+                # the per-symbol layer slices an instruction payload from the
+                # second tab to END OF LINE, and a trailing field would land
+                # inside the instruction text.
+                if (btyp[i] == "R") printf "R\t%s\t%s\t%s\n", curblk, l, objid
+                else printf "%s\t%s\t%s\n", btyp[i], curblk, l
             }
             nbuf = 0
         }
@@ -2165,7 +2549,13 @@ flatten_symbols() {
             cursec = sec
             sstart = strtonum("0x" $1)
             curstart = sprintf("%x", sstart)
-            printf "S\t%s\t%s\n", cur, sec
+            # The object ordinal rides on S too, as a fourth field: the same
+            # mangled name can be DEFINED in both halves of a split (two
+            # `__cxx_global_var_init`s, one per half), so a per-arm table keyed
+            # by the name alone merges them. The per-symbol layer reads the
+            # SECTION from $3 and never slices an S record to end of line, so a
+            # trailing field is invisible to it.
+            printf "S\t%s\t%s\t%s\n", cur, sec, objid
             next
         }
         # A relocation line: three tabs, the within-section offset, ": ", the
@@ -2531,23 +2921,40 @@ do_compare() {
         fi
 
         # ONE objdump per object per arm: the positional path reads the
-        # normalized listing, the per-symbol path reads the raw one.
+        # normalized listing, the per-symbol path reads the raw one. The AFTER
+        # arm is kept BOTH ways -- one file per object, for the per-object
+        # resolution the per-symbol layer now does, and their concatenation,
+        # which is the input the positional path has always read.
         raw_disasm "${path_b}" > "${tmp}/raw-b.txt"
         : > "${tmp}/raw-a.txt"
-        for t in "${path_a_list[@]}"; do raw_disasm "${t}" >> "${tmp}/raw-a.txt"; done
+        local oi=0
+        for t in "${path_a_list[@]}"; do
+            oi=$((oi + 1))
+            raw_disasm "${t}" > "${tmp}/raw-a-${oi}.txt"
+            cat "${tmp}/raw-a-${oi}.txt" >> "${tmp}/raw-a.txt"
+        done
         normalize_raw < "${tmp}/raw-b.txt" > "${tmp}/b.txt"
         normalize_raw < "${tmp}/raw-a.txt" > "${tmp}/a.txt"
 
         # ONE `objdump -h -t` per object per arm, cached here, read twice: once
         # for the executable-section set and once for the defined-function
-        # address table. Both feed the EXECUTABLE SECTION relocation class.
+        # address table. Both feed the EXECUTABLE SECTION relocation class, and
+        # both are now stamped with the OBJECT ordinal they came from -- see
+        # load_symaddr() for why a split arm cannot share one table.
         obj_layout "${path_b}" > "${tmp}/lay-b.txt"
-        : > "${tmp}/lay-a.txt"
-        for t in "${path_a_list[@]}"; do obj_layout "${t}" >> "${tmp}/lay-a.txt"; done
-        exec_sections < "${tmp}/lay-b.txt" | LC_ALL=C sort -u > "${tmp}/xsec-b.txt"
-        exec_sections < "${tmp}/lay-a.txt" | LC_ALL=C sort -u > "${tmp}/xsec-a.txt"
-        sym_addrs < "${tmp}/lay-b.txt" > "${tmp}/saddr-b.tsv"
-        sym_addrs < "${tmp}/lay-a.txt" > "${tmp}/saddr-a.tsv"
+        exec_sections 1 < "${tmp}/lay-b.txt" | LC_ALL=C sort -u > "${tmp}/xsec-b.txt"
+        sym_addrs 1 < "${tmp}/lay-b.txt" > "${tmp}/saddr-b.tsv"
+        : > "${tmp}/xsec-a.txt"
+        : > "${tmp}/saddr-a.tsv"
+        oi=0
+        for t in "${path_a_list[@]}"; do
+            oi=$((oi + 1))
+            obj_layout "${t}" > "${tmp}/lay-a-${oi}.txt"
+            exec_sections "${oi}" < "${tmp}/lay-a-${oi}.txt" >> "${tmp}/xsec-a.txt"
+            sym_addrs "${oi}" < "${tmp}/lay-a-${oi}.txt" > "${tmp}/saddr-a-${oi}.tsv"
+            cat "${tmp}/saddr-a-${oi}.tsv" >> "${tmp}/saddr-a.tsv"
+        done
+        LC_ALL=C sort -u "${tmp}/xsec-a.txt" -o "${tmp}/xsec-a.txt"
 
         # The POSITIONAL comparison, unchanged, first. It is strictly stronger
         # than the per-symbol comparison -- it requires the symbol header lines
@@ -2596,8 +3003,14 @@ do_compare() {
 
         # ---- per-symbol, by DEMANGLED name, through the maps ---------------
         persym_objects=$((persym_objects + 1))
-        flatten_symbols "${tmp}/raw-b.txt" "${tmp}/saddr-b.tsv" > "${tmp}/flat-b.tsv"
-        flatten_symbols "${tmp}/raw-a.txt" "${tmp}/saddr-a.tsv" > "${tmp}/flat-a.tsv"
+        flatten_symbols "${tmp}/raw-b.txt" "${tmp}/saddr-b.tsv" 1 > "${tmp}/flat-b.tsv"
+        : > "${tmp}/flat-a.tsv"
+        oi=0
+        for t in "${path_a_list[@]}"; do
+            oi=$((oi + 1))
+            flatten_symbols "${tmp}/raw-a-${oi}.txt" "${tmp}/saddr-a-${oi}.tsv" "${oi}" \
+                >> "${tmp}/flat-a.tsv"
+        done
         cut -f2 "${tmp}/flat-b.tsv" "${tmp}/flat-a.tsv" | LC_ALL=C sort -u > "${tmp}/mangled.txt"
         demangle_table < "${tmp}/mangled.txt" > "${tmp}/demangle.tsv"
         # Relocation targets get their OWN plain table -- see plain_demangle().
@@ -2607,6 +3020,10 @@ do_compare() {
         { reloc_names "${tmp}/flat-b.tsv" "${tmp}/flat-a.tsv"
           cut -f4 "${tmp}/saddr-b.tsv" "${tmp}/saddr-a.tsv"; } | LC_ALL=C sort -u \
             | plain_demangle > "${tmp}/reldem.tsv"
+        # Per ARM, because the same `__cxx_global_var_init.<n>` name can name
+        # two different globals on the two sides of a split.
+        gvi_identities "${tmp}/flat-b.tsv" > "${tmp}/gvi-b.tsv"
+        gvi_identities "${tmp}/flat-a.tsv" > "${tmp}/gvi-a.tsv"
 
         local per_out per_rc
         rm -f "${tmp}/relstat"
@@ -2619,6 +3036,8 @@ do_compare() {
                         -v f_relstat="${tmp}/relstat" \
                         -v f_xsec_b="${tmp}/xsec-b.txt" -v f_xsec_a="${tmp}/xsec-a.txt" \
                         -v f_saddr_b="${tmp}/saddr-b.tsv" -v f_saddr_a="${tmp}/saddr-a.tsv" \
+                        -v f_gvib="${tmp}/gvi-b.tsv" -v f_gvia="${tmp}/gvi-a.tsv" \
+                        -v nsplit="${ntargets}" \
                         -v f_cls="${tmp}/classify.awk" -v tmpd="${tmp}" \
                         -f "${tmp}/persym.awk" \
                         "${tmp}/flat-b.tsv" "${tmp}/flat-a.tsv")"

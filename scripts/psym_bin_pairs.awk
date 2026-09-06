@@ -43,6 +43,30 @@
 #   ADDR    a pure ADDRESS move, in one of the three shapes that word actually
 #           covers -- see the next block. Reported with its split.
 #   RENAME  a relocation record differing only in the callee's demangled name.
+#   RDATA   a relocation record whose type and TARGET are identical and whose
+#           ADDEND differs, where the target is NOT an executable section. The
+#           addend of such a record is a byte offset into a datum this
+#           comparison does not read, and it moves whenever anything ahead of
+#           that datum in its section changes size -- the same layout property
+#           psym_compare.sh's own class (b) and its `+LOCAL` neutralisation
+#           already exclude for a SECTION target. It is binned here for the
+#           records that class does not reach: a target that NAMES a data
+#           symbol keeps its addend verbatim, deliberately, so `_ZN4hven3tblE
+#           +0x28` -> `+0x30` arrives as an UNCLASSIFIED pair even though one
+#           inserted datum ahead of it is the whole story. Registered by the
+#           SQP lane at M6 W5 T5 (M1), whose ten non-caller DIFFERS symbols
+#           were exactly this shape and were reported as "real".
+#
+#           THE LIMIT, stated rather than left to be inferred: this bin cannot
+#           tell an addend that MOVED from an addend that now names a DIFFERENT
+#           datum of the same kind. It is the same limit psym_compare.sh states
+#           for its own neutralisations, at the same grain, and it is why the
+#           bin is reported with its addend deltas rather than folded into
+#           RENAME. A target in an EXECUTABLE section is excluded outright: for
+#           that class psym_compare.sh resolves the addend to the callee's
+#           NAME, and a literal `.text+0xN` reaching this audit means the
+#           resolution FELL BACK, where the addend is the callee's identity and
+#           a changed one is a changed call.
 #   OTHER   anything else: a finding.
 #
 # THE ADDR BIN IS DELIBERATELY NARROW (M6 W5 T1 fix1). It used to be "the two
@@ -108,12 +132,28 @@ function is_frame_imm(s) { return s ~ /^\t(add|sub)[lqbw]? +\$0x[0-9a-f]+,%rsp$/
 function is_branch(s) { return s ~ /^\t(j[a-z]+|call|loop[a-z]*|xbegin) +(SELF\+0x[0-9a-f]+|[0-9a-f]+)$/ }
 function brkey(s) { sub(/ +(SELF\+0x[0-9a-f]+|[0-9a-f]+)$/, " T", s); return s }
 function ripkey(s) { gsub(/-?0x[0-9a-f]+\(%rip\)/, "RIP", s); return s }
+# A relocation record `RELOC <type> <target> <addend>`, split at the LAST
+# space: a demangled target contains spaces, an addend never does.
+function reloc_head(s) { sub(/ [+-]?(0x[0-9a-f]+|LOCAL)$/, "", s); return s }
+function reloc_addend(s) { if (match(s, / [+-]?(0x[0-9a-f]+|LOCAL)$/)) return substr(s, RSTART + 1); return "NA" }
+# The target field of a relocation record: everything between the type and the
+# addend. Used only to exclude an EXECUTABLE-section target from RDATA.
+function reloc_is_exec_section(s,   h, i) {
+    h = reloc_head(s)
+    sub(/^RELOC +[^ ]+ +/, "", h)
+    return h ~ /^\.text(\.|$)/ }
 function stkonly(s) { gsub(/(-?0x[0-9a-f]+)?\((%rsp|%rbp)(,%[a-z0-9]+,[0-9])?\)/, "S", s); return s }
 function has_stk(s) { return s ~ /\((%rsp|%rbp)(,%[a-z0-9]+,[0-9])?\)/ }
 
 /^ *UNCLASSIFIED  - /{ b = $0; sub(/^ *UNCLASSIFIED  - /, "", b); getline a; sub(/^ *\+ */, "", a)
   tot++
-  if (b ~ /^RELOC / && a ~ /^RELOC /) { if (nreloc(b) == nreloc(a)) { ren++; next } }
+  if (b ~ /^RELOC / && a ~ /^RELOC /) {
+    if (nreloc(b) == nreloc(a)) { ren++; next }
+    if (reloc_head(b) == reloc_head(a) && !reloc_is_exec_section(b) &&
+        reloc_addend(b) != "NA" && reloc_addend(a) != "NA") {
+      rdata++
+      rdeltas[reloc_addend(b) " -> " reloc_addend(a)]++
+      next } }
   if (ispad(b) && ispad(a)) { nop++; next }
   if (ispad(b) != ispad(a)) { slip++; next }
   if (b ~ /call +\*/ && a ~ /call +(SELF\+)?[0-9a-f]/) { v2d++; next }
@@ -134,5 +174,9 @@ function has_stk(s) { return s ~ /\((%rsp|%rbp)(,%[a-z0-9]+,[0-9])?\)/ }
   if (has_stk(b) && has_stk(a) && stkonly(b) == stkonly(a)) { a_stk++; addr++; next }
   other++; printf "OTHER  - %s\n       + %s\n", b, a
 }
-END { printf "BINS  total=%d  D8=%d  FRAME=%d  VPTR=%d  V2D=%d  NOP=%d  REND=%d  SLIP=%d  ADDR=%d (BR=%d RIP=%d STK=%d)  RENAME=%d  OTHER=%d\n",
-             tot+0, d8+0, frame+0, vptr+0, v2d+0, nop+0, rend+0, slip+0, addr+0, a_br+0, a_rip+0, a_stk+0, ren+0, other+0 }
+END { printf "BINS  total=%d  D8=%d  FRAME=%d  VPTR=%d  V2D=%d  NOP=%d  REND=%d  SLIP=%d  ADDR=%d (BR=%d RIP=%d STK=%d)  RENAME=%d  RDATA=%d  OTHER=%d\n",
+             tot+0, d8+0, frame+0, vptr+0, v2d+0, nop+0, rend+0, slip+0, addr+0, a_br+0, a_rip+0, a_stk+0, ren+0, rdata+0, other+0
+      # The RDATA deltas, printed for the same reason class (a) prints its
+      # immediate deltas: a shift shared by many records is one inserted datum,
+      # a lone odd one is worth reading.
+      if (rdata > 0) { printf "RDATA-DELTAS"; for (d in rdeltas) printf "  %s (x%d)", d, rdeltas[d]; printf "\n" } }
