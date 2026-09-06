@@ -1451,9 +1451,16 @@ struct WarmInfeasibleSeededMultProblem : WarmInfeasibleBoundedProblem {
 // the entry: it fires at the top of every iteration, the entry happens during
 // iteration 0, and the fixture is capped at two.
 TEST(IpmWarmStart, ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToTheEntryFloor) {
+    // The barrier ceiling, held BELOW the entry residuals on purpose (M6 W5 T2
+    // fix1): at the shipped 100 the outer-mu term wins entry_mu()'s max on this
+    // fixture, and a bound the outer term already satisfies survives deleting
+    // the assignment being pinned. Capped at 1, a residual term wins.
+    constexpr double kMuCeiling = 1.0;
+
     NLPSolver solver(std::make_shared<WarmInfeasibleSeededMultProblem>());
     solver.optimizer_->set_print_level(10);
     solver.optimizer_->apply_preset("filter_l1");
+    solver.optimizer_->set_max_mu(kMuCeiling);
     solver.optimizer_->set_max_iters(2);
 
     // WarmInfeasibleBoundedProblem: 2 primals, 1 inequality row (so 1 slack),
@@ -1506,18 +1513,20 @@ TEST(IpmWarmStart, ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToThe
         << "the inequality/slack multipliers take the min(rho, current) clamp, so a seed above "
            "rho lands exactly on rho";
 
-    // mu <- entry_mu() = max(outer mu, ||h||_inf, ||g+s||_inf). Two of the three
-    // terms are the RHS constraint blocks the early callback is handed -- the
-    // view T2 made read-only -- so the bound below is read from that view.
-    //
-    // A FLOOR and not an equality on purpose: the third term is the live outer
-    // mu at the instant of entry, which no callback can see (the late record is
-    // already post-entry), and here it is the term that wins the max.
+    // THE THIRD WRITE: mu <- entry_mu() = max(outer mu, ||h||_inf, ||g+s||_inf).
+    // Two terms are the RHS constraint blocks the early callback is handed --
+    // the view T2 made read-only -- and the ceiling above holds the third below
+    // them, so this is an EQUALITY: deleting `mu = entry_mu()` leaves mu at or
+    // under 1 and fails it.
     ASSERT_GE(late_mu.size(), 1u);
     const double entry_floor = std::max(eq_resid_inf[0], iq_resid_inf[0]);
-    EXPECT_GT(entry_floor, 0.0) << "an entry at a feasible point would make the floor vacuous";
-    EXPECT_GE(late_mu[0], entry_floor)
-        << "mu <- entry_mu() = max(outer mu, ||h||_inf, ||g+s||_inf) over the ENTRY residuals";
+    ASSERT_GT(entry_floor, kMuCeiling)
+        << "the residual term must WIN the max for the equality below to pin the assignment; if "
+           "this fires, the fixture's entry residuals fell to the barrier ceiling and the pin "
+           "would silently weaken back into a floor";
+    EXPECT_EQ(late_mu[0], entry_floor)
+        << "mu <- entry_mu() = max(outer mu, ||h||_inf, ||g+s||_inf) over the ENTRY residuals, "
+           "and with the outer term capped below them the max is the residual one exactly";
 }
 
 // The other half of the same gate: a BOUNDED solve that ends Optimal under the

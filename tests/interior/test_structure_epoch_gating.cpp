@@ -32,6 +32,7 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
+#include "hven/detail/interior/kkt_vector.h"
 #include "hven/drivers/interior_point_solver.h"
 #include "hven/model/nlp_solver.h"
 
@@ -680,4 +681,90 @@ TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
     // And the iterate DID move between iterations, so the equality above is a
     // statement about the clock and not about a solve that stood still.
     EXPECT_NE(early_xsl[0], early_xsl[1]);
+}
+
+// ---------------------------------------------------------------------------
+// THE READ-ONLY TWIN NAMES THE SAME BLOCKS AS THE MUTABLE VIEW (M6 W5 T2 fix1).
+//
+// T2's ConstKKTVector re-spells thirteen segment expressions KKTVector already
+// has (kkt_vector.h argues why it is a second class and not a template). The
+// cost of that choice is an invariant with no compiler behind it: an edit that
+// moves a block in one class and misses the other compiles, and what it breaks
+// first is the restoration entry's measures, read through the twin.
+//
+// So: same STORAGE (address and length) and same VALUES, accessor for accessor,
+// over four DISTINCT non-zero widths -- no two blocks coincide by accident, and
+// an off-by-one in any one accessor moves an address or a length.
+namespace {
+
+// One accessor pair. `a` is one of KKTVector's two forms, `b` is the twin's.
+template <class A, class B> void expect_same_block(const A &a, const B &b, const char *what) {
+    ASSERT_EQ(a.size(), b.size()) << what << " -- length";
+    EXPECT_EQ(static_cast<const double *>(a.data()), static_cast<const double *>(b.data()))
+        << what << " -- storage address";
+    for (Eigen::Index k = 0; k < a.size(); k++) {
+        EXPECT_EQ(a[k], b[k]) << what << " -- value at " << k;
+    }
+}
+
+} // namespace
+
+TEST(KktVectorLayout, TheConstTwinsThirteenAccessorsNameTheSameBlocksAsKKTVectors) {
+    constexpr int kPv = 3, kSv = 2, kEc = 4, kIc = 5;
+    Eigen::VectorXd storage(kPv + kSv + kEc + kIc);
+    for (Eigen::Index k = 0; k < storage.size(); k++) {
+        storage[k] = 1.0 + static_cast<double>(k);
+    }
+
+    hven::solvers::KKTVector mut(storage, kPv, kSv, kEc, kIc);
+    // KKTVector's const-qualified overloads are a third spelling of the same
+    // thirteen expressions, so they are checked too rather than assumed.
+    const hven::solvers::KKTVector &cmut = mut;
+    // Built through the IMPLICIT converting constructor, which this also pins.
+    hven::solvers::ConstKKTVector cst = mut;
+
+    // NON-VACUITY: the reference side is itself the documented layout, so two
+    // views agreeing on the same WRONG one cannot satisfy the comparisons.
+    ASSERT_EQ(mut.primals().size(), kPv);
+    ASSERT_EQ(mut.slacks().size(), kSv);
+    ASSERT_EQ(mut.eq_lmults().size(), kEc);
+    ASSERT_EQ(mut.iq_lmults().size(), kIc);
+    ASSERT_EQ(mut.primals().data(), storage.data());
+    ASSERT_EQ(mut.slacks().data(), storage.data() + kPv);
+    ASSERT_EQ(mut.eq_lmults().data(), storage.data() + kPv + kSv);
+    ASSERT_EQ(mut.iq_lmults().data(), storage.data() + kPv + kSv + kEc);
+
+// Each accessor against BOTH of KKTVector's forms; two calls and nothing else.
+#define HVEN_EXPECT_TWIN(acc)                                                                      \
+    do {                                                                                           \
+        expect_same_block(mut.acc(), cst.acc(), "KKTVector::" #acc "() (mutable form)");           \
+        expect_same_block(cmut.acc(), cst.acc(), "KKTVector::" #acc "() (const form)");            \
+    } while (false)
+
+    // Primal/slack segments.
+    HVEN_EXPECT_TWIN(primals);
+    HVEN_EXPECT_TWIN(slacks);
+    HVEN_EXPECT_TWIN(primals_slacks);
+    // Multiplier segments.
+    HVEN_EXPECT_TWIN(eq_lmults);
+    HVEN_EXPECT_TWIN(iq_lmults);
+    HVEN_EXPECT_TWIN(lmults);
+    // The gradient/constraint aliases over the same memory.
+    HVEN_EXPECT_TWIN(prim_grad);
+    HVEN_EXPECT_TWIN(dual_grad);
+    HVEN_EXPECT_TWIN(prim_dual_grad);
+    HVEN_EXPECT_TWIN(eq_cons);
+    HVEN_EXPECT_TWIN(iq_cons);
+    HVEN_EXPECT_TWIN(all_cons);
+
+#undef HVEN_EXPECT_TWIN
+
+    // The thirteenth: full-vector access, a reference and not a segment.
+    EXPECT_EQ(&mut.data(), &cst.data()) << "KKTVector::data() (mutable form)";
+    EXPECT_EQ(&cmut.data(), &cst.data()) << "KKTVector::data() (const form)";
+
+    // The direct constructor is the other way in, and must not diverge from it.
+    const hven::solvers::ConstKKTVector direct(storage, kPv, kSv, kEc, kIc);
+    expect_same_block(direct.primals(), cst.primals(), "ConstKKTVector direct vs converted");
+    expect_same_block(direct.iq_lmults(), cst.iq_lmults(), "ConstKKTVector direct vs converted");
 }
