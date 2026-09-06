@@ -415,9 +415,14 @@ migrate library and bench calls to in-place (DECLARED BREAK)`.
 
 ### What changed
 
-1. **Six pure virtuals carry `[[deprecated]]`.** Nothing is removed, no
-   signature moves, and every model in the world still compiles and still
-   works — a call site gets a warning naming its replacement.
+1. **Six pure virtuals carry `[[deprecated]]`.** Nothing is removed and no
+   signature moves: this is **source-preserving and ABI-preserving**. It is
+   nonetheless a **declared WARNING-POLICY build break**, and that is the
+   precise statement — a translation unit that CALLS one of the six through a
+   `NlpModel` reference now emits `-Wdeprecated-declarations`, so a consumer
+   building with `-Werror` (or `-Werror=deprecated-declarations`) **fails to
+   compile until it brackets or migrates that call**. Consumers on plain
+   `-Wall` see a warning naming the replacement and keep building.
 
    | deprecated | replacement |
    |---|---|
@@ -430,8 +435,9 @@ migrate library and bench calls to in-place (DECLARED BREAK)`.
 
    The in-place forms are not new — they have shipped since M5 with a default
    that delegates to the by-value counterpart, so a model that overrides only
-   the by-value forms already answers both. That default is why deprecating the
-   by-value entry point breaks nothing.
+   the by-value forms already answers both. That default is why **no model
+   implementation needs an edit**; what the deprecation reaches is CALL SITES,
+   and only those whose static type is `NlpModel` itself (see 4).
 2. **`eval_f` is NOT deprecated** (plan Q-S2). It returns a `double`; the
    in-place twins exist to remove a vector allocation, and there is none to
    remove. Six deprecations, not seven. `eval_values` is not deprecated either.
@@ -499,16 +505,25 @@ delegate to the deprecated forms by design.
 
 ### tycho
 
-Read-only grep of tycho at `48038a2f` (the tree consuming hven pin `b62dbc5`),
-excluding `dep/`. Nothing BREAKS; the sites below warn on the next consume.
+**This is a READ-ONLY GREP of tycho at `48038a2f` (the tree consuming hven pin
+`b62dbc5`), excluding `dep/`. tycho was NOT BUILT against this header, so the
+warn/silent column below is derived from each call's STATIC TYPE, not observed
+from a compiler.** No tycho file was edited.
 
-| file | by-value sites | shape |
+23 by-value grep sites in three files. Which of them warn is decided entirely
+by the static type at the call: `NlpModel` warns, a concrete derived class that
+redeclares the method does not (see 4 above).
+
+| file | sites | verdict |
 |---|---|---|
-| `tests/cpp/solvers/test_conversion_equivalence.cpp` | 12 calls + 3 in-place-default delegations | `conv_equiv_expect_models_agree(const NlpModel &native, const NlpModel &converted, …)` at `:347-362` is the base-reference shape and WARNS (7 calls); `:1068-1076` compares in-place results against by-value ones — a genuine oracle, bracket it rather than rewrite it; `:519,:522,:526` are `out = this->eval_jac_e(x)` inside tycho's own `ConvEquivEqBoundNativeInPlace`, the same mutual-default shape `nlp_model.h` brackets |
-| `tests/cpp/solvers/test_model_contract_pins.cpp` | 7 calls | all `model.eval_hess(...)` inside `EXPECT_THROW`/`EXPECT_NO_THROW` — contract pins on the by-value entry, so bracket, do not migrate |
-| `psiopt/src/nlp_adapter.cpp:258` | 1 | `problem_->eval_hess(...)` on `NLPProblem`, a DIFFERENT interface. Untouched by T3 |
+| `test_conversion_equivalence.cpp` `:347-362` (7 sites, 12 calls) | `conv_equiv_expect_models_agree(const NlpModel &native, const NlpModel &converted, …)` | **CERTAIN WARN** — the only base-reference block in tycho. This is where an hven consumer on `-Werror` breaks |
+| `test_conversion_equivalence.cpp` `:519, :522, :526` (3) | `out = this->eval_jac_e(x)` inside tycho's own `ConvEquivEqBoundNativeInPlace` | **SILENT** — the same mutual-default shape `nlp_model.h` brackets, and `this` is the derived type, which redeclares the method |
+| `test_conversion_equivalence.cpp` `:1068-1076` (5) | `const ConvEquivEqBoundNativeInPlace model;` — compares in-place results against by-value ones | **SILENT** — a concrete derived type. It is also a genuine oracle: bracket it if it ever starts warning, do not rewrite it to call one API twice |
+| `test_model_contract_pins.cpp` `:396-439` (7) | `NlpProblemModel model(…)`, `model.eval_hess(…)` inside `EXPECT_THROW`/`EXPECT_NO_THROW` | **SILENT** — concrete derived type. Contract pins on the by-value entry; bracket, do not migrate |
+| `psiopt/src/nlp_adapter.cpp:258` (1) | `problem_->eval_hess(…)` on **`NLPProblem`** | **OUT OF SCOPE** — a different interface, untouched by T3 |
 
 `src/solvers/engines.cpp`'s five `eval_*` definitions are OVERRIDES and stay
-silent. tycho's own models need no edit; only the call sites above take the
-bracket (or the in-place migration, at tycho's discretion — it is not forced).
-No tycho file was edited by this task.
+silent (overriding a deprecated virtual never warns). tycho's own models need no
+edit. **The one place tycho must act is the base-reference block**, and only if
+it builds hven consumers with `-Werror`; the bracket or the in-place migration
+are both fine, at tycho's discretion — neither is forced.
