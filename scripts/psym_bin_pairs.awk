@@ -95,7 +95,12 @@
 function norm(s) { gsub(/0x[0-9a-f]+/, "H", s); sub(/^(\t[a-z0-9]+ +)[0-9a-f]+$/, "\\1H", s); return s }
 function nreloc(s) { gsub(/hven::solvers::(OptimizationProblemBase|NLPSolver)/, "T", s)
                      gsub(/(OptimizationProblemBase|NLPSolver)::JetJobModes/, "T::JetJobModes", s); return s }
-function ispad(s) { return s ~ /^\t((data16 |cs |rex[0-9a-z.]* )*nop[wl]?( +[^ ]+)?|nop|xchg +%ax,%ax)$/ }
+# The trailing ` ;PAD=<n>` psym_compare.sh's flatten_symbols() annotates onto a
+# pad line (M6 W5 T6 commit 0 fix1) is part of the compared text, so it reaches
+# this transcript; accept it here too, or every annotated pad pair falls to
+# OTHER. Kept in step with is_pad_line()/is_pad_f() there.
+function ispad(s) { sub(/[ \t];PAD=([0-9]+|\?)$/, "", s)
+                    return s ~ /^\t((data16 |cs |rex[0-9a-z.]* )*nop[wl]?( +[^ ]+)?|nop|xchg +%ax,%ax)$/ }
 # The (%rsp)-relative displacement a line addresses, or "NA". An INDEX register
 # is allowed in the memory operand (`0x328(%rsp,%rcx,1)`): it is a runtime
 # offset into an array whose BASE is the frame slot, and the displacement is

@@ -1315,15 +1315,67 @@ function imm(s) { if (match(s, /\$0x[0-9a-f]+/)) return substr(s, RSTART + 3, RL
 # streams that follows a passing verdict is what asserts them; that comparison
 # strips the within-section OFFSET, which is the only thing a merged pad moves.
 #
-# THE STATED LIMIT: rule 3 lets a control-transfer target change, and rules 3
-# and 4 together mean a genuine retargeting is masked only if it is the ONLY
-# nonzero delta in the symbol AND the pad count moved in the same body. The
-# deltas are PRINTED, exactly as class (a) prints its immediate deltas, and
-# they are the half of the classification a regex cannot do for the reader. The
-# falsifier this rule is answerable to: a pad merge that ALSO changes one
-# non-pad opcode fails rule 3 and stays DIFFERS.
+#   5. the shared nonzero shift EQUALS the BYTE-LENGTH CHANGE of the pad run
+#      (inserted pad bytes minus deleted pad bytes). Rule 5 is the tightening
+#      the SQP lane required at the T6.0 review, and it is what makes this a
+#      layout rule rather than a licence. Without it rules 3 and 4 accept ANY
+#      single shared shift, and the lane exhibited the mask on its own listings:
+#      a function whose trailing pad lost one 3-byte nop and whose SOLE branch
+#      was retargeted by -32 passed as noise, and one whose 16-byte pad merged
+#      while both targets moved by -8 passed too. That is not a coincidence to
+#      be waved at -- retargeting a branch can change its encoding length
+#      (rel8 <-> rel32), which changes how long the function is and therefore its
+#      padding, so "the only nonzero delta AND the pad count moved" is a
+#      MECHANISM for a small function whose last branch is the retargeted one.
+#      With rule 5 both are rejected (-32 != -3, -8 != -16) and the T3 shape is
+#      kept (-16 = -16).
+#
+# WHERE THE BYTE LENGTHS COME FROM. The byte length of a pad is NOT derivable from
+# its rendered text: objdump prints both `0f 1f 40 00` (4 bytes) and
+# `0f 1f 80 00 00 00 00` (7 bytes) as `nopl 0x0(%rax)`. flatten_symbols() knows
+# it -- it has the address of each instruction, so the length of a line is the
+# address of the next minus its own -- and since M6 W5 T6 commit 0 fix1 it ANNOTATES
+# every pad line it emits with ` ;PAD=<n>` (`;PAD=?` where the block gives no
+# successor and no size). The annotation is part of the compared text, which is
+# a second, free strictness: two pads that render identically but occupy
+# different numbers of bytes now DIFFER.
+#
+# SO THE POSITIONAL PATH CANNOT TAKE THIS ROUTE, and does not: its input is
+# the listing normalize_raw() makes, which carries no annotation, so rule 5 cannot be
+# checked and pad_only() DECLINES with `PAD-ROUTE DECLINED (no pad byte
+# lengths...)`. The object then falls through to the per-symbol layer exactly as
+# it does for every other positional failure, and the per-symbol layer -- which
+# has the annotation -- is the verdict. That is the conservative direction and
+# it is what closes the mask the lane found, on the path they demonstrated it on.
+#
+# THE RESIDUAL LIMIT, stated so that it is not re-discovered: after rule 5 a
+# retargeting is masked ONLY if its delta EQUALS the pad delta exactly -- i.e.
+# only if the retarget happens to land at the merged-pad boundary. Everything
+# else is now a finding. The deltas and the pad byte change are PRINTED, exactly
+# as class (a) prints its immediate deltas, and they are the half of the
+# classification a regex cannot do for the reader. THE NEXT TIGHTENING, if a
+# real case of that residual ever appears, is POSITIONAL: a merged pad shifts
+# every target AFTER it and no target BEFORE it, so the two delta values are
+# not merely {0, k} but are 0 for the lines above the pad and k for the lines
+# below it. That is recorded here rather than built now, because it needs the
+# position of the pad in the block carried alongside its length, and no case has
+# demanded it.
+#
+# The falsifiers this rule is answerable to, all run at every landing: a pad
+# merge that ALSO changes one non-pad opcode (rule 3), one whose relocation
+# record names a different callee (rule 3), one with two distinct nonzero
+# shifts (rule 4), one that adds a non-pad instruction (rule 2), and the two
+# masks the lane exhibited (rule 5).
 function is_pad_line(s) {
-    return s ~ /^\t((data16|cs|rex[0-9a-z.]*)[ \t]+)*(nop[lwqb]?([ \t]|$)|xchg[ \t]+%ax,%ax$)/
+    return s ~ /^\t((data16|cs|rex[0-9a-z.]*)[ \t]+)*(nop[lwqb]?([ \t]|$)|xchg[ \t]+%ax,%ax([ \t]|$))/
+}
+# The byte length flatten_symbols() annotated onto a pad line, or -1 for an
+# unannotated line (the positional path) and -2 for an explicitly unknown one
+# (`;PAD=?`, a block whose last line has no successor and no size).
+function pad_len(s) {
+    if (match(s, /[ \t];PAD=[0-9]+$/)) return substr(s, RSTART + 6, RLENGTH - 6) + 0
+    if (s ~ /[ \t];PAD=\?$/) return -2
+    return -1
 }
 function ct_target(s) {
     if (match(s, /[ \t](SELF\+0x[0-9a-f]+|[0-9a-f]+)$/)) return substr(s, RSTART + 1, RLENGTH - 1)
@@ -1331,31 +1383,53 @@ function ct_target(s) {
 }
 function ct_key(s) { sub(/[ \t](SELF\+0x[0-9a-f]+|[0-9a-f]+)$/, " @T@", s); return s }
 function ct_val(t) { sub(/^SELF\+/, "", t); if (t !~ /^0x/) t = "0x" t; return strtonum(t) }
-function pad_only(   i, npb, npa, d, tb, ta) {
-    npb = 0; npa = 0; padb = 0; pada = 0
-    for (i = 1; i <= nb; i++) { if (is_pad_line(b[i])) { padb++; continue } npb++; pb[npb] = b[i] }
-    for (i = 1; i <= na; i++) { if (is_pad_line(a[i])) { pada++; continue } npa++; pa[npa] = a[i] }
+function pad_only(   i, npb, npa, d, tb, ta, L) {
+    npb = 0; npa = 0; padb = 0; pada = 0; padbytes_b = 0; padbytes_a = 0; padunlen = 0
+    for (i = 1; i <= nb; i++) {
+        if (is_pad_line(b[i])) { padb++; L = pad_len(b[i]); if (L < 0) padunlen++; else padbytes_b += L; continue }
+        npb++; pb[npb] = b[i]
+    }
+    for (i = 1; i <= na; i++) {
+        if (is_pad_line(a[i])) { pada++; L = pad_len(a[i]); if (L < 0) padunlen++; else padbytes_a += L; continue }
+        npa++; pa[npa] = a[i]
+    }
+    padreason = ""
     if (padb == pada) return 0
-    if (npb != npa) return 0
+    if (npb != npa) { padreason = "a non-pad line was added or removed (rule 2)"; return 0 }
     padnp = npb; padeq = 0; padshift = 0; padnz = 0
     for (i = 1; i <= npb; i++) {
         if (pb[i] == pa[i]) { padeq++; continue }
         tb = ct_target(pb[i]); ta = ct_target(pa[i])
-        if (tb == "" || ta == "") return 0
-        if ((tb ~ /^SELF/) != (ta ~ /^SELF/)) return 0
-        if (ct_key(pb[i]) != ct_key(pa[i])) return 0
+        if (tb == "" || ta == "") { padreason = "a non-pad line differs somewhere other than a control-transfer target (rule 3)"; return 0 }
+        if ((tb ~ /^SELF/) != (ta ~ /^SELF/)) { padreason = "a control-transfer target changed RENDERING kind (rule 3)"; return 0 }
+        if (ct_key(pb[i]) != ct_key(pa[i])) { padreason = "a non-pad opcode or its leading operands changed (rule 3)"; return 0 }
         d = ct_val(ta) - ct_val(tb)
         if (d == 0) { padeq++; continue }
         if (padnz == 0) { padshift = d; padnz = 1 }
-        else if (d != padshift) return 0
+        else if (d != padshift) { padreason = "two distinct nonzero control-transfer shifts (rule 4)"; return 0 }
         else padnz++
+    }
+    # RULE 5. Nothing observable shifted -> there is nothing for the byte
+    # length to have to explain, and the route is taken on rules 1-4 alone.
+    # Otherwise the shared shift must BE the byte-length change of the pad run, and
+    # a listing that does not carry the lengths cannot make that claim.
+    padbytes = padbytes_a - padbytes_b
+    if (padnz > 0) {
+        if (padunlen > 0) {
+            padreason = sprintf("no pad byte lengths in this listing (%d unannotated pad line(s)), so the shared shift of %+d cannot be checked against the byte change of the pad run (rule 5) -- the per-symbol layer, which has them, is the verdict", padunlen, padshift)
+            return 0
+        }
+        if (padshift != padbytes) {
+            padreason = sprintf("the shared control-transfer shift is %+d but the pad run changed by %+d bytes (%d -> %d) (rule 5)", padshift, padbytes, padbytes_b, padbytes_a)
+            return 0
+        }
     }
     return 1
 }
 function report_pad_merged() {
     printf "COUNTS %d insns; CHANGED %d; UNCLASSIFIED 0; DELTAS (pad-merged)\n", padnp, padnp - padeq
-    printf "PAD-MERGED %d alignment-pad lines vs %d; %d non-pad lines, %d identical, %d control-transfer targets shifted %+d\n", \
-           padb, pada, padnp, padeq, padnz, padshift
+    printf "PAD-MERGED %d alignment-pad lines vs %d (%d -> %d bytes, %+d); %d non-pad lines, %d identical, %d control-transfer targets shifted %+d\n", \
+           padb, pada, padbytes_b, padbytes_a, padbytes, padnp, padeq, padnz, padshift
 }
 
 NR == FNR { b[FNR] = $0; nb = FNR; next }
@@ -1367,7 +1441,8 @@ END {
         # a STRUCTURAL line on a pair whose pad count moved is not left to
         # guess which of the four rules it failed.
         if (padb != pada)
-            printf "PAD-ROUTE DECLINED: %d alignment-pad lines vs %d, and the non-pad streams are not equal modulo ONE shared control-transfer shift\n", padb, pada
+            printf "PAD-ROUTE DECLINED: %d alignment-pad lines vs %d -- %s\n", padb, pada, \
+                   (padreason == "" ? "the non-pad streams are not equal modulo ONE shared control-transfer shift" : padreason)
         printf "STRUCTURAL: normalized listing is %d lines vs %d -- instructions were added or removed\n", nb, na
         exit 2
     }
@@ -2098,7 +2173,7 @@ function lit_replace(hay, needle, repl,   p, out) {
 # gained or lost its inter-function padding; it can never hide a difference
 # INSIDE a body, which the trailing-run trim never reaches.
 function is_pad(s) {
-    return s ~ /^\t((data16|cs|rex[0-9a-z.]*)[ \t]+)*(nop[lwqb]?([ \t]|$)|xchg[ \t]+%ax,%ax$)/
+    return s ~ /^\t((data16|cs|rex[0-9a-z.]*)[ \t]+)*(nop[lwqb]?([ \t]|$)|xchg[ \t]+%ax,%ax([ \t]|$))/
 }
 BEGIN {
     FS = "\t"
@@ -2491,6 +2566,22 @@ flatten_symbols() {
             chit_st = hst
             return hit
         }
+        # ALIGNMENT PADDING, and its BYTE LENGTH (M6 W5 T6 commit 0 fix1).
+        # The same predicate the classifier uses -- kept in step with
+        # is_pad_line() there, and with ispad() in psym_bin_pairs.awk.
+        function is_pad_f(s) {
+            return s ~ /^\t((data16|cs|rex[0-9a-z.]*)[ \t]+)*(nop[lwqb]?([ \t]|$)|xchg[ \t]+%ax,%ax([ \t]|$))/
+        }
+        # The length of a pad is NOT derivable from the text objdump renders for
+        # it: `0f 1f 40 00` (4 bytes) and `0f 1f 80 00 00 00 00` (7 bytes) both
+        # print as `nopl 0x0(%rax)`. It IS derivable here, from the addresses
+        # this function reads and then strips -- the length of a line is the
+        # address of the next instruction minus its own, and for the last
+        # instruction of a block it is the end of the symbol, where the symbol
+        # table gives a size. Annotated onto the emitted pad line as ` ;PAD=<n>`
+        # (`;PAD=?` when neither is available) so that the classifier can check
+        # rule 5 of the merged-pad class, and so that two pads which render
+        # identically but occupy different numbers of bytes DIFFER.
         # Replace the trailing bare-hex target of a control transfer with `t`.
         # A literal splice, never sub()"s replacement text, because a mangled
         # name may contain characters sub() would read as backreferences.
@@ -2501,12 +2592,18 @@ flatten_symbols() {
         # Emits the buffered block, applying the four limbs above now that the
         # block s extent is known. btgt[i] is -1 for every line that carries no
         # bare control-transfer target.
-        function flushblk(   i, l, nm, selfsz) {
+        function flushblk(   i, j, l, nm, selfsz, nxt) {
             selfsz = ((cursec SUBSEP curstart SUBSEP curblk) in ssize) \
                      ? ssize[cursec SUBSEP curstart SUBSEP curblk] : 0
             for (i = 1; i <= nbuf; i++) {
                 l = buf[i]
-                if (btyp[i] == "I" && btgt[i] >= 0) {
+                if (btyp[i] == "I" && is_pad_f(l)) {
+                    nxt = -1
+                    for (j = i + 1; j <= nbuf; j++) if (btyp[j] == "I") { nxt = baddr[j]; break }
+                    if (nxt < 0 && selfsz > 0 && sstart + selfsz > baddr[i]) nxt = sstart + selfsz
+                    l = (nxt < 0) ? l " ;PAD=?" : sprintf("%s ;PAD=%d", l, nxt - baddr[i])
+                }
+                else if (btyp[i] == "I" && btgt[i] >= 0) {
                     if (selfsz > 0 && btgt[i] >= sstart && btgt[i] < sstart + selfsz)
                         l = retarget(l, sprintf("SELF+0x%x", btgt[i] - sstart))
                     else if (i < nbuf && btyp[i + 1] == "R")
@@ -2587,6 +2684,12 @@ flatten_symbols() {
         /^ *[0-9a-f]+:\t/ {
             if (cur == "") next
             line = $0
+            iaddr = -1
+            if (match(line, /^ *[0-9a-f]+:/)) {
+                iahex = substr(line, RSTART, RLENGTH - 1)
+                sub(/^ +/, "", iahex)
+                iaddr = strtonum("0x" iahex)
+            }
             sub(/^ *[0-9a-f]*:/, "", line)
             sub(/[ \t]+#.*$/, "", line)
             # A bare control-transfer target: objdump prints the absolute
@@ -2613,6 +2716,7 @@ flatten_symbols() {
             nbuf++
             btyp[nbuf] = "I"
             buf[nbuf] = line
+            baddr[nbuf] = iaddr
             btgt[nbuf] = (tgt == "") ? -1 : tgt
             bself[nbuf] = (tgt == "") ? 0 : tself
             tgt = ""; tself = 0
@@ -3160,6 +3264,13 @@ do_compare() {
         echo "               an ONLY-BEFORE/ONLY-AFTER pair on a [#n]-tagged key may be a limit of this"
         echo "               tool rather than a code difference. The failure direction is conservative"
         echo "               (a false finding, never a masked one), but read such a finding by hand."
+        echo "               THIS COUNT IS DOMINATED BY \`__cxx_global_var_init\`, and for that family"
+        echo "               the rank is NO LONGER what pairs the bodies: since M6 W5 T6 commit 0 the"
+        echo "               per-symbol layer keys each initialiser by the GLOBAL it touches, and the"
+        echo "               PERSYM line's \`N global-var-init keyed by identity (M unresolved)\` column"
+        echo "               is the sharper statement -- M is the number this warning is really about."
+        echo "               Read that column first; a rank-tagged initialiser with M = 0 was paired by"
+        echo "               identity, not by rank."
     fi
     echo "P-SYM: ${total} objects — ${identical} byte-identical, ${noise} differing within the accepted noise class, ${unclassified} with unclassified differences, ${moved} matched by basename after a path move, ${missing} missing"
     echo "P-SYM coverage: ${mapped_objects} objects matched through the object map, ${persym_objects} compared per symbol, ${persym_pass} objects passed per symbol, ${unmatched_after} after-arm objects unaccounted for; symbols — ${sym_matched} matched (${sym_mapped} through the symbol map), ${sym_only_before} only-before, ${sym_only_after} only-after, ${sym_exception} excepted, ${sym_collision} collisions, ${sym_rank_tagged} rank-tagged, ${stale} stale exceptions, ${stale_map} stale map entries; compiler-local label families — ${fam_ok} matched by count, ${fam_diff} differing (${loc_before} before-arm and ${loc_after} after-arm symbols accounted by family); relocations — ${reloc_compared} records compared (${reloc_mapped} through the symbol map)"
