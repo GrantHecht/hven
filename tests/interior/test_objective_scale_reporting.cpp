@@ -208,8 +208,8 @@ double obj_scale_installed_seed(double scale) {
     bool seen = false;
     const int primal_vars = ObjScaleBoxedProblem::kN;
     solver.optimizer_->set_early_callback(
-        [&](int iteration, double, hven::EigenRef<Eigen::VectorXd> xsl, double,
-            hven::EigenRef<Eigen::VectorXd>, hven::EigenRef<Eigen::VectorXd>,
+        [&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd> xsl, double,
+            hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
             Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
             if (iteration == 0 && !seen) {
                 // No slack variables on this problem, so the equality
@@ -365,8 +365,8 @@ TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedO
 
     bool changed = false;
     solver.optimizer_->set_early_callback(
-        [&](int iteration, double, hven::EigenRef<Eigen::VectorXd>, double,
-            hven::EigenRef<Eigen::VectorXd>, hven::EigenRef<Eigen::VectorXd>,
+        [&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
+            hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
             Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
             if (iteration == 0 && !changed) {
                 solver.optimizer_->set_obj_scale(4.0);

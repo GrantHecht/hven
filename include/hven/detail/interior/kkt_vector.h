@@ -8,7 +8,8 @@
 
 // The solver's compound KKT vectors are plain Eigen::VectorXd of length
 // primal_vars + slack_vars + equal_cons + inequal_cons. KKTVector is the
-// non-owning view giving those four blocks names. Deliberately a standalone
+// non-owning view giving those four blocks names, and ConstKKTVector is its
+// read-only twin for storage the holder may not write. Deliberately a standalone
 // header with no InteriorPointSolver dependency: the solver and every
 // globalization component build views from the SAME type, so the segment
 // expressions encoding the layout exist once. Each component supplies its own
@@ -86,7 +87,75 @@ class KKTVector {
     const Eigen::VectorXd &data() const { return data_; }
 
   private:
+    // The read-only twin below is built from these directly: it is the same
+    // layout over the same storage, and re-deriving the widths from segment
+    // sizes would be the same four numbers taken the long way round.
+    friend class ConstKKTVector;
+
     Eigen::VectorXd &data_;
+    int pv_, sv_, ec_, ic_;
+};
+
+/// @brief The READ-ONLY twin of KKTVector: the same four-block layout over
+/// storage the holder may not write.
+///
+/// It exists because a function that only READS a compound vector should be
+/// able to say so in its signature. KKTVector's constructor takes
+/// `Eigen::VectorXd &`, so before this class a const `Eigen::VectorXd` could
+/// not be viewed at all without a const_cast or a copy -- which is why
+/// InteriorPointSolver::enter_feasibility_restoration took its RHS by mutable
+/// reference while never writing it (M6 W5 T2).
+///
+/// DELIBERATELY NOT A TEMPLATE, and this is the whole design decision. The
+/// natural C++ shape is one `BasicKKTVector<Storage>` with `KKTVector` and
+/// `ConstKKTVector` as two alias instantiations. That shape is correct and it
+/// was rejected: `KKTVector` names a type in 28 signatures across 11 files,
+/// including the virtual interfaces of every globalization component, and an
+/// alias does not preserve a mangled name -- `10KKTVector` would become the
+/// template's spelling in every one of them, renaming those functions, the
+/// vtables that reference them and every caller's relocation. Two small
+/// non-template classes cost one duplicated set of segment expressions in one
+/// header and leave every existing symbol exactly where it is.
+///
+/// Converts implicitly from KKTVector, so a caller holding a mutable view can
+/// pass it to a read-only parameter without naming this type. Lifetime: must
+/// not outlive the referenced VectorXd (the KKTVector conversion binds to that
+/// vector, not to the KKTVector).
+class ConstKKTVector {
+  public:
+    ConstKKTVector(const Eigen::VectorXd &data, int pv, int sv, int ec, int ic)
+        : data_(data), pv_(pv), sv_(sv), ec_(ec), ic_(ic) {
+        assert(pv >= 0 && sv >= 0 && ec >= 0 && ic >= 0);
+        assert(data.size() >= pv + sv + ec + ic);
+    }
+
+    /// @brief Implicit read-only view of an existing mutable view, over the
+    ///        SAME storage and with the same block widths.
+    ConstKKTVector(const KKTVector &v) : ConstKKTVector(v.data_, v.pv_, v.sv_, v.ec_, v.ic_) {}
+
+    // --- Primal/slack segments ---
+    auto primals() const { return data_.head(pv_); }
+    auto slacks() const { return data_.segment(pv_, sv_); }
+    auto primals_slacks() const { return data_.head(pv_ + sv_); }
+
+    // --- Multiplier segments ---
+    auto eq_lmults() const { return data_.segment(pv_ + sv_, ec_); }
+    auto iq_lmults() const { return data_.tail(ic_); }
+    auto lmults() const { return data_.tail(ec_ + ic_); }
+
+    // --- Gradient/constraint segments (the same intentional aliases) ---
+    auto prim_grad() const { return data_.head(pv_); }
+    auto dual_grad() const { return data_.segment(pv_, sv_); }
+    auto prim_dual_grad() const { return data_.head(pv_ + sv_); }
+    auto eq_cons() const { return data_.segment(pv_ + sv_, ec_); }
+    auto iq_cons() const { return data_.tail(ic_); }
+    auto all_cons() const { return data_.tail(ec_ + ic_); }
+
+    // --- Full vector access ---
+    const Eigen::VectorXd &data() const { return data_; }
+
+  private:
+    const Eigen::VectorXd &data_;
     int pv_, sv_, ec_, ic_;
 };
 

@@ -330,8 +330,8 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
         NLPSolver solver(std::make_shared<SeedEqOnlyProblem>());
         solver.optimizer_->set_print_level(10);
         solver.optimizer_->set_early_callback(
-            [&](int i, double, Eigen::Ref<Eigen::VectorXd> XSL, double, Eigen::Ref<Eigen::VectorXd>,
-                Eigen::Ref<Eigen::VectorXd>,
+            [&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL, double,
+                hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
                 Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
                 if (i == 0) {
                     unseeded_opt_entry_eq_mult = XSL[2];
@@ -347,8 +347,8 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
         NLPSolver solver(std::make_shared<SeededPhaseEntryEqOnlyProblem>());
         solver.optimizer_->set_print_level(10);
         solver.optimizer_->set_early_callback(
-            [&](int i, double, Eigen::Ref<Eigen::VectorXd> XSL, double, Eigen::Ref<Eigen::VectorXd>,
-                Eigen::Ref<Eigen::VectorXd>,
+            [&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL, double,
+                hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
                 Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
                 if (i == 0) {
                     seeded_opt_entry_eq_mult = XSL[2];
@@ -507,8 +507,9 @@ TEST(NLPMultiplierSeedingTest, OversizedSeedIsCapped) {
 
     double captured_eq_mult = std::numeric_limits<double>::quiet_NaN();
     solver.optimizer_->set_early_callback(
-        [&](int i, double, Eigen::Ref<Eigen::VectorXd> XSL, double, Eigen::Ref<Eigen::VectorXd>,
-            Eigen::Ref<Eigen::VectorXd>, Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
+        [&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL, double,
+            hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
+            Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
             if (i == 0) {
                 captured_eq_mult = XSL[2]; // see SeededSolveOptimizeReachesOptPhase for the layout
             }
@@ -540,8 +541,9 @@ TEST(NLPMultiplierSeedingTest, OversizedIqSeedIsCapped) {
 
     double captured_iq_mult = std::numeric_limits<double>::quiet_NaN();
     solver.optimizer_->set_early_callback(
-        [&](int i, double, Eigen::Ref<Eigen::VectorXd> XSL, double, Eigen::Ref<Eigen::VectorXd>,
-            Eigen::Ref<Eigen::VectorXd>, Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
+        [&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL, double,
+            hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
+            Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
             if (i == 0) {
                 captured_iq_mult = XSL[2];
             }

@@ -955,9 +955,30 @@ class InteriorPointSolver {
     /// which is what every call paid before the epoch gate existed. A call in
     /// which this callback never runs is unaffected and keeps the skip
     /// throughout.
+    ///
+    /// THE THREE VECTOR ARGUMENTS ARE READ-ONLY (M6 W5 T2, a DECLARED BREAK).
+    /// XSL, PGX and RHS are handed over as `ConstEigenRef` -- borrowed views of
+    /// the solver's own storage, valid for the duration of the call, showing
+    /// this iteration at its EVALUATION stage: the model has been evaluated and
+    /// the KKT matrix assembled, and the factorization has not run.
+    ///
+    /// The break is real and it is worth stating exactly, because the previous
+    /// mutable spelling was not an idle one. There was never a documented
+    /// mutation contract for these three -- the contract above is the KKT
+    /// matrix's alone -- but a write to any of them DID reach the solve:
+    /// PGX is READ six lines after this call (`v_rhs.prim_grad() += PGX` folds
+    /// the objective gradient into the Newton right-hand side); RHS's
+    /// constraint blocks are not written again between this call and the
+    /// factorization, so they ARE the right-hand side the step is computed
+    /// from, and its primal block is added to rather than replaced; and XSL is
+    /// the iterate itself, which is updated by `XSL += alpha*DXSL` and never
+    /// overwritten. T2 removes that undocumented ability. No callback in this
+    /// repository or in tycho relied on it -- every one of them only reads --
+    /// but a consumer that did would change behaviour, not merely fail to
+    /// compile.
     using EarlyCallBackType =
-        std::function<int(int, double, EigenRef<VectorXd>, double, EigenRef<VectorXd>,
-                          EigenRef<VectorXd>, Eigen::SparseMatrix<double, Eigen::RowMajor> &)>;
+        std::function<int(int, double, ConstEigenRef<VectorXd>, double, ConstEigenRef<VectorXd>,
+                          ConstEigenRef<VectorXd>, Eigen::SparseMatrix<double, Eigen::RowMajor> &)>;
 
     /// Type of the per-iteration late callback (same variable-space caveat --
     /// see EarlyCallBackType's note).
@@ -2057,6 +2078,12 @@ class InteriorPointSolver {
     KKTVector kkt_view(Eigen::VectorXd &v) {
         return KKTVector(v, primal_vars_, slack_vars_, equal_cons_, inequal_cons_);
     }
+    /// @brief The read-only view over const storage, same dimensions. Chosen by
+    ///        overload resolution, so a member that only reads its vector can
+    ///        take it by `const Eigen::VectorXd &` and still say `kkt_view(v)`.
+    ConstKKTVector kkt_view(const Eigen::VectorXd &v) const {
+        return ConstKKTVector(v, primal_vars_, slack_vars_, equal_cons_, inequal_cons_);
+    }
 
     // --- Phase sequence ---
     // Describes one phase in a multi-phase solve strategy. run_phase_sequence
@@ -2399,19 +2426,22 @@ class InteriorPointSolver {
     // notify the acceptance strategy of the switch and reset the recovery chain.
     // Passed the raw XSL/RHS blocks (KKTVector views are rebuilt inside) so it is
     // directly drivable from a friend test harness. `mu` is updated in place.
-    void enter_feasibility_restoration(Eigen::VectorXd &XSL, Eigen::VectorXd &RHS, double prim_obj,
-                                       double barr_obj, double &mu);
+    // RHS is READ ONLY -- the entry measures its constraint block, seeds the
+    // nested phase and the raw-residual scratch from it, and never writes it --
+    // and since M6 W5 T2 the signature says so.
+    void enter_feasibility_restoration(Eigen::VectorXd &XSL, const Eigen::VectorXd &RHS,
+                                       double prim_obj, double barr_obj, double &mu);
 
     // The restoration-entry dispatch, in the ONE order every entry site uses:
     // record `theta` as the stall detector's handback yardstick, enter
     // restoration, then re-arm the stall window. Ordering matters because
-    // enter_feasibility_restoration takes XSL/RHS by non-const reference; it
-    // does not write RHS today, but nothing in its signature says so.
+    // enter_feasibility_restoration mutates XSL (the entry multiplier init) and
+    // `mu`; RHS is const, so this order cannot be reasoned about through it.
     // `theta` stays a parameter: each site already has the constraint violation
     // it needs in hand, and computing it here instead would add a reduction at
     // two of them.
-    void dispatch_restoration_entry(Eigen::VectorXd &XSL, Eigen::VectorXd &RHS, double prim_obj,
-                                    double barr_obj, double &mu, double theta,
+    void dispatch_restoration_entry(Eigen::VectorXd &XSL, const Eigen::VectorXd &RHS,
+                                    double prim_obj, double barr_obj, double &mu, double theta,
                                     FeasibilityStallDetector &feas_stall);
 
     // The restoration EXIT protocol, in the one order every exit site must use:
@@ -2471,7 +2501,11 @@ class InteriorPointSolver {
     // restoration entry guards, the proximal exit test and the stall detector all
     // measure. One home for the reduction (v.all_cons() is exactly the
     // tail(equal_cons_ + inequal_cons_) of either spelling).
-    double constraint_violation_l1(KKTVector &v) const;
+    //
+    // Takes the READ-ONLY view (M6 W5 T2): it reduces and never writes, and its
+    // mutable parameter was why enter_feasibility_restoration held a mutable
+    // RHS. A KKTVector converts implicitly, so no call site changes.
+    double constraint_violation_l1(const ConstKKTVector &v) const;
 
     // Original-problem infeasibility (∞-norm) for an active NESTED restoration
     // phase, taken from the raw equality/inequality residuals the eval seam saves

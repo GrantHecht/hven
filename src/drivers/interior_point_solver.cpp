@@ -1255,10 +1255,16 @@ hven::solvers::ProgressMeasures hven::solvers::InteriorPointSolver::build_restor
 // kSwitchToFeasibility case. Dead on the default path (only reached with
 // restoration_ non-null). Factors the entry sub-steps once so the proximal and
 // nested families do not duplicate the notify/recovery-reset scaffolding.
-void hven::solvers::InteriorPointSolver::enter_feasibility_restoration(
-    Eigen::VectorXd &XSL, Eigen::VectorXd &RHS, double prim_obj, double barr_obj, double &mu) {
+void hven::solvers::InteriorPointSolver::enter_feasibility_restoration(Eigen::VectorXd &XSL,
+                                                                       const Eigen::VectorXd &RHS,
+                                                                       double prim_obj,
+                                                                       double barr_obj,
+                                                                       double &mu) {
     KKTVector v_xsl = kkt_view(XSL);
-    KKTVector v_rhs = kkt_view(RHS);
+    // RHS is read five times below and written never, so it is viewed through
+    // the READ-ONLY twin (M6 W5 T2). XSL keeps the mutable view: the entry
+    // multiplier init writes its two multiplier blocks.
+    ConstKKTVector v_rhs = kkt_view(RHS);
 
     // The entry measures are the TRUE-objective (θ, f) at the current iterate —
     // this point was evaluated in optimality mode; restoration begins next
@@ -1329,7 +1335,7 @@ void hven::solvers::InteriorPointSolver::enter_feasibility_restoration(
 // Restoration-entry dispatch: one owner of the note_dispatch / entry /
 // reset_window ordering. See the declaration in interior_point_solver.h.
 void hven::solvers::InteriorPointSolver::dispatch_restoration_entry(
-    Eigen::VectorXd &XSL, Eigen::VectorXd &RHS, double prim_obj, double barr_obj, double &mu,
+    Eigen::VectorXd &XSL, const Eigen::VectorXd &RHS, double prim_obj, double barr_obj, double &mu,
     double theta, FeasibilityStallDetector &feas_stall) {
     // A stage resumed after an episode restarts its stall window, and this entry
     // becomes the handback the stall exit measures net progress against.
@@ -1478,7 +1484,7 @@ bool hven::solvers::InteriorPointSolver::resto_ratchet_passes(double theta_orig)
 }
 
 // ‖c‖₁ over a KKT vector's constraint block. See the declaration in interior_point_solver.h.
-double hven::solvers::InteriorPointSolver::constraint_violation_l1(KKTVector &v) const {
+double hven::solvers::InteriorPointSolver::constraint_violation_l1(const ConstKKTVector &v) const {
     return v.all_cons().template lpNorm<1>();
 }
 

@@ -17,6 +17,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
@@ -31,6 +32,7 @@
 
 #include <fmt/format.h>
 
+#include "hven/detail/globalization/l1_restoration.h"
 #include "hven/detail/globalization/recovery_chain.h"
 #include "hven/drivers/interior_point_solver.h"
 #include "hven/model/nlp_solver.h"
@@ -224,8 +226,9 @@ struct FirstIterateProbe {
         this->primal_.resize(0);
         this->seen_ = false;
         opt.set_early_callback(
-            [this, reduced_primal_vars](int iter, double, Eigen::Ref<Eigen::VectorXd> xsl, double,
-                                        Eigen::Ref<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd>,
+            [this, reduced_primal_vars](int iter, double, hven::ConstEigenRef<Eigen::VectorXd> xsl,
+                                        double, hven::ConstEigenRef<Eigen::VectorXd>,
+                                        hven::ConstEigenRef<Eigen::VectorXd>,
                                         Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
                 if (iter == 0 && !this->seen_) {
                     this->primal_ = xsl.head(reduced_primal_vars);
@@ -1421,6 +1424,100 @@ TEST(IpmWarmStart, ARestorationActiveExitExportsTheCoreWithoutThePolishTag) {
     // AND NO EXTENSION AT ALL -- not one carrying restoration-space values.
     EXPECT_TRUE(warm.extensions_.empty());
     EXPECT_EQ(hven::solvers::find_ipm_polish(warm), nullptr);
+}
+
+// The same fixture with a MULTIPLIER SEED, so the restoration entry's two
+// multiplier writes below are discriminating rather than no-ops: 7 is not zero,
+// and 5e3 is above rho. Everything else is inherited unchanged.
+struct WarmInfeasibleSeededMultProblem : WarmInfeasibleBoundedProblem {
+    static constexpr double kEqSeed = 7.0;
+    static constexpr double kIqSeed = 5.0e3;
+    bool starting_multipliers(Eigen::Ref<Eigen::VectorXd> lambda) const override {
+        lambda << kEqSeed, kIqSeed;
+        return true;
+    }
+    std::string name() const override { return "WarmInfeasibleSeededMult"; }
+};
+
+// THE RESTORATION ENTRY READS THE RHS AND WRITES XSL AND MU -- STILL (M6 W5 T2).
+//
+// enter_feasibility_restoration wrote only XSL and mu while holding RHS by
+// MUTABLE reference; T2 made that parameter const. The signature is the
+// compiler's business -- what is checked here is the BODY.
+//
+// On the one fixture that reaches the entry, its writes are the ones it made.
+//
+// The instrument is the early callback, which sees the iterate on both sides of
+// the entry: it fires at the top of every iteration, the entry happens during
+// iteration 0, and the fixture is capped at two.
+TEST(IpmWarmStart, ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToTheEntryFloor) {
+    NLPSolver solver(std::make_shared<WarmInfeasibleSeededMultProblem>());
+    solver.optimizer_->set_print_level(10);
+    solver.optimizer_->apply_preset("filter_l1");
+    solver.optimizer_->set_max_iters(2);
+
+    // WarmInfeasibleBoundedProblem: 2 primals, 1 inequality row (so 1 slack),
+    // 1 equality row. XSL is [x(2) | s(1) | lambda_e(1) | lambda_i(1)].
+    constexpr int kPrimals = 2, kSlacks = 1, kEq = 1, kIq = 1;
+
+    std::vector<double> eq_mult, iq_mult, eq_resid_inf, iq_resid_inf, late_mu;
+    solver.optimizer_->set_early_callback([&](int, double, hven::ConstEigenRef<Eigen::VectorXd> xsl,
+                                              double, hven::ConstEigenRef<Eigen::VectorXd>,
+                                              hven::ConstEigenRef<Eigen::VectorXd> rhs,
+                                              Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+        eq_mult.push_back(xsl.segment(kPrimals + kSlacks, kEq)[0]);
+        iq_mult.push_back(xsl.tail(kIq).maxCoeff());
+        eq_resid_inf.push_back(rhs.segment(kPrimals + kSlacks, kEq).cwiseAbs().maxCoeff());
+        iq_resid_inf.push_back(rhs.tail(kIq).cwiseAbs().maxCoeff());
+        return 0;
+    });
+    solver.optimizer_->set_late_callback([&](const hven::solvers::IterateInfo &info,
+                                             hven::ConstEigenRef<Eigen::VectorXd>,
+                                             hven::ConstEigenRef<Eigen::VectorXd>) {
+        late_mu.push_back(info.mu_);
+        return 0;
+    });
+
+    Eigen::VectorXd x0(2);
+    x0 << 0.0, 0.0;
+    // NLPSolver's own entry point, not the optimizer's: the multiplier seed is
+    // staged by the transcription step, which the optimizer-level entry skips.
+    solver.optimize(x0);
+
+    const auto &result = solver.optimizer_->result();
+    ASSERT_GT(result.last_feas_rest_entries_, 0)
+        << "the fixture must actually reach feasibility restoration";
+    ASSERT_GE(eq_mult.size(), 2u)
+        << "the entry happens during iteration 0, so a post-entry observation needs a second "
+           "iteration to have run";
+
+    // CONTENT FIRST: at the pre-entry observation both multipliers still carry
+    // the seed, so neither write below can pass by standing still.
+    EXPECT_EQ(eq_mult[0], WarmInfeasibleSeededMultProblem::kEqSeed);
+    EXPECT_EQ(iq_mult[0], WarmInfeasibleSeededMultProblem::kIqSeed);
+    EXPECT_GT(iq_mult[0], hven::solvers::kRestoPenaltyParameter)
+        << "the inequality seed must exceed rho, or the clamp below is a no-op";
+
+    // The two writes, on the far side of the entry, exactly.
+    EXPECT_EQ(eq_mult[1], 0.0)
+        << "the entry init sets the free-sign equality multipliers to exactly zero (Ipopt's "
+           "least_square_mults at the shipped reset threshold)";
+    EXPECT_EQ(iq_mult[1], hven::solvers::kRestoPenaltyParameter)
+        << "the inequality/slack multipliers take the min(rho, current) clamp, so a seed above "
+           "rho lands exactly on rho";
+
+    // mu <- entry_mu() = max(outer mu, ||h||_inf, ||g+s||_inf). Two of the three
+    // terms are the RHS constraint blocks the early callback is handed -- the
+    // view T2 made read-only -- so the bound below is read from that view.
+    //
+    // A FLOOR and not an equality on purpose: the third term is the live outer
+    // mu at the instant of entry, which no callback can see (the late record is
+    // already post-entry), and here it is the term that wins the max.
+    ASSERT_GE(late_mu.size(), 1u);
+    const double entry_floor = std::max(eq_resid_inf[0], iq_resid_inf[0]);
+    EXPECT_GT(entry_floor, 0.0) << "an entry at a feasible point would make the floor vacuous";
+    EXPECT_GE(late_mu[0], entry_floor)
+        << "mu <- entry_mu() = max(outer mu, ||h||_inf, ||g+s||_inf) over the ENTRY residuals";
 }
 
 // The other half of the same gate: a BOUNDED solve that ends Optimal under the

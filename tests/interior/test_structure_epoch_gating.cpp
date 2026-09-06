@@ -21,10 +21,16 @@
 
 #include <gtest/gtest.h>
 
+#include <cstddef>
+#include <functional>
+#include <limits>
 #include <memory>
 #include <string>
+#include <type_traits>
+#include <vector>
 
 #include <Eigen/Core>
+#include <Eigen/SparseCore>
 
 #include "hven/drivers/interior_point_solver.h"
 #include "hven/model/nlp_solver.h"
@@ -250,8 +256,9 @@ TEST(StructureEpochGating, ASolveThatHandsOutTheKktMatrixVerifiesThePatternThrou
     with_callback.optimizer_->set_print_level(3);
     int callback_calls = 0;
     with_callback.optimizer_->set_early_callback(
-        [&](int, double, hven::EigenRef<Eigen::VectorXd>, double, hven::EigenRef<Eigen::VectorXd>,
-            hven::EigenRef<Eigen::VectorXd>, Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+        [&](int, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
+            hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
+            Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
             ++callback_calls;
             return 0;
         });
@@ -291,8 +298,8 @@ TEST(StructureEpochGating, TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCa
     NLPSolver solver(std::make_shared<EpochGateBoxedProblem>());
     solver.optimizer_->set_print_level(3);
     solver.optimizer_->set_early_callback(
-        [&](int iteration, double, hven::EigenRef<Eigen::VectorXd>, double,
-            hven::EigenRef<Eigen::VectorXd>, hven::EigenRef<Eigen::VectorXd>,
+        [&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
+            hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
             Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
             if (iteration == 0) {
                 solver.optimizer_->disable_early_callback();
@@ -332,8 +339,8 @@ TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifies
         if (!armed) {
             armed = true;
             solver.optimizer_->set_early_callback(
-                [&](int, double, hven::EigenRef<Eigen::VectorXd>, double,
-                    hven::EigenRef<Eigen::VectorXd>, hven::EigenRef<Eigen::VectorXd>,
+                [&](int, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
+                    hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
                     Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
                     ++early_callback_calls;
                     return 0;
@@ -391,8 +398,8 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
     bool mutating_captured = false;
     Eigen::VectorXd mutating_first_step;
     mutating.optimizer_->set_early_callback(
-        [&](int iteration, double, hven::EigenRef<Eigen::VectorXd>, double,
-            hven::EigenRef<Eigen::VectorXd>, hven::EigenRef<Eigen::VectorXd>,
+        [&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
+            hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
             Eigen::SparseMatrix<double, Eigen::RowMajor> &kkt) {
             // hess_structure() declares (0, 0) for every solve of this problem, so
             // this coefficient is always already present -- a write into an
@@ -406,21 +413,21 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
             return 0;
         });
     int mutating_late_calls = 0;
-    mutating.optimizer_->set_late_callback(
-        [&](const hven::solvers::IterateInfo &, hven::ConstEigenRef<Eigen::VectorXd> xsl,
-            hven::ConstEigenRef<Eigen::VectorXd>) {
-            // The late callback for iteration i fires with the iterate i started
-            // from -- XSL += alpha*DXSL, the commit of iteration i's step, runs
-            // after this call, not before it (see interior_point_solver.cpp). So
-            // the SECOND call (iteration 1) is what carries iteration 0's step:
-            // the iterate the mutated factorization actually produced.
-            ++mutating_late_calls;
-            if (mutating_late_calls == 2 && !mutating_captured) {
-                mutating_captured = true;
-                mutating_first_step = xsl.head(EpochGateBoxedProblem::kN);
-            }
-            return 0;
-        });
+    mutating.optimizer_->set_late_callback([&](const hven::solvers::IterateInfo &,
+                                               hven::ConstEigenRef<Eigen::VectorXd> xsl,
+                                               hven::ConstEigenRef<Eigen::VectorXd>) {
+        // The late callback for iteration i fires with the iterate i started
+        // from -- XSL += alpha*DXSL, the commit of iteration i's step, runs
+        // after this call, not before it (see interior_point_solver.cpp). So
+        // the SECOND call (iteration 1) is what carries iteration 0's step:
+        // the iterate the mutated factorization actually produced.
+        ++mutating_late_calls;
+        if (mutating_late_calls == 2 && !mutating_captured) {
+            mutating_captured = true;
+            mutating_first_step = xsl.head(EpochGateBoxedProblem::kN);
+        }
+        return 0;
+    });
     ASSERT_EQ(mutating.optimize(epoch_gate_start_point()), hven::ConvergenceFlags::CONVERGED);
     ASSERT_TRUE(mutating_captured)
         << "the mutating run's late callback never reached a second iteration, so no "
@@ -431,16 +438,16 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
     bool control_captured = false;
     Eigen::VectorXd control_first_step;
     int control_late_calls = 0;
-    control.optimizer_->set_late_callback(
-        [&](const hven::solvers::IterateInfo &, hven::ConstEigenRef<Eigen::VectorXd> xsl,
-            hven::ConstEigenRef<Eigen::VectorXd>) {
-            ++control_late_calls;
-            if (control_late_calls == 2 && !control_captured) {
-                control_captured = true;
-                control_first_step = xsl.head(EpochGateBoxedProblem::kN);
-            }
-            return 0;
-        });
+    control.optimizer_->set_late_callback([&](const hven::solvers::IterateInfo &,
+                                              hven::ConstEigenRef<Eigen::VectorXd> xsl,
+                                              hven::ConstEigenRef<Eigen::VectorXd>) {
+        ++control_late_calls;
+        if (control_late_calls == 2 && !control_captured) {
+            control_captured = true;
+            control_first_step = xsl.head(EpochGateBoxedProblem::kN);
+        }
+        return 0;
+    });
     ASSERT_EQ(control.optimize(epoch_gate_start_point()), hven::ConvergenceFlags::CONVERGED);
     ASSERT_TRUE(control_captured)
         << "the control run's late callback never reached a second iteration, so no "
@@ -463,4 +470,214 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
     EXPECT_EQ(control.optimizer_->kkt_factor_counters().pattern_verify_count, 0)
         << "the callback-free control run keeps the skip, isolating that the counter's movement "
            "above is the callback's doing and not something the problem itself triggers";
+}
+
+// ---------------------------------------------------------------------------
+// THE EARLY CALLBACK'S THREE VECTORS ARE READ-ONLY, AND THEY SHOW THE ITERATE
+// THE MODEL WAS JUST EVALUATED AT (M6 W5 T2).
+//
+// The tests above pin what the callback may do with the KKT MATRIX. These pin
+// the other half of the hand-out: what the three vector arguments ARE, and that
+// the signature says they may not be written.
+//
+// The type pin is a static_assert, so a future relaxation back to a mutable
+// view is a COMPILE-TIME event in this file rather than a silent widening of
+// what a callback may do to a solve in flight.
+//
+// It matters that it is loud. A write to any of the three DID reach the solve
+// before T2: PGX is folded into the Newton right-hand side six lines on, the
+// RHS constraint blocks ARE that side, and XSL is the iterate.
+static_assert(
+    std::is_same_v<hven::solvers::InteriorPointSolver::EarlyCallBackType,
+                   std::function<int(int, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
+                                     hven::ConstEigenRef<Eigen::VectorXd>,
+                                     hven::ConstEigenRef<Eigen::VectorXd>,
+                                     Eigen::SparseMatrix<double, Eigen::RowMajor> &)>>,
+    "EarlyCallBackType's three vector arguments are BORROWED READ-ONLY VIEWS and its KKT "
+    "matrix argument is a MUTABLE reference. Changing either half changes what a callback "
+    "may do to a solve in flight -- see the contract on EarlyCallBackType and the M6 W5 "
+    "migration guide before touching this line.");
+static_assert(std::is_same_v<hven::solvers::InteriorPointSolver::LateCallBackType,
+                             std::function<int(const hven::solvers::IterateInfo &,
+                                               hven::ConstEigenRef<Eigen::VectorXd>,
+                                               hven::ConstEigenRef<Eigen::VectorXd>)>>,
+              "LateCallBackType was already const in both vectors and T2 did not touch it.");
+
+// An equality-only, bound-free problem that RECORDS what the solver handed it
+// and what it handed back -- the oracle for the three views, which carry the
+// model's own doubles, so every comparison below is EXPECT_EQ and none is NEAR.
+//
+//   min x0^2 + x1^2   s.t.  x0 + x1 == 2
+//
+// No bounds and no inequality rows, deliberately: with no slack block the
+// layout is [primals | eq multipliers] / [obj_scale*grad f | c_eq], so each
+// comparison names one whole block with nothing condensed into it.
+//
+// (apply_reset_slacks rewrites the INEQUALITY residual into g(x)+s; there is no
+// such row here, so the constraint block is exactly eval_g's output less the
+// row bound.)
+namespace {
+
+struct CallbackOracleProblem : NLPProblem {
+    static constexpr int kN = 2;
+    static constexpr double kInf = std::numeric_limits<double>::infinity();
+    static constexpr double kRhs = 2.0;
+
+    // The last (x, output) pair each hook saw. Mutable because the model
+    // interface is const -- this is a recording instrument, not solver state.
+    mutable Eigen::VectorXd last_grad_x_, last_grad_f_, last_g_x_, last_g_;
+
+    int num_vars() const override { return kN; }
+    int num_cons() const override { return 1; }
+    int num_jac_nonzeros() const override { return kN; }
+    int num_hess_nonzeros() const override { return kN; }
+
+    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
+                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+        xl.setConstant(-kInf);
+        xu.setConstant(kInf);
+        gl.setConstant(kRhs);
+        gu.setConstant(kRhs);
+    }
+    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+        f = x[0] * x[0] + x[1] * x[1];
+    }
+    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
+                     Eigen::Ref<Eigen::VectorXd> g) const override {
+        g[0] = 2.0 * x[0];
+        g[1] = 2.0 * x[1];
+        this->last_grad_x_ = x;
+        this->last_grad_f_ = g;
+    }
+    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+        g[0] = x[0] + x[1];
+        this->last_g_x_ = x;
+        this->last_g_ = g;
+    }
+    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
+                       Eigen::Ref<Eigen::VectorXi> c) const override {
+        r << 0, 0;
+        c << 0, 1;
+    }
+    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
+                        Eigen::Ref<Eigen::VectorXi> c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+        v[0] = 1.0;
+        v[1] = 1.0;
+    }
+    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
+                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+        v[0] = 2.0 * obj_factor;
+        v[1] = 2.0 * obj_factor;
+    }
+    std::string name() const override { return "CallbackOracleProblem"; }
+};
+
+// Bit-level equality over a whole block: the two are the same doubles, so
+// nothing here is a tolerance.
+void expect_block_eq(const Eigen::VectorXd &got, const Eigen::VectorXd &want, const char *what,
+                     int iteration) {
+    ASSERT_EQ(got.size(), want.size()) << what << " at iteration " << iteration;
+    for (Eigen::Index k = 0; k < got.size(); k++) {
+        EXPECT_EQ(got[k], want[k]) << what << " at iteration " << iteration << ", entry " << k;
+    }
+}
+
+} // namespace
+
+TEST(EarlyCallbackViews, TheThreeVectorsAreTheModelsOwnNumbersAtThisIterationsEvaluation) {
+    constexpr double kObjScale = 3.0;
+
+    auto problem = std::make_shared<CallbackOracleProblem>();
+    NLPSolver solver(problem);
+    solver.optimizer_->set_print_level(10);
+    solver.optimizer_->set_obj_scale(kObjScale);
+
+    int early_calls = 0;
+    solver.optimizer_->set_early_callback([&](int iteration, double obj_scale,
+                                              hven::ConstEigenRef<Eigen::VectorXd> xsl, double,
+                                              hven::ConstEigenRef<Eigen::VectorXd> pgx,
+                                              hven::ConstEigenRef<Eigen::VectorXd> rhs,
+                                              Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+        ++early_calls;
+        // The scale the callback is handed is the one the solve is running
+        // at, which is what everything below is measured against.
+        EXPECT_EQ(obj_scale, kObjScale) << "iteration " << iteration;
+
+        // (1) XSL's primal block IS the x the model was called with. Both
+        //     hooks were called at it, and both recorded the same point.
+        expect_block_eq(xsl.head(CallbackOracleProblem::kN), problem->last_grad_x_,
+                        "XSL primal block vs the x eval_grad_f saw", iteration);
+        expect_block_eq(xsl.head(CallbackOracleProblem::kN), problem->last_g_x_,
+                        "XSL primal block vs the x eval_g saw", iteration);
+
+        // (2) PGX IS obj_scale times the gradient the model returned --
+        //     eval_kkt's convention. The scale never reaches eval_grad_f,
+        //     which always reports the caller's own df/dx.
+        Eigen::VectorXd scaled_grad = kObjScale * problem->last_grad_f_;
+        expect_block_eq(pgx, scaled_grad, "PGX vs obj_scale * eval_grad_f", iteration);
+
+        // (3) The RHS constraint block IS the residual the model returned,
+        //     shifted by the row's own bound -- g(x) - gl on an equality
+        //     row, with no slack block to complete.
+        Eigen::VectorXd residual = problem->last_g_;
+        residual.array() -= CallbackOracleProblem::kRhs;
+        expect_block_eq(rhs.tail(1), residual, "RHS equality block vs eval_g - bound", iteration);
+        return 0;
+    });
+
+    ASSERT_EQ(solver.optimize(Eigen::VectorXd::Constant(CallbackOracleProblem::kN, 0.0)),
+              hven::ConvergenceFlags::CONVERGED);
+    EXPECT_GT(early_calls, 0) << "the early callback never ran, so nothing was observed";
+}
+
+// THE CLOCK. The early and late callbacks of ONE iteration are handed the same
+// XSL storage, and nothing writes it between them on the default path: the step
+// commit sits BELOW the late site (the mutating-coefficient test says so too).
+//
+// So the two agree BIT FOR BIT, which is what dates the three views: "the early
+// callback shows this iteration's evaluation point" becomes checkable rather
+// than descriptive.
+//
+// (The one in-loop writer of XSL above the commit is the restoration entry's
+// multiplier re-init, dead here -- no restoration strategy is configured.
+// test_ipm_warm_start.cpp pins that write where it is not dead.)
+TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
+    auto problem = std::make_shared<CallbackOracleProblem>();
+    NLPSolver solver(problem);
+    solver.optimizer_->set_print_level(10);
+
+    std::vector<Eigen::VectorXd> early_xsl, late_xsl;
+    solver.optimizer_->set_early_callback([&](int, double, hven::ConstEigenRef<Eigen::VectorXd> xsl,
+                                              double, hven::ConstEigenRef<Eigen::VectorXd>,
+                                              hven::ConstEigenRef<Eigen::VectorXd>,
+                                              Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+        early_xsl.emplace_back(xsl);
+        return 0;
+    });
+    solver.optimizer_->set_late_callback([&](const hven::solvers::IterateInfo &,
+                                             hven::ConstEigenRef<Eigen::VectorXd> xsl,
+                                             hven::ConstEigenRef<Eigen::VectorXd>) {
+        late_xsl.emplace_back(xsl);
+        return 0;
+    });
+
+    ASSERT_EQ(solver.optimize(Eigen::VectorXd::Constant(CallbackOracleProblem::kN, 0.0)),
+              hven::ConvergenceFlags::CONVERGED);
+    ASSERT_GE(early_xsl.size(), 2u) << "fewer than two iterations, so there is no clock to check";
+    ASSERT_GE(late_xsl.size(), early_xsl.size());
+
+    for (std::size_t i = 0; i < early_xsl.size(); i++) {
+        expect_block_eq(early_xsl[i], late_xsl[i],
+                        "early(i).XSL vs late(i).XSL -- the same storage, and the step commit is "
+                        "below the late-callback site",
+                        static_cast<int>(i));
+    }
+
+    // And the iterate DID move between iterations, so the equality above is a
+    // statement about the clock and not about a solve that stood still.
+    EXPECT_NE(early_xsl[0], early_xsl[1]);
 }
