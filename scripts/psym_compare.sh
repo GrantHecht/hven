@@ -1340,13 +1340,21 @@ function imm(s) { if (match(s, /\$0x[0-9a-f]+/)) return substr(s, RSTART + 3, RL
 # a second, free strictness: two pads that render identically but occupy
 # different numbers of bytes now DIFFER.
 #
-# SO THE POSITIONAL PATH CANNOT TAKE THIS ROUTE, and does not: its input is
-# the listing normalize_raw() makes, which carries no annotation, so rule 5 cannot be
-# checked and pad_only() DECLINES with `PAD-ROUTE DECLINED (no pad byte
-# lengths...)`. The object then falls through to the per-symbol layer exactly as
-# it does for every other positional failure, and the per-symbol layer -- which
-# has the annotation -- is the verdict. That is the conservative direction and
-# it is what closes the mask the lane found, on the path they demonstrated it on.
+# SO THE POSITIONAL PATH CANNOT TAKE THIS ROUTE WHENEVER RULE 5 HAS ANYTHING TO
+# SAY: its input is the listing normalize_raw() makes, which carries no
+# annotation, so a pair with a shifted control-transfer target DECLINES with
+# `PAD-ROUTE DECLINED (no pad byte lengths...)` and falls through to the
+# per-symbol layer exactly as it does for every other positional failure -- and
+# the per-symbol layer, which has the annotation, is the verdict. That is the
+# conservative direction and it is what closes the mask the lane found, on the
+# path they demonstrated it on.
+#
+# It is NOT true that the positional path can never take the route at all
+# (corrected by the SQP lane at the T6.0 fix1 review, M6): where the pad count
+# moved and NO target shifted, rule 5 has nothing to check -- there is no
+# observable consequence for the byte change to have to explain -- and rules 1-4
+# decide on their own, with or without the annotation. That case is a pad run
+# with nothing after it in the symbol, which is exactly a trailing pad.
 #
 # THE RESIDUAL LIMIT, stated so that it is not re-discovered: after rule 5 a
 # retargeting is masked ONLY if its delta EQUALS the pad delta exactly -- i.e.

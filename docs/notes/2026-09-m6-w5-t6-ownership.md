@@ -169,13 +169,20 @@ new declared surface, because it is already declared in `include/hven/drivers/sq
 kernels TU includes that header and calls it exactly as it does today. It is named here so T6.d's
 P-SYM claim lists it rather than meeting it.
 
-**The moving set has a TEST-FACING surface.** Both kernels are called directly from FOUR test TUs —
-`tests/sqp/test_sqp_driver.cpp`, `tests/sqp/test_ipqp_dispatch.cpp`, `tests/sqp/test_qp_mode_sites.cpp`,
-`tests/sqp/test_trace_writer.cpp` — and `predicted_decrease` from `tests/sqp/test_sqp_driver.cpp`.
-Those four objects are in the P-SYM set, so the claim must say what happens to them: they call the
-same declared functions through the same header, so their codegen should be unchanged EXCEPT where a
-body they inlined is now behind a TU boundary — which is exactly the de-inlining cut (d) is
-measuring, and which the §11.4 caller disassembly must name.
+**The moving set has a TEST-FACING surface — THREE TUs, not four.** Corrected by the SQP lane at
+the T6.0 fix1 review (A3) and re-checked at source: the DIRECT calls are 15 in
+`tests/sqp/test_sqp_driver.cpp`, 3 in `tests/sqp/test_ipqp_dispatch.cpp`, **0** in
+`tests/sqp/test_qp_mode_sites.cpp` — its three mentions are all COMMENTS — and 1 in
+`tests/sqp/test_trace_writer.cpp`; `predicted_decrease` adds `tests/sqp/test_sqp_driver.cpp`.
+
+**Their expectation under (d) is BYTE-IDENTICAL, and the reason is structural, not hopeful.** Both
+kernels are DEFINED in `src/drivers/sqp_driver.cpp` and only DECLARED in the header, so no test TU
+has ever seen a body to inline: every one of those 19 calls is already a relocated call to an
+external symbol, and moving the definition to another TU of the same library changes neither the
+call nor the relocation. The three objects are therefore in the P-SYM claim as byte-identical, and
+a DIFFERS on any of them is a finding. The de-inlining cut (d) actually risks is INSIDE
+`sqp_driver.cpp`, where the bodies are visible today — which is what the §11.4 caller disassembly
+must name.
 
 ### §1.5 `SqpDriver` member functions in this TU
 
@@ -239,7 +246,13 @@ The two state types of §5 F1 are not the whole universe (astra §2). Four dispo
 
 Grouped by role; every name listed. "Mutated at" is exhaustive within `solve_impl_body`.
 
-**A. Solve invariants (const after `prepare_solve`).**
+**A. Solve invariants (const after `prepare_solve`).** Five of the names below turned out NOT to be
+solve-scope state when cut (a) came to type them, and are recorded here rather than left as a
+discrepancy between this table and the code: `ipm_mode` (`:2042`, read only at `:2050`),
+`warm_ingest` (`:2277`), `warm_dims_plausible` (`:2216`), `ingest_allowed` (`:2231`) and
+`probe_is_worth_running` (`:2239`) are read NOWHERE after the loop begins, so they are
+`prepare_solve` locals and not `SolveState` members. The membership test is exactly that: a name is
+in the bundle iff something at or after `:2680` reads or writes it.
 
 | name | decl | init | disposition |
 |---|---|---|---|
