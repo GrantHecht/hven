@@ -2980,6 +2980,45 @@ class SqpDriver {
     void prepare_solve(SolveState &st, AggregateEvalSeam &seam, const Vec &x0,
                        const WarmStart &warm, std::unique_ptr<GlobalizationStrategy> strategy);
 
+    /// @brief The per-major routing bundle, DEFINED IN THE .cpp.
+    ///
+    /// Forward-declared and nothing more, exactly as `SolveState` above: it is
+    /// a `.cpp`-internal shape and no consumer of this header can name it.
+    struct MajorState;
+
+    /// @brief The kSsn dispatch arm (M6 W5 T6 cut (b)).
+    ///
+    /// Solves this major's subproblem on the semismooth-Newton tier and either
+    /// writes `mj.qs` or hands the subproblem to the walk. It emits its own
+    /// `qp.mode` line before returning, and it owns the deferred face
+    /// refinement's single producer and both of its consumers.
+    void route_through_ssn_tier(SolveState &st, MajorState &mj);
+
+    /// @brief The kIpm dispatch arm -- the section 2.3 routing chain (cut (b)).
+    /// @param seam           the evaluation seam, for the symbolic hoist's epoch.
+    /// @param iter           this major's index, for the trace and the escape ladder.
+    /// @param tr_shrink_retry true on a pass that did not rebuild the subproblem:
+    ///        it neither re-centres the cross-major carry nor charges the ladder.
+    /// @param overrides      the caller's own walk levers, which the certified
+    ///        feasibility fallback runs with.
+    /// @param row            this major's row; the fallback measures into it.
+    /// @param row_qp_mode    corrected to kSsn on the two warm-grade routes.
+    ///
+    /// Emits every one of its own trace lines before returning.
+    void route_through_ipqp_tier(SolveState &st, MajorState &mj, AggregateEvalSeam &seam,
+                                 Index iter, bool tr_shrink_retry, const SolveOverrides &overrides,
+                                 SqpIterate &row, IpqpTraceQpMode &row_qp_mode);
+
+    /// @brief The walk invocation -- the ONE shared successor of the dispatch
+    ///        (cut (b)), reached from the kWalk arm, an IPQP retirement, an IPQP
+    ///        domain decline, or an SSN hand-off.
+    ///
+    /// Not the elastic ladder's walk, which runs inside the kIpm arm with
+    /// `walk_owns_this_qp` false and stays there.
+    void solve_with_walk(SolveState &st, MajorState &mj, const WarmStart &warm,
+                         const SolveOverrides &overrides, bool offer_hot, bool use_crash,
+                         IpqpTraceQpMode &row_qp_mode);
+
     // See this header's SUBPROBLEM FAILURE ROUTING note. Reached only after the
     // one-shot retry has already been spent -- and never with kInfeasible (the
     // elastic tier consumes that status upstream), which is why the
