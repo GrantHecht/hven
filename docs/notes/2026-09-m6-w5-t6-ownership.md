@@ -778,6 +778,24 @@ moved static initialisation or tables.
   on EITHER leg is a **veto trigger**, regardless of the corpus total. "Within noise, direction
   noted" is a description, never a pass.
 
+* **LAYOUT-MOVED vs WORK-MOVED — the owner's amendment, ruled 2026-09-06 on cut (a)'s numbers
+  (relayed by the settler; source: the SQP lane's T6.a review §9).** A non-FLAT result is not by
+  itself a redraw trigger, because two different things can produce one and only one of them is a
+  cost the code chose. Every bench leg therefore carries `perf stat -e
+  instructions:u,branches:u,cycles:u,branch-misses:u,L1-icache-load-misses:u` BESIDE wall time, on
+  the same discipline as the timing (3× alternating, solo, pinned).
+  * **LAYOUT-MOVED** — instruction and branch counts identical within **1e-4**, and the cycle delta
+    accounted for by the icache/branch-miss deltas. **Reported with its numbers; NOT a redraw
+    trigger.** The machine is fetching the same work from a different place.
+  * **WORK-MOVED** — instructions UP. **Remains the veto**, unchanged.
+  A non-FLAT result that is neither — instructions flat but cycles unexplained by the miss counters
+  — stays UNRESOLVED pending re-measurement, as above.
+
+* **AND THE BAR IS CUMULATIVE.** Per-cut LAYOUT-MOVED verdicts do not compose: three of them at
+  +0.7 % each are a 2 % regression that no per-cut rule catches. **At T6's close the post-T3 base
+  (`50f616a`) is benched against the post-(d) head under the same recipe and must hold the corpus
+  bar (±0.5 %).** If it does not, Grant rules again, with the numbers.
+
 > "informational" does not waive neutrality
 
 ### §11.2 The comparisons
@@ -831,6 +849,9 @@ statement about MAJORS, not about n. So:
   proxy object); callers listed as expected-to-differ **with the de-inlined callee named**.
 * **Counter/trajectory checks** — replay 0/75 all three arms; the W4 trace goldens; `history`
   byte-identical on the HS cells.
+* **`perf stat` beside every timing leg** — `instructions:u,branches:u,cycles:u,branch-misses:u,
+  L1-icache-load-misses:u`, same discipline as the wall clock, so a non-FLAT result can be
+  classified LAYOUT-MOVED or WORK-MOVED rather than only reported (§11.1).
 * **Build side** — parallel build **wall-clock** and **peak RSS**, with build parallelism and cache
   conditions FIXED (`CCACHE_DISABLE=1`, a stated `-j`), and the RSS measurement defined (the metric
   and the tool, e.g. peak RSS of the compile step from `/usr/bin/time -v`, stated before the run).
@@ -848,10 +869,25 @@ statement about MAJORS, not about n. So:
   brief's §1 parenthetical inverted that, and the inversion is the settler's, recorded in the
   ledger.
 
-### §11.5 The decision
+### §11.5 The decision, and the record of each cut's
 
 Redraw or ABANDON if runtime moves. Grant rules on the outcome (keep / redraw / abandon), presented
 with the numbers.
+
+**CUT (a) — RULED KEEP by the owner, 2026-09-06** (relayed by the settler; the numbers are the SQP
+lane's T6.a review §9). It was **non-FLAT by the letter in all three modes**:
+
+| mode | corpus | per-cell envelope |
+|---|---|---|
+| ipm | **+0.72 %** | 1.001–1.009 |
+| ssn | **+0.39 %** | 0.998–1.013 |
+| walk | **+0.53 %** | 0.980–1.010 |
+
+and `perf stat` says why: **instructions 1.00001, branches 1.00001** — identical to 1e-5, five
+times inside the 1e-4 band — **cycles 1.0059**, and **L1-icache load misses ×1.92**. The mechanism
+is PLACEMENT, not work: the same instructions and the same branches, fetched from a different place.
+That is **LAYOUT-MOVED** under §11.1, and the owner ruled **KEEP**. The cumulative bar still applies
+at T6's close and this result is one of the contributions it will be measured against.
 
 ---
 
