@@ -120,6 +120,7 @@
 
 #include "support/hs_problems.h"
 #include "support/hs_sweeps.h"
+#include "support/ipqp_test_support.h"
 #include "support/nlp_kkt_check.h"
 
 using namespace hven::solvers;
@@ -133,6 +134,11 @@ using hven::solvers::test_support::make_hs;
 // keep a second copy of it. The definitions are unchanged; only their home is.
 using hven::solvers::test_support::NlpKktResidual;
 using hven::solvers::test_support::self_check_kkt;
+// W5 T5 LIFTED THESE THREE to tests/sqp/support/ipqp_test_support.h: the trace
+// suite replicated them, and the W2 acceptance record holds an archived copy.
+using hven::solvers::test_support::w2_antiparallel_eq_qp;
+using hven::solvers::test_support::w2_box_blocked_qp;
+using hven::solvers::test_support::w2_escaped;
 
 namespace {
 
@@ -8530,29 +8536,6 @@ TEST(SqpDriverContract, TheTerminalKktMeasurementOnACertifiedInfeasibleExitMeasu
 
 namespace {
 
-/// An equality the BOX cannot reach: `x0 + x1 = 5` on `[-b, b]^2`. The tier escapes it as an
-/// infeasible suspect from iterates pressed against the upper bounds, so its least-infeasible
-/// point carries a working set the elastic solution shares -- both bounds tight.
-QpProblem w2_box_blocked_qp(double b) {
-    QpProblem qp;
-    qp.H = SpMatRM(2, 2);
-    qp.H.insert(0, 0) = 2.0;
-    qp.H.insert(1, 1) = 2.0;
-    qp.H.makeCompressed();
-    qp.g = Vec::Zero(2);
-    qp.Ae = SpMatRM(1, 2);
-    qp.Ae.insert(0, 0) = 1.0;
-    qp.Ae.insert(0, 1) = 1.0;
-    qp.Ae.makeCompressed();
-    qp.be = Vec(1);
-    qp.be << 5.0;
-    qp.Ai = SpMatRM(0, 2);
-    qp.bi = Vec(0);
-    qp.lower = Vec::Constant(2, -b);
-    qp.upper = Vec::Constant(2, b);
-    return qp;
-}
-
 /// Two rows that contradict each other outright: `x0 + x1 <= -2` against `-x0 - x1 <= -2`.
 QpProblem w2_inconsistent_rows_qp() {
     QpProblem qp;
@@ -8625,17 +8608,6 @@ QpProblem w2_row_blocked_qp() {
     return qp;
 }
 
-/// The tier's own escape on `qp`, with its section 6.3 evidence block filled. `radius` is the
-/// WINDOW the solve ran in: +inf disables it, a finite one clamps every bound to `c +- radius`
-/// and so gives zl/zu to faces the original problem may not have at all.
-IpqpResult w2_escaped(const QpProblem &qp,
-                      double radius = std::numeric_limits<double>::infinity()) {
-    QpOptions qopts;
-    qopts.tr_radius = radius;
-    IpqpEngine tier(qopts);
-    return tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{});
-}
-
 /// One ladder run through the evidence arm (or, with `evidence == nullptr`, through no arm at
 /// all), reported with the counters it charged.
 struct W2LadderRun {
@@ -8667,6 +8639,49 @@ double w2_final_rho(double rho_0, Index escalations) {
 }
 
 } // namespace
+
+// W5 T5 -- ONE ENGINE INVOCATION PER `w2_escaped` CALL. The observable is the engine's
+// `ipqp.restart` event (one per `solve()`, cold included), NOT `IpqpCounters`:
+// `ipqp_solves` counts backend triangular solves and the result's counters are a per-call delta.
+TEST(SqpDriverW2Fixtures, TheEscapeHelperInvokesTheTierExactlyOncePerCall) {
+    class RestartCountingSink : public TraceSink {
+      public:
+        Index restarts = 0;
+        void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
+        void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
+        void on_ipqp_restart(const IpqpTraceRestartEvent &) override { ++restarts; }
+        void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
+        void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
+        void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+        void on_qp_mode(const QpModeTraceEvent &) override {}
+        void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
+    };
+    const QpProblem blocked = w2_box_blocked_qp(0.5);
+
+    RestartCountingSink whole;
+    const IpqpResult ires = w2_escaped(blocked, std::numeric_limits<double>::infinity(), &whole);
+    EXPECT_EQ(whole.restarts, 1) << "a helper that grew a second solve() would read 2";
+    ASSERT_EQ(ires.escape_reason, IpqpEscape::kInfeasibleSuspect) << "or the pin is vacuous";
+
+    // The BY-VALUE EVIDENCE IDIOM the trace suite now uses is the same one call.
+    RestartCountingSink idiom;
+    const IpqpInfeasibilityEvidence ev =
+        w2_escaped(blocked, std::numeric_limits<double>::infinity(), &idiom).infeasibility_evidence;
+    EXPECT_EQ(idiom.restarts, 1);
+
+    // ... and it carries what the deleted `w2_escaped_evidence` carried: the same
+    // engine, the same options, the same +inf window.
+    const IpqpInfeasibilityEvidence &whole_ev = ires.infeasibility_evidence;
+    ASSERT_TRUE(ev.fired);
+    EXPECT_EQ(ev.window, whole_ev.window);
+    EXPECT_EQ(ev.dual_norm_start, whole_ev.dual_norm_start);
+    EXPECT_EQ(ev.dual_norm_end, whole_ev.dual_norm_end);
+    EXPECT_EQ(ev.primal_start, whole_ev.primal_start);
+    EXPECT_EQ(ev.least_infeasible_primal, whole_ev.least_infeasible_primal);
+    ASSERT_EQ(ev.least_infeasible_x.size(), whole_ev.least_infeasible_x.size());
+    EXPECT_EQ((ev.least_infeasible_x - whole_ev.least_infeasible_x).squaredNorm(), 0.0)
+        << "the same point, not merely the same shape";
+}
 
 TEST(SqpDriverElasticSeed, TheFirstRungsPenaltyIsFlooredAtTodaysStartAndPlacedByTheEvidence) {
     // AMENDMENT H, Q-S4 AT c = 1. `rho_0 = max(kElasticRhoInit, dual_norm_start)`, moving BOTH
@@ -9016,30 +9031,6 @@ QpSolution w2_cold_walk(const QpProblem &qp,
         (void)engine.solve(qp, SolveOverrides{});
     }
     return engine.solve(qp, SolveOverrides{});
-}
-
-/// Two antiparallel EQUALITY rows -- plan section 6's F-1 shape: `x0 + x1 = 1` against
-/// `-x0 - x1 = 1`, inconsistent at every point of a box that reaches both.
-QpProblem w2_antiparallel_eq_qp() {
-    QpProblem qp;
-    qp.H = SpMatRM(2, 2);
-    qp.H.insert(0, 0) = 2.0;
-    qp.H.insert(1, 1) = 2.0;
-    qp.H.makeCompressed();
-    qp.g = Vec::Zero(2);
-    qp.Ae = SpMatRM(2, 2);
-    qp.Ae.insert(0, 0) = 1.0;
-    qp.Ae.insert(0, 1) = 1.0;
-    qp.Ae.insert(1, 0) = -1.0;
-    qp.Ae.insert(1, 1) = -1.0;
-    qp.Ae.makeCompressed();
-    qp.be = Vec(2);
-    qp.be << 1.0, 1.0;
-    qp.Ai = SpMatRM(0, 2);
-    qp.bi = Vec(0);
-    qp.lower = Vec::Constant(2, -10.0);
-    qp.upper = Vec::Constant(2, 10.0);
-    return qp;
 }
 
 /// A FEASIBLE subproblem carrying a hand-built FIRED block: plan section 6's F-3a, the false

@@ -31,6 +31,7 @@ using hven::solvers::test_support::assert_ipqp_routing_partition;
 using hven::solvers::test_support::hs_numbers;
 using hven::solvers::test_support::HsProblem;
 using hven::solvers::test_support::make_hs;
+using hven::solvers::test_support::PinnedVariableModel;
 
 // How many subproblems the tier was CONSULTED on: plan section 7 note (k) makes
 // it exactly one of {1 analyze, 1 verify} per TIER ENTRY, so their sum IS the
@@ -149,76 +150,6 @@ SqpOptions walk_options() {
     }
     return ::testing::AssertionSuccess();
 }
-
-// A subproblem the tier DECLINES pre-solve, by construction rather than by luck:
-// variable 0's declared bounds are EQUAL, so the effective box has a zero-width
-// pair at index 0 whatever the radius is, which is exactly the domain gate's rule.
-class PinnedVariableModel : public NlpModel {
-  public:
-    // `pin` false widens variable 0's box and nothing else, so the SAME model
-    // exercises the declining and the non-declining case -- the mutation the
-    // decline pin needs to be non-vacuous.
-    explicit PinnedVariableModel(bool pin) : pin_(pin) {}
-
-    Index n() const override { return 2; }
-    Index me() const override { return 0; }
-    Index mi() const override { return 1; }
-
-    double eval_f(const Vec &x) const override {
-        return 0.5 * ((x(0) - 1.0) * (x(0) - 1.0) + (x(1) - 2.0) * (x(1) - 2.0));
-    }
-    Vec eval_grad(const Vec &x) const override {
-        Vec g(2);
-        g << x(0) - 1.0, x(1) - 2.0;
-        return g;
-    }
-    Vec eval_ce(const Vec &) const override { return Vec(0); }
-    Vec eval_ci(const Vec &x) const override {
-        // x0 + x1 - 3 <= 0, in the tree's own "ci(x) <= 0" convention.
-        Vec c(1);
-        c << x(0) + x(1) - 3.0;
-        return c;
-    }
-    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
-        SpMatRM h(2, 2);
-        h.insert(0, 0) = obj_scale;
-        h.insert(1, 1) = obj_scale;
-        h.makeCompressed();
-        return h;
-    }
-    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
-        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
-    }
-    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
-        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
-        j.insert(0, 0) = 1.0;
-        j.insert(0, 1) = 1.0;
-        j.makeCompressed();
-        return j;
-    }
-    const Vec &lower() const override { return pin_ ? pinned_lower() : free_lower(); }
-    const Vec &upper() const override { return pin_ ? pinned_upper() : free_upper(); }
-    Vec start_point() const override { return Vec::Constant(2, 0.25); }
-
-  private:
-    static const Vec &pinned_lower() {
-        static const Vec v = (Vec(2) << 0.5, -5.0).finished();
-        return v;
-    }
-    static const Vec &pinned_upper() {
-        static const Vec v = (Vec(2) << 0.5, 5.0).finished();
-        return v;
-    }
-    static const Vec &free_lower() {
-        static const Vec v = (Vec(2) << -5.0, -5.0).finished();
-        return v;
-    }
-    static const Vec &free_upper() {
-        static const Vec v = (Vec(2) << 5.0, 5.0).finished();
-        return v;
-    }
-    bool pin_;
-};
 
 // ===========================================================================
 // A7 -- STRUCTURAL INERTNESS AT THE DEFAULT (spec section 8.3).

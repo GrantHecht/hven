@@ -46,12 +46,20 @@
 #include <hven/model/nlp_model.h>
 
 #include "support/hs_problems.h"
+#include "support/ipqp_test_support.h"
 
 namespace hven::solvers {
 namespace {
 
 using test_support::HsProblem;
 using test_support::make_hs;
+// W5 T5: these four were replicas of test_sqp_driver.cpp's own W2 fixtures and
+// now have ONE home. `w2_escaped_evidence` is gone: its consumers take the
+// evidence block by value off the full result.
+using test_support::PinnedVariableModel;
+using test_support::w2_antiparallel_eq_qp;
+using test_support::w2_box_blocked_qp;
+using test_support::w2_escaped;
 
 // ===========================================================================
 // The minimal reader (pin (ii)'s own instrument)
@@ -1586,63 +1594,6 @@ TEST(JsonLinesTraceSink, OnHS38AtKIpmTheSinkWritesHundredsOfLinesAndStillMovesNo
 // R7 -- the identities on populations that make every term non-zero
 // ===========================================================================
 
-/// @brief A model whose variable 0 has a zero-width box.
-///
-/// BEHAVIOUR-FAITHFUL FOR THE PINNED CASE, from `PinnedVariableModel` in
-/// tests/sqp/test_ipqp_dispatch.cpp:156 (which pins the decline itself). Not a
-/// byte copy: the origin's `pin` constructor flag and its unpinned box are
-/// dropped, since only the pinned case is wanted here. It is here because it is
-/// the only in-tree population with `ipqp_declined_pinned > 0`, and that is the
-/// term the entry identity subtracts. Neither that test nor its fixture was
-/// modified.
-class PinnedVariableModel final : public NlpModel {
-  public:
-    Index n() const override { return 2; }
-    Index me() const override { return 0; }
-    Index mi() const override { return 1; }
-
-    double eval_f(const Vec &x) const override {
-        return 0.5 * ((x(0) - 1.0) * (x(0) - 1.0) + (x(1) - 2.0) * (x(1) - 2.0));
-    }
-    Vec eval_grad(const Vec &x) const override {
-        Vec g(2);
-        g << x(0) - 1.0, x(1) - 2.0;
-        return g;
-    }
-    Vec eval_ce(const Vec &) const override { return Vec(0); }
-    Vec eval_ci(const Vec &x) const override {
-        Vec c(1);
-        c << x(0) + x(1) - 3.0;
-        return c;
-    }
-    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
-        SpMatRM h(2, 2);
-        h.insert(0, 0) = obj_scale;
-        h.insert(1, 1) = obj_scale;
-        h.makeCompressed();
-        return h;
-    }
-    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
-        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
-    }
-    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
-        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
-        j.insert(0, 0) = 1.0;
-        j.insert(0, 1) = 1.0;
-        j.makeCompressed();
-        return j;
-    }
-    const Vec &lower() const override {
-        static const Vec v = (Vec(2) << 0.5, -5.0).finished();
-        return v;
-    }
-    const Vec &upper() const override {
-        static const Vec v = (Vec(2) << 0.5, 5.0).finished();
-        return v;
-    }
-    Vec start_point() const override { return Vec::Constant(2, 0.25); }
-};
-
 TEST(JsonLinesTraceSink, ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinned) {
     // On HS11 and HS38 `ipqp_declined_pinned` is 0, so the whole-solve pin's
     // subtraction is never exercised there. HERE every walk route IS a decline,
@@ -1650,7 +1601,7 @@ TEST(JsonLinesTraceSink, ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinn
     SqpOptions opts;
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
-    PinnedVariableModel model;
+    PinnedVariableModel model(true);
     SqpDriver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
@@ -1676,64 +1627,6 @@ TEST(JsonLinesTraceSink, ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinn
     EXPECT_EQ(at("ipqp.escape"), c.ipqp_escapes);
 }
 
-// --- the five-verdict population, replicated from test_sqp_driver.cpp ------
-// `w2_box_blocked_qp` (:8536) and `w2_antiparallel_eq_qp` (:9023) are file-local
-// there and are copied here with BYTE-IDENTICAL bodies; that test and its
-// fixture are not touched at all.
-//
-// `w2_escaped_evidence` is ADAPTED from `w2_escaped` (:8631), not copied:
-// renamed, narrowed to the evidence block, and with the radius fixed at +inf
-// rather than defaulted.
-
-QpProblem w2_box_blocked_qp(double b) {
-    QpProblem qp;
-    qp.H = SpMatRM(2, 2);
-    qp.H.insert(0, 0) = 2.0;
-    qp.H.insert(1, 1) = 2.0;
-    qp.H.makeCompressed();
-    qp.g = Vec::Zero(2);
-    qp.Ae = SpMatRM(1, 2);
-    qp.Ae.insert(0, 0) = 1.0;
-    qp.Ae.insert(0, 1) = 1.0;
-    qp.Ae.makeCompressed();
-    qp.be = Vec(1);
-    qp.be << 5.0;
-    qp.Ai = SpMatRM(0, 2);
-    qp.bi = Vec(0);
-    qp.lower = Vec::Constant(2, -b);
-    qp.upper = Vec::Constant(2, b);
-    return qp;
-}
-
-QpProblem w2_antiparallel_eq_qp() {
-    QpProblem qp;
-    qp.H = SpMatRM(2, 2);
-    qp.H.insert(0, 0) = 2.0;
-    qp.H.insert(1, 1) = 2.0;
-    qp.H.makeCompressed();
-    qp.g = Vec::Zero(2);
-    qp.Ae = SpMatRM(2, 2);
-    qp.Ae.insert(0, 0) = 1.0;
-    qp.Ae.insert(0, 1) = 1.0;
-    qp.Ae.insert(1, 0) = -1.0;
-    qp.Ae.insert(1, 1) = -1.0;
-    qp.Ae.makeCompressed();
-    qp.be = Vec(2);
-    qp.be << 1.0, 1.0;
-    qp.Ai = SpMatRM(0, 2);
-    qp.bi = Vec(0);
-    qp.lower = Vec::Constant(2, -10.0);
-    qp.upper = Vec::Constant(2, 10.0);
-    return qp;
-}
-
-IpqpInfeasibilityEvidence w2_escaped_evidence(const QpProblem &qp) {
-    QpOptions qopts;
-    qopts.tr_radius = std::numeric_limits<double>::infinity();
-    IpqpEngine tier(qopts);
-    return tier.solve(qp, nullptr, IpqpOptions{}, SolveOverrides{}).infeasibility_evidence;
-}
-
 TEST(JsonLinesTraceSink, TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClassPopulation) {
     // W2 T5's own five-class population (test_sqp_driver.cpp:9806), driven
     // through the sink the way the driver drives it (sqp_driver.cpp:3915: the
@@ -1745,8 +1638,9 @@ TEST(JsonLinesTraceSink, TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClass
     const QpProblem feasible = w2_box_blocked_qp(10.0);
     const QpProblem blocked = w2_box_blocked_qp(0.5);
     const QpProblem antiparallel = w2_antiparallel_eq_qp();
-    const IpqpInfeasibilityEvidence blocked_ev = w2_escaped_evidence(blocked);
-    const IpqpInfeasibilityEvidence antiparallel_ev = w2_escaped_evidence(antiparallel);
+    const IpqpInfeasibilityEvidence blocked_ev = w2_escaped(blocked).infeasibility_evidence;
+    const IpqpInfeasibilityEvidence antiparallel_ev =
+        w2_escaped(antiparallel).infeasibility_evidence;
     IpqpInfeasibilityEvidence floored = blocked_ev;
     floored.dual_norm_start = kElasticRhoInit;
     ASSERT_GT(blocked_ev.dual_norm_start, kElasticRhoInit) << "or the retry entry is vacuous";
@@ -2308,7 +2202,7 @@ TEST(JsonLinesTraceSink, QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWa
         EXPECT_GT(walk_rung_b, 0) << "non-vacuous: T5 made that walk visible";
     }
     {
-        PinnedVariableModel model;
+        PinnedVariableModel model(true);
         SqpOptions opts;
         opts.qp_mode = QpMode::kIpm;
         opts.max_iter = 60;
