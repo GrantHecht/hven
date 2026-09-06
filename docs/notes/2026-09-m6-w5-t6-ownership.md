@@ -103,14 +103,79 @@ declared in `include/hven/drivers/sqp_driver.h`:
 `certified_feasibility_fallback` `:1141` · `census_major_activity` `:1355` ·
 `accumulate_ipqp_counters` `:1424`.
 
-**FINDING (new, not in the skeleton or the review).** `assert_ipqp_hand_off_window`
-(`src/drivers/sqp_driver.cpp:805`) has EXTERNAL linkage and **no declaration anywhere in the tree** —
-a repository-wide grep finds exactly two mentions, its definition at `:805` and its one call at
-`:4124`. Every other external-linkage free function in this TU is declared in
-`include/hven/drivers/sqp_driver.h`. Cut (d) must not carry this defect across a TU boundary: either
-the function moves into the same TU as its only caller and becomes `static`/anonymous, or it gains a
-header declaration. Deciding this is T6.d's, not T6.a's; recorded here so it is decided rather than
-inherited.
+**FINDING (new, not in the skeleton or the review). TWO of these have EXTERNAL linkage and no
+declaration anywhere in the tree**, and both were found only by sweeping all 26 against
+`include/hven/drivers/sqp_driver.h`:
+
+| symbol | definition | its only caller | why it is silent |
+|---|---|---|---|
+| `assert_ssn_warm_grade_window` | `:779` | `:4830`, inside `route_through_ssn_warm_grade` | the header names it only in a COMMENT (`include/hven/drivers/sqp_driver.h:3068`); the only other mention in the tree is a comment in `tests/sqp/test_ipqp_dispatch.cpp:746` |
+| `assert_ipqp_hand_off_window` | `:805` | `:4124`, inside the kIpm arm | a repository-wide grep finds exactly two mentions, the definition and that call |
+
+Every OTHER external-linkage free function in this TU is declared in
+`include/hven/drivers/sqp_driver.h`. Neither is caught by a warning because neither `CMakeLists.txt`
+enables `-Wmissing-prototypes` / `-Wmissing-declarations`. Cut (d) must not carry the defect across a
+TU boundary: either each function moves into the same TU as its only caller and takes internal
+linkage, or it gains a header declaration. Both callers stay DRIVER-side under the §1.7 moving set,
+so internal linkage in the driver TU is the natural disposition — **decided at T6.d, not here**;
+recorded so it is decided rather than inherited.
+
+### §1.7 Cut (d)'s MOVING SET — the side of every external-linkage free function
+
+§1.2 names the one INTERNAL-linkage symbol the split forces external. This is the other half: cut (d)
+moves free functions, and its P-SYM claim is built from this table. "K" = called from inside the
+kernels region (`src/drivers/sqp_driver.cpp:987-1241`, the two ladder/fallback bodies); "D" = called
+from anywhere else in the TU. Call sites were enumerated over the whole TU; the definition's own line
+is excluded.
+
+| symbol | def | K call sites | D call sites | side |
+|---|---|---|---|---|
+| `run_elastic_ladder` | `:987` | `:1183`, `:1194` | `:4294` | **KERNELS** |
+| `certified_feasibility_fallback` | `:1141` | — | `:4187` | **KERNELS** |
+| `predicted_decrease` | `:584` | `:1117` | `:4481` | **SHARED** |
+| `eval_nlp` | `:337` | — | `:556`, `:581`, `:1937`, `:2567`, `:2642`, `:3237`, `:3457`, `:5076` | driver |
+| `eval_nlp_values` | `:394` | — | `:2246`, `:2253`, `:4474`, `:4551` | driver |
+| `upgrade_to_full` | `:427` | — | (no in-TU caller) | driver |
+| `constraint_violation_l1` | `:456` | — | `:2724`, `:3230`, `:3241`, `:3253`, `:3478`, `:4480`, `:4557` | driver |
+| `evaluate_kkt` | `:548`, `:554`, `:626` | — | `:556`, `:2695`, `:2971`, `:3461`, `:5078` | driver |
+| `build_subproblem` | `:559`, `:579` | — | `:581`, `:2261`, `:3612`, `:4965` | driver |
+| `crash_basis_seed` | `:594` | — | `:3689` | driver |
+| `qp_failure_is_retryable` | `:632` | — | `:4392` | driver |
+| `ssn_exit_is_a_usable_step` | `:652` | — | `:3787`, `:3827`, `:4843` | driver |
+| `ssn_result_to_qp_solution` | `:662` | — | `:3788`, `:3847`, `:4874` | driver |
+| `sweep_negative_face_prices` | `:677` | — | `:5056` | driver |
+| `ssn_start_from_qp_seed` | `:687` | — | `:3748`, `:4820` | driver |
+| `ssn_fb_tol_for` | `:700` | — | `:4768` | driver |
+| `charge_ssn_subproblem_cost` | `:704` | — | `:3961`, `:4865` | driver |
+| `charge_refused_face_refinement` | `:709` | — | `:3935` | driver |
+| `accumulate_ssn_counters` | `:718` | — | `:3439`, `:3811`, `:4834` | driver |
+| `ipqp_exit_is_a_usable_step` | `:756` | — | `:4056` | driver |
+| `assert_ssn_warm_grade_window` | `:779` | — | `:4830` | driver |
+| `assert_ipqp_hand_off_window` | `:805` | — | `:4124` | driver |
+| `ipqp_result_to_qp_solution` | `:826` | — | `:4122`, `:4819` | driver |
+| `charge_ipqp_subproblem_cost` | `:844` | — | `:4155`, `:4167`, `:4183` | driver |
+| `census_major_activity` | `:1355` | — | `:4371` | driver |
+| `accumulate_ipqp_counters` | `:1424` | — | `:3447`, `:4051` | driver |
+| `detail::evaluate_kkt_over` | `:474` | — | `:550`, `:628` | driver |
+
+**THE MOVING SET IS THEREFORE**: `run_elastic_ladder` and `certified_feasibility_fallback`, plus
+anonymous namespace #2's three kernels-only helpers `elastic_initial_rho` (`:854`),
+`elastic_evidence_seed` (`:880`) and `emit_qp_mode_line` (`:972`), plus `trace_outcome_of` (`:963`),
+**which is the ONE symbol that changes linkage** (§1.2). Nothing else moves.
+
+**`predicted_decrease` is a SECOND symbol used by both sides**, and the doc's earlier claim that
+`trace_outcome_of` is "the ONE shared symbol" is true only of the INTERNAL-linkage ones. It costs no
+new declared surface, because it is already declared in `include/hven/drivers/sqp_driver.h` — the
+kernels TU includes that header and calls it exactly as it does today. It is named here so T6.d's
+P-SYM claim lists it rather than meeting it.
+
+**The moving set has a TEST-FACING surface.** Both kernels are called directly from FOUR test TUs —
+`tests/sqp/test_sqp_driver.cpp`, `tests/sqp/test_ipqp_dispatch.cpp`, `tests/sqp/test_qp_mode_sites.cpp`,
+`tests/sqp/test_trace_writer.cpp` — and `predicted_decrease` from `tests/sqp/test_sqp_driver.cpp`.
+Those four objects are in the P-SYM set, so the claim must say what happens to them: they call the
+same declared functions through the same header, so their codegen should be unchanged EXCEPT where a
+body they inlined is now behind a TU boundary — which is exactly the de-inlining cut (d) is
+measuring, and which the §11.4 caller disassembly must name.
 
 ### §1.5 `SqpDriver` member functions in this TU
 
@@ -321,23 +386,28 @@ from `:2017`). **POINTER IDENTITY.** `reset` `:2870`; `dynamic_cast` `:2892`, `:
 References to owning `Vec`/`NlpEval` members may intentionally observe updates; **cached Eigen views
 or element pointers may never be assumed valid across an assignment or a move**. `SolveState`
 addresses stay stable for the solve. **No reference to `MajorState` may escape the major.** And
-there is ONE authoritative restoration payload: either the returned outcome owns it or the state
-bundle does — never both.
+there is ONE authoritative restoration payload — **RULED in §5 constraint 5: the STATE BUNDLE owns
+it** (§2.2 L's five fields stay `SolveState` members) and the outcome type is a TAG, never a second
+copy.
 
 ---
 
 ## §3. astra's §2 disposition table, VERBATIM
 
-Reproduced exactly as written in `.superpowers/w5-t6-plan-review-astra.md` §2, including its
-absolute-path link targets (that file's own citation form; the BASE-re-derived numbers are §2 above).
+Reproduced from `.superpowers/w5-t6-plan-review-astra.md` §2. **The table CONTENT is verbatim; only
+the LINK FORM was converted** — astra wrote absolute `/home/ghecht/Projects/hven/...` targets, which
+are that reviewer's citation form and not content, and a machine-specific path does not belong in a
+committed document (SQP-lane M1 / Claude-substitute M1, settler RULED at the T6.0 fix round). 19
+occurrences across 15 lines in this file were rewritten to repo-relative; not a character of the
+table's text changed. The BASE-re-derived numbers are §2 above.
 
 > | Object/view | Required disposition |
 > |---|---|
-> | Scaling | Copy: `finish` temporarily replaces seam scaling. [2075](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:2075), [5075](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:5075) |
-> | Watchdog and budget-best state | Independent vector/evaluation/KKT snapshots, including the snapshot’s dual-ingest flag. [2942](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:2942), [3071](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:3071) |
-> | Major row and caller-scale measurements | Preserve the requesting iterate’s measurements across restoration’s mutations; do not recompute them from the resumed `SolveState`. Export operates on a row copy. [2714](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:2714), [2749](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:2749) |
-> | IPQP seed pointer | Consume before staged-seed reset or carry replacement; preserve the copied/recentered cross-major seed. [4021](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:4021), [4048](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:4048) |
-> | SOC seed | Copy `qs` before zeroing the seed’s primal block. [4521](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:4521) |
+> | Scaling | Copy: `finish` temporarily replaces seam scaling. [2075](src/drivers/sqp_driver.cpp:2075), [5075](src/drivers/sqp_driver.cpp:5075) |
+> | Watchdog and budget-best state | Independent vector/evaluation/KKT snapshots, including the snapshot’s dual-ingest flag. [2942](src/drivers/sqp_driver.cpp:2942), [3071](src/drivers/sqp_driver.cpp:3071) |
+> | Major row and caller-scale measurements | Preserve the requesting iterate’s measurements across restoration’s mutations; do not recompute them from the resumed `SolveState`. Export operates on a row copy. [2714](src/drivers/sqp_driver.cpp:2714), [2749](src/drivers/sqp_driver.cpp:2749) |
+> | IPQP seed pointer | Consume before staged-seed reset or carry replacement; preserve the copied/recentered cross-major seed. [4021](src/drivers/sqp_driver.cpp:4021), [4048](src/drivers/sqp_driver.cpp:4048) |
+> | SOC seed | Copy `qs` before zeroing the seed’s primal block. [4521](src/drivers/sqp_driver.cpp:4521) |
 
 All five rows verified at BASE: `:2075`/`:5075`; `:2942`/`:3071`; `:2714`/`:2749`;
 `:4021`/`:4048` (with the staged-seed `reset()` at `:4049`, i.e. AFTER the solve at `:4048`
@@ -417,7 +487,16 @@ Binding constraints on the extraction:
 4. Certification (`:3571`), the caller-scale multiplier flag (`:3541`) and the warm-start
    seed-selection flag `restoration_moved_x` (`:3532`) are carried EXPLICITLY. **They are never
    inferred from the outcome tag.**
-5. ONE authoritative payload: the returned outcome owns it, or the state bundle does. Not both.
+5. ONE authoritative payload — **RULED here rather than left to T6.c: the STATE BUNDLE owns it.**
+   astra §2 asked the doc to choose, and §2.2 L already settles it at source: the five fields
+   `restoration_exit_status` (`:2462`), `restoration_exit_kkt` (`:2463`), `restoration_exit_f`
+   (`:2464`), `restoration_exit_multipliers_are_caller_scale` (`:2472`) and `restoration_moved_x`
+   (`:2513`) are SOLVE-scope declarations, written only inside the closure and read at the four
+   `finish` sites (`:4340-4346`, `:4414-4420`, `:4639-4645`, `:4667-4672`) and in each site's
+   `make_warm_start` seed choice. They stay `SolveState` members. **`RestorationOutcome` is therefore
+   a TAG** — `{REFUSED, RESUMED, EXITED}` plus whatever §6 G1 requires it to carry explicitly — and
+   it holds NO copy of the payload. Leaving the choice open into T6.c is exactly the shape astra
+   warned against ("independently mutable copies in both").
 
 **The registered decide/run split is NOT needed** and stays registered, not T6: REFUSED *is* the
 decision and the sub-solve *is* the run. The brief's §2 clause resolves in the "not T6" direction.
@@ -546,21 +625,22 @@ loop-entry check at `:2681`. All three survive as they are.
 
 ### §8.2 astra's §7 corrected push map, VERBATIM
 
-Reproduced exactly as written in `.superpowers/w5-t6-plan-review-astra.md` §7. **This is the T6.0
-table** (brief §6 G2); §8.1 is its BASE-verified expansion.
+Reproduced from `.superpowers/w5-t6-plan-review-astra.md` §7. **This is the T6.0 table**
+(brief §6 G2); §8.1 is its BASE-verified expansion. As in §3, the table CONTENT is verbatim and only
+the absolute link targets were converted to repo-relative.
 
 > | Push site | Classification and continuation |
 > |---|---|
-> | [2807](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:2807) | Early exit; manual output assembly → terminal check → return, bypassing `finish`. |
-> | [3106](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:3106) | Early exit; convergence/probe/major budget → terminal check → appropriate `finish`. |
-> | [4330](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:4330) | Recovery after unusable elastic ladder; restoration → push → continue, or check → finish. |
-> | [4404](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:4404) | Recovery after retryable QP failure at floor; same restoration ordering. |
-> | [4422](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:4422) | Recovery; push → shrink → move `qs` into seed and recenter → continue. |
-> | [4437](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:4437) | Early exit; push → check → finish failed QP. |
-> | [4630](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:4630) | Recovery from rejected trial at floor; measured-candidate restoration before push. |
-> | [4647](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:4647) | Recovery; push → shrink → replace/recenter seed → continue. |
-> | [4660](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:4660) | Recovery for `kRestore`; original measured trial, no floor condition. |
-> | [4675](/home/ghecht/Projects/hven/src/drivers/sqp_driver.cpp:4675) | Accepted commit; push precedes radius, iterate, derivative-refresh, and seed updates. |
+> | [2807](src/drivers/sqp_driver.cpp:2807) | Early exit; manual output assembly → terminal check → return, bypassing `finish`. |
+> | [3106](src/drivers/sqp_driver.cpp:3106) | Early exit; convergence/probe/major budget → terminal check → appropriate `finish`. |
+> | [4330](src/drivers/sqp_driver.cpp:4330) | Recovery after unusable elastic ladder; restoration → push → continue, or check → finish. |
+> | [4404](src/drivers/sqp_driver.cpp:4404) | Recovery after retryable QP failure at floor; same restoration ordering. |
+> | [4422](src/drivers/sqp_driver.cpp:4422) | Recovery; push → shrink → move `qs` into seed and recenter → continue. |
+> | [4437](src/drivers/sqp_driver.cpp:4437) | Early exit; push → check → finish failed QP. |
+> | [4630](src/drivers/sqp_driver.cpp:4630) | Recovery from rejected trial at floor; measured-candidate restoration before push. |
+> | [4647](src/drivers/sqp_driver.cpp:4647) | Recovery; push → shrink → replace/recenter seed → continue. |
+> | [4660](src/drivers/sqp_driver.cpp:4660) | Recovery for `kRestore`; original measured trial, no floor condition. |
+> | [4675](src/drivers/sqp_driver.cpp:4675) | Accepted commit; push precedes radius, iterate, derivative-refresh, and seed updates. |
 >
 > That confirms **3 early exits / 6 recoveries / 1 accepted commit**.
 
@@ -643,9 +723,13 @@ stay; trace emit ORDER unchanged (§7). The restoration outcome obeys §5 in ful
 ### §10.4 Cut (d) — the kernels TU (EXPERIMENT with a VETO)
 
 Extract WITHIN the TU first (a–c are that); then the separate TU as an **independently revertible**
-commit with the CLAUDE.md §5 proof. The shared symbol is `trace_outcome_of` (§1.2) — it gains
-external linkage, a declared surface, and goes in the migration guide. Build integration per §1.6.
-`assert_ipqp_hand_off_window`'s missing declaration (§1.4) is decided here.
+commit with the CLAUDE.md §5 proof. **The moving set is exactly §1.7's "KERNELS" rows plus anonymous
+namespace #2's three kernels-only helpers** — `run_elastic_ladder`, `certified_feasibility_fallback`,
+`elastic_initial_rho`, `elastic_evidence_seed`, `emit_qp_mode_line` — with `trace_outcome_of` (§1.2)
+the ONE symbol that changes linkage: it gains external linkage, a declared surface, and goes in the
+migration guide. `predicted_decrease` is shared across the cut but already declared, so it costs no
+new surface (§1.7). Build integration per §1.6. The two undeclared helpers (§1.4, `:779` and `:805`)
+are decided here.
 
 P-SYM alone cannot prove the semantic identity of moved bodies, literals or static initialisation
 (astra F4/G4): cut (d) supplements it with a mapped source-body / literal audit and an audit of any
@@ -694,9 +778,15 @@ statement about MAJORS, not about n. So:
 * **Repeat count**: calibrated at T6.d time — the HS cells run in milliseconds, so N is raised until
   the per-cell run-to-run spread of the A arm alone is inside ±0.5 %, and the calibration transcript
   is part of the evidence. **Recorded here as a gap: no `--repeat` exists on `bench_corpus` today**
-  (`bench/bench_corpus.cpp:378-458` has no such flag), so T6.d either adds one to the bench harness
-  or drives the `test_hs_battery.cpp` / `test_hs_sweeps.cpp` fixtures in a timed loop. Whichever it
-  is, it is declared before the numbers are taken.
+  (`bench/bench_corpus.cpp:378-458` has no such flag).
+* **The harness route is BENCH-SIDE, and it is T6.d's FIRST SUB-STEP.** Not a test binary: a test
+  target is a different link and a different flag surface, which is a poor instrument for a
+  veto-grade neutrality claim. It is also unnecessary — `bench/CMakeLists.txt:72` already puts
+  `tests/sqp` on `hven_sqp_corpus`'s include path and `bench/ipqp_e1_arm.cpp:24` already includes
+  `support/hs_problems.h` from a bench target, so an HS mode inside `bench_corpus` (plus `--repeat N`
+  or an external loop) keeps the bench flag regime and ONE binary. **The terms**: the harness change
+  lands ONCE, BEFORE any T6.d number is taken, and the IDENTICAL binary runs both arms. A `--repeat`
+  added between arms VOIDS the leg. No code for it lands with T6.0.
 * **Aggregation**: per-cell MEDIAN of the N repeats, then the median of the three alternating runs;
   the corpus figure is the sum of per-cell medians, not a mean of ratios.
 * **The fallback-heavy cell**: at least one cell that drives the elastic ladder / certified fallback
@@ -718,8 +808,19 @@ statement about MAJORS, not about n. So:
 * **Build side** — parallel build **wall-clock** and **peak RSS**, with build parallelism and cache
   conditions FIXED (`CCACHE_DISABLE=1`, a stated `-j`), and the RSS measurement defined (the metric
   and the tool, e.g. peak RSS of the compile step from `/usr/bin/time -v`, stated before the run).
-* **Captures after a TU move start from an EMPTY build directory** — `ninja -t cleandead && ninja -t
-  clean` does not remove a moved TU's stale object (T4 D2); this is now in the P-SYM tool header.
+* **Captures after a TU move start from an EMPTY build directory** — `rm -rf` the build directory
+  and CONFIGURE AGAIN for BOTH arms, at the same absolute path. This bullet as first written said
+  `ninja -t cleandead && ninja -t clean` is not enough, which is wrong and contradicted the
+  instrument it cites: the P-SYM tool header (`scripts/psym_compare.sh`, the M6 W5 T6 commit 0
+  block) carries a five-row MEASUREMENT on ninja 1.13.2 — after a TU rename, `ninja -t clean` leaves
+  the stale object (T4 D2 exactly) and `ninja -t cleandead` removes it. The empty-directory rule is
+  the version-free form, and it is the one that binds, because `cleandead` reconstructs its
+  dead-output list from a `.ninja_log` that may be truncated, deleted or written by a ninja whose
+  behaviour differs. PROVENANCE, so the error is not re-made: T4's D2 says only that
+  `ninja -t clean` is insufficient; `cleandead` entered the protocol through the SQP lane's T4
+  review M3, which proposed "`cleandead && clean` — OR rebuild from an empty directory"; the T6
+  brief's §1 parenthetical inverted that, and the inversion is the settler's, recorded in the
+  ledger.
 
 ### §11.5 The decision
 
@@ -732,10 +833,16 @@ with the numbers.
 
 1. **Three anonymous namespaces, not two** (`:37`, `:849`, `:1242`). The brief's §0 said two; astra
    G6 caught it; confirmed at BASE. §1.
-2. **`trace_mode_of` is driver-side only**; `trace_outcome_of` is the ONE shared symbol
-   (`:1050`, `:1169`, `:1212` kernels; `:4224`, `:4532` driver). §1.2, §1.3.
-3. **`assert_ipqp_hand_off_window` (`:805`) has external linkage and no declaration anywhere** —
-   new, from the BASE symbol sweep. §1.4.
+2. **`trace_mode_of` is driver-side only**; `trace_outcome_of` is the one INTERNAL-LINKAGE symbol
+   used by both sides (`:1050`, `:1169`, `:1212` kernels; `:4224`, `:4532` driver), and so the ONE
+   that changes linkage under (d). It is NOT the only shared symbol: `predicted_decrease` (`:584`)
+   is called from the kernels at `:1117` and from the driver at `:4481`, and costs no new surface
+   only because it is already declared. §1.2, §1.3, §1.7.
+3. **TWO external-linkage free functions have no declaration anywhere** —
+   `assert_ssn_warm_grade_window` (`:779`, caller `:4830`; the header names it only in a comment at
+   `include/hven/drivers/sqp_driver.h:3068`) and `assert_ipqp_hand_off_window` (`:805`, caller
+   `:4124`). Found by sweeping all 26 against the header; the first was MISSED in this document as
+   first written, and the SQP lane's review found it. §1.4.
 4. **§5 F2's "all decision inputs are read before any mutation" is FALSE.** The corrected sequence
    is §5's table (astra G1). The consumption of the candidate is CONDITIONAL (`:3262-3263`), not
    unconditional on entry.
@@ -755,7 +862,21 @@ with the numbers.
     `sqp_driver.cpp:4810` points at the comment head; the statement
     `sopts.defer_certification = false;` is at `:4813`. Astra's `test_sqp_driver.cpp:8179` is the
     test's first body line; the `TEST(...)` is at `:8178`.
-11. **No line number moved between `154d20a` and BASE `50f616a`** inside `solve_impl_body`: T3's nine
+11. **Cut (d)'s MOVING SET is named** (§1.7): the two kernels plus anonymous namespace #2's three
+    kernels-only helpers, with `trace_outcome_of` the one linkage change and `predicted_decrease`
+    the one already-declared shared symbol; four test TUs call the kernels directly, so the moving
+    set has a test-facing surface T6.d's P-SYM claim must cover.
+12. **The restoration payload OWNERSHIP is ruled** (§5 constraint 5): the state bundle owns it, the
+    outcome type is a tag. astra §2 asked the doc to choose; §2.2 L already determined the answer.
+13. **§11.4's empty-build-directory bullet, as first written, was WRONG** and contradicted the
+    instrument it cites — it repeated the T6 brief's inversion of the SQP lane's own T4 review M3.
+    The measurement (five rows, ninja 1.13.2) is in the P-SYM tool header; the bullet now carries
+    the version-free rule and the provenance.
+14. **§11.3's Leg 2 fallback would have timed a TEST binary.** Replaced by the bench-side route the
+    Claude-substitute review found (`bench/CMakeLists.txt:72` already puts `tests/sqp` on
+    `hven_sqp_corpus`'s include path; `bench/ipqp_e1_arm.cpp:24` already includes
+    `support/hs_problems.h`), landing ONCE as T6.d's first sub-step.
+15. **No line number moved between `154d20a` and BASE `50f616a`** inside `solve_impl_body`: T3's nine
     migrated calls in this TU are at `:345-562`, outside the body, and its edits were line-neutral.
     Every number in the addendum and in the astra review that falls inside `:2025-4732` was
     re-checked at BASE and holds. The one number that differs is the W5 inventory's, taken at
