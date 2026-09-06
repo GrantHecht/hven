@@ -246,12 +246,13 @@ The two state types of §5 F1 are not the whole universe (astra §2). Four dispo
 
 Grouped by role; every name listed. "Mutated at" is exhaustive within `solve_impl_body`.
 
-**A. Solve invariants (const after `prepare_solve`).** Five of the names below turned out NOT to be
-solve-scope state when cut (a) came to type them, and are recorded here rather than left as a
+**A. Solve invariants (const after `prepare_solve`).** Five of the names in this table and in group
+I turned out NOT to be solve-scope state when cut (a) came to type them, and are recorded here rather than left as a
 discrepancy between this table and the code: `ipm_mode` (`:2042`, read only at `:2050`),
-`warm_ingest` (`:2277`), `warm_dims_plausible` (`:2216`), `ingest_allowed` (`:2231`) and
-`probe_is_worth_running` (`:2239`) are read NOWHERE after the loop begins, so they are
-`prepare_solve` locals and not `SolveState` members. The membership test is exactly that: a name is
+`warm_dims_plausible` (`:2216`), `ingest_allowed` (`:2231`) and `probe_is_worth_running` (`:2239`)
+from this table, and `warm_ingest` (`:2277`) from group I, are read NOWHERE after the loop begins
+(`warm_ingest`'s last read is `:2659`), so they are `prepare_solve` locals and not `SolveState`
+members. The membership test is exactly that: a name is
 in the bundle iff something at or after `:2680` reads or writes it.
 
 | name | decl | init | disposition |
@@ -304,7 +305,9 @@ zeroed at `:3735` in the kSsn arm; passed BY REFERENCE at `:4157`/`:4169` into
 `route_through_ssn_warm_grade`, which reads it at `:4808` and zeroes it at `:4809`. Two spend sites,
 one spend per solve.
 
-**I. Ingest state.** `resolved_level` (`:2193`; `:2237`, `:2263`, `:2268`, `:2631`),
+**I. Ingest state.** `resolved_level` (`:2193`; written `:2237`, `:2263`, `:2268`, `:2631`; **read
+at `:3670`**, `const bool offer_hot = iter == 0 && resolved_level == StartLevel::kHot;` — that one
+read is what makes it solve-scope under the membership test in group A),
 `warm_ingest` (`:2277`; `:2636`), `duals_ingested` (`:2659`; `:2969`, `:3498`, `:3545`, `:4700`,
 `:4720`), `funnel_started` (`:2647`; `:2914`).
 
@@ -711,6 +714,16 @@ Extract each arm as a function with explicit input/output state. `kWalk` is a `b
 invocation is the shared successor (§6.1). Hazards: the second walk site (§6.2) is excluded by
 contract; routing functions emit BEFORE returning (§7); the deferred refinement must not run twice
 (§9). Replay 0/75 on **all three arms** — this cut touches all three modes.
+
+**FIVE MEMBERS NO EXTRACTED FUNCTION MAY WRITE (cut (a) fix1, from the Claude-substitute F-M3).**
+`n`, `ssn_mode`, `warm_state_ingest` and `resolved_level` were `const` LOCALS at BASE, so a write to
+one was a compile error. Cut (a) makes them non-`const` members that `solve_impl_body` reads once
+into `const` copies, and `solve_scaling` a `const &`. Nothing writes any of the five today — over
+BASE `:2680-4733` they have 3, 1, 2 and 1 uses and all are reads — but a function extracted at (b)
+or (c) taking `SolveState &` COULD write `st.n`, and the loop's copy would not see it. **(b)'s and
+(c)'s P-SYM claim names these five as write-forbidden**, and the alternative (taking them as
+`const &`) is available only with a neutrality argument, since a const reference into an object
+whose address has escaped may cost reloads the copies do not.
 
 **Construction timing (astra G6).** Putting the trial/SOC objects into `MajorState` must not
 eagerly evaluate or touch an engine before the existing early exits. `x_trial` (`:4473`) and

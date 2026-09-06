@@ -2810,7 +2810,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
     prepare_solve(st, seam, x0, warm, std::move(strategy_in));
 
     // THE NAMES THE LOOP KNOWS THE STATE BY. Every one of these is an ALIAS of
-    // the single instance above, never a copy -- except the five scalars and the
+    // the single instance above, never a copy -- except the four scalars and the
     // scaling, which nothing writes after `prepare_solve` returns and which are
     // therefore taken `const`, exactly as they were when they were locals.
     //
