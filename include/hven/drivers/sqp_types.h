@@ -289,7 +289,7 @@ struct IpqpOptions {
 // above the local regime this mode targets, so the window can only fire on a run
 // the mode's own premise has already failed for.
 //
-// CHANGING EITHER IS A BEHAVIOUR CHANGE ON Every warm solve: the warm-start suite
+// Changing either is a BEHAVIOUR CHANGE on every warm solve: the warm-start suite
 // pins the majors of both a converging and a watchdog-restored run against these
 // exact values.
 // @see docs/notes/2026-09-header-prose-archive.md §sqp_types.h
@@ -314,7 +314,7 @@ inline constexpr Index kWarmFullStepWindow = 5;
 /// nearly active when it is out of the working set at a slack negligible beside
 /// the largest one.
 ///
-/// IT IS Not the SSN's UNCERTAIN SET: that set is the dimensionless kink band
+/// It is NOT the SSN's uncertain set: that set is the dimensionless kink band
 /// with leave hysteresis (ssn_engine.h), which reads a PURE state at `s == 0` for
 /// any lambda and so never flags a small multiplier on an active row.
 inline constexpr double kWeakActivityMargin = 1e-6;
@@ -455,7 +455,7 @@ struct SqpOptions {
     ///
     /// IT CANNOT AFFECT a cold solve, a solve whose `warm` failed to resolve, or
     /// a solve running a caller-supplied strategy that is not a FunnelStrategy --
-    /// the mode is that class's own state. NOR DOES IT Ever certify anything: it
+    /// the mode is that class's own state. Nor does it ever CERTIFY anything: it
     /// changes which trials are accepted, never the KKT test that decides
     /// kOptimal.
     bool warm_full_step = true;
@@ -540,7 +540,7 @@ struct SqpOptions {
     ///
     /// COLD ONLY, BY CONSTRUCTION: the seed is built at the first subproblem of a
     /// solve whose resolved start level is kCold and only when no warm seed
-    /// exists. NO Extra model evaluation: both predicates are read off the first
+    /// exists. No extra MODEL EVALUATION: both predicates are read off the first
     /// subproblem itself, never from a fresh eval_ci call.
     /// @see docs/notes/2026-09-header-prose-archive.md §sqp_types.h
     bool crash_basis = false;
@@ -568,7 +568,7 @@ struct SqpOptions {
     /// can measure the carry without first turning it on. Inert in both directions
     /// under `qp_mode == QpMode::kWalk`.
     ///
-    /// THE DEFAULT IS Off because the measurement says SO: a lever whose sweep is
+    /// The default is OFF because the measurement says so: a lever whose sweep is
     /// a null with a negative tail does not become a default. The mechanism is
     /// what the escape row always said -- starting a subproblem at a large sigma
     /// damps its Newton step toward the current iterate, so the tier stops
@@ -801,7 +801,7 @@ struct SqpIterate {
     /// does not get a field of its own). Always false when
     /// SqpOptions::enable_soc is false.
     bool soc_applied = false;
-    /// True iff AN Elastic solve supplied this major: the elastic tier's re-solve
+    /// True iff an ELASTIC SOLVE supplied this major: the elastic tier's re-solve
     /// after a plain QP returned kInfeasible, or the certified fallback's rung A
     /// after a kIpm escape. Set on BOTH outcomes -- the row whose step came from
     /// the elastic solve, and the row that ended the solve because the ladder was
@@ -985,7 +985,7 @@ struct SqpSolution {
     // construction and `stationarity` is the ordinary grad-L measure, NOT the
     // subgradient certificate's residual.
     //
-    // ONE QUALIFICATION ON "AT The returned multipliers": when
+    // One qualification on "at the returned multipliers": when
     // `counters.ssn.ssn_sign_swept > 0` the sign sweep clamped negative
     // inequality prices AFTER this measurement, so these four describe the
     // PRE-SWEEP multipliers while `lambda_i` holds the swept ones. `stationarity`
@@ -1024,12 +1024,12 @@ struct SqpSolution {
     /// an active solve it is the one that was required to be <= kkt_tol.
     SqpScalingReport scaling;
 
-    /// TRUE ONLY ON The certified infeasibility exit: the restoration phase ran to
+    /// True ONLY on the certified infeasibility exit: the restoration phase ran to
     /// its own KKT test, that test passed, and h at the returned point is still
     /// above feas_tol -- so (x, lambda_e, lambda_i, z) is the subgradient
     /// certificate documented above.
     ///
-    /// FALSE ON Every other exit, INCLUDING OTHER kInfeasible ONES, and that is
+    /// False on EVERY OTHER exit, including other kInfeasible ones, and that is
     /// what this flag is for. It is NOT reliably derivable from the status or the
     /// counters: a solve that restored once and then met a second request, and a
     /// solve whose restoration was itself stuck, both report kInfeasible with
@@ -1045,7 +1045,7 @@ struct SqpSolution {
     /// The solve's exit state in warm_start.h's shape, for a LATER solve of a
     /// nearby problem to feed back in. Populated on EVERY exit of
     /// SqpDriver::solve(), including a failed one, from the best-known iterate.
-    /// POPULATED IS Not the same AS `valid`: one exit -- a start point the model
+    /// Populated is NOT the same as `valid`: one exit -- a start point the model
     /// could not evaluate -- fills these fields for inspection but reports
     /// valid == false, because feeding that point back would override the
     /// caller's own corrected x0.

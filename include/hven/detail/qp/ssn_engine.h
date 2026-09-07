@@ -150,7 +150,7 @@ inline constexpr double kSsnMinStep = 1e-4;
 // costs ITERATIONS, never ACCURACY, and the iteration's fixed points stay exact
 // unregularized KKT points.
 //
-// THE LADDER IS Per-solve and monotone -- sigma never decreases inside one solve,
+// The ladder is PER-SOLVE and MONOTONE -- sigma never decreases inside one solve,
 // except for the second-order verification's drop to the caller's own
 // regularization, which is not a rung. Two decades per rung and a 1e6 ceiling
 // give SEVEN rungs from 1e-6.
@@ -334,7 +334,7 @@ inline SsnInertia ssn_inertia_verdict(const hven::linear::InertiaEvidence &e, In
 //                      while the multiplier norm grew. SUSPECT because it is a
 //                      diagnosis from behaviour, never a Farkas certificate.
 //
-// NONE OF Them certifies anything: an escaped SsnResult reports where the solve
+// None of them certifies anything: an escaped SsnResult reports where the solve
 // STOPPED, and routing it back to the walk is the only correct consumption.
 //
 // BRANCH ON escape_reason, NEVER ON status: kInfeasibleSuspect reports
@@ -836,7 +836,7 @@ class SsnEngine {
 
     // Splits the signed z into the two non-negative bound-row multipliers.
     //
-    // A SEEDED z THAT PRICES A BOUND THIS QP Does not have IS A Caller error and
+    // A seeded z that prices a bound this QP does NOT have is a CALLER ERROR and
     // THROWS: z(j) > 0 prices variable j's lower bound and z(j) < 0 its upper one,
     // and if that side is absent the mass has nowhere to go. THE TEST IS EXACT
     // ZERO, not a tolerance -- an absent side has no multiplier at all.
@@ -944,7 +944,7 @@ class SsnEngine {
     // w + step * dw, with THE DUAL PROJECTION applied to the two non-negative
     // multiplier blocks.
     //
-    // THE PROJECTION IS The wrong-hint mitigation, and the only cheap one
+    // The projection is the WRONG-HINT mitigation, and the only cheap one
     // available: the landing configuration (s, lambda) = (0, lambda < 0) is a
     // DIFFERENTIABLE point of phi, so no derivative re-selection can help. A
     // wrongly hinted active row lands with a negative multiplier and is confined
@@ -1030,7 +1030,7 @@ class SsnEngine {
     // anything. kBare's binary rule and the activity export break an exact tie
     // toward INACTIVE via a strict >, since QpSolution's contract is binary.
     //
-    // AN Uncertain row gets both branches damped: the FB pair is replaced
+    // An uncertain row gets BOTH BRANCHES damped: the FB pair is replaced
     // wholesale by the SYMMETRIC element detail::kSsnDegenerateFbDeriv, so the
     // row's diagonal becomes -(1 + mu + sigma) instead of racing toward -mu or
     // toward a decoupled row, and its coupling to dx keeps a moderate weight.

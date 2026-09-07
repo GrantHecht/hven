@@ -213,7 +213,7 @@ struct SsnCounters {
     /// Newton steps TAKEN. The convergence test runs BEFORE each step, so a
     /// start point already inside fb_tol reports 0.
     ///
-    /// IT Does not equal the factorization count: `ssn_iters <= factorizations`,
+    /// It does NOT equal the factorization count: `ssn_iters <= factorizations`,
     /// because an attempt can pay its factorization and take no step, and under
     /// SsnSafeguards::kFull a certifying exit pays one more for the second-order
     /// verification. Under kBare equality holds. Anything that divides one by the
@@ -244,7 +244,7 @@ struct SsnCounters {
     /// kBare, which has no uncertain set at all.
     Index ssn_uncertain_peak = 0;
 
-    // THE TIER-3 Stable-face refinement, both polarities: certifying SSN exits
+    // The tier-3 STABLE-FACE refinement, both polarities: certifying SSN exits
     // whose identified face was re-solved exactly and whose refined point the
     // driver used as the step, and certifying exits where that solve was refused.
     // Their SUM is the number of certifying SSN exits this solve made WHEN
@@ -1113,7 +1113,7 @@ struct SqpCounters {
     /// PATH, summed over the same set of QP solves as the counters above and named
     /// identically to QpCounters::symbolic_analyses.
     ///
-    /// NOT A COUNT OF EVERY PHASE-11 Call this solve paid: the elimination path
+    /// Not a count of every phase-11 call this solve paid: the elimination path
     /// constructs its own per-solve KktFactor and pays its own analyses through it,
     /// which this field does not see and so under-reports on a solve that uses it.
     /// An ordinary driver keeping a single unshared BorderState should see this
@@ -1147,7 +1147,7 @@ struct SqpCounters {
     /// (SqpOptions::warm_full_step). It counts the same events major_iters does --
     /// subproblems solved -- so it is always <= major_iters, and 0 on every cold
     /// solve, every solve with the lever off and every solve whose `warm` did not
-    /// resolve. IT IS NOT A COUNT OF Unit steps taken: a trial the mode declined to
+    /// resolve. It is not a count of UNIT STEPS taken: a trial the mode declined to
     /// accept (only a non-finite trial point does that) is counted here too.
     Index full_step_majors = 0;
 
@@ -1197,7 +1197,7 @@ struct SqpCounters {
     /// SqpStatus::kMaxIter at that iterate. The test runs BETWEEN majors, so the
     /// minors actually spent are >= the budget.
     ///
-    /// WHAT IT Does not count: an ordinary max_iter exhaustion (also kMaxIter, this
+    /// What it does NOT count: an ordinary max_iter exhaustion (also kMaxIter, this
     /// field 0); a kBudgetExhausted exit under SqpOptions::budget_mode, a different
     /// budget with a different contract; and a solve that spent more than the
     /// budget and CONVERGED anyway, which is reported kOptimal with this field 0.

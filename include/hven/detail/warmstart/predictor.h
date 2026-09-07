@@ -81,7 +81,7 @@
 // failure mode of the wrong choice is bounded and self-correcting: the
 // prediction is a WARM START, and the consuming solve re-derives the active set.
 //
-// NO Hot-start reuse; predict() Always factorizes its own KKT system, and the
+// No hot-start reuse; predict() ALWAYS factorizes its own KKT system, and the
 // returned WarmStart therefore NEVER carries a `hot` handle.
 //
 // Two right-hand-side conventions, ON PURPOSE. The constraint rows carry the
@@ -148,7 +148,7 @@ struct PredictorOptions {
     // when allow_activity_change is false. Must be >= 0; 0 means "take the raw
     // frozen-set step but keep it inside the first crossing".
     //
-    // WHY THERE IS A CAP AT ALL, AND IT IS Not only cost. The
+    // Why there is a cap at all, and it is NOT only cost. The
     // each-entity-changes-status-once rule already bounds the loop at n + mi + 1
     // rounds, so termination is a PROOF rather than a budget; this is the budget,
     // and the smaller of the two governs. What sets the default is ACCURACY: the

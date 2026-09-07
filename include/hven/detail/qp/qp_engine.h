@@ -155,7 +155,7 @@
 //    stays hidden. probe_zero_multiplier_drops runs at the would-be-kOptimal
 //    exit and tentatively drops each such member, most-recently-added first,
 //    re-running the gate; a kWrong makes the drop real and RESUMES the loop.
-//    ONE-AT-A-TIME IS The known remaining approximation.
+//    One-at-a-time is the KNOWN REMAINING approximation.
 //
 //    Suspect-stall gate. When the verdict for the system the FINAL iterate was
 //    solved from is kSuspect, kOptimal may be certified only after an explicit
@@ -204,7 +204,7 @@
 //    NOT identical to the capped path: the ride takes the uncapped ratio while
 //    the ordinary path clamps at alpha = 1. That is intended.
 //
-//    NO Anti-cycling rule IS NEEDED HERE: a ride's objective decrease is strict
+//    No anti-cycling rule is needed here: a ride's objective decrease is strict
 //    whenever alpha > 0.
 //
 // 5. TERMINATION. The loop reaches a KKT point of its working set with nothing
