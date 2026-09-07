@@ -93,6 +93,7 @@
 // still reads through the same reader and a re-swept walk arm diffs against it
 // column for column. See write_header's own note.
 
+#include <algorithm>
 #include <chrono>
 #include <csignal>
 #include <cstdio>
@@ -115,6 +116,7 @@
 
 #include "bench_cli.h"
 #include "corpus_cells.h"
+#include "support/hs_problems.h"
 
 #ifndef HVEN_SQP_CORPUS_GIT_DESCRIBE
 #define HVEN_SQP_CORPUS_GIT_DESCRIBE "unknown"
@@ -149,9 +151,21 @@ using hven::solvers::SsnHintRule;
 using hven::solvers::SsnInfeasibilityRule;
 using hven::solvers::SsnSigmaRule;
 
+// M6 W5 T6.d LEG 2. The types the HS suite below needs, on the same
+// one-namespace-spelling terms.
+using hven::solvers::QpMode;
+using hven::solvers::QpModeSite;
+using hven::solvers::QpModeTraceEvent;
+using hven::solvers::SqpDriver;
+using hven::solvers::SqpOptions;
+using hven::solvers::SqpSolution;
+using hven::solvers::TraceSink;
+
 constexpr const char *kUsage =
     "usage: hven_sqp_corpus --engine walk|ssn|ipm --cells all|<id1,id2,...> --csv <path> "
     "[--score-gates]\n"
+    "       hven_sqp_corpus --hs --engine walk|ssn|ipm --csv <path> [--repeat N]\n"
+    "                       [--hs-cells all|<n1,n2,...>] [--hs-trace off|sink]\n"
     "       hven_sqp_corpus --from-csv <path1[,path2,...]> [--csv <merged>] [--score-gates]\n"
     "       hven_sqp_corpus --dump-qp <cell> --dump-qp-out <path>\n"
     "       hven_sqp_corpus --list\n"
@@ -230,6 +244,51 @@ constexpr const char *kUsage =
     "                    requirement on Task 6. Still PRINTED ONLY: the exit code\n"
     "                    never reflects pass/fail -- the asserted verdicts live in\n"
     "                    tests/test_scale_problems.cpp.\n"
+    "\n"
+    "  --hs              THE HS SUITE (M6 W5 T6.d leg 2). Solve the 27\n"
+    "                    Hock-Schittkowski problems of\n"
+    "                    tests/sqp/support/hs_problems.h through SqpDriver in\n"
+    "                    the --engine mode, IN PROCESS, and write one timed row\n"
+    "                    per cell. Small, major-dense cells -- the corpus's own\n"
+    "                    are F7 at n >= 800, where the QP dominates and a\n"
+    "                    per-major helper is invisible. Requires --engine and\n"
+    "                    --csv; REFUSES --cells/--from-csv/--score-gates/\n"
+    "                    --score-model-surface/--dump-qp and the hidden test\n"
+    "                    levers, rather than accepting and ignoring them. NOT\n"
+    "                    gate-scored, and NOT wrapped in this file's wall\n"
+    "                    deadline: these cells run in milliseconds, so a fork\n"
+    "                    per cell would cost more than the measurement.\n"
+    "  --repeat N        HS ONLY. Solve each cell N times and report the MEDIAN\n"
+    "                    wall, with min/max and the full spread as a percentage\n"
+    "                    of the median. Calibration: raise N until the\n"
+    "                    A-arm-alone per-cell spread is inside +/-0.5 %. The\n"
+    "                    corpus figure is the SUM of per-cell medians, never a\n"
+    "                    mean of ratios. Default 1. Every repeat of one cell is\n"
+    "                    checked to produce the SAME counters; a cell where they\n"
+    "                    move reports counters_stable=0 and its median is not a\n"
+    "                    median over one computation.\n"
+    "  --hs-warmup W     HS ONLY. W UNTIMED solves per cell before the timed\n"
+    "                    repeats. Default 1. The first solve of a cell pays\n"
+    "                    first-touch page faults, allocator growth and MKL's\n"
+    "                    own first-call init; that cost lands on repeat 1 and\n"
+    "                    no --repeat clears it, because the spread is max-min\n"
+    "                    and the cold run stays the max. Measured: hs5 at\n"
+    "                    --repeat 3 read a 468 % spread from that alone. Pass 0\n"
+    "                    to reproduce the cold reading. Stamped in the\n"
+    "                    provenance and carried in the `warmup` column.\n"
+    "  --hs-cells SPEC   HS ONLY. 'all' (the default) or a comma-separated list\n"
+    "                    of shipped HS problem numbers, e.g. 5,10,76.\n"
+    "  --hs-trace MODE   HS ONLY. off (default) leaves no trace sink attached --\n"
+    "                    today's shape, and the arm in which NEITHER driver-side\n"
+    "                    trace_outcome_of call executes, since both sit inside\n"
+    "                    `if (ipqp_trace_ != nullptr)`. sink attaches a real\n"
+    "                    counting sink so both mapper sites run. The two are\n"
+    "                    SEPARATE rows (the `trace` column) and must not be\n"
+    "                    averaged: they are different populations. The\n"
+    "                    ev_* columns count qp.mode events PER SITE and are how\n"
+    "                    a reader proves each site fired rather than assuming\n"
+    "                    it.\n"
+    "\n"
     "  --list            print every census cell's id/tags and exit 0; touches\n"
     "                    neither --engine/--cells/--csv nor the solver.\n"
     "  --score-model-surface   the model-surface census hook. DEFAULT OFF.\n"
@@ -363,6 +422,40 @@ struct Args {
     // in main() below.
     bool score_model_surface = false;
     std::optional<std::string> score_model_surface_out;
+
+    // M6 W5 T6.d LEG 2 -- the HS suite. See the HS SUITE section below for why
+    // it lives in this binary and what its terms are. `--hs` selects it;
+    // `--engine` and `--csv` keep their meanings; every other corpus flag is
+    // REFUSED with it rather than silently ignored, because a flag that reads
+    // as accepted and does nothing is how a measurement arm gets mislabelled.
+    bool hs = false;
+    std::optional<std::string> hs_cells;
+    // Repeats per HS cell, reduced to a MEDIAN. Calibrated at T6.d time by
+    // raising N until the A-arm-alone per-cell spread is inside +/-0.5 %.
+    // HS-ONLY on purpose: the corpus arms are seconds-scale and already
+    // stable, and adding a repeat loop to that path would perturb the producer
+    // of pinned artifacts for no measurement benefit.
+    int repeat = 1;
+    // Attach a real TraceSink. OFF is today's shape (`ipqp_trace_ == nullptr`)
+    // and is the arm that does NOT execute either driver-side
+    // `trace_outcome_of` call; `sink` is the arm that does. The two are
+    // reported as separate rows, never averaged.
+    bool hs_trace_sink = false;
+    // UNTIMED solves before the timed repeats, per cell. DECLARED, stamped in
+    // the provenance and carried in a column, because a warm-up is a choice
+    // about what is measured and not a detail.
+    //
+    // WHY IT EXISTS, measured rather than assumed: on the first solve of a cell
+    // the process pays first-touch page faults, allocator growth and MKL's own
+    // first-call initialisation, and that cost lands on repeat 1 alone. A
+    // Debug smoke of hs5 at --repeat 3 read min 0.746 ms, max 4.448 ms, spread
+    // 468 % -- and no N clears that, because the spread is max-min and the cold
+    // run stays the max forever. §11.3's calibration target ("raise N until the
+    // A-arm-alone per-cell spread is inside +/-0.5 %") is unreachable for a
+    // reason that has nothing to do with the library under test. One untimed
+    // solve removes it. 0 is accepted, and is how a reader reproduces the cold
+    // reading if they want to see it.
+    int hs_warmup = 1;
 };
 
 Args parse_args(int argc, char **argv) {
@@ -453,6 +546,31 @@ Args parse_args(int argc, char **argv) {
                 throw_usage(
                     fmt::format("--ssn-infeasibility-rule: '{}' is not one of symptoms|farkas", v));
             }
+        } else if (arg == "--hs") {
+            a.hs = true;
+        } else if (arg == "--hs-cells") {
+            a.hs_cells = next_value(arg);
+        } else if (arg == "--hs-trace") {
+            const std::string v = next_value(arg);
+            if (v == "off") {
+                a.hs_trace_sink = false;
+            } else if (v == "sink") {
+                a.hs_trace_sink = true;
+            } else {
+                throw_usage(fmt::format("--hs-trace: '{}' is not one of off|sink", v));
+            }
+        } else if (arg == "--hs-warmup") {
+            const int v = parse_int_field("--hs-warmup", next_value(arg));
+            if (v < 0) {
+                throw_usage(fmt::format("--hs-warmup: {} is not >= 0", v));
+            }
+            a.hs_warmup = v;
+        } else if (arg == "--repeat") {
+            const int v = parse_int_field("--repeat", next_value(arg));
+            if (v < 1) {
+                throw_usage(fmt::format("--repeat: {} is not >= 1", v));
+            }
+            a.repeat = v;
         } else if (arg == "--internal-force-child-throw") {
             a.internal_force_child_throw = true;
         } else if (arg == "--internal-force-child-abort") {
@@ -1603,6 +1721,365 @@ void write_model_surface_census(const std::string &path,
     }
 }
 
+// =============================================================================
+// THE HS SUITE — M6 W5 T6.d's LEG 2 (ownership doc §11.3, "an HS-scale leg,
+// which (d) cannot do without").
+// =============================================================================
+//
+// WHY IT IS HERE RATHER THAN IN A TEST BINARY. Every U0 corpus cell is F7 at
+// n >= 800, where the QP dominates and a de-inlined per-major helper is
+// invisible; the plan's "loop-used arithmetic is not cold" is a statement about
+// MAJORS, not about n. So T6.d needs a leg whose cells are small and
+// major-dense. A TEST target is a different link and a different flag surface,
+// which is a poor instrument for a veto-grade neutrality claim -- and it is
+// unnecessary, because bench/CMakeLists.txt already puts tests/sqp on this
+// target's include path (bench/ipqp_e1_arm.cpp includes the same header from a
+// bench target today). So: ONE binary, the bench flag regime, and the corpus
+// path below untouched.
+//
+// THE TERMS THIS CODE EXISTS TO MEET, all from §11.3 and the (d) design review:
+//
+//   * IT LANDS ONCE, BEFORE ANY T6.d NUMBER IS TAKEN. A `--repeat` added
+//     between arms VOIDS the leg -- the two arms must differ ONLY in the
+//     library linked under them, and the harness SOURCE and CONFIGURATION are
+//     what is held identical (each arm is separately LINKED, with its
+//     executable hash retained; one executable cannot run two static library
+//     implementations, which is why the "identical binary" term was amended).
+//
+//   * BOTH TRACE-ENABLED MAPPER SITES MUST EXECUTE. `trace_outcome_of` -- the
+//     one symbol cut (d) gives external linkage, and the only one of the six
+//     with no standalone symbol in today's object -- is called from the driver
+//     at exactly two sites, and BOTH are inside `if (ipqp_trace_ != nullptr)`.
+//     A null-sink leg therefore measures the split's clearest new call exposure
+//     exactly ZERO TIMES. `--hs-trace sink` attaches a real sink; the per-site
+//     event counts below are how a reader PROVES each site fired rather than
+//     assuming it. Null-sink and sink rows carry a `trace` column so the two
+//     populations stay separately identifiable and are never averaged together.
+//
+//   * THE FALLBACK/LADDER PATH MUST BE SHOWN TO HAVE FIRED. Four counters ride
+//     on every row (`elastic_activations`, `elastic_escalations`,
+//     `elastic_from_ipqp_escape`, `ipqp_fallback_rung_b`). A cell that does not
+//     fire the path is not evidence about it.
+//
+//   * AGGREGATION IS MEDIAN-OF-N PER CELL, and the corpus figure is the SUM of
+//     per-cell medians -- never a mean of ratios. `--repeat` is calibrated by
+//     raising N until the A-arm-alone per-cell spread is inside +/-0.5 %; the
+//     `spread_pct` column is what that calibration reads.
+//
+// NO DEADLINE MACHINERY. The HS cells run in milliseconds, so the fork/exec
+// wall-deadline this file wraps the corpus arms in would cost more than the
+// measurement and would put a process spawn inside the timed region. This path
+// is deliberately IN-PROCESS. It is also not gate-scored: it produces timings
+// and counters, and nothing here decides a verdict.
+
+/// @brief A real sink that COUNTS, per site, and keeps nothing else.
+///
+/// It must do real work at the call -- a sink whose overrides were empty could
+/// be optimised into nothing and would not prove the emit path ran -- but it
+/// must also not dominate the timing it is there to enable, so it counts and
+/// returns. The per-site counts ARE the evidence that each mapper site fired.
+class CountingTraceSink final : public TraceSink {
+  public:
+    void on_ipqp_iter(const hven::solvers::IpqpTraceIterEvent &) override { ++ipqp_iter_; }
+    void on_ipqp_reg(const hven::solvers::IpqpTraceRegEvent &) override { ++other_; }
+    void on_ipqp_restart(const hven::solvers::IpqpTraceRestartEvent &) override { ++other_; }
+    void on_ipqp_route(const hven::solvers::IpqpTraceRouteEvent &) override { ++other_; }
+    void on_ipqp_certify(const hven::solvers::IpqpTraceCertifyEvent &) override { ++other_; }
+    void on_ipqp_escape(const hven::solvers::IpqpTraceEscapeEvent &) override { ++other_; }
+    void on_fallback_verdict(const hven::solvers::SqpFallbackVerdictTraceEvent &) override {
+        ++fallback_verdict_;
+    }
+    void on_sqp_major(const hven::solvers::SqpMajorTraceEvent &) override { ++other_; }
+    void on_sqp_solve_begin(const hven::solvers::SqpSolveBeginTraceEvent &) override { ++other_; }
+    void on_sqp_solve_end(const hven::solvers::SqpSolveEndTraceEvent &) override { ++other_; }
+    void on_ipm_iter(const hven::solvers::IpmIterTraceEvent &) override { ++other_; }
+    void on_ipm_solve_begin(const hven::solvers::IpmSolveBeginTraceEvent &) override { ++other_; }
+    void on_ipm_solve_end(const hven::solvers::IpmSolveEndTraceEvent &) override { ++other_; }
+
+    /// THE ONE THAT MATTERS. `qp.mode` is the event both driver-side
+    /// `trace_outcome_of` calls construct and both kernels-side
+    /// `emit_qp_mode_line` calls construct, and `site` is what tells them
+    /// apart -- so this counter, split by site, is the whole proof that the
+    /// mapper's call sites executed.
+    void on_qp_mode(const QpModeTraceEvent &event) override {
+        switch (event.site) {
+        case QpModeSite::kDispatch:
+            ++dispatch;
+            break;
+        case QpModeSite::kSsnWarmGrade:
+            ++ssn_warm_grade;
+            break;
+        case QpModeSite::kFallbackRungB:
+            ++fallback_rung_b;
+            break;
+        case QpModeSite::kElasticRung:
+            ++elastic_rung;
+            break;
+        case QpModeSite::kSocResolve:
+            ++soc_resolve;
+            break;
+        }
+    }
+
+    /// Zeroed explicitly rather than by assigning a fresh instance: this type
+    /// is polymorphic, and copy-assigning a polymorphic object to reset it is
+    /// the kind of clever that stops being true when someone adds a member.
+    void reset() {
+        dispatch = 0;
+        soc_resolve = 0;
+        elastic_rung = 0;
+        fallback_rung_b = 0;
+        ssn_warm_grade = 0;
+        ipqp_iter_ = 0;
+        fallback_verdict_ = 0;
+        other_ = 0;
+    }
+
+    long long dispatch = 0;
+    long long soc_resolve = 0;
+    long long elastic_rung = 0;
+    long long fallback_rung_b = 0;
+    long long ssn_warm_grade = 0;
+
+  private:
+    long long ipqp_iter_ = 0;
+    long long fallback_verdict_ = 0;
+    long long other_ = 0;
+};
+
+QpMode hs_qp_mode(const std::string &engine) {
+    if (engine == "walk") {
+        return QpMode::kWalk;
+    }
+    if (engine == "ssn") {
+        return QpMode::kSsn;
+    }
+    if (engine == "ipm") {
+        return QpMode::kIpm;
+    }
+    throw std::invalid_argument(
+        fmt::format("hven_sqp_corpus: --hs --engine: '{}' is not one of walk|ssn|ipm", engine));
+}
+
+/// One HS cell's measured row. Every counter is the LAST repeat's, and every
+/// repeat of one cell is asserted to produce the same ones (see run_hs_suite):
+/// a cell whose counters move between repeats is not a stable timing cell and
+/// says so rather than reporting a median over two different computations.
+struct HsRow {
+    int number = 0;
+    double wall_median_s = 0.0;
+    double wall_min_s = 0.0;
+    double wall_max_s = 0.0;
+    double spread_pct = 0.0;
+    bool counters_stable = true;
+    hven::solvers::SqpStatus status = hven::solvers::SqpStatus::kOptimal;
+    double f = 0.0;
+    long long majors = 0;
+    long long qp_minors = 0;
+    long long factorizations = 0;
+    long long soc_steps = 0;
+    long long soc_applied = 0;
+    long long elastic_activations = 0;
+    long long elastic_escalations = 0;
+    long long elastic_from_ipqp_escape = 0;
+    long long ipqp_fallback_rung_b = 0;
+    long long history_rows = 0;
+    long long ev_dispatch = 0;
+    long long ev_soc_resolve = 0;
+    long long ev_elastic_rung = 0;
+    long long ev_fallback_rung_b = 0;
+    long long ev_ssn_warm_grade = 0;
+};
+
+double median_of(std::vector<double> v) {
+    std::sort(v.begin(), v.end());
+    const std::size_t n = v.size();
+    if (n == 0) {
+        return 0.0;
+    }
+    return n % 2 == 1 ? v[n / 2] : 0.5 * (v[n / 2 - 1] + v[n / 2]);
+}
+
+std::vector<int> resolve_hs_cells(const std::string &spec) {
+    const std::vector<int> &shipped = hven::solvers::test_support::hs_numbers();
+    if (spec == "all") {
+        return shipped;
+    }
+    std::vector<int> out;
+    for (const std::string &tok : split_on(spec, ',')) {
+        const int n = parse_int_field("--hs-cells", tok);
+        if (std::find(shipped.begin(), shipped.end(), n) == shipped.end()) {
+            throw_usage(fmt::format("--hs-cells: problem {} is not shipped by "
+                                    "tests/sqp/support/hs_problems.h",
+                                    n));
+        }
+        out.push_back(n);
+    }
+    if (out.empty()) {
+        throw_usage("--hs-cells: resolved to zero cells");
+    }
+    return out;
+}
+
+/// Solve ONE HS problem `repeat` times and reduce to one row.
+///
+/// THE MODEL IS REBUILT PER REPEAT, deliberately: a solve is entitled to leave
+/// state in the model it was handed, and reusing one across repeats would make
+/// repeat k a different computation from repeat 1 -- which the counter-stability
+/// check below would then report as an instability that is really the harness's.
+/// Construction is outside the timed region.
+HsRow run_hs_cell(int number, QpMode mode, int repeat, int warmup, CountingTraceSink *sink) {
+    HsRow row;
+    row.number = number;
+    // THE WARM-UP SOLVES, discarded: same model, same options, same sink, same
+    // code path -- only the clock is not read. See Args::hs_warmup for the
+    // measurement that made this necessary.
+    for (int w = 0; w < warmup; ++w) {
+        hven::solvers::test_support::HsProblem hs = hven::solvers::test_support::make_hs(number);
+        SqpOptions opts;
+        opts.qp_mode = mode;
+        SqpDriver driver(opts);
+        if (sink != nullptr) {
+            sink->reset();
+            driver.attach_trace(sink);
+        }
+        const SqpSolution discarded = driver.solve(*hs.model);
+        (void)discarded;
+    }
+    std::vector<double> walls;
+    walls.reserve(static_cast<std::size_t>(repeat));
+    hven::solvers::SqpCounters first_counters;
+    for (int r = 0; r < repeat; ++r) {
+        hven::solvers::test_support::HsProblem hs = hven::solvers::test_support::make_hs(number);
+        SqpOptions opts;
+        opts.qp_mode = mode;
+        SqpDriver driver(opts);
+        if (sink != nullptr) {
+            sink->reset();
+            driver.attach_trace(sink);
+        }
+        const auto t0 = std::chrono::steady_clock::now();
+        const SqpSolution sol = driver.solve(*hs.model);
+        const auto t1 = std::chrono::steady_clock::now();
+        walls.push_back(std::chrono::duration<double>(t1 - t0).count());
+
+        if (r == 0) {
+            first_counters = sol.counters;
+        } else if (sol.counters.major_iters != first_counters.major_iters ||
+                   sol.counters.qp_minor_iters != first_counters.qp_minor_iters ||
+                   sol.counters.factorizations != first_counters.factorizations ||
+                   sol.counters.elastic_activations != first_counters.elastic_activations) {
+            row.counters_stable = false;
+        }
+        row.status = sol.status;
+        row.f = sol.f;
+        row.majors = static_cast<long long>(sol.counters.major_iters);
+        row.qp_minors = static_cast<long long>(sol.counters.qp_minor_iters);
+        row.factorizations = static_cast<long long>(sol.counters.factorizations);
+        row.soc_steps = static_cast<long long>(sol.counters.soc_steps);
+        row.soc_applied = static_cast<long long>(sol.counters.soc_applied);
+        row.elastic_activations = static_cast<long long>(sol.counters.elastic_activations);
+        row.elastic_escalations = static_cast<long long>(sol.counters.elastic_escalations);
+        row.elastic_from_ipqp_escape =
+            static_cast<long long>(sol.counters.elastic_from_ipqp_escape);
+        row.ipqp_fallback_rung_b = static_cast<long long>(sol.counters.ipqp_fallback_rung_b);
+        row.history_rows = static_cast<long long>(sol.history.size());
+        if (sink != nullptr) {
+            row.ev_dispatch = sink->dispatch;
+            row.ev_soc_resolve = sink->soc_resolve;
+            row.ev_elastic_rung = sink->elastic_rung;
+            row.ev_fallback_rung_b = sink->fallback_rung_b;
+            row.ev_ssn_warm_grade = sink->ssn_warm_grade;
+        }
+    }
+    row.wall_median_s = median_of(walls);
+    row.wall_min_s = *std::min_element(walls.begin(), walls.end());
+    row.wall_max_s = *std::max_element(walls.begin(), walls.end());
+    // THE CALIBRATION READING: full spread as a percentage of the median. N is
+    // raised until this is inside +/-0.5 % on the A arm alone (§11.3).
+    row.spread_pct = row.wall_median_s > 0.0
+                         ? 100.0 * (row.wall_max_s - row.wall_min_s) / row.wall_median_s
+                         : 0.0;
+    return row;
+}
+
+std::string hs_invocation(int argc, char **argv) {
+    std::string s;
+    for (int i = 0; i < argc; ++i) {
+        s += (i == 0 ? "" : " ");
+        s += argv[i];
+    }
+    return s;
+}
+
+std::string hs_host() {
+    char host[256] = {0};
+    if (::gethostname(host, sizeof(host) - 1) != 0 || host[0] == '\0') {
+        return "<unknown>";
+    }
+    return host;
+}
+
+std::string hs_utc_stamp() {
+    const std::time_t now = std::time(nullptr);
+    char stamp[64] = {0};
+    std::tm utc{};
+    if (::gmtime_r(&now, &utc) == nullptr ||
+        std::strftime(stamp, sizeof(stamp), "%Y-%m-%dT%H:%M:%SZ", &utc) == 0) {
+        return "<unknown>";
+    }
+    return stamp;
+}
+
+/// The HS artifact's own provenance block. SEPARATE from `write_provenance`
+/// above, and deliberately not a refactor of it: that function stamps the
+/// corpus schema width and the budget-table hash, neither of which means
+/// anything here, and it is the producer of PINNED committed artifacts. A
+/// measurement commit does not edit the code that writes pinned evidence.
+void write_hs_provenance(std::ostream &os, int argc, char **argv, const std::string &engine,
+                         int repeat, int warmup, bool trace_sink) {
+    const char *mkl = std::getenv("MKL_NUM_THREADS");
+    const char *omp = std::getenv("OMP_NUM_THREADS");
+    os << "# hven_sqp_corpus HS-suite provenance (M6 W5 T6.d leg 2)\n";
+    os << fmt::format("# binary: {}\n", HVEN_SQP_CORPUS_GIT_DESCRIBE);
+    os << fmt::format("# engine: {}\n", engine);
+    os << fmt::format("# repeat: {}\n", repeat);
+    os << fmt::format("# warmup: {} (untimed solves per cell, discarded)\n", warmup);
+    os << fmt::format("# trace: {}\n", trace_sink ? "sink" : "off");
+    os << fmt::format("# invocation: {}\n", hs_invocation(argc, argv));
+    os << fmt::format("# MKL_NUM_THREADS: {}\n", mkl == nullptr ? "<unset>" : mkl);
+    os << fmt::format("# OMP_NUM_THREADS: {}\n", omp == nullptr ? "<unset>" : omp);
+    os << fmt::format("# host: {}\n", hs_host());
+    os << fmt::format("# generated: {}\n", hs_utc_stamp());
+    os << "# cells: tests/sqp/support/hs_problems.h hs_numbers()\n";
+    os << "# aggregation: wall_median_s is the MEDIAN of `repeat` in-process solves; the corpus\n";
+    os << "#              figure is the SUM of per-cell medians, never a mean of ratios.\n";
+    os << "# NOT gate-scored, and no wall-deadline machinery: these cells run in milliseconds.\n";
+    os << "# Wall-clock here is quotable ONLY under CLAUDE.md section 7's terms -- solo, pinned,\n";
+    os << "# MKL_NUM_THREADS=1, OMP_NUM_THREADS=1, one process, alternating arms.\n";
+}
+
+void write_hs_header(std::ostream &os) {
+    os << "hs,engine,trace,repeat,warmup,wall_median_s,wall_min_s,wall_max_s,spread_pct,"
+          "counters_stable,status,f,majors,qp_minors,factorizations,soc_steps,soc_applied,"
+          "elastic_activations,elastic_escalations,elastic_from_ipqp_escape,ipqp_fallback_rung_b,"
+          "history_rows,ev_dispatch,ev_soc_resolve,ev_elastic_rung,ev_fallback_rung_b,"
+          "ev_ssn_warm_grade\n";
+}
+
+void write_hs_row(std::ostream &os, const HsRow &r, const std::string &engine, bool trace_sink,
+                  int repeat, int warmup) {
+    os << fmt::format("{},{},{},{},{},{:.9e},{:.9e},{:.9e},{:.6f},{},{},{:.17g},{},{},{},{},{},{},"
+                      "{},{},{},{},{},{},{},{},{}\n",
+                      r.number, engine, trace_sink ? "sink" : "off", repeat, warmup,
+                      r.wall_median_s, r.wall_min_s, r.wall_max_s, r.spread_pct,
+                      r.counters_stable ? 1 : 0, to_string(r.status), r.f, r.majors, r.qp_minors,
+                      r.factorizations, r.soc_steps, r.soc_applied, r.elastic_activations,
+                      r.elastic_escalations, r.elastic_from_ipqp_escape, r.ipqp_fallback_rung_b,
+                      r.history_rows, r.ev_dispatch, r.ev_soc_resolve, r.ev_elastic_rung,
+                      r.ev_fallback_rung_b, r.ev_ssn_warm_grade);
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -1630,6 +2107,114 @@ int main(int argc, char **argv) {
             run_internal_one(*args.internal_run_one, *args.engine, *args.internal_out, levers,
                              args.internal_force_child_throw, args.internal_force_child_abort);
             return 0;
+        }
+
+        // --------------------------------------------------------------
+        // THE HS SUITE (M6 W5 T6.d leg 2). Its own path, ahead of every
+        // corpus mode, and it shares nothing with them but --engine and
+        // --csv. See the HS SUITE section for the terms.
+        // --------------------------------------------------------------
+        if (args.hs) {
+            if (!args.engine || !args.csv) {
+                throw_usage("--hs requires --engine and --csv");
+            }
+            // REFUSED, NOT IGNORED. A corpus flag that reads as accepted here
+            // and does nothing is how an arm gets mislabelled in a report that
+            // quotes its invocation line.
+            if (args.cells || args.from_csv || args.dump_qp || args.dump_qp_out ||
+                args.score_gates || args.score_model_surface || args.score_model_surface_out) {
+                throw_usage("--hs runs the Hock-Schittkowski suite in process: it cannot be "
+                            "combined with --cells/--from-csv/--dump-qp/--dump-qp-out/"
+                            "--score-gates/--score-model-surface/--score-model-surface-out, none "
+                            "of which has a meaning over these cells");
+            }
+            if (args.internal_run_one || args.internal_force_setup_budget_s ||
+                args.internal_force_solve_budget_s || args.internal_force_child_throw ||
+                args.internal_force_child_abort) {
+                throw_usage("--hs takes none of the hidden internal/test levers: this path runs "
+                            "in process and has no child to force, no deadline to override, and "
+                            "produces timings that a forced fixture would silently corrupt");
+            }
+            const QpMode mode = hs_qp_mode(*args.engine);
+            const std::vector<int> numbers = resolve_hs_cells(args.hs_cells.value_or("all"));
+            CountingTraceSink sink;
+            CountingTraceSink *sink_ptr = args.hs_trace_sink ? &sink : nullptr;
+
+            std::ofstream out(*args.csv);
+            if (!out) {
+                throw std::invalid_argument(
+                    fmt::format("--csv: could not open '{}' for writing", *args.csv));
+            }
+            write_hs_provenance(out, argc, argv, *args.engine, args.repeat, args.hs_warmup,
+                                args.hs_trace_sink);
+            write_hs_header(out);
+            out.flush();
+
+            double corpus_s = 0.0;
+            double worst_spread = 0.0;
+            int unstable = 0;
+            long long ev_dispatch = 0;
+            long long ev_soc_resolve = 0;
+            long long ev_elastic_rung = 0;
+            long long ev_fallback_rung_b = 0;
+            long long fired_elastic = 0;
+            long long fired_rung_b = 0;
+            for (const int number : numbers) {
+                const HsRow row = run_hs_cell(number, mode, args.repeat, args.hs_warmup, sink_ptr);
+                write_hs_row(out, row, *args.engine, args.hs_trace_sink, args.repeat,
+                             args.hs_warmup);
+                out.flush();
+                corpus_s += row.wall_median_s;
+                worst_spread = std::max(worst_spread, row.spread_pct);
+                unstable += row.counters_stable ? 0 : 1;
+                ev_dispatch += row.ev_dispatch;
+                ev_soc_resolve += row.ev_soc_resolve;
+                ev_elastic_rung += row.ev_elastic_rung;
+                ev_fallback_rung_b += row.ev_fallback_rung_b;
+                fired_elastic += row.elastic_activations;
+                fired_rung_b += row.ipqp_fallback_rung_b;
+                fmt::print("hs{} {} trace={} median={:.6f}s spread={:.3f}% majors={} "
+                           "elastic={} rung_b={}\n",
+                           number, *args.engine, args.hs_trace_sink ? "sink" : "off",
+                           row.wall_median_s, row.spread_pct, row.majors, row.elastic_activations,
+                           row.ipqp_fallback_rung_b);
+            }
+            // THE CORPUS FIGURE IS THE SUM OF PER-CELL MEDIANS (§11.3), and
+            // the worst per-cell spread is the calibration reading `--repeat`
+            // is raised against.
+            fmt::print("\nHS SUITE: {} cell(s), engine {}, trace {}, repeat {}, warmup {}\n",
+                       numbers.size(), *args.engine, args.hs_trace_sink ? "sink" : "off",
+                       args.repeat, args.hs_warmup);
+            fmt::print("  corpus (sum of per-cell medians): {:.6f} s\n", corpus_s);
+            fmt::print("  worst per-cell spread: {:.3f} %  (calibration target: <= 0.5)\n",
+                       worst_spread);
+            fmt::print("  cells with unstable counters across repeats: {}\n", unstable);
+            fmt::print("  elastic activations: {}   fallback rung B: {}\n", fired_elastic,
+                       fired_rung_b);
+            if (args.hs_trace_sink) {
+                fmt::print("  qp.mode events by site: dispatch={} soc_resolve={} "
+                           "elastic_rung={} fallback_rung_b={}\n",
+                           ev_dispatch, ev_soc_resolve, ev_elastic_rung, ev_fallback_rung_b);
+                // THE TWO DRIVER-SIDE MAPPER SITES, named. This is a REPORT,
+                // never an exit code: a mode in which SOC legitimately never
+                // fires is a fact about the cells, not a runner failure.
+                if (ev_dispatch == 0) {
+                    fmt::print("  NOTE: the kDispatch mapper site did NOT fire in this arm\n");
+                }
+                if (ev_soc_resolve == 0) {
+                    fmt::print("  NOTE: the kSocResolve mapper site did NOT fire in this arm\n");
+                }
+            }
+            fmt::print("wrote {} row(s) to {}\n", numbers.size(), *args.csv);
+            return 0;
+        }
+        if (args.repeat != 1) {
+            throw_usage("--repeat applies to the HS suite only (--hs); the corpus arms are "
+                        "seconds-scale, already stable, and produce PINNED artifacts whose "
+                        "producer this flag deliberately does not touch");
+        }
+        if (args.hs_cells || args.hs_trace_sink || args.hs_warmup != 1) {
+            throw_usage("--hs-cells, --hs-trace and --hs-warmup apply to the HS suite only (--hs)");
         }
 
         if (args.dump_qp) {
