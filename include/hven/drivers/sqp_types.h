@@ -265,7 +265,7 @@ struct IpqpOptions {
     /// Default true; false forces a fresh symbolic pass every major.
     bool ipqp_hoist_symbolic = true;
 
-    /// THE REQUIRED FINAL UNREGULARIZED INERTIA READ (spec 2.2 item 4): when
+    /// The required final unregularized inertia read (spec 2.2 item 4): when
     /// true, a certifying exit pays one extra
     /// unregularized factorization to confirm the inertia the regularized
     /// solve reported; a WRONG read downgrades the certificate rather than

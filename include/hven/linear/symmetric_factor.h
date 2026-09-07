@@ -712,7 +712,7 @@ class SymmetricFactor {
     // there is no session, and the value set here is what the next analyze()
     // builds one with.
     //
-    // NOT INTERNALLY SYNCHRONIZED, exactly like a solve: a caller must serialize
+    // Not internally synchronized, exactly like a solve: a caller must serialize
     // it against any call in flight on that session, including one issued by a
     // different co-owner on another thread.
     //
