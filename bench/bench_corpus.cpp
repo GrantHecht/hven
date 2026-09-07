@@ -95,6 +95,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
@@ -261,7 +262,14 @@ constexpr const char *kUsage =
     "  --repeat N        HS ONLY. Solve each cell N times and report the MEDIAN\n"
     "                    wall, with min/max and the full spread as a percentage\n"
     "                    of the median. Calibration: raise N until the\n"
-    "                    A-arm-alone per-cell spread is inside +/-0.5 %. The\n"
+    "                    A-arm-alone per-cell MEDIAN SE is inside +/-0.5 %.\n"
+    "                    Read median_se_pct, NOT spread_pct: max-min is\n"
+    "                    monotone in N by construction (0.000 % at N=1, 44 % at\n"
+    "                    N=10 on this box) and cannot converge, while the\n"
+    "                    standard error of the reported median falls as\n"
+    "                    1/sqrt(N). The arm is ALSO run three times and its\n"
+    "                    per-cell medians compared, which assumes no\n"
+    "                    distribution at all.\n"
     "                    corpus figure is the SUM of per-cell medians, never a\n"
     "                    mean of ratios. Default 1. Every repeat of one cell is\n"
     "                    checked to produce the SAME counters; a cell where they\n"
@@ -1871,6 +1879,7 @@ struct HsRow {
     double wall_min_s = 0.0;
     double wall_max_s = 0.0;
     double spread_pct = 0.0;
+    double median_se_pct = 0.0;
     bool counters_stable = true;
     hven::solvers::SqpStatus status = hven::solvers::SqpStatus::kOptimal;
     double f = 0.0;
@@ -1995,11 +2004,47 @@ HsRow run_hs_cell(int number, QpMode mode, int repeat, int warmup, CountingTrace
     row.wall_median_s = median_of(walls);
     row.wall_min_s = *std::min_element(walls.begin(), walls.end());
     row.wall_max_s = *std::max_element(walls.begin(), walls.end());
-    // THE CALIBRATION READING: full spread as a percentage of the median. N is
-    // raised until this is inside +/-0.5 % on the A arm alone (§11.3).
+    // TWO DISPERSION READINGS, AND ONLY THE SECOND IS THE CALIBRATION ONE.
+    //
+    // `spread_pct` is the full max-min range over the median: the raw sample
+    // cloud, kept because it is what an outlier shows up in.
+    //
+    // IT IS NOT A CALIBRATION STATISTIC, and that was MEASURED rather than
+    // reasoned about. max-min is monotonically NON-DECREASING in N by
+    // construction -- more samples are more chances to catch a straggler -- so
+    // "raise N until the spread is inside +/-0.5 %" cannot converge. On this
+    // box, ipm, warmup 1, the worst per-cell reading went 0.000 % at N=1
+    // (trivially: max == min == the one sample), 7.8 % at N=3, 8.2 % at N=5,
+    // 44.4 % at N=10, 21.2 % at N=20. Raising N makes that number WORSE.
+    //
+    // `median_se_pct` is the standard error OF THE REPORTED MEDIAN as a
+    // percentage of it -- 1.2533 * sigma / sqrt(N), the large-sample standard
+    // error of a sample median, over the median. It answers the question the
+    // calibration is actually asking: how tightly is the number this row
+    // REPORTS pinned down, and therefore how much of an A-vs-B difference is
+    // real. It falls as 1/sqrt(N), so it converges, and it is the column N is
+    // raised against.
+    //
+    // Neither replaces the empirical check: the arm is also run three times
+    // and its per-cell MEDIANS compared, which is the reproducibility the
+    // comparison actually rests on and assumes no distribution at all.
     row.spread_pct = row.wall_median_s > 0.0
                          ? 100.0 * (row.wall_max_s - row.wall_min_s) / row.wall_median_s
                          : 0.0;
+    if (walls.size() > 1 && row.wall_median_s > 0.0) {
+        double mean = 0.0;
+        for (const double w : walls) {
+            mean += w;
+        }
+        mean /= static_cast<double>(walls.size());
+        double ss = 0.0;
+        for (const double w : walls) {
+            ss += (w - mean) * (w - mean);
+        }
+        const double sigma = std::sqrt(ss / static_cast<double>(walls.size() - 1));
+        row.median_se_pct = 100.0 * 1.2533 * sigma /
+                            (std::sqrt(static_cast<double>(walls.size())) * row.wall_median_s);
+    }
     return row;
 }
 
@@ -2061,6 +2106,7 @@ void write_hs_provenance(std::ostream &os, int argc, char **argv, const std::str
 
 void write_hs_header(std::ostream &os) {
     os << "hs,engine,trace,repeat,warmup,wall_median_s,wall_min_s,wall_max_s,spread_pct,"
+          "median_se_pct,"
           "counters_stable,status,f,majors,qp_minors,factorizations,soc_steps,soc_applied,"
           "elastic_activations,elastic_escalations,elastic_from_ipqp_escape,ipqp_fallback_rung_b,"
           "history_rows,ev_dispatch,ev_soc_resolve,ev_elastic_rung,ev_fallback_rung_b,"
@@ -2069,10 +2115,10 @@ void write_hs_header(std::ostream &os) {
 
 void write_hs_row(std::ostream &os, const HsRow &r, const std::string &engine, bool trace_sink,
                   int repeat, int warmup) {
-    os << fmt::format("{},{},{},{},{},{:.9e},{:.9e},{:.9e},{:.6f},{},{},{:.17g},{},{},{},{},{},{},"
-                      "{},{},{},{},{},{},{},{},{}\n",
+    os << fmt::format("{},{},{},{},{},{:.9e},{:.9e},{:.9e},{:.6f},{:.6f},{},{},{:.17g},{},{},{},{},"
+                      "{},{},{},{},{},{},{},{},{},{},{}\n",
                       r.number, engine, trace_sink ? "sink" : "off", repeat, warmup,
-                      r.wall_median_s, r.wall_min_s, r.wall_max_s, r.spread_pct,
+                      r.wall_median_s, r.wall_min_s, r.wall_max_s, r.spread_pct, r.median_se_pct,
                       r.counters_stable ? 1 : 0, to_string(r.status), r.f, r.majors, r.qp_minors,
                       r.factorizations, r.soc_steps, r.soc_applied, r.elastic_activations,
                       r.elastic_escalations, r.elastic_from_ipqp_escape, r.ipqp_fallback_rung_b,
@@ -2152,6 +2198,7 @@ int main(int argc, char **argv) {
 
             double corpus_s = 0.0;
             double worst_spread = 0.0;
+            double worst_se = 0.0;
             int unstable = 0;
             long long ev_dispatch = 0;
             long long ev_soc_resolve = 0;
@@ -2166,6 +2213,7 @@ int main(int argc, char **argv) {
                 out.flush();
                 corpus_s += row.wall_median_s;
                 worst_spread = std::max(worst_spread, row.spread_pct);
+                worst_se = std::max(worst_se, row.median_se_pct);
                 unstable += row.counters_stable ? 0 : 1;
                 ev_dispatch += row.ev_dispatch;
                 ev_soc_resolve += row.ev_soc_resolve;
@@ -2186,7 +2234,12 @@ int main(int argc, char **argv) {
                        numbers.size(), *args.engine, args.hs_trace_sink ? "sink" : "off",
                        args.repeat, args.hs_warmup);
             fmt::print("  corpus (sum of per-cell medians): {:.6f} s\n", corpus_s);
-            fmt::print("  worst per-cell spread: {:.3f} %  (calibration target: <= 0.5)\n",
+            fmt::print("  worst per-cell median SE: {:.3f} %   <-- THE CALIBRATION READING "
+                       "(target <= 0.5, falls as 1/sqrt(N))\n",
+                       worst_se);
+            fmt::print("  worst per-cell max-min spread: {:.3f} %  (raw cloud; NOT a calibration\n"
+                       "                                            statistic -- it is monotone "
+                       "in N)\n",
                        worst_spread);
             fmt::print("  cells with unstable counters across repeats: {}\n", unstable);
             fmt::print("  elastic activations: {}   fallback rung B: {}\n", fired_elastic,
