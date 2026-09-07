@@ -10296,3 +10296,375 @@ than a contract were compressed.
     // so it is the only one a caller cannot already know from the Options it
     // passed in.
 ```
+
+### include/hven/detail/warmstart/predictor.h
+
+1223 lines / 635 comment lines at `1997159`; 1071 / 483 after.
+
+**SOURCE** 1997159 · include/hven/detail/warmstart/predictor.h · lines 6–199
+
+The 194-line file banner: the sensitivity system with its derivation, the probe-step formula, the three error terms with the measurement design they imply, the parameter-restoration contract, the four fix-relax repairs, the ratio test with its lineage, the weakly-active KEEP ruling, the three reasons against hot-start reuse, the two right-hand-side conventions, the infinite-bound NaN containment rule and the never-mutates rule. Every contract is kept in the rewritten banner; the derivations, the lineage and the three hot-start reasons are here.
+
+```text
+// predictor.h — THE TANGENTIAL PREDICTOR: given a converged WarmStart at
+// parameter p and a step dp, produce a FIRST-ORDER-ACCURATE WarmStart at
+// p + dp by solving ONE parametric-sensitivity KKT system on the active set
+// FROZEN at the warm start.
+//
+// THE SYSTEM. At a KKT point of
+//
+//     min f(x;p)  s.t.  cE(x;p) = 0,  cI(x;p) <= 0,  l(p) <= x <= u(p)
+//
+// (nlp_model.h's conventions verbatim: cI <= 0, lambda_i >= 0, and
+// stationarity grad f + Je^T lambda_e + Ji^T lambda_i - z = 0), differentiating
+// the active-set KKT conditions with respect to p along dp gives
+//
+//     W dx + Je^T dlambda_e + JA^T dlambda_A - dz = -(d/dp grad_x L) dp
+//     Je dx                                       = -(d/dp cE) dp
+//     JA dx                                       = -(d/dp cI_A) dp
+//     dx_i                                        =  (d/dp bound_i) dp,  i pinned
+//
+// with W the exact Lagrangian Hessian at (x, lambda) and A the frozen active
+// inequality set. That is exactly the linear system kkt_assembly.h already
+// assembles for the QP engine, with a DIFFERENT right-hand side -- which is
+// the whole idea: the predictor is a right-hand-side change, not new linear
+// algebra. Solving it and adding (dx, dlambda, dz) to the warm start's own
+// (x, lambda, z) is the classical parametric-sensitivity ("tangential")
+// predictor of Fiacco's sensitivity theorem; the four activity repairs below
+// are sIpopt's fix-relax scheme, each realized as a Schur border over the
+// same factorization.
+//
+// WHAT IT COSTS: ONE extra model evaluation (at ONE probe parameter value --
+// see PARAMETER DERIVATIVES below), ONE Hessian/Jacobian evaluation at the
+// warm start's own point, and ONE KKT factorization. Every activity change
+// afterwards is a Schur-complement BORDER over that same factorization,
+// never a second factorization.
+//
+// --- PARAMETER DERIVATIVES: ONE DIRECTIONAL FORWARD DIFFERENCE -------------
+//
+// The right-hand side needs the p-derivatives of grad_x L, cE, cI and the
+// bounds, but ONLY ever contracted against dp -- i.e. one DIRECTIONAL
+// derivative each, never a full parameter Jacobian. So the model is evaluated
+// at exactly one extra point,
+//
+//     p_probe = p + h * dp/||dp||,   h = fd_step_scale * sqrt(eps) * max(1, ||p||),
+//
+// and each needed derivative-times-dp is (g(p_probe) - g(p)) * ||dp||/h, at
+// the SAME x and the SAME multipliers. h is the standard forward-difference
+// step, balancing O(h) truncation against O(eps/h) cancellation.
+//
+// --- THE THREE ERROR TERMS -------------------------------------------------
+//
+// A prediction carries (1) the LINEARIZATION error O(||dp||^2), inherent to
+// any first-order predictor; (2) the FINITE-DIFFERENCE error above,
+// O(||dp||*sqrt(eps)) -- which is identically zero for a model whose data
+// depend on p through the identity map, so its absence in a measurement
+// proves nothing about the difference; and (3) the REGULARIZATION error of
+// the KKT system itself: this file assembles the SAME Tikhonov-regularized K
+// the QP engine does, with delta/mu taken from the warm start's own
+// effective values, so the step carries a RELATIVE error of order delta.
+// On a family whose solution path is affine in p, term (3) dominates and is
+// proportional to delta * ||dp|| with a family-dependent constant (the
+// system's conditioning); tests/sqp/test_predictor.cpp's affine-path tests
+// measure at two deltas precisely so that floor is identified by how it
+// MOVES WITH THE KNOB. NO ITERATIVE REFINEMENT is applied against the
+// unregularized operator, deliberately: at any dp a caller would actually
+// take, term (1) dominates term (3) by orders.
+//
+// --- PARAMETER RESTORATION, PART OF THE CONTRACT ---------------------------
+//
+// `model` is taken by MUTABLE reference because probing requires
+// set_parameters (non-const by nlp_model.h's design), and predict() RESTORES
+// the model's entry parameters before returning -- on the throwing paths
+// too, via an RAII restorer. A caller never has to save/restore around a
+// predict() call.
+//
+// --- ACTIVITY CHANGES: FIX-RELAX, RATIO-TESTED ------------------------------
+//
+// A frozen-set linearization is valid only while the active set holds.
+// Around a threshold it does not, and the four repairs below are applied
+// over the SAME factorized K0 (different borders each round, never a second
+// factorization):
+//
+//   FIX   a free variable whose predicted value crosses a bound: CLAMP it to
+//         that bound and PIN it (BorderOps::pin_variable with diagonal
+//         -dual_mu, and a border right-hand side of "bound at p+dp minus x"
+//         -- the displacement that lands the variable exactly ON the bound).
+//   RELAX a pinned variable whose predicted bound multiplier has the WRONG
+//         SIGN (z < 0 at a lower bound, z > 0 at an upper bound): drop its
+//         pin border. The variable's own stationarity row additionally has
+//         the frozen z subtracted from its right-hand side, which forces the
+//         released multiplier to land at numerically zero (exactly 0.0 on
+//         MKL; an O(1e-34) residue on Accelerate) instead of staying at its
+//         frozen value -- at a genuine crossing the frozen z is O(||dp||),
+//         so omitting this would silently cost the predictor its order.
+//   DROP  an active inequality row whose predicted multiplier goes negative:
+//         deactivate it with BorderOps::delete_k0_row, whose border
+//         right-hand side is set to -lambda_j so the row's multiplier
+//         INCREMENT lands the predicted multiplier at 0 (a rhs of 0 there
+//         would pin the INCREMENT and leave the multiplier at its frozen
+//         value -- the same first-order error as the relax case).
+//   ADD   an inactive inequality row the predicted point VIOLATES: activate
+//         it with BorderOps::add_ineq_row, right-hand side -(cI_j +
+//         d cI_j dp), the linearized residual that drives the row back to
+//         equality.
+//
+// Each variable and each row may change status AT MOST ONCE per predict()
+// call, which bounds the loop at n + mi + 1 rounds and makes cycling
+// impossible. Set PredictorOptions::allow_activity_change = false to take
+// the raw frozen-set step with no repairs at all.
+//
+// WHERE THE REPAIRS ARE APPLIED: THE RATIO TEST. The repairs are NOT all
+// evaluated at the full step -- on a family stepping across an activation
+// threshold that overshoots catastrophically, pinning dozens of variables
+// the true solution keeps free, and the loop cannot repair its own overshoot
+// (a run clamped flat against a bound reads zero multipliers throughout, so
+// no RELAX trigger ever fires). Instead the prediction is read as a path in
+// a scalar homotopy variable t (the model at p + t*dp, t in [0, 1]): the
+// frozen-set sensitivity system is a DIRECTION along that path, every
+// quantity the repairs test is AFFINE in t with known slope, and the loop
+// advances only to the EARLIEST crossing (ties together), changes those
+// entities' status, and re-solves over the remaining interval. On a
+// piecewise-affine family the resulting path IS the solution path,
+// breakpoint for breakpoint, exact up to the regularization floor on both
+// sides of a threshold; on a curved family the O(||dp||^2) linearization
+// error is unchanged -- the direction is still the frozen-set tangent, only
+// its length is now bounded. This is the parametric active-set homotopy
+// (the qpOASES lineage), composed with sIpopt's border-per-repair scheme,
+// which is what makes a per-breakpoint loop affordable.
+//
+// One Schur solve per breakpoint instead of one per round;
+// PredictorOptions::max_activity_rounds caps how many are paid (truncation
+// semantics there), and predict()'s `reached_t` out-parameter reports how
+// far the path got.
+//
+// WEAKLY ACTIVE ROWS ARE KEPT, NOT DROPPED -- a deliberate decision, and the
+// one place this file's behaviour at a DEGENERATE warm start is not forced
+// by the mathematics. Where strict complementarity fails (an active
+// constraint with multiplier exactly 0), the solution path is only
+// DIRECTIONALLY differentiable: a first-order predictor must pick one
+// branch. This file picks KEEP: the DROP test fires only on a STRICTLY
+// negative predicted multiplier, beyond kDualSignTol chosen so a multiplier
+// that is zero to within the warm start's convergence accuracy counts as
+// zero. Reasons: relaxing on a vanishing multiplier is what sIpopt's pairing
+// avoids; keeping a row the true path also keeps costs nothing and is exact;
+// and the failure mode of the wrong choice is bounded and self-correcting --
+// the prediction is a WARM START, and the consuming solve re-derives the
+// active set for itself.
+//
+// --- WHAT IT DOES NOT DO ---------------------------------------------------
+//
+// NO HOT-START REUSE; predict() ALWAYS FACTORIZES ITS OWN KKT SYSTEM, and
+// the returned WarmStart therefore NEVER carries a `hot` handle. Three
+// reasons, worth recording against any future attempt:
+//   1. A HotState's K0 is the engine's LAST SUBPROBLEM's matrix, split
+//      between K0 proper and live borders by a ledger this layer would have
+//      to replicate to reuse it correctly -- duplicating engine-internal
+//      bookkeeping here would couple the predictor to the engine's border
+//      strategy, the coupling this file is deliberately without.
+//   2. Back-solving against a SHARED factorization is not provably free of
+//      side effects (SchurComplement takes the KKT factor by non-const
+//      reference), and a DETACH-style private copy is not available either
+//      (BorderState is deliberately non-copyable AND non-movable).
+//   3. Even a private copy would be INERT: the engine's reuse gate includes
+//      `values_hash`, a fingerprint over H/Ae/Ai VALUES. The predictor
+//      factorizes at the warm point x and parameter p; the consuming solve
+//      linearizes at x + dx and p + dp -- different values for any model
+//      worth predicting for, so the handle would be refused by the gate.
+//
+// TWO RIGHT-HAND-SIDE CONVENTIONS, ON PURPOSE. The constraint rows carry
+// the PURE sensitivity term (`-d_ce`, `-d_ci`), omitting the warm start's
+// own base residual; the pin borders carry `bound_at(p+dp) - x_i`, which
+// INCLUDES it. Both residuals are zero at a converged warm start, so the
+// two agree wherever the contract is met; when it is NOT met (a stale warm
+// start), the pin form is free and puts a variable that should be ON its
+// bound THERE, while folding constraint residuals in would turn the step
+// into sensitivity-plus-Newton-correction -- a DIFFERENT object whose
+// O(||dp||^2) claim would be conditional on the residual. This file keeps
+// the pure form so the order claim is unconditional.
+//
+// A NOTE ON INFINITE BOUNDS. `d_lower`/`d_upper` are differences of the
+// model's bound vectors, so a model reporting a TRUE +/-inf bound produces
+// inf - inf = NaN in that component. That NaN is CONTAINED rather than
+// accidental: every read of those two vectors is either behind a
+// std::isfinite check on the resulting bound (the FIX crossing test) or
+// reached only for a variable already PINNED at that bound, which by
+// definition has a finite one. A NaN can therefore never enter the
+// right-hand side. Any new read of d_lower/d_upper must preserve that
+// property.
+//
+// NO SqpDriver DEPENDENCY, on purpose: the predictor is a standalone layer
+// over the same linear algebra the engine uses; continuation.h composes
+// predict() with solve().
+//
+// NEVER MUTATES `warm`, taken by const reference and copied into the
+// returned object; the caller's WarmStart (and any `hot` handle it carries)
+// is untouched and remains exactly as usable as it was.
+```
+
+**SOURCE** 1997159 · include/hven/detail/warmstart/predictor.h · lines 239–277
+
+`PredictorOptions::max_activity_rounds`: why there is a cap, what truncation means, and the default's provenance with its measured curve. The cap's two bounds, the truncation contract and the family-dependence are kept; the measurement is here.
+
+```text
+    // How many BREAKPOINTS the ratio-tested path may stop at (see this
+    // header's RATIO TEST section). Ignored entirely when
+    // allow_activity_change is false. Must be >= 0; 0 means "take the raw
+    // frozen-set step but keep it inside the first crossing".
+    //
+    // WHY THERE IS A CAP AT ALL, AND IT IS NOT ONLY COST. Cost: each
+    // breakpoint is one Schur solve and one border update over the retained
+    // factorization. The each-entity-changes-status-once rule already bounds
+    // the loop at n + mi + 1 rounds and makes termination a PROOF rather than
+    // a budget; this is the BUDGET, and the smaller of the two governs. The
+    // reason that actually sets the default is ACCURACY: the direction is
+    // recomputed at every breakpoint but always from the SAME factorized K0 --
+    // W, Je and Ji are frozen at the warm point and the model is never
+    // re-evaluated along the path (this file is a predictor, not a predictor-
+    // corrector). On a piecewise-affine family that costs nothing; on a CURVED
+    // family following the stale tangent further is more extrapolation, not
+    // more prediction -- measured on the project's curved collocation fixture,
+    // where an uncapped path both drops rows the solution keeps active and
+    // raises the consuming solve's minor count against one stopped after a few
+    // breakpoints.
+    //
+    // WHAT TRUNCATION MEANS, because it is the one new failure mode the ratio
+    // test introduces: when the cap is reached the path STOPS at the
+    // breakpoint it reached, at some t <= 1, and the returned WarmStart is the
+    // point and activity THERE -- a converged-path point at p + t*dp offered
+    // as a seed for p + dp. That is deliberately the conservative end: it is
+    // never behind the unpredicted warm start (which is t = 0) and never past a
+    // crossing it has not accounted for, so the worst a truncated prediction
+    // can do is predict LESS. It is NOT reported as kDegraded -- a step was
+    // computed and applied, which is what that enum distinguishes; it IS
+    // visible through `reached_t < 1.0` (see predict()'s WHAT `reached_t`
+    // MEANS note).
+    //
+    // THE DEFAULT OF 4 is an engineering choice for HEADROOM, taken inside
+    // the flat region of the measured consuming-solve-cost-vs-budget curve
+    // rather than at either edge -- not that curve's argmin and not claimed
+    // to be. The right value is genuinely family-dependent, which is why this
+    // is an option and not a constant. Measure when you retune it; do not
+    // assume more rounds is more accuracy.
+```
+
+**SOURCE** 1997159 · include/hven/detail/warmstart/predictor.h · lines 281–300
+
+`enum class PredictorOutcome`: the three values and why it is an enum rather than a bool or a WarmStart field. All kept, compressed.
+
+```text
+// WHICH PATH predict() TOOK -- because TWO of the three paths return the
+// IDENTITY prediction and a caller's accounting must not conflate them.
+//
+//   kPredicted  a sensitivity step was computed and applied.
+//   kZeroStep   dp == 0: nothing to predict. The returned object is the input
+//               warm start and that is the CORRECT answer, not a failure.
+//   kDegraded   the step could not be computed (see predict()'s DEGRADES
+//               note) and the returned object is the input warm start as a
+//               fallback. A caller that reports this as a prediction taken is
+//               asserting something false -- which is precisely why this is an
+//               enum and not a bool: continuation.h's ledger has to count
+//               kPredicted and kDegraded separately, and a sweep in which
+//               every predict() degraded must not look identical to one in
+//               which every predict() succeeded.
+//
+// Reported through an optional out-parameter rather than a field on WarmStart
+// (warm_start.h is the shared value object EVERY solve emits, where a
+// predictor-only field would be meaningless on almost every instance) and
+// rather than a new return type (a defaulted out-param leaves every existing
+// call site compiling unchanged).
+```
+
+**SOURCE** 1997159 · include/hven/detail/warmstart/predictor.h · lines 444–530
+
+`predict()`: the throw list, the degrade rule, the validate-then-catch-everything taxonomy with its type-line argument, and `reached_t`'s full (outcome, t) contract table. Everything is kept; the argument for the taxonomy's phase split is compressed.
+
+```text
+// The tangential predictor. See this header's banner for the system solved,
+// the fix-relax repairs, and the three contracts (parameter restoration, no
+// input mutation, never a `hot` handle).
+//
+// THROWS std::invalid_argument (sizes always in the message) on a cold
+// `warm`, a `warm` whose blocks do not match `model`'s (n, me, mi), a dp of
+// the wrong size or a non-finite dp, or an fd_step_scale that is not finite
+// and positive. A
+// stale-but-well-shaped warm start is NOT rejected: predicting from a point
+// that is not actually a KKT point of the model produces a poor prediction,
+// which is a warm start like any other, not an error.
+//
+// DEGRADES to the IDENTITY prediction -- a copy of `warm` at the same point --
+// in two cases, which `outcome` tells apart: dp == 0 (kZeroStep: nothing to
+// predict, and the identity IS the answer), and a failure anywhere in the
+// numerical section (kDegraded). The second is a deliberate choice: this layer
+// is an ACCELERATOR, and the worst outcome it may impose on a caller is "no
+// acceleration". The returned object is the caller's own warm start, exactly
+// as valid at p as it ever was -- never a half-updated point.
+//
+// THE VALIDATE-THEN-CATCH-EVERYTHING TAXONOMY. The split is by PHASE, not by
+// exception TYPE: exception types have crossed type lines historically (the
+// dense factor path has reported both illegal-argument and runtime failures
+// under different names), so a type-keyed net either leaks or goes stale on
+// exactly such a change. EVERY caller-input check runs FIRST and throws;
+// from that point on, nothing that can fail is the caller's fault in a way
+// this layer can act on, and ANY std::exception is caught and reported as
+// kDegraded. What is inside that net, all of it "cannot predict here" rather
+// than "you called this wrong":
+//   - the linear algebra (Pardiso, a singular or ill-conditioned Schur
+//     complement), whatever type it reports through;
+//   - the MODEL ITSELF at the probe parameter p + h*dp/||dp||, which a model
+//     is entitled to reject (a parameter domain boundary is a real thing,
+//     and the correct response to "the probe point is outside the model" is
+//     to decline to predict, not to kill the caller's sweep);
+//   - as a last resort, this file's own internal invariants (drop_pin's
+//     std::logic_error), which cannot fire -- see its comment.
+// Nothing is SWALLOWED: `outcome` is the report, and a caller that passes
+// nullptr for it has said it does not want one.
+//
+// `outcome` (optional; nullptr = do not report) is written on every path that
+// RETURNS. A path that THROWS writes nothing, because there is no result for
+// it to describe -- a caller reading it after catching would be reading its
+// own stale value. A caller running predict() in a LOOP should pass a
+// non-null outcome and count kDegraded: a sweep in which every step silently
+// degraded is otherwise indistinguishable from one that worked, and merely
+// slower.
+//
+// --- WHAT `reached_t` MEANS -------------------------------------------------
+//
+// `reached_t` (optional; nullptr = do not report) is THE FRACTION OF dp THE
+// RETURNED PREDICTION ACTUALLY TRAVERSED -- the endpoint of the ratio-tested
+// path, in the homotopy variable t this header's RATIO TEST section defines.
+// It is written on exactly the paths `outcome` is: every path that RETURNS,
+// none that throws.
+//
+// WHY IT EXISTS, AND WHY IT IS NOT A FOURTH PredictorOutcome. The round budget
+// (PredictorOptions::max_activity_rounds) can stop the path short, and a
+// truncated prediction is STILL A PREDICTION -- a step was computed and applied
+// -- so kDegraded would be a lie and a new enumerator would change a
+// cross-layer contract continuation.h's ledger counts against. But
+// "kPredicted" alone cannot distinguish a prediction that crossed the whole
+// step from one that stopped at 5 % of it, and at a budget of 0 with a
+// zero-length first crossing it cannot even distinguish one from THE IDENTITY.
+// A plain double closes that without touching the enum: `reached_t < 1.0` IS
+// the truncation signal, and it says by how much.
+//
+// THE FULL CONTRACT. The PAIR is what is unambiguous, not either alone:
+//
+//   (kZeroStep,  0.0)        dp == 0. Nothing to traverse; the identity IS the
+//                            correct answer at p + dp, because p + dp == p.
+//   (kDegraded,  0.0)        the step could not be computed. Nothing was
+//                            traversed and the returned object is the input.
+//   (kPredicted, 0.0)        A STEP WAS COMPUTED AND NONE OF IT WAS TAKEN: the
+//                            first crossing is at t = 0 and the budget stopped
+//                            there. The returned object IS the identity, and
+//                            this pair is the only way a caller can see that.
+//   (kPredicted, 0 < t < 1)  TRUNCATED: a genuine partial prediction at
+//                            p + t*dp, offered as a seed for p + dp.
+//   (kPredicted, 1.0)        the path crossed the whole step. EXACTLY 1.0 --
+//                            the terminal advance ASSIGNS it rather than
+//                            accumulating to it, so `*reached_t == 1.0` is a
+//                            legitimate test and not a floating-point hope.
+//
+// With allow_activity_change = false the path never stops early, so
+// `reached_t` is 1.0 on every non-degenerate call and the parameter is
+// uninformative -- which is correct: there is no truncation in that mode.
+```
