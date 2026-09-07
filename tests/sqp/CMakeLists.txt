@@ -99,7 +99,8 @@ target_include_directories(hven_sqp_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 # test asserts the file exists and contains the invocations it expects, so a
 # wrong path fails loudly rather than scanning nothing.
 target_compile_definitions(hven_sqp_tests
-    PRIVATE HVEN_SQP_DRIVER_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}/../../src/drivers/sqp_driver.cpp")
+    PRIVATE HVEN_SQP_DRIVER_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}/../../src/drivers/sqp_driver.cpp"
+            HVEN_SQP_KERNELS_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}/../../src/drivers/sqp_kernels.cpp")
 
 # The committed walk baseline, so test_corpus_cells.cpp can re-score THE
 # ARTIFACT ITSELF through the offline --from-csv path and pin the verdict.

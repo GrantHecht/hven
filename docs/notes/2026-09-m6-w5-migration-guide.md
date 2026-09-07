@@ -527,3 +527,74 @@ silent (overriding a deprecated virtual never warns). tycho's own models need no
 edit. **The one place tycho must act is the base-reference block**, and only if
 it builds hven consumers with `-Werror`; the bracket or the in-place migration
 are both fine, at tycho's discretion — neither is forced.
+
+---
+
+## T6 — the SQP driver's kernels move to their own TU (`src/drivers/sqp_kernels.cpp`)
+
+Landed as `refactor(drivers): M6 W5 T6.d commit 3` (the TU), with
+`commit 2` (the two hand-off guards to internal linkage) immediately before it.
+
+### What changed
+
+**Nothing you can name, and that is the entry.** This is a translation-unit
+split inside the library. No public header changed, no declared symbol was added
+to or removed from `include/hven/drivers/sqp_driver.h`, and no behaviour moved.
+It is recorded here because W5's other entries record breaks and a reader
+comparing two `libhven.a` symbol tables across this window will see one new
+name — so the entry exists to say that the name is not for you.
+
+1. **Six definitions moved out of `src/drivers/sqp_driver.cpp` into
+   `src/drivers/sqp_kernels.cpp`**: `run_elastic_ladder`,
+   `certified_feasibility_fallback`, and the four helpers that serve only them
+   (`elastic_initial_rho`, `elastic_evidence_seed`, `emit_qp_mode_line`,
+   `trace_outcome_of`). Both kernels keep the external linkage and the
+   declarations they already had in `hven/drivers/sqp_driver.h`. **If you call
+   either one, nothing changes** — same signature, same header, same library,
+   same behaviour. They were never inlinable across a TU boundary for you
+   anyway: they are defined in a `.cpp` and only declared in the header, so
+   every call you have ever made was already a relocated call to an external
+   symbol.
+
+2. **One anonymous-namespace helper became a named function with external
+   linkage**: `hven::solvers::detail::trace_outcome_of(QpStatus)`, mapping a QP
+   status to an `IpqpTraceOutcome`. **It is not public API, and there is no
+   consumer migration.** Its declaration lives in
+   `src/drivers/sqp_kernels_internal.h` — a SOURCE-PRIVATE header under `src/`,
+   included by exactly two implementation TUs and **not installed**. Its
+   external linkage exists solely because the split runs between its callers.
+
+   Why a header under `src/` rather than under `include/hven/detail/`: the
+   install step copies `include/hven/**/*.h` wholesale, `detail/` included, so
+   a header placed anywhere under `include/` becomes a shipped file whatever its
+   directory name suggests. Under `src/` it cannot be installed at all, and
+   `scripts/check_install_smoke.sh` proves its absence from the install tree at
+   every landing.
+
+3. **Two free functions in `sqp_driver.cpp` took internal linkage**:
+   `assert_ssn_warm_grade_window` and `assert_ipqp_hand_off_window`. Both had
+   external linkage and **no declaration anywhere in the tree** — an accident,
+   not a surface: nothing could legally have named them, and nothing did. Their
+   symbols are gone from `libhven.a`.
+
+4. **The library gained one source file**, so `_hven_expected_source_count`
+   moved 41 → 42. If you build hven via `add_subdirectory`, nothing is required
+   of you; the count is an internal configure-time guard.
+
+### What did NOT change
+
+The public surface of `hven/drivers/sqp_driver.h`; both kernels' signatures,
+semantics and declarations; every counter, every trace event and every
+`SqpIterate` field; the elastic and certified-fallback contracts pinned in W2.
+The compile-flag regime is unchanged and uniform across both halves (verified as
+an effective-flags diff of the actual compile commands, not as a configuration
+claim), the new TU is PCH-opted-out exactly as `sqp_driver.cpp` is, and LTO was
+OFF before and after and was not touched.
+
+### If you are diffing symbol tables across this window
+
+Expect, in `libhven.a`: `hven::solvers::detail::trace_outcome_of(QpStatus)`
+ADDED (item 2 — internal, do not call it), and
+`hven::solvers::assert_ssn_warm_grade_window(...)` /
+`hven::solvers::assert_ipqp_hand_off_window(...)` REMOVED (item 3 — they were
+never callable). Both kernels are present before and after, unchanged.

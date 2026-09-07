@@ -195,6 +195,7 @@ target_sources(hven PRIVATE
     drivers/aggregate_eval_seam.cpp
     drivers/problem_scaling.cpp
     drivers/sqp_driver.cpp
+    drivers/sqp_kernels.cpp
     drivers/sqp_options.cpp
     drivers/sqp_print.cpp
     drivers/trace.cpp
@@ -443,7 +444,29 @@ endif()
 # fmt/format.h and four standard headers -- a different set in a different
 # order from the one src/hven_pch.h prefixes, which is the SQP-side prior that
 # has failed bar 2 for every such TU measured so far.
-set(_hven_expected_source_count 41)
+#
+# 42 as of drivers/sqp_kernels.cpp (M6 W5 T6 cut (d)): the elastic ladder, the
+# certified feasibility fallback and the four helpers that serve them, split
+# out of drivers/sqp_driver.cpp as an independently revertible commit.
+#
+# It stays OUT of the PCH, and here the default is not merely unmeasured -- it
+# is DELIBERATE. This TU is one half of a runtime-neutrality EXPERIMENT with a
+# veto (ownership doc §11), and admitting it to the PCH would put a second
+# variable inside that measurement: PCH membership changes template
+# instantiation order and hence emission order, which is exactly why every
+# SQP-side TU measured so far has failed bar 2 (byte-identity). The TU it was
+# split FROM, drivers/sqp_driver.cpp, is opted out for the same family of
+# reasons, so the two halves also stay comparable to each other.
+#
+# Its own compile time IS measured -- that is half of what cut (d) is for -- but
+# measured as an isolated compile and as a two-TU parallel span against the
+# original TU's, NOT as a PCH question. Neither this count nor
+# scripts/check_pch_neutrality.sh proves a build benefit: the count proves
+# membership ACCOUNTING, and the PCH script proves ENGAGEMENT and byte
+# neutrality (see :253's two bars). A later window may measure this TU for the
+# PCH on its own terms; cut (d) does not, and says so rather than leaving the
+# omission to be read as an oversight.
+set(_hven_expected_source_count 42)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
