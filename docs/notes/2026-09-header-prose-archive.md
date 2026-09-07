@@ -9269,3 +9269,771 @@ The terminal KKT measurement's banner: why the fields exist, the NaN rule, the c
     /// warm_start.h's `valid` note states the exception and why it is the
     /// only one.
 ```
+
+### include/hven/detail/qp/qp_engine.h
+
+1773 lines / 1298 comment lines at `1997159`; 1527 / 1052 after. The smallest reduction of the ten, deliberately: this header's banner is a contract other headers cite by section name.
+
+**SOURCE** 1997159 · include/hven/detail/qp/qp_engine.h · lines 6–505
+
+The 500-line loop contract. The header keeps it in compressed form, because other headers cite its numbered sections by name -- the five hot-start reuse conditions, the window-consistency rule, section 6's reporting exclusions, section 4b's gates and the export invariant on z are all operative contracts a consumer reasons against. What was removed and is kept here: the counter-identity's task-by-task amendment history, the derivation of section 4c's Schur-complement algebra, and the trustworthy-range measurement record -- the M6 W2 T6b 30-cell dual_mu x rho table with its five high-rung residue cells, the 21-cell stiffened-fixture table, the |lambda| = 5 bite and its row_tolerance figures, and the eight kRefactorize cases M6 W2 T7 covered.
+
+```text
+// qp_engine.h — the primal active-set loop for the QP
+//
+//     min   g^T x + 1/2 x^T H x
+//     s.t.  Ae x  = be,   Ai x <= bi,   l <= x <= u
+//
+// H is not required to be positive semidefinite; sections 4b/4c add what an
+// INDEFINITE H needs on top of the ordinary convex loop. Both are inert (and
+// free) on a convex H.
+//
+// The numerics live below this file: the working set (working_set.h), the
+// regularized bound-eliminated KKT assembly (kkt_assembly.h), the sparse
+// factorization (hven::linear::SymmetricFactor via kkt_calls.h's KktFactor),
+// and the equality-QP solve with iterative refinement (eqp_solve.h). This
+// file is only the loop that walks between working sets.
+//
+// --- Loop contract ---
+//
+// 0. CROSSED BOUNDS. lower(i) > upper(i) + feas_tol is an empty box: verdict
+//    kInfeasible immediately, x = the clamped start point, multipliers zero.
+//    Checked here rather than in QpProblem::validate() because a caller may
+//    legitimately hand this engine an empty box (a trust-region box
+//    intersected with the real bounds) as a normal runtime outcome.
+//
+// 1. START POINT. Cold: x = clamp(0, l, u). Warm: clamp(seed.x, l, u) plus
+//    seed.bound_state/seed.ineq_active as the initial working set. l(i) ==
+//    u(i) is kFixed and never leaves the working set. A variable merely
+//    sitting at a bound is NOT pinned at start -- the ratio test pins it the
+//    first time it actually blocks.
+//
+//    General inequalities violated at the start enter via a SHIFTED-
+//    CONSTRAINT HOMOTOPY rather than a phase-1 LP: shift(j) =
+//    max(0, Ai_j x - bi_j), and every row with shift(j) > 0 joins the working
+//    set. The EQP always solves against the TRUE rhs bi, so a shifted row's
+//    shift decays with the step. Shifts are recomputed from x every step (not
+//    propagated) and clamped to zero below a scale-aware tolerance
+//    (refresh_shifts). A working row whose shift is still positive is EXEMPT
+//    from step 2's drop rule: it is being driven to feasibility, so its
+//    multiplier's sign says nothing yet.
+//
+// 2. EQP CANDIDATE + DROP RULE. Each iteration solves the EQP on the current
+//    working set, giving x* and multipliers lambda_e/lambda_w. If p = x*-x is
+//    negligible, x is a KKT point of the working set and the multipliers
+//    decide: a working inequality needs lambda_i >= -opt_tol; a variable at
+//    its lower bound needs z >= -opt_tol (upper: z <= opt_tol), where
+//    z = (Hx + g + Ae^T lambda_e + Ai^T lambda_i)(i) (eqp_solve.h); kFixed
+//    variables are unconstrained. No violation => kOptimal; otherwise the
+//    MOST NEGATIVE multiplier leaves (Dantzig rule), ties broken by largest
+//    angle (violation scaled by the constraint gradient's 2-norm) then lowest
+//    index.
+//
+//    TR-PINNED STATIONARITY CAVEAT (section 6). z is priced and consulted
+//    internally the same way at every index, TR-pinned or not, but the z
+//    REPORTED in QpSolution is forced to 0 at a TR-pinned index, so there the
+//    reported quantities do not satisfy stationarity. A kFree report at a
+//    TR-pinned index means only "unconstrained by any REAL bound"; read
+//    tr_active, not z or bound_state, for TR constraint status.
+//
+// 3. RATIO TEST. If p is not negligible, step along it: alpha = min(1,
+//    min_j ratio_j), stopping at the first non-working inequality or bound
+//    that blocks; that constraint joins the working set. A ratio landing at 1
+//    within kEngineStepTieTol counts as blocking too.
+//
+//    KNOWN LABELING DIVERGENCE. That tie-break only fires for a constraint
+//    the step travels toward -- a variable already sitting on its bound with
+//    p(i) == 0 is never pinned (the ratio test only considers |p(i)| >
+//    kEngineDenomTol), so it is reported kFree/z==0 where a dense oracle
+//    reports kAtLower/kAtUpper with a zero multiplier. x, the objective and
+//    the duals agree; only the active-set LABEL differs. A caller needing
+//    activity by geometry rather than working-set membership must test the
+//    residual itself.
+//
+// 4. WORKING-SET UPDATE. Under QpOptions::ws_algebra == kRefactorize, every
+//    working-set change is followed by a fresh assemble_kkt() +
+//    factorize_checked() (solve_eqp does both).
+//
+//    BORDER MODE (kSchurBorder, the DEFAULT) leaves the loop unchanged and
+//    swaps only the linear algebra: one K0 (assemble_kkt_full, spanning all n
+//    variables) is factorized from the seed working set, and every later
+//    working-set change becomes a GMSW border over that fixed factorization
+//    (border_ops.h/schur_complement.h) rather than a refactorization. K0 is
+//    rebuilt -- clearing the border stack -- when
+//    SchurComplement::needs_refactorization() trips or K0's own factorization
+//    needed a perturbed pivot; iterations where a rebuild cannot help fall
+//    back to the elimination path. See border_candidate, rebuild_k0,
+//    sync_borders and latch_still_holds for the mechanism.
+//
+//    The two modes are OBSERVATIONALLY EQUIVALENT for a CONVEX H (same
+//    status, active set, x, multipliers), with the refactorize path as the
+//    oracle. They are NOT equivalent for an indefinite H: the bound-
+//    eliminated K and the full-variable K0 can have different inertia, so the
+//    two modes can legitimately reach different working sets and statuses.
+//
+//    COUNTER SEMANTICS (relied on downstream, e.g. warm-start assertions).
+//    QpCounters::minor_iters increments exactly ONCE per major iteration, so
+//    a run stopping at opts.max_iter reports minor_iters == max_iter. Under
+//    kRefactorize, factorizations counts solve_eqp calls (one per major
+//    iteration, except the empty-reduced-system short-circuit -- every
+//    variable pinned, no equalities, no working rows -- which touches no
+//    factorization) and schur_updates stays 0. Under kSchurBorder,
+//    factorizations counts K0 factorizations plus elimination-path fallbacks
+//    (a single iteration can spend two), and schur_updates counts individual
+//    add_border/drop_border calls INCLUDING re-adds after a rebuild, but not
+//    the rebuild's own wholesale clear.
+//    ONE FURTHER CONTRIBUTOR, ON EITHER MODE (M6 W2 T7, amended by its fix
+//    round 1): the verdict-site face refinement's ELIMINATED twin charges one
+//    factorization -- and one symbolic_analyses -- when its working-set guard
+//    MISSES and it has to assemble and factorize a system of its own. On a
+//    guard HIT it reuses the incumbent factorization and charges NEITHER, and
+//    a solve that never dead-ends charges neither because the twin never runs.
+//    So the identities above are exact per major iteration and become "+1 per
+//    guard miss" over a whole solve; the miss is rare by construction (only a
+//    working-set change between the candidate solve and the verdict) and was
+//    measured at zero over the whole suite when the rule landed.
+//    4c's ride costs one minor_iter like
+//    any other step. 4b's repair costs one EXTRA minor_iter (the kWrong
+//    iteration is counted, then retried) plus, per pin/release it probes,
+//    schur_updates under kSchurBorder or one factorization under
+//    kRefactorize; neither is reachable on a convex H.
+//    border_refine_steps/eqp_refine_steps accumulate at the same two EQP call
+//    sites: every solve_bordered_eqp call adds its total kept steps (>= 1),
+//    every solve_eqp call adds its extra kept steps (always 0) -- see
+//    core/solver_counters.h.
+//
+//    HOT-START REUSE (border mode only). border_ is an ENGINE-INSTANCE
+//    member, not a per-solve local, so a warm re-solve on the same QpEngine
+//    can skip K0's assembly/factorization when FIVE conditions all hold at
+//    the seed working set, checked once before the loop's first iteration:
+//      (a)/(c) H/Ae/Ai's structural pattern AND values are byte-identical to
+//          the previous trustworthy solve (detail::structural_hash /
+//          detail::values_hash). K0's values depend on H/Ae/Ai and the
+//          EFFECTIVE (primal_delta, dual_mu) this solve resolved to -- never
+//          on g/be/bi.
+//      (d) that effective (primal_delta, dual_mu) pair is identical to the
+//          previous trustworthy solve's. tr_radius is NOT part of the key at
+//          all -- bounds (real or TR-derived) never enter K0.
+//      (b) the seed working set (start_center()/ingest_seed_working_set()
+//          plus the pre-loop refresh_shifts()) equals the EXIT working set of
+//          that same previous solve.
+//      (e) border_'s factor's own live (session_id, epoch) identity equals
+//          the pair THIS engine last saw as trustworthy, AND the factor's
+//          numerics are usable (inertia().state == kObserved).
+//
+//    (b) IS ONLY APPROXIMATE, AND THAT IS SAFE: refresh_shifts() can add a
+//    row to ws after border_candidate()'s last sync_borders() call, so
+//    border_exit_active_ineq_ can understate the true exit ws. What makes
+//    reuse safe is that sync_borders() is an UNCONDITIONAL, FULL
+//    reconciliation of ws against border_'s ledger, run on EVERY iteration of
+//    EVERY solve -- the reuse fast path skips rebuild_k0's assembly and
+//    factorization, never sync_borders(). That first post-reuse
+//    sync_borders() call may not be skipped on the theory that a matching
+//    seed ws leaves nothing to reconcile.
+//
+//    All five conditions are NECESSARY but NOT SUFFICIENT for
+//    `factorizations == 0`: border_candidate's own checks (a carried-over
+//    perturbed-pivot count, or a border stack already past
+//    needs_refactorization()) can still force a rebuild. Callers must not
+//    assert `counters.factorizations == 0` unconditionally on a warm
+//    re-solve; assert it only alongside control of these conditions.
+//
+//    INVALIDATION POLICY. border_'s cache is committed (border_valid_ set)
+//    ONLY on a clean kOptimal exit, and is pessimistically cleared at the top
+//    of every solve() call before anything else runs -- including before
+//    qp.validate(). kMaxIter/kInfeasible/kNumericalError exits and any
+//    exception thrown mid-solve therefore all leave the cache invalidated;
+//    the next solve() reassembles and refactorizes from scratch.
+//
+//    THREAD SAFETY. QpEngine is NOT thread-safe for concurrent solve() calls
+//    on the same instance: border_ and the reuse-fingerprint members are
+//    mutable state shared across calls despite solve() being const from the
+//    caller's view. "One QpEngine per thread" is not the whole rule either:
+//    two DIFFERENT QpEngine instances, on any threads, can share one
+//    BorderState object (Pardiso pt_ array included) if one adopts a hot
+//    handle the other produced. SEQUENTIAL hand-off (produce a handle, then
+//    feed it to a different engine after that call returns) is safe -- the
+//    session/epoch identity detects a producer that mutated the object again
+//    and degrades to kWarm. CONCURRENT use of a shared BorderState is
+//    UNDEFINED: that identity is unsynchronized state, not atomic. A caller
+//    sharing a hot handle across threads must ensure no two engines holding a
+//    copy of it ever call solve() concurrently.
+//
+// 4b. INERTIA GATE AND TEMPORARY-VERTEX START REPAIR (indefinite H).
+//
+//    Every EQP solve above is a MINIMIZATION over the current working set
+//    only for a convex H. For an indefinite H the regularized KKT system is
+//    still nonsingular but its answer can be a saddle or a maximizer the loop
+//    would certify kOptimal without noticing. The signature is the KKT
+//    matrix's INERTIA: where the reduced Hessian is positive definite on the
+//    null space of the working constraints, [H+delta*I A^T; A -mu*I] has
+//    inertia exactly (#variables, #constraint rows, 0) -- unconditional for a
+//    convex H, which is why this gate is a no-op there. The per-path
+//    expectations are derived at eliminated_candidate and
+//    border_inertia_verdict; the gate must read the BORDERED system's
+//    inertia, never K0's numbers against a fixed expectation.
+//
+//    PERTURBED PIVOTS ARE NOT A PASS AND NOT A REPAIR TRIGGER. Pardiso's
+//    (n_pos, n_neg) is trustworthy IFF perturbed_pivots == 0: on an exactly
+//    singular matrix it fabricates a pivot sign and reports an inertia
+//    indistinguishable from the nonsingular case, without raising error -4.
+//    detail::InertiaVerdict has THREE verdicts:
+//      kOk      trustworthy and matching -- proceed.
+//      kSuspect inertia UNKNOWN -- never a pass, and never evidence that a
+//               repair is needed. Handled by step 4's refactorization
+//               machinery and, at a would-be-kOptimal exit, by the
+//               suspect-stall gate below.
+//      kWrong   trustworthy and DISAGREEING -- the working set is
+//               second-order inconsistent; at solve start this triggers the
+//               temporary-vertex repair (repair_temporary_vertex), which pins
+//               free variables one at a time until the gate returns kOk and
+//               unwinds entirely if it cannot reach kOk.
+//
+//    SECOND-ORDER CERTIFICATION (step 5's classification). When the loop
+//    reaches a point it can neither improve nor drop from, and the gate's
+//    verdict for the system just solved is a TRUSTED kWrong, the point is
+//    reported kNumericalError rather than kOptimal (multipliers cleared).
+//    Only kWrong triggers this; kSuspect does not.
+//
+//    ZERO-MULTIPLIER PROBE. The gate tests the null space of the FULL active
+//    labeling, so negative curvature excluded only by a WEAKLY ACTIVE
+//    constraint stays hidden. probe_zero_multiplier_drops runs at the
+//    would-be-kOptimal exit and tentatively drops each such member,
+//    most-recently-added first, re-running the gate; a kWrong makes the drop
+//    real and RESUMES the loop. ONE-AT-A-TIME IS THE KNOWN REMAINING
+//    APPROXIMATION: a critical cone that opens only when TWO OR MORE weakly
+//    active constraints drop simultaneously is not covered.
+//
+//    SUSPECT-STALL GATE. When the verdict for the system the FINAL iterate
+//    was solved from is kSuspect, kOptimal may be certified only after an
+//    explicit free-block stationarity check on the QP model
+//    (detail::free_block_stationarity, which is NaN-aware and applies a
+//    SCALED rather than absolute opt_tol). It runs AFTER the zero-multiplier
+//    probe, independently of it. On failure primal_delta is escalated one
+//    decade (detail::kSuspectDeltaFactor), the border state is discarded, and
+//    the iteration resumes; the ladder is bounded
+//    (detail::kMaxSuspectEscalations rungs, QpCounters::suspect_escalations)
+//    and reports kNumericalError when exhausted. NEVER kOptimal off a stalled
+//    suspect loop, and never a hang. CAVEAT (known, unmeasured): r is built
+//    from prices computed at the top of the iteration, but refresh_shifts()
+//    between there and here can add rows with lambda_i == 0, which can
+//    inflate the residual on a point that is in fact stationary -- a spurious
+//    escalation bounded by the ladder, not a wrong answer.
+//
+//    POST-PROBE RESTART. A probe-driven drop leaves 4c's ride nothing to arm
+//    off (its direction is identically zero), so the temporary-vertex repair
+//    is spent ONCE per solve at the certification branch's trusted-kWrong arm
+//    instead; see that branch for the trigger, budget and failure rule.
+//
+// 4c. NEGATIVE-CURVATURE RIDES AFTER A DROP (indefinite H).
+//
+//    Section 4b makes an indefinite START safe; this makes an indefinite DROP
+//    safe. By Cauchy interlacing (adding a working row can only raise the
+//    reduced Hessian's smallest eigenvalue), a drop is the ONLY way negative
+//    curvature can reappear once a working set is second-order consistent.
+//
+//    For a KKT point of working set W with positive definite reduced Hessian
+//    B = Z'HZ, releasing constraint c (lambda_c < 0) leaves W' with
+//    null(A_W') = null(A_W) + span{d}, a_c.d = -1, w = Z'Hd, gamma = d'Hd,
+//    and Schur complement sigma = gamma - w' B^-1 w -- by interlacing the
+//    only eigenvalue of the new reduced Hessian that can be negative. The
+//    next EQP's step is p = (-lambda_c/sigma) * q, q = d - Z B^-1 w, with
+//    q'Hq = sigma and a_c.q = -1, so p'Hp = (lambda_c/sigma)^2 * sigma has
+//    the SIGN of sigma: the curvature of the ordinary EQP step already IS the
+//    test, with no extra solve. When sigma < 0, p points back into the
+//    just-released constraint, the ratio test answers alpha = 0, and without
+//    this section the loop cycles between W and W' until max_iter.
+//
+//    THE CHECK. On the iteration after a drop, and only there, the Rayleigh
+//    quotient p'Hp/p'p is compared against curvature_tol =
+//    kCurvatureTolFactor * hessian_scale(qp). Above it, the ordinary EQP step
+//    is taken. At or below it, the loop RIDES: the admissible sign of p
+//    (ride_sign), the ratio test with its unit cap DISABLED, and a step to
+//    the nearest blocking constraint or bound. A negligible p is excluded
+//    before the check. NO BLOCKER => kNumericalError, multipliers cleared,
+//    reported immediately from inside the loop; the SQP driver's trust-region
+//    bounds make that branch unreachable in SQP use.
+//
+//    ARMING IS ONE-SHOT: the drop record is consumed on the very next
+//    iteration whether the ride fires, declines, or is never reached. A
+//    DECLINED ride leaves the curvature un-retested until some later drop;
+//    section 4b's certification branch is the fallback, not equivalent
+//    coverage. THIS SECTION IS VACUOUS for a probe-driven drop; 4b's
+//    POST-PROBE RESTART intercepts that case. 4c's no-blocker branch and 4b's
+//    certification branch are MUTUALLY EXCLUSIVE by construction and report
+//    the same status and semantics.
+//
+//    For STRICTLY CONVEX H the ride branch is UNREACHABLE (the Rayleigh
+//    quotient is at least lambda_min(H) > curvature_tol whenever H's 2-norm
+//    condition number is below ~1e12) and the engine is bit-for-bit
+//    unchanged. For PSD-SINGULAR H (including H == 0, an LP) the branch IS
+//    reachable and behavior is NOT identical to the capped path: the ride
+//    takes the uncapped ratio while the ordinary path clamps at alpha = 1.
+//    That is intended on the PSD-singular path.
+//
+//    NO ANTI-CYCLING RULE IS NEEDED HERE: a ride's objective decrease is
+//    strict whenever alpha > 0, so the working set it lands in cannot be
+//    revisited at the same objective. alpha == 0 is still possible at a
+//    degenerate vertex, covered by the Degeneracy note below.
+//
+// 5. TERMINATION. The loop reaches a KKT point of its working set with
+//    nothing left to drop, and classifies it:
+//      - kInfeasible if any inequality or equality row carries a STRUCTURAL
+//        violation (violation_is_structural). Both blocks are checked -- the
+//        shift machinery only watches inequalities.
+//      - kNumericalError if the point is feasible but some free component
+//        unbounded on the side it grew toward exceeds
+//        detail::unbounded_artifact_scale() (is_runaway) -- the answer is the
+//        regularization talking, not an optimum.
+//      - kNumericalError if the inertia gate's verdict for the system just
+//        solved is a TRUSTED kWrong (unreachable on convex H). ONE ESCAPE:
+//        4b's POST-PROBE RESTART, if unspent.
+//      - otherwise 4b's ZERO-MULTIPLIER PROBE gets a veto: a trusted kWrong
+//        there makes the drop real and RESUMES the loop without assigning a
+//        status on this pass -- the only branch here that does not end the
+//        solve.
+//      - kOptimal otherwise.
+//    kMaxIter once eff_max_iter major iterations have been spent -- an
+//    explicit opts.max_iter, or, at its default sentinel, the size-derived
+//    cap (detail::effective_qp_max_iter). A FOURTH kNumericalError exit
+//    bypasses this classification entirely: 4c's ride finding no blocker
+//    stops the loop mid-iteration.
+//
+//    ORDERING IS LOAD-BEARING: the drop rule is consulted BEFORE
+//    infeasibility may be declared, because a bound pinned by the ratio test
+//    commonly blocks a shift from closing, and releasing it is what lets the
+//    homotopy finish.
+//
+//    ON kInfeasible/kNumericalError the returned x is the FINAL ITERATE the
+//    loop stopped at (not the least-violating point seen; no argmin is kept),
+//    and multipliers are CLEARED on both -- an inconsistent or runaway system
+//    prices them at O(1/dual_mu), which are regularization artifacts, not
+//    prices.
+//
+//    TRUSTWORTHY RANGE, both directions, both known and accepted:
+//    (i) FALSE kInfeasible on a feasible row whose residual at the classified
+//        point still clears kStructuralResidualFrac. MEASURED at M6 W2 T6b, it
+//        bit at |lambda| = 5 on a well-scaled elastic penalty subproblem --
+//        nowhere near any large-multiplier regime, and with
+//        kInfeasibilityAbsorbTol's cap never binding (row_tolerance's min()
+//        selected dual_mu*|lambda| = 5e-8 against a cap of 1.75e-5). The
+//        residue was BORDER MODE'S ALONE: solve_bordered_eqp writes each
+//        pinned variable's exact bound value over a solve that only satisfies
+//        it to O(dual_mu*|y|), and its refinement loop stops on a footprint
+//        and a floor measured in the PENALTY'S units, so on an elastic copy
+//        that displacement survives into a row read in the ROW'S units.
+//        kRefactorize eliminates a pinned variable exactly and left residual
+//        0 on the whole family.
+//        COVERED at M6 W2 T6b by the VERDICT-SITE FACE REFINEMENT below.
+//        Measured after it, border mode, at the classified point: the elastic
+//        copy of a boxed equality CLOSES under the refinement on 25 of the 30
+//        cells of dual_mu in {1e-3..1e-8} x rho in {1e2..1e8}; the other 5
+//        (dual_mu >= 1e-4 with rho >= 1e6) read kOptimal on a corner point
+//        whose row is off by 15, via (ii)'s blind spot -- a residue, pinned as
+//        one (the band's HIGH-rung pin), not coverage. The same fixture
+//        stiffened by c in {1, 10, 30, 1e2, 1e3, 1e4, 4e5} reads kOptimal on
+//        all 21 cells of c x rho in {1e6, 1e7, 1e8} -- the Hessian-scale
+//        direction included, because the refinement fixes the POINT and needs
+//        no bound read off the data.
+//        kRefactorize HAD ITS OWN (i) CASES -- eight at the shipped dual_mu,
+//        from the dual regularization the two modes share rather than from any
+//        bordering residue -- and M6 W2 T7 covers them with the SYMMETRIC
+//        refinement (refine_eliminated_face_for_verdict). So does a BORDER-mode
+//        solve that fell back or LATCHED to the elimination path, which T7's
+//        first cut left refining neither way: the dispatch keys on the PATH
+//        that produced the candidate, not on ws_algebra. STILL UNCOVERED: any
+//        (i) case whose face the refinement cannot close inside the budget,
+//        which is left to the classifier exactly as before.
+//    (ii) FALSE kOptimal where a genuine contradiction's gap hides beneath
+//        kStructuralResidualFrac*dual_mu*|lambda|. Tightening the fraction to
+//        catch it re-breaks (i). The SQP driver is the second detection
+//        layer; a caller using the QP engine alone should scale its rows or
+//        shrink dual_mu.
+//    (iii) FALSE kNumericalError where a free variable's TRUE optimum lies
+//        beyond unbounded_artifact_scale() =
+//        kUnboundedArtifactFactor/primal_delta. A caller expecting very large
+//        optima should tune primal_delta rather than treat this
+//        kNumericalError as load-bearing.
+//
+//    THE VERDICT-SITE FACE REFINEMENT (M6 W2 T6b, extended to BOTH PATHS at
+//    M6 W2 T7) runs between the two: once the classification above has said
+//    kInfeasible, the closed working face is refined further -- against the
+//    same unregularized system the candidate solve targets, but to a target
+//    stated in ROW units (see refine_face_for_verdict, its eliminated twin,
+//    working_face_measure and face_row_target). WHICH TWIN RUNS IS DECIDED BY
+//    PROVENANCE, NOT BY ws_algebra: EqpResult::refine_steps is >= 1 on every
+//    bordered candidate (solve_bordered_eqp counts its mandatory step) and is
+//    identically 0 on every eliminated one (solve_eqp sets it so), so it is an
+//    exact witness of the path that produced the candidate -- and a border-mode
+//    iteration served by the elimination path is refined by the ELIMINATED
+//    twin, on the system it was actually solved from. The refined point is
+//    adopted only if the face CLOSES, and it is then both what the classifier
+//    re-reads and what a kInfeasible exit returns. An ADOPTING dead end
+//    re-enters the ordinary would-be-kOptimal path -- refresh_shifts, the
+//    zero-multiplier probe, the runaway guard -- and may continue the walk;
+//    that is the intent. A solve that never dead-ends, and every dead end
+//    already headed for kOptimal, is untouched.
+//
+// 6. TRUST-REGION SOFT BOUNDS -- an l-infinity trust region around the
+//    current SQP iterate, expressed the same way every other bound is.
+//
+//    EFFECTIVE BOUNDS, computed ONCE about the clamped seed primal x0
+//    (start_center()'s cold clamp(0,l,u) or warm clamp(seed.x,l,u)) -- BEFORE
+//    the seed's bound-state hints are materialized onto x0 (step 1b; see
+//    WINDOW-CONSISTENCY RULE below):
+//        lo_eff(i) = max(lower(i), x0(i) - Delta),
+//        up_eff(i) = min(upper(i), x0(i) + Delta),   Delta = opts.tr_radius.
+//    Every subsequent bound read in the engine sees lo_eff/up_eff, never
+//    lower/upper directly -- via a SHADOWED QpProblem reference: `qp` inside
+//    run() names either the caller's own problem unchanged (Delta == +inf) or
+//    a local copy with lower/upper replaced, so every function taking
+//    `const QpProblem &qp` is already TR-aware.
+//
+//    CROSSED EFFECTIVE BOUNDS CANNOT HAPPEN: step 0 already rejected a
+//    crossed real box, so lower(i) <= x0(i) <= upper(i) gives lo_eff(i) <=
+//    x0(i) <= up_eff(i) always (asserted).
+//
+//    THE kFixed FLIP. lo_eff(i) == up_eff(i) can only happen at Delta == 0
+//    for a variable not already genuinely kFixed. Every such variable is
+//    flipped to BoundState::kFixed before the loop runs, with tr_active set;
+//    an already-kFixed real bound is left alone (tr_active stays false).
+//
+//    tr_active (size n, parallel to bound_state) IS A SEPARATE ACTIVITY SET,
+//    NOT A NEW BoundState: true at i iff the ratio test, the temporary-vertex
+//    repair, or the zero-radius flip pinned i at the TR side of its effective
+//    bound rather than the real one (a coincidental tie is attributed to the
+//    real bound). Applied once at the end of run(), on the FINAL working set
+//    only:
+//      (a) a TR-pinned variable's bound_state reports kFree, never
+//          kAtLower/kAtUpper/kFixed;
+//      (b) its z entry is forced to 0 -- the ratio test and drop_worst still
+//          see and act on the real priced multiplier while the loop runs, but
+//          that number is never exposed;
+//      (c) none of this changes what the loop DID, only how the final ws/z
+//          are reported.
+//
+//    WINDOW-CONSISTENCY RULE. A seeded bound-state hint is applied against
+//    the window, and a hint whose bound falls outside [lo_eff(i), up_eff(i)]
+//    is DROPPED -- index i arrives kFree and the loop re-derives its activity
+//    from the effective bounds. Clamping such a hint to the window edge
+//    instead would break bound_state's meaning (kAtLower/kAtUpper means
+//    sitting on the REAL bound); tr_active is the documented channel for a
+//    TR-tight edge. A hint INSIDE the window is honoured unchanged.
+//
+//    WARM-START SEED INGESTION IGNORES tr_active BY CONSTRUCTION:
+//    ingest_seed_working_set() reads only seed.bound_state/seed.ineq_active.
+//    Combined with rule (a), a variable TR-pinned on the solve that produced
+//    `seed` already arrives as bound_state == kFree and is left untouched --
+//    the TR pin is not carried into the new solve's working set.
+//
+//    HOT-START REUSE INTERACTION (border mode). K0's structural/values hashes
+//    never depend on lower/upper, so a bound change (real or TR-driven) can
+//    NEVER poison K0 reuse on fingerprint grounds: a pin's border column is
+//    e_i (BorderOps::pin_variable), independent of the bound value, and only
+//    the border's RHS entry carries that value, rebuilt from the CURRENT `qp`
+//    on every solve_bordered_eqp call. What a bound change CAN do is change
+//    ws.bound_state() at the seed, which reuse condition (b) already treats
+//    as an ordinary working-set change.
+//
+//    PER-SOLVE RADIUS VARIATION. tr_radius lives on QpOptions, which is
+//    per-instance const, but every solve() overload also takes a
+//    `const SolveOverrides &` (qp_types.h) resolved ONCE at the top of run()
+//    into effective tr_radius/primal_delta/dual_mu (a sentinel field resolves
+//    to the corresponding opts_ value); every read site in qp_engine.cpp consults those
+//    effective values, not opts_ directly. A shrink-radius retry loop
+//    therefore shares one QpEngine across every retry radius and keeps
+//    hot-start reuse wherever the ordinary eligibility conditions allow.
+//
+//    UNBOUNDED-ARTIFACT GUARD AND REPAIR SYNERGY. is_runaway() and
+//    repair_temporary_vertex() both read bounds through the same shadowed
+//    `qp`, so with a finite tr_radius every variable has a finite effective
+//    bound on both sides: is_runaway() can never fire for a TR-bounded
+//    variable, and repair_temporary_vertex()'s "no finite bound to pin"
+//    failure mode cannot occur.
+//
+//    BIT-IDENTICAL OFF PATH. opts.tr_radius defaults to +inf; at that value
+//    no QpProblem copy and no effective-bounds vector is ever materialized,
+//    and the shadowed `qp` aliases the caller's problem directly (the "zero
+//    new work" claim is scoped to exactly those two allocations).
+//    QpSolution::tr_active is still allocated unconditionally on every solve
+//    (all false) -- part of QpSolution's contract.
+//
+// 6b. THE EXPORT INVARIANT ON z: A FREE VARIABLE CARRIES NO BOUND PRICE.
+//    For every index i, on EVERY status this engine can return:
+//        bound_state[i] == kFree  =>  z(i) == 0.0
+//    Enforced at the point of export in run(). `refine_on_face` -- the
+//    engine's other public QpSolution producer -- satisfies the same
+//    invariant by a DIFFERENT route (price()'s own postcondition plus its own
+//    TR-exclusion pass); a third producer must re-derive the invariant rather
+//    than assume it is inherited.
+//
+//    ONE-WAY GUARANTEE: a PINNED index's z is the price the last price() call
+//    computed, which on a kMaxIter exit may be one working set stale -- a
+//    caller needing fresh prices needs a converged solve. `kFixed`
+//    (lower == upper) is silently outside this invariant.
+//
+// --- Degeneracy ---
+//
+// Linearly dependent working sets (e.g. duplicated inequality rows) do not
+// break the loop: the delta/mu regularization in assemble_kkt keeps the KKT
+// matrix factorizable, and the dependent rows simply split the multiplier
+// between them. No anti-cycling rule (Bland/least-index) is implemented;
+// a degenerate stall is bounded by max_iter.
+```
+
+**SOURCE** 1997159 · include/hven/detail/qp/qp_engine.h · lines 891–927
+
+`struct EliminatedFace`: the two-half key and the fix-1 failure that established the second half. The key and the entry condition are kept.
+
+```text
+// THE FACE THE ELIMINATION PATH'S `kkt` CURRENTLY HOLDS (M6 W2 T7, fix 2).
+// Captured where solve_eqp factorizes, read at the verdict site so the face
+// refinement can REUSE that factorization instead of buying its own.
+//
+// THE KEY FOLLOWS THE FACTOR. The signature has two halves and BOTH are
+// necessary: WHICH SYSTEM was factorized (the working set) and WHICH
+// FACTORIZATION `kkt` is holding now (the factor's own identity). Fix 1
+// recorded only the first, and probe_inertia -- which re-factorizes `kkt` for
+// a HYPOTHETICAL working set -- could leave the key armed on a signature the
+// live working set still matched: the guard then reused a factorization of a
+// different, differently-SIZED system, and solve() threw out of
+// SymmetricFactor::solve. Both halves are now structural.
+//
+// HALF ONE, THE SYSTEM. assemble_kkt keys K on exactly two things once the
+// problem and the effective (primal_delta, dual_mu) are fixed: which variables
+// are FREE -- the elimination partition, everything else being substituted out
+// -- and which inequality rows are working, in order. Both are recorded WHOLE
+// rather than as counts: refresh_shifts ADDS rows and drop_worst REMOVES them,
+// and neither changes n, so no pair of sizes distinguishes the faces.
+//
+// HALF TWO, THE FACTORIZATION. (session_id, epoch) is the identity the FACTOR
+// OBJECT owns and advances inside its own factorize path -- symmetric_factor.h
+// names it the identity triple's live half, analyze() moving the session id
+// and every successful factorize() advancing the epoch, the same mechanism
+// BorderState's stale-handle note relies on. Nothing here stamps it, so it is
+// bumped by EVERY path that factorizes `kkt` and not by an enumerated set of
+// call sites: today that is solve_eqp (through eliminated_candidate) reached
+// either from the loop's own eqp_candidate or from probe_inertia, and any
+// future writer is covered by construction. rebuild_k0 factorizes
+// `border.kkt`, never this one. The strength of the invariant IS this: no
+// enumeration of writers, an identity the factor advances itself.
+//
+// `factorized` is the entry condition, not part of the signature: it is true
+// only on an iteration whose candidate came from solve_eqp on THIS `kkt`. A
+// bordered candidate leaves it false (`kkt` then holds whatever the last
+// fallback left), and so does solve_eqp's empty-reduced-system short-circuit,
+// which factorizes nothing at all.
+```
+
+**SOURCE** 1997159 · include/hven/detail/qp/qp_engine.h · lines 951–991
+
+`struct HotState`: the ownership rule, the two mechanisms that close the stale-contents gap, the concurrency caveat and the post-elastic/post-SOC readings. All kept, compressed.
+
+```text
+// HOT-START LEVEL. The opaque handle behind warm_start.h's WarmStart::hot --
+// forward-declared there and DEFINED here. A frozen copy of the
+// fingerprint/exit-state members QpEngine::run() tracks per instance, plus
+// shared ownership of the BorderState those fingerprints describe (the K0
+// symbolic analysis and last numeric factorization, Pardiso pt handle
+// included).
+//
+// OWNERSHIP. BorderState wraps a move-only SymmetricFactor by value and is
+// itself non-copyable and non-movable. `border_` is a
+// std::shared_ptr<BorderState>; HotState::border is a COPY of that same
+// shared_ptr. The backend session is released exactly once, when the LAST
+// shared_ptr is destroyed, so an engine adopting a hot handle can
+// factorize/solve against it safely even if the producing engine is gone.
+//
+// LIFETIME SAFETY ALONE DOES NOT GUARANTEE THE CONTENTS STILL MATCH A
+// HOLDER'S FROZEN FINGERPRINT: a producer that solves again after emitting a
+// handle can mutate the SAME shared BorderState. TWO MECHANISMS close this:
+//   - DETACH (`border_ = std::make_shared<BorderState>()` at a refused-reuse
+//     site whose `border_.use_count() > 1`; a sole-owned object is wiped in
+//     place instead, to keep its KktFactor's symbolic analysis reusable) is
+//     the LOAD-BEARING fix: the only engine that can ever write into a SHARED
+//     BorderState is one whose own conditions (a)-(e) already passed for it,
+//     so every K0 written into a shared object already carries the values any
+//     handle's fingerprint describes, and sync_borders()'s unconditional
+//     reconciliation absorbs the rest.
+//   - The factor's IDENTITY pair (session_id/epoch) plus this engine's own
+//     committed copy is DEFENSE-IN-DEPTH: reuse condition (e) compares a
+//     HotState's frozen pair against a LIVE read off the shared object on
+//     every solve() call, and its usable-numerics conjunct closes the
+//     failed-rebuild case (no epoch advance). A mismatch degrades to kWarm
+//     silently, never a throw.
+//
+// CONCURRENCY, NOT SEQUENCING, IS WHAT REMAINS UNSAFE -- see the header
+// contract's THREAD SAFETY note. SAME-PROCESS ONLY (per warm_start.h):
+// HotState is never serialized.
+//
+// AFTER AN ELASTIC/SOC RE-SOLVE: an ELASTIC re-solve builds an AUGMENTED
+// (original-plus-slack) K0, so a handle emitted right after it silently
+// forfeits kHot for the next major (safe, degraded to kWarm); an SOC re-solve
+// shifts only be/bi, so a post-SOC handle remains an ordinary (a)-(e)-gated
+// reuse candidate.
+```
+
+**SOURCE** 1997159 · include/hven/detail/qp/qp_engine.h · lines 1069–1110
+
+`refine_on_face`: what it does, what is gated and what is not, the rank pre-screen, the cost and state rules, the return contract and the public-API precondition. All kept, compressed.
+
+```text
+    // TIER 3: EXACT REFINEMENT ON AN EXTERNALLY IDENTIFIED FACE.
+    //
+    // ONE exact equality-constrained solve on the face `face` names, plus this
+    // engine's ordinary iterative-refinement step -- i.e. `solve_eqp`, the
+    // same function the walk's per-minor `eqp_candidate` calls, reached here
+    // WITHOUT a walk. A kernel that IDENTIFIES an active set to its own
+    // tolerance (today: the semismooth-Newton tier, ssn_engine.h) hands that
+    // set here and gets back the point the set determines EXACTLY -- an
+    // ACTIVE-SET solve's complementarity is an EXACT identity, where an FB
+    // kernel stopping at |phi| <= fb_tol bounds its own only by
+    // `fb_tol * ||lambda||inf`.
+    //
+    // GATED: the refined point must be a legal answer to the SUBPROBLEM --
+    //   finite, inside the real box, inside the trust region, and satisfying
+    //   every inequality row NOT on the face to the row-scaled feasibility
+    //   tolerance. On failure this function REFUSES and the caller keeps the
+    //   certificate it already had.
+    // NOT GATED: the sign of the refined multipliers. The face is the
+    //   CALLER's; this function re-solves it exactly and does not re-judge it,
+    //   exactly as `eqp_candidate` does not.
+    //
+    // THE RANK PRE-SCREEN, before anything is factorized: a face with more
+    // equality rows (model equalities + working inequalities) than free
+    // variables cannot be a regular face, and handing its singular K to the
+    // backend would trade a usable answer for a thrown Pardiso error.
+    // Numerical singularity is caught one step later by the same
+    // `detail::inertia_verdict` gate the walk applies.
+    //
+    // COST AND STATE. `out.counters` reports ONLY what THIS call paid (at most
+    // one factorization). NOTHING PERSISTENT IS TOUCHED: no `border_`, no
+    // hash, no `border_valid_`, no ledger record, no `solve_counter_`.
+    //
+    // Returns true iff the refinement was ACCEPTED. `out` is written either
+    // way: on refusal it is `face` verbatim (with this call's own cost), so a
+    // caller may use it unconditionally.
+    //
+    // PUBLIC-API PRECONDITION: the trust-region gate below assumes its window
+    // is centred at `clamp(0, l, u)` -- true today only because every seeding
+    // site zeroes `seed.x` before it reaches this function. This function
+    // takes no centre parameter and does NOT validate that assumption. A
+    // caller that seeds from a non-zeroed point gets a window gated about the
+    // wrong centre, silently.
+```
+
+**SOURCE** 1997159 · include/hven/detail/qp/qp_engine.h · lines 1349–1374
+
+`refine_face_for_verdict`: the entry condition, the provenance rule and the closed-or-nothing adoption rule. All kept, compressed.
+
+```text
+    // THE VERDICT-SITE FACE REFINEMENT (section 5's dead-end classification).
+    // Re-forms the live bordered system, refines it against a target expressed
+    // in ROW units rather than the bordered loop's penalty-scaled footprint,
+    // and OVERWRITES `x` with the result -- returning true iff it did.
+    //
+    // ON A BORDERED CANDIDATE ONLY (EqpResult::refine_steps > 0), and only at a
+    // dead end whose classification would otherwise be kInfeasible: the caller
+    // gates on both. An iteration that reached the elimination path -- under
+    // kRefactorize, or through any of border mode's fallbacks and its latch --
+    // is the eliminated twin's, because the residue this one removes is the
+    // BORDERING residue (the two paths solve DIFFERENT regularized problems on
+    // a closed face: elimination pins a variable exactly, border mode realizes
+    // it as a -dual_mu row). A point already headed for kOptimal has no verdict
+    // to buy.
+    //
+    // CLOSED, OR NOTHING. A candidate is adopted only if the face reaches its
+    // target AND strictly improves on the walk's own point. A refinement that
+    // spends its budget with the face still open has shown the face is not
+    // closable, which is evidence FOR the classifier: adopting the better-but-
+    // still-open point would push the violation under condition (b)'s fraction
+    // of the footprint without making the row feasible, certifying a genuine
+    // contradiction kOptimal. That rule is what keeps the whole inconsistent
+    // population's verdicts identical to BASE, measured.
+    //
+    // It never touches a solve that does not reach that branch, so every
+    // trajectory the walk reports elsewhere is untouched by construction.
+```
+
+**SOURCE** 1997159 · include/hven/detail/qp/qp_engine.h · lines 1380–1455
+
+`refine_eliminated_face_for_verdict`: why it exists (with the measured eight-cell family), what it costs and when, why the factorization reuse is sound, the never-swallow argument with its registered backend caveat, and the carried D1/D4 clauses. Every rule is kept; the measurement is here.
+
+```text
+    /// @brief `refine_face_for_verdict`'s ELIMINATED twin (M6 W2 T7, DECLARED
+    /// contract change; the dispatch and the cost rule amended by its fix
+    /// round 1). Same entry condition, same target, same closed-or-nothing
+    /// adoption rule, same counter -- reached whenever the candidate came off
+    /// `solve_eqp`, which is every kRefactorize iteration AND every border-mode
+    /// iteration served by a fallback or by the latch.
+    ///
+    /// WHY IT EXISTS. The border twin's own note says the eliminated path
+    /// "leaves no bordering residue to remove", and that is true: there is no
+    /// SCATTER here, because a pinned variable is eliminated exactly rather
+    /// than realized as a `-dual_mu` row. What the two paths DO share is the
+    /// dual regularization on the working rows, whose footprint is
+    /// `dual_mu * |lambda|` on a row residual -- and `solve_eqp` takes exactly
+    /// ONE step of iterative refinement against it, which on a face whose
+    /// multipliers are inflated by the objective is not enough. Measured: at
+    /// the SHIPPED `dual_mu` the ill-scaled feasible family reads kInfeasible
+    /// under kRefactorize while kSchurBorder, post-T6b, reads kOptimal --
+    /// eight cells in which the EQUIVALENCE ORACLE is the less accurate of the
+    /// two. Iterating the step `solve_eqp` already takes closes all eight.
+    ///
+    /// WHAT IT COSTS, AND WHEN. The system is re-assembled from the CURRENT
+    /// working set -- `assemble_kkt` is a triplet build over H/Ae/Ai's working
+    /// rows plus one sort, no backend call and no session, so the assembly is
+    /// not the cost. The FACTORIZATION is, and it is bought only when it has
+    /// to be: the twin REUSES `kkt` and pays `solve_vec` calls alone whenever
+    /// `face` HOLDS -- the live working set matching the captured one AND
+    /// `kkt`'s factor still standing at the captured (session_id, epoch). Two
+    /// things break that, and the key catches both: a working-set change
+    /// between the candidate solve and this call (`refresh_shifts` adding a
+    /// row), and a RE-FACTORIZATION of `kkt` by any other path in between
+    /// (`repair_temporary_vertex`'s inertia probes, whose working set is
+    /// hypothetical and whose system is a different SIZE). On such a MISS the
+    /// twin assembles and factorizes its own `KktFactor`, charging one
+    /// `factorizations` and one `symbolic_analyses` (rebuild_k0's accounting
+    /// rule: the decision taken before the factorize and handed to it). A hit
+    /// charges NEITHER.
+    ///
+    /// WHY REUSE IS SOUND, AND WHAT WOULD BREAK IT. `assemble_kkt` keys K on
+    /// the elimination partition and the working rows -- which `face` records
+    /// whole -- and on the problem and the effective (primal_delta, dual_mu),
+    /// which are FIXED across one iteration: the suspect-stall ladder's
+    /// `eff_opts.primal_delta *= kSuspectDeltaFactor` fires in the
+    /// would-be-kOptimal branch, strictly AFTER this classification, and then
+    /// restarts the iteration. A future reorder that moved an options change
+    /// ahead of the verdict site would silently break the identity, so it must
+    /// not: `face` guards the working set and the factor, not the options.
+    ///
+    /// NEITHER BRANCH DECLINES, AND NEITHER SWALLOWS. On a miss the twin
+    /// factorizes a system THE WALK NEVER SOLVED -- the candidate's face plus
+    /// whatever `refresh_shifts` added -- and that system can be exactly
+    /// singular at a LEGAL setting: `dual_mu = 0` means no dual
+    /// regularization, so a row dependent on the face leaves K singular rather
+    /// than quasi-definite. NO DECLINE EXISTS FOR THAT, because the backend
+    /// never reports it: `FactorizeOutcome::Status` is kOk or kBackendError
+    /// with nothing between them, and MKL Pardiso's default static pivoting
+    /// PERTURBS an exactly singular K and returns success -- measured by
+    /// test_kkt_calls.cpp's
+    /// `SqpKktOptions.ARankDeficientKktIsPerturbedRatherThanFailedOnThisBackend`,
+    /// with the walk-level `dual_mu = 0` cell pinning that nothing escapes
+    /// `solve()` either. What is left in `factorize_checked`'s
+    /// std::runtime_error here is therefore GENUINE backend fault alone (out
+    /// of memory, reordering, a failed `analyze()`) -- section 4's
+    /// never-swallow class -- so it PROPAGATES, as does the hit branch's
+    /// `solve_vec`. REGISTERED: a backend that reports singularity AS A STATUS
+    /// gets the decline back, discriminated on that status the way the border
+    /// twin discriminates on `needs_refactorization()`; Accelerate's behaviour
+    /// on an exactly singular KKT is UNOBSERVED (macOS lane). The attempted
+    /// factorization stays charged, eliminated_candidate's convention.
+    ///
+    /// D1/D4, AND THEY NOW HOLD IN BOTH ALGEBRAS (M6 W2 T6b's clauses, carried
+    /// here): a kInfeasible exit RETURNS the refined point when it was adopted,
+    /// so D1's consumers -- the elastic seed, the refusal return and the
+    /// restoration trial -- read the refined point on either path; "closed" is
+    /// the CLASSIFIER's own tolerance and nothing tighter; and DUALS ARE NOT
+    /// REFINED, `best`'s multipliers being discarded exactly as the border
+    /// twin discards its own.
+```
