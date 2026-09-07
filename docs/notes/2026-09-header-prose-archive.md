@@ -10037,3 +10037,168 @@ The 500-line loop contract. The header keeps it in compressed form, because othe
     /// REFINED, `best`'s multipliers being discarded exactly as the border
     /// twin discards its own.
 ```
+
+### include/hven/model/non_linear_program.h
+
+1629 lines / 919 comment lines at `1997159`; 1595 / 885 after. The smallest change of the ten: this header was already close to the terse-contract style, and almost every block in it is an ordering, ownership, absence or refusal contract.
+
+**SOURCE** 1997159 · include/hven/model/non_linear_program.h · lines 44–65
+
+`enum class FixedVariableTreatments`: the three treatments described one paragraph each. Kept, compressed into one.
+
+```text
+/// How a primal variable whose declared lower and upper bounds are equal is
+/// handed to the solver. All three are implemented, and all three reach the same
+/// solution on a well-posed problem; they differ in the size of the system the
+/// solver factorizes and in how exactly the variable sits at its value.
+///
+/// MakeParameter (the default) removes the variable from the optimization
+/// entirely: it is pinned at its bound value for every evaluation and the Newton
+/// system the solver factorizes is the system of the REMAINING variables, one
+/// row and column narrower per fixed variable. Its value in the returned
+/// solution is exact.
+///
+/// MakeConstraint keeps the variable free and adds one internal equality row
+/// x_i - c = 0 per fixed variable, appended AFTER every row the transcription
+/// declared, so the solved system is one row and one column WIDER per fixed
+/// variable than MakeParameter's and every user row keeps its own index. The
+/// variable reaches its value to equality-constraint tolerance rather than
+/// exactly.
+///
+/// RelaxBounds keeps the variable as an ordinary two-sided bounded variable with
+/// its bounds pushed apart by the relax factor, so it is held near its value by
+/// the barrier, within the relaxation, and the system is the same size as the
+/// declared problem's.
+```
+
+**SOURCE** 1997159 · include/hven/model/non_linear_program.h · lines 98–138
+
+`struct NonLinearProgram`: the two fill paths and the determinism argument for the right-hand-side intermediate, including the mode-dependence carve-out. The two paths, the bit-identical guarantee and the layout-determinism rule are kept.
+
+```text
+/// @brief The partitioned evaluation engine, and a Level 2 provider.
+///
+/// assemble() reaches the same per-shape passes the eval_ entry points do,
+/// call for call, over the same machinery; the only step moved out to the
+/// consumer is the one the mapping table transfers (the solver-coefficient
+/// scatter, which assemble deliberately does not do and the eval_ entries
+/// still do).
+///
+/// THE FILL PATH, both halves, because the capability declaration turns on
+/// the difference:
+///
+///   * The KKT fill is DIRECT. Each piece writes the consumer's value array in
+///     place, at offsets its claim recorded (kkt_locations_), under the
+///     canonical-column lock protocol. There is no provider-owned matrix and no
+///     copy: this is the per-minor cost center and it is not paying for one.
+///   * The RIGHT-HAND-SIDE fill goes through a provider-owned intermediate --
+///     each piece accumulates into its own claim slots in rhs_coeffs_, and
+///     fill_pgx/fill_agx/fill_fxe/fill_fxi then fold those slots into the
+///     consumer's vectors through rhs_coeff_rows_.
+///
+/// THAT INTERMEDIATE IS REQUIRED, not merely tolerated, and the reason is
+/// determinism rather than convenience. Several pieces claim rows of one
+/// gradient, so an in-place scatter would have to lock per row, and the order
+/// in which contending threads won those locks would decide the order the
+/// floating-point additions happened in -- making the assembled right-hand
+/// side depend on scheduling, and therefore on the evaluation-thread count.
+/// Claim slots are contention-free by construction (one piece owns each), and
+/// the fold that follows walks them in claim order, so the accumulation order
+/// is a property of the layout alone: the same problem produces bit-identical
+/// right-hand sides at any thread count. This library's pins rest on that
+/// stability, and ON THE DETERMINISTIC PATH -- the default, and the path
+/// every pin and measurement runs on -- it outranks the no-copy property:
+/// removing the intermediate there would be a regression, not an
+/// optimization. Accumulation-VALUE determinism is a property of this path,
+/// not a library absolute: a future user-selectable max-performance fill may
+/// relax it, exactly as threaded MKL already does, behind an explicit mode
+/// choice -- never silently, and never as this path's default. What stays hard
+/// everywhere, on every path and for every provider, is LAYOUT determinism:
+/// claim order, structural keys, and location tables are untouched by that
+/// option; keys, byte-stable pins, and warm-start identity rest on them, and
+/// only the floating-point summation order is ever mode-dependent.
+```
+
+**SOURCE** 1997159 · include/hven/model/non_linear_program.h · lines 146–156
+
+The master piece lists' banner: everything derived from them, and the two guards. Kept, compressed.
+
+```text
+    // THE THREE MASTER PIECE LISTS ARE PUBLIC, AND WRITING ONE IS A STRUCTURAL
+    // MUTATION. Everything derived from them -- the element counts, the work
+    // partitioning, the claim arrays, the location tables, both digests and the
+    // published claim stream -- describes the lists AS LAID, so a write here is
+    // declared by re-laying: make_nlp(), or adopting a declaration that carries
+    // the new pieces. Reading the declaration or the structural key without one
+    // is REFUSED by name (require_master_lists_unmoved), and the published claim
+    // stream is rebuilt rather than retained at the next lay whenever a piece on
+    // one of these lists is not one this layout laid. Neither guard can see a
+    // master entry assigned FROM ANOTHER LAID PIECE of the same problem, which
+    // is the one case this sentence, and not a mechanism, has to carry.
+```
+
+**SOURCE** 1997159 · include/hven/model/non_linear_program.h · lines 378–405
+
+The bound-fixed variable treatment banner: the elimination's input/output map split, the claim invariance and the identity fast path. All kept, compressed.
+
+```text
+    // Bound-fixed variable treatment
+    //
+    // A variable declared with lower == upper carries no degree of freedom.
+    // Under the MakeParameter treatment it is ELIMINATED: it does not appear in
+    // the solver's variable space at all, and the KKT system the solver
+    // factorizes is the system of the remaining variables -- narrower by exactly
+    // one row and column per eliminated variable. The elimination splits each
+    // function's index map by role: the INPUT map is left alone -- a function
+    // still reads exactly the variables it was declared over, out of a
+    // full-space buffer built from the reduced iterate plus the pinned values --
+    // and only the OUTPUT map is rewritten, at configuration time, from the
+    // pristine input map: retained variables renumbered into the reduced space,
+    // eliminated ones marked -1, and the KKT/RHS location tables, sparsity
+    // pattern, clash marks and solver-coefficient ranges rebuilt over it.
+    //
+    // Element CLAIMS stay exactly as they were -- same count, same contiguous
+    // per-application ranges -- because the scatters walk their claims in
+    // lockstep with the function's own loop bounds; a -1 element keeps its claim
+    // and simply names no matrix entry.
+    //
+    // Identity fast path. With no fixed variables nothing is rewritten at all:
+    // no output map is installed and no expansion buffer is built. The other two
+    // treatments take that path throughout -- neither eliminates anything -- and
+    // differ only in what classification records: MakeConstraint records no
+    // bound for the variable (it goes to the solver free) and appends one
+    // internal equality row per fixed variable (re-laying the layout over the
+    // widened row space), RelaxBounds records an ordinary relaxed bound pair
+    // (changing nothing structural).
+```
+
+**SOURCE** 1997159 · include/hven/model/non_linear_program.h · lines 1102–1125
+
+The published claim stream's banner: why it exists, what the views are valid under, and that it is a surface beside the raw one. All kept, compressed.
+
+```text
+    // =======================================================================
+    // THE PUBLISHED CLAIM STREAM -- the same laid slots the arrays above carry,
+    // RESTATED into the claim convention a claim-stream consumer reads.
+    //
+    // WHY IT EXISTS AT ALL. The raw arrays are laid PARTITION-MAJOR, in the
+    // square space the solver factorizes: n + slacks + me + mi on a side, with
+    // Hessian pairs left in the walk order the piece claimed them in. The
+    // claim-stream contract (model/claim_stream_source.h) states its claims in
+    // the DECLARATION's square space -- n + me + mi, no slack block, Hessian
+    // upper triangle -- and wants one contiguous run per domain. A consumer that
+    // wants those claims therefore had to build them itself, per transcription,
+    // out of a copy of these arrays. It does not any more: the layout builds
+    // them once at the lay, and publishes VIEWS.
+    //
+    // WHAT THE VIEWS ARE VALID UNDER is claim_stream_epoch(), which is NOT the
+    // structure epoch -- see its own comment, and the VIEW VALIDITY term in
+    // model/claim_stream_source.h. Nothing here owns storage; every accessor is
+    // a view into one arena.
+    //
+    // THIS IS A SURFACE BESIDE THE RAW ONE, NOT OVER IT. Nothing here renumbers
+    // a raw slot, moves the emission order, or is fed to claim_digest(): the
+    // interior-point engine reaches this layout through get_mat_space /
+    // get_kkt_space and the location tables, and never through these.
+    // =======================================================================
+```

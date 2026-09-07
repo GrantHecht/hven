@@ -41,28 +41,22 @@
 
 namespace hven::solvers {
 
-/// How a primal variable whose declared lower and upper bounds are equal is
-/// handed to the solver. All three are implemented, and all three reach the same
-/// solution on a well-posed problem; they differ in the size of the system the
-/// solver factorizes and in how exactly the variable sits at its value.
+/// @brief How a primal variable whose declared lower and upper bounds are equal
+///        is handed to the solver.
 ///
-/// MakeParameter (the default) removes the variable from the optimization
-/// entirely: it is pinned at its bound value for every evaluation and the Newton
-/// system the solver factorizes is the system of the REMAINING variables, one
-/// row and column narrower per fixed variable. Its value in the returned
-/// solution is exact.
+/// All three are implemented and all three reach the same solution on a
+/// well-posed problem; they differ in the size of the system the solver
+/// factorizes and in how exactly the variable sits at its value.
 ///
-/// MakeConstraint keeps the variable free and adds one internal equality row
-/// x_i - c = 0 per fixed variable, appended AFTER every row the transcription
-/// declared, so the solved system is one row and one column WIDER per fixed
-/// variable than MakeParameter's and every user row keeps its own index. The
-/// variable reaches its value to equality-constraint tolerance rather than
-/// exactly.
-///
-/// RelaxBounds keeps the variable as an ordinary two-sided bounded variable with
-/// its bounds pushed apart by the relax factor, so it is held near its value by
-/// the barrier, within the relaxation, and the system is the same size as the
-/// declared problem's.
+/// MakeParameter (the default) removes the variable from the optimization: it is
+/// pinned at its bound value for every evaluation and the factorized system is
+/// one row and column NARROWER per fixed variable, with its value exact in the
+/// returned solution. MakeConstraint keeps it free and appends one internal
+/// equality row per fixed variable AFTER every declared row, so the system is
+/// WIDER and every user row keeps its index, and the variable reaches its value
+/// to equality-constraint tolerance. RelaxBounds keeps it two-sided with its
+/// bounds pushed apart by the relax factor, held near its value by the barrier,
+/// and the system is the declared problem's size.
 enum class FixedVariableTreatments { MakeParameter, MakeConstraint, RelaxBounds };
 
 /// Human-readable name for a treatment, for diagnostics and error messages.
@@ -97,45 +91,32 @@ inline constexpr int kMinKktElementsPerPartition = 1000;
 
 /// @brief The partitioned evaluation engine, and a Level 2 provider.
 ///
-/// assemble() reaches the same per-shape passes the eval_ entry points do,
-/// call for call, over the same machinery; the only step moved out to the
-/// consumer is the one the mapping table transfers (the solver-coefficient
-/// scatter, which assemble deliberately does not do and the eval_ entries
-/// still do).
+/// assemble() reaches the same per-shape passes the eval_ entry points do, call
+/// for call, over the same machinery; the only step moved out to the consumer is
+/// the solver-coefficient scatter the mapping table transfers.
 ///
-/// THE FILL PATH, both halves, because the capability declaration turns on
-/// the difference:
+/// The fill path has two halves, and the capability declaration turns on the
+/// difference:
 ///
 ///   * The KKT fill is DIRECT. Each piece writes the consumer's value array in
-///     place, at offsets its claim recorded (kkt_locations_), under the
-///     canonical-column lock protocol. There is no provider-owned matrix and no
-///     copy: this is the per-minor cost center and it is not paying for one.
+///     place, at offsets its claim recorded, under the canonical-column lock
+///     protocol. There is no provider-owned matrix and no copy.
 ///   * The RIGHT-HAND-SIDE fill goes through a provider-owned intermediate --
-///     each piece accumulates into its own claim slots in rhs_coeffs_, and
-///     fill_pgx/fill_agx/fill_fxe/fill_fxi then fold those slots into the
-///     consumer's vectors through rhs_coeff_rows_.
+///     each piece accumulates into its own claim slots, and the fill_* entries
+///     fold those slots into the consumer's vectors.
 ///
-/// THAT INTERMEDIATE IS REQUIRED, not merely tolerated, and the reason is
-/// determinism rather than convenience. Several pieces claim rows of one
-/// gradient, so an in-place scatter would have to lock per row, and the order
-/// in which contending threads won those locks would decide the order the
-/// floating-point additions happened in -- making the assembled right-hand
-/// side depend on scheduling, and therefore on the evaluation-thread count.
-/// Claim slots are contention-free by construction (one piece owns each), and
-/// the fold that follows walks them in claim order, so the accumulation order
-/// is a property of the layout alone: the same problem produces bit-identical
-/// right-hand sides at any thread count. This library's pins rest on that
-/// stability, and ON THE DETERMINISTIC PATH -- the default, and the path
-/// every pin and measurement runs on -- it outranks the no-copy property:
-/// removing the intermediate there would be a regression, not an
-/// optimization. Accumulation-VALUE determinism is a property of this path,
-/// not a library absolute: a future user-selectable max-performance fill may
-/// relax it, exactly as threaded MKL already does, behind an explicit mode
-/// choice -- never silently, and never as this path's default. What stays hard
-/// everywhere, on every path and for every provider, is LAYOUT determinism:
-/// claim order, structural keys, and location tables are untouched by that
-/// option; keys, byte-stable pins, and warm-start identity rest on them, and
-/// only the floating-point summation order is ever mode-dependent.
+/// THAT INTERMEDIATE IS REQUIRED, and the reason is DETERMINISM. Several pieces
+/// claim rows of one gradient, so an in-place scatter would have to lock per row
+/// and the order threads won those locks would decide the order the
+/// floating-point additions happened in. Claim slots are contention-free by
+/// construction and the fold walks them in claim order, so the same problem
+/// produces BIT-IDENTICAL right-hand sides at any evaluation-thread count, and
+/// this library's pins rest on that.
+///
+/// Accumulation-VALUE determinism is a property of this path, not a library
+/// absolute: a future user-selectable max-performance fill may relax it behind
+/// an explicit mode choice, never silently. LAYOUT determinism -- claim order,
+/// structural keys and location tables -- stays hard on every path.
 struct NonLinearProgram : public NlpAggregate {
     using VectorXi = Eigen::VectorXi;
     using VectorXd = Eigen::VectorXd;
@@ -144,16 +125,13 @@ struct NonLinearProgram : public NlpAggregate {
     int num_partitions_ = 1;
 
     // THE THREE MASTER PIECE LISTS ARE PUBLIC, AND WRITING ONE IS A STRUCTURAL
-    // MUTATION. Everything derived from them -- the element counts, the work
-    // partitioning, the claim arrays, the location tables, both digests and the
-    // published claim stream -- describes the lists AS LAID, so a write here is
-    // declared by re-laying: make_nlp(), or adopting a declaration that carries
-    // the new pieces. Reading the declaration or the structural key without one
-    // is REFUSED by name (require_master_lists_unmoved), and the published claim
-    // stream is rebuilt rather than retained at the next lay whenever a piece on
-    // one of these lists is not one this layout laid. Neither guard can see a
-    // master entry assigned FROM ANOTHER LAID PIECE of the same problem, which
-    // is the one case this sentence, and not a mechanism, has to carry.
+    // MUTATION. Everything derived from them describes the lists AS LAID, so a
+    // write here is declared by re-laying: make_nlp(), or adopting a declaration
+    // that carries the new pieces. Reading the declaration or the structural key
+    // without one is REFUSED by name, and the published claim stream is rebuilt
+    // at the next lay whenever a piece is not one this layout laid. Neither guard
+    // can see a master entry assigned From another laid piece of the same
+    // problem, which is the one case this sentence has to carry.
     ///
     /// Objective functions that will be partitioned across work partitions
     /// (part_obj_).
@@ -377,32 +355,27 @@ struct NonLinearProgram : public NlpAggregate {
 
     // Bound-fixed variable treatment
     //
-    // A variable declared with lower == upper carries no degree of freedom.
-    // Under the MakeParameter treatment it is ELIMINATED: it does not appear in
-    // the solver's variable space at all, and the KKT system the solver
-    // factorizes is the system of the remaining variables -- narrower by exactly
-    // one row and column per eliminated variable. The elimination splits each
-    // function's index map by role: the INPUT map is left alone -- a function
-    // still reads exactly the variables it was declared over, out of a
-    // full-space buffer built from the reduced iterate plus the pinned values --
-    // and only the OUTPUT map is rewritten, at configuration time, from the
-    // pristine input map: retained variables renumbered into the reduced space,
-    // eliminated ones marked -1, and the KKT/RHS location tables, sparsity
-    // pattern, clash marks and solver-coefficient ranges rebuilt over it.
+    // A variable declared with lower == upper carries no degree of freedom. Under
+    // MakeParameter it is ELIMINATED: it does not appear in the solver's variable
+    // space, and the factorized system is narrower by one row and column per
+    // eliminated variable. The elimination splits each function's index map by
+    // role -- the INPUT map is left alone, so a function still reads exactly the
+    // variables it was declared over out of a full-space buffer, and only the
+    // OUTPUT map is rewritten at configuration time from the pristine input map:
+    // retained variables renumbered into the reduced space, eliminated ones
+    // marked -1, and the location tables, sparsity pattern, clash marks and
+    // solver-coefficient ranges rebuilt over it.
     //
     // Element CLAIMS stay exactly as they were -- same count, same contiguous
-    // per-application ranges -- because the scatters walk their claims in
-    // lockstep with the function's own loop bounds; a -1 element keeps its claim
-    // and simply names no matrix entry.
+    // per-application ranges -- because the scatters walk their claims in lockstep
+    // with the function's own loop bounds; a -1 element keeps its claim and names
+    // no matrix entry.
     //
-    // Identity fast path. With no fixed variables nothing is rewritten at all:
-    // no output map is installed and no expansion buffer is built. The other two
-    // treatments take that path throughout -- neither eliminates anything -- and
-    // differ only in what classification records: MakeConstraint records no
-    // bound for the variable (it goes to the solver free) and appends one
-    // internal equality row per fixed variable (re-laying the layout over the
-    // widened row space), RelaxBounds records an ordinary relaxed bound pair
-    // (changing nothing structural).
+    // Identity fast path. With no fixed variables nothing is rewritten at all.
+    // The other two treatments take that path throughout and differ only in what
+    // classification records: MakeConstraint records no bound for the variable
+    // and appends one internal equality row per fixed variable; RelaxBounds
+    // records an ordinary relaxed bound pair, changing nothing structural.
 
     /// @brief Classifies every primal variable against the materialized
     ///        x_lower_/x_upper_ (free / lower-only / upper-only / two-sided /
@@ -1103,25 +1076,18 @@ struct NonLinearProgram : public NlpAggregate {
     // THE PUBLISHED CLAIM STREAM -- the same laid slots the arrays above carry,
     // RESTATED into the claim convention a claim-stream consumer reads.
     //
-    // WHY IT EXISTS AT ALL. The raw arrays are laid PARTITION-MAJOR, in the
-    // square space the solver factorizes: n + slacks + me + mi on a side, with
-    // Hessian pairs left in the walk order the piece claimed them in. The
-    // claim-stream contract (model/claim_stream_source.h) states its claims in
-    // the DECLARATION's square space -- n + me + mi, no slack block, Hessian
-    // upper triangle -- and wants one contiguous run per domain. A consumer that
-    // wants those claims therefore had to build them itself, per transcription,
-    // out of a copy of these arrays. It does not any more: the layout builds
-    // them once at the lay, and publishes VIEWS.
+    // The raw arrays are laid PARTITION-MAJOR, in the square space the solver
+    // factorizes, with Hessian pairs in the walk order the piece claimed them in.
+    // The claim-stream contract states its claims in the DECLARATION's square
+    // space -- no slack block, Hessian upper triangle -- and wants one contiguous
+    // run per domain. The layout builds those once at the lay and publishes VIEWS.
     //
     // WHAT THE VIEWS ARE VALID UNDER is claim_stream_epoch(), which is NOT the
-    // structure epoch -- see its own comment, and the VIEW VALIDITY term in
-    // model/claim_stream_source.h. Nothing here owns storage; every accessor is
-    // a view into one arena.
+    // structure epoch. Nothing here owns storage; every accessor is a view into
+    // one arena.
     //
-    // THIS IS A SURFACE BESIDE THE RAW ONE, NOT OVER IT. Nothing here renumbers
-    // a raw slot, moves the emission order, or is fed to claim_digest(): the
-    // interior-point engine reaches this layout through get_mat_space /
-    // get_kkt_space and the location tables, and never through these.
+    // THIS IS A Surface beside the raw one, NOT OVER IT. Nothing here renumbers a
+    // raw slot, moves the emission order, or is fed to claim_digest().
     // =======================================================================
 
     /// @brief The epoch these published claims are valid under.
