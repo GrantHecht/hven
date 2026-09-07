@@ -1352,18 +1352,6 @@ class InteriorPointSolver {
     friend class ::RecoveryDispatchGate_FilterSelectionConstructsFilterAcceptance_Test;
     friend class ::RecoveryDispatchGate_MonitoredSelectionConstructsMonitoredGovernor_Test;
     friend class ::RecoveryDispatchGate_MeritPenaltyRuleSelectionReachesTheStrategy_Test;
-    friend class ::FeasibilitySwitch_ProximalSwitchConstructsRestorationAndWrapsRecovery_Test;
-    friend class ::FeasibilitySwitch_OffModeConstructsNoRestoration_Test;
-    friend class ::FeasibilitySwitch_FilterSeedsRestorationConstraintTol_Test;
-    friend class ::NestedSeamHarness;
-    friend class ::NestedSeamIneqHarness;
-    friend class ::NestedLifecycleHarness;
-    friend class ::DivergencePersistenceHarness;
-    friend class ::SocGenericHarness;
-    friend class ::InertiaRegularizationSolve_ClassicDegeneracyLatchTracksSingularity_Test;
-    friend class ::InertiaRegularizationSolve_ActiveBoundCurvatureNeverTripsSingularitySignal_Test;
-    friend class ::InertiaRegularizationSolve_NarrowBoxCurvatureNeverTripsSingularitySignal_Test;
-    friend class ::NativeBoundsHarness;
 
     Settings settings_;
     SolveResult result_;
