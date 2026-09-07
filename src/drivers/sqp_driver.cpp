@@ -1294,9 +1294,8 @@ SqpSolveBeginTraceEvent make_solve_begin_event(const SqpOptions &opts,
     ev.n = seam.n();
     ev.me = seam.me();
     ev.mi = seam.mi();
-    // The census MOVED, unchanged, to `ipqp_trace.cpp` at W4 T4, when the
-    // interior-point driver's own `begin` line became its second caller. Same
-    // arithmetic, one copy; this line's golden pin did not move.
+    // The census lives in `src/drivers/trace.cpp`, shared with the
+    // interior-point driver's own `begin` line: same arithmetic, one copy.
     const VariableBoundCensus box = census_variable_bounds(seam.lower(), seam.upper(), seam.n());
     ev.vars_free = box.vars_free;
     ev.vars_lower_only = box.vars_lower_only;
@@ -2066,15 +2065,15 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
 struct SqpDriver::SolveState {
     explicit SolveState(const IpqpOptions &iopts) : ipqp_ladder(iopts) {}
 
-    // THE RESTORATION EXIT PAYLOAD, and the ONE authoritative copy of it
-    // (ownership doc section 5 constraint 5): the restoration closure writes
-    // these, the four `finish` sites read them, and `RestorationOutcome` at cut
-    // (c) is a TAG that carries no second copy.
+    // THE RESTORATION EXIT PAYLOAD, and the ONE authoritative copy of it:
+    // `enter_restoration` writes these and the two tagged finish arms
+    // (`kFinishRestorationSeed`, `kFinishRestorationQp`) read them.
+    // `RestorationOutcome` is a TAG and carries no second copy.
     struct RestorationExit {
         // ONE RESTORATION PER SOLVE (this header's RESTORATION PHASE note).
         bool used = false;
-        // Written by the restoration closure below on the exits it decides,
-        // read only by the four `return finish(...)` sites that follow it.
+        // Written by `enter_restoration` on the exits it decides, and read
+        // only by the caller's two tagged restoration finish arms.
         SqpStatus status = SqpStatus::kInfeasible;
         SqpKkt kkt;
         double f = std::numeric_limits<double>::quiet_NaN();
@@ -2178,8 +2177,8 @@ struct SqpDriver::SolveState {
     //                   row that computed it -- can read it). Starts at
     //                   the engine's own default, which is exactly what
     //                   it would resolve to if no subproblem ever runs.
-    //   resto.moved_x   true iff the restoration closure below
-    //                   actually moved `x` to a RESTORED point (the
+    //   resto.moved_x   true iff `enter_restoration` actually moved
+    //                   `x` to a RESTORED point (the
     //                   "not feasible enough" outcome). On every other
     //                   restoration outcome x is untouched, so the
     //                   CURRENT trial's own QP solution still describes
