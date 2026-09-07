@@ -3104,8 +3104,8 @@ class SqpDriver {
     ///
     /// Holds all ten push sites, and every one of them returns its
     /// `MajorOutcome` from inside THIS function, so no caller-side effect ever
-    /// precedes the return. SITE 10 ALONE returns IMMEDIATELY after its push --
-    /// that is the ordering pin's property. The terminal check is the caller's.
+    /// precedes the return. Sites 6 and 10 return IMMEDIATELY after their push;
+    /// site 10's is the ordering pin's. The terminal check is the caller's.
     MajorOutcome run_major(SolveState &st, MajorState &mj, AggregateEvalSeam &seam,
                            NlpModelAggregate &bridge, const WarmStart &warm, Index minor_budget,
                            Index iter);

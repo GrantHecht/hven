@@ -3913,9 +3913,9 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
 // starts at to the history row it emits, returning the CONTROL DECISION its
 // caller acts on. The ten push sites of the ownership table's section 8 are all
 // here, and every one of them returns its `MajorOutcome` from inside THIS
-// function, so no caller-side effect precedes the return. SITE 10 ALONE returns
-// IMMEDIATELY after its push -- sites 1, 2, 5 and 8 deliberately finish their
-// own work first -- and that is the property the ordering pin asserts.
+// function, so no caller-side effect precedes the return. Sites 6 and 10 return
+// IMMEDIATELY after their push; 1, 2, 5 and 8 finish their own work first. Site
+// 10's is the pin's: its push is the accepted row that must precede the commit.
 //
 // WHAT THE OUTCOME DOES NOT CARRY IS EVERYTHING: it is a payload-free tag. The
 // requesting measurements, the convergence decision, the dispatch's answer and
