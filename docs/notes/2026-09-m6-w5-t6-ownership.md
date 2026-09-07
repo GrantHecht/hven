@@ -1446,8 +1446,25 @@ statement about MAJORS, not about n. So:
   * **On leg 2 (HS), ipm**: the fallback's evidence-NOT-fired arm fires (`:1169`, 3 rung-B emits) and
     **rung A** fires (`elastic_from_ipqp_escape` 6, `elastic_activations` 13, `elastic_escalations`
     65). The ladder is exercised heavily and the fallback body is entered.
-  * **The post-rung-A rung-B TAIL (`++ipqp_fallback_rung_b`, `:1229` at commit 2) is UNEXERCISED ON BOTH LEGS.**
-    It is the path where the engine DECLINES a feasible rung A, and neither corpus makes it do so.
+  * **The post-rung-A rung-B TAIL (`++ipqp_fallback_rung_b`, `:1229` at commit 2) is UNEXERCISED ON BOTH
+    TIMING LEGS.** It is the path where the engine DECLINES a feasible rung A, and neither corpus makes
+    it do so.
+
+    **ITS BEHAVIOURAL HALF IS DISCHARGED BY THE UNIT SUITE, and the two halves are separated here so
+    neither is overclaimed** (settler ruling at the T6.d fix round, on Codex's I3).
+    `tests/sqp/test_trace_writer.cpp:1630`,
+    `JsonLinesTraceSink.TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClassPopulation`, calls
+    `certified_feasibility_fallback(...)` DIRECTLY (`:1675`) with a live `QpEngine` over six entries
+    chosen to produce all five verdict spellings, and asserts `EXPECT_EQ(rung_b_n, 2)` —
+    "the declined entry and the declined-above-the-floor retry" — together with
+    `EXPECT_EQ(rung_b_n, out.ipqp_fallback_rung_b)`, which is what ties the emitted stream to the
+    counter rather than to the JSON. So `++out.ipqp_fallback_rung_b` executes twice, from a REAL judge,
+    at every landing (PASSED at `f47da07` and at the landing sha, both configs).
+
+    **The RUNTIME half is not discharged and is not claimed to be.** No cell of either timing leg
+    reaches this tail, so nothing measures its cost. What the record can say is static: the body is
+    statement-identical across the move and the moved code is instruction-identical across its object
+    move. That half goes to the OWNER as an amendment beside the disposition.
 
   So three of the four named counters fire, on leg 2, in ipm; the fourth fires nowhere. **No harness
   change is made to chase it** — the harness is frozen before the boundary arms, and changing it now
