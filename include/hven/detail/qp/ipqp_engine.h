@@ -3,19 +3,21 @@
 
 #pragma once
 
-// ipqp_engine.h -- the interior-point (IP-PMM) QP tier: declarations only.
-//
-// A third QP kernel beside the working-set walk (qp_engine.h) and SsnEngine: primal-dual
-// barrier, Mehrotra predictor-corrector on the section 3.1 system, a monotone (rho, delta)
-// schedule, and the Wachter-Biegler inertia ladder. Spec: docs/notes/2026-08-m6-w1-ipqp-spec.md.
+/// @file
+/// @brief The interior-point (IP-PMM) QP tier: declarations only.
+///
+/// A third QP kernel beside the working-set walk (qp_engine.h) and SsnEngine:
+/// primal-dual barrier, Mehrotra predictor-corrector, a monotone (rho, delta)
+/// schedule, and the Wachter-Biegler inertia ladder.
+/// @see docs/notes/2026-09-header-prose-archive.md §ipqp_engine.h
 //
 // NOT a branch inside InteriorPointSolver and NOT a user of detail/globalization/:
-// fraction-to-boundary is the whole of globalization here (spec 3.1 item 3). Declarations
-// ONLY (CLAUDE.md section 5); the iteration, ladder and equilibration are in the .cpp.
+// fraction-to-boundary is the whole of globalization here. Declarations ONLY; the
+// iteration, ladder and equilibration are in the .cpp.
 //
-// THE STATUS VOCABULARY FOR A DOWNGRADED CERTIFICATE, RULED (task 5, against the spec text and
-// without widening `QpStatus`): a DOWNGRADED CERTIFICATE reports `QpStatus::kNumericalError`;
-// the currency is `certificate_downgraded`/`escape_reason`. `.superpowers/w1-t5-report.md`.
+// The status vocabulary for a downgraded certificate, without widening
+// `QpStatus`: a downgraded certificate reports `QpStatus::kNumericalError`, and
+// the currency is `certificate_downgraded`/`escape_reason`.
 
 #include <limits>
 #include <string>
@@ -62,7 +64,7 @@ namespace detail {
 //
 // hven DEPARTS on two declared points: the bounds are spec 3.2's, not the paper's
 // 1e-20/1e40, and IC-1's unmodified trial is skipped only after `kIpqpLadderSkipAfter`
-// modified iterations. Both, and the constants: docs/notes/2026-08-31-m6-w1-t4b-ladder-plan.md.
+// modified iterations.
 
 /// @brief IC's `delta_w^0`: the first rung of a climb that starts from no
 /// memory at all. An ABSOLUTE magnitude, not a multiple of anything -- the
@@ -76,7 +78,7 @@ inline constexpr double kIpqpLadderUpFirst = 100.0;
 
 /// @brief IC's `kappa_w^+`: the growth factor once a memory exists. Eight, not a hundred --
 /// with `rho_dem_last` in hand the ladder refines a value whose order it already knows,
-/// and overshooting it is the defect the two-decade rung produced before T4b.
+/// and overshooting it is the defect a two-decade rung produces.
 inline constexpr double kIpqpLadderUp = 8.0;
 
 /// @brief IC's `1 / kappa_w^-`: the next iteration's trial is
@@ -90,31 +92,30 @@ inline constexpr double kIpqpLadderDown = 3.0;
 inline constexpr int kIpqpLadderSkipAfter = 3;
 
 /// @brief How many CONSECUTIVE primal escalations may answer a perturbed-pivot
-/// report before the ladder falls back to escalating the DUAL shift instead
-/// (M6 W1 T4b fix round 1, settler ruling R2).
+/// report before the ladder falls back to escalating the DUAL shift instead.
 ///
-/// A uniform shift of the Ruiz-scaled system can annihilate a scaled diagonal, and that
-/// singularity is PRIMAL; but a DUAL-caused perturbed pivot is cleared by no primal rung,
-/// so the re-route is bounded. A count, not pivot provenance: `.superpowers/w1-t4b-report.md`.
+/// A uniform shift of the Ruiz-scaled system can annihilate a scaled diagonal, and
+/// that singularity is PRIMAL; but a DUAL-caused perturbed pivot is cleared by no
+/// primal rung, so the re-route is bounded. A count, not pivot provenance.
 inline constexpr int kIpqpPivotReroutePrimalMax = 2;
 
 /// @brief The SECTION 2.2 ITEM 4 READ'S WEAK-ACTIVITY SCALE, as a multiple of
-/// `sqrt(mu_measured)` (settler ruling R1; the rule itself and its derivation
-/// live on `detail::ipqp_accumulate_bound_sigma_critical_cone`).
+/// `sqrt(mu_measured)`; the rule itself and its derivation live on
+/// `detail::ipqp_accumulate_bound_sigma_critical_cone`.
 ///
 /// TEN, chosen by the geometry rather than tuned: complementarity ties `z * gap ~ mu`, so
 /// requiring BOTH below `f sqrt(mu)` confines a dropped side to a band of width `f^2`. A
 /// larger factor costs a false DOWNGRADE, never a false certificate -- the safe direction.
 inline constexpr double kIpqpWeakActiveFactor = 10.0;
 
-/// @brief T4c disclosure-band ceiling: a KEPT side is band-counted iff its
-/// multiplier sits in `(weak_scale, kIpqpTightBandFactor * weak_scale]`.
-/// AMBIGUOUS, NOT WRONG. See `.superpowers/w1-t4c-report.md`.
+/// @brief Disclosure-band ceiling: a KEPT side is band-counted iff its multiplier
+/// sits in `(weak_scale, kIpqpTightBandFactor * weak_scale]` -- ambiguous, not
+/// wrong.
 inline constexpr double kIpqpTightBandFactor = 100.0;
 
 /// @brief Growth per rung for the DUAL shift `delta` on a perturbed-pivot report --
 /// `detail::kSsnProxGrowth`'s value, adopted for the reason that ladder's own banner gives.
-/// THE PRIMAL LADDER NO LONGER USES THIS (T4b): `rho_dem` climbs on IC's factors above.
+/// The PRIMAL ladder does not use this: `rho_dem` climbs on IC's factors above.
 inline constexpr double kIpqpDeltaGrowth = 100.0;
 
 /// @brief The interior push's two Ipopt constants (`bound_push` /
@@ -133,7 +134,8 @@ inline constexpr double kIpqpSlackInit = 1.0;
 
 /// @brief THE WARM RESTART'S REPAIR FLOORS (spec 5.2 item 1): absolute epsilons for a
 /// payload slack/price, and for `eps = kIpqpRepairEps * mu_0` once `mu_0` is known.
-/// Asymmetry (fix round 1, R4) argued in `.superpowers/w1-t7-report.md` FIX ROUND 2, F4.
+/// The two are asymmetric deliberately: a payload slack and a payload price are
+/// floored on different scales.
 inline constexpr double kIpqpRepairEps = 1.0e-8;
 inline constexpr double kIpqpRepairSlackEps = 1.0e-8;
 
@@ -144,7 +146,7 @@ inline constexpr double kIpqpSayCentralityFactor = 1.0e-1;
 
 /// @brief The Skajaa-Andersen-Ye shift's target fraction: `delta_p = this *
 /// mu_0 / z_avg`, `delta_d = this * mu_0 / d_avg` -- AVERAGES, never a
-/// per-pair maximum. `.superpowers/w1-t7-report.md` FIX ROUND 2, section 4(b).
+/// per-pair maximum.
 inline constexpr double kIpqpSayTargetFraction = 0.5;
 
 /// @brief The (rho, delta) schedule's DECREASE GATE (spec 3.2's
@@ -155,7 +157,7 @@ inline constexpr double kIpqpSayTargetFraction = 0.5;
 ///
 /// A RATIO, and that is load-bearing: an ABSOLUTE gate never fires on a badly scaled QP and
 /// the tier converges to a proximally biased point while reporting healthy relative residuals
-/// (measured, `.superpowers/w1-t4-report.md`). 0.5 is a choice; spec 3.2 requires only a gate.
+/// (measured). 0.5 is a choice; the schedule requires only a gate.
 inline constexpr double kIpqpRegGateContract = 0.5;
 
 /// @brief The factorization budget's sentinel multiple (IpqpOptions'
@@ -209,7 +211,7 @@ inline constexpr double kIpqpStallAlpha = 1.0e-2;
 /// `status`**. `kInfeasible` is a certificate word this tier never issues (spec 6.3).
 ///
 /// The indefinite/numerical boundary is plan section 7 note (h), which is a
-/// settler ruling and not a judgement call at the call site:
+/// fixed rule and not a judgement call at the call site:
 ///   * `kIndefinite` -- an inertia reading WAS taken and DISAGREED with the required
 ///     signature: at the section 2.2 item 4 final certification factorization, or with the
 ///     ladder at `ipqp_reg_max`. Saddle-suspect; 2.3 item 4 routes it to the SSN warm grade.
@@ -239,14 +241,14 @@ enum class IpqpFace {
 
 /// @brief THE SECTION 5.4 PAYLOAD GRADE this solve started at, reported on
 /// `IpqpResult::restart_grade`. `kBaseWarm` splits the currency's SIGNED bound price (lossy
-/// at a two-sided bound); `kFullWarm` carries `zL`/`zU`/`mu`. `.superpowers/w1-t7-report.md`.
+/// at a two-sided bound); `kFullWarm` carries `zL`/`zU`/`mu`.
 enum class IpqpRestartGrade {
     kCold = 0,
     kBaseWarm = 1,
     kFullWarm = 2,
 };
 
-/// @brief THE IMMUTABLE CLAMP-CENTRED BOX (T4.a; spec 2.1, plan ruling 2).
+/// @brief The immutable clamp-centred box.
 ///
 /// Computed ONCE at solve entry from the effective trust-region radius and
 /// never rebuilt inside a solve:
@@ -278,24 +280,21 @@ struct IpqpBox {
     Index zero_width_index = -1;
 };
 
-/// @brief THE TIER'S EFFECTIVE BOUNDS AND ITS DOMAIN GATE (T4.b; plan rulings
-/// 7 and r3.2). Replaces the WITHDRAWN verbatim reuse of `BoundSet`.
+/// @brief The tier's effective bounds and its domain gate.
 ///
-/// `BoundSet` is the NLP engine's shape (reduced-space indices, RELAXED values, fixed
-/// variables eliminated); a `QpProblem` has none of it, so the reuse was WITHDRAWN in favour
-/// of this (plan section 7 note d).
+/// Not `BoundSet`, which is the NLP engine's shape -- reduced-space indices,
+/// relaxed values, fixed variables eliminated -- none of which a `QpProblem` has.
 ///
 /// REPRESENTATION, SETTLED HERE: DENSE, not index lists. The ipqp_math.h kernels are written
 /// against dense `(x, l, u, zl, zu)` with presence from `ipqp_has_lower`/`ipqp_has_upper`, so
 /// index lists would be a SECOND answer to "which bounds are present", able to disagree.
 ///
-/// THE ZERO-WIDTH RULE: a subproblem with ANY `lo_eff(i) == up_eff(i)` pair is OUT OF THIS
-/// TIER'S DOMAIN -- the build reports it, the dispatch DECLINES pre-solve and routes to the
-/// walk, and `ipqp_declined_pinned` records it. **A DECLINE IS NOT AN ESCAPE**: it never ran.
-///
-/// Declining covers every case: under the clamp centre a zero-width pair can arise ONLY at a
-/// declared `lower(i) == upper(i)` or at `Delta == 0` (qp_engine.h's section 6 note), both of
-/// which the walk solves best. The v2 epsilon-relaxation is deleted (plan section 7 note e).
+/// THE ZERO-WIDTH RULE: a subproblem with ANY `lo_eff(i) == up_eff(i)` pair is OUT
+/// OF THIS TIER'S DOMAIN -- the build reports it, the dispatch DECLINES pre-solve
+/// and routes to the walk, and `ipqp_declined_pinned` records it. A DECLINE IS NOT
+/// AN ESCAPE: it never ran. Declining covers every case, since under the clamp
+/// centre a zero-width pair can arise only at a declared `lower(i) == upper(i)` or
+/// at `Delta == 0`, both of which the walk solves best.
 struct IpqpBounds {
     Vec lower; ///< n. `IpqpBox::lo_eff`. `<= -kIpqpInfBound` means ABSENT.
     Vec upper; ///< n. `IpqpBox::up_eff`. `>= kIpqpInfBound` means ABSENT.
@@ -313,7 +312,7 @@ struct IpqpBounds {
     bool in_domain() const;
 };
 
-/// @brief The tier's own iterate, carried across majors by task 7's
+/// @brief The tier's own iterate, carried across majors by the
 /// subproblem-level warm restart (spec 5.1 flow (b)).
 ///
 /// Deliberately NOT routed through `QpSolution` (no slack, no barrier block, published shape):
@@ -326,7 +325,7 @@ struct IpqpSeed {
     Vec x; ///< n. Repaired INTO the box (never the box's centre -- see IpqpBox).
     /// mi, > 0, or ALL-ZERO meaning ABSENT. Spec 5.2 item 1 recomputes it from
     /// `bi - Ai x`; with `ipqp_warm_repair` off a seed whose `s` is not
-    /// strictly positive degrades COLD rather than being consumed (ruling R1).
+    /// strictly positive degrades COLD rather than being consumed.
     Vec s;
     Vec lambda_e; ///< me.
     Vec lambda_i; ///< mi, > 0.
@@ -347,7 +346,7 @@ struct IpqpSeed {
     IpqpRestartGrade grade = IpqpRestartGrade::kFullWarm;
 };
 
-/// @brief The relative KKT residual the tier converges on (T4.d, plan ruling 5).
+/// @brief The relative KKT residual the tier converges on.
 ///
 /// A NEW implementation owned by this tier: the walk's helpers are `QpEngine` PRIVATE members
 /// bound to a `WorkingSet` and unreachable here (plan section 7 note d). The DISCIPLINE is
@@ -395,7 +394,7 @@ struct IpqpResult {
     ///
     /// FIVE WAYS TO GET HERE: four pair with an `ipqp_final_inertia_read` value
     /// (1 disagreed, 2 unusable evidence, 3 declined/budget-refused); the fifth is a
-    /// MID-SOLVE evidence failure. `.superpowers/w1-t5-report.md`.
+    /// MID-SOLVE evidence failure.
     bool certificate_downgraded = false;
 
     /// True iff section 2.2's evidence-failure policy was invoked ANYWHERE in this solve: some
@@ -403,14 +402,14 @@ struct IpqpResult {
     /// `certificate_downgraded`. Distinct from a FAILED factorization, which escapes at once.
     bool inertia_evidence_failed = false;
 
-    /// M6 W1 T4c: true iff the item 4 read AGREED and, once every downgrade is applied (R2),
+    /// True iff the item 4 read AGREED and, once every downgrade is applied,
     /// the disclosure still fires -- informative history via noise > 0 or an ambiguous
-    /// per-side verdict (R3), the band count otherwise. See `.superpowers/w1-t4c-report.md`.
+    /// per-side verdict, the band count otherwise.
     bool read_kept_tight = false;
 
-    /// T4c: the raw exponent(s) behind `ipqp_read_barrier_noise_sides`, min/max over the
+    /// The raw exponent(s) behind `ipqp_read_barrier_noise_sides`, min/max over the
     /// band-counted sides, NaN when uninformative -- so a pin can state a numeric tolerance
-    /// rather than only the discretized count. See `.superpowers/w1-t4c-report.md`.
+    /// rather than only the discretized count.
     double read_barrier_noise_exponent_min = std::numeric_limits<double>::quiet_NaN();
     double read_barrier_noise_exponent_max = std::numeric_limits<double>::quiet_NaN();
 
@@ -425,7 +424,7 @@ struct IpqpResult {
     /// index -- exactly QpSolution's contract, including its stationarity caveat there.
     Vec z;
 
-    // --- the tier's own blocks (task 7's seed reads these) ------------------
+    // --- the tier's own blocks (the warm seed reads these) ------------------
 
     Vec s;              ///< mi, > 0. `bi - Ai x` up to the primal residual.
     Vec zl;             ///< n, >= 0. RAW, not TR-swept.
@@ -438,7 +437,7 @@ struct IpqpResult {
     /// this solve took -- `0.0` when that step ran on the unmodified system,
     /// which is every step of every convex subproblem.
     ///
-    /// A SECOND QUANTITY BESIDE `rho`, NOT A COMPONENT OF IT (T4b): `rho` is the section 3.2
+    /// A second quantity BESIDE `rho`, not a component of it: `rho` is the section 3.2
     /// PROXIMAL schedule and enters the right-hand side; this is Ipopt's `delta_w`, a
     /// diagonal-only modification additive on top of `rho` and absent from the RHS entirely.
     ///
@@ -580,13 +579,13 @@ class IpqpEngine {
     std::string label_prefix_;
     Index solve_counter_ = 0;
 
-    // --- task 8: the W4 trace hook -----------------------------------------
+    // --- the trace hook -----------------------------------------------------
     TraceSink *trace_ = nullptr;
     Index trace_major_ = 0;
     Index trace_solve_counter_ = 0;
     Index last_trace_solve_id_ = 0;
 
-    // Five named private emit sites (task 8), each a no-op when unattached.
+    // Five named private emit sites, each a no-op when unattached.
     // `ipqp.route`/`qp.mode` are the driver's own -- see attach_trace's doc.
     void emit_trace_iter(const IpqpTraceIterEvent &event) const;
     void emit_trace_reg(const IpqpTraceRegEvent &event) const;
@@ -599,7 +598,7 @@ class IpqpEngine {
 /// for the remainder of ONE SQP solve.
 ///
 /// SEPARATE FROM `IpqpEngine` DELIBERATELY: section 6.1's decision is ACROSS subproblems and
-/// no single subproblem's own solve can observe it. The routing chain (task 6) owns one per
+/// no single subproblem's own solve can observe it. The routing chain owns one per
 /// SQP solve, feeds it every tier outcome, and writes `ipqp_tier_retired_after` from it.
 ///
 /// THE THREE RULES, each from section 6.1's own text: a FRESH decision every major (the only
@@ -659,7 +658,7 @@ class IpqpEscapeLadder {
 
 // ---------------------------------------------------------------------------
 // Free functions -- the box and its domain gate, exposed so the routing layer can build the
-// SAME box before entering the tier (task 6 declines pre-solve), and so they are testable.
+// SAME box before entering the tier, and so they are testable.
 // ---------------------------------------------------------------------------
 
 /// @brief Build the immutable clamp-centred box (IpqpBox's own contract).
@@ -676,14 +675,14 @@ IpqpBounds make_ipqp_bounds(const IpqpBox &box);
 
 /// @brief Resolve one call's trust-region radius exactly as `solve()` does.
 ///
-/// EXPOSED FOR THE ROUTING CHAIN (task 6), for the same reason `make_ipqp_box` is: the driver
+/// Exposed for the routing chain, for the same reason `make_ipqp_box` is: the driver
 /// runs the domain gate BEFORE entering the tier and the box is a function of the RESOLVED
 /// radius, so two resolutions of the +inf sentinel could disagree. One implementation.
 double ipqp_effective_tr_radius(const QpOptions &opts, const SolveOverrides &overrides);
 
 /// @brief The tier's stopping rule as a predicate on a residual block.
 ///
-/// EXPOSED FOR THE ROUTING CHAIN (task 6). Section 2.3 must tell a solve that CONVERGED and
+/// Exposed for the routing chain. Section 2.3 must tell a solve that CONVERGED and
 /// then had its certificate refused by the factorization budget from one the ITERATION CAP
 /// stopped mid-descent: the first belongs at the tier-3 refinement, the second at the walk.
 ///

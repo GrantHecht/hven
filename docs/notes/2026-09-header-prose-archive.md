@@ -10668,3 +10668,102 @@ The 194-line file banner: the sensitivity system with its derivation, the probe-
 // `reached_t` is 1.0 on every non-degenerate call and the parameter is
 // uninformative -- which is correct: there is no truncation in that mode.
 ```
+
+### include/hven/detail/qp/ipqp_engine.h
+
+695 lines / 403 comment lines at `1997159`; 694 / 402 after — a ONE-LINE reduction, and the smallest number in this whole task. That is the honest reading of what T7 found here: this header was already written as terse per-declaration contract, and what the owner's rule had against it was not length but PROVENANCE. Thirty-one sites named a task, a plan ruling, a fix round, a settler ruling or a `.superpowers/` report path; every one of those is now gone and every contract it was attached to is stated in place. The entries below are the six blocks whose text was materially rewritten rather than merely de-attributed.
+
+**SOURCE** 1997159 · include/hven/detail/qp/ipqp_engine.h · lines 6–18
+
+The file banner, with its spec path and the report path behind the status-vocabulary ruling. The kernel description, the not-a-branch statement, the declarations-only rule and the downgraded-certificate vocabulary are all kept.
+
+```text
+// ipqp_engine.h -- the interior-point (IP-PMM) QP tier: declarations only.
+//
+// A third QP kernel beside the working-set walk (qp_engine.h) and SsnEngine: primal-dual
+// barrier, Mehrotra predictor-corrector on the section 3.1 system, a monotone (rho, delta)
+// schedule, and the Wachter-Biegler inertia ladder. Spec: docs/notes/2026-08-m6-w1-ipqp-spec.md.
+//
+// NOT a branch inside InteriorPointSolver and NOT a user of detail/globalization/:
+// fraction-to-boundary is the whole of globalization here (spec 3.1 item 3). Declarations
+// ONLY (CLAUDE.md section 5); the iteration, ladder and equilibration are in the .cpp.
+//
+// THE STATUS VOCABULARY FOR A DOWNGRADED CERTIFICATE, RULED (task 5, against the spec text and
+// without widening `QpStatus`): a DOWNGRADED CERTIFICATE reports `QpStatus::kNumericalError`;
+// the currency is `certificate_downgraded`/`escape_reason`. `.superpowers/w1-t5-report.md`.
+```
+
+**SOURCE** 1997159 · include/hven/detail/qp/ipqp_engine.h · lines 92–98
+
+`kIpqpPivotReroutePrimalMax`: the bound and its argument, with the report path. Both kept, without the attribution.
+
+```text
+/// @brief How many CONSECUTIVE primal escalations may answer a perturbed-pivot
+/// report before the ladder falls back to escalating the DUAL shift instead
+/// (M6 W1 T4b fix round 1, settler ruling R2).
+///
+/// A uniform shift of the Ruiz-scaled system can annihilate a scaled diagonal, and that
+/// singularity is PRIMAL; but a DUAL-caused perturbed pivot is cleared by no primal rung,
+/// so the re-route is bounded. A count, not pivot provenance: `.superpowers/w1-t4b-report.md`.
+```
+
+**SOURCE** 1997159 · include/hven/detail/qp/ipqp_engine.h · lines 110–112
+
+`kIpqpTightBandFactor`: the band definition with its report path. The definition is kept.
+
+```text
+/// @brief T4c disclosure-band ceiling: a KEPT side is band-counted iff its
+/// multiplier sits in `(weak_scale, kIpqpTightBandFactor * weak_scale]`.
+/// AMBIGUOUS, NOT WRONG. See `.superpowers/w1-t4c-report.md`.
+```
+
+**SOURCE** 1997159 · include/hven/detail/qp/ipqp_engine.h · lines 134–136
+
+`kIpqpRepairEps`/`kIpqpRepairSlackEps`: the floors and the asymmetry's argument, with the report path. Both kept, the argument restated in place.
+
+```text
+/// @brief THE WARM RESTART'S REPAIR FLOORS (spec 5.2 item 1): absolute epsilons for a
+/// payload slack/price, and for `eps = kIpqpRepairEps * mu_0` once `mu_0` is known.
+/// Asymmetry (fix round 1, R4) argued in `.superpowers/w1-t7-report.md` FIX ROUND 2, F4.
+```
+
+**SOURCE** 1997159 · include/hven/detail/qp/ipqp_engine.h · lines 150–158
+
+`kIpqpRegGateContract`: the gate, the ratio argument and the measurement's report path. The gate and the argument are kept.
+
+```text
+/// @brief The (rho, delta) schedule's DECREASE GATE (spec 3.2's
+/// bounded-decrease condition), as a CONTRACTION FACTOR: the regularized
+/// problem's RELATIVE residual must have fallen to this multiple of its value
+/// at the last estimate advance before the schedule may fall again and
+/// `(zeta, lambda_est)` may move.
+///
+/// A RATIO, and that is load-bearing: an ABSOLUTE gate never fires on a badly scaled QP and
+/// the tier converges to a proximally biased point while reporting healthy relative residuals
+/// (measured, `.superpowers/w1-t4-report.md`). 0.5 is a choice; spec 3.2 requires only a gate.
+```
+
+**SOURCE** 1997159 · include/hven/detail/qp/ipqp_engine.h · lines 281–298
+
+`struct IpqpBounds`: the withdrawn-BoundSet-reuse record, the dense-representation ruling and the zero-width rule. The representation ruling and the zero-width rule are kept; the withdrawal's provenance is here.
+
+```text
+/// @brief THE TIER'S EFFECTIVE BOUNDS AND ITS DOMAIN GATE (T4.b; plan rulings
+/// 7 and r3.2). Replaces the WITHDRAWN verbatim reuse of `BoundSet`.
+///
+/// `BoundSet` is the NLP engine's shape (reduced-space indices, RELAXED values, fixed
+/// variables eliminated); a `QpProblem` has none of it, so the reuse was WITHDRAWN in favour
+/// of this (plan section 7 note d).
+///
+/// REPRESENTATION, SETTLED HERE: DENSE, not index lists. The ipqp_math.h kernels are written
+/// against dense `(x, l, u, zl, zu)` with presence from `ipqp_has_lower`/`ipqp_has_upper`, so
+/// index lists would be a SECOND answer to "which bounds are present", able to disagree.
+///
+/// THE ZERO-WIDTH RULE: a subproblem with ANY `lo_eff(i) == up_eff(i)` pair is OUT OF THIS
+/// TIER'S DOMAIN -- the build reports it, the dispatch DECLINES pre-solve and routes to the
+/// walk, and `ipqp_declined_pinned` records it. **A DECLINE IS NOT AN ESCAPE**: it never ran.
+///
+/// Declining covers every case: under the clamp centre a zero-width pair can arise ONLY at a
+/// declared `lower(i) == upper(i)` or at `Delta == 0` (qp_engine.h's section 6 note), both of
+/// which the walk solves best. The v2 epsilon-relaxation is deleted (plan section 7 note e).
+```
