@@ -1242,7 +1242,7 @@ is PLACEMENT, not work: the same instructions and the same branches, fetched fro
 That is **LAYOUT-MOVED** under §11.1, and the owner ruled **KEEP**. The cumulative bar still applies
 at T6's close and this result is one of the contributions it will be measured against.
 
-**CUT (b) — ipm/ssn LAYOUT-MOVED; walk UNRESOLVED PENDING RE-MEASUREMENT; NO REDRAW** (the SQP lane's T6.b review §10, run on
+**CUT (b) — ipm/ssn LAYOUT-MOVED; walk LAYOUT-MOVED (closed at cut (c)'s ledger line from the registered re-measurement, below); NO REDRAW** (the SQP lane's T6.b review §10, run on
 their own binaries from both commits; the immediate comparison is BASE `03e1b34` vs code head
 `25f586e`):
 
@@ -1250,7 +1250,7 @@ their own binaries from both commits; the immediate comparison is BASE `03e1b34`
 |---|---|---|---|---|
 | ipm | **0.9995** (−0.05 %) | 0.996–1.006 | none | FLAT, **LAYOUT-MOVED** — accounting closed |
 | ssn | **1.0013** (+0.13 %) | 0.997–1.008 | none | FLAT, **LAYOUT-MOVED** — accounting closed |
-| walk | **1.0029** (+0.29 %) | 0.991–1.011 | one — `f7_n800_path_warm` at 1.011 | inside the corpus bar; **UNRESOLVED PENDING RE-MEASUREMENT** |
+| walk | **1.0029** (+0.29 %) | 0.991–1.011 | one — `f7_n800_path_warm` at 1.011 | inside the corpus bar; **LAYOUT-MOVED — closed 2026-09-07 from the pass-B re-measurement (see "THE DISCHARGE", below)** |
 
 | counter (user), ratio HEAD/BASE | ipm | ssn | walk |
 |---|---|---|---|
@@ -1285,6 +1285,52 @@ post-(b) binaries, as part of the cut (c) bench leg, and **this row is closed fr
 at cut (c)'s ledger line** — LAYOUT-MOVED if the front-end-bound fraction and the op-cache ratio
 name the mechanism, a finding for the owner if they do not. **Cut (c) is NOT gated on it**: no
 instruction moved, so nothing about (c)'s dispatch waits on this cell.
+
+**THE DISCHARGE RAN, AND THE CELL IS CLOSED — LAYOUT-MOVED (settler ruling 2026-09-07, under the
+numerics judgement the owner delegated; recorded at cut (c)'s ledger line).** The SQP lane re-measured
+cut (a) vs cut (b) in WALK mode with pass B on its retained T6.b binaries (`w5t6b/corpus-base` =
+`03e1b34` = post-(a) code vs `w5t6b/corpus-head` = post-(b) code; the three perf cells, 3× alternating,
+solo, pinned, `MKL_NUM_THREADS=OMP_NUM_THREADS=1`; `.superpowers/w5-t6-c-review-tycho.md` §6):
+
+| counter (user) | ratio (b)/(a) | 3-pair range |
+|---|---|---|
+| instructions | 1.00000 | 1.00000..1.00000 |
+| cycles | 0.99928 | 0.979..1.017 |
+| `de_dis_uop_queue_empty_di0` | 0.99698 | 0.852..1.215 |
+| `op_cache_hit_miss.op_cache_miss` | **1.06824** | 1.048..1.096 |
+| `op_cache_hit_miss.op_cache_hit` | 0.99850 | 0.9985..1.0009 |
+| `ic_fetch_stall.ic_stall_any` | 0.99432 | 0.959..1.023 |
+
+FE-bound fraction 0.0263 → 0.0263; op-cache miss share 0.0274 → 0.0293. **The +0.59 % cycle delta T6.b
+measured on these cells did not reproduce** (0.999, ±2 % over three pairs); the one counter that moves
+consistently in all three pairs is the decoded-uop-cache miss count, +6.8 %, with instructions identical
+to 1e-5. That is the mechanism §11.3 was amended to look for — uop-cache residency as loop heads moved —
+and its cycle cost on these cells is inside run-to-run noise. Under §11.1 the classification rests on
+instruction identity AND an accounting that closes: with no reproducible cycle delta there is nothing
+left to account for, and the op-cache counter names what moved. The dispatch-queue-empty counter is
+too noisy on three short cells to carry weight (range 0.85–1.22) and is recorded, not relied on. The
+corpus-level walk figure (+0.29 % at T6.b, instructions identical) stands as measured; the
+`f7_n800_path_warm` 1.011 cell is carried inside it.
+
+**CUT (c) — LAYOUT-MOVED in the FASTER direction in all three modes, NO REDRAW** (the SQP lane's T6.c
+review §4, its own binaries, BASE `a10adc3` vs commit 2 `01fab70`, 27 U0 cells, 3× alternating, pass A
+and pass B):
+
+| mode | corpus | per-cell envelope | outside 0.99–1.01 | letter of §11.1 | instructions | icache |
+|---|---|---|---|---|---|---|
+| ipm | **0.9961** (−0.39 %) | 0.993–1.000 | none | FLAT | 0.99999 | ×0.46 |
+| ssn | **0.9918** (−0.82 %) | 0.987–1.001 | three, all faster | outside the FLAT letter on the faster side | 1.00002 | ×0.57 |
+| walk | **0.9925** (−0.75 %) | 0.986–1.000 | five, all faster | outside the FLAT letter on the faster side | 0.99992 | ×0.59 |
+
+Branches identical; cycles down in every mode; branch misses −2 %. Pass B: dq-empty +6 % ipm / −2.5 %
+ssn / flat walk, op-cache misses +2–4 %. Nothing WORK-MOVED; the three unanticipated Eigen bodies
+(two de-inlined, one the `x_trial` `operator=` source change) cost no measurable instructions.
+
+**THE CUMULATIVE READING AFTER (c) — post-T3 (`58989d7` = `50f616a` code) vs `01fab70`, ipm: +0.30 %,
+INSIDE the ±0.5 % corpus bar** (was +0.70 % after (b)): corpus 1.0030, envelope 0.997–1.006, no cell
+outside the band, instructions 1.00000, branches 1.00000, cycles 1.00271, branch-misses 0.99928, icache
+×1.19, dq-empty ×1.086, op-cache misses ×1.047 — mechanism named, accounting closed. A reading for T6's
+close against the post-(d) head, per §11.1; no owner ruling is needed at this reading.
 
 **THE CUMULATIVE READING TODAY — post-T3 `50f616a` vs post-(b), ipm: +0.70 %, ABOVE the ±0.5 %
 corpus bar, and it is all cut (a)'s.** The arithmetic: (a) +0.72 %, (b) −0.05 %, cumulative +0.70 %.
