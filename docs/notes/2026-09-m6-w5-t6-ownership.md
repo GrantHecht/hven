@@ -1741,6 +1741,24 @@ is READ AT T6's CLOSE against the post-(d) head, and (c) — which restructures 
 lambdas and the ten push sites — will re-place everything again. If the close reading is still above
 +0.5 %, Grant rules with the numbers, as §11.1 says.
 
+**CUT (d) — RULED ABANDON by the owner, 2026-09-07 (presented with the numbers; the settler's
+recommendation was ABANDON).** The SQP lane's T6.d review §5, its own binaries, BASE = the prep commit
+`7565936` (code) vs the TU `f47da07`, 27 U0 cells, 3× alternating, pass A and pass B:
+
+| mode | corpus | per-cell envelope | outside 0.99–1.01 | letter of §11.1 | instructions |
+|---|---|---|---|---|---|
+| ipm | **1.0098** (+0.98 %) | 1.0030–1.0159 (`f7_n800_path_warm`) | **15/27** | NOT FLAT; LAYOUT-MOVED (cycles 1.0138 accounted by dq-empty ×1.283, branch-misses ×1.160, icache ×1.279, op-cache misses ×1.079) | 1.00000 (Δ ≤ 4e-7) |
+| ssn | 1.0030 | 0.9962–1.0156 (`f7_n2000_bound_warm`) | 3/27 | corpus inside the FLAT letter, cells outside; cycles 1.0024 | 1.00000 |
+| walk | 0.9978 | 0.9926–1.0093 | 0/27 | FLAT; cycles 1.0013 | 1.00000 (+1.45–1.74 M executed on the HS walk-sink arm only) |
+
+**THE CUMULATIVE READING AT THE POST-(d) HEAD — post-T3 `50f616a` → `f47da07`, ipm: 1.0121, +1.21 %,
+OUTSIDE the ±0.5 % corpus bar** (envelope 1.0061–1.0155, 20/27 cells outside; ssn 1.0048, 6/27, inside by 0.02 %; walk 0.9981, 1/27, inside). §11.1 said this reading binds, and it did: the
+owner ruled with the numbers. The build half of the §5 proof failed its pre-registered threshold on the
+same day (§11.4). The TU was reverted as a new commit, 1997159; the library sources at that commit are
+tree-identical to the pre-TU docs commit `14cf243`.
+
+**THE T6 CLOSE READING — post-T3 `50f616a` → the post-revert head `1997159` — is recorded below when the SQP lane's measured reading lands (`.superpowers/w5-t6-d-abandon-review-tycho.md`).**
+
 ---
 
 ## §12. Corrections and findings this document lands
