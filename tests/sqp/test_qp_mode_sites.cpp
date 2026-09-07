@@ -17,9 +17,9 @@
 //        call sites are the ones it names, and nothing in the type system says
 //        so.
 //
-//        The scan reads src/drivers/sqp_driver.cpp and requires every
-//        `QpEngine::solve` / SSN `solve` / `refine_on_face` invocation to be
-//        covered by a nearby emit or by an explicit `// trace:` marker.
+//        The scan reads BOTH sqp_driver.cpp and sqp_kernels.cpp (cut (d) split
+//        them; see `scanned_files()`) and requires every `QpEngine::solve` / SSN
+//        `solve` / `refine_on_face` in EITHER to be emitted or `// trace:`-marked.
 //
 //        A site added later then fails this test rather than going silently
 //        unrepresented. Precedent: tests/core/test_core_layering.cpp.
