@@ -773,6 +773,24 @@ bool ipqp_exit_is_a_usable_step(const IpqpResult &res, const QpOptions &opts,
     return res.lambda_e.allFinite() && res.lambda_i.allFinite() && res.z.allFinite();
 }
 
+// THE TWO HAND-OFF GUARDS HAVE INTERNAL LINKAGE, and the reason is a defect this block
+// carried silently until the T6.0 sweep found it (ownership doc section 1.4, section 12 item 3).
+// Both had EXTERNAL linkage and NO declaration anywhere in the tree -- the header names
+// `assert_ssn_warm_grade_window` only in a comment -- and nothing warned, because this project
+// enables neither `-Wmissing-prototypes` nor `-Wmissing-declarations`. Each has exactly ONE
+// caller, and both callers are in this TU.
+//
+// The rule cut (d) settles them under is ONE OWNING TU -> INTERNAL LINKAGE; A NECESSARY
+// CROSS-TU DEPENDENCY -> A PRIVATE DECLARATION. These two are the first case, so they stay
+// here and stop exporting a name no one may link against. They are deliberately NOT moved:
+// cut (d) moves the elastic ladder and the certified fallback, and neither of these guards is
+// reachable from either.
+//
+// This block lands as its OWN commit, ahead of the TU split, because the split's claim is that
+// exactly ONE symbol changes linkage. Folding these two into it would make that claim false and
+// would put a second linkage variable inside a veto-grade measurement.
+namespace {
+
 // THE SECOND HAND-OFF GUARD, AND THE ONE THAT CAN ACTUALLY FAIL: the SSN warm grade must
 // run in the TIER'S window, and dropping `SsnStart::box_center` would silently recentre it
 // on `start.x`. The radius is compared through the tier's own resolution, not the sentinel.
@@ -819,6 +837,8 @@ void assert_ipqp_hand_off_window(const IpqpBox &driver_box, const IpqpResult &re
             res.box.radius, driver_box.radius, res.box.centre.size(), driver_box.centre.size()));
     }
 }
+
+} // namespace
 
 // `ssn_result_to_qp_solution`'s counterpart, field for field. `status` IS FORCED TO kOptimal
 // as the SSN mapping forces it: the caller has already judged the exit usable, and the
