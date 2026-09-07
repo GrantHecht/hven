@@ -1757,7 +1757,19 @@ owner ruled with the numbers. The build half of the §5 proof failed its pre-reg
 same day (§11.4). The TU was reverted as a new commit, 1997159; the library sources at that commit are
 tree-identical to the pre-TU docs commit `14cf243`.
 
-**THE T6 CLOSE READING — post-T3 `50f616a` → the post-revert head `1997159` — is recorded below when the SQP lane's measured reading lands (`.superpowers/w5-t6-d-abandon-review-tycho.md`).**
+**THE T6 CLOSE READING — post-T3 `50f616a` → the post-revert head `1997159`: INSIDE the ±0.5 % corpus bar in
+every mode, FLAT per cell, no owner ruling needed (the SQP lane's abandon review §4,
+`.superpowers/w5-t6-d-abandon-review-tycho.md`; same recipe as the (c)/(d) readings):**
+
+| mode | corpus | per-cell envelope | outside 0.99–1.01 | instructions | cycles | icache |
+|---|---|---|---|---|---|---|
+| ipm | **1.0023** | 0.9933–1.0053 | 0/27 | 1.00000 | 1.0019 | ×1.94 (1.9 M → 3.8 M on 11.2 G cycles) |
+| ssn | **1.0015** | 0.9969–1.0075 | 0/27 | 1.00003 | 1.0017 | ×1.30 |
+| walk | **0.9993** | 0.9939–1.0038 | 0/27 | 1.00000 | 0.9996 | ×0.98 |
+
+Branches identical to 1e-4; pass B dq-empty share 0.0265 → 0.0268 ipm, op-cache miss share 0.0854 → 0.0847;
+paired per-round ipm 1.0004 / 1.0026 / 1.0093. The restructure as landed — cuts (a), (b), (c) — is
+LAYOUT-MOVED, accounting closed, and T6 is CLOSED at this reading (ledger 2026-09-07).
 
 ---
 
