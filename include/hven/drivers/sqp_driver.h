@@ -3001,13 +3001,14 @@ class SqpDriver {
     ///        it neither re-centres the cross-major carry nor charges the ladder.
     /// @param overrides      the caller's own walk levers, which the certified
     ///        feasibility fallback runs with.
-    /// @param row            this major's row; the fallback measures into it.
-    /// @param row_qp_mode    corrected to kSsn on the two warm-grade routes.
+    ///
+    /// This major's row (which the fallback measures into) and its
+    /// `row_qp_mode` (corrected to kSsn on the two warm-grade routes) are on
+    /// `mj` as of cut (c), not parameters.
     ///
     /// Emits every one of its own trace lines before returning.
     void route_through_ipqp_tier(SolveState &st, MajorState &mj, AggregateEvalSeam &seam,
-                                 Index iter, bool tr_shrink_retry, const SolveOverrides &overrides,
-                                 SqpIterate &row, IpqpTraceQpMode &row_qp_mode);
+                                 Index iter, bool tr_shrink_retry, const SolveOverrides &overrides);
 
     /// @brief The walk invocation -- the ONE shared successor of the dispatch
     ///        (cut (b)), reached from the kWalk arm, an IPQP retirement, an IPQP
@@ -3016,8 +3017,98 @@ class SqpDriver {
     /// Not the elastic ladder's walk, which runs inside the kIpm arm with
     /// `walk_owns_this_qp` false and stays there.
     void solve_with_walk(SolveState &st, MajorState &mj, const WarmStart &warm,
-                         const SolveOverrides &overrides, bool offer_hot, bool use_crash,
-                         IpqpTraceQpMode &row_qp_mode);
+                         const SolveOverrides &overrides, bool offer_hot, bool use_crash);
+
+    /// @brief What ONE MAJOR decided, and the only thing that crosses back out
+    ///        of `run_major` (M6 W5 T6 cut (c)).
+    ///
+    /// PAYLOAD-FREE BY CONSTRUCTION: no `SqpSolution`, vector, evaluation, KKT,
+    /// objective, warm start or restoration flag travels in an outcome. The
+    /// requesting measurements, the convergence decision, the dispatch's answer
+    /// and the trial/SOC objects stay on `MajorState`, which the caller owns
+    /// for the length of the major; the restoration exit payload and the
+    /// budget-best snapshot stay on `SolveState`. The finish provenance is in
+    /// the tag because the four terminal exits select DIFFERENT activity
+    /// sources -- see `finish`'s callers.
+    enum class MajorOutcome {
+        /// The major is over and the loop advances; every update it owns
+        /// (a shrink, a re-seed, a restoration resume) is already done.
+        kContinue,
+        /// The step was accepted and its row is already emitted. The caller
+        /// runs the growth evidence, the radius growth, the SOC or direct
+        /// commit, the counters and the re-centred seed.
+        kCommitAccepted,
+        /// The non-finite-KKT exit, which assembled `st.out` by hand: the
+        /// caller checks and MOVES it, bypassing `finish`.
+        kFinishManual,
+        /// The ordinary terminal exit -- kOptimal or kMaxIter by
+        /// `mj.converged` -- reporting the current iterate.
+        kFinishCurrent,
+        /// Budgeted mode's best-by-(h, f) iterate from `st.mb`.
+        kFinishBudgetBest,
+        /// A QP failure with no retry left: this QP's status and activity.
+        kFinishQpFailure,
+        /// A restoration exit whose requester has no usable QP activity (the
+        /// elastic ladder's answer is in the augmented variables), so the
+        /// PRIOR SEED is the fallback.
+        kFinishRestorationSeed,
+        /// A restoration exit whose requester's QP is in the original
+        /// variables and still describes x unless restoration moved it.
+        kFinishRestorationQp,
+    };
+
+    /// @brief What the restoration phase decided (M6 W5 T6 cut (c)).
+    ///
+    /// A TAG, and nothing else: the exit payload it wrote lives on
+    /// `SolveState::resto`, which is its ONE authoritative copy
+    /// (docs/notes/2026-09-m6-w5-t6-ownership.md section 5 constraint 5).
+    enum class RestorationOutcome {
+        /// A pre-run gate refused: no sub-solve ran.
+        kRefused,
+        /// The sub-solve reached a feasible enough point and the main loop
+        /// resumes from it; every piece of solve state is already updated.
+        kResumed,
+        /// Every post-run terminal path, including the numerical-error one
+        /// that adopts no point at all.
+        kExited,
+    };
+
+    /// @brief What a restoration request site OFFERS as a start point (W2 T4).
+    ///
+    /// The point and, when the site has ALREADY MEASURED it, its values-only
+    /// bundle there. A null `values_ev` is the unmeasured route, the only arm
+    /// that may query the model. Both are TEMPORARY BORROWS: the pointed-to
+    /// evaluation is consumed only at the conditional move inside.
+    struct RestorationCandidate {
+        const Vec *x = nullptr;
+        NlpEval *values_ev = nullptr;
+    };
+
+    /// @brief The restoration phase (M6 W5 T6 cut (c)), a member function
+    ///        rather than the `[&]` closure it was.
+    ///
+    /// The requesting row is pushed by the CALLER, after this returns, at all
+    /// four call sites: `row.restoration_seed_used` is set INSIDE and must be
+    /// in the row that is emitted. See the definition for the full sequence.
+    ///
+    /// The default is spelled out rather than written `= {}`: a default
+    /// argument in the enclosing class's own body may not reach a nested
+    /// class's default member initializers, and naming both members here keeps
+    /// them where a reader can see them.
+    RestorationOutcome enter_restoration(SolveState &st, MajorState &mj, AggregateEvalSeam &seam,
+                                         NlpModelAggregate &bridge, Index iter,
+                                         RestorationCandidate cand = {nullptr, nullptr});
+
+    /// @brief ONE MAJOR (M6 W5 T6 cut (c)): the KKT measurement of the iterate
+    ///        it starts at, through to the history row it emits.
+    ///
+    /// Holds all ten push sites, and each returns its `MajorOutcome`
+    /// IMMEDIATELY after its push -- which is what makes "the accepted row is
+    /// emitted before the radius and the iterate move" a property of this
+    /// boundary. The terminal exactly-once check is the caller's.
+    MajorOutcome run_major(SolveState &st, MajorState &mj, AggregateEvalSeam &seam,
+                           NlpModelAggregate &bridge, const WarmStart &warm, Index minor_budget,
+                           Index iter);
 
     // See this header's SUBPROBLEM FAILURE ROUTING note. Reached only after the
     // one-shot retry has already been spent -- and never with kInfeasible (the

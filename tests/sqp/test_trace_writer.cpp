@@ -3041,6 +3041,40 @@ TEST(JsonLinesTraceSink, ResetNestingRecoversASinkAfterASolveThatThrewMidBody) {
     const Index lines_after_throw = json.lines_written();
     ASSERT_GT(lines_after_throw, 0);
 
+    // THE ACCEPTED MAJOR'S ROW IS ALREADY IN THE STREAM WHEN THE SECOND
+    // GRADIENT THROWS (M6 W5 T6 cut (c); ownership doc section 7).
+    //
+    // This is an ORDERING assertion and it is the only executable one there
+    // is. The trace goldens, the row count and the `sqp.major` == history
+    // identity all pin CONTENT: a push moved BELOW the accepted commit would
+    // preserve every one of them, because the row was measured before either
+    // ordering and its values do not depend on which. What distinguishes the
+    // two is that this model THROWS between them.
+    //
+    // The shape: `eval_grad` throws on its SECOND call. The first is the
+    // solve's own initial evaluation; major 0 then solves an unconstrained
+    // quadratic, accepts the step, PUSHES ITS ROW, and the direct-accept
+    // branch upgrades the trial in place -- which is the second gradient, and
+    // the throw. So exactly one `sqp.major` line must already be written, and
+    // it must be an ACCEPTED row. Move the push below the derivative refresh
+    // and there are zero.
+    {
+        const std::vector<std::string> before_throw = split_lines(os.str());
+        std::vector<std::string> majors;
+        for (const std::string &l : before_throw) {
+            if (event_name(l) == "sqp.major") {
+                majors.push_back(l);
+            }
+        }
+        ASSERT_EQ(majors.size(), 1u)
+            << "the accepted major's row must be emitted BEFORE the commit that throws";
+        EXPECT_EQ(raw_field(majors.front(), "trial"), "0");
+        EXPECT_EQ(raw_field(majors.front(), "major"), "0");
+        const std::string verdict = raw_field(majors.front(), "verdict");
+        EXPECT_TRUE(verdict == "\"accept_f\"" || verdict == "\"accept_h\"")
+            << "the row already in the stream is the ACCEPTED one, verdict=" << verdict;
+    }
+
     json.reset_nesting();
 
     const HsProblem p = make_hs(24);

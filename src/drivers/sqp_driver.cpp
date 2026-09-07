@@ -2289,23 +2289,36 @@ struct SqpDriver::SolveState {
 };
 
 // ---------------------------------------------------------------------------
-// THE PER-MAJOR ROUTING BUNDLE (M6 W5 T6 cut (b)). The dispatch's own state:
-// the answer, the rung-A report beside it, and the two ownership flags that say
-// which kernel produced the answer. It dies with the major, nothing in
-// `SolveState` references it, and no reference to it escapes.
+// THE PER-MAJOR BUNDLE (M6 W5 T6 cuts (b) and (c)). One major's own state: the
+// measurement of the iterate it starts from, the history row it will emit, the
+// dispatch's answer and the two ownership flags that say which kernel produced
+// it, and the trial and SOC objects the acceptance test judges. It dies with
+// the major, nothing in `SolveState` references it, and no reference to it
+// escapes.
 //
-// BUILT AT THE DISPATCH, NOT AT THE LOOP TOP, and the reason is the
-// construction-timing hazard the ownership table names
-// (docs/notes/2026-09-m6-w5-t6-ownership.md section 10.2): these four objects
-// are declared AFTER the early exits that can leave a major without ever
-// reaching the dispatch, and a bundle constructed above them would build a
-// `QpSolution` on those paths that today is never built. The ownership table's
-// remaining per-major names -- `kkt`, `row`, `row_qp_mode`, `caller_row` and the
-// trial/SOC objects -- join this bundle at cut (c), which is where the loop top,
-// the three lambdas and the ten push sites are restructured; until then they
-// cross into the routing functions as explicit parameters.
+// BUILT AT THE LOOP TOP AS OF CUT (c), which is what lets `run_major` return a
+// `MajorOutcome` and leave the caller holding everything a terminal exit or an
+// accepted commit still has to read. Cut (b) built it AT THE DISPATCH for the
+// construction-timing reason the ownership table names
+// (docs/notes/2026-09-m6-w5-t6-ownership.md section 10.2), and that reason is
+// discharged rather than waived: NOTHING BELOW EVALUATES ANYTHING WHEN IT IS
+// CONSTRUCTED. `ev_trial` is the one member a model call ever fills, and it is
+// default-constructed here and ASSIGNED at the same point the call has always
+// been made -- after the early exits -- so no evaluation moves earlier and no
+// counter moves at all. The rest are empty vectors, empty optionals and
+// scalars.
 // ---------------------------------------------------------------------------
 struct SqpDriver::MajorState {
+    // ---- cut (b)'s FOUR ROUTING OUTPUTS, FIRST AND IN THEIR ORIGINAL ORDER --
+    // THE ORDER IS LOAD-BEARING, and it is the only thing about this struct
+    // that is. `route_through_ssn_tier` is not edited by cut (c) at all, and it
+    // reaches `mj.qs` and `mj.walk_owns_this_qp` through member offsets: with
+    // cut (c)'s additions placed FIRST, `qs` left offset 0, `mov %rbx,%rdi`
+    // became `lea 0x118(%rbx),%rdi` at three sites, and an untouched function
+    // gained two instructions for no reason anyone chose. Keeping these four
+    // where cut (b) left them keeps every offset they use identical and that
+    // arm byte-identical. Cut (c)'s members are appended below.
+    //
     // THE WALK IS THE LAST BRANCH, NEVER THE ORDINARY SUCCESSOR (Amendment A),
     // and `walk_owns_this_qp` is what says so. This initializer is SAFE rather
     // than convenient: an unhandled mode falls to the walk, not to a default
@@ -2321,6 +2334,36 @@ struct SqpDriver::MajorState {
     // run at `opts_.qp.dual_mu`. Every walk subproblem under kIpm keeps
     // `row.mu`'s adaptive value.
     bool ipqp_chain_owns_the_step = false;
+
+    // ---- cut (c): the iterate this major starts from ---------------------
+    // Re-taken by the full-step watchdog when it restores an earlier point, so
+    // the row and the convergence test describe where the driver is standing.
+    SqpKkt kkt;
+    // THE ROW THIS MAJOR EMITS, measured in the space the solve runs in;
+    // `push_history` maps a COPY of it into the caller's units.
+    SqpIterate row;
+    // THE ARM THAT OWNS THIS ROW'S QP, for `sqp.major` alone -- the configured
+    // mode until the dispatch corrects it.
+    IpqpTraceQpMode row_qp_mode = IpqpTraceQpMode::kWalk;
+    // The two caller-unit measurements the export boundary cannot recompute
+    // from a scalar. Untouched, and unread, on an unscaled solve.
+    CallerScaleRowMeasures caller_row;
+    // THE CONVERGENCE DECISION, preserved because the caller's ordinary
+    // terminal exit reports kOptimal or kMaxIter from it.
+    bool converged = false;
+
+    // ---- cut (c): the trial point, its judgement, and the SOC correction --
+    // `ev_trial` is VALUES ONLY until an acceptance upgrades it in place; on a
+    // promoted SOC correction it is never upgraded at all and `ev_soc` becomes
+    // the next iterate's evaluation instead.
+    Vec x_trial;
+    NlpEval ev_trial;
+    StepContext ctx;
+    // The three SOC objects are filled iff `soc_applied`.
+    bool soc_applied = false;
+    NlpEval ev_soc;
+    QpSolution qs_soc;
+    Vec x_soc;
 };
 
 // ---------------------------------------------------------------------------
@@ -3118,7 +3161,7 @@ void SqpDriver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
 // `major` field and the escape ladder's own record), `tr_shrink_retry` (a
 // shrink-retry neither re-centres the cross-major carry nor charges the ladder),
 // the caller's own `overrides` (the walk levers the certified fallback runs
-// with), this major's `row` (the fallback measures into it) and `row_qp_mode`
+// with); this major's `row` and `row_qp_mode` are on the bundle as of cut (c)
 // (corrected to kSsn on the two warm-grade routes). Each is a parameter rather
 // than a captured name, and each is the ownership table's section 6 crossing
 // list, item for item.
@@ -3135,8 +3178,7 @@ void SqpDriver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
 // ---------------------------------------------------------------------------
 void SqpDriver::route_through_ipqp_tier(SolveState &st, MajorState &mj, AggregateEvalSeam &seam,
                                         Index iter, bool tr_shrink_retry,
-                                        const SolveOverrides &overrides, SqpIterate &row,
-                                        IpqpTraceQpMode &row_qp_mode) {
+                                        const SolveOverrides &overrides) {
     // The names this arm knows the state by. ALIASES, not copies.
     SqpSolution &out = st.out;
     QpProblem &qp = st.qp;
@@ -3331,7 +3373,7 @@ void SqpDriver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Aggregat
             walk_owns_this_qp = route_through_ssn_warm_grade(qp, ires, delta, ssn_prox_ingested,
                                                              ssn_budget_charge, out.counters, qs);
             ipqp_chain_owns_the_step = !walk_owns_this_qp;
-            row_qp_mode = IpqpTraceQpMode::kSsn;
+            mj.row_qp_mode = IpqpTraceQpMode::kSsn;
             emit_ipqp_route_and_mode(IpqpTraceRouteTo::kSsn, IpqpTraceOutcome::kRouted);
         }
     } else if (ires.escape_reason == IpqpEscape::kIndefinite) {
@@ -3343,7 +3385,7 @@ void SqpDriver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Aggregat
         walk_owns_this_qp = route_through_ssn_warm_grade(qp, ires, delta, ssn_prox_ingested,
                                                          ssn_budget_charge, out.counters, qs);
         ipqp_chain_owns_the_step = !walk_owns_this_qp;
-        row_qp_mode = IpqpTraceQpMode::kSsn;
+        mj.row_qp_mode = IpqpTraceQpMode::kSsn;
         emit_ipqp_route_and_mode(IpqpTraceRouteTo::kSsn, IpqpTraceOutcome::kRouted);
     } else {
         // --- 5. A GENUINE ESCAPE -> THE WALK, COLD (item 5) -------
@@ -3361,8 +3403,8 @@ void SqpDriver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Aggregat
         SqpFallbackVerdictTraceEvent fallback_verdict;
         qs = certified_feasibility_fallback(engine_, qp, ev, have_seed ? &seed : nullptr,
                                             ires.infeasibility_evidence, overrides, opts_,
-                                            std::min(delta, opts_.qp.tr_radius), out.counters, row,
-                                            fallback_report, fallback_verdict, ipqp_trace_);
+                                            std::min(delta, opts_.qp.tr_radius), out.counters,
+                                            mj.row, fallback_report, fallback_verdict, ipqp_trace_);
         emit_trace_fallback_verdict(fallback_verdict);
         emit_ipqp_route_and_mode(IpqpTraceRouteTo::kWalk, IpqpTraceOutcome::kEscaped);
     }
@@ -3384,15 +3426,14 @@ void SqpDriver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Aggregat
 // (ownership doc section 6.2).
 // ---------------------------------------------------------------------------
 void SqpDriver::solve_with_walk(SolveState &st, MajorState &mj, const WarmStart &warm,
-                                const SolveOverrides &overrides, bool offer_hot, bool use_crash,
-                                IpqpTraceQpMode &row_qp_mode) {
+                                const SolveOverrides &overrides, bool offer_hot, bool use_crash) {
     // The names this successor knows the state by. ALIASES, not copies.
     QpProblem &qp = st.qp;
     QpSolution &seed = st.seed;
     bool &have_seed = st.have_seed;
     QpSolution &crash_seed = st.crash_seed;
     QpSolution &qs = mj.qs;
-    row_qp_mode = IpqpTraceQpMode::kWalk;
+    mj.row_qp_mode = IpqpTraceQpMode::kWalk;
     qs = offer_hot   ? engine_.solve(qp, seed, overrides, warm.hot)
          : have_seed ? engine_.solve(qp, seed, overrides)
          : use_crash ? engine_.solve(qp, crash_seed, overrides)
@@ -3410,6 +3451,1485 @@ void SqpDriver::solve_with_walk(SolveState &st, MajorState &mj, const WarmStart 
     }
 }
 
+// ---------------------------------------------------------------------------
+// M6 W5 T6 cut (c): THE RESTORATION PHASE, lifted out of `solve_impl_body` as a
+// member function rather than the `[&]` closure it was. See this header's
+// RESTORATION PHASE note for every design choice below; only the mechanics are
+// here. Called from the FOUR request sites in `run_major` -- three SOURCES: the
+// funnel's kRestore verdict, the elastic tier's exhaustion, and the radius
+// floor, reached from a judged rejection and from a routed failure alike.
+//
+// THE OUTCOME IS A TAG AND CARRIES NO PAYLOAD (ownership doc section 5
+// constraint 5). `kResumed` means the main loop is to RESUME, and every piece
+// of solve state it touches (x, ev, the multipliers, the radius, the counts and
+// the seed) has already been updated -- the caller's only job is to continue.
+// `kRefused` is the two pre-run gates, which ran no sub-solve; `kExited` is
+// every post-run terminal path, including the numerical-error one that adopts
+// no point. On both of those it has written `st.resto.{status,kkt,f}` and,
+// where the phase actually ran, x/lambda_e/lambda_i, for the caller's own
+// `finish`. Certification, the caller-scale multiplier flag and
+// `st.resto.moved_x` are carried EXPLICITLY on the bundle and are never
+// inferred from the tag.
+//
+// THE REQUESTING ROW IS PUSHED BY THE CALLER, AFTER THIS RETURNS, at all four
+// call sites: `row.restoration_seed_used` is set INSIDE and must be in the row
+// that is emitted.
+// ---------------------------------------------------------------------------
+SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, MajorState &mj,
+                                                           AggregateEvalSeam &seam,
+                                                           NlpModelAggregate &bridge, Index iter,
+                                                           RestorationCandidate cand) {
+    // Reset every call: a solve may enter restoration more than
+    // once (a resumed restoration followed by a second request),
+    // and this flag must describe only THIS call's outcome. See
+    // its declaration above for what it is for.
+    st.resto.moved_x = false;
+
+    // Majors already spent, on both phases, at this point.
+    const Index spent = iter + 1 + st.out.counters.restoration_iters;
+
+    if (!allow_restoration_ || st.resto.used) {
+        // The nested case (a restoration solve raising its own
+        // request) and the once-per-solve cap take the SAME exit,
+        // for the same reason: there is a restoration request and
+        // no admissible way to service it. counters.
+        // restoration_iters tells the two apart (0 for the nested
+        // case, nonzero for the cap).
+        st.resto.status = SqpStatus::kInfeasible;
+        st.resto.kkt = mj.kkt;
+        st.resto.f = st.ev.f;
+        return RestorationOutcome::kRefused;
+    }
+    if (spent >= opts_.max_iter) {
+        // No budget left to restore with. This is a BUDGET
+        // outcome, not an infeasibility one, and is reported as
+        // such rather than borrowing the verdict the phase never
+        // got to render.
+        st.resto.status = SqpStatus::kMaxIter;
+        st.resto.kkt = mj.kkt;
+        st.resto.f = st.ev.f;
+        return RestorationOutcome::kRefused;
+    }
+    st.resto.used = true;
+
+    // THE ONE MODEL IDENTITY READ ON THIS PATH, and it is not an
+    // evaluation. RestorationModel is a Level 1 WRAPPER in the
+    // variables (x, sp, sm, si) built AROUND the problem being solved
+    // -- a different NlpModel, with no aggregate form of its own -- so
+    // it is constructed from the model behind the bridge, taken from
+    // the caller's own handle rather than back out of the seam -- the
+    // seam binds the claim-stream interface, which carries no model.
+    // The nested sub-solve below then goes through the model-taking
+    // solve() overload, which builds the wrapper its OWN bridge and
+    // seam for the duration of that call, exactly as this solve's entry
+    // point did. `feasibility` outlives that call: it is this scope's
+    // local and the sub-solve returns before the scope ends.
+    // THE W0.2 UNIT BOUNDARY, and it is a real one rather than a
+    // precaution. RestorationModel wraps the RAW model behind the
+    // bridge while reading THIS bundle for its slack sigmas and its
+    // start point -- so on a scaled solve the bundle must be mapped
+    // back to the model's own units first, or the wrapper would size
+    // its slacks in one space and evaluate its constraints in another.
+    // A no-op, and a copy elided, when the solve is unscaled.
+    NlpEval resto_ev = st.ev;
+    seam.to_caller_scale(resto_ev);
+    // THE START, ADOPTED ONLY ON MEASURED EVIDENCE (W2 T4): the phase starts
+    // at an offered candidate iff h THERE is below h at the entry, both read
+    // off the CALLER-scale bundles the wrapper is built from (header note).
+    const Vec *x_start = &st.x;
+    if (cand.x != nullptr && cand.x->size() == st.x.size() && cand.x->allFinite()) {
+        const double h_entry = constraint_violation_l1(resto_ev);
+        NlpEval ev_cand;
+        bool take = false;
+        if (cand.values_ev == nullptr) {
+            // UNMEASURED (the elastic route): the evaluation that
+            // supplies h is the one the wrapper needs anyway, so the
+            // guard costs one full eval whether or not it passes.
+            ev_cand = seam.eval_nlp(*cand.x, st.lambda_e, st.lambda_i);
+            ++st.out.counters.evals_full;
+            seam.to_caller_scale(ev_cand);
+            take = ev_cand.all_finite && jacobian_values_finite(ev_cand) &&
+                   constraint_violation_l1(ev_cand) < h_entry;
+        } else if (cand.values_ev->all_finite) {
+            // MEASURED (a rejected trial): the guard reads a MAPPED COPY of
+            // the trial's own values bundle -- no model query, so a refusal
+            // HERE costs nothing at all.
+            // THE FINITENESS SCREENS ARE TAKEN AT ENGINE SCALE HERE and after the map on
+            // the arm above: `to_caller_scale` multiplies by POSITIVE FINITE factors, and
+            // finiteness is invariant under those, so the two arms screen one predicate.
+            NlpEval probe = *cand.values_ev;
+            seam.to_caller_scale(probe);
+            // AND THE MAP CANNOT MANUFACTURE A TAKE: the row factors are positive, so an
+            // overflow there can only RAISE this probe's h, which the comparison refuses.
+            if (constraint_violation_l1(probe) < h_entry) {
+                // The values-only query already charged is UPGRADED in
+                // place -- one query RECLASSIFIED, never a second one
+                // charged (solver_counters.h's EVAL ECONOMICS exception).
+                seam.refresh_derivatives(*cand.values_ev, *cand.x);
+                ++st.out.counters.evals_full;
+                --st.out.counters.evals_values;
+                // Charged even if the finiteness screen below then refuses:
+                // the query really did fetch the derivatives.
+                if (cand.values_ev->all_finite && jacobian_values_finite(*cand.values_ev)) {
+                    ev_cand = std::move(*cand.values_ev);
+                    seam.to_caller_scale(ev_cand);
+                    take = true;
+                }
+            }
+        }
+        if (take) {
+            x_start = cand.x;
+            resto_ev = std::move(ev_cand);
+            // THE FLAG IS WRITTEN ON THE ROW, NOT ON `history.back()`
+            // (fix round 1, R9): every request site now pushes AFTER
+            // this call, so the row carries its final value.
+            //
+            // Writing it to the ALREADY-PUSHED row left the emitted
+            // `sqp.major` line stale by one field.
+            mj.row.restoration_seed_used = true;
+        }
+    }
+    const RestorationModel feasibility(bridge.model(), *x_start, resto_ev);
+    SqpOptions ropts = opts_;
+    // AND THE SUB-SOLVE RUNS UNSCALED, alongside the budget_mode and
+    // qp_mode forcings just below and for the same kind of reason: the
+    // restoration problem is a DIFFERENT problem (a feasibility one, in
+    // augmented variables), the factors computed for this solve do not
+    // describe it, and re-deriving factors for it would put a second,
+    // independently-scaled space inside one solve for no measured gain.
+    ropts.enable_scaling = false;
+    // The caller's strategy factory is NOT carried; the radius is.
+    // See the header note's WHAT IS CARRIED IN.
+    ropts.make_strategy = {};
+    // BUDGETED MODE NEVER PROPAGATES TO THE RESTORATION
+    // SUB-SOLVE, even when the caller's own solve has it on:
+    // sqp_types.h's SqpOptions::budget_mode SCOPE note says the
+    // lever governs only the MAIN loop's own max_iter exhaustion,
+    // and the sub-solve exhausting its OWN slice of the shared
+    // budget is deliberately still reported as kMaxIter just
+    // below (the "no budget left to restore with" exit, when
+    // spent >= opts_.max_iter, is the same answer). Forcing this
+    // off is what keeps rs.status below able to stay exhaustive
+    // without a reachable kBudgetExhausted arm.
+    ropts.budget_mode = false;
+    // THE RESTORATION SUB-SOLVE RUNS THE WALK, WHATEVER THE CALLER'S
+    // MODE IS. Without this line the copy above would carry `qp_mode`
+    // in with everything else, so a kSsn caller would silently run
+    // the semismooth kernel through the whole restoration phase --
+    // flatly contradicting this header's own WHAT IS NOT ROUTED
+    // THROUGH SSN note, which says the restoration sub-solve stays on
+    // the walk UNCONDITIONALLY, and doing it on a wrapper model
+    // (original plus slack variables, a subgradient-selector
+    // objective) that no fixture in this repository has ever run that
+    // kernel against. The note is the design; this is the
+    // enforcement.
+    //
+    // MEASURED, not merely asserted: `rs.counters.ssn` is folded
+    // below, so deleting this line MOVES a pinned number
+    // (tests/sqp/test_sqp_driver.cpp's
+    // RestorationStaysOnTheWalkUnderKSsn -- 131 SSN iterations and
+    // 234 factorizations with the reset, 140 and 247 without it;
+    // post-escaped-factorization-accumulation figures, matching the
+    // test's pins).
+    ropts.qp_mode = QpMode::kWalk;
+    // THE RADIUS IS CARRIED, BUT NOT BELOW THE RESTART VALUE.
+    // Carrying it is the right default -- it is what the driver
+    // currently trusts the model over. But when the request came
+    // FROM the floor, the radius that arrives here is by
+    // definition collapsed, and it is collapsed as evidence about
+    // the OPTIMALITY model, which is not the model about to be
+    // solved. Starting the feasibility problem there costs one
+    // doubling per order of magnitude before it can move at all:
+    // MEASURED on this file's own circle/line fixture in
+    // refactorize mode, restoration entered at Delta = 1.16e-10
+    // spent 35 majors where the same phase entered at Delta = 1
+    // spends 4. The floor is the same one the resumed loop
+    // restarts at, so the two rules agree.
+    ropts.tr_init =
+        std::isfinite(st.delta) ? std::max(st.delta, restoration_restart_radius()) : opts_.tr_max;
+    ropts.tr_max = std::max(opts_.tr_max, ropts.tr_init);
+    ropts.max_iter = opts_.max_iter - spent;
+    SqpDriver sub(ropts, /*allow_restoration=*/false);
+    // THE ONE SINK, SHARED SEQUENTIALLY (plan amendment A): the
+    // sub-solve's own `sqp.solve` pair, rows and tier events land in the
+    // same stream, told apart by the sink-owned `depth`.
+    sub.attach_trace(ipqp_trace_);
+    const SqpSolution rs = sub.solve(feasibility, feasibility.start_point());
+
+    // EVERY WORK counter the sub-solve moved is folded in: the
+    // work was spent (the SOC/elastic convention, ported). Its
+    // majors are the ONE work quantity that gets its own field
+    // rather than joining major_iters -- see SqpCounters.
+    //
+    // steps_accepted AND rejected_steps ARE DELIBERATELY NOT
+    // FOLDED, and that is not an omission: they do not measure
+    // work, they describe WHAT HAPPENED TO THE CALLER'S ITERATE
+    // (how many times it moved, how many times the radius shrank
+    // under it). The sub-solve's acceptances move a point in the
+    // WRAPPER's variables, on a different objective; adding them
+    // would make steps_accepted stop being "the number of times
+    // x moved" -- which is exactly what SqpCounters promises and
+    // what the major_iters identity there is written against.
+    st.out.counters.restoration_iters += rs.counters.major_iters;
+    st.out.counters.qp_minor_iters += rs.counters.qp_minor_iters;
+    st.out.counters.factorizations += rs.counters.factorizations;
+    st.out.counters.eqp_refine_steps += rs.counters.eqp_refine_steps;
+    st.out.counters.border_refine_steps += rs.counters.border_refine_steps;
+    st.out.counters.verdict_refine_steps += rs.counters.verdict_refine_steps;
+    st.out.counters.suspect_escalations += rs.counters.suspect_escalations;
+    st.out.counters.symbolic_analyses += rs.counters.symbolic_analyses;
+    st.out.counters.soc_steps += rs.counters.soc_steps;
+    st.out.counters.soc_applied += rs.counters.soc_applied;
+    st.out.counters.soc_qp_infeasible += rs.counters.soc_qp_infeasible;
+    st.out.counters.soc_rejected += rs.counters.soc_rejected;
+    st.out.counters.elastic_activations += rs.counters.elastic_activations;
+    st.out.counters.elastic_escalations += rs.counters.elastic_escalations;
+    // The fallback partition folds exactly as the two above do, so the identities stay
+    // stated over a WHOLE solve. Today the five are identically zero here: restoration
+    // runs at kWalk (`ropts.qp_mode`), which never reaches the certified fallback.
+    st.out.counters.elastic_from_ipqp_escape += rs.counters.elastic_from_ipqp_escape;
+    st.out.counters.ipqp_suspicion_disproved += rs.counters.ipqp_suspicion_disproved;
+    st.out.counters.ipqp_fallback_rung_b += rs.counters.ipqp_fallback_rung_b;
+    st.out.counters.elastic_rho0_ceiling_hits += rs.counters.elastic_rho0_ceiling_hits;
+    st.out.counters.elastic_floor_retries += rs.counters.elastic_floor_retries;
+    // The VALUES-only counters ARE folded, exactly like every other
+    // WORK counter above (qp_minor_iters, factorizations, ...):
+    // the sub-solve's own solve_impl runs through the SAME three
+    // call sites the values/full split exists for, so its
+    // split is real work spent evaluating `feasibility`, not a
+    // property of the WRAPPER's variables the way steps_accepted/
+    // rejected_steps are (see the note just below for that
+    // distinction).
+    st.out.counters.evals_full += rs.counters.evals_full;
+    st.out.counters.evals_values += rs.counters.evals_values;
+    // The crash-basis counters ARE folded, for the same reason
+    // the values counters are and NOT for the reason the
+    // full-step pair below is omitted. The sub-solve inherits
+    // `crash_basis` from `opts_` like every other lever in ropts,
+    // it is COLD by construction (a fresh 2-arg solve()), and its
+    // own first subproblem therefore gets a crash basis of its
+    // own -- real seeding work, on the feasibility wrapper's
+    // geometry, that this solve caused. It is NOT identically
+    // zero and folding a live quantity is the only honest option:
+    // the restoration wrapper's slack columns start AT their own
+    // lower bound of 0, so a restoration entered with the lever
+    // on seeds every one of them.
+    st.out.counters.crash_seeded_rows += rs.counters.crash_seeded_rows;
+    st.out.counters.crash_seeded_bounds += rs.counters.crash_seeded_bounds;
+    // The SSN counters ARE folded, and for the exact OPPOSITE of the
+    // "identically zero, so folding it would only suggest it might not
+    // be" argument the next paragraph makes about the warm-start
+    // pair's counters. They are identically zero too --
+    // `ropts.qp_mode` is reset to kWalk above, so the sub-solve has no
+    // SSN kernel to run -- and folding them is what makes that reset
+    // OBSERVABLE FROM OUTSIDE. THE R6 PAIR IS ZERO FOR A DIFFERENT
+    // REASON, because the sign sweep is NOT conditioned on qp_mode and
+    // does run on this sub-solve: it is zero because the sub-solve is a
+    // WALK solve, and an active-set price is non-negative by the walk's
+    // own drop rule, so there is nothing to clamp. With the fold in place a kSsn solve
+    // that entered restoration reports its main loop's SSN work and
+    // nothing else, and any future change that let the mode leak back
+    // in shows up here as a number instead of as silence. The fold
+    // also keeps the aggregate honest against the factorization fold
+    // above, which does NOT discriminate by kernel: without it,
+    // restoration-nested SSN work would contribute factorizations that
+    // `ssn_iters` denied, breaking sqp_types.h's `ssn_iters <=
+    // factorizations` in the direction that hides work.
+    //
+    // DELETING THIS LINE IS AN EQUIVALENT MUTANT, AND SAYING SO IS
+    // NOT A HOLE IN THE TESTING -- it is the same statement as
+    // "the reset above works", read from the other side. Because
+    // `ropts.qp_mode` is kWalk, `rs.counters.ssn` is all-zero, so
+    // removing this fold changes no observable of the SHIPPED
+    // code. What it removes is a MEASUREMENT: it is only with this
+    // fold present that letting the mode leak back in moves
+    // `ssn_iters` (131 -> 140). The two mutations are therefore
+    // not independent, and the one that matters -- deleting the
+    // reset -- dies on this fixture with or without this line,
+    // since the folded FACTORIZATIONS move too (234 -> 247).
+    accumulate_ssn_counters(st.out.counters.ssn, rs.counters.ssn);
+    // AND THE IPQP TIER'S, folded for exactly the same reason and
+    // subject to exactly the same argument: `ropts.qp_mode` is kWalk,
+    // so `rs.counters.ipqp` is all-zero (bar the two min-folded alpha
+    // fields, which fold their +inf identity), and this line changes
+    // no observable of the shipped code. What it preserves is the
+    // MEASUREMENT: it is only with the fold present that letting the
+    // mode leak back in would move the tier's counters.
+    accumulate_ipqp_counters(st.out.counters.ipqp, rs.counters.ipqp);
+    // The full-step-mode counters are deliberately absent from this
+    // fold, and they are absent because they are IDENTICALLY ZERO
+    // on the sub-solve: it runs the 2-arg solve() on a fresh
+    // driver, which is cold by construction, and the full-step
+    // mode never engages on a cold solve. Folding a guaranteed
+    // zero would only suggest it might not be one.
+
+    const Vec x_r = feasibility.original_x(rs.x);
+    NlpEval ev_r = x_r.allFinite() ? seam.eval_nlp(x_r, rs.lambda_e, rs.lambda_i) : NlpEval{};
+    if (x_r.allFinite()) {
+        ++st.out.counters.evals_full;
+    }
+    const SqpKkt kkt_r =
+        x_r.allFinite() ? evaluate_kkt(seam, ev_r, x_r, rs.lambda_e, rs.lambda_i, opts_.feas_tol)
+                        : SqpKkt{};
+    if (!x_r.allFinite() || !kkt_r.finite) {
+        // The restoration walked somewhere the main model cannot
+        // be measured. The iterate is NOT moved there -- the
+        // requesting point is returned instead, with the
+        // multipliers cleared, exactly as the non-finite-iterate
+        // exit above does and for the same reason: nothing was
+        // measured, so nothing may be reported as evidence.
+        st.lambda_e.setZero();
+        st.lambda_i.setZero();
+        st.resto.status = SqpStatus::kNumericalError;
+        st.resto.kkt = mj.kkt;
+        st.resto.f = st.ev.f;
+        return RestorationOutcome::kExited;
+    }
+    const double h_r = constraint_violation_l1(ev_r);
+
+    if (h_r <= opts_.feas_tol) {
+        // RESUME. The order here is the header note's order.
+        st.x = x_r;
+        st.ev = std::move(ev_r);
+        // The multipliers in hand price the WRAPPER's constraints
+        // (they are subgradient selectors in [-1,1], not NLP
+        // prices); the first main-loop QP re-estimates them.
+        st.lambda_e.setZero();
+        st.lambda_i.setZero();
+        // The ingested duals are gone here too, so the ingest-scoped
+        // complementarity gate disarms with them. Behaviourally this
+        // line is inert -- complementarity is max_j |lambda_i(j)
+        // cI_j| and lambda_i has just been zeroed, so the armed
+        // conjunct would pass anyway -- but the flag's declared
+        // invariant ("TRUE while lambda are still the multipliers
+        // this solve INGESTED") must be TRUE rather than merely
+        // harmless, which is the same doc-vs-code discipline every
+        // declared invariant here is held to.
+        st.duals_ingested = false;
+        // KLV Algorithm 2's re-basing, NOT reset() -- see
+        // globalization.h::resume_from_restoration. It also CLEARS
+        // the full-step mode on the strategy, so the driver's own
+        // mirror of that flag is cleared with it: a restoration is
+        // definitive evidence against the mode's premise, and the
+        // solve comes back out fully globalized.
+        st.strategy->resume_from_restoration(h_r);
+        st.full_step_funnel = nullptr;
+        st.delta = restoration_restart_radius();
+        st.rejections_at_iterate = 0;
+        st.qp_failures_in_a_row = 0;
+        st.subproblem_is_stale = true;
+        // The outer engine's seed describes an active set at the
+        // ABANDONED iterate; the sub-solve ran on its own engine
+        // and its working set is a different problem's.
+        st.have_seed = false;
+        return RestorationOutcome::kResumed;
+    }
+
+    // NOT FEASIBLE ENOUGH: the phase's other outcome. The restored
+    // point and the restoration's own multipliers are what is
+    // returned -- on the kOptimal arm they are the SUBGRADIENT
+    // CERTIFICATE (sqp_types.h's SqpSolution note); on the others
+    // they are the best evidence available at that point and not a
+    // certificate. The status does not encode which, deliberately:
+    // a caller that needs the distinction checks the certificate
+    // (four lines -- tests/sqp/test_sqp_restoration.cpp does exactly
+    // that) rather than reading it off a bool bolted on
+    // here.
+    st.x = x_r;
+    // The point being reported is now the RESTORED point, which
+    // no in-loop QpSolution (qs/seed) was ever solved at -- see
+    // this flag's own declaration note.
+    st.resto.moved_x = true;
+    st.lambda_e = rs.lambda_e;
+    st.lambda_i = rs.lambda_i;
+    // AND THEY ARRIVE ALREADY IN THE CALLER'S UNITS (M6 W0.2). The
+    // sub-solve above ran with `ropts.enable_scaling = false` over the
+    // RAW model, so these selectors -- and `rs.z` below -- carry no
+    // factor of this solve's. The export boundary is told so, and skips
+    // the ENGINE->CALLER map for exactly these blocks; applying it
+    // would divide a caller-scale price by `sf` a second time.
+    st.resto.multipliers_are_caller_scale = true;
+    // The ingested duals are gone -- these are the restoration
+    // sub-solve's own subgradient selectors -- so the ingest-scoped
+    // complementarity gate disarms with them.
+    st.duals_ingested = false;
+    st.resto.kkt = kkt_r;
+    // THE BOUND PRICE MUST COME FROM THE RESTORATION PROBLEM, not
+    // from kkt_r. evaluate_kkt reports z = grad L at an active
+    // bound, and grad L carries grad f -- which is exactly the
+    // term a subgradient certificate of h must NOT contain. The
+    // sub-solve's own z is the price of the SAME box in the
+    // feasibility problem, whose objective has no x-block, so its
+    // x-part is precisely the normal-cone component of
+    // Je^T lambda_e + Ji^T lambda_i. Without this the certificate
+    // fails on every problem whose infeasible stationary point
+    // sits on a bound -- MEASURED: the box-blocked equality
+    // fixture reports z = 0 and a residual of 1 where the
+    // certificate calls for z = -1 and 0.
+    st.resto.kkt.z = feasibility.original_x(rs.z);
+    st.resto.f = ev_r.f;
+    switch (rs.status) {
+    case SqpStatus::kOptimal:
+        // THE CERTIFIED EXIT, AND THE ONLY ONE: the feasibility
+        // problem's own KKT test passed (residual <= kkt_tol)
+        // while h > feas_tol. Byrd-Curtis-Nocedal rapid
+        // detection. This is the single place the certified flag
+        // is ever set, and it is set on nothing else -- see
+        // sqp_types.h's SqpSolution note for why the status,
+        // the counters and the history cannot carry this fact.
+        st.resto.status = SqpStatus::kInfeasible;
+        st.out.infeasibility_certified = true;
+        break;
+    case SqpStatus::kInfeasible:
+        // The sub-solve raised a restoration request of its own,
+        // which nothing can service (nested restoration is not
+        // allowed): the feasibility problem is itself stuck. NO
+        // CLAIM is made about the model.
+        st.resto.status = SqpStatus::kInfeasible;
+        break;
+    case SqpStatus::kMaxIter:
+        st.resto.status = SqpStatus::kMaxIter;
+        break;
+    case SqpStatus::kNumericalError:
+        st.resto.status = SqpStatus::kNumericalError;
+        break;
+    case SqpStatus::kBudgetExhausted:
+        // UNREACHABLE: ropts.budget_mode is forced false just
+        // above, so this sub-solve never runs budgeted and
+        // rs.status can never be this value -- kept only to
+        // preserve the switch's exhaustiveness (the map_status
+        // convention, ported: an arm that cannot fire is still
+        // enumerated rather than left to a default). Mapped to
+        // kMaxIter defensively, exactly what it would have been
+        // reported as had budget_mode not been forced off.
+        st.resto.status = SqpStatus::kMaxIter;
+        break;
+    }
+    return RestorationOutcome::kExited;
+}
+
+// ---------------------------------------------------------------------------
+// M6 W5 T6 cut (c): ONE MAJOR, from the KKT measurement of the iterate it
+// starts at to the history row it emits, returning the CONTROL DECISION its
+// caller acts on. The ten push sites of the ownership table's section 8 are all
+// here, and each of them returns a `MajorOutcome` immediately after its push --
+// which is what makes "the accepted row is emitted BEFORE the radius and the
+// iterate move" a property of the function boundary rather than of a reading
+// order.
+//
+// WHAT THE OUTCOME DOES NOT CARRY IS EVERYTHING: it is a payload-free tag. The
+// requesting measurements, the convergence decision, the dispatch's answer and
+// the trial/SOC objects stay on `mj`, which the caller still owns; the
+// restoration exit payload stays on `st.resto`; the budget-best snapshot stays
+// on `st.mb`. See docs/notes/2026-09-m6-w5-t6-ownership.md section 10.3.1.
+//
+// THE TERMINAL EXACTLY-ONCE CHECK IS THE CALLER'S, run before every real return
+// out of the solve. The two guards that live here are `push_history`'s own
+// `rows_pushed == history.size()` identity and, at the caller, the loop-entry
+// check -- all three unchanged.
+// ---------------------------------------------------------------------------
+SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
+                                             AggregateEvalSeam &seam, NlpModelAggregate &bridge,
+                                             const WarmStart &warm, Index minor_budget,
+                                             Index iter) {
+    // RE-TAKEN, NOT FIXED: the full-step watchdog below may restore
+    // an EARLIER iterate before this pass records or tests anything,
+    // and the row and the convergence test must then describe the
+    // point the driver is actually standing on. Re-measuring is free
+    // -- this overload of evaluate_kkt reads an NlpEval already in
+    // hand and calls the model not at all.
+    mj.kkt = evaluate_kkt(seam, st.ev, st.x, st.lambda_e, st.lambda_i, opts_.feas_tol);
+
+    mj.row.trial = iter;
+    // THE ARM THAT OWNS THIS ROW'S QP, for `sqp.major` alone. Starts at the
+    // CONFIGURED mode -- which is what a row with `qp_solved == false`
+    // reports -- and is corrected at the dispatch, where the arm is known.
+    mj.row_qp_mode = trace_mode_of(opts_.qp_mode);
+    // THE ROW IS MEASURED IN THE SPACE THE SOLVE RUNS IN, and stays there
+    // for as long as this function reads it -- `mj.row.violation_l1` seeds and
+    // floors the funnel, `mj.row.f` and `mj.row.violation_l1` drive the
+    // budgeted-mode best-iterate tracking, and every one of those
+    // comparisons must be against the residuals the iteration itself is
+    // gating on. It is `push_history` below that maps a COPY into the
+    // caller's units on its way onto the solution, using the two
+    // `mj.caller_row` measurements the export boundary cannot recompute from a
+    // scalar -- see caller_scale_row_measures. Both are untouched, and unread,
+    // on an unscaled solve.
+    //
+    // The fields describing THE ITERATE (as opposed to the subproblem
+    // solved from it), factored out so the watchdog can re-take them
+    // after a restore. Reads ev/kkt/delta, all by reference.
+    auto measure_iterate = [&] {
+        mj.row.f = st.ev.f;
+        mj.row.stationarity = mj.kkt.stationarity;
+        mj.row.feasibility = mj.kkt.feasibility;
+        mj.row.complementarity = mj.kkt.complementarity;
+        mj.row.kkt_residual = mj.kkt.residual();
+        mj.row.violation_l1 = constraint_violation_l1(st.ev);
+        mj.row.tr_radius = st.delta;
+        if (st.solve_scaling.active) {
+            mj.caller_row = caller_scale_row_measures(seam.lower(), seam.upper(), st.ev, st.x,
+                                                      st.solve_scaling);
+            if (!mj.kkt.finite) {
+                // The engine-scale columns are NaN here by construction
+                // (evaluate_kkt's non-finite arm), and the caller-scale
+                // ones say the same thing: nothing was measured at this
+                // point, in either space.
+                const double nan = std::numeric_limits<double>::quiet_NaN();
+                mj.caller_row.feasibility = nan;
+            }
+        }
+    };
+    // THE EXPORT OF ONE HISTORY ROW, and the only way a row reaches
+    // `out.history`. On a scaled solve the six scale-carrying columns are
+    // mapped to the caller's units here, so that the iteration table
+    // (sqp_print.cpp) and the terminal fields it sits under are ONE scale:
+    // f, stationarity and complementarity divide by `sf` (each is
+    // homogeneous of degree one in it -- problem_scaling.h's multiplier
+    // map), the two row-aggregate columns come from the measurement, and
+    // kkt_residual is re-folded from the mapped halves exactly as
+    // SqpKkt::residual() folds the unmapped ones. A no-op when unscaled,
+    // where it is a move onto the vector and nothing else.
+    auto push_history = [&](SqpIterate exported) {
+        if (st.solve_scaling.active) {
+            exported.f /= st.solve_scaling.obj;
+            exported.stationarity /= st.solve_scaling.obj;
+            exported.complementarity /= st.solve_scaling.obj;
+            exported.feasibility = mj.caller_row.feasibility;
+            exported.violation_l1 = mj.caller_row.violation_l1;
+            exported.kkt_residual = std::max(exported.stationarity, exported.feasibility);
+        }
+        // THE STREAM EQUALS `history`, IN CALLER UNITS: emitted here, after
+        // the map and before the push, so `major` is this row's index in
+        // the vector and all six push sites are covered by one site.
+        if (ipqp_trace_ != nullptr) {
+            emit_trace_sqp_major(SqpMajorTraceEvent{
+                exported, static_cast<Index>(st.out.history.size()), mj.row_qp_mode});
+        }
+        st.out.history.push_back(std::move(exported));
+        ++st.rows_pushed;
+        // AND NOTHING ELSE MAY PUSH: the identity is what makes
+        // `rows_pushed` a reading of `history` rather than of this lambda.
+        if (st.rows_pushed != static_cast<Index>(st.out.history.size())) {
+            throw std::logic_error(fmt::format(
+                "SqpDriver::solve: the history holds {} rows after {} pushes -- something "
+                "other than push_history wrote to it, so the trace stream and the history "
+                "no longer describe the same rows",
+                st.out.history.size(), st.rows_pushed));
+        }
+    };
+    measure_iterate();
+
+    // NON-FINITE ITERATE. The model cannot be evaluated at x (or
+    // returned NaN there); nothing at this point has been measured, so
+    // it can be neither certified nor stepped from. Reported as
+    // kNumericalError with the multipliers CLEARED -- unlike the
+    // QP-failure exit below, which retains them, because there the
+    // last successful subproblem's prices are still meaningful
+    // evidence and here nothing is.
+    //
+    // THIS IS A START-POINT CONDITION, not something the iteration can
+    // walk into: a trial point at which the model is non-finite
+    // produces a non-finite StepContext, which globalization.h rejects
+    // up front, so the driver shrinks the radius and stays where it is
+    // instead of moving onto the NaN. Only an x0 the model cannot
+    // evaluate (x0 itself is validated finite by the caller check
+    // above) reaches here.
+    if (!mj.kkt.finite) {
+        push_history(mj.row);
+        st.out.status = SqpStatus::kNumericalError;
+        st.out.x = st.x;
+        st.out.lambda_e = Vec::Zero(seam.me());
+        st.out.lambda_i = Vec::Zero(seam.mi());
+        st.out.z = Vec::Zero(st.n);
+        // THE ONE EXIT THAT DOES NOT ROUTE THROUGH `finish`, so the two
+        // things that boundary does for a scaled solve are done here (M6
+        // W0.2): the objective is mapped back to the caller's units, and
+        // the scaling report is written -- without which a scaled solve
+        // would report `active == false` on this exit alone. The
+        // multipliers need no map: they are cleared above, and the map of
+        // zero is zero. `out.z` likewise.
+        st.out.f = st.solve_scaling.active ? st.ev.f / st.solve_scaling.obj : st.ev.f;
+        record_scaling_report(st.out, st.solve_scaling, mj.kkt);
+        // NaN, every one of them: this exit is reached exactly because
+        // kkt.finite is false, and evaluate_kkt sets every residual to
+        // NaN there rather than to the 0.0 a running maximum over NaN
+        // entries would leave. The multipliers above are cleared for the
+        // same reason this is not: a cleared multiplier is "no evidence",
+        // and a zeroed residual would read as a converged one.
+        record_terminal_kkt(st.out, mj.kkt);
+        // No subproblem has ever been built here (this is a
+        // start-point condition -- see the caller's own note above),
+        // so there is no activity to attribute -- AND NO USABLE
+        // HAND-OFF AT ALL. The null `probe_ev`/`probe_x` is this
+        // exit's own signal to make_warm_start (its THE UNEVALUABLE
+        // EXIT note): no structure probe is attempted at a point the
+        // model has just reported it cannot evaluate, and the object
+        // comes back COLD (valid = false, hash 0) so that a caller
+        // retrying from a CORRECTED x0 gets its own point honoured
+        // instead of being pinned back onto this one. The fields
+        // overwritten below are still populated, for a caller that
+        // wants to inspect what the failed solve stood on.
+        st.out.warm_start =
+            make_warm_start(seam, /*activity=*/nullptr, st.qp,
+                            /*qp_built=*/st.qp_built, /*probe_ev=*/nullptr,
+                            /*probe_x=*/nullptr, st.delta, st.last_dual_mu, opts_.qp.primal_delta,
+                            st.strategy.get(), engine_.hot_state());
+        st.out.warm_start.x = st.out.x;
+        st.out.warm_start.lambda_e = st.out.lambda_e;
+        st.out.warm_start.lambda_i = st.out.lambda_i;
+        st.out.warm_start.z = st.out.z;
+        if (st.solve_scaling.active) {
+            // THE SAME DROP `finish` APPLIES, so this exit's object is
+            // symmetric with every other one a scaled solve emits (M6 W0.2
+            // fix round 2). Nothing downstream reads these fields off a
+            // COLD object today -- `valid` is false here by construction --
+            // but "benign because a consumer happens not to look" is not a
+            // reason to leave scaled-space state sitting in a field whose
+            // contract says caller-scale, and a future consumer that
+            // inspects a failed solve's object would find it.
+            drop_scaled_space_state(st.out.warm_start);
+        }
+        // ASSEMBLED, AND THE CALLER TAKES IT FROM HERE: the terminal
+        // exactly-once check and the move of `st.out` are the caller's, which
+        // is what keeps this the one exit that bypasses `finish`.
+        return MajorOutcome::kFinishManual;
+    }
+
+    // THE FUNNEL IS SEEDED FROM THE FIRST MEASURABLE ITERATE, i.e.
+    // here rather than before the loop: reset() rejects a non-finite
+    // h0 (globalization.h), and whether h(x0) is finite is exactly
+    // what the check above has just decided.
+    if (!st.funnel_started) {
+        st.strategy->reset(mj.row.violation_l1);
+        // kWarm INGEST: re-base the funnel from the PRIOR solve's own
+        // width rather than leaving it at Eq. (9)'s absolute floor,
+        // reusing the SAME Eq.-13-style blend resume_from_restoration
+        // already implements for the restoration-resume case
+        // (globalization.h) -- warm. funnel_width stands in for "the
+        // funnel's own remembered width" and this row's own h0
+        // (violation_l1) stands in for "the point being re-entered at",
+        // both being simultaneously the FIRST reading this solve ever
+        // takes. warm.funnel_width is CLAMPED BELOW by kappa_bar * h0
+        // first -- Eq. (9)'s own floor term, applied to the CURRENT
+        // problem's own h0 -- so a stale or optimistic prior width can
+        // never leave the funnel tighter than fresh evidence at this x
+        // would justify. warm.funnel_width < 0 is warm_start.h's own
+        // "never populated" sentinel and is skipped, exactly like an
+        // absent qp_working_set is above. `warm_state_ingest`: a funnel
+        // width is measured in the units of h(x) on the problem it was
+        // recorded on -- mesh_transfer.h's section 4 declines to
+        // transfer one for exactly that reason -- so a seeded object may
+        // not re-base this solve's funnel and the Eq.-(9) seed at its
+        // own first h0 stands, as on a cold solve.
+        if (st.warm_state_ingest && warm.funnel_width >= 0.0) {
+            if (auto *funnel = dynamic_cast<FunnelStrategy *>(st.strategy.get())) {
+                const double floor = kFunnelKappaBar * mj.row.violation_l1;
+                funnel->resume_from_restoration(std::max(warm.funnel_width, floor));
+            }
+        }
+        // FULL-STEP-FIRST: the three engagement conditions, checked
+        // exactly here because this is the first point at which the
+        // funnel exists (begin_full_step requires it -- its exit
+        // re-bases a width) and the first at which the iterate is known
+        // measurable. AFTER the width re-basing above, so the mode is
+        // armed over the width the ingest chose. See this header's
+        // FULL-STEP-FIRST WARM RULE note. `warm_state_ingest`: the
+        // Kungurtsev-Diehl full-step-first rule's justification is the
+        // local convergence of a warm start ON THE SAME PROBLEM, which
+        // is precisely the claim a seeded object cannot make, so the
+        // window is never armed from kSeeded.
+        if (st.warm_state_ingest && opts_.warm_full_step) {
+            if (auto *funnel = dynamic_cast<FunnelStrategy *>(st.strategy.get())) {
+                funnel->begin_full_step();
+                st.full_step_funnel = funnel;
+            }
+        }
+        st.funnel_started = true;
+    }
+
+    // THE FULL-STEP WATCHDOG. Placed BEFORE the convergence
+    // test so that a restored iterate is the one this pass records,
+    // tests and steps from -- and placed AFTER the non-finite exit so
+    // `kkt` is known measurable (the mode never steps onto a
+    // non-finite point: globalization.h's judge() still rejects such a
+    // trial while the mode is armed). It runs on the ENGAGING pass
+    // too, which is how the warm start point itself becomes the first
+    // "best iterate".
+    if (st.full_step_funnel != nullptr) {
+        // THE RANKING IS kkt.residual(), i.e. max(stationarity,
+        // feasibility) -- COMPLEMENTARITY IS DELIBERATELY NOT IN IT,
+        // and the reason is that the watchdog must rank iterates by
+        // exactly the quantity the CONVERGENCE TEST gates on. That
+        // test is `kkt.stationarity <= kkt_tol && kkt.feasibility <=
+        // feas_tol` (just below), and SqpKkt::residual() is its
+        // scalar form; complementarity is MEASURED BUT NOT GATED
+        // throughout this driver (see the CONVERGENCE TEST note's WHAT
+        // IS MEASURED BUT NOT GATED paragraph, and
+        // SqpIterate::complementarity's own "RECORDED, NOT GATED"). A
+        // watchdog ranking on a third term could prefer an iterate the
+        // convergence test rates WORSE, i.e. restore away from the
+        // point this solve is closest to certifying -- which is the
+        // one thing the restore exists not to do.
+        const double residual = mj.kkt.residual();
+        if (residual < st.fs.best_residual) {
+            st.fs.best_residual = residual;
+            st.fs.best_x = st.x;
+            st.fs.best_lambda_e = st.lambda_e;
+            st.fs.best_lambda_i = st.lambda_i;
+            st.fs.best_duals_ingested = st.duals_ingested; // see its note above
+            st.fs.best_ev = st.ev;                         // a COPY; no model evaluation
+            st.fs.majors_since_best = 0;
+            st.fs.growth_in_a_row = 0;
+        } else {
+            ++st.fs.majors_since_best;
+            // STRICT growth only: a major that repeats the same
+            // residual (the routed-QP-failure shape, where the iterate
+            // did not move at all) is a STALL, not a divergence, and
+            // is caught by the window instead.
+            st.fs.growth_in_a_row = residual > st.fs.prev_residual ? st.fs.growth_in_a_row + 1 : 0;
+        }
+        st.fs.prev_residual = residual;
+
+        if (st.fs.growth_in_a_row >= kWarmResidualGrowthMax ||
+            st.fs.majors_since_best >= kWarmFullStepWindow) {
+            // RESTORE THE BEST ITERATE, then hand the solve back to
+            // ordinary funnel globalization AT THAT POINT. The order
+            // is the restoration resume's order, and for the same
+            // reasons -- see that path and the header note.
+            st.x = std::move(st.fs.best_x);
+            st.lambda_e = std::move(st.fs.best_lambda_e);
+            st.lambda_i = std::move(st.fs.best_lambda_i);
+            st.duals_ingested = st.fs.best_duals_ingested; // see its note above
+            st.ev = std::move(st.fs.best_ev);
+            mj.kkt = evaluate_kkt(seam, st.ev, st.x, st.lambda_e, st.lambda_i, opts_.feas_tol);
+            measure_iterate();
+            // KLV Eq. (13) re-basing, which ALSO clears the strategy's
+            // own mode flag (globalization.h). Both flags fall
+            // together; nothing re-enters the mode.
+            //
+            // CLAMPED FROM ABOVE BY THE CURRENT WIDTH. Eq. (13) gives
+            // tau_+ = (1-kappa)h + kappa*tau,
+            // which is <= tau IFF h <= tau -- so an UNCLAMPED re-base
+            // at a restored point lying outside its own funnel would
+            // WIDEN it, and the monotonically non-increasing width is
+            // exactly what KLV Thm. 1 case 1 sums. The other two
+            // callers of this hook are each protected already and
+            // neither protection is available here: the restoration
+            // resume only calls it when h_restored <= feas_tol (so
+            // h < tau with room to spare), and the kWarm ingest
+            // clamps its argument from BELOW because there the
+            // argument is a remembered WIDTH rather than an h. The
+            // watchdog's argument is a genuine h at a point chosen by
+            // ||KKT||inf ALONE, and nothing about that choice bounds
+            // its l1 violation -- residual() is an inf-norm measure,
+            // so on a model with many rows an iterate can be the best
+            // by residual and still carry h above the width.
+            //
+            // THE CLAMP LIVES HERE AND NOT IN THE HOOK, deliberately:
+            // globalization.h states that Eq. (13) is transcribed
+            // UNCONDITIONALLY there so that a caller resuming from
+            // outside its own funnel is reported rather than hidden.
+            // This is that caller taking responsibility for its own
+            // argument.
+            //
+            // IT DOES BIND, RARELY, AND IS PINNED. A sweep of 3240
+            // (problem, radius, dual poison, warm-x) combinations over
+            // all 27 shipped HS problems produced 330 watchdog
+            // restores, of which 6 -- on 3 distinct fixtures -- had
+            // h_best above the width. Rare because after any warm
+            // ingest tau >= kFunnelTauBar/2 = 50, so binding needs an
+            // iterate that is simultaneously the BEST by inf-norm
+            // residual and carrying an l1 violation above 50.
+            // tests/sqp/test_warm_start.cpp's WatchdogRebaseNeverWidens-
+            // TheFunnel is one of the three, measured at h_best = 330
+            // against a width of 65.6 (an unclamped re-base there
+            // widens to 198).
+            st.strategy->resume_from_restoration(
+                std::min(mj.row.violation_l1, st.full_step_funnel->width()));
+            st.full_step_funnel = nullptr;
+            st.rejections_at_iterate = 0;
+            // The iterate moved (or, on the stall exit, may not have
+            // -- either way the subproblem in hand was built at some
+            // other point or at some other multipliers, so it is
+            // stale).
+            st.subproblem_is_stale = true;
+            // THE SEED IS KEPT, unlike the restoration resume's (which
+            // drops it because it belongs to a DIFFERENT engine and a
+            // different problem). Here it is this engine's own, and it
+            // carries an ACTIVE-SET GUESS and nothing else -- seed.x
+            // is always zeroed (WARM SEEDING) -- so a guess taken at
+            // the abandoned iterate is exactly as admissible as the
+            // guess every accepted step passes forward. qp_engine.h's
+            // WINDOW-CONSISTENCY RULE drops whatever no longer fits.
+            //
+            // `delta` IS ALSO KEPT, and this is the second deliberate
+            // difference from the restoration resume (which sets it to
+            // restoration_restart_radius()). That reset exists because
+            // a restoration is ENTERED from a collapsed radius -- the
+            // floor route arrives with Delta at tr_min by definition,
+            // and that number is evidence about a model the phase is
+            // no longer solving. NONE OF THAT APPLIES HERE: under the
+            // mode the radius is never shrunk by a rejection (there are
+            // none), so what the watchdog is holding is the ingested
+            // warm radius, possibly grown -- [KD]'s carried-over
+            // globalization state, which is the thing the rule exists
+            // to keep rather than re-derive. It is also the radius the
+            // BEST iterate's own subproblem was solved at whenever the
+            // mode never grew it, which is the common case. The funnel
+            // takes over from there and shrinks it on its own evidence,
+            // as it does everywhere else.
+            ++st.out.counters.watchdog_restores;
+            // Label THIS row -- the one `measure_iterate()` just
+            // re-took above, so `row` already describes the restored
+            // point -- as the one the watchdog rebased. See
+            // SqpIterate::watchdog_restored's own note for why the
+            // history needs this at all.
+            mj.row.watchdog_restored = true;
+        }
+    }
+
+    // BUDGETED MODE's best-iterate tracking (see the declaration note
+    // above for the ordering and sqp_types.h's
+    // SqpOptions::budget_mode for the full contract). Runs on EVERY
+    // measured pass, AFTER the full-step watchdog above -- so if this
+    // pass just restored an earlier point, the candidate considered
+    // here is that restored point, exactly the one `row` now
+    // describes and the one about to be pushed to history below,
+    // never the abandoned pre-restore point (which leaves no row of
+    // its own on that path -- see the watchdog block's own note).
+    if (opts_.budget_mode) {
+        const bool better =
+            mj.row.violation_l1 < st.mb.h || (mj.row.violation_l1 == st.mb.h && mj.row.f < st.mb.f);
+        if (better) {
+            st.mb.h = mj.row.violation_l1;
+            st.mb.f = mj.row.f;
+            st.mb.x = st.x;
+            st.mb.lambda_e = st.lambda_e;
+            st.mb.lambda_i = st.lambda_i;
+            st.mb.kkt = mj.kkt;
+        }
+    }
+
+    // THE BUDGET IS SHARED WITH THE RESTORATION PHASE (sqp_types.h's
+    // SqpOptions note): max_iter bounds subproblems solved across
+    // BOTH, so majors already spent restoring are not available here.
+    //
+    // THE THIRD CONJUNCT IS ARMED ONLY WHILE THE MULTIPLIERS ARE
+    // THE INGESTED ONES. Once a subproblem or a restoration of this
+    // problem has re-priced them, `duals_ingested` is false and the
+    // test reduces to the plain two-conjunct form. The tolerance
+    // is kkt_tol, absolute; see this header's THE INGESTED CERTIFICATE
+    // IS GATED ON COMPLEMENTARITY note for that derivation, for why no
+    // ||lambda_i||-relative form can do the job, and for the scope.
+    mj.converged = mj.kkt.stationarity <= opts_.kkt_tol && mj.kkt.feasibility <= opts_.feas_tol &&
+                   (!st.duals_ingested || mj.kkt.complementarity <= opts_.kkt_tol);
+    // THE CALLER'S PROBE BUDGET (the 4-argument solve()'s own note
+    // has the contract). Evaluated HERE, beside the max_iter test and
+    // after `converged` is already known, which is what gives the
+    // budget its two defining properties: it never costs an answer
+    // already found (converged wins in the disjunction below), and it
+    // never buys another major (this pass has not built a subproblem
+    // yet).
+    const bool probe_exhausted =
+        !mj.converged && minor_budget > 0 &&
+        st.out.counters.qp_minor_iters + st.ssn_budget_charge + st.ipqp_budget_charge >=
+            minor_budget;
+    if (mj.converged || probe_exhausted ||
+        iter + st.out.counters.restoration_iters >= opts_.max_iter) {
+        push_history(mj.row);
+        if (probe_exhausted) {
+            // The one field that tells this exit apart from an
+            // ordinary max_iter one. Set BEFORE finish() so it
+            // reaches the returned counters and the ledger record.
+            st.out.counters.probe_budget_stops = 1;
+        }
+        // `!probe_exhausted`: a probe-budget stop takes the ORDINARY
+        // kMaxIter exit below even under budgeted mode, because the
+        // two budgets promise opposite things -- see the 4-argument
+        // solve()'s note, part 4.
+        if (!mj.converged && !probe_exhausted && opts_.budget_mode) {
+            // BUDGETED MODE: the caller reports the best-by-(h, f) iterate
+            // rather than the last one, and computes `best_is_current` from
+            // `mj.row` and `st.mb` -- both of which this major has finished
+            // writing -- before it runs the terminal check.
+            return MajorOutcome::kFinishBudgetBest;
+        }
+        // The ORDINARY terminal exit; `mj.converged` is what tells the caller
+        // whether it is kOptimal or kMaxIter, and it is preserved on the
+        // bundle for exactly that read.
+        return MajorOutcome::kFinishCurrent;
+    }
+    // REBUILT ONLY WHEN THE ITERATE MOVED. A rejection re-solves this
+    // very object -- same H/g bytes, so the engine's hot-start reuse
+    // key survives the retry (see WARM SEEDING) and no eval_hess is
+    // paid for it.
+    // A TRUST-REGION SHRINK-RETRY IS EXACTLY A PASS THAT DID NOT REBUILD:
+    // same H/g bytes, smaller `delta`. Spec 5.1's amendment D makes it a
+    // warm restart rather than a fresh subproblem, so the tier re-enters
+    // with the previous attempt's state and the retry charges nothing to
+    // the section 6.1 ladder.
+    const bool tr_shrink_retry = !st.subproblem_is_stale;
+    if (st.subproblem_is_stale) {
+        st.qp = seam.build_subproblem(st.ev, st.x, st.lambda_e, st.lambda_i, 1.0);
+        st.subproblem_is_stale = false;
+        st.qp_built = true;
+    }
+
+    SolveOverrides overrides;
+    overrides.tr_radius = st.delta;
+    // ADAPTIVE DUAL REGULARIZATION (see the header note above).
+    // `kkt` is this loop pass's measurement of the CURRENT iterate,
+    // taken before this subproblem is built -- exactly "the previous
+    // major's" residual by the time this trial is solved.
+    //
+    // The second conjunct is a MODE gate: at `qp_mode == QpMode::kWalk`
+    // -- the shipped default -- neither tier bool is set and this
+    // expression is exactly `opts_.adaptive_mu`. Under kSsn the schedule
+    // is off for the whole solve; see this header's WHY THE ADAPTIVE-mu
+    // SCHEDULE IS OFF UNDER kSsn note for the derivation and for why the
+    // scope is the solve rather than the SSN call alone.
+    //
+    // kIpm DOES NOT INHERIT kSsn's SCOPE (settler ruling, fix round 1,
+    // plan section 7 note q). The kSsn note's ARGUMENT applies to the
+    // tier itself -- `(rho, delta)` perturb the Newton system only, the
+    // residual test is on the UNREGULARIZED problem, and
+    // `SolveOverrides::dual_mu` is a field the tier validates and
+    // deliberately does not read, so the schedule would cost iterations
+    // and buy nothing there. It does NOT apply to the walk, and under
+    // kIpm the walk can be the WHOLE SOLVE: every major can decline (a
+    // model with a pinned variable), or the tier can retire at major 3.
+    // Those walk subproblems carry exactly the `dual_mu * |lambda|`
+    // footprint the schedule exists for, and `adaptive_mu` defaults ON --
+    // silently disabling a lever the caller never touched is not
+    // something a mode selection may do. So the schedule is off for the
+    // subproblems the TIER solves (and for the SSN warm grade that
+    // follows a tier exit, which leaves the pair at its sentinels exactly
+    // as the kSsn arm does), and every walk subproblem under kIpm runs
+    // with the caller's own levers.
+    const bool adaptive_mu_active = opts_.adaptive_mu && !st.ssn_mode;
+    if (adaptive_mu_active) {
+        const double mu_raw = (iter == 0)
+                                  ? kAdaptiveMuMax
+                                  : std::clamp(kAdaptiveMuKappa * std::pow(mj.kkt.residual(), 1.5),
+                                               kAdaptiveMuMin, kAdaptiveMuMax);
+        overrides.dual_mu = std::pow(10.0, std::round(std::log10(mu_raw)));
+    }
+    mj.row.mu = adaptive_mu_active ? overrides.dual_mu : opts_.qp.dual_mu;
+    st.last_dual_mu = mj.row.mu; // this trial's EFFECTIVE dual_mu; see the declaration note
+    // ... and under kIpm it is CORRECTED after the dispatch, once the kernel that solved
+    // this row is known. `last_dual_mu` is deliberately NOT corrected -- it names the WALK
+    // configuration the exported warm start was produced under, the hot-state reuse key.
+
+    // The hot handle is offered ONLY on this solve's very FIRST
+    // subproblem (iter == 0) -- every later major on this same
+    // engine_ already benefits from its OWN instance-level border_
+    // persistence (qp_engine.h's HOT-START REUSE note), so
+    // re-offering `warm.hot` there would be a no-op at best. Whether
+    // the engine actually reuses anything is entirely its own call
+    // (conditions (a)-(e)); this driver never inspects the handle's
+    // contents, only whether it is present.
+    const bool offer_hot = iter == 0 && st.resolved_level == StartLevel::kHot;
+    // THE CRASH BASIS, CONSUMED. One-shot, at the FIRST subproblem
+    // this solve builds and nowhere else: from the second subproblem
+    // on, `have_seed` is true and the seed is the previous QP's own
+    // answer, which is strictly better information than any estimate
+    // read off the geometry. `crash_pending` is cleared whether or not
+    // the seed found anything, so a solve whose first subproblem is
+    // retried at a shrunken radius does not re-derive it.
+    bool use_crash = false;
+    if (st.crash_pending) {
+        st.crash_pending = false;
+        // ACCUMULATED, not assigned: a restoration sub-solve's own
+        // seed counts fold into these same two fields (see the fold
+        // block above), so writing them would make this site's
+        // ordering relative to that fold load-bearing. It is not,
+        // today -- every enter_restoration() call site sits after this
+        // solve -- and this keeps it from becoming so.
+        Index seeded_rows = 0;
+        Index seeded_bounds = 0;
+        use_crash = !st.have_seed && crash_basis_seed(st.qp, opts_.feas_tol, st.crash_seed,
+                                                      seeded_rows, seeded_bounds);
+        st.out.counters.crash_seeded_rows += seeded_rows;
+        st.out.counters.crash_seeded_bounds += seeded_bounds;
+    }
+
+    // THE QP KERNEL DISPATCH -- THE SECTION 2.3 ROUTING CHAIN, whose contract is
+    // docs/notes/2026-08-m6-w1-ipqp-spec.md section 2.3 as amended. A `switch` with NO
+    // `default:` label, so `-Wswitch` still sees a missing arm; the count is pinned below.
+    //
+    // THE WALK IS THE LAST BRANCH, NEVER THE ORDINARY SUCCESSOR (Amendment A), and
+    // `mj.walk_owns_this_qp` is what says so. Its initializer, on `MajorState`, is
+    // SAFE rather than convenient: an unhandled mode falls to the walk, not to a
+    // default kOptimal `qs`.
+    //
+    // THE ENUMERATOR COUNT, PINNED -- and it is a COUNT, not a spot check
+    // on the last name (fix round 3). `QpMode::kQpModeCount` sits at the
+    // end of the enum for this one purpose, so a mode appended ABOVE it
+    // moves this value and stops the build; an assertion on `kIpm == 2`
+    // could not do that, because appending AFTER kIpm left kIpm alone.
+    static_assert(static_cast<int>(QpMode::kQpModeCount) == 3,
+                  "add a case to the qp_mode switch: QpMode gained an enumerator, so this "
+                  "dispatch no longer handles every mode. Give the new one an arm below and "
+                  "then update this count. The switch has no `default:` label on purpose (it "
+                  "would defeat -Wswitch, which is what flags the missing arm), and the "
+                  "`walk_owns_this_qp` initializer on MajorState sends an unhandled mode to "
+                  "the walk rather than to a default-constructed QpSolution.");
+    switch (opts_.qp_mode) {
+    case QpMode::kWalk:
+        break;
+    case QpMode::kSsn:
+        route_through_ssn_tier(st, mj);
+        break;
+    case QpMode::kIpm:
+        route_through_ipqp_tier(st, mj, seam, iter, tr_shrink_retry, overrides);
+        break;
+    case QpMode::kQpModeCount:
+        // NOT A MODE, enumerated so `-Wswitch` stays live on a real fourth
+        // one (see the sentinel's own doc comment). Unreachable: the
+        // constructor's `validate_sqp_options` refuses this value, and
+        // `qp_mode` cannot change during a solve.
+        throw std::invalid_argument(
+            "SqpDriver: qp_mode == QpMode::kQpModeCount reached the QP kernel dispatch -- it "
+            "is the enumerator-count sentinel and names no kernel, and validate_sqp_options "
+            "refuses it at construction");
+    }
+    // `SqpIterate::mu` REPORTS WHAT THE KERNEL THAT SOLVED THIS ROW USED. Under kIpm the
+    // schedule stays on for the walk subproblems and off for the tier's own, so the value
+    // is a per-row fact; corrected here because the dispatch is where it becomes known.
+    if (mj.ipqp_chain_owns_the_step) {
+        mj.row.mu = opts_.qp.dual_mu;
+    }
+    if (mj.walk_owns_this_qp) {
+        solve_with_walk(st, mj, warm, overrides, offer_hot, use_crash);
+    }
+    if (offer_hot) {
+        // start_level_used RECORDS WHAT WAS OBSERVED, not merely what was
+        // offered (see the WARM-START INGEST note above). This reads
+        // qs.counters.k0_reused -- qp_engine.h's OWN report of whether its
+        // reuse gate (conditions (a)-(e)) actually judged the cache
+        // trustworthy -- rather than inferring reuse from
+        // `qp_factorizations == 0`, which can be zero for reasons that
+        // have nothing to do with hot-start reuse at all (an empty reduced
+        // system with nothing to factorize, or a crossed-bounds box
+        // reported kInfeasible before the loop ever runs). Any OTHER
+        // outcome -- a values-hash mismatch, a different effective
+        // (primal_delta, dual_mu) pair, a seed working set the engine's
+        // own border stack did not already match, or a stale generation --
+        // silently degrades to kWarm here, never throws and never
+        // mis-reports.
+        //
+        // A subproblem the SSN tier certified was never offered the
+        // hot handle at all (SsnEngine has no hot-state seam), and
+        // ssn_result_to_qp_solution leaves `k0_reused` at its default
+        // false -- so such a solve degrades to kWarm right here, which
+        // is precisely what was OBSERVED: no cached factorization was
+        // reused, because none was consulted.
+        st.out.counters.start_level_used =
+            mj.qs.counters.k0_reused ? StartLevel::kHot : StartLevel::kWarm;
+    }
+
+    st.out.counters.major_iters = iter + 1;
+    // full_step_majors: counted here, alongside major_iters and on exactly the
+    // same event (a subproblem was solved), so full_step_majors <=
+    // major_iters holds by construction -- see its own note in
+    // sqp_types.h for why a routed failure counts too.
+    if (st.full_step_funnel != nullptr) {
+        ++st.out.counters.full_step_majors;
+    }
+    st.out.counters.qp_minor_iters += mj.qs.counters.minor_iters;
+    st.out.counters.factorizations += mj.qs.counters.factorizations;
+    st.out.counters.eqp_refine_steps += mj.qs.counters.eqp_refine_steps;
+    st.out.counters.border_refine_steps += mj.qs.counters.border_refine_steps;
+    st.out.counters.verdict_refine_steps += mj.qs.counters.verdict_refine_steps;
+    st.out.counters.suspect_escalations += mj.qs.counters.suspect_escalations;
+    st.out.counters.symbolic_analyses += mj.qs.counters.symbolic_analyses;
+
+    // THE ELASTIC TIER. See this header's ELASTIC TIER note
+    // for every design choice below; only the mechanics are here.
+    // This is the ONLY consumer of QpStatus::kInfeasible in the
+    // driver.
+    // A RUNG-A-OWNED MAJOR IS AN ELASTIC MAJOR TOO: the certified fallback's own ladder
+    // answered, so the row marks it (SOC is gated on !elastic_applied) and reads the
+    // ladder's counts below. `fallback_report` is engaged here iff that happened.
+    bool elastic_applied = mj.fallback_report.has_value();
+    bool rho0_ceiling_hit = mj.fallback_report && mj.fallback_report->rho0_ceiling_hit;
+    if (mj.qs.status == QpStatus::kInfeasible) {
+        // The window the ORIGINAL solve was given, folded into the
+        // elastic problem's own box: `delta` is what the driver
+        // passed through SolveOverrides, and opts_.qp.tr_radius is
+        // what the engine would have resolved the +inf sentinel to.
+        // FINITE on the shipped path: `delta` starts at tr_init.
+        const double window = std::min(st.delta, opts_.qp.tr_radius);
+        const ElasticSeedSource elastic_seed_source{&mj.qs, nullptr};
+        // CONSUMED, NEVER RE-RUN: `++elastic_activations` lives inside the ladder, so a
+        // second run on the fallback's own report would double-charge the activation.
+        const ElasticLadderReport report =
+            mj.fallback_report
+                ? std::move(*mj.fallback_report)
+                : run_elastic_ladder(engine_, st.qp, elastic_seed_source, window, opts_,
+                                     st.out.counters, std::nullopt, ipqp_trace_);
+        rho0_ceiling_hit = report.rho0_ceiling_hit;
+
+        if (!report.usable) {
+            mj.row.qp_solved = true;
+            mj.row.elastic_applied = true;
+            mj.row.elastic_rho0_ceiling_hit = rho0_ceiling_hit;
+            mj.row.qp_status = report.qp_status;
+            mj.row.qp_minor_iters = report.qp_minor_iters;
+            mj.row.qp_factorizations = report.qp_factorizations;
+            // DIAGNOSTIC ONLY, exactly as on a routed-failure row: no
+            // step was taken from here.
+            mj.row.step_norm = report.step_norm;
+            mj.row.verdict = StepVerdict::kRestore;
+            // THE ELASTIC CANDIDATE (amendment F): `p_elastic` is a STEP,
+            // so the offer is x + p clamped into the wrapper's own box; a
+            // ZERO step is no offer -- it IS x, and "taken" would be a lie.
+            const bool have_p =
+                report.p_elastic.size() == st.n && report.p_elastic.lpNorm<Eigen::Infinity>() > 0.0;
+            const Vec x_elastic = have_p ? Vec((st.x + report.p_elastic)
+                                                   .cwiseMax(bridge.model().lower())
+                                                   .cwiseMin(bridge.model().upper()))
+                                         : Vec();
+            RestorationCandidate elastic_cand;
+            if (have_p) {
+                elastic_cand.x = &x_elastic;
+            }
+            // T3-A: after a refusal that walked to kInfeasible, `report` is
+            // the SECOND ladder's (floor rho), so this offer is its step.
+            // KLV Algorithm 5's authoritative trigger.
+            //
+            // PUSHED AFTER THE CALL (R9): the call decides
+            // `row.restoration_seed_used`, and the row must reach both
+            // `history` and the stream with its final value.
+            const RestorationOutcome elastic_outcome =
+                enter_restoration(st, mj, seam, bridge, iter, elastic_cand);
+            push_history(mj.row);
+            if (elastic_outcome == RestorationOutcome::kResumed) {
+                return MajorOutcome::kContinue;
+            }
+            // qs_e (the elastic re-solve) is in the AUGMENTED
+            // (original + slack) variable space, so it is never a
+            // valid activity source here -- THE SEED IS THE FALLBACK, which
+            // is why this exit's tag is kFinishRestorationSeed and not the
+            // kFinishRestorationQp the other three restoration exits use.
+            return MajorOutcome::kFinishRestorationSeed;
+        }
+
+        mj.qs = elastic_project(report.elastic, st.qp, report.qs_e,
+                                /*carry_multipliers=*/report.closed);
+        elastic_applied = true;
+    }
+
+    mj.row.qp_solved = true;
+    mj.row.elastic_applied = elastic_applied;
+    mj.row.elastic_rho0_ceiling_hit = rho0_ceiling_hit;
+    mj.row.qp_status = mj.qs.status;
+    // THE LADDER'S OWN COUNTS ON A RUNG-A-OWNED MAJOR: the fallback clears `qs.counters` to
+    // keep the totals exact, so the report is where this row's two diagnostics live.
+    mj.row.qp_minor_iters =
+        mj.fallback_report ? mj.fallback_report->qp_minor_iters : mj.qs.counters.minor_iters;
+    mj.row.qp_factorizations =
+        mj.fallback_report ? mj.fallback_report->qp_factorizations : mj.qs.counters.factorizations;
+    mj.row.step_norm = mj.qs.x.size() > 0 ? mj.qs.x.lpNorm<Eigen::Infinity>() : 0.0;
+    mj.row.tr_binding =
+        std::any_of(mj.qs.tr_active.begin(), mj.qs.tr_active.end(), [](bool b) { return b; });
+
+    // THE MODE-SELECTION TELEMETRY (M6 W4 T3), here because THIS is where
+    // `qs` is this major's answer -- the same statement block that gives
+    // `tr_binding` its meaning, which is the rule the six fields carry.
+    census_major_activity(st.qp, mj.qs, st.prev_ineq_active, st.prev_bound_state, st.activity_slack,
+                          mj.row);
+    st.prev_ineq_active = mj.qs.ineq_active;
+    st.prev_bound_state = mj.qs.bound_state;
+    st.out.counters.active_set_delta_total += mj.row.active_set_delta;
+    st.out.counters.active_set_delta_peak =
+        std::max(st.out.counters.active_set_delta_peak, mj.row.active_set_delta);
+    st.out.counters.weak_active_peak =
+        std::max(st.out.counters.weak_active_peak, mj.row.weak_active_rows);
+    st.out.counters.near_active_peak =
+        std::max(st.out.counters.near_active_peak, mj.row.near_active_rows);
+
+    if (mj.qs.status != QpStatus::kOptimal) {
+        // SUBPROBLEM FAILURE ROUTING (see this header's note). A
+        // failure that still handed back a usable iterate is a
+        // property of THIS SUBPROBLEM AT THIS RADIUS, and the loop
+        // already owns the instrument that changes it without moving
+        // the iterate. Note what is NOT done: the returned step is
+        // never taken and never judged -- the strategy is not
+        // consulted at all, because there is no certified step to
+        // judge -- so `row.verdict` keeps its kReject default, which
+        // is the accurate description of what happened to this trial.
+        if (st.qp_failures_in_a_row == 0 && qp_failure_is_retryable(st.qp, mj.qs, opts_.feas_tol)) {
+            ++st.qp_failures_in_a_row;
+            ++st.rejections_at_iterate;
+            ++st.out.counters.rejected_steps;
+            // THE RADIUS FLOOR applies to a ROUTED failure
+            // exactly as to a judged rejection: both are "the radius
+            // was shrunk here and the iterate did not move", and the
+            // floor is a statement about the radius, not about which
+            // mechanism last lowered it.
+            if (shrink_hits_floor(st.delta)) {
+                // PUSHED AFTER THE CALL (R9), as at every request site.
+                const RestorationOutcome outcome = enter_restoration(st, mj, seam, bridge, iter);
+                push_history(mj.row);
+                if (outcome == RestorationOutcome::kResumed) {
+                    return MajorOutcome::kContinue;
+                }
+                // `mj.qs` is THIS failed solve's own activity, in the
+                // ORIGINAL variable space, describing the region
+                // around x -- see WARM SEEDING above for why that is
+                // meaningful even though the solve failed. Not used
+                // if restoration moved x away from it, which is exactly what
+                // the caller's kFinishRestorationQp arm decides.
+                return MajorOutcome::kFinishRestorationQp;
+            }
+            push_history(mj.row);
+            st.delta = shrunk_radius(st.delta);
+            // Seeded from the FAILED solve's ACTIVE SET. On
+            // kNumericalError the engine clears the multipliers
+            // (qp_engine.h's exit semantics), so the seed carries
+            // activity only -- which is all warm seeding uses, and
+            // which on this path is the point: the engine's own
+            // start-of-solve inertia repair sees a working set the
+            // failed solve had to walk to, and can act on it at
+            // iter == 0 where it could not mid-solve.
+            st.seed = std::move(mj.qs);
+            st.seed.x.setZero(); // never re-center the radius; see WARM SEEDING
+            st.have_seed = true;
+            // THE SHRINK AND THE SEED ARE THIS MAJOR'S OWN WORK and are done
+            // BEFORE the outcome leaves: the caller only advances the loop.
+            return MajorOutcome::kContinue;
+        }
+        push_history(mj.row);
+        // No restoration was consulted on this path -- x is still
+        // the pre-trial iterate `mj.qs` was solved at, so its own
+        // activity (bound_state/ineq_active) is exactly the region
+        // around the point being returned. The caller finalizes this exit
+        // from `mj.qs.status` and from that activity.
+        return MajorOutcome::kFinishQpFailure;
+    }
+    st.qp_failures_in_a_row = 0;
+
+    // THE TRIAL POINT, VALUES ONLY FIRST (the eval-economics
+    // rule). globalization.h's judge() reads StepContext, and every
+    // field of it (f_old/f_new/h_old/h_new/pred_df/tr_active/
+    // rejections_at_iterate -- confirmed against globalization.h's
+    // own struct) comes from f/cE/cI or from the QP already solved,
+    // NEVER from a gradient or a Jacobian; build_soc_subproblem below
+    // reads only ev.ce/ev.ci and ev_trial.ce/ev_trial.ci for the same
+    // reason. So the trial is evaluated through eval_nlp_values here,
+    // and stays that way through every REJECTED outcome (including a
+    // rejected-then-SOC-rejected one) -- on a rejection-heavy
+    // fixture this is the entire saving, since the rejected majority
+    // never pays for a gradient or a Jacobian it was always going to
+    // throw away. ONE EXCEPTION IS AN ACCEPTANCE (a second, the
+    // restoration seed, is at the request sites below): an accepted
+    // trial's `ev_trial` becomes the next iterate's `ev` (see MODEL
+    // EVALUATION), which the convergence test and the next
+    // subproblem both need in full -- so the direct-accept branch
+    // below (the ACCEPTED... section's `else`) upgrades it in place
+    // (upgrade_to_full) the moment that is known, and a SOC-promoted
+    // acceptance upgrades `ev_soc` instead, right where its own
+    // promotion is decided -- `ev_trial` in that case is never
+    // upgraded at all, because nothing downstream ever reads it
+    // again.
+    mj.x_trial = st.x + mj.qs.x;
+    mj.ev_trial = seam.eval_nlp_values(mj.x_trial);
+
+    mj.ctx.f_old = st.ev.f;
+    mj.ctx.f_new = mj.ev_trial.f;
+    mj.ctx.h_old = mj.row.violation_l1;
+    mj.ctx.h_new = constraint_violation_l1(mj.ev_trial);
+    mj.ctx.pred_df = predicted_decrease(st.qp, mj.qs.x);
+    mj.ctx.tr_active = mj.row.tr_binding;
+    mj.ctx.rejections_at_iterate = st.rejections_at_iterate;
+
+    // KLV ALGORITHM 2'S ||d|| = 0 SHORT-CIRCUIT (see kZeroStepScale
+    // for why this is here and not left to the convergence test at
+    // the top of the loop). The trust-region conjunct is not
+    // decoration: a step held AT zero by a radius that has shrunk to
+    // nothing is not evidence of a KKT point, and its z would be the
+    // radius talking (qp_problem.h's STATIONARITY CAVEAT). A step
+    // that is zero because the SUBPROBLEM's answer is zero has the
+    // radius strictly inactive.
+    const double x_scale = std::max(1.0, st.x.lpNorm<Eigen::Infinity>());
+    const bool zero_step = !mj.row.tr_binding && mj.row.step_norm <= kZeroStepScale * x_scale;
+
+    StepVerdict verdict = zero_step ? StepVerdict::kAcceptF : st.strategy->judge(mj.ctx);
+
+    // SECOND-ORDER CORRECTION. See this header's note for
+    // the derivation and every design choice below; only the
+    // mechanics are here. Gated on the ORIGINAL verdict, never on a
+    // routed QP failure (this code is unreached there -- see the
+    // note).
+    if (verdict == StepVerdict::kReject && opts_.enable_soc && !elastic_applied &&
+        mj.ctx.h_new > mj.ctx.h_old) {
+        ++st.out.counters.soc_steps;
+
+        // See build_soc_subproblem's own doc for the formula; ev.ce/
+        // ev.ci (cE(x)/cI(x)) and ev_trial.ce/ev_trial.ci (cE(x+p)/
+        // cI(x+p)) are both already in hand (see MODEL EVALUATION),
+        // so constructing the rhs shift costs NO EXTRA MODEL
+        // EVALUATION -- it is the RE-SOLVE below, on acceptance,
+        // that costs one (see the header note's cost accounting).
+        const QpProblem soc_qp =
+            build_soc_subproblem(st.qp, st.ev, mj.ev_trial, mj.qs.x, mj.qs.ineq_active);
+
+        // Warm-started from the REJECTED solve's own activity, at the
+        // SAME radius -- see the note for why this is a hot start.
+        QpSolution seed_soc = mj.qs; // COPY: `qs` is still needed below
+        seed_soc.x.setZero();
+        SolveOverrides soc_overrides;
+        soc_overrides.tr_radius = st.delta;
+        mj.qs_soc = engine_.solve(soc_qp, seed_soc, soc_overrides);
+        // ONE LINE FOR THE CORRECTION'S OWN WALK (M6 W4 T5), at `site`
+        // `soc_resolve`: it runs INSIDE a major whose dispatch line is
+        // already written, so it is priced by `soc_steps`, not by majors.
+        if (ipqp_trace_ != nullptr) {
+            QpModeTraceEvent mev;
+            mev.mode = IpqpTraceQpMode::kWalk;
+            mev.outcome = trace_outcome_of(mj.qs_soc.status);
+            mev.iters = mj.qs_soc.counters.minor_iters;
+            mev.site = QpModeSite::kSocResolve;
+            emit_trace_qp_mode(mev);
+        }
+
+        st.out.counters.qp_minor_iters += mj.qs_soc.counters.minor_iters;
+        st.out.counters.factorizations += mj.qs_soc.counters.factorizations;
+        st.out.counters.eqp_refine_steps += mj.qs_soc.counters.eqp_refine_steps;
+        st.out.counters.border_refine_steps += mj.qs_soc.counters.border_refine_steps;
+        st.out.counters.verdict_refine_steps += mj.qs_soc.counters.verdict_refine_steps;
+        st.out.counters.suspect_escalations += mj.qs_soc.counters.suspect_escalations;
+        st.out.counters.symbolic_analyses += mj.qs_soc.counters.symbolic_analyses;
+
+        if (mj.qs_soc.status == QpStatus::kOptimal) {
+            mj.x_soc = st.x + mj.qs_soc.x; // NOT x_trial + qs_soc.x; see the note
+            // VALUES ONLY FIRST, same reasoning as x_trial above:
+            // soc_ctx below reads only f/h, so judge() never needs a
+            // derivative at x_soc either.
+            mj.ev_soc = seam.eval_nlp_values(mj.x_soc);
+
+            StepContext soc_ctx;
+            soc_ctx.f_old = st.ev.f;
+            soc_ctx.f_new = mj.ev_soc.f;
+            soc_ctx.h_old = mj.row.violation_l1;
+            soc_ctx.h_new = constraint_violation_l1(mj.ev_soc);
+            soc_ctx.pred_df = mj.ctx.pred_df; // UNCHANGED; see the note
+            soc_ctx.tr_active = mj.row.tr_binding;
+            soc_ctx.rejections_at_iterate = st.rejections_at_iterate;
+
+            const StepVerdict soc_verdict = st.strategy->judge(soc_ctx);
+            if (soc_verdict == StepVerdict::kAcceptF || soc_verdict == StepVerdict::kAcceptH) {
+                mj.soc_applied = true;
+                verdict = soc_verdict;
+                mj.ctx = soc_ctx;
+                ++st.out.counters.soc_applied;
+                // UPGRADE TO FULL: promoted, so `ev_soc` becomes the
+                // next iterate's `ev` below (the `soc_applied`
+                // branch of ACCEPTED), which needs the derivatives
+                // the values-only evaluation above skipped -- in
+                // place, not a second eval_f/eval_ce/ eval_ci (see
+                // upgrade_to_full's own note).
+                seam.refresh_derivatives(mj.ev_soc, mj.x_soc);
+                ++st.out.counters.evals_full;
+            } else {
+                // The corrected point is ALSO not accepted (a
+                // kReject, or -- not promoted -- a kRestore); fall
+                // through with the ORIGINAL verdict below. `ev_soc`
+                // is discarded values-only -- it never becomes
+                // anyone's `ev`, so it never earns the upgrade
+                // above.
+                ++st.out.counters.soc_rejected;
+                ++st.out.counters.evals_values;
+            }
+        } else {
+            // The SOC re-solve itself failed (qs_soc.status !=
+            // kOptimal); fall through with the ORIGINAL verdict
+            // below. qs_soc/ev_soc/x_soc are unused.
+            ++st.out.counters.soc_qp_infeasible;
+        }
+    }
+
+    // `ev_trial`'s OWN FATE is now decided -- verdict and
+    // soc_applied are both final. It is UPGRADED (evals_full, at the
+    // direct-accept branch further below) only when this trial is
+    // accepted WITHOUT a promoted SOC correction; every other
+    // outcome -- rejected, restored, or accepted THROUGH SOC (whose
+    // OWN ev_soc, evaluated at a DIFFERENT point, becomes the next
+    // `ev` instead) -- leaves `ev_trial` values-only, unless restoration
+    // takes that trial as its seed and upgrades it there (W2 T4).
+    if (mj.soc_applied || !(verdict == StepVerdict::kAcceptF || verdict == StepVerdict::kAcceptH)) {
+        ++st.out.counters.evals_values;
+    }
+
+    mj.row.verdict = verdict;
+    mj.row.soc_applied = mj.soc_applied;
+    // THE PUSH IS PER-BRANCH (R9): the two branches that may request
+    // restoration must call first, because the call decides
+    // `row.restoration_seed_used` and a pushed row is already in the stream.
+    if (verdict == StepVerdict::kReject) {
+        // SHRINK AND RE-SOLVE THE SAME ITERATE. The multipliers this
+        // subproblem priced are DISCARDED -- they belong to a step
+        // that was not taken, and using them would move the Hessian
+        // (and so the model) at an iterate that never moved. ONE
+        // rejection is charged for the pair even when SOC was
+        // attempted above -- see the note.
+        ++st.rejections_at_iterate;
+        ++st.out.counters.rejected_steps;
+        // THE RADIUS FLOOR -- KLV Algorithm 4's alpha_min
+        // trigger in trust-region form. The shrink is NOT taken and
+        // NOT clamped: crossing the floor IS the request. See RADIUS
+        // MANAGEMENT.
+        if (shrink_hits_floor(st.delta)) {
+            // THE REJECTED TRIAL IS THE OFFER, and its own values bundle is the
+            // measurement -- the ORIGINAL trial's, since a PROMOTED SOC
+            // correction would have left `verdict` an accept.
+            const RestorationOutcome outcome =
+                enter_restoration(st, mj, seam, bridge, iter, {&mj.x_trial, &mj.ev_trial});
+            push_history(mj.row);
+            if (outcome == RestorationOutcome::kResumed) {
+                return MajorOutcome::kContinue;
+            }
+            // `mj.qs` is the REJECTED trial's own (kOptimal) solution,
+            // still describing the region around x (x has not moved
+            // -- unless restoration itself moved it; see
+            // st.resto.moved_x's own note).
+            return MajorOutcome::kFinishRestorationQp;
+        }
+        push_history(mj.row);
+        st.delta = shrunk_radius(st.delta);
+        st.seed = std::move(mj.qs);
+        st.seed.x.setZero(); // never re-center the radius; see WARM SEEDING
+        st.have_seed = true;
+        // As at the routed-failure shrink above: the updates are this major's,
+        // and the caller only advances the loop.
+        return MajorOutcome::kContinue;
+    }
+
+    if (verdict == StepVerdict::kRestore) {
+        // The funnel's own restoration signature (globalization.h's
+        // five conjuncts). Same offer as the floor site above, and SOC is
+        // equally out of the picture here (it is gated on kReject).
+        const RestorationOutcome outcome =
+            enter_restoration(st, mj, seam, bridge, iter, {&mj.x_trial, &mj.ev_trial});
+        push_history(mj.row);
+        if (outcome == RestorationOutcome::kResumed) {
+            return MajorOutcome::kContinue;
+        }
+        // Same reasoning as the kReject/floor exit just above: `mj.qs`
+        // still describes x unless restoration moved it.
+        return MajorOutcome::kFinishRestorationQp;
+    }
+
+    push_history(mj.row);
+    // THE ROW IS IN THE STREAM AND IN `history` BEFORE ANY COMMIT RUNS, and
+    // that is the whole reason the outcome leaves HERE rather than after the
+    // updates: the caller performs the radius growth, the iterate/multiplier
+    // commit and the derivative refresh, all of which follow this emit.
+    return MajorOutcome::kCommitAccepted;
+}
+
 SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregate &bridge,
                                        const Vec &x0, const WarmStart &warm, Index minor_budget,
                                        std::unique_ptr<GlobalizationStrategy> strategy_in) {
@@ -3422,20 +4942,13 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
     SolveState st(opts_.ipqp);
     prepare_solve(st, seam, x0, warm, std::move(strategy_in));
 
-    // THE NAMES THE LOOP KNOWS THE STATE BY. Every one of these is an ALIAS of
-    // the single instance above, never a copy -- except the four scalars and the
-    // scaling, which nothing writes after `prepare_solve` returns and which are
-    // therefore taken `const`, exactly as they were when they were locals.
-    //
-    // This block is what keeps the 2000 lines below unchanged by this cut: the
-    // loop reads and writes the same names it always did, and they now denote
-    // `st`. Cuts (b) and (c) replace them from the inside as each block becomes
-    // a function that takes `(SolveState &, MajorState &)`.
-    const Index n = st.n;
-    const bool ssn_mode = st.ssn_mode;
-    const bool warm_state_ingest = st.warm_state_ingest;
-    const StartLevel resolved_level = st.resolved_level;
-    const detail::ProblemScaling &solve_scaling = st.solve_scaling;
+    // THE NAMES THIS FUNCTION STILL KNOWS THE STATE BY. Every one of these is
+    // an ALIAS of the single instance above, never a copy. Cut (a) declared 53
+    // of them so the 2000-line loop below could stay diff-free; cuts (b) and
+    // (c) consumed them from the inside as each block became a function taking
+    // `(SolveState &, MajorState &)`, and these 28 are what the terminal
+    // dispatch and the accepted commit below still read. They are removed in
+    // cut (c)'s second commit, which is the only intentional change in it.
     SqpSolution &out = st.out;
     Vec &x = st.x;
     Vec &lambda_e = st.lambda_e;
@@ -3446,38 +4959,18 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
     bool &subproblem_is_stale = st.subproblem_is_stale;
     QpSolution &seed = st.seed;
     bool &have_seed = st.have_seed;
-    bool &crash_pending = st.crash_pending;
-    QpSolution &crash_seed = st.crash_seed;
     double &delta = st.delta;
     double &last_dual_mu = st.last_dual_mu;
-    Index &ssn_budget_charge = st.ssn_budget_charge;
-    Index &ipqp_budget_charge = st.ipqp_budget_charge;
     Index &rejections_at_iterate = st.rejections_at_iterate;
-    Index &qp_failures_in_a_row = st.qp_failures_in_a_row;
     bool &duals_ingested = st.duals_ingested;
-    bool &funnel_started = st.funnel_started;
     Index &rows_pushed = st.rows_pushed;
     Index &rows_at_major_entry = st.rows_at_major_entry;
-    std::vector<bool> &prev_ineq_active = st.prev_ineq_active;
-    std::vector<BoundState> &prev_bound_state = st.prev_bound_state;
-    Vec &activity_slack = st.activity_slack;
     std::unique_ptr<GlobalizationStrategy> &strategy = st.strategy;
-    FunnelStrategy *&full_step_funnel = st.full_step_funnel;
-    bool &restoration_used = st.resto.used;
     SqpStatus &restoration_exit_status = st.resto.status;
     SqpKkt &restoration_exit_kkt = st.resto.kkt;
     double &restoration_exit_f = st.resto.f;
     bool &restoration_exit_multipliers_are_caller_scale = st.resto.multipliers_are_caller_scale;
     bool &restoration_moved_x = st.resto.moved_x;
-    Vec &fs_best_x = st.fs.best_x;
-    Vec &fs_best_lambda_e = st.fs.best_lambda_e;
-    Vec &fs_best_lambda_i = st.fs.best_lambda_i;
-    NlpEval &fs_best_ev = st.fs.best_ev;
-    double &fs_best_residual = st.fs.best_residual;
-    bool &fs_best_duals_ingested = st.fs.best_duals_ingested;
-    Index &fs_growth_in_a_row = st.fs.growth_in_a_row;
-    Index &fs_majors_since_best = st.fs.majors_since_best;
-    double &fs_prev_residual = st.fs.prev_residual;
     Vec &mb_best_x = st.mb.x;
     Vec &mb_best_lambda_e = st.mb.lambda_e;
     Vec &mb_best_lambda_i = st.mb.lambda_i;
@@ -3494,94 +4987,12 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 iter - 1, rows_pushed - rows_at_major_entry));
         }
         rows_at_major_entry = rows_pushed;
-        // NOT const: the full-step watchdog below may restore
-        // an EARLIER iterate before this pass records or tests anything,
-        // and the row and the convergence test must then describe the
-        // point the driver is actually standing on. Re-measuring is free
-        // -- this overload of evaluate_kkt reads an NlpEval already in
-        // hand and calls the model not at all.
-        SqpKkt kkt = evaluate_kkt(seam, ev, x, lambda_e, lambda_i, opts_.feas_tol);
 
-        SqpIterate row;
-        row.trial = iter;
-        // THE ARM THAT OWNS THIS ROW'S QP, for `sqp.major` alone. Starts at the
-        // CONFIGURED mode -- which is what a row with `qp_solved == false`
-        // reports -- and is corrected at the dispatch, where the arm is known.
-        IpqpTraceQpMode row_qp_mode = trace_mode_of(opts_.qp_mode);
-        // THE ROW IS MEASURED IN THE SPACE THE SOLVE RUNS IN, and stays there
-        // for as long as the loop reads it -- `row.violation_l1` seeds and
-        // floors the funnel, `row.f` and `row.violation_l1` drive the
-        // budgeted-mode best-iterate tracking, and every one of those
-        // comparisons must be against the residuals the iteration itself is
-        // gating on. It is `push_history` below that maps a COPY into the
-        // caller's units on its way onto the solution.
-        //
-        // These two travel with it because the export boundary cannot recompute
-        // them from a scalar -- see caller_scale_row_measures. Both are
-        // untouched, and unread, on an unscaled solve.
-        CallerScaleRowMeasures caller_row;
-        // The fields describing THE ITERATE (as opposed to the subproblem
-        // solved from it), factored out so the watchdog can re-take them
-        // after a restore. Reads ev/kkt/delta, all by reference.
-        auto measure_iterate = [&] {
-            row.f = ev.f;
-            row.stationarity = kkt.stationarity;
-            row.feasibility = kkt.feasibility;
-            row.complementarity = kkt.complementarity;
-            row.kkt_residual = kkt.residual();
-            row.violation_l1 = constraint_violation_l1(ev);
-            row.tr_radius = delta;
-            if (solve_scaling.active) {
-                caller_row =
-                    caller_scale_row_measures(seam.lower(), seam.upper(), ev, x, solve_scaling);
-                if (!kkt.finite) {
-                    // The engine-scale columns are NaN here by construction
-                    // (evaluate_kkt's non-finite arm), and the caller-scale
-                    // ones say the same thing: nothing was measured at this
-                    // point, in either space.
-                    const double nan = std::numeric_limits<double>::quiet_NaN();
-                    caller_row.feasibility = nan;
-                }
-            }
-        };
-        // THE EXPORT OF ONE HISTORY ROW, and the only way a row reaches
-        // `out.history`. On a scaled solve the six scale-carrying columns are
-        // mapped to the caller's units here, so that the iteration table
-        // (sqp_print.cpp) and the terminal fields it sits under are ONE scale:
-        // f, stationarity and complementarity divide by `sf` (each is
-        // homogeneous of degree one in it -- problem_scaling.h's multiplier
-        // map), the two row-aggregate columns come from the measurement, and
-        // kkt_residual is re-folded from the mapped halves exactly as
-        // SqpKkt::residual() folds the unmapped ones. A no-op when unscaled,
-        // where it is a move onto the vector and nothing else.
-        auto push_history = [&](SqpIterate exported) {
-            if (solve_scaling.active) {
-                exported.f /= solve_scaling.obj;
-                exported.stationarity /= solve_scaling.obj;
-                exported.complementarity /= solve_scaling.obj;
-                exported.feasibility = caller_row.feasibility;
-                exported.violation_l1 = caller_row.violation_l1;
-                exported.kkt_residual = std::max(exported.stationarity, exported.feasibility);
-            }
-            // THE STREAM EQUALS `history`, IN CALLER UNITS: emitted here, after
-            // the map and before the push, so `major` is this row's index in
-            // the vector and all six push sites are covered by one site.
-            if (ipqp_trace_ != nullptr) {
-                emit_trace_sqp_major(SqpMajorTraceEvent{
-                    exported, static_cast<Index>(out.history.size()), row_qp_mode});
-            }
-            out.history.push_back(std::move(exported));
-            ++rows_pushed;
-            // AND NOTHING ELSE MAY PUSH: the identity is what makes
-            // `rows_pushed` a reading of `history` rather than of this lambda.
-            if (rows_pushed != static_cast<Index>(out.history.size())) {
-                throw std::logic_error(fmt::format(
-                    "SqpDriver::solve: the history holds {} rows after {} pushes -- something "
-                    "other than push_history wrote to it, so the trace stream and the history "
-                    "no longer describe the same rows",
-                    out.history.size(), rows_pushed));
-            }
-        };
+        // THE PER-MAJOR BUNDLE, built HERE as of cut (c) -- see `MajorState`'s
+        // own note for why the loop top is now the right place and for why
+        // constructing it costs no evaluation.
+        MajorState mj;
+
         // THE LAST MAJOR'S OWN EXACTLY-ONCE CHECK (W4 T3). The entry check above
         // never sees the major the solve LEAVES from -- there is no next entry,
         // so every `return` out of this loop must call this one first.
@@ -3594,354 +5005,80 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                     at_major, rows_pushed - rows_at_major_entry));
             }
         };
-        measure_iterate();
 
-        // NON-FINITE ITERATE. The model cannot be evaluated at x (or
-        // returned NaN there); nothing at this point has been measured, so
-        // it can be neither certified nor stepped from. Reported as
-        // kNumericalError with the multipliers CLEARED -- unlike the
-        // QP-failure exit below, which retains them, because there the
-        // last successful subproblem's prices are still meaningful
-        // evidence and here nothing is.
-        //
-        // THIS IS A START-POINT CONDITION, not something the iteration can
-        // walk into: a trial point at which the model is non-finite
-        // produces a non-finite StepContext, which globalization.h rejects
-        // up front, so the driver shrinks the radius and stays where it is
-        // instead of moving onto the NaN. Only an x0 the model cannot
-        // evaluate (x0 itself is validated finite by the caller check
-        // above) reaches here.
-        if (!kkt.finite) {
-            push_history(row);
-            out.status = SqpStatus::kNumericalError;
-            out.x = x;
-            out.lambda_e = Vec::Zero(seam.me());
-            out.lambda_i = Vec::Zero(seam.mi());
-            out.z = Vec::Zero(n);
-            // THE ONE EXIT THAT DOES NOT ROUTE THROUGH `finish`, so the two
-            // things that boundary does for a scaled solve are done here (M6
-            // W0.2): the objective is mapped back to the caller's units, and
-            // the scaling report is written -- without which a scaled solve
-            // would report `active == false` on this exit alone. The
-            // multipliers need no map: they are cleared above, and the map of
-            // zero is zero. `out.z` likewise.
-            out.f = solve_scaling.active ? ev.f / solve_scaling.obj : ev.f;
-            record_scaling_report(out, solve_scaling, kkt);
-            // NaN, every one of them: this exit is reached exactly because
-            // kkt.finite is false, and evaluate_kkt sets every residual to
-            // NaN there rather than to the 0.0 a running maximum over NaN
-            // entries would leave. The multipliers above are cleared for the
-            // same reason this is not: a cleared multiplier is "no evidence",
-            // and a zeroed residual would read as a converged one.
-            record_terminal_kkt(out, kkt);
-            // No subproblem has ever been built here (this is a
-            // start-point condition -- see the caller's own note above),
-            // so there is no activity to attribute -- AND NO USABLE
-            // HAND-OFF AT ALL. The null `probe_ev`/`probe_x` is this
-            // exit's own signal to make_warm_start (its THE UNEVALUABLE
-            // EXIT note): no structure probe is attempted at a point the
-            // model has just reported it cannot evaluate, and the object
-            // comes back COLD (valid = false, hash 0) so that a caller
-            // retrying from a CORRECTED x0 gets its own point honoured
-            // instead of being pinned back onto this one. The fields
-            // overwritten below are still populated, for a caller that
-            // wants to inspect what the failed solve stood on.
-            out.warm_start =
-                make_warm_start(seam, /*activity=*/nullptr, qp,
-                                /*qp_built=*/qp_built, /*probe_ev=*/nullptr,
-                                /*probe_x=*/nullptr, delta, last_dual_mu, opts_.qp.primal_delta,
-                                strategy.get(), engine_.hot_state());
-            out.warm_start.x = out.x;
-            out.warm_start.lambda_e = out.lambda_e;
-            out.warm_start.lambda_i = out.lambda_i;
-            out.warm_start.z = out.z;
-            if (solve_scaling.active) {
-                // THE SAME DROP `finish` APPLIES, so this exit's object is
-                // symmetric with every other one a scaled solve emits (M6 W0.2
-                // fix round 2). Nothing downstream reads these fields off a
-                // COLD object today -- `valid` is false here by construction --
-                // but "benign because a consumer happens not to look" is not a
-                // reason to leave scaled-space state sitting in a field whose
-                // contract says caller-scale, and a future consumer that
-                // inspects a failed solve's object would find it.
-                drop_scaled_space_state(out.warm_start);
+        // ONE MAJOR, AND THE CONTROL DECISION IT REACHED. The row is already in
+        // `history` and in the stream by the time any tag below is acted on --
+        // that is what `run_major` guarantees at each of its ten push sites.
+        const MajorOutcome outcome = run_major(st, mj, seam, bridge, warm, minor_budget, iter);
+        // NO `default:` LABEL, so `-Wswitch` sees a tag added without an arm;
+        // every arm either continues the loop or returns the solution.
+        switch (outcome) {
+        case MajorOutcome::kContinue:
+            continue;
+        case MajorOutcome::kCommitAccepted: {
+            // ACCEPTED (kAcceptF or kAcceptH), possibly via SOC. The radius
+            // grows only on the evidence described in RADIUS MANAGEMENT, and
+            // it is computed BEFORE the move so `ev` is still the old
+            // iterate's. ctx.pred_df/row.tr_binding are ALWAYS the ORIGINAL
+            // QP's -- see the SECOND-ORDER CORRECTION note on why pred_df is
+            // not recomputed from p_soc -- so this growth test is unaffected
+            // by whether SOC fired; only ctx.f_new (hence actual_df) differs.
+            //
+            // std::isfinite(delta) is not decoration: at the +inf "no trust
+            // region" setting min(+inf * 2, tr_max) is tr_max, so an unguarded
+            // growth rule would SHRINK the radius the one time it is not
+            // supposed to touch it (see the constructor's tr_max note).
+            const double actual_df = ev.f - mj.ctx.f_new;
+            if (mj.row.tr_binding && std::isfinite(delta) && mj.ctx.pred_df > 0.0 &&
+                actual_df >= kTrGrowThreshold * mj.ctx.pred_df) {
+                delta = std::min(delta * kTrGrowFactor, opts_.tr_max);
             }
+
+            if (mj.soc_applied) {
+                x = mj.x_soc;
+                ev = std::move(mj.ev_soc); // already upgraded to full -- see the promotion above
+                lambda_e = mj.qs_soc.lambda_e;
+                lambda_i = mj.qs_soc.lambda_i;
+                duals_ingested = false; // re-priced by this solve's own QP
+                seed = std::move(mj.qs_soc);
+            } else {
+                // UPGRADE TO FULL: a DIRECT acceptance (no SOC, or
+                // SOC ran and was not promoted -- either way `verdict` is
+                // kAcceptF/kAcceptH and `ev_trial` is what becomes `ev`
+                // below), so the values-only evaluation above is not enough
+                // -- fill in its derivatives in place (upgrade_to_full;
+                // f/cE/cI are NOT recomputed). This is the one place this
+                // task's saving is given back: one eval_grad/eval_jac_e/
+                // eval_jac_i on every ACCEPTED trial (never a rejected one,
+                // which is the overwhelming majority on a rejection-heavy
+                // fixture), because nlp_model.h deliberately adds no third
+                // "derivatives only, values already known" entry point.
+                x = mj.x_trial;
+                seam.refresh_derivatives(mj.ev_trial, mj.x_trial);
+                ++out.counters.evals_full;
+                ev = std::move(mj.ev_trial);
+                lambda_e = mj.qs.lambda_e;
+                lambda_i = mj.qs.lambda_i;
+                duals_ingested = false; // re-priced by this solve's own QP
+                seed = std::move(mj.qs);
+            }
+            ++out.counters.steps_accepted;
+            rejections_at_iterate = 0;
+            subproblem_is_stale = true;
+            // Active set only -- never the previous step. See this header's
+            // WARM SEEDING note: seed.x is the engine's trust-region CENTER,
+            // and in step variables that center must be p = 0.
+            seed.x.setZero();
+            have_seed = true;
+            continue;
+        }
+        case MajorOutcome::kFinishManual:
             check_major_pushed_once(iter);
             // `out` is a member of the solve state, not a local, so this is a
             // MOVE and not the copy the alias would otherwise make. Every other
             // exit already moves it into `finish`.
             return std::move(out);
-        }
-
-        // THE FUNNEL IS SEEDED FROM THE FIRST MEASURABLE ITERATE, i.e.
-        // here rather than before the loop: reset() rejects a non-finite
-        // h0 (globalization.h), and whether h(x0) is finite is exactly
-        // what the check above has just decided.
-        if (!funnel_started) {
-            strategy->reset(row.violation_l1);
-            // kWarm INGEST: re-base the funnel from the PRIOR solve's own
-            // width rather than leaving it at Eq. (9)'s absolute floor,
-            // reusing the SAME Eq.-13-style blend resume_from_restoration
-            // already implements for the restoration-resume case
-            // (globalization.h) -- warm. funnel_width stands in for "the
-            // funnel's own remembered width" and this row's own h0
-            // (violation_l1) stands in for "the point being re-entered at",
-            // both being simultaneously the FIRST reading this solve ever
-            // takes. warm.funnel_width is CLAMPED BELOW by kappa_bar * h0
-            // first -- Eq. (9)'s own floor term, applied to the CURRENT
-            // problem's own h0 -- so a stale or optimistic prior width can
-            // never leave the funnel tighter than fresh evidence at this x
-            // would justify. warm.funnel_width < 0 is warm_start.h's own
-            // "never populated" sentinel and is skipped, exactly like an
-            // absent qp_working_set is above. `warm_state_ingest`: a funnel
-            // width is measured in the units of h(x) on the problem it was
-            // recorded on -- mesh_transfer.h's section 4 declines to
-            // transfer one for exactly that reason -- so a seeded object may
-            // not re-base this solve's funnel and the Eq.-(9) seed at its
-            // own first h0 stands, as on a cold solve.
-            if (warm_state_ingest && warm.funnel_width >= 0.0) {
-                if (auto *funnel = dynamic_cast<FunnelStrategy *>(strategy.get())) {
-                    const double floor = kFunnelKappaBar * row.violation_l1;
-                    funnel->resume_from_restoration(std::max(warm.funnel_width, floor));
-                }
-            }
-            // FULL-STEP-FIRST: the three engagement conditions, checked
-            // exactly here because this is the first point at which the
-            // funnel exists (begin_full_step requires it -- its exit
-            // re-bases a width) and the first at which the iterate is known
-            // measurable. AFTER the width re-basing above, so the mode is
-            // armed over the width the ingest chose. See this header's
-            // FULL-STEP-FIRST WARM RULE note. `warm_state_ingest`: the
-            // Kungurtsev-Diehl full-step-first rule's justification is the
-            // local convergence of a warm start ON THE SAME PROBLEM, which
-            // is precisely the claim a seeded object cannot make, so the
-            // window is never armed from kSeeded.
-            if (warm_state_ingest && opts_.warm_full_step) {
-                if (auto *funnel = dynamic_cast<FunnelStrategy *>(strategy.get())) {
-                    funnel->begin_full_step();
-                    full_step_funnel = funnel;
-                }
-            }
-            funnel_started = true;
-        }
-
-        // THE FULL-STEP WATCHDOG. Placed BEFORE the convergence
-        // test so that a restored iterate is the one this pass records,
-        // tests and steps from -- and placed AFTER the non-finite exit so
-        // `kkt` is known measurable (the mode never steps onto a
-        // non-finite point: globalization.h's judge() still rejects such a
-        // trial while the mode is armed). It runs on the ENGAGING pass
-        // too, which is how the warm start point itself becomes the first
-        // "best iterate".
-        if (full_step_funnel != nullptr) {
-            // THE RANKING IS kkt.residual(), i.e. max(stationarity,
-            // feasibility) -- COMPLEMENTARITY IS DELIBERATELY NOT IN IT,
-            // and the reason is that the watchdog must rank iterates by
-            // exactly the quantity the CONVERGENCE TEST gates on. That
-            // test is `kkt.stationarity <= kkt_tol && kkt.feasibility <=
-            // feas_tol` (just below), and SqpKkt::residual() is its
-            // scalar form; complementarity is MEASURED BUT NOT GATED
-            // throughout this driver (see the CONVERGENCE TEST note's WHAT
-            // IS MEASURED BUT NOT GATED paragraph, and
-            // SqpIterate::complementarity's own "RECORDED, NOT GATED"). A
-            // watchdog ranking on a third term could prefer an iterate the
-            // convergence test rates WORSE, i.e. restore away from the
-            // point this solve is closest to certifying -- which is the
-            // one thing the restore exists not to do.
-            const double residual = kkt.residual();
-            if (residual < fs_best_residual) {
-                fs_best_residual = residual;
-                fs_best_x = x;
-                fs_best_lambda_e = lambda_e;
-                fs_best_lambda_i = lambda_i;
-                fs_best_duals_ingested = duals_ingested; // see its note above
-                fs_best_ev = ev;                         // a COPY; no model evaluation
-                fs_majors_since_best = 0;
-                fs_growth_in_a_row = 0;
-            } else {
-                ++fs_majors_since_best;
-                // STRICT growth only: a major that repeats the same
-                // residual (the routed-QP-failure shape, where the iterate
-                // did not move at all) is a STALL, not a divergence, and
-                // is caught by the window instead.
-                fs_growth_in_a_row = residual > fs_prev_residual ? fs_growth_in_a_row + 1 : 0;
-            }
-            fs_prev_residual = residual;
-
-            if (fs_growth_in_a_row >= kWarmResidualGrowthMax ||
-                fs_majors_since_best >= kWarmFullStepWindow) {
-                // RESTORE THE BEST ITERATE, then hand the solve back to
-                // ordinary funnel globalization AT THAT POINT. The order
-                // is the restoration resume's order, and for the same
-                // reasons -- see that path and the header note.
-                x = std::move(fs_best_x);
-                lambda_e = std::move(fs_best_lambda_e);
-                lambda_i = std::move(fs_best_lambda_i);
-                duals_ingested = fs_best_duals_ingested; // see its note above
-                ev = std::move(fs_best_ev);
-                kkt = evaluate_kkt(seam, ev, x, lambda_e, lambda_i, opts_.feas_tol);
-                measure_iterate();
-                // KLV Eq. (13) re-basing, which ALSO clears the strategy's
-                // own mode flag (globalization.h). Both flags fall
-                // together; nothing re-enters the mode.
-                //
-                // CLAMPED FROM ABOVE BY THE CURRENT WIDTH. Eq. (13) gives
-                // tau_+ = (1-kappa)h + kappa*tau,
-                // which is <= tau IFF h <= tau -- so an UNCLAMPED re-base
-                // at a restored point lying outside its own funnel would
-                // WIDEN it, and the monotonically non-increasing width is
-                // exactly what KLV Thm. 1 case 1 sums. The other two
-                // callers of this hook are each protected already and
-                // neither protection is available here: the restoration
-                // resume only calls it when h_restored <= feas_tol (so
-                // h < tau with room to spare), and the kWarm ingest
-                // clamps its argument from BELOW because there the
-                // argument is a remembered WIDTH rather than an h. The
-                // watchdog's argument is a genuine h at a point chosen by
-                // ||KKT||inf ALONE, and nothing about that choice bounds
-                // its l1 violation -- residual() is an inf-norm measure,
-                // so on a model with many rows an iterate can be the best
-                // by residual and still carry h above the width.
-                //
-                // THE CLAMP LIVES HERE AND NOT IN THE HOOK, deliberately:
-                // globalization.h states that Eq. (13) is transcribed
-                // UNCONDITIONALLY there so that a caller resuming from
-                // outside its own funnel is reported rather than hidden.
-                // This is that caller taking responsibility for its own
-                // argument.
-                //
-                // IT DOES BIND, RARELY, AND IS PINNED. A sweep of 3240
-                // (problem, radius, dual poison, warm-x) combinations over
-                // all 27 shipped HS problems produced 330 watchdog
-                // restores, of which 6 -- on 3 distinct fixtures -- had
-                // h_best above the width. Rare because after any warm
-                // ingest tau >= kFunnelTauBar/2 = 50, so binding needs an
-                // iterate that is simultaneously the BEST by inf-norm
-                // residual and carrying an l1 violation above 50.
-                // tests/sqp/test_warm_start.cpp's WatchdogRebaseNeverWidens-
-                // TheFunnel is one of the three, measured at h_best = 330
-                // against a width of 65.6 (an unclamped re-base there
-                // widens to 198).
-                strategy->resume_from_restoration(
-                    std::min(row.violation_l1, full_step_funnel->width()));
-                full_step_funnel = nullptr;
-                rejections_at_iterate = 0;
-                // The iterate moved (or, on the stall exit, may not have
-                // -- either way the subproblem in hand was built at some
-                // other point or at some other multipliers, so it is
-                // stale).
-                subproblem_is_stale = true;
-                // THE SEED IS KEPT, unlike the restoration resume's (which
-                // drops it because it belongs to a DIFFERENT engine and a
-                // different problem). Here it is this engine's own, and it
-                // carries an ACTIVE-SET GUESS and nothing else -- seed.x
-                // is always zeroed (WARM SEEDING) -- so a guess taken at
-                // the abandoned iterate is exactly as admissible as the
-                // guess every accepted step passes forward. qp_engine.h's
-                // WINDOW-CONSISTENCY RULE drops whatever no longer fits.
-                //
-                // `delta` IS ALSO KEPT, and this is the second deliberate
-                // difference from the restoration resume (which sets it to
-                // restoration_restart_radius()). That reset exists because
-                // a restoration is ENTERED from a collapsed radius -- the
-                // floor route arrives with Delta at tr_min by definition,
-                // and that number is evidence about a model the phase is
-                // no longer solving. NONE OF THAT APPLIES HERE: under the
-                // mode the radius is never shrunk by a rejection (there are
-                // none), so what the watchdog is holding is the ingested
-                // warm radius, possibly grown -- [KD]'s carried-over
-                // globalization state, which is the thing the rule exists
-                // to keep rather than re-derive. It is also the radius the
-                // BEST iterate's own subproblem was solved at whenever the
-                // mode never grew it, which is the common case. The funnel
-                // takes over from there and shrinks it on its own evidence,
-                // as it does everywhere else.
-                ++out.counters.watchdog_restores;
-                // Label THIS row -- the one `measure_iterate()` just
-                // re-took above, so `row` already describes the restored
-                // point -- as the one the watchdog rebased. See
-                // SqpIterate::watchdog_restored's own note for why the
-                // history needs this at all.
-                row.watchdog_restored = true;
-            }
-        }
-
-        // BUDGETED MODE's best-iterate tracking (see the declaration note
-        // above for the ordering and sqp_types.h's
-        // SqpOptions::budget_mode for the full contract). Runs on EVERY
-        // measured pass, AFTER the full-step watchdog above -- so if this
-        // pass just restored an earlier point, the candidate considered
-        // here is that restored point, exactly the one `row` now
-        // describes and the one about to be pushed to history below,
-        // never the abandoned pre-restore point (which leaves no row of
-        // its own on that path -- see the watchdog block's own note).
-        if (opts_.budget_mode) {
-            const bool better = row.violation_l1 < mb_best_h ||
-                                (row.violation_l1 == mb_best_h && row.f < mb_best_f);
-            if (better) {
-                mb_best_h = row.violation_l1;
-                mb_best_f = row.f;
-                mb_best_x = x;
-                mb_best_lambda_e = lambda_e;
-                mb_best_lambda_i = lambda_i;
-                mb_best_kkt = kkt;
-            }
-        }
-
-        // THE BUDGET IS SHARED WITH THE RESTORATION PHASE (sqp_types.h's
-        // SqpOptions note): max_iter bounds subproblems solved across
-        // BOTH, so majors already spent restoring are not available here.
-        //
-        // THE THIRD CONJUNCT IS ARMED ONLY WHILE THE MULTIPLIERS ARE
-        // THE INGESTED ONES. Once a subproblem or a restoration of this
-        // problem has re-priced them, `duals_ingested` is false and the
-        // test reduces to the plain two-conjunct form. The tolerance
-        // is kkt_tol, absolute; see this header's THE INGESTED CERTIFICATE
-        // IS GATED ON COMPLEMENTARITY note for that derivation, for why no
-        // ||lambda_i||-relative form can do the job, and for the scope.
-        const bool converged = kkt.stationarity <= opts_.kkt_tol &&
-                               kkt.feasibility <= opts_.feas_tol &&
-                               (!duals_ingested || kkt.complementarity <= opts_.kkt_tol);
-        // THE CALLER'S PROBE BUDGET (the 4-argument solve()'s own note
-        // has the contract). Evaluated HERE, beside the max_iter test and
-        // after `converged` is already known, which is what gives the
-        // budget its two defining properties: it never costs an answer
-        // already found (converged wins in the disjunction below), and it
-        // never buys another major (this pass has not built a subproblem
-        // yet).
-        const bool probe_exhausted =
-            !converged && minor_budget > 0 &&
-            out.counters.qp_minor_iters + ssn_budget_charge + ipqp_budget_charge >= minor_budget;
-        if (converged || probe_exhausted ||
-            iter + out.counters.restoration_iters >= opts_.max_iter) {
-            push_history(row);
-            if (probe_exhausted) {
-                // The one field that tells this exit apart from an
-                // ordinary max_iter one. Set BEFORE finish() so it
-                // reaches the returned counters and the ledger record.
-                out.counters.probe_budget_stops = 1;
-            }
-            // `!probe_exhausted`: a probe-budget stop takes the ORDINARY
-            // kMaxIter exit below even under budgeted mode, because the
-            // two budgets promise opposite things -- see the 4-argument
-            // solve()'s note, part 4.
-            if (!converged && !probe_exhausted && opts_.budget_mode) {
-                // BUDGETED MODE: report the best-by-(h, f) iterate
-                // rather than the last one. `seed` is only this best
-                // point's own activity when the best iterate IS the
-                // current one (row.violation_l1/row.f just tied the
-                // tracked best on THIS pass) -- otherwise it describes a
-                // point the returned x has moved away from, exactly the
-                // restoration_moved_x reasoning elsewhere in this loop.
-                const bool best_is_current = row.violation_l1 == mb_best_h && row.f == mb_best_f;
-                check_major_pushed_once(iter);
-                return finish(
-                    seam, std::move(out), SqpStatus::kBudgetExhausted, mb_best_x, mb_best_lambda_e,
-                    mb_best_lambda_i, mb_best_kkt, mb_best_f,
-                    make_warm_start(seam, (best_is_current && have_seed) ? &seed : nullptr, qp,
-                                    qp_built, &ev, &x, delta, last_dual_mu, opts_.qp.primal_delta,
-                                    strategy.get(), engine_.hot_state()));
-            }
+        case MajorOutcome::kFinishCurrent:
             // No FRESH subproblem was solved at this exact iterate this
             // pass (the check runs before build_subproblem); `seed` (if
             // any) is the most recent QP solved AT this same x -- see
@@ -3949,1118 +5086,73 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // this x rather than some earlier one.
             check_major_pushed_once(iter);
             return finish(seam, std::move(out),
-                          converged ? SqpStatus::kOptimal : SqpStatus::kMaxIter, x, lambda_e,
-                          lambda_i, kkt, row.f,
+                          mj.converged ? SqpStatus::kOptimal : SqpStatus::kMaxIter, x, lambda_e,
+                          lambda_i, mj.kkt, mj.row.f,
                           make_warm_start(seam, have_seed ? &seed : nullptr, qp, qp_built, &ev, &x,
                                           delta, last_dual_mu, opts_.qp.primal_delta,
                                           strategy.get(), engine_.hot_state()));
-        }
-
-        // THE RESTORATION PHASE. See this header's RESTORATION
-        // PHASE note for every design choice below; only the mechanics are
-        // here. Defined at this point in the loop because it reads `kkt`
-        // and `ev` (the requesting iterate's own measurement, used on the
-        // exits where the phase does not run at all), and called from the
-        // FOUR request sites further down -- three SOURCES: the funnel's
-        // kRestore verdict, the elastic tier's exhaustion, and the radius floor,
-        // reached from a judged rejection and from a routed failure alike.
-        //
-        // Returns true iff the main loop is to RESUME, in which case every
-        // piece of loop state it touches (x, ev, the multipliers, the
-        // radius, the counts and the seed) has already been updated and
-        // the caller's only job is `continue`. On false it has written
-        // restoration_exit_{status,kkt,f} and, where the phase actually
-        // ran, x/lambda_e/lambda_i, for the caller's `return finish(...)`.
-        // A START CANDIDATE (W2 T4) is what a request site OFFERS: the point and,
-        // when the site has ALREADY MEASURED it, its values-only bundle there. A
-        // null `values_ev` is the unmeasured route, the only arm that may query.
-        struct RestorationCandidate {
-            const Vec *x = nullptr;
-            NlpEval *values_ev = nullptr;
-        };
-        auto enter_restoration = [&](RestorationCandidate cand = {}) -> bool {
-            // Reset every call: a solve may enter restoration more than
-            // once (a resumed restoration followed by a second request),
-            // and this flag must describe only THIS call's outcome. See
-            // its declaration above for what it is for.
-            restoration_moved_x = false;
-
-            // Majors already spent, on both phases, at this point.
-            const Index spent = iter + 1 + out.counters.restoration_iters;
-
-            if (!allow_restoration_ || restoration_used) {
-                // The nested case (a restoration solve raising its own
-                // request) and the once-per-solve cap take the SAME exit,
-                // for the same reason: there is a restoration request and
-                // no admissible way to service it. counters.
-                // restoration_iters tells the two apart (0 for the nested
-                // case, nonzero for the cap).
-                restoration_exit_status = SqpStatus::kInfeasible;
-                restoration_exit_kkt = kkt;
-                restoration_exit_f = ev.f;
-                return false;
-            }
-            if (spent >= opts_.max_iter) {
-                // No budget left to restore with. This is a BUDGET
-                // outcome, not an infeasibility one, and is reported as
-                // such rather than borrowing the verdict the phase never
-                // got to render.
-                restoration_exit_status = SqpStatus::kMaxIter;
-                restoration_exit_kkt = kkt;
-                restoration_exit_f = ev.f;
-                return false;
-            }
-            restoration_used = true;
-
-            // THE ONE MODEL IDENTITY READ ON THIS PATH, and it is not an
-            // evaluation. RestorationModel is a Level 1 WRAPPER in the
-            // variables (x, sp, sm, si) built AROUND the problem being solved
-            // -- a different NlpModel, with no aggregate form of its own -- so
-            // it is constructed from the model behind the bridge, taken from
-            // the caller's own handle rather than back out of the seam -- the
-            // seam binds the claim-stream interface, which carries no model.
-            // The nested sub-solve below then goes through the model-taking
-            // solve() overload, which builds the wrapper its OWN bridge and
-            // seam for the duration of that call, exactly as this solve's entry
-            // point did. `feasibility` outlives that call: it is this scope's
-            // local and the sub-solve returns before the scope ends.
-            // THE W0.2 UNIT BOUNDARY, and it is a real one rather than a
-            // precaution. RestorationModel wraps the RAW model behind the
-            // bridge while reading THIS bundle for its slack sigmas and its
-            // start point -- so on a scaled solve the bundle must be mapped
-            // back to the model's own units first, or the wrapper would size
-            // its slacks in one space and evaluate its constraints in another.
-            // A no-op, and a copy elided, when the solve is unscaled.
-            NlpEval resto_ev = ev;
-            seam.to_caller_scale(resto_ev);
-            // THE START, ADOPTED ONLY ON MEASURED EVIDENCE (W2 T4): the phase starts
-            // at an offered candidate iff h THERE is below h at the entry, both read
-            // off the CALLER-scale bundles the wrapper is built from (header note).
-            const Vec *x_start = &x;
-            if (cand.x != nullptr && cand.x->size() == x.size() && cand.x->allFinite()) {
-                const double h_entry = constraint_violation_l1(resto_ev);
-                NlpEval ev_cand;
-                bool take = false;
-                if (cand.values_ev == nullptr) {
-                    // UNMEASURED (the elastic route): the evaluation that
-                    // supplies h is the one the wrapper needs anyway, so the
-                    // guard costs one full eval whether or not it passes.
-                    ev_cand = seam.eval_nlp(*cand.x, lambda_e, lambda_i);
-                    ++out.counters.evals_full;
-                    seam.to_caller_scale(ev_cand);
-                    take = ev_cand.all_finite && jacobian_values_finite(ev_cand) &&
-                           constraint_violation_l1(ev_cand) < h_entry;
-                } else if (cand.values_ev->all_finite) {
-                    // MEASURED (a rejected trial): the guard reads a MAPPED COPY of
-                    // the trial's own values bundle -- no model query, so a refusal
-                    // HERE costs nothing at all.
-                    // THE FINITENESS SCREENS ARE TAKEN AT ENGINE SCALE HERE and after the map on
-                    // the arm above: `to_caller_scale` multiplies by POSITIVE FINITE factors, and
-                    // finiteness is invariant under those, so the two arms screen one predicate.
-                    NlpEval probe = *cand.values_ev;
-                    seam.to_caller_scale(probe);
-                    // AND THE MAP CANNOT MANUFACTURE A TAKE: the row factors are positive, so an
-                    // overflow there can only RAISE this probe's h, which the comparison refuses.
-                    if (constraint_violation_l1(probe) < h_entry) {
-                        // The values-only query already charged is UPGRADED in
-                        // place -- one query RECLASSIFIED, never a second one
-                        // charged (solver_counters.h's EVAL ECONOMICS exception).
-                        seam.refresh_derivatives(*cand.values_ev, *cand.x);
-                        ++out.counters.evals_full;
-                        --out.counters.evals_values;
-                        // Charged even if the finiteness screen below then refuses:
-                        // the query really did fetch the derivatives.
-                        if (cand.values_ev->all_finite && jacobian_values_finite(*cand.values_ev)) {
-                            ev_cand = std::move(*cand.values_ev);
-                            seam.to_caller_scale(ev_cand);
-                            take = true;
-                        }
-                    }
-                }
-                if (take) {
-                    x_start = cand.x;
-                    resto_ev = std::move(ev_cand);
-                    // THE FLAG IS WRITTEN ON THE ROW, NOT ON `history.back()`
-                    // (fix round 1, R9): every request site now pushes AFTER
-                    // this call, so the row carries its final value.
-                    //
-                    // Writing it to the ALREADY-PUSHED row left the emitted
-                    // `sqp.major` line stale by one field.
-                    row.restoration_seed_used = true;
-                }
-            }
-            const RestorationModel feasibility(bridge.model(), *x_start, resto_ev);
-            SqpOptions ropts = opts_;
-            // AND THE SUB-SOLVE RUNS UNSCALED, alongside the budget_mode and
-            // qp_mode forcings just below and for the same kind of reason: the
-            // restoration problem is a DIFFERENT problem (a feasibility one, in
-            // augmented variables), the factors computed for this solve do not
-            // describe it, and re-deriving factors for it would put a second,
-            // independently-scaled space inside one solve for no measured gain.
-            ropts.enable_scaling = false;
-            // The caller's strategy factory is NOT carried; the radius is.
-            // See the header note's WHAT IS CARRIED IN.
-            ropts.make_strategy = {};
-            // BUDGETED MODE NEVER PROPAGATES TO THE RESTORATION
-            // SUB-SOLVE, even when the caller's own solve has it on:
-            // sqp_types.h's SqpOptions::budget_mode SCOPE note says the
-            // lever governs only the MAIN loop's own max_iter exhaustion,
-            // and the sub-solve exhausting its OWN slice of the shared
-            // budget is deliberately still reported as kMaxIter just
-            // below (the "no budget left to restore with" exit, when
-            // spent >= opts_.max_iter, is the same answer). Forcing this
-            // off is what keeps rs.status below able to stay exhaustive
-            // without a reachable kBudgetExhausted arm.
-            ropts.budget_mode = false;
-            // THE RESTORATION SUB-SOLVE RUNS THE WALK, WHATEVER THE CALLER'S
-            // MODE IS. Without this line the copy above would carry `qp_mode`
-            // in with everything else, so a kSsn caller would silently run
-            // the semismooth kernel through the whole restoration phase --
-            // flatly contradicting this header's own WHAT IS NOT ROUTED
-            // THROUGH SSN note, which says the restoration sub-solve stays on
-            // the walk UNCONDITIONALLY, and doing it on a wrapper model
-            // (original plus slack variables, a subgradient-selector
-            // objective) that no fixture in this repository has ever run that
-            // kernel against. The note is the design; this is the
-            // enforcement.
+        case MajorOutcome::kFinishBudgetBest: {
+            // BUDGETED MODE: report the best-by-(h, f) iterate
+            // rather than the last one. `seed` is only this best
+            // point's own activity when the best iterate IS the
+            // current one (row.violation_l1/row.f just tied the
+            // tracked best on THIS pass) -- otherwise it describes a
+            // point the returned x has moved away from, exactly the
+            // restoration_moved_x reasoning elsewhere in this loop.
             //
-            // MEASURED, not merely asserted: `rs.counters.ssn` is folded
-            // below, so deleting this line MOVES a pinned number
-            // (tests/sqp/test_sqp_driver.cpp's
-            // RestorationStaysOnTheWalkUnderKSsn -- 131 SSN iterations and
-            // 234 factorizations with the reset, 140 and 247 without it;
-            // post-escaped-factorization-accumulation figures, matching the
-            // test's pins).
-            ropts.qp_mode = QpMode::kWalk;
-            // THE RADIUS IS CARRIED, BUT NOT BELOW THE RESTART VALUE.
-            // Carrying it is the right default -- it is what the driver
-            // currently trusts the model over. But when the request came
-            // FROM the floor, the radius that arrives here is by
-            // definition collapsed, and it is collapsed as evidence about
-            // the OPTIMALITY model, which is not the model about to be
-            // solved. Starting the feasibility problem there costs one
-            // doubling per order of magnitude before it can move at all:
-            // MEASURED on this file's own circle/line fixture in
-            // refactorize mode, restoration entered at Delta = 1.16e-10
-            // spent 35 majors where the same phase entered at Delta = 1
-            // spends 4. The floor is the same one the resumed loop
-            // restarts at, so the two rules agree.
-            ropts.tr_init =
-                std::isfinite(delta) ? std::max(delta, restoration_restart_radius()) : opts_.tr_max;
-            ropts.tr_max = std::max(opts_.tr_max, ropts.tr_init);
-            ropts.max_iter = opts_.max_iter - spent;
-            SqpDriver sub(ropts, /*allow_restoration=*/false);
-            // THE ONE SINK, SHARED SEQUENTIALLY (plan amendment A): the
-            // sub-solve's own `sqp.solve` pair, rows and tier events land in the
-            // same stream, told apart by the sink-owned `depth`.
-            sub.attach_trace(ipqp_trace_);
-            const SqpSolution rs = sub.solve(feasibility, feasibility.start_point());
-
-            // EVERY WORK counter the sub-solve moved is folded in: the
-            // work was spent (the SOC/elastic convention, ported). Its
-            // majors are the ONE work quantity that gets its own field
-            // rather than joining major_iters -- see SqpCounters.
-            //
-            // steps_accepted AND rejected_steps ARE DELIBERATELY NOT
-            // FOLDED, and that is not an omission: they do not measure
-            // work, they describe WHAT HAPPENED TO THE CALLER'S ITERATE
-            // (how many times it moved, how many times the radius shrank
-            // under it). The sub-solve's acceptances move a point in the
-            // WRAPPER's variables, on a different objective; adding them
-            // would make steps_accepted stop being "the number of times
-            // x moved" -- which is exactly what SqpCounters promises and
-            // what the major_iters identity there is written against.
-            out.counters.restoration_iters += rs.counters.major_iters;
-            out.counters.qp_minor_iters += rs.counters.qp_minor_iters;
-            out.counters.factorizations += rs.counters.factorizations;
-            out.counters.eqp_refine_steps += rs.counters.eqp_refine_steps;
-            out.counters.border_refine_steps += rs.counters.border_refine_steps;
-            out.counters.verdict_refine_steps += rs.counters.verdict_refine_steps;
-            out.counters.suspect_escalations += rs.counters.suspect_escalations;
-            out.counters.symbolic_analyses += rs.counters.symbolic_analyses;
-            out.counters.soc_steps += rs.counters.soc_steps;
-            out.counters.soc_applied += rs.counters.soc_applied;
-            out.counters.soc_qp_infeasible += rs.counters.soc_qp_infeasible;
-            out.counters.soc_rejected += rs.counters.soc_rejected;
-            out.counters.elastic_activations += rs.counters.elastic_activations;
-            out.counters.elastic_escalations += rs.counters.elastic_escalations;
-            // The fallback partition folds exactly as the two above do, so the identities stay
-            // stated over a WHOLE solve. Today the five are identically zero here: restoration
-            // runs at kWalk (`ropts.qp_mode`), which never reaches the certified fallback.
-            out.counters.elastic_from_ipqp_escape += rs.counters.elastic_from_ipqp_escape;
-            out.counters.ipqp_suspicion_disproved += rs.counters.ipqp_suspicion_disproved;
-            out.counters.ipqp_fallback_rung_b += rs.counters.ipqp_fallback_rung_b;
-            out.counters.elastic_rho0_ceiling_hits += rs.counters.elastic_rho0_ceiling_hits;
-            out.counters.elastic_floor_retries += rs.counters.elastic_floor_retries;
-            // The VALUES-only counters ARE folded, exactly like every other
-            // WORK counter above (qp_minor_iters, factorizations, ...):
-            // the sub-solve's own solve_impl runs through the SAME three
-            // call sites the values/full split exists for, so its
-            // split is real work spent evaluating `feasibility`, not a
-            // property of the WRAPPER's variables the way steps_accepted/
-            // rejected_steps are (see the note just below for that
-            // distinction).
-            out.counters.evals_full += rs.counters.evals_full;
-            out.counters.evals_values += rs.counters.evals_values;
-            // The crash-basis counters ARE folded, for the same reason
-            // the values counters are and NOT for the reason the
-            // full-step pair below is omitted. The sub-solve inherits
-            // `crash_basis` from `opts_` like every other lever in ropts,
-            // it is COLD by construction (a fresh 2-arg solve()), and its
-            // own first subproblem therefore gets a crash basis of its
-            // own -- real seeding work, on the feasibility wrapper's
-            // geometry, that this solve caused. It is NOT identically
-            // zero and folding a live quantity is the only honest option:
-            // the restoration wrapper's slack columns start AT their own
-            // lower bound of 0, so a restoration entered with the lever
-            // on seeds every one of them.
-            out.counters.crash_seeded_rows += rs.counters.crash_seeded_rows;
-            out.counters.crash_seeded_bounds += rs.counters.crash_seeded_bounds;
-            // The SSN counters ARE folded, and for the exact OPPOSITE of the
-            // "identically zero, so folding it would only suggest it might not
-            // be" argument the next paragraph makes about the warm-start
-            // pair's counters. They are identically zero too --
-            // `ropts.qp_mode` is reset to kWalk above, so the sub-solve has no
-            // SSN kernel to run -- and folding them is what makes that reset
-            // OBSERVABLE FROM OUTSIDE. THE R6 PAIR IS ZERO FOR A DIFFERENT
-            // REASON, because the sign sweep is NOT conditioned on qp_mode and
-            // does run on this sub-solve: it is zero because the sub-solve is a
-            // WALK solve, and an active-set price is non-negative by the walk's
-            // own drop rule, so there is nothing to clamp. With the fold in place a kSsn solve
-            // that entered restoration reports its main loop's SSN work and
-            // nothing else, and any future change that let the mode leak back
-            // in shows up here as a number instead of as silence. The fold
-            // also keeps the aggregate honest against the factorization fold
-            // above, which does NOT discriminate by kernel: without it,
-            // restoration-nested SSN work would contribute factorizations that
-            // `ssn_iters` denied, breaking sqp_types.h's `ssn_iters <=
-            // factorizations` in the direction that hides work.
-            //
-            // DELETING THIS LINE IS AN EQUIVALENT MUTANT, AND SAYING SO IS
-            // NOT A HOLE IN THE TESTING -- it is the same statement as
-            // "the reset above works", read from the other side. Because
-            // `ropts.qp_mode` is kWalk, `rs.counters.ssn` is all-zero, so
-            // removing this fold changes no observable of the SHIPPED
-            // code. What it removes is a MEASUREMENT: it is only with this
-            // fold present that letting the mode leak back in moves
-            // `ssn_iters` (131 -> 140). The two mutations are therefore
-            // not independent, and the one that matters -- deleting the
-            // reset -- dies on this fixture with or without this line,
-            // since the folded FACTORIZATIONS move too (234 -> 247).
-            accumulate_ssn_counters(out.counters.ssn, rs.counters.ssn);
-            // AND THE IPQP TIER'S, folded for exactly the same reason and
-            // subject to exactly the same argument: `ropts.qp_mode` is kWalk,
-            // so `rs.counters.ipqp` is all-zero (bar the two min-folded alpha
-            // fields, which fold their +inf identity), and this line changes
-            // no observable of the shipped code. What it preserves is the
-            // MEASUREMENT: it is only with the fold present that letting the
-            // mode leak back in would move the tier's counters.
-            accumulate_ipqp_counters(out.counters.ipqp, rs.counters.ipqp);
-            // The full-step-mode counters are deliberately absent from this
-            // fold, and they are absent because they are IDENTICALLY ZERO
-            // on the sub-solve: it runs the 2-arg solve() on a fresh
-            // driver, which is cold by construction, and the full-step
-            // mode never engages on a cold solve. Folding a guaranteed
-            // zero would only suggest it might not be one.
-
-            const Vec x_r = feasibility.original_x(rs.x);
-            NlpEval ev_r =
-                x_r.allFinite() ? seam.eval_nlp(x_r, rs.lambda_e, rs.lambda_i) : NlpEval{};
-            if (x_r.allFinite()) {
-                ++out.counters.evals_full;
-            }
-            const SqpKkt kkt_r = x_r.allFinite() ? evaluate_kkt(seam, ev_r, x_r, rs.lambda_e,
-                                                                rs.lambda_i, opts_.feas_tol)
-                                                 : SqpKkt{};
-            if (!x_r.allFinite() || !kkt_r.finite) {
-                // The restoration walked somewhere the main model cannot
-                // be measured. The iterate is NOT moved there -- the
-                // requesting point is returned instead, with the
-                // multipliers cleared, exactly as the non-finite-iterate
-                // exit above does and for the same reason: nothing was
-                // measured, so nothing may be reported as evidence.
-                lambda_e.setZero();
-                lambda_i.setZero();
-                restoration_exit_status = SqpStatus::kNumericalError;
-                restoration_exit_kkt = kkt;
-                restoration_exit_f = ev.f;
-                return false;
-            }
-            const double h_r = constraint_violation_l1(ev_r);
-
-            if (h_r <= opts_.feas_tol) {
-                // RESUME. The order here is the header note's order.
-                x = x_r;
-                ev = std::move(ev_r);
-                // The multipliers in hand price the WRAPPER's constraints
-                // (they are subgradient selectors in [-1,1], not NLP
-                // prices); the first main-loop QP re-estimates them.
-                lambda_e.setZero();
-                lambda_i.setZero();
-                // The ingested duals are gone here too, so the ingest-scoped
-                // complementarity gate disarms with them. Behaviourally this
-                // line is inert -- complementarity is max_j |lambda_i(j)
-                // cI_j| and lambda_i has just been zeroed, so the armed
-                // conjunct would pass anyway -- but the flag's declared
-                // invariant ("TRUE while lambda are still the multipliers
-                // this solve INGESTED") must be TRUE rather than merely
-                // harmless, which is the same doc-vs-code discipline every
-                // declared invariant here is held to.
-                duals_ingested = false;
-                // KLV Algorithm 2's re-basing, NOT reset() -- see
-                // globalization.h::resume_from_restoration. It also CLEARS
-                // the full-step mode on the strategy, so the driver's own
-                // mirror of that flag is cleared with it: a restoration is
-                // definitive evidence against the mode's premise, and the
-                // solve comes back out fully globalized.
-                strategy->resume_from_restoration(h_r);
-                full_step_funnel = nullptr;
-                delta = restoration_restart_radius();
-                rejections_at_iterate = 0;
-                qp_failures_in_a_row = 0;
-                subproblem_is_stale = true;
-                // The outer engine's seed describes an active set at the
-                // ABANDONED iterate; the sub-solve ran on its own engine
-                // and its working set is a different problem's.
-                have_seed = false;
-                return true;
-            }
-
-            // NOT FEASIBLE ENOUGH: the phase's other outcome. The restored
-            // point and the restoration's own multipliers are what is
-            // returned -- on the kOptimal arm they are the SUBGRADIENT
-            // CERTIFICATE (sqp_types.h's SqpSolution note); on the others
-            // they are the best evidence available at that point and not a
-            // certificate. The status does not encode which, deliberately:
-            // a caller that needs the distinction checks the certificate
-            // (four lines -- tests/sqp/test_sqp_restoration.cpp does exactly
-            // that) rather than reading it off a bool bolted on
-            // here.
-            x = x_r;
-            // The point being reported is now the RESTORED point, which
-            // no in-loop QpSolution (qs/seed) was ever solved at -- see
-            // this flag's own declaration note.
-            restoration_moved_x = true;
-            lambda_e = rs.lambda_e;
-            lambda_i = rs.lambda_i;
-            // AND THEY ARRIVE ALREADY IN THE CALLER'S UNITS (M6 W0.2). The
-            // sub-solve above ran with `ropts.enable_scaling = false` over the
-            // RAW model, so these selectors -- and `rs.z` below -- carry no
-            // factor of this solve's. The export boundary is told so, and skips
-            // the ENGINE->CALLER map for exactly these blocks; applying it
-            // would divide a caller-scale price by `sf` a second time.
-            restoration_exit_multipliers_are_caller_scale = true;
-            // The ingested duals are gone -- these are the restoration
-            // sub-solve's own subgradient selectors -- so the ingest-scoped
-            // complementarity gate disarms with them.
-            duals_ingested = false;
-            restoration_exit_kkt = kkt_r;
-            // THE BOUND PRICE MUST COME FROM THE RESTORATION PROBLEM, not
-            // from kkt_r. evaluate_kkt reports z = grad L at an active
-            // bound, and grad L carries grad f -- which is exactly the
-            // term a subgradient certificate of h must NOT contain. The
-            // sub-solve's own z is the price of the SAME box in the
-            // feasibility problem, whose objective has no x-block, so its
-            // x-part is precisely the normal-cone component of
-            // Je^T lambda_e + Ji^T lambda_i. Without this the certificate
-            // fails on every problem whose infeasible stationary point
-            // sits on a bound -- MEASURED: the box-blocked equality
-            // fixture reports z = 0 and a residual of 1 where the
-            // certificate calls for z = -1 and 0.
-            restoration_exit_kkt.z = feasibility.original_x(rs.z);
-            restoration_exit_f = ev_r.f;
-            switch (rs.status) {
-            case SqpStatus::kOptimal:
-                // THE CERTIFIED EXIT, AND THE ONLY ONE: the feasibility
-                // problem's own KKT test passed (residual <= kkt_tol)
-                // while h > feas_tol. Byrd-Curtis-Nocedal rapid
-                // detection. This is the single place the certified flag
-                // is ever set, and it is set on nothing else -- see
-                // sqp_types.h's SqpSolution note for why the status,
-                // the counters and the history cannot carry this fact.
-                restoration_exit_status = SqpStatus::kInfeasible;
-                out.infeasibility_certified = true;
-                break;
-            case SqpStatus::kInfeasible:
-                // The sub-solve raised a restoration request of its own,
-                // which nothing can service (nested restoration is not
-                // allowed): the feasibility problem is itself stuck. NO
-                // CLAIM is made about the model.
-                restoration_exit_status = SqpStatus::kInfeasible;
-                break;
-            case SqpStatus::kMaxIter:
-                restoration_exit_status = SqpStatus::kMaxIter;
-                break;
-            case SqpStatus::kNumericalError:
-                restoration_exit_status = SqpStatus::kNumericalError;
-                break;
-            case SqpStatus::kBudgetExhausted:
-                // UNREACHABLE: ropts.budget_mode is forced false just
-                // above, so this sub-solve never runs budgeted and
-                // rs.status can never be this value -- kept only to
-                // preserve the switch's exhaustiveness (the map_status
-                // convention, ported: an arm that cannot fire is still
-                // enumerated rather than left to a default). Mapped to
-                // kMaxIter defensively, exactly what it would have been
-                // reported as had budget_mode not been forced off.
-                restoration_exit_status = SqpStatus::kMaxIter;
-                break;
-            }
-            return false;
-        };
-
-        // REBUILT ONLY WHEN THE ITERATE MOVED. A rejection re-solves this
-        // very object -- same H/g bytes, so the engine's hot-start reuse
-        // key survives the retry (see WARM SEEDING) and no eval_hess is
-        // paid for it.
-        // A TRUST-REGION SHRINK-RETRY IS EXACTLY A PASS THAT DID NOT REBUILD:
-        // same H/g bytes, smaller `delta`. Spec 5.1's amendment D makes it a
-        // warm restart rather than a fresh subproblem, so the tier re-enters
-        // with the previous attempt's state and the retry charges nothing to
-        // the section 6.1 ladder.
-        const bool tr_shrink_retry = !subproblem_is_stale;
-        if (subproblem_is_stale) {
-            qp = seam.build_subproblem(ev, x, lambda_e, lambda_i, 1.0);
-            subproblem_is_stale = false;
-            qp_built = true;
+            // COMPUTED BEFORE THE CHECK, on the row and the snapshot this major
+            // finished writing, so the comparison is the one it always was.
+            const bool best_is_current = mj.row.violation_l1 == mb_best_h && mj.row.f == mb_best_f;
+            check_major_pushed_once(iter);
+            return finish(seam, std::move(out), SqpStatus::kBudgetExhausted, mb_best_x,
+                          mb_best_lambda_e, mb_best_lambda_i, mb_best_kkt, mb_best_f,
+                          make_warm_start(seam, (best_is_current && have_seed) ? &seed : nullptr,
+                                          qp, qp_built, &ev, &x, delta, last_dual_mu,
+                                          opts_.qp.primal_delta, strategy.get(),
+                                          engine_.hot_state()));
         }
-
-        SolveOverrides overrides;
-        overrides.tr_radius = delta;
-        // ADAPTIVE DUAL REGULARIZATION (see the header note above).
-        // `kkt` is this loop pass's measurement of the CURRENT iterate,
-        // taken before this subproblem is built -- exactly "the previous
-        // major's" residual by the time this trial is solved.
-        //
-        // The second conjunct is a MODE gate: at `qp_mode == QpMode::kWalk`
-        // -- the shipped default -- neither tier bool is set and this
-        // expression is exactly `opts_.adaptive_mu`. Under kSsn the schedule
-        // is off for the whole solve; see this header's WHY THE ADAPTIVE-mu
-        // SCHEDULE IS OFF UNDER kSsn note for the derivation and for why the
-        // scope is the solve rather than the SSN call alone.
-        //
-        // kIpm DOES NOT INHERIT kSsn's SCOPE (settler ruling, fix round 1,
-        // plan section 7 note q). The kSsn note's ARGUMENT applies to the
-        // tier itself -- `(rho, delta)` perturb the Newton system only, the
-        // residual test is on the UNREGULARIZED problem, and
-        // `SolveOverrides::dual_mu` is a field the tier validates and
-        // deliberately does not read, so the schedule would cost iterations
-        // and buy nothing there. It does NOT apply to the walk, and under
-        // kIpm the walk can be the WHOLE SOLVE: every major can decline (a
-        // model with a pinned variable), or the tier can retire at major 3.
-        // Those walk subproblems carry exactly the `dual_mu * |lambda|`
-        // footprint the schedule exists for, and `adaptive_mu` defaults ON --
-        // silently disabling a lever the caller never touched is not
-        // something a mode selection may do. So the schedule is off for the
-        // subproblems the TIER solves (and for the SSN warm grade that
-        // follows a tier exit, which leaves the pair at its sentinels exactly
-        // as the kSsn arm does), and every walk subproblem under kIpm runs
-        // with the caller's own levers.
-        const bool adaptive_mu_active = opts_.adaptive_mu && !ssn_mode;
-        if (adaptive_mu_active) {
-            const double mu_raw = (iter == 0)
-                                      ? kAdaptiveMuMax
-                                      : std::clamp(kAdaptiveMuKappa * std::pow(kkt.residual(), 1.5),
-                                                   kAdaptiveMuMin, kAdaptiveMuMax);
-            overrides.dual_mu = std::pow(10.0, std::round(std::log10(mu_raw)));
-        }
-        row.mu = adaptive_mu_active ? overrides.dual_mu : opts_.qp.dual_mu;
-        last_dual_mu = row.mu; // this trial's EFFECTIVE dual_mu; see the declaration note
-        // ... and under kIpm it is CORRECTED after the dispatch, once the kernel that solved
-        // this row is known. `last_dual_mu` is deliberately NOT corrected -- it names the WALK
-        // configuration the exported warm start was produced under, the hot-state reuse key.
-
-        // The hot handle is offered ONLY on this solve's very FIRST
-        // subproblem (iter == 0) -- every later major on this same
-        // engine_ already benefits from its OWN instance-level border_
-        // persistence (qp_engine.h's HOT-START REUSE note), so
-        // re-offering `warm.hot` there would be a no-op at best. Whether
-        // the engine actually reuses anything is entirely its own call
-        // (conditions (a)-(e)); this driver never inspects the handle's
-        // contents, only whether it is present.
-        const bool offer_hot = iter == 0 && resolved_level == StartLevel::kHot;
-        // THE CRASH BASIS, CONSUMED. One-shot, at the FIRST subproblem
-        // this solve builds and nowhere else: from the second subproblem
-        // on, `have_seed` is true and the seed is the previous QP's own
-        // answer, which is strictly better information than any estimate
-        // read off the geometry. `crash_pending` is cleared whether or not
-        // the seed found anything, so a solve whose first subproblem is
-        // retried at a shrunken radius does not re-derive it.
-        bool use_crash = false;
-        if (crash_pending) {
-            crash_pending = false;
-            // ACCUMULATED, not assigned: a restoration sub-solve's own
-            // seed counts fold into these same two fields (see the fold
-            // block above), so writing them would make this site's
-            // ordering relative to that fold load-bearing. It is not,
-            // today -- every enter_restoration() call site sits after this
-            // solve -- and this keeps it from becoming so.
-            Index seeded_rows = 0;
-            Index seeded_bounds = 0;
-            use_crash = !have_seed && crash_basis_seed(qp, opts_.feas_tol, crash_seed, seeded_rows,
-                                                       seeded_bounds);
-            out.counters.crash_seeded_rows += seeded_rows;
-            out.counters.crash_seeded_bounds += seeded_bounds;
-        }
-
-        // THE QP KERNEL DISPATCH -- THE SECTION 2.3 ROUTING CHAIN, whose contract is
-        // docs/notes/2026-08-m6-w1-ipqp-spec.md section 2.3 as amended. A `switch` with NO
-        // `default:` label, so `-Wswitch` still sees a missing arm; the count is pinned below.
-        //
-        // THE WALK IS THE LAST BRANCH, NEVER THE ORDINARY SUCCESSOR (Amendment A), and
-        // `mj.walk_owns_this_qp` is what says so. Its initializer is SAFE rather than
-        // convenient: an unhandled mode falls to the walk, not to a default kOptimal `qs`.
-        //
-        // THE PER-MAJOR ROUTING BUNDLE, built HERE -- see `MajorState`'s own note for why
-        // this point and not the loop top, and for what joins it at cut (c).
-        MajorState mj;
-        // `qs` and the rung-A report are named through ALIASES because the rest of this
-        // major has many uses of each; cut (c) turns those uses into `mj.` as the
-        // blocks around them become functions in their turn.
-        QpSolution &qs = mj.qs;
-        std::optional<ElasticLadderReport> &fallback_report = mj.fallback_report;
-        // THE ENUMERATOR COUNT, PINNED -- and it is a COUNT, not a spot check
-        // on the last name (fix round 3). `QpMode::kQpModeCount` sits at the
-        // end of the enum for this one purpose, so a mode appended ABOVE it
-        // moves this value and stops the build; an assertion on `kIpm == 2`
-        // could not do that, because appending AFTER kIpm left kIpm alone.
-        static_assert(static_cast<int>(QpMode::kQpModeCount) == 3,
-                      "add a case to the qp_mode switch: QpMode gained an enumerator, so this "
-                      "dispatch no longer handles every mode. Give the new one an arm below and "
-                      "then update this count. The switch has no `default:` label on purpose (it "
-                      "would defeat -Wswitch, which is what flags the missing arm), and the "
-                      "`walk_owns_this_qp` initializer above sends an unhandled mode to the walk "
-                      "rather than to a default-constructed QpSolution.");
-        switch (opts_.qp_mode) {
-        case QpMode::kWalk:
-            break;
-        case QpMode::kSsn:
-            route_through_ssn_tier(st, mj);
-            break;
-        case QpMode::kIpm:
-            route_through_ipqp_tier(st, mj, seam, iter, tr_shrink_retry, overrides, row,
-                                    row_qp_mode);
-            break;
-        case QpMode::kQpModeCount:
-            // NOT A MODE, enumerated so `-Wswitch` stays live on a real fourth
-            // one (see the sentinel's own doc comment). Unreachable: the
-            // constructor's `validate_sqp_options` refuses this value, and
-            // `qp_mode` cannot change during a solve.
-            throw std::invalid_argument(
-                "SqpDriver: qp_mode == QpMode::kQpModeCount reached the QP kernel dispatch -- it "
-                "is the enumerator-count sentinel and names no kernel, and validate_sqp_options "
-                "refuses it at construction");
-        }
-        // `SqpIterate::mu` REPORTS WHAT THE KERNEL THAT SOLVED THIS ROW USED. Under kIpm the
-        // schedule stays on for the walk subproblems and off for the tier's own, so the value
-        // is a per-row fact; corrected here because the dispatch is where it becomes known.
-        if (mj.ipqp_chain_owns_the_step) {
-            row.mu = opts_.qp.dual_mu;
-        }
-        if (mj.walk_owns_this_qp) {
-            solve_with_walk(st, mj, warm, overrides, offer_hot, use_crash, row_qp_mode);
-        }
-        if (offer_hot) {
-            // start_level_used RECORDS WHAT WAS OBSERVED, not merely what was
-            // offered (see the WARM-START INGEST note above). This reads
-            // qs.counters.k0_reused -- qp_engine.h's OWN report of whether its
-            // reuse gate (conditions (a)-(e)) actually judged the cache
-            // trustworthy -- rather than inferring reuse from
-            // `qp_factorizations == 0`, which can be zero for reasons that
-            // have nothing to do with hot-start reuse at all (an empty reduced
-            // system with nothing to factorize, or a crossed-bounds box
-            // reported kInfeasible before the loop ever runs). Any OTHER
-            // outcome -- a values-hash mismatch, a different effective
-            // (primal_delta, dual_mu) pair, a seed working set the engine's
-            // own border stack did not already match, or a stale generation --
-            // silently degrades to kWarm here, never throws and never
-            // mis-reports.
-            //
-            // A subproblem the SSN tier certified was never offered the
-            // hot handle at all (SsnEngine has no hot-state seam), and
-            // ssn_result_to_qp_solution leaves `k0_reused` at its default
-            // false -- so such a solve degrades to kWarm right here, which
-            // is precisely what was OBSERVED: no cached factorization was
-            // reused, because none was consulted.
-            out.counters.start_level_used =
-                qs.counters.k0_reused ? StartLevel::kHot : StartLevel::kWarm;
-        }
-
-        out.counters.major_iters = iter + 1;
-        // full_step_majors: counted here, alongside major_iters and on exactly the
-        // same event (a subproblem was solved), so full_step_majors <=
-        // major_iters holds by construction -- see its own note in
-        // sqp_types.h for why a routed failure counts too.
-        if (full_step_funnel != nullptr) {
-            ++out.counters.full_step_majors;
-        }
-        out.counters.qp_minor_iters += qs.counters.minor_iters;
-        out.counters.factorizations += qs.counters.factorizations;
-        out.counters.eqp_refine_steps += qs.counters.eqp_refine_steps;
-        out.counters.border_refine_steps += qs.counters.border_refine_steps;
-        out.counters.verdict_refine_steps += qs.counters.verdict_refine_steps;
-        out.counters.suspect_escalations += qs.counters.suspect_escalations;
-        out.counters.symbolic_analyses += qs.counters.symbolic_analyses;
-
-        // THE ELASTIC TIER. See this header's ELASTIC TIER note
-        // for every design choice below; only the mechanics are here.
-        // This is the ONLY consumer of QpStatus::kInfeasible in the
-        // driver.
-        // A RUNG-A-OWNED MAJOR IS AN ELASTIC MAJOR TOO: the certified fallback's own ladder
-        // answered, so the row marks it (SOC is gated on !elastic_applied) and reads the
-        // ladder's counts below. `fallback_report` is engaged here iff that happened.
-        bool elastic_applied = fallback_report.has_value();
-        bool rho0_ceiling_hit = fallback_report && fallback_report->rho0_ceiling_hit;
-        if (qs.status == QpStatus::kInfeasible) {
-            // The window the ORIGINAL solve was given, folded into the
-            // elastic problem's own box: `delta` is what the driver
-            // passed through SolveOverrides, and opts_.qp.tr_radius is
-            // what the engine would have resolved the +inf sentinel to.
-            // FINITE on the shipped path: `delta` starts at tr_init.
-            const double window = std::min(delta, opts_.qp.tr_radius);
-            const ElasticSeedSource elastic_seed_source{&qs, nullptr};
-            // CONSUMED, NEVER RE-RUN: `++elastic_activations` lives inside the ladder, so a
-            // second run on the fallback's own report would double-charge the activation.
-            const ElasticLadderReport report =
-                fallback_report
-                    ? std::move(*fallback_report)
-                    : run_elastic_ladder(engine_, qp, elastic_seed_source, window, opts_,
-                                         out.counters, std::nullopt, ipqp_trace_);
-            rho0_ceiling_hit = report.rho0_ceiling_hit;
-
-            if (!report.usable) {
-                row.qp_solved = true;
-                row.elastic_applied = true;
-                row.elastic_rho0_ceiling_hit = rho0_ceiling_hit;
-                row.qp_status = report.qp_status;
-                row.qp_minor_iters = report.qp_minor_iters;
-                row.qp_factorizations = report.qp_factorizations;
-                // DIAGNOSTIC ONLY, exactly as on a routed-failure row: no
-                // step was taken from here.
-                row.step_norm = report.step_norm;
-                row.verdict = StepVerdict::kRestore;
-                // THE ELASTIC CANDIDATE (amendment F): `p_elastic` is a STEP,
-                // so the offer is x + p clamped into the wrapper's own box; a
-                // ZERO step is no offer -- it IS x, and "taken" would be a lie.
-                const bool have_p = report.p_elastic.size() == n &&
-                                    report.p_elastic.lpNorm<Eigen::Infinity>() > 0.0;
-                const Vec x_elastic = have_p ? Vec((x + report.p_elastic)
-                                                       .cwiseMax(bridge.model().lower())
-                                                       .cwiseMin(bridge.model().upper()))
-                                             : Vec();
-                RestorationCandidate elastic_cand;
-                if (have_p) {
-                    elastic_cand.x = &x_elastic;
-                }
-                // T3-A: after a refusal that walked to kInfeasible, `report` is
-                // the SECOND ladder's (floor rho), so this offer is its step.
-                // KLV Algorithm 5's authoritative trigger.
-                //
-                // PUSHED AFTER THE CALL (R9): the call decides
-                // `row.restoration_seed_used`, and the row must reach both
-                // `history` and the stream with its final value.
-                const bool elastic_restored = enter_restoration(elastic_cand);
-                push_history(row);
-                if (elastic_restored) {
-                    continue;
-                }
-                // qs_e (the elastic re-solve) is in the AUGMENTED
-                // (original + slack) variable space, so it is never a
-                // valid activity source here -- fall back to `seed`
-                // (unless restoration moved x away from what it
-                // describes; see restoration_moved_x's own note).
-                check_major_pushed_once(iter);
-                return finish(
-                    seam, std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
-                    restoration_exit_kkt, restoration_exit_f,
-                    make_warm_start(seam, (!restoration_moved_x && have_seed) ? &seed : nullptr, qp,
-                                    qp_built, &ev, &x, delta, last_dual_mu, opts_.qp.primal_delta,
-                                    strategy.get(), engine_.hot_state()),
-                    restoration_exit_multipliers_are_caller_scale);
-            }
-
-            qs = elastic_project(report.elastic, qp, report.qs_e,
-                                 /*carry_multipliers=*/report.closed);
-            elastic_applied = true;
-        }
-
-        row.qp_solved = true;
-        row.elastic_applied = elastic_applied;
-        row.elastic_rho0_ceiling_hit = rho0_ceiling_hit;
-        row.qp_status = qs.status;
-        // THE LADDER'S OWN COUNTS ON A RUNG-A-OWNED MAJOR: the fallback clears `qs.counters` to
-        // keep the totals exact, so the report is where this row's two diagnostics live.
-        row.qp_minor_iters =
-            fallback_report ? fallback_report->qp_minor_iters : qs.counters.minor_iters;
-        row.qp_factorizations =
-            fallback_report ? fallback_report->qp_factorizations : qs.counters.factorizations;
-        row.step_norm = qs.x.size() > 0 ? qs.x.lpNorm<Eigen::Infinity>() : 0.0;
-        row.tr_binding =
-            std::any_of(qs.tr_active.begin(), qs.tr_active.end(), [](bool b) { return b; });
-
-        // THE MODE-SELECTION TELEMETRY (M6 W4 T3), here because THIS is where
-        // `qs` is this major's answer -- the same statement block that gives
-        // `tr_binding` its meaning, which is the rule the six fields carry.
-        census_major_activity(qp, qs, prev_ineq_active, prev_bound_state, activity_slack, row);
-        prev_ineq_active = qs.ineq_active;
-        prev_bound_state = qs.bound_state;
-        out.counters.active_set_delta_total += row.active_set_delta;
-        out.counters.active_set_delta_peak =
-            std::max(out.counters.active_set_delta_peak, row.active_set_delta);
-        out.counters.weak_active_peak =
-            std::max(out.counters.weak_active_peak, row.weak_active_rows);
-        out.counters.near_active_peak =
-            std::max(out.counters.near_active_peak, row.near_active_rows);
-
-        if (qs.status != QpStatus::kOptimal) {
-            // SUBPROBLEM FAILURE ROUTING (see this header's note). A
-            // failure that still handed back a usable iterate is a
-            // property of THIS SUBPROBLEM AT THIS RADIUS, and the loop
-            // already owns the instrument that changes it without moving
-            // the iterate. Note what is NOT done: the returned step is
-            // never taken and never judged -- the strategy is not
-            // consulted at all, because there is no certified step to
-            // judge -- so `row.verdict` keeps its kReject default, which
-            // is the accurate description of what happened to this trial.
-            if (qp_failures_in_a_row == 0 && qp_failure_is_retryable(qp, qs, opts_.feas_tol)) {
-                ++qp_failures_in_a_row;
-                ++rejections_at_iterate;
-                ++out.counters.rejected_steps;
-                // THE RADIUS FLOOR applies to a ROUTED failure
-                // exactly as to a judged rejection: both are "the radius
-                // was shrunk here and the iterate did not move", and the
-                // floor is a statement about the radius, not about which
-                // mechanism last lowered it.
-                if (shrink_hits_floor(delta)) {
-                    // PUSHED AFTER THE CALL (R9), as at every request site.
-                    const bool restored = enter_restoration();
-                    push_history(row);
-                    if (restored) {
-                        continue;
-                    }
-                    // `qs` is THIS failed solve's own activity, in the
-                    // ORIGINAL variable space, describing the region
-                    // around x -- see WARM SEEDING above for why that is
-                    // meaningful even though the solve failed. Not used
-                    // if restoration moved x away from it.
-                    check_major_pushed_once(iter);
-                    return finish(seam, std::move(out), restoration_exit_status, x, lambda_e,
-                                  lambda_i, restoration_exit_kkt, restoration_exit_f,
-                                  make_warm_start(seam, restoration_moved_x ? nullptr : &qs, qp,
-                                                  qp_built, &ev, &x, delta, last_dual_mu,
-                                                  opts_.qp.primal_delta, strategy.get(),
-                                                  engine_.hot_state()),
-                                  restoration_exit_multipliers_are_caller_scale);
-                }
-                push_history(row);
-                delta = shrunk_radius(delta);
-                // Seeded from the FAILED solve's ACTIVE SET. On
-                // kNumericalError the engine clears the multipliers
-                // (qp_engine.h's exit semantics), so the seed carries
-                // activity only -- which is all warm seeding uses, and
-                // which on this path is the point: the engine's own
-                // start-of-solve inertia repair sees a working set the
-                // failed solve had to walk to, and can act on it at
-                // iter == 0 where it could not mid-solve.
-                seed = std::move(qs);
-                seed.x.setZero(); // never re-center the radius; see WARM SEEDING
-                have_seed = true;
-                continue;
-            }
-            push_history(row);
+        case MajorOutcome::kFinishQpFailure:
             // No restoration was consulted on this path -- x is still
-            // the pre-trial iterate `qs` was solved at, so its own
+            // the pre-trial iterate `mj.qs` was solved at, so its own
             // activity (bound_state/ineq_active) is exactly the region
             // around the point being returned.
             check_major_pushed_once(iter);
+            return finish(seam, std::move(out), map_status(mj.qs.status), x, lambda_e, lambda_i,
+                          mj.kkt, mj.row.f,
+                          make_warm_start(seam, &mj.qs, qp, qp_built, &ev, &x, delta, last_dual_mu,
+                                          opts_.qp.primal_delta, strategy.get(),
+                                          engine_.hot_state()));
+        case MajorOutcome::kFinishRestorationSeed:
+            // THE ELASTIC REQUESTER'S ACTIVITY SOURCE IS `seed`, NOT `qs`: qs_e
+            // (the elastic re-solve) is in the AUGMENTED (original + slack)
+            // variable space, so it is never a valid activity source there.
+            // This is the one restoration exit that falls back to the prior
+            // seed, which is why it has a tag of its own (unless restoration
+            // moved x away from what the seed describes; see
+            // restoration_moved_x's own note).
+            check_major_pushed_once(iter);
             return finish(
-                seam, std::move(out), map_status(qs.status), x, lambda_e, lambda_i, kkt, row.f,
-                make_warm_start(seam, &qs, qp, qp_built, &ev, &x, delta, last_dual_mu,
-                                opts_.qp.primal_delta, strategy.get(), engine_.hot_state()));
-        }
-        qp_failures_in_a_row = 0;
-
-        // THE TRIAL POINT, VALUES ONLY FIRST (the eval-economics
-        // rule). globalization.h's judge() reads StepContext, and every
-        // field of it (f_old/f_new/h_old/h_new/pred_df/tr_active/
-        // rejections_at_iterate -- confirmed against globalization.h's
-        // own struct) comes from f/cE/cI or from the QP already solved,
-        // NEVER from a gradient or a Jacobian; build_soc_subproblem below
-        // reads only ev.ce/ev.ci and ev_trial.ce/ev_trial.ci for the same
-        // reason. So the trial is evaluated through eval_nlp_values here,
-        // and stays that way through every REJECTED outcome (including a
-        // rejected-then-SOC-rejected one) -- on a rejection-heavy
-        // fixture this is the entire saving, since the rejected majority
-        // never pays for a gradient or a Jacobian it was always going to
-        // throw away. ONE EXCEPTION IS AN ACCEPTANCE (a second, the
-        // restoration seed, is at the request sites below): an accepted
-        // trial's `ev_trial` becomes the next iterate's `ev` (see MODEL
-        // EVALUATION), which the convergence test and the next
-        // subproblem both need in full -- so the direct-accept branch
-        // below (the ACCEPTED... section's `else`) upgrades it in place
-        // (upgrade_to_full) the moment that is known, and a SOC-promoted
-        // acceptance upgrades `ev_soc` instead, right where its own
-        // promotion is decided -- `ev_trial` in that case is never
-        // upgraded at all, because nothing downstream ever reads it
-        // again.
-        const Vec x_trial = x + qs.x;
-        NlpEval ev_trial = seam.eval_nlp_values(x_trial);
-
-        StepContext ctx;
-        ctx.f_old = ev.f;
-        ctx.f_new = ev_trial.f;
-        ctx.h_old = row.violation_l1;
-        ctx.h_new = constraint_violation_l1(ev_trial);
-        ctx.pred_df = predicted_decrease(qp, qs.x);
-        ctx.tr_active = row.tr_binding;
-        ctx.rejections_at_iterate = rejections_at_iterate;
-
-        // KLV ALGORITHM 2'S ||d|| = 0 SHORT-CIRCUIT (see kZeroStepScale
-        // for why this is here and not left to the convergence test at
-        // the top of the loop). The trust-region conjunct is not
-        // decoration: a step held AT zero by a radius that has shrunk to
-        // nothing is not evidence of a KKT point, and its z would be the
-        // radius talking (qp_problem.h's STATIONARITY CAVEAT). A step
-        // that is zero because the SUBPROBLEM's answer is zero has the
-        // radius strictly inactive.
-        const double x_scale = std::max(1.0, x.lpNorm<Eigen::Infinity>());
-        const bool zero_step = !row.tr_binding && row.step_norm <= kZeroStepScale * x_scale;
-
-        StepVerdict verdict = zero_step ? StepVerdict::kAcceptF : strategy->judge(ctx);
-
-        // SECOND-ORDER CORRECTION. See this header's note for
-        // the derivation and every design choice below; only the
-        // mechanics are here. Gated on the ORIGINAL verdict, never on a
-        // routed QP failure (this code is unreached there -- see the
-        // note).
-        bool soc_applied = false;
-        NlpEval ev_soc;    // filled iff soc_applied
-        QpSolution qs_soc; // filled iff soc_applied
-        Vec x_soc;         // filled iff soc_applied
-        if (verdict == StepVerdict::kReject && opts_.enable_soc && !elastic_applied &&
-            ctx.h_new > ctx.h_old) {
-            ++out.counters.soc_steps;
-
-            // See build_soc_subproblem's own doc for the formula; ev.ce/
-            // ev.ci (cE(x)/cI(x)) and ev_trial.ce/ev_trial.ci (cE(x+p)/
-            // cI(x+p)) are both already in hand (see MODEL EVALUATION),
-            // so constructing the rhs shift costs NO EXTRA MODEL
-            // EVALUATION -- it is the RE-SOLVE below, on acceptance,
-            // that costs one (see the header note's cost accounting).
-            const QpProblem soc_qp = build_soc_subproblem(qp, ev, ev_trial, qs.x, qs.ineq_active);
-
-            // Warm-started from the REJECTED solve's own activity, at the
-            // SAME radius -- see the note for why this is a hot start.
-            QpSolution seed_soc = qs; // COPY: `qs` is still needed below
-            seed_soc.x.setZero();
-            SolveOverrides soc_overrides;
-            soc_overrides.tr_radius = delta;
-            qs_soc = engine_.solve(soc_qp, seed_soc, soc_overrides);
-            // ONE LINE FOR THE CORRECTION'S OWN WALK (M6 W4 T5), at `site`
-            // `soc_resolve`: it runs INSIDE a major whose dispatch line is
-            // already written, so it is priced by `soc_steps`, not by majors.
-            if (ipqp_trace_ != nullptr) {
-                QpModeTraceEvent mev;
-                mev.mode = IpqpTraceQpMode::kWalk;
-                mev.outcome = trace_outcome_of(qs_soc.status);
-                mev.iters = qs_soc.counters.minor_iters;
-                mev.site = QpModeSite::kSocResolve;
-                emit_trace_qp_mode(mev);
-            }
-
-            out.counters.qp_minor_iters += qs_soc.counters.minor_iters;
-            out.counters.factorizations += qs_soc.counters.factorizations;
-            out.counters.eqp_refine_steps += qs_soc.counters.eqp_refine_steps;
-            out.counters.border_refine_steps += qs_soc.counters.border_refine_steps;
-            out.counters.verdict_refine_steps += qs_soc.counters.verdict_refine_steps;
-            out.counters.suspect_escalations += qs_soc.counters.suspect_escalations;
-            out.counters.symbolic_analyses += qs_soc.counters.symbolic_analyses;
-
-            if (qs_soc.status == QpStatus::kOptimal) {
-                x_soc = x + qs_soc.x; // NOT x_trial + qs_soc.x; see the note
-                // VALUES ONLY FIRST, same reasoning as x_trial above:
-                // soc_ctx below reads only f/h, so judge() never needs a
-                // derivative at x_soc either.
-                ev_soc = seam.eval_nlp_values(x_soc);
-
-                StepContext soc_ctx;
-                soc_ctx.f_old = ev.f;
-                soc_ctx.f_new = ev_soc.f;
-                soc_ctx.h_old = row.violation_l1;
-                soc_ctx.h_new = constraint_violation_l1(ev_soc);
-                soc_ctx.pred_df = ctx.pred_df; // UNCHANGED; see the note
-                soc_ctx.tr_active = row.tr_binding;
-                soc_ctx.rejections_at_iterate = rejections_at_iterate;
-
-                const StepVerdict soc_verdict = strategy->judge(soc_ctx);
-                if (soc_verdict == StepVerdict::kAcceptF || soc_verdict == StepVerdict::kAcceptH) {
-                    soc_applied = true;
-                    verdict = soc_verdict;
-                    ctx = soc_ctx;
-                    ++out.counters.soc_applied;
-                    // UPGRADE TO FULL: promoted, so `ev_soc` becomes the
-                    // next iterate's `ev` below (the `soc_applied`
-                    // branch of ACCEPTED), which needs the derivatives
-                    // the values-only evaluation above skipped -- in
-                    // place, not a second eval_f/eval_ce/ eval_ci (see
-                    // upgrade_to_full's own note).
-                    seam.refresh_derivatives(ev_soc, x_soc);
-                    ++out.counters.evals_full;
-                } else {
-                    // The corrected point is ALSO not accepted (a
-                    // kReject, or -- not promoted -- a kRestore); fall
-                    // through with the ORIGINAL verdict below. `ev_soc`
-                    // is discarded values-only -- it never becomes
-                    // anyone's `ev`, so it never earns the upgrade
-                    // above.
-                    ++out.counters.soc_rejected;
-                    ++out.counters.evals_values;
-                }
-            } else {
-                // The SOC re-solve itself failed (qs_soc.status !=
-                // kOptimal); fall through with the ORIGINAL verdict
-                // below. qs_soc/ev_soc/x_soc are unused.
-                ++out.counters.soc_qp_infeasible;
-            }
-        }
-
-        // `ev_trial`'s OWN FATE is now decided -- verdict and
-        // soc_applied are both final. It is UPGRADED (evals_full, at the
-        // direct-accept branch further below) only when this trial is
-        // accepted WITHOUT a promoted SOC correction; every other
-        // outcome -- rejected, restored, or accepted THROUGH SOC (whose
-        // OWN ev_soc, evaluated at a DIFFERENT point, becomes the next
-        // `ev` instead) -- leaves `ev_trial` values-only, unless restoration
-        // takes that trial as its seed and upgrades it there (W2 T4).
-        if (soc_applied ||
-            !(verdict == StepVerdict::kAcceptF || verdict == StepVerdict::kAcceptH)) {
-            ++out.counters.evals_values;
-        }
-
-        row.verdict = verdict;
-        row.soc_applied = soc_applied;
-        // THE PUSH IS PER-BRANCH (R9): the two branches that may request
-        // restoration must call first, because the call decides
-        // `row.restoration_seed_used` and a pushed row is already in the stream.
-        if (verdict == StepVerdict::kReject) {
-            // SHRINK AND RE-SOLVE THE SAME ITERATE. The multipliers this
-            // subproblem priced are DISCARDED -- they belong to a step
-            // that was not taken, and using them would move the Hessian
-            // (and so the model) at an iterate that never moved. ONE
-            // rejection is charged for the pair even when SOC was
-            // attempted above -- see the note.
-            ++rejections_at_iterate;
-            ++out.counters.rejected_steps;
-            // THE RADIUS FLOOR -- KLV Algorithm 4's alpha_min
-            // trigger in trust-region form. The shrink is NOT taken and
-            // NOT clamped: crossing the floor IS the request. See RADIUS
-            // MANAGEMENT.
-            if (shrink_hits_floor(delta)) {
-                // THE REJECTED TRIAL IS THE OFFER, and its own values bundle is the
-                // measurement -- the ORIGINAL trial's, since a PROMOTED SOC
-                // correction would have left `verdict` an accept.
-                const bool restored = enter_restoration({&x_trial, &ev_trial});
-                push_history(row);
-                if (restored) {
-                    continue;
-                }
-                // `qs` is the REJECTED trial's own (kOptimal) solution,
-                // still describing the region around x (x has not moved
-                // -- unless restoration itself moved it; see
-                // restoration_moved_x's own note).
-                check_major_pushed_once(iter);
-                return finish(seam, std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
-                              restoration_exit_kkt, restoration_exit_f,
-                              make_warm_start(seam, restoration_moved_x ? nullptr : &qs, qp,
-                                              qp_built, &ev, &x, delta, last_dual_mu,
-                                              opts_.qp.primal_delta, strategy.get(),
-                                              engine_.hot_state()),
-                              restoration_exit_multipliers_are_caller_scale);
-            }
-            push_history(row);
-            delta = shrunk_radius(delta);
-            seed = std::move(qs);
-            seed.x.setZero(); // never re-center the radius; see WARM SEEDING
-            have_seed = true;
-            continue;
-        }
-
-        if (verdict == StepVerdict::kRestore) {
-            // The funnel's own restoration signature (globalization.h's
-            // five conjuncts). Same offer as the floor site above, and SOC is
-            // equally out of the picture here (it is gated on kReject).
-            const bool restored = enter_restoration({&x_trial, &ev_trial});
-            push_history(row);
-            if (restored) {
-                continue;
-            }
-            // Same reasoning as the kReject/floor exit just above: `qs`
-            // still describes x unless restoration moved it.
+                seam, std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
+                restoration_exit_kkt, restoration_exit_f,
+                make_warm_start(seam, (!restoration_moved_x && have_seed) ? &seed : nullptr, qp,
+                                qp_built, &ev, &x, delta, last_dual_mu, opts_.qp.primal_delta,
+                                strategy.get(), engine_.hot_state()),
+                restoration_exit_multipliers_are_caller_scale);
+        case MajorOutcome::kFinishRestorationQp:
+            // THE OTHER THREE REQUESTERS HAND BACK A QP IN THE ORIGINAL
+            // VARIABLES -- a failed solve's activity at the floor, or the
+            // rejected trial's own kOptimal solution -- and it still describes
+            // the region around x unless restoration itself moved x; see
+            // restoration_moved_x's own note.
             check_major_pushed_once(iter);
             return finish(seam, std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
                           restoration_exit_kkt, restoration_exit_f,
-                          make_warm_start(seam, restoration_moved_x ? nullptr : &qs, qp, qp_built,
-                                          &ev, &x, delta, last_dual_mu, opts_.qp.primal_delta,
-                                          strategy.get(), engine_.hot_state()),
+                          make_warm_start(seam, restoration_moved_x ? nullptr : &mj.qs, qp,
+                                          qp_built, &ev, &x, delta, last_dual_mu,
+                                          opts_.qp.primal_delta, strategy.get(),
+                                          engine_.hot_state()),
                           restoration_exit_multipliers_are_caller_scale);
         }
-
-        push_history(row);
-
-        // ACCEPTED (kAcceptF or kAcceptH), possibly via SOC. The radius
-        // grows only on the evidence described in RADIUS MANAGEMENT, and
-        // it is computed BEFORE the move so `ev` is still the old
-        // iterate's. ctx.pred_df/row.tr_binding are ALWAYS the ORIGINAL
-        // QP's -- see the SECOND-ORDER CORRECTION note on why pred_df is
-        // not recomputed from p_soc -- so this growth test is unaffected
-        // by whether SOC fired; only ctx.f_new (hence actual_df) differs.
-        //
-        // std::isfinite(delta) is not decoration: at the +inf "no trust
-        // region" setting min(+inf * 2, tr_max) is tr_max, so an unguarded
-        // growth rule would SHRINK the radius the one time it is not
-        // supposed to touch it (see the constructor's tr_max note).
-        const double actual_df = ev.f - ctx.f_new;
-        if (row.tr_binding && std::isfinite(delta) && ctx.pred_df > 0.0 &&
-            actual_df >= kTrGrowThreshold * ctx.pred_df) {
-            delta = std::min(delta * kTrGrowFactor, opts_.tr_max);
-        }
-
-        if (soc_applied) {
-            x = x_soc;
-            ev = std::move(ev_soc); // already upgraded to full -- see the promotion above
-            lambda_e = qs_soc.lambda_e;
-            lambda_i = qs_soc.lambda_i;
-            duals_ingested = false; // re-priced by this solve's own QP
-            seed = std::move(qs_soc);
-        } else {
-            // UPGRADE TO FULL: a DIRECT acceptance (no SOC, or
-            // SOC ran and was not promoted -- either way `verdict` is
-            // kAcceptF/kAcceptH and `ev_trial` is what becomes `ev`
-            // below), so the values-only evaluation above is not enough
-            // -- fill in its derivatives in place (upgrade_to_full;
-            // f/cE/cI are NOT recomputed). This is the one place this
-            // task's saving is given back: one eval_grad/eval_jac_e/
-            // eval_jac_i on every ACCEPTED trial (never a rejected one,
-            // which is the overwhelming majority on a rejection-heavy
-            // fixture), because nlp_model.h deliberately adds no third
-            // "derivatives only, values already known" entry point.
-            x = x_trial;
-            seam.refresh_derivatives(ev_trial, x_trial);
-            ++out.counters.evals_full;
-            ev = std::move(ev_trial);
-            lambda_e = qs.lambda_e;
-            lambda_i = qs.lambda_i;
-            duals_ingested = false; // re-priced by this solve's own QP
-            seed = std::move(qs);
-        }
-        ++out.counters.steps_accepted;
-        rejections_at_iterate = 0;
-        subproblem_is_stale = true;
-        // Active set only -- never the previous step. See this header's
-        // WARM SEEDING note: seed.x is the engine's trust-region CENTER,
-        // and in step variables that center must be p = 0.
-        seed.x.setZero();
-        have_seed = true;
     }
 }
 
