@@ -591,3 +591,23 @@ depended on the split and each stands on its own:
 2. **`bench_corpus` keeps its HS suite**, `--repeat`, `--hs-cells`,
    `--hs-trace` and `--hs-warmup`. Bench-only; no library effect.
 3. The engineering notes and measurement protocol amendments.
+
+---
+
+## T7 — header comments only: **NOTHING CHANGED FOR YOU**
+
+**No API break, no behaviour change, no symbol change.** M6 W5 T7 rewrote the
+comments in the ten largest headers: the operative contracts — ordering,
+ownership and lifetime, exceptions, numerical constraints, and what is emitted
+when something is absent — stay beside their declarations in terse Doxygen, and
+the discussion prose that used to surround them moved, verbatim and stamped with
+its source commit, path and original line numbers, to
+`docs/notes/2026-09-header-prose-archive.md`. If a comment you were reading is
+no longer in the header, it is in that file under the header's own section. One
+non-comment change rides the task: thirteen dead `friend` declarations naming
+test harnesses and gtest classes that no longer exist were removed — twelve from
+`include/hven/drivers/interior_point_solver.h`, and the twin (plus its forward
+declaration) from
+`include/hven/detail/globalization/feasibility_switch_recovery.h`. A friend
+declaration emits nothing, so every object in the library and in the test suites
+is byte-identical across the task.
