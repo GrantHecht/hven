@@ -17,9 +17,9 @@
 //        call sites are the ones it names, and nothing in the type system says
 //        so.
 //
-//        The scan reads BOTH sqp_driver.cpp and sqp_kernels.cpp (cut (d) split
-//        them; see `scanned_files()`) and requires every `QpEngine::solve` / SSN
-//        `solve` / `refine_on_face` in EITHER to be emitted or `// trace:`-marked.
+//        The scan reads src/drivers/sqp_driver.cpp and requires every
+//        `QpEngine::solve` / SSN `solve` / `refine_on_face` invocation to be
+//        covered by a nearby emit or by an explicit `// trace:` marker.
 //
 //        A site added later then fails this test rather than going silently
 //        unrepresented. Precedent: tests/core/test_core_layering.cpp.
@@ -34,7 +34,6 @@
 #include <sstream>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -46,9 +45,6 @@
 
 #ifndef HVEN_SQP_DRIVER_SOURCE
 #error "HVEN_SQP_DRIVER_SOURCE must be defined by tests/sqp/CMakeLists.txt"
-#endif
-#ifndef HVEN_SQP_KERNELS_SOURCE
-#error "HVEN_SQP_KERNELS_SOURCE must be defined by tests/sqp/CMakeLists.txt"
 #endif
 
 namespace hven::solvers {
@@ -349,43 +345,16 @@ struct Marker {
     std::string reason;
 };
 
-std::vector<std::string> read_source(const char *path) {
+std::vector<std::string> read_driver_source() {
     std::vector<std::string> lines;
-    std::ifstream in{std::filesystem::path(path)};
-    EXPECT_TRUE(in.good()) << "could not open " << path;
+    std::ifstream in{std::filesystem::path(HVEN_SQP_DRIVER_SOURCE)};
+    EXPECT_TRUE(in.good()) << "could not open " << HVEN_SQP_DRIVER_SOURCE;
     std::string l;
     while (std::getline(in, l)) {
         lines.push_back(l);
     }
     return lines;
 }
-
-/// THE SCANNED SET, named once, and it is TWO FILES since M6 W5 T6 cut (d).
-///
-/// The rule this file enforces -- every kernel invocation either writes a
-/// `qp.mode` line or carries a marker saying why it is silent -- is a property
-/// of the DRIVER'S KERNEL CALLS, not of one path. Cut (d) moved the elastic
-/// ladder and the certified fallback into `sqp_kernels.cpp`, taking three
-/// `engine.solve(...)` sites and their three emits with them. Scanning only the
-/// driver after that split would not have caught a regression in the moved
-/// bodies; it would simply have stopped looking at them, which is the failure
-/// mode this file's own vacuous-pass guards exist to prevent. So the set is
-/// both halves, scanned INDEPENDENTLY -- the pairing is count-matched in FILE
-/// order, and two files have two file orders.
-struct ScannedFile {
-    const char *name;
-    const char *path;
-};
-
-const std::vector<ScannedFile> &scanned_files() {
-    static const std::vector<ScannedFile> kFiles = {
-        {"sqp_driver.cpp", HVEN_SQP_DRIVER_SOURCE},
-        {"sqp_kernels.cpp", HVEN_SQP_KERNELS_SOURCE},
-    };
-    return kFiles;
-}
-
-std::vector<std::string> read_driver_source() { return read_source(HVEN_SQP_DRIVER_SOURCE); }
 
 bool is_comment_line(const std::string &l) {
     const auto first = l.find_first_not_of(" \t");
@@ -562,59 +531,28 @@ TEST(QpModeSiteScan, TheScanActuallyReadsTheDriverAndFindsItsKernelCalls) {
     // THE VACUOUS-PASS GUARD, and it comes first for the reason
     // tests/core/test_core_layering.cpp's does: a wrong path, a renamed file or
     // a missing definition would make the rule below check nothing and pass.
-    // BOTH halves of cut (d)'s split are guarded, and a missing kernels TU is
-    // as fatal as a missing driver -- the set is the rule's subject.
-    for (const ScannedFile &f : scanned_files()) {
-        ASSERT_TRUE(std::filesystem::is_regular_file(std::filesystem::path(f.path)))
-            << f.name << " does not name a file: " << f.path;
-    }
+    ASSERT_TRUE(std::filesystem::is_regular_file(std::filesystem::path(HVEN_SQP_DRIVER_SOURCE)))
+        << "HVEN_SQP_DRIVER_SOURCE does not name a file: " << HVEN_SQP_DRIVER_SOURCE;
 
     const std::vector<std::string> lines = read_driver_source();
     ASSERT_GT(lines.size(), 1000u) << "the driver TU is far shorter than it should be";
 
-    // THE SITE COUNT IS OVER BOTH FILES, and the per-file split is printed so a
-    // future move between them reads as a move rather than as a loss. Cut (d)
-    // took three `engine.solve(...)` sites out of the driver with the ladder and
-    // the fallback; the total is what this bound is about.
-    std::size_t total_sites = 0;
-    std::string per_file;
-    for (const ScannedFile &f : scanned_files()) {
-        const std::size_t n = call_sites(read_source(f.path)).size();
-        total_sites += n;
-        per_file += "\n  " + std::string(f.name) + ": " + std::to_string(n);
-    }
-    EXPECT_GE(total_sites, 10u) << "the scan found only " << total_sites
-                                << " kernel call sites across the scanned set, which means the "
-                                   "reader is broken, not that the driver stopped solving QPs"
-                                << per_file;
+    const std::vector<CallSite> sites = call_sites(lines);
+    EXPECT_GE(sites.size(), 10u) << "the scan found only " << sites.size()
+                                 << " kernel call sites in the driver, which means the reader is "
+                                    "broken, not that the driver stopped solving QPs";
 
     Index emits = 0;
-    for (const ScannedFile &f : scanned_files()) {
-        for (const std::string &l : read_source(f.path)) {
-            emits += is_emit_call(l) ? 1 : 0;
-        }
+    for (const std::string &l : lines) {
+        emits += is_emit_call(l) ? 1 : 0;
     }
     EXPECT_GE(emits, 5) << "no qp.mode emits found -- the pairing rule would be vacuous";
 
     // BOTH COVERAGE KINDS MUST BE IN USE, or a rule that only ever sees one of
     // them is not the rule this file claims to enforce.
-    //
-    // MARKERS ARE SCANNED PER FILE AND POOLED for the reporting below, so a
-    // marker written in the kernels TU is bound and orphan-checked there rather
-    // than going unread. The 4-marker floor is over the SET: all four live in
-    // the driver today, and the kernels TU carries none because all three of its
-    // call sites emit.
-    std::vector<Marker> markers;
-    std::vector<std::string> malformed;
-    std::vector<std::pair<const ScannedFile *, MarkerScan>> per_file_markers;
-    for (const ScannedFile &f : scanned_files()) {
-        MarkerScan m = scan_markers(read_source(f.path));
-        markers.insert(markers.end(), m.markers.begin(), m.markers.end());
-        for (const std::string &bad : m.malformed) {
-            malformed.push_back(std::string(f.name) + ": " + bad);
-        }
-        per_file_markers.emplace_back(&f, std::move(m));
-    }
+    const MarkerScan ms = scan_markers(lines);
+    const std::vector<Marker> &markers = ms.markers;
+    const std::vector<std::string> &malformed = ms.malformed;
     EXPECT_GE(markers.size(), 4u) << "no silent markers found -- that arm of the rule is dead";
 
     // AND NO LINE MAY CLAIM TO BE A MARKER WITHOUT BEING ONE. An empty or
@@ -637,24 +575,19 @@ TEST(QpModeSiteScan, TheScanActuallyReadsTheDriverAndFindsItsKernelCalls) {
     // A NEW ENTRY IS A THING TO QUESTION: it says a kernel ran and the stream
     // does not know.
     std::string listing;
-    std::string orphan_report;
-    for (const auto &[f, ms] : per_file_markers) {
-        const std::vector<CallSite> file_sites = call_sites(read_source(f->path));
-        for (const Marker &m : ms.markers) {
-            listing +=
-                "\n  " + std::string(f->name) + ":" + std::to_string(m.line) + "  " + m.reason;
-        }
-        // Every marker must CONSUME a call site IN ITS OWN FILE, or it is
-        // decoration that has drifted away from the call it once explained. The
-        // binding is one-to-one, so this reads it rather than re-deriving it.
-        const MarkerBinding binding = bind_markers(file_sites, ms.markers);
-        for (const Marker &m : binding.orphans) {
-            orphan_report +=
-                "\n  " + std::string(f->name) + ":" + std::to_string(m.line) + "  " + m.reason;
-        }
+    for (const Marker &m : markers) {
+        listing += "\n  sqp_driver.cpp:" + std::to_string(m.line) + "  " + m.reason;
     }
     std::cout << "qp.mode SILENT CALL SITES (" << markers.size() << "):" << listing << "\n";
-    EXPECT_TRUE(orphan_report.empty())
+    // Every marker must CONSUME a call site, or it is decoration that has drifted
+    // away from the call it once explained. The binding is one-to-one, so this
+    // reads it rather than re-deriving it.
+    const MarkerBinding binding = bind_markers(sites, markers);
+    std::string orphan_report;
+    for (const Marker &m : binding.orphans) {
+        orphan_report += "\n  sqp_driver.cpp:" + std::to_string(m.line) + "  " + m.reason;
+    }
+    EXPECT_TRUE(binding.orphans.empty())
         << "a silent marker must sit within " << kMarkerBefore
         << " lines above the call it explains, and CONSUMES that one call. These claimed none "
            "-- either they have drifted, or a nearer call took the marker they were written for:"
@@ -662,79 +595,59 @@ TEST(QpModeSiteScan, TheScanActuallyReadsTheDriverAndFindsItsKernelCalls) {
 }
 
 TEST(QpModeSiteScan, EveryKernelCallSitePairsWithItsOwnQpModeEmit) {
-    // PER FILE, because the pairing is COUNT-MATCHED IN FILE ORDER and two
-    // files have two file orders. The non-vacuity assertions below are
-    // aggregated across the set instead: cut (d)'s kernels TU has three
-    // emitting sites and NO silent markers, which is a fact about that file,
-    // not a dead arm of the rule.
-    std::size_t total_sites = 0;
-    std::size_t total_emitting = 0;
-    Index total_silent = 0;
+    const std::vector<std::string> lines = read_driver_source();
+    const std::vector<CallSite> sites = call_sites(lines);
+    ASSERT_FALSE(sites.empty());
+
+    const auto emits_in = [&](int from, int to) {
+        Index n = 0;
+        for (int j = from; j < to && j < static_cast<int>(lines.size()); ++j) {
+            n += is_emit_call(lines[static_cast<std::size_t>(j)]) ? 1 : 0;
+        }
+        return n;
+    };
+
+    // THE EMITTING SITES, in file order. A site that CONSUMED a marker drops out
+    // here and pays nothing; its marker is checked, printed and bound by the test
+    // above, so it is accounted for -- just not by the emit count.
+    //
+    // The binding is ONE-TO-ONE (fix round 2), so a second call sharing a
+    // marker's window does not share its silence: it is emitting, and it lands
+    // in this list.
+    const MarkerBinding binding = bind_markers(sites, scan_markers(lines).markers);
+    std::vector<CallSite> emitting;
+    Index silent = 0;
+    for (std::size_t k = 0; k < sites.size(); ++k) {
+        if (binding.marker_of_site[k] >= 0) {
+            ++silent;
+        } else {
+            emitting.push_back(sites[k]);
+        }
+    }
+    ASSERT_FALSE(emitting.empty());
+    ASSERT_GT(silent, 0) << "non-vacuous: the silent arm of the rule is exercised";
+
     std::vector<std::string> problems;
-
-    for (const ScannedFile &file : scanned_files()) {
-        const std::vector<std::string> lines = read_source(file.path);
-        const std::vector<CallSite> sites = call_sites(lines);
-        ASSERT_FALSE(sites.empty()) << file.name << " has no kernel call sites at all";
-        total_sites += sites.size();
-
-        const auto emits_in = [&](int from, int to) {
-            Index n = 0;
-            for (int j = from; j < to && j < static_cast<int>(lines.size()); ++j) {
-                n += is_emit_call(lines[static_cast<std::size_t>(j)]) ? 1 : 0;
-            }
-            return n;
-        };
-
-        // THE EMITTING SITES, in file order. A site that CONSUMED a marker drops out
-        // here and pays nothing; its marker is checked, printed and bound by the test
-        // above, so it is accounted for -- just not by the emit count.
-        //
-        // The binding is ONE-TO-ONE (fix round 2), so a second call sharing a
-        // marker's window does not share its silence: it is emitting, and it lands
-        // in this list.
-        const MarkerBinding binding = bind_markers(sites, scan_markers(lines).markers);
-        std::vector<CallSite> emitting;
-        Index silent = 0;
-        for (std::size_t k = 0; k < sites.size(); ++k) {
-            if (binding.marker_of_site[k] >= 0) {
-                ++silent;
-            } else {
-                emitting.push_back(sites[k]);
-            }
+    // Nothing may emit before the first call site: such an emit belongs to no
+    // invocation at all.
+    if (const Index before = emits_in(0, emitting.front().first - 1); before != 0) {
+        problems.push_back("an emit appears BEFORE the first kernel call site (" +
+                           std::to_string(before) + " of them)");
+    }
+    for (std::size_t k = 0; k < emitting.size(); ++k) {
+        const CallSite &s = emitting[k];
+        const int stop =
+            (k + 1 < emitting.size()) ? emitting[k + 1].first - 1 : static_cast<int>(lines.size());
+        const Index found = emits_in(s.last, stop);
+        if (found == 1) {
+            continue;
         }
-        ASSERT_FALSE(emitting.empty()) << file.name << " has no EMITTING kernel call site";
-        total_emitting += emitting.size();
-        total_silent += silent;
-
-        // Nothing may emit before the first call site: such an emit belongs to no
-        // invocation at all.
-        if (const Index before = emits_in(0, emitting.front().first - 1); before != 0) {
-            problems.push_back(std::string(file.name) +
-                               ": an emit appears BEFORE the first kernel call site (" +
-                               std::to_string(before) + " of them)");
-        }
-        for (std::size_t k = 0; k < emitting.size(); ++k) {
-            const CallSite &s = emitting[k];
-            const int stop = (k + 1 < emitting.size()) ? emitting[k + 1].first - 1
-                                                       : static_cast<int>(lines.size());
-            const Index found = emits_in(s.last, stop);
-            if (found == 1) {
-                continue;
-            }
-            problems.push_back(std::string(file.name) + ":" + std::to_string(s.first) +
-                               (s.last != s.first ? "-" + std::to_string(s.last) : "") +
-                               ": expected exactly 1 qp.mode emit before the next EMITTING kernel "
-                               "call, found " +
-                               std::to_string(found) + "  |" + s.text);
-        }
-
-    } // for each scanned file
-
-    // NON-VACUITY, AGGREGATED OVER THE SET rather than required of each file.
-    ASSERT_GT(total_sites, 0u);
-    ASSERT_GT(total_emitting, 0u);
-    ASSERT_GT(total_silent, 0) << "non-vacuous: the silent arm of the rule is exercised";
+        problems.push_back("sqp_driver.cpp:" + std::to_string(s.first) +
+                           (s.last != s.first ? "-" + std::to_string(s.last) : "") +
+                           ": expected exactly 1 qp.mode emit before the next EMITTING kernel "
+                           "call, found " +
+                           std::to_string(found) + "  |" + s.text);
+    }
 
     std::string report;
     for (const std::string &p : problems) {

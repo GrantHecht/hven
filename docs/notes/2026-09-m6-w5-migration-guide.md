@@ -530,71 +530,64 @@ are both fine, at tycho's discretion — neither is forced.
 
 ---
 
-## T6 — the SQP driver's kernels move to their own TU (`src/drivers/sqp_kernels.cpp`)
+## T6 — the SQP driver's kernels TU: **PROPOSED, MEASURED, AND ABANDONED**
 
-Landed as `refactor(drivers): M6 W5 T6.d commit 3` (the TU), with
-`commit 2` (the two hand-off guards to internal linkage) immediately before it.
+**NOTHING CHANGED FOR YOU. There is no migration, because the change was
+reverted before it ever reached a release.** This entry exists because the guide
+records what happened in the window, and a consumer who saw the intermediate
+commits on `m6` — or a symbol table taken from one of them — should be able to
+find out what they were looking at.
 
-### What changed
+### What was proposed
 
-**Nothing you can name, and that is the entry.** This is a translation-unit
-split inside the library. No public header changed, no declared symbol was added
-to or removed from `include/hven/drivers/sqp_driver.h`, and no behaviour moved.
-It is recorded here because W5's other entries record breaks and a reader
-comparing two `libhven.a` symbol tables across this window will see one new
-name — so the entry exists to say that the name is not for you.
+M6 W5 T6 cut (d) moved six definitions out of `src/drivers/sqp_driver.cpp` into
+a new `src/drivers/sqp_kernels.cpp`: `run_elastic_ladder`,
+`certified_feasibility_fallback` (both keeping the external linkage and the
+public-header declarations they already had), the three helpers that serve only
+them, and the anonymous-namespace `trace_outcome_of`, which would have become
+`hven::solvers::detail::trace_outcome_of(QpStatus)` declared in a
+SOURCE-PRIVATE header under `src/` — never installed, never public API.
 
-1. **Six definitions moved out of `src/drivers/sqp_driver.cpp` into
-   `src/drivers/sqp_kernels.cpp`**: `run_elastic_ladder`,
-   `certified_feasibility_fallback`, and the four helpers that serve only them
-   (`elastic_initial_rho`, `elastic_evidence_seed`, `emit_qp_mode_line`,
-   `trace_outcome_of`). Both kernels keep the external linkage and the
-   declarations they already had in `hven/drivers/sqp_driver.h`. **If you call
-   either one, nothing changes** — same signature, same header, same library,
-   same behaviour. They were never inlinable across a TU boundary for you
-   anyway: they are defined in a `.cpp` and only declared in the header, so
-   every call you have ever made was already a relocated call to an external
-   symbol.
+It landed at `f47da07` and was **reverted**. It was an experiment with a veto
+from the day it was designed, not a decision being undone.
 
-2. **One anonymous-namespace helper became a named function with external
-   linkage**: `hven::solvers::detail::trace_outcome_of(QpStatus)`, mapping a QP
-   status to an `IpqpTraceOutcome`. **It is not public API, and there is no
-   consumer migration.** Its declaration lives in
-   `src/drivers/sqp_kernels_internal.h` — a SOURCE-PRIVATE header under `src/`,
-   included by exactly two implementation TUs and **not installed**. Its
-   external linkage exists solely because the split runs between its callers.
+### Why it was abandoned (owner's ruling, 2026-09-07)
 
-   Why a header under `src/` rather than under `include/hven/detail/`: the
-   install step copies `include/hven/**/*.h` wholesale, `detail/` included, so
-   a header placed anywhere under `include/` becomes a shipped file whatever its
-   directory name suggests. Under `src/` it cannot be installed at all, and
-   `scripts/check_install_smoke.sh` proves its absence from the install tree at
-   every landing.
+The experiment ran to its answer, and the answer was no on both halves:
 
-3. **Two free functions in `sqp_driver.cpp` took internal linkage**:
-   `assert_ssn_warm_grade_window` and `assert_ipqp_hand_off_window`. Both had
-   external linkage and **no declaration anywhere in the tree** — an accident,
-   not a surface: nothing could legally have named them, and nothing did. Their
-   symbols are gone from `libhven.a`.
+* **Runtime**: LAYOUT-MOVED, but ipm was not FLAT at **1.0098**, and the
+  cumulative post-T3 ipm reading came out at **1.0121** — **outside the ±0.5 %
+  corpus bar**.
+* **Build**: the pre-registered threshold FAILED — two-TU parallel span
+  **0.9718** against a required ≤ 0.85, and serial compile CPU went **×1.604**.
+  This library's build is dominated by a per-TU header-parse floor, not by file
+  length, and splitting a TU duplicates that floor.
+* REDRAW was not indicated: there was no cheaper boundary that would have
+  changed either number.
 
-4. **The library gained one source file**, so `_hven_expected_source_count`
-   moved 41 → 42. If you build hven via `add_subdirectory`, nothing is required
-   of you; the count is an internal configure-time guard.
+### What this means for a consumer
 
-### What did NOT change
+* `hven::solvers::run_elastic_ladder` and
+  `hven::solvers::certified_feasibility_fallback` are where they always were,
+  declared in `hven/drivers/sqp_driver.h`, with the same signatures and the same
+  behaviour. They never moved as far as any released artifact is concerned.
+* **`hven::solvers::detail::trace_outcome_of` DOES NOT EXIST.** If you saw it in
+  a symbol table taken from `f47da07`, it was internal, it was never public API,
+  and it is gone.
+* `src/drivers/sqp_kernels.cpp` and `src/drivers/sqp_kernels_internal.h` do not
+  exist. The library's source count is back to 41.
 
-The public surface of `hven/drivers/sqp_driver.h`; both kernels' signatures,
-semantics and declarations; every counter, every trace event and every
-`SqpIterate` field; the elastic and certified-fallback contracts pinned in W2.
-The compile-flag regime is unchanged and uniform across both halves (verified as
-an effective-flags diff of the actual compile commands, not as a configuration
-claim), the new TU is PCH-opted-out exactly as `sqp_driver.cpp` is, and LTO was
-OFF before and after and was not touched.
+### What did NOT go back
 
-### If you are diffing symbol tables across this window
+Three things from the same task are DELIBERATELY KEPT, because none of them
+depended on the split and each stands on its own:
 
-Expect, in `libhven.a`: `hven::solvers::detail::trace_outcome_of(QpStatus)`
-ADDED (item 2 — internal, do not call it), and
-`hven::solvers::assert_ssn_warm_grade_window(...)` /
-`hven::solvers::assert_ipqp_hand_off_window(...)` REMOVED (item 3 — they were
-never callable). Both kernels are present before and after, unchanged.
+1. **The two hand-off guards keep INTERNAL linkage.**
+   `assert_ssn_warm_grade_window` and `assert_ipqp_hand_off_window` had external
+   linkage and no declaration anywhere in the tree — an accident, not a surface.
+   Their symbols are gone from `libhven.a` and stay gone. **This is the only
+   symbol-table change from T6.d that survives**, and nothing could legally have
+   named either function.
+2. **`bench_corpus` keeps its HS suite**, `--repeat`, `--hs-cells`,
+   `--hs-trace` and `--hs-warmup`. Bench-only; no library effect.
+3. The engineering notes and measurement protocol amendments.
