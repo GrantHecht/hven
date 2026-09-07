@@ -10202,3 +10202,97 @@ The published claim stream's banner: why it exists, what the views are valid und
     // get_kkt_space and the location tables, and never through these.
     // =======================================================================
 ```
+
+### include/hven/linear/symmetric_factor.h
+
+1040 lines / 799 comment lines at `1997159`; 1017 / 776 after. Deliberately the lightest pass of the ten — see the note below.
+
+**Why this header was left almost entirely alone.** Its comment mass is the MKL
+`iparm` and Apple Accelerate contract surface: for every option, the vendor entry
+it writes, the DON'T-WRITE-BY-DEFAULT mechanic, the quoted capability condition
+from Intel's own reference, the dependency that is validated at construction, the
+backend that throws and why, and what was OBSERVED on the MKL version this was
+verified against as against what the vendor documents. CLAUDE.md §6 makes an
+`iparm` change conditional on citing validation evidence — these comments ARE
+that evidence, in the place the rule expects to find it, so compressing them
+would remove the record a future change is required to cite. Nothing in the
+Options struct was touched. Two lifecycle blocks that carried an argument rather
+than a contract were compressed.
+
+**SOURCE** 1997159 · include/hven/linear/symmetric_factor.h · lines 697–735
+
+`set_num_threads`: the call-scope argument for why this is the only Option with a setter, and the four contracts around it (no re-analysis, the throw, shared sessions, the synchronization rule, the Accelerate treatment). Every contract is kept; the argument is compressed.
+
+```text
+    // Repoint this engine's thread count, effective from the NEXT backend
+    // call. Nothing else moves: the backend session, the analyzed pattern,
+    // the symbolic analysis and the current numerics all survive, so this
+    // costs no re-analysis and no refactorization.
+    //
+    // That is a statement about where the count lives, not a convenience:
+    // the thread count is applied AT CALL SCOPE (see Options::num_threads),
+    // so it was never part of the symbolic factorization in the first place.
+    // Every other option IS baked into the session the analysis lives in and
+    // therefore has no setter -- changing one means building a new engine.
+    //
+    // Throws std::invalid_argument for a negative count, the same rule the
+    // constructor applies to Options::num_threads; the engine is left
+    // untouched when it throws.
+    //
+    // SHARED SESSIONS. The count belongs to the backend session, which this
+    // engine may be co-owning with handles emitted by share() and with
+    // engines built by adopt(). A change here therefore governs every
+    // co-owner's subsequent calls on that session, which is the same
+    // one-session-between-them rule the class's THREAD SAFETY and SHARING
+    // notes already state; it also means a later share()/adopt() round trip
+    // reports the CURRENT count rather than the one the session was analyzed
+    // with. Before the first analyze() there is no session yet, and the value
+    // set here is what the next analyze() builds one with.
+    //
+    // NOT INTERNALLY SYNCHRONIZED, exactly like a solve. This writes state
+    // the session reads on every backend call, so a caller must serialize it
+    // against any call in flight on that session -- including one issued by a
+    // different co-owner on another thread. It is the class's THREAD SAFETY
+    // rule extended to the one mutation that crosses co-owners: solves across
+    // co-owners are the caller's to serialize, and so is this.
+    //
+    // BEST-EFFORT-ABSENT ON ACCELERATE, exactly as Options::num_threads
+    // itself is: that backend exposes no per-instance thread control, so the
+    // value is stored (keeping the Options round trip honest) and applied to
+    // nothing. The call is accepted and validated there rather than
+    // rejected -- a plain thread count is a request a backend may honestly
+    // not be able to honor, unlike Options::cnr_threads, whose reproducibility
+    // GUARANTEE that backend refuses outright rather than silently drop.
+```
+
+**SOURCE** 1997159 · include/hven/linear/symmetric_factor.h · lines 738–762
+
+`num_threads()`: why the read is through the session rather than a snapshot, with the counter-factual. The read-through rule and the pre-analyze and post-analyze readings are kept.
+
+```text
+    // The thread count that governs THIS ENGINE'S NEXT BACKEND CALL.
+    //
+    // Once there is a session, that is the SESSION's current count, read
+    // through on every query rather than snapshotted -- because the session is
+    // where a backend call reads it from, and because the session may be
+    // co-owned (see set_num_threads()' SHARED SESSIONS note). A
+    // set_num_threads() on any ONE co-owner moves the count for all of them,
+    // and each of them reports the moved value here; a snapshot of this
+    // engine's own Options would have kept reporting the count this engine
+    // last agreed to, which is not the count its next solve will run at.
+    //
+    // Before the first analyze() there is no session yet, so this reports what
+    // the constructor was given as moved by set_num_threads() -- which is
+    // exactly what the next analyze() will build a session with.
+    //
+    // A LATER analyze() ON THIS ENGINE therefore RESETS what this reports, and
+    // deliberately so: analyze() forks a fresh session from this engine's OWN
+    // Options (a co-owner's count was never this engine's to inherit past the
+    // session it was set on), so from that point the read-through and the
+    // snapshot agree again on this engine's own value.
+    //
+    // The only Option with a reader, for the same reason it is the only one
+    // with a setter: it is the only one that can change after construction,
+    // so it is the only one a caller cannot already know from the Options it
+    // passed in.
+```
