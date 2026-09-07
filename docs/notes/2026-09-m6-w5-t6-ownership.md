@@ -1360,9 +1360,52 @@ statement about MAJORS, not about n. So:
   (`hs_numbers()` at `:2277-2282`: 1, 3, 5, 6, 7, 10, 11, 12, 14, 15, 22, 24, 25, 26, 27, 28, 30,
   33, 35, 38, 39, 40, 43, 45, 76, 77, 79), driven through `SqpDriver` in all three modes.
 * **Repeat count**: calibrated at T6.d time — the HS cells run in milliseconds, so N is raised until
-  the per-cell run-to-run spread of the A arm alone is inside ±0.5 %, and the calibration transcript
-  is part of the evidence. **Recorded here as a gap: no `--repeat` exists on `bench_corpus` today**
-  (`bench/bench_corpus.cpp:378-458` has no such flag).
+  the per-cell run-to-run dispersion of the A arm alone is inside ±0.5 %, and the calibration
+  transcript is part of the evidence. **Recorded here as a gap: no `--repeat` exists on
+  `bench_corpus` today** (`bench/bench_corpus.cpp:378-458` has no such flag). *(The gap was closed at
+  T6.d commit 1, `e696871`.)*
+
+  **AMENDED AT T6.d FROM THE CALIBRATION ITSELF — the statistic named above cannot converge, and the
+  wall clock on this leg cannot resolve the bar.** Settler ruling 2026-09-07 under the delegated
+  numerics judgement, with the owner to see it; the numbers are the calibration transcript's.
+
+  **(i) THE CALIBRATION COLUMN IS `median_se_pct`, NOT `spread_pct`.** "Raise N until the per-cell
+  SPREAD is inside ±0.5 %" names max−min, which is monotonically NON-DECREASING in N by construction
+  — more samples are more chances to catch a straggler — so the instruction cannot be followed.
+  Measured on the bench box, Release, solo, `taskset -c 2`, MKL/OMP threads 1, warmup 1, worst
+  per-cell reading:
+
+  | N | 1 | 3 | 5 | 10 | 20 | 40 |
+  |---|---|---|---|---|---|---|
+  | ipm | 0.000 % | 9.306 % | 19.205 % | 23.904 % | 15.287 % | 24.117 % |
+  | walk | 0.000 % | 7.865 % | 9.892 % | 11.203 % | 26.166 % | 38.225 % |
+
+  The 0.000 % at N=1 is a tautology (max == min == the one sample) and every larger N is worse.
+  `median_se_pct` — the standard error of the REPORTED median as a percentage of it, 1.2533·σ/√N over
+  the median — asks the question the calibration is actually asking and falls as 1/√N: ipm's median
+  across cells goes 0.694 (N=3) → 0.599 → 0.577 → 0.443 → 0.322 (N=40). **N is raised against that
+  column.** `spread_pct` stays as the raw sample cloud and is explicitly not a calibration statistic.
+
+  **(ii) LEG 2's VERDICT RESTS ON INSTRUCTIONS AND BRANCHES; ITS WALL CLOCK IS READ ONLY THROUGH THE
+  PAIRED A/B RATIO.** Three runs of the SAME binary, solo and pinned, disagree by up to **1.4 %** at
+  the walk corpus level (N=80: ipm corpus 0.149 %, walk corpus 0.998 %, worst cell 1.8–2.8 %). The HS
+  cells are 0.3–3 ms, and at that scale the between-run variation is a PER-PROCESS CONSTANT — address
+  layout, allocator state, page placement — not sampling noise, so `--repeat` cannot average it away
+  at any N. **Leg 2's absolute wall figure therefore cannot resolve the 0.5 % effect the veto turns
+  on.** On the same three runs `perf stat instructions:u` reproduces to **1.7e-6** between runs 2 and
+  3 (run 1 is a first-run allocator/page-cache outlier that a median of three discards) — well inside
+  §11.1's 1e-4 identity band, where the wall figure is four orders of magnitude too coarse.
+
+  So: **pass A instructions and branches carry leg 2's verdict; pass B explains placement; the wall
+  clock is informational and read only as the paired A/B ratio of the 3× alternating runs this
+  section already prescribes, never as either arm's absolute corpus figure. Leg 1 — the U0 corpus,
+  seconds-scale cells — remains the wall-clock leg.** This is not a weakening of §11.1: its veto
+  trigger IS an instruction question ("WORK-MOVED — instructions UP"), and leg 2 exists to expose the
+  two trace-enabled mapper call sites to a major-dense workload, which is exactly a question about
+  executed work.
+
+  **The lane's calibrated counts, declared per mode and IDENTICAL across arms**: N=1000 for ipm and
+  walk, N=2000 for ssn.
 * **The harness route is BENCH-SIDE, and it is T6.d's FIRST SUB-STEP.** Not a test binary: a test
   target is a different link and a different flag surface, which is a poor instrument for a
   veto-grade neutrality claim. It is also unnecessary — `bench/CMakeLists.txt:72` already puts
@@ -1392,6 +1435,24 @@ statement about MAJORS, not about n. So:
   (`:4187`, `:4294`), with the **counters proving the path fired** in the same run
   (`elastic_activations`, `elastic_escalations`, `elastic_from_ipqp_escape`, `ipqp_fallback_rung_b`
   non-zero). A cell that does not fire the path is not evidence about it.
+
+  **MEASURED AT T6.d, AND ONE ARM OF IT IS UNEXERCISED ON BOTH LEGS — recorded as a GAP, not
+  reported as a pass.** The coverage statement, from the lane's leg-1 counters and the settler's
+  leg-2 run:
+
+  * **On leg 1 (U0)** the corpus CSV carries no `elastic_*` or rung-B columns at all, and
+    `ipqp_escapes` is **0 on all 27 cells in all three modes** — so `certified_feasibility_fallback`
+    is **never ENTERED** on leg 1.
+  * **On leg 2 (HS), ipm**: the fallback's evidence-NOT-fired arm fires (`:1169`, 3 rung-B emits) and
+    **rung A** fires (`elastic_from_ipqp_escape` 6, `elastic_activations` 13, `elastic_escalations`
+    65). The ladder is exercised heavily and the fallback body is entered.
+  * **The post-rung-A rung-B TAIL (`++ipqp_fallback_rung_b`, `:1229` at commit 2) is UNEXERCISED ON BOTH LEGS.**
+    It is the path where the engine DECLINES a feasible rung A, and neither corpus makes it do so.
+
+  So three of the four named counters fire, on leg 2, in ipm; the fourth fires nowhere. **No harness
+  change is made to chase it** — the harness is frozen before the boundary arms, and changing it now
+  would VOID the leg. The gap is carried into T6.d's report and its disposition, and any claim about
+  the moved fallback body's rung-B tail is a claim about UNMEASURED code.
 * **Conditions**: solo, alternating, all three modes, one process, `MKL_NUM_THREADS=1`,
   `OMP_NUM_THREADS=1`, pinned; `pgrep` pasted; wall-clock quoted only under these terms (CLAUDE.md
   §7).

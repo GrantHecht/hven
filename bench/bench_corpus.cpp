@@ -439,10 +439,10 @@ struct Args {
     bool hs = false;
     std::optional<std::string> hs_cells;
     // Repeats per HS cell, reduced to a MEDIAN. Calibrated at T6.d time by
-    // raising N until the A-arm-alone per-cell spread is inside +/-0.5 %.
-    // HS-ONLY on purpose: the corpus arms are seconds-scale and already
-    // stable, and adding a repeat loop to that path would perturb the producer
-    // of pinned artifacts for no measurement benefit.
+    // raising N until the A-arm-alone per-cell `median_se_pct` is inside
+    // +/-0.5 % -- NOT `spread_pct`, which is monotone in N and cannot converge.
+    // HS-ONLY on purpose: the corpus arms are seconds-scale and already stable,
+    // and a repeat loop there would perturb a pinned artifact's producer.
     int repeat = 1;
     // Attach a real TraceSink. OFF is today's shape (`ipqp_trace_ == nullptr`)
     // and is the arm that does NOT execute either driver-side
@@ -1771,8 +1771,8 @@ void write_model_surface_census(const std::string &path,
 //
 //   * AGGREGATION IS MEDIAN-OF-N PER CELL, and the corpus figure is the SUM of
 //     per-cell medians -- never a mean of ratios. `--repeat` is calibrated by
-//     raising N until the A-arm-alone per-cell spread is inside +/-0.5 %; the
-//     `spread_pct` column is what that calibration reads.
+//     raising N until the A-arm-alone `median_se_pct` is inside +/-0.5 %; that
+//     column, NOT `spread_pct`, is what the calibration reads (see run_hs_cell).
 //
 // NO DEADLINE MACHINERY. The HS cells run in milliseconds, so the fork/exec
 // wall-deadline this file wraps the corpus arms in would cost more than the
