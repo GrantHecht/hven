@@ -987,6 +987,69 @@ declared in advance are the set. The routing functions cut (b) created have thei
 (e.g. `src/drivers/sqp_driver.cpp:3141`) and those STAY: if the rule meant the whole TU, removing
 them would edit those functions too, and a body-only P-SYM claim would then be false.
 
+#### §10.3.3 WHAT CUT (c) ACTUALLY BUILT (landed 2026-09-06)
+
+Written here for the reason §10.2 was: so cut (d) and the reviewers inherit a record rather than a
+reading of the code, and so the places where the code and this document differ are stated rather
+than left to be discovered.
+
+**A THIRD FUNCTION, and it is the one decision the dispatch left open.** The per-major body is now
+`SqpDriver::run_major(SolveState &, MajorState &, AggregateEvalSeam &, NlpModelAggregate &,
+const WarmStart &, Index minor_budget, Index iter)`, returning `MajorOutcome`; `solve_impl_body`
+keeps the loop, the bundle, the terminal check and the outcome dispatch, and goes from 1653 lines to
+225. §10.3.1's contract is stated in terms of a CALLER that finalises and holds `MajorState` alive
+while it does, which requires the push and the finalisation to be in different scopes; and the ten
+push sites sit at four nesting depths, so a common dispatch reachable from all of them needs a
+function boundary and `return`. That is the shape built.
+
+**WHAT IS ON `MajorState`, AND THE MEMBERSHIP TEST IT WAS BUILT TO.** §2.3 is headed "the POST-(c)
+TARGET" and lists more names than joined. The test actually applied is §10.2's own, one step on: a
+name is on the bundle iff it CROSSES the `run_major` → caller boundary. Joined at (c): `kkt`, `row`,
+`row_qp_mode`, `caller_row`, the trial/SOC objects (`x_trial`, `ev_trial`, `ctx`, `soc_applied`,
+`ev_soc`, `qs_soc`, `x_soc`) — §10.2's list — **plus `converged`**, which is one name beyond it and
+is there because the caller's ordinary terminal exit reports `kOptimal : kMaxIter` from it. NOT
+joined, because none of them crosses: `tr_shrink_retry`, `overrides`, `adaptive_mu_active`,
+`offer_hot`, `use_crash`, `probe_exhausted`, `elastic_applied`, `rho0_ceiling_hit`, `x_scale`,
+`zero_step`, `verdict` (all `run_major` locals) and `actual_df` (a caller local). The three lambdas
+of §2.3's table are not members either: `measure_iterate` and `push_history` are `run_major` locals,
+`check_major_pushed_once` is a `solve_impl_body` local, and `enter_restoration` is a member
+FUNCTION. `RestorationCandidate` is a private nested type of `SqpDriver`.
+
+**MEMBER ORDER ON `MajorState` IS LOAD-BEARING, and this is the finding cut (c) lands.** Cut (b)'s
+four routing outputs must stay FIRST and in their original order. `route_through_ssn_tier` is not
+edited by (c) and reaches `mj.qs` and `mj.walk_owns_this_qp` BY OFFSET; the first arrangement, which
+put (c)'s members ahead of them, moved `qs` off offset 0 and turned `mov %rbx,%rdi` into
+`lea 0x118(%rbx),%rdi` at three sites — **two extra instructions in a function nobody edited**,
+measured by a full two-arm disassembly audit (910 lines each, 37 changed, every one of them a member
+offset, that address form, the register renaming it forces, or a reshaped pad). Fixed by ordering,
+not excused; the reason is in the struct's own banner so a later insertion does not undo it.
+
+**THE CONSTRUCTION-TIMING HAZARD IS DISCHARGED, NOT WAIVED.** The bundle is built at the LOOP TOP,
+which is what §2.3 always said and what (b) could not do. Nothing on it evaluates anything when it
+is constructed: `ev_trial` is the one member a model call ever fills, and it is default-constructed
+at the loop top and ASSIGNED at the point the call has always been made — after the early exits — so
+no evaluation moves earlier and no counter moves. Everything else is empty vectors, an empty
+optional and scalars. `route_through_ipqp_tier` and `solve_with_walk` consequently stop taking `row`
+and `row_qp_mode` as parameters.
+
+**TWO SPELLINGS DIFFER FROM §10.3.1's QUOTED CODE, AND NOTHING ELSE DOES.** The enumerators are
+`k`-prefixed (`kRefused`/`kResumed`/`kExited`, `kContinue`/`kCommitAccepted`/`kFinishManual`/
+`kFinishCurrent`/`kFinishBudgetBest`/`kFinishQpFailure`/`kFinishRestorationSeed`/
+`kFinishRestorationQp`), because CLAUDE.md §4 puts compile-time constants in `kPascalCase` and every
+enum in this tree follows it — and because this document itself writes the restoration values two
+different ways (§5 `{REFUSED, RESUMED, EXITED}`, §10.3.1 `{Refused, Resumed, Exited}`), so the
+spelling is not the contract. Membership, count and semantics are astra's exactly. And
+`enter_restoration`'s default argument is spelled `{nullptr, nullptr}` rather than `{}`: a default
+argument in the enclosing class's own body may not reach a nested class's default member
+initializers, and clang refuses `= {}` outright. The type keeps its two initializers.
+
+**§7's REGISTERED ORDERING ASSERTION IS BUILT**, inside
+`JsonLinesTraceSink.ResetNestingRecoversASinkAfterASolveThatThrewMidBody`
+(`tests/sqp/test_trace_writer.cpp`): the accepted major's row must ALREADY be in the stream when the
+second gradient throws — exactly one `sqp.major` line, `trial` 0, `major` 0, an accepting `verdict`.
+Falsified in the round: inverting the emit with the direct-accept refresh fails it. §7's other
+addition, the source-order audit, is in `.superpowers/w5-t6-c-report.md` §1.6 with line numbers.
+
 ### §10.4 Cut (d) — the kernels TU (EXPERIMENT with a VETO)
 
 Extract WITHIN the TU first (a–c are that); then the separate TU as an **independently revertible**
@@ -1330,6 +1393,16 @@ lambdas and the ten push sites — will re-place everything again. If the close 
     `topdown-fe-bound` / `idq.dsb_uops` / `idq.mite_uops`, so §11.3 as first written was unmeetable
     on the machine that runs the leg; the requirement is now stated by MECHANISM with per-vendor
     event names, Zen 3 pass B named explicitly, and the Intel names kept as UNOBSERVED.
+20. **Cut (c) lands one new hazard and three places where §2.3 overstates the target**, all in
+    §10.3.3. The hazard: **`MajorState` member ORDER is load-bearing** — cut (b)'s four routing
+    outputs must stay first, because `route_through_ssn_tier`, which (c) does not edit, reaches
+    `mj.qs` and `mj.walk_owns_this_qp` by offset, and putting (c)'s members ahead of them cost that
+    untouched function two instructions (measured, then fixed by ordering). The overstatements:
+    twelve of §2.3's rows did NOT join the bundle because they do not cross the `run_major` → caller
+    boundary; `converged` DID join and is not in §10.2's list; and the three lambdas of that table
+    are locals or a member function, not members. Also recorded there: the two spellings that differ
+    from §10.3.1's quoted code (the `k` prefix, CLAUDE.md §4; and the `{nullptr, nullptr}` default
+    argument, which the language forces), and that §7's ordering assertion is built and falsified.
 ---
 
 ## §13. What T6 must not change (restated so the cuts are checked against it)
