@@ -3912,10 +3912,10 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
 // M6 W5 T6 cut (c): ONE MAJOR, from the KKT measurement of the iterate it
 // starts at to the history row it emits, returning the CONTROL DECISION its
 // caller acts on. The ten push sites of the ownership table's section 8 are all
-// here, and each of them returns a `MajorOutcome` immediately after its push --
-// which is what makes "the accepted row is emitted BEFORE the radius and the
-// iterate move" a property of the function boundary rather than of a reading
-// order.
+// here, and every one of them returns its `MajorOutcome` from inside THIS
+// function, so no caller-side effect precedes the return. SITE 10 ALONE returns
+// IMMEDIATELY after its push -- sites 1, 2, 5 and 8 deliberately finish their
+// own work first -- and that is the property the ordering pin asserts.
 //
 // WHAT THE OUTCOME DOES NOT CARRY IS EVERYTHING: it is a payload-free tag. The
 // requesting measurements, the convergence decision, the dispatch's answer and

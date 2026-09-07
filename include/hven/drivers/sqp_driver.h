@@ -3102,10 +3102,10 @@ class SqpDriver {
     /// @brief ONE MAJOR (M6 W5 T6 cut (c)): the KKT measurement of the iterate
     ///        it starts at, through to the history row it emits.
     ///
-    /// Holds all ten push sites, and each returns its `MajorOutcome`
-    /// IMMEDIATELY after its push -- which is what makes "the accepted row is
-    /// emitted before the radius and the iterate move" a property of this
-    /// boundary. The terminal exactly-once check is the caller's.
+    /// Holds all ten push sites, and every one of them returns its
+    /// `MajorOutcome` from inside THIS function, so no caller-side effect ever
+    /// precedes the return. SITE 10 ALONE returns IMMEDIATELY after its push --
+    /// that is the ordering pin's property. The terminal check is the caller's.
     MajorOutcome run_major(SolveState &st, MajorState &mj, AggregateEvalSeam &seam,
                            NlpModelAggregate &bridge, const WarmStart &warm, Index minor_budget,
                            Index iter);
