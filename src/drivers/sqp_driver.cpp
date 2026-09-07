@@ -4942,51 +4942,15 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
     SolveState st(opts_.ipqp);
     prepare_solve(st, seam, x0, warm, std::move(strategy_in));
 
-    // THE NAMES THIS FUNCTION STILL KNOWS THE STATE BY. Every one of these is
-    // an ALIAS of the single instance above, never a copy. Cut (a) declared 53
-    // of them so the 2000-line loop below could stay diff-free; cuts (b) and
-    // (c) consumed them from the inside as each block became a function taking
-    // `(SolveState &, MajorState &)`, and these 28 are what the terminal
-    // dispatch and the accepted commit below still read. They are removed in
-    // cut (c)'s second commit, which is the only intentional change in it.
-    SqpSolution &out = st.out;
-    Vec &x = st.x;
-    Vec &lambda_e = st.lambda_e;
-    Vec &lambda_i = st.lambda_i;
-    NlpEval &ev = st.ev;
-    QpProblem &qp = st.qp;
-    bool &qp_built = st.qp_built;
-    bool &subproblem_is_stale = st.subproblem_is_stale;
-    QpSolution &seed = st.seed;
-    bool &have_seed = st.have_seed;
-    double &delta = st.delta;
-    double &last_dual_mu = st.last_dual_mu;
-    Index &rejections_at_iterate = st.rejections_at_iterate;
-    bool &duals_ingested = st.duals_ingested;
-    Index &rows_pushed = st.rows_pushed;
-    Index &rows_at_major_entry = st.rows_at_major_entry;
-    std::unique_ptr<GlobalizationStrategy> &strategy = st.strategy;
-    SqpStatus &restoration_exit_status = st.resto.status;
-    SqpKkt &restoration_exit_kkt = st.resto.kkt;
-    double &restoration_exit_f = st.resto.f;
-    bool &restoration_exit_multipliers_are_caller_scale = st.resto.multipliers_are_caller_scale;
-    bool &restoration_moved_x = st.resto.moved_x;
-    Vec &mb_best_x = st.mb.x;
-    Vec &mb_best_lambda_e = st.mb.lambda_e;
-    Vec &mb_best_lambda_i = st.mb.lambda_i;
-    SqpKkt &mb_best_kkt = st.mb.kkt;
-    double &mb_best_h = st.mb.h;
-    double &mb_best_f = st.mb.f;
-
     for (Index iter = 0;; ++iter) {
-        if (iter > 0 && rows_pushed != rows_at_major_entry + 1) {
+        if (iter > 0 && st.rows_pushed != st.rows_at_major_entry + 1) {
             throw std::logic_error(fmt::format(
                 "SqpDriver::solve: major {} pushed {} history rows, expected exactly 1 -- every "
                 "path through a major records its iterate exactly once, and the branch that "
                 "returned or continued here did not",
-                iter - 1, rows_pushed - rows_at_major_entry));
+                iter - 1, st.rows_pushed - st.rows_at_major_entry));
         }
-        rows_at_major_entry = rows_pushed;
+        st.rows_at_major_entry = st.rows_pushed;
 
         // THE PER-MAJOR BUNDLE, built HERE as of cut (c) -- see `MajorState`'s
         // own note for why the loop top is now the right place and for why
@@ -4997,12 +4961,12 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
         // never sees the major the solve LEAVES from -- there is no next entry,
         // so every `return` out of this loop must call this one first.
         auto check_major_pushed_once = [&](Index at_major) {
-            if (rows_pushed != rows_at_major_entry + 1) {
+            if (st.rows_pushed != st.rows_at_major_entry + 1) {
                 throw std::logic_error(fmt::format(
                     "SqpDriver::solve: major {} pushed {} history rows before the solve returned, "
                     "expected exactly 1 -- every path through a major records its iterate exactly "
                     "once, and the exit taken here did not",
-                    at_major, rows_pushed - rows_at_major_entry));
+                    at_major, st.rows_pushed - st.rows_at_major_entry));
             }
         };
 
@@ -5028,19 +4992,19 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // region" setting min(+inf * 2, tr_max) is tr_max, so an unguarded
             // growth rule would SHRINK the radius the one time it is not
             // supposed to touch it (see the constructor's tr_max note).
-            const double actual_df = ev.f - mj.ctx.f_new;
-            if (mj.row.tr_binding && std::isfinite(delta) && mj.ctx.pred_df > 0.0 &&
+            const double actual_df = st.ev.f - mj.ctx.f_new;
+            if (mj.row.tr_binding && std::isfinite(st.delta) && mj.ctx.pred_df > 0.0 &&
                 actual_df >= kTrGrowThreshold * mj.ctx.pred_df) {
-                delta = std::min(delta * kTrGrowFactor, opts_.tr_max);
+                st.delta = std::min(st.delta * kTrGrowFactor, opts_.tr_max);
             }
 
             if (mj.soc_applied) {
-                x = mj.x_soc;
-                ev = std::move(mj.ev_soc); // already upgraded to full -- see the promotion above
-                lambda_e = mj.qs_soc.lambda_e;
-                lambda_i = mj.qs_soc.lambda_i;
-                duals_ingested = false; // re-priced by this solve's own QP
-                seed = std::move(mj.qs_soc);
+                st.x = mj.x_soc;
+                st.ev = std::move(mj.ev_soc); // already upgraded to full -- see the promotion above
+                st.lambda_e = mj.qs_soc.lambda_e;
+                st.lambda_i = mj.qs_soc.lambda_i;
+                st.duals_ingested = false; // re-priced by this solve's own QP
+                st.seed = std::move(mj.qs_soc);
             } else {
                 // UPGRADE TO FULL: a DIRECT acceptance (no SOC, or
                 // SOC ran and was not promoted -- either way `verdict` is
@@ -5053,23 +5017,23 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 // which is the overwhelming majority on a rejection-heavy
                 // fixture), because nlp_model.h deliberately adds no third
                 // "derivatives only, values already known" entry point.
-                x = mj.x_trial;
+                st.x = mj.x_trial;
                 seam.refresh_derivatives(mj.ev_trial, mj.x_trial);
-                ++out.counters.evals_full;
-                ev = std::move(mj.ev_trial);
-                lambda_e = mj.qs.lambda_e;
-                lambda_i = mj.qs.lambda_i;
-                duals_ingested = false; // re-priced by this solve's own QP
-                seed = std::move(mj.qs);
+                ++st.out.counters.evals_full;
+                st.ev = std::move(mj.ev_trial);
+                st.lambda_e = mj.qs.lambda_e;
+                st.lambda_i = mj.qs.lambda_i;
+                st.duals_ingested = false; // re-priced by this solve's own QP
+                st.seed = std::move(mj.qs);
             }
-            ++out.counters.steps_accepted;
-            rejections_at_iterate = 0;
-            subproblem_is_stale = true;
+            ++st.out.counters.steps_accepted;
+            st.rejections_at_iterate = 0;
+            st.subproblem_is_stale = true;
             // Active set only -- never the previous step. See this header's
             // WARM SEEDING note: seed.x is the engine's trust-region CENTER,
             // and in step variables that center must be p = 0.
-            seed.x.setZero();
-            have_seed = true;
+            st.seed.x.setZero();
+            st.have_seed = true;
             continue;
         }
         case MajorOutcome::kFinishManual:
@@ -5077,7 +5041,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // `out` is a member of the solve state, not a local, so this is a
             // MOVE and not the copy the alias would otherwise make. Every other
             // exit already moves it into `finish`.
-            return std::move(out);
+            return std::move(st.out);
         case MajorOutcome::kFinishCurrent:
             // No FRESH subproblem was solved at this exact iterate this
             // pass (the check runs before build_subproblem); `seed` (if
@@ -5085,12 +5049,12 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // the WARM SEEDING note for why it always still describes
             // this x rather than some earlier one.
             check_major_pushed_once(iter);
-            return finish(seam, std::move(out),
-                          mj.converged ? SqpStatus::kOptimal : SqpStatus::kMaxIter, x, lambda_e,
-                          lambda_i, mj.kkt, mj.row.f,
-                          make_warm_start(seam, have_seed ? &seed : nullptr, qp, qp_built, &ev, &x,
-                                          delta, last_dual_mu, opts_.qp.primal_delta,
-                                          strategy.get(), engine_.hot_state()));
+            return finish(
+                seam, std::move(st.out), mj.converged ? SqpStatus::kOptimal : SqpStatus::kMaxIter,
+                st.x, st.lambda_e, st.lambda_i, mj.kkt, mj.row.f,
+                make_warm_start(seam, st.have_seed ? &st.seed : nullptr, st.qp, st.qp_built, &st.ev,
+                                &st.x, st.delta, st.last_dual_mu, opts_.qp.primal_delta,
+                                st.strategy.get(), engine_.hot_state()));
         case MajorOutcome::kFinishBudgetBest: {
             // BUDGETED MODE: report the best-by-(h, f) iterate
             // rather than the last one. `seed` is only this best
@@ -5098,18 +5062,18 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // current one (row.violation_l1/row.f just tied the
             // tracked best on THIS pass) -- otherwise it describes a
             // point the returned x has moved away from, exactly the
-            // restoration_moved_x reasoning elsewhere in this loop.
+            // st.resto.moved_x reasoning elsewhere in this loop.
             //
             // COMPUTED BEFORE THE CHECK, on the row and the snapshot this major
             // finished writing, so the comparison is the one it always was.
-            const bool best_is_current = mj.row.violation_l1 == mb_best_h && mj.row.f == mb_best_f;
+            const bool best_is_current = mj.row.violation_l1 == st.mb.h && mj.row.f == st.mb.f;
             check_major_pushed_once(iter);
-            return finish(seam, std::move(out), SqpStatus::kBudgetExhausted, mb_best_x,
-                          mb_best_lambda_e, mb_best_lambda_i, mb_best_kkt, mb_best_f,
-                          make_warm_start(seam, (best_is_current && have_seed) ? &seed : nullptr,
-                                          qp, qp_built, &ev, &x, delta, last_dual_mu,
-                                          opts_.qp.primal_delta, strategy.get(),
-                                          engine_.hot_state()));
+            return finish(
+                seam, std::move(st.out), SqpStatus::kBudgetExhausted, st.mb.x, st.mb.lambda_e,
+                st.mb.lambda_i, st.mb.kkt, st.mb.f,
+                make_warm_start(seam, (best_is_current && st.have_seed) ? &st.seed : nullptr, st.qp,
+                                st.qp_built, &st.ev, &st.x, st.delta, st.last_dual_mu,
+                                opts_.qp.primal_delta, st.strategy.get(), engine_.hot_state()));
         }
         case MajorOutcome::kFinishQpFailure:
             // No restoration was consulted on this path -- x is still
@@ -5117,10 +5081,10 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // activity (bound_state/ineq_active) is exactly the region
             // around the point being returned.
             check_major_pushed_once(iter);
-            return finish(seam, std::move(out), map_status(mj.qs.status), x, lambda_e, lambda_i,
-                          mj.kkt, mj.row.f,
-                          make_warm_start(seam, &mj.qs, qp, qp_built, &ev, &x, delta, last_dual_mu,
-                                          opts_.qp.primal_delta, strategy.get(),
+            return finish(seam, std::move(st.out), map_status(mj.qs.status), st.x, st.lambda_e,
+                          st.lambda_i, mj.kkt, mj.row.f,
+                          make_warm_start(seam, &mj.qs, st.qp, st.qp_built, &st.ev, &st.x, st.delta,
+                                          st.last_dual_mu, opts_.qp.primal_delta, st.strategy.get(),
                                           engine_.hot_state()));
         case MajorOutcome::kFinishRestorationSeed:
             // THE ELASTIC REQUESTER'S ACTIVITY SOURCE IS `seed`, NOT `qs`: qs_e
@@ -5129,29 +5093,29 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // This is the one restoration exit that falls back to the prior
             // seed, which is why it has a tag of its own (unless restoration
             // moved x away from what the seed describes; see
-            // restoration_moved_x's own note).
+            // st.resto.moved_x's own note).
             check_major_pushed_once(iter);
             return finish(
-                seam, std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
-                restoration_exit_kkt, restoration_exit_f,
-                make_warm_start(seam, (!restoration_moved_x && have_seed) ? &seed : nullptr, qp,
-                                qp_built, &ev, &x, delta, last_dual_mu, opts_.qp.primal_delta,
-                                strategy.get(), engine_.hot_state()),
-                restoration_exit_multipliers_are_caller_scale);
+                seam, std::move(st.out), st.resto.status, st.x, st.lambda_e, st.lambda_i,
+                st.resto.kkt, st.resto.f,
+                make_warm_start(seam, (!st.resto.moved_x && st.have_seed) ? &st.seed : nullptr,
+                                st.qp, st.qp_built, &st.ev, &st.x, st.delta, st.last_dual_mu,
+                                opts_.qp.primal_delta, st.strategy.get(), engine_.hot_state()),
+                st.resto.multipliers_are_caller_scale);
         case MajorOutcome::kFinishRestorationQp:
             // THE OTHER THREE REQUESTERS HAND BACK A QP IN THE ORIGINAL
             // VARIABLES -- a failed solve's activity at the floor, or the
             // rejected trial's own kOptimal solution -- and it still describes
             // the region around x unless restoration itself moved x; see
-            // restoration_moved_x's own note.
+            // st.resto.moved_x's own note.
             check_major_pushed_once(iter);
-            return finish(seam, std::move(out), restoration_exit_status, x, lambda_e, lambda_i,
-                          restoration_exit_kkt, restoration_exit_f,
-                          make_warm_start(seam, restoration_moved_x ? nullptr : &mj.qs, qp,
-                                          qp_built, &ev, &x, delta, last_dual_mu,
-                                          opts_.qp.primal_delta, strategy.get(),
+            return finish(seam, std::move(st.out), st.resto.status, st.x, st.lambda_e, st.lambda_i,
+                          st.resto.kkt, st.resto.f,
+                          make_warm_start(seam, st.resto.moved_x ? nullptr : &mj.qs, st.qp,
+                                          st.qp_built, &st.ev, &st.x, st.delta, st.last_dual_mu,
+                                          opts_.qp.primal_delta, st.strategy.get(),
                                           engine_.hot_state()),
-                          restoration_exit_multipliers_are_caller_scale);
+                          st.resto.multipliers_are_caller_scale);
         }
     }
 }
