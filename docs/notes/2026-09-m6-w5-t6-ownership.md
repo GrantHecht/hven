@@ -63,15 +63,41 @@ ladder or the certified fallback. Under cut (d) this block does not move.
 
 | symbol | line | called from | side |
 |---|---|---|---|
-| `elastic_initial_rho` | `:854` | `:893`, `:1014` | kernels only |
+| `elastic_initial_rho` | `:854` | `:1014` | kernels only |
 | `elastic_evidence_seed` | `:880` | `:1021` | kernels only |
 | `trace_outcome_of` | `:963` | `:1050`, `:1169`, `:1212`, **`:4224`**, **`:4532`** | **SHARED** |
 | `emit_qp_mode_line` | `:972` | `:1050`, `:1169`, `:1212` | kernels only |
+
+**CORRECTED at the (d) design review (astra Minor; §12 item 21).** `elastic_initial_rho`'s row as
+first written listed `:893` as a call site. `:893` is a COMMENT — "which with `elastic_initial_rho`'s
+own floor makes a non-fired arm W1's ladder exactly", inside `elastic_evidence_seed`'s body — and a
+prose mention is not a call. The helper has exactly ONE call site, `:1014` inside
+`run_elastic_ladder`. The count matters because cut (d)'s claim is built from this table.
 
 `trace_outcome_of` is the ONE symbol used by both sides of cut (d) — three call sites inside
 `run_elastic_ladder`/`certified_feasibility_fallback` and two inside `solve_impl_body`. It is the
 symbol the plan means when it says the block "would gain external linkage, a declared surface". The
 other three are kernels-side only and stay internal to the new TU.
+
+**ITS DESTINATION IS DECIDED (astra item 2, binding).** `trace_outcome_of` becomes
+`hven::solvers::detail::trace_outcome_of(QpStatus)`, DECLARED in a NEW **source-private** header
+`src/drivers/sqp_kernels_internal.h` and DEFINED in `src/drivers/sqp_kernels.cpp`; the five call
+sites are qualified. The declaration does NOT go in `include/hven/drivers/sqp_driver.h`, and it does
+NOT go under `include/hven/detail/` either: `include/hven/**/*.h` is installed WHOLESALE by
+`CMakeLists.txt:613`, `detail/` included, so a header under `include/` is a shipped file whatever
+its directory says. A header under `src/` is not installed at all, which removes the ambiguity
+rather than arguing about it — and the install smoke proves it at the landing commit.
+
+The migration-guide entry says: an anonymous-namespace helper became
+`hven::solvers::detail::trace_outcome_of`, declared source-privately, with external linkage SOLELY
+because this internal TU boundary needs it; there is no supported consumer migration and no new
+public API.
+
+**THE REDRAW ALTERNATIVE IS RECORDED, not adopted** (astra item 2): a private INLINE definition of
+the mapping in that same source-private header, visible to both TUs, which emits no external symbol
+and preserves optimisation through the mapping. It is the FIRST targeted redraw if the mapper's
+calls cause the veto. Adopting it up front would require amending the moving/linkage claim, so the
+experiment under review is the external-declaration form and the inline form is the named remedy.
 
 ### §1.3 Anonymous namespace #3 — `:1242-1350` (internal linkage)
 
@@ -116,9 +142,24 @@ Every OTHER external-linkage free function in this TU is declared in
 `include/hven/drivers/sqp_driver.h`. Neither is caught by a warning because neither `CMakeLists.txt`
 enables `-Wmissing-prototypes` / `-Wmissing-declarations`. Cut (d) must not carry the defect across a
 TU boundary: either each function moves into the same TU as its only caller and takes internal
-linkage, or it gains a header declaration. Both callers stay DRIVER-side under the §1.7 moving set,
-so internal linkage in the driver TU is the natural disposition — **decided at T6.d, not here**;
-recorded so it is decided rather than inherited.
+linkage, or it gains a header declaration.
+
+**DECIDED AT THE (d) DESIGN REVIEW (astra item 1, binding).** The rule is **one owning TU →
+internal linkage; a necessary cross-TU dependency → private declaration**. Both callers stay
+DRIVER-side under the §1.7 moving set, so both helpers KEEP THEIR BODIES IN THE DRIVER TU and GAIN
+INTERNAL LINKAGE. **Neither needs a header declaration of any kind.**
+
+| helper | definition | its sole caller | disposition |
+|---|---|---|---|
+| `assert_ssn_warm_grade_window` | `:779` | `route_through_ssn_warm_grade` | body stays in the driver TU; internal linkage |
+| `assert_ipqp_hand_off_window` | `:805` | `route_through_ipqp_tier` | body stays in the driver TU; internal linkage |
+
+**AND IT IS A SEPARATELY CLAIMED PREPARATION COMMIT, not part of the TU commit.** Internalising them
+inside the six-symbol experiment would contradict that experiment's own "exactly ONE symbol changes
+linkage" claim and would put a second linkage variable inside the measurement. The preparation
+commit lands FIRST, with its own P-SYM claim, its own replay and its own suites; the TU commit is
+then measured against a tree in which these two are already internal. That claim is astra's, and it
+is quoted VERBATIM at §10.4.
 
 ### §1.7 Cut (d)'s MOVING SET — the side of every external-linkage free function
 
@@ -184,6 +225,61 @@ a DIFFERS on any of them is a finding. The de-inlining cut (d) actually risks is
 `sqp_driver.cpp`, where the bodies are visible today — which is what the §11.4 caller disassembly
 must name.
 
+#### §1.7.1 THE INLINING-EXPOSURE TABLE — the five edges the boundary actually cuts
+
+Astra's item 3, at HEAD `39d7a8e`. These are the source call sites that lose callee-body visibility,
+and they are the edges the §11.4 relocation-aware disassembly must name ONE BY ONE. Cuts (a)–(c)
+moved the callers, so this table is re-derived at HEAD and does not reuse §1.7's BASE coordinates.
+
+| caller and call site | callee becoming unavailable | exposure |
+|---|---|---|
+| `SqpDriver::route_through_ipqp_tier`, `:3404` | `certified_feasibility_fallback` | the conditional IPQP escape route inside a major. Whole-body inlining is possible at compiler discretion; hotness depends on escape frequency |
+| `SqpDriver::solve_with_walk`, `:3447` | `trace_outcome_of` | a tiny pure mapping and a very plausible inline candidate. Executed per dispatched walk **only with a trace sink attached** |
+| `SqpDriver::run_major`, `:4570` | `run_elastic_ladder` | conditional infeasibility recovery, skipped when a fallback report already owns the answer. Large body with an internal rung loop; whole-body inlining is unlikely, but interprocedural optimisation remains exposed |
+| `SqpDriver::run_major`, `:4792` | `trace_outcome_of` | the tiny mapping again, after an SOC solve; trace-enabled only |
+
+And the REVERSE-DIRECTION edge, which is the one the plan's "loop-used arithmetic is not cold"
+sentence is about, and which no caller-side reading of the split would find on its own:
+
+| caller | callee REMAINING in the driver TU | exposure |
+|---|---|---|
+| `run_elastic_ladder`, `:1117` | `predicted_decrease` | once after the rung loop, on an optimal result. A short source spelling that expands into Eigen arithmetic and exception machinery; body visibility is lost in this direction |
+
+What stays together and is therefore NOT exposed: the fallback's two ladder calls (`:1183`, `:1194`)
+move with it, its three mapper uses and the three kernels-only helpers keep local visibility inside
+the new TU, and `run_major → predicted_decrease` (`:4744`) retains visibility because both ends stay
+in the driver.
+
+**AND THE OBSERVED BASELINE CORRECTS THE PREMISE.** The addendum's framing — that (d) replaces
+inlined large-kernel bodies with calls — is NOT a description of this tree. The retained post-(c)
+Release object
+(`.scratch/w5t6c/rel/snap-fix2/CMakeFiles/hven.dir/src/drivers/sqp_driver.cpp.o`) already carries
+`R_X86_64_PLT32` relocated calls for `route_through_ipqp_tier → certified_feasibility_fallback`,
+`run_major → run_elastic_ladder` (both sites) and `run_elastic_ladder → predicted_decrease`; the
+ladder body is 14,865 bytes and the fallback 1,384. **The two kernels are already externally linked
+and already out of line.** `trace_outcome_of` has NO standalone symbol in that object — it is fully
+inlined today — and is therefore the CLEAREST new call exposure of the whole cut.
+
+Two things follow, and both bind the claim. Lost inferred properties and constant propagation can
+still change a caller, so the edges above stay on the disassembly list. But **WORK-MOVED is a
+properly registered expected RISK, not a predetermined result**, and no exception may excuse a
+fallback caller by asserting a de-inlining that its own BEFORE disassembly disproves.
+
+**AND THE BANNER IS REVISED AT COMMIT 3, not before.** `src/drivers/sqp_driver.cpp:14` says the free
+functions are in this TU "since `solve_impl` and its neighbours in this TU are the only in-library
+callers any of them have" — a REAL dependency, and true of every free function until (d) moves six of
+them. Cuts (a)–(c) changed function boundaries but kept every body in this TU, so the wording held
+through all three. After (d) the blanket "every free function" claim is false, and the banner is
+rewritten to the MEASURED boundary — which six left, why, and what the measurement said — at the TU
+commit itself rather than in a later tidy-up.
+
+**LTO IS OUTSIDE (d), and the fact is recorded as observed rather than as configured.** The retained
+Release build has `HVEN_LINK_TIME_OPT:BOOL=OFF` (`build/CMakeCache.txt:356`); the driver's compile
+command carries no LTO and no PCH consumption (`build/compile_commands.json:165`); the corpus link
+carries no LTO option (`build/build.ninja:3571`). The repository supports optional LTO, default OFF
+(`CMakeLists.txt:79`). Turning it on inside (d) would add a second experimental variable AND change
+the uniform flag regime CLAUDE.md §7 fixes. **(d) must not flip it.**
+
 ### §1.5 `SqpDriver` member functions in this TU
 
 `solve(model)` `:1479` · `attach_ledger` `:1481` · `attach_trace` `:1488` · `emit_trace_route`
@@ -208,6 +304,14 @@ postcondition 3 at `src/CMakeLists.txt:593-601`. The PCH opt-in list is `_hven_p
 must therefore (i) join `target_sources`, (ii) move the count 41 → 42, and (iii) inherit the same
 opt-out disposition — or be measured with `scripts/check_pch_neutrality.sh` and argued into
 `_hven_pch_sources`. Adding a filename alone fails the configure step.
+
+**CONFIRMED at the (d) design review (astra item 7), with (iii) SETTLED rather than left open.** The
+new TU is **PCH-OPTED-OUT**: it simply stays off `_hven_pch_sources`, and the deferred block at
+`src/CMakeLists.txt:548` then sets `SKIP_PRECOMPILE_HEADERS ON` for it as it does for every unlisted
+source, with postcondition 2 reading the property back. The existing six-consumer opt-in list is
+UNCHANGED, and **no PCH experimentation rides on this cut** — the alternative branch above (measure
+it and argue it in) is explicitly NOT taken at (d), because it would put a second variable inside a
+veto-grade measurement. The count guard's enforcement at `src/CMakeLists.txt:593` is preserved.
 
 ---
 
@@ -1061,9 +1165,77 @@ migration guide. `predicted_decrease` is shared across the cut but already decla
 new surface (§1.7). Build integration per §1.6. The two undeclared helpers (§1.4, `:779` and `:805`)
 are decided here.
 
+**THE TWO UNDECLARED HELPERS ARE DECIDED (§1.4): both keep their bodies in the driver TU and gain
+INTERNAL linkage, in a SEPARATELY CLAIMED PREPARATION COMMIT that lands BEFORE the TU commit.**
+Astra's claim for it, VERBATIM, and it is the claim the preparation commit's P-SYM run is judged
+against:
+
+> Only `assert_ssn_warm_grade_window` and `assert_ipqp_hand_off_window` change linkage, remaining in
+> the driver TU with statement-identical bodies. Their external symbols disappear; corresponding
+> internal bodies may appear or be inlined away. Their sole callers,
+> `route_through_ssn_warm_grade` and `route_through_ipqp_tier`, may differ only through those named
+> linkage/optimization changes. Every other body is unchanged, subject to established P-SYM noise.
+> State layouts and `route_through_ssn_tier` remain unchanged. Runtime neutrality is separately
+> verified.
+
+**THE WITHIN-TU EXTRACTION THE PLAN ASKS FOR IS ALREADY DONE.** Cuts (a)–(c) ARE that step, as this
+section has said from the start; astra confirms it. No redundant extraction commit is required, and
+none is to be invented.
+
+#### §10.4.1 The mapped-body / literal audit, made concrete
+
 P-SYM alone cannot prove the semantic identity of moved bodies, literals or static initialisation
 (astra F4/G4): cut (d) supplements it with a mapped source-body / literal audit and an audit of any
-moved static initialisation or tables.
+moved static initialisation or tables. Astra's item 6 makes the instrument concrete, and its four
+parts are binding.
+
+**(i) A NORMALISED STATEMENT-LEVEL COMPARISON of all SIX moved definitions**, `elastic_evidence_seed`'s
+`tight` lambda (`:909`) INCLUDED — the lambda is a definition inside a definition and is easy to lose
+in a whole-function diff. Normalise comments, whitespace, and the explicitly declared namespace
+changes, and NOTHING ELSE: expression order, branches, constants, copies, moves and initialisation
+are all load-bearing and any difference in them is a finding, not a normalisation.
+
+**(ii) EXCLUSIVE LITERALS MIGRATE; SHARED VALUES NEED NOT LEAVE THE DRIVER OBJECT.** This is astra's
+one amendment to the instrument as first proposed. The kernel-specific diagnostic strings at `:995`,
+`:1001` and `:1152` are exclusive to the moved bodies and travel with them; `predicted_decrease`'s
+diagnostic at `:587` stays with its driver-side definition. A value that both objects legitimately
+use stays in both.
+
+**(iii) NO ONE-FOR-ONE `.LCPI` LABEL TRANSFER IS REQUIRED.** Pooling, duplication and materialisation
+can all change across a split. What must be preserved is the mapped data's **meaning and bytes**,
+with every disappearance, addition and retained shared value EXPLAINED. LOCAL-FAMILY counts are
+reconciliation evidence, not the literal proof.
+
+**(iv) THE SIX NAMED CONSTANTS DO NOT MOVE.** The source region contains no kernel-owned static
+local, no mutable file-static table and no dynamic initialiser; its non-enumerator named constants
+already live in a header and stay there:
+
+| constant | value | existing home, unchanged |
+|---|---:|---|
+| `kElasticRhoInit` | `1e2` | `include/hven/detail/globalization/sqp/elastic.h:47` |
+| `kElasticRhoMax` | `1e8` | `elastic.h:48` |
+| `kElasticRhoFactor` | `10.0` | `elastic.h:49` |
+| `kElasticRhoDualMuSafety` | `1e-2` | `elastic.h:71` |
+| `kElasticStallScale` | `1e-12` | `elastic.h:78` |
+| `kNoSlack` | `-1` | `elastic.h:81` |
+
+**(v) THE HEADER-GENERATED INITIALISERS ARE NAMED IN THE CLAIM — the case a source-only "no statics"
+reading misses.** Two variables initialise dynamically out of headers the new TU will also include:
+
+* `hven::solvers::detail::kSsnComplementarityFactor` (`include/hven/detail/qp/ssn_engine.h:455`);
+* `hven::solvers::kSsnTrViolationFactor` (`include/hven/drivers/sqp_driver.h:1756`).
+
+The driver object emits TWO `__cxx_global_var_init` functions keyed to them today. Including the same
+header in `sqp_kernels.cpp` may emit additional GUARDED copies. The claim must name them and the
+audit must verify variable IDENTITY, the guards, the initialisation dependency and the linker
+coalescing — and must show that **no independent state is created** and that no startup instruction
+is misattributed to solver-call overhead.
+
+**(vi) AND THE SHARED fmt CONSTANT TABLES ARE CENSUSED** for the same reason, since moved formatting
+code carries them: `digits2::data` (`dep/fmt/include/fmt/format.h:1036`), the Dragonbox power table
+(`format-inl.h:375`) and `is_printable`'s singleton/normal tables (`format-inl.h:1795`). Identical
+constant/COMDAT copies in the second object are PERMISSIBLE; an independently duplicated MUTABLE
+static is a finding.
 
 > the earlier carve's preserved-inlining record is history, not proof
 
@@ -1102,11 +1274,75 @@ moved static initialisation or tables.
 
 > "informational" does not waive neutrality
 
+#### §11.1.1 THE PRECEDENCE, and the disposition table (astra item 4, BINDING)
+
+The bands above did not completely determine a disposition: "instructions UP", the `1e-4` identity
+tolerance, FLAT timing and owner discretion overlapped, so two different readings of one measurement
+could both be defensible. Astra's item 4 closes that, and the two overlaps are resolved as it
+recommends.
+
+**OVERLAP 1 — does demonstrated added work trigger the veto even when the timing meets FLAT?
+ANSWER: YES. There is NO automatic KEEP.** A bounded, attributable instruction increase from call
+overhead is WORK-MOVED under "instructions UP". Being expected, being small, or being accompanied by
+fewer cache misses does not turn it into layout noise.
+
+**OVERLAP 2 — does "instructions UP" mean any measured positive ratio, or a reproducible increase
+distinguished from the `1e-4` identity tolerance? ANSWER: the latter, in BOTH directions.** Sampling
+variation inside the identity band is not classified as work; and demonstrated executed call
+overhead is not hidden inside that band either. The attribution is RECORDED, and where the
+distinction remains unresolved it goes to the owner rather than being settled by the implementer.
+
+**AND BUILD BENEFIT NEVER PURCHASES RUNTIME WORK.** CLAUDE.md §5's "never at measurable runtime
+cost" outranks its "use separate TUs" clause, in this document as in the file it comes from.
+
+"Build benefit" below means a PREDECLARED, reproducible wall-clock benefit with an acceptable
+measured RSS result, on the threshold fixed at §11.4.1 BEFORE any (d) number was read.
+
+| result after required evidence | build-side result | disposition |
+|---|---|---|
+| Correctness, mapped-body, linkage, effective-flags, or control-symbol failure | Any | No KEEP. Correct the candidate and repeat proof; REDRAW or ABANDON if the boundary cannot satisfy it. |
+| Missing leg, unexercised affected path, unstable calibration, missing build measurement | Missing/inconclusive | **UNRESOLVED**; complete or repeat measurement. |
+| c→d FLAT in every mode on both legs; no demonstrated added work; cumulative corpus inside ±0.5% | Demonstrated benefit | **KEEP recommendation**, presented under §11.5's owner disposition. |
+| Non-FLAT, instructions/branches within identity band, placement accounting closed by passes A/B; cumulative inside bar | Demonstrated benefit | **KEEP eligible under the owner's LAYOUT-MOVED amendment**; report all cell movements. Non-FLAT alone does not force redraw. |
+| Demonstrated instructions UP, including call overhead, whether timing is FLAT or non-FLAT | Any | **WORK-MOVED / veto. Owner receives numbers. REDRAW** if a concrete alternative removes the cost; otherwise **ABANDON** by reverting the TU commit. No automatic KEEP exception. |
+| Instructions/branches flat, cycle movement unexplained | Any | **UNRESOLVED**; repeat passes A/B. If still unexplained, owner finding; neither automatic KEEP nor automatic REDRAW. |
+| Instruction decrease outside the identity band, or another result fitting neither defined class | Any | Owner classification after semantic checks. The existing taxonomy does not cover it explicitly. |
+| Any local KEEP candidate, but cumulative corpus outside ±0.5% in any required comparison | Any | **Owner ruling required**; per-cut permission does not discharge the cumulative bar. By the current wording, this includes the faster side. |
+| Runtime acceptable, but no demonstrated build benefit or an unacceptable build/RSS regression | None/negative | **ABANDON recommendation**; REDRAW only with a concrete build hypothesis. An owner choice to retain it for maintainability must be explicit. |
+
+Every final outcome still goes to the owner under §11.5. The table makes the evidence
+CLASSIFICATION and the DEFAULT RECOMMENDATION deterministic; it cannot make an expressly
+discretionary owner ruling automatic, and it does not try to.
+
+**WHAT A REDRAW MEANS**, so the word is not a placeholder: a DIFFERENT boundary, with a new claim and
+fresh comparisons. Three concrete ones are named — retain the tiny mapper as a private inline
+definition (§1.2's recorded alternative), keep an exposed arithmetic body with its caller, or move a
+smaller genuinely cold subset. **`[[gnu::always_inline]]` and LTO are OUTSIDE this experiment**:
+an attribute on a declaration cannot supply a missing body across a non-LTO boundary, and forcing
+large kernels inline is not a credible unmeasured remedy.
+
+**AND A COUNT IS NOT A PREDICTION.** The TU is 5,522 lines and the proposed region about 392. A
+41 → 42 source count says nothing about compile benefit: template emission may make the region
+disproportionately expensive, and duplicated header parsing may erase the gain entirely. §11.4.1
+measures it rather than assuming it.
+
 ### §11.2 The comparisons
 
 Each cut against its **immediate predecessor** AND **cumulatively** against the post-T3 base
 (`50f616a`). Cut (d) needs a **c → d** comparison to isolate the boundary's own cost; BASE-vs-HEAD
 alone can hide (d)'s regression behind an earlier cut's improvement.
+
+**AND (d)'s PREPARATION COMMIT ADDS A THIRD (astra item 5).** Because §1.4's helper-internalisation
+is a code-changing commit of its own, cut (d) retains THREE comparisons, not two:
+
+| comparison | what it isolates |
+|---|---|
+| **preparation → TU** | the BOUNDARY's own cost, with the linkage change already paid |
+| **`39d7a8e` → final** | the COMPLETE cut, preparation included |
+| **post-T3 `50f616a` → final** | T6's CUMULATIVE bar (§11.1) |
+
+Note which parent the revert arm restores: reverting the TU commit restores its IMMEDIATE PARENT —
+the preparation commit — not an earlier head that lacked it.
 
 ### §11.3 The two legs
 
@@ -1133,8 +1369,23 @@ statement about MAJORS, not about n. So:
   `tests/sqp` on `hven_sqp_corpus`'s include path and `bench/ipqp_e1_arm.cpp:24` already includes
   `support/hs_problems.h` from a bench target, so an HS mode inside `bench_corpus` (plus `--repeat N`
   or an external loop) keeps the bench flag regime and ONE binary. **The terms**: the harness change
-  lands ONCE, BEFORE any T6.d number is taken, and the IDENTICAL binary runs both arms. A `--repeat`
-  added between arms VOIDS the leg. No code for it lands with T6.0.
+  lands ONCE, BEFORE any T6.d number is taken. A `--repeat` added between arms VOIDS the leg. No code
+  for it lands with T6.0.
+
+  **THE "IDENTICAL BINARY" TERM IS AMENDED (astra item 3), because as written it was unmeetable.**
+  The two arms link two different static implementations of `libhven.a` — that is the whole
+  experiment — so ONE executable file cannot run both. What must be identical is the **harness SOURCE
+  and its CONFIGURATION**; each arm is then SEPARATELY LINKED, and **each arm's executable hash is
+  RETAINED** so a reader can prove the two differ only in the library under them. That is the
+  strongest form of the guarantee the original sentence was reaching for, and it is the form the
+  evidence can actually carry.
+
+  **AND LEG 2 MUST EXERCISE BOTH MAPPER CALL SITES.** `trace_outcome_of` runs at `:3447` and `:4792`
+  ONLY WITH A TRACE SINK ATTACHED (§1.7.1), so a null-sink leg measures the split's clearest new call
+  exposure exactly zero times. Leg 2 therefore carries **trace-enabled dispatch and SOC variants with
+  a real sink**, and keeps the **null-sink timings separately identifiable** rather than averaged in
+  — they are different populations, and reporting them as one would hide the site the veto is most
+  likely to turn on.
 * **Aggregation**: per-cell MEDIAN of the N repeats, then the median of the three alternating runs;
   the corpus figure is the sum of per-cell medians, not a mean of ratios.
 * **The fallback-heavy cell**: at least one cell that drives the elastic ladder / certified fallback
@@ -1208,6 +1459,9 @@ Cut (b)'s walk cell is the first result recorded on those terms (§11.5).
 * **Build side** — parallel build **wall-clock** and **peak RSS**, with build parallelism and cache
   conditions FIXED (`CCACHE_DISABLE=1`, a stated `-j`), and the RSS measurement defined (the metric
   and the tool, e.g. peak RSS of the compile step from `/usr/bin/time -v`, stated before the run).
+  **This bullet is NECESSARY BUT NOT SUFFICIENT** — it does not specify the isolated per-TU
+  compilations, which are the only measurement that can say whether the SPLIT itself bought anything.
+  §11.4.1 completes it.
 * **Captures after a TU move start from an EMPTY build directory** — `rm -rf` the build directory
   and CONFIGURE AGAIN for BOTH arms, at the same absolute path. This bullet as first written said
   `ninja -t cleandead && ninja -t clean` is not enough, which is wrong and contradicted the
@@ -1221,6 +1475,66 @@ Cut (b)'s walk cell is the first result recorded on those terms (§11.5).
   review M3, which proposed "`cleandead && clean` — OR rebuild from an empty directory"; the T6
   brief's §1 parenthetical inverted that, and the inversion is the settler's, recorded in the
   ledger.
+
+#### §11.4.1 THE REQUIRED BUILD NUMBERS, and the REVERT ARM (astra items 4 and 5.9, BINDING)
+
+**These numbers accompany REDRAW and ABANDON too**, not only a KEEP: a boundary abandoned for
+runtime reasons still has to say what its build side was worth, or the next window re-argues it from
+nothing.
+
+1. **Three isolated compilations of the ORIGINAL driver TU** (pre-split), individual times retained.
+2. **Three isolated compilations of EACH resulting TU** — the post-split driver and
+   `sqp_kernels.cpp` — reporting individual times, their SERIAL SUM, and the **two-TU PARALLEL SPAN**
+   (the wall of compiling both at once, which is the figure a parallel build actually experiences).
+3. **Three comparable PARALLEL builds before and after**: alone on the machine, a FIXED target set, a
+   STATED `-j`, `CCACHE_DISABLE=1`, fixed cache conditions, with every sample and the spread retained
+   — not a single number.
+4. **PEAK RSS DEFINED TWICE, because the two answer different questions**: (i) the LARGEST INDIVIDUAL
+   COMPILER RSS, from `/usr/bin/time -v` on the compile step, which is what decides whether a TU
+   fits; and (ii) the PEAK CONCURRENT BUILD-PROCESS FOOTPRINT, which is what decides whether a `-j`
+   level is survivable. A single "peak RSS" figure conflates them.
+
+These are TIMING legs under CLAUDE.md §7: solo, serialised under the box lock against the lane's
+bench, nothing else running, the `pgrep` pasted.
+
+**AND THE NEW TU NEEDS ITS OWN COMPILE MEASUREMENT EVEN THOUGH IT IS PCH-OPTED-OUT.** Neither
+updating the source-count guard nor passing `scripts/check_pch_neutrality.sh` proves the split has a
+build benefit: the guard proves membership ACCOUNTING, and the PCH script proves ENGAGEMENT and BYTE
+NEUTRALITY (`scripts/check_pch_neutrality.sh:18`), never compile speed. PCH admission requires BOTH
+faster compilation and byte-identical output (`src/CMakeLists.txt:253`), and PCH experimentation
+stays OUT of the initial boundary experiment.
+
+**THE EFFECTIVE-FLAGS PROOF COMPARES ACTUAL COMMANDS**, three of them plus the relevant links:
+pre-driver, post-driver, post-kernels. Record compiler, optimisation/FP/ISA flags, definitions,
+include environment, PCH consumption and LTO — and SEPARATE source/output paths and declared
+provenance macros from effective CODE-GENERATION differences, so a path string is never read as a
+flag change. **Do not infer PCH consumption from the globally present `-fno-pch-timestamp`**: that
+option is on every command in this tree and says nothing about whether a PCH was consumed.
+
+**THE REVERT ARM IS A REQUIRED LEG**, and it is what turns "independently revertible" from an
+assertion into a measurement. After the TU commit: `git revert` it in the measurement checkout,
+rebuild FROM AN EMPTY DIRECTORY at the same absolute path, and compare against the TU commit's
+IMMEDIATE PARENT. Required: source membership and the source COUNT restored, NO kernels object
+present, library and test objects BYTE-IDENTICAL, and P-SYM passing **without the split's own
+instruction exceptions** — an exception still needed there would mean the revert did not restore what
+it claimed to. The three bench objects retain only their declared provenance-stamp allowance;
+demanding literal whole-object identity of a newly stamped bench object would be a contradictory
+requirement, so it is not demanded.
+
+#### §11.4.2 THE PRE-REGISTERED BUILD-BENEFIT THRESHOLD
+
+**Fixed by the settler BEFORE any (d) number was read**, which is the only condition under which a
+threshold means anything. The owner may amend it; if they do, the amendment is recorded HERE with its
+date, so a moved goalpost is visible as a moved goalpost.
+
+A **KEEP-eligible build benefit** means ALL THREE of:
+
+1. the **two-TU parallel span ≤ 0.85 ×** the original driver TU's isolated compile wall (medians of
+   three, and the gap beyond the stated spread);
+2. the **full parallel build wall not worse** than the pre-(d) median plus its spread;
+3. **peak concurrent RSS ≤ 1.05 ×** pre-(d).
+
+Below that bar, the runtime-acceptable row of §11.1.1's table reads **ABANDON-recommended**.
 
 ### §11.5 The decision, and the record of each cut's
 
@@ -1332,7 +1646,14 @@ outside the band, instructions 1.00000, branches 1.00000, cycles 1.00271, branch
 ×1.19, dq-empty ×1.086, op-cache misses ×1.047 — mechanism named, accounting closed. A reading for T6's
 close against the post-(d) head, per §11.1; no owner ruling is needed at this reading.
 
-**THE CUMULATIVE READING TODAY — post-T3 `50f616a` vs post-(b), ipm: +0.70 %, ABOVE the ±0.5 %
+**THE CUMULATIVE READING TODAY — SUPERSEDED by the post-(c) reading immediately above, and kept as
+HISTORY rather than deleted.** It is the post-(b) reading; it was the current one when it was
+written, and it is no longer. Nothing in cut (d) is to be argued from the +0.70 % figure below: the
+reading that stands is **post-T3 → `01fab70`, ipm +0.30 %**, and the reading that will BIND is the
+one taken afresh at the post-(d) head (§11.1). Recorded because the two arithmetics together show
+what (c) actually moved.
+
+**post-T3 `50f616a` vs post-(b), ipm: +0.70 %, ABOVE the ±0.5 %
 corpus bar, and it is all cut (a)'s.** The arithmetic: (a) +0.72 %, (b) −0.05 %, cumulative +0.70 %.
 Cumulatively instructions are 1.00001 and icache misses are FLAT (0.99) — so the cycles cut (a)
 booked against icache ×1.92 are still there after (b) restored the icache count, which says the
@@ -1380,8 +1701,13 @@ lambdas and the ten push sites — will re-place everything again. If the close 
     `TEST(...)` line itself.
 11. **Cut (d)'s MOVING SET is named** (§1.7): the two kernels plus anonymous namespace #2's three
     kernels-only helpers, with `trace_outcome_of` the one linkage change and `predicted_decrease`
-    the one already-declared shared symbol; four test TUs call the kernels directly, so the moving
-    set has a test-facing surface T6.d's P-SYM claim must cover.
+    the one already-declared shared symbol; **THREE** test TUs call the kernels directly
+    (`test_sqp_driver.cpp` 15, `test_ipqp_dispatch.cpp` 3, `test_trace_writer.cpp` 1;
+    `test_qp_mode_sites.cpp` has ZERO — its three mentions are comments), so the moving set has a
+    test-facing surface T6.d's P-SYM claim must cover. **This item as first written said FOUR**,
+    contradicting §1.7's own corrected paragraph two pages above it; the lane corrected §1.7 at the
+    T6.0 fix1 review (A3) and this sentence was left behind. Corrected at the (d) design review
+    (astra Minor).
 12. **The restoration payload OWNERSHIP is ruled** (§5 constraint 5): the state bundle owns it, the
     outcome type is a tag. astra §2 asked the doc to choose; §2.2 L already determined the answer.
 13. **§11.4's empty-build-directory bullet, as first written, was WRONG** and contradicted the
@@ -1449,6 +1775,39 @@ lambdas and the ten push sites — will re-place everything again. If the close 
     are locals or a member function, not members. Also recorded there: the two spellings that differ
     from §10.3.1's quoted code (the `k` prefix, CLAUDE.md §4; and the `{nullptr, nullptr}` default
     argument, which the language forces), and that §7's ordering assertion is built and falsified.
+
+21. **astra's cut-(d) design review (VERDICT AMEND, no Criticals) lands five Important amendments and
+    three Minors**, `.superpowers/w5-t6-d-design-review-astra.md`, SIGNOFF
+    W5-T6-D-DESIGN-REVIEW-ASTRA, read at HEAD `39d7a8e`. The MOVING SET SURVIVED unchanged — the six
+    rows of §1.7/§10.4 are correct at HEAD and no §1.7 function is mis-sided — but the document was
+    **not sufficient to make (d)'s outcome unambiguous**, and every amendment below is binding on the
+    cut. **A1**: the runtime categories did not determine a disposition; §11.1.1 now carries the
+    precedence, the two resolved overlaps (demonstrated added work vetoes even at FLAT timing; and
+    "instructions UP" is a reproducible increase, neither hidden inside nor conjured out of the 1e-4
+    band) and astra's disposition table verbatim. **A2**: the linkage destination and the two
+    undeclared helpers were undecided — §1.2 names the source-private header
+    `src/drivers/sqp_kernels_internal.h` (NOT under `include/`, which is installed wholesale at
+    `CMakeLists.txt:613`) and records the private-inline REDRAW alternative; §1.4 gives both helpers
+    internal linkage in a SEPARATELY CLAIMED preparation commit, because internalising them inside
+    the TU commit would contradict its own "ONE symbol changes linkage" claim. **A3**: leg 2 must
+    exercise the two trace-enabled mapper sites, and "the IDENTICAL binary runs both arms" was
+    unmeetable for two statically linked library implementations — §11.3 now requires identical
+    harness SOURCE and CONFIGURATION, separately linked arms with RETAINED HASHES, and null-sink
+    timings kept separately identifiable. **A4**: §10.4.1 makes the mapped-body/literal audit
+    concrete, with the exclusive-vs-shared literal rule, no one-for-one `.LCPI` transfer, and the
+    header-generated initialisers (`kSsnComplementarityFactor`, `kSsnTrViolationFactor` — two
+    `__cxx_global_var_init` in the driver object today) and the fmt constant tables named. **A5**:
+    "independently revertible" was asserted and never tested, and the compile-cost experiment was
+    unspecified — §11.4.1 requires the REVERT ARM and the four build measurements, and §11.4.2 fixes
+    the KEEP-eligible threshold BEFORE any number was read. **The three Minors**: §1.2's
+    `elastic_initial_rho :893` was a COMMENT counted as a call; item 11 above said four test TUs
+    where §1.7 says three; §11.5's "CUMULATIVE READING TODAY" was the superseded post-(b) reading.
+    **And one correction to the addendum's premise, made from the retained object rather than from
+    argument** (§1.7.1): the two kernels are ALREADY externally linked and ALREADY out of line
+    (14,865 and 1,384 bytes, with PLT32 calls at three of the five edges), so "calls replace inlined
+    large-kernel bodies" does not describe this baseline; `trace_outcome_of`, which has no standalone
+    symbol at all today, is the clearest NEW call exposure, and **WORK-MOVED is a registered expected
+    RISK, not a predetermined result**. LTO is OFF as observed and (d) must not flip it.
 ---
 
 ## §13. What T6 must not change (restated so the cuts are checked against it)
