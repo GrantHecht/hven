@@ -1179,7 +1179,7 @@ is PLACEMENT, not work: the same instructions and the same branches, fetched fro
 That is **LAYOUT-MOVED** under §11.1, and the owner ruled **KEEP**. The cumulative bar still applies
 at T6's close and this result is one of the contributions it will be measured against.
 
-**CUT (b) — LAYOUT-MOVED in all three modes, NO REDRAW** (the SQP lane's T6.b review §10, run on
+**CUT (b) — ipm/ssn LAYOUT-MOVED; walk UNRESOLVED PENDING RE-MEASUREMENT; NO REDRAW** (the SQP lane's T6.b review §10, run on
 their own binaries from both commits; the immediate comparison is BASE `03e1b34` vs code head
 `25f586e`):
 
