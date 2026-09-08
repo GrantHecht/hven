@@ -2208,7 +2208,10 @@ void write_interior_provenance(std::ostream &os, int argc, char **argv,
     }
     os << "# hven_sqp_corpus provenance -- ENGINE interior (top-level interior-point driver)\n";
     os << fmt::format("# binary: {}\n", HVEN_SQP_CORPUS_GIT_DESCRIBE);
-    os << "# schema: 20\n";
+    // 31 since M6 W5 T8.4: the per-phase account (3), the returned vectors'
+    // declared widths (4) and the four shared declared diagnostics (4) on top
+    // of T8.2's 20.
+    os << "# schema: 31\n";
     os << fmt::format("# invocation: {}\n", invocation);
     os << fmt::format("# MKL_NUM_THREADS: {}\n", mkl == nullptr ? "<unset>" : mkl);
     os << fmt::format("# OMP_NUM_THREADS: {}\n", omp == nullptr ? "<unset>" : omp);
@@ -2577,6 +2580,19 @@ int main(int argc, char **argv) {
                             fmt::format("--engine interior: the cap1 variant's cell '{}' is not in "
                                         "the corpus",
                                         kCap1F7CellId));
+                    }
+                    rows.push_back(run_interior_cell(*f7, treatment, levers, variant));
+                    rows.push_back(run_interior_hs071(treatment, levers, variant));
+                } else if (name == "solve_optimize") {
+                    // The same two problems the cap1 variant uses -- one F7
+                    // cell and HS071 -- so the multi-phase account is shown on a
+                    // large partitioned workload and on a small dense one.
+                    const CorpusCell *f7 = find_cell(kCap1F7CellId);
+                    if (f7 == nullptr) {
+                        throw std::runtime_error(fmt::format(
+                            "--engine interior: the solve_optimize variant's cell '{}' is not in "
+                            "the corpus",
+                            kCap1F7CellId));
                     }
                     rows.push_back(run_interior_cell(*f7, treatment, levers, variant));
                     rows.push_back(run_interior_hs071(treatment, levers, variant));

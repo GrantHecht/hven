@@ -2481,8 +2481,8 @@ Artifact read_interior_csv(const std::string &path) {
         std::vector<std::string> col = runner_test::split_all(line);
         if (header.empty()) {
             header = std::move(col);
-            if (header.size() != 20u) {
-                art.problems.push_back(fmt::format("line {}: header has {} columns, expected 20",
+            if (header.size() != 31u) {
+                art.problems.push_back(fmt::format("line {}: header has {} columns, expected 31",
                                                    line_no, header.size()));
             }
             continue;
@@ -2543,19 +2543,31 @@ struct ExpectedExitRow {
     const char *stop_reason;
 };
 
+// M6 W5 T8.4: the STATUS SPELLINGS moved with hven::ConvergenceFlags, which is
+// gone. `CONVERGED` reads `optimal` and `NOTCONVERGED` reads `max_iter` -- or
+// `stalled` at the two exits the old vocabulary could not tell apart at all,
+// which is why `stop_reason` is what separates the last two rows below and is
+// LOAD-BEARING in this artifact rather than merely informative.
+//
+// The list also gains the two MULTI-PHASE rows T8.4 added: {kSolve, kOptimize}
+// on one F7 cell and on HS071, whose point is the per-phase account, not an
+// exit.
 const std::vector<ExpectedExitRow> &expected_interior_exit_rows() {
     static const std::vector<ExpectedExitRow> kRows{
-        {"f7_n1000_bound_neutral/MakeParameter/cap1", "NOTCONVERGED", "iteration_cap"},
-        {"hs071_x1_fixed/MakeParameter/cap1", "NOTCONVERGED", "iteration_cap"},
-        {"infeas2_spike/MakeParameter/stalled", "NOTCONVERGED", "stage_stalled"},
-        {"infeas2_stationary/MakeParameter/resto_infeasible", "NOTCONVERGED",
-         "restoration_locally_infeasible"}};
+        {"f7_n1000_bound_neutral/MakeParameter/cap1", "max_iter", "iteration_cap"},
+        {"hs071_x1_fixed/MakeParameter/cap1", "max_iter", "iteration_cap"},
+        {"infeas2_spike/MakeParameter/stalled", "stalled", "stage_stalled"},
+        {"infeas2_stationary/MakeParameter/resto_infeasible", "stalled",
+         "restoration_locally_infeasible"},
+        {"f7_n1000_bound_neutral/MakeParameter/solve_optimize", "optimal", "none"},
+        {"hs071_x1_fixed/MakeParameter/solve_optimize", "optimal", "none"}};
     return kRows;
 }
 
-// The 37 keys, in the order the leg writes them: eleven cells x three treatments,
-// then the four abnormal-exit rows. Listed rather than derived, so a leg that
-// stopped writing a cell fails this rather than agreeing with itself.
+// The 39 keys, in the order the leg writes them: eleven cells x three
+// treatments, then the four abnormal-exit rows and the two multi-phase ones.
+// Listed rather than derived, so a leg that stopped writing a cell fails this
+// rather than agreeing with itself.
 const std::vector<std::string> &expected_interior_keys() {
     static const std::vector<std::string> kKeys = [] {
         std::vector<std::string> keys;
@@ -2637,7 +2649,7 @@ std::vector<std::string> interior_artifact_violations(const Artifact &art) {
                                           exit_row->stop_reason));
             }
         } else {
-            if (status != "CONVERGED" && status != "ACCEPTABLE") {
+            if (status != "optimal" && status != "acceptable") {
                 out.push_back(fmt::format("{}: status '{}'", key, status));
             }
             if (reason != "none") {
@@ -2654,7 +2666,7 @@ std::vector<std::string> interior_artifact_violations(const Artifact &art) {
             out.push_back(fmt::format("{}: key is not <cell>/<treatment>[/<variant>]", key));
         }
         if (cell_of(r) == "hs071_x1_fixed" && variant.empty()) {
-            if (status != "CONVERGED") {
+            if (status != "optimal") {
                 out.push_back(fmt::format("{}: the fixed-variable cell must converge", key));
             }
             try {
@@ -2725,10 +2737,124 @@ std::vector<std::string> committed_data_rows() {
 TEST(CorpusCells, InteriorBaselineRescoresOffline) {
     const std::string csv = std::string(HVEN_SQP_INTERIOR_BASELINE_CSV);
     const interior_test::Artifact art = interior_test::read_interior_csv(csv);
-    ASSERT_EQ(art.rows.size(), 37u)
-        << "eleven cells x three fixed-variable treatments, plus four abnormal-exit rows";
+    ASSERT_EQ(art.rows.size(), 39u) << "eleven cells x three fixed-variable treatments, plus four "
+                                       "abnormal-exit rows and two multi-phase rows";
     const std::vector<std::string> violations = interior_test::interior_artifact_violations(art);
     EXPECT_TRUE(violations.empty()) << interior_test::join_violations(violations);
+}
+
+// THE FIXED-COORDINATE RULE, LIVE (M6 W5 T8.4, design §2.3).
+//
+// hs071_x1_fixed is the same declared problem under three fixed-variable
+// treatments, and the treatments do genuinely different things to the fixed
+// coordinate: MakeParameter ELIMINATES it (no row at all, so its stationarity
+// coordinate is EXCLUDED from the inf-norm), MakeConstraint KEEPS it with an
+// internal fixing row whose multiplier becomes the bound price as
+// `z = -lambda_fix`, and RelaxBounds keeps it as a two-sided variable with its
+// bounds pushed apart.
+//
+// The whole point of defining the four diagnostics over the DECLARED problem is
+// that all three describe the same solution afterwards. This is the cheapest
+// live proof of it, and the only one taken on a real solve rather than on
+// hand-written quantities: three rows of a committed artifact, agreeing.
+//
+// THE TOLERANCE IS ABSOLUTE and stated: every one of the twelve values is a
+// residual at a converged point, so what is being asserted is that all three
+// treatments land at the same KKT point to within the engine's own convergence
+// tolerances -- not that three different arithmetic paths produce identical
+// bits, which they do not and are not asked to. RelaxBounds is the one that
+// needs the room: it converges at a point a few nanometres OUTSIDE the declared
+// box (that is what relaxing the bounds means), so its feasibility_i and
+// complementarity are the largest of the three.
+TEST(CorpusCells, TheThreeTreatmentsAgreeOnTheDeclaredDiagnostics) {
+    const interior_test::Artifact art =
+        interior_test::read_interior_csv(std::string(HVEN_SQP_INTERIOR_BASELINE_CSV));
+    ASSERT_TRUE(art.problems.empty()) << interior_test::join_violations(art.problems);
+
+    constexpr double kAgree = 1e-7;
+    const std::vector<std::string> columns{"stationarity", "feasibility_e", "feasibility_i",
+                                           "complementarity"};
+    std::map<std::string, std::map<std::string, double>> by_treatment;
+    for (const auto &row : art.rows) {
+        const auto key = row.find("cell_id");
+        ASSERT_NE(key, row.end());
+        // The three BASE rows only: the `/cap1` and `/solve_optimize` variants
+        // of the same cell are different solves and are not part of this claim.
+        for (const char *treatment : {"MakeParameter", "MakeConstraint", "RelaxBounds"}) {
+            if (key->second == std::string("hs071_x1_fixed/") + treatment) {
+                for (const std::string &c : columns) {
+                    const auto it = row.find(c);
+                    ASSERT_NE(it, row.end()) << c;
+                    by_treatment[treatment][c] = std::stod(it->second);
+                }
+            }
+        }
+    }
+    ASSERT_EQ(by_treatment.size(), 3u) << "the fixed-variable cell must carry all three treatments";
+
+    for (const std::string &c : columns) {
+        const double a = by_treatment.at("MakeParameter").at(c);
+        const double b = by_treatment.at("MakeConstraint").at(c);
+        const double r = by_treatment.at("RelaxBounds").at(c);
+        EXPECT_LT(std::abs(a - b), kAgree)
+            << c << ": MakeParameter " << a << " vs MakeConstraint " << b
+            << " -- the declared-space definition is what makes an ELIMINATED coordinate and a "
+               "coordinate held by an internal fixing row report the same residual";
+        EXPECT_LT(std::abs(a - r), kAgree)
+            << c << ": MakeParameter " << a << " vs RelaxBounds " << r;
+        // And each is a converged residual in its own right, so the agreement
+        // above is agreement at the solution rather than agreement on garbage.
+        EXPECT_LT(std::abs(a), kAgree) << c << " (MakeParameter)";
+        EXPECT_LT(std::abs(b), kAgree) << c << " (MakeConstraint)";
+        EXPECT_LT(std::abs(r), kAgree) << c << " (RelaxBounds)";
+    }
+}
+
+// THE MULTI-PHASE ROWS' PACKED ACCOUNT (M6 W5 T8.4). What the two
+// `/solve_optimize` rows exist to show: a {kSolve, kOptimize} call reports each
+// phase separately, both RAN (the second phase of that sequence is
+// unconditional -- only a kSolve AFTER a kOptimize is conditional), and the
+// per-phase counts sum to the row's own iteration count.
+TEST(CorpusCells, TheMultiPhaseRowsCarryAPerPhaseAccountThatSums) {
+    const interior_test::Artifact art =
+        interior_test::read_interior_csv(std::string(HVEN_SQP_INTERIOR_BASELINE_CSV));
+    ASSERT_TRUE(art.problems.empty()) << interior_test::join_violations(art.problems);
+
+    int seen = 0;
+    for (const auto &row : art.rows) {
+        const auto key = row.find("cell_id");
+        ASSERT_NE(key, row.end());
+        if (key->second.find("/solve_optimize") == std::string::npos) {
+            // Every OTHER row names one phase and ran it.
+            EXPECT_EQ(row.at("phase_count"), "1") << key->second;
+            EXPECT_EQ(row.at("phases_ran"), "1") << key->second;
+            continue;
+        }
+        ++seen;
+        EXPECT_EQ(row.at("phase_count"), "2") << key->second;
+        EXPECT_EQ(row.at("phases_ran"), "2") << key->second;
+
+        const std::string packed = row.at("phases");
+        const std::size_t bar = packed.find('|');
+        ASSERT_NE(bar, std::string::npos) << packed;
+        const std::string first = packed.substr(0, bar);
+        const std::string second = packed.substr(bar + 1);
+        EXPECT_EQ(first.rfind("kSolve:", 0), 0u) << packed;
+        EXPECT_EQ(second.rfind("kOptimize:", 0), 0u) << packed;
+
+        // `<name>:<status>:<iterations>` -- the counts sum to iter_num.
+        const auto iters_of = [](const std::string &field) {
+            const std::size_t last = field.rfind(':');
+            return std::stoi(field.substr(last + 1));
+        };
+        EXPECT_EQ(iters_of(first) + iters_of(second), std::stoi(row.at("iter_num"))) << packed;
+        // Both phases converged on these cells, and the row reports the LAST
+        // ran phase's status.
+        EXPECT_NE(first.find(":optimal:"), std::string::npos) << packed;
+        EXPECT_NE(second.find(":optimal:"), std::string::npos) << packed;
+        EXPECT_EQ(row.at("status"), "optimal") << key->second;
+    }
+    EXPECT_EQ(seen, 2) << "one F7 cell and HS071";
 }
 
 // The two probes below are NEGATIVE: they state a broken artifact and require
@@ -2739,7 +2865,10 @@ TEST(CorpusCells, InteriorArtifactCheckRejectsAnIncompleteArtifact) {
     // The three fixed-variable rows alone: every F7 cell silently absent.
     std::vector<std::string> rows;
     for (const std::string &row : interior_test::committed_data_rows()) {
-        if (row.rfind("hs071_x1_fixed/", 0) == 0 && row.find("/cap1,") == std::string::npos) {
+        // The three BASE rows: neither the /cap1 nor the /solve_optimize
+        // variant of the same cell (M6 W5 T8.4 added the second).
+        if (row.rfind("hs071_x1_fixed/", 0) == 0 && row.find("/cap1,") == std::string::npos &&
+            row.find("/solve_optimize,") == std::string::npos) {
             rows.push_back(row);
         }
     }
@@ -2749,7 +2878,7 @@ TEST(CorpusCells, InteriorArtifactCheckRejectsAnIncompleteArtifact) {
 
     const std::vector<std::string> violations =
         interior_test::interior_artifact_violations(interior_test::read_interior_csv(path));
-    EXPECT_EQ(violations.size(), 34u) << interior_test::join_violations(violations);
+    EXPECT_EQ(violations.size(), 36u) << interior_test::join_violations(violations);
     EXPECT_NE(interior_test::join_violations(violations)
                   .find("missing row key 'f7_n1000_bound_neutral/MakeParameter'"),
               std::string::npos);
@@ -2760,7 +2889,7 @@ TEST(CorpusCells, InteriorArtifactCheckRejectsDuplicateAndMalformedRows) {
     // (a) a repeated key -- the shape the replay comparator would silently
     //     collapse to one row.
     std::vector<std::string> rows = interior_test::committed_data_rows();
-    ASSERT_EQ(rows.size(), 37u);
+    ASSERT_EQ(rows.size(), 39u);
     rows.push_back(rows.front());
     const std::string dup = runner_test::temp_path("interior_probe_duplicate.csv");
     interior_test::write_probe_artifact(dup, rows);
@@ -2774,13 +2903,13 @@ TEST(CorpusCells, InteriorArtifactCheckRejectsDuplicateAndMalformedRows) {
 
     // (b) a truncated record -- read as a malformed artifact, never skipped.
     std::vector<std::string> truncated = interior_test::committed_data_rows();
-    truncated.back() = "infeas2_stationary/MakeParameter/resto_infeasible,synthetic,2,none";
+    truncated.back() = "hs071_x1_fixed/MakeParameter/solve_optimize,HS071,4,none";
     const std::string bad = runner_test::temp_path("interior_probe_malformed.csv");
     interior_test::write_probe_artifact(bad, truncated);
     const std::vector<std::string> bad_violations =
         interior_test::interior_artifact_violations(interior_test::read_interior_csv(bad));
     ASSERT_FALSE(bad_violations.empty());
-    EXPECT_NE(interior_test::join_violations(bad_violations).find("4 fields, expected 20"),
+    EXPECT_NE(interior_test::join_violations(bad_violations).find("4 fields, expected 31"),
               std::string::npos)
         << interior_test::join_violations(bad_violations);
     std::remove(bad.c_str());

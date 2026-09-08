@@ -1469,3 +1469,26 @@ the returned point exists (the non-finite-start exit), all four are NaN and
 The first three still COMPILE if left alone only in the sense that
 `stationarity` and `complementarity` exist on the base — which is precisely why
 they are listed: silently reading a different quantity is the failure mode.
+
+### The interior-point leg's artifact: a declared re-derivation
+
+`bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv` is re-derived, and
+the reasons are in the file's own provenance header. In short:
+
+- The `status` column takes the new vocabulary: `CONVERGED` → `optimal`,
+  `NOTCONVERGED` → `max_iter` at the two cap rows and `stalled` at the two
+  abnormal ones. **The last two rows are now identical in `status` and are told
+  apart by `stop_reason` alone**, so the column T8.2 added is load-bearing in
+  this artifact from here on.
+- Outside that column, **T8.2's 37 rows did not move**: `compare_replay.py`
+  between the two files with column 6 cut reported `37 / 18 / 0`.
+- The schema gains eleven columns — `phase_count`, `phases_ran`, `phases`
+  (the packed per-phase account), the four declared block widths, and the four
+  shared declared diagnostics — and two rows, the `/solve_optimize`
+  ({kSolve, kOptimize}) variant on one F7 cell and on HS071.
+- `# schema:` reads 31.
+
+If you read this artifact, three columns are new and load-bearing and one is
+newly so: `phases` (packed as `kSolve:optimal:5|kOptimize:optimal:7`, with
+`:skipped` for a conditional phase that did not run), the four `*_size` widths,
+the four shared diagnostics, and `stop_reason`.

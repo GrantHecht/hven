@@ -229,7 +229,15 @@ Vec two_var_start(double a, double b) {
 }
 
 const char *entry_tag(InteriorVariant::Entry entry) {
-    return entry == InteriorVariant::Entry::kOptimize ? "optimize" : "solve";
+    switch (entry) {
+    case InteriorVariant::Entry::kOptimize:
+        return "optimize";
+    case InteriorVariant::Entry::kSolve:
+        return "solve";
+    case InteriorVariant::Entry::kSolveOptimize:
+        return "solve_optimize";
+    }
+    return "unknown";
 }
 
 const char *restoration_tag(RestorationModes mode) {
@@ -304,6 +312,19 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
         resto.restoration_mode = RestorationModes::l1_nested;
         resto.max_feas_rest = 1;
         v.push_back(resto);
+
+        // THE MULTI-PHASE ROW (M6 W5 T8.4). {kSolve, kOptimize} -- what the
+        // removed solve_optimize() entry ran -- on a cell that converges, so
+        // what it shows is a sequence where BOTH phases run (the second is
+        // unconditional; only a kSolve AFTER a kOptimize is conditional) and
+        // each reports its own status and iteration count in the packed
+        // `phases` column. It is a variant rather than a lever for the same
+        // reason the three above are: what it pins is a shape of the account,
+        // not a cell.
+        InteriorVariant sequence;
+        sequence.name = "solve_optimize";
+        sequence.entry = InteriorVariant::Entry::kSolveOptimize;
+        v.push_back(sequence);
         return v;
     }();
     return kVariants;
@@ -386,9 +407,25 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
     ipm.optimizer_->set_options(std::move(o));
     ipm.transcribe();
 
+    // THE SEQUENCE IS AN OPTION SINCE M6 W5 T8.4, but this leg drives the
+    // engine through NLPSolver, whose five entries each SET that option from
+    // their own name before solving -- so the sequence is still chosen by which
+    // of them is called, and writing `phases` on the options above would be
+    // overwritten here. T8.9 rewrites this function to construct the solver
+    // directly, and the sequence becomes a field write then.
     const auto t0 = std::chrono::steady_clock::now();
-    const hven::solvers::SolveStatus flag =
-        variant.entry == InteriorVariant::Entry::kSolve ? ipm.solve(x0) : ipm.optimize(x0);
+    hven::solvers::SolveStatus flag = hven::solvers::SolveStatus::kNumericalError;
+    switch (variant.entry) {
+    case InteriorVariant::Entry::kOptimize:
+        flag = ipm.optimize(x0);
+        break;
+    case InteriorVariant::Entry::kSolve:
+        flag = ipm.solve(x0);
+        break;
+    case InteriorVariant::Entry::kSolveOptimize:
+        flag = ipm.solve_optimize(x0);
+        break;
+    }
     const double wall_s = seconds_since(t0);
 
     const auto &result = ipm.result();
@@ -413,6 +450,40 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
     row.fixed_treatment = interior_treatment_tag(result.fixed_variable_treatment);
     row.stop_reason = to_string(ipm.optimizer_->last_stop_reason());
     row.variant = variant.name;
+
+    // THE PER-PHASE ACCOUNT, packed into one column so the schema does not grow
+    // with the longest sequence this leg ever runs. A phase that did not run
+    // says so in place of its status and count, rather than reporting a zero
+    // that would read as "ran and took none".
+    row.phase_count = static_cast<Index>(result.phases.size());
+    row.phases_ran = 0;
+    std::string packed;
+    for (const auto &phase : result.phases) {
+        if (!packed.empty()) {
+            packed += "|";
+        }
+        const char *name =
+            phase.phase == hven::solvers::IpmPhase::kOptimize ? "kOptimize" : "kSolve";
+        if (phase.ran) {
+            ++row.phases_ran;
+            packed += fmt::format("{}:{}:{}", name, to_string(phase.status), phase.iterations);
+        } else {
+            packed += fmt::format("{}:skipped", name);
+        }
+    }
+    row.phases = packed;
+
+    // The DECLARED widths of the four returned blocks, and the four shared
+    // declared diagnostics beside them.
+    row.x_size = result.x.size();
+    row.lambda_e_size = result.lambda_e.size();
+    row.lambda_i_size = result.lambda_i.size();
+    row.z_size = result.z.size();
+    row.stationarity = result.stationarity;
+    row.feasibility_e = result.feasibility_e;
+    row.feasibility_i = result.feasibility_i;
+    row.complementarity = result.complementarity;
+
     row.wall_s = wall_s;
     return row;
 }
@@ -477,17 +548,21 @@ std::string interior_row_key(const InteriorRow &row) {
 std::string interior_csv_header() {
     return "cell_id,family,n_nodes,window,taxonomy,status,iter_num,obj_val,kkt_inf,barr_inf,"
            "econ_inf,icon_inf,factorizations,solves,analyses,soc_steps,watchdog_activations,"
-           "fixed_treatment,stop_reason,wall_s\n";
+           "fixed_treatment,stop_reason,phase_count,phases_ran,phases,x_size,lambda_e_size,"
+           "lambda_i_size,z_size,stationarity,feasibility_e,feasibility_i,complementarity,"
+           "wall_s\n";
 }
 
 std::string interior_csv_row(const InteriorRow &row) {
     return fmt::format("{},{},{},{},{},{},{},{:.9e},{:.9e},{:.9e},{:.9e},{:.9e},{},{},{},{},{},"
-                       "{},{},{:.9f}\n",
+                       "{},{},{},{},{},{},{},{},{},{:.9e},{:.9e},{:.9e},{:.9e},{:.9f}\n",
                        interior_row_key(row), row.family, row.n_nodes, row.window, row.taxonomy,
                        row.status, row.iter_num, row.obj_val, row.kkt_inf, row.barr_inf,
                        row.econ_inf, row.icon_inf, row.factorizations, row.solves, row.analyses,
                        row.soc_steps, row.watchdog_activations, row.fixed_treatment,
-                       row.stop_reason, row.wall_s);
+                       row.stop_reason, row.phase_count, row.phases_ran, row.phases, row.x_size,
+                       row.lambda_e_size, row.lambda_i_size, row.z_size, row.stationarity,
+                       row.feasibility_e, row.feasibility_i, row.complementarity, row.wall_s);
 }
 
 } // namespace hven::solvers::corpus

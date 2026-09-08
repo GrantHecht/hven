@@ -74,8 +74,14 @@ struct InteriorLevers {
 /// keep their two-segment keys. Every field is an override applied on top of
 /// InteriorLevers, and 0 (or `off`) means "leave the lever alone".
 struct InteriorVariant {
-    /// Which top-level entry point the row drives.
-    enum class Entry { kOptimize, kSolve };
+    /// Which PHASE SEQUENCE the row drives.
+    ///
+    /// M6 W5 T8.4: the engine has one entry and the sequence is an option, so
+    /// this names a sequence rather than an entry point. kOptimize and kSolve
+    /// are the one-phase sequences the two old entries ran; kSolveOptimize is
+    /// {kSolve, kOptimize} -- what solve_optimize() ran -- and is the leg's
+    /// live proof that a multi-phase call reports each phase separately.
+    enum class Entry { kOptimize, kSolve, kSolveOptimize };
 
     /// The key's third segment; empty on the base variant, which writes none.
     const char *name = "";
@@ -152,6 +158,43 @@ struct InteriorRow {
     /// The variant's name, carried in the row KEY rather than in a column;
     /// empty on a base row.
     std::string variant;
+
+    // --- THE PER-PHASE ACCOUNT (M6 W5 T8.4) -------------------------------
+    /// How many phases the sequence NAMED. 1 on every single-phase row.
+    Index phase_count = 0;
+    /// How many of them actually RAN. Lower than `phase_count` when a
+    /// conditional phase was skipped, which is what the packed column below
+    /// lets a reader see per phase.
+    Index phases_ran = 0;
+    /// The whole per-phase account in one column, so the schema does not grow
+    /// with the longest sequence the leg ever runs:
+    /// `kSolve:optimal:7|kOptimize:max_iter:3`, with `:skipped` in place of the
+    /// status and iterations of a phase that did not run.
+    std::string phases;
+
+    // --- THE RETURNED VECTORS' DIMENSIONS (M6 W5 T8.4) --------------------
+    //
+    // Integers, so no tolerance applies. They are here because the result base
+    // moved the four blocks into DECLARED space and width, and a schema that
+    // reported only their contents could not show a width regression at all.
+    Index x_size = -1;
+    Index lambda_e_size = -1;
+    Index lambda_i_size = -1;
+    Index z_size = -1;
+
+    // --- THE FOUR SHARED DECLARED DIAGNOSTICS (M6 W5 T8.4) ----------------
+    //
+    // NOT kkt_inf/barr_inf/econ_inf/icon_inf beside them, which are the
+    // ENGINE's own measurements in the engine's own space. These four are over
+    // the DECLARED problem in CALLER units, by the one definition both engines
+    // feed (drivers/solve_result.h) -- which is what makes them comparable
+    // across the three fixed-variable treatments, and what the bound-fixed
+    // cell's three rows are pinned on.
+    double stationarity = 0.0;
+    double feasibility_e = 0.0;
+    double feasibility_i = 0.0;
+    double complementarity = 0.0;
+
     /// Informational only; excluded by the replay comparator by name.
     double wall_s = 0.0;
 };
