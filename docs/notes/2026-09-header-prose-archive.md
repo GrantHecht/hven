@@ -2,8 +2,14 @@
 
 ## What this is
 
-The discussion prose removed from hven's ten largest headers at M6 W5 T7, kept
-verbatim. The owner's rule for headers is that they are API documentation, not a
+The discussion prose removed at M6 W5 T7 from the ten headers the M6 W5 plan
+designated, kept verbatim. Nine of the ten are hven's largest headers by comment
+line count at `1997159`; the tenth, `detail/qp/ipqp_engine.h`, ranks eleventh —
+`model/nlp_aggregate.h` is tenth and was excluded because M6 W5 T8 renames it,
+and a SOURCE stamp on a name about to change is the provenance churn the stamp
+exists to avoid.
+
+The owner's rule for headers is that they are API documentation, not a
 settlement record: what stays beside a declaration is the OPERATIVE contract —
 ordering, ownership and lifetime, exceptions, numerical constraints, and what is
 emitted when something is absent — stated in terse Doxygen. Everything else —

@@ -597,17 +597,44 @@ depended on the split and each stands on its own:
 ## T7 — header comments only: **NOTHING CHANGED FOR YOU**
 
 **No API break, no behaviour change, no symbol change.** M6 W5 T7 rewrote the
-comments in the ten largest headers: the operative contracts — ordering,
-ownership and lifetime, exceptions, numerical constraints, and what is emitted
-when something is absent — stay beside their declarations in terse Doxygen, and
-the discussion prose that used to surround them moved, verbatim and stamped with
-its source commit, path and original line numbers, to
-`docs/notes/2026-09-header-prose-archive.md`. If a comment you were reading is
-no longer in the header, it is in that file under the header's own section. One
-non-comment change rides the task: thirteen dead `friend` declarations naming
-test harnesses and gtest classes that no longer exist were removed — twelve from
-`include/hven/drivers/interior_point_solver.h`, and the twin (plus its forward
-declaration) from
+comments in ten headers: the operative contracts — ordering, ownership and
+lifetime, exceptions, numerical constraints, and what is emitted when something
+is absent — stay beside their declarations in terse Doxygen, and the discussion
+prose that used to surround them moved, verbatim and stamped with its source
+commit, path and original line numbers, to
+`docs/notes/2026-09-header-prose-archive.md`.
+
+**The ten are the set the M6 W5 plan designated,** not simply the ten largest.
+Nine are hven's largest headers by comment-line count at `1997159`; the tenth,
+`include/hven/detail/qp/ipqp_engine.h`, ranks eleventh. The actual tenth,
+`include/hven/model/nlp_aggregate.h`, was excluded because M6 W5 T8 renames it
+and a source stamp on a name about to change is the churn the stamp exists to
+avoid.
+
+**What the archive does and does not hold.** It holds every block of discussion
+prose that was lifted out whole — 301 stamped entries. It does not hold the
+lines that were *rewritten* rather than removed: 355 of them (204 `///`,
+151 `//`) were recast into the terse form in place, and their operative content
+is still beside the declaration. So the archive is not a complete record of
+every byte that changed. If you are looking for exactly what a comment used to
+say, the authority is `git diff 1997159 -- <path>`, which is immutable; the
+archive is the place to read the *reasoning* that no longer belongs in an API
+header.
+
+**One non-comment change rides the task:** thirteen dead `friend` declarations
+naming test harnesses and gtest classes that no longer exist were removed —
+twelve from `include/hven/drivers/interior_point_solver.h`, and the twin (plus
+its forward declaration) from
 `include/hven/detail/globalization/feasibility_switch_recovery.h`. A friend
-declaration emits nothing, so every object in the library and in the test suites
-is byte-identical across the task.
+declaration emits nothing.
+
+**Objects: 160 of 164 byte-identical, and the other four differ for a reason
+that is not this task's code.** `bench_corpus.cpp.o`, `bench_crossover.cpp.o`,
+`ipqp_e1_arm.cpp.o` and the golden rig's `trace_support.cpp.o` each differ in
+exactly twelve bytes, all inside `.rodata.str1.1`, and all of them the
+`git describe --always --dirty --abbrev=12` stamp that `bench/CMakeLists.txt`
+embeds at configure time. That is a **real object change**, not a byte-identity
+result with an excuse attached: the bytes are not equal. It is also
+non-instructional — every `.text` byte, every relocation, every other section
+and the instruction counts are identical, and the differing content is a commit
+sha, not a decision the code makes. `libhven.a` itself is byte-identical.
