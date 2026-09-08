@@ -25,6 +25,7 @@
 #include <hven/drivers/sqp_driver.h>
 #include <hven/drivers/sqp_types.h>
 #include <hven/model/nlp_model.h>
+#include <hven/model/nlp_model_aggregate.h>
 #include <hven/model/nlp_solver.h>
 
 #include "sqp/support/hs_problems.h"
@@ -591,35 +592,477 @@ TEST(SolveResult, TheSqpFillsTheSharedDiagnosticsAtItsReturnedPoint) {
     EXPECT_GT(after->primal_.template lpNorm<Eigen::Infinity>(), 0.0);
 }
 
+namespace {
+
+/// min 0.5||x||^2 s.t. x0 = 5, over the box [0,1]^2 -- an equality the box
+/// blocks, so the elastic tier exhausts and the RESTORATION phase runs and
+/// certifies at x = (1, 0). Copied from tests/sqp/test_sqp_restoration.cpp's
+/// fixture of the same name, because this directory links no SQP fixtures.
+class BoxBlockedEqualityModel final : public hven::solvers::NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+
+    double eval_f(const Vec &x) const override { return 0.5 * x.squaredNorm(); }
+    Vec eval_grad(const Vec &x) const override { return x; }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(1);
+        c << x(0) - 5.0;
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double obj_scale, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = obj_scale;
+        h.insert(1, 1) = obj_scale;
+        h.makeCompressed();
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override {
+        SpMatRM j(1, 2);
+        j.insert(0, 0) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Zero(2);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Ones(2);
+        return u;
+    }
+    Vec start_point() const override { return Vec::Constant(2, 0.5); }
+};
+
+} // namespace
+
 TEST(SolveBudget, SqpRestorationIsBudgetedFromTheEffectiveCap) {
     // The effective cap governs the exit conjunction, the restoration REFUSAL
     // and the restoration sub-driver's budget alike -- three reads, and a sweep
     // that reached only some of them would let a capped solve enter restoration
     // it has no budget for.
-    const auto p = hven::solvers::test_support::make_hs(7);
+    //
+    // ON A RESTORATION FIXTURE (M6 W5 T8.4 fix1). T8.4 ran this on HS7, which
+    // never restores, so the two reads a partial sweep would have missed were
+    // never exercised and the test could not tell a swept implementation from
+    // an unswept one. This model's equality is blocked by its box, so the
+    // elastic tier exhausts and the phase RUNS -- asserted first, because
+    // everything below is vacuous without it.
+    BoxBlockedEqualityModel model;
     hven::solvers::SqpOptions o = quiet_sqp();
     o.max_iter = 200;
     hven::solvers::SqpDriver driver(o);
 
+    const hven::solvers::SqpResult free_run = driver.solve(model, model.start_point());
+    ASSERT_EQ(free_run.status, hven::solvers::SolveStatus::kInfeasible);
+    ASSERT_GT(free_run.counters.restoration_iters, 0)
+        << "the restoration phase must RUN, or this test measures nothing";
+    const Index unbudgeted_total =
+        free_run.counters.major_iters + free_run.counters.restoration_iters;
+    ASSERT_GT(unbudgeted_total, 2);
+
+    // THE SUB-BUDGET READ: a cap the solve reaches only by spending majors on
+    // both phases. The sub-driver is allocated from the EFFECTIVE cap minus
+    // what the outer loop has already spent, so the two together stay inside it.
     const hven::solvers::SqpResult capped =
-        driver.solve(*p.model, p.model->start_point(), hven::solvers::WarmStart{},
+        driver.solve(model, model.start_point(),
                      hven::solvers::SolveBudget{/*minor_budget=*/0, /*max_iterations=*/2});
     EXPECT_LE(capped.counters.major_iters + capped.counters.restoration_iters, 2)
         << "the cap bounds the majors AND the restoration majors together";
 
-    // TIGHTEN ONLY: a budget above the engine's own limit does not raise it.
+    // THE REFUSAL READ: at a cap of ONE the outer loop's first major has
+    // already spent the whole budget, so the request is REFUSED rather than
+    // sub-budgeted -- no restoration major is spent at all.
+    const hven::solvers::SqpResult refused =
+        driver.solve(model, model.start_point(), hven::solvers::SolveBudget{0, 1});
+    EXPECT_LE(refused.counters.major_iters, 1);
+    EXPECT_EQ(refused.counters.restoration_iters, 0)
+        << "a spent budget refuses the phase rather than entering it";
+
+    // TIGHTEN ONLY: a budget above the engine's own limit does not raise it,
+    // and the ENGINE's own max_iter reaches the same three reads.
     hven::solvers::SqpOptions tight = quiet_sqp();
     tight.max_iter = 2;
     hven::solvers::SqpDriver small(tight);
     const hven::solvers::SqpResult still =
-        small.solve(*p.model, p.model->start_point(), hven::solvers::WarmStart{},
-                    hven::solvers::SolveBudget{0, 100000});
+        small.solve(model, model.start_point(), hven::solvers::SolveBudget{0, 100000});
     EXPECT_LE(still.counters.major_iters + still.counters.restoration_iters, 2);
 
     // THE DEFAULT BUDGET IS THE IDENTITY, which is what makes this
-    // trajectory-neutral on every existing path: the same solve unbudgeted
-    // converges and takes more majors than the cap allowed.
-    const hven::solvers::SqpResult free_run = driver.solve(*p.model, p.model->start_point());
+    // trajectory-neutral on every existing path: the unbudgeted solve above
+    // spent more than any cap here allowed and reached its own exit.
+    EXPECT_GT(unbudgeted_total, 2);
+}
+
+// ===========================================================================
+// (6) EVALUATION PROVENANCE (M6 W5 T8.4 fix1).
+//
+// The four shared diagnostics are a statement about the RETURNED point of the
+// DECLARED problem. Three things can be true of the evaluation an engine has
+// in hand at its exit, and none of them can be read off the captured vector's
+// size: it may carry no declared objective gradient (a feasibility phase, or a
+// restoration seam substituting its own objective), it may belong to an
+// iterate a restoration return has since moved away from, and its constraint
+// rows may be a restoration subproblem's condensed residuals rather than the
+// declared ones. Each pin below is one of those.
+// ===========================================================================
+
+namespace {
+
+/// c(x) = x0^2 + x1^2 + 1 = 0 has no real solution, and the violation has a
+/// STRICT stationary point at the origin -- the shape a restoration phase
+/// converges to and then declares locally infeasible. A copy, for the reason
+/// the bench leg's own copy states: a test in this directory links no interior
+/// fixtures.
+struct LocallyInfeasibleProblem final : hven::solvers::NLPProblem {
+    int num_vars() const override { return 2; }
+    int num_cons() const override { return 1; }
+    int num_jac_nonzeros() const override { return 2; }
+    int num_hess_nonzeros() const override { return 2; }
+
+    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
+                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+        xl << -kInf, -kInf;
+        xu << kInf, kInf;
+        gl << 0.0;
+        gu << 0.0;
+    }
+    void eval_f(hven::ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+        f = x[0] + x[1];
+    }
+    void eval_grad_f(hven::ConstEigenRef<Eigen::VectorXd>,
+                     Eigen::Ref<Eigen::VectorXd> g) const override {
+        g << 1.0, 1.0;
+    }
+    void eval_g(hven::ConstEigenRef<Eigen::VectorXd> x,
+                Eigen::Ref<Eigen::VectorXd> g) const override {
+        g[0] = x[0] * x[0] + x[1] * x[1] + 1.0;
+    }
+    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
+                       Eigen::Ref<Eigen::VectorXi> c) const override {
+        r << 0, 0;
+        c << 0, 1;
+    }
+    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
+                        Eigen::Ref<Eigen::VectorXi> c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_jac(hven::ConstEigenRef<Eigen::VectorXd> x,
+                  Eigen::Ref<Eigen::VectorXd> v) const override {
+        v << 2.0 * x[0], 2.0 * x[1];
+    }
+    void eval_hess(hven::ConstEigenRef<Eigen::VectorXd>, double,
+                   hven::ConstEigenRef<Eigen::VectorXd> lambda,
+                   Eigen::Ref<Eigen::VectorXd> v) const override {
+        v << 2.0 * lambda[0], 2.0 * lambda[0];
+    }
+    std::string name() const override { return "LocallyInfeasibleProblem"; }
+};
+
+Eigen::VectorXd two_var_start(double a, double b) {
+    Eigen::VectorXd x(2);
+    x << a, b;
+    return x;
+}
+
+} // namespace
+
+TEST(SolveResult, AFeasibilityOnlyLastPhaseReportsStationarityUnmeasured) {
+    // THE SETTLER'S S1 / the lane's Critical, pinned on both sides.
+    //
+    // A `{kSolve}` call runs the feasibility phase alone. That phase evaluates
+    // through eval_soe at objective scale 0.0 and then zeroes both primal
+    // blocks, so the right-hand side it leaves behind carries NO declared
+    // objective gradient at all -- and the T8.4 result assembly nevertheless
+    // divided that vector by the objective scale and reported it as a measured
+    // declared stationarity. On the bench leg's `infeas2_spike` cell that
+    // printed 0.000000000e+00 for a problem whose objective is f = x[1] and
+    // whose honest declared stationarity is at least 1.
+    //
+    // The honest REPORT is NaN: no declared-objective evaluation of the
+    // returned point exists, and manufacturing one would move evals_full on
+    // every solve.
+    hven::solvers::IpmOptions o;
+    o.common.print_level = 10;
+    o.phases = {hven::solvers::IpmPhase::kSolve};
+    hven::solvers::InteriorPointSolver solver(o);
+    auto model = hven::solvers::NLPSolver(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    model.transcribe();
+
+    const hven::solvers::IpmResult r = solver.solve(*model.nlp_, hven_drivers_tests::hs071_start());
+    ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal)
+        << "the feasibility phase does find a feasible point of HS071";
+    ASSERT_EQ(r.phases.size(), 1u);
+    EXPECT_EQ(r.phases[0].phase, hven::solvers::IpmPhase::kSolve);
+
+    EXPECT_TRUE(std::isnan(r.stationarity))
+        << "a feasibility phase carries no objective gradient, so the declared "
+           "stationarity of its exit is UNMEASURED, never 0";
+    // THE OTHER THREE ARE MEASURED AND KEPT. They read ce, ci, x, the box,
+    // lambda_i and z -- every one of which a feasibility phase does evaluate --
+    // so NaN-ing them would throw away real measurements.
+    EXPECT_FALSE(std::isnan(r.feasibility_e));
+    EXPECT_FALSE(std::isnan(r.feasibility_i));
+    EXPECT_FALSE(std::isnan(r.complementarity));
+    EXPECT_LT(r.feasibility_e, 1e-6);
+    // And `f` is measured: the exit assembles the true objective at the
+    // returned primals on every non-OPT exit.
+    EXPECT_FALSE(std::isnan(r.f));
+    EXPECT_EQ(r.ce.size(), 1);
+    EXPECT_EQ(r.ci.size(), 1);
+}
+
+TEST(SolveResult, AnObjectiveBearingLastPhaseReportsAllFour) {
+    // The other side of the same rule: a `{kSolve, kOptimize}` call ends in an
+    // objective-bearing phase, so all four are measured. The feasibility phase
+    // having run FIRST does not taint them -- the provenance is a fact about
+    // the LAST evaluation, not about the sequence.
+    hven::solvers::IpmOptions o;
+    o.common.print_level = 10;
+    o.phases = {hven::solvers::IpmPhase::kSolve, hven::solvers::IpmPhase::kOptimize};
+    hven::solvers::InteriorPointSolver solver(o);
+    auto model = hven::solvers::NLPSolver(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    model.transcribe();
+
+    const hven::solvers::IpmResult r = solver.solve(*model.nlp_, hven_drivers_tests::hs071_start());
+    ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(r.phases.size(), 2u);
+    EXPECT_TRUE(r.phases[0].ran);
+    EXPECT_TRUE(r.phases[1].ran);
+
+    EXPECT_FALSE(std::isnan(r.stationarity));
+    EXPECT_FALSE(std::isnan(r.feasibility_e));
+    EXPECT_FALSE(std::isnan(r.feasibility_i));
+    EXPECT_FALSE(std::isnan(r.complementarity));
+    EXPECT_LT(r.stationarity, 1e-6);
+}
+
+TEST(SolveResult, AnActiveRestorationExitEmptiesTheResidualBlocks) {
+    // CLAUSE (c). Nested restoration replaces the constraint rows of the
+    // right-hand side with the CONDENSED residuals of its own subproblem
+    // (eval_nlp's nested arm), so an exit taken while it was active carries
+    // rows that are not the declared ones: this fixture's declared equality is
+    // x0^2 + x1^2 + 1, which is >= 1 EVERYWHERE, while the copied row is a
+    // tiny condensed number that reads as a nearly feasible point. T8.4
+    // reported the four diagnostics as NaN here and then copied those rows
+    // anyway. Empty is the contract's word for unmeasured; a zero-length
+    // vector cannot be misread the way a copied one can.
+    hven::solvers::IpmOptions o;
+    o.common.print_level = 10;
+    o.common.threads = 1;
+    o.max_iters = 200;
+    o.restoration_mode = hven::solvers::RestorationModes::l1_nested;
+    o.max_feas_rest = 1;
+    hven::solvers::InteriorPointSolver solver(o);
+    auto model = hven::solvers::NLPSolver(std::make_shared<LocallyInfeasibleProblem>());
+    model.transcribe();
+
+    const hven::solvers::IpmResult r = solver.solve(*model.nlp_, two_var_start(1.0, 1.0));
+    ASSERT_EQ(r.status, hven::solvers::SolveStatus::kStalled);
+    ASSERT_EQ(r.phases.back().stop_reason,
+              hven::solvers::IpmStopReason::kRestorationLocallyInfeasible);
+
+    EXPECT_TRUE(std::isnan(r.stationarity));
+    EXPECT_TRUE(std::isnan(r.feasibility_e));
+    EXPECT_TRUE(std::isnan(r.feasibility_i));
+    EXPECT_TRUE(std::isnan(r.complementarity));
+    EXPECT_EQ(r.ce.size(), 0) << "a condensed restoration residual is not the declared one";
+    EXPECT_EQ(r.ci.size(), 0);
+}
+
+TEST(SolveResult, ReturnBestReportsTheBestIterateSObjective) {
+    // THE INHERITED MISMATCH, fixed here because IpmResult is T8.4's. The
+    // return_best_ substitution replaces XSL and RHS with the BEST iterate's
+    // pair, so x, the multipliers and the residuals all describe that point --
+    // while `f` was taken from iters.back(), the LAST one. On a solve whose
+    // last iterate is not its best, the objective did not belong to the point
+    // being returned.
+    // ON A FIXTURE WHOSE ITERATES GET WORSE. HS071 descends monotonically, so
+    // its last iterate IS its best at every cap and the substitution never
+    // fires there. This equality has no real root and the feasibility measure
+    // the default criterion (ECONS) scores runs away from its own best early
+    // iterate, which is exactly the case return_best exists for.
+    LocallyInfeasibleProblem problem;
+    auto model = hven::solvers::NLPSolver(std::make_shared<LocallyInfeasibleProblem>());
+    model.transcribe();
+
+    // THE CAP IS SEARCHED FOR, NOT ASSUMED. What makes the fixture
+    // discriminating is that the substitution actually FIRES -- that the best
+    // iterate is not the last one at the cap -- and which caps have that
+    // property is a fact about the trajectory, not something a test may assert
+    // by construction. The search asserts that at least one exists; the pin
+    // below then runs at it.
+    hven::solvers::IpmResult best;
+    hven::solvers::IpmResult last;
+    int chosen_cap = -1;
+    for (int cap = 2; cap <= 30 && chosen_cap < 0; ++cap) {
+        hven::solvers::IpmOptions probe;
+        probe.common.print_level = 10;
+        probe.common.threads = 1;
+        probe.max_iters = cap;
+        hven::solvers::IpmOptions with_best = probe;
+        with_best.return_best = true;
+
+        hven::solvers::InteriorPointSolver best_solver(with_best);
+        hven::solvers::InteriorPointSolver last_solver(probe);
+        const hven::solvers::IpmResult b = best_solver.solve(*model.nlp_, two_var_start(1.0, 1.0));
+        const hven::solvers::IpmResult l = last_solver.solve(*model.nlp_, two_var_start(1.0, 1.0));
+        if (b.status != hven::solvers::SolveStatus::kOptimal && b.x.allFinite() &&
+            (b.x - l.x).lpNorm<Eigen::Infinity>() > 1e-12) {
+            best = b;
+            last = l;
+            chosen_cap = cap;
+        }
+    }
+    ASSERT_GE(chosen_cap, 0)
+        << "no cap in [2, 30] made return_best substitute a different point -- "
+           "the pin below would not discriminate";
+    ::testing::Test::RecordProperty("cap", chosen_cap);
+
+    // The objective REPORTED is the objective OF THE POINT RETURNED, evaluated
+    // here from the model itself.
+    double f_at_returned = 0.0;
+    problem.eval_f(best.x, f_at_returned);
+    EXPECT_NEAR(best.f, f_at_returned, 1e-9 * std::max(1.0, std::abs(f_at_returned)));
+
+    // And the unsubstituted solve is unchanged -- the fix touches one branch.
+    double f_at_last = 0.0;
+    problem.eval_f(last.x, f_at_last);
+    EXPECT_NEAR(last.f, f_at_last, 1e-9 * std::max(1.0, std::abs(f_at_last)));
+}
+
+TEST(IpmIntrospection, AnalysisIdentityOutlivesTheAnalysingSolver) {
+    // THE LIFETIME HOLE T8.4's fourth conjunct left open. That conjunct
+    // compared a captured value-array ADDRESS, which answers "did I lay this
+    // program's tables" only while no other solver can be handed the same
+    // address. Here solver A analyses the program and DIES; solver B is
+    // constructed afterwards and may well take A's storage. An address-based
+    // token can coincide; a never-reused owner id cannot.
+    hven::solvers::IpmOptions o;
+    o.common.print_level = 10;
+
+    auto model = hven::solvers::NLPSolver(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    model.transcribe();
+
+    {
+        hven::solvers::InteriorPointSolver a(o);
+        const hven::solvers::IpmResult r = a.solve(*model.nlp_, hven_drivers_tests::hs071_start());
+        ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal);
+        ASSERT_TRUE(a.kkt_pattern_is_analyzed(*model.nlp_));
+    }
+    // A is gone. Its matrix is gone with it; the program's retained pointer to
+    // it is a dangling one, which is exactly why nothing may take that program
+    // as "already analysed" on the strength of an address.
+
+    hven::solvers::InteriorPointSolver b(o);
+    EXPECT_FALSE(b.kkt_pattern_is_analyzed(*model.nlp_))
+        << "B did not lay this program's tables, whatever address it was given";
+
+    const hven::solvers::IpmResult r2 = b.solve(*model.nlp_, hven_drivers_tests::hs071_start());
+    EXPECT_EQ(r2.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(r2.kkt_analyses_this_call, 1) << "B's first solve re-analyses";
+    EXPECT_TRUE(b.kkt_pattern_is_analyzed(*model.nlp_));
+
+    // And B's SECOND solve reuses, so the id is an identity token and not a
+    // blanket refusal.
+    const hven::solvers::IpmResult r3 = b.solve(*model.nlp_, hven_drivers_tests::hs071_start());
+    EXPECT_EQ(r3.kkt_analyses_this_call, 0);
+}
+
+TEST(SolveBudget, IpmClampsBeforeNarrowing) {
+    // 2^32 is a perfectly valid Index budget and a WEAK constraint: it is far
+    // above this engine's own limit, so the effective cap is that limit. T8.4
+    // narrowed to `int` BEFORE taking the minimum, so 2^32 became 0, the loop
+    // was skipped entirely and the exit reached an empty iterate history.
+    hven::solvers::IpmOptions o;
+    o.common.print_level = 10;
+    hven::solvers::InteriorPointSolver solver(o);
+    auto model = hven::solvers::NLPSolver(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    model.transcribe();
+
+    const hven::solvers::IpmResult huge =
+        solver.solve(*model.nlp_, hven_drivers_tests::hs071_start(),
+                     hven::solvers::SolveBudget{/*minor_budget=*/0,
+                                                /*max_iterations=*/Index{1} << 32});
+    EXPECT_EQ(huge.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_GT(huge.iterations, 0);
+
+    // The same solve with no budget named runs identically -- which is what
+    // "a budget above the engine's limit is the identity" means.
+    const hven::solvers::IpmResult none =
+        solver.solve(*model.nlp_, hven_drivers_tests::hs071_start());
+    EXPECT_EQ(none.iterations, huge.iterations);
+}
+
+TEST(SolveResult, TheIpmClockRunsFromThePublicEntry) {
+    // The shared clock is INFORMATIONAL (CLAUDE.md section 7) and is asserted
+    // here only for the boundary it brackets: it starts at the public entry,
+    // after the argument check, and stops at the return, so it is positive on
+    // any solve that did work and is never smaller than the engine's own older
+    // measurement, which stops before the final reporting.
+    hven::solvers::IpmOptions o;
+    o.common.print_level = 10;
+    hven::solvers::InteriorPointSolver solver(o);
+    auto model = hven::solvers::NLPSolver(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    model.transcribe();
+
+    const hven::solvers::IpmResult r = solver.solve(*model.nlp_, hven_drivers_tests::hs071_start());
+    ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_GT(r.wall_seconds, 0.0);
+    EXPECT_GE(r.wall_seconds, r.total_time);
+
+    // And the argument check is at that entry: a mis-sized start point is
+    // refused by name.
+    Eigen::VectorXd wrong(3);
+    wrong.setOnes();
+    EXPECT_THROW(solver.solve(*model.nlp_, wrong), std::invalid_argument);
+}
+
+TEST(SolveBudget, TheSqpTakesABudgetOnEveryPublicOverload) {
+    // Design section 2.2 puts the budget on EVERY public overload. T8.4 left
+    // the cold and bridge entries hardcoding SolveBudget{}, which meant a
+    // STAGED warm start could not be budgeted at all: the warm-start overloads
+    // refuse to run beside a staged value.
+    const auto p = hven::solvers::test_support::make_hs(7);
+    hven::solvers::SqpOptions o = quiet_sqp();
+    o.max_iter = 200;
+
+    hven::solvers::SqpDriver model_driver(o);
+    const hven::solvers::SqpResult capped =
+        model_driver.solve(*p.model, p.model->start_point(),
+                           hven::solvers::SolveBudget{/*minor_budget=*/0, /*max_iterations=*/2});
+    EXPECT_LE(capped.counters.major_iters, 2);
+    EXPECT_EQ(capped.status, hven::solvers::SolveStatus::kMaxIter);
+
+    // The bridge-taking form, and a STAGED value riding it -- the combination
+    // that had no budgeted door at all.
+    hven::solvers::SqpDriver bridge_driver(o);
+    // The borrow idiom this suite's bench neighbours use: a shared_ptr with an
+    // EMPTY owner, so the bridge names a model it does not own.
+    const std::shared_ptr<const hven::solvers::NlpModel> borrowed(std::shared_ptr<const void>(),
+                                                                  p.model.get());
+    hven::solvers::NlpModelAggregate bridge(borrowed);
+    const hven::solvers::SqpResult warmup = bridge_driver.solve(bridge, p.model->start_point());
+    ASSERT_EQ(warmup.status, hven::solvers::SolveStatus::kOptimal);
+    const auto currency = warmup.export_warm_start();
+    ASSERT_TRUE(currency.has_value());
+    bridge_driver.stage_warm_start(*currency);
+    const hven::solvers::SqpResult staged_and_capped =
+        bridge_driver.solve(bridge, p.model->start_point(), hven::solvers::SolveBudget{0, 1});
+    EXPECT_LE(staged_and_capped.counters.major_iters, 1);
+
+    // AND THE DEFAULT IS THE IDENTITY on both new doors.
+    hven::solvers::SqpDriver free_driver(o);
+    const hven::solvers::SqpResult free_run =
+        free_driver.solve(*p.model, p.model->start_point(), hven::solvers::SolveBudget{});
     EXPECT_EQ(free_run.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_GT(free_run.counters.major_iters, 2);
+    // The shared clock is present on the new overloads too, and is never the
+    // smaller of the two measurements.
+    EXPECT_GT(free_run.wall_seconds, 0.0);
+    EXPECT_GE(free_run.wall_seconds, free_run.solve_impl_seconds);
 }

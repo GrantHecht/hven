@@ -323,7 +323,8 @@ CallerScaleRowMeasures caller_scale_row_measures(const Vec &lo, const Vec &up, c
 // drivers/sqp_driver.h, defined here with its free-function neighbours.
 DeclaredDiagnosticsStash stash_declared_diagnostics(const NlpEval &ev, const SqpKkt &kkt,
                                                     const Vec &x, const Vec &lambda_i,
-                                                    const Vec &lo, const Vec &up) {
+                                                    const Vec &lo, const Vec &up,
+                                                    bool duals_describe_the_measurement) {
     DeclaredDiagnosticsStash out;
     if (!kkt.finite) {
         // Nothing was measured at this point, and a zero would read as a
@@ -338,6 +339,22 @@ DeclaredDiagnosticsStash stash_declared_diagnostics(const NlpEval &ev, const Sqp
     out.ce = ev.ce;
     out.ci = ev.ci;
     out.measured = true;
+    if (duals_describe_the_measurement) {
+        // THE PRICES THIS MEASUREMENT WAS TAKEN AT, recorded so that `finish`
+        // can check them against the ones it EXPORTS (M6 W5 T8.4 fix1). Two
+        // things move a price between here and there: the W0.2 engine->caller
+        // map and the R6 sign sweep.
+        out.duals_measured = true;
+        out.lambda_i_at = lambda_i;
+        out.z_at = kkt.z;
+    } else {
+        // The caller has already replaced the multipliers `kkt.grad_lag` was
+        // measured at. The PRIMAL half above still describes this point -- ce,
+        // ci, the box and x are what they were -- and is kept; the two
+        // quantities that read a price are unmeasured and say so.
+        out.d.stationarity = std::numeric_limits<double>::quiet_NaN();
+        out.d.complementarity = std::numeric_limits<double>::quiet_NaN();
+    }
     return out;
 }
 
@@ -1517,7 +1534,17 @@ void accumulate_ipqp_counters(IpqpCounters &total, const IpqpCounters &one) {
     total.ipqp_read_barrier_noise_sides += one.ipqp_read_barrier_noise_sides;
 }
 
-SqpSolution SqpDriver::solve(const NlpModel &model) { return solve(model, model.start_point()); }
+SqpSolution SqpDriver::solve(const NlpModel &model) {
+    // The shared clock on THIS overload too (M6 W5 T8.4 fix1: the boundary is
+    // stated per public entry). It has no argument refusal of its own, so the
+    // clock starts first and the start_point() read it delegates through is
+    // inside it.
+    const auto entry = std::chrono::steady_clock::now();
+    SqpSolution out = solve(model, model.start_point());
+    out.wall_seconds =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - entry).count();
+    return out;
+}
 
 void SqpDriver::attach_ledger(Ledger *ledger, std::string label_prefix) {
     ledger_ = ledger;
@@ -1612,9 +1639,24 @@ void SqpDriver::emit_trace_sqp_major(const SqpMajorTraceEvent &event) const {
 // to pay it can hold its own NlpModelAggregate and call the bridge-taking
 // overload directly, which is the whole reason that overload is public.
 SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0) {
+    return solve(model, x0, SolveBudget{});
+}
+
+SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0, SolveBudget budget) {
     require_declared_box(model);
+    // THE SHARED CLOCK, at THIS public entry and immediately after the
+    // argument check above (M6 W5 T8.4 fix1). The bridge lay below is real
+    // work -- it walks the model's three derivative patterns -- and it is work
+    // this call takes on, so it belongs inside the boundary the shared
+    // `wall_seconds` states. The bridge-taking overload sets the field too;
+    // this assignment overwrites it with the wider, truer measurement, which
+    // is the whole reason the boundary is stated per overload.
+    const auto entry = std::chrono::steady_clock::now();
     NlpModelAggregate bridge{borrow_model(model)};
-    return solve(bridge, x0);
+    SqpSolution out = solve(bridge, x0, budget);
+    out.wall_seconds =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - entry).count();
+    return out;
 }
 
 SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0, const WarmStart &warm,
@@ -1623,33 +1665,45 @@ SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0, const WarmSta
     // in this call's own arguments is not worth a derivative-pattern walk.
     refuse_two_warm_sources();
     require_declared_box(model);
+    // The shared clock, on the same boundary as the cold model overload above
+    // and for the same reason: the bridge lay is this call's work.
+    const auto entry = std::chrono::steady_clock::now();
     NlpModelAggregate bridge{borrow_model(model)};
-    return solve(bridge, x0, warm, budget);
+    SqpSolution out = solve(bridge, x0, warm, budget);
+    out.wall_seconds =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - entry).count();
+    return out;
 }
 
 SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0) {
-    // The seam is laid ONCE per solve, before the clock starts, for the same
-    // reason the bridge is: it is setup, not iteration. The seam binds the
-    // claim-stream interface the bridge derives from; the bridge itself stays
-    // in this frame and rides into solve_impl for the restoration phase's one
-    // Level 1 read.
-    AggregateEvalSeam seam{bridge};
-    // THE SHARED CLOCK'S START (design §2.3, M6 W5 T8.4): the public entry,
-    // after the argument refusals above. It brackets everything this call takes
-    // on -- the seam lay, the warm ingest, solve_impl, the ledger record and
-    // the export snapshot -- and is a DIFFERENT boundary from `t0` below, which
-    // is this engine's older measurement and survives as solve_impl_seconds.
+    return solve(bridge, x0, SolveBudget{});
+}
+
+SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, SolveBudget budget) {
+    // THE SHARED CLOCK'S START (design §2.3; placement corrected in M6 W5 T8.4
+    // fix1): the FIRST statement of the public entry, this overload having no
+    // argument refusal of its own -- the bridge validated its box when it laid
+    // its structures. T8.4 started it AFTER the seam lay below, which left the
+    // one piece of setup this entry does outside the boundary the field
+    // claims. It brackets everything this call takes on -- the seam lay, the
+    // warm ingest, solve_impl, the ledger record and the export snapshot --
+    // and is a DIFFERENT boundary from `t0` below, which is this engine's
+    // older measurement and survives as solve_impl_seconds.
     const auto entry = std::chrono::steady_clock::now();
-    // THE STAGED WARM START'S ONE BRANCH, after the lay (so the dimensions and
-    // the key are this solve's) and before the clock (it is setup, like the
-    // seam).
+    // The seam is laid ONCE per solve, for the same reason the bridge is: it
+    // is setup, not iteration. The seam binds the claim-stream interface the
+    // bridge derives from; the bridge itself stays in this frame and rides
+    // into solve_impl for the restoration phase's one Level 1 read.
+    AggregateEvalSeam seam{bridge};
+    // THE STAGED WARM START'S ONE BRANCH, after the lay so the dimensions and
+    // the key are this solve's.
     const WarmStart warm = consume_staged_warm_start(seam, bridge);
     // Timed around solve_impl ALONE -- never around model construction,
     // x0/warm setup above, or record_solve's own ledger bookkeeping
     // below -- per ledger.h's SqpSolveRecord::wall_seconds note
     // (informational, never asserted).
     const auto t0 = std::chrono::steady_clock::now();
-    SqpSolution out = solve_impl(seam, bridge, x0, warm, /*budget=*/SolveBudget{});
+    SqpSolution out = solve_impl(seam, bridge, x0, warm, budget);
     const auto t1 = std::chrono::steady_clock::now();
     SqpSolution done = record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
     // THE EXPORT'S ONE CAPTURE, last: "completed" is a public solve() that
@@ -1667,7 +1721,8 @@ SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, const War
     // tier seed: a previous solve that armed one and never entered the tier
     // would otherwise seed this solve's first subproblem (fix round 1, F1).
     ipqp_staged_seed_.reset();
-    // The shared clock, on the same boundary as the 2-arg overload above.
+    // The shared clock, on the same boundary as the budgeted bridge overload
+    // above: after this entry's own refusal, and BEFORE the seam lay.
     const auto entry = std::chrono::steady_clock::now();
     AggregateEvalSeam seam{bridge};
     // Same timing scope as the 2-arg overload above.
@@ -2204,6 +2259,16 @@ struct SqpDriver::SolveState {
         // where the multipliers are the loop's own (or are cleared).
         bool multipliers_are_caller_scale = false;
         bool moved_x = false;
+        // TRUE ON THE ARM THAT CLEARS THE MULTIPLIERS AFTER THE LAST
+        // MEASUREMENT (M6 W5 T8.4 fix1): the restoration walked somewhere the
+        // main model cannot be measured, so the requesting point is returned
+        // with `lambda_e`/`lambda_i` ZEROED -- while `st.resto.kkt` is still
+        // the major's own KKT, whose `grad_lag` was folded at the multipliers
+        // that have just been discarded. The point's PRIMAL diagnostics are
+        // still measured; its dual ones are not, and the stash built at the
+        // exit is told so rather than reporting a residual at prices nobody
+        // gets back.
+        bool duals_cleared = false;
         // THE SHARED DECLARED DIAGNOSTICS AT THE RESTORED POINT, filled inside
         // `enter_restoration` on the moved_x path and read only there. It is
         // the ONLY place that evaluation exists: `ev_r` is a local of that
@@ -3644,6 +3709,7 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
     // and this flag must describe only THIS call's outcome. See
     // its declaration above for what it is for.
     st.resto.moved_x = false;
+    st.resto.duals_cleared = false;
 
     // Majors already spent, on both phases, at this point.
     const Index spent = iter + 1 + st.out.counters.restoration_iters;
@@ -3947,6 +4013,12 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
         st.resto.status = SolveStatus::kNumericalError;
         st.resto.kkt = mj.kkt;
         st.resto.f = st.ev.f;
+        // AND THE EXIT'S SHARED DIAGNOSTICS LOSE THEIR DUAL HALF WITH THEM
+        // (M6 W5 T8.4 fix1). `st.resto.kkt` above is the major's measurement
+        // at the multipliers the two lines before this one just discarded, so
+        // a declared stationarity read off it would be a residual at prices
+        // this call does not return. See the flag's own note.
+        st.resto.duals_cleared = true;
         return RestorationOutcome::kExited;
     }
     const double h_r = constraint_violation_l1(ev_r);
@@ -5306,9 +5378,10 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 // everything else on this arm: restoration's own, taken at the
                 // restored point inside enter_restoration, when it moved x;
                 // this loop's live one at the unchanged `st.x` when it did not.
-                st.resto.moved_x ? st.resto.diag
-                                 : stash_declared_diagnostics(st.ev, mj.kkt, st.x, st.lambda_i,
-                                                              seam.lower(), seam.upper()),
+                st.resto.moved_x
+                    ? st.resto.diag
+                    : stash_declared_diagnostics(st.ev, mj.kkt, st.x, st.lambda_i, seam.lower(),
+                                                 seam.upper(), !st.resto.duals_cleared),
                 st.resto.multipliers_are_caller_scale);
         case MajorOutcome::kFinishRestorationQp:
             // THE OTHER THREE REQUESTERS HAND BACK A QP IN THE ORIGINAL
@@ -5325,9 +5398,10 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                                 st.strategy.get(), engine_->hot_state()),
                 // Same rule as the seed arm: the stash follows the
                 // point `moved_x` says is being returned.
-                st.resto.moved_x ? st.resto.diag
-                                 : stash_declared_diagnostics(st.ev, mj.kkt, st.x, st.lambda_i,
-                                                              seam.lower(), seam.upper()),
+                st.resto.moved_x
+                    ? st.resto.diag
+                    : stash_declared_diagnostics(st.ev, mj.kkt, st.x, st.lambda_i, seam.lower(),
+                                                 seam.upper(), !st.resto.duals_cleared),
                 st.resto.multipliers_are_caller_scale);
         }
     }
@@ -5686,19 +5760,7 @@ SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SolveSta
         const SqpKkt caller_kkt = evaluate_kkt(seam, caller_ev, x, pre_sweep_lambda_e,
                                                pre_sweep_lambda_i, opts_.feas_tol);
         record_terminal_kkt(out, caller_kkt);
-        // AND THE SHARED DECLARED DIAGNOSTICS FROM THE SAME MEASUREMENT, not
-        // from the stash. The stash was taken in the space the solve RAN in;
-        // these four are contractually in the CALLER's units, and this arm is
-        // the one place a caller-scale evaluation of the returned point exists.
-        // The seam is at the identity here, so `lower()`/`upper()` are the
-        // declared box either way -- the box is not scaled.
-        //
-        // At the PRE-SWEEP multipliers, like the four terminal columns beside
-        // them and for the same reason: the disclosure in sqp_types.h bounds
-        // the reported stationarity gap by a magnitude taken in one space.
-        caller_scale_declared = stash_declared_diagnostics(
-            caller_ev, caller_kkt, x, pre_sweep_lambda_i, seam.lower(), seam.upper());
-        // AND THE BOUND PRICES COME FROM THAT SAME MEASUREMENT, not from a
+        // THE BOUND PRICES COME FROM THAT SAME MEASUREMENT, not from a
         // divide-back of the engine's. `z` is a coordinate of `grad_lag`, which
         // is precisely what was just re-measured on the caller's own model and
         // for exactly the reason stated above -- multiplying by a factor and
@@ -5712,7 +5774,40 @@ SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SolveSta
         // bound price, deliberately substituted for the subgradient certificate
         // (see that exit's note on why grad L's bound price would be wrong
         // there), and it is already in the caller's units.
+        //
+        // ASSIGNED BEFORE THE SHARED DIAGNOSTICS BELOW (M6 W5 T8.4 fix1),
+        // which read it: T8.4 computed them from `caller_kkt.z` and then
+        // returned a DIFFERENT bound price on this one exit.
         out.z = multipliers_are_caller_scale ? kkt.z : caller_kkt.z;
+        // AND THE SHARED DECLARED DIAGNOSTICS FROM THE SAME MEASUREMENT, not
+        // from the stash. The stash was taken in the space the solve RAN in;
+        // these four are contractually in the CALLER's units, and this arm is
+        // the one place a caller-scale evaluation of the returned point exists.
+        // The seam is at the identity here, so `lower()`/`upper()` are the
+        // declared box either way -- the box is not scaled.
+        //
+        // AT THE RETURNED DUALS (M6 W5 T8.4 fix1), which is where these four
+        // part company with the terminal columns above. Those describe the
+        // PRE-SWEEP multipliers by disclosure; the SHARED four are
+        // contractually a statement about the values this call RETURNS, so
+        // they are taken at `out.lambda_e`, `out.lambda_i` (POST-sweep) and
+        // `out.z` (the price that leaves, certificate or measurement).
+        //
+        // Through the FULL-ARGUMENT door rather than through `grad_lag`: the
+        // gradient inside `caller_kkt` was folded at the pre-sweep prices, so
+        // it is the one part of this measurement that cannot be reused at the
+        // exported ones. `caller_ev` carries grad, Je and Ji at `x`, none of
+        // which depends on a multiplier, so the re-fold is exact and costs no
+        // model call.
+        caller_scale_declared.d = compute_declared_diagnostics(
+            x, out.lambda_e, out.lambda_i, out.z, caller_ev.grad, caller_ev.Je, caller_ev.Ji,
+            caller_ev.ce, caller_ev.ci, seam.lower(), seam.upper(), {});
+        caller_scale_declared.ce = caller_ev.ce;
+        caller_scale_declared.ci = caller_ev.ci;
+        caller_scale_declared.measured = true;
+        caller_scale_declared.duals_measured = true;
+        caller_scale_declared.lambda_i_at = out.lambda_i;
+        caller_scale_declared.z_at = out.z;
         seam.install_scaling(sc);
     } else {
         out.z = (sc.active && !multipliers_are_caller_scale) ? Vec(kkt.z / sc.obj) : kkt.z;
@@ -5762,12 +5857,38 @@ SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SolveSta
     const DeclaredDiagnosticsStash &declared =
         caller_scale_declared.measured ? caller_scale_declared : stash;
     if (declared.measured) {
-        out.stationarity = declared.d.stationarity;
+        // THE PRIMAL HALF, unconditionally: `feasibility_e`, `feasibility_i`
+        // and the two blocks read ce, ci, x and the declared box, not one
+        // price between them, so nothing that happens to a multiplier after
+        // the stash was taken can make them describe a different point.
         out.feasibility_e = declared.d.feasibility_e;
         out.feasibility_i = declared.d.feasibility_i;
-        out.complementarity = declared.d.complementarity;
         out.ce = declared.ce;
         out.ci = declared.ci;
+        // THE DUAL HALF ONLY WHEN IT DESCRIBES THE PRICES THIS CALL RETURNS
+        // (M6 W5 T8.4 fix1). Two things move a price between a stash and this
+        // line -- the W0.2 engine->caller map and the R6 sign sweep -- and a
+        // third clears the multipliers outright (the failed-restoration-
+        // evaluation arm, which marks its stash `duals_measured == false`).
+        // Where the prices moved, `stationarity` and `complementarity` are
+        // UNMEASURED at the returned duals and say so; they are never reported
+        // at prices the caller is not being handed. On the scaled arm the
+        // re-measurement above was taken at the exported prices outright, so
+        // this holds there by construction rather than by comparison.
+        //
+        // This is what retires the caveat T8.4 wrote into sqp_types.h. The old
+        // ENGINE measurements (`sqp_stationarity` and friends) keep their own
+        // pre-sweep disclosure, which is theirs to make; the shared contract
+        // does not inherit it.
+        const bool duals_are_the_returned_ones =
+            declared.duals_measured && declared.lambda_i_at.size() == out.lambda_i.size() &&
+            declared.z_at.size() == out.z.size() &&
+            (declared.lambda_i_at.array() == out.lambda_i.array()).all() &&
+            (declared.z_at.array() == out.z.array()).all();
+        if (duals_are_the_returned_ones) {
+            out.stationarity = declared.d.stationarity;
+            out.complementarity = declared.d.complementarity;
+        }
     }
     return out;
 }

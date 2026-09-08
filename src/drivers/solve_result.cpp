@@ -132,77 +132,74 @@ compute_declared_diagnostics_from_grad_lag(const Vec &x, const Vec &lambda_i, co
         }
     }
 
-    // --- stationarity -----------------------------------------------------
-    // grad L - z over the coordinates that were MEASURED. An excluded
-    // coordinate is one the producing engine has no row for at all (an
-    // interior-point MakeParameter elimination): its reduced gradient reports
-    // 0 there, and a 0 that means "no row" must not enter an inf-norm beside
-    // 0s that mean "stationary".
-    double st = 0.0;
-    bool measured_any = false;
-    for (Index i = 0; i < n; ++i) {
-        if (excluded[static_cast<std::size_t>(i)]) {
-            continue;
-        }
-        st = std::max(st, std::abs(grad_lag(i) - z(i)));
-        measured_any = true;
-    }
-    if (measured_any) {
-        d.stationarity = st;
-    }
-    // else: every coordinate excluded -- nothing was measured, so the NaN the
-    // default carries stands.
-
-    // --- feasibility ------------------------------------------------------
+    // --- the two CONSTRAINT-BLOCK passes ----------------------------------
     // The equality block's inf-norm; 0 on a problem with no declared equality
     // rows, which is the inf-norm of an empty vector and matches both engines'
     // own econ measures.
     d.feasibility_e = me > 0 ? ce.lpNorm<Eigen::Infinity>() : 0.0;
 
     // The POSITIVE PART of the inequality rows (the feasible set is ci <= 0)
-    // together with the declared bound violations, in one inf-norm. The box is
-    // part of the declared problem, so a point outside it is infeasible whether
-    // or not any row says so.
+    // and the inequality complementarity products, over the one block they
+    // both read. MAGNITUDES for the products, like the violation beside them:
+    // at a feasible point every product is already non-negative, and at an
+    // infeasible one a signed product would silently drop out of the inf-norm.
     double fi = 0.0;
-    for (Index j = 0; j < mi; ++j) {
-        fi = std::max(fi, std::max(0.0, ci(j)));
-    }
-    for (Index i = 0; i < n; ++i) {
-        if (std::isfinite(lower(i))) {
-            fi = std::max(fi, std::max(0.0, lower(i) - x(i)));
-        }
-        if (std::isfinite(upper(i))) {
-            fi = std::max(fi, std::max(0.0, x(i) - upper(i)));
-        }
-    }
-    d.feasibility_i = fi;
-
-    // --- complementarity --------------------------------------------------
-    // The inequality products, then the CANONICAL bound split. A signed
-    // z = zL - zU cannot recover two separate prices at a two-sided bound where
-    // both are positive, so the shared diagnostic prices the lower side with
-    // max(z,0) and the upper side with max(-z,0) and says so. Where an engine
-    // holds the two prices separately -- the interior-point barrier does -- its
-    // own two-price measure stays on its own result (IpmResult::barr_inf).
-    //
-    // MAGNITUDES, like the inequality term beside them: at a feasible point
-    // every product is already non-negative, and at an infeasible one a signed
-    // product would silently drop out of the inf-norm.
-    //
-    // An infinite bound contributes NOTHING: there is no price to pay at a
-    // bound that does not exist, and 0 * inf is not a measurement.
     double cp = 0.0;
     for (Index j = 0; j < mi; ++j) {
+        fi = std::max(fi, std::max(0.0, ci(j)));
         cp = std::max(cp, std::abs(lambda_i(j) * ci(j)));
     }
+
+    // --- THE ONE COORDINATE PASS ------------------------------------------
+    // ONE loop over the declared coordinates, as the plan prescribed and as
+    // the T8.4 implementation did not (fix1, astra Minor 8: it ran three).
+    // The three quantities it accumulates are independent maxima over the same
+    // index set, so folding them changes no value -- std::max over a set of
+    // finite doubles does not depend on the order it is taken in, and the
+    // finiteness gate above has already refused the only inputs that could
+    // make that false.
+    //
+    // STATIONARITY is grad L - z over the coordinates that were MEASURED. An
+    // excluded coordinate is one the producing engine has no row for at all
+    // (an interior-point MakeParameter elimination): its reduced gradient
+    // reports 0 there, and a 0 that means "no row" must not enter an inf-norm
+    // beside 0s that mean "stationary". The other two quantities read the box,
+    // which the declaration carries for every coordinate, excluded or not.
+    //
+    // THE BOUND VIOLATION is part of feasibility because the box is part of
+    // the declared problem: a point outside it is infeasible whether or not
+    // any row says so.
+    //
+    // THE BOUND PRICES use the CANONICAL SPLIT -- max(z,0) * (x - l) and
+    // max(-z,0) * (u - x) -- because a signed z = zL - zU cannot recover two
+    // separate prices at a two-sided bound where both are positive. Where an
+    // engine holds the two prices separately -- the interior-point barrier
+    // does -- its own two-price measure stays on its own result
+    // (IpmResult::barr_inf). An infinite bound contributes NOTHING to either
+    // term: there is no price to pay at a bound that does not exist, and
+    // 0 * inf is not a measurement.
+    double st = 0.0;
+    bool measured_any = false;
     for (Index i = 0; i < n; ++i) {
+        if (!excluded[static_cast<std::size_t>(i)]) {
+            st = std::max(st, std::abs(grad_lag(i) - z(i)));
+            measured_any = true;
+        }
         if (std::isfinite(lower(i))) {
+            fi = std::max(fi, std::max(0.0, lower(i) - x(i)));
             cp = std::max(cp, std::abs(std::max(z(i), 0.0) * (x(i) - lower(i))));
         }
         if (std::isfinite(upper(i))) {
+            fi = std::max(fi, std::max(0.0, x(i) - upper(i)));
             cp = std::max(cp, std::abs(std::max(-z(i), 0.0) * (upper(i) - x(i))));
         }
     }
+    if (measured_any) {
+        d.stationarity = st;
+    }
+    // else: every coordinate excluded -- nothing was measured, so the NaN the
+    // default carries stands.
+    d.feasibility_i = fi;
     d.complementarity = cp;
 
     return d;

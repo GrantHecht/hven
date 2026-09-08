@@ -592,6 +592,10 @@ void hven::solvers::NonLinearProgram::rebuild_structures() {
     // offsets nothing derived.
     this->analyzed_kkt_values_ = nullptr;
     this->analyzed_kkt_matrix_ = nullptr;
+    // AND THE OWNER WITH THEM (M6 W5 T8.4 fix1): the analysis this id names is
+    // exactly the one being dismantled, so a solver that laid it must be told
+    // -- by this program answering "nobody" -- to lay it again.
+    this->analyzed_owner_id_ = 0;
 
     this->capture_laid_dimensions();
 

@@ -105,6 +105,7 @@ int standalone_include_aggregate_declaration();
 int standalone_include_nlp_model_aggregate();
 int standalone_include_nlp_solver();
 int standalone_include_solve_status();
+int standalone_include_core_solver_status();
 int standalone_include_common_options();
 int standalone_include_ipm_solver_types();
 int standalone_include_solve_result();
@@ -121,12 +122,13 @@ int main() {
                                hven_install_smoke::standalone_include_nlp_model_aggregate() +
                                hven_install_smoke::standalone_include_nlp_solver() +
                                hven_install_smoke::standalone_include_solve_status() +
+                               hven_install_smoke::standalone_include_core_solver_status() +
                                hven_install_smoke::standalone_include_common_options() +
                                hven_install_smoke::standalone_include_ipm_solver_types() +
                                hven_install_smoke::standalone_include_solve_result() +
                                hven_install_smoke::standalone_include_compiler();
-    if (standalone_tus != 13) {
-        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 13\n",
+    if (standalone_tus != 14) {
+        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 14\n",
                      standalone_tus);
         return 1;
     }

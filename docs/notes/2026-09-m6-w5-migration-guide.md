@@ -1374,10 +1374,18 @@ what three of them are called.
 
 #### `hven::solvers::SqpStatus` is gone
 
-Its five enumerators ARE the first five of `SolveStatus`, under the same names,
-so the substitution is textual: `SqpStatus::kOptimal` → `SolveStatus::kOptimal`,
-and so on. `to_solve_status(SqpStatus)` went with it — the mapping was the
-identity, so there is nothing left to map.
+Its five enumerators exist on `SolveStatus` UNDER THE SAME NAMES, so the
+substitution is textual and name-for-name: `SqpStatus::kOptimal` →
+`SolveStatus::kOptimal`, and so on. `to_solve_status(SqpStatus)` went with it —
+the mapping was the identity on the names, so there is nothing left to map.
+
+**Correction (fix1, 2026-09-08):** an earlier revision of this section said the
+five "ARE the first five of `SolveStatus`". They are not — `SolveStatus` runs
+`kOptimal, kAcceptable, kMaxIter, kInfeasible, kStalled, kDiverging,
+kNumericalError, kBudgetExhausted, kInterrupted`, so `kNumericalError` and
+`kBudgetExhausted` sit at ordinals 6 and 7. **The substitution is by NAME and
+never by ordinal**; anything that persisted, serialized or switched on the old
+enum's integer values has to be re-derived by name.
 
 `SolveStatus` and `IpmStopReason`, with `to_string()` and `severity()`, live in
 `<hven/core/solver_status.h>` — the bottom tier, where `SqpStatus` lived, and
@@ -1429,7 +1437,7 @@ sol = driver.solve(model, x0, warm, SolveBudget{.minor_budget = 20});  // the sa
 ```
 
 An aggregate has no converting constructor, so **every** call that passed a
-fourth argument changes: 21 sites in 7 files in this repository, and any of
+fourth argument changes: 19 sites in 7 files in this repository, and any of
 yours. `budget.minor_budget` is the probe budget verbatim. `budget.max_iterations`
 is new: when non-zero it gives an EFFECTIVE major cap of
 `min(max_iterations, opts.max_iter)` — tightening only — and **restoration is
@@ -1492,3 +1500,67 @@ If you read this artifact, three columns are new and load-bearing and one is
 newly so: `phases` (packed as `kSolve:optimal:5|kOptimize:optimal:7`, with
 `:skipped` for a conditional phase that did not run), the four `*_size` widths,
 the four shared diagnostics, and `stop_reason`.
+
+### T8.4 fix round 1 — six contract changes a consumer can see
+
+Round 1 of the review fixes changes six things that are visible from outside the
+library. Each is a correction, not a new feature; each is pinned.
+
+**1. Declared `stationarity` is NaN after a feasibility-only interior-point
+phase.** The `kSolve` phase evaluates the model with the objective scaled to
+zero and then zeroes the primal gradient blocks outright, so the right-hand side
+it leaves behind carries no declared objective gradient. A declared stationarity
+computed from it measures something else, and T8.4 reported it as measured — the
+committed leg printed `0.000000000e+00` for a problem whose honest declared
+stationarity is at least 1. The rule now:
+
+> **The four shared diagnostics are reported only from an evaluation that is
+> (a) objective-bearing, (b) at the returned point and (c) taken with
+> restoration inactive. Failing (a) makes `stationarity` alone NaN — the other
+> three read `ce`, `ci`, `x`, the box, `lambda_i` and `z`, all of which a
+> feasibility phase does evaluate. Failing (b) or (c) makes all four NaN, and
+> failing (c) additionally EMPTIES `ce` and `ci`, because nested restoration
+> replaced those rows with its own condensed residuals.**
+
+`f` is unaffected: every non-optimality exit assembles the true objective at the
+returned primals.
+
+**2. A `return_best` interior-point exit reports the BEST iterate's objective.**
+`IpmResult::f` used to come from the last iterate while `x`, the multipliers and
+the residuals came from the best one.
+
+**3. The SQP's shared diagnostics describe the RETURNED duals.** They are taken
+at the exported `lambda_e`, `lambda_i` and `z` — post-sign-sweep, and at the
+restoration certificate's bound price where that is what leaves. Where the
+prices moved after the measurement they were taken from and no evaluation at the
+exported ones exists, `stationarity` and `complementarity` are NaN while
+`feasibility_e`, `feasibility_i`, `ce` and `ci` — which read no price — stand.
+The engine's own `sqp_*` columns keep their pre-sweep disclosure; **the shared
+contract does not inherit it**, and the note that said it did is gone from
+`sqp_types.h`.
+
+**4. `SolveBudget` on every public overload.** New:
+`SqpDriver::solve(const NlpModel &, const Vec &x0, SolveBudget)` and
+`SqpDriver::solve(NlpModelAggregate &, const Vec &x0, SolveBudget)`. The cold
+and bridge entries hardcoded `SolveBudget{}` before, which left a STAGED warm
+start with no budgeted door at all (the warm-start overloads refuse to run
+beside a staged value). On the interior-point side a large `max_iterations` is
+now clamped in `Index` BEFORE it is narrowed to `int`: `1 << 32` used to narrow
+to 0 and skip the loop.
+
+**5. `wall_seconds` starts at the public entry, on every overload of both
+engines.** The SQP's bridge lay and seam lay are inside it; the interior-point
+engine's starts in `solve()` immediately after the start-point size check, which
+also MOVED there from inside `run_phase_sequence` — a mis-sized `x0` is now
+refused before any transcription runs, with the same message.
+
+**6. The analysis-identity token is an owner id, not an address.**
+`InteriorPointSolver::kkt_pattern_is_analyzed` and the cross-call reuse path
+compare a process-unique, never-reused id issued at each analysis and recorded
+on the program (`NonLinearProgram::analyzed_owner_id()`), instead of the
+captured KKT value-array address. A solver can die while the program it analysed
+lives on, and a later solver's buffer can land on the freed allocation; an id
+that is never reused cannot be coincided with. Nothing a consumer writes
+changes — the query's answer is the one that gets safer. The MakeConstraint
+fixed coordinate's bound price (`z = -lambda_fix`) also now appears in the
+EXPORT snapshot, which carried 0 there while the result carried the price.

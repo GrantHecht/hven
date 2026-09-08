@@ -1106,6 +1106,23 @@ TEST(ProblemScalingRoundTrip, TheBoundPricesAreTheReMeasurementsNotADivideBack) 
         EXPECT_EQ(independent.z(i), sol.z(i)) << "bound price " << i;
     }
     EXPECT_EQ(independent.stationarity, sol.sqp_stationarity);
+
+    // AND THE SHARED FOUR ARE TAKEN AT THE VECTORS THIS CALL RETURNS (M6 W5
+    // T8.4 fix1, astra item 2). The scaled arm is the one place a caller-scale
+    // evaluation of the returned point exists, and T8.4 read its BOUND PRICE
+    // from that re-measurement while RETURNING a different one on the adopting
+    // restoration exit. They are now computed from `out.z` -- the price that
+    // leaves -- and from the POST-sweep multipliers, so an independent
+    // computation over the model at exactly the returned vectors reproduces
+    // them.
+    const NlpEval ev_at_solution = eval_nlp(model, sol.x);
+    const DeclaredDiagnostics d = compute_declared_diagnostics(
+        sol.x, sol.lambda_e, sol.lambda_i, sol.z, ev_at_solution.grad, ev_at_solution.Je,
+        ev_at_solution.Ji, ev_at_solution.ce, ev_at_solution.ci, model.lower(), model.upper(), {});
+    EXPECT_NEAR(d.stationarity, sol.stationarity, 1e-9);
+    EXPECT_NEAR(d.feasibility_e, sol.feasibility_e, 1e-9);
+    EXPECT_NEAR(d.feasibility_i, sol.feasibility_i, 1e-9);
+    EXPECT_NEAR(d.complementarity, sol.complementarity, 1e-9);
 }
 
 } // namespace hven::solvers

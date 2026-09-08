@@ -1022,14 +1022,21 @@ struct SqpResult : SolveResult {
     // large by construction and `sqp_stationarity` is the ordinary grad-L
     // measure, NOT the subgradient certificate's residual.
     //
-    // One qualification on "at the returned multipliers": when
-    // `counters.ssn.ssn_sign_swept > 0` the sign sweep clamped negative
-    // inequality prices AFTER this measurement, so these four describe the
-    // PRE-SWEEP multipliers while `lambda_i` holds the swept ones.
-    // `sqp_stationarity` is then optimistic by at most `ssn_sign_sweep_max *
-    // ||Ji||inf`, and `sqp_complementarity` can only be over-stated. The base's
-    // shared diagnostics are measured at the same pre-sweep multipliers, for
-    // the same reason and with the same caveat.
+    // One qualification on "at the returned multipliers", and it is THIS
+    // ENGINE'S OWN: when `counters.ssn.ssn_sign_swept > 0` the sign sweep
+    // clamped negative inequality prices AFTER this measurement, so these four
+    // describe the PRE-SWEEP multipliers while `lambda_i` holds the swept
+    // ones. `sqp_stationarity` is then optimistic by at most
+    // `ssn_sign_sweep_max * ||Ji||inf`, and `sqp_complementarity` can only be
+    // over-stated.
+    //
+    // IT DOES NOT REACH THE SHARED BASE (M6 W5 T8.4 fix1). SolveResult's four
+    // are a statement about the values the call RETURNS: where the sweep -- or
+    // anything else -- moved a price after the measurement they were taken
+    // from, `SolveResult::stationarity` and `SolveResult::complementarity` are
+    // NaN, UNMEASURED, rather than quietly describing prices the caller is not
+    // being handed. An engine-measurement exception is this engine's to make
+    // about its own columns and is not inherited by the shared contract.
     /// @brief Reduced/projected ||grad L||inf at the returned point.
     double sqp_stationarity = std::numeric_limits<double>::quiet_NaN();
     /// @brief max(||cE||inf, max(cI)+, bound violation) at the returned point.

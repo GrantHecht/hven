@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -1056,6 +1057,22 @@ struct NonLinearProgram : public NlpAggregate {
     /// destruction (see validate_bound_destination in model/nlp_aggregate.h).
     const double *bound_kkt_destination() const override { return this->analyzed_kkt_values_; }
 
+    /// @brief The process-unique id of the solver whose analysis this
+    ///        program's location tables were last laid for; 0 when none.
+    ///
+    /// A LIFETIME-SAFE IDENTITY TOKEN (M6 W5 T8.4 fix1). Compared, never
+    /// dereferenced, and cleared by every re-lay beside
+    /// @ref bound_kkt_destination's own capture. An ADDRESS cannot answer "did
+    /// THAT solver lay this" once the solver is gone -- a later one may be
+    /// allocated at the same place and its buffer on the same allocation --
+    /// while an id that is never reused can.
+    std::uint64_t analyzed_owner_id() const noexcept { return this->analyzed_owner_id_; }
+
+    /// @brief Records the id of the solver that just laid this program's
+    ///        location tables. Called by that solver, at the analysis.
+    /// @param id The solver's process-unique, never-reused id.
+    void set_analyzed_owner_id(std::uint64_t id) noexcept { this->analyzed_owner_id_ = id; }
+
     IdentityProbe probe_identity(ConstVecRef x) override;
 
     /// The published claim tables: the same arrays every scatter already
@@ -1254,6 +1271,11 @@ struct NonLinearProgram : public NlpAggregate {
     /// compared, never dereferenced, and never re-derived. Cleared by every
     /// re-lay. See bound_kkt_destination().
     const double *analyzed_kkt_values_ = nullptr;
+
+    /// The OWNER of that analysis: the process-unique id of the solver that
+    /// laid the location tables. 0 when no solver has. See
+    /// analyzed_owner_id().
+    std::uint64_t analyzed_owner_id_ = 0;
 
     /// The matrix object analyze_sparsity last walked, kept for one purpose:
     /// the piece surface takes a matrix reference, so a KKT-bearing assemble

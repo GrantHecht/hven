@@ -135,10 +135,22 @@ struct DeclaredDiagnosticsStash {
     /// False when no finite evaluation of the point existed. Every field below
     /// is then meaningless and the result reports NaN and empty blocks.
     bool measured = false;
+    /// TRUE when the DUAL half -- `d.stationarity` and `d.complementarity` --
+    /// was measured at prices this stash also names below (M6 W5 T8.4 fix1).
+    /// False on an exit that cleared its multipliers AFTER the measurement:
+    /// the primal half still describes the point, the dual half describes
+    /// prices nothing will report.
+    bool duals_measured = false;
     /// The four, over the declared problem.
     DeclaredDiagnostics d;
     /// The declared constraint residuals at the same point.
     Vec ce, ci;
+    /// THE PRICES THE DUAL HALF WAS MEASURED AT (M6 W5 T8.4 fix1). `finish`
+    /// compares them against the vectors it ends up EXPORTING -- the R6 sign
+    /// sweep and the W0.2 scale map both run after a stash is taken -- and
+    /// reports the dual half only when they are the same prices. Empty when
+    /// `duals_measured` is false.
+    Vec lambda_i_at, z_at;
 };
 
 /// @brief Fills a stash from an evaluation and the KKT measurement taken at the
@@ -149,10 +161,17 @@ struct DeclaredDiagnosticsStash {
 /// @param lambda_i Inequality multipliers at @p x.
 /// @param lo       Declared lower bounds.
 /// @param up       Declared upper bounds.
+/// @param duals_describe_the_measurement False where the caller has ALREADY
+///                 replaced the multipliers `kkt.grad_lag` was measured at --
+///                 the failed-restoration-evaluation arm clears them and
+///                 returns zeros. The primal half (feasibility_e,
+///                 feasibility_i, ce, ci) is still measured and still
+///                 reported; the dual half is NaN and no prices are recorded.
 /// @return The stash; `measured` false when @p kkt is not finite.
 DeclaredDiagnosticsStash stash_declared_diagnostics(const NlpEval &ev, const SqpKkt &kkt,
                                                     const Vec &x, const Vec &lambda_i,
-                                                    const Vec &lo, const Vec &up);
+                                                    const Vec &lo, const Vec &up,
+                                                    bool duals_describe_the_measurement = true);
 
 namespace detail {
 
@@ -668,6 +687,26 @@ class SqpDriver {
     ///         with x.
     SqpSolution solve(const NlpModel &model, const Vec &x0);
 
+    /// @brief Solves from an explicit start point under a caller's work
+    ///        ceiling.
+    /// @param model  The problem; wrapped in a bridge built here.
+    /// @param x0     The starting point.
+    /// @param budget The caller's work ceiling, on exactly the terms the
+    ///               warm-start overload below states: `minor_budget` is the
+    ///               probe budget and `max_iterations`, when non-zero, gives
+    ///               an effective major cap of min(it, SqpOptions::max_iter)
+    ///               that governs the exit conjunction, the restoration
+    ///               refusal and the restoration sub-driver alike.
+    /// @return The solution.
+    /// @throws std::invalid_argument on the classes the 2-argument overload
+    ///         above enumerates.
+    ///
+    /// ADDED IN M6 W5 T8.4 fix1: design section 2.2 puts the budget on EVERY
+    /// public overload, and the cold and staged entries hardcoded
+    /// `SolveBudget{}`, so a staged start could not be budgeted at all -- the
+    /// warm-start overloads refuse to run beside a staged value.
+    SqpSolution solve(const NlpModel &model, const Vec &x0, SolveBudget budget);
+
     /// @brief Solves against an already-built bridge -- the primary path every
     ///        NlpModel-taking overload wraps.
     /// @param bridge The aggregate to solve over; caller-owned. It owes one
@@ -683,6 +722,20 @@ class SqpDriver {
     ///         sizes or stamp do not match the problem this call binds (see
     ///         stage_warm_start).
     SqpSolution solve(NlpModelAggregate &bridge, const Vec &x0);
+
+    /// @brief Solves against an already-built bridge under a caller's work
+    ///        ceiling -- the primary budgeted path, and the one a STAGED warm
+    ///        start rides (the warm-start overloads below refuse to run beside
+    ///        a staged value, so this is the only way to budget one).
+    /// @param bridge The aggregate to solve over; caller-owned.
+    /// @param x0     The starting point; the cold fallback when a value is
+    ///               staged.
+    /// @param budget The caller's work ceiling; see the model-taking form
+    ///               above.
+    /// @return The solution.
+    /// @throws std::invalid_argument on the classes the 2-argument bridge
+    ///         overload above enumerates.
+    SqpSolution solve(NlpModelAggregate &bridge, const Vec &x0, SolveBudget budget);
 
     /// @brief Warm-start ingest against a model, wrapped in a bridge built here.
     /// @param model        The problem to solve.

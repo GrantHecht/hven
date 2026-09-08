@@ -20,6 +20,7 @@
 #include "hven/drivers/interior_point_solver.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cassert>
 #include <cmath>
 #include <limits>
@@ -864,6 +865,13 @@ void hven::solvers::InteriorPointSolver::analyze_kkt_sparsity() {
     this->has_analyzed_structure_key_ = true;
     this->analyzed_treatment_ = opts_.fixed_variable_treatment;
     this->analyzed_kkt_values_ = this->kkt_sol_.matrix().valuePtr();
+    // AND THE OWNER, ON THE PROGRAM (M6 W5 T8.4 fix1). The program records
+    // WHICH solver laid the analysis its location tables describe; the query
+    // and the reuse path compare that id against this solver's. An id is never
+    // reused, so no later solver can inherit the answer by being allocated
+    // where this one was.
+    this->analyzed_owner_id_ = next_owner_id();
+    this->nlp_->set_analyzed_owner_id(this->analyzed_owner_id_);
     ++this->kkt_analysis_count_;
 
     // A new pattern in the assembly buffer: marking the analysis stale is what
@@ -897,12 +905,27 @@ bool hven::solvers::InteriorPointSolver::kkt_pattern_is_analyzed(
 // options" (which must be re-transcribed too, but for a different reason worth
 // keeping separable).
 bool hven::solvers::InteriorPointSolver::analysis_matches(const NonLinearProgram &model) const {
+    // THE FOURTH CONJUNCT IS AN OWNER ID, NOT AN ADDRESS (M6 W5 T8.4 fix1).
+    // T8.4 compared `model.bound_kkt_destination()` against this solver's
+    // captured value-array address, which answers "did I lay this program's
+    // tables" only while no OTHER solver can be handed the same address. It
+    // can: solver A dies while the program it analysed lives on, solver B is
+    // constructed and its assembly buffer lands on the freed allocation, B
+    // analyses a program of identical structure -- and A's old program then
+    // passed every conjunct while its retained analyzed_kkt_matrix_ still
+    // named A's destroyed matrix, which the provider would go on to use.
+    // A never-reused id cannot be coincided with, and it rejects the fresh
+    // identical-structure impostor for the same reason the address did (a
+    // program nobody has analysed carries id 0). It is issued PER ANALYSIS
+    // rather than per solver, because this solver holds exactly one analysis
+    // and the query has to answer false for a program a later lay displaced --
+    // see analyzed_owner_id_'s own note.
     return this->has_analyzed_structure_epoch_ && this->has_analyzed_structure_key_ &&
            model.structure_epoch() == this->analyzed_structure_epoch_ &&
            model.model_structure_key() == this->analyzed_structure_key_ &&
            this->analyzed_treatment_ == opts_.fixed_variable_treatment &&
-           this->analyzed_kkt_values_ != nullptr &&
-           model.bound_kkt_destination() == this->analyzed_kkt_values_;
+           this->analyzed_kkt_values_ != nullptr && this->analyzed_owner_id_ != 0 &&
+           model.analyzed_owner_id() == this->analyzed_owner_id_;
 }
 
 hven::solvers::KktFactorization::PatternCheck
@@ -1953,6 +1976,18 @@ int hven::solvers::InteriorPointSolver::factor_impl(bool docompute, bool Zfac, d
 // Best-iterate scoring + snapshot for the return_best_ path. See the declaration
 // in interior_point_solver.h; the return_best_ / restoration-active guard stays at each call
 // site.
+// THE ANALYSIS-OWNER ID GENERATOR (M6 W5 T8.4 fix1). Process-wide, monotonic,
+// never reused: an id handed out here is not handed out again -- not to a later
+// analysis by this solver, and not after the solver that holds it is destroyed.
+// That is the whole property the analysis-identity check needs and the one a
+// recycled ADDRESS cannot offer. Atomic because two solvers may analyse at
+// once; relaxed because nothing is published through this counter -- only its
+// uniqueness is used.
+std::uint64_t hven::solvers::InteriorPointSolver::next_owner_id() {
+    static std::atomic<std::uint64_t> counter{0};
+    return counter.fetch_add(1, std::memory_order_relaxed) + 1;
+}
+
 void hven::solvers::InteriorPointSolver::track_best_iterate(const IterateInfo &iter, int i,
                                                             const VectorXd &XSL,
                                                             const VectorXd &RHS,
@@ -1983,6 +2018,14 @@ void hven::solvers::InteriorPointSolver::track_best_iterate(const IterateInfo &i
         // its own snapshot here -- see the note on best_bound_duals_scratch_'s
         // declaration in the header.
         this->best_bound_duals_scratch_ = this->bound_duals_;
+        // THE BEST ITERATE'S OWN OBJECTIVE AND ITS RIGHT-HAND SIDE'S
+        // PROVENANCE (M6 W5 T8.4 fix1), snapshotted with the pair above and
+        // for the same reason: a return_best_ exit reports THIS point, so the
+        // objective it prints and the evaluation its declared diagnostics are
+        // read from must both describe this point and not the last iterate the
+        // phase happened to reach.
+        this->best_prim_obj_scratch_ = iter.prim_obj_;
+        this->best_eval_prov_ = this->cur_eval_prov_;
         BestIter = i;
     }
 }
@@ -2004,6 +2047,11 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     // Fresh phase: re-probe rank rather than inheriting the previous phase's
     // degeneracy diagnosis.
     this->dc_latched_ = false;
+    // Fresh phase, fresh provenance (M6 W5 T8.4 fix1): a phase that returns
+    // before evaluating anything must not leave the PREVIOUS phase's
+    // provenance standing beside this phase's right-hand side.
+    this->cur_eval_prov_ = ExitEvalProvenance{};
+    this->best_eval_prov_ = ExitEvalProvenance{};
 
     Eigen::VectorXd Temp(this->kkt_dim_);
 
@@ -2014,6 +2062,11 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     Eigen::VectorXd &BestRHS = this->best_rhs_scratch_;
     double BestCriteriaVal = 1.0e10;
     int BestIter = 0;
+    // Whether one of the three return_best_ sites below actually substituted
+    // the best pair for the last one (M6 W5 T8.4 fix1). Read by the objective
+    // assembly at this function's tail, which must report the BEST iterate's
+    // objective when it did.
+    bool best_substituted = false;
 
     double mu = MuI;
 
@@ -2114,6 +2167,22 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         Funtimer.start();
 
         this->eval_nlp(algmode, obj_scale, XSL, prim_obj, PGX, RHS, this->kkt_sol_.matrix(), mu);
+
+        // THE PROVENANCE OF WHAT THAT CALL JUST WROTE (M6 W5 T8.4 fix1), taken
+        // HERE because here is where the two facts live: which algmode ran,
+        // and whether the restoration seam was substituting for the declared
+        // objective and constraint rows at the time. See ExitEvalProvenance's
+        // own note (interior_point_solver.h) for what each flag decides.
+        {
+            const bool resto_active =
+                this->restoration_ != nullptr && this->restoration_->is_active();
+            this->cur_eval_prov_.has_eval = true;
+            this->cur_eval_prov_.objective_bearing =
+                (algmode == AlgorithmModes::OPT) && !resto_active;
+            this->cur_eval_prov_.restoration_active = resto_active;
+            this->cur_eval_prov_.at_returned_point = true;
+            this->cur_eval_prov_.substituted = false;
+        }
 
         if (this->inequal_cons_ > 0) {
             // apply_reset_slacks completes the raw inequality residual g(x) into the
@@ -2281,6 +2350,16 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                         this->restoration_->note_iteration();
                         this->exit_feasibility_restoration_nested(XSL, obj_scale, theta_orig,
                                                                   barr_obj, mu);
+                        // (b) OF THE PROVENANCE RULE (M6 W5 T8.4 fix1): this
+                        // path re-anchors multipliers into XSL and goes round
+                        // the loop again, so the right-hand side just
+                        // evaluated no longer describes the iterate that would
+                        // be returned if the loop is EXHAUSTED here (exit door
+                        // 2, which assigns no verdict of its own and takes no
+                        // further evaluation). Marked stale rather than
+                        // re-measured: an evaluation at the exit would move
+                        // evals_full on a path that never spent one.
+                        this->cur_eval_prov_.at_returned_point = false;
                         iters.pop_back();
                         QPtimer.stop();
                         continue;
@@ -2303,6 +2382,16 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                         this->restoration_->note_iteration();
                         this->exit_feasibility_restoration_nested(XSL, obj_scale, theta_orig,
                                                                   barr_obj, mu);
+                        // (b) OF THE PROVENANCE RULE (M6 W5 T8.4 fix1): this
+                        // path re-anchors multipliers into XSL and goes round
+                        // the loop again, so the right-hand side just
+                        // evaluated no longer describes the iterate that would
+                        // be returned if the loop is EXHAUSTED here (exit door
+                        // 2, which assigns no verdict of its own and takes no
+                        // further evaluation). Marked stale rather than
+                        // re-measured: an evaluation at the exit would move
+                        // evals_full on a path that never spent one.
+                        this->cur_eval_prov_.at_returned_point = false;
                         iters.pop_back();
                         QPtimer.stop();
                         continue;
@@ -2346,6 +2435,16 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                             this->build_restoration_exit_measures(obj_scale, cur.infeasibility,
                                                                   v_xsl.primals(), barr_obj),
                             false, mu);
+                        // (b) OF THE PROVENANCE RULE (M6 W5 T8.4 fix1): this
+                        // path re-anchors multipliers into XSL and goes round
+                        // the loop again, so the right-hand side just
+                        // evaluated no longer describes the iterate that would
+                        // be returned if the loop is EXHAUSTED here (exit door
+                        // 2, which assigns no verdict of its own and takes no
+                        // further evaluation). Marked stale rather than
+                        // re-measured: an evaluation at the exit would move
+                        // evals_full on a path that never spent one.
+                        this->cur_eval_prov_.at_returned_point = false;
                         iters.pop_back();
                         QPtimer.stop();
                         continue;
@@ -2375,6 +2474,16 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                             this->build_restoration_exit_measures(obj_scale, cur.infeasibility,
                                                                   v_xsl.primals(), barr_obj),
                             false, mu);
+                        // (b) OF THE PROVENANCE RULE (M6 W5 T8.4 fix1): this
+                        // path re-anchors multipliers into XSL and goes round
+                        // the loop again, so the right-hand side just
+                        // evaluated no longer describes the iterate that would
+                        // be returned if the loop is EXHAUSTED here (exit door
+                        // 2, which assigns no verdict of its own and takes no
+                        // further evaluation). Marked stale rather than
+                        // re-measured: an evaluation at the exit would move
+                        // evals_full on a path that never spent one.
+                        this->cur_eval_prov_.at_returned_point = false;
                         iters.pop_back();
                         QPtimer.stop();
                         continue;
@@ -2417,6 +2526,13 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                     XSL = BestXSL;
                     RHS = BestRHS;
                     this->bound_duals_ = this->best_bound_duals_scratch_;
+                    // THE PROVENANCE MOVES WITH THE PAIR (M6 W5 T8.4 fix1):
+                    // the diagnostics are read from this right-hand side, so
+                    // whether it is objective-bearing, at its point and clear
+                    // of restoration is a fact about the BEST iterate now.
+                    this->cur_eval_prov_ = this->best_eval_prov_;
+                    this->cur_eval_prov_.substituted = true;
+                    best_substituted = true;
                 }
                 // obj_val_ must describe the RETURNED primals: evaluate after the
                 // return_best_ substitution above (which may have replaced XSL),
@@ -2495,6 +2611,11 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                 XSL = BestXSL;
                 RHS = BestRHS;
                 this->bound_duals_ = this->best_bound_duals_scratch_;
+                // The provenance moves with the pair; see the first of these
+                // three sites for why.
+                this->cur_eval_prov_ = this->best_eval_prov_;
+                this->cur_eval_prov_.substituted = true;
+                best_substituted = true;
             }
 
             this->result_.status = ExitCode;
@@ -2601,6 +2722,14 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                     // live barrier objective.
                     this->dispatch_restoration_entry(XSL, RHS, prim_obj, barr_obj, mu, theta_fs,
                                                      feas_stall);
+                    // Same clause (b) as the four restoration RETURNS below:
+                    // the entry re-anchors XSL/RHS and the loop goes round
+                    // again, so this right-hand side describes the iterate
+                    // before that. Belt and braces here -- an exit taken with
+                    // restoration ACTIVE already fails clause (c) -- but the
+                    // provenance is a statement about the evaluation, not a
+                    // shortcut through the exit's flags.
+                    this->cur_eval_prov_.at_returned_point = false;
                     iters.pop_back();
                     QPtimer.stop();
                     continue;
@@ -3285,6 +3414,11 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                 XSL = BestXSL;
                 RHS = BestRHS;
                 this->bound_duals_ = this->best_bound_duals_scratch_;
+                // The provenance moves with the pair; see the first of these
+                // three sites for why.
+                this->cur_eval_prov_ = this->best_eval_prov_;
+                this->cur_eval_prov_.substituted = true;
+                best_substituted = true;
             }
 
             this->result_.status = ExitCode;
@@ -3404,7 +3538,14 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     }
 
     if (algmode == AlgorithmModes::OPT) {
-        this->result_.f = iters.back().prim_obj_;
+        // THE OBJECTIVE OF THE POINT BEING RETURNED (M6 W5 T8.4 fix1). When
+        // return_best_ substituted the best pair for the last one, x and the
+        // multipliers below describe the BEST iterate, and iters.back() does
+        // not -- reporting its objective beside them was an inherited
+        // mismatch, fixed here because IpmResult is this task's. The non-OPT
+        // arm below never had it: it re-assembles the objective at the
+        // returned primals, which the substitution has already replaced.
+        this->result_.f = best_substituted ? this->best_prim_obj_scratch_ : iters.back().prim_obj_;
     } else {
         Funtimer.start();
         this->result_.f = 0;
@@ -3463,6 +3604,13 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     // has, and it is exactly what the shared stationarity is defined over. Read
     // beside result_.ce for that reason: same right-hand side, same iterate.
     this->exit_grad_lag_ = v_rhs.prim_grad();
+
+    // AND ITS PROVENANCE BESIDE IT (M6 W5 T8.4 fix1), which is the half that
+    // says whether the vector above is a MEASUREMENT of the declared problem
+    // at the point being returned or merely the last vector this phase
+    // happened to write. See ExitEvalProvenance in interior_point_solver.h for
+    // the three clauses and what each of them costs a diagnostic.
+    this->exit_eval_prov_ = this->cur_eval_prov_;
 
     if (this->equal_cons_ > 0) {
         this->result_.ce = v_rhs.eq_cons();
@@ -4262,14 +4410,9 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
     // one.
     this->result_ = IpmResult{};
     this->exit_grad_lag_.resize(0);
-
-    // THE COMMON WALL CLOCK (design §2.3), started at the public entry and
-    // stopped at the return, so it covers the transcription, every phase, the
-    // final reporting and the export snapshot. NOT IpmResult::total_time, which
-    // is this engine's older measurement and stops before the reporting; both
-    // survive, under their own names.
-    hven::utils::Timer wall;
-    wall.start();
+    this->exit_eval_prov_ = ExitEvalProvenance{};
+    this->cur_eval_prov_ = ExitEvalProvenance{};
+    this->best_eval_prov_ = ExitEvalProvenance{};
 
     // Disarm any staged multiplier seed immediately, before anything below --
     // the nlp_/x-size checks just after this, validate(opts_), the
@@ -4362,21 +4505,23 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
         this->transcribe_bound_program();
     }
 
-    if (x.size() != full_primal_vars_) {
-        throw std::invalid_argument(fmt::format("hven interior-point solver: initial guess has {} "
-                                                "elements, expected {} primal variables",
-                                                x.size(), full_primal_vars_));
-    }
-
     // THE PER-PHASE ITERATION CEILING for this call. min() and not max(): a
     // caller may tighten this engine's own limit and never loosen it. A zero
     // budget (the default) leaves opts_.max_iters exactly as alg_impl always
     // read it, which is what makes the whole feature trajectory-neutral on
     // every existing path.
-    this->effective_max_iters_ =
-        budget.max_iterations > 0
-            ? std::min<int>(static_cast<int>(budget.max_iterations), opts_.max_iters)
-            : opts_.max_iters;
+    //
+    // THE MINIMUM IS TAKEN IN `Index` AND ONLY THE BOUNDED RESULT IS NARROWED
+    // (M6 W5 T8.4 fix1). Narrowing first turned a perfectly valid 2^32 into 0,
+    // which skipped the loop entirely and reached an empty-history access --
+    // a large budget is a WEAK constraint and must never bind harder than a
+    // small one, let alone bind at zero.
+    this->effective_max_iters_ = opts_.max_iters;
+    if (budget.max_iterations > 0) {
+        const Index capped =
+            std::min<Index>(budget.max_iterations, static_cast<Index>(opts_.max_iters));
+        this->effective_max_iters_ = static_cast<int>(capped);
+    }
 
     this->clear_reported_constraint_blocks();
     this->eval_error_log_.reset();
@@ -4919,6 +5064,28 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
         const Index user_eq = this->nlp_->user_equal_cons_;
         const Index fixing_rows = this->result_.lambda_e.size() - user_eq;
 
+        // (0) THE PROVENANCE GATE (M6 W5 T8.4 fix1), FIRST because every step
+        //     below reads the two constraint blocks it decides about.
+        //
+        //     CLAUSE (c): the evaluation that produced the captured right-hand
+        //     side ran while feasibility restoration was active, or the exit
+        //     itself was taken with restoration still active. Under
+        //     l1_nested the constraint rows of that right-hand side are the
+        //     CONDENSED residuals r-tilde of the restoration subproblem, not
+        //     the declared residuals -- `infeas2_stationary`'s declared
+        //     equality is x0^2 + x1^2 + 1, which is >= 1 everywhere, while the
+        //     copied row is a tiny condensed number. So the blocks are
+        //     EMPTIED, not copied: drivers/solve_result.h states an empty
+        //     block as "unmeasured" and a zero-length vector cannot be read as
+        //     a feasible point the way a copied one can.
+        const ExitEvalProvenance &prov = this->exit_eval_prov_;
+        const bool restoration_contaminated =
+            prov.restoration_active || this->solve_exit_restoration_active_;
+        if (restoration_contaminated) {
+            this->result_.ce = Eigen::VectorXd();
+            this->result_.ci = Eigen::VectorXd();
+        }
+
         // (1) The internal fixing rows come OFF the declared equality block.
         //     They are the treatment's rows, not the declaration's, and they
         //     occupy the block's tail -- so this is a truncation at one end and
@@ -4929,9 +5096,16 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
         if (fixing_rows > 0) {
             fixed_lambda = this->result_.lambda_e.tail(fixing_rows);
             this->result_.internal_fixed_lambda_e = fixed_lambda;
-            this->result_.internal_fixed_ce = this->result_.ce.tail(fixing_rows);
+            // Guarded on the block still being there: (0) above may have
+            // emptied it, and a tail() of a shorter vector is an out-of-range
+            // read Eigen only catches in a Debug build (CLAUDE.md section 4).
+            // An emptied block reports no fixing residual either -- the
+            // restoration-space number is not one.
+            if (this->result_.ce.size() == this->result_.lambda_e.size()) {
+                this->result_.internal_fixed_ce = this->result_.ce.tail(fixing_rows);
+                this->result_.ce = Eigen::VectorXd(this->result_.ce.head(user_eq));
+            }
             this->result_.lambda_e = Eigen::VectorXd(this->result_.lambda_e.head(user_eq));
-            this->result_.ce = Eigen::VectorXd(this->result_.ce.head(user_eq));
         }
 
         // (2) z, scattered to DECLARED width. The reduced block has no entry
@@ -4963,6 +5137,22 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
         }
         this->result_.z = std::move(z_declared);
 
+        //     AND THE EXPORT SNAPSHOT TAKES THE SAME PRICE (M6 W5 T8.4 fix1).
+        //     capture_completed_warm_start ran ABOVE this seam -- it has to,
+        //     because it reads result_.z at the SOLVER's reduced width and
+        //     does its own scatter -- so its bound block carries the reduced
+        //     block's 0 on a MakeConstraint coordinate, where the result now
+        //     carries -lambda_fix. Two answers to one question, from one
+        //     solve. Patched here, at the one place the declared price is
+        //     known, rather than by moving the capture: the capture's
+        //     placement is load-bearing for the width it reads.
+        if (fixing_rows > 0 && fixed_idx.size() == fixing_rows && this->solve_completed_ &&
+            this->completed_warm_.bound_lmults_.size() == n) {
+            for (Index k = 0; k < fixing_rows; ++k) {
+                this->completed_warm_.bound_lmults_[fixed_idx[k]] = -fixed_lambda[k];
+            }
+        }
+
         // (3) THE FOUR SHARED DIAGNOSTICS, from the Lagrangian gradient the
         //     last phase captured at the returned iterate -- no evaluation, so
         //     the evaluation bill of every existing path is untouched.
@@ -4973,8 +5163,32 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
         //     under l1_nested the constraint rows too, describe the restoration
         //     subproblem rather than the declared one. Absent is never
         //     zero-filled.
-        const bool measured = this->exit_grad_lag_.size() == this->primal_vars_ &&
-                              !this->solve_exit_restoration_active_;
+        //     UNMEASURED, and therefore NaN, is decided by the PROVENANCE of
+        //     the captured right-hand side and not by its size (M6 W5 T8.4
+        //     fix1 -- the T8.4 guard read the size and the exit's restoration
+        //     flag, which between them miss every case below):
+        //
+        //       * no phase produced a right-hand side at all -> all four NaN;
+        //       * clause (c), restoration -> all four NaN, and the two blocks
+        //         emptied at (0) above;
+        //       * clause (b), a right-hand side that belongs to the iterate
+        //         BEFORE a restoration return re-anchored the multipliers, on
+        //         a call the loop then exhausted -> all four NaN;
+        //       * clause (a), a right-hand side from a feasibility phase (SOE
+        //         / OPTNO) or from an evaluation the restoration seam was
+        //         substituting into -> STATIONARITY ALONE is NaN. The other
+        //         three read ce, ci, x, the box, lambda_i and z, every one of
+        //         which such a phase does evaluate, so they are measured and
+        //         are kept.
+        //
+        //     Absent is never zero-filled: the committed T8.4 baseline printed
+        //     a declared stationarity of exactly 0 for `infeas2_spike`, a
+        //     problem with objective f = x[1], gradient (0, 1) and no
+        //     multipliers, whose honest declared stationarity is 1 and whose
+        //     honest REPORT -- no objective gradient having been evaluated at
+        //     the returned point -- is NaN.
+        const bool measured = this->exit_grad_lag_.size() == this->primal_vars_ && prov.has_eval &&
+                              prov.at_returned_point && !restoration_contaminated;
         if (measured) {
             // Into declared width, dividing out the objective scale the solver
             // ran at: exit_grad_lag_ is obj_scale * (grad f + J'lambda) in the
@@ -5012,7 +5226,12 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
                 this->result_.x, this->result_.lambda_i, this->result_.z, grad_lag,
                 this->result_.ce, this->result_.ci, this->nlp_->x_lower_, this->nlp_->x_upper_,
                 excluded);
-            this->result_.stationarity = d.stationarity;
+            // CLAUSE (a) APPLIES TO ONE FIELD. `d.stationarity` is the only
+            // one of the four that reads the Lagrangian gradient, so it is
+            // the only one a phase carrying no declared objective gradient
+            // fails to measure.
+            this->result_.stationarity =
+                prov.objective_bearing ? d.stationarity : std::numeric_limits<double>::quiet_NaN();
             this->result_.feasibility_e = d.feasibility_e;
             this->result_.feasibility_i = d.feasibility_i;
             this->result_.complementarity = d.complementarity;
@@ -5051,8 +5270,6 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
 
     // The common clock closes here, around everything the entry took on: the
     // transcription, every phase, the final reporting and the export snapshot.
-    wall.stop();
-    this->result_.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;
 
     // MOVED OUT. The solver keeps no result between calls -- the member is a
     // workspace for the call in flight, and the next call default-constructs it
@@ -5078,5 +5295,32 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
 hven::solvers::IpmResult hven::solvers::InteriorPointSolver::solve(NonLinearProgram &model,
                                                                    const Eigen::VectorXd &x0,
                                                                    SolveBudget budget) {
-    return this->run_phase_sequence(model, x0, this->phase_steps(), budget);
+    // ARGUMENT VALIDATION AT THE PUBLIC BOUNDARY (M6 W5 T8.4 fix1). It used to
+    // sit inside run_phase_sequence, after the transcription, and read this
+    // solver's cached full_primal_vars_; here it reads the PROGRAM's own
+    // declared count, which is the same number and is the one an argument
+    // check should be stated against -- it is a fact about the call, not about
+    // what this solver last transcribed.
+    if (x0.size() != static_cast<Eigen::Index>(model.primal_vars_)) {
+        throw std::invalid_argument(fmt::format("hven interior-point solver: initial guess has {} "
+                                                "elements, expected {} primal variables",
+                                                x0.size(), model.primal_vars_));
+    }
+
+    // THE COMMON WALL CLOCK (design §2.3), started HERE -- at the public
+    // entry, immediately after the argument check above -- and stopped at the
+    // return, so it covers the transcription, every phase, the final reporting
+    // and the export snapshot. T8.4 started it inside run_phase_sequence,
+    // after that function's own result setup and BEFORE any validation;
+    // astra's fix1 item 6 asks for this boundary on every public overload of
+    // both engines and this is the interior-point engine's only one.
+    //
+    // NOT IpmResult::total_time, which is this engine's older measurement and
+    // stops before the reporting; both survive, under their own names.
+    hven::utils::Timer wall;
+    wall.start();
+    IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget);
+    wall.stop();
+    result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;
+    return result;
 }

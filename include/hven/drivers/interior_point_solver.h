@@ -9,6 +9,7 @@
 #pragma once
 #include <array>
 #include <cassert>
+#include <cstdint>
 #include <functional>
 #include <initializer_list>
 #include <memory>
@@ -850,6 +851,87 @@ class InteriorPointSolver {
     // together, so the pair stays matched). Empty when no phase ran.
     Eigen::VectorXd exit_grad_lag_;
 
+    // THE PROVENANCE OF THAT RIGHT-HAND SIDE (M6 W5 T8.4 fix1). A captured
+    // vector is not a measurement until three things are true of the
+    // EVALUATION that produced it, and not one of them can be read off the
+    // vector's own size or off the restoration flag the exit happens to carry
+    // -- which is exactly what the T8.4 guard tried to do:
+    //
+    //   (a) OBJECTIVE-BEARING. The feasibility phases evaluate through
+    //       eval_soe/eval_kkt_no at objective scale 0.0 and the SOE arm then
+    //       ZEROES both primal blocks (see eval_nlp), and while restoration is
+    //       active the eval seam substitutes phi_prox / phi_l1 for the declared
+    //       objective. A right-hand side from either carries no declared
+    //       objective gradient at all, so grad f + J'lambda is NOT what it
+    //       holds and a declared stationarity read off it measures something
+    //       else. Its other three diagnostics are untouched: they read ce, ci,
+    //       x, the box, lambda_i and z, all of which a feasibility phase does
+    //       evaluate.
+    //   (b) AT THE RETURNED POINT. The restoration-return `continue` paths
+    //       re-anchor multipliers into XSL and go round the loop again; when
+    //       the loop is then EXHAUSTED (exit door 2), the last right-hand side
+    //       belongs to the iterate BEFORE that re-anchoring, not to the one
+    //       being returned.
+    //   (c) RESTORATION INACTIVE at the evaluation. Nested restoration
+    //       replaces the constraint rows with the CONDENSED residuals r-tilde
+    //       (eval_nlp's nested arm), so ce/ci are not the declared residuals
+    //       either -- which is why an exit failing (c) EMPTIES them rather
+    //       than copying them, per drivers/solve_result.h's "absent is never
+    //       zero-filled".
+    //
+    // Recorded where the evaluation happens (cur_eval_prov_), carried through
+    // the return_best_ substitution by best_eval_prov_ -- the substitution
+    // swaps XSL and RHS, so it must swap their provenance too -- and read
+    // ONCE, by the result assembly, out of exit_eval_prov_.
+    struct ExitEvalProvenance {
+        /// An evaluation produced a right-hand side at all.
+        bool has_eval = false;
+        /// (a): the evaluation carried the DECLARED objective's gradient.
+        bool objective_bearing = false;
+        /// (c): feasibility restoration was active AT the evaluation.
+        bool restoration_active = false;
+        /// (b): the right-hand side still describes the iterate being returned.
+        bool at_returned_point = false;
+        /// The return_best_ path replaced the pair this describes.
+        bool substituted = false;
+    };
+
+    /// The provenance of the evaluation the CURRENT phase last took.
+    ExitEvalProvenance cur_eval_prov_;
+    /// The provenance stored beside best_xsl_scratch_/best_rhs_scratch_.
+    ExitEvalProvenance best_eval_prov_;
+    /// The provenance of exit_grad_lag_ -- the one the result assembly reads.
+    ExitEvalProvenance exit_eval_prov_;
+
+    /// The OBJECTIVE of the iterate stored in best_xsl_scratch_, snapshotted
+    /// beside it (M6 W5 T8.4 fix1). Without it a return_best_ exit reported
+    /// `f` from iters.back() -- the LAST iterate -- beside x, multipliers and
+    /// residuals from the BEST one, so the objective did not belong to the
+    /// point being returned. Read only on the substituted path.
+    double best_prim_obj_scratch_ = 0.0;
+
+    /// THE PROCESS-UNIQUE ID OF THIS SOLVER'S CURRENT ANALYSIS (M6 W5 T8.4
+    /// fix1), issued at each lay and NEVER reused -- not by this solver, not by
+    /// another, not after this object dies. 0 until this solver has analysed.
+    ///
+    /// It replaces the analysis-identity conjunct that compared a captured
+    /// value-array ADDRESS. That address answers "did I lay this program's
+    /// tables" only while no OTHER solver can be handed the same address, and
+    /// one can: solver A dies while the program it analysed lives on, solver B
+    /// is constructed and its assembly buffer lands on the freed allocation --
+    /// at which point A's old program passes every conjunct while its retained
+    /// analyzed_kkt_matrix_ still names A's destroyed matrix, which the
+    /// provider would go on to use.
+    ///
+    /// PER ANALYSIS RATHER THAN PER CONSTRUCTION, which is where this departs
+    /// from the fix as first stated. A per-construction id cannot distinguish
+    /// WHICH of two programs this solver analysed LAST -- both would carry it
+    /// -- and one analysis is all a solver has; the query
+    /// (kkt_pattern_is_analyzed) is required to answer false for the program
+    /// displaced by a later one. A per-analysis id is that answer and is
+    /// lifetime-safe for the same reason: the counter only ever goes up.
+    std::uint64_t analyzed_owner_id_ = 0;
+
     // THE PER-PHASE ITERATION CEILING IN FORCE, which alg_impl reads in place
     // of opts_.max_iters (M6 W5 T8.4). Written once per call by the solve
     // entry: min(SolveBudget::max_iterations, opts_.max_iters) when the caller
@@ -1348,6 +1430,10 @@ class InteriorPointSolver {
     // reached; only the scoring and snapshot live here.
     void track_best_iterate(const IterateInfo &iter, int i, const VectorXd &XSL,
                             const VectorXd &RHS, double &BestCriteriaVal, int &BestIter);
+
+    /// The next never-reused analysis-owner id. Monotonic and process-wide;
+    /// see analyzed_owner_id_.
+    static std::uint64_t next_owner_id();
 
     // --- Printing methods ---
     static void print_banner();

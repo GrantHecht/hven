@@ -844,6 +844,31 @@ TEST(IpmWarmStart, MakeConstraintExportDropsTheTreatmentsInternalFixingRow) {
     EXPECT_EQ(warm.primal_.size(), 3);
     EXPECT_EQ(warm.bound_lmults_.size(), 3);
     EXPECT_NEAR(warm.primal_[2], 0.25, 1e-9);
+
+    // AND THE FIXED COORDINATE'S BOUND PRICE IS THE ONE THE RESULT REPORTS
+    // (M6 W5 T8.4 fix1). The capture runs BEFORE the declared-space seam --
+    // it has to, because it reads the result's z at the SOLVER's reduced width
+    // and does its own scatter -- so under MakeConstraint it carried the
+    // reduced block's 0 on this coordinate while the result carried
+    // -lambda_fix. Two answers to one question, out of one solve. The result's
+    // side of the pin is bitwise, because the snapshot now takes exactly the
+    // value the seam computed.
+    ASSERT_EQ(warm_result().z.size(), 3);
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(warm.bound_lmults_[2]),
+              std::bit_cast<std::uint64_t>(warm_result().z[2]))
+        << "the export and the result must price the fixed coordinate the same";
+    EXPECT_NEAR(warm.bound_lmults_[2], -warm_result().internal_fixed_lambda_e[0], 1e-12)
+        << "and that price is z = -lambda_fix, the sign the stationarity "
+           "convention grad f + J'lambda - z = 0 forces";
+    EXPECT_NE(warm.bound_lmults_[2], 0.0) << "a zero here would make the pin vacuous";
+
+    // The result's OWN export snapshot says the same thing -- it is the same
+    // capture, handed out through the value rather than through the solver.
+    const auto snapshot = warm_result().export_warm_start();
+    ASSERT_TRUE(snapshot.has_value());
+    ASSERT_EQ(snapshot->bound_lmults_.size(), 3);
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(snapshot->bound_lmults_[2]),
+              std::bit_cast<std::uint64_t>(warm_result().z[2]));
 }
 
 // THE PRIMARY FLOW. The MakeParameter treatment RE-LAYS the program -- it

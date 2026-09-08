@@ -1164,6 +1164,44 @@ TEST(SqpDriverRestoration, ExhaustedElasticTierEntersRestoration) {
     EXPECT_NEAR(sol.z(0), -1.0, 1e-9) << "at an ACTIVE UPPER bound the price must be <= 0";
 }
 
+// THE SHARED DECLARED DIAGNOSTICS OF THAT EXIT DESCRIBE THE RETURNED DUALS
+// (M6 W5 T8.4 fix1, astra item 2(ii)). This is the fixture where the
+// distinction bites. At x = (1, 0) the declared objective gradient is (1, 0)
+// and the returned bound price is the CERTIFICATE's z = (-1, 0), so the
+// declared stationarity |grad L - z|inf is 1 -- an infeasible point is not a
+// stationary point of the declared problem, and the result must not say it is.
+// T8.4's scaled arm computed the shared four from a RE-MEASURED bound price
+// (grad L at the active bound, i.e. 0) while RETURNING the certificate's, and
+// so reported 0 on the scaled path and 1 on the unscaled one for the same
+// solve of the same model.
+TEST(SqpDriverRestoration, TheSharedDiagnosticsOfACertifiedExitUseTheReturnedPrices) {
+    BoxBlockedEqualityModel model;
+    SqpOptions opts;
+    SqpDriver driver(opts);
+    const SqpSolution sol = driver.solve(model);
+
+    ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
+    ASSERT_TRUE(sol.infeasibility_certified);
+    ASSERT_NEAR(sol.x(0), 1.0, 1e-9);
+    ASSERT_NEAR(sol.z(0), -1.0, 1e-9);
+
+    // INDEPENDENTLY, from the model itself at exactly the vectors this call
+    // returns. A test may evaluate; a solve may not.
+    const NlpEval ev = eval_nlp(model, sol.x);
+    const DeclaredDiagnostics d =
+        compute_declared_diagnostics(sol.x, sol.lambda_e, sol.lambda_i, sol.z, ev.grad, ev.Je,
+                                     ev.Ji, ev.ce, ev.ci, model.lower(), model.upper(), {});
+    EXPECT_NEAR(d.stationarity, sol.stationarity, 1e-9);
+    EXPECT_NEAR(d.feasibility_e, sol.feasibility_e, 1e-9);
+    EXPECT_NEAR(d.feasibility_i, sol.feasibility_i, 1e-9);
+    EXPECT_NEAR(d.complementarity, sol.complementarity, 1e-9);
+    // And the numbers themselves, hand-derived above: the price the caller gets
+    // back does NOT close the declared stationarity at this point, and it must
+    // not be made to look as though it does.
+    EXPECT_NEAR(sol.stationarity, 1.0, 1e-6);
+    EXPECT_NEAR(sol.feasibility_e, 4.0, 1e-6);
+}
+
 // THE SAME EXHAUSTION IN THE OTHER TWO MODES (W2 T4, owner ruling Q-O3): the
 // route and the certificate do not depend on which kernel solved the
 // subproblems -- kIpm reaches it through the certified fallback's own ladder.
