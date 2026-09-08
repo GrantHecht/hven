@@ -534,7 +534,8 @@ class SqpDriver {
     // The restoration phase's own driver is constructed through here with
     // restoration disabled, which bounds the recursion at one level.
     SqpDriver(const SqpOptions &opts, bool allow_restoration)
-        : opts_(opts), engine_(opts.qp), allow_restoration_(allow_restoration) {
+        : opts_(opts), engine_(std::make_unique<QpEngine>(opts.qp)),
+          allow_restoration_(allow_restoration) {
         validate_sqp_options(opts_);
     }
 
@@ -563,6 +564,38 @@ class SqpDriver {
     ///             this driver additionally emits `ipqp.route` and `qp.mode`
     ///             itself, in the kIpm dispatch arm.
     void attach_trace(TraceSink *sink);
+
+    /// @brief Returns the options this driver runs under.
+    ///
+    /// READ-ONLY: there is no mutable accessor. Copy it, edit the copy, hand it
+    /// back through set_options().
+    const SqpOptions &options() const noexcept { return opts_; }
+
+    /// @brief Replaces the whole options value, rebuilding the QP engines.
+    ///
+    /// TRANSACTIONAL, in this order: validate(o) first; then a REPLACEMENT
+    /// QpEngine is constructed into a temporary from `o.qp` and given the same
+    /// ledger attachment (and the same solve counter, so the record labels keep
+    /// counting rather than restarting at `<prefix>_qp_0`); only then is it
+    /// swapped in, the lazily-built SSN and IPQP engines dropped (each holds its
+    /// own COPY of the QpOptions, so dropping them is both necessary and
+    /// sufficient), and the options adopted. A throw at any point -- validation
+    /// or construction -- leaves the previous options AND the previous engines
+    /// in force, and the driver usable.
+    ///
+    /// ONE RULE, NO FAST PATH: a replacement with IDENTICAL options rebuilds
+    /// too. What the rebuild costs is this driver's cached K0 border; what it
+    /// does NOT cost is a hot handle's reuse, which is keyed on the producing
+    /// engine's OPTIONS FINGERPRINT rather than its identity, so a rebuild at
+    /// identical options still adopts (detail/qp/qp_engine.h's HotState).
+    ///
+    /// Legal BETWEEN SOLVES only.
+    ///
+    /// @param o The replacement options.
+    /// @throws std::invalid_argument if validate(o) rejects the value.
+    /// @throws std::logic_error if a solve is in flight on this driver (a
+    ///         replacement from inside a strategy factory or a callback).
+    void set_options(SqpOptions o);
 
     /// @brief Solves from an explicit start point.
     /// @param model The problem; wrapped in a bridge built here.
@@ -1022,7 +1055,12 @@ class SqpDriver {
     // ONE engine for the whole driver, deliberately: it is what makes warm seeding
     // possible across majors, and it makes SqpDriver exactly as thread-unsafe as
     // QpEngine -- use one driver per thread.
-    QpEngine engine_;
+    //
+    // HELD BY unique_ptr since M6 W5 T8.3, and only because set_options() has to
+    // REPLACE it: QpEngine owns a live backend session and declares no
+    // assignment, so the transactional swap needs a pointer. Never null between
+    // constructor and destructor; every use dereferences without a check.
+    std::unique_ptr<QpEngine> engine_;
     // The semismooth-Newton tier's engine, LAZILY CONSTRUCTED and never touched
     // at the shipped default: an SsnEngine owns a live KktFactor, so a plain
     // member would allocate a backend session on every driver. One engine per
@@ -1059,6 +1097,14 @@ class SqpDriver {
     // False on the driver the RESTORATION PHASE constructs for itself, which
     // bounds the recursion at one level. See the private constructor.
     bool allow_restoration_ = true;
+
+    // Is a public solve on THIS driver currently running? Set by an RAII guard
+    // at solve_impl()'s entry -- the ONE place all four public solve() overloads
+    // funnel through exactly once, since they NEST -- and cleared on every exit,
+    // a throw included. Read by set_options(), which refuses to replace the
+    // options a solve is running under. The restoration phase builds a DISTINCT
+    // nested driver, so it never re-enters this object's guard.
+    bool solve_in_flight_ = false;
 
     // See attach_ledger's doc comment above for the whole contract;
     // nullptr (ledger_) is "off", exactly like QpEngine's own ledger_.

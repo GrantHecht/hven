@@ -13,12 +13,14 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <string_view>
 #include <vector>
 
 #include <hven/core/solver_counters.h>
 #include <hven/core/solver_status.h>
 #include <hven/detail/globalization/sqp/globalization.h>
 #include <hven/detail/warmstart/warm_start.h>
+#include <hven/drivers/common_options.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::solvers {
@@ -613,7 +615,46 @@ struct SqpOptions {
     /// its objective gradient AMPLIFIED, and without a ceiling that amplification
     /// is unbounded.
     double scaling_factor_limit = 1e12;
+
+    /// The options both engines share (drivers/common_options.h), at the SQP
+    /// engine's own defaults -- `threads = 0` ("leave the backend alone", which
+    /// is what this engine has always done; the process-wide MKL_NUM_THREADS pin
+    /// is its reproducibility mechanism) and `print_level = 3` (silent, which is
+    /// what this engine has always been).
+    ///
+    /// In T8.3 NEITHER of those two is read by this engine: the fields are here
+    /// so both engines spell the same knob the same way, and so a hot handle's
+    /// options fingerprint can cover the thread count from the start. T8.7 gives
+    /// this engine a console table at `print_level`, and T8.8 makes a non-zero
+    /// `threads` reach every factor path. `common.start_level` is likewise
+    /// carried and unread: `SqpOptions::start_level` above is still the field
+    /// the driver caps a warm start with, until T8.10 folds the two.
+    ///
+    /// LAST, not first, so that adding it moves no existing field's offset.
+    CommonOptions common;
 };
+
+/// @brief Validates a whole SqpOptions value.
+///
+/// The body of validate_sqp_options() below, plus the two CommonOptions checks
+/// (`common.threads` must be non-negative, `common.print_level` non-negative).
+/// M6 W5 T8.3 named it `validate` so both engines spell whole-value validation
+/// the same way; validate_sqp_options() stays as a one-line forwarder until
+/// T8.10 sweeps its ~60 call sites.
+///
+/// @param opts The options object to validate.
+/// @throws std::invalid_argument, on the same terms validate_sqp_options
+///         documents, plus a negative `common.threads` or `common.print_level`.
+void validate(const SqpOptions &opts);
+
+/// @brief Returns a full SqpOptions value for a named preset.
+///
+/// "default" is the only name until M8's labeled configs, and it returns a
+/// default-constructed value.
+///
+/// @param name A preset name.
+/// @throws std::invalid_argument, listing every valid name, if `name` is not one.
+SqpOptions sqp_preset(std::string_view name);
 
 /// @brief The boundary validation SqpDriver's constructor runs over SqpOptions.
 ///
@@ -635,6 +676,8 @@ struct SqpOptions {
 ///         ill-formed IpqpOptions field -- validated unconditionally, like the
 ///         scaling fields, since `qp_mode` is a value a caller may change later.
 ///         `QpMode::kQpModeCount` names no kernel and is refused.
+/// M6 W5 T8.3: a one-line forwarder to `validate(const SqpOptions &)`, which is
+/// where the body lives now. T8.10 removes this name.
 void validate_sqp_options(const SqpOptions &opts);
 
 /// @brief One row of the per-major history -- the record of ONE ITERATE and of

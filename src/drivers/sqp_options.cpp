@@ -64,6 +64,7 @@
 
 #include <cmath>
 #include <stdexcept>
+#include <string_view>
 
 #include <fmt/format.h>
 
@@ -71,7 +72,7 @@
 
 namespace hven::solvers {
 
-void validate_sqp_options(const SqpOptions &opts) {
+void validate(const SqpOptions &opts) {
     if (!(opts.kkt_tol > 0.0) || !(opts.feas_tol > 0.0)) {
         throw std::invalid_argument(
             fmt::format("SqpDriver: kkt_tol ({}) and feas_tol ({}) must both be > 0", opts.kkt_tol,
@@ -278,6 +279,40 @@ void validate_sqp_options(const SqpOptions &opts) {
     // nothing here refuses it. The IpqpOptions predicates above are validated
     // UNCONDITIONALLY, at every mode, exactly as they were: a field is
     // out of range whether or not this solve will read it.
+
+    // The two CommonOptions fields (M6 W5 T8.3). Neither is read by this engine
+    // yet -- T8.7 reads print_level, T8.8 reads threads -- but both are part of
+    // the value a caller hands over and both are checked here, so an
+    // out-of-range knob is refused at the boundary rather than at the task that
+    // starts reading it. Integers, so no NaN idiom applies.
+    if (opts.common.threads < 0) {
+        throw std::invalid_argument(
+            fmt::format("SqpDriver: common.threads ({}) must be >= 0 (0 = leave the backend's own "
+                        "default alone)",
+                        opts.common.threads));
+    }
+    if (opts.common.print_level < 0) {
+        throw std::invalid_argument(
+            fmt::format("SqpDriver: common.print_level ({}) must be >= 0 (0 = full output, "
+                        "3 and above = silent)",
+                        opts.common.print_level));
+    }
+}
+
+// The pre-T8.3 name, kept as a forwarder so the ~60 call sites that spell it
+// this way stay byte-identical. T8.10 removes it.
+void validate_sqp_options(const SqpOptions &opts) { validate(opts); }
+
+// The SQP engine's named presets. "default" is the only one until M8's labeled
+// configs; it returns a default-constructed value, which is what every caller
+// that writes `SqpOptions{}` already gets. The refusal lists the valid names for
+// the same reason ipm_preset()'s does.
+SqpOptions sqp_preset(std::string_view name) {
+    if (name == "default") {
+        return SqpOptions{};
+    }
+    throw std::invalid_argument(
+        fmt::format("Unrecognized SqpDriver preset '{}'. Valid options are: default", name));
 }
 
 } // namespace hven::solvers

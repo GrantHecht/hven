@@ -820,6 +820,15 @@ class QpEngine {
     // been attempted.
     void attach_ledger(Ledger *ledger, std::string label_prefix);
 
+    // The per-solve record counter this engine has reached, and the way to hand
+    // it to a REPLACEMENT engine. Exists for exactly one caller: SqpDriver::
+    // set_options(), whose transactional rebuild throws this engine away. The
+    // labels are a per-driver sequence, not a per-engine one, so a rebuild that
+    // let the counter restart would put a second `<prefix>_qp_0` in a ledger
+    // that already holds one. Not otherwise part of the engine's surface.
+    Index solve_counter() const noexcept { return solve_counter_; }
+    void adopt_solve_counter(Index n) noexcept { solve_counter_ = n; }
+
     // Cold start from clamp(0, l, u) with an empty working set. Forwards a
     // default-constructed SolveOverrides, which resolves to every opts_
     // value unchanged -- see qp_types.h's SolveOverrides and the header

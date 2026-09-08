@@ -367,9 +367,14 @@ std::string rstrip(const std::string &l) {
 }
 
 /// A KERNEL INVOCATION LINE, matched by SHAPE rather than by a receiver list:
-/// any `.solve(` / `->solve(` / `.refine_on_face(` in a code line. Matching by
-/// shape is the fail-safe direction -- a call through a receiver nobody
-/// anticipated is CAUGHT rather than missed.
+/// any `.solve(` / `->solve(` / `.refine_on_face(` / `->refine_on_face(` in a
+/// code line. Matching by shape is the fail-safe direction -- a call through a
+/// receiver nobody anticipated is CAUGHT rather than missed.
+///
+/// BOTH SPELLINGS OF EACH, and that is load-bearing rather than tidy: M6 W5
+/// T8.3 moved `engine_` behind a unique_ptr, so four `engine_.refine_on_face(`
+/// lines became `engine_->refine_on_face(` and this scan silently lost them --
+/// caught by the >= 10 floor probe below, which is exactly the probe's job.
 ///
 /// ONE EXCLUSION, and it is by kind: `sub.solve(...)` is the restoration
 /// sub-driver, a whole nested SQP solve that writes its own stream at depth 1
@@ -380,7 +385,8 @@ bool is_call_line(const std::string &l) {
     }
     const bool call = l.find(".solve(") != std::string::npos ||
                       l.find("->solve(") != std::string::npos ||
-                      l.find(".refine_on_face(") != std::string::npos;
+                      l.find(".refine_on_face(") != std::string::npos ||
+                      l.find("->refine_on_face(") != std::string::npos;
     return call && l.find("sub.solve(") == std::string::npos;
 }
 

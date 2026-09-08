@@ -972,3 +972,54 @@ an install prefix (10 standalone TUs -> 12).
   now pins the mid-call REFUSAL rather than the mid-call deferral. The
   observable outcome it was written for is unchanged: one call runs at one
   scale.
+
+### The SQP engine's half
+
+`SqpOptions` gains **one field, LAST**: `CommonOptions common`, at the SQP
+engine's own defaults — `threads = 0` ("leave the backend alone", which is what
+this engine has always done) and `print_level = 3` (silent, which is what this
+engine has always been). **Neither is read in T8.3**: T8.7 gives this engine a
+console table at `print_level` and T8.8 makes a non-zero `threads` reach every
+factor path. `common.start_level` is carried beside `SqpOptions::start_level`,
+which is still the field the driver caps a warm start with, until T8.10 folds the
+two. `common` is last so that no existing field's offset moves.
+
+`void validate(const SqpOptions &)` is the new name for the whole-value check;
+its body is `validate_sqp_options`'s plus the two `common` checks. **`validate_sqp_options`
+stays as a one-line forwarder** — every existing call site keeps compiling and
+keeps meaning the same thing. T8.10 removes the old name.
+`SqpOptions sqp_preset(std::string_view)` accepts `"default"` and refuses
+anything else, listing the valid names.
+
+`SqpDriver` gains `options()` and `set_options(SqpOptions)`, and its `engine_`
+member moves behind a `std::unique_ptr<QpEngine>` — **only** because
+`set_options()` has to replace it (a `QpEngine` owns a live backend session and
+declares no assignment). The pointer is never null between constructor and
+destructor.
+
+`set_options()` on the driver is TRANSACTIONAL in four steps: `validate(o)`; then
+a replacement `QpEngine` is constructed into a temporary from `o.qp` and given
+the same ledger attachment **and the same solve counter**, so the record labels
+keep counting rather than restarting at `<prefix>_qp_0`; then the swap, and the
+lazily-built SSN and IPQP engines are dropped (each holds its own COPY of the
+`QpOptions`, so dropping them is necessary and sufficient; the trace sink stays
+on the driver and re-applies at the next first-use construction); then the
+options are adopted. A throw at any point leaves the previous options AND the
+previous engines in force.
+
+**One rule, no fast path: a replacement with IDENTICAL options rebuilds too.**
+What the rebuild costs is the driver's own cached K0 border. What it does NOT
+cost is a hot handle's reuse — see the hot-reuse section below.
+
+**Legal between solves only.** The guard sits at `solve_impl()`, the one point
+all four public `solve()` overloads reach exactly once (they nest, so a
+per-overload flag would double-set). A replacement from inside
+`SqpOptions::make_strategy` — or any other hook that runs under the solve —
+throws `std::logic_error`; the options do not move and the guard clears on the
+unwind. The restoration phase builds a distinct nested driver, so it never
+re-enters this driver's guard.
+
+One test-visible change beyond the pins: `tests/sqp/test_qp_mode_sites.cpp`'s
+shape matcher now accepts `->refine_on_face(` as well as `.refine_on_face(`. The
+`unique_ptr` moved four call lines to the arrow spelling and the scan lost them;
+its own ">= 10 kernel call sites" floor probe is what caught it.

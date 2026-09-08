@@ -1501,7 +1501,40 @@ void SqpDriver::attach_ledger(Ledger *ledger, std::string label_prefix) {
     ledger_ = ledger;
     label_prefix_ = std::move(label_prefix);
     solve_counter_ = 0;
-    engine_.attach_ledger(ledger, label_prefix_ + "_qp");
+    engine_->attach_ledger(ledger, label_prefix_ + "_qp");
+}
+
+void SqpDriver::set_options(SqpOptions o) {
+    if (solve_in_flight_) {
+        throw std::logic_error(
+            "SqpDriver::set_options: a solve is in flight on this driver; options may only be "
+            "replaced between calls");
+    }
+    // (1) VALIDATE FIRST. A throw here has touched nothing.
+    validate(o);
+
+    // (2) BUILD THE REPLACEMENT INTO A TEMPORARY. A throw here -- QpEngine's
+    // constructor allocates a BorderState -- leaves the live engine and the live
+    // options exactly as they were.
+    auto fresh = std::make_unique<QpEngine>(o.qp);
+    if (ledger_ != nullptr) {
+        fresh->attach_ledger(ledger_, label_prefix_ + "_qp");
+        // The record labels are a per-DRIVER sequence. Carrying the counter is
+        // what keeps them counting across the rebuild instead of restarting at
+        // `<prefix>_qp_0` beside the one already in the ledger.
+        fresh->adopt_solve_counter(engine_->solve_counter());
+    }
+
+    // (3) COMMIT. Nothing below can throw.
+    engine_ = std::move(fresh);
+    // Both lazy tiers hold their own COPY of the QpOptions taken at first use,
+    // so dropping them is both necessary (a stale copy would outlive the
+    // replacement) and sufficient (there is no other cached option state on
+    // them). `ipqp_trace_` stays on the driver and re-applies at the next
+    // first-use construction.
+    ssn_engine_.reset();
+    ipqp_engine_.reset();
+    opts_ = std::move(o);
 }
 
 void SqpDriver::attach_trace(TraceSink *sink) {
@@ -1963,6 +1996,18 @@ Index SqpDriver::install_solve_scaling(AggregateEvalSeam &seam, const Vec &x0) c
 
 SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,
                                   const WarmStart &warm, Index minor_budget) {
+    // THE IN-FLIGHT GUARD, AND THE ONE SITE IT IS SET FROM. The four public
+    // solve() overloads NEST -- solve(model) -> solve(model, x0) -> solve(bridge,
+    // x0) -> here -- so a flag set at each of them would double-set on the
+    // outer chain and the inner set would throw against the outer. This
+    // function is where every public path arrives exactly once. Cleared on
+    // every exit, a throw included; read by set_options().
+    struct SolveInFlightGuard {
+        bool &flag_;
+        explicit SolveInFlightGuard(bool &f) : flag_(f) { flag_ = true; }
+        ~SolveInFlightGuard() { flag_ = false; }
+    } solve_guard(solve_in_flight_);
+
     // THE ARGUMENT REFUSALS RUN FIRST, ahead of the `begin` line, and the
     // ordering is the contract rather than a preference (fix round 1, R3(a)).
     //
@@ -2573,7 +2618,7 @@ void SqpDriver::prepare_solve(SolveState &st, AggregateEvalSeam &seam, const Vec
     // pair, the seed working set, and the shared object's own generation
     // counter). resolved_level is set to kHot here purely on the same
     // evidence kWarm already uses PLUS `warm.hot != nullptr`; the FIRST
-    // major's own engine_.solve() call (below) is what actually offers
+    // major's own engine_->solve() call (below) is what actually offers
     // the handle, and out.counters.start_level_used is corrected down to
     // kWarm right there if that call's own `qs.counters.k0_reused` reads
     // false -- i.e. this field always ends up recording what was OBSERVED
@@ -2701,7 +2746,7 @@ void SqpDriver::prepare_solve(SolveState &st, AggregateEvalSeam &seam, const Vec
 
     // AN INGEST SEEDS THE ENGINE'S WORKING SET from warm.qp_working_set,
     // through the SAME seed path every other major uses
-    // (engine_.solve(qp, seed, overrides), below) -- never a bespoke
+    // (engine_->solve(qp, seed, overrides), below) -- never a bespoke
     // ingestion. seed.x is ZEROED for exactly the reason the WARM
     // SEEDING note gives for every other seed: the trust region
     // centers on p = 0, not on a remembered primal point. A seeded
@@ -2986,7 +3031,7 @@ void SqpDriver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
             const QpSolution r5_face = ssn_result_to_qp_solution(sres);
             // trace: qp.mode silent -- the tier-3 face EQP on a face the SSN
             // already produced, not a kernel the dispatch chooses between.
-            r5_took = engine_.refine_on_face(qp, r5_face, ssn_overrides, r5_refined);
+            r5_took = engine_->refine_on_face(qp, r5_face, ssn_overrides, r5_refined);
             r5_have = true;
             if (r5_took) {
                 // GOULD'S LEMMA, SPENT. The face EQP's own KKT
@@ -3074,7 +3119,7 @@ void SqpDriver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
         } else {
             // trace: qp.mode silent -- the tier-3 face EQP on the certifying
             // SSN exit's face; excluded by kind (QpModeTraceEvent).
-            took = engine_.refine_on_face(qp, qs, ssn_overrides, refined);
+            took = engine_->refine_on_face(qp, qs, ssn_overrides, refined);
         }
         const Index refine_facts = refined.counters.factorizations;
         const Index refine_steps = refined.counters.eqp_refine_steps;
@@ -3364,7 +3409,7 @@ void SqpDriver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Aggregat
         QpSolution refined;
         // trace: qp.mode silent -- the tier-3 face EQP on the IPQP tier's own
         // face; excluded by kind, and it reports no minor count for `iters`.
-        const bool took = engine_.refine_on_face(qp, face, ipqp_overrides, refined);
+        const bool took = engine_->refine_on_face(qp, face, ipqp_overrides, refined);
         const Index refine_facts = refined.counters.factorizations;
         const Index refine_steps = refined.counters.eqp_refine_steps;
         if (took) {
@@ -3420,7 +3465,7 @@ void SqpDriver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Aggregat
         // The window is the elastic branch's own (see its note below): the radius THIS
         // solve was given, which is what rung A folds into its box.
         SqpFallbackVerdictTraceEvent fallback_verdict;
-        qs = certified_feasibility_fallback(engine_, qp, ev, have_seed ? &seed : nullptr,
+        qs = certified_feasibility_fallback(*engine_, qp, ev, have_seed ? &seed : nullptr,
                                             ires.infeasibility_evidence, overrides, opts_,
                                             std::min(delta, opts_.qp.tr_radius), out.counters,
                                             mj.row, fallback_report, fallback_verdict, ipqp_trace_);
@@ -3453,10 +3498,10 @@ void SqpDriver::solve_with_walk(SolveState &st, MajorState &mj, const WarmStart 
     QpSolution &crash_seed = st.crash_seed;
     QpSolution &qs = mj.qs;
     mj.row_qp_mode = IpqpTraceQpMode::kWalk;
-    qs = offer_hot   ? engine_.solve(qp, seed, overrides, warm.hot)
-         : have_seed ? engine_.solve(qp, seed, overrides)
-         : use_crash ? engine_.solve(qp, crash_seed, overrides)
-                     : engine_.solve(qp, overrides);
+    qs = offer_hot   ? engine_->solve(qp, seed, overrides, warm.hot)
+         : have_seed ? engine_->solve(qp, seed, overrides)
+         : use_crash ? engine_->solve(qp, crash_seed, overrides)
+                     : engine_->solve(qp, overrides);
     // THE WALK'S OWN LINE, at the invocation and not at the `kWalk`
     // dispatch arm: this is where the kernel has actually run, so the
     // status and the minor count are the ones it produced.
@@ -4093,7 +4138,7 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
             make_warm_start(seam, /*activity=*/nullptr, st.qp,
                             /*qp_built=*/st.qp_built, /*probe_ev=*/nullptr,
                             /*probe_x=*/nullptr, st.delta, st.last_dual_mu, opts_.qp.primal_delta,
-                            st.strategy.get(), engine_.hot_state());
+                            st.strategy.get(), engine_->hot_state());
         st.out.warm_start.x = st.out.x;
         st.out.warm_start.lambda_e = st.out.lambda_e;
         st.out.warm_start.lambda_i = st.out.lambda_i;
@@ -4586,7 +4631,7 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
         const ElasticLadderReport report =
             mj.fallback_report
                 ? std::move(*mj.fallback_report)
-                : run_elastic_ladder(engine_, st.qp, elastic_seed_source, window, opts_,
+                : run_elastic_ladder(*engine_, st.qp, elastic_seed_source, window, opts_,
                                      st.out.counters, std::nullopt, ipqp_trace_);
         rho0_ceiling_hit = report.rho0_ceiling_hit;
 
@@ -4801,7 +4846,7 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
         seed_soc.x.setZero();
         SolveOverrides soc_overrides;
         soc_overrides.tr_radius = st.delta;
-        mj.qs_soc = engine_.solve(soc_qp, seed_soc, soc_overrides);
+        mj.qs_soc = engine_->solve(soc_qp, seed_soc, soc_overrides);
         // ONE LINE FOR THE CORRECTION'S OWN WALK (M6 W4 T5), at `site`
         // `soc_resolve`: it runs INSIDE a major whose dispatch line is
         // already written, so it is priced by `soc_steps`, not by majors.
@@ -5073,7 +5118,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 st.x, st.lambda_e, st.lambda_i, mj.kkt, mj.row.f,
                 make_warm_start(seam, st.have_seed ? &st.seed : nullptr, st.qp, st.qp_built, &st.ev,
                                 &st.x, st.delta, st.last_dual_mu, opts_.qp.primal_delta,
-                                st.strategy.get(), engine_.hot_state()));
+                                st.strategy.get(), engine_->hot_state()));
         case MajorOutcome::kFinishBudgetBest: {
             // BUDGETED MODE: report the best-by-(h, f) iterate
             // rather than the last one. `seed` is only this best
@@ -5092,7 +5137,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 st.mb.lambda_i, st.mb.kkt, st.mb.f,
                 make_warm_start(seam, (best_is_current && st.have_seed) ? &st.seed : nullptr, st.qp,
                                 st.qp_built, &st.ev, &st.x, st.delta, st.last_dual_mu,
-                                opts_.qp.primal_delta, st.strategy.get(), engine_.hot_state()));
+                                opts_.qp.primal_delta, st.strategy.get(), engine_->hot_state()));
         }
         case MajorOutcome::kFinishQpFailure:
             // No restoration was consulted on this path -- x is still
@@ -5104,7 +5149,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                           st.lambda_i, mj.kkt, mj.row.f,
                           make_warm_start(seam, &mj.qs, st.qp, st.qp_built, &st.ev, &st.x, st.delta,
                                           st.last_dual_mu, opts_.qp.primal_delta, st.strategy.get(),
-                                          engine_.hot_state()));
+                                          engine_->hot_state()));
         case MajorOutcome::kFinishRestorationSeed:
             // THE ELASTIC REQUESTER'S ACTIVITY SOURCE IS `seed`, NOT `qs`: qs_e
             // (the elastic re-solve) is in the AUGMENTED (original + slack)
@@ -5119,7 +5164,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 st.resto.kkt, st.resto.f,
                 make_warm_start(seam, (!st.resto.moved_x && st.have_seed) ? &st.seed : nullptr,
                                 st.qp, st.qp_built, &st.ev, &st.x, st.delta, st.last_dual_mu,
-                                opts_.qp.primal_delta, st.strategy.get(), engine_.hot_state()),
+                                opts_.qp.primal_delta, st.strategy.get(), engine_->hot_state()),
                 st.resto.multipliers_are_caller_scale);
         case MajorOutcome::kFinishRestorationQp:
             // THE OTHER THREE REQUESTERS HAND BACK A QP IN THE ORIGINAL
@@ -5133,7 +5178,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                           make_warm_start(seam, st.resto.moved_x ? nullptr : &mj.qs, st.qp,
                                           st.qp_built, &st.ev, &st.x, st.delta, st.last_dual_mu,
                                           opts_.qp.primal_delta, st.strategy.get(),
-                                          engine_.hot_state()),
+                                          engine_->hot_state()),
                           st.resto.multipliers_are_caller_scale);
         }
     }
@@ -5287,7 +5332,7 @@ bool SqpDriver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResu
     QpSolution refined;
     // trace: qp.mode silent -- the tier-3 face EQP on the warm grade's face; excluded
     // by kind (QpModeTraceEvent), on the same terms as the kSsn arm's own.
-    const bool took = engine_.refine_on_face(qp, qs, ssn_overrides, refined);
+    const bool took = engine_->refine_on_face(qp, qs, ssn_overrides, refined);
     const Index refine_facts = refined.counters.factorizations;
     const Index refine_steps = refined.counters.eqp_refine_steps;
     if (took) {

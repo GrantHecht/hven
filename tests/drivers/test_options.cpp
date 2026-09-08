@@ -31,7 +31,11 @@
 #include "hven/drivers/common_options.h"
 #include "hven/drivers/interior_point_solver.h"
 #include "hven/drivers/ipm_solver_types.h"
+#include "hven/drivers/sqp_driver.h"
+#include "hven/drivers/sqp_types.h"
 #include "hven/model/nlp_solver.h"
+
+#include "sqp/support/hs_problems.h"
 
 namespace {
 
@@ -423,4 +427,134 @@ TEST(Options, AnUnknownIpmPresetIsRefusedAndListsTheValidNames) {
         EXPECT_NE(what.find(hven::solvers::kInteriorPointSolverPresets[0].name_),
                   std::string::npos);
     }
+}
+
+// ---------------------------------------------------------------------------
+// The SQP engine's half of the same surface
+// ---------------------------------------------------------------------------
+
+namespace {
+
+using hven::solvers::SqpDriver;
+using hven::solvers::SqpOptions;
+
+// Whatever the driver reads at construction, at the SQP engine's own defaults.
+SqpOptions sqp_default() { return SqpOptions{}; }
+
+} // namespace
+
+// The SQP engine's `common` defaults are the struct's own -- 0 threads (leave
+// the backend alone) and print_level 3 (silent) -- and neither is read in T8.3.
+// `SqpOptions::start_level` is still the field the driver caps a warm start
+// with; `common.start_level` is carried beside it until T8.10 folds the two.
+TEST(Options, SqpCommonDefaultsAreTheStructsOwn) {
+    const SqpOptions o;
+    EXPECT_EQ(o.common.threads, 0);
+    EXPECT_EQ(o.common.print_level, 3);
+    EXPECT_EQ(o.common.start_level, o.start_level);
+}
+
+TEST(Options, SqpValidateRefusesTheCommonFieldsAndWhatItAlwaysRefused) {
+    {
+        SqpOptions o;
+        o.max_iter = -1;
+        EXPECT_THROW(hven::solvers::validate(o), std::invalid_argument);
+        // The pre-T8.3 name is a forwarder onto the same body.
+        EXPECT_THROW(hven::solvers::validate_sqp_options(o), std::invalid_argument);
+    }
+    {
+        SqpOptions o;
+        o.common.threads = -1;
+        try {
+            hven::solvers::validate(o);
+            FAIL() << "a negative thread count must be refused";
+        } catch (const std::invalid_argument &e) {
+            EXPECT_NE(std::string(e.what()).find("common.threads"), std::string::npos);
+        }
+    }
+    {
+        SqpOptions o;
+        o.common.print_level = -1;
+        try {
+            hven::solvers::validate(o);
+            FAIL() << "a negative print level must be refused";
+        } catch (const std::invalid_argument &e) {
+            EXPECT_NE(std::string(e.what()).find("common.print_level"), std::string::npos);
+        }
+    }
+    EXPECT_NO_THROW(hven::solvers::validate(SqpOptions{}));
+}
+
+TEST(Options, SqpPresetsReturnFullValues) {
+    const SqpOptions d = hven::solvers::sqp_preset("default");
+    EXPECT_NO_THROW(hven::solvers::validate(d));
+    EXPECT_EQ(d.max_iter, SqpOptions{}.max_iter);
+    EXPECT_EQ(d.kkt_tol, SqpOptions{}.kkt_tol);
+    EXPECT_EQ(d.common.print_level, SqpOptions{}.common.print_level);
+    try {
+        hven::solvers::sqp_preset("no-such-preset");
+        FAIL() << "an unknown preset name must be refused";
+    } catch (const std::invalid_argument &e) {
+        const std::string what(e.what());
+        EXPECT_NE(what.find("no-such-preset"), std::string::npos);
+        EXPECT_NE(what.find("default"), std::string::npos);
+    }
+}
+
+TEST(Options, SqpSetOptionsIsTransactional) {
+    SqpDriver d(sqp_default());
+    {
+        SqpOptions o = d.options();
+        o.max_iter = 42;
+        d.set_options(std::move(o));
+    }
+    ASSERT_EQ(d.options().max_iter, 42);
+
+    SqpOptions bad = d.options();
+    bad.max_iter = -1;
+    bad.kkt_tol = 1.0e-9;
+    EXPECT_THROW(d.set_options(bad), std::invalid_argument);
+    EXPECT_EQ(d.options().max_iter, 42);
+    EXPECT_EQ(d.options().kkt_tol, SqpOptions{}.kkt_tol);
+
+    // The old engines are still in force too: the driver solves.
+    const auto p = hven::solvers::test_support::make_hs(7);
+    EXPECT_NO_THROW(d.solve(*p.model));
+}
+
+// The replacement is refused while a solve is in flight -- reached through
+// SqpOptions::make_strategy, which the driver calls once per solve from inside
+// solve_impl. The options do not move and the guard clears on the way out.
+TEST(Options, SqpSetOptionsDuringASolveThrowsLogicError) {
+    SqpDriver d(sqp_default());
+    bool attempted = false;
+    bool refused = false;
+    {
+        SqpOptions o = d.options();
+        o.make_strategy = [&]() -> std::unique_ptr<hven::solvers::GlobalizationStrategy> {
+            attempted = true;
+            SqpOptions replacement = d.options();
+            replacement.max_iter = 5;
+            try {
+                d.set_options(std::move(replacement));
+            } catch (const std::logic_error &) {
+                refused = true;
+            }
+            return std::make_unique<hven::solvers::FunnelStrategy>();
+        };
+        d.set_options(std::move(o));
+    }
+    const auto p = hven::solvers::test_support::make_hs(7);
+    const auto sol = d.solve(*p.model);
+    (void)sol;
+    ASSERT_TRUE(attempted) << "the strategy factory never ran";
+    EXPECT_TRUE(refused) << "a replacement under an in-flight solve must be a logic_error";
+    EXPECT_EQ(d.options().max_iter, SqpOptions{}.max_iter);
+
+    // The guard cleared: a replacement between calls goes through.
+    SqpOptions after = d.options();
+    after.make_strategy = {};
+    after.max_iter = 11;
+    EXPECT_NO_THROW(d.set_options(std::move(after)));
+    EXPECT_EQ(d.options().max_iter, 11);
 }
