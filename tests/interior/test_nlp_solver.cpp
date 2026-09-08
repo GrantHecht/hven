@@ -1540,3 +1540,99 @@ TEST(NLPSolverTest, AMultiPhaseCapIsLabelledByThePhaseThatHitIt) {
     EXPECT_EQ(hven::solvers::to_solve_status(flag, solver.optimizer_->last_stop_reason()),
               hven::solvers::SolveStatus::kMaxIter);
 }
+
+// The CONVERGE-ON-THE-CAP pins (M6 W5 T8.2 fix round 2). The cap store in the
+// terminal conjunction is guarded on alg_impl's own phase-LOCAL exit code, so
+// the label can never contradict the verdict it is reported beside: a phase
+// whose last iteration is BOTH the cap iteration and a converged one reads
+// kNone, and only a phase that ran out of iterations with nothing better to say
+// reads kIterationCap. The two pins below are the same solve one iteration
+// apart, so together they pin the boundary rather than a single point on it.
+//
+// The converging iteration index is DERIVED, not hard-coded: an uncapped pilot
+// reports its terminal loop index through the late callback (IterateInfo::iter_
+// is alg_impl's own loop variable; result().iter_num_ is the history size, which
+// the restoration transitions pop, and is not the loop count). On this box the
+// pilot reports 9; the tests assert the relationship, never the number.
+namespace hs071_cap_boundary {
+namespace {
+
+// The uncapped run's terminal loop index -- the index of the iteration on which
+// HS071 is found converged. Installing the callback moves no trajectory: its
+// return value is discarded and it is handed read-only views.
+int converging_loop_index() {
+    NLPSolver pilot(std::make_shared<Hs071Problem>());
+    pilot.optimizer_->set_print_level(10);
+    pilot.optimizer_->set_max_iters(200);
+    int last = -1;
+    pilot.optimizer_->set_late_callback([&last](const hven::solvers::IterateInfo &info,
+                                                ConstEigenRef<Eigen::VectorXd>,
+                                                ConstEigenRef<Eigen::VectorXd>) {
+        last = info.iter_;
+        return 0;
+    });
+    Eigen::VectorXd x0(4);
+    x0 << 1.0, 5.0, 5.0, 1.0;
+    EXPECT_EQ(pilot.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(pilot.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kNone);
+    return last;
+}
+
+// One capped run, reporting the verdict, the label and the terminal loop index.
+struct CappedRun {
+    hven::ConvergenceFlags flag = hven::ConvergenceFlags::NOTCONVERGED;
+    hven::solvers::IpmStopReason reason = hven::solvers::IpmStopReason::kNone;
+    int terminal_index = -1;
+};
+
+CappedRun run_capped(int cap) {
+    NLPSolver solver(std::make_shared<Hs071Problem>());
+    solver.optimizer_->set_print_level(10);
+    solver.optimizer_->set_max_iters(cap);
+    CappedRun out;
+    solver.optimizer_->set_late_callback([&out](const hven::solvers::IterateInfo &info,
+                                                ConstEigenRef<Eigen::VectorXd>,
+                                                ConstEigenRef<Eigen::VectorXd>) {
+        out.terminal_index = info.iter_;
+        return 0;
+    });
+    Eigen::VectorXd x0(4);
+    x0 << 1.0, 5.0, 5.0, 1.0;
+    out.flag = solver.optimize(x0);
+    out.reason = solver.optimizer_->last_stop_reason();
+    return out;
+}
+
+} // namespace
+} // namespace hs071_cap_boundary
+
+TEST(NLPSolverTest, AConvergenceOnTheCapIterationRecordsNoStopReason) {
+    const int idx = hs071_cap_boundary::converging_loop_index();
+    ASSERT_GT(idx, 0);
+
+    // max_iters = idx + 1 makes the converging iteration the CAP iteration: both
+    // disjuncts of "this is the last iteration" hold on it. The label must be
+    // kNone -- the convergence stopped the phase, not the budget.
+    const hs071_cap_boundary::CappedRun run = hs071_cap_boundary::run_capped(idx + 1);
+    EXPECT_EQ(run.terminal_index, idx) << "the capped run was expected to end on the same "
+                                          "iteration the uncapped pilot converged on";
+    EXPECT_EQ(run.terminal_index, (idx + 1) - 1) << "and that iteration is the cap iteration";
+    EXPECT_EQ(run.flag, hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(run.reason, hven::solvers::IpmStopReason::kNone);
+    EXPECT_EQ(hven::solvers::to_solve_status(run.flag, run.reason),
+              hven::solvers::SolveStatus::kOptimal);
+}
+
+TEST(NLPSolverTest, OneIterationShortOfConvergenceRecordsTheCap) {
+    const int idx = hs071_cap_boundary::converging_loop_index();
+    ASSERT_GT(idx, 1);
+
+    // One iteration short: the same solve, stopped on the iteration BEFORE the
+    // converging one. Nothing better to say, so the cap is the whole answer.
+    const hs071_cap_boundary::CappedRun run = hs071_cap_boundary::run_capped(idx);
+    EXPECT_EQ(run.terminal_index, idx - 1) << "the run was expected to end on its cap iteration";
+    EXPECT_EQ(run.flag, hven::ConvergenceFlags::NOTCONVERGED);
+    EXPECT_EQ(run.reason, hven::solvers::IpmStopReason::kIterationCap);
+    EXPECT_EQ(hven::solvers::to_solve_status(run.flag, run.reason),
+              hven::solvers::SolveStatus::kMaxIter);
+}

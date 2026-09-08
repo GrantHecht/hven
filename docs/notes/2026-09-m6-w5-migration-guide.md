@@ -755,3 +755,26 @@ above says; the baseline and every counter in the leg are untouched.
    tie cannot pass by stalling one cap later. `result().iter_num_` is the history
    size, which the restoration transitions pop, and is not the loop count; the
    pins read the index through the late callback instead.
+
+### Amended in fix round 2
+
+Landed as `fix(drivers): M6 W5 T8.2 fix2 — …`. One thing changes what fix round 1
+says; the baseline and every counter in the leg are untouched.
+
+1. **A phase that CONVERGES on exactly its cap iteration reads `kNone`, not
+   `kIterationCap`.** Fix round 1 guarded the terminal conjunction's cap store on
+   the reason alone, which meant a phase whose last iteration was both the cap
+   iteration and a converged one carried `iteration_cap` beside a `CONVERGED`
+   verdict. That store is now additionally guarded on `alg_impl`'s own
+   phase-LOCAL exit code — `converge_check`'s answer for THIS iteration, upgraded
+   in place to `DIVERGING`/`ACCEPTABLE`/`SINGULAR_KKT` — so the cap label is
+   written only when the local verdict is `NOTCONVERGED`. The per-CALL
+   `result().converge_flag_` is still never read, so point 2 below is unchanged:
+   the label stays phase-local. The consumer-visible rule is now simply **the
+   reason never contradicts the verdict it is reported beside**: the cap label
+   means "ran out of iterations with nothing better to say", and `kNone` beside a
+   `CONVERGED` verdict means the convergence, not the cap, ended the phase.
+   Exhaustion (the second cap door, below the loop) is unchanged: a fall-through
+   reaches no conjunction and so has no local verdict, and the cap is the only
+   way to get there.
+2. Everything fix round 1's points 2, 3 and 4 say still holds, unchanged.

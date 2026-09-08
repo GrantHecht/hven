@@ -783,15 +783,21 @@ class InteriorPointSolver {
     ///        iteration loop by.
     ///
     /// PHASE-LOCAL and exact: reset to kNone at each phase start, written only
-    /// from that phase's own loop, and never derived from a verdict. The loop
-    /// has five exits and the label covers each of them: the restoration
+    /// from that phase's own loop, and never derived from a per-CALL field. The
+    /// loop has five exits and the label covers each of them: the restoration
     /// locally-infeasible break (kRestorationLocallyInfeasible), the
     /// converge-check early exit (kNone -- that phase's verdict is the whole
     /// explanation), the terminal conjunction (kStageStalled if the stall fired
-    /// this iteration, kIterationCap if this was the cap iteration, kNone
-    /// otherwise), exhaustion after one of the loop's `continue`s bypassed the
-    /// conjunction on the cap iteration (kIterationCap), and an exception, which
-    /// unwinds without producing a result at all.
+    /// this iteration, kIterationCap if this was the cap iteration AND the
+    /// phase's own local verdict is NOTCONVERGED, kNone otherwise), exhaustion
+    /// after one of the loop's `continue`s bypassed the conjunction on the cap
+    /// iteration (kIterationCap), and an exception, which unwinds without
+    /// producing a result at all.
+    ///
+    /// So the label never contradicts the verdict it is reported beside. A phase
+    /// that CONVERGES on exactly its cap iteration reads kNone: the cap did not
+    /// stop it, the convergence did. Only a phase that ran out of iterations
+    /// with nothing better to say reads kIterationCap.
     ///
     /// A stall coinciding with the cap reports kStageStalled: the stall is
     /// recorded first and both cap doors defer to a reason already in place.
