@@ -782,6 +782,12 @@ TEST(WarmStart, AChangedThreadCountRefusesAHotHandle) {
 // a value validate() refuses leaves the previous options AND the previous engine
 // in force, so the engine that goes on to meet the handle is the one whose
 // fingerprint matches it.
+//
+// WHAT THIS ONE DOES NOT SHOW (fix round 1): the consumer here has never solved,
+// so its reuse comes from ADOPTING the foreign handle -- which an implementation
+// that discarded the old engine and rebuilt one at the OLD options would also do.
+// AFailedReplacementLeavesTheDriversOwnLiveCacheInForce, below, is the
+// discriminating form; this one pins the option value and the reuse outcome.
 TEST(WarmStart, AFailedOptionReplacementLeavesHotReuseIntact) {
     const double a = 1e-3;
     SqpOptions opts;
@@ -809,6 +815,140 @@ TEST(WarmStart, AFailedOptionReplacementLeavesHotReuseIntact) {
         << "the refused replacement must not have reached the engine -- THE PIN";
     EXPECT_EQ(sol2.counters.start_level_used, StartLevel::kHot);
     EXPECT_EQ(sol2.status, SqpStatus::kOptimal);
+}
+
+// ===========================================================================
+// M6 W5 T8.3 FIX ROUND 1: THE SAME-DRIVER SEQUENCES.
+//
+// The four pins above are all written on a FRESH consumer driver, which is the
+// right shape for what they assert (a foreign handle meeting a new engine). Two
+// things they cannot show are asserted here instead, both on ONE driver that
+// has ALREADY SOLVED and therefore holds a LIVE border cache:
+//
+//   (v)  the live cache is what carries a driver's own repeat solve, an
+//        identical-options rebuild adopts the handle offered to it, and the
+//        solve after that is back on the rebuilt engine's own cache;
+//   (vi) a REFUSED replacement leaves the OLD ENGINE -- proved with a handle the
+//        engine would refuse, so that only the old engine's own cache can
+//        produce kHot. (v)'s and (iv)'s foreign-handle shapes cannot separate
+//        "the old engine survived" from "a fresh engine was built with the old
+//        options": both would adopt a matching foreign handle.
+//
+// EVERY SOLVE ALTERNATES BETWEEN THE lo = 1.5 AND lo = 1.0 MODELS, deliberately:
+// feeding a solve the previous solve's exit values means the FIRST convergence
+// check fires when the two problems share an optimum, and no real subproblem
+// runs at all. Alternating keeps every first subproblem real (see
+// HotReusesFactorization's own note on the same pair), so every
+// `qp_factorizations == 0` below is a measured reuse rather than a vacuum.
+// ===========================================================================
+
+// (v) THE LIVE CACHE ACROSS AN IDENTICAL-OPTIONS REBUILD, on one driver.
+TEST(WarmStart, TheLiveCacheCarriesTheChainAcrossAnIdenticalOptionsRebuild) {
+    const double a = 1e-3;
+    SqpOptions opts;
+    opts.adaptive_mu = false;
+    opts.start_level = StartLevel::kHot;
+
+    ScaledRowModel m_hi(a, /*lo=*/1.5, Vec::Zero(2));
+    ScaledRowModel m_lo(a, /*lo=*/1.0, Vec::Zero(2));
+
+    SqpDriver driver(opts);
+
+    // 1. A cold solve, which leaves this engine's own border cache valid.
+    const SqpSolution s1 = driver.solve(m_hi);
+    ASSERT_EQ(s1.status, SqpStatus::kOptimal);
+    ASSERT_EQ(s1.counters.start_level_used, StartLevel::kCold);
+    ASSERT_NE(s1.warm_start.hot, nullptr);
+
+    // 2. The SAME driver again: kHot through its OWN cache. `run()` consults an
+    //    offered handle only when its own border is invalid, so the handle
+    //    passed here is not what produces this.
+    const SqpSolution s2 = driver.solve(m_lo, m_lo.start_point(), s1.warm_start);
+    ASSERT_FALSE(s2.history.empty());
+    ASSERT_TRUE(s2.history[0].qp_solved);
+    EXPECT_EQ(s2.history[0].qp_factorizations, 0);
+    EXPECT_EQ(s2.counters.start_level_used, StartLevel::kHot);
+    EXPECT_EQ(s2.status, SqpStatus::kOptimal);
+    ASSERT_NE(s2.warm_start.hot, nullptr);
+
+    // 3. The rebuild at IDENTICAL options. The fresh engine's border cache is
+    //    empty, so this third solve is the one that actually ADOPTS the handle
+    //    -- and it must, because the options it was produced under are the ones
+    //    in force.
+    driver.set_options(driver.options());
+    const SqpSolution s3 = driver.solve(m_hi, m_hi.start_point(), s2.warm_start);
+    ASSERT_FALSE(s3.history.empty());
+    ASSERT_TRUE(s3.history[0].qp_solved);
+    EXPECT_EQ(s3.history[0].qp_factorizations, 0)
+        << "the rebuilt engine must adopt the handle its predecessor committed -- THE PIN";
+    EXPECT_EQ(s3.counters.start_level_used, StartLevel::kHot);
+    EXPECT_EQ(s3.status, SqpStatus::kOptimal);
+    ASSERT_NE(s3.warm_start.hot, nullptr);
+
+    // 4. And the solve after that is kHot from the REBUILT ENGINE'S OWN CACHE,
+    //    which step 3 left valid -- not from the handle, which is again never
+    //    consulted. Stated so the chain is not read as four adoptions.
+    const SqpSolution s4 = driver.solve(m_lo, m_lo.start_point(), s3.warm_start);
+    ASSERT_FALSE(s4.history.empty());
+    ASSERT_TRUE(s4.history[0].qp_solved);
+    EXPECT_EQ(s4.history[0].qp_factorizations, 0);
+    EXPECT_EQ(s4.counters.start_level_used, StartLevel::kHot);
+    EXPECT_EQ(s4.status, SqpStatus::kOptimal);
+}
+
+// (vi) A REFUSED REPLACEMENT LEAVES THE OLD ENGINE -- discriminating.
+//
+// The handle offered to the solve after the failed replacement is produced by a
+// driver whose `qp.schur_cap` differs, so its fingerprint does NOT match this
+// driver's engine. That is what makes the pin separate the two hypotheses:
+//
+//   * the old engine survived  -> its border cache is still valid, the handle is
+//     never consulted, and the solve is kHot with no factorization;
+//   * a fresh engine was built (with the old options, the failure mode astra
+//     named) -> its border cache is empty, so it WOULD consult the handle, whose
+//     fingerprint it refuses -> kWarm and at least one factorization.
+TEST(WarmStart, AFailedReplacementLeavesTheDriversOwnLiveCacheInForce) {
+    const double a = 1e-3;
+    SqpOptions opts;
+    opts.adaptive_mu = false;
+    opts.start_level = StartLevel::kHot;
+
+    ScaledRowModel m_hi(a, /*lo=*/1.5, Vec::Zero(2));
+    ScaledRowModel m_lo(a, /*lo=*/1.0, Vec::Zero(2));
+
+    SqpDriver driver(opts);
+    const SqpSolution s1 = driver.solve(m_hi);
+    ASSERT_EQ(s1.status, SqpStatus::kOptimal);
+    const SqpSolution s2 = driver.solve(m_lo, m_lo.start_point(), s1.warm_start);
+    ASSERT_EQ(s2.counters.start_level_used, StartLevel::kHot);
+    ASSERT_NE(s2.warm_start.hot, nullptr);
+
+    // A handle from a driver running DIFFERENT QP options: a fingerprint this
+    // driver's engine refuses.
+    SqpOptions other = opts;
+    other.qp.schur_cap = opts.qp.schur_cap + 1;
+    SqpDriver foreign(other);
+    const SqpSolution sf = foreign.solve(m_hi);
+    ASSERT_EQ(sf.status, SqpStatus::kOptimal);
+    ASSERT_NE(sf.warm_start.hot, nullptr);
+
+    // The replacement that fails, on a driver that HAS solved.
+    SqpOptions bad = driver.options();
+    bad.max_iter = -1;
+    EXPECT_THROW(driver.set_options(bad), std::invalid_argument);
+    EXPECT_EQ(driver.options().max_iter, opts.max_iter);
+    EXPECT_EQ(driver.options().qp.schur_cap, opts.qp.schur_cap);
+
+    auto warm = s2.warm_start;    // this driver's own values and working set ...
+    warm.hot = sf.warm_start.hot; // ... behind a handle it would refuse
+
+    const SqpSolution s3 = driver.solve(m_hi, m_hi.start_point(), warm);
+    ASSERT_FALSE(s3.history.empty());
+    ASSERT_TRUE(s3.history[0].qp_solved);
+    EXPECT_EQ(s3.history[0].qp_factorizations, 0)
+        << "only the surviving engine's OWN cache can produce this -- THE PIN";
+    EXPECT_EQ(s3.counters.start_level_used, StartLevel::kHot);
+    EXPECT_EQ(s3.status, SqpStatus::kOptimal);
 }
 
 // Bitwise comparison of two doubles, the idiom the R6 pins share: the bit

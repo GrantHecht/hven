@@ -540,6 +540,25 @@ class SqpDriver {
     }
 
   public:
+    // NEITHER COPYABLE NOR MOVABLE, BY DECLARATION (M6 W5 T8.3 fix1). Design
+    // §2.1 says a driver does not move; before this task the by-value QpEngine
+    // member enforced half of that by accident (QpEngine declares no
+    // assignment, so move ASSIGNMENT was implicitly deleted). Holding the
+    // engine through a unique_ptr removed that accident and made
+    // `a = std::move(b)` compile again -- and a moved-from driver would hold a
+    // NULL engine_, which every use below dereferences without a check. The
+    // four operations are deleted explicitly so the invariant is a property of
+    // the class rather than of whichever member happens to be non-movable
+    // today; the traits are pinned in tests/drivers/test_options.cpp.
+    /// @brief Deleted: a driver is not copy-constructible.
+    SqpDriver(const SqpDriver &) = delete;
+    /// @brief Deleted: a driver is not copy-assignable.
+    SqpDriver &operator=(const SqpDriver &) = delete;
+    /// @brief Deleted: a driver is not move-constructible.
+    SqpDriver(SqpDriver &&) = delete;
+    /// @brief Deleted: a driver is not move-assignable.
+    SqpDriver &operator=(SqpDriver &&) = delete;
+
     /// @brief Solves from the model's own start_point().
     /// @param model The problem; wrapped in a bridge built here.
     /// @return The solution.

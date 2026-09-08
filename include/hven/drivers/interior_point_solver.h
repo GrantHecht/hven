@@ -470,21 +470,40 @@ class InteriorPointSolver {
     /// previous options in force and the solver usable. Legal BETWEEN solves
     /// only.
     ///
-    /// TRANSCRIPTION-TIME FIELDS. Most fields are read inside the solve, so a
-    /// replacement between two solves simply takes effect on the next one. Two
-    /// are not: fixed_variable_treatment and bound_relax_factor are consumed
-    /// when the program is TRANSCRIBED (set_nlp() -> configure_variable_treatment(),
-    /// which decides the solver's variable space), and cnr_mode is consumed at
-    /// set_qp_params() time. Changing any of the three after the program has
-    /// been attached is REFUSED by name rather than silently ignored: re-attach
-    /// the program (set_nlp()) after the replacement, or build the solver with
-    /// the options you want. The refusal is the ONE rule -- this method never
-    /// silently re-transcribes behind the caller.
+    /// ATTACH-ONLY FIELDS. Most fields are read inside the solve, so a
+    /// replacement between two solves simply takes effect on the next one --
+    /// fixed_variable_treatment and bound_relax_factor INCLUDED, which
+    /// run_phase_sequence() re-applies through configure_variable_treatment()
+    /// at every entry, and common.threads, which the same entry refreshes onto
+    /// the live factor. TWELVE fields are the exception: they are read exactly
+    /// once, inside set_qp_params(), which runs from set_nlp(). They are
+    ///
+    ///   qp_ord, qp_pivot_perturb, qp_ref_steps, qp_matching, qp_scaling,
+    ///   qp_pivot_strategy, qp_alg, qp_par_solve, qp_print, cnr_mode,
+    ///   and on Accelerate builds accel_pivot_tolerance, accel_zero_tolerance.
+    ///
+    /// Changing one of those while a program is attached would be SILENTLY
+    /// INERT until the next set_nlp(), which is what the old per-field setters
+    /// did; this method REFUSES it by name instead. That is the ONE rule -- it
+    /// never silently re-transcribes behind the caller.
+    ///
+    /// To change one anyway, drop the program, replace, and re-attach. There is
+    /// no accessor returning the attached program, so hold your own handle --
+    /// which the caller of set_nlp() already has:
+    ///
+    ///     auto saved = np;              // the shared_ptr you attached
+    ///     solver.release();             // no program attached now
+    ///     solver.set_options(changed);  // accepted: nothing to be inert against
+    ///     solver.set_nlp(saved);        // re-transcribes under the new value
+    ///
+    /// (Constructing a fresh solver over the options you want does the same
+    /// thing and keeps no state.) Pinned by
+    /// Options.IpmAnAttachOnlyFieldChangesThroughReleaseReplaceReattach.
     ///
     /// @param o The replacement options.
-    /// @throws std::invalid_argument if validate(o) rejects the value, or if a
-    ///         transcription-time field differs from the one in force while a
-    ///         program is attached.
+    /// @throws std::invalid_argument if validate(o) rejects the value, or if an
+    ///         attach-only field differs from the one in force while a program
+    ///         is attached.
     /// @throws std::logic_error if a solve is in flight (a replacement from
     ///         inside a callback).
     void set_options(IpmOptions o);

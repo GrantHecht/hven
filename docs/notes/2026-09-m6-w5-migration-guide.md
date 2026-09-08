@@ -862,7 +862,7 @@ The setter → field table, in the header's own order:
 | `set_max_iters(v)` | `o.max_iters = v` |
 | `set_max_acc_iters(v)` | `o.max_acc_iters = v` |
 | `set_max_ls_iters(v)` | `o.max_ls_iters = v` |
-| `set_all_max_iters(a, b)` | `o.max_iters = a; max_acc_iters = b` |
+| `set_all_max_iters(a, b)` | `o.max_iters = a; o.max_acc_iters = b` |
 | `set_max_soc(v)` | `o.max_soc = v` |
 | `set_ls_extended_iters(v)` | `o.ls_extended_iters = v` |
 | `set_max_feas_rest(v)` | `o.max_feas_rest = v` |
@@ -870,17 +870,17 @@ The setter → field table, in the header's own order:
 | `set_bar_tol(v)` | `o.bar_tol = v` |
 | `set_econ_tol(v)` | `o.econ_tol = v` |
 | `set_icon_tol(v)` | `o.icon_tol = v` |
-| `set_tols(k, e, i, b)` | `o.kkt_tol = k; econ_tol = e; icon_tol = i; bar_tol = b` |
+| `set_tols(k, e, i, b)` | `o.kkt_tol = k; o.econ_tol = e; o.icon_tol = i; o.bar_tol = b` |
 | `set_acc_kkt_tol(v)` | `o.acc_kkt_tol = v` |
 | `set_acc_bar_tol(v)` | `o.acc_bar_tol = v` |
 | `set_acc_econ_tol(v)` | `o.acc_econ_tol = v` |
 | `set_acc_icon_tol(v)` | `o.acc_icon_tol = v` |
-| `set_acc_tols(k, e, i, b)` | `o.acc_kkt_tol = k; acc_econ_tol = e; acc_icon_tol = i; acc_bar_tol = b` |
+| `set_acc_tols(k, e, i, b)` | `o.acc_kkt_tol = k; o.acc_econ_tol = e; o.acc_icon_tol = i; o.acc_bar_tol = b` |
 | `set_div_kkt_tol(v)` | `o.div_kkt_tol = v` |
 | `set_div_bar_tol(v)` | `o.div_bar_tol = v` |
 | `set_div_econ_tol(v)` | `o.div_econ_tol = v` |
 | `set_div_icon_tol(v)` | `o.div_icon_tol = v` |
-| `set_div_tols(k, e, i, b)` | `o.div_kkt_tol = k; div_econ_tol = e; div_icon_tol = i; div_bar_tol = b` |
+| `set_div_tols(k, e, i, b)` | `o.div_kkt_tol = k; o.div_econ_tol = e; o.div_icon_tol = i; o.div_bar_tol = b` |
 | `set_bound_fraction(v)` | `o.bound_fraction = v` |
 | `set_bound_push(v)` | `o.bound_push = v` |
 | `set_bound_interval_push(v)` | `o.bound_interval_push = v` |
@@ -890,13 +890,13 @@ The setter → field table, in the header's own order:
 | `set_delta_h(v)` | `o.delta_h = v` |
 | `set_incr_h(v)` | `o.incr_h = v` |
 | `set_decr_h(v)` | `o.decr_h = v` |
-| `set_hpert_params(d, i, r)` | `o.delta_h = d; incr_h = i; decr_h = r` |
-| `set_print_level(v)` | `o.**common.print_level = v**` |
+| `set_hpert_params(d, i, r)` | `o.delta_h = d; o.incr_h = i; o.decr_h = r` |
+| `set_print_level(v)` | `o.common.print_level = v` |
 | `set_init_mu(v)` | `o.init_mu = v` |
 | `set_min_mu(v)` | `o.min_mu = v` |
 | `set_max_mu(v)` | `o.max_mu = v` |
 | `set_neg_slack_reset(v)` | `o.neg_slack_reset = v` |
-| `set_qp_threads(v)` | `o.**common.threads = v**` |
+| `set_qp_threads(v)` | `o.common.threads = v` |
 | `set_qp_pivot_perturb(v)` | `o.qp_pivot_perturb = v` |
 | `set_qp_matching(v)` | `o.qp_matching = v` |
 | `set_qp_scaling(v)` | `o.qp_scaling = v` |
@@ -935,12 +935,44 @@ becomes `hven::solvers::BarrierModes::LOQO`.
    `cnr_mode` and (on Accelerate) `accel_pivot_tolerance` /
    `accel_zero_tolerance` are read exactly once, inside `set_qp_params()`, which
    runs from `set_nlp()`. Changing one on an attached solver was SILENTLY INERT
-   under the old setters; `set_options()` refuses it by name instead. Re-attach
-   the program after the replacement, or construct the solver with the options
-   you want. **Every other field takes effect on the next solve**, including
+   under the old setters; `set_options()` refuses it by name instead.
+
+   **The recovery sequence, which is what the refusal message names.** "Re-attach
+   the program after the replacement" is not on its own a route: the attachment
+   is what refuses the replacement. The executable order is
+
+   ```cpp
+   auto saved = np;              // the shared_ptr you attached; there is no
+                                 // accessor returning the attached program
+   solver.release();             // nothing attached now
+   solver.set_options(changed);  // accepted: nothing to be inert against
+   solver.set_nlp(saved);        // re-transcribes under the new value
+   ```
+
+   or construct a fresh solver over the options you want. Pinned by
+   `Options.IpmAnAttachOnlyFieldChangesThroughReleaseReplaceReattach`.
+
+   **T8.4 CHANGES THIS RULE.** Once the solver borrows the model per call rather
+   than holding it across calls, there is no "attached" state for a replacement
+   to be inert against, and the twelve stop being a special case. Treat the
+   refusal as a T8.3-era rule with a scheduled end, not as the permanent shape of
+   the surface.
+
+   **Every other field takes effect on the next solve**, including
    `fixed_variable_treatment` and `bound_relax_factor` (`run_phase_sequence()`
    re-applies them through `configure_variable_treatment()` at every entry) and
-   `common.threads` (the same entry refreshes it onto the live factor).
+   `common.threads` -- with ONE exception worth knowing about.
+
+   **`common.threads` is MIXED CADENCE.** Every solve entry refreshes the ordinary
+   backend thread count onto the live factor, so a replacement between two solves
+   reaches it. But `set_qp_params()` also derives `cnr_threads` from it at
+   ATTACHMENT (`opts.cnr_threads = cnr_mode ? common.threads : 0`), and that
+   number is not refreshed: a later thread-count change leaves the CNR count where
+   attachment put it. That is not a new regression -- it is exactly what
+   `KktFactorization`'s contract (`include/hven/detail/interior/kkt_factorization.h:71`)
+   preserves on purpose -- but a per-solve classification of the field conceals it,
+   so it is stated here. `cnr_mode` itself is one of the twelve and cannot change
+   while attached at all.
 4. **The constructor caps `common.threads` at this machine's core count**, which
    is exactly what the default constructor has always done. A count written
    AFTER construction is the caller's explicit word and is taken verbatim, as
@@ -1059,7 +1091,7 @@ foreign handle exactly as it always did, and every existing kHot pin
 | identical options | still adopted — kHot |
 | any changed `qp` field | refused — kWarm by construction |
 | changed `common.threads` | refused — kWarm by construction |
-| a replacement that threw | never happened; the previous engine still adopts |
+| a replacement that threw | never happened; the previous engine is still in force, and on a driver that has already solved it is that engine's OWN live cache -- not the handle -- that carries the next solve |
 
 "kWarm by construction" is exact rather than a degradation: the refusal happens
 at the adoption gate, before the reuse bookkeeping is snapshotted, so nothing was
@@ -1088,7 +1120,7 @@ with member aliases left behind. **Every spelling in your source still compiles
 and still names the same type** — that is what the aliases are for. But an alias
 is not the enum's name: the compiler mangles the CANONICAL one, so any function
 whose signature mentions one of the eight now has a different mangled symbol.
-Forty-three declarations are affected — the acceptance / mechanism / governor /
+Twenty-seven declarations are affected — the acceptance / mechanism / governor /
 recovery interfaces are the bulk of them, e.g.
 
 ```
@@ -1105,5 +1137,9 @@ static library that consumers rebuild or re-install wholesale. It is recorded
 here because it is the one change in T8.3 that is invisible at compile time and
 visible at link time. Rebuild, do not mix.
 
-The P-SYM roll for this task shows those 43 as ONLY-BEFORE / ONLY-AFTER symbol
-pairs; they are signature renames, not added or removed behaviour.
+The P-SYM roll for this task lists **43 unique ONLY-BEFORE names**, of which
+**27 are these enum-signature rename pairs** — each with its canonicalized
+counterpart in ONLY-AFTER; they are signature renames, not added or removed
+behaviour. The other **16** are not renames at all: constructors, a QP
+destructor, and renamed test infrastructure. (Corrected in fix round 1; the
+addendum first said all 43 were enum renames.)

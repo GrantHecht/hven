@@ -12,21 +12,35 @@
 //   * set_options() during a solve throws std::logic_error, leaves options()
 //     unchanged, and clears the guard so a later solve still works.
 //   * ipm_preset() returns a FULL validated value; an unknown name is refused.
-//   * The ONE rule for the twelve BACKEND-CONFIGURATION fields, which are read
-//     once when the program is attached: changing one on an attached solver is
-//     refused by name rather than silently ignored.
+//   * The ONE rule for the twelve ATTACH-ONLY fields, which are read once when
+//     the program is attached: changing one on an attached solver is refused by
+//     name rather than silently ignored -- one representative per type class --
+//     and the executable release/replace/re-attach sequence that changes one
+//     anyway.
+//   * Neither solver object is copyable or movable (static_asserts), and both
+//     options values are nothrow-move-assignable, which is what lets
+//     SqpDriver::set_options() commit the options after the engine swap.
+//   * The in-flight guard clears on an UNWIND as well as on a return, on both
+//     engines, and an option replacement does not restart the SQP ledger's QP
+//     label sequence.
 //
 // The SQP half of the same surface is pinned below it, and the hot-handle
 // fingerprint lives in tests/sqp/test_warm_start.cpp beside the kHot chain it
 // belongs to.
 
+#include <algorithm>
+#include <cstddef>
+#include <iterator>
 #include <limits>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
+#include <vector>
 
 #include <gtest/gtest.h>
 
+#include "hven/core/ledger.h"
 #include "hven/detail/drivers/interior_point_solver_presets.h"
 #include "hven/drivers/common_options.h"
 #include "hven/drivers/interior_point_solver.h"
@@ -143,6 +157,52 @@ void expect_refused(const IpmOptions &o, const char *field) {
 }
 
 } // namespace
+
+// ---------------------------------------------------------------------------
+// NEITHER ENGINE'S SOLVER OBJECT MOVES (design §2.1; fix round 1)
+// ---------------------------------------------------------------------------
+//
+// Both classes own live backend sessions -- InteriorPointSolver its KktFactor
+// and its unique_ptr globalization components, SqpDriver its QpEngine and the
+// two lazy tiers -- and neither has defined transfer semantics. Before T8.3 the
+// SQP driver's by-value QpEngine member enforced HALF of that by accident:
+// QpEngine declares no assignment, so move ASSIGNMENT was implicitly deleted.
+// Holding the engine through a unique_ptr removed that accident, which is why
+// the four operations are now deleted by declaration on both classes. A
+// moved-from driver would hold a null engine_, and every use dereferences it
+// without a check.
+//
+// These are static_asserts rather than a TEST body deliberately: what is being
+// pinned is a compile-time property, and a regression must fail the BUILD.
+static_assert(!std::is_copy_constructible_v<hven::solvers::SqpDriver>,
+              "SqpDriver must not be copy-constructible");
+static_assert(!std::is_copy_assignable_v<hven::solvers::SqpDriver>,
+              "SqpDriver must not be copy-assignable");
+static_assert(!std::is_move_constructible_v<hven::solvers::SqpDriver>,
+              "SqpDriver must not be move-constructible");
+static_assert(!std::is_move_assignable_v<hven::solvers::SqpDriver>,
+              "SqpDriver must not be move-assignable");
+
+static_assert(!std::is_copy_constructible_v<InteriorPointSolver>,
+              "InteriorPointSolver must not be copy-constructible");
+static_assert(!std::is_copy_assignable_v<InteriorPointSolver>,
+              "InteriorPointSolver must not be copy-assignable");
+static_assert(!std::is_move_constructible_v<InteriorPointSolver>,
+              "InteriorPointSolver must not be move-constructible");
+static_assert(!std::is_move_assignable_v<InteriorPointSolver>,
+              "InteriorPointSolver must not be move-assignable");
+
+// The OPTIONS VALUES, by contrast, must move -- and SqpDriver::set_options()
+// relies on more than that: it assigns `opts_ = std::move(o)` AFTER the engine
+// swap has already committed, so a throwing move assignment there would leave
+// the new engine standing beside the old options. This assert is what makes
+// that argument checkable: add a field whose move assignment can throw and the
+// build fails here, pointing at src/drivers/sqp_driver.cpp's set_options().
+static_assert(std::is_nothrow_move_assignable_v<hven::solvers::SqpOptions>,
+              "SqpDriver::set_options() commits the options after the engine swap on the "
+              "strength of this");
+static_assert(std::is_nothrow_move_assignable_v<IpmOptions>,
+              "InteriorPointSolver::set_options() assigns the value last, after every check");
 
 // ---------------------------------------------------------------------------
 // validate(const IpmOptions &): one representative per refusal class of the old
@@ -310,9 +370,24 @@ TEST(Options, IpmSetOptionsIsTransactional) {
     EXPECT_EQ(solver.options().kkt_tol, IpmOptions{}.kkt_tol);
 }
 
-// The twelve BACKEND-CONFIGURATION fields are read exactly once, inside
-// set_qp_params(), which runs when the program is attached. Changing one on an
-// attached solver would have been silently inert; it is refused by name.
+// The twelve ATTACH-ONLY fields are read exactly once, inside set_qp_params(),
+// which runs when the program is attached. Changing one on an attached solver
+// would have been silently inert; it is refused by name.
+//
+// THE PROGRAM IS TRANSCRIBED UNDER DEFAULT BACKEND OPTIONS, deliberately (fix
+// round 1). An earlier shape of this test set qp_ref_steps = 1 BEFORE
+// transcribe(): on an Accelerate build set_qp_params() rejects every non-zero
+// refinement cap outright (src/drivers/interior_point_solver.cpp, the
+// USE_ACCELERATE_SPARSE branch), so transcribe() threw there and the intended
+// check was never reached. Every field below is moved only AFTER attachment,
+// where set_options()'s own comparison is what refuses it -- and that
+// comparison is compiled unconditionally, so the refusals hold on both
+// backends. Only the two Accelerate-only fields are conditional, and they are
+// tested under the same macro that declares them.
+//
+// ONE REPRESENTATIVE PER TYPE CLASS, because the refusal is a per-field
+// comparison and a type is the thing that could go wrong in a batch of them: an
+// int, an enum, a bool, the CNR flag, and (Accelerate only) the two doubles.
 TEST(Options, IpmSetOptionsRefusesABackendFieldOnceAProgramIsAttached) {
     hven::solvers::NLPSolver solver(std::make_shared<Hs071Problem>());
     {
@@ -320,27 +395,48 @@ TEST(Options, IpmSetOptionsRefusesABackendFieldOnceAProgramIsAttached) {
         o.common.print_level = 10;
         solver.optimizer_->set_options(std::move(o));
     }
-    // Not attached yet (NLPSolver transcribes lazily), so the field moves.
-    {
-        IpmOptions o = solver.optimizer_->options();
-        o.qp_ref_steps = 1;
-        EXPECT_NO_THROW(solver.optimizer_->set_options(std::move(o)));
-    }
+    // Attached under DEFAULT backend options -- nothing this test writes has
+    // reached set_qp_params(), on either backend.
+    const IpmOptions attached_with = solver.optimizer_->options();
     solver.transcribe();
 
-    IpmOptions changed = solver.optimizer_->options();
-    changed.qp_ref_steps = 2;
-    try {
-        solver.optimizer_->set_options(changed);
-        FAIL() << "a backend-configuration change on an attached solver must be refused";
-    } catch (const std::invalid_argument &e) {
-        EXPECT_NE(std::string(e.what()).find("qp_ref_steps"), std::string::npos);
-    }
-    EXPECT_EQ(solver.optimizer_->options().qp_ref_steps, 1);
+    // Each edit is applied to the value in force, attempted alone, and required
+    // to be refused BY NAME; the options must not move.
+    const auto refuses = [&](const char *field, auto edit) {
+        IpmOptions changed = solver.optimizer_->options();
+        edit(changed);
+        try {
+            solver.optimizer_->set_options(changed);
+            FAIL() << "an attach-only change on an attached solver must be refused: " << field;
+        } catch (const std::invalid_argument &e) {
+            EXPECT_NE(std::string(e.what()).find(field), std::string::npos)
+                << "the refusal names the wrong field: " << e.what();
+        }
+    };
 
-    // Everything else still takes effect on the next solve while attached --
-    // fixed_variable_treatment included, which run_phase_sequence() re-applies
-    // through configure_variable_treatment() at every entry.
+    refuses("qp_ref_steps", [](IpmOptions &o) { o.qp_ref_steps = 1; }); // int
+    refuses("qp_ord", [](IpmOptions &o) {                               // enum
+        o.qp_ord = hven::solvers::QPOrderingModes::MINDEG;
+    });
+    refuses("qp_print", [](IpmOptions &o) { o.qp_print = true; }); // bool
+    refuses("cnr_mode", [](IpmOptions &o) { o.cnr_mode = true; }); // the CNR flag
+#ifdef USE_ACCELERATE_SPARSE
+    // UNOBSERVED on this box: these two are declared, validated and refused
+    // only on an Accelerate build, and nothing here has run on Mac hardware.
+    refuses("accel_pivot_tolerance", [](IpmOptions &o) { o.accel_pivot_tolerance = 0.02; });
+    refuses("accel_zero_tolerance", [](IpmOptions &o) { o.accel_zero_tolerance = 1e-12; });
+#endif
+
+    // Not one of them moved: every attempt above threw before the assignment.
+    EXPECT_EQ(solver.optimizer_->options().qp_ref_steps, attached_with.qp_ref_steps);
+    EXPECT_EQ(solver.optimizer_->options().qp_ord, attached_with.qp_ord);
+    EXPECT_EQ(solver.optimizer_->options().qp_print, attached_with.qp_print);
+    EXPECT_EQ(solver.optimizer_->options().cnr_mode, attached_with.cnr_mode);
+
+    // THE COUNTER-EXAMPLE: a PER-SOLVE field is accepted on the same attached
+    // solver -- fixed_variable_treatment included, which run_phase_sequence()
+    // re-applies through configure_variable_treatment() at every entry, and
+    // max_iters, which the loop reads directly.
     IpmOptions ok = solver.optimizer_->options();
     ok.fixed_variable_treatment = FixedVariableTreatments::MakeConstraint;
     ok.max_iters = 77;
@@ -348,6 +444,45 @@ TEST(Options, IpmSetOptionsRefusesABackendFieldOnceAProgramIsAttached) {
     EXPECT_EQ(solver.optimizer_->options().fixed_variable_treatment,
               FixedVariableTreatments::MakeConstraint);
     EXPECT_EQ(solver.optimizer_->options().max_iters, 77);
+}
+
+// THE RECOVERY SEQUENCE THE REFUSAL POINTS AT, EXECUTED (fix round 1).
+//
+// "Re-attach the program after the replacement" is not on its own a route: the
+// attachment is what refuses the replacement. The executable order is
+// release() -> set_options() -> set_nlp(the same program). There is no accessor
+// returning the attached program, so the caller's own shared_ptr is the handle
+// -- which whoever called set_nlp() already holds (NLPSolver keeps it in nlp_).
+//
+// qp_matching is the field moved because it is inert on BOTH backends at the
+// value written: MKL reads it as `weighted_matching = qp_matching != 0` and
+// Accelerate does not read it at all, so the re-attachment below cannot throw
+// out of set_qp_params() on either.
+TEST(Options, IpmAnAttachOnlyFieldChangesThroughReleaseReplaceReattach) {
+    hven::solvers::NLPSolver solver(std::make_shared<Hs071Problem>());
+    {
+        IpmOptions o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    solver.transcribe();
+    const int before = solver.optimizer_->options().qp_matching;
+
+    IpmOptions changed = solver.optimizer_->options();
+    changed.qp_matching = before != 0 ? 0 : 1;
+    EXPECT_THROW(solver.optimizer_->set_options(changed), std::invalid_argument);
+
+    // The sequence, verbatim.
+    const auto saved = solver.nlp_; // the caller's own handle on the attached program
+    ASSERT_NE(saved, nullptr);
+    solver.optimizer_->release();
+    EXPECT_NO_THROW(solver.optimizer_->set_options(changed));
+    EXPECT_EQ(solver.optimizer_->options().qp_matching, changed.qp_matching);
+    EXPECT_NO_THROW(solver.optimizer_->set_nlp(saved));
+
+    // And the solver is usable afterwards, under the new value.
+    EXPECT_EQ(solver.optimizer_->options().qp_matching, changed.qp_matching);
+    EXPECT_EQ(solver.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
 }
 
 // A replacement from inside the solve is a logic_error, the options do not
@@ -390,6 +525,37 @@ TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
     EXPECT_NO_THROW(solver.optimizer_->set_options(std::move(after)));
     EXPECT_EQ(solver.optimizer_->options().max_iters, 400);
     engine->disable_late_callback();
+    EXPECT_EQ(solver.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
+}
+
+// THE SAME GUARD, CLEARED ON AN UNWIND RATHER THAN A RETURN (fix round 1). The
+// test above catches its logic_error INSIDE the hook, so the solve returns
+// normally and the guard's destructor runs on an ordinary exit. This one lets
+// the exception LEAVE the solve, which is the path the RAII guard exists for:
+// run_phase_sequence() unwinds, SolveInFlightGuard's destructor clears the
+// flag, and the solver is usable again.
+TEST(Options, IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
+    hven::solvers::NLPSolver solver(std::make_shared<Hs071Problem>());
+    {
+        IpmOptions o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    InteriorPointSolver *engine = solver.optimizer_.get();
+    engine->set_late_callback([](const hven::solvers::IterateInfo &,
+                                 hven::ConstEigenRef<Eigen::VectorXd>,
+                                 hven::ConstEigenRef<Eigen::VectorXd>) -> int {
+        throw std::logic_error("a hook that leaves the solve by throwing");
+    });
+    EXPECT_THROW(solver.optimize(hs071_start()), std::logic_error);
+    engine->disable_late_callback();
+
+    // The guard did not survive the unwind: a replacement is accepted and the
+    // next solve runs.
+    IpmOptions after = engine->options();
+    after.max_iters = 400;
+    EXPECT_NO_THROW(engine->set_options(std::move(after)));
+    EXPECT_EQ(engine->options().max_iters, 400);
     EXPECT_EQ(solver.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
 }
 
@@ -552,12 +718,90 @@ TEST(Options, SqpSetOptionsDuringASolveThrowsLogicError) {
     EXPECT_TRUE(refused) << "a replacement under an in-flight solve must be a logic_error";
     EXPECT_EQ(d.options().max_iter, SqpOptions{}.max_iter);
 
-    // The guard cleared: a replacement between calls goes through.
+    // The guard cleared: a replacement between calls goes through, AND so does
+    // the next solve -- the IPM pin above asserts both and this one now does
+    // too (fix round 1).
     SqpOptions after = d.options();
     after.make_strategy = {};
     after.max_iter = 11;
     EXPECT_NO_THROW(d.set_options(std::move(after)));
     EXPECT_EQ(d.options().max_iter, 11);
+    EXPECT_NO_THROW(d.solve(*p.model));
+}
+
+// THE SAME GUARD, CLEARED ON AN UNWIND RATHER THAN A RETURN (fix round 1), the
+// SQP half of the IPM pin above: the hook throws OUT of the solve, solve_impl
+// unwinds, SolveInFlightGuard's destructor clears the flag, and the driver is
+// usable again.
+TEST(Options, SqpTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
+    SqpDriver d(sqp_default());
+    {
+        SqpOptions o = d.options();
+        o.make_strategy = []() -> std::unique_ptr<hven::solvers::GlobalizationStrategy> {
+            throw std::logic_error("a hook that leaves the solve by throwing");
+        };
+        d.set_options(std::move(o));
+    }
+    const auto p = hven::solvers::test_support::make_hs(7);
+    EXPECT_THROW(d.solve(*p.model), std::logic_error);
+
+    SqpOptions after = d.options();
+    after.make_strategy = {};
+    after.max_iter = 11;
+    EXPECT_NO_THROW(d.set_options(std::move(after)));
+    EXPECT_EQ(d.options().max_iter, 11);
+    EXPECT_NO_THROW(d.solve(*p.model));
+}
+
+// THE LEDGER LABEL SEQUENCE CONTINUES ACROSS A REBUILD (A3; fix round 1).
+//
+// set_options() replaces the QpEngine, and a fresh engine's own solve_counter_
+// starts at 0 -- so without the carry the QP records after a replacement would
+// restart at `<prefix>_qp_0` beside the one already in the ledger, and two
+// different subproblems would share a label. The carry is exact rather than
+// merely sufficient because QpEngine advances that counter ONLY inside its
+// `ledger_ != nullptr` branch: with no ledger attached both engines sit at 0.
+//
+// The pin is over the WHOLE sequence, not a count: every label is
+// `<prefix>_qp_<i>` for its own position i, and all of them are distinct.
+TEST(Options, SqpAnOptionReplacementDoesNotRestartTheLedgerLabelSequence) {
+    SqpDriver d(sqp_default());
+    hven::solvers::Ledger ledger;
+    d.attach_ledger(&ledger, "chain");
+
+    const auto p = hven::solvers::test_support::make_hs(7);
+
+    d.solve(*p.model);
+    const std::size_t after_first = ledger.records().size();
+    ASSERT_GT(after_first, 0u) << "the fixture must produce QP records to pin";
+
+    d.set_options(d.options()); // the identical-options rebuild
+    d.solve(*p.model);
+    const std::size_t after_second = ledger.records().size();
+    ASSERT_GT(after_second, after_first);
+
+    SqpOptions changed = d.options(); // and a CHANGED-options rebuild
+    changed.qp.schur_cap = d.options().qp.schur_cap + 1;
+    d.set_options(std::move(changed));
+    d.solve(*p.model);
+    const std::size_t after_third = ledger.records().size();
+    ASSERT_GT(after_third, after_second);
+
+    std::vector<std::string> labels;
+    labels.reserve(ledger.records().size());
+    for (const auto &rec : ledger.records()) {
+        labels.push_back(rec.label);
+    }
+    for (std::size_t i = 0; i < labels.size(); ++i) {
+        EXPECT_EQ(labels[i], "chain_qp_" + std::to_string(i))
+            << "the label sequence restarted or skipped at position " << i;
+    }
+    std::vector<std::string> sorted = labels;
+    std::sort(sorted.begin(), sorted.end());
+    EXPECT_EQ(std::distance(sorted.begin(), std::unique(sorted.begin(), sorted.end())),
+              static_cast<std::ptrdiff_t>(labels.size()))
+        << labels.size() << " QP records across three solves and two rebuilds must carry "
+        << labels.size() << " distinct labels";
 }
 
 // ---------------------------------------------------------------------------

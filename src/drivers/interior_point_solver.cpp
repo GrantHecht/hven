@@ -749,8 +749,10 @@ hven::solvers::InteriorPointSolver::InteriorPointSolver(std::shared_ptr<NonLinea
 // backend-chatter flag, the CNR mode and (on Accelerate) the two tolerances.
 // Writing one of them on an attached solver would have been SILENTLY INERT
 // until the next set_nlp(), which is what the old per-field setters did; this
-// refuses by name instead. Re-attach the program, or build the solver with the
-// options you want. Every OTHER field -- fixed_variable_treatment and
+// refuses by name instead. The way through is release() -> set_options() ->
+// set_nlp(the same program), or a solver built over the options you want; a
+// bare "re-attach afterwards" is not a route, because the attachment is what
+// refuses the replacement. Every OTHER field -- fixed_variable_treatment and
 // bound_relax_factor included, which run_phase_sequence() re-applies through
 // configure_variable_treatment() at every entry, and common.threads, which the
 // same entry refreshes onto the live factor -- simply takes effect on the next
@@ -763,11 +765,18 @@ void hven::solvers::InteriorPointSolver::set_options(IpmOptions o) {
     hven::solvers::validate(o);
     if (this->nlp_) {
         const auto refuse = [](const char *field) {
+            // The recovery instruction names an EXECUTABLE sequence: "re-attach
+            // after the replacement" alone is impossible, because the
+            // attachment is what refuses the replacement. release() first, then
+            // the replacement is accepted, then set_nlp() re-transcribes under
+            // the new value. There is no accessor returning the attached
+            // program, so the caller's own shared_ptr is the handle -- which
+            // whoever called set_nlp() already holds.
             throw std::invalid_argument(fmt::format(
                 "InteriorPointSolver::set_options: {} is read once, when the program is attached "
                 "(set_nlp -> set_qp_params), so changing it on an attached solver would be "
-                "silently inert; re-attach the program after the replacement, or construct the "
-                "solver with the options you want",
+                "silently inert; release() the program, replace the options, then set_nlp() the "
+                "same program again -- or construct the solver with the options you want",
                 field));
         };
         if (o.qp_ord != opts_.qp_ord)
@@ -3337,9 +3346,9 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
 
     // Cap door 2 of 2: EXHAUSTION. Five `continue`s above can bypass the
     // terminal conjunction on the cap iteration -- the four LEAVE-restoration
-    // returns (the nested near-feasible and ratchet returns, :2280 and :2302;
-    // the proximal near-feasible and sufficient-reduction returns, :2345 and
-    // :2374) and the stall-triggered restoration DISPATCH (:2601) -- and the
+    // returns (the nested near-feasible and ratchet returns, :2289 and :2311;
+    // the proximal near-feasible and sufficient-reduction returns, :2354 and
+    // :2383) and the stall-triggered restoration DISPATCH (:2610) -- and the
     // loop then falls through here with i == max_iters_; every outer break
     // leaves with i <= max_iters_ - 1, so this door fires on exhaustion and on
     // nothing else. Guarded on the reason alone: a fall-through has no ExitCode

@@ -1534,6 +1534,16 @@ void SqpDriver::set_options(SqpOptions o) {
     // first-use construction.
     ssn_engine_.reset();
     ipqp_engine_.reset();
+    // NOEXCEPT BY CONSTRUCTION, which is why it is safe here AFTER the engine
+    // swap rather than fused with it (lane review M1): SqpOptions is an
+    // aggregate of scalars, enums, QpOptions and std::function/std::vector
+    // members, every one of whose move assignments is itself noexcept, so this
+    // cannot throw and leave the new engine standing beside the old options.
+    // That is not a hope -- tests/drivers/test_options.cpp static_asserts
+    // std::is_nothrow_move_assignable_v<SqpOptions>, so a future field whose
+    // move assignment CAN throw is a compile error there rather than a silent
+    // hole here; when that day comes, move this assignment above the swap and
+    // commit both together.
     opts_ = std::move(o);
 }
 
@@ -2002,6 +2012,15 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // outer chain and the inner set would throw against the outer. This
     // function is where every public path arrives exactly once. Cleared on
     // every exit, a throw included; read by set_options().
+    //
+    // IT IS A BOOL, NOT A DEPTH COUNT, and that rests on two invariants (lane
+    // review M2): (1) solve_impl is the SINGLE site the flag is set from, and
+    // (2) the restoration phase runs on a DISTINCT nested SqpDriver object
+    // (see allow_restoration_), so it never re-enters this object's guard. A
+    // bool is exact under both. Should a future path ever re-enter solve_impl
+    // on the SAME driver, the inner scope's exit would clear the flag while the
+    // outer solve is still running -- at which point this must become a depth
+    // counter, not a flag.
     struct SolveInFlightGuard {
         bool &flag_;
         explicit SolveInFlightGuard(bool &f) : flag_(f) { flag_ = true; }

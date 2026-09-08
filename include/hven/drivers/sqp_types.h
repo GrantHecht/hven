@@ -622,11 +622,15 @@ struct SqpOptions {
     /// is its reproducibility mechanism) and `print_level = 3` (silent, which is
     /// what this engine has always been).
     ///
-    /// In T8.3 NEITHER of those two is read by this engine: the fields are here
-    /// so both engines spell the same knob the same way, and so a hot handle's
-    /// options fingerprint can cover the thread count from the start. T8.7 gives
-    /// this engine a console table at `print_level`, and T8.8 makes a non-zero
-    /// `threads` reach every factor path. `common.start_level` is likewise
+    /// In T8.3 NEITHER of those two is APPLIED by this engine -- neither reaches
+    /// the backend or the console. `threads` IS read: the driver passes it to
+    /// QpEngine's constructor, which folds it into the hot-handle options
+    /// fingerprint, so a handle produced at one thread count is refused by an
+    /// engine running at another. What it does not yet do is change how many
+    /// threads anything runs on. The fields are here so both engines spell the
+    /// same knob the same way, and so that fingerprint covers the count from the
+    /// start. T8.7 gives this engine a console table at `print_level`, and T8.8
+    /// makes a non-zero `threads` reach every factor path. `common.start_level` is likewise
     /// carried and unread: `SqpOptions::start_level` above is still the field
     /// the driver caps a warm start with, until T8.10 folds the two.
     ///
