@@ -102,6 +102,7 @@
 #include <ctime>
 #include <fstream>
 #include <optional>
+#include <set>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -2214,6 +2215,68 @@ void write_interior_provenance(std::ostream &os, int argc, char **argv,
     }
 }
 
+// The artifact's writer: the ONE place that refuses to emit a row key twice and
+// the one place that treats a failed write as a failure rather than as a
+// silently truncated file. An artifact whose first column repeats is unreadable
+// by the replay comparator, which keys on that column and keeps only the last of
+// a repeated key.
+class InteriorArtifactWriter {
+  public:
+    /// @brief Opens @p path for writing.
+    /// @throws std::invalid_argument if it cannot be opened.
+    explicit InteriorArtifactWriter(std::string path) : path_(std::move(path)), out_(path_) {
+        if (!out_) {
+            throw std::invalid_argument(
+                fmt::format("--csv: could not open '{}' for writing", path_));
+        }
+    }
+
+    std::ostream &stream() { return out_; }
+
+    /// @brief Throws unless every write so far reached the file.
+    /// @param what Where the check is made, for the message.
+    /// @throws std::runtime_error naming the path and @p what.
+    void require_ok(const char *what) {
+        if (!out_) {
+            throw std::runtime_error(fmt::format(
+                "--csv: writing '{}' failed at {}; the file on disk is incomplete", path_, what));
+        }
+    }
+
+    /// @brief Writes one row, flushes it, and checks both.
+    /// @throws std::runtime_error on a repeated row key or a failed write.
+    void write_row(const InteriorRow &row) {
+        const std::string key = hven::solvers::corpus::interior_row_key(row);
+        if (!keys_.insert(key).second) {
+            throw std::runtime_error(
+                fmt::format("--csv: row key '{}' would be written twice; the replay comparator "
+                            "keys on the first column and keeps only the last of a repeated key",
+                            key));
+        }
+        out_ << hven::solvers::corpus::interior_csv_row(row);
+        out_.flush();
+        require_ok("a data row");
+        ++written_;
+    }
+
+    /// @brief Flushes and closes; a caller may report success only after this.
+    /// @throws std::runtime_error if the flush or the close failed.
+    void close() {
+        out_.flush();
+        require_ok("the final flush");
+        out_.close();
+        require_ok("close");
+    }
+
+    std::size_t written() const { return written_; }
+
+  private:
+    std::string path_;
+    std::ofstream out_;
+    std::set<std::string> keys_;
+    std::size_t written_ = 0;
+};
+
 // The cells this arm runs, and the refusal line for every requested cell it
 // cannot: a cell an NLPProblem cannot state is named, never silently dropped.
 struct InteriorPlan {
@@ -2229,7 +2292,18 @@ InteriorPlan plan_interior_cells(const std::string &spec) {
             requested.push_back(&c);
         }
     } else {
+        std::set<std::string> seen;
         for (const std::string &id : split_on(spec, ',')) {
+            // REFUSED, NOT DEDUPLICATED. A repeated id would write a second row
+            // under the same <cell>/<treatment> key, and the replay comparator
+            // keys on that column and keeps only the last of a repeated key --
+            // so the duplicate would be invisible in every later comparison.
+            if (!seen.insert(id).second) {
+                throw_usage(fmt::format("--cells: cell id '{}' appears more than once; --engine "
+                                        "interior writes one row per cell per treatment and its "
+                                        "first column must be unique",
+                                        id));
+            }
             // The fixed-variable cell runs unconditionally, so naming it is
             // accepted and adds nothing rather than reading as an unknown id.
             if (id == kHs071FixedCellId) {
@@ -2437,28 +2511,22 @@ int main(int argc, char **argv) {
             const InteriorLevers levers;
             const InteriorPlan plan = plan_interior_cells(*args.cells);
 
-            std::ofstream out(*args.csv);
-            if (!out) {
-                throw std::invalid_argument(
-                    fmt::format("--csv: could not open '{}' for writing", *args.csv));
-            }
-            write_interior_provenance(out, argc, argv, levers, plan.refusals);
-            out << interior_csv_header();
-            out.flush();
+            InteriorArtifactWriter writer(*args.csv);
+            write_interior_provenance(writer.stream(), argc, argv, levers, plan.refusals);
+            writer.stream() << interior_csv_header();
+            writer.stream().flush();
+            writer.require_ok("the header");
 
             for (const std::string &refusal : plan.refusals) {
                 fmt::print("refused (not dual-bindable): {}\n", refusal);
             }
 
-            std::size_t written = 0;
             for (const CorpusCell *cell : plan.cells) {
                 for (const FixedVariableTreatments treatment : interior_treatments()) {
                     fmt::print("running {} (N={}, treatment {})...\n", cell->id, cell->n_nodes,
                                interior_treatment_tag(treatment));
                     const InteriorRow row = run_interior_cell(*cell, treatment, levers);
-                    out << interior_csv_row(row);
-                    out.flush();
-                    ++written;
+                    writer.write_row(row);
                     fmt::print("  -> {} in {} iterations (kkt_inf {:.3e})\n", row.status,
                                row.iter_num, row.kkt_inf);
                 }
@@ -2470,13 +2538,14 @@ int main(int argc, char **argv) {
                 fmt::print("running {} (treatment {})...\n", kHs071FixedCellId,
                            interior_treatment_tag(treatment));
                 const InteriorRow row = run_interior_hs071(treatment, levers);
-                out << interior_csv_row(row);
-                out.flush();
-                ++written;
+                writer.write_row(row);
                 fmt::print("  -> {} in {} iterations (kkt_inf {:.3e})\n", row.status, row.iter_num,
                            row.kkt_inf);
             }
-            fmt::print("wrote {} row(s) to {} ({} cell(s) refused)\n", written, *args.csv,
+            // Reported only after a successful close: a truncated artifact that
+            // says "wrote 33 rows" is worse than one that says nothing.
+            writer.close();
+            fmt::print("wrote {} row(s) to {} ({} cell(s) refused)\n", writer.written(), *args.csv,
                        plan.refusals.size());
             return 0;
         }

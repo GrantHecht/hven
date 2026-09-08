@@ -2459,30 +2459,46 @@ TEST(CorpusBaseline, TheCommittedIpmBaselinePinsTheTwoWarmRestartAcceptanceRows)
 namespace interior_test {
 
 // Column 0 is `<cell_id>/<fixed_treatment>` (the replay comparator keys on it
-// and keeps only the last duplicate), so the plain cell is its prefix.
-std::vector<std::map<std::string, std::string>> read_interior_csv(const std::string &path) {
+// and keeps only the last of a repeated key), so the plain cell is its prefix.
+struct Artifact {
+    std::vector<std::map<std::string, std::string>> rows;
+    /// One line per record the reader could not read; never skipped silently.
+    std::vector<std::string> problems;
+};
+
+Artifact read_interior_csv(const std::string &path) {
     const std::vector<std::string> lines = runner_test::read_lines(path);
     std::vector<std::string> header;
-    std::vector<std::map<std::string, std::string>> rows;
+    Artifact art;
+    std::size_t line_no = 0;
     for (const std::string &line : lines) {
+        ++line_no;
         if (line.empty() || line[0] == '#') {
             continue;
         }
         std::vector<std::string> col = runner_test::split_all(line);
         if (header.empty()) {
             header = std::move(col);
+            if (header.size() != 19u) {
+                art.problems.push_back(fmt::format("line {}: header has {} columns, expected 19",
+                                                   line_no, header.size()));
+            }
             continue;
         }
         if (col.size() != header.size()) {
+            // A short or long record is a MALFORMED artifact, not a row to skip:
+            // a truncated capture would otherwise read as a smaller valid one.
+            art.problems.push_back(
+                fmt::format("line {}: {} fields, expected {}", line_no, col.size(), header.size()));
             continue;
         }
         std::map<std::string, std::string> row;
         for (std::size_t i = 0; i < header.size(); ++i) {
             row[header[i]] = col[i];
         }
-        rows.push_back(std::move(row));
+        art.rows.push_back(std::move(row));
     }
-    return rows;
+    return art;
 }
 
 std::string cell_of(const std::map<std::string, std::string> &row) {
@@ -2491,43 +2507,211 @@ std::string cell_of(const std::map<std::string, std::string> &row) {
     return slash == std::string::npos ? key : key.substr(0, slash);
 }
 
+// The eleven cells the leg runs: the ten U0 cells an NLPProblem can state, plus
+// the fixed-variable cell no F7 cell provides.
+const std::vector<std::string> &expected_interior_cells() {
+    static const std::vector<std::string> kCells{
+        "f7_n1000_bound_neutral",  "f7_n1000_bound_physics",  "f7_n2000_bound_neutral",
+        "f7_n2000_bound_physics",  "f7_n5000_bound_neutral",  "f7_n5000_bound_physics",
+        "f7_n10000_bound_neutral", "f7_n10000_bound_physics", "f7_n20000_bound_neutral",
+        "f7_n20000_bound_physics", "hs071_x1_fixed"};
+    return kCells;
+}
+
+// The 33 keys, in the order the leg writes them: eleven cells x three
+// treatments. Listed rather than derived, so a leg that stopped writing a cell
+// fails this rather than agreeing with itself.
+const std::vector<std::string> &expected_interior_keys() {
+    static const std::vector<std::string> kKeys = [] {
+        std::vector<std::string> keys;
+        for (const std::string &cell : expected_interior_cells()) {
+            for (const char *treatment : {"MakeParameter", "MakeConstraint", "RelaxBounds"}) {
+                keys.push_back(cell + "/" + treatment);
+            }
+        }
+        return keys;
+    }();
+    return kKeys;
+}
+
+// Everything wrong with an artifact, one line each; empty means it is the shape
+// the leg writes. Returned rather than asserted so the negative probes below can
+// assert that a broken artifact IS rejected.
+std::vector<std::string> interior_artifact_violations(const Artifact &art) {
+    std::vector<std::string> out = art.problems;
+
+    std::map<std::string, int> seen;
+    for (const auto &r : art.rows) {
+        const auto key = r.find("cell_id");
+        if (key == r.end()) {
+            out.push_back("a row carries no cell_id column");
+            continue;
+        }
+        ++seen[key->second];
+    }
+    for (const std::string &expected : expected_interior_keys()) {
+        const auto it = seen.find(expected);
+        if (it == seen.end()) {
+            out.push_back(fmt::format("missing row key '{}'", expected));
+        } else if (it->second != 1) {
+            out.push_back(fmt::format("row key '{}' appears {} times", expected, it->second));
+        }
+    }
+    for (const auto &[key, count] : seen) {
+        const auto &keys = expected_interior_keys();
+        if (std::find(keys.begin(), keys.end(), key) == keys.end()) {
+            out.push_back(fmt::format("unexpected row key '{}' ({} time(s))", key, count));
+        }
+    }
+
+    std::map<std::string, double> hs071_obj;
+    for (const auto &r : art.rows) {
+        const std::string key = r.count("cell_id") != 0 ? r.at("cell_id") : std::string("<none>");
+        const std::string treatment =
+            r.count("fixed_treatment") != 0 ? r.at("fixed_treatment") : std::string("<none>");
+        // The leg writes hven::ConvergenceFlags' own spellings
+        // (crossover_legs.h::flag_string), not the SqpStatus names.
+        const std::string status = r.count("status") != 0 ? r.at("status") : std::string("<none>");
+        if (status != "CONVERGED" && status != "ACCEPTABLE") {
+            out.push_back(fmt::format("{}: status '{}'", key, status));
+        }
+        if (treatment != "MakeParameter" && treatment != "MakeConstraint" &&
+            treatment != "RelaxBounds") {
+            out.push_back(fmt::format("{}: fixed_treatment '{}'", key, treatment));
+        }
+        if (key != cell_of(r) + "/" + treatment) {
+            out.push_back(fmt::format("{}: key is not <cell>/<treatment>", key));
+        }
+        if (cell_of(r) == "hs071_x1_fixed") {
+            if (status != "CONVERGED") {
+                out.push_back(fmt::format("{}: the fixed-variable cell must converge", key));
+            }
+            try {
+                hs071_obj[treatment] = std::stod(r.at("obj_val"));
+            } catch (const std::exception &) {
+                out.push_back(fmt::format("{}: obj_val is not a number", key));
+            }
+        }
+    }
+
+    // The fixed-variable cell is the one the leg exists for: the three
+    // treatments solve the same problem and must reach the same objective.
+    if (hs071_obj.size() != 3u) {
+        out.push_back(
+            fmt::format("hs071_x1_fixed has {} treatment row(s), expected 3", hs071_obj.size()));
+    } else {
+        const double reference = hs071_obj.at("MakeParameter");
+        if (!(std::abs(reference) > 0.0)) {
+            out.push_back("hs071_x1_fixed/MakeParameter has a zero objective");
+        } else {
+            for (const auto &[treatment, value] : hs071_obj) {
+                if (std::abs(value - reference) / std::abs(reference) >= 1e-6) {
+                    out.push_back(fmt::format(
+                        "hs071_x1_fixed/{} reached a different objective than MakeParameter",
+                        treatment));
+                }
+            }
+        }
+    }
+    return out;
+}
+
+std::string join_violations(const std::vector<std::string> &v) {
+    std::string out;
+    for (const std::string &line : v) {
+        out += "\n  " + line;
+    }
+    return out;
+}
+
+// Writes `path` with the committed artifact's header and provenance and the
+// given data rows, so a probe can state exactly the artifact it is testing.
+void write_probe_artifact(const std::string &path, const std::vector<std::string> &data_rows) {
+    const std::vector<std::string> src =
+        runner_test::read_lines(std::string(HVEN_SQP_INTERIOR_BASELINE_CSV));
+    std::ofstream out(path);
+    ASSERT_TRUE(out.is_open()) << path;
+    for (const std::string &line : src) {
+        out << line << "\n";
+        if (!line.empty() && line.rfind("cell_id,", 0) == 0) {
+            break;
+        }
+    }
+    for (const std::string &row : data_rows) {
+        out << row << "\n";
+    }
+    out.close();
+    ASSERT_FALSE(out.fail()) << path;
+}
+
+// The committed artifact's data rows, in file order.
+std::vector<std::string> committed_data_rows() {
+    return runner_test::data_rows(std::string(HVEN_SQP_INTERIOR_BASELINE_CSV));
+}
+
 } // namespace interior_test
 
 TEST(CorpusCells, InteriorBaselineRescoresOffline) {
     const std::string csv = std::string(HVEN_SQP_INTERIOR_BASELINE_CSV);
-    const auto rows = interior_test::read_interior_csv(csv);
-    ASSERT_FALSE(rows.empty());
+    const interior_test::Artifact art = interior_test::read_interior_csv(csv);
+    ASSERT_EQ(art.rows.size(), 33u) << "eleven cells x three fixed-variable treatments";
+    const std::vector<std::string> violations = interior_test::interior_artifact_violations(art);
+    EXPECT_TRUE(violations.empty()) << interior_test::join_violations(violations);
+}
 
-    for (const auto &r : rows) {
-        SCOPED_TRACE(r.at("cell_id"));
-        // The leg writes hven::ConvergenceFlags' own spellings
-        // (crossover_legs.h::flag_string), not the SqpStatus names.
-        EXPECT_TRUE(r.at("status") == "CONVERGED" || r.at("status") == "ACCEPTABLE");
-        const std::string treatment = r.at("fixed_treatment");
-        EXPECT_TRUE(treatment == "MakeParameter" || treatment == "MakeConstraint" ||
-                    treatment == "RelaxBounds");
-        // The key is unique per row, and it is the cell joined to the treatment.
-        EXPECT_EQ(r.at("cell_id"), interior_test::cell_of(r) + "/" + treatment);
-    }
+// The two probes below are NEGATIVE: they state a broken artifact and require
+// the check above to reject it. Without them the check can only report that a
+// well-formed artifact is well-formed.
 
-    // The fixed-variable cell is the one the leg exists for: no F7 cell has a
-    // bound-fixed variable, so it is the only cell whose three treatments take
-    // three different paths. All three must converge to the same objective.
-    std::map<std::string, double> hs071_obj;
-    for (const auto &r : rows) {
-        if (interior_test::cell_of(r) != "hs071_x1_fixed") {
-            continue;
+TEST(CorpusCells, InteriorArtifactCheckRejectsAnIncompleteArtifact) {
+    // The three fixed-variable rows alone: every F7 cell silently absent.
+    std::vector<std::string> rows;
+    for (const std::string &row : interior_test::committed_data_rows()) {
+        if (row.rfind("hs071_x1_fixed/", 0) == 0) {
+            rows.push_back(row);
         }
-        EXPECT_EQ(r.at("status"), "CONVERGED") << r.at("cell_id");
-        hs071_obj[r.at("fixed_treatment")] = std::stod(r.at("obj_val"));
     }
-    ASSERT_EQ(hs071_obj.size(), 3u) << "all three hs071_x1_fixed treatments must be present";
-    const double reference = hs071_obj.at("MakeParameter");
-    ASSERT_GT(std::abs(reference), 0.0);
-    for (const auto &[treatment, value] : hs071_obj) {
-        EXPECT_LT(std::abs(value - reference) / std::abs(reference), 1e-6)
-            << treatment << " reached a different objective than MakeParameter";
-    }
+    ASSERT_EQ(rows.size(), 3u);
+    const std::string path = runner_test::temp_path("interior_probe_incomplete.csv");
+    interior_test::write_probe_artifact(path, rows);
+
+    const std::vector<std::string> violations =
+        interior_test::interior_artifact_violations(interior_test::read_interior_csv(path));
+    EXPECT_EQ(violations.size(), 30u) << interior_test::join_violations(violations);
+    EXPECT_NE(interior_test::join_violations(violations)
+                  .find("missing row key 'f7_n1000_bound_neutral/MakeParameter'"),
+              std::string::npos);
+    std::remove(path.c_str());
+}
+
+TEST(CorpusCells, InteriorArtifactCheckRejectsDuplicateAndMalformedRows) {
+    // (a) a repeated key -- the shape the replay comparator would silently
+    //     collapse to one row.
+    std::vector<std::string> rows = interior_test::committed_data_rows();
+    ASSERT_EQ(rows.size(), 33u);
+    rows.push_back(rows.front());
+    const std::string dup = runner_test::temp_path("interior_probe_duplicate.csv");
+    interior_test::write_probe_artifact(dup, rows);
+    const std::vector<std::string> dup_violations =
+        interior_test::interior_artifact_violations(interior_test::read_interior_csv(dup));
+    ASSERT_FALSE(dup_violations.empty());
+    EXPECT_NE(interior_test::join_violations(dup_violations).find("appears 2 times"),
+              std::string::npos)
+        << interior_test::join_violations(dup_violations);
+    std::remove(dup.c_str());
+
+    // (b) a truncated record -- read as a malformed artifact, never skipped.
+    std::vector<std::string> truncated = interior_test::committed_data_rows();
+    truncated.back() = "hs071_x1_fixed/RelaxBounds,hs,4,none";
+    const std::string bad = runner_test::temp_path("interior_probe_malformed.csv");
+    interior_test::write_probe_artifact(bad, truncated);
+    const std::vector<std::string> bad_violations =
+        interior_test::interior_artifact_violations(interior_test::read_interior_csv(bad));
+    ASSERT_FALSE(bad_violations.empty());
+    EXPECT_NE(interior_test::join_violations(bad_violations).find("4 fields, expected 19"),
+              std::string::npos)
+        << interior_test::join_violations(bad_violations);
+    std::remove(bad.c_str());
 }
 
 TEST(CorpusBaseline, TheCommittedWalkBaselineScoresToItsDocumentedVerdict) {

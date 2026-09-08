@@ -147,9 +147,11 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
     }
 
     NLPSolver ipm(problem);
-    // Both counts BEFORE the lay and the first solve, and both explicit: the
-    // partition count is adopted at transcribe() and the thread count reaches
-    // the backend at every solve entry.
+    // Both explicit, before the first solve. The thread count reaches the
+    // backend at every solve entry; the partition count reaches no layout
+    // through this path -- make_nlp_program constructs NonLinearProgram(1)
+    // unconditionally (src/model/nlp_adapter.cpp) -- and is set and recorded so
+    // the artifact states what was asked for.
     ipm.set_num_partitions(levers.num_partitions);
     ipm.optimizer_->set_qp_threads(levers.qp_threads);
     ipm.optimizer_->set_print_level(levers.print_level);
@@ -216,6 +218,10 @@ InteriorRow run_interior_hs071(FixedVariableTreatments treatment, const Interior
                                 hs071_fixed_start(), treatment, levers);
 }
 
+std::string interior_row_key(const InteriorRow &row) {
+    return fmt::format("{}/{}", row.cell_id, row.fixed_treatment);
+}
+
 std::string interior_csv_header() {
     return "cell_id,family,n_nodes,window,taxonomy,status,iter_num,obj_val,kkt_inf,barr_inf,"
            "econ_inf,icon_inf,factorizations,solves,analyses,soc_steps,watchdog_activations,"
@@ -223,13 +229,12 @@ std::string interior_csv_header() {
 }
 
 std::string interior_csv_row(const InteriorRow &row) {
-    return fmt::format("{}/{},{},{},{},{},{},{},{:.9e},{:.9e},{:.9e},{:.9e},{:.9e},{},{},{},{},{},"
+    return fmt::format("{},{},{},{},{},{},{},{:.9e},{:.9e},{:.9e},{:.9e},{:.9e},{},{},{},{},{},"
                        "{},{:.9f}\n",
-                       row.cell_id, row.fixed_treatment, row.family, row.n_nodes, row.window,
-                       row.taxonomy, row.status, row.iter_num, row.obj_val, row.kkt_inf,
-                       row.barr_inf, row.econ_inf, row.icon_inf, row.factorizations, row.solves,
-                       row.analyses, row.soc_steps, row.watchdog_activations, row.fixed_treatment,
-                       row.wall_s);
+                       interior_row_key(row), row.family, row.n_nodes, row.window, row.taxonomy,
+                       row.status, row.iter_num, row.obj_val, row.kkt_inf, row.barr_inf,
+                       row.econ_inf, row.icon_inf, row.factorizations, row.solves, row.analyses,
+                       row.soc_steps, row.watchdog_activations, row.fixed_treatment, row.wall_s);
 }
 
 } // namespace hven::solvers::corpus

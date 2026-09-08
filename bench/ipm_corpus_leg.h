@@ -10,10 +10,10 @@
 // bound-fixed-variable cell, under all three fixed-variable treatments.
 //
 // Determinism, and what the two-capture gate is a gate on: the leg pins the
-// evaluation partition count and the backend thread count explicitly
-// (InteriorLevers below), because NLPSolver's own defaults are functions of
-// the box's core count and the backend one is a thread-local MKL override
-// that MKL_NUM_THREADS does not reach.
+// backend thread count explicitly (InteriorLevers below), because NLPSolver's
+// default is a function of the box's core count and reaches MKL as a
+// thread-local override that MKL_NUM_THREADS does not touch. It pins the
+// partition count too, which through this path reaches no layout.
 //
 // Counters are the asserted currency (CLAUDE.md §7); `wall_s` is
 // informational and is the one column the replay comparator excludes.
@@ -48,7 +48,9 @@ struct InteriorLevers {
     /// Backend thread count, set explicitly rather than left at NLPSolver's
     /// core-count default; the default reaches MKL as a thread-local override.
     int qp_threads = 1;
-    /// Evaluation partition count, adopted at the lay, so set before transcribe().
+    /// Evaluation partition count. Set on the wrapper and recorded, but it
+    /// reaches no layout through this path: make_nlp_program constructs
+    /// NonLinearProgram(1) unconditionally (src/model/nlp_adapter.cpp).
     int num_partitions = 1;
     /// Widening RelaxBounds applies to a fixed pair; a zero factor is refused
     /// under that treatment (non_linear_program.h).
@@ -146,6 +148,12 @@ InteriorRow run_interior_cell(const CorpusCell &cell, FixedVariableTreatments tr
 /// @param levers    The knobs above.
 /// @return The finished row.
 InteriorRow run_interior_hs071(FixedVariableTreatments treatment, const InteriorLevers &levers);
+
+/// @brief The row's key: the cell id joined to the treatment by a slash.
+///
+/// The replay comparator keys on the first CSV column and keeps only the last of
+/// a repeated key, so this value must be unique across an artifact.
+std::string interior_row_key(const InteriorRow &row);
 
 /// @brief The leg's CSV column header, newline terminated.
 std::string interior_csv_header();
