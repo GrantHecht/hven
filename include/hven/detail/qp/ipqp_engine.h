@@ -632,9 +632,13 @@ class IpqpEscapeLadder {
     /// @throws std::invalid_argument if `major <= 0` -- a marker of 0 means "never retired".
     bool record(const IpqpResult &result, Index major);
 
-    /// Record one tier outcome whose ladder classification the caller has made --
-    /// see `IpqpLadderOutcome` for the one case where it differs. Same contract
-    /// otherwise.
+    /// @brief Record one tier outcome whose ladder classification the caller has
+    ///        made -- see `IpqpLadderOutcome` for the one case where it differs.
+    ///
+    /// Same contract as the `IpqpResult` overload otherwise.
+    ///
+    /// @param outcome the caller's own ladder classification.
+    /// @param major   the SQP major this outcome was observed at (1-based).
     /// @return true iff the tier is retired for the remainder of this solve.
     /// @throws std::invalid_argument if `major <= 0`.
     bool record(IpqpLadderOutcome outcome, Index major);
@@ -673,23 +677,35 @@ class IpqpEscapeLadder {
 IpqpBox make_ipqp_box(const QpProblem &qp, double radius);
 
 /// @brief Derive the tier's effective bounds and its domain verdict from a box.
+/// @param box the box `make_ipqp_box` built.
+/// @return the effective bounds, carrying the domain verdict.
 IpqpBounds make_ipqp_bounds(const IpqpBox &box);
 
 /// @brief Resolve one call's trust-region radius exactly as `solve()` does.
 ///
 /// Exposed for the routing chain, for the same reason `make_ipqp_box` is: the driver
-/// runs the domain gate BEFORE entering the tier and the box is a function of the RESOLVED
-/// radius, so two resolutions of the +inf sentinel could disagree. One implementation.
+/// runs the domain gate before entering the tier and the box is a function of the
+/// resolved radius, so two resolutions of the +inf sentinel could disagree.
+///
+/// @param opts      the engine's own options.
+/// @param overrides this call's overrides.
+/// @return the effective radius; +inf disables the window exactly.
 double ipqp_effective_tr_radius(const QpOptions &opts, const SolveOverrides &overrides);
 
 /// @brief The tier's stopping rule as a predicate on a residual block.
 ///
-/// Exposed for the routing chain. Section 2.3 must tell a solve that CONVERGED and
-/// then had its certificate refused by the factorization budget from one the ITERATION CAP
-/// stopped mid-descent: the first belongs at the tier-3 refinement, the second at the walk.
+/// Exposed for the routing chain. Section 2.3 must tell a solve that converged and
+/// then had its certificate refused by the factorization budget from one the
+/// iteration cap stopped mid-descent: the first belongs at the tier-3 refinement,
+/// the second at the walk.
 ///
-/// `solve()`'s own stopping rule IS this call, so the answer here is the same
+/// `solve()`'s own stopping rule is this call, so the answer here is the same
 /// answer the engine acted on.
+///
+/// @param residuals the residual block to test.
+/// @param opts      the engine's own options, for the target tolerances.
+/// @param iopts     the tier's settings, for `ipqp_converge_slack`.
+/// @return true iff the block meets the tier's stopping target.
 bool ipqp_residuals_meet_target(const IpqpResiduals &residuals, const QpOptions &opts,
                                 const IpqpOptions &iopts);
 

@@ -659,9 +659,12 @@ class InteriorPointSolver {
         /// control-flow decision in factor_impl.
         Eigen::ComputationInfo last_kkt_info_ = Eigen::Success;
 
-        /// Resets the accumulated timing/iteration counters, the convergence flag,
-        /// last_kkt_info_, the four terminal KKT residuals (to NaN), the
-        /// SOC/watchdog/recovery counters and every last_* diagnostic. primals_,
+        /// @brief Resets the accumulated timing/iteration counters, the
+        ///        convergence flag, last_kkt_info_, the four terminal KKT
+        ///        residuals (to NaN), the SOC/watchdog/recovery counters and
+        ///        every last_* diagnostic.
+        ///
+        /// primals_,
         /// obj_val_ and fixed_variable_treatment_ are overwritten unconditionally
         /// per phase or per call instead; the four constraint-indexed blocks are
         /// emptied at solve entry and then written only when the current problem
@@ -784,6 +787,8 @@ class InteriorPointSolver {
     /// cross-call question. Moves once per set_nlp() and once per solve entry
     /// that finds the structures re-laid since the last analysis; release()
     /// returns it to zero.
+    ///
+    /// @return The lifetime analysis count.
     Index kkt_analysis_count() const noexcept { return kkt_analysis_count_; }
 
     /// @brief The KKT factor's linear-layer call counters, including the
@@ -1078,6 +1083,9 @@ class InteriorPointSolver {
     /// and its three multiplier blocks are divided back out before they leave,
     /// and a seed handed to set_initial_multipliers() is multiplied in on the
     /// way through, so both boundaries speak the caller's convention.
+    ///
+    /// @param scale Finite and strictly positive.
+    /// @throws std::invalid_argument if scale is not finite or is not > 0.
     void set_obj_scale(double scale);
 
     /// @brief Sets Settings::qp_ord_, the backend's fill-reducing ordering.
@@ -1180,9 +1188,12 @@ class InteriorPointSolver {
     // --- Machine trace (schema v0) ---
     /// @brief Attaches a trace sink; `nullptr` (the default) is off.
     ///
-    /// THE SINK IS BORROWED and must outlive every solve made while it is
+    /// The sink is borrowed and must outlive every solve made while it is
     /// attached. Every emit site null-checks, and an unattached solve builds no
     /// event and does no census.
+    ///
+    /// @param sink The sink to attach, or `nullptr` to detach. Borrowed, not
+    ///             owned.
     void attach_trace(TraceSink *sink);
 
     // --- Constraint-multiplier seeding ---
@@ -1422,6 +1433,8 @@ class InteriorPointSolver {
     ///        call is not verifying throughout, kVerify otherwise.
     ///
     /// One epoch read per factorization in place of one full-KKT pattern hash.
+    ///
+    /// @return kAssumeAnalyzed or kVerify.
     KktFactorization::PatternCheck kkt_pattern_check() const;
 
     /// @brief Empties the four constraint-indexed result blocks -- the equality

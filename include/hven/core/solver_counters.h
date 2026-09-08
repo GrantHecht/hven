@@ -395,9 +395,13 @@ inline bool counter_absent_at_zero(Index v) { return v == 0; }
 
 /// @brief Are the offsets strictly increasing across a table's entries?
 ///
-/// The count assert cannot see a REORDER: a field inserted mid-struct whose
+/// The count assert cannot see a reorder: a field inserted mid-struct whose
 /// `X()` entry is appended at the tail keeps the count right and silently emits
 /// a JSON key order that is no longer declaration order.
+///
+/// @param offsets The table's member offsets, in table order.
+/// @param count   How many entries `offsets` holds.
+/// @return True iff every offset exceeds the one before it.
 constexpr bool counters_offsets_increase(const std::size_t *offsets, std::size_t count) {
     for (std::size_t i = 1; i < count; ++i) {
         if (!(offsets[i] > offsets[i - 1])) {

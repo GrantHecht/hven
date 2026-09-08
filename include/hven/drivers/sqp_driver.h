@@ -700,22 +700,39 @@ class SqpDriver {
     void capture_completed_warm_start(const SqpSolution &out, const AggregateEvalSeam &seam,
                                       const NlpModelAggregate &bridge);
 
-    // `minor_budget` <= 0 means NO BUDGET -- the 4-argument solve() carries the
-    // contract. Every model quantity this loop reads arrives through `seam`;
-    // `bridge` rides alongside only because the restoration phase builds a
-    // different NlpModel around the model behind it.
-    /// @brief The solve, WRAPPED: validates the arguments, writes
+    /// @brief The solve, wrapped: validates the arguments, writes
     ///        `sqp.solve.begin`, runs the body, writes `sqp.solve.end` from the
     ///        result, and returns it.
     ///
     /// Validation precedes `begin`, so a refused call writes nothing at all; an
     /// exception from the body skips the `end` emit by construction.
+    ///
+    /// @param seam         Every model quantity this loop reads arrives through
+    ///                     it.
+    /// @param bridge       Rides alongside `seam` because the restoration phase
+    ///                     builds a different NlpModel around the model behind
+    ///                     it.
+    /// @param x0           The start point.
+    /// @param warm         The ingested warm start.
+    /// @param minor_budget `<= 0` means no budget; the 4-argument `solve()`
+    ///                     carries that contract.
+    /// @return The assembled solution.
     SqpSolution solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,
                            const WarmStart &warm, Index minor_budget);
 
     /// @brief The major loop itself, entered only with validated arguments and
-    /// the strategy its caller built. Nothing here emits the whole-solve
-    /// events.
+    ///        the strategy its caller built.
+    ///
+    /// Nothing here emits the whole-solve events.
+    ///
+    /// @param seam         The solve's evaluation seam.
+    /// @param bridge       The model bridge the restoration phase rebuilds
+    ///                     around.
+    /// @param x0           The start point.
+    /// @param warm         The ingested warm start.
+    /// @param minor_budget `<= 0` means no budget.
+    /// @param strategy     The globalization strategy, consumed.
+    /// @return The assembled solution.
     SqpSolution solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,
                                 const WarmStart &warm, Index minor_budget,
                                 std::unique_ptr<GlobalizationStrategy> strategy);
@@ -728,8 +745,14 @@ class SqpDriver {
 
     /// @brief The pre-loop setup.
     ///
-    /// Initialises `st` IN PLACE -- it never returns state, because the bundle
-    /// holds a pointer into itself -- and it consumes `strategy`.
+    /// Initialises `st` in place -- it never returns state, because the bundle
+    /// holds a pointer into itself.
+    ///
+    /// @param st       The solve-scope state, written in place.
+    /// @param seam     The solve's evaluation seam.
+    /// @param x0       The start point.
+    /// @param warm     The ingested warm start.
+    /// @param strategy The globalization strategy, consumed.
     void prepare_solve(SolveState &st, AggregateEvalSeam &seam, const Vec &x0,
                        const WarmStart &warm, std::unique_ptr<GlobalizationStrategy> strategy);
 
@@ -744,9 +767,15 @@ class SqpDriver {
     /// writes `mj.qs` or hands the subproblem to the walk. It emits its own
     /// `qp.mode` line before returning, and it owns the deferred face
     /// refinement's single producer and both of its consumers.
+    ///
+    /// @param st The solve-scope state.
+    /// @param mj This major's routing bundle; `mj.qs` is written on a usable
+    ///           SSN exit.
     void route_through_ssn_tier(SolveState &st, MajorState &mj);
 
     /// @brief The kIpm dispatch arm -- the interior-point routing chain.
+    /// @param st              The solve-scope state.
+    /// @param mj              This major's routing bundle.
     /// @param seam            The evaluation seam, for the symbolic hoist's epoch.
     /// @param iter            This major's index, for the trace and the escape
     ///                        ladder.
@@ -761,12 +790,19 @@ class SqpDriver {
     void route_through_ipqp_tier(SolveState &st, MajorState &mj, AggregateEvalSeam &seam,
                                  Index iter, bool tr_shrink_retry, const SolveOverrides &overrides);
 
-    /// @brief The walk invocation -- the ONE shared successor of the dispatch,
+    /// @brief The walk invocation -- the one shared successor of the dispatch,
     ///        reached from the kWalk arm, an IPQP retirement, an IPQP domain
     ///        decline, or an SSN hand-off.
     ///
     /// Not the elastic ladder's walk, which runs inside the kIpm arm with
     /// `walk_owns_this_qp` false and stays there.
+    ///
+    /// @param st        The solve-scope state.
+    /// @param mj        This major's routing bundle; `mj.qs` is written here.
+    /// @param warm      The ingested warm start.
+    /// @param overrides The caller's own walk levers.
+    /// @param offer_hot True to offer the retained hot handle to the walk.
+    /// @param use_crash True to seed the first working set from the crash basis.
     void solve_with_walk(SolveState &st, MajorState &mj, const WarmStart &warm,
                          const SolveOverrides &overrides, bool offer_hot, bool use_crash);
 
@@ -831,19 +867,37 @@ class SqpDriver {
 
     /// @brief The restoration phase.
     ///
-    /// The requesting row is pushed by the CALLER, after this returns, at all
+    /// The requesting row is pushed by the caller, after this returns, at all
     /// four call sites: `row.restoration_seed_used` is set inside and must be in
     /// the row that is emitted.
+    ///
+    /// @param st     The solve-scope state.
+    /// @param mj     This major's routing bundle.
+    /// @param seam   The solve's evaluation seam.
+    /// @param bridge The model bridge the sub-solve's NlpModel is built around.
+    /// @param iter   This major's index.
+    /// @param cand   The point to restore from, and its values-only bundle when
+    ///               the site has already measured it.
+    /// @return What the phase decided.
     RestorationOutcome enter_restoration(SolveState &st, MajorState &mj, AggregateEvalSeam &seam,
                                          NlpModelAggregate &bridge, Index iter,
                                          RestorationCandidate cand = {nullptr, nullptr});
 
-    /// @brief ONE MAJOR: the KKT measurement of the iterate it starts at, through
-    ///        to the history row it emits.
+    /// @brief One major: the KKT measurement of the iterate it starts at,
+    ///        through to the history row it emits.
     ///
     /// Holds all ten push sites, and every one of them returns its `MajorOutcome`
     /// from inside this function, so no caller-side effect ever precedes the
     /// return. The terminal check is the caller's.
+    ///
+    /// @param st           The solve-scope state.
+    /// @param mj           This major's routing bundle.
+    /// @param seam         The solve's evaluation seam.
+    /// @param bridge       The model bridge.
+    /// @param warm         The ingested warm start.
+    /// @param minor_budget `<= 0` means no budget.
+    /// @param iter         This major's index.
+    /// @return What this major decided.
     MajorOutcome run_major(SolveState &st, MajorState &mj, AggregateEvalSeam &seam,
                            NlpModelAggregate &bridge, const WarmStart &warm, Index minor_budget,
                            Index iter);
@@ -908,10 +962,22 @@ class SqpDriver {
     /// @brief Builds the WarmStart every exit of solve_impl attaches to
     ///        SqpSolution::warm_start.
     ///
-    /// `activity` is the best-known QpSolution whose activity still describes the
-    /// point being returned, or nullptr. `qp_built` false with a non-null
-    /// `probe_ev`/`probe_x` pays one extra eval_hess to hash a probe subproblem
-    /// at the exit point; a null `probe_ev` emits a cold object instead.
+    /// @param seam              The solve's evaluation seam.
+    /// @param activity          The best-known QpSolution whose activity still
+    ///                          describes the point being returned, or nullptr.
+    /// @param qp                The subproblem the activity belongs to.
+    /// @param qp_built          False with a non-null `probe_ev`/`probe_x` pays
+    ///                          one extra eval_hess to hash a probe subproblem
+    ///                          at the exit point.
+    /// @param probe_ev          The probe evaluation, or nullptr to emit a cold
+    ///                          object instead.
+    /// @param probe_x           The point the probe is taken at.
+    /// @param delta             The trust-region radius to record.
+    /// @param dual_mu_eff       The effective dual regularization.
+    /// @param primal_delta_eff  The effective primal regularization.
+    /// @param strategy          The globalization strategy, read for its state.
+    /// @param hot               The hot handle to carry, if any.
+    /// @return The warm start to attach to `SqpSolution::warm_start`.
     /// @see docs/notes/2026-09-header-prose-archive.md §sqp_driver.h
     static WarmStart make_warm_start(AggregateEvalSeam &seam, const QpSolution *activity,
                                      const QpProblem &qp, bool qp_built, const NlpEval *probe_ev,
@@ -923,9 +989,18 @@ class SqpDriver {
     ///        multipliers, KKT record, f, warm start -- and maps every exported
     ///        quantity back to the caller's units when the solve ran scaled.
     /// @param seam The solve's evaluation seam; carries the installed factors.
-    /// @param multipliers_are_caller_scale True ONLY at the restoration exit that
+    /// @param out      The partially assembled solution, consumed.
+    /// @param status   The exit status to report.
+    /// @param x        The iterate to report.
+    /// @param lambda_e The equality multipliers to report.
+    /// @param lambda_i The inequality multipliers to report.
+    /// @param kkt      The KKT record to report.
+    /// @param f        The objective value to report.
+    /// @param warm     The warm start to attach, consumed.
+    /// @param multipliers_are_caller_scale True only at the restoration exit that
     ///        adopts the sub-solve's own multipliers and bound prices, which are
     ///        already in the caller's units; every other exit leaves it false.
+    /// @return The finished solution.
     SqpSolution finish(AggregateEvalSeam &seam, SqpSolution out, SqpStatus status, const Vec &x,
                        const Vec &lambda_e, const Vec &lambda_i, const SqpKkt &kkt, double f,
                        WarmStart warm, bool multipliers_are_caller_scale = false);

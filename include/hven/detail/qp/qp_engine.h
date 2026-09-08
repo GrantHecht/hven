@@ -1186,6 +1186,28 @@ class QpEngine {
     /// elastic seed, the refusal return and the restoration trial read the
     /// refined point on either path; "closed" is the classifier's own tolerance
     /// and nothing tighter; duals are not refined.
+    ///
+    /// @param qp            The subproblem.
+    /// @param ws            The live working set, which must still match the one
+    ///                      `face` captured for the reuse path to be taken.
+    /// @param x             The candidate, overwritten iff the refinement is
+    ///                      adopted.
+    /// @param Aix           `Ai * x` at the candidate.
+    /// @param ai_row_norm1  Row 1-norms of `Ai`, for the row-unit target.
+    /// @param lambda_i      The inequality multipliers at the candidate.
+    /// @param ae_row_norm1  Row 1-norms of `Ae`, for the row-unit target.
+    /// @param lambda_e      The equality multipliers at the candidate.
+    /// @param kkt           The factor the candidate came off, reused when
+    ///                      `face` holds.
+    /// @param face          The captured elimination partition and working rows.
+    /// @param counters      Charged one `factorizations` and one
+    ///                      `symbolic_analyses` on a miss, and neither on a hit.
+    /// @param opts          The effective options; `(primal_delta, dual_mu)` are
+    ///                      fixed across one iteration.
+    /// @return True iff the refined point was adopted.
+    /// @throws std::runtime_error propagated from `factorize_checked` on a miss,
+    ///         and from the hit branch's `solve_vec`; the attempted
+    ///         factorization stays charged.
     bool refine_eliminated_face_for_verdict(const QpProblem &qp, const WorkingSet &ws, Vec &x,
                                             const Vec &Aix, const Vec &ai_row_norm1,
                                             const Vec &lambda_i, const Vec &ae_row_norm1,
