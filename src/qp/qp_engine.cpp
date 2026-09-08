@@ -31,6 +31,8 @@
 // a counter delta here is a FAILED CARVE, to be reverted or redrawn, never a
 // re-derivation.
 
+#include <bit>
+
 #include <hven/detail/qp/qp_engine.h>
 
 namespace hven::solvers {
@@ -64,6 +66,38 @@ QpSolution QpEngine::solve(const QpProblem &qp, const QpSolution &seed,
     return run(qp, &seed, true, overrides, hot);
 }
 
+std::uint64_t options_fingerprint(const QpOptions &opts, int threads) {
+    // splitmix64's finalizer as the mixer: a FIELD-WISE fold, never a byte hash
+    // over the struct, so padding bytes cannot make two equal values disagree.
+    const auto mix = [](std::uint64_t x) {
+        x += 0x9e3779b97f4a7c15ULL;
+        x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
+        x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+        return x ^ (x >> 31);
+    };
+    std::uint64_t h = 0xcbf29ce484222325ULL;
+    const auto fold = [&](std::uint64_t v) { h = mix(h ^ mix(v)); };
+    const auto fold_double = [&](double d) { fold(std::bit_cast<std::uint64_t>(d)); };
+
+    // EVERY field of QpOptions, in declaration order. A field added there and
+    // not folded here is a hole in the hot-handle reuse gate -- see the contract
+    // in qp_types.h, and the field-coverage pin in tests/drivers/test_options.cpp
+    // that flips each one alone and requires the hash to move.
+    fold_double(opts.primal_delta);
+    fold_double(opts.dual_mu);
+    fold_double(opts.feas_tol);
+    fold_double(opts.opt_tol);
+    fold(static_cast<std::uint64_t>(opts.max_iter));
+    fold(static_cast<std::uint64_t>(opts.schur_cap));
+    fold_double(opts.schur_cond_max);
+    fold(static_cast<std::uint64_t>(opts.ws_algebra));
+    fold_double(opts.tr_radius);
+    // And the thread count in force, which is not a QpOptions field but IS part
+    // of what a factorization was built under.
+    fold(static_cast<std::uint64_t>(static_cast<std::int64_t>(threads)));
+    return h;
+}
+
 std::shared_ptr<const HotState> QpEngine::hot_state() const {
     if (!border_valid_) {
         return nullptr;
@@ -71,7 +105,7 @@ std::shared_ptr<const HotState> QpEngine::hot_state() const {
     return std::make_shared<const HotState>(
         HotState{border_, border_structural_hash_, border_values_hash_, border_effective_delta_,
                  border_effective_mu_, border_exit_bound_state_, border_exit_active_ineq_,
-                 border_kkt_session_id_, border_kkt_epoch_});
+                 border_kkt_session_id_, border_kkt_epoch_, options_hash_});
 }
 
 bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
@@ -295,7 +329,19 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // fields: it is what lets condition (e) tell whether the OBJECT
     // `border_` now points at still carries the numerics this identity
     // describes, not merely whether the PROBLEM still looks the same.
+    //
+    // THE OPTIONS FINGERPRINT IS A FOURTH ADOPTION CONJUNCT (M6 W5 T8.3).
+    // Conditions (a)-(e) below fingerprint the PROBLEM and the FACTOR OBJECT and
+    // never the ENGINE OPTIONS the K0 was built under, so an engine with a
+    // different schur_cap, ws_algebra or regularization would otherwise adopt a
+    // matching handle and reuse a factorization built for other settings.
+    // Equality is required BEFORE prev_border_valid is snapshotted below, so a
+    // refused handle leaves prev_border_valid false, reuse_eligible false,
+    // k0_reused 0, and the DETACH branch unreached because nothing was adopted.
+    // "kWarm by construction" is exact: the values and the working set still
+    // come from `seed`, which is independent of `hot`.
     if (!border_valid_ && hot != nullptr && hot->border != nullptr &&
+        hot->engine_options_hash == options_hash_ &&
         opts_.ws_algebra == WorkingSetLinearAlgebra::kSchurBorder) {
         border_ = hot->border;
         border_structural_hash_ = hot->structural_hash;

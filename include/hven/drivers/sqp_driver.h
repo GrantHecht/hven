@@ -534,7 +534,7 @@ class SqpDriver {
     // The restoration phase's own driver is constructed through here with
     // restoration disabled, which bounds the recursion at one level.
     SqpDriver(const SqpOptions &opts, bool allow_restoration)
-        : opts_(opts), engine_(std::make_unique<QpEngine>(opts.qp)),
+        : opts_(opts), engine_(std::make_unique<QpEngine>(opts.qp, opts.common.threads)),
           allow_restoration_(allow_restoration) {
         validate_sqp_options(opts_);
     }

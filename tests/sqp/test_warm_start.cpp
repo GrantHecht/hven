@@ -651,6 +651,166 @@ TEST(WarmStart, HotReusesFactorization) {
     EXPECT_EQ(sol2.status, SqpStatus::kOptimal);
 }
 
+// ===========================================================================
+// M6 W5 T8.3: THE HOT HANDLE IS KEYED ON THE PRODUCING ENGINE'S OPTIONS
+// FINGERPRINT, NOT ON ITS IDENTITY.
+//
+// `QpEngine::run` adopts a handle only when its OWN border cache is invalid, so
+// a driver's second solve is kHot through that cache and never consults the
+// handle at all. Cross-engine adoption is therefore what the handle IS -- which
+// is why the key cannot be a per-instance id: that would refuse every adoption
+// and retire HotReusesFactorization above. The key is
+// `options_fingerprint(QpOptions, threads)` (qp_types.h), stamped into
+// `HotState::engine_options_hash` by `hot_state()` and required equal by the
+// adoption gate.
+//
+// The four pins below are written on a FRESH consumer driver for that reason --
+// on the producing driver the handle is never consulted, so nothing about it
+// could be observed there.
+// ===========================================================================
+
+// (i) A REBUILD AT IDENTICAL OPTIONS STILL ADOPTS. `set_options` has no
+// "unchanged" fast path -- it rebuilds the QpEngine unconditionally -- and that
+// rebuild must not cost the reuse: it is the same factor object, built under the
+// same settings. Refusing it would buy nothing and cost a factorization.
+TEST(WarmStart, AnIdenticalOptionsRebuildStillAdoptsAHotHandle) {
+    const double a = 1e-3;
+    SqpOptions opts;
+    opts.adaptive_mu = false;
+    opts.start_level = StartLevel::kHot;
+
+    ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
+    SqpDriver driver1(opts);
+    const SqpSolution sol1 = driver1.solve(producer);
+    ASSERT_EQ(sol1.status, SqpStatus::kOptimal);
+    ASSERT_NE(sol1.warm_start.hot, nullptr);
+
+    ScaledRowModel consumer(a, /*lo=*/1.0, Vec::Zero(2));
+    SqpDriver driver2(opts);
+    driver2.set_options(driver2.options()); // the whole value back, unchanged
+
+    const SqpSolution sol2 = driver2.solve(consumer, consumer.start_point(), sol1.warm_start);
+    ASSERT_FALSE(sol2.history.empty());
+    ASSERT_TRUE(sol2.history[0].qp_solved);
+    EXPECT_EQ(sol2.history[0].qp_factorizations, 0)
+        << "an identical-options rebuild must still adopt the producer's K0 -- THE PIN";
+    EXPECT_EQ(sol2.counters.start_level_used, StartLevel::kHot);
+    EXPECT_EQ(sol2.status, SqpStatus::kOptimal);
+
+    // And whatever the handle did, this driver's NEXT solve is kHot through its
+    // OWN border cache, which the first solve left valid. That is not evidence
+    // about the handle and is stated here so the pin above is not read as if it
+    // were.
+    const SqpSolution sol3 = driver2.solve(consumer, consumer.start_point(), sol2.warm_start);
+    EXPECT_EQ(sol3.status, SqpStatus::kOptimal);
+    EXPECT_EQ(sol3.counters.start_level_used, StartLevel::kHot);
+}
+
+// (ii) A CHANGED QP OPTION REFUSES THE HANDLE -> kWarm BY CONSTRUCTION. The
+// refusal happens at the adoption gate, before `prev_border_valid` is
+// snapshotted, so nothing is adopted, `k0_reused` is false and the DETACH branch
+// is never reached. The values and the working set still come from `seed`, which
+// is independent of `hot` -- so the solve is a real warm start, not a cold one.
+//
+// `schur_cap` is the field moved because it changes the FINGERPRINT without
+// changing this two-variable problem's trajectory: the border stack never
+// reaches 128 entries here, let alone 129.
+TEST(WarmStart, AChangedQpOptionRefusesAHotHandle) {
+    const double a = 1e-3;
+    SqpOptions opts;
+    opts.adaptive_mu = false;
+    opts.start_level = StartLevel::kHot;
+
+    ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
+    SqpDriver driver1(opts);
+    const SqpSolution sol1 = driver1.solve(producer);
+    ASSERT_EQ(sol1.status, SqpStatus::kOptimal);
+    ASSERT_NE(sol1.warm_start.hot, nullptr);
+
+    ScaledRowModel consumer(a, /*lo=*/1.0, Vec::Zero(2));
+    SqpDriver driver2(opts);
+    SqpOptions changed = driver2.options();
+    changed.qp.schur_cap = opts.qp.schur_cap + 1;
+    driver2.set_options(std::move(changed));
+
+    const SqpSolution sol2 = driver2.solve(consumer, consumer.start_point(), sol1.warm_start);
+    ASSERT_FALSE(sol2.history.empty());
+    ASSERT_TRUE(sol2.history[0].qp_solved);
+    EXPECT_GE(sol2.history[0].qp_factorizations, 1)
+        << "a handle produced under different QP options must not be adopted -- THE PIN";
+    EXPECT_EQ(sol2.counters.start_level_used, StartLevel::kWarm);
+    EXPECT_EQ(sol2.status, SqpStatus::kOptimal);
+}
+
+// (iii) A CHANGED THREAD COUNT REFUSES THE HANDLE, on the same terms.
+//
+// `common.threads` is CARRIED AND NOT APPLIED by this engine in T8.3 -- T8.8 is
+// where a non-zero count starts reaching every factor path. It is hashed from
+// T8.3 anyway, deliberately, so that what this pin means does not change when
+// T8.8 lands: a factorization built at one thread count is not a factorization
+// built at another, whether or not this version of the engine acts on the
+// number.
+TEST(WarmStart, AChangedThreadCountRefusesAHotHandle) {
+    const double a = 1e-3;
+    SqpOptions opts;
+    opts.adaptive_mu = false;
+    opts.start_level = StartLevel::kHot;
+
+    ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
+    SqpDriver driver1(opts);
+    const SqpSolution sol1 = driver1.solve(producer);
+    ASSERT_EQ(sol1.status, SqpStatus::kOptimal);
+    ASSERT_NE(sol1.warm_start.hot, nullptr);
+
+    ScaledRowModel consumer(a, /*lo=*/1.0, Vec::Zero(2));
+    SqpDriver driver2(opts);
+    SqpOptions changed = driver2.options();
+    ASSERT_EQ(changed.common.threads, 0) << "the SQP engine's shipped default";
+    changed.common.threads = 1;
+    driver2.set_options(std::move(changed));
+
+    const SqpSolution sol2 = driver2.solve(consumer, consumer.start_point(), sol1.warm_start);
+    ASSERT_FALSE(sol2.history.empty());
+    ASSERT_TRUE(sol2.history[0].qp_solved);
+    EXPECT_GE(sol2.history[0].qp_factorizations, 1)
+        << "a handle produced at a different thread count must not be adopted -- THE PIN";
+    EXPECT_EQ(sol2.counters.start_level_used, StartLevel::kWarm);
+    EXPECT_EQ(sol2.status, SqpStatus::kOptimal);
+}
+
+// (iv) A FAILED REPLACEMENT LEAVES REUSE INTACT. `set_options` is transactional:
+// a value validate() refuses leaves the previous options AND the previous engine
+// in force, so the engine that goes on to meet the handle is the one whose
+// fingerprint matches it.
+TEST(WarmStart, AFailedOptionReplacementLeavesHotReuseIntact) {
+    const double a = 1e-3;
+    SqpOptions opts;
+    opts.adaptive_mu = false;
+    opts.start_level = StartLevel::kHot;
+
+    ScaledRowModel producer(a, /*lo=*/1.5, Vec::Zero(2));
+    SqpDriver driver1(opts);
+    const SqpSolution sol1 = driver1.solve(producer);
+    ASSERT_EQ(sol1.status, SqpStatus::kOptimal);
+    ASSERT_NE(sol1.warm_start.hot, nullptr);
+
+    ScaledRowModel consumer(a, /*lo=*/1.0, Vec::Zero(2));
+    SqpDriver driver2(opts);
+    SqpOptions bad = driver2.options();
+    bad.qp.schur_cap = opts.qp.schur_cap + 1; // would have refused the handle
+    bad.max_iter = -1;                        // but the value is rejected first
+    EXPECT_THROW(driver2.set_options(bad), std::invalid_argument);
+    EXPECT_EQ(driver2.options().qp.schur_cap, opts.qp.schur_cap);
+
+    const SqpSolution sol2 = driver2.solve(consumer, consumer.start_point(), sol1.warm_start);
+    ASSERT_FALSE(sol2.history.empty());
+    ASSERT_TRUE(sol2.history[0].qp_solved);
+    EXPECT_EQ(sol2.history[0].qp_factorizations, 0)
+        << "the refused replacement must not have reached the engine -- THE PIN";
+    EXPECT_EQ(sol2.counters.start_level_used, StartLevel::kHot);
+    EXPECT_EQ(sol2.status, SqpStatus::kOptimal);
+}
+
 // Bitwise comparison of two doubles, the idiom the R6 pins share: the bit
 // patterns, not `==`. See the call site below for why.
 void expect_same_bits(double a, double b, const std::string &what) {

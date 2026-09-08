@@ -1023,3 +1023,60 @@ One test-visible change beyond the pins: `tests/sqp/test_qp_mode_sites.cpp`'s
 shape matcher now accepts `->refine_on_face(` as well as `.refine_on_face(`. The
 `unique_ptr` moved four call lines to the arrow spelling and the scan lost them;
 its own ">= 10 kernel call sites" floor probe is what caught it.
+
+### Hot-handle reuse is now keyed on the producing engine's options
+
+**What changed.** `HotState` (the opaque payload behind `WarmStart::hot`) gains
+one field, `std::uint64_t engine_options_hash`, and `QpEngine::run` adopts a
+handle only when that stamp equals the adopting engine's own. The stamp is
+`hven::solvers::options_fingerprint(const QpOptions &, int threads)` — a
+field-wise hash over **all nine** `QpOptions` fields (`primal_delta`, `dual_mu`,
+`feas_tol`, `opt_tol`, `max_iter`, `schur_cap`, `schur_cond_max`, `ws_algebra`,
+`tr_radius`) plus the thread count in force. It is padding-safe (a field-wise
+fold, never a byte hash) and hashes doubles by bit pattern.
+
+**Why.** The existing reuse conditions (a)–(e) fingerprint the PROBLEM (the
+structural and value hashes, the effective delta/mu, the working set) and the
+FACTOR OBJECT (its `(session_id, epoch)` pair and its usable inertia). None of
+them fingerprints the ENGINE OPTIONS the K0 was built under, so an engine with a
+different `schur_cap`, `ws_algebra` or regularization would adopt a matching
+handle and reuse a factorization built for other settings. That was a real hole
+before this task; it is closed now.
+
+**What it does NOT do.** It is not a per-instance key. Cross-engine adoption is
+what the hot handle is FOR — `run()` consults a handle only when its own border
+cache is invalid, so a driver's own second solve is kHot through that cache and
+never looks at the handle at all. A fresh engine with the same options adopts a
+foreign handle exactly as it always did, and every existing kHot pin
+(`WarmStart.HotReusesFactorization`, `HotReuseIsNeverAnswerObservable`,
+`LedgerFactorizationsSavedTracksHotVsDegradedWarm`, the poisoned-handle control,
+`QpWarmStart.HotStateEmitsCommittedIdentityNotLive`) stands unchanged.
+
+**What you may notice.** After `SqpDriver::set_options()`:
+
+| replacement | the old handle |
+|---|---|
+| identical options | still adopted — kHot |
+| any changed `qp` field | refused — kWarm by construction |
+| changed `common.threads` | refused — kWarm by construction |
+| a replacement that threw | never happened; the previous engine still adopts |
+
+"kWarm by construction" is exact rather than a degradation: the refusal happens
+at the adoption gate, before the reuse bookkeeping is snapshotted, so nothing was
+adopted, `k0_reused` reads false and the DETACH branch is not reached. The values
+and the working set still come from `seed`, which is independent of `hot`.
+
+`common.threads` is hashed **from T8.3 although this engine carries rather than
+applies the count until T8.8** — deliberately, so that a pin written against it
+now means the same thing after T8.8 lands.
+
+`QpEngine`'s constructor gains a defaulted second parameter,
+`explicit QpEngine(const QpOptions &opts, int threads = 0)`, so every existing
+construction site keeps compiling and keeps hashing the `0` the SQP lane has
+always passed. `QpEngine::num_threads()` reports it.
+
+Pinned in `tests/sqp/test_warm_start.cpp` (four new tests beside the kHot chain:
+identical-options rebuild still adopts, changed `qp` refuses, changed
+`common.threads` refuses, a failed replacement leaves reuse intact) and in
+`tests/drivers/test_options.cpp` (the fingerprint is stable, and each of the nine
+fields plus the thread count moves it when flipped alone).

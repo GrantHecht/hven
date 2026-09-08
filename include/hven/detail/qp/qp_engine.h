@@ -804,12 +804,39 @@ struct HotState {
     // naming triple. Reuse condition (e) -- see QpEngine::run().
     std::uint64_t kkt_session_id = 0;
     std::uint64_t kkt_epoch = 0;
+
+    // The OPTIONS FINGERPRINT of the engine that emitted this handle:
+    // options_fingerprint(opts_, threads) over every field of its QpOptions plus
+    // the thread count in force (qp_types.h). DISTINCT FROM kkt_session_id
+    // above, which names the FACTOR SESSION; this one names the SETTINGS the K0
+    // was built under, which conditions (a)-(e) never look at.
+    //
+    // run() adopts a handle only when this equals the adopting engine's own
+    // fingerprint. A rebuilt engine with changed QP or thread options therefore
+    // refuses the handle and resolves kWarm by construction -- the values and
+    // the working set still come from `seed`, which is independent of `hot`. An
+    // identical-options rebuild adopts: it is the same factor object built under
+    // the same settings, and refusing it would buy nothing and cost a
+    // factorization. A FRESH engine with the same options adopts, which is what
+    // every cross-engine kHot pin in the tree relies on (M6 W5 T8.3).
+    std::uint64_t engine_options_hash = 0;
 };
 
 class QpEngine {
   public:
-    explicit QpEngine(const QpOptions &opts)
-        : opts_(opts), border_(std::make_shared<BorderState>()) {}
+    // `threads` is the thread count in force for this engine's factor paths --
+    // SqpDriver passes SqpOptions::common.threads. This engine CARRIES it
+    // rather than applying it until M6 W5 T8.8; what it is used for today is
+    // the options fingerprint a hot handle is keyed on (qp_types.h's
+    // options_fingerprint), so a pin written against it now means the same
+    // thing after T8.8. Defaulted so every existing construction site keeps
+    // compiling and keeps hashing the 0 the SQP lane has always passed.
+    explicit QpEngine(const QpOptions &opts, int threads = 0)
+        : opts_(opts), threads_(threads), options_hash_(options_fingerprint(opts, threads)),
+          border_(std::make_shared<BorderState>()) {}
+
+    // The thread count this engine was built with; see the constructor.
+    int num_threads() const noexcept { return threads_; }
 
     // Attach a ledger for instrumentation (nullptr = off, default off).
     // Emits one SolveRecord per solve() call with the given label prefix
@@ -1500,6 +1527,13 @@ class QpEngine {
     Ledger *ledger_ = nullptr;
     std::string label_prefix_;
     mutable Index solve_counter_ = 0;
+    // The thread count in force, and the options fingerprint derived from it and
+    // from opts_ at construction. Both are FROZEN for this engine's lifetime --
+    // opts_ is, so the hash over it is too, and a changed option means a new
+    // engine (SqpDriver::set_options rebuilds). Computed once here rather than
+    // per solve because run()'s adoption gate reads it on every call.
+    int threads_ = 0;
+    std::uint64_t options_hash_ = 0;
 
     // HOT-START REUSE state (border mode only; see the header contract).
     // border_ persists across solve() calls -- constructed once, in this

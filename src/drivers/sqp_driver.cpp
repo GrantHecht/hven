@@ -1516,7 +1516,7 @@ void SqpDriver::set_options(SqpOptions o) {
     // (2) BUILD THE REPLACEMENT INTO A TEMPORARY. A throw here -- QpEngine's
     // constructor allocates a BorderState -- leaves the live engine and the live
     // options exactly as they were.
-    auto fresh = std::make_unique<QpEngine>(o.qp);
+    auto fresh = std::make_unique<QpEngine>(o.qp, o.common.threads);
     if (ledger_ != nullptr) {
         fresh->attach_ledger(ledger_, label_prefix_ + "_qp");
         // The record labels are a per-DRIVER sequence. Carrying the counter is

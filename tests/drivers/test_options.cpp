@@ -34,6 +34,7 @@
 #include "hven/drivers/sqp_driver.h"
 #include "hven/drivers/sqp_types.h"
 #include "hven/model/nlp_solver.h"
+#include "hven/qp/qp_types.h"
 
 #include "sqp/support/hs_problems.h"
 
@@ -557,4 +558,49 @@ TEST(Options, SqpSetOptionsDuringASolveThrowsLogicError) {
     after.max_iter = 11;
     EXPECT_NO_THROW(d.set_options(std::move(after)));
     EXPECT_EQ(d.options().max_iter, 11);
+}
+
+// ---------------------------------------------------------------------------
+// The hot-handle options fingerprint (M6 W5 T8.3)
+// ---------------------------------------------------------------------------
+
+// EVERY field of QpOptions, plus the thread count, must move the hash. A field
+// left out is a hole in the hot-handle reuse gate: an engine built under one
+// value would adopt a K0 factorized under another. This test flips each of the
+// nine fields ALONE from a default value and requires the fingerprint to move;
+// add a field to QpOptions and this test is where the omission surfaces.
+TEST(Options, TheOptionsFingerprintCoversEveryQpOptionsField) {
+    using hven::solvers::options_fingerprint;
+    using hven::solvers::QpOptions;
+    using hven::solvers::WorkingSetLinearAlgebra;
+
+    const QpOptions base;
+    const std::uint64_t h0 = options_fingerprint(base, 0);
+
+    // Stable: the same value hashes the same, every time and from an
+    // independently constructed struct.
+    EXPECT_EQ(options_fingerprint(base, 0), h0);
+    EXPECT_EQ(options_fingerprint(QpOptions{}, 0), h0);
+
+    const auto moved = [&](auto edit) {
+        QpOptions o = base;
+        edit(o);
+        return options_fingerprint(o, 0) != h0;
+    };
+    EXPECT_TRUE(moved([](QpOptions &o) { o.primal_delta *= 2.0; })) << "primal_delta";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.dual_mu *= 2.0; })) << "dual_mu";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.feas_tol *= 2.0; })) << "feas_tol";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.opt_tol *= 2.0; })) << "opt_tol";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.max_iter += 1; })) << "max_iter";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.schur_cap += 1; })) << "schur_cap";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.schur_cond_max *= 2.0; })) << "schur_cond_max";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.ws_algebra = WorkingSetLinearAlgebra::kRefactorize; }))
+        << "ws_algebra";
+    EXPECT_TRUE(moved([](QpOptions &o) { o.tr_radius = 1.0; })) << "tr_radius";
+
+    // And the thread count, which is not a QpOptions field but IS part of what a
+    // factorization was built under. Carried and not applied by the SQP engine
+    // until T8.8; hashed from T8.3 so this pin's meaning does not change then.
+    EXPECT_NE(options_fingerprint(base, 1), h0) << "threads";
+    EXPECT_NE(options_fingerprint(base, 2), options_fingerprint(base, 1)) << "threads";
 }
