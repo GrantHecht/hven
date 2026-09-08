@@ -303,11 +303,11 @@ TEST(IpmTrace, IterCountEqualsTheReportedIterationsAndTheCallbackInvocations) {
     solver.optimizer_->attach_trace(&sink);
     solver.optimizer_->set_late_callback(oracle.hook());
 
-    const hven::ConvergenceFlags flag = solver.optimize(hs071_start());
-    ASSERT_EQ(flag, hven::ConvergenceFlags::CONVERGED);
+    const hven::solvers::SolveStatus flag = solver.optimize(hs071_start());
+    ASSERT_EQ(flag, hven::solvers::SolveStatus::kOptimal);
 
     const std::vector<std::string> iter_lines = lines_of_event(os.str(), "ipm.iter");
-    const Index reported = solver.optimizer_->result().iter_num_;
+    const Index reported = solver.result().iterations;
     ASSERT_GT(reported, 1);
     EXPECT_EQ(static_cast<Index>(iter_lines.size()), reported);
     EXPECT_EQ(oracle.seen.size(), iter_lines.size());
@@ -325,7 +325,7 @@ TEST(IpmTrace, EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder) {
     CallbackOracle oracle;
     solver.optimizer_->attach_trace(&sink);
     solver.optimizer_->set_late_callback(oracle.hook());
-    ASSERT_EQ(solver.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
 
     const std::vector<std::string> iter_lines = lines_of_event(os.str(), "ipm.iter");
     ASSERT_EQ(iter_lines.size(), oracle.seen.size());
@@ -356,7 +356,7 @@ TEST(IpmTrace, TheLastIterLineEqualsTheLastRecordTheCallbackSaw) {
     CallbackOracle oracle;
     solver.optimizer_->attach_trace(&sink);
     solver.optimizer_->set_late_callback(oracle.hook());
-    ASSERT_EQ(solver.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
 
     const std::vector<std::string> iter_lines = lines_of_event(os.str(), "ipm.iter");
     ASSERT_FALSE(iter_lines.empty());
@@ -376,7 +376,7 @@ TEST(IpmTrace, TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProxima
     std::ostringstream os_classic;
     JsonLinesTraceSink sink_classic(os_classic);
     classic.optimizer_->attach_trace(&sink_classic);
-    ASSERT_EQ(classic.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(classic.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
     for (const std::string &l : lines_of_event(os_classic.str(), "ipm.iter")) {
         EXPECT_EQ(field(l, "prox_reg_primal"), "null");
         EXPECT_EQ(field(l, "prox_reg_dual"), "null");
@@ -444,7 +444,7 @@ TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolve
     std::ostringstream os_c;
     JsonLinesTraceSink sink_c(os_c);
     converged.optimizer_->attach_trace(&sink_c);
-    ASSERT_EQ(converged.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(converged.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
     const std::vector<std::string> c_lines = lines_of_event(os_c.str(), "ipm.iter");
     ASSERT_GT(c_lines.size(), 1u);
 
@@ -469,7 +469,7 @@ TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolve
     std::ostringstream os_t;
     JsonLinesTraceSink sink_t(os_t);
     truncated.optimizer_->attach_trace(&sink_t);
-    ASSERT_EQ(truncated.optimize(hs071_start()), hven::ConvergenceFlags::NOTCONVERGED);
+    ASSERT_EQ(truncated.optimize(hs071_start()), hven::solvers::SolveStatus::kMaxIter);
     const std::vector<std::string> t_lines = lines_of_event(os_t.str(), "ipm.iter");
     // THE CONTROL that makes the signature above mean something: a solve that
     // runs out of iterations never reaches site 1, so no line matches -- the
@@ -496,7 +496,7 @@ TEST(IpmTrace, ThePerturbedPivotCountIsTheBackendsOwnAndNeverAFabricatedZero) {
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     solver.optimizer_->attach_trace(&sink);
-    ASSERT_EQ(solver.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
 
     const std::vector<std::string> iter_lines = lines_of_event(os.str(), "ipm.iter");
     ASSERT_GT(iter_lines.size(), 1u);
@@ -539,7 +539,7 @@ TEST(IpmTrace, SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine) {
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     solver.optimizer_->attach_trace(&sink);
-    ASSERT_EQ(solver.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
 
     const std::vector<std::string> all = split_lines(os.str());
     ASSERT_GE(all.size(), 3u);
@@ -563,7 +563,7 @@ TEST(IpmTrace, SolveBeginCarriesHs071sDimensionsCensusAndSettings) {
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     solver.optimizer_->attach_trace(&sink);
-    ASSERT_EQ(solver.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
 
     const std::vector<std::string> begin = lines_of_event(os.str(), "ipm.solve.begin");
     ASSERT_EQ(begin.size(), 1u);
@@ -637,12 +637,15 @@ TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {
     std::ostringstream os_c;
     JsonLinesTraceSink sink_c(os_c);
     converged.optimizer_->attach_trace(&sink_c);
-    ASSERT_EQ(converged.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(converged.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
     const std::vector<std::string> end_c = lines_of_event(os_c.str(), "ipm.solve.end");
     ASSERT_EQ(end_c.size(), 1u);
-    EXPECT_EQ(field(end_c.front(), "status"), "\"converged\"");
-    EXPECT_EQ(field(end_c.front(), "iters"),
-              std::to_string(converged.optimizer_->result().iter_num_));
+    // THE VOCABULARY MOVED IN M6 W5 T8.4, declared: the event carries SolveStatus
+    // now (the engine's own ConvergenceFlags is gone), so `converged` reads
+    // `optimal` and `not_converged` reads `max_iter` -- or `stalled` at the two
+    // abnormal exits the old vocabulary could not tell apart at all.
+    EXPECT_EQ(field(end_c.front(), "status"), "\"optimal\"");
+    EXPECT_EQ(field(end_c.front(), "iters"), std::to_string(converged.result().iterations));
 
     NLPSolver truncated(std::make_shared<Hs071Problem>());
     {
@@ -654,10 +657,10 @@ TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {
     std::ostringstream os_t;
     JsonLinesTraceSink sink_t(os_t);
     truncated.optimizer_->attach_trace(&sink_t);
-    ASSERT_EQ(truncated.optimize(hs071_start()), hven::ConvergenceFlags::NOTCONVERGED);
+    ASSERT_EQ(truncated.optimize(hs071_start()), hven::solvers::SolveStatus::kMaxIter);
     const std::vector<std::string> end_t = lines_of_event(os_t.str(), "ipm.solve.end");
     ASSERT_EQ(end_t.size(), 1u);
-    EXPECT_EQ(field(end_t.front(), "status"), "\"not_converged\"");
+    EXPECT_EQ(field(end_t.front(), "status"), "\"max_iter\"");
     EXPECT_EQ(field(end_t.front(), "iters"), "3");
 }
 
@@ -676,7 +679,7 @@ TEST(IpmTrace, ARefusedCallWritesNoLineAtAll) {
     solver.optimizer_->attach_trace(&sink);
     Eigen::VectorXd wrong(3);
     wrong << 1.0, 1.0, 1.0;
-    EXPECT_THROW((void)solver.optimizer_->optimize(wrong), std::invalid_argument);
+    EXPECT_THROW((void)solver.optimizer_->solve(*solver.nlp_, wrong), std::invalid_argument);
     EXPECT_EQ(os.str(), "");
     EXPECT_EQ(sink.lines_written(), 0);
     EXPECT_EQ(sink.depth(), 0);
@@ -693,14 +696,14 @@ TEST(IpmTrace, AttachingASinkMovesNoResultField) {
         o.common.print_level = 10;
         bare.optimizer_->set_options(std::move(o));
     }
-    const hven::ConvergenceFlags bare_flag = bare.optimize(hs071_start());
-    const InteriorPointSolver::SolveResult &b = bare.optimizer_->result();
-    const int bare_iters = b.iter_num_;
-    const double bare_obj = b.obj_val_;
-    const double bare_kkt = b.kkt_inf_;
-    const double bare_barr = b.barr_inf_;
-    const double bare_econ = b.econ_inf_;
-    const double bare_icon = b.icon_inf_;
+    const hven::solvers::SolveStatus bare_flag = bare.optimize(hs071_start());
+    const hven::solvers::IpmResult &b = bare.result();
+    const int bare_iters = b.iterations;
+    const double bare_obj = b.f;
+    const double bare_kkt = b.kkt_inf;
+    const double bare_barr = b.barr_inf;
+    const double bare_econ = b.econ_inf;
+    const double bare_icon = b.icon_inf;
     const Eigen::VectorXd bare_x = bare.return_x();
 
     NLPSolver traced(std::make_shared<Hs071Problem>());
@@ -712,16 +715,16 @@ TEST(IpmTrace, AttachingASinkMovesNoResultField) {
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     traced.optimizer_->attach_trace(&sink);
-    const hven::ConvergenceFlags traced_flag = traced.optimize(hs071_start());
-    const InteriorPointSolver::SolveResult &t = traced.optimizer_->result();
+    const hven::solvers::SolveStatus traced_flag = traced.optimize(hs071_start());
+    const hven::solvers::IpmResult &t = traced.result();
 
     EXPECT_EQ(traced_flag, bare_flag);
-    EXPECT_EQ(t.iter_num_, bare_iters);
-    EXPECT_EQ(t.obj_val_, bare_obj);
-    EXPECT_EQ(t.kkt_inf_, bare_kkt);
-    EXPECT_EQ(t.barr_inf_, bare_barr);
-    EXPECT_EQ(t.econ_inf_, bare_econ);
-    EXPECT_EQ(t.icon_inf_, bare_icon);
+    EXPECT_EQ(t.iterations, bare_iters);
+    EXPECT_EQ(t.f, bare_obj);
+    EXPECT_EQ(t.kkt_inf, bare_kkt);
+    EXPECT_EQ(t.barr_inf, bare_barr);
+    EXPECT_EQ(t.econ_inf, bare_econ);
+    EXPECT_EQ(t.icon_inf, bare_icon);
     EXPECT_EQ(traced.return_x(), bare_x);
     // NON-VACUITY: the sink really did run.
     EXPECT_GT(sink.lines_written(), 2);
@@ -737,12 +740,12 @@ TEST(IpmTrace, DetachingMidLifetimeStopsTheStreamAndChangesNothingElse) {
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     solver.optimizer_->attach_trace(&sink);
-    ASSERT_EQ(solver.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
     const Index first = sink.lines_written();
     ASSERT_GT(first, 0);
 
     solver.optimizer_->attach_trace(nullptr);
-    ASSERT_EQ(solver.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(sink.lines_written(), first);
 }
 
@@ -771,7 +774,7 @@ TEST(IpmTrace, SeqIsContiguousAcrossAnSqpSolveThenAnIpmSolveOnOneSinkAtDepthZero
         solver.optimizer_->set_options(std::move(o));
     }
     solver.optimizer_->attach_trace(&sink);
-    ASSERT_EQ(solver.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
     EXPECT_GT(sink.lines_written(), after_sqp);
 
     const std::vector<std::string> all = split_lines(os.str());

@@ -116,7 +116,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveMatchesUnseededSolution) {
         o.common.print_level = 10;
         unseeded.optimizer_->set_options(std::move(o));
     }
-    ASSERT_EQ(unseeded.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(unseeded.optimize(x0), hven::solvers::SolveStatus::kOptimal);
 
     NLPSolver seeded(std::make_shared<SeededSeedHs071Problem>());
     {
@@ -124,7 +124,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveMatchesUnseededSolution) {
         o.common.print_level = 10;
         seeded.optimizer_->set_options(std::move(o));
     }
-    ASSERT_EQ(seeded.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(seeded.optimize(x0), hven::solvers::SolveStatus::kOptimal);
 
     EXPECT_LT((seeded.return_x() - unseeded.return_x()).lpNorm<Eigen::Infinity>(), 1e-6);
 }
@@ -207,14 +207,15 @@ TEST(NLPMultiplierSeedingTest, SeedSizeMismatchThrowsAndIsConsumed) {
     // reconfiguration and before the entry init_impl/factorization -- earlier
     // than the original install-site throw, but still inside this one
     // optimize() call either way.
-    EXPECT_THROW(solver.optimizer_->optimize(x0), std::invalid_argument);
+    EXPECT_THROW((void)solver.optimizer_->solve(*solver.nlp_, x0), std::invalid_argument);
 
     // The bad staging must have been consumed (cleared) on the throw path --
     // a second, unseeded optimize() call must converge normally rather than
     // re-throwing or silently reusing the stale bad seed.
     EXPECT_FALSE(solver.optimizer_->mults_staged_);
-    Eigen::VectorXd x = solver.optimizer_->optimize(x0);
-    ASSERT_EQ(solver.optimizer_->result().converge_flag_, hven::ConvergenceFlags::CONVERGED);
+    const hven::solvers::IpmResult r2 = solver.optimizer_->solve(*solver.nlp_, x0);
+    const Eigen::VectorXd &x = r2.x;
+    ASSERT_EQ(r2.status, hven::solvers::SolveStatus::kOptimal);
     Eigen::VectorXd expect(2);
     expect << 1.0, 1.0;
     EXPECT_LT((x - expect).lpNorm<Eigen::Infinity>(), 1e-6);
@@ -288,7 +289,7 @@ TEST(NLPMultiplierSeedingTest, NegativeIqSeedIsClamped) {
     }
     Eigen::VectorXd x0(1);
     x0 << 3.0;
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     EXPECT_NEAR(solver.return_x()[0], 1.0, 1e-5);
 }
 
@@ -302,7 +303,7 @@ TEST(NLPMultiplierSeedingTest, UnseededPathDoesNotConsultStaging) {
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
 
     EXPECT_FALSE(solver.optimizer_->mults_staged_);
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     EXPECT_FALSE(solver.optimizer_->mults_staged_);
 }
 
@@ -362,7 +363,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
                 }
                 return 0;
             });
-        ASSERT_EQ(solver.solve_optimize(x0), hven::ConvergenceFlags::CONVERGED);
+        ASSERT_EQ(solver.solve_optimize(x0), hven::solvers::SolveStatus::kOptimal);
     }
     ASSERT_FALSE(std::isnan(unseeded_opt_entry_eq_mult));
 
@@ -383,7 +384,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
                 }
                 return 0;
             });
-        ASSERT_EQ(solver.solve_optimize(x0), hven::ConvergenceFlags::CONVERGED);
+        ASSERT_EQ(solver.solve_optimize(x0), hven::solvers::SolveStatus::kOptimal);
     }
 
     EXPECT_DOUBLE_EQ(unseeded_opt_entry_eq_mult, -2.0); // InteriorPointSolver's own correct answer
@@ -462,7 +463,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveWithMakeConstraintFixedVarConverges) {
         solver.optimizer_->set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     Eigen::VectorXd x = solver.return_x();
     EXPECT_NEAR(x[0], 1.0, 1e-6);
     EXPECT_NEAR(x[1], 1.0, 1e-6);
@@ -492,7 +493,7 @@ TEST(NLPMultiplierSeedingTest, DecliningProblemClearsStaleStaging) {
     ASSERT_TRUE(solver.optimizer_->mults_staged_);
 
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     EXPECT_FALSE(solver.optimizer_->mults_staged_);
 
     Eigen::VectorXd x = solver.return_x();
@@ -522,7 +523,7 @@ TEST(NLPMultiplierSeedingTest, NaNSeedThrows) {
     // Probing InteriorPointSolver's own validation this way is also the point: it must
     // reject a non-finite seed even from a caller that bypasses NLPSolver's
     // allFinite() guard entirely.
-    EXPECT_THROW(solver.optimizer_->optimize(x0), std::invalid_argument);
+    EXPECT_THROW((void)solver.optimizer_->solve(*solver.nlp_, x0), std::invalid_argument);
     EXPECT_FALSE(solver.optimizer_->mults_staged_);
 }
 
@@ -560,7 +561,7 @@ TEST(NLPMultiplierSeedingTest, OversizedSeedIsCapped) {
         });
 
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     EXPECT_DOUBLE_EQ(captured_eq_mult, 1.0e6); // kSeededMultInitMax, not the raw 1e12 seed
 }
 
@@ -599,7 +600,7 @@ TEST(NLPMultiplierSeedingTest, OversizedIqSeedIsCapped) {
 
     Eigen::VectorXd x0(1);
     x0 << 3.0;
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     EXPECT_DOUBLE_EQ(captured_iq_mult, 1.0e6);
 }
 
@@ -619,16 +620,25 @@ TEST(NLPMultiplierSeedingTest, FixedVariableConstraintRowStaysOutOfTheReportedMu
         solver.optimizer_->set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
 
     Eigen::VectorXd x = solver.return_x();
     EXPECT_NEAR(x[0], 1.0, 1e-6);
     EXPECT_NEAR(x[1], 1.0, 1e-6);
 
-    // The engine really did add a row: the solver-space block is longer than
-    // the one row the problem declared, which is the branch under test.
+    // The engine really did add a row, and the row is REPORTED SEPARATELY
+    // (M6 W5 T8.4): the base's equality block is the DECLARED one exactly, and
+    // the treatment's own fixing row lands in internal_fixed_lambda_e. Before
+    // T8.4 the block handed to this class was the engine's, one row longer than
+    // the problem's, and this test asserted that length; the split is what
+    // makes the report below correct by construction rather than by a trim.
     ASSERT_EQ(solver.model_->me(), 1);
-    ASSERT_GT(solver.active_eq_lmults_.size(), solver.model_->me());
+    EXPECT_EQ(solver.active_eq_lmults_.size(), solver.model_->me());
+    ASSERT_EQ(solver.result().internal_fixed_lambda_e.size(), 1)
+        << "MakeConstraint must report the fixing row it added";
+    ASSERT_EQ(solver.result().internal_fixed_ce.size(), 1);
+    EXPECT_NEAR(solver.result().internal_fixed_ce[0], 0.0, 1e-9)
+        << "the fixing row x1 - 1 = 0 is satisfied at the solution";
 
     // ...and the report is in the problem's own row space, one entry, carrying
     // the multiplier of the problem's own row and not the engine's.

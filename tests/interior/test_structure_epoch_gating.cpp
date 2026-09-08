@@ -133,9 +133,9 @@ TEST(StructureEpochGating, APartitionRenegotiationBetweenSolvesForcesAFreshAnaly
     }
     const Eigen::VectorXd x0 = epoch_gate_start_point();
 
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     const Eigen::VectorXd first_x = solver.return_x();
-    const hven::Index analyses_after_first = solver.optimizer_->kkt_analysis_count();
+    const hven::Index analyses_after_first = solver.result().kkt_analyses_total;
     const hven::solvers::StructureEpoch epoch_after_first = solver.nlp_->structure_epoch();
 
     ASSERT_TRUE(epoch_gate_no_location_unset(*solver.nlp_))
@@ -160,9 +160,9 @@ TEST(StructureEpochGating, APartitionRenegotiationBetweenSolvesForcesAFreshAnaly
         solver.optimizer_->options().bound_relax_factor))
         << "the treatment call cannot see a re-lay it did not perform";
 
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
 
-    EXPECT_GT(solver.optimizer_->kkt_analysis_count(), analyses_after_first)
+    EXPECT_GT(solver.result().kkt_analyses_total, analyses_after_first)
         << "the moved epoch must have driven a fresh sparsity analysis";
     EXPECT_TRUE(epoch_gate_no_location_unset(*solver.nlp_))
         << "the fresh analysis must have refilled the location table";
@@ -187,18 +187,18 @@ TEST(StructureEpochGating, ASecondSolveAgainstUnmovedStructuresRunsNoFreshAnalys
     }
     const Eigen::VectorXd x0 = epoch_gate_start_point();
 
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     const Eigen::VectorXd first_x = solver.return_x();
-    const double first_obj = solver.optimizer_->result().obj_val_;
-    const Eigen::VectorXd first_eq = solver.optimizer_->result().eq_lmults_;
-    const hven::Index analyses_after_first = solver.optimizer_->kkt_analysis_count();
+    const double first_obj = solver.result().f;
+    const Eigen::VectorXd first_eq = solver.result().lambda_e;
+    const hven::Index analyses_after_first = solver.result().kkt_analyses_total;
     const hven::solvers::StructureEpoch epoch_after_first = solver.nlp_->structure_epoch();
 
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
 
     EXPECT_TRUE(solver.nlp_->structure_epoch() == epoch_after_first)
         << "a solve is not a structural event";
-    EXPECT_EQ(solver.optimizer_->kkt_analysis_count(), analyses_after_first)
+    EXPECT_EQ(solver.result().kkt_analyses_total, analyses_after_first)
         << "an unmoved epoch must not trigger a re-analysis";
 
     const Eigen::VectorXd second_x = solver.return_x();
@@ -206,10 +206,10 @@ TEST(StructureEpochGating, ASecondSolveAgainstUnmovedStructuresRunsNoFreshAnalys
     for (int i = 0; i < second_x.size(); i++) {
         EXPECT_DOUBLE_EQ(second_x[i], first_x[i]);
     }
-    EXPECT_DOUBLE_EQ(solver.optimizer_->result().obj_val_, first_obj);
-    ASSERT_EQ(solver.optimizer_->result().eq_lmults_.size(), first_eq.size());
+    EXPECT_DOUBLE_EQ(solver.result().f, first_obj);
+    ASSERT_EQ(solver.result().lambda_e.size(), first_eq.size());
     for (int i = 0; i < first_eq.size(); i++) {
-        EXPECT_DOUBLE_EQ(solver.optimizer_->result().eq_lmults_[i], first_eq[i]);
+        EXPECT_DOUBLE_EQ(solver.result().lambda_e[i], first_eq[i]);
     }
 }
 
@@ -225,9 +225,9 @@ TEST(StructureEpochGating, AWholeSolveRunsNoFullKktPatternHash) {
         solver.optimizer_->set_options(std::move(o));
     }
 
-    ASSERT_EQ(solver.optimize(epoch_gate_start_point()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(epoch_gate_start_point()), hven::solvers::SolveStatus::kOptimal);
 
-    const auto &counters = solver.optimizer_->kkt_factor_counters();
+    const auto &counters = solver.result().kkt_factor_counters;
     EXPECT_GT(counters.factorize_count, 0) << "the solve must have factorized something";
     EXPECT_EQ(counters.analyze_count, 1) << "one backend symbolic per analysis, and one analysis";
     EXPECT_EQ(counters.pattern_verify_count, 0)
@@ -248,17 +248,17 @@ TEST(StructureEpochGating, TheEpochStopsVouchingForThePatternAcrossARelay) {
     }
     const Eigen::VectorXd x0 = epoch_gate_start_point();
 
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
-    ASSERT_EQ(solver.optimizer_->kkt_factor_counters().pattern_verify_count, 0);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(solver.result().kkt_factor_counters.pattern_verify_count, 0);
 
     // Nothing re-analyzes here, so the solver is left holding an analysis whose
     // epoch has moved out from under it -- the state the gate has to notice.
     solver.nlp_->negotiate_partition_count(1);
-    EXPECT_FALSE(solver.optimizer_->kkt_pattern_is_analyzed())
+    EXPECT_FALSE(solver.optimizer_->kkt_pattern_is_analyzed(*solver.nlp_))
         << "a moved epoch must leave the buffer's pattern unvouched-for";
 
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
-    EXPECT_TRUE(solver.optimizer_->kkt_pattern_is_analyzed())
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
+    EXPECT_TRUE(solver.optimizer_->kkt_pattern_is_analyzed(*solver.nlp_))
         << "the solve-entry re-analysis re-establishes the epoch";
 }
 
@@ -284,13 +284,14 @@ TEST(StructureEpochGating, ASolveThatHandsOutTheKktMatrixVerifiesThePatternThrou
             return 0;
         });
 
-    ASSERT_EQ(with_callback.optimize(epoch_gate_start_point()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(with_callback.optimize(epoch_gate_start_point()),
+              hven::solvers::SolveStatus::kOptimal);
     ASSERT_GT(callback_calls, 0) << "the callback never ran, so nothing was handed out";
 
-    const auto &guarded = with_callback.optimizer_->kkt_factor_counters();
+    const auto &guarded = with_callback.result().kkt_factor_counters;
     EXPECT_GT(guarded.pattern_verify_count, 0)
         << "a call that hands the matrix out must re-derive the pattern it factorizes";
-    EXPECT_TRUE(with_callback.optimizer_->kkt_pattern_is_analyzed())
+    EXPECT_TRUE(with_callback.optimizer_->kkt_pattern_is_analyzed(*with_callback.nlp_))
         << "the epoch itself never moved -- what changed is whether it is taken as the answer";
 
     // The same problem with no callback installed keeps the skip, which is
@@ -302,8 +303,8 @@ TEST(StructureEpochGating, ASolveThatHandsOutTheKktMatrixVerifiesThePatternThrou
         without_callback.optimizer_->set_options(std::move(o));
     }
     ASSERT_EQ(without_callback.optimize(epoch_gate_start_point()),
-              hven::ConvergenceFlags::CONVERGED);
-    EXPECT_EQ(without_callback.optimizer_->kkt_factor_counters().pattern_verify_count, 0);
+              hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(without_callback.result().kkt_factor_counters.pattern_verify_count, 0);
 
     // The guard reads the matrix and decides whether to throw; it feeds
     // nothing into the factorization, so the two calls agree exactly.
@@ -336,13 +337,13 @@ TEST(StructureEpochGating, TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCa
             return 0;
         });
 
-    ASSERT_EQ(solver.optimize(epoch_gate_start_point()), hven::ConvergenceFlags::CONVERGED);
-    const auto counters_after_disarming = solver.optimizer_->kkt_factor_counters();
+    ASSERT_EQ(solver.optimize(epoch_gate_start_point()), hven::solvers::SolveStatus::kOptimal);
+    const auto counters_after_disarming = solver.result().kkt_factor_counters;
     EXPECT_GT(counters_after_disarming.pattern_verify_count, 0)
         << "the call that handed the matrix out verifies to its end";
 
-    ASSERT_EQ(solver.optimize(epoch_gate_start_point()), hven::ConvergenceFlags::CONVERGED);
-    EXPECT_EQ(solver.optimizer_->kkt_factor_counters().pattern_verify_count,
+    ASSERT_EQ(solver.optimize(epoch_gate_start_point()), hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(solver.result().kkt_factor_counters.pattern_verify_count,
               counters_after_disarming.pattern_verify_count)
         << "the next call has nothing installed, so it takes the skip again";
 }
@@ -382,12 +383,12 @@ TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifies
         return 0;
     });
 
-    ASSERT_EQ(solver.optimize(epoch_gate_start_point()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(epoch_gate_start_point()), hven::solvers::SolveStatus::kOptimal);
     ASSERT_TRUE(armed) << "the late callback never ran, so the early one was never armed";
     ASSERT_GT(early_callback_calls, 0)
         << "the mid-call-armed early callback never ran, so nothing was handed out";
 
-    EXPECT_GT(solver.optimizer_->kkt_factor_counters().pattern_verify_count, 0)
+    EXPECT_GT(solver.result().kkt_factor_counters.pattern_verify_count, 0)
         << "a hand-out armed mid-call, not just one armed at entry, must still force every "
            "factorization from that hand-out on to re-derive the pattern rather than assume it "
            "-- an early callback armed from inside the late callback used to run under the "
@@ -405,8 +406,8 @@ TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifies
     late_only.optimizer_->set_late_callback([](const hven::solvers::IterateInfo &,
                                                hven::ConstEigenRef<Eigen::VectorXd>,
                                                hven::ConstEigenRef<Eigen::VectorXd>) { return 0; });
-    ASSERT_EQ(late_only.optimize(epoch_gate_start_point()), hven::ConvergenceFlags::CONVERGED);
-    EXPECT_EQ(late_only.optimizer_->kkt_factor_counters().pattern_verify_count, 0)
+    ASSERT_EQ(late_only.optimize(epoch_gate_start_point()), hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(late_only.result().kkt_factor_counters.pattern_verify_count, 0)
         << "a late callback that never arms an early one never hands the matrix out, and must "
            "keep the skip throughout";
 }
@@ -469,7 +470,7 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
         }
         return 0;
     });
-    ASSERT_EQ(mutating.optimize(epoch_gate_start_point()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(mutating.optimize(epoch_gate_start_point()), hven::solvers::SolveStatus::kOptimal);
     ASSERT_TRUE(mutating_captured)
         << "the mutating run's late callback never reached a second iteration, so no "
            "iteration-0-step comparison point exists";
@@ -493,7 +494,7 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
         }
         return 0;
     });
-    ASSERT_EQ(control.optimize(epoch_gate_start_point()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(control.optimize(epoch_gate_start_point()), hven::solvers::SolveStatus::kOptimal);
     ASSERT_TRUE(control_captured)
         << "the control run's late callback never reached a second iteration, so no "
            "iteration-0-step comparison point exists";
@@ -510,9 +511,9 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
     // exactly as they say it must for a call that hands the matrix out --
     // every factorization from the first hand-out on re-derives the pattern
     // rather than trusting the epoch, value edit or not.
-    EXPECT_GT(mutating.optimizer_->kkt_factor_counters().pattern_verify_count, 0)
+    EXPECT_GT(mutating.result().kkt_factor_counters.pattern_verify_count, 0)
         << "a call that handed the matrix out must still re-derive the pattern it factorizes";
-    EXPECT_EQ(control.optimizer_->kkt_factor_counters().pattern_verify_count, 0)
+    EXPECT_EQ(control.result().kkt_factor_counters.pattern_verify_count, 0)
         << "the callback-free control run keeps the skip, isolating that the counter's movement "
            "above is the callback's doing and not something the problem itself triggers";
 }
@@ -679,7 +680,7 @@ TEST(EarlyCallbackViews, TheThreeVectorsAreTheModelsOwnNumbersAtThisIterationsEv
     });
 
     ASSERT_EQ(solver.optimize(Eigen::VectorXd::Constant(CallbackOracleProblem::kN, 0.0)),
-              hven::ConvergenceFlags::CONVERGED);
+              hven::solvers::SolveStatus::kOptimal);
     EXPECT_GT(early_calls, 0) << "the early callback never ran, so nothing was observed";
 }
 
@@ -719,7 +720,7 @@ TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
     });
 
     ASSERT_EQ(solver.optimize(Eigen::VectorXd::Constant(CallbackOracleProblem::kN, 0.0)),
-              hven::ConvergenceFlags::CONVERGED);
+              hven::solvers::SolveStatus::kOptimal);
     ASSERT_GE(early_xsl.size(), 2u) << "fewer than two iterations, so there is no clock to check";
     ASSERT_GE(late_xsl.size(), early_xsl.size());
 

@@ -165,12 +165,12 @@ TEST(ObjectiveScaleReporting, TheReportedObjectiveAndMultipliersDoNotMoveWithThe
         }
 
         const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6);
-        ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED) << "scale " << scale;
+        ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal) << "scale " << scale;
 
-        const auto &result = solver.optimizer_->result();
-        EXPECT_NEAR(result.obj_val_, 1.125, kObjScaleTol) << "scale " << scale;
-        ASSERT_EQ(result.eq_lmults_.size(), 1);
-        EXPECT_NEAR(result.eq_lmults_[0], -0.75, kObjScaleTol) << "scale " << scale;
+        const auto &result = solver.result();
+        EXPECT_NEAR(result.f, 1.125, kObjScaleTol) << "scale " << scale;
+        ASSERT_EQ(result.lambda_e.size(), 1);
+        EXPECT_NEAR(result.lambda_e[0], -0.75, kObjScaleTol) << "scale " << scale;
 
         // The control: the minimizer never depended on the scale, and still
         // does not.
@@ -191,13 +191,13 @@ TEST(ObjectiveScaleReporting, AnActiveBoundMultiplierDoesNotMoveWithTheScale) {
         }
 
         const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(ObjScaleActiveBoundProblem::kN, 0.6);
-        ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED) << "scale " << scale;
+        ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal) << "scale " << scale;
 
-        const auto &result = solver.optimizer_->result();
-        ASSERT_EQ(result.bound_lmults_.size(), ObjScaleActiveBoundProblem::kN);
+        const auto &result = solver.result();
+        ASSERT_EQ(result.z.size(), ObjScaleActiveBoundProblem::kN);
         // x0 sits on its lower bound, and the bound multiplier that holds it
         // there balances the objective gradient: 1.0 on the caller's scale.
-        EXPECT_NEAR(result.bound_lmults_[0], 1.0, kObjScaleTol) << "scale " << scale;
+        EXPECT_NEAR(result.z[0], 1.0, kObjScaleTol) << "scale " << scale;
         EXPECT_NEAR(solver.return_x()[0], 1.0, kObjScaleTol) << "scale " << scale;
     }
 }
@@ -233,7 +233,7 @@ double obj_scale_installed_seed(double scale) {
         });
 
     EXPECT_EQ(solver.optimize(Eigen::VectorXd::Constant(primal_vars, 0.6)),
-              hven::ConvergenceFlags::CONVERGED)
+              hven::solvers::SolveStatus::kOptimal)
         << "scale " << scale;
     EXPECT_TRUE(seen) << "the early callback never ran, so nothing was observed";
     return installed;
@@ -343,7 +343,7 @@ TEST(ObjectiveScaleReporting, ANegativeScaleIsRefusedByValidate) {
     // usable and still running at the scale it accepted.
     EXPECT_EQ(solver.optimizer_->options().obj_scale, 2.0);
     const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6);
-    EXPECT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
 }
 
 // The reported constraint blocks describe the problem the call just solved,
@@ -360,32 +360,33 @@ TEST(ObjectiveScaleReporting, AnUnconstrainedCallReportsNoConstraintBlocks) {
     }
 
     ASSERT_EQ(solver.optimize(Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6)),
-              hven::ConvergenceFlags::CONVERGED);
-    ASSERT_EQ(solver.optimizer_->result().eq_lmults_.size(), 1);
-    const double constrained_eq = solver.optimizer_->result().eq_lmults_[0];
+              hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(solver.result().lambda_e.size(), 1);
+    const double constrained_eq = solver.result().lambda_e[0];
     EXPECT_NEAR(constrained_eq, -0.75, kObjScaleTol);
 
     // The SAME engine, at the same scale, pointed at a program with no
     // constraint rows at all.
     NLPSolver unconstrained(std::make_shared<ObjScaleUnconstrainedProblem>());
     unconstrained.transcribe();
-    solver.optimizer_->set_nlp(unconstrained.nlp_);
 
+    // THE SAME ENGINE, THE OTHER PROGRAM -- expressed by handing the other
+    // program to solve() rather than by re-attaching (M6 W5 T8.4).
     const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(ObjScaleUnconstrainedProblem::kN, 0.6);
-    solver.optimizer_->optimize(x0);
-    ASSERT_EQ(solver.optimizer_->result().converge_flag_, hven::ConvergenceFlags::CONVERGED);
+    const hven::solvers::IpmResult first = solver.optimizer_->solve(*unconstrained.nlp_, x0);
+    ASSERT_EQ(first.status, hven::solvers::SolveStatus::kOptimal);
 
-    EXPECT_EQ(solver.optimizer_->result().eq_lmults_.size(), 0)
+    EXPECT_EQ(first.lambda_e.size(), 0)
         << "there are no equality rows, so there is no equality multiplier block";
-    EXPECT_EQ(solver.optimizer_->result().iq_lmults_.size(), 0);
-    EXPECT_EQ(solver.optimizer_->result().eq_cons_.size(), 0);
-    EXPECT_EQ(solver.optimizer_->result().iq_cons_.size(), 0);
+    EXPECT_EQ(first.lambda_i.size(), 0);
+    EXPECT_EQ(first.ce.size(), 0);
+    EXPECT_EQ(first.ci.size(), 0);
 
     // And a second call still reports nothing, rather than a block that has
     // been divided by the scale one more time.
-    solver.optimizer_->optimize(x0);
-    ASSERT_EQ(solver.optimizer_->result().converge_flag_, hven::ConvergenceFlags::CONVERGED);
-    EXPECT_EQ(solver.optimizer_->result().eq_lmults_.size(), 0);
+    const hven::solvers::IpmResult second = solver.optimizer_->solve(*unconstrained.nlp_, x0);
+    ASSERT_EQ(second.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(second.lambda_e.size(), 0);
     EXPECT_NEAR(constrained_eq, -0.75, kObjScaleTol) << "the first call's value is not in doubt";
 }
 
@@ -423,15 +424,15 @@ TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedO
         });
 
     ASSERT_EQ(solver.optimize(Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6)),
-              hven::ConvergenceFlags::CONVERGED);
+              hven::solvers::SolveStatus::kOptimal);
     ASSERT_TRUE(attempted) << "the callback never ran, so nothing was attempted under the call";
     EXPECT_TRUE(refused) << "a replacement under an in-flight solve must be a logic_error";
 
     // Reported on the entry scale of 2, which is what every phase evaluated
     // at -- and the refusal left that scale in force.
-    EXPECT_NEAR(solver.optimizer_->result().obj_val_, 1.125, kObjScaleTol);
-    ASSERT_EQ(solver.optimizer_->result().eq_lmults_.size(), 1);
-    EXPECT_NEAR(solver.optimizer_->result().eq_lmults_[0], -0.75, kObjScaleTol);
+    EXPECT_NEAR(solver.result().f, 1.125, kObjScaleTol);
+    ASSERT_EQ(solver.result().lambda_e.size(), 1);
+    EXPECT_NEAR(solver.result().lambda_e[0], -0.75, kObjScaleTol);
     EXPECT_EQ(solver.optimizer_->options().obj_scale, 2.0);
 
     // Between calls the replacement goes through, and the next call runs at 4
@@ -444,6 +445,6 @@ TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedO
         solver.optimizer_->set_options(std::move(o));
     }
     ASSERT_EQ(solver.optimize(Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6)),
-              hven::ConvergenceFlags::CONVERGED);
-    EXPECT_NEAR(solver.optimizer_->result().obj_val_, 1.125, kObjScaleTol);
+              hven::solvers::SolveStatus::kOptimal);
+    EXPECT_NEAR(solver.result().f, 1.125, kObjScaleTol);
 }

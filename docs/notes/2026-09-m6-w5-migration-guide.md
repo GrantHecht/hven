@@ -1217,3 +1217,151 @@ twice is arithmetic with a chance of disagreeing.
 `src/CMakeLists.txt`'s `_hven_expected_source_count` moves **42 -> 43**
 (`src/drivers/solve_result.cpp`), and the install smoke gains a thirteenth
 standalone-include TU.
+
+### The interior-point engine: one entry, the model borrowed, `IpmResult` by value
+
+**Everything below is a source break.** Rebuild against the new header; there is
+no deprecation shim.
+
+#### The five phase-named entries become one, and the sequence becomes an option
+
+| before | after |
+|---|---|
+| `Eigen::VectorXd optimize(x0)` | `IpmResult solve(model, x0)` with `opts.phases = {kOptimize}` (the DEFAULT) |
+| `Eigen::VectorXd solve(x0)` | `opts.phases = {kSolve}` |
+| `Eigen::VectorXd solve_optimize(x0)` | `opts.phases = {kSolve, kOptimize}` |
+| `Eigen::VectorXd optimize_solve(x0)` | `opts.phases = {kOptimize, kSolve}` |
+| `Eigen::VectorXd solve_optimize_solve(x0)` | `opts.phases = {kSolve, kOptimize, kSolve}` |
+
+The conditional trailing solve those last two carried is not a property of the
+entry any more. **The rule, for any sequence:** phases run in order; a `kSolve`
+that FOLLOWS a `kOptimize` runs only if that optimize phase did not report
+`kOptimal`; a `kOptimize` is never conditional; a verdict of `kDiverging` or
+worse short-circuits the rest. `validate()` refuses an EMPTY sequence.
+
+#### The program is an argument, borrowed for the call
+
+| before | after |
+|---|---|
+| `InteriorPointSolver(std::shared_ptr<NonLinearProgram>)` | REMOVED — construct over options, hand the program to `solve()` |
+| `set_nlp(np)` | REMOVED — `solve(model, x0)` |
+| `release()` | REMOVED — nothing is held to release |
+| `kkt_pattern_is_analyzed()` | `kkt_pattern_is_analyzed(const NonLinearProgram &model)` |
+
+The solver keeps NO pointer to the program between calls: it is bound after the
+argument checks and nulled on every exit, a throw included. The cross-call reuse
+you had from `set_nlp()`-once, `solve()`-many is unchanged in EFFECT — the
+symbolic analysis, the pattern hash and the partition setup all survive — but it
+is now keyed on the program's own identity rather than on a retained pointer:
+its structure key, its structure epoch, the fixed-variable treatment in force,
+and that the analysis was laid against THIS program's tables. A different
+program, a bumped epoch or a changed treatment re-transcribes; the same program
+unchanged does not.
+
+#### `result()` and the diagnostic accessors become fields on the returned value
+
+| before | after |
+|---|---|
+| `solver.result()` | the value `solve()` returns |
+| `result().iter_num_` | `r.iterations` |
+| `result().obj_val_` | `r.f` |
+| `result().converge_flag_` (`ConvergenceFlags`) | `r.status` (`SolveStatus`) |
+| `result().primals_` | `r.x` |
+| `result().eq_lmults_` / `.eq_cons_` | `r.lambda_e` / `r.ce` — **DECLARED rows only**, see below |
+| `result().iq_lmults_` / `.iq_cons_` | `r.lambda_i` / `r.ci` |
+| `result().bound_lmults_` | `r.z` — **DECLARED width**, see below |
+| `result().kkt_inf_` and the other three | `r.kkt_inf`, `r.barr_inf`, `r.econ_inf`, `r.icon_inf` |
+| the six timings, the `last_*` eleven, the factor/SOC/watchdog counters | same names, trailing underscore dropped |
+| `result().reset_accumulators()` | RETIRED — a solve builds a fresh result; a default `IpmResult` carries every sentinel the reset wrote |
+| `solver.kkt_analysis_count()` | `r.kkt_analyses_total` (plus `r.kkt_analyses_this_call`, new) |
+| `solver.kkt_factor_counters()` | `r.kkt_factor_counters` |
+| `solver.eval_error_log()` | `r.eval_error_log` |
+| `solver.last_stop_reason()` | KEPT (a callback has no result yet); also per phase on `r.phases[i].stop_reason` |
+
+**Two shapes changed, both toward the declared problem.**
+
+- `r.lambda_e` / `r.ce` are the DECLARED equality rows exactly. Under
+  `MakeConstraint` the treatment's internal fixing rows used to sit in the tail
+  of that block; they are reported separately now, as
+  `r.internal_fixed_lambda_e` / `r.internal_fixed_ce`.
+- `r.z` is DECLARED-WIDTH always, where `bound_lmults_` was dense over the
+  solver's REDUCED space and empty on a problem with no finite bounds. An
+  eliminated coordinate reads `0`; under `MakeConstraint` a fixed coordinate
+  reads `-lambda_fix`, the sign `grad f + J'lambda - z = 0` forces.
+
+#### `hven::ConvergenceFlags` is gone
+
+Both engines report `hven::solvers::SolveStatus`, and the interior-point engine
+uses it internally too — so there is no mapping step left to get out of step
+with the verdict it maps.
+
+| before | after |
+|---|---|
+| `CONVERGED` | `SolveStatus::kOptimal` |
+| `ACCEPTABLE` | `SolveStatus::kAcceptable` |
+| `NOTCONVERGED` | `SolveStatus::kMaxIter`, or `kStalled` at the stall and locally-infeasible-restoration exits |
+| `DIVERGING` | `SolveStatus::kDiverging` |
+| `SINGULAR_KKT` | `SolveStatus::kNumericalError` |
+| `operator<=>(ConvergenceFlags, …)` | `severity(SolveStatus)` — orders all nine, old five in old relative order |
+| `to_solve_status(ConvergenceFlags, IpmStopReason)` | `resolve_ipm_phase_status(SolveStatus, IpmStopReason)` |
+
+**A caller reading `r.status` no longer applies the split itself:** the engine
+resolves each phase's verdict against that phase's own stop reason at the phase's
+exit, so a stalled solve reports `kStalled` outright.
+`resolve_ipm_phase_status` is idempotent and remains public for a caller
+resolving a verdict it obtained some other way.
+
+#### Two behaviour changes, declared
+
+1. **The per-phase verdict.** The stop reason was phase-scoped and the verdict
+   was per CALL, so a later phase that left without assigning one reported the
+   EARLIER phase's answer beside this phase's reason (design §2.3 registered
+   this). The engine resets the verdict at every phase start now. `r.phases`
+   carries one `IpmPhaseReport{phase, status, iterations, phase_seconds,
+   stop_reason, ran}` per REQUESTED phase, skipped ones included (`ran` tells
+   them apart); `r.status` is the last RAN phase's and `r.iterations` the sum
+   over the phases that ran.
+2. **The machine trace's interior-point status vocabulary.** `ipm.solve.end`'s
+   `status` field spells `SolveStatus` now: `converged` → `optimal`,
+   `not_converged` → `max_iter` (or `stalled`, which the old vocabulary could
+   not express at all), `singular_kkt` → `numerical_error`; `acceptable` and
+   `diverging` are unchanged. Nothing pinned compares those bytes — unlike the
+   corpus CSV, which keeps its capitalised spellings through a bench-local table
+   for exactly that reason.
+
+#### `set_options()`: the twelve-field refusal is gone
+
+T8.3 REFUSED a change to any of the twelve transcription-time fields while a
+program was attached, because they were read once inside `set_qp_params()`,
+which ran from `set_nlp()`. There is no attachment now and `set_qp_params()`
+runs from the solve that transcribes, so the change is ACCEPTED — and marked, so
+the next solve re-transcribes under the new value rather than reusing an
+analysis laid under the old one. `kkt_pattern_is_analyzed(model)` reads `false`
+in between. Nothing is refused and nothing is silently ignored.
+
+#### `SolveBudget` on the interior-point entry
+
+`solve(model, x0, budget)`. `budget.max_iterations`, when non-zero, caps EACH
+PHASE at `min(budget, opts.max_iters)` — a caller may tighten this engine's own
+limit, never loosen it. `budget.minor_budget` is IGNORED and documented so: this
+engine has no minor loop. The default `{}` is the identity, which is what makes
+the feature trajectory-neutral on every existing path.
+
+#### Warm-start staging: which refusal fires where
+
+`stage_warm_start()` holds no program, so the AGAINST-THE-PROBLEM block-size
+refusal moved to solve entry (where it sits with the stamp check, and where the
+staged value is consumed either way). What still refuses at the STAGING call is
+everything internal to the payload: a non-finite number, an unreadable polish
+extension, an extension whose blocks disagree with the core blocks beside them.
+Messages are unchanged. (T8.5 replaces staging with an argument entirely.)
+
+#### `NLPSolver`
+
+Its five entries keep their names and now return `SolveStatus`. It gained
+`result()`, returning the last solve's whole `IpmResult` — a WRAPPER
+accommodation, not the engine's: `InteriorPointSolver::result()` is what made a
+finished solve readable from a solver that had gone on living, and this class's
+own entries return only a status. It is retired in T8.9 and this goes with it.
+`NlpSolveOutput::eq_lmults_` is the DECLARED block now (see the shape note
+above), which is what `return_multipliers()` composes over anyway.

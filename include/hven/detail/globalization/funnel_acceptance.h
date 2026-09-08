@@ -104,10 +104,10 @@ class FunnelAcceptance final : public SwitchingAcceptance {
     /// (+inf); it is derived from theta_0 on the first call.
     double funnel_width() const { return width_; }
 
-    /// Reports the current width into SolveResult::last_funnel_width_, or the
+    /// Reports the current width into IpmResult::last_funnel_width_, or the
     /// -1.0 sentinel if uninitialized (the pathological case of a phase that
     /// never calls is_iterate_acceptable, e.g. converges at the initial iterate).
-    void append_diagnostics(InteriorPointSolver::SolveResult &result) const override;
+    void append_diagnostics(IpmResult &result) const override;
 
     /// Restoration-exit test: membership (against the stashed width while in
     /// the feasibility phase) AND theta_trial <= beta*theta_ref.

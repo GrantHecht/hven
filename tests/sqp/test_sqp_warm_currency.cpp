@@ -976,8 +976,8 @@ TEST(SqpWarmCurrency, InteriorPointExportCrossesOverIntoTheSqpEngine) {
     ipm.transcribe();
     Eigen::VectorXd x0(3);
     x0 << 0.0, 0.0, 0.5;
-    ipm.optimizer_->optimize(x0);
-    ASSERT_EQ(ipm.optimizer_->result().converge_flag_, hven::ConvergenceFlags::CONVERGED);
+    const hven::solvers::IpmResult ipm_result = ipm.optimizer_->solve(*ipm.nlp_, x0);
+    ASSERT_EQ(ipm_result.status, hven::solvers::SolveStatus::kOptimal);
 
     const WarmStartData exported = ipm.optimizer_->export_warm_start();
     ASSERT_EQ(exported.primal_.size(), 3);

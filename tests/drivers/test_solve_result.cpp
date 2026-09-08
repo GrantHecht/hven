@@ -15,9 +15,16 @@
 
 #include <cmath>
 #include <limits>
+#include <memory>
+#include <stdexcept>
 #include <vector>
 
+#include <hven/drivers/interior_point_solver.h>
+#include <hven/drivers/ipm_solver_types.h>
 #include <hven/drivers/solve_result.h>
+#include <hven/model/nlp_solver.h>
+
+#include "support/hs071_problem.h"
 
 using hven::Index;
 using hven::SpMatRM;
@@ -193,4 +200,262 @@ TEST(DeclaredDiagnostics, ExcludedCoordinateIsNotMeasured) {
     EXPECT_FALSE(std::isnan(none.feasibility_e));
     EXPECT_FALSE(std::isnan(none.feasibility_i));
     EXPECT_FALSE(std::isnan(none.complementarity));
+}
+
+// ===========================================================================
+// (4) The interior-point engine's half of the result core: phases, the budget,
+//     the model-taking pattern query and the export snapshot.
+// ===========================================================================
+//
+// These need a live solve, which is why they sit after the definition pins
+// above rather than beside them: what they check is that the ENGINE fills the
+// shared shape correctly, not what the shape means.
+
+TEST(IpmPhases, TrailingSolveIsConditionalOnThePrecedingOptimize) {
+    // {kOptimize, kSolve} -- what the old optimize_solve() entry ran. The
+    // trailing solve is conditional on the phase BEFORE it, so on a problem the
+    // optimize phase converges it never runs at all.
+    hven::solvers::IpmOptions o;
+    o.common.print_level = 10;
+    o.phases = {hven::solvers::IpmPhase::kOptimize, hven::solvers::IpmPhase::kSolve};
+    hven::solvers::InteriorPointSolver solver(o);
+
+    hven_drivers_tests::Hs071Problem problem;
+    auto model = hven::solvers::NLPSolver(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    model.transcribe();
+
+    const hven::solvers::IpmResult converged =
+        solver.solve(*model.nlp_, hven_drivers_tests::hs071_start());
+    ASSERT_EQ(converged.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(converged.phases.size(), 2u);
+    EXPECT_EQ(converged.phases[0].phase, hven::solvers::IpmPhase::kOptimize);
+    EXPECT_TRUE(converged.phases[0].ran);
+    EXPECT_EQ(converged.phases[0].status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(converged.phases[1].phase, hven::solvers::IpmPhase::kSolve);
+    EXPECT_FALSE(converged.phases[1].ran) << "a kSolve after a converged kOptimize must not run";
+    EXPECT_EQ(converged.phases[1].iterations, 0);
+    // The call's own account is the phases that RAN: the sum, and the last
+    // ran phase's verdict.
+    EXPECT_EQ(converged.iterations, converged.phases[0].iterations);
+
+    // The same sequence with the optimize phase capped so it cannot converge:
+    // now the trailing solve DOES run, off exactly the same rule.
+    hven::solvers::IpmOptions capped = o;
+    capped.max_iters = 1;
+    hven::solvers::InteriorPointSolver tight(capped);
+    const hven::solvers::IpmResult exhausted =
+        tight.solve(*model.nlp_, hven_drivers_tests::hs071_start());
+    ASSERT_EQ(exhausted.phases.size(), 2u);
+    EXPECT_TRUE(exhausted.phases[0].ran);
+    EXPECT_NE(exhausted.phases[0].status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_TRUE(exhausted.phases[1].ran) << "a kSolve after a NON-converged kOptimize runs";
+    EXPECT_EQ(exhausted.iterations,
+              exhausted.phases[0].iterations + exhausted.phases[1].iterations);
+}
+
+// THE PER-PHASE VERDICT, which is the whole of the defect design §2.3
+// registered for this task. Before T8.4 the stop reason was phase-scoped and
+// the verdict was per CALL, so a later phase that left without assigning one
+// reported the EARLIER phase's answer. The engine resets the verdict at every
+// phase start now, so the two cannot disagree.
+TEST(IpmPhases, EachPhaseCarriesItsOwnVerdict) {
+    hven::solvers::IpmOptions o;
+    o.common.print_level = 10;
+    // {kSolve, kOptimize} -- the old solve_optimize(). The second phase is
+    // UNCONDITIONAL, so both always run, and a cap tight enough to stop the
+    // optimize phase leaves the feasibility phase's own verdict standing beside
+    // it rather than overwriting it.
+    o.phases = {hven::solvers::IpmPhase::kSolve, hven::solvers::IpmPhase::kOptimize};
+    o.max_iters = 10;
+    hven::solvers::InteriorPointSolver solver(o);
+
+    auto model = hven::solvers::NLPSolver(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    model.transcribe();
+    Eigen::VectorXd x0(4);
+    x0 << 1.0, 5.0, 5.0, 1.0;
+    const hven::solvers::IpmResult r = solver.solve(*model.nlp_, x0);
+
+    ASSERT_EQ(r.phases.size(), 2u);
+    ASSERT_TRUE(r.phases[0].ran);
+    ASSERT_TRUE(r.phases[1].ran);
+    // The call reports the LAST RAN phase's status, and the first phase's own
+    // verdict is still readable beside it.
+    EXPECT_EQ(r.status, r.phases[1].status);
+    EXPECT_EQ(r.phases[1].status, hven::solvers::SolveStatus::kMaxIter);
+    EXPECT_EQ(r.phases[1].stop_reason, hven::solvers::IpmStopReason::kIterationCap);
+    // The feasibility phase ended on its own verdict, not on the cap.
+    EXPECT_LT(r.phases[0].iterations, o.max_iters);
+    EXPECT_EQ(r.phases[0].stop_reason, hven::solvers::IpmStopReason::kNone);
+    // Both phases are timed separately, and neither timing is the call's.
+    EXPECT_GE(r.phases[0].phase_seconds, 0.0);
+    EXPECT_GE(r.phases[1].phase_seconds, 0.0);
+    EXPECT_GE(r.wall_seconds, 0.0);
+}
+
+TEST(IpmPhases, EmptySequenceIsRefused) {
+    hven::solvers::IpmOptions o;
+    o.phases.clear();
+    EXPECT_THROW(hven::solvers::validate(o), std::invalid_argument);
+    // And the refusal reaches a caller through every door that validates.
+    EXPECT_THROW(hven::solvers::InteriorPointSolver{o}, std::invalid_argument);
+}
+
+TEST(SolveBudget, IpmMaxIterationsCapsEachPhase) {
+    hven::solvers::IpmOptions o;
+    o.common.print_level = 10;
+    o.max_iters = 200;
+    hven::solvers::InteriorPointSolver solver(o);
+
+    auto model = hven::solvers::NLPSolver(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    model.transcribe();
+
+    const hven::solvers::IpmResult capped =
+        solver.solve(*model.nlp_, hven_drivers_tests::hs071_start(),
+                     hven::solvers::SolveBudget{/*minor_budget=*/0, /*max_iterations=*/2});
+    EXPECT_EQ(capped.status, hven::solvers::SolveStatus::kMaxIter);
+    EXPECT_LE(capped.iterations, 2);
+    ASSERT_EQ(capped.phases.size(), 1u);
+    EXPECT_EQ(capped.phases[0].stop_reason, hven::solvers::IpmStopReason::kIterationCap);
+
+    // TIGHTEN ONLY: a budget ABOVE the engine's own limit does not raise it.
+    hven::solvers::IpmOptions tight = o;
+    tight.max_iters = 2;
+    hven::solvers::InteriorPointSolver small(tight);
+    const hven::solvers::IpmResult still_capped = small.solve(
+        *model.nlp_, hven_drivers_tests::hs071_start(), hven::solvers::SolveBudget{0, 10000});
+    EXPECT_EQ(still_capped.status, hven::solvers::SolveStatus::kMaxIter);
+    EXPECT_LE(still_capped.iterations, 2);
+
+    // AND THE DEFAULT BUDGET IS THE IDENTITY, which is what makes the whole
+    // feature trajectory-neutral: the same solve with no budget named converges.
+    const hven::solvers::IpmResult unbudgeted =
+        solver.solve(*model.nlp_, hven_drivers_tests::hs071_start());
+    EXPECT_EQ(unbudgeted.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_GT(unbudgeted.iterations, 2);
+}
+
+TEST(IpmIntrospection, PatternQueryTakesTheModel) {
+    hven::solvers::IpmOptions o;
+    o.common.print_level = 10;
+    hven::solvers::InteriorPointSolver solver(o);
+
+    auto first = hven::solvers::NLPSolver(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    first.transcribe();
+    auto second = hven::solvers::NLPSolver(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    second.transcribe();
+
+    // Nothing analysed yet: no program answers true.
+    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(*first.nlp_));
+    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(*second.nlp_));
+
+    const hven::solvers::IpmResult r = solver.solve(*first.nlp_, hven_drivers_tests::hs071_start());
+    ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_TRUE(solver.kkt_pattern_is_analyzed(*first.nlp_));
+
+    // A SECOND PROGRAM OF THE SAME DECLARED STRUCTURE answers FALSE. Its
+    // structure key and its structure epoch both match the analysed one -- every
+    // epoch counter starts at 0 -- so a token made of those two alone would say
+    // true here, and a solve would then scatter through location tables that
+    // are all -1. This is the case that makes the third conjunct load-bearing.
+    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(*second.nlp_))
+        << "a different program of identical structure is not the analysed program";
+
+    // Solving the second re-analyses, and the first stops being the answer.
+    const hven::solvers::IpmResult r2 =
+        solver.solve(*second.nlp_, hven_drivers_tests::hs071_start());
+    ASSERT_EQ(r2.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_TRUE(solver.kkt_pattern_is_analyzed(*second.nlp_));
+    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(*first.nlp_));
+    EXPECT_EQ(r2.kkt_analyses_this_call, 1);
+    EXPECT_GT(r2.kkt_analyses_total, r.kkt_analyses_total);
+
+    // A REPEAT solve of the program already analysed re-analyses nothing.
+    const hven::solvers::IpmResult r3 =
+        solver.solve(*second.nlp_, hven_drivers_tests::hs071_start());
+    EXPECT_EQ(r3.kkt_analyses_this_call, 0);
+    EXPECT_EQ(r3.kkt_analyses_total, r2.kkt_analyses_total);
+}
+
+TEST(SolveResult, ExportIsASnapshotIndependentOfLaterEdits) {
+    hven::solvers::IpmOptions o;
+    o.common.print_level = 10;
+    hven::solvers::InteriorPointSolver solver(o);
+    auto model = hven::solvers::NLPSolver(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    model.transcribe();
+
+    hven::solvers::IpmResult r = solver.solve(*model.nlp_, hven_drivers_tests::hs071_start());
+    ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal);
+
+    const auto before = r.export_warm_start();
+    ASSERT_TRUE(before.has_value());
+    ASSERT_EQ(before->primal_.size(), 4);
+    const Eigen::VectorXd captured = before->primal_;
+
+    // Scribble on every public field. The snapshot was taken at solve exit and
+    // is not a view of these.
+    r.x.setZero();
+    r.lambda_e.setZero();
+    r.lambda_i.setZero();
+    r.z.setZero();
+    r.f = 0.0;
+    r.status = hven::solvers::SolveStatus::kNumericalError;
+
+    const auto after = r.export_warm_start();
+    ASSERT_TRUE(after.has_value());
+    ASSERT_EQ(after->primal_.size(), captured.size());
+    for (Index i = 0; i < captured.size(); ++i) {
+        EXPECT_EQ(after->primal_[i], captured[i]);
+    }
+    EXPECT_GT(after->primal_.lpNorm<Eigen::Infinity>(), 0.0)
+        << "the export still carries the solution, not the zeroed field";
+}
+
+// The four shared diagnostics on a live interior-point solve, checked against
+// an INDEPENDENT computation over the same returned point. This is the pin that
+// ties §(1)'s definition to what the engine actually reports.
+TEST(SolveResult, TheIpmFillsTheSharedDiagnosticsAtItsReturnedPoint) {
+    hven::solvers::IpmOptions o;
+    o.common.print_level = 10;
+    hven::solvers::InteriorPointSolver solver(o);
+    auto model = hven::solvers::NLPSolver(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    model.transcribe();
+
+    const hven::solvers::IpmResult r = solver.solve(*model.nlp_, hven_drivers_tests::hs071_start());
+    ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal);
+
+    // Declared shapes, in the caller's space.
+    ASSERT_EQ(r.x.size(), 4);
+    ASSERT_EQ(r.z.size(), 4);
+    ASSERT_EQ(r.lambda_e.size(), 1);
+    ASSERT_EQ(r.lambda_i.size(), 1);
+    ASSERT_EQ(r.ce.size(), 1);
+    ASSERT_EQ(r.ci.size(), 1);
+
+    // Every diagnostic MEASURED (not NaN), and every one small at a converged
+    // KKT point of HS071.
+    EXPECT_FALSE(std::isnan(r.stationarity));
+    EXPECT_FALSE(std::isnan(r.feasibility_e));
+    EXPECT_FALSE(std::isnan(r.feasibility_i));
+    EXPECT_FALSE(std::isnan(r.complementarity));
+    EXPECT_LT(r.stationarity, 1e-6);
+    EXPECT_LT(r.feasibility_e, 1e-6);
+    EXPECT_LT(r.feasibility_i, 1e-6);
+    EXPECT_LT(r.complementarity, 1e-6);
+
+    // INDEPENDENTLY: the same four from the shared function, over the model
+    // quantities written out by hand at the returned point -- so a wrong
+    // reduced->declared mapping in the engine's own fill would show here.
+    const double x1 = r.x[0], x2 = r.x[1], x3 = r.x[2], x4 = r.x[3];
+    const Vec grad =
+        vec_of({x4 * (2.0 * x1 + x2 + x3), x1 * x4, x1 * x4 + 1.0, x1 * (x1 + x2 + x3)});
+    const SpMatRM Je = row_block({2.0 * x1, 2.0 * x2, 2.0 * x3, 2.0 * x4});
+    const SpMatRM Ji =
+        row_block({-(x2 * x3 * x4), -(x1 * x3 * x4), -(x1 * x2 * x4), -(x1 * x2 * x3)});
+    const DeclaredDiagnostics d = compute_declared_diagnostics(
+        r.x, r.lambda_e, r.lambda_i, r.z, grad, Je, Ji, r.ce, r.ci, vec_of({1.0, 1.0, 1.0, 1.0}),
+        vec_of({5.0, 5.0, 5.0, 5.0}), {});
+    EXPECT_NEAR(d.stationarity, r.stationarity, 1e-9);
+    EXPECT_NEAR(d.feasibility_e, r.feasibility_e, 1e-12);
+    EXPECT_NEAR(d.feasibility_i, r.feasibility_i, 1e-12);
+    EXPECT_NEAR(d.complementarity, r.complementarity, 1e-9);
 }

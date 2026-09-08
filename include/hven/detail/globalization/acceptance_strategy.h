@@ -97,9 +97,7 @@ class AcceptanceStrategy {
     /// other solver state, so it cannot influence control flow; a strategy
     /// that changed behavior based on prior diagnostics would need a real
     /// feedback path. The default body is a no-op.
-    virtual void append_diagnostics(InteriorPointSolver::SolveResult &result) const {
-        (void)result;
-    }
+    virtual void append_diagnostics(IpmResult &result) const { (void)result; }
 
     /// @brief Classic fused entry point: loop and merit test in one call.
     /// Operates on raw Eigen::VectorXd blocks (no named-segment views); a

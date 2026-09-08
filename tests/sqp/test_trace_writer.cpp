@@ -625,18 +625,31 @@ const char *spec_spelling(SqpFallbackVerdict v) {
     return kUnspelled;
 }
 
-const char *spec_spelling(hven::ConvergenceFlags v) {
+// THE INTERIOR-POINT END EVENT'S STATUS SPELLINGS MOVED IN M6 W5 T8.4, and the
+// move is declared: with ConvergenceFlags gone the event carries SolveStatus,
+// whose display names are the ones below. `converged` -> `optimal`,
+// `not_converged` -> `max_iter` (and the exits the old vocabulary could not tell
+// apart now reach `stalled`), `singular_kkt` -> `numerical_error`.
+const char *spec_spelling(hven::solvers::SolveStatus v) {
     switch (v) {
-    case hven::ConvergenceFlags::CONVERGED:
-        return "\"converged\"";
-    case hven::ConvergenceFlags::ACCEPTABLE:
+    case hven::solvers::SolveStatus::kOptimal:
+        return "\"optimal\"";
+    case hven::solvers::SolveStatus::kAcceptable:
         return "\"acceptable\"";
-    case hven::ConvergenceFlags::NOTCONVERGED:
-        return "\"not_converged\"";
-    case hven::ConvergenceFlags::DIVERGING:
+    case hven::solvers::SolveStatus::kMaxIter:
+        return "\"max_iter\"";
+    case hven::solvers::SolveStatus::kInfeasible:
+        return "\"infeasible\"";
+    case hven::solvers::SolveStatus::kStalled:
+        return "\"stalled\"";
+    case hven::solvers::SolveStatus::kDiverging:
         return "\"diverging\"";
-    case hven::ConvergenceFlags::SINGULAR_KKT:
-        return "\"singular_kkt\"";
+    case hven::solvers::SolveStatus::kNumericalError:
+        return "\"numerical_error\"";
+    case hven::solvers::SolveStatus::kBudgetExhausted:
+        return "\"budget_exhausted\"";
+    case hven::solvers::SolveStatus::kInterrupted:
+        return "\"interrupted\"";
     }
     return kUnspelled;
 }
@@ -693,8 +706,8 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     static_assert(static_cast<int>(StartLevel::kHot) == 4 - 1, "4 start levels");
     static_assert(static_cast<int>(IpqpTraceOutcome::kEscaped) == 3 - 1, "3 outcomes");
     static_assert(static_cast<int>(SqpFallbackVerdict::kUnfired) == 5 - 1, "5 verdicts");
-    static_assert(static_cast<int>(hven::ConvergenceFlags::SINGULAR_KKT) == 5 - 1,
-                  "5 convergence flags");
+    static_assert(static_cast<int>(hven::solvers::SolveStatus::kInterrupted) == 9 - 1,
+                  "9 shared statuses");
     static_assert(static_cast<int>(InertiaModes::proximal_regularization) == 2 - 1,
                   "2 inertia modes");
     static_assert(static_cast<int>(RestorationModes::l1_nested) == 3 - 1, "3 restoration modes");
@@ -893,9 +906,9 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     start_level(StartLevel::kWarm);
     start_level(StartLevel::kHot);
 
-    // W4 T4: the interior-point driver's three alphabets. `ConvergenceFlags` is
+    // W4 T4: the interior-point driver's three alphabets. `SolveStatus` is
     // that driver's own exit status; the two mode selectors shape the run.
-    const auto ipm_status = [](hven::ConvergenceFlags st) {
+    const auto ipm_status = [](hven::solvers::SolveStatus st) {
         IpmSolveEndTraceEvent e;
         e.status = st;
         std::ostringstream os;
@@ -903,11 +916,11 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         s.on_ipm_solve_end(e);
         EXPECT_EQ(raw_field(os.str(), "status"), spec_spelling(st));
     };
-    ipm_status(hven::ConvergenceFlags::CONVERGED);
-    ipm_status(hven::ConvergenceFlags::ACCEPTABLE);
-    ipm_status(hven::ConvergenceFlags::NOTCONVERGED);
-    ipm_status(hven::ConvergenceFlags::DIVERGING);
-    ipm_status(hven::ConvergenceFlags::SINGULAR_KKT);
+    ipm_status(hven::solvers::SolveStatus::kOptimal);
+    ipm_status(hven::solvers::SolveStatus::kAcceptable);
+    ipm_status(hven::solvers::SolveStatus::kMaxIter);
+    ipm_status(hven::solvers::SolveStatus::kDiverging);
+    ipm_status(hven::solvers::SolveStatus::kNumericalError);
 
     const auto inertia_mode = [](InertiaModes m) {
         IpmSolveBeginTraceEvent e;
@@ -3449,7 +3462,7 @@ TEST(JsonLinesTraceSink, GoldenLineIpmSolveBegin) {
 
 TEST(JsonLinesTraceSink, GoldenLineIpmSolveEnd) {
     IpmSolveEndTraceEvent e;
-    e.status = hven::ConvergenceFlags::ACCEPTABLE;
+    e.status = hven::solvers::SolveStatus::kAcceptable;
     e.iters = 42;
     e.total_time_s = 1.5;
     e.pre_time_s = 0.25;

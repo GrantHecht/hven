@@ -175,9 +175,9 @@ class FilterAcceptance final : public SwitchingAcceptance {
     int successive_filter_rejections() const { return successive_filter_rejections_; }
     int filter_resets() const { return n_filter_resets_; }
 
-    /// Reports filter_size() into SolveResult::last_filter_size_ and the
-    /// per-phase reset total into SolveResult::last_filter_resets_.
-    void append_diagnostics(InteriorPointSolver::SolveResult &result) const override;
+    /// Reports filter_size() into IpmResult::last_filter_size_ and the
+    /// per-phase reset total into IpmResult::last_filter_resets_.
+    void append_diagnostics(IpmResult &result) const override;
 
     /// Restoration-exit test: relative theta-reduction floor AND acceptable to
     /// the preserved (stashed) optimality filter AND acceptable w.r.t. the

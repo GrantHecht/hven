@@ -131,8 +131,8 @@ class MonitoredBarrierGovernor : public BarrierGovernor {
     void reset() override;
 
     /// Reports last_monotone_switches_/last_monotone_iters_ into the
-    /// corresponding SolveResult fields.
-    void append_diagnostics(InteriorPointSolver::SolveResult &result) const override;
+    /// corresponding IpmResult fields.
+    void append_diagnostics(IpmResult &result) const override;
 
     // ------------------------------------------------------------------------
     // Testable state machine. `decide` advances the monitor/mode state from
@@ -187,7 +187,7 @@ class MonitoredBarrierGovernor : public BarrierGovernor {
     bool monotone_mode_ = false;
     double monotone_mu_ = 0.0; ///< Current monotone barrier parameter (meaningful iff monotone_mode_).
 
-    /// Write-only SolveResult diagnostics, bound via append_diagnostics().
+    /// Write-only IpmResult diagnostics, bound via append_diagnostics().
     int last_monotone_switches_ = 0; ///< Free -> monotone handoffs this phase.
     int last_monotone_iters_ = 0;    ///< Iterations spent in monotone mode this phase.
 };

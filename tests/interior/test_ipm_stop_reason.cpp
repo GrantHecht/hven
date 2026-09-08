@@ -186,7 +186,7 @@ NLPSolver make_stall_solver(int max_iters, bool lift_div_tols = true) {
 
 // The TERMINAL LOOP INDEX of the last phase that ran, recorded through the late
 // callback. IterateInfo::iter_ IS alg_impl's own loop variable, while
-// result().iter_num_ is iters.size() -- and the restoration transitions pop
+// result().iterations is iters.size() -- and the restoration transitions pop
 // history entries, so the two counts differ by the number of transitions. Only
 // the loop index answers "was the last iteration the cap iteration?".
 //
@@ -244,15 +244,21 @@ TEST(IpmStopReason, AStalledFeasibilityStageIsRecordedAsSuch) {
     auto solver = stop_reason_test::make_stall_solver(600);
     stop_reason_test::TerminalIter term;
     stop_reason_test::record_terminal_iter(solver, term);
-    const hven::ConvergenceFlags flag = solver.solve(stop_reason_test::two_var_start(0.0, 0.0));
-    EXPECT_EQ(flag, hven::ConvergenceFlags::NOTCONVERGED);
+    const hven::solvers::SolveStatus flag = solver.solve(stop_reason_test::two_var_start(0.0, 0.0));
+    // THE ENGINE RESOLVES THE SPLIT ITSELF NOW (M6 W5 T8.4): the phase's raw
+    // "ran out of iterations with nothing better to say" verdict is reconciled
+    // against the stop reason at the phase's own exit, so the reported status IS
+    // kStalled rather than a kMaxIter a caller has to reinterpret.
+    EXPECT_EQ(flag, hven::solvers::SolveStatus::kStalled);
     EXPECT_EQ(solver.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kStageStalled);
     // Well inside the iteration budget, asserted on the LOOP INDEX: the phase's
     // last iteration was not the cap iteration, so this is not the cap wearing
-    // another label. result().iter_num_ would not answer that question -- it
+    // another label. result().iterations would not answer that question -- it
     // counts history entries, which the restoration transitions pop.
     EXPECT_LT(term.last, 600 - 1);
-    EXPECT_EQ(hven::solvers::to_solve_status(flag, solver.optimizer_->last_stop_reason()),
+    // And the resolution is IDEMPOTENT: applying it again to an already-resolved
+    // status returns it unchanged.
+    EXPECT_EQ(hven::solvers::resolve_ipm_phase_status(flag, solver.optimizer_->last_stop_reason()),
               hven::solvers::SolveStatus::kStalled);
 }
 
@@ -268,24 +274,30 @@ TEST(IpmStopReason, WithDefaultDivergenceThresholdsTheSameFixtureDiverges) {
     auto solver = stop_reason_test::make_stall_solver(600, /*lift_div_tols=*/false);
     stop_reason_test::TerminalIter term;
     stop_reason_test::record_terminal_iter(solver, term);
-    const hven::ConvergenceFlags flag = solver.solve(stop_reason_test::two_var_start(0.0, 0.0));
-    EXPECT_EQ(flag, hven::ConvergenceFlags::DIVERGING);
+    const hven::solvers::SolveStatus flag = solver.solve(stop_reason_test::two_var_start(0.0, 0.0));
+    EXPECT_EQ(flag, hven::solvers::SolveStatus::kDiverging);
     EXPECT_EQ(solver.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kNone);
     // Inside the detector's own window (kFeasStallWindow = 50), which is what
     // makes this the reason the stall is out of reach here.
     EXPECT_LT(term.last, 50);
-    EXPECT_EQ(hven::solvers::to_solve_status(flag, solver.optimizer_->last_stop_reason()),
+    EXPECT_EQ(hven::solvers::resolve_ipm_phase_status(flag, solver.optimizer_->last_stop_reason()),
               hven::solvers::SolveStatus::kDiverging);
 }
 
 TEST(IpmStopReason, ARestorationLocalInfeasibilityIsRecordedAsSuch) {
     auto solver = stop_reason_test::make_locally_infeasible_solver(200);
-    const hven::ConvergenceFlags flag = solver.optimize(stop_reason_test::two_var_start(1.0, 1.0));
-    EXPECT_EQ(flag, hven::ConvergenceFlags::NOTCONVERGED);
+    const hven::solvers::SolveStatus flag =
+        solver.optimize(stop_reason_test::two_var_start(1.0, 1.0));
+    // Resolved by the engine at the phase's exit (M6 W5 T8.4), like the stall
+    // above: the locally-infeasible restoration return is the OTHER exit the
+    // old vocabulary could not tell from the cap.
+    EXPECT_EQ(flag, hven::solvers::SolveStatus::kStalled);
     EXPECT_EQ(solver.optimizer_->last_stop_reason(),
               hven::solvers::IpmStopReason::kRestorationLocallyInfeasible);
-    EXPECT_LT(solver.optimizer_->result().iter_num_, 200);
-    EXPECT_EQ(hven::solvers::to_solve_status(flag, solver.optimizer_->last_stop_reason()),
+    EXPECT_LT(solver.result().iterations, 200);
+    // And the resolution is IDEMPOTENT: applying it again to an already-resolved
+    // status returns it unchanged.
+    EXPECT_EQ(hven::solvers::resolve_ipm_phase_status(flag, solver.optimizer_->last_stop_reason()),
               hven::solvers::SolveStatus::kStalled);
 }
 
@@ -296,7 +308,7 @@ TEST(IpmStopReason, AStallOnTheCapIterationKeepsTheStallLabel) {
     // and the cap iteration, so both disjuncts of the terminal conjunction hold.
     //
     // The search is bounded: 21 candidate caps, so at most 22 solves counting
-    // the uncapped pilot. The window is safe because result().iter_num_ is the
+    // the uncapped pilot. The window is safe because result().iterations is the
     // history size and the stall iteration's LOOP INDEX is that plus one entry
     // per restoration transition (at most two, with max_feas_rest = 1).
     //
@@ -310,7 +322,7 @@ TEST(IpmStopReason, AStallOnTheCapIterationKeepsTheStallLabel) {
     (void)unbounded.solve(stop_reason_test::two_var_start(0.0, 0.0));
     ASSERT_EQ(unbounded.optimizer_->last_stop_reason(),
               hven::solvers::IpmStopReason::kStageStalled);
-    const int reported = unbounded.optimizer_->result().iter_num_;
+    const int reported = unbounded.result().iterations;
 
     int tie_cap = -1;
     int tie_terminal_iter = -1;

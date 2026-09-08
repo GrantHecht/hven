@@ -345,13 +345,13 @@ TEST(ProxRestoReference, ReturnsTheEntryPointPassedIn) {
 
 TEST(ProxRestoDiagnostics, NeverEnteredReportsZeroZero) {
     ProximalSwitchRestoration r;
-    InteriorPointSolver::SolveResult result;
+    hven::solvers::IpmResult result;
     r.append_diagnostics(result);
     // Constructed but never entered: 0/0 is the correct report (only the
     // interface's default no-op / "no strategy at all" path uses the -1
     // sentinel -- see restoration.h).
-    EXPECT_EQ(result.last_feas_rest_entries_, 0);
-    EXPECT_EQ(result.last_feas_rest_iters_, 0);
+    EXPECT_EQ(result.last_feas_rest_entries, 0);
+    EXPECT_EQ(result.last_feas_rest_iters, 0);
 }
 
 TEST(ProxRestoDiagnostics, ReportsEntriesAndIterationsInMode) {
@@ -368,10 +368,10 @@ TEST(ProxRestoDiagnostics, ReportsEntriesAndIterationsInMode) {
     r.enter_restoration(ref, x0, 0.02);
     r.note_iteration();
 
-    InteriorPointSolver::SolveResult result;
+    hven::solvers::IpmResult result;
     r.append_diagnostics(result);
-    EXPECT_EQ(result.last_feas_rest_entries_, 2);
-    EXPECT_EQ(result.last_feas_rest_iters_, 4);
+    EXPECT_EQ(result.last_feas_rest_entries, 2);
+    EXPECT_EQ(result.last_feas_rest_iters, 4);
 }
 
 } // namespace

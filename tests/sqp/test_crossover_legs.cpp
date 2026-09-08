@@ -259,7 +259,7 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
         ipm.optimizer_->set_options(std::move(o));
     }
     ipm.transcribe();
-    ASSERT_EQ(ipm.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(ipm.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     const WarmStartData exported = ipm.optimizer_->export_warm_start();
 
     ASSERT_EQ(exported.primal_.size(), model->n());
@@ -384,7 +384,7 @@ TEST(CrossoverLegs, AKilledCellsAggregateRowReportsEachLegsOwnOutcome) {
     legs.mi = 5000;
 
     legs.a.ran = true;
-    legs.a.flag = hven::ConvergenceFlags::CONVERGED;
+    legs.a.flag = hven::solvers::SolveStatus::kOptimal;
     legs.a.iters = 17;
     legs.a.export_has_polish = true;
     legs.legs_cd_identical = false;
@@ -406,8 +406,10 @@ TEST(CrossoverLegs, AKilledCellsAggregateRowReportsEachLegsOwnOutcome) {
 
     const std::string row = hven::solvers::crossover::margins_row(legs);
 
-    // The legs that RAN say what they did.
-    EXPECT_NE(row.find("CONVERGED"), std::string::npos)
+    // The legs that RAN say what they did. The interior-point flag's spelling
+    // moved in M6 W5 T8.4 (`CONVERGED` -> `optimal`), declared: with
+    // ConvergenceFlags gone the leg reports SolveStatus's display names.
+    EXPECT_NE(row.find("optimal"), std::string::npos)
         << "the interior-point leg converged and the aggregate must say so: " << row;
     EXPECT_NE(row.find("Optimal"), std::string::npos)
         << "both warm legs solved and the aggregate must say so: " << row;
@@ -416,6 +418,8 @@ TEST(CrossoverLegs, AKilledCellsAggregateRowReportsEachLegsOwnOutcome) {
     // default-constructed one in particular.
     EXPECT_EQ(row.find("NumericalError"), std::string::npos)
         << "a leg that never ran must not report the default status: " << row;
+    EXPECT_EQ(row.find("numerical_error"), std::string::npos)
+        << "nor under the interior-point column's new spelling: " << row;
 
     // Field by field, because "contains Optimal" would also pass on a row that
     // put it in the wrong column. Schema: cell_id,n_nodes,window,taxonomy,n,
@@ -450,7 +454,7 @@ TEST(CrossoverLegs, AKilledCellsAggregateRowReportsEachLegsOwnOutcome) {
     for (std::size_t i = 11; i <= 16; ++i) {
         EXPECT_EQ(f[i], "absent") << "margin column " << i << " needs a cold baseline";
     }
-    EXPECT_EQ(f[17], "CONVERGED") << "ipm_flag: that leg DID run";
+    EXPECT_EQ(f[17], "optimal") << "ipm_flag: that leg DID run";
     EXPECT_EQ(f[18], "1") << "export_has_polish";
 }
 

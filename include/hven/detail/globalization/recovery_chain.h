@@ -26,7 +26,7 @@ namespace hven::solvers {
 // solver also overwrites it directly in two feasibility-restoration branches
 // (the elastic re-centering fallback and the un-evaluable-fallback entry, the
 // latter so the histogram attributes that iteration to restoration rather than
-// to whatever depth the chain resolved). Backs the SolveResult recovery-depth
+// to whatever depth the chain resolved). Backs the IpmResult recovery-depth
 // histogram.
 inline constexpr int kRecoveryDepthSoc = 0;
 inline constexpr int kRecoveryDepthExtended = 1;

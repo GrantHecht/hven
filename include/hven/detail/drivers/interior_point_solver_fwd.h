@@ -7,30 +7,23 @@
 // (see LICENSE).
 
 #pragma once
-#include <compare>
 
-namespace hven {
-
-/// Optimizer convergence status. Lives in hven:: (not hven::solvers) so callers
-/// outside the solvers module can reference it directly. Placed in a forward-
-/// declaration header so dependent modules can use ConvergenceFlags and forward-
-/// declare InteriorPointSolver without pulling in the full definition and its heavy transitive
-/// includes.
-enum class ConvergenceFlags {
-    CONVERGED = 0,
-    ACCEPTABLE = 1,
-    NOTCONVERGED = 2,
-    DIVERGING = 3,
-    SINGULAR_KKT = 4,
-};
-
-// Severity ordering:
-// CONVERGED < ACCEPTABLE < NOTCONVERGED < DIVERGING < SINGULAR_KKT
-constexpr auto operator<=>(ConvergenceFlags a, ConvergenceFlags b) {
-    return static_cast<int>(a) <=> static_cast<int>(b);
-}
-
-} // namespace hven
+// hven::ConvergenceFlags -- the interior-point engine's own five-value verdict
+// enum, with its <=> severity ordering -- was REMOVED in M6 W5 T8.4. Both
+// engines now report hven::solvers::SolveStatus (drivers/solve_status.h), and
+// the interior-point engine uses it internally as well, so there is no mapping
+// step left to get out of step with the verdict it maps. The name table:
+//
+//   CONVERGED    -> SolveStatus::kOptimal
+//   ACCEPTABLE   -> SolveStatus::kAcceptable
+//   NOTCONVERGED -> SolveStatus::kMaxIter, or kStalled at the stall and
+//                   locally-infeasible-restoration exits -- the split
+//                   resolve_ipm_phase_status() makes from the stop reason
+//   DIVERGING    -> SolveStatus::kDiverging
+//   SINGULAR_KKT -> SolveStatus::kNumericalError
+//
+// The severity ordering it carried is severity(SolveStatus), which orders all
+// nine and keeps the old five in their old relative order.
 
 namespace hven::solvers {
 class InteriorPointSolver;

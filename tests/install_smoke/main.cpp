@@ -137,7 +137,7 @@ int main() {
     x0 << 1.0, 5.0, 5.0, 1.0;
     const auto flag = solver.optimize(x0);
 
-    if (flag != hven::ConvergenceFlags::CONVERGED) {
+    if (flag != hven::solvers::SolveStatus::kOptimal) {
         std::fprintf(stderr, "install smoke: solve did not converge (flag=%d)\n",
                      static_cast<int>(flag));
         return 1;

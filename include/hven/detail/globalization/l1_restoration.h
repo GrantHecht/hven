@@ -260,7 +260,7 @@ class NestedL1Restoration final : public RestorationStrategy {
     Eigen::VectorXd e_pivots_, i_pivots_;
 
     /// Count of second-level re-center invocations (test/diagnostic observer
-    /// of the fallback; not folded into SolveResult).
+    /// of the fallback; not folded into IpmResult).
     int recenter_calls_ = 0;
 };
 

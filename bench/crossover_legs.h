@@ -414,7 +414,7 @@ struct IpmLegRow {
     /// False until this leg actually finished; a leg that never ran reports
     /// `absent`, never a default value -- see margins_row.
     bool ran = false;
-    hven::ConvergenceFlags flag = hven::ConvergenceFlags::NOTCONVERGED;
+    hven::solvers::SolveStatus flag = hven::solvers::SolveStatus::kMaxIter;
     int iters = -1;
     Index analyses = -1;
     Index factorizations = -1;
@@ -602,16 +602,16 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
         legs.a.flag = ipm.optimize(x0);
         legs.a.wall_s = detail::seconds_since(t0);
 
-        const auto &result = ipm.optimizer_->result();
-        legs.a.iters = result.iter_num_;
-        legs.a.f = result.obj_val_;
-        legs.a.kkt_inf = result.kkt_inf_;
-        legs.a.econ_inf = result.econ_inf_;
-        legs.a.icon_inf = result.icon_inf_;
-        legs.a.barr_inf = result.barr_inf_;
-        legs.a.analyses = ipm.optimizer_->kkt_analysis_count();
-        legs.a.factorizations = ipm.optimizer_->kkt_factor_counters().factorize_count;
-        legs.a.solves = ipm.optimizer_->kkt_factor_counters().solve_count;
+        const auto &result = ipm.result();
+        legs.a.iters = result.iterations;
+        legs.a.f = result.f;
+        legs.a.kkt_inf = result.kkt_inf;
+        legs.a.econ_inf = result.econ_inf;
+        legs.a.icon_inf = result.icon_inf;
+        legs.a.barr_inf = result.barr_inf;
+        legs.a.analyses = ipm.result().kkt_analyses_total;
+        legs.a.factorizations = ipm.result().kkt_factor_counters.factorize_count;
+        legs.a.solves = ipm.result().kkt_factor_counters.solve_count;
 
         exported = ipm.optimizer_->export_warm_start();
         legs.a.export_has_polish = find_ipm_polish(exported) != nullptr;
@@ -693,21 +693,23 @@ inline std::string cell_prefix(const CorpusCell &cell) {
                        corpus::to_string(cell.start));
 }
 
-/// @brief The interior-point convergence flag as text.
-inline const char *flag_string(hven::ConvergenceFlags flag) {
-    switch (flag) {
-    case hven::ConvergenceFlags::CONVERGED:
-        return "CONVERGED";
-    case hven::ConvergenceFlags::ACCEPTABLE:
-        return "ACCEPTABLE";
-    case hven::ConvergenceFlags::NOTCONVERGED:
-        return "NOTCONVERGED";
-    case hven::ConvergenceFlags::DIVERGING:
-        return "DIVERGING";
-    case hven::ConvergenceFlags::SINGULAR_KKT:
-        return "SINGULAR_KKT";
-    }
-    return "UNKNOWN";
+/// @brief The interior-point solve status as text.
+///
+/// THE SPELLINGS MOVED IN M6 W5 T8.4, and the move is DECLARED: with
+/// ConvergenceFlags gone the leg reports SolveStatus, whose display names are
+/// `optimal` / `acceptable` / `max_iter` / `stalled` / `diverging` /
+/// `numerical_error` where this used to write `CONVERGED` / `ACCEPTABLE` /
+/// `NOTCONVERGED` / `DIVERGING` / `SINGULAR_KKT`. The interior leg's baseline is
+/// RE-DERIVED for it in the same task.
+///
+/// One consequence worth naming in the artifact: the old vocabulary could not
+/// tell the engine's two abnormal non-cap exits apart -- both read
+/// `NOTCONVERGED` -- and the new one folds them into `stalled` together with
+/// nothing else. So `stop_reason` (the column T8.2 added) is what separates the
+/// stage-stall row from the locally-infeasible-restoration row, and it is
+/// LOAD-BEARING in this artifact rather than merely informative.
+inline const char *flag_string(hven::solvers::SolveStatus flag) {
+    return hven::solvers::to_string(flag);
 }
 
 /// The token every column of this artifact uses for a value that was never

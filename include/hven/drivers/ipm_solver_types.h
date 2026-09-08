@@ -35,12 +35,19 @@
 // validate() below is the one place a field's invariant lives now, and it runs
 // at construction, at set_options() and again at run_phase_sequence() entry.
 
+#include <array>
+#include <limits>
+#include <string>
 #include <string_view>
+#include <vector>
 
 #include <Eigen/Core>
 
 #include "hven/detail/drivers/interior_point_solver_fwd.h"
+#include "hven/detail/interior/eval_error_log.h"
+#include "hven/detail/interior/kkt_factorization.h"
 #include "hven/drivers/common_options.h"
+#include "hven/drivers/solve_result.h"
 #include "hven/model/non_linear_program.h"
 
 #ifdef USE_ACCELERATE_SPARSE
@@ -79,6 +86,20 @@ enum class QPPivotModes {
 /// @brief Primal-dual step computation strategy for the QP subproblem.
 enum class PDStepStrategies { PrimSlackEq_Iq, AllMinimum, PrimSlack_EqIq, MaxEq };
 
+/// @brief One phase of an interior-point solve, as `IpmOptions::phases` names it.
+///
+/// Declaration ORDER is contractual: it is what `static_cast<int>` and any
+/// packed diagnostic column print.
+enum class IpmPhase {
+    /// The optimality phase -- `AlgorithmModes::OPT` at the optimality barrier
+    /// and line-search modes. This is what the old `optimize()` entry ran.
+    kOptimize = 0,
+    /// The feasibility ("solve the equations") phase -- `IpmOptions::soe_mode`
+    /// at the SOE barrier and line-search modes. This is what the old `solve()`
+    /// entry ran.
+    kSolve = 1,
+};
+
 /// @brief Every user-configurable interior-point parameter, as one value.
 ///
 /// An aggregate: write the fields you care about and hand the whole struct to
@@ -93,7 +114,7 @@ struct IpmOptions {
     int max_ls_iters = 2;
     /// Number of consecutive trailing iterates that must ALL sit inside the
     /// acceptable tolerances before converge_check() reports
-    /// ConvergenceFlags::ACCEPTABLE. Raising it makes ACCEPTABLE harder to
+    /// SolveStatus::kAcceptable. Raising it makes kAcceptable harder to
     /// reach, not easier. Default 50. Must be > 0.
     int max_acc_iters = 50;
     /// @brief Refactorization attempt cap. Default 15.
@@ -357,6 +378,276 @@ struct IpmOptions {
     /// LAST, not first: see this header's banner.
     CommonOptions common{/*threads=*/HVEN_DEFAULT_QP_THREADS, /*print_level=*/0,
                          /*start_level=*/StartLevel::kWarm};
+
+    /// THE PHASE SEQUENCE this solver runs, in order (M6 W5 T8.4).
+    ///
+    /// It REPLACES the five phase-named entry points. The five they were are
+    /// documented instances of one rule, not five behaviours:
+    ///
+    ///   optimize()             -> {kOptimize}                    (the default)
+    ///   solve()                -> {kSolve}
+    ///   solve_optimize()       -> {kSolve, kOptimize}
+    ///   optimize_solve()       -> {kOptimize, kSolve}
+    ///   solve_optimize_solve() -> {kSolve, kOptimize, kSolve}
+    ///
+    /// THE RULE, for ANY sequence: phases run in order; a kSolve that FOLLOWS a
+    /// kOptimize runs only if that optimize phase did not report kOptimal --
+    /// today's conditional trailing solve, generalised, with the condition read
+    /// off the IMMEDIATELY PRECEDING phase; a kOptimize is never conditional,
+    /// which is why solve_optimize's second phase always ran; the first
+    /// optimality phase installs a seeded multiplier value; every phase
+    /// re-initialises under the same inter-phase rules as before; and a phase
+    /// verdict of kDiverging or worse short-circuits the rest of the sequence.
+    ///
+    /// The EMPTY sequence is refused by validate(): a solve that runs no phase
+    /// has nothing to report and is far more likely a caller's mistake than an
+    /// intention.
+    std::vector<IpmPhase> phases{IpmPhase::kOptimize};
+};
+
+/// @brief What one phase of a solve did.
+///
+/// One entry per phase in `IpmOptions::phases`, in that order, including the
+/// phases that did NOT run -- `ran` is how a caller tells them apart, and a
+/// skipped phase's other fields keep their defaults.
+struct IpmPhaseReport {
+    /// Which phase this is; equal to `IpmOptions::phases[i]` for entry i.
+    IpmPhase phase = IpmPhase::kOptimize;
+    /// THIS PHASE's verdict, resolved against its own stop reason. Per phase by
+    /// construction: the engine resets the verdict at every phase start, so a
+    /// later phase can no longer report an earlier one's answer (the pre-M6-W5
+    /// defect design §2.3 registered for this task).
+    SolveStatus status = SolveStatus::kNumericalError;
+    /// Iterations this phase took; 0 when it did not run.
+    Index iterations = 0;
+    /// Wall-clock seconds inside this phase's `alg_impl`. INFORMATIONAL.
+    double phase_seconds = 0.0;
+    /// Which door this phase left its iteration loop by; `kNone` when the
+    /// verdict is the whole explanation. Same value the solve-level
+    /// `last_stop_reason()` reports for the LAST phase that ran.
+    IpmStopReason stop_reason = IpmStopReason::kNone;
+    /// False for a conditional phase the sequence skipped.
+    bool ran = false;
+};
+
+/// @brief What one interior-point solve produced.
+///
+/// The base carries the answer in DECLARED space and CALLER units; everything
+/// added here is this engine's own -- its measurements, its timings, its
+/// per-phase account and its factorization snapshot.
+///
+/// PER CALL, all of it. This is a value returned by `solve()`, not an
+/// accumulator a caller reads later: the engine holds no result between calls
+/// and there is no `result()` accessor any more.
+struct IpmResult : SolveResult {
+
+    /// @brief Which IpmOptions::fixed_variable_treatment this call actually
+    ///        ran under.
+    ///
+    /// Always equals the option's value at the time the call ran --
+    /// configure_variable_treatment runs the requested treatment or throws,
+    /// never substitutes. Overwritten unconditionally at the start of every
+    /// call. Recorded here because it decides lambda_e's shape.
+    FixedVariableTreatments fixed_variable_treatment = FixedVariableTreatments::MakeParameter;
+
+    // --- The treatment's own rows, reported rather than dropped ---
+    //
+    // Under MakeConstraint a bound-fixed variable stays in the problem and is
+    // held by an INTERNAL equality row `x - value = 0` appended after the
+    // declared rows. Those rows are the treatment's, not the declaration's, so
+    // they are taken OFF the base's ce/lambda_e -- whose contract is the
+    // DECLARED problem -- and reported here instead. Empty under every other
+    // treatment, and empty under MakeConstraint on a problem with no
+    // bound-fixed variables.
+    //
+    // The fixing row's multiplier is also what prices that variable's box in
+    // declared space: the base's z carries -lambda_fix at that coordinate, the
+    // sign the stationarity convention grad f + J'lambda - z = 0 forces.
+    /// @brief Residuals of the internal fixing rows, one per bound-fixed
+    ///        variable, in the order of
+    ///        NonLinearProgram::fixed_variable_indices().
+    Vec internal_fixed_ce;
+    /// @brief Multipliers of those same rows, same order.
+    Vec internal_fixed_lambda_e;
+
+    // --- The engine's OWN terminal measurements ---
+    //
+    // NOT the base's four shared diagnostics: these are what this engine's
+    // convergence test gated on, in ITS space, and a tolerance comparison must
+    // be made against the number the test actually read.
+    //
+    // --- Terminal KKT residuals ---
+    //
+    // The four scalars converge_check() gates on, with IterateInfo's
+    // definitions, so each is directly comparable against its matching
+    // IpmOptions tolerance. kkt_inf and barr_inf carry IpmOptions::obj_scale;
+    // econ_inf and icon_inf carry no scale, and nothing here is unscaled on
+    // the way out. On a restoration-active exit they describe the restoration
+    // subproblem, not the NLP. Last phase wins; the per-call reset sets them
+    // to NaN, and NaN means UNMEASURED, never "zero residual".
+    /// @brief inf-norm dual infeasibility (z-form) at the reported iterate.
+    double kkt_inf = std::numeric_limits<double>::quiet_NaN();
+    /// @brief Complementarity (barrier) error at the reported iterate.
+    double barr_inf = std::numeric_limits<double>::quiet_NaN();
+    /// @brief inf-norm equality-constraint residual; 0 when equal_cons == 0.
+    double econ_inf = std::numeric_limits<double>::quiet_NaN();
+    /// @brief inf-norm inequality-constraint residual; 0 when inequal_cons == 0.
+    double icon_inf = std::numeric_limits<double>::quiet_NaN();
+
+    // --- Timing (seconds) ---
+    /// @brief Total wall-clock time of the most recent call.
+    ///
+    /// INFORMATIONAL, NEVER ASSERTED -- counters are this project's currency
+    /// of correctness, not timings. Measured on std::chrono::steady_clock.
+    double total_time = 0;
+    /// @brief Setup/preprocessing time.
+    double pre_time = 0;
+    /// @brief NLP evaluation callback time.
+    double func_time = 0;
+    /// @brief KKT assembly/factorization/solve time.
+    double kkt_time = 0;
+    /// @brief Printing time.
+    double print_time = 0;
+    /// @brief Solver-initialization time (measured before the main timer starts).
+    double solver_init_time = 0;
+
+    /// Derived timing — total wall-clock minus all categorized components.
+    /// Excludes solver_init_time (measured before the main timer starts).
+    /// Captures: callback time, step application, convergence checks, etc.
+    double misc_time() const { return total_time - pre_time - kkt_time - func_time - print_time; }
+
+    // --- Factorization stats ---
+    /// @brief Memory reported by the last factorization.
+    int factor_mem = 0;
+    /// @brief Flops reported by the last factorization.
+    int factor_flops = 0;
+
+    /// Number of second-order correction back-substitutions performed
+    /// across the whole solve (one per correction attempt; each costs a
+    /// single constraint evaluation + one back-substitution on the live
+    /// factorization). Always 0 when SOC is off (max_soc == 0). Reset per
+    /// solve alongside the other accumulators.
+    int soc_steps_taken = 0;
+
+    /// Number of times the watchdog armed across the whole solve
+    /// (Chamberlain, Powell, Lemaréchal & Pedersen 1982; constants per
+    /// Wächter & Biegler 2006's implementation, globalization/watchdog.h).
+    /// Always 0 when the watchdog is off (watchdog == false). Reset per
+    /// solve alongside the other accumulators.
+    int watchdog_activations = 0;
+
+    /// Per-rejection recovery-chain outcome depth, indexed by the
+    /// kRecoveryDepth* constants in globalization/recovery_chain.h: [0] SOC,
+    /// [1] extended backtracking, [2] watchdog, [3] unresolved (the only
+    /// bucket that increments when all three are off), [4] restoration
+    /// (increments only when restoration_mode != off). Counts REJECTIONS,
+    /// not interventions. Reset per solve.
+    std::array<int, 5> recovery_depth_histogram{};
+
+    /// Final funnel width (tau) reported by FunnelAcceptance at the end of
+    /// the most recent solve's LAST PHASE. Sentinel -1.0 when the selected
+    /// acceptance strategy does not report it, and when no acceptance test ran
+    /// in that phase. A multi-phase call reports only the last phase's value.
+    /// Reset per solve, not by the per-phase AcceptanceStrategy::reset().
+    double last_funnel_width = -1.0;
+
+    /// Final filter size (number of stored (θ, φ) pairs, Filter::size())
+    /// reported by FilterAcceptance::append_diagnostics()
+    /// (globalization/filter_acceptance.h) at the end of the most recent
+    /// solve's LAST PHASE. Sentinel -1 when the selected acceptance
+    /// strategy is not filter. Same last-phase-only semantics as
+    /// last_funnel_width above.
+    int last_filter_size = -1;
+
+    /// Total filter-reset-heuristic clears (FilterAcceptance::filter_resets())
+    /// at the end of the most recent solve's LAST PHASE. Sentinel -1 when the
+    /// acceptance strategy is not filter. PER-PHASE, and under
+    /// barrier_governor == monitored per barrier SUBPROBLEM: each mu-event
+    /// also clears the counter, so this reports resets since the last mu-event
+    /// of the last phase.
+    int last_filter_resets = -1;
+
+    /// Number of free -> monotone handoffs during the most recent solve's
+    /// LAST PHASE, reported by MonitoredBarrierGovernor. Sentinel -1 when the
+    /// selected barrier_governor is not monitored. Per-phase, like
+    /// last_filter_resets above.
+    int last_monotone_switches = -1;
+
+    /// Number of iterations spent in monotone mode during the most recent
+    /// solve's LAST PHASE, reported by MonitoredBarrierGovernor::
+    /// append_diagnostics(). Sentinel -1 when the selected
+    /// barrier_governor is not monitored. Same per-phase semantics as
+    /// last_monotone_switches.
+    int last_monotone_iters = -1;
+
+    /// Number of times feasibility restoration was entered during the most
+    /// recent solve's LAST PHASE, reported by RestorationStrategy. WRITE-ONLY
+    /// diagnostics: no algorithm code reads it back. Sentinel -1 when no
+    /// restoration strategy is constructed. Counting is identical across both
+    /// modes -- entries_ increments once per entry call, iterations_in_mode_
+    /// once per note_iteration() while active.
+    int last_feas_rest_entries = -1;
+
+    /// Number of iterations spent in restoration mode during the most
+    /// recent solve's LAST PHASE, reported by RestorationStrategy::
+    /// append_diagnostics(). WRITE-ONLY diagnostics field. Sentinel -1
+    /// when no restoration strategy is constructed. Same per-phase
+    /// semantics as last_feas_rest_entries (including the nested-mode
+    /// counting note above).
+    int last_feas_rest_iters = -1;
+
+    /// Proximal primal-dual regularization shifts applied at the LAST
+    /// FACTORIZED ITERATION of the most recent solve's last phase.
+    /// last_prox_reg_primal is the persistent primal base shift rho_k added
+    /// to the Hessian diagonal there; last_prox_reg_dual is the
+    /// barrier-scaled dual shift delta_c subtracted from the constraint-row
+    /// diagonals (0.0 when suppressed inside a nested l1 phase). Sentinel -1.0
+    /// for BOTH when inertia_mode != proximal_regularization, and when a
+    /// mode-on phase converged before its first factorization.
+    double last_prox_reg_primal = -1.0;
+    /// The dual half of the pair documented just above: the barrier-scaled
+    /// dual shift δ_c, on the same sentinel and last-phase-wins rules.
+    double last_prox_reg_dual = -1.0;
+
+    /// Message of the most recent trial-evaluation exception absorbed by
+    /// the acceptance machinery during the most recent solve call (all
+    /// phases). Empty when every evaluation succeeded. A populated value
+    /// means the solver rejected un-evaluable trial steps and continued —
+    /// to full recovery, to a graceful ACCEPTABLE-level exit at an
+    /// already-acceptable iterate, or into feasibility restoration. When
+    /// none of those paths existed, the solve threw the latched message
+    /// wrapped in solver context instead.
+    std::string last_eval_exception;
+
+    /// The last non-Success status observed from kkt_sol_.info() by
+    /// factor_impl() within the CURRENT phase (alg_impl resets it on
+    /// entry, so print_exit_stats reports per-phase status). Purely
+    /// observational (surfaced by print_exit_stats()); feeds no
+    /// control-flow decision in factor_impl.
+    Eigen::ComputationInfo last_kkt_info = Eigen::Success;
+    // --- The per-phase account (M6 W5 T8.4) ---
+    /// @brief One entry per phase in `IpmOptions::phases`, in that order.
+    ///
+    /// The base's `status` is the LAST RAN phase's status and the base's
+    /// `iterations` is the sum over the phases that ran.
+    std::vector<IpmPhaseReport> phases;
+
+    // --- The factorization SNAPSHOT (M6 W5 T8.4) ---
+    //
+    // These answer cross-call questions that used to be asked through
+    // accessors on the solver. They are SNAPSHOTS taken as this result was
+    // built, so they describe the solve that produced them and cannot go stale
+    // behind a caller's back.
+    /// @brief How many times the producing solver had laid and analyzed the KKT
+    ///        sparsity pattern over its LIFETIME, as of this result.
+    Index kkt_analyses_total = 0;
+    /// @brief How many of those happened during THIS call.
+    Index kkt_analyses_this_call = 0;
+    /// @brief The KKT factor's linear-layer call counters as of this result,
+    ///        including the pattern-guard count.
+    KktFactorization::Counters kkt_factor_counters;
+    /// @brief The log of NLP evaluation errors absorbed during this call.
+    EvalErrorLog eval_error_log;
 };
 
 /// @brief Validates a whole IpmOptions value, throwing std::invalid_argument on

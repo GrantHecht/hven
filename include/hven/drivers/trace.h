@@ -21,6 +21,7 @@
 #include <hven/detail/drivers/interior_point_solver_fwd.h>
 #include <hven/detail/interior/iterate_info.h>
 #include <hven/detail/qp/ipqp_evidence.h>
+#include <hven/drivers/solve_status.h>
 #include <hven/drivers/sqp_types.h>
 #include <hven/qp/qp_types.h>
 
@@ -404,21 +405,21 @@ struct IpmSolveBeginTraceEvent {
 ///
 /// EVERY `_s` FIELD IS WALL-CLOCK AND INFORMATIONAL (plan section 2 rule 7,
 /// CLAUDE.md section 7): no pin reads one. They are the driver's own
-/// `SolveResult` timing set in full -- a hand-picked subset would let a reader
+/// `IpmResult` timing set in full -- a hand-picked subset would let a reader
 /// believe the parts summed to the whole.
 ///
 /// Written on the entry point's single normal return; a call that leaves by an
 /// exception writes its `begin` and no `end`.
 struct IpmSolveEndTraceEvent {
-    ConvergenceFlags status = ConvergenceFlags::NOTCONVERGED;
-    Index iters = 0; ///< `SolveResult::iter_num_`, summed over the phases.
+    SolveStatus status = SolveStatus::kMaxIter;
+    Index iters = 0; ///< `IpmResult::iterations`, summed over the phases.
     double total_time_s = 0.0;
     double pre_time_s = 0.0;
     double func_time_s = 0.0;
     double kkt_time_s = 0.0;
     double print_time_s = 0.0;
     double solver_init_time_s = 0.0;
-    double misc_time_s = 0.0; ///< `SolveResult::misc_time()`, the derived remainder.
+    double misc_time_s = 0.0; ///< `IpmResult::misc_time()`, the derived remainder.
 };
 
 /// @brief The W4 hook: one sink; the eight W1/W2 methods are PURE, and every

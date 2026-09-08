@@ -82,6 +82,17 @@ struct NLPSolver final {
     Eigen::VectorXd active_variables_;
     Eigen::VectorXd active_eq_lmults_;
     Eigen::VectorXd active_iq_lmults_;
+    /// The last solve's whole result, kept so consumers of this wrapper can
+    /// still ask a question about a finished solve after the fact.
+    ///
+    /// THIS IS THE WRAPPER'S ACCOMMODATION, NOT THE ENGINE'S (M6 W5 T8.4). The
+    /// engine returns its result by value and holds nothing between calls; it
+    /// was InteriorPointSolver::result() that made a finished solve readable
+    /// from a solver that had gone on living, and that accessor is gone. This
+    /// class's own entry points return only a status, so the rest of the result
+    /// would otherwise be unreachable through it. NLPSolver is retired in T8.9,
+    /// and this goes with it.
+    IpmResult last_result_;
     /// True until the first successful transcription; jet_release() restores it.
     bool do_transcription_ = true;
 
@@ -101,20 +112,20 @@ struct NLPSolver final {
     // points.
 
     /// Runs the feasibility (SOE-mode) phase sequence on active_variables_.
-    hven::ConvergenceFlags solve();
+    hven::solvers::SolveStatus solve();
     /// Runs the optimality (OPT-mode) phase sequence on active_variables_.
-    hven::ConvergenceFlags optimize();
+    hven::solvers::SolveStatus optimize();
     /// Runs the SOE-mode phase sequence, then the OPT-mode one. Both always
     /// run.
-    hven::ConvergenceFlags solve_optimize();
+    hven::solvers::SolveStatus solve_optimize();
     /// Runs SOE, then OPT, then SOE again. The trailing SOE phase is
     /// conditional: it is skipped when OPT reported
-    /// ConvergenceFlags::CONVERGED.
-    hven::ConvergenceFlags solve_optimize_solve();
+    /// SolveStatus::kOptimal.
+    hven::solvers::SolveStatus solve_optimize_solve();
     /// Runs the OPT-mode phase sequence, then the SOE-mode one. The trailing
     /// SOE phase is conditional: it is skipped when OPT reported
-    /// ConvergenceFlags::CONVERGED.
-    hven::ConvergenceFlags optimize_solve();
+    /// SolveStatus::kOptimal.
+    hven::solvers::SolveStatus optimize_solve();
 
     /// Compute default partition count from the global thread budget.
     /// Over-partitions by 4x so the work-stealing pool can smooth out
@@ -158,10 +169,16 @@ struct NLPSolver final {
     ///
     /// @throws std::invalid_argument if jet_job_mode_ is NotSet or otherwise
     /// unrecognized.
-    hven::ConvergenceFlags jet_run();
+    hven::solvers::SolveStatus jet_run();
 
     /// Uniform output of one solve: the updated variable vector, the
     /// constraint multipliers, and the convergence flag.
+    /// @brief The whole result of the most recent solve through this wrapper.
+    ///
+    /// Default-constructed -- every diagnostic NaN, every block empty, status
+    /// kNumericalError -- before the first solve.
+    const IpmResult &result() const noexcept { return this->last_result_; }
+
     struct NlpSolveOutput {
         /// @brief Updated variable vector from the solve.
         Eigen::VectorXd variables_;
@@ -170,7 +187,7 @@ struct NLPSolver final {
         /// @brief Inequality-constraint multipliers from the final result.
         Eigen::VectorXd iq_lmults_;
         /// @brief Convergence flag from the final result.
-        ConvergenceFlags flag_ = ConvergenceFlags::NOTCONVERGED;
+        SolveStatus flag_ = SolveStatus::kMaxIter;
     };
 
     /// Single dispatch point for the five solve modes, mapping each onto the
@@ -204,11 +221,11 @@ struct NLPSolver final {
     ///        do_transcription_ stays true and the next solve re-transcribes.
     void transcribe();
 
-    hven::ConvergenceFlags solve(ConstEigenRef<Eigen::VectorXd> x0);
-    hven::ConvergenceFlags optimize(ConstEigenRef<Eigen::VectorXd> x0);
-    hven::ConvergenceFlags solve_optimize(ConstEigenRef<Eigen::VectorXd> x0);
-    hven::ConvergenceFlags optimize_solve(ConstEigenRef<Eigen::VectorXd> x0);
-    hven::ConvergenceFlags solve_optimize_solve(ConstEigenRef<Eigen::VectorXd> x0);
+    hven::solvers::SolveStatus solve(ConstEigenRef<Eigen::VectorXd> x0);
+    hven::solvers::SolveStatus optimize(ConstEigenRef<Eigen::VectorXd> x0);
+    hven::solvers::SolveStatus solve_optimize(ConstEigenRef<Eigen::VectorXd> x0);
+    hven::solvers::SolveStatus optimize_solve(ConstEigenRef<Eigen::VectorXd> x0);
+    hven::solvers::SolveStatus solve_optimize_solve(ConstEigenRef<Eigen::VectorXd> x0);
 
     /// Solution primal vector, in the problem's own variable space.
     Eigen::VectorXd return_x() const { return this->active_variables_; }
@@ -223,7 +240,7 @@ struct NLPSolver final {
     Eigen::VectorXd return_multipliers() const;
 
   private:
-    hven::ConvergenceFlags run(JetJobModes mode, ConstEigenRef<Eigen::VectorXd> x0);
+    hven::solvers::SolveStatus run(JetJobModes mode, ConstEigenRef<Eigen::VectorXd> x0);
     void apply_starting_multipliers();
 };
 

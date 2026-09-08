@@ -102,7 +102,7 @@ TEST(NLPSolverTest, Hs071ConvergesToKnownOptimum) {
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
     auto flag = solver.optimize(x0);
-    EXPECT_EQ(flag, hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(flag, hven::solvers::SolveStatus::kOptimal);
     Eigen::VectorXd x = solver.return_x();
     Eigen::VectorXd expect(4);
     expect << 1.00000000, 4.74299963, 3.82114998, 1.37940829;
@@ -124,9 +124,9 @@ TEST(NLPSolverTest, Hs071BoundDualsMatchActiveLowerBound) {
     }
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
 
-    const Eigen::VectorXd &z = solver.optimizer_->result().bound_lmults_;
+    const Eigen::VectorXd &z = solver.result().z;
     ASSERT_EQ(z.size(), 4);
     EXPECT_GT(z[0], 1e-6);        // active lower bound: z >= 0, and strictly so here
     EXPECT_NEAR(z[1], 0.0, 1e-6); // free
@@ -186,7 +186,7 @@ TEST(NLPSolverTest, RosenbrockConvergesToKnownOptimum) {
     Eigen::VectorXd x0(2);
     x0 << -1.2, 1.0;
     auto flag = solver.optimize(x0);
-    EXPECT_EQ(flag, hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(flag, hven::solvers::SolveStatus::kOptimal);
     Eigen::VectorXd x = solver.return_x();
     Eigen::VectorXd expect(2);
     expect << 1.0, 1.0;
@@ -249,7 +249,7 @@ TEST(NLPSolverTest, EqualityMultiplierHasIpoptSign) {
         solver.optimizer_->set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     EXPECT_NEAR(solver.return_multipliers()[0], -2.0, 1e-5);
 }
 
@@ -305,7 +305,7 @@ TEST(NLPSolverTest, LowerBoundedRowActiveWithNegativeIpoptMultiplier) {
     }
     Eigen::VectorXd x0(1);
     x0 << 3.0;
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     EXPECT_NEAR(solver.return_x()[0], 1.0, 1e-5);
     EXPECT_NEAR(solver.return_multipliers()[0], -2.0, 1e-5);
 }
@@ -365,7 +365,7 @@ TEST(NLPSolverTest, RangeRowActiveAtUpperWithPositiveIpoptMultiplier) {
     }
     Eigen::VectorXd x0(1);
     x0 << 1.5;
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     EXPECT_NEAR(solver.return_x()[0], 2.0, 1e-5);
     EXPECT_NEAR(solver.return_multipliers()[0], 2.0, 1e-5);
 }
@@ -426,7 +426,7 @@ TEST(NLPSolverTest, FreeRowDroppedFromTranscriptionReadsZeroMultiplier) {
     }
     Eigen::VectorXd x0(1);
     x0 << 0.0;
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     EXPECT_NEAR(solver.return_x()[0], 5.0, 1e-5);
     EXPECT_NEAR(solver.return_multipliers()[0], 0.0, 1e-14);
 }
@@ -478,7 +478,7 @@ TEST(NLPSolverTest, FixedVariableSolvesExactlyAtItsFixedValue) {
     }
     Eigen::VectorXd x0(2);
     x0 << 0.0, 3.0;
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     Eigen::VectorXd x = solver.return_x();
     EXPECT_NEAR(x[0], 1.0, 1e-6);
     EXPECT_NEAR(x[1], 3.0, 1e-12);
@@ -500,10 +500,10 @@ TEST(NLPSolverTest, FixedVariableTreatmentIsRecordedOnSolveResult) {
         }
         Eigen::VectorXd x0(2);
         x0 << 0.0, 3.0;
-        ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
-        EXPECT_EQ(solver.optimizer_->result().fixed_variable_treatment_,
+        ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
+        EXPECT_EQ(solver.result().fixed_variable_treatment,
                   hven::solvers::FixedVariableTreatments::MakeParameter);
-        EXPECT_EQ(solver.optimizer_->result().eq_lmults_.size(), 0);
+        EXPECT_EQ(solver.result().lambda_e.size(), 0);
     }
     {
         hven::solvers::NLPSolver solver(std::make_shared<FixedVarProblem>());
@@ -515,21 +515,33 @@ TEST(NLPSolverTest, FixedVariableTreatmentIsRecordedOnSolveResult) {
         }
         Eigen::VectorXd x0(2);
         x0 << 0.0, 3.0;
-        ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
-        EXPECT_EQ(solver.optimizer_->result().fixed_variable_treatment_,
+        ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
+        EXPECT_EQ(solver.result().fixed_variable_treatment,
                   hven::solvers::FixedVariableTreatments::MakeConstraint);
-        EXPECT_EQ(solver.optimizer_->result().eq_lmults_.size(), 1);
+        // THE DECLARED BLOCK IS STILL EMPTY (M6 W5 T8.4): the problem declares
+        // no equality row, and the one row MakeConstraint adds is the
+        // TREATMENT's -- reported beside the base, not inside it.
+        EXPECT_EQ(solver.result().lambda_e.size(), 0);
+        EXPECT_EQ(solver.result().internal_fixed_lambda_e.size(), 1);
+        EXPECT_EQ(solver.result().internal_fixed_ce.size(), 1);
     }
 }
 
-// SolveResult::bound_lmults_ pin against the RelaxBounds -> MakeParameter
-// treatment switch: under RelaxBounds the fixed variable is NOT eliminated,
-// so it reaches the solver as a widened two-sided bound and bounds_lmults_
-// comes back non-empty; switched to MakeParameter on the SAME solver
-// instance (no intervening set_nlp()), the variable is eliminated instead,
-// bounds_ goes back to null, and bound_lmults_ must not still be reporting
-// the first solve's z at the old, now-mismatched primal_vars_ width.
-TEST(NLPSolverTest, BoundLmultsClearedAfterATreatmentSwitchDropsTheBoundSet) {
+// IpmResult::z pin against the RelaxBounds -> MakeParameter treatment switch.
+// Under RelaxBounds the fixed variable is NOT eliminated, so it reaches the
+// solver as a widened two-sided bound and carries a price; switched to
+// MakeParameter on the SAME solver instance, the variable is eliminated
+// instead, the bound set goes back to null, and the second solve must not
+// report the first solve's price.
+//
+// WHAT THE PIN ASSERTS CHANGED IN M6 W5 T8.4, and for the better: the base's z
+// is DECLARED-WIDTH unconditionally -- an eliminated coordinate has a 0 there,
+// which is what "the reduced problem has no row for it" means in the caller's
+// space -- so the failure mode this guarded (a stale REDUCED-width block
+// standing at the wrong length) is impossible by construction. What is left to
+// assert, and what this now asserts, is the value: zero at the eliminated
+// coordinate, from a solve that never priced it.
+TEST(NLPSolverTest, ZIsDeclaredWidthAndZeroAtAnEliminatedCoordinate) {
     hven::solvers::NLPSolver solver(std::make_shared<FixedVarProblem>());
     {
         auto o = solver.optimizer_->options();
@@ -540,16 +552,21 @@ TEST(NLPSolverTest, BoundLmultsClearedAfterATreatmentSwitchDropsTheBoundSet) {
     Eigen::VectorXd x0(2);
     x0 << 0.0, 3.0;
 
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
-    ASSERT_GT(solver.optimizer_->result().bound_lmults_.size(), 0);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(solver.result().z.size(), 2) << "declared width, both treatments";
+    const double relaxed_price = solver.result().z[1];
 
     {
         auto o = solver.optimizer_->options();
         o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeParameter;
         solver.optimizer_->set_options(std::move(o));
     }
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
-    EXPECT_EQ(solver.optimizer_->result().bound_lmults_.size(), 0);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(solver.result().z.size(), 2);
+    EXPECT_EQ(solver.result().z[1], 0.0)
+        << "an eliminated coordinate is not priced, and the previous solve's price for it "
+           "("
+        << relaxed_price << ") must not survive";
 }
 
 // EqOnlyProblem plus a starting_multipliers() override that returns true and
@@ -572,7 +589,7 @@ TEST(NLPSolverTest, SeededSolveConverges) {
         solver.optimizer_->set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     Eigen::VectorXd x = solver.return_x();
     Eigen::VectorXd expect(2);
     expect << 1.0, 1.0;
@@ -592,7 +609,7 @@ TEST(NLPSolverTest, NoArgOptimizeUsesActiveVariables) {
         o.common.print_level = 10;
         x0_solver.optimizer_->set_options(std::move(o));
     }
-    ASSERT_EQ(x0_solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(x0_solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
 
     hven::solvers::NLPSolver noarg_solver(std::make_shared<EqOnlyProblem>());
     {
@@ -601,7 +618,7 @@ TEST(NLPSolverTest, NoArgOptimizeUsesActiveVariables) {
         noarg_solver.optimizer_->set_options(std::move(o));
     }
     noarg_solver.active_variables_ = x0;
-    ASSERT_EQ(noarg_solver.optimize(), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(noarg_solver.optimize(), hven::solvers::SolveStatus::kOptimal);
 
     EXPECT_LT((noarg_solver.return_x() - x0_solver.return_x()).lpNorm<Eigen::Infinity>(), 1e-8);
 }
@@ -634,7 +651,7 @@ TEST(NLPSolverTest, JetLifecycleRoundTrip) {
     EXPECT_FALSE(solver.do_transcription_);
 
     solver.active_variables_ = Eigen::VectorXd::Zero(2);
-    ASSERT_EQ(solver.optimize(), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(), hven::solvers::SolveStatus::kOptimal);
     EXPECT_FALSE(solver.do_transcription_); // no re-transcription happened
 
     solver.jet_release();
@@ -645,7 +662,8 @@ TEST(NLPSolverTest, JetLifecycleRoundTrip) {
         solver.optimizer_->set_options(std::move(o));
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    EXPECT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED); // fresh transcription works
+    EXPECT_EQ(solver.optimize(x0),
+              hven::solvers::SolveStatus::kOptimal); // fresh transcription works
 }
 
 // starting_multipliers() returning a non-finite entry must fail the
@@ -1035,7 +1053,7 @@ TEST(NLPSolverTest, AFaultedTranscriptionCommitsNothingAndRetriesCleanly) {
 
     // Clearing the fault and retrying succeeds; nothing had to be reset by hand.
     problem->armed_ = false;
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     EXPECT_FALSE(solver.do_transcription_);
     const auto model_after = solver.model_;
     const auto core_after = solver.core_;
@@ -1060,12 +1078,12 @@ TEST(NLPSolverTest, AFaultedTranscriptionCommitsNothingAndRetriesCleanly) {
     // so there was nothing there to replace.
     problem->armed_ = false;
     solver.do_transcription_ = false;
-    EXPECT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(solver.model_, model_after);
     EXPECT_EQ(solver.nlp_, nlp_after);
 
     solver.do_transcription_ = true;
-    EXPECT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
 }
 
 // Counts the setup-only queries a transcription makes of the problem. bounds,
@@ -1127,7 +1145,7 @@ TEST(NLPSolverTest, ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvaluat
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
 
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     // Exactly one transcription: one bounds query, one of each structure.
     EXPECT_EQ(problem->n_bounds_, 1);
     EXPECT_EQ(problem->n_jac_structure_, 1);
@@ -1139,7 +1157,7 @@ TEST(NLPSolverTest, ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvaluat
     const int jac_after_first = problem->n_eval_jac_;
     const int hess_after_first = problem->n_eval_hess_;
 
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     // Nothing was transcribed a second time, so no setup evaluation happened a
     // second time either: the counts that a transcription and only a
     // transcription moves are unchanged, and the model and program are the
@@ -1178,41 +1196,41 @@ TEST(NLPSolverTest, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
 
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
 
-    const auto &result = solver.optimizer_->result();
+    const auto &result = solver.result();
     const auto &settings = solver.optimizer_->options();
 
-    EXPECT_TRUE(std::isfinite(result.kkt_inf_));
-    EXPECT_TRUE(std::isfinite(result.barr_inf_));
-    EXPECT_TRUE(std::isfinite(result.econ_inf_));
-    EXPECT_TRUE(std::isfinite(result.icon_inf_));
+    EXPECT_TRUE(std::isfinite(result.kkt_inf));
+    EXPECT_TRUE(std::isfinite(result.barr_inf));
+    EXPECT_TRUE(std::isfinite(result.econ_inf));
+    EXPECT_TRUE(std::isfinite(result.icon_inf));
 
-    EXPECT_LT(result.kkt_inf_, settings.kkt_tol);
-    EXPECT_LT(result.barr_inf_, settings.bar_tol);
-    EXPECT_LT(result.econ_inf_, settings.econ_tol);
-    EXPECT_LT(result.icon_inf_, settings.icon_tol);
+    EXPECT_LT(result.kkt_inf, settings.kkt_tol);
+    EXPECT_LT(result.barr_inf, settings.bar_tol);
+    EXPECT_LT(result.econ_inf, settings.econ_tol);
+    EXPECT_LT(result.icon_inf, settings.icon_tol);
 
     // A residual is a norm: never negative, whatever the exit.
-    EXPECT_GE(result.kkt_inf_, 0.0);
-    EXPECT_GE(result.barr_inf_, 0.0);
-    EXPECT_GE(result.econ_inf_, 0.0);
-    EXPECT_GE(result.icon_inf_, 0.0);
+    EXPECT_GE(result.kkt_inf, 0.0);
+    EXPECT_GE(result.barr_inf, 0.0);
+    EXPECT_GE(result.econ_inf, 0.0);
+    EXPECT_GE(result.icon_inf, 0.0);
 
     // HS071 has both row kinds, so neither constraint residual is the vacuous
     // "no rows, therefore zero" reading.
-    ASSERT_EQ(result.eq_cons_.size(), 1);
-    ASSERT_EQ(result.iq_cons_.size(), 1);
+    ASSERT_EQ(result.ce.size(), 1);
+    ASSERT_EQ(result.ci.size(), 1);
 
     // A SECOND CALL RE-REPORTS. reset_accumulators() clears the four at solve
     // entry, so a stale reading cannot survive into a call that never wrote
     // them; here the second call writes them again and lands inside the same
     // gates.
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
-    EXPECT_LT(result.kkt_inf_, settings.kkt_tol);
-    EXPECT_LT(result.barr_inf_, settings.bar_tol);
-    EXPECT_LT(result.econ_inf_, settings.econ_tol);
-    EXPECT_LT(result.icon_inf_, settings.icon_tol);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
+    EXPECT_LT(result.kkt_inf, settings.kkt_tol);
+    EXPECT_LT(result.barr_inf, settings.bar_tol);
+    EXPECT_LT(result.econ_inf, settings.econ_tol);
+    EXPECT_LT(result.icon_inf, settings.icon_tol);
 }
 
 // A problem whose OBJECTIVE RISES along the solve: min 0.5*|x|^2 subject to
@@ -1309,7 +1327,7 @@ TEST(NLPSolverTest, TheReportedKktResidualsDescribeTheIterateTheResultDescribes)
     });
 
     const Eigen::VectorXd x0 = Eigen::VectorXd::Zero(BestIterateRisingObjectiveProblem::kN);
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     ASSERT_GE(rows.size(), 2u);
 
     std::size_t best = 0;
@@ -1324,19 +1342,19 @@ TEST(NLPSolverTest, TheReportedKktResidualsDescribeTheIterateTheResultDescribes)
     ASSERT_NE(rows[best].kkt_inf_, rows[last].kkt_inf_)
         << "fixture premise: the two candidate rows must carry DIFFERENT residuals";
 
-    const auto &result = solver.optimizer_->result();
+    const auto &result = solver.result();
 
     // THE PIN: the four residuals are the LAST iterate's -- the one the result
     // describes on a converged exit -- and not the best-scoring one's.
-    EXPECT_EQ(result.kkt_inf_, rows[last].kkt_inf_);
-    EXPECT_EQ(result.barr_inf_, rows[last].barr_inf_);
-    EXPECT_EQ(result.econ_inf_, rows[last].econ_inf_);
-    EXPECT_EQ(result.icon_inf_, rows[last].icon_inf_);
-    EXPECT_NE(result.kkt_inf_, rows[best].kkt_inf_);
+    EXPECT_EQ(result.kkt_inf, rows[last].kkt_inf_);
+    EXPECT_EQ(result.barr_inf, rows[last].barr_inf_);
+    EXPECT_EQ(result.econ_inf, rows[last].econ_inf_);
+    EXPECT_EQ(result.icon_inf, rows[last].icon_inf_);
+    EXPECT_NE(result.kkt_inf, rows[best].kkt_inf_);
 
     // AND THE OBJECTIVE AGREES WITH THEM: one point, one set of numbers. The
     // scale is 1 here, so obj_val_ is prim_obj_ unmodified.
-    EXPECT_EQ(result.obj_val_, rows[last].prim_obj_);
+    EXPECT_EQ(result.f, rows[last].prim_obj_);
 }
 
 // NaN IS THE UNMEASURED SENTINEL, not 0.0, matching the SQP side so one outcome
@@ -1350,11 +1368,11 @@ TEST(NLPSolverTest, TheKktResidualsOfASolverThatHasNotSolvedAreUnmeasured) {
         solver.optimizer_->set_options(std::move(o));
     }
 
-    const auto &result = solver.optimizer_->result();
-    EXPECT_TRUE(std::isnan(result.kkt_inf_));
-    EXPECT_TRUE(std::isnan(result.barr_inf_));
-    EXPECT_TRUE(std::isnan(result.econ_inf_));
-    EXPECT_TRUE(std::isnan(result.icon_inf_));
+    const auto &result = solver.result();
+    EXPECT_TRUE(std::isnan(result.kkt_inf));
+    EXPECT_TRUE(std::isnan(result.barr_inf));
+    EXPECT_TRUE(std::isnan(result.econ_inf));
+    EXPECT_TRUE(std::isnan(result.icon_inf));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1508,7 +1526,7 @@ TEST(NLPSolverJobModeTest, JetRunTranscribesExactlyOnceAndReleasesAfterTheMode) 
     problem->watch_ = &solver;
     solver.set_num_partitions(7);
 
-    ASSERT_EQ(solver.jet_run(), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.jet_run(), hven::solvers::SolveStatus::kOptimal);
 
     // Every evaluation the dispatched mode made saw the single-partition
     // setting jet_initialize() installed -- not the 7 set above it.
@@ -1524,7 +1542,7 @@ TEST(NLPSolverJobModeTest, JetRunTranscribesExactlyOnceAndReleasesAfterTheMode) 
     EXPECT_EQ(solver.nlp_, nullptr);
     EXPECT_EQ(solver.num_partitions_, 1);
 
-    ASSERT_EQ(solver.jet_run(), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.jet_run(), hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(problem->n_bounds_, 2);
     EXPECT_TRUE(solver.do_transcription_);
     EXPECT_EQ(solver.nlp_, nullptr);
@@ -1546,7 +1564,7 @@ TEST(NLPSolverJobModeTest, JetRunTranscribesExactlyOnceAndReleasesAfterTheMode) 
     }
     bare_problem->watch_ = &bare;
     bare.set_num_partitions(7);
-    ASSERT_EQ(bare.optimize(Eigen::VectorXd::Zero(2)), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(bare.optimize(Eigen::VectorXd::Zero(2)), hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(bare_problem->n_bounds_, 1);
     ASSERT_FALSE(bare_problem->partitions_during_eval_.empty());
     for (int p : bare_problem->partitions_during_eval_) {
@@ -1601,7 +1619,7 @@ namespace {
 /// sink attached, optionally capped at @p max_iters so the OPT phase cannot
 /// report CONVERGED, and returns the sink.
 IpmPhaseRecordingSink run_with_phase_sink(JetJobModes mode, int max_iters,
-                                          hven::ConvergenceFlags *flag_out) {
+                                          hven::solvers::SolveStatus *flag_out) {
     NLPSolver solver(std::make_shared<EqOnlyProblem>());
     {
         auto o = solver.optimizer_->options();
@@ -1632,10 +1650,10 @@ IpmPhaseRecordingSink run_with_phase_sink(JetJobModes mode, int max_iters,
 } // namespace
 
 TEST(NLPSolverModeSemanticsTest, SolveOptimizeSolveSkipsTheTrailingSoeOnlyWhenOptConverged) {
-    hven::ConvergenceFlags flag = hven::ConvergenceFlags::NOTCONVERGED;
+    hven::solvers::SolveStatus flag = hven::solvers::SolveStatus::kMaxIter;
     const IpmPhaseRecordingSink converged =
         run_with_phase_sink(JetJobModes::SolveOptimizeSolve, 0, &flag);
-    ASSERT_EQ(flag, hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(flag, hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(converged.begins_, 1);
     EXPECT_EQ(converged.ends_, 1);
     EXPECT_EQ(converged.begin_phases_, 3); // three REQUESTED, one of them skipped
@@ -1643,21 +1661,21 @@ TEST(NLPSolverModeSemanticsTest, SolveOptimizeSolveSkipsTheTrailingSoeOnlyWhenOp
 
     const IpmPhaseRecordingSink capped =
         run_with_phase_sink(JetJobModes::SolveOptimizeSolve, 1, &flag);
-    ASSERT_NE(flag, hven::ConvergenceFlags::CONVERGED);
+    ASSERT_NE(flag, hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(capped.begin_phases_, 3);
     EXPECT_EQ(capped.distinct_phases(), (std::vector<int>{0, 1, 2}));
 }
 
 TEST(NLPSolverModeSemanticsTest, OptimizeSolveSkipsTheTrailingSoeOnlyWhenOptConverged) {
-    hven::ConvergenceFlags flag = hven::ConvergenceFlags::NOTCONVERGED;
+    hven::solvers::SolveStatus flag = hven::solvers::SolveStatus::kMaxIter;
     const IpmPhaseRecordingSink converged =
         run_with_phase_sink(JetJobModes::OptimizeSolve, 0, &flag);
-    ASSERT_EQ(flag, hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(flag, hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(converged.begin_phases_, 2);
     EXPECT_EQ(converged.distinct_phases(), (std::vector<int>{0}));
 
     const IpmPhaseRecordingSink capped = run_with_phase_sink(JetJobModes::OptimizeSolve, 1, &flag);
-    ASSERT_NE(flag, hven::ConvergenceFlags::CONVERGED);
+    ASSERT_NE(flag, hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(capped.begin_phases_, 2);
     EXPECT_EQ(capped.distinct_phases(), (std::vector<int>{0, 1}));
 }
@@ -1665,15 +1683,15 @@ TEST(NLPSolverModeSemanticsTest, OptimizeSolveSkipsTheTrailingSoeOnlyWhenOptConv
 // solve_optimize has no conditional step at all: both phases run whatever the
 // OPT phase reported, which is what separates it from the two above.
 TEST(NLPSolverModeSemanticsTest, SolveOptimizeAlwaysRunsBothPhases) {
-    hven::ConvergenceFlags flag = hven::ConvergenceFlags::NOTCONVERGED;
+    hven::solvers::SolveStatus flag = hven::solvers::SolveStatus::kMaxIter;
     const IpmPhaseRecordingSink converged =
         run_with_phase_sink(JetJobModes::SolveOptimize, 0, &flag);
-    ASSERT_EQ(flag, hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(flag, hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(converged.begin_phases_, 2);
     EXPECT_EQ(converged.distinct_phases(), (std::vector<int>{0, 1}));
 
     const IpmPhaseRecordingSink capped = run_with_phase_sink(JetJobModes::SolveOptimize, 1, &flag);
-    ASSERT_NE(flag, hven::ConvergenceFlags::CONVERGED);
+    ASSERT_NE(flag, hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(capped.begin_phases_, 2);
     EXPECT_EQ(capped.distinct_phases(), (std::vector<int>{0, 1}));
 }
@@ -1681,10 +1699,10 @@ TEST(NLPSolverModeSemanticsTest, SolveOptimizeAlwaysRunsBothPhases) {
 // The two single-phase modes, for the contrast: one requested phase, one
 // executed, and nothing conditional to skip.
 TEST(NLPSolverModeSemanticsTest, SolveAndOptimizeEachRunExactlyOnePhase) {
-    hven::ConvergenceFlags flag = hven::ConvergenceFlags::NOTCONVERGED;
+    hven::solvers::SolveStatus flag = hven::solvers::SolveStatus::kMaxIter;
     for (JetJobModes mode : {JetJobModes::Solve, JetJobModes::Optimize}) {
         const IpmPhaseRecordingSink sink = run_with_phase_sink(mode, 0, &flag);
-        ASSERT_EQ(flag, hven::ConvergenceFlags::CONVERGED);
+        ASSERT_EQ(flag, hven::solvers::SolveStatus::kOptimal);
         EXPECT_EQ(sink.begins_, 1);
         EXPECT_EQ(sink.ends_, 1);
         EXPECT_EQ(sink.begin_phases_, 1);
@@ -1705,10 +1723,10 @@ TEST(NLPSolverTest, TheIterationCapIsTheRecordedStopReason) {
     }
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
-    const hven::ConvergenceFlags flag = solver.optimize(x0);
-    ASSERT_EQ(flag, hven::ConvergenceFlags::NOTCONVERGED);
+    const hven::solvers::SolveStatus flag = solver.optimize(x0);
+    ASSERT_EQ(flag, hven::solvers::SolveStatus::kMaxIter);
     EXPECT_EQ(solver.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kIterationCap);
-    EXPECT_EQ(hven::solvers::to_solve_status(flag, solver.optimizer_->last_stop_reason()),
+    EXPECT_EQ(hven::solvers::resolve_ipm_phase_status(flag, solver.optimizer_->last_stop_reason()),
               hven::solvers::SolveStatus::kMaxIter);
 }
 
@@ -1728,7 +1746,7 @@ TEST(NLPSolverTest, AConvergedSolveRecordsNoStopReason) {
         o.max_iters = 1;
         solver.optimizer_->set_options(std::move(o));
     }
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::NOTCONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kMaxIter);
     ASSERT_EQ(solver.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kIterationCap);
 
     {
@@ -1736,10 +1754,10 @@ TEST(NLPSolverTest, AConvergedSolveRecordsNoStopReason) {
         o.max_iters = 200;
         solver.optimizer_->set_options(std::move(o));
     }
-    const hven::ConvergenceFlags flag = solver.optimize(x0);
-    ASSERT_EQ(flag, hven::ConvergenceFlags::CONVERGED);
+    const hven::solvers::SolveStatus flag = solver.optimize(x0);
+    ASSERT_EQ(flag, hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(solver.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kNone);
-    EXPECT_EQ(hven::solvers::to_solve_status(flag, solver.optimizer_->last_stop_reason()),
+    EXPECT_EQ(hven::solvers::resolve_ipm_phase_status(flag, solver.optimizer_->last_stop_reason()),
               hven::solvers::SolveStatus::kOptimal);
 }
 
@@ -1784,16 +1802,42 @@ TEST(NLPSolverTest, AMultiPhaseCapIsLabelledByThePhaseThatHitIt) {
     });
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
-    const hven::ConvergenceFlags flag = solver.solve_optimize(x0);
+    const hven::solvers::SolveStatus flag = solver.solve_optimize(x0);
 
     ASSERT_EQ(phase_terminal.size(), 2u);
     EXPECT_LT(phase_terminal[0], kCap - 1) << "the feasibility phase was expected to end on its "
                                               "own verdict, not on the cap";
     EXPECT_EQ(phase_terminal[1], kCap - 1);
     EXPECT_EQ(solver.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kIterationCap);
-    EXPECT_EQ(flag, hven::ConvergenceFlags::NOTCONVERGED);
-    EXPECT_EQ(hven::solvers::to_solve_status(flag, solver.optimizer_->last_stop_reason()),
+    EXPECT_EQ(flag, hven::solvers::SolveStatus::kMaxIter);
+    EXPECT_EQ(hven::solvers::resolve_ipm_phase_status(flag, solver.optimizer_->last_stop_reason()),
               hven::solvers::SolveStatus::kMaxIter);
+
+    // THE PER-PHASE ACCOUNT, ADDED BESIDE THE ABOVE RATHER THAN REPLACING IT
+    // (M6 W5 T8.4). The pin above was written when the verdict's lifetime was
+    // the CALL and the reason's was the PHASE, and design §2.3 registered that
+    // mismatch as a defect for this task. It did NOT record a stale verdict:
+    // this solve leaves through the terminal CONJUNCTION, which assigns the
+    // verdict on the way out, so the reported kMaxIter was always phase 1's own
+    // answer. Nothing above flips; what the fix adds is that the same is now
+    // true BY CONSTRUCTION rather than by which door this fixture happens to
+    // take, and that phase 0's own verdict survives beside it.
+    const hven::solvers::IpmResult &r = solver.result();
+    ASSERT_EQ(r.phases.size(), 2u);
+    EXPECT_EQ(r.phases[0].phase, hven::solvers::IpmPhase::kSolve);
+    EXPECT_EQ(r.phases[1].phase, hven::solvers::IpmPhase::kOptimize);
+    EXPECT_TRUE(r.phases[0].ran);
+    EXPECT_TRUE(r.phases[1].ran);
+    // Phase 1 hit the cap and says so; phase 0 did not and says that.
+    EXPECT_EQ(r.phases[1].status, hven::solvers::SolveStatus::kMaxIter);
+    EXPECT_EQ(r.phases[1].stop_reason, hven::solvers::IpmStopReason::kIterationCap);
+    EXPECT_EQ(r.phases[0].stop_reason, hven::solvers::IpmStopReason::kNone);
+    // The call reports the LAST RAN phase, and the solve-level stop reason is
+    // that phase's -- the same value, read two ways.
+    EXPECT_EQ(r.status, r.phases[1].status);
+    EXPECT_EQ(solver.optimizer_->last_stop_reason(), r.phases[1].stop_reason);
+    // And the per-phase iteration counts sum to the call's.
+    EXPECT_EQ(r.iterations, r.phases[0].iterations + r.phases[1].iterations);
 }
 
 // The CONVERGE-ON-THE-CAP pins (M6 W5 T8.2 fix round 2). The cap store in the
@@ -1806,7 +1850,7 @@ TEST(NLPSolverTest, AMultiPhaseCapIsLabelledByThePhaseThatHitIt) {
 //
 // The converging iteration index is DERIVED, not hard-coded: an uncapped pilot
 // reports its terminal loop index through the late callback (IterateInfo::iter_
-// is alg_impl's own loop variable; result().iter_num_ is the history size, which
+// is alg_impl's own loop variable; result().iterations is the history size, which
 // the restoration transitions pop, and is not the loop count). On this box the
 // pilot reports 9; the tests assert the relationship, never the number.
 namespace hs071_cap_boundary {
@@ -1832,14 +1876,14 @@ int converging_loop_index() {
     });
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
-    EXPECT_EQ(pilot.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(pilot.optimize(x0), hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(pilot.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kNone);
     return last;
 }
 
 // One capped run, reporting the verdict, the label and the terminal loop index.
 struct CappedRun {
-    hven::ConvergenceFlags flag = hven::ConvergenceFlags::NOTCONVERGED;
+    hven::solvers::SolveStatus flag = hven::solvers::SolveStatus::kMaxIter;
     hven::solvers::IpmStopReason reason = hven::solvers::IpmStopReason::kNone;
     int terminal_index = -1;
 };
@@ -1880,9 +1924,9 @@ TEST(NLPSolverTest, AConvergenceOnTheCapIterationRecordsNoStopReason) {
     EXPECT_EQ(run.terminal_index, idx) << "the capped run was expected to end on the same "
                                           "iteration the uncapped pilot converged on";
     EXPECT_EQ(run.terminal_index, (idx + 1) - 1) << "and that iteration is the cap iteration";
-    EXPECT_EQ(run.flag, hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(run.flag, hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(run.reason, hven::solvers::IpmStopReason::kNone);
-    EXPECT_EQ(hven::solvers::to_solve_status(run.flag, run.reason),
+    EXPECT_EQ(hven::solvers::resolve_ipm_phase_status(run.flag, run.reason),
               hven::solvers::SolveStatus::kOptimal);
 }
 
@@ -1894,8 +1938,8 @@ TEST(NLPSolverTest, OneIterationShortOfConvergenceRecordsTheCap) {
     // converging one. Nothing better to say, so the cap is the whole answer.
     const hs071_cap_boundary::CappedRun run = hs071_cap_boundary::run_capped(idx);
     EXPECT_EQ(run.terminal_index, idx - 1) << "the run was expected to end on its cap iteration";
-    EXPECT_EQ(run.flag, hven::ConvergenceFlags::NOTCONVERGED);
+    EXPECT_EQ(run.flag, hven::solvers::SolveStatus::kMaxIter);
     EXPECT_EQ(run.reason, hven::solvers::IpmStopReason::kIterationCap);
-    EXPECT_EQ(hven::solvers::to_solve_status(run.flag, run.reason),
+    EXPECT_EQ(hven::solvers::resolve_ipm_phase_status(run.flag, run.reason),
               hven::solvers::SolveStatus::kMaxIter);
 }

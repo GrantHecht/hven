@@ -25,6 +25,7 @@
 #include "hven/detail/drivers/interior_point_solver_fwd.h"
 #include "hven/detail/interior/utils/thread_pool.h"
 #include "hven/detail/interior/utils/timer.h"
+#include "hven/drivers/solve_status.h"
 #ifdef USE_ACCELERATE_SPARSE
 #include "hven/detail/interior/utils/accelerate_threads.h"
 #else
@@ -135,7 +136,7 @@ struct Jet {
 
     /// @brief Runs genfuncs[genfidxes[i]](args[i]) for every i -- on the
     /// shared thread pool when enabled, sequentially otherwise -- collecting
-    /// each job's ConvergenceFlags and printing progress when verbose.
+    /// each job's SolveStatus and printing progress when verbose.
     ///
     /// Each job runs with its thread's BLAS pinned to single-threaded mode
     /// (scope-guarded under MKL; set-and-leak under Accelerate, which the
@@ -184,23 +185,23 @@ struct Jet {
             print_beginning();
         t.start();
 
-        auto track = [&](hven::ConvergenceFlags flag, int i) {
+        auto track = [&](hven::solvers::SolveStatus flag, int i) {
             if (!verbose)
                 return;
             switch (flag) {
-            case hven::ConvergenceFlags::CONVERGED:
+            case hven::solvers::SolveStatus::kOptimal:
                 NumConv++;
                 break;
-            case hven::ConvergenceFlags::ACCEPTABLE:
+            case hven::solvers::SolveStatus::kAcceptable:
                 NumAcc++;
                 break;
-            case hven::ConvergenceFlags::NOTCONVERGED:
+            case hven::solvers::SolveStatus::kMaxIter:
                 NumNoConv++;
                 break;
-            case hven::ConvergenceFlags::DIVERGING:
+            case hven::solvers::SolveStatus::kDiverging:
                 NumDiv++;
                 break;
-            case hven::ConvergenceFlags::SINGULAR_KKT:
+            case hven::solvers::SolveStatus::kNumericalError:
                 NumDiv++; // counted with divergence in the jet progress line
                 break;
             }
@@ -209,7 +210,7 @@ struct Jet {
         };
 
         if (hven::utils::use_thread_pool()) {
-            std::vector<std::future<hven::ConvergenceFlags>> results;
+            std::vector<std::future<hven::solvers::SolveStatus>> results;
             results.reserve(NumJobs);
             for (int i = 0; i < NumJobs; i++)
                 results.push_back(

@@ -3,13 +3,13 @@
 
 #pragma once
 
-// The one solve-outcome vocabulary both engines report, with the mappings from
-// the two engine-native enums onto it. The interior-point engine's NOTCONVERGED
-// covers three different exits, so its mapping takes the stop reason the engine
-// records alongside the flag (InteriorPointSolver::last_stop_reason()).
+// The one solve-outcome vocabulary both engines report. The interior-point
+// engine's iteration loop reaches its cap, its stall exit and its
+// locally-infeasible restoration return with the same "not converged" verdict,
+// so resolve_ipm_phase_status() takes the stop reason the engine records
+// alongside it.
 
 #include <hven/core/solver_status.h>
-#include <hven/detail/drivers/interior_point_solver_fwd.h>
 
 namespace hven::solvers {
 
@@ -64,17 +64,31 @@ const char *to_string(IpmStopReason reason);
 /// @throws std::invalid_argument if @p status is not one of the nine.
 int severity(SolveStatus status);
 
-/// @brief Maps an interior-point verdict and its stop reason onto SolveStatus.
+/// @brief Resolves ONE interior-point phase's raw verdict against the stop
+///        reason recorded for the same phase.
 ///
-/// A verdict the convergence check already holds wins over the stop reason, so a
-/// stall at an acceptable iterate reports kAcceptable; NOTCONVERGED splits by
-/// reason, and both abnormal exits report kStalled.
+/// The interior-point engine's iteration loop reaches its cap, its stall exit
+/// and its locally-infeasible restoration return with the same "not converged"
+/// verdict, and only the stop reason tells the three apart. This is where that
+/// split lives, and the rule is:
 ///
-/// @param flag   The engine's convergence verdict.
-/// @param reason The stop reason recorded for the same phase.
-/// @return The shared status.
-/// @throws std::invalid_argument if @p flag is not one of the five.
-SolveStatus to_solve_status(hven::ConvergenceFlags flag, IpmStopReason reason);
+///   * A verdict the convergence check ALREADY HOLDS wins over the stop reason
+///     -- a stall at an acceptable iterate reports kAcceptable.
+///   * Otherwise kStageStalled and kRestorationLocallyInfeasible both report
+///     kStalled, and the cap (or an unlabelled exit) reports kMaxIter.
+///
+/// A simultaneous stall and cap therefore reports kStalled: the engine records
+/// the stall first and both cap doors defer to a reason already in place.
+///
+/// Applied PER PHASE, at the point the phase's own verdict is settled -- the
+/// engine keeps no per-call verdict for a later phase to inherit (M6 W5 T8.4).
+/// IDEMPOTENT: resolving an already-resolved status returns it unchanged.
+///
+/// @param raw_verdict The phase's own verdict as the iteration loop left it.
+/// @param reason      The stop reason recorded for the same phase.
+/// @return The resolved status.
+/// @throws std::invalid_argument if @p reason is not one of the four.
+SolveStatus resolve_ipm_phase_status(SolveStatus raw_verdict, IpmStopReason reason);
 
 /// @brief Maps an SQP verdict onto SolveStatus; the identity on its five values.
 /// @param status The engine's verdict.

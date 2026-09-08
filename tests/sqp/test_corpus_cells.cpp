@@ -2616,7 +2616,7 @@ std::vector<std::string> interior_artifact_violations(const Artifact &art) {
         const std::string key = r.count("cell_id") != 0 ? r.at("cell_id") : std::string("<none>");
         const std::string treatment =
             r.count("fixed_treatment") != 0 ? r.at("fixed_treatment") : std::string("<none>");
-        // The leg writes hven::ConvergenceFlags' own spellings
+        // The leg writes hven::solvers::SolveStatus' own spellings
         // (crossover_legs.h::flag_string), not the SqpStatus names.
         const std::string status = r.count("status") != 0 ? r.at("status") : std::string("<none>");
         const std::string reason =

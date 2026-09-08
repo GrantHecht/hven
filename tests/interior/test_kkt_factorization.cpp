@@ -361,14 +361,14 @@ TEST(KktFactorizationTest, AThreadCountChangedAfterTranscriptionStillSolves) {
     Eigen::VectorXd x0(1);
     x0 << 3.0;
 
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
 
     {
         auto o = solver.optimizer_->options();
         o.common.threads = solver.optimizer_->options().common.threads + 1;
         solver.optimizer_->set_options(std::move(o));
     }
-    EXPECT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
 }
 
 #if defined(USE_ACCELERATE_SPARSE)
@@ -383,7 +383,10 @@ TEST(KktFactorizationTest, AccelerateRejectsANonzeroRefinementCap) {
         o.qp_ref_steps = 2;
         solver.optimizer_->set_options(std::move(o));
     }
-    EXPECT_THROW(solver.optimizer_->set_nlp(solver.nlp_), std::invalid_argument);
+    // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
+    // from an attach step, so the refusal surfaces there. The problem has one
+    // free variable, so the guess is a 1-vector.
+    EXPECT_THROW(solver.optimize(Eigen::VectorXd::Zero(1)), std::invalid_argument);
 }
 
 // The pivot tolerance is fixed at the value the engine has always requested.
@@ -394,7 +397,10 @@ TEST(KktFactorizationTest, AccelerateRejectsANonDefaultPivotTolerance) {
         o.accel_pivot_tolerance = 0.05;
         solver.optimizer_->set_options(std::move(o));
     }
-    EXPECT_THROW(solver.optimizer_->set_nlp(solver.nlp_), std::invalid_argument);
+    // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
+    // from an attach step, so the refusal surfaces there. The problem has one
+    // free variable, so the guess is a 1-vector.
+    EXPECT_THROW(solver.optimize(Eigen::VectorXd::Zero(1)), std::invalid_argument);
 }
 
 #else
@@ -407,7 +413,10 @@ TEST(KktFactorizationTest, MklRejectsBackendMessageOutput) {
         o.qp_print = true;
         solver.optimizer_->set_options(std::move(o));
     }
-    EXPECT_THROW(solver.optimizer_->set_nlp(solver.nlp_), std::invalid_argument);
+    // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
+    // from an attach step, so the refusal surfaces there. The problem has one
+    // free variable, so the guess is a 1-vector.
+    EXPECT_THROW(solver.optimize(Eigen::VectorXd::Zero(1)), std::invalid_argument);
 }
 
 // Only the backend's own documented pivoting-strategy codes are expressible;
@@ -420,7 +429,10 @@ TEST(KktFactorizationTest, MklRejectsAnUndocumentedPivotingStrategyCode) {
         o.qp_pivot_strategy = hven::solvers::InteriorPointSolver::QPPivotModes::E13;
         solver.optimizer_->set_options(std::move(o));
     }
-    EXPECT_THROW(solver.optimizer_->set_nlp(solver.nlp_), std::invalid_argument);
+    // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
+    // from an attach step, so the refusal surfaces there. The problem has one
+    // free variable, so the guess is a 1-vector.
+    EXPECT_THROW(solver.optimize(Eigen::VectorXd::Zero(1)), std::invalid_argument);
 }
 
 #endif

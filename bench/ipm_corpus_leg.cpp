@@ -387,11 +387,11 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
     ipm.transcribe();
 
     const auto t0 = std::chrono::steady_clock::now();
-    const hven::ConvergenceFlags flag =
+    const hven::solvers::SolveStatus flag =
         variant.entry == InteriorVariant::Entry::kSolve ? ipm.solve(x0) : ipm.optimize(x0);
     const double wall_s = seconds_since(t0);
 
-    const auto &result = ipm.optimizer_->result();
+    const auto &result = ipm.result();
     InteriorRow row;
     row.cell_id = identity.cell_id;
     row.family = identity.family;
@@ -399,18 +399,18 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
     row.window = identity.window;
     row.taxonomy = identity.taxonomy;
     row.status = crossover::flag_string(flag);
-    row.iter_num = result.iter_num_;
-    row.obj_val = result.obj_val_;
-    row.kkt_inf = result.kkt_inf_;
-    row.barr_inf = result.barr_inf_;
-    row.econ_inf = result.econ_inf_;
-    row.icon_inf = result.icon_inf_;
-    row.factorizations = ipm.optimizer_->kkt_factor_counters().factorize_count;
-    row.solves = ipm.optimizer_->kkt_factor_counters().solve_count;
-    row.analyses = ipm.optimizer_->kkt_analysis_count();
-    row.soc_steps = result.soc_steps_taken_;
-    row.watchdog_activations = result.watchdog_activations_;
-    row.fixed_treatment = interior_treatment_tag(result.fixed_variable_treatment_);
+    row.iter_num = result.iterations;
+    row.obj_val = result.f;
+    row.kkt_inf = result.kkt_inf;
+    row.barr_inf = result.barr_inf;
+    row.econ_inf = result.econ_inf;
+    row.icon_inf = result.icon_inf;
+    row.factorizations = ipm.result().kkt_factor_counters.factorize_count;
+    row.solves = ipm.result().kkt_factor_counters.solve_count;
+    row.analyses = ipm.result().kkt_analyses_total;
+    row.soc_steps = result.soc_steps_taken;
+    row.watchdog_activations = result.watchdog_activations;
+    row.fixed_treatment = interior_treatment_tag(result.fixed_variable_treatment);
     row.stop_reason = to_string(ipm.optimizer_->last_stop_reason());
     row.variant = variant.name;
     row.wall_s = wall_s;

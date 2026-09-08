@@ -9,7 +9,7 @@
 
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/solver_context.h"
-// InteriorPointSolver::SolveResult requires the complete InteriorPointSolver class; see
+// IpmResult lives in drivers/ipm_solver_types.h; see
 // acceptance_strategy.h's include note for why this is a plain, non-circular
 // include (interior_point_solver.h does not include this directory back).
 #include "hven/drivers/interior_point_solver.h"
@@ -113,10 +113,10 @@ class RestorationStrategy {
     /// components' hooks. Non-virtual: both shipped strategies report the
     /// identical counter pair. When restoration_mode_ == off no strategy is
     /// constructed, so this is never reached on that path and the
-    /// corresponding SolveResult fields keep their -1 sentinel.
-    void append_diagnostics(InteriorPointSolver::SolveResult &result) const {
-        result.last_feas_rest_entries_ = entries_;
-        result.last_feas_rest_iters_ = iterations_in_mode_;
+    /// corresponding IpmResult fields keep their -1 sentinel.
+    void append_diagnostics(IpmResult &result) const {
+        result.last_feas_rest_entries = entries_;
+        result.last_feas_rest_iters = iterations_in_mode_;
     }
 
     // -------------------------------------------------------------------------

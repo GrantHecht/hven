@@ -349,24 +349,22 @@ const char *to_json(WorkingSetLinearAlgebra v) {
     return "unknown";
 }
 
-// THE INTERIOR-POINT DRIVER'S OWN THREE (W4 T4). `ConvergenceFlags` is the
-// driver's exit status -- its own enum, not an invented one -- and the two mode
-// selectors shape the run `ipm.solve.begin` announces.
-const char *to_json(ConvergenceFlags v) {
-    switch (v) {
-    case ConvergenceFlags::CONVERGED:
-        return "converged";
-    case ConvergenceFlags::ACCEPTABLE:
-        return "acceptable";
-    case ConvergenceFlags::NOTCONVERGED:
-        return "not_converged";
-    case ConvergenceFlags::DIVERGING:
-        return "diverging";
-    case ConvergenceFlags::SINGULAR_KKT:
-        return "singular_kkt";
-    }
-    return "unknown";
-}
+// THE INTERIOR-POINT DRIVER'S OWN THREE (W4 T4). The exit status is
+// `SolveStatus` since M6 W5 T8.4 -- the engine's own `ConvergenceFlags` is gone
+// -- and the two mode selectors shape the run `ipm.solve.begin` announces.
+//
+// THE SPELLINGS MOVED WITH THE ENUM, and that is a DECLARED change (T8.4):
+// `converged` -> `optimal`, `not_converged` -> `max_iter` (or `stalled` at the
+// stall and locally-infeasible-restoration exits, which the old vocabulary
+// could not tell apart at all), `singular_kkt` -> `numerical_error`;
+// `acceptable` and `diverging` are unchanged. Nothing pinned compares these
+// bytes -- there is no committed interior-point trace baseline and no control
+// -- so unlike the corpus CSV's status column (which keeps its capitalised
+// spellings through a bench-local table for exactly that reason) this one takes
+// the new vocabulary now. The SQP's `to_json(SqpStatus)` above already spelled
+// its five the same way `to_string(SolveStatus)` does, so the golden rig's
+// traces do not move.
+const char *to_json(SolveStatus v) { return to_string(v); }
 
 const char *to_json(InertiaModes v) {
     switch (v) {

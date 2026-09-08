@@ -133,6 +133,17 @@ void hven::solvers::validate(const IpmOptions &o) {
     // set_*() methods, so a field's invariant and message can never drift
     // between the two call sites).
 
+    // --- The phase sequence (M6 W5 T8.4) ---
+    // The ONE structural rule on it: a solve that runs no phase has nothing to
+    // report and is far more likely a caller's mistake than an intention. Any
+    // non-empty order of the two phases is legal -- the conditional rule is the
+    // engine's, evaluated per phase against the one before it, not a
+    // restriction on what may be asked for here.
+    if (o.phases.empty()) {
+        throw std::invalid_argument("phases must name at least one phase; an empty sequence would "
+                                    "run nothing and report nothing");
+    }
+
     // --- Iteration limits ---
     pos_int(o.max_iters, "max_iters");
     pos_int(o.max_acc_iters, "max_acc_iters");

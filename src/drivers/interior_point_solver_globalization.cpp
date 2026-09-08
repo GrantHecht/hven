@@ -1883,8 +1883,8 @@ void FunnelAcceptance::register_accepted_step(const ProgressMeasures &current,
     }
 }
 
-void FunnelAcceptance::append_diagnostics(InteriorPointSolver::SolveResult &result) const {
-    result.last_funnel_width_ = std::isfinite(width_) ? width_ : -1.0;
+void FunnelAcceptance::append_diagnostics(IpmResult &result) const {
+    result.last_funnel_width = std::isfinite(width_) ? width_ : -1.0;
 }
 
 bool FunnelAcceptance::is_infeasibility_sufficiently_reduced(const ProgressMeasures &reference,
@@ -2086,9 +2086,9 @@ void FilterAcceptance::register_accepted_step(const ProgressMeasures &current,
     }
 }
 
-void FilterAcceptance::append_diagnostics(InteriorPointSolver::SolveResult &result) const {
-    result.last_filter_size_ = static_cast<int>(filter_.size());
-    result.last_filter_resets_ = n_filter_resets_;
+void FilterAcceptance::append_diagnostics(IpmResult &result) const {
+    result.last_filter_size = static_cast<int>(filter_.size());
+    result.last_filter_resets = n_filter_resets_;
 }
 
 bool FilterAcceptance::is_infeasibility_sufficiently_reduced(const ProgressMeasures &reference,
@@ -2375,9 +2375,9 @@ void MonitoredBarrierGovernor::reset() {
     }
 }
 
-void MonitoredBarrierGovernor::append_diagnostics(InteriorPointSolver::SolveResult &result) const {
-    result.last_monotone_switches_ = last_monotone_switches_;
-    result.last_monotone_iters_ = last_monotone_iters_;
+void MonitoredBarrierGovernor::append_diagnostics(IpmResult &result) const {
+    result.last_monotone_switches = last_monotone_switches_;
+    result.last_monotone_iters = last_monotone_iters_;
 }
 
 // ProximalSwitchRestoration — proximal feasibility mode-switch. See

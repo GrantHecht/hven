@@ -129,9 +129,7 @@ class BarrierGovernor {
     /// Same write-only contract and last-phase-wins semantics as
     /// AcceptanceStrategy::append_diagnostics; the no-op default keeps the
     /// classic path bit-identical.
-    virtual void append_diagnostics(InteriorPointSolver::SolveResult &result) const {
-        (void)result;
-    }
+    virtual void append_diagnostics(IpmResult &result) const { (void)result; }
 };
 
 } // namespace hven::solvers

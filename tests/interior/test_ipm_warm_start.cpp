@@ -206,13 +206,27 @@ Eigen::VectorXd warm_eq_start() {
     return x0;
 }
 
-// InteriorPointSolver's own entry points return the primal vector; the verdict
-// is on the result. Wrapped so the pins below read as flag comparisons.
-hven::ConvergenceFlags warm_optimize(hven::solvers::InteriorPointSolver &opt,
-                                     const Eigen::VectorXd &x0) {
-    opt.optimize(x0);
-    return opt.result().converge_flag_;
+// InteriorPointSolver's one entry returns the whole result and BORROWS the
+// program for the call (M6 W5 T8.4). Wrapped so the pins below read as flag
+// comparisons, and so the program each pin solves is named at its own call
+// site rather than left implicit in a prior attach.
+//
+// THE RESULT IS KEPT BESIDE IT, because the engine no longer keeps one: solve()
+// returns the whole value and holds nothing afterwards, so a pin that wants to
+// read a field of the solve this helper just ran reads it through
+// warm_result(). Every solve in this file goes through this helper, so there is
+// exactly one writer.
+hven::solvers::IpmResult g_warm_result;
+
+hven::solvers::SolveStatus warm_optimize(hven::solvers::InteriorPointSolver &opt,
+                                         hven::solvers::NonLinearProgram &model,
+                                         const Eigen::VectorXd &x0) {
+    g_warm_result = opt.solve(model, x0);
+    return g_warm_result.status;
 }
+
+/// The result of the most recent warm_optimize() call.
+const hven::solvers::IpmResult &warm_result() { return g_warm_result; }
 
 // THE FIRST-ITERATE PROBE. The early callback is handed the live KKT vector
 // before the first step of the first phase is computed, so its primal block at
@@ -284,7 +298,8 @@ TEST(IpmWarmStart, ASolveThatThrewIsNotACompletedSolve) {
     bad_iq << 1.0;
     solver.optimizer_->set_initial_multipliers(bad_eq, bad_iq);
 
-    EXPECT_THROW(warm_optimize(*solver.optimizer_, warm_eq_start()), std::invalid_argument);
+    EXPECT_THROW(warm_optimize(*solver.optimizer_, *solver.nlp_, warm_eq_start()),
+                 std::invalid_argument);
 
     EXPECT_FALSE(solver.optimizer_->solve_completed_);
     EXPECT_THROW(solver.optimizer_->export_warm_start(), std::logic_error);
@@ -303,7 +318,8 @@ TEST(IpmWarmStart, ExportIsStampedAndDeclaredWidthOnAnEliminatingProblem) {
 
     Eigen::VectorXd x0(3);
     x0 << 2.0, -1.0, 0.25;
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, x0),
+              hven::solvers::SolveStatus::kOptimal);
 
     // The treatment really did eliminate the fixed variable, so the reduced
     // space this export maps out of is genuinely narrower than the declared one.
@@ -364,8 +380,8 @@ TEST(IpmWarmStart, TheStampIsCapturedAtSolveCompletionNotAtExport) {
     }
     solver.transcribe();
 
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
-              hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, warm_eq_start()),
+              hven::solvers::SolveStatus::kOptimal);
     const auto solved_key = declaration_key(solver.nlp_->declaration());
 
     // A genuine DECLARATION change, which is the only thing the stamp is
@@ -383,7 +399,14 @@ TEST(IpmWarmStart, TheStampIsCapturedAtSolveCompletionNotAtExport) {
 
 // --- Staging refusals: sizes and finiteness, and deliberately NOT the stamp ---
 
-TEST(IpmWarmStart, StagingRefusesAMisSizedBlockNamingItAndBothCounts) {
+// THE SIZE REFUSAL MOVED TO SOLVE ENTRY (M6 W5 T8.4). Staging holds no program
+// -- a solver borrows one for the duration of a solve -- so there is nothing to
+// size a block against until the solve names the problem. What still refuses at
+// the STAGING call is everything internal to the payload: a non-finite number,
+// an unreadable extension, an extension whose blocks disagree with the core
+// blocks beside them. The message is unchanged and still names the block and
+// both counts.
+TEST(IpmWarmStart, TheSizeRefusalNamesTheBlockAndBothCountsAtSolveEntry) {
     NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
     {
         auto o = solver.optimizer_->options();
@@ -392,13 +415,17 @@ TEST(IpmWarmStart, StagingRefusesAMisSizedBlockNamingItAndBothCounts) {
     }
     solver.transcribe();
 
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
-              hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, warm_eq_start()),
+              hven::solvers::SolveStatus::kOptimal);
     WarmStartData warm = solver.optimizer_->export_warm_start();
     warm.eq_lmults_ = Eigen::VectorXd::Zero(4);
 
+    // Staging accepts it: nothing about the payload is internally wrong.
+    EXPECT_NO_THROW(solver.optimizer_->stage_warm_start(warm));
+    EXPECT_TRUE(solver.optimizer_->warm_staged_);
+
     try {
-        solver.optimizer_->stage_warm_start(warm);
+        (void)solver.optimizer_->solve(*solver.nlp_, warm_eq_start());
         FAIL() << "a mis-sized block must refuse";
     } catch (const std::invalid_argument &e) {
         const std::string msg = e.what();
@@ -406,6 +433,8 @@ TEST(IpmWarmStart, StagingRefusesAMisSizedBlockNamingItAndBothCounts) {
         EXPECT_NE(msg.find("4"), std::string::npos) << msg;
         EXPECT_NE(msg.find("1"), std::string::npos) << msg;
     }
+    // And the refused value is CONSUMED, not left armed for an unrelated later
+    // call -- the disarm-first discipline the solve entry has always kept.
     EXPECT_FALSE(solver.optimizer_->warm_staged_);
 }
 
@@ -418,8 +447,8 @@ TEST(IpmWarmStart, StagingRefusesANonFiniteBlock) {
     }
     solver.transcribe();
 
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
-              hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, warm_eq_start()),
+              hven::solvers::SolveStatus::kOptimal);
     WarmStartData warm = solver.optimizer_->export_warm_start();
     warm.primal_[0] = std::numeric_limits<double>::quiet_NaN();
 
@@ -441,15 +470,19 @@ TEST(IpmWarmStart, ARefusedStagingClearsTheValueStagedBeforeIt) {
     }
     solver.transcribe();
 
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
-              hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, warm_eq_start()),
+              hven::solvers::SolveStatus::kOptimal);
     const WarmStartData good = solver.optimizer_->export_warm_start();
 
     solver.optimizer_->stage_warm_start(good);
     ASSERT_TRUE(solver.optimizer_->warm_staged_);
 
+    // A payload the staging call CAN still refuse on its own (M6 W5 T8.4): a
+    // non-finite number is wrong whatever problem the value meets, so it never
+    // needed a program to be refused against -- unlike a mis-sized block, whose
+    // refusal moved to solve entry.
     WarmStartData bad = good;
-    bad.iq_lmults_ = Eigen::VectorXd::Zero(3); // the problem declares none
+    bad.eq_lmults_[0] = std::numeric_limits<double>::quiet_NaN();
     EXPECT_THROW(solver.optimizer_->stage_warm_start(bad), std::invalid_argument);
 
     EXPECT_FALSE(solver.optimizer_->warm_staged_)
@@ -461,7 +494,8 @@ TEST(IpmWarmStart, ARefusedStagingClearsTheValueStagedBeforeIt) {
     probe.arm(*solver.optimizer_, solver.nlp_->reduced_primal_vars());
     Eigen::VectorXd cold(2);
     cold << 12.0, -7.0;
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, cold), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, cold),
+              hven::solvers::SolveStatus::kOptimal);
     solver.optimizer_->disable_early_callback();
 
     ASSERT_TRUE(probe.seen_);
@@ -478,10 +512,12 @@ TEST(IpmWarmStart, ARefusedStagingAlsoClearsAStagedMultiplierSeed) {
     }
     solver.transcribe();
 
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
-              hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, warm_eq_start()),
+              hven::solvers::SolveStatus::kOptimal);
+    // Non-finite rather than mis-sized: the size refusal moved to solve entry
+    // in M6 W5 T8.4, and what this pins is the STAGING call's clear-first rule.
     WarmStartData bad = solver.optimizer_->export_warm_start();
-    bad.primal_ = Eigen::VectorXd::Zero(5);
+    bad.primal_[0] = std::numeric_limits<double>::quiet_NaN();
 
     Eigen::VectorXd seed_eq(1);
     seed_eq << 42.0;
@@ -504,8 +540,8 @@ TEST(IpmWarmStart, ARelayBetweenStagingAndSolvingRefusesAtSolveEntry) {
     }
     solver.transcribe();
 
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
-              hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, warm_eq_start()),
+              hven::solvers::SolveStatus::kOptimal);
     const WarmStartData warm = solver.optimizer_->export_warm_start();
 
     solver.optimizer_->stage_warm_start(warm);
@@ -516,7 +552,7 @@ TEST(IpmWarmStart, ARelayBetweenStagingAndSolvingRefusesAtSolveEntry) {
     const auto live_key = declaration_key(solver.nlp_->declaration());
 
     try {
-        warm_optimize(*solver.optimizer_, warm_eq_start());
+        warm_optimize(*solver.optimizer_, *solver.nlp_, warm_eq_start());
         FAIL() << "a solve whose live stamp no longer matches the staged payload must refuse";
     } catch (const std::invalid_argument &e) {
         const std::string msg = e.what();
@@ -540,8 +576,8 @@ TEST(IpmWarmStart, ARebindToADifferentStructureRefusesAtSolveEntry) {
         solver.optimizer_->set_options(std::move(o));
     }
     solver.transcribe();
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
-              hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, warm_eq_start()),
+              hven::solvers::SolveStatus::kOptimal);
     const WarmStartData warm = solver.optimizer_->export_warm_start();
     solver.optimizer_->stage_warm_start(warm);
 
@@ -552,10 +588,12 @@ TEST(IpmWarmStart, ARebindToADifferentStructureRefusesAtSolveEntry) {
         wider.optimizer_->set_options(std::move(o));
     }
     wider.transcribe();
-    solver.optimizer_->set_nlp(wider.nlp_);
 
+    // THE RE-BIND IS THE SOLVE ITSELF NOW (M6 W5 T8.4): the program is an
+    // argument, so "this solver, that other program" is expressed by handing
+    // the other program to solve() rather than by an attach step in between.
     ASSERT_TRUE(solver.optimizer_->warm_staged_) << "a re-bind must not discard a staged value";
-    EXPECT_THROW(warm_optimize(*solver.optimizer_, Eigen::VectorXd::Zero(3)),
+    EXPECT_THROW(warm_optimize(*solver.optimizer_, *wider.nlp_, Eigen::VectorXd::Zero(3)),
                  std::invalid_argument);
     EXPECT_FALSE(solver.optimizer_->warm_staged_);
 }
@@ -571,8 +609,8 @@ TEST(IpmWarmStart, AStagedStartSurvivesAnIdenticalStampRelayAndIsTheSolveStart) 
     }
     solver.transcribe();
 
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
-              hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, warm_eq_start()),
+              hven::solvers::SolveStatus::kOptimal);
     const WarmStartData warm = solver.optimizer_->export_warm_start();
     const auto key_before = declaration_key(solver.nlp_->declaration());
 
@@ -592,7 +630,8 @@ TEST(IpmWarmStart, AStagedStartSurvivesAnIdenticalStampRelayAndIsTheSolveStart) 
     // have produced.
     Eigen::VectorXd cold(2);
     cold << 12.0, -7.0;
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, cold), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, cold),
+              hven::solvers::SolveStatus::kOptimal);
 
     ASSERT_TRUE(probe.seen_);
     expect_bit_identical(probe.primal_, warm.primal_, "the staged primal is the solve's start");
@@ -608,8 +647,8 @@ TEST(IpmWarmStart, StagedDataIsOneShotAndTheNextSolveIsCold) {
     }
     solver.transcribe();
 
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
-              hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, warm_eq_start()),
+              hven::solvers::SolveStatus::kOptimal);
     const WarmStartData warm = solver.optimizer_->export_warm_start();
 
     solver.optimizer_->stage_warm_start(warm);
@@ -618,12 +657,14 @@ TEST(IpmWarmStart, StagedDataIsOneShotAndTheNextSolveIsCold) {
     probe.arm(*solver.optimizer_, solver.nlp_->reduced_primal_vars());
     Eigen::VectorXd cold(2);
     cold << 12.0, -7.0;
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, cold), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, cold),
+              hven::solvers::SolveStatus::kOptimal);
     expect_bit_identical(probe.primal_, warm.primal_, "first solve is warm");
 
     // Second solve, nothing re-staged: the caller's own guess is the start.
     probe.arm(*solver.optimizer_, solver.nlp_->reduced_primal_vars());
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, cold), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, cold),
+              hven::solvers::SolveStatus::kOptimal);
     ASSERT_TRUE(probe.seen_);
     expect_bit_identical(probe.primal_, cold, "second solve is cold");
 }
@@ -639,8 +680,8 @@ TEST(IpmWarmStart, StagingTheSamePayloadTwiceFromColdGivesBitIdenticalFirstItera
         source.optimizer_->set_options(std::move(o));
     }
     source.transcribe();
-    ASSERT_EQ(warm_optimize(*source.optimizer_, warm_eq_start()),
-              hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*source.optimizer_, *source.nlp_, warm_eq_start()),
+              hven::solvers::SolveStatus::kOptimal);
     const WarmStartData warm = source.optimizer_->export_warm_start();
 
     Eigen::VectorXd cold(2);
@@ -662,7 +703,8 @@ TEST(IpmWarmStart, StagingTheSamePayloadTwiceFromColdGivesBitIdenticalFirstItera
         fresh.optimizer_->stage_warm_start(warm);
         FirstIterateProbe probe;
         probe.arm(*fresh.optimizer_, fresh.nlp_->reduced_primal_vars());
-        ASSERT_EQ(warm_optimize(*fresh.optimizer_, cold), hven::ConvergenceFlags::CONVERGED);
+        ASSERT_EQ(warm_optimize(*fresh.optimizer_, *fresh.nlp_, cold),
+                  hven::solvers::SolveStatus::kOptimal);
         ASSERT_TRUE(probe.seen_);
         *out = probe.primal_;
     }
@@ -685,17 +727,17 @@ TEST(IpmWarmStart, AnExportStageRoundTripStartsAtTheExportingSolvesTerminalPoint
     }
     solver.transcribe();
 
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
-              hven::ConvergenceFlags::CONVERGED);
-    const Eigen::VectorXd terminal = solver.optimizer_->result().primals_;
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, warm_eq_start()),
+              hven::solvers::SolveStatus::kOptimal);
+    const Eigen::VectorXd terminal = warm_result().x;
     const WarmStartData warm = solver.optimizer_->export_warm_start();
     expect_bit_identical(warm.primal_, terminal, "the export carries the terminal point");
 
     solver.optimizer_->stage_warm_start(warm);
     FirstIterateProbe probe;
     probe.arm(*solver.optimizer_, solver.nlp_->reduced_primal_vars());
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
-              hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, warm_eq_start()),
+              hven::solvers::SolveStatus::kOptimal);
     ASSERT_TRUE(probe.seen_);
     expect_bit_identical(probe.primal_, terminal, "the warm solve starts at that point");
 }
@@ -715,7 +757,8 @@ TEST(IpmWarmStart, ValuesAtEliminatedVariablesAreIgnoredOnApplication) {
 
     Eigen::VectorXd x0(3);
     x0 << 2.0, -1.0, 0.25;
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, x0),
+              hven::solvers::SolveStatus::kOptimal);
     const WarmStartData warm = solver.optimizer_->export_warm_start();
     ASSERT_EQ(warm.primal_[2], 0.25);
 
@@ -731,7 +774,8 @@ TEST(IpmWarmStart, ValuesAtEliminatedVariablesAreIgnoredOnApplication) {
     for (int k = 0; k < 2; k++) {
         solver.optimizer_->stage_warm_start(*payloads[k]);
         probe.arm(*solver.optimizer_, solver.nlp_->reduced_primal_vars());
-        ASSERT_EQ(warm_optimize(*solver.optimizer_, x0), hven::ConvergenceFlags::CONVERGED);
+        ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, x0),
+                  hven::solvers::SolveStatus::kOptimal);
         ASSERT_TRUE(probe.seen_);
         starts[k] = probe.primal_;
     }
@@ -741,7 +785,7 @@ TEST(IpmWarmStart, ValuesAtEliminatedVariablesAreIgnoredOnApplication) {
                          "the eliminated coordinate's staged value reaches nothing");
     // And the value the treatment holds is still the one the solve reports --
     // the poisoned entry was written nowhere.
-    EXPECT_EQ(solver.optimizer_->result().primals_[2], 0.25);
+    EXPECT_EQ(warm_result().x[2], 0.25);
 }
 
 // THE BRANCH head(user_equal_cons_) EXISTS FOR, and the only treatment that
@@ -763,15 +807,22 @@ TEST(IpmWarmStart, MakeConstraintExportDropsTheTreatmentsInternalFixingRow) {
 
     Eigen::VectorXd x0(3);
     x0 << 2.0, -1.0, 0.25;
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, x0),
+              hven::solvers::SolveStatus::kOptimal);
 
     // The treatment kept the variable in the solved system and paid for it with
     // a row: no reduction, one internal fixing row on top of the user's own.
     ASSERT_FALSE(solver.nlp_->is_reduced());
     ASSERT_EQ(solver.nlp_->internal_fixed_constraints(), 1);
     ASSERT_EQ(solver.nlp_->user_equal_cons_, 1);
-    ASSERT_EQ(solver.optimizer_->result().eq_lmults_.size(), 2)
-        << "the solve reports the user row AND the treatment's fixing row";
+    // THE SPLIT (M6 W5 T8.4): the base's equality block is the DECLARED row
+    // exactly, and the treatment's own fixing row is reported beside it. Before
+    // T8.4 the block was the engine's two-row one and the currency trimmed it
+    // on the way out; now the trim has already happened at the result seam and
+    // the export is a straight copy.
+    ASSERT_EQ(warm_result().lambda_e.size(), 1) << "the base reports the user row only";
+    ASSERT_EQ(warm_result().internal_fixed_lambda_e.size(), 1)
+        << "and the treatment's fixing row beside it";
 
     const WarmStartData warm = solver.optimizer_->export_warm_start();
 
@@ -779,10 +830,10 @@ TEST(IpmWarmStart, MakeConstraintExportDropsTheTreatmentsInternalFixingRow) {
     // ...and it is the USER's row that survived, not the treatment's. Bitwise:
     // the export is a head(), so the value is the reported one unchanged.
     EXPECT_EQ(std::bit_cast<std::uint64_t>(warm.eq_lmults_[0]),
-              std::bit_cast<std::uint64_t>(solver.optimizer_->result().eq_lmults_[0]));
+              std::bit_cast<std::uint64_t>(warm_result().lambda_e[0]));
     // A tail() would have carried this one instead, and the two differ.
     EXPECT_NE(std::bit_cast<std::uint64_t>(warm.eq_lmults_[0]),
-              std::bit_cast<std::uint64_t>(solver.optimizer_->result().eq_lmults_[1]));
+              std::bit_cast<std::uint64_t>(warm_result().lambda_e[1]));
 
     // The rest of the payload is still declared-width, and the fixed variable
     // is at its held value -- here because the fixing ROW holds it, not because
@@ -818,7 +869,8 @@ TEST(IpmWarmStart, AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings)
 
     Eigen::VectorXd x0(3);
     x0 << 2.0, -1.0, 0.25;
-    ASSERT_EQ(warm_optimize(*source.optimizer_, x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*source.optimizer_, *source.nlp_, x0),
+              hven::solvers::SolveStatus::kOptimal);
     ASSERT_TRUE(source.nlp_->is_reduced());
     // THE LAYOUT KEY MOVES ACROSS THE TREATMENT.
     EXPECT_FALSE(source.nlp_->model_structure_key() == layout_key_before_any_solve)
@@ -853,7 +905,8 @@ TEST(IpmWarmStart, AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings)
     probe.arm(*fresh.optimizer_, 2);
     Eigen::VectorXd cold(3);
     cold << 4.5, -9.0, 0.25;
-    ASSERT_EQ(warm_optimize(*fresh.optimizer_, cold), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*fresh.optimizer_, *fresh.nlp_, cold),
+              hven::solvers::SolveStatus::kOptimal);
     fresh.optimizer_->disable_early_callback();
 
     ASSERT_TRUE(probe.seen_);
@@ -912,7 +965,8 @@ TEST(IpmWarmStart, AnExportUnderOneTreatmentStagesAndAppliesUnderAnother) {
 
     Eigen::VectorXd x0(3);
     x0 << 2.0, -1.0, 0.25;
-    ASSERT_EQ(warm_optimize(*source.optimizer_, x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*source.optimizer_, *source.nlp_, x0),
+              hven::solvers::SolveStatus::kOptimal);
     ASSERT_TRUE(source.nlp_->is_reduced()) << "MakeParameter must actually have eliminated";
     const WarmStartData warm = source.optimizer_->export_warm_start();
 
@@ -936,7 +990,8 @@ TEST(IpmWarmStart, AnExportUnderOneTreatmentStagesAndAppliesUnderAnother) {
     probe.arm(*sink.optimizer_, sink.nlp_->primal_vars_);
     Eigen::VectorXd cold(3);
     cold << -5.0, 9.0, 0.25;
-    ASSERT_EQ(warm_optimize(*sink.optimizer_, cold), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*sink.optimizer_, *sink.nlp_, cold),
+              hven::solvers::SolveStatus::kOptimal);
 
     // ACCEPTED AND APPLIED, not silently dropped: the solve consumed the value
     // and started from the staged point rather than from the caller's guess.
@@ -957,7 +1012,7 @@ TEST(IpmWarmStart, AnExportUnderOneTreatmentStagesAndAppliesUnderAnother) {
            "is what makes the hand-off above legal rather than lucky";
 
     // And the solve really did run under the other treatment.
-    EXPECT_EQ(sink.optimizer_->result().fixed_variable_treatment_,
+    EXPECT_EQ(warm_result().fixed_variable_treatment,
               hven::solvers::FixedVariableTreatments::MakeConstraint);
 }
 
@@ -971,8 +1026,8 @@ TEST(IpmWarmStart, StagingAWarmStartClearsAStagedMultiplierSeed) {
         solver.optimizer_->set_options(std::move(o));
     }
     solver.transcribe();
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
-              hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, warm_eq_start()),
+              hven::solvers::SolveStatus::kOptimal);
     const WarmStartData warm = solver.optimizer_->export_warm_start();
 
     Eigen::VectorXd seed_eq(1);
@@ -996,8 +1051,8 @@ TEST(IpmWarmStart, ASeedStagedAfterAWarmStartIsDiscardedAtSolveEntry) {
         source.optimizer_->set_options(std::move(o));
     }
     source.transcribe();
-    ASSERT_EQ(warm_optimize(*source.optimizer_, warm_eq_start()),
-              hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*source.optimizer_, *source.nlp_, warm_eq_start()),
+              hven::solvers::SolveStatus::kOptimal);
     const WarmStartData warm = source.optimizer_->export_warm_start();
 
     Eigen::VectorXd seed_eq(1);
@@ -1017,10 +1072,10 @@ TEST(IpmWarmStart, ASeedStagedAfterAWarmStartIsDiscardedAtSolveEntry) {
         if (k == 1) {
             fresh.optimizer_->set_initial_multipliers(seed_eq, Eigen::VectorXd());
         }
-        ASSERT_EQ(warm_optimize(*fresh.optimizer_, warm_eq_start()),
-                  hven::ConvergenceFlags::CONVERGED);
+        ASSERT_EQ(warm_optimize(*fresh.optimizer_, *fresh.nlp_, warm_eq_start()),
+                  hven::solvers::SolveStatus::kOptimal);
         EXPECT_FALSE(fresh.optimizer_->mults_staged_);
-        (k == 0 ? without : with) = fresh.optimizer_->result().eq_lmults_;
+        (k == 0 ? without : with) = warm_result().lambda_e;
     }
 
     expect_bit_identical(with, without, "a seed staged after a warm start changes nothing");
@@ -1124,8 +1179,9 @@ struct WarmBoundedSolve {
             this->solver_.optimizer_->set_options(std::move(o));
         }
         this->solver_.transcribe();
-        EXPECT_EQ(warm_optimize(*this->solver_.optimizer_, warm_bounded_start()),
-                  hven::ConvergenceFlags::CONVERGED);
+        EXPECT_EQ(
+            warm_optimize(*this->solver_.optimizer_, *this->solver_.nlp_, warm_bounded_start()),
+            hven::solvers::SolveStatus::kOptimal);
         this->warm_ = this->solver_.optimizer_->export_warm_start();
     }
 };
@@ -1189,10 +1245,10 @@ WarmRun run_warm(const WarmStartData &warm) {
     FirstIterateDualProbe probe;
     probe.arm(*fresh.optimizer_);
     fresh.optimizer_->stage_warm_start(warm);
-    EXPECT_EQ(warm_optimize(*fresh.optimizer_, warm_bounded_start()),
-              hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(warm_optimize(*fresh.optimizer_, *fresh.nlp_, warm_bounded_start()),
+              hven::solvers::SolveStatus::kOptimal);
     EXPECT_TRUE(probe.seen_);
-    return WarmRun{probe.kkt_inf_, fresh.optimizer_->result().iter_num_};
+    return WarmRun{probe.kkt_inf_, static_cast<int>(warm_result().iterations)};
 }
 
 } // namespace
@@ -1201,7 +1257,7 @@ WarmRun run_warm(const WarmStartData &warm) {
 
 TEST(IpmWarmStart, ExportCarriesThePolishTagOnABoundedProblem) {
     const WarmBoundedSolve solved;
-    const auto &result = solved.solver_.optimizer_->result();
+    const auto &result = warm_result();
 
     ASSERT_EQ(solved.warm_.extensions_.size(), 1u);
     EXPECT_EQ(solved.warm_.extensions_[0].tag_, std::string(hven::solvers::kIpmPolishTag));
@@ -1238,8 +1294,8 @@ TEST(IpmWarmStart, ExportCarriesThePolishTagOnABoundedProblem) {
                          "z_lower - z_upper against the core's signed block");
 
     // The inequality values are the ones the solve reported, verbatim.
-    expect_bit_identical(polish.iq_values_, result.iq_cons_,
-                         "the extension's inequality values against result().iq_cons_");
+    expect_bit_identical(polish.iq_values_, result.ci,
+                         "the extension's inequality values against result().ci");
 }
 
 TEST(IpmWarmStart, ExportCarriesNoExtensionWhenTheProblemHasNoFiniteBounds) {
@@ -1250,8 +1306,8 @@ TEST(IpmWarmStart, ExportCarriesNoExtensionWhenTheProblemHasNoFiniteBounds) {
         solver.optimizer_->set_options(std::move(o));
     }
     solver.transcribe();
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
-              hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, warm_eq_start()),
+              hven::solvers::SolveStatus::kOptimal);
 
     const WarmStartData warm = solver.optimizer_->export_warm_start();
     // Not an empty payload under the tag -- no extension at all. There is no
@@ -1345,10 +1401,11 @@ TEST(IpmWarmStart, ARelayThatEmptiesTheBoundSetLeavesNoBoundStoryOnTheSameInstan
     x0 << 0.25, 1.0;
 
     // --- Leg 1: bounded. The bound set has members and the export says so.
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, x0),
+              hven::solvers::SolveStatus::kOptimal);
     ASSERT_TRUE(solver.nlp_->variable_bound_set().any())
         << "RelaxBounds must leave x0 as a two-sided bounded variable";
-    ASSERT_EQ(solver.optimizer_->result().bound_lmults_.size(), 2);
+    ASSERT_EQ(warm_result().z.size(), 2);
 
     const WarmStartData bounded = solver.optimizer_->export_warm_start();
     ASSERT_EQ(bounded.extensions_.size(), 1u);
@@ -1361,17 +1418,23 @@ TEST(IpmWarmStart, ARelayThatEmptiesTheBoundSetLeavesNoBoundStoryOnTheSameInstan
         o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeParameter;
         solver.optimizer_->set_options(std::move(o));
     }
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, x0),
+              hven::solvers::SolveStatus::kOptimal);
     ASSERT_TRUE(solver.nlp_->is_reduced());
     ASSERT_FALSE(solver.nlp_->variable_bound_set().any())
         << "MakeParameter eliminates x0, and nothing else here has a finite bound";
 
     // --- Leg 2: the bound story is ABSENT, in all three places it is told.
     //
-    // (a) The result's own signed block is EMPTY, which is exactly what the
-    //     field documents for a problem with no finite variable bounds -- not
-    //     a stale two-entry vector from leg 1, and not a zero-filled one.
-    EXPECT_EQ(solver.optimizer_->result().bound_lmults_.size(), 0);
+    // (a) The result's own signed block is DECLARED-WIDTH AND ZERO (M6 W5
+    //     T8.4). The base's z is always the declared width -- an eliminated or
+    //     unbounded coordinate reads 0, which is what "no price here" means in
+    //     the caller's space -- so what this leg has to show is that the value
+    //     is leg 2's and not leg 1's: zero everywhere, rather than the two
+    //     prices the bounded leg reported.
+    ASSERT_EQ(warm_result().z.size(), 2);
+    EXPECT_EQ(warm_result().z.lpNorm<Eigen::Infinity>(), 0.0)
+        << "a solve with no finite variable bounds prices nothing";
 
     const WarmStartData unbounded = solver.optimizer_->export_warm_start();
 
@@ -1523,27 +1586,27 @@ TEST(IpmWarmStart, ARestorationActiveExitExportsTheCoreWithoutThePolishTag) {
     // the anchor the problem takes is this point.
     Eigen::VectorXd x0(2);
     x0 << 0.0, 0.0;
-    const hven::ConvergenceFlags flag = warm_optimize(*solver.optimizer_, x0);
+    const hven::solvers::SolveStatus flag = warm_optimize(*solver.optimizer_, *solver.nlp_, x0);
 
     // THE DISCRIMINATING CONDITION, asserted rather than assumed: restoration
     // was entered during this solve and the verdict is not CONVERGED -- the
     // exit class SolveResult's residual caveat names. Structural on every
     // backend (see the fixture note), so a failure here is a real regression in
     // the entry path, not a numerics difference.
-    const auto &result = solver.optimizer_->result();
-    ASSERT_NE(flag, hven::ConvergenceFlags::CONVERGED);
-    ASSERT_GT(result.last_feas_rest_entries_, 0)
+    const auto &result = warm_result();
+    ASSERT_NE(flag, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_GT(result.last_feas_rest_entries, 0)
         << "the fixture must actually reach feasibility restoration";
     // And it was still active at the exit: the phase spent its last iteration
     // in mode. (entries > 0 alone would also read true for an episode the
     // phase had already left.)
-    ASSERT_GT(result.last_feas_rest_iters_, 0);
+    ASSERT_GT(result.last_feas_rest_iters, 0);
     // AND IT GOT THERE THE STRUCTURAL WAY. A trial evaluation was refused and
     // absorbed (the anchor), and an iteration was attributed to the restoration
     // recovery bucket -- so this pin cannot quietly start passing because some
     // backend's numerics happened to exhaust a line search instead.
-    EXPECT_FALSE(result.last_eval_exception_.empty());
-    EXPECT_GT(result.recovery_depth_histogram_[hven::solvers::kRecoveryDepthRestoration], 0);
+    EXPECT_FALSE(result.last_eval_exception.empty());
+    EXPECT_GT(result.recovery_depth_histogram[hven::solvers::kRecoveryDepthRestoration], 0);
 
     // The solve completed, so the currency is exportable and carries its core.
     ASSERT_TRUE(solver.optimizer_->solve_completed_);
@@ -1626,8 +1689,11 @@ TEST(IpmWarmStart, ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToThe
     // staged by the transcription step, which the optimizer-level entry skips.
     solver.optimize(x0);
 
-    const auto &result = solver.optimizer_->result();
-    ASSERT_GT(result.last_feas_rest_entries_, 0)
+    // THE WRAPPER's own result here, not warm_result(): this solve went through
+    // NLPSolver::optimize (which the comment above explains), so warm_optimize
+    // never ran and its stash is a previous test's.
+    const auto &result = solver.result();
+    ASSERT_GT(result.last_feas_rest_entries, 0)
         << "the fixture must actually reach feasibility restoration";
     ASSERT_GE(eq_mult.size(), 2u)
         << "the entry happens during iteration 0, so a post-entry observation needs a second "
@@ -1676,9 +1742,9 @@ TEST(IpmWarmStart, ABoundedOptimalExitUnderTheSamePresetKeepsThePolishTag) {
     }
     solver.transcribe();
 
-    ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_bounded_start()),
-              hven::ConvergenceFlags::CONVERGED);
-    EXPECT_EQ(solver.optimizer_->result().last_feas_rest_entries_, 0);
+    ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, warm_bounded_start()),
+              hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(warm_result().last_feas_rest_entries, 0);
 
     const WarmStartData warm = solver.optimizer_->export_warm_start();
     ASSERT_EQ(warm.extensions_.size(), 1u);
@@ -1873,8 +1939,8 @@ TEST(IpmWarmStart, AZeroValuedPriceBlockStillStagesAndSolves) {
     fresh.transcribe();
     EXPECT_NO_THROW(fresh.optimizer_->stage_warm_start(zeroed));
     EXPECT_TRUE(fresh.optimizer_->warm_staged_);
-    EXPECT_EQ(warm_optimize(*fresh.optimizer_, warm_bounded_start()),
-              hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(warm_optimize(*fresh.optimizer_, *fresh.nlp_, warm_bounded_start()),
+              hven::solvers::SolveStatus::kOptimal);
 }
 
 // The duplicate-tag refusal, THROUGH THE ENGINE. find_ipm_polish's own unit
@@ -1922,8 +1988,8 @@ TEST(IpmWarmStart, AForeignExtensionTagIsIgnoredAtStagingAndAtSolve) {
     }
     fresh.transcribe();
     EXPECT_NO_THROW(fresh.optimizer_->stage_warm_start(foreign));
-    EXPECT_EQ(warm_optimize(*fresh.optimizer_, warm_bounded_start()),
-              hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(warm_optimize(*fresh.optimizer_, *fresh.nlp_, warm_bounded_start()),
+              hven::solvers::SolveStatus::kOptimal);
     EXPECT_FALSE(fresh.optimizer_->warm_staged_);
 }
 
@@ -1967,7 +2033,7 @@ TEST(IpmWarmStart, ACoreOnlyWarmStartOnABoundedProblemStillConverges) {
 
 TEST(IpmWarmStart, TheBridgeEqualsTheCrossoverHandedTheSolvesOwnRawBlocks) {
     const WarmBoundedSolve solved;
-    const auto &result = solved.solver_.optimizer_->result();
+    const auto &result = warm_result();
 
     Eigen::VectorXd lower(2), upper(2);
     lower << -kWarmInf, -1.0;
@@ -1977,16 +2043,15 @@ TEST(IpmWarmStart, TheBridgeEqualsTheCrossoverHandedTheSolvesOwnRawBlocks) {
         hven::solvers::to_sqp_warm_start(solved.warm_, lower, upper, solved.warm_.structure_key_);
 
     // THE RAW BLOCKS A CALLER WOULD HAVE HANDED OVER DIRECTLY, taken from the
-    // PUBLIC SolveResult and nowhere else: the primal point, the two
+    // PUBLIC IpmResult and nowhere else: the primal point, the two
     // multiplier blocks, the inequality values, and the pair recovered from
     // the signed block by the exact one-sided inversion this fixture makes
     // available (see WarmBoundedProblem's own note).
-    const Eigen::VectorXd z = result.bound_lmults_;
+    const Eigen::VectorXd z = result.z;
     const Eigen::VectorXd z_lower = z.cwiseMax(0.0);
     const Eigen::VectorXd z_upper = (-z).cwiseMax(0.0);
-    const hven::solvers::WarmStart direct =
-        hven::solvers::from_interior_point(result.primals_, result.eq_lmults_, result.iq_lmults_,
-                                           result.iq_cons_, z_lower, z_upper, lower, upper);
+    const hven::solvers::WarmStart direct = hven::solvers::from_interior_point(
+        result.x, result.lambda_e, result.lambda_i, result.ci, z_lower, z_upper, lower, upper);
 
     // BIT-EXACT: from_interior_point is deterministic and both calls reach it
     // with the same doubles.
@@ -2038,7 +2103,7 @@ namespace {
 
 // Every ANSWER a SolveResult reports, taken off a finished call.
 struct WarmAnswer {
-    hven::ConvergenceFlags flag_ = hven::ConvergenceFlags::NOTCONVERGED;
+    hven::solvers::SolveStatus flag_ = hven::solvers::SolveStatus::kMaxIter;
     int iters_ = -1;
     double obj_ = 0.0;
     double kkt_inf_ = 0.0;
@@ -2048,22 +2113,22 @@ struct WarmAnswer {
     Eigen::VectorXd primals_, eq_lmults_, iq_lmults_, bound_lmults_, eq_cons_, iq_cons_;
 };
 
-WarmAnswer answer_of(const hven::solvers::InteriorPointSolver &opt) {
-    const auto &r = opt.result();
+WarmAnswer answer_of(const hven::solvers::NLPSolver &) {
+    const auto &r = warm_result();
     WarmAnswer a;
-    a.flag_ = r.converge_flag_;
-    a.iters_ = r.iter_num_;
-    a.obj_ = r.obj_val_;
-    a.kkt_inf_ = r.kkt_inf_;
-    a.barr_inf_ = r.barr_inf_;
-    a.econ_inf_ = r.econ_inf_;
-    a.icon_inf_ = r.icon_inf_;
-    a.primals_ = r.primals_;
-    a.eq_lmults_ = r.eq_lmults_;
-    a.iq_lmults_ = r.iq_lmults_;
-    a.bound_lmults_ = r.bound_lmults_;
-    a.eq_cons_ = r.eq_cons_;
-    a.iq_cons_ = r.iq_cons_;
+    a.flag_ = r.status;
+    a.iters_ = r.iterations;
+    a.obj_ = r.f;
+    a.kkt_inf_ = r.kkt_inf;
+    a.barr_inf_ = r.barr_inf;
+    a.econ_inf_ = r.econ_inf;
+    a.icon_inf_ = r.icon_inf;
+    a.primals_ = r.x;
+    a.eq_lmults_ = r.lambda_e;
+    a.iq_lmults_ = r.lambda_i;
+    a.bound_lmults_ = r.z;
+    a.eq_cons_ = r.ce;
+    a.iq_cons_ = r.ci;
     return a;
 }
 
@@ -2098,26 +2163,26 @@ TEST(IpmWarmStart, AnUnchangedEpochResolveAnswersExactlyWhatAFreshEngineAnswers)
     }
     reused.transcribe();
 
-    ASSERT_EQ(warm_optimize(*reused.optimizer_, warm_bounded_start()),
-              hven::ConvergenceFlags::CONVERGED);
-    const hven::Index analyses_after_first = reused.optimizer_->kkt_analysis_count();
+    ASSERT_EQ(warm_optimize(*reused.optimizer_, *reused.nlp_, warm_bounded_start()),
+              hven::solvers::SolveStatus::kOptimal);
+    const hven::Index analyses_after_first = warm_result().kkt_analyses_total;
     const hven::solvers::StructureEpoch epoch_after_first = reused.nlp_->structure_epoch();
     ASSERT_GT(analyses_after_first, 0) << "the first solve must have laid and analyzed a pattern";
 
     // THE HOT SOLVE. Same instance, same problem, same start point, nothing
     // staged -- so the only thing that differs from the first call is the
     // engine's own carried state.
-    ASSERT_EQ(warm_optimize(*reused.optimizer_, warm_bounded_start()),
-              hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(warm_optimize(*reused.optimizer_, *reused.nlp_, warm_bounded_start()),
+              hven::solvers::SolveStatus::kOptimal);
 
     // The reuse actually happened: the epoch did not move, and no second
     // analysis was paid. Asserted through the existing counter rather than
     // inferred from timing -- counters are the currency here.
     EXPECT_TRUE(reused.nlp_->structure_epoch() == epoch_after_first)
         << "nothing structural happened between the two solves";
-    EXPECT_EQ(reused.optimizer_->kkt_analysis_count(), analyses_after_first)
+    EXPECT_EQ(warm_result().kkt_analyses_total, analyses_after_first)
         << "an unchanged epoch must not re-analyze; without this the pin below proves nothing";
-    const WarmAnswer hot = answer_of(*reused.optimizer_);
+    const WarmAnswer hot = answer_of(reused);
 
     // THE COLD SOLVE, on a fresh engine over a fresh program: it pays the
     // analysis the second solve above skipped, and must land on the same bits.
@@ -2128,9 +2193,9 @@ TEST(IpmWarmStart, AnUnchangedEpochResolveAnswersExactlyWhatAFreshEngineAnswers)
         fresh.optimizer_->set_options(std::move(o));
     }
     fresh.transcribe();
-    ASSERT_EQ(warm_optimize(*fresh.optimizer_, warm_bounded_start()),
-              hven::ConvergenceFlags::CONVERGED);
-    EXPECT_GT(fresh.optimizer_->kkt_analysis_count(), 0);
+    ASSERT_EQ(warm_optimize(*fresh.optimizer_, *fresh.nlp_, warm_bounded_start()),
+              hven::solvers::SolveStatus::kOptimal);
+    EXPECT_GT(warm_result().kkt_analyses_total, 0);
 
-    expect_same_answer(hot, answer_of(*fresh.optimizer_));
+    expect_same_answer(hot, answer_of(fresh));
 }

@@ -11,13 +11,13 @@
 void hven::solvers::InteriorPointSolver::print_timing_summary() {
     auto cyan = fmt::fg(fmt::color::cyan);
     fmt::print(" KKT Analysis/Init Time       : ");
-    fmt::print(cyan, "{0:>10.3f} ms\n", this->result_.pre_time_ * 1000.0);
+    fmt::print(cyan, "{0:>10.3f} ms\n", this->result_.pre_time * 1000.0);
     fmt::print(" NLP Function Evaluation Time : ");
-    fmt::print(cyan, "{0:>10.3f} ms\n", this->result_.func_time_ * 1000.0);
+    fmt::print(cyan, "{0:>10.3f} ms\n", this->result_.func_time * 1000.0);
     fmt::print(" KKT Factor/Solve Time        : ");
-    fmt::print(cyan, "{0:>10.3f} ms\n", this->result_.kkt_time_ * 1000.0);
+    fmt::print(cyan, "{0:>10.3f} ms\n", this->result_.kkt_time * 1000.0);
     fmt::print(" Console Print Time           : ");
-    fmt::print(cyan, "{0:>10.3f} ms\n", this->result_.print_time_ * 1000.0);
+    fmt::print(cyan, "{0:>10.3f} ms\n", this->result_.print_time * 1000.0);
     fmt::print(" Misc Time                    : ");
     fmt::print(cyan, "{0:>10.3f} ms\n", this->result_.misc_time() * 1000.0);
 }
@@ -183,7 +183,7 @@ void hven::solvers::InteriorPointSolver::print_finished(std::string_view msg) co
     fmt::print("\n");
 }
 
-void hven::solvers::InteriorPointSolver::print_exit_stats(ConvergenceFlags ExitCode,
+void hven::solvers::InteriorPointSolver::print_exit_stats(SolveStatus ExitCode,
                                                           const IterateInfo &last, int iternum,
                                                           double tottime, double nlptime,
                                                           double qptime, double printtime) {
@@ -199,15 +199,15 @@ void hven::solvers::InteriorPointSolver::print_exit_stats(ConvergenceFlags ExitC
     };
 
     if (opts_.common.print_level < 3) {
-        if (ExitCode == ConvergenceFlags::CONVERGED) {
+        if (ExitCode == SolveStatus::kOptimal) {
             fmt::print(fmt::fg(fmt::color::lime_green), "\nOptimal Solution Found\n");
-        } else if (ExitCode == ConvergenceFlags::ACCEPTABLE) {
+        } else if (ExitCode == SolveStatus::kAcceptable) {
             fmt::print(fmt::fg(fmt::color::yellow), "\nAcceptable Solution Found\n");
-        } else if (ExitCode == ConvergenceFlags::DIVERGING) {
+        } else if (ExitCode == SolveStatus::kDiverging) {
             fmt::print(fmt::fg(fmt::color::dark_red), "\nSolution Diverging\n");
-        } else if (ExitCode == ConvergenceFlags::NOTCONVERGED) {
+        } else if (ExitCode == SolveStatus::kMaxIter) {
             fmt::print(fmt::fg(fmt::color::red), "\nNo Solution Found\n");
-        } else if (ExitCode == ConvergenceFlags::SINGULAR_KKT) {
+        } else if (ExitCode == SolveStatus::kNumericalError) {
             fmt::print(fmt::fg(fmt::color::dark_red), "\nKKT System Persistently Singular\n");
         }
     }
@@ -230,11 +230,11 @@ void hven::solvers::InteriorPointSolver::print_exit_stats(ConvergenceFlags ExitC
         // The last non-Success kkt_sol_.info() status observed across this
         // run_phase_sequence() call, if any. Silent whenever every
         // factorization reported Success.
-        if (this->result_.last_kkt_info_ != Eigen::Success) {
+        if (this->result_.last_kkt_info != Eigen::Success) {
             fmt::print(" KKT Factor Status : ");
             fmt::print(fmt::fg(fmt::color::yellow), "{}\n",
-                       this->result_.last_kkt_info_ == Eigen::NumericalIssue ? "NumericalIssue"
-                                                                             : "InvalidInput");
+                       this->result_.last_kkt_info == Eigen::NumericalIssue ? "NumericalIssue"
+                                                                            : "InvalidInput");
         }
 
         fmt::print("\n");

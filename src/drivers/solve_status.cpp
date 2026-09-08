@@ -80,34 +80,26 @@ int severity(SolveStatus status) {
         fmt::format("severity(SolveStatus): unrecognized value ({})", static_cast<int>(status)));
 }
 
-SolveStatus to_solve_status(hven::ConvergenceFlags flag, IpmStopReason reason) {
-    // The verdict is read first, so a stronger one the convergence check already
-    // holds survives a stall recorded in the same iteration.
-    switch (flag) {
-    case hven::ConvergenceFlags::CONVERGED:
-        return SolveStatus::kOptimal;
-    case hven::ConvergenceFlags::ACCEPTABLE:
-        return SolveStatus::kAcceptable;
-    case hven::ConvergenceFlags::DIVERGING:
-        return SolveStatus::kDiverging;
-    case hven::ConvergenceFlags::SINGULAR_KKT:
-        return SolveStatus::kNumericalError;
-    case hven::ConvergenceFlags::NOTCONVERGED:
-        switch (reason) {
-        case IpmStopReason::kStageStalled:
-        case IpmStopReason::kRestorationLocallyInfeasible:
-            return SolveStatus::kStalled;
-        case IpmStopReason::kIterationCap:
-        case IpmStopReason::kNone:
-            // kNone here is the defensive default: the engine labels every
-            // NOTCONVERGED exit it takes, so an unlabelled one is the cap.
-            return SolveStatus::kMaxIter;
-        }
-        throw std::invalid_argument(fmt::format("to_solve_status: unrecognized IpmStopReason ({})",
-                                                static_cast<int>(reason)));
+SolveStatus resolve_ipm_phase_status(SolveStatus raw_verdict, IpmStopReason reason) {
+    // THE VERDICT IS READ FIRST, so a stronger one the convergence check already
+    // holds -- kOptimal or kAcceptable -- survives a stall recorded in the same
+    // iteration. Only the engine's own "ran out of iterations with nothing
+    // better to say" verdict is open to a stop reason's reinterpretation.
+    if (raw_verdict != SolveStatus::kMaxIter) {
+        return raw_verdict;
     }
-    throw std::invalid_argument(
-        fmt::format("to_solve_status: unrecognized ConvergenceFlags ({})", static_cast<int>(flag)));
+    switch (reason) {
+    case IpmStopReason::kStageStalled:
+    case IpmStopReason::kRestorationLocallyInfeasible:
+        return SolveStatus::kStalled;
+    case IpmStopReason::kIterationCap:
+    case IpmStopReason::kNone:
+        // kNone here is the defensive default: the engine labels every
+        // non-converged exit it takes, so an unlabelled one is the cap.
+        return SolveStatus::kMaxIter;
+    }
+    throw std::invalid_argument(fmt::format(
+        "resolve_ipm_phase_status: unrecognized IpmStopReason ({})", static_cast<int>(reason)));
 }
 
 SolveStatus to_solve_status(SqpStatus status) {

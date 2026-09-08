@@ -63,10 +63,10 @@ void NLPSolver::set_num_partitions(int num_partitions) {
     this->num_partitions_ = num_partitions;
 }
 
-hven::ConvergenceFlags NLPSolver::jet_run() {
+hven::solvers::SolveStatus NLPSolver::jet_run() {
     this->jet_initialize();
 
-    hven::ConvergenceFlags flag;
+    hven::solvers::SolveStatus flag;
 
     switch (this->jet_job_mode_) {
     case JetJobModes::Solve: {
@@ -100,31 +100,52 @@ hven::ConvergenceFlags NLPSolver::jet_run() {
     return flag;
 }
 
-NLPSolver::NlpSolveOutput NLPSolver::run_nlp_solver(JetJobModes mode,
-                                                    const Eigen::VectorXd &input) {
-    NlpSolveOutput out;
+// The mode -> phase-sequence table (M6 W5 T8.4). The five phase-named entries
+// this switch used to call are gone; the sequences they ran are options now,
+// and this is the one place the old five names are still spelled out.
+namespace {
+std::vector<hven::solvers::IpmPhase> phases_for(NLPSolver::JetJobModes mode) {
+    using hven::solvers::IpmPhase;
     switch (mode) {
-    case JetJobModes::Solve:
-        out.variables_ = this->optimizer_->solve(input);
-        break;
-    case JetJobModes::Optimize:
-        out.variables_ = this->optimizer_->optimize(input);
-        break;
-    case JetJobModes::SolveOptimize:
-        out.variables_ = this->optimizer_->solve_optimize(input);
-        break;
-    case JetJobModes::SolveOptimizeSolve:
-        out.variables_ = this->optimizer_->solve_optimize_solve(input);
-        break;
-    case JetJobModes::OptimizeSolve:
-        out.variables_ = this->optimizer_->optimize_solve(input);
-        break;
+    case NLPSolver::JetJobModes::Solve:
+        return {IpmPhase::kSolve};
+    case NLPSolver::JetJobModes::Optimize:
+        return {IpmPhase::kOptimize};
+    case NLPSolver::JetJobModes::SolveOptimize:
+        return {IpmPhase::kSolve, IpmPhase::kOptimize};
+    case NLPSolver::JetJobModes::SolveOptimizeSolve:
+        return {IpmPhase::kSolve, IpmPhase::kOptimize, IpmPhase::kSolve};
+    case NLPSolver::JetJobModes::OptimizeSolve:
+        return {IpmPhase::kOptimize, IpmPhase::kSolve};
     default:
         throw std::invalid_argument("Unrecognized NLP solve mode");
     }
-    out.eq_lmults_ = this->optimizer_->result().eq_lmults_;
-    out.iq_lmults_ = this->optimizer_->result().iq_lmults_;
-    out.flag_ = this->optimizer_->result().converge_flag_;
+}
+} // namespace
+
+NLPSolver::NlpSolveOutput NLPSolver::run_nlp_solver(JetJobModes mode,
+                                                    const Eigen::VectorXd &input) {
+    NlpSolveOutput out;
+    // The sequence goes on the options; the solve is one call whatever the
+    // mode.
+    IpmOptions o = this->optimizer_->options();
+    o.phases = phases_for(mode);
+    this->optimizer_->set_options(std::move(o));
+
+    // THE PROGRAM IS AN ARGUMENT NOW, borrowed for the call. This class holds
+    // the shared_ptr that keeps it alive across calls; the solver holds
+    // nothing.
+    this->last_result_ = this->optimizer_->solve(*this->nlp_, input);
+    const IpmResult &result = this->last_result_;
+    out.variables_ = result.x;
+    // DECLARED rows only (M6 W5 T8.4): under the MakeConstraint treatment the
+    // engine's own equality block carried one internal fixing row per
+    // bound-fixed variable in its tail, and this used to hand those rows on to
+    // a caller composing user multipliers over the DECLARED rows. IpmResult
+    // splits them off (into internal_fixed_lambda_e) before this reads it.
+    out.eq_lmults_ = result.lambda_e;
+    out.iq_lmults_ = result.lambda_i;
+    out.flag_ = result.status;
     return out;
 }
 
@@ -175,14 +196,13 @@ void NLPSolver::transcribe() {
     auto core = std::make_shared<NLPAdapterCore>(model, this->problem_->name());
     auto nlp = make_nlp_program(core);
 
-    // The one step that is not this function's to make atomic: set_nlp adopts
-    // the program and then does work of its own that can throw (it re-reads
-    // dimensions and applies the QP settings). A throw inside it leaves the
-    // optimizer holding the new program while the members below still name the
-    // old one. do_transcription_ is still true at that point, so the next
-    // solve re-transcribes and the pair is consistent again before anything
-    // runs; the window is between those two calls and nothing evaluates in it.
-    this->optimizer_->set_nlp(nlp);
+    // ATOMIC AGAIN (M6 W5 T8.4). The step that used to break it -- set_nlp(),
+    // which adopted the program and then re-read dimensions and applied the QP
+    // settings, either of which could throw and leave the optimizer holding the
+    // new program while the members below still named the old one -- is gone.
+    // The solver adopts nothing; the transcription it needs happens inside the
+    // next solve, against the program handed to that call. So this function now
+    // has no partial state to leave behind at all.
 
     this->model_ = std::move(model);
     this->core_ = std::move(core);
@@ -190,7 +210,7 @@ void NLPSolver::transcribe() {
     this->do_transcription_ = false;
 }
 
-hven::ConvergenceFlags NLPSolver::run(JetJobModes mode, ConstEigenRef<Eigen::VectorXd> x0) {
+hven::solvers::SolveStatus NLPSolver::run(JetJobModes mode, ConstEigenRef<Eigen::VectorXd> x0) {
     if (this->do_transcription_) {
         this->transcribe();
     }
@@ -207,37 +227,37 @@ hven::ConvergenceFlags NLPSolver::run(JetJobModes mode, ConstEigenRef<Eigen::Vec
     return out.flag_;
 }
 
-hven::ConvergenceFlags NLPSolver::solve(ConstEigenRef<Eigen::VectorXd> x0) {
+hven::solvers::SolveStatus NLPSolver::solve(ConstEigenRef<Eigen::VectorXd> x0) {
     return this->run(JetJobModes::Solve, x0);
 }
-hven::ConvergenceFlags NLPSolver::optimize(ConstEigenRef<Eigen::VectorXd> x0) {
+hven::solvers::SolveStatus NLPSolver::optimize(ConstEigenRef<Eigen::VectorXd> x0) {
     return this->run(JetJobModes::Optimize, x0);
 }
-hven::ConvergenceFlags NLPSolver::solve_optimize(ConstEigenRef<Eigen::VectorXd> x0) {
+hven::solvers::SolveStatus NLPSolver::solve_optimize(ConstEigenRef<Eigen::VectorXd> x0) {
     return this->run(JetJobModes::SolveOptimize, x0);
 }
-hven::ConvergenceFlags NLPSolver::optimize_solve(ConstEigenRef<Eigen::VectorXd> x0) {
+hven::solvers::SolveStatus NLPSolver::optimize_solve(ConstEigenRef<Eigen::VectorXd> x0) {
     return this->run(JetJobModes::OptimizeSolve, x0);
 }
-hven::ConvergenceFlags NLPSolver::solve_optimize_solve(ConstEigenRef<Eigen::VectorXd> x0) {
+hven::solvers::SolveStatus NLPSolver::solve_optimize_solve(ConstEigenRef<Eigen::VectorXd> x0) {
     return this->run(JetJobModes::SolveOptimizeSolve, x0);
 }
 
 // The no-arg entry points, mirroring OptimizationProblem: each reuses whatever
 // is currently in active_variables_ as the input iterate.
-hven::ConvergenceFlags NLPSolver::solve() {
+hven::solvers::SolveStatus NLPSolver::solve() {
     return this->run(JetJobModes::Solve, this->active_variables_);
 }
-hven::ConvergenceFlags NLPSolver::optimize() {
+hven::solvers::SolveStatus NLPSolver::optimize() {
     return this->run(JetJobModes::Optimize, this->active_variables_);
 }
-hven::ConvergenceFlags NLPSolver::solve_optimize() {
+hven::solvers::SolveStatus NLPSolver::solve_optimize() {
     return this->run(JetJobModes::SolveOptimize, this->active_variables_);
 }
-hven::ConvergenceFlags NLPSolver::solve_optimize_solve() {
+hven::solvers::SolveStatus NLPSolver::solve_optimize_solve() {
     return this->run(JetJobModes::SolveOptimizeSolve, this->active_variables_);
 }
-hven::ConvergenceFlags NLPSolver::optimize_solve() {
+hven::solvers::SolveStatus NLPSolver::optimize_solve() {
     return this->run(JetJobModes::OptimizeSolve, this->active_variables_);
 }
 
@@ -256,7 +276,10 @@ void NLPSolver::jet_initialize() {
 }
 
 void NLPSolver::jet_release() {
-    this->optimizer_->release();
+    // optimizer_->release() is gone with set_nlp() (M6 W5 T8.4): the solver
+    // holds no program, so there is nothing to release. Dropping nlp_ below is
+    // what ends this job's program, and the next solve transcribes whatever it
+    // is handed.
     IpmOptions o = this->optimizer_->options();
     o.common.threads = 1;
     o.common.print_level = 0;

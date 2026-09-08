@@ -51,6 +51,7 @@
 #include "hven/qp/qp_types.h"
 
 #include "sqp/support/hs_problems.h"
+#include "support/hs071_problem.h"
 
 namespace {
 
@@ -63,80 +64,10 @@ using hven::solvers::IpmOptions;
 
 constexpr double kInf = std::numeric_limits<double>::infinity();
 
-// The canonical HS071, copied from tests/interior/test_nlp_solver.cpp:33 -- the
-// live solves below need a program and this suite links no engine fixtures.
-struct Hs071Problem final : hven::solvers::NLPProblem {
-    int num_vars() const override { return 4; }
-    int num_cons() const override { return 2; }
-    int num_jac_nonzeros() const override { return 8; }
-    int num_hess_nonzeros() const override { return 10; }
-
-    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
-                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
-        xl << 1.0, 1.0, 1.0, 1.0;
-        xu << 5.0, 5.0, 5.0, 5.0;
-        gl << 25.0, 40.0;
-        gu << kInf, 40.0;
-    }
-    void eval_f(hven::ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
-        f = x[0] * x[3] * (x[0] + x[1] + x[2]) + x[2];
-    }
-    void eval_grad_f(hven::ConstEigenRef<Eigen::VectorXd> x,
-                     Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = x[3] * (2.0 * x[0] + x[1] + x[2]);
-        g[1] = x[0] * x[3];
-        g[2] = x[0] * x[3] + 1.0;
-        g[3] = x[0] * (x[0] + x[1] + x[2]);
-    }
-    void eval_g(hven::ConstEigenRef<Eigen::VectorXd> x,
-                Eigen::Ref<Eigen::VectorXd> g) const override {
-        g[0] = x[0] * x[1] * x[2] * x[3];
-        g[1] = x[0] * x[0] + x[1] * x[1] + x[2] * x[2] + x[3] * x[3];
-    }
-    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
-                       Eigen::Ref<Eigen::VectorXi> c) const override {
-        r << 0, 0, 0, 0, 1, 1, 1, 1;
-        c << 0, 1, 2, 3, 0, 1, 2, 3;
-    }
-    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
-                        Eigen::Ref<Eigen::VectorXi> c) const override {
-        r << 0, 1, 1, 2, 2, 2, 3, 3, 3, 3;
-        c << 0, 0, 1, 0, 1, 2, 0, 1, 2, 3;
-    }
-    void eval_jac(hven::ConstEigenRef<Eigen::VectorXd> x,
-                  Eigen::Ref<Eigen::VectorXd> v) const override {
-        v[0] = x[1] * x[2] * x[3];
-        v[1] = x[0] * x[2] * x[3];
-        v[2] = x[0] * x[1] * x[3];
-        v[3] = x[0] * x[1] * x[2];
-        v[4] = 2.0 * x[0];
-        v[5] = 2.0 * x[1];
-        v[6] = 2.0 * x[2];
-        v[7] = 2.0 * x[3];
-    }
-    void eval_hess(hven::ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
-                   hven::ConstEigenRef<Eigen::VectorXd> lambda,
-                   Eigen::Ref<Eigen::VectorXd> v) const override {
-        const double x0 = x[0], x1 = x[1], x2 = x[2], x3 = x[3];
-        v[0] = obj_factor * 2 * x3 + lambda[1] * 2;
-        v[1] = obj_factor * x3 + lambda[0] * x2 * x3;
-        v[2] = lambda[1] * 2;
-        v[3] = obj_factor * x3 + lambda[0] * x1 * x3;
-        v[4] = lambda[0] * x0 * x3;
-        v[5] = lambda[1] * 2;
-        v[6] = obj_factor * (2 * x0 + x1 + x2) + lambda[0] * x1 * x2;
-        v[7] = obj_factor * x0 + lambda[0] * x0 * x2;
-        v[8] = obj_factor * x0 + lambda[0] * x0 * x1;
-        v[9] = lambda[1] * 2;
-    }
-    std::string name() const override { return "Hs071Problem"; }
-};
-
-Eigen::VectorXd hs071_start() {
-    Eigen::VectorXd x0(4);
-    x0 << 1.0, 5.0, 5.0, 1.0;
-    return x0;
-}
+// The canonical HS071 lives in support/hs071_problem.h, shared with this
+// directory's other live-solve suite.
+using hven_drivers_tests::hs071_start;
+using hven_drivers_tests::Hs071Problem;
 
 // Silent, and otherwise default.
 IpmOptions quiet() {
@@ -370,120 +301,110 @@ TEST(Options, IpmSetOptionsIsTransactional) {
     EXPECT_EQ(solver.options().kkt_tol, IpmOptions{}.kkt_tol);
 }
 
-// The twelve ATTACH-ONLY fields are read exactly once, inside set_qp_params(),
-// which runs when the program is attached. Changing one on an attached solver
-// would have been silently inert; it is refused by name.
+// EVERY FIELD IS ACCEPTED, and the transcription-time twelve are not silently
+// inert (M6 W5 T8.4).
 //
-// THE PROGRAM IS TRANSCRIBED UNDER DEFAULT BACKEND OPTIONS, deliberately (fix
-// round 1). An earlier shape of this test set qp_ref_steps = 1 BEFORE
-// transcribe(): on an Accelerate build set_qp_params() rejects every non-zero
-// refinement cap outright (src/drivers/interior_point_solver.cpp, the
-// USE_ACCELERATE_SPARSE branch), so transcribe() threw there and the intended
-// check was never reached. Every field below is moved only AFTER attachment,
-// where set_options()'s own comparison is what refuses it -- and that
-// comparison is compiled unconditionally, so the refusals hold on both
-// backends. Only the two Accelerate-only fields are conditional, and they are
-// tested under the same macro that declares them.
-//
-// ONE REPRESENTATIVE PER TYPE CLASS, because the refusal is a per-field
-// comparison and a type is the thing that could go wrong in a batch of them: an
-// int, an enum, a bool, the CNR flag, and (Accelerate only) the two doubles.
-TEST(Options, IpmSetOptionsRefusesABackendFieldOnceAProgramIsAttached) {
+// T8.3's rule was a REFUSAL: twelve fields were read exactly once, inside
+// set_qp_params(), which ran from set_nlp(), so changing one on an attached
+// solver would have been silently inert until the next attach. There is no
+// attachment now -- the program is an argument of solve() and set_qp_params()
+// runs from the solve that transcribes -- so the refusal has nothing to refuse
+// against and is gone. What replaced it is a staleness mark: the change is
+// taken, and the analysis laid under the old value stops counting as this
+// program's.
+TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
     hven::solvers::NLPSolver solver(std::make_shared<Hs071Problem>());
     {
         IpmOptions o = solver.optimizer_->options();
         o.common.print_level = 10;
         solver.optimizer_->set_options(std::move(o));
     }
-    // Attached under DEFAULT backend options -- nothing this test writes has
-    // reached set_qp_params(), on either backend.
-    const IpmOptions attached_with = solver.optimizer_->options();
     solver.transcribe();
+    ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
+    ASSERT_NE(solver.nlp_, nullptr);
 
-    // Each edit is applied to the value in force, attempted alone, and required
-    // to be refused BY NAME; the options must not move.
-    const auto refuses = [&](const char *field, auto edit) {
-        IpmOptions changed = solver.optimizer_->options();
+    // Each edit is applied to the value in force, attempted alone, ACCEPTED,
+    // and required to invalidate the analysis. qp_matching is left out and
+    // pinned on its own below, with the live re-transcription.
+    // WRITTEN, CHECKED, AND PUT BACK. The change is asserted accepted and
+    // asserted to have invalidated the analysis; then the previous value is
+    // restored and a solve re-establishes the precondition for the next field.
+    //
+    // The restore is not tidiness. Several of these values are ones the BACKEND
+    // refuses at transcription -- qp_print = true is refused by name on the MKL
+    // surface, which exposes no message-level control -- and that refusal is a
+    // different rule from this one, raised from a different place, at the next
+    // solve. Leaving such a value in force would make every later step of this
+    // test throw out of set_qp_params() instead of testing what it is for.
+    const auto accepts = [&](const char *field, auto edit) {
+        ASSERT_TRUE(solver.optimizer_->kkt_pattern_is_analyzed(*solver.nlp_))
+            << "precondition for " << field;
+        const IpmOptions before = solver.optimizer_->options();
+        IpmOptions changed = before;
         edit(changed);
-        try {
-            solver.optimizer_->set_options(changed);
-            FAIL() << "an attach-only change on an attached solver must be refused: " << field;
-        } catch (const std::invalid_argument &e) {
-            EXPECT_NE(std::string(e.what()).find(field), std::string::npos)
-                << "the refusal names the wrong field: " << e.what();
-        }
+        EXPECT_NO_THROW(solver.optimizer_->set_options(changed)) << field;
+        EXPECT_FALSE(solver.optimizer_->kkt_pattern_is_analyzed(*solver.nlp_))
+            << "a transcription-time change must not leave the old analysis standing: " << field;
+        solver.optimizer_->set_options(before);
+        ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
     };
 
-    refuses("qp_ref_steps", [](IpmOptions &o) { o.qp_ref_steps = 1; }); // int
-    refuses("qp_ord", [](IpmOptions &o) {                               // enum
+    accepts("qp_ref_steps", [](IpmOptions &o) { o.qp_ref_steps = 1; }); // int
+    accepts("qp_ord", [](IpmOptions &o) {                               // enum
         o.qp_ord = hven::solvers::QPOrderingModes::MINDEG;
     });
-    refuses("qp_print", [](IpmOptions &o) { o.qp_print = true; }); // bool
-    refuses("cnr_mode", [](IpmOptions &o) { o.cnr_mode = true; }); // the CNR flag
+    accepts("qp_print", [](IpmOptions &o) { o.qp_print = true; }); // bool
+    accepts("cnr_mode", [](IpmOptions &o) { o.cnr_mode = true; }); // the CNR flag
 #ifdef USE_ACCELERATE_SPARSE
-    // UNOBSERVED on this box: these two are declared, validated and refused
-    // only on an Accelerate build, and nothing here has run on Mac hardware.
-    refuses("accel_pivot_tolerance", [](IpmOptions &o) { o.accel_pivot_tolerance = 0.02; });
-    refuses("accel_zero_tolerance", [](IpmOptions &o) { o.accel_zero_tolerance = 1e-12; });
+    // UNOBSERVED on this box: these two are declared and read only on an
+    // Accelerate build, and nothing here has run on Mac hardware.
+    accepts("accel_pivot_tolerance", [](IpmOptions &o) { o.accel_pivot_tolerance = 0.02; });
+    accepts("accel_zero_tolerance", [](IpmOptions &o) { o.accel_zero_tolerance = 1e-12; });
 #endif
 
-    // Not one of them moved: every attempt above threw before the assignment.
-    EXPECT_EQ(solver.optimizer_->options().qp_ref_steps, attached_with.qp_ref_steps);
-    EXPECT_EQ(solver.optimizer_->options().qp_ord, attached_with.qp_ord);
-    EXPECT_EQ(solver.optimizer_->options().qp_print, attached_with.qp_print);
-    EXPECT_EQ(solver.optimizer_->options().cnr_mode, attached_with.cnr_mode);
+    // A value the backend does accept, left in force and carried through a live
+    // re-transcription -- so this test shows the whole route, not only the
+    // staleness mark. qp_matching is inert on BOTH backends at the value
+    // written (MKL reads it as `weighted_matching = qp_matching != 0`,
+    // Accelerate does not read it at all), so the re-transcription cannot throw
+    // out of set_qp_params() on either.
+    {
+        const hven::Index analyses_before = solver.result().kkt_analyses_total;
+        IpmOptions changed = solver.optimizer_->options();
+        changed.qp_matching = changed.qp_matching != 0 ? 0 : 1;
+        EXPECT_NO_THROW(solver.optimizer_->set_options(changed));
+        EXPECT_FALSE(solver.optimizer_->kkt_pattern_is_analyzed(*solver.nlp_));
+        ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
+        EXPECT_EQ(solver.result().kkt_analyses_total, analyses_before + 1);
+        EXPECT_EQ(solver.result().kkt_analyses_this_call, 1);
+        EXPECT_EQ(solver.optimizer_->options().qp_matching, changed.qp_matching);
+        EXPECT_TRUE(solver.optimizer_->kkt_pattern_is_analyzed(*solver.nlp_));
+    }
 
-    // THE COUNTER-EXAMPLE: a PER-SOLVE field is accepted on the same attached
-    // solver -- fixed_variable_treatment included, which run_phase_sequence()
-    // re-applies through configure_variable_treatment() at every entry, and
-    // max_iters, which the loop reads directly.
+    // THE COUNTER-EXAMPLE, unchanged: a PER-SOLVE field is accepted too and
+    // does NOT invalidate the analysis -- fixed_variable_treatment excepted,
+    // which changes the problem's dimensions and is part of the identity token.
     IpmOptions ok = solver.optimizer_->options();
-    ok.fixed_variable_treatment = FixedVariableTreatments::MakeConstraint;
     ok.max_iters = 77;
     EXPECT_NO_THROW(solver.optimizer_->set_options(std::move(ok)));
-    EXPECT_EQ(solver.optimizer_->options().fixed_variable_treatment,
-              FixedVariableTreatments::MakeConstraint);
     EXPECT_EQ(solver.optimizer_->options().max_iters, 77);
+    EXPECT_TRUE(solver.optimizer_->kkt_pattern_is_analyzed(*solver.nlp_))
+        << "a per-solve field does not touch the analysis";
+
+    IpmOptions treatment = solver.optimizer_->options();
+    treatment.fixed_variable_treatment = FixedVariableTreatments::MakeConstraint;
+    EXPECT_NO_THROW(solver.optimizer_->set_options(std::move(treatment)));
+    EXPECT_FALSE(solver.optimizer_->kkt_pattern_is_analyzed(*solver.nlp_))
+        << "the treatment is part of the identity token: a change re-analyses";
 }
 
-// THE RECOVERY SEQUENCE THE REFUSAL POINTS AT, EXECUTED (fix round 1).
-//
-// "Re-attach the program after the replacement" is not on its own a route: the
-// attachment is what refuses the replacement. The executable order is
-// release() -> set_options() -> set_nlp(the same program). There is no accessor
-// returning the attached program, so the caller's own shared_ptr is the handle
-// -- which whoever called set_nlp() already holds (NLPSolver keeps it in nlp_).
-//
-// qp_matching is the field moved because it is inert on BOTH backends at the
-// value written: MKL reads it as `weighted_matching = qp_matching != 0` and
-// Accelerate does not read it at all, so the re-attachment below cannot throw
-// out of set_qp_params() on either.
-TEST(Options, IpmAnAttachOnlyFieldChangesThroughReleaseReplaceReattach) {
-    hven::solvers::NLPSolver solver(std::make_shared<Hs071Problem>());
-    {
-        IpmOptions o = solver.optimizer_->options();
-        o.common.print_level = 10;
-        solver.optimizer_->set_options(std::move(o));
-    }
-    solver.transcribe();
-    const int before = solver.optimizer_->options().qp_matching;
-
-    IpmOptions changed = solver.optimizer_->options();
-    changed.qp_matching = before != 0 ? 0 : 1;
-    EXPECT_THROW(solver.optimizer_->set_options(changed), std::invalid_argument);
-
-    // The sequence, verbatim.
-    const auto saved = solver.nlp_; // the caller's own handle on the attached program
-    ASSERT_NE(saved, nullptr);
-    solver.optimizer_->release();
-    EXPECT_NO_THROW(solver.optimizer_->set_options(changed));
-    EXPECT_EQ(solver.optimizer_->options().qp_matching, changed.qp_matching);
-    EXPECT_NO_THROW(solver.optimizer_->set_nlp(saved));
-
-    // And the solver is usable afterwards, under the new value.
-    EXPECT_EQ(solver.optimizer_->options().qp_matching, changed.qp_matching);
-    EXPECT_EQ(solver.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
-}
+// The T8.3 pin this replaced -- Options.IpmAnAttachOnlyFieldChangesThroughRelease
+// ReplaceReattach, which executed the release() -> set_options() -> set_nlp()
+// recovery sequence the refusal pointed at -- is GONE with the three methods it
+// used. There is no attachment to release and no re-attach to make, and the
+// case it covered (a transcription-time field changed on a solver that had
+// already transcribed) is the qp_matching leg of the test above, which now ends
+// in a live re-transcription rather than in a recovery dance.
 
 // A replacement from inside the solve is a logic_error, the options do not
 // move, and the guard clears on the unwind so the next solve still runs.
@@ -513,7 +434,7 @@ TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
         return 0;
     });
 
-    ASSERT_EQ(solver.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
     ASSERT_GT(attempts, 0);
     EXPECT_TRUE(saw_logic_error);
     EXPECT_EQ(solver.optimizer_->options().max_iters, before.max_iters);
@@ -525,7 +446,7 @@ TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
     EXPECT_NO_THROW(solver.optimizer_->set_options(std::move(after)));
     EXPECT_EQ(solver.optimizer_->options().max_iters, 400);
     engine->disable_late_callback();
-    EXPECT_EQ(solver.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
 }
 
 // THE SAME GUARD, CLEARED ON AN UNWIND RATHER THAN A RETURN (fix round 1). The
@@ -556,7 +477,7 @@ TEST(Options, IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
     after.max_iters = 400;
     EXPECT_NO_THROW(engine->set_options(std::move(after)));
     EXPECT_EQ(engine->options().max_iters, 400);
-    EXPECT_EQ(solver.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
 }
 
 // ---------------------------------------------------------------------------
