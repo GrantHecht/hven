@@ -17,7 +17,7 @@
 // floating-point expression in this file can be re-associated, contracted or
 // otherwise re-shaped by the codegen flags.
 //
-// WHAT LIVES WHERE. The display strings for `SqpStatus` and `StartLevel` are
+// WHAT LIVES WHERE. The display strings for `SolveStatus` and `StartLevel` are
 // defined in `src/core/enum_names.cpp`, so no `core/` object resolves a symbol
 // out of a `drivers/` one (an edge pointing up CLAUDE.md section 2's tier
 // order). What stays here points DOWNWARD and is not an inversion:

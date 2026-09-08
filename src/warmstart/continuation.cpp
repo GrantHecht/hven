@@ -123,7 +123,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
     // proposal cost is the whole of what arriving at it cost.
     Index minors_at_proposal = sol.counters.qp_minor_iters;
     for (int cold_continuations = 0;
-         sol.status == SqpStatus::kBudgetExhausted &&
+         sol.status == SolveStatus::kBudgetExhausted &&
          cold_continuations < continuation_detail::kBudgetContinuationsMax;
          ++cold_continuations) {
         const WarmStart handoff = sol.warm_start;
@@ -133,7 +133,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
     }
 
     out.final_warm = sol.warm_start;
-    if (sol.status != SqpStatus::kOptimal) {
+    if (sol.status != SolveStatus::kOptimal) {
         // A FAILED INITIAL POINT IS A FAILED ATTEMPT, classified here EXACTLY
         // as the loop classifies its own below: caught by the probe budget,
         // or paid in full. ContinuationResult's own invariant -- the two
@@ -272,12 +272,15 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
         // `warm` resolves warm or hot); passing the seed's own point keeps a
         // degraded-to-cold solve starting from the nearest thing available
         // rather than from the model's generic start point.
-        sol = driver.solve(model, seed.x, seed, probe_minors);
+        // The probe budget is `SolveBudget::minor_budget` since M6 W5 T8.4;
+        // the designated form so no reader takes the positional slot for the
+        // major cap, which is the other member.
+        sol = driver.solve(model, seed.x, seed, SolveBudget{/*minor_budget=*/probe_minors});
         majors_at_proposal += sol.counters.major_iters;
         minors_at_proposal += sol.counters.qp_minor_iters;
         record(p_next, step_dp, sol, reported, predictor_used);
 
-        if (sol.status == SqpStatus::kOptimal) {
+        if (sol.status == SolveStatus::kOptimal) {
             p_cur = p_next;
             s_cur = s_next;
             warm_cur = sol.warm_start;
@@ -307,7 +310,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
             continue;
         }
 
-        if (sol.status == SqpStatus::kBudgetExhausted &&
+        if (sol.status == SolveStatus::kBudgetExhausted &&
             budget_continuations < continuation_detail::kBudgetContinuationsMax) {
             ++budget_continuations;
             continuing = true;

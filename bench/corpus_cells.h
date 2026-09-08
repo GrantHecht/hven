@@ -130,6 +130,49 @@
 
 namespace hven::solvers::corpus {
 
+/// @brief The CAPITALISED status vocabulary the corpus and crossover CSVs are
+///        pinned to, kept bench-local (M6 W5 T8.4).
+///
+/// WHY THIS EXISTS. Until T8.4 both writers spelled a solve's status through
+/// `to_string(SqpStatus)` in core/enum_names.cpp, whose five names were
+/// `Optimal` / `MaxIter` / `Infeasible` / `NumericalError` /
+/// `BudgetExhausted`. That enum is gone; `to_string(SolveStatus)` spells the
+/// same five in lower snake. Routing the writers through it would move column
+/// 7 of every walk/ssn/ipm row in the U0 corpus, fail the committed t10b
+/// control and break ten `"Optimal"` pins -- for a cosmetic rename, inside the
+/// largest semantic task in T8.
+///
+/// So the vocabulary stays HERE, next to the writers that are pinned to it,
+/// and the rename to the lower-case names is REGISTERED as a declared
+/// re-derivation of four baselines and ~10 pins in its own task.
+///
+/// The four statuses the SQP engine cannot report take `to_string`'s spelling:
+/// they never reach a corpus row, and inventing capitalised names for them
+/// would be inventing a vocabulary rather than preserving one.
+///
+/// @param status The status to spell.
+/// @return A static string, never null.
+inline const char *legacy_status_string(SolveStatus status) {
+    switch (status) {
+    case SolveStatus::kOptimal:
+        return "Optimal";
+    case SolveStatus::kMaxIter:
+        return "MaxIter";
+    case SolveStatus::kInfeasible:
+        return "Infeasible";
+    case SolveStatus::kNumericalError:
+        return "NumericalError";
+    case SolveStatus::kBudgetExhausted:
+        return "BudgetExhausted";
+    case SolveStatus::kAcceptable:
+    case SolveStatus::kStalled:
+    case SolveStatus::kDiverging:
+    case SolveStatus::kInterrupted:
+        break;
+    }
+    return to_string(status);
+}
+
 using hven::Index;
 using hven::Vec;
 using hven::solvers::from_interior_point;
@@ -138,11 +181,11 @@ using hven::solvers::model_surface_kkt_residuals;
 using hven::solvers::ModelSurfaceKktResiduals;
 using hven::solvers::NlpModelAggregate;
 using hven::solvers::QpMode;
+using hven::solvers::SolveStatus;
 using hven::solvers::SqpCounters;
 using hven::solvers::SqpDriver;
 using hven::solvers::SqpOptions;
 using hven::solvers::SqpSolution;
-using hven::solvers::SqpStatus;
 using hven::solvers::SsnCounters;
 using hven::solvers::StartLevel;
 using hven::solvers::WarmStart;
@@ -208,7 +251,7 @@ struct CorpusRow {
     int factorizations;
     int qp_minors;
     int escapes;
-    SqpStatus status;
+    SolveStatus status;
     double kkt_residual;
     double wall_s;
     // FIX ROUND 1 (C3). THE PER-QP READING THE GATES ACTUALLY NAME. One entry
@@ -450,7 +493,7 @@ constexpr double kKktDualSignRel = 1.0e-9;
 // and only one that actually carries a recorded check (an old 14-column
 // artifact does not).
 inline bool kkt_check_applies(const CorpusRow &row) {
-    return row.status == SqpStatus::kOptimal && row.kkt_stationarity >= 0.0;
+    return row.status == SolveStatus::kOptimal && row.kkt_stationarity >= 0.0;
 }
 
 // W1-W3 in code, over a row's own recorded residuals and scales. A row with no
@@ -1556,7 +1599,11 @@ inline CorpusRow row_from_solution(const CorpusCell &cell, const SqpSolution &so
 inline SqpSolution budgeted_solve(SqpDriver &driver, const hven::solvers::NlpModel &model,
                                   const Vec &x0, const WarmStart &warm = WarmStart{},
                                   Index budget = kMinorBudget) {
-    return driver.solve(model, x0, warm, budget);
+    // The MINOR budget, named (M6 W5 T8.4): the fourth argument is a
+    // SolveBudget aggregate now, whose other member is the major cap. Every
+    // corpus cell budgets minors and none caps majors, so this stays a one-field
+    // value and every corpus row is byte-unchanged.
+    return driver.solve(model, x0, warm, SolveBudget{/*minor_budget=*/budget});
 }
 
 // kPhysicsInformed's own rollout: the family's analytic optimum displaced by

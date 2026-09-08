@@ -497,7 +497,7 @@ SqpOptions f7_smoke_options() {
 void check_against_manufactured_optimum(const F7CollocationChain &model, const SqpSolution &sol,
                                         double p, const SqpOptions &opts, double x_tol,
                                         const char *label) {
-    ASSERT_EQ(sol.status, SqpStatus::kOptimal) << label;
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal) << label;
     const double f_star = model.f_star(p);
     EXPECT_LE(std::abs(sol.f - f_star), 1e-7 * std::max(1.0, std::abs(f_star))) << label;
     EXPECT_LE((sol.x - model.x_star(p)).lpNorm<Eigen::Infinity>(), x_tol) << label;
@@ -859,11 +859,11 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
 
         model.set_parameters(Vec::Constant(1, kP0));
         const SqpSolution setup = driver.solve(model, model.start_point());
-        ASSERT_EQ(setup.status, SqpStatus::kOptimal) << "the hop's premise";
+        ASSERT_EQ(setup.status, SolveStatus::kOptimal) << "the hop's premise";
 
         model.set_parameters(Vec::Constant(1, kP));
         const SqpSolution hop = driver.solve(model, setup.warm_start.x, setup.warm_start);
-        EXPECT_EQ(hop.status, SqpStatus::kOptimal)
+        EXPECT_EQ(hop.status, SolveStatus::kOptimal)
             << "the sweep runs at the export boundary and must not cost the hop its certificate";
 
         for (const SqpSolution *sol : {&setup, &hop}) {
@@ -907,10 +907,10 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
         if (hop.counters.ssn.ssn_sign_swept > 0) {
             const hven::solvers::test_support::NlpKktResidual rescored =
                 hven::solvers::test_support::self_check_kkt(model, hop, opts.feas_tol);
-            EXPECT_GT(rescored.stationarity, hop.stationarity)
+            EXPECT_GT(rescored.stationarity, hop.sqp_stationarity)
                 << "the returned point's own stationarity must exceed the reported one whenever "
                    "prices were swept -- see SqpSolution's terminal-KKT note";
-            EXPECT_LE(rescored.stationarity - hop.stationarity,
+            EXPECT_LE(rescored.stationarity - hop.sqp_stationarity,
                       hop.counters.ssn.ssn_sign_sweep_max *
                           std::max(1.0, hop.lambda_i.template lpNorm<Eigen::Infinity>()) * 1e3)
                 << "and the gap must stay within the order the counter bounds it to";
@@ -985,7 +985,7 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepAlsoRepairsTheInteriorPointChainsExportedFa
 
         model.set_parameters(Vec::Constant(1, kP0));
         const SqpSolution setup = driver.solve(model, model.start_point());
-        ASSERT_EQ(setup.status, SqpStatus::kOptimal);
+        ASSERT_EQ(setup.status, SolveStatus::kOptimal);
         ASSERT_GT(setup.counters.ipqp.ipqp_to_refine, 0)
             << "the tier must have reached tier 3, or the producer under test never ran";
 

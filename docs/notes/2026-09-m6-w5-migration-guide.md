@@ -1365,3 +1365,107 @@ finished solve readable from a solver that had gone on living, and this class's
 own entries return only a status. It is retired in T8.9 and this goes with it.
 `NlpSolveOutput::eq_lmults_` is the DECLARED block now (see the shape note
 above), which is what `return_multipliers()` composes over anyway.
+
+### The SQP engine: `SqpResult`, `SolveBudget`, and `SqpStatus` removed
+
+`SqpSolution` is now an alias for `SqpResult`, which derives from `SolveResult`.
+**The type name still works**; what moved is where some of its fields live and
+what three of them are called.
+
+#### `hven::solvers::SqpStatus` is gone
+
+Its five enumerators ARE the first five of `SolveStatus`, under the same names,
+so the substitution is textual: `SqpStatus::kOptimal` → `SolveStatus::kOptimal`,
+and so on. `to_solve_status(SqpStatus)` went with it — the mapping was the
+identity, so there is nothing left to map.
+
+`SolveStatus` and `IpmStopReason`, with `to_string()` and `severity()`, live in
+`<hven/core/solver_status.h>` — the bottom tier, where `SqpStatus` lived, and
+where `core/ledger.h` can report a status without reaching up a tier.
+`<hven/drivers/solve_status.h>` is what is left: `resolve_ipm_phase_status()`,
+a statement about one engine's exits.
+
+**`to_string()` spells all nine in LOWER SNAKE**, where `to_string(SqpStatus)`
+spelled its five capitalised (`Optimal`, `MaxIter`, …). Three consequences:
+
+- The printed SQP status line reads `Status: optimal`. Declared.
+- The corpus and crossover CSVs KEEP the capitalised vocabulary, through a
+  bench-local `corpus::legacy_status_string(SolveStatus)`: their committed
+  baselines and the t10b control are pinned to those bytes, and moving column 7
+  of every row for a cosmetic rename is not this task's business. The lower-case
+  rename of that vocabulary is REGISTERED as a declared re-derivation of four
+  baselines and ~10 pins.
+- The machine trace does not move at all: `to_json(SqpStatus)` already spelled
+  its five exactly as `to_string(SolveStatus)` does, so the two folded into one
+  overload with no byte changing.
+
+#### Three engine measurements renamed
+
+| before | after | why |
+|---|---|---|
+| `sol.stationarity` | `sol.sqp_stationarity` | the base now has a `stationarity` with a DIFFERENT definition |
+| `sol.feasibility` | `sol.sqp_feasibility` | the base has `feasibility_e` / `feasibility_i` |
+| `sol.complementarity` | `sol.sqp_complementarity` | the base now has a `complementarity` with a different definition |
+| `sol.wall_seconds` | `sol.solve_impl_seconds` | the base's `wall_seconds` is a DIFFERENT boundary |
+
+**Read this before repointing anything.** The base's `stationarity`,
+`feasibility_e`, `feasibility_i` and `complementarity` are over the DECLARED
+problem in CALLER units, computed by one shared definition both engines feed.
+The `sqp_*` fields are what THIS engine's convergence test gated on, in the
+space it ran in. A tolerance comparison must use the `sqp_*` ones; a comparison
+against another engine's solve of the same problem must use the shared ones.
+`kkt_residual` is unchanged and is still `max(sqp_stationarity, sqp_feasibility)`.
+
+`solve_impl_seconds` keeps its OLD BOUNDARY exactly — `solve_impl` alone, never
+model construction, the seam lay, the ingest or the ledger. The base's
+`wall_seconds` is the whole public call, so it is never the smaller of the two.
+
+#### `SolveBudget` replaces `Index minor_budget`
+
+```cpp
+sol = driver.solve(model, x0, warm, 20);                       // before
+sol = driver.solve(model, x0, warm, SolveBudget{20});          // after (a MINOR budget)
+sol = driver.solve(model, x0, warm, SolveBudget{.minor_budget = 20});  // the same, spelled
+```
+
+An aggregate has no converting constructor, so **every** call that passed a
+fourth argument changes: 21 sites in 7 files in this repository, and any of
+yours. `budget.minor_budget` is the probe budget verbatim. `budget.max_iterations`
+is new: when non-zero it gives an EFFECTIVE major cap of
+`min(max_iterations, opts.max_iter)` — tightening only — and **restoration is
+budgeted from that cap**, at all three places the engine reads its major limit
+(the exit conjunction, the restoration refusal, the restoration sub-driver's
+budget). `SolveBudget{}` is the identity, so a call that passed no budget behaves
+exactly as before.
+
+**Positional order is `{minor_budget, max_iterations}`.** Use the designated
+form for anything but a bare minor budget.
+
+#### The base's fields on an SQP result
+
+`iterations` is `counters.major_iters` of the TOP-LEVEL solve (nested
+restoration majors stay in `counters`). `ce`/`ci` are the declared constraint
+residuals at the returned point. `export_warm_start()` carries the shared
+currency snapshot; `warm_start` is still the engine-native one. The four shared
+diagnostics come from a STASHED evaluation — the one the engine already held at
+the point it returns — and **no exit takes a fresh evaluation to fill them**, so
+`counters.evals_full` is unchanged on every path. Where no finite evaluation of
+the returned point exists (the non-finite-start exit), all four are NaN and
+`ce`/`ci` are empty.
+
+#### tycho's break list
+
+`tycho/src/solvers/engines.cpp` reads ten fields off `SqpSolution`. Four move:
+
+| tycho reads | after | same or changed meaning |
+|---|---|---|
+| `sol.stationarity` → `report.kkt_residual_` | `sol.sqp_stationarity` | SAME quantity, new name. Do NOT leave it pointed at `stationarity`, which still compiles and now means the DECLARED-space diagnostic. |
+| `sol.feasibility` | `sol.sqp_feasibility` | same quantity, new name |
+| `sol.complementarity` | `sol.sqp_complementarity` | same quantity, new name |
+| `sol.wall_seconds` → `report.wall_time_s_` | `sol.solve_impl_seconds` (same value) or `sol.wall_seconds` (the new, larger, whole-call measurement) | CHANGED VALUE if left as written — decide which boundary the report means |
+| `sol.status` (a `switch` over five) | `SolveStatus`, NINE enumerators | the switch needs a `default:` or the four new cases; the five it handles keep their names |
+| `counters.*`, `f`, `infeasibility_certified` | unchanged | — |
+
+The first three still COMPILE if left alone only in the sense that
+`stationarity` and `complementarity` exist on the base — which is precisely why
+they are listed: silently reading a different quantity is the failure mode.

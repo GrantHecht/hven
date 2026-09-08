@@ -495,9 +495,9 @@ TEST(ProblemScalingOffPath, SettingTheRuleWithoutTheToggleChangesNothing) {
     EXPECT_EQ(a.counters.qp_minor_iters, b.counters.qp_minor_iters);
     EXPECT_DOUBLE_EQ(a.f, b.f);
     EXPECT_DOUBLE_EQ(a.kkt_residual, b.kkt_residual);
-    EXPECT_DOUBLE_EQ(a.stationarity, b.stationarity);
-    EXPECT_DOUBLE_EQ(a.feasibility, b.feasibility);
-    EXPECT_DOUBLE_EQ(a.complementarity, b.complementarity);
+    EXPECT_DOUBLE_EQ(a.sqp_stationarity, b.sqp_stationarity);
+    EXPECT_DOUBLE_EQ(a.sqp_feasibility, b.sqp_feasibility);
+    EXPECT_DOUBLE_EQ(a.sqp_complementarity, b.sqp_complementarity);
     ASSERT_EQ(a.x.size(), b.x.size());
     EXPECT_TRUE(a.x.isApprox(b.x, 0.0)) << "EXACT equality, not approximate";
     EXPECT_TRUE(a.lambda_e.isApprox(b.lambda_e, 0.0));
@@ -555,7 +555,7 @@ TEST(ProblemScalingAcceptance, TheS1e12DualScaleCellConvergesWithScalingOn) {
 
     // THE PIN. The instance the fixture banner in test_b1_gate.cpp records as
     // running out of majors converges here.
-    EXPECT_EQ(SqpStatus::kOptimal, after.status);
+    EXPECT_EQ(SolveStatus::kOptimal, after.status);
     EXPECT_TRUE(after.scaling.active);
     EXPECT_LT(after.counters.major_iters, 60) << "it no longer exhausts the budget";
     // AT THE RIGHT ANSWER, on the caller's scale: x* = eps and f* = -S*eps.
@@ -630,11 +630,11 @@ TEST(ProblemScalingAcceptance, Hs25IsMeasuredWithScalingOn) {
     EXPECT_TRUE(after.scaling.active);
     EXPECT_GT(after.scaling.obj, 1.0) << "the two-sided objective rule, scaling UP";
     EXPECT_EQ(0, before.counters.major_iters) << "the excused row, unscaled: certified at x0";
-    EXPECT_EQ(SqpStatus::kOptimal, before.status);
+    EXPECT_EQ(SolveStatus::kOptimal, before.status);
 
     EXPECT_GT(after.counters.major_iters, 0)
         << "with the objective in usable units the solver at least TRIES";
-    EXPECT_NE(SqpStatus::kOptimal, after.status)
+    EXPECT_NE(SolveStatus::kOptimal, after.status)
         << "THE POINT: the zero-major certificate at a non-minimum is refused";
     // The objective genuinely improves -- pinned with margin, since this is the
     // only positive claim the cell supports.
@@ -652,7 +652,7 @@ TEST(ProblemScalingRoundTrip, AScaledSolveReportsOnTheCallersScale) {
     SqpDriver driver{opts};
     const SqpSolution sol = driver.solve(model);
 
-    ASSERT_EQ(SqpStatus::kOptimal, sol.status);
+    ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     ASSERT_TRUE(sol.scaling.active);
     // The row half of the rule has real work to do on this model, which is why
     // it is the round trip's subject rather than the acceptance cell.
@@ -668,9 +668,9 @@ TEST(ProblemScalingRoundTrip, AScaledSolveReportsOnTheCallersScale) {
     // which knows nothing about the seam or its factors.
     const SqpKkt independent =
         evaluate_kkt(model, sol.x, sol.lambda_e, sol.lambda_i, SqpOptions{}.feas_tol);
-    EXPECT_DOUBLE_EQ(independent.stationarity, sol.stationarity);
-    EXPECT_DOUBLE_EQ(independent.feasibility, sol.feasibility);
-    EXPECT_DOUBLE_EQ(independent.complementarity, sol.complementarity);
+    EXPECT_DOUBLE_EQ(independent.stationarity, sol.sqp_stationarity);
+    EXPECT_DOUBLE_EQ(independent.feasibility, sol.sqp_feasibility);
+    EXPECT_DOUBLE_EQ(independent.complementarity, sol.sqp_complementarity);
     EXPECT_DOUBLE_EQ(independent.residual(), sol.kkt_residual);
     ASSERT_EQ(sol.z.size(), independent.z.size());
     // TO THE SAME STANDARD AS THE FOUR RESIDUALS BESIDE IT, not a looser one:
@@ -701,8 +701,8 @@ TEST(ProblemScalingRoundTrip, TheMultipliersAreTheCallersNotTheEngines) {
     SqpDriver on{opts};
     const SqpSolution b = on.solve(model);
 
-    ASSERT_EQ(SqpStatus::kOptimal, a.status);
-    ASSERT_EQ(SqpStatus::kOptimal, b.status);
+    ASSERT_EQ(SolveStatus::kOptimal, a.status);
+    ASSERT_EQ(SolveStatus::kOptimal, b.status);
     EXPECT_NEAR(a.f, b.f, 1e-9 * std::max(1.0, std::abs(a.f)));
     ASSERT_EQ(a.lambda_e.size(), b.lambda_e.size());
     for (Index i = 0; i < a.lambda_e.size(); ++i) {
@@ -725,7 +725,7 @@ TEST(ProblemScalingWarmStart, AScaledSolvesExportIsAcceptedByAnUnscaledSolve) {
     opts.enable_scaling = true;
     SqpDriver scaled{opts};
     const SqpSolution first = scaled.solve(model);
-    ASSERT_EQ(SqpStatus::kOptimal, first.status);
+    ASSERT_EQ(SolveStatus::kOptimal, first.status);
     ASSERT_TRUE(first.scaling.active);
     ASSERT_TRUE(first.warm_start.valid);
 
@@ -735,11 +735,12 @@ TEST(ProblemScalingWarmStart, AScaledSolvesExportIsAcceptedByAnUnscaledSolve) {
     SqpOptions warm_opts;
     warm_opts.start_level = StartLevel::kWarm;
     SqpDriver consumer{warm_opts};
-    const SqpSolution second = consumer.solve(model, model.start_point(), first.warm_start, 0);
+    const SqpSolution second =
+        consumer.solve(model, model.start_point(), first.warm_start, SolveBudget{});
 
     EXPECT_NE(StartLevel::kCold, second.counters.start_level_used)
         << "the currency was ACCEPTED, which is only true if it arrived in the caller's units";
-    EXPECT_EQ(SqpStatus::kOptimal, second.status);
+    EXPECT_EQ(SolveStatus::kOptimal, second.status);
     EXPECT_FALSE(second.scaling.active);
 
     SqpDriver reference{SqpOptions{}};
@@ -822,8 +823,8 @@ TEST(ProblemScalingWarmStart, ACallerScaleSeedIsMappedInOnAScaledSolve) {
     seed.valid = true;
 
     SqpDriver driver{opts};
-    const SqpSolution sol = driver.solve(model, model.start_point(), seed, 0);
-    EXPECT_EQ(SqpStatus::kOptimal, sol.status);
+    const SqpSolution sol = driver.solve(model, model.start_point(), seed, SolveBudget{});
+    EXPECT_EQ(SolveStatus::kOptimal, sol.status);
     EXPECT_NEAR(model.x_star(), sol.x(0), 1e-9);
     EXPECT_NEAR(1e12, sol.lambda_i(0), 1e-3 * 1e12) << "and it comes back on the caller's scale";
 }
@@ -844,7 +845,7 @@ TEST(ProblemScalingHistory, TheExportedRowsAreOnTheCallersScale) {
     SqpDriver driver{opts};
     const SqpSolution sol = driver.solve(model);
 
-    ASSERT_EQ(SqpStatus::kOptimal, sol.status);
+    ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     ASSERT_TRUE(sol.scaling.active);
     ASSERT_FALSE(sol.history.empty());
     // Both halves of the map are live on this fixture, which is what makes the
@@ -888,7 +889,7 @@ TEST(ProblemScalingHistory, AnUnscaledSolvesHistoryIsUntouched) {
     SqpDriver driver{SqpOptions{}};
     const SqpSolution sol = driver.solve(model);
 
-    ASSERT_EQ(SqpStatus::kOptimal, sol.status);
+    ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     EXPECT_FALSE(sol.scaling.active);
     ASSERT_FALSE(sol.history.empty());
     EXPECT_DOUBLE_EQ(model.eval_f(model.start_point()), sol.history.front().f);
@@ -907,7 +908,7 @@ TEST(ProblemScalingHistory, TheNonFiniteIterateExitStillUnscalesAndReports) {
     SqpDriver driver{opts};
     const SqpSolution sol = driver.solve(model);
 
-    ASSERT_EQ(SqpStatus::kNumericalError, sol.status)
+    ASSERT_EQ(SolveStatus::kNumericalError, sol.status)
         << "the fixture must reach the non-finite-iterate exit for this pin to mean anything";
     // THE REPORT IS WRITTEN. Before the fix this exit left it default-
     // constructed, so a scaled solve claimed `active == false` about itself.
@@ -961,7 +962,7 @@ TEST(ProblemScalingRestoration, TheAdoptedSelectorsAreNotMappedTwice) {
     off_opts.max_iter = 200;
     SqpDriver off{off_opts};
     const SqpSolution a = off.solve(model);
-    ASSERT_EQ(SqpStatus::kInfeasible, a.status);
+    ASSERT_EQ(SolveStatus::kInfeasible, a.status);
     ASSERT_TRUE(a.infeasibility_certified);
 
     SqpOptions on_opts = off_opts;
@@ -973,7 +974,7 @@ TEST(ProblemScalingRestoration, TheAdoptedSelectorsAreNotMappedTwice) {
     EXPECT_DOUBLE_EQ(100.0, b.scaling.obj) << "grad f is (1,1) everywhere: the full two-sided lift";
     EXPECT_DOUBLE_EQ(1.0, b.scaling.row_min) << "the row rule never amplifies";
     EXPECT_DOUBLE_EQ(1.0, b.scaling.row_max);
-    ASSERT_EQ(SqpStatus::kInfeasible, b.status)
+    ASSERT_EQ(SolveStatus::kInfeasible, b.status)
         << "the scaled solve must still reach the restoration exit this pin is about";
     EXPECT_TRUE(b.infeasibility_certified);
 
@@ -995,8 +996,8 @@ TEST(ProblemScalingRestoration, TheAdoptedSelectorsAreNotMappedTwice) {
     EXPECT_NEAR(t, b.x(0), 1e-5);
     EXPECT_NEAR(t, b.x(1), 1e-5);
     const SqpKkt independent = evaluate_kkt(model, b.x, b.lambda_e, b.lambda_i, off_opts.feas_tol);
-    EXPECT_DOUBLE_EQ(independent.stationarity, b.stationarity);
-    EXPECT_DOUBLE_EQ(independent.feasibility, b.feasibility);
+    EXPECT_DOUBLE_EQ(independent.stationarity, b.sqp_stationarity);
+    EXPECT_DOUBLE_EQ(independent.feasibility, b.sqp_feasibility);
     EXPECT_DOUBLE_EQ(independent.residual(), b.kkt_residual);
     // The bound prices are the FEASIBILITY problem's own (the certificate's,
     // not grad L's), so they are compared against the unscaled solve's rather
@@ -1088,7 +1089,7 @@ TEST(ProblemScalingRoundTrip, TheBoundPricesAreTheReMeasurementsNotADivideBack) 
     SqpDriver driver{opts};
     const SqpSolution sol = driver.solve(model);
 
-    ASSERT_EQ(SqpStatus::kOptimal, sol.status);
+    ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     ASSERT_TRUE(sol.scaling.active);
     EXPECT_NEAR(0.2, sol.x(0), 1e-9);
     EXPECT_NEAR(1.0, sol.x(1), 1e-9) << "x1's upper bound binds";
@@ -1104,7 +1105,7 @@ TEST(ProblemScalingRoundTrip, TheBoundPricesAreTheReMeasurementsNotADivideBack) 
     for (Index i = 0; i < sol.z.size(); ++i) {
         EXPECT_EQ(independent.z(i), sol.z(i)) << "bound price " << i;
     }
-    EXPECT_EQ(independent.stationarity, sol.stationarity);
+    EXPECT_EQ(independent.stationarity, sol.sqp_stationarity);
 }
 
 } // namespace hven::solvers

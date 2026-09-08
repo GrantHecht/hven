@@ -307,21 +307,11 @@ const char *to_json(SqpFallbackVerdict v) {
     return "unknown";
 }
 
-const char *to_json(SqpStatus v) {
-    switch (v) {
-    case SqpStatus::kOptimal:
-        return "optimal";
-    case SqpStatus::kMaxIter:
-        return "max_iter";
-    case SqpStatus::kInfeasible:
-        return "infeasible";
-    case SqpStatus::kNumericalError:
-        return "numerical_error";
-    case SqpStatus::kBudgetExhausted:
-        return "budget_exhausted";
-    }
-    return "unknown";
-}
+// The SQP end event's own to_json(SqpStatus) stood here until M6 W5 T8.4. Its
+// five spellings were BYTE-IDENTICAL to to_string(SolveStatus)'s five --
+// optimal / max_iter / infeasible / numerical_error / budget_exhausted -- so
+// folding it into the one overload below moves no trace byte and the golden
+// rig's traces do not move.
 
 // LOWER SNAKE, NOT core's display `to_string` (fix round 1, R2): plan section 2
 // rule 8 governs the schema's alphabet, and `to_string` names a printed column.
@@ -361,7 +351,7 @@ const char *to_json(WorkingSetLinearAlgebra v) {
 // bytes -- there is no committed interior-point trace baseline and no control
 // -- so unlike the corpus CSV's status column (which keeps its capitalised
 // spellings through a bench-local table for exactly that reason) this one takes
-// the new vocabulary now. The SQP's `to_json(SqpStatus)` above already spelled
+// the new vocabulary now. The SQP's `to_json(SolveStatus)` above already spelled
 // its five the same way `to_string(SolveStatus)` does, so the golden rig's
 // traces do not move.
 const char *to_json(SolveStatus v) { return to_string(v); }

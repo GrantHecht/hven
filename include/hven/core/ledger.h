@@ -58,7 +58,7 @@ struct SqpSolveRecord {
     /// @brief Caller-chosen label for the solve.
     std::string label;
     /// @brief The SQP driver's outcome verdict.
-    SqpStatus status;
+    SolveStatus status;
     /// Aggregate counters for the whole solve (single source of truth for
     /// every value below).
     SqpCounters counters;
@@ -184,7 +184,7 @@ class Ledger {
 
   private:
     // The -> string helpers this class's tables use are
-    // core/solver_status.h's to_string(SqpStatus) and core/start_level.h's
+    // core/solver_status.h's to_string(SolveStatus) and core/start_level.h's
     // to_string(StartLevel); both arrive through the includes at the top of
     // this file, and every one of those is a core/ header.
     //

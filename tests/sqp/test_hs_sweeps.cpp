@@ -412,7 +412,7 @@ void fold(SweepCell &c, const SqpSolveRecord &r) {
         ++c.n_hot;
         break;
     }
-    if (r.status != SqpStatus::kOptimal) {
+    if (r.status != SolveStatus::kOptimal) {
         ++c.status_failures;
     }
     ++c.solves;
@@ -500,7 +500,7 @@ SweepCell run_warm_sweep(const HsSweepSpec &spec, bool full_step, bool enable_so
         // p1, and every quantity below is a property of the model AT st.p.
         model->set_parameters(st.p);
         c.fvals.push_back(model->eval_f(st.x));
-        if (st.status == SqpStatus::kOptimal) {
+        if (st.status == SolveStatus::kOptimal) {
             c.worst_primal = std::max(c.worst_primal, primal_violation(*model, st.x));
         }
     }
@@ -520,7 +520,7 @@ SweepCell run_warm_sweep(const HsSweepSpec &spec, bool full_step, bool enable_so
 // it is not a second mechanism being tested in place of the first.
 struct ChainPoint {
     double p = 0.0;
-    SqpStatus status = SqpStatus::kOptimal;
+    SolveStatus status = SolveStatus::kOptimal;
     StartLevel level = StartLevel::kCold;
     Index majors = 0;
     double f = 0.0;
@@ -544,12 +544,12 @@ std::vector<ChainPoint> run_warm_chain(const HsSweepSpec &spec) {
         pt.level = sol.counters.start_level_used;
         pt.majors = sol.counters.major_iters;
         pt.f = sol.f;
-        if (sol.status == SqpStatus::kOptimal) {
+        if (sol.status == SolveStatus::kOptimal) {
             pt.kkt = test_support::self_check_kkt(*model, sol, 1e-6);
         }
         out.push_back(pt);
         prev = sol;
-        have_prev = sol.status == SqpStatus::kOptimal;
+        have_prev = sol.status == SolveStatus::kOptimal;
         if (!have_prev) {
             break;
         }
@@ -582,8 +582,8 @@ SweepCell run_cold_grid(const HsSweepSpec &spec, const std::vector<double> &grid
         driver.attach_ledger(&ledger, fmt::format("cold{}", i));
         model->set_parameters(Vec::Constant(1, grid[i]));
         const SqpSolution sol = driver.solve(*model, model->start_point());
-        all_optimal = all_optimal && sol.status == SqpStatus::kOptimal;
-        if (sol.status == SqpStatus::kOptimal) {
+        all_optimal = all_optimal && sol.status == SolveStatus::kOptimal;
+        if (sol.status == SolveStatus::kOptimal) {
             const test_support::NlpKktResidual r = test_support::self_check_kkt(*model, sol, 1e-6);
             c.worst_stationarity = std::max(c.worst_stationarity, r.stationarity);
             c.worst_primal = std::max(c.worst_primal, r.primal);
@@ -922,7 +922,7 @@ void check_every_warm_solve_is_a_genuine_kkt_point() {
         Index warm_points = 0;
         for (const ChainPoint &pt : chain) {
             SCOPED_TRACE(fmt::format("{} at p = {}", specs[k].name, pt.p));
-            if (pt.status != SqpStatus::kOptimal) {
+            if (pt.status != SolveStatus::kOptimal) {
                 // Only kTruncatedWarmArms may hold a non-certified point, and
                 // section (1) pins WHERE. A point that was not certified makes
                 // no claim, so nothing is asserted about its residuals.
@@ -1453,7 +1453,7 @@ TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
     model->set_parameters(Vec::Constant(1, 0.0));
     SqpDriver d0(opts);
     const SqpSolution s0 = d0.solve(*model, model->start_point());
-    ASSERT_EQ(SqpStatus::kOptimal, s0.status);
+    ASSERT_EQ(SolveStatus::kOptimal, s0.status);
     EXPECT_NEAR(-1.0, s0.f, 1e-6);
     EXPECT_NEAR(1.0, s0.x(1), 1e-6);
     ASSERT_EQ(1, s0.lambda_i.size());
@@ -1475,7 +1475,7 @@ TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
     EXPECT_EQ(StartLevel::kWarm, s1.counters.start_level_used);
     // THE REPAIR, in four assertions -- the same four that used to record the
     // defect, inverted.
-    EXPECT_EQ(SqpStatus::kOptimal, s1.status) << "reports success ...";
+    EXPECT_EQ(SolveStatus::kOptimal, s1.status) << "reports success ...";
     EXPECT_GT(s1.counters.major_iters, 0) << "... having actually solved something ...";
     EXPECT_NEAR(-std::sqrt(1.5), s1.f, 1e-6) << "... at the NEW solution ...";
     const test_support::NlpKktResidual r = test_support::self_check_kkt(*model, s1, 1e-6);
@@ -1492,7 +1492,7 @@ TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
     // THE TRUTH, from a cold solve of the same problem: x*(0.5) = (0, sqrt(1.5)).
     SqpDriver d2(sweep_options(StartLevel::kCold, true, true, 60));
     const SqpSolution s2 = d2.solve(*model, model->start_point());
-    ASSERT_EQ(SqpStatus::kOptimal, s2.status);
+    ASSERT_EQ(SolveStatus::kOptimal, s2.status);
     EXPECT_NEAR(-std::sqrt(1.5), s2.f, 1e-6);
     const test_support::NlpKktResidual rc = test_support::self_check_kkt(*model, s2, 1e-6);
     EXPECT_LT(rc.complementarity, 1e-6);

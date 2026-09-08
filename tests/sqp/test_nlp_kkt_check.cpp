@@ -138,7 +138,7 @@ class PoisonableNlp : public NlpModel {
 // The KKT point above, as a driver would have returned it.
 SqpSolution optimal_solution() {
     SqpSolution sol;
-    sol.status = hven::solvers::SqpStatus::kOptimal;
+    sol.status = hven::solvers::SolveStatus::kOptimal;
     sol.x = Vec(2);
     sol.x << 1.0, 1.0;
     sol.lambda_e = Vec::Constant(1, -1.0);

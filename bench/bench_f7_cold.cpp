@@ -108,7 +108,7 @@
 // subproblem and does not touch the solve's trajectory.
 //
 // OUTPUT-FORMAT NOTE FOR ANYONE HOLDING OLD LOGS: this program prints
-// `status=Optimal` (SqpStatus's own to_string). The uncommitted scratch
+// `status=Optimal` (SolveStatus's own to_string). The uncommitted scratch
 // version that produced the study's raw logs before this file was committed
 // printed the ENUMERATOR VALUE instead -- `status=0` for kOptimal, `status=3`
 // for kNumericalError. Every other field is byte-identical, and the counters

@@ -99,7 +99,7 @@ RealizedFace solve_and_read_face(Index nodes, double p) {
     o.max_iter = 60;
     SqpDriver driver(o);
     const SqpSolution sol = driver.solve(model);
-    EXPECT_EQ(sol.status, SqpStatus::kOptimal) << "n=" << nodes << " p=" << p;
+    EXPECT_EQ(sol.status, SolveStatus::kOptimal) << "n=" << nodes << " p=" << p;
 
     RealizedFace out;
     bool open = false;
@@ -347,7 +347,7 @@ TEST(IpqpAcceptanceA2, ARealMidSolveSubproblemRoundTripsTheDumpSeamAndAgreesWith
     truncated.max_iter = kCompletedMajors;
     SqpDriver driver(truncated);
     const SqpSolution mid = driver.solve(model);
-    ASSERT_NE(mid.status, SqpStatus::kOptimal) << "the point must be MID-solve, not the answer";
+    ASSERT_NE(mid.status, SolveStatus::kOptimal) << "the point must be MID-solve, not the answer";
     ASSERT_TRUE(mid.x.allFinite());
 
     bench_cli::QpDumpV2 dumped;
@@ -610,7 +610,7 @@ TEST(IpqpAcceptanceA11, TheIndefiniteHsRowsSolveUnderKIpmAndCertifyHonestly) {
         SqpDriver driver(ipm_options());
         driver.attach_trace(&sink);
         const SqpSolution sol = driver.solve(*p.model);
-        ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+        ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_NEAR(sol.f, p.f_star, 1e-6 * std::max(1.0, std::abs(p.f_star)));
 
         const IpqpCounters &c = sol.counters.ipqp;
@@ -699,16 +699,16 @@ TEST(IpqpAcceptanceWarm, AWarmContinuationHopCostsFewerBarrierIterationsAndKills
     model.set_parameters(Vec::Constant(1, kWarmP0));
     SqpDriver seed_driver(ipm_options());
     const SqpSolution seed = seed_driver.solve(model, model.start_point());
-    ASSERT_EQ(seed.status, SqpStatus::kOptimal);
+    ASSERT_EQ(seed.status, SolveStatus::kOptimal);
 
     model.set_parameters(Vec::Constant(1, kWideP));
     SqpDriver warm_driver(ipm_options());
     const SqpSolution warm = warm_driver.solve(model, seed.warm_start.x, seed.warm_start);
-    ASSERT_EQ(warm.status, SqpStatus::kOptimal);
+    ASSERT_EQ(warm.status, SolveStatus::kOptimal);
 
     SqpDriver cold_driver(ipm_options());
     const SqpSolution cold = cold_driver.solve(model, model.start_point());
-    ASSERT_EQ(cold.status, SqpStatus::kOptimal);
+    ASSERT_EQ(cold.status, SolveStatus::kOptimal);
 
     const IpqpCounters &wc = warm.counters.ipqp;
     const IpqpCounters &cc = cold.counters.ipqp;

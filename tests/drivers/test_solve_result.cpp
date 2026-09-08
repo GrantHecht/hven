@@ -22,8 +22,12 @@
 #include <hven/drivers/interior_point_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
 #include <hven/drivers/solve_result.h>
+#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_types.h>
+#include <hven/model/nlp_model.h>
 #include <hven/model/nlp_solver.h>
 
+#include "sqp/support/hs_problems.h"
 #include "support/hs071_problem.h"
 
 using hven::Index;
@@ -458,4 +462,164 @@ TEST(SolveResult, TheIpmFillsTheSharedDiagnosticsAtItsReturnedPoint) {
     EXPECT_NEAR(d.feasibility_e, r.feasibility_e, 1e-12);
     EXPECT_NEAR(d.feasibility_i, r.feasibility_i, 1e-12);
     EXPECT_NEAR(d.complementarity, r.complementarity, 1e-9);
+}
+
+// ===========================================================================
+// (5) The SQP engine's half of the result core.
+// ===========================================================================
+
+namespace {
+
+/// A model whose evaluation is NaN everywhere: the SQP's non-finite-start exit.
+///
+/// The point of the fixture is that NOTHING can be measured at the returned
+/// point, so the result has to say so rather than fill zeros.
+class NonFiniteModel final : public hven::solvers::NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 0; }
+    Index mi() const override { return 0; }
+
+    double eval_f(const Vec &) const override { return std::numeric_limits<double>::quiet_NaN(); }
+    Vec eval_grad(const Vec &) const override {
+        return Vec::Constant(2, std::numeric_limits<double>::quiet_NaN());
+    }
+    Vec eval_ce(const Vec &) const override { return Vec(0); }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        return h;
+    }
+    SpMatRM eval_jac_e(const Vec &) const override { return SpMatRM(0, 2); }
+    SpMatRM eval_jac_i(const Vec &) const override { return SpMatRM(0, 2); }
+
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -kInf);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, kInf);
+        return u;
+    }
+    Vec start_point() const override { return Vec::Zero(2); }
+};
+
+hven::solvers::SqpOptions quiet_sqp() {
+    hven::solvers::SqpOptions o;
+    o.common.print_level = 10;
+    return o;
+}
+
+} // namespace
+
+TEST(SolveResult, UnmeasuredExitsReportNaNAndEmptyVectors) {
+    NonFiniteModel model;
+    hven::solvers::SqpDriver driver(quiet_sqp());
+    const hven::solvers::SqpResult r = driver.solve(model, model.start_point());
+
+    EXPECT_EQ(r.status, hven::solvers::SolveStatus::kNumericalError);
+    // NaN means UNMEASURED. A 0.0 in any of these would read as a converged
+    // residual at a point the model could not even be evaluated at.
+    EXPECT_TRUE(std::isnan(r.stationarity));
+    EXPECT_TRUE(std::isnan(r.feasibility_e));
+    EXPECT_TRUE(std::isnan(r.feasibility_i));
+    EXPECT_TRUE(std::isnan(r.complementarity));
+    // EMPTY, not zero-filled: the problem declares no rows here, and on a
+    // problem that did they would still be empty, because nothing was measured.
+    EXPECT_EQ(r.ce.size(), 0);
+    EXPECT_EQ(r.ci.size(), 0);
+    // The engine's own four say the same thing under their own names.
+    EXPECT_TRUE(std::isnan(r.sqp_stationarity));
+    EXPECT_TRUE(std::isnan(r.sqp_feasibility));
+    EXPECT_TRUE(std::isnan(r.sqp_complementarity));
+
+    // AND NO FRESH EVALUATION WAS TAKEN TO FIND THAT OUT. One evaluation, the
+    // one at x0 that failed. This is the whole reason the diagnostics are
+    // computed from a stash: an exit that measured nothing must not pay for a
+    // measurement, and no path may move the evaluation bill.
+    EXPECT_EQ(r.counters.evals_full, 1);
+
+    // The export is still present -- this engine's is never nullopt, even here:
+    // the returned point is the caller's own finite x0 with zero multipliers.
+    EXPECT_TRUE(r.export_warm_start().has_value());
+}
+
+TEST(SolveResult, TheSqpFillsTheSharedDiagnosticsAtItsReturnedPoint) {
+    const auto p = hven::solvers::test_support::make_hs(7);
+    hven::solvers::SqpDriver driver(quiet_sqp());
+    const hven::solvers::SqpResult r = driver.solve(*p.model, p.model->start_point());
+    ASSERT_EQ(r.status, hven::solvers::SolveStatus::kOptimal);
+
+    // Measured, small, and reported in the declared shapes.
+    EXPECT_FALSE(std::isnan(r.stationarity));
+    EXPECT_LT(r.stationarity, 1e-6);
+    EXPECT_LT(r.feasibility_e, 1e-6);
+    EXPECT_LT(r.feasibility_i, 1e-6);
+    EXPECT_FALSE(std::isnan(r.complementarity));
+    EXPECT_EQ(r.ce.size(), p.model->me());
+    EXPECT_EQ(r.ci.size(), p.model->mi());
+    EXPECT_EQ(r.x.size(), p.model->n());
+    EXPECT_EQ(r.z.size(), p.model->n());
+
+    // INDEPENDENTLY, from the shared function over the model's own quantities
+    // at the returned point. This is what ties the engine's fill to §(1)'s
+    // definition; it evaluates the model itself, which a SOLVE may not do.
+    const hven::solvers::NlpEval ev = hven::solvers::eval_nlp(*p.model, r.x);
+    const DeclaredDiagnostics d =
+        compute_declared_diagnostics(r.x, r.lambda_e, r.lambda_i, r.z, ev.grad, ev.Je, ev.Ji, ev.ce,
+                                     ev.ci, p.model->lower(), p.model->upper(), {});
+    EXPECT_NEAR(d.stationarity, r.stationarity, 1e-9);
+    EXPECT_NEAR(d.feasibility_e, r.feasibility_e, 1e-12);
+    EXPECT_NEAR(d.feasibility_i, r.feasibility_i, 1e-12);
+    EXPECT_NEAR(d.complementarity, r.complementarity, 1e-9);
+
+    // THE TWO CLOCKS ARE DIFFERENT MEASUREMENTS, and both are present: the
+    // base's runs from the public entry, the engine's around solve_impl alone,
+    // so the first is never the smaller.
+    EXPECT_GE(r.wall_seconds, r.solve_impl_seconds);
+    // The shared iteration count is the TOP-LEVEL major count.
+    EXPECT_EQ(r.iterations, r.counters.major_iters);
+
+    // And the export snapshot is a snapshot: editing the public fields does not
+    // reach it.
+    hven::solvers::SqpResult edited = r;
+    const auto before = edited.export_warm_start();
+    ASSERT_TRUE(before.has_value());
+    edited.x.setZero();
+    const auto after = edited.export_warm_start();
+    ASSERT_TRUE(after.has_value());
+    EXPECT_GT(after->primal_.template lpNorm<Eigen::Infinity>(), 0.0);
+}
+
+TEST(SolveBudget, SqpRestorationIsBudgetedFromTheEffectiveCap) {
+    // The effective cap governs the exit conjunction, the restoration REFUSAL
+    // and the restoration sub-driver's budget alike -- three reads, and a sweep
+    // that reached only some of them would let a capped solve enter restoration
+    // it has no budget for.
+    const auto p = hven::solvers::test_support::make_hs(7);
+    hven::solvers::SqpOptions o = quiet_sqp();
+    o.max_iter = 200;
+    hven::solvers::SqpDriver driver(o);
+
+    const hven::solvers::SqpResult capped =
+        driver.solve(*p.model, p.model->start_point(), hven::solvers::WarmStart{},
+                     hven::solvers::SolveBudget{/*minor_budget=*/0, /*max_iterations=*/2});
+    EXPECT_LE(capped.counters.major_iters + capped.counters.restoration_iters, 2)
+        << "the cap bounds the majors AND the restoration majors together";
+
+    // TIGHTEN ONLY: a budget above the engine's own limit does not raise it.
+    hven::solvers::SqpOptions tight = quiet_sqp();
+    tight.max_iter = 2;
+    hven::solvers::SqpDriver small(tight);
+    const hven::solvers::SqpResult still =
+        small.solve(*p.model, p.model->start_point(), hven::solvers::WarmStart{},
+                    hven::solvers::SolveBudget{0, 100000});
+    EXPECT_LE(still.counters.major_iters + still.counters.restoration_iters, 2);
+
+    // THE DEFAULT BUDGET IS THE IDENTITY, which is what makes this
+    // trajectory-neutral on every existing path: the same solve unbudgeted
+    // converges and takes more majors than the cap allowed.
+    const hven::solvers::SqpResult free_run = driver.solve(*p.model, p.model->start_point());
+    EXPECT_EQ(free_run.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_GT(free_run.counters.major_iters, 2);
 }

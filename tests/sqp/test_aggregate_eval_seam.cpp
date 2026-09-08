@@ -113,12 +113,12 @@ using hven::solvers::NlpModelAggregate;
 using hven::solvers::QpProblem;
 using hven::solvers::upgrade_to_full;
 // The driver-entry battery at the end of this file.
+using hven::solvers::SolveStatus;
 using hven::solvers::SqpCounters;
 using hven::solvers::SqpDriver;
 using hven::solvers::SqpIterate;
 using hven::solvers::SqpOptions;
 using hven::solvers::SqpSolution;
-using hven::solvers::SqpStatus;
 using hven::solvers::StartLevel;
 using hven::solvers::WarmStart;
 using hven::solvers::test_support::detail::kInf;
@@ -1157,7 +1157,7 @@ template <typename Make> void check_cold_arm(Make make, const std::string &tag) 
     SqpDriver bridge_driver{opts};
     const SqpSolution via_bridge = bridge_driver.solve(bridge, x0);
 
-    ASSERT_EQ(via_model.status, SqpStatus::kOptimal) << tag;
+    ASSERT_EQ(via_model.status, SolveStatus::kOptimal) << tag;
     expect_same_solution(via_bridge, via_model, tag + " cold");
 }
 

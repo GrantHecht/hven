@@ -137,17 +137,17 @@ const std::vector<Row> &battery() {
     return kRows;
 }
 
-const char *status_name(SqpStatus s) {
+const char *status_name(SolveStatus s) {
     switch (s) {
-    case SqpStatus::kOptimal:
+    case SolveStatus::kOptimal:
         return "kOptimal";
-    case SqpStatus::kMaxIter:
+    case SolveStatus::kMaxIter:
         return "kMaxIter";
-    case SqpStatus::kInfeasible:
+    case SolveStatus::kInfeasible:
         return "kInfeasible";
-    case SqpStatus::kNumericalError:
+    case SolveStatus::kNumericalError:
         return "kNumericalError";
-    case SqpStatus::kBudgetExhausted:
+    case SolveStatus::kBudgetExhausted:
         return "kBudgetExhausted";
     }
     return "?";
@@ -155,7 +155,7 @@ const char *status_name(SqpStatus s) {
 
 // What one problem produced in one cell.
 struct Outcome {
-    SqpStatus status = SqpStatus::kOptimal;
+    SolveStatus status = SolveStatus::kOptimal;
     double f_err = 0.0; // |f - target| / max(1, |target|), the battery's own measure
     Index majors = 0, minors = 0, factorizations = 0;
     Index eqp_refine_steps = 0, border_refine_steps = 0;
@@ -223,7 +223,7 @@ void sweep(const Regime &g) {
     // Statuses of cell 0 (the shipped defaults are mu=on/border, which is NOT
     // cell 0 -- cell 0 is mu=off/border -- so the divergence column below is
     // against the SHIPPED cell, found by name).
-    std::vector<std::vector<SqpStatus>> statuses(cs.size());
+    std::vector<std::vector<SolveStatus>> statuses(cs.size());
 
     for (std::size_t ci = 0; ci < cs.size(); ++ci) {
         const Cell &c = cs[ci];
@@ -231,7 +231,7 @@ void sweep(const Regime &g) {
             const Outcome o = run_one(r, c, g);
             statuses[ci].push_back(o.status);
             Agg &a = aggs[ci];
-            if (o.status == SqpStatus::kOptimal) {
+            if (o.status == SolveStatus::kOptimal) {
                 ++a.optimal;
             } else {
                 a.non_optimal.push_back(fmt::format("HS{}:{}", r.number, status_name(o.status)));
@@ -249,7 +249,7 @@ void sweep(const Regime &g) {
             fmt::print("{:<44} {:>4} {:>12.3e} {:>6} {:>7} {:>6} {:>8} {:>8}{}\n", c.name(),
                        r.number, o.f_err, o.majors, o.minors, o.factorizations, o.eqp_refine_steps,
                        o.border_refine_steps,
-                       o.status == SqpStatus::kOptimal
+                       o.status == SolveStatus::kOptimal
                            ? ""
                            : fmt::format("  <-- {}", status_name(o.status)));
         }
@@ -754,10 +754,10 @@ TEST(EqpRefinementAb, SecondCeilingFixtureReproducesTheAdaptiveMuRuling) {
         EXPECT_EQ(sol.counters.eqp_refine_steps, 0)
             << "solve_eqp must still take exactly its one mandatory step";
         if (c.adaptive_mu) {
-            EXPECT_EQ(sol.status, SqpStatus::kOptimal);
+            EXPECT_EQ(sol.status, SolveStatus::kOptimal);
             EXPECT_LT(err, 1e-10) << "observed 5.9218e-12";
         } else {
-            EXPECT_EQ(sol.status, SqpStatus::kMaxIter)
+            EXPECT_EQ(sol.status, SolveStatus::kMaxIter)
                 << "the fixed-mu ceiling must still block certification";
             EXPECT_GT(err, 1e-8) << "observed 4.4062e-06 -- the ceiling itself";
         }
@@ -772,7 +772,7 @@ TEST(EqpRefinementAb, EveryCellSolvesTheBorderReproProblem) {
         SCOPED_TRACE(c.name());
         const Outcome o = run_one(Row{26, 60, std::numeric_limits<double>::quiet_NaN()}, c,
                                   Regime{"shipped", 1e-6});
-        EXPECT_EQ(o.status, SqpStatus::kOptimal);
+        EXPECT_EQ(o.status, SolveStatus::kOptimal);
         EXPECT_LT(o.f_err, 1e-6);
         EXPECT_EQ(o.eqp_refine_steps, 0);
         if (c.algebra == WorkingSetLinearAlgebra::kRefactorize) {

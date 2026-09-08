@@ -303,7 +303,7 @@ struct SqpSolveBeginTraceEvent {
 /// solve that leaves by an exception writes its `begin` and no `end`, which is
 /// the honest record of one.
 struct SqpSolveEndTraceEvent {
-    SqpStatus status = SqpStatus::kOptimal;
+    SolveStatus status = SolveStatus::kOptimal;
     Index majors = 0; ///< `SqpCounters::major_iters`, the currency's own count.
     const SqpCounters &counters;
 };

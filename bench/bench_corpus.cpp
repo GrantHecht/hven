@@ -70,7 +70,7 @@
 // work.
 //
 // A DNF row: `status` is the literal string `dnf_setup`/`dnf_budget` (a
-// CSV-layer marker, not a new SqpStatus value -- no library header touched),
+// CSV-layer marker, not a new SolveStatus value -- no library header touched),
 // every counter column `-1` -- ABSENT BY DESIGN, because nothing safe was
 // measured past the kill -- and `wall_s` the enforced deadline. It is NOT an
 // absence for scoring purposes: corpus_cells.h's pre-registration block P3
@@ -847,15 +847,15 @@ void write_outcome(std::ostream &os, const CorpusOutcome &out) {
         "{},{},{},{},{},{},{},{},{},{},{},{:.9e},"
         "{:.9e},{},{}\n",
         row.cell_id, to_string(cell.family), cell.n_nodes, to_string(cell.ctag),
-        to_string(cell.start), cell.degenerate ? 1 : 0, to_string(row.status), row.factorizations,
-        row.qp_minors, row.escapes, row.qp_factorizations.size(),
-        join_qp_factorizations(row.qp_factorizations), row.kkt_residual, row.wall_s,
-        to_string(kkt_gate_verdict(row)), row.kkt_stationarity, row.kkt_primal, row.kkt_dual_sign,
-        row.kkt_complementarity, row.dual_scale, row.x_scale, row.neg_ineq_duals, row.ssn.ssn_iters,
-        row.ssn.ssn_bulk_flips, row.ssn.ssn_backtracks, row.ssn.ssn_prox_updates,
-        row.ssn.ssn_uncertain_peak, row.ssn.ssn_refinements, row.ssn.ssn_refine_refused,
-        row.ssn.ssn_refine_factorizations, row.ssn.ssn_refine_neg_duals, row.ssn.ssn_escape_budget,
-        row.ssn.ssn_escape_singular, row.ssn.ssn_escape_no_contraction,
+        to_string(cell.start), cell.degenerate ? 1 : 0,
+        hven::solvers::corpus::legacy_status_string(row.status), row.factorizations, row.qp_minors,
+        row.escapes, row.qp_factorizations.size(), join_qp_factorizations(row.qp_factorizations),
+        row.kkt_residual, row.wall_s, to_string(kkt_gate_verdict(row)), row.kkt_stationarity,
+        row.kkt_primal, row.kkt_dual_sign, row.kkt_complementarity, row.dual_scale, row.x_scale,
+        row.neg_ineq_duals, row.ssn.ssn_iters, row.ssn.ssn_bulk_flips, row.ssn.ssn_backtracks,
+        row.ssn.ssn_prox_updates, row.ssn.ssn_uncertain_peak, row.ssn.ssn_refinements,
+        row.ssn.ssn_refine_refused, row.ssn.ssn_refine_factorizations, row.ssn.ssn_refine_neg_duals,
+        row.ssn.ssn_escape_budget, row.ssn.ssn_escape_singular, row.ssn.ssn_escape_no_contraction,
         row.ssn.ssn_escape_infeasible_suspect, row.ssn.ssn_escape_indefinite,
         row.ssn.ssn_escape_gate_refused, row.ipqp.ipqp_iters, row.ipqp.ipqp_factorizations,
         row.ipqp.ipqp_symbolic_analyses, row.ipqp.ipqp_solves, row.ipqp.ipqp_pattern_verifies,
@@ -968,21 +968,21 @@ void print_list() {
     }
 }
 
-hven::solvers::SqpStatus parse_status(const std::string &s) {
+hven::solvers::SolveStatus parse_status(const std::string &s) {
     if (s == "Optimal") {
-        return hven::solvers::SqpStatus::kOptimal;
+        return hven::solvers::SolveStatus::kOptimal;
     }
     if (s == "MaxIter") {
-        return hven::solvers::SqpStatus::kMaxIter;
+        return hven::solvers::SolveStatus::kMaxIter;
     }
     if (s == "Infeasible") {
-        return hven::solvers::SqpStatus::kInfeasible;
+        return hven::solvers::SolveStatus::kInfeasible;
     }
     if (s == "NumericalError") {
-        return hven::solvers::SqpStatus::kNumericalError;
+        return hven::solvers::SolveStatus::kNumericalError;
     }
     if (s == "BudgetExhausted") {
-        return hven::solvers::SqpStatus::kBudgetExhausted;
+        return hven::solvers::SolveStatus::kBudgetExhausted;
     }
     throw std::invalid_argument(
         fmt::format("hven_sqp_corpus: internal row parse: unrecognised status string '{}'", s));
@@ -1932,7 +1932,7 @@ struct HsRow {
     double spread_pct = 0.0;
     double median_se_pct = 0.0;
     bool counters_stable = true;
-    hven::solvers::SqpStatus status = hven::solvers::SqpStatus::kOptimal;
+    hven::solvers::SolveStatus status = hven::solvers::SolveStatus::kOptimal;
     double f = 0.0;
     long long majors = 0;
     long long qp_minors = 0;

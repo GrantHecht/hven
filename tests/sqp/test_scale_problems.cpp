@@ -407,7 +407,7 @@ void check_path_at(F7CollocationChain &model, double p) {
     SqpDriver driver(opts);
     const SqpSolution sol = driver.solve(model);
 
-    ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     const double f_star = model.f_star(p);
     EXPECT_LE(std::abs(sol.f - f_star), kFRelTol * std::max(1.0, std::abs(f_star)))
         << fmt::format("f = {:.17g} vs f_star = {:.17g}", sol.f, f_star);
@@ -621,7 +621,7 @@ void check_wide_window_walk(Index nodes, double p, const WalkCounts &want) {
     Ledger ledger;
     driver.attach_ledger(&ledger, "walk");
     const SqpSolution sol = driver.solve(model);
-    ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
 
     const WalkCounts got = walk_counts(ledger);
     const auto trace = [&] {
@@ -1266,8 +1266,8 @@ TEST(ScaleF7Slow, CrashBasisIsInertOnAWideWindowColdSolve) {
     SqpDriver driver_on(on_opts);
     const SqpSolution on = driver_on.solve(model_on, model_on.start_point());
 
-    ASSERT_EQ(off.status, SqpStatus::kOptimal);
-    ASSERT_EQ(on.status, SqpStatus::kOptimal);
+    ASSERT_EQ(off.status, SolveStatus::kOptimal);
+    ASSERT_EQ(on.status, SolveStatus::kOptimal);
 
     // (a) THE LEVER FINDS NOTHING TO SEED -- the property a widened threshold
     // would break, and the reason the crash basis cannot help this family.
@@ -1325,7 +1325,7 @@ TEST(ScaleF7Slow, TheSizeDerivedCapRecoversASolveTheOldFixedDefaultLost) {
 
     SqpDriver derived(opts);
     const SqpSolution good = derived.solve(model, model.start_point());
-    EXPECT_EQ(good.status, SqpStatus::kOptimal);
+    EXPECT_EQ(good.status, SolveStatus::kOptimal);
     EXPECT_LT((good.x - model.x_star(p)).lpNorm<Eigen::Infinity>(), 1e-8);
     // OBSERVED: 4 majors / 635 minors, against a derived cap of
     // max(500, 5 * (250 + 50 + 100)) = 2000.
@@ -1339,7 +1339,7 @@ TEST(ScaleF7Slow, TheSizeDerivedCapRecoversASolveTheOldFixedDefaultLost) {
     old_default.qp.max_iter = 500;
     SqpDriver fixed(old_default);
     const SqpSolution bad = fixed.solve(model, model.start_point());
-    EXPECT_NE(bad.status, SqpStatus::kOptimal);
+    EXPECT_NE(bad.status, SolveStatus::kOptimal);
     EXPECT_GT((bad.x - model.x_star(p)).lpNorm<Eigen::Infinity>(), 1e-3);
 }
 

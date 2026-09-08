@@ -668,7 +668,7 @@ TEST(IpqpWarmRestart, APerturbedContinuationAcrossAnActivationThresholdIsAbandon
 
         // The FREE-branch solve, and its currency.
         const SqpSolution seeded = driver.solve(model, model.start_point());
-        EXPECT_EQ(seeded.status, SqpStatus::kOptimal);
+        EXPECT_EQ(seeded.status, SolveStatus::kOptimal);
         const WarmStartData payload = driver.export_warm_start();
 
         // The perturbation: past the activation threshold, so the exported
@@ -679,7 +679,7 @@ TEST(IpqpWarmRestart, APerturbedContinuationAcrossAnActivationThresholdIsAbandon
     };
 
     const SqpSolution killed = solve_continuation(1);
-    EXPECT_EQ(killed.status, SqpStatus::kOptimal)
+    EXPECT_EQ(killed.status, SolveStatus::kOptimal)
         << "the cold restart recovers the answer the warm attempt was not reaching";
     EXPECT_GE(killed.counters.ipqp.ipqp_warm_restart_abandoned, 1)
         << "and the kill fired inside the clamped budget";
@@ -687,7 +687,7 @@ TEST(IpqpWarmRestart, APerturbedContinuationAcrossAnActivationThresholdIsAbandon
     // NON-VACUITY: at the shipped budget the same continuation is not
     // abandoned, so the row above is about the budget and not about the cell.
     const SqpSolution patient = solve_continuation(IpqpOptions{}.ipqp_warm_iter_budget);
-    EXPECT_EQ(patient.status, SqpStatus::kOptimal);
+    EXPECT_EQ(patient.status, SolveStatus::kOptimal);
     EXPECT_EQ(patient.counters.ipqp.ipqp_warm_restart_abandoned, 0);
 
     // AND THE TWO AGREE ON THE ANSWER: a killed warm attempt is a cost, never a

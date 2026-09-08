@@ -153,7 +153,7 @@ TEST(Ledger, DriverSolveRecordsWallSeconds) {
     driver.attach_ledger(&ledger, "wall");
 
     const SqpSolution sol = driver.solve(model, model.start_point());
-    ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
 
     ASSERT_EQ(ledger.sqp_records().size(), 1u);
     EXPECT_GT(ledger.sqp_records()[0].wall_seconds, 0.0);
@@ -162,7 +162,7 @@ TEST(Ledger, DriverSolveRecordsWallSeconds) {
     // first's carried forward -- the two need not be equal, but both must be
     // populated (still no magnitude asserted on either).
     const SqpSolution sol2 = driver.solve(model, model.start_point());
-    ASSERT_EQ(sol2.status, SqpStatus::kOptimal);
+    ASSERT_EQ(sol2.status, SolveStatus::kOptimal);
     ASSERT_EQ(ledger.sqp_records().size(), 2u);
     EXPECT_GT(ledger.sqp_records()[1].wall_seconds, 0.0);
 }

@@ -9,7 +9,7 @@ target_sources(hven PRIVATE
     core/pattern_hash.cpp
     core/ledger.cpp
     # The display-string switches for the two solver enums core/ owns
-    # (SqpStatus, StartLevel). They are in a core/ TU, not the drivers/ printing
+    # (SolveStatus, StartLevel). They are in a core/ TU, not the drivers/ printing
     # TU that carries the other three, so that no core/ object resolves a symbol
     # out of a drivers/ one -- see the file's own banner.
     core/enum_names.cpp

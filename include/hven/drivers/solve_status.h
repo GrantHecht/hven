@@ -3,66 +3,20 @@
 
 #pragma once
 
-// The one solve-outcome vocabulary both engines report. The interior-point
-// engine's iteration loop reaches its cap, its stall exit and its
-// locally-infeasible restoration return with the same "not converged" verdict,
-// so resolve_ipm_phase_status() takes the stop reason the engine records
-// alongside it.
+// The interior-point engine's phase-status resolution.
+//
+// The VOCABULARY itself -- SolveStatus, IpmStopReason, their display strings
+// and the severity order -- moved down to core/solver_status.h in M6 W5 T8.4,
+// because core/ledger.h reports a status and a core header may depend on no
+// tier above it. This header is what is left: one function, and it is a
+// statement about ONE engine's exits rather than about the vocabulary.
+//
+// It stays a public header of its own rather than folding into the engine's,
+// so a caller resolving a verdict it obtained elsewhere needs neither engine.
 
 #include <hven/core/solver_status.h>
 
 namespace hven::solvers {
-
-/// @brief The verdict on a whole solve, reported by both engines.
-///
-/// Reachability differs per engine: the interior-point engine reports neither
-/// kInfeasible nor kBudgetExhausted, the SQP engine reports none of kAcceptable,
-/// kStalled and kDiverging, and neither reports kInterrupted today.
-enum class SolveStatus {
-    kOptimal = 0,
-    kAcceptable = 1,
-    kMaxIter = 2,
-    kInfeasible = 3,
-    kStalled = 4,
-    kDiverging = 5,
-    kNumericalError = 6,
-    kBudgetExhausted = 7,
-    kInterrupted = 8,
-};
-
-/// @brief Why the interior-point engine's last phase left its iteration loop.
-///
-/// kNone means the phase did not end NOTCONVERGED: the verdict itself says what
-/// happened. Recorded per phase and reset at each phase start.
-enum class IpmStopReason {
-    kNone = 0,
-    kIterationCap = 1,
-    kRestorationLocallyInfeasible = 2,
-    kStageStalled = 3,
-};
-
-/// @brief Maps a status to its lower-case display name.
-/// @param status The status.
-/// @return A static string, never null.
-/// @throws std::invalid_argument if @p status is not one of the nine.
-const char *to_string(SolveStatus status);
-
-/// @brief Maps a stop reason to its lower-case display name.
-/// @param reason The stop reason.
-/// @return A static string, never null.
-/// @throws std::invalid_argument if @p reason is not one of the four.
-const char *to_string(IpmStopReason reason);
-
-/// @brief The reporting order over all nine statuses, weakest verdict first.
-///
-/// kOptimal < kAcceptable < kInterrupted < kMaxIter < kBudgetExhausted <
-/// kStalled < kInfeasible < kDiverging < kNumericalError. A reporting order
-/// only; it decides nothing about phase termination.
-///
-/// @param status The status.
-/// @return Its rank, 0 through 8; distinct for every status.
-/// @throws std::invalid_argument if @p status is not one of the nine.
-int severity(SolveStatus status);
 
 /// @brief Resolves ONE interior-point phase's raw verdict against the stop
 ///        reason recorded for the same phase.
@@ -90,10 +44,8 @@ int severity(SolveStatus status);
 /// @throws std::invalid_argument if @p reason is not one of the four.
 SolveStatus resolve_ipm_phase_status(SolveStatus raw_verdict, IpmStopReason reason);
 
-/// @brief Maps an SQP verdict onto SolveStatus; the identity on its five values.
-/// @param status The engine's verdict.
-/// @return The shared status.
-/// @throws std::invalid_argument if @p status is not one of the five.
-SolveStatus to_solve_status(SqpStatus status);
+// to_solve_status(SolveStatus) was REMOVED in M6 W5 T8.4 with SolveStatus itself.
+// The mapping it made was the identity on the five values, so there is nothing
+// left to map: the SQP engine reports SolveStatus directly.
 
 } // namespace hven::solvers

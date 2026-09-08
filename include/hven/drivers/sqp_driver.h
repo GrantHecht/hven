@@ -116,6 +116,44 @@ struct SqpKkt {
     double residual() const { return std::max(stationarity, feasibility); }
 };
 
+/// @brief The SHARED declared diagnostics of one point, taken at the moment the
+///        engine still holds the evaluation they are computed from.
+///
+/// THE WHOLE REASON THIS TYPE EXISTS is that the four shared diagnostics
+/// (drivers/solve_result.h) must be computed from a STASHED evaluation and
+/// never from a fresh one: a fresh evaluation at the exit would move
+/// `evals_full` on every solve and break the identity proofs W5 rests on. Some
+/// of this driver's exits return a point whose evaluation has already gone out
+/// of scope by the time `finish` runs -- the budget-best iterate, and the
+/// restored point, whose evaluation is a local of `enter_restoration`. Each such
+/// site fills one of these while the evaluation is live.
+///
+/// It carries the four SCALARS plus copies of `ce`/`ci`, not an `NlpEval`: the
+/// scalars are all the diagnostics need, and the two vectors are what the
+/// result reports beside them. No sparse block is copied.
+struct DeclaredDiagnosticsStash {
+    /// False when no finite evaluation of the point existed. Every field below
+    /// is then meaningless and the result reports NaN and empty blocks.
+    bool measured = false;
+    /// The four, over the declared problem.
+    DeclaredDiagnostics d;
+    /// The declared constraint residuals at the same point.
+    Vec ce, ci;
+};
+
+/// @brief Fills a stash from an evaluation and the KKT measurement taken at the
+///        same point.
+/// @param ev       The evaluation at @p x.
+/// @param kkt      The measurement at @p x, for its `grad_lag` and `z`.
+/// @param x        The point.
+/// @param lambda_i Inequality multipliers at @p x.
+/// @param lo       Declared lower bounds.
+/// @param up       Declared upper bounds.
+/// @return The stash; `measured` false when @p kkt is not finite.
+DeclaredDiagnosticsStash stash_declared_diagnostics(const NlpEval &ev, const SqpKkt &kkt,
+                                                    const Vec &x, const Vec &lambda_i,
+                                                    const Vec &lo, const Vec &up);
+
 namespace detail {
 
 /// @brief The arithmetic of evaluate_kkt, over the five quantities it reads off
@@ -654,22 +692,31 @@ class SqpDriver {
     ///                     stale or foreign value: an unusable hash resolves
     ///                     kSeeded and still contributes its values, and a failed
     ///                     ingest gate degrades to kCold.
-    /// @param minor_budget The probe budget; 0 (the default) is no budget. A
-    ///                     positive value stops the solve at the top of the first
-    ///                     major that finds qp_minor_iters >= it without having
-    ///                     converged, reporting kMaxIter and counting the stop in
+    /// @param budget      The caller's work ceiling (M6 W5 T8.4; this argument
+    ///                     was `Index minor_budget` before).
+    ///                     `budget.minor_budget` is that probe budget verbatim:
+    ///                     0 (the default) is no budget, and a positive value
+    ///                     stops the solve at the top of the first major that
+    ///                     finds qp_minor_iters >= it without having converged,
+    ///                     reporting kMaxIter and counting the stop in
     ///                     counters.probe_budget_stops. Convergence always wins,
     ///                     the test runs between majors only, and under kSsn the
     ///                     budget also charges the SSN and refinement
     ///                     factorizations.
+    ///                     `budget.max_iterations`, when non-zero, gives an
+    ///                     EFFECTIVE MAJOR CAP of min(it, SqpOptions::max_iter)
+    ///                     -- a caller may tighten this engine's own limit,
+    ///                     never loosen it -- and RESTORATION IS BUDGETED FROM
+    ///                     THAT CAP, so it cannot spend past the caller's
+    ///                     ceiling.
     /// @return The solution.
     /// @throws std::invalid_argument on a model that cannot describe a problem --
     ///         the classes the 2-argument model-taking overload enumerates --
     ///         checked before `warm` is looked at; or if a warm-start value is
     ///         staged on this driver when this overload is called, which refuses
     ///         naming both sources and leaves the staged value standing.
-    SqpSolution solve(const NlpModel &model, const Vec &x0, const WarmStart &warm,
-                      Index minor_budget = 0);
+    SqpResult solve(const NlpModel &model, const Vec &x0, const WarmStart &warm,
+                    SolveBudget budget = {});
 
     /// @brief Warm-start ingest against an already-built bridge, on the same
     ///        footing as the 2-argument bridge overload above.
@@ -678,16 +725,16 @@ class SqpDriver {
     ///                     above kCold.
     /// @param warm         The prior solve's warm-start object; the model-taking
     ///                     overload just above carries the whole ingest contract.
-    /// @param minor_budget The probe budget; 0 (the default) is no budget, on the
-    ///                     terms that overload states.
+    /// @param budget      The caller's work ceiling, on the terms that overload
+    ///                     states.
     /// @return The solution.
     /// @throws std::invalid_argument only through `bridge` itself (this entry
     ///         does not re-check the box), or if a warm-start value is staged on
     ///         this driver when this overload is called: two warm-start sources
     ///         for one solve, refused naming both. That refusal fires before the
     ///         seam is laid, and leaves the staged value standing.
-    SqpSolution solve(NlpModelAggregate &bridge, const Vec &x0, const WarmStart &warm,
-                      Index minor_budget = 0);
+    SqpResult solve(NlpModelAggregate &bridge, const Vec &x0, const WarmStart &warm,
+                    SolveBudget budget = {});
 
     // --- Warm-start currency ---
     //
@@ -749,7 +796,7 @@ class SqpDriver {
     // The export's one capture at completion, taken after record_solve returns.
     // A failed internal-consistency check skips the capture and clears the marker
     // rather than throwing; none of those conditions is reachable today.
-    void capture_completed_warm_start(const SqpSolution &out, const AggregateEvalSeam &seam,
+    void capture_completed_warm_start(SqpSolution &out, const AggregateEvalSeam &seam,
                                       const NlpModelAggregate &bridge);
 
     /// @brief The solve, wrapped: validates the arguments, writes
@@ -766,11 +813,11 @@ class SqpDriver {
     ///                     it.
     /// @param x0           The start point.
     /// @param warm         The ingested warm start.
-    /// @param minor_budget `<= 0` means no budget; the 4-argument `solve()`
+    /// @param budget `budget.minor_budget <= 0` means no probe budget; the 4-argument `solve()`
     ///                     carries that contract.
     /// @return The assembled solution.
     SqpSolution solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,
-                           const WarmStart &warm, Index minor_budget);
+                           const WarmStart &warm, SolveBudget budget);
 
     /// @brief The major loop itself, entered only with validated arguments and
     ///        the strategy its caller built.
@@ -782,11 +829,11 @@ class SqpDriver {
     ///                     around.
     /// @param x0           The start point.
     /// @param warm         The ingested warm start.
-    /// @param minor_budget `<= 0` means no budget.
+    /// @param budget The caller's work ceiling; both members 0 means none.
     /// @param strategy     The globalization strategy, consumed.
     /// @return The assembled solution.
     SqpSolution solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,
-                                const WarmStart &warm, Index minor_budget,
+                                const WarmStart &warm, SolveBudget budget,
                                 std::unique_ptr<GlobalizationStrategy> strategy);
 
     /// @brief The solve-scope state `solve_impl_body` owns, DEFINED IN THE .cpp.
@@ -947,17 +994,17 @@ class SqpDriver {
     /// @param seam         The solve's evaluation seam.
     /// @param bridge       The model bridge.
     /// @param warm         The ingested warm start.
-    /// @param minor_budget `<= 0` means no budget.
+    /// @param budget The caller's work ceiling; both members 0 means none.
     /// @param iter         This major's index.
     /// @return What this major decided.
     MajorOutcome run_major(SolveState &st, MajorState &mj, AggregateEvalSeam &seam,
-                           NlpModelAggregate &bridge, const WarmStart &warm, Index minor_budget,
+                           NlpModelAggregate &bridge, const WarmStart &warm, SolveBudget budget,
                            Index iter);
 
     // Reached only after the one-shot retry has been spent, and never with
     // kInfeasible (the elastic tier consumes that status upstream), which is why
     // the kInfeasible arm is kept only to keep the mapping total.
-    static SqpStatus map_status(QpStatus qp_status);
+    static SolveStatus map_status(QpStatus qp_status);
 
     // The two halves of the shrink rule, kept as one pair so the floor test and
     // the shrink itself can never disagree about what the next radius is. A +inf
@@ -1053,9 +1100,17 @@ class SqpDriver {
     ///        adopts the sub-solve's own multipliers and bound prices, which are
     ///        already in the caller's units; every other exit leaves it false.
     /// @return The finished solution.
-    SqpSolution finish(AggregateEvalSeam &seam, SqpSolution out, SqpStatus status, const Vec &x,
+    /// @param stash The SHARED declared diagnostics of the point being
+    ///              returned, taken where its evaluation was live. Never null;
+    ///              a stash with `measured == false` is how an exit says the
+    ///              point could not be measured, and the result then reports
+    ///              NaN and empty blocks rather than zeros. On a SCALED solve
+    ///              this is ignored in favour of the caller-scale
+    ///              re-measurement `finish` already takes.
+    SqpSolution finish(AggregateEvalSeam &seam, SqpSolution out, SolveStatus status, const Vec &x,
                        const Vec &lambda_e, const Vec &lambda_i, const SqpKkt &kkt, double f,
-                       WarmStart warm, bool multipliers_are_caller_scale = false);
+                       WarmStart warm, const DeclaredDiagnosticsStash &stash,
+                       bool multipliers_are_caller_scale = false);
 
     /// @brief Computes this solve's scaling factors and installs them on @p seam,
     ///        or leaves the seam unscaled when `opts_.enable_scaling` is false.

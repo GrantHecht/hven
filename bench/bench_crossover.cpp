@@ -55,7 +55,7 @@
 namespace {
 
 using hven::Index;
-using hven::solvers::SqpStatus;
+using hven::solvers::SolveStatus;
 using hven::solvers::corpus::CorpusCell;
 using hven::solvers::crossover::cell_prefix;
 using hven::solvers::crossover::CellLegs;

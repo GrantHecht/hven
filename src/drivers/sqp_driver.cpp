@@ -221,9 +221,9 @@ void validate_staged_polish(const WarmStartData &data) {
 // take kkt.z: the restoration exits replace that vector, and out.z is written
 // by the caller for exactly that reason.
 void record_terminal_kkt(SqpSolution &out, const SqpKkt &kkt) {
-    out.stationarity = kkt.stationarity;
-    out.feasibility = kkt.feasibility;
-    out.complementarity = kkt.complementarity;
+    out.sqp_stationarity = kkt.stationarity;
+    out.sqp_feasibility = kkt.feasibility;
+    out.sqp_complementarity = kkt.complementarity;
     out.kkt_residual = kkt.residual();
 }
 
@@ -318,6 +318,28 @@ CallerScaleRowMeasures caller_scale_row_measures(const Vec &lo, const Vec &up, c
 }
 
 } // namespace
+
+// THE SHARED DECLARED DIAGNOSTICS OF ONE POINT (M6 W5 T8.4). Declared in
+// drivers/sqp_driver.h, defined here with its free-function neighbours.
+DeclaredDiagnosticsStash stash_declared_diagnostics(const NlpEval &ev, const SqpKkt &kkt,
+                                                    const Vec &x, const Vec &lambda_i,
+                                                    const Vec &lo, const Vec &up) {
+    DeclaredDiagnosticsStash out;
+    if (!kkt.finite) {
+        // Nothing was measured at this point, and a zero would read as a
+        // converged residual. The stash says so and carries nothing.
+        return out;
+    }
+    // FROM grad_lag, not from (grad, Je, Ji): the measurement in hand already
+    // folded them, and folding them a second time is arithmetic with a chance
+    // of disagreeing. No exclusions -- this engine eliminates no coordinate.
+    out.d = compute_declared_diagnostics_from_grad_lag(x, lambda_i, kkt.z, kkt.grad_lag, ev.ce,
+                                                       ev.ci, lo, up, {});
+    out.ce = ev.ce;
+    out.ci = ev.ci;
+    out.measured = true;
+    return out;
+}
 
 // --- THE DRIVER'S FREE FUNCTIONS ------------------------------------------
 // The evaluation, measurement, subproblem-construction and counter-folding
@@ -1596,13 +1618,13 @@ SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0) {
 }
 
 SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0, const WarmStart &warm,
-                             Index minor_budget) {
+                             SolveBudget budget) {
     // FIRST, before the box check and before the bridge lay: a contradiction
     // in this call's own arguments is not worth a derivative-pattern walk.
     refuse_two_warm_sources();
     require_declared_box(model);
     NlpModelAggregate bridge{borrow_model(model)};
-    return solve(bridge, x0, warm, minor_budget);
+    return solve(bridge, x0, warm, budget);
 }
 
 SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0) {
@@ -1612,6 +1634,12 @@ SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0) {
     // in this frame and rides into solve_impl for the restoration phase's one
     // Level 1 read.
     AggregateEvalSeam seam{bridge};
+    // THE SHARED CLOCK'S START (design §2.3, M6 W5 T8.4): the public entry,
+    // after the argument refusals above. It brackets everything this call takes
+    // on -- the seam lay, the warm ingest, solve_impl, the ledger record and
+    // the export snapshot -- and is a DIFFERENT boundary from `t0` below, which
+    // is this engine's older measurement and survives as solve_impl_seconds.
+    const auto entry = std::chrono::steady_clock::now();
     // THE STAGED WARM START'S ONE BRANCH, after the lay (so the dimensions and
     // the key are this solve's) and before the clock (it is setup, like the
     // seam).
@@ -1621,29 +1649,40 @@ SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0) {
     // below -- per ledger.h's SqpSolveRecord::wall_seconds note
     // (informational, never asserted).
     const auto t0 = std::chrono::steady_clock::now();
-    SqpSolution out = solve_impl(seam, bridge, x0, warm, /*minor_budget=*/0);
+    SqpSolution out = solve_impl(seam, bridge, x0, warm, /*budget=*/SolveBudget{});
     const auto t1 = std::chrono::steady_clock::now();
     SqpSolution done = record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
     // THE EXPORT'S ONE CAPTURE, last: "completed" is a public solve() that
     // returned, and everything that could still throw has run.
     capture_completed_warm_start(done, seam, bridge);
+    done.wall_seconds =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - entry).count();
     return done;
 }
 
 SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, const WarmStart &warm,
-                             Index minor_budget) {
+                             SolveBudget budget) {
     refuse_two_warm_sources();
     // THIS OVERLOAD DOES NOT CONSUME A STAGED VALUE, so it must still clear the
     // tier seed: a previous solve that armed one and never entered the tier
     // would otherwise seed this solve's first subproblem (fix round 1, F1).
     ipqp_staged_seed_.reset();
+    // The shared clock, on the same boundary as the 2-arg overload above.
+    const auto entry = std::chrono::steady_clock::now();
     AggregateEvalSeam seam{bridge};
     // Same timing scope as the 2-arg overload above.
     const auto t0 = std::chrono::steady_clock::now();
-    SqpSolution out = solve_impl(seam, bridge, x0, warm, minor_budget);
+    SqpSolution out = solve_impl(seam, bridge, x0, warm, budget);
     const auto t1 = std::chrono::steady_clock::now();
     SqpSolution done = record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
     capture_completed_warm_start(done, seam, bridge);
+    // THE SHARED CLOCK (design §2.3), a DIFFERENT boundary from the one above:
+    // it runs from this public entry -- after the argument refusals -- to the
+    // return, so the seam lay, the warm ingest, the ledger record and the
+    // export snapshot are all inside it. The older measurement survives
+    // unchanged as SqpResult::solve_impl_seconds.
+    done.wall_seconds =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - entry).count();
     return done;
 }
 
@@ -1654,7 +1693,15 @@ SqpSolution SqpDriver::record_solve(SqpSolution out, double wall_seconds) {
     // through, and it is also the only frame that HOLDS the measurement --
     // the clock brackets solve_impl from outside, so no exit inside it can
     // see its own duration.
-    out.wall_seconds = wall_seconds;
+    out.solve_impl_seconds = wall_seconds;
+    // THE SHARED ITERATION COUNT (M6 W5 T8.4): the TOP-LEVEL major count.
+    // Nested restoration majors are NOT added -- they are in `counters`, and
+    // this field answers "how many majors did the solve I asked for take".
+    // Written here rather than in finish() for the reason the wall time above
+    // is: this is the ONE point every public overload funnels through, and it
+    // is the only one the non-finite-start exit reaches too, which bypasses
+    // finish() entirely.
+    out.iterations = out.counters.major_iters;
     // THE PROXIMAL CARRY, EXPORTED. Stamped here rather than in
     // make_warm_start because make_warm_start is static (it is called from
     // a context with no `SqpDriver&`) while the accumulator is per-driver
@@ -1905,7 +1952,7 @@ WarmStart SqpDriver::consume_staged_warm_start(const AggregateEvalSeam &seam,
     return warm;
 }
 
-void SqpDriver::capture_completed_warm_start(const SqpSolution &out, const AggregateEvalSeam &seam,
+void SqpDriver::capture_completed_warm_start(SqpSolution &out, const AggregateEvalSeam &seam,
                                              const NlpModelAggregate &bridge) {
     // A FAILED CHECK SKIPS THE CAPTURE rather than throwing: a throw here would
     // destroy a solved result the caller was about to receive, after
@@ -1971,6 +2018,13 @@ void SqpDriver::capture_completed_warm_start(const SqpSolution &out, const Aggre
     // NO EXTENSIONS: this engine produces none.
     completed_warm_ = std::move(captured);
     solve_completed_ = true;
+    // AND ONTO THE RESULT (M6 W5 T8.4). The shared base carries the currency as
+    // a SNAPSHOT taken here, at solve exit, while the seam and the bridge are
+    // still valid -- so a caller reads it off the value it was returned rather
+    // than off a driver that has gone on solving. This engine's export is NEVER
+    // nullopt: every exit, the non-finite start included, returns a finite
+    // point with zero multipliers and a valid stamp.
+    out.export_snapshot_ = completed_warm_;
 }
 
 // ===========================================================================
@@ -2005,7 +2059,7 @@ Index SqpDriver::install_solve_scaling(AggregateEvalSeam &seam, const Vec &x0) c
 }
 
 SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,
-                                  const WarmStart &warm, Index minor_budget) {
+                                  const WarmStart &warm, SolveBudget budget) {
     // THE IN-FLIGHT GUARD, AND THE ONE SITE IT IS SET FROM. The four public
     // solve() overloads NEST -- solve(model) -> solve(model, x0) -> solve(bridge,
     // x0) -> here -- so a flag set at each of them would double-set on the
@@ -2097,7 +2151,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     if (ipqp_trace_ != nullptr) {
         ipqp_trace_->on_sqp_solve_begin(make_solve_begin_event(opts_, seam));
     }
-    SqpSolution out = solve_impl_body(seam, bridge, x0, warm, minor_budget, std::move(strategy));
+    SqpSolution out = solve_impl_body(seam, bridge, x0, warm, budget, std::move(strategy));
     if (ipqp_trace_ != nullptr) {
         ipqp_trace_->on_sqp_solve_end(
             SqpSolveEndTraceEvent{out.status, out.counters.major_iters, out.counters});
@@ -2138,7 +2192,7 @@ struct SqpDriver::SolveState {
         bool used = false;
         // Written by `enter_restoration` on the exits it decides, and read
         // only by the caller's two tagged restoration finish arms.
-        SqpStatus status = SqpStatus::kInfeasible;
+        SolveStatus status = SolveStatus::kInfeasible;
         SqpKkt kkt;
         double f = std::numeric_limits<double>::quiet_NaN();
         // TRUE ONLY ON THE EXIT THAT ADOPTS THE SUB-SOLVE'S OWN MULTIPLIERS (M6
@@ -2150,6 +2204,13 @@ struct SqpDriver::SolveState {
         // where the multipliers are the loop's own (or are cleared).
         bool multipliers_are_caller_scale = false;
         bool moved_x = false;
+        // THE SHARED DECLARED DIAGNOSTICS AT THE RESTORED POINT, filled inside
+        // `enter_restoration` on the moved_x path and read only there. It is
+        // the ONLY place that evaluation exists: `ev_r` is a local of that
+        // function, `st.ev` is NOT replaced on this path (only on kResumed),
+        // and the two things copied onto this struct today -- `kkt` and `f` --
+        // do not carry the constraint blocks the shared diagnostics report.
+        DeclaredDiagnosticsStash diag;
     };
 
     // THE FULL-STEP WATCHDOG SNAPSHOT (ownership doc section 2.2 M). INDEPENDENT
@@ -2190,11 +2251,27 @@ struct SqpDriver::SolveState {
         SqpKkt kkt;
         double h = std::numeric_limits<double>::infinity();
         double f = std::numeric_limits<double>::infinity();
+        // THE SHARED DECLARED DIAGNOSTICS OF THIS POINT, taken here because
+        // this is the last moment its evaluation is in hand: by the time the
+        // budget-best exit runs, `st.ev` has moved on to a later iterate. Four
+        // doubles and two vector copies, on the improving passes only.
+        DeclaredDiagnosticsStash diag;
     };
 
     // ---- solve invariants, written once by prepare_solve ------------------
     Index n = 0;
     bool ssn_mode = false;
+    // THE EFFECTIVE MAJOR CAP FOR THIS SOLVE (M6 W5 T8.4):
+    // min(SolveBudget::max_iterations, opts_.max_iter) when the caller named
+    // one, opts_.max_iter otherwise. min() and not max(): a caller may tighten
+    // this engine's own limit and never loosen it. Read at all THREE sites that
+    // used to read opts_.max_iter -- the exit conjunction, the restoration
+    // REFUSAL and the restoration sub-driver's budget -- so a capped solve
+    // cannot enter restoration it has no budget for, and cannot spend past the
+    // caller's ceiling once it is in one. Equal to opts_.max_iter on every call
+    // that names no budget, which is what makes this trajectory-neutral by
+    // construction on every existing path.
+    Index eff_max_iter = 0;
     // A COPY, taken once, and NOT a reference into the seam: `finish` puts the
     // seam back to the identity for the length of one evaluation, and a
     // reference would alias the member being overwritten. Empty and free when
@@ -3578,17 +3655,17 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
         // no admissible way to service it. counters.
         // restoration_iters tells the two apart (0 for the nested
         // case, nonzero for the cap).
-        st.resto.status = SqpStatus::kInfeasible;
+        st.resto.status = SolveStatus::kInfeasible;
         st.resto.kkt = mj.kkt;
         st.resto.f = st.ev.f;
         return RestorationOutcome::kRefused;
     }
-    if (spent >= opts_.max_iter) {
+    if (spent >= st.eff_max_iter) {
         // No budget left to restore with. This is a BUDGET
         // outcome, not an infeasibility one, and is reported as
         // such rather than borrowing the verdict the phase never
         // got to render.
-        st.resto.status = SqpStatus::kMaxIter;
+        st.resto.status = SolveStatus::kMaxIter;
         st.resto.kkt = mj.kkt;
         st.resto.f = st.ev.f;
         return RestorationOutcome::kRefused;
@@ -3731,7 +3808,11 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
     ropts.tr_init =
         std::isfinite(st.delta) ? std::max(st.delta, restoration_restart_radius()) : opts_.tr_max;
     ropts.tr_max = std::max(opts_.tr_max, ropts.tr_init);
-    ropts.max_iter = opts_.max_iter - spent;
+    // FROM THE EFFECTIVE CAP (M6 W5 T8.4, design §2.2): a caller's
+    // max_iterations bounds the whole solve, restoration included, so the
+    // sub-driver gets what is left of the CALLER's ceiling and not what is left
+    // of this engine's own option.
+    ropts.max_iter = static_cast<int>(st.eff_max_iter - spent);
     SqpDriver sub(ropts, /*allow_restoration=*/false);
     // THE ONE SINK, SHARED SEQUENTIALLY (plan amendment A): the
     // sub-solve's own `sqp.solve` pair, rows and tier events land in the
@@ -3863,7 +3944,7 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
         // measured, so nothing may be reported as evidence.
         st.lambda_e.setZero();
         st.lambda_i.setZero();
-        st.resto.status = SqpStatus::kNumericalError;
+        st.resto.status = SolveStatus::kNumericalError;
         st.resto.kkt = mj.kkt;
         st.resto.f = st.ev.f;
         return RestorationOutcome::kExited;
@@ -3951,8 +4032,18 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
     // certificate calls for z = -1 and 0.
     st.resto.kkt.z = feasibility.original_x(rs.z);
     st.resto.f = ev_r.f;
+    // THE SHARED DECLARED DIAGNOSTICS AT THE RESTORED POINT, taken HERE because
+    // `ev_r` is a local of this function and dies at its end: nothing of it
+    // reaches `finish` except `f` and the engine-unit `kkt_r`, and `st.ev` is
+    // NOT replaced on this path -- it is still the PRE-restoration evaluation,
+    // at a point this solve is no longer returning. Measured against
+    // `st.resto.kkt`, whose `z` is the restoration problem's own bound price
+    // (substituted just above, for the reason stated there), so the
+    // stationarity read here is the one the certificate is stated in.
+    st.resto.diag = stash_declared_diagnostics(ev_r, st.resto.kkt, x_r, rs.lambda_i, seam.lower(),
+                                               seam.upper());
     switch (rs.status) {
-    case SqpStatus::kOptimal:
+    case SolveStatus::kOptimal:
         // THE CERTIFIED EXIT, AND THE ONLY ONE: the feasibility
         // problem's own KKT test passed (residual <= kkt_tol)
         // while h > feas_tol. Byrd-Curtis-Nocedal rapid
@@ -3960,23 +4051,23 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
         // is ever set, and it is set on nothing else -- see
         // sqp_types.h's SqpSolution note for why the status,
         // the counters and the history cannot carry this fact.
-        st.resto.status = SqpStatus::kInfeasible;
+        st.resto.status = SolveStatus::kInfeasible;
         st.out.infeasibility_certified = true;
         break;
-    case SqpStatus::kInfeasible:
+    case SolveStatus::kInfeasible:
         // The sub-solve raised a restoration request of its own,
         // which nothing can service (nested restoration is not
         // allowed): the feasibility problem is itself stuck. NO
         // CLAIM is made about the model.
-        st.resto.status = SqpStatus::kInfeasible;
+        st.resto.status = SolveStatus::kInfeasible;
         break;
-    case SqpStatus::kMaxIter:
-        st.resto.status = SqpStatus::kMaxIter;
+    case SolveStatus::kMaxIter:
+        st.resto.status = SolveStatus::kMaxIter;
         break;
-    case SqpStatus::kNumericalError:
-        st.resto.status = SqpStatus::kNumericalError;
+    case SolveStatus::kNumericalError:
+        st.resto.status = SolveStatus::kNumericalError;
         break;
-    case SqpStatus::kBudgetExhausted:
+    case SolveStatus::kBudgetExhausted:
         // UNREACHABLE: ropts.budget_mode is forced false just
         // above, so this sub-solve never runs budgeted and
         // rs.status can never be this value -- kept only to
@@ -3985,7 +4076,7 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
         // enumerated rather than left to a default). Mapped to
         // kMaxIter defensively, exactly what it would have been
         // reported as had budget_mode not been forced off.
-        st.resto.status = SqpStatus::kMaxIter;
+        st.resto.status = SolveStatus::kMaxIter;
         break;
     }
     return RestorationOutcome::kExited;
@@ -4013,7 +4104,7 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
 // ---------------------------------------------------------------------------
 SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
                                              AggregateEvalSeam &seam, NlpModelAggregate &bridge,
-                                             const WarmStart &warm, Index minor_budget,
+                                             const WarmStart &warm, SolveBudget budget,
                                              Index iter) {
     // RE-TAKEN, NOT FIXED: the full-step watchdog below may restore
     // an EARLIER iterate before this pass records or tests anything,
@@ -4120,7 +4211,7 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
     // above) reaches here.
     if (!mj.kkt.finite) {
         push_history(mj.row);
-        st.out.status = SqpStatus::kNumericalError;
+        st.out.status = SolveStatus::kNumericalError;
         st.out.x = st.x;
         st.out.lambda_e = Vec::Zero(seam.me());
         st.out.lambda_i = Vec::Zero(seam.mi());
@@ -4391,6 +4482,13 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
             st.mb.lambda_e = st.lambda_e;
             st.mb.lambda_i = st.lambda_i;
             st.mb.kkt = mj.kkt;
+            // AT THE MOMENT OF THE CAPTURE, from the evaluation this pass
+            // measured `mj.kkt` from -- which is `st.ev`, at `st.x`, the point
+            // just recorded above. The budget-best exit returns this point
+            // rather than the last one, so its diagnostics have to be taken
+            // here or not at all. No model call.
+            st.mb.diag = stash_declared_diagnostics(st.ev, mj.kkt, st.x, st.lambda_i, seam.lower(),
+                                                    seam.upper());
         }
     }
 
@@ -4415,11 +4513,15 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
     // never buys another major (this pass has not built a subproblem
     // yet).
     const bool probe_exhausted =
-        !mj.converged && minor_budget > 0 &&
+        !mj.converged && budget.minor_budget > 0 &&
         st.out.counters.qp_minor_iters + st.ssn_budget_charge + st.ipqp_budget_charge >=
-            minor_budget;
+            budget.minor_budget;
+    // THE EFFECTIVE MAJOR CAP, not opts_.max_iter (M6 W5 T8.4). One of the
+    // THREE sites that must read it -- the other two are in enter_restoration,
+    // and a sweep that reaches only some of them lets a capped solve enter
+    // restoration it has no budget for.
     if (mj.converged || probe_exhausted ||
-        iter + st.out.counters.restoration_iters >= opts_.max_iter) {
+        iter + st.out.counters.restoration_iters >= st.eff_max_iter) {
         push_history(mj.row);
         if (probe_exhausted) {
             // The one field that tells this exit apart from an
@@ -5014,7 +5116,7 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
 }
 
 SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregate &bridge,
-                                       const Vec &x0, const WarmStart &warm, Index minor_budget,
+                                       const Vec &x0, const WarmStart &warm, SolveBudget budget,
                                        std::unique_ptr<GlobalizationStrategy> strategy_in) {
     // THE ARGUMENTS WERE VALIDATED BY `solve_impl`, the only caller, which
     // refuses before anything is written; `strategy_in` is the one it built.
@@ -5023,6 +5125,9 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
     // for the length of this solve; `SolveState` says what is in it and what is
     // deliberately not.
     SolveState st(opts_.ipqp);
+    st.eff_max_iter = budget.max_iterations > 0
+                          ? std::min<Index>(budget.max_iterations, opts_.max_iter)
+                          : opts_.max_iter;
     prepare_solve(st, seam, x0, warm, std::move(strategy_in));
 
     for (Index iter = 0;; ++iter) {
@@ -5056,7 +5161,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
         // ONE MAJOR, AND THE CONTROL DECISION IT REACHED. The row is already in
         // `history` and in the stream by the time any tag below is acted on --
         // that is what `run_major` guarantees at each of its ten push sites.
-        const MajorOutcome outcome = run_major(st, mj, seam, bridge, warm, minor_budget, iter);
+        const MajorOutcome outcome = run_major(st, mj, seam, bridge, warm, budget, iter);
         // NO `default:` LABEL, so `-Wswitch` sees a tag added without an arm;
         // every arm either continues the loop or returns the solution.
         switch (outcome) {
@@ -5132,12 +5237,18 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // the WARM SEEDING note for why it always still describes
             // this x rather than some earlier one.
             check_major_pushed_once(iter);
-            return finish(
-                seam, std::move(st.out), mj.converged ? SqpStatus::kOptimal : SqpStatus::kMaxIter,
-                st.x, st.lambda_e, st.lambda_i, mj.kkt, mj.row.f,
-                make_warm_start(seam, st.have_seed ? &st.seed : nullptr, st.qp, st.qp_built, &st.ev,
-                                &st.x, st.delta, st.last_dual_mu, opts_.qp.primal_delta,
-                                st.strategy.get(), engine_->hot_state()));
+            // THE EVALUATION IS LIVE HERE: `st.ev` is at `st.x`, which is the
+            // point being returned, and `mj.kkt` was measured from it this
+            // pass. No stash had to be carried.
+            return finish(seam, std::move(st.out),
+                          mj.converged ? SolveStatus::kOptimal : SolveStatus::kMaxIter, st.x,
+                          st.lambda_e, st.lambda_i, mj.kkt, mj.row.f,
+                          make_warm_start(seam, st.have_seed ? &st.seed : nullptr, st.qp,
+                                          st.qp_built, &st.ev, &st.x, st.delta, st.last_dual_mu,
+                                          opts_.qp.primal_delta, st.strategy.get(),
+                                          engine_->hot_state()),
+                          stash_declared_diagnostics(st.ev, mj.kkt, st.x, st.lambda_i, seam.lower(),
+                                                     seam.upper()));
         case MajorOutcome::kFinishBudgetBest: {
             // BUDGETED MODE: report the best-by-(h, f) iterate
             // rather than the last one. `seed` is only this best
@@ -5152,11 +5263,14 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             const bool best_is_current = mj.row.violation_l1 == st.mb.h && mj.row.f == st.mb.f;
             check_major_pushed_once(iter);
             return finish(
-                seam, std::move(st.out), SqpStatus::kBudgetExhausted, st.mb.x, st.mb.lambda_e,
+                seam, std::move(st.out), SolveStatus::kBudgetExhausted, st.mb.x, st.mb.lambda_e,
                 st.mb.lambda_i, st.mb.kkt, st.mb.f,
                 make_warm_start(seam, (best_is_current && st.have_seed) ? &st.seed : nullptr, st.qp,
                                 st.qp_built, &st.ev, &st.x, st.delta, st.last_dual_mu,
-                                opts_.qp.primal_delta, st.strategy.get(), engine_->hot_state()));
+                                opts_.qp.primal_delta, st.strategy.get(), engine_->hot_state()),
+                // THE BEST POINT'S OWN STASH, taken when it was captured:
+                // `st.ev` has moved on to a later iterate by now.
+                st.mb.diag);
         }
         case MajorOutcome::kFinishQpFailure:
             // No restoration was consulted on this path -- x is still
@@ -5168,7 +5282,11 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                           st.lambda_i, mj.kkt, mj.row.f,
                           make_warm_start(seam, &mj.qs, st.qp, st.qp_built, &st.ev, &st.x, st.delta,
                                           st.last_dual_mu, opts_.qp.primal_delta, st.strategy.get(),
-                                          engine_->hot_state()));
+                                          engine_->hot_state()),
+                          // Live, like the current-iterate exit: no trial was
+                          // taken, so `st.ev` is still at `st.x`.
+                          stash_declared_diagnostics(st.ev, mj.kkt, st.x, st.lambda_i, seam.lower(),
+                                                     seam.upper()));
         case MajorOutcome::kFinishRestorationSeed:
             // THE ELASTIC REQUESTER'S ACTIVITY SOURCE IS `seed`, NOT `qs`: qs_e
             // (the elastic re-solve) is in the AUGMENTED (original + slack)
@@ -5184,6 +5302,13 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
                 make_warm_start(seam, (!st.resto.moved_x && st.have_seed) ? &st.seed : nullptr,
                                 st.qp, st.qp_built, &st.ev, &st.x, st.delta, st.last_dual_mu,
                                 opts_.qp.primal_delta, st.strategy.get(), engine_->hot_state()),
+                // THE STASH FOLLOWS THE POINT, exactly as `moved_x` decides
+                // everything else on this arm: restoration's own, taken at the
+                // restored point inside enter_restoration, when it moved x;
+                // this loop's live one at the unchanged `st.x` when it did not.
+                st.resto.moved_x ? st.resto.diag
+                                 : stash_declared_diagnostics(st.ev, mj.kkt, st.x, st.lambda_i,
+                                                              seam.lower(), seam.upper()),
                 st.resto.multipliers_are_caller_scale);
         case MajorOutcome::kFinishRestorationQp:
             // THE OTHER THREE REQUESTERS HAND BACK A QP IN THE ORIGINAL
@@ -5192,27 +5317,32 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // the region around x unless restoration itself moved x; see
             // st.resto.moved_x's own note.
             check_major_pushed_once(iter);
-            return finish(seam, std::move(st.out), st.resto.status, st.x, st.lambda_e, st.lambda_i,
-                          st.resto.kkt, st.resto.f,
-                          make_warm_start(seam, st.resto.moved_x ? nullptr : &mj.qs, st.qp,
-                                          st.qp_built, &st.ev, &st.x, st.delta, st.last_dual_mu,
-                                          opts_.qp.primal_delta, st.strategy.get(),
-                                          engine_->hot_state()),
-                          st.resto.multipliers_are_caller_scale);
+            return finish(
+                seam, std::move(st.out), st.resto.status, st.x, st.lambda_e, st.lambda_i,
+                st.resto.kkt, st.resto.f,
+                make_warm_start(seam, st.resto.moved_x ? nullptr : &mj.qs, st.qp, st.qp_built,
+                                &st.ev, &st.x, st.delta, st.last_dual_mu, opts_.qp.primal_delta,
+                                st.strategy.get(), engine_->hot_state()),
+                // Same rule as the seed arm: the stash follows the
+                // point `moved_x` says is being returned.
+                st.resto.moved_x ? st.resto.diag
+                                 : stash_declared_diagnostics(st.ev, mj.kkt, st.x, st.lambda_i,
+                                                              seam.lower(), seam.upper()),
+                st.resto.multipliers_are_caller_scale);
         }
     }
 }
 
-SqpStatus SqpDriver::map_status(QpStatus qp_status) {
+SolveStatus SqpDriver::map_status(QpStatus qp_status) {
     switch (qp_status) {
     case QpStatus::kInfeasible:
-        return SqpStatus::kInfeasible;
+        return SolveStatus::kInfeasible;
     case QpStatus::kOptimal:
     case QpStatus::kMaxIter:
     case QpStatus::kNumericalError:
         break;
     }
-    return SqpStatus::kNumericalError;
+    return SolveStatus::kNumericalError;
 }
 
 bool SqpDriver::shrink_hits_floor(double delta) const {
@@ -5441,9 +5571,10 @@ WarmStart SqpDriver::make_warm_start(AggregateEvalSeam &seam, const QpSolution *
     return w;
 }
 
-SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SqpStatus status,
+SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SolveStatus status,
                               const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
                               const SqpKkt &kkt, double f, WarmStart warm,
+                              const DeclaredDiagnosticsStash &stash,
                               bool multipliers_are_caller_scale) {
     // A VALUE, NOT A REFERENCE INTO THE SEAM, and the distinction is
     // load-bearing rather than stylistic. The caller-scale re-measurement below
@@ -5525,6 +5656,11 @@ SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SqpStatu
     // touches. Empty, and free, when the solve is unscaled.
     const Vec pre_sweep_lambda_e = sc.active ? out.lambda_e : Vec();
     const Vec pre_sweep_lambda_i = sc.active ? out.lambda_i : Vec();
+    // Filled only on the scaled re-measurement arm below; the unscaled path --
+    // the shipped default, and every path the U0 replay covers -- reports the
+    // caller's stash unchanged, because the space the solve ran in IS the
+    // caller's.
+    DeclaredDiagnosticsStash caller_scale_declared;
     sweep_negative_face_prices(out.lambda_i, out.counters.ssn);
     out.f = sc.active ? f / sc.obj : f;
     // THE REPORT, and the two residuals it reconciles. `kkt` was measured in
@@ -5550,6 +5686,18 @@ SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SqpStatu
         const SqpKkt caller_kkt = evaluate_kkt(seam, caller_ev, x, pre_sweep_lambda_e,
                                                pre_sweep_lambda_i, opts_.feas_tol);
         record_terminal_kkt(out, caller_kkt);
+        // AND THE SHARED DECLARED DIAGNOSTICS FROM THE SAME MEASUREMENT, not
+        // from the stash. The stash was taken in the space the solve RAN in;
+        // these four are contractually in the CALLER's units, and this arm is
+        // the one place a caller-scale evaluation of the returned point exists.
+        // The seam is at the identity here, so `lower()`/`upper()` are the
+        // declared box either way -- the box is not scaled.
+        //
+        // At the PRE-SWEEP multipliers, like the four terminal columns beside
+        // them and for the same reason: the disclosure in sqp_types.h bounds
+        // the reported stationarity gap by a magnitude taken in one space.
+        caller_scale_declared = stash_declared_diagnostics(
+            caller_ev, caller_kkt, x, pre_sweep_lambda_i, seam.lower(), seam.upper());
         // AND THE BOUND PRICES COME FROM THAT SAME MEASUREMENT, not from a
         // divide-back of the engine's. `z` is a coordinate of `grad_lag`, which
         // is precisely what was just re-measured on the caller's own model and
@@ -5599,6 +5747,28 @@ SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SqpStatu
         drop_scaled_space_state(warm);
     }
     out.warm_start = std::move(warm);
+
+    // ===================================================================
+    // THE SHARED BASE (M6 W5 T8.4). Everything above filled this engine's own
+    // fields; these are the ones a caller reads without knowing which engine
+    // produced them.
+    //
+    // NO EVALUATION IS TAKEN HERE. The four diagnostics and the two constraint
+    // blocks come from a stash taken where the returned point's evaluation was
+    // live -- or, on a scaled solve, from the caller-scale re-measurement this
+    // function was already taking. An exit that could not measure its point
+    // leaves the defaults: NaN and empty, never zeros.
+    // ===================================================================
+    const DeclaredDiagnosticsStash &declared =
+        caller_scale_declared.measured ? caller_scale_declared : stash;
+    if (declared.measured) {
+        out.stationarity = declared.d.stationarity;
+        out.feasibility_e = declared.d.feasibility_e;
+        out.feasibility_i = declared.d.feasibility_i;
+        out.complementarity = declared.d.complementarity;
+        out.ce = declared.ce;
+        out.ci = declared.ci;
+    }
     return out;
 }
 

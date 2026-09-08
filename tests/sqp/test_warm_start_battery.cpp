@@ -426,7 +426,7 @@ CellStats collect(const Ledger &ledger, const ContinuationResult &res) {
             ++s.n_hot;
             break;
         }
-        if (r.status != SqpStatus::kOptimal) {
+        if (r.status != SolveStatus::kOptimal) {
             ++s.status_failures;
         }
     }
@@ -434,7 +434,7 @@ CellStats collect(const Ledger &ledger, const ContinuationResult &res) {
     s.proposals_abandoned = res.proposals_abandoned;
     s.proposals_full_cost = res.proposals_full_cost;
     for (const ContinuationStep &st : res.steps) {
-        if (st.status != SqpStatus::kOptimal) {
+        if (st.status != SolveStatus::kOptimal) {
             s.failed_minors += st.counters.qp_minor_iters;
         }
     }
@@ -525,7 +525,7 @@ CellStats run_cold_grid(Model &model, const std::vector<Vec> &grid, bool full_st
         driver.attach_ledger(&ledger, fmt::format("cold{}", i));
         model.set_parameters(grid[i]);
         const SqpSolution sol = driver.solve(model, model.start_point());
-        all_optimal = all_optimal && sol.status == SqpStatus::kOptimal;
+        all_optimal = all_optimal && sol.status == SolveStatus::kOptimal;
         ContinuationStep st;
         st.p = grid[i];
         st.x = sol.x;
@@ -1463,14 +1463,14 @@ TEST(WarmStartBattery, ZeroMajorStepKeepsTheWarmStartChain) {
     // Solve 1: an ordinary cold solve. It builds a subproblem, so its
     // hand-off carries a real structure hash.
     const SqpSolution s1 = driver.solve(model, model.start_point());
-    ASSERT_EQ(s1.status, SqpStatus::kOptimal);
+    ASSERT_EQ(s1.status, SolveStatus::kOptimal);
     ASSERT_EQ(s1.counters.major_iters, 1) << "F1 is a QP: one subproblem is the whole problem";
     ASSERT_NE(s1.warm_start.structure_hash, 0u);
 
     // Solve 2: re-solve at the SAME p from that hand-off. It ingests warm and
     // converges before building anything.
     const SqpSolution s2 = driver.solve(model, s1.warm_start.x, s1.warm_start);
-    ASSERT_EQ(s2.status, SqpStatus::kOptimal);
+    ASSERT_EQ(s2.status, SolveStatus::kOptimal);
     ASSERT_EQ(s2.counters.start_level_used, StartLevel::kWarm);
     ASSERT_EQ(s2.counters.major_iters, 0) << "already at x*(p): the convergence test fires first";
 
@@ -1490,7 +1490,7 @@ TEST(WarmStartBattery, ZeroMajorStepKeepsTheWarmStartChain) {
     const SqpSolution s3 = driver.solve(model, s2.warm_start.x, s2.warm_start);
     EXPECT_EQ(s3.counters.start_level_used, StartLevel::kWarm)
         << "THE PIN: a zero-major solve's hand-off is accepted by the very next solve";
-    EXPECT_EQ(s3.status, SqpStatus::kOptimal);
+    EXPECT_EQ(s3.status, SolveStatus::kOptimal);
     EXPECT_EQ(s3.counters.major_iters, 0) << "still at x*(p), and now it starts from there";
 }
 
@@ -2031,7 +2031,7 @@ TEST(WarmStartBattery, CrossoverChainOnTheBridgeFamilyBeatsCold) {
     F7CollocationChain ref_model = make();
     SqpDriver ref_driver(battery_options(StartLevel::kCold, /*full_step=*/false));
     const SqpSolution ref = ref_driver.solve(ref_model, ref_model.start_point());
-    ASSERT_EQ(ref.status, SqpStatus::kOptimal);
+    ASSERT_EQ(ref.status, SolveStatus::kOptimal);
     ASSERT_EQ(ref_model.n(), 500) << "the bridge's sweep_n100 shape";
     ASSERT_GT(ref.lambda_i.maxCoeff(), 0.0) << "F7's path window is active at p = 0.9";
     const Index nx = ref_model.n();
@@ -2149,8 +2149,8 @@ TEST(WarmStartBattery, CrossoverChainOnTheBridgeFamilyBeatsCold) {
             to_string(seeded.counters.start_level_used), seeded.counters.major_iters,
             seeded.counters.qp_minor_iters, seeded.counters.factorizations);
 
-        ASSERT_EQ(cold.status, SqpStatus::kOptimal);
-        ASSERT_EQ(seeded.status, SqpStatus::kOptimal);
+        ASSERT_EQ(cold.status, SolveStatus::kOptimal);
+        ASSERT_EQ(seeded.status, SolveStatus::kOptimal);
         EXPECT_EQ(cold.counters.start_level_used, StartLevel::kCold);
         EXPECT_EQ(seeded.counters.start_level_used, StartLevel::kSeeded)
             << "THE PIN: the crossover object reaches the ingest";

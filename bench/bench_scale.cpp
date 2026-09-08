@@ -257,11 +257,11 @@ using hven::solvers::QpOptions;
 using hven::solvers::QpStatus;
 using hven::solvers::run_continuation;
 using hven::solvers::SolveRecord;
+using hven::solvers::SolveStatus;
 using hven::solvers::SqpDriver;
 using hven::solvers::SqpOptions;
 using hven::solvers::SqpSolution;
 using hven::solvers::SqpSolveRecord;
-using hven::solvers::SqpStatus;
 using hven::solvers::StartLevel;
 using hven::solvers::WarmStart;
 using hven::solvers::WorkingSetLinearAlgebra;
@@ -384,7 +384,7 @@ struct Row {
 struct SolutionDump {
     bool valid = false;
     double p = 0.0;
-    SqpStatus status = SqpStatus::kOptimal;
+    SolveStatus status = SolveStatus::kOptimal;
     double f = 0.0;
     Vec x;
 };

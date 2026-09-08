@@ -121,7 +121,7 @@ constexpr double kSelfCheckComplementarity = 1e-6;
 // note, which is the excuse's real home.
 struct Expect {
     int number;
-    SqpStatus status;
+    SolveStatus status;
     Index max_iter;     // per-problem budget passed to SqpOptions
     Index major_budget; // observed majors + headroom
     double f_target;    // NaN => use the cited f*
@@ -143,15 +143,15 @@ constexpr double kUseCitedFStar = std::numeric_limits<double>::quiet_NaN();
 // ---------------------------------------------------------------------
 std::vector<Expect> border_table() {
     return {
-        {1, SqpStatus::kOptimal, 60, 40, kUseCitedFStar, nullptr},
-        {3, SqpStatus::kOptimal, 60, 10, kUseCitedFStar, nullptr},
-        {5, SqpStatus::kOptimal, 60, 10, kUseCitedFStar, nullptr},
-        {6, SqpStatus::kOptimal, 60, 15, kUseCitedFStar, nullptr},
-        {7, SqpStatus::kOptimal, 60, 15, kUseCitedFStar, nullptr},
-        {10, SqpStatus::kOptimal, 60, 20, kUseCitedFStar, nullptr},
-        {11, SqpStatus::kOptimal, 60, 12, kUseCitedFStar, nullptr},
-        {12, SqpStatus::kOptimal, 60, 10, kUseCitedFStar, nullptr},
-        {14, SqpStatus::kOptimal, 60, 10, kUseCitedFStar, nullptr},
+        {1, SolveStatus::kOptimal, 60, 40, kUseCitedFStar, nullptr},
+        {3, SolveStatus::kOptimal, 60, 10, kUseCitedFStar, nullptr},
+        {5, SolveStatus::kOptimal, 60, 10, kUseCitedFStar, nullptr},
+        {6, SolveStatus::kOptimal, 60, 15, kUseCitedFStar, nullptr},
+        {7, SolveStatus::kOptimal, 60, 15, kUseCitedFStar, nullptr},
+        {10, SolveStatus::kOptimal, 60, 20, kUseCitedFStar, nullptr},
+        {11, SolveStatus::kOptimal, 60, 12, kUseCitedFStar, nullptr},
+        {12, SolveStatus::kOptimal, 60, 10, kUseCitedFStar, nullptr},
+        {14, SolveStatus::kOptimal, 60, 10, kUseCitedFStar, nullptr},
         // EXCUSED -- see the results note (open item O-6). HS15's feasible set
         // is DISCONNECTED (x1 x2 >= 1 with x1 <= 0.5 admits x1 in (0, 0.5]
         // with x2 >= 2, and x1 < 0 with x2 <= 1/x1 < 0, with nothing in
@@ -168,11 +168,11 @@ std::vector<Expect> border_table() {
         // which is sufficient, because the excusal only needs the returned
         // point to be a genuine KKT point that a local method must reach
         // from that start.
-        {15, SqpStatus::kOptimal, 60, 12, 360.37976717049241,
+        {15, SolveStatus::kOptimal, 60, 12, 360.37976717049241,
          "converges to the local minimum of the disconnected branch its published start "
          "point lies in; the global f*=306.5 is in the other branch"},
-        {22, SqpStatus::kOptimal, 60, 8, kUseCitedFStar, nullptr},
-        {24, SqpStatus::kOptimal, 60, 10, kUseCitedFStar, nullptr},
+        {22, SolveStatus::kOptimal, 60, 8, kUseCitedFStar, nullptr},
+        {24, SolveStatus::kOptimal, 60, 10, kUseCitedFStar, nullptr},
         // EXCUSED -- the battery's deliberate trap (open item O-7); see
         // hs_problems.h's HS25 note for the arithmetic. Every exponential is
         // dead at the published
@@ -181,7 +181,7 @@ std::vector<Expect> border_table() {
         // floor of f itself. The driver correctly certifies a KKT point in
         // ZERO majors; the true minimum 0 is unreachable by any method that
         // reads f in IEEE double without rescaling the problem first.
-        {25, SqpStatus::kOptimal, 60, 0, 32.834999999663594,
+        {25, SolveStatus::kOptimal, 60, 0, 32.834999999663594,
          "start point is a numerically exact stationary point: |grad f| ~ 1e-11 sits two "
          "orders below f's own roundoff floor, so f* = 0 is unreachable without rescaling"},
         // THE TASK 11b ROW. This was the battery's one both-mode divergence:
@@ -190,10 +190,10 @@ std::vector<Expect> border_table() {
         // tier and stopped at the start point with f = 21.16, while
         // kRefactorize solved it to f* in 17 majors. Both modes now reach f*
         // in 17, and BorderModeFalseInfeasible keeps the reduced QP pinned.
-        {26, SqpStatus::kOptimal, 60, 25, kUseCitedFStar, nullptr},
-        {27, SqpStatus::kOptimal, 60, 10, kUseCitedFStar, nullptr},
-        {28, SqpStatus::kOptimal, 60, 8, kUseCitedFStar, nullptr},
-        {30, SqpStatus::kOptimal, 60, 16, kUseCitedFStar, nullptr},
+        {26, SolveStatus::kOptimal, 60, 25, kUseCitedFStar, nullptr},
+        {27, SolveStatus::kOptimal, 60, 10, kUseCitedFStar, nullptr},
+        {28, SolveStatus::kOptimal, 60, 8, kUseCitedFStar, nullptr},
+        {30, SolveStatus::kOptimal, 60, 16, kUseCitedFStar, nullptr},
         // EXCUSED (open item O-8) -- HS33 has a LOCAL solution at (0, 0, 2)
         // with f = -4, verified here as a KKT point by hand (see the results
         // note), and the published start point (0, 0, 3) is already sitting
@@ -202,18 +202,18 @@ std::vector<Expect> border_table() {
         // it down the ci2 sphere to 2. Reaching the global (0, sqrt2, sqrt2)
         // requires LEAVING a bound that no descent direction asks it to leave.
         // KKT self-check clean at the returned point.
-        {33, SqpStatus::kOptimal, 60, 10, -3.9999999999737859,
+        {33, SolveStatus::kOptimal, 60, 10, -3.9999999999737859,
          "converges to a local solution (0,0,2), f = -4, verified here as a KKT point; the "
          "published start point sits on both bounds that define it"},
-        {35, SqpStatus::kOptimal, 60, 5, kUseCitedFStar, nullptr},
-        {38, SqpStatus::kOptimal, 120, 70, kUseCitedFStar, nullptr},
-        {39, SqpStatus::kOptimal, 60, 15, kUseCitedFStar, nullptr},
-        {40, SqpStatus::kOptimal, 60, 10, kUseCitedFStar, nullptr},
-        {43, SqpStatus::kOptimal, 60, 12, kUseCitedFStar, nullptr},
-        {45, SqpStatus::kOptimal, 60, 8, kUseCitedFStar, nullptr},
-        {76, SqpStatus::kOptimal, 60, 8, kUseCitedFStar, nullptr},
-        {77, SqpStatus::kOptimal, 60, 18, kUseCitedFStar, nullptr},
-        {79, SqpStatus::kOptimal, 60, 10, kUseCitedFStar, nullptr},
+        {35, SolveStatus::kOptimal, 60, 5, kUseCitedFStar, nullptr},
+        {38, SolveStatus::kOptimal, 120, 70, kUseCitedFStar, nullptr},
+        {39, SolveStatus::kOptimal, 60, 15, kUseCitedFStar, nullptr},
+        {40, SolveStatus::kOptimal, 60, 10, kUseCitedFStar, nullptr},
+        {43, SolveStatus::kOptimal, 60, 12, kUseCitedFStar, nullptr},
+        {45, SolveStatus::kOptimal, 60, 8, kUseCitedFStar, nullptr},
+        {76, SolveStatus::kOptimal, 60, 8, kUseCitedFStar, nullptr},
+        {77, SolveStatus::kOptimal, 60, 18, kUseCitedFStar, nullptr},
+        {79, SolveStatus::kOptimal, 60, 10, kUseCitedFStar, nullptr},
     };
 }
 
@@ -235,17 +235,17 @@ SqpOptions options_for(const Expect &e, WorkingSetLinearAlgebra alg) {
     return opts;
 }
 
-const char *status_name(SqpStatus s) {
+const char *status_name(SolveStatus s) {
     switch (s) {
-    case SqpStatus::kOptimal:
+    case SolveStatus::kOptimal:
         return "kOptimal";
-    case SqpStatus::kMaxIter:
+    case SolveStatus::kMaxIter:
         return "kMaxIter";
-    case SqpStatus::kInfeasible:
+    case SolveStatus::kInfeasible:
         return "kInfeasible";
-    case SqpStatus::kNumericalError:
+    case SolveStatus::kNumericalError:
         return "kNumericalError";
-    case SqpStatus::kBudgetExhausted:
+    case SolveStatus::kBudgetExhausted:
         return "kBudgetExhausted";
     }
     return "?";
@@ -304,7 +304,7 @@ void check_one(const Expect &e, WorkingSetLinearAlgebra alg, const char *tag) {
     // because a row that legitimately exits kInfeasible or kMaxIter returns the
     // iterate the loop stopped at, and asserting a clean KKT quadruple there
     // would be asserting away exactly what the status is reporting.
-    if (sol.status == SqpStatus::kOptimal) {
+    if (sol.status == SolveStatus::kOptimal) {
         EXPECT_LT(chk.stationarity, kSelfCheckStationarity);
         EXPECT_LT(chk.primal, kSelfCheckPrimal);
         EXPECT_LT(chk.dual_sign, kSelfCheckDualSign);
@@ -336,8 +336,9 @@ void check_one(const Expect &e, WorkingSetLinearAlgebra alg, const char *tag) {
 
 // Solves every problem in one mode and returns the statuses, for the
 // divergence comparison.
-std::vector<SqpStatus> statuses_in(WorkingSetLinearAlgebra alg, const std::vector<Expect> &table) {
-    std::vector<SqpStatus> out;
+std::vector<SolveStatus> statuses_in(WorkingSetLinearAlgebra alg,
+                                     const std::vector<Expect> &table) {
+    std::vector<SolveStatus> out;
     for (const Expect &e : table) {
         const HsProblem p = make_hs(e.number);
         SqpDriver driver(options_for(e, alg));
@@ -389,8 +390,8 @@ TEST(HsBattery, RefactorizeMode) {
 // regression test for that fix.
 TEST(HsBattery, ModeStatusDivergenceIsEmpty) {
     const std::vector<Expect> bt = border_table();
-    const std::vector<SqpStatus> border = statuses_in(WorkingSetLinearAlgebra::kSchurBorder, bt);
-    const std::vector<SqpStatus> refac = statuses_in(WorkingSetLinearAlgebra::kRefactorize, bt);
+    const std::vector<SolveStatus> border = statuses_in(WorkingSetLinearAlgebra::kSchurBorder, bt);
+    const std::vector<SolveStatus> refac = statuses_in(WorkingSetLinearAlgebra::kRefactorize, bt);
     ASSERT_EQ(border.size(), refac.size());
 
     std::vector<int> diverged;
@@ -693,7 +694,7 @@ TEST(HsBattery, EveryElasticActivationRunsTheRhoLadderToItsCeiling) {
         // nothing to escalate. No battery row does that today (HS26 did, off
         // the back of the Task 11b bug); the guard stays so that a row which
         // starts doing it fails the count below rather than this assertion.
-        if (sol.status != SqpStatus::kOptimal) {
+        if (sol.status != SolveStatus::kOptimal) {
             continue;
         }
         EXPECT_EQ(sol.counters.elastic_escalations,
@@ -852,7 +853,7 @@ TEST(HsBattery, FeasibleStartsEndFeasibleDespiteTheLooseFunnelWidth) {
 // be a WRONG ANSWER, not a finding. Since Task 11b there is no kInfeasible exit
 // in either table at all; while there was one (HS26 in border mode) it
 // correctly reported infeasibility_certified == FALSE -- the "could not make
-// progress" shape of that status, exactly as SqpStatus's own note requires,
+// progress" shape of that status, exactly as SolveStatus's own note requires,
 // with the restoration phase never running (restoration_iters == 0), so there
 // was never a certificate to make. The kInfeasible arm below is kept as a
 // standing guard on that distinction.
@@ -868,7 +869,7 @@ TEST(HsBattery, NoBatteryProblemEverCertifiesInfeasibility) {
             const SqpSolution sol = driver.solve(*p.model);
             EXPECT_FALSE(sol.infeasibility_certified)
                 << "HS" << e.number << " is a FEASIBLE problem; a certificate here is wrong";
-            if (sol.status == SqpStatus::kInfeasible) {
+            if (sol.status == SolveStatus::kInfeasible) {
                 EXPECT_EQ(sol.counters.restoration_iters, 0)
                     << "HS" << e.number
                     << ": a kInfeasible exit on a feasible battery problem is an elastic "

@@ -147,7 +147,8 @@ WarmStart converged_warm(ParametricNlpModel &model, double p,
     model.set_parameters(p_vec(p));
     SqpDriver driver(opts);
     const SqpSolution sol = driver.solve(model);
-    EXPECT_EQ(sol.status, SqpStatus::kOptimal) << "cold solve at p = " << p << " did not converge";
+    EXPECT_EQ(sol.status, SolveStatus::kOptimal)
+        << "cold solve at p = " << p << " did not converge";
     return sol.warm_start;
 }
 
@@ -245,7 +246,7 @@ TEST(Predictor, MovingConstraintFamiliesMatchTheirAnalyticPaths) {
 
             SqpDriver driver(opts);
             const SqpSolution sol = driver.solve(model);
-            ASSERT_EQ(sol.status, SqpStatus::kOptimal) << "p = " << p.transpose();
+            ASSERT_EQ(sol.status, SolveStatus::kOptimal) << "p = " << p.transpose();
             EXPECT_LE((sol.x - F4MovingConstraints::x_star(p)).lpNorm<Eigen::Infinity>(), 1e-8)
                 << "x = " << sol.x.transpose() << " vs "
                 << F4MovingConstraints::x_star(p).transpose();
@@ -274,7 +275,7 @@ TEST(Predictor, MovingConstraintFamiliesMatchTheirAnalyticPaths) {
 
             SqpDriver driver(opts);
             const SqpSolution sol = driver.solve(model);
-            ASSERT_EQ(sol.status, SqpStatus::kOptimal) << "p = " << p;
+            ASSERT_EQ(sol.status, SolveStatus::kOptimal) << "p = " << p;
             EXPECT_LE((sol.x - F5MovingThreshold::x_star(p)).lpNorm<Eigen::Infinity>(), 1e-8)
                 << "x = " << sol.x.transpose();
             EXPECT_NEAR(sol.f, F5MovingThreshold::f_star(p), 1e-9);
@@ -313,7 +314,7 @@ TEST(Predictor, PredictorTracksConstraintsThatMoveWithP) {
     model.set_parameters(p0);
     SqpDriver driver(tight_options());
     const SqpSolution sol = driver.solve(model);
-    ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     const WarmStart warm = sol.warm_start;
 
     model.set_parameters(p0);
@@ -392,7 +393,7 @@ TEST(Predictor, PredictorActivatesConstraintsThatMoveWithP) {
     model.set_parameters(p_vec(p_far));
     SqpDriver driver(tight_options());
     const SqpSolution sol = driver.solve(model, model.start_point(), pred);
-    ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE((sol.x - F5MovingThreshold::x_star(p_far)).lpNorm<Eigen::Infinity>(), 1e-8);
 }
 
@@ -695,7 +696,7 @@ TEST(Predictor, PredictorKeepsWeaklyActiveRow) {
     //       shown not to break at a zero multiplier).
     SqpDriver driver(tight_options());
     const SqpSolution sol = driver.solve(model, model.start_point(), pred);
-    ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE((sol.x - F1BoxQp::x_star(p_far)).lpNorm<Eigen::Infinity>(), 1e-8);
 }
 
@@ -722,8 +723,8 @@ TEST(Predictor, PredictedWarmAcceleratesSolve) {
     SqpDriver pred_driver(opts);
     const SqpSolution boosted = pred_driver.solve(model, model.start_point(), pred);
 
-    ASSERT_EQ(plain.status, SqpStatus::kOptimal);
-    ASSERT_EQ(boosted.status, SqpStatus::kOptimal);
+    ASSERT_EQ(plain.status, SolveStatus::kOptimal);
+    ASSERT_EQ(boosted.status, SolveStatus::kOptimal);
     EXPECT_LE((plain.x - F2CircleNlp::x_star(kP + kDp)).norm(), 1e-8);
     EXPECT_LE((boosted.x - F2CircleNlp::x_star(kP + kDp)).norm(), 1e-8);
 
@@ -911,7 +912,7 @@ TEST(Predictor, PredictionAcrossAnInequalityThresholdIsStillSafeToConsume) {
     model.set_parameters(p_vec(kP + kDp));
     SqpDriver driver(tight_options());
     const SqpSolution sol = driver.solve(model, model.start_point(), pred);
-    ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE((sol.x - F2CircleNlp::x_star(kP + kDp)).norm(), 1e-8);
 }
 
@@ -1051,7 +1052,7 @@ TEST(PredictorRatioTest, InheritsTheTrueActivitySetAcrossAnActivationThreshold) 
     model.set_parameters(p_vec(kP + kDp));
     SqpDriver seeded(opts);
     const SqpSolution boosted = seeded.solve(model, pred.x, pred);
-    ASSERT_EQ(boosted.status, SqpStatus::kOptimal);
+    ASSERT_EQ(boosted.status, SolveStatus::kOptimal);
     EXPECT_EQ(boosted.counters.major_iters, 1);
     EXPECT_EQ(boosted.counters.qp_minor_iters, 2);
     EXPECT_EQ(boosted.counters.factorizations, 1);
@@ -1059,7 +1060,7 @@ TEST(PredictorRatioTest, InheritsTheTrueActivitySetAcrossAnActivationThreshold) 
     model.set_parameters(p_vec(kP + kDp));
     SqpDriver plain(opts);
     const SqpSolution unpredicted = plain.solve(model, warm.x, warm);
-    ASSERT_EQ(unpredicted.status, SqpStatus::kOptimal);
+    ASSERT_EQ(unpredicted.status, SolveStatus::kOptimal);
     EXPECT_EQ(unpredicted.counters.qp_minor_iters, 24);
     // The comparison the battery could not make before: the predicted seed is
     // now CHEAPER than the unpredicted one in the currency O-2 named, not 10x
@@ -1147,7 +1148,7 @@ TEST(PredictorRatioTest, AZeroRoundBudgetStopsAtTheFirstCrossing) {
     model.set_parameters(p_vec(kP + kDp));
     SqpDriver driver(tight_options());
     const SqpSolution sol = driver.solve(model, pred.x, pred);
-    ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE((sol.x - F5MovingThreshold::x_star(kP + kDp)).lpNorm<Eigen::Infinity>(), 1e-8);
 }
 
@@ -1275,7 +1276,7 @@ TEST(PredictorRatioTest, SurvivesACurvedManyJunctionThresholdCrossing) {
     SqpDriver seeded(opts);
     const SqpSolution boosted = seeded.solve(model, pred.x, pred);
     // THE CLAIM: it converges at all. Pre-Task-6 this was kNumericalError.
-    ASSERT_EQ(boosted.status, SqpStatus::kOptimal) << "status = " << to_string(boosted.status);
+    ASSERT_EQ(boosted.status, SolveStatus::kOptimal) << "status = " << to_string(boosted.status);
     EXPECT_EQ(boosted.counters.major_iters, 3);
     EXPECT_EQ(boosted.counters.qp_minor_iters, 9);
     EXPECT_LE((boosted.x - model.x_star(kP + kDp)).lpNorm<Eigen::Infinity>(), 1e-6);
@@ -1436,7 +1437,7 @@ TEST(Predictor, TheEmittedInequalityPriceIsNeverNegative) {
     model.set_parameters(p_vec(kDp));
     SqpDriver driver(scaled_price_options());
     const SqpSolution sol = driver.solve(model, pred.x, pred);
-    ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_NEAR(sol.x(0), model.slope(), 1e-6);
     EXPECT_LT(model.slope(), 1.0) << "fixture premise: the row is no longer binding at p + dp";
 }

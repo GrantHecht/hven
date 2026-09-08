@@ -1,9 +1,12 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// The shared status vocabulary's switches. A TU rather than inline bodies, on
-// the same footing as core/enum_names.cpp: display strings and mappings are
+// The interior-point engine's phase-status resolution. A TU rather than an
+// inline body, on core/enum_names.cpp's footing: a switch over enums is
 // orchestration, not a per-element hot path (CLAUDE.md §5).
+//
+// The vocabulary's own switches -- to_string and severity -- moved down to
+// src/core/enum_names.cpp with the enums themselves in M6 W5 T8.4.
 
 #include <hven/drivers/solve_status.h>
 
@@ -12,73 +15,6 @@
 #include <fmt/format.h>
 
 namespace hven::solvers {
-
-const char *to_string(SolveStatus status) {
-    switch (status) {
-    case SolveStatus::kOptimal:
-        return "optimal";
-    case SolveStatus::kAcceptable:
-        return "acceptable";
-    case SolveStatus::kMaxIter:
-        return "max_iter";
-    case SolveStatus::kInfeasible:
-        return "infeasible";
-    case SolveStatus::kStalled:
-        return "stalled";
-    case SolveStatus::kDiverging:
-        return "diverging";
-    case SolveStatus::kNumericalError:
-        return "numerical_error";
-    case SolveStatus::kBudgetExhausted:
-        return "budget_exhausted";
-    case SolveStatus::kInterrupted:
-        return "interrupted";
-    }
-    throw std::invalid_argument(
-        fmt::format("to_string(SolveStatus): unrecognized value ({})", static_cast<int>(status)));
-}
-
-const char *to_string(IpmStopReason reason) {
-    switch (reason) {
-    case IpmStopReason::kNone:
-        return "none";
-    case IpmStopReason::kIterationCap:
-        return "iteration_cap";
-    case IpmStopReason::kRestorationLocallyInfeasible:
-        return "restoration_locally_infeasible";
-    case IpmStopReason::kStageStalled:
-        return "stage_stalled";
-    }
-    throw std::invalid_argument(
-        fmt::format("to_string(IpmStopReason): unrecognized value ({})", static_cast<int>(reason)));
-}
-
-int severity(SolveStatus status) {
-    // The documented reporting order, which is NOT the enumerator order: a
-    // caller comparing two outcomes wants "how bad", not "declared where".
-    switch (status) {
-    case SolveStatus::kOptimal:
-        return 0;
-    case SolveStatus::kAcceptable:
-        return 1;
-    case SolveStatus::kInterrupted:
-        return 2;
-    case SolveStatus::kMaxIter:
-        return 3;
-    case SolveStatus::kBudgetExhausted:
-        return 4;
-    case SolveStatus::kStalled:
-        return 5;
-    case SolveStatus::kInfeasible:
-        return 6;
-    case SolveStatus::kDiverging:
-        return 7;
-    case SolveStatus::kNumericalError:
-        return 8;
-    }
-    throw std::invalid_argument(
-        fmt::format("severity(SolveStatus): unrecognized value ({})", static_cast<int>(status)));
-}
 
 SolveStatus resolve_ipm_phase_status(SolveStatus raw_verdict, IpmStopReason reason) {
     // THE VERDICT IS READ FIRST, so a stronger one the convergence check already
@@ -102,21 +38,7 @@ SolveStatus resolve_ipm_phase_status(SolveStatus raw_verdict, IpmStopReason reas
         "resolve_ipm_phase_status: unrecognized IpmStopReason ({})", static_cast<int>(reason)));
 }
 
-SolveStatus to_solve_status(SqpStatus status) {
-    switch (status) {
-    case SqpStatus::kOptimal:
-        return SolveStatus::kOptimal;
-    case SqpStatus::kMaxIter:
-        return SolveStatus::kMaxIter;
-    case SqpStatus::kInfeasible:
-        return SolveStatus::kInfeasible;
-    case SqpStatus::kNumericalError:
-        return SolveStatus::kNumericalError;
-    case SqpStatus::kBudgetExhausted:
-        return SolveStatus::kBudgetExhausted;
-    }
-    throw std::invalid_argument(
-        fmt::format("to_solve_status: unrecognized SqpStatus ({})", static_cast<int>(status)));
-}
+// to_solve_status(SolveStatus) went with SolveStatus in M6 W5 T8.4: the mapping was
+// the identity on the five values, and the SQP engine reports SolveStatus now.
 
 } // namespace hven::solvers

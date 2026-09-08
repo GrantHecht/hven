@@ -21,6 +21,7 @@
 #include <hven/detail/globalization/sqp/globalization.h>
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/common_options.h>
+#include <hven/drivers/solve_result.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::solvers {
@@ -456,7 +457,7 @@ struct SqpOptions {
     bool warm_full_step = true;
 
     /// BUDGETED MODE: when true, a solve that exhausts max_iter in the MAIN
-    /// optimality loop reports SqpStatus::kBudgetExhausted rather than kMaxIter,
+    /// optimality loop reports SolveStatus::kBudgetExhausted rather than kMaxIter,
     /// and x/lambda_e/lambda_i/z/f are the Best iterate this solve visited by the
     /// funnel's own ordering -- feasibility first: min h(x), tie-break min f --
     /// rather than the last iterate reached. warm_start is populated from that
@@ -970,63 +971,89 @@ struct SqpScalingReport {
     double scaled_kkt_residual = std::numeric_limits<double>::quiet_NaN();
 };
 
-struct SqpSolution {
-    /// @brief How the solve ended.
-    SqpStatus status = SqpStatus::kOptimal;
-    /// The returned point and its prices: primal variables, equality
-    /// multipliers, inequality multipliers, and bound multipliers -- read
-    /// under the exit-dependent contract above.
-    Vec x, lambda_e, lambda_i, z;
-    /// Objective value at `x`, exactly as the model returned it (possibly NaN
-    /// on a kNumericalError exit).
-    double f = std::numeric_limits<double>::quiet_NaN();
+struct SqpResult : SolveResult {
+    // The base carries the ANSWER -- status, x, lambda_e, lambda_i, z, f, the
+    // four shared declared diagnostics, ce/ci, iterations, wall_seconds and the
+    // warm-start snapshot -- in declared space and caller units
+    // (drivers/solve_result.h). Everything below is this engine's own.
+    //
+    // WHAT MOVED INTO THE BASE, and under which name (M6 W5 T8.4):
+    //   status         same name; the type is SolveStatus, the identity of
+    //                  SolveStatus on the five values this engine reports.
+    //   x, lambda_e, lambda_i, z, f     same names, same meanings.
+    //   iterations     NEW on the base: counters.major_iters of the TOP-LEVEL
+    //                  solve. Nested restoration majors are NOT added -- they
+    //                  are in `counters`.
+    //   ce, ci         NEW: the declared constraint residuals at the returned
+    //                  point, from the same stashed evaluation the shared
+    //                  diagnostics are computed from. Empty when unmeasured.
+    //   stationarity, feasibility_e, feasibility_i, complementarity
+    //                  NEW, and NOT this engine's own measurements -- see the
+    //                  three renamed fields below.
+    //   wall_seconds   NEW, and NOT this engine's old field of that name: the
+    //                  base's clock runs from the public entry to the return,
+    //                  seam and warm setup and the export snapshot included.
+    //                  The old measurement survives as solve_impl_seconds.
+
     /// @brief Work spent by this solve, restoration folded in.
     SqpCounters counters;
     /// One row per iterate visited; whether the last row is an iterate row or a
     /// failing-subproblem row depends on the exit -- see SqpCounters.
     std::vector<SqpIterate> history;
 
-    // The terminal KKT measurement, taken at the RETURNED (x, lambda_e, lambda_i)
-    // by the same evaluate_kkt call the convergence test read. They exist so a
-    // consumer can fill an outcome record without reconstructing the history's
-    // exit shape: the last history row is NOT reliably the returned point.
+    // THE ENGINE'S OWN TERMINAL KKT MEASUREMENT, taken at the RETURNED
+    // (x, lambda_e, lambda_i) by the same evaluate_kkt call the convergence test
+    // read. It exists so a consumer can fill an outcome record without
+    // reconstructing the history's exit shape: the last history row is NOT
+    // reliably the returned point.
     //
-    // All four are NaN on the non-finite-iterate kNumericalError exit: nothing was
-    // measured there, and a 0.0 would read as a converged residual.
+    // RENAMED IN M6 W5 T8.4 -- `stationarity`, `feasibility` and
+    // `complementarity` became `sqp_*` -- because the base now carries fields
+    // of the first and last names with a DIFFERENT definition: the shared ones
+    // are over the DECLARED problem in caller units, these are this engine's
+    // own, in the space its convergence test gated in. A tolerance comparison
+    // must be made against the number the test actually read, which is these.
     //
-    // On a certified kInfeasible exit they measure the NLP's own KKT conditions at
-    // the returned point -- an INFEASIBLE point, so `feasibility` is large by
-    // construction and `stationarity` is the ordinary grad-L measure, NOT the
-    // subgradient certificate's residual.
+    // All four are NaN on the non-finite-iterate kNumericalError exit: nothing
+    // was measured there, and a 0.0 would read as a converged residual.
+    //
+    // On a certified kInfeasible exit they measure the NLP's own KKT conditions
+    // at the returned point -- an INFEASIBLE point, so `sqp_feasibility` is
+    // large by construction and `sqp_stationarity` is the ordinary grad-L
+    // measure, NOT the subgradient certificate's residual.
     //
     // One qualification on "at the returned multipliers": when
     // `counters.ssn.ssn_sign_swept > 0` the sign sweep clamped negative
     // inequality prices AFTER this measurement, so these four describe the
-    // PRE-SWEEP multipliers while `lambda_i` holds the swept ones. `stationarity`
-    // is then optimistic by at most `ssn_sign_sweep_max * ||Ji||inf` over the
-    // swept rows, and `complementarity` can only be over-stated.
+    // PRE-SWEEP multipliers while `lambda_i` holds the swept ones.
+    // `sqp_stationarity` is then optimistic by at most `ssn_sign_sweep_max *
+    // ||Ji||inf`, and `sqp_complementarity` can only be over-stated. The base's
+    // shared diagnostics are measured at the same pre-sweep multipliers, for
+    // the same reason and with the same caveat.
     /// @brief Reduced/projected ||grad L||inf at the returned point.
-    double stationarity = std::numeric_limits<double>::quiet_NaN();
+    double sqp_stationarity = std::numeric_limits<double>::quiet_NaN();
     /// @brief max(||cE||inf, max(cI)+, bound violation) at the returned point.
-    double feasibility = std::numeric_limits<double>::quiet_NaN();
+    double sqp_feasibility = std::numeric_limits<double>::quiet_NaN();
     /// @brief max_j |lambda_i(j) * cI_j(x)| at the returned point. Recorded,
-    ///        not gated -- see SqpIterate::complementarity. At
-    ///        `ssn_sign_swept > 0` this is taken at the pre-sweep multipliers
-    ///        and can only be over-stated (see the note above).
-    double complementarity = std::numeric_limits<double>::quiet_NaN();
-    /// @brief max(stationarity, feasibility) -- the scalar the convergence
-    ///        test gates on.
+    ///        not gated -- see SqpIterate::complementarity.
+    double sqp_complementarity = std::numeric_limits<double>::quiet_NaN();
+    /// @brief max(sqp_stationarity, sqp_feasibility) -- the scalar the
+    ///        convergence test gates on.
     double kkt_residual = std::numeric_limits<double>::quiet_NaN();
 
-    /// Wall-clock seconds spent inside this solve, measured with
-    /// std::chrono::steady_clock around the driver's solve_impl ALONE -- never
-    /// around model construction, the bridge or seam lay, the staged-value ingest
-    /// or the ledger bookkeeping.
+    /// Wall-clock seconds spent inside this solve's `solve_impl` ALONE --
+    /// never around model construction, the bridge or seam lay, the staged-value
+    /// ingest or the ledger bookkeeping.
     ///
-    /// INFORMATIONAL, NEVER ASSERTED -- counters, not timings, are this project's
-    /// currency of correctness. Nothing may gate on it. Defaults to 0.0; every
-    /// public solve() that returns writes a value >= 0.0.
-    double wall_seconds = 0.0;
+    /// RENAMED from `wall_seconds` in M6 W5 T8.4, with its boundary UNCHANGED.
+    /// The base's `wall_seconds` is a different measurement -- the whole public
+    /// call -- and reusing the name for it would have made every existing
+    /// reading silently mean something else.
+    ///
+    /// INFORMATIONAL, NEVER ASSERTED -- counters, not timings, are this
+    /// project's currency of correctness. Nothing may gate on it. Defaults to
+    /// 0.0; every public solve() that returns writes a value >= 0.0.
+    double solve_impl_seconds = 0.0;
 
     /// @brief What the problem-scaling layer did to this solve; the identity
     ///        when it was off, which is the shipped default.
@@ -1063,7 +1090,14 @@ struct SqpSolution {
     /// could not evaluate -- fills these fields for inspection but reports
     /// valid == false, because feeding that point back would override the
     /// caller's own corrected x0.
+    ///
+    /// The base's `export_warm_start()` carries the SHARED currency shape
+    /// (WarmStartData) taken at the same exit; this is the engine-native one.
     WarmStart warm_start;
 };
+
+/// The name this type had before M6 W5 T8.4, kept so the ~200 call sites that
+/// spell it do not all have to move in one task. Same type, not a conversion.
+using SqpSolution = SqpResult;
 
 } // namespace hven::solvers

@@ -308,7 +308,7 @@ struct ContinuationStep {
     // changed underneath them -- read the controller's value off the p
     // sequence, not off this field.
     double dp = 0.0;
-    SqpStatus status = SqpStatus::kOptimal;
+    SolveStatus status = SolveStatus::kOptimal;
     // The driver's own counters for this one solve; ContinuationResult::
     // total_majors is the sum of counters.major_iters over every step.
     SqpCounters counters;

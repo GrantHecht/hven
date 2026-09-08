@@ -176,7 +176,7 @@ void check_path_at(const NlpModel &model, double p, const Vec &x_star, double f_
     SqpDriver driver(opts);
     const SqpSolution sol = driver.solve(model);
 
-    ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE(std::abs(sol.f - f_star), kFRelTol * std::max(1.0, std::abs(f_star)))
         << "f = " << fmt::format("{:.17g}", sol.f)
         << " vs f_star = " << fmt::format("{:.17g}", f_star);

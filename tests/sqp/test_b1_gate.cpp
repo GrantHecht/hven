@@ -404,7 +404,7 @@ TEST(B1Gate, MinimalReleaseNoLongerCertifiesTheOldPoint) {
 
     // The p = 1 solve is the one whose price goes stale: the row is active and
     // its multiplier is strictly positive and exactly cancelling.
-    ASSERT_EQ(SqpStatus::kOptimal, link.first.status);
+    ASSERT_EQ(SolveStatus::kOptimal, link.first.status);
     EXPECT_NEAR(1.0, link.first.x(0), 1e-8);
     ASSERT_EQ(1, link.first.lambda_i.size());
     EXPECT_NEAR(B1MinimalRelease::lambda_star(1.0), link.first.lambda_i(0), 1e-8)
@@ -412,7 +412,7 @@ TEST(B1Gate, MinimalReleaseNoLongerCertifiesTheOldPoint) {
 
     // The warm solve is a real ingest -- not a silently-cold one.
     EXPECT_EQ(StartLevel::kWarm, link.second.counters.start_level_used);
-    EXPECT_EQ(SqpStatus::kOptimal, link.second.status);
+    EXPECT_EQ(SolveStatus::kOptimal, link.second.status);
     // THE REGRESSION: it no longer certifies the old point in zero majors.
     EXPECT_GT(link.second.counters.major_iters, 0)
         << "the released row's stale price is cleared, stationarity reads "
@@ -439,7 +439,7 @@ TEST(B1Gate, AFullyReleasedRowExitsWithAnExactlyZeroPrice) {
     B1MinimalRelease model(0.0);
     const WarmLink link = warm_link(model, 1.0, 3.0, probe_options());
 
-    ASSERT_EQ(SqpStatus::kOptimal, link.second.status);
+    ASSERT_EQ(SolveStatus::kOptimal, link.second.status);
     EXPECT_NEAR(2.0, link.second.x(0), 1e-7) << "the unconstrained minimizer is feasible at p = 3";
     ASSERT_EQ(1, link.second.lambda_i.size());
     EXPECT_EQ(0.0, link.second.lambda_i(0))
@@ -464,11 +464,11 @@ TEST(B1Gate, ReviewSphereAgreesWithItsAnalyticPathAtEveryStepSize) {
         B1ReviewSphere model(0.0);
         const WarmLink link = warm_link(model, 0.0, dp, probe_options());
 
-        ASSERT_EQ(SqpStatus::kOptimal, link.first.status);
+        ASSERT_EQ(SolveStatus::kOptimal, link.first.status);
         EXPECT_NEAR(B1ReviewSphere::f_star(0.0), link.first.f, 1e-6);
 
         EXPECT_EQ(StartLevel::kWarm, link.second.counters.start_level_used);
-        ASSERT_EQ(SqpStatus::kOptimal, link.second.status);
+        ASSERT_EQ(SolveStatus::kOptimal, link.second.status);
         EXPECT_NEAR(B1ReviewSphere::f_star(dp), link.second.f, 1e-6)
             << "pre-repair the objective stayed frozen at f*(0) = -sqrt(3)";
         const test_support::NlpKktResidual r = self_check_kkt(model, link.second, kTol);
@@ -503,7 +503,7 @@ TEST(B1Gate, ReviewSphereContinuationSweepTracksTheTruePath) {
         EXPECT_TRUE(res.reached_p1);
         double worst_rel = 0.0;
         for (const ContinuationStep &st : res.steps) {
-            ASSERT_EQ(SqpStatus::kOptimal, st.status) << "at p = " << st.p(0);
+            ASSERT_EQ(SolveStatus::kOptimal, st.status) << "at p = " << st.p(0);
             model.set_parameters(st.p);
             const double truth = B1ReviewSphere::f_star(st.p(0));
             worst_rel = std::max(worst_rel, std::abs(model.eval_f(st.x) - truth) /
@@ -546,13 +546,13 @@ TEST(B1Gate, F6RelaxingStepsNoLongerFreezeTheObjective) {
 
         SqpDriver cold(cold_opts);
         const SqpSolution first = cold.solve(model, model.start_point());
-        ASSERT_EQ(SqpStatus::kOptimal, first.status);
+        ASSERT_EQ(SolveStatus::kOptimal, first.status);
         model.set_parameters(Vec::Constant(1, p_to));
         SqpDriver warm(opts);
         const SqpSolution second = warm.solve(model, first.x, first.warm_start);
 
         EXPECT_EQ(StartLevel::kWarm, second.counters.start_level_used);
-        ASSERT_EQ(SqpStatus::kOptimal, second.status);
+        ASSERT_EQ(SolveStatus::kOptimal, second.status);
         EXPECT_NEAR(model.f_star(p_to), second.f, 1e-7)
             << "pre-repair the objective froze at f*(p_from)";
         const test_support::NlpKktResidual r = self_check_kkt(model, second, 1e-8);
@@ -580,12 +580,12 @@ TEST(B1Gate, F6TighteningStepWasNeverExposedAndIsUnchanged) {
 
     SqpDriver cold(cold_opts);
     const SqpSolution first = cold.solve(model, model.start_point());
-    ASSERT_EQ(SqpStatus::kOptimal, first.status);
+    ASSERT_EQ(SolveStatus::kOptimal, first.status);
     model.set_parameters(Vec::Constant(1, 0.20));
     SqpDriver warm(opts);
     const SqpSolution second = warm.solve(model, first.x, first.warm_start);
 
-    ASSERT_EQ(SqpStatus::kOptimal, second.status);
+    ASSERT_EQ(SolveStatus::kOptimal, second.status);
     EXPECT_EQ(StartLevel::kWarm, second.counters.start_level_used);
     // THE REVIEWER'S PRE-REPAIR READING, UNCHANGED BY THE REPAIR. The gate
     // cannot bind on a tightening step: every row that moves becomes MORE
@@ -637,7 +637,7 @@ TEST(B1Gate, TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt) {
     F6PathBoundQuadrature coarse_model(coarse.nodes, coarse.weights, 0.30);
     SqpDriver cold(probe_options(StartLevel::kCold));
     const SqpSolution coarse_sol = cold.solve(coarse_model, coarse_model.start_point());
-    ASSERT_EQ(SqpStatus::kOptimal, coarse_sol.status);
+    ASSERT_EQ(SolveStatus::kOptimal, coarse_sol.status);
     ASSERT_NE(0u, coarse_sol.warm_start.structure_hash) << "the SOURCE object is hash-valid";
     ASSERT_GT(coarse_sol.lambda_i.maxCoeff(), 0.0) << "and carries live inequality prices";
 
@@ -662,7 +662,7 @@ TEST(B1Gate, TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt) {
     EXPECT_EQ(1, sol.counters.n_seeded);
     EXPECT_EQ(0, sol.counters.seeded_clamped)
         << "a transfer of a driver-produced object carries no negative price";
-    EXPECT_EQ(SqpStatus::kOptimal, sol.status);
+    EXPECT_EQ(SolveStatus::kOptimal, sol.status);
     // THE B-1 GUARANTEE ON THE NEWLY REACHABLE ROUTE. p relaxed 0.30 -> 1.20,
     // so every path row went strictly slack and every transferred price is
     // stale; without the clear the stale prices zero the Lagrangian gradient at
@@ -824,13 +824,13 @@ TEST(B1Gate, EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair) {
 
         SqpDriver cold(probe_options(StartLevel::kCold));
         const SqpSolution first = cold.solve(*p.model, p.model->start_point());
-        ASSERT_EQ(SqpStatus::kOptimal, first.status);
+        ASSERT_EQ(SolveStatus::kOptimal, first.status);
         EXPECT_EQ(c.cold_majors, first.counters.major_iters);
 
         SqpDriver warm(probe_options(StartLevel::kWarm));
         const SqpSolution second = warm.solve(*p.model, first.x, first.warm_start);
         EXPECT_EQ(StartLevel::kWarm, second.counters.start_level_used);
-        EXPECT_EQ(SqpStatus::kOptimal, second.status);
+        EXPECT_EQ(SolveStatus::kOptimal, second.status);
         EXPECT_EQ(c.warm_majors, second.counters.major_iters);
         EXPECT_DOUBLE_EQ(c.f, second.f) << "bit-identical to the pre-repair reading";
         EXPECT_DOUBLE_EQ(c.x0, second.x(0)) << "bit-identical to the pre-repair reading";
@@ -857,7 +857,7 @@ TEST(B1Gate, AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies) {
     B1MinimalRelease model(1.0);
     SqpDriver cold(probe_options(StartLevel::kCold));
     const SqpSolution first = cold.solve(model, model.start_point());
-    ASSERT_EQ(SqpStatus::kOptimal, first.status);
+    ASSERT_EQ(SolveStatus::kOptimal, first.status);
     ASSERT_NEAR(1.0, first.lambda_i(0), 1e-8) << "a live, strictly positive price";
     ASSERT_NEAR(0.0, model.eval_ci(first.x)(0), 1e-9) << "on a row sitting ON its boundary";
 
@@ -866,7 +866,7 @@ TEST(B1Gate, AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies) {
     SqpDriver warm(probe_options(StartLevel::kWarm));
     const SqpSolution second = warm.solve(model, first.x, first.warm_start);
     EXPECT_EQ(StartLevel::kWarm, second.counters.start_level_used);
-    EXPECT_EQ(SqpStatus::kOptimal, second.status);
+    EXPECT_EQ(SolveStatus::kOptimal, second.status);
     EXPECT_EQ(0, second.counters.major_iters)
         << "THE GUARD: the gate must not destroy the zero-major hand-off it sits beside";
     EXPECT_DOUBLE_EQ(first.lambda_i(0), second.lambda_i(0))
@@ -896,7 +896,7 @@ TEST(B1Gate, TheActivityBoundaryIsFeasTolOnBothSides) {
     B1MinimalRelease model(1.0);
     SqpDriver cold(probe_options(StartLevel::kCold));
     const SqpSolution first = cold.solve(model, model.start_point());
-    ASSERT_EQ(SqpStatus::kOptimal, first.status);
+    ASSERT_EQ(SolveStatus::kOptimal, first.status);
 
     SqpOptions opts = probe_options();
     // INSIDE the band: the row is slack by 0.1 * feas_tol, so it still counts
@@ -905,7 +905,7 @@ TEST(B1Gate, TheActivityBoundaryIsFeasTolOnBothSides) {
     model.set_parameters(Vec::Constant(1, 1.0 + 0.1 * kTol));
     SqpDriver inside(opts);
     const SqpSolution s_in = inside.solve(model, first.x, first.warm_start);
-    EXPECT_EQ(SqpStatus::kOptimal, s_in.status);
+    EXPECT_EQ(SolveStatus::kOptimal, s_in.status);
     EXPECT_EQ(0, s_in.counters.major_iters) << "within feas_tol of the boundary: still active";
     EXPECT_GT(s_in.lambda_i(0), 0.0);
 
@@ -914,7 +914,7 @@ TEST(B1Gate, TheActivityBoundaryIsFeasTolOnBothSides) {
     model.set_parameters(Vec::Constant(1, 1.0 + 100.0 * kTol));
     SqpDriver outside(opts);
     const SqpSolution s_out = outside.solve(model, first.x, first.warm_start);
-    EXPECT_EQ(SqpStatus::kOptimal, s_out.status);
+    EXPECT_EQ(SolveStatus::kOptimal, s_out.status);
     EXPECT_GT(s_out.counters.major_iters, 0) << "beyond feas_tol: the stale price is cleared";
     EXPECT_NEAR(B1MinimalRelease::x_star(1.0 + 100.0 * kTol), s_out.x(0), 1e-7);
 }
@@ -938,12 +938,12 @@ TEST(B1Gate, SeededIngestCarriesTheB1Repair) {
     {
         B1MinimalRelease model(0.0);
         const WarmLink link = seeded_link(model, 1.0, 1.5, probe_options());
-        ASSERT_EQ(SqpStatus::kOptimal, link.first.status);
+        ASSERT_EQ(SolveStatus::kOptimal, link.first.status);
         EXPECT_EQ(StartLevel::kSeeded, link.second.counters.start_level_used);
         EXPECT_EQ(1, link.second.counters.n_seeded);
         EXPECT_EQ(0, link.second.counters.seeded_clamped)
             << "a driver-produced hand-off is non-negative by construction";
-        ASSERT_EQ(SqpStatus::kOptimal, link.second.status);
+        ASSERT_EQ(SolveStatus::kOptimal, link.second.status);
         EXPECT_GT(link.second.counters.major_iters, 0)
             << "THE SEEDED B-1 PIN: the released row's stale price is cleared on this route too";
         EXPECT_NEAR(B1MinimalRelease::x_star(1.5), link.second.x(0), 1e-7);
@@ -960,9 +960,9 @@ TEST(B1Gate, SeededIngestCarriesTheB1Repair) {
         SCOPED_TRACE(fmt::format("sphere dp = {}", dp));
         B1ReviewSphere model(0.0);
         const WarmLink link = seeded_link(model, 0.0, dp, probe_options());
-        ASSERT_EQ(SqpStatus::kOptimal, link.first.status);
+        ASSERT_EQ(SolveStatus::kOptimal, link.first.status);
         EXPECT_EQ(StartLevel::kSeeded, link.second.counters.start_level_used);
-        ASSERT_EQ(SqpStatus::kOptimal, link.second.status);
+        ASSERT_EQ(SolveStatus::kOptimal, link.second.status);
         EXPECT_NEAR(B1ReviewSphere::f_star(dp), link.second.f, 1e-6)
             << "pre-repair the objective stayed frozen at f*(0) = -sqrt(3)";
         const test_support::NlpKktResidual r = self_check_kkt(model, link.second, kTol);
@@ -989,7 +989,7 @@ TEST(B1Gate, SeededIngestCarriesTheB1Repair) {
 
             SqpDriver cold(cold_opts);
             const SqpSolution first = cold.solve(model, model.start_point());
-            ASSERT_EQ(SqpStatus::kOptimal, first.status);
+            ASSERT_EQ(SolveStatus::kOptimal, first.status);
             WarmStart hashless = first.warm_start;
             hashless.structure_hash = 0;
             model.set_parameters(Vec::Constant(1, p_to));
@@ -997,7 +997,7 @@ TEST(B1Gate, SeededIngestCarriesTheB1Repair) {
             const SqpSolution second = seeded.solve(model, first.x, hashless);
 
             EXPECT_EQ(StartLevel::kSeeded, second.counters.start_level_used);
-            ASSERT_EQ(SqpStatus::kOptimal, second.status);
+            ASSERT_EQ(SolveStatus::kOptimal, second.status);
             EXPECT_NEAR(model.f_star(p_to), second.f, 1e-7)
                 << "pre-repair the objective froze at f*(p_from)";
             const test_support::NlpKktResidual r = self_check_kkt(model, second, 1e-8);
@@ -1026,7 +1026,7 @@ TEST(B1Gate, ASeededZeroMajorSolveWithALiveInequalityPriceStillCertifies) {
     B1MinimalRelease model(1.0);
     SqpDriver cold(probe_options(StartLevel::kCold));
     const SqpSolution first = cold.solve(model, model.start_point());
-    ASSERT_EQ(SqpStatus::kOptimal, first.status);
+    ASSERT_EQ(SolveStatus::kOptimal, first.status);
     ASSERT_NEAR(1.0, first.lambda_i(0), 1e-8) << "a live, strictly positive price";
     ASSERT_NEAR(0.0, model.eval_ci(first.x)(0), 1e-9) << "on a row sitting ON its boundary";
 
@@ -1040,7 +1040,7 @@ TEST(B1Gate, ASeededZeroMajorSolveWithALiveInequalityPriceStillCertifies) {
     const SqpSolution second = seeded.solve(model, first.x, hashless);
     EXPECT_EQ(StartLevel::kSeeded, second.counters.start_level_used);
     EXPECT_EQ(1, second.counters.n_seeded);
-    EXPECT_EQ(SqpStatus::kOptimal, second.status);
+    EXPECT_EQ(SolveStatus::kOptimal, second.status);
     EXPECT_EQ(0, second.counters.major_iters)
         << "THE GUARD: neither the B-1 clear, the seeded sign clamp, nor the degradation may "
            "destroy the zero-major hand-off they all sit beside (Phase-5 Task 0's O-1)";
@@ -1191,7 +1191,7 @@ TEST(B1Gate, AScaledStalePriceIsRefusedAtIngest) {
     EXPECT_EQ(0, sol.counters.seeded_clamped)
         << "the price is POSITIVE -- the seeded sign clamp has nothing to say here, which is "
            "precisely why a second gate was needed";
-    EXPECT_EQ(SqpStatus::kOptimal, sol.status);
+    EXPECT_EQ(SolveStatus::kOptimal, sol.status);
     EXPECT_GT(sol.counters.major_iters, 0)
         << "THE PIN: pre-W1 this certified f = 0 in ZERO majors, with stationarity 0, "
            "feasibility 0 and complementarity 0.5 -- honouring feas_tol * ||lambda_i||inf "
@@ -1228,7 +1228,7 @@ TEST(B1Gate, TheReportedScaleIsRefusedEvenThoughTheSolveThenRunsOut) {
 
     ASSERT_EQ(StartLevel::kSeeded, sol.counters.start_level_used);
     const bool false_certificate =
-        sol.status == SqpStatus::kOptimal && sol.counters.major_iters == 0;
+        sol.status == SolveStatus::kOptimal && sol.counters.major_iters == 0;
     EXPECT_FALSE(false_certificate)
         << "THE PIN: pre-W1 this returned kOptimal in ZERO majors at f = 0 against a truth of "
            "-5.0e5, carrying complementarity 5.0e5 -- exactly one half of the constructive "
@@ -1245,7 +1245,7 @@ TEST(B1Gate, TheScaledStalePriceIsRefusedAtWarmToo) {
     B1ScaledStalePrice model(1e6, 5e-7);
     SqpDriver cold(probe_options(StartLevel::kCold));
     const SqpSolution first = cold.solve(model, model.start_point());
-    ASSERT_EQ(SqpStatus::kOptimal, first.status);
+    ASSERT_EQ(SolveStatus::kOptimal, first.status);
     ASSERT_TRUE(first.warm_start.valid);
     ASSERT_NE(0u, first.warm_start.structure_hash);
 
@@ -1277,7 +1277,7 @@ TEST(B1Gate, TheComplementarityGateBoundaryIsKktTolOnBothSides) {
         const SqpSolution sol = driver.solve(model, model.start_point(),
                                              scaled_seed(Vec::Zero(1), model.stale_price()));
         ASSERT_EQ(StartLevel::kSeeded, sol.counters.start_level_used);
-        EXPECT_EQ(SqpStatus::kOptimal, sol.status);
+        EXPECT_EQ(SolveStatus::kOptimal, sol.status);
         if (inside) {
             EXPECT_EQ(0, sol.counters.major_iters)
                 << "THE GUARD: a complementarity residual at or below kkt_tol is what the "
@@ -1351,7 +1351,7 @@ TEST(B1Gate, TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers) 
     // the full-step window is armed at all (a seeded object never arms it).
     SqpDriver cold(opts);
     const SqpSolution first = cold.solve(model, model.start_point());
-    ASSERT_EQ(SqpStatus::kOptimal, first.status);
+    ASSERT_EQ(SolveStatus::kOptimal, first.status);
     ASSERT_NE(0u, first.warm_start.structure_hash);
 
     WarmStart poisoned = first.warm_start;
@@ -1377,7 +1377,7 @@ TEST(B1Gate, TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers) 
     // the gate is disarmed on exactly that triple, and the very next
     // convergence test returns kOptimal at the NON-KKT point -- f = 0 against
     // a truth of -0.8, in fewer majors than the honest solve takes.
-    EXPECT_EQ(SqpStatus::kOptimal, sol.status);
+    EXPECT_EQ(SolveStatus::kOptimal, sol.status);
     // 1e-3, not tighter: the returned x sits ~1e-10 outside a row priced at
     // 1e6, so the objective carries the same feas_tol * ||lambda||-scale
     // residue element (13) measures and explains. The discriminator against
@@ -1427,11 +1427,11 @@ TEST(B1Gate, MinimalReleaseNoLongerCertifiesTheOldPointUnderKSsn) {
     B1MinimalRelease model(0.0);
     const WarmLink link = warm_link(model, 1.0, 1.5, ssn_probe_options());
 
-    ASSERT_EQ(SqpStatus::kOptimal, link.first.status);
+    ASSERT_EQ(SolveStatus::kOptimal, link.first.status);
     EXPECT_NEAR(1.0, link.first.x(0), 1e-8);
 
     EXPECT_EQ(StartLevel::kWarm, link.second.counters.start_level_used);
-    EXPECT_EQ(SqpStatus::kOptimal, link.second.status);
+    EXPECT_EQ(SolveStatus::kOptimal, link.second.status);
     // THE REGRESSION, IDENTICALLY: still not zero majors, still the right
     // point, still a complete certificate.
     EXPECT_GT(link.second.counters.major_iters, 0)
@@ -1458,7 +1458,7 @@ TEST(B1Gate, AFullyReleasedRowExitsWithAnExactlyZeroPriceUnderKSsn) {
     B1MinimalRelease model(0.0);
     const WarmLink link = warm_link(model, 1.0, 3.0, ssn_probe_options());
 
-    ASSERT_EQ(SqpStatus::kOptimal, link.second.status);
+    ASSERT_EQ(SolveStatus::kOptimal, link.second.status);
     EXPECT_NEAR(2.0, link.second.x(0), 1e-7);
     ASSERT_EQ(1, link.second.lambda_i.size());
     EXPECT_EQ(0.0, link.second.lambda_i(0))
@@ -1548,8 +1548,8 @@ TEST(B1Gate, KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined) {
     SqpDriver ssn_driver(ssn_probe_options(StartLevel::kWarm));
     const SqpSolution ssn = ssn_driver.solve(model, model.start_point(), seed);
 
-    ASSERT_EQ(SqpStatus::kOptimal, walk.status);
-    ASSERT_EQ(SqpStatus::kOptimal, ssn.status);
+    ASSERT_EQ(SolveStatus::kOptimal, walk.status);
+    ASSERT_EQ(SolveStatus::kOptimal, ssn.status);
 
     const test_support::NlpKktResidual walk_r = self_check_kkt(model, walk, kTol);
     const test_support::NlpKktResidual ssn_r = self_check_kkt(model, ssn, kTol);
@@ -1590,7 +1590,7 @@ TEST(B1Gate, ReviewSphereIsRepairedUnderKSsnToo) {
     B1ReviewSphere model(0.0);
     const WarmLink link = warm_link(model, 0.0, 0.5, ssn_probe_options());
 
-    ASSERT_EQ(SqpStatus::kOptimal, link.second.status);
+    ASSERT_EQ(SolveStatus::kOptimal, link.second.status);
     EXPECT_EQ(StartLevel::kWarm, link.second.counters.start_level_used);
     EXPECT_GT(link.second.counters.major_iters, 0)
         << "THE REVIEWER'S OWN REPRO, under kSsn: pre-repair this returned kOptimal in ZERO "

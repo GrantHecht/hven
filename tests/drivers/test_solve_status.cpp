@@ -22,8 +22,6 @@ using hven::solvers::IpmStopReason;
 using hven::solvers::resolve_ipm_phase_status;
 using hven::solvers::severity;
 using hven::solvers::SolveStatus;
-using hven::solvers::SqpStatus;
-using hven::solvers::to_solve_status;
 using hven::solvers::to_string;
 
 namespace {
@@ -89,12 +87,11 @@ TEST(SolveStatus, IpmPhaseResolutionSplitsTheCapExitByStopReason) {
     }
 }
 
-TEST(SolveStatus, SqpMappingIsIdentityOnItsFive) {
-    EXPECT_EQ(to_solve_status(SqpStatus::kOptimal), SolveStatus::kOptimal);
-    EXPECT_EQ(to_solve_status(SqpStatus::kMaxIter), SolveStatus::kMaxIter);
-    EXPECT_EQ(to_solve_status(SqpStatus::kInfeasible), SolveStatus::kInfeasible);
-    EXPECT_EQ(to_solve_status(SqpStatus::kNumericalError), SolveStatus::kNumericalError);
-    EXPECT_EQ(to_solve_status(SqpStatus::kBudgetExhausted), SolveStatus::kBudgetExhausted);
+// THE SQP MAPPING IS GONE with the enum it mapped from (M6 W5 T8.4): the SQP
+// engine reports SolveStatus directly, and the five values it can report are
+// the first five enumerators under the same names. What is left to pin is the
+// vocabulary itself, which is the CSV column and the printed status.
+TEST(SolveStatus, TheNineDisplayNamesArePinnedLiterals) {
     // All NINE spellings, not a sample of three: these strings are the CSV
     // column and the printed status, so each one is a pinned literal.
     EXPECT_STREQ(to_string(SolveStatus::kOptimal), "optimal");
@@ -113,13 +110,12 @@ TEST(SolveStatus, SqpMappingIsIdentityOnItsFive) {
     EXPECT_STREQ(to_string(IpmStopReason::kStageStalled), "stage_stalled");
     // Out-of-range values are refused, not silently mapped: the CSV column and
     // the printed status come from these switches. Every switch in the TU has
-    // its boundary here -- both to_string families, severity, the SQP
-    // to_solve_status, and resolve_ipm_phase_status's reason switch, which only
-    // the cap verdict reaches.
+    // its boundary here -- both to_string families, severity, and
+    // resolve_ipm_phase_status's reason switch, which only the cap verdict
+    // reaches.
     EXPECT_THROW((void)to_string(static_cast<SolveStatus>(99)), std::invalid_argument);
     EXPECT_THROW((void)to_string(static_cast<IpmStopReason>(99)), std::invalid_argument);
     EXPECT_THROW((void)severity(static_cast<SolveStatus>(99)), std::invalid_argument);
-    EXPECT_THROW((void)to_solve_status(static_cast<SqpStatus>(99)), std::invalid_argument);
     // An out-of-range VERDICT is now passed through untouched rather than
     // refused: resolve_ipm_phase_status reinterprets one verdict (the cap exit)
     // and returns every other unchanged, so it has no switch over the verdict

@@ -135,7 +135,7 @@ int main() {
             SqpDriver driver(cold_options(spec.max_iter));
             model->set_parameters(Vec::Constant(1, p));
             const SqpSolution sol = driver.solve(*model, model->start_point());
-            all_optimal = all_optimal && sol.status == SqpStatus::kOptimal;
+            all_optimal = all_optimal && sol.status == SolveStatus::kOptimal;
             majors += sol.counters.major_iters;
             minors += sol.counters.qp_minor_iters;
             fact += sol.counters.factorizations;

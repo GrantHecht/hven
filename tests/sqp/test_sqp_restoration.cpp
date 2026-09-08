@@ -687,7 +687,7 @@ TEST(SqpDriverRestoration, InfeasibleNlpCertifies) {
         SqpDriver driver(opts);
         const SqpSolution sol = driver.solve(model);
 
-        EXPECT_EQ(sol.status, SqpStatus::kInfeasible);
+        EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
         EXPECT_TRUE(sol.infeasibility_certified)
             << "the status alone does not say whether a certificate exists; this flag does";
         EXPECT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN, not been skipped";
@@ -877,7 +877,7 @@ TEST(SqpDriverRestoration, AlgebraModeDivergenceIsANonUniqueSubproblemOptimum) {
         opts.qp.ws_algebra = algebra;
         SqpDriver driver(opts);
         const SqpSolution sol = driver.solve(model);
-        EXPECT_EQ(sol.status, SqpStatus::kInfeasible);
+        EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
         EXPECT_TRUE(sol.infeasibility_certified);
         const double t = 1.0 / std::sqrt(2.0);
         EXPECT_NEAR(sol.x(0), t, 1e-5);
@@ -914,7 +914,7 @@ TEST(SqpDriverRestoration, RestorationRecoversAndResumes) {
         SqpDriver driver(opts);
         const SqpSolution sol = driver.solve(model);
 
-        ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+        ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_FALSE(sol.infeasibility_certified) << "a RECOVERED solve certifies nothing";
         EXPECT_GE(sol.counters.restoration_iters, 1);
 
@@ -1008,7 +1008,7 @@ TEST(SqpDriverRestoration, RestorationIsIdleOnCleanProblems) {
         record_funnel_into(opts, &log);
         SqpDriver driver(opts);
         const SqpSolution sol = driver.solve(*p.model);
-        EXPECT_EQ(sol.status, SqpStatus::kOptimal);
+        EXPECT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_FALSE(sol.infeasibility_certified);
         EXPECT_EQ(sol.counters.restoration_iters, 0);
         EXPECT_TRUE(log.resumes.empty()) << "the funnel must not be re-based on a clean solve";
@@ -1065,7 +1065,7 @@ TEST(SqpDriverRestoration, SecondRequestIsCappedAndReported) {
     EXPECT_GE(sol.counters.restoration_iters, 1);
     EXPECT_GT(sol.counters.steps_accepted, 1) << "the resumed loop made real progress";
     // ...and the second is reported rather than serviced.
-    EXPECT_EQ(sol.status, SqpStatus::kInfeasible);
+    EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
     EXPECT_FALSE(sol.infeasibility_certified)
         << "the cap exit makes NO claim about the model -- and this fixture's NLP is in fact "
            "feasible, so a certificate here would be a wrong answer, not a conservative one";
@@ -1116,7 +1116,7 @@ TEST(SqpDriverRestoration, ZeroStepIsAcceptedAsAKktPoint) {
     SqpDriver driver(opts);
     const SqpSolution sol = driver.solve(feasibility, feasibility.start_point());
 
-    EXPECT_EQ(sol.status, SqpStatus::kOptimal);
+    EXPECT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_EQ(sol.counters.major_iters, 1) << "one subproblem to price the multipliers, no more";
     EXPECT_EQ(sol.counters.rejected_steps, 0);
     ASSERT_GE(sol.history.size(), 2u);
@@ -1141,7 +1141,7 @@ TEST(SqpDriverRestoration, ExhaustedElasticTierEntersRestoration) {
     SqpDriver driver(opts);
     const SqpSolution sol = driver.solve(model);
 
-    EXPECT_EQ(sol.status, SqpStatus::kInfeasible);
+    EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
     EXPECT_TRUE(sol.infeasibility_certified);
     EXPECT_GE(sol.counters.elastic_activations, 1);
     EXPECT_GE(sol.counters.restoration_iters, 1);
@@ -1176,7 +1176,7 @@ TEST(SqpDriverRestoration, ExhaustedElasticTierEntersRestorationUnderEveryMode) 
         SqpDriver driver(opts);
         const SqpSolution sol = driver.solve(model);
 
-        EXPECT_EQ(sol.status, SqpStatus::kInfeasible);
+        EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
         EXPECT_TRUE(sol.infeasibility_certified);
         EXPECT_GE(sol.counters.restoration_iters, 1);
         ASSERT_FALSE(sol.history.empty());
@@ -1263,7 +1263,7 @@ TEST(SqpDriverRadius, FloorRaisesTheRestorationRequest) {
 
         // And the phase ran, and produced the same verdict and the same
         // certificate as the elastic tier's route does (InfeasibleNlpCertifies).
-        EXPECT_EQ(sol.status, SqpStatus::kInfeasible);
+        EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
         EXPECT_TRUE(sol.infeasibility_certified);
         EXPECT_GE(sol.counters.restoration_iters, 1);
         const SubgradientCertificate c = check_certificate(model, sol, opts.feas_tol);
@@ -1312,7 +1312,7 @@ TEST(SqpDriverRadius, InfiniteInitialRadiusShrinksToTrMax) {
         SqpDriver driver(opts);
         const SqpSolution sol = driver.solve(*p.model);
 
-        EXPECT_EQ(sol.status, SqpStatus::kOptimal);
+        EXPECT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_NEAR(sol.f, p.f_star, 1e-6);
         EXPECT_EQ(sol.counters.rejected_steps > 0, c.rejects);
 
@@ -1588,7 +1588,7 @@ TEST(SqpDriverRestorationSeed, TheTakenCandidateIsRecordedOnTheRequestingRow) {
     // -- so the site is pinned elsewhere, on fixtures that agree in both.
 
     // AND THE ANSWER IS UNCHANGED by the better start.
-    EXPECT_EQ(SqpStatus::kInfeasible, sol.status);
+    EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
     EXPECT_TRUE(sol.infeasibility_certified);
     const double t = 1.0 / std::sqrt(2.0);
     EXPECT_NEAR(sol.x(0), t, 1e-5);
@@ -1613,7 +1613,7 @@ TEST(SqpDriverRestorationSeed, TheSeedIsNotGatedOnTheQpMode) {
         // this at 0 on the other two kernels, in both configs (mutation-run
         // evidence in docs/notes/data/2026-09-m6-w2-t4-r4/).
         EXPECT_EQ(1, seeded_rows(sol)) << "the seed is taken in EVERY mode on this fixture";
-        EXPECT_EQ(SqpStatus::kInfeasible, sol.status);
+        EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
         EXPECT_TRUE(sol.infeasibility_certified);
         const double t = 1.0 / std::sqrt(2.0);
         EXPECT_NEAR(sol.x(0), t, 1e-5);
@@ -1643,7 +1643,7 @@ TEST(SqpDriverRestorationSeed, TheExhaustedLadderSiteSeedsFromItsOwnStep) {
         ASSERT_NE(nullptr, row);
         EXPECT_EQ(StepVerdict::kRestore, row->verdict) << "the ladder's exhaustion, not the floor";
         EXPECT_TRUE(row->elastic_applied);
-        EXPECT_EQ(SqpStatus::kInfeasible, sol.status);
+        EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
         EXPECT_TRUE(sol.infeasibility_certified);
     }
 }
@@ -1662,7 +1662,7 @@ TEST(SqpDriverRestorationSeed, AWorseElasticCandidateIsRefusedOnTheSameModel) {
     ASSERT_FALSE(sol.history.empty());
     EXPECT_TRUE(sol.history.back().elastic_applied) << "and the site was REACHED with an offer";
     EXPECT_EQ(StepVerdict::kRestore, sol.history.back().verdict);
-    EXPECT_EQ(SqpStatus::kInfeasible, sol.status);
+    EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
     EXPECT_TRUE(sol.infeasibility_certified);
 }
 
@@ -1683,7 +1683,7 @@ TEST(SqpDriverRestorationSeed, AZeroElasticStepIsNotACandidate) {
         // x fails the strict guard anyway) but NOT PAYING for the guard query:
         // deleting it spends a sixth full evaluation here. Measured, both configs.
         EXPECT_EQ(5, sol.counters.evals_full) << "no guard evaluation was spent on a zero step";
-        EXPECT_EQ(SqpStatus::kInfeasible, sol.status);
+        EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
         EXPECT_TRUE(sol.infeasibility_certified);
         EXPECT_NEAR(sol.x(0), 1.0, 1e-9);
     }
@@ -1729,13 +1729,13 @@ TEST(SqpDriverRestorationSeed, AJacobianPoisonedCandidateIsRefusedNotTaken) {
         SqpDriver driver(opts);
         const SqpSolution sol = driver.solve(model);
 
-        const bool refused_signature = sol.status == SqpStatus::kInfeasible &&
+        const bool refused_signature = sol.status == SolveStatus::kInfeasible &&
                                        sol.infeasibility_certified && seeded_rows(sol) == 0 &&
                                        sol.counters.restoration_iters >= 1 && model.poisoned == 1;
         // THE KILL: mutant M7 (jacobian_values_finite dropped) reaches this
         // signature at the candidate's own k -- taken, poisoned, sub-solve dies.
         const bool m7_signature = seeded_rows(sol) == 1 && model.poisoned >= 1 &&
-                                  sol.status == SqpStatus::kNumericalError &&
+                                  sol.status == SolveStatus::kNumericalError &&
                                   sol.counters.restoration_iters == 0;
         EXPECT_FALSE(m7_signature) << "the Jacobian screen let a poisoned candidate through and "
                                       "the sub-solve died on it (M7's signature)";
@@ -1767,7 +1767,7 @@ TEST(SqpDriverRestorationSeed, TheRadiusFloorSeedsFromTheRejectedTrial) {
     EXPECT_EQ(StepVerdict::kReject, row->verdict)
         << "kReject on the REQUESTING row is the floor's own signature: the ladder's exhaustion "
            "writes kRestore, and the funnel's signature never fires on this fixture";
-    EXPECT_EQ(SqpStatus::kInfeasible, sol.status);
+    EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
     EXPECT_TRUE(sol.infeasibility_certified);
 }
 
@@ -1798,7 +1798,7 @@ TEST(SqpDriverRestorationSeed, TheGuardAndThePhaseRunOnTheCallerScale) {
         // AND THE TWO SCALES ORDER THE OFFER OPPOSITELY, which is what makes
         // this pin bite: measured caller 50000 -> 49999.999999992513 (taken) and
         // engine 500 -> 500.00000000006105 (refused), on a tiny x0 displacement.
-        EXPECT_EQ(SqpStatus::kInfeasible, sol.status);
+        EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
         // The phase minimizes that SAME caller-scale h and lands at x0 = 1, where
         // the engine-scale measure would have stopped at x0 = 0.
         EXPECT_TRUE(sol.infeasibility_certified);

@@ -719,7 +719,7 @@ TEST(IpqpTrace, RouteEventFaceRowsAndFaceBoundsAreSwapFalsifiable) {
         driver.attach_trace(&sink);
         BoundActiveOnlyModel model;
         const SqpSolution s = driver.solve(model);
-        ASSERT_EQ(s.status, SqpStatus::kOptimal);
+        ASSERT_EQ(s.status, SolveStatus::kOptimal);
         ASSERT_FALSE(sink.routes.empty()) << "at least one subproblem was consulted";
         Index face_rows_sum = 0, face_bounds_sum = 0;
         for (const IpqpTraceRouteEvent &ev : sink.routes) {
@@ -737,7 +737,7 @@ TEST(IpqpTrace, RouteEventFaceRowsAndFaceBoundsAreSwapFalsifiable) {
         driver.attach_trace(&sink);
         RowActiveOnlyModel model;
         const SqpSolution s = driver.solve(model);
-        ASSERT_EQ(s.status, SqpStatus::kOptimal);
+        ASSERT_EQ(s.status, SolveStatus::kOptimal);
         ASSERT_FALSE(sink.routes.empty()) << "at least one subproblem was consulted";
         Index face_rows_sum = 0, face_bounds_sum = 0;
         for (const IpqpTraceRouteEvent &ev : sink.routes) {

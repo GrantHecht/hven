@@ -63,11 +63,11 @@ using hven::solvers::NlpProblemModel;
 using hven::solvers::NLPSolver;
 using hven::solvers::QpMode;
 using hven::solvers::serialize_ipm_polish;
+using hven::solvers::SolveStatus;
 using hven::solvers::SqpCounters;
 using hven::solvers::SqpDriver;
 using hven::solvers::SqpOptions;
 using hven::solvers::SqpSolution;
-using hven::solvers::SqpStatus;
 using hven::solvers::StartLevel;
 using hven::solvers::to_sqp_warm_start;
 using hven::solvers::WarmExtension;
@@ -456,7 +456,7 @@ TEST(SqpWarmCurrency, ASolveThatThrewLeavesAnEarlierExportStanding) {
 
     SqpDriver driver{SqpOptions{}};
     const SqpSolution first = driver.solve(*bridge, good->start_point());
-    ASSERT_EQ(first.status, SqpStatus::kOptimal);
+    ASSERT_EQ(first.status, SolveStatus::kOptimal);
     const WarmStartData after_first = driver.export_warm_start();
 
     // A second solve that throws -- here at the declared-box validation, before
@@ -481,7 +481,7 @@ TEST(SqpWarmCurrency, ExportCarriesTheSolutionAtDeclaredWidthsAndTheBridgesKey) 
 
     SqpDriver driver{SqpOptions{}};
     const SqpSolution sol = driver.solve(*bridge, model->start_point());
-    ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
 
     const WarmStartData warm = driver.export_warm_start();
 
@@ -514,10 +514,10 @@ TEST(SqpWarmCurrency, ExportTracksTheLastCompletedSolve) {
     const auto wide = std::make_shared<CurrencyWiderModel>();
 
     SqpDriver driver{SqpOptions{}};
-    ASSERT_EQ(driver.solve(*narrow).status, SqpStatus::kOptimal);
+    ASSERT_EQ(driver.solve(*narrow).status, SolveStatus::kOptimal);
     ASSERT_EQ(driver.export_warm_start().primal_.size(), 3);
 
-    ASSERT_EQ(driver.solve(*wide).status, SqpStatus::kOptimal);
+    ASSERT_EQ(driver.solve(*wide).status, SolveStatus::kOptimal);
     EXPECT_EQ(driver.export_warm_start().primal_.size(), 4);
 }
 
@@ -678,7 +678,7 @@ TEST(SqpWarmCurrency, AForeignExtensionTagIsSkippedSilently) {
     SqpDriver driver{SqpOptions{}};
     ASSERT_NO_THROW(driver.stage_warm_start(data));
     const SqpSolution out = driver.solve(*bridge, model->start_point());
-    EXPECT_EQ(out.status, SqpStatus::kOptimal);
+    EXPECT_EQ(out.status, SolveStatus::kOptimal);
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
 }
 
@@ -792,7 +792,7 @@ TEST(SqpWarmCurrency, AStagedValueIsConsumedByTheNextSolveAndTheOneAfterIsCold) 
     driver.stage_warm_start(core_payload(sol, *bridge));
 
     const SqpSolution first = driver.solve(*bridge, model->start_point());
-    EXPECT_EQ(first.status, SqpStatus::kOptimal);
+    EXPECT_EQ(first.status, SolveStatus::kOptimal);
     EXPECT_EQ(first.counters.start_level_used, StartLevel::kSeeded);
     EXPECT_EQ(first.counters.n_seeded, 1);
 
@@ -866,7 +866,7 @@ TEST(SqpWarmCurrency, ACoreOnlyValueEntersAtTheSeededLevel) {
     // replace it, the first iterate could not be the solved point.
     const SqpSolution out = driver.solve(*bridge, Vec::Constant(3, 1.75));
 
-    EXPECT_EQ(out.status, SqpStatus::kOptimal);
+    EXPECT_EQ(out.status, SolveStatus::kOptimal);
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
     // The staged primal replaced x0, through the ingest rule this class already
     // documents ("x0 is the cold fallback"): the first measured iterate is the
@@ -1016,7 +1016,7 @@ TEST(SqpWarmCurrency, InteriorPointExportCrossesOverIntoTheSqpEngine) {
     sqp.stage_warm_start(exported);
     const SqpSolution out = sqp.solve(*bridge, model->start_point());
 
-    EXPECT_EQ(out.status, SqpStatus::kOptimal);
+    EXPECT_EQ(out.status, SolveStatus::kOptimal);
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
     // At the driver's own default kkt_tol, not tighter: the SQP engine
     // certifies the polished point rather than re-solving to machine
@@ -1028,7 +1028,7 @@ TEST(SqpWarmCurrency, InteriorPointExportCrossesOverIntoTheSqpEngine) {
     // saves, not by an exact trajectory. A cold solve of the same problem costs
     // strictly more majors than the polished one.
     const SqpSolution cold = solve_fixture_cold(*model);
-    ASSERT_EQ(cold.status, SqpStatus::kOptimal);
+    ASSERT_EQ(cold.status, SolveStatus::kOptimal);
     EXPECT_LT(out.counters.major_iters, cold.counters.major_iters)
         << "the crossover must save majors against a cold solve of the same problem";
 
@@ -1104,9 +1104,9 @@ void expect_same_answer(const SqpSolution &hot, const SqpSolution &cold) {
     EXPECT_EQ(hot.status, cold.status);
     EXPECT_EQ(hot.infeasibility_certified, cold.infeasibility_certified);
     expect_same_bits(hot.f, cold.f, "objective");
-    expect_same_bits(hot.stationarity, cold.stationarity, "stationarity");
-    expect_same_bits(hot.feasibility, cold.feasibility, "feasibility");
-    expect_same_bits(hot.complementarity, cold.complementarity, "complementarity");
+    expect_same_bits(hot.sqp_stationarity, cold.sqp_stationarity, "stationarity");
+    expect_same_bits(hot.sqp_feasibility, cold.sqp_feasibility, "feasibility");
+    expect_same_bits(hot.sqp_complementarity, cold.sqp_complementarity, "complementarity");
     expect_same_bits(hot.kkt_residual, cold.kkt_residual, "kkt_residual");
 
     ASSERT_EQ(hot.x.size(), cold.x.size());
@@ -1195,16 +1195,16 @@ TEST(SqpWarmCurrency, ASecondSolveOnOneDriverAnswersExactlyWhatAFreshDriverAnswe
 
     SqpDriver reused{SqpOptions{}};
     const SqpSolution first = reused.solve(*bridge, x0);
-    ASSERT_EQ(first.status, SqpStatus::kOptimal);
+    ASSERT_EQ(first.status, SolveStatus::kOptimal);
     // The hot solve. Nothing was staged between the two calls, so this call
     // differs from the first only in what the driver and its engine carried
     // out of it.
     const SqpSolution second = reused.solve(*bridge, x0);
-    ASSERT_EQ(second.status, SqpStatus::kOptimal);
+    ASSERT_EQ(second.status, SolveStatus::kOptimal);
 
     SqpDriver fresh{SqpOptions{}};
     const SqpSolution cold = fresh.solve(*bridge, x0);
-    ASSERT_EQ(cold.status, SqpStatus::kOptimal);
+    ASSERT_EQ(cold.status, SolveStatus::kOptimal);
 
     expect_same_answer(second, cold);
     expect_same_counters(second.counters, cold.counters);
@@ -1236,17 +1236,17 @@ TEST(SqpWarmCurrency, AWarmResolveOnAUsedDriverAnswersExactlyWhatAFreshDriverAns
 
     SqpDriver reused{SqpOptions{}};
     const SqpSolution first = reused.solve(*bridge, x0);
-    ASSERT_EQ(first.status, SqpStatus::kOptimal);
+    ASSERT_EQ(first.status, SolveStatus::kOptimal);
     const WarmStartData payload = reused.export_warm_start();
 
     reused.stage_warm_start(payload);
     const SqpSolution hot = reused.solve(*bridge, x0);
-    ASSERT_EQ(hot.status, SqpStatus::kOptimal);
+    ASSERT_EQ(hot.status, SolveStatus::kOptimal);
 
     SqpDriver fresh{SqpOptions{}};
     fresh.stage_warm_start(payload);
     const SqpSolution cold = fresh.solve(*bridge, x0);
-    ASSERT_EQ(cold.status, SqpStatus::kOptimal);
+    ASSERT_EQ(cold.status, SolveStatus::kOptimal);
 
     // Both staged the same value, so both resolve at the same level -- kSeeded,
     // never kWarm or kHot: a currency-borne value carries no structure hash,
@@ -1309,7 +1309,7 @@ TEST(SqpWarmCurrency, KIpmDegradesAWrongSizedStagedValueColdWhereKWalkThrows) {
     ASSERT_NO_THROW(ipm.stage_warm_start(payload));
     SqpSolution out;
     ASSERT_NO_THROW(out = ipm.solve(*wide_bridge, wide->start_point()));
-    EXPECT_EQ(out.status, SqpStatus::kOptimal);
+    EXPECT_EQ(out.status, SolveStatus::kOptimal);
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kCold)
         << "the cold grade is the whole solve's, not the tier's alone: a value at the wrong "
            "dimensions cannot seed flow (a) either";
@@ -1334,7 +1334,7 @@ TEST(SqpWarmCurrency, KIpmDegradesAStampMismatchColdWhereKWalkThrows) {
     ASSERT_NO_THROW(ipm.stage_warm_start(payload));
     SqpSolution out;
     ASSERT_NO_THROW(out = ipm.solve(*rekeyed_bridge, rekeyed->start_point()));
-    EXPECT_EQ(out.status, SqpStatus::kOptimal);
+    EXPECT_EQ(out.status, SolveStatus::kOptimal);
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kCold);
 }
 
@@ -1375,9 +1375,9 @@ TEST(SqpWarmCurrency, ANonFiniteExtensionMuDegradesTheTierColdAndStagesInEveryMo
     const SqpSolution base = run(nullptr);
     const SqpSolution cold_tier = run(&malformed);
 
-    ASSERT_EQ(full.status, SqpStatus::kOptimal);
-    ASSERT_EQ(base.status, SqpStatus::kOptimal);
-    ASSERT_EQ(cold_tier.status, SqpStatus::kOptimal);
+    ASSERT_EQ(full.status, SolveStatus::kOptimal);
+    ASSERT_EQ(base.status, SolveStatus::kOptimal);
+    ASSERT_EQ(cold_tier.status, SolveStatus::kOptimal);
 
     EXPECT_GT(full.counters.ipqp.ipqp_mu_adopted, 0) << "the full grade reads the payload mu";
     EXPECT_GT(full.counters.ipqp.ipqp_restart_repairs, 0);
@@ -1429,7 +1429,7 @@ TEST(SqpWarmCurrency, TheSamePayloadStagedTwiceGivesBitIdenticalKIpmSolves) {
     b.stage_warm_start(data);
     const SqpSolution second = b.solve(*bridge, data.primal_);
 
-    ASSERT_EQ(first.status, SqpStatus::kOptimal);
+    ASSERT_EQ(first.status, SolveStatus::kOptimal);
     expect_same_first_iterate(first, second);
     EXPECT_EQ(first.x, second.x);
     EXPECT_EQ(first.counters.ipqp.ipqp_iters, second.counters.ipqp.ipqp_iters);
@@ -1456,7 +1456,7 @@ TEST(SqpWarmCurrency, AStagedTierSeedDoesNotSurviveIntoTheNextSolve) {
     SqpDriver driver{ipm_currency_options()};
     driver.stage_warm_start(data);
     const SqpSolution stalled = driver.solve(*bridge, data.primal_);
-    ASSERT_EQ(stalled.status, SqpStatus::kOptimal);
+    ASSERT_EQ(stalled.status, SolveStatus::kOptimal);
     ASSERT_EQ(stalled.counters.ipqp.ipqp_symbolic_analyses, 0)
         << "the fixture's premise: this solve entered the tier not at all, so the seed it armed "
            "was never spent";
@@ -1466,7 +1466,8 @@ TEST(SqpWarmCurrency, AStagedTierSeedDoesNotSurviveIntoTheNextSolve) {
     // would reach the tier and its payload `mu` would bind the clamp.
     Vec moved = data.primal_;
     moved(0) += 0.5;
-    const SqpSolution after = driver.solve(*bridge, moved, WarmStart{}, /*minor_budget=*/0);
+    const SqpSolution after =
+        driver.solve(*bridge, moved, WarmStart{}, hven::solvers::SolveBudget{});
     ASSERT_GT(after.counters.ipqp.ipqp_symbolic_analyses, 0)
         << "and this one DID enter the tier, or the assertion below is vacuous";
     EXPECT_EQ(after.counters.ipqp.ipqp_mu_adopted, 0)
@@ -1511,8 +1512,8 @@ TEST(SqpWarmCurrency, TheStagedPathDeliversThePolishSplitWithoutFlattening) {
 
     const SqpSolution full = run(true);
     const SqpSolution base = run(false);
-    ASSERT_EQ(full.status, SqpStatus::kOptimal);
-    ASSERT_EQ(base.status, SqpStatus::kOptimal);
+    ASSERT_EQ(full.status, SolveStatus::kOptimal);
+    ASSERT_EQ(base.status, SolveStatus::kOptimal);
 
     // Precondition for the zero-repair proof below: no absent side (absent
     // sides are zeroed without touching the counters). T7 fix round 3 report.
@@ -1555,8 +1556,8 @@ TEST(SqpWarmCurrency, APolishMuAboveTheShippedCeilingIsClampedOutOfAdoption) {
 
     const SqpSolution shipped = run(SqpOptions{}.ipqp.ipqp_init_mu);
     const SqpSolution raised = run(polish.mu_);
-    ASSERT_EQ(shipped.status, SqpStatus::kOptimal);
-    ASSERT_EQ(raised.status, SqpStatus::kOptimal);
+    ASSERT_EQ(shipped.status, SolveStatus::kOptimal);
+    ASSERT_EQ(raised.status, SolveStatus::kOptimal);
     // Non-vacuity: both arms reached the tier, so the counter below reads a clamp and not
     // the absence of a subproblem to clamp.
     ASSERT_GT(shipped.counters.ipqp.ipqp_symbolic_analyses, 0);
@@ -1586,7 +1587,7 @@ TEST(SqpWarmCurrency, APolishMuUnderTheShippedCeilingIsStillAdopted) {
     SqpDriver driver{ipm_currency_options()};
     driver.stage_warm_start(data);
     const SqpSolution r = driver.solve(*bridge, data.primal_);
-    ASSERT_EQ(r.status, SqpStatus::kOptimal);
+    ASSERT_EQ(r.status, SolveStatus::kOptimal);
     ASSERT_GT(r.counters.ipqp.ipqp_symbolic_analyses, 0) << "or the adoption pin is vacuous";
     EXPECT_GT(r.counters.ipqp.ipqp_mu_adopted, 0);
 }

@@ -102,7 +102,7 @@ WarmStart cold_solve(const Mesh &mesh, SqpSolution *out_sol = nullptr) {
     SqpOptions opts;
     SqpDriver driver(opts);
     SqpSolution sol = driver.solve(model);
-    EXPECT_EQ(sol.status, SqpStatus::kOptimal);
+    EXPECT_EQ(sol.status, SolveStatus::kOptimal);
     if (out_sol != nullptr) {
         *out_sol = sol;
     }
@@ -425,8 +425,8 @@ TEST(MeshTransfer, WarmSolveOnFineMeshBeatsCold) {
     const SqpSolution cold = driver.solve(model, model.start_point());
     const SqpSolution warm = driver.solve(model, moved.x);
 
-    ASSERT_EQ(cold.status, SqpStatus::kOptimal);
-    ASSERT_EQ(warm.status, SqpStatus::kOptimal);
+    ASSERT_EQ(cold.status, SolveStatus::kOptimal);
+    ASSERT_EQ(warm.status, SolveStatus::kOptimal);
     // Same answer, reached for less: the two solves agree on x to well inside
     // the convergence tolerance, so the major counts below compare like with
     // like.
@@ -501,9 +501,9 @@ TEST(MeshTransfer, SeededTransferRidesTheDualsAndCostsFewerMinors) {
     const SqpSolution x_only = driver.solve(model, moved.x);
     const SqpSolution seeded = driver.solve(model, moved.x, moved);
 
-    ASSERT_EQ(cold.status, SqpStatus::kOptimal);
-    ASSERT_EQ(x_only.status, SqpStatus::kOptimal);
-    ASSERT_EQ(seeded.status, SqpStatus::kOptimal);
+    ASSERT_EQ(cold.status, SolveStatus::kOptimal);
+    ASSERT_EQ(x_only.status, SolveStatus::kOptimal);
+    ASSERT_EQ(seeded.status, SolveStatus::kOptimal);
 
     EXPECT_EQ(cold.counters.start_level_used, StartLevel::kCold);
     EXPECT_EQ(x_only.counters.start_level_used, StartLevel::kCold)

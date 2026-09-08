@@ -53,10 +53,10 @@ using hven::solvers::NlpModel;
 using hven::solvers::NlpModelAggregate;
 using hven::solvers::NlpProblemModel;
 using hven::solvers::NLPSolver;
+using hven::solvers::SolveStatus;
 using hven::solvers::SqpDriver;
 using hven::solvers::SqpOptions;
 using hven::solvers::SqpSolution;
-using hven::solvers::SqpStatus;
 using hven::solvers::StartLevel;
 using hven::solvers::WarmStartData;
 using hven::solvers::corpus::CorpusCell;
@@ -284,7 +284,7 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
     };
 
     const SqpSolution cold = solve_with(nullptr);
-    ASSERT_EQ(cold.status, SqpStatus::kOptimal);
+    ASSERT_EQ(cold.status, SolveStatus::kOptimal);
     EXPECT_EQ(cold.counters.start_level_used, StartLevel::kCold);
 
     WarmStartData core = exported;
@@ -296,8 +296,8 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
     // or ignored comes back kCold, leaving the margins below cold against cold.
     EXPECT_EQ(warm_core.counters.start_level_used, StartLevel::kSeeded);
     EXPECT_EQ(warm_polish.counters.start_level_used, StartLevel::kSeeded);
-    EXPECT_EQ(warm_core.status, SqpStatus::kOptimal);
-    EXPECT_EQ(warm_polish.status, SqpStatus::kOptimal);
+    EXPECT_EQ(warm_core.status, SolveStatus::kOptimal);
+    EXPECT_EQ(warm_polish.status, SolveStatus::kOptimal);
 
     // Margin form: the hand-off is judged by the work it saves. Neither warm leg
     // may cost more majors than cold here, and the polish route -- which infers
@@ -390,13 +390,13 @@ TEST(CrossoverLegs, AKilledCellsAggregateRowReportsEachLegsOwnOutcome) {
     legs.legs_cd_identical = false;
 
     legs.c.ran = true;
-    legs.c.status = SqpStatus::kOptimal;
+    legs.c.status = SolveStatus::kOptimal;
     legs.c.major_iters = 1;
     legs.c.qp_minor_iters = 4435;
     legs.c.factorizations = 35;
 
     legs.d.ran = true;
-    legs.d.status = SqpStatus::kOptimal;
+    legs.d.status = SolveStatus::kOptimal;
     legs.d.major_iters = 1;
     legs.d.qp_minor_iters = 2;
     legs.d.factorizations = 1;

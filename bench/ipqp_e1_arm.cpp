@@ -101,8 +101,8 @@ const char *status_name(QpStatus s) {
     return "unknown";
 }
 
-const char *sqp_status_name(SqpStatus s) {
-    return s == SqpStatus::kOptimal ? "optimal" : "not_optimal";
+const char *sqp_status_name(SolveStatus s) {
+    return s == SolveStatus::kOptimal ? "optimal" : "not_optimal";
 }
 
 /// The 39 `IpqpCounters` fields, in declaration order, as CSV.

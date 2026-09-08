@@ -543,21 +543,10 @@ const char *spec_spelling(QpStatus v) {
     return kUnspelled;
 }
 
-const char *spec_spelling(SqpStatus v) {
-    switch (v) {
-    case SqpStatus::kOptimal:
-        return "\"optimal\"";
-    case SqpStatus::kMaxIter:
-        return "\"max_iter\"";
-    case SqpStatus::kInfeasible:
-        return "\"infeasible\"";
-    case SqpStatus::kNumericalError:
-        return "\"numerical_error\"";
-    case SqpStatus::kBudgetExhausted:
-        return "\"budget_exhausted\"";
-    }
-    return kUnspelled;
-}
+// spec_spelling(SqpStatus) stood here. SqpStatus is gone (M6 W5 T8.4) and the
+// SolveStatus overload below -- the one the interior-point end event already
+// used -- spells the five SQP-reachable values identically, so the two folded
+// into one.
 
 const char *spec_spelling(WorkingSetLinearAlgebra v) {
     switch (v) {
@@ -700,14 +689,12 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     static_assert(static_cast<int>(IpqpTraceQpMode::kSsn) == 3 - 1, "3 QP modes");
     static_assert(static_cast<int>(QpStatus::kNumericalError) == 4 - 1, "4 QP statuses");
     static_assert(static_cast<int>(StepVerdict::kRestore) == 4 - 1, "4 step verdicts");
-    static_assert(static_cast<int>(SqpStatus::kBudgetExhausted) == 5 - 1, "5 solve statuses");
+    static_assert(static_cast<int>(SolveStatus::kInterrupted) == 9 - 1, "9 solve statuses");
     static_assert(static_cast<int>(WorkingSetLinearAlgebra::kSchurBorder) == 2 - 1,
                   "2 working-set algebras");
     static_assert(static_cast<int>(StartLevel::kHot) == 4 - 1, "4 start levels");
     static_assert(static_cast<int>(IpqpTraceOutcome::kEscaped) == 3 - 1, "3 outcomes");
     static_assert(static_cast<int>(SqpFallbackVerdict::kUnfired) == 5 - 1, "5 verdicts");
-    static_assert(static_cast<int>(hven::solvers::SolveStatus::kInterrupted) == 9 - 1,
-                  "9 shared statuses");
     static_assert(static_cast<int>(InertiaModes::proximal_regularization) == 2 - 1,
                   "2 inertia modes");
     static_assert(static_cast<int>(RestorationModes::l1_nested) == 3 - 1, "3 restoration modes");
@@ -869,18 +856,18 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
 
     // W4 T2 fix round 1 (R6): part (c)'s three alphabets, which shipped with a
     // `to_json` case and no net at all.
-    const auto solve_status = [](SqpStatus st) {
+    const auto solve_status = [](SolveStatus st) {
         const SqpCounters counters;
         std::ostringstream os;
         JsonLinesTraceSink s(os);
         s.on_sqp_solve_end(SqpSolveEndTraceEvent{st, 0, counters});
         EXPECT_EQ(raw_field(os.str(), "status"), spec_spelling(st));
     };
-    solve_status(SqpStatus::kOptimal);
-    solve_status(SqpStatus::kMaxIter);
-    solve_status(SqpStatus::kInfeasible);
-    solve_status(SqpStatus::kNumericalError);
-    solve_status(SqpStatus::kBudgetExhausted);
+    solve_status(SolveStatus::kOptimal);
+    solve_status(SolveStatus::kMaxIter);
+    solve_status(SolveStatus::kInfeasible);
+    solve_status(SolveStatus::kNumericalError);
+    solve_status(SolveStatus::kBudgetExhausted);
 
     const auto ws_algebra = [](WorkingSetLinearAlgebra a) {
         SqpSolveBeginTraceEvent e;
@@ -898,7 +885,7 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         counters.start_level_used = lv;
         std::ostringstream os;
         JsonLinesTraceSink s(os);
-        s.on_sqp_solve_end(SqpSolveEndTraceEvent{SqpStatus::kOptimal, 0, counters});
+        s.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kOptimal, 0, counters});
         EXPECT_EQ(raw_field(os.str(), "start_level_used"), spec_spelling(lv));
     };
     start_level(StartLevel::kCold);
@@ -969,9 +956,9 @@ TEST(JsonLinesTraceSink, SeqCountsFromOneAndTheSolvePairMovesTheEnvelope) {
     sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
     sink.on_sqp_solve_begin(SqpSolveBeginTraceEvent{});
     sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
-    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SqpStatus::kOptimal, 0, counters});
+    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kOptimal, 0, counters});
     sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
-    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SqpStatus::kOptimal, 0, counters});
+    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kOptimal, 0, counters});
     const std::vector<std::string> lines = split_lines(os.str());
     ASSERT_EQ(lines.size(), 7u);
     const char *const kDepths[] = {"0", "0", "1", "1", "1", "0", "0"};
@@ -985,7 +972,7 @@ TEST(JsonLinesTraceSink, SeqCountsFromOneAndTheSolvePairMovesTheEnvelope) {
     // THE SATURATION LEG, restored at fix round 2 (F4(i)): T1 pinned that an
     // unbalanced POP cannot fabricate a negative depth. Through the begin/end
     // path the same statement is that a stray `end` leaves depth at 0, not -1.
-    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SqpStatus::kOptimal, 0, counters});
+    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kOptimal, 0, counters});
     sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
     const std::vector<std::string> after = split_lines(os.str());
     ASSERT_EQ(after.size(), 9u);
@@ -1622,7 +1609,7 @@ TEST(JsonLinesTraceSink, ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinn
     const SqpSolution sol = driver.solve(model);
 
     const IpqpCounters &c = sol.counters.ipqp;
-    ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_GT(c.ipqp_declined_pinned, 0) << "variable 0's declared bounds are equal";
     ASSERT_EQ(c.ipqp_to_walk, c.ipqp_declined_pinned) << "every walk route here is a decline";
     EXPECT_EQ(c.ipqp_escapes, 0) << "A DECLINE IS NOT AN ESCAPE";
@@ -2526,7 +2513,7 @@ TEST(JsonLinesTraceSink, SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkip
     // the three shapes all reach it.
     struct Leg {
         const char *name;
-        SqpStatus status;
+        SolveStatus status;
     };
     {
         SqpOptions opts;
@@ -2537,7 +2524,7 @@ TEST(JsonLinesTraceSink, SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkip
         JsonLinesTraceSink json(os);
         driver.attach_trace(&json);
         const SqpSolution sol = driver.solve(*p.model);
-        ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+        ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_EQ(raw_field(only_line(os.str(), "sqp.solve.end"), "status"), "\"optimal\"");
         EXPECT_EQ(json.depth(), 0);
     }
@@ -2550,7 +2537,7 @@ TEST(JsonLinesTraceSink, SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkip
         JsonLinesTraceSink json(os);
         driver.attach_trace(&json);
         const SqpSolution sol = driver.solve(*p.model);
-        ASSERT_EQ(sol.status, SqpStatus::kMaxIter);
+        ASSERT_EQ(sol.status, SolveStatus::kMaxIter);
         EXPECT_EQ(raw_field(only_line(os.str(), "sqp.solve.end"), "status"), "\"max_iter\"");
         EXPECT_EQ(json.depth(), 0);
     }
@@ -2563,7 +2550,7 @@ TEST(JsonLinesTraceSink, SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkip
         JsonLinesTraceSink json(os);
         driver.attach_trace(&json);
         const SqpSolution sol = driver.solve(model);
-        ASSERT_EQ(sol.status, SqpStatus::kInfeasible);
+        ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
         EXPECT_EQ(raw_field(only_line(os.str(), "sqp.solve.end"), "status"), "\"infeasible\"");
         EXPECT_EQ(json.depth(), 0);
     }
@@ -2585,7 +2572,7 @@ TEST(JsonLinesTraceSink, TheNestedSolvesFirstRowCountsAgainstItsOwnEmptySet) {
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
     const SqpSolution sol = driver.solve(model);
-    ASSERT_EQ(sol.status, SqpStatus::kInfeasible);
+    ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
     ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN";
 
     bool seen = false;
@@ -2623,7 +2610,7 @@ TEST(JsonLinesTraceSink, TheNestedSolvesActivityChurnStaysOutOfTheOuterTotals) {
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
     const SqpSolution sol = driver.solve(model);
-    ASSERT_EQ(sol.status, SqpStatus::kInfeasible);
+    ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
     ASSERT_GE(sol.counters.restoration_iters, 1);
 
     Index outer = 0;
@@ -2654,7 +2641,7 @@ TEST(JsonLinesTraceSink, TheNestedRestorationSolveIsBracketedAtDepthOne) {
     driver.attach_trace(&json);
     const SqpSolution sol = driver.solve(model);
 
-    ASSERT_EQ(sol.status, SqpStatus::kInfeasible);
+    ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
     ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN";
 
     Index depth1_begins = 0;
@@ -2792,7 +2779,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
     const SqpCounters c = distinct_counters();
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
-    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SqpStatus::kBudgetExhausted, 42, c});
+    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kBudgetExhausted, 42, c});
     EXPECT_EQ(
         os.str(),
         "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"budget_exhausted\","
@@ -2838,7 +2825,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
     const SqpCounters c;
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
-    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SqpStatus::kNumericalError, 0, c});
+    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kNumericalError, 0, c});
     EXPECT_EQ(
         os.str(),
         "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"numerical_error\","
@@ -2882,7 +2869,7 @@ TEST(JsonLinesTraceSink, SqpSolveEndKeysAreExactlyTheTablesAndAllDistinct) {
     const SqpCounters c = distinct_counters();
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
-    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SqpStatus::kOptimal, 0, c});
+    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kOptimal, 0, c});
     const std::vector<std::string> keys = counters_keys(os.str());
     // The two nesting keys are the tables' own structure, not fields.
     EXPECT_EQ(keys.size(),
@@ -3494,7 +3481,7 @@ TEST(JsonLinesTraceSink, TheIpmPairMovesNoDepthAndDoesNotDisturbTheSqpNesting) {
     sink.on_ipm_iter(IpmIterTraceEvent{golden_ipm_iter_sentinels(), 0});
     sink.on_ipm_solve_end(IpmSolveEndTraceEvent{});
     EXPECT_EQ(sink.depth(), 0);
-    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SqpStatus::kOptimal, 0, counters});
+    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kOptimal, 0, counters});
     EXPECT_EQ(sink.depth(), 0);
     for (const std::string &l : split_lines(os.str())) {
         EXPECT_EQ(raw_field(l, "depth"), "0") << l;

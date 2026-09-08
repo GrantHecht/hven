@@ -433,7 +433,7 @@ struct IpmLegRow {
 struct SqpLegRow {
     /// False until this leg actually finished; see IpmLegRow::ran.
     bool ran = false;
-    SqpStatus status = SqpStatus::kNumericalError;
+    SolveStatus status = SolveStatus::kNumericalError;
     StartLevel start_level = StartLevel::kCold;
     Index major_iters = -1;
     Index qp_minor_iters = -1;
@@ -507,9 +507,13 @@ inline SqpLegRow record_sqp(const SqpSolution &sol, double wall_s) {
     row.seeded_clamped = sol.counters.seeded_clamped;
     row.f = sol.f;
     row.kkt_residual = sol.kkt_residual;
-    row.stationarity = sol.stationarity;
-    row.feasibility = sol.feasibility;
-    row.complementarity = sol.complementarity;
+    // The engine's OWN measurements, renamed in M6 W5 T8.4 when the result
+    // base grew shared ones of the first and last names with a different
+    // definition (declared space, caller units). This artifact's columns are
+    // the engine's, so they follow the sqp_* names.
+    row.stationarity = sol.sqp_stationarity;
+    row.feasibility = sol.sqp_feasibility;
+    row.complementarity = sol.sqp_complementarity;
     row.wall_s = wall_s;
     return row;
 }
@@ -719,7 +723,10 @@ inline constexpr const char *kAbsent = "absent";
 
 /// @brief A leg's own status, or `absent` when that leg never ran.
 inline std::string leg_status(const SqpLegRow &row) {
-    return row.ran ? std::string(hven::solvers::to_string(row.status)) : std::string(kAbsent);
+    // The CAPITALISED vocabulary this artifact's baselines are pinned to; see
+    // corpus::legacy_status_string (M6 W5 T8.4).
+    return row.ran ? std::string(hven::solvers::corpus::legacy_status_string(row.status))
+                   : std::string(kAbsent);
 }
 
 /// @brief The interior-point leg's own flag, or `absent` when it never ran.

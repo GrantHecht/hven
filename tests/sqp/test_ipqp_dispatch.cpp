@@ -200,7 +200,7 @@ TEST(IpqpDispatch, KIpmValidatesAndSolves) {
     const HsProblem p = make_hs(6);
     SqpDriver driver(ipm_options());
     const SqpSolution s = driver.solve(*p.model);
-    EXPECT_EQ(s.status, SqpStatus::kOptimal);
+    EXPECT_EQ(s.status, SolveStatus::kOptimal);
     EXPECT_NEAR(s.f, p.f_star, 1e-6);
     EXPECT_GT(s.counters.ipqp.ipqp_iters, 0) << "and the tier really solved the subproblems";
 
@@ -222,7 +222,7 @@ TEST(IpqpDispatch, AZeroWidthEffectivePairDeclinesToTheWalkAndChargesNothing) {
     const SqpSolution s = driver.solve(pinned);
     const IpqpCounters &c = s.counters.ipqp;
 
-    ASSERT_EQ(s.status, SqpStatus::kOptimal) << "the walk answers a pinned variable exactly";
+    ASSERT_EQ(s.status, SolveStatus::kOptimal) << "the walk answers a pinned variable exactly";
     EXPECT_GT(c.ipqp_declined_pinned, 0) << "variable 0's declared bounds are equal";
     EXPECT_EQ(c.ipqp_declined_pinned, s.counters.major_iters)
         << "every major declines: the pin is a property of the model, not of an iterate";
@@ -265,7 +265,7 @@ TEST(IpqpDispatch, TheRoutingTableIsExercisedAndItsIdentitiesHoldOnEverySolve) {
         const SqpSolution s = driver.solve(*p.model);
         const IpqpCounters &c = s.counters.ipqp;
 
-        EXPECT_EQ(s.status, SqpStatus::kOptimal)
+        EXPECT_EQ(s.status, SolveStatus::kOptimal)
             << "the routing chain's whole point: a subproblem the tier cannot finish is handed on, "
                "so the SOLVE still converges";
         // NOT COMPARED TO `f_star` HERE, deliberately: the WALK itself does not drive
@@ -337,7 +337,7 @@ TEST(IpqpDispatch, AnEscapedSubproblemIsAnsweredByTheWalkAndItsCostIsStillCharge
                                             "below is about two routes rather than one";
     EXPECT_EQ(c.ipqp_to_walk, c.ipqp_escapes) << "every escape routed to the walk";
     EXPECT_EQ(c.ipqp_to_ssn, 0) << "and none of them to SSN -- no kIndefinite exit here";
-    EXPECT_EQ(s.status, SqpStatus::kOptimal)
+    EXPECT_EQ(s.status, SolveStatus::kOptimal)
         << "the walk answers what the tier could not, which is what the last branch is for";
     EXPECT_GT(s.counters.factorizations, c.ipqp_factorizations)
         << "the escaped attempt's factorizations are CHARGED (they were spent), and the walk's own "
@@ -366,7 +366,7 @@ TEST(IpqpDispatch, RetirementStopsEveryLaterMajorFromConsultingTheTier) {
         << "one entry per major up to and including the retiring one, and none after";
     EXPECT_LT(entries, s.counters.major_iters)
         << "the solve kept going on the default engine, which is what retirement means";
-    EXPECT_EQ(s.status, SqpStatus::kOptimal);
+    EXPECT_EQ(s.status, SolveStatus::kOptimal);
 }
 
 // A SUCCESS RESETS THE TALLY, observed at the driver scale (task 5 pins the
@@ -490,7 +490,7 @@ TEST(IpqpDispatch, TheSsnWarmGradeRouteIsReachableAndPricesOnlyRealBounds) {
     const SqpSolution s = driver.solve(*p.model);
     ASSERT_GT(s.counters.ipqp.ipqp_to_ssn, 0)
         << "the fixture must reach the SSN warm grade, or nothing is tested";
-    EXPECT_EQ(s.status, SqpStatus::kOptimal);
+    EXPECT_EQ(s.status, SolveStatus::kOptimal);
     EXPECT_GT(s.counters.ssn.ssn_iters, 0)
         << "and the SSN tier really ran -- ipqp_to_ssn is a routing count, this is the work";
     EXPECT_NEAR(s.f, p.f_star, 1e-6);
@@ -570,7 +570,7 @@ TEST(IpqpDispatch, ASaddleSuspectExitRoutesToTheSsnWarmGradeAndNotToTheWalk) {
     // `ssn_iters` IS NOT ASSERTED HERE, deliberately: on a two-variable saddle the
     // SSN kernel can exit without taking a Newton step, so zero is a legitimate
     // outcome. That SSN does real work on this path is pinned on HS3 below.
-    EXPECT_EQ(s.status, SqpStatus::kOptimal);
+    EXPECT_EQ(s.status, SolveStatus::kOptimal);
 }
 
 // T7 -- THE CROSS-MAJOR CARRY (spec 5.1 flow (b)) IS LIVE, AND IT PAYS. The
@@ -589,8 +589,8 @@ TEST(IpqpDispatch, TheTierCarriesItsStateAcrossTheMajorsOfOneSolve) {
     const SqpSolution cold = cold_driver.solve(*cold_p.model);
     const IpqpCounters &cc = cold.counters.ipqp;
 
-    ASSERT_EQ(warm.status, SqpStatus::kOptimal);
-    ASSERT_EQ(cold.status, SqpStatus::kOptimal);
+    ASSERT_EQ(warm.status, SolveStatus::kOptimal);
+    ASSERT_EQ(cold.status, SolveStatus::kOptimal);
     ASSERT_GT(tier_entries(wc), 1) << "the fixture must enter the tier more than once";
     ASSERT_EQ(tier_entries(wc), tier_entries(cc)) << "same route, same number of tier entries";
 
@@ -648,8 +648,8 @@ TEST(IpqpDispatch, TheCarryDoesNotLeakBetweenSolvesOnOneDriver) {
     SqpDriver driver(o);
     const SqpSolution first = driver.solve(*p.model);
     const SqpSolution second = driver.solve(*p.model);
-    ASSERT_EQ(first.status, SqpStatus::kOptimal);
-    ASSERT_EQ(second.status, SqpStatus::kOptimal);
+    ASSERT_EQ(first.status, SolveStatus::kOptimal);
+    ASSERT_EQ(second.status, SolveStatus::kOptimal);
     EXPECT_EQ(second.counters.ipqp.ipqp_iters, first.counters.ipqp.ipqp_iters);
     EXPECT_EQ(second.counters.ipqp.ipqp_factorizations, first.counters.ipqp.ipqp_factorizations);
     EXPECT_EQ(second.counters.ipqp.ipqp_restart_repairs, first.counters.ipqp.ipqp_restart_repairs);
@@ -745,12 +745,12 @@ TEST(IpqpDispatch, AUsableSsnWarmGradeExitIsRefinedOnItsOwnFace) {
     // THE GRADE IS (x, lambda) IN THE TIER'S WINDOW (settler ruling, fix round 2):
     // `assert_ssn_warm_grade_window` THROWS unless the start carries the tier's
     // iterate AND its clamp-centred box centre. `SsnStart::box_center`: ssn tests.
-    EXPECT_EQ(s.status, SqpStatus::kOptimal)
+    EXPECT_EQ(s.status, SolveStatus::kOptimal)
         << "the warm-grade window guard did not fire on any of this fixture's hand-offs";
     // `ssn_refine_factorizations` is NOT asserted positive: `refine_on_face` refuses
     // an empty or rank-deficient face on its PRE-SCREEN, before anything is
     // factorized, and all three of this fixture's refusals are that kind.
-    EXPECT_EQ(s.status, SqpStatus::kOptimal);
+    EXPECT_EQ(s.status, SolveStatus::kOptimal);
 }
 
 // RULING 3 (decision 8, NARROWED): `adaptive_mu` is off only for the subproblems
@@ -1076,12 +1076,12 @@ TEST(IpqpDispatch, KIpmAndKWalkAgreeOnTheAnswerAcrossTheHsBattery) {
         auto walk_p = make_hs(number);
         SqpDriver walk_driver(walk_options());
         const SqpSolution walk = walk_driver.solve(*walk_p.model);
-        ASSERT_EQ(walk.status, SqpStatus::kOptimal);
+        ASSERT_EQ(walk.status, SolveStatus::kOptimal);
 
         auto ipm_p = make_hs(number);
         SqpDriver ipm_driver(ipm_options());
         const SqpSolution ipm = ipm_driver.solve(*ipm_p.model);
-        ASSERT_EQ(ipm.status, SqpStatus::kOptimal);
+        ASSERT_EQ(ipm.status, SolveStatus::kOptimal);
 
         // HS33 IS A DECLARED EXCEPTION, AND IT IS THE TIER WINNING (T4b): the tier
         // stops at HS33's published optimum and the walk at a different local

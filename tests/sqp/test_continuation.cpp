@@ -312,7 +312,7 @@ TEST(Continuation, SweepF1CrossesActivationsWarm) {
     for (std::size_t i = 0; i < res.steps.size(); ++i) {
         const ContinuationStep &st = res.steps[i];
         SCOPED_TRACE(fmt::format("step {} at p = {}", i, st.p(0)));
-        EXPECT_EQ(st.status, SqpStatus::kOptimal);
+        EXPECT_EQ(st.status, SolveStatus::kOptimal);
         if (i > 0) {
             EXPECT_GE(st.level, StartLevel::kWarm) << "a step past the first re-solved COLD:\n"
                                                    << trajectory(res);
@@ -383,7 +383,7 @@ TEST(Continuation, AdaptiveDpGrowsAndShrinks) {
         if (res.steps[i].dp > copts.dp_init) {
             grew = true;
         }
-        EXPECT_EQ(res.steps[i].status, SqpStatus::kOptimal);
+        EXPECT_EQ(res.steps[i].status, SolveStatus::kOptimal);
         EXPECT_LT((res.steps[i].x - F2CircleNlp::x_star(res.steps[i].p(0))).norm(), 1e-8);
     }
     EXPECT_TRUE(grew) << "dp never grew past dp_init on a path this smooth:\n" << trajectory(res);
@@ -484,7 +484,7 @@ TEST(Continuation, TwoParameterSweepFollowsTheDirection) {
     for (std::size_t i = 0; i < res.steps.size(); ++i) {
         const ContinuationStep &st = res.steps[i];
         SCOPED_TRACE(fmt::format("step {} at p = ({}, {})", i, st.p(0), st.p(1)));
-        EXPECT_EQ(st.status, SqpStatus::kOptimal);
+        EXPECT_EQ(st.status, SolveStatus::kOptimal);
         if (i > 0) {
             EXPECT_GE(st.level, StartLevel::kWarm);
         }
@@ -557,7 +557,7 @@ TEST(Continuation, DegradedPredictionsAreCountedNotHidden) {
     for (std::size_t i = 0; i < res.steps.size(); ++i) {
         const ContinuationStep &st = res.steps[i];
         SCOPED_TRACE(fmt::format("step {} at p = {}", i, st.p(0)));
-        EXPECT_EQ(st.status, SqpStatus::kOptimal);
+        EXPECT_EQ(st.status, SolveStatus::kOptimal);
         if (i == 0) {
             EXPECT_FALSE(st.predictor_outcome.has_value()) << "the cold step predicts nothing";
             continue;
@@ -647,7 +647,7 @@ TEST(Continuation, ShrinkRetriesFromTheLastGoodWarm) {
         EXPECT_NEAR(st.p(0), p_good + st.dp, 1e-12)
             << "a proposal was not measured from the last converged point:\n"
             << trajectory(res);
-        if (res.steps[i - 1].status != SqpStatus::kOptimal) {
+        if (res.steps[i - 1].status != SolveStatus::kOptimal) {
             saw_failure = true;
             EXPECT_LE(st.dp, res.steps[i - 1].dp) << "a retry was LONGER than the step it follows";
             EXPECT_GT(st.p(0), p_good) << "a retry fell behind the last converged point";
@@ -656,7 +656,7 @@ TEST(Continuation, ShrinkRetriesFromTheLastGoodWarm) {
                 saw_strict_shrink = true;
             }
         }
-        if (st.status == SqpStatus::kOptimal) {
+        if (st.status == SolveStatus::kOptimal) {
             p_good = st.p(0);
         }
     }
@@ -668,7 +668,7 @@ TEST(Continuation, ShrinkRetriesFromTheLastGoodWarm) {
     // Every SUCCESSFUL step still sits on the analytic path -- a retry from a
     // stale or half-failed warm start would show up here first.
     for (const ContinuationStep &st : res.steps) {
-        if (st.status == SqpStatus::kOptimal) {
+        if (st.status == SolveStatus::kOptimal) {
             EXPECT_LT((st.x - F2CircleNlp::x_star(st.p(0))).norm(), 1e-7)
                 << "a recovered step is off x_star(p) at p = " << st.p(0);
         }
@@ -703,7 +703,7 @@ TEST(Continuation, BudgetExhaustionContinuesAtTheSameParameter) {
     // hand-off, which is why no new prediction is made for it.
     Index exhausted = 0, continued = 0;
     for (std::size_t i = 0; i < res.steps.size(); ++i) {
-        if (res.steps[i].status != SqpStatus::kBudgetExhausted) {
+        if (res.steps[i].status != SolveStatus::kBudgetExhausted) {
             continue;
         }
         ++exhausted;
@@ -743,7 +743,7 @@ TEST(Continuation, BudgetExhaustionContinuesAtTheSameParameter) {
         run_continuation(model_plain, p_vec(0.0), p_vec(1.0), driver_plain, copts);
     ASSERT_TRUE(plain_res.reached_p1) << trajectory(plain_res);
     for (const ContinuationStep &st : plain_res.steps) {
-        EXPECT_NE(st.status, SqpStatus::kBudgetExhausted)
+        EXPECT_NE(st.status, SolveStatus::kBudgetExhausted)
             << "kBudgetExhausted must be unreachable with budget_mode off";
     }
     EXPECT_NE(res.steps.size(), plain_res.steps.size())
@@ -807,9 +807,9 @@ TEST(Continuation, NearEndpointFailureDoesNotRepeatTheSameProposal) {
     for (std::size_t i = 0; i < kP.size(); ++i) {
         EXPECT_NEAR(res.steps[i].p(0), kP[i], 1e-15) << "at step " << i << ":\n" << trajectory(res);
     }
-    EXPECT_EQ(res.steps.front().status, SqpStatus::kOptimal) << "the cold solve must converge";
+    EXPECT_EQ(res.steps.front().status, SolveStatus::kOptimal) << "the cold solve must converge";
     for (std::size_t i = 1; i < res.steps.size(); ++i) {
-        EXPECT_NE(res.steps[i].status, SqpStatus::kOptimal);
+        EXPECT_NE(res.steps[i].status, SolveStatus::kOptimal);
         // From i = 2 on, because step 1 is compared against the cold step,
         // whose dp is 0 by definition rather than by any shrink.
         if (i >= 2) {
@@ -872,7 +872,7 @@ TEST(Continuation, BudgetContinuationCapDemotesToAShrink) {
     // change these run lengths.
     std::vector<std::pair<double, Index>> chains; // (p, consecutive attempts)
     for (std::size_t i = 1; i < res.steps.size(); ++i) {
-        EXPECT_EQ(res.steps[i].status, SqpStatus::kBudgetExhausted)
+        EXPECT_EQ(res.steps[i].status, SolveStatus::kBudgetExhausted)
             << "step " << i << " is not an exhaustion:\n"
             << trajectory(res);
         if (!chains.empty() && chains.back().first == res.steps[i].p(0)) {
@@ -921,7 +921,7 @@ TEST(Continuation, ZeroLengthSweepIsJustTheColdSolve) {
 
     EXPECT_TRUE(res.reached_p1) << "p1 == p0 is reached by definition:\n" << trajectory(res);
     ASSERT_EQ(res.steps.size(), 1u) << trajectory(res);
-    EXPECT_EQ(res.steps.front().status, SqpStatus::kOptimal);
+    EXPECT_EQ(res.steps.front().status, SolveStatus::kOptimal);
     EXPECT_EQ(res.steps.front().level, StartLevel::kCold);
     EXPECT_EQ(res.steps.front().dp, 0.0);
     EXPECT_EQ(res.predictor_calls, 0) << "there is no step to predict across";
@@ -997,7 +997,7 @@ TEST(Continuation, FailingInitialPointIsCountedAsAFailedAttempt) {
 
         const ContinuationResult res = run_continuation(model, p_vec(0.0), p_vec(1.0), driver);
         ASSERT_EQ(res.steps.size(), 1u) << trajectory(res);
-        ASSERT_NE(res.steps.front().status, SqpStatus::kOptimal) << trajectory(res);
+        ASSERT_NE(res.steps.front().status, SolveStatus::kOptimal) << trajectory(res);
         EXPECT_EQ(res.proposals_abandoned + res.proposals_full_cost, 1)
             << "the sum invariant must hold on a sweep whose only step failed:\n"
             << trajectory(res);
@@ -1067,7 +1067,7 @@ TEST(Continuation, ColdStepFollowsTheSameBudgetRule) {
     for (const ContinuationStep &st : res.steps) {
         EXPECT_EQ(st.p(0), 0.6) << "a cold continuation moved p:\n" << trajectory(res);
         EXPECT_EQ(st.dp, 0.0);
-        EXPECT_EQ(st.status, SqpStatus::kBudgetExhausted) << trajectory(res);
+        EXPECT_EQ(st.status, SolveStatus::kBudgetExhausted) << trajectory(res);
         EXPECT_FALSE(st.predictor_outcome.has_value()) << "nothing is predicted at p0";
     }
     EXPECT_EQ(res.predictor_calls, 0);
@@ -1085,7 +1085,7 @@ TEST(Continuation, ColdStepFollowsTheSameBudgetRule) {
         run_continuation(model_plain, p_vec(0.6), p_vec(1.0), driver_plain);
     EXPECT_FALSE(plain_res.reached_p1);
     EXPECT_EQ(plain_res.steps.size(), 1u) << trajectory(plain_res);
-    EXPECT_EQ(plain_res.steps.front().status, SqpStatus::kMaxIter);
+    EXPECT_EQ(plain_res.steps.front().status, SolveStatus::kMaxIter);
 }
 
 // =============================================================================
@@ -1169,7 +1169,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
 
     ASSERT_TRUE(off.reached_p1) << trajectory(off);
     ASSERT_EQ(off.steps.size(), 4u) << trajectory(off);
-    EXPECT_EQ(off.steps[1].status, SqpStatus::kNumericalError) << trajectory(off);
+    EXPECT_EQ(off.steps[1].status, SolveStatus::kNumericalError) << trajectory(off);
     EXPECT_EQ(off.proposals_abandoned, 0) << "nothing can be abandoned with the budget off";
     EXPECT_EQ(off.proposals_full_cost, 1) << trajectory(off);
     // OBSERVED VALUES (MKL Pardiso, clang++, Release AND Debug): the failed
@@ -1232,7 +1232,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     }
     EXPECT_EQ(on.proposals_abandoned, 1) << trajectory(on);
     EXPECT_EQ(on.proposals_full_cost, 0) << trajectory(on);
-    EXPECT_EQ(on.steps[1].status, SqpStatus::kMaxIter)
+    EXPECT_EQ(on.steps[1].status, SolveStatus::kMaxIter)
         << "an abandoned proposal reports the ordinary stopped-at-an-iterate status\n"
         << trajectory(on);
     EXPECT_EQ(on.steps[1].counters.probe_budget_stops, 1) << trajectory(on);
@@ -1268,7 +1268,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         run_continuation(model_bm, p_vec(0.3), p_vec(0.9), driver_bm, make_continuation_options(2));
     ASSERT_TRUE(bm.reached_p1) << trajectory(bm);
     EXPECT_EQ(bm.proposals_abandoned, 1) << trajectory(bm);
-    EXPECT_EQ(bm.steps[1].status, SqpStatus::kMaxIter)
+    EXPECT_EQ(bm.steps[1].status, SolveStatus::kMaxIter)
         << "a probe-budget stop reported budgeted mode's own status, which would make the "
            "controller re-solve AT the proposal it meant to abandon:\n"
         << trajectory(bm);
@@ -1294,7 +1294,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         run_continuation(model_m6, p_vec(0.3), p_vec(0.9), driver_m6, make_continuation_options(0));
     ASSERT_TRUE(m6.reached_p1) << trajectory(m6);
     for (const auto &step : m6.steps) {
-        EXPECT_EQ(step.status, SqpStatus::kOptimal) << trajectory(m6);
+        EXPECT_EQ(step.status, SolveStatus::kOptimal) << trajectory(m6);
     }
     EXPECT_EQ(m6.proposals_full_cost, 0) << "no proposal fails at the size-derived cap\n"
                                          << trajectory(m6);
@@ -1375,7 +1375,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // work, not answers. (This is also what makes the sweep's own product,
     // the solution path, identical between the two arms.)
     for (std::size_t i : {0u, 2u, 3u}) {
-        EXPECT_EQ(on.steps[i].status, SqpStatus::kOptimal) << "step " << i << trajectory(on);
+        EXPECT_EQ(on.steps[i].status, SolveStatus::kOptimal) << "step " << i << trajectory(on);
         EXPECT_EQ(on.steps[i].counters.major_iters, off.steps[i].counters.major_iters)
             << "step " << i << "\n"
             << trajectory(on);
@@ -1551,7 +1551,7 @@ TEST(Continuation, FailedRunReturnsRatherThanThrows) {
     ASSERT_NO_THROW(res = run_continuation(model, p_vec(0.0), p_vec(1.0), driver));
     EXPECT_FALSE(res.reached_p1);
     ASSERT_EQ(res.steps.size(), 1u) << trajectory(res);
-    EXPECT_NE(res.steps.front().status, SqpStatus::kOptimal);
+    EXPECT_NE(res.steps.front().status, SolveStatus::kOptimal);
     // warm_start.h's contract: even a failed solve's exit state is safe to
     // feed forward, so the result still carries one.
     EXPECT_TRUE(res.final_warm.valid);
@@ -1572,7 +1572,7 @@ TEST(Continuation, FailedRunReturnsRatherThanThrows) {
     ASSERT_NO_THROW(res2 = run_continuation(model2, p_vec(0.0), p_vec(1.0), driver2, floored));
     EXPECT_FALSE(res2.reached_p1) << trajectory(res2);
     EXPECT_GE(res2.steps.size(), 2u) << trajectory(res2);
-    EXPECT_NE(res2.steps.back().status, SqpStatus::kOptimal) << trajectory(res2);
+    EXPECT_NE(res2.steps.back().status, SolveStatus::kOptimal) << trajectory(res2);
 }
 
 } // namespace

@@ -1004,7 +1004,7 @@ static_assert(counters_offsets_increase(kOffsetsIpqpCounters, kIpqpCountersField
 ///
 /// A nonzero restoration_iters does not imply a failed solve: a solve that
 /// restores and then converges reports kOptimal with restoration_iters > 0. It is
-/// the pairing with SqpStatus::kInfeasible that says otherwise.
+/// the pairing with SolveStatus::kInfeasible that says otherwise.
 /// @see docs/notes/2026-09-header-prose-archive.md §solver_counters.h
 struct SqpCounters {
     Index major_iters = 0;
@@ -1192,7 +1192,7 @@ struct SqpCounters {
     /// WHAT IT COUNTS: the 4-argument solve() overload was given a positive budget,
     /// this solve reached the top of a major having already spent at least that
     /// many qp_minor_iters, and it was not converged there, so it returned
-    /// SqpStatus::kMaxIter at that iterate. The test runs BETWEEN majors, so the
+    /// SolveStatus::kMaxIter at that iterate. The test runs BETWEEN majors, so the
     /// minors actually spent are >= the budget.
     ///
     /// What it does NOT count: an ordinary max_iter exhaustion (also kMaxIter, this

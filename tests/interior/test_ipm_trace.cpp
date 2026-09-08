@@ -764,7 +764,7 @@ TEST(IpmTrace, SeqIsContiguousAcrossAnSqpSolveThenAnIpmSolveOnOneSinkAtDepthZero
     TinySqpModel model;
     const SqpSolution sqp_out = driver.solve(model, model.start_point());
     ASSERT_GT(sink.lines_written(), 0);
-    EXPECT_EQ(sqp_out.status, SqpStatus::kOptimal);
+    EXPECT_EQ(sqp_out.status, SolveStatus::kOptimal);
     const Index after_sqp = sink.lines_written();
 
     NLPSolver solver(std::make_shared<Hs071Problem>());
