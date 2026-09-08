@@ -2327,6 +2327,9 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                 iters.back().mu_ = mu;
                 QPtimer.stop();
                 ExitCode = ConvergenceFlags::NOTCONVERGED;
+                // The first of the two labelled NOTCONVERGED doors; see
+                // last_stop_reason(). A store into a member nothing else reads.
+                this->last_stop_reason_ = IpmStopReason::kRestorationLocallyInfeasible;
                 if (settings_.return_best_) {
                     XSL = BestXSL;
                     RHS = BestRHS;
@@ -2528,6 +2531,10 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                                                          feas_stall.theta_at_last_dispatch_;
                 if (!this->restoration_->near_feasible(theta_fs, ctx) && !net_progress) {
                     exit_stage_stalled = true;
+                    // The second labelled door, recorded here rather than at the
+                    // terminal conjunction so a stall on the cap iteration wins
+                    // the tie by program order; see last_stop_reason().
+                    this->last_stop_reason_ = IpmStopReason::kStageStalled;
                     if (settings_.print_level_ < 3)
                         fmt::print(fmt::fg(fmt::color::yellow),
                                    "Feasibility phase stalled with its restoration budget "
@@ -3232,6 +3239,16 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         if (nested_active) {
             this->restoration_->apply_elastic_step(alpha * alphap, alpha * alphad);
         }
+    }
+
+    // The unlabelled NOTCONVERGED exit is the iteration cap, recorded after the
+    // loop rather than in the terminal conjunction: five `continue`s above can
+    // bypass that conjunction on the cap iteration and leave by exhaustion.
+    // Guarded on the reason so the two doors above keep their label, and on the
+    // reported verdict so the reason never contradicts it.
+    if (this->last_stop_reason_ == IpmStopReason::kNone &&
+        this->result_.converge_flag_ == ConvergenceFlags::NOTCONVERGED) {
+        this->last_stop_reason_ = IpmStopReason::kIterationCap;
     }
 
     // Teardown invariant (dead on the default path: restoration_ is null). Any
@@ -4506,6 +4523,10 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
             this->resto_theta_orig_prev_ = 0.0;
             this->resto_recentered_ = false;
         }
+        // Phase-scoped like the resets above, and placed after the conditional
+        // skip so a skipped phase leaves the previous phase's reason standing
+        // beside the verdict it belongs to. See last_stop_reason().
+        this->last_stop_reason_ = IpmStopReason::kNone;
 
         XSL = this->alg_impl(step.alg_mode_, step.bar_mode_, step.ls_mode_, this->solve_obj_scale_,
                              settings_.init_mu_, XSL);

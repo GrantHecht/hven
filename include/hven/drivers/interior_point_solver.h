@@ -30,6 +30,7 @@
 #include "hven/detail/interior/kkt_factorization.h"
 #include "hven/detail/interior/kkt_vector.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
+#include "hven/drivers/solve_status.h"
 #include "hven/model/non_linear_program.h"
 #include "hven/warmstart/warm_start_data.h"
 
@@ -777,6 +778,17 @@ class InteriorPointSolver {
     const Settings &settings() const { return settings_; }
     /// @brief Returns the accumulated outputs of the most recent solve/optimize call.
     const SolveResult &result() const { return result_; }
+
+    /// @brief Why the last phase of the most recent call left its iteration
+    ///        loop, when it left without a convergence verdict.
+    ///
+    /// Reset to kNone at each phase start, so a multi-phase call reports the
+    /// last phase that ran. A stall coinciding with the iteration cap reports
+    /// kStageStalled: the stall is recorded first, and the cap store defers to
+    /// any reason already in place.
+    ///
+    /// @return The stop reason paired with result().converge_flag_.
+    IpmStopReason last_stop_reason() const noexcept { return last_stop_reason_; }
     /// @brief Returns the log of absorbed NLP evaluation errors.
     const EvalErrorLog &eval_error_log() const { return eval_error_log_; }
 
@@ -1624,6 +1636,12 @@ class InteriorPointSolver {
     /// emit sites. A member rather than an alg_impl parameter because it is
     /// instrumentation: the algorithm itself has no use for it.
     Index trace_phase_ = 0;
+
+    /// Why the current phase left its loop; see last_stop_reason(). Written by
+    /// run_phase_sequence and by alg_impl's two abnormal exits, read by nothing
+    /// inside the engine. LAST data member on purpose: appending it moves no
+    /// existing member's offset.
+    IpmStopReason last_stop_reason_ = IpmStopReason::kNone;
 
     // KKTVector — the compound-KKT segment view — lives in
     // detail/interior/kkt_vector.h as hven::solvers::KKTVector, shared with

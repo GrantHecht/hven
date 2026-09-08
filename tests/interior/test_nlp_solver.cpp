@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "hven/drivers/interior_point_solver.h"
+#include "hven/drivers/solve_status.h"
 #include "hven/drivers/trace.h"
 #include "hven/model/nlp_solver.h"
 
@@ -1454,4 +1455,39 @@ TEST(NLPSolverModeSemanticsTest, SolveAndOptimizeEachRunExactlyOnePhase) {
         EXPECT_EQ(sink.begin_phases_, 1);
         EXPECT_EQ(sink.distinct_phases(), (std::vector<int>{0}));
     }
+}
+
+// The LIVE iteration-cap pin on last_stop_reason() (M6 W5 T8.2). HS071 takes
+// nine iterations, so one is a cap exhaustion and nothing else; the two labelled
+// doors are pinned in test_ipm_stop_reason.cpp.
+TEST(NLPSolverTest, TheIterationCapIsTheRecordedStopReason) {
+    NLPSolver solver(std::make_shared<Hs071Problem>());
+    solver.optimizer_->set_print_level(10);
+    solver.optimizer_->set_max_iters(1);
+    Eigen::VectorXd x0(4);
+    x0 << 1.0, 5.0, 5.0, 1.0;
+    const hven::ConvergenceFlags flag = solver.optimize(x0);
+    ASSERT_EQ(flag, hven::ConvergenceFlags::NOTCONVERGED);
+    EXPECT_EQ(solver.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kIterationCap);
+    EXPECT_EQ(hven::solvers::to_solve_status(flag, solver.optimizer_->last_stop_reason()),
+              hven::solvers::SolveStatus::kMaxIter);
+}
+
+// A converged solve takes no labelled door, and the reason is reset per call:
+// the capped run above does not leave its label behind on the next one.
+TEST(NLPSolverTest, AConvergedSolveRecordsNoStopReason) {
+    NLPSolver solver(std::make_shared<Hs071Problem>());
+    solver.optimizer_->set_print_level(10);
+    Eigen::VectorXd x0(4);
+    x0 << 1.0, 5.0, 5.0, 1.0;
+    solver.optimizer_->set_max_iters(1);
+    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::NOTCONVERGED);
+    ASSERT_EQ(solver.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kIterationCap);
+
+    solver.optimizer_->set_max_iters(200);
+    const hven::ConvergenceFlags flag = solver.optimize(x0);
+    ASSERT_EQ(flag, hven::ConvergenceFlags::CONVERGED);
+    EXPECT_EQ(solver.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kNone);
+    EXPECT_EQ(hven::solvers::to_solve_status(flag, solver.optimizer_->last_stop_reason()),
+              hven::solvers::SolveStatus::kOptimal);
 }

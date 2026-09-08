@@ -638,3 +638,80 @@ result with an excuse attached: the bytes are not equal. It is also
 non-instructional — every `.text` byte, every relocation, every other section
 and the instruction counts are identical, and the differing content is a commit
 sha, not a decision the code makes. `libhven.a` itself is byte-identical.
+
+---
+
+## T8.2 — `SolveStatus`
+
+Landed as `feat(drivers): M6 W5 T8.2 — SolveStatus, the nine-value status both
+engines will report; kStalled split from NOTCONVERGED by stop reason`.
+
+### What changed
+
+1. **A new public header, `hven/drivers/solve_status.h`.** It declares
+   `hven::solvers::SolveStatus` — the nine values both engines will report:
+   `kOptimal`, `kAcceptable`, `kMaxIter`, `kInfeasible`, `kStalled`,
+   `kDiverging`, `kNumericalError`, `kBudgetExhausted`, `kInterrupted` — with
+   `to_string`, a total `severity` order over all nine, and the two mappings
+   `to_solve_status(ConvergenceFlags, IpmStopReason)` and
+   `to_solve_status(SqpStatus)`.
+2. **`hven::ConvergenceFlags` and `hven::solvers::SqpStatus` are UNCHANGED and
+   still what every surface returns.** Nothing on either engine returns
+   `SolveStatus` yet; T8.4 makes that switch and removes the two old enums. This
+   task is the vocabulary and the instrumentation behind it.
+3. **The interior-point engine records WHY its loop ended.**
+   `hven::solvers::IpmStopReason` — `kNone`, `kIterationCap`,
+   `kRestorationLocallyInfeasible`, `kStageStalled` — is written per phase and
+   read back through `InteriorPointSolver::last_stop_reason()`. It is reset to
+   `kNone` at each phase start, so a multi-phase call reports the last phase that
+   ran, and `kNone` means the phase did not end `NOTCONVERGED`.
+4. **No trajectory moves.** The three stores are writes to a member nothing else
+   in the engine reads; the U0 walk/ssn/ipm replay and the interior leg are both
+   identical across the change.
+
+### What you do
+
+Nothing yet. `last_stop_reason()` is available if you want the split before T8.4
+switches the surfaces over. When it does, this is the mapping:
+
+| interior-point `ConvergenceFlags` | stop reason | `SolveStatus` |
+|---|---|---|
+| `CONVERGED` | any | `kOptimal` |
+| `ACCEPTABLE` | any | `kAcceptable` |
+| `DIVERGING` | any | `kDiverging` |
+| `SINGULAR_KKT` | any | `kNumericalError` |
+| `NOTCONVERGED` | `kIterationCap` or `kNone` | `kMaxIter` |
+| `NOTCONVERGED` | `kStageStalled` | `kStalled` |
+| `NOTCONVERGED` | `kRestorationLocallyInfeasible` | `kStalled` |
+
+| SQP `SqpStatus` | `SolveStatus` |
+|---|---|
+| `kOptimal` / `kMaxIter` / `kInfeasible` / `kNumericalError` / `kBudgetExhausted` | the same name |
+
+Two rules the table encodes. A verdict the convergence check already holds wins
+over the stop reason, so a stall at an acceptable iterate reports `kAcceptable`.
+A stall that coincides with the iteration cap reports `kStalled`, because the
+stall is recorded in the iteration that reaches the terminal conjunction and the
+cap store defers to any reason already in place.
+
+Reachability, per engine: the interior-point engine reports neither `kInfeasible`
+nor `kBudgetExhausted`, the SQP engine reports none of `kAcceptable`, `kStalled`
+and `kDiverging`, and neither reports `kInterrupted` today.
+
+### What is pinned
+
+Three unit tests in the new `hven_drivers_tests` target
+(`tests/drivers/test_solve_status.cpp`): the severity order is total and as
+documented, the interior-point mapping splits `NOTCONVERGED` by reason and keeps
+the stronger verdict, and the SQP mapping is the identity on its five.
+
+Four LIVE pins, each driving a real solve: the iteration cap on HS071 at
+`max_iters = 1` and the reset-per-call rule
+(`tests/interior/test_nlp_solver.cpp`); the stalled feasibility stage, the
+restoration that converged to a locally infeasible point, and the
+stall-beats-cap tie (`tests/interior/test_ipm_stop_reason.cpp`).
+
+The replay leg grew with the task: `bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv`
+is re-derived — a declared re-derivation, CLAUDE.md §7 — with a `stop_reason`
+column and four abnormal-exit rows, and its 33 base rows are byte-identical to
+T8.1's outside the added column.

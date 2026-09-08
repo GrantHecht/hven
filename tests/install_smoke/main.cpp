@@ -91,9 +91,9 @@ struct Hs071Problem : hven::solvers::NLPProblem {
 } // namespace
 
 // The standalone-include TUs (M6 W5 T0; nlp_solver joined at T1 fix1,
-// ipqp_evidence at T4, compiler at T3). Each proves COMPILE-TIME
-// self-containment only: none odr-uses anything its header declares, so the
-// link proves the nine objects link, nothing about exports.
+// ipqp_evidence at T4, compiler at T3, solve_status at T8.2). Each proves
+// COMPILE-TIME self-containment only: none odr-uses anything its header
+// declares, so the link proves the ten objects link, nothing about exports.
 namespace hven_install_smoke {
 int standalone_include_trace_writer();
 int standalone_include_trace();
@@ -103,6 +103,7 @@ int standalone_include_nlp_aggregate();
 int standalone_include_aggregate_declaration();
 int standalone_include_nlp_model_aggregate();
 int standalone_include_nlp_solver();
+int standalone_include_solve_status();
 int standalone_include_compiler();
 } // namespace hven_install_smoke
 
@@ -115,9 +116,10 @@ int main() {
                                hven_install_smoke::standalone_include_aggregate_declaration() +
                                hven_install_smoke::standalone_include_nlp_model_aggregate() +
                                hven_install_smoke::standalone_include_nlp_solver() +
+                               hven_install_smoke::standalone_include_solve_status() +
                                hven_install_smoke::standalone_include_compiler();
-    if (standalone_tus != 9) {
-        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 9\n",
+    if (standalone_tus != 10) {
+        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 10\n",
                      standalone_tus);
         return 1;
     }

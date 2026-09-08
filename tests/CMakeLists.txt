@@ -361,6 +361,13 @@ add_subdirectory(golden_rig)
 add_subdirectory(interior)
 
 ################################################################################
+# The shared driver surface's test suite: the include/hven/drivers/ types that
+# belong to neither engine. See tests/drivers/CMakeLists.txt.
+################################################################################
+
+add_subdirectory(drivers)
+
+################################################################################
 # The model contract surface's test suite: what the provider-side contract in
 # include/hven/model/ guarantees before any engine implements it. See
 # tests/model/CMakeLists.txt.

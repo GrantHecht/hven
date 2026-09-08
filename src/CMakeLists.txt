@@ -65,6 +65,17 @@ target_sources(hven PRIVATE
 )
 
 ################################################################################
+# The shared solve-outcome vocabulary (include/hven/drivers/solve_status.h). Its
+# own block because it belongs to neither engine: the status both report and the
+# mappings from the two engine-native enums onto it. A TU on the same footing as
+# core/enum_names.cpp -- switches over enums, not a per-element path.
+################################################################################
+
+target_sources(hven PRIVATE
+    drivers/solve_status.cpp
+)
+
+################################################################################
 # Interior-point engine — the top-level InteriorPointSolver algorithm
 # (drivers/), the NLPProblem/NLPSolver contract with its adapter and the
 # partitioned-evaluation NonLinearProgram engine (model/), and the barrier /
@@ -443,7 +454,13 @@ endif()
 # fmt/format.h and four standard headers -- a different set in a different
 # order from the one src/hven_pch.h prefixes, which is the SQP-side prior that
 # has failed bar 2 for every such TU measured so far.
-set(_hven_expected_source_count 41)
+#
+# 42 as of drivers/solve_status.cpp (M6 W5 T8.2): the shared status vocabulary's
+# switches. Stays OUT on the same unmeasured-default footing as the thirteen
+# above. It includes its own header (core/solver_status.h plus the interior-point
+# forward header), fmt/format.h and <stdexcept> -- a different set in a different
+# order from the one src/hven_pch.h prefixes.
+set(_hven_expected_source_count 42)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.
