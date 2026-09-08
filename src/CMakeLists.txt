@@ -73,6 +73,7 @@ target_sources(hven PRIVATE
 
 target_sources(hven PRIVATE
     drivers/solve_status.cpp
+    drivers/solve_result.cpp
 )
 
 ################################################################################
@@ -465,7 +466,14 @@ endif()
 # above. It includes its own header (core/solver_status.h plus the interior-point
 # forward header), fmt/format.h and <stdexcept> -- a different set in a different
 # order from the one src/hven_pch.h prefixes.
-set(_hven_expected_source_count 42)
+#
+# 43 as of drivers/solve_result.cpp (M6 W5 T8.4): the shared declared
+# diagnostics' one definition. Stays OUT on the same unmeasured-default footing
+# as the fourteen above. It includes its own header (core/types.h,
+# drivers/solve_status.h and warmstart/warm_start_data.h), fmt/format.h and
+# three standard headers -- a different set in a different order from the one
+# src/hven_pch.h prefixes.
+set(_hven_expected_source_count 43)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

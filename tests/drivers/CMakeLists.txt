@@ -19,6 +19,7 @@
 set(HVEN_DRIVERS_TEST_SOURCES
     test_options.cpp
     test_solve_status.cpp
+    test_solve_result.cpp
 )
 
 add_executable(hven_drivers_tests ${HVEN_DRIVERS_TEST_SOURCES})

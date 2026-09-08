@@ -1143,3 +1143,77 @@ counterpart in ONLY-AFTER; they are signature renames, not added or removed
 behaviour. The other **16** are not renames at all: constructors, a QP
 destructor, and renamed test infrastructure. (Corrected in fix round 1; the
 addendum first said all 43 were enum renames.)
+
+---
+
+## T8.4 — one result core: `SolveResult`, `SolveBudget`, the shared declared diagnostics
+
+This section grows commit by commit. The first commit ADDS a header and adds
+nothing else: no existing declaration moved, no existing behaviour changed, and
+nothing a consumer compiles today stopped compiling.
+
+### The new header
+
+`#include <hven/drivers/solve_result.h>` — a public header that names neither
+engine, so a consumer can write one reporting function against both:
+
+| type | what it is |
+|---|---|
+| `hven::solvers::SolveBudget` | `{Index minor_budget = 0; Index max_iterations = 0;}` — the per-call work ceiling both engines will take from T8.4's later commits. Both zeros mean "the engine's own options decide". |
+| `hven::solvers::SolveResult` | the base every engine result derives from: `status`, `x`, `lambda_e`, `lambda_i`, `z`, `f`, the four shared diagnostics, `ce`/`ci`, `iterations`, `wall_seconds`, `export_warm_start()`. |
+| `hven::solvers::DeclaredDiagnostics` | the four shared diagnostics as a value. |
+| `compute_declared_diagnostics(...)` | their ONE definition, over the DECLARED problem in CALLER units. |
+
+### The four shared diagnostics, defined
+
+Over the declared problem, in the caller's units, from an evaluation the engine
+ALREADY HOLDS — this function evaluates nothing:
+
+- `stationarity` — inf-norm of `grad f + Je^T lambda_e + Ji^T lambda_i - z` over
+  the declared coordinates that were measured.
+- `feasibility_e` — inf-norm of `ce`.
+- `feasibility_i` — inf-norm of the positive part of the declared inequality
+  rows (`ci <= 0` is feasible) and of the declared bound violations.
+- `complementarity` — inf-norm over `lambda_i o ci` and the **canonical** bound
+  products `max(z,0) o (x - l)` and `max(-z,0) o (u - x)`.
+
+**Why canonical.** A signed `z = zL - zU` cannot recover two separate prices at
+a two-sided bound where both are positive. The shared diagnostic says so and
+prices each side from the sign of `z`; an engine that holds both prices keeps
+its own two-price measure on its own result (the interior-point engine's
+`barr_inf`). Pinned by
+`DeclaredDiagnostics.TwoSidedBoundUsesCanonicalSplit`.
+
+**NaN means UNMEASURED**, everywhere in this core, and `ce`/`ci` are EMPTY
+rather than zero when nothing was measured. Absent is never zero-filled.
+
+**An excluded coordinate is not measured.** `excluded_coordinates` names the
+coordinates the producing engine has no row for at all — the interior-point
+engine's `MakeParameter` eliminations, whose reduced gradient reports `0` there.
+A `0` meaning "no row" must not enter an inf-norm beside `0`s meaning
+"stationary". Pinned by
+`DeclaredDiagnostics.ExcludedCoordinateIsNotMeasured`.
+
+### Two entry points, one arithmetic
+
+`compute_declared_diagnostics(x, lambda_e, lambda_i, z, grad, Je, Ji, ce, ci,
+lower, upper, excluded)` forms `grad f + Je^T lambda_e + Ji^T lambda_i` and
+calls straight through to
+`compute_declared_diagnostics_from_grad_lag(x, lambda_i, z, grad_lag, ce, ci,
+lower, upper, excluded)`.
+
+The second exists because **the interior-point engine has no separated gradient
+or Jacobian at the returned iterate**: the model's derivatives are scattered
+directly into one compound KKT buffer, fused there with the Hessian, the barrier
+diagonals and any inertia perturbation, and left at the LAST EVALUATED iterate
+rather than the reported one. What it does hold, in its right-hand side at the
+returned iterate, is exactly `grad_lag`. A signature demanding `(grad, Je, Ji)`
+would force it to evaluate the model again — moving `evals_full` on every solve.
+The SQP's `SqpKkt` carries `grad_lag` outright for the same reason: forming it
+twice is arithmetic with a chance of disagreeing.
+
+### Source count
+
+`src/CMakeLists.txt`'s `_hven_expected_source_count` moves **42 -> 43**
+(`src/drivers/solve_result.cpp`), and the install smoke gains a thirteenth
+standalone-include TU.
