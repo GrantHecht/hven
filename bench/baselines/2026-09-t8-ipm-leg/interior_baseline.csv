@@ -84,18 +84,59 @@
 # Machine: AMD Ryzen 7 5800X3D, Fedora 44, clang 22.1.8, MKL from
 # /opt/intel/oneapi/mkl/latest, Release, the uniform flag regime.
 # Wall_s is INFORMATIONAL and is the one column the comparator excludes.
-# THE `# binary:` STAMP READS `-dirty` BY CONSTRUCTION, as T8.1's and T8.2's
-# did: the leg growth and this artifact are one commit, so the rows were
-# produced from the working tree with the change applied and not yet committed.
-# The rows below are capture 4 of the two, verbatim.
+# THE `# binary:` STAMP READ `-dirty` BY CONSTRUCTION when this file was first
+# written, as T8.1's and T8.2's did: the leg growth and that artifact were one
+# commit, so the rows were produced from the working tree with the change
+# applied and not yet committed.
+#
+# IT NO LONGER DOES. Fix round 1 (below) splits the two: the code change is its
+# own commit and this artifact is the next one, so the rows below were produced
+# from a CLEAN tree at that commit and the stamp names it.
+#
+# ===========================================================================
+# M6 W5 T8.4 FIX ROUND 1 -- A ONE-CELL DECLARED RE-DERIVATION on top of the
+# above (CLAUDE.md section 7). Declared BEFORE the run, in the fix-round
+# dispatch and in the settler's item S1.
+#
+#   infeas2_spike/MakeParameter/stalled   stationarity   0.000000000e+00 -> nan
+#
+# WHY. That row is a solve() exit -- phases {kSolve}, the FEASIBILITY phase
+# alone. That phase evaluates through eval_soe at objective scale 0.0 and then
+# zeroes both primal gradient blocks outright, so the right-hand side it leaves
+# behind carries NO declared objective gradient. T8.4's result assembly gated
+# the declared diagnostics on the captured vector's SIZE and on the exit's
+# restoration flag, neither of which can see that, and so divided an
+# objective-free vector by the objective scale and printed the result as a
+# MEASURED declared stationarity. The cell's declared objective is f = x[1],
+# its gradient is (0, 1), its equality Jacobian's second coordinate is zero and
+# it has no bounds, so the honest declared stationarity at that point is at
+# least 1 -- and a problem with no feasible point was reported as EXACTLY
+# stationary beside a feasibility_e of 3.79e+17.
+#
+# The honest REPORT is nan, because no declared-objective evaluation of the
+# returned point exists and manufacturing one would move evals_full on every
+# solve. Design section 2.3's rule is that absent is never zero-filled.
+#
+# WHAT DID NOT MOVE. compare_replay.py between the T8.4 file above and this
+# capture reported `cells compared: 39  columns compared: 30  differences: 1`,
+# and the one difference is the cell named above. Every other cell of every
+# other row is byte-identical, the other three diagnostics on that same row
+# INCLUDED: they read ce, ci, x, the box, lambda_i and z, every one of which a
+# feasibility phase does evaluate, so they stay measured. The four NaNs on
+# `infeas2_stationary` were already right and are unchanged.
+#
+# The rows below are capture 6 of six; captures 5 and 6 agreed at
+# `39 / 30 / 0`, as did 1 and 2 and 3 and 4 before the re-configure that
+# refreshed the `# binary:` stamp.
+# ===========================================================================
 # hven_sqp_corpus provenance -- ENGINE interior (top-level interior-point driver)
-# binary: 9cebbbe06129-dirty
+# binary: 5124aa14bed1
 # schema: 31
-# invocation: /home/ghecht/Projects/hven/build/bench/hven_sqp_corpus --engine interior --cells f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n1000_bound_corrupted,f7_n1000_bound_activity,f7_n1000_bound_warm,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n2000_bound_corrupted,f7_n2000_bound_activity,f7_n2000_bound_warm,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n5000_bound_corrupted,f7_n5000_bound_activity,f7_n5000_bound_warm,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n10000_bound_corrupted,f7_n10000_bound_activity,f7_n10000_bound_warm,f7_n20000_bound_neutral,f7_n20000_bound_physics,f7_n20000_bound_corrupted,f7_n20000_bound_activity,f7_n20000_bound_warm,f7_n1000_path_warm,f7_n800_path_warm --csv /home/ghecht/Projects/hven/.scratch/w5t84/captures/capture4.csv
+# invocation: /home/ghecht/Projects/hven/build/bench/hven_sqp_corpus --engine interior --cells f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n1000_bound_corrupted,f7_n1000_bound_activity,f7_n1000_bound_warm,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n2000_bound_corrupted,f7_n2000_bound_activity,f7_n2000_bound_warm,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n5000_bound_corrupted,f7_n5000_bound_activity,f7_n5000_bound_warm,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n10000_bound_corrupted,f7_n10000_bound_activity,f7_n10000_bound_warm,f7_n20000_bound_neutral,f7_n20000_bound_physics,f7_n20000_bound_corrupted,f7_n20000_bound_activity,f7_n20000_bound_warm,f7_n1000_path_warm,f7_n800_path_warm --csv /home/ghecht/Projects/hven/.scratch/w5t84/fix1/captures/capture6.csv
 # MKL_NUM_THREADS: 1
 # OMP_NUM_THREADS: 1
 # host: fedora
-# generated: 2026-09-08T19:15:14Z
+# generated: 2026-09-08T22:28:18Z
 # levers: max_iters=200 print_level=10 partitions=1 qp_threads=1
 # levers: kkt_tol=1.000000000e-08 econ_tol=1.000000000e-08 icon_tol=1.000000000e-08 barr_tol=1.000000000e-08
 # levers: bound_relax_factor=1.000000000e-08
@@ -125,42 +166,42 @@
 # refused: f7_n1000_path_warm -- start is an SQP WarmStart carried from a prior solve at p0 (hot handle and activity encoding, no interior-point counterpart), so leg (a) cannot run from this cell's own start
 # refused: f7_n800_path_warm -- start is an SQP WarmStart carried from a prior solve at p0 (hot handle and activity encoding, no interior-point counterpart), so leg (a) cannot run from this cell's own start
 cell_id,family,n_nodes,window,taxonomy,status,iter_num,obj_val,kkt_inf,barr_inf,econ_inf,icon_inf,factorizations,solves,analyses,soc_steps,watchdog_activations,fixed_treatment,stop_reason,phase_count,phases_ran,phases,x_size,lambda_e_size,lambda_i_size,z_size,stationarity,feasibility_e,feasibility_i,complementarity,wall_s
-f7_n1000_bound_neutral/MakeParameter,F7,1000,bound,neutral,optimal,7,-4.075173558e-01,4.165961184e-09,6.604566508e-10,1.123981747e-16,0.000000000e+00,7,7,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:7,5000,3000,1000,5000,4.165961184e-09,1.123981747e-16,0.000000000e+00,6.604566508e-10,0.346963733
-f7_n1000_bound_neutral/MakeConstraint,F7,1000,bound,neutral,optimal,7,-4.075173558e-01,4.165961184e-09,6.604566508e-10,1.123981747e-16,0.000000000e+00,7,7,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:7,5000,3000,1000,5000,4.165961184e-09,1.123981747e-16,0.000000000e+00,6.604566508e-10,0.040813925
-f7_n1000_bound_neutral/RelaxBounds,F7,1000,bound,neutral,optimal,7,-4.075173558e-01,4.165961184e-09,6.604566508e-10,1.123981747e-16,0.000000000e+00,7,7,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:7,5000,3000,1000,5000,4.165961184e-09,1.123981747e-16,0.000000000e+00,6.604566508e-10,0.040717566
-f7_n1000_bound_physics/MakeParameter,F7,1000,bound,physics,optimal,5,-4.075173558e-01,2.380795236e-10,3.669294146e-11,1.081291806e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:5,5000,3000,1000,5000,2.380795236e-10,1.081291806e-16,0.000000000e+00,3.669294146e-11,0.032631744
-f7_n1000_bound_physics/MakeConstraint,F7,1000,bound,physics,optimal,5,-4.075173558e-01,2.380795236e-10,3.669294146e-11,1.081291806e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:5,5000,3000,1000,5000,2.380795236e-10,1.081291806e-16,0.000000000e+00,3.669294146e-11,0.032746324
-f7_n1000_bound_physics/RelaxBounds,F7,1000,bound,physics,optimal,5,-4.075173558e-01,2.380795236e-10,3.669294146e-11,1.081291806e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:5,5000,3000,1000,5000,2.380795236e-10,1.081291806e-16,0.000000000e+00,3.669294146e-11,0.032690823
-f7_n2000_bound_neutral/MakeParameter,F7,2000,bound,neutral,optimal,8,-4.066533233e-01,2.634105959e-10,4.050917722e-11,1.099325702e-16,0.000000000e+00,8,8,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:8,10000,6000,2000,10000,2.634105959e-10,1.099325702e-16,0.000000000e+00,4.050917722e-11,0.096595778
-f7_n2000_bound_neutral/MakeConstraint,F7,2000,bound,neutral,optimal,8,-4.066533233e-01,2.634105959e-10,4.050917722e-11,1.099325702e-16,0.000000000e+00,8,8,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:8,10000,6000,2000,10000,2.634105959e-10,1.099325702e-16,0.000000000e+00,4.050917722e-11,0.092777397
-f7_n2000_bound_neutral/RelaxBounds,F7,2000,bound,neutral,optimal,8,-4.066533233e-01,2.634105959e-10,4.050917722e-11,1.099325702e-16,0.000000000e+00,8,8,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:8,10000,6000,2000,10000,2.634105959e-10,1.099325702e-16,0.000000000e+00,4.050917722e-11,0.094241050
-f7_n2000_bound_physics/MakeParameter,F7,2000,bound,physics,optimal,5,-4.066533233e-01,2.433700878e-10,3.733486557e-11,1.168101089e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:5,10000,6000,2000,10000,2.433700878e-10,1.168101089e-16,0.000000000e+00,3.733486557e-11,0.068610433
-f7_n2000_bound_physics/MakeConstraint,F7,2000,bound,physics,optimal,5,-4.066533233e-01,2.433700878e-10,3.733486557e-11,1.168101089e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:5,10000,6000,2000,10000,2.433700878e-10,1.168101089e-16,0.000000000e+00,3.733486557e-11,0.068583942
-f7_n2000_bound_physics/RelaxBounds,F7,2000,bound,physics,optimal,5,-4.066533233e-01,2.433700878e-10,3.733486557e-11,1.168101089e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:5,10000,6000,2000,10000,2.433700878e-10,1.168101089e-16,0.000000000e+00,3.733486557e-11,0.068672052
-f7_n5000_bound_neutral/MakeParameter,F7,5000,bound,neutral,optimal,8,-4.061354861e-01,6.437793963e-09,1.984376401e-09,2.807674350e-15,0.000000000e+00,8,8,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:8,25000,15000,5000,25000,6.437793963e-09,2.807674350e-15,0.000000000e+00,1.984376401e-09,0.247605398
-f7_n5000_bound_neutral/MakeConstraint,F7,5000,bound,neutral,optimal,8,-4.061354861e-01,6.437793963e-09,1.984376401e-09,2.807674350e-15,0.000000000e+00,8,8,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:8,25000,15000,5000,25000,6.437793963e-09,2.807674350e-15,0.000000000e+00,1.984376401e-09,0.239684706
-f7_n5000_bound_neutral/RelaxBounds,F7,5000,bound,neutral,optimal,8,-4.061354861e-01,6.437793963e-09,1.984376401e-09,2.807674350e-15,0.000000000e+00,8,8,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:8,25000,15000,5000,25000,6.437793963e-09,2.807674350e-15,0.000000000e+00,1.984376401e-09,0.239370846
-f7_n5000_bound_physics/MakeParameter,F7,5000,bound,physics,optimal,5,-4.061354862e-01,2.466487686e-10,3.783082487e-11,1.096120960e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:5,25000,15000,5000,25000,2.466487686e-10,1.096120960e-16,0.000000000e+00,3.783082487e-11,0.177092464
-f7_n5000_bound_physics/MakeConstraint,F7,5000,bound,physics,optimal,5,-4.061354862e-01,2.466487686e-10,3.783082487e-11,1.096120960e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:5,25000,15000,5000,25000,2.466487686e-10,1.096120960e-16,0.000000000e+00,3.783082487e-11,0.178876446
-f7_n5000_bound_physics/RelaxBounds,F7,5000,bound,physics,optimal,5,-4.061354862e-01,2.466487686e-10,3.783082487e-11,1.096120960e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:5,25000,15000,5000,25000,2.466487686e-10,1.096120960e-16,0.000000000e+00,3.783082487e-11,0.177155664
-f7_n10000_bound_neutral/MakeParameter,F7,10000,bound,neutral,optimal,9,-4.059629708e-01,4.384091675e-10,6.954131848e-11,6.138253342e-16,0.000000000e+00,9,9,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:9,50000,30000,10000,50000,4.384091675e-10,6.138253342e-16,0.000000000e+00,6.954131848e-11,0.553566787
-f7_n10000_bound_neutral/MakeConstraint,F7,10000,bound,neutral,optimal,9,-4.059629708e-01,4.384091675e-10,6.954131848e-11,6.138253342e-16,0.000000000e+00,9,9,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:9,50000,30000,10000,50000,4.384091675e-10,6.138253342e-16,0.000000000e+00,6.954131848e-11,0.536005651
-f7_n10000_bound_neutral/RelaxBounds,F7,10000,bound,neutral,optimal,9,-4.059629708e-01,4.384091675e-10,6.954131848e-11,6.138253342e-16,0.000000000e+00,9,9,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:9,50000,30000,10000,50000,4.384091675e-10,6.138253342e-16,0.000000000e+00,6.954131848e-11,0.531511641
-f7_n10000_bound_physics/MakeParameter,F7,10000,bound,physics,optimal,5,-4.059629708e-01,2.479467811e-10,3.801460695e-11,1.103828678e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:5,50000,30000,10000,50000,2.479467811e-10,1.103828678e-16,0.000000000e+00,3.801460695e-11,0.366981297
-f7_n10000_bound_physics/MakeConstraint,F7,10000,bound,physics,optimal,5,-4.059629708e-01,2.479467811e-10,3.801460695e-11,1.103828678e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:5,50000,30000,10000,50000,2.479467811e-10,1.103828678e-16,0.000000000e+00,3.801460695e-11,0.371276577
-f7_n10000_bound_physics/RelaxBounds,F7,10000,bound,physics,optimal,5,-4.059629708e-01,2.479467811e-10,3.801460695e-11,1.103828678e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:5,50000,30000,10000,50000,2.479467811e-10,1.103828678e-16,0.000000000e+00,3.801460695e-11,0.371687885
-f7_n20000_bound_neutral/MakeParameter,F7,20000,bound,neutral,optimal,9,-4.058767313e-01,5.551597096e-10,9.900664080e-11,3.404097007e-15,0.000000000e+00,9,9,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:9,100000,60000,20000,100000,5.551597096e-10,3.404097007e-15,0.000000000e+00,9.900664080e-11,1.155918260
-f7_n20000_bound_neutral/MakeConstraint,F7,20000,bound,neutral,optimal,9,-4.058767313e-01,5.551597096e-10,9.900664080e-11,3.404097007e-15,0.000000000e+00,9,9,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:9,100000,60000,20000,100000,5.551597096e-10,3.404097007e-15,0.000000000e+00,9.900664080e-11,1.119424054
-f7_n20000_bound_neutral/RelaxBounds,F7,20000,bound,neutral,optimal,9,-4.058767313e-01,5.551597096e-10,9.900664080e-11,3.404097007e-15,0.000000000e+00,9,9,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:9,100000,60000,20000,100000,5.551597096e-10,3.404097007e-15,0.000000000e+00,9.900664080e-11,1.119191555
-f7_n20000_bound_physics/MakeParameter,F7,20000,bound,physics,optimal,5,-4.058767313e-01,2.481461924e-10,3.803510500e-11,1.104631635e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:5,100000,60000,20000,100000,2.481461924e-10,1.104631635e-16,0.000000000e+00,3.803510500e-11,0.773776395
-f7_n20000_bound_physics/MakeConstraint,F7,20000,bound,physics,optimal,5,-4.058767313e-01,2.481461924e-10,3.803510500e-11,1.104631635e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:5,100000,60000,20000,100000,2.481461924e-10,1.104631635e-16,0.000000000e+00,3.803510500e-11,0.774114993
-f7_n20000_bound_physics/RelaxBounds,F7,20000,bound,physics,optimal,5,-4.058767313e-01,2.481461924e-10,3.803510500e-11,1.104631635e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:5,100000,60000,20000,100000,2.481461924e-10,1.104631635e-16,0.000000000e+00,3.803510500e-11,0.774292232
-hs071_x1_fixed/MakeParameter,hs,4,none,fixed_variable,optimal,9,1.701401729e+01,1.463526456e-09,1.744133762e-10,0.000000000e+00,0.000000000e+00,9,9,2,0,0,MakeParameter,none,1,1,kOptimize:optimal:9,4,1,1,4,1.463526456e-09,0.000000000e+00,0.000000000e+00,1.712034355e-10,0.000184789
-hs071_x1_fixed/MakeConstraint,hs,4,none,fixed_variable,optimal,9,1.701401729e+01,2.096454566e-09,1.744133762e-10,0.000000000e+00,0.000000000e+00,9,9,2,0,0,MakeConstraint,none,1,1,kOptimize:optimal:9,4,1,1,4,2.096454566e-09,0.000000000e+00,0.000000000e+00,1.712034468e-10,0.000136270
-hs071_x1_fixed/RelaxBounds,hs,4,none,fixed_variable,optimal,11,1.701401728e+01,3.969047313e-15,3.943132698e-09,0.000000000e+00,0.000000000e+00,11,11,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:11,4,1,1,4,3.996802889e-15,0.000000000e+00,8.248617456e-09,8.973433560e-09,0.000153869
-f7_n1000_bound_neutral/MakeParameter/cap1,F7,1000,bound,neutral,max_iter,1,-1.764445221e-01,7.550671264e-04,1.000000000e-03,1.060660172e-01,0.000000000e+00,2,2,1,0,0,MakeParameter,iteration_cap,1,1,kOptimize:max_iter:1,5000,3000,1000,5000,7.550671264e-04,1.060660172e-01,0.000000000e+00,1.000000000e-03,0.016743170
-hs071_x1_fixed/MakeParameter/cap1,hs,4,none,fixed_variable,max_iter,1,1.599599004e+01,1.481450094e+01,1.000000000e-03,1.190205198e+01,2.602472500e-02,2,2,2,0,0,MakeParameter,iteration_cap,1,1,kOptimize:max_iter:1,4,1,1,4,1.481450094e+01,1.190205198e+01,2.502472500e-02,2.502472500e-02,0.000081920
-infeas2_spike/MakeParameter/stalled,synthetic,2,none,infeasible,stalled,141,0.000000000e+00,0.000000000e+00,0.000000000e+00,3.791662080e+17,0.000000000e+00,142,142,1,0,0,MakeParameter,stage_stalled,1,1,kSolve:stalled:141,2,1,0,2,0.000000000e+00,3.791662080e+17,0.000000000e+00,0.000000000e+00,0.000619027
-infeas2_stationary/MakeParameter/resto_infeasible,synthetic,2,none,infeasible,stalled,25,2.653226544e-04,2.750577544e-13,0.000000000e+00,4.107825191e-14,0.000000000e+00,30,25,1,0,0,MakeParameter,restoration_locally_infeasible,1,1,kOptimize:stalled:25,2,1,0,2,nan,nan,nan,nan,0.000193769
-f7_n1000_bound_neutral/MakeParameter/solve_optimize,F7,1000,bound,neutral,optimal,12,-4.075173558e-01,4.680086978e-10,7.139636651e-11,1.070248685e-16,0.000000000e+00,12,12,1,0,0,MakeParameter,none,2,2,kSolve:optimal:5|kOptimize:optimal:7,5000,3000,1000,5000,4.680086978e-10,1.070248685e-16,0.000000000e+00,7.139636651e-11,0.057231447
-hs071_x1_fixed/MakeParameter/solve_optimize,hs,4,none,fixed_variable,optimal,19,1.701401729e+01,6.725227498e-11,2.209420442e-12,5.752553989e-11,6.068399180e-11,19,19,2,0,0,MakeParameter,none,2,2,kSolve:optimal:7|kOptimize:optimal:12,4,1,1,4,6.725227498e-11,5.752553989e-11,5.668354675e-11,3.130596350e-11,0.000186629
+f7_n1000_bound_neutral/MakeParameter,F7,1000,bound,neutral,optimal,7,-4.075173558e-01,4.165961184e-09,6.604566508e-10,1.123981747e-16,0.000000000e+00,7,7,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:7,5000,3000,1000,5000,4.165961184e-09,1.123981747e-16,0.000000000e+00,6.604566508e-10,0.411837617
+f7_n1000_bound_neutral/MakeConstraint,F7,1000,bound,neutral,optimal,7,-4.075173558e-01,4.165961184e-09,6.604566508e-10,1.123981747e-16,0.000000000e+00,7,7,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:7,5000,3000,1000,5000,4.165961184e-09,1.123981747e-16,0.000000000e+00,6.604566508e-10,0.040708134
+f7_n1000_bound_neutral/RelaxBounds,F7,1000,bound,neutral,optimal,7,-4.075173558e-01,4.165961184e-09,6.604566508e-10,1.123981747e-16,0.000000000e+00,7,7,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:7,5000,3000,1000,5000,4.165961184e-09,1.123981747e-16,0.000000000e+00,6.604566508e-10,0.040827844
+f7_n1000_bound_physics/MakeParameter,F7,1000,bound,physics,optimal,5,-4.075173558e-01,2.380795236e-10,3.669294146e-11,1.081291806e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:5,5000,3000,1000,5000,2.380795236e-10,1.081291806e-16,0.000000000e+00,3.669294146e-11,0.032480884
+f7_n1000_bound_physics/MakeConstraint,F7,1000,bound,physics,optimal,5,-4.075173558e-01,2.380795236e-10,3.669294146e-11,1.081291806e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:5,5000,3000,1000,5000,2.380795236e-10,1.081291806e-16,0.000000000e+00,3.669294146e-11,0.032629583
+f7_n1000_bound_physics/RelaxBounds,F7,1000,bound,physics,optimal,5,-4.075173558e-01,2.380795236e-10,3.669294146e-11,1.081291806e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:5,5000,3000,1000,5000,2.380795236e-10,1.081291806e-16,0.000000000e+00,3.669294146e-11,0.032676393
+f7_n2000_bound_neutral/MakeParameter,F7,2000,bound,neutral,optimal,8,-4.066533233e-01,2.634105959e-10,4.050917722e-11,1.099325702e-16,0.000000000e+00,8,8,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:8,10000,6000,2000,10000,2.634105959e-10,1.099325702e-16,0.000000000e+00,4.050917722e-11,0.096295289
+f7_n2000_bound_neutral/MakeConstraint,F7,2000,bound,neutral,optimal,8,-4.066533233e-01,2.634105959e-10,4.050917722e-11,1.099325702e-16,0.000000000e+00,8,8,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:8,10000,6000,2000,10000,2.634105959e-10,1.099325702e-16,0.000000000e+00,4.050917722e-11,0.093153364
+f7_n2000_bound_neutral/RelaxBounds,F7,2000,bound,neutral,optimal,8,-4.066533233e-01,2.634105959e-10,4.050917722e-11,1.099325702e-16,0.000000000e+00,8,8,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:8,10000,6000,2000,10000,2.634105959e-10,1.099325702e-16,0.000000000e+00,4.050917722e-11,0.093848910
+f7_n2000_bound_physics/MakeParameter,F7,2000,bound,physics,optimal,5,-4.066533233e-01,2.433700878e-10,3.733486557e-11,1.168101089e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:5,10000,6000,2000,10000,2.433700878e-10,1.168101089e-16,0.000000000e+00,3.733486557e-11,0.069277728
+f7_n2000_bound_physics/MakeConstraint,F7,2000,bound,physics,optimal,5,-4.066533233e-01,2.433700878e-10,3.733486557e-11,1.168101089e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:5,10000,6000,2000,10000,2.433700878e-10,1.168101089e-16,0.000000000e+00,3.733486557e-11,0.068320463
+f7_n2000_bound_physics/RelaxBounds,F7,2000,bound,physics,optimal,5,-4.066533233e-01,2.433700878e-10,3.733486557e-11,1.168101089e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:5,10000,6000,2000,10000,2.433700878e-10,1.168101089e-16,0.000000000e+00,3.733486557e-11,0.068720681
+f7_n5000_bound_neutral/MakeParameter,F7,5000,bound,neutral,optimal,8,-4.061354861e-01,6.437793963e-09,1.984376401e-09,2.807674350e-15,0.000000000e+00,8,8,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:8,25000,15000,5000,25000,6.437793963e-09,2.807674350e-15,0.000000000e+00,1.984376401e-09,0.247787142
+f7_n5000_bound_neutral/MakeConstraint,F7,5000,bound,neutral,optimal,8,-4.061354861e-01,6.437793963e-09,1.984376401e-09,2.807674350e-15,0.000000000e+00,8,8,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:8,25000,15000,5000,25000,6.437793963e-09,2.807674350e-15,0.000000000e+00,1.984376401e-09,0.240315479
+f7_n5000_bound_neutral/RelaxBounds,F7,5000,bound,neutral,optimal,8,-4.061354861e-01,6.437793963e-09,1.984376401e-09,2.807674350e-15,0.000000000e+00,8,8,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:8,25000,15000,5000,25000,6.437793963e-09,2.807674350e-15,0.000000000e+00,1.984376401e-09,0.239431072
+f7_n5000_bound_physics/MakeParameter,F7,5000,bound,physics,optimal,5,-4.061354862e-01,2.466487686e-10,3.783082487e-11,1.096120960e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:5,25000,15000,5000,25000,2.466487686e-10,1.096120960e-16,0.000000000e+00,3.783082487e-11,0.179050073
+f7_n5000_bound_physics/MakeConstraint,F7,5000,bound,physics,optimal,5,-4.061354862e-01,2.466487686e-10,3.783082487e-11,1.096120960e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:5,25000,15000,5000,25000,2.466487686e-10,1.096120960e-16,0.000000000e+00,3.783082487e-11,0.178799273
+f7_n5000_bound_physics/RelaxBounds,F7,5000,bound,physics,optimal,5,-4.061354862e-01,2.466487686e-10,3.783082487e-11,1.096120960e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:5,25000,15000,5000,25000,2.466487686e-10,1.096120960e-16,0.000000000e+00,3.783082487e-11,0.179305261
+f7_n10000_bound_neutral/MakeParameter,F7,10000,bound,neutral,optimal,9,-4.059629708e-01,4.384091675e-10,6.954131848e-11,6.138253342e-16,0.000000000e+00,9,9,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:9,50000,30000,10000,50000,4.384091675e-10,6.138253342e-16,0.000000000e+00,6.954131848e-11,0.554006775
+f7_n10000_bound_neutral/MakeConstraint,F7,10000,bound,neutral,optimal,9,-4.059629708e-01,4.384091675e-10,6.954131848e-11,6.138253342e-16,0.000000000e+00,9,9,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:9,50000,30000,10000,50000,4.384091675e-10,6.138253342e-16,0.000000000e+00,6.954131848e-11,0.537106787
+f7_n10000_bound_neutral/RelaxBounds,F7,10000,bound,neutral,optimal,9,-4.059629708e-01,4.384091675e-10,6.954131848e-11,6.138253342e-16,0.000000000e+00,9,9,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:9,50000,30000,10000,50000,4.384091675e-10,6.138253342e-16,0.000000000e+00,6.954131848e-11,0.539609545
+f7_n10000_bound_physics/MakeParameter,F7,10000,bound,physics,optimal,5,-4.059629708e-01,2.479467811e-10,3.801460695e-11,1.103828678e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:5,50000,30000,10000,50000,2.479467811e-10,1.103828678e-16,0.000000000e+00,3.801460695e-11,0.368485244
+f7_n10000_bound_physics/MakeConstraint,F7,10000,bound,physics,optimal,5,-4.059629708e-01,2.479467811e-10,3.801460695e-11,1.103828678e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:5,50000,30000,10000,50000,2.479467811e-10,1.103828678e-16,0.000000000e+00,3.801460695e-11,0.370172916
+f7_n10000_bound_physics/RelaxBounds,F7,10000,bound,physics,optimal,5,-4.059629708e-01,2.479467811e-10,3.801460695e-11,1.103828678e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:5,50000,30000,10000,50000,2.479467811e-10,1.103828678e-16,0.000000000e+00,3.801460695e-11,0.370131496
+f7_n20000_bound_neutral/MakeParameter,F7,20000,bound,neutral,optimal,9,-4.058767313e-01,5.551597096e-10,9.900664080e-11,3.404097007e-15,0.000000000e+00,9,9,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:9,100000,60000,20000,100000,5.551597096e-10,3.404097007e-15,0.000000000e+00,9.900664080e-11,1.179775227
+f7_n20000_bound_neutral/MakeConstraint,F7,20000,bound,neutral,optimal,9,-4.058767313e-01,5.551597096e-10,9.900664080e-11,3.404097007e-15,0.000000000e+00,9,9,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:9,100000,60000,20000,100000,5.551597096e-10,3.404097007e-15,0.000000000e+00,9.900664080e-11,1.124601981
+f7_n20000_bound_neutral/RelaxBounds,F7,20000,bound,neutral,optimal,9,-4.058767313e-01,5.551597096e-10,9.900664080e-11,3.404097007e-15,0.000000000e+00,9,9,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:9,100000,60000,20000,100000,5.551597096e-10,3.404097007e-15,0.000000000e+00,9.900664080e-11,1.131052161
+f7_n20000_bound_physics/MakeParameter,F7,20000,bound,physics,optimal,5,-4.058767313e-01,2.481461924e-10,3.803510500e-11,1.104631635e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:5,100000,60000,20000,100000,2.481461924e-10,1.104631635e-16,0.000000000e+00,3.803510500e-11,0.776083901
+f7_n20000_bound_physics/MakeConstraint,F7,20000,bound,physics,optimal,5,-4.058767313e-01,2.481461924e-10,3.803510500e-11,1.104631635e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:5,100000,60000,20000,100000,2.481461924e-10,1.104631635e-16,0.000000000e+00,3.803510500e-11,0.774402840
+f7_n20000_bound_physics/RelaxBounds,F7,20000,bound,physics,optimal,5,-4.058767313e-01,2.481461924e-10,3.803510500e-11,1.104631635e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:5,100000,60000,20000,100000,2.481461924e-10,1.104631635e-16,0.000000000e+00,3.803510500e-11,0.780516250
+hs071_x1_fixed/MakeParameter,hs,4,none,fixed_variable,optimal,9,1.701401729e+01,1.463526456e-09,1.744133762e-10,0.000000000e+00,0.000000000e+00,9,9,2,0,0,MakeParameter,none,1,1,kOptimize:optimal:9,4,1,1,4,1.463526456e-09,0.000000000e+00,0.000000000e+00,1.712034355e-10,0.000181349
+hs071_x1_fixed/MakeConstraint,hs,4,none,fixed_variable,optimal,9,1.701401729e+01,2.096454566e-09,1.744133762e-10,0.000000000e+00,0.000000000e+00,9,9,2,0,0,MakeConstraint,none,1,1,kOptimize:optimal:9,4,1,1,4,2.096454566e-09,0.000000000e+00,0.000000000e+00,1.712034468e-10,0.000137809
+hs071_x1_fixed/RelaxBounds,hs,4,none,fixed_variable,optimal,11,1.701401728e+01,3.969047313e-15,3.943132698e-09,0.000000000e+00,0.000000000e+00,11,11,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:11,4,1,1,4,3.996802889e-15,0.000000000e+00,8.248617456e-09,8.973433560e-09,0.000140070
+f7_n1000_bound_neutral/MakeParameter/cap1,F7,1000,bound,neutral,max_iter,1,-1.764445221e-01,7.550671264e-04,1.000000000e-03,1.060660172e-01,0.000000000e+00,2,2,1,0,0,MakeParameter,iteration_cap,1,1,kOptimize:max_iter:1,5000,3000,1000,5000,7.550671264e-04,1.060660172e-01,0.000000000e+00,1.000000000e-03,0.016884479
+hs071_x1_fixed/MakeParameter/cap1,hs,4,none,fixed_variable,max_iter,1,1.599599004e+01,1.481450094e+01,1.000000000e-03,1.190205198e+01,2.602472500e-02,2,2,2,0,0,MakeParameter,iteration_cap,1,1,kOptimize:max_iter:1,4,1,1,4,1.481450094e+01,1.190205198e+01,2.502472500e-02,2.502472500e-02,0.000087949
+infeas2_spike/MakeParameter/stalled,synthetic,2,none,infeasible,stalled,141,0.000000000e+00,0.000000000e+00,0.000000000e+00,3.791662080e+17,0.000000000e+00,142,142,1,0,0,MakeParameter,stage_stalled,1,1,kSolve:stalled:141,2,1,0,2,nan,3.791662080e+17,0.000000000e+00,0.000000000e+00,0.000620597
+infeas2_stationary/MakeParameter/resto_infeasible,synthetic,2,none,infeasible,stalled,25,2.653226544e-04,2.750577544e-13,0.000000000e+00,4.107825191e-14,0.000000000e+00,30,25,1,0,0,MakeParameter,restoration_locally_infeasible,1,1,kOptimize:stalled:25,2,1,0,2,nan,nan,nan,nan,0.000197550
+f7_n1000_bound_neutral/MakeParameter/solve_optimize,F7,1000,bound,neutral,optimal,12,-4.075173558e-01,4.680086978e-10,7.139636651e-11,1.070248685e-16,0.000000000e+00,12,12,1,0,0,MakeParameter,none,2,2,kSolve:optimal:5|kOptimize:optimal:7,5000,3000,1000,5000,4.680086978e-10,1.070248685e-16,0.000000000e+00,7.139636651e-11,0.057651544
+hs071_x1_fixed/MakeParameter/solve_optimize,hs,4,none,fixed_variable,optimal,19,1.701401729e+01,6.725227498e-11,2.209420442e-12,5.752553989e-11,6.068399180e-11,19,19,2,0,0,MakeParameter,none,2,2,kSolve:optimal:7|kOptimize:optimal:12,4,1,1,4,6.725227498e-11,5.752553989e-11,5.668354675e-11,3.130596350e-11,0.000191829
