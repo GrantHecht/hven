@@ -1080,3 +1080,30 @@ identical-options rebuild still adopts, changed `qp` refuses, changed
 `common.threads` refuses, a failed replacement leaves reuse intact) and in
 `tests/drivers/test_options.cpp` (the fingerprint is stable, and each of the nine
 fields plus the thread count moves it when flipped alone).
+
+### One ABI consequence of moving the mode enums (source-compatible, MANGLING-breaking)
+
+The eight mode enums moved from `InteriorPointSolver`'s scope to `hven::solvers`,
+with member aliases left behind. **Every spelling in your source still compiles
+and still names the same type** — that is what the aliases are for. But an alias
+is not the enum's name: the compiler mangles the CANONICAL one, so any function
+whose signature mentions one of the eight now has a different mangled symbol.
+Forty-three declarations are affected — the acceptance / mechanism / governor /
+recovery interfaces are the bulk of them, e.g.
+
+```
+hven::solvers::GlobalizationMechanism::run_acceptance_backtrack(
+    hven::solvers::InteriorPointSolver::LineSearchModes, …)   // before
+hven::solvers::GlobalizationMechanism::run_acceptance_backtrack(
+    hven::solvers::LineSearchModes, …)                        // after
+```
+
+**What this means for you: nothing, unless you link objects compiled against two
+different hven header sets.** That is already broken by this task for a separate
+reason (`InteriorPointSolver::Settings` no longer exists), and hven ships a
+static library that consumers rebuild or re-install wholesale. It is recorded
+here because it is the one change in T8.3 that is invisible at compile time and
+visible at link time. Rebuild, do not mix.
+
+The P-SYM roll for this task shows those 43 as ONLY-BEFORE / ONLY-AFTER symbol
+pairs; they are signature renames, not added or removed behaviour.
