@@ -339,8 +339,8 @@ inline constexpr double kWeakActivityMargin = 1e-6;
 /// implementation choice, four orders below the default tolerances and far enough
 /// below tr_init that reaching it is evidence rather than noise.
 ///
-/// MAX_ITER Bounds subproblems solved, not accepted steps, and THE BUDGET IS
-/// Shared with the restoration phase: the bounded quantity is
+/// max_iter bounds subproblems solved, not accepted steps, and the budget is
+/// shared with the restoration phase: the bounded quantity is
 /// major_iters + restoration_iters. history.size() still tracks major_iters
 /// alone, since restoration produces no history rows.
 ///

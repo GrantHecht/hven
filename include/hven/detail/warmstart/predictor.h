@@ -32,7 +32,7 @@
 // itself, a RELATIVE error of order delta. No iterative refinement is applied
 // against the unregularized operator, deliberately.
 //
-// PARAMETER RESTORATION IS PART OF THE CONTRACT. `model` is taken by MUTABLE
+// Parameter restoration is part of the contract. `model` is taken by mutable
 // reference because probing requires set_parameters, and predict() RESTORES the
 // model's entry parameters before returning, on the throwing paths too. A caller
 // never has to save and restore around a predict() call.

@@ -1177,7 +1177,7 @@ struct SqpCounters {
     // evals_values is identically zero on a solve that never rejected a trial and
     // never ran the warm-resolution probe.
     //
-    // WHAT THEY DO NOT COUNT: both are incremented from the driver's own
+    // What they do not count: both are incremented from the driver's own
     // control-flow DECISION at each call site, never from observing which NlpModel
     // method executed. Today the two agree, because every increment sits next to
     // the call it describes -- but an edit that changes which function a site

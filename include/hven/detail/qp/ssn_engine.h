@@ -460,8 +460,8 @@ struct SsnOptions {
     // reaches it stops with QpStatus::kMaxIter and SsnEscape::kBudget. Must be
     // >= 0; 0 means "test the start point and take no step".
     //
-    // The second-order verification IS NOT AN ATTEMPT AND IS NOT CAPPED BY THIS
-    // FIELD: under kFull an already-converged start point still pays the one
+    // The second-order verification is not an attempt and is not capped by this
+    // field: under kFull an already-converged start point still pays the one
     // verification factorization at hard_budget = 0. It takes no step, so the
     // field's contract is intact.
     Index hard_budget = 25;
@@ -471,7 +471,7 @@ struct SsnOptions {
     // ssn_fb_tol_from_kkt_tol() to track a non-default kkt_tol. Must be > 0.
     double fb_tol = 1e-6;
 
-    // THE PROXIMAL TERM'S STARTING VALUE, and **0.0 IS THE RULED DEFAULT**:
+    // The proximal term's starting value; 0.0 is the default:
     // the proximal term is a REPAIR, not a policy. It costs iterations
     // wherever it is on, it repairs nothing on a converging solve, and every
     // case that needs it is one the escalation ladder ARMS it on. A caller
