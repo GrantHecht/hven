@@ -51,6 +51,9 @@
 #ifndef HVEN_SQP_IPM_BASELINE_CSV
 #error "HVEN_SQP_IPM_BASELINE_CSV must be defined by tests/sqp/CMakeLists.txt"
 #endif
+#ifndef HVEN_SQP_INTERIOR_BASELINE_CSV
+#error "HVEN_SQP_INTERIOR_BASELINE_CSV must be defined by tests/sqp/CMakeLists.txt"
+#endif
 #ifndef HVEN_SQP_WALK_RESWEPT_CSV
 #error "HVEN_SQP_WALK_RESWEPT_CSV must be defined by tests/CMakeLists.txt"
 #endif
@@ -2444,6 +2447,86 @@ TEST(CorpusBaseline, TheCommittedIpmBaselinePinsTheTwoWarmRestartAcceptanceRows)
         EXPECT_EQ(it->second[38], pin.facts) << "factorizations";
         EXPECT_EQ(it->second[57], "0") << "ipqp_warm_restart_abandoned: no warm kill";
         EXPECT_EQ(it->second[66], "0") << "ipqp_escapes";
+    }
+}
+
+// =============================================================================
+// THE TOP-LEVEL INTERIOR-POINT LEG's BASELINE, READ OFFLINE (M6 W5 T8.1).
+// Its own reader: the corpus's --from-csv path is bound to the 14/31/37/76
+// widths and refuses this leg's 19-column schema by width.
+// =============================================================================
+
+namespace interior_test {
+
+// Column 0 is `<cell_id>/<fixed_treatment>` (the replay comparator keys on it
+// and keeps only the last duplicate), so the plain cell is its prefix.
+std::vector<std::map<std::string, std::string>> read_interior_csv(const std::string &path) {
+    const std::vector<std::string> lines = runner_test::read_lines(path);
+    std::vector<std::string> header;
+    std::vector<std::map<std::string, std::string>> rows;
+    for (const std::string &line : lines) {
+        if (line.empty() || line[0] == '#') {
+            continue;
+        }
+        std::vector<std::string> col = runner_test::split_all(line);
+        if (header.empty()) {
+            header = std::move(col);
+            continue;
+        }
+        if (col.size() != header.size()) {
+            continue;
+        }
+        std::map<std::string, std::string> row;
+        for (std::size_t i = 0; i < header.size(); ++i) {
+            row[header[i]] = col[i];
+        }
+        rows.push_back(std::move(row));
+    }
+    return rows;
+}
+
+std::string cell_of(const std::map<std::string, std::string> &row) {
+    const std::string key = row.at("cell_id");
+    const std::size_t slash = key.rfind('/');
+    return slash == std::string::npos ? key : key.substr(0, slash);
+}
+
+} // namespace interior_test
+
+TEST(CorpusCells, InteriorBaselineRescoresOffline) {
+    const std::string csv = std::string(HVEN_SQP_INTERIOR_BASELINE_CSV);
+    const auto rows = interior_test::read_interior_csv(csv);
+    ASSERT_FALSE(rows.empty());
+
+    for (const auto &r : rows) {
+        SCOPED_TRACE(r.at("cell_id"));
+        // The leg writes hven::ConvergenceFlags' own spellings
+        // (crossover_legs.h::flag_string), not the SqpStatus names.
+        EXPECT_TRUE(r.at("status") == "CONVERGED" || r.at("status") == "ACCEPTABLE");
+        const std::string treatment = r.at("fixed_treatment");
+        EXPECT_TRUE(treatment == "MakeParameter" || treatment == "MakeConstraint" ||
+                    treatment == "RelaxBounds");
+        // The key is unique per row, and it is the cell joined to the treatment.
+        EXPECT_EQ(r.at("cell_id"), interior_test::cell_of(r) + "/" + treatment);
+    }
+
+    // The fixed-variable cell is the one the leg exists for: no F7 cell has a
+    // bound-fixed variable, so it is the only cell whose three treatments take
+    // three different paths. All three must converge to the same objective.
+    std::map<std::string, double> hs071_obj;
+    for (const auto &r : rows) {
+        if (interior_test::cell_of(r) != "hs071_x1_fixed") {
+            continue;
+        }
+        EXPECT_EQ(r.at("status"), "CONVERGED") << r.at("cell_id");
+        hs071_obj[r.at("fixed_treatment")] = std::stod(r.at("obj_val"));
+    }
+    ASSERT_EQ(hs071_obj.size(), 3u) << "all three hs071_x1_fixed treatments must be present";
+    const double reference = hs071_obj.at("MakeParameter");
+    ASSERT_GT(std::abs(reference), 0.0);
+    for (const auto &[treatment, value] : hs071_obj) {
+        EXPECT_LT(std::abs(value - reference) / std::abs(reference), 1e-6)
+            << treatment << " reached a different objective than MakeParameter";
     }
 }
 

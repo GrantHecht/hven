@@ -142,6 +142,14 @@ target_compile_definitions(hven_sqp_tests PRIVATE
 target_compile_definitions(hven_sqp_tests PRIVATE
     HVEN_SQP_IPM_BASELINE_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-09-02-t10b-ipm/ipm_baseline.csv")
 
+# M6 W5 T8.1: the TOP-LEVEL interior-point leg's baseline (--engine interior,
+# 19 columns, one row per cell per fixed-variable treatment). Pinned here for
+# the reason every baseline above is: the artifact and the gate that reads it
+# hold each other in place. The corpus's own --from-csv reader cannot read this
+# schema, so the gate reads the file directly.
+target_compile_definitions(hven_sqp_tests PRIVATE
+    HVEN_SQP_INTERIOR_BASELINE_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv")
+
 # The SNOPT bridge's referee gate, added to the test binary ONLY when the
 # root-level SNOPT detection succeeded (see the block above the tests
 # subdirectory in the root CMakeLists.txt for why the detection lives there).

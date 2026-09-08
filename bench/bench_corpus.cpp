@@ -117,6 +117,7 @@
 
 #include "bench_cli.h"
 #include "corpus_cells.h"
+#include "ipm_corpus_leg.h"
 #include "support/hs_problems.h"
 
 #ifndef HVEN_SQP_CORPUS_GIT_DESCRIBE
@@ -143,6 +144,18 @@ using hven::solvers::corpus::run_cell;
 using hven::solvers::corpus::to_string;
 using hven::solvers::corpus::detail::first_qp_for_cell;
 using hven::solvers::corpus::detail::wall_budget_for_cell;
+
+// The top-level interior-point leg (M6 W5 T8.1); see bench/ipm_corpus_leg.h.
+using hven::solvers::FixedVariableTreatments;
+using hven::solvers::corpus::interior_csv_header;
+using hven::solvers::corpus::interior_csv_row;
+using hven::solvers::corpus::interior_treatment_tag;
+using hven::solvers::corpus::interior_treatments;
+using hven::solvers::corpus::InteriorLevers;
+using hven::solvers::corpus::InteriorRow;
+using hven::solvers::corpus::kHs071FixedCellId;
+using hven::solvers::corpus::run_interior_cell;
+using hven::solvers::corpus::run_interior_hs071;
 
 // The measurement-arm levers, named once. See corpus_cells.h's EngineConfig.
 using EngineLevers = hven::solvers::corpus::detail::EngineConfig;
@@ -194,7 +207,7 @@ constexpr const char *kUsage =
     "                    `--engine walk` DNF, it is simply silence.\n"
     "  --dump-qp-out <path>  required with --dump-qp; the output file.\n"
     "\n"
-    "  --engine ARM      walk | ssn | ipm. walk replays through the ordinary SqpDriver\n"
+    "  --engine ARM      walk | ssn | ipm | interior. walk replays through the ordinary SqpDriver\n"
     "                    (the only engine that exists today) under a PER-PHASE\n"
     "                    WALL DEADLINE (see this file's own banner; the deadline\n"
     "                    itself is corpus_cells.h's wall_budget_for_cell, whose\n"
@@ -206,7 +219,23 @@ constexpr const char *kUsage =
     "                    -- never a hang. ssn replays the SAME cells through the\n"
     "                    semismooth-Newton kernel (SqpOptions::qp_mode = kSsn)\n"
     "                    under the SAME deadlines: the two arms differ in that\n"
-    "                    one field and nothing else.\n"
+    "                    one field and nothing else. interior is NOT one of the\n"
+    "                    three SQP arms: it replays the TOP-LEVEL interior-point\n"
+    "                    driver (bench/ipm_corpus_leg.h) over the dual-bindable\n"
+    "                    cells, IN PROCESS, three rows per cell (one per\n"
+    "                    fixed-variable treatment), on its own 19-column schema.\n"
+    "                    Requires --cells and --csv; REFUSES --from-csv/\n"
+    "                    --score-gates/--score-model-surface/--dump-qp, the SSN\n"
+    "                    measurement levers and the hidden test levers. It ALWAYS\n"
+    "                    runs the fixed-variable cell hs071_x1_fixed in addition\n"
+    "                    to the cells it is given -- no F7 cell has a bound-fixed\n"
+    "                    variable, so it is the one cell on which the three\n"
+    "                    treatments take three different paths. A cell that does\n"
+    "                    not dual-bind is REFUSED BY NAME, with the reason, into\n"
+    "                    the artifact's provenance header and onto stdout.\n"
+    "                    Partitions and backend threads are pinned to 1 and\n"
+    "                    stamped; there is no wall deadline (these cells are\n"
+    "                    seconds-scale through this driver).\n"
     "  --ssn-prox-carry  MEASUREMENT ARM. Set SqpOptions::ssn_prox_carry (a real,\n"
     "                    shipped option that ships OFF -- see sqp_types.h for the\n"
     "                    sweep that ruled it off). Stamped into the CSV's own\n"
@@ -328,7 +357,16 @@ constexpr const char *kUsage =
     "the quantity G1/G2 are pre-registered on. A row with status=dnf_setup or\n"
     "dnf_budget hit its wall deadline; every counter column on that row is -1\n"
     "(absent by design, not zero -- see this file's own banner), and wall_s is\n"
-    "the DEADLINE that was enforced, not a measurement.\n";
+    "the DEADLINE that was enforced, not a measurement.\n"
+    "\n"
+    "`--engine interior` writes a DIFFERENT, 19-column schema (one row per cell\n"
+    "per treatment), and `--from-csv` does not read it -- the reader accepts the\n"
+    "corpus widths 14/31/37/76 and nothing else:\n"
+    "  cell_id,family,n_nodes,window,taxonomy,status,iter_num,obj_val,kkt_inf,\n"
+    "  barr_inf,econ_inf,icon_inf,factorizations,solves,analyses,soc_steps,\n"
+    "  watchdog_activations,fixed_treatment,wall_s\n"
+    "`cell_id` there is the cell joined to the treatment by a slash, so the\n"
+    "column is unique per row; `fixed_treatment` carries the treatment alone.\n";
 
 [[noreturn]] void throw_usage(const std::string &detail) {
     hven::solvers::bench_cli::throw_usage(kUsage, detail);
@@ -488,8 +526,8 @@ Args parse_args(int argc, char **argv) {
             a.score_model_surface_out = next_value(arg);
         } else if (arg == "--engine") {
             const std::string v = next_value(arg);
-            if (v != "walk" && v != "ssn" && v != "ipm") {
-                throw_usage(fmt::format("--engine: '{}' is not one of walk|ssn|ipm", v));
+            if (v != "walk" && v != "ssn" && v != "ipm" && v != "interior") {
+                throw_usage(fmt::format("--engine: '{}' is not one of walk|ssn|ipm|interior", v));
             }
             a.engine = v;
         } else if (arg == "--cells") {
@@ -2126,6 +2164,97 @@ void write_hs_row(std::ostream &os, const HsRow &r, const std::string &engine, b
                       r.ev_fallback_rung_b, r.ev_ssn_warm_grade);
 }
 
+// =============================================================================
+// THE TOP-LEVEL INTERIOR-POINT LEG (--engine interior).
+// =============================================================================
+//
+// A SIBLING provenance writer, not an extension of write_provenance: that one
+// stamps the SSN measurement levers over the corpus's 76-column schema, and
+// this arm shares neither. Every lever a row depends on is written here, so a
+// reader never has to know which defaults were in force when it was captured.
+
+void write_interior_provenance(std::ostream &os, int argc, char **argv,
+                               const InteriorLevers &levers,
+                               const std::vector<std::string> &refusals) {
+    std::string invocation;
+    for (int i = 0; i < argc; ++i) {
+        invocation += (i == 0 ? "" : " ");
+        invocation += argv[i];
+    }
+    const char *mkl = std::getenv("MKL_NUM_THREADS");
+    const char *omp = std::getenv("OMP_NUM_THREADS");
+    char host[256] = {0};
+    if (::gethostname(host, sizeof(host) - 1) != 0) {
+        host[0] = '\0';
+    }
+    const std::time_t now = std::time(nullptr);
+    char stamp[64] = {0};
+    std::tm utc{};
+    if (::gmtime_r(&now, &utc) != nullptr) {
+        std::strftime(stamp, sizeof(stamp), "%Y-%m-%dT%H:%M:%SZ", &utc);
+    }
+    os << "# hven_sqp_corpus provenance -- ENGINE interior (top-level interior-point driver)\n";
+    os << fmt::format("# binary: {}\n", HVEN_SQP_CORPUS_GIT_DESCRIBE);
+    os << "# schema: 19\n";
+    os << fmt::format("# invocation: {}\n", invocation);
+    os << fmt::format("# MKL_NUM_THREADS: {}\n", mkl == nullptr ? "<unset>" : mkl);
+    os << fmt::format("# OMP_NUM_THREADS: {}\n", omp == nullptr ? "<unset>" : omp);
+    os << fmt::format("# host: {}\n", host[0] == '\0' ? "<unknown>" : host);
+    os << fmt::format("# generated: {}\n", stamp[0] == '\0' ? "<unknown>" : stamp);
+    os << fmt::format("# levers: max_iters={} print_level={} partitions={} qp_threads={}\n",
+                      levers.max_iters, levers.print_level, levers.num_partitions,
+                      levers.qp_threads);
+    os << fmt::format("# levers: kkt_tol={:.9e} econ_tol={:.9e} icon_tol={:.9e} barr_tol={:.9e}\n",
+                      levers.kkt_tol, levers.econ_tol, levers.icon_tol, levers.barr_tol);
+    os << fmt::format("# levers: bound_relax_factor={:.9e}\n", levers.bound_relax_factor);
+    os << "# treatments: MakeParameter,MakeConstraint,RelaxBounds -- one row each, per cell\n";
+    os << "# key: column 0 is <cell_id>/<fixed_treatment>, unique per row\n";
+    for (const std::string &refusal : refusals) {
+        os << fmt::format("# refused: {}\n", refusal);
+    }
+}
+
+// The cells this arm runs, and the refusal line for every requested cell it
+// cannot: a cell an NLPProblem cannot state is named, never silently dropped.
+struct InteriorPlan {
+    std::vector<const CorpusCell *> cells;
+    std::vector<std::string> refusals;
+};
+
+InteriorPlan plan_interior_cells(const std::string &spec) {
+    InteriorPlan plan;
+    std::vector<const CorpusCell *> requested;
+    if (spec == "all") {
+        for (const CorpusCell &c : all_cells()) {
+            requested.push_back(&c);
+        }
+    } else {
+        for (const std::string &id : split_on(spec, ',')) {
+            // The fixed-variable cell runs unconditionally, so naming it is
+            // accepted and adds nothing rather than reading as an unknown id.
+            if (id == kHs071FixedCellId) {
+                continue;
+            }
+            const CorpusCell *c = find_cell(id);
+            if (c == nullptr) {
+                throw_usage(fmt::format("--cells: unknown cell id '{}' (try --list; --engine "
+                                        "interior also accepts '{}')",
+                                        id, kHs071FixedCellId));
+            }
+            requested.push_back(c);
+        }
+    }
+    for (const CorpusCell *c : requested) {
+        const std::string why = hven::solvers::corpus::interior_cell_refusal(*c);
+        if (why.empty()) {
+            plan.cells.push_back(c);
+        } else {
+            plan.refusals.push_back(fmt::format("{} -- {}", c->id, why));
+        }
+    }
+    return plan;
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -2268,6 +2397,88 @@ int main(int argc, char **argv) {
         }
         if (args.hs_cells || args.hs_trace_sink || args.hs_warmup != 1) {
             throw_usage("--hs-cells, --hs-trace and --hs-warmup apply to the HS suite only (--hs)");
+        }
+
+        // --------------------------------------------------------------
+        // THE TOP-LEVEL INTERIOR-POINT LEG (M6 W5 T8.1). Its own path,
+        // ahead of every SQP corpus mode: it shares --engine, --cells and
+        // --csv with them and nothing else -- not the schema, not the
+        // fork/exec wall deadline, and not the gate scorer.
+        // --------------------------------------------------------------
+        if (args.engine && *args.engine == "interior") {
+            if (!args.cells || !args.csv) {
+                throw_usage("--engine interior requires --cells and --csv");
+            }
+            // REFUSED, NOT IGNORED, on the --hs path's own reasoning: a flag
+            // that reads as accepted and does nothing is how an arm gets
+            // mislabelled in a report that quotes its invocation line.
+            if (args.from_csv || args.score_gates || args.score_model_surface ||
+                args.score_model_surface_out || args.dump_qp || args.dump_qp_out) {
+                throw_usage("--engine interior writes its own 19-column schema, which none of "
+                            "--from-csv/--score-gates/--score-model-surface/"
+                            "--score-model-surface-out/--dump-qp can read or score: the offline "
+                            "reader accepts the corpus widths 14/31/37/76 and the gates are "
+                            "pre-registered on SQP columns this leg does not produce");
+            }
+            if (args.ssn_prox_carry || args.ssn_certify_from_face ||
+                args.ssn_sigma_rule != SsnSigmaRule::kLadder ||
+                args.ssn_hint_rule != SsnHintRule::kIterationZeroFree ||
+                args.ssn_infeasibility_rule != SsnInfeasibilityRule::kSymptoms) {
+                throw_usage("--engine interior takes none of the SSN measurement levers: they set "
+                            "SqpOptions fields, and this arm runs no SqpDriver");
+            }
+            if (args.internal_force_setup_budget_s || args.internal_force_solve_budget_s ||
+                args.internal_force_child_throw || args.internal_force_child_abort) {
+                throw_usage("--engine interior takes none of the hidden internal/test levers: it "
+                            "runs in process and has no child to force and no deadline to "
+                            "override");
+            }
+
+            const InteriorLevers levers;
+            const InteriorPlan plan = plan_interior_cells(*args.cells);
+
+            std::ofstream out(*args.csv);
+            if (!out) {
+                throw std::invalid_argument(
+                    fmt::format("--csv: could not open '{}' for writing", *args.csv));
+            }
+            write_interior_provenance(out, argc, argv, levers, plan.refusals);
+            out << interior_csv_header();
+            out.flush();
+
+            for (const std::string &refusal : plan.refusals) {
+                fmt::print("refused (not dual-bindable): {}\n", refusal);
+            }
+
+            std::size_t written = 0;
+            for (const CorpusCell *cell : plan.cells) {
+                for (const FixedVariableTreatments treatment : interior_treatments()) {
+                    fmt::print("running {} (N={}, treatment {})...\n", cell->id, cell->n_nodes,
+                               interior_treatment_tag(treatment));
+                    const InteriorRow row = run_interior_cell(*cell, treatment, levers);
+                    out << interior_csv_row(row);
+                    out.flush();
+                    ++written;
+                    fmt::print("  -> {} in {} iterations (kkt_inf {:.3e})\n", row.status,
+                               row.iter_num, row.kkt_inf);
+                }
+            }
+            // The fixed-variable cell, always and last: no F7 cell has a
+            // bound-fixed variable, so it is the only one on which the three
+            // treatments take three different paths.
+            for (const FixedVariableTreatments treatment : interior_treatments()) {
+                fmt::print("running {} (treatment {})...\n", kHs071FixedCellId,
+                           interior_treatment_tag(treatment));
+                const InteriorRow row = run_interior_hs071(treatment, levers);
+                out << interior_csv_row(row);
+                out.flush();
+                ++written;
+                fmt::print("  -> {} in {} iterations (kkt_inf {:.3e})\n", row.status, row.iter_num,
+                           row.kkt_inf);
+            }
+            fmt::print("wrote {} row(s) to {} ({} cell(s) refused)\n", written, *args.csv,
+                       plan.refusals.size());
+            return 0;
         }
 
         if (args.dump_qp) {

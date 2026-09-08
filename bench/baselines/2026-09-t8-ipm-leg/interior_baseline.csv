@@ -1,0 +1,89 @@
+# M6 W5 T8.1 -- THE TOP-LEVEL INTERIOR-POINT LEG's BASELINE (--engine interior).
+# The corpus's `ipm` arm is the SQP driver's interior-point QP tier; this
+# artifact is the InteriorPointSolver loop itself, over the ten U0 cells that
+# can be stated as an NLPProblem plus the fixed-variable cell hs071_x1_fixed,
+# under all three fixed-variable treatments (three rows per cell, 33 rows).
+# The seventeen U0 cells that are not dual-bindable are refused BY NAME with
+# their reason in the `# refused:` lines below; none is silently dropped.
+# COLUMN 0 IS `<cell_id>/<fixed_treatment>`, unique per row, because the replay
+# comparator keys on column 0 and keeps only the last duplicate; the plain
+# treatment is the `fixed_treatment` column.
+# CAPTURED SOLO, one process alone on the machine, taskset -c 2,
+# MKL_NUM_THREADS=1, OMP_NUM_THREADS=1, and -- recorded in the `# levers:` lines
+# below -- partitions=1 and qp_threads=1 set by the leg itself, because
+# NLPSolver's own defaults are functions of the box's core count and the backend
+# one is a thread-local MKL override that MKL_NUM_THREADS does not reach.
+# CAPTURED TWICE, with a re-configure before each; compare_replay.py between the
+# two reported `cells compared: 33  columns compared: 18  differences: 0` before
+# this file was committed. Machine: AMD Ryzen 7 5800X3D, Fedora 44, clang 22.1.8,
+# MKL from /opt/intel/oneapi/mkl/latest, Release, the uniform flag regime.
+# Wall_s is INFORMATIONAL and is the one column the comparator excludes.
+# THE `# binary:` STAMP READS `-dirty` BY CONSTRUCTION: the leg and this
+# artifact are one commit (the task's terms), so the rows were produced from the
+# working tree at BASE f41f0ca with the leg applied and not yet committed. No
+# library code changed, so the library these rows were solved with is BASE's.
+# The rows below are capture 2 of the two, verbatim.
+# hven_sqp_corpus provenance -- ENGINE interior (top-level interior-point driver)
+# binary: f41f0ca00bc8-dirty
+# schema: 19
+# invocation: /home/ghecht/Projects/hven/.scratch/w5t81/build-cap/bench/hven_sqp_corpus --engine interior --cells f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n1000_bound_corrupted,f7_n1000_bound_activity,f7_n1000_bound_warm,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n2000_bound_corrupted,f7_n2000_bound_activity,f7_n2000_bound_warm,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n5000_bound_corrupted,f7_n5000_bound_activity,f7_n5000_bound_warm,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n10000_bound_corrupted,f7_n10000_bound_activity,f7_n10000_bound_warm,f7_n20000_bound_neutral,f7_n20000_bound_physics,f7_n20000_bound_corrupted,f7_n20000_bound_activity,f7_n20000_bound_warm,f7_n1000_path_warm,f7_n800_path_warm --csv /home/ghecht/Projects/hven/.scratch/w5t81/captures/capture2.csv
+# MKL_NUM_THREADS: 1
+# OMP_NUM_THREADS: 1
+# host: fedora
+# generated: 2026-09-08T04:28:31Z
+# levers: max_iters=200 print_level=10 partitions=1 qp_threads=1
+# levers: kkt_tol=1.000000000e-08 econ_tol=1.000000000e-08 icon_tol=1.000000000e-08 barr_tol=1.000000000e-08
+# levers: bound_relax_factor=1.000000000e-08
+# treatments: MakeParameter,MakeConstraint,RelaxBounds -- one row each, per cell
+# key: column 0 is <cell_id>/<fixed_treatment>, unique per row
+# refused: f7_n1000_bound_corrupted -- start is a damaged SQP WarmStart from a prior solve at p0; the interior-point engine accepts no such value, so leg (a) cannot run from this cell's own start
+# refused: f7_n1000_bound_activity -- start is a SYNTHESIZED interior-point iterate pushed through from_interior_point; superseded here by legs (c)/(d), which measure the same hand-off with a real interior-point export
+# refused: f7_n1000_bound_warm -- start is an SQP WarmStart carried from a prior solve at p0 (hot handle and activity encoding, no interior-point counterpart), so leg (a) cannot run from this cell's own start
+# refused: f7_n2000_bound_corrupted -- start is a damaged SQP WarmStart from a prior solve at p0; the interior-point engine accepts no such value, so leg (a) cannot run from this cell's own start
+# refused: f7_n2000_bound_activity -- start is a SYNTHESIZED interior-point iterate pushed through from_interior_point; superseded here by legs (c)/(d), which measure the same hand-off with a real interior-point export
+# refused: f7_n2000_bound_warm -- start is an SQP WarmStart carried from a prior solve at p0 (hot handle and activity encoding, no interior-point counterpart), so leg (a) cannot run from this cell's own start
+# refused: f7_n5000_bound_corrupted -- start is a damaged SQP WarmStart from a prior solve at p0; the interior-point engine accepts no such value, so leg (a) cannot run from this cell's own start
+# refused: f7_n5000_bound_activity -- start is a SYNTHESIZED interior-point iterate pushed through from_interior_point; superseded here by legs (c)/(d), which measure the same hand-off with a real interior-point export
+# refused: f7_n5000_bound_warm -- start is an SQP WarmStart carried from a prior solve at p0 (hot handle and activity encoding, no interior-point counterpart), so leg (a) cannot run from this cell's own start
+# refused: f7_n10000_bound_corrupted -- start is a damaged SQP WarmStart from a prior solve at p0; the interior-point engine accepts no such value, so leg (a) cannot run from this cell's own start
+# refused: f7_n10000_bound_activity -- start is a SYNTHESIZED interior-point iterate pushed through from_interior_point; superseded here by legs (c)/(d), which measure the same hand-off with a real interior-point export
+# refused: f7_n10000_bound_warm -- start is an SQP WarmStart carried from a prior solve at p0 (hot handle and activity encoding, no interior-point counterpart), so leg (a) cannot run from this cell's own start
+# refused: f7_n20000_bound_corrupted -- start is a damaged SQP WarmStart from a prior solve at p0; the interior-point engine accepts no such value, so leg (a) cannot run from this cell's own start
+# refused: f7_n20000_bound_activity -- start is a SYNTHESIZED interior-point iterate pushed through from_interior_point; superseded here by legs (c)/(d), which measure the same hand-off with a real interior-point export
+# refused: f7_n20000_bound_warm -- start is an SQP WarmStart carried from a prior solve at p0 (hot handle and activity encoding, no interior-point counterpart), so leg (a) cannot run from this cell's own start
+# refused: f7_n1000_path_warm -- start is an SQP WarmStart carried from a prior solve at p0 (hot handle and activity encoding, no interior-point counterpart), so leg (a) cannot run from this cell's own start
+# refused: f7_n800_path_warm -- start is an SQP WarmStart carried from a prior solve at p0 (hot handle and activity encoding, no interior-point counterpart), so leg (a) cannot run from this cell's own start
+cell_id,family,n_nodes,window,taxonomy,status,iter_num,obj_val,kkt_inf,barr_inf,econ_inf,icon_inf,factorizations,solves,analyses,soc_steps,watchdog_activations,fixed_treatment,wall_s
+f7_n1000_bound_neutral/MakeParameter,F7,1000,bound,neutral,CONVERGED,7,-4.075173558e-01,4.165961184e-09,6.604566508e-10,1.123981747e-16,0.000000000e+00,7,7,1,0,0,MakeParameter,0.204762320
+f7_n1000_bound_neutral/MakeConstraint,F7,1000,bound,neutral,CONVERGED,7,-4.075173558e-01,4.165961184e-09,6.604566508e-10,1.123981747e-16,0.000000000e+00,7,7,1,0,0,MakeConstraint,0.040179090
+f7_n1000_bound_neutral/RelaxBounds,F7,1000,bound,neutral,CONVERGED,7,-4.075173558e-01,4.165961184e-09,6.604566508e-10,1.123981747e-16,0.000000000e+00,7,7,1,0,0,RelaxBounds,0.039902372
+f7_n1000_bound_physics/MakeParameter,F7,1000,bound,physics,CONVERGED,5,-4.075173558e-01,2.380795236e-10,3.669294146e-11,1.081291806e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,0.031873313
+f7_n1000_bound_physics/MakeConstraint,F7,1000,bound,physics,CONVERGED,5,-4.075173558e-01,2.380795236e-10,3.669294146e-11,1.081291806e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,0.031888373
+f7_n1000_bound_physics/RelaxBounds,F7,1000,bound,physics,CONVERGED,5,-4.075173558e-01,2.380795236e-10,3.669294146e-11,1.081291806e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,0.031849533
+f7_n2000_bound_neutral/MakeParameter,F7,2000,bound,neutral,CONVERGED,8,-4.066533233e-01,2.634105959e-10,4.050917722e-11,1.099325702e-16,0.000000000e+00,8,8,1,0,0,MakeParameter,0.093471312
+f7_n2000_bound_neutral/MakeConstraint,F7,2000,bound,neutral,CONVERGED,8,-4.066533233e-01,2.634105959e-10,4.050917722e-11,1.099325702e-16,0.000000000e+00,8,8,1,0,0,MakeConstraint,0.096162048
+f7_n2000_bound_neutral/RelaxBounds,F7,2000,bound,neutral,CONVERGED,8,-4.066533233e-01,2.634105959e-10,4.050917722e-11,1.099325702e-16,0.000000000e+00,8,8,1,0,0,RelaxBounds,0.091442823
+f7_n2000_bound_physics/MakeParameter,F7,2000,bound,physics,CONVERGED,5,-4.066533233e-01,2.433700878e-10,3.733486557e-11,1.168101089e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,0.066585032
+f7_n2000_bound_physics/MakeConstraint,F7,2000,bound,physics,CONVERGED,5,-4.066533233e-01,2.433700878e-10,3.733486557e-11,1.168101089e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,0.066471883
+f7_n2000_bound_physics/RelaxBounds,F7,2000,bound,physics,CONVERGED,5,-4.066533233e-01,2.433700878e-10,3.733486557e-11,1.168101089e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,0.066607713
+f7_n5000_bound_neutral/MakeParameter,F7,5000,bound,neutral,CONVERGED,8,-4.061354861e-01,6.437793963e-09,1.984376401e-09,2.807674350e-15,0.000000000e+00,8,8,1,0,0,MakeParameter,0.244444663
+f7_n5000_bound_neutral/MakeConstraint,F7,5000,bound,neutral,CONVERGED,8,-4.061354861e-01,6.437793963e-09,1.984376401e-09,2.807674350e-15,0.000000000e+00,8,8,1,0,0,MakeConstraint,0.234953673
+f7_n5000_bound_neutral/RelaxBounds,F7,5000,bound,neutral,CONVERGED,8,-4.061354861e-01,6.437793963e-09,1.984376401e-09,2.807674350e-15,0.000000000e+00,8,8,1,0,0,RelaxBounds,0.234757963
+f7_n5000_bound_physics/MakeParameter,F7,5000,bound,physics,CONVERGED,5,-4.061354862e-01,2.466487686e-10,3.783082487e-11,1.096120960e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,0.172819317
+f7_n5000_bound_physics/MakeConstraint,F7,5000,bound,physics,CONVERGED,5,-4.061354862e-01,2.466487686e-10,3.783082487e-11,1.096120960e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,0.173051126
+f7_n5000_bound_physics/RelaxBounds,F7,5000,bound,physics,CONVERGED,5,-4.061354862e-01,2.466487686e-10,3.783082487e-11,1.096120960e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,0.173281945
+f7_n10000_bound_neutral/MakeParameter,F7,10000,bound,neutral,CONVERGED,9,-4.059629708e-01,4.384091675e-10,6.954131848e-11,6.138253342e-16,0.000000000e+00,9,9,1,0,0,MakeParameter,0.535295234
+f7_n10000_bound_neutral/MakeConstraint,F7,10000,bound,neutral,CONVERGED,9,-4.059629708e-01,4.384091675e-10,6.954131848e-11,6.138253342e-16,0.000000000e+00,9,9,1,0,0,MakeConstraint,0.522844059
+f7_n10000_bound_neutral/RelaxBounds,F7,10000,bound,neutral,CONVERGED,9,-4.059629708e-01,4.384091675e-10,6.954131848e-11,6.138253342e-16,0.000000000e+00,9,9,1,0,0,RelaxBounds,0.523128818
+f7_n10000_bound_physics/MakeParameter,F7,10000,bound,physics,CONVERGED,5,-4.059629708e-01,2.479467811e-10,3.801460695e-11,1.103828678e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,0.357014766
+f7_n10000_bound_physics/MakeConstraint,F7,10000,bound,physics,CONVERGED,5,-4.059629708e-01,2.479467811e-10,3.801460695e-11,1.103828678e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,0.356575757
+f7_n10000_bound_physics/RelaxBounds,F7,10000,bound,physics,CONVERGED,5,-4.059629708e-01,2.479467811e-10,3.801460695e-11,1.103828678e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,0.359265194
+f7_n20000_bound_neutral/MakeParameter,F7,20000,bound,neutral,CONVERGED,9,-4.058767313e-01,5.551597096e-10,9.900664080e-11,3.404097007e-15,0.000000000e+00,9,9,1,0,0,MakeParameter,1.127664040
+f7_n20000_bound_neutral/MakeConstraint,F7,20000,bound,neutral,CONVERGED,9,-4.058767313e-01,5.551597096e-10,9.900664080e-11,3.404097007e-15,0.000000000e+00,9,9,1,0,0,MakeConstraint,1.090922953
+f7_n20000_bound_neutral/RelaxBounds,F7,20000,bound,neutral,CONVERGED,9,-4.058767313e-01,5.551597096e-10,9.900664080e-11,3.404097007e-15,0.000000000e+00,9,9,1,0,0,RelaxBounds,1.090622454
+f7_n20000_bound_physics/MakeParameter,F7,20000,bound,physics,CONVERGED,5,-4.058767313e-01,2.481461924e-10,3.803510500e-11,1.104631635e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,0.754320010
+f7_n20000_bound_physics/MakeConstraint,F7,20000,bound,physics,CONVERGED,5,-4.058767313e-01,2.481461924e-10,3.803510500e-11,1.104631635e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,0.745968025
+f7_n20000_bound_physics/RelaxBounds,F7,20000,bound,physics,CONVERGED,5,-4.058767313e-01,2.481461924e-10,3.803510500e-11,1.104631635e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,0.747015549
+hs071_x1_fixed/MakeParameter,hs,4,none,fixed_variable,CONVERGED,9,1.701401729e+01,1.463526456e-09,1.744133762e-10,0.000000000e+00,0.000000000e+00,9,9,2,0,0,MakeParameter,0.000183599
+hs071_x1_fixed/MakeConstraint,hs,4,none,fixed_variable,CONVERGED,9,1.701401729e+01,2.096454566e-09,1.744133762e-10,0.000000000e+00,0.000000000e+00,9,9,2,0,0,MakeConstraint,0.000130560
+hs071_x1_fixed/RelaxBounds,hs,4,none,fixed_variable,CONVERGED,11,1.701401728e+01,3.969047313e-15,3.943132698e-09,0.000000000e+00,0.000000000e+00,11,11,1,0,0,RelaxBounds,0.000136099

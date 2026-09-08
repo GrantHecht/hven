@@ -66,7 +66,11 @@ endif()
 # drift). bench_corpus.cpp is CLI glue only. NOT ctest-registered: its
 # baseline sweep touches N = 20000 cells that run for minutes to hours. Its
 # correctness gate is tests/sqp/test_corpus_cells.cpp.
-add_executable(hven_sqp_corpus bench_corpus.cpp)
+# ipm_corpus_leg.cpp is the ONE non-glue TU here: the top-level interior-point
+# replay leg (--engine interior). It is a .cpp rather than a header because
+# nothing but this binary consumes it -- the offline gate in
+# tests/sqp/test_corpus_cells.cpp reads the artifact, not the leg.
+add_executable(hven_sqp_corpus bench_corpus.cpp ipm_corpus_leg.cpp)
 target_link_libraries(hven_sqp_corpus PRIVATE hven::hven)
 target_compile_options(hven_sqp_corpus PRIVATE ${COMPILE_FLAGS})
 target_include_directories(hven_sqp_corpus PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
