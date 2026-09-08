@@ -779,15 +779,32 @@ class InteriorPointSolver {
     /// @brief Returns the accumulated outputs of the most recent solve/optimize call.
     const SolveResult &result() const { return result_; }
 
-    /// @brief Why the last phase of the most recent call left its iteration
-    ///        loop, when it left without a convergence verdict.
+    /// @brief Which door the last phase of the most recent call left its
+    ///        iteration loop by.
     ///
-    /// Reset to kNone at each phase start, so a multi-phase call reports the
-    /// last phase that ran. A stall coinciding with the iteration cap reports
-    /// kStageStalled: the stall is recorded first, and the cap store defers to
-    /// any reason already in place.
+    /// PHASE-LOCAL and exact: reset to kNone at each phase start, written only
+    /// from that phase's own loop, and never derived from a verdict. The loop
+    /// has five exits and the label covers each of them: the restoration
+    /// locally-infeasible break (kRestorationLocallyInfeasible), the
+    /// converge-check early exit (kNone -- that phase's verdict is the whole
+    /// explanation), the terminal conjunction (kStageStalled if the stall fired
+    /// this iteration, kIterationCap if this was the cap iteration, kNone
+    /// otherwise), exhaustion after one of the loop's `continue`s bypassed the
+    /// conjunction on the cap iteration (kIterationCap), and an exception, which
+    /// unwinds without producing a result at all.
     ///
-    /// @return The stop reason paired with result().converge_flag_.
+    /// A stall coinciding with the cap reports kStageStalled: the stall is
+    /// recorded first and both cap doors defer to a reason already in place.
+    ///
+    /// What it does NOT claim is agreement with result().converge_flag_. That
+    /// field's lifetime is the CALL, not the phase: a multi-phase call whose
+    /// later phase leaves without assigning it reports the EARLIER phase's
+    /// verdict, and this reason then describes the later phase correctly beside
+    /// a stale verdict. That verdict lifetime is a pre-existing engine property,
+    /// registered for T8.4's per-phase results; to_solve_status() reads the
+    /// verdict first, so the pairing it produces is only as good as the verdict.
+    ///
+    /// @return The stop reason recorded by the last phase that ran.
     IpmStopReason last_stop_reason() const noexcept { return last_stop_reason_; }
     /// @brief Returns the log of absorbed NLP evaluation errors.
     const EvalErrorLog &eval_error_log() const { return eval_error_log_; }
@@ -1637,10 +1654,11 @@ class InteriorPointSolver {
     /// instrumentation: the algorithm itself has no use for it.
     Index trace_phase_ = 0;
 
-    /// Why the current phase left its loop; see last_stop_reason(). Written by
-    /// run_phase_sequence and by alg_impl's two abnormal exits, read by nothing
-    /// inside the engine. LAST data member on purpose: appending it moves no
-    /// existing member's offset.
+    /// Which door the current phase left its loop by; see last_stop_reason().
+    /// Written by run_phase_sequence (the per-phase reset) and by alg_impl's two
+    /// abnormal exits and two cap doors, read by nothing inside the engine
+    /// except those stores' own kNone guards. LAST data member on purpose:
+    /// appending it moves no existing member's offset.
     IpmStopReason last_stop_reason_ = IpmStopReason::kNone;
 
     // KKTVector — the compound-KKT segment view — lives in

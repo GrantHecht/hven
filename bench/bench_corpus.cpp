@@ -150,7 +150,6 @@ using hven::solvers::corpus::detail::wall_budget_for_cell;
 using hven::solvers::FixedVariableTreatments;
 using hven::solvers::corpus::interior_base_variant;
 using hven::solvers::corpus::interior_csv_header;
-using hven::solvers::corpus::interior_csv_row;
 using hven::solvers::corpus::interior_exit_variants;
 using hven::solvers::corpus::interior_treatment_tag;
 using hven::solvers::corpus::interior_treatments;
@@ -376,10 +375,11 @@ constexpr const char *kUsage =
     "  watchdog_activations,fixed_treatment,stop_reason,wall_s\n"
     "`cell_id` there is the cell joined to the treatment by a slash, so the\n"
     "column is unique per row; `fixed_treatment` carries the treatment alone.\n"
-    "Four abnormal-exit rows always run, whatever --cells names, and carry a\n"
-    "third key segment: two iteration caps, one stalled feasibility stage and\n"
-    "one restoration that reached a locally infeasible point. Their levers are\n"
-    "stamped in the artifact's `# variant:` lines.\n";
+    "Four abnormal-exit rows always run, whatever --cells names, and under the\n"
+    "MakeParameter treatment only; they carry a third key segment: two iteration\n"
+    "caps, one stalled feasibility stage and one restoration that reached a\n"
+    "locally infeasible point. Their levers are stamped in the artifact's\n"
+    "`# variant:` lines.\n";
 
 [[noreturn]] void throw_usage(const std::string &detail) {
     hven::solvers::bench_cli::throw_usage(kUsage, detail);
@@ -2226,7 +2226,8 @@ void write_interior_provenance(std::ostream &os, int argc, char **argv,
     for (const InteriorVariant &variant : interior_exit_variants()) {
         os << fmt::format("# {}\n", interior_variant_stamp(variant));
     }
-    os << "# abnormal-exit rows run under MakeParameter only, on the cells named in their keys\n";
+    os << "# abnormal-exit rows run under MakeParameter only, unconditionally (they do not vary "
+          "with --cells), on the cells named in their keys\n";
     for (const std::string &refusal : refusals) {
         os << fmt::format("# refused: {}\n", refusal);
     }

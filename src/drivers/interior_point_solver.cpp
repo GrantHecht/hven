@@ -2011,7 +2011,11 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     double restoration_true_obj = 0.0;
 
     Runtimer.start();
-    for (int i = 0; i < settings_.max_iters_; i++) {
+    // The loop index is hoisted so the post-loop cap door below can tell
+    // EXHAUSTION (i == max_iters_) from any of the three outer breaks, which all
+    // leave with i <= max_iters_ - 1. Nothing else after the loop reads it.
+    int i = 0;
+    for (; i < settings_.max_iters_; i++) {
         IterateInfo Citer;
         Citer.iter_ = i;
 
@@ -3183,6 +3187,19 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             ExitCode == ConvergenceFlags::DIVERGING || ExitCode == ConvergenceFlags::SINGULAR_KKT ||
             exit_stage_stalled || i == (settings_.max_iters_ - 1)) {
 
+            // Cap door 1 of 2 (the other is below the loop): the conjunction's
+            // own cap disjunct. Guarded on the REASON alone -- no verdict is
+            // read here, because converge_flag_'s lifetime is the CALL while
+            // this reason's is the PHASE, and a later phase would otherwise
+            // inherit an earlier one's verdict to decide its own label. The
+            // stall store above precedes this in program order, so a stall on
+            // the cap iteration keeps kStageStalled. See last_stop_reason() for
+            // what the label does and does not claim about the verdict.
+            if (i == (settings_.max_iters_ - 1) &&
+                this->last_stop_reason_ == IpmStopReason::kNone) {
+                this->last_stop_reason_ = IpmStopReason::kIterationCap;
+            }
+
             if (ExitCode != ConvergenceFlags::CONVERGED && settings_.return_best_) {
                 XSL = BestXSL;
                 RHS = BestRHS;
@@ -3241,13 +3258,15 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         }
     }
 
-    // The unlabelled NOTCONVERGED exit is the iteration cap, recorded after the
-    // loop rather than in the terminal conjunction: five `continue`s above can
-    // bypass that conjunction on the cap iteration and leave by exhaustion.
-    // Guarded on the reason so the two doors above keep their label, and on the
-    // reported verdict so the reason never contradicts it.
-    if (this->last_stop_reason_ == IpmStopReason::kNone &&
-        this->result_.converge_flag_ == ConvergenceFlags::NOTCONVERGED) {
+    // Cap door 2 of 2: EXHAUSTION. The five `continue`s above (:2203, :2225,
+    // :2268, :2297, :2524 at BASE) can bypass the terminal conjunction on the
+    // cap iteration, and the loop then falls through here with i == max_iters_;
+    // every outer break leaves with i <= max_iters_ - 1, so this door fires on
+    // exhaustion and on nothing else. Guarded on the reason alone, for the
+    // reason door 1 gives: the verdict is a per-CALL field and this label is
+    // per-PHASE, so reading it would make a later phase's label depend on an
+    // earlier phase's verdict.
+    if (this->last_stop_reason_ == IpmStopReason::kNone && i >= settings_.max_iters_) {
         this->last_stop_reason_ = IpmStopReason::kIterationCap;
     }
 

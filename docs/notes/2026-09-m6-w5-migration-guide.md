@@ -664,9 +664,10 @@ engines will report; kStalled split from NOTCONVERGED by stop reason`.
    `kRestorationLocallyInfeasible`, `kStageStalled` — is written per phase and
    read back through `InteriorPointSolver::last_stop_reason()`. It is reset to
    `kNone` at each phase start, so a multi-phase call reports the last phase that
-   ran, and `kNone` means the phase did not end `NOTCONVERGED`.
-4. **No trajectory moves.** The three stores are writes to a member nothing else
-   in the engine reads; the U0 walk/ssn/ipm replay and the interior leg are both
+   ran; `kNone` means that phase left by a door the verdict itself explains (see
+   the fix-round-1 amendment below for the exact enumeration).
+4. **No trajectory moves.** The stores are writes to a member nothing else in the
+   engine reads; the U0 walk/ssn/ipm replay and the interior leg are both
    identical across the change.
 
 ### What you do
@@ -714,4 +715,43 @@ stall-beats-cap tie (`tests/interior/test_ipm_stop_reason.cpp`).
 The replay leg grew with the task: `bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv`
 is re-derived — a declared re-derivation, CLAUDE.md §7 — with a `stop_reason`
 column and four abnormal-exit rows, and its 33 base rows are byte-identical to
-T8.1's outside the added column.
+T8.1's outside the added `stop_reason` column and `wall_s`, which is
+informational and which the replay comparator excludes by name.
+
+### Amended in fix round 1
+
+Landed as `fix(drivers): M6 W5 T8.2 fix1 — …`. Four things change what the entry
+above says; the baseline and every counter in the leg are untouched.
+
+1. **The iteration-cap label is stored at BOTH cap doors, and reads no verdict.**
+   It is written in the terminal conjunction when that iteration is the cap
+   iteration, and after the loop when the loop ran out of iterations without
+   taking any of its three outer breaks (five `continue`s can bypass the
+   conjunction on the cap iteration). Both stores are guarded on the reason still
+   being `kNone` — the stall is recorded first and keeps the tie — and on nothing
+   else. So `last_stop_reason()` is PHASE-LOCAL and exact for every loop exit:
+   the restoration locally-infeasible break, the converge-check early exit
+   (`kNone` — that phase's verdict is the whole explanation), the terminal
+   conjunction, exhaustion, and an exception, which produces no result at all.
+2. **What that label does NOT claim is agreement with the verdict.**
+   `result().converge_flag_`'s lifetime is the CALL, not the phase: in a
+   multi-phase call whose later phase leaves without assigning it, the reported
+   verdict is the EARLIER phase's while the reason correctly describes the later
+   one. That verdict lifetime is pre-existing engine behaviour, unchanged by this
+   task and REGISTERED for T8.4's per-phase results; `to_solve_status()` reads
+   the verdict first, so the status it produces is only ever as good as the
+   verdict. The one thing the fix removes is the instrumentation's own dependence
+   on it.
+3. **`kStageStalled` is demonstrated reachable only with divergence detection
+   lifted; default-threshold reachability is undemonstrated.** The one fixture
+   that reaches the stall needs `set_div_tols` raised past the violation spike it
+   is built around: at the default thresholds the same fixture and the same lever
+   set report `DIVERGING` within a few iterations, far short of the detector's
+   fifty-iteration window. Both are now pinned side by side in
+   `tests/interior/test_ipm_stop_reason.cpp`.
+4. **The tie pin asserts the terminal LOOP INDEX**, not just the label: at the
+   derived tie cap the stall must fire on the cap iteration itself
+   (`terminal index == cap - 1`), so an implementation that let the cap win the
+   tie cannot pass by stalling one cap later. `result().iter_num_` is the history
+   size, which the restoration transitions pop, and is not the loop count; the
+   pins read the index through the late callback instead.

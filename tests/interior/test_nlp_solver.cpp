@@ -1491,3 +1491,52 @@ TEST(NLPSolverTest, AConvergedSolveRecordsNoStopReason) {
     EXPECT_EQ(hven::solvers::to_solve_status(flag, solver.optimizer_->last_stop_reason()),
               hven::solvers::SolveStatus::kOptimal);
 }
+
+// The MULTI-PHASE cap pin (M6 W5 T8.2 fix round 1). solve_optimize runs the
+// feasibility phase and then the optimality phase, both unconditionally. At
+// max_iters = 10 the feasibility phase converges inside its budget and the
+// optimality phase runs out of iterations: the label belongs to the phase that
+// hit the cap, because it is reset per phase and stored without consulting a
+// verdict the EARLIER phase wrote. The per-phase terminal loop indices are read
+// through the late callback (IterateInfo::iter_ restarts at 0 in each phase),
+// which is what makes "phase 1 ended early, phase 2 ended on its cap" an
+// assertion rather than a story.
+//
+// RECORDED, not asserted as correct: the call reports NOTCONVERGED, because the
+// capped phase leaves through the terminal conjunction, which assigns the
+// verdict on its way out. The one path on which the REPORTED verdict would be
+// the earlier phase's stale CONVERGED is a later phase leaving by EXHAUSTION
+// after one of the loop's five `continue`s -- all five are restoration
+// transitions, and every fixture that enters restoration in an optimality phase
+// does so because the problem is infeasible, which is exactly what stops the
+// feasibility phase converging first. No live case was built for it inside the
+// fix round's search budget; the verdict's per-CALL lifetime is registered for
+// T8.4's per-phase results.
+TEST(NLPSolverTest, AMultiPhaseCapIsLabelledByThePhaseThatHitIt) {
+    constexpr int kCap = 10;
+    NLPSolver solver(std::make_shared<Hs071Problem>());
+    solver.optimizer_->set_print_level(10);
+    solver.optimizer_->set_max_iters(kCap);
+    std::vector<int> phase_terminal;
+    solver.optimizer_->set_late_callback([&phase_terminal](const hven::solvers::IterateInfo &info,
+                                                           hven::ConstEigenRef<Eigen::VectorXd>,
+                                                           hven::ConstEigenRef<Eigen::VectorXd>) {
+        if (info.iter_ == 0)
+            phase_terminal.push_back(info.iter_);
+        else if (!phase_terminal.empty())
+            phase_terminal.back() = info.iter_;
+        return 0;
+    });
+    Eigen::VectorXd x0(4);
+    x0 << 1.0, 5.0, 5.0, 1.0;
+    const hven::ConvergenceFlags flag = solver.solve_optimize(x0);
+
+    ASSERT_EQ(phase_terminal.size(), 2u);
+    EXPECT_LT(phase_terminal[0], kCap - 1) << "the feasibility phase was expected to end on its "
+                                              "own verdict, not on the cap";
+    EXPECT_EQ(phase_terminal[1], kCap - 1);
+    EXPECT_EQ(solver.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kIterationCap);
+    EXPECT_EQ(flag, hven::ConvergenceFlags::NOTCONVERGED);
+    EXPECT_EQ(hven::solvers::to_solve_status(flag, solver.optimizer_->last_stop_reason()),
+              hven::solvers::SolveStatus::kMaxIter);
+}

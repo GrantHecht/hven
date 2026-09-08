@@ -7,10 +7,9 @@
 
 #include <gtest/gtest.h>
 
-#include <algorithm>
 #include <set>
 #include <stdexcept>
-#include <vector>
+#include <string>
 
 #include <hven/drivers/solve_status.h>
 
@@ -91,17 +90,38 @@ TEST(SolveStatus, SqpMappingIsIdentityOnItsFive) {
     EXPECT_EQ(to_solve_status(SqpStatus::kInfeasible), SolveStatus::kInfeasible);
     EXPECT_EQ(to_solve_status(SqpStatus::kNumericalError), SolveStatus::kNumericalError);
     EXPECT_EQ(to_solve_status(SqpStatus::kBudgetExhausted), SolveStatus::kBudgetExhausted);
-    EXPECT_STREQ(to_string(SolveStatus::kStalled), "stalled");
+    // All NINE spellings, not a sample of three: these strings are the CSV
+    // column and the printed status, so each one is a pinned literal.
     EXPECT_STREQ(to_string(SolveStatus::kOptimal), "optimal");
+    EXPECT_STREQ(to_string(SolveStatus::kAcceptable), "acceptable");
+    EXPECT_STREQ(to_string(SolveStatus::kMaxIter), "max_iter");
+    EXPECT_STREQ(to_string(SolveStatus::kInfeasible), "infeasible");
+    EXPECT_STREQ(to_string(SolveStatus::kStalled), "stalled");
+    EXPECT_STREQ(to_string(SolveStatus::kDiverging), "diverging");
+    EXPECT_STREQ(to_string(SolveStatus::kNumericalError), "numerical_error");
     EXPECT_STREQ(to_string(SolveStatus::kBudgetExhausted), "budget_exhausted");
+    EXPECT_STREQ(to_string(SolveStatus::kInterrupted), "interrupted");
     EXPECT_STREQ(to_string(IpmStopReason::kNone), "none");
     EXPECT_STREQ(to_string(IpmStopReason::kIterationCap), "iteration_cap");
     EXPECT_STREQ(to_string(IpmStopReason::kRestorationLocallyInfeasible),
                  "restoration_locally_infeasible");
     EXPECT_STREQ(to_string(IpmStopReason::kStageStalled), "stage_stalled");
     // Out-of-range values are refused, not silently mapped: the CSV column and
-    // the printed status come from these switches.
+    // the printed status come from these switches. Every switch in the TU has
+    // its boundary here -- both to_string families, severity, and both
+    // to_solve_status overloads, including the nested reason switch that only
+    // NOTCONVERGED reaches.
     EXPECT_THROW((void)to_string(static_cast<SolveStatus>(99)), std::invalid_argument);
+    EXPECT_THROW((void)to_string(static_cast<IpmStopReason>(99)), std::invalid_argument);
     EXPECT_THROW((void)severity(static_cast<SolveStatus>(99)), std::invalid_argument);
     EXPECT_THROW((void)to_solve_status(static_cast<SqpStatus>(99)), std::invalid_argument);
+    EXPECT_THROW((void)to_solve_status(static_cast<ConvergenceFlags>(99), IpmStopReason::kNone),
+                 std::invalid_argument);
+    EXPECT_THROW(
+        (void)to_solve_status(ConvergenceFlags::NOTCONVERGED, static_cast<IpmStopReason>(99)),
+        std::invalid_argument);
+    // An out-of-range reason under a STRONGER verdict is ignored, not refused:
+    // that switch never reaches the reason at all.
+    EXPECT_EQ(to_solve_status(ConvergenceFlags::CONVERGED, static_cast<IpmStopReason>(99)),
+              SolveStatus::kOptimal);
 }

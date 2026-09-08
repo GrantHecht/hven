@@ -100,6 +100,14 @@ struct InteriorVariant {
 const InteriorVariant &interior_base_variant();
 
 /// @brief The variants this leg runs beyond the base one, in write order.
+///
+/// The two rules the abnormal-exit rows these variants produce are selected by,
+/// stated here, in `--help` and in the artifact's own provenance header:
+///   1. They run under MakeParameter ONLY -- an exit is not a treatment
+///      question, so the three-treatment sweep does not apply to them.
+///   2. They run UNCONDITIONALLY, whatever `--cells` names -- what they pin is a
+///      stop reason, not a cell, so they are the leg's own fixed set (like the
+///      bound-fixed-variable cell) rather than a selection over the corpus.
 const std::vector<InteriorVariant> &interior_exit_variants();
 
 /// @brief One variant's overrides as a provenance line, without the leading `#`.
@@ -209,8 +217,12 @@ InteriorRow run_interior_hs071(FixedVariableTreatments treatment, const Interior
 ///        feasibility stage stalls, and `infeas2_stationary`, whose restoration
 ///        converges to a locally infeasible point.
 ///
-/// Neither exit is reachable on a feasible cell by lever, which is why they are
-/// cells and not variants of one.
+/// These are two separate cells rather than two variants of one because the
+/// search behind them found no single fixture that reaches both exits, and no
+/// lever set that reaches either one on any of the leg's feasible cells (the
+/// grid is in the T8.2 report's §4a). That is what was measured, not a proof
+/// that no feasible problem can reach either exit -- both are local algorithmic
+/// failure doors, not infeasibility certificates.
 ///
 /// @param cell_id   kSpikeCellId or kStationaryCellId.
 /// @param treatment The fixed-variable treatment this row runs under.
