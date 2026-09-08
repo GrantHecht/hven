@@ -344,32 +344,46 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
     // unconditionally (src/model/nlp_adapter.cpp) -- and is set and recorded so
     // the artifact states what was asked for.
     ipm.set_num_partitions(levers.num_partitions);
-    ipm.optimizer_->set_qp_threads(levers.qp_threads);
-    ipm.optimizer_->set_print_level(levers.print_level);
-    ipm.optimizer_->set_max_iters(levers.max_iters);
-    ipm.optimizer_->set_tols(levers.kkt_tol, levers.econ_tol, levers.icon_tol, levers.barr_tol);
-    ipm.optimizer_->set_fixed_variable_treatment(treatment);
-    ipm.optimizer_->set_bound_relax_factor(levers.bound_relax_factor);
+    // One options value, built here and handed over once. Every lever and every
+    // variant override below is a field write on it, so a dependent pair (the
+    // stall variant's restoration_mode and max_feas_rest) can never reach the
+    // solver half-applied.
+    IpmOptions o = ipm.optimizer_->options();
+    o.common.threads = levers.qp_threads;
+    o.common.print_level = levers.print_level;
+    o.max_iters = levers.max_iters;
+    o.kkt_tol = levers.kkt_tol;
+    o.econ_tol = levers.econ_tol;
+    o.icon_tol = levers.icon_tol;
+    o.bar_tol = levers.barr_tol;
+    o.fixed_variable_treatment = treatment;
+    o.bound_relax_factor = levers.bound_relax_factor;
     // The variant's overrides, applied on top of the levers above. Every field
     // is inert at its default, so a base row runs exactly what T8.1 captured.
     if (variant.max_iters > 0) {
-        ipm.optimizer_->set_max_iters(variant.max_iters);
+        o.max_iters = variant.max_iters;
     }
     if (variant.con_tol > 0.0) {
-        ipm.optimizer_->set_tols(levers.kkt_tol, variant.con_tol, variant.con_tol, levers.barr_tol);
+        o.econ_tol = variant.con_tol;
+        o.icon_tol = variant.con_tol;
     }
     if (variant.acc_con_tol > 0.0) {
-        ipm.optimizer_->set_acc_tols(variant.acc_kkt_tol, variant.acc_con_tol, variant.acc_con_tol,
-                                     variant.acc_barr_tol);
+        o.acc_kkt_tol = variant.acc_kkt_tol;
+        o.acc_econ_tol = variant.acc_con_tol;
+        o.acc_icon_tol = variant.acc_con_tol;
+        o.acc_bar_tol = variant.acc_barr_tol;
     }
     if (variant.div_tol > 0.0) {
-        ipm.optimizer_->set_div_tols(variant.div_tol, variant.div_tol, variant.div_tol,
-                                     variant.div_tol);
+        o.div_kkt_tol = variant.div_tol;
+        o.div_econ_tol = variant.div_tol;
+        o.div_icon_tol = variant.div_tol;
+        o.div_bar_tol = variant.div_tol;
     }
     if (variant.restoration_mode != RestorationModes::off) {
-        ipm.optimizer_->settings().restoration_mode_ = variant.restoration_mode;
-        ipm.optimizer_->set_max_feas_rest(variant.max_feas_rest);
+        o.restoration_mode = variant.restoration_mode;
+        o.max_feas_rest = variant.max_feas_rest;
     }
+    ipm.optimizer_->set_options(std::move(o));
     ipm.transcribe();
 
     const auto t0 = std::chrono::steady_clock::now();

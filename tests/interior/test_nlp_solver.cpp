@@ -94,7 +94,11 @@ struct Hs071Problem : NLPProblem {
 
 TEST(NLPSolverTest, Hs071ConvergesToKnownOptimum) {
     hven::solvers::NLPSolver solver(std::make_shared<Hs071Problem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
     auto flag = solver.optimize(x0);
@@ -113,7 +117,11 @@ TEST(NLPSolverTest, Hs071ConvergesToKnownOptimum) {
 // >= 0 at an active lower bound, ~0 when free.
 TEST(NLPSolverTest, Hs071BoundDualsMatchActiveLowerBound) {
     hven::solvers::NLPSolver solver(std::make_shared<Hs071Problem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
@@ -170,7 +178,11 @@ struct RosenbrockProblem : NLPProblem {
 
 TEST(NLPSolverTest, RosenbrockConvergesToKnownOptimum) {
     hven::solvers::NLPSolver solver(std::make_shared<RosenbrockProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0(2);
     x0 << -1.2, 1.0;
     auto flag = solver.optimize(x0);
@@ -231,7 +243,11 @@ struct EqOnlyProblem : NLPProblem {
 
 TEST(NLPSolverTest, EqualityMultiplierHasIpoptSign) {
     hven::solvers::NLPSolver solver(std::make_shared<EqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
     EXPECT_NEAR(solver.return_multipliers()[0], -2.0, 1e-5);
@@ -282,7 +298,11 @@ struct LowerBoundRowProblem : NLPProblem {
 
 TEST(NLPSolverTest, LowerBoundedRowActiveWithNegativeIpoptMultiplier) {
     hven::solvers::NLPSolver solver(std::make_shared<LowerBoundRowProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0(1);
     x0 << 3.0;
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
@@ -338,7 +358,11 @@ struct RangeRowProblem : NLPProblem {
 
 TEST(NLPSolverTest, RangeRowActiveAtUpperWithPositiveIpoptMultiplier) {
     hven::solvers::NLPSolver solver(std::make_shared<RangeRowProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0(1);
     x0 << 1.5;
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
@@ -395,7 +419,11 @@ struct FreeRowProblem : NLPProblem {
 
 TEST(NLPSolverTest, FreeRowDroppedFromTranscriptionReadsZeroMultiplier) {
     hven::solvers::NLPSolver solver(std::make_shared<FreeRowProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0(1);
     x0 << 0.0;
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
@@ -443,7 +471,11 @@ struct FixedVarProblem : NLPProblem {
 
 TEST(NLPSolverTest, FixedVariableSolvesExactlyAtItsFixedValue) {
     hven::solvers::NLPSolver solver(std::make_shared<FixedVarProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0(2);
     x0 << 0.0, 3.0;
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
@@ -461,7 +493,11 @@ TEST(NLPSolverTest, FixedVariableSolvesExactlyAtItsFixedValue) {
 TEST(NLPSolverTest, FixedVariableTreatmentIsRecordedOnSolveResult) {
     {
         hven::solvers::NLPSolver solver(std::make_shared<FixedVarProblem>());
-        solver.optimizer_->set_print_level(10);
+        {
+            auto o = solver.optimizer_->options();
+            o.common.print_level = 10;
+            solver.optimizer_->set_options(std::move(o));
+        }
         Eigen::VectorXd x0(2);
         x0 << 0.0, 3.0;
         ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
@@ -471,9 +507,12 @@ TEST(NLPSolverTest, FixedVariableTreatmentIsRecordedOnSolveResult) {
     }
     {
         hven::solvers::NLPSolver solver(std::make_shared<FixedVarProblem>());
-        solver.optimizer_->set_print_level(10);
-        solver.optimizer_->set_fixed_variable_treatment(
-            hven::solvers::FixedVariableTreatments::MakeConstraint);
+        {
+            auto o = solver.optimizer_->options();
+            o.common.print_level = 10;
+            o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeConstraint;
+            solver.optimizer_->set_options(std::move(o));
+        }
         Eigen::VectorXd x0(2);
         x0 << 0.0, 3.0;
         ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
@@ -492,17 +531,23 @@ TEST(NLPSolverTest, FixedVariableTreatmentIsRecordedOnSolveResult) {
 // the first solve's z at the old, now-mismatched primal_vars_ width.
 TEST(NLPSolverTest, BoundLmultsClearedAfterATreatmentSwitchDropsTheBoundSet) {
     hven::solvers::NLPSolver solver(std::make_shared<FixedVarProblem>());
-    solver.optimizer_->set_print_level(10);
-    solver.optimizer_->set_fixed_variable_treatment(
-        hven::solvers::FixedVariableTreatments::RelaxBounds);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::RelaxBounds;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0(2);
     x0 << 0.0, 3.0;
 
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
     ASSERT_GT(solver.optimizer_->result().bound_lmults_.size(), 0);
 
-    solver.optimizer_->set_fixed_variable_treatment(
-        hven::solvers::FixedVariableTreatments::MakeParameter);
+    {
+        auto o = solver.optimizer_->options();
+        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeParameter;
+        solver.optimizer_->set_options(std::move(o));
+    }
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
     EXPECT_EQ(solver.optimizer_->result().bound_lmults_.size(), 0);
 }
@@ -521,7 +566,11 @@ struct SeededEqOnlyProblem : EqOnlyProblem {
 
 TEST(NLPSolverTest, SeededSolveConverges) {
     hven::solvers::NLPSolver solver(std::make_shared<SeededEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
     Eigen::VectorXd x = solver.return_x();
@@ -538,11 +587,19 @@ TEST(NLPSolverTest, NoArgOptimizeUsesActiveVariables) {
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
 
     hven::solvers::NLPSolver x0_solver(std::make_shared<EqOnlyProblem>());
-    x0_solver.optimizer_->set_print_level(10);
+    {
+        auto o = x0_solver.optimizer_->options();
+        o.common.print_level = 10;
+        x0_solver.optimizer_->set_options(std::move(o));
+    }
     ASSERT_EQ(x0_solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
 
     hven::solvers::NLPSolver noarg_solver(std::make_shared<EqOnlyProblem>());
-    noarg_solver.optimizer_->set_print_level(10);
+    {
+        auto o = noarg_solver.optimizer_->options();
+        o.common.print_level = 10;
+        noarg_solver.optimizer_->set_options(std::move(o));
+    }
     noarg_solver.active_variables_ = x0;
     ASSERT_EQ(noarg_solver.optimize(), hven::ConvergenceFlags::CONVERGED);
 
@@ -554,7 +611,11 @@ TEST(NLPSolverTest, NoArgOptimizeUsesActiveVariables) {
 // a solve from an empty iterate.
 TEST(NLPSolverTest, NoArgOptimizeOnFreshSolverThrows) {
     hven::solvers::NLPSolver solver(std::make_shared<EqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     EXPECT_THROW(solver.optimize(), std::invalid_argument);
 }
 
@@ -563,7 +624,11 @@ TEST(NLPSolverTest, NoArgOptimizeOnFreshSolverThrows) {
 // solve builds a fresh NonLinearProgram from scratch.
 TEST(NLPSolverTest, JetLifecycleRoundTrip) {
     hven::solvers::NLPSolver solver(std::make_shared<EqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
 
     solver.jet_initialize();
     EXPECT_FALSE(solver.do_transcription_);
@@ -574,8 +639,11 @@ TEST(NLPSolverTest, JetLifecycleRoundTrip) {
 
     solver.jet_release();
     EXPECT_TRUE(solver.do_transcription_);
-    solver.optimizer_->set_print_level(10); // jet_release() resets print level; re-silence
-
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10; // jet_release() resets print level; re-silence
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     EXPECT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED); // fresh transcription works
 }
@@ -593,7 +661,11 @@ struct NonFiniteSeedProblem : EqOnlyProblem {
 
 TEST(NLPSolverTest, NonFiniteStartingMultipliersThrow) {
     hven::solvers::NLPSolver solver(std::make_shared<NonFiniteSeedProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     try {
         solver.optimize(x0);
@@ -603,8 +675,9 @@ TEST(NLPSolverTest, NonFiniteStartingMultipliersThrow) {
     }
 }
 
-// Partition count and QP thread count are independent settings, each reached
-// through its own setter, and neither setter touches the other's state. The
+// Partition count and QP thread count are independent settings on two different
+// objects -- the partition count on the wrapper, the thread count in the
+// solver's own options value -- and neither touches the other's state. The
 // concepts below pin that surface: the only partition setter takes the
 // partition count alone, so no call site can silently reset the QP thread
 // count while asking for a partition count.
@@ -624,87 +697,149 @@ static_assert(!std::is_polymorphic_v<NLPSolver>);
 
 TEST(NLPSolverTest, PartitionCountAndQpThreadCountAreSetIndependently) {
     NLPSolver solver(std::make_shared<EqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
 
-    solver.optimizer_->set_qp_threads(3);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.threads = 3;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.set_num_partitions(2);
     EXPECT_EQ(solver.num_partitions_, 2);
-    EXPECT_EQ(solver.optimizer_->settings().qp_threads_, 3); // partitions left it alone
+    EXPECT_EQ(solver.optimizer_->options().common.threads, 3); // partitions left it alone
 
-    solver.optimizer_->set_qp_threads(1);
-    EXPECT_EQ(solver.optimizer_->settings().qp_threads_, 1);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.threads = 1;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    EXPECT_EQ(solver.optimizer_->options().common.threads, 1);
     EXPECT_EQ(solver.num_partitions_, 2); // and the QP setter left partitions alone
 
     EXPECT_THROW(solver.set_num_partitions(0), std::invalid_argument);
-    EXPECT_THROW(solver.optimizer_->set_qp_threads(0), std::invalid_argument);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.threads = 0;
+        EXPECT_THROW(solver.optimizer_->set_options(o), std::invalid_argument);
+    }
 
     // Both jet entry points put the solver on one partition and one QP thread.
     solver.set_num_partitions(4);
-    solver.optimizer_->set_qp_threads(4);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.threads = 4;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.jet_initialize();
     EXPECT_EQ(solver.num_partitions_, 1);
-    EXPECT_EQ(solver.optimizer_->settings().qp_threads_, 1);
+    EXPECT_EQ(solver.optimizer_->options().common.threads, 1);
 
     solver.set_num_partitions(4);
-    solver.optimizer_->set_qp_threads(4);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.threads = 4;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.jet_release();
     EXPECT_EQ(solver.num_partitions_, 1);
-    EXPECT_EQ(solver.optimizer_->settings().qp_threads_, 1);
-    solver.optimizer_->set_print_level(10); // jet_release() resets the print level
+    EXPECT_EQ(solver.optimizer_->options().common.threads, 1);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10; // jet_release() resets the print level
+        solver.optimizer_->set_options(std::move(o));
+    }
 }
 
-// The set_*() validators for bound_push, alpha_red, delta_h, incr_h,
+// validate()'s checks for bound_push, alpha_red, delta_h, incr_h,
 // bound_fraction and decr_h are written as negated comparisons so that a NaN,
 // which compares false against every ordinary relational operator, is
-// refused rather than silently accepted and stored.
+// refused rather than silently accepted and stored. Before M6 W5 T8.3 these
+// were the site-named set_*() methods; the checks and the messages are the
+// same ones, reached now through set_options().
 TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
     hven::solvers::InteriorPointSolver solver;
     const double nan = std::numeric_limits<double>::quiet_NaN();
 
     try {
-        solver.set_bound_push(nan);
+        {
+            auto o = solver.options();
+            o.bound_push = nan;
+            solver.set_options(std::move(o));
+        }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("bound_push"), std::string::npos);
     }
     try {
-        solver.set_alpha_red(nan);
+        {
+            auto o = solver.options();
+            o.alpha_red = nan;
+            solver.set_options(std::move(o));
+        }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("alpha_red"), std::string::npos);
     }
     try {
-        solver.set_delta_h(nan);
+        {
+            auto o = solver.options();
+            o.delta_h = nan;
+            solver.set_options(std::move(o));
+        }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("delta_h"), std::string::npos);
     }
     try {
-        solver.set_incr_h(nan);
+        {
+            auto o = solver.options();
+            o.incr_h = nan;
+            solver.set_options(std::move(o));
+        }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("incr_h"), std::string::npos);
     }
     try {
-        solver.set_bound_fraction(nan);
+        {
+            auto o = solver.options();
+            o.bound_fraction = nan;
+            solver.set_options(std::move(o));
+        }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("bound_fraction"), std::string::npos);
     }
     try {
-        solver.set_decr_h(nan);
+        {
+            auto o = solver.options();
+            o.decr_h = nan;
+            solver.set_options(std::move(o));
+        }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("decr_h"), std::string::npos);
     }
     try {
-        solver.set_bound_interval_push(nan);
+        {
+            auto o = solver.options();
+            o.bound_interval_push = nan;
+            solver.set_options(std::move(o));
+        }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("bound_interval_push"), std::string::npos);
     }
     try {
-        solver.set_bound_relax_factor(nan);
+        {
+            auto o = solver.options();
+            o.bound_relax_factor = nan;
+            solver.set_options(std::move(o));
+        }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("bound_relax_factor"), std::string::npos);
@@ -714,19 +849,37 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
     // one argument is refused too -- naming that argument's own setter site,
     // since it is set_delta_h/set_incr_h/set_decr_h that actually throws.
     try {
-        solver.set_hpert_params(nan, 8.0, 0.1);
+        {
+            auto o = solver.options();
+            o.delta_h = nan;
+            o.incr_h = 8.0;
+            o.decr_h = 0.1;
+            solver.set_options(std::move(o));
+        }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("delta_h"), std::string::npos);
     }
     try {
-        solver.set_hpert_params(1e-4, nan, 0.1);
+        {
+            auto o = solver.options();
+            o.delta_h = 1e-4;
+            o.incr_h = nan;
+            o.decr_h = 0.1;
+            solver.set_options(std::move(o));
+        }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("incr_h"), std::string::npos);
     }
     try {
-        solver.set_hpert_params(1e-4, 8.0, nan);
+        {
+            auto o = solver.options();
+            o.delta_h = 1e-4;
+            o.incr_h = 8.0;
+            o.decr_h = nan;
+            solver.set_options(std::move(o));
+        }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("decr_h"), std::string::npos);
@@ -742,83 +895,102 @@ TEST(InteriorPointSolverSettingsTest, InfRejectedByGreaterThanSetters) {
     const double inf = std::numeric_limits<double>::infinity();
 
     try {
-        solver.set_bound_push(inf);
+        {
+            auto o = solver.options();
+            o.bound_push = inf;
+            solver.set_options(std::move(o));
+        }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("bound_push"), std::string::npos);
     }
     try {
-        solver.set_alpha_red(inf);
+        {
+            auto o = solver.options();
+            o.alpha_red = inf;
+            solver.set_options(std::move(o));
+        }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("alpha_red"), std::string::npos);
     }
     try {
-        solver.set_delta_h(inf);
+        {
+            auto o = solver.options();
+            o.delta_h = inf;
+            solver.set_options(std::move(o));
+        }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("delta_h"), std::string::npos);
     }
     try {
-        solver.set_incr_h(inf);
+        {
+            auto o = solver.options();
+            o.incr_h = inf;
+            solver.set_options(std::move(o));
+        }
         FAIL() << "expected std::invalid_argument";
     } catch (const std::invalid_argument &e) {
         EXPECT_NE(std::string(e.what()).find("incr_h"), std::string::npos);
     }
 }
 
-// The other half of the twice-checked pairing: a NaN written directly through
-// the mutable settings() reference (bypassing the setter entirely) must still
-// be caught by Settings::validate(), one representative field per helper
-// family that has a numeric double-valued invariant.
+// validate() refuses a NaN for one representative field per helper family that
+// has a numeric double-valued invariant. Before M6 W5 T8.3 this was "the other
+// half of the twice-checked pairing" -- the half that caught a NaN written
+// directly through the mutable settings() reference, bypassing the per-field
+// setter. There is no such reference and no such setter any more: validate() is
+// the single door, run from set_options() and again at solve entry, and this
+// test calls it directly.
 TEST(InteriorPointSolverSettingsTest, NaNRejectedByValidateForEveryHelperFamily) {
     const double nan = std::numeric_limits<double>::quiet_NaN();
 
     {
-        hven::solvers::InteriorPointSolver solver; // pos_finite
-        solver.settings().kkt_tol_ = nan;
+        hven::solvers::IpmOptions o; // pos_finite
+        o.kkt_tol = nan;
         try {
-            solver.settings().validate();
+            hven::solvers::validate(o);
             FAIL() << "expected std::invalid_argument";
         } catch (const std::invalid_argument &e) {
             EXPECT_NE(std::string(e.what()).find("kkt_tol"), std::string::npos);
         }
     }
     {
-        hven::solvers::InteriorPointSolver solver; // in_open_unit
-        solver.settings().bound_fraction_ = nan;
+        hven::solvers::IpmOptions o; // in_open_unit
+        o.bound_fraction = nan;
         try {
-            solver.settings().validate();
+            hven::solvers::validate(o);
             FAIL() << "expected std::invalid_argument";
         } catch (const std::invalid_argument &e) {
             EXPECT_NE(std::string(e.what()).find("bound_fraction"), std::string::npos);
         }
     }
     {
-        hven::solvers::InteriorPointSolver solver; // greater_than
-        solver.settings().bound_push_ = nan;
+        hven::solvers::IpmOptions o; // greater_than
+        o.bound_push = nan;
         try {
-            solver.settings().validate();
+            hven::solvers::validate(o);
             FAIL() << "expected std::invalid_argument";
         } catch (const std::invalid_argument &e) {
             EXPECT_NE(std::string(e.what()).find("bound_push"), std::string::npos);
         }
     }
     {
-        hven::solvers::InteriorPointSolver solver; // in_open_interval
-        solver.settings().bound_interval_push_ = nan;
+        hven::solvers::IpmOptions o; // in_open_interval
+        o.bound_interval_push = nan;
         try {
-            solver.settings().validate();
+            hven::solvers::validate(o);
             FAIL() << "expected std::invalid_argument";
         } catch (const std::invalid_argument &e) {
             EXPECT_NE(std::string(e.what()).find("bound_interval_push"), std::string::npos);
         }
     }
     {
-        hven::solvers::InteriorPointSolver solver; // in_closed_interval
-        solver.settings().bound_relax_factor_ = nan;
+        hven::solvers::IpmOptions o; // in_closed_interval
+        o.bound_relax_factor = nan;
         try {
-            solver.settings().validate();
+            hven::solvers::validate(o);
             FAIL() << "expected std::invalid_argument";
         } catch (const std::invalid_argument &e) {
             EXPECT_NE(std::string(e.what()).find("bound_relax_factor"), std::string::npos);
@@ -846,7 +1018,11 @@ struct FaultingSetupProblem : EqOnlyProblem {
 TEST(NLPSolverTest, AFaultedTranscriptionCommitsNothingAndRetriesCleanly) {
     auto problem = std::make_shared<FaultingSetupProblem>();
     NLPSolver solver(problem);
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
 
     // A fault on the very first transcription commits nothing at all.
@@ -944,7 +1120,11 @@ struct TranscriptionCountingProblem : EqOnlyProblem {
 TEST(NLPSolverTest, ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvaluation) {
     auto problem = std::make_shared<TranscriptionCountingProblem>();
     NLPSolver solver(problem);
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
 
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
@@ -990,24 +1170,28 @@ TEST(NLPSolverTest, ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvaluat
 // literal: the assertion is the relation to the gate.
 TEST(NLPSolverTest, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
     NLPSolver solver(std::make_shared<Hs071Problem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
 
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
 
     const auto &result = solver.optimizer_->result();
-    const auto &settings = solver.optimizer_->settings();
+    const auto &settings = solver.optimizer_->options();
 
     EXPECT_TRUE(std::isfinite(result.kkt_inf_));
     EXPECT_TRUE(std::isfinite(result.barr_inf_));
     EXPECT_TRUE(std::isfinite(result.econ_inf_));
     EXPECT_TRUE(std::isfinite(result.icon_inf_));
 
-    EXPECT_LT(result.kkt_inf_, settings.kkt_tol_);
-    EXPECT_LT(result.barr_inf_, settings.bar_tol_);
-    EXPECT_LT(result.econ_inf_, settings.econ_tol_);
-    EXPECT_LT(result.icon_inf_, settings.icon_tol_);
+    EXPECT_LT(result.kkt_inf_, settings.kkt_tol);
+    EXPECT_LT(result.barr_inf_, settings.bar_tol);
+    EXPECT_LT(result.econ_inf_, settings.econ_tol);
+    EXPECT_LT(result.icon_inf_, settings.icon_tol);
 
     // A residual is a norm: never negative, whatever the exit.
     EXPECT_GE(result.kkt_inf_, 0.0);
@@ -1025,10 +1209,10 @@ TEST(NLPSolverTest, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
     // them; here the second call writes them again and lands inside the same
     // gates.
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
-    EXPECT_LT(result.kkt_inf_, settings.kkt_tol_);
-    EXPECT_LT(result.barr_inf_, settings.bar_tol_);
-    EXPECT_LT(result.econ_inf_, settings.econ_tol_);
-    EXPECT_LT(result.icon_inf_, settings.icon_tol_);
+    EXPECT_LT(result.kkt_inf_, settings.kkt_tol);
+    EXPECT_LT(result.barr_inf_, settings.bar_tol);
+    EXPECT_LT(result.econ_inf_, settings.econ_tol);
+    EXPECT_LT(result.icon_inf_, settings.icon_tol);
 }
 
 // A problem whose OBJECTIVE RISES along the solve: min 0.5*|x|^2 subject to
@@ -1100,10 +1284,21 @@ struct BestIterateRisingObjectiveProblem : NLPProblem {
 // really differs from the last row and really carries different residuals.
 TEST(NLPSolverTest, TheReportedKktResidualsDescribeTheIterateTheResultDescribes) {
     NLPSolver solver(std::make_shared<BestIterateRisingObjectiveProblem>());
-    solver.optimizer_->set_print_level(10);
-    solver.optimizer_->settings().return_best_ = true;
-    solver.optimizer_->set_best_criteria(
-        hven::solvers::InteriorPointSolver::BestCriteriaModes::OBJ);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    {
+        auto o = solver.optimizer_->options();
+        o.return_best = true;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    {
+        auto o = solver.optimizer_->options();
+        o.best_criteria = hven::solvers::InteriorPointSolver::BestCriteriaModes::OBJ;
+        solver.optimizer_->set_options(std::move(o));
+    }
 
     std::vector<hven::solvers::IterateInfo> rows;
     solver.optimizer_->set_late_callback([&rows](const hven::solvers::IterateInfo &info,
@@ -1149,7 +1344,11 @@ TEST(NLPSolverTest, TheReportedKktResidualsDescribeTheIterateTheResultDescribes)
 // never measured one reads as a converged solve.
 TEST(NLPSolverTest, TheKktResidualsOfASolverThatHasNotSolvedAreUnmeasured) {
     NLPSolver solver(std::make_shared<Hs071Problem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
 
     const auto &result = solver.optimizer_->result();
     EXPECT_TRUE(std::isnan(result.kkt_inf_));
@@ -1212,7 +1411,11 @@ TEST(NLPSolverJobModeTest, AnUnknownSpellingIsRefusedAndNamedInTheMessage) {
 // leaves it where it was.
 TEST(NLPSolverJobModeTest, TheStringSetterParsesAndTheRefusalLeavesTheModeAlone) {
     NLPSolver solver(std::make_shared<EqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     EXPECT_EQ(solver.jet_job_mode_, JetJobModes::NotSet);
 
     solver.set_jet_job_mode("Solve_Optimize");
@@ -1230,7 +1433,11 @@ TEST(NLPSolverJobModeTest, TheStringSetterParsesAndTheRefusalLeavesTheModeAlone)
 // paths with two different messages. NotSet is the third.
 TEST(NLPSolverJobModeTest, JetRunRefusesNotSetAndDoNothingWithDistinctMessages) {
     NLPSolver notset(std::make_shared<EqOnlyProblem>());
-    notset.optimizer_->set_print_level(10);
+    {
+        auto o = notset.optimizer_->options();
+        o.common.print_level = 10;
+        notset.optimizer_->set_options(std::move(o));
+    }
     try {
         notset.jet_run();
         FAIL() << "expected std::invalid_argument";
@@ -1239,7 +1446,11 @@ TEST(NLPSolverJobModeTest, JetRunRefusesNotSetAndDoNothingWithDistinctMessages) 
     }
 
     NLPSolver donothing(std::make_shared<EqOnlyProblem>());
-    donothing.optimizer_->set_print_level(10);
+    {
+        auto o = donothing.optimizer_->options();
+        o.common.print_level = 10;
+        donothing.optimizer_->set_options(std::move(o));
+    }
     donothing.set_jet_job_mode(JetJobModes::DoNothing);
     try {
         donothing.jet_run();
@@ -1251,7 +1462,11 @@ TEST(NLPSolverJobModeTest, JetRunRefusesNotSetAndDoNothingWithDistinctMessages) 
 
 TEST(NLPSolverJobModeTest, RunNlpSolverRefusesDoNothingAndNotSetWithItsOwnMessage) {
     NLPSolver solver(std::make_shared<EqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     const Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     for (JetJobModes mode : {JetJobModes::DoNothing, JetJobModes::NotSet}) {
         try {
@@ -1283,7 +1498,11 @@ TEST(NLPSolverJobModeTest, RunNlpSolverRefusesDoNothingAndNotSetWithItsOwnMessag
 TEST(NLPSolverJobModeTest, JetRunTranscribesExactlyOnceAndReleasesAfterTheMode) {
     auto problem = std::make_shared<TranscriptionCountingProblem>();
     NLPSolver solver(problem);
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.set_jet_job_mode(JetJobModes::Optimize);
     solver.active_variables_ = Eigen::VectorXd::Zero(2);
     problem->watch_ = &solver;
@@ -1309,14 +1528,22 @@ TEST(NLPSolverJobModeTest, JetRunTranscribesExactlyOnceAndReleasesAfterTheMode) 
     EXPECT_EQ(problem->n_bounds_, 2);
     EXPECT_TRUE(solver.do_transcription_);
     EXPECT_EQ(solver.nlp_, nullptr);
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
 
     // The falsifying arm, so the assertion above is not vacuous: the same mode
     // with NO jet_initialize transcribes once too and ends in the same state,
     // and the observation taken during it reads 7 rather than 1.
     auto bare_problem = std::make_shared<TranscriptionCountingProblem>();
     NLPSolver bare(bare_problem);
-    bare.optimizer_->set_print_level(10);
+    {
+        auto o = bare.optimizer_->options();
+        o.common.print_level = 10;
+        bare.optimizer_->set_options(std::move(o));
+    }
     bare_problem->watch_ = &bare;
     bare.set_num_partitions(7);
     ASSERT_EQ(bare.optimize(Eigen::VectorXd::Zero(2)), hven::ConvergenceFlags::CONVERGED);
@@ -1376,9 +1603,17 @@ namespace {
 IpmPhaseRecordingSink run_with_phase_sink(JetJobModes mode, int max_iters,
                                           hven::ConvergenceFlags *flag_out) {
     NLPSolver solver(std::make_shared<EqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     if (max_iters > 0) {
-        solver.optimizer_->set_max_iters(max_iters);
+        {
+            auto o = solver.optimizer_->options();
+            o.max_iters = max_iters;
+            solver.optimizer_->set_options(std::move(o));
+        }
     }
     // run_nlp_solver IS the dispatch point under test, and it is below the
     // lazy-transcription step run() performs, so the program is adopted here.
@@ -1462,8 +1697,12 @@ TEST(NLPSolverModeSemanticsTest, SolveAndOptimizeEachRunExactlyOnePhase) {
 // doors are pinned in test_ipm_stop_reason.cpp.
 TEST(NLPSolverTest, TheIterationCapIsTheRecordedStopReason) {
     NLPSolver solver(std::make_shared<Hs071Problem>());
-    solver.optimizer_->set_print_level(10);
-    solver.optimizer_->set_max_iters(1);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        o.max_iters = 1;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
     const hven::ConvergenceFlags flag = solver.optimize(x0);
@@ -1477,14 +1716,26 @@ TEST(NLPSolverTest, TheIterationCapIsTheRecordedStopReason) {
 // the capped run above does not leave its label behind on the next one.
 TEST(NLPSolverTest, AConvergedSolveRecordsNoStopReason) {
     NLPSolver solver(std::make_shared<Hs071Problem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
-    solver.optimizer_->set_max_iters(1);
+    {
+        auto o = solver.optimizer_->options();
+        o.max_iters = 1;
+        solver.optimizer_->set_options(std::move(o));
+    }
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::NOTCONVERGED);
     ASSERT_EQ(solver.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kIterationCap);
 
-    solver.optimizer_->set_max_iters(200);
+    {
+        auto o = solver.optimizer_->options();
+        o.max_iters = 200;
+        solver.optimizer_->set_options(std::move(o));
+    }
     const hven::ConvergenceFlags flag = solver.optimize(x0);
     ASSERT_EQ(flag, hven::ConvergenceFlags::CONVERGED);
     EXPECT_EQ(solver.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kNone);
@@ -1515,8 +1766,12 @@ TEST(NLPSolverTest, AConvergedSolveRecordsNoStopReason) {
 TEST(NLPSolverTest, AMultiPhaseCapIsLabelledByThePhaseThatHitIt) {
     constexpr int kCap = 10;
     NLPSolver solver(std::make_shared<Hs071Problem>());
-    solver.optimizer_->set_print_level(10);
-    solver.optimizer_->set_max_iters(kCap);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        o.max_iters = kCap;
+        solver.optimizer_->set_options(std::move(o));
+    }
     std::vector<int> phase_terminal;
     solver.optimizer_->set_late_callback([&phase_terminal](const hven::solvers::IterateInfo &info,
                                                            hven::ConstEigenRef<Eigen::VectorXd>,
@@ -1562,8 +1817,12 @@ namespace {
 // return value is discarded and it is handed read-only views.
 int converging_loop_index() {
     NLPSolver pilot(std::make_shared<Hs071Problem>());
-    pilot.optimizer_->set_print_level(10);
-    pilot.optimizer_->set_max_iters(200);
+    {
+        auto o = pilot.optimizer_->options();
+        o.common.print_level = 10;
+        o.max_iters = 200;
+        pilot.optimizer_->set_options(std::move(o));
+    }
     int last = -1;
     pilot.optimizer_->set_late_callback([&last](const hven::solvers::IterateInfo &info,
                                                 ConstEigenRef<Eigen::VectorXd>,
@@ -1587,8 +1846,12 @@ struct CappedRun {
 
 CappedRun run_capped(int cap) {
     NLPSolver solver(std::make_shared<Hs071Problem>());
-    solver.optimizer_->set_print_level(10);
-    solver.optimizer_->set_max_iters(cap);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        o.max_iters = cap;
+        solver.optimizer_->set_options(std::move(o));
+    }
     CappedRun out;
     solver.optimizer_->set_late_callback([&out](const hven::solvers::IterateInfo &info,
                                                 ConstEigenRef<Eigen::VectorXd>,

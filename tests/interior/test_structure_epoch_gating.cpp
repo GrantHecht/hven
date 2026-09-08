@@ -126,7 +126,11 @@ bool epoch_gate_no_location_unset(hven::solvers::NonLinearProgram &nlp) {
 // to happen anyway, and this is the sequence that proves it does.
 TEST(StructureEpochGating, APartitionRenegotiationBetweenSolvesForcesAFreshAnalysis) {
     NLPSolver solver(std::make_shared<EpochGateBoxedProblem>());
-    solver.optimizer_->set_print_level(3);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 3;
+        solver.optimizer_->set_options(std::move(o));
+    }
     const Eigen::VectorXd x0 = epoch_gate_start_point();
 
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
@@ -152,8 +156,8 @@ TEST(StructureEpochGating, APartitionRenegotiationBetweenSolvesForcesAFreshAnaly
     // why reading it alone left the table above standing. The call is
     // idempotent, so asking costs the program nothing.
     EXPECT_FALSE(solver.nlp_->configure_variable_treatment(
-        solver.optimizer_->settings().fixed_variable_treatment_,
-        solver.optimizer_->settings().bound_relax_factor_))
+        solver.optimizer_->options().fixed_variable_treatment,
+        solver.optimizer_->options().bound_relax_factor))
         << "the treatment call cannot see a re-lay it did not perform";
 
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
@@ -176,7 +180,11 @@ TEST(StructureEpochGating, APartitionRenegotiationBetweenSolvesForcesAFreshAnaly
 // bit for bit.
 TEST(StructureEpochGating, ASecondSolveAgainstUnmovedStructuresRunsNoFreshAnalysis) {
     NLPSolver solver(std::make_shared<EpochGateBoxedProblem>());
-    solver.optimizer_->set_print_level(3);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 3;
+        solver.optimizer_->set_options(std::move(o));
+    }
     const Eigen::VectorXd x0 = epoch_gate_start_point();
 
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
@@ -211,7 +219,11 @@ TEST(StructureEpochGating, ASecondSolveAgainstUnmovedStructuresRunsNoFreshAnalys
 // what show that the guard was skipped rather than merely believed skipped.
 TEST(StructureEpochGating, AWholeSolveRunsNoFullKktPatternHash) {
     NLPSolver solver(std::make_shared<EpochGateBoxedProblem>());
-    solver.optimizer_->set_print_level(3);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 3;
+        solver.optimizer_->set_options(std::move(o));
+    }
 
     ASSERT_EQ(solver.optimize(epoch_gate_start_point()), hven::ConvergenceFlags::CONVERGED);
 
@@ -229,7 +241,11 @@ TEST(StructureEpochGating, AWholeSolveRunsNoFullKktPatternHash) {
 // closes that span by re-analyzing.
 TEST(StructureEpochGating, TheEpochStopsVouchingForThePatternAcrossARelay) {
     NLPSolver solver(std::make_shared<EpochGateBoxedProblem>());
-    solver.optimizer_->set_print_level(3);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 3;
+        solver.optimizer_->set_options(std::move(o));
+    }
     const Eigen::VectorXd x0 = epoch_gate_start_point();
 
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
@@ -254,7 +270,11 @@ TEST(StructureEpochGating, TheEpochStopsVouchingForThePatternAcrossARelay) {
 // factorization, for the whole call, and a call that does not keeps the skip.
 TEST(StructureEpochGating, ASolveThatHandsOutTheKktMatrixVerifiesThePatternThroughout) {
     NLPSolver with_callback(std::make_shared<EpochGateBoxedProblem>());
-    with_callback.optimizer_->set_print_level(3);
+    {
+        auto o = with_callback.optimizer_->options();
+        o.common.print_level = 3;
+        with_callback.optimizer_->set_options(std::move(o));
+    }
     int callback_calls = 0;
     with_callback.optimizer_->set_early_callback(
         [&](int, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
@@ -276,7 +296,11 @@ TEST(StructureEpochGating, ASolveThatHandsOutTheKktMatrixVerifiesThePatternThrou
     // The same problem with no callback installed keeps the skip, which is
     // what makes the line the callback and not something the problem did.
     NLPSolver without_callback(std::make_shared<EpochGateBoxedProblem>());
-    without_callback.optimizer_->set_print_level(3);
+    {
+        auto o = without_callback.optimizer_->options();
+        o.common.print_level = 3;
+        without_callback.optimizer_->set_options(std::move(o));
+    }
     ASSERT_EQ(without_callback.optimize(epoch_gate_start_point()),
               hven::ConvergenceFlags::CONVERGED);
     EXPECT_EQ(without_callback.optimizer_->kkt_factor_counters().pattern_verify_count, 0);
@@ -297,7 +321,11 @@ TEST(StructureEpochGating, ASolveThatHandsOutTheKktMatrixVerifiesThePatternThrou
 // installed, is the one that skips again.
 TEST(StructureEpochGating, TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCall) {
     NLPSolver solver(std::make_shared<EpochGateBoxedProblem>());
-    solver.optimizer_->set_print_level(3);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 3;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.optimizer_->set_early_callback(
         [&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
             hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
@@ -330,7 +358,11 @@ TEST(StructureEpochGating, TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCa
 // as it would have if the callback had been armed from the start.
 TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifiesFromThatHandOutOn) {
     NLPSolver solver(std::make_shared<EpochGateBoxedProblem>());
-    solver.optimizer_->set_print_level(3);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 3;
+        solver.optimizer_->set_options(std::move(o));
+    }
 
     bool armed = false;
     int early_callback_calls = 0;
@@ -365,7 +397,11 @@ TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifies
     // matrix out and keeps the skip -- isolating that the late callback's
     // mere presence is not what forces verification.
     NLPSolver late_only(std::make_shared<EpochGateBoxedProblem>());
-    late_only.optimizer_->set_print_level(3);
+    {
+        auto o = late_only.optimizer_->options();
+        o.common.print_level = 3;
+        late_only.optimizer_->set_options(std::move(o));
+    }
     late_only.optimizer_->set_late_callback([](const hven::solvers::IterateInfo &,
                                                hven::ConstEigenRef<Eigen::VectorXd>,
                                                hven::ConstEigenRef<Eigen::VectorXd>) { return 0; });
@@ -395,7 +431,11 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
     constexpr double kScale = 1000.0;
 
     NLPSolver mutating(std::make_shared<EpochGateBoxedProblem>());
-    mutating.optimizer_->set_print_level(3);
+    {
+        auto o = mutating.optimizer_->options();
+        o.common.print_level = 3;
+        mutating.optimizer_->set_options(std::move(o));
+    }
     bool mutating_captured = false;
     Eigen::VectorXd mutating_first_step;
     mutating.optimizer_->set_early_callback(
@@ -435,7 +475,11 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
            "iteration-0-step comparison point exists";
 
     NLPSolver control(std::make_shared<EpochGateBoxedProblem>());
-    control.optimizer_->set_print_level(3);
+    {
+        auto o = control.optimizer_->options();
+        o.common.print_level = 3;
+        control.optimizer_->set_options(std::move(o));
+    }
     bool control_captured = false;
     Eigen::VectorXd control_first_step;
     int control_late_calls = 0;
@@ -594,8 +638,12 @@ TEST(EarlyCallbackViews, TheThreeVectorsAreTheModelsOwnNumbersAtThisIterationsEv
 
     auto problem = std::make_shared<CallbackOracleProblem>();
     NLPSolver solver(problem);
-    solver.optimizer_->set_print_level(10);
-    solver.optimizer_->set_obj_scale(kObjScale);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        o.obj_scale = kObjScale;
+        solver.optimizer_->set_options(std::move(o));
+    }
 
     int early_calls = 0;
     solver.optimizer_->set_early_callback([&](int iteration, double obj_scale,
@@ -649,7 +697,11 @@ TEST(EarlyCallbackViews, TheThreeVectorsAreTheModelsOwnNumbersAtThisIterationsEv
 TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
     auto problem = std::make_shared<CallbackOracleProblem>();
     NLPSolver solver(problem);
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
 
     std::vector<Eigen::VectorXd> early_xsl, late_xsl;
     solver.optimizer_->set_early_callback([&](int, double, hven::ConstEigenRef<Eigen::VectorXd> xsl,

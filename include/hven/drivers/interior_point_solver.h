@@ -30,6 +30,8 @@
 #include "hven/detail/interior/kkt_factorization.h"
 #include "hven/detail/interior/kkt_vector.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
+#include "hven/drivers/common_options.h"
+#include "hven/drivers/ipm_solver_types.h"
 #include "hven/drivers/solve_status.h"
 #include "hven/model/non_linear_program.h"
 #include "hven/warmstart/warm_start_data.h"
@@ -107,345 +109,28 @@ class TraceSink;
 /// feasibility-restoration mode switches.
 class InteriorPointSolver {
   public:
-    /// Barrier-mode selector (Settings::opt_bar_mode_/soe_bar_mode_; parsed by
-    /// strto_BarrierMode from "PROBE"/"LOQO").
-    enum class BarrierModes { PROBE, LOQO };
-    /// Line-search-mode selector (Settings::opt_ls_mode_/soe_ls_mode_; parsed
-    /// by strto_LineSearchMode from "AUGLANG", "LANG", "L1", "NOLS").
-    enum class LineSearchModes { AUGLANG, LANG, L1, NOLS };
-    /// @brief Algorithm mode of one solve phase.
-    enum class AlgorithmModes { OPT, OPTNO, SOE, INIT };
+    // --- Mode enums (declared at namespace scope in drivers/ipm_solver_types.h) ---
+    // These eight were NESTED here until M6 W5 T8.3 moved them out beside
+    // IpmOptions, so a caller can name an option's value without including the
+    // solver. The aliases keep every InteriorPointSolver::<Enum> spelling in the
+    // tree naming the same type it always did. The four strto_*() parsers that
+    // sat here went with the string-taking setters: a caller builds an
+    // IpmOptions value and names the enumerator.
+    using BarrierModes = hven::solvers::BarrierModes;
+    using LineSearchModes = hven::solvers::LineSearchModes;
+    using AlgorithmModes = hven::solvers::AlgorithmModes;
+    using QPAlgModes = hven::solvers::QPAlgModes;
+    using QPOrderingModes = hven::solvers::QPOrderingModes;
+    using BestCriteriaModes = hven::solvers::BestCriteriaModes;
+    using QPPivotModes = hven::solvers::QPPivotModes;
+    using PDStepStrategies = hven::solvers::PDStepStrategies;
 
-    /// @brief QP factorization algorithm variant.
-    enum class QPAlgModes {
-        Classic = 0,
-        TwoLevel = 1,
-    };
-
-    /// QP fill-reducing ordering (parsed by strto_OrderingMode from "MINDEG",
-    /// "METIS", "PARMETIS"; alias "MTMETIS" maps to PARMETIS).
-    enum class QPOrderingModes { MINDEG = 0, METIS = 2, PARMETIS = 3 };
-    /// Criterion used to score iterates when return_best_ is on (parsed by
-    /// strto_BestCriteriaMode from "ECons"/"ECon", "ICons"/"ICon", "KKT",
-    /// "Obj"/"Prim Obj").
-    enum class BestCriteriaModes { ECONS, ICONS, KKT, OBJ };
-
-    /// @brief QP pivot strategy code passed through to the sparse backend.
-    enum class QPPivotModes {
-        OneByOne = 0,
-        TwoByTwo = 1,
-        E4 = 4,
-        E6 = 6,
-        E8 = 8,
-        E13 = 13,
-    };
-    /// @brief Primal-dual step computation strategy for the QP subproblem.
-    enum class PDStepStrategies { PrimSlackEq_Iq, AllMinimum, PrimSlack_EqIq, MaxEq };
-
-    // --- Static string-to-enum converters (defined in interior_point_solver.cpp) ---
-    /// Parses a QP ordering name ("MINDEG", "METIS", "PARMETIS"/"MTMETIS").
-    /// @throws std::invalid_argument on any other spelling.
-    static QPOrderingModes strto_OrderingMode(const std::string &str);
-    /// Parses a line-search name ("AUGLANG", "LANG", "L1", "NOLS").
-    /// @throws std::invalid_argument on any other spelling.
-    static LineSearchModes strto_LineSearchMode(const std::string &str);
-    /// Parses a barrier-mode name ("PROBE", "LOQO").
-    /// @throws std::invalid_argument on any other spelling.
-    static BarrierModes strto_BarrierMode(const std::string &str);
-    /// Parses a best-criteria name ("ECons"/"ECon", "ICons"/"ICon", "KKT",
-    /// "Obj"/"Prim Obj").
-    /// @throws std::invalid_argument on any other spelling.
-    static BestCriteriaModes strto_BestCriteriaMode(const std::string &str);
-
-    /// @brief Every user-configurable solver parameter, grouped in one place.
-    ///
-    /// Each field is writable directly through settings() or through the
-    /// matching validated set_*() method; validate() re-checks the whole struct
-    /// at run_phase_sequence() entry either way.
-    struct Settings {
-        // --- Iteration limits ---
-        /// @brief Main iteration cap per phase. Default 500.
-        int max_iters_ = 500;
-        /// @brief Classic backtracking ladder cap per rejected trial. Default 2.
-        int max_ls_iters_ = 2;
-        /// Number of consecutive trailing iterates that must ALL sit inside the
-        /// acceptable tolerances before converge_check() reports
-        /// ConvergenceFlags::ACCEPTABLE. Raising it makes ACCEPTABLE harder to
-        /// reach, not easier. Default 50. Must be > 0.
-        int max_acc_iters_ = 50;
-        /// @brief Refactorization attempt cap. Default 15.
-        int max_refac_ = 15;
-        /// Maximum second-order corrections attempted after a first-trial
-        /// rejection (Wächter & Biegler 2006, §2.4). Default 0 = off: the
-        /// solver behaves exactly as it does without SOC. Set > 0 to opt in;
-        /// the recommended enable value is 4 (kSocRecommendedMaxCorrections
-        /// in globalization/soc.h).
-        int max_soc_ = 0;
-
-        /// Extended backtracking cap: further trials continuing the SAME
-        /// classic ladder (same direction, same alpha_red_ divisor, same merit
-        /// test) once the classic capped backtrack rejects and SOC (if
-        /// enabled) is exhausted or not triggered. Default 0 = off: the solver
-        /// behaves exactly as it does without extended backtracking. This cap
-        /// extends the classic cap (max_ls_iters_) ONLY when the recovery
-        /// dispatch is active on a rejected step — max_ls_iters_ itself is
-        /// unaffected. See ExtendedBacktrackRecovery, globalization/watchdog.h.
-        int ls_extended_iters_ = 0;
-
-        /// Watchdog (Chamberlain, Powell, Lemaréchal & Pedersen 1982;
-        /// constants per Wächter & Biegler 2006's implementation — see
-        /// globalization/watchdog.h): arms after kWatchdogShortenedIterTrigger
-        /// consecutive fully-rejected iterations, then accepts up to
-        /// kWatchdogTrialIterMax trial iterations under relaxed acceptance
-        /// before reverting to the pre-watchdog snapshot. Default false =
-        /// off: the solver behaves exactly as it does without the watchdog.
-        bool watchdog_ = false;
-
-        /// Per-phase feasibility-restoration entry budget: the maximum number
-        /// of times restoration mode may be entered within a single phase. 0
-        /// refuses restoration entirely; ignored when restoration_mode_ == off.
-        /// validate() requires >= 0. Default 2.
-        int max_feas_rest_ = 2;
-
-        // --- Convergence tolerances ---
-        /// @brief KKT stationarity convergence tolerance. Default 1e-6.
-        double kkt_tol_ = 1.0e-6;
-        /// @brief Equality-constraint feasibility convergence tolerance. Default 1e-6.
-        double econ_tol_ = 1.0e-6;
-        /// @brief Inequality-constraint feasibility convergence tolerance. Default 1e-6.
-        double icon_tol_ = 1.0e-6;
-        /// @brief Barrier (complementarity) convergence tolerance. Default 1e-6.
-        double bar_tol_ = 1.0e-6;
-
-        // --- Acceptable tolerances ---
-        /// @brief Acceptable-level KKT tolerance. Default 1e-2.
-        double acc_kkt_tol_ = 1.0e-2;
-        /// @brief Acceptable-level equality-constraint tolerance. Default 1e-3.
-        double acc_econ_tol_ = 1.0e-3;
-        /// @brief Acceptable-level inequality-constraint tolerance. Default 1e-3.
-        double acc_icon_tol_ = 1.0e-3;
-        /// @brief Acceptable-level barrier tolerance. Default 1e-3.
-        double acc_bar_tol_ = 1.0e-3;
-
-        // --- Divergence tolerances ---
-        /// @brief Divergence threshold on the KKT measure. Default 1e15.
-        double div_kkt_tol_ = 1.0e15;
-        /// @brief Divergence threshold on equality feasibility. Default 1e15.
-        double div_econ_tol_ = 1.0e15;
-        /// @brief Divergence threshold on inequality feasibility. Default 1e15.
-        double div_icon_tol_ = 1.0e15;
-        /// @brief Divergence threshold on the barrier measure. Default 1e15.
-        double div_bar_tol_ = 1.0e15;
-
-        // --- Algorithm modes ---
-        /// @brief Phase algorithm mode. Default SOE.
-        AlgorithmModes soe_mode_ = AlgorithmModes::SOE;
-        /// @brief OPT-phase barrier mode. Default LOQO.
-        BarrierModes opt_bar_mode_ = BarrierModes::LOQO;
-        /// @brief SOE-phase barrier mode. Default LOQO.
-        BarrierModes soe_bar_mode_ = BarrierModes::LOQO;
-        /// @brief OPT-phase line-search mode. Default AUGLANG.
-        LineSearchModes opt_ls_mode_ = LineSearchModes::AUGLANG;
-        /// @brief SOE-phase line-search mode. Default NOLS.
-        LineSearchModes soe_ls_mode_ = LineSearchModes::NOLS;
-        /// Primal-dual step strategy for the QP subproblem.
-        /// Default PrimSlackEq_Iq.
-        PDStepStrategies pd_step_strategy_ = PDStepStrategies::PrimSlackEq_Iq;
-
-        // --- Step-acceptance strategy (opt-in modernized merit) ---
-        /// classic_merit (the default) is the fused backtracking merit line
-        /// search; merit selects the modernized merit family, whose penalty rule
-        /// is merit_penalty_rule_ (read only under merit). Both enums live in
-        /// interior_point_solver_fwd.h.
-        AcceptanceStrategies acceptance_strategy_ = AcceptanceStrategies::classic_merit;
-        /// Merit penalty rule for the generic merit family; only read when
-        /// acceptance_strategy_ == merit. Default wmno.
-        MeritPenaltyRules merit_penalty_rule_ = MeritPenaltyRules::wmno;
-
-        // --- Barrier-parameter governor (opt-in monitored free<->monotone) ---
-        /// classic_adaptive (the default) is the PROBE/LOQO free-mode barrier
-        /// update; monitored selects the free<->monotone governor, which composes
-        /// a classic_adaptive delegate and so pairs with any acceptance_strategy_.
-        /// validate() rejects funnel or filter over classic_adaptive unless
-        /// never_monotone_ is set. Enum in interior_point_solver_fwd.h.
-        BarrierGovernors barrier_governor_ = BarrierGovernors::classic_adaptive;
-
-        /// Expert escape hatch mirroring Ipopt's never-monotone-mode: explicitly
-        /// accepts running funnel/filter above the classic_adaptive (free-only)
-        /// barrier governor without its monotone safeguard. Default false.
-        /// Contradictory when combined with barrier_governor_ == monitored (the
-        /// monitored governor already provides the monotone fallback) —
-        /// validate() rejects that combination.
-        bool never_monotone_ = false;
-
-        /// off (the default) constructs no RestorationStrategy at all, and every
-        /// restoration branch in the solver is then dead. proximal_switch swaps
-        /// the true objective for a proximal term on a ladder-exhausted rejection
-        /// at a not-near-feasible point, until infeasibility is sufficiently
-        /// reduced. l1_nested instead runs an l1 elastic reformulation as a
-        /// condensed in-place phase reusing the outer KKT system. Both compose
-        /// with every acceptance_strategy_ and barrier_governor_ and share the
-        /// max_feas_rest_ entry budget. Enum in interior_point_solver_fwd.h.
-        RestorationModes restoration_mode_ = RestorationModes::off;
-
-        // --- Barrier parameters ---
-        /// @brief Initial barrier parameter. Default 1e-3.
-        double init_mu_ = 0.001;
-        /// @brief Maximum barrier parameter. Default 100.
-        double max_mu_ = 100.0;
-        /// @brief Minimum barrier parameter. Default 1e-12.
-        double min_mu_ = 1.0e-12;
-
-        // --- Step parameters ---
-        /// @brief Fraction-to-boundary factor. Default 0.99.
-        double bound_fraction_ = 0.99;
-        /// Absolute component of the interior push applied to a bounded primal
-        /// variable at solve entry: the push away from a bound is
-        /// bound_push_ * max(1, |bound|), before the two-sided cap below
-        /// (Ipopt's bound_push). It is also the floor on the initial slack the
-        /// INIT multiplier pass hands an inequality row: that slack is
-        /// max(-c_i(x), bound_push_). Must be > 0. Default 1e-3.
-        double bound_push_ = 1.0e-3;
-        /// Relative component of that same push, applied only to a TWO-SIDED
-        /// variable: the push is additionally capped at
-        /// bound_interval_push_ * (upper - lower), so a narrow interval is never
-        /// pushed past its own midpoint (Ipopt's bound_frac, same default).
-        /// Read only when the problem declares native variable bounds.
-        /// Must lie in the open interval (0, 0.5), so the lower and upper
-        /// projections of one variable cannot cross. Default 1e-2.
-        double bound_interval_push_ = 1.0e-2;
-        /// @brief Reset threshold for negative slack values. Default 1e-12.
-        double neg_slack_reset_ = 1.0e-12;
-        /// @brief Backtracking step reduction divisor. Default 2.0.
-        double alpha_red_ = 2.0;
-
-        /// How a primal variable whose declared lower and upper bounds are equal
-        /// is handed to the solver. MakeParameter (the default) eliminates it, so
-        /// the factorized system is one row and column narrower per fixed
-        /// variable; MakeConstraint keeps it and appends one internal equality row
-        /// per fixed variable after every declared row, so the system is wider;
-        /// RelaxBounds keeps it two-sided with its bounds pushed apart by
-        /// bound_relax_factor_. All three reach the same solution on a well-posed
-        /// problem. Closed-set enum, declared in non_linear_program.h.
-        FixedVariableTreatments fixed_variable_treatment_ = FixedVariableTreatments::MakeParameter;
-
-        /// Widening applied to every finite variable bound before the
-        /// classifier records it: the bound is moved outward by this factor
-        /// times max(1, |bound|), so the box the barrier terms divide by is
-        /// never exactly the declared one (Ipopt's bound_relax_factor, same
-        /// default). Also what separates the bounds of a fixed variable under
-        /// the relax_bounds treatment, which therefore requires it positive.
-        /// Zero records every declared bound verbatim.
-        ///
-        /// Both this and fixed_variable_treatment_ are read once per solve, at
-        /// the NLP's classification pass; changing either between two solves on
-        /// one solver re-classifies.
-        double bound_relax_factor_ = kDefaultBoundRelaxFactor;
-
-        // --- Hessian perturbation ---
-        /// @brief Initial Hessian perturbation delta. Default 1e-5.
-        double delta_h_ = 1.0e-5;
-        /// @brief Perturbation growth multiplier. Default 8.0.
-        double incr_h_ = 8.0;
-        /// @brief Perturbation decay multiplier. Default 0.333333.
-        double decr_h_ = 0.333333;
-
-        /// KKT inertia-correction mode. classic (the default) runs the on-demand
-        /// inertia ladder under the full inertia condition and engages the dual
-        /// shift -delta_c at most once per phase (then latched); an exhausted
-        /// ladder fails the step. proximal_regularization bakes a decaying primal
-        /// base shift rho_k and an always-on barrier-scaled -delta_c into the base
-        /// matrix each iteration, with the same ladder escalating on top; delta_c
-        /// is suppressed while a nested l1 restoration phase is active. Closed-set
-        /// enum, declared in interior_point_solver_fwd.h.
-        InertiaModes inertia_mode_ = InertiaModes::classic;
-
-        // --- QP solver ---
-        /// @brief QP thread count. Default HVEN_DEFAULT_QP_THREADS.
-        int qp_threads_ = HVEN_DEFAULT_QP_THREADS;
-        /// @brief QP factorization algorithm variant. Default Classic.
-        QPAlgModes qp_alg_ = QPAlgModes::Classic;
-        /// @brief QP fill-reducing ordering. Default METIS.
-        QPOrderingModes qp_ord_ = QPOrderingModes::METIS;
-        /// @brief QP pivot strategy. Default TwoByTwo.
-        QPPivotModes qp_pivot_strategy_ = QPPivotModes::TwoByTwo;
-        /// @brief MKL Pardiso weighted matching (iparm[12]) flag, 0/1. ON by default.
-        int qp_matching_ = 1;
-        /// MKL Pardiso MPS scaling (iparm[10]) flag, 0/1. OFF by default: it
-        /// helps on some problem classes and deterministically degrades
-        /// convergence on others.
-        /// @see docs/notes/2026-09-header-prose-archive.md §interior_point_solver.h
-        int qp_scaling_ = 0;
-        /// @brief Pivot perturbation level handed to the backend. Default 8.
-        int qp_pivot_perturb_ = 8;
-        /// @brief Iterative-refinement steps handed to the backend. Default 0.
-        int qp_ref_steps_ = 0;
-        /// @brief Parallel-solve flag handed to the backend. Default 0.
-        int qp_par_solve_ = 0;
-        /// @brief Backend-side QP printout toggle. Default false.
-        bool qp_print_ = false;
-#ifdef USE_ACCELERATE_SPARSE
-        /// @brief Apple Accelerate sparse pivot tolerance. Default 0.01.
-        double accel_pivot_tolerance_ = 0.01;
-        /// Apple Accelerate sparse zero (drop) tolerance.
-        /// Default 1e-4 * epsilon.
-        double accel_zero_tolerance_ = 1e-4 * std::numeric_limits<double>::epsilon();
-#endif
-
-        // --- Objective ---
-        /// @brief Objective scale factor applied at evaluation. Default 1.0.
-        ///        Finite and strictly positive; see set_obj_scale().
-        double obj_scale_ = 1.0;
-
-        // --- Output/behavior ---
-        /// Output verbosity. Default 0:
-        ///   0 — full output (stats + iteration table + exit + timing)
-        ///   1 — no iteration table (phase banners + timing summary)
-        ///   2 — exit status and warnings only
-        ///   3+ — fully silent
-        int print_level_ = 0;
-        /// @brief Wide console layout for tables. Default false.
-        bool wide_console_ = false;
-        /// Conditional Numerical Reproducibility mode. When true the sparse
-        /// backend is pinned to qp_threads_ CNR threads (opts.cnr_threads),
-        /// which makes the factorization bit-reproducible across thread counts;
-        /// false leaves cnr_threads at 0 (off). Read once, at set_qp_params()
-        /// transcribe time -- a later qp_threads_ change does not move it (see
-        /// the refresh-cadence note on KktFactorization::set_num_threads).
-        /// Default false.
-        bool cnr_mode_ = false;
-        /// Zero-perturbation-attempt cycling heuristic. When true, past
-        /// iteration 6 and on 3 of every 4 iterations, the unperturbed
-        /// factorization attempt is skipped if the last four iterations all
-        /// needed Hessian perturbation -- saving a factorization known to fail
-        /// on a persistently near-singular problem, while the remaining 1 in 4
-        /// iterations re-probes for recovered inertia. Default true.
-        bool fast_factor_alg_ = true;
-        /// Force a fresh symbolic sparsity analysis on every solve. The
-        /// analysis normally runs once per solver instance and is latched
-        /// (claim_kkt_analysis()); this defeats that latch. Numeric
-        /// refactorizations are unaffected -- they never consult this field.
-        /// Default false.
-        bool force_qp_analysis_ = false;
-        /// Return the best-scoring iterate seen instead of the last (scored
-        /// under best_criteria_). Default false.
-        bool return_best_ = false;
-        /// @brief Scoring criterion for the return_best_ path. Default ECONS.
-        BestCriteriaModes best_criteria_ = BestCriteriaModes::ECONS;
-
-        /// Validate all settings, throwing std::invalid_argument on the first
-        /// violation. Checks per-field conditions (matching the individual
-        /// set_*() methods), the cross-field ordering invariants (min_mu <=
-        /// init_mu <= max_mu, convergence tols <= their respective acceptable
-        /// tols <= their respective divergence tols), and two combination
-        /// guards: acceptance_strategy_ funnel or filter with
-        /// barrier_governor_ == classic_adaptive and !never_monotone_, and
-        /// never_monotone_ with barrier_governor_ == monitored.
-        ///
-        /// @throws std::invalid_argument naming the first violated setting or
-        /// the rejected combination.
-        void validate() const;
-    };
+    // The options struct that used to live here as InteriorPointSolver::Settings
+    // is now hven::solvers::IpmOptions in drivers/ipm_solver_types.h: the same
+    // 65 knobs in the same order, trailing underscores gone, with qp_threads_
+    // and print_level_ moved into CommonOptions and reached as
+    // options().common.threads / options().common.print_level. Read it through
+    // options(), replace it through set_options().
 
     /// @brief Accumulated outputs of the most recent solve/optimize call.
     ///
@@ -747,9 +432,11 @@ class InteriorPointSolver {
     // unique_ptr members with incomplete element types force even the
     // constructors' exception-cleanup paths to see the complete types.
 
-    /// @brief Constructs a solver with default settings and no program
-    ///        attached; set_nlp() must run before any entry point.
-    InteriorPointSolver();
+    /// @brief Constructs a solver over `opts` with no program attached;
+    ///        set_nlp() must run before any entry point.
+    /// @param opts The options; validated here, exactly as set_options() would.
+    /// @throws std::invalid_argument if validate(opts) rejects the value.
+    explicit InteriorPointSolver(IpmOptions opts = {});
     /// @brief Constructs a solver over `np` and runs QP parameter setup, as
     ///        set_nlp() does.
     /// @param np The program to solve.
@@ -770,12 +457,37 @@ class InteriorPointSolver {
     InteriorPointSolver &operator=(InteriorPointSolver &&) = delete;
 
     // --- Accessors ---
-    /// Returns a mutable reference to the settings struct. Direct writes bypass
-    /// per-field validation in the set_*() methods. All settings are re-validated
-    /// at run_phase_sequence() entry via Settings::validate().
-    Settings &settings() { return settings_; }
-    /// @brief Returns the settings struct.
-    const Settings &settings() const { return settings_; }
+    /// @brief Returns the options this solver runs under.
+    ///
+    /// The value is READ-ONLY: there is no mutable accessor and no per-field
+    /// setter. Copy it, edit the copy, hand it back through set_options() --
+    /// which validates the whole value and either takes all of it or none.
+    const IpmOptions &options() const noexcept { return opts_; }
+
+    /// @brief Replaces the whole options value.
+    ///
+    /// TRANSACTIONAL: validate(o) runs first, and a throw there leaves the
+    /// previous options in force and the solver usable. Legal BETWEEN solves
+    /// only.
+    ///
+    /// TRANSCRIPTION-TIME FIELDS. Most fields are read inside the solve, so a
+    /// replacement between two solves simply takes effect on the next one. Two
+    /// are not: fixed_variable_treatment and bound_relax_factor are consumed
+    /// when the program is TRANSCRIBED (set_nlp() -> configure_variable_treatment(),
+    /// which decides the solver's variable space), and cnr_mode is consumed at
+    /// set_qp_params() time. Changing any of the three after the program has
+    /// been attached is REFUSED by name rather than silently ignored: re-attach
+    /// the program (set_nlp()) after the replacement, or build the solver with
+    /// the options you want. The refusal is the ONE rule -- this method never
+    /// silently re-transcribes behind the caller.
+    ///
+    /// @param o The replacement options.
+    /// @throws std::invalid_argument if validate(o) rejects the value, or if a
+    ///         transcription-time field differs from the one in force while a
+    ///         program is attached.
+    /// @throws std::logic_error if a solve is in flight (a replacement from
+    ///         inside a callback).
+    void set_options(IpmOptions o);
     /// @brief Returns the accumulated outputs of the most recent solve/optimize call.
     const SolveResult &result() const { return result_; }
 
@@ -865,340 +577,18 @@ class InteriorPointSolver {
     /// ConvergenceFlags::CONVERGED.
     Eigen::VectorXd solve_optimize_solve(const Eigen::VectorXd &x);
 
-    // --- Validated setter methods (defined in interior_point_solver.cpp) ---
-    // Each writes one Settings field after checking it; the same check runs
-    // again over the whole struct at run_phase_sequence() entry, so a field
-    // written through settings() rather than through a setter is caught there.
+    // The ~50 validated set_*() methods that lived here, the four static
+    // strto_*() parsers above them and the six string-taking setter overloads
+    // among them were REMOVED in M6 W5 T8.3. Their replacement is one value:
+    // read options(), write the fields, hand it back through set_options(),
+    // which runs the same checks over the whole struct. The setter -> field
+    // table for every removed method is in
+    // docs/notes/2026-09-m6-w5-migration-guide.md.
 
-    /// @brief Sets Settings::max_iters_, the main iteration cap per phase.
-    /// @param max_iters Iteration count.
-    /// @throws std::invalid_argument if max_iters < 1.
-    void set_max_iters(int max_iters);
-    /// @brief Sets Settings::max_acc_iters_, the consecutive-acceptable-iterate
-    ///        run length ACCEPTABLE requires.
-    /// @param max_acc_iters Iterate count.
-    /// @throws std::invalid_argument if max_acc_iters < 1.
-    void set_max_acc_iters(int max_acc_iters);
-    /// @brief Sets Settings::max_ls_iters_, the classic backtracking ladder cap
-    ///        per rejected trial.
-    /// @param max_ls_iters Backtracking step count; 0 disables backtracking.
-    /// @throws std::invalid_argument if max_ls_iters < 0.
-    void set_max_ls_iters(int max_ls_iters);
-    /// @brief Sets max_iters_ and max_acc_iters_ in one call.
-    /// @param m1 Main iteration cap.
-    /// @param m2 Consecutive-acceptable-iterate run length.
-    /// @throws std::invalid_argument if m1 < 1 or m2 < 1.
-    void set_all_max_iters(int m1, int m2);
-    /// @brief Sets Settings::max_soc_, the second-order-correction cap per
-    ///        rejected first trial.
-    /// @param max_soc Correction count; 0 (the default) turns SOC off.
-    /// @throws std::invalid_argument if max_soc < 0.
-    void set_max_soc(int max_soc);
-    /// @brief Sets Settings::ls_extended_iters_, the extended-backtracking
-    ///        allowance beyond the classic ladder.
-    /// @param ls_extended_iters Extra backtracking step count; 0 = off.
-    /// @throws std::invalid_argument if ls_extended_iters < 0.
-    void set_ls_extended_iters(int ls_extended_iters);
-    /// @brief Sets Settings::max_feas_rest_, the number of times restoration
-    ///        mode may be entered within a single phase.
-    /// @param max_feas_rest Entry budget; 0 refuses restoration entirely.
-    ///        Ignored when restoration_mode_ == off.
-    /// @throws std::invalid_argument if max_feas_rest < 0.
-    void set_max_feas_rest(int max_feas_rest);
-
-    /// @brief Sets Settings::kkt_tol_, the KKT-residual convergence tolerance.
-    /// @param kkt_tol Residual tolerance in the residual's own units.
-    /// @throws std::invalid_argument if kkt_tol is not finite, or kkt_tol <= 0.
-    void set_kkt_tol(double kkt_tol);
-    /// @brief Sets Settings::bar_tol_, the barrier-complementarity convergence
-    ///        tolerance.
-    /// @param bar_tol Complementarity tolerance.
-    /// @throws std::invalid_argument if bar_tol is not finite, or bar_tol <= 0.
-    void set_bar_tol(double bar_tol);
-    /// @brief Sets Settings::econ_tol_, the equality-constraint convergence
-    ///        tolerance.
-    /// @param econ_tol Constraint-violation tolerance.
-    /// @throws std::invalid_argument if econ_tol is not finite, or econ_tol <= 0.
-    void set_econ_tol(double econ_tol);
-    /// @brief Sets Settings::icon_tol_, the inequality-constraint convergence
-    ///        tolerance.
-    /// @param icon_tol Constraint-violation tolerance.
-    /// @throws std::invalid_argument if icon_tol is not finite, or icon_tol <= 0.
-    void set_icon_tol(double icon_tol);
-    /// @brief Sets all four convergence tolerances in one call.
-    /// @param kkt_tol  KKT-residual tolerance.
-    /// @param econ_tol Equality-constraint tolerance.
-    /// @param icon_tol Inequality-constraint tolerance.
-    /// @param bar_tol  Barrier-complementarity tolerance.
-    /// @throws std::invalid_argument if any argument is not finite or is <= 0.
-    void set_tols(double kkt_tol, double econ_tol, double icon_tol, double bar_tol);
-
-    /// @brief Sets Settings::acc_kkt_tol_, the KKT-residual tolerance of the
-    ///        ACCEPTABLE tier.
-    /// @param acc_kkt_tol Residual tolerance; normally looser than kkt_tol_.
-    /// @throws std::invalid_argument if acc_kkt_tol is not finite, or is <= 0.
-    void set_acc_kkt_tol(double acc_kkt_tol);
-    /// @brief Sets Settings::acc_bar_tol_, the barrier-complementarity tolerance
-    ///        of the ACCEPTABLE tier.
-    /// @param acc_bar_tol Complementarity tolerance.
-    /// @throws std::invalid_argument if acc_bar_tol is not finite, or is <= 0.
-    void set_acc_bar_tol(double acc_bar_tol);
-    /// @brief Sets Settings::acc_econ_tol_, the equality-constraint tolerance of
-    ///        the ACCEPTABLE tier.
-    /// @param acc_econ_tol Constraint-violation tolerance.
-    /// @throws std::invalid_argument if acc_econ_tol is not finite, or is <= 0.
-    void set_acc_econ_tol(double acc_econ_tol);
-    /// @brief Sets Settings::acc_icon_tol_, the inequality-constraint tolerance
-    ///        of the ACCEPTABLE tier.
-    /// @param acc_icon_tol Constraint-violation tolerance.
-    /// @throws std::invalid_argument if acc_icon_tol is not finite, or is <= 0.
-    void set_acc_icon_tol(double acc_icon_tol);
-    /// @brief Sets all four ACCEPTABLE-tier tolerances in one call.
-    /// @param acc_kkt_tol  KKT-residual tolerance.
-    /// @param acc_econ_tol Equality-constraint tolerance.
-    /// @param acc_icon_tol Inequality-constraint tolerance.
-    /// @param acc_bar_tol  Barrier-complementarity tolerance.
-    /// @throws std::invalid_argument if any argument is not finite or is <= 0.
-    void set_acc_tols(double acc_kkt_tol, double acc_econ_tol, double acc_icon_tol,
-                      double acc_bar_tol);
-
-    /// @brief Sets Settings::div_kkt_tol_, the KKT-residual divergence
-    ///        threshold.
-    /// @param div_kkt_tol Residual threshold; above it the solve is diverging.
-    /// @throws std::invalid_argument if div_kkt_tol is not finite, or is <= 0.
-    void set_div_kkt_tol(double div_kkt_tol);
-    /// @brief Sets Settings::div_bar_tol_, the barrier-complementarity
-    ///        divergence threshold.
-    /// @param div_bar_tol Complementarity threshold.
-    /// @throws std::invalid_argument if div_bar_tol is not finite, or is <= 0.
-    void set_div_bar_tol(double div_bar_tol);
-    /// @brief Sets Settings::div_econ_tol_, the equality-constraint divergence
-    ///        threshold.
-    /// @param div_econ_tol Constraint-violation threshold.
-    /// @throws std::invalid_argument if div_econ_tol is not finite, or is <= 0.
-    void set_div_econ_tol(double div_econ_tol);
-    /// @brief Sets Settings::div_icon_tol_, the inequality-constraint divergence
-    ///        threshold.
-    /// @param div_icon_tol Constraint-violation threshold.
-    /// @throws std::invalid_argument if div_icon_tol is not finite, or is <= 0.
-    void set_div_icon_tol(double div_icon_tol);
-    /// @brief Sets all four divergence thresholds in one call.
-    /// @param div_kkt_tol  KKT-residual threshold.
-    /// @param div_econ_tol Equality-constraint threshold.
-    /// @param div_icon_tol Inequality-constraint threshold.
-    /// @param div_bar_tol  Barrier-complementarity threshold.
-    /// @throws std::invalid_argument if any argument is not finite or is <= 0.
-    void set_div_tols(double div_kkt_tol, double div_econ_tol, double div_icon_tol,
-                      double div_bar_tol);
-
-    /// @brief Sets Settings::bound_fraction_, the fraction-to-boundary factor.
-    /// @param bound_fraction Dimensionless fraction, in the open interval (0, 1).
-    /// @throws std::invalid_argument unless 0 < bound_fraction < 1; a NaN fails
-    ///         that test and is rejected.
-    void set_bound_fraction(double bound_fraction);
-    /// @brief Sets Settings::bound_push_, the absolute interior-push component.
-    /// @param bound_push Dimensionless coefficient; must be positive.
-    /// @throws std::invalid_argument unless bound_push is finite and > 0; a
-    ///         NaN or +inf fails that test and is rejected.
-    void set_bound_push(double bound_push);
-    /// @brief Sets Settings::bound_interval_push_, the relative (two-sided)
-    ///        interior-push component.
-    /// @param bound_interval_push Fraction of the bound interval, in (0, 0.5).
-    /// @throws std::invalid_argument unless 0 < bound_interval_push < 0.5; a NaN
-    ///         fails that test and is rejected.
-    void set_bound_interval_push(double bound_interval_push);
-    /// @brief Sets Settings::bound_relax_factor_, the relaxation applied to
-    ///        declared variable bounds.
-    /// @param bound_relax_factor Dimensionless factor, in
-    ///        [0, hven::kMaxBoundRelaxFactor] (non_linear_program.h; 1e-2).
-    /// @throws std::invalid_argument unless
-    ///         0 <= bound_relax_factor <= hven::kMaxBoundRelaxFactor; a NaN fails that
-    ///         test and is rejected.
-    void set_bound_relax_factor(double bound_relax_factor);
-    /// @brief Sets Settings::fixed_variable_treatment_, how a variable whose
-    ///        lower and upper bounds coincide is handed to the solver.
-    /// @param treatment MakeParameter, MakeConstraint or RelaxBounds.
-    /// @throws std::invalid_argument if treatment is none of those three.
-    void set_fixed_variable_treatment(FixedVariableTreatments treatment);
-    /// @brief Sets Settings::alpha_red_, the backtracking step-reduction divisor.
-    /// @param ared Divisor; must exceed 1 for the step to actually shrink.
-    /// @throws std::invalid_argument unless ared is finite and > 1; a NaN or
-    ///         +inf fails that test and is rejected -- +inf would collapse
-    ///         backtracking to a single all-or-nothing trial (alpha / inf ==
-    ///         0 after the first rejection).
-    void set_alpha_red(double ared);
-
-    /// @brief Sets Settings::delta_h_, the first Hessian-perturbation magnitude.
-    /// @param delta_h Perturbation added to the Hessian diagonal; must be positive.
-    /// @throws std::invalid_argument unless delta_h is finite and > 0; a NaN
-    ///         or +inf fails that test and is rejected -- +inf would put an
-    ///         infinite entry on the KKT diagonal on the first perturbation.
-    void set_delta_h(double delta_h);
-    /// @brief Sets Settings::incr_h_, the Hessian-perturbation growth factor.
-    /// @param incr_h Multiplier applied on each further perturbation; must
-    ///        exceed 1.
-    /// @throws std::invalid_argument unless incr_h is finite and > 1; a NaN or
-    ///         +inf fails that test and is rejected -- +inf would put an
-    ///         infinite entry on the KKT diagonal on the first growth step.
-    void set_incr_h(double incr_h);
-    /// @brief Sets Settings::decr_h_, the Hessian-perturbation decay factor.
-    /// @param decr_h Multiplier applied when the perturbation is relaxed, in the
-    ///        open interval (0, 1).
-    /// @throws std::invalid_argument unless 0 < decr_h < 1; a NaN fails that
-    ///         test and is rejected.
-    void set_decr_h(double decr_h);
-    /// @brief Sets all three Hessian-perturbation parameters in one call.
-    /// @param delta_h First perturbation magnitude.
-    /// @param incr_h  Growth factor.
-    /// @param decr_h  Decay factor.
-    /// @throws std::invalid_argument unless delta_h is finite and > 0,
-    ///         incr_h is finite and > 1, and 0 < decr_h < 1 -- delegates to
-    ///         set_delta_h/set_incr_h/set_decr_h, so a NaN or (for the first
-    ///         two) a +inf in any argument fails that argument's test and is
-    ///         rejected, same as calling the individual setter.
-    void set_hpert_params(double delta_h, double incr_h, double decr_h);
-
-    /// @brief Sets Settings::print_level_, the console verbosity.
-    /// @param plevel 0 = full output, 1 = no iteration table, 2 = exit and
-    ///        warnings only, 3 and above = silent.
-    /// @throws std::invalid_argument if plevel < 0.
-    void set_print_level(int plevel);
-
-    /// @brief Sets Settings::init_mu_, the barrier parameter each phase starts at.
-    /// @param mu Barrier parameter.
-    /// @throws std::invalid_argument if mu is not finite, or mu <= 0.
-    void set_init_mu(double mu);
-    /// @brief Sets Settings::min_mu_, the barrier-parameter floor.
-    /// @param mu Barrier parameter.
-    /// @throws std::invalid_argument if mu is not finite, or mu <= 0.
-    void set_min_mu(double mu);
-    /// @brief Sets Settings::max_mu_, the barrier-parameter ceiling.
-    /// @param mu Barrier parameter.
-    /// @throws std::invalid_argument if mu is not finite, or mu <= 0.
-    void set_max_mu(double mu);
-    /// @brief Sets Settings::neg_slack_reset_, the value a slack that has gone
-    ///        non-positive is reset to.
-    /// @param val Slack value; must be strictly inside the interior.
-    /// @throws std::invalid_argument if val is not finite, or val <= 0.
-    void set_neg_slack_reset(double val);
-    /// @brief Sets Settings::qp_threads_, the thread count handed to the sparse
-    ///        backend (and, under cnr_mode_, its CNR thread count).
-    /// @param n Thread count.
-    /// @throws std::invalid_argument if n < 1.
-    void set_qp_threads(int n);
-    /// @brief Sets Settings::qp_pivot_perturb_, the backend's pivot-perturbation
-    ///        level.
-    /// @param v Perturbation level as the backend defines it.
-    /// @throws std::invalid_argument if v < 0.
-    void set_qp_pivot_perturb(int v);
-    /// @brief Sets Settings::qp_matching_, the backend's weighted-matching flag.
-    /// @param v 0 (off) or 1 (on).
-    /// @throws std::invalid_argument if v is neither 0 nor 1.
-    void set_qp_matching(int v);
-    /// @brief Sets Settings::qp_scaling_, the backend's matrix-scaling flag.
-    /// @param v 0 (off, the default) or 1 (on).
-    /// @throws std::invalid_argument if v is neither 0 nor 1.
-    void set_qp_scaling(int v);
-    /// @brief Sets Settings::qp_ref_steps_, the backend's iterative-refinement
-    ///        step cap.
-    /// @param v Step count.
-    /// @throws std::invalid_argument if v < 0. A nonzero value is additionally
-    ///         rejected at transcribe time on the Accelerate backend, which
-    ///         performs no iterative refinement.
-    void set_qp_ref_steps(int v);
-    /// @brief Sets Settings::qp_par_solve_, the backend's parallel-solve flag.
-    /// @param v 0 (off) or 1 (on).
-    /// @throws std::invalid_argument if v is neither 0 nor 1.
-    void set_qp_par_solve(int v);
-    /// @brief Sets Settings::obj_scale_, the factor the objective is multiplied
-    ///        by at evaluation.
-    ///
-    /// The scale governs what the solver minimizes, and therefore which iterates
-    /// it takes, but not what the solve reports: SolveResult's objective value
-    /// and its three multiplier blocks are divided back out before they leave,
-    /// and a seed handed to set_initial_multipliers() is multiplied in on the
-    /// way through, so both boundaries speak the caller's convention.
-    ///
-    /// @param scale Finite and strictly positive.
-    /// @throws std::invalid_argument if scale is not finite or is not > 0.
-    void set_obj_scale(double scale);
-
-    /// @brief Sets Settings::qp_ord_, the backend's fill-reducing ordering.
-    /// @param mode MINDEG, METIS or PARMETIS.
-    void set_qp_ordering_mode(QPOrderingModes mode);
-    /// @brief Sets Settings::qp_ord_ from its name.
-    /// @param str "MINDEG", "METIS", or "PARMETIS" (alias "MTMETIS").
-    /// @throws std::invalid_argument on any other spelling.
-    void set_qp_ordering_mode(const std::string &str);
-
-    /// @brief Sets Settings::opt_bar_mode_, the barrier update rule the OPTIMIZE
-    ///        phase runs.
-    /// @param mode LOQO or PROBE.
-    void set_opt_bar_mode(BarrierModes mode);
-    /// @brief Sets Settings::opt_bar_mode_ from its name.
-    /// @param str "LOQO" or "PROBE".
-    /// @throws std::invalid_argument on any other spelling.
-    void set_opt_bar_mode(const std::string &str);
-    /// @brief Sets Settings::soe_bar_mode_, the barrier update rule the SOLVE
-    ///        phase runs.
-    /// @param mode LOQO or PROBE.
-    void set_soe_bar_mode(BarrierModes mode);
-    /// @brief Sets Settings::soe_bar_mode_ from its name.
-    /// @param str "LOQO" or "PROBE".
-    /// @throws std::invalid_argument on any other spelling.
-    void set_soe_bar_mode(const std::string &str);
-
-    /// @brief Sets Settings::opt_ls_mode_, the line search the OPTIMIZE phase
-    ///        runs.
-    /// @param mode AUGLANG, LANG, L1 or NOLS.
-    void set_opt_ls_mode(LineSearchModes mode);
-    /// @brief Sets Settings::opt_ls_mode_ from its name.
-    /// @param str "AUGLANG", "LANG", "L1" or "NOLS".
-    /// @throws std::invalid_argument on any other spelling.
-    void set_opt_ls_mode(const std::string &str);
-    /// @brief Sets Settings::soe_ls_mode_, the line search the SOLVE phase runs.
-    /// @param mode AUGLANG, LANG, L1 or NOLS.
-    void set_soe_ls_mode(LineSearchModes mode);
-    /// @brief Sets Settings::soe_ls_mode_ from its name.
-    /// @param str "AUGLANG", "LANG", "L1" or "NOLS".
-    /// @throws std::invalid_argument on any other spelling.
-    void set_soe_ls_mode(const std::string &str);
-
-    /// @brief Sets Settings::best_criteria_, the score the return_best_ path
-    ///        ranks iterates by.
-    /// @param mode ECONS, ICONS, KKT or OBJ.
-    void set_best_criteria(BestCriteriaModes mode);
-    /// @brief Sets Settings::best_criteria_ from its name.
-    /// @param str "ECons"/"ECon", "ICons"/"ICon", "KKT", or "Obj"/"Prim Obj".
-    /// @throws std::invalid_argument on any other spelling.
-    void set_best_criteria(const std::string &str);
-
-#ifdef USE_ACCELERATE_SPARSE
-    /// @brief Sets Settings::accel_pivot_tolerance_, Apple Accelerate's sparse
-    ///        pivot tolerance.
-    /// @param tol Pivot tolerance.
-    /// @throws std::invalid_argument if tol is not finite, or tol <= 0.
-    void set_accel_pivot_tolerance(double tol);
-    /// @brief Sets Settings::accel_zero_tolerance_, Apple Accelerate's sparse
-    ///        drop tolerance.
-    /// @param tol Drop tolerance below which an entry is treated as zero.
-    /// @throws std::invalid_argument if tol is not finite, or tol <= 0.
-    void set_accel_zero_tolerance(double tol);
-#endif
-
-    // --- Named configuration presets ---
-    /// @brief Applies a named globalization preset.
-    ///
-    /// Assigns exactly nine Settings fields (acceptance_strategy_,
-    /// merit_penalty_rule_, barrier_governor_, never_monotone_,
-    /// restoration_mode_, inertia_mode_, max_soc_, ls_extended_iters_,
-    /// watchdog_) and leaves every other field untouched. The preset table lives
-    /// in detail/drivers/interior_point_solver_presets.h.
-    ///
-    /// @param name A name from the preset table.
-    /// @throws std::invalid_argument, listing every valid name, if `name` is
-    ///         not in the table.
-    void apply_preset(std::string_view name);
+    // apply_preset() was REMOVED in M6 W5 T8.3: the preset is now the free
+    // function hven::solvers::ipm_preset(name), which RETURNS a full IpmOptions
+    // value rather than mutating a solver's settings in place. See
+    // drivers/ipm_solver_types.h.
 
     // --- Callback methods ---
     /// Installs the per-iteration early callback. The vectors and matrix it
@@ -1395,7 +785,7 @@ class InteriorPointSolver {
     friend class ::RecoveryDispatchGate_MonitoredSelectionConstructsMonitoredGovernor_Test;
     friend class ::RecoveryDispatchGate_MeritPenaltyRuleSelectionReachesTheStrategy_Test;
 
-    Settings settings_;
+    IpmOptions opts_;
     SolveResult result_;
     EvalErrorLog eval_error_log_;
     std::shared_ptr<NonLinearProgram> nlp_;
@@ -1659,6 +1049,14 @@ class InteriorPointSolver {
     /// emit sites. A member rather than an alg_impl parameter because it is
     /// instrumentation: the algorithm itself has no use for it.
     Index trace_phase_ = 0;
+
+    // Is a public entry point on THIS object currently inside its solve? Set by
+    // an RAII guard at run_phase_sequence()'s entry -- the ONE place all five
+    // public entry points funnel through exactly once -- and cleared on every
+    // exit, a throw included. Read by set_options(), which refuses to replace
+    // the options a solve is running under. A nested restoration phase builds a
+    // DISTINCT solver, so it never re-enters this object's guard.
+    bool solve_in_flight_ = false;
 
     /// Which door the current phase left its loop by; see last_stop_reason().
     /// Written by run_phase_sequence (the per-phase reset) and by alg_impl's two

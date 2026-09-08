@@ -35,9 +35,9 @@ constexpr auto operator<=>(ConvergenceFlags a, ConvergenceFlags b) {
 namespace hven::solvers {
 class InteriorPointSolver;
 
-// Step-acceptance strategy selector (InteriorPointSolver::Settings::acceptance_strategy_).
+// Step-acceptance strategy selector (IpmOptions::acceptance_strategy).
 // Declared here rather than nested in InteriorPointSolver so both
-// InteriorPointSolver::Settings and the acceptance components can name it
+// IpmOptions and the acceptance components can name it
 // without a circular include.
 //   classic_merit — the fused classic backtracking merit line search
 //                   (ClassicMeritAcceptance); the bit-identical default.
@@ -50,7 +50,7 @@ class InteriorPointSolver;
 enum class AcceptanceStrategies { classic_merit = 0, merit = 1, funnel = 2, filter = 3 };
 
 // Penalty-parameter rule for the modernized merit family
-// (InteriorPointSolver::Settings::merit_penalty_rule_; read only when
+// (IpmOptions::merit_penalty_rule; read only when
 // acceptance_strategy_ == merit).
 //   wmno     — Waltz, Morales, Nocedal & Orban, Math. Program. 107 (2006),
 //              §3.1: single penalty ν updated from the directional-derivative
@@ -60,7 +60,7 @@ enum class AcceptanceStrategies { classic_merit = 0, merit = 1, funnel = 2, filt
 //              for at least one π in the interval (Eqs 2.1, 3.9, 3.10).
 enum class MeritPenaltyRules { wmno = 0, flexible = 1 };
 
-// Barrier-parameter governor selector (InteriorPointSolver::Settings::barrier_governor_),
+// Barrier-parameter governor selector (IpmOptions::barrier_governor),
 // declared here for the same no-circular-include reason as the selectors above.
 //   classic_adaptive — the classic PROBE/LOQO free-mode barrier update
 //                      (ClassicAdaptiveGovernor); the bit-identical default.
@@ -73,7 +73,7 @@ enum class MeritPenaltyRules { wmno = 0, flexible = 1 };
 //                      may pair with it.
 enum class BarrierGovernors { classic_adaptive = 0, monitored = 1 };
 
-// Feasibility-restoration mode selector (InteriorPointSolver::Settings::restoration_mode_),
+// Feasibility-restoration mode selector (IpmOptions::restoration_mode),
 // declared here for the same no-circular-include reason as the selectors above.
 //   off             — no feasibility restoration (default). A ladder-exhausted
 //                     rejection is taken as-is; no RestorationStrategy is
@@ -100,7 +100,7 @@ enum class BarrierGovernors { classic_adaptive = 0, monitored = 1 };
 enum class RestorationModes { off = 0, proximal_switch = 1, l1_nested = 2 };
 
 // KKT inertia-correction / regularization mode selector
-// (InteriorPointSolver::Settings::inertia_mode_), declared here for the same
+// (IpmOptions::inertia_mode), declared here for the same
 // no-circular-include reason as the selectors above.
 //   classic                 — the on-demand inertia ladder inline in
 //                             InteriorPointSolver::factor_impl (the bit-identical default):

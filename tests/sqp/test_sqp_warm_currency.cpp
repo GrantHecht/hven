@@ -968,7 +968,11 @@ TEST(SqpWarmCurrency, InteriorPointExportCrossesOverIntoTheSqpEngine) {
     const auto problem = std::make_shared<CurrencyIpmProblem>();
 
     NLPSolver ipm(problem);
-    ipm.optimizer_->set_print_level(10);
+    {
+        auto o = ipm.optimizer_->options();
+        o.common.print_level = 10;
+        ipm.optimizer_->set_options(std::move(o));
+    }
     ipm.transcribe();
     Eigen::VectorXd x0(3);
     x0 << 0.0, 0.0, 0.5;

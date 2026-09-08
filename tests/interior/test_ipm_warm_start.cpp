@@ -255,7 +255,11 @@ void expect_bit_identical(const Eigen::VectorXd &a, const Eigen::VectorXd &b, co
 
 TEST(IpmWarmStart, AFreshSolverCannotExport) {
     NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     EXPECT_FALSE(solver.optimizer_->solve_completed_);
@@ -267,7 +271,11 @@ TEST(IpmWarmStart, AFreshSolverCannotExport) {
 // the variable-treatment reconfiguration and before any phase runs.
 TEST(IpmWarmStart, ASolveThatThrewIsNotACompletedSolve) {
     NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     Eigen::VectorXd bad_eq(3);
@@ -286,7 +294,11 @@ TEST(IpmWarmStart, ASolveThatThrewIsNotACompletedSolve) {
 
 TEST(IpmWarmStart, ExportIsStampedAndDeclaredWidthOnAnEliminatingProblem) {
     NLPSolver solver(std::make_shared<WarmFixedVarProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     Eigen::VectorXd x0(3);
@@ -345,7 +357,11 @@ TEST(IpmWarmStart, ExportIsStampedAndDeclaredWidthOnAnEliminatingProblem) {
 // re-lay in between must not restamp blocks it never saw.
 TEST(IpmWarmStart, TheStampIsCapturedAtSolveCompletionNotAtExport) {
     NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
@@ -369,7 +385,11 @@ TEST(IpmWarmStart, TheStampIsCapturedAtSolveCompletionNotAtExport) {
 
 TEST(IpmWarmStart, StagingRefusesAMisSizedBlockNamingItAndBothCounts) {
     NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
@@ -391,7 +411,11 @@ TEST(IpmWarmStart, StagingRefusesAMisSizedBlockNamingItAndBothCounts) {
 
 TEST(IpmWarmStart, StagingRefusesANonFiniteBlock) {
     NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
@@ -410,7 +434,11 @@ TEST(IpmWarmStart, StagingRefusesANonFiniteBlock) {
 // SIZE complaint, so no stamp check downstream could catch it.
 TEST(IpmWarmStart, ARefusedStagingClearsTheValueStagedBeforeIt) {
     NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
@@ -443,7 +471,11 @@ TEST(IpmWarmStart, ARefusedStagingClearsTheValueStagedBeforeIt) {
 // The seed half of the same rule.
 TEST(IpmWarmStart, ARefusedStagingAlsoClearsAStagedMultiplierSeed) {
     NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
@@ -465,7 +497,11 @@ TEST(IpmWarmStart, ARefusedStagingAlsoClearsAStagedMultiplierSeed) {
 
 TEST(IpmWarmStart, ARelayBetweenStagingAndSolvingRefusesAtSolveEntry) {
     NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
@@ -498,7 +534,11 @@ TEST(IpmWarmStart, ARelayBetweenStagingAndSolvingRefusesAtSolveEntry) {
 // not, and the same refusal fires.
 TEST(IpmWarmStart, ARebindToADifferentStructureRefusesAtSolveEntry) {
     NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
     ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
               hven::ConvergenceFlags::CONVERGED);
@@ -506,7 +546,11 @@ TEST(IpmWarmStart, ARebindToADifferentStructureRefusesAtSolveEntry) {
     solver.optimizer_->stage_warm_start(warm);
 
     NLPSolver wider(std::make_shared<WarmWiderProblem>());
-    wider.optimizer_->set_print_level(10);
+    {
+        auto o = wider.optimizer_->options();
+        o.common.print_level = 10;
+        wider.optimizer_->set_options(std::move(o));
+    }
     wider.transcribe();
     solver.optimizer_->set_nlp(wider.nlp_);
 
@@ -520,7 +564,11 @@ TEST(IpmWarmStart, ARebindToADifferentStructureRefusesAtSolveEntry) {
 
 TEST(IpmWarmStart, AStagedStartSurvivesAnIdenticalStampRelayAndIsTheSolveStart) {
     NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
@@ -553,7 +601,11 @@ TEST(IpmWarmStart, AStagedStartSurvivesAnIdenticalStampRelayAndIsTheSolveStart) 
 
 TEST(IpmWarmStart, StagedDataIsOneShotAndTheNextSolveIsCold) {
     NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
@@ -581,7 +633,11 @@ TEST(IpmWarmStart, StagedDataIsOneShotAndTheNextSolveIsCold) {
 // and the payload itself is unchanged by staging.
 TEST(IpmWarmStart, StagingTheSamePayloadTwiceFromColdGivesBitIdenticalFirstIterates) {
     NLPSolver source(std::make_shared<WarmEqOnlyProblem>());
-    source.optimizer_->set_print_level(10);
+    {
+        auto o = source.optimizer_->options();
+        o.common.print_level = 10;
+        source.optimizer_->set_options(std::move(o));
+    }
     source.transcribe();
     ASSERT_EQ(warm_optimize(*source.optimizer_, warm_eq_start()),
               hven::ConvergenceFlags::CONVERGED);
@@ -594,7 +650,11 @@ TEST(IpmWarmStart, StagingTheSamePayloadTwiceFromColdGivesBitIdenticalFirstItera
     Eigen::VectorXd second_start;
     for (Eigen::VectorXd *out : {&first_start, &second_start}) {
         NLPSolver fresh(std::make_shared<WarmEqOnlyProblem>());
-        fresh.optimizer_->set_print_level(10);
+        {
+            auto o = fresh.optimizer_->options();
+            o.common.print_level = 10;
+            fresh.optimizer_->set_options(std::move(o));
+        }
         fresh.transcribe();
         ASSERT_TRUE(declaration_key(fresh.nlp_->declaration()) == warm.structure_key_)
             << "the same declaration must key the same from cold";
@@ -618,7 +678,11 @@ TEST(IpmWarmStart, StagingTheSamePayloadTwiceFromColdGivesBitIdenticalFirstItera
 // the warm solve's start, bit for bit.
 TEST(IpmWarmStart, AnExportStageRoundTripStartsAtTheExportingSolvesTerminalPoint) {
     NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
@@ -642,7 +706,11 @@ TEST(IpmWarmStart, AnExportStageRoundTripStartsAtTheExportingSolvesTerminalPoint
 // one staged with the held value.
 TEST(IpmWarmStart, ValuesAtEliminatedVariablesAreIgnoredOnApplication) {
     NLPSolver solver(std::make_shared<WarmFixedVarProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     Eigen::VectorXd x0(3);
@@ -685,9 +753,12 @@ TEST(IpmWarmStart, ValuesAtEliminatedVariablesAreIgnoredOnApplication) {
 // is a no-op copy.
 TEST(IpmWarmStart, MakeConstraintExportDropsTheTreatmentsInternalFixingRow) {
     NLPSolver solver(std::make_shared<WarmFixedVarProblem>());
-    solver.optimizer_->set_print_level(10);
-    solver.optimizer_->set_fixed_variable_treatment(
-        hven::solvers::FixedVariableTreatments::MakeConstraint);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeConstraint;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     Eigen::VectorXd x0(3);
@@ -736,7 +807,11 @@ TEST(IpmWarmStart, MakeConstraintExportDropsTheTreatmentsInternalFixingRow) {
 // first solve consumes it WARM.
 TEST(IpmWarmStart, AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings) {
     NLPSolver source(std::make_shared<WarmFixedVarProblem>());
-    source.optimizer_->set_print_level(10);
+    {
+        auto o = source.optimizer_->options();
+        o.common.print_level = 10;
+        source.optimizer_->set_options(std::move(o));
+    }
     source.transcribe();
     const auto layout_key_before_any_solve = source.nlp_->model_structure_key();
     const auto stamp_before_any_solve = declaration_key(source.nlp_->declaration());
@@ -757,13 +832,17 @@ TEST(IpmWarmStart, AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings)
 
     // A cold engine on the same declaration and the same settings.
     NLPSolver fresh(std::make_shared<WarmFixedVarProblem>());
-    fresh.optimizer_->set_print_level(10);
+    {
+        auto o = fresh.optimizer_->options();
+        o.common.print_level = 10;
+        fresh.optimizer_->set_options(std::move(o));
+    }
     fresh.transcribe();
     ASSERT_TRUE(declaration_key(fresh.nlp_->declaration()) == warm.structure_key_)
         << "the fresh program has not been configured for any treatment, and the "
            "stamp does not care -- it is the same declared problem";
-    ASSERT_EQ(fresh.optimizer_->settings().fixed_variable_treatment_,
-              source.optimizer_->settings().fixed_variable_treatment_);
+    ASSERT_EQ(fresh.optimizer_->options().fixed_variable_treatment,
+              source.optimizer_->options().fixed_variable_treatment);
 
     EXPECT_NO_THROW(fresh.optimizer_->stage_warm_start(warm));
     ASSERT_TRUE(fresh.optimizer_->warm_staged_);
@@ -819,9 +898,16 @@ TEST(IpmWarmStart, AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings)
 // application ignores whatever coordinates the receiving treatment holds.
 TEST(IpmWarmStart, AnExportUnderOneTreatmentStagesAndAppliesUnderAnother) {
     NLPSolver source(std::make_shared<WarmFixedVarProblem>());
-    source.optimizer_->set_print_level(10);
-    source.optimizer_->settings().fixed_variable_treatment_ =
-        hven::solvers::FixedVariableTreatments::MakeParameter;
+    {
+        auto o = source.optimizer_->options();
+        o.common.print_level = 10;
+        source.optimizer_->set_options(std::move(o));
+    }
+    {
+        auto o = source.optimizer_->options();
+        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeParameter;
+        source.optimizer_->set_options(std::move(o));
+    }
     source.transcribe();
 
     Eigen::VectorXd x0(3);
@@ -832,9 +918,16 @@ TEST(IpmWarmStart, AnExportUnderOneTreatmentStagesAndAppliesUnderAnother) {
 
     // The receiving engine: same declaration, DIFFERENT treatment.
     NLPSolver sink(std::make_shared<WarmFixedVarProblem>());
-    sink.optimizer_->set_print_level(10);
-    sink.optimizer_->settings().fixed_variable_treatment_ =
-        hven::solvers::FixedVariableTreatments::MakeConstraint;
+    {
+        auto o = sink.optimizer_->options();
+        o.common.print_level = 10;
+        sink.optimizer_->set_options(std::move(o));
+    }
+    {
+        auto o = sink.optimizer_->options();
+        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeConstraint;
+        sink.optimizer_->set_options(std::move(o));
+    }
     sink.transcribe();
 
     EXPECT_NO_THROW(sink.optimizer_->stage_warm_start(warm));
@@ -872,7 +965,11 @@ TEST(IpmWarmStart, AnExportUnderOneTreatmentStagesAndAppliesUnderAnother) {
 
 TEST(IpmWarmStart, StagingAWarmStartClearsAStagedMultiplierSeed) {
     NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
     ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
               hven::ConvergenceFlags::CONVERGED);
@@ -893,7 +990,11 @@ TEST(IpmWarmStart, StagingAWarmStartClearsAStagedMultiplierSeed) {
 // solves below -- one with the late seed, one without -- run identically.
 TEST(IpmWarmStart, ASeedStagedAfterAWarmStartIsDiscardedAtSolveEntry) {
     NLPSolver source(std::make_shared<WarmEqOnlyProblem>());
-    source.optimizer_->set_print_level(10);
+    {
+        auto o = source.optimizer_->options();
+        o.common.print_level = 10;
+        source.optimizer_->set_options(std::move(o));
+    }
     source.transcribe();
     ASSERT_EQ(warm_optimize(*source.optimizer_, warm_eq_start()),
               hven::ConvergenceFlags::CONVERGED);
@@ -906,7 +1007,11 @@ TEST(IpmWarmStart, ASeedStagedAfterAWarmStartIsDiscardedAtSolveEntry) {
     Eigen::VectorXd with;
     for (int k = 0; k < 2; k++) {
         NLPSolver fresh(std::make_shared<WarmEqOnlyProblem>());
-        fresh.optimizer_->set_print_level(10);
+        {
+            auto o = fresh.optimizer_->options();
+            o.common.print_level = 10;
+            fresh.optimizer_->set_options(std::move(o));
+        }
         fresh.transcribe();
         fresh.optimizer_->stage_warm_start(warm);
         if (k == 1) {
@@ -1013,7 +1118,11 @@ struct WarmBoundedSolve {
     WarmStartData warm_;
 
     WarmBoundedSolve() {
-        this->solver_.optimizer_->set_print_level(10);
+        {
+            auto o = this->solver_.optimizer_->options();
+            o.common.print_level = 10;
+            this->solver_.optimizer_->set_options(std::move(o));
+        }
         this->solver_.transcribe();
         EXPECT_EQ(warm_optimize(*this->solver_.optimizer_, warm_bounded_start()),
                   hven::ConvergenceFlags::CONVERGED);
@@ -1071,7 +1180,11 @@ struct WarmRun {
 
 WarmRun run_warm(const WarmStartData &warm) {
     hven::solvers::NLPSolver fresh(std::make_shared<WarmBoundedProblem>());
-    fresh.optimizer_->set_print_level(10);
+    {
+        auto o = fresh.optimizer_->options();
+        o.common.print_level = 10;
+        fresh.optimizer_->set_options(std::move(o));
+    }
     fresh.transcribe();
     FirstIterateDualProbe probe;
     probe.arm(*fresh.optimizer_);
@@ -1131,7 +1244,11 @@ TEST(IpmWarmStart, ExportCarriesThePolishTagOnABoundedProblem) {
 
 TEST(IpmWarmStart, ExportCarriesNoExtensionWhenTheProblemHasNoFiniteBounds) {
     NLPSolver solver(std::make_shared<WarmEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
     ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_eq_start()),
               hven::ConvergenceFlags::CONVERGED);
@@ -1208,13 +1325,20 @@ struct WarmFixedOnlyBoundProblem : NLPProblem {
 // only Settings::fixed_variable_treatment_ moves between them.
 TEST(IpmWarmStart, ARelayThatEmptiesTheBoundSetLeavesNoBoundStoryOnTheSameInstance) {
     NLPSolver solver(std::make_shared<WarmFixedOnlyBoundProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     // The widest relaxation the contract allows (1e-2), so x0's relaxed box is
     // [0.24, 0.26] -- room enough for the barrier to sit inside, rather than
     // the default 1e-8's 5e-9-wide slit.
-    solver.optimizer_->set_bound_relax_factor(hven::solvers::kMaxBoundRelaxFactor);
-    solver.optimizer_->set_fixed_variable_treatment(
-        hven::solvers::FixedVariableTreatments::RelaxBounds);
+    {
+        auto o = solver.optimizer_->options();
+        o.bound_relax_factor = hven::solvers::kMaxBoundRelaxFactor;
+        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::RelaxBounds;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     Eigen::VectorXd x0(2);
@@ -1232,8 +1356,11 @@ TEST(IpmWarmStart, ARelayThatEmptiesTheBoundSetLeavesNoBoundStoryOnTheSameInstan
 
     // --- The re-lay: same instance, same program, no set_nlp(). The treatment
     // eliminates the only bound-carrying variable, so the bound set empties.
-    solver.optimizer_->set_fixed_variable_treatment(
-        hven::solvers::FixedVariableTreatments::MakeParameter);
+    {
+        auto o = solver.optimizer_->options();
+        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeParameter;
+        solver.optimizer_->set_options(std::move(o));
+    }
     ASSERT_EQ(warm_optimize(*solver.optimizer_, x0), hven::ConvergenceFlags::CONVERGED);
     ASSERT_TRUE(solver.nlp_->is_reduced());
     ASSERT_FALSE(solver.nlp_->variable_bound_set().any())
@@ -1377,14 +1504,19 @@ struct WarmInfeasibleBoundedProblem : NLPProblem {
 // set gate applies.
 TEST(IpmWarmStart, ARestorationActiveExitExportsTheCoreWithoutThePolishTag) {
     NLPSolver solver(std::make_shared<WarmInfeasibleBoundedProblem>());
-    solver.optimizer_->set_print_level(10);
-    // filter acceptance + monitored governor + nested-l1 restoration: the
-    // shipped preset whose restoration arm this fixture is built for.
-    solver.optimizer_->apply_preset("filter_l1");
-    // Two iterations exactly -- see the fixture's own note for why that is the
-    // number: entry during the first, the condensed eval seam during the
-    // second, and the break with restoration still active.
-    solver.optimizer_->set_max_iters(2);
+    {
+        // filter acceptance + monitored governor + nested-l1 restoration: the
+        // shipped preset whose restoration arm this fixture is built for. The
+        // preset is a full value now, so the fixture's own knobs are layered on
+        // top of it rather than written before it.
+        auto o = hven::solvers::ipm_preset("filter_l1");
+        o.common.print_level = 10;
+        // Two iterations exactly -- see the fixture's own note for why that is
+        // the number: entry during the first, the condensed eval seam during
+        // the second, and the break with restoration still active.
+        o.max_iters = 2;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     // Strictly interior to the box, so the entry interior push is a no-op and
@@ -1458,10 +1590,13 @@ TEST(IpmWarmStart, ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToThe
     constexpr double kMuCeiling = 1.0;
 
     NLPSolver solver(std::make_shared<WarmInfeasibleSeededMultProblem>());
-    solver.optimizer_->set_print_level(10);
-    solver.optimizer_->apply_preset("filter_l1");
-    solver.optimizer_->set_max_mu(kMuCeiling);
-    solver.optimizer_->set_max_iters(2);
+    {
+        auto o = hven::solvers::ipm_preset("filter_l1");
+        o.common.print_level = 10;
+        o.max_mu = kMuCeiling;
+        o.max_iters = 2;
+        solver.optimizer_->set_options(std::move(o));
+    }
 
     // WarmInfeasibleBoundedProblem: 2 primals, 1 inequality row (so 1 slack),
     // 1 equality row. XSL is [x(2) | s(1) | lambda_e(1) | lambda_i(1)].
@@ -1534,8 +1669,11 @@ TEST(IpmWarmStart, ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToThe
 // pin above would pass on a build that suppressed the extension outright.
 TEST(IpmWarmStart, ABoundedOptimalExitUnderTheSamePresetKeepsThePolishTag) {
     NLPSolver solver(std::make_shared<WarmBoundedProblem>());
-    solver.optimizer_->set_print_level(10);
-    solver.optimizer_->apply_preset("filter_l1");
+    {
+        auto o = hven::solvers::ipm_preset("filter_l1");
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     ASSERT_EQ(warm_optimize(*solver.optimizer_, warm_bounded_start()),
@@ -1565,7 +1703,11 @@ TEST(IpmWarmStart, StagingRefusesAMalformedPayloadUnderTheKnownTagNamingIt) {
     corrupt.extensions_[0].payload_[4] = std::byte{0xFF}; // break the magic
 
     NLPSolver fresh(std::make_shared<WarmBoundedProblem>());
-    fresh.optimizer_->set_print_level(10);
+    {
+        auto o = fresh.optimizer_->options();
+        o.common.print_level = 10;
+        fresh.optimizer_->set_options(std::move(o));
+    }
     fresh.transcribe();
     try {
         fresh.optimizer_->stage_warm_start(corrupt);
@@ -1592,7 +1734,11 @@ TEST(IpmWarmStart, EveryTruncationOfThePolishPayloadRefusesAtStagingNamingTheOff
     ASSERT_FALSE(full.empty());
 
     NLPSolver fresh(std::make_shared<WarmBoundedProblem>());
-    fresh.optimizer_->set_print_level(10);
+    {
+        auto o = fresh.optimizer_->options();
+        o.common.print_level = 10;
+        fresh.optimizer_->set_options(std::move(o));
+    }
     fresh.transcribe();
 
     for (std::size_t prefix = 0; prefix < full.size(); prefix++) {
@@ -1621,7 +1767,11 @@ TEST(IpmWarmStart, StagingRefusesAPolishBlockThatIsNotAtTheDeclaredWidth) {
     wide.extensions_[0].payload_ = hven::solvers::serialize_ipm_polish(polish);
 
     NLPSolver fresh(std::make_shared<WarmBoundedProblem>());
-    fresh.optimizer_->set_print_level(10);
+    {
+        auto o = fresh.optimizer_->options();
+        o.common.print_level = 10;
+        fresh.optimizer_->set_options(std::move(o));
+    }
     fresh.transcribe();
     try {
         fresh.optimizer_->stage_warm_start(wide);
@@ -1652,7 +1802,11 @@ TEST(IpmWarmStart, StagingRefusesANegativeLowerBoundPriceNamingTheTagAndTheBlock
     corrupt.extensions_[0].payload_ = hven::solvers::serialize_ipm_polish(polish);
 
     NLPSolver fresh(std::make_shared<WarmBoundedProblem>());
-    fresh.optimizer_->set_print_level(10);
+    {
+        auto o = fresh.optimizer_->options();
+        o.common.print_level = 10;
+        fresh.optimizer_->set_options(std::move(o));
+    }
     fresh.transcribe();
     try {
         fresh.optimizer_->stage_warm_start(corrupt);
@@ -1678,7 +1832,11 @@ TEST(IpmWarmStart, StagingRefusesANegativeUpperBoundPriceNamingTheTagAndTheBlock
     corrupt.extensions_[0].payload_ = hven::solvers::serialize_ipm_polish(polish);
 
     NLPSolver fresh(std::make_shared<WarmBoundedProblem>());
-    fresh.optimizer_->set_print_level(10);
+    {
+        auto o = fresh.optimizer_->options();
+        o.common.print_level = 10;
+        fresh.optimizer_->set_options(std::move(o));
+    }
     fresh.transcribe();
     try {
         fresh.optimizer_->stage_warm_start(corrupt);
@@ -1707,7 +1865,11 @@ TEST(IpmWarmStart, AZeroValuedPriceBlockStillStagesAndSolves) {
     zeroed.extensions_[0].payload_ = hven::solvers::serialize_ipm_polish(polish);
 
     NLPSolver fresh(std::make_shared<WarmBoundedProblem>());
-    fresh.optimizer_->set_print_level(10);
+    {
+        auto o = fresh.optimizer_->options();
+        o.common.print_level = 10;
+        fresh.optimizer_->set_options(std::move(o));
+    }
     fresh.transcribe();
     EXPECT_NO_THROW(fresh.optimizer_->stage_warm_start(zeroed));
     EXPECT_TRUE(fresh.optimizer_->warm_staged_);
@@ -1725,7 +1887,11 @@ TEST(IpmWarmStart, StagingRefusesThePolishTagCarriedTwiceNamingTheEntry) {
     ASSERT_EQ(twice.extensions_.size(), 2u);
 
     NLPSolver fresh(std::make_shared<WarmBoundedProblem>());
-    fresh.optimizer_->set_print_level(10);
+    {
+        auto o = fresh.optimizer_->options();
+        o.common.print_level = 10;
+        fresh.optimizer_->set_options(std::move(o));
+    }
     fresh.transcribe();
     try {
         fresh.optimizer_->stage_warm_start(twice);
@@ -1749,7 +1915,11 @@ TEST(IpmWarmStart, AForeignExtensionTagIsIgnoredAtStagingAndAtSolve) {
         hven::solvers::WarmExtension{"some.other.producer", {std::byte{0xDE}, std::byte{0xAD}}});
 
     NLPSolver fresh(std::make_shared<WarmBoundedProblem>());
-    fresh.optimizer_->set_print_level(10);
+    {
+        auto o = fresh.optimizer_->options();
+        o.common.print_level = 10;
+        fresh.optimizer_->set_options(std::move(o));
+    }
     fresh.transcribe();
     EXPECT_NO_THROW(fresh.optimizer_->stage_warm_start(foreign));
     EXPECT_EQ(warm_optimize(*fresh.optimizer_, warm_bounded_start()),
@@ -1921,7 +2091,11 @@ void expect_same_answer(const WarmAnswer &hot, const WarmAnswer &cold) {
 
 TEST(IpmWarmStart, AnUnchangedEpochResolveAnswersExactlyWhatAFreshEngineAnswers) {
     NLPSolver reused(std::make_shared<WarmBoundedProblem>());
-    reused.optimizer_->set_print_level(10);
+    {
+        auto o = reused.optimizer_->options();
+        o.common.print_level = 10;
+        reused.optimizer_->set_options(std::move(o));
+    }
     reused.transcribe();
 
     ASSERT_EQ(warm_optimize(*reused.optimizer_, warm_bounded_start()),
@@ -1948,7 +2122,11 @@ TEST(IpmWarmStart, AnUnchangedEpochResolveAnswersExactlyWhatAFreshEngineAnswers)
     // THE COLD SOLVE, on a fresh engine over a fresh program: it pays the
     // analysis the second solve above skipped, and must land on the same bits.
     NLPSolver fresh(std::make_shared<WarmBoundedProblem>());
-    fresh.optimizer_->set_print_level(10);
+    {
+        auto o = fresh.optimizer_->options();
+        o.common.print_level = 10;
+        fresh.optimizer_->set_options(std::move(o));
+    }
     fresh.transcribe();
     ASSERT_EQ(warm_optimize(*fresh.optimizer_, warm_bounded_start()),
               hven::ConvergenceFlags::CONVERGED);

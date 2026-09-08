@@ -12,7 +12,7 @@
 // with kKappaResto = 0.9 and econ_tol_ standing in (single-tolerance
 // adaptation) for Ipopt's Min(tol, constr_viol_tol). ClassicMeritAcceptance
 // reads econ_tol_ through its SolverContext, so these tests build a minimal
-// all-zero-dimension context (only settings_.econ_tol_ is read by this method)
+// all-zero-dimension context (only opts_.econ_tol is read by this method)
 // via TychoTest::InertSolverContext.
 //
 // Every boundary is hand-computed in the comments.
@@ -40,7 +40,7 @@ using TychoTest::pm;
 //   • θ_trial = 0.5 (below): ≤ 0.9 ⇒ EXIT.
 TEST(ClassicMeritRestoration, RelativeFloorBoundary) {
     InertSolverContext inert;
-    inert.settings_.econ_tol_ = 1.0e-6;
+    inert.opts_.econ_tol = 1.0e-6;
     ClassicMeritAcceptance a(inert.ctx());
 
     const ProgressMeasures ref = pm(1.0);
@@ -58,7 +58,7 @@ TEST(ClassicMeritRestoration, RelativeFloorBoundary) {
 //   • θ_trial = 2e-6 > 1e-6 ⇒ NO (above the tolerance floor).
 TEST(ClassicMeritRestoration, ToleranceFloorWaivesRelativeWhenRefTiny) {
     InertSolverContext inert;
-    inert.settings_.econ_tol_ = 1.0e-6;
+    inert.opts_.econ_tol = 1.0e-6;
     ClassicMeritAcceptance a(inert.ctx());
 
     const ProgressMeasures ref = pm(1.0e-9);
@@ -72,7 +72,7 @@ TEST(ClassicMeritRestoration, ToleranceFloorWaivesRelativeWhenRefTiny) {
 // 2e-6 ≤ 1e-5 ⇒ EXIT.
 TEST(ClassicMeritRestoration, FloorTracksSettingsEconTol) {
     InertSolverContext inert;
-    inert.settings_.econ_tol_ = 1.0e-5;
+    inert.opts_.econ_tol = 1.0e-5;
     ClassicMeritAcceptance a(inert.ctx());
 
     const ProgressMeasures ref = pm(1.0e-9);

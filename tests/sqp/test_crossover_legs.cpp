@@ -228,7 +228,11 @@ TEST(CrossoverLegs, BothEnginesKeyOneDeclarationTheSameWay) {
     const auto declared = std::make_shared<ModelAsNlpProblem>(model, "crossover_gate");
 
     NLPSolver ipm(declared);
-    ipm.optimizer_->set_print_level(10);
+    {
+        auto o = ipm.optimizer_->options();
+        o.common.print_level = 10;
+        ipm.optimizer_->set_options(std::move(o));
+    }
     ipm.transcribe();
 
     const auto converted = std::make_shared<NlpProblemModel>(declared);
@@ -249,7 +253,11 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
     const Vec x0 = model->start_point();
 
     NLPSolver ipm(declared);
-    ipm.optimizer_->set_print_level(10);
+    {
+        auto o = ipm.optimizer_->options();
+        o.common.print_level = 10;
+        ipm.optimizer_->set_options(std::move(o));
+    }
     ipm.transcribe();
     ASSERT_EQ(ipm.optimize(x0), hven::ConvergenceFlags::CONVERGED);
     const WarmStartData exported = ipm.optimizer_->export_warm_start();

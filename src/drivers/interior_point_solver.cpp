@@ -82,11 +82,10 @@ namespace {
 // decide whether a failed line search can exit at the acceptable level instead
 // of aborting. Both call sites must agree, so neither open-codes the four
 // comparisons.
-bool interior_point_iterate_acceptable(
-    const hven::solvers::IterateInfo &it,
-    const hven::solvers::InteriorPointSolver::Settings &settings) {
-    return (it.kkt_inf_ < settings.acc_kkt_tol_) && (it.econ_inf_ < settings.acc_econ_tol_) &&
-           (it.icon_inf_ < settings.acc_icon_tol_) && (it.barr_inf_ < settings.acc_bar_tol_);
+bool interior_point_iterate_acceptable(const hven::solvers::IterateInfo &it,
+                                       const hven::solvers::IpmOptions &opts) {
+    return (it.kkt_inf_ < opts.acc_kkt_tol) && (it.econ_inf_ < opts.acc_econ_tol) &&
+           (it.icon_inf_ < opts.acc_icon_tol) && (it.barr_inf_ < opts.acc_bar_tol);
 }
 
 } // namespace
@@ -185,10 +184,10 @@ LinearOptions::SolveParallelism linear_solve_parallelism_of(int code) {
 void hven::solvers::InteriorPointSolver::set_qp_params() {
     LinearOptions opts;
     opts.kind = hven::linear::FactorKind::kLDLT;
-    opts.num_threads = settings_.qp_threads_;
-    opts.pivot_perturb_exp = settings_.qp_pivot_perturb_;
-    opts.max_refinement_iters = settings_.qp_ref_steps_;
-    opts.ordering = linear_ordering_of(settings_.qp_ord_);
+    opts.num_threads = opts_.common.threads;
+    opts.pivot_perturb_exp = opts_.qp_pivot_perturb;
+    opts.max_refinement_iters = opts_.qp_ref_steps;
+    opts.ordering = linear_ordering_of(opts_.qp_ord);
 
 #ifdef USE_ACCELERATE_SPARSE
     // Accelerate carries no weighted-matching, scaling, pivoting-strategy,
@@ -201,12 +200,12 @@ void hven::solvers::InteriorPointSolver::set_qp_params() {
     // the value this engine has always requested, so a setting that agrees is
     // simply the default and one that disagrees is rejected rather than
     // silently dropped.
-    if (settings_.accel_pivot_tolerance_ != 0.01) {
+    if (opts_.accel_pivot_tolerance != 0.01) {
         throw std::invalid_argument(
             fmt::format("hven interior-point solver: accel_pivot_tolerance = {} cannot be applied "
                         "-- the sparse linear surface "
                         "fixes the LDLT pivot tolerance at 0.01 and exposes no override",
-                        settings_.accel_pivot_tolerance_));
+                        opts_.accel_pivot_tolerance));
     }
 
     // Iterative refinement, same rule. The linear surface stores the cap on
@@ -215,22 +214,22 @@ void hven::solvers::InteriorPointSolver::set_qp_params() {
     // ran was deliberately not carried across. A request for refinement would
     // therefore do nothing at all, which is exactly the silent drop the
     // rejection above exists to prevent.
-    if (settings_.qp_ref_steps_ != 0) {
+    if (opts_.qp_ref_steps != 0) {
         throw std::invalid_argument(
             fmt::format("hven interior-point solver: qp_ref_steps = {} cannot be applied -- the "
                         "sparse linear surface performs no "
                         "iterative refinement on this backend, so a nonzero cap would be inert",
-                        settings_.qp_ref_steps_));
+                        opts_.qp_ref_steps));
     }
 
-    opts.accelerate_zero_tolerance = settings_.accel_zero_tolerance_;
+    opts.accelerate_zero_tolerance = opts_.accel_zero_tolerance;
 #else
-    opts.weighted_matching = settings_.qp_matching_ != 0;
-    opts.matrix_scaling = settings_.qp_scaling_ != 0;
-    opts.pivot_strategy = linear_pivot_strategy_of(settings_.qp_pivot_strategy_);
-    opts.factorization_algorithm = linear_factorization_algorithm_of(settings_.qp_alg_);
-    opts.solve_parallelism = linear_solve_parallelism_of(settings_.qp_par_solve_);
-    opts.cnr_threads = settings_.cnr_mode_ ? settings_.qp_threads_ : 0;
+    opts.weighted_matching = opts_.qp_matching != 0;
+    opts.matrix_scaling = opts_.qp_scaling != 0;
+    opts.pivot_strategy = linear_pivot_strategy_of(opts_.qp_pivot_strategy);
+    opts.factorization_algorithm = linear_factorization_algorithm_of(opts_.qp_alg);
+    opts.solve_parallelism = linear_solve_parallelism_of(opts_.qp_par_solve);
+    opts.cnr_threads = opts_.cnr_mode ? opts_.common.threads : 0;
     // The factorization-cost estimate is read unconditionally after every
     // numeric factorization and reported in the exit statistics, so the report
     // is requested unconditionally too.
@@ -239,7 +238,7 @@ void hven::solvers::InteriorPointSolver::set_qp_params() {
     // Backend chatter has no route through the linear surface, which calls the
     // backend silently. The shipped setting agrees; anything else is rejected
     // rather than quietly ignored.
-    if (settings_.qp_print_) {
+    if (opts_.qp_print) {
         throw std::invalid_argument("hven interior-point solver: qp_print = true cannot be applied "
                                     "-- the sparse linear surface calls the "
                                     "backend silently and exposes no message-level control");
@@ -253,7 +252,7 @@ void hven::solvers::InteriorPointSolver::set_qp_params() {
 
 bool hven::solvers::InteriorPointSolver::claim_kkt_analysis() {
     bool docompute = true;
-    if (this->qp_analyzed_ && !(settings_.force_qp_analysis_)) {
+    if (this->qp_analyzed_ && !(opts_.force_qp_analysis)) {
         docompute = false;
     } else {
         this->qp_analyzed_ = true;
@@ -286,7 +285,7 @@ void hven::solvers::InteriorPointSolver::release() {
 
 void hven::solvers::InteriorPointSolver::apply_reset_slacks(Eigen::Ref<Eigen::VectorXd> S,
                                                             Eigen::Ref<Eigen::VectorXd> FXI) const {
-    detail::apply_reset_slacks(S, FXI, this->slack_vars_, settings_.neg_slack_reset_);
+    detail::apply_reset_slacks(S, FXI, this->slack_vars_, opts_.neg_slack_reset);
 }
 
 // max_step_to_boundary lives on BacktrackingLineSearch
@@ -424,8 +423,8 @@ void hven::solvers::InteriorPointSolver::push_initial_point_interior(EigenRef<Ei
     for (int k = 0; k < nu; k++)
         upper[b.upper_idx_[k]] = b.upper_val_[k];
 
-    const double kappa1 = settings_.bound_push_;
-    const double kappa2 = settings_.bound_interval_push_;
+    const double kappa1 = opts_.bound_push;
+    const double kappa2 = opts_.bound_interval_push;
 
     // Lower pushes first, then upper, matching the reference order. A two-sided
     // variable takes p_L + p_U <= 2*kappa2*(u-l) of its own interval, so with
@@ -704,7 +703,7 @@ void hven::solvers::InteriorPointSolver::ensure_solver_initialized() {
         this->result_.solver_init_time_ = initMs / 1000.0;
         // Suppress the init line when init was trivially fast (< 0.5 ms).
         constexpr double kSolverInitPrintThresholdMs = 0.5;
-        if (initMs > kSolverInitPrintThresholdMs && settings_.print_level_ < 2) {
+        if (initMs > kSolverInitPrintThresholdMs && opts_.common.print_level < 2) {
             fmt::print(" Solver Initialization : ");
             fmt::print(fmt::fg(fmt::color::cyan), "{0:.3f} ms\n", initMs);
         }
@@ -717,13 +716,88 @@ void hven::solvers::InteriorPointSolver::ensure_solver_initialized() {
 // members need their complete concrete types for their destructors — reached
 // through both the destructor and the constructors' exception-cleanup paths.
 // Bodies are the former header-inline bodies, unchanged.
-hven::solvers::InteriorPointSolver::InteriorPointSolver() {
-    settings_.qp_threads_ = std::min(HVEN_DEFAULT_QP_THREADS, hven::utils::get_core_count());
+// The thread count a fresh solver runs at: what the caller asked for, capped at
+// this machine's core count. Applied AT CONSTRUCTION ONLY, which is exactly
+// where the default constructor has always applied it -- a count written after
+// construction (set_qp_threads() before M6 W5 T8.3, set_options() after it) is
+// the caller's explicit word and is taken verbatim, as it always was.
+hven::solvers::InteriorPointSolver::InteriorPointSolver(IpmOptions opts) : opts_(std::move(opts)) {
+    hven::solvers::validate(this->opts_);
+    opts_.common.threads = std::min(opts_.common.threads, hven::utils::get_core_count());
 }
 
 hven::solvers::InteriorPointSolver::InteriorPointSolver(std::shared_ptr<NonLinearProgram> np) {
-    settings_.qp_threads_ = std::min(HVEN_DEFAULT_QP_THREADS, hven::utils::get_core_count());
+    opts_.common.threads = std::min(HVEN_DEFAULT_QP_THREADS, hven::utils::get_core_count());
     this->set_nlp(np);
+}
+
+// The options as a value: read them, edit the copy, hand the whole thing back.
+//
+// Three things happen here and nothing else does. (1) validate(o) runs FIRST,
+// so a rejected value leaves the solver exactly as it was -- the previous
+// options in force and every downstream member untouched. (2) A replacement
+// while a solve is in flight is a logic_error: run_phase_sequence() snapshots
+// the objective scale and builds the globalization components from the value it
+// validated at entry, so a mid-call replacement would split one call between two
+// configurations. (3) The BACKEND-CONFIGURATION fields are refused once a
+// program is attached.
+//
+// (3) is the one rule that is not "the next solve reads the new value". Twelve
+// fields are consumed exactly once, inside set_qp_params(), which runs from
+// set_nlp() -- the QP ordering, pivot strategy, matching, scaling, pivot
+// perturbation, refinement steps, solve parallelism, algorithm variant, the
+// backend-chatter flag, the CNR mode and (on Accelerate) the two tolerances.
+// Writing one of them on an attached solver would have been SILENTLY INERT
+// until the next set_nlp(), which is what the old per-field setters did; this
+// refuses by name instead. Re-attach the program, or build the solver with the
+// options you want. Every OTHER field -- fixed_variable_treatment and
+// bound_relax_factor included, which run_phase_sequence() re-applies through
+// configure_variable_treatment() at every entry, and common.threads, which the
+// same entry refreshes onto the live factor -- simply takes effect on the next
+// solve.
+void hven::solvers::InteriorPointSolver::set_options(IpmOptions o) {
+    if (this->solve_in_flight_)
+        throw std::logic_error(
+            "InteriorPointSolver::set_options: a solve is in flight on this solver; options may "
+            "only be replaced between calls");
+    hven::solvers::validate(o);
+    if (this->nlp_) {
+        const auto refuse = [](const char *field) {
+            throw std::invalid_argument(fmt::format(
+                "InteriorPointSolver::set_options: {} is read once, when the program is attached "
+                "(set_nlp -> set_qp_params), so changing it on an attached solver would be "
+                "silently inert; re-attach the program after the replacement, or construct the "
+                "solver with the options you want",
+                field));
+        };
+        if (o.qp_ord != opts_.qp_ord)
+            refuse("qp_ord");
+        if (o.qp_pivot_perturb != opts_.qp_pivot_perturb)
+            refuse("qp_pivot_perturb");
+        if (o.qp_ref_steps != opts_.qp_ref_steps)
+            refuse("qp_ref_steps");
+        if (o.qp_matching != opts_.qp_matching)
+            refuse("qp_matching");
+        if (o.qp_scaling != opts_.qp_scaling)
+            refuse("qp_scaling");
+        if (o.qp_pivot_strategy != opts_.qp_pivot_strategy)
+            refuse("qp_pivot_strategy");
+        if (o.qp_alg != opts_.qp_alg)
+            refuse("qp_alg");
+        if (o.qp_par_solve != opts_.qp_par_solve)
+            refuse("qp_par_solve");
+        if (o.qp_print != opts_.qp_print)
+            refuse("qp_print");
+        if (o.cnr_mode != opts_.cnr_mode)
+            refuse("cnr_mode");
+#ifdef USE_ACCELERATE_SPARSE
+        if (o.accel_pivot_tolerance != opts_.accel_pivot_tolerance)
+            refuse("accel_pivot_tolerance");
+        if (o.accel_zero_tolerance != opts_.accel_zero_tolerance)
+            refuse("accel_zero_tolerance");
+#endif
+    }
+    this->opts_ = std::move(o);
 }
 
 hven::solvers::InteriorPointSolver::~InteriorPointSolver() = default;
@@ -770,7 +844,7 @@ void hven::solvers::InteriorPointSolver::set_nlp(std::shared_ptr<NonLinearProgra
     this->clear_reported_constraint_blocks();
     this->refresh_nlp_dimensions();
 
-    // acceptance_/mechanism_/governor_/recovery_ are rebuilt from Settings by
+    // acceptance_/mechanism_/governor_/recovery_ are rebuilt from the options by
     // rebuild_globalization_components(), NOT here: that construction runs
     // once per solve invocation (at every run_phase_sequence() entry) rather
     // than only on (re)transcription, so construction-time knobs
@@ -786,7 +860,7 @@ void hven::solvers::InteriorPointSolver::set_nlp(std::shared_ptr<NonLinearProgra
     // applies its own thread count at backend-call scope and undoes it
     // afterwards, so a driver-level thread-local set would only be reaching
     // past it to touch other components' work.
-    accelerate_set_num_threads(settings_.qp_threads_);
+    accelerate_set_num_threads(opts_.common.threads);
 #endif
 
     // The pattern is laid out directly into the assembly buffer; the symbolic
@@ -858,7 +932,7 @@ hven::solvers::InteriorPointSolver::kkt_pattern_check() const {
                                            : KktFactorization::PatternCheck::kVerify;
 }
 
-// (Re)builds the five globalization components from the CURRENT Settings
+// (Re)builds the five globalization components from the CURRENT options
 // (acceptance_/mechanism_/governor_/recovery_, always constructed, plus the
 // optional restoration_). Called once per run_phase_sequence(), right after the
 // variable-treatment configuration and before the first phase — i.e. once per
@@ -867,8 +941,8 @@ hven::solvers::InteriorPointSolver::kkt_pattern_check() const {
 // (re)transcription). This makes construction-time knobs
 // (acceptance_strategy, max_soc, ls_extended_iters, watchdog,
 // merit_penalty_rule, barrier_governor, restoration_mode) live at the next
-// solve even when no set_nlp() call intervenes, matching every other Settings
-// field (which alg_impl/governor_/etc. already read live off settings_ each
+// solve even when no set_nlp() call intervenes, matching every other option
+// field (which alg_impl/governor_/etc. already read live off opts_ each
 // iteration). Before this fix, these knobs were snapshotted at whichever
 // (re)transcription last ran set_nlp() and silently ignored by a later
 // solve() call that changed them without retranscribing — see the origin
@@ -912,9 +986,9 @@ void hven::solvers::InteriorPointSolver::rebuild_globalization_components() {
     // FeasibilitySwitchRecovery and alg_impl's restoration-active branches
     // rely on to end a restoration episode — so restoration_mode_ composes
     // with all four unconditionally, by construction.
-    if (this->settings_.restoration_mode_ == RestorationModes::proximal_switch) {
+    if (this->opts_.restoration_mode == RestorationModes::proximal_switch) {
         this->restoration_ = std::make_unique<ProximalSwitchRestoration>();
-    } else if (this->settings_.restoration_mode_ == RestorationModes::l1_nested) {
+    } else if (this->opts_.restoration_mode == RestorationModes::l1_nested) {
         this->restoration_ = std::make_unique<NestedL1Restoration>();
     } else {
         this->restoration_.reset();
@@ -928,12 +1002,11 @@ void hven::solvers::InteriorPointSolver::rebuild_globalization_components() {
     // trial-point eval); merit's penalty state is seeded from
     // merit_penalty_rule_, while funnel/filter are default-constructed and
     // derive their bounds lazily from the first iterate they see each phase.
-    if (this->settings_.acceptance_strategy_ == AcceptanceStrategies::merit) {
-        this->acceptance_ =
-            std::make_unique<ModernMeritAcceptance>(this->settings_.merit_penalty_rule_);
-    } else if (this->settings_.acceptance_strategy_ == AcceptanceStrategies::funnel) {
+    if (this->opts_.acceptance_strategy == AcceptanceStrategies::merit) {
+        this->acceptance_ = std::make_unique<ModernMeritAcceptance>(this->opts_.merit_penalty_rule);
+    } else if (this->opts_.acceptance_strategy == AcceptanceStrategies::funnel) {
         this->acceptance_ = std::make_unique<FunnelAcceptance>();
-    } else if (this->settings_.acceptance_strategy_ == AcceptanceStrategies::filter) {
+    } else if (this->opts_.acceptance_strategy == AcceptanceStrategies::filter) {
         // HARD CONTRACT: seed the restoration-exit constraint-tolerance floor
         // from the live settings tolerance. FilterAcceptance's exit test
         // (is_infeasibility_sufficiently_reduced) floors the relative
@@ -943,14 +1016,14 @@ void hven::solvers::InteriorPointSolver::rebuild_globalization_components() {
         // is built (independent of restoration_mode_) — it is inert unless a
         // restoration episode actually drives the exit test.
         auto filter = std::make_unique<FilterAcceptance>();
-        filter->set_restoration_constraint_tol(this->settings_.econ_tol_);
+        filter->set_restoration_constraint_tol(this->opts_.econ_tol);
         this->acceptance_ = std::move(filter);
     } else {
         this->acceptance_ = std::make_unique<ClassicMeritAcceptance>(SolverContext{
-            this->nlp_.get(), this->kkt_sol_, this->settings_, this->primal_vars_,
-            this->slack_vars_, this->equal_cons_, this->inequal_cons_, this->kkt_dim_,
-            this->stli_scratch_, this->declaration_primals_scratch_, this->restoration_.get(),
-            &this->eval_error_log_, this->bounds_, &this->bound_duals_});
+            this->nlp_.get(), this->kkt_sol_, this->opts_, this->primal_vars_, this->slack_vars_,
+            this->equal_cons_, this->inequal_cons_, this->kkt_dim_, this->stli_scratch_,
+            this->declaration_primals_scratch_, this->restoration_.get(), &this->eval_error_log_,
+            this->bounds_, &this->bound_duals_});
     }
 
     // The step-length globalization mechanism. Stateless (holds
@@ -972,7 +1045,7 @@ void hven::solvers::InteriorPointSolver::rebuild_globalization_components() {
     // own monotone-mode bookkeeping (the KKT-error reference window, current
     // mode, current monotone mu) as private state, cleared by reset() at each
     // phase boundary like every other governor's phase-change hook.
-    if (this->settings_.barrier_governor_ == BarrierGovernors::monitored) {
+    if (this->opts_.barrier_governor == BarrierGovernors::monitored) {
         this->governor_ = std::make_unique<MonitoredBarrierGovernor>();
     } else {
         this->governor_ = std::make_unique<ClassicAdaptiveGovernor>();
@@ -994,18 +1067,18 @@ void hven::solvers::InteriorPointSolver::rebuild_globalization_components() {
     // enabled. The watchdog, if enabled, then wraps whatever chain resulted
     // (even plain NoopRecovery) as an outer decorator, per WatchdogRecovery's
     // class doc.
-    if (this->settings_.max_soc_ > 0 || this->settings_.ls_extended_iters_ > 0) {
+    if (this->opts_.max_soc > 0 || this->opts_.ls_extended_iters > 0) {
         std::unique_ptr<RecoveryChain> soc_link =
-            this->settings_.max_soc_ > 0 ? std::make_unique<SocRecovery>() : nullptr;
+            this->opts_.max_soc > 0 ? std::make_unique<SocRecovery>() : nullptr;
         std::unique_ptr<RecoveryChain> extended_link =
-            this->settings_.ls_extended_iters_ > 0 ? std::make_unique<ExtendedBacktrackRecovery>()
-                                                   : nullptr;
+            this->opts_.ls_extended_iters > 0 ? std::make_unique<ExtendedBacktrackRecovery>()
+                                              : nullptr;
         this->recovery_ =
             std::make_unique<ChainedRecovery>(std::move(soc_link), std::move(extended_link));
     } else {
         this->recovery_ = std::make_unique<NoopRecovery>();
     }
-    if (this->settings_.watchdog_) {
+    if (this->opts_.watchdog) {
         this->recovery_ = std::make_unique<WatchdogRecovery>(std::move(this->recovery_));
     }
 
@@ -1018,7 +1091,7 @@ void hven::solvers::InteriorPointSolver::rebuild_globalization_components() {
     // branch inside it is driven by restoration_->is_nested(), so this wrap
     // condition itself does not need to distinguish the two modes). Off by
     // default, so the recovery chain is unchanged on the default path.
-    if (this->settings_.restoration_mode_ != RestorationModes::off) {
+    if (this->opts_.restoration_mode != RestorationModes::off) {
         this->recovery_ = std::make_unique<FeasibilitySwitchRecovery>(std::move(this->recovery_));
     }
 }
@@ -1395,7 +1468,7 @@ void hven::solvers::InteriorPointSolver::exit_feasibility_restoration_nested(
     // Every family's step is formed BEFORE any is applied: the shared fraction
     // is a minimum over all of them, so stepping one early would damp it by a
     // fraction taken without the others in view.
-    const double tau = settings_.bound_fraction_;
+    const double tau = opts_.bound_fraction;
     const BoundSet *bounds = this->bounds_;
     const int nl = bounds ? static_cast<int>(bounds->lower_idx_.size()) : 0;
     const int nu = bounds ? static_cast<int>(bounds->upper_idx_.size()) : 0;
@@ -1480,7 +1553,7 @@ void hven::solvers::InteriorPointSolver::exit_feasibility_restoration_nested(
 // at most max(kKappaResto · previous-iteration value, econ_tol_) (Ipopt
 // RestoConvCheck::CheckConvergence's orig_inf_pr_max, single-tolerance floor).
 bool hven::solvers::InteriorPointSolver::resto_ratchet_passes(double theta_orig) const {
-    return theta_orig <= std::max(kKappaResto * this->resto_theta_orig_prev_, settings_.econ_tol_);
+    return theta_orig <= std::max(kKappaResto * this->resto_theta_orig_prev_, opts_.econ_tol);
 }
 
 // ‖c‖₁ over a KKT vector's constraint block. See the declaration in interior_point_solver.h.
@@ -1604,10 +1677,10 @@ hven::solvers::InteriorPointSolver::converge_check(std::vector<IterateInfo> &ite
     assert(!iters.empty() && "converge_check called with empty iteration history");
     ConvergenceFlags Flag = ConvergenceFlags::CONVERGED;
     IterateInfo last = iters.back();
-    bool KKTFeas = (last.kkt_inf_ < settings_.kkt_tol_);
-    bool EConFeas = (last.econ_inf_ < settings_.econ_tol_);
-    bool IConFeas = (last.icon_inf_ < settings_.icon_tol_);
-    bool BarFeas = (last.barr_inf_ < settings_.bar_tol_);
+    bool KKTFeas = (last.kkt_inf_ < opts_.kkt_tol);
+    bool EConFeas = (last.econ_inf_ < opts_.econ_tol);
+    bool IConFeas = (last.icon_inf_ < opts_.icon_tol);
+    bool BarFeas = (last.barr_inf_ < opts_.bar_tol);
 
     // Per-iterate divergent predicate: any monitored residual either non-finite
     // or past its divergence threshold. This is the exact condition that used to
@@ -1619,17 +1692,17 @@ hven::solvers::InteriorPointSolver::converge_check(std::vector<IterateInfo> &ite
     // in interior_point_solver.h). Splitting the two keeps the hard-error path immediate while
     // giving genuinely recoverable overshoots (Maratos-class) room to recover.
     auto iterate_divergent = [this](const IterateInfo &it) {
-        return (it.kkt_inf_ > settings_.div_kkt_tol_) || !std::isfinite(it.kkt_inf_) ||
-               (it.econ_inf_ > settings_.div_econ_tol_) || !std::isfinite(it.econ_inf_) ||
-               (it.icon_inf_ > settings_.div_icon_tol_) || !std::isfinite(it.icon_inf_) ||
-               (it.barr_inf_ > settings_.div_bar_tol_) || !std::isfinite(it.barr_inf_);
+        return (it.kkt_inf_ > opts_.div_kkt_tol) || !std::isfinite(it.kkt_inf_) ||
+               (it.econ_inf_ > opts_.div_econ_tol) || !std::isfinite(it.econ_inf_) ||
+               (it.icon_inf_ > opts_.div_icon_tol) || !std::isfinite(it.icon_inf_) ||
+               (it.barr_inf_ > opts_.div_bar_tol) || !std::isfinite(it.barr_inf_);
     };
 
     bool nan_inf = !std::isfinite(last.kkt_inf_) || !std::isfinite(last.econ_inf_) ||
                    !std::isfinite(last.icon_inf_) || !std::isfinite(last.barr_inf_);
     bool beyond_thresholds =
-        (last.kkt_inf_ > settings_.div_kkt_tol_) || (last.econ_inf_ > settings_.div_econ_tol_) ||
-        (last.icon_inf_ > settings_.div_icon_tol_) || (last.barr_inf_ > settings_.div_bar_tol_);
+        (last.kkt_inf_ > opts_.div_kkt_tol) || (last.econ_inf_ > opts_.div_econ_tol) ||
+        (last.icon_inf_ > opts_.div_icon_tol) || (last.barr_inf_ > opts_.div_bar_tol);
 
     if (nan_inf) {
         // Non-finite residual: unrecoverable, abort immediately regardless of
@@ -1667,15 +1740,15 @@ hven::solvers::InteriorPointSolver::converge_check(std::vector<IterateInfo> &ite
     if (KKTFeas && EConFeas && IConFeas && BarFeas) {
         Flag = ConvergenceFlags::CONVERGED;
         return Flag;
-    } else if (int(iters.size()) > settings_.max_acc_iters_) {
+    } else if (int(iters.size()) > opts_.max_acc_iters) {
         int nfeas = 0;
-        for (int i = 0; i < settings_.max_acc_iters_; i++) {
-            if (interior_point_iterate_acceptable(iters[int(iters.size()) - i - 1], settings_))
+        for (int i = 0; i < opts_.max_acc_iters; i++) {
+            if (interior_point_iterate_acceptable(iters[int(iters.size()) - i - 1], opts_))
                 nfeas++;
             else
                 break;
         }
-        if (nfeas == settings_.max_acc_iters_) {
+        if (nfeas == opts_.max_acc_iters) {
             Flag = ConvergenceFlags::ACCEPTABLE;
             return Flag;
         }
@@ -1705,7 +1778,7 @@ int hven::solvers::InteriorPointSolver::factor_impl(bool docompute, bool Zfac, d
     };
     auto RankDef = [&]() {
         if ((this->kkt_sol_.neigs() + this->kkt_sol_.peigs() - this->kkt_dim_) != 0) {
-            if (settings_.print_level_ < 3)
+            if (opts_.common.print_level < 3)
                 fmt::print(fmt::fg(fmt::color::yellow),
                            "Warning: Potential Rank Deficiency Detected\n");
         }
@@ -1726,7 +1799,7 @@ int hven::solvers::InteriorPointSolver::factor_impl(bool docompute, bool Zfac, d
         Eigen::ComputationInfo info = this->kkt_sol_.info();
         if (info != Eigen::Success) {
             this->result_.last_kkt_info_ = info;
-            if (info != Eigen::NumericalIssue && settings_.print_level_ < 3) {
+            if (info != Eigen::NumericalIssue && opts_.common.print_level < 3) {
                 fmt::print(fmt::fg(fmt::color::yellow),
                            "Warning: KKT factorization reported a hard error (info={})\n",
                            static_cast<int>(info));
@@ -1787,10 +1860,10 @@ int hven::solvers::InteriorPointSolver::factor_impl(bool docompute, bool Zfac, d
     // would be bypassed on ~3 of every 4 iterations, defeating its purpose).
     // Proximal applies delta_c itself (see its branch below) and never
     // consults the latch.
-    if (settings_.inertia_mode_ != InertiaModes::proximal_regularization && this->dc_latched_)
+    if (opts_.inertia_mode != InertiaModes::proximal_regularization && this->dc_latched_)
         EngageDualReg();
 
-    if (settings_.inertia_mode_ == InertiaModes::proximal_regularization) {
+    if (opts_.inertia_mode == InertiaModes::proximal_regularization) {
         // Proximal primal-dual base shift. The persistent primal shift base_prox
         // (ρ_k, decayed across iterations by alg_impl) is added to the (1,1)
         // Hessian-block diagonal, and the barrier-scaled dual shift dual_shift
@@ -1836,7 +1909,7 @@ int hven::solvers::InteriorPointSolver::factor_impl(bool docompute, bool Zfac, d
     }
     double p = ipurt;
 
-    for (int i = 0; i < settings_.max_refac_; i++) {
+    for (int i = 0; i < opts_.max_refac; i++) {
         Perturb(p);
         // Display-only accumulator: the running sum of every
         // Perturb() delta applied so far this call -- i.e. the actual total added
@@ -1859,16 +1932,16 @@ int hven::solvers::InteriorPointSolver::factor_impl(bool docompute, bool Zfac, d
             p *= incpurt;
         p -= finalpert;
     }
-    if (settings_.print_level_ < 3)
+    if (opts_.common.print_level < 3)
         fmt::print(fmt::fg(fmt::color::yellow),
                    "Warning: Inertia correction exhausted ({} perturbation attempts, "
                    "inertia p/n/z = {}/{}/{}, expected {}/{}/0)\n",
-                   settings_.max_refac_, this->kkt_sol_.peigs(), this->kkt_sol_.neigs(),
+                   opts_.max_refac, this->kkt_sol_.peigs(), this->kkt_sol_.neigs(),
                    this->kkt_dim_ - this->kkt_sol_.peigs() - this->kkt_sol_.neigs(),
                    this->kkt_dim_ - (this->equal_cons_ + this->inequal_cons_),
                    this->equal_cons_ + this->inequal_cons_);
     exhausted = true;
-    return settings_.max_refac_;
+    return opts_.max_refac;
 }
 
 // Best-iterate scoring + snapshot for the return_best_ path. See the declaration
@@ -1880,7 +1953,7 @@ void hven::solvers::InteriorPointSolver::track_best_iterate(const IterateInfo &i
                                                             double &BestCriteriaVal,
                                                             int &BestIter) {
     double critval;
-    switch (settings_.best_criteria_) {
+    switch (opts_.best_criteria) {
     case BestCriteriaModes::ECONS:
         critval = iter.econ_inf_;
         break;
@@ -1930,7 +2003,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
 
     // Reserve-once: bind to persistent member scratch instead of a fresh empty
     // local, so repeated alg_impl calls (one per phase) don't re-allocate from
-    // scratch when settings_.return_best_ is enabled.
+    // scratch when opts_.return_best is enabled.
     Eigen::VectorXd &BestXSL = this->best_xsl_scratch_;
     Eigen::VectorXd &BestRHS = this->best_rhs_scratch_;
     double BestCriteriaVal = 1.0e10;
@@ -1952,7 +2025,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     // outlive this alg_impl frame or the InteriorPointSolver members it references.
     SolverContext ctx{this->nlp_.get(),
                       this->kkt_sol_,
-                      this->settings_,
+                      this->opts_,
                       this->primal_vars_,
                       this->slack_vars_,
                       this->equal_cons_,
@@ -1978,7 +2051,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                                 // pre - kkt - func - print)
     hven::utils::Timer Printtimer;
 
-    double Hpert0 = settings_.delta_h_;
+    double Hpert0 = opts_.delta_h;
     // Persistent primal base shift ρ_k for the proximal_regularization inertia
     // mode. Per-phase lifetime, exactly like the ladder's Hpert0/FirstPert
     // warm-start memory (one alg_impl call = one phase; NOT reset at restoration
@@ -1992,7 +2065,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     double last_prox_primal = -1.0;
     double last_prox_dual = -1.0;
     std::vector<IterateInfo> iters;
-    iters.reserve(settings_.max_iters_);
+    iters.reserve(opts_.max_iters);
     ConvergenceFlags ExitCode = ConvergenceFlags::NOTCONVERGED;
     bool FirstPert = true;
 
@@ -2015,7 +2088,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     // EXHAUSTION (i == max_iters_) from any of the three outer breaks, which all
     // leave with i <= max_iters_ - 1. Nothing else after the loop reads it.
     int i = 0;
-    for (; i < settings_.max_iters_; i++) {
+    for (; i < opts_.max_iters; i++) {
         IterateInfo Citer;
         Citer.iter_ = i;
 
@@ -2183,7 +2256,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                     prim_obj; // = φ_l1 while active; the exit test reads only infeasibility.
                 cur.auxiliary = barr_obj;
                 const double resto_failure_threshold =
-                    kRestoFailureFeasibilityFactor * settings_.econ_tol_;
+                    kRestoFailureFeasibilityFactor * opts_.econ_tol;
 
                 if (this->resto_first_iter_) {
                     // First phase iteration: take at least one step before any exit
@@ -2245,7 +2318,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                 // infeasibility declared (see kRestoFailureFeasibilityFactor's
                 // citation block in proximal_restoration.h).
                 const double resto_failure_threshold =
-                    kRestoFailureFeasibilityFactor * settings_.econ_tol_;
+                    kRestoFailureFeasibilityFactor * opts_.econ_tol;
 
                 if (PreExitCode == ConvergenceFlags::CONVERGED ||
                     PreExitCode == ConvergenceFlags::ACCEPTABLE) {
@@ -2334,7 +2407,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                 // The first of the two labelled NOTCONVERGED doors; see
                 // last_stop_reason(). A store into a member nothing else reads.
                 this->last_stop_reason_ = IpmStopReason::kRestorationLocallyInfeasible;
-                if (settings_.return_best_) {
+                if (opts_.return_best) {
                     XSL = BestXSL;
                     RHS = BestRHS;
                     this->bound_duals_ = this->best_bound_duals_scratch_;
@@ -2346,12 +2419,12 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                 restoration_true_obj = 0.0;
                 this->assemble_objective(obj_scale, v_xsl.primals(), restoration_true_obj);
                 this->result_.converge_flag_ = ExitCode;
-                if (settings_.print_level_ == 0) {
+                if (opts_.common.print_level == 0) {
                     Printtimer.start();
                     this->print_last_iterate(iters);
                     Printtimer.stop();
                 }
-                if (settings_.print_level_ < 3)
+                if (opts_.common.print_level < 3)
                     fmt::print(fmt::fg(fmt::color::yellow),
                                "Feasibility restoration converged to a locally infeasible "
                                "point (infeasibility {:.3e} > {:.3e}); stopping "
@@ -2392,7 +2465,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             // report a mixed-scale winner. Only DIVERGING-while-active reaches
             // this early-exit block (CONVERGED/ACCEPTABLE are intercepted by the
             // restoration handling above).
-            if (settings_.return_best_ && !(this->restoration_ && this->restoration_->is_active()))
+            if (opts_.return_best && !(this->restoration_ && this->restoration_->is_active()))
                 this->track_best_iterate(iters.back(), i, XSL, RHS, BestCriteriaVal, BestIter);
 
             // SITE 1 OF 2 (`ipm.iter`, M6 W4 T4): the CONVERGE-CHECK EARLY EXIT,
@@ -2407,13 +2480,13 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                 CBtimer.stop();
             }
 
-            if (settings_.print_level_ == 0) {
+            if (opts_.common.print_level == 0) {
                 Printtimer.start();
                 this->print_last_iterate(iters);
                 Printtimer.stop();
             }
 
-            if (ExitCode != ConvergenceFlags::CONVERGED && settings_.return_best_) {
+            if (ExitCode != ConvergenceFlags::CONVERGED && opts_.return_best) {
                 XSL = BestXSL;
                 RHS = BestRHS;
                 this->bound_duals_ = this->best_bound_duals_scratch_;
@@ -2539,7 +2612,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                     // terminal conjunction so a stall on the cap iteration wins
                     // the tie by program order; see last_stop_reason().
                     this->last_stop_reason_ = IpmStopReason::kStageStalled;
-                    if (settings_.print_level_ < 3)
+                    if (opts_.common.print_level < 3)
                         fmt::print(fmt::fg(fmt::color::yellow),
                                    "Feasibility phase stalled with its restoration budget "
                                    "exhausted and no relative improvement over the violation "
@@ -2560,17 +2633,17 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         // Kept fully separate from nhpert (the last delta), which alone feeds the
         // Hpert0 warm-start below -- see the comment at that read site.
         double nhpert_cum = 0;
-        double Incr = settings_.incr_h_;
-        double Incr2 = settings_.incr_h_;
+        double Incr = opts_.incr_h;
+        double Incr2 = opts_.incr_h;
         if (FirstPert)
-            Incr2 *= settings_.incr_h_;
+            Incr2 *= opts_.incr_h;
         // Cycling heuristic: if the last 4 consecutive iterations all required
         // Hessian perturbation (h_facs_ > 0), skip the zero-perturbation attempt
         // to avoid wasted factorizations when the problem is persistently
         // near-singular. The (i*3)%4 != 0 condition samples 3/4 of iterations,
         // periodically re-probing for recovered inertia.
         bool Zfac = true;
-        if (settings_.fast_factor_alg_ && i > 6 && ((i * 3) % 4) != 0) {
+        if (opts_.fast_factor_alg && i > 6 && ((i * 3) % 4) != 0) {
             bool cycling = true;
             for (int j = 0; j < 4; j++) {
                 int ns = iters[iters.size() - 1 - j].h_facs_;
@@ -2591,7 +2664,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                                    this->restoration_->is_nested();
         double base_prox = 0.0;
         double dual_shift = dc_suppressed ? 0.0 : hven::solvers::dual_regularization(mu);
-        if (settings_.inertia_mode_ == InertiaModes::proximal_regularization)
+        if (opts_.inertia_mode == InertiaModes::proximal_regularization)
             base_prox = rho_k;
 
         bool kkt_exhausted = false;
@@ -2602,13 +2675,13 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             // Hpert0 warm-start MUST keep consuming nhpert (the last perturbation
             // DELTA) byte-identically -- do not substitute nhpert_cum here (see
             // the display-only-accumulator comment above nhpert_cum's declaration).
-            Hpert0 = std::max(settings_.delta_h_, nhpert * settings_.decr_h_);
+            Hpert0 = std::max(opts_.delta_h, nhpert * opts_.decr_h);
             FirstPert = false;
         }
         Citer.h_pert_ = nhpert;
         Citer.h_pert_cum_ = nhpert_cum;
 
-        if (settings_.inertia_mode_ == InertiaModes::proximal_regularization) {
+        if (opts_.inertia_mode == InertiaModes::proximal_regularization) {
             // Record the shifts applied this iteration (sentinel -1 on the
             // classic path), then decay the persistent primal base shift toward
             // its floor. If the base attempt sufficed (h_facs_ == 0) the implicit
@@ -2621,7 +2694,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             last_prox_primal = base_prox;
             last_prox_dual = dual_shift;
             double applied_total = (Citer.h_facs_ > 0) ? (rho_k + nhpert) : rho_k;
-            rho_k = hven::solvers::prox_reg_decay(applied_total, settings_.decr_h_);
+            rho_k = hven::solvers::prox_reg_decay(applied_total, opts_.decr_h);
         }
 
         // Update barrier parameter and compute search direction. The whole
@@ -2846,7 +2919,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         // recovery gets a say -- SOC -> extended-backtrack -> watchdog-revert
         // -> feasibility-switch dispatch from this point (see
         // rebuild_globalization_components's wiring comment for how the
-        // chain is assembled from settings_). The
+        // chain is assembled from opts_). The
         // inertia/perturbation ladder above (factor_impl's Zfac cycling +
         // escalation) is a SEPARATE mechanism and stays out of this chain
         // (a future inertia-dispatch stage may wire it in) -- it is NOT
@@ -2997,7 +3070,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                     // touched XSL (the `XSL += alpha*DXSL` commit is below the
                     // loop's exit check).
                     const double violation_ue = this->constraint_violation_l1(v_rhs);
-                    if (interior_point_iterate_acceptable(Citer, settings_)) {
+                    if (interior_point_iterate_acceptable(Citer, opts_)) {
                         alpha = 0.0;
                         Citer.accepted_ = false;
                         exit_at_acceptable = true;
@@ -3024,7 +3097,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                             "recover: not configured, entry refused, or already active. Last "
                             "evaluation error: {}",
                             Citer.iter_, this->eval_error_log_.count_ - eval_errs_before,
-                            alpha * settings_.alpha_red_, this->eval_error_log_.last_message_));
+                            alpha * opts_.alpha_red, this->eval_error_log_.last_message_));
                     }
                 }
                 break;
@@ -3135,7 +3208,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         // prim_obj/kkt_inf are proximal-scale and must not compete with
         // true-objective iterates for "best" — otherwise return_best_ could
         // report a mixed-scale winner.
-        if (settings_.return_best_ && !(this->restoration_ && this->restoration_->is_active()))
+        if (opts_.return_best && !(this->restoration_ && this->restoration_->is_active()))
             this->track_best_iterate(iters.back(), i, XSL, RHS, BestCriteriaVal, BestIter);
 
         // SITE 2 OF 2 (`ipm.iter`): the ORDINARY END-OF-ITERATION site, after
@@ -3173,7 +3246,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         if (singular_abort)
             ExitCode = ConvergenceFlags::SINGULAR_KKT;
 
-        if (settings_.print_level_ == 0) {
+        if (opts_.common.print_level == 0) {
             Printtimer.start();
             this->print_last_iterate(iters);
             Printtimer.stop();
@@ -3185,7 +3258,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         // or better if this iterate happens to qualify) is what gets reported.
         if (ExitCode == ConvergenceFlags::CONVERGED || ExitCode == ConvergenceFlags::ACCEPTABLE ||
             ExitCode == ConvergenceFlags::DIVERGING || ExitCode == ConvergenceFlags::SINGULAR_KKT ||
-            exit_stage_stalled || i == (settings_.max_iters_ - 1)) {
+            exit_stage_stalled || i == (opts_.max_iters - 1)) {
 
             // Cap door 1 of 2 (the other is below the loop): the conjunction's
             // own cap disjunct. It fires only when the cap is the ONLY reason
@@ -3199,12 +3272,12 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             // its own label. The stall store above precedes this in program
             // order, so a stall on the cap iteration keeps kStageStalled. See
             // last_stop_reason() for what the label does and does not claim.
-            if (i == (settings_.max_iters_ - 1) && ExitCode == ConvergenceFlags::NOTCONVERGED &&
+            if (i == (opts_.max_iters - 1) && ExitCode == ConvergenceFlags::NOTCONVERGED &&
                 this->last_stop_reason_ == IpmStopReason::kNone) {
                 this->last_stop_reason_ = IpmStopReason::kIterationCap;
             }
 
-            if (ExitCode != ConvergenceFlags::CONVERGED && settings_.return_best_) {
+            if (ExitCode != ConvergenceFlags::CONVERGED && opts_.return_best) {
                 XSL = BestXSL;
                 RHS = BestRHS;
                 this->bound_duals_ = this->best_bound_duals_scratch_;
@@ -3264,9 +3337,9 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
 
     // Cap door 2 of 2: EXHAUSTION. Five `continue`s above can bypass the
     // terminal conjunction on the cap iteration -- the four LEAVE-restoration
-    // returns (the nested near-feasible and ratchet returns, :2207 and :2229;
-    // the proximal near-feasible and sufficient-reduction returns, :2272 and
-    // :2301) and the stall-triggered restoration DISPATCH (:2528) -- and the
+    // returns (the nested near-feasible and ratchet returns, :2280 and :2302;
+    // the proximal near-feasible and sufficient-reduction returns, :2345 and
+    // :2374) and the stall-triggered restoration DISPATCH (:2601) -- and the
     // loop then falls through here with i == max_iters_; every outer break
     // leaves with i <= max_iters_ - 1, so this door fires on exhaustion and on
     // nothing else. Guarded on the reason alone: a fall-through has no ExitCode
@@ -3274,7 +3347,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     // there is no local verdict to agree with and nothing else to distinguish.
     // result_.converge_flag_ is NOT read, for the reason door 1 gives -- its
     // lifetime is the CALL and this label's is the PHASE.
-    if (this->last_stop_reason_ == IpmStopReason::kNone && i >= settings_.max_iters_) {
+    if (this->last_stop_reason_ == IpmStopReason::kNone && i >= opts_.max_iters) {
         this->last_stop_reason_ = IpmStopReason::kIterationCap;
     }
 
@@ -3359,7 +3432,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     // factorization (no shift was ever applied). Same last-phase-wins
     // semantics as the other diagnostic fields: a multi-phase call ends with
     // the LAST phase's alg_impl call's values.
-    if (settings_.inertia_mode_ == InertiaModes::proximal_regularization) {
+    if (opts_.inertia_mode == InertiaModes::proximal_regularization) {
         this->result_.last_prox_reg_primal_ = last_prox_primal;
         this->result_.last_prox_reg_dual_ = last_prox_dual;
     }
@@ -3422,7 +3495,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
 
     // Print exit statistics
     assert(!iters.empty());
-    assert(!settings_.return_best_ || BestIter < static_cast<int>(iters.size()));
+    assert(!opts_.return_best || BestIter < static_cast<int>(iters.size()));
     // The reported iterate, and not simply the return_best_ pick: the
     // substitution that makes primals_/obj_val_/the multiplier blocks describe
     // BestIter is itself guarded on the exit not being converged (both break
@@ -3431,7 +3504,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     // the result describes on every path -- harmless while this row fed only
     // print_exit_stats, a wrong-answer shape once it is promoted onto
     // SolveResult.
-    const int retiter = (settings_.return_best_ && ExitCode != ConvergenceFlags::CONVERGED)
+    const int retiter = (opts_.return_best && ExitCode != ConvergenceFlags::CONVERGED)
                             ? BestIter
                             : static_cast<int>(iters.size()) - 1;
     // The four residual columns of the row selected just above; written per
@@ -3477,10 +3550,10 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::init_impl(const Eigen::Vecto
 
     for (int i = 0; i < this->slack_vars_; i++) {
         double fxi = v_rhs.iq_cons()[i];
-        if (fxi < -settings_.bound_push_) {
+        if (fxi < -opts_.bound_push) {
             v_xsl.slacks()[i] = std::abs(fxi);
         } else {
-            v_xsl.slacks()[i] = settings_.bound_push_;
+            v_xsl.slacks()[i] = opts_.bound_push;
         }
         hp[i] = 1.0;
         v_xsl.iq_lmults()[i] = mu / v_xsl.slacks()[i];
@@ -3490,7 +3563,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::init_impl(const Eigen::Vecto
 
     if (this->inequal_cons_ > 0)
         this->nlp_->assign_kkt_slack_hessian(hp, this->kkt_sol_.matrix());
-    if (settings_.print_level_ < 2) {
+    if (opts_.common.print_level < 2) {
         print_beginning("KKT-Matrix Analysis ");
     }
 
@@ -3506,7 +3579,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::init_impl(const Eigen::Vecto
     this->result_.factor_flops_ = this->kkt_sol_.factor_flops();
     this->result_.factor_mem_ = this->kkt_sol_.factor_mem();
 
-    if (settings_.print_level_ < 2) {
+    if (opts_.common.print_level < 2) {
         auto cyan = fmt::fg(fmt::color::cyan);
         if (docompute) {
             fmt::print(" LDLT Factor Size      : ");
@@ -4104,8 +4177,21 @@ void hven::solvers::InteriorPointSolver::unscale_reported_outputs() {
 Eigen::VectorXd
 hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
                                                        std::initializer_list<PhaseStep> steps) {
+    // The in-flight guard, and the ONE site it is set from: every public entry
+    // point (solve/optimize and the three compositions) reaches this function
+    // exactly once per call, so a per-entry-point flag would double-set on the
+    // compositions. Cleared on every exit, a throw included. Read by
+    // set_options(), which refuses to replace the options a solve is running
+    // under. A nested restoration phase builds a DISTINCT solver, so it never
+    // re-enters this object's guard.
+    struct SolveInFlightGuard {
+        bool &flag_;
+        explicit SolveInFlightGuard(bool &f) : flag_(f) { flag_ = true; }
+        ~SolveInFlightGuard() { flag_ = false; }
+    } solve_guard(this->solve_in_flight_);
+
     // Disarm any staged multiplier seed immediately, before anything below --
-    // the nlp_/x-size checks just after this, settings_.validate(), the
+    // the nlp_/x-size checks just after this, validate(opts_), the
     // variable-treatment reconfiguration, ... -- gets a chance to throw and
     // leave a stale seed armed for an unrelated later call. The local copies
     // below live only for the duration of this call; nothing they hold
@@ -4177,20 +4263,21 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     this->result_.reset_accumulators();
     this->clear_reported_constraint_blocks();
     this->eval_error_log_.reset();
-    settings_.validate();
+    hven::solvers::validate(this->opts_);
 
     // TAKEN ONCE, HERE, and read by everything downstream. The scale governs
     // what this call minimizes, so one call has to run at one scale: the entry
     // initialization, the multiplier seed, every phase and the unscaling of
     // what leaves must all divide and multiply by the same number. Reading the
-    // setting live at each of those points would let a callback -- which can
-    // reach the public setter and the settings reference -- change the scale
-    // between the phase that produced a multiplier and the seam that reports
-    // it, so a solve would report its objective and its duals on a scale
-    // nothing was evaluated at. A scale written during a call takes effect on
-    // the next one. Read AFTER validate(), so what is captured is a scale that
-    // has been checked.
-    this->solve_obj_scale_ = settings_.obj_scale_;
+    // option live at each of those points would let the scale move between the
+    // phase that produced a multiplier and the seam that reports it, so a solve
+    // would report its objective and its duals on a scale nothing was evaluated
+    // at. set_options() REFUSES a replacement while a solve is in flight, so
+    // nothing can move it mid-call today; the snapshot stays because the reason
+    // for it is the one-call-one-scale invariant, not the reachability of a
+    // setter. A scale written between calls takes effect on the next one. Read
+    // AFTER validate(), so what is captured is a scale that has been checked.
+    this->solve_obj_scale_ = opts_.obj_scale;
 
     // The entry state of the guard: true only when a callback is already
     // armed at entry, so the entry init_impl() factorization -- which runs
@@ -4228,9 +4315,9 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // factorization, so pointing the factor at a new one keeps the analysis
     // and the numerics and the next solve simply runs at the new width.
 #ifdef USE_ACCELERATE_SPARSE
-    accelerate_set_num_threads(settings_.qp_threads_);
+    accelerate_set_num_threads(opts_.common.threads);
 #else
-    this->kkt_sol_.set_num_threads(settings_.qp_threads_);
+    this->kkt_sol_.set_num_threads(opts_.common.threads);
 #endif
 
     // Classify the NLP's variable bounds for this solve, once, before any
@@ -4239,7 +4326,7 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // solver's variable space (make_parameter, the default), given an internal
     // equality row each (make_constraint), or kept as two-sided variables with
     // their bounds pushed apart (relax_bounds). Both arguments come from the
-    // Settings validated at the top of this function, so a solver switching
+    // Options validated at the top of this function, so a solver switching
     // treatment between two solves re-classifies here and nowhere else.
     //
     // The call is idempotent and reports whether it rebuilt anything. When it
@@ -4288,9 +4375,9 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // variable_treatment either runs the requested treatment or throws, so
     // this is what ran for this solve regardless of the idempotence
     // short-circuit inside it.
-    this->result_.fixed_variable_treatment_ = settings_.fixed_variable_treatment_;
+    this->result_.fixed_variable_treatment_ = opts_.fixed_variable_treatment;
     const bool treatment_rebuilt = this->nlp_->configure_variable_treatment(
-        settings_.fixed_variable_treatment_, settings_.bound_relax_factor_);
+        opts_.fixed_variable_treatment, opts_.bound_relax_factor);
     if (treatment_rebuilt || !this->kkt_pattern_is_analyzed()) {
         // Both conjuncts are kept rather than folded into the epoch test
         // alone: a treatment that rebuilt anything re-laid, so the two agree
@@ -4360,7 +4447,7 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     }
 
     // Rebuild acceptance_/mechanism_/governor_/recovery_ (and, when
-    // restoration_mode_ != off, restoration_) from the just-validated Settings
+    // restoration_mode != off, restoration_) from the just-validated options
     // on every solve entry, not just on (re)transcription (set_nlp() no longer
     // builds them) — see rebuild_globalization_components()'s doc comment for
     // why this must run per solve rather than per transcription, and for the
@@ -4397,22 +4484,22 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         begin_event.vars_ranged = box.vars_ranged;
         begin_event.vars_fixed = box.vars_fixed;
         begin_event.phases = static_cast<Index>(steps.size());
-        begin_event.max_iters = settings_.max_iters_;
-        begin_event.max_acc_iters = settings_.max_acc_iters_;
-        begin_event.kkt_tol = settings_.kkt_tol_;
-        begin_event.econ_tol = settings_.econ_tol_;
-        begin_event.icon_tol = settings_.icon_tol_;
-        begin_event.bar_tol = settings_.bar_tol_;
-        begin_event.init_mu = settings_.init_mu_;
+        begin_event.max_iters = opts_.max_iters;
+        begin_event.max_acc_iters = opts_.max_acc_iters;
+        begin_event.kkt_tol = opts_.kkt_tol;
+        begin_event.econ_tol = opts_.econ_tol;
+        begin_event.icon_tol = opts_.icon_tol;
+        begin_event.bar_tol = opts_.bar_tol;
+        begin_event.init_mu = opts_.init_mu;
         begin_event.obj_scale = this->solve_obj_scale_;
-        begin_event.inertia_mode = settings_.inertia_mode_;
-        begin_event.restoration_mode = settings_.restoration_mode_;
+        begin_event.inertia_mode = opts_.inertia_mode;
+        begin_event.restoration_mode = opts_.restoration_mode;
         this->trace_->on_ipm_solve_begin(begin_event);
     }
 
-    if (settings_.print_level_ == 0)
+    if (opts_.common.print_level == 0)
         print_stats();
-    if (settings_.print_level_ < 2) {
+    if (opts_.common.print_level < 2) {
         print_header();
         print_beginning("InteriorPointSolver ");
     }
@@ -4440,7 +4527,7 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     // and this is what makes those distances strictly positive to begin with. A
     // guess sitting on or outside a bound is projected, not rejected. Resets the
     // multiplier state to empty on a problem with no bounds.
-    this->push_initial_point_interior(x_solver, settings_.init_mu_);
+    this->push_initial_point_interior(x_solver, opts_.init_mu);
 
     // The polish hand-off, over the seed the push just wrote. The core's
     // signed z does not invert into the pair the barrier holds, so this
@@ -4462,7 +4549,7 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     }
 
     bool docompute = claim_kkt_analysis();
-    Eigen::VectorXd XSL = this->init_impl(x_solver, settings_.init_mu_, docompute);
+    Eigen::VectorXd XSL = this->init_impl(x_solver, opts_.init_mu, docompute);
 
     int phase_idx = 0;
     auto it = steps.begin();
@@ -4500,7 +4587,7 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         if (step.conditional_ && this->result_.converge_flag_ == ConvergenceFlags::CONVERGED)
             continue;
 
-        if (settings_.print_level_ < 2)
+        if (opts_.common.print_level < 2)
             print_beginning(step.label_);
 
         // Phase-boundary reset: each globalization component's μ-event/
@@ -4556,7 +4643,7 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         this->last_stop_reason_ = IpmStopReason::kNone;
 
         XSL = this->alg_impl(step.alg_mode_, step.bar_mode_, step.ls_mode_, this->solve_obj_scale_,
-                             settings_.init_mu_, XSL);
+                             opts_.init_mu, XSL);
 
         // Solver-level observability: collect this phase's acceptance-
         // strategy diagnostics (funnel width / filter size+resets — see
@@ -4584,7 +4671,7 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         if (this->restoration_)
             this->restoration_->append_diagnostics(this->result_);
 
-        if (settings_.print_level_ < 2)
+        if (opts_.common.print_level < 2)
             print_finished(step.label_);
 
         // If a phase reached DIVERGING or anything at least as severe, skip
@@ -4597,7 +4684,7 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         // via operator<=> in interior_point_solver_fwd.h) -- DIVERGING and anything more
         // severe ends the sequence.
         if (result_.converge_flag_ >= ConvergenceFlags::DIVERGING) {
-            if (settings_.print_level_ < 3)
+            if (opts_.common.print_level < 3)
                 fmt::print(fmt::fg(fmt::color::yellow),
                            "Phase diverged; skipping remaining phases.\n");
             break;
@@ -4610,7 +4697,7 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
         // NEXT phase, i.e. after alg_impl has already consumed the seeded
         // XSL for the current one.)
         if (!is_last) {
-            XSL = this->init_impl(result_.primals_, settings_.init_mu_, false);
+            XSL = this->init_impl(result_.primals_, opts_.init_mu, false);
         }
     }
 
@@ -4618,7 +4705,7 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
     double tottime = double(t.count<std::chrono::microseconds>()) / 1000.0;
     this->result_.total_time_ = tottime / 1000.0;
 
-    if (settings_.print_level_ < 2) {
+    if (opts_.common.print_level < 2) {
         print_timing_summary();
         fmt::print(" Total Solve Time             : ");
         fmt::print(fmt::fg(fmt::color::cyan), "{0:>10.3f} ms\n", tottime);
@@ -4681,36 +4768,33 @@ hven::solvers::InteriorPointSolver::run_phase_sequence(const Eigen::VectorXd &x,
 }
 
 Eigen::VectorXd hven::solvers::InteriorPointSolver::optimize(const Eigen::VectorXd &x) {
-    return run_phase_sequence(x, {{AlgorithmModes::OPT, settings_.opt_bar_mode_,
-                                   settings_.opt_ls_mode_, "Optimization Algorithm "}});
+    return run_phase_sequence(x, {{AlgorithmModes::OPT, opts_.opt_bar_mode, opts_.opt_ls_mode,
+                                   "Optimization Algorithm "}});
 }
 
 Eigen::VectorXd hven::solvers::InteriorPointSolver::solve(const Eigen::VectorXd &x) {
-    return run_phase_sequence(x, {{settings_.soe_mode_, settings_.soe_bar_mode_,
-                                   settings_.soe_ls_mode_, "Solve Algorithm "}});
+    return run_phase_sequence(
+        x, {{opts_.soe_mode, opts_.soe_bar_mode, opts_.soe_ls_mode, "Solve Algorithm "}});
 }
 
 Eigen::VectorXd hven::solvers::InteriorPointSolver::solve_optimize(const Eigen::VectorXd &x) {
-    return run_phase_sequence(x, {{settings_.soe_mode_, settings_.soe_bar_mode_,
-                                   settings_.soe_ls_mode_, "Solve Algorithm "},
-                                  {AlgorithmModes::OPT, settings_.opt_bar_mode_,
-                                   settings_.opt_ls_mode_, "Optimization Algorithm "}});
+    return run_phase_sequence(
+        x,
+        {{opts_.soe_mode, opts_.soe_bar_mode, opts_.soe_ls_mode, "Solve Algorithm "},
+         {AlgorithmModes::OPT, opts_.opt_bar_mode, opts_.opt_ls_mode, "Optimization Algorithm "}});
 }
 
 Eigen::VectorXd hven::solvers::InteriorPointSolver::optimize_solve(const Eigen::VectorXd &x) {
     return run_phase_sequence(
-        x, {{AlgorithmModes::OPT, settings_.opt_bar_mode_, settings_.opt_ls_mode_,
-             "Optimization Algorithm "},
-            {settings_.soe_mode_, settings_.soe_bar_mode_, settings_.soe_ls_mode_,
-             "Solve Algorithm ", /*conditional_=*/true}});
+        x, {{AlgorithmModes::OPT, opts_.opt_bar_mode, opts_.opt_ls_mode, "Optimization Algorithm "},
+            {opts_.soe_mode, opts_.soe_bar_mode, opts_.soe_ls_mode, "Solve Algorithm ",
+             /*conditional_=*/true}});
 }
 
 Eigen::VectorXd hven::solvers::InteriorPointSolver::solve_optimize_solve(const Eigen::VectorXd &x) {
     return run_phase_sequence(
-        x,
-        {{settings_.soe_mode_, settings_.soe_bar_mode_, settings_.soe_ls_mode_, "Solve Algorithm "},
-         {AlgorithmModes::OPT, settings_.opt_bar_mode_, settings_.opt_ls_mode_,
-          "Optimization Algorithm "},
-         {settings_.soe_mode_, settings_.soe_bar_mode_, settings_.soe_ls_mode_, "Solve Algorithm ",
-          /*conditional_=*/true}});
+        x, {{opts_.soe_mode, opts_.soe_bar_mode, opts_.soe_ls_mode, "Solve Algorithm "},
+            {AlgorithmModes::OPT, opts_.opt_bar_mode, opts_.opt_ls_mode, "Optimization Algorithm "},
+            {opts_.soe_mode, opts_.soe_bar_mode, opts_.soe_ls_mode, "Solve Algorithm ",
+             /*conditional_=*/true}});
 }

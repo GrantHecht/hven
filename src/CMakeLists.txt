@@ -87,7 +87,7 @@ target_sources(hven PRIVATE
     drivers/interior_point_solver.cpp
     drivers/interior_point_solver_globalization.cpp
     drivers/interior_point_solver_print.cpp
-    drivers/interior_point_solver_settings.cpp
+    drivers/ipm_options.cpp
     drivers/solver_init.cpp
     model/non_linear_program.cpp
     model/nlp_adapter.cpp
@@ -277,6 +277,11 @@ target_sources(hven PRIVATE
 #     (this source has since moved to model/non_linear_program.cpp; the row
 #     above is left at its original path, recording the sweep as it ran)
 #   drivers/interior_point_solver_settings.cpp    4.00 -> 2.45  -1.55  identical
+#     (renamed to drivers/ipm_options.cpp at M6 W5 T8.3, which also deleted the
+#     ~50 set_*() bodies and the four strto_*() parsers this row was measured
+#     over; the row is left as it ran, and the shrunken TU's own PCH benefit is
+#     UNMEASURED -- registered for the next measurement pass, not re-derived
+#     here)
 #   drivers/interior_point_solver_print.cpp       4.09 -> 2.56  -1.53  identical
 #   model/nlp_solver.cpp                          4.09 -> 2.56  -1.53  identical
 #   model/nlp_adapter.cpp                         4.61 -> 3.15  -1.46  identical
@@ -318,7 +323,7 @@ target_sources(hven PRIVATE
 set(_hven_pch_sources
     drivers/interior_point_solver.cpp
     drivers/interior_point_solver_print.cpp
-    drivers/interior_point_solver_settings.cpp
+    drivers/ipm_options.cpp
     model/non_linear_program.cpp
     model/nlp_adapter.cpp
     model/nlp_solver.cpp

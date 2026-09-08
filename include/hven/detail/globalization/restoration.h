@@ -82,12 +82,12 @@ class RestorationStrategy {
     /// endgame (constraints at their floor while the barrier residual still
     /// grinds down) from a genuine stall.
     bool near_feasible(double constraint_violation, const SolverContext &ctx) const {
-        return constraint_violation <= kNearFeasibleGuardFactor * ctx.settings_.econ_tol_;
+        return constraint_violation <= kNearFeasibleGuardFactor * ctx.opts_.econ_tol;
     }
 
     /// @brief Entry-permission test: may the solver enter restoration right now?
     /// False refuses entry — either the point is already near-feasible or this
-    /// phase's restoration budget (ctx.settings_.max_feas_rest_) is exhausted.
+    /// phase's restoration budget (ctx.opts_.max_feas_rest) is exhausted.
     /// Virtual with a shared default body: both shipped strategies use exactly
     /// this guard + budget test and do not override it; test doubles override
     /// it directly for controllability.
@@ -95,7 +95,7 @@ class RestorationStrategy {
         if (near_feasible(constraint_violation, ctx)) {
             return false;
         }
-        if (entries_ >= ctx.settings_.max_feas_rest_) {
+        if (entries_ >= ctx.opts_.max_feas_rest) {
             return false;
         }
         return true;

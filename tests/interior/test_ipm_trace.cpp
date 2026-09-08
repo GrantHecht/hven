@@ -292,7 +292,11 @@ struct CallbackOracle {
 
 TEST(IpmTrace, IterCountEqualsTheReportedIterationsAndTheCallbackInvocations) {
     NLPSolver solver(std::make_shared<Hs071Problem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     CallbackOracle oracle;
@@ -311,7 +315,11 @@ TEST(IpmTrace, IterCountEqualsTheReportedIterationsAndTheCallbackInvocations) {
 
 TEST(IpmTrace, EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder) {
     NLPSolver solver(std::make_shared<Hs071Problem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     CallbackOracle oracle;
@@ -338,7 +346,11 @@ TEST(IpmTrace, EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder) {
 
 TEST(IpmTrace, TheLastIterLineEqualsTheLastRecordTheCallbackSaw) {
     NLPSolver solver(std::make_shared<Hs071Problem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     CallbackOracle oracle;
@@ -356,7 +368,11 @@ TEST(IpmTrace, TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProxima
     // Rule 5, the FIRST of the record's two -1 conventions: "proximal mode off".
     // The classic path writes -1 on every iteration, which is not a shift of -1.
     NLPSolver classic(std::make_shared<Hs071Problem>());
-    classic.optimizer_->set_print_level(10);
+    {
+        auto o = classic.optimizer_->options();
+        o.common.print_level = 10;
+        classic.optimizer_->set_options(std::move(o));
+    }
     std::ostringstream os_classic;
     JsonLinesTraceSink sink_classic(os_classic);
     classic.optimizer_->attach_trace(&sink_classic);
@@ -367,8 +383,16 @@ TEST(IpmTrace, TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProxima
     }
 
     NLPSolver prox(std::make_shared<Hs071Problem>());
-    prox.optimizer_->set_print_level(10);
-    prox.optimizer_->settings().inertia_mode_ = InertiaModes::proximal_regularization;
+    {
+        auto o = prox.optimizer_->options();
+        o.common.print_level = 10;
+        prox.optimizer_->set_options(std::move(o));
+    }
+    {
+        auto o = prox.optimizer_->options();
+        o.inertia_mode = InertiaModes::proximal_regularization;
+        prox.optimizer_->set_options(std::move(o));
+    }
     std::ostringstream os_prox;
     JsonLinesTraceSink sink_prox(os_prox);
     prox.optimizer_->attach_trace(&sink_prox);
@@ -412,7 +436,11 @@ bool looks_like_the_early_exit_site(const std::string &line) {
 
 TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolveDoesNot) {
     NLPSolver converged(std::make_shared<Hs071Problem>());
-    converged.optimizer_->set_print_level(10);
+    {
+        auto o = converged.optimizer_->options();
+        o.common.print_level = 10;
+        converged.optimizer_->set_options(std::move(o));
+    }
     std::ostringstream os_c;
     JsonLinesTraceSink sink_c(os_c);
     converged.optimizer_->attach_trace(&sink_c);
@@ -432,8 +460,12 @@ TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolve
     EXPECT_FALSE(looks_like_the_early_exit_site(c_lines.front()));
 
     NLPSolver truncated(std::make_shared<Hs071Problem>());
-    truncated.optimizer_->set_print_level(10);
-    truncated.optimizer_->set_max_iters(3);
+    {
+        auto o = truncated.optimizer_->options();
+        o.common.print_level = 10;
+        o.max_iters = 3;
+        truncated.optimizer_->set_options(std::move(o));
+    }
     std::ostringstream os_t;
     JsonLinesTraceSink sink_t(os_t);
     truncated.optimizer_->attach_trace(&sink_t);
@@ -456,7 +488,11 @@ TEST(IpmTrace, ThePerturbedPivotCountIsTheBackendsOwnAndNeverAFabricatedZero) {
     // BOTH ARMS ARE COMPILED FROM ONE SOURCE and the backend picks which runs,
     // so the macOS lane executes the Accelerate arm without an edit here.
     NLPSolver solver(std::make_shared<Hs071Problem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     solver.optimizer_->attach_trace(&sink);
@@ -495,7 +531,11 @@ TEST(IpmTrace, ThePerturbedPivotCountIsTheBackendsOwnAndNeverAFabricatedZero) {
 
 TEST(IpmTrace, SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine) {
     NLPSolver solver(std::make_shared<Hs071Problem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     solver.optimizer_->attach_trace(&sink);
@@ -514,8 +554,12 @@ TEST(IpmTrace, SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine) {
 
 TEST(IpmTrace, SolveBeginCarriesHs071sDimensionsCensusAndSettings) {
     NLPSolver solver(std::make_shared<Hs071Problem>());
-    solver.optimizer_->set_print_level(10);
-    solver.optimizer_->set_max_iters(40);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        o.max_iters = 40;
+        solver.optimizer_->set_options(std::move(o));
+    }
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     solver.optimizer_->attach_trace(&sink);
@@ -544,7 +588,11 @@ TEST(IpmTrace, SolveBeginCarriesHs071sDimensionsCensusAndSettings) {
 
 TEST(IpmTrace, SolveOptimizeReportsTwoPhasesAndNumbersItsIterLinesByPhase) {
     NLPSolver solver(std::make_shared<Hs071Problem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     solver.optimizer_->attach_trace(&sink);
@@ -581,7 +629,11 @@ TEST(IpmTrace, SolveOptimizeReportsTwoPhasesAndNumbersItsIterLinesByPhase) {
 
 TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {
     NLPSolver converged(std::make_shared<Hs071Problem>());
-    converged.optimizer_->set_print_level(10);
+    {
+        auto o = converged.optimizer_->options();
+        o.common.print_level = 10;
+        converged.optimizer_->set_options(std::move(o));
+    }
     std::ostringstream os_c;
     JsonLinesTraceSink sink_c(os_c);
     converged.optimizer_->attach_trace(&sink_c);
@@ -593,8 +645,12 @@ TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {
               std::to_string(converged.optimizer_->result().iter_num_));
 
     NLPSolver truncated(std::make_shared<Hs071Problem>());
-    truncated.optimizer_->set_print_level(10);
-    truncated.optimizer_->set_max_iters(3);
+    {
+        auto o = truncated.optimizer_->options();
+        o.common.print_level = 10;
+        o.max_iters = 3;
+        truncated.optimizer_->set_options(std::move(o));
+    }
     std::ostringstream os_t;
     JsonLinesTraceSink sink_t(os_t);
     truncated.optimizer_->attach_trace(&sink_t);
@@ -609,7 +665,11 @@ TEST(IpmTrace, ARefusedCallWritesNoLineAtAll) {
     // The `begin` emit sits AFTER every argument refusal, so a call that never
     // ran leaves no opening line dangling in the artifact.
     NLPSolver solver(std::make_shared<Hs071Problem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
@@ -628,7 +688,11 @@ TEST(IpmTrace, ARefusedCallWritesNoLineAtAll) {
 
 TEST(IpmTrace, AttachingASinkMovesNoResultField) {
     NLPSolver bare(std::make_shared<Hs071Problem>());
-    bare.optimizer_->set_print_level(10);
+    {
+        auto o = bare.optimizer_->options();
+        o.common.print_level = 10;
+        bare.optimizer_->set_options(std::move(o));
+    }
     const hven::ConvergenceFlags bare_flag = bare.optimize(hs071_start());
     const InteriorPointSolver::SolveResult &b = bare.optimizer_->result();
     const int bare_iters = b.iter_num_;
@@ -640,7 +704,11 @@ TEST(IpmTrace, AttachingASinkMovesNoResultField) {
     const Eigen::VectorXd bare_x = bare.return_x();
 
     NLPSolver traced(std::make_shared<Hs071Problem>());
-    traced.optimizer_->set_print_level(10);
+    {
+        auto o = traced.optimizer_->options();
+        o.common.print_level = 10;
+        traced.optimizer_->set_options(std::move(o));
+    }
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     traced.optimizer_->attach_trace(&sink);
@@ -661,7 +729,11 @@ TEST(IpmTrace, AttachingASinkMovesNoResultField) {
 
 TEST(IpmTrace, DetachingMidLifetimeStopsTheStreamAndChangesNothingElse) {
     NLPSolver solver(std::make_shared<Hs071Problem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     solver.optimizer_->attach_trace(&sink);
@@ -693,7 +765,11 @@ TEST(IpmTrace, SeqIsContiguousAcrossAnSqpSolveThenAnIpmSolveOnOneSinkAtDepthZero
     const Index after_sqp = sink.lines_written();
 
     NLPSolver solver(std::make_shared<Hs071Problem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.optimizer_->attach_trace(&sink);
     ASSERT_EQ(solver.optimize(hs071_start()), hven::ConvergenceFlags::CONVERGED);
     EXPECT_GT(sink.lines_written(), after_sqp);

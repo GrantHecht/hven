@@ -148,15 +148,39 @@ Eigen::VectorXd two_var_start(double a, double b) {
 // handful of iterations. See WithDefaultDivergenceThresholdsTheSameFixtureDiverges.
 NLPSolver make_stall_solver(int max_iters, bool lift_div_tols = true) {
     NLPSolver solver(std::make_shared<PowerSpikeProblem>());
-    solver.optimizer_->set_print_level(10);
-    solver.optimizer_->set_qp_threads(1);
-    solver.optimizer_->set_max_iters(max_iters);
-    solver.optimizer_->set_tols(1.0e-8, 0.02, 0.02, 1.0e-8);
-    solver.optimizer_->set_acc_tols(1.0e-6, 0.2, 0.2, 1.0e-6);
-    if (lift_div_tols)
-        solver.optimizer_->set_div_tols(1.0e300, 1.0e300, 1.0e300, 1.0e300);
-    solver.optimizer_->settings().restoration_mode_ = RestorationModes::l1_nested;
-    solver.optimizer_->set_max_feas_rest(1);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        o.common.threads = 1;
+        o.max_iters = max_iters;
+        o.kkt_tol = 1.0e-8;
+        o.econ_tol = 0.02;
+        o.icon_tol = 0.02;
+        o.bar_tol = 1.0e-8;
+        o.acc_kkt_tol = 1.0e-6;
+        o.acc_econ_tol = 0.2;
+        o.acc_icon_tol = 0.2;
+        o.acc_bar_tol = 1.0e-6;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    if (lift_div_tols) {
+        auto o = solver.optimizer_->options();
+        o.div_kkt_tol = 1.0e300;
+        o.div_econ_tol = 1.0e300;
+        o.div_icon_tol = 1.0e300;
+        o.div_bar_tol = 1.0e300;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    {
+        auto o = solver.optimizer_->options();
+        o.restoration_mode = RestorationModes::l1_nested;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    {
+        auto o = solver.optimizer_->options();
+        o.max_feas_rest = 1;
+        solver.optimizer_->set_options(std::move(o));
+    }
     return solver;
 }
 
@@ -186,11 +210,23 @@ void record_terminal_iter(NLPSolver &solver, TerminalIter &rec) {
 // subproblem converges at a still-infeasible point. Default tolerances.
 NLPSolver make_locally_infeasible_solver(int max_iters) {
     NLPSolver solver(std::make_shared<LocallyInfeasibleProblem>());
-    solver.optimizer_->set_print_level(10);
-    solver.optimizer_->set_qp_threads(1);
-    solver.optimizer_->set_max_iters(max_iters);
-    solver.optimizer_->settings().restoration_mode_ = RestorationModes::l1_nested;
-    solver.optimizer_->set_max_feas_rest(1);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        o.common.threads = 1;
+        o.max_iters = max_iters;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    {
+        auto o = solver.optimizer_->options();
+        o.restoration_mode = RestorationModes::l1_nested;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    {
+        auto o = solver.optimizer_->options();
+        o.max_feas_rest = 1;
+        solver.optimizer_->set_options(std::move(o));
+    }
     return solver;
 }
 

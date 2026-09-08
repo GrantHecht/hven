@@ -111,11 +111,19 @@ TEST(NLPMultiplierSeedingTest, SeededSolveMatchesUnseededSolution) {
     x0 << 1.0, 5.0, 5.0, 1.0;
 
     NLPSolver unseeded(std::make_shared<SeedHs071Problem>());
-    unseeded.optimizer_->set_print_level(10);
+    {
+        auto o = unseeded.optimizer_->options();
+        o.common.print_level = 10;
+        unseeded.optimizer_->set_options(std::move(o));
+    }
     ASSERT_EQ(unseeded.optimize(x0), hven::ConvergenceFlags::CONVERGED);
 
     NLPSolver seeded(std::make_shared<SeededSeedHs071Problem>());
-    seeded.optimizer_->set_print_level(10);
+    {
+        auto o = seeded.optimizer_->options();
+        o.common.print_level = 10;
+        seeded.optimizer_->set_options(std::move(o));
+    }
     ASSERT_EQ(seeded.optimize(x0), hven::ConvergenceFlags::CONVERGED);
 
     EXPECT_LT((seeded.return_x() - unseeded.return_x()).lpNorm<Eigen::Infinity>(), 1e-6);
@@ -173,7 +181,11 @@ struct SeedEqOnlyProblem : NLPProblem {
 
 TEST(NLPMultiplierSeedingTest, SeedSizeMismatchThrowsAndIsConsumed) {
     NLPSolver solver(std::make_shared<SeedEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     // SeedEqOnlyProblem has 1 equality row and 0 inequality rows; stage sizes
@@ -269,7 +281,11 @@ struct SeededSeedLowerBoundProblem : SeedLowerBoundProblem {
 
 TEST(NLPMultiplierSeedingTest, NegativeIqSeedIsClamped) {
     NLPSolver solver(std::make_shared<SeededSeedLowerBoundProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0(1);
     x0 << 3.0;
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
@@ -278,7 +294,11 @@ TEST(NLPMultiplierSeedingTest, NegativeIqSeedIsClamped) {
 
 TEST(NLPMultiplierSeedingTest, UnseededPathDoesNotConsultStaging) {
     NLPSolver solver(std::make_shared<SeedEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
 
     EXPECT_FALSE(solver.optimizer_->mults_staged_);
@@ -328,7 +348,11 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
     double unseeded_opt_entry_eq_mult = std::numeric_limits<double>::quiet_NaN();
     {
         NLPSolver solver(std::make_shared<SeedEqOnlyProblem>());
-        solver.optimizer_->set_print_level(10);
+        {
+            auto o = solver.optimizer_->options();
+            o.common.print_level = 10;
+            solver.optimizer_->set_options(std::move(o));
+        }
         solver.optimizer_->set_early_callback(
             [&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL, double,
                 hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
@@ -345,7 +369,11 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
     double seeded_opt_entry_eq_mult = std::numeric_limits<double>::quiet_NaN();
     {
         NLPSolver solver(std::make_shared<SeededPhaseEntryEqOnlyProblem>());
-        solver.optimizer_->set_print_level(10);
+        {
+            auto o = solver.optimizer_->options();
+            o.common.print_level = 10;
+            solver.optimizer_->set_options(std::move(o));
+        }
         solver.optimizer_->set_early_callback(
             [&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL, double,
                 hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
@@ -427,9 +455,12 @@ struct SeededSeedFixedVarEqProblem : SeedFixedVarEqProblem {
 
 TEST(NLPMultiplierSeedingTest, SeededSolveWithMakeConstraintFixedVarConverges) {
     NLPSolver solver(std::make_shared<SeededSeedFixedVarEqProblem>());
-    solver.optimizer_->set_print_level(10);
-    solver.optimizer_->set_fixed_variable_treatment(
-        hven::solvers::FixedVariableTreatments::MakeConstraint);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeConstraint;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
     Eigen::VectorXd x = solver.return_x();
@@ -439,7 +470,11 @@ TEST(NLPMultiplierSeedingTest, SeededSolveWithMakeConstraintFixedVarConverges) {
 
 TEST(NLPMultiplierSeedingTest, DecliningProblemClearsStaleStaging) {
     NLPSolver solver(std::make_shared<SeedEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     // Arm a deliberately poisoned stale seed directly, bypassing
@@ -468,7 +503,11 @@ TEST(NLPMultiplierSeedingTest, DecliningProblemClearsStaleStaging) {
 
 TEST(NLPMultiplierSeedingTest, NaNSeedThrows) {
     NLPSolver solver(std::make_shared<SeedEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     solver.transcribe();
 
     Eigen::VectorXd eq(1);
@@ -503,7 +542,11 @@ struct SeededOversizedEqOnlyProblem : SeedEqOnlyProblem {
 
 TEST(NLPMultiplierSeedingTest, OversizedSeedIsCapped) {
     NLPSolver solver(std::make_shared<SeededOversizedEqOnlyProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
 
     double captured_eq_mult = std::numeric_limits<double>::quiet_NaN();
     solver.optimizer_->set_early_callback(
@@ -537,7 +580,11 @@ struct SeededOversizedLowerBoundProblem : SeedLowerBoundProblem {
 
 TEST(NLPMultiplierSeedingTest, OversizedIqSeedIsCapped) {
     NLPSolver solver(std::make_shared<SeededOversizedLowerBoundProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
 
     double captured_iq_mult = std::numeric_limits<double>::quiet_NaN();
     solver.optimizer_->set_early_callback(
@@ -565,9 +612,12 @@ TEST(NLPMultiplierSeedingTest, OversizedIqSeedIsCapped) {
 // exercises the first; the assertions below exercise the second.
 TEST(NLPMultiplierSeedingTest, FixedVariableConstraintRowStaysOutOfTheReportedMultipliers) {
     NLPSolver solver(std::make_shared<SeedFixedVarEqProblem>());
-    solver.optimizer_->set_print_level(10);
-    solver.optimizer_->set_fixed_variable_treatment(
-        hven::solvers::FixedVariableTreatments::MakeConstraint);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeConstraint;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
 

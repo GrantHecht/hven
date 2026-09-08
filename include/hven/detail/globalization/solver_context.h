@@ -6,11 +6,13 @@
 #include <Eigen/Core>
 #include <Eigen/Sparse>
 
-// SolverContext exposes InteriorPointSolver::Settings by reference, which is only
-// visible once the InteriorPointSolver class itself has been parsed (Settings is a
-// nested struct). The include is deliberately one-directional:
+// SolverContext exposes the solver's IpmOptions by reference. The
+// interior_point_solver.h include below is deliberately one-directional:
 // interior_point_solver.h does not include back into this directory, which keeps
 // every header below standalone-compilable without a circular-include trick.
+// (Before M6 W5 T8.3 the options were the nested InteriorPointSolver::Settings,
+// so the include was mandatory; the options are their own header now, but this
+// context still names the solver's other types.)
 #include "hven/detail/interior/bound_set.h"
 #include "hven/detail/interior/eval_error_log.h"
 #include "hven/detail/interior/kkt_factorization.h"
@@ -53,10 +55,10 @@ struct SolverContext {
     /// (factor/refactor) by inertia-ladder dispatch.
     KktSolverType &kkt_solver_;
 
-    /// One const reference to the full settings bundle rather than per-field
-    /// plumbing: every live call site already reads it as ctx.settings_.<field>,
+    /// One const reference to the full options value rather than per-field
+    /// plumbing: every live call site already reads it as ctx.opts_.<field>,
     /// and each component consumes a disjoint subset.
-    const InteriorPointSolver::Settings &settings_;
+    const IpmOptions &opts_;
 
     /// References (not copies) into the solver's dimension members — fixed
     /// for the lifetime of a solve, but always observed live, never snapshotted.

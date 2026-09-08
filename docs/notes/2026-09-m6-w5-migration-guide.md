@@ -778,3 +778,197 @@ says; the baseline and every counter in the leg are untouched.
    reaches no conjunction and so has no local verdict, and the cap is the only
    way to get there.
 2. Everything fix round 1's points 2, 3 and 4 say still holds, unchanged.
+
+---
+
+## T8.3 — options as values: `CommonOptions`, `IpmOptions`, `SqpOptions::common`, `set_options()`
+
+### What changed
+
+**The interior-point engine's settings are a value, and the setters are gone.**
+`InteriorPointSolver::Settings` is now `hven::solvers::IpmOptions`, in the new
+public header `hven/drivers/ipm_solver_types.h`. Same 65 knobs, same declaration
+order, same defaults, **trailing underscores dropped**; two of them moved into
+the new `hven::solvers::CommonOptions` (`hven/drivers/common_options.h`), which
+both engines embed as a member called `common`:
+
+| before | now |
+|---|---|
+| `Settings::qp_threads_` | `IpmOptions::common.threads` (same default, `HVEN_DEFAULT_QP_THREADS`) |
+| `Settings::print_level_` | `IpmOptions::common.print_level` (same default, `0` = full output) |
+
+`CommonOptions` also carries `start_level`, which the interior-point engine
+CARRIES BUT DOES NOT READ in T8.3 — T8.5 is where its warm-start entry starts
+consulting it. Nothing behaves differently because of this task: the fields
+moved, their defaults did not, and every read site reads the same value it read
+before.
+
+**Removed from `InteriorPointSolver`:** the 58 declared `set_*()` methods
+(including the six string-taking overloads), the four static `strto_*()`
+parsers, `apply_preset()`, `settings()` (both overloads) and the nested
+`Settings` struct itself. **Added:** `const IpmOptions &options() const noexcept`,
+`void set_options(IpmOptions)`, and `explicit InteriorPointSolver(IpmOptions = {})`.
+The `shared_ptr<NonLinearProgram>`-taking constructor is unchanged (it goes at
+T8.4).
+
+**The eight mode enums moved out of the class** — `BarrierModes`,
+`LineSearchModes`, `AlgorithmModes`, `QPAlgModes`, `QPOrderingModes`,
+`BestCriteriaModes`, `QPPivotModes`, `PDStepStrategies` are now at namespace
+scope in `hven/drivers/ipm_solver_types.h`, so a caller can name an option's
+value without including the engine. `InteriorPointSolver` keeps a member alias
+for each, so **every `InteriorPointSolver::BarrierModes::LOQO` spelling in your
+tree still compiles and still names the same type.**
+
+**The presets are free functions returning a full value.**
+`IpmOptions ipm_preset(std::string_view)` replaces `apply_preset()`. It applies
+the same nine fields to a DEFAULT-constructed value and returns it, rather than
+overlaying them on whatever the solver already held — so knobs you want kept are
+written on top of the preset, not before it.
+
+**Validation is one free function.** `void validate(const IpmOptions &)` is the
+old `Settings::validate()` body, with `common.threads` and `common.print_level`
+checked under those names. It runs at construction, at `set_options()` and again
+at `run_phase_sequence()` entry.
+
+**`src/drivers/interior_point_solver_settings.cpp` was RENAMED to
+`src/drivers/ipm_options.cpp`.** The library's source count is unchanged (42).
+
+### What you do
+
+```cpp
+// before
+hven::solvers::InteriorPointSolver solver;
+solver.set_max_iters(200);
+solver.set_print_level(10);
+solver.set_tols(1e-6, 1e-6, 1e-6, 1e-6);
+solver.apply_preset("filter_l1");
+
+// now
+auto o = hven::solvers::ipm_preset("filter_l1");   // start from the preset
+o.max_iters = 200;
+o.common.print_level = 10;
+o.kkt_tol = o.econ_tol = o.icon_tol = o.bar_tol = 1e-6;
+hven::solvers::InteriorPointSolver solver(o);      // or solver.set_options(std::move(o));
+```
+
+Reading a setting: `solver.settings().max_iters_` becomes
+`solver.options().max_iters`. There is no mutable accessor — a field is changed
+by replacing the whole value.
+
+The setter → field table, in the header's own order:
+
+| removed setter | write instead |
+|---|---|
+| `set_max_iters(v)` | `o.max_iters = v` |
+| `set_max_acc_iters(v)` | `o.max_acc_iters = v` |
+| `set_max_ls_iters(v)` | `o.max_ls_iters = v` |
+| `set_all_max_iters(a, b)` | `o.max_iters = a; max_acc_iters = b` |
+| `set_max_soc(v)` | `o.max_soc = v` |
+| `set_ls_extended_iters(v)` | `o.ls_extended_iters = v` |
+| `set_max_feas_rest(v)` | `o.max_feas_rest = v` |
+| `set_kkt_tol(v)` | `o.kkt_tol = v` |
+| `set_bar_tol(v)` | `o.bar_tol = v` |
+| `set_econ_tol(v)` | `o.econ_tol = v` |
+| `set_icon_tol(v)` | `o.icon_tol = v` |
+| `set_tols(k, e, i, b)` | `o.kkt_tol = k; econ_tol = e; icon_tol = i; bar_tol = b` |
+| `set_acc_kkt_tol(v)` | `o.acc_kkt_tol = v` |
+| `set_acc_bar_tol(v)` | `o.acc_bar_tol = v` |
+| `set_acc_econ_tol(v)` | `o.acc_econ_tol = v` |
+| `set_acc_icon_tol(v)` | `o.acc_icon_tol = v` |
+| `set_acc_tols(k, e, i, b)` | `o.acc_kkt_tol = k; acc_econ_tol = e; acc_icon_tol = i; acc_bar_tol = b` |
+| `set_div_kkt_tol(v)` | `o.div_kkt_tol = v` |
+| `set_div_bar_tol(v)` | `o.div_bar_tol = v` |
+| `set_div_econ_tol(v)` | `o.div_econ_tol = v` |
+| `set_div_icon_tol(v)` | `o.div_icon_tol = v` |
+| `set_div_tols(k, e, i, b)` | `o.div_kkt_tol = k; div_econ_tol = e; div_icon_tol = i; div_bar_tol = b` |
+| `set_bound_fraction(v)` | `o.bound_fraction = v` |
+| `set_bound_push(v)` | `o.bound_push = v` |
+| `set_bound_interval_push(v)` | `o.bound_interval_push = v` |
+| `set_bound_relax_factor(v)` | `o.bound_relax_factor = v` |
+| `set_fixed_variable_treatment(v)` | `o.fixed_variable_treatment = v` |
+| `set_alpha_red(v)` | `o.alpha_red = v` |
+| `set_delta_h(v)` | `o.delta_h = v` |
+| `set_incr_h(v)` | `o.incr_h = v` |
+| `set_decr_h(v)` | `o.decr_h = v` |
+| `set_hpert_params(d, i, r)` | `o.delta_h = d; incr_h = i; decr_h = r` |
+| `set_print_level(v)` | `o.**common.print_level = v**` |
+| `set_init_mu(v)` | `o.init_mu = v` |
+| `set_min_mu(v)` | `o.min_mu = v` |
+| `set_max_mu(v)` | `o.max_mu = v` |
+| `set_neg_slack_reset(v)` | `o.neg_slack_reset = v` |
+| `set_qp_threads(v)` | `o.**common.threads = v**` |
+| `set_qp_pivot_perturb(v)` | `o.qp_pivot_perturb = v` |
+| `set_qp_matching(v)` | `o.qp_matching = v` |
+| `set_qp_scaling(v)` | `o.qp_scaling = v` |
+| `set_qp_ref_steps(v)` | `o.qp_ref_steps = v` |
+| `set_qp_par_solve(v)` | `o.qp_par_solve = v` |
+| `set_obj_scale(v)` | `o.obj_scale = v` |
+| `set_qp_ordering_mode(m) / (str)` | `o.qp_ord = m` |
+| `set_opt_bar_mode(m) / (str)` | `o.opt_bar_mode = m` |
+| `set_soe_bar_mode(m) / (str)` | `o.soe_bar_mode = m` |
+| `set_opt_ls_mode(m) / (str)` | `o.opt_ls_mode = m` |
+| `set_soe_ls_mode(m) / (str)` | `o.soe_ls_mode = m` |
+| `set_best_criteria(m) / (str)` | `o.best_criteria = m` |
+| `set_accel_pivot_tolerance(v)` | `o.accel_pivot_tolerance = v (Accelerate builds)` |
+| `set_accel_zero_tolerance(v)` | `o.accel_zero_tolerance = v (Accelerate builds)` |
+
+The four `strto_*()` parsers and the six string-taking setter overloads have no
+replacement: name the enumerator. `InteriorPointSolver::strto_BarrierMode("LOQO")`
+becomes `hven::solvers::BarrierModes::LOQO`.
+
+### The rules `set_options()` adds
+
+1. **Transactional.** `validate(o)` runs first. A throw leaves the previous
+   options in force and the solver usable — never a half-applied value. This is
+   a real change from the per-field setters, which validated one field at a
+   time: a sequence that passed through an invalid INTERMEDIATE state (a
+   tolerance tightened before its acceptable partner was) is now refused as a
+   whole. Build the value, then hand it over once.
+2. **Between solves only.** A replacement attempted from inside an iteration
+   callback throws `std::logic_error`; the options do not move and the guard
+   clears on the unwind, so the solve finishes and later replacements work. The
+   previous behaviour — a setting written mid-call took effect on the NEXT call
+   — is REPLACED by the refusal.
+3. **The twelve backend-configuration fields are refused once a program is
+   attached.** `qp_ord`, `qp_pivot_perturb`, `qp_ref_steps`, `qp_matching`,
+   `qp_scaling`, `qp_pivot_strategy`, `qp_alg`, `qp_par_solve`, `qp_print`,
+   `cnr_mode` and (on Accelerate) `accel_pivot_tolerance` /
+   `accel_zero_tolerance` are read exactly once, inside `set_qp_params()`, which
+   runs from `set_nlp()`. Changing one on an attached solver was SILENTLY INERT
+   under the old setters; `set_options()` refuses it by name instead. Re-attach
+   the program after the replacement, or construct the solver with the options
+   you want. **Every other field takes effect on the next solve**, including
+   `fixed_variable_treatment` and `bound_relax_factor` (`run_phase_sequence()`
+   re-applies them through `configure_variable_treatment()` at every entry) and
+   `common.threads` (the same entry refreshes it onto the live factor).
+4. **The constructor caps `common.threads` at this machine's core count**, which
+   is exactly what the default constructor has always done. A count written
+   AFTER construction is the caller's explicit word and is taken verbatim, as
+   `set_qp_threads()` always did.
+
+### What is pinned
+
+`tests/drivers/test_options.cpp`: one representative per refusal class of the
+old `Settings::validate()` body; the transactional rule; the
+backend-configuration refusal and the `fixed_variable_treatment` counter-example;
+the mid-solve `logic_error` with `options()` unchanged and a later solve still
+green; every shipped preset's nine fields plus the defaults outside them; and an
+unknown preset name. The interior corpus leg (`bench/ipm_corpus_leg.cpp`, 37
+rows) re-captures byte-identically: its levers and its four abnormal variants are
+`IpmOptions` field writes now, and its CSV does not move.
+
+`tests/install_smoke/`: `include_common_options.cpp` and
+`include_ipm_solver_types.cpp` — the two new public headers stand alone against
+an install prefix (10 standalone TUs -> 12).
+
+### Two test-visible behaviour changes, both declared
+
+* `ObjectiveScaleReporting.ANegativeScaleIsRefusedAtBothDoors` is renamed
+  `…IsRefusedByValidate`: there is one door now. The second door it named — the
+  solve-entry check catching a scale written PAST the setter through the mutable
+  `settings()` reference — has nothing left to catch, because that reference is
+  gone. `run_phase_sequence()` still validates at entry as defense in depth.
+* `ObjectiveScaleReporting.TheScaleACallRanAtIsTheScaleItsOutputsAreReportedOn`
+  now pins the mid-call REFUSAL rather than the mid-call deferral. The
+  observable outcome it was written for is unchanged: one call runs at one
+  scale.

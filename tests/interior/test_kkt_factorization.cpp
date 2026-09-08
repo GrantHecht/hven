@@ -353,13 +353,21 @@ struct KktConfigRejectProblem : hven::solvers::NLPProblem {
 // against that analysis at the new width rather than paying to rebuild it.
 TEST(KktFactorizationTest, AThreadCountChangedAfterTranscriptionStillSolves) {
     hven::solvers::NLPSolver solver(std::make_shared<KktConfigRejectProblem>());
-    solver.optimizer_->set_print_level(10);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
     Eigen::VectorXd x0(1);
     x0 << 3.0;
 
     ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
 
-    solver.optimizer_->settings().qp_threads_ = solver.optimizer_->settings().qp_threads_ + 1;
+    {
+        auto o = solver.optimizer_->options();
+        o.common.threads = solver.optimizer_->options().common.threads + 1;
+        solver.optimizer_->set_options(std::move(o));
+    }
     EXPECT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
 }
 
@@ -370,14 +378,22 @@ TEST(KktFactorizationTest, AThreadCountChangedAfterTranscriptionStillSolves) {
 // loop. A nonzero cap would be inert.
 TEST(KktFactorizationTest, AccelerateRejectsANonzeroRefinementCap) {
     hven::solvers::NLPSolver solver(std::make_shared<KktConfigRejectProblem>());
-    solver.optimizer_->settings().qp_ref_steps_ = 2;
+    {
+        auto o = solver.optimizer_->options();
+        o.qp_ref_steps = 2;
+        solver.optimizer_->set_options(std::move(o));
+    }
     EXPECT_THROW(solver.optimizer_->set_nlp(solver.nlp_), std::invalid_argument);
 }
 
 // The pivot tolerance is fixed at the value the engine has always requested.
 TEST(KktFactorizationTest, AccelerateRejectsANonDefaultPivotTolerance) {
     hven::solvers::NLPSolver solver(std::make_shared<KktConfigRejectProblem>());
-    solver.optimizer_->settings().accel_pivot_tolerance_ = 0.05;
+    {
+        auto o = solver.optimizer_->options();
+        o.accel_pivot_tolerance = 0.05;
+        solver.optimizer_->set_options(std::move(o));
+    }
     EXPECT_THROW(solver.optimizer_->set_nlp(solver.nlp_), std::invalid_argument);
 }
 
@@ -386,7 +402,11 @@ TEST(KktFactorizationTest, AccelerateRejectsANonDefaultPivotTolerance) {
 // The surface calls the backend silently and exposes no message-level control.
 TEST(KktFactorizationTest, MklRejectsBackendMessageOutput) {
     hven::solvers::NLPSolver solver(std::make_shared<KktConfigRejectProblem>());
-    solver.optimizer_->settings().qp_print_ = true;
+    {
+        auto o = solver.optimizer_->options();
+        o.qp_print = true;
+        solver.optimizer_->set_options(std::move(o));
+    }
     EXPECT_THROW(solver.optimizer_->set_nlp(solver.nlp_), std::invalid_argument);
 }
 
@@ -395,8 +415,11 @@ TEST(KktFactorizationTest, MklRejectsBackendMessageOutput) {
 // integers.
 TEST(KktFactorizationTest, MklRejectsAnUndocumentedPivotingStrategyCode) {
     hven::solvers::NLPSolver solver(std::make_shared<KktConfigRejectProblem>());
-    solver.optimizer_->settings().qp_pivot_strategy_ =
-        hven::solvers::InteriorPointSolver::QPPivotModes::E13;
+    {
+        auto o = solver.optimizer_->options();
+        o.qp_pivot_strategy = hven::solvers::InteriorPointSolver::QPPivotModes::E13;
+        solver.optimizer_->set_options(std::move(o));
+    }
     EXPECT_THROW(solver.optimizer_->set_nlp(solver.nlp_), std::invalid_argument);
 }
 

@@ -51,7 +51,7 @@ struct InteriorLevers {
     int max_iters = 200;
     /// Console verbosity; 3 and above is silent under the IPM convention.
     int print_level = 10;
-    /// The corpus's own tolerances, in set_tols order.
+    /// The corpus's own tolerances, in kkt/econ/icon/barr order.
     double kkt_tol = detail::kKktTol;
     double econ_tol = detail::kFeasTol;
     double icon_tol = detail::kFeasTol;

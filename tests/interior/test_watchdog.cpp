@@ -280,7 +280,7 @@ class ExtBtScriptedAcceptance : public AcceptanceStrategy {
 // acceptance nor the mechanism.
 TEST(ExtendedBacktrackGuards, DisabledDeclines) {
     InertSolverContext inert;
-    inert.settings_.ls_extended_iters_ = 0;
+    inert.opts_.ls_extended_iters = 0;
     SolverContext ctx = inert.ctx();
     ExtBtUnusedAcceptance acceptance;
     ExtBtPassThroughMechanism mechanism;
@@ -306,7 +306,7 @@ TEST(ExtendedBacktrackGuards, DisabledDeclines) {
 // (ls_extended_iters_) bounds the number of external calls.
 TEST(ExtendedBacktrackLadder, ContinuesFromLiveAlphaAndHonorsCap) {
     InertSolverContext inert;
-    inert.settings_.ls_extended_iters_ = 3;
+    inert.opts_.ls_extended_iters = 3;
     SolverContext ctx = inert.ctx();
     ExtBtPassThroughMechanism mechanism;
     IterateInfo citer;
@@ -347,7 +347,7 @@ TEST(ExtendedBacktrackLadder, ContinuesFromLiveAlphaAndHonorsCap) {
 // budget) and commits the accepted scaled direction/alpha.
 TEST(ExtendedBacktrackLadder, AcceptsAndStopsEarly) {
     InertSolverContext inert;
-    inert.settings_.ls_extended_iters_ = 5; // budget bigger than needed
+    inert.opts_.ls_extended_iters = 5; // budget bigger than needed
     SolverContext ctx = inert.ctx();
     ExtBtPassThroughMechanism mechanism;
     IterateInfo citer;

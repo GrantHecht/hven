@@ -116,12 +116,12 @@ bool ClassicMeritAcceptance::is_infeasibility_sufficiently_reduced(
     //
     // Ipopt floors the relative target with Min(tol, constr_viol_tol) — its
     // separate optimality and constraint-violation tolerances. This engine
-    // carries a single constraint-violation tolerance (settings_.econ_tol_, the same field
+    // carries a single constraint-violation tolerance (opts_.econ_tol, the same field
     // RestorationStrategy::entry_permitted reads via near_feasible()), so the floor here is
     // that one tolerance — a disclosed single-tolerance adaptation of Ipopt's
     // two-tolerance minimum. Classic merit has no Uno counterpart; the Ipopt
     // relative-reduction shape is the reference.
-    const double floor = std::max(kKappaResto * reference.infeasibility, ctx_.settings_.econ_tol_);
+    const double floor = std::max(kKappaResto * reference.infeasibility, ctx_.opts_.econ_tol);
     return trial.infeasibility <= floor;
 }
 
@@ -151,7 +151,7 @@ void ClassicMeritAcceptance::eval_rhs(double obj_scale,
 
 void ClassicMeritAcceptance::apply_reset_slacks(Eigen::Ref<Eigen::VectorXd> S,
                                                 Eigen::Ref<Eigen::VectorXd> FXI) const {
-    detail::apply_reset_slacks(S, FXI, ctx_.slack_vars_, ctx_.settings_.neg_slack_reset_);
+    detail::apply_reset_slacks(S, FXI, ctx_.slack_vars_, ctx_.opts_.neg_slack_reset);
 }
 
 double ClassicMeritAcceptance::barrier_objective(Eigen::Ref<Eigen::VectorXd> S, double mu) const {
@@ -238,7 +238,7 @@ double ClassicMeritAcceptance::ls_lang(double obj_scale, double mu, double prim_
     double alpha = 1.0;
     double LangInit = prim_obj + barr_obj + xsl.lmults().dot(rhs.all_cons());
 
-    for (int j = 0; j < ctx_.settings_.max_ls_iters_; j++) {
+    for (int j = 0; j < ctx_.opts_.max_ls_iters; j++) {
         double ptest = 0;
         double btest = 0;
         xsl2.data() = xsl.data() + alpha * dxsl.data();
@@ -263,7 +263,7 @@ double ClassicMeritAcceptance::ls_lang(double obj_scale, double mu, double prim_
             // previous evaluable rung's value (or the IterateInfo default when
             // the first rung throws).
             citer.ls_iters_ = j + 1;
-            alpha = alpha / ctx_.settings_.alpha_red_;
+            alpha = alpha / ctx_.opts_.alpha_red;
             citer.first_rejection_iter_ =
                 citer.first_rejection_iter_ < 0 ? j : citer.first_rejection_iter_;
             continue;
@@ -302,7 +302,7 @@ double ClassicMeritAcceptance::ls_lang(double obj_scale, double mu, double prim_
             break;
         } else {
             citer.ls_iters_ = j + 1;
-            alpha = alpha / ctx_.settings_.alpha_red_;
+            alpha = alpha / ctx_.opts_.alpha_red;
             // Signal-only: record the first rejection's backtracking index.
             // The self-referential select keeps the first value (the LANG
             // variant computes no infeasibility scalar, so theta is left at its
@@ -331,7 +331,7 @@ double ClassicMeritAcceptance::ls_l1(double obj_scale, double mu, double prim_ob
 
     double LangInit = prim_obj + barr_obj + init.l1_ + init.l2_ * sc;
 
-    for (int j = 0; j < ctx_.settings_.max_ls_iters_; j++) {
+    for (int j = 0; j < ctx_.opts_.max_ls_iters; j++) {
         double ptest = 0;
         double btest = 0;
         bool evaluable = true;
@@ -347,7 +347,7 @@ double ClassicMeritAcceptance::ls_l1(double obj_scale, double mu, double prim_ob
         if (!evaluable) {
             // Un-evaluable trial — see ls_lang's rationale.
             citer.ls_iters_ = j + 1;
-            alpha = alpha / ctx_.settings_.alpha_red_;
+            alpha = alpha / ctx_.opts_.alpha_red;
             citer.first_rejection_iter_ =
                 citer.first_rejection_iter_ < 0 ? j : citer.first_rejection_iter_;
             continue;
@@ -364,7 +364,7 @@ double ClassicMeritAcceptance::ls_l1(double obj_scale, double mu, double prim_ob
             break;
         } else {
             citer.ls_iters_ = j + 1;
-            alpha = alpha / ctx_.settings_.alpha_red_;
+            alpha = alpha / ctx_.opts_.alpha_red;
             // Signal-only: record the first rejection's index and the trial's
             // already-computed L2 infeasibility (test.l2_). The self-referential
             // selects keep the first values. Writes touch only the diagnostic
@@ -402,7 +402,7 @@ double ClassicMeritAcceptance::ls_auglang(double obj_scale, double mu, double pr
 
     double LangInit = prim_obj + barr_obj + init.l1_ + init.l2_ * sc;
 
-    for (int j = 0; j < ctx_.settings_.max_ls_iters_; j++) {
+    for (int j = 0; j < ctx_.opts_.max_ls_iters; j++) {
         double ptest = 0;
         double btest = 0;
         bool evaluable = true;
@@ -418,7 +418,7 @@ double ClassicMeritAcceptance::ls_auglang(double obj_scale, double mu, double pr
         if (!evaluable) {
             // Un-evaluable trial — see ls_lang's rationale.
             citer.ls_iters_ = j + 1;
-            alpha = alpha / ctx_.settings_.alpha_red_;
+            alpha = alpha / ctx_.opts_.alpha_red;
             citer.first_rejection_iter_ =
                 citer.first_rejection_iter_ < 0 ? j : citer.first_rejection_iter_;
             continue;
@@ -431,14 +431,14 @@ double ClassicMeritAcceptance::ls_auglang(double obj_scale, double mu, double pr
         for (int i = 0; i < ctx_.equal_cons_; i++) {
             double eqerr = std::abs(rhs2.eq_cons()[i]);
             double eqmul = std::abs(xsl.eq_lmults()[i]);
-            if (eqerr > ctx_.settings_.econ_tol_ * kLsAuglangTolFilterMultiplier) {
+            if (eqerr > ctx_.opts_.econ_tol * kLsAuglangTolFilterMultiplier) {
                 TestL1Pen += eqerr * eqmul;
             }
         }
         for (int i = 0; i < ctx_.inequal_cons_; i++) {
             double iqerr = std::abs(rhs2.iq_cons()[i]);
             double iqmul = std::abs(xsl.iq_lmults()[i]);
-            if (iqerr > ctx_.settings_.icon_tol_ * kLsAuglangTolFilterMultiplier) {
+            if (iqerr > ctx_.opts_.icon_tol * kLsAuglangTolFilterMultiplier) {
                 TestL1Pen += iqerr * iqmul;
             }
         }
@@ -448,8 +448,8 @@ double ClassicMeritAcceptance::ls_auglang(double obj_scale, double mu, double pr
 
         // Zero L2 when within tolerance threshold
         const double zero_l2_threshold =
-            ctx_.settings_.econ_tol_ * ctx_.settings_.econ_tol_ * ctx_.equal_cons_ +
-            ctx_.settings_.icon_tol_ * ctx_.settings_.icon_tol_ * ctx_.inequal_cons_;
+            ctx_.opts_.econ_tol * ctx_.opts_.econ_tol * ctx_.equal_cons_ +
+            ctx_.opts_.icon_tol * ctx_.opts_.icon_tol * ctx_.inequal_cons_;
         if (TestL2Pen < zero_l2_threshold) {
             TestL2Pen = 0;
         }
@@ -464,7 +464,7 @@ double ClassicMeritAcceptance::ls_auglang(double obj_scale, double mu, double pr
             break;
         } else {
             citer.ls_iters_ = j + 1;
-            alpha = alpha / ctx_.settings_.alpha_red_;
+            alpha = alpha / ctx_.opts_.alpha_red;
             // Signal-only: record the first rejection's index and the trial's
             // already-computed L2 penalty (TestL2Pen). The self-referential
             // selects keep the first values. Writes touch only the diagnostic
@@ -768,11 +768,11 @@ void modern_eval_trial_point(SolverContext &ctx, double obj_scale, double mu, do
     for (int i = 0; i < sv; i++) {
         double fxi = FXI[i];
         double si = S[i];
-        if (si < ctx.settings_.neg_slack_reset_)
-            si = ctx.settings_.neg_slack_reset_;
+        if (si < ctx.opts_.neg_slack_reset)
+            si = ctx.opts_.neg_slack_reset;
         if (fxi < 0.0) {
             FXI[i] = 0.0;
-            S[i] = std::max(std::abs(fxi), ctx.settings_.neg_slack_reset_);
+            S[i] = std::max(std::abs(fxi), ctx.opts_.neg_slack_reset);
         } else {
             FXI[i] += si;
         }
@@ -802,7 +802,7 @@ void modern_eval_trial_point(SolverContext &ctx, double obj_scale, double mu, do
 } // namespace
 
 // BacktrackingLineSearch — step-length mechanism. max_step_to_boundary and
-// max_primal_dual_step read the solver state (settings_.pd_step_strategy_,
+// max_primal_dual_step read the solver state (opts_.pd_step_strategy,
 // inequal_cons_, equal_cons_) through the SolverContext reference `ctx`, and
 // max_primal_dual_step reconstructs the KKTVector view over the raw XSL/DXSL
 // blocks itself rather than taking it from the caller. Statement and operand
@@ -889,18 +889,17 @@ void BacktrackingLineSearch::max_primal_dual_step(Eigen::VectorXd &XSL, Eigen::V
     double eqmultstep = Smax;
     double iqmultstep = Lmax;
 
-    if (ctx.settings_.pd_step_strategy_ == InteriorPointSolver::PDStepStrategies::PrimSlackEq_Iq) {
-    } else if (ctx.settings_.pd_step_strategy_ ==
-               InteriorPointSolver::PDStepStrategies::AllMinimum) {
+    if (ctx.opts_.pd_step_strategy == InteriorPointSolver::PDStepStrategies::PrimSlackEq_Iq) {
+    } else if (ctx.opts_.pd_step_strategy == InteriorPointSolver::PDStepStrategies::AllMinimum) {
         double step = std::min(Smax, Lmax);
         primstep = step;
         slackstep = step;
         eqmultstep = step;
         iqmultstep = step;
-    } else if (ctx.settings_.pd_step_strategy_ ==
+    } else if (ctx.opts_.pd_step_strategy ==
                InteriorPointSolver::PDStepStrategies::PrimSlack_EqIq) {
         eqmultstep = Lmax;
-    } else if (ctx.settings_.pd_step_strategy_ == InteriorPointSolver::PDStepStrategies::MaxEq) {
+    } else if (ctx.opts_.pd_step_strategy == InteriorPointSolver::PDStepStrategies::MaxEq) {
         double step = std::max(Smax, Lmax);
         eqmultstep = step;
     }
@@ -938,7 +937,7 @@ double BacktrackingLineSearch::compute_step(
     // selected — so the guard is byte-identical off.
     if (ctx.inequal_cons_ > 0 || ctx.bounds_ ||
         (ctx.restoration_ && ctx.restoration_->is_active() && ctx.restoration_->is_nested()))
-        this->max_primal_dual_step(XSL, DXSL, ctx.settings_.bound_fraction_, alphap, alphad, ctx);
+        this->max_primal_dual_step(XSL, DXSL, ctx.opts_.bound_fraction, alphap, alphad, ctx);
 
     // Second half: the acceptance backtrack on the scaled DXSL, dispatched
     // classic-vs-generic. Factored into run_acceptance_backtrack so the same
@@ -1005,7 +1004,7 @@ double BacktrackingLineSearch::generic_line_search(InteriorPointSolver::LineSear
     const double dirderiv = v_rhs.prim_dual_grad().dot(v_dxsl.primals_slacks());
 
     double alpha = 1.0;
-    for (int j = 0; j < ctx.settings_.max_ls_iters_; j++) {
+    for (int j = 0; j < ctx.opts_.max_ls_iters; j++) {
         double ptest = 0.0;
         double btest = 0.0;
         double theta_t = 0.0;
@@ -1023,7 +1022,7 @@ double BacktrackingLineSearch::generic_line_search(InteriorPointSolver::LineSear
         if (!evaluable) {
             // Un-evaluable trial — see ls_lang's rationale.
             Citer.ls_iters_ = j + 1;
-            alpha = alpha / ctx.settings_.alpha_red_;
+            alpha = alpha / ctx.opts_.alpha_red;
             Citer.first_rejection_iter_ =
                 Citer.first_rejection_iter_ < 0 ? j : Citer.first_rejection_iter_;
             continue;
@@ -1046,7 +1045,7 @@ double BacktrackingLineSearch::generic_line_search(InteriorPointSolver::LineSear
             break;
         } else {
             Citer.ls_iters_ = j + 1;
-            alpha = alpha / ctx.settings_.alpha_red_;
+            alpha = alpha / ctx.opts_.alpha_red;
             // Signal stores mirror the classic path (self-referential selects
             // keep the FIRST rejection's values) so SOC/watchdog compose. The
             // modern path records its own merit infeasibility θ_t (L1 ‖c‖).
@@ -1201,8 +1200,7 @@ double ClassicAdaptiveGovernor::update_barrier(
         // arithmetic is unchanged and no kkt_dim_-sized temporary appears.
         ctx.kkt_solver_.solve(RHS, DXSL);
         DXSL = -DXSL;
-        mechanism.max_primal_dual_step(XSL, DXSL, ctx.settings_.bound_fraction_, alphap, alphad,
-                                       ctx);
+        mechanism.max_primal_dual_step(XSL, DXSL, ctx.opts_.bound_fraction, alphap, alphad, ctx);
         Temp = XSL + DXSL;
         mu = this->mpc_mu(v_temp.primals(), v_temp.slacks(), v_temp.iq_lmults(), avgcomp, mincomp,
                           ctx);
@@ -1215,8 +1213,8 @@ double ClassicAdaptiveGovernor::update_barrier(
         throw std::invalid_argument("Unknown BarrierMode");
     }
 
-    mu = std::max(mu, ctx.settings_.min_mu_);
-    mu = std::min(mu, ctx.settings_.max_mu_);
+    mu = std::max(mu, ctx.opts_.min_mu);
+    mu = std::min(mu, ctx.opts_.max_mu);
     barr_obj = this->barrier_objective(v_xsl.slacks(), mu, ctx);
     this->barrier_gradient(v_xsl.slacks(), v_xsl.iq_lmults(), mu, v_rhs.dual_grad());
     return mu;
@@ -1247,11 +1245,10 @@ double BarrierGovernor::update_barrier_monotone(double mu_in, Eigen::VectorXd &X
     const double sub_err = MonitoredBarrierGovernor::barrier_subproblem_error(current);
     if (sub_err <= kBarrierTolFactor * mu_in) {
         const double new_mu = MonitoredBarrierGovernor::fiacco_mccormick_mu(
-            mu_in, ctx.settings_.bar_tol_, ctx.settings_.kkt_tol_, ctx.settings_.min_mu_,
-            ctx.settings_.max_mu_);
+            mu_in, ctx.opts_.bar_tol, ctx.opts_.kkt_tol, ctx.opts_.min_mu, ctx.opts_.max_mu);
         if (new_mu < mu_in) {
-            mu = new_mu;      // advance (a new barrier subproblem)
-            mu_event = true;  // -> acceptance per-subproblem reset
+            mu = new_mu;     // advance (a new barrier subproblem)
+            mu_event = true; // -> acceptance per-subproblem reset
         }
     }
 
@@ -1323,12 +1320,12 @@ void SocRecovery::eval_trial_constraints(SolverContext &ctx, double obj_scale,
     for (int i = 0; i < sv; i++) {
         double fxi = FXI[i];
         double si = S[i];
-        if (si < ctx.settings_.neg_slack_reset_) {
-            si = ctx.settings_.neg_slack_reset_;
+        if (si < ctx.opts_.neg_slack_reset) {
+            si = ctx.opts_.neg_slack_reset;
         }
         if (fxi < 0.0) {
             FXI[i] = 0.0;
-            S[i] = std::max(std::abs(fxi), ctx.settings_.neg_slack_reset_);
+            S[i] = std::max(std::abs(fxi), ctx.opts_.neg_slack_reset);
         } else {
             FXI[i] += si;
         }
@@ -1342,7 +1339,7 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
     double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
     Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
     int &soc_steps, int & /*resolved_depth*/, int & /*watchdog_activations*/) {
-    const int max_soc = ctx.settings_.max_soc_;
+    const int max_soc = ctx.opts_.max_soc;
     if (max_soc <= 0)
         return Action::kAcceptAsIs; // defensive: SocRecovery is only built when max_soc_ > 0.
 
@@ -1421,8 +1418,8 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
         // one shared entry point rather than being re-derived here.
         if (ctx.inequal_cons_ > 0 || ctx.bounds_ ||
             (ctx.restoration_ && ctx.restoration_->is_active() && ctx.restoration_->is_nested()))
-            mechanism.max_primal_dual_step(XSL, dxsl_soc, ctx.settings_.bound_fraction_, alphap,
-                                           alphad, ctx);
+            mechanism.max_primal_dual_step(XSL, dxsl_soc, ctx.opts_.bound_fraction, alphap, alphad,
+                                           ctx);
 
         // Re-run the full acceptance backtrack on the corrected direction,
         // through the mechanism so the SAME acceptance criteria the ordinary
@@ -1492,7 +1489,7 @@ RecoveryChain::Action ExtendedBacktrackRecovery::on_step_rejected(
     Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha, double & /*alphap*/,
     double & /*alphad*/, int & /*soc_steps*/, int & /*resolved_depth*/,
     int & /*watchdog_activations*/) {
-    const int max_extended = ctx.settings_.ls_extended_iters_;
+    const int max_extended = ctx.opts_.ls_extended_iters;
     if (max_extended <= 0)
         return Action::kAcceptAsIs; // defensive: only built when ls_extended_iters_ > 0.
 
@@ -2340,9 +2337,8 @@ double MonitoredBarrierGovernor::update_barrier(InteriorPointSolver::BarrierMode
                                                 GlobalizationMechanism &mechanism,
                                                 SolverContext &ctx, double &barr_obj,
                                                 const IterateInfo &current, bool &mu_event) {
-    const BarrierDecision d = decide(current, mu_in, avgcomp, ctx.settings_.bar_tol_,
-                                     ctx.settings_.kkt_tol_, ctx.settings_.min_mu_,
-                                     ctx.settings_.max_mu_);
+    const BarrierDecision d = decide(current, mu_in, avgcomp, ctx.opts_.bar_tol, ctx.opts_.kkt_tol,
+                                     ctx.opts_.min_mu, ctx.opts_.max_mu);
     mu_event = d.mu_event;
 
     if (d.monotone) {

@@ -638,12 +638,12 @@ TEST(L1RestoRecenter, ResetClearsRecenterCount) {
 
 TEST(L1RestoEntryPermitted, NearFeasibleGuardBoundary) {
     InertSolverContext inert;
-    inert.settings_.econ_tol_ = 1e-6;
-    inert.settings_.max_feas_rest_ = 2;
+    inert.opts_.econ_tol = 1e-6;
+    inert.opts_.max_feas_rest = 2;
     const SolverContext ctx = inert.ctx();
 
     NestedL1Restoration r;
-    const double threshold = kNearFeasibleGuardFactor * inert.settings_.econ_tol_; // 1e-7
+    const double threshold = kNearFeasibleGuardFactor * inert.opts_.econ_tol; // 1e-7
     EXPECT_FALSE(r.entry_permitted(threshold, ctx));       // "<=" refuses at boundary
     EXPECT_FALSE(r.entry_permitted(threshold * 0.5, ctx)); // below -> refused
     EXPECT_TRUE(r.entry_permitted(threshold * 2.0, ctx));  // above -> permitted
@@ -652,8 +652,8 @@ TEST(L1RestoEntryPermitted, NearFeasibleGuardBoundary) {
 
 TEST(L1RestoEntryPermitted, BudgetExhaustionCountsNestedEntries) {
     InertSolverContext inert;
-    inert.settings_.econ_tol_ = 1e-6;
-    inert.settings_.max_feas_rest_ = 2;
+    inert.opts_.econ_tol = 1e-6;
+    inert.opts_.max_feas_rest = 2;
     const SolverContext ctx = inert.ctx();
 
     NestedL1Restoration r;
@@ -676,8 +676,8 @@ TEST(L1RestoEntryPermitted, BudgetExhaustionCountsNestedEntries) {
 
 TEST(L1RestoEntryPermitted, ZeroBudgetAlwaysRefuses) {
     InertSolverContext inert;
-    inert.settings_.econ_tol_ = 1e-6;
-    inert.settings_.max_feas_rest_ = 0;
+    inert.opts_.econ_tol = 1e-6;
+    inert.opts_.max_feas_rest = 0;
     const SolverContext ctx = inert.ctx();
 
     NestedL1Restoration r;

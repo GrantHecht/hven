@@ -133,7 +133,8 @@ struct NLPSolver final {
     ///
     /// Partition count and QP thread count are independent settings and are set
     /// independently: the solver's own QP thread count is
-    /// `optimizer_->set_qp_threads(n)`.
+    /// `optimizer_->options().common.threads`, replaced through
+    /// `optimizer_->set_options(o)`.
     ///
     /// @throws std::invalid_argument if `num_partitions < 1`.
     void set_num_partitions(int num_partitions);

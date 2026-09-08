@@ -62,7 +62,7 @@ inline constexpr double kRestoFailureFeasibilityFactor = 1.0e2;
 ///     Disclosed consequence: the guard can refuse entry slightly earlier or
 ///     later than a dual test would where the two tests would disagree.
 /// (4) Budget guard: entry_permitted() also refuses once this phase's entry
-///     count reaches ctx.settings_.max_feas_rest_; 0 means exhausted before
+///     count reaches ctx.opts_.max_feas_rest; 0 means exhausted before
 ///     the first entry (always refused). Guards (3) and (4) are independent —
 ///     either refusing is enough.
 class ProximalSwitchRestoration final : public RestorationStrategy {

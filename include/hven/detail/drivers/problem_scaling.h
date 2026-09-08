@@ -50,7 +50,7 @@
 // (drivers/sqp_driver.h) is the Lagrangian's objective WEIGHT -- 1.0 normally,
 // 0.0 to drop the objective during restoration -- and it multiplies ON TOP of
 // `obj` here, exactly as THE HESSIAN above spells out.
-// `InteriorPointSolver::Settings::obj_scale_` is the OTHER engine's
+// `IpmOptions::obj_scale` is the OTHER engine's
 // caller-supplied problem scale; this layer does not reach the IPM.
 
 #include <hven/core/types.h>

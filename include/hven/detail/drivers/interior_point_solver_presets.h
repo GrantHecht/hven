@@ -15,7 +15,7 @@
 // field (tolerances, iteration caps, QP parameters, ...) is read or written by
 // a preset.
 //
-// kInteriorPointSolverPresets drives both InteriorPointSolver::apply_preset()'s
+// kInteriorPointSolverPresets drives both ipm_preset()'s
 // dispatch and the valid-name list folded into its error message.
 //
 // The comparative figures below were measured on the consumer project's
@@ -31,7 +31,7 @@
 namespace hven::solvers {
 
 // The nine globalization fields a preset assigns, exactly mirroring the
-// InteriorPointSolver::Settings members of the same names.
+// IpmOptions members of the same names.
 struct InteriorPointSolverPresetFields {
     AcceptanceStrategies acceptance_strategy_;
     MeritPenaltyRules merit_penalty_rule_;

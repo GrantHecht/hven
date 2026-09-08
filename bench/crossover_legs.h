@@ -589,10 +589,14 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
     WarmStartData exported;
     {
         NLPSolver ipm(declared);
-        ipm.optimizer_->set_print_level(opts.ipm_print_level);
-        ipm.optimizer_->set_max_iters(opts.ipm_max_iters);
-        ipm.optimizer_->set_tols(corpus::detail::kKktTol, corpus::detail::kFeasTol,
-                                 corpus::detail::kFeasTol, corpus::detail::kKktTol);
+        hven::solvers::IpmOptions ipm_opts = ipm.optimizer_->options();
+        ipm_opts.common.print_level = opts.ipm_print_level;
+        ipm_opts.max_iters = opts.ipm_max_iters;
+        ipm_opts.kkt_tol = corpus::detail::kKktTol;
+        ipm_opts.econ_tol = corpus::detail::kFeasTol;
+        ipm_opts.icon_tol = corpus::detail::kFeasTol;
+        ipm_opts.bar_tol = corpus::detail::kKktTol;
+        ipm.optimizer_->set_options(std::move(ipm_opts));
         ipm.transcribe();
         const auto t0 = std::chrono::steady_clock::now();
         legs.a.flag = ipm.optimize(x0);

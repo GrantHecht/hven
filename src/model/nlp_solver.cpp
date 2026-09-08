@@ -51,7 +51,9 @@ int NLPSolver::default_num_partitions() {
 
 void NLPSolver::init_partitions() {
     this->num_partitions_ = default_num_partitions();
-    this->optimizer_->set_qp_threads(std::min(HVEN_DEFAULT_QP_THREADS, utils::get_core_count()));
+    IpmOptions o = this->optimizer_->options();
+    o.common.threads = std::min(HVEN_DEFAULT_QP_THREADS, utils::get_core_count());
+    this->optimizer_->set_options(std::move(o));
 }
 
 void NLPSolver::set_num_partitions(int num_partitions) {
@@ -241,19 +243,25 @@ hven::ConvergenceFlags NLPSolver::optimize_solve() {
 
 void NLPSolver::jet_initialize() {
     // Single-partition evaluation on the calling thread, and a single QP
-    // thread: two independent settings, set independently. set_qp_threads
-    // goes first because it validates and can throw.
-    this->optimizer_->set_qp_threads(1);
+    // thread: two independent settings. The thread count and the print level
+    // are two fields of ONE options value now, so they arrive together through
+    // set_options() -- which validates the whole value and can throw, and so
+    // still runs before the partition count is touched.
+    IpmOptions o = this->optimizer_->options();
+    o.common.threads = 1;
+    o.common.print_level = 10;
+    this->optimizer_->set_options(std::move(o));
     this->set_num_partitions(1);
-    this->optimizer_->set_print_level(10);
     this->transcribe();
 }
 
 void NLPSolver::jet_release() {
     this->optimizer_->release();
-    this->optimizer_->set_qp_threads(1);
+    IpmOptions o = this->optimizer_->options();
+    o.common.threads = 1;
+    o.common.print_level = 0;
+    this->optimizer_->set_options(std::move(o));
     this->set_num_partitions(1);
-    this->optimizer_->set_print_level(0);
     this->nlp_ = std::shared_ptr<NonLinearProgram>();
     this->do_transcription_ = true;
 }

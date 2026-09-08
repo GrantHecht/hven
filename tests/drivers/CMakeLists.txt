@@ -17,6 +17,7 @@
 ################################################################################
 
 set(HVEN_DRIVERS_TEST_SOURCES
+    test_options.cpp
     test_solve_status.cpp
 )
 

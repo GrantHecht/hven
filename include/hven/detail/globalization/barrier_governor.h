@@ -49,7 +49,7 @@ class BarrierGovernor {
     ///   iteration (once per iteration, before factorization — NOT recomputed here).
     /// @param mu_in Unused by the free-mode oracles themselves (they compute an
     ///   entirely new mu from avgcomp/mincomp, then clamp against
-    ///   ctx.settings_.min_mu_/max_mu_); the load-bearing consumer is
+    ///   ctx.opts_.min_mu/max_mu_); the load-bearing consumer is
     ///   update_barrier_monotone(), which seeds and gates off it directly.
     /// @param XSL Read by LOQO's mu rule and by the common tail (barrier
     ///   objective/dual-gradient at the resulting mu); raw blocks viewed via

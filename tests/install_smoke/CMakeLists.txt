@@ -36,6 +36,8 @@ set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
     include_nlp_model_aggregate.cpp
     include_nlp_solver.cpp
     include_solve_status.cpp
+    include_common_options.cpp
+    include_ipm_solver_types.cpp
     include_compiler.cpp)
 
 add_executable(hven_install_smoke main.cpp ${HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES})

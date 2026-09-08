@@ -41,14 +41,14 @@ void hven::solvers::InteriorPointSolver::print_settings() {
 
     fmt::print("{0:_^{1}}\n", "", 39);
     fmt::print("|------|   tol   | Acctol  | Divtol  |\n");
-    fmt::print("|{0:<6}|{1:>8.3e}|{2:>8.3e}|{3:>8.3e}|\n", "KKT", settings_.kkt_tol_,
-               settings_.acc_kkt_tol_, settings_.div_kkt_tol_);
-    fmt::print("|{0:<6}|{1:>8.3e}|{2:>8.3e}|{3:>8.3e}|\n", "Bar", settings_.bar_tol_,
-               settings_.acc_bar_tol_, settings_.div_bar_tol_);
-    fmt::print("|{0:<6}|{1:>8.3e}|{2:>8.3e}|{3:>8.3e}|\n", "ECons", settings_.econ_tol_,
-               settings_.acc_econ_tol_, settings_.div_econ_tol_);
-    fmt::print("|{0:<6}|{1:>8.3e}|{2:>8.3e}|{3:>8.3e}|\n", "ICons", settings_.icon_tol_,
-               settings_.acc_icon_tol_, settings_.div_icon_tol_);
+    fmt::print("|{0:<6}|{1:>8.3e}|{2:>8.3e}|{3:>8.3e}|\n", "KKT", opts_.kkt_tol, opts_.acc_kkt_tol,
+               opts_.div_kkt_tol);
+    fmt::print("|{0:<6}|{1:>8.3e}|{2:>8.3e}|{3:>8.3e}|\n", "Bar", opts_.bar_tol, opts_.acc_bar_tol,
+               opts_.div_bar_tol);
+    fmt::print("|{0:<6}|{1:>8.3e}|{2:>8.3e}|{3:>8.3e}|\n", "ECons", opts_.econ_tol,
+               opts_.acc_econ_tol, opts_.div_econ_tol);
+    fmt::print("|{0:<6}|{1:>8.3e}|{2:>8.3e}|{3:>8.3e}|\n", "ICons", opts_.icon_tol,
+               opts_.acc_icon_tol, opts_.div_icon_tol);
 }
 
 void hven::solvers::InteriorPointSolver::print_stats() {
@@ -93,7 +93,7 @@ void hven::solvers::InteriorPointSolver::print_last_iterate(const std::vector<It
     const auto &last = iters.back();
 
     if (last.iter_ % 10 == 0) {
-        if (settings_.wide_console_) {
+        if (opts_.wide_console) {
             fmt::print("{0:=^{1}}\n", "", 159);
             fmt::print(
                 "|Iter| mu Val | Prim Obj |  Bar Obj |  KKT Inf |  Bar Inf | ECons Inf| ICons "
@@ -114,14 +114,10 @@ void hven::solvers::InteriorPointSolver::print_last_iterate(const std::vector<It
     fmt::text_style BHashcol = fmt::text_style();
     fmt::text_style BOHashcol = fmt::text_style();
 
-    fmt::text_style Kcol =
-        calculate_color(last.kkt_inf_, settings_.kkt_tol_, settings_.acc_kkt_tol_);
-    fmt::text_style Bcol =
-        calculate_color(last.barr_inf_, settings_.bar_tol_, settings_.acc_bar_tol_);
-    fmt::text_style Ecol =
-        calculate_color(last.econ_inf_, settings_.econ_tol_, settings_.acc_econ_tol_);
-    fmt::text_style Icol =
-        calculate_color(last.icon_inf_, settings_.icon_tol_, settings_.acc_icon_tol_);
+    fmt::text_style Kcol = calculate_color(last.kkt_inf_, opts_.kkt_tol, opts_.acc_kkt_tol);
+    fmt::text_style Bcol = calculate_color(last.barr_inf_, opts_.bar_tol, opts_.acc_bar_tol);
+    fmt::text_style Ecol = calculate_color(last.econ_inf_, opts_.econ_tol, opts_.acc_econ_tol);
+    fmt::text_style Icol = calculate_color(last.icon_inf_, opts_.icon_tol, opts_.acc_icon_tol);
 
     if (iters.size() > 1) {
 
@@ -160,7 +156,7 @@ void hven::solvers::InteriorPointSolver::print_last_iterate(const std::vector<It
     // DISPLAY-ONLY CARVE-OUT: the HPert column shows the CUMULATIVE perturbation
     // total (h_pert_cum_), not the last delta (h_pert_). h_pert_ itself feeds
     // the Hpert0 warm-start in alg_impl().
-    if (settings_.wide_console_) {
+    if (opts_.wide_console) {
         fmt::print(
             "{:>9.3e}|{:>9.3e}|{:>8.2e}|{:>8.2e}|{:>8.2e}|{:>10.3e}|{:>3}|{:>3}|{:>3}|{:>6.1e}|\n",
             last.max_e_mult_, last.max_i_mult_, last.alpha_p_, last.alpha_d_, last.alpha_t_,
@@ -191,14 +187,10 @@ void hven::solvers::InteriorPointSolver::print_exit_stats(ConvergenceFlags ExitC
                                                           const IterateInfo &last, int iternum,
                                                           double tottime, double nlptime,
                                                           double qptime, double printtime) {
-    fmt::text_style Kcol =
-        calculate_color(last.kkt_inf_, settings_.kkt_tol_, settings_.acc_kkt_tol_);
-    fmt::text_style Bcol =
-        calculate_color(last.barr_inf_, settings_.bar_tol_, settings_.acc_bar_tol_);
-    fmt::text_style Ecol =
-        calculate_color(last.econ_inf_, settings_.econ_tol_, settings_.acc_econ_tol_);
-    fmt::text_style Icol =
-        calculate_color(last.icon_inf_, settings_.icon_tol_, settings_.acc_icon_tol_);
+    fmt::text_style Kcol = calculate_color(last.kkt_inf_, opts_.kkt_tol, opts_.acc_kkt_tol);
+    fmt::text_style Bcol = calculate_color(last.barr_inf_, opts_.bar_tol, opts_.acc_bar_tol);
+    fmt::text_style Ecol = calculate_color(last.econ_inf_, opts_.econ_tol, opts_.acc_econ_tol);
+    fmt::text_style Icol = calculate_color(last.icon_inf_, opts_.icon_tol, opts_.acc_icon_tol);
 
     auto TColor = fmt::fg(fmt::color::cyan);
     auto Printtime = [&](const char *msg, double t1) {
@@ -206,7 +198,7 @@ void hven::solvers::InteriorPointSolver::print_exit_stats(ConvergenceFlags ExitC
         fmt::print(TColor, "{0:>10.3f} ms {1:>10.3f} ms/iter\n", t1, double(t1 / iternum));
     };
 
-    if (settings_.print_level_ < 3) {
+    if (opts_.common.print_level < 3) {
         if (ExitCode == ConvergenceFlags::CONVERGED) {
             fmt::print(fmt::fg(fmt::color::lime_green), "\nOptimal Solution Found\n");
         } else if (ExitCode == ConvergenceFlags::ACCEPTABLE) {
@@ -220,7 +212,7 @@ void hven::solvers::InteriorPointSolver::print_exit_stats(ConvergenceFlags ExitC
         }
     }
 
-    if (settings_.print_level_ < 2) {
+    if (opts_.common.print_level < 2) {
 
         fmt::print(" Iterations : ");
         fmt::print("{:<5}\n", iternum);

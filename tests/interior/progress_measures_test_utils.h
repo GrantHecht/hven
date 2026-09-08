@@ -28,7 +28,7 @@ namespace TychoTest {
 /// @brief Build a ProgressMeasures(infeasibility, objective, auxiliary) triple.
 /// `obj` and `aux` default to 0.0 so callers that only care about theta (e.g.
 /// the classic-merit restoration exit test, which reads only
-/// settings_.econ_tol_ / infeasibility) can write `pm(theta)`.
+/// opts_.econ_tol / infeasibility) can write `pm(theta)`.
 inline hven::solvers::ProgressMeasures pm(double inf, double obj = 0.0, double aux = 0.0) {
     hven::solvers::ProgressMeasures p;
     p.infeasibility = inf;
