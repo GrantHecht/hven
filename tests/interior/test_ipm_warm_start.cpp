@@ -831,9 +831,12 @@ TEST(IpmWarmStart, MakeConstraintExportDropsTheTreatmentsInternalFixingRow) {
     // the export is a head(), so the value is the reported one unchanged.
     EXPECT_EQ(std::bit_cast<std::uint64_t>(warm.eq_lmults_[0]),
               std::bit_cast<std::uint64_t>(warm_result().lambda_e[0]));
-    // A tail() would have carried this one instead, and the two differ.
+    // A tail() would have carried this one instead, and the two differ. Since
+    // M6 W5 T8.4 the fixing row is not in `lambda_e` at all -- reading index 1
+    // there is out of bounds, which is what a Debug build catches -- so the
+    // comparison is against the block that DOES carry it.
     EXPECT_NE(std::bit_cast<std::uint64_t>(warm.eq_lmults_[0]),
-              std::bit_cast<std::uint64_t>(warm_result().lambda_e[1]));
+              std::bit_cast<std::uint64_t>(warm_result().internal_fixed_lambda_e[0]));
 
     // The rest of the payload is still declared-width, and the fixed variable
     // is at its held value -- here because the fixing ROW holds it, not because
