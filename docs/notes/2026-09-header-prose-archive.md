@@ -10767,3 +10767,67 @@ The file banner, with its spec path and the report path behind the status-vocabu
 /// declared `lower(i) == upper(i)` or at `Delta == 0` (qp_engine.h's section 6 note), both of
 /// which the walk solves best. The v2 epsilon-relaxation is deleted (plan section 7 note e).
 ```
+
+**SOURCE** 1997159 · include/hven/detail/qp/ipqp_engine.h · lines 175–185
+
+`kIpqpEvidenceFailureRhoFloor`: why the constant carries its own name though it equals `kIpqpLadderInit`, and the argument that the downgrade rather than the shift carries the honesty. The floor's contract -- a minimum magnitude, absolute, paired with a whole-solve downgrade -- is kept; the argument is here.
+
+```text
+/// @brief SECTION 2.2'S CONSERVATIVE `rho` FLOOR ON AN EVIDENCE FAILURE -- the
+/// level a step is permitted at when a factorization SUCCEEDED but could not
+/// report usable inertia evidence.
+///
+/// ITS OWN NAME, equal today to `kIpqpLadderInit` but NOT the same contract (co-review I-3):
+/// that one is a ladder STEP SIZE, this one a MINIMUM MAGNITUDE under a solve with no
+/// reading. Absolute, not a multiple of `rho` -- which compounds on a kUnavailable backend.
+///
+/// AND THE HONESTY IS CARRIED BY THE DOWNGRADE, NOT BY THE SHIFT: no finite `rho` is provably
+/// sufficient without a reading, which is why section 2.2 pairs "a step is permitted" with a
+/// WHOLE-SOLVE downgrade. Ledgered under that argument: plan section 7 note (n).
+```
+
+**SOURCE** 1997159 · include/hven/detail/qp/ipqp_engine.h · lines 249–264
+
+`struct IpqpBox`: the clamp-centre derivation and its counter-factual. The centre rule, the formulae and the no-centre-parameter contract are kept; the counter-factual (what a plain-origin centre would hand tier 3) is here.
+
+```text
+/// @brief THE IMMUTABLE CLAMP-CENTRED BOX (T4.a; spec 2.1, plan ruling 2).
+///
+/// Computed ONCE at solve entry from the effective trust-region radius and
+/// never rebuilt inside a solve:
+///
+///     c(i)      = clamp(0, lower(i), upper(i))
+///     lo_eff(i) = max(lower(i), c(i) - Delta)
+///     up_eff(i) = min(upper(i), c(i) + Delta)
+///
+/// THE CENTRE RULE IS `refine_on_face`'s OWN: that gate windows a refined point on the clamped
+/// origin and takes no centre parameter, and `QpProblem` permits zero to lie OUTSIDE the box,
+/// so a plain-origin centre would hand tier 3 a point gated against a DIFFERENT window.
+///
+/// THE CONTRACT: `IpqpEngine::solve()` takes NO centre parameter -- the clamp rule IS the
+/// contract. A warm iterate (`IpqpSeed::x`) lives INSIDE this box and never redefines the
+/// centre; a shrink-retry rebuilds the box at the new radius and re-clamps the iterate.
+```
+
+**SOURCE** 1997159 · include/hven/detail/qp/ipqp_engine.h · lines 350–358
+
+`struct IpqpResiduals`: why the tier owns its own residual implementation rather than reusing the walk's, and the convergence-agreement cross-check. The scaling discipline and the unregularized full-KKT rule are kept; the provenance is here.
+
+```text
+/// @brief The relative KKT residual the tier converges on (T4.d, plan ruling 5).
+///
+/// A NEW implementation owned by this tier: the walk's helpers are `QpEngine` PRIVATE members
+/// bound to a `WorkingSet` and unreachable here (plan section 7 note d). The DISCIPLINE is
+/// still the walk's -- divide by a `max(1, ...)` fold, so the test is never LOOSER.
+///
+/// Full-KKT, WorkingSet-free, and taken on the UNREGULARIZED problem: the proximal terms are a
+/// solver device, so a point is judged against the caller's QP. Convergence-agreement pins
+/// against the walk are the cross-check that the two implementations judge alike.
+```
+
+**Fix round 2 note (M6 W5 T7 fix2).** Three entries above were appended in T7's
+second fix round, when the surviving rationale in T7-touched blocks was taken out
+of the ten headers. The counts in each section header above are the counts as
+written in T7's own commits and are not restated here; the ten headers' post-fix2
+comment-line counts are in `.superpowers/w5-t7-fix2-report.md`. Nothing above this
+note was edited.

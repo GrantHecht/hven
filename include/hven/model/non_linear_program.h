@@ -105,18 +105,13 @@ inline constexpr int kMinKktElementsPerPartition = 1000;
 ///     each piece accumulates into its own claim slots, and the fill_* entries
 ///     fold those slots into the consumer's vectors.
 ///
-/// THAT INTERMEDIATE IS REQUIRED, and the reason is DETERMINISM. Several pieces
-/// claim rows of one gradient, so an in-place scatter would have to lock per row
-/// and the order threads won those locks would decide the order the
-/// floating-point additions happened in. Claim slots are contention-free by
-/// construction and the fold walks them in claim order, so the same problem
-/// produces BIT-IDENTICAL right-hand sides at any evaluation-thread count, and
-/// this library's pins rest on that.
+/// That intermediate is what makes the fill deterministic: the fold walks
+/// contention-free claim slots in claim order, so the same problem produces
+/// bit-identical right-hand sides at any evaluation-thread count.
 ///
-/// Accumulation-VALUE determinism is a property of this path, not a library
-/// absolute: a future user-selectable max-performance fill may relax it behind
-/// an explicit mode choice, never silently. LAYOUT determinism -- claim order,
-/// structural keys and location tables -- stays hard on every path.
+/// Accumulation-value determinism is a property of this path, not a library
+/// absolute. Layout determinism -- claim order, structural keys and location
+/// tables -- holds on every path.
 struct NonLinearProgram : public NlpAggregate {
     using VectorXi = Eigen::VectorXi;
     using VectorXd = Eigen::VectorXd;
@@ -124,14 +119,14 @@ struct NonLinearProgram : public NlpAggregate {
 
     int num_partitions_ = 1;
 
-    // THE THREE MASTER PIECE LISTS ARE PUBLIC, AND WRITING ONE IS A STRUCTURAL
-    // MUTATION. Everything derived from them describes the lists AS LAID, so a
-    // write here is declared by re-laying: make_nlp(), or adopting a declaration
-    // that carries the new pieces. Reading the declaration or the structural key
-    // without one is REFUSED by name, and the published claim stream is rebuilt
-    // at the next lay whenever a piece is not one this layout laid. Neither guard
-    // can see a master entry assigned From another laid piece of the same
-    // problem, which is the one case this sentence has to carry.
+    // The three master piece lists are public, and writing one is a structural
+    // mutation: everything derived from them describes the lists as laid, so a
+    // write here is declared by re-laying -- make_nlp(), or adopting a
+    // declaration that carries the new pieces. Reading the declaration or the
+    // structural key without one is refused by name, and the published claim
+    // stream is rebuilt at the next lay whenever a piece is not one this layout
+    // laid. Neither guard can see a master entry assigned from another laid
+    // piece of the same problem.
     ///
     /// Objective functions that will be partitioned across work partitions
     /// (part_obj_).
@@ -1073,20 +1068,19 @@ struct NonLinearProgram : public NlpAggregate {
     const RhsLocationTable &inequality_residual_table() const { return this->icon_table_; }
 
     // =======================================================================
-    // THE PUBLISHED CLAIM STREAM -- the same laid slots the arrays above carry,
-    // RESTATED into the claim convention a claim-stream consumer reads.
+    // The published claim stream -- the same laid slots the arrays above carry,
+    // restated into the claim convention a claim-stream consumer reads.
     //
-    // The raw arrays are laid PARTITION-MAJOR, in the square space the solver
+    // The raw arrays are laid partition-major, in the square space the solver
     // factorizes, with Hessian pairs in the walk order the piece claimed them in.
-    // The claim-stream contract states its claims in the DECLARATION's square
+    // The claim-stream contract states its claims in the declaration's square
     // space -- no slack block, Hessian upper triangle -- and wants one contiguous
-    // run per domain. The layout builds those once at the lay and publishes VIEWS.
+    // run per domain. The layout builds those once at the lay and publishes views.
     //
-    // WHAT THE VIEWS ARE VALID UNDER is claim_stream_epoch(), which is NOT the
-    // structure epoch. Nothing here owns storage; every accessor is a view into
-    // one arena.
+    // The views are valid under claim_stream_epoch(), which is not the structure
+    // epoch. Nothing here owns storage; every accessor is a view into one arena.
     //
-    // THIS IS A Surface beside the raw one, NOT OVER IT. Nothing here renumbers a
+    // This is a surface beside the raw one, not over it: nothing here renumbers a
     // raw slot, moves the emission order, or is fed to claim_digest().
     // =======================================================================
 

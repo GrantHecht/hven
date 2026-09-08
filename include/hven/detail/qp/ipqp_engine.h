@@ -51,8 +51,8 @@ struct IpqpTraceEscapeEvent;
 namespace detail {
 
 // ===========================================================================
-// THE INERTIA LADDER: WACHTER-BIEGLER 2006 ALGORITHM IC, WITH TWO DECLARED
-// ADAPTATIONS
+// The inertia ladder: Wachter-Biegler 2006 Algorithm IC, with two declared
+// adaptations
 // ===========================================================================
 //
 // Source: A. Wachter and L. T. Biegler, Math. Prog. 106(1):25-57, 2006 -- Algorithm IC
@@ -132,10 +132,12 @@ inline constexpr double kIpqpBoundPushRel = 1.0e-2;
 /// @brief The cold start's slack floor (spec 5.6: `s_0 = max(bi - Ai x_0, 1)`).
 inline constexpr double kIpqpSlackInit = 1.0;
 
-/// @brief THE WARM RESTART'S REPAIR FLOORS (spec 5.2 item 1): absolute epsilons for a
-/// payload slack/price, and for `eps = kIpqpRepairEps * mu_0` once `mu_0` is known.
-/// The two are asymmetric deliberately: a payload slack and a payload price are
-/// floored on different scales.
+/// @brief The warm restart's repair floors (spec 5.2 item 1): absolute epsilons
+///        for a payload slack/price, and for `eps = kIpqpRepairEps * mu_0` once
+///        `mu_0` is known.
+///
+/// The two are asymmetric: a payload slack and a payload price are floored on
+/// different scales.
 inline constexpr double kIpqpRepairEps = 1.0e-8;
 inline constexpr double kIpqpRepairSlackEps = 1.0e-8;
 
@@ -149,15 +151,13 @@ inline constexpr double kIpqpSayCentralityFactor = 1.0e-1;
 /// per-pair maximum.
 inline constexpr double kIpqpSayTargetFraction = 0.5;
 
-/// @brief The (rho, delta) schedule's DECREASE GATE (spec 3.2's
-/// bounded-decrease condition), as a CONTRACTION FACTOR: the regularized
-/// problem's RELATIVE residual must have fallen to this multiple of its value
-/// at the last estimate advance before the schedule may fall again and
-/// `(zeta, lambda_est)` may move.
+/// @brief The (rho, delta) schedule's decrease gate (spec 3.2's bounded-decrease
+///        condition), as a contraction factor: the regularized problem's
+///        relative residual must have fallen to this multiple of its value at
+///        the last estimate advance before the schedule may fall again and
+///        `(zeta, lambda_est)` may move.
 ///
-/// A RATIO, and that is load-bearing: an ABSOLUTE gate never fires on a badly scaled QP and
-/// the tier converges to a proximally biased point while reporting healthy relative residuals
-/// (measured). 0.5 is a choice; the schedule requires only a gate.
+/// A ratio, not an absolute threshold; the schedule requires only a gate.
 inline constexpr double kIpqpRegGateContract = 0.5;
 
 /// @brief The factorization budget's sentinel multiple (IpqpOptions'
@@ -174,17 +174,14 @@ inline constexpr Index kIpqpFactorizationsPerIter = 3;
 inline constexpr Index kIpqpRuizSweeps = 10;
 inline constexpr double kIpqpRuizTol = 1.0e-3;
 
-/// @brief SECTION 2.2'S CONSERVATIVE `rho` FLOOR ON AN EVIDENCE FAILURE -- the
-/// level a step is permitted at when a factorization SUCCEEDED but could not
-/// report usable inertia evidence.
+/// @brief Section 2.2's conservative `rho` floor on an evidence failure: the
+///        level a step is permitted at when a factorization succeeded but could
+///        not report usable inertia evidence.
 ///
-/// ITS OWN NAME, equal today to `kIpqpLadderInit` but NOT the same contract (co-review I-3):
-/// that one is a ladder STEP SIZE, this one a MINIMUM MAGNITUDE under a solve with no
-/// reading. Absolute, not a multiple of `rho` -- which compounds on a kUnavailable backend.
-///
-/// AND THE HONESTY IS CARRIED BY THE DOWNGRADE, NOT BY THE SHIFT: no finite `rho` is provably
-/// sufficient without a reading, which is why section 2.2 pairs "a step is permitted" with a
-/// WHOLE-SOLVE downgrade. Ledgered under that argument: plan section 7 note (n).
+/// A minimum magnitude, absolute rather than a multiple of `rho`. Equal today to
+/// `kIpqpLadderInit`, which is a ladder step size, but not the same contract, so
+/// it carries its own name. A step permitted here is paired with a whole-solve
+/// downgrade.
 inline constexpr double kIpqpEvidenceFailureRhoFloor = kIpqpLadderInit;
 
 /// @brief Section 6.2 conjunct (i): the factor by which `mu` must have been
@@ -204,20 +201,22 @@ inline constexpr double kIpqpStallAlpha = 1.0e-2;
 
 } // namespace detail
 
-/// @brief Why a tier solve STOPPED without a standing certificate.
+/// @brief Why a tier solve stopped without a standing certificate.
 ///
-/// SsnEscape's vocabulary and SsnEscape's warning, which bind this tier identically: **NONE
-/// OF THESE CERTIFIES ANYTHING**, and the driver **branches on `escape_reason`, never on
-/// `status`**. `kInfeasible` is a certificate word this tier never issues (spec 6.3).
+/// SsnEscape's vocabulary and SsnEscape's warning, binding here identically:
+/// none of these certifies anything, and the driver branches on
+/// `escape_reason`, never on `status`. `kInfeasible` is a certificate word this
+/// tier never issues (spec 6.3).
 ///
-/// The indefinite/numerical boundary is plan section 7 note (h), which is a
-/// fixed rule and not a judgement call at the call site:
-///   * `kIndefinite` -- an inertia reading WAS taken and DISAGREED with the required
-///     signature: at the section 2.2 item 4 final certification factorization, or with the
-///     ladder at `ipqp_reg_max`. Saddle-suspect; 2.3 item 4 routes it to the SSN warm grade.
+/// The indefinite/numerical boundary is a fixed rule, not a judgement at the
+/// call site:
+///   * `kIndefinite` -- an inertia reading was taken and disagreed with the
+///     required signature: at the section 2.2 item 4 final certification
+///     factorization, or with the ladder at `ipqp_reg_max`. Saddle-suspect;
+///     2.3 item 4 routes it to the SSN warm grade.
 ///   * `kNumerical` -- everything else that is not budget, stall or
-///     infeasible-suspect: a factorization failure, an UNREADABLE inertia (no evidence state
-///     observed at all), a non-finite iterate, residual or step.
+///     infeasible-suspect: a factorization failure, an unreadable inertia (no
+///     evidence state observed at all), a non-finite iterate, residual or step.
 enum class IpqpEscape {
     kNone = 0,
     kBudget = 1,
@@ -257,13 +256,13 @@ enum class IpqpRestartGrade {
 ///     lo_eff(i) = max(lower(i), c(i) - Delta)
 ///     up_eff(i) = min(upper(i), c(i) + Delta)
 ///
-/// THE CENTRE RULE IS `refine_on_face`'s OWN: that gate windows a refined point on the clamped
-/// origin and takes no centre parameter, and `QpProblem` permits zero to lie OUTSIDE the box,
-/// so a plain-origin centre would hand tier 3 a point gated against a DIFFERENT window.
+/// The centre rule is `refine_on_face`'s: that gate windows a refined point on
+/// the clamped origin and takes no centre parameter.
 ///
-/// THE CONTRACT: `IpqpEngine::solve()` takes NO centre parameter -- the clamp rule IS the
-/// contract. A warm iterate (`IpqpSeed::x`) lives INSIDE this box and never redefines the
-/// centre; a shrink-retry rebuilds the box at the new radius and re-clamps the iterate.
+/// `IpqpEngine::solve()` takes no centre parameter -- the clamp rule is the
+/// contract. A warm iterate (`IpqpSeed::x`) lives inside this box and never
+/// redefines the centre; a shrink-retry rebuilds the box at the new radius and
+/// re-clamps the iterate.
 struct IpqpBox {
     Vec centre;          ///< n. `clamp(0, lower, upper)`.
     Vec lo_eff;          ///< n. `max(lower, centre - Delta)`.
@@ -348,13 +347,12 @@ struct IpqpSeed {
 
 /// @brief The relative KKT residual the tier converges on.
 ///
-/// A NEW implementation owned by this tier: the walk's helpers are `QpEngine` PRIVATE members
-/// bound to a `WorkingSet` and unreachable here (plan section 7 note d). The DISCIPLINE is
-/// still the walk's -- divide by a `max(1, ...)` fold, so the test is never LOOSER.
+/// Owned by this tier, and scaled by the walk's own discipline: divide by a
+/// `max(1, ...)` fold, so the test is never looser.
 ///
-/// Full-KKT, WorkingSet-free, and taken on the UNREGULARIZED problem: the proximal terms are a
-/// solver device, so a point is judged against the caller's QP. Convergence-agreement pins
-/// against the walk are the cross-check that the two implementations judge alike.
+/// Full-KKT, WorkingSet-free, and taken on the unregularized problem: the
+/// proximal terms are a solver device, so a point is judged against the caller's
+/// QP.
 struct IpqpResiduals {
     double stationarity = 0.0;    ///< ||Hx + g + Ae'ye + Ai'yi - zl + zu||inf / scale.
     double primal_eq = 0.0;       ///< ||Ae x - be||inf / scale.
@@ -566,7 +564,7 @@ class IpqpEngine {
 
     /// True once this instance holds a symbolic analysis for the pattern the
     /// layout currently describes. Drives spec 4.1's compute()-vs-refactorize()
-    /// decision and, with it, the section 7 note (a) verify-once discipline.
+    /// decision.
     bool analyzed_ = false;
 
     /// The spec 5.1 flow (b) carry and its armed flag. Committed at the END of
@@ -594,30 +592,33 @@ class IpqpEngine {
     void emit_trace_escape(const IpqpTraceEscapeEvent &event) const;
 };
 
-/// @brief THE SECTION 6.1 ESCAPE LADDER: K consecutive escapes retire the tier
-/// for the remainder of ONE SQP solve.
+/// @brief What one tier outcome is, in the section 6.1 ladder's own currency.
 ///
-/// SEPARATE FROM `IpqpEngine` DELIBERATELY: section 6.1's decision is ACROSS subproblems and
-/// no single subproblem's own solve can observe it. The routing chain owns one per
-/// SQP solve, feeds it every tier outcome, and writes `ipqp_tier_retired_after` from it.
-///
-/// THE THREE RULES, each from section 6.1's own text: a FRESH decision every major (the only
-/// state is the consecutive-escape tally and the retirement flag); ANY SUCCESS RESETS the
-/// count, INCLUDING a downgrade without an escape; and A DECLINE IS NEUTRAL -- neither.
-///
-/// RETIREMENT FIRES AT MOST ONCE: once retired, `record()` keeps returning true and
-/// `retired_after()` keeps naming the major it happened at, whatever arrives afterwards.
-/// @brief What ONE tier outcome is, in the section 6.1 ladder's own currency.
-///
-/// THREE VALUES, BECAUSE SECTION 6.1 HAS THREE RULES, and the `IpqpResult` -> outcome mapping
-/// is the ROUTING CHAIN'S: the convenience overload is right everywhere but one case -- a
-/// `kBudget` refusal on a CONVERGED iterate is an escape to the census, a success to the ladder.
+/// Three values, one per ladder rule. The `IpqpResult` -> outcome mapping is the
+/// routing chain's: the convenience overload of `IpqpEscapeLadder::record` is
+/// right everywhere but one case -- a `kBudget` refusal on a converged iterate,
+/// which is an escape to the census and a success to the ladder.
 enum class IpqpLadderOutcome {
     kSuccess = 0,  ///< Resets the consecutive-escape tally.
     kEscape = 1,   ///< Advances it, and may retire the tier.
     kDeclined = 2, ///< Neutral: neither advances nor resets.
 };
 
+/// @brief The section 6.1 escape ladder: K consecutive escapes retire the tier
+///        for the remainder of one SQP solve.
+///
+/// Separate from `IpqpEngine` because section 6.1's decision is across
+/// subproblems and no single subproblem's own solve can observe it. The routing
+/// chain owns one per SQP solve, feeds it every tier outcome, and writes
+/// `ipqp_tier_retired_after` from it.
+///
+/// The three rules: a fresh decision every major (the only state is the
+/// consecutive-escape tally and the retirement flag); any success resets the
+/// count, including a downgrade without an escape; and a decline is neutral.
+///
+/// Retirement fires at most once: once retired, `record()` keeps returning true
+/// and `retired_after()` keeps naming the major it happened at, whatever arrives
+/// afterwards.
 class IpqpEscapeLadder {
   public:
     /// @param iopts the tier's settings; only `ipqp_retire_after` is read (validated `> 0` by
@@ -631,8 +632,9 @@ class IpqpEscapeLadder {
     /// @throws std::invalid_argument if `major <= 0` -- a marker of 0 means "never retired".
     bool record(const IpqpResult &result, Index major);
 
-    /// Record one tier outcome whose ladder classification the CALLER has made -- see
-    /// `IpqpLadderOutcome` for the one case where it differs. Same contract otherwise.
+    /// Record one tier outcome whose ladder classification the caller has made --
+    /// see `IpqpLadderOutcome` for the one case where it differs. Same contract
+    /// otherwise.
     /// @return true iff the tier is retired for the remainder of this solve.
     /// @throws std::invalid_argument if `major <= 0`.
     bool record(IpqpLadderOutcome outcome, Index major);

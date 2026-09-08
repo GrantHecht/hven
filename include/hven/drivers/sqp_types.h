@@ -31,8 +31,7 @@ namespace hven::solvers {
 /// tier (detail/qp/ipqp_engine.h), which acquires the active set from an interior
 /// start and hands a converged iterate to the tier-3 exact face refinement.
 ///
-/// The default is kWalk and stays so absent an explicit decision otherwise: the
-/// walk is what every pin and published figure was measured on.
+/// The default is kWalk.
 enum class QpMode {
     kWalk,
     kSsn,
@@ -130,12 +129,12 @@ struct IpqpOptions {
     /// driver's probe budget either way.
     Index ipqp_max_factorizations = 0;
 
-    /// The COLD starting barrier parameter, and the CEILING of the warm-restart
+    /// The cold starting barrier parameter, and the ceiling of the warm-restart
     /// clamp `mu_0 = clamp(max(mu_meas, kappa_mu * mu_payload), ipqp_min_mu,
-    /// ipqp_init_mu)` -- a SETTING in both readings, never overwritten by payload
-    /// evidence, only clamped against it. Default 1e-2, and Ruiz-scaled (measured
-    /// with the shipped equilibration on). Must be finite, > 0, and >=
-    /// `ipqp_min_mu`, since the clamp band is otherwise inverted.
+    /// ipqp_init_mu)` -- a setting in both readings, never overwritten by payload
+    /// evidence, only clamped against it. Default 1e-2, Ruiz-scaled. Must be
+    /// finite, > 0, and >= `ipqp_min_mu`, since the clamp band is otherwise
+    /// inverted.
     double ipqp_init_mu = 1e-2;
 
     /// The FLOOR of the `mu_0` clamp above, and the tier's own barrier-decay
@@ -217,9 +216,9 @@ struct IpqpOptions {
 
     /// The warm-seed repair (spec 5.2): strict-positivity clamps plus the
     /// two-scalar `(delta_p, delta_d)` shift, applied before a warm restart
-    /// is trusted. Default true. OFF DISABLES THE REPAIR, NEVER THE
-    /// VALIDATION: a seed the repair would have had to fix degrades COLD
-    /// instead, mode-local and visible in the grade.
+    /// is trusted. Default true. Off disables the repair, never the validation:
+    /// a seed the repair would have had to fix degrades cold instead,
+    /// mode-local and visible in the grade.
     bool ipqp_warm_repair = true;
 
     /// The warm-kill rule's iteration budget: a warm-started solve overrunning
@@ -261,7 +260,7 @@ struct IpqpOptions {
 
     /// Cross-major symbolic reuse (spec 4.1) kill switch: while true, the
     /// tier hoists its analysis/verify work across majors whose
-    /// `AggregateEvalSeam::epoch()` is unchanged (plan section 7 note a).
+    /// `AggregateEvalSeam::epoch()` is unchanged.
     /// Default true; false forces a fresh symbolic pass every major.
     bool ipqp_hoist_symbolic = true;
 
@@ -275,23 +274,17 @@ struct IpqpOptions {
     bool ipqp_require_final_inertia = true;
 };
 
-// THE FULL-STEP-FIRST WARM RULE'S TWO CONSTANTS. Both are WATCHDOG thresholds:
+// The full-step-first warm rule's two constants. Both are watchdog thresholds:
 // they bound how long the driver may keep taking undamped steps under
 // globalization.h's full-step mode before restoring the best iterate it saw and
-// handing the solve back to the funnel. Neither is a paper constant.
+// handing the solve back to the funnel.
 //
-// kWarmResidualGrowthMax = 2 consecutive majors with a growing ||KKT||inf. One
-// growth is not evidence: a warm SQP step routinely overshoots once and then
-// contracts. Two in a row is the smallest count no single overshoot can produce.
+// kWarmResidualGrowthMax = 2 consecutive majors with a growing ||KKT||inf;
+// kWarmFullStepWindow = 5 majors without a new best ||KKT||inf.
 //
-// kWarmFullStepWindow = 5 majors without a new best ||KKT||inf -- the other
-// failure shape, a stall rather than divergence. Five is an order of magnitude
-// above the local regime this mode targets, so the window can only fire on a run
-// the mode's own premise has already failed for.
-//
-// Changing either is a BEHAVIOUR CHANGE on every warm solve: the warm-start suite
-// pins the majors of both a converging and a watchdog-restored run against these
-// exact values.
+// Changing either is a behaviour change on every warm solve: the warm-start
+// suite pins the majors of both a converging and a watchdog-restored run
+// against these exact values.
 // @see docs/notes/2026-09-header-prose-archive.md §sqp_types.h
 
 /// Watchdog threshold: consecutive majors with growing ||KKT||inf tolerated
@@ -485,31 +478,19 @@ struct SqpOptions {
     /// different question.
     bool budget_mode = false;
 
-    /// The elastic ladder'S Stall early-exit, OPT-IN: when on, the rho escalation
+    /// The elastic ladder's stall early-exit, opt-in: when on, the rho escalation
     /// ladder stops the moment one escalation leaves the augmented solution within
     /// kElasticStallScale -- a numerical-zero tolerance, not a bit-for-bit test --
     /// of where the previous rung left it, instead of always spending every rung.
-    /// Default FALSE, and off reproduces the driver's behaviour without the lever
+    /// Default false, and off reproduces the driver's behaviour without the lever
     /// exactly, everywhere.
     ///
-    /// WHY OFF BY DEFAULT: the alternative was tried and measured unsafe as a
-    /// default. On the safe class most relaxed slacks are pinned at a REAL bound,
-    /// which bounds how much of the reduced system can read rho at all, and the
-    /// first escalation's drift is already far below the tolerances. The unsafe
-    /// class is a Flat augmented objective, where the objective is exactly
-    /// constant on the feasible set at every rho: a later rung then finds nothing
-    /// a one-repeat test missed, and the ladder ends at an ARBITRARY point of many
-    /// equally optimal ones, which is not stable under this lever.
-    ///
-    /// No cheap runtime test separates the two classes: slack `bound_state` does
-    /// not do it. Every configuration measured still reached a correct final
-    /// answer, so the case for off is "unpredictable which arbitrary optimum you
-    /// get", not measured harm.
-    ///
-    /// WHEN IT IS SAFE TO TURN ON: a problem whose elastic relaxation's relevant
-    /// slacks are pinned at a real bound for the rho range in play. On a
-    /// flat-objective relaxation, turning it on is a DELIBERATE trajectory choice
-    /// rather than a free cost cut.
+    /// Safe to turn on for a problem whose elastic relaxation's relevant slacks
+    /// are pinned at a real bound over the rho range in play. On a relaxation
+    /// with a flat augmented objective the ladder ends at an arbitrary point of
+    /// many equally optimal ones, so turning it on there is a deliberate
+    /// trajectory choice rather than a free cost cut. No cheap runtime test
+    /// separates the two cases.
     /// @see docs/notes/2026-09-header-prose-archive.md §sqp_types.h
     bool elastic_ladder_early_exit = false;
 
@@ -530,29 +511,22 @@ struct SqpOptions {
     ///
     /// So there is no new constant to calibrate and no second notion of "active"
     /// in the driver. A variable satisfying both bound tests without being fixed
-    /// is seeded kAtLower -- an arbitrary choice, recorded so it is not mistaken
-    /// for a derivation.
+    /// is seeded kAtLower -- an arbitrary choice, not a derivation.
     ///
-    /// A More generous threshold was rejected ON EVIDENCE: the engine's drop rule
-    /// skips shifted rows but not a crash-seeded one, so a row seeded that should
-    /// not have been can only leave through a drop -- an over-generous crash basis
-    /// costs strictly more than none, while a tight one is at worst free.
-    ///
-    /// COLD ONLY, BY CONSTRUCTION: the seed is built at the first subproblem of a
+    /// Cold only, by construction: the seed is built at the first subproblem of a
     /// solve whose resolved start level is kCold and only when no warm seed
-    /// exists. No extra MODEL EVALUATION: both predicates are read off the first
+    /// exists. No extra model evaluation: both predicates are read off the first
     /// subproblem itself, never from a fresh eval_ci call.
     /// @see docs/notes/2026-09-header-prose-archive.md §sqp_types.h
     bool crash_basis = false;
 
-    /// WHICH QP KERNEL THE DRIVER'S SUBPROBLEMS GO THROUGH. kWalk is the
-    /// shipped primal active-set walk (qp_engine.h) and is the DEFAULT;
-    /// kSsn selects the semismooth-Newton kernel (ssn_engine.h); kIpm selects
-    /// the interior-point tier (detail/qp/ipqp_engine.h) -- see QpMode::kIpm's own
-    /// doc comment above.
+    /// Which QP kernel the driver's subproblems go through. kWalk is the shipped
+    /// primal active-set walk (qp_engine.h) and is the default; kSsn selects the
+    /// semismooth-Newton kernel (ssn_engine.h); kIpm selects the interior-point
+    /// tier (detail/qp/ipqp_engine.h) -- see QpMode::kIpm's own doc comment above.
     QpMode qp_mode = QpMode::kWalk;
 
-    /// THE kIpm TIER'S OWN SETTINGS, forwarded verbatim onto the tier exactly
+    /// The kIpm tier's own settings, forwarded verbatim onto the tier exactly
     /// as the SSN levers below are forwarded onto SsnOptions. Inert at
     /// `qp_mode != QpMode::kIpm` and read on every subproblem at kIpm -- see
     /// QpMode::kIpm and IpqpOptions' own doc comments. The one field the
@@ -560,20 +534,13 @@ struct SqpOptions {
     /// `SqpDriver::ipqp_options`.
     IpqpOptions ipqp;
 
-    /// READ THE PROXIMAL CARRY OFF AN INGESTED WarmStart.
+    /// Read the proximal carry off an ingested WarmStart.
     ///
-    /// WHAT IT GATES, AND ONLY IT: whether the FIRST SSN subproblem of a solve
-    /// starts its proximal ladder at `WarmStart::prox_sigma` instead of at 0. The
-    /// EMISSION side is unconditional and this flag does not touch it, so a caller
-    /// can measure the carry without first turning it on. Inert in both directions
-    /// under `qp_mode == QpMode::kWalk`.
-    ///
-    /// The default is OFF because the measurement says so: a lever whose sweep is
-    /// a null with a negative tail does not become a default. The mechanism is
-    /// what the escape row always said -- starting a subproblem at a large sigma
-    /// damps its Newton step toward the current iterate, so the tier stops
-    /// contracting sooner and hands the subproblem to the walk, which is to
-    /// disable the kernel the SSN mode exists to move work onto.
+    /// It gates one thing: whether the first SSN subproblem of a solve starts its
+    /// proximal ladder at `WarmStart::prox_sigma` instead of at 0. The emission
+    /// side is unconditional and this flag does not touch it, so a caller can
+    /// read the carry without first turning it on. Inert in both directions under
+    /// `qp_mode == QpMode::kWalk`. Default false.
     /// @see docs/notes/2026-09-header-prose-archive.md §sqp_types.h
     bool ssn_prox_carry = false;
 
@@ -920,7 +887,7 @@ struct SqpIterate {
 /// price for the same reason: grad f is precisely the term a subgradient of h
 /// must not contain.
 ///
-/// THE ONE EXCEPTION is the non-finite-iterate kNumericalError exit, where
+/// The one exception is the non-finite-iterate kNumericalError exit, where
 /// lambda_e/lambda_i/z are all cleared: at a NaN iterate nothing was measured. f
 /// is still reported as the model returned it, which is to say possibly NaN.
 ///

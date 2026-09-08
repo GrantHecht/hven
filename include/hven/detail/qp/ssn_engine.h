@@ -96,7 +96,7 @@ inline double ssn_fb(double a, double b) {
 // stated as such with its own argument -- the same standard sqp_types.h's
 // kWarmResidualGrowthMax / kWarmFullStepWindow are held to.
 
-// ---- THE UNCERTAIN BAND (the three-set partition's only tolerance) --------
+// ---- The uncertain band (the three-set partition's only tolerance) --------
 //
 // The margin is measured on the FB derivative pair itself, which makes it
 // dimensionless and scale-free: with (s, lambda) = rho (cos theta, sin theta),
@@ -114,7 +114,7 @@ inline double ssn_fb(double a, double b) {
 inline constexpr double kSsnUncertainEnter = 0.1;
 inline constexpr double kSsnUncertainLeaveRatio = 3.0;
 
-// ---- THE LINE SEARCH -----------------------------------------------------
+// ---- The line search -----------------------------------------------------
 //
 // Armijo on the FB merit psi(w) = 1/2 ||F(w)||_2^2, accepted when
 //
@@ -169,25 +169,16 @@ inline constexpr double kSsnProxCapSlack = 1e-9;
 // the documented count and the delivered count cannot drift apart silently.
 inline constexpr Index kSsnProxRungs = 7;
 
-// THE INFEASIBILITY TELEMETRY.
+// The infeasibility telemetry. An infeasible convex QP has no KKT point, so
+// ||F||inf flattens onto a positive floor while the multipliers of the
+// contradictory rows grow without bound; both halves are required before the
+// telemetry fires.
 //
-// An infeasible convex QP has no KKT point, so F has no root: ||F||inf FLATTENS
-// onto a positive floor while the multipliers of the contradictory rows GROW
-// without bound. Both halves are required -- growth alone is ordinary early
-// behaviour, and a stall alone is a hard-but-feasible problem or too small a
-// budget.
-//
-// THREE PROPERTIES THE STALL TEST MUST HAVE:
-//   (i) the window advances on ACCEPTED STEPS, never on attempts, so a proximal
-//       retry cannot fill it with copies of one point;
-//   (ii) the improvement demand is over the WHOLE WINDOW, not per step, so a
-//       proximally damped crawl on a feasible subproblem re-arms;
-//   (iii) the growth conjunct differs on the two routes, because they see
-//       different evidence. The STANDING route re-arms its reference with the
-//       window; the EXHAUSTION route cannot use a windowed reference at all --
-//       the divergence and the last progress are the same accepted step -- so it
-//       keeps the start-point reference and adds kSsnDualStepGrowth, an order of
-//       magnitude across the most recently accepted step.
+// The window advances on accepted steps, never on attempts, and the improvement
+// demand is over the whole window rather than per step. The growth conjunct
+// differs on the two routes: the standing route re-arms its reference with the
+// window, while the exhaustion route keeps the start-point reference and adds
+// kSsnDualStepGrowth across the most recently accepted step.
 //
 // A window in which the proximal ladder escalated cannot declare a stall: it is
 // discarded and a fresh one starts.
@@ -196,7 +187,7 @@ inline constexpr Index kSsnProxRungs = 7;
 // window's reference by kSsnStallImproveFactor. kSsnDualGrowthFactor = 1e4
 // against the multiplier norm at the reference point the route selects, floored
 // at 1. kSsnDualStepGrowth = 10 is the exhaustion route's second conjunct, on
-// the growth across ONE accepted step.
+// the growth across one accepted step.
 inline constexpr Index kSsnStallWindow = 5;
 inline constexpr double kSsnStallImproveFactor = 0.99;
 inline constexpr double kSsnDualGrowthFactor = 1e4;
@@ -229,7 +220,7 @@ inline constexpr double kSsnLmSigmaC = 1.0;
 // from there. Other values are reachable through SsnOptions::watchdog_q.
 inline constexpr Index kSsnWatchdogQ = 1;
 
-// THE FARKAS RESIDUAL TEST (SsnOptions::infeasibility_rule).
+// The Farkas residual test (SsnOptions::infeasibility_rule).
 //
 // The system {Ae x = be, a_k^T x <= b_k} is infeasible iff there is (y_e free,
 // y >= 0) with Ae^T y_e + sum_k y_k a_k = 0 and be^T y_e + sum_k y_k b_k < 0.
@@ -653,22 +644,21 @@ struct SsnResult {
     // without a trust region, and when a finite radius never bound.
     std::vector<bool> tr_active; // n
 
-    // How far x lies outside the trust region, and it CAN be far:
+    // How far x lies outside the trust region, and it can be far:
     // max_j max(0, x_j - up_eff_j, lo_eff_j - x_j) over the variables whose
-    // effective bound came from the RADIUS; 0.0 when no radius was supplied and
+    // effective bound came from the radius; 0.0 when no radius was supplied and
     // when the radius held.
     //
-    //   * THE TRUST REGION IS A SOFT CONSTRAINT IN THIS KERNEL. It enters as FB
-    //     bound ROWS, and an FB row is satisfied only at a root, so no
-    //     intermediate iterate is confined to the box and a solve that stops
-    //     early can stop anywhere.
-    //   * ON A CERTIFYING EXIT the violation is bounded by the tolerance and
-    //     nothing else: |phi| <= fb_tol permits a slack negative by O(fb_tol), so
-    //     tr_violation <= kSsnComplementarityFactor * fb_tol. That is the only
-    //     exit at which this kernel's x may be used as a trust-region step.
-    //   * ON ANY ESCAPE the value is UNBOUNDED, and is reported rather than
-    //     repaired: clamping would break the export's one invariant -- that x,
-    //     fb_residual and the four activity vectors all describe ONE point.
+    //   * The trust region is a soft constraint in this kernel: it enters as FB
+    //     bound rows, which are satisfied only at a root, so no intermediate
+    //     iterate is confined to the box.
+    //   * On a certifying exit the violation is bounded by the tolerance and
+    //     nothing else: tr_violation <= kSsnComplementarityFactor * fb_tol. That
+    //     is the only exit at which this kernel's x may be used as a
+    //     trust-region step.
+    //   * On any escape the value is unbounded, and is reported rather than
+    //     repaired, so that x, fb_residual and the four activity vectors keep
+    //     describing one point.
     double tr_violation = 0.0;
 
     // The uncertain set at the returned point, the third leg of the partition
@@ -854,7 +844,7 @@ class SsnEngine {
     // a shrink-retry loop without accumulating radius-dependent junk.
     Vec recombine_bound_multipliers(const Vec &lb, Index n) const;
 
-    // THE FIXED PATTERN, AND ITS REUSE ACROSS SOLVES.
+    // The fixed pattern, and its reuse across solves.
     //
     // The FB diagonals get a nonzero PLACEHOLDER (-1.0) rather than their
     // eventual value, so their slots exist regardless of what any later branch
@@ -941,7 +931,7 @@ class SsnEngine {
     // produces.
     static double dual_norm(const Vec &le, const Vec &li, const Vec &lb);
 
-    // w + step * dw, with THE DUAL PROJECTION applied to the two non-negative
+    // w + step * dw, with the dual projection applied to the two non-negative
     // multiplier blocks.
     //
     // The projection is the WRONG-HINT mitigation, and the only cheap one
@@ -983,7 +973,7 @@ class SsnEngine {
     bool escalate_prox(const QpProblem &qp, Index n, Index me, Index mi, Index mb);
 
     // -----------------------------------------------------------------------
-    // THE FARKAS RESIDUAL TEST, matvec-only
+    // The Farkas residual test, matvec-only
     // -----------------------------------------------------------------------
     //
     // Farkas' lemma: the constraint system is INFEASIBLE iff there is (y_e free,

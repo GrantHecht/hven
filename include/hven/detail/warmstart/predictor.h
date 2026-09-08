@@ -144,31 +144,21 @@ struct PredictorOptions {
     // ratio-tested fix-relax loop described in this header.
     bool allow_activity_change = true;
 
-    // How many BREAKPOINTS the ratio-tested path may stop at. Ignored entirely
+    // How many breakpoints the ratio-tested path may stop at. Ignored entirely
     // when allow_activity_change is false. Must be >= 0; 0 means "take the raw
     // frozen-set step but keep it inside the first crossing".
     //
-    // Why there is a cap at all, and it is NOT only cost. The
-    // each-entity-changes-status-once rule already bounds the loop at n + mi + 1
-    // rounds, so termination is a PROOF rather than a budget; this is the budget,
-    // and the smaller of the two governs. What sets the default is ACCURACY: the
-    // direction is recomputed at every breakpoint but always from the SAME
-    // factorized K0, and the model is never re-evaluated along the path. On a
-    // piecewise-affine family that costs nothing; on a CURVED family following
-    // the stale tangent further is more extrapolation, not more prediction.
+    // The each-entity-changes-status-once rule bounds the loop at n + mi + 1
+    // rounds independently of this budget; the smaller of the two governs.
     //
-    // What truncation means, the one new failure mode the ratio test introduces:
-    // when the cap is reached the path STOPS at the breakpoint it reached, at
-    // some t <= 1, and the returned WarmStart is the point and activity THERE.
-    // That is the conservative end -- never behind the unpredicted warm start,
-    // never past a crossing it has not accounted for -- so the worst a truncated
-    // prediction can do is predict LESS. It is NOT reported as kDegraded: a step
-    // was computed and applied. It IS visible through `reached_t < 1.0`.
+    // On truncation the path stops at the breakpoint it reached, at some
+    // t <= 1, and the returned WarmStart is the point and activity there. That
+    // is not reported as kDegraded -- a step was computed and applied -- and it
+    // is visible through `reached_t < 1.0`.
     //
-    // THE DEFAULT OF 4 is an engineering choice for HEADROOM, taken inside the
-    // flat region of the measured cost-versus-budget curve rather than at either
-    // edge. The right value is family-dependent, which is why this is an option
-    // and not a constant.
+    // The right value is family-dependent, which is why this is an option and
+    // not a constant.
+    // See docs/notes/2026-09-header-prose-archive.md §predictor.h.
     Index max_activity_rounds = 4;
 };
 

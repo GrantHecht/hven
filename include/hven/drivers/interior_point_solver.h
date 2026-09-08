@@ -1074,14 +1074,10 @@ class InteriorPointSolver {
     ///        by at evaluation.
     ///
     /// The scale governs what the solver minimizes, and therefore which iterates
-    /// it takes, but not what the solve REPORTS: SolveResult's objective value and
-    /// its three multiplier blocks are divided back out before they leave, and a
-    /// seed handed to set_initial_multipliers() is multiplied in on the way
-    /// through, so both boundaries speak the caller's convention.
-    ///
-    /// STRICTLY POSITIVE. A negative scale would reverse the problem while leaving
-    /// the multiplier cones unchanged; maximization is a different problem
-    /// statement, not a scale.
+    /// it takes, but not what the solve reports: SolveResult's objective value
+    /// and its three multiplier blocks are divided back out before they leave,
+    /// and a seed handed to set_initial_multipliers() is multiplied in on the
+    /// way through, so both boundaries speak the caller's convention.
     void set_obj_scale(double scale);
 
     /// @brief Sets Settings::qp_ord_, the backend's fill-reducing ordering.

@@ -43,7 +43,7 @@
 //    gives kOptimal; otherwise the MOST NEGATIVE multiplier leaves (Dantzig),
 //    ties broken by largest angle then lowest index.
 //
-//    TR-PINNED STATIONARITY CAVEAT (section 6). z is priced and consulted
+//    TR-pinned stationarity caveat (section 6). z is priced and consulted
 //    internally the same way at every index, but the z REPORTED in QpSolution is
 //    forced to 0 at a TR-pinned index, so there the reported quantities do not
 //    satisfy stationarity. Read tr_active, not z or bound_state, for TR status.
@@ -126,7 +126,7 @@
 //    detects a producer that mutated the object again and degrades to kWarm.
 //    CONCURRENT use of a shared BorderState is UNDEFINED.
 //
-// 4b. INERTIA GATE AND TEMPORARY-VERTEX START REPAIR (indefinite H).
+// 4b. Inertia gate and temporary-vertex start repair (indefinite H).
 //
 //    For an indefinite H the regularized KKT system is still nonsingular but its
 //    answer can be a saddle or a maximizer the loop would certify kOptimal. The
@@ -174,7 +174,7 @@
 //    off, so the temporary-vertex repair is spent ONCE per solve at the
 //    certification branch's trusted-kWrong arm instead.
 //
-// 4c. NEGATIVE-CURVATURE RIDES AFTER A DROP (indefinite H).
+// 4c. Negative-curvature rides after a drop (indefinite H).
 //
 //    Section 4b makes an indefinite START safe; this makes an indefinite DROP
 //    safe. By Cauchy interlacing a drop is the ONLY way negative curvature can
@@ -302,14 +302,14 @@
 //    grounds. What it CAN do is change ws.bound_state() at the seed, which reuse
 //    condition (b) already treats as an ordinary working-set change.
 //
-//    PER-SOLVE RADIUS VARIATION. tr_radius lives on QpOptions, which is
+//    Per-solve radius variation. tr_radius lives on QpOptions, which is
 //    per-instance const, but every solve() overload also takes a
 //    `const SolveOverrides &` resolved ONCE at the top of run(); every read site
 //    consults those effective values. A shrink-radius retry loop therefore
 //    shares one QpEngine across every retry radius and keeps hot-start reuse
 //    wherever the ordinary conditions allow.
 //
-//    UNBOUNDED-ARTIFACT GUARD AND REPAIR SYNERGY. is_runaway() and
+//    Unbounded-artifact guard and repair synergy. is_runaway() and
 //    repair_temporary_vertex() both read bounds through the same shadowed `qp`,
 //    so with a finite tr_radius is_runaway() can never fire for a TR-bounded
 //    variable and the repair's "no finite bound to pin" failure cannot occur.
@@ -319,7 +319,7 @@
 //    caller's problem directly. QpSolution::tr_active is still allocated
 //    unconditionally on every solve, all false.
 //
-// 6b. THE EXPORT INVARIANT ON z: A FREE VARIABLE CARRIES NO BOUND PRICE.
+// 6b. The export invariant on z: a free variable carries no bound price.
 //    For every index i, on EVERY status this engine can return:
 //        bound_state[i] == kFree  =>  z(i) == 0.0
 //    Enforced at the point of export in run(). `refine_on_face` satisfies the
@@ -866,7 +866,7 @@ class QpEngine {
     // an object this engine never certified.
     std::shared_ptr<const HotState> hot_state() const;
 
-    // TIER 3: EXACT REFINEMENT ON AN EXTERNALLY IDENTIFIED FACE.
+    // Tier 3: exact refinement on an externally identified face.
     //
     // ONE exact equality-constrained solve on the face `face` names, plus this
     // engine's ordinary iterative-refinement step -- `solve_eqp`, reached
@@ -883,13 +883,12 @@ class QpEngine {
     // NOT GATED: the sign of the refined multipliers. The face is the CALLER's;
     //   this function re-solves it exactly and does not re-judge it.
     //
-    // THE RANK PRE-SCREEN, before anything is factorized: a face with more
-    // equality rows than free variables cannot be a regular face, and handing
-    // its singular K to the backend would trade a usable answer for a thrown
-    // error. Numerical singularity is caught one step later by the inertia gate.
+    // The rank pre-screen runs before anything is factorized: a face with more
+    // equality rows than free variables cannot be a regular face and is refused
+    // there. Numerical singularity is caught one step later by the inertia gate.
     //
-    // COST AND STATE. `out.counters` reports ONLY what THIS call paid (at most
-    // one factorization). NOTHING PERSISTENT IS TOUCHED.
+    // Cost and state. `out.counters` reports only what this call paid (at most
+    // one factorization). Nothing persistent is touched.
     //
     // Returns true iff the refinement was ACCEPTED. `out` is written either way:
     // on refusal it is `face` verbatim, with this call's own cost.
@@ -1136,77 +1135,57 @@ class QpEngine {
                                 const Vec &ae_row_norm1, const Vec &lambda_e,
                                 const QpOptions &opts) const;
 
-    // THE VERDICT-SITE FACE REFINEMENT (section 5's dead-end classification).
+    // The verdict-site face refinement (section 5's dead-end classification).
     // Re-forms the live bordered system, refines it against a target expressed
-    // in ROW units rather than the bordered loop's penalty-scaled footprint, and
-    // OVERWRITES `x` with the result -- returning true iff it did.
+    // in row units rather than the bordered loop's penalty-scaled footprint, and
+    // overwrites `x` with the result -- returning true iff it did.
     //
-    // ON A BORDERED CANDIDATE ONLY (EqpResult::refine_steps > 0), and only at a
+    // On a bordered candidate only (EqpResult::refine_steps > 0), and only at a
     // dead end whose classification would otherwise be kInfeasible; the caller
     // gates on both. An iteration that reached the elimination path is the
-    // eliminated twin's, because the residue this one removes is the BORDERING
-    // residue: the two paths solve DIFFERENT regularized problems on a closed
-    // face.
+    // eliminated twin's: the residue this one removes is the bordering residue.
     //
-    // CLOSED, OR NOTHING. A candidate is adopted only if the face reaches its
-    // target AND strictly improves on the walk's own point. A refinement that
-    // spends its budget with the face still open has shown the face is not
-    // closable, which is evidence FOR the classifier: adopting the
-    // better-but-still-open point would certify a genuine contradiction
-    // kOptimal.
+    // Closed, or nothing: a candidate is adopted only if the face reaches its
+    // target and strictly improves on the walk's own point. A refinement that
+    // spends its budget with the face still open is not adopted.
     bool refine_face_for_verdict(const QpProblem &qp, const WorkingSet &ws, Vec &x, const Vec &Aix,
                                  const Vec &ai_row_norm1, const Vec &lambda_i,
                                  const Vec &ae_row_norm1, const Vec &lambda_e, BorderState &border,
                                  QpCounters &counters, const QpOptions &opts) const;
 
-    /// @brief `refine_face_for_verdict`'s ELIMINATED twin: same entry
-    /// condition, same target, same closed-or-nothing adoption rule, same
-    /// counter -- reached whenever the candidate came off `solve_eqp`, which is
-    /// every kRefactorize iteration and every border-mode iteration served by a
-    /// fallback or by the latch.
+    /// @brief `refine_face_for_verdict`'s eliminated twin: same entry
+    ///        condition, same target, same closed-or-nothing adoption rule, same
+    ///        counter -- reached whenever the candidate came off `solve_eqp`,
+    ///        which is every kRefactorize iteration and every border-mode
+    ///        iteration served by a fallback or by the latch.
     ///
-    /// WHY IT EXISTS. There is no SCATTER on the eliminated path -- a pinned
-    /// variable is eliminated exactly. What the two paths DO share is the dual
-    /// regularization on the working rows, whose footprint is
-    /// `dual_mu * |lambda|` on a row residual, and `solve_eqp` takes exactly ONE
-    /// step of iterative refinement against it, which on a face whose
-    /// multipliers are inflated by the objective is not enough. Iterating that
-    /// step closes the family.
+    /// Cost and state. The twin reuses `kkt` and pays `solve_vec` calls alone
+    /// whenever `face` holds -- the live working set matching the captured one
+    /// and `kkt`'s factor still standing at the captured (session_id, epoch).
+    /// A working-set change between the candidate solve and this call, and a
+    /// re-factorization of `kkt` by any other path in between, each break that
+    /// and each is caught. On a miss the twin assembles and factorizes its own
+    /// KktFactor, charging one `factorizations` and one `symbolic_analyses`; a
+    /// hit charges neither.
     ///
-    /// WHAT IT COSTS, AND WHEN. The assembly is not the cost; the FACTORIZATION
-    /// is, and it is bought only when it has to be: the twin REUSES `kkt` and
-    /// pays `solve_vec` calls alone whenever `face` HOLDS -- the live working set
-    /// matching the captured one AND `kkt`'s factor still standing at the
-    /// captured (session_id, epoch). Two things break that and the key catches
-    /// both: a working-set change between the candidate solve and this call, and
-    /// a RE-FACTORIZATION of `kkt` by any other path in between. On such a MISS
-    /// the twin assembles and factorizes its own KktFactor, charging one
-    /// `factorizations` and one `symbolic_analyses`; a hit charges neither.
+    /// `face` guards the working set and the factor, not the options: the
+    /// effective (primal_delta, dual_mu) are fixed across one iteration, and a
+    /// reorder that moved an options change ahead of the verdict site would
+    /// break the reuse identity.
     ///
-    /// WHY REUSE IS SOUND. `assemble_kkt` keys K on the elimination partition
-    /// and the working rows -- which `face` records whole -- and on the problem
-    /// and the effective (primal_delta, dual_mu), which are FIXED across one
-    /// iteration: the suspect-stall ladder's escalation fires strictly AFTER
-    /// this classification and then restarts the iteration. A future reorder
-    /// that moved an options change ahead of the verdict site would silently
-    /// break the identity, so it must not: `face` guards the working set and the
-    /// factor, not the options.
+    /// Neither branch declines and neither swallows. On a miss the twin
+    /// factorizes a system the walk never solved, and that system can be exactly
+    /// singular at a legal setting (`dual_mu = 0`), which MKL Pardiso's default
+    /// static pivoting perturbs and reports as success. A std::runtime_error out
+    /// of `factorize_checked` here is therefore a genuine backend fault and
+    /// propagates, as does the hit branch's `solve_vec`; the attempted
+    /// factorization stays charged. Accelerate's behaviour on an exactly
+    /// singular KKT is UNOBSERVED.
     ///
-    /// NEITHER BRANCH DECLINES, AND NEITHER SWALLOWS. On a miss the twin
-    /// factorizes a system The walk never solved, and that system can be exactly
-    /// singular at a LEGAL setting (`dual_mu = 0`). No decline exists for that,
-    /// because the backend never reports it: MKL Pardiso's default static
-    /// pivoting PERTURBS an exactly singular K and returns success. What is left
-    /// in `factorize_checked`'s std::runtime_error here is therefore GENUINE
-    /// backend fault alone, so it PROPAGATES, as does the hit branch's
-    /// `solve_vec`. REGISTERED: a backend that reports singularity AS A STATUS
-    /// gets the decline back; Accelerate's behaviour on an exactly singular KKT
-    /// is UNOBSERVED. The attempted factorization stays charged.
-    ///
-    /// A kInfeasible exit RETURNS the refined point when it was adopted, so the
+    /// A kInfeasible exit returns the refined point when it was adopted, so the
     /// elastic seed, the refusal return and the restoration trial read the
-    /// refined point on either path; "closed" is the CLASSIFIER's own tolerance
-    /// and nothing tighter; and Duals are not refined.
+    /// refined point on either path; "closed" is the classifier's own tolerance
+    /// and nothing tighter; duals are not refined.
     bool refine_eliminated_face_for_verdict(const QpProblem &qp, const WorkingSet &ws, Vec &x,
                                             const Vec &Aix, const Vec &ai_row_norm1,
                                             const Vec &lambda_i, const Vec &ae_row_norm1,

@@ -142,14 +142,12 @@ struct QpCounters {
     /// decision.
     Index degenerate_steps = 0;
 
-    /// The LONGEST CONSECUTIVE run of degenerate steps in this solve. A run is
-    /// broken by a minor on which the ITERATE MOVED, and by nothing else: an
+    /// The longest consecutive run of degenerate steps in this solve. A run is
+    /// broken by a minor on which the iterate moved, and by nothing else: an
     /// ordinary non-degenerate step, a taken ride and a start repair each reset
-    /// it, while a drop iteration and a zero-multiplier probe do not -- both snap
-    /// x onto an EQP point already within step_tol of where it was. So a large
-    /// value is "the longest stretch on which the iterate did not move", not "an
-    /// unbroken run of back-to-back degenerate adds", and a reading must say
-    /// which it means. `degenerate_steps` above is unaffected by the run logic.
+    /// it, while a drop iteration and a zero-multiplier probe do not. A large
+    /// value therefore reads as "the longest stretch on which the iterate did
+    /// not move". `degenerate_steps` above is unaffected by the run logic.
     Index degenerate_run_max = 0;
 
     // The six fields that make the above traceable rather than inferred:
@@ -285,22 +283,18 @@ struct SsnCounters {
     /// instrument-only note above.
     Index ssn_refine_neg_duals = 0;
 
-    // The sign sweep. REPAIR, not instrument -- the only pair here that reports a
-    // value this driver CHANGED. A certifying SSN exit's inequality prices are
-    // not sign-constrained where they are produced, and nothing downstream
-    // re-gates them, so a negative price would reach the warm-start currency and
-    // an interior-point seed. The sweep runs in `SqpDriver::finish`, the single
-    // export boundary, on the solution's and the warm start's multipliers
-    // together, with NO TOLERANCE (the test is `< 0.0`).
+    // The sign sweep repairs rather than instruments: it is the one pair here
+    // that reports a value this driver changed. It runs in `SqpDriver::finish`,
+    // the single export boundary, on the solution's and the warm start's
+    // multipliers together, with no tolerance (the test is `< 0.0`).
     //
-    // WHAT IT COSTS: `SqpSolution::kkt` was computed BEFORE the sweep, at the
-    // multipliers the solver reached, so on a solve with `ssn_sign_swept > 0` the
-    // reported stationarity is optimistic by at most `ssn_sign_sweep_max *
-    // ||Ji||inf` over the swept rows. This pair is what makes that gap
-    // computable.
+    // `SqpSolution::kkt` is computed before the sweep, at the multipliers the
+    // solver reached, so on a solve with `ssn_sign_swept > 0` the reported
+    // stationarity is optimistic by at most `ssn_sign_sweep_max * ||Ji||inf`
+    // over the swept rows.
     //
-    // Structurally zero under kWalk, where an active-set price is non-negative by
-    // the walk's own drop rule -- and hence across a restoration fold, whose
+    // Structurally zero under kWalk, where an active-set price is non-negative
+    // by the walk's own drop rule, and hence across a restoration fold, whose
     // sub-solve is walk-only. The driver-scale values span the solve and its
     // restoration sub-solve.
     // @see docs/notes/2026-09-header-prose-archive.md §solver_counters.h
@@ -470,8 +464,8 @@ struct IpqpCounters {
     Index ipqp_factorizations = 0;
 
     /// Symbolic analyses paid. `1` per SQP solve under the section 4.1
-    /// cross-major hoisting rule (plan section 7 note a) while
-    /// `AggregateEvalSeam::epoch()` stays unchanged. Excludes analyses paid
+    /// cross-major hoisting rule while `AggregateEvalSeam::epoch()` stays
+    /// unchanged. Excludes analyses paid
     /// by any other QP kernel (walk, SSN) in the same solve.
     Index ipqp_symbolic_analyses = 0;
 
@@ -680,9 +674,9 @@ struct IpqpCounters {
     /// inside its budget.
     Index ipqp_warm_restart_abandoned = 0;
 
-    /// Subproblems the section 2.3/4b domain gate DECLINED pre-solve because
-    /// the effective box (T4.b's `IpqpBounds`) contained a zero-width pair
-    /// (plan section 7 note e). A DECLINE IS NOT AN ESCAPE: the tier never
+    /// Subproblems the section 2.3/4b domain gate declined pre-solve because
+    /// the effective box (`IpqpBounds`) contained a zero-width pair.
+    /// A decline is not an escape: the tier never
     /// ran, so this never counts toward `ipqp_escapes` or the K=3
     /// retirement threshold, and the walk solves the declined subproblem
     /// exactly. Excludes every subproblem the tier actually entered,
