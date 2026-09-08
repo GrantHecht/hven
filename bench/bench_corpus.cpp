@@ -148,15 +148,23 @@ using hven::solvers::corpus::detail::wall_budget_for_cell;
 
 // The top-level interior-point leg (M6 W5 T8.1); see bench/ipm_corpus_leg.h.
 using hven::solvers::FixedVariableTreatments;
+using hven::solvers::corpus::interior_base_variant;
 using hven::solvers::corpus::interior_csv_header;
 using hven::solvers::corpus::interior_csv_row;
+using hven::solvers::corpus::interior_exit_variants;
 using hven::solvers::corpus::interior_treatment_tag;
 using hven::solvers::corpus::interior_treatments;
+using hven::solvers::corpus::interior_variant_stamp;
 using hven::solvers::corpus::InteriorLevers;
 using hven::solvers::corpus::InteriorRow;
+using hven::solvers::corpus::InteriorVariant;
+using hven::solvers::corpus::kCap1F7CellId;
 using hven::solvers::corpus::kHs071FixedCellId;
+using hven::solvers::corpus::kSpikeCellId;
+using hven::solvers::corpus::kStationaryCellId;
 using hven::solvers::corpus::run_interior_cell;
 using hven::solvers::corpus::run_interior_hs071;
+using hven::solvers::corpus::run_interior_infeasible;
 
 // The measurement-arm levers, named once. See corpus_cells.h's EngineConfig.
 using EngineLevers = hven::solvers::corpus::detail::EngineConfig;
@@ -360,14 +368,18 @@ constexpr const char *kUsage =
     "(absent by design, not zero -- see this file's own banner), and wall_s is\n"
     "the DEADLINE that was enforced, not a measurement.\n"
     "\n"
-    "`--engine interior` writes a DIFFERENT, 19-column schema (one row per cell\n"
+    "`--engine interior` writes a DIFFERENT, 20-column schema (one row per cell\n"
     "per treatment), and `--from-csv` does not read it -- the reader accepts the\n"
     "corpus widths 14/31/37/76 and nothing else:\n"
     "  cell_id,family,n_nodes,window,taxonomy,status,iter_num,obj_val,kkt_inf,\n"
     "  barr_inf,econ_inf,icon_inf,factorizations,solves,analyses,soc_steps,\n"
-    "  watchdog_activations,fixed_treatment,wall_s\n"
+    "  watchdog_activations,fixed_treatment,stop_reason,wall_s\n"
     "`cell_id` there is the cell joined to the treatment by a slash, so the\n"
-    "column is unique per row; `fixed_treatment` carries the treatment alone.\n";
+    "column is unique per row; `fixed_treatment` carries the treatment alone.\n"
+    "Four abnormal-exit rows always run, whatever --cells names, and carry a\n"
+    "third key segment: two iteration caps, one stalled feasibility stage and\n"
+    "one restoration that reached a locally infeasible point. Their levers are\n"
+    "stamped in the artifact's `# variant:` lines.\n";
 
 [[noreturn]] void throw_usage(const std::string &detail) {
     hven::solvers::bench_cli::throw_usage(kUsage, detail);
@@ -2196,7 +2208,7 @@ void write_interior_provenance(std::ostream &os, int argc, char **argv,
     }
     os << "# hven_sqp_corpus provenance -- ENGINE interior (top-level interior-point driver)\n";
     os << fmt::format("# binary: {}\n", HVEN_SQP_CORPUS_GIT_DESCRIBE);
-    os << "# schema: 19\n";
+    os << "# schema: 20\n";
     os << fmt::format("# invocation: {}\n", invocation);
     os << fmt::format("# MKL_NUM_THREADS: {}\n", mkl == nullptr ? "<unset>" : mkl);
     os << fmt::format("# OMP_NUM_THREADS: {}\n", omp == nullptr ? "<unset>" : omp);
@@ -2209,7 +2221,12 @@ void write_interior_provenance(std::ostream &os, int argc, char **argv,
                       levers.kkt_tol, levers.econ_tol, levers.icon_tol, levers.barr_tol);
     os << fmt::format("# levers: bound_relax_factor={:.9e}\n", levers.bound_relax_factor);
     os << "# treatments: MakeParameter,MakeConstraint,RelaxBounds -- one row each, per cell\n";
-    os << "# key: column 0 is <cell_id>/<fixed_treatment>, unique per row\n";
+    os << "# key: column 0 is <cell_id>/<fixed_treatment>, plus /<variant> on a non-base row\n";
+    os << fmt::format("# {}\n", interior_variant_stamp(interior_base_variant()));
+    for (const InteriorVariant &variant : interior_exit_variants()) {
+        os << fmt::format("# {}\n", interior_variant_stamp(variant));
+    }
+    os << "# abnormal-exit rows run under MakeParameter only, on the cells named in their keys\n";
     for (const std::string &refusal : refusals) {
         os << fmt::format("# refused: {}\n", refusal);
     }
@@ -2488,7 +2505,7 @@ int main(int argc, char **argv) {
             // mislabelled in a report that quotes its invocation line.
             if (args.from_csv || args.score_gates || args.score_model_surface ||
                 args.score_model_surface_out || args.dump_qp || args.dump_qp_out) {
-                throw_usage("--engine interior writes its own 19-column schema, which none of "
+                throw_usage("--engine interior writes its own 20-column schema, which none of "
                             "--from-csv/--score-gates/--score-model-surface/"
                             "--score-model-surface-out/--dump-qp can read or score: the offline "
                             "reader accepts the corpus widths 14/31/37/76 and the gates are "
@@ -2525,7 +2542,8 @@ int main(int argc, char **argv) {
                 for (const FixedVariableTreatments treatment : interior_treatments()) {
                     fmt::print("running {} (N={}, treatment {})...\n", cell->id, cell->n_nodes,
                                interior_treatment_tag(treatment));
-                    const InteriorRow row = run_interior_cell(*cell, treatment, levers);
+                    const InteriorRow row =
+                        run_interior_cell(*cell, treatment, levers, interior_base_variant());
                     writer.write_row(row);
                     fmt::print("  -> {} in {} iterations (kkt_inf {:.3e})\n", row.status,
                                row.iter_num, row.kkt_inf);
@@ -2537,10 +2555,44 @@ int main(int argc, char **argv) {
             for (const FixedVariableTreatments treatment : interior_treatments()) {
                 fmt::print("running {} (treatment {})...\n", kHs071FixedCellId,
                            interior_treatment_tag(treatment));
-                const InteriorRow row = run_interior_hs071(treatment, levers);
+                const InteriorRow row =
+                    run_interior_hs071(treatment, levers, interior_base_variant());
                 writer.write_row(row);
                 fmt::print("  -> {} in {} iterations (kkt_inf {:.3e})\n", row.status, row.iter_num,
                            row.kkt_inf);
+            }
+            // The abnormal-exit rows (M6 W5 T8.2). They are the leg's own fixed
+            // set, like the fixed-variable cell above: what they pin is a stop
+            // reason, not a cell, so they do not vary with --cells. MakeParameter
+            // only -- an exit is not a treatment question.
+            for (const InteriorVariant &variant : interior_exit_variants()) {
+                const std::string name(variant.name);
+                const FixedVariableTreatments treatment = FixedVariableTreatments::MakeParameter;
+                std::vector<InteriorRow> rows;
+                if (name == "cap1") {
+                    const CorpusCell *f7 = find_cell(kCap1F7CellId);
+                    if (f7 == nullptr) {
+                        throw std::runtime_error(
+                            fmt::format("--engine interior: the cap1 variant's cell '{}' is not in "
+                                        "the corpus",
+                                        kCap1F7CellId));
+                    }
+                    rows.push_back(run_interior_cell(*f7, treatment, levers, variant));
+                    rows.push_back(run_interior_hs071(treatment, levers, variant));
+                } else if (name == "stalled") {
+                    rows.push_back(
+                        run_interior_infeasible(kSpikeCellId, treatment, levers, variant));
+                } else {
+                    rows.push_back(
+                        run_interior_infeasible(kStationaryCellId, treatment, levers, variant));
+                }
+                for (const InteriorRow &row : rows) {
+                    fmt::print("running {} (treatment {}, variant {})...\n", row.cell_id,
+                               interior_treatment_tag(treatment), variant.name);
+                    writer.write_row(row);
+                    fmt::print("  -> {} in {} iterations, stop reason {}\n", row.status,
+                               row.iter_num, row.stop_reason);
+                }
             }
             // Reported only after a successful close: a truncated artifact that
             // says "wrote 33 rows" is worse than one that says nothing.

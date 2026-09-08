@@ -20,9 +20,12 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <hven/core/types.h>
+#include <hven/drivers/interior_point_solver.h>
+#include <hven/drivers/solve_status.h>
 #include <hven/model/nlp_problem.h>
 #include <hven/model/non_linear_program.h>
 
@@ -32,6 +35,14 @@ namespace hven::solvers::corpus {
 
 /// The id of the fixed-variable cell this leg adds to the corpus's own cells.
 inline constexpr const char *kHs071FixedCellId = "hs071_x1_fixed";
+
+/// The two infeasible cells the abnormal-exit rows run on (M6 W5 T8.2).
+inline constexpr const char *kSpikeCellId = "infeas2_spike";
+inline constexpr const char *kStationaryCellId = "infeas2_stationary";
+
+/// The F7 cell the iteration-cap variant runs on; every cell in the leg needs
+/// more than one iteration, and this is the cheapest.
+inline constexpr const char *kCap1F7CellId = "f7_n1000_bound_neutral";
 
 /// @brief Every knob one leg runs under, stamped into the artifact's
 ///        provenance header so a row is reproducible from the CSV alone.
@@ -56,6 +67,43 @@ struct InteriorLevers {
     /// under that treatment (non_linear_program.h).
     double bound_relax_factor = kDefaultBoundRelaxFactor;
 };
+
+/// @brief What one non-base row changes about the run beneath it.
+///
+/// The base variant carries an empty name and no overrides, so the 33 base rows
+/// keep their two-segment keys. Every field is an override applied on top of
+/// InteriorLevers, and 0 (or `off`) means "leave the lever alone".
+struct InteriorVariant {
+    /// Which top-level entry point the row drives.
+    enum class Entry { kOptimize, kSolve };
+
+    /// The key's third segment; empty on the base variant, which writes none.
+    const char *name = "";
+    Entry entry = Entry::kOptimize;
+    /// Iteration cap, when positive.
+    int max_iters = 0;
+    /// Restoration strategy; `off` leaves the whole restoration surface dead.
+    RestorationModes restoration_mode = RestorationModes::off;
+    /// Per-phase restoration entry budget; read only when a strategy is built.
+    int max_feas_rest = 0;
+    /// Equality and inequality tolerance, when positive.
+    double con_tol = 0.0;
+    /// Acceptable-level tolerances, when acc_con_tol is positive.
+    double acc_kkt_tol = 0.0;
+    double acc_con_tol = 0.0;
+    double acc_barr_tol = 0.0;
+    /// All four divergence thresholds, when positive.
+    double div_tol = 0.0;
+};
+
+/// @brief The base variant: today's levers, `optimize`, no key segment.
+const InteriorVariant &interior_base_variant();
+
+/// @brief The variants this leg runs beyond the base one, in write order.
+const std::vector<InteriorVariant> &interior_exit_variants();
+
+/// @brief One variant's overrides as a provenance line, without the leading `#`.
+std::string interior_variant_stamp(const InteriorVariant &variant);
 
 /// @brief The four identity columns a row carries ahead of its measurements.
 struct InteriorRowIdentity {
@@ -90,6 +138,12 @@ struct InteriorRow {
     int soc_steps = -1;
     int watchdog_activations = -1;
     std::string fixed_treatment;
+    /// The stop reason the engine recorded for the last phase; `none` on every
+    /// converged row. hven::solvers::to_string(IpmStopReason) writes it.
+    std::string stop_reason;
+    /// The variant's name, carried in the row KEY rather than in a column;
+    /// empty on a base row.
+    std::string variant;
     /// Informational only; excluded by the replay comparator by name.
     double wall_s = 0.0;
 };
@@ -119,7 +173,8 @@ const std::vector<FixedVariableTreatments> &interior_treatments();
 ///         boundary validation (a treatment the declaration refuses included).
 InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
                                  const InteriorRowIdentity &identity, const Vec &x0,
-                                 FixedVariableTreatments treatment, const InteriorLevers &levers);
+                                 FixedVariableTreatments treatment, const InteriorLevers &levers,
+                                 const InteriorVariant &variant);
 
 /// @brief Why @p cell cannot be stated as an NLPProblem, or an empty string when
 ///        it can.
@@ -137,7 +192,7 @@ std::string interior_cell_refusal(const CorpusCell &cell);
 /// @throws std::invalid_argument if @p cell does not dual-bind
 ///         (crossover_legs.h's dual_bind_refusal is non-empty).
 InteriorRow run_interior_cell(const CorpusCell &cell, FixedVariableTreatments treatment,
-                              const InteriorLevers &levers);
+                              const InteriorLevers &levers, const InteriorVariant &variant);
 
 /// @brief Runs the fixed-variable cell: HS071 with x1 pinned by equal bounds.
 ///
@@ -147,12 +202,31 @@ InteriorRow run_interior_cell(const CorpusCell &cell, FixedVariableTreatments tr
 /// @param treatment The fixed-variable treatment this row runs under.
 /// @param levers    The knobs above.
 /// @return The finished row.
-InteriorRow run_interior_hs071(FixedVariableTreatments treatment, const InteriorLevers &levers);
+InteriorRow run_interior_hs071(FixedVariableTreatments treatment, const InteriorLevers &levers,
+                               const InteriorVariant &variant);
 
-/// @brief The row's key: the cell id joined to the treatment by a slash.
+/// @brief Runs one of the two infeasible cells: `infeas2_spike`, whose
+///        feasibility stage stalls, and `infeas2_stationary`, whose restoration
+///        converges to a locally infeasible point.
+///
+/// Neither exit is reachable on a feasible cell by lever, which is why they are
+/// cells and not variants of one.
+///
+/// @param cell_id   kSpikeCellId or kStationaryCellId.
+/// @param treatment The fixed-variable treatment this row runs under.
+/// @param levers    The knobs above.
+/// @param variant   The exit variant this row runs.
+/// @return The finished row.
+/// @throws std::invalid_argument if @p cell_id names neither cell.
+InteriorRow run_interior_infeasible(std::string_view cell_id, FixedVariableTreatments treatment,
+                                    const InteriorLevers &levers, const InteriorVariant &variant);
+
+/// @brief The row's key: the cell id joined to the treatment by a slash, plus
+///        the variant name on a non-base row.
 ///
 /// The replay comparator keys on the first CSV column and keeps only the last of
-/// a repeated key, so this value must be unique across an artifact.
+/// a repeated key, so this value must be unique across an artifact. A base row
+/// gets no third segment, so the 33 base keys are what they always were.
 std::string interior_row_key(const InteriorRow &row);
 
 /// @brief The leg's CSV column header, newline terminated.
