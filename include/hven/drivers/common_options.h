@@ -47,10 +47,28 @@ struct CommonOptions {
     int print_level = 3;
 
     /// The ceiling on how much of an offered warm start a solve will trust.
-    /// The SQP engine reads it today (SqpOptions::start_level, which this field
-    /// replaces at T8.10); on the interior-point engine it is CARRIED BUT
-    /// UNREAD in T8.3 -- T8.5 is where the interior-point engine's warm-start
-    /// entry starts consulting it.
+    ///
+    /// The SQP engine reads its own `SqpOptions::start_level` today (which
+    /// this field replaces at T8.10). THE INTERIOR-POINT ENGINE READS THIS ONE,
+    /// from M6 W5 T8.5, on its PAYLOAD route -- `solve(model, x0, warm,
+    /// budget)` -- with four rungs (design 2.6):
+    ///
+    ///   kCold    the payload is ignored entirely and COUNTED
+    ///            (`IpmResult::payload_ignored`). Its block lengths and its
+    ///            declaration stamp are still checked: a ceiling says what of a
+    ///            payload to apply, never that a foreign one is acceptable.
+    ///   kSeeded  the MULTIPLIERS only, through the engine's own floor/cap; the
+    ///            point and the polish extension are ignored, the extension
+    ///            counted (`IpmResult::polish_ignored`). `x0` is the start.
+    ///   kWarm    the whole payload -- point, multipliers, polish.
+    ///   kHot     IDENTICAL to kWarm. The interior-point engine has no hot
+    ///            handle to adopt (its cross-call factorization reuse is keyed
+    ///            on the program's own analysis identity, never on a payload),
+    ///            so the top rung is documented as equal to kWarm rather than
+    ///            refused.
+    ///
+    /// A CEILING, never a floor, on both engines: it can only lower what a
+    /// value would otherwise have resolved to.
     StartLevel start_level = StartLevel::kWarm;
 };
 

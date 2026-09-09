@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <type_traits>
@@ -1488,7 +1489,7 @@ TEST(NLPSolverJobModeTest, RunNlpSolverRefusesDoNothingAndNotSetWithItsOwnMessag
     const Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     for (JetJobModes mode : {JetJobModes::DoNothing, JetJobModes::NotSet}) {
         try {
-            solver.run_nlp_solver(mode, x0);
+            solver.run_nlp_solver(mode, x0, std::nullopt);
             FAIL() << "expected std::invalid_argument";
         } catch (const std::invalid_argument &e) {
             EXPECT_EQ(std::string(e.what()), "Unrecognized NLP solve mode");
@@ -1639,7 +1640,7 @@ IpmPhaseRecordingSink run_with_phase_sink(JetJobModes mode, int max_iters,
     IpmPhaseRecordingSink sink;
     solver.optimizer_->attach_trace(&sink);
     const Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    *flag_out = solver.run_nlp_solver(mode, x0).flag_;
+    *flag_out = solver.run_nlp_solver(mode, x0, std::nullopt).flag_;
     // The sink outlives every solve made while it is attached, which is the
     // documented contract -- but it does not outlive `solver`, so detach it
     // rather than leave ~NLPSolver holding a pointer to a dead object.

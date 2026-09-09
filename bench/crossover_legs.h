@@ -48,6 +48,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -519,24 +520,30 @@ inline SqpLegRow record_sqp(const SqpSolution &sol, double wall_s) {
 }
 
 /// One SQP leg: a fresh driver, a fresh bridge over the SAME declared problem,
-/// the same x0, and whatever `stage` chooses to stage before the solve.
+/// the same x0, and -- on the two warm legs -- a warm-start PAYLOAD handed to
+/// the solve as an argument.
 ///
-/// The TWO-argument entry on all three legs. The four-argument overload's
-/// explicit `WarmStart` is refused against a staged value, so the
-/// minor-iteration budget it carries is unavailable to legs (c) and (d), and
-/// taking it on leg (b) alone would leave the cold leg the only bounded one.
-/// All three legs are therefore bounded by the SAME thing: the options object's
-/// SqpOptions::max_iter and SqpOptions::qp.max_iter caps, which
-/// corpus_cells.h's options_for_cell sets, with the runner's wall deadline as
-/// the outer guard.
-template <typename StageFn>
-SqpLegRow run_sqp_leg(const std::shared_ptr<NlpProblemModel> &model, const Vec &x0,
-                      const SqpOptions &opts, StageFn &&stage) {
+/// M6 W5 T8.5 TURNED THE STAGING CALL INTO AN ARGUMENT. The three legs used to
+/// call `driver.stage_warm_start(p)` and then the two-argument `solve`; they
+/// now call `solve(bridge, x0, p)` (and the cold leg the two-argument form).
+/// Same checks, same order, same resolved level -- kSeeded on both warm legs,
+/// a payload carrying `structure_hash == 0` by construction.
+///
+/// STILL NO BUDGET ARGUMENT, and now for a simpler reason than before: the
+/// four-argument entry used to be REFUSED beside a staged value, which is what
+/// kept legs (c) and (d) off it; with staging gone every leg could take a
+/// budget, and none does, because all three must be bounded by the SAME thing
+/// -- the options object's SqpOptions::max_iter and SqpOptions::qp.max_iter
+/// caps, which corpus_cells.h's options_for_cell sets, with the runner's wall
+/// deadline as the outer guard. Budgeting one leg and not the others would
+/// make the margins incomparable.
+inline SqpLegRow run_sqp_leg(const std::shared_ptr<NlpProblemModel> &model, const Vec &x0,
+                             const SqpOptions &opts, const WarmStartData *payload) {
     NlpModelAggregate bridge(model);
     SqpDriver driver{opts};
-    stage(driver, bridge);
     const auto t0 = std::chrono::steady_clock::now();
-    const SqpSolution sol = driver.solve(bridge, x0);
+    const SqpSolution sol =
+        payload != nullptr ? driver.solve(bridge, x0, *payload) : driver.solve(bridge, x0);
     return record_sqp(sol, seconds_since(t0));
 }
 
@@ -617,7 +624,15 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
         legs.a.factorizations = ipm.result().kkt_factor_counters.factorize_count;
         legs.a.solves = ipm.result().kkt_factor_counters.solve_count;
 
-        exported = ipm.optimizer_->export_warm_start();
+        // THE RESULT'S OWN SNAPSHOT (M6 W5 T8.5): the solver-side
+        // export_warm_start() is gone, and the capture it served now travels on
+        // the returned value as an optional. It is engaged on every completed
+        // solve whose capture passed its internal-consistency checks; a
+        // disengaged one leaves `exported` default-constructed, which the two
+        // warm legs then hand over and which is refused for its stamp -- loud,
+        // where the old shape would have thrown at the export instead.
+        const std::optional<WarmStartData> snapshot = ipm.result().export_warm_start();
+        exported = snapshot.value_or(WarmStartData{});
         legs.a.export_has_polish = find_ipm_polish(exported) != nullptr;
         legs.a.ran = true;
     }
@@ -632,9 +647,7 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
     const SqpOptions sqp_opts = corpus::detail::options_for_cell(cell);
 
     // --- leg (d): SQP warm, with polish -- CONSTANT COST, so it runs first ---
-    legs.d = detail::run_sqp_leg(
-        model, x0, sqp_opts,
-        [&exported](SqpDriver &driver, NlpModelAggregate &) { driver.stage_warm_start(exported); });
+    legs.d = detail::run_sqp_leg(model, x0, sqp_opts, &exported);
     emit(LegStage::kWarmPolish);
 
     // --- leg (c): SQP warm, core only ---
@@ -643,14 +656,12 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
     {
         WarmStartData core = exported;
         core.extensions_.clear();
-        legs.c = detail::run_sqp_leg(
-            model, x0, sqp_opts,
-            [&core](SqpDriver &driver, NlpModelAggregate &) { driver.stage_warm_start(core); });
+        legs.c = detail::run_sqp_leg(model, x0, sqp_opts, &core);
     }
     emit(LegStage::kWarmCore);
 
     // --- leg (b): SQP cold, last -- see the execution-order note above ---
-    legs.b = detail::run_sqp_leg(model, x0, sqp_opts, [](SqpDriver &, NlpModelAggregate &) {});
+    legs.b = detail::run_sqp_leg(model, x0, sqp_opts, nullptr);
     emit(LegStage::kCold);
     emit(LegStage::kMargins);
 

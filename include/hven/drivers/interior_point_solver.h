@@ -35,6 +35,7 @@
 #include "hven/drivers/ipm_solver_types.h"
 #include "hven/drivers/solve_status.h"
 #include "hven/model/non_linear_program.h"
+#include "hven/warmstart/seeding.h"
 #include "hven/warmstart/warm_start_data.h"
 
 #ifdef USE_ACCELERATE_SPARSE
@@ -360,6 +361,74 @@ class InteriorPointSolver {
     ///         declared primal width, or if validate(options()) rejects.
     IpmResult solve(NonLinearProgram &model, const Eigen::VectorXd &x0, SolveBudget budget = {});
 
+    /// @brief Runs the configured phase sequence over @p model from @p x0,
+    ///        starting from the shared warm-start PAYLOAD @p warm.
+    ///
+    /// THE PAYLOAD ROUTE, one protocol on both engines (design 2.4). @p warm is
+    /// the declared-space currency `WarmStartData` -- the same value the SQP
+    /// accepts through its own payload overload, and the same value
+    /// `SolveResult::export_warm_start()` hands back. It is an ARGUMENT, not
+    /// staged state: it applies to this call and nothing outlives it.
+    ///
+    /// THE RULE. Identity mismatch REFUSES; pattern and value defects DEGRADE.
+    /// Identity is the declaration stamp plus the block lengths, both checked
+    /// at solve entry against the program this call binds, both
+    /// `std::invalid_argument`. Value defects -- a seeded multiplier outside
+    /// [kSeededIqMultFloor, kSeededMultInitMax] -- are clamped and applied, as
+    /// they always were.
+    ///
+    /// WHAT IS APPLIED depends on `IpmOptions::common.start_level`, which is a
+    /// CEILING on this route and has four rungs (design 2.6):
+    ///
+    ///   kCold   the payload is IGNORED ENTIRELY and COUNTED
+    ///           (`IpmResult::payload_ignored == 1`). The call is then bitwise
+    ///           the solve it would have been with no payload at all -- the
+    ///           lengths and the stamp are still checked first, so a foreign
+    ///           payload is still refused rather than quietly discarded.
+    ///   kSeeded only the MULTIPLIERS are applied (`eq_lmults_`/`iq_lmults_`,
+    ///           through the same install site, clamps and scale handling the
+    ///           removed set_initial_multipliers() fed); `primal_` and the
+    ///           polish extension are ignored, the extension counted
+    ///           (`IpmResult::polish_ignored`). `x0` is the start.
+    ///   kWarm   the WHOLE payload: `primal_` becomes the starting point,
+    ///           mapped declared -> reduced and pushed into the interior like
+    ///           any starting point; the multipliers as at kSeeded; the
+    ///           `"hven.ipm.polish.v1"` extension, when present, seeds the
+    ///           bound multipliers after the push.
+    ///   kHot    IDENTICAL to kWarm. This engine has no hot handle to offer or
+    ///           adopt -- a KKT factorization is reused across calls through
+    ///           the program's own analysis identity, never through a payload
+    ///           -- so the top rung is documented as equal to kWarm rather
+    ///           than refused.
+    ///
+    /// THE MULTIPLIERS-ONLY SEED. A payload whose `primal_` is EMPTY is the
+    /// seed form: `x0` is the start and the multipliers are what travel. Its
+    /// hand-over rule is `primal_` and `bound_lmults_` EITHER both empty OR
+    /// both at the declared primal width; `eq_lmults_`/`iq_lmults_` must always
+    /// match the declared row counts. `bound_lmults_` is never installed on
+    /// either form -- the signed core block does not invert into the
+    /// (z_lower, z_upper) pair the barrier state needs -- and a polish
+    /// extension on a seed is IGNORED and counted, its bound duals being
+    /// stated at a point this call is not standing on.
+    ///
+    /// @param model  The program to solve; borrowed for the call.
+    /// @param x0     The starting point, in @p model's DECLARED variable space.
+    ///               Used whenever the resolved treatment does not install
+    ///               `warm.primal_` -- which is every rung below kWarm, and the
+    ///               multipliers-only form at every rung.
+    /// @param warm   The payload; read, never retained.
+    /// @param budget As the cold overload above.
+    /// @return The result, by value.
+    /// @throws std::invalid_argument if @p x0 is mis-sized, if validate(options())
+    ///         rejects, if any block of @p warm holds a non-finite value, if the
+    ///         core blocks disagree with each other (`primal_` and
+    ///         `bound_lmults_` neither both empty nor one length), if any block
+    ///         is not at the declared width, if the polish extension is
+    ///         duplicated, unreadable or not at the core's widths, or if the
+    ///         declaration stamp is not this program's.
+    IpmResult solve(NonLinearProgram &model, const Eigen::VectorXd &x0, const WarmStartData &warm,
+                    SolveBudget budget = {});
+
     // The ~50 validated set_*() methods that lived here, the four static
     // strto_*() parsers above them and the six string-taking setter overloads
     // among them were REMOVED in M6 W5 T8.3. Their replacement is one value:
@@ -405,57 +474,27 @@ class InteriorPointSolver {
     void attach_trace(TraceSink *sink);
 
     // --- Constraint-multiplier seeding ---
-    /// Floor applied to seeded inequality multipliers when they are installed:
-    /// the slack-complementarity update divides by these values, so a seed at
-    /// or below zero would put the very first iterate outside the interior the
-    /// method is defined on.
-    static constexpr double kSeededIqMultFloor = 1.0e-8;
+    //
+    // THE TWO VALUES MOVED (M6 W5 T8.5) to `warmstart/seeding.h`, beside the
+    // SQP's own seeded-dual band -- three policies, three derivations, one
+    // header, values DELIBERATELY NOT UNIFIED (design 2.4). The two names
+    // below are ALIASES at the old spellings, kept so nothing that already
+    // says `InteriorPointSolver::kSeededIqMultFloor` had to move with the
+    // constant; T8.10 rewrites those call sites and drops the aliases.
+    /// @brief Alias of hven::solvers::kSeededIqMultFloor (warmstart/seeding.h).
+    static constexpr double kSeededIqMultFloor = hven::solvers::kSeededIqMultFloor;
+    /// @brief Alias of hven::solvers::kSeededMultInitMax (warmstart/seeding.h).
+    static constexpr double kSeededMultInitMax = hven::solvers::kSeededMultInitMax;
 
-    /// Ceiling applied to every seeded multiplier (both signs for equality
-    /// rows; the upper end for inequality rows, alongside kSeededIqMultFloor's
-    /// lower end). Parity with Ipopt's own seeded-multiplier ceiling
-    /// (warm_start_mult_init_max, default 1e6) and with this class's own
-    /// bound-multiplier seeding precedent (kBoundMultInitCap = 1e3 in
-    /// push_initial_point_interior, bound_set.h).
-    static constexpr double kSeededMultInitMax = 1.0e6;
-
-    /// Staged constraint-multiplier seeds. Consumed -- moved into run-local state
-    /// and mults_staged_ cleared -- at the very start of the NEXT
-    /// run_phase_sequence() call, before anything in that call can throw and
-    /// leave this armed. validate_staged_multipliers() then rejects a mis-sized or
-    /// non-finite seed once the row counts are final for the call. Applied at most
-    /// once per call, to whichever XSL is current when the phase loop reaches the
-    /// first OPT/OPTNO-mode phase -- never at all when the sequence has none.
-    Eigen::VectorXd staged_eq_mults_;
-    /// @brief The inequality half of the staged seed, under the same contract.
-    Eigen::VectorXd staged_iq_mults_;
-    /// True while a staged seed is waiting to be applied; cleared once applied
-    /// and by clear_initial_multipliers().
-    bool mults_staged_ = false;
-
-    /// Stages equality/inequality multiplier seeds for the next solve call
-    /// (see the staged_* field contract above).
-    ///
-    /// The seeds are the CALLER's multipliers, on the convention IpmResult
-    /// reports in: Settings::obj_scale_ is multiplied in when they are
-    /// installed, so a seed taken from an earlier IpmResult means the same
-    /// thing whatever the scale is.
-    ///
-    /// PRECEDENCE against a staged warm start: the warm start wins. Any
-    /// stage_warm_start() CALL, accepted or refused, clears a seed standing at
-    /// that moment, and a seed staged after a warm start is discarded
-    /// unapplied at solve entry -- see stage_warm_start().
-    void set_initial_multipliers(const Eigen::VectorXd &eq_mults, const Eigen::VectorXd &iq_mults) {
-        this->staged_eq_mults_ = eq_mults;
-        this->staged_iq_mults_ = iq_mults;
-        this->mults_staged_ = true;
-    }
-    /// @brief Discards any staged multiplier seeds.
-    void clear_initial_multipliers() {
-        this->staged_eq_mults_.resize(0);
-        this->staged_iq_mults_.resize(0);
-        this->mults_staged_ = false;
-    }
+    // set_initial_multipliers() / clear_initial_multipliers() and the three
+    // staged_*_mults_ / mults_staged_ members they armed were REMOVED in
+    // M6 W5 T8.5. The replacement is the MULTIPLIERS-ONLY SEED on the payload
+    // route: a WarmStartData whose `primal_` is EMPTY carries multipliers and
+    // nothing else, and `solve(model, x0, warm, budget)` applies them through
+    // exactly the install site the staged seed used, with the same clamps and
+    // the same objective-scale handling. `x0` is then the start, which is what
+    // the old two-call shape meant anyway. The seed table is in
+    // docs/notes/2026-09-m6-w5-migration-guide.md.
 
     // --- Warm-start currency ---
     /// The warm-start value captured at the end of the last COMPLETED solve,
@@ -472,88 +511,22 @@ class InteriorPointSolver {
     /// stamp exists to refuse.
     bool solve_completed_ = false;
 
-    /// The staged warm start, valid only while warm_staged_ is true. Consumed
-    /// -- moved into run-local state and warm_staged_ cleared -- at the very
-    /// start of the NEXT run_phase_sequence() call, on the same terms as the
-    /// multiplier seed above.
-    WarmStartData staged_warm_;
-    /// True while a staged warm start is waiting to be applied.
-    bool warm_staged_ = false;
-
-    /// @brief The warm-start value of the last completed solve, in DECLARED
-    ///        space.
-    ///
-    /// Blocks, all at declared dimensions: `primal_` is the returned primal
-    /// vector, an eliminated variable carrying the value the treatment holds it
-    /// at; `eq_lmults_` is the USER's equality rows only, so MakeConstraint's
-    /// internal fixing rows are dropped; `iq_lmults_` is the inequality block as
-    /// reported; `bound_lmults_` is result().bound_lmults_ mapped out of the
-    /// solver's reduced space, an exact zero at every eliminated variable.
-    /// SIGN: z = z_lower - z_upper, verbatim from IpmResult::z.
-    ///
-    /// The stamp is the bound program's DECLARATION key as of that solve's
-    /// COMPLETION, not as of this call, and not the layout/epoch key.
-    ///
-    /// EXTENSIONS: exactly one, `"hven.ipm.polish.v1"`, and only when the solve
-    /// had a non-empty variable-bound set AND did not end on a
-    /// restoration-active exit. It carries the invertible (z_lower, z_upper) pair
-    /// at declared width, the inequality values cI(x), and the barrier parameter
-    /// the solve ended at, all on the caller's objective scale. Without it the
-    /// core-only value is the whole hand-off.
-    ///
-    /// @return The captured value, by copy.
-    /// @throws std::logic_error if no solve has completed on this instance --
-    ///         never an empty payload, which would stage cleanly and then
-    ///         silently cold-start.
-    WarmStartData export_warm_start() const;
-
-    /// @brief Stages a warm start for the NEXT solve on this instance.
-    /// @param data The value to stage, in DECLARED space; taken by const
-    ///             reference and copied.
-    ///
-    /// One-shot and loud: the value applies to the next run_phase_sequence() call
-    /// and is consumed by it, applied or refused; it survives any re-bind or
-    /// re-lay in between; and a stamp mismatch at that call REFUSES rather than
-    /// silently cold-starting. A stamp mismatch means a DIFFERENT PROBLEM was
-    /// transcribed -- different declared dimensions, or a different declared bound
-    /// STRUCTURE -- not a different treatment or layout; and a match promises
-    /// neither the pieces' row structure nor the bound VALUES.
-    ///
-    /// CHECKED HERE: every block's length against the declared dimensions, and
-    /// finiteness. The stamp is compared at solve entry instead.
-    ///
-    /// CLEARS FIRST: this call, whether it succeeds or refuses, first drops any
-    /// warm start AND any multiplier seed staged before it; a seed staged after a
-    /// warm start is discarded unapplied at solve entry.
-    ///
-    /// WHAT IS APPLIED: `primal_` becomes the starting point, mapped declared ->
-    /// reduced and then pushed into the interior like any starting point;
-    /// `eq_lmults_`/`iq_lmults_` go through the same staged-seed path
-    /// set_initial_multipliers() feeds, with the same clamps and scale handling.
-    /// `bound_lmults_` is validated and carried but NOT installed -- the signed
-    /// core block does not invert into the (z_lower, z_upper) pair the barrier
-    /// state needs. That pair travels in the `"hven.ipm.polish.v1"` extension,
-    /// which this engine consumes, seeding the bound multipliers after the
-    /// interior push under the same [kSeededIqMultFloor, kSeededMultInitMax]
-    /// clamps. The payload's barrier parameter is NOT consumed: the schedule is a
-    /// Settings decision the caller owns.
-    ///
-    /// @throws std::runtime_error if no NLP has been set.
-    /// @throws std::invalid_argument if any block's length is not the matching
-    ///         declared dimension (naming the block, the length held and the
-    ///         length declared), if any block holds a non-finite value, if the
-    ///         value carries the polish tag more than once, or if a payload under
-    ///         that tag is malformed or is not at the declared widths (naming the
-    ///         tag). An unknown tag is ignored -- a capability downgrade, not an
-    ///         error. Every one of these refusals leaves this instance with
-    ///         nothing staged.
-    void stage_warm_start(const WarmStartData &data);
-
-    /// @brief Discards any staged warm start.
-    void clear_staged_warm_start() {
-        this->staged_warm_ = WarmStartData{};
-        this->warm_staged_ = false;
-    }
+    // stage_warm_start() / clear_staged_warm_start() and the staged_warm_ /
+    // warm_staged_ pair they armed were REMOVED in M6 W5 T8.5, together with
+    // this class's own export_warm_start(). Their replacements:
+    //
+    //   stage_warm_start(p); solve(m, x0)  ->  solve(m, x0, p)
+    //   clear_staged_warm_start()          ->  (nothing to clear: a payload
+    //                                           lives exactly as long as the
+    //                                           call it is an argument to)
+    //   solver.export_warm_start()         ->  result.export_warm_start()
+    //                                           (drivers/solve_result.h; an
+    //                                           optional, empty when the solve
+    //                                           captured nothing)
+    //
+    // The payload overload is declared beside the cold solve() above. The
+    // members below are the CAPTURE side, which is internal state feeding
+    // IpmResult::export_snapshot_ and is unchanged.
 
     // --- Printing ---
     /// @brief Prints the console output banner ruler.
@@ -1043,8 +1016,13 @@ class InteriorPointSolver {
     /// conditional, everything else is unconditional.
     std::vector<PhaseStep> phase_steps() const;
 
+    // `payload` is the warm-start currency the three-argument public overload
+    // was handed, or nullptr on the cold one. Borrowed for the call: this
+    // function copies what it needs and retains nothing (M6 W5 T8.5, which
+    // replaced the staged_warm_/warm_staged_ pair with this parameter).
     IpmResult run_phase_sequence(NonLinearProgram &model, const Eigen::VectorXd &x,
-                                 const std::vector<PhaseStep> &steps, SolveBudget budget);
+                                 const std::vector<PhaseStep> &steps, SolveBudget budget,
+                                 const WarmStartData *payload);
 
     // --- Core algorithm (defined in interior_point_solver.cpp) ---
     Eigen::VectorXd alg_impl(AlgorithmModes algmode, BarrierModes barmode, LineSearchModes lsmode,

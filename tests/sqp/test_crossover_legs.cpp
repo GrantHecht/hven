@@ -260,7 +260,10 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
     }
     ipm.transcribe();
     ASSERT_EQ(ipm.optimize(x0), hven::solvers::SolveStatus::kOptimal);
-    const WarmStartData exported = ipm.optimizer_->export_warm_start();
+    // THE EXPORT, OFF THE RESULT (M6 W5 T8.5).
+    const auto snapshot = ipm.result().export_warm_start();
+    ASSERT_TRUE(snapshot.has_value());
+    const WarmStartData exported = *snapshot;
 
     ASSERT_EQ(exported.primal_.size(), model->n());
     ASSERT_EQ(exported.eq_lmults_.size(), model->me());
@@ -274,13 +277,12 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
     opts.feas_tol = 1e-8;
     opts.adaptive_mu = false;
 
-    const auto solve_with = [&](const WarmStartData *staged) {
+    // THE ARGUMENT FORM (M6 W5 T8.5): `stage(p); solve(b, x0)` is
+    // `solve(b, x0, p)`, and the cold arm is simply the overload without one.
+    const auto solve_with = [&](const WarmStartData *payload) {
         NlpModelAggregate bridge(converted);
         SqpDriver driver{opts};
-        if (staged != nullptr) {
-            driver.stage_warm_start(*staged);
-        }
-        return driver.solve(bridge, x0);
+        return payload != nullptr ? driver.solve(bridge, x0, *payload) : driver.solve(bridge, x0);
     };
 
     const SqpSolution cold = solve_with(nullptr);
@@ -292,8 +294,8 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
     const SqpSolution warm_core = solve_with(&core);
     const SqpSolution warm_polish = solve_with(&exported);
 
-    // Both warm routes were actually ingested: a staged value that was refused
-    // or ignored comes back kCold, leaving the margins below cold against cold.
+    // Both warm routes were actually ingested: a payload that was refused or
+    // ignored comes back kCold, leaving the margins below cold against cold.
     EXPECT_EQ(warm_core.counters.start_level_used, StartLevel::kSeeded);
     EXPECT_EQ(warm_polish.counters.start_level_used, StartLevel::kSeeded);
     EXPECT_EQ(warm_core.status, SolveStatus::kOptimal);

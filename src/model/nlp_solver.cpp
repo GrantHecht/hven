@@ -123,8 +123,8 @@ std::vector<hven::solvers::IpmPhase> phases_for(NLPSolver::JetJobModes mode) {
 }
 } // namespace
 
-NLPSolver::NlpSolveOutput NLPSolver::run_nlp_solver(JetJobModes mode,
-                                                    const Eigen::VectorXd &input) {
+NLPSolver::NlpSolveOutput NLPSolver::run_nlp_solver(JetJobModes mode, const Eigen::VectorXd &input,
+                                                    const std::optional<WarmStartData> &seed) {
     NlpSolveOutput out;
     // The sequence goes on the options; the solve is one call whatever the
     // mode.
@@ -135,7 +135,10 @@ NLPSolver::NlpSolveOutput NLPSolver::run_nlp_solver(JetJobModes mode,
     // THE PROGRAM IS AN ARGUMENT NOW, borrowed for the call. This class holds
     // the shared_ptr that keeps it alive across calls; the solver holds
     // nothing.
-    this->last_result_ = this->optimizer_->solve(*this->nlp_, input);
+    // ONE CALL EITHER WAY: the payload overload when this job asked for a
+    // starting-multiplier seed, the cold one when it did not.
+    this->last_result_ = seed.has_value() ? this->optimizer_->solve(*this->nlp_, input, *seed)
+                                          : this->optimizer_->solve(*this->nlp_, input);
     const IpmResult &result = this->last_result_;
     out.variables_ = result.x;
     // DECLARED rows only (M6 W5 T8.4): under the MakeConstraint treatment the
@@ -219,8 +222,9 @@ hven::solvers::SolveStatus NLPSolver::run(JetJobModes mode, ConstEigenRef<Eigen:
             fmt::format("{}: the initial guess has {} elements but the problem has {} variables",
                         this->problem_->name(), x0.size(), this->core_->n_));
     }
-    this->apply_starting_multipliers();
-    auto out = this->run_nlp_solver(mode, Eigen::VectorXd(x0));
+    // THE SEED IS AN ARGUMENT NOW (M6 W5 T8.5), built here and carried into the
+    // one solve call below rather than staged on the solver between the two.
+    auto out = this->run_nlp_solver(mode, Eigen::VectorXd(x0), this->starting_multiplier_seed());
     this->active_variables_ = out.variables_;
     this->active_eq_lmults_ = out.eq_lmults_;
     this->active_iq_lmults_ = out.iq_lmults_;
@@ -299,14 +303,14 @@ Eigen::VectorXd NLPSolver::return_multipliers() const {
         model_multiplier_block(this->active_iq_lmults_, this->model_->mi(), "inequality", name));
 }
 
-void NLPSolver::apply_starting_multipliers() {
+std::optional<hven::solvers::WarmStartData> NLPSolver::starting_multiplier_seed() {
     Eigen::VectorXd lam = Eigen::VectorXd::Zero(this->model_->num_declared_rows());
     if (!this->problem_->starting_multipliers(lam)) {
-        // No seed requested for THIS call. Any staging already armed on the
-        // optimizer -- e.g. a direct optimizer_->set_initial_multipliers()
-        // call -- must not silently leak into a solve that never asked for it.
-        this->optimizer_->clear_initial_multipliers();
-        return;
+        // NO SEED REQUESTED FOR THIS CALL, and nothing to clear: the seed is an
+        // argument, so a job that does not ask for one simply does not get one
+        // -- the class of leak the old clear_initial_multipliers() call
+        // defended against cannot be constructed any more.
+        return std::nullopt;
     }
     if (!lam.allFinite()) {
         throw std::invalid_argument(fmt::format(
@@ -314,7 +318,18 @@ void NLPSolver::apply_starting_multipliers() {
     }
     Eigen::VectorXd eqm, iqm;
     this->model_->split_user_multipliers(lam, eqm, iqm);
-    this->optimizer_->set_initial_multipliers(eqm, iqm);
+
+    // THE MULTIPLIERS-ONLY SEED FORM: `primal_` and `bound_lmults_` EMPTY, the
+    // two row blocks at the DECLARED row counts, and this program's own
+    // declaration stamp -- which the payload route requires and which is
+    // trivially available here, the program being the one this call is about to
+    // solve. The start point stays the caller's `x0`, exactly as it was when
+    // this staged a seed and then solved.
+    WarmStartData seed;
+    seed.eq_lmults_ = std::move(eqm);
+    seed.iq_lmults_ = std::move(iqm);
+    seed.structure_key_ = declaration_key(this->nlp_->declaration());
+    return seed;
 }
 
 } // namespace hven::solvers

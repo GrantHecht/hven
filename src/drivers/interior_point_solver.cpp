@@ -3841,52 +3841,12 @@ void hven::solvers::InteriorPointSolver::apply_staged_multipliers(Eigen::VectorX
     }
 }
 
-hven::solvers::WarmStartData hven::solvers::InteriorPointSolver::export_warm_start() const {
-    // Refused, not served empty: an empty payload would stage cleanly against
-    // any problem and then silently cold-start.
-    if (!this->solve_completed_) {
-        throw std::logic_error(
-            "InteriorPointSolver::export_warm_start: no completed solve on this instance -- "
-            "there is no warm-start value to export. Run optimize()/solve() (a call that threw "
-            "does not count as completed) before exporting.");
-    }
-    return this->completed_warm_;
-}
-
-void hven::solvers::InteriorPointSolver::stage_warm_start(const WarmStartData &data) {
-    // A staging call -- accepted or refused -- first clears whatever was
-    // staged before it, warm payload and multiplier seed both: a consumer that
-    // stages P1, gets a size refusal on P2 and solves anyway must not
-    // warm-start off the stale P1, and no downstream stamp check would catch
-    // that. It cold-starts instead, and the refusal is the caller's notice.
-    this->clear_staged_warm_start();
-    this->clear_initial_multipliers();
-
-    // NO PROGRAM IS BOUND AT STAGING TIME ANY MORE (M6 W5 T8.4). A solver
-    // borrows its program for the duration of a solve, so the "no NLP has been
-    // set" refusal that stood here has nothing left to refuse against, and the
-    // AGAINST-THE-PROBLEM size check moved to solve entry, where the program
-    // exists and the stamp check already lives.
-    //
-    // What is still checkable HERE is everything internal to the payload: that
-    // its numbers are real, that its extension can be read, and that the
-    // extension's blocks agree with the core blocks beside them. Those are the
-    // refusals a caller can act on without knowing which problem the value will
-    // meet, and they still fire at the staging call.
-    this->validate_warm_start_finiteness(data, "stage_warm_start");
-
-    // A payload that cannot be read is refused here rather than at solve entry
-    // for the same reason the block sizes are: a solve discovering the
-    // corruption would have to choose between throwing out of a call asked to
-    // warm-start and silently cold-seeding the bound multipliers.
-    this->validate_staged_polish(data, "stage_warm_start");
-
-    // Precedence is settled by the clear at the top: the warm start's own
-    // eq/iq blocks are what the next solve installs, and a seed left standing
-    // alongside them would describe the same rows twice.
-    this->staged_warm_ = data;
-    this->warm_staged_ = true;
-}
+// export_warm_start() and stage_warm_start() were REMOVED from this class in
+// M6 W5 T8.5. The export is `IpmResult::export_warm_start()` (an optional on
+// the returned value, drivers/solve_result.h), fed by the capture below;
+// staging is the payload OVERLOAD, whose hand-over checks are inlined at that
+// entry and whose against-the-problem checks are in run_phase_sequence.
+// completed_warm_/solve_completed_ survive as the capture's own state.
 
 void hven::solvers::InteriorPointSolver::validate_warm_start_dimensions(const WarmStartData &data,
                                                                         const char *entry) const {
@@ -3906,10 +3866,20 @@ void hven::solvers::InteriorPointSolver::validate_warm_start_dimensions(const Wa
                             entry, block, held, declared));
         }
     };
-    check_size("primal_", data.primal_.size(), declared_primal);
+    // THE ROW BLOCKS ARE CHECKED ON BOTH FORMS: they are what a multipliers-only
+    // seed carries, so a mis-sized one is exactly the defect that matters there.
     check_size("eq_lmults_", data.eq_lmults_.size(), declared_eq);
     check_size("iq_lmults_", data.iq_lmults_.size(), declared_iq);
-    check_size("bound_lmults_", data.bound_lmults_.size(), declared_primal);
+    // THE TWO PRIMAL-SPACE BLOCKS ARE SKIPPED ON THE SEED FORM (M6 W5 T8.5),
+    // whose `primal_` is EMPTY -- checking them would refuse a multipliers-only
+    // payload for being one. The half-empty shape (an empty `primal_` beside a
+    // populated `bound_lmults_`, or the reverse) is refused at the public
+    // entry, before this runs, so an empty `primal_` here implies an empty
+    // `bound_lmults_` beside it.
+    if (data.primal_.size() != 0) {
+        check_size("primal_", data.primal_.size(), declared_primal);
+        check_size("bound_lmults_", data.bound_lmults_.size(), declared_primal);
+    }
 }
 
 // THE PAYLOAD'S OWN CONSISTENCY, checkable with no program in hand -- which is
@@ -4185,8 +4155,18 @@ void hven::solvers::InteriorPointSolver::validate_staged_polish(const WarmStartD
                 entry, kIpmPolishTag, held, block, declared));
         }
     };
-    check_size("the lower-bound multiplier block", polish.z_lower_.size(), declared_primal);
-    check_size("the upper-bound multiplier block", polish.z_upper_.size(), declared_primal);
+    // THE NAMED BYPASS FOR THE MULTIPLIERS-ONLY SEED (M6 W5 T8.5): an empty
+    // `primal_` is the seed form, so there is no core block of declared-variable
+    // width for the two price blocks to be compared against, and the check
+    // below would refuse every real extension for the core's own emptiness.
+    // The extension is IGNORED at the solve instead, and COUNTED
+    // (`IpmResult::polish_ignored`). Everything else about it is still checked
+    // here -- decoded, finite, non-negative -- so a corrupt extension stays
+    // loud even when it is about to be dropped.
+    if (declared_primal != 0) {
+        check_size("the lower-bound multiplier block", polish.z_lower_.size(), declared_primal);
+        check_size("the upper-bound multiplier block", polish.z_upper_.size(), declared_primal);
+    }
     check_size("the inequality-value block", polish.iq_values_.size(), declared_iq);
 
     const auto check_finite = [&](const char *block, const Eigen::VectorXd &v) {
@@ -4378,7 +4358,7 @@ hven::solvers::InteriorPointSolver::phase_steps() const {
 
 hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
     NonLinearProgram &model, const Eigen::VectorXd &x, const std::vector<PhaseStep> &steps,
-    SolveBudget budget) {
+    SolveBudget budget, const WarmStartData *payload) {
     // The in-flight guard, and the ONE site it is set from: the public solve()
     // entry reaches this function exactly once per call. Cleared on every exit,
     // a throw included. Read by set_options(), which refuses to replace the
@@ -4414,63 +4394,92 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
     this->cur_eval_prov_ = ExitEvalProvenance{};
     this->best_eval_prov_ = ExitEvalProvenance{};
 
-    // Disarm any staged multiplier seed immediately, before anything below --
-    // the nlp_/x-size checks just after this, validate(opts_), the
-    // variable-treatment reconfiguration, ... -- gets a chance to throw and
-    // leave a stale seed armed for an unrelated later call. The local copies
-    // below live only for the duration of this call; nothing they hold
-    // survives past its return either way, applied or not.
-    bool have_seed = this->mults_staged_;
+    // --- THE PAYLOAD, RESOLVED (M6 W5 T8.5) --------------------------------
+    //
+    // `payload` is an ARGUMENT, not a member: it is non-null exactly on the
+    // three-argument public overload, lives in that caller's frame, and is
+    // never retained. What replaced stage_warm_start()'s one-shot state is the
+    // scope of a function call, so there is nothing left to disarm here and no
+    // way for a value to survive a throw into an unrelated later solve.
+    //
+    // THE CEILING HAS FOUR RUNGS on this route (design 2.6), and
+    // `common.start_level` is a CEILING, never a floor:
+    //
+    //   kCold    the payload is IGNORED and COUNTED. The lengths and the stamp
+    //            are still checked -- a foreign payload is refused, not
+    //            quietly discarded -- and then nothing of it is applied, so
+    //            the call is the solve it would have been with no payload at
+    //            all (`payload_ignored == 1` is the declared difference).
+    //   kSeeded  the MULTIPLIERS only. `primal_` and the polish extension are
+    //            ignored; the extension is counted (`polish_ignored`). `x0` is
+    //            the start.
+    //   kWarm    the whole payload: point, multipliers, polish.
+    //   kHot     IDENTICAL to kWarm -- this engine has no hot handle to adopt.
+    //
+    // The MULTIPLIERS-ONLY SEED (an empty `primal_`) resolves at most kSeeded
+    // whatever the ceiling says, because there is no point in it to apply.
     Eigen::VectorXd seed_eq_mults;
     Eigen::VectorXd seed_iq_mults;
+    bool have_seed = false;
     // The phase (if any) the seed applies to: the first OPT/OPTNO-mode phase
     // in the requested sequence, whichever position that is. A solve-only
     // sequence (bare solve()) has no such phase, so the seed is simply never
     // applied -- SOE ignores the multiplier block it would have seeded, so
     // there is nothing meaningful to apply it to.
     int first_opt_phase_idx = -1;
-    if (have_seed) {
-        seed_eq_mults = std::move(this->staged_eq_mults_);
-        seed_iq_mults = std::move(this->staged_iq_mults_);
-        this->staged_eq_mults_.resize(0);
-        this->staged_iq_mults_.resize(0);
-        this->mults_staged_ = false;
-    }
-
-    // A staged warm start is disarmed on the same terms and at the same point,
-    // and for the same reason: it is one-shot, so this call owns it whether it
-    // ends up applied, refused by the stamp check below, or lost to an
-    // unrelated throw on the way there.
-    bool have_warm = this->warm_staged_;
+    // TRUE only when the POINT and the polish extension are to be applied.
+    bool have_warm = false;
     WarmStartData warm;
-    if (have_warm) {
-        warm = std::move(this->staged_warm_);
-        this->staged_warm_ = WarmStartData{};
-        this->warm_staged_ = false;
+    if (payload != nullptr) {
+        // THIS CALL'S OWN COPY, so the two blocks below can be moved out of it
+        // without touching the caller's value. Taken before any check, because
+        // the checks that follow read it and a copy of a refused payload costs
+        // nothing anybody sees.
+        warm = *payload;
 
-        // THE AGAINST-THE-PROBLEM SIZE CHECK, which used to run at the staging
-        // call and moved here when the program stopped being attached (M6 W5
-        // T8.4). AS EARLY AS THE PROGRAM ALLOWS, and in particular BEFORE the
-        // two blocks below are moved out of `warm`: the widths it compares are
-        // the PROGRAM's own declared counts -- treatment-invariant, so no
-        // configuration step has to have run first -- and a check taken after
-        // the move would compare against two vectors this function had just
-        // emptied.
+        // THE AGAINST-THE-PROBLEM SIZE CHECK. AS EARLY AS THE PROGRAM ALLOWS,
+        // and in particular BEFORE the two blocks below are moved out of
+        // `warm`: the widths it compares are the PROGRAM's own declared counts
+        // -- treatment-invariant, so no configuration step has to have run
+        // first -- and a check taken after the move would compare against two
+        // vectors this function had just emptied.
+        //
+        // RUN UNCONDITIONALLY, ceiling or no ceiling: identity is not
+        // something a ceiling may waive. A kCold ceiling means "ignore what
+        // this payload SAYS", never "accept a payload describing a different
+        // problem".
         this->validate_warm_start_dimensions(warm, "solve");
 
-        // Precedence (see stage_warm_start): a seed staged after the warm
-        // start is discarded unapplied rather than mixed with the warm start's
-        // blocks. From here the warm multipliers are the seed, so they take
-        // the seed path's own validation, clamps and objective-scale handling
-        // -- one multiplier-install site in this class, not two.
-        //
-        // Moved, not copied: `warm` is this call's own copy, consumed either
-        // way, and nothing below reads these two blocks again. The
-        // non-consuming promise is about the caller's value, which
-        // stage_warm_start copied on the way in.
-        seed_eq_mults = std::move(warm.eq_lmults_);
-        seed_iq_mults = std::move(warm.iq_lmults_);
-        have_seed = true;
+        const auto ceiling = this->opts_.common.start_level;
+        const bool multipliers_only = warm.primal_.size() == 0;
+        if (ceiling == StartLevel::kCold) {
+            // IGNORED, AND SAID SO. The alternative -- accepting it and
+            // applying nothing -- is the silent failure this counter exists to
+            // rule out: a caller who set the ceiling in one place and attached
+            // a payload in another gets a number back rather than a mystery.
+            this->result_.payload_ignored = 1;
+        } else {
+            // THE MULTIPLIERS, at every rung above kCold. They take the seed
+            // path's own validation, clamps and objective-scale handling --
+            // one multiplier-install site in this class, not two.
+            //
+            // Moved, not copied: `warm` is this call's own copy and nothing
+            // below reads these two blocks again.
+            seed_eq_mults = std::move(warm.eq_lmults_);
+            seed_iq_mults = std::move(warm.iq_lmults_);
+            have_seed = true;
+            // THE POINT AND THE POLISH, only at kWarm and above, and only when
+            // the payload actually carries a point. A polish extension that is
+            // not going to be consumed is COUNTED, for the reason the kCold
+            // rung above is: its bound duals and inequality values are stated
+            // at the EXPORTER's point, and a solve starting from `x0` would be
+            // seeding barrier state for somewhere it is not.
+            have_warm = static_cast<int>(ceiling) >= static_cast<int>(StartLevel::kWarm) &&
+                        !multipliers_only;
+            if (!have_warm && find_ipm_polish(warm) != nullptr) {
+                this->result_.polish_ignored = 1;
+            }
+        }
     }
 
     if (have_seed) {
@@ -4653,12 +4662,18 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
     // variable-treatment configuration deliberately: that call re-lays
     // whenever it eliminates or restores variables, so the key the program
     // carries before it is not the key this solve lays under, and checking at
-    // staging time would refuse a consumer staging into a fresh engine before
-    // its first solve. A mismatch refuses, naming both keys: dropping the
-    // staged start silently would cold-start a solve the caller asked to
+    // the hand-over would refuse a consumer handing a value to a fresh engine
+    // before its first solve. A mismatch refuses, naming both keys: dropping
+    // the payload silently would cold-start a solve the caller asked to
     // warm-start, and applying it would restart a point belonging to a
     // different declared structure.
-    if (have_warm) {
+    //
+    // GATED ON `payload != nullptr`, NOT ON `have_warm` (M6 W5 T8.5): identity
+    // is checked on every payload this call was handed, at every rung of the
+    // `common.start_level` ceiling -- kCold included, where the payload is
+    // about to be ignored. A ceiling says what of a payload to APPLY; it never
+    // says a payload describing a different problem is acceptable.
+    if (payload != nullptr) {
         // The declaration key, not the layout key: what is compared is the
         // problem the caller transcribed, the only thing a value crossing
         // engines or treatments can be held to (warmstart/warm_start_data.h).
@@ -4667,12 +4682,12 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
         const DeclarationKey live = declaration_key(this->nlp_->declaration());
         if (!(warm.structure_key_ == live)) {
             throw std::invalid_argument(fmt::format(
-                "InteriorPointSolver: the staged warm start was taken under declaration key "
+                "InteriorPointSolver: the warm-start payload was taken under declaration key "
                 "{0:#x} but the problem this solve binds keys {1:#x} -- the value describes a "
                 "different declared problem. The key covers the declared dimensions (with the "
                 "fixed-variable treatment's own rows subtracted) and the declared bound "
-                "STRUCTURE, so one of those moved. The staged start is refused rather than "
-                "silently dropped; re-export and re-stage against the current declaration.",
+                "STRUCTURE, so one of those moved. The payload is refused rather than "
+                "silently dropped; re-export against the current declaration.",
                 warm.structure_key_.digest(), live.digest()));
         }
     }
@@ -5319,7 +5334,53 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::solve(NonLinearProg
     // stops before the reporting; both survive, under their own names.
     hven::utils::Timer wall;
     wall.start();
-    IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget);
+    IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget, nullptr);
+    wall.stop();
+    result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;
+    return result;
+}
+
+// THE PAYLOAD OVERLOAD (M6 W5 T8.5). The same body as the cold entry above,
+// with the payload handed down as a pointer rather than read off a member --
+// which is the whole of what replaced stage_warm_start(). The HAND-OVER checks
+// (finiteness, the extension's own readability and internal widths) run here,
+// in the caller's frame, because they are the refusals a caller can act on
+// without knowing which problem the value will meet; the AGAINST-THE-PROBLEM
+// checks (block lengths, then the declaration stamp) run inside
+// run_phase_sequence, where a program is bound.
+hven::solvers::IpmResult hven::solvers::InteriorPointSolver::solve(NonLinearProgram &model,
+                                                                   const Eigen::VectorXd &x0,
+                                                                   const WarmStartData &warm,
+                                                                   SolveBudget budget) {
+    if (x0.size() != static_cast<Eigen::Index>(model.primal_vars_)) {
+        throw std::invalid_argument(fmt::format("hven interior-point solver: initial guess has {} "
+                                                "elements, expected {} primal variables",
+                                                x0.size(), model.primal_vars_));
+    }
+
+    // THE HAND-OVER, in the order stage_warm_start ran it and with the same
+    // messages, less the entry name (which is now "solve").
+    //
+    // THE CORE'S OWN CONSISTENCY comes first and is NEW here (M6 W5 T8.5): the
+    // multipliers-only seed is the form whose `primal_` is EMPTY, and the one
+    // shape that is never a form of anything is an empty `primal_` beside a
+    // non-empty `bound_lmults_` -- bound prices at a point the payload does not
+    // name. Refused where the caller is still standing, before any of it
+    // reaches a solve.
+    if (warm.primal_.size() != warm.bound_lmults_.size()) {
+        throw std::invalid_argument(fmt::format(
+            "InteriorPointSolver::solve: warm-start block primal_ holds {0} entries but "
+            "bound_lmults_ holds {1}; both are stated over the DECLARED variables and must be "
+            "EITHER BOTH EMPTY (the multipliers-only seed, whose start is this call's own x0) OR "
+            "ONE LENGTH -- one bound price per variable",
+            warm.primal_.size(), warm.bound_lmults_.size()));
+    }
+    this->validate_warm_start_finiteness(warm, "solve");
+    this->validate_staged_polish(warm, "solve");
+
+    hven::utils::Timer wall;
+    wall.start();
+    IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget, &warm);
     wall.stop();
     result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;
     return result;

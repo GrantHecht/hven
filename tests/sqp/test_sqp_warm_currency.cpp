@@ -1,18 +1,31 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_sqp_warm_currency.cpp — SqpDriver::export_warm_start /
-// stage_warm_start, the SQP engine's half of the M5 warm-start currency.
+// tests/sqp/test_sqp_warm_currency.cpp — SqpDriver::export_warm_start and the
+// PAYLOAD route `solve(bridge, x0, const WarmStartData &, budget)`, the SQP
+// engine's half of the warm-start currency.
+//
+// M6 W5 T8.5 REPLACED STAGING WITH AN ARGUMENT. `stage_warm_start(p);
+// solve(b, x0)` is `solve(b, x0, p)`; the hand-over checks that ran at the
+// staging call run at the public entry, with the same messages under the
+// `SqpDriver::solve` name; and the against-the-problem checks (block lengths,
+// then the declaration stamp) still fire at solve entry -- now IN EVERY
+// `qp_mode`, kIpm included (M5 ruling 4's mode-local cold grade RETIRED for
+// that case). Two families of test went with the staging state they were about
+// -- the clear-first rule and the two-warm-sources refusal -- each retired in
+// place with the argument that the hazard it guarded is unconstructible now,
+// and each replaced by the positive statement of the new shape.
 //
 // Pinned here, in the order the surface is used:
 //   * the no-completed-solve export refusal, and the round trip that follows a
 //     real solve (blocks == the solution's, widths == the model's, stamp == the
 //     bridge's key);
-//   * staging: finiteness and internal consistency refused AT staging; block
+//   * the hand-over: finiteness and internal consistency refused THERE; block
 //     sizes and the stamp refused at SOLVE ENTRY, against the problem that call
-//     binds; one-shot consumption (the second solve is cold);
-//   * the two-sources refusal when an explicit `warm` argument meets a staged
-//     value, and the one thing that refusal deliberately does NOT do (consume);
+//     binds, in every qp_mode; a payload applying to its own call and no other
+//     (the next solve is cold);
+//   * overload selection by argument type -- an lvalue `SqpWarmStart` takes the
+//     native route, an lvalue `WarmStartData` the payload one;
 //   * the two application routes -- the "hven.ipm.polish.v1" crossover through
 //     to_sqp_warm_start, and the core-only seed -- both entering at
 //     StartLevel::kSeeded, and a foreign tag skipped silently;
@@ -30,6 +43,7 @@
 #include <cstdint>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -439,7 +453,8 @@ TEST(SqpWarmCurrency, ASolveThatThrewIsNotACompletedSolve) {
 // solve() that RETURNED, so a call that throws does not arm the export and,
 // symmetrically, does not disarm one an earlier call armed -- the capture is
 // simply never reached. Pinned because the opposite shape is the plausible one
-// (it is what stage_warm_start's own clears-first rule does to STAGED state),
+// (it is what the retired staging entry's own clears-first rule did to staged
+// state),
 // and a consumer that solved, then hit a bad model, then exported would silently
 // get a refusal instead of the payload it was entitled to.
 TEST(SqpWarmCurrency, ASolveThatThrewLeavesAnEarlierExportStanding) {
@@ -521,9 +536,9 @@ TEST(SqpWarmCurrency, ExportTracksTheLastCompletedSolve) {
     EXPECT_EQ(driver.export_warm_start().primal_.size(), 4);
 }
 
-// --- Staging: what is refused HERE, and what is not ---
+// --- The hand-over: what is refused HERE, and what is not ---
 
-TEST(SqpWarmCurrency, StagingRefusesANonFiniteBlock) {
+TEST(SqpWarmCurrency, TheHandOverRefusesANonFiniteBlock) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
     const SqpSolution sol = solve_fixture_cold(*model);
@@ -532,17 +547,19 @@ TEST(SqpWarmCurrency, StagingRefusesANonFiniteBlock) {
     data.iq_lmults_(0) = std::numeric_limits<double>::quiet_NaN();
 
     SqpDriver driver{SqpOptions{}};
-    EXPECT_THROW(driver.stage_warm_start(data), std::invalid_argument);
+    EXPECT_THROW((void)driver.solve(*bridge, model->start_point(), data), std::invalid_argument);
 
-    // Refused, and therefore not staged: the next solve is cold, which the
-    // level reading says outright.
+    // Refused, and nothing left behind: the next solve is cold, which the level
+    // reading says outright.
     const SqpSolution after = driver.solve(*bridge, model->start_point());
     EXPECT_EQ(after.counters.start_level_used, StartLevel::kCold);
 }
 
 // The one structural question answerable with no problem in hand: `primal_` and
-// `bound_lmults_` are two readings of one space.
-TEST(SqpWarmCurrency, StagingRefusesACoreThatDisagreesWithItself) {
+// `bound_lmults_` are two readings of one space, so they are EITHER BOTH EMPTY
+// (the multipliers-only seed) OR ONE LENGTH. This is the half-empty shape,
+// which is neither.
+TEST(SqpWarmCurrency, TheHandOverRefusesACoreThatDisagreesWithItself) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
     const SqpSolution sol = solve_fixture_cold(*model);
@@ -551,13 +568,14 @@ TEST(SqpWarmCurrency, StagingRefusesACoreThatDisagreesWithItself) {
     data.bound_lmults_ = Vec::Zero(2);
 
     SqpDriver driver{SqpOptions{}};
-    EXPECT_THROW(driver.stage_warm_start(data), std::invalid_argument);
+    EXPECT_THROW((void)driver.solve(*bridge, model->start_point(), data), std::invalid_argument);
 }
 
-// A CORRUPT payload under the KNOWN tag is refused at staging, naming the tag.
+// A CORRUPT payload under the KNOWN tag is refused at the hand-over, naming the
+// tag.
 // Corruption is not a foreign tag: a reader that skipped it would silently
 // cold-start a solve the caller asked to cross over into.
-TEST(SqpWarmCurrency, StagingRefusesAMalformedPolishPayloadNamingTheTag) {
+TEST(SqpWarmCurrency, TheHandOverRefusesAMalformedPolishPayloadNamingTheTag) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
     const SqpSolution sol = solve_fixture_cold(*model);
@@ -569,17 +587,17 @@ TEST(SqpWarmCurrency, StagingRefusesAMalformedPolishPayloadNamingTheTag) {
 
     SqpDriver driver{SqpOptions{}};
     try {
-        driver.stage_warm_start(data);
+        (void)driver.solve(*bridge, model->start_point(), data);
         FAIL() << "a truncated payload under the known tag must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
         EXPECT_NE(message.find(std::string(kIpmPolishTag)), std::string::npos)
             << "the refusal must name the tag it refused under: " << message;
-        EXPECT_NE(message.find("stage_warm_start"), std::string::npos) << message;
+        EXPECT_NE(message.find("SqpDriver::solve"), std::string::npos) << message;
     }
 }
 
-// THE SIGN REFUSAL, both blocks, in the same terms the IPM's staging uses.
+// THE SIGN REFUSAL, both blocks, in the same terms the IPM's hand-over uses.
 // The extension states z_lower_/z_upper_ as prices -- non-negative at every
 // coordinate -- so a negative entry is corruption, not a seed. Left standing
 // it would reach from_interior_point, whose activity rule leaves a wrong-sign
@@ -587,7 +605,7 @@ TEST(SqpWarmCurrency, StagingRefusesAMalformedPolishPayloadNamingTheTag) {
 // object regardless; the kSeeded clamp defends `lambda_i`, not these blocks.
 // Refused here so the class is loud on both engines rather than half-absorbed
 // on each (tests/interior/test_ipm_warm_start.cpp pins the IPM half).
-TEST(SqpWarmCurrency, StagingRefusesANegativeLowerBoundPriceNamingTheTagAndTheBlock) {
+TEST(SqpWarmCurrency, TheHandOverRefusesANegativeLowerBoundPriceNamingTheTagAndTheBlock) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
     const SqpSolution sol = solve_fixture_cold(*model);
@@ -600,22 +618,23 @@ TEST(SqpWarmCurrency, StagingRefusesANegativeLowerBoundPriceNamingTheTagAndTheBl
 
     SqpDriver driver{SqpOptions{}};
     try {
-        driver.stage_warm_start(data);
+        (void)driver.solve(*bridge, model->start_point(), data);
         FAIL() << "a negative price under the known tag must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
         EXPECT_NE(message.find(std::string(kIpmPolishTag)), std::string::npos) << message;
-        EXPECT_NE(message.find("stage_warm_start"), std::string::npos) << message;
+        EXPECT_NE(message.find("SqpDriver::solve"), std::string::npos) << message;
         EXPECT_NE(message.find("lower-bound multiplier block"), std::string::npos) << message;
         EXPECT_NE(message.find("index 0"), std::string::npos) << message;
     }
 
-    // Refused, and therefore not staged.
+    // Refused, and nothing left behind: the same driver's next solve, with no
+    // payload argument, is cold.
     const SqpSolution after = driver.solve(*bridge, model->start_point());
     EXPECT_EQ(after.counters.start_level_used, StartLevel::kCold);
 }
 
-TEST(SqpWarmCurrency, StagingRefusesANegativeUpperBoundPriceNamingTheTagAndTheBlock) {
+TEST(SqpWarmCurrency, TheHandOverRefusesANegativeUpperBoundPriceNamingTheTagAndTheBlock) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
     const SqpSolution sol = solve_fixture_cold(*model);
@@ -628,24 +647,26 @@ TEST(SqpWarmCurrency, StagingRefusesANegativeUpperBoundPriceNamingTheTagAndTheBl
 
     SqpDriver driver{SqpOptions{}};
     try {
-        driver.stage_warm_start(data);
+        (void)driver.solve(*bridge, model->start_point(), data);
         FAIL() << "a negative price under the known tag must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
         EXPECT_NE(message.find(std::string(kIpmPolishTag)), std::string::npos) << message;
-        EXPECT_NE(message.find("stage_warm_start"), std::string::npos) << message;
+        EXPECT_NE(message.find("SqpDriver::solve"), std::string::npos) << message;
         EXPECT_NE(message.find("upper-bound multiplier block"), std::string::npos) << message;
         EXPECT_NE(message.find("index 1"), std::string::npos) << message;
     }
 
+    // Refused, and nothing left behind: the same driver's next solve, with no
+    // payload argument, is cold.
     const SqpSolution after = driver.solve(*bridge, model->start_point());
     EXPECT_EQ(after.counters.start_level_used, StartLevel::kCold);
 }
 
 // The floor of the contract is INCLUSIVE: an all-zero price block is what an
-// unpriced or absent side carries on the ordinary path, so it stages and the
-// solve crosses over. The refusal above is about the SIGN, not about zero.
-TEST(SqpWarmCurrency, AZeroValuedPriceBlockStillStages) {
+// unpriced or absent side carries on the ordinary path, so it is accepted and
+// the solve crosses over. The refusal above is about the SIGN, not about zero.
+TEST(SqpWarmCurrency, AZeroValuedPriceBlockIsStillAccepted) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
     const SqpSolution sol = solve_fixture_cold(*model);
@@ -657,13 +678,14 @@ TEST(SqpWarmCurrency, AZeroValuedPriceBlockStillStages) {
     data.extensions_.push_back(polish_extension(polish));
 
     SqpDriver driver{SqpOptions{}};
-    ASSERT_NO_THROW(driver.stage_warm_start(data));
-    const SqpSolution out = driver.solve(*bridge, model->start_point());
+    SqpSolution out;
+    ASSERT_NO_THROW(out = driver.solve(*bridge, model->start_point(), data));
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
 }
 
 // A FOREIGN tag is skipped silently (R3) -- a capability downgrade, not an
-// error. The value stages, applies, and the solve runs as a core-only warm one.
+// error. The value is accepted, applies, and the solve runs as a core-only warm
+// one.
 TEST(SqpWarmCurrency, AForeignExtensionTagIsSkippedSilently) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
@@ -676,35 +698,41 @@ TEST(SqpWarmCurrency, AForeignExtensionTagIsSkippedSilently) {
     data.extensions_.push_back(ext);
 
     SqpDriver driver{SqpOptions{}};
-    ASSERT_NO_THROW(driver.stage_warm_start(data));
-    const SqpSolution out = driver.solve(*bridge, model->start_point());
+    SqpSolution out;
+    ASSERT_NO_THROW(out = driver.solve(*bridge, model->start_point(), data));
     EXPECT_EQ(out.status, SolveStatus::kOptimal);
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
 }
 
-// CLEARS FIRST, whether it succeeds or refuses. A caller that stages a good
-// value, then stages a bad one and solves anyway, must cold-start -- never
-// warm-start off the value it has already moved on from.
-TEST(SqpWarmCurrency, ARefusedStagingClearsTheValueStagedBeforeIt) {
+// THE CLEARS-FIRST RULE IS RETIRED WITH STAGING (M6 W5 T8.5), and this test is
+// its replacement rather than its deletion. It pinned the hazard of a value
+// SURVIVING a call: stage a good payload, get a refusal on a bad one, solve
+// anyway, and silently warm-start off the value the caller had moved on from.
+// A payload is an ARGUMENT now, so it lives exactly as long as the call it is
+// passed to and there is no earlier value left standing to be found. What is
+// pinned here is that positive fact, on a driver that really did run warm once.
+TEST(SqpWarmCurrency, ARefusedPayloadLeavesNothingBehindForTheNextSolve) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
     const SqpSolution sol = solve_fixture_cold(*model);
 
     SqpDriver driver{SqpOptions{}};
-    ASSERT_NO_THROW(driver.stage_warm_start(core_payload(sol, *bridge)));
+    const SqpSolution warm =
+        driver.solve(*bridge, model->start_point(), core_payload(sol, *bridge));
+    ASSERT_EQ(warm.counters.start_level_used, StartLevel::kSeeded);
 
     WarmStartData bad = core_payload(sol, *bridge);
     bad.primal_(0) = std::numeric_limits<double>::infinity();
-    EXPECT_THROW(driver.stage_warm_start(bad), std::invalid_argument);
+    EXPECT_THROW((void)driver.solve(*bridge, model->start_point(), bad), std::invalid_argument);
 
     const SqpSolution out = driver.solve(*bridge, model->start_point());
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kCold)
-        << "the refused staging must have cleared the good value staged before it";
+        << "a solve with no payload argument carries nothing from an earlier one";
 }
 
-// --- Solve entry: the two checks that had nowhere to stand at staging ---
+// --- Solve entry: the two checks that need a bound problem ---
 
-TEST(SqpWarmCurrency, SolveEntryRefusesAStagedValueAtTheWrongSizes) {
+TEST(SqpWarmCurrency, SolveEntryRefusesAPayloadAtTheWrongSizes) {
     const auto narrow = std::make_shared<CurrencyModel>();
     const auto narrow_bridge = make_bridge(narrow);
     const auto wide = std::make_shared<CurrencyWiderModel>();
@@ -712,12 +740,10 @@ TEST(SqpWarmCurrency, SolveEntryRefusesAStagedValueAtTheWrongSizes) {
     const SqpSolution sol = solve_fixture_cold(*narrow);
 
     SqpDriver driver{SqpOptions{}};
-    // Staging is where the value is accepted: no problem is bound here, so
-    // nothing about the destination's width is knowable yet.
-    ASSERT_NO_THROW(driver.stage_warm_start(core_payload(sol, *narrow_bridge)));
-
+    // The HAND-OVER accepts it -- nothing about the payload is internally wrong
+    // -- and the SOLVE is where the destination's width becomes knowable.
     try {
-        (void)driver.solve(*wide_bridge, wide->start_point());
+        (void)driver.solve(*wide_bridge, wide->start_point(), core_payload(sol, *narrow_bridge));
         FAIL() << "a 3-wide payload must be refused against a 4-variable problem";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -760,10 +786,9 @@ TEST(SqpWarmCurrency, SolveEntryRefusesAStagedValueUnderAnotherStampNamingBothDi
 
     const SqpSolution sol = solve_fixture_cold(*original);
     SqpDriver driver{SqpOptions{}};
-    ASSERT_NO_THROW(driver.stage_warm_start(core_payload(sol, *original_bridge)));
-
     try {
-        (void)driver.solve(*rekeyed_bridge, rekeyed->start_point());
+        (void)driver.solve(*rekeyed_bridge, rekeyed->start_point(),
+                           core_payload(sol, *original_bridge));
         FAIL() << "a payload under another declared structure must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -783,70 +808,62 @@ TEST(SqpWarmCurrency, SolveEntryRefusesAStagedValueUnderAnotherStampNamingBothDi
 
 // --- One-shot consumption, and the two-sources refusal ---
 
-TEST(SqpWarmCurrency, AStagedValueIsConsumedByTheNextSolveAndTheOneAfterIsCold) {
+TEST(SqpWarmCurrency, APayloadAppliesToItsOwnCallAndTheOneAfterIsCold) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
     const SqpSolution sol = solve_fixture_cold(*model);
 
     SqpDriver driver{SqpOptions{}};
-    driver.stage_warm_start(core_payload(sol, *bridge));
-
-    const SqpSolution first = driver.solve(*bridge, model->start_point());
+    const SqpSolution first =
+        driver.solve(*bridge, model->start_point(), core_payload(sol, *bridge));
     EXPECT_EQ(first.status, SolveStatus::kOptimal);
     EXPECT_EQ(first.counters.start_level_used, StartLevel::kSeeded);
     EXPECT_EQ(first.counters.n_seeded, 1);
 
     const SqpSolution second = driver.solve(*bridge, model->start_point());
     EXPECT_EQ(second.counters.start_level_used, StartLevel::kCold)
-        << "the staged value is ONE-SHOT: the second solve gets nothing";
+        << "a payload applies to the call it is an argument to and to no other: the "
+           "second solve gets nothing";
     EXPECT_EQ(second.counters.n_seeded, 0);
 }
 
-// TWO WARM-START SOURCES FOR ONE SOLVE, refused naming both -- no silent
-// precedence. The refusal deliberately does NOT consume: it judges the call's
-// arguments, not the value, and the call binds no problem and runs nothing.
-TEST(SqpWarmCurrency, AnExplicitWarmArgumentAndAStagedValueAreRefusedTogether) {
+// THE TWO-SOURCES REFUSAL IS RETIRED (M6 W5 T8.5) and so is the test that
+// pinned it, `AnExplicitWarmArgumentAndAStagedValueAreRefusedTogether`. It
+// existed because a driver could hold a STAGED payload while a call passed a
+// native `WarmStart` argument -- two warm-start sources for one solve, neither
+// of which could silently win. With staging gone a call's warm-start source is
+// exactly its own argument, and `refuse_two_warm_sources()` went with it.
+//
+// WHAT REPLACES IT is a statement about OVERLOAD RESOLUTION, which is where the
+// "which source wins" question now lives: an lvalue of `SqpWarmStart` selects
+// the native overload and an lvalue of `WarmStartData` selects the payload one,
+// unambiguously, because neither type converts to the other. (The one ambiguous
+// SPELLING is a braced third argument -- `solve(bridge, x0, {})` would match
+// `SolveBudget`, `WarmStartData` and `SqpWarmStart` alike -- and it is a
+// compile error, not a silent precedence; the migration guide says to spell the
+// type. It cannot be pinned by a test that has to compile.)
+TEST(SqpWarmCurrency, TheNativeAndPayloadOverloadsAreSelectedByArgumentType) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
     const SqpSolution sol = solve_fixture_cold(*model);
 
-    SqpDriver driver{SqpOptions{}};
-    driver.stage_warm_start(core_payload(sol, *bridge));
+    // THE NATIVE ROUTE: a SqpWarmStart from a prior solve of the same model
+    // carries a real structure hash, so it can reach kWarm.
+    SqpDriver native{SqpOptions{}};
+    const SqpSolution by_native = native.solve(*bridge, model->start_point(), sol.warm_start);
+    EXPECT_EQ(by_native.status, SolveStatus::kOptimal);
+    EXPECT_GE(static_cast<int>(by_native.counters.start_level_used),
+              static_cast<int>(StartLevel::kSeeded));
 
-    try {
-        (void)driver.solve(*bridge, model->start_point(), sol.warm_start);
-        FAIL() << "an explicit warm argument must not silently outrank a staged value";
-    } catch (const std::invalid_argument &error) {
-        const std::string message = error.what();
-        EXPECT_NE(message.find("WarmStart argument"), std::string::npos) << message;
-        EXPECT_NE(message.find("stage_warm_start"), std::string::npos) << message;
-    }
-
-    // Even a DEFAULT-CONSTRUCTED (cold) argument is a source: it is this
-    // class's documented way of asking for a cold solve, so it contradicts a
-    // staged value just as loudly.
-    EXPECT_THROW((void)driver.solve(*bridge, model->start_point(), WarmStart{}),
-                 std::invalid_argument);
-
-    // And the refusal says so: a caller must not have to infer from silence
-    // whether a one-shot value survived a refusal, and this is the one refusal
-    // on the surface that retains it.
-    try {
-        (void)driver.solve(*bridge, model->start_point(), WarmStart{});
-        FAIL() << "the two-sources refusal must fire";
-    } catch (const std::invalid_argument &error) {
-        const std::string message = error.what();
-        EXPECT_NE(message.find("RETAINED"), std::string::npos)
-            << "the refusal must SAY the staged value survives: " << message;
-        EXPECT_NE(message.find("still staged"), std::string::npos) << message;
-        EXPECT_NE(message.find("consumed nothing"), std::string::npos) << message;
-    }
-
-    // AND THE VALUE IS STILL STAGED, which is what the message just promised.
-    // The caller's fix is to drop one source and call again; nothing was judged
-    // and nothing was spent.
-    const SqpSolution out = driver.solve(*bridge, model->start_point());
-    EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
+    // THE PAYLOAD ROUTE: the same solve's value as declared-space currency
+    // carries hash 0 by construction, so it caps at kSeeded. Same driver class,
+    // same problem, same starting point -- only the argument's TYPE differs,
+    // and that is what selects the route.
+    SqpDriver payload{SqpOptions{}};
+    const SqpSolution by_payload =
+        payload.solve(*bridge, model->start_point(), core_payload(sol, *bridge));
+    EXPECT_EQ(by_payload.status, SolveStatus::kOptimal);
+    EXPECT_EQ(by_payload.counters.start_level_used, StartLevel::kSeeded);
 }
 
 // --- The two application routes, and the level they enter at ---
@@ -860,17 +877,17 @@ TEST(SqpWarmCurrency, ACoreOnlyValueEntersAtTheSeededLevel) {
     const SqpSolution sol = solve_fixture_cold(*model);
 
     SqpDriver driver{SqpOptions{}};
-    driver.stage_warm_start(core_payload(sol, *bridge));
 
-    // x0 is deliberately NOWHERE NEAR the solution: if the staged primal did not
-    // replace it, the first iterate could not be the solved point.
-    const SqpSolution out = driver.solve(*bridge, Vec::Constant(3, 1.75));
+    // x0 is deliberately NOWHERE NEAR the solution: if the payload's primal did
+    // not replace it, the first iterate could not be the solved point.
+    const SqpSolution out =
+        driver.solve(*bridge, Vec::Constant(3, 1.75), core_payload(sol, *bridge));
 
     EXPECT_EQ(out.status, SolveStatus::kOptimal);
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
-    // The staged primal replaced x0, through the ingest rule this class already
-    // documents ("x0 is the cold fallback"): the first measured iterate is the
-    // exported point, not the argument.
+    // The payload's primal replaced x0, through the ingest rule this class
+    // already documents ("x0 is the cold fallback"): the first measured iterate
+    // is the exported point, not the argument.
     ASSERT_FALSE(out.history.empty());
     EXPECT_NEAR(out.history.front().f, sol.f, 1e-12);
     // Warm from a KKT point of the same problem: certified without spending a
@@ -880,9 +897,9 @@ TEST(SqpWarmCurrency, ACoreOnlyValueEntersAtTheSeededLevel) {
 }
 
 // WITH THE POLISH TAG: the value is routed through to_sqp_warm_start and
-// nothing is re-implemented. Pinned by EQUIVALENCE -- staging the payload and
-// solving must produce the same solve as calling the bridge by hand and passing
-// its output as an explicit argument.
+// nothing is re-implemented. Pinned by EQUIVALENCE -- handing the payload to
+// solve must produce the same solve as calling the bridge by hand and passing
+// its output through the NATIVE overload.
 TEST(SqpWarmCurrency, APolishTaggedValueRoutesThroughTheCrossoverBridge) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
@@ -892,10 +909,9 @@ TEST(SqpWarmCurrency, APolishTaggedValueRoutesThroughTheCrossoverBridge) {
     const IpmPolishData polish = fixture_polish(sol);
     data.extensions_.push_back(polish_extension(polish));
 
-    // (a) through the staged path.
+    // (a) through the payload route.
     SqpDriver staged_driver{SqpOptions{}};
-    staged_driver.stage_warm_start(data);
-    const SqpSolution staged = staged_driver.solve(*bridge, model->start_point());
+    const SqpSolution staged = staged_driver.solve(*bridge, model->start_point(), data);
 
     // (b) through the bridge called by hand, on a fresh driver.
     const WarmStart crossover = to_sqp_warm_start(data, model->lower(), model->upper(),
@@ -926,19 +942,17 @@ TEST(SqpWarmCurrency, APolishTaggedValueRoutesThroughTheCrossoverBridge) {
 
 // The same staged payload, from cold, twice: bit-identical first iterates on
 // the R5 instrument above, so a drift anywhere in the ingest shows up here.
-TEST(SqpWarmCurrency, StagingTheSameValueTwiceFromColdIsBitIdentical) {
+TEST(SqpWarmCurrency, PassingTheSameValueTwiceFromColdIsBitIdentical) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
     const SqpSolution sol = solve_fixture_cold(*model);
     const WarmStartData data = core_payload(sol, *bridge);
 
     SqpDriver first_driver{SqpOptions{}};
-    first_driver.stage_warm_start(data);
-    const SqpSolution first = first_driver.solve(*bridge, model->start_point());
+    const SqpSolution first = first_driver.solve(*bridge, model->start_point(), data);
 
     SqpDriver second_driver{SqpOptions{}};
-    second_driver.stage_warm_start(data);
-    const SqpSolution second = second_driver.solve(*bridge, model->start_point());
+    const SqpSolution second = second_driver.solve(*bridge, model->start_point(), data);
 
     expect_same_first_iterate(first, second);
     EXPECT_EQ(first.x, second.x);
@@ -979,7 +993,12 @@ TEST(SqpWarmCurrency, InteriorPointExportCrossesOverIntoTheSqpEngine) {
     const hven::solvers::IpmResult ipm_result = ipm.optimizer_->solve(*ipm.nlp_, x0);
     ASSERT_EQ(ipm_result.status, hven::solvers::SolveStatus::kOptimal);
 
-    const WarmStartData exported = ipm.optimizer_->export_warm_start();
+    // THE EXPORT, OFF THE RESULT (M6 W5 T8.5): the solver-side
+    // export_warm_start() is gone and the snapshot travels on the returned
+    // value.
+    const std::optional<WarmStartData> snapshot = ipm_result.export_warm_start();
+    ASSERT_TRUE(snapshot.has_value());
+    const WarmStartData exported = *snapshot;
     ASSERT_EQ(exported.primal_.size(), 3);
     ASSERT_EQ(exported.eq_lmults_.size(), 1);
     ASSERT_EQ(exported.iq_lmults_.size(), 1);
@@ -1013,8 +1032,7 @@ TEST(SqpWarmCurrency, InteriorPointExportCrossesOverIntoTheSqpEngine) {
     // THE COMPOSITION, with the value exactly as the other engine handed it
     // over.
     SqpDriver sqp{SqpOptions{}};
-    sqp.stage_warm_start(exported);
-    const SqpSolution out = sqp.solve(*bridge, model->start_point());
+    const SqpSolution out = sqp.solve(*bridge, model->start_point(), exported);
 
     EXPECT_EQ(out.status, SolveStatus::kOptimal);
     EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
@@ -1068,10 +1086,9 @@ TEST(SqpWarmCurrency, ADeclarationWithAnExtraRowIsStaleAndIsRefused) {
 
     const SqpSolution sol = solve_fixture_cold(*original);
     SqpDriver driver{SqpOptions{}};
-    ASSERT_NO_THROW(driver.stage_warm_start(core_payload(sol, *original_bridge)));
-
     try {
-        (void)driver.solve(*extra_bridge, extra->start_point());
+        (void)driver.solve(*extra_bridge, extra->start_point(),
+                           core_payload(sol, *original_bridge));
         FAIL() << "a value taken on a one-row-smaller declaration must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -1239,13 +1256,11 @@ TEST(SqpWarmCurrency, AWarmResolveOnAUsedDriverAnswersExactlyWhatAFreshDriverAns
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
     const WarmStartData payload = reused.export_warm_start();
 
-    reused.stage_warm_start(payload);
-    const SqpSolution hot = reused.solve(*bridge, x0);
+    const SqpSolution hot = reused.solve(*bridge, x0, payload);
     ASSERT_EQ(hot.status, SolveStatus::kOptimal);
 
     SqpDriver fresh{SqpOptions{}};
-    fresh.stage_warm_start(payload);
-    const SqpSolution cold = fresh.solve(*bridge, x0);
+    const SqpSolution cold = fresh.solve(*bridge, x0, payload);
     ASSERT_EQ(cold.status, SolveStatus::kOptimal);
 
     // Both staged the same value, so both resolve at the same level -- kSeeded,
@@ -1265,12 +1280,26 @@ TEST(SqpWarmCurrency, AWarmResolveOnAUsedDriverAnswersExactlyWhatAFreshDriverAns
 // M6 W1 TASK 7 -- the preserved-seed ingest and the mode-local cold degrade
 // ===========================================================================
 //
-// PLAN RULING 4. Under `QpMode::kIpm` the interior-point tier's MAIN-subproblem
-// seed is built here, from the validated staged value and its polish payload,
-// WITHOUT the signed-z flattening the crossover necessarily performs -- and the
-// two refusals below (stamp, dimensions) become COLD DEGRADES, mode-locally,
-// because spec section 5.4 lists both as the cold grade. Everything the other
-// two modes see is unchanged, which is what each pair of tests asserts.
+// PLAN RULING 4, HALF RETIRED. Under `QpMode::kIpm` the interior-point tier's
+// MAIN-subproblem seed is still built here, from the validated payload and its
+// polish extension, WITHOUT the signed-z flattening the crossover necessarily
+// performs. That half stands.
+//
+// WHAT WENT (M6 W5 T8.5, owner ruling; design 2.4): the MODE-LOCAL COLD DEGRADE.
+// M5 ruling 4 made a stamp or dimension mismatch a cold grade under kIpm --
+// spec section 5.4 lists both as the cold grade -- where kWalk and kSsn threw.
+// The ruling is RETIRED FOR THAT CASE: identity mismatch REFUSES IN EVERY MODE.
+// The reason is that the old shape made an IDENTITY answer depend on which QP
+// KERNEL the driver happened to be configured for, so the same payload against
+// the same problem was refused or silently discarded according to something
+// identity has nothing to do with. Pattern and value defects still degrade, in
+// every mode, exactly as before.
+//
+// The two tests below are DECLARED FLIPS of the two that pinned the old
+// behaviour (`KIpmDegradesAWrongSizedStagedValueColdWhereKWalkThrows` and
+// `KIpmDegradesAStampMismatchColdWhereKWalkThrows`): same fixtures, same
+// payloads, the kIpm arm's expectation inverted from a cold grade to the same
+// refusal kWalk gives.
 
 namespace {
 
@@ -1290,7 +1319,7 @@ WarmStartData perturbed_core(const SqpSolution &sol, const NlpModelAggregate &br
 
 } // namespace
 
-TEST(SqpWarmCurrency, KIpmDegradesAWrongSizedStagedValueColdWhereKWalkThrows) {
+TEST(SqpWarmCurrency, KIpmRefusesAWrongSizedPayloadLikeKWalk) {
     const auto narrow = std::make_shared<CurrencyModel>();
     const auto narrow_bridge = make_bridge(narrow);
     const auto wide = std::make_shared<CurrencyWiderModel>();
@@ -1301,21 +1330,36 @@ TEST(SqpWarmCurrency, KIpmDegradesAWrongSizedStagedValueColdWhereKWalkThrows) {
     // kWalk: unchanged. The 3-wide payload is refused against the 4-variable
     // problem, loudly, naming the block.
     SqpDriver walker{SqpOptions{}};
-    ASSERT_NO_THROW(walker.stage_warm_start(payload));
-    EXPECT_THROW((void)walker.solve(*wide_bridge, wide->start_point()), std::invalid_argument);
+    EXPECT_THROW((void)walker.solve(*wide_bridge, wide->start_point(), payload),
+                 std::invalid_argument);
 
-    // kIpm: the same value on the same problem DEGRADES COLD and the solve runs.
+    // kIpm: THE FLIP. The same value on the same problem is refused the same
+    // way. It used to be cold-graded and the solve ran.
     SqpDriver ipm{ipm_currency_options()};
-    ASSERT_NO_THROW(ipm.stage_warm_start(payload));
-    SqpSolution out;
-    ASSERT_NO_THROW(out = ipm.solve(*wide_bridge, wide->start_point()));
-    EXPECT_EQ(out.status, SolveStatus::kOptimal);
-    EXPECT_EQ(out.counters.start_level_used, StartLevel::kCold)
-        << "the cold grade is the whole solve's, not the tier's alone: a value at the wrong "
-           "dimensions cannot seed flow (a) either";
+    EXPECT_THROW((void)ipm.solve(*wide_bridge, wide->start_point(), payload),
+                 std::invalid_argument);
+
+    // And the two refusals are the SAME refusal, not merely the same type:
+    // one identity check, one message, whatever the kernel.
+    std::string walk_message;
+    std::string ipm_message;
+    try {
+        SqpDriver w{SqpOptions{}};
+        (void)w.solve(*wide_bridge, wide->start_point(), payload);
+    } catch (const std::invalid_argument &error) {
+        walk_message = error.what();
+    }
+    try {
+        SqpDriver i{ipm_currency_options()};
+        (void)i.solve(*wide_bridge, wide->start_point(), payload);
+    } catch (const std::invalid_argument &error) {
+        ipm_message = error.what();
+    }
+    EXPECT_FALSE(walk_message.empty());
+    EXPECT_EQ(walk_message, ipm_message);
 }
 
-TEST(SqpWarmCurrency, KIpmDegradesAStampMismatchColdWhereKWalkThrows) {
+TEST(SqpWarmCurrency, KIpmRefusesAStampMismatchLikeKWalk) {
     const auto original = std::make_shared<CurrencyModel>(/*lower_x0_finite=*/true);
     const auto original_bridge = make_bridge(original);
     const auto rekeyed = std::make_shared<CurrencyModel>(/*lower_x0_finite=*/false);
@@ -1326,16 +1370,19 @@ TEST(SqpWarmCurrency, KIpmDegradesAStampMismatchColdWhereKWalkThrows) {
     const WarmStartData payload = core_payload(sol, *original_bridge);
 
     SqpDriver walker{SqpOptions{}};
-    ASSERT_NO_THROW(walker.stage_warm_start(payload));
-    EXPECT_THROW((void)walker.solve(*rekeyed_bridge, rekeyed->start_point()),
+    EXPECT_THROW((void)walker.solve(*rekeyed_bridge, rekeyed->start_point(), payload),
                  std::invalid_argument);
 
+    // THE FLIP: kIpm refuses a stamp mismatch too, where it used to cold-grade.
     SqpDriver ipm{ipm_currency_options()};
-    ASSERT_NO_THROW(ipm.stage_warm_start(payload));
-    SqpSolution out;
-    ASSERT_NO_THROW(out = ipm.solve(*rekeyed_bridge, rekeyed->start_point()));
-    EXPECT_EQ(out.status, SolveStatus::kOptimal);
-    EXPECT_EQ(out.counters.start_level_used, StartLevel::kCold);
+    try {
+        (void)ipm.solve(*rekeyed_bridge, rekeyed->start_point(), payload);
+        FAIL() << "a stamp mismatch must refuse under kIpm exactly as it does under kWalk";
+    } catch (const std::invalid_argument &error) {
+        const std::string message = error.what();
+        // The stamp refusal, not some other one: it names both keys.
+        EXPECT_NE(message.find("declaration key"), std::string::npos) << message;
+    }
 }
 
 // PLAN SECTION 7 NOTE (f). Staging finiteness-checks the extension's three
@@ -1367,8 +1414,7 @@ TEST(SqpWarmCurrency, ANonFiniteExtensionMuDegradesTheTierColdAndStagesInEveryMo
         // THE STAGING CONTRACT IS UNCHANGED IN EVERY MODE, malformed `mu_`
         // included -- that is what note (f) means by "the core staging throw is
         // unchanged".
-        EXPECT_NO_THROW(driver.stage_warm_start(data));
-        return driver.solve(*bridge, data.primal_);
+        return driver.solve(*bridge, data.primal_, data);
     };
 
     const SqpSolution full = run(&usable);
@@ -1422,12 +1468,10 @@ TEST(SqpWarmCurrency, TheSamePayloadStagedTwiceGivesBitIdenticalKIpmSolves) {
     data.extensions_.push_back(polish_extension(fixture_polish(sol)));
 
     SqpDriver a{ipm_currency_options()};
-    a.stage_warm_start(data);
-    const SqpSolution first = a.solve(*bridge, data.primal_);
+    const SqpSolution first = a.solve(*bridge, data.primal_, data);
 
     SqpDriver b{ipm_currency_options()};
-    b.stage_warm_start(data);
-    const SqpSolution second = b.solve(*bridge, data.primal_);
+    const SqpSolution second = b.solve(*bridge, data.primal_, data);
 
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
     expect_same_first_iterate(first, second);
@@ -1454,8 +1498,7 @@ TEST(SqpWarmCurrency, AStagedTierSeedDoesNotSurviveIntoTheNextSolve) {
     data.extensions_.push_back(polish_extension(polish));
 
     SqpDriver driver{ipm_currency_options()};
-    driver.stage_warm_start(data);
-    const SqpSolution stalled = driver.solve(*bridge, data.primal_);
+    const SqpSolution stalled = driver.solve(*bridge, data.primal_, data);
     ASSERT_EQ(stalled.status, SolveStatus::kOptimal);
     ASSERT_EQ(stalled.counters.ipqp.ipqp_symbolic_analyses, 0)
         << "the fixture's premise: this solve entered the tier not at all, so the seed it armed "
@@ -1471,13 +1514,14 @@ TEST(SqpWarmCurrency, AStagedTierSeedDoesNotSurviveIntoTheNextSolve) {
     ASSERT_GT(after.counters.ipqp.ipqp_symbolic_analyses, 0)
         << "and this one DID enter the tier, or the assertion below is vacuous";
     EXPECT_EQ(after.counters.ipqp.ipqp_mu_adopted, 0)
-        << "a stale staged seed must not reach the next solve's first subproblem";
+        << "a tier seed armed by an earlier call must not reach the next solve's first "
+           "subproblem";
 }
 
 // CODEX 8: the direct-construction zL/zU pin cannot see a flattening
-// introduced in the STAGED path; this is that half, asserted through
-// `stage_warm_start` itself. `.superpowers/w1-t7-report.md` FIX ROUND 2.
-TEST(SqpWarmCurrency, TheStagedPathDeliversThePolishSplitWithoutFlattening) {
+// introduced in the PAYLOAD path; this is that half, asserted through the
+// payload overload itself. `.superpowers/w1-t7-report.md` FIX ROUND 2.
+TEST(SqpWarmCurrency, ThePayloadPathDeliversThePolishSplitWithoutFlattening) {
     const auto model = std::make_shared<CurrencyModel>();
     const auto bridge = make_bridge(model);
     const SqpSolution sol = solve_fixture_cold(*model);
@@ -1506,8 +1550,7 @@ TEST(SqpWarmCurrency, TheStagedPathDeliversThePolishSplitWithoutFlattening) {
         SqpOptions o = ipm_currency_options();
         o.ipqp.ipqp_init_mu = polish.mu_;
         SqpDriver driver{o};
-        driver.stage_warm_start(data);
-        return driver.solve(*bridge, data.primal_);
+        return driver.solve(*bridge, data.primal_, data);
     };
 
     const SqpSolution full = run(true);
@@ -1550,8 +1593,7 @@ TEST(SqpWarmCurrency, APolishMuAboveTheShippedCeilingIsClampedOutOfAdoption) {
         SqpOptions o = ipm_currency_options();
         o.ipqp.ipqp_init_mu = ceiling;
         SqpDriver driver{o};
-        driver.stage_warm_start(data);
-        return driver.solve(*bridge, data.primal_);
+        return driver.solve(*bridge, data.primal_, data);
     };
 
     const SqpSolution shipped = run(SqpOptions{}.ipqp.ipqp_init_mu);
@@ -1585,8 +1627,7 @@ TEST(SqpWarmCurrency, APolishMuUnderTheShippedCeilingIsStillAdopted) {
     data.extensions_.push_back(polish_extension(polish));
 
     SqpDriver driver{ipm_currency_options()};
-    driver.stage_warm_start(data);
-    const SqpSolution r = driver.solve(*bridge, data.primal_);
+    const SqpSolution r = driver.solve(*bridge, data.primal_, data);
     ASSERT_EQ(r.status, SolveStatus::kOptimal);
     ASSERT_GT(r.counters.ipqp.ipqp_symbolic_analyses, 0) << "or the adoption pin is vacuous";
     EXPECT_GT(r.counters.ipqp.ipqp_mu_adopted, 0);

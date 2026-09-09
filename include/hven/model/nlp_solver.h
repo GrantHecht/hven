@@ -9,6 +9,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 
 #include <Eigen/Core>
@@ -195,7 +196,8 @@ struct NLPSolver final {
     ///
     /// @throws std::invalid_argument if `mode` is NotSet, DoNothing, or any
     /// other value with no entry point.
-    NlpSolveOutput run_nlp_solver(JetJobModes mode, const Eigen::VectorXd &input);
+    NlpSolveOutput run_nlp_solver(JetJobModes mode, const Eigen::VectorXd &input,
+                                  const std::optional<hven::solvers::WarmStartData> &seed);
 
     /// Parses a job-mode name into its enum value. Accepted spellings:
     /// "solve"/"Solve", "optimize"/"Optimize",
@@ -241,7 +243,19 @@ struct NLPSolver final {
 
   private:
     hven::solvers::SolveStatus run(JetJobModes mode, ConstEigenRef<Eigen::VectorXd> x0);
-    void apply_starting_multipliers();
+    // Builds this call's starting-multiplier seed from the problem's own
+    // starting_multipliers() hook, or nullopt when the problem asks for none.
+    //
+    // M6 W5 T8.5 REPLACED THE STAGING PAIR IT USED TO DRIVE. It called the
+    // solver's set_initial_multipliers()/clear_initial_multipliers(), which are
+    // gone; the replacement is the MULTIPLIERS-ONLY SEED -- a WarmStartData
+    // with an EMPTY `primal_`, the split user multipliers in its two row
+    // blocks, and this program's declaration stamp -- handed to the payload
+    // overload of solve() as an argument. Same install site, same clamps, same
+    // objective-scale handling; what goes away is the one-shot state between
+    // the two calls. This wrapper is retired in T8.9, so it keeps its own
+    // surface and forwards internally rather than losing the feature now.
+    std::optional<hven::solvers::WarmStartData> starting_multiplier_seed();
 };
 
 } // namespace hven::solvers

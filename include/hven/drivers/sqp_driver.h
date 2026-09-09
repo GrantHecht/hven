@@ -37,6 +37,8 @@
 #include <hven/model/nlp_model_aggregate.h>
 #include <hven/qp/qp_types.h>
 #include <hven/warmstart/ipm_polish_extension.h>
+#include <hven/warmstart/seeding.h>
+#include <hven/warmstart/sqp_warm_start.h>
 #include <hven/warmstart/warm_start_data.h>
 
 namespace hven::solvers {
@@ -565,11 +567,13 @@ inline constexpr double kAdaptiveMuMax = 1e-8;
 // kSeededDualClampTol and degrades the whole object to kCold when it does not.
 // The order -- geometric clear first, clamp second -- is normative.
 // See docs/notes/2026-09-header-prose-archive.md §sqp_driver.h.
-/// @brief Width of the seeded-dual clamp band: an ingested lambda_i in
-///        [-kSeededDualClampTol, 0) is clamped to 0, anything more negative
-///        degrades the whole object to kCold. Fixed by design -- it does not
-///        track opts_.kkt_tol at runtime.
-inline constexpr double kSeededDualClampTol = 1e-6;
+//
+// THE CONSTANT ITSELF MOVED (M6 W5 T8.5) to `warmstart/seeding.h`, beside the
+// IPM's own two seeding constants -- three policies, three derivations, one
+// header, values DELIBERATELY NOT UNIFIED (design 2.4). It keeps this exact
+// namespace-scope spelling, so nothing that names it had to change; this
+// header pulls it in so every existing `#include <hven/drivers/sqp_driver.h>`
+// still sees it.
 
 /// @brief The SQP driver: a trust-region SQP major loop over one QpEngine.
 /// Every member below except the two constructors -- and every free function
@@ -703,8 +707,8 @@ class SqpDriver {
     ///
     /// ADDED IN M6 W5 T8.4 fix1: design section 2.2 puts the budget on EVERY
     /// public overload, and the cold and staged entries hardcoded
-    /// `SolveBudget{}`, so a staged start could not be budgeted at all -- the
-    /// warm-start overloads refuse to run beside a staged value.
+    /// `SolveBudget{}`. With staging retired in T8.5 every warm route is an
+    /// overload of its own, and each of them takes a budget.
     SqpSolution solve(const NlpModel &model, const Vec &x0, SolveBudget budget);
 
     /// @brief Solves against an already-built bridge -- the primary path every
@@ -714,22 +718,17 @@ class SqpDriver {
     /// @param x0     The starting point.
     /// @return The solution.
     ///
-    /// A value staged through stage_warm_start applies to this call and is
-    /// consumed by it; `x0` is then only the cold fallback.
+    /// A COLD solve, unconditionally: with staging retired (M6 W5 T8.5) this
+    /// overload has no warm-start source at all, and `x0` is simply the start.
     /// @throws std::invalid_argument only through `bridge` itself -- this entry
     ///         does not re-check the box, which the bridge validated when it laid
-    ///         its structures -- or through a staged warm-start value whose block
-    ///         sizes or stamp do not match the problem this call binds (see
-    ///         stage_warm_start).
+    ///         its structures.
     SqpSolution solve(NlpModelAggregate &bridge, const Vec &x0);
 
     /// @brief Solves against an already-built bridge under a caller's work
-    ///        ceiling -- the primary budgeted path, and the one a STAGED warm
-    ///        start rides (the warm-start overloads below refuse to run beside
-    ///        a staged value, so this is the only way to budget one).
+    ///        ceiling -- the primary budgeted path every other overload reaches.
     /// @param bridge The aggregate to solve over; caller-owned.
-    /// @param x0     The starting point; the cold fallback when a value is
-    ///               staged.
+    /// @param x0     The starting point.
     /// @param budget The caller's work ceiling; see the model-taking form
     ///               above.
     /// @return The solution.
@@ -768,7 +767,7 @@ class SqpDriver {
     ///         checked before `warm` is looked at; or if a warm-start value is
     ///         staged on this driver when this overload is called, which refuses
     ///         naming both sources and leaves the staged value standing.
-    SqpResult solve(const NlpModel &model, const Vec &x0, const WarmStart &warm,
+    SqpResult solve(const NlpModel &model, const Vec &x0, const SqpWarmStart &warm,
                     SolveBudget budget = {});
 
     /// @brief Warm-start ingest against an already-built bridge, on the same
@@ -786,7 +785,84 @@ class SqpDriver {
     ///         this driver when this overload is called: two warm-start sources
     ///         for one solve, refused naming both. That refusal fires before the
     ///         seam is laid, and leaves the staged value standing.
-    SqpResult solve(NlpModelAggregate &bridge, const Vec &x0, const WarmStart &warm,
+    SqpResult solve(NlpModelAggregate &bridge, const Vec &x0, const SqpWarmStart &warm,
+                    SolveBudget budget = {});
+
+    // --- The PAYLOAD route: the shared protocol, on both engines -----------
+    //
+    // ONE PROTOCOL, TWO IDENTITIES (design 2.4). The two overloads above take
+    // this engine's OWN native object (`warmstart/sqp_warm_start.h`), which is
+    // the LABELLED SQP-ONLY entry -- the exact counterpart of the IPM-only KKT
+    // hook -- and is the only route to kWarm/kHot. The two below take the
+    // SHARED declared-space currency `WarmStartData`, which the interior-point
+    // engine's own `solve(model, x0, warm, budget)` also takes, which
+    // `SolveResult::export_warm_start()` hands back, and which is what travels
+    // between engines and across a serialization boundary.
+    //
+    // THE RULE ON THIS ROUTE: identity mismatch REFUSES; pattern and value
+    // defects DEGRADE.
+    //   * IDENTITY = the block lengths and the `DeclarationKey` stamp, checked
+    //     at solve entry against the problem this call binds, both
+    //     `std::invalid_argument`, IN EVERY `SqpOptions::qp_mode` -- kWalk,
+    //     kSsn AND kIpm alike (M6 W5 T8.5, owner ruling; M5 ruling 4's
+    //     mode-local cold grade under kIpm is RETIRED).
+    //   * PATTERN = the structural hash of the assembled QP matrices. A payload
+    //     never saw a model and so always carries hash 0: the level a payload
+    //     resolves to is CAPPED AT kSeeded, by construction, never by refusal.
+    //   * VALUE DEFECTS = the seeded dual clamp band (`kSeededDualClampTol`,
+    //     warmstart/seeding.h) -- an inequality price a shade negative is
+    //     clamped and counted, a badly negative one degrades the object to
+    //     kCold. Unchanged.
+    //
+    // THE MULTIPLIERS-ONLY SEED. A payload whose `primal_` is EMPTY carries
+    // multipliers and nothing else; `x0` is the start, and the object still
+    // resolves kSeeded (it did NOT before T8.5 -- an empty primal failed the
+    // plausibility gate and silently cold-started, dropping the multipliers).
+    // Its hand-over rule is `primal_` and `bound_lmults_` EITHER both empty OR
+    // both at the declared primal width. A polish extension on a seed is
+    // IGNORED and COUNTED (`SqpCounters::polish_ignored`): its bound duals are
+    // stated at the exporter's point, and this solve stands at `x0`.
+    //
+    // `z` IS NEVER INGESTED FROM ANY SEED on this engine, payload or native --
+    // today's rule, restated here because the payload carries a `bound_lmults_`
+    // block that looks ingestable and is not.
+    //
+    // AMBIGUITY, stated once: an lvalue of `SqpWarmStart` or of `WarmStartData`
+    // selects its own overload unambiguously (neither converts to the other,
+    // and `SolveBudget` converts from neither). The ONE ambiguous SPELLING is a
+    // BRACED third argument -- `solve(bridge, x0, {})` would match
+    // `SolveBudget`, `WarmStartData` and `SqpWarmStart` alike. Spell the type.
+
+    /// @brief Warm-start ingest from the SHARED payload, against a model.
+    /// @param model  The problem to solve.
+    /// @param x0     The starting point. Used whenever `warm` does not supply
+    ///               one -- the multipliers-only form at every level, and any
+    ///               form that degrades to kCold.
+    /// @param warm   The payload; read, never retained.
+    /// @param budget The caller's work ceiling, on the terms the native
+    ///               model-taking overload above states.
+    /// @return The solution.
+    /// @throws std::invalid_argument on a model that cannot describe a problem
+    ///         (checked first); if any core block of `warm` holds a non-finite
+    ///         value; if `primal_` and `bound_lmults_` are neither both empty
+    ///         nor one length; if the `"hven.ipm.polish.v1"` extension is
+    ///         duplicated, unreadable, not at the core's widths, or holds a
+    ///         non-finite or negative bound dual; if any block is not at this
+    ///         problem's declared dimensions; or if the declaration stamp is
+    ///         not this problem's -- the last two IN EVERY qp_mode.
+    SqpResult solve(const NlpModel &model, const Vec &x0, const WarmStartData &warm,
+                    SolveBudget budget = {});
+
+    /// @brief Warm-start ingest from the SHARED payload, against a bridge.
+    /// @param bridge The aggregate to solve over; caller-owned.
+    /// @param x0     The starting point; see the model-taking form above.
+    /// @param warm   The payload; read, never retained.
+    /// @param budget The caller's work ceiling.
+    /// @return The solution.
+    /// @throws std::invalid_argument on the classes the model-taking payload
+    ///         overload above enumerates, less the model-box class this entry
+    ///         does not re-check.
+    SqpResult solve(NlpModelAggregate &bridge, const Vec &x0, const WarmStartData &warm,
                     SolveBudget budget = {});
 
     // --- Warm-start currency ---
@@ -808,26 +884,11 @@ class SqpDriver {
     ///         completed meaning a public solve() that returned.
     WarmStartData export_warm_start() const;
 
-    /// @brief Stages a warm start for the NEXT public solve() on this instance.
-    /// @param data The value to stage, in DECLARED space; taken by const
-    ///             reference and copied.
-    ///
-    /// One-shot: the value applies to the next public solve() -- whichever
-    /// overload -- and is consumed by it, applied or refused. This call first
-    /// drops anything staged before it. Block sizes against a problem and the
-    /// stamp are checked at solve entry instead, and either refusal has already
-    /// consumed the value. The resulting level is StartLevel::kSeeded and cannot
-    /// be higher, SqpOptions::start_level still caps it, and the staged primal
-    /// replaces the `x0` the call would have used.
-    ///
-    /// @throws std::invalid_argument if `primal_` and `bound_lmults_` are not one
-    ///         length, if any core block holds a non-finite value, if the value
-    ///         carries the `"hven.ipm.polish.v1"` tag more than once, if a payload
-    ///         under that tag is malformed or is not at the core's own widths, or
-    ///         if either of that payload's bound-dual blocks holds a non-finite or
-    ///         negative entry. An unknown tag is skipped silently. Every one of
-    ///         these refusals leaves this instance with nothing staged.
-    void stage_warm_start(const WarmStartData &data);
+    // stage_warm_start() and the staged_warm_ / warm_staged_ pair it armed were
+    // REMOVED in M6 W5 T8.5. `stage(p); solve(m, x0)` becomes `solve(m, x0, p)`
+    // -- the payload overloads above -- which is the same solve with the same
+    // checks in the same order, minus the one-shot state between the two calls.
+    // The table is in docs/notes/2026-09-m6-w5-migration-guide.md.
 
   private:
     // The ledger-recording tail every public solve() overload shares: record
@@ -835,16 +896,19 @@ class SqpDriver {
     // unchanged. `wall_seconds` is measured by each caller around solve_impl.
     SqpSolution record_solve(SqpSolution out, double wall_seconds);
 
-    // Refuses `std::invalid_argument` when a WarmStart argument arrives while a
-    // value is staged, naming both sources and leaving the staged value standing.
-    // Called first by both WarmStart-taking overloads.
-    void refuse_two_warm_sources() const;
+    // refuse_two_warm_sources() is gone with staging (M6 W5 T8.5): a call's
+    // warm-start source is now exactly its own argument, so there is no second
+    // source to contradict.
 
-    // The staged value's one branch at solve entry, shared by both bridge-taking
-    // overloads. Returns the `warm` object the solve runs against, and consumes
-    // the staged value BEFORE any check on it can throw.
-    WarmStart consume_staged_warm_start(const AggregateEvalSeam &seam,
-                                        const NlpModelAggregate &bridge);
+    // THE PAYLOAD'S ONE INGEST, shared by both bridge-taking payload overloads:
+    // the against-the-problem checks (block lengths, then the declaration
+    // stamp, both refusing in EVERY qp_mode), the kIpm tier seed, and the
+    // translation of the declared-space currency into the native `SqpWarmStart`
+    // the rest of this engine speaks. `x0` is read for the MULTIPLIERS-ONLY
+    // form, whose `primal_` is empty and whose start is therefore the call's
+    // own. Renamed from consume_staged_warm_start, which read a member.
+    WarmStart consume_payload(const AggregateEvalSeam &seam, const NlpModelAggregate &bridge,
+                              const Vec &x0, const WarmStartData &data);
 
     // The export's one capture at completion, taken after record_solve returns.
     // A failed internal-consistency check skips the capture and clears the marker
@@ -1249,12 +1313,16 @@ class SqpDriver {
     // threw never reaches the capture and so does not arm this; convergence
     // is NOT required (the caller reads the verdict from SqpSolution::status).
     bool solve_completed_ = false;
-    // The staged value, valid only while warm_staged_ is true. Consumed --
-    // moved out and warm_staged_ cleared -- at the very start of the NEXT
-    // public solve(), before any check on it can throw.
-    WarmStartData staged_warm_;
-    // True while a staged value is waiting to be applied.
-    bool warm_staged_ = false;
+    // staged_warm_ / warm_staged_ went with stage_warm_start (M6 W5 T8.5).
+    //
+    // THE PAYLOAD'S ONE PIECE OF CALL-SCOPE STATE, in their place: how many
+    // polish extensions the ingest DROPPED because the payload was the
+    // multipliers-only form. It is a member rather than a local because
+    // consume_payload runs in the public entry's frame, one call above
+    // solve_impl, while the counter it feeds is written by record_solve -- the
+    // ONE point every public overload funnels through. Reset at the top of
+    // every consume (payload and cold alike), so nothing leaks between solves.
+    Index payload_polish_ignored_ = 0;
 };
 
 // Defined in src/drivers/sqp_print.cpp alongside format_iteration_table.

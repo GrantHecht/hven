@@ -40,6 +40,8 @@ set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
     include_common_options.cpp
     include_ipm_solver_types.cpp
     include_solve_result.cpp
+    include_sqp_warm_start.cpp
+    include_seeding.cpp
     include_compiler.cpp)
 
 add_executable(hven_install_smoke main.cpp ${HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES})

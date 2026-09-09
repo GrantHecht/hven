@@ -1,9 +1,21 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// InteriorPointSolver::set_initial_multipliers / apply_staged_multipliers -- the opt-in
-// constraint-multiplier seeding entry consumed by NLPSolver::
-// apply_starting_multipliers. Problem structs here are deliberately distinct
+// The opt-in constraint-multiplier seed and apply_staged_multipliers -- the
+// path NLPProblem::starting_multipliers() feeds through NLPSolver.
+//
+// M6 W5 T8.5 REPLACED THE ENTRY, not the behaviour. InteriorPointSolver::
+// set_initial_multipliers()/clear_initial_multipliers() are gone; a seed is the
+// MULTIPLIERS-ONLY FORM of the shared payload -- a WarmStartData with an EMPTY
+// `primal_` -- handed to `solve(model, x0, warm, budget)` as an argument. The
+// install site, the [kSeededIqMultFloor, kSeededMultInitMax] clamps and the
+// objective-scale handling are unchanged, and `x0` is still the start. Three
+// tests about the STAGING STATE (its consumption on throw, its clear-first rule
+// on a declining problem, and "the unseeded path does not consult it") are
+// retired in place, each with the argument that the state they guarded no
+// longer exists.
+//
+// Problem structs here are deliberately distinct
 // from (though structurally similar to) the ones in test_nlp_solver.cpp: the
 // unity build merges test TUs, so file-scope names must not collide.
 
@@ -14,6 +26,7 @@
 #include <memory>
 
 #include "hven/model/nlp_solver.h"
+#include "hven/warmstart/warm_start_data.h"
 
 namespace {
 constexpr double kSeedSolverInf = std::numeric_limits<double>::infinity();
@@ -130,9 +143,9 @@ TEST(NLPMultiplierSeedingTest, SeededSolveMatchesUnseededSolution) {
 }
 
 // f = x0^2 + x1^2 subject to x0 + x1 = 2 -- optimum (1, 1), a single equality
-// row and no inequality rows. Used below to probe set_initial_multipliers
-// directly (rather than through starting_multipliers()) with deliberately
-// wrong-sized vectors.
+// row and no inequality rows. Used below to probe the seed payload directly
+// (rather than through starting_multipliers()) with deliberately wrong-sized
+// vectors.
 struct SeedEqOnlyProblem : NLPProblem {
     int num_vars() const override { return 2; }
     int num_cons() const override { return 1; }
@@ -179,7 +192,26 @@ struct SeedEqOnlyProblem : NLPProblem {
     std::string name() const override { return "SeedEqOnlyProblem"; }
 };
 
-TEST(NLPMultiplierSeedingTest, SeedSizeMismatchThrowsAndIsConsumed) {
+// THE MULTIPLIERS-ONLY SEED, built here (M6 W5 T8.5).
+// InteriorPointSolver::set_initial_multipliers() is gone; a seed is now a
+// WarmStartData whose `primal_` is EMPTY, carrying the two row blocks and the
+// program's declaration stamp, handed to `solve(model, x0, warm, budget)` as an
+// argument. `x0` is still the start -- which is what the old two-call shape
+// meant -- and the install site, the clamps and the objective-scale handling
+// are the same ones the staged seed fed.
+namespace {
+hven::solvers::WarmStartData seed_payload(const hven::solvers::NonLinearProgram &program,
+                                          const Eigen::VectorXd &eq_mults,
+                                          const Eigen::VectorXd &iq_mults) {
+    hven::solvers::WarmStartData seed;
+    seed.eq_lmults_ = eq_mults;
+    seed.iq_lmults_ = iq_mults;
+    seed.structure_key_ = hven::solvers::declaration_key(program.declaration());
+    return seed;
+}
+} // namespace
+
+TEST(NLPMultiplierSeedingTest, SeedSizeMismatchThrowsAndTheNextSolveIsUnaffected) {
     NLPSolver solver(std::make_shared<SeedEqOnlyProblem>());
     {
         auto o = solver.optimizer_->options();
@@ -194,25 +226,22 @@ TEST(NLPMultiplierSeedingTest, SeedSizeMismatchThrowsAndIsConsumed) {
     bad_eq << -2.0, 0.0;
     Eigen::VectorXd bad_iq(1);
     bad_iq << 1.0;
-    solver.optimizer_->set_initial_multipliers(bad_eq, bad_iq);
-
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
-    // Probing InteriorPointSolver's own optimizer_ directly, not NLPSolver::optimize():
-    // SeedEqOnlyProblem's starting_multipliers() returns false, so going
-    // through NLPSolver would itself clear this staging before InteriorPointSolver ever
-    // saw it (see DecliningProblemClearsStaleStaging) -- that is the correct
-    // behavior for a problem that never asked to be seeded, but it means
-    // this size-mismatch probe has to bypass it. The throw now fires from
+    // Probing InteriorPointSolver's own optimizer_ directly, not
+    // NLPSolver::optimize(): SeedEqOnlyProblem's starting_multipliers() returns
+    // false, so going through NLPSolver would build no seed at all -- that is
+    // the correct behavior for a problem that never asked to be seeded, but it
+    // means this size-mismatch probe has to bypass it. The throw fires from
     // validate_staged_multipliers, right after variable-treatment
-    // reconfiguration and before the entry init_impl/factorization -- earlier
-    // than the original install-site throw, but still inside this one
-    // optimize() call either way.
-    EXPECT_THROW((void)solver.optimizer_->solve(*solver.nlp_, x0), std::invalid_argument);
+    // reconfiguration and before the entry init_impl/factorization.
+    EXPECT_THROW((void)solver.optimizer_->solve(*solver.nlp_, x0,
+                                                seed_payload(*solver.nlp_, bad_eq, bad_iq)),
+                 std::invalid_argument);
 
-    // The bad staging must have been consumed (cleared) on the throw path --
-    // a second, unseeded optimize() call must converge normally rather than
-    // re-throwing or silently reusing the stale bad seed.
-    EXPECT_FALSE(solver.optimizer_->mults_staged_);
+    // NOTHING SURVIVES THE THROW (M6 W5 T8.5): the refused seed was that call's
+    // own argument, so a second, seedless solve converges normally by
+    // construction rather than by a disarm-on-throw discipline. The check is
+    // kept because the PROPERTY is what mattered, not the mechanism.
     const hven::solvers::IpmResult r2 = solver.optimizer_->solve(*solver.nlp_, x0);
     const Eigen::VectorXd &x = r2.x;
     ASSERT_EQ(r2.status, hven::solvers::SolveStatus::kOptimal);
@@ -293,7 +322,11 @@ TEST(NLPMultiplierSeedingTest, NegativeIqSeedIsClamped) {
     EXPECT_NEAR(solver.return_x()[0], 1.0, 1e-5);
 }
 
-TEST(NLPMultiplierSeedingTest, UnseededPathDoesNotConsultStaging) {
+// A problem that declines to seed produces no payload at all, so the solve
+// NLPSolver runs is the cold overload. Retitled from
+// `UnseededPathDoesNotConsultStaging` (M6 W5 T8.5): there is no staging left to
+// consult, and what is pinned is that the unseeded path still converges.
+TEST(NLPMultiplierSeedingTest, TheUnseededPathBuildsNoPayload) {
     NLPSolver solver(std::make_shared<SeedEqOnlyProblem>());
     {
         auto o = solver.optimizer_->options();
@@ -302,9 +335,10 @@ TEST(NLPMultiplierSeedingTest, UnseededPathDoesNotConsultStaging) {
     }
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
 
-    EXPECT_FALSE(solver.optimizer_->mults_staged_);
     ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
-    EXPECT_FALSE(solver.optimizer_->mults_staged_);
+    // The result is the proof: a payload was neither built nor applied.
+    EXPECT_EQ(solver.result().payload_ignored, 0);
+    EXPECT_EQ(solver.result().polish_ignored, 0);
 }
 
 // -----------------------------------------------------------------------------
@@ -469,7 +503,15 @@ TEST(NLPMultiplierSeedingTest, SeededSolveWithMakeConstraintFixedVarConverges) {
     EXPECT_NEAR(x[1], 1.0, 1e-6);
 }
 
-TEST(NLPMultiplierSeedingTest, DecliningProblemClearsStaleStaging) {
+// `DecliningProblemClearsStaleStaging` IS RETIRED (M6 W5 T8.5). It armed a
+// poisoned seed directly on the solver, ran a solve through NLPSolver for a
+// problem that declines to seed, and asserted the poison never reached the
+// engine -- a pin on `apply_starting_multipliers`'s early-return CLEAR. There
+// is nothing left to arm: the seed is an argument built per call, and a problem
+// that returns false from starting_multipliers() produces no payload for the
+// solve to be handed. The hazard is unconstructible, and the test below is what
+// remains to say about a declining problem.
+TEST(NLPMultiplierSeedingTest, ADecliningProblemSolvesColdThroughTheWrapper) {
     NLPSolver solver(std::make_shared<SeedEqOnlyProblem>());
     {
         auto o = solver.optimizer_->options();
@@ -478,23 +520,9 @@ TEST(NLPMultiplierSeedingTest, DecliningProblemClearsStaleStaging) {
     }
     solver.transcribe();
 
-    // Arm a deliberately poisoned stale seed directly, bypassing
-    // starting_multipliers() entirely -- simulating state left behind by,
-    // e.g., an earlier direct optimizer_ call. SeedEqOnlyProblem's own
-    // starting_multipliers() returns false, so this solve never asked to be
-    // seeded. If apply_starting_multipliers's early-return path failed to
-    // clear the stale staging, this NaN would reach
-    // InteriorPointSolver::validate_staged_multipliers and throw -- so a clean CONVERGED
-    // result below is itself proof the stale seed was never applied.
-    Eigen::VectorXd stale_eq(1);
-    stale_eq << std::numeric_limits<double>::quiet_NaN();
-    Eigen::VectorXd stale_iq(0);
-    solver.optimizer_->set_initial_multipliers(stale_eq, stale_iq);
-    ASSERT_TRUE(solver.optimizer_->mults_staged_);
-
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
-    EXPECT_FALSE(solver.optimizer_->mults_staged_);
+    EXPECT_EQ(solver.result().payload_ignored, 0);
 
     Eigen::VectorXd x = solver.return_x();
     Eigen::VectorXd expect(2);
@@ -514,17 +542,22 @@ TEST(NLPMultiplierSeedingTest, NaNSeedThrows) {
     Eigen::VectorXd eq(1);
     eq << std::numeric_limits<double>::quiet_NaN();
     Eigen::VectorXd iq(0);
-    solver.optimizer_->set_initial_multipliers(eq, iq);
 
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     // Direct optimizer_ call, not NLPSolver::optimize() -- see the note in
-    // SeedSizeMismatchThrowsAndIsConsumed above: SeedEqOnlyProblem declines
-    // to seed, so going through NLPSolver would clear this staging first.
-    // Probing InteriorPointSolver's own validation this way is also the point: it must
-    // reject a non-finite seed even from a caller that bypasses NLPSolver's
-    // allFinite() guard entirely.
-    EXPECT_THROW((void)solver.optimizer_->solve(*solver.nlp_, x0), std::invalid_argument);
-    EXPECT_FALSE(solver.optimizer_->mults_staged_);
+    // SeedSizeMismatchThrowsAndTheNextSolveIsUnaffected above: SeedEqOnlyProblem
+    // declines to seed, so going through NLPSolver would build no payload at
+    // all. Probing InteriorPointSolver's own validation this way is also the
+    // point: it must reject a non-finite seed even from a caller that bypasses
+    // NLPSolver's allFinite() guard entirely.
+    //
+    // THE REFUSAL MOVED UP with the payload route (M6 W5 T8.5): a non-finite
+    // block is now refused at the HAND-OVER, in this frame, rather than at
+    // validate_staged_multipliers inside the solve. Same exception type, same
+    // call, one frame earlier.
+    EXPECT_THROW(
+        (void)solver.optimizer_->solve(*solver.nlp_, x0, seed_payload(*solver.nlp_, eq, iq)),
+        std::invalid_argument);
 }
 
 // A seed of 1e12 into the single equality row -- SeedEqOnlyProblem is

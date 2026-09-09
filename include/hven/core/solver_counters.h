@@ -1306,6 +1306,26 @@ struct SqpCounters {
     /// are DRIVER-SCALE and have no per-subproblem contribution at all
     /// (`ipqp_tier_retired_after`, `ipqp_declined_pinned`).
     IpqpCounters ipqp;
+
+    /// @brief How many times this solve IGNORED a warm-start payload's
+    ///        `"hven.ipm.polish.v1"` extension because the payload was the
+    ///        MULTIPLIERS-ONLY form (M6 W5 T8.5).
+    ///
+    /// The seed form carries an EMPTY `primal_`, so the solve starts at the
+    /// caller's `x0`. The polish extension's bound duals and inequality values
+    /// are stated at the EXPORTER's point, which is not `x0`; feeding them into
+    /// the crossover's activity rule would attribute activity nothing measured
+    /// at the point this solve actually stands on. They are therefore dropped,
+    /// and dropped LOUDLY: this counter is how a caller who attached an
+    /// extension and expected it to be used finds out it was not.
+    ///
+    /// 0 or 1 in practice -- one payload per solve. Always 0 on the NATIVE
+    /// route (a `SqpWarmStart` carries no extensions), 0 on a cold solve, and 0
+    /// on a full payload, whose extension IS consumed.
+    ///
+    /// DECLARED LAST, after the two nested aggregates, so that every field
+    /// offset this struct already had is unmoved.
+    Index polish_ignored = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -1345,7 +1365,8 @@ struct SqpCounters {
     X(active_set_delta_total, counter_never_absent)                                                \
     X(active_set_delta_peak, counter_never_absent)                                                 \
     X(weak_active_peak, counter_never_absent)                                                      \
-    X(near_active_peak, counter_never_absent)
+    X(near_active_peak, counter_never_absent)                                                      \
+    X(polish_ignored, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =
@@ -1354,7 +1375,10 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 
 // PLUS TWO: `ssn` and `ipqp` are nested aggregates, each counted as ONE
 // initializer by the arity trick and serialized through its own table above, so
-// the table holds the 37 direct fields and the struct takes 39 initializers.
+// the table holds the 38 direct fields and the struct takes 40 initializers.
+// (37 -> 38 at M6 W5 T8.5, which appended `polish_ignored` after both nested
+// aggregates -- last in declaration order, so the table order below is still
+// the struct's and every pre-existing offset is unmoved.)
 static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
               "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "

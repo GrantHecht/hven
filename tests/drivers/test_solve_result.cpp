@@ -1038,8 +1038,9 @@ TEST(SolveBudget, TheSqpTakesABudgetOnEveryPublicOverload) {
     EXPECT_LE(capped.counters.major_iters, 2);
     EXPECT_EQ(capped.status, hven::solvers::SolveStatus::kMaxIter);
 
-    // The bridge-taking form, and a STAGED value riding it -- the combination
-    // that had no budgeted door at all.
+    // The bridge-taking form, and a PAYLOAD riding it -- the combination that
+    // had no budgeted door at all before T8.4, and which T8.5 turned from a
+    // staged value into an argument on this same overload family.
     hven::solvers::SqpDriver bridge_driver(o);
     // The borrow idiom this suite's bench neighbours use: a shared_ptr with an
     // EMPTY owner, so the bridge names a model it does not own.
@@ -1050,10 +1051,9 @@ TEST(SolveBudget, TheSqpTakesABudgetOnEveryPublicOverload) {
     ASSERT_EQ(warmup.status, hven::solvers::SolveStatus::kOptimal);
     const auto currency = warmup.export_warm_start();
     ASSERT_TRUE(currency.has_value());
-    bridge_driver.stage_warm_start(*currency);
-    const hven::solvers::SqpResult staged_and_capped =
-        bridge_driver.solve(bridge, p.model->start_point(), hven::solvers::SolveBudget{0, 1});
-    EXPECT_LE(staged_and_capped.counters.major_iters, 1);
+    const hven::solvers::SqpResult payload_and_capped = bridge_driver.solve(
+        bridge, p.model->start_point(), *currency, hven::solvers::SolveBudget{0, 1});
+    EXPECT_LE(payload_and_capped.counters.major_iters, 1);
 
     // AND THE DEFAULT IS THE IDENTITY on both new doors.
     hven::solvers::SqpDriver free_driver(o);

@@ -674,8 +674,7 @@ TEST(IpqpWarmRestart, APerturbedContinuationAcrossAnActivationThresholdIsAbandon
         // The perturbation: past the activation threshold, so the exported
         // point's active set is the wrong one for the problem being solved.
         model.set_parameters(Vec::Constant(1, 0.8));
-        driver.stage_warm_start(payload);
-        return driver.solve(model, payload.primal_);
+        return driver.solve(model, payload.primal_, payload);
     };
 
     const SqpSolution killed = solve_continuation(1);

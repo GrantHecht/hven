@@ -1564,3 +1564,162 @@ that is never reused cannot be coincided with. Nothing a consumer writes
 changes — the query's answer is the one that gets safer. The MakeConstraint
 fixed coordinate's bound price (`z = -lambda_fix`) also now appears in the
 EXPORT snapshot, which carried 0 there while the result carried the price.
+
+---
+
+## T8.5 — warm start: one payload protocol on both engines
+
+Staging is gone from both engines. A warm start is an ARGUMENT to the solve it
+applies to, and there are TWO of them, with two different jobs.
+
+### 1. The two identities
+
+| | the SHARED PAYLOAD | the SQP's NATIVE object |
+|---|---|---|
+| type | `hven::solvers::WarmStartData` (`warmstart/warm_start_data.h`) | `hven::solvers::SqpWarmStart` (`warmstart/sqp_warm_start.h`, **new home**) |
+| entries | `IpmSolver`* and `SqpDriver`, model- and bridge-taking | `SqpDriver` only — **labelled SQP-only**, model- and bridge-taking |
+| carries a declaration stamp | YES | no |
+| serializable / crosses engines | YES | no (holds a process-local hot handle) |
+| highest level reachable | `kSeeded` (it carries structure hash 0 by construction) | `kHot` |
+| identity mismatch | **REFUSES** — `std::invalid_argument` | nothing to refuse: it claims no identity |
+| pattern mismatch | n/a (always mismatched, hence the kSeeded cap) | DEGRADES to `kSeeded` |
+| value defects | DEGRADE (clamp band, floor/cap), counted | DEGRADE, counted |
+
+\* the class is still spelled `InteriorPointSolver` until group 2's rename.
+
+`SqpWarmStart` is the same struct `detail/warmstart/warm_start.h::WarmStart`
+always was, moved to a public header. **`WarmStart` still names it** — that
+header keeps `using WarmStart = SqpWarmStart;` until T8.10 — so no existing call
+site had to change. New code should say `SqpWarmStart`.
+
+### 2. Staging → the argument form
+
+| before | after |
+|---|---|
+| `sqp.stage_warm_start(p); sqp.solve(model, x0);` | `sqp.solve(model, x0, p);` |
+| `sqp.stage_warm_start(p); sqp.solve(bridge, x0);` | `sqp.solve(bridge, x0, p);` |
+| `sqp.stage_warm_start(p); sqp.solve(bridge, x0, budget);` | `sqp.solve(bridge, x0, p, budget);` |
+| `ipm.stage_warm_start(p); ipm.solve(model, x0);` | `ipm.solve(model, x0, p);` |
+| `ipm.clear_staged_warm_start();` | *(delete the line — a payload lives exactly as long as its call)* |
+| `ipm.set_initial_multipliers(eq, iq); ipm.solve(model, x0);` | `ipm.solve(model, x0, seed);` where `seed` is a `WarmStartData` with an EMPTY `primal_`, `eq_lmults_ = eq`, `iq_lmults_ = iq` and the program's `declaration_key(...)` as its stamp — see §4 |
+| `ipm.clear_initial_multipliers();` | *(delete the line)* |
+| `ipm.export_warm_start()` | `result.export_warm_start()` — a `std::optional<WarmStartData>` on the value `solve()` returned (`drivers/solve_result.h`), engaged whenever the capture succeeded |
+| `SqpDriver::export_warm_start()` | **unchanged** — the SQP driver keeps its own export entry this task |
+
+**tycho's two sites** (`engines.cpp:504` interior, `:611` SQP) become
+`engine.solve(bridge, x0, *warm)` / `driver.solve(model, x0, *warm)`. `:513`'s
+`engine.result()` was already deleted in T8.4; its staging call joins that flip.
+
+**`NLPSolver` keeps its surface.** The jet wrapper still honours
+`NLPProblem::starting_multipliers()`; internally it now builds the
+multipliers-only seed and passes it as an argument. It is retired whole in T8.9.
+
+**Removed with no replacement:** `SqpDriver`'s two-warm-sources refusal. A call
+names exactly one warm-start source — its own argument — so there is no second
+source to contradict, and the `std::invalid_argument` that named both is gone.
+
+### 3. The kIpm refusal — **M5 ruling 4 is RETIRED for this case**
+
+Under `SqpOptions::qp_mode == QpMode::kIpm`, a payload whose block lengths or
+declaration stamp did not match was COLD-GRADED — silently discarded, the solve
+running cold — where `kWalk` and `kSsn` threw. **It now throws in every mode**,
+with the same message.
+
+The owner's reason: the old shape made an IDENTITY answer depend on which QP
+KERNEL the driver happened to be configured for, so the same payload against the
+same problem was refused or silently discarded according to something identity
+has nothing to do with. Pattern and value defects still degrade, in every mode,
+exactly as before — only identity refuses.
+
+**What this can break for you:** a kIpm caller that handed over a stale payload
+and relied on the solve running cold now gets an exception. Catch it, or check
+the stamp before you hand it over. The two tests that pinned the old behaviour
+are rewritten as declared flips
+(`SqpWarmCurrency.KIpmRefusesAWrongSizedPayloadLikeKWalk`,
+`KIpmRefusesAStampMismatchLikeKWalk`).
+
+### 4. The multipliers-only seed
+
+A `WarmStartData` whose `primal_` is EMPTY is the SEED FORM: it carries
+multipliers and nothing else, and **`x0` is the start**.
+
+- **Hand-over rule:** `primal_` and `bound_lmults_` are EITHER BOTH EMPTY OR
+  ONE LENGTH. `eq_lmults_`/`iq_lmults_` must always match the declared row
+  counts. An empty `primal_` beside a populated `bound_lmults_` is REFUSED where
+  you stand — it claims bound prices at a point the payload does not name.
+- **On the SQP** it resolves `kSeeded`. It did NOT before: an empty `primal_`
+  failed the plausibility gate, the object resolved `kCold`, and the multipliers
+  were silently DROPPED. That is behaviour change (5).
+- **On the interior-point engine** the multipliers go through the same install
+  site, clamps and objective-scale handling the removed
+  `set_initial_multipliers()` fed.
+- **A polish extension on a seed is IGNORED and COUNTED** — behaviour change
+  (13). Its bound duals and inequality values are stated at the EXPORTER's
+  point, and the solve stands at `x0`. The count is
+  `SqpCounters::polish_ignored` / `IpmResult::polish_ignored`.
+- **`z` is never ingested from any seed on the SQP** — today's rule, restated
+  because the payload carries a `bound_lmults_` block that looks ingestable.
+
+### 5. `common.start_level` on the interior-point payload route — four rungs
+
+`IpmOptions::common.start_level` was carried unread by that engine until now. On
+the payload route it is a CEILING, never a floor:
+
+| rung | what applies | counters |
+|---|---|---|
+| `kCold` | NOTHING. The call is the solve it would have been with no payload. | `payload_ignored == 1` |
+| `kSeeded` | the MULTIPLIERS only; the point and the polish are dropped | `polish_ignored == 1` when an extension was present |
+| `kWarm` | the WHOLE payload — point, multipliers, polish | both 0 |
+| `kHot` | IDENTICAL to `kWarm` — this engine has no hot handle to adopt | both 0 |
+
+**Identity is checked at EVERY rung, `kCold` included.** A ceiling says what of a
+payload to apply; it never says a payload describing a different problem is
+acceptable.
+
+`IpmResult` gains the two `int` counters above. `SqpCounters` gains
+`polish_ignored`, **appended last**, so every existing field offset is unmoved —
+and the `sqp.solve.end` trace line's counters object gains one key at the end,
+between `near_active_peak` and `ssn`. Declared; the two golden lines in
+`tests/sqp/test_trace_writer.cpp` are re-derived. The 76-column corpus CSV does
+**not** gain it.
+
+### 6. The seeding constants moved
+
+`#include <hven/warmstart/seeding.h>` now owns all three, **with their values
+deliberately NOT unified** — three policies, three derivations:
+
+| constant | value | whose |
+|---|---|---|
+| `hven::solvers::kSeededIqMultFloor` | `1e-8` | interior-point: the lower end of the interior the barrier method is defined on |
+| `hven::solvers::kSeededMultInitMax` | `1e6` | interior-point: the magnitude ceiling on a seeded multiplier |
+| `hven::solvers::kSeededDualClampTol` | `1e-6` | SQP: the sign band inside which a slightly negative inequality price is a rounding artefact |
+
+Both old spellings still work. `kSeededDualClampTol` was already at this
+namespace scope and is simply defined elsewhere now;
+`InteriorPointSolver::kSeededIqMultFloor` and `::kSeededMultInitMax` are ALIASES
+of the namespace-scope constants until T8.10 drops them.
+
+### 7. Overload resolution — spell the type
+
+The set is unambiguous for every call that names its argument's type: neither
+`SqpWarmStart` nor `WarmStartData` converts to the other, and `SolveBudget`
+converts from neither, so an lvalue of either selects its own overload. The ONE
+ambiguous SPELLING is a BRACED third argument —
+
+```cpp
+driver.solve(bridge, x0, {});   // ambiguous: SolveBudget? WarmStartData? SqpWarmStart?
+```
+
+— which is a compile error, not a silent precedence. No such call exists in hven
+or in tycho. Write `SolveBudget{}` (or the type you meant).
+
+### 8. New public headers, and the install surface
+
+`warmstart/sqp_warm_start.h` and `warmstart/seeding.h` are installed by the
+existing header glob, so `check_export_contract.sh` needed no change.
+`sqp_warm_start.h` holds a `WorkingSet` BY VALUE, which pulls
+`detail/qp/working_set.h` onto the installed surface with it; the proof that the
+glob actually shipped what it needs is the two new standalone install-smoke TUs
+(`include_sqp_warm_start.cpp`, `include_seeding.cpp`), compiled against the
+installed prefix the way a consumer sees it. `HotState` stays a forward
+declaration.

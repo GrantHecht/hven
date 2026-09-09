@@ -441,6 +441,39 @@ struct IpmPhaseReport {
 /// and there is no `result()` accessor any more.
 struct IpmResult : SolveResult {
 
+    // --- The warm-start PAYLOAD's own two counters (M6 W5 T8.5) ---
+    //
+    // Both are 0 on every solve that was handed no payload -- the cold
+    // overload, and any native-route caller -- and 0 or 1 otherwise, there
+    // being one payload per call. They exist because the alternative to
+    // counting a discarded payload is discarding it silently: a caller who set
+    // `common.start_level` in one place and attached a payload in another has
+    // no other way to find out which of the two won.
+
+    /// @brief 1 when this call was handed a payload and IGNORED IT ENTIRELY
+    ///        because `IpmOptions::common.start_level` was kCold; 0 otherwise.
+    ///
+    /// The payload's block lengths and its declaration stamp were still checked
+    /// -- a foreign payload is refused at every rung -- and then nothing of it
+    /// was applied. Apart from this field the call is the solve it would have
+    /// been with no payload at all.
+    int payload_ignored = 0;
+
+    /// @brief 1 when this call was handed a payload carrying the
+    ///        `"hven.ipm.polish.v1"` extension and did NOT consume it;
+    ///        0 otherwise.
+    ///
+    /// Two ways to earn it, one reason. At a ceiling of kSeeded only the
+    /// multipliers are applied; and on the MULTIPLIERS-ONLY seed form (an empty
+    /// `primal_`) there is no point to apply at any ceiling. Either way this
+    /// solve starts at `x0`, while the extension's (z_lower, z_upper) pair and
+    /// inequality values are stated at the EXPORTER's point -- seeding barrier
+    /// state from them would describe somewhere this solve is not.
+    ///
+    /// 0 at a kCold ceiling: nothing of the payload was read there, and
+    /// `payload_ignored` is that call's answer.
+    int polish_ignored = 0;
+
     /// @brief Which IpmOptions::fixed_variable_treatment this call actually
     ///        ran under.
     ///
