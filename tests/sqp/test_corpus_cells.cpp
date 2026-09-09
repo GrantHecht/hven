@@ -2560,12 +2560,18 @@ const std::vector<ExpectedExitRow> &expected_interior_exit_rows() {
         {"infeas2_stationary/MakeParameter/resto_infeasible", "stalled",
          "restoration_locally_infeasible"},
         {"f7_n1000_bound_neutral/MakeParameter/solve_optimize", "optimal", "none"},
-        {"hs071_x1_fixed/MakeParameter/solve_optimize", "optimal", "none"}};
+        {"hs071_x1_fixed/MakeParameter/solve_optimize", "optimal", "none"},
+        // THE TWO WARM ROWS (M6 W5 T8.5): the same fixed-variable cell,
+        // re-solved from the same x0 through the PAYLOAD entry after a
+        // converged producing solve on a separate solver.
+        {"hs071_x1_fixed/MakeParameter/warm_payload", "optimal", "none"},
+        {"hs071_x1_fixed/MakeParameter/warm_multiplier_seed", "optimal", "none"}};
     return kRows;
 }
 
-// The 39 keys, in the order the leg writes them: eleven cells x three
-// treatments, then the four abnormal-exit rows and the two multi-phase ones.
+// The 41 keys, in the order the leg writes them: eleven cells x three
+// treatments, then the four abnormal-exit rows, the two multi-phase ones and
+// the two warm-start ones (M6 W5 T8.5).
 // Listed rather than derived, so a leg that stopped writing a cell fails this
 // rather than agreeing with itself.
 const std::vector<std::string> &expected_interior_keys() {
@@ -2737,10 +2743,88 @@ std::vector<std::string> committed_data_rows() {
 TEST(CorpusCells, InteriorBaselineRescoresOffline) {
     const std::string csv = std::string(HVEN_SQP_INTERIOR_BASELINE_CSV);
     const interior_test::Artifact art = interior_test::read_interior_csv(csv);
-    ASSERT_EQ(art.rows.size(), 39u) << "eleven cells x three fixed-variable treatments, plus four "
-                                       "abnormal-exit rows and two multi-phase rows";
+    ASSERT_EQ(art.rows.size(), 41u) << "eleven cells x three fixed-variable treatments, plus four "
+                                       "abnormal-exit rows, two multi-phase rows and two "
+                                       "warm-start rows";
     const std::vector<std::string> violations = interior_test::interior_artifact_violations(art);
     EXPECT_TRUE(violations.empty()) << interior_test::join_violations(violations);
+}
+
+// THE TWO WARM ROWS' CLAIMS, ASSERTED (M6 W5 T8.5).
+//
+// The leg is not linked by any test target, so its rows would otherwise be
+// evidence nobody checks. They are checked HERE, off the committed artifact, in
+// the terms the artifact's own header states -- and the two rows are read
+// DIFFERENTLY, because that is what was measured:
+//
+//   warm_payload  by `iter_num`, STRICTLY BELOW the base row's. Restarting the
+//                 converged point is worth iterations, and the column shows it.
+//
+//   warm_multiplier_seed  by its TERMINAL RESIDUALS. On this cell the
+//                 multipliers alone buy no iterations -- its `iter_num` equals
+//                 the base row's exactly -- so what shows the seed reached the
+//                 solve at all is that kkt_inf differs from the base row's by
+//                 more than a near-ulp margin. Asserting an iteration
+//                 improvement there would be asserting something false.
+//
+// Both rows must still CONVERGE and land on the same objective: a warm start
+// that changed the answer would be a defect whatever it did to the counters.
+TEST(CorpusCells, TheWarmRowsShowThePayloadAndTheSeedReachedTheSolve) {
+    const interior_test::Artifact art =
+        interior_test::read_interior_csv(std::string(HVEN_SQP_INTERIOR_BASELINE_CSV));
+    ASSERT_TRUE(art.problems.empty()) << interior_test::join_violations(art.problems);
+
+    const auto field = [&art](const std::string &key, const std::string &column) {
+        for (const auto &row : art.rows) {
+            const auto id = row.find("cell_id");
+            if (id != row.end() && id->second == key) {
+                const auto it = row.find(column);
+                EXPECT_NE(it, row.end()) << column << " on " << key;
+                return it == row.end() ? std::string() : it->second;
+            }
+        }
+        ADD_FAILURE() << "no row keyed '" << key << "'";
+        return std::string();
+    };
+
+    const std::string base = "hs071_x1_fixed/MakeParameter";
+    const std::string payload = base + "/warm_payload";
+    const std::string seed = base + "/warm_multiplier_seed";
+
+    // All three converge, and to the same objective.
+    for (const std::string &key : {base, payload, seed}) {
+        EXPECT_EQ(field(key, "status"), "optimal") << key;
+        EXPECT_NEAR(std::stod(field(key, "obj_val")), 17.0140173, 1e-6) << key;
+    }
+
+    const int base_iters = std::stoi(field(base, "iter_num"));
+    const int payload_iters = std::stoi(field(payload, "iter_num"));
+    const int seed_iters = std::stoi(field(seed, "iter_num"));
+
+    // THE PAYLOAD ROW: strictly fewer iterations. Strict, not `<=`: a payload
+    // that restarted the converged point and still took as long as a cold solve
+    // would mean nothing was applied, and that is exactly what this must catch.
+    EXPECT_LT(payload_iters, base_iters)
+        << "the whole payload restarts the converged point; if it costs as much as a cold "
+           "solve it was not applied";
+
+    // THE SEED ROW: no iteration claim -- what is asserted is that it did not
+    // make the solve WORSE, and that its terminal residual is not the base
+    // row's, which is what shows the multipliers were installed.
+    EXPECT_LE(seed_iters, base_iters);
+    const double base_kkt = std::stod(field(base, "kkt_inf"));
+    const double seed_kkt = std::stod(field(seed, "kkt_inf"));
+    EXPECT_NE(base_kkt, seed_kkt)
+        << "the multipliers-only seed reached the solve, so the terminal residual is not the "
+           "cold solve's";
+    // AND THE DIFFERENCE IS REAL, not arithmetic noise: an order of magnitude,
+    // stated as a ratio so the pin does not encode either value.
+    EXPECT_GT(std::abs(base_kkt - seed_kkt), 0.5 * std::max(base_kkt, seed_kkt))
+        << "base " << base_kkt << " vs seed " << seed_kkt;
+
+    // And the payload row's own residual is finite and converged -- the row is
+    // a real solve, not a short-circuit.
+    EXPECT_LT(std::stod(field(payload, "kkt_inf")), 1e-7);
 }
 
 // THE FIXED-COORDINATE RULE, LIVE (M6 W5 T8.4, design §2.3).
@@ -2865,10 +2949,12 @@ TEST(CorpusCells, InteriorArtifactCheckRejectsAnIncompleteArtifact) {
     // The three fixed-variable rows alone: every F7 cell silently absent.
     std::vector<std::string> rows;
     for (const std::string &row : interior_test::committed_data_rows()) {
-        // The three BASE rows: neither the /cap1 nor the /solve_optimize
-        // variant of the same cell (M6 W5 T8.4 added the second).
+        // The three BASE rows: none of the four variants of the same cell
+        // (M6 W5 T8.4 added /solve_optimize; T8.5 added the two warm ones).
         if (row.rfind("hs071_x1_fixed/", 0) == 0 && row.find("/cap1,") == std::string::npos &&
-            row.find("/solve_optimize,") == std::string::npos) {
+            row.find("/solve_optimize,") == std::string::npos &&
+            row.find("/warm_payload,") == std::string::npos &&
+            row.find("/warm_multiplier_seed,") == std::string::npos) {
             rows.push_back(row);
         }
     }
@@ -2878,7 +2964,8 @@ TEST(CorpusCells, InteriorArtifactCheckRejectsAnIncompleteArtifact) {
 
     const std::vector<std::string> violations =
         interior_test::interior_artifact_violations(interior_test::read_interior_csv(path));
-    EXPECT_EQ(violations.size(), 36u) << interior_test::join_violations(violations);
+    // 36 -> 38 at M6 W5 T8.5: two more expected keys to be missing.
+    EXPECT_EQ(violations.size(), 38u) << interior_test::join_violations(violations);
     EXPECT_NE(interior_test::join_violations(violations)
                   .find("missing row key 'f7_n1000_bound_neutral/MakeParameter'"),
               std::string::npos);
@@ -2889,7 +2976,7 @@ TEST(CorpusCells, InteriorArtifactCheckRejectsDuplicateAndMalformedRows) {
     // (a) a repeated key -- the shape the replay comparator would silently
     //     collapse to one row.
     std::vector<std::string> rows = interior_test::committed_data_rows();
-    ASSERT_EQ(rows.size(), 39u);
+    ASSERT_EQ(rows.size(), 41u);
     rows.push_back(rows.front());
     const std::string dup = runner_test::temp_path("interior_probe_duplicate.csv");
     interior_test::write_probe_artifact(dup, rows);

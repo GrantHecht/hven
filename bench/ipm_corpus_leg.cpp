@@ -6,6 +6,8 @@
 #include <chrono>
 #include <cmath>
 #include <limits>
+#include <memory>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -14,6 +16,7 @@
 #include <hven/core/solver_status.h>
 #include <hven/drivers/solve_status.h>
 #include <hven/model/nlp_solver.h>
+#include <hven/warmstart/warm_start_data.h>
 
 #include "crossover_legs.h"
 
@@ -240,6 +243,20 @@ const char *entry_tag(InteriorVariant::Entry entry) {
     return "unknown";
 }
 
+// The warm-start arm's name, for the variant stamp. `<none>` on every row
+// before M6 W5 T8.5 and on every row that is not one of the two warm ones.
+const char *warm_tag(InteriorVariant::Warm warm) {
+    switch (warm) {
+    case InteriorVariant::Warm::kPayload:
+        return "payload";
+    case InteriorVariant::Warm::kSeed:
+        return "multiplier_seed";
+    case InteriorVariant::Warm::kNone:
+        break;
+    }
+    return "<none>";
+}
+
 const char *restoration_tag(RestorationModes mode) {
     switch (mode) {
     case RestorationModes::off:
@@ -325,6 +342,34 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
         sequence.name = "solve_optimize";
         sequence.entry = InteriorVariant::Entry::kSolveOptimize;
         v.push_back(sequence);
+
+        // THE TWO WARM-START ROWS (M6 W5 T8.5), the third instalment of the T8
+        // coverage rule. They are variants for the same reason every row above
+        // is: what they pin is a SHAPE of the hand-off, not a cell. Both run
+        // under MakeParameter only and unconditionally, and both are measured
+        // on the HS071 fixed-variable cell, whose base row takes 9 iterations
+        // -- small, dense, and already in the artifact, so the comparison is
+        // against a number a reader can see two rows up.
+        //
+        // WHY TWO. The payload row shows the whole hand-off applied: point,
+        // multipliers and the polish extension's bound duals. The seed row
+        // shows the multipliers-only form, whose point is `x0` -- so it sits
+        // BETWEEN the payload row and the base row, and the three together are
+        // the leg's evidence that each half of the payload is worth something.
+        // This engine reports no `start_level_used` column, so `iter_num` is
+        // the only observable either row has; the artifact's header states the
+        // expected inequality outright.
+        InteriorVariant warm_payload;
+        warm_payload.name = "warm_payload";
+        warm_payload.entry = InteriorVariant::Entry::kOptimize;
+        warm_payload.warm = InteriorVariant::Warm::kPayload;
+        v.push_back(warm_payload);
+
+        InteriorVariant warm_seed;
+        warm_seed.name = "warm_multiplier_seed";
+        warm_seed.entry = InteriorVariant::Entry::kOptimize;
+        warm_seed.warm = InteriorVariant::Warm::kSeed;
+        v.push_back(warm_seed);
         return v;
     }();
     return kVariants;
@@ -332,9 +377,10 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
 
 std::string interior_variant_stamp(const InteriorVariant &variant) {
     return fmt::format(
-        "variant: {} entry={} max_iters={} restoration={} max_feas_rest={} "
+        "variant: {} entry={} warm={} max_iters={} restoration={} max_feas_rest={} "
         "con_tol={} acc_tols={}/{}/{} div_tol={}",
         variant.name[0] == '\0' ? "base" : variant.name, entry_tag(variant.entry),
+        warm_tag(variant.warm),
         variant.max_iters > 0 ? std::to_string(variant.max_iters) : std::string("<levers>"),
         restoration_tag(variant.restoration_mode),
         variant.restoration_mode == RestorationModes::off ? std::string("<unused>")
@@ -349,21 +395,13 @@ std::string interior_variant_stamp(const InteriorVariant &variant) {
         variant.div_tol > 0.0 ? fmt::format("{:.9e}", variant.div_tol) : std::string("<default>"));
 }
 
-InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
-                                 const InteriorRowIdentity &identity, const Vec &x0,
-                                 FixedVariableTreatments treatment, const InteriorLevers &levers,
-                                 const InteriorVariant &variant) {
-    if (problem == nullptr) {
-        throw std::invalid_argument(
-            fmt::format("run_interior_problem: cell '{}' has a null problem", identity.cell_id));
-    }
-
-    NLPSolver ipm(problem);
-    // Both explicit, before the first solve. The thread count reaches the
-    // backend at every solve entry; the partition count reaches no layout
-    // through this path -- make_nlp_program constructs NonLinearProgram(1)
-    // unconditionally (src/model/nlp_adapter.cpp) -- and is set and recorded so
-    // the artifact states what was asked for.
+// Every lever, variant override and treatment this leg applies to one wrapper,
+// in ONE place (M6 W5 T8.5 factored it out of run_interior_problem so the warm
+// rows' second wrapper is configured identically to the first). Does not
+// transcribe: the caller does that, because it is the step after which the
+// program exists.
+void configure_interior_solver(NLPSolver &ipm, FixedVariableTreatments treatment,
+                               const InteriorLevers &levers, const InteriorVariant &variant) {
     ipm.set_num_partitions(levers.num_partitions);
     // One options value, built here and handed over once. Every lever and every
     // variant override below is a field write on it, so a dependent pair (the
@@ -405,30 +443,111 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
         o.max_feas_rest = variant.max_feas_rest;
     }
     ipm.optimizer_->set_options(std::move(o));
-    ipm.transcribe();
+}
+
+InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
+                                 const InteriorRowIdentity &identity, const Vec &x0,
+                                 FixedVariableTreatments treatment, const InteriorLevers &levers,
+                                 const InteriorVariant &variant) {
+    if (problem == nullptr) {
+        throw std::invalid_argument(
+            fmt::format("run_interior_problem: cell '{}' has a null problem", identity.cell_id));
+    }
+
+    // ONE CONFIGURED WRAPPER, built by this lambda rather than inline, so the
+    // warm arm below can build a SECOND one under exactly the same levers,
+    // variant overrides and treatment (M6 W5 T8.5). Every field write is here,
+    // once, and neither caller can drift from the other.
+    const auto make_configured = [&]() {
+        auto wrapper = std::make_unique<NLPSolver>(problem);
+        configure_interior_solver(*wrapper, treatment, levers, variant);
+        wrapper->transcribe();
+        return wrapper;
+    };
+
+    // THE WARM ARM'S PRODUCING SOLVE (M6 W5 T8.5), when this variant has one.
+    //
+    // ON A WRAPPER OF ITS OWN, thrown away before the measured solve begins.
+    // That is not tidiness: `IpmResult::kkt_factor_counters` and
+    // `kkt_analyses_total` ACCUMULATE across calls on one solver, so a measured
+    // solve that shared a solver with its producer would report the producing
+    // solve's factorizations and analyses in its own columns -- 18 where the
+    // base row reads 9 -- and the artifact would say the warm row cost twice
+    // what it cost. A second wrapper is also the truer shape: a warm start's
+    // value is realised on a LATER solve, and nothing about the hand-off
+    // requires the two to be the same object.
+    //
+    // The producing solve is SETUP and is neither timed nor reported, exactly
+    // as the bridge lay is on the other engine.
+    std::optional<hven::solvers::WarmStartData> payload;
+    if (variant.warm != InteriorVariant::Warm::kNone) {
+        std::unique_ptr<NLPSolver> producer = make_configured();
+        const hven::solvers::SolveStatus produced = producer->optimize(x0);
+        if (produced != hven::solvers::SolveStatus::kOptimal) {
+            throw std::runtime_error(fmt::format(
+                "run_interior_problem: the '{}' variant's producing solve of cell '{}' did not "
+                "converge (status {}); a warm row measured against a hand-off from a failed solve "
+                "would pin nothing",
+                variant.name, identity.cell_id, to_string(produced)));
+        }
+        payload = producer->result().export_warm_start();
+        if (!payload.has_value()) {
+            throw std::runtime_error(
+                fmt::format("run_interior_problem: the '{}' variant's producing solve of cell "
+                            "'{}' captured no warm-start snapshot",
+                            variant.name, identity.cell_id));
+        }
+        if (variant.warm == InteriorVariant::Warm::kSeed) {
+            // THE MULTIPLIERS-ONLY FORM, built from the very same export the
+            // payload row uses, so the two rows differ in exactly one thing:
+            // whether the point and the bound state travel with the prices.
+            payload->primal_.resize(0);
+            payload->bound_lmults_.resize(0);
+            payload->extensions_.clear();
+        }
+    }
+
+    // THE MEASURED SOLVE'S WRAPPER, fresh, so its counters start at zero
+    // whatever ran above.
+    std::unique_ptr<NLPSolver> ipm_owner = make_configured();
+    NLPSolver &ipm = *ipm_owner;
 
     // THE SEQUENCE IS AN OPTION SINCE M6 W5 T8.4, but this leg drives the
     // engine through NLPSolver, whose five entries each SET that option from
     // their own name before solving -- so the sequence is still chosen by which
-    // of them is called, and writing `phases` on the options above would be
-    // overwritten here. T8.9 rewrites this function to construct the solver
-    // directly, and the sequence becomes a field write then.
+    // of them is called, and writing `phases` on the options in
+    // configure_interior_solver would be overwritten here. T8.9 rewrites this
+    // function to construct the solver directly, and the sequence becomes a
+    // field write then.
     const auto t0 = std::chrono::steady_clock::now();
     hven::solvers::SolveStatus flag = hven::solvers::SolveStatus::kNumericalError;
-    switch (variant.entry) {
-    case InteriorVariant::Entry::kOptimize:
-        flag = ipm.optimize(x0);
-        break;
-    case InteriorVariant::Entry::kSolve:
-        flag = ipm.solve(x0);
-        break;
-    case InteriorVariant::Entry::kSolveOptimize:
-        flag = ipm.solve_optimize(x0);
-        break;
+    hven::solvers::IpmResult warm_result;
+    if (payload.has_value()) {
+        // THE PAYLOAD ROUTE, called on the solver directly: NLPSolver's five
+        // entries take no warm start, and giving the wrapper one would be a
+        // surface change this task does not make (T8.9 retires the wrapper).
+        // The program is the one THIS wrapper transcribed and still owns -- a
+        // different NonLinearProgram object from the producer's, and the same
+        // DECLARED problem, which is exactly what the payload's stamp asks.
+        warm_result = ipm.optimizer_->solve(*ipm.nlp_, x0, *payload);
+        flag = warm_result.status;
+    } else {
+        switch (variant.entry) {
+        case InteriorVariant::Entry::kOptimize:
+            flag = ipm.optimize(x0);
+            break;
+        case InteriorVariant::Entry::kSolve:
+            flag = ipm.solve(x0);
+            break;
+        case InteriorVariant::Entry::kSolveOptimize:
+            flag = ipm.solve_optimize(x0);
+            break;
+        }
     }
     const double wall_s = seconds_since(t0);
 
-    const auto &result = ipm.result();
+    // The MEASURED solve's result, whichever door it came through.
+    const hven::solvers::IpmResult &result = payload.has_value() ? warm_result : ipm.result();
     InteriorRow row;
     row.cell_id = identity.cell_id;
     row.family = identity.family;
@@ -442,9 +561,9 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
     row.barr_inf = result.barr_inf;
     row.econ_inf = result.econ_inf;
     row.icon_inf = result.icon_inf;
-    row.factorizations = ipm.result().kkt_factor_counters.factorize_count;
-    row.solves = ipm.result().kkt_factor_counters.solve_count;
-    row.analyses = ipm.result().kkt_analyses_total;
+    row.factorizations = result.kkt_factor_counters.factorize_count;
+    row.solves = result.kkt_factor_counters.solve_count;
+    row.analyses = result.kkt_analyses_total;
     row.soc_steps = result.soc_steps_taken;
     row.watchdog_activations = result.watchdog_activations;
     row.fixed_treatment = interior_treatment_tag(result.fixed_variable_treatment);

@@ -83,9 +83,42 @@ struct InteriorVariant {
     /// live proof that a multi-phase call reports each phase separately.
     enum class Entry { kOptimize, kSolve, kSolveOptimize };
 
+    /// WHAT WARM START, if any, the MEASURED solve is handed (M6 W5 T8.5).
+    ///
+    /// `kNone` is every row before T8.5 and is inert. The other two run the
+    /// cell TWICE: a converged producing solve from cold, whose result is
+    /// exported, and then the measured solve, handed that export through the
+    /// PAYLOAD route `solve(model, x0, const WarmStartData &, budget)` -- the
+    /// entry that replaced `stage_warm_start`. Both measured solves start from
+    /// the SAME `x0` the base row uses, so `iter_num` is directly comparable
+    /// against it, and that comparison is the leg's only observable for the
+    /// payload: this engine reports no `start_level_used`.
+    ///
+    ///   kPayload   the whole export -- point, multipliers, polish extension.
+    ///   kSeed      the MULTIPLIERS-ONLY form: `primal_` and `bound_lmults_`
+    ///              emptied and the extension dropped, so `x0` is the start
+    ///              and only the prices travel.
+    ///
+    /// WHAT EACH ROW IS READ BY, measured rather than assumed (M6 W5 T8.5):
+    ///   kPayload   `iter_num`, STRICTLY BELOW the base row's -- restarting the
+    ///              converged point is worth iterations and the column shows it.
+    ///   kSeed      the TERMINAL RESIDUALS. On the cell this leg runs it on,
+    ///              the multipliers alone change no iteration count, so
+    ///              `iter_num` matches the base row's exactly and what shows
+    ///              the seed reached the solve is that kkt_inf/econ_inf/icon_inf
+    ///              do not. That is what the form is worth there, recorded as
+    ///              such.
+    ///
+    /// THE PRODUCING SOLVE RUNS ON A SEPARATE WRAPPER, because
+    /// IpmResult::kkt_factor_counters and kkt_analyses_total ACCUMULATE across
+    /// calls on one solver -- a shared solver would report the producing
+    /// solve's factorizations in the measured row's own columns.
+    enum class Warm { kNone, kPayload, kSeed };
+
     /// The key's third segment; empty on the base variant, which writes none.
     const char *name = "";
     Entry entry = Entry::kOptimize;
+    Warm warm = Warm::kNone;
     /// Iteration cap, when positive.
     int max_iters = 0;
     /// Restoration strategy; `off` leaves the whole restoration surface dead.

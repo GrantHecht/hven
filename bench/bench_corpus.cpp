@@ -2231,6 +2231,40 @@ void write_interior_provenance(std::ostream &os, int argc, char **argv,
     }
     os << "# abnormal-exit rows run under MakeParameter only, unconditionally (they do not vary "
           "with --cells), on the cells named in their keys\n";
+    // THE TWO WARM ROWS' OWN OBSERVABLES, stated in the artifact (M6 W5 T8.5).
+    // This engine reports no `start_level_used` column, so each row has to be
+    // read off the measurements it does carry -- and the two rows are read
+    // DIFFERENTLY, which the header says outright rather than leaving to a
+    // reader to discover:
+    //
+    //   the PAYLOAD row is legible in `iter_num`: restarting the converged
+    //   point finishes in far fewer iterations than the base row.
+    //
+    //   the SEED row is NOT. On this cell the multipliers alone change no
+    //   iteration count -- it matches the base row's 9 -- and what shows the
+    //   seed was applied at all is the TERMINAL RESIDUAL columns, which differ
+    //   from the base row's by more than a near-ulp margin. That is a finding,
+    //   not a defect: it is what the multipliers-only form is worth HERE, and
+    //   an artifact that implied otherwise would be the wrong record.
+    //
+    // BOTH CLAIMS ARE ASSERTED, not merely stated here: no test target links
+    // this leg, but the COMMITTED ARTIFACT is read by
+    // CorpusCells.TheWarmRowsShowThePayloadAndTheSeedReachedTheSolve, which
+    // pins the payload row's strict iteration improvement and the seed row's
+    // residual difference in the terms above. The in-suite counterpart of the
+    // payload row's claim on live solves is
+    // WarmProtocol.TheIpmCeilingHasFourRungs.
+    os << "# warm rows (M6 W5 T8.5): hs071_x1_fixed/MakeParameter/warm_payload and "
+          "/warm_multiplier_seed re-solve the SAME cell from the SAME x0 through "
+          "solve(model, x0, WarmStartData, budget), after a converged producing solve ON A "
+          "SEPARATE SOLVER -- separate because the factor counters accumulate across calls on "
+          "one solver, so a shared solver would report the producing solve's work in these "
+          "rows. The producing solve is setup: not timed, not reported.\n";
+    os << "# warm rows, what each one is read by: warm_payload by iter_num, which must be "
+          "STRICTLY BELOW hs071_x1_fixed/MakeParameter's; warm_multiplier_seed by its TERMINAL "
+          "RESIDUALS (kkt_inf/econ_inf/icon_inf), which differ from the base row's -- its "
+          "iter_num does NOT improve on this cell, and that is the measured value of the "
+          "multipliers-only form here, not a failure of the row\n";
     for (const std::string &refusal : refusals) {
         os << fmt::format("# refused: {}\n", refusal);
     }
@@ -2595,6 +2629,14 @@ int main(int argc, char **argv) {
                             kCap1F7CellId));
                     }
                     rows.push_back(run_interior_cell(*f7, treatment, levers, variant));
+                    rows.push_back(run_interior_hs071(treatment, levers, variant));
+                } else if (name == "warm_payload" || name == "warm_multiplier_seed") {
+                    // THE TWO WARM ROWS (M6 W5 T8.5): the HS071 fixed-variable
+                    // cell only. It is small, dense, converges in 9 iterations
+                    // from cold, and its base row is already in this artifact
+                    // two blocks up -- so the inequality these rows exist to
+                    // show is against a number a reader can see, on the same
+                    // cell, under the same treatment and from the same x0.
                     rows.push_back(run_interior_hs071(treatment, levers, variant));
                 } else if (name == "stalled") {
                     rows.push_back(
