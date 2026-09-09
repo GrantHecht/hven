@@ -149,9 +149,9 @@
 # `solve(model, x0, const WarmStartData &, budget)` -- the argument form that
 # replaced `stage_warm_start`. `warm_payload` is handed the whole export;
 # `warm_multiplier_seed` is handed the MULTIPLIERS-ONLY form of the same export
-# (`primal_` and `bound_lmults_` emptied, the polish extension dropped), so the
-# two rows differ in exactly one thing: whether the point and the bound state
-# travel with the prices.
+# (`primal_` and `bound_lmults_` emptied; on the polish extension see the fix1
+# note below), so the two rows differ in exactly one thing: whether the point and
+# the bound state travel with the prices.
 #
 # THE PRODUCING SOLVE RUNS ON A SEPARATE SOLVER and is not reported. Separate
 # because `IpmResult::kkt_factor_counters` and `kkt_analyses_total` ACCUMULATE
@@ -195,6 +195,55 @@
 # CAPTURED TWICE at the stamped tree; compare_replay.py between the two reported
 # `cells compared: 41  columns compared: 30  differences: 0`. Solo, taskset -c 2,
 # MKL_NUM_THREADS=1, OMP_NUM_THREADS=1, on the machine named above.
+# ===========================================================================
+#
+# ===========================================================================
+# M6 W5 T8.5 FIX ROUND 1 -- NO ROW MOVED, AND THIS FILE WAS NOT RE-CAPTURED.
+# A HEADER CORRECTION ONLY (CLAUDE.md section 7): the 41 data rows below and the
+# `# binary:`/`# generated:` provenance block are the bytes committed at
+# d60b49b, untouched. Declared here because the LEG that produces them changed
+# in two ways that a reader of this file has to know about, and because the
+# parenthetical above became wrong.
+#
+# WHAT CHANGED IN THE LEG (not in these rows):
+#
+#  1. THE SEED FORM NOW KEEPS THE POLISH EXTENSION. `warm_multiplier_seed`
+#     previously cleared `extensions_` as well as the two primal blocks. It no
+#     longer does. This changes NOTHING about the solve -- on a multipliers-only
+#     payload the engine's `have_warm` is false at every ceiling, so the
+#     extension is never applied -- but it makes the engine COUNT the drop, and
+#     `IpmResult::polish_ignored == 1` is then a DIRECT statement that this row
+#     travelled the seed route. Before, the row's only observables were
+#     residuals.
+#
+#  2. THE APPLIED RUNG IS NOW CHECKED BEFORE EITHER WARM ROW IS EMITTED. The leg
+#     refuses to write a warm row unless the measured solve's
+#     `payload_ignored`/`polish_ignored` say the rung the variant asked for was
+#     the rung reached -- 0/0 on `warm_payload`, 0/1 on `warm_multiplier_seed`.
+#     A payload that was silently ignored would still converge and still write a
+#     plausible line; it can no longer write one here.
+#
+# WHY IT IS A HEADER EDIT AND NOT A RE-DERIVATION. Neither change touches the
+# arithmetic of any solve. Captured twice at the fix-round tree and compared
+# against THIS file: `cells compared: 41  columns compared: 30  differences: 0`
+# each time. There was nothing to re-derive, so the pin's bytes stand and the
+# stamp still names the tree the rows were produced from.
+#
+# THE A6 INEQUALITY IS NOT ASSERTED ANYWHERE, and never was in this file. The
+# brief's A6 asked for iter_num(payload) < iter_num(seed) < iter_num(base); the
+# measurement is 3 / 9 / 9. The settler's fix-round ruling is that the criterion
+# was a guess made before the rows existed and the measurement is the fact. The
+# seed row is read on the APPLIED RUNG (item 2 above, in the leg) with the
+# terminal residuals as the numeric witness that the TRAJECTORY CHANGED -- not
+# that it improved. Every source and report claim of the inequality is deleted.
+#
+# ONE DUAL-BIND F7 CELL WAS TRIED AS A SEED CANDIDATE AND NOT ADOPTED, so no row
+# was added and this file stays at 41. On f7_n1000_bound_neutral/MakeParameter,
+# whose base row above reads 7 iterations: the multipliers-only seed took 8 and
+# the whole payload took 16. Neither saves iterations there; the payload costs
+# more than twice the cold solve, that cell's converged point being one a fresh
+# barrier has to work its way back out of. Recorded because a negative result
+# that is not written down is a result that gets re-measured.
 # ===========================================================================
 # hven_sqp_corpus provenance -- ENGINE interior (top-level interior-point driver)
 # binary: f836d74a4145-dirty

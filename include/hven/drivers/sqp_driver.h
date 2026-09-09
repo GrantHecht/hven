@@ -764,9 +764,11 @@ class SqpDriver {
     /// @return The solution.
     /// @throws std::invalid_argument on a model that cannot describe a problem --
     ///         the classes the 2-argument model-taking overload enumerates --
-    ///         checked before `warm` is looked at; or if a warm-start value is
-    ///         staged on this driver when this overload is called, which refuses
-    ///         naming both sources and leaves the staged value standing.
+    ///         checked before `warm` is looked at. NOTHING ELSE: the
+    ///         two-warm-start-sources refusal this entry used to name went with
+    ///         staging (M6 W5 T8.5). A call names exactly one warm-start
+    ///         source, which is its own argument, so two sources for one solve
+    ///         is no longer a state that can be reached.
     SqpResult solve(const NlpModel &model, const Vec &x0, const SqpWarmStart &warm,
                     SolveBudget budget = {});
 
@@ -781,10 +783,9 @@ class SqpDriver {
     ///                     states.
     /// @return The solution.
     /// @throws std::invalid_argument only through `bridge` itself (this entry
-    ///         does not re-check the box), or if a warm-start value is staged on
-    ///         this driver when this overload is called: two warm-start sources
-    ///         for one solve, refused naming both. That refusal fires before the
-    ///         seam is laid, and leaves the staged value standing.
+    ///         does not re-check the box). The two-warm-start-sources refusal
+    ///         this entry used to name is gone with staging (M6 W5 T8.5) --
+    ///         see the model-taking overload just above.
     SqpResult solve(NlpModelAggregate &bridge, const Vec &x0, const SqpWarmStart &warm,
                     SolveBudget budget = {});
 
@@ -813,6 +814,12 @@ class SqpDriver {
     //     warmstart/seeding.h) -- an inequality price a shade negative is
     //     clamped and counted, a badly negative one degrades the object to
     //     kCold. Unchanged.
+    //     ONE VALUE DEFECT DOES NOT DEGRADE, AND SAYING SO MATTERS (M6 W5
+    //     T8.5 fix1): a NON-FINITE entry in a PAYLOAD's core blocks is
+    //     REFUSED at the hand-over, not graded down. Only the NATIVE route
+    //     degrades a non-finite value (to kCold, unchanged). A payload is
+    //     currency that crossed an engine or a serialization boundary, and a
+    //     NaN in one is a broken value rather than a stale one.
     //
     // THE MULTIPLIERS-ONLY SEED. A payload whose `primal_` is EMPTY carries
     // multipliers and nothing else; `x0` is the start, and the object still
@@ -1322,6 +1329,12 @@ class SqpDriver {
     // solve_impl, while the counter it feeds is written by record_solve -- the
     // ONE point every public overload funnels through. Reset at the top of
     // every consume (payload and cold alike), so nothing leaks between solves.
+    //
+    // READ TWICE (M6 W5 T8.5 fix1), in solve_impl just before the
+    // `sqp.solve.end` trace emission and again in record_solve. The event
+    // carries the whole counters object, so a single write in record_solve --
+    // which runs ABOVE the emission -- traced 0 where the result and the
+    // ledger reported 1. Nothing between the two reads can move the member.
     Index payload_polish_ignored_ = 0;
 };
 

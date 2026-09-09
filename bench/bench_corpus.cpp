@@ -2634,9 +2634,23 @@ int main(int argc, char **argv) {
                     // THE TWO WARM ROWS (M6 W5 T8.5): the HS071 fixed-variable
                     // cell only. It is small, dense, converges in 9 iterations
                     // from cold, and its base row is already in this artifact
-                    // two blocks up -- so the inequality these rows exist to
-                    // show is against a number a reader can see, on the same
-                    // cell, under the same treatment and from the same x0.
+                    // two blocks up -- so each row is read against a number a
+                    // reader can see, on the same cell, under the same
+                    // treatment and from the same x0.
+                    //
+                    // AN F7 CELL WAS TRIED AND NOT ADOPTED (M6 W5 T8.5 fix
+                    // round 1). The fix-round dispatch asked for one dual-bind
+                    // F7 cell as a seed candidate, to be adopted only if the
+                    // seed SAVED iterations there. Measured on
+                    // f7_n1000_bound_neutral/MakeParameter, base 7 iterations:
+                    // warm_multiplier_seed took 8 and warm_payload took 16.
+                    // Neither saves; the payload costs more than twice the cold
+                    // solve, this cell's converged point being a place a fresh
+                    // barrier has to work its way out of. The counts are
+                    // recorded in the fix-round report and NO row was added --
+                    // adopting a cell that made the numbers look worse would be
+                    // as much cherry-picking as adopting one that made them
+                    // look better.
                     rows.push_back(run_interior_hs071(treatment, levers, variant));
                 } else if (name == "stalled") {
                     rows.push_back(

@@ -152,6 +152,15 @@ NLPSolver::NlpSolveOutput NLPSolver::run_nlp_solver(JetJobModes mode, const Eige
     return out;
 }
 
+NLPSolver::NlpSolveOutput NLPSolver::run_nlp_solver(JetJobModes mode,
+                                                    const Eigen::VectorXd &input) {
+    // THE PRE-T8.5 SIGNATURE, KEPT (M6 W5 T8.5 fix1). A third argument without
+    // a default would have stopped every existing caller compiling, which is
+    // not "NLPSolver keeps its surface". One forward, no payload: identical to
+    // what this entry did before the warm start became an argument.
+    return this->run_nlp_solver(mode, input, std::nullopt);
+}
+
 NLPSolver::JetJobModes NLPSolver::strto_jet_job_mode(const std::string &str) {
 
     if (str == "solve" || str == "Solve")

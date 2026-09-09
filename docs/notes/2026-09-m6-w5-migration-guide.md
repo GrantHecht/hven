@@ -1580,12 +1580,21 @@ applies to, and there are TWO of them, with two different jobs.
 | entries | `IpmSolver`* and `SqpDriver`, model- and bridge-taking | `SqpDriver` only — **labelled SQP-only**, model- and bridge-taking |
 | carries a declaration stamp | YES | no |
 | serializable / crosses engines | YES | no (holds a process-local hot handle) |
-| highest level reachable | `kSeeded` (it carries structure hash 0 by construction) | `kHot` |
+| highest level reachable | **per engine** — on the SQP `kSeeded` (it carries structure hash 0 by construction); on the interior-point engine the WHOLE payload applies at a `kWarm`/`kHot` ceiling (§5) | `kHot` |
 | identity mismatch | **REFUSES** — `std::invalid_argument` | nothing to refuse: it claims no identity |
-| pattern mismatch | n/a (always mismatched, hence the kSeeded cap) | DEGRADES to `kSeeded` |
-| value defects | DEGRADE (clamp band, floor/cap), counted | DEGRADE, counted |
+| pattern mismatch | n/a on the SQP (always mismatched, hence THAT engine's kSeeded cap); the interior-point engine reads no structure hash from a payload | DEGRADES to `kSeeded` |
+| value defects | DEGRADE (clamp band, floor/cap), counted — **except a NON-FINITE core block, which REFUSES at the hand-over** | DEGRADE, counted, non-finite included (`kCold`) |
 
 \* the class is still spelled `InteriorPointSolver` until group 2's rename.
+
+**Correction (fix1, 2026-09-09).** The first version of this table gave one
+"highest level reachable" for the payload column, `kSeeded`, and one "value
+defects DEGRADE" rule. Both were the SQP's, stated as if they were the
+protocol's. The kSeeded cap is the SQP's structural-hash ceiling and does not
+apply to the interior-point engine, which applies a whole payload at `kWarm`
+(§5's ladder is the authority); and a non-finite value in a PAYLOAD's core
+blocks is refused on both engines rather than graded down — only the NATIVE
+route degrades one.
 
 `SqpWarmStart` is the same struct `detail/warmstart/warm_start.h::WarmStart`
 always was, moved to a public header. **`WarmStart` still names it** — that
@@ -1613,6 +1622,18 @@ site had to change. New code should say `SqpWarmStart`.
 **`NLPSolver` keeps its surface.** The jet wrapper still honours
 `NLPProblem::starting_multipliers()`; internally it now builds the
 multipliers-only seed and passes it as an argument. It is retired whole in T8.9.
+
+What actually moved inside it is `apply_starting_multipliers()`, which became
+`starting_multiplier_seed()` returning a `std::optional<WarmStartData>` — NOT a
+`stage_warm_start` entry, which this class never had (the brief and the SQP
+lane's pre-read both named one; there was none).
+
+**`run_nlp_solver` keeps BOTH arities** (fix1). The three-argument form
+`run_nlp_solver(mode, input, seed)` is the one the wrapper's own `run()` calls;
+the two-argument `run_nlp_solver(mode, input)` is the pre-T8.5 signature,
+forwarding with `std::nullopt`. An existing caller of the two-argument entry
+compiles and behaves exactly as before — without it, T8.5 was an undeclared
+break of a public entry.
 
 **Removed with no replacement:** `SqpDriver`'s two-warm-sources refusal. A call
 names exactly one warm-start source — its own argument — so there is no second
@@ -1682,6 +1703,16 @@ and the `sqp.solve.end` trace line's counters object gains one key at the end,
 between `near_active_peak` and `ssn`. Declared; the two golden lines in
 `tests/sqp/test_trace_writer.cpp` are re-derived. The 76-column corpus CSV does
 **not** gain it.
+
+**Correction (fix1, 2026-09-09) — the trace carried the wrong value.** In the
+first version of T8.5 the `sqp.solve.end` line was emitted BEFORE the driver
+assigned `polish_ignored`, so a multipliers-only payload carrying a polish
+extension produced `"polish_ignored":0` in the trace beside a returned result
+and a ledger record that both said `1`. If you consumed a T8.5 trace between
+`f836d74` and this fix, that key is unreliable in it; the returned result and
+the ledger were always right. Fixed by assigning before the emission, and pinned
+end to end by
+`WarmProtocol.ThePolishIgnoredCountAgreesAcrossTraceResultAndLedger`.
 
 ### 6. The seeding constants moved
 

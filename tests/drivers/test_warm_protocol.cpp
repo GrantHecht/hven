@@ -17,9 +17,14 @@
 //       `std::invalid_argument`, on both engines, and on the SQP in EVERY
 //       `qp_mode` including kIpm (M5 ruling 4's mode-local cold grade retired).
 //       PATTERN MISMATCH DEGRADES -- a payload never saw a model, so it carries
-//       structure hash 0 and caps at kSeeded by construction.
+//       structure hash 0 and caps at kSeeded by construction. (That cap is the
+//       SQP's; the interior-point engine applies a WHOLE payload at a kWarm
+//       ceiling -- see the four-rung ladder at the bottom of this file.)
 //       VALUE DEFECTS DEGRADE -- the SQP's seeded clamp band, the IPM's
-//       floor/cap, counted as they always were.
+//       floor/cap, counted as they always were. ONE EXCEPTION, and it is a
+//       refusal rather than a degrade: a NON-FINITE entry in a payload's CORE
+//       blocks is refused at the hand-over on both engines. Only the NATIVE
+//       route degrades a non-finite value (to kCold).
 //
 //   THE NATIVE ROUTE -- `solve(bridge, x0, const SqpWarmStart &, budget)`, the
 //   LABELLED SQP-ONLY entry. It carries no stamp, so nothing on it is ever
@@ -38,22 +43,27 @@
 
 #include <gtest/gtest.h>
 
+#include <bit>
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
 #include <Eigen/Core>
 
+#include <hven/core/ledger.h>
 #include <hven/core/start_level.h>
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/interior_point_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
 #include <hven/drivers/sqp_driver.h>
 #include <hven/drivers/sqp_types.h>
+#include <hven/drivers/trace_writer.h>
 #include <hven/model/nlp_model_aggregate.h>
 #include <hven/model/nlp_problem_model.h>
 #include <hven/model/nlp_solver.h>
@@ -168,6 +178,144 @@ WarmStartData seed_form(const WarmStartData &full) {
     return seed;
 }
 
+// ---------------------------------------------------------------------------
+// BITWISE COMPARISON OF TWO IpmResults (M6 W5 T8.5 fix round 1)
+//
+// The claim two pins below make is "the same solve, bit for bit in every
+// reported number". `EXPECT_EQ` on a double does not establish it: it is `==`,
+// which reports +0.0 and -0.0 EQUAL and every NaN UNEQUAL -- so a diagnostic
+// that is NaN on both sides (the honest report when a quantity was not
+// measured) fails it, and a sign flip through zero passes it. Both of those
+// are exactly the cases a warm-start ceiling could plausibly disturb.
+//
+// So the comparison below is over REPRESENTATIONS -- `std::bit_cast` to
+// `uint64_t` -- and over an EXPLICITLY ENUMERATED list of fields rather than
+// the four the first version happened to check.
+//
+// WHAT IS COMPARED: `status`, `iterations`; the six declared-space blocks `x`,
+// `lambda_e`, `lambda_i`, `z`, `ce`, `ci` (widths and every entry); the
+// treatment's own two rows `internal_fixed_ce`/`internal_fixed_lambda_e`; `f`;
+// the four DECLARED diagnostics `stationarity`, `feasibility_e`,
+// `feasibility_i`, `complementarity` (NaN-aware, by bit pattern -- NaN on both
+// sides is AGREEMENT here); the engine's own four terminal residuals
+// `kkt_inf`, `barr_inf`, `econ_inf`, `icon_inf`; `fixed_variable_treatment`;
+// the work counters `kkt_analyses_this_call`, `kkt_analyses_total` and all
+// five of `kkt_factor_counters`; `soc_steps_taken`, `watchdog_activations`,
+// `recovery_depth_histogram`; the nine last-phase globalization diagnostics;
+// `last_eval_exception`, `last_kkt_info`; `polish_ignored`; and the `phases`
+// vector's NON-TIMING fields (`phase`, `status`, `iterations`, `ran`).
+//
+// WHAT IS EXCLUDED, and why -- three groups, and nothing else:
+//
+//   1. EVERY TIMING FIELD: `total_time`, `pre_time`, `func_time`, `kkt_time`,
+//      `print_time`, `solver_init_time`, the base's `wall_seconds`, and each
+//      phase's `phase_seconds`. Wall-clock is informational in this project
+//      and never asserted (CLAUDE.md section 7); two runs of one solve differ
+//      in them by construction.
+//   2. `payload_ignored`: THE ONE DECLARED DIFFERENCE the cold-ceiling pin
+//      exists to show (1 against 0). It is asserted directly, beside the call
+//      to this helper, rather than swept into it.
+//   3. `factor_mem` and `factor_flops`: reported BY THE BACKEND out of its own
+//      last factorization rather than computed here, so they measure MKL's
+//      bookkeeping, not this engine's arithmetic. And `export_snapshot_`,
+//      which is a VALUE rather than a reported number; its contents are pinned
+//      by RoundTripIpmToSqpToIpmStillWorks below.
+// ---------------------------------------------------------------------------
+
+// Bit-for-bit equality of two doubles: NaN equals NaN, +0.0 does NOT equal
+// -0.0. `EXPECT_EQ` gets both of those backwards for this purpose.
+bool same_bits(double a, double b) {
+    return std::bit_cast<std::uint64_t>(a) == std::bit_cast<std::uint64_t>(b);
+}
+
+::testing::AssertionResult bits_equal(const char *field, double a, double b) {
+    if (same_bits(a, b)) {
+        return ::testing::AssertionSuccess();
+    }
+    return ::testing::AssertionFailure()
+           << field << " differs: " << a << " (0x" << std::hex << std::bit_cast<std::uint64_t>(a)
+           << std::dec << ") vs " << b << " (0x" << std::hex << std::bit_cast<std::uint64_t>(b)
+           << std::dec << ")";
+}
+
+void expect_blocks_bitwise_equal(const char *name, const Vec &a, const Vec &b) {
+    ASSERT_EQ(a.size(), b.size()) << name << ": declared width";
+    for (Eigen::Index i = 0; i < a.size(); i++) {
+        EXPECT_TRUE(bits_equal(name, a[i], b[i])) << " at entry " << i;
+    }
+}
+
+// The whole enumerated comparison. `label` names what the two results are, so a
+// failure says which pin it belongs to.
+void expect_same_reported_numbers(const hven::solvers::IpmResult &a,
+                                  const hven::solvers::IpmResult &b, const char *label) {
+    SCOPED_TRACE(label);
+
+    EXPECT_EQ(a.status, b.status);
+    EXPECT_EQ(a.iterations, b.iterations);
+    EXPECT_EQ(a.fixed_variable_treatment, b.fixed_variable_treatment);
+
+    expect_blocks_bitwise_equal("x", a.x, b.x);
+    expect_blocks_bitwise_equal("lambda_e", a.lambda_e, b.lambda_e);
+    expect_blocks_bitwise_equal("lambda_i", a.lambda_i, b.lambda_i);
+    expect_blocks_bitwise_equal("z", a.z, b.z);
+    expect_blocks_bitwise_equal("ce", a.ce, b.ce);
+    expect_blocks_bitwise_equal("ci", a.ci, b.ci);
+    expect_blocks_bitwise_equal("internal_fixed_ce", a.internal_fixed_ce, b.internal_fixed_ce);
+    expect_blocks_bitwise_equal("internal_fixed_lambda_e", a.internal_fixed_lambda_e,
+                                b.internal_fixed_lambda_e);
+
+    EXPECT_TRUE(bits_equal("f", a.f, b.f));
+    // The four DECLARED diagnostics, NaN-aware: NaN on both sides is agreement,
+    // which is the whole reason this is a bit comparison and not `==`.
+    EXPECT_TRUE(bits_equal("stationarity", a.stationarity, b.stationarity));
+    EXPECT_TRUE(bits_equal("feasibility_e", a.feasibility_e, b.feasibility_e));
+    EXPECT_TRUE(bits_equal("feasibility_i", a.feasibility_i, b.feasibility_i));
+    EXPECT_TRUE(bits_equal("complementarity", a.complementarity, b.complementarity));
+    // The engine's own four.
+    EXPECT_TRUE(bits_equal("kkt_inf", a.kkt_inf, b.kkt_inf));
+    EXPECT_TRUE(bits_equal("barr_inf", a.barr_inf, b.barr_inf));
+    EXPECT_TRUE(bits_equal("econ_inf", a.econ_inf, b.econ_inf));
+    EXPECT_TRUE(bits_equal("icon_inf", a.icon_inf, b.icon_inf));
+
+    EXPECT_EQ(a.soc_steps_taken, b.soc_steps_taken);
+    EXPECT_EQ(a.watchdog_activations, b.watchdog_activations);
+    EXPECT_EQ(a.recovery_depth_histogram, b.recovery_depth_histogram);
+
+    EXPECT_TRUE(bits_equal("last_funnel_width", a.last_funnel_width, b.last_funnel_width));
+    EXPECT_EQ(a.last_filter_size, b.last_filter_size);
+    EXPECT_EQ(a.last_filter_resets, b.last_filter_resets);
+    EXPECT_EQ(a.last_monotone_switches, b.last_monotone_switches);
+    EXPECT_EQ(a.last_monotone_iters, b.last_monotone_iters);
+    EXPECT_EQ(a.last_feas_rest_entries, b.last_feas_rest_entries);
+    EXPECT_EQ(a.last_feas_rest_iters, b.last_feas_rest_iters);
+    EXPECT_TRUE(bits_equal("last_prox_reg_primal", a.last_prox_reg_primal, b.last_prox_reg_primal));
+    EXPECT_TRUE(bits_equal("last_prox_reg_dual", a.last_prox_reg_dual, b.last_prox_reg_dual));
+    EXPECT_EQ(a.last_eval_exception, b.last_eval_exception);
+    EXPECT_EQ(a.last_kkt_info, b.last_kkt_info);
+
+    EXPECT_EQ(a.kkt_analyses_this_call, b.kkt_analyses_this_call);
+    EXPECT_EQ(a.kkt_analyses_total, b.kkt_analyses_total);
+    EXPECT_EQ(a.kkt_factor_counters.analyze_count, b.kkt_factor_counters.analyze_count);
+    EXPECT_EQ(a.kkt_factor_counters.factorize_count, b.kkt_factor_counters.factorize_count);
+    EXPECT_EQ(a.kkt_factor_counters.solve_count, b.kkt_factor_counters.solve_count);
+    EXPECT_EQ(a.kkt_factor_counters.partial_solve_count, b.kkt_factor_counters.partial_solve_count);
+    EXPECT_EQ(a.kkt_factor_counters.pattern_verify_count,
+              b.kkt_factor_counters.pattern_verify_count);
+
+    EXPECT_EQ(a.polish_ignored, b.polish_ignored);
+
+    // The per-phase account, non-timing fields only.
+    ASSERT_EQ(a.phases.size(), b.phases.size());
+    for (std::size_t k = 0; k < a.phases.size(); k++) {
+        SCOPED_TRACE("phase " + std::to_string(k));
+        EXPECT_EQ(a.phases[k].phase, b.phases[k].phase);
+        EXPECT_EQ(a.phases[k].status, b.phases[k].status);
+        EXPECT_EQ(a.phases[k].iterations, b.phases[k].iterations);
+        EXPECT_EQ(a.phases[k].ran, b.phases[k].ran);
+    }
+}
+
 // A SQP-side view of one NLPProblem, kept alive with its bridge.
 struct SqpView {
     std::shared_ptr<NlpProblemModel> model;
@@ -254,25 +402,63 @@ TEST(WarmProtocol, MultipliersOnlySeedResolvesSeededOnSqp) {
     ASSERT_EQ(seed.eq_lmults_.size(), 1);
     ASSERT_EQ(seed.iq_lmults_.size(), 1);
 
-    SqpView view(exported.problem);
-    SqpDriver driver{quiet_sqp()};
     const Vec x0 = hs071_start();
-    const SqpResult out = driver.solve(*view.bridge, x0, seed);
 
-    // THE BEHAVIOUR CHANGE (design 2.7 item (5)): before T8.5 an empty `primal_`
-    // failed prepare_solve's plausibility gate, the object resolved kCold and
-    // the multipliers were DROPPED. It resolves kSeeded now.
-    EXPECT_EQ(out.status, SolveStatus::kOptimal);
-    EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
-    EXPECT_EQ(out.counters.n_seeded, 1);
+    // ACROSS ALL THREE QP MODES (M6 W5 T8.5 fix round 1). The empty-primal form
+    // takes a MODE-SPECIFIC bypass on the way in -- under kIpm `consume_payload`
+    // additionally skips `build_ipqp_staged_seed`, leaving that tier's staged
+    // seed empty -- so pinning the seed under kWalk alone left the bypass this
+    // task added undefended in two of the three modes.
+    for (const hven::solvers::QpMode mode :
+         {hven::solvers::QpMode::kWalk, hven::solvers::QpMode::kSsn, hven::solvers::QpMode::kIpm}) {
+        SCOPED_TRACE("qp_mode ordinal " + std::to_string(static_cast<int>(mode)));
 
-    // AND x STARTS AT x0, which is what "multipliers only" means: the payload
-    // named no point, so the call's own start point is the start. The first
-    // measured iterate is evaluate_kkt at the ingested point, before any
-    // subproblem is built, so its objective is f(x0).
-    ASSERT_FALSE(out.history.empty());
-    EXPECT_DOUBLE_EQ(out.history.front().f, view.model->eval_f(x0))
-        << "the seed form starts at x0, not at the exporter's point";
+        SqpView view(exported.problem);
+        SqpDriver driver{quiet_sqp(mode)};
+        const SqpResult out = driver.solve(*view.bridge, x0, seed);
+
+        // THE BEHAVIOUR CHANGE (design 2.7 item (5)): before T8.5 an empty
+        // `primal_` failed prepare_solve's plausibility gate, the object
+        // resolved kCold and the multipliers were DROPPED. It resolves kSeeded
+        // now, in every mode.
+        EXPECT_EQ(out.status, SolveStatus::kOptimal);
+        EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
+        EXPECT_EQ(out.counters.n_seeded, 1);
+
+        // AND THE WHOLE INITIAL POINT IS x0, not merely its objective.
+        //
+        // The history row carries no `x`, so the point is pinned through
+        // everything about the first row that is a function of the PRIMAL
+        // point alone, against a genuine COLD solve from the same x0: the
+        // objective, the constraint violation measure and the feasibility
+        // residual. A seed that started anywhere else would move all three.
+        //
+        // Bitwise (`same_bits`), not `DOUBLE_EQ`: these are the same
+        // arithmetic on the same point, so anything but identical bits is a
+        // different point.
+        //
+        // THE DUAL-DEPENDENT COLUMNS OF THAT ROW ARE DELIBERATELY NOT
+        // COMPARED -- `stationarity` and `complementarity` read the
+        // multipliers, which is exactly what the seed supplied and what makes
+        // this solve different from the cold one.
+        SqpView cold_view(exported.problem);
+        SqpDriver cold_driver{quiet_sqp(mode)};
+        const SqpResult cold = cold_driver.solve(*cold_view.bridge, x0);
+        ASSERT_FALSE(out.history.empty());
+        ASSERT_FALSE(cold.history.empty());
+        EXPECT_TRUE(bits_equal("history[0].f", out.history.front().f, cold.history.front().f));
+        EXPECT_TRUE(bits_equal("history[0].feasibility", out.history.front().feasibility,
+                               cold.history.front().feasibility));
+        EXPECT_TRUE(bits_equal("history[0].violation_l1", out.history.front().violation_l1,
+                               cold.history.front().violation_l1));
+        // And that objective really is f(x0), stated independently of the cold
+        // solve so the three comparisons above cannot agree on a wrong point.
+        EXPECT_DOUBLE_EQ(out.history.front().f, view.model->eval_f(x0))
+            << "the seed form starts at x0, not at the exporter's point";
+        // The cold solve is a real contrast, not a copy: it saw no seed.
+        EXPECT_EQ(cold.counters.start_level_used, StartLevel::kCold);
+        EXPECT_EQ(cold.counters.n_seeded, 0);
+    }
 }
 
 TEST(WarmProtocol, MultipliersOnlySeedIgnoresAPolishExtension) {
@@ -531,17 +717,11 @@ TEST(WarmProtocol, ColdCeilingIgnoresAndCountsThePayload) {
     EXPECT_EQ(ignored.polish_ignored, 0);
 
     // AND THE SOLVE IS THE SAME SOLVE, bit for bit in every reported number.
-    EXPECT_EQ(ignored.iterations, no_payload.iterations);
-    ASSERT_EQ(ignored.x.size(), no_payload.x.size());
-    for (Eigen::Index i = 0; i < ignored.x.size(); i++) {
-        EXPECT_EQ(ignored.x[i], no_payload.x[i]) << "primal entry " << i;
-    }
-    ASSERT_EQ(ignored.lambda_i.size(), no_payload.lambda_i.size());
-    for (Eigen::Index i = 0; i < ignored.lambda_i.size(); i++) {
-        EXPECT_EQ(ignored.lambda_i[i], no_payload.lambda_i[i]) << "iq multiplier " << i;
-    }
-    EXPECT_EQ(ignored.f, no_payload.f);
-    EXPECT_EQ(ignored.kkt_inf, no_payload.kkt_inf);
+    // The enumerated list, and the three groups it excludes, are at
+    // expect_same_reported_numbers above; `payload_ignored` -- asserted just
+    // above as 1 against 0 -- is the ONE declared difference between the two
+    // results, and is the only counter the helper leaves out.
+    expect_same_reported_numbers(ignored, no_payload, "kCold ceiling vs no payload at all");
 
     // IDENTITY IS STILL CHECKED AT THIS RUNG. A foreign payload under a kCold
     // ceiling is refused, not quietly discarded.
@@ -553,6 +733,61 @@ TEST(WarmProtocol, ColdCeilingIgnoresAndCountsThePayload) {
     other.transcribe();
     EXPECT_THROW((void)other.optimizer_->solve(*other.nlp_, Vec::Zero(3), exported.payload),
                  std::invalid_argument);
+}
+
+// THE STAMP CHECK AT A kCold CEILING, PINNED ON ITS OWN (M6 W5 T8.5 fix1).
+//
+// The foreign-payload half of the pin above hands HS071's payload to a
+// three-variable problem, so it is refused for its BLOCK LENGTHS -- the check
+// that runs first -- and the STAMP check never has to fire for that test to
+// pass. This one hands the payload back to the problem it came from with every
+// block at exactly the right width and ONE BIT of the declaration stamp
+// flipped, so the length check passes and the only thing left to refuse it is
+// the stamp.
+//
+// At a kCold ceiling, deliberately: a ceiling of kCold is the rung at which
+// nothing of the payload is applied, and it is precisely there that "we were
+// going to ignore it anyway" would be the tempting shortcut. Identity is not a
+// warm-start decision.
+TEST(WarmProtocol, ColdCeilingStillRefusesAWrongStampAtTheRightDimensions) {
+    const Hs071Export exported;
+
+    WarmStartData wrong_stamp = exported.payload;
+    // Every block is the exporter's own, so nothing is mis-sized.
+    ASSERT_EQ(wrong_stamp.primal_.size(), exported.payload.primal_.size());
+    ASSERT_EQ(wrong_stamp.eq_lmults_.size(), exported.payload.eq_lmults_.size());
+    ASSERT_EQ(wrong_stamp.iq_lmults_.size(), exported.payload.iq_lmults_.size());
+    ASSERT_EQ(wrong_stamp.bound_lmults_.size(), exported.payload.bound_lmults_.size());
+    // ONE BIT of the bound conjunct, so the key is a different key and nothing
+    // else about the value moved.
+    wrong_stamp.structure_key_.bound_digest_ ^= 1u;
+    ASSERT_FALSE(wrong_stamp.structure_key_ == exported.payload.structure_key_);
+
+    for (const StartLevel ceiling :
+         {StartLevel::kCold, StartLevel::kSeeded, StartLevel::kWarm, StartLevel::kHot}) {
+        NLPSolver ipm(exported.problem);
+        hven::solvers::IpmOptions o = quiet_ipm(ipm);
+        o.common.start_level = ceiling;
+        ipm.optimizer_->set_options(std::move(o));
+        ipm.transcribe();
+        EXPECT_THROW((void)ipm.optimizer_->solve(*ipm.nlp_, hs071_start(), wrong_stamp),
+                     std::invalid_argument)
+            << "ceiling ordinal " << static_cast<int>(ceiling);
+    }
+
+    // And the SAME payload with its stamp untouched is accepted, so the throws
+    // above are about the stamp and not about anything else this test built.
+    {
+        NLPSolver ipm(exported.problem);
+        hven::solvers::IpmOptions o = quiet_ipm(ipm);
+        o.common.start_level = StartLevel::kCold;
+        ipm.optimizer_->set_options(std::move(o));
+        ipm.transcribe();
+        const hven::solvers::IpmResult ok =
+            ipm.optimizer_->solve(*ipm.nlp_, hs071_start(), exported.payload);
+        EXPECT_EQ(ok.status, SolveStatus::kOptimal);
+        EXPECT_EQ(ok.payload_ignored, 1);
+    }
 }
 
 // The rungs ABOVE kCold, which the pin above needs as its contrast: at kSeeded
@@ -589,17 +824,144 @@ TEST(WarmProtocol, TheIpmCeilingHasFourRungs) {
 
     // kHot IS kWarm on this engine, asserted rather than merely documented:
     // there is no hot handle to adopt, so the two rungs must agree in every
-    // reported number.
-    EXPECT_EQ(hot.iterations, warm.iterations);
-    ASSERT_EQ(hot.x.size(), warm.x.size());
-    for (Eigen::Index i = 0; i < hot.x.size(); i++) {
-        EXPECT_EQ(hot.x[i], warm.x[i]) << "primal entry " << i;
-    }
+    // reported number -- bitwise, over the same enumerated list the cold pin
+    // uses. Here there is NO declared difference at all: `payload_ignored` and
+    // `polish_ignored` both read 0 at both rungs, asserted above.
+    expect_same_reported_numbers(hot, warm, "kHot ceiling vs kWarm ceiling");
 
     // AND THE WHOLE PAYLOAD IS WORTH SOMETHING: kWarm restarts the converged
     // point, so it cannot take more iterations than the rung that throws the
     // point away.
     EXPECT_LE(warm.iterations, seeded.iterations);
+}
+
+// ===========================================================================
+// ONE NUMBER, THREE CONSUMERS: the trace, the result and the ledger
+// ===========================================================================
+
+// THE DEFECT THIS PINS (M6 W5 T8.5 fix round 1, astra I3).
+//
+// `polish_ignored` is produced by `consume_payload`, which runs one frame ABOVE
+// `solve_impl`. It reached the returned result through `record_solve` -- which
+// runs one frame above `solve_impl` too -- while the `sqp.solve.end` trace event
+// is emitted INSIDE `solve_impl` and carries the whole counters object by
+// reference. So on exactly the solves the counter exists for, a multipliers-only
+// payload carrying a polish extension, the JSON line said `"polish_ignored":0`
+// and the returned result and the ledger record both said 1.
+//
+// The serializer's own goldens could not catch it: they hand a hand-built
+// counters value straight to the sink, so they pin the SERIALIZATION and never
+// see which value the driver put in. This is a REAL SOLVE with a REAL PAYLOAD,
+// with all three consumers attached at once, and it reads the JSON text rather
+// than the event struct -- what a consumer sees is a line of a file.
+TEST(WarmProtocol, ThePolishIgnoredCountAgreesAcrossTraceResultAndLedger) {
+    const Hs071Export exported;
+    WarmStartData seed = seed_form(exported.payload);
+    seed.extensions_ = exported.payload.extensions_;
+    ASSERT_NE(hven::solvers::find_ipm_polish(seed), nullptr)
+        << "without the extension there is nothing to ignore and the pin is vacuous";
+
+    SqpView view(exported.problem);
+    SqpDriver driver{quiet_sqp()};
+
+    std::ostringstream stream;
+    hven::solvers::JsonLinesTraceSink sink{stream};
+    driver.attach_trace(&sink);
+
+    hven::solvers::Ledger ledger;
+    driver.attach_ledger(&ledger, "polish");
+
+    const SqpResult out = driver.solve(*view.bridge, hs071_start(), seed);
+    ASSERT_EQ(out.status, SolveStatus::kOptimal);
+    EXPECT_FALSE(sink.failed());
+
+    // (1) THE RESULT.
+    EXPECT_EQ(out.counters.polish_ignored, 1);
+
+    // (2) THE LEDGER RECORD.
+    ASSERT_EQ(ledger.sqp_records().size(), 1u);
+    EXPECT_EQ(ledger.sqp_records().front().counters.polish_ignored, 1);
+
+    // (3) THE TRACE LINE'S JSON, read as text.
+    const std::string text = stream.str();
+    std::string solve_end;
+    {
+        std::istringstream lines(text);
+        std::string line;
+        while (std::getline(lines, line)) {
+            if (line.find("\"sqp.solve.end\"") != std::string::npos) {
+                ASSERT_TRUE(solve_end.empty()) << "one top-level solve, one sqp.solve.end line";
+                solve_end = line;
+            }
+        }
+    }
+    ASSERT_FALSE(solve_end.empty()) << "no sqp.solve.end line in:\n" << text;
+    EXPECT_NE(solve_end.find("\"polish_ignored\":1"), std::string::npos)
+        << "the trace must carry the SAME 1 the result and the ledger carry:\n"
+        << solve_end;
+    EXPECT_EQ(solve_end.find("\"polish_ignored\":0"), std::string::npos) << solve_end;
+
+    // NON-VACUITY, both directions: the same solve WITHOUT the extension writes
+    // 0 in all three places, so the 1s above are about the dropped extension.
+    {
+        SqpView plain_view(exported.problem);
+        SqpDriver plain{quiet_sqp()};
+        std::ostringstream plain_stream;
+        hven::solvers::JsonLinesTraceSink plain_sink{plain_stream};
+        plain.attach_trace(&plain_sink);
+        hven::solvers::Ledger plain_ledger;
+        plain.attach_ledger(&plain_ledger, "plain");
+
+        const SqpResult plain_out =
+            plain.solve(*plain_view.bridge, hs071_start(), seed_form(exported.payload));
+        EXPECT_EQ(plain_out.counters.polish_ignored, 0);
+        ASSERT_EQ(plain_ledger.sqp_records().size(), 1u);
+        EXPECT_EQ(plain_ledger.sqp_records().front().counters.polish_ignored, 0);
+        EXPECT_NE(plain_stream.str().find("\"polish_ignored\":0"), std::string::npos);
+        EXPECT_EQ(plain_stream.str().find("\"polish_ignored\":1"), std::string::npos);
+    }
+}
+
+// ===========================================================================
+// THE WRAPPER'S SURFACE: NLPSolver::run_nlp_solver keeps both arities
+// ===========================================================================
+
+// T8.5 gave `run_nlp_solver` a third argument -- the optional multipliers-only
+// seed -- with no default and no compatibility overload, so every existing
+// two-argument caller stopped compiling. The guide said "NLPSolver keeps its
+// surface"; this makes that true and pins it (M6 W5 T8.5 fix round 1, astra I2).
+//
+// THE PIN IS THE CALL ITSELF: it must COMPILE at two arguments, and the solve it
+// runs must be the cold solve it always was.
+TEST(WarmProtocol, NlpSolverKeepsItsTwoArgumentEntry) {
+    const auto problem = std::make_shared<hven_drivers_tests::Hs071Problem>();
+    NLPSolver ipm(problem);
+    ipm.optimizer_->set_options(quiet_ipm(ipm));
+    ipm.transcribe();
+
+    // THE TWO-ARGUMENT CALL. If this file compiles, the entry exists.
+    const NLPSolver::NlpSolveOutput out =
+        ipm.run_nlp_solver(NLPSolver::JetJobModes::Optimize, hs071_start());
+
+    EXPECT_EQ(out.flag_, SolveStatus::kOptimal);
+    EXPECT_EQ(out.variables_.size(), 4);
+    EXPECT_EQ(out.eq_lmults_.size(), 1);
+    EXPECT_EQ(out.iq_lmults_.size(), 1);
+    EXPECT_NEAR(ipm.result().f, 17.0140173, 1e-5);
+    // It is the COLD solve: no payload was handed over, so neither counter moved.
+    EXPECT_EQ(ipm.result().payload_ignored, 0);
+    EXPECT_EQ(ipm.result().polish_ignored, 0);
+
+    // And it agrees with the three-argument form spelled with no seed, which is
+    // the forward it performs.
+    NLPSolver other(problem);
+    other.optimizer_->set_options(quiet_ipm(other));
+    other.transcribe();
+    const NLPSolver::NlpSolveOutput explicit_none =
+        other.run_nlp_solver(NLPSolver::JetJobModes::Optimize, hs071_start(), std::nullopt);
+    EXPECT_EQ(explicit_none.flag_, out.flag_);
+    expect_same_reported_numbers(other.result(), ipm.result(),
+                                 "run_nlp_solver(mode, x0) vs (mode, x0, nullopt)");
 }
 
 // ===========================================================================

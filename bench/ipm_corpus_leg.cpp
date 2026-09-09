@@ -16,6 +16,7 @@
 #include <hven/core/solver_status.h>
 #include <hven/drivers/solve_status.h>
 #include <hven/model/nlp_solver.h>
+#include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/warm_start_data.h>
 
 #include "crossover_legs.h"
@@ -353,12 +354,30 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
         //
         // WHY TWO. The payload row shows the whole hand-off applied: point,
         // multipliers and the polish extension's bound duals. The seed row
-        // shows the multipliers-only form, whose point is `x0` -- so it sits
-        // BETWEEN the payload row and the base row, and the three together are
-        // the leg's evidence that each half of the payload is worth something.
-        // This engine reports no `start_level_used` column, so `iter_num` is
-        // the only observable either row has; the artifact's header states the
-        // expected inequality outright.
+        // shows the multipliers-only form, whose point is `x0`. The three rows
+        // together are the leg's evidence that each half of the payload
+        // reaches the solve.
+        //
+        // WHAT THE THREE ROWS MEASURED, AND WHAT WAS EXPECTED (M6 W5 T8.5 fix
+        // round 1). The brief's A6 asked for `iter_num(payload) <
+        // iter_num(seed) < iter_num(base)`. The MEASUREMENT is 3 / 9 / 9: the
+        // payload row is worth six iterations here and the seed row is worth
+        // none. The criterion was a guess made before the rows existed and the
+        // measurement is the fact; the inequality is NOT asserted anywhere and
+        // the claim that it was has been removed from this comment, from the
+        // report and from the guide.
+        //
+        // SO THE SEED ROW IS READ ON THE APPLIED RUNG, not on `iter_num`. The
+        // engine knows which rung a payload reached and says so in
+        // `IpmResult::payload_ignored` / `polish_ignored`, and
+        // `run_interior_problem`'s APPLIED-RUNG CHECK (search that function for
+        // "wrong warm-start rung") refuses to emit either row unless the rung
+        // is the one the variant asked for -- so the two rows cannot be
+        // captured from a solve that quietly ignored what it was handed. The
+        // terminal residuals stay as the NUMERIC witness that the trajectory
+        // CHANGED (not that it improved), asserted against the committed
+        // artifact by `CorpusCells.TheWarmRowsShowThePayloadAndTheSeedReached
+        // TheSolve`.
         InteriorVariant warm_payload;
         warm_payload.name = "warm_payload";
         warm_payload.entry = InteriorVariant::Entry::kOptimize;
@@ -503,7 +522,20 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
             // whether the point and the bound state travel with the prices.
             payload->primal_.resize(0);
             payload->bound_lmults_.resize(0);
-            payload->extensions_.clear();
+            // THE POLISH EXTENSION IS LEFT ON (M6 W5 T8.5 fix round 1), and
+            // that is deliberate. It changes NOTHING about the solve -- the
+            // seed form's `have_warm` is false, so the extension is never
+            // applied at any ceiling -- but it makes the engine COUNT the
+            // drop, and `polish_ignored == 1` is then the direct, legible
+            // statement that this row really did travel the seed route rather
+            // than some other one. Clearing it here would have thrown away the
+            // one observable the row has that is not a residual.
+            if (hven::solvers::find_ipm_polish(*payload) == nullptr) {
+                throw std::runtime_error(fmt::format(
+                    "run_interior_problem: the '{}' variant's export of cell '{}' carries no "
+                    "\"{}\" extension, so the row's polish_ignored observable would be vacuous",
+                    variant.name, identity.cell_id, hven::solvers::kIpmPolishTag));
+            }
         }
     }
 
@@ -545,6 +577,30 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
         }
     }
     const double wall_s = seconds_since(t0);
+
+    // THE APPLIED RUNG, CHECKED BEFORE THE ROW IS BUILT (M6 W5 T8.5 fix round
+    // 1; the SQP lane's M1). A warm row whose payload was silently ignored
+    // would still converge, still land on the same objective, and still write
+    // a plausible-looking line -- and this leg's other observable, the terminal
+    // residual, is a number a future change could move for reasons that have
+    // nothing to do with the hand-off. The engine knows which rung it reached
+    // and reports it, so the row is refused unless the rung is the one the
+    // variant asked for.
+    //
+    //   warm_payload         nothing dropped: payload_ignored 0, polish_ignored 0.
+    //   warm_multiplier_seed the point and the polish dropped, the prices
+    //                        applied: payload_ignored 0, polish_ignored 1.
+    if (variant.warm != InteriorVariant::Warm::kNone) {
+        const int want_polish = variant.warm == InteriorVariant::Warm::kSeed ? 1 : 0;
+        if (warm_result.payload_ignored != 0 || warm_result.polish_ignored != want_polish) {
+            throw std::runtime_error(fmt::format(
+                "run_interior_problem: the '{}' variant's measured solve of cell '{}' reached the "
+                "wrong warm-start rung: payload_ignored={} polish_ignored={}, expected 0 and {}. "
+                "The row would report a warm start that was not applied",
+                variant.name, identity.cell_id, warm_result.payload_ignored,
+                warm_result.polish_ignored, want_polish));
+        }
+    }
 
     // The MEASURED solve's result, whichever door it came through.
     const hven::solvers::IpmResult &result = payload.has_value() ? warm_result : ipm.result();

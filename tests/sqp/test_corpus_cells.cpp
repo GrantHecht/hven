@@ -2764,8 +2764,26 @@ TEST(CorpusCells, InteriorBaselineRescoresOffline) {
 //                 multipliers alone buy no iterations -- its `iter_num` equals
 //                 the base row's exactly -- so what shows the seed reached the
 //                 solve at all is that kkt_inf differs from the base row's by
-//                 more than a near-ulp margin. Asserting an iteration
-//                 improvement there would be asserting something false.
+//                 more than a near-ulp margin. What that difference establishes
+//                 is that THE TRAJECTORY CHANGED, not that it improved:
+//                 econ_inf and icon_inf move from exact zeros to 2.1e-10, which
+//                 is a different path to the same optimum, not a better one.
+//                 Asserting an iteration improvement there would be asserting
+//                 something false.
+//
+// THE BRIEF'S A6 ASKED FOR MORE THAN THAT (M6 W5 T8.5 fix round 1) --
+// `iter_num(payload) < iter_num(seed) < iter_num(base)`, with the seed row
+// strictly between the other two. The measurement is 3 / 9 / 9. The criterion
+// was written before the rows existed; the measurement is the fact, and the
+// inequality is asserted NOWHERE -- not here, not in the leg, not in the
+// artifact's header.
+//
+// THE SEED ROW'S DIRECT OBSERVABLE IS THE APPLIED RUNG, and it is pinned in the
+// leg itself rather than here, because it is not a CSV column: the leg refuses
+// to emit either warm row unless `IpmResult::payload_ignored` and
+// `polish_ignored` say the rung the variant asked for was the rung reached
+// (`bench/ipm_corpus_leg.cpp`, `require`-style check after the measured solve).
+// The residual comparison below is the numeric witness beside it.
 //
 // Both rows must still CONVERGE and land on the same objective: a warm start
 // that changed the answer would be a defect whatever it did to the counters.
@@ -2808,15 +2826,16 @@ TEST(CorpusCells, TheWarmRowsShowThePayloadAndTheSeedReachedTheSolve) {
         << "the whole payload restarts the converged point; if it costs as much as a cold "
            "solve it was not applied";
 
-    // THE SEED ROW: no iteration claim -- what is asserted is that it did not
-    // make the solve WORSE, and that its terminal residual is not the base
-    // row's, which is what shows the multipliers were installed.
+    // THE SEED ROW: NO IMPROVEMENT CLAIM. What is asserted is that the seed
+    // did not COST iterations (`<=`, which on this cell holds as equality), and
+    // that its terminal residual is not the base row's -- which is what shows
+    // the multipliers were installed and the trajectory CHANGED.
     EXPECT_LE(seed_iters, base_iters);
     const double base_kkt = std::stod(field(base, "kkt_inf"));
     const double seed_kkt = std::stod(field(seed, "kkt_inf"));
     EXPECT_NE(base_kkt, seed_kkt)
         << "the multipliers-only seed reached the solve, so the terminal residual is not the "
-           "cold solve's";
+           "cold solve's -- a CHANGED trajectory, which is all this comparison claims";
     // AND THE DIFFERENCE IS REAL, not arithmetic noise: an order of magnitude,
     // stated as a ratio so the pin does not encode either value.
     EXPECT_GT(std::abs(base_kkt - seed_kkt), 0.5 * std::max(base_kkt, seed_kkt))

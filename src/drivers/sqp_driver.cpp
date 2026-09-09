@@ -1847,6 +1847,14 @@ SqpSolution SqpDriver::record_solve(SqpSolution out, double wall_seconds) {
     // solve_impl, so no exit inside the solve can see the number, and this is
     // the ONE point every public overload -- including the non-finite-start
     // exit that bypasses finish() -- funnels through.
+    //
+    // AND ALSO WRITTEN IN solve_impl, BEFORE THE TRACE EMISSION (fix round 1):
+    // the `sqp.solve.end` event carries the whole counters object and is
+    // emitted one frame BELOW this one, so this assignment alone left the
+    // trace reporting 0 where the result and the ledger reported 1. Both
+    // assignments read the same member, with nothing between them that can
+    // move it, so the trace, the returned result and the ledger record agree
+    // by construction. See solve_impl's note.
     out.counters.polish_ignored = payload_polish_ignored_;
     // THE PROXIMAL CARRY, EXPORTED. Stamped here rather than in
     // make_warm_start because make_warm_start is static (it is called from
@@ -2307,6 +2315,23 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         ipqp_trace_->on_sqp_solve_begin(make_solve_begin_event(opts_, seam));
     }
     SqpSolution out = solve_impl_body(seam, bridge, x0, warm, budget, std::move(strategy));
+    // THE POLISH-IGNORED COUNT, BEFORE THE TRACE READS IT (M6 W5 T8.5 fix1).
+    //
+    // The count is `consume_payload`'s, taken one frame ABOVE this one, so no
+    // exit inside `solve_impl_body` can write it -- and `record_solve`, which
+    // is the funnel that reports it, runs one frame ABOVE the emission below.
+    // The `sqp.solve.end` event carries the WHOLE counters object, so left to
+    // record_solve alone the trace said `polish_ignored: 0` on exactly the
+    // solves the returned result and the ledger both said 1: a
+    // multipliers-only payload carrying a polish extension. Three consumers of
+    // one number disagreeing is the defect; assigning here, before the read,
+    // is the fix.
+    //
+    // record_solve STILL ASSIGNS IT, from the same member and with nothing in
+    // between that can move it, so the two agree by construction and the
+    // funnel's guarantee -- every public overload, the non-finite-start exit
+    // included -- is unweakened.
+    out.counters.polish_ignored = payload_polish_ignored_;
     if (ipqp_trace_ != nullptr) {
         ipqp_trace_->on_sqp_solve_end(
             SqpSolveEndTraceEvent{out.status, out.counters.major_iters, out.counters});

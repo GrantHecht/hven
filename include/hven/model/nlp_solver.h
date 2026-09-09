@@ -199,6 +199,18 @@ struct NLPSolver final {
     NlpSolveOutput run_nlp_solver(JetJobModes mode, const Eigen::VectorXd &input,
                                   const std::optional<hven::solvers::WarmStartData> &seed);
 
+    /// @brief The TWO-ARGUMENT entry: the same dispatch with NO warm start.
+    ///
+    /// This is the signature this class carried before M6 W5 T8.5, kept so
+    /// that the task's promise -- NLPSolver keeps its surface -- is true of
+    /// the entry as well as of the class. It forwards to the overload above
+    /// with `std::nullopt`, which is exactly the cold `solve(program, x0)`
+    /// call: a caller who never had a seed to hand over does not have to
+    /// spell one absent.
+    ///
+    /// @throws whatever the three-argument form throws.
+    NlpSolveOutput run_nlp_solver(JetJobModes mode, const Eigen::VectorXd &input);
+
     /// Parses a job-mode name into its enum value. Accepted spellings:
     /// "solve"/"Solve", "optimize"/"Optimize",
     /// "solve_optimize"/"SolveOptimize"/"Solve_Optimize",
