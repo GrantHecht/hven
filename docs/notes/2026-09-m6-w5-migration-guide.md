@@ -1777,16 +1777,31 @@ surface.
 | `InteriorPointSolver::LateCallBackType` | *(deleted)* | `hven::solvers::IterationCallback` |
 | *(nothing)* | `sqp.set_iteration_callback(f)` / `sqp.clear_iteration_callback()` | new on the SQP |
 
-`hven::solvers::IterateInfo` leaves the public surface with `LateCallBackType`:
-it was the interior-point engine's own per-iteration record, in that engine's
-own space, and nothing on the shared surface hands it out any more. It is still
-what the `ipm.iter` TRACE event carries, so a consumer that genuinely wants the
-engine's own residual columns (`kkt_inf`, `barr_inf`, `econ_inf`, `icon_inf`,
-the alphas, the inertia ladder's counts) attaches a `TraceSink` and reads
-`IpmIterTraceEvent::iterate` — one event per iterate, the same rows the
-callback sees. `tests/interior/test_nlp_solver.cpp`'s
+`hven::solvers::IterateInfo` leaves the **callback** surface with
+`LateCallBackType`. It does **not** leave the public surface: it is the
+interior-point engine's own per-iteration record, and it remains the TRACE row
+type in `drivers/trace.h`, handed out by reference as
+`IpmIterTraceEvent::iterate` exactly as the IPQP's trace event types are handed
+out. What changed is that nothing on the shared CALLBACK surface hands it out
+any more.
+
+So a consumer that genuinely wants the engine's own residual columns
+(`kkt_inf`, `barr_inf`, `econ_inf`, `icon_inf`, the alphas, the inertia ladder's
+counts) attaches a `TraceSink` and reads `IpmIterTraceEvent::iterate` — one
+event per iterate, the same rows the callback sees.
+`tests/interior/test_nlp_solver.cpp`'s
 `TheReportedKktResidualsDescribeTheIterateTheResultDescribes` is the worked
 example of that substitution.
+
+**Setting or clearing from inside a callback is safe.** `set_iteration_callback`,
+`clear_iteration_callback`, `set_kkt_hook` and `clear_kkt_hook` all DEFER when
+called while the callable they replace is on the stack: the stored
+`std::function` is left alone until the invocation returns, and the change is
+applied at that point (or, if the callback departed by throwing, at the next
+solve entry). A callback may therefore disarm itself and go on touching its own
+captures. `disable_early_callback()` gave that safety for free by only flipping
+a flag; `clear_kkt_hook()` clears the stored hook, so the rule is now explicit
+rather than incidental.
 
 `set_kkt_hook` is IPM-only and stays that way. Nothing equivalent is invented
 for the SQP engine: the hook hands out the assembled, not-yet-factorized KKT
@@ -1811,7 +1826,8 @@ struct IterationEvent {
 using IterationCallback = std::function<CallbackAction(const IterationEvent &)>;
 ```
 
-All of it is in **declared space and caller units**, exactly as `SolveResult`
+**At `depth` 0** — every interior-point event and every top-level SQP major —
+all of it is in **declared space and caller units**, exactly as `SolveResult`
 is: the interior-point engine's reduced primal space is scattered back, its
 internal fixing rows come off the equality block and reappear in the bound price
 as `z = -lambda_fix`, and a scaled SQP solve's prices carry no factor of the
@@ -1820,15 +1836,32 @@ engine's. The four diagnostics are the four SHARED ones of
 — never zero. Neither engine evaluates anything to build an event, so attaching
 a callback cannot move an evaluation counter.
 
+**At `depth` 1 the space is the restoration sub-problem's, not the caller's.**
+A depth-1 event is the feasibility sub-solve's own row: `x` is that problem's
+variable vector (whose width need not be the caller's `n`), `f` is its
+feasibility objective, and the four diagnostics are measured on it. The
+forwarder stamps `depth` and maps nothing else back — the design's rule is that
+depth-1 rows are the sub-solve's own. A caller comparing events against its own
+model, or against `SqpResult`'s fields, filters on `depth == 0`.
+
+**`f` obeys the same provenance rule the four diagnostics do.** Because an event
+evaluates nothing, the interior-point engine reports `f` as NaN wherever it has
+not evaluated the caller's objective at the event's point: on a FEASIBILITY
+phase (`IpmPhase::kSolve`, which never evaluates a declared objective) and while
+feasibility restoration is active (where the engine's own objective is the
+restoration subproblem's). `IpmResult::f` still reports a number on those
+exits — it evaluates for one at the exit — so the event's NaN is a statement
+about what an event may claim without evaluating, not about the solve.
+
 | field | interior-point | SQP |
 |---|---|---|
 | `iteration` | the per-phase iterate index (`ipm.iter`'s own) | the major's index, which is the row's index in `SqpResult::history` |
 | `phase` | index into `IpmResult::phases` | `nullopt` |
-| `depth` | `nullopt` | restoration nesting: 0 at the top, 1 inside a restoration sub-solve |
+| `depth` | `nullopt` | restoration nesting: 0 at the top, 1 inside a restoration sub-solve. A non-zero depth changes the SPACE the whole event is in — see above |
 | `radius` | `nullopt` | `SqpIterate::tr_radius` |
 | `mu` | the barrier parameter the iterate was EVALUATED under, on the caller's objective scale | `nullopt` |
 | `step_norm` | inf-norm of the primal block of the committed `alpha * DXSL`; **0 at a phase's first iterate** | `SqpIterate::step_norm` |
-| `f`, the four diagnostics | from the iterate's own measurement | from the row's own measurement |
+| `f`, the four diagnostics | from the iterate's own measurement, under the result's own provenance rule (NaN where unmeasured) | from the ROW's own measurement — the point, the prices and the two constraint blocks are all snapshotted when the row is measured, so a row pushed after a restoration return still describes the point it was measured at |
 
 The four vector views alias the engine's own storage and are valid **for the
 duration of the call only**. Copy what you need; copying the EVENT does not
@@ -1847,15 +1880,26 @@ rejected trials and the non-finite-start exit included.
 
 **INTERIOR-POINT** — one event per `ipm.iter` row, at the **top of the iteration
 that row belongs to**, after that iterate's residuals have been measured and
-BEFORE its KKT matrix is factorized.
+BEFORE its KKT matrix is factorized. The exits that leave from BELOW that
+statement fire a TERMINAL event of their own: the convergence-check early exit,
+the pre-factorization interrupt exit, and the restoration-locally-infeasible
+door. Each fires it AFTER any `return_best` substitution has chosen the point,
+so the last event describes the point the phase HANDS BACK.
 
-That placement is the behaviour change (design §2.7 item (2)). The late callback
-fired at the BOTTOM of the iteration, below the factorization and the line
-search; the new event fires above them. **The point it describes is the same
-point** — the iterate the iteration starts from, which is the point committed by
-the previous step — and the iterate index is the same number, so a callback that
-recorded `IterateInfo::iter_` or read the terminal row's index sees no
-difference. What DOES move:
+The one case where the last event is not the returned point: a `return_best`
+solve that ends at the BOTTOM-of-loop terminal conjunction and substitutes.
+There the returned iterate is the best one — which an EARLIER event described,
+since every iterate gets one — rather than the last.
+
+That placement is the behaviour change (design §2.7 item **(3)**, "the IPM's
+continuing callback dispatch observes the committed point"; item (2) is
+`kInterrupted` on both engines). The late callback fired at the BOTTOM of the
+iteration, below the factorization and the line search; the new event fires
+above them. **The point it describes is the same point** — the iterate the
+iteration starts from, which is the point committed by the previous step — and
+the iterate index is the same number, so a callback that recorded
+`IterateInfo::iter_` or read the terminal row's index sees no difference. What
+DOES move:
 
 * the event now carries the diagnostics of the COMMITTED point coherently: `x`,
   the prices, `f` and the four diagnostics are all of one iterate;
@@ -1868,20 +1912,48 @@ difference. What DOES move:
 * a callback armed from INSIDE another callback now sees its first hand-out one
   site earlier. The KKT hook's own arming rule is unchanged.
 
-The trace is unmoved: `ipm.iter` and `sqp.major` are emitted exactly where they
-were, and the event count equals the row count on both engines.
+The trace is unmoved with ONE addition: the restoration-locally-infeasible exit
+now emits the `ipm.iter` line for the row it returns. That exit keeps the record
+it pushed (`IpmResult::iterations` counts it) but emitted no line for it and
+fired no event, so the stream was one row short of the iterations the result
+reported. A consumer counting `ipm.iter` lines on a solve that ends
+`IpmStopReason::kRestorationLocallyInfeasible` sees one more line than before;
+no CSV column, counter or golden moves, because no artifact traces that exit.
+Everywhere else `ipm.iter` and `sqp.major` are emitted exactly where they were,
+and the event count equals the row count on both engines.
 
 ### 4. `kStop`, per engine
 
 Returning `CallbackAction::kStop` asks the engine to stop. Both then report
 `SolveStatus::kInterrupted` — which was unreachable before this task — at the
-point they were standing on, with the ordinary cleanup, trace end event and
-ledger record.
+point they were standing on, with the ordinary cleanup and the ordinary trace
+end event. **The ledger record is the SQP's alone today**: the interior-point
+engine has no `attach_ledger`, and T8.7 adds one (with `IpmSolveRecord` and
+`Ledger::ipm_records()`). An interrupted SQP solve writes its `sqp.solve` record
+exactly as any other terminal exit does.
 
 **SQP.** The stop is LATCHED and honoured at the next major's exit conjunction,
 which sits above `build_subproblem`: no QP is solved for an answer the caller no
 longer wants, and the identity `history.size() == counters.major_iters + 1`
-holds exactly as it does on a capped solve. Precedence at that exit is
+holds exactly as it does on a capped solve.
+
+**Where the stopped solve ends up.** A stop returned on row `k` is honoured at
+row `k+1`'s exit conjunction, so the solve returns AFTER row `k+1`:
+`history.size() == k + 2` and `counters.major_iters == k + 1`. The point handed
+back is the one the LAST event describes — the committed point row `k`'s
+accepted step reached, measured once and stepped from never. It costs one
+derivative refresh and NO subproblem: the exit conjunction sits above the
+rebuild, which is exactly where the probe budget stops a solve too.
+
+**A stop returned on the public call's own terminal row is a no-op**, whatever
+that row's verdict. The latch is read as it stood BEFORE that row's own event
+fired, because the row's exit and its verdict were both decided when the
+callback was shown it. So a converged terminal row still reports `kOptimal`
+(converged beats stop) and a NON-converged cap terminal row still reports
+`kMaxIter`. Only a CONTINUING dispatch's `kStop` moves a public verdict; that is
+design §2.5's rule and not an omission.
+
+Precedence at that exit is
 
 ```
 converged  >  interrupted  >  probe-exhausted  >  max_iter
@@ -1897,9 +1969,20 @@ A stop returned INSIDE a restoration sub-solve reaches the parent two ways, and
 both work: the sub-solve is handed a FORWARDER (which stamps `depth`, re-reads
 the parent's clock, and latches on the parent), and, when that sub-solve exits
 at a still-infeasible point, its own `kInterrupted` arrives at the parent as the
-restoration phase's verdict. **A stopped restoration certifies nothing**:
-`SqpResult::infeasibility_certified` stays false, because only a phase that ran
-to its own `kOptimal` has proved anything about the model.
+restoration phase's verdict. **The parent exits `kInterrupted` on EVERY
+restoration-return arm**, at the point it holds once restoration has returned:
+the resumed route goes round the loop and the next major's exit conjunction
+reads the latch, and the exited routes read it at their own restoration-return
+finish. What the sub-solve itself reached is a fact about the SUB-SOLVE and does
+not become the caller's status.
+
+**The certificate is that sub-solve's fact, and it is orthogonal to the
+parent's status.** `SqpResult::infeasibility_certified` stays TRUE when the
+restoration phase ran to its own `kOptimal` at an infeasible point, even if the
+callback stopped on that phase's converged terminal row — a real proof is not
+withheld. It stays FALSE when the sub-solve was itself stopped before it got
+there, because a phase the caller interrupted has proved nothing about the
+model.
 
 **INTERIOR-POINT.** The stop is honoured where the event fired —
 pre-factorization — so the solve returns the very point the callback was shown,
@@ -1913,6 +1996,18 @@ PHASE SEQUENCE**, not only the phase: later phases report `ran == false`.
 `IpmStopReason` gains `kInterrupted = 4` and `to_string` gains `"interrupted"`.
 A consumer switching over that enum without a `default` will need the new arm.
 
+**`IpmOptions::return_best` is not honoured on an interrupted exit**: the solve
+returns the point the callback was shown. Handing back a different iterate than
+the one the caller stopped on would make the event a lie. The option's own doc
+carries the same sentence.
+
+**The interior-point engine's NESTED restoration sub-solver receives no
+callback.** Under `RestorationModes::l1_nested` the feasibility subproblem is
+solved by a distinct `InteriorPointSolver`, which carries no callback of its
+own: its iterations fire nothing, and a `kStop` is honoured only once control is
+back in the outer loop. The SQP engine forwards into its restoration sub-solve;
+this one does not. Forwarding here is registered as a T8-close disposition item.
+
 ### 5. A throwing callback
 
 An exception thrown from the callback propagates out of `solve()` on both
@@ -1920,9 +2015,34 @@ engines. The abandoned solve leaves **no end trace event and no ledger record**
 — the begin/end pair and the record are deliberately non-RAII, and this is
 stated rather than changed. The QP-engine records of the subproblems that solve
 DID run **stay**: they record work that really happened. Both solvers remain
-usable, and the next solve is bit-for-bit what a fresh one would produce.
+usable, and the next solve is bit-for-bit what a fresh one would produce, over
+every deterministic result field. The two deductions on the interior-point side
+are the PER-SOLVER quantities and not per-solve results:
+`IpmResult::kkt_factor_counters` is a lifetime total (a reused solver carries the
+abandoned solve's own factorizations, and must) and `kkt_analyses_this_call` is
+0 on a solver that has already analysed. Timing is excluded on both engines, and
+only timing.
 
-### 6. What did NOT change
+### 6. What the event costs
+
+Nothing at all when no callback is installed. On the SQP the snapshot the event
+is built from — the point, the three price blocks in caller units and the four
+declared diagnostics — is taken under `if (iteration_callback_)` at the one
+statement that measures a row, and the driver REFUSES (by throwing
+`std::logic_error`) to push a row whose snapshot is populated on a solve with no
+callback, so "a solve without a callback copies nothing" is a checked fact. With
+a callback installed it is one copy of `x`, `lambda_e`, `lambda_i` and `z` per
+ROW (not per event: the watchdog re-takes them with the row it restores), plus
+the four declared diagnostics computed once from the measurement already in
+hand. The interior-point engine builds its own declared-space vectors per event,
+from storage the iteration already wrote.
+
+**Neither engine evaluates anything to build an event.** That is what makes the
+interior corpus leg's second capture — every row run again with a counting
+callback attached, every column identical — an identity proof rather than a
+coincidence.
+
+### 7. What did NOT change
 
 No counter was added on either engine — the callback is not a counted quantity,
 and the SQP counts its events in solve-scope state so that every W4 trace golden

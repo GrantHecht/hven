@@ -12,11 +12,14 @@
 #include <limits>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <Eigen/Core>
 
 #include <hven/drivers/interior_point_solver.h>
+#include <hven/drivers/solve_result.h>
 #include <hven/drivers/solve_status.h>
+#include <hven/drivers/trace.h>
 #include <hven/model/nlp_problem.h>
 #include <hven/model/nlp_solver.h>
 
@@ -231,6 +234,21 @@ NLPSolver make_locally_infeasible_solver(int max_iters) {
     return solver;
 }
 
+// A sink that counts `ipm.iter` lines and nothing else (M6 W5 T8.6 fix1).
+class IterCountingSink : public hven::solvers::TraceSink {
+  public:
+    hven::Index rows = 0;
+    void on_ipm_iter(const hven::solvers::IpmIterTraceEvent &) override { ++rows; }
+    void on_ipqp_iter(const hven::solvers::IpqpTraceIterEvent &) override {}
+    void on_ipqp_reg(const hven::solvers::IpqpTraceRegEvent &) override {}
+    void on_ipqp_restart(const hven::solvers::IpqpTraceRestartEvent &) override {}
+    void on_ipqp_route(const hven::solvers::IpqpTraceRouteEvent &) override {}
+    void on_ipqp_certify(const hven::solvers::IpqpTraceCertifyEvent &) override {}
+    void on_ipqp_escape(const hven::solvers::IpqpTraceEscapeEvent &) override {}
+    void on_qp_mode(const hven::solvers::QpModeTraceEvent &) override {}
+    void on_fallback_verdict(const hven::solvers::SqpFallbackVerdictTraceEvent &) override {}
+};
+
 } // namespace
 } // namespace stop_reason_test
 
@@ -300,6 +318,54 @@ TEST(IpmStopReason, ARestorationLocalInfeasibilityIsRecordedAsSuch) {
     // status returns it unchanged.
     EXPECT_EQ(hven::solvers::resolve_ipm_phase_status(flag, solver.optimizer_->last_stop_reason()),
               hven::solvers::SolveStatus::kStalled);
+}
+
+// THE LOCALLY-INFEASIBLE DOOR IS ON BOTH STREAMS (M6 W5 T8.6 fix1, the SQP
+// lane's I2). The twin of `Callback.IpmTerminalRowStillFires`, on the exit that
+// pin's HS071 fixture never takes.
+//
+// This door KEEPS the record pushed at the top of its iteration -- it neither
+// pops it nor continues -- so `result.iterations` counts it. Until fix1 it
+// emitted no `ipm.iter` line for that row and fired no iteration event, so the
+// trace was one row short of the iterations the result reported and a caller
+// could not observe, let alone stop at, the point the phase actually returns.
+// The leg's own counting instrument is what found it:
+// `infeas2_stationary/MakeParameter/resto_infeasible` read `events=24` beside
+// `iter_num=25`, alone among the 41 rows.
+TEST(IpmStopReason, TheLocallyInfeasibleDoorFiresItsRowOnBothStreams) {
+    auto solver = stop_reason_test::make_locally_infeasible_solver(200);
+
+    stop_reason_test::IterCountingSink sink;
+    solver.optimizer_->attach_trace(&sink);
+    std::vector<Eigen::VectorXd> points;
+    hven::Index events = 0;
+    solver.optimizer_->set_iteration_callback([&](const hven::solvers::IterationEvent &ev) {
+        ++events;
+        points.emplace_back(ev.x);
+        return hven::solvers::CallbackAction::kContinue;
+    });
+
+    const hven::solvers::SolveStatus flag =
+        solver.optimize(stop_reason_test::two_var_start(1.0, 1.0));
+    ASSERT_EQ(flag, hven::solvers::SolveStatus::kStalled);
+    ASSERT_EQ(solver.optimizer_->last_stop_reason(),
+              hven::solvers::IpmStopReason::kRestorationLocallyInfeasible)
+        << "fixture premise: the solve must leave through the locally-infeasible door";
+
+    const hven::solvers::IpmResult &r = solver.result();
+    ASSERT_GT(r.iterations, 1);
+    // ONE EVENT PER `ipm.iter` ROW PER COUNTED ITERATION, all three equal.
+    EXPECT_EQ(events, sink.rows);
+    EXPECT_EQ(events, r.iterations);
+
+    // AND THE LAST EVENT DESCRIBES THE POINT THE PHASE RETURNS, bit for bit --
+    // the door fires its terminal dispatch below the return_best substitution,
+    // so this holds whichever iterate the solve chose to hand back.
+    ASSERT_FALSE(points.empty());
+    ASSERT_EQ(points.back().size(), r.x.size());
+    for (Eigen::Index i = 0; i < r.x.size(); ++i) {
+        EXPECT_EQ(points.back()[i], r.x[i]) << "at coordinate " << i;
+    }
 }
 
 TEST(IpmStopReason, AStallOnTheCapIterationKeepsTheStallLabel) {

@@ -246,12 +246,83 @@ std::vector<std::string> lines_of_event(const std::string &stream, const std::st
     return out;
 }
 
-// body_after_envelope() and serialize_iter() WENT with the late callback (M6
-// W5 T8.6). They existed to re-serialize the very `IterateInfo` the callback
-// was handed and compare it byte-for-byte against the line the sink wrote; the
-// shared iteration callback is handed a different view entirely, so there is
-// no second serialization of the same record to make. What replaced them is
-// the field-by-field comparison in the oracle tests below.
+/// @brief The whole `ipm.iter` body, keys included, so a comparison against a
+/// second serialization of the same record is byte-for-byte.
+std::string body_after_envelope(const std::string &line) {
+    const std::string pat = "\"depth\":";
+    const std::size_t p = line.find(pat);
+    if (p == std::string::npos) {
+        return {};
+    }
+    const std::size_t comma = line.find(',', p);
+    if (comma == std::string::npos) {
+        return {};
+    }
+    return line.substr(comma + 1);
+}
+
+/// @brief Serializes one record through a throwaway sink, so a recorded
+/// `IterateInfo` is compared through the SAME writer the stream used -- a
+/// field-by-field comparison here would be a second, weaker copy of the key
+/// list.
+std::string serialize_iter(const IterateInfo &record, Index phase) {
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_ipm_iter(IpmIterTraceEvent{record, phase});
+    return body_after_envelope(split_lines(os.str()).front());
+}
+
+/// @brief Records every `IterateInfo` the TRACE hands out (M6 W5 T8.6 fix1).
+///
+/// THE WHOLE-RECORD ORACLE, RESTORED. Until T8.6 the oracle was the LATE
+/// CALLBACK, which was handed the `IterateInfo` itself, so re-serializing its
+/// copy compared EVERY field of the line -- the two `null` conventions included
+/// -- rather than a hand-picked subset. The shared iteration callback that
+/// replaced the late one is handed a different view entirely, and T8.6 dropped
+/// the byte comparison with the record it had lost. It comes back here through
+/// the type's OTHER public door: `IpmIterTraceEvent::iterate` (drivers/trace.h)
+/// hands out the same record, one per iterate, to any sink. So the second
+/// serialization is available again, from a second sink, and both comparisons
+/// stand side by side -- this one for every field of the line, the event
+/// oracle's for the two quantities the event and the line share.
+///
+/// ONE SINK MAY BE ATTACHED AT A TIME, so this one FORWARDS: the solver sees
+/// this object, and this object hands every event on to the JsonLines sink the
+/// stream assertions read. The stream is byte-for-byte what it would have been
+/// with the writer attached directly -- the forwarding adds nothing to it and
+/// drops nothing from it.
+struct RecordOracle : public TraceSink {
+    TraceSink *inner = nullptr;
+    std::vector<IterateInfo> seen;
+    std::vector<Index> phases;
+
+    explicit RecordOracle(TraceSink *next) : inner(next) {}
+
+    void on_ipm_iter(const IpmIterTraceEvent &e) override {
+        seen.push_back(e.iterate);
+        phases.push_back(e.phase);
+        inner->on_ipm_iter(e);
+    }
+    void on_ipm_solve_begin(const IpmSolveBeginTraceEvent &e) override {
+        inner->on_ipm_solve_begin(e);
+    }
+    void on_ipm_solve_end(const IpmSolveEndTraceEvent &e) override { inner->on_ipm_solve_end(e); }
+    void on_sqp_major(const SqpMajorTraceEvent &e) override { inner->on_sqp_major(e); }
+    void on_sqp_solve_begin(const SqpSolveBeginTraceEvent &e) override {
+        inner->on_sqp_solve_begin(e);
+    }
+    void on_sqp_solve_end(const SqpSolveEndTraceEvent &e) override { inner->on_sqp_solve_end(e); }
+    void on_ipqp_iter(const IpqpTraceIterEvent &e) override { inner->on_ipqp_iter(e); }
+    void on_ipqp_reg(const IpqpTraceRegEvent &e) override { inner->on_ipqp_reg(e); }
+    void on_ipqp_restart(const IpqpTraceRestartEvent &e) override { inner->on_ipqp_restart(e); }
+    void on_ipqp_route(const IpqpTraceRouteEvent &e) override { inner->on_ipqp_route(e); }
+    void on_ipqp_certify(const IpqpTraceCertifyEvent &e) override { inner->on_ipqp_certify(e); }
+    void on_ipqp_escape(const IpqpTraceEscapeEvent &e) override { inner->on_ipqp_escape(e); }
+    void on_qp_mode(const QpModeTraceEvent &e) override { inner->on_qp_mode(e); }
+    void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &e) override {
+        inner->on_fallback_verdict(e);
+    }
+};
 
 /// @brief Records every event the SHARED ITERATION CALLBACK is handed -- the
 /// oracle (M6 W5 T8.6; it recorded `IterateInfo` from the late callback until
@@ -318,14 +389,34 @@ TEST(IpmTrace, EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder) {
     }
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
+    RecordOracle records(&sink);
     CallbackOracle oracle;
-    solver.optimizer_->attach_trace(&sink);
+    solver.optimizer_->attach_trace(&records);
     solver.optimizer_->set_iteration_callback(oracle.hook());
     ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
 
     const std::vector<std::string> iter_lines = lines_of_event(os.str(), "ipm.iter");
     ASSERT_EQ(iter_lines.size(), oracle.seen.size());
+    ASSERT_EQ(iter_lines.size(), records.seen.size());
     ASSERT_FALSE(iter_lines.empty());
+
+    // (a) EVERY FIELD OF EVERY LINE, byte for byte (M6 W5 T8.6 fix1, astra item
+    //     6). The recorded record is re-serialized through the SAME writer, so
+    //     this covers the whole key list -- the two `null` conventions included
+    //     -- and not a subset chosen by hand.
+    for (std::size_t k = 0; k < iter_lines.size(); ++k) {
+        EXPECT_EQ(body_after_envelope(iter_lines[k]), serialize_iter(records.seen[k], 0))
+            << "at ipm.iter line " << k;
+    }
+    // FALSIFIABILITY: the comparison above must be able to fail. A record whose
+    // iteration index is bumped serializes differently.
+    IterateInfo mutated = records.seen.back();
+    mutated.iter_ += 1;
+    EXPECT_NE(body_after_envelope(iter_lines.back()), serialize_iter(mutated, 0));
+
+    // (b) AND THE EVENT ORACLE, on the two quantities the event and the line
+    //     share. Two instruments, two claims: (a) says the LINE is the record,
+    //     (b) says the EVENT is the same iterate as the line.
     for (std::size_t k = 0; k < iter_lines.size(); ++k) {
         // ONE EVENT PER LINE, IN ORDER, describing the SAME iterate: the row's
         // own index and the objective at it. `{:.17g}` round-trips exactly, so

@@ -14,6 +14,7 @@
 #include <functional>
 #include <initializer_list>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -198,8 +199,14 @@ class InteriorPointSolver {
         std::function<int(int, double, ConstEigenRef<VectorXd>, double, ConstEigenRef<VectorXd>,
                           ConstEigenRef<VectorXd>, Eigen::SparseMatrix<double, Eigen::RowMajor> &)>;
 
-    // LateCallBackType WENT in M6 W5 T8.6, and IterateInfo left the public
-    // surface with it. Its replacement is the SHARED per-iteration callback
+    // LateCallBackType WENT in M6 W5 T8.6, and IterateInfo left the CALLBACK
+    // surface with it -- it remains the trace row type in drivers/trace.h,
+    // which hands it out by reference as IpmIterTraceEvent::iterate exactly as
+    // the IPQP's trace event types are handed out, and T8.7's console sink
+    // renders from it (fix1, ruling R3: the earlier "left the public surface"
+    // was wrong -- a type reachable through an installed public header on a
+    // public event is on the public surface). Its replacement ON THE CALLBACK
+    // is the SHARED per-iteration callback
     // both engines take -- hven::solvers::IterationCallback, over
     // IterationEvent, in drivers/solve_result.h -- installed with
     // set_iteration_callback() below. The old type handed out this engine's own
@@ -468,9 +475,30 @@ class InteriorPointSolver {
     /// at the TOP of the iteration that iterate starts, after its residuals
     /// have been measured and BEFORE its KKT matrix is factorized. So the event
     /// describes the COMMITTED point of the previous step, with the diagnostics
-    /// of that point (design section 2.7 behaviour change (2)); the last event
-    /// of a phase describes the point that phase returns, because every in-loop
-    /// exit breaks above the commit.
+    /// of that point (design section 2.7 behaviour change (3)); the last event
+    /// of a phase describes the point that phase RETURNS -- on every exit,
+    /// including the ones that leave from below this dispatch: the
+    /// convergence-check early exit and the restoration-locally-infeasible door
+    /// each fire a TERMINAL event of their own, after any `return_best`
+    /// substitution has chosen the point, so the event's `x` is the point the
+    /// phase hands back (M6 W5 T8.6 fix1; before it, that door fired no event
+    /// at all and the caller never saw the iterate it got).
+    ///
+    /// ONE EXIT IS THE EXCEPTION, and it is stated rather than changed: a
+    /// `return_best` solve that ends at the BOTTOM-of-loop terminal conjunction
+    /// and SUBSTITUTES hands back the best iterate, which an EARLIER event
+    /// described -- every iterate gets one -- rather than the last. That exit
+    /// fires no terminal event of its own, because the event for its row
+    /// already fired at the top of that iteration and "one event per `ipm.iter`
+    /// row" is the identity that placement buys.
+    ///
+    /// NESTED RESTORATION IS SILENT. Under a nested l1 restoration the
+    /// feasibility subproblem is solved by a DISTINCT InteriorPointSolver, which
+    /// carries no callback of its own: its iterations fire nothing, and a kStop
+    /// is honoured only once control is back in this solver's loop. The SQP
+    /// engine forwards into its restoration sub-solve and this one does not;
+    /// forwarding here is registered as a T8-close disposition item rather than
+    /// done in T8.6.
     ///
     /// WHAT kStop DOES: the solve ends at the point the event just described --
     /// pre-factorization, so no work is spent on an answer the caller no longer
@@ -482,10 +510,33 @@ class InteriorPointSolver {
     /// The callback may throw; the exception propagates out of solve(), no
     /// solve-end trace event is emitted, and this solver stays usable.
     ///
+    /// SETTING OR CLEARING FROM INSIDE THE CALLBACK IS SAFE (M6 W5 T8.6 fix1).
+    /// Either call made while the callback is on the stack is DEFERRED: the
+    /// stored std::function is left alone until the invocation returns, and the
+    /// change is applied at that point (and, failing that -- a callback that
+    /// left by throwing -- at the next solve entry). So a callback may disarm
+    /// itself and go on touching its own captures. The same rule holds for
+    /// set_kkt_hook()/clear_kkt_hook() called from inside the hook.
+    ///
     /// @param cb The callback. An empty std::function is the same as clearing.
-    void set_iteration_callback(IterationCallback cb) { this->iteration_callback_ = std::move(cb); }
+    void set_iteration_callback(IterationCallback cb) {
+        if (this->callback_in_flight_) {
+            this->pending_callback_ = std::move(cb);
+            return;
+        }
+        this->iteration_callback_ = std::move(cb);
+    }
     /// @brief Removes the per-iteration callback.
-    void clear_iteration_callback() { this->iteration_callback_ = nullptr; }
+    ///
+    /// Deferred to the safe point when called from INSIDE the callback; see
+    /// set_iteration_callback().
+    void clear_iteration_callback() {
+        if (this->callback_in_flight_) {
+            this->pending_callback_ = IterationCallback{};
+            return;
+        }
+        this->iteration_callback_ = nullptr;
+    }
 
     // --- The interior-point-only KKT hook (M6 W5 T8.6; W5 T2 semantics) ---
     /// Installs the per-iteration KKT hook. The vectors and matrix it receives
@@ -493,7 +544,15 @@ class InteriorPointSolver {
     /// on a problem with bound-fixed variables -- see the space note on KktHook
     /// above. THIS IS THE ONE INTERIOR-POINT-ONLY EXTENSION; the SQP engine has
     /// nothing equivalent, by design.
+    ///
+    /// SETTING FROM INSIDE THE HOOK IS SAFE (M6 W5 T8.6 fix1): the replacement
+    /// is DEFERRED to the statement after the running hook returns, so the
+    /// callable is never destroyed during its own invocation.
     void set_kkt_hook(const KktHook &f) {
+        if (this->kkt_hook_in_flight_) {
+            this->pending_kkt_hook_ = f;
+            return;
+        }
         this->kkt_hook_enabled_ = true;
         this->kkt_hook_ = f;
     }
@@ -503,7 +562,18 @@ class InteriorPointSolver {
     /// hook rather than only disarming it: "clear" is what the name says and
     /// what clear_iteration_callback() does, and nothing in the tree re-armed a
     /// disabled hook by calling the setter with no argument.
+    ///
+    /// CLEARING FROM INSIDE THE HOOK IS SAFE (M6 W5 T8.6 fix1). That is what
+    /// disable_early_callback() -- which only flipped a flag -- used to make
+    /// safe for free, and what assigning nullptr to the std::function would
+    /// otherwise have broken: the callable's storage, its captures included,
+    /// would be destroyed during its own invocation. The clear is DEFERRED to
+    /// the statement after the hook returns.
     void clear_kkt_hook() {
+        if (this->kkt_hook_in_flight_) {
+            this->pending_kkt_hook_ = KktHook{};
+            return;
+        }
         this->kkt_hook_enabled_ = false;
         this->kkt_hook_ = nullptr;
     }
@@ -996,6 +1066,19 @@ class InteriorPointSolver {
     /// The interior-point-only KKT hook and its arming flag; see set_kkt_hook.
     KktHook kkt_hook_;
     bool kkt_hook_enabled_ = false;
+
+    /// THE IN-FLIGHT GUARDS AND THE DEFERRED CHANGES (M6 W5 T8.6 fix1, the SQP
+    /// lane's M1). Each flag is true for exactly the duration of one invocation
+    /// of the callable beside it; a set_/clear_ made in that window parks its
+    /// new value in the optional instead of assigning the std::function that is
+    /// running -- which would destroy the callable's storage, and its captures,
+    /// underneath itself. An ENGAGED optional holding an EMPTY function is a
+    /// deferred clear; engaged and non-empty is a deferred replacement;
+    /// disengaged is "nothing pending".
+    bool callback_in_flight_ = false;
+    bool kkt_hook_in_flight_ = false;
+    std::optional<IterationCallback> pending_callback_;
+    std::optional<KktHook> pending_kkt_hook_;
     /// The SHARED per-iteration callback (M6 W5 T8.6). No separate arming flag:
     /// an installed std::function is armed and an empty one is not, which is
     /// the whole of clear_iteration_callback().
@@ -1498,7 +1581,46 @@ class InteriorPointSolver {
     ///                   alpha * DXSL that reached this iterate; 0 at the first
     ///                   iterate of a phase.
     void fire_iteration_event(const IterateInfo &iter, const Eigen::VectorXd &XSL,
-                              const Eigen::VectorXd &RHS, double mu, double step_norm);
+                              const Eigen::VectorXd &RHS, double mu, double step_norm,
+                              double prim_obj);
+
+    /// @brief The four shared diagnostics, from a REDUCED-space Lagrangian
+    ///        gradient -- the one arithmetic the result and the event share.
+    ///
+    /// FACTORED OUT AT M6 W5 T8.6 fix1 (astra item 2). T8.4's declared-space
+    /// seam in run_phase_sequence and T8.6's event builder had two copies of
+    /// this conversion; a caller comparing an event against the result it
+    /// eventually gets must not find two answers to one question, and two
+    /// copies drift. The result path's numbers are unchanged by the move --
+    /// bitwise, which the interior leg's 41 rows and U0's `ipm` arm prove.
+    ///
+    /// @param x_declared  The point, DECLARED width.
+    /// @param lambda_i    Inequality prices, declared rows, caller scale.
+    /// @param z_declared  Bound prices, declared width, the fixing rows'
+    ///                    -lambda_fix already folded in.
+    /// @param grad_lag_reduced  obj_scale * (grad f + J'lambda) in the SOLVER's
+    ///                    reduced primal space, `primal_vars_` long.
+    /// @param fixed_lambda  The internal fixing rows' multipliers at CALLER
+    ///                    scale, or an empty vector when there are none.
+    /// @param ce_declared The declared equality residuals, or empty.
+    /// @param ci_declared The declared inequality residuals, or empty.
+    /// @param scale       The objective scale this call ran at.
+    /// @param objective_bearing  Provenance clause (a): false when the
+    ///                    evaluation carried no declared objective gradient, in
+    ///                    which case STATIONARITY ALONE comes back NaN.
+    /// @return The four diagnostics.
+    DeclaredDiagnostics declared_diagnostics_from_reduced_grad_lag(
+        const Eigen::VectorXd &x_declared, const Eigen::VectorXd &lambda_i,
+        const Eigen::VectorXd &z_declared, const Eigen::VectorXd &grad_lag_reduced,
+        const Eigen::VectorXd &fixed_lambda, const Eigen::VectorXd &ce_declared,
+        const Eigen::VectorXd &ci_declared, double scale, bool objective_bearing) const;
+
+    /// @brief Applies a set/clear of the iteration callback deferred while it
+    ///        was on the stack; see set_iteration_callback().
+    void apply_pending_iteration_callback();
+    /// @brief Applies a set/clear of the KKT hook deferred while it was on the
+    ///        stack; see set_kkt_hook().
+    void apply_pending_kkt_hook();
 
     // Best-iterate bookkeeping for the return_best_ path (off by default). Scores
     // `iter` under best_criteria_ and, when it ties or beats the incumbent (or is

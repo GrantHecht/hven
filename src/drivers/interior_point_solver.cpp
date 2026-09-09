@@ -2032,6 +2032,70 @@ void hven::solvers::InteriorPointSolver::track_best_iterate(const IterateInfo &i
 }
 
 // ---------------------------------------------------------------------------
+// THE DECLARED-SPACE DIAGNOSTIC CONVERSION, ONCE (M6 W5 T8.6 fix1, astra item
+// 2). T8.4's result seam in run_phase_sequence and T8.6's event builder below
+// each carried their own copy of this: the reduced->declared scatter, the
+// objective-scale division, the eliminated coordinates' exclusion, the fixing
+// rows' fold out of the Lagrangian gradient, and provenance clause (a)'s
+// stationarity gate. The formulas agreed; the CODE did not, and two copies
+// drift. Both call it now, so the event a caller is handed and the result it
+// eventually gets are one arithmetic rather than two that happen to agree.
+//
+// THE RESULT PATH IS A BITWISE NO-OP under the move -- the statements are the
+// same statements in the same order -- and the interior leg's 41 rows and U0's
+// `ipm` arm are what prove it.
+// ---------------------------------------------------------------------------
+hven::solvers::DeclaredDiagnostics
+hven::solvers::InteriorPointSolver::declared_diagnostics_from_reduced_grad_lag(
+    const Eigen::VectorXd &x_declared, const Eigen::VectorXd &lambda_i,
+    const Eigen::VectorXd &z_declared, const Eigen::VectorXd &grad_lag_reduced,
+    const Eigen::VectorXd &fixed_lambda, const Eigen::VectorXd &ce_declared,
+    const Eigen::VectorXd &ci_declared, double scale, bool objective_bearing) const {
+    const Eigen::Index n = this->full_primal_vars_;
+    const auto &fixed_idx = this->nlp_->fixed_variable_indices();
+    const Eigen::Index fixing_rows = fixed_lambda.size();
+
+    Eigen::VectorXd grad_lag = Eigen::VectorXd::Zero(n);
+    std::vector<Index> excluded;
+    if (this->nlp_->is_reduced()) {
+        const auto &r2f = this->nlp_->reduced_to_full();
+        for (Eigen::Index k = 0; k < this->primal_vars_; ++k) {
+            grad_lag[r2f[k]] = grad_lag_reduced[k] / scale;
+        }
+        // An ELIMINATED coordinate has no row: the reduced gradient reports
+        // nothing there, and a 0 meaning "no row" must not enter the inf-norm
+        // beside 0s meaning "stationary".
+        excluded.reserve(static_cast<std::size_t>(fixed_idx.size()));
+        for (Eigen::Index k = 0; k < fixed_idx.size(); ++k) {
+            excluded.push_back(fixed_idx[k]);
+        }
+    } else {
+        grad_lag = grad_lag_reduced / scale;
+    }
+    // The fixing row leaves the declared Lagrangian gradient with its
+    // multiplier: its Jacobian is +1 in that one coordinate. What stays is
+    // grad_lag - z, unchanged -- z absorbed the same term with the opposite
+    // sign at the caller -- which is why the declared stationarity of a
+    // MakeConstraint solve equals the engine's own residual there rather than
+    // differing from it by the price of the fixing row.
+    if (fixing_rows > 0 && fixed_idx.size() == fixing_rows) {
+        for (Eigen::Index k = 0; k < fixing_rows; ++k) {
+            grad_lag[fixed_idx[k]] -= fixed_lambda[k];
+        }
+    }
+    DeclaredDiagnostics d = compute_declared_diagnostics_from_grad_lag(
+        x_declared, lambda_i, z_declared, grad_lag, ce_declared, ci_declared, this->nlp_->x_lower_,
+        this->nlp_->x_upper_, excluded);
+    // CLAUSE (a) APPLIES TO ONE FIELD. `stationarity` is the only one of the
+    // four that reads the Lagrangian gradient, so it is the only one a phase
+    // carrying no declared objective gradient fails to measure.
+    if (!objective_bearing) {
+        d.stationarity = std::numeric_limits<double>::quiet_NaN();
+    }
+    return d;
+}
+
+// ---------------------------------------------------------------------------
 // ONE ITERATION EVENT, IN DECLARED SPACE AND CALLER UNITS (M6 W5 T8.6).
 //
 // THE ARITHMETIC IS run_phase_sequence's DECLARED-SPACE SEAM, applied to the
@@ -2056,7 +2120,7 @@ void hven::solvers::InteriorPointSolver::track_best_iterate(const IterateInfo &i
 void hven::solvers::InteriorPointSolver::fire_iteration_event(const IterateInfo &iter,
                                                               const Eigen::VectorXd &XSL,
                                                               const Eigen::VectorXd &RHS, double mu,
-                                                              double step_norm) {
+                                                              double step_norm, double prim_obj) {
     if (!this->iteration_callback_) {
         return;
     }
@@ -2158,41 +2222,35 @@ void hven::solvers::InteriorPointSolver::fire_iteration_event(const IterateInfo 
     const bool measured = prov.has_eval && !restoration_contaminated &&
                           v_rhs.prim_grad().size() == this->primal_vars_;
     if (measured) {
-        Eigen::VectorXd grad_lag = Eigen::VectorXd::Zero(n);
-        std::vector<Index> excluded;
-        if (this->nlp_->is_reduced()) {
-            const auto &r2f = this->nlp_->reduced_to_full();
-            for (Eigen::Index k = 0; k < this->primal_vars_; ++k) {
-                grad_lag[r2f[k]] = v_rhs.prim_grad()[k] / scale;
-            }
-            excluded.reserve(static_cast<std::size_t>(fixed_idx.size()));
-            for (Eigen::Index k = 0; k < fixed_idx.size(); ++k) {
-                excluded.push_back(fixed_idx[k]);
-            }
-        } else {
-            grad_lag = Eigen::VectorXd(v_rhs.prim_grad()) / scale;
-        }
-        if (have_fixing_rows) {
-            for (Eigen::Index k = 0; k < fixing_rows; ++k) {
-                grad_lag[fixed_idx[k]] -= fixed_lambda[k];
-            }
-        }
-        diag = compute_declared_diagnostics_from_grad_lag(
-            x_declared, lambda_i_declared, z_declared, grad_lag, ce_declared, ci_declared,
-            this->nlp_->x_lower_, this->nlp_->x_upper_, excluded);
-        // CLAUSE (a): a feasibility phase measures every declared quantity
+        // THE RESULT'S OWN CONVERSION, CALLED AND NOT COPIED (M6 W5 T8.6 fix1).
+        // Clause (a) -- a feasibility phase measures every declared quantity
         // except the objective gradient, so stationarity ALONE is unmeasured
-        // there. Exactly what the result reports at such an exit.
-        if (!prov.objective_bearing) {
-            diag.stationarity = nan;
-        }
+        // there -- is applied inside it, exactly as the result applies it.
+        diag = this->declared_diagnostics_from_reduced_grad_lag(
+            x_declared, lambda_i_declared, z_declared, Eigen::VectorXd(v_rhs.prim_grad()),
+            have_fixing_rows ? fixed_lambda : Eigen::VectorXd(), ce_declared, ci_declared, scale,
+            prov.objective_bearing);
     }
+
+    // THE OBJECTIVE, UNDER THE RESULT'S OWN PROVENANCE RULE (M6 W5 T8.6 fix1,
+    // astra item 1). `iter.prim_obj_` is NOT the caller's objective at this
+    // point on two phases: SOE and OPTNO never evaluate the declared objective,
+    // so the field still carries IterateInfo's initialised zero -- and a zero
+    // objective would read as a measured one -- and while restoration is active
+    // it carries the restoration subproblem's own objective (phi_prox), which
+    // is not the caller's function at all. The RESULT reports the true declared
+    // objective on both of those paths, but only because it EVALUATES for it
+    // (assemble_objective at the exit); an event evaluates nothing, by
+    // construction, so what it can honestly report there is NaN. Unmeasured is
+    // NaN and never zero -- drivers/solve_result.h's rule, applied to `f`.
+    const bool objective_measured = prov.objective_bearing && !restoration_contaminated;
+    const double f_declared = objective_measured ? prim_obj / scale : nan;
 
     IterationEvent event{
         .iteration = static_cast<Index>(iter.iter_),
         .phase = this->trace_phase_,
         .depth = std::nullopt,
-        .f = iter.prim_obj_ / scale,
+        .f = f_declared,
         .stationarity = diag.stationarity,
         .feasibility_e = diag.feasibility_e,
         .feasibility_i = diag.feasibility_i,
@@ -2208,9 +2266,45 @@ void hven::solvers::InteriorPointSolver::fire_iteration_event(const IterateInfo 
             std::chrono::duration<double>(std::chrono::steady_clock::now() - this->entry_time_)
                 .count(),
     };
-    if (this->iteration_callback_(event) == CallbackAction::kStop) {
+    // THROUGH THE IN-FLIGHT GUARD (M6 W5 T8.6 fix1, the SQP lane's M1), so
+    // that set_iteration_callback()/clear_iteration_callback() called from
+    // INSIDE the callback are deferred to the statement after it returns rather
+    // than destroying the callable during its own invocation. On a throw the
+    // guard is dropped and the deferral is left standing; run_phase_sequence's
+    // entry applies it before anything reads the callable again.
+    this->callback_in_flight_ = true;
+    CallbackAction action = CallbackAction::kContinue;
+    try {
+        action = this->iteration_callback_(event);
+    } catch (...) {
+        this->callback_in_flight_ = false;
+        throw;
+    }
+    this->callback_in_flight_ = false;
+    this->apply_pending_iteration_callback();
+    if (action == CallbackAction::kStop) {
         this->interrupt_requested_ = true;
     }
+}
+
+void hven::solvers::InteriorPointSolver::apply_pending_iteration_callback() {
+    if (!this->pending_callback_.has_value()) {
+        return;
+    }
+    this->iteration_callback_ = std::move(*this->pending_callback_);
+    this->pending_callback_.reset();
+}
+
+void hven::solvers::InteriorPointSolver::apply_pending_kkt_hook() {
+    if (!this->pending_kkt_hook_.has_value()) {
+        return;
+    }
+    KktHook next = std::move(*this->pending_kkt_hook_);
+    this->pending_kkt_hook_.reset();
+    // An EMPTY function is the deferred CLEAR: it disarms as well as clears,
+    // exactly as clear_kkt_hook() does when it runs outside the hook.
+    this->kkt_hook_enabled_ = static_cast<bool>(next);
+    this->kkt_hook_ = std::move(next);
 }
 
 Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algmode,
@@ -2431,7 +2525,24 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             // run_phase_sequence()'s entry assignment, the only reset site), so a
             // later clear_kkt_hook() cannot hand the skip back either.
             this->verify_kkt_pattern_for_solve_ = true;
-            this->kkt_hook_(i, obj_scale, XSL, prim_obj, PGX, RHS, this->kkt_sol_.matrix());
+            // THROUGH THE IN-FLIGHT GUARD (M6 W5 T8.6 fix1, the SQP lane's M1).
+            // clear_kkt_hook() assigns nullptr to this std::function, and
+            // `TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCall` calls
+            // it from INSIDE the hook -- destroying the running callable's
+            // storage, and every capture in it, during its own invocation.
+            // disable_early_callback() only flipped a flag and so was safe to
+            // call there; the guard is what gives that safety back. On a throw
+            // the guard is dropped and the deferral is left standing;
+            // run_phase_sequence's entry applies it.
+            this->kkt_hook_in_flight_ = true;
+            try {
+                this->kkt_hook_(i, obj_scale, XSL, prim_obj, PGX, RHS, this->kkt_sol_.matrix());
+            } catch (...) {
+                this->kkt_hook_in_flight_ = false;
+                throw;
+            }
+            this->kkt_hook_in_flight_ = false;
+            this->apply_pending_kkt_hook();
             CBtimer.stop();
         }
 
@@ -2712,6 +2823,19 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                 // The first of the two labelled NOTCONVERGED doors; see
                 // last_stop_reason(). A store into a member nothing else reads.
                 this->last_stop_reason_ = IpmStopReason::kRestorationLocallyInfeasible;
+                // THE ROW THIS DOOR RETURNS, ON THE `ipm.iter` STREAM (M6 W5
+                // T8.6 fix1, the SQP lane's I2). This exit KEEPS the record
+                // pushed at the top of this iteration -- `result_.iterations`
+                // counts it -- and until fix1 it emitted no line for it and
+                // fired no event, so the trace was one row short of the
+                // iterations it reported and the callback was never shown the
+                // point the phase hands back. The other two `on_ipm_iter` sites
+                // emit above the return_best substitution and this one does
+                // too, because the LINE describes the iterate RECORD, which no
+                // substitution replaces.
+                if (this->trace_ != nullptr) {
+                    this->trace_->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
+                }
                 if (opts_.return_best) {
                     XSL = BestXSL;
                     RHS = BestRHS;
@@ -2731,6 +2855,21 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                 restoration_true_obj = 0.0;
                 this->assemble_objective(obj_scale, v_xsl.primals(), restoration_true_obj);
                 this->result_.status = ExitCode;
+                // THE TERMINAL DISPATCH ON THIS DOOR (M6 W5 T8.6 fix1, the SQP
+                // lane's I2), below the return_best substitution above for the
+                // reason the converge-check exit states: the event must
+                // describe the point the phase RETURNS. The provenance gate
+                // inside the builder reports the four diagnostics and `f` as
+                // NaN with the two constraint blocks empty here -- restoration
+                // was active at the evaluation this right-hand side came from
+                // -- which is exactly what the result reports at this exit.
+                if (this->iteration_callback_) {
+                    CBtimer.start();
+                    this->fire_iteration_event(iters.back(), XSL, RHS, mu, last_step_norm,
+                                               best_substituted ? this->best_prim_obj_scratch_
+                                                                : iters.back().prim_obj_);
+                    CBtimer.stop();
+                }
                 if (opts_.common.print_level == 0) {
                     Printtimer.start();
                     this->print_last_iterate(iters);
@@ -2782,24 +2921,10 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             // SITE 1 OF 2 (`ipm.iter`, M6 W4 T4): the CONVERGE-CHECK EARLY EXIT,
             // reached before this iterate is factorized, so its line carries the
             // fresh defaults for everything a factorization would have written.
-            // The iteration callback's TERMINAL dispatch is immediately below.
+            // The iteration callback's TERMINAL dispatch is below the
+            // return_best substitution, for the reason stated there.
             if (this->trace_ != nullptr) {
                 this->trace_->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
-            }
-            // THE TERMINAL DISPATCH OF THE SHARED ITERATION CALLBACK (M6 W5
-            // T8.6), where the late callback used to fire and for the same
-            // reason: this block IS the phase's exit, so the event it hands out
-            // describes the point the phase returns. Fired BEFORE the
-            // return_best substitution below, exactly as the late callback was.
-            //
-            // ITS kStop IS READ, and it does one thing: it ends the PHASE
-            // SEQUENCE. This phase's own verdict is already settled -- a
-            // converged iterate reports kOptimal, "converged beats stop" -- and
-            // run_phase_sequence's short-circuit is what the stop reaches.
-            if (this->iteration_callback_) {
-                CBtimer.start();
-                this->fire_iteration_event(iters.back(), XSL, RHS, mu, last_step_norm);
-                CBtimer.stop();
             }
 
             if (opts_.common.print_level == 0) {
@@ -2817,6 +2942,35 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                 this->cur_eval_prov_ = this->best_eval_prov_;
                 this->cur_eval_prov_.substituted = true;
                 best_substituted = true;
+            }
+
+            // THE TERMINAL DISPATCH OF THE SHARED ITERATION CALLBACK (M6 W5
+            // T8.6), where the late callback used to fire and for the same
+            // reason: this block IS the phase's exit, so the event it hands out
+            // describes the point the phase returns.
+            //
+            // BELOW THE return_best SUBSTITUTION AS OF fix1 (astra item 3),
+            // where the late callback fired ABOVE it. On an acceptable or
+            // diverging exit with return_best on, the substitution above
+            // REPLACES the returned iterate, and an event fired before it
+            // described a point the caller never gets back. Fired here, `XSL`,
+            // `RHS`, `bound_duals_` and `cur_eval_prov_` are all the RETURNED
+            // point's, and `best_prim_obj_scratch_` is its objective -- the
+            // same three-way choice `result_.f` makes below. The event's
+            // `iteration`, `mu` and `step_norm` stay the PHASE's, exactly as
+            // `result_.iterations` counts the phase's iterates while the
+            // result's own fields describe the substituted point.
+            //
+            // ITS kStop IS READ, and it does one thing: it ends the PHASE
+            // SEQUENCE. This phase's own verdict is already settled -- a
+            // converged iterate reports kOptimal, "converged beats stop" -- and
+            // run_phase_sequence's short-circuit is what the stop reaches.
+            if (this->iteration_callback_) {
+                CBtimer.start();
+                this->fire_iteration_event(iters.back(), XSL, RHS, mu, last_step_norm,
+                                           best_substituted ? this->best_prim_obj_scratch_
+                                                            : iters.back().prim_obj_);
+                CBtimer.stop();
             }
 
             this->result_.status = ExitCode;
@@ -2962,7 +3116,8 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
 
         // ===============================================================
         // THE CONTINUING DISPATCH OF THE SHARED ITERATION CALLBACK (M6 W5
-        // T8.6, design section 2.7 behaviour change (2)).
+        // T8.6, design section 2.7 behaviour change (3) -- item (2) of that list is
+        // kInterrupted on both engines; corrected at fix1).
         //
         // HERE, AND NOT AT THE BOTTOM OF THE ITERATION, for two reasons that
         // are really one. The event has to describe the COMMITTED point with
@@ -2985,7 +3140,8 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         // `ipm.iter` row has exactly one event.
         if (this->iteration_callback_) {
             CBtimer.start();
-            this->fire_iteration_event(iters.back(), XSL, RHS, mu, last_step_norm);
+            this->fire_iteration_event(iters.back(), XSL, RHS, mu, last_step_norm,
+                                       iters.back().prim_obj_);
             CBtimer.stop();
         }
         // THE STOP, HONOURED PRE-FACTORIZATION. The point being returned is the
@@ -4837,6 +4993,13 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
     // AFTER validate(), so what is captured is a scale that has been checked.
     this->solve_obj_scale_ = opts_.obj_scale;
 
+    // ANY DEFERRAL LEFT STANDING is applied FIRST (M6 W5 T8.6 fix1): a callback
+    // or a hook that departed by throwing left its own set/clear parked, and
+    // the guard state read one statement below must be this call's truth. This
+    // is the second of the two safe points the setters' contract names.
+    this->apply_pending_iteration_callback();
+    this->apply_pending_kkt_hook();
+
     // The entry state of the guard: true only when a callback is already
     // armed at entry, so the entry init_impl() factorization -- which runs
     // before any iteration, and so before the per-iteration hand-out below
@@ -5143,12 +5306,21 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
         // below, so a skipped conditional step still keeps phase_idx aligned
         // with the position first_opt_phase_idx was computed against.
         const int current_phase_idx = phase_idx++;
-        // Instrumentation only, and SINK-GATED like every other trace statement
-        // in this file (fix round 1, M-1): the `ipm.iter` lines this phase writes
-        // carry it, because IterateInfo::iter_ restarts at 0 in every phase.
-        if (this->trace_ != nullptr) {
-            this->trace_phase_ = current_phase_idx;
-        }
+        // WHICH PHASE THIS IS. The `ipm.iter` lines this phase writes carry it,
+        // because IterateInfo::iter_ restarts at 0 in every phase -- and so does
+        // IterationEvent::phase, whose contract is "the index into
+        // IpmResult::phases".
+        //
+        // NO LONGER SINK-GATED (M6 W5 T8.6 fix1). W4's fix round made this
+        // statement conditional on a sink because it was instrumentation and
+        // nothing else read it. T8.6 gave it a second reader that has no sink:
+        // a callback installed with no trace attached saw every event stamped
+        // phase 0, including the events of phase 1 -- the field said the wrong
+        // thing rather than saying nothing. Found writing the provenance pin
+        // below, whose `{kSolve, kOptimize}` fixture needs the two phases told
+        // apart. One store per phase, and the trace stream is untouched:
+        // when a sink IS attached the value written is the value W4 wrote.
+        this->trace_phase_ = current_phase_idx;
 
         // Single application site: whichever XSL is current when the loop
         // reaches the first OPT/OPTNO-mode phase -- the entry init_impl's
@@ -5516,48 +5688,22 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
         const bool measured = this->exit_grad_lag_.size() == this->primal_vars_ && prov.has_eval &&
                               prov.at_returned_point && !restoration_contaminated;
         if (measured) {
-            // Into declared width, dividing out the objective scale the solver
-            // ran at: exit_grad_lag_ is obj_scale * (grad f + J'lambda) in the
-            // reduced space, and the caller's problem is the unscaled one.
-            const double scale = this->solve_obj_scale_;
-            Eigen::VectorXd grad_lag = Eigen::VectorXd::Zero(n);
-            std::vector<Index> excluded;
-            if (this->nlp_->is_reduced()) {
-                const auto &r2f = this->nlp_->reduced_to_full();
-                for (Index k = 0; k < this->primal_vars_; ++k) {
-                    grad_lag[r2f[k]] = this->exit_grad_lag_[k] / scale;
-                }
-                // An ELIMINATED coordinate has no row: the reduced gradient
-                // reports nothing there, and a 0 meaning "no row" must not
-                // enter the inf-norm beside 0s meaning "stationary".
-                excluded.reserve(static_cast<std::size_t>(fixed_idx.size()));
-                for (Index k = 0; k < fixed_idx.size(); ++k) {
-                    excluded.push_back(fixed_idx[k]);
-                }
-            } else {
-                grad_lag = this->exit_grad_lag_ / scale;
-            }
-            // The fixing row leaves the declared Lagrangian gradient with its
-            // multiplier: its Jacobian is +1 in that one coordinate. What stays
-            // is grad_lag - z, unchanged -- z absorbed the same term with the
-            // opposite sign above -- which is why the declared stationarity of
-            // a MakeConstraint solve equals the engine's own residual there
-            // rather than differing from it by the price of the fixing row.
-            if (fixing_rows > 0 && fixed_idx.size() == fixing_rows) {
-                for (Index k = 0; k < fixing_rows; ++k) {
-                    grad_lag[fixed_idx[k]] -= fixed_lambda[k];
-                }
-            }
-            const DeclaredDiagnostics d = compute_declared_diagnostics_from_grad_lag(
-                this->result_.x, this->result_.lambda_i, this->result_.z, grad_lag,
-                this->result_.ce, this->result_.ci, this->nlp_->x_lower_, this->nlp_->x_upper_,
-                excluded);
-            // CLAUSE (a) APPLIES TO ONE FIELD. `d.stationarity` is the only
-            // one of the four that reads the Lagrangian gradient, so it is
-            // the only one a phase carrying no declared objective gradient
-            // fails to measure.
-            this->result_.stationarity =
-                prov.objective_bearing ? d.stationarity : std::numeric_limits<double>::quiet_NaN();
+            // THE ONE CONVERSION, CALLED (M6 W5 T8.6 fix1, astra item 2): into
+            // declared width, dividing out the objective scale the solver ran
+            // at (exit_grad_lag_ is obj_scale * (grad f + J'lambda) in the
+            // reduced space, and the caller's problem is the unscaled one),
+            // excluding the eliminated coordinates, folding the fixing rows out
+            // of the gradient, and applying clause (a)'s stationarity gate.
+            // Every one of those statements used to live here AND in
+            // fire_iteration_event; they live in
+            // declared_diagnostics_from_reduced_grad_lag now and both call it,
+            // so the event a caller is handed mid-solve and the result it gets
+            // at the end cannot drift apart. The numbers are unchanged.
+            const DeclaredDiagnostics d = this->declared_diagnostics_from_reduced_grad_lag(
+                this->result_.x, this->result_.lambda_i, this->result_.z, this->exit_grad_lag_,
+                fixed_lambda, this->result_.ce, this->result_.ci, this->solve_obj_scale_,
+                prov.objective_bearing);
+            this->result_.stationarity = d.stationarity;
             this->result_.feasibility_e = d.feasibility_e;
             this->result_.feasibility_i = d.feasibility_i;
             this->result_.complementarity = d.complementarity;
@@ -5645,9 +5791,12 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::solve(NonLinearProg
     // stops before the reporting; both survive, under their own names.
     hven::utils::Timer wall;
     wall.start();
-    // THE SAME INSTANT, for IterationEvent::elapsed_seconds (M6 W5 T8.6): one
-    // stamp, so the per-iteration clock and the result's own wall clock cannot
-    // disagree about when this call began.
+    // THE SAME BOUNDARY, for IterationEvent::elapsed_seconds (M6 W5 T8.6) --
+    // and, corrected at fix1 (astra item 4), a SECOND clock read rather than
+    // the same instant: `wall` above owns its own start and hands out no
+    // time_point, so the two differ by the cost of one steady_clock read. Both
+    // are informational and neither is ever asserted (CLAUDE.md section 7), so
+    // the difference is stated rather than engineered away.
     this->entry_time_ = std::chrono::steady_clock::now();
     IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget, nullptr);
     wall.stop();

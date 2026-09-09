@@ -364,7 +364,10 @@ struct IpmOptions {
     /// Default false.
     bool force_qp_analysis = false;
     /// Return the best-scoring iterate seen instead of the last (scored
-    /// under best_criteria). Default false.
+    /// under best_criteria), EXCEPT on an interrupted exit, which returns the
+    /// point the callback was shown (M6 W5 T8.6). A stop is a caller's decision
+    /// about a point it has just been handed, and substituting a different
+    /// iterate for it would make the event a lie. Default false.
     bool return_best = false;
     /// @brief Scoring criterion for the return_best path. Default ECONS.
     BestCriteriaModes best_criteria = BestCriteriaModes::ECONS;

@@ -705,7 +705,7 @@ TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
         solver.optimizer_->set_options(std::move(o));
     }
 
-    std::vector<Eigen::VectorXd> early_xsl, late_xsl;
+    std::vector<Eigen::VectorXd> early_xsl, late_xsl, late_lambda_e;
     solver.optimizer_->set_kkt_hook([&](int, double, hven::ConstEigenRef<Eigen::VectorXd> xsl,
                                         double, hven::ConstEigenRef<Eigen::VectorXd>,
                                         hven::ConstEigenRef<Eigen::VectorXd>,
@@ -719,6 +719,7 @@ TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
     // comparison below stays bit-for-bit.
     solver.optimizer_->set_iteration_callback([&](const hven::solvers::IterationEvent &ev) {
         late_xsl.emplace_back(ev.x);
+        late_lambda_e.emplace_back(ev.lambda_e);
         return hven::solvers::CallbackAction::kContinue;
     });
 
@@ -731,6 +732,29 @@ TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
         expect_block_eq(early_xsl[i].head(CallbackOracleProblem::kN), late_xsl[i],
                         "hook(i).XSL primals vs event(i).x -- the same iterate, and the step "
                         "commit is below both sites",
+                        static_cast<int>(i));
+        // AND THE EQUALITY MULTIPLIERS, restored at M6 W5 T8.6 fix1 (astra item
+        // 6). The comparison this test made before T8.6 was over the WHOLE
+        // compound iterate; T8.6 narrowed it to the primal head, because the
+        // event no longer hands out that vector. The DUAL half comes back here
+        // through the block the event does hand out.
+        //
+        // THE MAPPING, stated: the compound iterate is laid out
+        // [primals | slacks | eq multipliers | ineq multipliers]
+        // (detail/interior/kkt_vector.h). This problem has ONE equality row, no
+        // inequality rows and therefore no slack block, so its equality
+        // multiplier is the single entry at index kN. The event's `lambda_e` is
+        // the DECLARED rows of that block -- here all of it, there being no
+        // internal fixing row -- divided by the objective scale this call runs
+        // at, which is the default 1 on this fixture. So the two are the same
+        // number, and the comparison stays bit-for-bit.
+        ASSERT_EQ(early_xsl[i].size(), CallbackOracleProblem::kN + 1)
+            << "layout premise: [primals | (no slacks) | one equality multiplier]";
+        ASSERT_EQ(solver.optimizer_->options().obj_scale, 1.0)
+            << "mapping premise: the event divides the block by the objective scale";
+        expect_block_eq(early_xsl[i].segment(CallbackOracleProblem::kN, 1), late_lambda_e[i],
+                        "hook(i).XSL equality multipliers vs event(i).lambda_e -- the same "
+                        "iterate's dual half, declared rows, objective scale 1",
                         static_cast<int>(i));
     }
 

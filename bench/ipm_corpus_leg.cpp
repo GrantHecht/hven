@@ -466,6 +466,10 @@ void configure_interior_solver(NLPSolver &ipm, FixedVariableTreatments treatment
     ipm.optimizer_->set_options(std::move(o));
 }
 
+// Forward-declared: the callback-events instrument below prints the row's own
+// key, which is defined with the CSV writers further down (M6 W5 T8.6 fix1).
+std::string interior_row_key(const InteriorRow &row);
+
 InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
                                  const InteriorRowIdentity &identity, const Vec &x0,
                                  FixedVariableTreatments treatment, const InteriorLevers &levers,
@@ -601,10 +605,6 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
         }
     }
     const double wall_s = seconds_since(t0);
-    if (count_events) {
-        fmt::print(stderr, "callback-events cell={} variant={} events={}\n", identity.cell_id,
-                   variant.name, events_seen);
-    }
 
     // THE APPLIED RUNG, CHECKED BEFORE THE ROW IS BUILT (M6 W5 T8.5 fix round
     // 1; the SQP lane's M1). A warm row whose payload was silently ignored
@@ -688,6 +688,22 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
     row.complementarity = result.complementarity;
 
     row.wall_s = wall_s;
+
+    // THE INSTRUMENT'S LINE, ROW-ADDRESSABLE (M6 W5 T8.6 fix1, the SQP lane's
+    // M8). It printed `variant.name`, which is EMPTY on the 33 base rows, so a
+    // transcript carried three identical `f7_n5000_bound_physics variant=
+    // events=5` lines and no count could be attributed to a treatment row. The
+    // ROW'S OWN KEY -- cell, fixed treatment and variant, the same triple
+    // interior_csv_row writes -- is unique per row, which is what "the count
+    // per row recorded in the transcripts" asks for. Printed here, after the
+    // row is built, because that is where the key exists; `iter_num` goes
+    // beside it so the "one event per iterate" pairing the leg is the
+    // large-scale proof of can be read straight off the transcript. STDERR, so
+    // the CSV and its schema are untouched.
+    if (count_events) {
+        fmt::print(stderr, "callback-events row={} events={} iter_num={}\n", interior_row_key(row),
+                   events_seen, row.iter_num);
+    }
     return row;
 }
 

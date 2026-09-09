@@ -1682,7 +1682,11 @@ SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0, SolveBudget b
     // is the whole reason the boundary is stated per overload.
     const auto entry = std::chrono::steady_clock::now();
     NlpModelAggregate bridge{borrow_model(model)};
-    SqpSolution out = solve(bridge, x0, budget);
+    // THE OUTER STAMP IS CARRIED DOWN (M6 W5 T8.6 fix1, astra item 4): the
+    // delegate used to take a stamp of its OWN, below the bridge lay, and
+    // IterationEvent::elapsed_seconds then omitted the lay while
+    // SqpResult::wall_seconds included it -- two boundaries for one call.
+    SqpSolution out = solve_from_entry(bridge, x0, budget, entry);
     out.wall_seconds =
         std::chrono::duration<double>(std::chrono::steady_clock::now() - entry).count();
     return out;
@@ -1695,7 +1699,8 @@ SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0, const SqpWarm
     // and for the same reason: the bridge lay is this call's work.
     const auto entry = std::chrono::steady_clock::now();
     NlpModelAggregate bridge{borrow_model(model)};
-    SqpSolution out = solve(bridge, x0, warm, budget);
+    // The outer stamp, carried down; see the cold model overload above.
+    SqpSolution out = solve_from_entry(bridge, x0, warm, budget, entry);
     out.wall_seconds =
         std::chrono::duration<double>(std::chrono::steady_clock::now() - entry).count();
     return out;
@@ -1706,6 +1711,12 @@ SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0) {
 }
 
 SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, SolveBudget budget) {
+    return solve_from_entry(bridge, x0, budget, std::nullopt);
+}
+
+SqpSolution
+SqpDriver::solve_from_entry(NlpModelAggregate &bridge, const Vec &x0, SolveBudget budget,
+                            std::optional<std::chrono::steady_clock::time_point> outer_entry) {
     // THE SHARED CLOCK'S START (design §2.3; placement corrected in M6 W5 T8.4
     // fix1): the FIRST statement of the public entry, this overload having no
     // argument refusal of its own -- the bridge validated its box when it laid
@@ -1715,11 +1726,17 @@ SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, SolveBudg
     // warm ingest, solve_impl, the ledger record and the export snapshot --
     // and is a DIFFERENT boundary from `t0` below, which is this engine's
     // older measurement and survives as solve_impl_seconds.
-    const auto entry = std::chrono::steady_clock::now();
-    // THE SAME INSTANT, for IterationEvent::elapsed_seconds (M6 W5 T8.6): the
-    // innermost public frame every solve passes through exactly once, so one
+    //
+    // OR THE OUTER ENTRY'S OWN STAMP (M6 W5 T8.6 fix1), when a model-taking
+    // overload delegated here: that call's boundary opened before its bridge
+    // lay, and one public call has one boundary.
+    const auto entry = outer_entry.value_or(std::chrono::steady_clock::now());
+    // THE SAME INSTANT, for IterationEvent::elapsed_seconds (M6 W5 T8.6): one
     // stamp serves the shared wall clock and the per-iteration clock alike.
     entry_time_ = entry;
+    // A DEFERRAL LEFT STANDING BY A CALLBACK THAT THREW is applied here, before
+    // anything reads the callable (M6 W5 T8.6 fix1).
+    apply_pending_iteration_callback();
     // The seam is laid ONCE per solve, for the same reason the bridge is: it
     // is setup, not iteration. The seam binds the claim-stream interface the
     // bridge derives from; the bridge itself stays in this frame and rides
@@ -1751,6 +1768,13 @@ SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, SolveBudg
 
 SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, const SqpWarmStart &warm,
                              SolveBudget budget) {
+    return solve_from_entry(bridge, x0, warm, budget, std::nullopt);
+}
+
+SqpSolution
+SqpDriver::solve_from_entry(NlpModelAggregate &bridge, const Vec &x0, const SqpWarmStart &warm,
+                            SolveBudget budget,
+                            std::optional<std::chrono::steady_clock::time_point> outer_entry) {
     // THE NATIVE ROUTE BUILDS NO TIER SEED, so it must still CLEAR one: a
     // previous solve that armed one and never entered the tier would otherwise
     // seed this solve's first subproblem (fix round 1, F1). Same reason the
@@ -1758,12 +1782,12 @@ SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, const Sqp
     ipqp_staged_seed_.reset();
     payload_polish_ignored_ = 0;
     // The shared clock, on the same boundary as the budgeted bridge overload
-    // above: after this entry's own refusal, and BEFORE the seam lay.
-    const auto entry = std::chrono::steady_clock::now();
-    // THE SAME INSTANT, for IterationEvent::elapsed_seconds (M6 W5 T8.6): the
-    // innermost public frame every solve passes through exactly once, so one
-    // stamp serves the shared wall clock and the per-iteration clock alike.
+    // above: after this entry's own refusal, and BEFORE the seam lay -- or the
+    // model-taking caller's own stamp, carried down (M6 W5 T8.6 fix1).
+    const auto entry = outer_entry.value_or(std::chrono::steady_clock::now());
+    // THE SAME INSTANT, for IterationEvent::elapsed_seconds (M6 W5 T8.6).
     entry_time_ = entry;
+    apply_pending_iteration_callback();
     AggregateEvalSeam seam{bridge};
     // Same timing scope as the 2-arg overload above.
     const auto t0 = std::chrono::steady_clock::now();
@@ -1800,7 +1824,8 @@ SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0, const WarmSta
     // overload: the bridge lay is this call's work.
     const auto entry = std::chrono::steady_clock::now();
     NlpModelAggregate bridge{borrow_model(model)};
-    SqpSolution out = solve(bridge, x0, warm, budget);
+    // The outer stamp, carried down; see the cold model overload above.
+    SqpSolution out = solve_from_entry(bridge, x0, warm, budget, entry);
     out.wall_seconds =
         std::chrono::duration<double>(std::chrono::steady_clock::now() - entry).count();
     return out;
@@ -1808,21 +1833,31 @@ SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0, const WarmSta
 
 SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, const WarmStartData &warm,
                              SolveBudget budget) {
+    return solve_from_entry(bridge, x0, warm, budget, std::nullopt);
+}
+
+SqpSolution
+SqpDriver::solve_from_entry(NlpModelAggregate &bridge, const Vec &x0, const WarmStartData &warm,
+                            SolveBudget budget,
+                            std::optional<std::chrono::steady_clock::time_point> outer_entry) {
     // THE HAND-OVER CHECKS, in the order the staging call ran them and with
     // the same messages, less the entry name: the core's own consistency (with
     // the multipliers-only seed named), finiteness on every core block, and the
-    // known extension decoded and checked against the core beside it.
+    // known extension decoded and checked against the core beside it. They run
+    // HERE rather than in the public wrapper so that a model-taking caller
+    // meets them in the order it always did -- after its own box refusal and
+    // after the bridge lay.
     require_consistent_core(warm);
     require_finite_core(warm);
     validate_staged_polish(warm);
 
     // The shared clock, after this entry's own refusals and before the seam
-    // lay -- the boundary every bridge-taking overload states.
-    const auto entry = std::chrono::steady_clock::now();
-    // THE SAME INSTANT, for IterationEvent::elapsed_seconds (M6 W5 T8.6): the
-    // innermost public frame every solve passes through exactly once, so one
-    // stamp serves the shared wall clock and the per-iteration clock alike.
+    // lay -- or the model-taking caller's own stamp, carried down (M6 W5 T8.6
+    // fix1).
+    const auto entry = outer_entry.value_or(std::chrono::steady_clock::now());
+    // THE SAME INSTANT, for IterationEvent::elapsed_seconds (M6 W5 T8.6).
     entry_time_ = entry;
+    apply_pending_iteration_callback();
     AggregateEvalSeam seam{bridge};
     // THE PAYLOAD'S ONE INGEST, after the lay so the dimensions and the key are
     // this solve's. It also owns the tier-seed reset and the polish-ignored
@@ -2731,18 +2766,50 @@ struct SqpDriver::MajorState {
     // terminal exit reports kOptimal or kMaxIter from it.
     bool converged = false;
     // THE INTERRUPT DECISION, beside it and read by the same arm (M6 W5 T8.6).
-    // Written at the exit conjunction from the latch AS IT STOOD BEFORE this
-    // row's own event fired, which is what makes "a stop returned on the
-    // terminal row is a no-op" true: that row's exit and verdict were already
-    // decided when the callback saw it.
+    // Written from the latch AS IT STOOD BEFORE this row's own event fired,
+    // which is what makes "a stop returned on the terminal row is a no-op"
+    // true: that row's exit and verdict were already decided when the callback
+    // saw it.
+    //
+    // WRITTEN AT FIVE SITES (fix1, ruling R4): the exit conjunction, and each of
+    // the four push sites that follow an `enter_restoration`. The four are what
+    // carry a stop taken INSIDE restoration -- through the forwarder, or as the
+    // sub-solve's own kInterrupted -- onto the parent's own restoration-return
+    // exit, so the parent reports kInterrupted at the point it holds when
+    // restoration returns rather than reporting the restoration phase's verdict
+    // as if nothing had stopped it. The `resumed` route needs no site of its
+    // own: it goes round the loop and the NEXT major's exit conjunction reads
+    // the same latch.
     bool interrupted_exit = false;
-    // THE PRICES THIS ROW WAS MEASURED AT, snapshotted by `measure_iterate`
-    // ONLY when a callback is installed (M6 W5 T8.6). `mj.kkt.grad_lag` was
-    // folded at them, so an event that reported the driver's LIVE multipliers
-    // instead would, at a post-restoration push site, hand out a residual
-    // measured at one set of prices beside another set. Empty, and never
-    // touched, on a solve with no callback.
-    Vec event_lambda_e, event_lambda_i;
+    // THE WHOLE OF WHAT THE EVENT REPORTS, snapshotted by `measure_iterate`
+    // ONLY when a callback is installed (M6 W5 T8.6; widened from the two
+    // price blocks to the complete measurement at fix1).
+    //
+    // WHY A SNAPSHOT AND NOT A LIVE READ. Four of the ten push sites sit AFTER
+    // an `enter_restoration` call, and that function REPLACES the driver's
+    // point before it returns: `st.x = x_r` on both routes, and `st.ev` too on
+    // the resumed one. An event that read `st.x`, `st.ev.ce` and `st.ev.ci`
+    // live at the push therefore reported the RESTORED point's coordinates and
+    // constraint residuals beside the stalled row's `f`, `step_norm`, `radius`,
+    // `stationarity` and prices -- one event describing two points, measured on
+    // both restoration routes by the SQP lane's T8.6 review. Everything the
+    // event says is taken HERE instead, at the one statement where the row is
+    // measured, and re-taken with the row when the watchdog restores an earlier
+    // iterate.
+    //
+    // ALREADY IN CALLER UNITS. The engine->caller map (the one `finish` applies
+    // to the multipliers it exports) is applied at the snapshot, so the push
+    // maps nothing at all.
+    //
+    // Empty, never written and never read on a solve with no callback.
+    Vec event_x;
+    Vec event_lambda_e, event_lambda_i, event_z;
+    // The four shared diagnostics of this row, computed at measure time from
+    // the measurement `mj.kkt` holds and the prices it was folded at. All four
+    // NaN when nothing was measured at the point (the non-finite-start row),
+    // which is DeclaredDiagnostics' own default -- a zero would read as a
+    // converged residual.
+    DeclaredDiagnostics event_diag;
 
     // ---- cut (c): the trial point, its judgement, and the SOC correction --
     // `ev_trial` is VALUES ONLY until an acceptance upgrades it in place; on a
@@ -4073,7 +4140,10 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
             nested.elapsed_seconds =
                 std::chrono::duration<double>(std::chrono::steady_clock::now() - this->entry_time_)
                     .count();
-            const CallbackAction action = this->iteration_callback_(nested);
+            // THROUGH THE GUARDED ENTRY (M6 W5 T8.6 fix1), so that a
+            // callback clearing itself from inside a DEPTH-1 event is deferred
+            // exactly as it is at depth 0.
+            const CallbackAction action = this->invoke_iteration_callback(nested);
             if (action == CallbackAction::kStop) {
                 st.interrupted = true;
             }
@@ -4382,83 +4452,80 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 // ONE ITERATION EVENT, IN CALLER UNITS (M6 W5 T8.6). Declared in
-// drivers/sqp_driver.h, where the contract is; only the arithmetic is here.
+// drivers/sqp_driver.h, where the contract is.
 //
-// THE MAP IS problem_scaling.h's ENGINE->CALLER MAP, the same one `finish`
-// applies to the multipliers it exports: a row price picks up its own row
-// factor and loses the objective factor, a bound price loses the objective
-// factor alone (no bound is scaled), a constraint residual loses its row
-// factor, and the Lagrangian gradient -- homogeneous of degree one in the
-// objective factor once the row prices are mapped with it -- loses the
-// objective factor too. A no-op, and a copy elided, on an unscaled solve.
+// AS OF fix1 THIS FUNCTION COMPUTES NOTHING. Every vector and every diagnostic
+// it hands out was snapshotted by `measure_iterate`, at the statement that
+// measured the row, already mapped into the caller's units -- so the event
+// cannot mix the row's measurement with a point `enter_restoration` moved the
+// driver to afterwards. See MajorState::event_x.
 // ---------------------------------------------------------------------------
-void SqpDriver::fire_iteration_event(SolveState &st, AggregateEvalSeam &seam,
-                                     const SqpIterate &exported, const SqpKkt &kkt,
-                                     const Vec &lambda_e, const Vec &lambda_i) {
+void SqpDriver::fire_iteration_event(SolveState &st, const SqpIterate &exported,
+                                     const MajorState &mj) {
     if (!iteration_callback_) {
         return;
     }
-    const detail::ProblemScaling &sc = st.solve_scaling;
-    const bool scaled = sc.active;
-
-    Vec lambda_e_c = lambda_e;
-    Vec lambda_i_c = lambda_i;
-    Vec z_c = kkt.z;
-    if (scaled) {
-        if (lambda_e_c.size() == sc.eq_rows.size()) {
-            lambda_e_c = (lambda_e_c.array() * sc.eq_rows.array() / sc.obj).matrix();
-        }
-        if (lambda_i_c.size() == sc.ineq_rows.size()) {
-            lambda_i_c = (lambda_i_c.array() * sc.ineq_rows.array() / sc.obj).matrix();
-        }
-        z_c /= sc.obj;
-    }
-
-    // THE FOUR SHARED DIAGNOSTICS, by the one definition, from the measurement
-    // this row was taken from. NaN in all four when nothing was measured there
-    // -- the non-finite-start row is the case, and a zero would read as a
-    // converged residual.
-    DeclaredDiagnostics d;
-    if (kkt.finite) {
-        Vec grad_lag_c = kkt.grad_lag;
-        Vec ce_c = st.ev.ce;
-        Vec ci_c = st.ev.ci;
-        if (scaled) {
-            grad_lag_c /= sc.obj;
-            if (ce_c.size() == sc.eq_rows.size()) {
-                ce_c.array() /= sc.eq_rows.array();
-            }
-            if (ci_c.size() == sc.ineq_rows.size()) {
-                ci_c.array() /= sc.ineq_rows.array();
-            }
-        }
-        d = compute_declared_diagnostics_from_grad_lag(st.x, lambda_i_c, z_c, grad_lag_c, ce_c,
-                                                       ci_c, seam.lower(), seam.upper(), {});
-    }
-
     IterationEvent event{
         .iteration = static_cast<Index>(st.out.history.size()),
         .phase = std::nullopt,
         .depth = Index{0},
         .f = exported.f,
-        .stationarity = d.stationarity,
-        .feasibility_e = d.feasibility_e,
-        .feasibility_i = d.feasibility_i,
-        .complementarity = d.complementarity,
+        .stationarity = mj.event_diag.stationarity,
+        .feasibility_e = mj.event_diag.feasibility_e,
+        .feasibility_i = mj.event_diag.feasibility_i,
+        .complementarity = mj.event_diag.complementarity,
         .step_norm = exported.step_norm,
         .radius = exported.tr_radius,
         .mu = std::nullopt,
-        .x = st.x,
-        .lambda_e = lambda_e_c,
-        .lambda_i = lambda_i_c,
-        .z = z_c,
+        .x = mj.event_x,
+        .lambda_e = mj.event_lambda_e,
+        .lambda_i = mj.event_lambda_i,
+        .z = mj.event_z,
         .elapsed_seconds =
             std::chrono::duration<double>(std::chrono::steady_clock::now() - entry_time_).count(),
     };
     ++st.events_fired;
-    if (iteration_callback_(event) == CallbackAction::kStop) {
+    if (invoke_iteration_callback(event) == CallbackAction::kStop) {
         st.interrupted = true;
     }
+}
+
+// ---------------------------------------------------------------------------
+// THE ONE PLACE THE CALLABLE IS CALLED (M6 W5 T8.6 fix1, the SQP lane's M1).
+//
+// `clear_iteration_callback()` used to assign nullptr to the std::function
+// while that very function was on the stack, which destroys the callable's
+// storage -- and every capture in it -- during its own invocation. Benign only
+// for a callable whose captures are trivially destructible and unread after the
+// call; a use-after-free for any other. The guard below makes the setters DEFER
+// instead, and this function applies the deferral at the one safe point: the
+// statement after the invocation returns.
+//
+// ON A THROW the guard is dropped and the deferral is LEFT STANDING rather than
+// applied -- the applying assignment can allocate, and this is an unwind path.
+// Every public solve entry applies it before it reads the callable, which is
+// where a throwing callback's deferral lands.
+// ---------------------------------------------------------------------------
+CallbackAction SqpDriver::invoke_iteration_callback(const IterationEvent &event) {
+    callback_in_flight_ = true;
+    CallbackAction action = CallbackAction::kContinue;
+    try {
+        action = iteration_callback_(event);
+    } catch (...) {
+        callback_in_flight_ = false;
+        throw;
+    }
+    callback_in_flight_ = false;
+    apply_pending_iteration_callback();
+    return action;
+}
+
+void SqpDriver::apply_pending_iteration_callback() {
+    if (!pending_callback_.has_value()) {
+        return;
+    }
+    iteration_callback_ = std::move(*pending_callback_);
+    pending_callback_.reset();
 }
 
 SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
@@ -4493,16 +4560,81 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
     // solved from it), factored out so the watchdog can re-take them
     // after a restore. Reads ev/kkt/delta, all by reference.
     auto measure_iterate = [&] {
-        // THE PRICES THIS MEASUREMENT IS TAKEN AT (M6 W5 T8.6), snapshotted
-        // here rather than read live at the push: `mj.kkt.grad_lag` above was
-        // folded at exactly these, and four of the ten push sites sit AFTER an
-        // `enter_restoration` that may have replaced the driver's own. Copied
-        // only when a callback is installed, so a solve without one pays
-        // nothing. Re-taken with the rest of the row when the watchdog
+        // THE WHOLE OF WHAT THIS ROW'S EVENT WILL REPORT (M6 W5 T8.6; widened
+        // from the two price blocks to the complete measurement at fix1),
+        // snapshotted HERE rather than read live at the push. `mj.kkt` and
+        // `st.ev` above describe THIS point and `mj.kkt.grad_lag` was folded at
+        // exactly these prices; four of the ten push sites sit AFTER an
+        // `enter_restoration` that has already replaced `st.x` and, on the
+        // resumed route, `st.ev`, so a live read there mixed two points inside
+        // one event. See MajorState::event_x for the measurement.
+        //
+        // THE ENGINE->CALLER MAP IS APPLIED HERE TOO, so the push maps nothing:
+        // a row price picks up its own row factor and loses the objective
+        // factor, a bound price loses the objective factor alone (no bound is
+        // scaled), a constraint residual loses its row factor, and the
+        // Lagrangian gradient -- homogeneous of degree one in the objective
+        // factor once the row prices are mapped with it -- loses the objective
+        // factor too. That is `finish`'s own map (problem_scaling.h); a no-op,
+        // and a copy elided, on an unscaled solve.
+        //
+        // Copied only when a callback is installed, so a solve without one pays
+        // nothing at all. Re-taken with the rest of the row when the watchdog
         // restores an earlier iterate, which is why it lives in this lambda.
         if (iteration_callback_) {
+            const detail::ProblemScaling &sc = st.solve_scaling;
+            const bool scaled = sc.active;
+            mj.event_x = st.x;
             mj.event_lambda_e = st.lambda_e;
             mj.event_lambda_i = st.lambda_i;
+            mj.event_z = mj.kkt.z;
+            if (scaled) {
+                if (mj.event_lambda_e.size() == sc.eq_rows.size()) {
+                    mj.event_lambda_e =
+                        (mj.event_lambda_e.array() * sc.eq_rows.array() / sc.obj).matrix();
+                }
+                if (mj.event_lambda_i.size() == sc.ineq_rows.size()) {
+                    mj.event_lambda_i =
+                        (mj.event_lambda_i.array() * sc.ineq_rows.array() / sc.obj).matrix();
+                }
+                mj.event_z /= sc.obj;
+            }
+            // THE FOUR SHARED DIAGNOSTICS, by the one definition, from the
+            // measurement this row was taken from. Left at DeclaredDiagnostics'
+            // NaN default when nothing was measured here -- the
+            // non-finite-start row is the case, and a zero would read as a
+            // converged residual.
+            mj.event_diag = DeclaredDiagnostics{};
+            if (mj.kkt.finite) {
+                Vec grad_lag_c = mj.kkt.grad_lag;
+                Vec ce_c = st.ev.ce;
+                Vec ci_c = st.ev.ci;
+                if (scaled) {
+                    grad_lag_c /= sc.obj;
+                    if (ce_c.size() == sc.eq_rows.size()) {
+                        ce_c.array() /= sc.eq_rows.array();
+                    }
+                    if (ci_c.size() == sc.ineq_rows.size()) {
+                        ci_c.array() /= sc.ineq_rows.array();
+                    }
+                }
+                mj.event_diag = compute_declared_diagnostics_from_grad_lag(
+                    mj.event_x, mj.event_lambda_i, mj.event_z, grad_lag_c, ce_c, ci_c, seam.lower(),
+                    seam.upper(), {});
+            }
+        } else if (mj.event_x.size() != 0 || mj.event_lambda_e.size() != 0 ||
+                   mj.event_lambda_i.size() != 0 || mj.event_z.size() != 0) {
+            // AND A SOLVE WITH NO CALLBACK COPIES NOTHING (M6 W5 T8.6 fix1),
+            // checked rather than asserted in prose. The five snapshot members
+            // are written at this one statement and nowhere else, so on a major
+            // whose driver has no callback they must still be the empty vectors
+            // MajorState default-constructed them as. Every no-callback push in
+            // the whole suite runs this branch, which is what makes "a solve
+            // without a callback pays nothing" a fact rather than a claim about
+            // where an `if` happens to sit.
+            throw std::logic_error(
+                "SqpDriver::solve: the iteration event's measurement snapshot is populated on "
+                "a solve with no callback installed");
         }
         mj.row.f = st.ev.f;
         mj.row.stationarity = mj.kkt.stationarity;
@@ -4554,11 +4686,11 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
         // T8.6): after the trace emit and before the push, so the callback,
         // the `sqp.major` stream and `history` are one row, in one order, in
         // the caller's units -- and so the `rows_pushed` identity below covers
-        // the callback too. `exported` is already mapped; the multipliers and
-        // the bound price the event carries are mapped here, from the prices
-        // this row was MEASURED at.
+        // the callback too. `exported` is already mapped; everything else the
+        // event carries was mapped at MEASURE TIME, from the point and the
+        // prices this row was measured at (fix1).
         if (iteration_callback_) {
-            fire_iteration_event(st, seam, exported, mj.kkt, mj.event_lambda_e, mj.event_lambda_i);
+            fire_iteration_event(st, exported, mj);
         }
         st.out.history.push_back(std::move(exported));
         ++st.rows_pushed;
@@ -5195,6 +5327,16 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
             // `history` and the stream with its final value.
             const RestorationOutcome elastic_outcome =
                 enter_restoration(st, mj, seam, bridge, iter, elastic_cand);
+            // THE PARENT'S LATCH, READ BEFORE THIS ROW'S OWN EVENT FIRES (M6 W5
+            // T8.6 fix1, ruling R4). A stop taken INSIDE the restoration
+            // sub-solve -- through the forwarder, or as the sub-solve's own
+            // kInterrupted arriving in the status switch -- has already set it,
+            // and the parent must then exit kInterrupted at the point it holds
+            // now that restoration has returned, on EVERY restoration-return
+            // arm. Read ABOVE the push for the same reason the exit conjunction
+            // reads it above its own: a kStop returned on THIS row, which is the
+            // public call's terminal row on the kExited routes, is a no-op.
+            mj.interrupted_exit = st.interrupted;
             push_history(mj.row);
             if (elastic_outcome == RestorationOutcome::kResumed) {
                 return MajorOutcome::kContinue;
@@ -5263,6 +5405,9 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
             if (shrink_hits_floor(st.delta)) {
                 // PUSHED AFTER THE CALL (R9), as at every request site.
                 const RestorationOutcome outcome = enter_restoration(st, mj, seam, bridge, iter);
+                // The parent's latch, read before this row's own event fires;
+                // see the elastic requester above (ruling R4).
+                mj.interrupted_exit = st.interrupted;
                 push_history(mj.row);
                 if (outcome == RestorationOutcome::kResumed) {
                     return MajorOutcome::kContinue;
@@ -5478,6 +5623,9 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
             // correction would have left `verdict` an accept.
             const RestorationOutcome outcome =
                 enter_restoration(st, mj, seam, bridge, iter, {&mj.x_trial, &mj.ev_trial});
+            // The parent's latch, read before this row's own event fires; see
+            // the elastic requester above (ruling R4).
+            mj.interrupted_exit = st.interrupted;
             push_history(mj.row);
             if (outcome == RestorationOutcome::kResumed) {
                 return MajorOutcome::kContinue;
@@ -5504,6 +5652,9 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
         // equally out of the picture here (it is gated on kReject).
         const RestorationOutcome outcome =
             enter_restoration(st, mj, seam, bridge, iter, {&mj.x_trial, &mj.ev_trial});
+        // The parent's latch, read before this row's own event fires; see the
+        // elastic requester above (ruling R4).
+        mj.interrupted_exit = st.interrupted;
         push_history(mj.row);
         if (outcome == RestorationOutcome::kResumed) {
             return MajorOutcome::kContinue;
@@ -5705,8 +5856,18 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // st.resto.moved_x's own note).
             check_major_pushed_once(iter);
             return finish(
-                seam, std::move(st.out), st.resto.status, st.x, st.lambda_e, st.lambda_i,
-                st.resto.kkt, st.resto.f,
+                seam, std::move(st.out),
+                // THE PARENT'S LATCH OUTRANKS THE PHASE'S VERDICT (M6 W5 T8.6
+                // fix1, ruling R4). A stop taken inside restoration makes this
+                // an INTERRUPTED exit of the caller's solve, at the point the
+                // parent holds now that restoration has returned; what the
+                // sub-solve itself reached is a fact about the SUB-SOLVE, and
+                // the one place it is still reported is
+                // `infeasibility_certified`, which enter_restoration set (or
+                // did not) from the sub-solve's OWN status and which this
+                // choice does not touch.
+                mj.interrupted_exit ? SolveStatus::kInterrupted : st.resto.status, st.x,
+                st.lambda_e, st.lambda_i, st.resto.kkt, st.resto.f,
                 make_warm_start(seam, (!st.resto.moved_x && st.have_seed) ? &st.seed : nullptr,
                                 st.qp, st.qp_built, &st.ev, &st.x, st.delta, st.last_dual_mu,
                                 opts_.qp.primal_delta, st.strategy.get(), engine_->hot_state()),
@@ -5727,8 +5888,11 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // st.resto.moved_x's own note.
             check_major_pushed_once(iter);
             return finish(
-                seam, std::move(st.out), st.resto.status, st.x, st.lambda_e, st.lambda_i,
-                st.resto.kkt, st.resto.f,
+                seam, std::move(st.out),
+                // The parent's latch outranks the phase's verdict; see the seed
+                // arm above (ruling R4).
+                mj.interrupted_exit ? SolveStatus::kInterrupted : st.resto.status, st.x,
+                st.lambda_e, st.lambda_i, st.resto.kkt, st.resto.f,
                 make_warm_start(seam, st.resto.moved_x ? nullptr : &mj.qs, st.qp, st.qp_built,
                                 &st.ev, &st.x, st.delta, st.last_dual_mu, opts_.qp.primal_delta,
                                 st.strategy.get(), engine_->hot_state()),

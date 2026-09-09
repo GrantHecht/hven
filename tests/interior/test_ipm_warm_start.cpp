@@ -1804,7 +1804,8 @@ TEST(IpmWarmStart, ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToThe
     // under 1 and fails it.
     //
     // THE SECOND EVENT, NOT THE FIRST (M6 W5 T8.6, a DECLARED consequence of
-    // behaviour change (2)). This fixture takes the POST-LINE-SEARCH
+    // behaviour change (3), corrected from (2) at fix1 -- (2) of that list is
+    // kInterrupted on both engines). This fixture takes the POST-LINE-SEARCH
     // restoration seam, so `mu <- entry_mu()` is executed part-way through
     // iteration 0 -- after the event that describes iteration 0's own starting
     // point, which was evaluated at init_mu and says so. The first iterate

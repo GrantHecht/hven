@@ -202,8 +202,10 @@ enum class CallbackAction {
     kContinue = 0,
     /// Stop as soon as the engine can do so without spending work on an answer
     /// the caller no longer wants. Both engines then report kInterrupted at the
-    /// point they are standing on, with the ordinary cleanup, trace end event
-    /// and ledger record. See each engine's set_iteration_callback() for the
+    /// point they are standing on, with the ordinary cleanup and the ordinary
+    /// trace end event -- and, on the SQP, the ordinary ledger record (the
+    /// interior-point engine has no ledger of its own until W5 T8.7).
+    /// See each engine's set_iteration_callback() for the
     /// exact moment the stop takes effect and for the one case that outranks it
     /// (a CONVERGED iterate still reports kOptimal -- converged beats stop).
     kStop = 1,
@@ -211,10 +213,17 @@ enum class CallbackAction {
 
 /// @brief One iteration, as both engines report it to a caller's callback.
 ///
-/// EVERY field is in DECLARED space and CALLER units, exactly as SolveResult
-/// is: the interior-point engine's reduced primal space is expanded, its
-/// internal fixing rows are sliced out of the equality block, and a scaled SQP
-/// solve's multipliers and prices carry no factor of the engine's.
+/// AT `depth` 0 -- which is every interior-point event and every top-level SQP
+/// major -- EVERY field is in DECLARED space and CALLER units, exactly as
+/// SolveResult is: the interior-point engine's reduced primal space is
+/// expanded, its internal fixing rows are sliced out of the equality block, and
+/// a scaled SQP solve's multipliers and prices carry no factor of the engine's.
+///
+/// AT `depth` 1 THE SPACE IS THE RESTORATION SUB-PROBLEM'S, not the caller's
+/// (M6 W5 T8.6 fix1, the SQP lane's M4). A depth-1 event is the feasibility
+/// sub-solve's OWN row: `x` is that problem's variable vector (whose width need
+/// not be the caller's `n`), `f` is its feasibility objective, and the four
+/// diagnostics are measured on it. Nothing is mapped back -- see @ref depth.
 ///
 /// THE FOUR VECTOR VIEWS ARE BORROWED AND VALID FOR THE CALL ONLY. They alias
 /// storage the engine owns and reuses; a callback that needs them afterwards
@@ -239,6 +248,14 @@ struct IterationEvent {
     /// @brief SQP ONLY: the restoration nesting level -- 0 in the caller's own
     ///        solve, 1 inside a restoration sub-solve, and one deeper per level
     ///        below that. nullopt on the interior-point engine.
+    ///
+    /// A NON-ZERO DEPTH CHANGES THE SPACE THE EVENT IS IN. The restoration
+    /// sub-solve runs the FEASIBILITY problem -- a different model, in its own
+    /// variables, with its own objective -- and the forwarder that carries its
+    /// rows out stamps this field and maps nothing else. So a caller that
+    /// compares an event against the caller's own model, or against
+    /// SqpResult's fields, must filter on `depth == 0`; the design's rule is
+    /// that depth-1 rows are the sub-solve's own.
     std::optional<Index> depth;
 
     /// @brief Objective value at the event's point, on the caller's scale.

@@ -679,10 +679,41 @@ class SqpDriver {
     /// solve (the pair is deliberately non-RAII), the QP-engine records its
     /// subproblems already emitted STAY, and this driver remains usable.
     ///
+    /// WHERE THE STOPPED SOLVE ENDS UP (M6 W5 T8.6 fix1). A stop returned on
+    /// row `k` is honoured at row `k+1`'s exit conjunction, so the solve
+    /// returns AFTER row `k+1`: `history.size() == k + 2`,
+    /// `counters.major_iters == k + 1`, and the point returned is the one the
+    /// LAST event describes -- the committed point row `k`'s accepted step
+    /// reached, measured once and stepped from never. A stop returned on the
+    /// PUBLIC call's own terminal row is a no-op: that row's exit and verdict
+    /// were already decided when the callback was shown it.
+    ///
+    /// SETTING OR CLEARING FROM INSIDE THE CALLBACK IS SAFE (M6 W5 T8.6 fix1).
+    /// Either call made while the callback is on the stack is DEFERRED: the
+    /// stored std::function is left alone until the invocation returns, and the
+    /// change is applied at that point (and, failing that -- a callback that
+    /// left by throwing -- at the next solve entry). So a callback may disarm
+    /// itself and go on touching its own captures.
+    ///
     /// @param cb The callback. An empty std::function is the same as clearing.
-    void set_iteration_callback(IterationCallback cb) { iteration_callback_ = std::move(cb); }
+    void set_iteration_callback(IterationCallback cb) {
+        if (callback_in_flight_) {
+            pending_callback_ = std::move(cb);
+            return;
+        }
+        iteration_callback_ = std::move(cb);
+    }
     /// @brief Removes the per-iteration callback.
-    void clear_iteration_callback() { iteration_callback_ = nullptr; }
+    ///
+    /// Deferred to the safe point when called from INSIDE the callback; see
+    /// set_iteration_callback().
+    void clear_iteration_callback() {
+        if (callback_in_flight_) {
+            pending_callback_ = IterationCallback{};
+            return;
+        }
+        iteration_callback_ = nullptr;
+    }
 
     /// @brief Returns the options this driver runs under.
     ///
@@ -1175,7 +1206,10 @@ class SqpDriver {
     /// four shared diagnostics are mapped HERE, by problem_scaling.h's
     /// engine->caller multiplier map -- `lambda * s_row / sf`, `z / sf`,
     /// `grad_lag / sf`, `c / s_row` -- so the event describes the problem the
-    /// caller posed, as design section 2.7 behaviour change (3) requires.
+    /// caller posed, as design section 2.5's "multipliers and z have the scaling
+    /// map applied" requires. (Not one of section 2.7's numbered behaviour
+    /// changes: its (2) is kInterrupted and its (3) is the interior-point
+    /// engine's moved dispatch -- corrected at fix1.)
     ///
     /// IT EVALUATES NOTHING, and it must not: an evaluation here would move
     /// `evals_full` on every row of every solve with a callback attached, which
@@ -1187,14 +1221,56 @@ class SqpDriver {
     ///
     /// The four vector views the callback sees alias LOCALS of this function.
     ///
+    /// EVERY VECTOR AND EVERY DIAGNOSTIC COMES FROM THE ROW'S OWN SNAPSHOT (M6
+    /// W5 T8.6 fix1). `measure_iterate` takes the WHOLE measurement the event
+    /// needs -- the point, the three price blocks in caller units and the four
+    /// declared diagnostics -- at the moment the row is measured, and this
+    /// function reads nothing else. Four of the ten push sites sit after an
+    /// `enter_restoration` that has ALREADY replaced `st.x` and, on the resumed
+    /// route, `st.ev`; reading either live there produced an event whose point
+    /// and constraint residuals were the RESTORED iterate's while its `f`,
+    /// `stationarity`, `step_norm` and prices were the stalled row's -- one
+    /// event describing two points.
+    ///
     /// @param st        The solve state; its latch and event count are written.
-    /// @param seam      For the declared box the diagnostics read.
     /// @param exported  The row being pushed, already in caller units.
-    /// @param kkt       The measurement this row was taken from.
-    /// @param lambda_e  Equality prices @p kkt was measured at, engine units.
-    /// @param lambda_i  Inequality prices @p kkt was measured at, engine units.
-    void fire_iteration_event(SolveState &st, AggregateEvalSeam &seam, const SqpIterate &exported,
-                              const SqpKkt &kkt, const Vec &lambda_e, const Vec &lambda_i);
+    /// @param mj        The major, for the snapshot taken at measure time.
+    void fire_iteration_event(SolveState &st, const SqpIterate &exported, const MajorState &mj);
+
+    /// @brief Invokes the installed callback with the in-flight guard held.
+    ///
+    /// THE ONE PLACE THE CALLABLE IS CALLED, so that set_iteration_callback()
+    /// and clear_iteration_callback() called from INSIDE it can be deferred to
+    /// the statement after it returns rather than destroying the callable
+    /// during its own invocation (M6 W5 T8.6 fix1, the SQP lane's M1). Used by
+    /// fire_iteration_event and by the restoration forwarder alike.
+    CallbackAction invoke_iteration_callback(const IterationEvent &event);
+
+    /// @brief Applies a set/clear deferred by invoke_iteration_callback.
+    ///
+    /// Called at the statement after the callback returns, and again at every
+    /// solve entry -- the second is what catches a deferral left standing by a
+    /// callback that departed by throwing.
+    void apply_pending_iteration_callback();
+
+    // --- The clock the delegating public overloads carry (M6 W5 T8.6 fix1) ---
+    // ONE ENTRY POINT OWNS THE CLOCK AND THE DELEGATES RECEIVE IT. A
+    // model-taking overload lays a bridge -- real work, inside the boundary
+    // SqpResult::wall_seconds states -- and then delegates; before this, the
+    // bridge-taking overload it delegated to overwrote `entry_time_` with its
+    // own later stamp, so every IterationEvent::elapsed_seconds omitted the
+    // bridge lay. These three carry the outer stamp down: `outer_entry` is
+    // std::nullopt at a bridge-taking public entry (which then takes its own,
+    // after its own refusals, exactly where it always did) and holds the
+    // model-taking entry's stamp otherwise.
+    SqpSolution solve_from_entry(NlpModelAggregate &bridge, const Vec &x0, SolveBudget budget,
+                                 std::optional<std::chrono::steady_clock::time_point> outer_entry);
+    SqpSolution solve_from_entry(NlpModelAggregate &bridge, const Vec &x0, const SqpWarmStart &warm,
+                                 SolveBudget budget,
+                                 std::optional<std::chrono::steady_clock::time_point> outer_entry);
+    SqpSolution solve_from_entry(NlpModelAggregate &bridge, const Vec &x0,
+                                 const WarmStartData &warm, SolveBudget budget,
+                                 std::optional<std::chrono::steady_clock::time_point> outer_entry);
 
     // Reached only after the one-shot retry has been spent, and never with
     // kInfeasible (the elastic tier consumes that status upstream), which is why
@@ -1416,12 +1492,24 @@ class SqpDriver {
     // depth and latches a stop on THIS driver.
     IterationCallback iteration_callback_;
 
+    // THE IN-FLIGHT GUARD AND THE DEFERRED CHANGE (M6 W5 T8.6 fix1, the SQP
+    // lane's M1). `callback_in_flight_` is true for exactly the duration of one
+    // invocation of `iteration_callback_`; a set_/clear_iteration_callback()
+    // made in that window parks its new value here instead of assigning the
+    // std::function that is running, which would destroy the callable's storage
+    // -- and its captures -- underneath itself. An ENGAGED optional holding an
+    // EMPTY function is a deferred clear; engaged and non-empty is a deferred
+    // replacement; disengaged is "nothing pending".
+    bool callback_in_flight_ = false;
+    std::optional<IterationCallback> pending_callback_;
+
     // When this solve's public entry was taken, for
-    // IterationEvent::elapsed_seconds. Written by the three bridge-taking
-    // public overloads -- the innermost public frame every solve passes through
-    // exactly once -- at the same statement that starts their own shared wall
-    // clock. A model-taking overload's bridge lay therefore sits outside it,
-    // as it sits outside SqpResult::solve_impl_seconds. INFORMATIONAL, never
+    // IterationEvent::elapsed_seconds. Written ONCE PER CALL, by the outermost
+    // public overload the caller entered (M6 W5 T8.6 fix1): a model-taking
+    // entry stamps it before it lays its bridge and carries the stamp down
+    // through solve_from_entry, so the bridge lay is INSIDE the boundary, on
+    // the same footing as SqpResult::wall_seconds. A bridge-taking entry stamps
+    // it after its own refusals, where it always did. INFORMATIONAL, never
     // asserted (CLAUDE.md section 7).
     std::chrono::steady_clock::time_point entry_time_{};
 };
