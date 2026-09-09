@@ -25,6 +25,13 @@ SolveStatus resolve_ipm_phase_status(SolveStatus raw_verdict, IpmStopReason reas
         return raw_verdict;
     }
     switch (reason) {
+    case IpmStopReason::kInterrupted:
+        // THE CALLER STOPPED IT, and that outranks the cap the loop would
+        // otherwise have been labelled with -- but only from kMaxIter, so the
+        // read above still lets a converged or acceptable verdict stand. "The
+        // stop is a caller's decision, not a verdict" cuts both ways: it
+        // renames a NOTCONVERGED exit and it overrides nothing.
+        return SolveStatus::kInterrupted;
     case IpmStopReason::kStageStalled:
     case IpmStopReason::kRestorationLocallyInfeasible:
         return SolveStatus::kStalled;

@@ -645,6 +645,45 @@ class SqpDriver {
     ///             itself, in the kIpm dispatch arm.
     void attach_trace(TraceSink *sink);
 
+    // --- The shared per-iteration callback (M6 W5 T8.6) ---
+    /// @brief Installs the per-iteration callback both engines take.
+    ///
+    /// WHEN IT FIRES: once per HISTORY ROW, at the one site that emits them --
+    /// after the `sqp.major` trace line and before the push -- so the trace
+    /// stream, `SqpSolution::history` and the callback are the same rows, in
+    /// the same order, in the same CALLER units. Every major records its
+    /// iterate exactly once, rejected trials and the non-finite-start exit
+    /// included, so the event count equals `history.size()`.
+    ///
+    /// WHAT THE EVENT DESCRIBES: the ROW BEING PUSHED -- the iterate that major
+    /// stood on -- and not the pending commit. `IterationEvent::depth` is the
+    /// restoration nesting: 0 in this solve, 1 inside a restoration sub-solve,
+    /// whose events reach the SAME callback through a forwarder this driver
+    /// installs.
+    ///
+    /// WHAT kStop DOES: the stop is LATCHED and honoured before the next
+    /// subproblem is built, so no QP is solved for an answer the caller no
+    /// longer wants; the solve then takes its ORDINARY terminal exit at the
+    /// CURRENT iterate and reports kInterrupted. Precedence at that exit is
+    /// converged > interrupted > probe-exhausted > cap: a stop on a CONVERGED
+    /// row reports kOptimal (converged beats stop), and under
+    /// SqpOptions::budget_mode an interrupt takes the ordinary exit rather than
+    /// the budget-best one, exactly as a probe-budget stop does. A stop
+    /// returned INSIDE a restoration sub-solve latches on this driver too, so
+    /// no further top-level major runs whichever way that phase returns.
+    /// kNumericalError and the QP-failure exit carry their own verdicts and are
+    /// not demoted by a stop -- the row is terminal either way.
+    ///
+    /// The callback may throw; the exception propagates out of solve(), no
+    /// `sqp.solve.end` event and no ledger record are emitted for the abandoned
+    /// solve (the pair is deliberately non-RAII), the QP-engine records its
+    /// subproblems already emitted STAY, and this driver remains usable.
+    ///
+    /// @param cb The callback. An empty std::function is the same as clearing.
+    void set_iteration_callback(IterationCallback cb) { iteration_callback_ = std::move(cb); }
+    /// @brief Removes the per-iteration callback.
+    void clear_iteration_callback() { iteration_callback_ = nullptr; }
+
     /// @brief Returns the options this driver runs under.
     ///
     /// READ-ONLY: there is no mutable accessor. Copy it, edit the copy, hand it
@@ -1125,6 +1164,38 @@ class SqpDriver {
                            NlpModelAggregate &bridge, const WarmStart &warm, SolveBudget budget,
                            Index iter);
 
+    /// @brief Builds ONE IterationEvent from the row being pushed and hands it
+    ///        to the installed per-iteration callback (M6 W5 T8.6).
+    ///
+    /// CALLED FROM `push_history` AND NOWHERE ELSE, which is what the
+    /// `events_fired == rows_pushed` identity there checks.
+    ///
+    /// EVERYTHING IT HANDS OUT IS IN CALLER UNITS. `exported` arrives already
+    /// mapped; the three price blocks and the Lagrangian gradient behind the
+    /// four shared diagnostics are mapped HERE, by problem_scaling.h's
+    /// engine->caller multiplier map -- `lambda * s_row / sf`, `z / sf`,
+    /// `grad_lag / sf`, `c / s_row` -- so the event describes the problem the
+    /// caller posed, as design section 2.7 behaviour change (3) requires.
+    ///
+    /// IT EVALUATES NOTHING, and it must not: an evaluation here would move
+    /// `evals_full` on every row of every solve with a callback attached, which
+    /// is exactly the identity the corpus leg's callback-attached run proves.
+    /// On a SCALED solve that makes the event's four diagnostics the engine's
+    /// own measurement MAPPED BACK, where `finish` re-measures the returned
+    /// point unscaled; the two agree to floating-point rounding rather than
+    /// bitwise, and the result's is the one the contract states.
+    ///
+    /// The four vector views the callback sees alias LOCALS of this function.
+    ///
+    /// @param st        The solve state; its latch and event count are written.
+    /// @param seam      For the declared box the diagnostics read.
+    /// @param exported  The row being pushed, already in caller units.
+    /// @param kkt       The measurement this row was taken from.
+    /// @param lambda_e  Equality prices @p kkt was measured at, engine units.
+    /// @param lambda_i  Inequality prices @p kkt was measured at, engine units.
+    void fire_iteration_event(SolveState &st, AggregateEvalSeam &seam, const SqpIterate &exported,
+                              const SqpKkt &kkt, const Vec &lambda_e, const Vec &lambda_i);
+
     // Reached only after the one-shot retry has been spent, and never with
     // kInfeasible (the elastic tier consumes that status upstream), which is why
     // the kInfeasible arm is kept only to keep the mapping total.
@@ -1336,6 +1407,23 @@ class SqpDriver {
     // which runs ABOVE the emission -- traced 0 where the result and the
     // ledger reported 1. Nothing between the two reads can move the member.
     Index payload_polish_ignored_ = 0;
+
+    // --- The shared per-iteration callback (M6 W5 T8.6) ---
+    // No arming flag beside it: an installed std::function is armed and an
+    // empty one is not, which is the whole of clear_iteration_callback().
+    // NOT carried into the restoration sub-driver's `opts_`; the sub-driver is
+    // handed a FORWARDER instead (see enter_restoration), which stamps the
+    // depth and latches a stop on THIS driver.
+    IterationCallback iteration_callback_;
+
+    // When this solve's public entry was taken, for
+    // IterationEvent::elapsed_seconds. Written by the three bridge-taking
+    // public overloads -- the innermost public frame every solve passes through
+    // exactly once -- at the same statement that starts their own shared wall
+    // clock. A model-taking overload's bridge lay therefore sits outside it,
+    // as it sits outside SqpResult::solve_impl_seconds. INFORMATIONAL, never
+    // asserted (CLAUDE.md section 7).
+    std::chrono::steady_clock::time_point entry_time_{};
 };
 
 // Defined in src/drivers/sqp_print.cpp alongside format_iteration_table.

@@ -59,6 +59,8 @@ const char *to_string(IpmStopReason reason) {
         return "iteration_cap";
     case IpmStopReason::kRestorationLocallyInfeasible:
         return "restoration_locally_infeasible";
+    case IpmStopReason::kInterrupted:
+        return "interrupted";
     case IpmStopReason::kStageStalled:
         return "stage_stalled";
     }

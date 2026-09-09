@@ -5,6 +5,7 @@
 
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -14,6 +15,7 @@
 #include <fmt/format.h>
 
 #include <hven/core/solver_status.h>
+#include <hven/drivers/solve_result.h>
 #include <hven/drivers/solve_status.h>
 #include <hven/model/nlp_solver.h>
 #include <hven/warmstart/ipm_polish_extension.h>
@@ -544,6 +546,28 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
     std::unique_ptr<NLPSolver> ipm_owner = make_configured();
     NLPSolver &ipm = *ipm_owner;
 
+    // THE COVERAGE RULE'S SECOND RUN (M6 W5 T8.6), and it is a MEASUREMENT
+    // INSTRUMENT rather than a row: with HVEN_LEG_COUNT_CALLBACK set in the
+    // environment, every row of this leg runs with a per-iteration callback
+    // attached that does nothing but count. The leg is then captured twice --
+    // once without it, once with it -- and EVERY COLUMN of the two captures
+    // must agree, which is what proves that attaching a callback moves no
+    // counter, no status and no residual. The count itself goes to stderr, so
+    // it lands in the leg's transcript and NOT in the CSV: the schema does not
+    // move for an instrument.
+    //
+    // OFF BY DEFAULT AND FREE WHEN OFF: an unset variable installs nothing, so
+    // the baseline capture is the same code path it always was.
+    const bool count_events = std::getenv("HVEN_LEG_COUNT_CALLBACK") != nullptr;
+    long long events_seen = 0;
+    if (count_events) {
+        ipm.optimizer_->set_iteration_callback(
+            [&events_seen](const hven::solvers::IterationEvent &) {
+                ++events_seen;
+                return hven::solvers::CallbackAction::kContinue;
+            });
+    }
+
     // THE SEQUENCE IS AN OPTION SINCE M6 W5 T8.4, but this leg drives the
     // engine through NLPSolver, whose five entries each SET that option from
     // their own name before solving -- so the sequence is still chosen by which
@@ -577,6 +601,10 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
         }
     }
     const double wall_s = seconds_since(t0);
+    if (count_events) {
+        fmt::print(stderr, "callback-events cell={} variant={} events={}\n", identity.cell_id,
+                   variant.name, events_seen);
+    }
 
     // THE APPLIED RUNG, CHECKED BEFORE THE ROW IS BUILT (M6 W5 T8.5 fix round
     // 1; the SQP lane's M1). A warm row whose payload was silently ignored

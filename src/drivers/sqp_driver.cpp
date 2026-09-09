@@ -1716,6 +1716,10 @@ SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, SolveBudg
     // and is a DIFFERENT boundary from `t0` below, which is this engine's
     // older measurement and survives as solve_impl_seconds.
     const auto entry = std::chrono::steady_clock::now();
+    // THE SAME INSTANT, for IterationEvent::elapsed_seconds (M6 W5 T8.6): the
+    // innermost public frame every solve passes through exactly once, so one
+    // stamp serves the shared wall clock and the per-iteration clock alike.
+    entry_time_ = entry;
     // The seam is laid ONCE per solve, for the same reason the bridge is: it
     // is setup, not iteration. The seam binds the claim-stream interface the
     // bridge derives from; the bridge itself stays in this frame and rides
@@ -1756,6 +1760,10 @@ SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, const Sqp
     // The shared clock, on the same boundary as the budgeted bridge overload
     // above: after this entry's own refusal, and BEFORE the seam lay.
     const auto entry = std::chrono::steady_clock::now();
+    // THE SAME INSTANT, for IterationEvent::elapsed_seconds (M6 W5 T8.6): the
+    // innermost public frame every solve passes through exactly once, so one
+    // stamp serves the shared wall clock and the per-iteration clock alike.
+    entry_time_ = entry;
     AggregateEvalSeam seam{bridge};
     // Same timing scope as the 2-arg overload above.
     const auto t0 = std::chrono::steady_clock::now();
@@ -1811,6 +1819,10 @@ SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, const War
     // The shared clock, after this entry's own refusals and before the seam
     // lay -- the boundary every bridge-taking overload states.
     const auto entry = std::chrono::steady_clock::now();
+    // THE SAME INSTANT, for IterationEvent::elapsed_seconds (M6 W5 T8.6): the
+    // innermost public frame every solve passes through exactly once, so one
+    // stamp serves the shared wall clock and the per-iteration clock alike.
+    entry_time_ = entry;
     AggregateEvalSeam seam{bridge};
     // THE PAYLOAD'S ONE INGEST, after the lay so the dimensions and the key are
     // this solve's. It also owns the tier-seed reset and the polish-ignored
@@ -2632,6 +2644,23 @@ struct SqpDriver::SolveState {
     // resume_from_restoration).
     FunnelStrategy *full_step_funnel = nullptr;
 
+    // ---- the iteration callback's own state (M6 W5 T8.6) -------------------
+    // THE LATCH. Set when the shared per-iteration callback returns kStop --
+    // at this driver's own dispatch, or through the forwarder the restoration
+    // sub-driver is handed -- and read at the exit conjunction, which is
+    // already the one place a major decides to stop BEFORE building a
+    // subproblem. So a stop never buys another QP, whichever push site the
+    // event that carried it belonged to.
+    bool interrupted = false;
+    // EVENTS FIRED, beside `rows_pushed` and for the same reason: the identity
+    // `events_fired == rows_pushed` is what proves nothing but `push_history`
+    // fires the callback, exactly as `rows_pushed == history.size()` proves
+    // nothing but `push_history` pushes. A LOCAL of the solve, deliberately NOT
+    // a field on SqpCounters -- the callback is not a counted quantity, and a
+    // new counter would move every W4 trace golden that carries the counters
+    // object.
+    Index events_fired = 0;
+
     // ---- the three named sub-bundles ----------------------------------------
     RestorationExit resto;
     FullStepWatchdog fs;
@@ -2701,6 +2730,19 @@ struct SqpDriver::MajorState {
     // THE CONVERGENCE DECISION, preserved because the caller's ordinary
     // terminal exit reports kOptimal or kMaxIter from it.
     bool converged = false;
+    // THE INTERRUPT DECISION, beside it and read by the same arm (M6 W5 T8.6).
+    // Written at the exit conjunction from the latch AS IT STOOD BEFORE this
+    // row's own event fired, which is what makes "a stop returned on the
+    // terminal row is a no-op" true: that row's exit and verdict were already
+    // decided when the callback saw it.
+    bool interrupted_exit = false;
+    // THE PRICES THIS ROW WAS MEASURED AT, snapshotted by `measure_iterate`
+    // ONLY when a callback is installed (M6 W5 T8.6). `mj.kkt.grad_lag` was
+    // folded at them, so an event that reported the driver's LIVE multipliers
+    // instead would, at a post-restoration push site, hand out a residual
+    // measured at one set of prices beside another set. Empty, and never
+    // touched, on a solve with no callback.
+    Vec event_lambda_e, event_lambda_i;
 
     // ---- cut (c): the trial point, its judgement, and the SOC correction --
     // `ev_trial` is VALUES ONLY until an acceptance upgrades it in place; on a
@@ -4009,6 +4051,35 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
     // sub-solve's own `sqp.solve` pair, rows and tier events land in the
     // same stream, told apart by the sink-owned `depth`.
     sub.attach_trace(ipqp_trace_);
+    // THE CALLBACK IS FORWARDED, NOT COPIED (M6 W5 T8.6). The sub-driver runs
+    // its own history and its own `push_history`, so its rows reach the
+    // caller's callback through this lambda, which does the two things a
+    // nested solve's events need and the sub-driver cannot do for itself:
+    //
+    //   * it stamps the NESTING DEPTH -- one deeper than whatever arrived, so
+    //     the rule composes if a nested solve ever nests again;
+    //   * it re-reads the clock against THIS driver's public entry, so
+    //     `elapsed_seconds` is one measurement across the whole solve rather
+    //     than restarting at the sub-solve's own entry;
+    //   * and it LATCHES a kStop on the PARENT as well as returning it, so a
+    //     stop taken inside restoration ends the outer solve too -- whether
+    //     that phase comes back kResumed (the loop's next major reads the
+    //     latch at its exit conjunction) or kExited (the sub-solve's own
+    //     kInterrupted arrives in the switch below).
+    if (iteration_callback_) {
+        sub.set_iteration_callback([this, &st](const IterationEvent &e) {
+            IterationEvent nested = e;
+            nested.depth = e.depth.value_or(0) + 1;
+            nested.elapsed_seconds =
+                std::chrono::duration<double>(std::chrono::steady_clock::now() - this->entry_time_)
+                    .count();
+            const CallbackAction action = this->iteration_callback_(nested);
+            if (action == CallbackAction::kStop) {
+                st.interrupted = true;
+            }
+            return action;
+        });
+    }
     const SqpSolution rs = sub.solve(feasibility, feasibility.start_point());
 
     // EVERY WORK counter the sub-solve moved is folded in: the
@@ -4261,6 +4332,16 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
     case SolveStatus::kMaxIter:
         st.resto.status = SolveStatus::kMaxIter;
         break;
+    case SolveStatus::kInterrupted:
+        // THE CALLER STOPPED THE SUB-SOLVE (M6 W5 T8.6). The restored point is
+        // reported exactly as every other non-certified restoration exit
+        // reports one -- `x_r`, the sub-solve's own selectors, `moved_x` -- and
+        // the verdict says which decision ended it. Without this arm the
+        // sub-solve's kInterrupted would fall through a switch that has no
+        // `default`, leaving `st.resto.status` at whatever the previous
+        // restoration of this solve left there.
+        st.resto.status = SolveStatus::kInterrupted;
+        break;
     case SolveStatus::kNumericalError:
         st.resto.status = SolveStatus::kNumericalError;
         break;
@@ -4299,6 +4380,87 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
 // `rows_pushed == history.size()` identity and, at the caller, the loop-entry
 // check -- all three unchanged.
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// ONE ITERATION EVENT, IN CALLER UNITS (M6 W5 T8.6). Declared in
+// drivers/sqp_driver.h, where the contract is; only the arithmetic is here.
+//
+// THE MAP IS problem_scaling.h's ENGINE->CALLER MAP, the same one `finish`
+// applies to the multipliers it exports: a row price picks up its own row
+// factor and loses the objective factor, a bound price loses the objective
+// factor alone (no bound is scaled), a constraint residual loses its row
+// factor, and the Lagrangian gradient -- homogeneous of degree one in the
+// objective factor once the row prices are mapped with it -- loses the
+// objective factor too. A no-op, and a copy elided, on an unscaled solve.
+// ---------------------------------------------------------------------------
+void SqpDriver::fire_iteration_event(SolveState &st, AggregateEvalSeam &seam,
+                                     const SqpIterate &exported, const SqpKkt &kkt,
+                                     const Vec &lambda_e, const Vec &lambda_i) {
+    if (!iteration_callback_) {
+        return;
+    }
+    const detail::ProblemScaling &sc = st.solve_scaling;
+    const bool scaled = sc.active;
+
+    Vec lambda_e_c = lambda_e;
+    Vec lambda_i_c = lambda_i;
+    Vec z_c = kkt.z;
+    if (scaled) {
+        if (lambda_e_c.size() == sc.eq_rows.size()) {
+            lambda_e_c = (lambda_e_c.array() * sc.eq_rows.array() / sc.obj).matrix();
+        }
+        if (lambda_i_c.size() == sc.ineq_rows.size()) {
+            lambda_i_c = (lambda_i_c.array() * sc.ineq_rows.array() / sc.obj).matrix();
+        }
+        z_c /= sc.obj;
+    }
+
+    // THE FOUR SHARED DIAGNOSTICS, by the one definition, from the measurement
+    // this row was taken from. NaN in all four when nothing was measured there
+    // -- the non-finite-start row is the case, and a zero would read as a
+    // converged residual.
+    DeclaredDiagnostics d;
+    if (kkt.finite) {
+        Vec grad_lag_c = kkt.grad_lag;
+        Vec ce_c = st.ev.ce;
+        Vec ci_c = st.ev.ci;
+        if (scaled) {
+            grad_lag_c /= sc.obj;
+            if (ce_c.size() == sc.eq_rows.size()) {
+                ce_c.array() /= sc.eq_rows.array();
+            }
+            if (ci_c.size() == sc.ineq_rows.size()) {
+                ci_c.array() /= sc.ineq_rows.array();
+            }
+        }
+        d = compute_declared_diagnostics_from_grad_lag(st.x, lambda_i_c, z_c, grad_lag_c, ce_c,
+                                                       ci_c, seam.lower(), seam.upper(), {});
+    }
+
+    IterationEvent event{
+        .iteration = static_cast<Index>(st.out.history.size()),
+        .phase = std::nullopt,
+        .depth = Index{0},
+        .f = exported.f,
+        .stationarity = d.stationarity,
+        .feasibility_e = d.feasibility_e,
+        .feasibility_i = d.feasibility_i,
+        .complementarity = d.complementarity,
+        .step_norm = exported.step_norm,
+        .radius = exported.tr_radius,
+        .mu = std::nullopt,
+        .x = st.x,
+        .lambda_e = lambda_e_c,
+        .lambda_i = lambda_i_c,
+        .z = z_c,
+        .elapsed_seconds =
+            std::chrono::duration<double>(std::chrono::steady_clock::now() - entry_time_).count(),
+    };
+    ++st.events_fired;
+    if (iteration_callback_(event) == CallbackAction::kStop) {
+        st.interrupted = true;
+    }
+}
+
 SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
                                              AggregateEvalSeam &seam, NlpModelAggregate &bridge,
                                              const WarmStart &warm, SolveBudget budget,
@@ -4331,6 +4493,17 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
     // solved from it), factored out so the watchdog can re-take them
     // after a restore. Reads ev/kkt/delta, all by reference.
     auto measure_iterate = [&] {
+        // THE PRICES THIS MEASUREMENT IS TAKEN AT (M6 W5 T8.6), snapshotted
+        // here rather than read live at the push: `mj.kkt.grad_lag` above was
+        // folded at exactly these, and four of the ten push sites sit AFTER an
+        // `enter_restoration` that may have replaced the driver's own. Copied
+        // only when a callback is installed, so a solve without one pays
+        // nothing. Re-taken with the rest of the row when the watchdog
+        // restores an earlier iterate, which is why it lives in this lambda.
+        if (iteration_callback_) {
+            mj.event_lambda_e = st.lambda_e;
+            mj.event_lambda_i = st.lambda_i;
+        }
         mj.row.f = st.ev.f;
         mj.row.stationarity = mj.kkt.stationarity;
         mj.row.feasibility = mj.kkt.feasibility;
@@ -4377,6 +4550,16 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
             emit_trace_sqp_major(SqpMajorTraceEvent{
                 exported, static_cast<Index>(st.out.history.size()), mj.row_qp_mode});
         }
+        // THE ITERATION EVENT, AT THE SAME SITE AND IN THE SAME UNITS (M6 W5
+        // T8.6): after the trace emit and before the push, so the callback,
+        // the `sqp.major` stream and `history` are one row, in one order, in
+        // the caller's units -- and so the `rows_pushed` identity below covers
+        // the callback too. `exported` is already mapped; the multipliers and
+        // the bound price the event carries are mapped here, from the prices
+        // this row was MEASURED at.
+        if (iteration_callback_) {
+            fire_iteration_event(st, seam, exported, mj.kkt, mj.event_lambda_e, mj.event_lambda_i);
+        }
         st.out.history.push_back(std::move(exported));
         ++st.rows_pushed;
         // AND NOTHING ELSE MAY PUSH: the identity is what makes
@@ -4387,6 +4570,16 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
                 "other than push_history wrote to it, so the trace stream and the history "
                 "no longer describe the same rows",
                 st.out.history.size(), st.rows_pushed));
+        }
+        // AND NOTHING ELSE MAY FIRE THE CALLBACK, the same identity read from
+        // the other side (M6 W5 T8.6). Together with the one above it is what
+        // makes "one event per history row" a checked fact rather than a claim
+        // about where the call happens to sit.
+        if (iteration_callback_ && st.events_fired != st.rows_pushed) {
+            throw std::logic_error(fmt::format(
+                "SqpDriver::solve: {} iteration events fired against {} history rows -- "
+                "something other than push_history called the iteration callback",
+                st.events_fired, st.rows_pushed));
         }
     };
     measure_iterate();
@@ -4717,10 +4910,20 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
     // THREE sites that must read it -- the other two are in enter_restoration,
     // and a sweep that reaches only some of them lets a capped solve enter
     // restoration it has no budget for.
-    if (mj.converged || probe_exhausted ||
+    // THE LATCH JOINS THE CONJUNCTION (M6 W5 T8.6), and this is the whole of
+    // "the stop is honoured before the next build_subproblem": this test
+    // already sits above the rebuild below, so an interrupt reaches the
+    // ORDINARY terminal exit at the CURRENT iterate without a subproblem being
+    // solved for it. `history.size() == major_iters + 1` therefore holds on an
+    // interrupted solve exactly as it does on a capped one.
+    if (mj.converged || st.interrupted || probe_exhausted ||
         iter + st.out.counters.restoration_iters >= st.eff_max_iter) {
+        // READ BEFORE THIS ROW'S OWN EVENT FIRES. A kStop returned on the
+        // TERMINAL row is a no-op: the exit and the verdict were already
+        // decided when the callback was shown that row.
+        mj.interrupted_exit = st.interrupted && !mj.converged;
         push_history(mj.row);
-        if (probe_exhausted) {
+        if (probe_exhausted && !mj.interrupted_exit) {
             // The one field that tells this exit apart from an
             // ordinary max_iter one. Set BEFORE finish() so it
             // reaches the returned counters and the ledger record.
@@ -4730,7 +4933,13 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
         // kMaxIter exit below even under budgeted mode, because the
         // two budgets promise opposite things -- see the 4-argument
         // solve()'s note, part 4.
-        if (!mj.converged && !probe_exhausted && opts_.budget_mode) {
+        // `!mj.interrupted_exit` joins the guard for the reason the probe
+        // budget's `!probe_exhausted` is there: an interrupt is a stop at the
+        // CURRENT point, and budget_mode's best-by-(h, f) substitution would
+        // hand back a different iterate than the one the caller stopped on.
+        // Design section 2.5's precedence, in one expression:
+        // converged > interrupted > probe-exhausted > cap.
+        if (!mj.converged && !mj.interrupted_exit && !probe_exhausted && opts_.budget_mode) {
             // BUDGETED MODE: the caller reports the best-by-(h, f) iterate
             // rather than the last one, and computes `best_is_current` from
             // `mj.row` and `st.mb` -- both of which this major has finished
@@ -5438,8 +5647,10 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
             // point being returned, and `mj.kkt` was measured from it this
             // pass. No stash had to be carried.
             return finish(seam, std::move(st.out),
-                          mj.converged ? SolveStatus::kOptimal : SolveStatus::kMaxIter, st.x,
-                          st.lambda_e, st.lambda_i, mj.kkt, mj.row.f,
+                          mj.converged          ? SolveStatus::kOptimal
+                          : mj.interrupted_exit ? SolveStatus::kInterrupted
+                                                : SolveStatus::kMaxIter,
+                          st.x, st.lambda_e, st.lambda_i, mj.kkt, mj.row.f,
                           make_warm_start(seam, st.have_seed ? &st.seed : nullptr, st.qp,
                                           st.qp_built, &st.ev, &st.x, st.delta, st.last_dual_mu,
                                           opts_.qp.primal_delta, st.strategy.get(),

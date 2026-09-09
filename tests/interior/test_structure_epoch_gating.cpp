@@ -276,13 +276,13 @@ TEST(StructureEpochGating, ASolveThatHandsOutTheKktMatrixVerifiesThePatternThrou
         with_callback.optimizer_->set_options(std::move(o));
     }
     int callback_calls = 0;
-    with_callback.optimizer_->set_early_callback(
-        [&](int, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
-            hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
-            Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
-            ++callback_calls;
-            return 0;
-        });
+    with_callback.optimizer_->set_kkt_hook([&](int, double, hven::ConstEigenRef<Eigen::VectorXd>,
+                                               double, hven::ConstEigenRef<Eigen::VectorXd>,
+                                               hven::ConstEigenRef<Eigen::VectorXd>,
+                                               Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+        ++callback_calls;
+        return 0;
+    });
 
     ASSERT_EQ(with_callback.optimize(epoch_gate_start_point()),
               hven::solvers::SolveStatus::kOptimal);
@@ -327,15 +327,15 @@ TEST(StructureEpochGating, TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCa
         o.common.print_level = 3;
         solver.optimizer_->set_options(std::move(o));
     }
-    solver.optimizer_->set_early_callback(
-        [&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
-            hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
-            Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
-            if (iteration == 0) {
-                solver.optimizer_->disable_early_callback();
-            }
-            return 0;
-        });
+    solver.optimizer_->set_kkt_hook([&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd>,
+                                        double, hven::ConstEigenRef<Eigen::VectorXd>,
+                                        hven::ConstEigenRef<Eigen::VectorXd>,
+                                        Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+        if (iteration == 0) {
+            solver.optimizer_->clear_kkt_hook();
+        }
+        return 0;
+    });
 
     ASSERT_EQ(solver.optimize(epoch_gate_start_point()), hven::solvers::SolveStatus::kOptimal);
     const auto counters_after_disarming = solver.result().kkt_factor_counters;
@@ -367,20 +367,18 @@ TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifies
 
     bool armed = false;
     int early_callback_calls = 0;
-    solver.optimizer_->set_late_callback([&](const hven::solvers::IterateInfo &,
-                                             hven::ConstEigenRef<Eigen::VectorXd>,
-                                             hven::ConstEigenRef<Eigen::VectorXd>) {
+    solver.optimizer_->set_iteration_callback([&](const hven::solvers::IterationEvent &) {
         if (!armed) {
             armed = true;
-            solver.optimizer_->set_early_callback(
-                [&](int, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
-                    hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
-                    Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
-                    ++early_callback_calls;
-                    return 0;
-                });
+            solver.optimizer_->set_kkt_hook([&](int, double, hven::ConstEigenRef<Eigen::VectorXd>,
+                                                double, hven::ConstEigenRef<Eigen::VectorXd>,
+                                                hven::ConstEigenRef<Eigen::VectorXd>,
+                                                Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+                ++early_callback_calls;
+                return 0;
+            });
         }
-        return 0;
+        return hven::solvers::CallbackAction::kContinue;
     });
 
     ASSERT_EQ(solver.optimize(epoch_gate_start_point()), hven::solvers::SolveStatus::kOptimal);
@@ -403,9 +401,9 @@ TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifies
         o.common.print_level = 3;
         late_only.optimizer_->set_options(std::move(o));
     }
-    late_only.optimizer_->set_late_callback([](const hven::solvers::IterateInfo &,
-                                               hven::ConstEigenRef<Eigen::VectorXd>,
-                                               hven::ConstEigenRef<Eigen::VectorXd>) { return 0; });
+    late_only.optimizer_->set_iteration_callback([](const hven::solvers::IterationEvent &) {
+        return hven::solvers::CallbackAction::kContinue;
+    });
     ASSERT_EQ(late_only.optimize(epoch_gate_start_point()), hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(late_only.result().kkt_factor_counters.pattern_verify_count, 0)
         << "a late callback that never arms an early one never hands the matrix out, and must "
@@ -439,7 +437,7 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
     }
     bool mutating_captured = false;
     Eigen::VectorXd mutating_first_step;
-    mutating.optimizer_->set_early_callback(
+    mutating.optimizer_->set_kkt_hook(
         [&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
             hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
             Eigen::SparseMatrix<double, Eigen::RowMajor> &kkt) {
@@ -455,20 +453,19 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
             return 0;
         });
     int mutating_late_calls = 0;
-    mutating.optimizer_->set_late_callback([&](const hven::solvers::IterateInfo &,
-                                               hven::ConstEigenRef<Eigen::VectorXd> xsl,
-                                               hven::ConstEigenRef<Eigen::VectorXd>) {
-        // The late callback for iteration i fires with the iterate i started
-        // from -- XSL += alpha*DXSL, the commit of iteration i's step, runs
-        // after this call, not before it (see interior_point_solver.cpp). So
-        // the SECOND call (iteration 1) is what carries iteration 0's step:
-        // the iterate the mutated factorization actually produced.
+    // M6 W5 T8.6: the shared iteration callback in place of the late one. Its
+    // event for iteration i describes the point iteration i STARTS at, which is
+    // the same iterate the late callback showed and the same reading this test
+    // always took -- the commit of iteration i's step happens after it either
+    // way. So the SECOND call (iteration 1) still carries iteration 0's step:
+    // the iterate the mutated factorization actually produced.
+    mutating.optimizer_->set_iteration_callback([&](const hven::solvers::IterationEvent &ev) {
         ++mutating_late_calls;
         if (mutating_late_calls == 2 && !mutating_captured) {
             mutating_captured = true;
-            mutating_first_step = xsl.head(EpochGateBoxedProblem::kN);
+            mutating_first_step = ev.x;
         }
-        return 0;
+        return hven::solvers::CallbackAction::kContinue;
     });
     ASSERT_EQ(mutating.optimize(epoch_gate_start_point()), hven::solvers::SolveStatus::kOptimal);
     ASSERT_TRUE(mutating_captured)
@@ -484,15 +481,13 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
     bool control_captured = false;
     Eigen::VectorXd control_first_step;
     int control_late_calls = 0;
-    control.optimizer_->set_late_callback([&](const hven::solvers::IterateInfo &,
-                                              hven::ConstEigenRef<Eigen::VectorXd> xsl,
-                                              hven::ConstEigenRef<Eigen::VectorXd>) {
+    control.optimizer_->set_iteration_callback([&](const hven::solvers::IterationEvent &ev) {
         ++control_late_calls;
         if (control_late_calls == 2 && !control_captured) {
             control_captured = true;
-            control_first_step = xsl.head(EpochGateBoxedProblem::kN);
+            control_first_step = ev.x;
         }
-        return 0;
+        return hven::solvers::CallbackAction::kContinue;
     });
     ASSERT_EQ(control.optimize(epoch_gate_start_point()), hven::solvers::SolveStatus::kOptimal);
     ASSERT_TRUE(control_captured)
@@ -534,20 +529,26 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
 // before T2: PGX is folded into the Newton right-hand side six lines on, the
 // RHS constraint blocks ARE that side, and XSL is the iterate.
 static_assert(
-    std::is_same_v<hven::solvers::InteriorPointSolver::EarlyCallBackType,
+    std::is_same_v<hven::solvers::InteriorPointSolver::KktHook,
                    std::function<int(int, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
                                      hven::ConstEigenRef<Eigen::VectorXd>,
                                      hven::ConstEigenRef<Eigen::VectorXd>,
                                      Eigen::SparseMatrix<double, Eigen::RowMajor> &)>>,
-    "EarlyCallBackType's three vector arguments are BORROWED READ-ONLY VIEWS and its KKT "
+    "KktHook's three vector arguments are BORROWED READ-ONLY VIEWS and its KKT "
     "matrix argument is a MUTABLE reference. Changing either half changes what a callback "
-    "may do to a solve in flight -- see the contract on EarlyCallBackType and the M6 W5 "
+    "may do to a solve in flight -- see the contract on KktHook and the M6 W5 "
     "migration guide before touching this line.");
-static_assert(std::is_same_v<hven::solvers::InteriorPointSolver::LateCallBackType,
-                             std::function<int(const hven::solvers::IterateInfo &,
-                                               hven::ConstEigenRef<Eigen::VectorXd>,
-                                               hven::ConstEigenRef<Eigen::VectorXd>)>>,
-              "LateCallBackType was already const in both vectors and T2 did not touch it.");
+// M6 W5 T8.6: LateCallBackType is GONE, and with it the IterateInfo the old
+// pin named. Its replacement is the SHARED callback both engines take, whose
+// signature is pinned here in its place -- one type, one event, and no
+// engine-private record on the public surface any more.
+static_assert(
+    std::is_same_v<hven::solvers::IterationCallback, std::function<hven::solvers::CallbackAction(
+                                                         const hven::solvers::IterationEvent &)>>,
+    "IterationCallback is the ONE per-iteration callback both engines take, over a "
+    "const IterationEvent& in declared space and caller units. Changing it changes both "
+    "engines' public surface at once -- see design section 2.5 and the M6 W5 migration "
+    "guide before touching this line.");
 
 // An equality-only, bound-free problem that RECORDS what the solver handed it
 // and what it handed back -- the oracle for the three views, which carry the
@@ -647,11 +648,11 @@ TEST(EarlyCallbackViews, TheThreeVectorsAreTheModelsOwnNumbersAtThisIterationsEv
     }
 
     int early_calls = 0;
-    solver.optimizer_->set_early_callback([&](int iteration, double obj_scale,
-                                              hven::ConstEigenRef<Eigen::VectorXd> xsl, double,
-                                              hven::ConstEigenRef<Eigen::VectorXd> pgx,
-                                              hven::ConstEigenRef<Eigen::VectorXd> rhs,
-                                              Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+    solver.optimizer_->set_kkt_hook([&](int iteration, double obj_scale,
+                                        hven::ConstEigenRef<Eigen::VectorXd> xsl, double,
+                                        hven::ConstEigenRef<Eigen::VectorXd> pgx,
+                                        hven::ConstEigenRef<Eigen::VectorXd> rhs,
+                                        Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
         ++early_calls;
         // The scale the callback is handed is the one the solve is running
         // at, which is what everything below is measured against.
@@ -705,18 +706,20 @@ TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
     }
 
     std::vector<Eigen::VectorXd> early_xsl, late_xsl;
-    solver.optimizer_->set_early_callback([&](int, double, hven::ConstEigenRef<Eigen::VectorXd> xsl,
-                                              double, hven::ConstEigenRef<Eigen::VectorXd>,
-                                              hven::ConstEigenRef<Eigen::VectorXd>,
-                                              Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+    solver.optimizer_->set_kkt_hook([&](int, double, hven::ConstEigenRef<Eigen::VectorXd> xsl,
+                                        double, hven::ConstEigenRef<Eigen::VectorXd>,
+                                        hven::ConstEigenRef<Eigen::VectorXd>,
+                                        Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
         early_xsl.emplace_back(xsl);
         return 0;
     });
-    solver.optimizer_->set_late_callback([&](const hven::solvers::IterateInfo &,
-                                             hven::ConstEigenRef<Eigen::VectorXd> xsl,
-                                             hven::ConstEigenRef<Eigen::VectorXd>) {
-        late_xsl.emplace_back(xsl);
-        return 0;
+    // M6 W5 T8.6: the shared callback's event carries the DECLARED primal
+    // block rather than the raw compound iterate. This problem has no bounds
+    // and no fixed variables, so the two are the same numbers and the
+    // comparison below stays bit-for-bit.
+    solver.optimizer_->set_iteration_callback([&](const hven::solvers::IterationEvent &ev) {
+        late_xsl.emplace_back(ev.x);
+        return hven::solvers::CallbackAction::kContinue;
     });
 
     ASSERT_EQ(solver.optimize(Eigen::VectorXd::Constant(CallbackOracleProblem::kN, 0.0)),
@@ -725,9 +728,9 @@ TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
     ASSERT_GE(late_xsl.size(), early_xsl.size());
 
     for (std::size_t i = 0; i < early_xsl.size(); i++) {
-        expect_block_eq(early_xsl[i], late_xsl[i],
-                        "early(i).XSL vs late(i).XSL -- the same storage, and the step commit is "
-                        "below the late-callback site",
+        expect_block_eq(early_xsl[i].head(CallbackOracleProblem::kN), late_xsl[i],
+                        "hook(i).XSL primals vs event(i).x -- the same iterate, and the step "
+                        "commit is below both sites",
                         static_cast<int>(i));
     }
 

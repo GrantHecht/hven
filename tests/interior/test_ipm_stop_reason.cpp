@@ -197,11 +197,12 @@ struct TerminalIter {
 };
 
 void record_terminal_iter(NLPSolver &solver, TerminalIter &rec) {
-    solver.optimizer_->set_late_callback([&rec](const hven::solvers::IterateInfo &info,
-                                                hven::ConstEigenRef<Eigen::VectorXd>,
-                                                hven::ConstEigenRef<Eigen::VectorXd>) {
-        rec.last = info.iter_;
-        return 0;
+    // M6 W5 T8.6: the shared iteration callback in place of the late one. The
+    // TERMINAL row's index is the same number either way -- one event per
+    // `ipm.iter` row, and the last event is the last row.
+    solver.optimizer_->set_iteration_callback([&rec](const hven::solvers::IterationEvent &ev) {
+        rec.last = static_cast<int>(ev.iteration);
+        return hven::solvers::CallbackAction::kContinue;
     });
 }
 

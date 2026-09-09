@@ -420,9 +420,9 @@ TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
     int attempts = 0;
     bool saw_logic_error = false;
     InteriorPointSolver *engine = solver.optimizer_.get();
-    engine->set_late_callback([&](const hven::solvers::IterateInfo &,
-                                  hven::ConstEigenRef<Eigen::VectorXd>,
-                                  hven::ConstEigenRef<Eigen::VectorXd>) {
+    // M6 W5 T8.6: the shared iteration callback, in place of the late callback
+    // this test used to arm. Same assertions, same solve.
+    engine->set_iteration_callback([&](const hven::solvers::IterationEvent &) {
         ++attempts;
         IpmOptions o = engine->options();
         o.max_iters = 3;
@@ -431,7 +431,7 @@ TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
         } catch (const std::logic_error &) {
             saw_logic_error = true;
         }
-        return 0;
+        return hven::solvers::CallbackAction::kContinue;
     });
 
     ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
@@ -445,7 +445,7 @@ TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
     after.max_iters = 400;
     EXPECT_NO_THROW(solver.optimizer_->set_options(std::move(after)));
     EXPECT_EQ(solver.optimizer_->options().max_iters, 400);
-    engine->disable_late_callback();
+    engine->clear_iteration_callback();
     EXPECT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
 }
 
@@ -463,13 +463,12 @@ TEST(Options, IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
         solver.optimizer_->set_options(std::move(o));
     }
     InteriorPointSolver *engine = solver.optimizer_.get();
-    engine->set_late_callback([](const hven::solvers::IterateInfo &,
-                                 hven::ConstEigenRef<Eigen::VectorXd>,
-                                 hven::ConstEigenRef<Eigen::VectorXd>) -> int {
-        throw std::logic_error("a hook that leaves the solve by throwing");
-    });
+    engine->set_iteration_callback(
+        [](const hven::solvers::IterationEvent &) -> hven::solvers::CallbackAction {
+            throw std::logic_error("a hook that leaves the solve by throwing");
+        });
     EXPECT_THROW(solver.optimize(hs071_start()), std::logic_error);
-    engine->disable_late_callback();
+    engine->clear_iteration_callback();
 
     // The guard did not survive the unwind: a replacement is accepted and the
     // next solve runs.

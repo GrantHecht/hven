@@ -41,6 +41,7 @@
 // exists, every diagnostic is NaN -- UNMEASURED -- and ce/ci are empty. Absent
 // is never zero-filled.
 
+#include <functional>
 #include <limits>
 #include <optional>
 #include <vector>
@@ -193,6 +194,99 @@ struct SolveResult {
     friend class InteriorPointSolver;
     friend class SqpDriver;
 };
+
+/// @brief What a per-iteration callback asks the engine to do next.
+enum class CallbackAction {
+    /// Keep solving. The engine's trajectory is unchanged -- a callback that
+    /// only ever returns this cannot move a counter, a status or a residual.
+    kContinue = 0,
+    /// Stop as soon as the engine can do so without spending work on an answer
+    /// the caller no longer wants. Both engines then report kInterrupted at the
+    /// point they are standing on, with the ordinary cleanup, trace end event
+    /// and ledger record. See each engine's set_iteration_callback() for the
+    /// exact moment the stop takes effect and for the one case that outranks it
+    /// (a CONVERGED iterate still reports kOptimal -- converged beats stop).
+    kStop = 1,
+};
+
+/// @brief One iteration, as both engines report it to a caller's callback.
+///
+/// EVERY field is in DECLARED space and CALLER units, exactly as SolveResult
+/// is: the interior-point engine's reduced primal space is expanded, its
+/// internal fixing rows are sliced out of the equality block, and a scaled SQP
+/// solve's multipliers and prices carry no factor of the engine's.
+///
+/// THE FOUR VECTOR VIEWS ARE BORROWED AND VALID FOR THE CALL ONLY. They alias
+/// storage the engine owns and reuses; a callback that needs them afterwards
+/// copies them. Copying the EVENT does not deepen the views.
+///
+/// UNMEASURED IS NaN, never zero -- the four diagnostics follow SolveResult's
+/// own rule (this header's note), so an event taken where no finite evaluation
+/// of the point exists reports NaN in all four rather than a residual of zero.
+///
+/// The three optionals say which engine produced the event rather than
+/// carrying a sentinel: `phase` and `mu` are the interior-point engine's,
+/// `depth` and `radius` the SQP's.
+struct IterationEvent {
+    /// @brief The iteration index this event describes. SQP: the major's index,
+    ///        which is also this row's index in SqpResult::history and the
+    ///        `major` field of its `sqp.major` trace line. INTERIOR-POINT: the
+    ///        per-phase iterate index, which is `ipm.iter`'s own.
+    Index iteration = 0;
+    /// @brief INTERIOR-POINT ONLY: the index of the phase this iterate belongs
+    ///        to, in IpmResult::phases. nullopt on the SQP.
+    std::optional<Index> phase;
+    /// @brief SQP ONLY: the restoration nesting level -- 0 in the caller's own
+    ///        solve, 1 inside a restoration sub-solve, and one deeper per level
+    ///        below that. nullopt on the interior-point engine.
+    std::optional<Index> depth;
+
+    /// @brief Objective value at the event's point, on the caller's scale.
+    double f = std::numeric_limits<double>::quiet_NaN();
+    /// @brief The four SHARED diagnostics of SolveResult, at the event's point.
+    double stationarity = std::numeric_limits<double>::quiet_NaN();
+    double feasibility_e = std::numeric_limits<double>::quiet_NaN();
+    double feasibility_i = std::numeric_limits<double>::quiet_NaN();
+    double complementarity = std::numeric_limits<double>::quiet_NaN();
+    /// @brief The step that reached (SQP: that was taken from) this point.
+    ///        SQP: SqpIterate::step_norm of the row. INTERIOR-POINT: the
+    ///        inf-norm of the primal block of the committed alpha * DXSL, 0 at
+    ///        the first iterate of a phase (nothing was stepped yet).
+    double step_norm = std::numeric_limits<double>::quiet_NaN();
+
+    /// @brief SQP ONLY: the trust-region radius at this major.
+    std::optional<double> radius;
+    /// @brief INTERIOR-POINT ONLY: the barrier parameter this iterate was
+    ///        evaluated under.
+    std::optional<double> mu;
+
+    /// @brief The point, declared width. BORROWED -- see this struct's note.
+    Eigen::Ref<const Vec> x;
+    /// @brief Equality multipliers at @ref x, declared rows. BORROWED.
+    Eigen::Ref<const Vec> lambda_e;
+    /// @brief Inequality multipliers at @ref x, declared rows. BORROWED.
+    Eigen::Ref<const Vec> lambda_i;
+    /// @brief Bound multipliers at @ref x, z = z_lower - z_upper, declared
+    ///        width. BORROWED.
+    Eigen::Ref<const Vec> z;
+
+    /// @brief Seconds since this solve's public entry.
+    ///
+    /// INFORMATIONAL, NEVER ASSERTED, on SolveResult::wall_seconds's own
+    /// footing (CLAUDE.md section 7).
+    double elapsed_seconds = 0.0;
+};
+
+/// @brief The per-iteration callback both engines take.
+///
+/// Installed with set_iteration_callback() and removed with
+/// clear_iteration_callback(); both engines have both.
+///
+/// AN EXCEPTION THROWN FROM IT PROPAGATES OUT OF solve(). The solve is
+/// abandoned exactly as any other throw out of the iteration loop abandons it:
+/// no solve-end trace event, no ledger record for the abandoned solve, and the
+/// solver USABLE for the next call.
+using IterationCallback = std::function<CallbackAction(const IterationEvent &)>;
 
 /// @brief Computes the four shared diagnostics over the DECLARED problem.
 ///

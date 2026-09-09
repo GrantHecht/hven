@@ -246,42 +246,38 @@ std::vector<std::string> lines_of_event(const std::string &stream, const std::st
     return out;
 }
 
-/// @brief The whole `ipm.iter` body, keys included, so a comparison against a
-/// second serialization of the same record is byte-for-byte.
-std::string body_after_envelope(const std::string &line) {
-    const std::string pat = "\"depth\":";
-    const std::size_t p = line.find(pat);
-    if (p == std::string::npos) {
-        return {};
-    }
-    const std::size_t comma = line.find(',', p);
-    if (comma == std::string::npos) {
-        return {};
-    }
-    return line.substr(comma + 1);
-}
+// body_after_envelope() and serialize_iter() WENT with the late callback (M6
+// W5 T8.6). They existed to re-serialize the very `IterateInfo` the callback
+// was handed and compare it byte-for-byte against the line the sink wrote; the
+// shared iteration callback is handed a different view entirely, so there is
+// no second serialization of the same record to make. What replaced them is
+// the field-by-field comparison in the oracle tests below.
 
-/// @brief Serializes one record through a throwaway sink, so the oracle's copy
-/// of an `IterateInfo` is compared through the SAME writer the stream used --
-/// a field-by-field comparison here would be a second, weaker copy of the key
-/// list.
-std::string serialize_iter(const IterateInfo &record, Index phase) {
-    std::ostringstream os;
-    JsonLinesTraceSink sink(os);
-    sink.on_ipm_iter(IpmIterTraceEvent{record, phase});
-    return body_after_envelope(split_lines(os.str()).front());
-}
-
-/// @brief Records every `IterateInfo` the LATE CALLBACK is handed -- the
-/// oracle. Installed alongside the sink so both observe the same iterations.
+/// @brief Records every event the SHARED ITERATION CALLBACK is handed -- the
+/// oracle (M6 W5 T8.6; it recorded `IterateInfo` from the late callback until
+/// that callback was retired). Installed alongside the sink so both observe the
+/// same iterations.
+///
+/// WHAT IT CAN STILL COMPARE, AND WHAT IT CANNOT. The old oracle re-serialized
+/// the very record the stream had written, so its comparison covered every
+/// field of the line. The shared event is a DIFFERENT view -- declared space,
+/// caller units, four shared diagnostics in place of the engine's own -- so the
+/// two overlap in the row's IDENTITY (`iter`) and its OBJECTIVE (`prim_obj`,
+/// which is `f` at obj_scale 1) and in nothing else. Those two are what these
+/// tests now compare, one per row and in order, plus the count identity that
+/// was always the point: one event per `ipm.iter` line.
 struct CallbackOracle {
-    std::vector<IterateInfo> seen;
+    struct Seen {
+        Index iteration = 0;
+        Index phase = 0;
+        double f = 0.0;
+    };
+    std::vector<Seen> seen;
 
-    InteriorPointSolver::LateCallBackType hook() {
-        return [this](const IterateInfo &it, ConstEigenRef<Eigen::VectorXd>,
-                      ConstEigenRef<Eigen::VectorXd>) {
-            this->seen.push_back(it);
-            return 0;
+    hven::solvers::IterationCallback hook() {
+        return [this](const hven::solvers::IterationEvent &ev) {
+            this->seen.push_back(Seen{ev.iteration, ev.phase.value_or(-1), ev.f});
+            return hven::solvers::CallbackAction::kContinue;
         };
     }
 };
@@ -301,7 +297,7 @@ TEST(IpmTrace, IterCountEqualsTheReportedIterationsAndTheCallbackInvocations) {
     JsonLinesTraceSink sink(os);
     CallbackOracle oracle;
     solver.optimizer_->attach_trace(&sink);
-    solver.optimizer_->set_late_callback(oracle.hook());
+    solver.optimizer_->set_iteration_callback(oracle.hook());
 
     const hven::solvers::SolveStatus flag = solver.optimize(hs071_start());
     ASSERT_EQ(flag, hven::solvers::SolveStatus::kOptimal);
@@ -324,24 +320,31 @@ TEST(IpmTrace, EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder) {
     JsonLinesTraceSink sink(os);
     CallbackOracle oracle;
     solver.optimizer_->attach_trace(&sink);
-    solver.optimizer_->set_late_callback(oracle.hook());
+    solver.optimizer_->set_iteration_callback(oracle.hook());
     ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
 
     const std::vector<std::string> iter_lines = lines_of_event(os.str(), "ipm.iter");
     ASSERT_EQ(iter_lines.size(), oracle.seen.size());
     ASSERT_FALSE(iter_lines.empty());
     for (std::size_t k = 0; k < iter_lines.size(); ++k) {
-        // The oracle's record is re-serialized through the same writer, so this
-        // compares EVERY field of the line -- including the two `null`
-        // conventions -- and not a hand-picked subset.
-        EXPECT_EQ(body_after_envelope(iter_lines[k]), serialize_iter(oracle.seen[k], 0))
+        // ONE EVENT PER LINE, IN ORDER, describing the SAME iterate: the row's
+        // own index and the objective at it. `{:.17g}` round-trips exactly, so
+        // the objective comparison is an equality and not a tolerance -- this
+        // solve runs at obj_scale 1, where the event's caller-unit `f` and the
+        // line's engine-unit `prim_obj` are one number.
+        EXPECT_EQ(std::stoll(field(iter_lines[k], "iter")), oracle.seen[k].iteration)
+            << "at ipm.iter line " << k;
+        EXPECT_EQ(std::stod(field(iter_lines[k], "prim_obj")), oracle.seen[k].f)
+            << "at ipm.iter line " << k;
+        EXPECT_EQ(std::stoll(field(iter_lines[k], "phase")), oracle.seen[k].phase)
             << "at ipm.iter line " << k;
     }
-    // FALSIFIABILITY: the comparison above must be able to fail. A record whose
-    // iteration index is bumped serializes differently.
-    IterateInfo mutated = oracle.seen.back();
-    mutated.iter_ += 1;
-    EXPECT_NE(body_after_envelope(iter_lines.back()), serialize_iter(mutated, 0));
+    // FALSIFIABILITY: the comparison above must be able to fail. Shifted by one
+    // row it does -- consecutive iterates of this solve carry distinct indices
+    // and distinct objectives.
+    ASSERT_GT(iter_lines.size(), 1u);
+    EXPECT_NE(std::stoll(field(iter_lines.back(), "iter")),
+              oracle.seen[oracle.seen.size() - 2].iteration);
 }
 
 TEST(IpmTrace, TheLastIterLineEqualsTheLastRecordTheCallbackSaw) {
@@ -355,13 +358,16 @@ TEST(IpmTrace, TheLastIterLineEqualsTheLastRecordTheCallbackSaw) {
     JsonLinesTraceSink sink(os);
     CallbackOracle oracle;
     solver.optimizer_->attach_trace(&sink);
-    solver.optimizer_->set_late_callback(oracle.hook());
+    solver.optimizer_->set_iteration_callback(oracle.hook());
     ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
 
     const std::vector<std::string> iter_lines = lines_of_event(os.str(), "ipm.iter");
     ASSERT_FALSE(iter_lines.empty());
     ASSERT_FALSE(oracle.seen.empty());
-    EXPECT_EQ(body_after_envelope(iter_lines.back()), serialize_iter(oracle.seen.back(), 0));
+    // THE TERMINAL ROW FIRES TOO (M6 W5 T8.6's `IpmTerminalRowStillFires`, read
+    // from the trace's side): the last event describes the last line.
+    EXPECT_EQ(std::stoll(field(iter_lines.back(), "iter")), oracle.seen.back().iteration);
+    EXPECT_EQ(std::stod(field(iter_lines.back(), "prim_obj")), oracle.seen.back().f);
 }
 
 TEST(IpmTrace, TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProximalMode) {

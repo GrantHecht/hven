@@ -28,8 +28,10 @@ enum class QpStatus {
 /// @brief The verdict on a whole solve, reported by both engines.
 ///
 /// Reachability differs per engine: the interior-point engine reports neither
-/// kInfeasible nor kBudgetExhausted, the SQP engine reports none of kAcceptable,
-/// kStalled and kDiverging, and neither reports kInterrupted today.
+/// kInfeasible nor kBudgetExhausted, and the SQP engine reports none of
+/// kAcceptable, kStalled and kDiverging. BOTH report kInterrupted as of M6 W5
+/// T8.6 -- it is what a per-iteration callback returning CallbackAction::kStop
+/// gets, at the point the engine was standing on.
 ///
 /// THE SQP ENGINE'S OWN NOTES, moved here from the removed SqpStatus (M6 W5
 /// T8.4) because they describe values this enum now carries:
@@ -96,6 +98,11 @@ enum class IpmStopReason {
     kIterationCap = 1,
     kRestorationLocallyInfeasible = 2,
     kStageStalled = 3,
+    /// The per-iteration callback returned CallbackAction::kStop (M6 W5 T8.6).
+    /// A CALLER'S DECISION, not a verdict about the problem -- which is why it
+    /// is a stop reason and why resolve_ipm_phase_status still lets a verdict
+    /// the convergence check already holds win over it.
+    kInterrupted = 4,
 };
 
 /// @brief Maps a status to its lower-case display name.
@@ -107,7 +114,7 @@ const char *to_string(SolveStatus status);
 /// @brief Maps a stop reason to its lower-case display name.
 /// @param reason The stop reason.
 /// @return A static string, never null.
-/// @throws std::invalid_argument if @p reason is not one of the four.
+/// @throws std::invalid_argument if @p reason is not one of the five.
 const char *to_string(IpmStopReason reason);
 
 /// @brief The reporting order over all nine statuses, weakest verdict first.

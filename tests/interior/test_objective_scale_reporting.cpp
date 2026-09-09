@@ -219,7 +219,7 @@ double obj_scale_installed_seed(double scale) {
     double installed = 0.0;
     bool seen = false;
     const int primal_vars = ObjScaleBoxedProblem::kN;
-    solver.optimizer_->set_early_callback(
+    solver.optimizer_->set_kkt_hook(
         [&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd> xsl, double,
             hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
             Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
@@ -406,22 +406,22 @@ TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedO
 
     bool attempted = false;
     bool refused = false;
-    solver.optimizer_->set_early_callback(
-        [&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
-            hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
-            Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
-            if (iteration == 0 && !attempted) {
-                auto o = solver.optimizer_->options();
-                o.obj_scale = 4.0;
-                try {
-                    solver.optimizer_->set_options(std::move(o));
-                } catch (const std::logic_error &) {
-                    refused = true;
-                }
-                attempted = true;
+    solver.optimizer_->set_kkt_hook([&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd>,
+                                        double, hven::ConstEigenRef<Eigen::VectorXd>,
+                                        hven::ConstEigenRef<Eigen::VectorXd>,
+                                        Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+        if (iteration == 0 && !attempted) {
+            auto o = solver.optimizer_->options();
+            o.obj_scale = 4.0;
+            try {
+                solver.optimizer_->set_options(std::move(o));
+            } catch (const std::logic_error &) {
+                refused = true;
             }
-            return 0;
-        });
+            attempted = true;
+        }
+        return 0;
+    });
 
     ASSERT_EQ(solver.optimize(Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6)),
               hven::solvers::SolveStatus::kOptimal);
@@ -438,7 +438,7 @@ TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedO
     // Between calls the replacement goes through, and the next call runs at 4
     // and reports the same caller-scale numbers because that is what the seam
     // is for.
-    solver.optimizer_->disable_early_callback();
+    solver.optimizer_->clear_kkt_hook();
     {
         auto o = solver.optimizer_->options();
         o.obj_scale = 4.0;

@@ -9,6 +9,7 @@
 #pragma once
 #include <array>
 #include <cassert>
+#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
@@ -33,6 +34,7 @@
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/drivers/common_options.h"
 #include "hven/drivers/ipm_solver_types.h"
+#include "hven/drivers/solve_result.h"
 #include "hven/drivers/solve_status.h"
 #include "hven/model/non_linear_program.h"
 #include "hven/warmstart/seeding.h"
@@ -153,7 +155,19 @@ class InteriorPointSolver {
     ///        signatures and entry points.
     using VectorXd = Eigen::VectorXd;
 
-    /// @brief Type of the per-iteration early callback.
+    /// @brief Type of the per-iteration KKT hook -- THE ONE INTERIOR-POINT-ONLY
+    ///        EXTENSION of the shared solver surface (M6 W5 T8.6).
+    ///
+    /// LABELLED AS SUCH AND NOT INVENTED FOR THE SQP ENGINE. The shared
+    /// per-iteration callback both engines carry is IterationCallback
+    /// (drivers/solve_result.h), installed with set_iteration_callback(); this
+    /// hook is a different thing entirely -- it hands out the ASSEMBLED,
+    /// NOT-YET-FACTORIZED KKT matrix of the interior-point Newton system, which
+    /// is a structure the SQP engine does not have. Nothing equivalent exists
+    /// there, deliberately (design section 2.5).
+    ///
+    /// Semantics are UNCHANGED from W5 T2's early callback; only the name is
+    /// new. See docs/notes/2026-09-m6-w5-migration-guide.md.
     ///
     /// The iterate, right-hand side and KKT matrix are the SOLVER's own, in its
     /// REDUCED primal space: a bound-fixed variable is eliminated, so the primal
@@ -180,14 +194,19 @@ class InteriorPointSolver {
     /// multiplier blocks and abandons the iteration
     /// (src/drivers/interior_point_solver.cpp:2199).
     /// @see docs/notes/2026-09-header-prose-archive.md §interior_point_solver.h
-    using EarlyCallBackType =
+    using KktHook =
         std::function<int(int, double, ConstEigenRef<VectorXd>, double, ConstEigenRef<VectorXd>,
                           ConstEigenRef<VectorXd>, Eigen::SparseMatrix<double, Eigen::RowMajor> &)>;
 
-    /// Type of the per-iteration late callback (same variable-space caveat --
-    /// see EarlyCallBackType's note).
-    using LateCallBackType =
-        std::function<int(const IterateInfo &, ConstEigenRef<VectorXd>, ConstEigenRef<VectorXd>)>;
+    // LateCallBackType WENT in M6 W5 T8.6, and IterateInfo left the public
+    // surface with it. Its replacement is the SHARED per-iteration callback
+    // both engines take -- hven::solvers::IterationCallback, over
+    // IterationEvent, in drivers/solve_result.h -- installed with
+    // set_iteration_callback() below. The old type handed out this engine's own
+    // per-iteration record in this engine's own space; the new one hands out
+    // one view of one iteration, in DECLARED space and CALLER units, that a
+    // caller can write once against either engine. The migration guide has the
+    // field-by-field table.
 
     // --- Constructors / destructor ---
     // All three are defined out-of-line in interior_point_solver.cpp: the
@@ -442,25 +461,52 @@ class InteriorPointSolver {
     // value rather than mutating a solver's settings in place. See
     // drivers/ipm_solver_types.h.
 
-    // --- Callback methods ---
-    /// Installs the per-iteration early callback. The vectors and matrix it
-    /// receives are in the SOLVER's variable space, which is narrower than the
-    /// caller's on a problem with bound-fixed variables -- see the space note
-    /// on EarlyCallBackType above.
-    void set_early_callback(const EarlyCallBackType &f) {
-        this->early_callback_enabled_ = true;
-        this->early_callback_ = f;
+    // --- The shared per-iteration callback (M6 W5 T8.6) ---
+    /// @brief Installs the per-iteration callback both engines take.
+    ///
+    /// WHEN IT FIRES: once per `ipm.iter` trace row -- one event per iterate,
+    /// at the TOP of the iteration that iterate starts, after its residuals
+    /// have been measured and BEFORE its KKT matrix is factorized. So the event
+    /// describes the COMMITTED point of the previous step, with the diagnostics
+    /// of that point (design section 2.7 behaviour change (2)); the last event
+    /// of a phase describes the point that phase returns, because every in-loop
+    /// exit breaks above the commit.
+    ///
+    /// WHAT kStop DOES: the solve ends at the point the event just described --
+    /// pre-factorization, so no work is spent on an answer the caller no longer
+    /// wants -- and reports kInterrupted (IpmStopReason::kInterrupted). A stop
+    /// returned at a phase's LAST event is read too: the phase's own verdict
+    /// stands (a CONVERGED iterate still reports kOptimal -- converged beats
+    /// stop), and the remaining phases do not run, reporting `ran == false`.
+    ///
+    /// The callback may throw; the exception propagates out of solve(), no
+    /// solve-end trace event is emitted, and this solver stays usable.
+    ///
+    /// @param cb The callback. An empty std::function is the same as clearing.
+    void set_iteration_callback(IterationCallback cb) { this->iteration_callback_ = std::move(cb); }
+    /// @brief Removes the per-iteration callback.
+    void clear_iteration_callback() { this->iteration_callback_ = nullptr; }
+
+    // --- The interior-point-only KKT hook (M6 W5 T8.6; W5 T2 semantics) ---
+    /// Installs the per-iteration KKT hook. The vectors and matrix it receives
+    /// are in the SOLVER's variable space, which is narrower than the caller's
+    /// on a problem with bound-fixed variables -- see the space note on KktHook
+    /// above. THIS IS THE ONE INTERIOR-POINT-ONLY EXTENSION; the SQP engine has
+    /// nothing equivalent, by design.
+    void set_kkt_hook(const KktHook &f) {
+        this->kkt_hook_enabled_ = true;
+        this->kkt_hook_ = f;
     }
-    /// @brief Disables the early callback.
-    void disable_early_callback() { this->early_callback_enabled_ = false; }
-    /// Installs the per-iteration late callback. Same variable-space caveat as
-    /// set_early_callback -- see the note on LateCallBackType above.
-    void set_late_callback(const LateCallBackType &f) {
-        this->late_callback_enabled_ = true;
-        this->late_callback_ = f;
+    /// @brief Removes the KKT hook.
+    ///
+    /// UNLIKE the disable_early_callback() it replaces, this CLEARS the stored
+    /// hook rather than only disarming it: "clear" is what the name says and
+    /// what clear_iteration_callback() does, and nothing in the tree re-armed a
+    /// disabled hook by calling the setter with no argument.
+    void clear_kkt_hook() {
+        this->kkt_hook_enabled_ = false;
+        this->kkt_hook_ = nullptr;
     }
-    /// @brief Disables the late callback.
-    void disable_late_callback() { this->late_callback_enabled_ = false; }
 
     // --- Machine trace (schema v0) ---
     /// @brief Attaches a trace sink; `nullptr` (the default) is off.
@@ -947,10 +993,19 @@ class InteriorPointSolver {
     bool solve_exit_restoration_active_ = false;
 
     // --- Callbacks ---
-    EarlyCallBackType early_callback_;
-    bool early_callback_enabled_ = false;
-    LateCallBackType late_callback_;
-    bool late_callback_enabled_ = false;
+    /// The interior-point-only KKT hook and its arming flag; see set_kkt_hook.
+    KktHook kkt_hook_;
+    bool kkt_hook_enabled_ = false;
+    /// The SHARED per-iteration callback (M6 W5 T8.6). No separate arming flag:
+    /// an installed std::function is armed and an empty one is not, which is
+    /// the whole of clear_iteration_callback().
+    IterationCallback iteration_callback_;
+
+    /// When this solve's public entry was taken, for IterationEvent::
+    /// elapsed_seconds. Written by every public solve() overload at the same
+    /// statement that starts the shared wall clock, so the two measure from one
+    /// instant. INFORMATIONAL, never asserted (CLAUDE.md section 7).
+    std::chrono::steady_clock::time_point entry_time_{};
 
     /// The attached trace sink, or null. Never owned; see attach_trace().
     TraceSink *trace_ = nullptr;
@@ -968,6 +1023,19 @@ class InteriorPointSolver {
     // the options a solve is running under. A nested restoration phase builds a
     // DISTINCT solver, so it never re-enters this object's guard.
     bool solve_in_flight_ = false;
+
+    /// Has the per-iteration callback asked this call to stop? Set by
+    /// fire_iteration_event when the callback returns kStop, cleared once per
+    /// call at run_phase_sequence's entry (NOT per phase -- a stop in phase 0
+    /// has to reach the phase loop that decides whether phase 1 runs).
+    ///
+    /// PLACED HERE, BEFORE last_stop_reason_, deliberately (M6 W5 T8.6): that
+    /// member is the LAST one on purpose, so that appending to this class moves
+    /// no existing offset. This bool goes beside solve_in_flight_ instead, in
+    /// the padding that flag's own word already had -- so the tail layout is
+    /// unchanged and last_stop_reason_ stays last. sizeof() still moves (the
+    /// std::function member above), which is named in this task's P-SYM set.
+    bool interrupt_requested_ = false;
 
     /// Which door the current phase left its loop by; see last_stop_reason().
     /// Written by run_phase_sequence (the per-phase reset) and by alg_impl's two
@@ -1397,6 +1465,40 @@ class InteriorPointSolver {
     void fill_iter_info(KKTVector &xsl, KKTVector &rhs, double pobj, double bobj, double mu,
                         IterateInfo &iter) const;
     SolveStatus converge_check(std::vector<IterateInfo> &iters);
+
+    /// @brief Builds ONE IterationEvent from the live iterate and hands it to
+    ///        the installed per-iteration callback (M6 W5 T8.6).
+    ///
+    /// EVERY FIELD IS BUILT IN DECLARED SPACE AND CALLER UNITS, by the same
+    /// arithmetic the declared-space seam in run_phase_sequence applies to the
+    /// result: the reduced primal space is scattered back, the internal fixing
+    /// rows come off the equality block and reappear in the bound price as
+    /// `z = -lambda_fix`, the objective scale this call runs at is divided out,
+    /// and the four shared diagnostics come from compute_declared_diagnostics_
+    /// from_grad_lag through the `grad_lag` door -- no evaluation, so an armed
+    /// callback moves no evaluation counter.
+    ///
+    /// THE PROVENANCE RULE IS THE RESULT'S (T8.4 fix1): an event taken while
+    /// feasibility restoration is active reports all four diagnostics NaN with
+    /// the two constraint blocks EMPTY, and an event from a feasibility phase
+    /// (SOE / OPTNO) reports `stationarity` NaN alone -- exactly what the
+    /// result would report at that point.
+    ///
+    /// The four vector views the callback sees alias LOCALS of this function,
+    /// which is what makes "valid for the call only" true by construction.
+    ///
+    /// A NO-OP when no callback is installed, and it builds nothing then.
+    ///
+    /// @param iter       The iterate record whose residual half has been filled.
+    /// @param XSL        The live compound iterate.
+    /// @param RHS        The live right-hand side, at that iterate.
+    /// @param mu         The barrier parameter this iterate was evaluated under,
+    ///                   at the SOLVER's objective scale (divided out here).
+    /// @param step_norm  Inf-norm of the primal block of the committed
+    ///                   alpha * DXSL that reached this iterate; 0 at the first
+    ///                   iterate of a phase.
+    void fire_iteration_event(const IterateInfo &iter, const Eigen::VectorXd &XSL,
+                              const Eigen::VectorXd &RHS, double mu, double step_norm);
 
     // Best-iterate bookkeeping for the return_best_ path (off by default). Scores
     // `iter` under best_criteria_ and, when it ties or beats the incumbent (or is

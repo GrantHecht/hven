@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cassert>
+#include <chrono>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
@@ -945,7 +946,7 @@ hven::solvers::InteriorPointSolver::kkt_pattern_check() const {
     // the call verifies even though earlier ones -- which never had the
     // matrix out -- did not need to. Once set, never cleared before the call
     // ends: the only reset site is the entry assignment above, so a
-    // disable_early_callback() mid-call cannot hand the skip back.
+    // clear_kkt_hook() mid-call cannot hand the skip back.
     if (this->verify_kkt_pattern_for_solve_) {
         return KktFactorization::PatternCheck::kVerify;
     }
@@ -2030,6 +2031,188 @@ void hven::solvers::InteriorPointSolver::track_best_iterate(const IterateInfo &i
     }
 }
 
+// ---------------------------------------------------------------------------
+// ONE ITERATION EVENT, IN DECLARED SPACE AND CALLER UNITS (M6 W5 T8.6).
+//
+// THE ARITHMETIC IS run_phase_sequence's DECLARED-SPACE SEAM, applied to the
+// LIVE iterate instead of to the result: the reduced primal space is scattered
+// back, the internal fixing rows come off the tail of the equality block and
+// reappear in the bound price as z = -lambda_fix, the objective scale this call
+// runs at is divided out of f, mu and the three multiplier blocks, and the four
+// shared diagnostics come from the one definition, through the `grad_lag` door,
+// with T8.4 fix1's provenance rule applied unchanged. It is deliberately the
+// same arithmetic and not a second one: a caller comparing an event against the
+// result it eventually gets must not find two answers to one question.
+//
+// IT EVALUATES NOTHING. Every quantity is read off storage the iteration
+// already wrote, so an armed callback moves no evaluation counter -- which is
+// what makes the interior corpus leg's second run (identical rows, callback
+// attached) a real identity proof rather than a coincidence.
+//
+// THE VIEWS ARE LOCALS OF THIS FUNCTION, which is the whole of
+// IterationEvent's "valid for the call only": the callback runs inside this
+// frame and the storage dies with it.
+// ---------------------------------------------------------------------------
+void hven::solvers::InteriorPointSolver::fire_iteration_event(const IterateInfo &iter,
+                                                              const Eigen::VectorXd &XSL,
+                                                              const Eigen::VectorXd &RHS, double mu,
+                                                              double step_norm) {
+    if (!this->iteration_callback_) {
+        return;
+    }
+    ConstKKTVector v_xsl = this->kkt_view(XSL);
+    ConstKKTVector v_rhs = this->kkt_view(RHS);
+
+    const double scale = this->solve_obj_scale_;
+    const Eigen::Index n = this->full_primal_vars_;
+    const Eigen::Index user_eq = this->nlp_->user_equal_cons_;
+    const Eigen::Index fixing_rows = static_cast<Eigen::Index>(this->equal_cons_) - user_eq;
+    const auto &fixed_idx = this->nlp_->fixed_variable_indices();
+    const bool have_fixing_rows = fixing_rows > 0 && fixed_idx.size() == fixing_rows;
+
+    // (1) The primals, scattered to declared width. A positive objective scale
+    //     does not move a point, so nothing is divided out here.
+    Eigen::VectorXd x_declared;
+    if (this->nlp_->is_reduced()) {
+        x_declared.resize(n);
+        this->nlp_->scatter_full_x(Eigen::VectorXd(v_xsl.primals()), x_declared);
+    } else {
+        x_declared = v_xsl.primals();
+    }
+
+    // (2) The equality prices, with the treatment's own rows taken off the tail
+    //     and held for the bound price and the gradient below.
+    Eigen::VectorXd lambda_e_declared;
+    Eigen::VectorXd fixed_lambda;
+    if (this->equal_cons_ > 0) {
+        const Eigen::VectorXd all_e = v_xsl.eq_lmults();
+        if (have_fixing_rows) {
+            fixed_lambda = all_e.tail(fixing_rows) / scale;
+        }
+        lambda_e_declared = all_e.head(user_eq) / scale;
+    }
+    Eigen::VectorXd lambda_i_declared;
+    if (this->inequal_cons_ > 0) {
+        lambda_i_declared = Eigen::VectorXd(v_xsl.iq_lmults()) / scale;
+    }
+
+    // (3) The bound price, folded from the two per-side multipliers with the
+    //     signs the stationarity convention forces, scattered to declared
+    //     width, and given the fixing row's own price where a MakeConstraint
+    //     coordinate has one.
+    Eigen::VectorXd z_declared = Eigen::VectorXd::Zero(n);
+    if (this->bounds_) {
+        Eigen::VectorXd z_reduced = Eigen::VectorXd::Zero(this->primal_vars_);
+        const int nl = static_cast<int>(this->bounds_->lower_idx_.size());
+        const int nu = static_cast<int>(this->bounds_->upper_idx_.size());
+        for (int k = 0; k < nl; k++)
+            z_reduced[this->bounds_->lower_idx_[k]] += this->bound_duals_.z_lower_[k];
+        for (int k = 0; k < nu; k++)
+            z_reduced[this->bounds_->upper_idx_[k]] -= this->bound_duals_.z_upper_[k];
+        z_reduced /= scale;
+        if (this->nlp_->is_reduced()) {
+            const auto &r2f = this->nlp_->reduced_to_full();
+            if (r2f.size() == z_reduced.size()) {
+                for (Eigen::Index k = 0; k < z_reduced.size(); ++k) {
+                    z_declared[r2f[k]] = z_reduced[k];
+                }
+            }
+        } else if (z_reduced.size() == n) {
+            z_declared = z_reduced;
+        }
+    }
+    if (have_fixing_rows) {
+        for (Eigen::Index k = 0; k < fixing_rows; ++k) {
+            z_declared[fixed_idx[k]] = -fixed_lambda[k];
+        }
+    }
+
+    // (4) The two constraint blocks, declared rows only.
+    Eigen::VectorXd ce_declared;
+    Eigen::VectorXd ci_declared;
+    if (this->equal_cons_ > 0) {
+        ce_declared = Eigen::VectorXd(v_rhs.eq_cons()).head(user_eq);
+    }
+    if (this->inequal_cons_ > 0) {
+        ci_declared = v_rhs.iq_cons() - v_xsl.slacks();
+    }
+
+    // (5) THE PROVENANCE GATE, the result's own (T8.4 fix1). The evaluation
+    //     this event reads is the one THIS iteration took at the top of the
+    //     loop, so `cur_eval_prov_` describes it exactly.
+    const ExitEvalProvenance &prov = this->cur_eval_prov_;
+    const bool restoration_contaminated =
+        prov.restoration_active ||
+        (this->restoration_ != nullptr && this->restoration_->is_active());
+    if (restoration_contaminated) {
+        // The rows this right-hand side carries are the restoration
+        // subproblem's condensed residuals, not the declared ones. Emptied
+        // rather than copied -- an empty block reads as unmeasured, a copied
+        // one would read as a feasible point.
+        ce_declared.resize(0);
+        ci_declared.resize(0);
+    }
+
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    DeclaredDiagnostics diag;
+    const bool measured = prov.has_eval && !restoration_contaminated &&
+                          v_rhs.prim_grad().size() == this->primal_vars_;
+    if (measured) {
+        Eigen::VectorXd grad_lag = Eigen::VectorXd::Zero(n);
+        std::vector<Index> excluded;
+        if (this->nlp_->is_reduced()) {
+            const auto &r2f = this->nlp_->reduced_to_full();
+            for (Eigen::Index k = 0; k < this->primal_vars_; ++k) {
+                grad_lag[r2f[k]] = v_rhs.prim_grad()[k] / scale;
+            }
+            excluded.reserve(static_cast<std::size_t>(fixed_idx.size()));
+            for (Eigen::Index k = 0; k < fixed_idx.size(); ++k) {
+                excluded.push_back(fixed_idx[k]);
+            }
+        } else {
+            grad_lag = Eigen::VectorXd(v_rhs.prim_grad()) / scale;
+        }
+        if (have_fixing_rows) {
+            for (Eigen::Index k = 0; k < fixing_rows; ++k) {
+                grad_lag[fixed_idx[k]] -= fixed_lambda[k];
+            }
+        }
+        diag = compute_declared_diagnostics_from_grad_lag(
+            x_declared, lambda_i_declared, z_declared, grad_lag, ce_declared, ci_declared,
+            this->nlp_->x_lower_, this->nlp_->x_upper_, excluded);
+        // CLAUSE (a): a feasibility phase measures every declared quantity
+        // except the objective gradient, so stationarity ALONE is unmeasured
+        // there. Exactly what the result reports at such an exit.
+        if (!prov.objective_bearing) {
+            diag.stationarity = nan;
+        }
+    }
+
+    IterationEvent event{
+        .iteration = static_cast<Index>(iter.iter_),
+        .phase = this->trace_phase_,
+        .depth = std::nullopt,
+        .f = iter.prim_obj_ / scale,
+        .stationarity = diag.stationarity,
+        .feasibility_e = diag.feasibility_e,
+        .feasibility_i = diag.feasibility_i,
+        .complementarity = diag.complementarity,
+        .step_norm = step_norm,
+        .radius = std::nullopt,
+        .mu = mu / scale,
+        .x = x_declared,
+        .lambda_e = lambda_e_declared,
+        .lambda_i = lambda_i_declared,
+        .z = z_declared,
+        .elapsed_seconds =
+            std::chrono::duration<double>(std::chrono::steady_clock::now() - this->entry_time_)
+                .count(),
+    };
+    if (this->iteration_callback_(event) == CallbackAction::kStop) {
+        this->interrupt_requested_ = true;
+    }
+}
+
 Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algmode,
                                                              BarrierModes barmode,
                                                              LineSearchModes lsmode,
@@ -2142,6 +2325,12 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     bool restoration_was_active = false;
     double restoration_true_obj = 0.0;
 
+    // THE LAST COMMITTED STEP'S PRIMAL INF-NORM, carried across the loop
+    // boundary for the next iterate's IterationEvent (M6 W5 T8.6). 0 at the
+    // phase's first iterate: nothing was stepped to reach it. Written only
+    // while a callback is installed -- see the commit site.
+    double last_step_norm = 0.0;
+
     Runtimer.start();
     // The loop index is hoisted so the post-loop cap door below can tell
     // EXHAUSTION (i == max_iters_) from any of the three outer breaks, which all
@@ -2226,12 +2415,13 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         }
 
         Funtimer.stop();
-        if (this->early_callback_enabled_) {
+        if (this->kkt_hook_enabled_) {
             CBtimer.start();
             // Set at the hand-out itself, not only trusted to have been set at
-            // solve entry: early_callback_enabled_ is re-read every iteration, so
-            // a callback armed mid-call (set_early_callback() called from inside
-            // the late callback below, which nothing in the API forbids) reaches
+            // solve entry: kkt_hook_enabled_ is re-read every iteration, so
+            // a hook armed mid-call (set_kkt_hook() called from inside the
+            // shared iteration callback below, which nothing in the API forbids)
+            // reaches
             // this statement with the entry assignment still false. Setting the
             // flag right beside the hand-out, unconditionally, is what makes "the
             // matrix was handed out => every subsequent factorization this call
@@ -2239,9 +2429,9 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             // armed -- this iteration's own upcoming factor_impl() included.
             // Nothing clears it again before the call ends (see
             // run_phase_sequence()'s entry assignment, the only reset site), so a
-            // later disable_early_callback() cannot hand the skip back either.
+            // later clear_kkt_hook() cannot hand the skip back either.
             this->verify_kkt_pattern_for_solve_ = true;
-            this->early_callback_(i, obj_scale, XSL, prim_obj, PGX, RHS, this->kkt_sol_.matrix());
+            this->kkt_hook_(i, obj_scale, XSL, prim_obj, PGX, RHS, this->kkt_sol_.matrix());
             CBtimer.stop();
         }
 
@@ -2592,12 +2782,23 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             // SITE 1 OF 2 (`ipm.iter`, M6 W4 T4): the CONVERGE-CHECK EARLY EXIT,
             // reached before this iterate is factorized, so its line carries the
             // fresh defaults for everything a factorization would have written.
+            // The iteration callback's TERMINAL dispatch is immediately below.
             if (this->trace_ != nullptr) {
                 this->trace_->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
             }
-            if (this->late_callback_enabled_) {
+            // THE TERMINAL DISPATCH OF THE SHARED ITERATION CALLBACK (M6 W5
+            // T8.6), where the late callback used to fire and for the same
+            // reason: this block IS the phase's exit, so the event it hands out
+            // describes the point the phase returns. Fired BEFORE the
+            // return_best substitution below, exactly as the late callback was.
+            //
+            // ITS kStop IS READ, and it does one thing: it ends the PHASE
+            // SEQUENCE. This phase's own verdict is already settled -- a
+            // converged iterate reports kOptimal, "converged beats stop" -- and
+            // run_phase_sequence's short-circuit is what the stop reaches.
+            if (this->iteration_callback_) {
                 CBtimer.start();
-                this->late_callback_(iters.back(), XSL, RHS);
+                this->fire_iteration_event(iters.back(), XSL, RHS, mu, last_step_norm);
                 CBtimer.stop();
             }
 
@@ -2758,6 +2959,70 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                 }
             }
         }
+
+        // ===============================================================
+        // THE CONTINUING DISPATCH OF THE SHARED ITERATION CALLBACK (M6 W5
+        // T8.6, design section 2.7 behaviour change (2)).
+        //
+        // HERE, AND NOT AT THE BOTTOM OF THE ITERATION, for two reasons that
+        // are really one. The event has to describe the COMMITTED point with
+        // the DIAGNOSTICS OF THAT POINT, and the committed point's residuals
+        // are not evaluated until the top of the iteration that starts from it
+        // -- which is exactly where this statement is, `fill_residual_info`
+        // having run above. And a `kStop` honoured here costs nothing: the
+        // factorization and KKT solve for an iteration the caller has already
+        // stopped are never spent.
+        //
+        // AND AT THIS PARTICULAR STATEMENT, not higher: every path that
+        // ABANDONS this iteration -- the four restoration dispatches and the
+        // feasibility-stall entry above -- pops the record and `continue`s
+        // before reaching here, and none of them emits an `ipm.iter` row
+        // either. So "one event per trace row" is what this placement buys,
+        // and `iters.back()` is still the record those rows are built from.
+        //
+        // The TERMINAL dispatch is the converge-check early-exit block's, above;
+        // the two are mutually exclusive and adjacent, and between them every
+        // `ipm.iter` row has exactly one event.
+        if (this->iteration_callback_) {
+            CBtimer.start();
+            this->fire_iteration_event(iters.back(), XSL, RHS, mu, last_step_norm);
+            CBtimer.stop();
+        }
+        // THE STOP, HONOURED PRE-FACTORIZATION. The point being returned is the
+        // one the event above just described, so the caller gets back exactly
+        // what it looked at when it said stop. NOTCONVERGED is a precondition
+        // rather than a test: a converged/acceptable/diverging iterate left
+        // through the early-exit block above and never reached this statement,
+        // which is how "converged beats stop" holds without a second rule.
+        //
+        // NO return_best SUBSTITUTION, unlike the two NOTCONVERGED exits below:
+        // a stop is a caller's decision about a POINT it has just been shown,
+        // and handing back a different iterate than the one it stopped on would
+        // make the event a lie. The verdict is kMaxIter + kInterrupted, which
+        // resolve_ipm_phase_status maps to kInterrupted.
+        if (this->interrupt_requested_) {
+            iters.back().mu_ = mu;
+            QPtimer.stop();
+            ExitCode = SolveStatus::kMaxIter;
+            this->last_stop_reason_ = IpmStopReason::kInterrupted;
+            this->result_.status = ExitCode;
+            // The row this event belongs to, so the trace still has one line per
+            // event on this path too.
+            if (this->trace_ != nullptr) {
+                this->trace_->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
+            }
+            if (opts_.common.print_level == 0) {
+                Printtimer.start();
+                this->print_last_iterate(iters);
+                Printtimer.stop();
+            }
+            if (opts_.common.print_level < 3)
+                fmt::print(fmt::fg(fmt::color::yellow),
+                           "Solve interrupted by the iteration callback at iteration {}.\n",
+                           iters.back().iter_);
+            break;
+        }
+        // ===============================================================
 
         iters.pop_back();
 
@@ -3345,16 +3610,21 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             this->track_best_iterate(iters.back(), i, XSL, RHS, BestCriteriaVal, BestIter);
 
         // SITE 2 OF 2 (`ipm.iter`): the ORDINARY END-OF-ITERATION site, after
-        // fill_iter_info. Emitted immediately before the late callback at both
-        // sites, so the callback is the event's oracle.
+        // fill_iter_info. Its ROW is this iteration's; the shared iteration
+        // callback's matching EVENT fired at the top of this iteration (M6 W5
+        // T8.6), so the two are still one-for-one and the callback is still the
+        // event stream's oracle -- it just runs before the factorization rather
+        // than after it.
         if (this->trace_ != nullptr) {
             this->trace_->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
         }
-        if (this->late_callback_enabled_) {
-            CBtimer.start();
-            this->late_callback_(iters.back(), XSL, RHS);
-            CBtimer.stop();
-        }
+        // THE LATE CALLBACK USED TO FIRE HERE, and it does not any more (M6 W5
+        // T8.6). Its replacement -- the shared iteration callback -- fires ONE
+        // event per `ipm.iter` row at the TOP of the iteration that row belongs
+        // to, pre-factorization, which is where the committed point's residuals
+        // have just been measured and where a stop can be honoured without
+        // spending a factorization on it. See fire_iteration_event's own note
+        // and the two dispatch sites above.
 
         ExitCode = this->converge_check(iters);
         if (!GoodStep)
@@ -3427,6 +3697,15 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
 
         // Apply step
         XSL += alpha * DXSL;
+
+        // THE STEP THAT REACHED THE NEXT ITERATE, for that iterate's own
+        // IterationEvent (M6 W5 T8.6). Taken here because here is the one place
+        // the step exists: `DXSL` is overwritten by the next iteration's solve.
+        // COMPUTED ONLY WHEN A CALLBACK IS INSTALLED, so a solve without one is
+        // not merely bit-identical but arithmetically untouched.
+        if (this->iteration_callback_) {
+            last_step_norm = (alpha * DXSL.head(this->primal_vars_)).lpNorm<Eigen::Infinity>();
+        }
 
         // The ONE iterate-commit site, and therefore the only place the bound
         // multipliers move ALONG dz. (They are written at one other site, the
@@ -3668,7 +3947,16 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     // the result describes on every path -- harmless while this row fed only
     // print_exit_stats, a wrong-answer shape once it is promoted onto
     // SolveResult.
-    const int retiter = (opts_.return_best && ExitCode != SolveStatus::kOptimal)
+    //
+    // AND THE INTERRUPT EXIT IS NOT ONE OF THEM (M6 W5 T8.6). That exit
+    // deliberately does NOT substitute -- a caller that stopped on a point it
+    // was just shown gets that point back -- so its row must be the LAST one
+    // too, or the four residual columns below would describe the best iterate
+    // beside primals describing the current one. Written as a third conjunct
+    // rather than by reading `best_substituted`, so that every pre-existing
+    // path takes exactly the expression it always took.
+    const int retiter = (opts_.return_best && ExitCode != SolveStatus::kOptimal &&
+                         this->last_stop_reason_ != IpmStopReason::kInterrupted)
                             ? BestIter
                             : static_cast<int>(iters.size()) - 1;
     // The four residual columns of the row selected just above; written per
@@ -4558,7 +4846,15 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
     // per-iteration hand-out) sets this flag again itself at that later
     // point -- see the hand-out site's comment and kkt_pattern_check() for
     // why the flag is never reset except here, at entry.
-    this->verify_kkt_pattern_for_solve_ = this->early_callback_enabled_;
+    this->verify_kkt_pattern_for_solve_ = this->kkt_hook_enabled_;
+
+    // THE STOP FLAG, CLEARED ONCE PER CALL AND NOT PER PHASE (M6 W5 T8.6). A
+    // stop returned in phase 0 has to survive alg_impl's return in order to
+    // reach the phase loop below that decides whether phase 1 runs at all --
+    // which is precisely what "a stop ends the phase sequence" means. The
+    // per-phase reset beside last_stop_reason_ is deliberately NOT the place
+    // for it.
+    this->interrupt_requested_ = false;
 
     // Re-apply the QP threading setting on every solve entry, not just in
     // set_qp_params() (which only runs on transcribe). The two backends need
@@ -5010,6 +5306,21 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
             break;
         }
 
+        // AND A STOP ENDS THE SEQUENCE (M6 W5 T8.6). Read AFTER the phase's own
+        // verdict has been resolved and reported, so that phase reports what it
+        // actually reached -- a phase that CONVERGED on the row the caller
+        // stopped at reports kOptimal, and only the phases that never ran
+        // report `ran == false`. That is design section 2.5's "converged beats
+        // stop", stated once here and once in the pre-factorization exit
+        // alg_impl takes on a continuing row.
+        if (this->interrupt_requested_) {
+            if (opts_.common.print_level < 3)
+                fmt::print(fmt::fg(fmt::color::yellow),
+                           "Solve interrupted by the iteration callback; skipping remaining "
+                           "phases.\n");
+            break;
+        }
+
         // Re-init for the next phase using stored primals. Still in the
         // solver's space -- the expansion happens once, at the return below.
         // (Any seed the loop-top check above just installed for THIS phase
@@ -5334,6 +5645,10 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::solve(NonLinearProg
     // stops before the reporting; both survive, under their own names.
     hven::utils::Timer wall;
     wall.start();
+    // THE SAME INSTANT, for IterationEvent::elapsed_seconds (M6 W5 T8.6): one
+    // stamp, so the per-iteration clock and the result's own wall clock cannot
+    // disagree about when this call began.
+    this->entry_time_ = std::chrono::steady_clock::now();
     IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget, nullptr);
     wall.stop();
     result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;
@@ -5380,6 +5695,8 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::solve(NonLinearProg
 
     hven::utils::Timer wall;
     wall.start();
+    // The same stamp as the cold entry above, for the same reason.
+    this->entry_time_ = std::chrono::steady_clock::now();
     IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget, &warm);
     wall.stop();
     result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;

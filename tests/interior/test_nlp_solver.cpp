@@ -1289,6 +1289,27 @@ struct BestIterateRisingObjectiveProblem : NLPProblem {
     std::string name() const override { return "BestIterateRisingObjective"; }
 };
 
+// A sink that keeps every `ipm.iter` record (M6 W5 T8.6). One event per
+// iterate, in order -- the same rows the per-iteration callback is shown, and
+// the only stream that still carries this engine's OWN residual columns.
+namespace {
+class IterateRecordingSink : public hven::solvers::TraceSink {
+  public:
+    std::vector<hven::solvers::IterateInfo> rows;
+    void on_ipm_iter(const hven::solvers::IpmIterTraceEvent &e) override {
+        rows.push_back(e.iterate);
+    }
+    void on_ipqp_iter(const hven::solvers::IpqpTraceIterEvent &) override {}
+    void on_ipqp_reg(const hven::solvers::IpqpTraceRegEvent &) override {}
+    void on_ipqp_restart(const hven::solvers::IpqpTraceRestartEvent &) override {}
+    void on_ipqp_route(const hven::solvers::IpqpTraceRouteEvent &) override {}
+    void on_ipqp_certify(const hven::solvers::IpqpTraceCertifyEvent &) override {}
+    void on_ipqp_escape(const hven::solvers::IpqpTraceEscapeEvent &) override {}
+    void on_qp_mode(const hven::solvers::QpModeTraceEvent &) override {}
+    void on_fallback_verdict(const hven::solvers::SqpFallbackVerdictTraceEvent &) override {}
+};
+} // namespace
+
 // THE REPORTED ITERATE IS ONE ITERATE. alg_impl's return_best_ substitution --
 // the one that makes primals_, obj_val_ and the multiplier blocks describe
 // BestIter -- is guarded on the exit NOT being converged, so on a CONVERGED
@@ -1319,13 +1340,17 @@ TEST(NLPSolverTest, TheReportedKktResidualsDescribeTheIterateTheResultDescribes)
         solver.optimizer_->set_options(std::move(o));
     }
 
-    std::vector<hven::solvers::IterateInfo> rows;
-    solver.optimizer_->set_late_callback([&rows](const hven::solvers::IterateInfo &info,
-                                                 hven::ConstEigenRef<Eigen::VectorXd>,
-                                                 hven::ConstEigenRef<Eigen::VectorXd>) {
-        rows.push_back(info);
-        return 0;
-    });
+    // M6 W5 T8.6: THE ITERATE STREAM COMES FROM THE TRACE NOW, not from the
+    // late callback this test used to install. The four residuals it reads are
+    // this ENGINE's own (kkt_inf and friends), and the shared iteration
+    // callback that replaced the late one deliberately does not carry them --
+    // it carries the four DECLARED diagnostics instead. The `ipm.iter` event
+    // does carry them, is emitted one per iterate exactly as the callback
+    // fires, and hands out the record itself, so the pin below is unchanged in
+    // substance and reads a stream that still has the fields it names.
+    IterateRecordingSink rows_sink;
+    solver.optimizer_->attach_trace(&rows_sink);
+    const std::vector<hven::solvers::IterateInfo> &rows = rows_sink.rows;
 
     const Eigen::VectorXd x0 = Eigen::VectorXd::Zero(BestIterateRisingObjectiveProblem::kN);
     ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
@@ -1792,15 +1817,19 @@ TEST(NLPSolverTest, AMultiPhaseCapIsLabelledByThePhaseThatHitIt) {
         solver.optimizer_->set_options(std::move(o));
     }
     std::vector<int> phase_terminal;
-    solver.optimizer_->set_late_callback([&phase_terminal](const hven::solvers::IterateInfo &info,
-                                                           hven::ConstEigenRef<Eigen::VectorXd>,
-                                                           hven::ConstEigenRef<Eigen::VectorXd>) {
-        if (info.iter_ == 0)
-            phase_terminal.push_back(info.iter_);
-        else if (!phase_terminal.empty())
-            phase_terminal.back() = info.iter_;
-        return 0;
-    });
+    // M6 W5 T8.6: the shared iteration callback. The per-phase iterate index is
+    // the same number the late callback's IterateInfo carried, and the first
+    // and last events of each phase are the same events -- one per `ipm.iter`
+    // row, in order.
+    solver.optimizer_->set_iteration_callback(
+        [&phase_terminal](const hven::solvers::IterationEvent &ev) {
+            const int idx = static_cast<int>(ev.iteration);
+            if (idx == 0)
+                phase_terminal.push_back(idx);
+            else if (!phase_terminal.empty())
+                phase_terminal.back() = idx;
+            return hven::solvers::CallbackAction::kContinue;
+        });
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
     const hven::solvers::SolveStatus flag = solver.solve_optimize(x0);
@@ -1869,11 +1898,9 @@ int converging_loop_index() {
         pilot.optimizer_->set_options(std::move(o));
     }
     int last = -1;
-    pilot.optimizer_->set_late_callback([&last](const hven::solvers::IterateInfo &info,
-                                                ConstEigenRef<Eigen::VectorXd>,
-                                                ConstEigenRef<Eigen::VectorXd>) {
-        last = info.iter_;
-        return 0;
+    pilot.optimizer_->set_iteration_callback([&last](const hven::solvers::IterationEvent &ev) {
+        last = static_cast<int>(ev.iteration);
+        return hven::solvers::CallbackAction::kContinue;
     });
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
@@ -1898,11 +1925,9 @@ CappedRun run_capped(int cap) {
         solver.optimizer_->set_options(std::move(o));
     }
     CappedRun out;
-    solver.optimizer_->set_late_callback([&out](const hven::solvers::IterateInfo &info,
-                                                ConstEigenRef<Eigen::VectorXd>,
-                                                ConstEigenRef<Eigen::VectorXd>) {
-        out.terminal_index = info.iter_;
-        return 0;
+    solver.optimizer_->set_iteration_callback([&out](const hven::solvers::IterationEvent &ev) {
+        out.terminal_index = static_cast<int>(ev.iteration);
+        return hven::solvers::CallbackAction::kContinue;
     });
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;

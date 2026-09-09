@@ -275,7 +275,7 @@ struct FirstIterateProbe {
     void arm(hven::solvers::InteriorPointSolver &opt, int reduced_primal_vars) {
         this->primal_.resize(0);
         this->seen_ = false;
-        opt.set_early_callback(
+        opt.set_kkt_hook(
             [this, reduced_primal_vars](int iter, double, hven::ConstEigenRef<Eigen::VectorXd> xsl,
                                         double, hven::ConstEigenRef<Eigen::VectorXd>,
                                         hven::ConstEigenRef<Eigen::VectorXd>,
@@ -545,7 +545,7 @@ TEST(IpmWarmStart, ARefusedPayloadLeavesNothingBehindForTheNextSolve) {
     cold << 12.0, -7.0;
     ASSERT_EQ(warm_optimize(*solver.optimizer_, *solver.nlp_, cold),
               hven::solvers::SolveStatus::kOptimal);
-    solver.optimizer_->disable_early_callback();
+    solver.optimizer_->clear_kkt_hook();
 
     ASSERT_TRUE(probe.seen_);
     expect_bit_identical(probe.primal_, cold, "a solve with no payload argument is cold");
@@ -796,7 +796,7 @@ TEST(IpmWarmStart, ValuesAtEliminatedVariablesAreIgnoredOnApplication) {
         ASSERT_TRUE(probe.seen_);
         starts[k] = probe.primal_;
     }
-    solver.optimizer_->disable_early_callback();
+    solver.optimizer_->clear_kkt_hook();
 
     expect_bit_identical(starts[0], starts[1],
                          "the eliminated coordinate's payload value reaches nothing");
@@ -949,7 +949,7 @@ TEST(IpmWarmStart, AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings)
     cold << 4.5, -9.0, 0.25;
     ASSERT_EQ(warm_optimize(*fresh.optimizer_, *fresh.nlp_, cold, warm),
               hven::solvers::SolveStatus::kOptimal);
-    fresh.optimizer_->disable_early_callback();
+    fresh.optimizer_->clear_kkt_hook();
 
     ASSERT_TRUE(probe.seen_);
 
@@ -1105,7 +1105,7 @@ TEST(IpmWarmStart, ThePointFormAndTheSeedFormAreTheSameArgument) {
     probe_full.arm(*a.optimizer_, a.nlp_->reduced_primal_vars());
     ASSERT_EQ(warm_optimize(*a.optimizer_, *a.nlp_, cold, full),
               hven::solvers::SolveStatus::kOptimal);
-    a.optimizer_->disable_early_callback();
+    a.optimizer_->clear_kkt_hook();
     ASSERT_TRUE(probe_full.seen_);
     expect_bit_identical(probe_full.primal_, full.primal_, "the point form starts at primal_");
 
@@ -1122,7 +1122,7 @@ TEST(IpmWarmStart, ThePointFormAndTheSeedFormAreTheSameArgument) {
     probe_seed.arm(*b.optimizer_, b.nlp_->reduced_primal_vars());
     ASSERT_EQ(warm_optimize(*b.optimizer_, *b.nlp_, cold, seed),
               hven::solvers::SolveStatus::kOptimal);
-    b.optimizer_->disable_early_callback();
+    b.optimizer_->clear_kkt_hook();
     ASSERT_TRUE(probe_seed.seen_);
     expect_bit_identical(probe_seed.primal_, cold, "the seed form starts at x0");
     // Nothing was ignored: the ceiling is the default kWarm, the seed simply
@@ -1277,12 +1277,19 @@ WarmStartData without_extensions(WarmStartData data) {
 }
 
 // THE FIRST-ITERATE DUAL PROBE, and the instrument every seeding pin below
-// reads. The late callback is handed each completed IterateInfo; the FIRST one
-// describes the iterate the solve started from, and its kkt_inf_ is the
-// solver's own dual-infeasibility measure -- the residual that folds the bound
-// multipliers in through the -z term (barrier_math.h's accumulate_bound_dual_
-// terms). A seeded z that is the converged one makes that residual small at
-// iteration 0; the fresh mu0/distance seed does not. Counters and values only;
+// reads. The per-iteration callback is handed one event per iterate; the FIRST
+// one describes the iterate the solve started from, and its `stationarity` is
+// the DECLARED dual residual at that point -- grad f + Je'le + Ji'li - z, the
+// same quantity the engine's own kkt_inf_ measures (barrier_math.h's
+// accumulate_bound_dual_terms folds the -z term into it the same way), read at
+// obj_scale 1 where the caller's units and the engine's coincide. A seeded z
+// that is the converged one makes that residual small at iteration 0; the
+// fresh mu0/distance seed does not.
+//
+// M6 W5 T8.6: it read `IterateInfo::kkt_inf_` from the late callback before
+// that callback was retired. The three assertions it feeds are INEQUALITIES
+// against a fixed threshold, so reading the declared residual in the engine's
+// place changes nothing about what they can catch. Counters and values only;
 // nothing here reads a clock.
 struct FirstIterateDualProbe {
     double kkt_inf_ = -1.0;
@@ -1293,15 +1300,13 @@ struct FirstIterateDualProbe {
         this->kkt_inf_ = -1.0;
         this->iter_ = -1;
         this->seen_ = false;
-        opt.set_late_callback([this](const hven::solvers::IterateInfo &info,
-                                     ConstEigenRef<Eigen::VectorXd>,
-                                     ConstEigenRef<Eigen::VectorXd>) {
+        opt.set_iteration_callback([this](const hven::solvers::IterationEvent &ev) {
             if (!this->seen_) {
-                this->kkt_inf_ = info.kkt_inf_;
-                this->iter_ = info.iter_;
+                this->kkt_inf_ = ev.stationarity;
+                this->iter_ = static_cast<int>(ev.iteration);
                 this->seen_ = true;
             }
-            return 0;
+            return hven::solvers::CallbackAction::kContinue;
         });
     }
 };
@@ -1744,21 +1749,21 @@ TEST(IpmWarmStart, ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToThe
     constexpr int kPrimals = 2, kSlacks = 1, kEq = 1, kIq = 1;
 
     std::vector<double> eq_mult, iq_mult, eq_resid_inf, iq_resid_inf, late_mu;
-    solver.optimizer_->set_early_callback([&](int, double, hven::ConstEigenRef<Eigen::VectorXd> xsl,
-                                              double, hven::ConstEigenRef<Eigen::VectorXd>,
-                                              hven::ConstEigenRef<Eigen::VectorXd> rhs,
-                                              Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+    solver.optimizer_->set_kkt_hook([&](int, double, hven::ConstEigenRef<Eigen::VectorXd> xsl,
+                                        double, hven::ConstEigenRef<Eigen::VectorXd>,
+                                        hven::ConstEigenRef<Eigen::VectorXd> rhs,
+                                        Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
         eq_mult.push_back(xsl.segment(kPrimals + kSlacks, kEq)[0]);
         iq_mult.push_back(xsl.tail(kIq).maxCoeff());
         eq_resid_inf.push_back(rhs.segment(kPrimals + kSlacks, kEq).cwiseAbs().maxCoeff());
         iq_resid_inf.push_back(rhs.tail(kIq).cwiseAbs().maxCoeff());
         return 0;
     });
-    solver.optimizer_->set_late_callback([&](const hven::solvers::IterateInfo &info,
-                                             hven::ConstEigenRef<Eigen::VectorXd>,
-                                             hven::ConstEigenRef<Eigen::VectorXd>) {
-        late_mu.push_back(info.mu_);
-        return 0;
+    // M6 W5 T8.6: the shared iteration callback's `mu` is the barrier parameter
+    // the iterate it describes was EVALUATED under.
+    solver.optimizer_->set_iteration_callback([&](const hven::solvers::IterationEvent &ev) {
+        late_mu.push_back(ev.mu.value());
+        return hven::solvers::CallbackAction::kContinue;
     });
 
     Eigen::VectorXd x0(2);
@@ -1797,13 +1802,27 @@ TEST(IpmWarmStart, ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToThe
     // the view T2 made read-only -- and the ceiling above holds the third below
     // them, so this is an EQUALITY: deleting `mu = entry_mu()` leaves mu at or
     // under 1 and fails it.
-    ASSERT_GE(late_mu.size(), 1u);
+    //
+    // THE SECOND EVENT, NOT THE FIRST (M6 W5 T8.6, a DECLARED consequence of
+    // behaviour change (2)). This fixture takes the POST-LINE-SEARCH
+    // restoration seam, so `mu <- entry_mu()` is executed part-way through
+    // iteration 0 -- after the event that describes iteration 0's own starting
+    // point, which was evaluated at init_mu and says so. The first iterate
+    // EVALUATED at the entry floor is iteration 1's, and that is the event this
+    // pin reads. The late callback this replaced fired at the BOTTOM of
+    // iteration 0 and therefore saw the assignment on row 0; the assignment
+    // being pinned, and the number it must equal, are unchanged.
+    ASSERT_GE(late_mu.size(), 2u);
     const double entry_floor = std::max(eq_resid_inf[0], iq_resid_inf[0]);
     ASSERT_GT(entry_floor, kMuCeiling)
         << "the residual term must WIN the max for the equality below to pin the assignment; if "
            "this fires, the fixture's entry residuals fell to the barrier ceiling and the pin "
            "would silently weaken back into a floor";
-    EXPECT_EQ(late_mu[0], entry_floor)
+    EXPECT_NE(late_mu[0], entry_floor)
+        << "iteration 0 is evaluated at init_mu, BEFORE the entry this test pins -- if this "
+           "fires the seam moved above the per-iteration event and the pin below is reading "
+           "the wrong iterate";
+    EXPECT_EQ(late_mu[1], entry_floor)
         << "mu <- entry_mu() = max(outer mu, ||h||_inf, ||g+s||_inf) over the ENTRY residuals, "
            "and with the outer term capped below them the max is the residual one exactly";
 }

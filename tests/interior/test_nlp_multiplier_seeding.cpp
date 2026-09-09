@@ -388,15 +388,15 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
             o.common.print_level = 10;
             solver.optimizer_->set_options(std::move(o));
         }
-        solver.optimizer_->set_early_callback(
-            [&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL, double,
-                hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
-                Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
-                if (i == 0) {
-                    unseeded_opt_entry_eq_mult = XSL[2];
-                }
-                return 0;
-            });
+        solver.optimizer_->set_kkt_hook([&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL,
+                                            double, hven::ConstEigenRef<Eigen::VectorXd>,
+                                            hven::ConstEigenRef<Eigen::VectorXd>,
+                                            Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
+            if (i == 0) {
+                unseeded_opt_entry_eq_mult = XSL[2];
+            }
+            return 0;
+        });
         ASSERT_EQ(solver.solve_optimize(x0), hven::solvers::SolveStatus::kOptimal);
     }
     ASSERT_FALSE(std::isnan(unseeded_opt_entry_eq_mult));
@@ -409,15 +409,15 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
             o.common.print_level = 10;
             solver.optimizer_->set_options(std::move(o));
         }
-        solver.optimizer_->set_early_callback(
-            [&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL, double,
-                hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
-                Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
-                if (i == 0) {
-                    seeded_opt_entry_eq_mult = XSL[2];
-                }
-                return 0;
-            });
+        solver.optimizer_->set_kkt_hook([&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL,
+                                            double, hven::ConstEigenRef<Eigen::VectorXd>,
+                                            hven::ConstEigenRef<Eigen::VectorXd>,
+                                            Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
+            if (i == 0) {
+                seeded_opt_entry_eq_mult = XSL[2];
+            }
+            return 0;
+        });
         ASSERT_EQ(solver.solve_optimize(x0), hven::solvers::SolveStatus::kOptimal);
     }
 
@@ -583,15 +583,15 @@ TEST(NLPMultiplierSeedingTest, OversizedSeedIsCapped) {
     }
 
     double captured_eq_mult = std::numeric_limits<double>::quiet_NaN();
-    solver.optimizer_->set_early_callback(
-        [&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL, double,
-            hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
-            Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
-            if (i == 0) {
-                captured_eq_mult = XSL[2]; // see SeededSolveOptimizeReachesOptPhase for the layout
-            }
-            return 0;
-        });
+    solver.optimizer_->set_kkt_hook([&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL,
+                                        double, hven::ConstEigenRef<Eigen::VectorXd>,
+                                        hven::ConstEigenRef<Eigen::VectorXd>,
+                                        Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
+        if (i == 0) {
+            captured_eq_mult = XSL[2]; // see SeededSolveOptimizeReachesOptPhase for the layout
+        }
+        return 0;
+    });
 
     Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
     ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
@@ -621,15 +621,15 @@ TEST(NLPMultiplierSeedingTest, OversizedIqSeedIsCapped) {
     }
 
     double captured_iq_mult = std::numeric_limits<double>::quiet_NaN();
-    solver.optimizer_->set_early_callback(
-        [&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL, double,
-            hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
-            Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
-            if (i == 0) {
-                captured_iq_mult = XSL[2];
-            }
-            return 0;
-        });
+    solver.optimizer_->set_kkt_hook([&](int i, double, hven::ConstEigenRef<Eigen::VectorXd> XSL,
+                                        double, hven::ConstEigenRef<Eigen::VectorXd>,
+                                        hven::ConstEigenRef<Eigen::VectorXd>,
+                                        Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
+        if (i == 0) {
+            captured_iq_mult = XSL[2];
+        }
+        return 0;
+    });
 
     Eigen::VectorXd x0(1);
     x0 << 3.0;
