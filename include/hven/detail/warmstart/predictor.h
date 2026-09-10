@@ -605,7 +605,7 @@ inline WarmStart predict(ParametricNlpModel &model, const WarmStart &warm, const
 
         detail::KktFactor kkt(threads);
         detail::factorize_checked(kkt, k0.K); // THE one factorization
-        SchurComplement schur(kkt, qopts);
+        SchurComplement schur(kkt, qopts, threads);
         std::vector<predictor_detail::PredictorBorder> borders;
 
         // add_border FIRST, then record: the ledger below must never claim a

@@ -2455,8 +2455,8 @@ accepted, fingerprinted, and then ignored.
 
 ### 1. What the count now reaches
 
-`SqpOptions::common.threads` is applied at **seven** SPARSE factor construction
-sites, which is every sparse one the SQP has:
+`SqpOptions::common.threads` is applied at **eight** factor construction sites,
+which is every one the SQP has:
 
 | # | factor | owner |
 |---|---|---|
@@ -2467,15 +2467,20 @@ sites, which is every sparse one the SQP has:
 | 5 | the SSN tier's one persistent factor | `SsnEngine` |
 | 6 | the IPQP tier's `KktFactorization` | `IpqpEngine` |
 | 7 | the parametric predictor's one factorization | `predict()`, from `run_continuation` |
+| 8 | the Schur border's **dense** LAPACK factor | `SchurComplement` → `DenseSymmetricFactor` |
 
 plus every one of those inside a **nested restoration solve**: the sub-driver
 copies the whole `SqpOptions`, and none of the seven fields it overrides
 (`enable_scaling`, `make_strategy`, `budget_mode`, `qp_mode`, `tr_init`,
 `tr_max`, `max_iter`) names `common`.
 
-The Schur border's **dense** LAPACK factor is the one factor path this commit
-does not reach; it is the second commit's, separately revertible on purpose
-because it is a `linear/` change and this one is not.
+Rows 1–7 ship in the first commit and row 8 in the second, separately
+revertible on purpose: row 8 is a `linear/` change and rows 1–7 are not.
+Before row 8 landed, the border's dense LAPACK calls sat inside NO thread scope
+at all and ran at whatever MKL's process default was — borders are capped at
+`schur_cap = 128` so it is unlikely ever to have mattered for wall time, but
+"reaches EVERY factor path … restored on every exit" was false as written until
+that commit.
 
 ### 2. It is applied at CALL scope and undone on every exit
 
@@ -2490,15 +2495,36 @@ whatever the solve did, and that is pinned end to end across all three
 (`Threads.TheCallersThreadSettingSurvivesEveryTierAndTheRestoration`).
 
 Restoration on an **exceptional** exit is true by construction and is stated as
-argued, not measured: `::pardiso` is a C entry point and cannot throw, and no
-statement sits between the scope's construction and the call. No
+argued, not measured: `::pardiso` and the LAPACK entry points are C and cannot
+throw, and no statement sits between a scope's construction and the call it
+guards. No
 seam in this tree can currently force a throw INSIDE a backend call — both
 fault injectors act one layer out, in the Apache-2.0 adapter, and skip the
 backend call entirely — so a "restored after a throw inside the call" test would
 be vacuous and none is written. A `FactorSession::call` throw seam is
 REGISTERED for W6 if that is ever to be measured.
 
-### 3. New accessors — what each one READS
+### 3. The scope now lives in an Apache-2.0 header
+
+`MklThreadScope` moved out of `src/linear/pardiso_session.cpp` — which is
+MPL-2.0 *and* BSD-3-Clause derived from Eigen's PardisoSupport — into
+`include/hven/detail/linear/thread_scope.h`, which is Apache-2.0 like the rest
+of hven. It was hven's own code, present in no upstream module and named in no
+line of that file's derived-material list in `notices/eigen-mpl2.txt` (which is
+the Pardiso *call discipline*: the argument block, the phase sequence, the
+parameter-array value set, the error codes). Lifting it out **shrinks** the
+derived file's diff against its upstream, which is the direction CLAUDE.md §6
+prefers, and it needs no deviation record — nothing is added to a derived file
+and no test seam is involved. The dense factor includes the same header, so both
+backends' call-scoped threading is one implementation rather than two.
+
+It is **not** the only thread-local scope in the tree: `detail/interior/jet.h`'s
+`MklLocalPinGuard` is a second one on the interior-point side, with a different
+job (it pins a Jet worker's count for a JOB, not a call). The two are
+deliberately not merged — unifying them would move interior-point objects for no
+functional gain, and is registered rather than done here.
+
+### 4. New accessors — what each one READS
 
 | accessor | reads |
 |---|---|
@@ -2507,6 +2533,8 @@ REGISTERED for W6 if that is ever to be measured.
 | `SsnEngine::num_threads()` | the live persistent factor |
 | `IpqpEngine::num_threads()` | the live `KktFactorization` session |
 | `KktFactorization::session_num_threads()` | the live session, beside the existing `num_threads()`, which returns the stored option |
+| `DenseSymmetricFactor::num_threads()` / `set_num_threads(int)` | the dense border factor's own count, on the sparse surface's semantics |
+| `SchurComplement::num_threads()` | its dense factor's count, read through |
 
 `QpEngine::num_threads()` **changed meaning**: before this task it returned the
 carried int. It has no caller in this repository, and the carried value is
@@ -2515,7 +2543,7 @@ two agree, and after a hot handle is adopted the answer is the producing
 engine's factor — which agrees too, because adoption requires an equal options
 fingerprint and that fingerprint folds `threads`.
 
-### 4. Changing the count invalidates a hot handle — already true, now with teeth
+### 5. Changing the count invalidates a hot handle — already true, now with teeth
 
 `options_fingerprint` has folded `threads` since T8.3, so a handle produced at
 one count is refused by an engine built at another
@@ -2525,17 +2553,18 @@ factorization. Adoption of a MATCHING handle takes the session's live count
 (`SymmetricFactor::adopt`), so an adopted factor carries the right count by
 construction.
 
-### 5. On Apple this is stored and applied to nothing — UNOBSERVED
+### 6. On Apple this is stored and applied to nothing — UNOBSERVED
 
 The Accelerate sparse session records `num_threads` and hands it to no backend
-call. The SQP deliberately does
+call, and the dense path's LAPACK is Accelerate's own, which exposes no
+restorable thread-local equivalent. The SQP deliberately does
 **not** mirror the interior-point solver's driver-level
 `accelerate_set_num_threads()`: that is a process-wide call that is never
 restored, so mirroring it would break §2's promise. The Apple application is
 registered with the Mac increment. No Apple value is estimated, interpolated or
 zero-filled anywhere in this task.
 
-### 6. What did NOT change
+### 7. What did NOT change
 
 * **`QpOptions` still carries no thread field.** The count travels as a plain
   parameter; the fingerprint folds it separately.
@@ -2550,7 +2579,7 @@ zero-filled anywhere in this task.
   is refused by `validate_sqp_options` before any engine is built, in both
   constructors and in `set_options()`.
 
-### 7. What is covered by construction rule rather than observation
+### 8. What is covered by construction rule rather than observation
 
 The three walk-tier **temporaries** (rows 2–4) die inside the call that builds
 them, and a callback running during the solve sees the CALLER's count because

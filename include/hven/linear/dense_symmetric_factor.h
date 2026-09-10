@@ -160,6 +160,28 @@ class DenseSymmetricFactor {
     // passed).
     std::optional<BunchKaufmanBlockEvidence> block_evidence() const;
 
+    // Point this factor at a thread count for its LAPACK calls (M6 W5 T8.8).
+    //
+    // THE SPARSE SURFACE'S SEMANTICS, VERBATIM (symmetric_factor.h): 0 leaves
+    // the backend's own default alone; a positive value is applied AT CALL
+    // SCOPE around dsytrf/dsytrs and undone afterward, restoring the caller's
+    // own thread-local override rather than resetting it -- never by touching
+    // a process-global or an environment setting. Costs nothing beyond the
+    // store, and invalidates nothing: a cached factorization stays usable and
+    // a solve that follows needs no refactorization.
+    //
+    // Throws std::invalid_argument for a negative count, which is the sparse
+    // surface's own rule and is stated here so the two read the same.
+    //
+    // ON APPLE THIS IS STORED AND APPLIED TO NOTHING -- UNOBSERVED. The shim's
+    // LAPACK is Accelerate's, which exposes no restorable thread-local
+    // equivalent (see hven/detail/linear/thread_scope.h). No Apple value is
+    // estimated anywhere.
+    void set_num_threads(int num_threads);
+
+    // The count this factor applies at its next LAPACK call; 0 by default.
+    int num_threads() const noexcept;
+
   private:
     // Shared factorization core behind all three entry points above:
     // validates, resets state, runs dsytrf, and returns LAPACK's raw info
@@ -173,6 +195,14 @@ class DenseSymmetricFactor {
     std::vector<int> ipiv_; // dsytrf/dsytrs pivot indices, LAPACKE convention
     Index dim_ = 0;
     Triangle triangle_ = Triangle::kUpper;
+
+    // The call-scoped thread count (M6 W5 T8.8). NOT frozen at construction --
+    // it is the one setting on this class a caller may move mid-life, for the
+    // same reason SymmetricFactor::Options::num_threads is: LAPACK reads it at
+    // call scope and no cached state depends on it. It is deliberately NOT an
+    // Options struct: this class has none, and one field does not earn one.
+    int num_threads_ = 0;
+
     bool factorized_ = false;
 };
 

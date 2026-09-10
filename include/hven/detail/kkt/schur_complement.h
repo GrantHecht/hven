@@ -89,7 +89,25 @@ constexpr double kSchurSingularEigFrac = 1e-12;
 
 class SchurComplement {
   public:
-    SchurComplement(detail::KktFactor &kkt, const QpOptions &opts) : kkt_(kkt), opts_(opts) {}
+    /// @param kkt     The sparse K0 factor this complement borders.
+    /// @param opts     The effective QP options (schur_cap / schur_cond_max).
+    /// @param threads  The thread count in force for the DENSE border factor's
+    ///                 own LAPACK calls (M6 W5 T8.8) -- the same
+    ///                 SqpOptions::common.threads the sparse factors take,
+    ///                 handed down by whoever builds this complement. A plain
+    ///                 parameter and not a QpOptions field, exactly as the
+    ///                 parametric predictor takes it: QpOptions deliberately
+    ///                 carries no thread field. 0, the default and what every
+    ///                 pre-T8.8 construction site passed, leaves the backend's
+    ///                 own default alone.
+    SchurComplement(detail::KktFactor &kkt, const QpOptions &opts, int threads = 0)
+        : kkt_(kkt), opts_(opts) {
+        factor_.set_num_threads(threads);
+    }
+
+    /// The DENSE border factor's live thread count -- a boundary observation
+    /// of the one factor path the sparse surface does not cover.
+    int num_threads() const noexcept { return factor_.num_threads(); }
 
     // Borders K0 with column v (size K0.rows()) and diagonal entry d. Costs
     // one K0 solve (to cache K0^-1 v) plus an O(dim()^2 * n0 +

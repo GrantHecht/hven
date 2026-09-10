@@ -408,6 +408,41 @@ TEST(Threads, NonZeroReachesEveryFactorTier) {
     // measure it.
 }
 
+// THE EIGHTH FACTOR PATH, and the only DENSE one: the Schur border's
+// `DenseSymmetricFactor` over LAPACK dsytrf/dsytrs. Before the second commit of
+// M6 W5 T8.8 it sat inside NO thread scope at all and ran at whatever MKL's
+// process default was, which made "reaches EVERY factor path" false as written.
+//
+// It is observable at the boundary through the same hot handle the K0 factor
+// is: `BorderState::schur` is the complement the walk solved through.
+TEST(Threads, NonZeroReachesTheDenseBorderFactor) {
+    const int before = max_threads_now();
+
+    hven::solvers::test_support::Hs76Model model;
+    SqpDriver driver(base_options(QpMode::kWalk, kAskedFor));
+    const SqpSolution sol = driver.solve(model);
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
+    ASSERT_NE(sol.warm_start.hot, nullptr);
+    ASSERT_TRUE(sol.warm_start.hot->border->schur.has_value())
+        << "PREMISE: this solve built a live Schur border";
+
+    EXPECT_EQ(sol.warm_start.hot->border->schur->num_threads(), kAskedFor)
+        << "the DENSE border factor's own count, read through to the factor";
+    EXPECT_EQ(max_threads_now(), before) << "and its LAPACK calls undid the scope";
+}
+
+// The same at the default, which is the identity claim: the dense factor is at
+// 0 and no scope engages, so the second commit changes no number either.
+TEST(Threads, ZeroLeavesTheDenseBorderFactorAtTheBackendDefault) {
+    hven::solvers::test_support::Hs76Model model;
+    SqpDriver driver(base_options(QpMode::kWalk, 0));
+    const SqpSolution sol = driver.solve(model);
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
+    ASSERT_NE(sol.warm_start.hot, nullptr);
+    ASSERT_TRUE(sol.warm_start.hot->border->schur.has_value());
+    EXPECT_EQ(sol.warm_start.hot->border->schur->num_threads(), 0);
+}
+
 // ===========================================================================
 // (3) RESTORED ON EVERY EXIT -- INCLUDING THE RESTORATION SUB-DRIVER'S CALLS
 // ===========================================================================

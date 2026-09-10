@@ -1847,7 +1847,10 @@ void QpEngine::rebuild_k0(const QpProblem &qp, const WorkingSet &ws, BorderState
     // only schur_cap/schur_cond_max from `opts` -- both unaffected by
     // SolveOverrides -- so passing `opts` rather than opts_ changes
     // nothing observable; it keeps one consistent options value.
-    border.schur.emplace(border.kkt, opts);
+    // The dense border factor takes this engine's thread count too (M6 W5
+    // T8.8), so the walk's Schur updates run at the width the sparse factors
+    // do rather than at whatever MKL's process default happens to be.
+    border.schur.emplace(border.kkt, opts, threads_);
 }
 
 void QpEngine::sync_borders(const QpProblem &qp, const WorkingSet &ws, BorderState &border,
