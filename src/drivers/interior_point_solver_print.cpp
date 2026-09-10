@@ -6,167 +6,27 @@
 // Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
 // (see LICENSE).
 
+// WHAT IS LEFT HERE (M6 W5 T8.7). This file held the interior-point console
+// table: the banner, the problem statistics, the iteration rows, the
+// Beginning/Finished lines, the timing summary, the exit stats and the
+// five-band residual colouring. Everything except the Beginning/Finished pair
+// and `print_exit_stats` moved
+// into `ConsoleTraceSink` (src/drivers/console_trace_sink.cpp), which renders
+// it from the events the solver emits instead of from inside the solver;
+// `calculate_color` went with it, as the free function `ipm_residual_color`,
+// and is CALLED from here so the two renderings cannot drift. `print_settings`
+// was deleted outright -- declared, defined, and called by nothing.
+//
+// The three that stay do so because the events that would carry them do not
+// exist yet, and each is PER PHASE where the `ipm.solve` pair is per CALL:
+// `print_beginning`/`print_finished` name a phase (and the KKT analysis), and
+// `print_exit_stats` reports a phase's verdict, iterate and four times. T8.7b
+// adds `on_ipm_phase_begin/end`, `on_ipm_kkt_analysis` and `on_ipm_phase_exit`,
+// moves these three with them, and deletes this file.
+
 #include "hven/drivers/interior_point_solver.h"
 
-void hven::solvers::InteriorPointSolver::print_timing_summary() {
-    auto cyan = fmt::fg(fmt::color::cyan);
-    fmt::print(" KKT Analysis/Init Time       : ");
-    fmt::print(cyan, "{0:>10.3f} ms\n", this->result_.pre_time * 1000.0);
-    fmt::print(" NLP Function Evaluation Time : ");
-    fmt::print(cyan, "{0:>10.3f} ms\n", this->result_.func_time * 1000.0);
-    fmt::print(" KKT Factor/Solve Time        : ");
-    fmt::print(cyan, "{0:>10.3f} ms\n", this->result_.kkt_time * 1000.0);
-    fmt::print(" Console Print Time           : ");
-    fmt::print(cyan, "{0:>10.3f} ms\n", this->result_.print_time * 1000.0);
-    fmt::print(" Misc Time                    : ");
-    fmt::print(cyan, "{0:>10.3f} ms\n", this->result_.misc_time() * 1000.0);
-}
-
-void hven::solvers::InteriorPointSolver::print_banner() {
-
-    constexpr const char *BannerStr = "    / /_ | | / / __ \\/ __ \\\n"
-                                      "   / __ \\| |/ / /_/ / / / /\n"
-                                      "  / / / /|   / _, _/ /_/ / \n"
-                                      " /_/ /_/ |__/_/ |_|\\____/  \n";
-    print_header();
-    fmt::print(fmt::fg(fmt::color::crimson), BannerStr);
-    fmt::print(fmt::fg(fmt::color::crimson), " \n       hven Interior-Point Solver\n");
-    print_header();
-}
-
-void hven::solvers::InteriorPointSolver::print_settings() {
-    auto magenta = fmt::fg(fmt::color::magenta);
-
-    fmt::print(magenta, "Convergence Criteria\n\n");
-
-    fmt::print("{0:_^{1}}\n", "", 39);
-    fmt::print("|------|   tol   | Acctol  | Divtol  |\n");
-    fmt::print("|{0:<6}|{1:>8.3e}|{2:>8.3e}|{3:>8.3e}|\n", "KKT", opts_.kkt_tol, opts_.acc_kkt_tol,
-               opts_.div_kkt_tol);
-    fmt::print("|{0:<6}|{1:>8.3e}|{2:>8.3e}|{3:>8.3e}|\n", "Bar", opts_.bar_tol, opts_.acc_bar_tol,
-               opts_.div_bar_tol);
-    fmt::print("|{0:<6}|{1:>8.3e}|{2:>8.3e}|{3:>8.3e}|\n", "ECons", opts_.econ_tol,
-               opts_.acc_econ_tol, opts_.div_econ_tol);
-    fmt::print("|{0:<6}|{1:>8.3e}|{2:>8.3e}|{3:>8.3e}|\n", "ICons", opts_.icon_tol,
-               opts_.acc_icon_tol, opts_.div_icon_tol);
-}
-
-void hven::solvers::InteriorPointSolver::print_stats() {
-    print_banner();
-
-    auto cyan = fmt::fg(fmt::color::cyan);
-    auto magenta = fmt::fg(fmt::color::magenta);
-
-    fmt::print(magenta, "Problem Statistics\n\n");
-
-    fmt::print(" Primal Variables         : ");
-    fmt::print(cyan, "{:<10}\n", this->primal_vars_);
-    fmt::print(" Equality Constraints     : ");
-    // The count of the SOLVED system, which under the make_constraint
-    // fixed-variable treatment includes one internal row per fixed variable. Those
-    // rows are the solver's own, so the breakdown is spelled out rather than
-    // leaving a user who declared three rows wondering why five are reported. No
-    // other treatment installs any, so the suffix is absent everywhere else.
-    const int internal_rows = this->nlp_ ? this->nlp_->internal_fixed_constraints() : 0;
-    if (internal_rows > 0) {
-        fmt::print(cyan, "{:<10}\n",
-                   fmt::format("{0} ({1} declared + {2} fixing)", this->equal_cons_,
-                               this->equal_cons_ - internal_rows, internal_rows));
-    } else {
-        fmt::print(cyan, "{:<10}\n", this->equal_cons_);
-    }
-    fmt::print(" Inequality Constraints   : ");
-    fmt::print(cyan, "{:<10}\n", this->inequal_cons_);
-    fmt::print("\n");
-    fmt::print(" KKT-Matrix DIM (P+S+E+I) : ");
-    fmt::print(cyan, "{:<10}\n", this->kkt_dim_);
-    fmt::print(" KKT-Matrix NNZs          : ");
-    fmt::print(cyan, "{:<10}\n", this->kkt_sol_.matrix().nonZeros());
-    fmt::print(" KKT-Matrix NNZ%          : ");
-    fmt::print(cyan, "{:.6f}%\n",
-               100.0 * double(this->kkt_sol_.matrix().nonZeros()) /
-                   (double(this->kkt_dim_) * double(this->kkt_dim_)));
-    fmt::print("\n");
-}
-
-void hven::solvers::InteriorPointSolver::print_last_iterate(const std::vector<IterateInfo> &iters) {
-    const auto &last = iters.back();
-
-    if (last.iter_ % 10 == 0) {
-        if (opts_.wide_console) {
-            fmt::print("{0:=^{1}}\n", "", 159);
-            fmt::print(
-                "|Iter| mu Val | Prim Obj |  Bar Obj |  KKT Inf |  Bar Inf | ECons Inf| ICons "
-                "Inf|Max "
-                "EMult|Max IMult| AlphaP | AlphaD | AlphaT | Merit Val|LSI|PPS|HFI| HPert |\n");
-        } else {
-            fmt::print("{0:=^{1}}\n", "", 119);
-            fmt::print("|Iter| mu Val | Prim Obj |  Bar Obj |  KKT Inf |  Bar Inf | ECons Inf| "
-                       "ICons Inf| AlphaP | "
-                       "AlphaD |LS| PPS |HF| HPert |\n");
-        }
-    }
-
-    fmt::text_style PHashcol = fmt::text_style();
-    fmt::text_style EHashcol = fmt::text_style();
-    fmt::text_style IHashcol = fmt::text_style();
-    fmt::text_style KHashcol = fmt::text_style();
-    fmt::text_style BHashcol = fmt::text_style();
-    fmt::text_style BOHashcol = fmt::text_style();
-
-    fmt::text_style Kcol = calculate_color(last.kkt_inf_, opts_.kkt_tol, opts_.acc_kkt_tol);
-    fmt::text_style Bcol = calculate_color(last.barr_inf_, opts_.bar_tol, opts_.acc_bar_tol);
-    fmt::text_style Ecol = calculate_color(last.econ_inf_, opts_.econ_tol, opts_.acc_econ_tol);
-    fmt::text_style Icol = calculate_color(last.icon_inf_, opts_.icon_tol, opts_.acc_icon_tol);
-
-    if (iters.size() > 1) {
-
-        auto GCol = fmt::fg(fmt::color::lime_green);
-        auto BCol = fmt::fg(fmt::color::red);
-
-        PHashcol = (iters.back().prim_obj_ <= iters[iters.size() - 2].prim_obj_) ? GCol : BCol;
-        BOHashcol = (iters.back().barr_obj_ <= iters[iters.size() - 2].barr_obj_) ? GCol : BCol;
-        BHashcol = (iters.back().barr_inf_ <= iters[iters.size() - 2].barr_inf_) ? GCol : BCol;
-        EHashcol = (iters.back().econ_inf_ <= iters[iters.size() - 2].econ_inf_) ? GCol : BCol;
-        IHashcol = (iters.back().icon_inf_ <= iters[iters.size() - 2].icon_inf_) ? GCol : BCol;
-        KHashcol = (iters.back().kkt_inf_ <= iters[iters.size() - 2].kkt_inf_) ? GCol : BCol;
-    }
-
-    auto hash = []() { fmt::print("|"); };
-    auto chash = [](fmt::text_style c) { fmt::print(c, "|"); };
-
-    hash();
-    fmt::print("{:<4}", last.iter_);
-    hash();
-    fmt::print("{:.2e}", last.mu_);
-    hash();
-    fmt::print("{:>10.3e}", last.prim_obj_);
-    chash(PHashcol);
-    fmt::print("{:>10.3e}", last.barr_obj_);
-    chash(BOHashcol);
-    fmt::print(Kcol, "{:>10.4e}", last.kkt_inf_);
-    chash(KHashcol);
-    fmt::print(Bcol, "{:>10.4e}", last.barr_inf_);
-    chash(BHashcol);
-    fmt::print(Ecol, "{:>10.4e}", last.econ_inf_);
-    chash(EHashcol);
-    fmt::print(Icol, "{:>10.4e}", last.icon_inf_);
-    chash(IHashcol);
-
-    // DISPLAY-ONLY CARVE-OUT: the HPert column shows the CUMULATIVE perturbation
-    // total (h_pert_cum_), not the last delta (h_pert_). h_pert_ itself feeds
-    // the Hpert0 warm-start in alg_impl().
-    if (opts_.wide_console) {
-        fmt::print(
-            "{:>9.3e}|{:>9.3e}|{:>8.2e}|{:>8.2e}|{:>8.2e}|{:>10.3e}|{:>3}|{:>3}|{:>3}|{:>6.1e}|\n",
-            last.max_e_mult_, last.max_i_mult_, last.alpha_p_, last.alpha_d_, last.alpha_t_,
-            last.merit_val_, last.ls_iters_, last.p_pivots_, last.h_facs_, last.h_pert_cum_);
-    } else {
-        fmt::print("{:>8.2e}|{:>8.2e}|{:>2}|{:>5}|{:>2}|{:>6.1e}|\n", last.alpha_t_ * last.alpha_p_,
-                   last.alpha_t_ * last.alpha_d_, last.ls_iters_, last.p_pivots_, last.h_facs_,
-                   last.h_pert_cum_);
-    }
-}
+#include "hven/drivers/console_trace_sink.h"
 
 void hven::solvers::InteriorPointSolver::print_beginning(std::string_view msg) const {
     fmt::print(fmt::fg(fmt::color::dim_gray), "Beginning");
@@ -187,10 +47,10 @@ void hven::solvers::InteriorPointSolver::print_exit_stats(SolveStatus ExitCode,
                                                           const IterateInfo &last, int iternum,
                                                           double tottime, double nlptime,
                                                           double qptime, double printtime) {
-    fmt::text_style Kcol = calculate_color(last.kkt_inf_, opts_.kkt_tol, opts_.acc_kkt_tol);
-    fmt::text_style Bcol = calculate_color(last.barr_inf_, opts_.bar_tol, opts_.acc_bar_tol);
-    fmt::text_style Ecol = calculate_color(last.econ_inf_, opts_.econ_tol, opts_.acc_econ_tol);
-    fmt::text_style Icol = calculate_color(last.icon_inf_, opts_.icon_tol, opts_.acc_icon_tol);
+    fmt::text_style Kcol = ipm_residual_color(last.kkt_inf_, opts_.kkt_tol, opts_.acc_kkt_tol);
+    fmt::text_style Bcol = ipm_residual_color(last.barr_inf_, opts_.bar_tol, opts_.acc_bar_tol);
+    fmt::text_style Ecol = ipm_residual_color(last.econ_inf_, opts_.econ_tol, opts_.acc_econ_tol);
+    fmt::text_style Icol = ipm_residual_color(last.icon_inf_, opts_.icon_tol, opts_.acc_icon_tol);
 
     auto TColor = fmt::fg(fmt::color::cyan);
     auto Printtime = [&](const char *msg, double t1) {
@@ -246,29 +106,4 @@ void hven::solvers::InteriorPointSolver::print_exit_stats(SolveStatus ExitCode,
 
         fmt::print("\n");
     }
-}
-
-fmt::text_style hven::solvers::InteriorPointSolver::calculate_color(double val, double targ,
-                                                                    double acc) {
-    constexpr double kFloor = 1e-300;
-    auto level1 = std::log(std::max(targ, kFloor));
-    auto level3 = std::log(std::max(acc, kFloor));
-    auto level5 = std::log(std::max(acc * 1000.0, kFloor));
-    auto level2 = (level1 + level3) / 2.0;
-    auto level4 = (level3 + level5) / 2.0;
-
-    auto logval = std::log(std::max(val, kFloor));
-    fmt::color c;
-
-    if (logval < level1)
-        c = fmt::color::lime_green;
-    else if (logval < level2)
-        c = fmt::color::yellow;
-    else if (logval < level3)
-        c = fmt::color::orange;
-    else if (logval < level4)
-        c = fmt::color::red;
-    else
-        c = fmt::color::dark_red;
-    return fmt::fg(c);
 }

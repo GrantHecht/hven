@@ -23,6 +23,8 @@ void TraceSink::on_sqp_solve_end(const SqpSolveEndTraceEvent &) {}
 void TraceSink::on_ipm_iter(const IpmIterTraceEvent &) {}
 void TraceSink::on_ipm_solve_begin(const IpmSolveBeginTraceEvent &) {}
 void TraceSink::on_ipm_solve_end(const IpmSolveEndTraceEvent &) {}
+// M6 W5 T8.7's own event, on the same footing.
+void TraceSink::on_ipm_restoration_exit_row(const IpmRestorationExitRowTraceEvent &) {}
 
 // THE ONE COPY (M6 W4 T4). It lived in `sqp_driver.cpp`'s anonymous namespace
 // through T2/T3 and moved here unchanged the moment a second caller appeared;

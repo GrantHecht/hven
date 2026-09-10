@@ -28,6 +28,7 @@
 //         `ipm.solve` pair moves no depth -- this driver nests no driver).
 
 #include <cstddef>
+#include <cstdio>
 #include <limits>
 #include <memory>
 #include <sstream>
@@ -35,10 +36,14 @@
 #include <string>
 #include <vector>
 
+#include <unistd.h>
+
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
+#include "hven/core/ledger.h"
+#include "hven/drivers/console_trace_sink.h"
 #include "hven/drivers/interior_point_solver.h"
 #include "hven/drivers/sqp_driver.h"
 #include "hven/drivers/trace_writer.h"
@@ -891,6 +896,313 @@ TEST(IpmTrace, SeqIsContiguousAcrossAnSqpSolveThenAnIpmSolveOnOneSinkAtDepthZero
     ASSERT_EQ(ipm_begin.size(), 1u);
     EXPECT_LT(std::stoll(field(sqp_end.front(), "seq")),
               std::stoll(field(ipm_begin.front(), "seq")));
+}
+
+// ===========================================================================
+// M6 W5 T8.7 -- THE LEDGER ON THE INTERIOR-POINT ENGINE, and the console the
+// engine now attaches for itself.
+// ===========================================================================
+
+namespace {
+
+/// Redirects `stdout` into a temporary file for its lifetime; see the twin in
+/// tests/sqp/test_trace_writer.cpp for why a live console pin needs the real
+/// stream rather than a `FILE *` handed to a sink.
+class StdoutCapture {
+  public:
+    StdoutCapture() : file_(std::tmpfile()) {
+        std::fflush(stdout);
+        saved_ = ::dup(::fileno(stdout));
+        ::dup2(::fileno(file_), ::fileno(stdout));
+    }
+    ~StdoutCapture() {
+        std::fflush(stdout);
+        ::dup2(saved_, ::fileno(stdout));
+        ::close(saved_);
+        std::fclose(file_);
+    }
+    StdoutCapture(const StdoutCapture &) = delete;
+    StdoutCapture &operator=(const StdoutCapture &) = delete;
+
+    std::string text() {
+        std::fflush(stdout);
+        std::fseek(file_, 0, SEEK_END);
+        const long n = std::ftell(file_);
+        std::string out(static_cast<std::size_t>(n < 0 ? 0 : n), '\0');
+        std::fseek(file_, 0, SEEK_SET);
+        const std::size_t got = std::fread(out.data(), 1, out.size(), file_);
+        out.resize(got);
+        std::fseek(file_, 0, SEEK_END);
+        return out;
+    }
+
+  private:
+    std::FILE *file_ = nullptr;
+    int saved_ = -1;
+};
+
+/// A silent solver on HS071 -- `print_level` 10 -- so a ledger pin does not
+/// also print a table into the test log.
+std::unique_ptr<NLPSolver> silent_hs071() {
+    auto solver = std::make_unique<NLPSolver>(std::make_shared<Hs071Problem>());
+    auto o = solver->optimizer_->options();
+    o.common.print_level = 10;
+    solver->optimizer_->set_options(std::move(o));
+    return solver;
+}
+
+} // namespace
+
+TEST(IpmLedger, OneRecordPerSolveCarryingThatCallsOwnCounters) {
+    auto solver = silent_hs071();
+    Ledger ledger;
+    solver->optimizer_->attach_ledger(&ledger, "ipm");
+    ASSERT_EQ(solver->optimize(hs071_start()), SolveStatus::kOptimal);
+    ASSERT_EQ(solver->optimize(hs071_start()), SolveStatus::kOptimal);
+
+    ASSERT_EQ(ledger.ipm_records().size(), 2u);
+    // The QP-level and SQP-level vectors are untouched: three kinds of record,
+    // three vectors, no collision.
+    EXPECT_TRUE(ledger.records().empty());
+    EXPECT_TRUE(ledger.sqp_records().empty());
+
+    const IpmSolveRecord &first = ledger.ipm_records()[0];
+    EXPECT_EQ(first.label, "ipm_0");
+    EXPECT_EQ(ledger.ipm_records()[1].label, "ipm_1");
+    EXPECT_EQ(first.status, SolveStatus::kOptimal);
+    EXPECT_EQ(first.iterations, solver->last_result_.iterations);
+    EXPECT_EQ(first.phases_run, 1);
+    EXPECT_GT(first.factorizations, 0);
+    EXPECT_GT(first.analyses, 0);
+    EXPECT_EQ(first.soc_steps_taken, solver->last_result_.soc_steps_taken);
+    EXPECT_EQ(first.watchdog_activations, solver->last_result_.watchdog_activations);
+    // wall_seconds is INFORMATIONAL (CLAUDE.md section 7): populated, never a
+    // magnitude.
+    EXPECT_GT(first.wall_seconds, 0.0);
+}
+
+TEST(IpmLedger, FactorizationsAndAnalysesArePerCallNotLifetime) {
+    // THE DEFECT THIS FIELD'S DELTA EXISTS TO AVOID: `kkt_factor_counters` is a
+    // LIFETIME snapshot, so a solver reused for a second solve would charge the
+    // second record for the first call's factorizations too.
+    auto solver = silent_hs071();
+    Ledger ledger;
+    solver->optimizer_->attach_ledger(&ledger, "reuse");
+    ASSERT_EQ(solver->optimize(hs071_start()), SolveStatus::kOptimal);
+    const Index lifetime_after_first = solver->last_result_.kkt_factor_counters.factorize_count;
+    ASSERT_EQ(solver->optimize(hs071_start()), SolveStatus::kOptimal);
+    const Index lifetime_after_second = solver->last_result_.kkt_factor_counters.factorize_count;
+
+    ASSERT_EQ(ledger.ipm_records().size(), 2u);
+    EXPECT_GT(lifetime_after_second, lifetime_after_first)
+        << "premise: the second solve pays factorizations of its own";
+    EXPECT_EQ(ledger.ipm_records()[1].factorizations, lifetime_after_second - lifetime_after_first);
+    EXPECT_LT(ledger.ipm_records()[1].factorizations, lifetime_after_second)
+        << "the record reports THIS call's factorizations, not the lifetime total";
+    // `analyses` is already per call, and the SECOND solve on the same program
+    // reuses the analysis -- so it is the honest 0 there.
+    EXPECT_EQ(ledger.ipm_records()[1].analyses, solver->last_result_.kkt_analyses_this_call);
+}
+
+TEST(IpmLedger, AttachResetsTheCounterAndADetachStopsRecording) {
+    auto solver = silent_hs071();
+    Ledger first_ledger;
+    solver->optimizer_->attach_ledger(&first_ledger, "a");
+    ASSERT_EQ(solver->optimize(hs071_start()), SolveStatus::kOptimal);
+    EXPECT_EQ(first_ledger.ipm_records().size(), 1u);
+
+    Ledger second_ledger;
+    solver->optimizer_->attach_ledger(&second_ledger, "b");
+    ASSERT_EQ(solver->optimize(hs071_start()), SolveStatus::kOptimal);
+    ASSERT_EQ(second_ledger.ipm_records().size(), 1u);
+    EXPECT_EQ(second_ledger.ipm_records()[0].label, "b_0")
+        << "attach_ledger restarts the label sequence";
+    EXPECT_EQ(first_ledger.ipm_records().size(), 1u) << "the old ledger stopped receiving";
+
+    solver->optimizer_->attach_ledger(nullptr, "");
+    ASSERT_EQ(solver->optimize(hs071_start()), SolveStatus::kOptimal);
+    EXPECT_EQ(second_ledger.ipm_records().size(), 1u);
+}
+
+TEST(IpmLedger, ARefusedCallRecordsNothingAndConsumesNoLabel) {
+    auto solver = silent_hs071();
+    Ledger ledger;
+    solver->optimizer_->attach_ledger(&ledger, "throw");
+    // One good solve first, which is also what TRANSCRIBES the program this
+    // test then hands a bad start to.
+    ASSERT_EQ(solver->optimize(hs071_start()), SolveStatus::kOptimal);
+    ASSERT_EQ(ledger.ipm_records().size(), 1u);
+    EXPECT_EQ(ledger.ipm_records()[0].label, "throw_0");
+
+    // A start vector of the wrong length is refused at the public boundary,
+    // ABOVE the funnel that writes the record.
+    Eigen::VectorXd bad(3);
+    bad << 1.0, 1.0, 1.0;
+    EXPECT_THROW(solver->optimizer_->solve(*solver->nlp_, bad), std::invalid_argument);
+    EXPECT_EQ(ledger.ipm_records().size(), 1u) << "a refused call records nothing";
+
+    ASSERT_EQ(solver->optimize(hs071_start()), SolveStatus::kOptimal);
+    ASSERT_EQ(ledger.ipm_records().size(), 2u);
+    EXPECT_EQ(ledger.ipm_records()[1].label, "throw_1") << "the refusal consumed no number";
+}
+
+TEST(IpmLedger, TheSummaryTableIsEmptyWithoutRecordsAndHasARowPerRecordWithThem) {
+    Ledger empty;
+    EXPECT_EQ(empty.ipm_summary_table(), "");
+
+    auto solver = silent_hs071();
+    Ledger ledger;
+    solver->optimizer_->attach_ledger(&ledger, "tbl");
+    ASSERT_EQ(solver->optimize(hs071_start()), SolveStatus::kOptimal);
+    ASSERT_EQ(solver->optimize(hs071_start()), SolveStatus::kOptimal);
+
+    const std::string table = ledger.ipm_summary_table();
+    EXPECT_NE(table.find("Label"), std::string::npos);
+    EXPECT_NE(table.find("Factorizations"), std::string::npos);
+    EXPECT_NE(table.find("tbl_0"), std::string::npos);
+    EXPECT_NE(table.find("tbl_1"), std::string::npos);
+    // Header, rule, two rows.
+    EXPECT_EQ(std::count(table.begin(), table.end(), '\n'), 4);
+    // NO TIMING COLUMN: both time fields are informational, and a table is
+    // where an informational number gets quoted as a measurement.
+    EXPECT_EQ(table.find("Time"), std::string::npos);
+    EXPECT_EQ(table.find("Wall"), std::string::npos);
+}
+
+TEST(IpmTrace, SolveBeginCarriesTheEightFieldsTheConsoleTableNeeds) {
+    // M6 W5 T8.7's addition, read off a REAL solve rather than a scripted
+    // event: the four acceptable tolerances, the layout width, and the three
+    // `print_stats` inputs.
+    NLPSolver solver(std::make_shared<Hs071Problem>());
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        o.wide_console = true;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    solver.optimizer_->attach_trace(&sink);
+    ASSERT_EQ(solver.optimize(hs071_start()), SolveStatus::kOptimal);
+
+    const std::vector<std::string> begin = lines_of_event(os.str(), "ipm.solve.begin");
+    ASSERT_EQ(begin.size(), 1u);
+    const std::string &b = begin.front();
+    EXPECT_EQ(field(b, "wide_console"), "true");
+    // HS071 declares no fixed variable, so the MakeConstraint treatment
+    // installs no internal row -- a reading, not a missing value.
+    EXPECT_EQ(field(b, "internal_fixed_rows"), "0");
+    // The KKT system is real: a positive dimension and a positive fill.
+    EXPECT_GT(std::stoll(field(b, "kkt_dim")), 0);
+    EXPECT_GT(std::stoll(field(b, "kkt_nnz")), 0);
+    // The four acceptable tolerances are the shipped defaults, and each is
+    // LOOSER than its convergence counterpart -- which is the ordering
+    // `validate()` enforces and the colouring depends on.
+    EXPECT_GT(std::stod(field(b, "acc_kkt_tol")), std::stod(field(b, "kkt_tol")));
+    EXPECT_GT(std::stod(field(b, "acc_econ_tol")), std::stod(field(b, "econ_tol")));
+    EXPECT_GT(std::stod(field(b, "acc_icon_tol")), std::stod(field(b, "icon_tol")));
+    EXPECT_GT(std::stod(field(b, "acc_bar_tol")), std::stod(field(b, "bar_tol")));
+}
+
+TEST(IpmConsole, PrintLevelZeroWritesTheTableAndTenWritesNothing) {
+    // The console the SOLVER attaches for itself, on a live solve. What is
+    // pinned here is the SHAPE -- the banner, the statistics block, the row
+    // header, the Beginning/Finished pair and the timing summary -- and that a
+    // silent level writes not one byte. The BYTES are pinned twice over: the
+    // rows against the old printer in tests/drivers/test_console_sink.cpp, and
+    // the whole transcript against a BASE capture in this task's leg.
+    std::string printed;
+    {
+        NLPSolver solver(std::make_shared<Hs071Problem>());
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 0;
+        solver.optimizer_->set_options(std::move(o));
+        StdoutCapture capture;
+        solver.optimize(hs071_start());
+        printed = capture.text();
+    }
+    EXPECT_NE(printed.find("hven Interior-Point Solver"), std::string::npos);
+    EXPECT_NE(printed.find("Problem Statistics"), std::string::npos);
+    EXPECT_NE(printed.find("KKT-Matrix NNZ%"), std::string::npos);
+    EXPECT_NE(printed.find("|Iter| mu Val"), std::string::npos);
+    EXPECT_NE(printed.find("Beginning"), std::string::npos);
+    EXPECT_NE(printed.find("Total Solve Time"), std::string::npos);
+    // The NARROW layout, which is the default: the wide header's own columns
+    // are absent.
+    EXPECT_EQ(printed.find("Max EMult"), std::string::npos);
+
+    std::string silent;
+    {
+        auto solver = silent_hs071();
+        StdoutCapture capture;
+        solver->optimize(hs071_start());
+        silent = capture.text();
+    }
+    EXPECT_EQ(silent, "");
+}
+
+TEST(IpmConsole, TheConsoleDoesNotDisplaceAUserSink) {
+    // The fan-out's invariant on the interior-point side: the caller's stream
+    // is byte-identical with printing on and off.
+    auto run = [](int print_level) {
+        NLPSolver solver(std::make_shared<Hs071Problem>());
+        auto o = solver.optimizer_->options();
+        o.common.print_level = print_level;
+        solver.optimizer_->set_options(std::move(o));
+        std::ostringstream os;
+        JsonLinesTraceSink sink(os);
+        solver.optimizer_->attach_trace(&sink);
+        StdoutCapture capture;
+        solver.optimize(hs071_start());
+        return std::pair<std::string, std::string>{os.str(), capture.text()};
+    };
+    const auto silent = run(10);
+    const auto printing = run(0);
+    EXPECT_FALSE(silent.first.empty());
+
+    // THE `ipm.solve.end` LINE IS EXCLUDED FROM THE BYTE COMPARISON, and only
+    // that line: every one of its seven `_s` fields is WALL-CLOCK, which
+    // CLAUDE.md section 7 makes informational and never asserted -- two runs of
+    // the same solve differ there by construction, console or no console. What
+    // is compared byte for byte is the whole rest of the stream (the begin line
+    // and every `ipm.iter` row), and the end line is compared on its two
+    // DETERMINISTIC fields.
+    auto without_end = [](const std::string &stream) {
+        std::vector<std::string> kept;
+        for (const std::string &l : split_lines(stream)) {
+            if (field(l, "ev") != "\"ipm.solve.end\"") {
+                kept.push_back(l);
+            }
+        }
+        return kept;
+    };
+    EXPECT_EQ(without_end(silent.first), without_end(printing.first))
+        << "the console perturbed the caller's stream";
+    const std::vector<std::string> silent_end = lines_of_event(silent.first, "ipm.solve.end");
+    const std::vector<std::string> printing_end = lines_of_event(printing.first, "ipm.solve.end");
+    ASSERT_EQ(silent_end.size(), 1u);
+    ASSERT_EQ(printing_end.size(), 1u);
+    EXPECT_EQ(field(silent_end[0], "status"), field(printing_end[0], "status"));
+    EXPECT_EQ(field(silent_end[0], "iters"), field(printing_end[0], "iters"));
+
+    EXPECT_EQ(silent.second, "");
+    EXPECT_FALSE(printing.second.empty());
+}
+
+TEST(IpmConsole, TheWideLayoutIsTheSolversOwnOptionAndReachesItsConsole) {
+    std::string printed;
+    {
+        NLPSolver solver(std::make_shared<Hs071Problem>());
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 0;
+        o.wide_console = true;
+        solver.optimizer_->set_options(std::move(o));
+        StdoutCapture capture;
+        solver.optimize(hs071_start());
+        printed = capture.text();
+    }
+    EXPECT_NE(printed.find("Max EMult"), std::string::npos);
+    EXPECT_NE(printed.find("Merit Val"), std::string::npos);
 }
 
 } // namespace

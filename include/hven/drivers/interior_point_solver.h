@@ -108,6 +108,16 @@ struct FeasibilityStallDetector;
 /// pointer name this type here. The .cpp takes the include.
 class TraceSink;
 
+/// The two composition sinks (M6 W5 T8.7, `drivers/console_trace_sink.h`),
+/// forward-declared for the same reason and held through `unique_ptr`s whose
+/// deleters are instantiated in the .cpp -- which is where the destructor is,
+/// so an incomplete type here is fine.
+class ConsoleTraceSink;
+class FanOutTraceSink;
+
+/// @brief Forward-declared: only `attach_ledger`'s parameter names it here.
+class Ledger;
+
 /// Primal-dual interior-point solver for continuous NLPs, driving a phase
 /// sequence over barrier/line-search modes with pluggable step acceptance, a
 /// barrier governor, a post-rejection recovery chain and optional
@@ -524,6 +534,12 @@ class InteriorPointSolver {
             this->pending_callback_ = std::move(cb);
             return;
         }
+        // A DIRECT CALL SUPERSEDES ANY PENDING DEFERRAL (M6 W5 T8.7, the SQP
+        // lane's M9). A callback that parked a deferral and then THREW never
+        // reached the apply point, so the optional is still engaged; without
+        // this reset the next solve entry would apply that stale value OVER the
+        // callback just installed here.
+        this->pending_callback_.reset();
         this->iteration_callback_ = std::move(cb);
     }
     /// @brief Removes the per-iteration callback.
@@ -535,6 +551,8 @@ class InteriorPointSolver {
             this->pending_callback_ = IterationCallback{};
             return;
         }
+        // See set_iteration_callback(): a direct call supersedes a deferral.
+        this->pending_callback_.reset();
         this->iteration_callback_ = nullptr;
     }
 
@@ -553,6 +571,8 @@ class InteriorPointSolver {
             this->pending_kkt_hook_ = f;
             return;
         }
+        // See set_iteration_callback(): a direct call supersedes a deferral.
+        this->pending_kkt_hook_.reset();
         this->kkt_hook_enabled_ = true;
         this->kkt_hook_ = f;
     }
@@ -574,6 +594,8 @@ class InteriorPointSolver {
             this->pending_kkt_hook_ = KktHook{};
             return;
         }
+        // See set_iteration_callback(): a direct call supersedes a deferral.
+        this->pending_kkt_hook_.reset();
         this->kkt_hook_enabled_ = false;
         this->kkt_hook_ = nullptr;
     }
@@ -587,7 +609,38 @@ class InteriorPointSolver {
     ///
     /// @param sink The sink to attach, or `nullptr` to detach. Borrowed, not
     ///             owned.
+    ///
+    /// THE SINK A SOLVE ACTUALLY WRITES TO IS COMPOSED AT SOLVE ENTRY (M6 W5
+    /// T8.7). When `common.print_level` says printing is on, the solver builds
+    /// its own `ConsoleTraceSink` and fans out over BOTH -- this sink first,
+    /// the console second -- so attaching a console never displaces a caller's
+    /// sink, and a caller's stream is byte-identical with printing on and off.
     void attach_trace(TraceSink *sink);
+
+    // --- Instrumentation ledger ---
+    /// @brief Attaches a ledger; one `IpmSolveRecord` is written per public
+    ///        solve() call that RETURNS.
+    ///
+    /// The SQP driver's `attach_ledger` in shape and in every rule (see
+    /// `drivers/sqp_driver.h`): the ledger is borrowed and must outlive every
+    /// solve made while it is attached, the label is
+    /// `"{label_prefix}_{n}"` with `n` a per-solver counter this call RESETS to
+    /// 0, and the counter advances only when a record is actually written -- so
+    /// a solve that leaves by an exception neither records nor consumes a
+    /// number.
+    ///
+    /// TWO THINGS THE SQP DOES THAT THIS DOES NOT. There is no `"_qp"`
+    /// forwarding to a subordinate engine (this solver owns no engine object
+    /// with its own ledger), and nothing is re-forwarded on `set_options`
+    /// (nothing is rebuilt). The engine's nested feasibility restoration runs
+    /// INSIDE the solve rather than as a separate solver and writes no record
+    /// of its own -- exactly as the SQP's restoration sub-driver receives
+    /// `attach_trace` but no `attach_ledger`.
+    ///
+    /// @param ledger       The ledger to write to, or `nullptr` to detach.
+    ///                     Borrowed, not owned.
+    /// @param label_prefix The prefix every record's label is built from.
+    void attach_ledger(Ledger *ledger, std::string label_prefix);
 
     // --- Constraint-multiplier seeding ---
     //
@@ -645,8 +698,20 @@ class InteriorPointSolver {
     // IpmResult::export_snapshot_ and is unchanged.
 
     // --- Printing ---
-    /// @brief Prints the console output banner ruler.
-    static void print_header() { fmt::print(fmt::fg(fmt::color::white), "{0:=^{1}}\n", "", 65); }
+    //
+    // THE CONSOLE TABLE LEFT THIS CLASS IN M6 W5 T8.7. `print_header()`,
+    // `print_banner()`, `print_stats()`, `print_last_iterate()`,
+    // `print_timing_summary()` and `calculate_color()` are gone; what they
+    // wrote is written by `ConsoleTraceSink` (`drivers/console_trace_sink.h`)
+    // from the events this solver emits, and the solver attaches one of those
+    // itself when `common.print_level` says printing is on. `print_settings()`
+    // was declared and defined with NO caller and is simply deleted.
+    //
+    // THREE DIRECT PRINTS SURVIVE, with the nine warnings: the per-phase
+    // Beginning/Finished lines, the KKT-analysis block, and the per-PHASE
+    // `print_exit_stats()`. Each reports something the per-CALL `ipm.solve`
+    // pair cannot carry (a phase label, an analysis, a phase's own verdict and
+    // times) and T8.7b gives each its own event.
 
   private:
     // Test access: these unit tests verify which concrete acceptance strategy
@@ -1090,8 +1155,37 @@ class InteriorPointSolver {
     /// instant. INFORMATIONAL, never asserted (CLAUDE.md section 7).
     std::chrono::steady_clock::time_point entry_time_{};
 
-    /// The attached trace sink, or null. Never owned; see attach_trace().
+    /// The sink the CALLER attached, or null. Never owned; see attach_trace().
+    TraceSink *user_trace_ = nullptr;
+
+    /// THE EFFECTIVE SINK FOR THE SOLVE IN FLIGHT, or null (M6 W5 T8.7).
+    /// Composed at `run_phase_sequence` entry -- the caller's sink alone, the
+    /// console alone, or a fan-out over both -- and every emit site in this
+    /// class reads THIS, so a caller's stream is byte-identical whether or not
+    /// a console is attached beside it. Never owned; points at `user_trace_`,
+    /// at `console_` or at `fanout_`, all of which outlive the solve.
     TraceSink *trace_ = nullptr;
+
+    /// This solver's OWN console, built at solve entry when
+    /// `common.print_level` is below 3 and destroyed with the solver. Held
+    /// through a pointer rather than by value so the class stays default-
+    /// constructible against an incomplete `ConsoleTraceSink`, and because
+    /// neither sink type is movable.
+    std::unique_ptr<ConsoleTraceSink> console_;
+    /// The fan-out over `user_trace_` and `console_`, built at solve entry when
+    /// both exist. Points INTO this object, which is neither copyable nor
+    /// movable, so the pointers it holds are stable.
+    std::unique_ptr<FanOutTraceSink> fanout_;
+
+    // --- Instrumentation ledger (M6 W5 T8.7) ---
+    /// The attached ledger, or null. Never owned; see attach_ledger().
+    Ledger *ledger_ = nullptr;
+    /// The prefix every record's label is built from; see attach_ledger().
+    std::string label_prefix_;
+    /// The number of records this solver has written since the ledger was
+    /// attached. Reset by attach_ledger(), advanced ONLY when a record is
+    /// actually written.
+    Index solve_counter_ = 0;
 
     /// The 0-based index of the phase `alg_impl` is currently running, written
     /// by run_phase_sequence() before each call and read only by the `ipm.iter`
@@ -1637,17 +1731,27 @@ class InteriorPointSolver {
     /// see analyzed_owner_id_.
     static std::uint64_t next_owner_id();
 
+    /// THE ONE LEDGER WRITE (M6 W5 T8.7), called from both public solve()
+    /// overloads after the entry clock has stopped and `wall_seconds` has been
+    /// stamped -- the SQP driver's `record_solve` funnel in shape. Does nothing
+    /// when no ledger is attached; a solve that leaves by an exception never
+    /// reaches it, so it neither records nor consumes a label number.
+    ///
+    /// @param result                 The result this call is about to return.
+    /// @param factorize_count_at_entry The KKT factor's lifetime
+    ///        `factorize_count` read at the top of this call; the record's
+    ///        `factorizations` is the difference, so a reused solver does not
+    ///        charge this record for a previous call's work.
+    void record_solve(const IpmResult &result, Index factorize_count_at_entry);
+
     // --- Printing methods ---
-    static void print_banner();
-    void print_settings();
-    void print_stats();
-    void print_last_iterate(const std::vector<IterateInfo> &iters);
+    //
+    // THREE LEFT (M6 W5 T8.7). The rest moved into `ConsoleTraceSink` or, in
+    // `print_settings()`'s case, were deleted for having no caller.
     void print_beginning(std::string_view msg) const;
     void print_finished(std::string_view msg) const;
     void print_exit_stats(SolveStatus ExitCode, const IterateInfo &last, int iternum,
                           double tottime, double nlptime, double qptime, double printtime);
-    void print_timing_summary();
-    static fmt::text_style calculate_color(double val, double targ, double acc);
 };
 
 } // namespace hven::solvers

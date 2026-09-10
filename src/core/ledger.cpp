@@ -79,4 +79,29 @@ std::string Ledger::sqp_summary_table() const {
     return result;
 }
 
+// THE INTERIOR-POINT TABLE (M6 W5 T8.7). Six columns, on sqp_summary_table()'s
+// own shape and widths so the two read side by side; no timing column, for the
+// reason ipm_summary_table()'s declaration gives.
+std::string Ledger::ipm_summary_table() const {
+    if (ipm_records_.empty()) {
+        return "";
+    }
+
+    std::string result;
+    const std::string header =
+        fmt::format("{:<30} {:<16} {:<8} {:<8} {:<16} {:<10}", "Label", "Status", "Iters", "Phases",
+                    "Factorizations", "Analyses");
+    result += header + "\n";
+    result += std::string(header.size(), '-');
+    result += "\n";
+
+    for (const auto &rec : ipm_records_) {
+        result += fmt::format("{:<30} {:<16} {:<8} {:<8} {:<16} {:<10}\n", rec.label,
+                              to_string(rec.status), rec.iterations, rec.phases_run,
+                              rec.factorizations, rec.analyses);
+    }
+
+    return result;
+}
+
 } // namespace hven::solvers

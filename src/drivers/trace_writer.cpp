@@ -516,10 +516,13 @@ static_assert(::hven::detail::kAggregateArity<SqpSolveBeginTraceEvent> == 10,
 // THE END EVENT HOLDS A REFERENCE (`counters`), and `kAggregateArity` reads 0
 // for such a struct -- it refuses N = 0 and the climb stops there (the helper's
 // own note). The two-sided form below is the exact net for that shape.
+//
+// 8 / !9 AS OF M6 W5 T8.7, which appended the five scaling fields the console's
+// `Scaling:` trailer reads (3 / !4 before it).
 static_assert(::hven::detail::aggregate_initializable_with<SqpSolveEndTraceEvent>(
-                  std::make_index_sequence<3>{}) &&
+                  std::make_index_sequence<8>{}) &&
                   !::hven::detail::aggregate_initializable_with<SqpSolveEndTraceEvent>(
-                      std::make_index_sequence<4>{}),
+                      std::make_index_sequence<9>{}),
               "SqpSolveEndTraceEvent gained or lost a field: give it a key in "
               "JsonLinesTraceSink::on_sqp_solve_end, re-derive the golden line, and update "
               "these two counts.");
@@ -551,10 +554,12 @@ static_assert(::hven::detail::aggregate_initializable_with<IpmIterTraceEvent>(
               "JsonLinesTraceSink::on_ipm_iter, re-derive the golden line, and update these "
               "two counts.");
 
-// 20 = 4 dimensions + the flat five-key census + `phases` + the 10 run-shaping
-// settings. The census is FLAT on the struct so this count can see it: the
-// arity helper reads a NESTED aggregate's members through brace elision.
-static_assert(::hven::detail::kAggregateArity<IpmSolveBeginTraceEvent> == 20,
+// 28 = 4 dimensions + the flat five-key census + `phases` + the 10 run-shaping
+// settings + M6 W5 T8.7's eight (the four ACCEPTABLE tolerances, `wide_console`
+// and `print_stats`'s own three KKT/fixing-row inputs). The census is FLAT on
+// the struct so this count can see it: the arity helper reads a NESTED
+// aggregate's members through brace elision.
+static_assert(::hven::detail::kAggregateArity<IpmSolveBeginTraceEvent> == 28,
               "IpmSolveBeginTraceEvent gained or lost a field: give it a key in "
               "JsonLinesTraceSink::on_ipm_solve_begin, re-derive the golden line, and update "
               "this count.");
@@ -566,6 +571,17 @@ static_assert(::hven::detail::kAggregateArity<IpmSolveEndTraceEvent> == 9,
               "IpmSolveEndTraceEvent gained or lost a field: give it a key in "
               "JsonLinesTraceSink::on_ipm_solve_end, re-derive the golden line, and update "
               "this count.");
+
+// `IpmRestorationExitRowTraceEvent` HOLDS A REFERENCE, so `kAggregateArity`
+// reads 0 for it and the two-sided form is the exact net -- exactly as for
+// `IpmIterTraceEvent` and `SqpSolveEndTraceEvent` above.
+static_assert(::hven::detail::aggregate_initializable_with<IpmRestorationExitRowTraceEvent>(
+                  std::make_index_sequence<4>{}) &&
+                  !::hven::detail::aggregate_initializable_with<IpmRestorationExitRowTraceEvent>(
+                      std::make_index_sequence<5>{}),
+              "IpmRestorationExitRowTraceEvent gained or lost a field: give it a key in "
+              "JsonLinesTraceSink::on_ipm_restoration_exit_row, re-derive the golden line, and "
+              "update these two counts.");
 
 } // namespace
 
@@ -803,6 +819,15 @@ void JsonLinesTraceSink::on_sqp_solve_end(const SqpSolveEndTraceEvent &event) {
     key_index(b, first, "majors", event.majors);
     key(b, first, "counters");
     b += counters_object(event.counters);
+    // THE SCALING BLOCK (M6 W5 T8.7), after the counters object and flat: the
+    // five values `SqpSolution::scaling` carries, so a reader can tell a scaled
+    // solve from an unscaled one and can see the residual the convergence test
+    // gated on, which no caller-scale column reports.
+    key_bool(b, first, "scaling_active", event.scaling_active);
+    key_double(b, first, "obj_scale", event.obj_scale);
+    key_double(b, first, "row_scale_min", event.row_scale_min);
+    key_double(b, first, "row_scale_max", event.row_scale_max);
+    key_double(b, first, "scaled_kkt_residual", event.scaled_kkt_residual);
     write_line("sqp.solve.end", b);
     // Written FIRST, then unwound: this line belongs to the solve it closes.
     if (open_solves_ > 0) {
@@ -886,6 +911,17 @@ void JsonLinesTraceSink::on_ipm_solve_begin(const IpmSolveBeginTraceEvent &event
     key_double(b, first, "obj_scale", event.obj_scale);
     key_enum(b, first, "inertia_mode", to_json(event.inertia_mode));
     key_enum(b, first, "restoration_mode", to_json(event.restoration_mode));
+    // M6 W5 T8.7's eight. The four ACCEPTABLE tolerances sit beside their
+    // convergence counterparts above (one band each); `wide_console` is the
+    // layout width; the last three are `print_stats()`'s own inputs.
+    key_double(b, first, "acc_kkt_tol", event.acc_kkt_tol);
+    key_double(b, first, "acc_econ_tol", event.acc_econ_tol);
+    key_double(b, first, "acc_icon_tol", event.acc_icon_tol);
+    key_double(b, first, "acc_bar_tol", event.acc_bar_tol);
+    key_bool(b, first, "wide_console", event.wide_console);
+    key_index(b, first, "kkt_dim", event.kkt_dim);
+    key_index(b, first, "kkt_nnz", event.kkt_nnz);
+    key_index(b, first, "internal_fixed_rows", event.internal_fixed_rows);
     write_line("ipm.solve.begin", b);
 }
 
@@ -903,6 +939,21 @@ void JsonLinesTraceSink::on_ipm_solve_end(const IpmSolveEndTraceEvent &event) {
     key_double(b, first, "solver_init_time_s", event.solver_init_time_s);
     key_double(b, first, "misc_time_s", event.misc_time_s);
     write_line("ipm.solve.end", b);
+}
+
+// M6 W5 T8.7. THE ROW ITSELF IS NOT REPEATED: the adjacent `ipm.iter` line
+// carries the whole record, and duplicating 27 keys here would give a reader
+// two copies to reconcile. What this line adds is the door's identity plus the
+// two numbers that decided it, and `iter`/`phase` so the pairing survives a
+// filtered read.
+void JsonLinesTraceSink::on_ipm_restoration_exit_row(const IpmRestorationExitRowTraceEvent &event) {
+    std::string b;
+    bool first = true;
+    key_index(b, first, "iter", event.iterate.iter_);
+    key_index(b, first, "phase", event.phase);
+    key_double(b, first, "theta", event.theta);
+    key_double(b, first, "threshold", event.threshold);
+    write_line("ipm.restoration_exit_row", b);
 }
 
 } // namespace hven::solvers

@@ -79,6 +79,7 @@ class JsonLinesTraceSink final : public TraceSink {
     void on_ipm_iter(const IpmIterTraceEvent &event) override;
     void on_ipm_solve_begin(const IpmSolveBeginTraceEvent &event) override;
     void on_ipm_solve_end(const IpmSolveEndTraceEvent &event) override;
+    void on_ipm_restoration_exit_row(const IpmRestorationExitRowTraceEvent &event) override;
 
     /// Lines ATTEMPTED, which is also the `seq` the last line carried (`seq`
     /// starts at 1). Compared against the artifact's own line count it gives the

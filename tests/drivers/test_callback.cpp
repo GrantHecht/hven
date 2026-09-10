@@ -1040,6 +1040,148 @@ TEST(Callback, ClearingTheCallbackFromInsideItIsSafe) {
     }
 }
 
+// M6 W5 T8.7's RIDER (the SQP lane's M9, raised at the T8.6 fix1 re-check).
+//
+// THE RULE: a DIRECT set/clear -- one made while no callable is in flight --
+// SUPERSEDES any pending deferral.
+//
+// THE DEFECT IT CLOSES. A callback that parks a deferral and then THROWS never
+// reaches the apply point at the end of its own invocation, so the pending
+// optional is still engaged when the exception leaves `solve()`. A caller who
+// then installs a NEW callback directly used to have it silently replaced at
+// the next solve entry by the stale deferred clear -- the next solve fired
+// nothing, with no error and no way to see why.
+//
+// PINNED BOTH DIRECTIONS, on both engines and on the KKT hook: with a direct
+// call after the throw the NEW callable fires; with no direct call the deferred
+// clear still applies, which is the behaviour T8.6 fix1 installed and which
+// must not be lost to the fix.
+TEST(Callback, ADirectSetAfterAThrownDeferralSupersedesIt) {
+    // ---- the SQP ----
+    {
+        Hs071View view;
+        SqpDriver driver(quiet_sqp());
+        driver.set_iteration_callback([&driver](const IterationEvent &) -> CallbackAction {
+            driver.clear_iteration_callback();
+            throw std::runtime_error("callback bailed after parking a deferred clear");
+        });
+        EXPECT_THROW(driver.solve(*view.bridge, hs071_start()), std::runtime_error);
+
+        int fresh_calls = 0;
+        driver.set_iteration_callback([&fresh_calls](const IterationEvent &) {
+            ++fresh_calls;
+            return CallbackAction::kContinue;
+        });
+        const SqpSolution sol = driver.solve(*view.bridge, hs071_start());
+        EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+        EXPECT_GT(fresh_calls, 0) << "the stale deferred clear replaced the new callback";
+        EXPECT_EQ(static_cast<std::size_t>(fresh_calls), sol.history.size());
+    }
+
+    // ---- the SQP, THE OTHER DIRECTION: no direct call, so the deferral holds
+    {
+        Hs071View view;
+        SqpDriver driver(quiet_sqp());
+        int calls = 0;
+        driver.set_iteration_callback([&driver, &calls](const IterationEvent &) -> CallbackAction {
+            ++calls;
+            driver.clear_iteration_callback();
+            throw std::runtime_error("bail");
+        });
+        EXPECT_THROW(driver.solve(*view.bridge, hs071_start()), std::runtime_error);
+        EXPECT_EQ(calls, 1);
+        const SqpSolution sol = driver.solve(*view.bridge, hs071_start());
+        EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+        EXPECT_EQ(calls, 1) << "the deferred clear must still apply at the next entry";
+    }
+
+    // ---- the interior-point engine ----
+    {
+        NLPSolver solver(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        solver.optimizer_->set_options(quiet_ipm(solver));
+        solver.transcribe();
+        hven::solvers::InteriorPointSolver *ipm = solver.optimizer_.get();
+        ipm->set_iteration_callback([ipm](const IterationEvent &) -> CallbackAction {
+            ipm->clear_iteration_callback();
+            throw std::runtime_error("bail");
+        });
+        EXPECT_THROW(ipm->solve(*solver.nlp_, hs071_start()), std::runtime_error);
+
+        int fresh_calls = 0;
+        ipm->set_iteration_callback([&fresh_calls](const IterationEvent &) {
+            ++fresh_calls;
+            return CallbackAction::kContinue;
+        });
+        const hven::solvers::IpmResult r = ipm->solve(*solver.nlp_, hs071_start());
+        EXPECT_EQ(r.status, SolveStatus::kOptimal);
+        EXPECT_GT(fresh_calls, 0) << "the stale deferred clear replaced the new callback";
+    }
+
+    // ---- the interior-point engine, the other direction ----
+    {
+        NLPSolver solver(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        solver.optimizer_->set_options(quiet_ipm(solver));
+        solver.transcribe();
+        hven::solvers::InteriorPointSolver *ipm = solver.optimizer_.get();
+        int calls = 0;
+        ipm->set_iteration_callback([ipm, &calls](const IterationEvent &) -> CallbackAction {
+            ++calls;
+            ipm->clear_iteration_callback();
+            throw std::runtime_error("bail");
+        });
+        EXPECT_THROW(ipm->solve(*solver.nlp_, hs071_start()), std::runtime_error);
+        EXPECT_EQ(calls, 1);
+        const hven::solvers::IpmResult r = ipm->solve(*solver.nlp_, hs071_start());
+        EXPECT_EQ(r.status, SolveStatus::kOptimal);
+        EXPECT_EQ(calls, 1) << "the deferred clear must still apply at the next entry";
+    }
+
+    // ---- the interior-point-only KKT hook, both directions ----
+    {
+        NLPSolver solver(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        solver.optimizer_->set_options(quiet_ipm(solver));
+        solver.transcribe();
+        hven::solvers::InteriorPointSolver *ipm = solver.optimizer_.get();
+        ipm->set_kkt_hook([ipm](int, double, hven::ConstEigenRef<Vec>, double,
+                                hven::ConstEigenRef<Vec>, hven::ConstEigenRef<Vec>,
+                                Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
+            ipm->clear_kkt_hook();
+            throw std::runtime_error("bail");
+        });
+        EXPECT_THROW(ipm->solve(*solver.nlp_, hs071_start()), std::runtime_error);
+
+        int fresh_calls = 0;
+        ipm->set_kkt_hook([&fresh_calls](int, double, hven::ConstEigenRef<Vec>, double,
+                                         hven::ConstEigenRef<Vec>, hven::ConstEigenRef<Vec>,
+                                         Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+            ++fresh_calls;
+            return 0;
+        });
+        const hven::solvers::IpmResult r = ipm->solve(*solver.nlp_, hs071_start());
+        EXPECT_EQ(r.status, SolveStatus::kOptimal);
+        EXPECT_GT(fresh_calls, 0) << "the stale deferred clear replaced the new hook";
+    }
+    {
+        NLPSolver solver(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        solver.optimizer_->set_options(quiet_ipm(solver));
+        solver.transcribe();
+        hven::solvers::InteriorPointSolver *ipm = solver.optimizer_.get();
+        int calls = 0;
+        ipm->set_kkt_hook([ipm, &calls](int, double, hven::ConstEigenRef<Vec>, double,
+                                        hven::ConstEigenRef<Vec>, hven::ConstEigenRef<Vec>,
+                                        Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
+            ++calls;
+            ipm->clear_kkt_hook();
+            throw std::runtime_error("bail");
+        });
+        EXPECT_THROW(ipm->solve(*solver.nlp_, hs071_start()), std::runtime_error);
+        EXPECT_EQ(calls, 1);
+        const hven::solvers::IpmResult r = ipm->solve(*solver.nlp_, hs071_start());
+        EXPECT_EQ(r.status, SolveStatus::kOptimal);
+        EXPECT_EQ(calls, 1) << "the deferred clear must still apply at the next entry";
+    }
+}
+
 TEST(Callback, ZeroMajorExitFiresOnceOrNever) {
     NonFiniteStartModel model;
     SqpDriver driver(quiet_sqp());

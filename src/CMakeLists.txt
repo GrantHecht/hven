@@ -205,6 +205,7 @@ target_include_directories(hven PRIVATE
 
 target_sources(hven PRIVATE
     drivers/aggregate_eval_seam.cpp
+    drivers/console_trace_sink.cpp
     drivers/problem_scaling.cpp
     drivers/sqp_driver.cpp
     drivers/sqp_options.cpp
@@ -473,7 +474,16 @@ endif()
 # drivers/solve_status.h and warmstart/warm_start_data.h), fmt/format.h and
 # three standard headers -- a different set in a different order from the one
 # src/hven_pch.h prefixes.
-set(_hven_expected_source_count 43)
+#
+# 44 as of drivers/console_trace_sink.cpp (M6 W5 T8.7): both engines' console
+# tables, rendered from the trace stream. NOT a PCH source, on the same
+# unmeasured-default footing as the fifteen above -- it includes its own header
+# (drivers/trace.h, fmt/color.h, <cstdio>), drivers/sqp_driver.h,
+# detail/interior/iterate_info.h and three standard headers, again a different
+# set in a different order from src/hven_pch.h's prefix. The file it took its
+# renderings FROM, drivers/interior_point_solver_print.cpp, stays a PCH source
+# and stays in the count: it survives with three functions.
+set(_hven_expected_source_count 44)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

@@ -31,6 +31,7 @@
 #include <hven/detail/qp/ssn_engine.h>
 #include <hven/detail/qp/working_set.h>
 #include <hven/detail/warmstart/warm_start.h>
+#include <hven/drivers/console_trace_sink.h>
 #include <hven/drivers/sqp_types.h>
 #include <hven/drivers/trace.h>
 #include <hven/model/nlp_model.h>
@@ -640,9 +641,24 @@ class SqpDriver {
     void attach_ledger(Ledger *ledger, std::string label_prefix);
 
     /// @brief Attaches a trace sink; nullptr (the default) is off.
+    ///
+    /// THE SINK A SOLVE ACTUALLY WRITES TO IS COMPOSED AT SOLVE ENTRY (M6 W5
+    /// T8.7). When `common.print_level` says printing is on, the driver builds
+    /// its own `ConsoleTraceSink` and fans out over BOTH -- this sink first,
+    /// the console second -- and hands the FAN-OUT to every emit site, to the
+    /// IPQP engine and to the restoration sub-driver. So a caller's stream is
+    /// byte-identical with printing on and off, its depth-1 lines included, and
+    /// attaching a console never displaces this sink.
+    ///
+    /// LEGAL BETWEEN SOLVES ONLY, on `set_options`' rule and for its reason
+    /// (M6 W5 T8.7): the effective sink is fixed for the duration of a solve,
+    /// so a change made from inside a callback could not take effect in that
+    /// solve anyway, and refusing says so instead of silently deferring.
+    ///
     /// @param sink The sink, or nullptr. Forwarded to the internal IpqpEngine;
     ///             this driver additionally emits `ipqp.route` and `qp.mode`
     ///             itself, in the kIpm dispatch arm.
+    /// @throws std::logic_error if a solve is in flight on this driver.
     void attach_trace(TraceSink *sink);
 
     // --- The shared per-iteration callback (M6 W5 T8.6) ---
@@ -701,6 +717,12 @@ class SqpDriver {
             pending_callback_ = std::move(cb);
             return;
         }
+        // A DIRECT CALL SUPERSEDES ANY PENDING DEFERRAL (M6 W5 T8.7, the SQP
+        // lane's M9). A callback that parked a deferral and then THREW never
+        // reached the apply point, so the optional is still engaged; without
+        // this reset the next solve entry would apply that stale value OVER the
+        // callback just installed here.
+        pending_callback_.reset();
         iteration_callback_ = std::move(cb);
     }
     /// @brief Removes the per-iteration callback.
@@ -712,6 +734,8 @@ class SqpDriver {
             pending_callback_ = IterationCallback{};
             return;
         }
+        // See set_iteration_callback(): a direct call supersedes a deferral.
+        pending_callback_.reset();
         iteration_callback_ = nullptr;
     }
 
@@ -1415,8 +1439,30 @@ class SqpDriver {
     // same two reasons: a live backend session per driver, and one symbolic
     // analysis per solve.
     std::unique_ptr<IpqpEngine> ipqp_engine_;
+
+    // --- The console composition (M6 W5 T8.7) ---
+    //
+    // ON THE DRIVER, NOT ON AN ENGINE, and that matters: `set_options` drops
+    // both lazy engines, so anything held there would be rebuilt behind the
+    // caller's back. Neither sink type is copyable or movable and neither is
+    // `SqpDriver`, so the pointers `fanout_` holds into this object are stable.
+    //
+    // Both are REBUILT at every solve entry from `opts_.common.print_level` and
+    // `user_trace_`, and both stay null on a driver that never prints -- which
+    // is every driver at the SQP's default `print_level` of 3.
+    std::unique_ptr<ConsoleTraceSink> console_;
+    std::unique_ptr<FanOutTraceSink> fanout_;
     // The trace sink, held here because `ipqp_engine_` is lazy; `ipqp_engine()`
     // applies it at first-use construction.
+    // THE SINK THE CALLER ATTACHED (M6 W5 T8.7). `attach_trace` writes THIS
+    // one; `ipqp_trace_` below is what a solve actually writes to.
+    TraceSink *user_trace_ = nullptr;
+    // THE EFFECTIVE SINK: `user_trace_` alone, this driver's console alone, or
+    // a fan-out over both. Composed at solve entry and read by every emit site,
+    // by the lazily-created IPQP engine and by the restoration sub-driver -- so
+    // a nested solve's depth-1 lines reach the caller's sink exactly as they do
+    // with no console attached. The name predates the composition and is kept
+    // so the fifteen read sites did not have to move for a rename.
     TraceSink *ipqp_trace_ = nullptr;
 
     // The two driver-owned emit sites: `ipqp.route` and `qp.mode`, the kIpm
@@ -1525,5 +1571,37 @@ const char *to_string(StepVerdict v);
 /// @param sol A finished solve.
 /// @return The table, ready to print.
 std::string format_iteration_table(const SqpSolution &sol);
+
+// THE FIVE PIECES `format_iteration_table` IS BUILT FROM (M6 W5 T8.7), also
+// defined in src/drivers/sqp_print.cpp. `ConsoleTraceSink` renders the SAME
+// table LIVE from the event stream and reaches each piece as its event
+// arrives, so the two renderers share one copy of every field width instead of
+// each holding its own -- which is what lets the console be pinned byte for
+// byte against `format_iteration_table` on a live solve.
+
+/// @brief The table's header line plus its rule, both newline-terminated.
+std::string sqp_iteration_table_head();
+
+/// @brief One table row, newline-terminated. A row with `qp_solved == false`
+///        renders "-" in the verdict and the two QP columns.
+/// @param row The history row.
+std::string sqp_iteration_table_row(const SqpIterate &row);
+
+/// @brief The trailer's `Status` line, with its leading blank line.
+/// @param status The solve's verdict.
+std::string sqp_iteration_table_status_line(SolveStatus status);
+
+/// @brief The trailer's `Start Level` line.
+/// @param level `SqpCounters::start_level_used` -- the RESOLVED level.
+std::string sqp_iteration_table_start_level_line(StartLevel level);
+
+/// @brief The trailer's `Scaling` line; "Scaling: off" when inactive.
+/// @param active              `SqpScalingReport::active`.
+/// @param obj                 The objective factor.
+/// @param row_min             The smallest constraint-row factor.
+/// @param row_max             The largest constraint-row factor.
+/// @param scaled_kkt_residual The residual the convergence test read.
+std::string sqp_iteration_table_scaling_line(bool active, double obj, double row_min,
+                                             double row_max, double scaled_kkt_residual);
 
 } // namespace hven::solvers

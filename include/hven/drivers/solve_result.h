@@ -203,8 +203,8 @@ enum class CallbackAction {
     /// Stop as soon as the engine can do so without spending work on an answer
     /// the caller no longer wants. Both engines then report kInterrupted at the
     /// point they are standing on, with the ordinary cleanup and the ordinary
-    /// trace end event -- and, on the SQP, the ordinary ledger record (the
-    /// interior-point engine has no ledger of its own until W5 T8.7).
+    /// trace end event -- and the ordinary ledger record on both engines (the
+    /// interior-point engine gained one at W5 T8.7).
     /// See each engine's set_iteration_callback() for the
     /// exact moment the stop takes effect and for the one case that outranks it
     /// (a CONVERGED iterate still reports kOptimal -- converged beats stop).

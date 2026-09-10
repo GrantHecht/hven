@@ -2051,3 +2051,162 @@ trace schema are untouched. No new public header: `CallbackAction`,
 `IterationEvent` and `IterationCallback` live in the already-installed
 `drivers/solve_result.h`, so the install smoke and the export contract needed no
 new TU.
+
+---
+
+## T8.7 — the ledger and the console
+
+Two things arrive together because they are the same move: **instrumentation
+that used to be private to a solver becomes something a caller can attach.** The
+interior-point engine gains `attach_ledger`, exactly as the SQP driver has it;
+and the console table both engines show (or, on the SQP, did not show) becomes a
+`TraceSink` you can point anywhere, that the solver attaches for itself when
+`common.print_level` says printing is on.
+
+### 1. `attach_ledger` on the interior-point engine
+
+```cpp
+hven::solvers::Ledger ledger;
+solver.attach_ledger(&ledger, "ipm");
+solver.solve(model, x0);
+solver.solve(model, x0);
+for (const hven::solvers::IpmSolveRecord &r : ledger.ipm_records()) { ... }
+std::string table = ledger.ipm_summary_table();
+```
+
+`IpmSolveRecord` carries `label`, `status`, `iterations`, `phases_run`,
+`total_time`, `factorizations`, `analyses`, `soc_steps_taken`,
+`watchdog_activations` and `wall_seconds`. One record per public `solve()` call
+that RETURNS; a call that leaves by an exception writes nothing and consumes no
+label number. `attach_ledger` resets the counter, so labels are `"ipm_0"`,
+`"ipm_1"`, ….
+
+Three differences from `SqpDriver::attach_ledger`, each deliberate:
+
+* **No `"_qp"` forwarding.** The SQP driver forwards the same ledger to its
+  internal `QpEngine` under a `<prefix>_qp` label; this engine owns no
+  subordinate engine with a ledger of its own.
+* **Nothing is re-forwarded on `set_options`.** The SQP rebuilds its QP engine
+  there; this one rebuilds nothing.
+* **The nested feasibility restoration writes no record.** It runs INSIDE the
+  solve rather than as a separate solver, and its iterations are already inside
+  `iterations` — the same shape as the SQP's restoration sub-driver, which
+  receives `attach_trace` but no `attach_ledger`.
+
+**`factorizations` is a PER-CALL delta**, not `kkt_factor_counters.factorize_count`.
+That field is a LIFETIME snapshot, so on a reused solver it would charge each
+record for every earlier call's work as well. `analyses` is
+`IpmResult::kkt_analyses_this_call`, which is already per call — and is honestly
+0 on a second solve of the same program, where the analysis is reused.
+`total_time` and `wall_seconds` are wall-clock and INFORMATIONAL, never asserted
+(CLAUDE.md §7); `ipm_summary_table()` therefore has **no timing column**.
+
+### 2. `ConsoleTraceSink` and `FanOutTraceSink`
+
+New public header `hven/drivers/console_trace_sink.h` (a new installed TU;
+the install smoke compiles it standalone).
+
+```cpp
+hven::solvers::ConsoleTraceSink console({/*wide=*/false, /*print_level=*/0}, stdout);
+hven::solvers::FanOutTraceSink fan(&my_sink, &console);
+```
+
+`ConsoleTraceSink` renders BOTH engines' tables from the event stream: the
+interior-point iteration table with `print_last_iterate`'s exact bytes, and the
+SQP table with `format_iteration_table`'s. `FanOutTraceSink` forwards every
+event to two sinks, first then second; either half may be null.
+
+`ipm_residual_color(value, target, acceptable)` is declared beside them: the
+five-band colouring that was `InteriorPointSolver::calculate_color`, now one
+copy shared by the sink and the engine's remaining `print_exit_stats`.
+
+### 3. Printing: what a caller sees change
+
+**On the interior-point engine, nothing.** The table is byte-identical to the
+one the solver used to print itself, at the same print levels, in the same
+order. What moved is WHERE it is produced: the solver now attaches a
+`ConsoleTraceSink` at solve entry when `common.print_level < 3`, and if you had
+also attached a sink of your own, the two are FANNED OUT — your sink first, the
+console second. **Attaching a console never displaces your sink**, and your
+stream is byte-identical with printing on and off.
+
+**On the SQP driver, this is a GAIN.** Before T8.7 the driver printed nothing at
+any level (`format_iteration_table` was called only by tests). It now prints the
+same table at the interior-point engine's tiers. At `CommonOptions`' shipped
+`print_level` of 3 — the SQP's effective default — **nothing is printed, exactly
+as before.** Behaviour change (11) in design §2.7.
+
+The tiers, per line kind, unchanged from the interior-point engine's own:
+
+| level | what prints |
+|---|---|
+| `== 0` | iteration rows; the interior-point Problem Statistics block |
+| `< 2` | headers, `Beginning:`/`Finished:`, the timing summary, the SQP table's head and its `Start Level` / `Scaling` trailer |
+| `< 3` | warnings, exit verdicts, the SQP table's `Status` line |
+
+`IpmOptions::wide_console` **stays an interior-point option**: the solver hands
+it to its own console, and it also rides `ipm.solve.begin` so a foreign sink can
+render the same layout. Nothing moves for a caller. The SQP renderings ignore
+`wide`.
+
+**`SqpDriver::attach_trace` now REFUSES a call made during a solve**, throwing
+`std::logic_error` on `set_options`' rule and for its reason: the effective sink
+is composed at solve entry and fixed for the solve, so a mid-solve change could
+not take effect in it. Between solves it is unchanged, and attach order relative
+to `set_options` is free.
+
+**`IpmResult::print_time` now brackets the EMIT** at the four row sites and the
+restoration-exit marker, not a print — so a sink of your own is inside that
+measurement too. It was informational before and it is informational now; no pin
+reads it.
+
+### 4. Trace schema: two moved lines, one new one
+
+* `ipm.solve.begin` gains EIGHT keys: `acc_kkt_tol`, `acc_econ_tol`,
+  `acc_icon_tol`, `acc_bar_tol` (the upper half of the row colouring's scale),
+  `wide_console`, and `kkt_dim` / `kkt_nnz` / `internal_fixed_rows` (the Problem
+  Statistics block's own inputs). `internal_fixed_rows` is NOT `vars_fixed`:
+  that is the declared box's census, which equals the fixing-row count only
+  under the MakeConstraint treatment.
+* `sqp.solve.end` gains FIVE: `scaling_active`, `obj_scale`, `row_scale_min`,
+  `row_scale_max`, `scaled_kkt_residual` — `SqpSolution::scaling`'s own values,
+  which the console's `Scaling:` trailer had no other source for.
+* **`ipm.restoration_exit_row` is NEW.** The restoration-locally-infeasible exit
+  door marks the row it hands back, carrying `iter`, `phase`, `theta` and
+  `threshold`. The ROW itself is not repeated — the adjacent `ipm.iter` line
+  carries all of it — so this line says WHICH of the four NOTCONVERGED doors a
+  reader is looking at, which the stream could not say before.
+  `TraceSink::on_ipm_restoration_exit_row` is non-pure with an empty default, so
+  no existing sink is touched by its arrival. `ConsoleTraceSink` renders nothing
+  for it, on purpose: the row is already rendered from `ipm.iter`.
+
+No `ipm.iter`, `ipm.solve.end`, `sqp.major` or `sqp.solve.begin` key moved; the
+HS line-count goldens are unchanged.
+
+### 5. Deleted, and what replaced it
+
+| gone | replacement |
+|---|---|
+| `InteriorPointSolver::print_header()` (public, static) | `ConsoleTraceSink` writes the rule |
+| `print_banner()`, `print_stats()`, `print_last_iterate()`, `print_timing_summary()` (private) | `ConsoleTraceSink` |
+| `calculate_color()` (private, static) | `ipm_residual_color()` (free, public) |
+| `print_settings()` (private) | **nothing** — declared, defined, and called by nobody |
+
+`print_beginning()`, `print_finished()` and `print_exit_stats()` **survive** as
+direct prints, with the KKT-analysis block and the nine warnings. Each reports
+something the per-CALL `ipm.solve` pair cannot carry — a phase label, an
+analysis, a phase's own verdict and times — and each is declared as **moved by
+T8.7b**, which adds `on_ipm_phase_begin/end`, `on_ipm_kkt_analysis`,
+`on_ipm_phase_exit` and `on_ipm_message`, serializes them, and deletes
+`src/drivers/interior_point_solver_print.cpp`.
+
+### 6. A direct `set_*`/`clear_*` supersedes a pending deferral
+
+The T8.6 rule — a set or clear made from INSIDE a callback is deferred to the
+statement after it returns — is unchanged. What is fixed is the case where the
+callback then THROWS: the deferral was never applied, and a caller who installed
+a new callback directly used to have it silently replaced by the stale deferred
+clear at the next solve entry. **A direct call now clears any pending deferral.**
+Both directions hold, on both engines and on the KKT hook: with a direct call
+after the throw the NEW callable fires; with no direct call the deferred clear
+still applies.

@@ -92,7 +92,8 @@ struct Hs071Problem : hven::solvers::NLPProblem {
 
 // The standalone-include TUs (M6 W5 T0; nlp_solver joined at T1 fix1,
 // ipqp_evidence at T4, compiler at T3, solve_status at T8.2, common_options and
-// ipm_solver_types at T8.3). Each proves COMPILE-TIME self-containment only:
+// ipm_solver_types at T8.3, console_trace_sink at T8.7). Each proves
+// COMPILE-TIME self-containment only:
 // none odr-uses anything its header declares, so the link proves the twelve
 // objects link, nothing about exports.
 namespace hven_install_smoke {
@@ -111,6 +112,7 @@ int standalone_include_ipm_solver_types();
 int standalone_include_solve_result();
 int standalone_include_sqp_warm_start();
 int standalone_include_seeding();
+int standalone_include_console_trace_sink();
 int standalone_include_compiler();
 } // namespace hven_install_smoke
 
@@ -130,9 +132,10 @@ int main() {
                                hven_install_smoke::standalone_include_solve_result() +
                                hven_install_smoke::standalone_include_sqp_warm_start() +
                                hven_install_smoke::standalone_include_seeding() +
+                               hven_install_smoke::standalone_include_console_trace_sink() +
                                hven_install_smoke::standalone_include_compiler();
-    if (standalone_tus != 16) {
-        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 16\n",
+    if (standalone_tus != 17) {
+        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 17\n",
                      standalone_tus);
         return 1;
     }

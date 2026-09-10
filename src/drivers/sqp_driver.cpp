@@ -1626,6 +1626,19 @@ void SqpDriver::set_options(SqpOptions o) {
 }
 
 void SqpDriver::attach_trace(TraceSink *sink) {
+    // BETWEEN SOLVES ONLY (M6 W5 T8.7), on `set_options`' rule: the effective
+    // sink is composed at solve entry and fixed for the solve, so a change made
+    // mid-solve -- from inside a callback -- could not take effect in it. This
+    // says so rather than silently deferring.
+    if (solve_in_flight_) {
+        throw std::logic_error(
+            "SqpDriver::attach_trace: a solve is in flight on this driver; the trace sink may "
+            "only be replaced between calls");
+    }
+    user_trace_ = sink;
+    // Kept coherent between solves as well, so a caller reading the effect of
+    // this call before the next solve sees what it attached. Solve entry
+    // recomposes.
     ipqp_trace_ = sink;
     if (ipqp_engine_ != nullptr) {
         ipqp_engine_->attach_trace(sink);
@@ -2348,6 +2361,40 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
             "empty for the default funnel rather than returning nullptr");
     }
 
+    // THE EFFECTIVE SINK FOR THIS CALL (M6 W5 T8.7), composed HERE -- once per
+    // call, after the argument refusals so a refused call builds nothing, and
+    // above the `begin` line so the console's own table opens with it.
+    //
+    // WHAT READS `ipqp_trace_` AFTERWARDS: the fifteen emit sites in this file,
+    // the LAZY IPQP engine's construction (which is why `set_options` may drop
+    // that engine without losing the sink), and the restoration sub-driver.
+    // Handing the sub-driver the FAN-OUT rather than the caller's half is what
+    // keeps a caller's stream byte-identical with the console on: the sub-solve
+    // is where the depth-1 lines come from.
+    //
+    // THE SUB-DRIVER BUILDS NO CONSOLE OF ITS OWN (`allow_restoration_` is
+    // false on it), so the parent's console sees the nested pair, counts it as
+    // depth 1 and renders none of its rows -- which is the depth rule
+    // `format_iteration_table` is pinned against.
+    console_.reset();
+    fanout_.reset();
+    ipqp_trace_ = user_trace_;
+    if (allow_restoration_ && opts_.common.print_level < 3) {
+        // `wide` is an interior-point layout option and is IGNORED by the SQP
+        // renderings; the field is passed as it stands rather than invented.
+        console_ = std::make_unique<ConsoleTraceSink>(
+            ConsoleTraceSink::Format{/*wide=*/false, opts_.common.print_level});
+        if (user_trace_ != nullptr) {
+            fanout_ = std::make_unique<FanOutTraceSink>(user_trace_, console_.get());
+            ipqp_trace_ = fanout_.get();
+        } else {
+            ipqp_trace_ = console_.get();
+        }
+    }
+    if (ipqp_engine_ != nullptr) {
+        ipqp_engine_->attach_trace(ipqp_trace_);
+    }
+
     // THE SEQUENCING, EXPLICIT AND NOT RAII (fix round 1, R1): `begin`, the
     // body, then `end` read off the RETURNED object while it is unambiguously
     // alive -- no destructor reads a local the return has begun to move from.
@@ -2380,8 +2427,13 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // included -- is unweakened.
     out.counters.polish_ignored = payload_polish_ignored_;
     if (ipqp_trace_ != nullptr) {
-        ipqp_trace_->on_sqp_solve_end(
-            SqpSolveEndTraceEvent{out.status, out.counters.major_iters, out.counters});
+        // THE SCALING BLOCK (M6 W5 T8.7) rides the closing line, read off the
+        // solution the caller is about to receive. It is the console trailer's
+        // only source -- `format_iteration_table`'s `Scaling:` line reads
+        // `sol.scaling`, and no event carried it before this task.
+        ipqp_trace_->on_sqp_solve_end(SqpSolveEndTraceEvent{
+            out.status, out.counters.major_iters, out.counters, out.scaling.active, out.scaling.obj,
+            out.scaling.row_min, out.scaling.row_max, out.scaling.scaled_kkt_residual});
     }
     return out;
 }

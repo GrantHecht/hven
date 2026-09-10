@@ -23,6 +23,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <ios>
 #include <limits>
@@ -34,6 +35,8 @@
 #include <string>
 #include <vector>
 
+#include <unistd.h>
+
 #include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
@@ -41,6 +44,7 @@
 #include <hven/detail/globalization/sqp/elastic.h>
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/qp_engine.h>
+#include <hven/drivers/console_trace_sink.h>
 #include <hven/drivers/sqp_driver.h>
 #include <hven/drivers/trace_writer.h>
 #include <hven/model/nlp_model.h>
@@ -2789,40 +2793,46 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
     const SqpCounters c = distinct_counters();
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
-    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kBudgetExhausted, 42, c});
-    EXPECT_EQ(
-        os.str(),
-        "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"budget_exhausted"
-        "\",\"majors\":42,\"counters\":{\"major_iters\":1,\"qp_minor_iters\":2,\"factorizations"
-        "\":3,\"steps_accepted\":4,\"rejected_steps\":5,\"soc_steps\":6,\"soc_applied\":7,\"soc"
-        "_qp_infeasible\":8,\"soc_rejected\":9,\"elastic_activations\":10,\"elastic_escalations"
-        "\":11,\"restoration_iters\":12,\"elastic_from_ipqp_escape\":13,\"ipqp_suspicion_dispro"
-        "ved\":14,\"ipqp_fallback_rung_b\":15,\"elastic_rho0_ceiling_hits\":16,\"elastic_floor_"
-        "retries\":17,\"eqp_refine_steps\":18,\"border_refine_steps\":19,\"verdict_refine_steps"
-        "\":20,\"suspect_escalations\":21,\"symbolic_analyses\":22,\"start_level_used\":\"hot\""
-        ",\"full_step_majors\":24,\"watchdog_restores\":25,\"evals_full\":26,\"evals_values\":2"
-        "7,\"probe_budget_stops\":28,\"crash_seeded_rows\":29,\"crash_seeded_bounds\":30,\"n_se"
-        "eded\":31,\"seeded_clamped\":32,\"ip_activity_inferred\":33,\"active_set_delta_total\""
-        ":34,\"active_set_delta_peak\":35,\"weak_active_peak\":36,\"near_active_peak\":37,\"pol"
-        "ish_ignored\":38,\"ssn\":{\"ssn_iters\":39,\"ssn_bulk_flips\":40,\"ssn_backtracks\":41"
-        ",\"ssn_prox_updates\":42,\"ssn_escapes\":43,\"ssn_uncertain_peak\":44,\"ssn_refinement"
-        "s\":45,\"ssn_refine_refused\":46,\"ssn_refine_factorizations\":47,\"ssn_refine_neg_dua"
-        "ls\":48,\"ssn_sign_swept\":49,\"ssn_sign_sweep_max\":50,\"ssn_escape_budget\":51,\"ssn"
-        "_escape_singular\":52,\"ssn_escape_no_contraction\":53,\"ssn_escape_infeasible_suspect"
-        "\":54,\"ssn_escape_indefinite\":55,\"ssn_escape_gate_refused\":56},\"ipqp\":{\"ipqp_it"
-        "ers\":57,\"ipqp_factorizations\":58,\"ipqp_symbolic_analyses\":59,\"ipqp_solves\":60,"
-        "\"ipqp_pattern_verifies\":61,\"ipqp_rho_demanded_max\":62,\"ipqp_rho_demanded_last\":6"
-        "3,\"ipqp_inertia_retries\":64,\"ipqp_iters_at_elevated_rho\":65,\"ipqp_ladder_reclimbs"
-        "\":66,\"ipqp_pivot_reroute_primal\":67,\"ipqp_pivot_reroute_dual_fallback\":68,\"ipqp_"
-        "iters_ladder_armed_no_advance\":69,\"ipqp_final_inertia_read\":70,\"ipqp_reg_decreases"
-        "\":71,\"ipqp_reg_increases\":72,\"ipqp_prox_center_updates\":73,\"ipqp_restart_repairs"
-        "\":74,\"ipqp_restart_shift_max\":75,\"ipqp_mu_adopted\":76,\"ipqp_warm_restart_abandon"
-        "ed\":77,\"ipqp_declined_pinned\":78,\"ipqp_tier_retired_after\":79,\"ipqp_face_uncerta"
-        "in\":80,\"ipqp_refine_accepted\":81,\"ipqp_refine_refused\":82,\"ipqp_to_refine\":83,"
-        "\"ipqp_to_ssn\":84,\"ipqp_to_walk\":85,\"ipqp_escapes\":86,\"ipqp_escape_budget\":87,"
-        "\"ipqp_escape_stall\":88,\"ipqp_escape_indefinite\":89,\"ipqp_escape_numerical\":90,\""
-        "ipqp_escape_infeasible_suspect\":91,\"ipqp_alpha_p_min\":92,\"ipqp_alpha_d_min\":93,\""
-        "ipqp_read_kept_tight_sides\":94,\"ipqp_read_barrier_noise_sides\":95}}}\n");
+    // RE-DERIVED AT M6 W5 T8.7, which appended the FIVE scaling fields the
+    // console's `Scaling:` trailer reads. They are LAST on the line, after the
+    // counters object, each with its own value.
+    sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kBudgetExhausted, 42, c,
+                                                /*scaling_active=*/true, 0.25, 0.5, 4.0, 7.5e-09});
+    EXPECT_EQ(os.str(),
+              "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"budget_exhauste"
+              "d\",\"majors\":42,\"counters\":{\"major_iters\":1,\"qp_minor_iters\":2,\"factorizati"
+              "ons\":3,\"steps_accepted\":4,\"rejected_steps\":5,\"soc_steps\":6,\"soc_applied\":7,"
+              "\"soc_qp_infeasible\":8,\"soc_rejected\":9,\"elastic_activations\":10,\"elastic_esca"
+              "lations\":11,\"restoration_iters\":12,\"elastic_from_ipqp_escape\":13,\"ipqp_suspici"
+              "on_disproved\":14,\"ipqp_fallback_rung_b\":15,\"elastic_rho0_ceiling_hits\":16,\"ela"
+              "stic_floor_retries\":17,\"eqp_refine_steps\":18,\"border_refine_steps\":19,\"verdict"
+              "_refine_steps\":20,\"suspect_escalations\":21,\"symbolic_analyses\":22,\"start_level"
+              "_used\":\"hot\",\"full_step_majors\":24,\"watchdog_restores\":25,\"evals_full\":26,"
+              "\"evals_values\":27,\"probe_budget_stops\":28,\"crash_seeded_rows\":29,\"crash_seede"
+              "d_bounds\":30,\"n_seeded\":31,\"seeded_clamped\":32,\"ip_activity_inferred\":33,\"ac"
+              "tive_set_delta_total\":34,\"active_set_delta_peak\":35,\"weak_active_peak\":36,\"nea"
+              "r_active_peak\":37,\"polish_ignored\":38,\"ssn\":{\"ssn_iters\":39,\"ssn_bulk_flips"
+              "\":40,\"ssn_backtracks\":41,\"ssn_prox_updates\":42,\"ssn_escapes\":43,\"ssn_uncerta"
+              "in_peak\":44,\"ssn_refinements\":45,\"ssn_refine_refused\":46,\"ssn_refine_factoriza"
+              "tions\":47,\"ssn_refine_neg_duals\":48,\"ssn_sign_swept\":49,\"ssn_sign_sweep_max\":"
+              "50,\"ssn_escape_budget\":51,\"ssn_escape_singular\":52,\"ssn_escape_no_contraction\""
+              ":53,\"ssn_escape_infeasible_suspect\":54,\"ssn_escape_indefinite\":55,\"ssn_escape_g"
+              "ate_refused\":56},\"ipqp\":{\"ipqp_iters\":57,\"ipqp_factorizations\":58,\"ipqp_symb"
+              "olic_analyses\":59,\"ipqp_solves\":60,\"ipqp_pattern_verifies\":61,\"ipqp_rho_demand"
+              "ed_max\":62,\"ipqp_rho_demanded_last\":63,\"ipqp_inertia_retries\":64,\"ipqp_iters_a"
+              "t_elevated_rho\":65,\"ipqp_ladder_reclimbs\":66,\"ipqp_pivot_reroute_primal\":67,\"i"
+              "pqp_pivot_reroute_dual_fallback\":68,\"ipqp_iters_ladder_armed_no_advance\":69,\"ipq"
+              "p_final_inertia_read\":70,\"ipqp_reg_decreases\":71,\"ipqp_reg_increases\":72,\"ipqp"
+              "_prox_center_updates\":73,\"ipqp_restart_repairs\":74,\"ipqp_restart_shift_max\":75,"
+              "\"ipqp_mu_adopted\":76,\"ipqp_warm_restart_abandoned\":77,\"ipqp_declined_pinned\":7"
+              "8,\"ipqp_tier_retired_after\":79,\"ipqp_face_uncertain\":80,\"ipqp_refine_accepted\""
+              ":81,\"ipqp_refine_refused\":82,\"ipqp_to_refine\":83,\"ipqp_to_ssn\":84,\"ipqp_to_wa"
+              "lk\":85,\"ipqp_escapes\":86,\"ipqp_escape_budget\":87,\"ipqp_escape_stall\":88,\"ipq"
+              "p_escape_indefinite\":89,\"ipqp_escape_numerical\":90,\"ipqp_escape_infeasible_suspe"
+              "ct\":91,\"ipqp_alpha_p_min\":92,\"ipqp_alpha_d_min\":93,\"ipqp_read_kept_tight_sides"
+              "\":94,\"ipqp_read_barrier_noise_sides\":95}},\"scaling_active\":true,\"obj_scale\":0"
+              ".25,\"row_scale_min\":0.5,\"row_scale_max\":4,\"scaled_kkt_residual\":7.499999999999"
+              "9993e-09}\n");
 }
 
 TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
@@ -2838,39 +2848,43 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
     const SqpCounters c;
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
+    // The default scaling block rides here (M6 W5 T8.7): `active` false and the
+    // three factors at 1.0, which is the INACTIVE report's identity -- a reader
+    // never has to branch on `active` to use it.
     sink.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kNumericalError, 0, c});
-    EXPECT_EQ(
-        os.str(),
-        "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"numerical_error\""
-        ",\"majors\":0,\"counters\":{\"major_iters\":0,\"qp_minor_iters\":0,\"factorizations\":"
-        "0,\"steps_accepted\":0,\"rejected_steps\":0,\"soc_steps\":0,\"soc_applied\":0,\"soc_qp"
-        "_infeasible\":0,\"soc_rejected\":0,\"elastic_activations\":0,\"elastic_escalations\":0"
-        ",\"restoration_iters\":0,\"elastic_from_ipqp_escape\":0,\"ipqp_suspicion_disproved\":0"
-        ",\"ipqp_fallback_rung_b\":0,\"elastic_rho0_ceiling_hits\":0,\"elastic_floor_retries\":"
-        "0,\"eqp_refine_steps\":0,\"border_refine_steps\":0,\"verdict_refine_steps\":0,\"suspec"
-        "t_escalations\":0,\"symbolic_analyses\":0,\"start_level_used\":\"cold\",\"full_step_ma"
-        "jors\":0,\"watchdog_restores\":0,\"evals_full\":0,\"evals_values\":0,\"probe_budget_st"
-        "ops\":0,\"crash_seeded_rows\":0,\"crash_seeded_bounds\":0,\"n_seeded\":0,\"seeded_clam"
-        "ped\":0,\"ip_activity_inferred\":0,\"active_set_delta_total\":0,\"active_set_delta_pea"
-        "k\":0,\"weak_active_peak\":0,\"near_active_peak\":0,\"polish_ignored\":0,\"ssn\":{\"ss"
-        "n_iters\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_prox_updates\":0,\"ssn_esc"
-        "apes\":0,\"ssn_uncertain_peak\":0,\"ssn_refinements\":0,\"ssn_refine_refused\":0,\"ssn"
-        "_refine_factorizations\":0,\"ssn_refine_neg_duals\":0,\"ssn_sign_swept\":0,\"ssn_sign_"
-        "sweep_max\":0,\"ssn_escape_budget\":0,\"ssn_escape_singular\":0,\"ssn_escape_no_contra"
-        "ction\":0,\"ssn_escape_infeasible_suspect\":0,\"ssn_escape_indefinite\":0,\"ssn_escape"
-        "_gate_refused\":0},\"ipqp\":{\"ipqp_iters\":0,\"ipqp_factorizations\":0,\"ipqp_symboli"
-        "c_analyses\":0,\"ipqp_solves\":0,\"ipqp_pattern_verifies\":0,\"ipqp_rho_demanded_max\""
-        ":0,\"ipqp_rho_demanded_last\":0,\"ipqp_inertia_retries\":0,\"ipqp_iters_at_elevated_rh"
-        "o\":0,\"ipqp_ladder_reclimbs\":0,\"ipqp_pivot_reroute_primal\":0,\"ipqp_pivot_reroute_"
-        "dual_fallback\":0,\"ipqp_iters_ladder_armed_no_advance\":0,\"ipqp_final_inertia_read\""
-        ":0,\"ipqp_reg_decreases\":0,\"ipqp_reg_increases\":0,\"ipqp_prox_center_updates\":0,\""
-        "ipqp_restart_repairs\":0,\"ipqp_restart_shift_max\":0,\"ipqp_mu_adopted\":0,\"ipqp_war"
-        "m_restart_abandoned\":0,\"ipqp_declined_pinned\":0,\"ipqp_tier_retired_after\":null,\""
-        "ipqp_face_uncertain\":0,\"ipqp_refine_accepted\":0,\"ipqp_refine_refused\":0,\"ipqp_to"
-        "_refine\":0,\"ipqp_to_ssn\":0,\"ipqp_to_walk\":0,\"ipqp_escapes\":0,\"ipqp_escape_budg"
-        "et\":0,\"ipqp_escape_stall\":0,\"ipqp_escape_indefinite\":0,\"ipqp_escape_numerical\":"
-        "0,\"ipqp_escape_infeasible_suspect\":0,\"ipqp_alpha_p_min\":null,\"ipqp_alpha_d_min\":"
-        "null,\"ipqp_read_kept_tight_sides\":0,\"ipqp_read_barrier_noise_sides\":0}}}\n");
+    EXPECT_EQ(os.str(),
+              "{\"v\":0,\"ev\":\"sqp.solve.end\",\"seq\":1,\"depth\":0,\"status\":\"numerical_error"
+              "\",\"majors\":0,\"counters\":{\"major_iters\":0,\"qp_minor_iters\":0,\"factorization"
+              "s\":0,\"steps_accepted\":0,\"rejected_steps\":0,\"soc_steps\":0,\"soc_applied\":0,\""
+              "soc_qp_infeasible\":0,\"soc_rejected\":0,\"elastic_activations\":0,\"elastic_escalat"
+              "ions\":0,\"restoration_iters\":0,\"elastic_from_ipqp_escape\":0,\"ipqp_suspicion_dis"
+              "proved\":0,\"ipqp_fallback_rung_b\":0,\"elastic_rho0_ceiling_hits\":0,\"elastic_floo"
+              "r_retries\":0,\"eqp_refine_steps\":0,\"border_refine_steps\":0,\"verdict_refine_step"
+              "s\":0,\"suspect_escalations\":0,\"symbolic_analyses\":0,\"start_level_used\":\"cold"
+              "\",\"full_step_majors\":0,\"watchdog_restores\":0,\"evals_full\":0,\"evals_values\":"
+              "0,\"probe_budget_stops\":0,\"crash_seeded_rows\":0,\"crash_seeded_bounds\":0,\"n_see"
+              "ded\":0,\"seeded_clamped\":0,\"ip_activity_inferred\":0,\"active_set_delta_total\":0"
+              ",\"active_set_delta_peak\":0,\"weak_active_peak\":0,\"near_active_peak\":0,\"polish_"
+              "ignored\":0,\"ssn\":{\"ssn_iters\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn"
+              "_prox_updates\":0,\"ssn_escapes\":0,\"ssn_uncertain_peak\":0,\"ssn_refinements\":0,"
+              "\"ssn_refine_refused\":0,\"ssn_refine_factorizations\":0,\"ssn_refine_neg_duals\":0,"
+              "\"ssn_sign_swept\":0,\"ssn_sign_sweep_max\":0,\"ssn_escape_budget\":0,\"ssn_escape_s"
+              "ingular\":0,\"ssn_escape_no_contraction\":0,\"ssn_escape_infeasible_suspect\":0,\"ss"
+              "n_escape_indefinite\":0,\"ssn_escape_gate_refused\":0},\"ipqp\":{\"ipqp_iters\":0,\""
+              "ipqp_factorizations\":0,\"ipqp_symbolic_analyses\":0,\"ipqp_solves\":0,\"ipqp_patter"
+              "n_verifies\":0,\"ipqp_rho_demanded_max\":0,\"ipqp_rho_demanded_last\":0,\"ipqp_inert"
+              "ia_retries\":0,\"ipqp_iters_at_elevated_rho\":0,\"ipqp_ladder_reclimbs\":0,\"ipqp_pi"
+              "vot_reroute_primal\":0,\"ipqp_pivot_reroute_dual_fallback\":0,\"ipqp_iters_ladder_ar"
+              "med_no_advance\":0,\"ipqp_final_inertia_read\":0,\"ipqp_reg_decreases\":0,\"ipqp_reg"
+              "_increases\":0,\"ipqp_prox_center_updates\":0,\"ipqp_restart_repairs\":0,\"ipqp_rest"
+              "art_shift_max\":0,\"ipqp_mu_adopted\":0,\"ipqp_warm_restart_abandoned\":0,\"ipqp_dec"
+              "lined_pinned\":0,\"ipqp_tier_retired_after\":null,\"ipqp_face_uncertain\":0,\"ipqp_r"
+              "efine_accepted\":0,\"ipqp_refine_refused\":0,\"ipqp_to_refine\":0,\"ipqp_to_ssn\":0,"
+              "\"ipqp_to_walk\":0,\"ipqp_escapes\":0,\"ipqp_escape_budget\":0,\"ipqp_escape_stall\""
+              ":0,\"ipqp_escape_indefinite\":0,\"ipqp_escape_numerical\":0,\"ipqp_escape_infeasible"
+              "_suspect\":0,\"ipqp_alpha_p_min\":null,\"ipqp_alpha_d_min\":null,\"ipqp_read_kept_ti"
+              "ght_sides\":0,\"ipqp_read_barrier_noise_sides\":0}},\"scaling_active\":false,\"obj_s"
+              "cale\":1,\"row_scale_min\":1,\"row_scale_max\":1,\"scaled_kkt_residual\":0}\n");
 }
 
 TEST(JsonLinesTraceSink, SqpSolveEndKeysAreExactlyTheTablesAndAllDistinct) {
@@ -3445,17 +3459,33 @@ TEST(JsonLinesTraceSink, GoldenLineIpmSolveBegin) {
     e.obj_scale = 2.5;
     e.inertia_mode = InertiaModes::proximal_regularization;
     e.restoration_mode = RestorationModes::l1_nested;
+    // RE-DERIVED AT M6 W5 T8.7, which appended EIGHT fields in one step so this
+    // line moves once: the four ACCEPTABLE tolerances and `wide_console` (what
+    // a sink needs to render the interior-point iteration table) and the three
+    // `print_stats` inputs. Each carries its own value here, so a reorder or a
+    // dropped key moves these bytes.
+    e.acc_kkt_tol = 5e-6;
+    e.acc_econ_tol = 6e-6;
+    e.acc_icon_tol = 7e-6;
+    e.acc_bar_tol = 8e-6;
+    e.wide_console = true;
+    e.kkt_dim = 23;
+    e.kkt_nnz = 101;
+    e.internal_fixed_rows = 3;
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
     sink.on_ipm_solve_begin(e);
-    EXPECT_EQ(os.str(), "{\"v\":0,\"ev\":\"ipm.solve.begin\",\"seq\":1,\"depth\":0,\"n\":15,"
-                        "\"n_reduced\":10,\"me\":6,\"mi\":7,\"vars_free\":1,\"vars_lower_only\":2,"
-                        "\"vars_upper_only\":3,\"vars_ranged\":4,\"vars_fixed\":5,\"phases\":9,"
-                        "\"max_iters\":200,\"max_acc_iters\":25,\"kkt_tol\":9.9999999999999995e-07,"
-                        "\"econ_tol\":1.9999999999999999e-06,\"icon_tol\":3.0000000000000001e-06,"
-                        "\"bar_tol\":3.9999999999999998e-06,\"init_mu\":0.001,\"obj_scale\":2.5,"
-                        "\"inertia_mode\":\"proximal_regularization\","
-                        "\"restoration_mode\":\"l1_nested\"}\n");
+    EXPECT_EQ(os.str(),
+              "{\"v\":0,\"ev\":\"ipm.solve.begin\",\"seq\":1,\"depth\":0,\"n\":15,\"n_reduc"
+              "ed\":10,\"me\":6,\"mi\":7,\"vars_free\":1,\"vars_lower_only\":2,\"vars_upper"
+              "_only\":3,\"vars_ranged\":4,\"vars_fixed\":5,\"phases\":9,\"max_iters\":200,"
+              "\"max_acc_iters\":25,\"kkt_tol\":9.9999999999999995e-07,\"econ_tol\":1.99999"
+              "99999999999e-06,\"icon_tol\":3.0000000000000001e-06,\"bar_tol\":3.9999999999"
+              "999998e-06,\"init_mu\":0.001,\"obj_scale\":2.5,\"inertia_mode\":\"proximal_r"
+              "egularization\",\"restoration_mode\":\"l1_nested\",\"acc_kkt_tol\":5.0000000"
+              "000000004e-06,\"acc_econ_tol\":6.0000000000000002e-06,\"acc_icon_tol\":6.999"
+              "9999999999999e-06,\"acc_bar_tol\":7.9999999999999996e-06,\"wide_console\":tr"
+              "ue,\"kkt_dim\":23,\"kkt_nnz\":101,\"internal_fixed_rows\":3}\n");
     // The pair moves NO depth: this driver nests no driver of its own.
     EXPECT_EQ(sink.depth(), 0);
 }
@@ -3480,6 +3510,43 @@ TEST(JsonLinesTraceSink, GoldenLineIpmSolveEnd) {
               "\"kkt_time_s\":0.0625,\"print_time_s\":0.03125,\"solver_init_time_s\":0.015625,"
               "\"misc_time_s\":1.015625}\n");
     EXPECT_EQ(sink.depth(), 0);
+}
+
+TEST(JsonLinesTraceSink, GoldenLineIpmRestorationExitRow) {
+    // M6 W5 T8.7's ADDED line. The row itself is NOT repeated here: the
+    // adjacent `ipm.iter` line carries all 27 of its keys, and two copies of a
+    // record in one stream is two things for a reader to reconcile. What this
+    // line adds is the door's identity and the two numbers that decided it,
+    // plus `iter`/`phase` so the pairing survives a filtered read.
+    IterateInfo row;
+    row.iter_ = 7;
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_ipm_restoration_exit_row(IpmRestorationExitRowTraceEvent{row, 2, 1.5e-3, 1.0e-6});
+    EXPECT_EQ(os.str(),
+              "{\"v\":0,\"ev\":\"ipm.restoration_exit_row\",\"seq\":1,\"depth\":0,"
+              "\"iter\":7,\"phase\":2,\"theta\":0.0015,\"threshold\":9.9999999999999995e-07}"
+              "\n");
+    // Like `ipm.iter`, this moves no depth.
+    EXPECT_EQ(sink.depth(), 0);
+}
+
+TEST(JsonLinesTraceSink, TheRestorationExitRowIsAdjacentToItsOwnIterLine) {
+    // THE ORDER THE ENGINE EMITS IN, pinned so a later change that separates
+    // them has to say so: the row's `ipm.iter` line, then the marker, with the
+    // same `iter` and `phase` on both.
+    IterateInfo row;
+    row.iter_ = 4;
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_ipm_iter(IpmIterTraceEvent{row, 1});
+    sink.on_ipm_restoration_exit_row(IpmRestorationExitRowTraceEvent{row, 1, 2.0, 1e-8});
+    const std::vector<std::string> lines = split_lines(os.str());
+    ASSERT_EQ(lines.size(), 2u);
+    EXPECT_EQ(event_name(lines[0]), "ipm.iter");
+    EXPECT_EQ(event_name(lines[1]), "ipm.restoration_exit_row");
+    EXPECT_EQ(raw_field(lines[0], "iter"), raw_field(lines[1], "iter"));
+    EXPECT_EQ(raw_field(lines[0], "phase"), raw_field(lines[1], "phase"));
 }
 
 TEST(JsonLinesTraceSink, TheIpmPairMovesNoDepthAndDoesNotDisturbTheSqpNesting) {
@@ -3513,6 +3580,208 @@ TEST(JsonLinesTraceSink, NoIpmLineCarriesAnUnknownEnumString) {
     sink.on_ipm_iter(IpmIterTraceEvent{golden_ipm_iter_nonfinite_newton(), 0});
     sink.on_ipm_solve_end(IpmSolveEndTraceEvent{});
     EXPECT_EQ(os.str().find("unknown"), std::string::npos);
+}
+
+// ===========================================================================
+// M6 W5 T8.7 -- THE SQP CONSOLE COMPOSITION.
+//
+// The driver now attaches a `ConsoleTraceSink` of its own when
+// `common.print_level` says printing is on, and hands a FAN-OUT over the
+// caller's sink and that console to every emit site, to the IPQP engine and to
+// the restoration sub-driver. These are the four pins the composition owes:
+// the caller's stream is unchanged, the console equals `format_iteration_table`
+// on a live solve, the SQP's own default level writes nothing, and a counting
+// sink sees the same events either way.
+// ===========================================================================
+
+namespace {
+
+/// Redirects the process's `stdout` into a temporary file for its lifetime.
+///
+/// THE DRIVER'S CONSOLE WRITES TO `stdout` by construction -- it is the console
+/// -- so a live pin has to read the real stream rather than a sink handed a
+/// `FILE *`. `dup`/`dup2` on the descriptor is the portable-enough way to do it
+/// and restores the original on destruction, exception paths included.
+class StdoutCapture {
+  public:
+    StdoutCapture() : file_(std::tmpfile()) {
+        std::fflush(stdout);
+        saved_ = ::dup(::fileno(stdout));
+        ::dup2(::fileno(file_), ::fileno(stdout));
+    }
+    ~StdoutCapture() {
+        std::fflush(stdout);
+        ::dup2(saved_, ::fileno(stdout));
+        ::close(saved_);
+        std::fclose(file_);
+    }
+    StdoutCapture(const StdoutCapture &) = delete;
+    StdoutCapture &operator=(const StdoutCapture &) = delete;
+
+    /// @brief Everything written to `stdout` since construction.
+    std::string text() {
+        std::fflush(stdout);
+        std::fseek(file_, 0, SEEK_END);
+        const long n = std::ftell(file_);
+        std::string out(static_cast<std::size_t>(n < 0 ? 0 : n), '\0');
+        std::fseek(file_, 0, SEEK_SET);
+        const std::size_t got = std::fread(out.data(), 1, out.size(), file_);
+        out.resize(got);
+        std::fseek(file_, 0, SEEK_END);
+        return out;
+    }
+
+  private:
+    std::FILE *file_ = nullptr;
+    int saved_ = -1;
+};
+
+/// Counts every event, by name, without rendering anything.
+struct EventTally : TraceSink {
+    std::vector<std::string> seen;
+    void on_ipqp_iter(const IpqpTraceIterEvent &) override { seen.push_back("ipqp.iter"); }
+    void on_ipqp_reg(const IpqpTraceRegEvent &) override { seen.push_back("ipqp.reg"); }
+    void on_ipqp_restart(const IpqpTraceRestartEvent &) override { seen.push_back("ipqp.restart"); }
+    void on_ipqp_route(const IpqpTraceRouteEvent &) override { seen.push_back("ipqp.route"); }
+    void on_ipqp_certify(const IpqpTraceCertifyEvent &) override { seen.push_back("ipqp.certify"); }
+    void on_ipqp_escape(const IpqpTraceEscapeEvent &) override { seen.push_back("ipqp.escape"); }
+    void on_qp_mode(const QpModeTraceEvent &) override { seen.push_back("qp.mode"); }
+    void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {
+        seen.push_back("fallback.verdict");
+    }
+    void on_sqp_major(const SqpMajorTraceEvent &) override { seen.push_back("sqp.major"); }
+    void on_sqp_solve_begin(const SqpSolveBeginTraceEvent &) override {
+        seen.push_back("sqp.solve.begin");
+    }
+    void on_sqp_solve_end(const SqpSolveEndTraceEvent &) override {
+        seen.push_back("sqp.solve.end");
+    }
+};
+
+} // namespace
+
+TEST(SqpConsole, TheUsersJsonStreamIsByteIdenticalWithAndWithoutTheConsole) {
+    // THE INVARIANT THE FAN-OUT EXISTS FOR, on the fixture that exercises it
+    // hardest: this model ENTERS RESTORATION, so the stream carries depth-1
+    // lines from the sub-driver. Handing the sub-driver the caller's half
+    // instead of the fan-out -- or handing it the console -- moves those lines.
+    auto run = [](int print_level) {
+        CircleAndFarLineModel model;
+        SqpOptions opts;
+        opts.max_iter = 200;
+        opts.common.print_level = print_level;
+        SqpDriver driver(opts);
+        std::ostringstream os;
+        JsonLinesTraceSink json(os);
+        driver.attach_trace(&json);
+        StdoutCapture capture;
+        const SqpSolution sol = driver.solve(model);
+        return std::pair<std::string, Index>{os.str(), sol.counters.restoration_iters};
+    };
+    const auto silent = run(3);
+    const auto printing = run(0);
+    ASSERT_GE(silent.second, 1) << "fixture premise: this cell enters restoration";
+    EXPECT_EQ(silent.first, printing.first)
+        << "the console displaced or perturbed the caller's stream";
+    // Non-vacuous: the stream really does carry depth-1 lines.
+    Index depth1 = 0;
+    for (const std::string &l : split_lines(silent.first)) {
+        depth1 += (raw_field(l, "depth") == "1") ? 1 : 0;
+    }
+    EXPECT_GT(depth1, 0);
+}
+
+TEST(SqpConsole, TheLiveConsoleEqualsFormatIterationTable) {
+    // THE SQP's LIVE BYTE-PIN. Everything the console wrote during the solve,
+    // against the function it is pinned to, on the returned solution.
+    CircleAndFarLineModel model;
+    SqpOptions opts;
+    opts.max_iter = 200;
+    opts.common.print_level = 0;
+    SqpDriver driver(opts);
+    std::string written;
+    SqpSolution sol;
+    {
+        StdoutCapture capture;
+        sol = driver.solve(model);
+        written = capture.text();
+    }
+    ASSERT_GE(sol.counters.restoration_iters, 1) << "fixture premise: restoration runs";
+    ASSERT_FALSE(sol.history.empty());
+    EXPECT_EQ(written, format_iteration_table(sol));
+}
+
+TEST(SqpConsole, TheSqpDefaultPrintLevelWritesNothing) {
+    // BEHAVIOUR CHANGE (11) IS A GAIN, NOT A CHANGE. `CommonOptions`'
+    // shipped `print_level` is 3, and at 3 this driver writes exactly what it
+    // wrote before this task: nothing.
+    HsProblem p = make_hs(38);
+    SqpOptions opts;
+    opts.max_iter = 60;
+    SqpDriver driver(opts);
+    std::string written;
+    {
+        StdoutCapture capture;
+        const SqpSolution sol = driver.solve(*p.model);
+        written = capture.text();
+        EXPECT_FALSE(sol.history.empty());
+    }
+    EXPECT_EQ(written, "");
+}
+
+TEST(SqpConsole, ACountingSinkSeesTheSameEventsWithPrintingOnAndOff) {
+    auto run = [](int print_level, bool attach_first) {
+        HsProblem p = make_hs(38);
+        SqpOptions opts;
+        opts.qp_mode = QpMode::kIpm;
+        opts.max_iter = 60;
+        opts.common.print_level = print_level;
+        EventTally tally;
+        // ATTACH ORDER IS FREE, and this is where that is proved: the sink is
+        // attached before or after `set_options` and the composition happens at
+        // solve entry either way.
+        SqpDriver driver(attach_first ? opts : SqpOptions{});
+        if (attach_first) {
+            driver.attach_trace(&tally);
+        } else {
+            driver.attach_trace(&tally);
+            driver.set_options(opts);
+        }
+        StdoutCapture capture;
+        driver.solve(*p.model);
+        return tally.seen;
+    };
+    const std::vector<std::string> off = run(3, true);
+    const std::vector<std::string> on = run(0, true);
+    const std::vector<std::string> on_late = run(0, false);
+    EXPECT_FALSE(off.empty());
+    EXPECT_EQ(off, on);
+    EXPECT_EQ(off, on_late);
+}
+
+TEST(SqpConsole, AttachTraceDuringASolveIsRefused) {
+    // THE IN-FLIGHT RULE `set_options` uses, extended to the sink (M6 W5 T8.7):
+    // the effective sink is fixed for the solve, so a mid-solve change could
+    // not take effect in it. The refusal says so.
+    HsProblem p = make_hs(38);
+    SqpOptions opts;
+    opts.max_iter = 60;
+    SqpDriver driver(opts);
+    std::ostringstream os;
+    JsonLinesTraceSink json(os);
+    bool threw = false;
+    driver.set_iteration_callback([&](const IterationEvent &) {
+        try {
+            driver.attach_trace(&json);
+        } catch (const std::logic_error &) {
+            threw = true;
+        }
+        return CallbackAction::kContinue;
+    });
+    driver.solve(*p.model);
+    EXPECT_TRUE(threw) << "attach_trace inside a solve must be refused";
+    // ... and it is legal again once the solve has returned.
+    EXPECT_NO_THROW(driver.attach_trace(&json));
 }
 
 } // namespace

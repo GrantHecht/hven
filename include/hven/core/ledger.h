@@ -140,10 +140,63 @@ struct SqpSolveRecord {
     double wall_seconds = 0.0;
 };
 
+/// One record per WHOLE INTERIOR-POINT SOLVE -- the interior-point engine's
+/// counterpart to SqpSolveRecord above, written by
+/// InteriorPointSolver::attach_ledger (see drivers/interior_point_solver.h),
+/// one per public solve() call that RETURNS. A call that leaves by an
+/// exception writes nothing, which is the honest record of one.
+///
+/// UNLIKE SqpSolveRecord THIS CARRIES NO `counters` OBJECT, because the
+/// interior-point engine has none: its measurements live on IpmResult, a
+/// value the caller already holds. The nine fields below are the ones a
+/// cross-run comparison groups or sums by, and each names exactly what it
+/// was read from -- see the per-field notes.
+///
+/// THE ENGINE'S NESTED FEASIBILITY RESTORATION WRITES NO RECORD OF ITS OWN.
+/// It runs inside this solve rather than as a separate solver object, and
+/// its iterations are already inside `iterations` -- exactly as the SQP's
+/// restoration sub-driver receives attach_trace but no attach_ledger.
+struct IpmSolveRecord {
+    /// @brief Caller-chosen label prefix plus this solver's own solve counter,
+    ///        formatted "{prefix}_{n}" -- the same shape SqpSolveRecord uses.
+    std::string label;
+    /// @brief The solve's outcome verdict (IpmResult::status).
+    SolveStatus status;
+    /// @brief IpmResult::iterations -- summed over the phases that ran.
+    Index iterations = 0;
+    /// The number of entries of IpmResult::phases whose `ran` is true. A
+    /// conditional phase the sequence skipped is counted by `phases` on the
+    /// trace's begin line and NOT here: this is what happened.
+    Index phases_run = 0;
+    /// @brief IpmResult::total_time, in SECONDS. Informational, like
+    ///        `wall_seconds` below; never asserted on a value.
+    double total_time = 0.0;
+    /// KKT factorizations paid by THIS CALL -- the difference between the
+    /// factor's lifetime `factorize_count` after the call and before it, NOT
+    /// the lifetime total itself. On a solver reused for a second solve the
+    /// lifetime number would charge this record for the previous call's work.
+    Index factorizations = 0;
+    /// @brief IpmResult::kkt_analyses_this_call -- symbolic analyses paid by
+    ///        THIS call (the engine's own per-call counter).
+    Index analyses = 0;
+    /// @brief IpmResult::soc_steps_taken. 0 when SOC is off.
+    Index soc_steps_taken = 0;
+    /// @brief IpmResult::watchdog_activations. 0 when the watchdog is off.
+    Index watchdog_activations = 0;
+    /// Wall-clock seconds this ONE public solve() call took, measured by the
+    /// entry's own clock (IpmResult::wall_seconds).
+    ///
+    /// INFORMATIONAL ONLY, on exactly SqpSolveRecord::wall_seconds' terms:
+    /// never asserted on a value by any test, and no counter or regression
+    /// contract may depend on it.
+    double wall_seconds = 0.0;
+};
+
 /// Instrumentation ledger for cold-vs-warm solve tracking (QP-level, via
-/// SolveRecord) and whole-driver-solve tracking (SQP-level, via
-/// SqpSolveRecord). One Ledger instance can hold both kinds of record at
-/// once.
+/// SolveRecord), whole-SQP-solve tracking (SqpSolveRecord) and
+/// whole-interior-point-solve tracking (IpmSolveRecord). One Ledger instance
+/// can hold all three kinds of record at once; they live in separate vectors
+/// and never collide.
 class Ledger {
   public:
     Ledger() = default;
@@ -154,11 +207,17 @@ class Ledger {
     /// @brief Records a single whole-driver solve event.
     void record(SqpSolveRecord r) { sqp_records_.push_back(std::move(r)); }
 
+    /// @brief Records a single whole-interior-point-solve event.
+    void record(IpmSolveRecord r) { ipm_records_.push_back(std::move(r)); }
+
     /// @brief All recorded QP-engine solve events.
     const std::vector<SolveRecord> &records() const { return records_; }
 
     /// @brief All recorded whole-driver solve events.
     const std::vector<SqpSolveRecord> &sqp_records() const { return sqp_records_; }
+
+    /// @brief All recorded whole-interior-point-solve events.
+    const std::vector<IpmSolveRecord> &ipm_records() const { return ipm_records_; }
 
     // The three reporting functions below are defined in src/core/ledger.cpp:
     // they run once per report -- a tally and two fmt-formatted tables -- so
@@ -182,6 +241,13 @@ class Ledger {
     /// groups by.
     std::string sqp_summary_table() const;
 
+    /// Formatted table: label, status, iterations, phases run, factorizations,
+    /// analyses -- the interior-point analogue of sqp_summary_table(). NO
+    /// TIMING COLUMN, deliberately: both time fields on IpmSolveRecord are
+    /// informational (CLAUDE.md section 7) and a table is where an
+    /// informational number is most likely to be quoted as a measurement.
+    std::string ipm_summary_table() const;
+
   private:
     // The -> string helpers this class's tables use are
     // core/solver_status.h's to_string(SolveStatus) and core/start_level.h's
@@ -199,6 +265,7 @@ class Ledger {
 
     std::vector<SolveRecord> records_;
     std::vector<SqpSolveRecord> sqp_records_;
+    std::vector<IpmSolveRecord> ipm_records_;
 };
 
 } // namespace hven::solvers

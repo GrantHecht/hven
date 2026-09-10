@@ -306,6 +306,26 @@ struct SqpSolveEndTraceEvent {
     SolveStatus status = SolveStatus::kOptimal;
     Index majors = 0; ///< `SqpCounters::major_iters`, the currency's own count.
     const SqpCounters &counters;
+
+    // --- THE SCALING BLOCK (M6 W5 T8.7) ---
+    //
+    // `SqpSolution::scaling`'s own five values, flat and in its own field
+    // order. They are on the END event because the factors are settled by the
+    // time the solve closes and because the console's trailer -- the
+    // `Scaling:` line `format_iteration_table` writes -- has no other source:
+    // no event carried them before this task, so a console pinned against
+    // that function could not have reproduced its last line.
+    //
+    // AFTER `counters`, which is a REFERENCE and therefore has no default
+    // member initializer: every one of these does, so the three-argument
+    // brace initialization every existing emit site writes still compiles.
+    bool scaling_active = false; ///< `SqpSolution::Scaling::active`.
+    double obj_scale = 1.0;      ///< `::obj`; 1.0 when scaling is off.
+    double row_scale_min = 1.0;  ///< `::row_min`.
+    double row_scale_max = 1.0;  ///< `::row_max`.
+    /// `::scaled_kkt_residual` -- the number the convergence test gated on,
+    /// which is NOT in the caller-scale table above it.
+    double scaled_kkt_residual = 0.0;
 };
 
 /// @brief One interior-point iteration record (schema `ipm.iter`, M6 W4 T4).
@@ -398,6 +418,66 @@ struct IpmSolveBeginTraceEvent {
     double obj_scale = 1.0;  ///< Settings::obj_scale_, captured for this call.
     InertiaModes inertia_mode = InertiaModes::classic;
     RestorationModes restoration_mode = RestorationModes::off;
+
+    // --- WHAT THE CONSOLE TABLE NEEDS AND NOTHING ELSE CARRIED (M6 W5 T8.7) ---
+    //
+    // Eight fields, added in ONE step so this event's golden line moves ONCE.
+    //
+    // The four ACCEPTABLE tolerances are the upper half of the row colouring's
+    // five-band scale (`calculate_color` reads a target and an acceptable
+    // level per column), so a sink rendering the iteration table cannot colour
+    // a row without them. They belong here rather than on `ipm.iter` for the
+    // reason the convergence tolerances above do: they are the RUN's settings,
+    // fixed for the call, not a per-iteration measurement.
+    double acc_kkt_tol = 0.0;  ///< Settings::acc_kkt_tol_.
+    double acc_econ_tol = 0.0; ///< Settings::acc_econ_tol_.
+    double acc_icon_tol = 0.0; ///< Settings::acc_icon_tol_.
+    double acc_bar_tol = 0.0;  ///< Settings::acc_bar_tol_.
+    /// The LAYOUT WIDTH (`IpmOptions::wide_console`). It stays an interior-point
+    /// OPTION -- the solver hands it to its own console -- and travels here so
+    /// that a sink which is not the solver's own renders the same table.
+    bool wide_console = false;
+
+    /// The three remaining `print_stats()` inputs. `n_reduced`, `me` and `mi`
+    /// above are the rest of that block; these are the KKT system's own size
+    /// and fill, and the count of INTERNAL equality rows the MakeConstraint
+    /// fixed-variable treatment installed -- the "(d declared + f fixing)"
+    /// split. `internal_fixed_rows` is NOT `vars_fixed`: that is the declared
+    /// box's census, which equals the fixing-row count only under
+    /// MakeConstraint.
+    Index kkt_dim = 0;
+    Index kkt_nnz = 0; ///< Nonzeros in the assembled KKT matrix.
+    Index internal_fixed_rows = 0;
+};
+
+/// @brief The row the restoration-locally-infeasible door hands back (schema
+/// `ipm.restoration_exit_row`, M6 W5 T8.7).
+///
+/// ONE OF THE FOUR EXIT DOORS carries information no other line does: a
+/// feasibility restoration that CONVERGED to a point that is still infeasible.
+/// Design section 2.6 asked for that door to get "its own emit" because at the
+/// time it printed a row without passing either `ipm.iter` site. That premise
+/// no longer holds -- M6 W5 T8.6 fix1 gave the door its own `ipm.iter` line, so
+/// the ROW is on the stream already and the console renders it from there.
+///
+/// WHAT THIS EVENT ADDS is the door's IDENTITY and its two numbers: which of
+/// the four NOTCONVERGED exits this row is, the infeasibility measured at it,
+/// and the threshold that measurement was judged against. A reader of the
+/// stream could not previously tell this door from an ordinary cap exit.
+///
+/// Emitted IMMEDIATELY AFTER the `ipm.iter` line for the same row, so a reader
+/// pairs them by adjacency; the row it refers to is that same record.
+struct IpmRestorationExitRowTraceEvent {
+    /// The iteration record the door returns, valid for the duration of the
+    /// `on_ipm_restoration_exit_row` call only. The SAME object the adjacent
+    /// `ipm.iter` line carried.
+    const IterateInfo &iterate;
+    /// The phase this row belongs to, on `IpmIterTraceEvent::phase`'s reading.
+    Index phase = 0;
+    /// The infeasibility restoration converged to.
+    double theta = 0.0;
+    /// The threshold it was judged against; `theta > threshold` is the door.
+    double threshold = 0.0;
 };
 
 /// @brief The interior-point solve's closing line (schema `ipm.solve.end`,
@@ -462,6 +542,13 @@ class TraceSink {
     /// stream that is only ever an IPM's.
     virtual void on_ipm_solve_begin(const IpmSolveBeginTraceEvent &event);
     virtual void on_ipm_solve_end(const IpmSolveEndTraceEvent &event);
+
+    /// @brief The restoration-locally-infeasible exit door's own line (M6 W5
+    /// T8.7). NON-PURE with an empty out-of-line default, on the same terms as
+    /// the five above: no sink that predates it is touched by its arrival.
+    ///
+    /// LIKE `on_ipm_iter`, THIS MOVES NO `depth`.
+    virtual void on_ipm_restoration_exit_row(const IpmRestorationExitRowTraceEvent &event);
 };
 
 } // namespace hven::solvers

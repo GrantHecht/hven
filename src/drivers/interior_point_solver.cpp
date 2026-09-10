@@ -28,6 +28,8 @@
 #include <stdexcept>
 
 #include "hven/detail/interior/aggregate_views.h"
+#include "hven/core/ledger.h"
+#include "hven/drivers/console_trace_sink.h"
 #include "hven/drivers/trace.h"
 #include "hven/detail/interior/barrier_math.h"
 #include "hven/detail/drivers/solver_init.h"
@@ -264,7 +266,58 @@ bool hven::solvers::InteriorPointSolver::claim_kkt_analysis() {
 
 // Release
 
-void hven::solvers::InteriorPointSolver::attach_trace(TraceSink *sink) { trace_ = sink; }
+// THE CALLER'S HALF ONLY (M6 W5 T8.7). What a solve writes to is composed at
+// `run_phase_sequence` entry from this pointer and, when printing is on, this
+// solver's own console -- so attaching a console never displaces a caller's
+// sink. `trace_` is set here too, and not only at solve entry, so that a
+// caller reading the effect of `attach_trace` between solves sees what it
+// attached rather than the previous solve's composition.
+void hven::solvers::InteriorPointSolver::attach_trace(TraceSink *sink) {
+    user_trace_ = sink;
+    trace_ = sink;
+}
+
+// THE SQP DRIVER'S OWN attach_ledger, in shape and in every rule -- see the
+// contract on the declaration. The counter is reset here and advanced only
+// where a record is actually written (the two public solve() overloads).
+void hven::solvers::InteriorPointSolver::attach_ledger(Ledger *ledger, std::string label_prefix) {
+    ledger_ = ledger;
+    label_prefix_ = std::move(label_prefix);
+    solve_counter_ = 0;
+}
+
+// THE FUNNEL. Both public solve() overloads pass through this one statement
+// list, and neither the phase loop nor `run_phase_sequence` writes a record --
+// the record's `wall_seconds` is the ENTRY clock's, which only the public
+// overload holds, and `phases_run` is read off the finished result.
+void hven::solvers::InteriorPointSolver::record_solve(const IpmResult &result,
+                                                      Index factorize_count_at_entry) {
+    if (this->ledger_ == nullptr) {
+        return;
+    }
+    IpmSolveRecord rec;
+    rec.label = fmt::format("{}_{}", this->label_prefix_, this->solve_counter_);
+    rec.status = result.status;
+    rec.iterations = result.iterations;
+    Index ran = 0;
+    for (const IpmPhaseReport &phase : result.phases) {
+        ran += phase.ran ? 1 : 0;
+    }
+    rec.phases_run = ran;
+    rec.total_time = result.total_time;
+    // A PER-CALL DELTA, not the lifetime total. `kkt_factor_counters` is a
+    // SNAPSHOT of the factor's lifetime counters taken as the result was built,
+    // so on a solver reused for a second solve the raw `factorize_count` would
+    // charge this record for the first solve's factorizations too.
+    rec.factorizations = result.kkt_factor_counters.factorize_count - factorize_count_at_entry;
+    // Already per call -- the engine's own counter, not a delta.
+    rec.analyses = result.kkt_analyses_this_call;
+    rec.soc_steps_taken = result.soc_steps_taken;
+    rec.watchdog_activations = result.watchdog_activations;
+    rec.wall_seconds = result.wall_seconds;
+    this->ledger_->record(std::move(rec));
+    ++this->solve_counter_;
+}
 
 // release() was REMOVED in M6 W5 T8.4 along with set_nlp(): a solver holds no
 // program between calls, so there is none to release. What release() also did
@@ -2833,8 +2886,25 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                 // emit above the return_best substitution and this one does
                 // too, because the LINE describes the iterate RECORD, which no
                 // substitution replaces.
+                //
+                // THE ROW IS RENDERED FROM THIS EVENT (M6 W5 T8.7): the direct
+                // `print_last_iterate` call that used to follow the callback
+                // below is gone, and `ConsoleTraceSink` writes the row when a
+                // console is attached. `Printtimer` brackets the EMIT rather
+                // than a print, so a caller's own sink is now inside
+                // `IpmResult::print_time` too -- informational either way, and
+                // never asserted.
                 if (this->trace_ != nullptr) {
+                    Printtimer.start();
                     this->trace_->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
+                    // THE DOOR'S OWN MARKER (`ipm.restoration_exit_row`, M6 W5
+                    // T8.7), adjacent to the row it refers to. It carries what
+                    // the row cannot: WHICH of the four NOTCONVERGED exits this
+                    // is, and the two numbers the warning below prints.
+                    this->trace_->on_ipm_restoration_exit_row(IpmRestorationExitRowTraceEvent{
+                        iters.back(), this->trace_phase_, locally_infeasible_theta,
+                        locally_infeasible_threshold});
+                    Printtimer.stop();
                 }
                 if (opts_.return_best) {
                     XSL = BestXSL;
@@ -2869,11 +2939,6 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                                                best_substituted ? this->best_prim_obj_scratch_
                                                                 : iters.back().prim_obj_);
                     CBtimer.stop();
-                }
-                if (opts_.common.print_level == 0) {
-                    Printtimer.start();
-                    this->print_last_iterate(iters);
-                    Printtimer.stop();
                 }
                 if (opts_.common.print_level < 3)
                     fmt::print(fmt::fg(fmt::color::yellow),
@@ -2923,13 +2988,11 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             // fresh defaults for everything a factorization would have written.
             // The iteration callback's TERMINAL dispatch is below the
             // return_best substitution, for the reason stated there.
+            // THE ROW IS RENDERED FROM THIS EVENT (M6 W5 T8.7); see the
+            // restoration door above for the `Printtimer` note.
             if (this->trace_ != nullptr) {
-                this->trace_->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
-            }
-
-            if (opts_.common.print_level == 0) {
                 Printtimer.start();
-                this->print_last_iterate(iters);
+                this->trace_->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
                 Printtimer.stop();
             }
 
@@ -3164,12 +3227,11 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             this->result_.status = ExitCode;
             // The row this event belongs to, so the trace still has one line per
             // event on this path too.
+            // THE ROW IS RENDERED FROM THIS EVENT (M6 W5 T8.7); see the
+            // restoration door above for the `Printtimer` note.
             if (this->trace_ != nullptr) {
-                this->trace_->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
-            }
-            if (opts_.common.print_level == 0) {
                 Printtimer.start();
-                this->print_last_iterate(iters);
+                this->trace_->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
                 Printtimer.stop();
             }
             if (opts_.common.print_level < 3)
@@ -3771,8 +3833,16 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         // T8.6), so the two are still one-for-one and the callback is still the
         // event stream's oracle -- it just runs before the factorization rather
         // than after it.
+        //
+        // THE ROW IS RENDERED FROM THIS EVENT (M6 W5 T8.7). It moves the row
+        // EARLIER within this iteration -- the direct print sat below
+        // `converge_check` -- and nothing between the two writes to the
+        // console, so the transcript is unchanged. See the restoration door
+        // above for the `Printtimer` note.
         if (this->trace_ != nullptr) {
+            Printtimer.start();
             this->trace_->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
+            Printtimer.stop();
         }
         // THE LATE CALLBACK USED TO FIRE HERE, and it does not any more (M6 W5
         // T8.6). Its replacement -- the shared iteration callback -- fires ONE
@@ -3804,12 +3874,6 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         // such even at an otherwise-acceptable iterate.
         if (singular_abort)
             ExitCode = SolveStatus::kNumericalError;
-
-        if (opts_.common.print_level == 0) {
-            Printtimer.start();
-            this->print_last_iterate(iters);
-            Printtimer.stop();
-        }
 
         // exit_stage_stalled (see the stall dispatch above) forces the exit
         // without touching ExitCode: unlike exit_at_acceptable it does not
@@ -5200,11 +5264,51 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
     // configuration step can narrow the problem.
     this->rebuild_globalization_components();
 
+    // THE EFFECTIVE SINK FOR THIS CALL (M6 W5 T8.7), composed HERE -- once per
+    // call, above the phase loop, after `opts_` is validated and the dimensions
+    // are settled -- and immutable for the solve.
+    //
+    // WHY COMPOSED RATHER THAN ATTACHED. The console is a sink like any other,
+    // but it is the SOLVER's sink, not the caller's; a solver that simply
+    // stored it would displace whatever the caller attached. Composing at entry
+    // means the caller's sink receives EXACTLY the stream it receives with no
+    // console at all, that `set_options` between solves is honoured without an
+    // attach-order dependency, and that the console's own format cannot change
+    // half way through a solve.
+    //
+    // THE CONSOLE IS REBUILT PER CALL rather than kept, so its per-solve state
+    // -- the previous row it colours against, the tolerances it colours with --
+    // starts clean even if a caller never emitted a begin.
+    //
+    // NOTHING IS BUILT AT print_level 3 AND ABOVE (silent), which is what the
+    // replay corpus and the interior leg run at: those legs attach no console
+    // and their identity is unaffected by any of this.
+    this->console_.reset();
+    this->fanout_.reset();
+    this->trace_ = this->user_trace_;
+    if (opts_.common.print_level < 3) {
+        this->console_ = std::make_unique<ConsoleTraceSink>(
+            ConsoleTraceSink::Format{opts_.wide_console, opts_.common.print_level});
+        if (this->user_trace_ != nullptr) {
+            // CALLER FIRST, CONSOLE SECOND: a caller's sink that throws takes
+            // the solve with it, and the console has then written nothing for
+            // that event -- which is the honest record of a solve that stopped
+            // there.
+            this->fanout_ =
+                std::make_unique<FanOutTraceSink>(this->user_trace_, this->console_.get());
+            this->trace_ = this->fanout_.get();
+        } else {
+            this->trace_ = this->console_.get();
+        }
+    }
+
     // THE SOLVE'S OPENING LINE (`ipm.solve.begin`, M6 W4 T4), placed after every
     // argument refusal and after the variable treatment settled the dimensions:
     // a REFUSED call writes nothing, and n/n_reduced are what the phases run at.
     //
     // Built only when a sink is attached, so the O(n) census is nobody's cost.
+    // SINCE M6 W5 T8.7 the console is one of those sinks, so this block is also
+    // what the console table's opening block is rendered from.
     if (this->trace_ != nullptr) {
         IpmSolveBeginTraceEvent begin_event;
         begin_event.n = this->full_primal_vars_;
@@ -5229,15 +5333,26 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
         begin_event.obj_scale = this->solve_obj_scale_;
         begin_event.inertia_mode = opts_.inertia_mode;
         begin_event.restoration_mode = opts_.restoration_mode;
+        // M6 W5 T8.7's eight. The four ACCEPTABLE tolerances and the layout
+        // width are what a sink needs to render the iteration table; the last
+        // three are what `print_stats()` printed, and the ONE reason the
+        // internal fixing-row count is carried separately is that `vars_fixed`
+        // above is the DECLARED BOX's census, which equals the fixing-row count
+        // only under the MakeConstraint treatment.
+        begin_event.acc_kkt_tol = opts_.acc_kkt_tol;
+        begin_event.acc_econ_tol = opts_.acc_econ_tol;
+        begin_event.acc_icon_tol = opts_.acc_icon_tol;
+        begin_event.acc_bar_tol = opts_.acc_bar_tol;
+        begin_event.wide_console = opts_.wide_console;
+        begin_event.kkt_dim = this->kkt_dim_;
+        begin_event.kkt_nnz = this->kkt_sol_.matrix().nonZeros();
+        begin_event.internal_fixed_rows = this->nlp_ ? this->nlp_->internal_fixed_constraints() : 0;
         this->trace_->on_ipm_solve_begin(begin_event);
     }
 
-    if (opts_.common.print_level == 0)
-        print_stats();
-    if (opts_.common.print_level < 2) {
-        print_header();
-        print_beginning("InteriorPointSolver ");
-    }
+    // THE BANNER, THE PROBLEM STATISTICS, THE RULE AND THE "Beginning:" LINE
+    // are the console sink's now (M6 W5 T8.7); they are rendered from the begin
+    // event above, at the same print levels and in the same order.
     this->ensure_solver_initialized();
 
     hven::utils::Timer t;
@@ -5508,13 +5623,12 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
     double tottime = double(t.count<std::chrono::microseconds>()) / 1000.0;
     this->result_.total_time = tottime / 1000.0;
 
-    if (opts_.common.print_level < 2) {
-        print_timing_summary();
-        fmt::print(" Total Solve Time             : ");
-        fmt::print(fmt::fg(fmt::color::cyan), "{0:>10.3f} ms\n", tottime);
-        print_finished("InteriorPointSolver ");
-        print_header();
-    }
+    // THE TIMING SUMMARY, THE TOTAL, THE "Finished:" LINE AND THE CLOSING RULE
+    // are the console sink's now (M6 W5 T8.7), rendered from `ipm.solve.end` at
+    // this function's single return. Nothing between here and that emit writes
+    // to the console, so the transcript is unchanged. `tottime` above is still
+    // this engine's own measurement and still lands in `result_.total_time`,
+    // which is the field the end event carries.
 
     // THE OBJECTIVE-SCALE SEAM, and it sits here for the same reason the
     // reinsertion seam below does: this is where the solve's outputs stop
@@ -5798,9 +5912,15 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::solve(NonLinearProg
     // are informational and neither is ever asserted (CLAUDE.md section 7), so
     // the difference is stated rather than engineered away.
     this->entry_time_ = std::chrono::steady_clock::now();
+    // The factor's lifetime factorization count BEFORE this call, so the ledger
+    // record can report this call's own; read whether or not a ledger is
+    // attached, because it is one integer load and a conditional read would
+    // make the record depend on when the ledger was attached.
+    const Index factorizations_at_entry = this->kkt_sol_.counters().factorize_count;
     IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget, nullptr);
     wall.stop();
     result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;
+    this->record_solve(result, factorizations_at_entry);
     return result;
 }
 
@@ -5846,8 +5966,11 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::solve(NonLinearProg
     wall.start();
     // The same stamp as the cold entry above, for the same reason.
     this->entry_time_ = std::chrono::steady_clock::now();
+    // See the cold overload above.
+    const Index factorizations_at_entry = this->kkt_sol_.counters().factorize_count;
     IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget, &warm);
     wall.stop();
     result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;
+    this->record_solve(result, factorizations_at_entry);
     return result;
 }
