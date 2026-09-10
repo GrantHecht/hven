@@ -2111,16 +2111,18 @@ and is honestly 0 on a second solve of the same program, where the analysis is
 reused.
 
 *Correction (fix1).* The delta is taken over
-`KktFactorization::lifetime_factorize_count()`, a new accessor, and **not** over
-`counters().factorize_count`. `SymmetricFactor::Counters` counts calls made
+`InteriorPointSolver::lifetime_factorize_count()`, a new private accessor, and
+**not** over `kkt_sol_.counters().factorize_count`. `SymmetricFactor::Counters` counts calls made
 through one ENGINE INSTANCE and starts again at zero when the analysis is
-re-laid — which is what a solve of a DIFFERENT program on the same solver does.
-Differencing that counter across such a call therefore produced a NEGATIVE
-`factorizations`; it was −3 on the first fixture that tried it. The new accessor
-retires the outgoing engine's count into an accumulator, so it is monotone by
-construction and the difference is this call's own work whether or not the
-analysis moved. `factorizations` is never negative.
-`counters()` itself is unchanged, and so is its per-instance contract.
+replaced — which is what a solve of a DIFFERENT program on the same solver does
+at its entry. Differencing that counter across such a call therefore produced a
+NEGATIVE `factorizations`; it was −3 on the first fixture that tried it. The
+solver now retires the outgoing engine's count into an accumulator of its own,
+so its reading is monotone and the difference is this call's own work whether or
+not the analysis moved. `factorizations` is never negative. `counters()` itself
+is unchanged, and so is its per-instance contract — and nothing was added to
+`KktFactorization`, which `IpqpEngine` embeds and whose layout the QP kernels'
+byte-identity depends on.
 `total_time` and `wall_seconds` are wall-clock and INFORMATIONAL, never asserted
 (CLAUDE.md §7); `ipm_summary_table()` therefore has **no timing column**.
 
@@ -2243,9 +2245,9 @@ T8.7b**, which adds `on_ipm_phase_begin/end`, `on_ipm_kkt_analysis`,
 
 ### 5b. Not a caller-visible change, but worth knowing (fix1)
 
-* **`KktFactorization::lifetime_factorize_count()`** — a new accessor beside
-  `counters()`, monotone across a re-lay of the analysis. See §1's correction.
-  `counters()` is unchanged.
+* **`InteriorPointSolver::lifetime_factorize_count()`** — a new PRIVATE
+  accessor, monotone across the engine replacement `set_qp_params()` performs.
+  See §1's correction. `KktFactorization` is unchanged but for a comment.
 * **`SqpDriver`'s two constructors and its destructor are defined out of line**,
   and `hven/drivers/sqp_driver.h` no longer includes
   `hven/drivers/console_trace_sink.h` — it forward-declares both sink types, as

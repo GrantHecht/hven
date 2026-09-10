@@ -1201,6 +1201,30 @@ class InteriorPointSolver {
     /// actually written.
     Index solve_counter_ = 0;
 
+    /// Numeric factorizations performed by KKT engines this solver has RETIRED
+    /// (M6 W5 T8.7 fix1, the lane's M3). `set_qp_params()` -- the one site that
+    /// calls `KktFactorization::reconfigure()`, and so the one site that
+    /// REPLACES the linear engine -- adds the outgoing engine's count here
+    /// before the replacement. Never reset while the solver lives.
+    ///
+    /// WHY IT IS HERE AND NOT ON `KktFactorization`: that class is a member of
+    /// `IpqpEngine`, so a field on it moves every member offset in every QP
+    /// kernel object, and those objects are required to stay byte-identical.
+    /// The accumulator belongs to whoever triggers the replacement, and that is
+    /// this class.
+    Index retired_factorizations_ = 0;
+
+    /// @brief Numeric factorizations this solver's KKT engines have performed
+    ///        since it was constructed -- MONOTONE, unlike
+    ///        `kkt_sol_.counters().factorize_count`, which restarts at zero
+    ///        every time `set_qp_params()` replaces the engine.
+    ///
+    /// The ledger's per-call `factorizations` is the difference of two readings
+    /// of this, taken at the two public solve() entries and in record_solve().
+    Index lifetime_factorize_count() const {
+        return retired_factorizations_ + kkt_sol_.counters().factorize_count;
+    }
+
     /// The 0-based index of the phase `alg_impl` is currently running, written
     /// by run_phase_sequence() before each call and read only by the `ipm.iter`
     /// emit sites. A member rather than an alg_impl parameter because it is
@@ -1764,14 +1788,15 @@ class InteriorPointSolver {
     /// reaches it, so it neither records nor consumes a label number.
     ///
     /// @param result                 The result this call is about to return.
-    /// @param factorize_count_at_entry `KktFactorization::lifetime_factorize_
-    ///        count()` read at the top of this call; the record's
-    ///        `factorizations` is the difference, so a reused solver does not
-    ///        charge this record for a previous call's work. That accessor and
-    ///        not `counters().factorize_count` (M6 W5 T8.7 fix1): the latter
-    ///        counts per ENGINE INSTANCE and restarts at zero when the analysis
-    ///        is re-laid, which a call on a DIFFERENT program does -- and a
-    ///        difference taken across such a call is negative.
+    /// @param factorize_count_at_entry `lifetime_factorize_count()` read at the
+    ///        top of this call; the record's `factorizations` is the
+    ///        difference, so a reused solver does not charge this record for a
+    ///        previous call's work. That accessor and not
+    ///        `kkt_sol_.counters().factorize_count` (M6 W5 T8.7 fix1): the
+    ///        latter counts per ENGINE INSTANCE and restarts at zero when
+    ///        set_qp_params() replaces the engine, which a call on a DIFFERENT
+    ///        program does -- and a difference taken across such a call is
+    ///        negative.
     void record_solve(const IpmResult &result, Index factorize_count_at_entry);
 
     // --- Printing methods ---

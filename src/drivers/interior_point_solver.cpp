@@ -249,6 +249,24 @@ void hven::solvers::InteriorPointSolver::set_qp_params() {
     }
 #endif
 
+    // THE OUTGOING ENGINE'S FACTORIZATION COUNT IS RETIRED HERE, and this is
+    // the ONE site that replaces the engine (M6 W5 T8.7 fix1, the lane's M3).
+    // `KktFactorization::reconfigure` constructs a fresh `SymmetricFactor`,
+    // whose counters start at zero by that class's own stated contract -- so
+    // without this line the count a ledger record differences across a call
+    // goes BACKWARDS when a solve re-transcribes (a different program on the
+    // same solver), and the record reports a NEGATIVE number of
+    // factorizations. It did: -3, on the first fixture that asked.
+    //
+    // THE ACCUMULATOR IS ON THIS SOLVER, not on `KktFactorization`, on purpose:
+    // that class is a member of `IpqpEngine`, so a field added to it shifts
+    // every member offset in every QP kernel object -- which the P-SYM gate
+    // says must be byte-identical. Nothing else replaces the engine
+    // (`release()` has no caller in this tree), and this site runs from
+    // `transcribe_bound_program()`, at solve ENTRY and above any factorization
+    // of that call -- so the retirement is complete and it never lands
+    // mid-solve.
+    this->retired_factorizations_ += this->kkt_sol_.counters().factorize_count;
     this->kkt_sol_.reconfigure(opts);
 }
 
@@ -326,22 +344,23 @@ void hven::solvers::InteriorPointSolver::record_solve(const IpmResult &result,
     // A PER-CALL DELTA, not a total: on a solver reused for a second solve a
     // running total would charge this record for the first call's work too.
     //
-    // READ OFF `lifetime_factorize_count()`, NOT OFF `kkt_factor_counters`
-    // (M6 W5 T8.7 fix1, the lane's M3). The snapshot in the result is
-    // `SymmetricFactor::Counters`, which counts per ENGINE INSTANCE and starts
-    // again at zero whenever the analysis is re-laid -- and a solver handed a
-    // DIFFERENT program re-lays inside the call. Differencing that snapshot
-    // across such a call read a smaller number than the call started with and
-    // recorded a NEGATIVE count; `IpmLedger.ThePerCallDeltaSurvivesA
-    // ReAnalysisInsideTheCall` is that case. The accumulator this reads is
-    // monotone across a re-lay by construction, so the difference is this
-    // call's own factorizations whether or not the analysis moved.
+    // READ OFF THIS SOLVER'S OWN `lifetime_factorize_count()`, NOT OFF
+    // `kkt_factor_counters` (M6 W5 T8.7 fix1, the lane's M3). The snapshot in
+    // the result is `SymmetricFactor::Counters`, which counts per ENGINE
+    // INSTANCE and starts again at zero whenever `set_qp_params()` replaces the
+    // engine -- which a solve of a DIFFERENT program does, at its entry.
+    // Differencing that snapshot across such a call read a smaller number than
+    // the call started with and recorded a NEGATIVE count;
+    // `IpmLedger.ThePerCallDeltaSurvivesAReAnalysisInsideTheCall` is that case.
+    // The accessor this reads adds the retired engines' counts back, so it is
+    // monotone over this solver's life and the difference is this call's own
+    // factorizations whether or not the analysis moved.
     //
     // READ FROM THE FACTOR, not from the result: nothing between
     // `run_phase_sequence`'s return and this statement factorizes, so the two
     // are the same instant, and the result carries only the per-instance
     // snapshot.
-    rec.factorizations = this->kkt_sol_.lifetime_factorize_count() - factorize_count_at_entry;
+    rec.factorizations = this->lifetime_factorize_count() - factorize_count_at_entry;
     // Already per call -- the engine's own counter, not a delta.
     rec.analyses = result.kkt_analyses_this_call;
     rec.soc_steps_taken = result.soc_steps_taken;
@@ -5964,7 +5983,7 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::solve(NonLinearProg
     // record can report this call's own; read whether or not a ledger is
     // attached, because it is one integer load and a conditional read would
     // make the record depend on when the ledger was attached.
-    const Index factorizations_at_entry = this->kkt_sol_.lifetime_factorize_count();
+    const Index factorizations_at_entry = this->lifetime_factorize_count();
     IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget, nullptr);
     wall.stop();
     result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;
@@ -6015,7 +6034,7 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::solve(NonLinearProg
     // The same stamp as the cold entry above, for the same reason.
     this->entry_time_ = std::chrono::steady_clock::now();
     // See the cold overload above.
-    const Index factorizations_at_entry = this->kkt_sol_.lifetime_factorize_count();
+    const Index factorizations_at_entry = this->lifetime_factorize_count();
     IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget, &warm);
     wall.stop();
     result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;

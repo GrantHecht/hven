@@ -1107,7 +1107,8 @@ TEST(IpmLedger, ThePerCallDeltaSurvivesAReAnalysisInsideTheCall) {
     const IpmSolveRecord &second = ledger.ipm_records()[1];
 
     // THE PREMISE, IN TWO PARTS. The second call really did re-lay the
-    // analysis -- and, because a re-lay REPLACES the linear engine, the engine
+    // analysis -- and, because re-transcribing REPLACES the linear engine
+    // (`set_qp_params()` calls `KktFactorization::reconfigure()`), the engine
     // counters in the result went BACKWARDS across the two calls. That second
     // fact is the defect this pin was asked for: differencing THOSE counters
     // (which is what the record did until M6 W5 T8.7 fix1) reports a negative
