@@ -168,32 +168,38 @@ std::string read_all(std::FILE *f) {
 /// A sink that counts every event it is handed and records the order.
 struct CountingSink : TraceSink {
     std::vector<std::string> seen;
-    void on_ipqp_iter(const IpqpTraceIterEvent &) override { seen.push_back("ipqp.iter"); }
-    void on_ipqp_reg(const IpqpTraceRegEvent &) override { seen.push_back("ipqp.reg"); }
-    void on_ipqp_restart(const IpqpTraceRestartEvent &) override { seen.push_back("ipqp.restart"); }
-    void on_ipqp_route(const IpqpTraceRouteEvent &) override { seen.push_back("ipqp.route"); }
-    void on_ipqp_certify(const IpqpTraceCertifyEvent &) override { seen.push_back("ipqp.certify"); }
-    void on_ipqp_escape(const IpqpTraceEscapeEvent &) override { seen.push_back("ipqp.escape"); }
-    void on_qp_mode(const QpModeTraceEvent &) override { seen.push_back("qp.mode"); }
+    // AN OPTIONAL SHARED, ORDERED OBSERVATION (M6 W5 T8.7 fix1, astra's
+    // Minor). Two sinks with two private vectors cannot tell "a then b" from
+    // "b then a": both vectors end up the same either way. When `shared` is
+    // set, every event is also appended to ONE vector as "<tag>:<event>", and
+    // the ORDER of delivery is then readable.
+    std::vector<std::string> *shared = nullptr;
+    std::string tag;
+
+    void note(const char *name) {
+        seen.push_back(name);
+        if (shared != nullptr) {
+            shared->push_back(tag + ":" + name);
+        }
+    }
+    void on_ipqp_iter(const IpqpTraceIterEvent &) override { note("ipqp.iter"); }
+    void on_ipqp_reg(const IpqpTraceRegEvent &) override { note("ipqp.reg"); }
+    void on_ipqp_restart(const IpqpTraceRestartEvent &) override { note("ipqp.restart"); }
+    void on_ipqp_route(const IpqpTraceRouteEvent &) override { note("ipqp.route"); }
+    void on_ipqp_certify(const IpqpTraceCertifyEvent &) override { note("ipqp.certify"); }
+    void on_ipqp_escape(const IpqpTraceEscapeEvent &) override { note("ipqp.escape"); }
+    void on_qp_mode(const QpModeTraceEvent &) override { note("qp.mode"); }
     void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {
-        seen.push_back("fallback.verdict");
+        note("fallback.verdict");
     }
-    void on_sqp_major(const SqpMajorTraceEvent &) override { seen.push_back("sqp.major"); }
-    void on_sqp_solve_begin(const SqpSolveBeginTraceEvent &) override {
-        seen.push_back("sqp.solve.begin");
-    }
-    void on_sqp_solve_end(const SqpSolveEndTraceEvent &) override {
-        seen.push_back("sqp.solve.end");
-    }
-    void on_ipm_iter(const IpmIterTraceEvent &) override { seen.push_back("ipm.iter"); }
-    void on_ipm_solve_begin(const IpmSolveBeginTraceEvent &) override {
-        seen.push_back("ipm.solve.begin");
-    }
-    void on_ipm_solve_end(const IpmSolveEndTraceEvent &) override {
-        seen.push_back("ipm.solve.end");
-    }
+    void on_sqp_major(const SqpMajorTraceEvent &) override { note("sqp.major"); }
+    void on_sqp_solve_begin(const SqpSolveBeginTraceEvent &) override { note("sqp.solve.begin"); }
+    void on_sqp_solve_end(const SqpSolveEndTraceEvent &) override { note("sqp.solve.end"); }
+    void on_ipm_iter(const IpmIterTraceEvent &) override { note("ipm.iter"); }
+    void on_ipm_solve_begin(const IpmSolveBeginTraceEvent &) override { note("ipm.solve.begin"); }
+    void on_ipm_solve_end(const IpmSolveEndTraceEvent &) override { note("ipm.solve.end"); }
     void on_ipm_restoration_exit_row(const IpmRestorationExitRowTraceEvent &) override {
-        seen.push_back("ipm.restoration_exit_row");
+        note("ipm.restoration_exit_row");
     }
 };
 
@@ -281,8 +287,17 @@ TEST(ConsoleSink, ThePhaseChangeColoursTheNextPhasesFirstRowAsAFirstRow) {
         << "the header re-prints at iter_ % 10 == 0";
     // Phase 1's row 0 is the seventh row in `replay`; find it by the header,
     // which re-prints there because iter_ is 0 again.
-    const std::size_t second_header = replay.find("|Iter| mu Val");
+    //
+    // THE SECOND ONE, AND THAT MATTERS (M6 W5 T8.7 fix1, astra's Minor):
+    // `replay` begins with phase 0's rows -- re-emitted from row 0, so the
+    // FIRST header in it is phase 0's own re-print, and selecting it examined
+    // phase 0 twice while the name said phase 1. The phase boundary is the
+    // SECOND header.
+    const std::size_t first_header = replay.find("|Iter| mu Val");
+    ASSERT_NE(first_header, std::string::npos) << "phase 0's replay re-prints the header";
+    const std::size_t second_header = replay.find("|Iter| mu Val", first_header + 1);
     ASSERT_NE(second_header, std::string::npos) << "phase 1 re-prints the header";
+    ASSERT_GT(second_header, first_header);
     // Exactly ONE row: from the end of that header line to the end of the row
     // that follows it.
     const std::size_t header_eol = replay.find('\n', second_header);
@@ -515,8 +530,16 @@ TEST(ConsoleSink, TheEightQpTierEventsRenderNothing) {
 // --- the fan-out ------------------------------------------------------------
 
 TEST(FanOut, ForwardsEveryEventToBothHalvesFirstThenSecond) {
+    // ONE SHARED, ORDERED OBSERVATION (M6 W5 T8.7 fix1): the two sinks write
+    // into the same vector, tagged, so "first then second" is a property of the
+    // sequence rather than of two sequences that happen to agree.
+    std::vector<std::string> order;
     CountingSink a;
     CountingSink b;
+    a.shared = &order;
+    a.tag = "a";
+    b.shared = &order;
+    b.tag = "b";
     FanOutTraceSink fan(&a, &b);
     const SqpCounters counters;
     const IterateInfo row;
@@ -542,6 +565,15 @@ TEST(FanOut, ForwardsEveryEventToBothHalvesFirstThenSecond) {
     EXPECT_EQ(a.seen, b.seen);
     EXPECT_EQ(fan.first(), &a);
     EXPECT_EQ(fan.second(), &b);
+
+    // AND EVERY ONE OF THEM REACHED `a` BEFORE `b`: the shared log is exactly
+    // thirty entries, alternating, each pair naming one event. Reversing the
+    // fan-out's delivery order fails here and nowhere else.
+    ASSERT_EQ(order.size(), 30u);
+    for (std::size_t i = 0; i < a.seen.size(); ++i) {
+        EXPECT_EQ(order[2 * i], "a:" + a.seen[i]) << "at event " << i;
+        EXPECT_EQ(order[2 * i + 1], "b:" + a.seen[i]) << "at event " << i;
+    }
 }
 
 TEST(FanOut, ANullHalfIsSkippedRatherThanDereferenced) {

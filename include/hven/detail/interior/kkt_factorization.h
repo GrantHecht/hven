@@ -121,7 +121,33 @@ class KktFactorization {
 
     /// @brief The linear engine's call counters, including the pattern-guard
     ///        count that makes a skipped verification observable.
+    ///
+    /// PER ENGINE INSTANCE, which is `SymmetricFactor::Counters`' own stated
+    /// contract: `reconfigure()` and `release()` REPLACE the engine, and the
+    /// replacement starts at zero because it did no earlier work. A consumer
+    /// that needs a number monotone across those events wants
+    /// `lifetime_factorize_count()` below.
     const Counters &counters() const { return factor_.counters(); }
+
+    /// @brief Numeric factorizations performed by THIS OBJECT since it was
+    ///        constructed, across every engine instance it has owned.
+    ///
+    /// WHY IT EXISTS (M6 W5 T8.7 fix1, the lane's M3). `counters()` above is
+    /// reset by `reconfigure()` and by `release()` -- which is what a re-lay of
+    /// the analysis does, and a solver handed a DIFFERENT program re-lays
+    /// inside the call. A consumer differencing `counters().factorize_count`
+    /// across such a call reads a SMALLER number than it started with and
+    /// reports a NEGATIVE amount of work; the interior-point ledger's
+    /// per-call `factorizations` did exactly that until this counter existed.
+    ///
+    /// This one only ever increases: the outgoing engine's count is retired
+    /// into an accumulator before it is replaced. It counts the same events
+    /// `counters().factorize_count` counts -- backend factorize calls that
+    /// returned -- and nothing else, so a difference of two readings is the
+    /// factorizations performed between them, re-analyses and all.
+    Index lifetime_factorize_count() const {
+        return retired_factorizations_ + factor_.counters().factorize_count;
+    }
 
     /// Solve against the current factorization. `x` must already be sized.
     void solve(ConstVecRef rhs, VecRef x) const;
@@ -187,6 +213,11 @@ class KktFactorization {
     Options opts_;
     hven::linear::SymmetricFactor factor_;
     SpMatRM matrix_;
+
+    /// Factorizations performed by engine instances this object has RETIRED --
+    /// summed in by reconfigure() and release() before each replacement, and
+    /// read only by lifetime_factorize_count(). Never reset.
+    Index retired_factorizations_ = 0;
 
     int n_pos_ = 0;
     int n_neg_ = 0;

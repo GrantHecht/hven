@@ -614,7 +614,21 @@ class InteriorPointSolver {
     /// T8.7). When `common.print_level` says printing is on, the solver builds
     /// its own `ConsoleTraceSink` and fans out over BOTH -- this sink first,
     /// the console second -- so attaching a console never displaces a caller's
-    /// sink, and a caller's stream is byte-identical with printing on and off.
+    /// sink, and a caller's stream is byte-identical with printing on and off
+    /// (its `ipm.solve.end` line excepted: every one of that line's seven
+    /// fields is wall-clock, and two runs of one solve differ there by
+    /// construction, console or no console).
+    ///
+    /// @throws std::logic_error if a solve is in flight on this solver (M6 W5
+    ///         T8.7 fix1, the lane's M1 and astra's I1). The composition above
+    ///         is fixed for the solve, so a call made from inside an iteration
+    ///         callback, a KKT hook or a sink's own method could not take
+    ///         effect in it: before this refusal such a call replaced the
+    ///         composed fan-out for the rest of the solve -- silencing the
+    ///         console mid-table -- and a sink that detached itself from inside
+    ///         `on_ipm_iter` left the restoration door's very next emit
+    ///         dereferencing a null. `set_options` refuses on the same rule and
+    ///         for the same reason, as does `SqpDriver::attach_trace`.
     void attach_trace(TraceSink *sink);
 
     // --- Instrumentation ledger ---
@@ -1196,9 +1210,21 @@ class InteriorPointSolver {
     // Is a public entry point on THIS object currently inside its solve? Set by
     // an RAII guard at run_phase_sequence()'s entry -- the ONE place all five
     // public entry points funnel through exactly once -- and cleared on every
-    // exit, a throw included. Read by set_options(), which refuses to replace
-    // the options a solve is running under. A nested restoration phase builds a
-    // DISTINCT solver, so it never re-enters this object's guard.
+    // exit, a throw included. Read by set_options() and by attach_trace(), both
+    // of which refuse to replace what a running solve is using.
+    //
+    // NO RESTORATION MODE BUILDS A SECOND SOLVER (M6 W5 T8.7 fix1, astra's
+    // Minor; an earlier sentence here said one did). All three modes run IN
+    // PLACE on this object: `off` builds no strategy at all, `proximal_switch`
+    // builds a `ProximalSwitchRestoration` and `l1_nested` a
+    // `NestedL1Restoration`, and both of those are STRATEGY objects that reuse
+    // the outer barrier algorithm's own KKT system (see
+    // `detail/globalization/l1_restoration.h`: "an in-place phase reusing the
+    // outer barrier algorithm's KKT system rather than a separate nested solver
+    // instance"). "Nested" in `l1_nested` names the nested PHASE, not a nested
+    // solver. A restoration phase therefore never re-enters this guard because
+    // it never re-enters a public entry point -- not because it runs on some
+    // other object.
     bool solve_in_flight_ = false;
 
     /// Has the per-iteration callback asked this call to stop? Set by
@@ -1738,10 +1764,14 @@ class InteriorPointSolver {
     /// reaches it, so it neither records nor consumes a label number.
     ///
     /// @param result                 The result this call is about to return.
-    /// @param factorize_count_at_entry The KKT factor's lifetime
-    ///        `factorize_count` read at the top of this call; the record's
+    /// @param factorize_count_at_entry `KktFactorization::lifetime_factorize_
+    ///        count()` read at the top of this call; the record's
     ///        `factorizations` is the difference, so a reused solver does not
-    ///        charge this record for a previous call's work.
+    ///        charge this record for a previous call's work. That accessor and
+    ///        not `counters().factorize_count` (M6 W5 T8.7 fix1): the latter
+    ///        counts per ENGINE INSTANCE and restarts at zero when the analysis
+    ///        is re-laid, which a call on a DIFFERENT program does -- and a
+    ///        difference taken across such a call is negative.
     void record_solve(const IpmResult &result, Index factorize_count_at_entry);
 
     // --- Printing methods ---

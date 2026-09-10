@@ -11,6 +11,7 @@
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -20,6 +21,7 @@
 #include <hven/drivers/solve_result.h>
 #include <hven/drivers/solve_status.h>
 #include <hven/drivers/trace.h>
+#include <hven/drivers/trace_writer.h>
 #include <hven/model/nlp_problem.h>
 #include <hven/model/nlp_solver.h>
 
@@ -365,6 +367,77 @@ TEST(IpmStopReason, TheLocallyInfeasibleDoorFiresItsRowOnBothStreams) {
     ASSERT_EQ(points.back().size(), r.x.size());
     for (Eigen::Index i = 0; i < r.x.size(); ++i) {
         EXPECT_EQ(points.back()[i], r.x[i]) << "at coordinate " << i;
+    }
+}
+
+// THE DOOR'S MARKER, DRIVEN BY THE SOLVER (M6 W5 T8.7 fix1, astra's Minor).
+//
+// `JsonLinesTraceSink.TheRestorationExitRowIsAdjacentToItsOwnIterLine` calls
+// the two writer methods BY HAND, in the order the solver is supposed to use;
+// it therefore pins the writer and says nothing about the solver. Removing the
+// marker emit, or moving it above its row, leaves that test green. This one
+// runs the solve that actually opens the door and reads the stream it produced:
+// exactly one `ipm.restoration_exit_row` line, immediately after an `ipm.iter`
+// line, with the same `iter` and `phase` on both, and the two numbers that
+// decided the exit on the marker.
+TEST(IpmStopReason, TheDoorsMarkerFollowsItsOwnIterLineOnALiveSolve) {
+    auto solver = stop_reason_test::make_locally_infeasible_solver(200);
+    std::ostringstream os;
+    hven::solvers::JsonLinesTraceSink sink(os);
+    solver.optimizer_->attach_trace(&sink);
+
+    const hven::solvers::SolveStatus flag =
+        solver.optimize(stop_reason_test::two_var_start(1.0, 1.0));
+    ASSERT_EQ(flag, hven::solvers::SolveStatus::kStalled);
+    ASSERT_EQ(solver.optimizer_->last_stop_reason(),
+              hven::solvers::IpmStopReason::kRestorationLocallyInfeasible)
+        << "fixture premise: the solve must leave through the locally-infeasible door";
+
+    std::vector<std::string> lines;
+    {
+        const std::string stream = os.str();
+        std::size_t pos = 0;
+        while (pos < stream.size()) {
+            const std::size_t eol = stream.find('\n', pos);
+            const std::size_t end = (eol == std::string::npos) ? stream.size() : eol;
+            lines.push_back(stream.substr(pos, end - pos));
+            if (eol == std::string::npos) {
+                break;
+            }
+            pos = eol + 1;
+        }
+    }
+    auto key_of = [](const std::string &line, const std::string &key) {
+        const std::size_t k = line.find("\"" + key + "\":");
+        if (k == std::string::npos) {
+            return std::string();
+        }
+        const std::size_t v = k + key.size() + 3;
+        const std::size_t e = line.find_first_of(",}", v);
+        return line.substr(v, e - v);
+    };
+
+    std::vector<std::size_t> markers;
+    for (std::size_t i = 0; i < lines.size(); ++i) {
+        if (key_of(lines[i], "ev") == "\"ipm.restoration_exit_row\"") {
+            markers.push_back(i);
+        }
+    }
+    ASSERT_EQ(markers.size(), 1u) << "the door is taken once, and marks its row once";
+    const std::size_t m = markers.front();
+    ASSERT_GT(m, 0u) << "the marker cannot be the stream's first line";
+    EXPECT_EQ(key_of(lines[m - 1], "ev"), "\"ipm.iter\"")
+        << "the marker must FOLLOW the row it refers to: " << lines[m - 1];
+    EXPECT_EQ(key_of(lines[m], "iter"), key_of(lines[m - 1], "iter"));
+    EXPECT_EQ(key_of(lines[m], "phase"), key_of(lines[m - 1], "phase"));
+    // The two numbers the door decided on are real readings, not defaults.
+    EXPECT_GT(std::stod(key_of(lines[m], "theta")), 0.0);
+    EXPECT_GT(std::stod(key_of(lines[m], "threshold")), 0.0);
+    // ... and the marker is the LAST `ipm.iter`-bearing row of the stream: the
+    // door returns from the phase there.
+    for (std::size_t i = m + 1; i < lines.size(); ++i) {
+        EXPECT_NE(key_of(lines[i], "ev"), "\"ipm.iter\"")
+            << "a row after the door's marker: " << lines[i];
     }
 }
 

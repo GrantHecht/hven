@@ -2093,11 +2093,34 @@ Three differences from `SqpDriver::attach_ledger`, each deliberate:
   `iterations` — the same shape as the SQP's restoration sub-driver, which
   receives `attach_trace` but no `attach_ledger`.
 
+  Said exactly (fix1, since two review documents describe it the other way):
+  **no interior-point restoration mode constructs a second solver.** `off`
+  builds no restoration strategy at all; `proximal_switch` builds a
+  `ProximalSwitchRestoration` and `l1_nested` a `NestedL1Restoration`, and both
+  are STRATEGY objects driving an in-place phase on the outer barrier
+  algorithm's own KKT system (`detail/globalization/l1_restoration.h`: "an
+  in-place phase reusing the outer barrier algorithm's KKT system rather than a
+  separate nested solver instance"). "Nested" in `l1_nested` names the nested
+  PHASE. The SQP is the engine that really does construct a nested driver.
+
 **`factorizations` is a PER-CALL delta**, not `kkt_factor_counters.factorize_count`.
-That field is a LIFETIME snapshot, so on a reused solver it would charge each
-record for every earlier call's work as well. `analyses` is
-`IpmResult::kkt_analyses_this_call`, which is already per call — and is honestly
-0 on a second solve of the same program, where the analysis is reused.
+That field is a snapshot of the LINEAR ENGINE's own counters, so on a reused
+solver it would charge each record for every earlier call's work as well.
+`analyses` is `IpmResult::kkt_analyses_this_call`, which is already per call —
+and is honestly 0 on a second solve of the same program, where the analysis is
+reused.
+
+*Correction (fix1).* The delta is taken over
+`KktFactorization::lifetime_factorize_count()`, a new accessor, and **not** over
+`counters().factorize_count`. `SymmetricFactor::Counters` counts calls made
+through one ENGINE INSTANCE and starts again at zero when the analysis is
+re-laid — which is what a solve of a DIFFERENT program on the same solver does.
+Differencing that counter across such a call therefore produced a NEGATIVE
+`factorizations`; it was −3 on the first fixture that tried it. The new accessor
+retires the outgoing engine's count into an accumulator, so it is monotone by
+construction and the difference is this call's own work whether or not the
+analysis moved. `factorizations` is never negative.
+`counters()` itself is unchanged, and so is its per-instance contract.
 `total_time` and `wall_seconds` are wall-clock and INFORMATIONAL, never asserted
 (CLAUDE.md §7); `ipm_summary_table()` therefore has **no timing column**.
 
@@ -2128,7 +2151,12 @@ order. What moved is WHERE it is produced: the solver now attaches a
 `ConsoleTraceSink` at solve entry when `common.print_level < 3`, and if you had
 also attached a sink of your own, the two are FANNED OUT — your sink first, the
 console second. **Attaching a console never displaces your sink**, and your
-stream is byte-identical with printing on and off.
+stream is byte-identical with printing on and off — with ONE line excepted, the
+same exception its test applies (fix1): `ipm.solve.end` carries seven
+WALL-CLOCK fields, which CLAUDE.md §7 makes informational and never asserted, so
+two runs of one solve differ there whether or not a console is attached. Every
+other line, the begin line and every `ipm.iter` row included, is compared byte
+for byte, and the end line on its two deterministic fields.
 
 **On the SQP driver, this is a GAIN.** Before T8.7 the driver printed nothing at
 any level (`format_iteration_table` was called only by tests). It now prints the
@@ -2149,11 +2177,24 @@ it to its own console, and it also rides `ipm.solve.begin` so a foreign sink can
 render the same layout. Nothing moves for a caller. The SQP renderings ignore
 `wide`.
 
-**`SqpDriver::attach_trace` now REFUSES a call made during a solve**, throwing
+**Both engines' `attach_trace` now REFUSE a call made during a solve**, throwing
 `std::logic_error` on `set_options`' rule and for its reason: the effective sink
 is composed at solve entry and fixed for the solve, so a mid-solve change could
 not take effect in it. Between solves it is unchanged, and attach order relative
 to `set_options` is free.
+
+*Correction (fix1).* `SqpDriver::attach_trace` refused from the start;
+`InteriorPointSolver::attach_trace` did not, and that was a hole rather than a
+difference. A call made from inside an iteration callback replaced the
+interior-point composition for the rest of the solve — the console fell silent
+mid-table — and a sink that detached itself from inside `on_ipm_iter` left the
+restoration door's very next emit dereferencing a null. Both engines now refuse,
+and every interior-point emit site reads the sink pointer once per emit.
+
+**The restoration sub-driver is the one driver that never prints.** Every other
+`SqpDriver` builds its console at the tiers `common.print_level` names —
+including one constructed with restoration disabled, which is a different fact
+(fix1: the console's condition used to be that other fact).
 
 **`IpmResult::print_time` now brackets the EMIT** at the four row sites and the
 restoration-exit marker, not a print — so a sink of your own is inside that
@@ -2199,6 +2240,19 @@ analysis, a phase's own verdict and times — and each is declared as **moved by
 T8.7b**, which adds `on_ipm_phase_begin/end`, `on_ipm_kkt_analysis`,
 `on_ipm_phase_exit` and `on_ipm_message`, serializes them, and deletes
 `src/drivers/interior_point_solver_print.cpp`.
+
+### 5b. Not a caller-visible change, but worth knowing (fix1)
+
+* **`KktFactorization::lifetime_factorize_count()`** — a new accessor beside
+  `counters()`, monotone across a re-lay of the analysis. See §1's correction.
+  `counters()` is unchanged.
+* **`SqpDriver`'s two constructors and its destructor are defined out of line**,
+  and `hven/drivers/sqp_driver.h` no longer includes
+  `hven/drivers/console_trace_sink.h` — it forward-declares both sink types, as
+  `hven/drivers/interior_point_solver.h` already did. A translation unit that
+  used to reach `ConsoleTraceSink` or `fmt/color.h` THROUGH `sqp_driver.h` must
+  include `hven/drivers/console_trace_sink.h` itself. Nothing else moved: the
+  class, its members and its behaviour are unchanged.
 
 ### 6. A direct `set_*`/`clear_*` supersedes a pending deferral
 

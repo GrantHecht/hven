@@ -171,10 +171,17 @@ struct IpmSolveRecord {
     /// @brief IpmResult::total_time, in SECONDS. Informational, like
     ///        `wall_seconds` below; never asserted on a value.
     double total_time = 0.0;
-    /// KKT factorizations paid by THIS CALL -- the difference between the
-    /// factor's lifetime `factorize_count` after the call and before it, NOT
-    /// the lifetime total itself. On a solver reused for a second solve the
-    /// lifetime number would charge this record for the previous call's work.
+    /// KKT factorizations paid by THIS CALL -- the difference between
+    /// `KktFactorization::lifetime_factorize_count()` after the call and before
+    /// it, NOT that total itself. On a solver reused for a second solve the
+    /// total would charge this record for the previous call's work.
+    ///
+    /// The accumulator is differenced rather than the linear engine's own
+    /// `Counters::factorize_count` (M6 W5 T8.7 fix1) because that counter is
+    /// per ENGINE INSTANCE and starts again at zero when the analysis is
+    /// re-laid -- so on a solver handed a second, DIFFERENT program the
+    /// difference of two such readings is negative. This field is never
+    /// negative.
     Index factorizations = 0;
     /// @brief IpmResult::kkt_analyses_this_call -- symbolic analyses paid by
     ///        THIS call (the engine's own per-call counter).

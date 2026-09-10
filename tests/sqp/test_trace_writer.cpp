@@ -35,8 +35,6 @@
 #include <string>
 #include <vector>
 
-#include <unistd.h>
-
 #include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
@@ -49,6 +47,11 @@
 #include <hven/drivers/trace_writer.h>
 #include <hven/model/nlp_model.h>
 
+// The portable stdout capture both console suites share (M6 W5 T8.7 fix1,
+// astra's I2): this file used to carry its own copy, which included <unistd.h>
+// and called the POSIX descriptor functions unconditionally -- source that
+// cannot be compiled on Windows, where this target is also built.
+#include "../support/console_capture.h"
 #include "support/hs_problems.h"
 #include "support/ipqp_test_support.h"
 
@@ -3532,6 +3535,15 @@ TEST(JsonLinesTraceSink, GoldenLineIpmRestorationExitRow) {
 }
 
 TEST(JsonLinesTraceSink, TheRestorationExitRowIsAdjacentToItsOwnIterLine) {
+    // THE WRITER'S HALF ONLY, and this test says so (M6 W5 T8.7 fix1, astra's
+    // Minor): it invokes the two methods BY HAND, so it pins what the writer
+    // does with that pair and nothing about whether the SOLVER still emits it.
+    // The solver's half is
+    // `IpmStopReason.TheDoorsMarkerFollowsItsOwnIterLineOnALiveSolve`
+    // (tests/interior/test_ipm_stop_reason.cpp), which runs the solve that
+    // opens the door and reads the stream it produced -- that one fails if the
+    // marker emit is removed or reordered; this one cannot.
+    //
     // THE ORDER THE ENGINE EMITS IN, pinned so a later change that separates
     // them has to say so: the row's `ipm.iter` line, then the marker, with the
     // same `iter` and `phase` on both.
@@ -3596,45 +3608,11 @@ TEST(JsonLinesTraceSink, NoIpmLineCarriesAnUnknownEnumString) {
 
 namespace {
 
-/// Redirects the process's `stdout` into a temporary file for its lifetime.
-///
-/// THE DRIVER'S CONSOLE WRITES TO `stdout` by construction -- it is the console
-/// -- so a live pin has to read the real stream rather than a sink handed a
-/// `FILE *`. `dup`/`dup2` on the descriptor is the portable-enough way to do it
-/// and restores the original on destruction, exception paths included.
-class StdoutCapture {
-  public:
-    StdoutCapture() : file_(std::tmpfile()) {
-        std::fflush(stdout);
-        saved_ = ::dup(::fileno(stdout));
-        ::dup2(::fileno(file_), ::fileno(stdout));
-    }
-    ~StdoutCapture() {
-        std::fflush(stdout);
-        ::dup2(saved_, ::fileno(stdout));
-        ::close(saved_);
-        std::fclose(file_);
-    }
-    StdoutCapture(const StdoutCapture &) = delete;
-    StdoutCapture &operator=(const StdoutCapture &) = delete;
-
-    /// @brief Everything written to `stdout` since construction.
-    std::string text() {
-        std::fflush(stdout);
-        std::fseek(file_, 0, SEEK_END);
-        const long n = std::ftell(file_);
-        std::string out(static_cast<std::size_t>(n < 0 ? 0 : n), '\0');
-        std::fseek(file_, 0, SEEK_SET);
-        const std::size_t got = std::fread(out.data(), 1, out.size(), file_);
-        out.resize(got);
-        std::fseek(file_, 0, SEEK_END);
-        return out;
-    }
-
-  private:
-    std::FILE *file_ = nullptr;
-    int saved_ = -1;
-};
+/// The live console pins below read the process's real `stdout`: the DRIVER
+/// builds its own console and gives it `stdout`, so there is no `FILE *` for a
+/// test to hand it. `hven::testing::StdoutCapture` (tests/support/) is that
+/// redirection, in one portable place.
+using hven::testing::StdoutCapture;
 
 /// Counts every event, by name, without rendering anything.
 struct EventTally : TraceSink {
@@ -3757,6 +3735,48 @@ TEST(SqpConsole, ACountingSinkSeesTheSameEventsWithPrintingOnAndOff) {
     EXPECT_FALSE(off.empty());
     EXPECT_EQ(off, on);
     EXPECT_EQ(off, on_late);
+}
+
+TEST(SqpConsole, TheRestorationSubDriverIsTheOneDriverThatNeverPrints) {
+    // M6 W5 T8.7 fix1 (the lane's M2). The console composition used to be
+    // guarded on `allow_restoration_` -- "may I restore" -- where what it means
+    // is "am I the restoration phase's own driver". The two coincide on the
+    // shipped surface (the two-argument constructor is PRIVATE and the
+    // restoration phase is its only caller), so no caller could reach the wrong
+    // branch; what the predicate change buys is that the console's condition
+    // says which fact it depends on, and stays right if that surface widens.
+    //
+    // WHAT IS OBSERVABLE, AND IS PINNED HERE: on a solve that ENTERS
+    // restoration at `print_level 0`, exactly ONE table is written -- the
+    // parent's. A sub-driver that built a console of its own would write a
+    // second header and its own rows into the same `stdout`.
+    CircleAndFarLineModel model;
+    SqpOptions opts;
+    opts.max_iter = 200;
+    opts.common.print_level = 0;
+    SqpDriver driver(opts);
+    std::string written;
+    SqpSolution sol;
+    {
+        StdoutCapture capture;
+        sol = driver.solve(model);
+        written = capture.text();
+    }
+    ASSERT_GE(sol.counters.restoration_iters, 1) << "fixture premise: restoration runs";
+
+    const std::string head = sqp_iteration_table_head();
+    ASSERT_FALSE(head.empty());
+    const std::string first_line = head.substr(0, head.find('\n'));
+    Index headers = 0;
+    for (std::size_t at = written.find(first_line); at != std::string::npos;
+         at = written.find(first_line, at + 1)) {
+        ++headers;
+    }
+    EXPECT_EQ(headers, 1) << "the restoration sub-driver wrote a table of its own";
+    // And the one table is the parent's whole output, byte for byte -- the same
+    // statement `TheLiveConsoleEqualsFormatIterationTable` makes, kept here so
+    // this test fails for the right reason if the sub-driver ever prints.
+    EXPECT_EQ(written, format_iteration_table(sol));
 }
 
 TEST(SqpConsole, AttachTraceDuringASolveIsRefused) {

@@ -272,7 +272,25 @@ bool hven::solvers::InteriorPointSolver::claim_kkt_analysis() {
 // sink. `trace_` is set here too, and not only at solve entry, so that a
 // caller reading the effect of `attach_trace` between solves sees what it
 // attached rather than the previous solve's composition.
+//
+// BETWEEN SOLVES ONLY (M6 W5 T8.7 fix1, the lane's M1 and astra's I1), on
+// `set_options`' rule and the SQP's: the effective sink is composed at solve
+// entry and FIXED for the solve, which is what the declaration promises. Two
+// things a mid-solve call did before this refusal, both of them silent: it
+// replaced the composed fan-out for the rest of the solve, so the console
+// stopped mid-table and the caller's new sink received the remainder; and a
+// sink that detached itself from inside `on_ipm_iter` left the restoration
+// door's second emit -- the marker, on the very next line -- dereferencing a
+// null `trace_`. The refusal closes the route; reading the member into a local
+// once per emit (below, at all SIX emit sites -- the four row sites, the begin
+// block and the end block) closes what a re-entrant call could still have done
+// between the null check and the call, or between two emits of one pair.
 void hven::solvers::InteriorPointSolver::attach_trace(TraceSink *sink) {
+    if (this->solve_in_flight_) {
+        throw std::logic_error(
+            "InteriorPointSolver::attach_trace: a solve is in flight on this solver; the trace "
+            "sink may only be replaced between calls");
+    }
     user_trace_ = sink;
     trace_ = sink;
 }
@@ -305,11 +323,25 @@ void hven::solvers::InteriorPointSolver::record_solve(const IpmResult &result,
     }
     rec.phases_run = ran;
     rec.total_time = result.total_time;
-    // A PER-CALL DELTA, not the lifetime total. `kkt_factor_counters` is a
-    // SNAPSHOT of the factor's lifetime counters taken as the result was built,
-    // so on a solver reused for a second solve the raw `factorize_count` would
-    // charge this record for the first solve's factorizations too.
-    rec.factorizations = result.kkt_factor_counters.factorize_count - factorize_count_at_entry;
+    // A PER-CALL DELTA, not a total: on a solver reused for a second solve a
+    // running total would charge this record for the first call's work too.
+    //
+    // READ OFF `lifetime_factorize_count()`, NOT OFF `kkt_factor_counters`
+    // (M6 W5 T8.7 fix1, the lane's M3). The snapshot in the result is
+    // `SymmetricFactor::Counters`, which counts per ENGINE INSTANCE and starts
+    // again at zero whenever the analysis is re-laid -- and a solver handed a
+    // DIFFERENT program re-lays inside the call. Differencing that snapshot
+    // across such a call read a smaller number than the call started with and
+    // recorded a NEGATIVE count; `IpmLedger.ThePerCallDeltaSurvivesA
+    // ReAnalysisInsideTheCall` is that case. The accumulator this reads is
+    // monotone across a re-lay by construction, so the difference is this
+    // call's own factorizations whether or not the analysis moved.
+    //
+    // READ FROM THE FACTOR, not from the result: nothing between
+    // `run_phase_sequence`'s return and this statement factorizes, so the two
+    // are the same instant, and the result carries only the per-instance
+    // snapshot.
+    rec.factorizations = this->kkt_sol_.lifetime_factorize_count() - factorize_count_at_entry;
     // Already per call -- the engine's own counter, not a delta.
     rec.analyses = result.kkt_analyses_this_call;
     rec.soc_steps_taken = result.soc_steps_taken;
@@ -2894,14 +2926,25 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                 // than a print, so a caller's own sink is now inside
                 // `IpmResult::print_time` too -- informational either way, and
                 // never asserted.
-                if (this->trace_ != nullptr) {
+                //
+                // THE MEMBER IS READ ONCE, INTO A LOCAL (M6 W5 T8.7 fix1,
+                // astra's I1). This is the one site that emits TWICE, and the
+                // second emit used to re-read `trace_` after a call-out to
+                // caller code: a sink whose `on_ipm_iter` detached itself made
+                // the next line a null dereference. `attach_trace` now refuses
+                // in flight, which closes that route at its source; the local
+                // makes the pair read ONE pointer whatever a callee does, so
+                // the marker and the row it belongs to always reach the same
+                // sink. The other three sites take the same form for one rule
+                // rather than two.
+                if (TraceSink *const sink = this->trace_; sink != nullptr) {
                     Printtimer.start();
-                    this->trace_->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
+                    sink->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
                     // THE DOOR'S OWN MARKER (`ipm.restoration_exit_row`, M6 W5
                     // T8.7), adjacent to the row it refers to. It carries what
                     // the row cannot: WHICH of the four NOTCONVERGED exits this
                     // is, and the two numbers the warning below prints.
-                    this->trace_->on_ipm_restoration_exit_row(IpmRestorationExitRowTraceEvent{
+                    sink->on_ipm_restoration_exit_row(IpmRestorationExitRowTraceEvent{
                         iters.back(), this->trace_phase_, locally_infeasible_theta,
                         locally_infeasible_threshold});
                     Printtimer.stop();
@@ -2990,9 +3033,9 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             // return_best substitution, for the reason stated there.
             // THE ROW IS RENDERED FROM THIS EVENT (M6 W5 T8.7); see the
             // restoration door above for the `Printtimer` note.
-            if (this->trace_ != nullptr) {
+            if (TraceSink *const sink = this->trace_; sink != nullptr) {
                 Printtimer.start();
-                this->trace_->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
+                sink->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
                 Printtimer.stop();
             }
 
@@ -3229,9 +3272,9 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             // event on this path too.
             // THE ROW IS RENDERED FROM THIS EVENT (M6 W5 T8.7); see the
             // restoration door above for the `Printtimer` note.
-            if (this->trace_ != nullptr) {
+            if (TraceSink *const sink = this->trace_; sink != nullptr) {
                 Printtimer.start();
-                this->trace_->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
+                sink->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
                 Printtimer.stop();
             }
             if (opts_.common.print_level < 3)
@@ -3839,9 +3882,9 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
         // `converge_check` -- and nothing between the two writes to the
         // console, so the transcript is unchanged. See the restoration door
         // above for the `Printtimer` note.
-        if (this->trace_ != nullptr) {
+        if (TraceSink *const sink = this->trace_; sink != nullptr) {
             Printtimer.start();
-            this->trace_->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
+            sink->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
             Printtimer.stop();
         }
         // THE LATE CALLBACK USED TO FIRE HERE, and it does not any more (M6 W5
@@ -4869,9 +4912,11 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
     SolveBudget budget, const WarmStartData *payload) {
     // The in-flight guard, and the ONE site it is set from: the public solve()
     // entry reaches this function exactly once per call. Cleared on every exit,
-    // a throw included. Read by set_options(), which refuses to replace the
-    // options a solve is running under. A nested restoration phase builds a
-    // DISTINCT solver, so it never re-enters this object's guard.
+    // a throw included. Read by set_options() and by attach_trace(), which
+    // refuse to replace the options -- and the sink -- a solve is running
+    // under. A restoration phase runs IN PLACE on this object (no restoration
+    // mode builds a second solver; see the member's declaration), so it never
+    // re-enters this guard because it never re-enters a public entry point.
     //
     // THE MODEL-BORROW GUARD sits beside it and holds the same discipline for
     // the program (M6 W5 T8.4): bound here, nulled on every exit including a
@@ -5309,7 +5354,10 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
     // Built only when a sink is attached, so the O(n) census is nobody's cost.
     // SINCE M6 W5 T8.7 the console is one of those sinks, so this block is also
     // what the console table's opening block is rendered from.
-    if (this->trace_ != nullptr) {
+    // The local, as at the four row sites (M6 W5 T8.7 fix1): one read of the
+    // member per emit, so nothing a callee does between the check and the call
+    // can change which sink this event reaches.
+    if (TraceSink *const sink = this->trace_; sink != nullptr) {
         IpmSolveBeginTraceEvent begin_event;
         begin_event.n = this->full_primal_vars_;
         begin_event.n_reduced = this->primal_vars_;
@@ -5347,7 +5395,7 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
         begin_event.kkt_dim = this->kkt_dim_;
         begin_event.kkt_nnz = this->kkt_sol_.matrix().nonZeros();
         begin_event.internal_fixed_rows = this->nlp_ ? this->nlp_->internal_fixed_constraints() : 0;
-        this->trace_->on_ipm_solve_begin(begin_event);
+        sink->on_ipm_solve_begin(begin_event);
     }
 
     // THE BANNER, THE PROBLEM STATISTICS, THE RULE AND THE "Beginning:" LINE
@@ -5840,7 +5888,7 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
     // destructor is noexcept, so under an armed stream mask it would terminate).
     //
     // Every throw above skips it -- the honest record of a solve that stopped.
-    if (this->trace_ != nullptr) {
+    if (TraceSink *const sink = this->trace_; sink != nullptr) {
         IpmSolveEndTraceEvent end_event;
         end_event.status = result_.status;
         end_event.iters = result_.iterations;
@@ -5851,7 +5899,7 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
         end_event.print_time_s = result_.print_time;
         end_event.solver_init_time_s = result_.solver_init_time;
         end_event.misc_time_s = result_.misc_time();
-        this->trace_->on_ipm_solve_end(end_event);
+        sink->on_ipm_solve_end(end_event);
     }
 
     // The common clock closes here, around everything the entry took on: the
@@ -5916,7 +5964,7 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::solve(NonLinearProg
     // record can report this call's own; read whether or not a ledger is
     // attached, because it is one integer load and a conditional read would
     // make the record depend on when the ledger was attached.
-    const Index factorizations_at_entry = this->kkt_sol_.counters().factorize_count;
+    const Index factorizations_at_entry = this->kkt_sol_.lifetime_factorize_count();
     IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget, nullptr);
     wall.stop();
     result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;
@@ -5967,7 +6015,7 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::solve(NonLinearProg
     // The same stamp as the cold entry above, for the same reason.
     this->entry_time_ = std::chrono::steady_clock::now();
     // See the cold overload above.
-    const Index factorizations_at_entry = this->kkt_sol_.counters().factorize_count;
+    const Index factorizations_at_entry = this->kkt_sol_.lifetime_factorize_count();
     IpmResult result = this->run_phase_sequence(model, x0, this->phase_steps(), budget, &warm);
     wall.stop();
     result.wall_seconds = double(wall.count<std::chrono::microseconds>()) / 1000000.0;

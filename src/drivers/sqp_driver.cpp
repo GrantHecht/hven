@@ -32,6 +32,13 @@
 
 #include <hven/drivers/sqp_driver.h>
 
+// THE ONE TRANSLATION UNIT THAT COMPLETES THE SINK TYPES (M6 W5 T8.7 fix1, the
+// lane's M4). `sqp_driver.h` forward-declares `ConsoleTraceSink` and
+// `FanOutTraceSink` and holds them through `unique_ptr`s; this file builds
+// them, resets them and defines `~SqpDriver`, so it is the file that needs them
+// complete.
+#include <hven/drivers/console_trace_sink.h>
+
 namespace hven::solvers {
 
 namespace {
@@ -1625,6 +1632,29 @@ void SqpDriver::set_options(SqpOptions o) {
     opts_ = std::move(o);
 }
 
+// THE TWO CONSTRUCTORS AND THE DESTRUCTOR, ALL THREE OUT OF LINE (M6 W5 T8.7
+// fix1). Each of them instantiates the two console `unique_ptr` members'
+// deleters -- a constructor for its own unwind path, the destructor for the
+// obvious reason -- and this is the translation unit where those types are
+// complete.
+SqpDriver::SqpDriver(const SqpOptions &opts)
+    : opts_(opts), engine_(std::make_unique<QpEngine>(opts.qp, opts.common.threads)) {
+    validate_sqp_options(opts_);
+}
+
+SqpDriver::SqpDriver(const SqpOptions &opts, RestorationSubDriverTag)
+    : opts_(opts), engine_(std::make_unique<QpEngine>(opts.qp, opts.common.threads)),
+      allow_restoration_(false), is_restoration_sub_driver_(true) {
+    validate_sqp_options(opts_);
+}
+
+// OUT OF LINE FOR THE FORWARD-DECLARED SINKS (M6 W5 T8.7 fix1). Defaulted, and
+// deliberately here rather than in the header: the two `unique_ptr` members'
+// deleters are instantiated at this point, where both types are complete, so no
+// consumer of `drivers/sqp_driver.h` has to see `drivers/console_trace_sink.h`
+// (or the `fmt/color.h` it pulls) to destroy a driver.
+SqpDriver::~SqpDriver() = default;
+
 void SqpDriver::attach_trace(TraceSink *sink) {
     // BETWEEN SOLVES ONLY (M6 W5 T8.7), on `set_options`' rule: the effective
     // sink is composed at solve entry and fixed for the solve, so a change made
@@ -2372,14 +2402,22 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // keeps a caller's stream byte-identical with the console on: the sub-solve
     // is where the depth-1 lines come from.
     //
-    // THE SUB-DRIVER BUILDS NO CONSOLE OF ITS OWN (`allow_restoration_` is
-    // false on it), so the parent's console sees the nested pair, counts it as
-    // depth 1 and renders none of its rows -- which is the depth rule
-    // `format_iteration_table` is pinned against.
+    // THE SUB-DRIVER BUILDS NO CONSOLE OF ITS OWN, so the parent's console sees
+    // the nested pair, counts it as depth 1 and renders none of its rows --
+    // which is the depth rule `format_iteration_table` is pinned against.
+    //
+    // KEYED ON THE SUB-DRIVER'S IDENTITY, NOT ON `allow_restoration_` (M6 W5
+    // T8.7 fix1, the lane's M2). Those are two different facts and this test
+    // wants the second one: "am I the restoration phase's own driver", not "may
+    // I restore". On the shipped surface they coincide -- the two-argument
+    // constructor is private and the restoration phase is its only caller -- so
+    // no caller could reach the wrong branch; keying on the predicate that
+    // actually means it is what keeps that true if the surface ever widens, and
+    // it says in the code which fact the console depends on.
     console_.reset();
     fanout_.reset();
     ipqp_trace_ = user_trace_;
-    if (allow_restoration_ && opts_.common.print_level < 3) {
+    if (!is_restoration_sub_driver_ && opts_.common.print_level < 3) {
         // `wide` is an interior-point layout option and is IGNORED by the SQP
         // renderings; the field is passed as it stands rather than invented.
         console_ = std::make_unique<ConsoleTraceSink>(
@@ -4165,7 +4203,7 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
     // sub-driver gets what is left of the CALLER's ceiling and not what is left
     // of this engine's own option.
     ropts.max_iter = static_cast<int>(st.eff_max_iter - spent);
-    SqpDriver sub(ropts, /*allow_restoration=*/false);
+    SqpDriver sub(ropts, SqpDriver::RestorationSubDriverTag{});
     // THE ONE SINK, SHARED SEQUENTIALLY (plan amendment A): the
     // sub-solve's own `sqp.solve` pair, rows and tier events land in the
     // same stream, told apart by the sink-owned `depth`.

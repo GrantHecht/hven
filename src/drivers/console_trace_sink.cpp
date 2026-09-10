@@ -1,5 +1,19 @@
-// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// Derived from ASSET (AlabamaASRL/asset_asrl), https://github.com/AlabamaASRL/asset_asrl
+// Copyright 2020-present The University of Alabama-Astrodynamics and Space Research Lab.
+// Original developer: James B. Pezent. Licensed under the Apache License, Version 2.0
+// (notices/asset-apache2.txt).
+//
+// Modified in hven. Copyright 2026-present Grant R. Hecht. Apache License, Version 2.0
 // (see LICENSE).
+//
+// THE ATTRIBUTION TRAVELS WITH THE CODE (M6 W5 T8.7 fix1, astra's Minor). The
+// interior-point renderings below were MOVED here, verbatim, from
+// src/drivers/interior_point_solver_print.cpp, which carries exactly this
+// header; moving ASSET-derived code into a new file does not make it new code,
+// and notices/asset-apache2.txt's own terms are that "per-file headers on
+// ASSET-derived source files identify the original source and summarise the
+// changes made". The SQP renderings in this file are not ASSET-derived: they
+// call src/drivers/sqp_print.cpp's pieces, which are hven's own.
 
 // console_trace_sink.cpp -- both engines' console tables, rendered from the
 // trace stream (M6 W5 T8.7).

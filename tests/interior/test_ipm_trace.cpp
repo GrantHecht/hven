@@ -36,12 +36,15 @@
 #include <string>
 #include <vector>
 
-#include <unistd.h>
-
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
+// The portable stdout capture both console suites share (M6 W5 T8.7 fix1,
+// astra's I2): this file used to carry its own copy, which included <unistd.h>
+// and called the POSIX descriptor functions unconditionally -- source that
+// cannot be compiled on Windows, where this target is also built.
+#include "../support/console_capture.h"
 #include "hven/core/ledger.h"
 #include "hven/drivers/console_trace_sink.h"
 #include "hven/drivers/interior_point_solver.h"
@@ -127,6 +130,63 @@ struct Hs071Problem : NLPProblem {
     }
     std::string name() const override { return "Hs071Problem"; }
 };
+
+/// @brief A second program with a DIFFERENT structure: two variables, one
+/// inequality row, a diagonal Hessian. Nothing about its KKT pattern can be
+/// HS071's, so a solver that has just solved HS071 must lay a fresh analysis to
+/// solve this one -- which is the situation M6 W5 T8.7 fix1's L3 pins the
+/// per-call factorization delta across.
+struct TwoVarProblem : NLPProblem {
+    int num_vars() const override { return 2; }
+    int num_cons() const override { return 1; }
+    int num_jac_nonzeros() const override { return 2; }
+    int num_hess_nonzeros() const override { return 2; }
+
+    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
+                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+        xl << -10.0, -10.0;
+        xu << 10.0, 10.0;
+        gl << 1.0;
+        gu << kInfinity;
+    }
+    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+        f = (x[0] - 2.0) * (x[0] - 2.0) + (x[1] - 3.0) * (x[1] - 3.0);
+    }
+    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
+                     Eigen::Ref<Eigen::VectorXd> g) const override {
+        g[0] = 2.0 * (x[0] - 2.0);
+        g[1] = 2.0 * (x[1] - 3.0);
+    }
+    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+        g[0] = x[0] + x[1];
+    }
+    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
+                       Eigen::Ref<Eigen::VectorXi> c) const override {
+        r << 0, 0;
+        c << 0, 1;
+    }
+    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
+                        Eigen::Ref<Eigen::VectorXi> c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+        v[0] = 1.0;
+        v[1] = 1.0;
+    }
+    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
+                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+        v[0] = 2.0 * obj_factor;
+        v[1] = 2.0 * obj_factor;
+    }
+    std::string name() const override { return "TwoVarProblem"; }
+};
+
+Eigen::VectorXd two_var_start() {
+    Eigen::VectorXd x0(2);
+    x0 << 0.0, 0.0;
+    return x0;
+}
 
 Eigen::VectorXd hs071_start() {
     Eigen::VectorXd x0(4);
@@ -905,41 +965,37 @@ TEST(IpmTrace, SeqIsContiguousAcrossAnSqpSolveThenAnIpmSolveOnOneSinkAtDepthZero
 
 namespace {
 
-/// Redirects `stdout` into a temporary file for its lifetime; see the twin in
-/// tests/sqp/test_trace_writer.cpp for why a live console pin needs the real
-/// stream rather than a `FILE *` handed to a sink.
-class StdoutCapture {
-  public:
-    StdoutCapture() : file_(std::tmpfile()) {
-        std::fflush(stdout);
-        saved_ = ::dup(::fileno(stdout));
-        ::dup2(::fileno(file_), ::fileno(stdout));
-    }
-    ~StdoutCapture() {
-        std::fflush(stdout);
-        ::dup2(saved_, ::fileno(stdout));
-        ::close(saved_);
-        std::fclose(file_);
-    }
-    StdoutCapture(const StdoutCapture &) = delete;
-    StdoutCapture &operator=(const StdoutCapture &) = delete;
+/// The live console pins below read the process's real `stdout`: the SOLVER
+/// builds its own console and gives it `stdout`, and the print sites this task
+/// left direct write there too. `hven::testing::StdoutCapture`
+/// (tests/support/console_capture.h) is that redirection, in one portable
+/// place -- this file used to carry its own copy of it (M6 W5 T8.7 fix1,
+/// astra's I2).
+using hven::testing::StdoutCapture;
 
-    std::string text() {
-        std::fflush(stdout);
-        std::fseek(file_, 0, SEEK_END);
-        const long n = std::ftell(file_);
-        std::string out(static_cast<std::size_t>(n < 0 ? 0 : n), '\0');
-        std::fseek(file_, 0, SEEK_SET);
-        const std::size_t got = std::fread(out.data(), 1, out.size(), file_);
-        out.resize(got);
-        std::fseek(file_, 0, SEEK_END);
-        return out;
+/// Every line carrying a wall-clock reading, replaced by a marker.
+///
+/// The console's closing block prints seven times and a per-iteration average,
+/// all of them " ms" lines; CLAUDE.md section 7 makes those informational, and
+/// two runs of one solve differ there by construction. Everything else -- the
+/// banner, the statistics, every row with its colours, the Beginning/Finished
+/// pair and the verdict -- is compared byte for byte.
+std::string strip_timing(const std::string &text) {
+    std::string out;
+    std::size_t pos = 0;
+    while (pos <= text.size()) {
+        const std::size_t eol = text.find('\n', pos);
+        const std::size_t end = (eol == std::string::npos) ? text.size() : eol;
+        const std::string line = text.substr(pos, end - pos);
+        out += (line.find(" ms") == std::string::npos) ? line : "<TIMING LINE MASKED>";
+        if (eol == std::string::npos) {
+            break;
+        }
+        out += '\n';
+        pos = eol + 1;
     }
-
-  private:
-    std::FILE *file_ = nullptr;
-    int saved_ = -1;
-};
+    return out;
+}
 
 /// A silent solver on HS071 -- `print_level` 10 -- so a ledger pin does not
 /// also print a table into the test log.
@@ -958,7 +1014,15 @@ TEST(IpmLedger, OneRecordPerSolveCarryingThatCallsOwnCounters) {
     Ledger ledger;
     solver->optimizer_->attach_ledger(&ledger, "ipm");
     ASSERT_EQ(solver->optimize(hs071_start()), SolveStatus::kOptimal);
+    // EACH RECORD AGAINST ITS OWN CALL'S RESULT (M6 W5 T8.7 fix1, astra's
+    // Minor): `last_result_` is overwritten by the second call, so the first
+    // record's fields are held here, while they still describe the call that
+    // wrote them. Comparing record 0 against the SECOND result would pass on
+    // this fixture only because the two calls agree, and would go on passing if
+    // the record were written from the wrong call.
+    const IpmResult first_result = solver->last_result_;
     ASSERT_EQ(solver->optimize(hs071_start()), SolveStatus::kOptimal);
+    const IpmResult second_result = solver->last_result_;
 
     ASSERT_EQ(ledger.ipm_records().size(), 2u);
     // The QP-level and SQP-level vectors are untouched: three kinds of record,
@@ -967,15 +1031,23 @@ TEST(IpmLedger, OneRecordPerSolveCarryingThatCallsOwnCounters) {
     EXPECT_TRUE(ledger.sqp_records().empty());
 
     const IpmSolveRecord &first = ledger.ipm_records()[0];
+    const IpmSolveRecord &second = ledger.ipm_records()[1];
     EXPECT_EQ(first.label, "ipm_0");
-    EXPECT_EQ(ledger.ipm_records()[1].label, "ipm_1");
+    EXPECT_EQ(second.label, "ipm_1");
     EXPECT_EQ(first.status, SolveStatus::kOptimal);
-    EXPECT_EQ(first.iterations, solver->last_result_.iterations);
+    EXPECT_EQ(first.iterations, first_result.iterations);
+    EXPECT_EQ(first.total_time, first_result.total_time);
     EXPECT_EQ(first.phases_run, 1);
     EXPECT_GT(first.factorizations, 0);
     EXPECT_GT(first.analyses, 0);
-    EXPECT_EQ(first.soc_steps_taken, solver->last_result_.soc_steps_taken);
-    EXPECT_EQ(first.watchdog_activations, solver->last_result_.watchdog_activations);
+    EXPECT_EQ(first.soc_steps_taken, first_result.soc_steps_taken);
+    EXPECT_EQ(first.watchdog_activations, first_result.watchdog_activations);
+    // The second record likewise, against the SECOND call's result.
+    EXPECT_EQ(second.status, second_result.status);
+    EXPECT_EQ(second.iterations, second_result.iterations);
+    EXPECT_EQ(second.total_time, second_result.total_time);
+    EXPECT_EQ(second.soc_steps_taken, second_result.soc_steps_taken);
+    EXPECT_EQ(second.watchdog_activations, second_result.watchdog_activations);
     // wall_seconds is INFORMATIONAL (CLAUDE.md section 7): populated, never a
     // magnitude.
     EXPECT_GT(first.wall_seconds, 0.0);
@@ -1002,6 +1074,130 @@ TEST(IpmLedger, FactorizationsAndAnalysesArePerCallNotLifetime) {
     // `analyses` is already per call, and the SECOND solve on the same program
     // reuses the analysis -- so it is the honest 0 there.
     EXPECT_EQ(ledger.ipm_records()[1].analyses, solver->last_result_.kkt_analyses_this_call);
+}
+
+TEST(IpmLedger, ThePerCallDeltaSurvivesAReAnalysisInsideTheCall) {
+    // M6 W5 T8.7 fix1 (the lane's M3). `FactorizationsAndAnalysesArePerCallNot
+    // Lifetime` pins the delta on a solver REUSED ON ONE PROGRAM, where the
+    // analysis is reused too. What it does not reach is the other reuse: the
+    // same solver handed a DIFFERENT program, which re-lays the analysis inside
+    // the call. The delta is only honest there if the factor's lifetime counter
+    // is monotone across a re-analysis -- nothing in `linear/` resets it, and
+    // this says so out loud rather than assuming it.
+    auto hs = silent_hs071();
+    NLPSolver other(std::make_shared<TwoVarProblem>());
+    {
+        auto o = other.optimizer_->options();
+        o.common.print_level = 10;
+        other.optimizer_->set_options(std::move(o));
+    }
+    // The second program, laid out and ready to be BORROWED by the first
+    // solver: since M6 W5 T8.4 a program is an argument of solve(), so one
+    // solver may be handed two.
+    other.transcribe();
+
+    Ledger ledger;
+    hs->optimizer_->attach_ledger(&ledger, "cross");
+    ASSERT_EQ(hs->optimize(hs071_start()), SolveStatus::kOptimal);
+    const IpmResult first_result = hs->last_result_;
+    const IpmResult second_result = hs->optimizer_->solve(*other.nlp_, two_var_start());
+
+    ASSERT_EQ(ledger.ipm_records().size(), 2u) << "two calls, two records";
+    const IpmSolveRecord &first = ledger.ipm_records()[0];
+    const IpmSolveRecord &second = ledger.ipm_records()[1];
+
+    // THE PREMISE, IN TWO PARTS. The second call really did re-lay the
+    // analysis -- and, because a re-lay REPLACES the linear engine, the engine
+    // counters in the result went BACKWARDS across the two calls. That second
+    // fact is the defect this pin was asked for: differencing THOSE counters
+    // (which is what the record did until M6 W5 T8.7 fix1) reports a negative
+    // number of factorizations.
+    EXPECT_GT(second_result.kkt_analyses_this_call, 0)
+        << "premise: a different program must re-lay the analysis";
+    EXPECT_EQ(second.analyses, second_result.kkt_analyses_this_call);
+    const Index engine_count_after_first = first_result.kkt_factor_counters.factorize_count;
+    const Index engine_count_after_second = second_result.kkt_factor_counters.factorize_count;
+    EXPECT_GT(engine_count_after_first, 0);
+    EXPECT_LT(engine_count_after_second, engine_count_after_first)
+        << "premise: the re-lay replaced the engine, so its per-instance counters restarted; "
+           "if this ever stops holding, the defect below has changed shape and this pin must be "
+           "re-derived rather than deleted";
+
+    // AND THE RECORD IS THIS CALL'S OWN WORK, NON-NEGATIVE, ON BOTH SIDES OF
+    // THE RE-LAY. The first call ran on the engine built with the solver, so
+    // its record is that engine's whole count; the second ran on an engine born
+    // INSIDE it, so every factorization that engine counts is the second call's.
+    EXPECT_EQ(first.factorizations, engine_count_after_first);
+    EXPECT_GT(second.factorizations, 0) << "a per-call count is never negative";
+    EXPECT_EQ(second.factorizations, engine_count_after_second)
+        << "the second call's record must be the work done after the re-lay, which is all the "
+           "work the replacement engine has ever done";
+    EXPECT_EQ(second.status, second_result.status);
+    EXPECT_EQ(second.iterations, second_result.iterations);
+}
+
+TEST(IpmLedger, AMultiPhaseCallCountsOnlyThePhasesThatRan) {
+    // M6 W5 T8.7 fix1 (astra's Minor). `phases_run` is the count of
+    // `result.phases[i].ran`, which is NOT `phases.size()`: a sequence whose
+    // first phase is stopped never runs the second. Both halves are pinned
+    // here, on the same two-phase sequence.
+    auto both = silent_hs071();
+    Ledger ledger;
+    both->optimizer_->attach_ledger(&ledger, "seq");
+    ASSERT_EQ(both->solve_optimize(hs071_start()), SolveStatus::kOptimal);
+    const IpmResult ran_both = both->last_result_;
+    ASSERT_EQ(ran_both.phases.size(), 2u) << "premise: two phases were declared";
+    EXPECT_TRUE(ran_both.phases[0].ran);
+    EXPECT_TRUE(ran_both.phases[1].ran);
+    ASSERT_EQ(ledger.ipm_records().size(), 1u);
+    EXPECT_EQ(ledger.ipm_records()[0].phases_run, 2);
+
+    // THE SKIPPED PHASE: the callback stops the solve inside phase 0, and the
+    // sequence ends there.
+    auto stopped = silent_hs071();
+    Ledger stop_ledger;
+    stopped->optimizer_->attach_ledger(&stop_ledger, "stop");
+    stopped->optimizer_->set_iteration_callback(
+        [](const IterationEvent &) { return CallbackAction::kStop; });
+    stopped->solve_optimize(hs071_start());
+    const IpmResult stopped_result = stopped->last_result_;
+    ASSERT_EQ(stopped_result.phases.size(), 2u);
+    ASSERT_TRUE(stopped_result.phases[0].ran);
+    ASSERT_FALSE(stopped_result.phases[1].ran) << "premise: the second phase was skipped";
+    ASSERT_EQ(stop_ledger.ipm_records().size(), 1u);
+    EXPECT_EQ(stop_ledger.ipm_records()[0].phases_run, 1)
+        << "a skipped phase must not be counted as run";
+    EXPECT_EQ(stop_ledger.ipm_records()[0].status, stopped_result.status);
+    EXPECT_EQ(stop_ledger.ipm_records()[0].iterations, stopped_result.iterations);
+}
+
+TEST(IpmLedger, ACallbackThatThrowsAfterWorkBeganWritesNoRecord) {
+    // M6 W5 T8.7 fix1 (astra's Minor). `ARefusedCallRecordsNothingAndConsumes
+    // NoLabel` covers the throw that happens ABOVE the funnel, at the argument
+    // check. This is the other one: a call that got as far as iterating and
+    // then left by an exception raised in CALLER code. The record is written
+    // after `wall.stop()` on the normal path only, so an exception carries the
+    // call past it -- no record, and no label number consumed.
+    auto solver = silent_hs071();
+    Ledger ledger;
+    solver->optimizer_->attach_ledger(&ledger, "boom");
+    ASSERT_EQ(solver->optimize(hs071_start()), SolveStatus::kOptimal);
+    ASSERT_EQ(ledger.ipm_records().size(), 1u);
+
+    Index fired = 0;
+    solver->optimizer_->set_iteration_callback([&](const IterationEvent &) -> CallbackAction {
+        ++fired;
+        throw std::runtime_error("from inside the callback, after work began");
+    });
+    EXPECT_THROW(solver->optimize(hs071_start()), std::runtime_error);
+    EXPECT_GE(fired, 1) << "premise: the solve had begun iterating";
+    EXPECT_EQ(ledger.ipm_records().size(), 1u) << "a throw out of a solve records nothing";
+
+    // ... and the number it did not consume is the next one.
+    solver->optimizer_->clear_iteration_callback();
+    ASSERT_EQ(solver->optimize(hs071_start()), SolveStatus::kOptimal);
+    ASSERT_EQ(ledger.ipm_records().size(), 2u);
+    EXPECT_EQ(ledger.ipm_records()[1].label, "boom_1");
 }
 
 TEST(IpmLedger, AttachResetsTheCounterAndADetachStopsRecording) {
@@ -1187,6 +1383,118 @@ TEST(IpmConsole, TheConsoleDoesNotDisplaceAUserSink) {
 
     EXPECT_EQ(silent.second, "");
     EXPECT_FALSE(printing.second.empty());
+}
+
+TEST(IpmConsole, AttachTraceDuringASolveIsRefusedAndTheConsoleRunsOnUnbroken) {
+    // THE IN-FLIGHT RULE (M6 W5 T8.7 fix1, the lane's M1 / astra's I1), the
+    // twin of `SqpConsole.AttachTraceDuringASolveIsRefused` on this engine.
+    //
+    // WHAT THE DEFECT WAS. `attach_trace` wrote `trace_` unconditionally, and
+    // `trace_` is the COMPOSITION -- the fan-out over the caller's sink and the
+    // console. A call made from inside an iteration callback therefore replaced
+    // the composition for the remainder of the solve: the console went silent
+    // in the middle of its table and every later event went to the new sink
+    // alone. Refusing is what the declaration already promised ("composed at
+    // solve entry ... fixed for the solve").
+    //
+    // CONTINUITY IS THE POINT, so it is what this pins: the callback catches
+    // the refusal and lets the solve run on, and the console's output is
+    // BYTE-IDENTICAL to the same solve with no such callback at all.
+    // ONE THROWAWAY SOLVE FIRST, and this is why: " Solver Initialization : X
+    // ms" is printed by `ensure_solver_initialized()` only when the
+    // PROCESS-GLOBAL initialization actually ran and took longer than half a
+    // millisecond -- so whichever arm below runs first would print a line the
+    // other does not, whatever either arm does with its sink. Warming it makes
+    // the two arms' line structure identical by construction rather than by
+    // luck.
+    {
+        silent_hs071()->optimize(hs071_start());
+    }
+
+    auto printing_solve = [](bool attack) {
+        NLPSolver solver(std::make_shared<Hs071Problem>());
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 0;
+        solver.optimizer_->set_options(std::move(o));
+        std::ostringstream os;
+        JsonLinesTraceSink usurper(os);
+        Index refusals = 0;
+        if (attack) {
+            solver.optimizer_->set_iteration_callback([&](const IterationEvent &) {
+                try {
+                    solver.optimizer_->attach_trace(&usurper);
+                } catch (const std::logic_error &) {
+                    ++refusals;
+                }
+                return CallbackAction::kContinue;
+            });
+        }
+        std::string printed;
+        {
+            hven::testing::StdoutCapture capture;
+            EXPECT_EQ(solver.optimize(hs071_start()), SolveStatus::kOptimal);
+            printed = capture.text();
+        }
+        // The usurper never received a line: it was never attached.
+        EXPECT_EQ(os.str(), "");
+        return std::pair<std::string, Index>{printed, refusals};
+    };
+    const auto quiet = printing_solve(false);
+    const auto attacked = printing_solve(true);
+    EXPECT_GT(attacked.second, 0) << "premise: the callback really did try, every iteration";
+    EXPECT_EQ(quiet.second, 0);
+    ASSERT_FALSE(quiet.first.empty());
+    EXPECT_EQ(strip_timing(quiet.first), strip_timing(attacked.first))
+        << "a refused mid-solve attach must leave the console's table untouched";
+
+    // ... and it is legal again the moment the solve has returned.
+    NLPSolver after(std::make_shared<Hs071Problem>());
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    EXPECT_NO_THROW(after.optimizer_->attach_trace(&sink));
+}
+
+TEST(IpmConsole, ASinkThatDetachesItselfInsideOnIpmIterThrowsRatherThanCrashing) {
+    // THE NULL DEREFERENCE THIS CLOSES (astra's I1). The restoration door emits
+    // TWICE in a row -- the row's `ipm.iter` and then the door's own marker --
+    // and the second emit re-read the member. A sink that called
+    // `attach_trace(nullptr)` from inside `on_ipm_iter` therefore made the very
+    // next statement dereference a null pointer. Two things now stop that: the
+    // in-flight refusal below, which makes the detach itself illegal, and the
+    // local the emit sites read the member into once per PAIR.
+    //
+    // HS071 is enough to reach an `ipm.iter` -- the FIRST one -- and what is
+    // pinned is that the process leaves through an exception rather than a
+    // signal.
+    struct SelfDetachingSink final : TraceSink {
+        InteriorPointSolver *solver = nullptr;
+        Index rows = 0;
+        void on_ipm_iter(const IpmIterTraceEvent &) override {
+            ++rows;
+            solver->attach_trace(nullptr); // refused: a solve is in flight
+        }
+        // The six QP-tier virtuals are pure on `TraceSink`; this sink is on the
+        // interior-point side and never sees one.
+        void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
+        void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
+        void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
+        void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
+        void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
+        void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+        void on_qp_mode(const QpModeTraceEvent &) override {}
+        void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
+    };
+    NLPSolver solver(std::make_shared<Hs071Problem>());
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    SelfDetachingSink sink;
+    sink.solver = solver.optimizer_.get();
+    solver.optimizer_->attach_trace(&sink);
+    EXPECT_THROW(solver.optimize(hs071_start()), std::logic_error);
+    EXPECT_GE(sink.rows, 1) << "premise: the sink saw a row before it tried to detach";
 }
 
 TEST(IpmConsole, TheWideLayoutIsTheSolversOwnOptionAndReachesItsConsole) {

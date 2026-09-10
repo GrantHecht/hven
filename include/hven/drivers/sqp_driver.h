@@ -31,7 +31,6 @@
 #include <hven/detail/qp/ssn_engine.h>
 #include <hven/detail/qp/working_set.h>
 #include <hven/detail/warmstart/warm_start.h>
-#include <hven/drivers/console_trace_sink.h>
 #include <hven/drivers/sqp_types.h>
 #include <hven/drivers/trace.h>
 #include <hven/model/nlp_model.h>
@@ -43,6 +42,18 @@
 #include <hven/warmstart/warm_start_data.h>
 
 namespace hven::solvers {
+
+/// @brief Forward-declared, not included (M6 W5 T8.7 fix1, the lane's M4): only
+/// two `unique_ptr` members name these types here, and including
+/// `drivers/console_trace_sink.h` pulled `fmt/color.h` and both sink classes
+/// into EVERY consumer of this header -- FORTY-NINE translation units in this
+/// tree, all but a handful of which never name a console. The interior-point solver's header
+/// already forward-declares them for the same reason. A `unique_ptr` member of an incomplete type
+/// needs the owner's destructor (and any `reset()`) where the type is complete, which is why
+/// `~SqpDriver` is declared below and DEFINED in src/drivers/sqp_driver.cpp; both sink classes are
+/// non-copyable and non-movable, so nothing else in this header instantiates their deleters.
+class ConsoleTraceSink;
+class FanOutTraceSink;
 
 /// @brief One model evaluation at one point: the five quantities a major
 ///        iteration reads, taken together so nothing is evaluated twice.
@@ -577,9 +588,10 @@ inline constexpr double kAdaptiveMuMax = 1e-8;
 // still sees it.
 
 /// @brief The SQP driver: a trust-region SQP major loop over one QpEngine.
-/// Every member below except the two constructors -- and every free function
-/// declared above -- is defined in src/drivers/sqp_driver.cpp; read that
-/// file's banner before changing this class's structure.
+/// Every member below -- and every free function declared above -- is defined
+/// in src/drivers/sqp_driver.cpp; read that file's banner before changing this
+/// class's structure. (The two constructors joined them in M6 W5 T8.7 fix1,
+/// when the console members' types became forward declarations.)
 class SqpDriver {
   public:
     /// @brief Constructs a driver over the given options.
@@ -590,16 +602,36 @@ class SqpDriver {
     ///         and means no trust region), a tr_max below tr_init unless tr_init
     ///         is +inf, or a tr_min that is non-positive or above tr_init or
     ///         tr_max.
-    explicit SqpDriver(const SqpOptions &opts) : SqpDriver(opts, /*allow_restoration=*/true) {}
+    ///
+    /// DEFINED IN THE .cpp (M6 W5 T8.7 fix1), like the destructor and for the
+    /// same reason: a constructor instantiates the `unique_ptr` members'
+    /// deleters for its own unwind path, and the two console members' types are
+    /// forward-declared here.
+    explicit SqpDriver(const SqpOptions &opts);
 
   private:
-    // The restoration phase's own driver is constructed through here with
-    // restoration disabled, which bounds the recursion at one level.
-    SqpDriver(const SqpOptions &opts, bool allow_restoration)
-        : opts_(opts), engine_(std::make_unique<QpEngine>(opts.qp, opts.common.threads)),
-          allow_restoration_(allow_restoration) {
-        validate_sqp_options(opts_);
-    }
+    /// The tag the restoration phase's own driver is constructed with. A TYPE
+    /// rather than a `bool` parameter (M6 W5 T8.7 fix1, the lane's M2): the two
+    /// facts about that driver are DIFFERENT facts, and one bool was carrying
+    /// both. `allow_restoration_ == false` is "may not restore, so the
+    /// recursion stops at one level"; `is_restoration_sub_driver_ == true` is
+    /// "this driver is the restoration phase's own, and is the ONE driver that
+    /// never prints". The console was keyed on the FIRST, which happens to
+    /// select the same driver only because this constructor is private and the
+    /// restoration phase is its only caller -- so the condition read as "a
+    /// driver that may not restore does not print", which is not a rule this
+    /// library has. Nothing outside this class can name the tag, so the
+    /// sub-driver constructor stays private and the recursion bound is
+    /// unchanged.
+    struct RestorationSubDriverTag {
+        explicit RestorationSubDriverTag() = default;
+    };
+
+    // The restoration phase's own driver is constructed through here: it may
+    // not restore (which bounds the recursion at one level) and it never builds
+    // a console of its own (the parent's console sees the nested pair at
+    // depth 1 and renders none of it). Defined in the .cpp, with the other two.
+    SqpDriver(const SqpOptions &opts, RestorationSubDriverTag);
 
   public:
     // NEITHER COPYABLE NOR MOVABLE, BY DECLARATION (M6 W5 T8.3 fix1). Design
@@ -620,6 +652,15 @@ class SqpDriver {
     SqpDriver(SqpDriver &&) = delete;
     /// @brief Deleted: a driver is not move-assignable.
     SqpDriver &operator=(SqpDriver &&) = delete;
+
+    /// @brief Destroys the driver.
+    ///
+    /// DECLARED HERE AND DEFINED IN THE .cpp (M6 W5 T8.7 fix1): the two console
+    /// members above are `unique_ptr`s to forward-declared types, and a
+    /// destructor the compiler writes into each consumer would need those types
+    /// complete there. Out of line, the deleter is instantiated once, in the
+    /// one translation unit that includes `drivers/console_trace_sink.h`.
+    ~SqpDriver();
 
     /// @brief Solves from the model's own start_point().
     /// @param model The problem; wrapped in a bridge built here.
@@ -654,6 +695,15 @@ class SqpDriver {
     /// (M6 W5 T8.7): the effective sink is fixed for the duration of a solve,
     /// so a change made from inside a callback could not take effect in that
     /// solve anyway, and refusing says so instead of silently deferring.
+    /// `InteriorPointSolver::attach_trace` refuses on the same rule since M6 W5
+    /// T8.7 fix1.
+    ///
+    /// THE ONE DRIVER THAT NEVER PRINTS is the restoration phase's own
+    /// sub-driver, which this class constructs for itself and no caller can
+    /// name. Every other driver builds its console at the tiers
+    /// `common.print_level` names -- including one constructed with restoration
+    /// disabled, which is a different fact and no longer decides this one (M6
+    /// W5 T8.7 fix1).
     ///
     /// @param sink The sink, or nullptr. Forwarded to the internal IpqpEngine;
     ///             this driver additionally emits `ipqp.route` and `qp.mode`
@@ -1447,9 +1497,10 @@ class SqpDriver {
     // caller's back. Neither sink type is copyable or movable and neither is
     // `SqpDriver`, so the pointers `fanout_` holds into this object are stable.
     //
-    // Both are REBUILT at every solve entry from `opts_.common.print_level` and
-    // `user_trace_`, and both stay null on a driver that never prints -- which
-    // is every driver at the SQP's default `print_level` of 3.
+    // Both are REBUILT at every solve entry from `opts_.common.print_level`,
+    // `user_trace_` and `is_restoration_sub_driver_`, and both stay null on a
+    // driver that never prints -- every driver at the SQP's default
+    // `print_level` of 3, and the restoration sub-driver at any level.
     std::unique_ptr<ConsoleTraceSink> console_;
     std::unique_ptr<FanOutTraceSink> fanout_;
     // The trace sink, held here because `ipqp_engine_` is lazy; `ipqp_engine()`
@@ -1463,6 +1514,12 @@ class SqpDriver {
     // a nested solve's depth-1 lines reach the caller's sink exactly as they do
     // with no console attached. The name predates the composition and is kept
     // so the fifteen read sites did not have to move for a rename.
+    //
+    // WHAT IT HOLDS WHEN (lane review, the "Smaller" note): BETWEEN solves it
+    // holds the USER's pointer, which `attach_trace` writes here as well so a
+    // caller reading the effect of its own call sees what it attached; only
+    // DURING a solve does it hold the effective sink. Read it as "the sink the
+    // current solve writes to", never as "the composition".
     TraceSink *ipqp_trace_ = nullptr;
 
     // The two driver-owned emit sites: `ipqp.route` and `qp.mode`, the kIpm
@@ -1489,12 +1546,22 @@ class SqpDriver {
     // bounds the recursion at one level. See the private constructor.
     bool allow_restoration_ = true;
 
+    // True on that same driver and on NO other (M6 W5 T8.7 fix1): the ONE
+    // driver in this library that never prints, whatever `common.print_level`
+    // says. Read only where the effective sink is composed, at solve entry.
+    // Every other driver -- restoration allowed or not -- builds its console at
+    // the tiers the print level names.
+    bool is_restoration_sub_driver_ = false;
+
     // Is a public solve on THIS driver currently running? Set by an RAII guard
     // at solve_impl()'s entry -- the ONE place all four public solve() overloads
     // funnel through exactly once, since they NEST -- and cleared on every exit,
-    // a throw included. Read by set_options(), which refuses to replace the
-    // options a solve is running under. The restoration phase builds a DISTINCT
-    // nested driver, so it never re-enters this object's guard.
+    // a throw included. Read by set_options() and attach_trace(), which refuse
+    // to replace the options -- and the sink -- a solve is running under. The
+    // restoration phase builds a DISTINCT nested driver of this class, so it
+    // never re-enters this object's guard. (The INTERIOR-POINT engine's
+    // restoration is not like this: it runs in place on the one solver. Its own
+    // guard comment says so.)
     bool solve_in_flight_ = false;
 
     // See attach_ledger's doc comment above for the whole contract;

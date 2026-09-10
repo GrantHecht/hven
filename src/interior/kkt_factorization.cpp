@@ -59,6 +59,10 @@ KktFactorization::KktFactorization(const Options &opts) : opts_(opts), factor_(o
 
 void KktFactorization::reconfigure(const Options &opts) {
     opts_ = opts;
+    // THE OUTGOING ENGINE'S WORK IS RETIRED, NOT FORGOTTEN (M6 W5 T8.7 fix1):
+    // its counters go with it, so anything wanting a count monotone across this
+    // replacement reads lifetime_factorize_count(), which this keeps true.
+    retired_factorizations_ += factor_.counters().factorize_count;
     factor_ = hven::linear::SymmetricFactor(opts);
     clear_evidence();
 }
@@ -72,6 +76,9 @@ void KktFactorization::set_num_threads(int num_threads) {
 }
 
 void KktFactorization::release() {
+    // As reconfigure(): the replaced engine's factorization count is retired
+    // into the lifetime accumulator before the engine goes.
+    retired_factorizations_ += factor_.counters().factorize_count;
     factor_ = hven::linear::SymmetricFactor(opts_);
     matrix_.resize(0, 0);
     matrix_.data().squeeze();
