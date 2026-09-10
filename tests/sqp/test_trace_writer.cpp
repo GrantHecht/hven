@@ -51,7 +51,7 @@
 // astra's I2): this file used to carry its own copy, which included <unistd.h>
 // and called the POSIX descriptor functions unconditionally -- source that
 // cannot be compiled on Windows, where this target is also built.
-#include "../support/console_capture.h"
+#include "../common_support/console_capture.h"
 #include "support/hs_problems.h"
 #include "support/ipqp_test_support.h"
 
@@ -660,6 +660,73 @@ const char *spec_spelling(InertiaModes v) {
     return kUnspelled;
 }
 
+/// M6 W5 T8.7b's four alphabets: the phase vocabulary `ipm.phase.*` carries,
+/// the stop reason and the factorization status `ipm.phase.exit` carries, and
+/// the nine message kinds.
+const char *spec_spelling(IpmPhase v) {
+    switch (v) {
+    case IpmPhase::kOptimize:
+        return "\"optimize\"";
+    case IpmPhase::kSolve:
+        return "\"solve\"";
+    }
+    return kUnspelled;
+}
+
+const char *spec_spelling(IpmStopReason v) {
+    switch (v) {
+    case IpmStopReason::kNone:
+        return "\"none\"";
+    case IpmStopReason::kIterationCap:
+        return "\"iteration_cap\"";
+    case IpmStopReason::kRestorationLocallyInfeasible:
+        return "\"restoration_locally_infeasible\"";
+    case IpmStopReason::kStageStalled:
+        return "\"stage_stalled\"";
+    case IpmStopReason::kInterrupted:
+        return "\"interrupted\"";
+    }
+    return kUnspelled;
+}
+
+const char *spec_spelling(IpmKktFactorStatus v) {
+    switch (v) {
+    case IpmKktFactorStatus::kSuccess:
+        return "\"success\"";
+    case IpmKktFactorStatus::kNumericalIssue:
+        return "\"numerical_issue\"";
+    case IpmKktFactorStatus::kNoConvergence:
+        return "\"no_convergence\"";
+    case IpmKktFactorStatus::kInvalidInput:
+        return "\"invalid_input\"";
+    }
+    return kUnspelled;
+}
+
+const char *spec_spelling(IpmMessageKind v) {
+    switch (v) {
+    case IpmMessageKind::kSolverInitialized:
+        return "\"solver_initialized\"";
+    case IpmMessageKind::kRankDeficiency:
+        return "\"rank_deficiency\"";
+    case IpmMessageKind::kFactorizationHardError:
+        return "\"factorization_hard_error\"";
+    case IpmMessageKind::kInertiaExhausted:
+        return "\"inertia_exhausted\"";
+    case IpmMessageKind::kRestorationLocallyInfeasible:
+        return "\"restoration_locally_infeasible\"";
+    case IpmMessageKind::kFeasibilityStall:
+        return "\"feasibility_stall\"";
+    case IpmMessageKind::kInterruptAtIteration:
+        return "\"interrupt_at_iteration\"";
+    case IpmMessageKind::kPhaseDiverged:
+        return "\"phase_diverged\"";
+    case IpmMessageKind::kInterruptSkippingPhases:
+        return "\"interrupt_skipping_phases\"";
+    }
+    return kUnspelled;
+}
+
 const char *spec_spelling(RestorationModes v) {
     switch (v) {
     case RestorationModes::off:
@@ -705,6 +772,13 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     static_assert(static_cast<int>(InertiaModes::proximal_regularization) == 2 - 1,
                   "2 inertia modes");
     static_assert(static_cast<int>(RestorationModes::l1_nested) == 3 - 1, "3 restoration modes");
+    // M6 W5 T8.7b's four.
+    static_assert(static_cast<int>(IpmPhase::kSolve) == 2 - 1, "2 phases");
+    static_assert(static_cast<int>(IpmStopReason::kInterrupted) == 5 - 1, "5 stop reasons");
+    static_assert(static_cast<int>(IpmKktFactorStatus::kInvalidInput) == 4 - 1,
+                  "4 factorization statuses");
+    static_assert(static_cast<int>(IpmMessageKind::kInterruptSkippingPhases) == 9 - 1,
+                  "9 message kinds");
 
     const auto reg_dir = [](IpqpTraceRegDir d) {
         IpqpTraceRegEvent e;
@@ -895,6 +969,65 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
         s.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kOptimal, 0, counters});
         EXPECT_EQ(raw_field(os.str(), "start_level_used"), spec_spelling(lv));
     };
+    // M6 W5 T8.7b's four alphabets, driven through the two phase events and
+    // `ipm.phase.exit`. The message kinds go through `ipm.message`.
+    const auto ipm_phase = [](IpmPhase v) {
+        std::ostringstream os;
+        JsonLinesTraceSink s(os);
+        s.on_ipm_phase_begin(IpmPhaseTraceEvent{0, "Phase ", v});
+        EXPECT_EQ(raw_field(os.str(), "entry"), spec_spelling(v));
+    };
+    ipm_phase(IpmPhase::kOptimize);
+    ipm_phase(IpmPhase::kSolve);
+
+    const auto stop_reason = [](IpmStopReason v) {
+        const IterateInfo row;
+        IpmPhaseReport report;
+        report.stop_reason = v;
+        std::ostringstream os;
+        JsonLinesTraceSink s(os);
+        s.on_ipm_phase_exit(IpmPhaseExitTraceEvent{report, row});
+        EXPECT_EQ(raw_field(os.str(), "stop_reason"), spec_spelling(v));
+    };
+    stop_reason(IpmStopReason::kNone);
+    stop_reason(IpmStopReason::kIterationCap);
+    stop_reason(IpmStopReason::kRestorationLocallyInfeasible);
+    stop_reason(IpmStopReason::kStageStalled);
+    stop_reason(IpmStopReason::kInterrupted);
+
+    const auto kkt_status = [](IpmKktFactorStatus v) {
+        const IterateInfo row;
+        const IpmPhaseReport report;
+        std::ostringstream os;
+        JsonLinesTraceSink s(os);
+        IpmPhaseExitTraceEvent e{report, row};
+        e.last_kkt_info = v;
+        s.on_ipm_phase_exit(e);
+        EXPECT_EQ(raw_field(os.str(), "last_kkt_info"), spec_spelling(v));
+    };
+    kkt_status(IpmKktFactorStatus::kSuccess);
+    kkt_status(IpmKktFactorStatus::kNumericalIssue);
+    kkt_status(IpmKktFactorStatus::kNoConvergence);
+    kkt_status(IpmKktFactorStatus::kInvalidInput);
+
+    const auto message_kind = [](IpmMessageKind v) {
+        IpmMessageTraceEvent e;
+        e.kind = v;
+        std::ostringstream os;
+        JsonLinesTraceSink s(os);
+        s.on_ipm_message(e);
+        EXPECT_EQ(raw_field(os.str(), "kind"), spec_spelling(v));
+    };
+    message_kind(IpmMessageKind::kSolverInitialized);
+    message_kind(IpmMessageKind::kRankDeficiency);
+    message_kind(IpmMessageKind::kFactorizationHardError);
+    message_kind(IpmMessageKind::kInertiaExhausted);
+    message_kind(IpmMessageKind::kRestorationLocallyInfeasible);
+    message_kind(IpmMessageKind::kFeasibilityStall);
+    message_kind(IpmMessageKind::kInterruptAtIteration);
+    message_kind(IpmMessageKind::kPhaseDiverged);
+    message_kind(IpmMessageKind::kInterruptSkippingPhases);
+
     start_level(StartLevel::kCold);
     start_level(StartLevel::kSeeded);
     start_level(StartLevel::kWarm);
@@ -3561,6 +3694,190 @@ TEST(JsonLinesTraceSink, TheRestorationExitRowIsAdjacentToItsOwnIterLine) {
     EXPECT_EQ(raw_field(lines[0], "phase"), raw_field(lines[1], "phase"));
 }
 
+// ===========================================================================
+// M6 W5 T8.7b -- THE FIVE ADDED GOLDEN LINES.
+//
+// FIVE ADDED, NOTHING MOVED. No existing event struct gained or lost a field
+// this round, so no golden line that predates this task changes by one byte;
+// what is new is five records the interior-point engine did not previously
+// write at all, because the facts they carry went to stdout.
+//
+// Each is built from a hand-filled struct with a DISTINCT value per field, so a
+// reordered key or a dropped one moves these bytes.
+// ===========================================================================
+
+TEST(JsonLinesTraceSink, GoldenLineIpmPhaseBegin) {
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    // THE LABEL'S TRAILING SPACE IS PART OF THE VALUE: it is what the console
+    // prints, and the JSON carries the engine's own `PhaseStep::label_`
+    // verbatim rather than trimming a byte the transcript depends on.
+    sink.on_ipm_phase_begin(IpmPhaseTraceEvent{3, "Solve Algorithm ", IpmPhase::kSolve});
+    EXPECT_EQ(os.str(), "{\"v\":0,\"ev\":\"ipm.phase.begin\",\"seq\":1,\"depth\":0,\"phase\":3,"
+                        "\"label\":\"Solve Algorithm \",\"entry\":\"solve\"}\n");
+    // Like every other `ipm.*` line, this moves no depth.
+    EXPECT_EQ(sink.depth(), 0);
+}
+
+TEST(JsonLinesTraceSink, GoldenLineIpmPhaseEnd) {
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_ipm_phase_end(IpmPhaseTraceEvent{0, "Optimization Algorithm ", IpmPhase::kOptimize});
+    EXPECT_EQ(os.str(), "{\"v\":0,\"ev\":\"ipm.phase.end\",\"seq\":1,\"depth\":0,\"phase\":0,"
+                        "\"label\":\"Optimization Algorithm \",\"entry\":\"optimize\"}\n");
+    EXPECT_EQ(sink.depth(), 0);
+}
+
+TEST(JsonLinesTraceSink, GoldenLineIpmKktAnalysis) {
+    IpmKktAnalysisTraceEvent e;
+    e.kkt_dim = 23;
+    e.nnz = 101;
+    e.factor_mem = 31;
+    e.factor_flops = 7;
+    e.docompute = true;
+    e.analysis_time_s = 0.00125;
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_ipm_kkt_analysis(e);
+    EXPECT_EQ(os.str(), "{\"v\":0,\"ev\":\"ipm.kkt_analysis\",\"seq\":1,\"depth\":0,\"kkt_dim\":23,"
+                        "\"nnz\":101,\"docompute\":true,\"factor_mem\":31,\"factor_flops\":7,"
+                        "\"analysis_time_s\":0.00125}\n");
+    EXPECT_EQ(sink.depth(), 0);
+}
+
+TEST(JsonLinesTraceSink, TheKktAnalysisFactorFiguresAreNullOnARefactorization) {
+    // THE ONE ABSENCE ON THIS RECORD, and it is not a byte literal because the
+    // line above already pins the wire order: on `docompute == false` the two
+    // factor figures are the LAST analysis's, re-read from the result, so
+    // repeating them would report one analysis's size for another's.
+    IpmKktAnalysisTraceEvent e;
+    e.kkt_dim = 23;
+    e.nnz = 101;
+    e.factor_mem = 31;
+    e.factor_flops = 7;
+    e.docompute = false;
+    e.analysis_time_s = 0.00125;
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_ipm_kkt_analysis(e);
+    EXPECT_EQ(raw_field(os.str(), "docompute"), "false");
+    EXPECT_EQ(raw_field(os.str(), "factor_mem"), "null");
+    EXPECT_EQ(raw_field(os.str(), "factor_flops"), "null");
+    // The join keys and the time are NOT absent: they describe this call.
+    EXPECT_EQ(raw_field(os.str(), "kkt_dim"), "23");
+    EXPECT_EQ(raw_field(os.str(), "nnz"), "101");
+    EXPECT_EQ(raw_field(os.str(), "analysis_time_s"), "0.00125");
+}
+
+TEST(JsonLinesTraceSink, GoldenLineIpmPhaseExit) {
+    // THE ROW IS BORROWED and only the five values the console block prints are
+    // written; the adjacent `ipm.iter` line carries the record's other keys.
+    // THE REPORT IS EMBEDDED and flattened as the trailing keys, so a reader
+    // sees the returned `IpmPhaseReport` on the same line as the exit itself.
+    IterateInfo row;
+    row.iter_ = 11;
+    row.prim_obj_ = 17.25;
+    row.kkt_inf_ = 0.00048828125;
+    row.barr_inf_ = 0.000244140625;
+    row.econ_inf_ = 0.0001220703125;
+    row.icon_inf_ = 6.103515625e-05;
+    IpmPhaseReport report;
+    report.phase = IpmPhase::kOptimize;
+    report.status = SolveStatus::kAcceptable;
+    report.iterations = 12;
+    report.phase_seconds = 0.25;
+    report.stop_reason = IpmStopReason::kStageStalled;
+    report.ran = true;
+    IpmPhaseExitTraceEvent e{report, row};
+    e.phase = 1;
+    e.selected_iter = 9;
+    e.best_substituted = true;
+    e.last_kkt_info = IpmKktFactorStatus::kNumericalIssue;
+    e.total_s = 0.5;
+    e.func_s = 0.125;
+    e.kkt_s = 0.0625;
+    e.print_s = 0.03125;
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_ipm_phase_exit(e);
+    EXPECT_EQ(os.str(),
+              "{\"v\":0,\"ev\":\"ipm.phase.exit\",\"seq\":1,\"depth\":0,\"phase\":1,\"iter\":11,"
+              "\"selected_iter\":9,\"best_substituted\":true,\"prim_obj\":17.25,"
+              "\"kkt_inf\":0.00048828125,\"barr_inf\":0.000244140625,"
+              "\"econ_inf\":0.0001220703125,\"icon_inf\":6.103515625e-05,"
+              "\"last_kkt_info\":\"numerical_issue\",\"total_s\":0.5,\"func_s\":0.125,"
+              "\"kkt_s\":0.0625,\"print_s\":0.03125,\"entry\":\"optimize\","
+              "\"status\":\"acceptable\",\"iterations\":12,\"phase_seconds\":0.25,"
+              "\"stop_reason\":\"stage_stalled\",\"ran\":true}\n");
+    EXPECT_EQ(sink.depth(), 0);
+}
+
+TEST(JsonLinesTraceSink, GoldenLineIpmMessage) {
+    // THE KIND CHOSEN IS THE ONE THAT EXERCISES THE NULL SLOTS: two doubles
+    // present, six integer slots absent. A flat `{a, b, k}` payload could not
+    // carry `inertia_exhausted`, and the price of the wider one is exactly
+    // these nulls -- which the golden shows rather than describes.
+    IpmMessageTraceEvent m;
+    m.kind = IpmMessageKind::kRestorationLocallyInfeasible;
+    m.phase = 1;
+    m.iter = 7;
+    m.a = 0.0015;
+    m.b = 1.0e-6;
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_ipm_message(m);
+    EXPECT_EQ(os.str(),
+              "{\"v\":0,\"ev\":\"ipm.message\",\"seq\":1,\"depth\":0,"
+              "\"kind\":\"restoration_locally_infeasible\",\"phase\":1,\"iter\":7,"
+              "\"a\":0.0015,\"b\":9.9999999999999995e-07,\"k\":null,\"p\":null,\"n\":null,"
+              "\"z\":null,\"expected_p\":null,\"expected_n\":null}\n");
+    EXPECT_EQ(sink.depth(), 0);
+}
+
+TEST(JsonLinesTraceSink, TheInertiaMessageFillsEverySlotTheOtherKindsLeaveNull) {
+    // THE OTHER HALF OF THE MESSAGE PAYLOAD, by FIELD rather than by a sixth
+    // byte literal: the wire order is already pinned above, and what this adds
+    // is that the one kind the wide payload exists for really does fill all six
+    // integers -- and that the two double slots it does not use read `null`.
+    IpmMessageTraceEvent m;
+    m.kind = IpmMessageKind::kInertiaExhausted;
+    m.phase = 0;
+    m.iter = 4;
+    m.k = 15;
+    m.p = 3;
+    m.n = 2;
+    m.z = 1;
+    m.expected_p = 5;
+    m.expected_n = 2;
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    sink.on_ipm_message(m);
+    const std::string line = os.str();
+    EXPECT_EQ(raw_field(line, "kind"), "\"inertia_exhausted\"");
+    EXPECT_EQ(raw_field(line, "a"), "null");
+    EXPECT_EQ(raw_field(line, "b"), "null");
+    EXPECT_EQ(raw_field(line, "k"), "15");
+    EXPECT_EQ(raw_field(line, "p"), "3");
+    EXPECT_EQ(raw_field(line, "n"), "2");
+    EXPECT_EQ(raw_field(line, "z"), "1");
+    EXPECT_EQ(raw_field(line, "expected_p"), "5");
+    EXPECT_EQ(raw_field(line, "expected_n"), "2");
+
+    // And the kind with NO payload at all reports every slot absent, phase and
+    // iteration included -- `solver_initialized` fires before any phase begins.
+    IpmMessageTraceEvent init;
+    init.kind = IpmMessageKind::kSolverInitialized;
+    init.a = 627.5;
+    std::ostringstream os2;
+    JsonLinesTraceSink sink2(os2);
+    sink2.on_ipm_message(init);
+    EXPECT_EQ(raw_field(os2.str(), "phase"), "null");
+    EXPECT_EQ(raw_field(os2.str(), "iter"), "null");
+    EXPECT_EQ(raw_field(os2.str(), "a"), "627.5");
+    EXPECT_EQ(raw_field(os2.str(), "b"), "null");
+    EXPECT_EQ(raw_field(os2.str(), "k"), "null");
+}
+
 TEST(JsonLinesTraceSink, TheIpmPairMovesNoDepthAndDoesNotDisturbTheSqpNesting) {
     // The two engines share one sink. An `ipm.solve` pair written between an
     // SQP pair's begin and end must leave the SQP nesting exactly as it found
@@ -3590,6 +3907,43 @@ TEST(JsonLinesTraceSink, NoIpmLineCarriesAnUnknownEnumString) {
     sink.on_ipm_solve_begin(IpmSolveBeginTraceEvent{});
     sink.on_ipm_iter(IpmIterTraceEvent{golden_ipm_iter_present(), 0});
     sink.on_ipm_iter(IpmIterTraceEvent{golden_ipm_iter_nonfinite_newton(), 0});
+    // M6 W5 T8.7b's five records, every alphabet on them exercised at BOTH
+    // ends of its range so a missing `to_json` case cannot hide behind a
+    // default-constructed value.
+    const IterateInfo row;
+    IpmPhaseReport report;
+    sink.on_ipm_phase_begin(IpmPhaseTraceEvent{0, "Optimization Algorithm ", IpmPhase::kOptimize});
+    sink.on_ipm_kkt_analysis(IpmKktAnalysisTraceEvent{});
+    for (const IpmStopReason reason : {IpmStopReason::kNone, IpmStopReason::kIterationCap,
+                                       IpmStopReason::kRestorationLocallyInfeasible,
+                                       IpmStopReason::kStageStalled, IpmStopReason::kInterrupted}) {
+        report.stop_reason = reason;
+        for (const SolveStatus st :
+             {SolveStatus::kOptimal, SolveStatus::kAcceptable, SolveStatus::kMaxIter,
+              SolveStatus::kInfeasible, SolveStatus::kStalled, SolveStatus::kDiverging,
+              SolveStatus::kNumericalError, SolveStatus::kBudgetExhausted,
+              SolveStatus::kInterrupted}) {
+            report.status = st;
+            for (const IpmKktFactorStatus fs :
+                 {IpmKktFactorStatus::kSuccess, IpmKktFactorStatus::kNumericalIssue,
+                  IpmKktFactorStatus::kNoConvergence, IpmKktFactorStatus::kInvalidInput}) {
+                IpmPhaseExitTraceEvent e{report, row};
+                e.last_kkt_info = fs;
+                sink.on_ipm_phase_exit(e);
+            }
+        }
+    }
+    for (const IpmMessageKind kind :
+         {IpmMessageKind::kSolverInitialized, IpmMessageKind::kRankDeficiency,
+          IpmMessageKind::kFactorizationHardError, IpmMessageKind::kInertiaExhausted,
+          IpmMessageKind::kRestorationLocallyInfeasible, IpmMessageKind::kFeasibilityStall,
+          IpmMessageKind::kInterruptAtIteration, IpmMessageKind::kPhaseDiverged,
+          IpmMessageKind::kInterruptSkippingPhases}) {
+        IpmMessageTraceEvent m;
+        m.kind = kind;
+        sink.on_ipm_message(m);
+    }
+    sink.on_ipm_phase_end(IpmPhaseTraceEvent{1, "Solve Algorithm ", IpmPhase::kSolve});
     sink.on_ipm_solve_end(IpmSolveEndTraceEvent{});
     EXPECT_EQ(os.str().find("unknown"), std::string::npos);
 }
@@ -3610,7 +3964,7 @@ namespace {
 
 /// The live console pins below read the process's real `stdout`: the DRIVER
 /// builds its own console and gives it `stdout`, so there is no `FILE *` for a
-/// test to hand it. `hven::testing::StdoutCapture` (tests/support/) is that
+/// test to hand it. `hven::testing::StdoutCapture` (tests/common_support/) is that
 /// redirection, in one portable place.
 using hven::testing::StdoutCapture;
 
@@ -3653,6 +4007,7 @@ TEST(SqpConsole, TheUsersJsonStreamIsByteIdenticalWithAndWithoutTheConsole) {
         JsonLinesTraceSink json(os);
         driver.attach_trace(&json);
         StdoutCapture capture;
+        EXPECT_TRUE(capture.active());
         const SqpSolution sol = driver.solve(model);
         return std::pair<std::string, Index>{os.str(), sol.counters.restoration_iters};
     };
@@ -3681,6 +4036,7 @@ TEST(SqpConsole, TheLiveConsoleEqualsFormatIterationTable) {
     SqpSolution sol;
     {
         StdoutCapture capture;
+        EXPECT_TRUE(capture.active());
         sol = driver.solve(model);
         written = capture.text();
     }
@@ -3700,6 +4056,7 @@ TEST(SqpConsole, TheSqpDefaultPrintLevelWritesNothing) {
     std::string written;
     {
         StdoutCapture capture;
+        EXPECT_TRUE(capture.active());
         const SqpSolution sol = driver.solve(*p.model);
         written = capture.text();
         EXPECT_FALSE(sol.history.empty());
@@ -3726,6 +4083,7 @@ TEST(SqpConsole, ACountingSinkSeesTheSameEventsWithPrintingOnAndOff) {
             driver.set_options(opts);
         }
         StdoutCapture capture;
+        EXPECT_TRUE(capture.active());
         driver.solve(*p.model);
         return tally.seen;
     };
@@ -3759,6 +4117,7 @@ TEST(SqpConsole, TheRestorationSubDriverIsTheOneDriverThatNeverPrints) {
     SqpSolution sol;
     {
         StdoutCapture capture;
+        EXPECT_TRUE(capture.active());
         sol = driver.solve(model);
         written = capture.text();
     }

@@ -378,6 +378,27 @@ const char *to_json(RestorationModes v) {
     return "unknown";
 }
 
+// M6 W5 T8.7b'S FOUR. Three of them FORWARD to core's `to_string` rather than
+// keeping a second table: unlike `to_string(StartLevel)` -- which names a
+// printed COLUMN and is PascalCase -- these three already spell their values in
+// the schema's own lower snake, so a second copy could only drift. `IpmPhase`
+// is the one that needs a table here: it has no `to_string` anywhere.
+const char *to_json(IpmMessageKind v) { return to_string(v); }
+
+const char *to_json(IpmKktFactorStatus v) { return to_string(v); }
+
+const char *to_json(IpmStopReason v) { return to_string(v); }
+
+const char *to_json(IpmPhase v) {
+    switch (v) {
+    case IpmPhase::kOptimize:
+        return "optimize";
+    case IpmPhase::kSolve:
+        return "solve";
+    }
+    return "unknown";
+}
+
 // --- the counters object, GENERATED from solver_counters.h's tables -------
 //
 // One overload per field type, so a table entry is just a name and a predicate:
@@ -582,6 +603,50 @@ static_assert(::hven::detail::aggregate_initializable_with<IpmRestorationExitRow
               "IpmRestorationExitRowTraceEvent gained or lost a field: give it a key in "
               "JsonLinesTraceSink::on_ipm_restoration_exit_row, re-derive the golden line, and "
               "update these two counts.");
+
+// --- M6 W5 T8.7b's five records ------------------------------------------
+//
+// One net per struct, in the same two shapes as above: `kAggregateArity` where
+// every member is a value, the two-sided `aggregate_initializable_with` form
+// where the struct holds a reference (which makes the arity helper read 0).
+
+// 3 = phase, label, entry. ONE STRUCT SERVES BOTH `ipm.phase.begin` and
+// `ipm.phase.end`, so this net covers two records.
+static_assert(::hven::detail::kAggregateArity<IpmPhaseTraceEvent> == 3,
+              "IpmPhaseTraceEvent gained or lost a field: give it a key in BOTH "
+              "JsonLinesTraceSink::on_ipm_phase_begin and ::on_ipm_phase_end, re-derive both "
+              "golden lines, and update this count.");
+
+// 6 = the two join keys, the two factor figures, `docompute` and the time.
+static_assert(::hven::detail::kAggregateArity<IpmKktAnalysisTraceEvent> == 6,
+              "IpmKktAnalysisTraceEvent gained or lost a field: give it a key in "
+              "JsonLinesTraceSink::on_ipm_kkt_analysis, re-derive the golden line, and update "
+              "this count.");
+
+// 11 = kind, phase, iter, a, b, k, p, n, z, expected_p, expected_n.
+static_assert(::hven::detail::kAggregateArity<IpmMessageTraceEvent> == 11,
+              "IpmMessageTraceEvent gained or lost a field: give it a key in "
+              "JsonLinesTraceSink::on_ipm_message, add it to the per-kind table in "
+              "docs/trace-schema-v0.md, re-derive the golden line, and update this count.");
+
+// `IpmPhaseExitTraceEvent` holds TWO references (the report and the row), so
+// the two-sided net is the exact form. 10 = report, iterate, phase,
+// selected_iter, best_substituted, last_kkt_info, and the four times.
+static_assert(::hven::detail::aggregate_initializable_with<IpmPhaseExitTraceEvent>(
+                  std::make_index_sequence<10>{}) &&
+                  !::hven::detail::aggregate_initializable_with<IpmPhaseExitTraceEvent>(
+                      std::make_index_sequence<11>{}),
+              "IpmPhaseExitTraceEvent gained or lost a field: give it a key in "
+              "JsonLinesTraceSink::on_ipm_phase_exit, re-derive the golden line, and update "
+              "these two counts.");
+
+// AND THE EMBEDDED REPORT'S OWN ARITY. `ipm.phase.exit` flattens
+// `IpmPhaseReport`'s six fields as trailing keys, so a field added THERE --
+// in a header this file does not otherwise track -- must get a key here too.
+static_assert(::hven::detail::kAggregateArity<IpmPhaseReport> == 6,
+              "IpmPhaseReport gained or lost a field: `ipm.phase.exit` flattens this struct, so "
+              "give the new field a trailing key in JsonLinesTraceSink::on_ipm_phase_exit, "
+              "re-derive the golden line, and update this count.");
 
 } // namespace
 
@@ -954,6 +1019,110 @@ void JsonLinesTraceSink::on_ipm_restoration_exit_row(const IpmRestorationExitRow
     key_double(b, first, "theta", event.theta);
     key_double(b, first, "threshold", event.threshold);
     write_line("ipm.restoration_exit_row", b);
+}
+
+// --- M6 W5 T8.7b: the interior-point engine's last direct prints ----------
+//
+// FIVE ADDITIVE RECORDS, and `v` STAYS 0. Section 8 of docs/trace-schema-v0.md
+// says so in its own words -- "ADDITIVE changes -- new events, new enum
+// strings, new trailing fields -- stay v0 until the schema has an external
+// consumer" -- and nothing here renames, removes or retypes a key on a frozen
+// event. A bump would be wrong under the document's own rule.
+
+void JsonLinesTraceSink::on_ipm_phase_begin(const IpmPhaseTraceEvent &event) {
+    std::string b;
+    bool first = true;
+    key_index(b, first, "phase", event.phase);
+    key(b, first, "label");
+    // The label carries a TRAILING SPACE (`"Optimization Algorithm "`), which
+    // is what the console prints; rule 9's escaping passes it through and the
+    // JSON keeps it rather than trimming a byte the transcript depends on.
+    append_string(b, event.label);
+    key_enum(b, first, "entry", to_json(event.entry));
+    write_line("ipm.phase.begin", b);
+}
+
+void JsonLinesTraceSink::on_ipm_phase_end(const IpmPhaseTraceEvent &event) {
+    std::string b;
+    bool first = true;
+    key_index(b, first, "phase", event.phase);
+    key(b, first, "label");
+    append_string(b, event.label);
+    key_enum(b, first, "entry", to_json(event.entry));
+    write_line("ipm.phase.end", b);
+}
+
+void JsonLinesTraceSink::on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &event) {
+    std::string b;
+    bool first = true;
+    key_index(b, first, "kkt_dim", event.kkt_dim);
+    key_index(b, first, "nnz", event.nnz);
+    key_bool(b, first, "docompute", event.docompute);
+    // Rule 5, ABSENCE: on a REFACTORIZATION these two are the LAST analysis's
+    // figures, re-read from the result -- not this event's. Repeating them
+    // would report one analysis's size for another's.
+    key_value(b, first, "factor_mem", event.factor_mem, !event.docompute);
+    key_value(b, first, "factor_flops", event.factor_flops, !event.docompute);
+    // Rule 7: wall-clock, informational.
+    key_double(b, first, "analysis_time_s", event.analysis_time_s);
+    write_line("ipm.kkt_analysis", b);
+}
+
+// THE ROW IS NOT REPEATED, exactly as on `ipm.restoration_exit_row`: the five
+// values the console block prints are written here and the adjacent `ipm.iter`
+// line carries the record's other 22 keys, joined by (`phase`, `iter`).
+//
+// THE REPORT IS FLATTENED as the trailing keys -- `entry` is its `IpmPhase`,
+// `phase` above is the index -- so the event's own fields and the returned
+// `IpmPhaseReport`'s appear on one line without a nested object.
+void JsonLinesTraceSink::on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) {
+    std::string b;
+    bool first = true;
+    key_index(b, first, "phase", event.phase);
+    key_index(b, first, "iter", event.iterate.iter_);
+    key_index(b, first, "selected_iter", event.selected_iter);
+    key_bool(b, first, "best_substituted", event.best_substituted);
+    key_double(b, first, "prim_obj", event.iterate.prim_obj_);
+    key_double(b, first, "kkt_inf", event.iterate.kkt_inf_);
+    key_double(b, first, "barr_inf", event.iterate.barr_inf_);
+    key_double(b, first, "econ_inf", event.iterate.econ_inf_);
+    key_double(b, first, "icon_inf", event.iterate.icon_inf_);
+    key_enum(b, first, "last_kkt_info", to_json(event.last_kkt_info));
+    // Rule 7: every `_s` below is wall-clock and informational.
+    key_double(b, first, "total_s", event.total_s);
+    key_double(b, first, "func_s", event.func_s);
+    key_double(b, first, "kkt_s", event.kkt_s);
+    key_double(b, first, "print_s", event.print_s);
+    // The embedded report, flattened.
+    key_enum(b, first, "entry", to_json(event.report.phase));
+    key_enum(b, first, "status", to_json(event.report.status));
+    key_index(b, first, "iterations", event.report.iterations);
+    key_double(b, first, "phase_seconds", event.report.phase_seconds);
+    key_enum(b, first, "stop_reason", to_json(event.report.stop_reason));
+    key_bool(b, first, "ran", event.report.ran);
+    write_line("ipm.phase.exit", b);
+}
+
+// THE PAYLOAD IS PER KIND and every slot the kind does not use is `null`
+// (rule 5). The absence predicates are the sentinels the struct documents:
+// `-1` on an integer slot, NaN on a double slot -- and NaN here is an ABSENCE,
+// not the `"nan"` string rule 3 writes for a non-finite MEASUREMENT, because no
+// message kind reports NaN as a value.
+void JsonLinesTraceSink::on_ipm_message(const IpmMessageTraceEvent &event) {
+    std::string b;
+    bool first = true;
+    key_enum(b, first, "kind", to_json(event.kind));
+    key_value(b, first, "phase", event.phase, event.phase < 0);
+    key_value(b, first, "iter", event.iter, event.iter < 0);
+    key_value(b, first, "a", event.a, std::isnan(event.a));
+    key_value(b, first, "b", event.b, std::isnan(event.b));
+    key_value(b, first, "k", event.k, event.k < 0);
+    key_value(b, first, "p", event.p, event.p < 0);
+    key_value(b, first, "n", event.n, event.n < 0);
+    key_value(b, first, "z", event.z, event.z < 0);
+    key_value(b, first, "expected_p", event.expected_p, event.expected_p < 0);
+    key_value(b, first, "expected_n", event.expected_n, event.expected_n < 0);
+    write_line("ipm.message", b);
 }
 
 } // namespace hven::solvers

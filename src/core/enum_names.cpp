@@ -68,6 +68,50 @@ const char *to_string(IpmStopReason reason) {
         fmt::format("to_string(IpmStopReason): unrecognized value ({})", static_cast<int>(reason)));
 }
 
+// THE NINE MESSAGE KINDS (M6 W5 T8.7b). Lower snake, which is both the display
+// form and -- unlike to_string(StartLevel) below -- the schema's own spelling,
+// so trace_writer.cpp's to_json(IpmMessageKind) forwards here rather than
+// keeping a second copy that could drift.
+const char *to_string(IpmMessageKind kind) {
+    switch (kind) {
+    case IpmMessageKind::kSolverInitialized:
+        return "solver_initialized";
+    case IpmMessageKind::kRankDeficiency:
+        return "rank_deficiency";
+    case IpmMessageKind::kFactorizationHardError:
+        return "factorization_hard_error";
+    case IpmMessageKind::kInertiaExhausted:
+        return "inertia_exhausted";
+    case IpmMessageKind::kRestorationLocallyInfeasible:
+        return "restoration_locally_infeasible";
+    case IpmMessageKind::kFeasibilityStall:
+        return "feasibility_stall";
+    case IpmMessageKind::kInterruptAtIteration:
+        return "interrupt_at_iteration";
+    case IpmMessageKind::kPhaseDiverged:
+        return "phase_diverged";
+    case IpmMessageKind::kInterruptSkippingPhases:
+        return "interrupt_skipping_phases";
+    }
+    throw std::invalid_argument(
+        fmt::format("to_string(IpmMessageKind): unrecognized value ({})", static_cast<int>(kind)));
+}
+
+const char *to_string(IpmKktFactorStatus status) {
+    switch (status) {
+    case IpmKktFactorStatus::kSuccess:
+        return "success";
+    case IpmKktFactorStatus::kNumericalIssue:
+        return "numerical_issue";
+    case IpmKktFactorStatus::kNoConvergence:
+        return "no_convergence";
+    case IpmKktFactorStatus::kInvalidInput:
+        return "invalid_input";
+    }
+    throw std::invalid_argument(fmt::format(
+        "to_string(IpmKktFactorStatus): unrecognized value ({})", static_cast<int>(status)));
+}
+
 int severity(SolveStatus status) {
     // The documented reporting order, which is NOT the enumerator order: a
     // caller comparing two outcomes wants "how bad", not "declared where".

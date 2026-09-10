@@ -95,6 +95,12 @@ blocks with different meanings.
 | `ipm.solve.begin` | `InteriorPointSolver` | one public entry point call |
 | `ipm.solve.end` | `InteriorPointSolver` | one normal return |
 | `ipm.iter` | `InteriorPointSolver` | one interior-point iteration |
+| `ipm.restoration_exit_row` | `InteriorPointSolver` | one exit through the restoration-locally-infeasible door |
+| `ipm.phase.begin` | `InteriorPointSolver` | one phase that RAN, opening |
+| `ipm.phase.end` | `InteriorPointSolver` | one phase that RAN, closing |
+| `ipm.kkt_analysis` | `InteriorPointSolver` | one `init_impl` — an analysis or a re-initialization |
+| `ipm.phase.exit` | `InteriorPointSolver` | one phase that RAN, its exit statistics |
+| `ipm.message` | `InteriorPointSolver` | one diagnostic message |
 
 ## 4. Every event, every field
 
@@ -347,9 +353,11 @@ counters without also filtering on `entered_rung_a`.
 
 ### 4.13 `ipm.solve.end`
 
-`status` (`converged\|acceptable\|not_converged\|diverging\|singular_kkt`,
-`ConvergenceFlags`), `iters` (integer, `SolveResult::iter_num_` summed over the
-phases), then the driver's FULL timing set: `total_time_s`, `pre_time_s`,
+`status` (`SolveStatus`, spelled as in §4.2 —
+`optimal\|acceptable\|max_iter\|infeasible\|stalled\|diverging\|numerical_error\|budget_exhausted\|interrupted`;
+the old `ConvergenceFlags` vocabulary this paragraph named until M6 W5 T8.7b
+went with that enum at T8.4), `iters` (integer, `IpmResult::iterations` summed
+over the phases), then the driver's FULL timing set: `total_time_s`, `pre_time_s`,
 `func_time_s`, `kkt_time_s`, `print_time_s`, `solver_init_time_s`,
 `misc_time_s`. **Every `_s` field is wall-clock and INFORMATIONAL** (§7 below);
 the set is complete rather than a subset, so a reader cannot mistake the parts
@@ -402,6 +410,131 @@ ordinary end-of-iteration site. A line from the first carries `barr_obj`,
 locally-infeasible restoration break the driver leaves the loop by a path that
 writes no final record. That break is dead at the default
 `restoration_mode == off`.
+
+### 4.15 `ipm.restoration_exit_row`
+
+**M6 W5 T8.7 added this event and this section is its first entry** — the
+document did not follow the writer at that task and does so here (M6 W5 T8.7b).
+
+| key | type | notes |
+|---|---|---|
+| `iter` | integer | the row's own iteration number — the join to its `ipm.iter` line |
+| `phase` | integer | as on `ipm.iter` |
+| `theta` | double | the infeasibility the restoration converged to |
+| `threshold` | double | what it was judged against; `theta > threshold` is the door |
+
+THE ROW IS NOT REPEATED. The adjacent `ipm.iter` line — emitted immediately
+before this one, and the adjacency is pinned — carries all 27 of the record's
+keys. What this line adds is the door's IDENTITY: which of the four
+NOTCONVERGED exits this row is, and the two numbers that decided it.
+
+### 4.16 `ipm.phase.begin` and `ipm.phase.end`
+
+| key | type | notes |
+|---|---|---|
+| `phase` | integer | 0-based index into `IpmResult::phases`, as on `ipm.iter` |
+| `label` | string | the engine's own phase label, WITH its trailing space: `"Optimization Algorithm "` or `"Solve Algorithm "` |
+| `entry` | string `optimize\|solve` | `IpmOptions::phases[phase]` |
+
+ONE PER PHASE THAT RAN. A conditional phase the sequence SKIPPED writes
+neither, which is how a reader tells a skipped phase from one that ran without
+consulting `ipm.solve.begin`'s `phases` count.
+
+**THE KKT ANALYSIS IS OUTSIDE THIS BRACKET, ahead of it.** The stream reads
+`kkt_analysis, phase.begin, iter…, phase.exit, phase.end` — the engine
+re-initializes before a phase's opening line, not inside it.
+
+### 4.17 `ipm.kkt_analysis`
+
+| key | type | notes |
+|---|---|---|
+| `kkt_dim` | integer | JOIN KEY ONLY; not printed by the console (`ipm.solve.begin` carries the printed copy) |
+| `nnz` | integer | join key, as `kkt_dim` |
+| `docompute` | bool | true = a fresh factorization, false = a refactorization |
+| `factor_mem` | integer or `null` | the factor's memory figure; **`null` when `docompute` is false** |
+| `factor_flops` | integer or `null` | the factor's MFLOPs figure; `null` on the same condition |
+| `analysis_time_s` | double | WALL-CLOCK, informational (§7) |
+
+**ONE PER `init_impl`, WHICH IS NOT ONE PER PHASE THAT RAN.** The entry call
+runs before the phase loop; the inter-phase call is the LAST statement of a
+phase's body, ahead of the next iteration's conditional-skip test. A sequence
+whose second phase is SKIPPED therefore carries TWO of these and ONE phase
+bracket. The identity is
+`count = 1 + #{phases that ran, were not the last step, and did not break}`.
+
+`factor_mem` and `factor_flops` are `null` on a refactorization because they are
+re-read from the LAST analysis and are not this call's — reporting them would
+give one analysis's size for another's.
+
+### 4.18 `ipm.phase.exit`
+
+| key | type | notes |
+|---|---|---|
+| `phase` | integer | the phase index |
+| `iter` | integer | the SELECTED row's own iteration number — the join to its `ipm.iter` line |
+| `selected_iter` | integer | that row's INDEX in the phase's own iterate history |
+| `best_substituted` | bool | did `return_best` substitute the best iterate for the last one |
+| `prim_obj`, `kkt_inf`, `barr_inf`, `econ_inf`, `icon_inf` | double | the five values the console block prints, read off the selected row |
+| `last_kkt_info` | string `success\|numerical_issue\|no_convergence\|invalid_input` | the last non-Success factorization status observed during this CALL (not this phase) |
+| `total_s`, `func_s`, `kkt_s`, `print_s` | double | WALL-CLOCK, informational (§7) |
+| `entry` | string `optimize\|solve` | **the embedded report's** `phase` |
+| `status` | string (`SolveStatus`, §4.2's spellings) | the embedded report's RESOLVED verdict |
+| `iterations` | integer | the embedded report's own count |
+| `phase_seconds` | double | the embedded report's; WALL-CLOCK, informational |
+| `stop_reason` | string `none\|iteration_cap\|restoration_locally_infeasible\|stage_stalled\|interrupted` | the embedded report's |
+| `ran` | bool | the embedded report's; always `true` on a line that exists |
+
+**THE LAST SIX KEYS ARE `IpmPhaseReport` ITSELF, FLATTENED.** The event holds
+the object `IpmResult::phases[phase]` holds rather than a second copy of its
+fields, so "one shape, no drift" is by construction and the live pin is
+`event.report == result.phases[i]` field for field.
+
+**THE ROW IS NOT REPEATED**, on `ipm.restoration_exit_row`'s rule: the adjacent
+`ipm.iter` line carries the record's other keys.
+
+**TWO CLOCKS, AND THEY ARE NOT THE SAME ONE.** `total_s` is the phase
+algorithm's own internal timer — what the console block prints as `Total Time`
+— while `phase_seconds` is measured AROUND the call to it. They differ by the
+call's own overhead. Neither is asserted anywhere.
+
+**THE STATUS IS THE RESOLVED ONE**, which is a declared change of KEY and not
+of bytes: the console prints `No Solution Found` for `max_iter`, `stalled` and
+`interrupted` alike, and resolution only ever rewrites `max_iter` into the other
+two.
+
+### 4.19 `ipm.message`
+
+| key | type | notes |
+|---|---|---|
+| `kind` | string (nine, below) | which message this is |
+| `phase` | integer or `null` | `null` on `solver_initialized`, which fires before any phase begins |
+| `iter` | integer or `null` | `null` when the message does not belong to an iteration |
+| `a`, `b` | double or `null` | per kind |
+| `k`, `p`, `n`, `z`, `expected_p`, `expected_n` | integer or `null` | per kind |
+
+**THE PAYLOAD IS PER KIND**, and every slot a kind does not use is an ABSENCE
+(§2's rule 5), not a zero:
+
+| `kind` | payload |
+|---|---|
+| `solver_initialized` | `a` = the process-global initialization's MILLISECONDS. At most once per process, and it is a NOTICE rather than a warning: the console prints it at `< 2` and only when it exceeds half a millisecond, while the EVENT fires whenever initialization ran at all |
+| `rank_deficiency` | none |
+| `factorization_hard_error` | `k` = the backend's own info code |
+| `inertia_exhausted` | `k` = perturbation attempts, `p`/`n`/`z` = the observed inertia, `expected_p`/`expected_n` = what was expected (`z` expected 0) |
+| `restoration_locally_infeasible` | `a` = the infeasibility reached, `b` = the threshold. The same two numbers the adjacent `ipm.restoration_exit_row` carries as `theta`/`threshold` |
+| `feasibility_stall` | `a` = the infeasibility now, `b` = the infeasibility at the last restoration entry |
+| `interrupt_at_iteration` | `iter` = the row the callback stopped on |
+| `phase_diverged` | none |
+| `interrupt_skipping_phases` | none |
+
+**SEVERAL PER ITERATION ARE NORMAL.** `rank_deficiency` and
+`factorization_hard_error` are raised at THREE ladder sites inside one
+factorization, so a count pin counts by kind rather than by iteration.
+
+**A NaN SLOT IS AN ABSENCE, NOT A MEASUREMENT.** §2's rule 3 writes a genuinely
+non-finite MEASUREMENT as the string `"nan"`; the two double slots here use NaN
+as their absence sentinel and are written `null`. No message kind reports NaN as
+a value.
 
 ## 5. The `counters` object
 
@@ -538,11 +671,24 @@ non-additive is v1.
 | `sqp.solve.end` | **W4 T5** | added T2; **T2 fix1** (the lower-snake enum spellings, `StartLevel` `cold\|seeded\|warm\|hot` included, over core's PascalCase display form; and the three absence sentinels serializing as `null` — §5); T3 (four folds, through the counters tables) |
 | `ipm.iter` | **W4 T5** | added T4; T4 fix1 (`p_pivots` and `h_facs` null sentinels) |
 | `ipm.solve.begin` | **W4 T5** | added T4 |
-| `ipm.solve.end` | **W4 T5** | added T4 |
+| `ipm.solve.end` | **W4 T5** | added T4; **T8.4** (the `SolveStatus` vocabulary in place of `ConvergenceFlags`', §4.13) |
+| `ipm.restoration_exit_row` | **W5 T8.7** | added T8.7; **its §4 entry and this row are T8.7b's** — the document did not follow the writer at T8.7 and does now |
+| `ipm.phase.begin` | **W5 T8.7b** | added T8.7b |
+| `ipm.phase.end` | **W5 T8.7b** | added T8.7b |
+| `ipm.kkt_analysis` | **W5 T8.7b** | added T8.7b |
+| `ipm.phase.exit` | **W5 T8.7b** | added T8.7b |
+| `ipm.message` | **W5 T8.7b** | added T8.7b |
 
 **`qp.mode`'s T5 line is the ONE W1/W2 golden line M6 W4 moves**, and it moves by
 exactly one trailing key: every byte before `,"site"` is T1's, unchanged
 (settler ruling, 2026-09-04).
+
+**M6 W5 T8.7b MOVES NO GOLDEN LINE AT ALL.** It adds five events and three enum
+vocabularies (`IpmPhase`, `IpmKktFactorStatus`, `IpmMessageKind`) and changes no
+field on any event that predates it. That is ADDITIVE by this section's own
+words — "new events, new enum strings, new trailing fields — stay v0 until the
+schema has an external consumer" — so **`v` stays 0**. A bump would be wrong
+under the rule as written, and is not a judgement call.
 
 Each event's byte-exact golden line lives in `tests/sqp/test_trace_writer.cpp`,
 built from a hand-filled struct with distinct values per field. An

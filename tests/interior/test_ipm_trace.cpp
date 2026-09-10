@@ -44,7 +44,7 @@
 // astra's I2): this file used to carry its own copy, which included <unistd.h>
 // and called the POSIX descriptor functions unconditionally -- source that
 // cannot be compiled on Windows, where this target is also built.
-#include "../support/console_capture.h"
+#include "../common_support/console_capture.h"
 #include "hven/core/ledger.h"
 #include "hven/drivers/console_trace_sink.h"
 #include "hven/drivers/interior_point_solver.h"
@@ -968,7 +968,7 @@ namespace {
 /// The live console pins below read the process's real `stdout`: the SOLVER
 /// builds its own console and gives it `stdout`, and the print sites this task
 /// left direct write there too. `hven::testing::StdoutCapture`
-/// (tests/support/console_capture.h) is that redirection, in one portable
+/// (tests/common_support/console_capture.h) is that redirection, in one portable
 /// place -- this file used to carry its own copy of it (M6 W5 T8.7 fix1,
 /// astra's I2).
 using hven::testing::StdoutCapture;
@@ -993,6 +993,41 @@ std::string strip_timing(const std::string &text) {
         }
         out += '\n';
         pos = eol + 1;
+    }
+    return out;
+}
+
+/// Replaces every WALL-CLOCK value in a JSON-lines stream with a fixed token
+/// (M6 W5 T8.7b).
+///
+/// WHY A MASK RATHER THAN A DROPPED LINE. Two runs of one solve differ in
+/// every `_s` field by construction -- CLAUDE.md section 7 makes those
+/// informational and never asserted -- so a byte comparison of two streams has
+/// to do something about them. Dropping the lines that carry one would throw
+/// away every other key on those lines; masking keeps them. The list is the
+/// whole of the schema's wall-clock vocabulary: `ipm.solve.end`'s seven,
+/// `ipm.kkt_analysis`'s one, and `ipm.phase.exit`'s five (its own four plus the
+/// embedded report's `phase_seconds`).
+std::string mask_wall_clock(const std::string &stream) {
+    static const std::vector<std::string> kTimeKeys = {
+        "total_time_s", "pre_time_s",      "func_time_s",
+        "kkt_time_s",   "print_time_s",    "solver_init_time_s",
+        "misc_time_s",  "analysis_time_s", "total_s",
+        "func_s",       "kkt_s",           "print_s",
+        "phase_seconds"};
+    std::string out = stream;
+    for (const std::string &k : kTimeKeys) {
+        const std::string needle = "\"" + k + "\":";
+        std::size_t pos = 0;
+        while ((pos = out.find(needle, pos)) != std::string::npos) {
+            const std::size_t vstart = pos + needle.size();
+            std::size_t vend = vstart;
+            while (vend < out.size() && out[vend] != ',' && out[vend] != '}') {
+                ++vend;
+            }
+            out.replace(vstart, vend - vstart, "<t>");
+            pos = vstart + 3;
+        }
     }
     return out;
 }
@@ -1082,8 +1117,14 @@ TEST(IpmLedger, ThePerCallDeltaSurvivesAReAnalysisInsideTheCall) {
     // analysis is reused too. What it does not reach is the other reuse: the
     // same solver handed a DIFFERENT program, which re-lays the analysis inside
     // the call. The delta is only honest there if the factor's lifetime counter
-    // is monotone across a re-analysis -- nothing in `linear/` resets it, and
-    // this says so out loud rather than assuming it.
+    // is monotone across a re-analysis, and this says so out loud rather than
+    // assuming it.
+    //
+    // (M6 W5 T8.7b, the lane's first rider: a sentence here used to add
+    // "nothing in `linear/` resets it", which the premise block below
+    // CONTRADICTS -- the re-lay replaces the engine and its per-instance
+    // counters restart. What is monotone is `KktFactorization`'s own
+    // accumulator, which is exactly what T8.7 fix1 added and what this pins.)
     auto hs = silent_hs071();
     NLPSolver other(std::make_shared<TwoVarProblem>());
     {
@@ -1301,6 +1342,389 @@ TEST(IpmTrace, SolveBeginCarriesTheEightFieldsTheConsoleTableNeeds) {
     EXPECT_GT(std::stod(field(b, "acc_bar_tol")), std::stod(field(b, "bar_tol")));
 }
 
+// ===========================================================================
+// M6 W5 T8.7b -- THE PHASE EVENTS ON A LIVE SOLVE.
+//
+// The engine's last direct prints are events. These pin the SHAPE of the
+// stream they make -- the per-phase bracket, the analysis count, the embedded
+// report, and the line arithmetic -- where the BYTES are pinned by
+// tests/drivers/test_console_sink.cpp and by the live-transcript leg.
+// ===========================================================================
+
+namespace {
+
+/// One live IPM stream, with the events this task added counted by name.
+struct StreamShape {
+    std::string text;
+    std::vector<std::string> order; ///< Every `ipm.*` event name, in order.
+    Index begin = 0;
+    Index end = 0;
+    Index phase_begin = 0;
+    Index phase_end = 0;
+    Index phase_exit = 0;
+    Index analysis = 0;
+    Index iter = 0;
+    Index message = 0;
+    Index door = 0;
+    Index lines = 0;
+};
+
+StreamShape shape_of(const std::string &stream) {
+    StreamShape sh;
+    sh.text = stream;
+    for (const std::string &l : split_lines(stream)) {
+        ++sh.lines;
+        std::string ev = field(l, "ev");
+        // `field` returns the RAW token, quotes included.
+        if (ev.size() >= 2) {
+            ev = ev.substr(1, ev.size() - 2);
+        }
+        sh.order.push_back(ev);
+        sh.begin += (ev == "ipm.solve.begin") ? 1 : 0;
+        sh.end += (ev == "ipm.solve.end") ? 1 : 0;
+        sh.phase_begin += (ev == "ipm.phase.begin") ? 1 : 0;
+        sh.phase_end += (ev == "ipm.phase.end") ? 1 : 0;
+        sh.phase_exit += (ev == "ipm.phase.exit") ? 1 : 0;
+        sh.analysis += (ev == "ipm.kkt_analysis") ? 1 : 0;
+        sh.iter += (ev == "ipm.iter") ? 1 : 0;
+        sh.message += (ev == "ipm.message") ? 1 : 0;
+        sh.door += (ev == "ipm.restoration_exit_row") ? 1 : 0;
+    }
+    return sh;
+}
+
+} // namespace
+
+TEST(IpmPhaseEvents, TheLineCountIsTheDeclaredArithmeticOnThreePhaseShapes) {
+    // THE ARITHMETIC, DECLARED BEFORE THE RUN and stated here in the form the
+    // CODE makes true:
+    //
+    //     lines = 2 + 3P + A + R + M + D
+    //
+    // with P the phases that RAN (each writing `phase.begin`, `phase.exit` and
+    // `phase.end`), A the KKT analyses, R the `ipm.iter` rows, M the messages
+    // and D the restoration-door markers.
+    //
+    // A IS NOT P, and that is the one place this differs from the brief's §5
+    // A2, which lists `kkt_analysis` among the four things "per phase ran".
+    // The brief's own §2 says "+1 per KKT analysis", which is what the engine
+    // does: `init_impl` runs once before the loop and once more at the END of
+    // every phase body that is not the last STEP -- ahead of the next
+    // iteration's conditional-skip test. So a sequence whose second phase is
+    // SKIPPED still pays for its analysis:
+    //
+    //     A = 1 + #{phases that ran, were not the last step, and did not break}
+    //
+    // On the two arms where every requested phase runs, A == P and the formula
+    // reduces to A2's `2 + 4P` exactly. The third arm below is the one that
+    // separates them. DECLARED, not changed silently -- see
+    // `.superpowers/w5-t8-7b-progress.md` §1b.
+    auto run = [](int which) {
+        NLPSolver solver(std::make_shared<Hs071Problem>());
+        {
+            auto o = solver.optimizer_->options();
+            o.common.print_level = 10;
+            solver.optimizer_->set_options(std::move(o));
+        }
+        std::ostringstream os;
+        JsonLinesTraceSink sink(os);
+        solver.optimizer_->attach_trace(&sink);
+        if (which == 0) {
+            EXPECT_EQ(solver.optimize(hs071_start()), SolveStatus::kOptimal);
+        } else if (which == 1) {
+            solver.solve_optimize(hs071_start());
+        } else {
+            EXPECT_EQ(solver.optimize_solve(hs071_start()), SolveStatus::kOptimal);
+        }
+        return shape_of(os.str());
+    };
+
+    // (a) COLD `optimize()`: one requested phase, one run, one analysis.
+    {
+        const StreamShape sh = run(0);
+        EXPECT_EQ(sh.begin, 1);
+        EXPECT_EQ(sh.end, 1);
+        EXPECT_EQ(sh.phase_begin, 1);
+        EXPECT_EQ(sh.phase_exit, 1);
+        EXPECT_EQ(sh.phase_end, 1);
+        EXPECT_EQ(sh.analysis, 1);
+        const Index p = sh.phase_begin;
+        EXPECT_EQ(sh.lines, 2 + 3 * p + sh.analysis + sh.iter + sh.message + sh.door);
+        // A2's own form, which holds here because A == P.
+        EXPECT_EQ(sh.analysis, p);
+        EXPECT_EQ(sh.lines, 2 + 4 * p + sh.iter + sh.message + sh.door);
+        // `phases` REQUESTED, read off the begin line rather than assumed equal
+        // to the count that ran.
+        EXPECT_EQ(field(lines_of_event(sh.text, "ipm.solve.begin").front(), "phases"), "1");
+    }
+
+    // (b) `{kSolve, kOptimize}`: the second phase is UNCONDITIONAL (a kOptimize
+    // that follows a kSolve always runs), so both run and A == P == 2.
+    {
+        const StreamShape sh = run(1);
+        EXPECT_EQ(field(lines_of_event(sh.text, "ipm.solve.begin").front(), "phases"), "2");
+        EXPECT_EQ(sh.phase_begin, 2);
+        EXPECT_EQ(sh.phase_exit, 2);
+        EXPECT_EQ(sh.phase_end, 2);
+        EXPECT_EQ(sh.analysis, 2);
+        const Index p = sh.phase_begin;
+        EXPECT_EQ(sh.lines, 2 + 3 * p + sh.analysis + sh.iter + sh.message + sh.door);
+        EXPECT_EQ(sh.lines, 2 + 4 * p + sh.iter + sh.message + sh.door);
+    }
+
+    // (c) `{kOptimize, kSolve}`: the trailing kSolve is CONDITIONAL on the
+    // optimize phase not converging. HS071 converges, so it is skipped -- and
+    // the inter-phase re-initialization has ALREADY run and written its
+    // analysis by then. P = 1, A = 2, and A2's `2 + 4P` is one line short.
+    {
+        const StreamShape sh = run(2);
+        EXPECT_EQ(field(lines_of_event(sh.text, "ipm.solve.begin").front(), "phases"), "2")
+            << "premise: two phases were REQUESTED";
+        EXPECT_EQ(sh.phase_begin, 1) << "premise: the conditional second phase was skipped";
+        EXPECT_EQ(sh.phase_exit, 1);
+        EXPECT_EQ(sh.phase_end, 1);
+        EXPECT_EQ(sh.analysis, 2) << "the inter-phase re-init runs before the skip test";
+        const Index p = sh.phase_begin;
+        EXPECT_EQ(sh.lines, 2 + 3 * p + sh.analysis + sh.iter + sh.message + sh.door);
+        EXPECT_NE(sh.lines, 2 + 4 * p + sh.iter + sh.message + sh.door)
+            << "and this is the arm on which the two forms differ";
+        // `ran` is read off the exit line, not inferred from `phases`.
+        EXPECT_EQ(field(lines_of_event(sh.text, "ipm.phase.exit").front(), "ran"), "true");
+    }
+}
+
+TEST(IpmPhaseEvents, TheOrderIsAnalysisThenTheBracketWithTheExitInsideIt) {
+    // THE ORDER THE ENGINE EMITS IN, pinned so a later change that moves one of
+    // these has to say so. The analysis is OUTSIDE the bracket, ahead of it:
+    // `init_impl` runs before the phase loop for the first phase and at the end
+    // of the previous phase's body for every later one.
+    NLPSolver solver(std::make_shared<Hs071Problem>());
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    solver.optimizer_->attach_trace(&sink);
+    solver.solve_optimize(hs071_start());
+    const StreamShape sh = shape_of(os.str());
+
+    // The skeleton, with the rows and any messages removed.
+    std::vector<std::string> skeleton;
+    for (const std::string &ev : sh.order) {
+        if (ev != "ipm.iter" && ev != "ipm.message" && ev != "ipm.restoration_exit_row") {
+            skeleton.push_back(ev);
+        }
+    }
+    const std::vector<std::string> expected = {
+        "ipm.solve.begin", "ipm.kkt_analysis", "ipm.phase.begin", "ipm.phase.exit",
+        "ipm.phase.end",   "ipm.kkt_analysis", "ipm.phase.begin", "ipm.phase.exit",
+        "ipm.phase.end",   "ipm.solve.end"};
+    EXPECT_EQ(skeleton, expected);
+
+    // THE LABELS, and the phase indices they belong to. `solve_optimize` runs
+    // the feasibility phase first.
+    const std::vector<std::string> begins = lines_of_event(os.str(), "ipm.phase.begin");
+    const std::vector<std::string> ends = lines_of_event(os.str(), "ipm.phase.end");
+    ASSERT_EQ(begins.size(), 2u);
+    ASSERT_EQ(ends.size(), 2u);
+    EXPECT_EQ(field(begins[0], "label"), "\"Solve Algorithm \"");
+    EXPECT_EQ(field(begins[0], "entry"), "\"solve\"");
+    EXPECT_EQ(field(begins[0], "phase"), "0");
+    EXPECT_EQ(field(begins[1], "label"), "\"Optimization Algorithm \"");
+    EXPECT_EQ(field(begins[1], "entry"), "\"optimize\"");
+    EXPECT_EQ(field(begins[1], "phase"), "1");
+    // The closing line of a phase carries the same three values as its opener.
+    for (std::size_t k = 0; k < 2; ++k) {
+        EXPECT_EQ(field(ends[k], "label"), field(begins[k], "label"));
+        EXPECT_EQ(field(ends[k], "entry"), field(begins[k], "entry"));
+        EXPECT_EQ(field(ends[k], "phase"), field(begins[k], "phase"));
+    }
+    // THE FIRST ANALYSIS COMPUTES, the inter-phase one refactorizes.
+    const std::vector<std::string> analyses = lines_of_event(os.str(), "ipm.kkt_analysis");
+    ASSERT_EQ(analyses.size(), 2u);
+    EXPECT_EQ(field(analyses[0], "docompute"), "true");
+    EXPECT_EQ(field(analyses[1], "docompute"), "false");
+    EXPECT_NE(field(analyses[0], "factor_mem"), "null");
+    EXPECT_EQ(field(analyses[1], "factor_mem"), "null")
+        << "a refactorization's figures are the previous analysis's, so they are absent";
+}
+
+TEST(IpmPhaseEvents, TheExitEventEmbedsTheReportTheSolveReturns) {
+    // ONE SHAPE BY CONSTRUCTION. The event holds `IpmResult::phases[i]` itself,
+    // so this compares the LINE against the RETURNED report field for field --
+    // everything except `phase_seconds`, which is wall-clock and never asserted
+    // (CLAUDE.md §7).
+    NLPSolver solver(std::make_shared<Hs071Problem>());
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    std::ostringstream os;
+    JsonLinesTraceSink sink(os);
+    solver.optimizer_->attach_trace(&sink);
+    solver.solve_optimize(hs071_start());
+    const IpmResult &result = solver.last_result_;
+
+    const std::vector<std::string> exits = lines_of_event(os.str(), "ipm.phase.exit");
+    ASSERT_EQ(exits.size(), 2u);
+    ASSERT_EQ(result.phases.size(), 2u);
+    for (std::size_t k = 0; k < exits.size(); ++k) {
+        const IpmPhaseReport &report = result.phases[k];
+        EXPECT_EQ(field(exits[k], "phase"), std::to_string(k));
+        EXPECT_EQ(field(exits[k], "entry"),
+                  std::string("\"") + (report.phase == IpmPhase::kOptimize ? "optimize" : "solve") +
+                      "\"");
+        EXPECT_EQ(field(exits[k], "status"), std::string("\"") + to_string(report.status) + "\"");
+        EXPECT_EQ(field(exits[k], "iterations"), std::to_string(report.iterations));
+        EXPECT_EQ(field(exits[k], "stop_reason"),
+                  std::string("\"") + to_string(report.stop_reason) + "\"");
+        EXPECT_EQ(field(exits[k], "ran"), report.ran ? "true" : "false");
+        // AND THE ITERATION COUNT IS THE ROW COUNT of that phase: the `ms/iter`
+        // divisor the console block uses is `iters.size()`, which is what the
+        // report counts.
+        Index rows = 0;
+        for (const std::string &l : lines_of_event(os.str(), "ipm.iter")) {
+            rows += (field(l, "phase") == std::to_string(k)) ? 1 : 0;
+        }
+        EXPECT_EQ(rows, report.iterations);
+    }
+}
+
+TEST(IpmDeferral, AHookInstalledFromInsideASinkMethodReachesTheNEXTSolve) {
+    // M6 W5 T8.7b (the lane's Q5). The six setters DEFER while a solve is in
+    // flight. Before this task a `set_kkt_hook` made from inside a SINK method
+    // -- which since T8.7b fires from inside a factorization -- took the direct
+    // branch and armed the hook mid-iteration; now it lands at the next solve's
+    // entry, and THIS solve is bitwise the solve it would have been.
+    struct HookInstallingSink final : TraceSink {
+        InteriorPointSolver *solver = nullptr;
+        Index *hook_calls = nullptr;
+        Index messages = 0;
+        Index rows = 0;
+        bool installed = false;
+        void install() {
+            if (installed) {
+                return;
+            }
+            installed = true;
+            solver->set_kkt_hook([this](int, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
+                                        hven::ConstEigenRef<Eigen::VectorXd>,
+                                        hven::ConstEigenRef<Eigen::VectorXd>,
+                                        Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+                ++*hook_calls;
+                return 0;
+            });
+        }
+        void on_ipm_iter(const IpmIterTraceEvent &) override {
+            ++rows;
+            install();
+        }
+        void on_ipm_message(const IpmMessageTraceEvent &) override {
+            ++messages;
+            install();
+        }
+        void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
+        void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
+        void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
+        void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
+        void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
+        void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+        void on_qp_mode(const QpModeTraceEvent &) override {}
+        void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
+    };
+
+    NLPSolver solver(std::make_shared<Hs071Problem>());
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    Index hook_calls = 0;
+    HookInstallingSink sink;
+    sink.solver = solver.optimizer_.get();
+    sink.hook_calls = &hook_calls;
+    solver.optimizer_->attach_trace(&sink);
+    ASSERT_EQ(solver.optimize(hs071_start()), SolveStatus::kOptimal);
+    ASSERT_GT(sink.rows, 0) << "premise: the sink really did see events to install from";
+    EXPECT_EQ(hook_calls, 0)
+        << "a hook installed from inside a sink method must not arm the solve that is running";
+
+    // ... and the NEXT solve runs it, from its first iteration on.
+    ASSERT_EQ(solver.optimize(hs071_start()), SolveStatus::kOptimal);
+    EXPECT_GT(hook_calls, 0) << "the deferral must be applied at the next solve's entry";
+    // AND THE VERIFICATION IS ARMED FOR IT: the hand-out site sets the flag
+    // beside the hand-out itself, so a hook that arrives this way still forces
+    // every factorization from its first hand-out on to re-derive the pattern.
+    EXPECT_GT(solver.last_result_.kkt_factor_counters.pattern_verify_count, 0);
+}
+
+TEST(IpmDeferral, TheSolveIsBitwiseUnchangedByASinkThatSetsAHookMidSolve) {
+    // THE OTHER HALF, and the one that matters for the trajectory: the stream
+    // a JSON sink records is IDENTICAL whether or not a second sink beside it
+    // installs a hook mid-solve -- wall-clock masked, as everywhere else.
+    //
+    // THROUGH A FAN-OUT, because `JsonLinesTraceSink` is `final`: the recording
+    // half is the shipped writer, unmodified, and the installing half is a
+    // separate sink watching the same stream.
+    struct Installer final : TraceSink {
+        InteriorPointSolver *solver = nullptr;
+        bool arm = false;
+        bool done = false;
+        void on_ipm_iter(const IpmIterTraceEvent &) override {
+            if (!arm || done) {
+                return;
+            }
+            done = true;
+            solver->set_kkt_hook([](int, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
+                                    hven::ConstEigenRef<Eigen::VectorXd>,
+                                    hven::ConstEigenRef<Eigen::VectorXd>,
+                                    Eigen::SparseMatrix<double, Eigen::RowMajor> &) { return 0; });
+        }
+        void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
+        void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
+        void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
+        void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
+        void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
+        void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+        void on_qp_mode(const QpModeTraceEvent &) override {}
+        void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
+    };
+    // ONE THROWAWAY SOLVE FIRST, for the reason `TheConsoleDoesNotDisplaceAUser
+    // Sink` states: the process-global initialization runs on the first solve
+    // of the process and writes an `ipm.message`/`solver_initialized` line when
+    // it does, which would put one extra line -- and a one-off `seq` shift --
+    // into whichever arm ran first.
+    {
+        silent_hs071()->optimize(hs071_start());
+    }
+    auto run = [](bool install) {
+        NLPSolver solver(std::make_shared<Hs071Problem>());
+        {
+            auto o = solver.optimizer_->options();
+            o.common.print_level = 10;
+            solver.optimizer_->set_options(std::move(o));
+        }
+        std::ostringstream os;
+        JsonLinesTraceSink json(os);
+        Installer inst;
+        inst.solver = solver.optimizer_.get();
+        inst.arm = install;
+        FanOutTraceSink fan(&json, &inst);
+        solver.optimizer_->attach_trace(&fan);
+        EXPECT_EQ(solver.optimize(hs071_start()), SolveStatus::kOptimal);
+        EXPECT_EQ(inst.done, install) << "premise: the installing arm really did install";
+        return os.str();
+    };
+    const std::string quiet = run(false);
+    const std::string armed = run(true);
+    ASSERT_FALSE(quiet.empty());
+    EXPECT_EQ(mask_wall_clock(quiet), mask_wall_clock(armed))
+        << "a sink that installed a hook mid-solve changed the solve it was watching";
+}
+
 TEST(IpmConsole, PrintLevelZeroWritesTheTableAndTenWritesNothing) {
     // The console the SOLVER attaches for itself, on a live solve. What is
     // pinned here is the SHAPE -- the banner, the statistics block, the row
@@ -1315,6 +1739,7 @@ TEST(IpmConsole, PrintLevelZeroWritesTheTableAndTenWritesNothing) {
         o.common.print_level = 0;
         solver.optimizer_->set_options(std::move(o));
         StdoutCapture capture;
+        EXPECT_TRUE(capture.active());
         solver.optimize(hs071_start());
         printed = capture.text();
     }
@@ -1332,6 +1757,7 @@ TEST(IpmConsole, PrintLevelZeroWritesTheTableAndTenWritesNothing) {
     {
         auto solver = silent_hs071();
         StdoutCapture capture;
+        EXPECT_TRUE(capture.active());
         solver->optimize(hs071_start());
         silent = capture.text();
     }
@@ -1341,6 +1767,18 @@ TEST(IpmConsole, PrintLevelZeroWritesTheTableAndTenWritesNothing) {
 TEST(IpmConsole, TheConsoleDoesNotDisplaceAUserSink) {
     // The fan-out's invariant on the interior-point side: the caller's stream
     // is byte-identical with printing on and off.
+    //
+    // ONE THROWAWAY SOLVE FIRST (M6 W5 T8.7b), for the reason
+    // `AttachTraceDuringASolveIsRefusedAndTheConsoleRunsOnUnbroken` states and
+    // this test now shares: the process-global initialization runs on the
+    // FIRST solve of the process and, since T8.7b, writes an
+    // `ipm.message`/`solver_initialized` line when it does. Whichever arm below
+    // ran first would carry a line the other does not, whatever either arm did
+    // with its sink. Warming it makes the two arms' line structure identical by
+    // construction rather than by luck.
+    {
+        silent_hs071()->optimize(hs071_start());
+    }
     auto run = [](int print_level) {
         NLPSolver solver(std::make_shared<Hs071Problem>());
         auto o = solver.optimizer_->options();
@@ -1350,6 +1788,7 @@ TEST(IpmConsole, TheConsoleDoesNotDisplaceAUserSink) {
         JsonLinesTraceSink sink(os);
         solver.optimizer_->attach_trace(&sink);
         StdoutCapture capture;
+        EXPECT_TRUE(capture.active());
         solver.optimize(hs071_start());
         return std::pair<std::string, std::string>{os.str(), capture.text()};
     };
@@ -1357,24 +1796,27 @@ TEST(IpmConsole, TheConsoleDoesNotDisplaceAUserSink) {
     const auto printing = run(0);
     EXPECT_FALSE(silent.first.empty());
 
-    // THE `ipm.solve.end` LINE IS EXCLUDED FROM THE BYTE COMPARISON, and only
-    // that line: every one of its seven `_s` fields is WALL-CLOCK, which
-    // CLAUDE.md section 7 makes informational and never asserted -- two runs of
-    // the same solve differ there by construction, console or no console. What
-    // is compared byte for byte is the whole rest of the stream (the begin line
-    // and every `ipm.iter` row), and the end line is compared on its two
-    // DETERMINISTIC fields.
-    auto without_end = [](const std::string &stream) {
-        std::vector<std::string> kept;
-        for (const std::string &l : split_lines(stream)) {
-            if (field(l, "ev") != "\"ipm.solve.end\"") {
-                kept.push_back(l);
-            }
-        }
-        return kept;
-    };
-    EXPECT_EQ(without_end(silent.first), without_end(printing.first))
+    // EVERY WALL-CLOCK VALUE IS MASKED AND EVERYTHING ELSE IS COMPARED BYTE FOR
+    // BYTE. CLAUDE.md section 7 makes those fields informational and never
+    // asserted, and two runs of one solve differ in them by construction --
+    // console or no console.
+    //
+    // A MASK RATHER THAN A DROPPED LINE (M6 W5 T8.7b). Until this task only
+    // `ipm.solve.end` carried a `_s` field and the test simply removed that one
+    // line; `ipm.kkt_analysis` and `ipm.phase.exit` now carry them too, and
+    // dropping those lines would throw away the analysis's size and fill and
+    // the whole of the phase's exit -- the most informative new lines in the
+    // stream. Masked, every other key on them is still pinned.
+    EXPECT_EQ(mask_wall_clock(silent.first), mask_wall_clock(printing.first))
         << "the console perturbed the caller's stream";
+    // NON-VACUOUS: the mask really did leave the new lines in place, with their
+    // non-timing keys intact.
+    EXPECT_EQ(lines_of_event(silent.first, "ipm.phase.begin").size(), 1u);
+    EXPECT_EQ(lines_of_event(silent.first, "ipm.phase.exit").size(), 1u);
+    EXPECT_EQ(lines_of_event(silent.first, "ipm.phase.end").size(), 1u);
+    EXPECT_EQ(lines_of_event(silent.first, "ipm.kkt_analysis").size(), 1u);
+    EXPECT_NE(mask_wall_clock(silent.first).find("\"last_kkt_info\":\"success\""),
+              std::string::npos);
     const std::vector<std::string> silent_end = lines_of_event(silent.first, "ipm.solve.end");
     const std::vector<std::string> printing_end = lines_of_event(printing.first, "ipm.solve.end");
     ASSERT_EQ(silent_end.size(), 1u);
@@ -1433,6 +1875,7 @@ TEST(IpmConsole, AttachTraceDuringASolveIsRefusedAndTheConsoleRunsOnUnbroken) {
         std::string printed;
         {
             hven::testing::StdoutCapture capture;
+            EXPECT_TRUE(capture.active());
             EXPECT_EQ(solver.optimize(hs071_start()), SolveStatus::kOptimal);
             printed = capture.text();
         }
@@ -1507,6 +1950,7 @@ TEST(IpmConsole, TheWideLayoutIsTheSolversOwnOptionAndReachesItsConsole) {
         o.wide_console = true;
         solver.optimizer_->set_options(std::move(o));
         StdoutCapture capture;
+        EXPECT_TRUE(capture.active());
         solver.optimize(hs071_start());
         printed = capture.text();
     }

@@ -87,7 +87,6 @@ target_sources(hven PRIVATE
 target_sources(hven PRIVATE
     drivers/interior_point_solver.cpp
     drivers/interior_point_solver_globalization.cpp
-    drivers/interior_point_solver_print.cpp
     drivers/ipm_options.cpp
     drivers/solver_init.cpp
     model/non_linear_program.cpp
@@ -324,7 +323,6 @@ target_sources(hven PRIVATE
 # flag set that added -falign-loops=32, which recompiles every object here.
 set(_hven_pch_sources
     drivers/interior_point_solver.cpp
-    drivers/interior_point_solver_print.cpp
     drivers/ipm_options.cpp
     model/non_linear_program.cpp
     model/nlp_adapter.cpp
@@ -480,10 +478,20 @@ endif()
 # unmeasured-default footing as the fifteen above -- it includes its own header
 # (drivers/trace.h, fmt/color.h, <cstdio>), drivers/sqp_driver.h,
 # detail/interior/iterate_info.h and three standard headers, again a different
-# set in a different order from src/hven_pch.h's prefix. The file it took its
-# renderings FROM, drivers/interior_point_solver_print.cpp, stays a PCH source
-# and stays in the count: it survives with three functions.
-set(_hven_expected_source_count 44)
+# set in a different order from src/hven_pch.h's prefix.
+#
+# 43 as of M6 W5 T8.7b, which DELETED drivers/interior_point_solver_print.cpp.
+# That file held the interior-point console table; T8.7 moved all but three of
+# its functions into the sink above, and T8.7b moved those three
+# (print_beginning, print_finished, print_exit_stats) with the events that
+# carry them -- ipm.phase.begin, ipm.phase.end and ipm.phase.exit. It was a PCH
+# source (measured 4.09 -> 2.56 s, byte-identical, in the original sweep) and
+# its entry is removed from _hven_pch_sources with it; the sweep row above is
+# left as it ran, recording a measurement of a file that no longer exists.
+# THIS IS THE FIRST TIME THE COUNT HAS GONE DOWN, and it goes down because the
+# engine has no printing TU left at all: there is no fmt::print anywhere in
+# src/drivers/interior_point_solver.cpp.
+set(_hven_expected_source_count 43)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

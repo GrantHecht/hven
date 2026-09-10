@@ -1778,8 +1778,9 @@ SqpDriver::solve_from_entry(NlpModelAggregate &bridge, const Vec &x0, SolveBudge
     // stamp serves the shared wall clock and the per-iteration clock alike.
     entry_time_ = entry;
     // A DEFERRAL LEFT STANDING BY A CALLBACK THAT THREW is applied here, before
-    // anything reads the callable (M6 W5 T8.6 fix1).
-    apply_pending_iteration_callback();
+    // anything reads the callable (M6 W5 T8.6 fix1) -- and so is one parked by
+    // a SINK method during the previous solve (M6 W5 T8.7b).
+    apply_pending_iteration_callback(/*at_solve_entry=*/true);
     // The seam is laid ONCE per solve, for the same reason the bridge is: it
     // is setup, not iteration. The seam binds the claim-stream interface the
     // bridge derives from; the bridge itself stays in this frame and rides
@@ -1830,7 +1831,8 @@ SqpDriver::solve_from_entry(NlpModelAggregate &bridge, const Vec &x0, const SqpW
     const auto entry = outer_entry.value_or(std::chrono::steady_clock::now());
     // THE SAME INSTANT, for IterationEvent::elapsed_seconds (M6 W5 T8.6).
     entry_time_ = entry;
-    apply_pending_iteration_callback();
+    // Both parked kinds, as at the entry above (M6 W5 T8.7b).
+    apply_pending_iteration_callback(/*at_solve_entry=*/true);
     AggregateEvalSeam seam{bridge};
     // Same timing scope as the 2-arg overload above.
     const auto t0 = std::chrono::steady_clock::now();
@@ -1900,7 +1902,8 @@ SqpDriver::solve_from_entry(NlpModelAggregate &bridge, const Vec &x0, const Warm
     const auto entry = outer_entry.value_or(std::chrono::steady_clock::now());
     // THE SAME INSTANT, for IterationEvent::elapsed_seconds (M6 W5 T8.6).
     entry_time_ = entry;
-    apply_pending_iteration_callback();
+    // Both parked kinds, as at the entry above (M6 W5 T8.7b).
+    apply_pending_iteration_callback(/*at_solve_entry=*/true);
     AggregateEvalSeam seam{bridge};
     // THE PAYLOAD'S ONE INGEST, after the lay so the dimensions and the key are
     // this solve's. It also owns the tier-seed reset and the polish-ignored
@@ -4610,12 +4613,19 @@ CallbackAction SqpDriver::invoke_iteration_callback(const IterationEvent &event)
     return action;
 }
 
-void SqpDriver::apply_pending_iteration_callback() {
+void SqpDriver::apply_pending_iteration_callback(bool at_solve_entry) {
     if (!pending_callback_.has_value()) {
+        return;
+    }
+    // NOT MINE TO APPLY (M6 W5 T8.7b): a value parked by a SINK method belongs
+    // to the next solve's entry, not to the statement after a callback
+    // invocation that happens to run first. The entry calls apply both kinds.
+    if (pending_callback_at_entry_ && !at_solve_entry) {
         return;
     }
     iteration_callback_ = std::move(*pending_callback_);
     pending_callback_.reset();
+    pending_callback_at_entry_ = false;
 }
 
 SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,

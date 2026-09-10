@@ -105,11 +105,89 @@ enum class IpmStopReason {
     kInterrupted = 4,
 };
 
+/// @brief WHICH DIAGNOSTIC MESSAGE the interior-point engine emitted (schema
+///        `ipm.message`, M6 W5 T8.7b).
+///
+/// Until this task these were nine `fmt::print` calls inside the solver, guarded
+/// by `CommonOptions::print_level`. They are events now: the console renders
+/// them at the tier the guard used to apply, and a caller's own sink receives
+/// the fact instead of losing it to stdout.
+///
+/// EIGHT WARNINGS AND ONE NOTICE. The first is not a warning at all --
+/// `ensure_solver_initialized()` runs INSIDE the solve, after `ipm.solve.begin`,
+/// and reports the process-global initialization on the first solve that pays
+/// for it. It is a message kind so that "the transcript is the console's alone"
+/// is true on EVERY solve, the process's first included.
+///
+/// THE PAYLOAD IS PER KIND and the unused slots are absences, not zeros; the
+/// table lives on `IpmMessageTraceEvent` and in `docs/trace-schema-v0.md` §4.
+enum class IpmMessageKind {
+    /// The process-global solver initialization ran and took `a` MILLISECONDS.
+    /// At most once per process. The console keeps the old `> 0.5 ms` rule.
+    kSolverInitialized = 0,
+    /// The KKT factorization's inertia read does not account for the whole
+    /// matrix, so the system may be rank deficient. No payload.
+    kRankDeficiency = 1,
+    /// A factorization reported a HARD error -- `k` is the backend's own info
+    /// code. `NumericalIssue` is normal while probing the inertia ladder and
+    /// does NOT produce this message; it is recorded on the result instead.
+    kFactorizationHardError = 2,
+    /// The inertia-correction ladder exhausted its attempts. SIX integers:
+    /// `k` attempts, the observed `p`/`n`/`z`, and the expected
+    /// `expected_p`/`expected_n` (`z` is expected 0).
+    kInertiaExhausted = 3,
+    /// A feasibility restoration converged to a point that is still infeasible:
+    /// `a` is the infeasibility reached, `b` the threshold it was judged
+    /// against.
+    kRestorationLocallyInfeasible = 4,
+    /// The feasibility phase stalled with its restoration budget exhausted:
+    /// `a` is the infeasibility now, `b` the infeasibility at the last
+    /// restoration entry.
+    kFeasibilityStall = 5,
+    /// The per-iteration callback returned `kStop`; `iter` is the row it
+    /// stopped on.
+    kInterruptAtIteration = 6,
+    /// A phase reached kDiverging or worse, so the remaining phases are
+    /// skipped. No payload.
+    kPhaseDiverged = 7,
+    /// A stop was honoured between phases, so the remaining phases are skipped.
+    /// No payload.
+    kInterruptSkippingPhases = 8,
+};
+
+/// @brief The last non-Success factorization status the interior-point engine
+///        observed during one solve (schema `ipm.phase.exit`'s `last_kkt_info`).
+///
+/// A NAMED VOCABULARY, NOT THE BACKEND'S RAW INTEGER (M6 W5 T8.7b): the value
+/// the engine records is an `Eigen::ComputationInfo`, and writing that integer
+/// onto the trace would make `ipm.phase.exit` the schema's only raw-integer
+/// enum. The mapping is the identity on the four names; `kNoConvergence` has
+/// never been observed from either backend and is here for completeness rather
+/// than from a reading.
+enum class IpmKktFactorStatus {
+    kSuccess = 0,
+    kNumericalIssue = 1,
+    kNoConvergence = 2,
+    kInvalidInput = 3,
+};
+
 /// @brief Maps a status to its lower-case display name.
 /// @param status The status.
 /// @return A static string, never null.
 /// @throws std::invalid_argument if @p status is not one of the nine.
 const char *to_string(SolveStatus status);
+
+/// @brief Maps a message kind to its lower-case snake name.
+/// @param kind The kind.
+/// @return A static string, never null.
+/// @throws std::invalid_argument if @p kind is not one of the nine.
+const char *to_string(IpmMessageKind kind);
+
+/// @brief Maps a factorization status to its lower-case snake name.
+/// @param status The status.
+/// @return A static string, never null.
+/// @throws std::invalid_argument if @p status is not one of the four.
+const char *to_string(IpmKktFactorStatus status);
 
 /// @brief Maps a stop reason to its lower-case display name.
 /// @param reason The stop reason.

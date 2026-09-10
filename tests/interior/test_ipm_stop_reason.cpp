@@ -25,6 +25,8 @@
 #include <hven/model/nlp_problem.h>
 #include <hven/model/nlp_solver.h>
 
+#include "../common_support/console_capture.h" // NOLINT(build/include_subdir)
+
 namespace stop_reason_test {
 namespace {
 
@@ -250,6 +252,44 @@ class IterCountingSink : public hven::solvers::TraceSink {
     void on_qp_mode(const hven::solvers::QpModeTraceEvent &) override {}
     void on_fallback_verdict(const hven::solvers::SqpFallbackVerdictTraceEvent &) override {}
 };
+
+/// Splits a JSON-lines stream and reads one raw key off a line (M6 W5 T8.7b).
+/// The same two helpers `TheDoorsMarkerFollowsItsOwnIterLineOnALiveSolve`
+/// builds inline; hoisted so the T8.7b pins below can share them.
+std::vector<std::string> stream_lines(const std::string &stream) {
+    std::vector<std::string> lines;
+    std::size_t pos = 0;
+    while (pos < stream.size()) {
+        const std::size_t eol = stream.find('\n', pos);
+        const std::size_t end = (eol == std::string::npos) ? stream.size() : eol;
+        lines.push_back(stream.substr(pos, end - pos));
+        if (eol == std::string::npos) {
+            break;
+        }
+        pos = eol + 1;
+    }
+    return lines;
+}
+
+std::string key_value(const std::string &line, const std::string &key) {
+    const std::size_t k = line.find("\"" + key + "\":");
+    if (k == std::string::npos) {
+        return std::string();
+    }
+    const std::size_t v = k + key.size() + 3;
+    const std::size_t e = line.find_first_of(",}", v);
+    return line.substr(v, e - v);
+}
+
+std::vector<std::string> lines_named(const std::string &stream, const std::string &ev) {
+    std::vector<std::string> out;
+    for (const std::string &l : stream_lines(stream)) {
+        if (key_value(l, "ev") == "\"" + ev + "\"") {
+            out.push_back(l);
+        }
+    }
+    return out;
+}
 
 } // namespace
 } // namespace stop_reason_test
@@ -484,4 +524,205 @@ TEST(IpmStopReason, AStallOnTheCapIterationKeepsTheStallLabel) {
     EXPECT_EQ(tie_terminal_iter, tie_cap - 1)
         << "the stall was labelled at cap " << tie_cap << ", but its last loop iteration was "
         << tie_terminal_iter << ", not the cap iteration " << tie_cap - 1;
+}
+
+// ===========================================================================
+// M6 W5 T8.7b -- THE THREE DOORS' VERDICT LINE, AND THEIR MESSAGES.
+//
+// The exit VERDICT the console prints used to key on `alg_impl`'s RAW exit
+// code, taken before `resolve_ipm_phase_status` ran; `ipm.phase.exit` carries
+// the RESOLVED status instead. Resolution only ever rewrites kMaxIter -- into
+// kStalled or kInterrupted -- and the console prints `No Solution Found` for
+// all three, so the bytes do not move. These pin that on the doors where the
+// two keys actually differ, which is the only place the change is observable.
+// ===========================================================================
+
+TEST(IpmStopReason, TheStalledDoorStillPrintsNoSolutionFoundAndCarriesItsMessage) {
+    auto solver = stop_reason_test::make_stall_solver(200);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 0;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    std::ostringstream os;
+    hven::solvers::JsonLinesTraceSink sink(os);
+    solver.optimizer_->attach_trace(&sink);
+
+    std::string printed;
+    {
+        hven::testing::StdoutCapture capture;
+        EXPECT_TRUE(capture.active());
+        const hven::solvers::SolveStatus flag =
+            solver.solve(stop_reason_test::two_var_start(0.0, 0.0));
+        ASSERT_EQ(flag, hven::solvers::SolveStatus::kStalled)
+            << "fixture premise: this cell must leave through the stall door";
+        printed = capture.text();
+    }
+    ASSERT_EQ(solver.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kStageStalled);
+
+    // THE VERDICT LINE IS UNCHANGED. The raw code at this door is kMaxIter and
+    // the resolved status is kStalled; both take the `No Solution Found`
+    // branch, which is what makes the key change byte-neutral.
+    EXPECT_NE(printed.find("No Solution Found"), std::string::npos) << printed;
+    EXPECT_EQ(printed.find("Optimal Solution Found"), std::string::npos);
+    EXPECT_EQ(printed.find("Acceptable Solution Found"), std::string::npos);
+
+    // ... and the event carries the resolved status, which is the ONE key.
+    const std::vector<std::string> exits =
+        stop_reason_test::lines_named(os.str(), "ipm.phase.exit");
+    ASSERT_FALSE(exits.empty());
+    EXPECT_EQ(stop_reason_test::key_value(exits.back(), "status"), "\"stalled\"");
+    EXPECT_EQ(stop_reason_test::key_value(exits.back(), "stop_reason"), "\"stage_stalled\"");
+
+    // THE STALL WARNING IS AN EVENT NOW, with its two infeasibilities on it,
+    // and the console still prints its sentence.
+    const std::vector<std::string> messages =
+        stop_reason_test::lines_named(os.str(), "ipm.message");
+    hven::Index stalls = 0;
+    for (const std::string &m : messages) {
+        if (stop_reason_test::key_value(m, "kind") == "\"feasibility_stall\"") {
+            ++stalls;
+            EXPECT_GT(std::stod(stop_reason_test::key_value(m, "a")), 0.0);
+            EXPECT_NE(stop_reason_test::key_value(m, "b"), "null");
+            // The slots this kind does not use are absences, not zeros.
+            EXPECT_EQ(stop_reason_test::key_value(m, "k"), "null");
+            EXPECT_EQ(stop_reason_test::key_value(m, "p"), "null");
+        }
+    }
+    EXPECT_GT(stalls, 0) << "premise: the stall door writes its message";
+    EXPECT_NE(printed.find("Feasibility phase stalled"), std::string::npos);
+}
+
+TEST(IpmStopReason, TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarriesItsMessage) {
+    auto solver = stop_reason_test::make_locally_infeasible_solver(200);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 0;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    std::ostringstream os;
+    hven::solvers::JsonLinesTraceSink sink(os);
+    solver.optimizer_->attach_trace(&sink);
+
+    std::string printed;
+    {
+        hven::testing::StdoutCapture capture;
+        EXPECT_TRUE(capture.active());
+        const hven::solvers::SolveStatus flag =
+            solver.optimize(stop_reason_test::two_var_start(1.0, 1.0));
+        ASSERT_EQ(flag, hven::solvers::SolveStatus::kStalled);
+        printed = capture.text();
+    }
+    ASSERT_EQ(solver.optimizer_->last_stop_reason(),
+              hven::solvers::IpmStopReason::kRestorationLocallyInfeasible);
+
+    EXPECT_NE(printed.find("No Solution Found"), std::string::npos) << printed;
+    const std::vector<std::string> exits =
+        stop_reason_test::lines_named(os.str(), "ipm.phase.exit");
+    ASSERT_FALSE(exits.empty());
+    EXPECT_EQ(stop_reason_test::key_value(exits.back(), "status"), "\"stalled\"");
+    EXPECT_EQ(stop_reason_test::key_value(exits.back(), "stop_reason"),
+              "\"restoration_locally_infeasible\"");
+
+    // THE DOOR'S MESSAGE AND THE DOOR'S MARKER CARRY THE SAME TWO NUMBERS --
+    // the marker was T8.7's, the message is T8.7b's, and a reader that has one
+    // must be able to reconcile it with the other.
+    const std::vector<std::string> markers =
+        stop_reason_test::lines_named(os.str(), "ipm.restoration_exit_row");
+    ASSERT_EQ(markers.size(), 1u);
+    std::vector<std::string> door_messages;
+    for (const std::string &m : stop_reason_test::lines_named(os.str(), "ipm.message")) {
+        if (stop_reason_test::key_value(m, "kind") == "\"restoration_locally_infeasible\"") {
+            door_messages.push_back(m);
+        }
+    }
+    ASSERT_EQ(door_messages.size(), 1u);
+    EXPECT_EQ(stop_reason_test::key_value(door_messages[0], "a"),
+              stop_reason_test::key_value(markers[0], "theta"));
+    EXPECT_EQ(stop_reason_test::key_value(door_messages[0], "b"),
+              stop_reason_test::key_value(markers[0], "threshold"));
+    EXPECT_NE(printed.find("locally infeasible"), std::string::npos);
+}
+
+TEST(IpmStopReason, TheInterruptDoorStillPrintsNoSolutionFoundAndCarriesItsMessage) {
+    auto solver = stop_reason_test::make_locally_infeasible_solver(200);
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 0;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    std::ostringstream os;
+    hven::solvers::JsonLinesTraceSink sink(os);
+    solver.optimizer_->attach_trace(&sink);
+    hven::Index seen = 0;
+    solver.optimizer_->set_iteration_callback([&seen](const hven::solvers::IterationEvent &) {
+        ++seen;
+        return (seen >= 3) ? hven::solvers::CallbackAction::kStop
+                           : hven::solvers::CallbackAction::kContinue;
+    });
+
+    std::string printed;
+    {
+        hven::testing::StdoutCapture capture;
+        EXPECT_TRUE(capture.active());
+        const hven::solvers::SolveStatus flag =
+            solver.optimize(stop_reason_test::two_var_start(1.0, 1.0));
+        ASSERT_EQ(flag, hven::solvers::SolveStatus::kInterrupted);
+        printed = capture.text();
+    }
+    EXPECT_NE(printed.find("No Solution Found"), std::string::npos) << printed;
+    const std::vector<std::string> exits =
+        stop_reason_test::lines_named(os.str(), "ipm.phase.exit");
+    ASSERT_FALSE(exits.empty());
+    EXPECT_EQ(stop_reason_test::key_value(exits.back(), "status"), "\"interrupted\"");
+    EXPECT_EQ(stop_reason_test::key_value(exits.back(), "stop_reason"), "\"interrupted\"");
+
+    // The interrupt's own message, with the row it stopped on.
+    std::vector<std::string> stops;
+    for (const std::string &m : stop_reason_test::lines_named(os.str(), "ipm.message")) {
+        if (stop_reason_test::key_value(m, "kind") == "\"interrupt_at_iteration\"") {
+            stops.push_back(m);
+        }
+    }
+    ASSERT_EQ(stops.size(), 1u);
+    EXPECT_EQ(stop_reason_test::key_value(stops[0], "iter"),
+              stop_reason_test::key_value(exits.back(), "iter"));
+    EXPECT_EQ(stop_reason_test::key_value(stops[0], "a"), "null");
+    EXPECT_NE(printed.find("Solve interrupted by the iteration callback at iteration"),
+              std::string::npos);
+}
+
+TEST(IpmStopReason, OnlyResolutionEverProducesStalledOrInterrupted) {
+    // THE INVERSE OF THE VERDICT ARGUMENT, and what makes it sound: the console
+    // may print `No Solution Found` for kStalled and kInterrupted only because
+    // `converge_check` never returns either -- resolution is their sole source,
+    // and it fires only from kMaxIter with a labelled stop reason. A phase that
+    // reported one of the two with `stop_reason == none` would falsify that.
+    auto run = [](int which) {
+        std::ostringstream os;
+        hven::solvers::JsonLinesTraceSink sink(os);
+        if (which == 0) {
+            auto solver = stop_reason_test::make_stall_solver(200);
+            solver.optimizer_->attach_trace(&sink);
+            solver.solve(stop_reason_test::two_var_start(0.0, 0.0));
+        } else {
+            auto solver = stop_reason_test::make_locally_infeasible_solver(200);
+            solver.optimizer_->attach_trace(&sink);
+            solver.optimize(stop_reason_test::two_var_start(1.0, 1.0));
+        }
+        return os.str();
+    };
+    for (int which = 0; which < 2; ++which) {
+        const std::string stream = run(which);
+        const std::vector<std::string> exits =
+            stop_reason_test::lines_named(stream, "ipm.phase.exit");
+        ASSERT_FALSE(exits.empty()) << "arm " << which;
+        for (const std::string &e : exits) {
+            const std::string status = stop_reason_test::key_value(e, "status");
+            if (status == "\"stalled\"" || status == "\"interrupted\"") {
+                EXPECT_NE(stop_reason_test::key_value(e, "stop_reason"), "\"none\"")
+                    << "a resolution-only status with no stop reason: " << e;
+            }
+        }
+    }
 }

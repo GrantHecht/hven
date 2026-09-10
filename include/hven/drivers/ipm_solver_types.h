@@ -86,19 +86,12 @@ enum class QPPivotModes {
 /// @brief Primal-dual step computation strategy for the QP subproblem.
 enum class PDStepStrategies { PrimSlackEq_Iq, AllMinimum, PrimSlack_EqIq, MaxEq };
 
-/// @brief One phase of an interior-point solve, as `IpmOptions::phases` names it.
-///
-/// Declaration ORDER is contractual: it is what `static_cast<int>` and any
-/// packed diagnostic column print.
-enum class IpmPhase {
-    /// The optimality phase -- `AlgorithmModes::OPT` at the optimality barrier
-    /// and line-search modes. This is what the old `optimize()` entry ran.
-    kOptimize = 0,
-    /// The feasibility ("solve the equations") phase -- `IpmOptions::soe_mode`
-    /// at the SOE barrier and line-search modes. This is what the old `solve()`
-    /// entry ran.
-    kSolve = 1,
-};
+// IpmPhase MOVED to detail/drivers/interior_point_solver_fwd.h (M6 W5 T8.7b),
+// which this header already includes -- so nothing that named it here had to
+// move with it. The reason is the one every selector enum in that file was put
+// there for: `drivers/trace.h` embeds `IpmPhaseReport` on the phase events and
+// must be able to name both types WITHOUT including this header, which reaches
+// Eigen, the model contract and the KKT factorization.
 
 /// @brief Every user-configurable interior-point parameter, as one value.
 ///
@@ -408,30 +401,10 @@ struct IpmOptions {
     std::vector<IpmPhase> phases{IpmPhase::kOptimize};
 };
 
-/// @brief What one phase of a solve did.
-///
-/// One entry per phase in `IpmOptions::phases`, in that order, including the
-/// phases that did NOT run -- `ran` is how a caller tells them apart, and a
-/// skipped phase's other fields keep their defaults.
-struct IpmPhaseReport {
-    /// Which phase this is; equal to `IpmOptions::phases[i]` for entry i.
-    IpmPhase phase = IpmPhase::kOptimize;
-    /// THIS PHASE's verdict, resolved against its own stop reason. Per phase by
-    /// construction: the engine resets the verdict at every phase start, so a
-    /// later phase can no longer report an earlier one's answer (the pre-M6-W5
-    /// defect design §2.3 registered for this task).
-    SolveStatus status = SolveStatus::kNumericalError;
-    /// Iterations this phase took; 0 when it did not run.
-    Index iterations = 0;
-    /// Wall-clock seconds inside this phase's `alg_impl`. INFORMATIONAL.
-    double phase_seconds = 0.0;
-    /// Which door this phase left its iteration loop by; `kNone` when the
-    /// verdict is the whole explanation. Same value the solve-level
-    /// `last_stop_reason()` reports for the LAST phase that ran.
-    IpmStopReason stop_reason = IpmStopReason::kNone;
-    /// False for a conditional phase the sequence skipped.
-    bool ran = false;
-};
+// IpmPhaseReport MOVED to detail/drivers/interior_point_solver_fwd.h with
+// IpmPhase (M6 W5 T8.7b): `ipm.phase.exit` EMBEDS the report rather than
+// mirroring its fields, so `drivers/trace.h` needs the complete type and this
+// header is too heavy for it to include. Nothing that named it here moved.
 
 /// @brief What one interior-point solve produced.
 ///

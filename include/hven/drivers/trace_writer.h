@@ -80,6 +80,13 @@ class JsonLinesTraceSink final : public TraceSink {
     void on_ipm_solve_begin(const IpmSolveBeginTraceEvent &event) override;
     void on_ipm_solve_end(const IpmSolveEndTraceEvent &event) override;
     void on_ipm_restoration_exit_row(const IpmRestorationExitRowTraceEvent &event) override;
+    // M6 W5 T8.7b's five records. Additive events, so `v` stays 0 -- see
+    // docs/trace-schema-v0.md section 8, whose own words make new events additive.
+    void on_ipm_phase_begin(const IpmPhaseTraceEvent &event) override;
+    void on_ipm_phase_end(const IpmPhaseTraceEvent &event) override;
+    void on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &event) override;
+    void on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) override;
+    void on_ipm_message(const IpmMessageTraceEvent &event) override;
 
     /// Lines ATTEMPTED, which is also the `seq` the last line carried (`seq`
     /// starts at 1). Compared against the artifact's own line count it gives the

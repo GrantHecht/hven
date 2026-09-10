@@ -7,6 +7,15 @@
 // The console-capture helper the live console pins share (M6 W5 T8.7 fix1,
 // astra's I2).
 //
+// THE DIRECTORY IS `tests/common_support/`, NOT `tests/support/` (M6 W5 T8.7b,
+// the lane's third rider). `tests/sqp/` has a `support/` of its own, so a
+// quoted `"support/console_capture.h"` written from a file in that directory
+// resolves to a DIFFERENT tree than the same spelling written from
+// `tests/interior/`. One unambiguous name removes the trap without a CMake
+// include-directory change in every test target: every suite reaches this file
+// as `"../common_support/console_capture.h"`, which resolves to exactly one
+// place from anywhere under `tests/`.
+//
 // WHY IT EXISTS. Both console-capture suites -- tests/sqp/test_trace_writer.cpp
 // and tests/interior/test_ipm_trace.cpp -- had a private copy of the same
 // class, and each copy included <unistd.h> and called ::dup/::dup2/::fileno
@@ -98,8 +107,14 @@ class StdoutCapture {
     }
 
     /// @brief True when the redirection is actually in place; false only if the
-    ///        platform refused a temporary file, which every caller should
-    ///        assert rather than silently compare empty strings.
+    ///        platform refused a temporary file.
+    ///
+    /// EVERY CAPTURE SITE CHECKS IT (M6 W5 T8.7b, the lane's second rider). The
+    /// doc used to say callers "should" and none did, so a platform that
+    /// refused `std::tmpfile()` would have turned every console pin into a
+    /// comparison of two empty strings that passes. The check is `EXPECT_TRUE`
+    /// rather than `ASSERT_TRUE` because most of those sites sit inside lambdas
+    /// that return a value, where `ASSERT_` does not compile.
     bool active() const { return file_ != nullptr && saved_ >= 0; }
 
   private:

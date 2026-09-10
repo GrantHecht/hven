@@ -763,8 +763,15 @@ class SqpDriver {
     ///
     /// @param cb The callback. An empty std::function is the same as clearing.
     void set_iteration_callback(IterationCallback cb) {
-        if (callback_in_flight_) {
+        if (callback_in_flight_ || solve_in_flight_) {
             pending_callback_ = std::move(cb);
+            // WHICH SAFE POINT APPLIES IT (M6 W5 T8.7b, the lane's Q5, taken on
+            // both engines). From inside the callback: the statement after that
+            // invocation returns -- T8.6's contract, unchanged. From anywhere
+            // else while a solve runs, a SINK METHOD included: the next solve's
+            // ENTRY, so the solve in progress is bitwise the solve it would
+            // have been without the call.
+            pending_callback_at_entry_ = !callback_in_flight_;
             return;
         }
         // A DIRECT CALL SUPERSEDES ANY PENDING DEFERRAL (M6 W5 T8.7, the SQP
@@ -773,6 +780,7 @@ class SqpDriver {
         // this reset the next solve entry would apply that stale value OVER the
         // callback just installed here.
         pending_callback_.reset();
+        pending_callback_at_entry_ = false;
         iteration_callback_ = std::move(cb);
     }
     /// @brief Removes the per-iteration callback.
@@ -780,12 +788,14 @@ class SqpDriver {
     /// Deferred to the safe point when called from INSIDE the callback; see
     /// set_iteration_callback().
     void clear_iteration_callback() {
-        if (callback_in_flight_) {
+        if (callback_in_flight_ || solve_in_flight_) {
             pending_callback_ = IterationCallback{};
+            pending_callback_at_entry_ = !callback_in_flight_;
             return;
         }
         // See set_iteration_callback(): a direct call supersedes a deferral.
         pending_callback_.reset();
+        pending_callback_at_entry_ = false;
         iteration_callback_ = nullptr;
     }
 
@@ -1325,7 +1335,11 @@ class SqpDriver {
     /// Called at the statement after the callback returns, and again at every
     /// solve entry -- the second is what catches a deferral left standing by a
     /// callback that departed by throwing.
-    void apply_pending_iteration_callback();
+    /// Applies a parked callback if this is the safe point it belongs to.
+    /// @param at_solve_entry True at a public entry, which applies every parked
+    ///        value; false after a callback invocation returns, which applies
+    ///        only what that invocation itself parked.
+    void apply_pending_iteration_callback(bool at_solve_entry = false);
 
     // --- The clock the delegating public overloads carry (M6 W5 T8.6 fix1) ---
     // ONE ENTRY POINT OWNS THE CLOCK AND THE DELEGATES RECEIVE IT. A
@@ -1615,6 +1629,10 @@ class SqpDriver {
     // replacement; disengaged is "nothing pending".
     bool callback_in_flight_ = false;
     std::optional<IterationCallback> pending_callback_;
+    // WHICH SAFE POINT the parked value belongs to (M6 W5 T8.7b). False: the
+    // statement after the running callback returns. True: the next solve's
+    // entry, which is where a value parked by a SINK method is applied.
+    bool pending_callback_at_entry_ = false;
 
     // When this solve's public entry was taken, for
     // IterationEvent::elapsed_seconds. Written ONCE PER CALL, by the outermost

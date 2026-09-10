@@ -8,6 +8,9 @@
 
 #pragma once
 
+#include <hven/core/solver_status.h>
+#include <hven/core/types.h>
+
 // hven::ConvergenceFlags -- the interior-point engine's own five-value verdict
 // enum, with its <=> severity ordering -- was REMOVED in M6 W5 T8.4. Both
 // engines now report hven::solvers::SolveStatus (drivers/solve_status.h), and
@@ -111,5 +114,53 @@ enum class RestorationModes { off = 0, proximal_switch = 1, l1_nested = 2 };
 //                             suppressed while a nested l1 restoration phase is
 //                             active (the elastic pivots own those slots).
 enum class InertiaModes { classic = 0, proximal_regularization = 1 };
+
+// THE PHASE VOCABULARY AND THE PER-PHASE REPORT (M6 W5 T8.7b), moved down here
+// from drivers/ipm_solver_types.h for exactly the reason the selector enums
+// above live here: `drivers/trace.h` names both -- `ipm.phase.begin`/`.end`
+// carry the phase, and `ipm.phase.exit` EMBEDS the report rather than mirroring
+// its six fields -- and that header must not reach Eigen, the model contract
+// and the KKT factorization, which is what including ipm_solver_types.h costs.
+// ipm_solver_types.h includes THIS header, so every existing spelling of both
+// names is unchanged.
+
+/// @brief One phase of an interior-point solve, as `IpmOptions::phases` names it.
+///
+/// Declaration ORDER is contractual: it is what `static_cast<int>` and any
+/// packed diagnostic column print.
+enum class IpmPhase {
+    /// The optimality phase -- `AlgorithmModes::OPT` at the optimality barrier
+    /// and line-search modes. This is what the old `optimize()` entry ran.
+    kOptimize = 0,
+    /// The feasibility ("solve the equations") phase -- `IpmOptions::soe_mode`
+    /// at the SOE barrier and line-search modes. This is what the old `solve()`
+    /// entry ran.
+    kSolve = 1,
+};
+
+/// @brief What one phase of a solve did.
+///
+/// One entry per phase in `IpmOptions::phases`, in that order, including the
+/// phases that did NOT run -- `ran` is how a caller tells them apart, and a
+/// skipped phase's other fields keep their defaults.
+struct IpmPhaseReport {
+    /// Which phase this is; equal to `IpmOptions::phases[i]` for entry i.
+    IpmPhase phase = IpmPhase::kOptimize;
+    /// THIS PHASE's verdict, resolved against its own stop reason. Per phase by
+    /// construction: the engine resets the verdict at every phase start, so a
+    /// later phase can no longer report an earlier one's answer (the pre-M6-W5
+    /// defect design section 2.3 registered for this task).
+    SolveStatus status = SolveStatus::kNumericalError;
+    /// Iterations this phase took; 0 when it did not run.
+    Index iterations = 0;
+    /// Wall-clock seconds inside this phase's `alg_impl`. INFORMATIONAL.
+    double phase_seconds = 0.0;
+    /// Which door this phase left its iteration loop by; `kNone` when the
+    /// verdict is the whole explanation. Same value the solve-level
+    /// `last_stop_reason()` reports for the LAST phase that ran.
+    IpmStopReason stop_reason = IpmStopReason::kNone;
+    /// False for a conditional phase the sequence skipped.
+    bool ran = false;
+};
 
 } // namespace hven::solvers

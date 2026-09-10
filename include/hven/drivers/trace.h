@@ -13,8 +13,10 @@
 // `TraceSink` here; the `Ipqp*` EVENT prefixes are unchanged.
 
 #include <array>
+#include <limits>
 #include <optional>
 #include <string>
+#include <string_view>
 
 #include <hven/core/solver_status.h>
 #include <hven/core/types.h>
@@ -26,6 +28,17 @@
 #include <hven/qp/qp_types.h>
 
 namespace hven::solvers {
+
+/// @brief The absence sentinel for a per-kind `double` slot on `ipm.message`
+///        (M6 W5 T8.7b).
+///
+/// NaN rather than a negative number, because two of the four double slots
+/// carry INFEASIBILITIES, for which every non-negative value is a reading and
+/// -1 would be indistinguishable from a broken one. The serializer writes a NaN
+/// slot as `null` (plan section 2 rule 5) rather than as the `"nan"` string it
+/// writes for a genuinely non-finite MEASUREMENT; no message kind reports NaN
+/// as a value.
+inline constexpr double kAbsentDouble = std::numeric_limits<double>::quiet_NaN();
 
 enum class IpqpTraceRegDir { kDown, kUp };
 enum class IpqpTraceRegReason { kAccept, kInertia, kStall, kFloor };
@@ -480,6 +493,188 @@ struct IpmRestorationExitRowTraceEvent {
     double threshold = 0.0;
 };
 
+/// @brief One phase of an interior-point solve opening or closing (schema
+/// `ipm.phase.begin` / `ipm.phase.end`, M6 W5 T8.7b).
+///
+/// ONE STRUCT, TWO EVENTS: the two lines carry exactly the same three facts and
+/// differ only in which end of the phase they mark, so a second struct would be
+/// a copy to keep in step. They bracket the phase's `ipm.iter` rows and its
+/// `ipm.phase.exit`; a CONDITIONAL phase the sequence skipped writes NEITHER,
+/// which is how a reader tells a skipped phase from one that ran without
+/// consulting `ipm.solve.begin`'s `phases` count.
+///
+/// WHERE THE KKT ANALYSIS SITS, and it is not inside this bracket: the engine
+/// re-initializes BEFORE the phase's `begin` (the entry `init_impl`, and the
+/// inter-phase one at the end of the PREVIOUS phase's body), so the stream
+/// reads `kkt_analysis, phase.begin, rows..., phase.exit, phase.end`. See
+/// `IpmKktAnalysisTraceEvent`.
+struct IpmPhaseTraceEvent {
+    /// The phase's 0-based index into `IpmResult::phases`, on
+    /// `IpmIterTraceEvent::phase`'s reading.
+    Index phase = 0;
+    /// The engine's own label for this phase, and the bytes the console
+    /// prints: `"Optimization Algorithm "` or `"Solve Algorithm "`, WITH the
+    /// trailing space. Borrowed from the phase-step list, valid for the
+    /// duration of the call only.
+    std::string_view label;
+    /// Which phase this is -- `IpmOptions::phases[phase]`.
+    IpmPhase entry = IpmPhase::kOptimize;
+};
+
+/// @brief One KKT-matrix analysis or re-initialization (schema
+/// `ipm.kkt_analysis`, M6 W5 T8.7b).
+///
+/// ONE EVENT FOR BOTH HALVES of what the console prints. `init_impl` wrote a
+/// `Beginning: KKT-Matrix Analysis` line before the factorization and the size,
+/// FLOPs and time lines plus `Finished` after it; nothing can interleave
+/// between them (no message site lives in `init_impl`), so a single event
+/// emitted AFTER the analysis renders both halves in the same order and the
+/// same bytes.
+///
+/// ONE PER `init_impl`, which is NOT one per phase that RAN: the entry call
+/// runs before the loop and the inter-phase call is the LAST statement of a
+/// phase's body, ahead of the next iteration's conditional-skip test. A
+/// sequence whose second phase is skipped therefore carries TWO of these and
+/// one phase bracket. The count identity is
+/// `1 + #{phases that ran, were not the last step, and did not break}`.
+///
+/// `docompute` TELLS THE TWO CALLS APART: the entry analysis computes a fresh
+/// factorization, an inter-phase re-initialization refactorizes the existing
+/// one. The console prints the size and FLOPs lines only when `docompute`, and
+/// the FLOPs line only when the count is positive -- both rules stay in the
+/// console, not here.
+struct IpmKktAnalysisTraceEvent {
+    /// The KKT system's dimension. A JOIN KEY ONLY -- the console does not
+    /// print it here (`ipm.solve.begin` carries the printed copy).
+    Index kkt_dim = 0;
+    /// Nonzeros in the assembled KKT matrix. A join key, as `kkt_dim` is.
+    Index nnz = 0;
+    /// The factor's memory figure, as `KktFactorization` reports it (an `int`
+    /// there and on `IpmResult`; carried as `Index` and printed with the same
+    /// integer format the old console used, so the bytes do not move).
+    ///
+    /// STALE WHEN `docompute` IS FALSE -- it is re-read from the last analysis,
+    /// which is not this one's. The serializer writes it `null` there.
+    Index factor_mem = 0;
+    /// The factor's MFLOPs figure. Stale on `!docompute` exactly as
+    /// `factor_mem` is, and `null` on the wire there.
+    Index factor_flops = 0;
+    /// True when this call computed a fresh factorization, false when it
+    /// refactorized an existing one.
+    bool docompute = false;
+    /// Wall-clock SECONDS this analysis took (`IpmResult::pre_time`'s
+    /// increment). INFORMATIONAL -- no pin reads it; the console multiplies by
+    /// 1000 to print milliseconds, exactly as it does for `ipm.solve.end`.
+    double analysis_time_s = 0.0;
+};
+
+/// @brief One phase's exit statistics (schema `ipm.phase.exit`, M6 W5 T8.7b).
+///
+/// THE REPORT IS EMBEDDED, NOT MIRRORED. `IpmPhaseReport` is what `solve()`
+/// returns for this phase, and this event carries THAT OBJECT rather than a
+/// second copy of its six fields -- so "one shape, no drift" holds by
+/// construction and the pin is `event.report == result.phases[phase]` field for
+/// field on a live solve.
+///
+/// EMITTED FROM `run_phase_sequence`, right after the report is filled and
+/// before the phase's `end` line. The block it renders was printed at the tail
+/// of `alg_impl`, one statement earlier; nothing between the two writes to the
+/// console, so the transcript's byte ORDER is unchanged.
+///
+/// THE STATUS IS THE RESOLVED ONE (`report.status`), which is a DECLARED change
+/// of key and not of bytes. The old verdict line keyed on `alg_impl`'s RAW exit
+/// code, printed before `resolve_ipm_phase_status` ran; resolution only ever
+/// rewrites `kMaxIter`, into `kStalled` or `kInterrupted`, and the console
+/// prints `No Solution Found` for all three -- which is the branch the raw
+/// `kMaxIter` took. The three door fixtures pin that equality.
+///
+/// THE SELECTED ROW IS BORROWED, on `ipm.iter`'s own convention: the five
+/// values the block prints are read off it and the record's other keys are not
+/// repeated. It is the row the phase RETURNS -- the last one, or the best one
+/// when the `return_best` substitution applied. `iterate.prim_obj_` is printed
+/// RAW: the restoration-contamination NaN rule that governs the iteration
+/// CALLBACK's `f` does not apply to this block and never did.
+struct IpmPhaseExitTraceEvent {
+    /// This phase's report, the object `IpmResult::phases[phase]` holds. Valid
+    /// for the duration of the call only.
+    const IpmPhaseReport &report;
+    /// The row this phase returns. Valid for the duration of the call only.
+    const IterateInfo &iterate;
+    /// The phase's 0-based index, as on `IpmPhaseTraceEvent`.
+    Index phase = 0;
+    /// WHICH row of the phase's own iterate history was selected -- the index,
+    /// where `iterate.iter_` is the row's own iteration number and is the join
+    /// key to its `ipm.iter` line.
+    Index selected_iter = 0;
+    /// True when `return_best` substituted the best iterate for the last one.
+    bool best_substituted = false;
+    /// The last non-Success factorization status observed during this CALL
+    /// (not this phase): `IpmResult::last_kkt_info`, named rather than raw.
+    /// The console prints a line for it only when it is not `kSuccess`.
+    IpmKktFactorStatus last_kkt_info = IpmKktFactorStatus::kSuccess;
+    /// The phase's own four clocks, in SECONDS, from `alg_impl`'s internal
+    /// timers -- the console multiplies by 1000 and divides by
+    /// `report.iterations` for its `ms/iter` column. INFORMATIONAL.
+    ///
+    /// TWO CLOCKS, AND THEY ARE NOT THE SAME ONE: `total_s` is `alg_impl`'s own
+    /// `Runtimer` (what the block printed as `Total Time`), while
+    /// `report.phase_seconds` is `run_phase_sequence`'s timer AROUND the
+    /// `alg_impl` call. They differ by the call's own overhead; neither is
+    /// asserted anywhere.
+    double total_s = 0.0;
+    double func_s = 0.0;  ///< NLP function evaluation.
+    double kkt_s = 0.0;   ///< KKT factor/solve.
+    double print_s = 0.0; ///< Console print time.
+};
+
+/// @brief One diagnostic message the interior-point engine emitted (schema
+/// `ipm.message`, M6 W5 T8.7b).
+///
+/// THE NINE `fmt::print` SITES THAT REMAINED after M6 W5 T8.7, as events. The
+/// console renders each at the tier its `print_level` guard used to apply, so
+/// the bytes are unchanged; what is new is that a caller's own sink now
+/// receives the fact instead of losing it to stdout.
+///
+/// THE PAYLOAD IS PER KIND, and the slots a kind does not use are ABSENCES --
+/// `-1` on an `Index`, NaN on a `double` -- which the serializer writes as
+/// `null` (plan section 2 rule 5). A flat `{a, b, k}` could not carry
+/// `inertia_exhausted`, which prints six integers.
+///
+/// | kind | payload |
+/// |---|---|
+/// | `solver_initialized` | `a` = initialization MILLISECONDS |
+/// | `rank_deficiency` | none |
+/// | `factorization_hard_error` | `k` = the backend's info code |
+/// | `inertia_exhausted` | `k` = attempts, `p`/`n`/`z` observed, `expected_p`/`expected_n` |
+/// | `restoration_locally_infeasible` | `a` = infeasibility, `b` = threshold |
+/// | `feasibility_stall` | `a` = infeasibility now, `b` = at the last entry |
+/// | `interrupt_at_iteration` | `iter` = the row it stopped on |
+/// | `phase_diverged` | none |
+/// | `interrupt_skipping_phases` | none |
+///
+/// SEVERAL PER ITERATION ARE NORMAL. `rank_deficiency` and
+/// `factorization_hard_error` are raised from lambdas invoked at THREE ladder
+/// sites inside one `factor_impl` call, so a single iteration may write several
+/// -- one event per print, and a count pin counts by kind.
+struct IpmMessageTraceEvent {
+    IpmMessageKind kind = IpmMessageKind::kRankDeficiency;
+    /// The phase this message belongs to, on `IpmIterTraceEvent::phase`'s
+    /// reading. `-1` (`null`) on `solver_initialized`, which is emitted before
+    /// the first phase begins.
+    Index phase = -1;
+    /// The iteration this message belongs to; `-1` (`null`) when the message
+    /// does not belong to one.
+    Index iter = -1;
+    double a = kAbsentDouble; ///< Per-kind; NaN when the kind does not use it.
+    double b = kAbsentDouble; ///< Per-kind; NaN when the kind does not use it.
+    Index k = -1;             ///< Per-kind integer; `-1` when unused.
+    Index p = -1;             ///< `inertia_exhausted`: observed positive eigenvalues.
+    Index n = -1;             ///< `inertia_exhausted`: observed negative eigenvalues.
+    Index z = -1;             ///< `inertia_exhausted`: observed zero eigenvalues.
+    Index expected_p = -1;    ///< `inertia_exhausted`: expected positive count.
+    Index expected_n = -1;    ///< `inertia_exhausted`: expected negative count.
+};
+
 /// @brief The interior-point solve's closing line (schema `ipm.solve.end`,
 /// M6 W4 T4).
 ///
@@ -549,6 +744,38 @@ class TraceSink {
     ///
     /// LIKE `on_ipm_iter`, THIS MOVES NO `depth`.
     virtual void on_ipm_restoration_exit_row(const IpmRestorationExitRowTraceEvent &event);
+
+    /// @brief One phase opening and closing (M6 W5 T8.7b). NON-PURE with empty
+    /// out-of-line defaults, on the same terms as the six above: no sink that
+    /// predates them is touched by their arrival.
+    ///
+    /// NEITHER MOVES A `depth`, and neither does any of the three below. The
+    /// interior-point driver nests no driver of its own, so every line it
+    /// writes belongs to whatever nesting level the SQP-side pair last
+    /// established -- 0 for a stream that is only ever an IPM's. A `depth == 0`
+    /// assertion over a pure-IPM stream therefore still holds with these five
+    /// events on it.
+    virtual void on_ipm_phase_begin(const IpmPhaseTraceEvent &event);
+    virtual void on_ipm_phase_end(const IpmPhaseTraceEvent &event);
+
+    /// @brief One KKT-matrix analysis or re-initialization (M6 W5 T8.7b).
+    /// MOVES NO `depth`.
+    virtual void on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &event);
+
+    /// @brief One phase's exit statistics (M6 W5 T8.7b). MOVES NO `depth`.
+    virtual void on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event);
+
+    /// @brief One diagnostic message (M6 W5 T8.7b). MOVES NO `depth`.
+    ///
+    /// MAY FIRE FROM INSIDE A FACTORIZATION, which is the one place a sink is
+    /// reached with the engine's linear algebra half way through a ladder. A
+    /// sink that THROWS there takes the solve with it: `alg_impl`'s scope
+    /// guards still clear the in-flight flags and release the borrowed model,
+    /// and the solver stays destructible -- but the FACTORIZATION's own state
+    /// is whatever the interrupted ladder step left, so the next solve on this
+    /// solver re-analyzes rather than reusing it. Throwing from here is not a
+    /// supported way to stop a solve; the iteration callback's `kStop` is.
+    virtual void on_ipm_message(const IpmMessageTraceEvent &event);
 };
 
 } // namespace hven::solvers

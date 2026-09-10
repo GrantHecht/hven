@@ -210,6 +210,11 @@ struct CountingSink : TraceSink {
 // `.superpowers/w5-t8-7-psym-transcripts.md`.
 #include "console_sink_base_rows.inc"
 
+// AND THE WHOLE TRANSCRIPT (M6 W5 T8.7b): the same construction, extended to
+// every line kind the interior-point console writes. Captured ONCE, at BASE
+// (60bd796), by `.scratch/w5t87b/basecap/capture_transcript.cpp`.
+#include "console_sink_base_transcript.inc"
+
 // --- the byte-pin -----------------------------------------------------------
 
 void run_scripted(ConsoleTraceSink &sink, const std::vector<IterateInfo> &rows) {
@@ -380,6 +385,232 @@ TEST(ConsoleSink, IpmRendersNothingAboveTheTiers) {
     three.on_ipm_solve_end(scripted_end());
     EXPECT_EQ(read_all(f3), "");
     std::fclose(f3);
+}
+
+// ===========================================================================
+// M6 W5 T8.7b -- THE WHOLE-TRANSCRIPT BYTE-PIN.
+//
+// The scripted row pin above proves the TABLE. This proves everything around
+// it: the begin block, the solver-initialization notice, a KKT-analysis block
+// on a fresh factorization AND one on a refactorization, both phase brackets,
+// two warnings, two exit blocks (one of which carries the `KKT Factor Status`
+// line), and the end block -- against a literal captured at BASE from BASE's
+// own console and BASE's own `print_beginning`/`print_finished`/
+// `print_exit_stats`, with the four inline statement groups quoted verbatim.
+//
+// WHAT THIS PROVES THAT THE LIVE TRANSCRIPTS CANNOT. A live HS071 solve never
+// reaches a rank-deficiency warning, never exhausts the inertia ladder, never
+// leaves with a non-Success factorization status and never prints
+// `No Solution Found`. Every one of those is in these bytes.
+// ===========================================================================
+
+namespace {
+
+/// Drives one whole scripted transcript through a sink, in the order the ENGINE
+/// emits in: the analysis comes BEFORE the phase bracket (`init_impl` runs
+/// ahead of the loop, and ahead of the next phase at the end of the previous
+/// phase's body), and the exit event comes INSIDE it, just before the phase's
+/// closing line.
+void run_scripted_transcript(ConsoleTraceSink &sink, bool wide) {
+    const std::vector<IterateInfo> rows = scripted_rows();
+
+    sink.on_ipm_solve_begin(scripted_begin(wide));
+
+    IpmMessageTraceEvent init;
+    init.kind = IpmMessageKind::kSolverInitialized;
+    init.a = 627.5;
+    sink.on_ipm_message(init);
+
+    IpmKktAnalysisTraceEvent first_analysis;
+    first_analysis.kkt_dim = 23;
+    first_analysis.nnz = 101;
+    first_analysis.factor_mem = 31;
+    first_analysis.factor_flops = 7;
+    first_analysis.docompute = true;
+    first_analysis.analysis_time_s = 0.00048828125;
+    sink.on_ipm_kkt_analysis(first_analysis);
+
+    sink.on_ipm_phase_begin(IpmPhaseTraceEvent{0, "Optimization Algorithm ", IpmPhase::kOptimize});
+    for (std::size_t k = 0; k < 6; ++k) {
+        sink.on_ipm_iter(IpmIterTraceEvent{rows[k], 0});
+    }
+    IpmMessageTraceEvent rank_def;
+    rank_def.kind = IpmMessageKind::kRankDeficiency;
+    rank_def.phase = 0;
+    rank_def.iter = 5;
+    sink.on_ipm_message(rank_def);
+    IpmMessageTraceEvent inertia;
+    inertia.kind = IpmMessageKind::kInertiaExhausted;
+    inertia.phase = 0;
+    inertia.iter = 5;
+    inertia.k = 15;
+    inertia.p = 3;
+    inertia.n = 2;
+    inertia.z = 1;
+    inertia.expected_p = 5;
+    inertia.expected_n = 2;
+    sink.on_ipm_message(inertia);
+
+    IpmPhaseReport opt_report;
+    opt_report.phase = IpmPhase::kOptimize;
+    opt_report.status = SolveStatus::kMaxIter;
+    opt_report.iterations = 6;
+    opt_report.phase_seconds = 0.0078125;
+    opt_report.stop_reason = IpmStopReason::kIterationCap;
+    opt_report.ran = true;
+    IpmPhaseExitTraceEvent opt_exit{opt_report, rows[5]};
+    opt_exit.phase = 0;
+    opt_exit.selected_iter = 5;
+    opt_exit.total_s = 0.0078125;
+    opt_exit.func_s = 0.00390625;
+    opt_exit.kkt_s = 0.001953125;
+    opt_exit.print_s = 0.0009765625;
+    sink.on_ipm_phase_exit(opt_exit);
+    sink.on_ipm_phase_end(IpmPhaseTraceEvent{0, "Optimization Algorithm ", IpmPhase::kOptimize});
+
+    IpmKktAnalysisTraceEvent reinit = first_analysis;
+    reinit.docompute = false;
+    reinit.analysis_time_s = 0.000244140625;
+    sink.on_ipm_kkt_analysis(reinit);
+
+    sink.on_ipm_phase_begin(IpmPhaseTraceEvent{1, "Solve Algorithm ", IpmPhase::kSolve});
+    for (std::size_t k = 6; k < 12; ++k) {
+        sink.on_ipm_iter(IpmIterTraceEvent{rows[k], 1});
+    }
+    IpmPhaseReport soe_report;
+    soe_report.phase = IpmPhase::kSolve;
+    soe_report.status = SolveStatus::kOptimal;
+    soe_report.iterations = 6;
+    soe_report.phase_seconds = 0.00390625;
+    soe_report.stop_reason = IpmStopReason::kNone;
+    soe_report.ran = true;
+    IpmPhaseExitTraceEvent soe_exit{soe_report, rows[11]};
+    soe_exit.phase = 1;
+    soe_exit.selected_iter = 5;
+    // THE ONE EXIT BLOCK THAT CARRIES `KKT Factor Status`, which no live HS071
+    // solve reaches.
+    soe_exit.last_kkt_info = IpmKktFactorStatus::kNumericalIssue;
+    soe_exit.total_s = 0.00390625;
+    soe_exit.func_s = 0.001953125;
+    soe_exit.kkt_s = 0.0009765625;
+    soe_exit.print_s = 0.00048828125;
+    sink.on_ipm_phase_exit(soe_exit);
+    sink.on_ipm_phase_end(IpmPhaseTraceEvent{1, "Solve Algorithm ", IpmPhase::kSolve});
+
+    sink.on_ipm_solve_end(scripted_end());
+}
+
+} // namespace
+
+TEST(ConsoleSink, TheWholeScriptedTranscriptIsByteIdenticalToBaseNarrow) {
+    std::FILE *f = std::tmpfile();
+    ASSERT_NE(f, nullptr);
+    ConsoleTraceSink sink(ConsoleTraceSink::Format{/*wide=*/false, /*print_level=*/0}, f);
+    run_scripted_transcript(sink, /*wide=*/false);
+    EXPECT_EQ(read_all(f), std::string(kBaseTranscriptNarrow));
+    std::fclose(f);
+}
+
+TEST(ConsoleSink, TheWholeScriptedTranscriptIsByteIdenticalToBaseWide) {
+    std::FILE *f = std::tmpfile();
+    ASSERT_NE(f, nullptr);
+    ConsoleTraceSink sink(ConsoleTraceSink::Format{/*wide=*/false, /*print_level=*/0}, f);
+    run_scripted_transcript(sink, /*wide=*/true);
+    EXPECT_EQ(read_all(f), std::string(kBaseTranscriptWide));
+    std::fclose(f);
+}
+
+TEST(ConsoleSink, TheResolvedStalledAndInterruptedVerdictsRenderAsNoSolutionFound) {
+    // THE KEY CHANGE, ISOLATED. The old verdict line keyed on `alg_impl`'s RAW
+    // exit code and printed `No Solution Found` for kMaxIter; the event carries
+    // the RESOLVED status, which at three doors is kStalled or kInterrupted
+    // instead. All three must render the same bytes, or the transcript moves at
+    // exactly those doors.
+    const std::vector<IterateInfo> rows = scripted_rows();
+    auto verdict_of = [&rows](SolveStatus status) {
+        std::FILE *f = std::tmpfile();
+        EXPECT_NE(f, nullptr);
+        ConsoleTraceSink sink(ConsoleTraceSink::Format{false, /*print_level=*/2}, f);
+        sink.on_ipm_solve_begin(scripted_begin(false));
+        IpmPhaseReport report;
+        report.status = status;
+        report.iterations = 6;
+        report.ran = true;
+        IpmPhaseExitTraceEvent e{report, rows[5]};
+        sink.on_ipm_phase_exit(e);
+        const std::string out = read_all(f);
+        std::fclose(f);
+        return out;
+    };
+    const std::string max_iter = verdict_of(SolveStatus::kMaxIter);
+    EXPECT_NE(max_iter.find("No Solution Found"), std::string::npos);
+    EXPECT_EQ(verdict_of(SolveStatus::kStalled), max_iter);
+    EXPECT_EQ(verdict_of(SolveStatus::kInterrupted), max_iter);
+    // ... and the four that were never rewritten still render their own line.
+    EXPECT_NE(verdict_of(SolveStatus::kOptimal).find("Optimal Solution Found"), std::string::npos);
+    EXPECT_NE(verdict_of(SolveStatus::kAcceptable).find("Acceptable Solution Found"),
+              std::string::npos);
+    EXPECT_NE(verdict_of(SolveStatus::kDiverging).find("Solution Diverging"), std::string::npos);
+    EXPECT_NE(verdict_of(SolveStatus::kNumericalError).find("KKT System Persistently Singular"),
+              std::string::npos);
+    // The two statuses the interior-point engine never reports write NOTHING,
+    // exactly as the old chain's absent `else` did.
+    EXPECT_EQ(verdict_of(SolveStatus::kInfeasible), "");
+    EXPECT_EQ(verdict_of(SolveStatus::kBudgetExhausted), "");
+}
+
+TEST(ConsoleSink, TheT8_7bLineKindsEachRenderAtTheirOwnTier) {
+    // PER LINE KIND, which is how the tiers were applied at the sites this task
+    // moved: the phase lines, the analysis block, the exit BLOCK and the
+    // initialization notice at `< 2`; the exit VERDICT line and the eight
+    // warnings at `< 3`.
+    const std::vector<IterateInfo> rows = scripted_rows();
+    auto at = [&rows](int level) {
+        std::FILE *f = std::tmpfile();
+        EXPECT_NE(f, nullptr);
+        ConsoleTraceSink sink(ConsoleTraceSink::Format{false, level}, f);
+        sink.on_ipm_solve_begin(scripted_begin(false));
+        run_scripted_transcript(sink, false);
+        const std::string out = read_all(f);
+        std::fclose(f);
+        return out;
+    };
+    const std::string l0 = at(0);
+    const std::string l1 = at(1);
+    const std::string l2 = at(2);
+    const std::string l3 = at(3);
+
+    // level 0: every kind.
+    EXPECT_NE(l0.find("Beginning"), std::string::npos);
+    EXPECT_NE(l0.find("Solver Initialization"), std::string::npos);
+    EXPECT_NE(l0.find("LDLT Factor Size"), std::string::npos);
+    EXPECT_NE(l0.find("No Solution Found"), std::string::npos);
+    EXPECT_NE(l0.find(" Iterations : "), std::string::npos);
+    EXPECT_NE(l0.find("Warning: Potential Rank Deficiency"), std::string::npos);
+    EXPECT_NE(l0.find("|Iter| mu Val"), std::string::npos);
+
+    // level 1: the `== 0` kinds go, the `< 2` and `< 3` kinds stay.
+    EXPECT_EQ(l1.find("|Iter| mu Val"), std::string::npos);
+    EXPECT_EQ(l1.find("Problem Statistics"), std::string::npos);
+    EXPECT_NE(l1.find("Beginning"), std::string::npos);
+    EXPECT_NE(l1.find("Solver Initialization"), std::string::npos);
+    EXPECT_NE(l1.find("LDLT Factor Size"), std::string::npos);
+    EXPECT_NE(l1.find(" Iterations : "), std::string::npos);
+    EXPECT_NE(l1.find("No Solution Found"), std::string::npos);
+    EXPECT_NE(l1.find("Warning: Inertia correction exhausted"), std::string::npos);
+
+    // level 2: ONLY the `< 3` kinds -- the verdict line and the warnings. The
+    // initialization notice is a `< 2` NOTICE and goes with the blocks.
+    EXPECT_EQ(l2.find("Beginning"), std::string::npos);
+    EXPECT_EQ(l2.find("Solver Initialization"), std::string::npos);
+    EXPECT_EQ(l2.find("LDLT Factor Size"), std::string::npos);
+    EXPECT_EQ(l2.find(" Iterations : "), std::string::npos);
+    EXPECT_NE(l2.find("No Solution Found"), std::string::npos);
+    EXPECT_NE(l2.find("Optimal Solution Found"), std::string::npos);
+    EXPECT_NE(l2.find("Warning: Potential Rank Deficiency"), std::string::npos);
+
+    // level 3: silent, every kind.
+    EXPECT_EQ(l3, "");
 }
 
 TEST(ConsoleSink, TheRestorationExitRowMarkerRendersNothing) {

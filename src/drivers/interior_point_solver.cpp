@@ -799,12 +799,19 @@ void hven::solvers::InteriorPointSolver::ensure_solver_initialized() {
     double initMs = ::hven::solvers::ensure_solver_initialized();
     if (initMs > 0.0) {
         this->result_.solver_init_time = initMs / 1000.0;
-        // Suppress the init line when init was trivially fast (< 0.5 ms).
-        constexpr double kSolverInitPrintThresholdMs = 0.5;
-        if (initMs > kSolverInitPrintThresholdMs && opts_.common.print_level < 2) {
-            fmt::print(" Solver Initialization : ");
-            fmt::print(fmt::fg(fmt::color::cyan), "{0:.3f} ms\n", initMs);
-        }
+        // THE NOTICE IS AN EVENT (M6 W5 T8.7b, brief section 5 A1). It used to be a
+        // direct print, and it is not construction-time: this function is
+        // called from `run_phase_sequence`, INSIDE the solve, after
+        // `ipm.solve.begin` -- so a transcript with it in it was not the
+        // console's alone. The emit is UNCONDITIONAL on `print_level`: the
+        // console applies the old `> 0.5 ms` suppression and the old tier, and
+        // a caller's own sink now learns that initialization ran at all.
+        //
+        // `phase` IS ABSENT HERE and that is a reading: no phase has begun.
+        IpmMessageTraceEvent msg;
+        msg.kind = IpmMessageKind::kSolverInitialized;
+        msg.a = initMs;
+        this->emit_message(msg);
     }
 }
 
@@ -1912,9 +1919,14 @@ int hven::solvers::InteriorPointSolver::factor_impl(bool docompute, bool Zfac, d
     };
     auto RankDef = [&]() {
         if ((this->kkt_sol_.neigs() + this->kkt_sol_.peigs() - this->kkt_dim_) != 0) {
-            if (opts_.common.print_level < 3)
-                fmt::print(fmt::fg(fmt::color::yellow),
-                           "Warning: Potential Rank Deficiency Detected\n");
+            // ONE EVENT PER OCCURRENCE (M6 W5 T8.7b). This lambda is invoked at
+            // THREE ladder sites per call, so several messages in one iteration
+            // are normal and a count pin counts by kind, not by iteration.
+            IpmMessageTraceEvent msg;
+            msg.kind = IpmMessageKind::kRankDeficiency;
+            msg.phase = this->trace_phase_;
+            msg.iter = this->trace_iter_;
+            this->emit_message(msg);
         }
     };
     // kkt_sol_.info() is computed by every Compute()/Refactor() call below. This
@@ -1933,10 +1945,13 @@ int hven::solvers::InteriorPointSolver::factor_impl(bool docompute, bool Zfac, d
         Eigen::ComputationInfo info = this->kkt_sol_.info();
         if (info != Eigen::Success) {
             this->result_.last_kkt_info = info;
-            if (info != Eigen::NumericalIssue && opts_.common.print_level < 3) {
-                fmt::print(fmt::fg(fmt::color::yellow),
-                           "Warning: KKT factorization reported a hard error (info={})\n",
-                           static_cast<int>(info));
+            if (info != Eigen::NumericalIssue) {
+                IpmMessageTraceEvent msg;
+                msg.kind = IpmMessageKind::kFactorizationHardError;
+                msg.phase = this->trace_phase_;
+                msg.iter = this->trace_iter_;
+                msg.k = static_cast<Index>(info);
+                this->emit_message(msg);
             }
         }
     };
@@ -2066,14 +2081,23 @@ int hven::solvers::InteriorPointSolver::factor_impl(bool docompute, bool Zfac, d
             p *= incpurt;
         p -= finalpert;
     }
-    if (opts_.common.print_level < 3)
-        fmt::print(fmt::fg(fmt::color::yellow),
-                   "Warning: Inertia correction exhausted ({} perturbation attempts, "
-                   "inertia p/n/z = {}/{}/{}, expected {}/{}/0)\n",
-                   opts_.max_refac, this->kkt_sol_.peigs(), this->kkt_sol_.neigs(),
-                   this->kkt_dim_ - this->kkt_sol_.peigs() - this->kkt_sol_.neigs(),
-                   this->kkt_dim_ - (this->equal_cons_ + this->inequal_cons_),
-                   this->equal_cons_ + this->inequal_cons_);
+    // SIX INTEGERS, which is why the message payload is not a flat {a, b, k}
+    // (M6 W5 T8.7b): the attempts, the observed inertia triple, and the pair
+    // the ladder expected. The console prints the trailing expected zero as a
+    // literal, exactly as the old format string did.
+    {
+        IpmMessageTraceEvent msg;
+        msg.kind = IpmMessageKind::kInertiaExhausted;
+        msg.phase = this->trace_phase_;
+        msg.iter = this->trace_iter_;
+        msg.k = opts_.max_refac;
+        msg.p = this->kkt_sol_.peigs();
+        msg.n = this->kkt_sol_.neigs();
+        msg.z = this->kkt_dim_ - this->kkt_sol_.peigs() - this->kkt_sol_.neigs();
+        msg.expected_p = this->kkt_dim_ - (this->equal_cons_ + this->inequal_cons_);
+        msg.expected_n = this->equal_cons_ + this->inequal_cons_;
+        this->emit_message(msg);
+    }
     exhausted = true;
     return opts_.max_refac;
 }
@@ -2385,30 +2409,75 @@ void hven::solvers::InteriorPointSolver::fire_iteration_event(const IterateInfo 
         throw;
     }
     this->callback_in_flight_ = false;
+    // BOTH PARKED KINDS (M6 W5 T8.7b). A callback may set the KKT HOOK as well
+    // as itself, and since T8.7b such a call parks rather than taking the
+    // direct branch -- so this is where it lands, one statement after the
+    // invocation that made it, exactly as its own replacement does.
     this->apply_pending_iteration_callback();
+    this->apply_pending_kkt_hook();
     if (action == CallbackAction::kStop) {
         this->interrupt_requested_ = true;
     }
 }
 
-void hven::solvers::InteriorPointSolver::apply_pending_iteration_callback() {
+void hven::solvers::InteriorPointSolver::apply_pending_iteration_callback(bool at_solve_entry) {
     if (!this->pending_callback_.has_value()) {
+        return;
+    }
+    // NOT MINE TO APPLY (M6 W5 T8.7b): a value parked by a SINK method belongs
+    // to the next solve's entry, not to the statement after a callback
+    // invocation that happens to run first. The entry call applies both kinds.
+    if (this->pending_callback_at_entry_ && !at_solve_entry) {
         return;
     }
     this->iteration_callback_ = std::move(*this->pending_callback_);
     this->pending_callback_.reset();
+    this->pending_callback_at_entry_ = false;
 }
 
-void hven::solvers::InteriorPointSolver::apply_pending_kkt_hook() {
+void hven::solvers::InteriorPointSolver::apply_pending_kkt_hook(bool at_solve_entry) {
     if (!this->pending_kkt_hook_.has_value()) {
+        return;
+    }
+    if (this->pending_kkt_hook_at_entry_ && !at_solve_entry) {
         return;
     }
     KktHook next = std::move(*this->pending_kkt_hook_);
     this->pending_kkt_hook_.reset();
+    this->pending_kkt_hook_at_entry_ = false;
     // An EMPTY function is the deferred CLEAR: it disarms as well as clears,
     // exactly as clear_kkt_hook() does when it runs outside the hook.
     this->kkt_hook_enabled_ = static_cast<bool>(next);
     this->kkt_hook_ = std::move(next);
+}
+
+void hven::solvers::InteriorPointSolver::emit_message(const IpmMessageTraceEvent &event) {
+    if (TraceSink *const sink = this->trace_; sink != nullptr) {
+        sink->on_ipm_message(event);
+    }
+}
+
+/// `Eigen::ComputationInfo` -> the schema's named vocabulary (M6 W5 T8.7b).
+///
+/// FILE-LOCAL, and it lives here rather than beside the enum because this is
+/// the one place the two vocabularies meet: `core/solver_status.h` must not
+/// name an Eigen type, and nothing outside this engine records an Eigen
+/// computation status at all.
+static hven::solvers::IpmKktFactorStatus ipm_kkt_factor_status(Eigen::ComputationInfo info) {
+    switch (info) {
+    case Eigen::Success:
+        return hven::solvers::IpmKktFactorStatus::kSuccess;
+    case Eigen::NumericalIssue:
+        return hven::solvers::IpmKktFactorStatus::kNumericalIssue;
+    case Eigen::NoConvergence:
+        return hven::solvers::IpmKktFactorStatus::kNoConvergence;
+    case Eigen::InvalidInput:
+        return hven::solvers::IpmKktFactorStatus::kInvalidInput;
+    }
+    // Eigen declares exactly those four; anything else is a value this build
+    // does not know, reported as the status the old console printed for
+    // everything that was not NumericalIssue.
+    return hven::solvers::IpmKktFactorStatus::kInvalidInput;
 }
 
 Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algmode,
@@ -2537,6 +2606,13 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     for (; i < this->effective_max_iters_; i++) {
         IterateInfo Citer;
         Citer.iter_ = i;
+        // WHICH ITERATION A MESSAGE BELONGS TO (M6 W5 T8.7b). `factor_impl`
+        // raises three of the nine message kinds and does not see `i` at all;
+        // this one store per iteration is what lets those events carry it
+        // without an instrumentation parameter in that function's signature.
+        // Cleared below the loop, so a message raised outside an iteration
+        // reports the absence rather than the last iteration's number.
+        this->trace_iter_ = i;
 
         double avgcomp = 0;
         double mincomp = 0;
@@ -2647,6 +2723,7 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
             }
             this->kkt_hook_in_flight_ = false;
             this->apply_pending_kkt_hook();
+            this->apply_pending_iteration_callback();
             CBtimer.stop();
         }
 
@@ -3002,12 +3079,15 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                                                                 : iters.back().prim_obj_);
                     CBtimer.stop();
                 }
-                if (opts_.common.print_level < 3)
-                    fmt::print(fmt::fg(fmt::color::yellow),
-                               "Feasibility restoration converged to a locally infeasible "
-                               "point (infeasibility {:.3e} > {:.3e}); stopping "
-                               "(not converged).\n",
-                               locally_infeasible_theta, locally_infeasible_threshold);
+                {
+                    IpmMessageTraceEvent msg;
+                    msg.kind = IpmMessageKind::kRestorationLocallyInfeasible;
+                    msg.phase = this->trace_phase_;
+                    msg.iter = this->trace_iter_;
+                    msg.a = locally_infeasible_theta;
+                    msg.b = locally_infeasible_threshold;
+                    this->emit_message(msg);
+                }
                 break;
             }
         }
@@ -3226,15 +3306,13 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                     // terminal conjunction so a stall on the cap iteration wins
                     // the tie by program order; see last_stop_reason().
                     this->last_stop_reason_ = IpmStopReason::kStageStalled;
-                    if (opts_.common.print_level < 3)
-                        fmt::print(fmt::fg(fmt::color::yellow),
-                                   "Feasibility phase stalled with its restoration budget "
-                                   "exhausted and no relative improvement over the violation "
-                                   "at its last restoration entry (infeasibility {:.3e}, "
-                                   "{:.3e} at that entry); ending the phase — the convergence "
-                                   "check still reports the final verdict, which may be "
-                                   "acceptable.\n",
-                                   theta_fs, feas_stall.theta_at_last_dispatch_);
+                    IpmMessageTraceEvent msg;
+                    msg.kind = IpmMessageKind::kFeasibilityStall;
+                    msg.phase = this->trace_phase_;
+                    msg.iter = this->trace_iter_;
+                    msg.a = theta_fs;
+                    msg.b = feas_stall.theta_at_last_dispatch_;
+                    this->emit_message(msg);
                 }
             }
         }
@@ -3296,10 +3374,13 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
                 sink->on_ipm_iter(IpmIterTraceEvent{iters.back(), this->trace_phase_});
                 Printtimer.stop();
             }
-            if (opts_.common.print_level < 3)
-                fmt::print(fmt::fg(fmt::color::yellow),
-                           "Solve interrupted by the iteration callback at iteration {}.\n",
-                           iters.back().iter_);
+            {
+                IpmMessageTraceEvent msg;
+                msg.kind = IpmMessageKind::kInterruptAtIteration;
+                msg.phase = this->trace_phase_;
+                msg.iter = iters.back().iter_;
+                this->emit_message(msg);
+            }
             break;
         }
         // ===============================================================
@@ -4237,10 +4318,16 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     // beside primals describing the current one. Written as a third conjunct
     // rather than by reading `best_substituted`, so that every pre-existing
     // path takes exactly the expression it always took.
-    const int retiter = (opts_.return_best && ExitCode != SolveStatus::kOptimal &&
-                         this->last_stop_reason_ != IpmStopReason::kInterrupted)
-                            ? BestIter
-                            : static_cast<int>(iters.size()) - 1;
+    //
+    // HOISTED INTO A NAMED BOOL at M6 W5 T8.7b, and the expression is
+    // character-for-character the one that stood in the ternary: the
+    // phase-exit event reports WHETHER the substitution applied, and reading
+    // it back off `retiter == BestIter` would say "yes" whenever the best
+    // iterate happened to be the last one. Same operands, same short-circuit
+    // order, same value.
+    const bool return_best_applied = (opts_.return_best && ExitCode != SolveStatus::kOptimal &&
+                                      this->last_stop_reason_ != IpmStopReason::kInterrupted);
+    const int retiter = return_best_applied ? BestIter : static_cast<int>(iters.size()) - 1;
     // The four residual columns of the row selected just above; written per
     // phase, last phase wins. Scales and the restoration-mode caveat:
     // SolveResult's field note.
@@ -4248,8 +4335,23 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     this->result_.barr_inf = iters[retiter].barr_inf_;
     this->result_.econ_inf = iters[retiter].econ_inf_;
     this->result_.icon_inf = iters[retiter].icon_inf_;
-    print_exit_stats(ExitCode, iters[retiter], iters.size(), tottime * 1000, nlptime * 1000,
-                     qptime * 1000, printtime * 1000);
+    // WHAT THE PHASE-EXIT EVENT NEEDS, LEFT WHERE `print_exit_stats()` STOOD
+    // (M6 W5 T8.7b). `run_phase_sequence` emits `ipm.phase.exit` one statement
+    // after this function returns -- after it has filled the phase's
+    // `IpmPhaseReport`, which the event EMBEDS, and before the phase's own
+    // `end` line. Nothing writes to the console in between, so the transcript's
+    // byte order is exactly what the direct call produced.
+    //
+    // THE ROW IS COPIED because `iters` is this frame's local: the event holds
+    // a reference, and by the time it is emitted this vector is gone.
+    this->trace_iter_ = -1;
+    this->phase_exit_.row = iters[retiter];
+    this->phase_exit_.selected_iter = retiter;
+    this->phase_exit_.best_substituted = return_best_applied;
+    this->phase_exit_.total_s = tottime;
+    this->phase_exit_.func_s = nlptime;
+    this->phase_exit_.kkt_s = qptime;
+    this->phase_exit_.print_s = printtime;
 
     return XSL;
 }
@@ -4297,9 +4399,11 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::init_impl(const Eigen::Vecto
 
     if (this->inequal_cons_ > 0)
         this->nlp_->assign_kkt_slack_hessian(hp, this->kkt_sol_.matrix());
-    if (opts_.common.print_level < 2) {
-        print_beginning("KKT-Matrix Analysis ");
-    }
+    // THE `Beginning: KKT-Matrix Analysis` LINE IS THE CONSOLE'S NOW (M6 W5
+    // T8.7b). It is rendered from the SINGLE `ipm.kkt_analysis` event emitted
+    // below, after the factorization -- which reproduces the transcript because
+    // nothing between here and there writes to the console: no message site
+    // lives in this function.
 
     if (docompute)
         this->kkt_sol_.compute();
@@ -4313,19 +4417,24 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::init_impl(const Eigen::Vecto
     this->result_.factor_flops = this->kkt_sol_.factor_flops();
     this->result_.factor_mem = this->kkt_sol_.factor_mem();
 
-    if (opts_.common.print_level < 2) {
-        auto cyan = fmt::fg(fmt::color::cyan);
-        if (docompute) {
-            fmt::print(" LDLT Factor Size      : ");
-            fmt::print(cyan, "{0:<10}\n", this->result_.factor_mem);
-            if (this->result_.factor_flops > 0) {
-                fmt::print(" LDLT Factor FLOPs     : ");
-                fmt::print(cyan, "{0} MFLOPs\n", this->result_.factor_flops);
-            }
-        }
-        fmt::print(" Analysis/Reorder Time : ");
-        fmt::print(cyan, "{0:.3f} ms\n", pretime * 1000);
-        print_finished("KKT-Matrix Analysis ");
+    // ONE EVENT, BOTH HALVES (M6 W5 T8.7b). The console renders the
+    // `Beginning` line, the size and FLOPs lines, the analysis time and the
+    // `Finished` line from this, at the tier the two deleted `print_level < 2`
+    // blocks applied, and keeps the two conditionals that decided which lines
+    // appeared (size/FLOPs only on a fresh analysis, FLOPs only when positive).
+    //
+    // ON A REFACTORIZATION the two factor figures are the LAST analysis's --
+    // they are re-read from `result_` above either way -- which is why the
+    // console does not print them there and the serializer writes them `null`.
+    if (TraceSink *const sink = this->trace_; sink != nullptr) {
+        IpmKktAnalysisTraceEvent analysis;
+        analysis.kkt_dim = this->kkt_dim_;
+        analysis.nnz = this->kkt_sol_.matrix().nonZeros();
+        analysis.factor_mem = this->result_.factor_mem;
+        analysis.factor_flops = this->result_.factor_flops;
+        analysis.docompute = docompute;
+        analysis.analysis_time_s = pretime;
+        sink->on_ipm_kkt_analysis(analysis);
     }
 
     // See the solve-into comment in alg_impl: solve straight into the
@@ -5125,8 +5234,8 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
     // or a hook that departed by throwing left its own set/clear parked, and
     // the guard state read one statement below must be this call's truth. This
     // is the second of the two safe points the setters' contract names.
-    this->apply_pending_iteration_callback();
-    this->apply_pending_kkt_hook();
+    this->apply_pending_iteration_callback(/*at_solve_entry=*/true);
+    this->apply_pending_kkt_hook(/*at_solve_entry=*/true);
 
     // The entry state of the guard: true only when a callback is already
     // armed at entry, so the entry init_impl() factorization -- which runs
@@ -5525,8 +5634,14 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
         if (step.conditional_ && this->result_.status == SolveStatus::kOptimal)
             continue;
 
-        if (opts_.common.print_level < 2)
-            print_beginning(step.label_);
+        // THE PHASE'S OPENING LINE (`ipm.phase.begin`, M6 W5 T8.7b), at the
+        // site the direct print stood: after the conditional-skip test, so a
+        // SKIPPED phase writes neither bracket line and neither event.
+        if (TraceSink *const sink = this->trace_; sink != nullptr) {
+            sink->on_ipm_phase_begin(
+                IpmPhaseTraceEvent{current_phase_idx, step.label_,
+                                   opts_.phases[static_cast<std::size_t>(current_phase_idx)]});
+        }
 
         // Phase-boundary reset: each globalization component's μ-event/
         // phase-change hook (see e.g. recovery_chain.h's ownership-rule
@@ -5615,6 +5730,32 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
             report.ran = true;
         }
 
+        // THE PHASE'S EXIT STATISTICS (`ipm.phase.exit`, M6 W5 T8.7b), emitted
+        // HERE -- after the report is filled, so the event can EMBED it rather
+        // than mirror its six fields, and before the phase's `end` line, which
+        // is where `print_exit_stats()` printed from inside `alg_impl`.
+        //
+        // THE STATUS IS THE RESOLVED ONE. The old verdict line keyed on
+        // `alg_impl`'s raw exit code; resolution only ever rewrites kMaxIter,
+        // into kStalled or kInterrupted, and the console prints
+        // `No Solution Found` for all three -- the branch the raw kMaxIter
+        // took. Same bytes, one key.
+        if (TraceSink *const sink = this->trace_; sink != nullptr) {
+            const IpmPhaseReport &report =
+                this->result_.phases[static_cast<std::size_t>(current_phase_idx)];
+            IpmPhaseExitTraceEvent exit_event{report,
+                                              this->phase_exit_.row,
+                                              current_phase_idx,
+                                              this->phase_exit_.selected_iter,
+                                              this->phase_exit_.best_substituted,
+                                              ipm_kkt_factor_status(this->result_.last_kkt_info),
+                                              this->phase_exit_.total_s,
+                                              this->phase_exit_.func_s,
+                                              this->phase_exit_.kkt_s,
+                                              this->phase_exit_.print_s};
+            sink->on_ipm_phase_exit(exit_event);
+        }
+
         // Solver-level observability: collect this phase's acceptance-
         // strategy diagnostics (funnel width / filter size+resets — see
         // AcceptanceStrategy::append_diagnostics()) right after alg_impl()
@@ -5641,8 +5782,16 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
         if (this->restoration_)
             this->restoration_->append_diagnostics(this->result_);
 
-        if (opts_.common.print_level < 2)
-            print_finished(step.label_);
+        // THE PHASE'S CLOSING LINE (`ipm.phase.end`, M6 W5 T8.7b), where the
+        // direct print stood. The exit event above it is what `print_exit_stats`
+        // used to write from inside `alg_impl`; the two are adjacent because
+        // nothing between `alg_impl`'s return and this line writes to the
+        // console -- the three `append_diagnostics` calls are silent.
+        if (TraceSink *const sink = this->trace_; sink != nullptr) {
+            sink->on_ipm_phase_end(
+                IpmPhaseTraceEvent{current_phase_idx, step.label_,
+                                   opts_.phases[static_cast<std::size_t>(current_phase_idx)]});
+        }
 
         // If a phase reached DIVERGING or anything at least as severe, skip
         // subsequent phases. For DIVERGING itself, result_.x may
@@ -5654,9 +5803,12 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
         // via operator<=> in interior_point_solver_fwd.h) -- DIVERGING and anything more
         // severe ends the sequence.
         if (severity(result_.status) >= severity(SolveStatus::kDiverging)) {
-            if (opts_.common.print_level < 3)
-                fmt::print(fmt::fg(fmt::color::yellow),
-                           "Phase diverged; skipping remaining phases.\n");
+            {
+                IpmMessageTraceEvent msg;
+                msg.kind = IpmMessageKind::kPhaseDiverged;
+                msg.phase = this->trace_phase_;
+                this->emit_message(msg);
+            }
             break;
         }
 
@@ -5668,10 +5820,12 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
         // stop", stated once here and once in the pre-factorization exit
         // alg_impl takes on a continuing row.
         if (this->interrupt_requested_) {
-            if (opts_.common.print_level < 3)
-                fmt::print(fmt::fg(fmt::color::yellow),
-                           "Solve interrupted by the iteration callback; skipping remaining "
-                           "phases.\n");
+            {
+                IpmMessageTraceEvent msg;
+                msg.kind = IpmMessageKind::kInterruptSkippingPhases;
+                msg.phase = this->trace_phase_;
+                this->emit_message(msg);
+            }
             break;
         }
 

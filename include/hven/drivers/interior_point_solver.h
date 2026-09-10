@@ -108,6 +108,11 @@ struct FeasibilityStallDetector;
 /// pointer name this type here. The .cpp takes the include.
 class TraceSink;
 
+/// @brief Forward-declared for the same reason (M6 W5 T8.7b): the only place
+/// this header names the event is `emit_message`'s parameter, which is a
+/// reference, and the nine call sites that build one are all in the .cpp.
+struct IpmMessageTraceEvent;
+
 /// The two composition sinks (M6 W5 T8.7, `drivers/console_trace_sink.h`),
 /// forward-declared for the same reason and held through `unique_ptr`s whose
 /// deleters are instantiated in the .cpp -- which is where the destructor is,
@@ -530,8 +535,25 @@ class InteriorPointSolver {
     ///
     /// @param cb The callback. An empty std::function is the same as clearing.
     void set_iteration_callback(IterationCallback cb) {
-        if (this->callback_in_flight_) {
+        if (this->callback_in_flight_ || this->solve_in_flight_) {
             this->pending_callback_ = std::move(cb);
+            // WHICH SAFE POINT APPLIES IT (M6 W5 T8.7b, the lane's Q5).
+            //
+            // FROM INSIDE A CALLER-SUPPLIED INVOCATION -- the iteration
+            // callback or the KKT hook -- the parked value is applied the
+            // statement after that invocation returns. That is T8.6's contract
+            // and it is unchanged: a callback may still arm a hook mid-solve
+            // and see it fire in this solve, which
+            // `StructureEpochGating.AnEarlyCallbackArmedFromInsideTheLate
+            // CallbackVerifiesFromThatHandOutOn` pins.
+            //
+            // FROM ANYWHERE ELSE WHILE A SOLVE RUNS -- and since T8.7b that
+            // means A SINK METHOD, which now fires from inside a factorization
+            // -- the value is applied at the NEXT SOLVE'S ENTRY, so the solve
+            // in progress is bitwise the solve it would have been. Before this
+            // task such a call took the DIRECT branch below, mid-iteration.
+            this->pending_callback_at_entry_ =
+                !(this->callback_in_flight_ || this->kkt_hook_in_flight_);
             return;
         }
         // A DIRECT CALL SUPERSEDES ANY PENDING DEFERRAL (M6 W5 T8.7, the SQP
@@ -540,6 +562,7 @@ class InteriorPointSolver {
         // this reset the next solve entry would apply that stale value OVER the
         // callback just installed here.
         this->pending_callback_.reset();
+        this->pending_callback_at_entry_ = false;
         this->iteration_callback_ = std::move(cb);
     }
     /// @brief Removes the per-iteration callback.
@@ -547,12 +570,15 @@ class InteriorPointSolver {
     /// Deferred to the safe point when called from INSIDE the callback; see
     /// set_iteration_callback().
     void clear_iteration_callback() {
-        if (this->callback_in_flight_) {
+        if (this->callback_in_flight_ || this->solve_in_flight_) {
             this->pending_callback_ = IterationCallback{};
+            this->pending_callback_at_entry_ =
+                !(this->callback_in_flight_ || this->kkt_hook_in_flight_);
             return;
         }
         // See set_iteration_callback(): a direct call supersedes a deferral.
         this->pending_callback_.reset();
+        this->pending_callback_at_entry_ = false;
         this->iteration_callback_ = nullptr;
     }
 
@@ -567,12 +593,25 @@ class InteriorPointSolver {
     /// is DEFERRED to the statement after the running hook returns, so the
     /// callable is never destroyed during its own invocation.
     void set_kkt_hook(const KktHook &f) {
-        if (this->kkt_hook_in_flight_) {
+        if (this->kkt_hook_in_flight_ || this->solve_in_flight_) {
             this->pending_kkt_hook_ = f;
+            // See set_iteration_callback() for the two safe points. A hook
+            // installed from a SINK METHOD is the case T8.7b closes: it used
+            // to take the direct branch below and flip `kkt_hook_enabled_`
+            // mid-iteration, from inside a factorization. (The pattern
+            // VERIFICATION is not the exposure: the hand-out site arms
+            // `verify_kkt_pattern_for_solve_` unconditionally beside the
+            // hand-out itself, so a hook armed at any moment still verifies
+            // from its first hand-out on -- M6 W5 T2. What the deferral buys
+            // is that a solve's own behaviour cannot be changed by a sink
+            // watching it.)
+            this->pending_kkt_hook_at_entry_ =
+                !(this->callback_in_flight_ || this->kkt_hook_in_flight_);
             return;
         }
         // See set_iteration_callback(): a direct call supersedes a deferral.
         this->pending_kkt_hook_.reset();
+        this->pending_kkt_hook_at_entry_ = false;
         this->kkt_hook_enabled_ = true;
         this->kkt_hook_ = f;
     }
@@ -590,12 +629,15 @@ class InteriorPointSolver {
     /// would be destroyed during its own invocation. The clear is DEFERRED to
     /// the statement after the hook returns.
     void clear_kkt_hook() {
-        if (this->kkt_hook_in_flight_) {
+        if (this->kkt_hook_in_flight_ || this->solve_in_flight_) {
             this->pending_kkt_hook_ = KktHook{};
+            this->pending_kkt_hook_at_entry_ =
+                !(this->callback_in_flight_ || this->kkt_hook_in_flight_);
             return;
         }
         // See set_iteration_callback(): a direct call supersedes a deferral.
         this->pending_kkt_hook_.reset();
+        this->pending_kkt_hook_at_entry_ = false;
         this->kkt_hook_enabled_ = false;
         this->kkt_hook_ = nullptr;
     }
@@ -721,11 +763,13 @@ class InteriorPointSolver {
     // itself when `common.print_level` says printing is on. `print_settings()`
     // was declared and defined with NO caller and is simply deleted.
     //
-    // THREE DIRECT PRINTS SURVIVE, with the nine warnings: the per-phase
-    // Beginning/Finished lines, the KKT-analysis block, and the per-PHASE
-    // `print_exit_stats()`. Each reports something the per-CALL `ipm.solve`
-    // pair cannot carry (a phase label, an analysis, a phase's own verdict and
-    // times) and T8.7b gives each its own event.
+    // AND M6 W5 T8.7b TOOK THE REST. The per-phase Beginning/Finished lines,
+    // the KKT-analysis block, the per-PHASE exit statistics and the nine
+    // messages are `ipm.phase.begin`/`.end`, `ipm.kkt_analysis`,
+    // `ipm.phase.exit` and `ipm.message`; `interior_point_solver_print.cpp` is
+    // gone. `grep fmt::print src/drivers/interior_point_solver.cpp` finds
+    // nothing in the solve path -- the console is a SINK now, in full, and a
+    // caller's own sink receives every fact the transcript carries.
 
   private:
     // Test access: these unit tests verify which concrete acceptance strategy
@@ -1158,6 +1202,14 @@ class InteriorPointSolver {
     bool kkt_hook_in_flight_ = false;
     std::optional<IterationCallback> pending_callback_;
     std::optional<KktHook> pending_kkt_hook_;
+    // WHICH OF THE TWO SAFE POINTS the parked value belongs to (M6 W5 T8.7b).
+    // False: the statement after the running callback/hook invocation returns
+    // (T8.6's contract, unchanged). True: the next solve's ENTRY, which is
+    // where a value parked by a SINK method -- or by anything else that
+    // reaches a setter mid-solve with no invocation on the stack -- is
+    // applied, so the solve in progress is unchanged bitwise.
+    bool pending_callback_at_entry_ = false;
+    bool pending_kkt_hook_at_entry_ = false;
     /// The SHARED per-iteration callback (M6 W5 T8.6). No separate arming flag:
     /// an installed std::function is armed and an empty one is not, which is
     /// the whole of clear_iteration_callback().
@@ -1230,6 +1282,38 @@ class InteriorPointSolver {
     /// emit sites. A member rather than an alg_impl parameter because it is
     /// instrumentation: the algorithm itself has no use for it.
     Index trace_phase_ = 0;
+
+    /// The iteration `alg_impl` is currently on, written at the top of its loop
+    /// and read by `factor_impl`'s `ipm.message` emits (M6 W5 T8.7b).
+    ///
+    /// A MEMBER FOR THE SAME REASON `trace_phase_` IS ONE, and for a second:
+    /// `factor_impl` does not see the loop counter at all, and threading an
+    /// instrumentation-only parameter through its eight-argument signature
+    /// would put it in the algorithm's way. `-1` outside a loop iteration,
+    /// which the message serializer writes as `null`.
+    Index trace_iter_ = -1;
+
+    /// WHAT `alg_impl` LEAVES BEHIND for the `ipm.phase.exit` event (M6 W5
+    /// T8.7b), filled at its tail exactly where `print_exit_stats()` was called
+    /// and read by `run_phase_sequence` one statement after `alg_impl` returns.
+    ///
+    /// A COPY OF THE ROW, not a reference: `iters` is an `alg_impl` local and
+    /// is destroyed by the time the emit runs. `IterateInfo` is 28 scalars.
+    ///
+    /// WRITTEN UNCONDITIONALLY, sink or no sink: it is four doubles, two
+    /// integers, a bool and one record copy per PHASE -- not per iteration --
+    /// and making it conditional would put a second predicate between the
+    /// algorithm and its own bookkeeping for no measurable saving.
+    struct PhaseExitScratch {
+        IterateInfo row;               ///< The row the phase returns.
+        Index selected_iter = 0;       ///< Its index in the phase's own history.
+        bool best_substituted = false; ///< Did `return_best` substitute it?
+        double total_s = 0.0;          ///< alg_impl's `Runtimer`.
+        double func_s = 0.0;
+        double kkt_s = 0.0;
+        double print_s = 0.0;
+    };
+    PhaseExitScratch phase_exit_{};
 
     // Is a public entry point on THIS object currently inside its solve? Set by
     // an RAII guard at run_phase_sequence()'s entry -- the ONE place all five
@@ -1761,10 +1845,23 @@ class InteriorPointSolver {
 
     /// @brief Applies a set/clear of the iteration callback deferred while it
     ///        was on the stack; see set_iteration_callback().
-    void apply_pending_iteration_callback();
+    /// Applies a parked callback if this is the safe point it belongs to.
+    /// @param at_solve_entry True at run_phase_sequence's entry, which applies
+    ///        every parked value; false after a callback invocation returns,
+    ///        which applies only what that invocation itself parked.
+    void apply_pending_iteration_callback(bool at_solve_entry = false);
     /// @brief Applies a set/clear of the KKT hook deferred while it was on the
     ///        stack; see set_kkt_hook().
-    void apply_pending_kkt_hook();
+    /// @see apply_pending_iteration_callback().
+    void apply_pending_kkt_hook(bool at_solve_entry = false);
+
+    /// Emits one `ipm.message` if a sink is attached (M6 W5 T8.7b).
+    ///
+    /// THE MEMBER IS READ INTO A LOCAL ONCE, as at every other emit site since
+    /// M6 W5 T8.7 fix1: nothing a sink does between the check and the call can
+    /// change which sink this event reaches. Each caller fills the slots its
+    /// KIND uses and leaves the rest at their absence sentinels.
+    void emit_message(const IpmMessageTraceEvent &event);
 
     // Best-iterate bookkeeping for the return_best_ path (off by default). Scores
     // `iter` under best_criteria_ and, when it ties or beats the incumbent (or is
@@ -1801,12 +1898,13 @@ class InteriorPointSolver {
 
     // --- Printing methods ---
     //
-    // THREE LEFT (M6 W5 T8.7). The rest moved into `ConsoleTraceSink` or, in
-    // `print_settings()`'s case, were deleted for having no caller.
-    void print_beginning(std::string_view msg) const;
-    void print_finished(std::string_view msg) const;
-    void print_exit_stats(SolveStatus ExitCode, const IterateInfo &last, int iternum,
-                          double tottime, double nlptime, double qptime, double printtime);
+    // NONE LEFT (M6 W5 T8.7b). `print_beginning`, `print_finished` and
+    // `print_exit_stats` were the last three, and
+    // `src/drivers/interior_point_solver_print.cpp` -- the file that held them
+    // -- is deleted. What they wrote is written by `ConsoleTraceSink` from
+    // `ipm.phase.begin` / `ipm.phase.end` / `ipm.kkt_analysis` /
+    // `ipm.phase.exit`. There is no `fmt::print` anywhere in this engine's
+    // solve path.
 };
 
 } // namespace hven::solvers

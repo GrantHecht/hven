@@ -25,6 +25,14 @@ void TraceSink::on_ipm_solve_begin(const IpmSolveBeginTraceEvent &) {}
 void TraceSink::on_ipm_solve_end(const IpmSolveEndTraceEvent &) {}
 // M6 W5 T8.7's own event, on the same footing.
 void TraceSink::on_ipm_restoration_exit_row(const IpmRestorationExitRowTraceEvent &) {}
+// M6 W5 T8.7b's five, on the same footing again: the interior-point engine's
+// last direct prints are events now, and a sink written before them is not
+// touched by their arrival.
+void TraceSink::on_ipm_phase_begin(const IpmPhaseTraceEvent &) {}
+void TraceSink::on_ipm_phase_end(const IpmPhaseTraceEvent &) {}
+void TraceSink::on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &) {}
+void TraceSink::on_ipm_phase_exit(const IpmPhaseExitTraceEvent &) {}
+void TraceSink::on_ipm_message(const IpmMessageTraceEvent &) {}
 
 // THE ONE COPY (M6 W4 T4). It lived in `sqp_driver.cpp`'s anonymous namespace
 // through T2/T3 and moved here unchanged the moment a second caller appeared;

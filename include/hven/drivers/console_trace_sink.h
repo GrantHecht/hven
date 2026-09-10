@@ -14,6 +14,14 @@
 // consumer of the trace among others rather than a second, private reporting
 // path that a caller could not see, redirect or reproduce.
 //
+// SINCE M6 W5 T8.7b THAT IS LITERALLY TRUE OF THE INTERIOR-POINT SIDE: the
+// engine's last direct prints -- the per-phase Beginning/Finished lines, the
+// KKT-analysis block, the per-phase exit statistics and the nine messages --
+// are events, `src/drivers/interior_point_solver_print.cpp` is gone, and there
+// is no `fmt::print` left anywhere in that engine's solve path. A solve's whole
+// transcript is written HERE, by this sink alone, on every solve including the
+// process's first.
+//
 // `FanOutTraceSink` is what makes "the solver attaches a console" not mean "the
 // solver replaces your sink": when printing is on, the effective sink for the
 // solve is a fan-out over the caller's sink and the console, and the caller's
@@ -32,8 +40,12 @@
 //
 //   == 0   the iteration rows, and the interior-point Problem Statistics block
 //   <  2   headers, the Beginning/Finished lines, the timing summary, the
-//          SQP table's header rule and its `Start Level` / `Scaling` trailer
-//   <  3   the SQP table's `Status` line
+//          SQP table's header rule and its `Start Level` / `Scaling` trailer,
+//          and (M6 W5 T8.7b) the per-phase Beginning/Finished lines, the
+//          KKT-analysis block, the per-phase exit BLOCK and the
+//          `solver_initialized` notice
+//   <  3   the SQP table's `Status` line, and (M6 W5 T8.7b) the per-phase exit
+//          VERDICT line and the eight interior-point warnings
 //
 // COLOUR. The interior-point renderings use fmt's styled `FILE *` overloads
 // with the same `fmt::text_style` objects the old printer used, and fmt emits
@@ -44,6 +56,7 @@
 // `format_iteration_table` renders it.
 
 #include <cstdio>
+#include <string_view>
 
 #include <fmt/color.h>
 
@@ -154,6 +167,20 @@ class ConsoleTraceSink final : public TraceSink {
     /// one row per `ipm.iter`. Rendering here too would print that row twice.
     void on_ipm_restoration_exit_row(const IpmRestorationExitRowTraceEvent &event) override;
 
+    // --- The interior-point engine's last direct prints (M6 W5 T8.7b) ---
+    //
+    // The tier each renders at is the `print_level` guard the SOLVER used to
+    // apply at the site: the phase lines, the analysis block and the exit
+    // BLOCK at `< 2`; the exit VERDICT line and every message at `< 3`.
+    // `solver_initialized` keeps its second condition too -- the notice is
+    // printed only when initialization took more than half a millisecond,
+    // while the EVENT is emitted whenever initialization ran at all.
+    void on_ipm_phase_begin(const IpmPhaseTraceEvent &event) override;
+    void on_ipm_phase_end(const IpmPhaseTraceEvent &event) override;
+    void on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &event) override;
+    void on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) override;
+    void on_ipm_message(const IpmMessageTraceEvent &event) override;
+
     /// @brief The SQP nesting depth this sink currently sits at -- 0 for a
     ///        top-level solve, as `JsonLinesTraceSink::depth()` reads it.
     Index sqp_depth() const { return sqp_depth_; }
@@ -161,8 +188,8 @@ class ConsoleTraceSink final : public TraceSink {
   private:
     void ipm_print_header();
     void ipm_print_stats(const IpmSolveBeginTraceEvent &event);
-    void ipm_print_beginning(const char *msg);
-    void ipm_print_finished(const char *msg);
+    void ipm_print_beginning(std::string_view msg);
+    void ipm_print_finished(std::string_view msg);
     void ipm_print_row(const IterateInfo &row);
 
     Format fmt_;
@@ -200,7 +227,7 @@ class ConsoleTraceSink final : public TraceSink {
 /// A driver that is printing builds one of these over the caller's sink and its
 /// own console and hands THAT to every emit site, its nested sub-solve
 /// included -- so the caller's stream is byte-identical with the console on and
-/// off, nesting depth included.
+/// off, nesting depth included. TWENTY events since M6 W5 T8.7b.
 ///
 /// EITHER HALF MAY BE NULL and is then skipped; a fan-out over two nulls is a
 /// legal, silent sink. Neither is owned.
@@ -241,6 +268,11 @@ class FanOutTraceSink final : public TraceSink {
     void on_ipm_solve_begin(const IpmSolveBeginTraceEvent &event) override;
     void on_ipm_solve_end(const IpmSolveEndTraceEvent &event) override;
     void on_ipm_restoration_exit_row(const IpmRestorationExitRowTraceEvent &event) override;
+    void on_ipm_phase_begin(const IpmPhaseTraceEvent &event) override;
+    void on_ipm_phase_end(const IpmPhaseTraceEvent &event) override;
+    void on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &event) override;
+    void on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) override;
+    void on_ipm_message(const IpmMessageTraceEvent &event) override;
 
   private:
     TraceSink *first_ = nullptr;

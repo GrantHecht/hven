@@ -106,14 +106,14 @@ void ConsoleTraceSink::ipm_print_header() {
     fmt::print(out_, fmt::fg(fmt::color::white), "{0:=^{1}}\n", "", 65);
 }
 
-void ConsoleTraceSink::ipm_print_beginning(const char *msg) {
+void ConsoleTraceSink::ipm_print_beginning(std::string_view msg) {
     fmt::print(out_, fmt::fg(fmt::color::dim_gray), "Beginning");
     fmt::print(out_, ": ");
     fmt::print(out_, fmt::fg(fmt::color::royal_blue), "{}", msg);
     fmt::print(out_, "\n");
 }
 
-void ConsoleTraceSink::ipm_print_finished(const char *msg) {
+void ConsoleTraceSink::ipm_print_finished(std::string_view msg) {
     fmt::print(out_, fmt::fg(fmt::color::dim_gray), "Finished ");
     fmt::print(out_, ": ");
     fmt::print(out_, fmt::fg(fmt::color::royal_blue), "{}", msg);
@@ -336,6 +336,211 @@ void ConsoleTraceSink::on_ipm_solve_end(const IpmSolveEndTraceEvent &event) {
 
 void ConsoleTraceSink::on_ipm_restoration_exit_row(const IpmRestorationExitRowTraceEvent &) {}
 
+// --- the interior-point engine's last direct prints (M6 W5 T8.7b) ----------
+//
+// EVERY RENDERING BELOW IS THE OLD CODE, MOVED. The per-phase lines and the
+// exit block are `interior_point_solver_print.cpp`'s `print_beginning`,
+// `print_finished` and `print_exit_stats`; the analysis block is the two
+// `print_level < 2` blocks that bracketed the factorization in
+// `InteriorPointSolver::init_impl`; the nine messages are the nine `fmt::print`
+// calls that stood at their sites. Same format strings, same widths, same
+// `fmt::text_style` objects, same order. The three mechanical changes are this
+// file's own three (`out_`, values off the event, no solver members).
+
+void ConsoleTraceSink::on_ipm_phase_begin(const IpmPhaseTraceEvent &event) {
+    // NO COLOUR RESET HERE, deliberately. The previous-row state is dropped on
+    // `ipm.solve.begin` and on an `ipm.iter` that opens a new phase, and those
+    // two rules are the whole of it (M6 W5 T8.7 (i)); a third reset keyed on
+    // this event would be a second rule saying the same thing, which is one
+    // more place for the two to disagree.
+    if (fmt_.print_level >= 2) {
+        return;
+    }
+    ipm_print_beginning(event.label);
+    std::fflush(out_);
+}
+
+void ConsoleTraceSink::on_ipm_phase_end(const IpmPhaseTraceEvent &event) {
+    if (fmt_.print_level >= 2) {
+        return;
+    }
+    ipm_print_finished(event.label);
+    std::fflush(out_);
+}
+
+void ConsoleTraceSink::on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &event) {
+    // BOTH HALVES FROM ONE EVENT. `init_impl` printed the `Beginning` line
+    // before the factorization and the rest after it; nothing could interleave
+    // between them, so rendering both here reproduces the transcript exactly.
+    if (fmt_.print_level >= 2) {
+        return;
+    }
+    ipm_print_beginning("KKT-Matrix Analysis ");
+    auto cyan = fmt::fg(fmt::color::cyan);
+    // THE TWO CONDITIONALS STAY IN THE CONSOLE, where they always were: the
+    // size and FLOPs lines only on a fresh analysis (a refactorization's
+    // figures are the previous analysis's), and the FLOPs line only when the
+    // backend reported a positive count.
+    if (event.docompute) {
+        fmt::print(out_, " LDLT Factor Size      : ");
+        fmt::print(out_, cyan, "{0:<10}\n", event.factor_mem);
+        if (event.factor_flops > 0) {
+            fmt::print(out_, " LDLT Factor FLOPs     : ");
+            fmt::print(out_, cyan, "{0} MFLOPs\n", event.factor_flops);
+        }
+    }
+    fmt::print(out_, " Analysis/Reorder Time : ");
+    fmt::print(out_, cyan, "{0:.3f} ms\n", event.analysis_time_s * 1000.0);
+    ipm_print_finished("KKT-Matrix Analysis ");
+    std::fflush(out_);
+}
+
+void ConsoleTraceSink::on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) {
+    if (fmt_.print_level >= 3) {
+        return;
+    }
+    const IterateInfo &last = event.iterate;
+    fmt::text_style Kcol = ipm_residual_color(last.kkt_inf_, kkt_tol_, acc_kkt_tol_);
+    fmt::text_style Bcol = ipm_residual_color(last.barr_inf_, bar_tol_, acc_bar_tol_);
+    fmt::text_style Ecol = ipm_residual_color(last.econ_inf_, econ_tol_, acc_econ_tol_);
+    fmt::text_style Icol = ipm_residual_color(last.icon_inf_, icon_tol_, acc_icon_tol_);
+
+    // THE VERDICT LINE, on the RESOLVED status (M6 W5 T8.7b). The old chain
+    // keyed on `alg_impl`'s RAW exit code, which was printed before
+    // `resolve_ipm_phase_status` ran; resolution only ever rewrites kMaxIter,
+    // into kStalled or kInterrupted, and all three take the branch the raw
+    // kMaxIter took. Same bytes, one key, and the three door fixtures pin it.
+    const SolveStatus status = event.report.status;
+    if (status == SolveStatus::kOptimal) {
+        fmt::print(out_, fmt::fg(fmt::color::lime_green), "\nOptimal Solution Found\n");
+    } else if (status == SolveStatus::kAcceptable) {
+        fmt::print(out_, fmt::fg(fmt::color::yellow), "\nAcceptable Solution Found\n");
+    } else if (status == SolveStatus::kDiverging) {
+        fmt::print(out_, fmt::fg(fmt::color::dark_red), "\nSolution Diverging\n");
+    } else if (status == SolveStatus::kMaxIter || status == SolveStatus::kStalled ||
+               status == SolveStatus::kInterrupted) {
+        fmt::print(out_, fmt::fg(fmt::color::red), "\nNo Solution Found\n");
+    } else if (status == SolveStatus::kNumericalError) {
+        fmt::print(out_, fmt::fg(fmt::color::dark_red), "\nKKT System Persistently Singular\n");
+    }
+
+    if (fmt_.print_level < 2) {
+        // The divisor the old block used was `iters.size()`, which is exactly
+        // what the report's own `iterations` counts for this phase.
+        const Index iternum = event.report.iterations;
+        auto TColor = fmt::fg(fmt::color::cyan);
+        auto Printtime = [&](const char *msg, double t1) {
+            fmt::print(out_, "{}", msg);
+            fmt::print(out_, TColor, "{0:>10.3f} ms {1:>10.3f} ms/iter\n", t1,
+                       double(t1 / double(iternum)));
+        };
+
+        fmt::print(out_, " Iterations : ");
+        fmt::print(out_, "{:<5}\n", iternum);
+        fmt::print(out_, " Prim Obj   : ");
+        fmt::print(out_, "{:<15.8e}\n", last.prim_obj_);
+        fmt::print(out_, " KKT Inf    : ");
+        fmt::print(out_, Kcol, "{:<15.8e}\n", last.kkt_inf_);
+        fmt::print(out_, " Bar Inf    : ");
+        fmt::print(out_, Bcol, "{:<15.8e}\n", last.barr_inf_);
+        fmt::print(out_, " ECons Inf  : ");
+        fmt::print(out_, Ecol, "{:<15.8e}\n", last.econ_inf_);
+        fmt::print(out_, " ICons Inf  : ");
+        fmt::print(out_, Icol, "{:<15.8e}\n", last.icon_inf_);
+
+        // The last non-Success factorization status observed across the CALL,
+        // if any. Silent whenever every factorization reported Success. The
+        // two printed spellings are the old ternary's, which named
+        // NumericalIssue and called everything else InvalidInput.
+        if (event.last_kkt_info != IpmKktFactorStatus::kSuccess) {
+            fmt::print(out_, " KKT Factor Status : ");
+            fmt::print(out_, fmt::fg(fmt::color::yellow), "{}\n",
+                       event.last_kkt_info == IpmKktFactorStatus::kNumericalIssue ? "NumericalIssue"
+                                                                                  : "InvalidInput");
+        }
+
+        fmt::print(out_, "\n");
+
+        // The event carries SECONDS; the block prints milliseconds, exactly as
+        // `on_ipm_solve_end`'s timing summary does.
+        Printtime(" NLP Function Evaluation Time : ", event.func_s * 1000.0);
+        Printtime(" KKT Matrix Factor/Solve Time : ", event.kkt_s * 1000.0);
+        Printtime(" Console Print Time           : ", event.print_s * 1000.0);
+        Printtime(" Total Time                   : ", event.total_s * 1000.0);
+
+        fmt::print(out_, "\n");
+    }
+    std::fflush(out_);
+}
+
+void ConsoleTraceSink::on_ipm_message(const IpmMessageTraceEvent &event) {
+    // THE NOTICE IS THE ONE `< 2` KIND, and it keeps its second condition: the
+    // engine suppressed the line when initialization was trivially fast. The
+    // EVENT fires whenever initialization ran, so a sink that is not this one
+    // sees the fact regardless.
+    if (event.kind == IpmMessageKind::kSolverInitialized) {
+        constexpr double kSolverInitPrintThresholdMs = 0.5;
+        if (event.a > kSolverInitPrintThresholdMs && fmt_.print_level < 2) {
+            fmt::print(out_, " Solver Initialization : ");
+            fmt::print(out_, fmt::fg(fmt::color::cyan), "{0:.3f} ms\n", event.a);
+            std::fflush(out_);
+        }
+        return;
+    }
+    if (fmt_.print_level >= 3) {
+        return;
+    }
+    auto yellow = fmt::fg(fmt::color::yellow);
+    switch (event.kind) {
+    case IpmMessageKind::kSolverInitialized:
+        // Handled above, before the `< 3` tier: it is a notice, not a warning.
+        break;
+    case IpmMessageKind::kRankDeficiency:
+        fmt::print(out_, yellow, "Warning: Potential Rank Deficiency Detected\n");
+        break;
+    case IpmMessageKind::kFactorizationHardError:
+        fmt::print(out_, yellow, "Warning: KKT factorization reported a hard error (info={})\n",
+                   event.k);
+        break;
+    case IpmMessageKind::kInertiaExhausted:
+        fmt::print(out_, yellow,
+                   "Warning: Inertia correction exhausted ({} perturbation attempts, "
+                   "inertia p/n/z = {}/{}/{}, expected {}/{}/0)\n",
+                   event.k, event.p, event.n, event.z, event.expected_p, event.expected_n);
+        break;
+    case IpmMessageKind::kRestorationLocallyInfeasible:
+        fmt::print(out_, yellow,
+                   "Feasibility restoration converged to a locally infeasible "
+                   "point (infeasibility {:.3e} > {:.3e}); stopping "
+                   "(not converged).\n",
+                   event.a, event.b);
+        break;
+    case IpmMessageKind::kFeasibilityStall:
+        fmt::print(out_, yellow,
+                   "Feasibility phase stalled with its restoration budget "
+                   "exhausted and no relative improvement over the violation "
+                   "at its last restoration entry (infeasibility {:.3e}, "
+                   "{:.3e} at that entry); ending the phase — the convergence "
+                   "check still reports the final verdict, which may be "
+                   "acceptable.\n",
+                   event.a, event.b);
+        break;
+    case IpmMessageKind::kInterruptAtIteration:
+        fmt::print(out_, yellow, "Solve interrupted by the iteration callback at iteration {}.\n",
+                   event.iter);
+        break;
+    case IpmMessageKind::kPhaseDiverged:
+        fmt::print(out_, yellow, "Phase diverged; skipping remaining phases.\n");
+        break;
+    case IpmMessageKind::kInterruptSkippingPhases:
+        fmt::print(out_, yellow,
+                   "Solve interrupted by the iteration callback; skipping remaining "
+                   "phases.\n");
+        break;
+    }
+    std::fflush(out_);
+}
+
 // --- the SQP table ----------------------------------------------------------
 
 void ConsoleTraceSink::on_sqp_solve_begin(const SqpSolveBeginTraceEvent &) {
@@ -407,9 +612,9 @@ FanOutTraceSink::~FanOutTraceSink() = default;
         }                                                                                          \
     }
 
-// THE ONE MACRO IN THIS FILE, and it earns its place: fifteen bodies that
+// THE ONE MACRO IN THIS FILE, and it earns its place: TWENTY bodies that
 // differ only in a method name and a parameter type, where a hand-written copy
-// would be fifteen chances to forward to the wrong half. `HVEN_`-prefixed per
+// would be twenty chances to forward to the wrong half. `HVEN_`-prefixed per
 // CLAUDE.md section 4 and #undef'd immediately below.
 HVEN_FANOUT_FORWARD(on_ipqp_iter, IpqpTraceIterEvent)
 HVEN_FANOUT_FORWARD(on_ipqp_reg, IpqpTraceRegEvent)
@@ -426,6 +631,11 @@ HVEN_FANOUT_FORWARD(on_ipm_iter, IpmIterTraceEvent)
 HVEN_FANOUT_FORWARD(on_ipm_solve_begin, IpmSolveBeginTraceEvent)
 HVEN_FANOUT_FORWARD(on_ipm_solve_end, IpmSolveEndTraceEvent)
 HVEN_FANOUT_FORWARD(on_ipm_restoration_exit_row, IpmRestorationExitRowTraceEvent)
+HVEN_FANOUT_FORWARD(on_ipm_phase_begin, IpmPhaseTraceEvent)
+HVEN_FANOUT_FORWARD(on_ipm_phase_end, IpmPhaseTraceEvent)
+HVEN_FANOUT_FORWARD(on_ipm_kkt_analysis, IpmKktAnalysisTraceEvent)
+HVEN_FANOUT_FORWARD(on_ipm_phase_exit, IpmPhaseExitTraceEvent)
+HVEN_FANOUT_FORWARD(on_ipm_message, IpmMessageTraceEvent)
 
 #undef HVEN_FANOUT_FORWARD
 

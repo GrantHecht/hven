@@ -2266,3 +2266,102 @@ clear at the next solve entry. **A direct call now clears any pending deferral.*
 Both directions hold, on both engines and on the KKT hook: with a direct call
 after the throw the NEW callable fires; with no direct call the deferred clear
 still applies.
+
+---
+
+## T8.7b — the interior-point engine's last direct prints, as trace events
+
+**Nothing a caller wrote has to change.** The console prints the same bytes at
+the same print levels; what moved is where they are produced. This section is
+for the two audiences that are affected: a caller with a `TraceSink` of its own,
+and a caller that overrides `TraceSink`'s virtuals.
+
+### 1. There is no `fmt::print` left in the interior-point solve path
+
+`src/drivers/interior_point_solver_print.cpp` is DELETED — the last three
+functions it held (`print_beginning`, `print_finished`, `print_exit_stats`) went
+with the events that carry them — and
+`grep -n 'fmt::print\|printf\|std::cout' src/drivers/interior_point_solver.cpp`
+is empty. `ConsoleTraceSink` writes the whole transcript, on every solve
+including the process's first. `src/CMakeLists.txt`'s expected source count goes
+**44 → 43**, the first time it has gone down.
+
+### 2. Five new events, and `v` stays 0
+
+| `ev` | one per | carries |
+|---|---|---|
+| `ipm.phase.begin` / `ipm.phase.end` | one phase that RAN | `phase`, `label` (with its trailing space), `entry` |
+| `ipm.kkt_analysis` | one `init_impl` | `kkt_dim`, `nnz`, `docompute`, `factor_mem`, `factor_flops`, `analysis_time_s` |
+| `ipm.phase.exit` | one phase that RAN | the selected row's five printed values, `last_kkt_info`, four times, and the **embedded `IpmPhaseReport`** flattened |
+| `ipm.message` | one diagnostic message | `kind` plus a PER-KIND payload |
+
+Additive events and additive enum strings stay v0 by `docs/trace-schema-v0.md`
+§8's own words. No golden line that predates this task moves by one byte. The
+per-field tables, the per-kind message table and the absence rules are in that
+document's §4.15–§4.19.
+
+**`TraceSink` gains five virtuals, all non-pure with empty defaults.** A sink
+written before this task keeps compiling and simply ignores them. None of the
+five moves a `depth`, so a `depth == 0` assertion over a pure-IPM stream still
+holds.
+
+### 3. Two counting rules that are easy to get wrong
+
+* **`ipm.kkt_analysis` is NOT one per phase.** The entry `init_impl` runs before
+  the phase loop and the inter-phase one is the LAST statement of a phase's
+  body — ahead of the next iteration's conditional-skip test. A sequence whose
+  second phase is SKIPPED carries TWO analyses and ONE phase bracket. The
+  identity is `1 + #{phases that ran, were not the last step, and did not
+  break}`.
+* **Several `ipm.message` lines per iteration are normal.** The rank-deficiency
+  and hard-error checks run at three ladder sites inside one factorization.
+
+The whole-stream arithmetic is
+`lines = 2 + 3P + A + R + M + D` — begin and end, three per phase that ran, plus
+the analyses, the `ipm.iter` rows, the messages and the restoration-door
+markers.
+
+### 4. `IpmPhase` and `IpmPhaseReport` moved header
+
+Both are declared in `hven/detail/drivers/interior_point_solver_fwd.h` now
+instead of `hven/drivers/ipm_solver_types.h`, which INCLUDES that header — so
+every existing spelling still compiles and nothing you wrote has to move. The
+reason is that `hven/drivers/trace.h` embeds the report and must be able to name
+it without reaching Eigen, the model contract and the KKT factorization.
+
+### 5. The six setters now defer while a solve is in flight
+
+`set_iteration_callback`, `clear_iteration_callback`, `set_kkt_hook` and
+`clear_kkt_hook` on `InteriorPointSolver`, and `set_iteration_callback` /
+`clear_iteration_callback` on `SqpDriver`, all park their value while a solve is
+running. **Where it is applied depends on who called:**
+
+* from inside the **iteration callback or the KKT hook** — the statement after
+  that invocation returns. This is T8.6's contract and it is UNCHANGED: a
+  callback may still arm a hook mid-solve and see it fire in the same solve.
+* from **anywhere else while a solve runs**, which since this task means a SINK
+  METHOD (a sink is now called from inside a factorization) — **the next solve's
+  entry.** The solve in progress is bitwise the solve it would have been.
+
+Before this task the second case took the direct branch and changed the running
+solve. A caller who relied on that has one adjustment: install from the
+callback, not from the sink.
+
+### 6. Two informational notes
+
+* **A message emitted from inside a factorization is timed into `kkt_time`**,
+  not into `print_time`: the print timer is local to the phase algorithm and the
+  factorization runs inside the KKT timer. Every `_s` field is informational and
+  no pin reads one (CLAUDE.md §7).
+* **A sink that THROWS from `on_ipm_message` may do so from inside a
+  factorization.** The solve's scope guards still clear the in-flight flags and
+  release the borrowed model, and the solver stays usable and destructible — but
+  the FACTORIZATION's own state is whatever the interrupted ladder step left, so
+  the next solve re-analyzes rather than reusing it. Throwing is not a supported
+  way to stop a solve; the iteration callback's `kStop` is.
+
+### 7. What did NOT change
+
+`IpmSolveRecord` and the ledger are untouched — the per-phase counts a reader
+might now expect there are on `ipm.phase.exit` instead. No CSV column, no
+benchmark baseline and no frozen artifact moves.
