@@ -27,7 +27,9 @@
 //         followed by an IPM solve, and `depth` reads 0 throughout (the
 //         `ipm.solve` pair moves no depth -- this driver nests no driver).
 
+#include <bit>
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <limits>
 #include <memory>
@@ -181,6 +183,86 @@ struct TwoVarProblem : NLPProblem {
     }
     std::string name() const override { return "TwoVarProblem"; }
 };
+
+/// @brief THE DETERMINISTIC FACTOR-TIME MESSAGE FIXTURE (M6 W5 T8.7b fix1,
+/// astra's I2 with the lane's section 2.2 ruling).
+///
+/// A two-variable box-constrained problem whose objective is CONCAVE --
+/// `f = -50 (x0^2 + x1^2)`, so the Hessian is `-100 I` at every point and the
+/// KKT system's (1,1) block is negative definite at the start point, well
+/// beyond anything the bound-barrier diagonal adds back. Its FIRST
+/// factorization therefore has the wrong inertia by construction.
+///
+/// Paired with `max_refac = 0` -- legal, validated `>= 0` only
+/// (`ipm_options.cpp:160`), and the ladder is `for (i = 0; i < max_refac; ++i)`
+/// -- the wrong-inertia factorization falls straight through an EMPTY ladder to
+/// the `inertia_exhausted` emit at `factor_impl`'s tail, on iteration 0, with
+/// `k == 0`. No backend behaviour is being relied on to produce it, which is
+/// why this is the fixture rather than a duplicated-row `rank_deficiency`
+/// probe: whether Pardiso reports a duplicated equality row as an inertia
+/// mismatch or as a perturbed pivot is the BACKEND's choice and would make the
+/// pin MKL-only.
+struct NonconvexProblem : NLPProblem {
+    int num_vars() const override { return 2; }
+    int num_cons() const override { return 1; }
+    int num_jac_nonzeros() const override { return 2; }
+    int num_hess_nonzeros() const override { return 2; }
+
+    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
+                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+        xl << -10.0, -10.0;
+        xu << 10.0, 10.0;
+        gl << 1.0;
+        gu << kInfinity;
+    }
+    void eval_f(ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+        f = -50.0 * (x[0] * x[0] + x[1] * x[1]);
+    }
+    void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
+                     Eigen::Ref<Eigen::VectorXd> g) const override {
+        g[0] = -100.0 * x[0];
+        g[1] = -100.0 * x[1];
+    }
+    void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
+        g[0] = x[0] + x[1];
+    }
+    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
+                       Eigen::Ref<Eigen::VectorXi> c) const override {
+        r << 0, 0;
+        c << 0, 1;
+    }
+    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
+                        Eigen::Ref<Eigen::VectorXi> c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_jac(ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+        v[0] = 1.0;
+        v[1] = 1.0;
+    }
+    void eval_hess(ConstEigenRef<Eigen::VectorXd>, double obj_factor,
+                   ConstEigenRef<Eigen::VectorXd>, Eigen::Ref<Eigen::VectorXd> v) const override {
+        v[0] = -100.0 * obj_factor;
+        v[1] = -100.0 * obj_factor;
+    }
+    std::string name() const override { return "NonconvexProblem"; }
+};
+
+Eigen::VectorXd nonconvex_start() {
+    Eigen::VectorXd x0(2);
+    x0 << 0.5, 0.5;
+    return x0;
+}
+
+/// A solver over `NonconvexProblem` with the empty ladder and no console.
+std::unique_ptr<NLPSolver> nonconvex_solver() {
+    auto solver = std::make_unique<NLPSolver>(std::make_shared<NonconvexProblem>());
+    auto o = solver->optimizer_->options();
+    o.common.print_level = 10;
+    o.max_refac = 0;
+    solver->optimizer_->set_options(std::move(o));
+    return solver;
+}
 
 Eigen::VectorXd two_var_start() {
     Eigen::VectorXd x0(2);
@@ -1593,7 +1675,34 @@ TEST(IpmPhaseEvents, TheExitEventEmbedsTheReportTheSolveReturns) {
     }
 }
 
-TEST(IpmDeferral, AHookInstalledFromInsideASinkMethodReachesTheNEXTSolve) {
+// ===========================================================================
+// THE DEFERRAL, PINNED FROM A FACTOR-TIME MESSAGE (M6 W5 T8.7b fix1)
+//
+// WHAT THE T8.7b PINS DID NOT ESTABLISH (astra's I2). The installing sink
+// below used to install from `on_ipm_iter` AS WELL, and its premise asserted
+// only that ROWS were seen -- so on HS071, where no factor-time warning is
+// reached, the whole pin ran through the iteration fallback and proved nothing
+// about a set made from inside a FACTORIZATION, which is the case the deferral
+// exists for. It now installs from `on_ipm_message` ONLY, over a fixture whose
+// first factorization raises `inertia_exhausted` by construction
+// (`NonconvexProblem` + `max_refac = 0`), and asserts the KIND it saw.
+//
+// THE INITIALIZATION NOTICE CANNOT BE PINNED THE SAME WAY, and this is the
+// place that says so. `solver_initialized` fires at most ONCE PER PROCESS --
+// `ensure_solver_initialized()` is a `std::call_once` over a function-local
+// `std::once_flag` (src/drivers/solver_init.cpp:19) with no reset -- and this
+// file's tests share one process with every other interior test, in an order
+// no test controls. No test here can be the process's first solve, so an
+// assertion about a set made from that notice would be vacuous whenever it did
+// not fire, which is always. What CAN be said, and is: the notice is emitted
+// from `ensure_solver_initialized()`, called at `run_phase_sequence`'s
+// :5535 -- INSIDE the solve guard armed at :5069 -- through the very
+// `emit_message` every other kind goes through, so it takes the same
+// `solve_in_flight_` branch of the setter that the `inertia_exhausted` pin
+// below exercises. The branch does not read the kind.
+// ===========================================================================
+
+TEST(IpmDeferral, AHookInstalledFromInsideAFactorTimeMessageReachesTheNEXTSolve) {
     // M6 W5 T8.7b (the lane's Q5). The six setters DEFER while a solve is in
     // flight. Before this task a `set_kkt_hook` made from inside a SINK method
     // -- which since T8.7b fires from inside a factorization -- took the direct
@@ -1604,8 +1713,15 @@ TEST(IpmDeferral, AHookInstalledFromInsideASinkMethodReachesTheNEXTSolve) {
         Index *hook_calls = nullptr;
         Index messages = 0;
         Index rows = 0;
+        bool saw_inertia_exhausted = false;
         bool installed = false;
-        void install() {
+        // ONE ORIGIN ONLY: `on_ipm_message`. There is deliberately no install
+        // from `on_ipm_iter` -- that fallback is what made this pin vacuous.
+        void on_ipm_message(const IpmMessageTraceEvent &e) override {
+            ++messages;
+            if (e.kind == IpmMessageKind::kInertiaExhausted) {
+                saw_inertia_exhausted = true;
+            }
             if (installed) {
                 return;
             }
@@ -1618,14 +1734,7 @@ TEST(IpmDeferral, AHookInstalledFromInsideASinkMethodReachesTheNEXTSolve) {
                 return 0;
             });
         }
-        void on_ipm_iter(const IpmIterTraceEvent &) override {
-            ++rows;
-            install();
-        }
-        void on_ipm_message(const IpmMessageTraceEvent &) override {
-            ++messages;
-            install();
-        }
+        void on_ipm_iter(const IpmIterTraceEvent &) override { ++rows; }
         void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
         void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
         void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
@@ -1636,35 +1745,40 @@ TEST(IpmDeferral, AHookInstalledFromInsideASinkMethodReachesTheNEXTSolve) {
         void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
     };
 
-    NLPSolver solver(std::make_shared<Hs071Problem>());
-    {
-        auto o = solver.optimizer_->options();
-        o.common.print_level = 10;
-        solver.optimizer_->set_options(std::move(o));
-    }
+    auto solver = nonconvex_solver();
     Index hook_calls = 0;
     HookInstallingSink sink;
-    sink.solver = solver.optimizer_.get();
+    sink.solver = solver->optimizer_.get();
     sink.hook_calls = &hook_calls;
-    solver.optimizer_->attach_trace(&sink);
-    ASSERT_EQ(solver.optimize(hs071_start()), SolveStatus::kOptimal);
-    ASSERT_GT(sink.rows, 0) << "premise: the sink really did see events to install from";
+    solver->optimizer_->attach_trace(&sink);
+    (void)solver->optimize(nonconvex_start());
+    // THE PREMISE, NON-VACUOUS: a FACTOR-TIME message really was raised, and it
+    // is the kind the fixture is built to raise.
+    ASSERT_GT(sink.messages, 0) << "premise: the sink saw a message to install from";
+    ASSERT_TRUE(sink.saw_inertia_exhausted)
+        << "premise: the message the sink installed from is the factor-time one";
+    ASSERT_TRUE(sink.installed);
     EXPECT_EQ(hook_calls, 0)
         << "a hook installed from inside a sink method must not arm the solve that is running";
 
     // ... and the NEXT solve runs it, from its first iteration on.
-    ASSERT_EQ(solver.optimize(hs071_start()), SolveStatus::kOptimal);
+    (void)solver->optimize(nonconvex_start());
     EXPECT_GT(hook_calls, 0) << "the deferral must be applied at the next solve's entry";
     // AND THE VERIFICATION IS ARMED FOR IT: the hand-out site sets the flag
     // beside the hand-out itself, so a hook that arrives this way still forces
     // every factorization from its first hand-out on to re-derive the pattern.
-    EXPECT_GT(solver.last_result_.kkt_factor_counters.pattern_verify_count, 0);
+    EXPECT_GT(solver->last_result_.kkt_factor_counters.pattern_verify_count, 0);
 }
 
 TEST(IpmDeferral, TheSolveIsBitwiseUnchangedByASinkThatSetsAHookMidSolve) {
     // THE OTHER HALF, and the one that matters for the trajectory: the stream
     // a JSON sink records is IDENTICAL whether or not a second sink beside it
     // installs a hook mid-solve -- wall-clock masked, as everywhere else.
+    //
+    // FROM A FACTOR-TIME MESSAGE (M6 W5 T8.7b fix1, astra's I2). This pin used
+    // to install from `on_ipm_iter` on HS071, which is BETWEEN factorizations;
+    // the case the deferral exists for is a set made from INSIDE one, so it
+    // installs from `on_ipm_message` over the `inertia_exhausted` fixture now.
     //
     // THROUGH A FAN-OUT, because `JsonLinesTraceSink` is `final`: the recording
     // half is the shipped writer, unmodified, and the installing half is a
@@ -1673,8 +1787,8 @@ TEST(IpmDeferral, TheSolveIsBitwiseUnchangedByASinkThatSetsAHookMidSolve) {
         InteriorPointSolver *solver = nullptr;
         bool arm = false;
         bool done = false;
-        void on_ipm_iter(const IpmIterTraceEvent &) override {
-            if (!arm || done) {
+        void on_ipm_message(const IpmMessageTraceEvent &e) override {
+            if (e.kind != IpmMessageKind::kInertiaExhausted || !arm || done) {
                 return;
             }
             done = true;
@@ -1701,20 +1815,15 @@ TEST(IpmDeferral, TheSolveIsBitwiseUnchangedByASinkThatSetsAHookMidSolve) {
         silent_hs071()->optimize(hs071_start());
     }
     auto run = [](bool install) {
-        NLPSolver solver(std::make_shared<Hs071Problem>());
-        {
-            auto o = solver.optimizer_->options();
-            o.common.print_level = 10;
-            solver.optimizer_->set_options(std::move(o));
-        }
+        auto solver = nonconvex_solver();
         std::ostringstream os;
         JsonLinesTraceSink json(os);
         Installer inst;
-        inst.solver = solver.optimizer_.get();
+        inst.solver = solver->optimizer_.get();
         inst.arm = install;
         FanOutTraceSink fan(&json, &inst);
-        solver.optimizer_->attach_trace(&fan);
-        EXPECT_EQ(solver.optimize(hs071_start()), SolveStatus::kOptimal);
+        solver->optimizer_->attach_trace(&fan);
+        (void)solver->optimize(nonconvex_start());
         EXPECT_EQ(inst.done, install) << "premise: the installing arm really did install";
         return os.str();
     };
@@ -1723,6 +1832,291 @@ TEST(IpmDeferral, TheSolveIsBitwiseUnchangedByASinkThatSetsAHookMidSolve) {
     ASSERT_FALSE(quiet.empty());
     EXPECT_EQ(mask_wall_clock(quiet), mask_wall_clock(armed))
         << "a sink that installed a hook mid-solve changed the solve it was watching";
+}
+
+namespace {
+
+/// @brief Every non-timing thing a solve ANSWERS, for the retry pin below.
+///
+/// The stream carries no vector (schema section 2's rule), so the vectors are
+/// compared here off `IpmResult` and the per-row/per-phase fields are compared
+/// through the masked JSON stream beside it. Together they are the T8.6 reuse
+/// enumeration: status, iterations, the objective, the four engine residuals,
+/// the primal point, all three multiplier blocks, and both constraint vectors.
+struct IpmAnswer {
+    SolveStatus status = SolveStatus::kMaxIter;
+    int iterations = -1;
+    double f = 0.0;
+    double kkt_inf = 0.0, barr_inf = 0.0, econ_inf = 0.0, icon_inf = 0.0;
+    Eigen::VectorXd x, lambda_e, lambda_i, z, ce, ci;
+};
+
+IpmAnswer answer_of(const IpmResult &r) {
+    IpmAnswer a;
+    a.status = r.status;
+    a.iterations = r.iterations;
+    a.f = r.f;
+    a.kkt_inf = r.kkt_inf;
+    a.barr_inf = r.barr_inf;
+    a.econ_inf = r.econ_inf;
+    a.icon_inf = r.icon_inf;
+    a.x = r.x;
+    a.lambda_e = r.lambda_e;
+    a.lambda_i = r.lambda_i;
+    a.z = r.z;
+    a.ce = r.ce;
+    a.ci = r.ci;
+    return a;
+}
+
+void expect_bits(double lhs, double rhs, const char *what) {
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(lhs), std::bit_cast<std::uint64_t>(rhs)) << what;
+}
+
+void expect_bits(const Eigen::VectorXd &lhs, const Eigen::VectorXd &rhs, const char *what) {
+    ASSERT_EQ(lhs.size(), rhs.size()) << what;
+    for (Eigen::Index i = 0; i < lhs.size(); ++i) {
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(lhs[i]), std::bit_cast<std::uint64_t>(rhs[i]))
+            << what << " [" << i << "]";
+    }
+}
+
+void expect_same_ipm_answer(const IpmAnswer &lhs, const IpmAnswer &rhs) {
+    EXPECT_EQ(lhs.status, rhs.status);
+    EXPECT_EQ(lhs.iterations, rhs.iterations);
+    expect_bits(lhs.f, rhs.f, "f");
+    expect_bits(lhs.kkt_inf, rhs.kkt_inf, "kkt_inf");
+    expect_bits(lhs.barr_inf, rhs.barr_inf, "barr_inf");
+    expect_bits(lhs.econ_inf, rhs.econ_inf, "econ_inf");
+    expect_bits(lhs.icon_inf, rhs.icon_inf, "icon_inf");
+    expect_bits(lhs.x, rhs.x, "x");
+    expect_bits(lhs.lambda_e, rhs.lambda_e, "lambda_e");
+    expect_bits(lhs.lambda_i, rhs.lambda_i, "lambda_i");
+    expect_bits(lhs.z, rhs.z, "z");
+    expect_bits(lhs.ce, rhs.ce, "ce");
+    expect_bits(lhs.ci, rhs.ci, "ci");
+}
+
+/// @brief Replaces the three keys on `ipm.kkt_analysis` that REPORT the reuse.
+///
+/// `docompute`, `factor_mem` and `factor_flops` are the reuse itself: a solve
+/// that refactorizes on an existing analysis writes `false` and two `null`s
+/// where a solve that computed one writes `true` and the factor's figures. They
+/// are the ONE declared difference between the retry and the fresh arm below,
+/// and the test asserts their values EXPLICITLY on each side rather than
+/// letting this mask hide anything: what the mask buys is that every other key
+/// on that line -- `kkt_dim`, `nnz` -- stays inside the byte comparison.
+std::string mask_analysis_reuse(const std::string &stream) {
+    static const std::vector<std::string> kReuseKeys = {"docompute", "factor_mem", "factor_flops"};
+    std::string out = stream;
+    for (const std::string &k : kReuseKeys) {
+        const std::string needle = "\"" + k + "\":";
+        std::size_t pos = 0;
+        while ((pos = out.find(needle, pos)) != std::string::npos) {
+            const std::size_t vstart = pos + needle.size();
+            std::size_t vend = vstart;
+            while (vend < out.size() && out[vend] != ',' && out[vend] != '}') {
+                ++vend;
+            }
+            out.replace(vstart, vend - vstart, "<reuse>");
+            pos = vstart + 7;
+        }
+    }
+    return out;
+}
+
+/// A sink that THROWS once, from the first factor-time message it is handed.
+struct ThrowingMessageSink final : TraceSink {
+    bool threw = false;
+    Index messages = 0;
+    void on_ipm_message(const IpmMessageTraceEvent &e) override {
+        ++messages;
+        if (threw || e.kind != IpmMessageKind::kInertiaExhausted) {
+            return;
+        }
+        threw = true;
+        throw std::runtime_error("a sink that throws from inside a factorization");
+    }
+    void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
+    void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
+    void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
+    void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
+    void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
+    void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+    void on_qp_mode(const QpModeTraceEvent &) override {}
+    void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
+};
+
+} // namespace
+
+TEST(IpmMessageSink, ARetryAfterAThrowingFactorTimeSinkIsBitwiseAFreshSolve) {
+    // THE RECOVERY CONTRACT, AS THE CODE HAS IT (M6 W5 T8.7b fix1, astra's I1
+    // with the lane's section 2.1 ruling).
+    //
+    // WHAT THE DOCUMENTATION USED TO SAY: that after a message sink throws, the
+    // next solve "re-analyzes rather than reusing" the factorization. It does
+    // not. The solve's scope guards clear `solve_in_flight_` and the borrowed
+    // model and NOTHING invalidates `qp_analyzed_` or the structure stamps, so
+    // an unchanged-model retry takes `claim_kkt_analysis()`'s REUSE branch --
+    // asserted below as `kkt_analyses_this_call == 0`.
+    //
+    // AND THE REUSE IS SOUND, which is the other half and the reason the fix is
+    // the sentence and not the guard: the symbolic analysis depends only on the
+    // PATTERN, no ladder step changes the pattern (the perturbations add to
+    // diagonal VALUES in place), and `init_impl` reassembles every value --
+    // primal diagonals, slacks, a full INIT evaluation into the KKT buffer --
+    // before it factorizes. So the retry is the computation a FRESH solver
+    // performs, bit for bit, and that is what is pinned: the whole masked JSON
+    // stream and every vector the result carries.
+    //
+    // A THROWAWAY SOLVE FIRST, for the reason the console pins state: the
+    // once-per-process initialization notice would otherwise land in whichever
+    // arm ran first and shift its `seq`.
+    {
+        auto warm = nonconvex_solver();
+        (void)warm->optimize(nonconvex_start());
+    }
+
+    // ARM ONE: the solve that dies inside a factorization, then the retry.
+    auto reused = nonconvex_solver();
+    ThrowingMessageSink thrower;
+    reused->optimizer_->attach_trace(&thrower);
+    EXPECT_THROW((void)reused->optimize(nonconvex_start()), std::runtime_error);
+    ASSERT_TRUE(thrower.threw) << "premise: the sink threw from a FACTOR-TIME message";
+    reused->optimizer_->attach_trace(nullptr);
+
+    std::ostringstream retry_os;
+    JsonLinesTraceSink retry_sink(retry_os);
+    reused->optimizer_->attach_trace(&retry_sink);
+    (void)reused->optimize(nonconvex_start());
+    const IpmAnswer retry = answer_of(reused->last_result_);
+    EXPECT_EQ(reused->last_result_.kkt_analyses_this_call, 0)
+        << "the retry must take the REUSE branch -- that is the fact the contract now states";
+
+    // ARM TWO: a solver that never saw the throw, on the same model.
+    auto fresh = nonconvex_solver();
+    std::ostringstream fresh_os;
+    JsonLinesTraceSink fresh_sink(fresh_os);
+    fresh->optimizer_->attach_trace(&fresh_sink);
+    (void)fresh->optimize(nonconvex_start());
+    const IpmAnswer cold = answer_of(fresh->last_result_);
+    EXPECT_GT(fresh->last_result_.kkt_analyses_this_call, 0)
+        << "premise: the fresh arm really did pay the analysis the retry skipped";
+
+    // THE PIN. The stream carries every row, every phase event and the phase
+    // exit's residuals and diagnostics; the answer carries the vectors the
+    // stream does not.
+    ASSERT_FALSE(retry_os.str().empty());
+    EXPECT_EQ(mask_analysis_reuse(mask_wall_clock(retry_os.str())),
+              mask_analysis_reuse(mask_wall_clock(fresh_os.str())))
+        << "the retry after a throwing factor-time sink is not the solve a fresh solver runs";
+    expect_same_ipm_answer(retry, cold);
+
+    // THE ONE DIFFERENCE, ASSERTED RATHER THAN MASKED AWAY. The two streams
+    // differ on exactly one line and exactly three keys, and those three keys
+    // ARE the reuse: the retry refactorized on the analysis the thrown solve
+    // had laid, the fresh arm computed its own. Every other byte of both
+    // streams -- the row, the residuals, the phase exit, the verdict -- is
+    // identical, which is the whole claim.
+    const std::vector<std::string> retry_analysis =
+        lines_of_event(retry_os.str(), "ipm.kkt_analysis");
+    const std::vector<std::string> fresh_analysis =
+        lines_of_event(fresh_os.str(), "ipm.kkt_analysis");
+    ASSERT_EQ(retry_analysis.size(), 1u);
+    ASSERT_EQ(fresh_analysis.size(), 1u);
+    EXPECT_EQ(field(retry_analysis[0], "docompute"), "false");
+    EXPECT_EQ(field(retry_analysis[0], "factor_mem"), "null");
+    EXPECT_EQ(field(retry_analysis[0], "factor_flops"), "null");
+    EXPECT_EQ(field(fresh_analysis[0], "docompute"), "true");
+    EXPECT_NE(field(fresh_analysis[0], "factor_mem"), "null");
+
+    // NON-VACUOUS: the stream really does carry the factor-time messages, so
+    // the arm being compared is the one that reaches the interrupted ladder.
+    EXPECT_GT(lines_of_event(retry_os.str(), "ipm.message").size(), 0u);
+}
+
+TEST(IpmDeferral, TheLastWriteWinsWhenASinkAndACallbackBothSetInOneSolve) {
+    // ONE SLOT PER SETTER (M6 W5 T8.7b fix1, the lane's M3). A sink-origin park
+    // and an invocation-origin call in the SAME solve share one
+    // `std::optional`: the second overwrites the first, value AND origin flag,
+    // so the sink's value is LOST and the callback's lands post-invocation.
+    // Last write wins is a defensible rule -- the most recent request from the
+    // caller is the one that takes effect, whoever made it -- but it was
+    // undocumented. It is on the setters now, and pinned here.
+    //
+    // THE SINK ORIGIN IS `on_ipm_iter`, ON HS071, and that is deliberate. Any
+    // sink method takes the same branch: the setter reads
+    // `callback_in_flight_ || kkt_hook_in_flight_` and nothing about WHICH
+    // method the sink is in, so a factor-time `on_ipm_message` parks
+    // identically (`AHookInstalledFromInsideAFactorTimeMessageReachesTheNEXT
+    // Solve` is that case). What HS071 buys is a solve with enough iterations
+    // for the sink to park FIRST and a callback invocation to overwrite it
+    // AFTERWARDS, which is the order the rule is about; the `inertia_exhausted`
+    // fixture exits after a single iteration and cannot express it.
+    struct InstallingSink final : TraceSink {
+        InteriorPointSolver *solver = nullptr;
+        Index *sink_installed_calls = nullptr;
+        bool installed = false;
+        void on_ipm_iter(const IpmIterTraceEvent &) override {
+            if (installed) {
+                return;
+            }
+            installed = true;
+            Index *counter = sink_installed_calls;
+            solver->set_iteration_callback([counter](const IterationEvent &) {
+                ++*counter;
+                return CallbackAction::kContinue;
+            });
+        }
+        void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
+        void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
+        void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
+        void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
+        void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
+        void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+        void on_qp_mode(const QpModeTraceEvent &) override {}
+        void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
+    };
+
+    NLPSolver solver(std::make_shared<Hs071Problem>());
+    {
+        auto o = solver.optimizer_->options();
+        o.common.print_level = 10;
+        solver.optimizer_->set_options(std::move(o));
+    }
+    Index sink_calls = 0;
+    Index first_calls = 0;
+    Index second_calls = 0;
+    InstallingSink sink;
+    sink.solver = solver.optimizer_.get();
+    sink.sink_installed_calls = &sink_calls;
+    solver.optimizer_->attach_trace(&sink);
+    solver.optimizer_->set_iteration_callback([&](const IterationEvent &) {
+        ++first_calls;
+        // On its THIRD invocation -- by which point the sink has certainly
+        // parked from a row -- this callback parks OVER the sink's value.
+        if (first_calls == 3) {
+            solver.optimizer_->set_iteration_callback([&](const IterationEvent &) {
+                ++second_calls;
+                return CallbackAction::kContinue;
+            });
+        }
+        return CallbackAction::kContinue;
+    });
+    ASSERT_EQ(solver.optimize(hs071_start()), SolveStatus::kOptimal);
+
+    ASSERT_TRUE(sink.installed) << "premise: the sink really did park a callback";
+    ASSERT_GE(first_calls, 3) << "premise: the callback reached its third invocation";
+    EXPECT_GT(second_calls, 0)
+        << "the invocation-origin park must land when that invocation returns, in THIS solve";
+    EXPECT_EQ(sink_calls, 0) << "the sink's parked value was overwritten: last write wins";
+
+    // AND IT IS GONE, not queued: the next solve's entry does not resurrect it.
+    const Index second_calls_after_first_solve = second_calls;
+    ASSERT_EQ(solver.optimize(hs071_start()), SolveStatus::kOptimal);
+    EXPECT_EQ(sink_calls, 0) << "an overwritten park must not be applied at a later entry";
+    EXPECT_GT(second_calls, second_calls_after_first_solve)
+        << "the callback the second write installed is the one that survived";
 }
 
 TEST(IpmConsole, PrintLevelZeroWritesTheTableAndTenWritesNothing) {

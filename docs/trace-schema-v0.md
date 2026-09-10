@@ -472,10 +472,9 @@ give one analysis's size for another's.
 |---|---|---|
 | `phase` | integer | the phase index |
 | `iter` | integer | the SELECTED row's own iteration number — the join to its `ipm.iter` line |
-| `selected_iter` | integer | that row's INDEX in the phase's own iterate history |
 | `best_substituted` | bool | did `return_best` substitute the best iterate for the last one |
 | `prim_obj`, `kkt_inf`, `barr_inf`, `econ_inf`, `icon_inf` | double | the five values the console block prints, read off the selected row |
-| `last_kkt_info` | string `success\|numerical_issue\|no_convergence\|invalid_input` | the last non-Success factorization status observed during this CALL (not this phase) |
+| `last_kkt_info` | string `success\|numerical_issue\|no_convergence\|invalid_input` | the last non-Success factorization status observed during THIS PHASE |
 | `total_s`, `func_s`, `kkt_s`, `print_s` | double | WALL-CLOCK, informational (§7) |
 | `entry` | string `optimize\|solve` | **the embedded report's** `phase` |
 | `status` | string (`SolveStatus`, §4.2's spellings) | the embedded report's RESOLVED verdict |
@@ -484,13 +483,31 @@ give one analysis's size for another's.
 | `stop_reason` | string `none\|iteration_cap\|restoration_locally_infeasible\|stage_stalled\|interrupted` | the embedded report's |
 | `ran` | bool | the embedded report's; always `true` on a line that exists |
 
+**`last_kkt_info` IS PER PHASE.** `alg_impl` resets `IpmResult::last_kkt_info`
+to Success at each phase's entry, so the value on this line is that phase's own
+last non-Success factorization status and never an earlier phase's. (Through
+T8.7b this document, the event's field doc and the console's comment all said
+"this CALL (not this phase)"; all three are corrected at T8.7b fix1 — the lane's
+M1.)
+
 **THE LAST SIX KEYS ARE `IpmPhaseReport` ITSELF, FLATTENED.** The event holds
 the object `IpmResult::phases[phase]` holds rather than a second copy of its
 fields, so "one shape, no drift" is by construction and the live pin is
 `event.report == result.phases[i]` field for field.
 
-**THE ROW IS NOT REPEATED**, on `ipm.restoration_exit_row`'s rule: the adjacent
-`ipm.iter` line carries the record's other keys.
+**THE ROW IS NOT REPEATED**, on `ipm.restoration_exit_row`'s rule: the selected
+row's own `ipm.iter` line carries the record's other keys. **THE JOIN IS
+(`phase`, `iter`), NOT ADJACENCY** (M6 W5 T8.7b fix1, astra's §2). Unlike
+`ipm.restoration_exit_row`, whose row precedes it immediately and is pinned to,
+this line's row need not be the previous one: under `return_best` the selected
+row is an EARLIER row of the phase, and even for the terminal row an
+`ipm.message` can sit between the two. A reader joins on the pair.
+
+**NO `selected_iter` KEY.** The phase loop stamps each row's `iter_` with the
+loop counter and pushes exactly one row per iteration, so a row's INDEX in the
+phase's history and its `iter_` are the same number; the key existed on the
+record T8.7b first shipped and was dropped at T8.7b fix1, before the record left
+the branch (the lane's M4).
 
 **TWO CLOCKS, AND THEY ARE NOT THE SAME ONE.** `total_s` is the phase
 algorithm's own internal timer — what the console block prints as `Total Time`
@@ -519,8 +536,8 @@ two.
 |---|---|
 | `solver_initialized` | `a` = the process-global initialization's MILLISECONDS. At most once per process, and it is a NOTICE rather than a warning: the console prints it at `< 2` and only when it exceeds half a millisecond, while the EVENT fires whenever initialization ran at all |
 | `rank_deficiency` | none |
-| `factorization_hard_error` | `k` = the backend's own info code |
-| `inertia_exhausted` | `k` = perturbation attempts, `p`/`n`/`z` = the observed inertia, `expected_p`/`expected_n` = what was expected (`z` expected 0) |
+| `factorization_hard_error` | `k` = the backend's own info code, and the vocabulary is `Eigen::ComputationInfo`: `0` success, `1` numerical_issue, `2` no_convergence, `3` invalid_input. The RAW integer is on the wire rather than the named `IpmKktFactorStatus` `ipm.phase.exit` carries, because the console prints that integer to reproduce the pre-T8.7b bytes (`info={}`) and one fact under two spellings on one line is worse than one named here (the lane's M2, T8.7b fix1) |
+| `inertia_exhausted` | `k` = perturbation attempts (this kind's `k` has nothing to do with the row above's vocabulary), `p`/`n`/`z` = the observed inertia, `expected_p`/`expected_n` = what was expected (`z` expected 0) |
 | `restoration_locally_infeasible` | `a` = the infeasibility reached, `b` = the threshold. The same two numbers the adjacent `ipm.restoration_exit_row` carries as `theta`/`threshold` |
 | `feasibility_stall` | `a` = the infeasibility now, `b` = the infeasibility at the last restoration entry |
 | `interrupt_at_iteration` | `iter` = the row the callback stopped on |
@@ -676,12 +693,21 @@ non-additive is v1.
 | `ipm.phase.begin` | **W5 T8.7b** | added T8.7b |
 | `ipm.phase.end` | **W5 T8.7b** | added T8.7b |
 | `ipm.kkt_analysis` | **W5 T8.7b** | added T8.7b |
-| `ipm.phase.exit` | **W5 T8.7b** | added T8.7b |
+| `ipm.phase.exit` | **W5 T8.7b** | added T8.7b; **T8.7b fix1** (`selected_iter` REMOVED — see below) |
 | `ipm.message` | **W5 T8.7b** | added T8.7b |
 
 **`qp.mode`'s T5 line is the ONE W1/W2 golden line M6 W4 moves**, and it moves by
 exactly one trailing key: every byte before `,"site"` is T1's, unchanged
 (settler ruling, 2026-09-04).
+
+**T8.7b fix1's ONE REMOVAL, and why it is not a freeze break.** `ipm.phase.exit`
+lost its `selected_iter` key in the fix round of the very task that added the
+record — the same review window, the same branch, before any tree outside this
+one had seen the event. The freeze binds a record from the moment it ships; a
+key withdrawn by the review that first read it never shipped. The rule stands
+unweakened for every record above, and this is the only entry in this column
+that is a removal rather than an addition. It moves exactly one golden line,
+`JsonLinesTraceSink.GoldenLineIpmPhaseExit`, and no line that predates T8.7b.
 
 **M6 W5 T8.7b MOVES NO GOLDEN LINE AT ALL.** It adds five events and three enum
 vocabularies (`IpmPhase`, `IpmKktFactorStatus`, `IpmMessageKind`) and changes no

@@ -68,9 +68,10 @@ namespace hven::solvers {
 ///
 /// THE ONE COPY. It was `InteriorPointSolver::calculate_color`, a private
 /// static, until M6 W5 T8.7 moved the table out of the solver and into
-/// `ConsoleTraceSink`; the engine's own `print_exit_stats` -- which still
-/// prints directly -- calls it here, so the two renderings cannot drift apart.
-/// The arithmetic is unchanged.
+/// `ConsoleTraceSink`. Through T8.7 the engine's own `print_exit_stats` called
+/// it here so the two renderings could not drift apart; T8.7b moved that block
+/// to `on_ipm_phase_exit` and deleted the function, so this sink is now the
+/// only caller. The arithmetic is unchanged.
 ///
 /// The bands are log-spaced between the CONVERGENCE tolerance and 1000x the
 /// ACCEPTABLE one: below target is lime green, then yellow, orange, red, and
@@ -85,8 +86,9 @@ fmt::text_style ipm_residual_color(double value, double target, double acceptabl
 
 /// @brief Renders both engines' console tables from the trace stream.
 ///
-/// ONE SINK, TWO TABLES. The interior-point side reproduces
-/// `interior_point_solver_print.cpp`'s output byte for byte; the SQP side
+/// ONE SINK, TWO TABLES. The interior-point side reproduces the output of
+/// `interior_point_solver_print.cpp` -- the file T8.7b deleted once the last of
+/// it had moved here -- byte for byte; the SQP side
 /// reproduces `format_iteration_table` byte for byte, through the very
 /// functions that renderer is built from (`src/drivers/sqp_print.cpp`), so the
 /// two cannot drift.

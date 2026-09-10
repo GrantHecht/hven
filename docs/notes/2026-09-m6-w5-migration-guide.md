@@ -2321,6 +2321,19 @@ The whole-stream arithmetic is
 the analyses, the `ipm.iter` rows, the messages and the restoration-door
 markers.
 
+**Two premises stated during this task's review were wrong and are corrected
+here, as ruled** (T8.7b fix1; the wording is the settler's). First, the task
+brief's §5 A2/A4 and the SQP lane's pre-read wrote the count as `2 + 4P`,
+listing `kkt_analysis` among the things emitted "per phase ran" — **the
+analysis count is NOT the phase count**, for the reason the bullet above gives:
+a phase whose analysis has already been paid can still be skipped, so a
+`{kOptimize, kSolve}` sequence whose optimize phase converges carries `A = 2`
+with `P = 1`. `2 + 3P + A + R + M + D` is the code's arithmetic and is what the
+live pin asserts, on the arm where the two forms differ as well as on the two
+where they agree. Second, the pre-read placed the analysis INSIDE the phase
+bracket; it is **outside it, ahead of it** — the stream reads `kkt_analysis,
+phase.begin, iter…, phase.exit, phase.end`.
+
 ### 4. `IpmPhase` and `IpmPhaseReport` moved header
 
 Both are declared in `hven/detail/drivers/interior_point_solver_fwd.h` now
@@ -2347,6 +2360,23 @@ Before this task the second case took the direct branch and changed the running
 solve. A caller who relied on that has one adjustment: install from the
 callback, not from the sink.
 
+**ONE SLOT PER SETTER, AND THE LAST WRITE WINS** (T8.7b fix1). Each setter and
+its matching clear share ONE parked value. If a sink parks one during a solve
+and the iteration callback (or the KKT hook) then calls the same setter in that
+same solve, the second call overwrites both the value AND its origin: the
+sink's value is gone — it is not queued behind the callback's and it does not
+reappear at the next solve's entry — and the callback's lands when that
+invocation returns. The rule is that the caller's most recent request wins,
+whoever made it. `IpmDeferral.TheLastWriteWinsWhenASinkAndACallbackBothSetInOne
+Solve` pins the order.
+
+**THE SQP RESTORATION SUB-SOLVE CHANGES NOTHING HERE.** Its forwarder calls the
+PARENT driver's `invoke_iteration_callback`, so `callback_in_flight_` is set on
+the parent for the duration of a forwarded callback and a set made there is an
+INVOCATION-origin park on the parent — applied when that callback returns,
+exactly as T8.6 specified. The deferral this task added does not move forwarded
+semantics.
+
 ### 6. Two informational notes
 
 * **A message emitted from inside a factorization is timed into `kkt_time`**,
@@ -2354,14 +2384,60 @@ callback, not from the sink.
   factorization runs inside the KKT timer. Every `_s` field is informational and
   no pin reads one (CLAUDE.md §7).
 * **A sink that THROWS from `on_ipm_message` may do so from inside a
-  factorization.** The solve's scope guards still clear the in-flight flags and
-  release the borrowed model, and the solver stays usable and destructible — but
-  the FACTORIZATION's own state is whatever the interrupted ladder step left, so
-  the next solve re-analyzes rather than reusing it. Throwing is not a supported
-  way to stop a solve; the iteration callback's `kStop` is.
+  factorization.** The solve's scope guards clear the in-flight flags and
+  release the borrowed model, and the solver stays usable and destructible.
+
+  **What the next solve does** (corrected at T8.7b fix1 — the sentence that
+  stood here said "the next solve re-analyzes rather than reusing it", and the
+  code does the opposite). Nothing invalidates the symbolic analysis, so a retry
+  on an unchanged model **refactorizes on the REUSED analysis**. That is sound:
+  the analysis depends only on the PATTERN and no ladder step changes the
+  pattern (its perturbations add to diagonal VALUES in place), and `init_impl`
+  reassembles every value — the primal diagonals, the slacks, a full `INIT`
+  evaluation of the model into the KKT buffer — before it factorizes, so
+  whatever the interrupted ladder left in the matrix is overwritten. **The retry
+  is bitwise the solve a freshly constructed solver runs on the same model**:
+  `IpmMessageSink.ARetryAfterAThrowingFactorTimeSinkIsBitwiseAFreshSolve` pins
+  the whole masked event stream and every vector the result carries against a
+  fresh solver's, with `kkt_analyses_this_call == 0` on the retry. The two
+  streams differ on exactly one line and exactly three keys —
+  `ipm.kkt_analysis`'s `docompute`, `factor_mem` and `factor_flops` — and those
+  three keys ARE the reuse being reported.
+
+  Throwing is still not a supported way to stop a solve; the iteration
+  callback's `kStop` is.
 
 ### 7. What did NOT change
 
 `IpmSolveRecord` and the ledger are untouched — the per-phase counts a reader
 might now expect there are on `ipm.phase.exit` instead. No CSV column, no
 benchmark baseline and no frozen artifact moves.
+
+### 8. The fix round's three record corrections (T8.7b fix1)
+
+All three land on records this task itself introduced, before any of them left
+this branch. Nothing that predates T8.7b moves.
+
+* **`ipm.phase.exit` LOSES its `selected_iter` key.** The phase loop stamps each
+  row's `iter_` with the loop counter and pushes exactly one row per iteration,
+  so a row's index in the phase's history and its `iter_` were always the same
+  number and the key was that number under a second name. The join to the
+  selected row's `ipm.iter` line is (`phase`, `iter`) — **and it is a join, not
+  an adjacency**: under `return_best` the selected row is an EARLIER row of the
+  phase, and an `ipm.message` can sit between the exit and its row even for the
+  terminal one. `docs/trace-schema-v0.md` §4.18 said "the adjacent `ipm.iter`
+  line" and now says what a reader must actually do. One golden line moves,
+  `GoldenLineIpmPhaseExit`, by exactly that removal.
+* **`last_kkt_info` is PER PHASE.** `alg_impl` resets `IpmResult::last_kkt_info`
+  at each phase's entry, so the key on `ipm.phase.exit` is that phase's own last
+  non-Success factorization status and never an earlier phase's. The field doc,
+  the console's comment and schema §4.18 all said "this CALL (not this phase)";
+  all three are corrected.
+* **`ipm.message`'s `k` has a NAMED vocabulary on `factorization_hard_error`.**
+  It is an `Eigen::ComputationInfo`: `0` success, `1` numerical_issue, `2`
+  no_convergence, `3` invalid_input. The raw integer stays on the wire rather
+  than the named `IpmKktFactorStatus` that `ipm.phase.exit` carries, because the
+  console prints that integer to reproduce the pre-T8.7b bytes and one fact
+  under two spellings on one line is worse than one named in the schema. On
+  `inertia_exhausted`, `k` is the perturbation-attempt count and has nothing to
+  do with that vocabulary.

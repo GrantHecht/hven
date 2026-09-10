@@ -3771,7 +3771,14 @@ TEST(JsonLinesTraceSink, TheKktAnalysisFactorFiguresAreNullOnARefactorization) {
 
 TEST(JsonLinesTraceSink, GoldenLineIpmPhaseExit) {
     // THE ROW IS BORROWED and only the five values the console block prints are
-    // written; the adjacent `ipm.iter` line carries the record's other keys.
+    // written; the selected row's own `ipm.iter` line carries the record's
+    // other keys and is joined by (`phase`, `iter`).
+    //
+    // NO `selected_iter` (M6 W5 T8.7b fix1, the lane's M4): the phase loop
+    // stamps `iter_` with the loop counter and pushes one row per iteration, so
+    // the row's INDEX in the history is its `iter_` and the key was the same
+    // number twice. Dropped before the record froze; this literal is the one
+    // line this fix round moves, and it moves by exactly that removal.
     // THE REPORT IS EMBEDDED and flattened as the trailing keys, so a reader
     // sees the returned `IpmPhaseReport` on the same line as the exit itself.
     IterateInfo row;
@@ -3790,7 +3797,6 @@ TEST(JsonLinesTraceSink, GoldenLineIpmPhaseExit) {
     report.ran = true;
     IpmPhaseExitTraceEvent e{report, row};
     e.phase = 1;
-    e.selected_iter = 9;
     e.best_substituted = true;
     e.last_kkt_info = IpmKktFactorStatus::kNumericalIssue;
     e.total_s = 0.5;
@@ -3802,7 +3808,7 @@ TEST(JsonLinesTraceSink, GoldenLineIpmPhaseExit) {
     sink.on_ipm_phase_exit(e);
     EXPECT_EQ(os.str(),
               "{\"v\":0,\"ev\":\"ipm.phase.exit\",\"seq\":1,\"depth\":0,\"phase\":1,\"iter\":11,"
-              "\"selected_iter\":9,\"best_substituted\":true,\"prim_obj\":17.25,"
+              "\"best_substituted\":true,\"prim_obj\":17.25,"
               "\"kkt_inf\":0.00048828125,\"barr_inf\":0.000244140625,"
               "\"econ_inf\":0.0001220703125,\"icon_inf\":6.103515625e-05,"
               "\"last_kkt_info\":\"numerical_issue\",\"total_s\":0.5,\"func_s\":0.125,"

@@ -448,8 +448,11 @@ void ConsoleTraceSink::on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) {
         fmt::print(out_, " ICons Inf  : ");
         fmt::print(out_, Icol, "{:<15.8e}\n", last.icon_inf_);
 
-        // The last non-Success factorization status observed across the CALL,
-        // if any. Silent whenever every factorization reported Success. The
+        // The last non-Success factorization status observed during THIS
+        // PHASE, if any (M6 W5 T8.7b fix1, the lane's M1: `alg_impl` resets the
+        // field once per phase, so "across the CALL" -- what this comment said
+        // -- was never what the number meant). Silent whenever every
+        // factorization reported Success. The
         // two printed spellings are the old ternary's, which named
         // NumericalIssue and called everything else InvalidInput.
         if (event.last_kkt_info != IpmKktFactorStatus::kSuccess) {

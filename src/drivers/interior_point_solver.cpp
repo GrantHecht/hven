@@ -1931,7 +1931,8 @@ int hven::solvers::InteriorPointSolver::factor_impl(bool docompute, bool Zfac, d
     };
     // kkt_sol_.info() is computed by every Compute()/Refactor() call below. This
     // records the last non-Success status into result_.last_kkt_info (surfaced
-    // only by print_exit_stats(), see interior_point_solver_print.cpp) and, for
+    // by `ipm.phase.exit`'s `last_kkt_info` key, which alg_impl resets once per
+    // PHASE at its entry -- so the field is per-phase, not per-call) and, for
     // hard failures only, emits an immediate diagnostic gated the same as the
     // sibling RankDef()/perturbation-exhausted warnings in this function.
     // NumericalIssue (Pardiso info -4/-7:
@@ -2491,8 +2492,11 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     Eigen::VectorXd RHS2(this->kkt_dim_);
     Eigen::VectorXd PGX(this->primal_vars_);
 
-    // Per-phase: print_exit_stats reports this phase's factorization status, so
-    // a status left over from an earlier phase in the sequence must not leak in.
+    // Per-phase: `ipm.phase.exit` reports this phase's factorization status, so
+    // a status left over from an earlier phase in the sequence must not leak
+    // in. THIS RESET IS WHAT MAKES `last_kkt_info` A PER-PHASE FACT (M6 W5
+    // T8.7b fix1, the lane's M1); the event's doc, the console's comment and
+    // schema section 4.18 all say so.
     this->result_.last_kkt_info = Eigen::Success;
     // Fresh phase: re-probe rank rather than inheriting the previous phase's
     // degeneracy diagnosis.
@@ -4346,7 +4350,6 @@ Eigen::VectorXd hven::solvers::InteriorPointSolver::alg_impl(AlgorithmModes algm
     // a reference, and by the time it is emitted this vector is gone.
     this->trace_iter_ = -1;
     this->phase_exit_.row = iters[retiter];
-    this->phase_exit_.selected_iter = retiter;
     this->phase_exit_.best_substituted = return_best_applied;
     this->phase_exit_.total_s = tottime;
     this->phase_exit_.func_s = nlptime;
@@ -5746,7 +5749,6 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
             IpmPhaseExitTraceEvent exit_event{report,
                                               this->phase_exit_.row,
                                               current_phase_idx,
-                                              this->phase_exit_.selected_iter,
                                               this->phase_exit_.best_substituted,
                                               ipm_kkt_factor_status(this->result_.last_kkt_info),
                                               this->phase_exit_.total_s,

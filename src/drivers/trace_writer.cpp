@@ -630,12 +630,13 @@ static_assert(::hven::detail::kAggregateArity<IpmMessageTraceEvent> == 11,
               "docs/trace-schema-v0.md, re-derive the golden line, and update this count.");
 
 // `IpmPhaseExitTraceEvent` holds TWO references (the report and the row), so
-// the two-sided net is the exact form. 10 = report, iterate, phase,
-// selected_iter, best_substituted, last_kkt_info, and the four times.
+// the two-sided net is the exact form. 9 = report, iterate, phase,
+// best_substituted, last_kkt_info, and the four times. (T8.7b fix1 dropped
+// `selected_iter`: the row's index in the phase's history IS its `iter_`.)
 static_assert(::hven::detail::aggregate_initializable_with<IpmPhaseExitTraceEvent>(
-                  std::make_index_sequence<10>{}) &&
+                  std::make_index_sequence<9>{}) &&
                   !::hven::detail::aggregate_initializable_with<IpmPhaseExitTraceEvent>(
-                      std::make_index_sequence<11>{}),
+                      std::make_index_sequence<10>{}),
               "IpmPhaseExitTraceEvent gained or lost a field: give it a key in "
               "JsonLinesTraceSink::on_ipm_phase_exit, re-derive the golden line, and update "
               "these two counts.");
@@ -1080,7 +1081,6 @@ void JsonLinesTraceSink::on_ipm_phase_exit(const IpmPhaseExitTraceEvent &event) 
     bool first = true;
     key_index(b, first, "phase", event.phase);
     key_index(b, first, "iter", event.iterate.iter_);
-    key_index(b, first, "selected_iter", event.selected_iter);
     key_bool(b, first, "best_substituted", event.best_substituted);
     key_double(b, first, "prim_obj", event.iterate.prim_obj_);
     key_double(b, first, "kkt_inf", event.iterate.kkt_inf_);

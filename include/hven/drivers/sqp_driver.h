@@ -771,6 +771,21 @@ class SqpDriver {
             // else while a solve runs, a SINK METHOD included: the next solve's
             // ENTRY, so the solve in progress is bitwise the solve it would
             // have been without the call.
+            //
+            // ONE SLOT FOR THIS SETTER AND clear_iteration_callback(), AND THE
+            // LAST WRITE WINS (M6 W5 T8.7b fix1, the lane's M3): a sink-origin
+            // park followed in the SAME solve by a callback-origin call keeps
+            // only the second, applied when that callback returns. The most
+            // recent request from the caller is the one that takes effect,
+            // whoever made it; a queue would replay a stale value after a
+            // newer one.
+            //
+            // THE RESTORATION SUB-DRIVER FORWARDS THROUGH THE PARENT. A set
+            // made from inside a callback that the restoration sub-solve
+            // forwarded goes through the PARENT's invoke_iteration_callback, so
+            // `callback_in_flight_` is set on the parent for the duration and
+            // the park is invocation-origin there -- T8.6's forwarded semantics
+            // are unchanged by this task.
             pending_callback_at_entry_ = !callback_in_flight_;
             return;
         }
@@ -786,7 +801,8 @@ class SqpDriver {
     /// @brief Removes the per-iteration callback.
     ///
     /// Deferred to the safe point when called from INSIDE the callback; see
-    /// set_iteration_callback().
+    /// set_iteration_callback(), whose ONE deferral slot this shares -- last
+    /// write wins.
     void clear_iteration_callback() {
         if (callback_in_flight_ || solve_in_flight_) {
             pending_callback_ = IterationCallback{};

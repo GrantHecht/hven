@@ -630,9 +630,11 @@ struct IpmResult : SolveResult {
 
     /// The last non-Success status observed from kkt_sol_.info() by
     /// factor_impl() within the CURRENT phase (alg_impl resets it on
-    /// entry, so print_exit_stats reports per-phase status). Purely
-    /// observational (surfaced by print_exit_stats()); feeds no
-    /// control-flow decision in factor_impl.
+    /// entry, so the value is per-PHASE and never an earlier phase's).
+    /// Purely observational -- surfaced by `ipm.phase.exit`'s
+    /// `last_kkt_info` key, named there rather than raw (M6 W5 T8.7b; the
+    /// print_exit_stats() this note used to name is deleted) -- and it
+    /// feeds no control-flow decision in factor_impl.
     Eigen::ComputationInfo last_kkt_info = Eigen::Success;
     // --- The per-phase account (M6 W5 T8.4) ---
     /// @brief One entry per phase in `IpmOptions::phases`, in that order.

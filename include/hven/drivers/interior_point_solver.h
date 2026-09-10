@@ -552,6 +552,17 @@ class InteriorPointSolver {
             // -- the value is applied at the NEXT SOLVE'S ENTRY, so the solve
             // in progress is bitwise the solve it would have been. Before this
             // task such a call took the DIRECT branch below, mid-iteration.
+            //
+            // ONE SLOT PER SETTER, AND THE LAST WRITE WINS (M6 W5 T8.7b fix1,
+            // the lane's M3). A sink-origin park followed IN THE SAME SOLVE by
+            // an invocation-origin call to this same setter overwrites both the
+            // value and the flag: the callback's value lands when that
+            // invocation returns and the sink's is gone. That is the rule a
+            // single `std::optional` gives and it is the rule we want -- the
+            // most recent request from the caller is the one that takes effect,
+            // whoever made it -- rather than a queue that would replay a stale
+            // value after a newer one. `IpmDeferral.TheLastWriteWinsWhenASink
+            // AndACallbackBothSetInOneSolve` pins the order.
             this->pending_callback_at_entry_ =
                 !(this->callback_in_flight_ || this->kkt_hook_in_flight_);
             return;
@@ -568,7 +579,8 @@ class InteriorPointSolver {
     /// @brief Removes the per-iteration callback.
     ///
     /// Deferred to the safe point when called from INSIDE the callback; see
-    /// set_iteration_callback().
+    /// set_iteration_callback(), whose ONE SLOT this shares -- a park made here
+    /// overwrites one made there in the same solve, and the last write wins.
     void clear_iteration_callback() {
         if (this->callback_in_flight_ || this->solve_in_flight_) {
             this->pending_callback_ = IterationCallback{};
@@ -605,6 +617,12 @@ class InteriorPointSolver {
             // from its first hand-out on -- M6 W5 T2. What the deferral buys
             // is that a solve's own behaviour cannot be changed by a sink
             // watching it.)
+            //
+            // ONE SLOT, LAST WRITE WINS, exactly as on the callback pair above
+            // (M6 W5 T8.7b fix1, the lane's M3): this setter and
+            // clear_kkt_hook() share one `std::optional`, so a sink-origin park
+            // followed by a hook-origin call in the same solve keeps only the
+            // second, applied when that hook returns.
             this->pending_kkt_hook_at_entry_ =
                 !(this->callback_in_flight_ || this->kkt_hook_in_flight_);
             return;
@@ -627,7 +645,8 @@ class InteriorPointSolver {
     /// safe for free, and what assigning nullptr to the std::function would
     /// otherwise have broken: the callable's storage, its captures included,
     /// would be destroyed during its own invocation. The clear is DEFERRED to
-    /// the statement after the hook returns.
+    /// the statement after the hook returns. It shares set_kkt_hook()'s ONE
+    /// deferral slot: last write wins.
     void clear_kkt_hook() {
         if (this->kkt_hook_in_flight_ || this->solve_in_flight_) {
             this->pending_kkt_hook_ = KktHook{};
@@ -1304,9 +1323,11 @@ class InteriorPointSolver {
     /// integers, a bool and one record copy per PHASE -- not per iteration --
     /// and making it conditional would put a second predicate between the
     /// algorithm and its own bookkeeping for no measurable saving.
+    /// THE ROW'S INDEX IS NOT KEPT (M6 W5 T8.7b fix1, the lane's M4): the loop
+    /// stamps `Citer.iter_ = i` and pushes one row per iteration, so the index
+    /// IS `row.iter_` and a second member would be the same number twice.
     struct PhaseExitScratch {
         IterateInfo row;               ///< The row the phase returns.
-        Index selected_iter = 0;       ///< Its index in the phase's own history.
         bool best_substituted = false; ///< Did `return_best` substitute it?
         double total_s = 0.0;          ///< alg_impl's `Runtimer`.
         double func_s = 0.0;

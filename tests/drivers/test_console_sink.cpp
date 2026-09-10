@@ -460,7 +460,6 @@ void run_scripted_transcript(ConsoleTraceSink &sink, bool wide) {
     opt_report.ran = true;
     IpmPhaseExitTraceEvent opt_exit{opt_report, rows[5]};
     opt_exit.phase = 0;
-    opt_exit.selected_iter = 5;
     opt_exit.total_s = 0.0078125;
     opt_exit.func_s = 0.00390625;
     opt_exit.kkt_s = 0.001953125;
@@ -486,7 +485,6 @@ void run_scripted_transcript(ConsoleTraceSink &sink, bool wide) {
     soe_report.ran = true;
     IpmPhaseExitTraceEvent soe_exit{soe_report, rows[11]};
     soe_exit.phase = 1;
-    soe_exit.selected_iter = 5;
     // THE ONE EXIT BLOCK THAT CARRIES `KKT Factor Status`, which no live HS071
     // solve reaches.
     soe_exit.last_kkt_info = IpmKktFactorStatus::kNumericalIssue;

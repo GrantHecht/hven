@@ -594,6 +594,13 @@ struct IpmKktAnalysisTraceEvent {
 /// when the `return_best` substitution applied. `iterate.prim_obj_` is printed
 /// RAW: the restoration-contamination NaN rule that governs the iteration
 /// CALLBACK's `f` does not apply to this block and never did.
+///
+/// THE ROW'S INDEX IN THE HISTORY IS NOT CARRIED, and there is nothing to carry
+/// (M6 W5 T8.7b fix1, the lane's M4): the phase loop stamps `Citer.iter_ = i`
+/// and pushes exactly one row per iteration, so a row's index in the history IS
+/// its `iter_`. A `selected_iter` key beside `iter` would have been the same
+/// number under a second name, and it is dropped before the record freezes.
+/// The join to the selected row's `ipm.iter` line is (`phase`, `iter`).
 struct IpmPhaseExitTraceEvent {
     /// This phase's report, the object `IpmResult::phases[phase]` holds. Valid
     /// for the duration of the call only.
@@ -602,14 +609,12 @@ struct IpmPhaseExitTraceEvent {
     const IterateInfo &iterate;
     /// The phase's 0-based index, as on `IpmPhaseTraceEvent`.
     Index phase = 0;
-    /// WHICH row of the phase's own iterate history was selected -- the index,
-    /// where `iterate.iter_` is the row's own iteration number and is the join
-    /// key to its `ipm.iter` line.
-    Index selected_iter = 0;
     /// True when `return_best` substituted the best iterate for the last one.
     bool best_substituted = false;
-    /// The last non-Success factorization status observed during this CALL
-    /// (not this phase): `IpmResult::last_kkt_info`, named rather than raw.
+    /// The last non-Success factorization status observed during THIS PHASE
+    /// (M6 W5 T8.7b fix1, the lane's M1): `alg_impl` resets
+    /// `IpmResult::last_kkt_info` to `Eigen::Success` once per phase, so this
+    /// is a per-phase fact and not a per-call one. Named rather than raw.
     /// The console prints a line for it only when it is not `kSuccess`.
     IpmKktFactorStatus last_kkt_info = IpmKktFactorStatus::kSuccess;
     /// The phase's own four clocks, in SECONDS, from `alg_impl`'s internal
@@ -644,7 +649,7 @@ struct IpmPhaseExitTraceEvent {
 /// |---|---|
 /// | `solver_initialized` | `a` = initialization MILLISECONDS |
 /// | `rank_deficiency` | none |
-/// | `factorization_hard_error` | `k` = the backend's info code |
+/// | `factorization_hard_error` | `k` = the backend's info code (see `k` below) |
 /// | `inertia_exhausted` | `k` = attempts, `p`/`n`/`z` observed, `expected_p`/`expected_n` |
 /// | `restoration_locally_infeasible` | `a` = infeasibility, `b` = threshold |
 /// | `feasibility_stall` | `a` = infeasibility now, `b` = at the last entry |
@@ -667,12 +672,22 @@ struct IpmMessageTraceEvent {
     Index iter = -1;
     double a = kAbsentDouble; ///< Per-kind; NaN when the kind does not use it.
     double b = kAbsentDouble; ///< Per-kind; NaN when the kind does not use it.
-    Index k = -1;             ///< Per-kind integer; `-1` when unused.
-    Index p = -1;             ///< `inertia_exhausted`: observed positive eigenvalues.
-    Index n = -1;             ///< `inertia_exhausted`: observed negative eigenvalues.
-    Index z = -1;             ///< `inertia_exhausted`: observed zero eigenvalues.
-    Index expected_p = -1;    ///< `inertia_exhausted`: expected positive count.
-    Index expected_n = -1;    ///< `inertia_exhausted`: expected negative count.
+    /// Per-kind integer; `-1` when unused.
+    ///
+    /// ON `factorization_hard_error` THE VOCABULARY IS `Eigen::ComputationInfo`
+    /// -- `0` success, `1` numerical_issue, `2` no_convergence, `3`
+    /// invalid_input (M6 W5 T8.7b fix1, the lane's M2). The raw integer is kept
+    /// rather than the named `IpmKktFactorStatus` beside it because the console
+    /// prints that integer to reproduce the old bytes (`info={}`), and one
+    /// fact under two spellings on one line is worse than one named here and in
+    /// `docs/trace-schema-v0.md` §4.19. On `inertia_exhausted` `k` is the
+    /// perturbation-attempt count and has nothing to do with that vocabulary.
+    Index k = -1;
+    Index p = -1;          ///< `inertia_exhausted`: observed positive eigenvalues.
+    Index n = -1;          ///< `inertia_exhausted`: observed negative eigenvalues.
+    Index z = -1;          ///< `inertia_exhausted`: observed zero eigenvalues.
+    Index expected_p = -1; ///< `inertia_exhausted`: expected positive count.
+    Index expected_n = -1; ///< `inertia_exhausted`: expected negative count.
 };
 
 /// @brief The interior-point solve's closing line (schema `ipm.solve.end`,
@@ -770,11 +785,25 @@ class TraceSink {
     /// MAY FIRE FROM INSIDE A FACTORIZATION, which is the one place a sink is
     /// reached with the engine's linear algebra half way through a ladder. A
     /// sink that THROWS there takes the solve with it: `alg_impl`'s scope
-    /// guards still clear the in-flight flags and release the borrowed model,
-    /// and the solver stays destructible -- but the FACTORIZATION's own state
-    /// is whatever the interrupted ladder step left, so the next solve on this
-    /// solver re-analyzes rather than reusing it. Throwing from here is not a
-    /// supported way to stop a solve; the iteration callback's `kStop` is.
+    /// guards clear the in-flight flags and release the borrowed model, and the
+    /// solver stays usable and destructible.
+    ///
+    /// WHAT THE NEXT SOLVE DOES (M6 W5 T8.7b fix1, astra's I1 -- the sentence
+    /// this replaced said "re-analyzes rather than reusing it", which is not
+    /// what the code does). Nothing invalidates the symbolic analysis, so the
+    /// next solve on an unchanged model REFACTORIZES ON THE REUSED ANALYSIS.
+    /// That is sound, not a leak: the analysis depends only on the PATTERN and
+    /// no ladder step changes the pattern (the perturbations add to diagonal
+    /// VALUES in place), and `init_impl` reassembles every value -- the primal
+    /// diagonals, the slacks, a full `INIT` evaluation of the model into the
+    /// KKT buffer -- before it factorizes, so whatever the interrupted ladder
+    /// left in the matrix is overwritten. The retry is therefore BITWISE the
+    /// solve a freshly constructed solver runs on the same model, which
+    /// `IpmMessageSink.ARetryAfterAThrowingFactorTimeSinkIsBitwiseAFreshSolve`
+    /// pins alongside `kkt_analyses_this_call == 0` on the retry.
+    ///
+    /// Throwing from here is still not a supported way to stop a solve; the
+    /// iteration callback's `kStop` is.
     virtual void on_ipm_message(const IpmMessageTraceEvent &event);
 };
 
