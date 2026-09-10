@@ -366,9 +366,19 @@ inline ModelSample sample_model(const NlpModel &model, const Vec &x, const Vec &
 //
 // With allow_activity_change = false the path never stops early, so `reached_t`
 // is 1.0 on every non-degenerate call.
+//
+// `threads` is the thread count in force for the ONE factorization this
+// function takes (M6 W5 T8.8) -- SqpOptions::common.threads, handed down by
+// run_continuation from the driver it was given. It is a plain parameter and
+// NOT a PredictorOptions or QpOptions field: `QpOptions` deliberately carries
+// no thread field, because the count is folded into the engine options
+// fingerprint separately (qp_types.h's options_fingerprint). 0, the default
+// and what every pre-T8.8 caller passed, leaves the backend's own default
+// alone -- so a defaulted call is bit-for-bit the pre-T8.8 one. LAST in the
+// parameter list so no existing call site's arguments move.
 inline WarmStart predict(ParametricNlpModel &model, const WarmStart &warm, const Vec &dp,
                          const PredictorOptions &opts = {}, PredictorOutcome *outcome = nullptr,
-                         double *reached_t = nullptr) {
+                         double *reached_t = nullptr, int threads = 0) {
     const auto report = [outcome](PredictorOutcome value) {
         if (outcome != nullptr) {
             *outcome = value;
@@ -593,7 +603,7 @@ inline WarmStart predict(ParametricNlpModel &model, const WarmStart &warm, const
 
         Vec dx = Vec::Zero(n);
 
-        detail::KktFactor kkt;
+        detail::KktFactor kkt(threads);
         detail::factorize_checked(kkt, k0.K); // THE one factorization
         SchurComplement schur(kkt, qopts);
         std::vector<predictor_detail::PredictorBorder> borders;

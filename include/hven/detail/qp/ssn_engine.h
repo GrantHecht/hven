@@ -704,12 +704,27 @@ struct SsnResult {
 // not: it owns live Pardiso/Accelerate internal state.
 class SsnEngine {
   public:
-    explicit SsnEngine(const QpOptions &opts) : opts_(opts) {}
+    /// @param opts    The QP options this tier solves under.
+    /// @param threads The thread count in force -- SqpDriver passes
+    ///                SqpOptions::common.threads (M6 W5 T8.8). It configures
+    ///                THE ONE persistent factor this tier holds, at
+    ///                construction; 0 (the default, and what every pre-T8.8
+    ///                construction site passed) leaves the backend's own
+    ///                default alone, so a defaulted engine is bit-for-bit the
+    ///                pre-T8.8 one. `QpOptions` deliberately carries no thread
+    ///                field: the count is fingerprinted separately
+    ///                (qp_types.h's options_fingerprint).
+    explicit SsnEngine(const QpOptions &opts, int threads = 0) : opts_(opts), kkt_(threads) {}
 
     SsnEngine(const SsnEngine &) = delete;
     SsnEngine &operator=(const SsnEngine &) = delete;
 
     const QpOptions &options() const { return opts_; }
+
+    /// The LIVE factor's own thread count, read through to the backend session
+    /// (SymmetricFactor::num_threads()) rather than a stored copy -- a boundary
+    /// observation of the factor this tier actually solves through.
+    int num_threads() const noexcept { return kkt_.factor.num_threads(); }
 
     // Solve `qp` from `start`. `out` must be non-null and is fully overwritten.
     //

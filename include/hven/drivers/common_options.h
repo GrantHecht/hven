@@ -26,10 +26,36 @@ struct CommonOptions {
     /// runs reproducible. The interior-point engine defaults this to
     /// HVEN_DEFAULT_QP_THREADS, the value its Settings::qp_threads_ carried.
     ///
-    /// T8.3 MOVES the field and changes nothing about how it is read: the
+    /// T8.3 MOVED the field and changed nothing about how it is read: the
     /// interior-point engine applies it exactly where it applied
-    /// qp_threads_, and the SQP engine still does not apply it at all. T8.8 is
-    /// where a non-zero count starts reaching every SQP factor path.
+    /// qp_threads_. T8.8 IS WHERE THE SQP ENGINE STARTED APPLYING IT, and the
+    /// terms are these:
+    ///
+    ///   * It reaches EVERY SQP factor path -- the walk tier's K0 border and
+    ///     its per-solve, EQP-refine and verdict-refine temporaries, the SSN
+    ///     tier's one persistent factor, the IPQP tier's KKT factorization,
+    ///     the parametric predictor's one factorization, the Schur border's
+    ///     dense LAPACK factor, and every one of those inside a nested
+    ///     restoration solve (the sub-driver inherits this whole struct).
+    ///   * It is applied AT CALL SCOPE and undone afterward, on every exit.
+    ///     Nothing here writes a process-global or an environment setting.
+    ///   * It is folded into the engine options fingerprint a hot handle is
+    ///     keyed on, so changing it refuses a handle produced at another count.
+    ///   * 0 means "leave the backend's own default alone" and is bit-for-bit
+    ///     the pre-T8.8 behaviour: no scope is engaged anywhere.
+    ///
+    /// ON APPLE THIS IS STORED AND APPLIED TO NOTHING -- UNOBSERVED. The
+    /// Accelerate sparse session records the count without handing it to any
+    /// backend call, and the SQP engine deliberately does NOT mirror the
+    /// interior-point engine's driver-level `accelerate_set_num_threads()`,
+    /// which is a PROCESS-WIDE call that is never restored and so cannot keep
+    /// the call-scoped promise above. The Apple application is registered with
+    /// the Mac increment. The interior-point engine's own behaviour is
+    /// unchanged by any of this.
+    ///
+    /// NOT the interior-point engine's EVALUATION-POOL thread count, which is
+    /// a separate process-global knob (`utils::set_num_threads`), and not CNR,
+    /// which stays interior-point-only.
     int threads = 0;
 
     /// Console verbosity, on the interior-point engine's scale in both

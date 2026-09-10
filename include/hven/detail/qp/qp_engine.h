@@ -702,7 +702,13 @@ inline std::uint64_t values_hash(const QpProblem &qp) {
 // abandoned for the current working-set SHAPE, the elimination path serves
 // every iteration, and the border stack is deliberately NOT kept in sync.
 struct BorderState {
-    BorderState() = default;
+    /// @param threads The owning engine's thread count, handed to K0's factor
+    ///                at construction (M6 W5 T8.8). 0 -- the default, and what
+    ///                every construction site passed before that task -- leaves
+    ///                the backend's own default alone, so a default-argument
+    ///                construction is bit-for-bit the old one.
+    explicit BorderState(int threads = 0) : kkt(threads) {}
+
     BorderState(const BorderState &) = delete;
     BorderState &operator=(const BorderState &) = delete;
     BorderState(BorderState &&) = delete;
@@ -711,7 +717,7 @@ struct BorderState {
     KktAssembly k0;
     std::vector<Index> k0_rows;
     std::vector<BorderLedgerEntry> ledger; // in SchurComplement::add_border order
-    detail::KktFactor kkt;                 // configured by sqp_kkt_options()
+    detail::KktFactor kkt;                 // configured by sqp_kkt_options(threads)
     std::optional<SchurComplement> schur;
     bool latched = false;
 
@@ -825,18 +831,32 @@ struct HotState {
 class QpEngine {
   public:
     // `threads` is the thread count in force for this engine's factor paths --
-    // SqpDriver passes SqpOptions::common.threads. This engine CARRIES it
-    // rather than applying it until M6 W5 T8.8; what it is used for today is
-    // the options fingerprint a hot handle is keyed on (qp_types.h's
-    // options_fingerprint), so a pin written against it now means the same
-    // thing after T8.8. Defaulted so every existing construction site keeps
-    // compiling and keeps hashing the 0 the SQP lane has always passed.
+    // SqpDriver passes SqpOptions::common.threads. Since M6 W5 T8.8 this engine
+    // both CARRIES it (it is folded into the options fingerprint a hot handle is
+    // keyed on -- qp_types.h's options_fingerprint) and APPLIES it: K0's factor
+    // takes it here, and run()/refine_on_face()/
+    // refine_eliminated_face_for_verdict()'s temporary and fallback factors take
+    // it at their own construction. Defaulted so every existing construction
+    // site keeps compiling and keeps hashing the 0 the SQP lane has always
+    // passed -- and 0 means "leave the backend's own default alone", so a
+    // defaulted engine is bit-for-bit the pre-T8.8 one.
     explicit QpEngine(const QpOptions &opts, int threads = 0)
         : opts_(opts), threads_(threads), options_hash_(options_fingerprint(opts, threads)),
-          border_(std::make_shared<BorderState>()) {}
+          border_(std::make_shared<BorderState>(threads)) {}
 
-    // The thread count this engine was built with; see the constructor.
-    int num_threads() const noexcept { return threads_; }
+    // THE LIVE K0 FACTOR'S OWN COUNT, read through to the backend session --
+    // NOT the carried `threads_` this engine was built with (M6 W5 T8.8). The
+    // two agree by construction on an engine solving through its own border,
+    // and tests/drivers/test_threads.cpp asserts they do; they are nonetheless
+    // different facts, and this accessor exists to make the FACTOR's answer
+    // observable at the boundary. After a hot handle is adopted, `border_`
+    // is the PRODUCING engine's BorderState -- adoption requires an equal
+    // options fingerprint, which folds `threads`, so the answer still agrees.
+    int num_threads() const noexcept { return border_->kkt.factor.num_threads(); }
+
+    // The thread count this engine was BUILT with -- the value hashed into
+    // options_hash_. Distinct from num_threads() above; see it.
+    int carried_num_threads() const noexcept { return threads_; }
 
     // Attach a ledger for instrumentation (nullptr = off, default off).
     // Emits one SolveRecord per solve() call with the given label prefix

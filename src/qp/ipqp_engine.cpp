@@ -669,7 +669,9 @@ struct IpqpEngine::Workspace {
 
 const QpOptions &IpqpEngine::options() const { return opts_; }
 
-IpqpEngine::IpqpEngine(const QpOptions &opts) : opts_(opts) {
+int IpqpEngine::num_threads() const { return kkt_.session_num_threads(); }
+
+IpqpEngine::IpqpEngine(const QpOptions &opts, int threads) : opts_(opts) {
     // THE TIER'S OWN BACKEND OPTIONS, NOT detail::sqp_kkt_options() (spec 4.4).
     // Default-constructed and left alone: every field that maps to a Pardiso iparm slot stays
     // at the value pardisoinit chose, so CLAUDE.md section 6's labelling rule has nothing to
@@ -677,6 +679,18 @@ IpqpEngine::IpqpEngine(const QpOptions &opts) : opts_(opts) {
     // bind on, and the Accelerate backend (which throws on several non-default fields at
     // construction) is safe. Recorded here because "no code" is otherwise indistinguishable
     // from "not thought about".
+    //
+    // THE ONE EXCEPTION IS THE THREAD COUNT (M6 W5 T8.8), and it is not an iparm field:
+    // `num_threads` is the one SymmetricFactor option that is NOT frozen at construction
+    // (symmetric_factor.h), it is applied at CALL scope and undone afterward, and it maps to
+    // no Pardiso parameter-array slot -- so CLAUDE.md section 6's IPARM-SURFACE labelling rule
+    // still has nothing to bind on here. `set_num_threads` rather than an Options field
+    // because it keeps `opts_` in step, which is what would preserve the count across a
+    // future `reconfigure()`; this tier never reconfigures today.
+    //
+    // AT 0 THIS IS A NO-OP IN EVERY OBSERVABLE SENSE: the factor is already configured at 0,
+    // and 0 means "leave the backend's own default alone".
+    kkt_.set_num_threads(threads);
 }
 
 const IpqpSeed *IpqpEngine::warm_carry() const { return carry_armed_ ? &carry_ : nullptr; }

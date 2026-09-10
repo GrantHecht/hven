@@ -13,12 +13,23 @@
 namespace hven::solvers::detail {
 
 /// @brief The SQP engine's linear configuration for its KKT factors.
-inline hven::linear::SymmetricFactor::Options sqp_kkt_options() {
+///
+/// `threads` is the count SqpOptions::common.threads carries, handed down by
+/// whichever engine owns the factor (M6 W5 T8.8). It DEFAULTS TO 0, which is
+/// the value every caller passed before that task and which means "leave the
+/// backend's own default alone" -- so a default-argument call is byte-for-byte
+/// the configuration this factory has always produced, and the process-wide
+/// MKL_NUM_THREADS pin stays the reproducibility mechanism at 0. A positive
+/// count is applied by SymmetricFactor at each backend call and undone
+/// afterward (symmetric_factor.h); it is never written to a process global.
+///
+/// Accelerate stores the count and applies it to nothing -- UNOBSERVED, and
+/// the SQP deliberately does NOT mirror the IPM's process-wide
+/// accelerate_set_num_threads() call, which is not restored on exit.
+inline hven::linear::SymmetricFactor::Options sqp_kkt_options(int threads = 0) {
     hven::linear::SymmetricFactor::Options o;
     o.kind = hven::linear::FactorKind::kLDLT;
-    // 0 = backend default; the process-wide MKL_NUM_THREADS pin is what makes
-    // runs reproducible, so no per-instance thread control is exposed.
-    o.num_threads = 0;
+    o.num_threads = threads;
     o.pivot_perturb_exp = std::nullopt;
     o.max_refinement_iters = std::nullopt;
     // Every remaining member keeps its default (don't-write / absent).
@@ -41,7 +52,18 @@ inline hven::linear::SymmetricFactor::Options sqp_kkt_options() {
 //     session, moving `session_id()` and breaking qp_engine.h's hot-start
 //     reuse condition (e) for every other holder of that handle.
 struct KktFactor {
-    hven::linear::SymmetricFactor factor{sqp_kkt_options()};
+    /// @param threads The owning engine's thread count; 0 (the default, and
+    ///                what every pre-T8.8 construction site passed) leaves the
+    ///                backend's own default alone. THE SOLE WAY a thread count
+    ///                reaches a walk/SSN-tier factor: `factor` is configured
+    ///                once, here, through sqp_kkt_options(), and no library
+    ///                code default-constructs a KktFactor any more -- the
+    ///                report's `grep -n 'KktFactor \w*;' src/ include/` is
+    ///                empty, which is what makes "every factor path" a
+    ///                checkable claim rather than an enumerated one.
+    explicit KktFactor(int threads = 0) : factor(sqp_kkt_options(threads)) {}
+
+    hven::linear::SymmetricFactor factor;
     std::uint64_t analyzed_pattern = 0;
     bool analyzed = false;
 };

@@ -490,7 +490,20 @@ struct IpqpResult {
 /// on this instance is only ever handed `kkt_.matrix()`, and nothing else may be.
 class IpqpEngine {
   public:
-    explicit IpqpEngine(const QpOptions &opts);
+    /// @param opts    The QP options this tier solves under.
+    /// @param threads The thread count in force -- SqpDriver passes
+    ///                SqpOptions::common.threads (M6 W5 T8.8). It configures
+    ///                the ONE `KktFactorization` this tier holds. 0 (the
+    ///                default, and what every pre-T8.8 construction site
+    ///                passed) leaves the backend's own default alone, so a
+    ///                defaulted engine is bit-for-bit the pre-T8.8 one.
+    /// @throws std::invalid_argument for a negative count (the linear
+    ///         surface's own rule, reached through
+    ///         KktFactorization::set_num_threads). SqpOptions validation
+    ///         refuses a negative common.threads long before any engine is
+    ///         built (tests/drivers/test_options.cpp), so this is a
+    ///         defence-in-depth throw, not the primary gate.
+    explicit IpqpEngine(const QpOptions &opts, int threads = 0);
 
     IpqpEngine(const IpqpEngine &) = delete;
     IpqpEngine &operator=(const IpqpEngine &) = delete;
@@ -499,6 +512,12 @@ class IpqpEngine {
     /// a const accessor is not a per-element hot loop, and this header carries
     /// declarations and `inline constexpr` only.
     const QpOptions &options() const;
+
+    /// The LIVE factor's own thread count, read through to the backend session
+    /// (`KktFactorization::session_num_threads()`), not the stored option --
+    /// a boundary observation of the factor this tier actually solves through.
+    /// Defined in the .cpp, like `options()`.
+    int num_threads() const;
 
     /// Attach a ledger for instrumentation. `QpEngine::attach_ledger`'s
     /// contract verbatim (qp_engine.h): a THROWING `solve()` emits no record.

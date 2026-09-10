@@ -31,6 +31,9 @@
 // this file, so scoped the same way the rest of the MKL half is.
 #if !defined(__APPLE__)
 #include "hven/detail/linear/pardiso_session.h"
+// MKL's own thread state: the only way to read what a call-scoped thread count
+// left behind. Same platform scope as the rest of the MKL half.
+#include <mkl_service.h>
 #endif
 
 namespace {
@@ -798,6 +801,107 @@ TEST(ThreadCountObservation, ANewCountLandsInTheConfigTheNextSolveReadsWithoutRe
         << "the new count must reach the very next backend call, with no rebuild in between";
     EXPECT_EQ(factor.counters().analyze_count, 1)
         << "and must reach it without costing a symbolic analysis";
+}
+
+// ---------------------------------------------------------------------------
+// The call-scoped thread count: applied for the call, undone after it
+// ---------------------------------------------------------------------------
+//
+// WHAT THE DESIGN ASKED FOR AND WHY IT IS NOT WHAT IS WRITTEN HERE (M6 W5
+// T8.8). Design section 2.6 asks for the setting observed "before, during and
+// after, INCLUDING A THROWING SOLVE". The before/during/after half is pinned
+// below. The throwing half is NOT MEASURABLE with the seams that exist, and
+// pretending otherwise would be a vacuous pass -- so it is ARGUED, in as many
+// words, and a `FactorSession::call` throw seam is REGISTERED for W6 so a
+// later task can measure it:
+//
+//   * `MklThreadScope` is a stack local constructed IMMEDIATELY before the one
+//     `::pardiso` call in `FactorSession::run_phase`, with no statement
+//     between its construction and that call that can throw.
+//   * `::pardiso` is a C entry point and cannot throw.
+//   * The scope's destructor restores the override it replaced on ANY exit.
+//
+//   Therefore restoration on an exceptional exit holds BY CONSTRUCTION. It is
+//   not measured here, and this test's NAME does not say it is.
+//
+// AND NEITHER INJECTOR CAN REACH INSIDE THE SCOPE. `AnalyzeFaultInjector`
+// throws BEFORE `session->analyze(A)` and `FactorizeFaultInjector` substitutes
+// a backend code INSTEAD OF calling `session_->factorize(A)` -- in both cases
+// `::pardiso` is never reached and the scope is never constructed. The second
+// test below arms the injector anyway, because what it pins IS worth pinning:
+// the caller's own count survives an injected failure. That is a different
+// claim from restoration from inside a backend call, and it is written as the
+// different claim it is.
+//
+// SAVE AND RESTORE, NOT RESTORE-TO-ZERO. The caller's override (3) is distinct
+// from both the backend default (0) and the count hven asks for (2), so an
+// implementation that restored a hardcoded 0 fails these assertions instead of
+// passing them.
+TEST(ThreadScope, TheConfiguredCountReachesTheCallAndTheCallersOverrideIsBackAfterIt) {
+    constexpr int kCallerOverride = 3;
+    constexpr int kHvenThreads = 2;
+
+    const int entry = mkl_set_num_threads_local(kCallerOverride);
+
+    SymmetricFactor::Options opts;
+    opts.num_threads = kHvenThreads;
+    SymmetricFactor factor{opts};
+    const SpMatRM A = upper_csr(spd3());
+    factor.analyze(A);
+
+    ASSERT_EQ(factor.factorize(A).status, FactorizeOutcome::Status::kOk);
+
+    // THE "DURING": the count the backend call was issued under, read at the
+    // one place a boundary observation can reach it. The observation sits at
+    // the SOLVE phases' shared entry (symmetric_factor_mkl.cpp), which is why
+    // it is a solve and not the factorize above that is measured -- the thread
+    // scope is the same one either way: FactorSession::run_phase constructs it
+    // from this same config field for every phase.
+    const Vec b = Vec::Ones(A.rows());
+    Vec x(A.rows());
+    ThreadCountObserver::reset();
+    factor.solve(b, x);
+    ASSERT_TRUE(ThreadCountObserver::recorded);
+    EXPECT_EQ(ThreadCountObserver::last_config_num_threads, kHvenThreads)
+        << "the factor's own count is what the backend call was issued under";
+
+    // THE "AFTER", both readings MKL offers.
+    EXPECT_EQ(mkl_get_max_threads(), kCallerOverride);
+    EXPECT_EQ(mkl_set_num_threads_local(0), kCallerOverride)
+        << "the setter returns the override it replaced -- hven put back exactly what it took";
+
+    mkl_set_num_threads_local(entry);
+}
+
+// The same observations with the factorize injector ARMED. Read the name
+// literally: the injected failure happens OUTSIDE the thread scope (the
+// session call is skipped entirely), so what this proves is that a failing
+// factorize leaves the caller's thread setting alone -- NOT that the scope
+// unwinds correctly from inside a backend call, which the block comment above
+// argues by construction and which no seam in this tree can currently force.
+TEST(ThreadScope, TheCallersOverrideSurvivesAnInjectedFactorizationFailureOutsideTheScope) {
+    constexpr int kCallerOverride = 3;
+    constexpr int kHvenThreads = 2;
+
+    const int entry = mkl_set_num_threads_local(kCallerOverride);
+
+    SymmetricFactor::Options opts;
+    opts.num_threads = kHvenThreads;
+    SymmetricFactor factor{opts};
+    const SpMatRM A = upper_csr(spd3());
+    factor.analyze(A);
+
+    {
+        const FactorizeFaultGuard guard(-4); // "zero pivot" -- a real Pardiso code
+        const FactorizeOutcome outcome = factor.factorize(A);
+        EXPECT_NE(outcome.status, FactorizeOutcome::Status::kOk)
+            << "PREMISE: the injected failure actually took the failure path";
+    }
+
+    EXPECT_EQ(mkl_get_max_threads(), kCallerOverride);
+    EXPECT_EQ(mkl_set_num_threads_local(0), kCallerOverride);
+
+    mkl_set_num_threads_local(entry);
 }
 
 #endif // !defined(__APPLE__)

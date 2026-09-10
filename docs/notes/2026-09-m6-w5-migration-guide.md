@@ -2441,3 +2441,122 @@ this branch. Nothing that predates T8.7b moves.
   under two spellings on one line is worse than one named in the schema. On
   `inertia_exhausted`, `k` is the perturbation-attempt count and has nothing to
   do with that vocabulary.
+
+---
+
+## T8.8 — `common.threads` reaches every SQP factor path
+
+**Nothing a caller wrote has to change, and nothing a caller ran changes.** The
+SQP default is `0` and always has been, and `0` means "leave the backend's own
+default alone" — no thread scope is engaged anywhere, so a defaulted solve is
+bit-for-bit the pre-T8.8 solve. This section is for the caller who sets
+`common.threads` to something else, which before this task the SQP engine
+accepted, fingerprinted, and then ignored.
+
+### 1. What the count now reaches
+
+`SqpOptions::common.threads` is applied at **seven** SPARSE factor construction
+sites, which is every sparse one the SQP has:
+
+| # | factor | owner |
+|---|---|---|
+| 1 | the walk tier's `K0` border factor | `QpEngine` (via `BorderState`) |
+| 2 | the walk's per-solve local factor | `QpEngine::run` |
+| 3 | the EQP-refine temporary | `QpEngine::refine_on_face` |
+| 4 | the verdict-refine fallback (`fresh`) | `QpEngine::refine_eliminated_face_for_verdict` |
+| 5 | the SSN tier's one persistent factor | `SsnEngine` |
+| 6 | the IPQP tier's `KktFactorization` | `IpqpEngine` |
+| 7 | the parametric predictor's one factorization | `predict()`, from `run_continuation` |
+
+plus every one of those inside a **nested restoration solve**: the sub-driver
+copies the whole `SqpOptions`, and none of the seven fields it overrides
+(`enable_scaling`, `make_strategy`, `budget_mode`, `qp_mode`, `tr_init`,
+`tr_max`, `max_iter`) names `common`.
+
+The Schur border's **dense** LAPACK factor is the one factor path this commit
+does not reach; it is the second commit's, separately revertible on purpose
+because it is a `linear/` change and this one is not.
+
+### 2. It is applied at CALL scope and undone on every exit
+
+Nothing here writes a process global or an environment variable. On MKL the
+mechanism is a stack-local RAII scope around the backend call that **saves and
+restores** the thread-local override it replaced (`MklThreadScope`,
+`src/linear/pardiso_session.cpp`) — not a reset to zero, which
+would silently discard a caller's own pre-existing override. A caller who runs
+hven at 2 threads on a thread it had itself pinned to 3 still has 3 afterward,
+whatever the solve did, and that is pinned end to end across all three
+`qp_mode`s and through a restoration
+(`Threads.TheCallersThreadSettingSurvivesEveryTierAndTheRestoration`).
+
+Restoration on an **exceptional** exit is true by construction and is stated as
+argued, not measured: `::pardiso` is a C entry point and cannot throw, and no
+statement sits between the scope's construction and the call. No
+seam in this tree can currently force a throw INSIDE a backend call — both
+fault injectors act one layer out, in the Apache-2.0 adapter, and skip the
+backend call entirely — so a "restored after a throw inside the call" test would
+be vacuous and none is written. A `FactorSession::call` throw seam is
+REGISTERED for W6 if that is ever to be measured.
+
+### 3. New accessors — what each one READS
+
+| accessor | reads |
+|---|---|
+| `QpEngine::num_threads()` | the **live K0 factor**'s count, through to the backend session |
+| `QpEngine::carried_num_threads()` | the value the engine was BUILT with, which is what the options fingerprint hashes |
+| `SsnEngine::num_threads()` | the live persistent factor |
+| `IpqpEngine::num_threads()` | the live `KktFactorization` session |
+| `KktFactorization::session_num_threads()` | the live session, beside the existing `num_threads()`, which returns the stored option |
+
+`QpEngine::num_threads()` **changed meaning**: before this task it returned the
+carried int. It has no caller in this repository, and the carried value is
+available under its own name; on an engine solving through its own border the
+two agree, and after a hot handle is adopted the answer is the producing
+engine's factor — which agrees too, because adoption requires an equal options
+fingerprint and that fingerprint folds `threads`.
+
+### 4. Changing the count invalidates a hot handle — already true, now with teeth
+
+`options_fingerprint` has folded `threads` since T8.3, so a handle produced at
+one count is refused by an engine built at another
+(`WarmStart.AChangedThreadCountRefusesAHotHandle`). Before T8.8 that refusal was
+conservative bookkeeping; now the number describes a real property of the
+factorization. Adoption of a MATCHING handle takes the session's live count
+(`SymmetricFactor::adopt`), so an adopted factor carries the right count by
+construction.
+
+### 5. On Apple this is stored and applied to nothing — UNOBSERVED
+
+The Accelerate sparse session records `num_threads` and hands it to no backend
+call. The SQP deliberately does
+**not** mirror the interior-point solver's driver-level
+`accelerate_set_num_threads()`: that is a process-wide call that is never
+restored, so mirroring it would break §2's promise. The Apple application is
+registered with the Mac increment. No Apple value is estimated, interpolated or
+zero-filled anywhere in this task.
+
+### 6. What did NOT change
+
+* **`QpOptions` still carries no thread field.** The count travels as a plain
+  parameter; the fingerprint folds it separately.
+* **The interior-point engine is untouched.** Its own application, its defaults,
+  and CNR (which stays interior-point-only) are exactly as they were.
+* **The evaluation-pool thread count is not `common.threads`** and did not move.
+* **No CSV column, benchmark baseline, golden line or frozen artifact moves.**
+  The SQP corpus still pins threads with `MKL_NUM_THREADS=1` in the environment
+  and gains no in-process lever; the interior leg still sets
+  `common.threads = 1` in process.
+* **Validation is unchanged and is not bypassed.** A negative `common.threads`
+  is refused by `validate_sqp_options` before any engine is built, in both
+  constructors and in `set_options()`.
+
+### 7. What is covered by construction rule rather than observation
+
+The three walk-tier **temporaries** (rows 2–4) die inside the call that builds
+them, and a callback running during the solve sees the CALLER's count because
+the scope is per backend call. What covers them is that `detail::KktFactor`'s
+constructor is the single point every walk/SSN-tier factor is built through, and
+that no library site default-constructs one; where a counter distinguishes the
+path, the pins assert that the path RAN as a premise. The verdict-refine
+fallback has no such counter, and that is said rather than papered over. An
+`HVEN_TESTING` construction observer in `qp_engine.cpp` is REGISTERED for W6.

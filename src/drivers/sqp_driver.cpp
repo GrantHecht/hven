@@ -6034,7 +6034,11 @@ double SqpDriver::restoration_restart_radius() const {
 
 SsnEngine &SqpDriver::ssn_engine() {
     if (ssn_engine_ == nullptr) {
-        ssn_engine_ = std::make_unique<SsnEngine>(opts_.qp);
+        // THE THREAD COUNT REACHES THE LAZY TIER (M6 W5 T8.8): the tier holds
+        // one persistent factor, configured once at construction, and
+        // set_options() drops both tiers so a changed count is picked up by the
+        // next first use.
+        ssn_engine_ = std::make_unique<SsnEngine>(opts_.qp, opts_.common.threads);
     }
     return *ssn_engine_;
 }
@@ -6055,7 +6059,8 @@ SsnOptions SqpDriver::ssn_options(double prox_sigma_init) const {
 
 IpqpEngine &SqpDriver::ipqp_engine() {
     if (ipqp_engine_ == nullptr) {
-        ipqp_engine_ = std::make_unique<IpqpEngine>(opts_.qp);
+        // The thread count reaches this tier too; see ssn_engine() above.
+        ipqp_engine_ = std::make_unique<IpqpEngine>(opts_.qp, opts_.common.threads);
         // task 8: apply the standing trace attachment (a no-op when unset)
         // now that the engine exists -- `attach_trace` cannot reach an engine
         // that has not been constructed yet.

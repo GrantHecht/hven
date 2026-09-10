@@ -191,7 +191,10 @@ bool QpEngine::refine_on_face(const QpProblem &qp_in, const QpSolution &face,
     }
 
     // --- One exact solve on that face ---------------------------------
-    detail::KktFactor kkt;
+    // THE EQP-REFINE TEMPORARY, at this engine's thread count (M6 W5 T8.8).
+    // It dies inside this call, so no boundary observation can read its count;
+    // what covers it is the CONSTRUCTION RULE (kkt_calls.h) plus this line.
+    detail::KktFactor kkt(threads_);
     ++out.counters.factorizations;
     const EqpResult eqp = solve_eqp(qp, ws, kkt, eff_opts);
     out.counters.eqp_refine_steps += eqp.refine_steps; // identically 0; see eqp_solve.h
@@ -492,7 +495,7 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // `counters` is declared BEFORE the seeding refresh_shifts() below
     // because that call is itself a source of counters.shift_adds, which
     // QpCounters documents as included. Nothing else reads it this early.
-    detail::KktFactor kkt;
+    detail::KktFactor kkt(threads_);
     // The face `kkt` holds, for the verdict-site refinement's reuse guard.
     EliminatedFace face;
     QpCounters counters;
@@ -1294,7 +1297,7 @@ bool QpEngine::refine_eliminated_face_for_verdict(const QpProblem &qp, const Wor
     // THE REUSE GUARD: the key carries the working set AND the factor's own
     // identity, so a moved working set and a re-factorized `kkt` both miss.
     // See EliminatedFace and the declaration.
-    detail::KktFactor fresh;
+    detail::KktFactor fresh(threads_);
     const bool reuse = face.holds(ws, kkt);
     const detail::KktFactor &fac = reuse ? kkt : fresh;
     if (!reuse) {

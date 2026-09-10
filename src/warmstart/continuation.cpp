@@ -238,7 +238,12 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
                 // that failed to report would be caught by the assertions this
                 // feeds, not silently read back as a plausible outcome.
                 PredictorOutcome outcome = PredictorOutcome::kZeroStep;
-                seed = predict(model, warm_cur, Vec(p_next - p_cur), PredictorOptions{}, &outcome);
+                // The DRIVER's thread count reaches the predictor's own
+                // factorization (M6 W5 T8.8): a sweep run at common.threads = k
+                // must not silently take its one homotopy factorization at the
+                // backend's default while every solve around it runs at k.
+                seed = predict(model, warm_cur, Vec(p_next - p_cur), PredictorOptions{}, &outcome,
+                               /*reached_t=*/nullptr, driver.options().common.threads);
                 reported = outcome;
                 ++out.predictor_calls;
                 if (outcome == PredictorOutcome::kDegraded) {
