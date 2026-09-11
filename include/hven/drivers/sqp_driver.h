@@ -607,9 +607,28 @@ class SqpDriver {
     /// same reason: a constructor instantiates the `unique_ptr` members'
     /// deleters for its own unwind path, and the two console members' types are
     /// forward-declared here.
+    ///
+    /// VALIDATION PRECEDES CONSTRUCTION (M6 W5 T8.8 fix1): the options travel
+    /// through `validated()` in the `opts_` mem-initializer, which is ordered
+    /// before `engine_`, so a rejected value throws from `validate_sqp_options`
+    /// and no engine -- and no backend session -- is ever built.
     explicit SqpDriver(const SqpOptions &opts);
 
   private:
+    /// @brief Validates @p opts and returns it, so that validation happens
+    ///        BEFORE any engine is constructed.
+    ///
+    /// M6 W5 T8.8 fix1 (astra I1 / the lane's I1). Both constructors build a
+    /// `QpEngine` in their mem-initializer lists, and since T8.8 that engine
+    /// applies `common.threads` to a `SymmetricFactor` -- which validates its
+    /// own count and throws first, with ITS message, for a negative one. A body
+    /// `validate_sqp_options(opts_)` therefore ran too late to be the refusal a
+    /// caller saw. `opts_` is declared before `engine_`, so routing the options
+    /// through here makes the mem-initializer order the guarantee: nothing is
+    /// built until the whole SqpOptions value has been accepted. Pinned by
+    /// `Threads.ANegativeThreadCountIsRefusedByTheDriverConstructor`.
+    static const SqpOptions &validated(const SqpOptions &opts);
+
     /// The tag the restoration phase's own driver is constructed with. A TYPE
     /// rather than a `bool` parameter (M6 W5 T8.7 fix1, the lane's M2): the two
     /// facts about that driver are DIFFERENT facts, and one bool was carrying
@@ -820,6 +839,27 @@ class SqpDriver {
     /// READ-ONLY: there is no mutable accessor. Copy it, edit the copy, hand it
     /// back through set_options().
     const SqpOptions &options() const noexcept { return opts_; }
+
+    /// @brief The thread count in force on the SSN tier's live factor, or -1
+    ///        when this driver has not built that tier yet.
+    ///
+    /// AN OBSERVATION POINT (M6 W5 T8.8 fix1, astra I2 (a)). Both tier engines
+    /// are LAZY: they are constructed at first use with `opts_.common.threads`,
+    /// so a driver that has not run a solve in that tier's `qp_mode` holds no
+    /// engine at all and this reads -1. After a solve that DID use the tier it
+    /// reads the tier engine's own `num_threads()`, which reads through to the
+    /// live backend session -- so it observes the driver-to-tier hand-off
+    /// itself, not merely that an engine built with a count keeps it.
+    int ssn_tier_num_threads() const {
+        return ssn_engine_ == nullptr ? -1 : ssn_engine_->num_threads();
+    }
+
+    /// @brief The thread count in force on the IPQP tier's live KKT
+    ///        factorization, or -1 when this driver has not built that tier yet.
+    /// @see ssn_tier_num_threads(), whose discipline this shares.
+    int ipqp_tier_num_threads() const {
+        return ipqp_engine_ == nullptr ? -1 : ipqp_engine_->num_threads();
+    }
 
     /// @brief Replaces the whole options value, rebuilding the QP engines.
     ///

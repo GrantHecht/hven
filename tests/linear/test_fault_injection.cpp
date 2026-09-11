@@ -843,6 +843,14 @@ TEST(ThreadScope, TheConfiguredCountReachesTheCallAndTheCallersOverrideIsBackAft
 
     const int entry = mkl_set_num_threads_local(kCallerOverride);
 
+    // THE "BEFORE", asserted rather than assumed (M6 W5 T8.8 fix1, astra's
+    // Minor on this pin): both readings MKL offers say the caller's own
+    // override is what is in force going in, so the "after" readings below are
+    // a RESTORATION and not a coincidence.
+    ASSERT_EQ(mkl_get_max_threads(), kCallerOverride);
+    ASSERT_EQ(mkl_set_num_threads_local(kCallerOverride), kCallerOverride)
+        << "the setter returns what it replaced -- reading the same fact the other way";
+
     SymmetricFactor::Options opts;
     opts.num_threads = kHvenThreads;
     SymmetricFactor factor{opts};
@@ -873,17 +881,26 @@ TEST(ThreadScope, TheConfiguredCountReachesTheCallAndTheCallersOverrideIsBackAft
     mkl_set_num_threads_local(entry);
 }
 
-// The same observations with the factorize injector ARMED. Read the name
-// literally: the injected failure happens OUTSIDE the thread scope (the
-// session call is skipped entirely), so what this proves is that a failing
-// factorize leaves the caller's thread setting alone -- NOT that the scope
-// unwinds correctly from inside a backend call, which the block comment above
-// argues by construction and which no seam in this tree can currently force.
+// The same AFTER observations with the factorize injector ARMED -- and only the
+// AFTER ones (M6 W5 T8.8 fix1, astra's Minor / the lane's 3.4). There is no
+// "during" reading in this arm and there CANNOT be one: `FactorizeFaultInjector`
+// substitutes a backend code INSTEAD OF calling `session_->factorize(A)`, so the
+// session call never happens, `ThreadCountObserver` records nothing, and the
+// thread scope is never constructed. Read the name literally: the injected
+// failure happens OUTSIDE the thread scope, so what this proves is that a
+// failing factorize leaves the caller's thread setting alone -- NOT that the
+// scope unwinds correctly from inside a backend call, which the block comment
+// above argues by construction and which no seam in this tree can currently
+// force.
 TEST(ThreadScope, TheCallersOverrideSurvivesAnInjectedFactorizationFailureOutsideTheScope) {
     constexpr int kCallerOverride = 3;
     constexpr int kHvenThreads = 2;
 
     const int entry = mkl_set_num_threads_local(kCallerOverride);
+
+    // THE "BEFORE", asserted here too.
+    ASSERT_EQ(mkl_get_max_threads(), kCallerOverride);
+    ASSERT_EQ(mkl_set_num_threads_local(kCallerOverride), kCallerOverride);
 
     SymmetricFactor::Options opts;
     opts.num_threads = kHvenThreads;

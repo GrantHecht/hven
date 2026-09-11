@@ -2487,7 +2487,8 @@ that commit.
 Nothing here writes a process global or an environment variable. On MKL the
 mechanism is a stack-local RAII scope around the backend call that **saves and
 restores** the thread-local override it replaced (`MklThreadScope`,
-`src/linear/pardiso_session.cpp`) — not a reset to zero, which
+`include/hven/detail/linear/thread_scope.h` — §3 below is why it lives there and
+not in the session file it was written in) — not a reset to zero, which
 would silently discard a caller's own pre-existing override. A caller who runs
 hven at 2 threads on a thread it had itself pinned to 3 still has 3 afterward,
 whatever the solve did, and that is pinned end to end across all three
@@ -2535,6 +2536,14 @@ functional gain, and is registered rather than done here.
 | `KktFactorization::session_num_threads()` | the live session, beside the existing `num_threads()`, which returns the stored option |
 | `DenseSymmetricFactor::num_threads()` / `set_num_threads(int)` | the dense border factor's own count, on the sparse surface's semantics |
 | `SchurComplement::num_threads()` | its dense factor's count, read through |
+| `SqpDriver::ssn_tier_num_threads()` | the SSN tier engine **this driver built**, or -1 when that tier has not been built yet |
+| `SqpDriver::ipqp_tier_num_threads()` | the IPQP tier engine **this driver built**, on the same terms |
+
+The two driver-level readings arrived in the fix round (astra I2 (a)): without
+them the tiers were only ever read on engines a test constructed itself, which
+proves the parameter reaches a factor but not that the DRIVER hands it over. The
+tiers are lazy, so -1 is "not built yet" and a post-solve reading is the engine
+that solve used.
 
 `QpEngine::num_threads()` **changed meaning**: before this task it returned the
 carried int. It has no caller in this repository, and the carried value is
@@ -2575,17 +2584,48 @@ zero-filled anywhere in this task.
   The SQP corpus still pins threads with `MKL_NUM_THREADS=1` in the environment
   and gains no in-process lever; the interior leg still sets
   `common.threads = 1` in process.
-* **Validation is unchanged and is not bypassed.** A negative `common.threads`
-  is refused by `validate_sqp_options` before any engine is built, in both
-  constructors and in `set_options()`.
+* **Validation is not bypassed — and in the fix round it stopped being.** A
+  negative `common.threads` is refused by `validate_sqp_options` before any
+  engine is built, in both constructors and in `set_options()`. As T8.8 first
+  landed that was true of `set_options()` only: both constructors built their
+  `QpEngine` in the mem-initializer list and validated in the BODY, so the count
+  reached `SymmetricFactor`'s own validator first and the caller saw
+  *"SymmetricFactor: num_threads must be >= 0 …"* instead of the message naming
+  the option they set. The constructors now take their options through a
+  `validated()` helper in the `opts_` mem-initializer — `opts_` is declared
+  before `engine_`, so initialization ORDER is the guarantee — and
+  `Threads.ANegativeThreadCountIsRefusedByTheDriverConstructor` pins the
+  message.
 
-### 8. What is covered by construction rule rather than observation
+### 8. What is OBSERVED, and what is covered by construction rule instead
 
-The three walk-tier **temporaries** (rows 2–4) die inside the call that builds
-them, and a callback running during the solve sees the CALLER's count because
-the scope is per backend call. What covers them is that `detail::KktFactor`'s
-constructor is the single point every walk/SSN-tier factor is built through, and
-that no library site default-constructs one; where a counter distinguishes the
-path, the pins assert that the path RAN as a premise. The verdict-refine
-fallback has no such counter, and that is said rather than papered over. An
-`HVEN_TESTING` construction observer in `qp_engine.cpp` is REGISTERED for W6.
+**Observed at the driver, after a solve:** the walk tier's K0 factor (through the
+hot handle a walk solve emits), the SSN and IPQP tier engines (through the two
+driver accessors in §4 — so the hand-off itself is under test: dropping either
+`opts_.common.threads` argument fails the pin), the dense border factor (through
+the same hot handle, in `kWalk` only — the border is a walk-tier object and the
+other two tiers build none, so no dense pin says anything about "every tier"),
+and MKL's own thread state before and after.
+
+**Covered by construction rule, stated rather than implied:**
+
+* The three walk-tier **temporaries** (rows 2–4) die inside the call that builds
+  them, and a callback running during the solve sees the CALLER's count because
+  the scope is per backend call. What covers them is that `detail::KktFactor`'s
+  constructor is the single point every walk/SSN-tier factor is built through,
+  and that no library site default-constructs one (`grep -rn 'KktFactor \w*;'
+  src/` has no match; the two matches over `include/` are member declarations
+  initialized with their owner's count). Where a counter distinguishes the path,
+  the pins assert that the path RAN as a premise. The verdict-refine fallback
+  (`fresh`) is CONSTRUCTED unconditionally at the engine's count, but no counter
+  separates its FACTORIZATION from the reused factor at that site, so that
+  branch is not asserted.
+* The **restoration sub-driver's** engines. The sub-driver is a local inside
+  `SqpDriver::solve`, built from a private tag, and nothing carries its factors'
+  counts out; what covers the count it runs at is that `SqpOptions ropts =
+  opts_` copies `common` whole and none of the seven overrides names a `common`
+  field. What IS pinned is end to end: a solve that ran a restoration phase
+  leaves the caller's own thread-local override exactly as it found it.
+
+An `HVEN_TESTING` construction observer in `qp_engine.cpp` is REGISTERED for W6,
+and it is what would turn the two construction-rule items into observations.

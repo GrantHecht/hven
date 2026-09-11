@@ -1637,16 +1637,27 @@ void SqpDriver::set_options(SqpOptions o) {
 // deleters -- a constructor for its own unwind path, the destructor for the
 // obvious reason -- and this is the translation unit where those types are
 // complete.
-SqpDriver::SqpDriver(const SqpOptions &opts)
-    : opts_(opts), engine_(std::make_unique<QpEngine>(opts.qp, opts.common.threads)) {
-    validate_sqp_options(opts_);
+// VALIDATION BEFORE CONSTRUCTION (M6 W5 T8.8 fix1, astra I1 / the lane's I1).
+// Both constructors below take their options THROUGH this function, in the
+// `opts_` mem-initializer, and `opts_` is declared before `engine_` -- so the
+// whole SqpOptions value is accepted before the first engine exists. Before
+// this round the call sat in the constructor BODY, which ran after
+// `make_unique<QpEngine>(opts.qp, opts.common.threads)`; since T8.8 applies
+// that count to a `SymmetricFactor`, a negative `common.threads` was refused by
+// the FACTOR's validator ("SymmetricFactor: num_threads must be >= 0 ...")
+// rather than by `validate_sqp_options` ("SqpDriver: common.threads (-1) must
+// be >= 0 ..."). Same refusal, wrong message, and A10 asks for this one.
+const SqpOptions &SqpDriver::validated(const SqpOptions &opts) {
+    validate_sqp_options(opts);
+    return opts;
 }
 
+SqpDriver::SqpDriver(const SqpOptions &opts)
+    : opts_(validated(opts)), engine_(std::make_unique<QpEngine>(opts.qp, opts.common.threads)) {}
+
 SqpDriver::SqpDriver(const SqpOptions &opts, RestorationSubDriverTag)
-    : opts_(opts), engine_(std::make_unique<QpEngine>(opts.qp, opts.common.threads)),
-      allow_restoration_(false), is_restoration_sub_driver_(true) {
-    validate_sqp_options(opts_);
-}
+    : opts_(validated(opts)), engine_(std::make_unique<QpEngine>(opts.qp, opts.common.threads)),
+      allow_restoration_(false), is_restoration_sub_driver_(true) {}
 
 // OUT OF LINE FOR THE FORWARD-DECLARED SINKS (M6 W5 T8.7 fix1). Defaulted, and
 // deliberately here rather than in the header: the two `unique_ptr` members'

@@ -371,8 +371,10 @@ without it the first half would rest on inspection.
 
 What it deliberately does NOT cover, and why that is acceptable: the final
 link, from the session's stored count to `mkl_set_num_threads_local`, is one
-unconditional line inside the MPL-derived session file (`MklThreadScope` in
-`FactorSession::run_phase`). Reaching in there would be a deviation bought
+unconditional line inside the MPL-derived session file (a `MklThreadScope`
+constructed in `FactorSession::run_phase`; since M6 W5 T8.8 the CLASS itself
+lives in the Apache-2.0 header `include/hven/detail/linear/thread_scope.h`, and
+only its use site is in that file). Reaching in there would be a deviation bought
 for a line that is already covered from the outside by
 `test_symmetric_factor.cpp`'s
 `APerInstanceThreadCountRestoresTheCallersOwnThreadLocalOverride`, which

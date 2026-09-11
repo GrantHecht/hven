@@ -57,10 +57,17 @@ struct KktFactor {
     ///                backend's own default alone. THE SOLE WAY a thread count
     ///                reaches a walk/SSN-tier factor: `factor` is configured
     ///                once, here, through sqp_kkt_options(), and no library
-    ///                code default-constructs a KktFactor any more -- the
-    ///                report's `grep -n 'KktFactor \w*;' src/ include/` is
-    ///                empty, which is what makes "every factor path" a
-    ///                checkable claim rather than an enumerated one.
+    ///                code default-constructs a KktFactor any more. The
+    ///                checkable form of that rule (M6 W5 T8.8 fix1 -- the
+    ///                earlier wording here claimed a grep that CANNOT be
+    ///                empty): `grep -rn 'KktFactor \w*;' src/` has no match, so
+    ///                no local or temporary is default-constructed, and the two
+    ///                matches the same grep makes over `include/` are MEMBER
+    ///                DECLARATIONS -- qp_engine.h's `BorderState::kkt` and
+    ///                ssn_engine.h's `SsnEngine::kkt_` -- each initialized with
+    ///                its owner's count in that owner's mem-initializer. That
+    ///                is what makes "every factor path" a checkable claim
+    ///                rather than an enumerated one.
     explicit KktFactor(int threads = 0) : factor(sqp_kkt_options(threads)) {}
 
     hven::linear::SymmetricFactor factor;

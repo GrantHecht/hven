@@ -12,12 +12,22 @@
 //
 // WHAT A BOUNDARY CAN READ, AND WHAT IT CANNOT.
 //
-//   READ HERE. The three engines' persistent factors, through the accessors
-//   this task adds -- `QpEngine::num_threads()` (the LIVE K0 factor, not the
-//   carried int), `SsnEngine::num_threads()` (the live factor), and
-//   `IpqpEngine::num_threads()` (the live KktFactorization session). The
-//   DRIVER's own K0, through the hot handle its solve emits. And MKL's
-//   thread-local state before and after a whole solve.
+//   READ HERE, AT THE DRIVER, AFTER A SOLVE. The driver's own K0 factor,
+//   through the hot handle a walk solve emits; and the two LAZY tiers' live
+//   factors, through `SqpDriver::ssn_tier_num_threads()` /
+//   `ipqp_tier_num_threads()` (added by M6 W5 T8.8 fix1 for exactly this,
+//   astra I2 (a)). Those two read the engine THIS DRIVER built at first use, so
+//   deleting either driver-to-tier hand-off -- the `opts_.common.threads`
+//   argument at `SqpDriver::ssn_engine()` / `ipqp_engine()` -- fails the pins
+//   below rather than passing them. And MKL's thread-local state before and
+//   after a whole solve.
+//
+//   READ HERE, AT THE ENGINES, AS CONSTRUCTION PLUMBING. `QpEngine::
+//   num_threads()` (the LIVE K0 factor, not the carried int),
+//   `SsnEngine::num_threads()` and `IpqpEngine::num_threads()` on engines this
+//   file builds directly. Those reads prove the parameter reaches the factor;
+//   they say nothing about the driver, which is why the driver-level reads
+//   above exist beside them (the lane's M4).
 //
 //   NOT READ HERE. The walk's per-solve, EQP-refine and verdict-refine
 //   TEMPORARIES. They are constructed and destroyed inside one call, and a
@@ -31,12 +41,19 @@
 //   Where a counter exists, this file asserts that the temporary's PATH RAN as
 //   a premise rather than hoping it did.
 //
-//   NOT READ ANYWHERE. The restoration sub-driver's own engines: the
-//   sub-driver is constructed inside `SqpDriver::solve` from a private tag and
-//   nothing about it escapes. What IS pinned end to end is that a solve which
-//   RAN a restoration phase (asserted on `counters.restoration_iters`) leaves
-//   the caller's thread-local override exactly as it found it -- which covers
-//   every backend call the sub-driver made, at every tier.
+//   NOT READ ANYWHERE, AND COVERED BY INSPECTION INSTEAD. The restoration
+//   sub-driver's own engines: the sub-driver is a local, constructed inside
+//   `SqpDriver::solve` from a private tag, and nothing about it escapes -- no
+//   accessor, no ledger field and no callback carries its factors' counts out.
+//   What covers the COUNT it runs at is the construction argument, read in the
+//   source: `SqpOptions ropts = opts_` copies `common` whole and the seven
+//   overrides that follow name no `common` field, so the sub-driver's engines
+//   are built through the same hand-offs the pins above observe on the parent.
+//   What is PINNED end to end is that a solve which RAN a restoration phase
+//   (asserted on `counters.restoration_iters`) leaves the caller's
+//   thread-local override exactly as it found it -- which covers every backend
+//   call that phase made, at every tier, without claiming to read its factors.
+//   The registered W6 construction observer is what would OBSERVE them.
 //
 // ACCELERATE IS UNOBSERVED. `SymmetricFactor::set_num_threads` on Accelerate
 // STORES the count and applies it to nothing, so the accessor pins below hold
@@ -53,15 +70,23 @@
 //     number teeth). Adoption also takes the SESSION's live count
 //     (SymmetricFactor::adopt), so an adopted handle at a matching fingerprint
 //     carries the right count by construction.
-//   * a negative `common.threads` is refused on the SqpOptions, before any
-//     engine is built -- tests/drivers/test_options.cpp. The constructor path
-//     this task adds does not bypass it: `validate_sqp_options` runs in both
-//     SqpDriver constructors and in set_options() before any engine is made.
+//   * a negative `common.threads` is refused on the SqpOptions value itself --
+//     tests/drivers/test_options.cpp's
+//     `Options.SqpValidateRefusesTheCommonFieldsAndWhatItAlwaysRefused`, which
+//     calls `validate()` directly. That the DRIVER's construction path refuses
+//     it the same way, and with the same message, is this file's own
+//     `Threads.ANegativeThreadCountIsRefusedByTheDriverConstructor` (M6 W5
+//     T8.8 fix1): at T8.8 as first written the engine was built first and the
+//     factor's own validator threw instead.
 
 #include <gtest/gtest.h>
 
+#include <bit>
 #include <cmath>
+#include <cstdint>
 #include <limits>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 #include <Eigen/Core>
@@ -92,6 +117,7 @@ using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
 using hven::solvers::BoundState;
+using hven::solvers::IpqpCounters;
 using hven::solvers::IpqpEngine;
 using hven::solvers::NlpModel;
 using hven::solvers::QpEngine;
@@ -102,10 +128,12 @@ using hven::solvers::QpSolution;
 using hven::solvers::QpStatus;
 using hven::solvers::SolveOverrides;
 using hven::solvers::SolveStatus;
+using hven::solvers::SqpCounters;
 using hven::solvers::SqpDriver;
 using hven::solvers::SqpIterate;
 using hven::solvers::SqpOptions;
 using hven::solvers::SqpSolution;
+using hven::solvers::SsnCounters;
 using hven::solvers::SsnEngine;
 using hven::solvers::StartLevel;
 
@@ -274,29 +302,228 @@ int driver_k0_num_threads(const SqpSolution &sol) {
     return sol.warm_start.hot->border->kkt.factor.num_threads();
 }
 
-// Field-by-field EXACT comparison of the deterministic scalars on one history
-// row. `EXPECT_EQ` on a double is bit equality for every non-NaN value, which
-// is the claim: the plumbing added by this task changes no number.
+// ---------------------------------------------------------------------------
+// REPRESENTATION EQUALITY, FIELD BY FIELD (M6 W5 T8.8 fix1, astra I3 / the
+// lane's I3)
+// ---------------------------------------------------------------------------
+//
+// The first version of the 0-vs-1 pin compared 18 of `SqpIterate`'s 29 fields
+// and 6 of `SqpCounters`' 40, with `EXPECT_EQ` on the doubles -- and `EXPECT_EQ`
+// on a double is VALUE equality, which accepts `-0.0 == 0.0`. The claim the pin
+// makes ("bit for bit") is now the claim it checks: EVERY field of both
+// structs, the nested counter blocks included, and every double through its
+// bit pattern.
+//
+// THE FIELD LISTS BELOW ARE HAND-WRITTEN, so each is guarded by a sizeof
+// assertion that fails when its struct grows: a field added without a line here
+// would drop silently out of the comparison. The same discipline as
+// tests/sqp/test_ipqp_dispatch.cpp's `every_ipqp_counter_is_at_its_default`.
+bool bits_equal(double a, double b) {
+    return std::bit_cast<std::uint64_t>(a) == std::bit_cast<std::uint64_t>(b);
+}
+
+// REPRESENTATION equality, not value equality: -0.0 and 0.0 differ here, and
+// two identical NaN payloads compare EQUAL rather than unequal. Both are what
+// "bit for bit" means, and neither is what `EXPECT_EQ` on a double does.
+#define HVEN_EXPECT_BITS(a, b, field)                                                              \
+    EXPECT_TRUE(bits_equal((a).field, (b).field))                                                  \
+        << #field << ": " << ::testing::PrintToString((a).field) << " vs "                         \
+        << ::testing::PrintToString((b).field)
+#define HVEN_EXPECT_SAME(a, b, field) EXPECT_EQ((a).field, (b).field) << #field
+
+void expect_vectors_identical(const Vec &a, const Vec &b, const char *name) {
+    ASSERT_EQ(a.size(), b.size()) << name;
+    for (Index i = 0; i < a.size(); ++i) {
+        EXPECT_TRUE(bits_equal(a(i), b(i))) << name << "(" << i << "): " << a(i) << " vs " << b(i);
+    }
+}
+
+// EVERY field of one history row -- all 29.
 void expect_rows_identical(const SqpIterate &a, const SqpIterate &b, int i) {
+    static_assert(sizeof(SqpIterate) == 184,
+                  "SqpIterate changed size: add the new field to expect_rows_identical "
+                  "(this pin's claim is EVERY deterministic field) and update this assertion.");
     SCOPED_TRACE(::testing::Message() << "history row " << i);
-    EXPECT_EQ(a.trial, b.trial);
-    EXPECT_EQ(a.f, b.f);
-    EXPECT_EQ(a.stationarity, b.stationarity);
-    EXPECT_EQ(a.feasibility, b.feasibility);
-    EXPECT_EQ(a.complementarity, b.complementarity);
-    EXPECT_EQ(a.kkt_residual, b.kkt_residual);
-    EXPECT_EQ(a.violation_l1, b.violation_l1);
-    EXPECT_EQ(a.tr_radius, b.tr_radius);
-    EXPECT_EQ(a.mu, b.mu);
-    EXPECT_EQ(a.step_norm, b.step_norm);
-    EXPECT_EQ(a.qp_solved, b.qp_solved);
-    EXPECT_EQ(a.qp_status, b.qp_status);
-    EXPECT_EQ(a.qp_minor_iters, b.qp_minor_iters);
-    EXPECT_EQ(a.qp_factorizations, b.qp_factorizations);
-    EXPECT_EQ(a.tr_binding, b.tr_binding);
-    EXPECT_EQ(a.soc_applied, b.soc_applied);
-    EXPECT_EQ(a.elastic_applied, b.elastic_applied);
-    EXPECT_EQ(a.watchdog_restored, b.watchdog_restored);
+    HVEN_EXPECT_SAME(a, b, trial);
+    HVEN_EXPECT_BITS(a, b, f);
+    HVEN_EXPECT_BITS(a, b, stationarity);
+    HVEN_EXPECT_BITS(a, b, feasibility);
+    HVEN_EXPECT_BITS(a, b, complementarity);
+    HVEN_EXPECT_BITS(a, b, kkt_residual);
+    HVEN_EXPECT_BITS(a, b, violation_l1);
+    HVEN_EXPECT_BITS(a, b, tr_radius);
+    HVEN_EXPECT_BITS(a, b, mu);
+    HVEN_EXPECT_BITS(a, b, step_norm);
+    HVEN_EXPECT_SAME(a, b, qp_solved);
+    HVEN_EXPECT_BITS(a, b, ipqp_least_infeasible_primal);
+    HVEN_EXPECT_SAME(a, b, ipqp_farkas_corroborated);
+    HVEN_EXPECT_SAME(a, b, qp_status);
+    HVEN_EXPECT_SAME(a, b, qp_minor_iters);
+    HVEN_EXPECT_SAME(a, b, qp_factorizations);
+    HVEN_EXPECT_SAME(a, b, tr_binding);
+    HVEN_EXPECT_SAME(a, b, verdict);
+    HVEN_EXPECT_SAME(a, b, soc_applied);
+    HVEN_EXPECT_SAME(a, b, elastic_applied);
+    HVEN_EXPECT_SAME(a, b, elastic_rho0_ceiling_hit);
+    HVEN_EXPECT_SAME(a, b, restoration_seed_used);
+    HVEN_EXPECT_SAME(a, b, watchdog_restored);
+    HVEN_EXPECT_SAME(a, b, active_set_delta);
+    HVEN_EXPECT_SAME(a, b, weak_active_rows);
+    HVEN_EXPECT_SAME(a, b, near_active_rows);
+    HVEN_EXPECT_SAME(a, b, active_rows);
+    HVEN_EXPECT_SAME(a, b, active_lower_sides);
+    HVEN_EXPECT_SAME(a, b, active_upper_sides);
+}
+
+// EVERY field of the SSN tier's nested counters -- all 18.
+void expect_ssn_counters_identical(const SsnCounters &a, const SsnCounters &b) {
+    static_assert(sizeof(SsnCounters) == 18 * 8,
+                  "SsnCounters changed size: add the new field to expect_ssn_counters_identical "
+                  "and update this assertion.");
+    HVEN_EXPECT_SAME(a, b, ssn_iters);
+    HVEN_EXPECT_SAME(a, b, ssn_bulk_flips);
+    HVEN_EXPECT_SAME(a, b, ssn_backtracks);
+    HVEN_EXPECT_SAME(a, b, ssn_prox_updates);
+    HVEN_EXPECT_SAME(a, b, ssn_escapes);
+    HVEN_EXPECT_SAME(a, b, ssn_uncertain_peak);
+    HVEN_EXPECT_SAME(a, b, ssn_refinements);
+    HVEN_EXPECT_SAME(a, b, ssn_refine_refused);
+    HVEN_EXPECT_SAME(a, b, ssn_refine_factorizations);
+    HVEN_EXPECT_SAME(a, b, ssn_refine_neg_duals);
+    HVEN_EXPECT_SAME(a, b, ssn_sign_swept);
+    HVEN_EXPECT_BITS(a, b, ssn_sign_sweep_max);
+    HVEN_EXPECT_SAME(a, b, ssn_escape_budget);
+    HVEN_EXPECT_SAME(a, b, ssn_escape_singular);
+    HVEN_EXPECT_SAME(a, b, ssn_escape_no_contraction);
+    HVEN_EXPECT_SAME(a, b, ssn_escape_infeasible_suspect);
+    HVEN_EXPECT_SAME(a, b, ssn_escape_indefinite);
+    HVEN_EXPECT_SAME(a, b, ssn_escape_gate_refused);
+}
+
+// EVERY field of the IPQP tier's nested counters -- all 39.
+void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b) {
+    static_assert(sizeof(IpqpCounters) == 39 * 8,
+                  "IpqpCounters changed size: add the new field to expect_ipqp_counters_identical "
+                  "and update this assertion.");
+    HVEN_EXPECT_SAME(a, b, ipqp_iters);
+    HVEN_EXPECT_SAME(a, b, ipqp_factorizations);
+    HVEN_EXPECT_SAME(a, b, ipqp_symbolic_analyses);
+    HVEN_EXPECT_SAME(a, b, ipqp_solves);
+    HVEN_EXPECT_SAME(a, b, ipqp_pattern_verifies);
+    HVEN_EXPECT_BITS(a, b, ipqp_rho_demanded_max);
+    HVEN_EXPECT_BITS(a, b, ipqp_rho_demanded_last);
+    HVEN_EXPECT_SAME(a, b, ipqp_inertia_retries);
+    HVEN_EXPECT_SAME(a, b, ipqp_iters_at_elevated_rho);
+    HVEN_EXPECT_SAME(a, b, ipqp_ladder_reclimbs);
+    HVEN_EXPECT_SAME(a, b, ipqp_pivot_reroute_primal);
+    HVEN_EXPECT_SAME(a, b, ipqp_pivot_reroute_dual_fallback);
+    HVEN_EXPECT_SAME(a, b, ipqp_iters_ladder_armed_no_advance);
+    HVEN_EXPECT_SAME(a, b, ipqp_final_inertia_read);
+    HVEN_EXPECT_SAME(a, b, ipqp_reg_decreases);
+    HVEN_EXPECT_SAME(a, b, ipqp_reg_increases);
+    HVEN_EXPECT_SAME(a, b, ipqp_prox_center_updates);
+    HVEN_EXPECT_SAME(a, b, ipqp_restart_repairs);
+    HVEN_EXPECT_BITS(a, b, ipqp_restart_shift_max);
+    HVEN_EXPECT_SAME(a, b, ipqp_mu_adopted);
+    HVEN_EXPECT_SAME(a, b, ipqp_warm_restart_abandoned);
+    HVEN_EXPECT_SAME(a, b, ipqp_declined_pinned);
+    HVEN_EXPECT_SAME(a, b, ipqp_tier_retired_after);
+    HVEN_EXPECT_SAME(a, b, ipqp_face_uncertain);
+    HVEN_EXPECT_SAME(a, b, ipqp_refine_accepted);
+    HVEN_EXPECT_SAME(a, b, ipqp_refine_refused);
+    HVEN_EXPECT_SAME(a, b, ipqp_to_refine);
+    HVEN_EXPECT_SAME(a, b, ipqp_to_ssn);
+    HVEN_EXPECT_SAME(a, b, ipqp_to_walk);
+    HVEN_EXPECT_SAME(a, b, ipqp_escapes);
+    HVEN_EXPECT_SAME(a, b, ipqp_escape_budget);
+    HVEN_EXPECT_SAME(a, b, ipqp_escape_stall);
+    HVEN_EXPECT_SAME(a, b, ipqp_escape_indefinite);
+    HVEN_EXPECT_SAME(a, b, ipqp_escape_numerical);
+    HVEN_EXPECT_SAME(a, b, ipqp_escape_infeasible_suspect);
+    HVEN_EXPECT_BITS(a, b, ipqp_alpha_p_min);
+    HVEN_EXPECT_BITS(a, b, ipqp_alpha_d_min);
+    HVEN_EXPECT_SAME(a, b, ipqp_read_kept_tight_sides);
+    HVEN_EXPECT_SAME(a, b, ipqp_read_barrier_noise_sides);
+}
+
+// EVERY field of SqpCounters -- all 40, the two nested blocks through the
+// helpers above.
+void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
+    static_assert(sizeof(SqpCounters) == 38 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
+                  "SqpCounters changed size: add the new field to expect_counters_identical "
+                  "and update this assertion.");
+    HVEN_EXPECT_SAME(a, b, major_iters);
+    HVEN_EXPECT_SAME(a, b, qp_minor_iters);
+    HVEN_EXPECT_SAME(a, b, factorizations);
+    HVEN_EXPECT_SAME(a, b, steps_accepted);
+    HVEN_EXPECT_SAME(a, b, rejected_steps);
+    HVEN_EXPECT_SAME(a, b, soc_steps);
+    HVEN_EXPECT_SAME(a, b, soc_applied);
+    HVEN_EXPECT_SAME(a, b, soc_qp_infeasible);
+    HVEN_EXPECT_SAME(a, b, soc_rejected);
+    HVEN_EXPECT_SAME(a, b, elastic_activations);
+    HVEN_EXPECT_SAME(a, b, elastic_escalations);
+    HVEN_EXPECT_SAME(a, b, restoration_iters);
+    HVEN_EXPECT_SAME(a, b, elastic_from_ipqp_escape);
+    HVEN_EXPECT_SAME(a, b, ipqp_suspicion_disproved);
+    HVEN_EXPECT_SAME(a, b, ipqp_fallback_rung_b);
+    HVEN_EXPECT_SAME(a, b, elastic_rho0_ceiling_hits);
+    HVEN_EXPECT_SAME(a, b, elastic_floor_retries);
+    HVEN_EXPECT_SAME(a, b, eqp_refine_steps);
+    HVEN_EXPECT_SAME(a, b, border_refine_steps);
+    HVEN_EXPECT_SAME(a, b, verdict_refine_steps);
+    HVEN_EXPECT_SAME(a, b, suspect_escalations);
+    HVEN_EXPECT_SAME(a, b, symbolic_analyses);
+    HVEN_EXPECT_SAME(a, b, start_level_used);
+    HVEN_EXPECT_SAME(a, b, full_step_majors);
+    HVEN_EXPECT_SAME(a, b, watchdog_restores);
+    HVEN_EXPECT_SAME(a, b, evals_full);
+    HVEN_EXPECT_SAME(a, b, evals_values);
+    HVEN_EXPECT_SAME(a, b, probe_budget_stops);
+    HVEN_EXPECT_SAME(a, b, crash_seeded_rows);
+    HVEN_EXPECT_SAME(a, b, crash_seeded_bounds);
+    HVEN_EXPECT_SAME(a, b, n_seeded);
+    HVEN_EXPECT_SAME(a, b, seeded_clamped);
+    HVEN_EXPECT_SAME(a, b, ip_activity_inferred);
+    HVEN_EXPECT_SAME(a, b, active_set_delta_total);
+    HVEN_EXPECT_SAME(a, b, active_set_delta_peak);
+    HVEN_EXPECT_SAME(a, b, weak_active_peak);
+    HVEN_EXPECT_SAME(a, b, near_active_peak);
+    HVEN_EXPECT_SAME(a, b, polish_ignored);
+    expect_ssn_counters_identical(a.ssn, b.ssn);
+    expect_ipqp_counters_identical(a.ipqp, b.ipqp);
+}
+
+// The deterministic half of the result object itself. The two TIMING fields
+// (`wall_seconds`, `solve_impl_seconds`) are deliberately NOT compared: CLAUDE.md
+// section 7 makes wall clock informational, and comparing it here would make
+// this pin a clock test. `export_snapshot_` is the ingest payload, compared
+// through nothing here because the histories and counters above already carry
+// the solve's whole deterministic record.
+void expect_results_identical(const SqpSolution &a, const SqpSolution &b) {
+    ASSERT_EQ(a.status, b.status);
+    HVEN_EXPECT_SAME(a, b, iterations);
+    HVEN_EXPECT_BITS(a, b, f);
+    HVEN_EXPECT_BITS(a, b, stationarity);
+    HVEN_EXPECT_BITS(a, b, feasibility_e);
+    HVEN_EXPECT_BITS(a, b, feasibility_i);
+    HVEN_EXPECT_BITS(a, b, complementarity);
+    HVEN_EXPECT_BITS(a, b, sqp_stationarity);
+    HVEN_EXPECT_BITS(a, b, sqp_feasibility);
+    HVEN_EXPECT_BITS(a, b, sqp_complementarity);
+    HVEN_EXPECT_BITS(a, b, kkt_residual);
+    HVEN_EXPECT_SAME(a, b, infeasibility_certified);
+    expect_vectors_identical(a.x, b.x, "x");
+    expect_vectors_identical(a.lambda_e, b.lambda_e, "lambda_e");
+    expect_vectors_identical(a.lambda_i, b.lambda_i, "lambda_i");
+    expect_vectors_identical(a.z, b.z, "z");
+    expect_vectors_identical(a.ce, b.ce, "ce");
+    expect_vectors_identical(a.ci, b.ci, "ci");
+    ASSERT_EQ(a.history.size(), b.history.size());
+    for (std::size_t i = 0; i < a.history.size(); ++i) {
+        expect_rows_identical(a.history[i], b.history[i], static_cast<int>(i));
+    }
+    expect_counters_identical(a.counters, b.counters);
 }
 
 } // namespace
@@ -311,6 +538,10 @@ void expect_rows_identical(const SqpIterate &a, const SqpIterate &b, int i) {
 TEST(Threads, ZeroLeavesEveryFactorAtTheBackendDefault) {
     EXPECT_EQ(SqpOptions{}.common.threads, 0) << "the SQP's shipped default";
 
+    // ENGINE-LEVEL READS (the lane's M4): three engines built here, not by a
+    // driver, so what these lines pin is the CONSTRUCTION PLUMBING -- the
+    // default 0 reaches each engine's own factor. The driver-level reads are
+    // inside the solve loop below.
     const QpOptions qopts;
     const QpEngine walk(qopts);
     const SsnEngine ssn(qopts);
@@ -325,24 +556,43 @@ TEST(Threads, ZeroLeavesEveryFactorAtTheBackendDefault) {
 
     // THE HOT HANDLE IS A WALK-TIER OBJECT. It carries the `BorderState` the
     // walk engine solved through, so it exists only on a solve that ran the
-    // walk; a kSsn or kIpm solve emits none, and that is not a defect this test
-    // could paper over -- there is simply no boundary route to those tiers'
-    // factors from outside the driver. What every mode CAN be held to is that
-    // the solve left MKL's thread state exactly as it found it.
+    // walk; a kSsn or kIpm solve emits none. The other two tiers are read
+    // through the driver's own tier accessors instead (M6 W5 T8.8 fix1), which
+    // is a reading of the engine this driver built at first use. What every
+    // mode CAN be held to is that the solve left MKL's thread state exactly as
+    // it found it.
     const int before = max_threads_now();
     for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpm}) {
         SCOPED_TRACE(::testing::Message() << "qp_mode " << static_cast<int>(mode));
         hven::solvers::test_support::Hs76Model model;
         SqpDriver driver(base_options(mode, 0));
+        // PREMISE: neither lazy tier exists before the solve, so a reading of 0
+        // after it is the engine THIS SOLVE built and not a default.
+        ASSERT_EQ(driver.ssn_tier_num_threads(), -1);
+        ASSERT_EQ(driver.ipqp_tier_num_threads(), -1);
         const SqpSolution sol = driver.solve(model);
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         if (mode == QpMode::kWalk) {
             EXPECT_EQ(driver_k0_num_threads(sol), 0) << "the driver's own K0 factor";
         }
+        if (mode == QpMode::kSsn) {
+            ASSERT_NE(driver.ssn_tier_num_threads(), -1)
+                << "PREMISE: the kSsn solve built the SSN tier";
+            EXPECT_EQ(driver.ssn_tier_num_threads(), 0) << "the driver's own SSN tier factor";
+        }
+        if (mode == QpMode::kIpm) {
+            ASSERT_NE(driver.ipqp_tier_num_threads(), -1)
+                << "PREMISE: the kIpm solve built the IPQP tier";
+            EXPECT_EQ(driver.ipqp_tier_num_threads(), 0) << "the driver's own IPQP tier factor";
+        }
         EXPECT_EQ(max_threads_now(), before) << "nothing was left behind";
     }
 
-    // ... and through a restoration, whose sub-driver inherits `common` whole.
+    // ... and through a restoration. What is read here is the PARENT driver's
+    // own K0 handle: the sub-driver's engines are unreachable (see the file
+    // banner), so its count is covered by the construction argument -- `ropts =
+    // opts_` copies `common` whole -- and what this asserts is that a solve
+    // which ran the phase left MKL's state where it found it.
     InfeasibleCircleLineModel restoring;
     SqpDriver driver(base_options(QpMode::kWalk, 0));
     const SqpSolution sol = driver.solve(restoring, restoring.start_point());
@@ -360,7 +610,10 @@ TEST(Threads, ZeroLeavesEveryFactorAtTheBackendDefault) {
 TEST(Threads, NonZeroReachesEveryFactorTier) {
     const QpOptions qopts;
 
-    // --- the three engines' persistent factors, at the boundary -------------
+    // --- ENGINE LEVEL: the parameter reaches each engine's own factor -------
+    // Three engines built HERE, not by a driver (the lane's M4): what these
+    // lines pin is the constructor plumbing. The driver-level readings that
+    // pin the HAND-OFF follow further down.
     const QpEngine walk(qopts, kAskedFor);
     const SsnEngine ssn(qopts, kAskedFor);
     const IpqpEngine ipqp(qopts, kAskedFor);
@@ -401,11 +654,40 @@ TEST(Threads, NonZeroReachesEveryFactorTier) {
         << "SqpOptions::common.threads reached the driver's own K0 factor";
     EXPECT_EQ(max_threads_now(), before) << "and the scope undid itself";
 
-    // The verdict-refine fallback (`fresh`, qp_engine.cpp) has NO counter that
-    // distinguishes it from the reused factor at that site, so its path is NOT
-    // asserted here -- stated rather than hoped. It is covered by the same
-    // construction rule as the other temporaries, and the W6 observer would
-    // measure it.
+    // --- DRIVER LEVEL: the two lazy tiers, read off THIS driver -------------
+    //
+    // The hand-off itself (`SqpDriver::ssn_engine()` / `ipqp_engine()` passing
+    // `opts_.common.threads`) is what these two blocks observe: the engine read
+    // is the one the driver built at first use, so dropping either argument
+    // leaves a tier at 0 and fails here (astra I2 (a)).
+    for (const QpMode mode : {QpMode::kSsn, QpMode::kIpm}) {
+        SCOPED_TRACE(::testing::Message() << "lazy tier, qp_mode " << static_cast<int>(mode));
+        hven::solvers::test_support::Hs76Model tier_model;
+        SqpDriver tier_driver(base_options(mode, kAskedFor));
+        ASSERT_EQ(tier_driver.ssn_tier_num_threads(), -1) << "PREMISE: lazy, not yet built";
+        ASSERT_EQ(tier_driver.ipqp_tier_num_threads(), -1) << "PREMISE: lazy, not yet built";
+        const SqpSolution tier_sol = tier_driver.solve(tier_model);
+        ASSERT_EQ(tier_sol.status, SolveStatus::kOptimal);
+        const int tier_threads = mode == QpMode::kSsn ? tier_driver.ssn_tier_num_threads()
+                                                      : tier_driver.ipqp_tier_num_threads();
+        ASSERT_NE(tier_threads, -1) << "PREMISE: this solve built the tier it names";
+        EXPECT_EQ(tier_threads, kAskedFor)
+            << "SqpOptions::common.threads reached the tier engine the DRIVER built";
+        EXPECT_EQ(max_threads_now(), before) << "and the scope undid itself";
+    }
+
+    // The restoration sub-driver's engines are NOT read here or anywhere: they
+    // are locals inside `SqpDriver::solve` and nothing carries their counts
+    // out. Their count is covered by the construction argument (`SqpOptions
+    // ropts = opts_` copies `common` whole), and the caller-override pin below
+    // holds the restoration end to end.
+    //
+    // The verdict-refine fallback (`fresh`, qp_engine.cpp) is CONSTRUCTED on
+    // every verdict-refine call, at `threads_` -- the construction rule covers
+    // it on every path -- but no counter distinguishes its FACTORIZATION from
+    // the reused factor at that site, so that branch is NOT asserted here:
+    // stated rather than hoped. The registered W6 construction observer is what
+    // would measure both.
 }
 
 // THE EIGHTH FACTOR PATH, and the only DENSE one: the Schur border's
@@ -415,6 +697,18 @@ TEST(Threads, NonZeroReachesEveryFactorTier) {
 //
 // It is observable at the boundary through the same hot handle the K0 factor
 // is: `BorderState::schur` is the complement the walk solved through.
+//
+// BOTH DENSE PINS RUN IN kWalk ONLY, and deliberately (the lane's M5): the
+// border is the walk tier's object -- the SSN and IPQP tiers build none -- so
+// "every tier" is not a claim either of them makes.
+//
+// AND BOTH STATE THEIR PREMISE (M6 W5 T8.8 fix1, astra I2 (d) / the lane's
+// I2(d)): `schur.has_value()` alone would establish CONSTRUCTION only, since
+// `rebuild_schur()` returns at dimension zero and would leave a border that was
+// never factorized. `dim() > 0` is the premise that makes the reading below a
+// statement about a dense factorization that actually ran. On this fixture the
+// border is dim 3 today; a fixture change that made it empty fails here instead
+// of passing vacuously.
 TEST(Threads, NonZeroReachesTheDenseBorderFactor) {
     const int before = max_threads_now();
 
@@ -425,6 +719,8 @@ TEST(Threads, NonZeroReachesTheDenseBorderFactor) {
     ASSERT_NE(sol.warm_start.hot, nullptr);
     ASSERT_TRUE(sol.warm_start.hot->border->schur.has_value())
         << "PREMISE: this solve built a live Schur border";
+    ASSERT_GT(sol.warm_start.hot->border->schur->dim(), 0)
+        << "PREMISE: the border is NONEMPTY, so the dense factor really factorized";
 
     EXPECT_EQ(sol.warm_start.hot->border->schur->num_threads(), kAskedFor)
         << "the DENSE border factor's own count, read through to the factor";
@@ -440,6 +736,8 @@ TEST(Threads, ZeroLeavesTheDenseBorderFactorAtTheBackendDefault) {
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_NE(sol.warm_start.hot, nullptr);
     ASSERT_TRUE(sol.warm_start.hot->border->schur.has_value());
+    ASSERT_GT(sol.warm_start.hot->border->schur->dim(), 0)
+        << "PREMISE: the border is NONEMPTY, as in the pin above";
     EXPECT_EQ(sol.warm_start.hot->border->schur->num_threads(), 0);
 }
 
@@ -473,12 +771,18 @@ TEST(Threads, TheCallersThreadSettingSurvivesEveryTierAndTheRestoration) {
         EXPECT_EQ(mkl_get_max_threads(), kCallerOverride);
     }
 
-    // The restoration sub-driver's engines are unreachable from outside the
-    // driver, so what is pinned about them is this: a solve that RAN a
-    // restoration phase left the caller's override exactly as it found it, and
-    // every backend call that phase made is inside that statement. That the
-    // sub-driver inherits the COUNT is construction rule -- `SqpOptions ropts =
-    // opts_` copies `common` whole, and the seven overrides that follow
+    // THE RESTORATION, AND EXACTLY WHAT THIS OBSERVES (M6 W5 T8.8 fix1, astra
+    // I2 (b)). The sub-driver's engines are unreachable from outside the
+    // driver, and the `driver_k0_num_threads(sol)` reading below is the PARENT
+    // driver's own K0 handle -- not the sub-driver's factor, which no boundary
+    // reaches. What this pins is therefore two things and not a third:
+    //   * the solve RAN a restoration phase (asserted on restoration_iters),
+    //     and the caller's own thread-local override is still in force after
+    //     it -- which covers every backend call that phase made, at every tier;
+    //   * the parent's K0 is still at the count it was built with.
+    // That the sub-driver's engines are BUILT at that count is inspection
+    // coverage, read in the source rather than observed here: `SqpOptions ropts
+    // = opts_` copies `common` whole, and the seven overrides that follow
     // (enable_scaling, make_strategy, budget_mode, qp_mode, tr_init, tr_max,
     // max_iter) name no `common` field.
     InfeasibleCircleLineModel restoring;
@@ -521,28 +825,58 @@ TEST(Threads, ZeroAndOneProduceIdenticalHistoriesAndCounters) {
     NlpModel *models[] = {&hs6, &hs7, &hs76};
     const char *names[] = {"HS6", "HS7", "HS76"};
 
-    for (int m = 0; m < 3; ++m) {
-        SCOPED_TRACE(names[m]);
-        SqpDriver zero(base_options(QpMode::kWalk, 0));
-        SqpDriver one(base_options(QpMode::kWalk, 1));
-        const SqpSolution a = zero.solve(*models[m]);
-        const SqpSolution b = one.solve(*models[m]);
-
-        ASSERT_EQ(a.status, b.status);
-        ASSERT_EQ(a.history.size(), b.history.size());
-        for (std::size_t i = 0; i < a.history.size(); ++i) {
-            expect_rows_identical(a.history[i], b.history[i], static_cast<int>(i));
-        }
-        EXPECT_EQ(a.counters.major_iters, b.counters.major_iters);
-        EXPECT_EQ(a.counters.factorizations, b.counters.factorizations);
-        EXPECT_EQ(a.counters.symbolic_analyses, b.counters.symbolic_analyses);
-        EXPECT_EQ(a.counters.qp_minor_iters, b.counters.qp_minor_iters);
-        EXPECT_EQ(a.counters.steps_accepted, b.counters.steps_accepted);
-        EXPECT_EQ(a.counters.restoration_iters, b.counters.restoration_iters);
-        EXPECT_EQ(a.f, b.f);
-        ASSERT_EQ(a.x.size(), b.x.size());
-        for (Index i = 0; i < a.x.size(); ++i) {
-            EXPECT_EQ(a.x(i), b.x(i)) << "x(" << i << ")";
+    // ALL THREE qp_modes (M6 W5 T8.8 fix1): the count is threaded through each
+    // tier's own construction site, so each tier's plumbing is its own claim.
+    // The status is COMPARED rather than required to be optimal -- identity is
+    // the claim, and a mode that stops on a budget must stop identically.
+    for (const QpMode mode : {QpMode::kWalk, QpMode::kSsn, QpMode::kIpm}) {
+        for (int m = 0; m < 3; ++m) {
+            SCOPED_TRACE(::testing::Message()
+                         << names[m] << ", qp_mode " << static_cast<int>(mode));
+            SqpDriver zero(base_options(mode, 0));
+            SqpDriver one(base_options(mode, 1));
+            const SqpSolution a = zero.solve(*models[m]);
+            const SqpSolution b = one.solve(*models[m]);
+            expect_results_identical(a, b);
         }
     }
+}
+
+// ===========================================================================
+// (5) THE DRIVER REFUSES A NEGATIVE COUNT BEFORE IT BUILDS ANYTHING
+// ===========================================================================
+
+// M6 W5 T8.8 fix1 (astra I1 / the lane's I1). A10 asks that the constructor
+// path not bypass `validate_sqp_options`, and at T8.8 as first written it did:
+// both constructors built their `QpEngine` in the mem-initializer list and
+// called `validate_sqp_options` in the BODY, so the count reached
+// `SymmetricFactor`'s own validator first and the caller saw
+// "SymmetricFactor: num_threads must be >= 0 ..." instead of the message that
+// names the option they set. Routing `opts_` through `SqpDriver::validated()`
+// -- and `opts_` is declared before `engine_` -- makes the mem-initializer
+// ORDER the guarantee.
+//
+// THE SUB-DRIVER CONSTRUCTOR takes the same route (`opts_(validated(opts))`),
+// which is inspection coverage rather than a second pin: its tag type is
+// private, so no test can name it, and the restoration phase is its only caller
+// and hands it options this driver already validated.
+TEST(Threads, ANegativeThreadCountIsRefusedByTheDriverConstructor) {
+    SqpOptions o;
+    o.common.threads = -1;
+    try {
+        SqpDriver driver(o);
+        FAIL() << "a negative common.threads must be refused by the constructor";
+    } catch (const std::invalid_argument &e) {
+        const std::string what = e.what();
+        EXPECT_NE(what.find("common.threads"), std::string::npos)
+            << "the refusal must name the option the caller set, not the factor it reached: "
+            << what;
+        EXPECT_EQ(what.find("SymmetricFactor"), std::string::npos)
+            << "a factor-level message here means an engine was built before validation: " << what;
+    }
+
+    // The same value through the other two doors, unchanged by this round.
+    EXPECT_THROW(hven::solvers::validate_sqp_options(o), std::invalid_argument);
+    SqpDriver good{SqpOptions{}};
+    EXPECT_THROW(good.set_options(o), std::invalid_argument);
 }
