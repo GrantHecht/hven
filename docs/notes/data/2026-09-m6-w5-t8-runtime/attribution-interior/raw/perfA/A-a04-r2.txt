@@ -1,0 +1,17 @@
+# started on Fri Sep 11 13:59:17 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89ra/bin/510a4bb/hven_sqp_corpus --engine interior --cells f7_n1000_bound_physics,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n20000_bound_neutral --csv /home/ghecht/Projects/hven/.scratch/w5t89ra2/art/csv/A-a04-r2.csv':
+
+    57,156,581,877      instructions:u                                                        
+     8,474,452,826      branches:u                                                            
+    19,415,062,947      cycles:u                                                              
+        18,185,021      branch-misses:u                                                       
+         3,988,038      L1-icache-load-misses:u                                               
+
+       6.412135275 seconds time elapsed
+
+       5.815026000 seconds user
+       0.562287000 seconds sys
+
+

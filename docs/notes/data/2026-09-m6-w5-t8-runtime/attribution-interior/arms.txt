@@ -1,0 +1,76 @@
+M6 W5 T8.9r-attrib2 -- THE ELEVEN ARMS, AND THEIR VERIFICATION
+=============================================================
+
+THIS LEG BUILT NOTHING. It re-uses the ELEVEN ARM BINARIES the T8.9r-attrib leg
+built (../attribution/arms.txt, which records the build recipe, the submodule
+pins and the calibration in full) and RE-VERIFIES every one of them by sha256
+before use. Both files' hashes below are that leg's, verbatim; the verification
+below is this leg's, run at 2026-09-11T17:2xZ, before the first timed batch.
+
+  binaries read from   /home/ghecht/Projects/hven/.scratch/w5t89ra/bin/<sha7>/
+  verified against     ../attribution/arms.txt
+  result               11/11 hven_sqp_corpus OK, 11/11 libhven.a OK, 0 mismatch
+
+arm  task    sha       hven_sqp_corpus sha256                                            libhven.a sha256
+a01  base    102f729   49516fe9cdfb0f3cdd89716b09cfb7c6564765eaf76056f963b04176b68b7277  735eea1d9d51ef93ba2e512611475f758c2b60729f29bec0dda9e75fda9a8f7f
+a02  T8.1    b3915ff   27370ccbcdc5d006fa5ac626b336ac00addb0199c3ffdbfaab200cfdcd17ce43  735eea1d9d51ef93ba2e512611475f758c2b60729f29bec0dda9e75fda9a8f7f
+a03  T8.2    b43580f   82cdd32ea48da3b4da41db24fadec94b3e23fe00b4b63caf3e3c60ddb90449c1  bb3e10fe105ba1b715a83f07d4f5032f3177c4372132ec0bd0c13d100a50cdd2
+a04  T8.3    510a4bb   a16499d7f6dddf60d9cd43693b31771455d18ca4c446ee013337671a2593baff  6f0dc91e24328b7cc39770cd2f21647db64ec657e371e6109aa61412e5f26148
+a05  T8.4    3c8e43b   6847a5e22dece4f855c5a761708ac06de8ed458c2bd5897b3a341af1995f3b68  85c59ffc0a86b7786602a94e8ec3710ad2a315f6cc86701d6915a7460fb1d14c
+a06  T8.5    8f95655   43c35e689278bdd2be35e49d638d771a7009c61f388a6294d4fc07757f696968  6eed49ce9fce18509e16c7a418e112f3cf4208b31461054b0784efb544c5d26e
+a07  T8.6    8cbaa39   faa45d655860856035f92e0878fe7b73ab270b7dfa64682f80038e7cd1cfca82  7027ddee09fe00b712411bf418fa5a19ff87f995b4dcf4644c6824e975252df1
+a08  T8.7    56042be   015fd62b3b7e5b29c626854739f4d1ba75e57cc17f7d39433eb48d96faf28b7c  fb7374c45334dfb9bf0da3a51dc62914334dbf8cd09ff8a8ea98d0ab356c7630
+a09  T8.7b   ddac2cf   48e6f0b3e6bc56f7de22eb9b38a4a51e3ec0fdedaa4e8419bdc586a7530372a4  112c6b518ec942079f216b6d81855f155a610005fc83430a88badd932b502195
+a10  T8.8    b9848bf   cccb17c2dad189b3f0dce61fdf980992f28821439e3b2e4afb2e45a24a105631  d236166ec9dbf84a395f220049ed7215e5e418850ca82a211312afd32a47b3fe
+a11  T8.9    e51a7e0   d26e3806f2b94ddc57f1b2b8ef50b4605eb87339aab6e777c3f60a24180a9d26  60bfe03f79078eb8ab51fd099a7253f91e232714a008a52be0a40e49403fa30a
+
+ARM 02 IS A CONTROL, AND THIS LEG LEANS ON IT.
+T8.1's libhven.a is BYTE-IDENTICAL to the base's (735eea1d...): it touched only
+bench/ and tests/, exactly as its ledger close line says. Its LIBRARY work is
+therefore exactly zero, so whatever the a01 -> a02 step reads in any currency is
+that currency's FLOOR on this leg and can be nothing else. Its corpus executable
+is NOT identical (27370ccb... against 49516fe9...) -- the bench-side change is
+real -- which is precisely why the step it reads is a floor for a WHOLE-BINARY
+comparison rather than a zero.
+
+THE MEASUREMENT PIN, identical on all eleven arms:
+
+  WALL (asserts wall clock -- CLAUDE.md section 7; fix1 R2 discipline):
+    env MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 taskset -c 2 \
+        <bin> --engine interior \
+              --cells f7_n1000_bound_physics,f7_n5000_bound_physics,\
+f7_n10000_bound_neutral,f7_n20000_bound_neutral \
+              --csv <.../w-aNN-rN.csv>
+    FIVE rounds, one batch per round, arm order ROTATED by (round-1).
+
+  INSTRUCTIONS (pass A): the same invocation under
+    perf stat -e instructions:u,branches:u,cycles:u,branch-misses:u,L1-icache-load-misses:u
+    THREE rounds as `A-aNN-rN`, and FIVE more as the diff leg's `P-aNN-rN`.
+
+  INSTRUCTIONS (pass B, arms 01/02/04/05 only): the artifact's own Zen 3 six,
+    instructions:u,cycles:u,de_dis_uop_queue_empty_di0:u,
+    op_cache_hit_miss.op_cache_miss:u,op_cache_hit_miss.op_cache_hit:u,
+    ic_fetch_stall.ic_stall_any:u          -- three rounds.
+
+THE ARGV LOCK. attribution.md section 6 records that instructions:u on these
+cells is BIMODAL in the measured child's argv+environ byte footprint. Every
+path component that varies between arms here is fixed width -- the sha is seven
+characters at all eleven arms, the arm number two digits, the round one digit,
+the pass one letter -- so the child's argv is 263 BYTES AT EVERY ARM, and every
+batch log prints it (`ARGV_LEN`) rather than asserting it. The diff leg's short
+cell spec is 71 bytes shorter, so its --csv basename carries 71 bytes of padding
+and its children are 263 bytes too; the leg refuses to proceed if they are not.
+
+CELL ORDER IS PART OF THE PIN. `--engine interior` writes its base rows in the
+order the cells were REQUESTED, three treatments per cell, MakeParameter first
+(bench/bench_corpus.cpp, the `plan.cells` loop; interior_treatments() in
+bench/ipm_corpus_leg.cpp). The order above therefore makes
+`f7_n1000_bound_physics/MakeParameter` the FIRST row every process writes AT
+EVERY ARM, which is what lets the fix1 R3 positional rule exclude the same row
+everywhere. Verified from the row keys of all 55 wall CSVs.
+
+TOOLCHAIN AND HARDWARE: as ../PROVENANCE.txt -- same box, clang 22.1.8,
+CMake 4.3.0, Ninja 1.13.2, MKL 2026.1, AMD Ryzen 7 5800X3D (Zen 3), Fedora 44,
+kernel 7.1.9-200.fc44.x86_64, perf_event_paranoid = 2, cpu2 pinned with its SMT
+sibling cpu10 idle and the driving shell pinned OFF both.
+APPLE / ACCELERATE: UNOBSERVED.  WINDOWS: UNOBSERVED.

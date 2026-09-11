@@ -1,0 +1,38 @@
+# hven_sqp_corpus provenance -- ENGINE interior (top-level interior-point driver)
+# binary: b18ff8108149
+# schema: 20
+# invocation: /home/ghecht/Projects/hven/.scratch/w5t89ra/bin/510a4bb/hven_sqp_corpus --engine interior --cells f7_n1000_bound_physics,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n20000_bound_neutral --csv /home/ghecht/Projects/hven/.scratch/w5t89ra2/art/csv/w-a04-r5.csv
+# MKL_NUM_THREADS: 1
+# OMP_NUM_THREADS: 1
+# host: fedora
+# generated: 2026-09-11T17:55:28Z
+# levers: max_iters=200 print_level=10 partitions=1 qp_threads=1
+# levers: kkt_tol=1.000000000e-08 econ_tol=1.000000000e-08 icon_tol=1.000000000e-08 barr_tol=1.000000000e-08
+# levers: bound_relax_factor=1.000000000e-08
+# treatments: MakeParameter,MakeConstraint,RelaxBounds -- one row each, per cell
+# key: column 0 is <cell_id>/<fixed_treatment>, plus /<variant> on a non-base row
+# variant: base entry=optimize max_iters=<levers> restoration=off max_feas_rest=<unused> con_tol=<levers> acc_tols=<default>/<default>/<default> div_tol=<default>
+# variant: cap1 entry=optimize max_iters=1 restoration=off max_feas_rest=<unused> con_tol=<levers> acc_tols=<default>/<default>/<default> div_tol=<default>
+# variant: stalled entry=solve max_iters=600 restoration=l1_nested max_feas_rest=1 con_tol=2.000000000e-02 acc_tols=1.000000000e-06/2.000000000e-01/1.000000000e-06 div_tol=1.000000000e+300
+# variant: resto_infeasible entry=optimize max_iters=200 restoration=l1_nested max_feas_rest=1 con_tol=<levers> acc_tols=<default>/<default>/<default> div_tol=<default>
+# abnormal-exit rows run under MakeParameter only, unconditionally (they do not vary with --cells), on the cells named in their keys
+cell_id,family,n_nodes,window,taxonomy,status,iter_num,obj_val,kkt_inf,barr_inf,econ_inf,icon_inf,factorizations,solves,analyses,soc_steps,watchdog_activations,fixed_treatment,stop_reason,wall_s
+f7_n1000_bound_physics/MakeParameter,F7,1000,bound,physics,CONVERGED,5,-4.075173558e-01,2.380795236e-10,3.669294146e-11,1.081291806e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,none,0.360024588
+f7_n1000_bound_physics/MakeConstraint,F7,1000,bound,physics,CONVERGED,5,-4.075173558e-01,2.380795236e-10,3.669294146e-11,1.081291806e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,none,0.032028685
+f7_n1000_bound_physics/RelaxBounds,F7,1000,bound,physics,CONVERGED,5,-4.075173558e-01,2.380795236e-10,3.669294146e-11,1.081291806e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,none,0.031997875
+f7_n5000_bound_physics/MakeParameter,F7,5000,bound,physics,CONVERGED,5,-4.061354862e-01,2.466487686e-10,3.783082487e-11,1.096120960e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,none,0.178825835
+f7_n5000_bound_physics/MakeConstraint,F7,5000,bound,physics,CONVERGED,5,-4.061354862e-01,2.466487686e-10,3.783082487e-11,1.096120960e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,none,0.173217362
+f7_n5000_bound_physics/RelaxBounds,F7,5000,bound,physics,CONVERGED,5,-4.061354862e-01,2.466487686e-10,3.783082487e-11,1.096120960e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,none,0.173045102
+f7_n10000_bound_neutral/MakeParameter,F7,10000,bound,neutral,CONVERGED,9,-4.059629708e-01,4.384091675e-10,6.954131848e-11,6.138253342e-16,0.000000000e+00,9,9,1,0,0,MakeParameter,none,0.541325880
+f7_n10000_bound_neutral/MakeConstraint,F7,10000,bound,neutral,CONVERGED,9,-4.059629708e-01,4.384091675e-10,6.954131848e-11,6.138253342e-16,0.000000000e+00,9,9,1,0,0,MakeConstraint,none,0.521675566
+f7_n10000_bound_neutral/RelaxBounds,F7,10000,bound,neutral,CONVERGED,9,-4.059629708e-01,4.384091675e-10,6.954131848e-11,6.138253342e-16,0.000000000e+00,9,9,1,0,0,RelaxBounds,none,0.524162663
+f7_n20000_bound_neutral/MakeParameter,F7,20000,bound,neutral,CONVERGED,9,-4.058767313e-01,5.551597096e-10,9.900664080e-11,3.404097007e-15,0.000000000e+00,9,9,1,0,0,MakeParameter,none,1.133236417
+f7_n20000_bound_neutral/MakeConstraint,F7,20000,bound,neutral,CONVERGED,9,-4.058767313e-01,5.551597096e-10,9.900664080e-11,3.404097007e-15,0.000000000e+00,9,9,1,0,0,MakeConstraint,none,1.102044408
+f7_n20000_bound_neutral/RelaxBounds,F7,20000,bound,neutral,CONVERGED,9,-4.058767313e-01,5.551597096e-10,9.900664080e-11,3.404097007e-15,0.000000000e+00,9,9,1,0,0,RelaxBounds,none,1.096457524
+hs071_x1_fixed/MakeParameter,hs,4,none,fixed_variable,CONVERGED,9,1.701401729e+01,1.463526456e-09,1.744133762e-10,0.000000000e+00,0.000000000e+00,9,9,2,0,0,MakeParameter,none,0.000174519
+hs071_x1_fixed/MakeConstraint,hs,4,none,fixed_variable,CONVERGED,9,1.701401729e+01,2.096454566e-09,1.744133762e-10,0.000000000e+00,0.000000000e+00,9,9,2,0,0,MakeConstraint,none,0.000124519
+hs071_x1_fixed/RelaxBounds,hs,4,none,fixed_variable,CONVERGED,11,1.701401728e+01,3.969047313e-15,3.943132698e-09,0.000000000e+00,0.000000000e+00,11,11,1,0,0,RelaxBounds,none,0.000129270
+f7_n1000_bound_neutral/MakeParameter/cap1,F7,1000,bound,neutral,NOTCONVERGED,1,-1.764445221e-01,7.550671264e-04,1.000000000e-03,1.060660172e-01,0.000000000e+00,2,2,1,0,0,MakeParameter,iteration_cap,0.016068062
+hs071_x1_fixed/MakeParameter/cap1,hs,4,none,fixed_variable,NOTCONVERGED,1,1.599599004e+01,1.481450094e+01,1.000000000e-03,1.190205198e+01,2.602472500e-02,2,2,2,0,0,MakeParameter,iteration_cap,0.000079020
+infeas2_spike/MakeParameter/stalled,synthetic,2,none,infeasible,NOTCONVERGED,141,0.000000000e+00,0.000000000e+00,0.000000000e+00,3.791662080e+17,0.000000000e+00,142,142,1,0,0,MakeParameter,stage_stalled,0.000592537
+infeas2_stationary/MakeParameter/resto_infeasible,synthetic,2,none,infeasible,NOTCONVERGED,25,2.653226544e-04,2.750577544e-13,0.000000000e+00,4.107825191e-14,0.000000000e+00,30,25,1,0,0,MakeParameter,restoration_locally_infeasible,0.000181179

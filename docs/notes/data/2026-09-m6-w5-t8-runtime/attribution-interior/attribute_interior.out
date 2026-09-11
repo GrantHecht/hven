@@ -1,0 +1,315 @@
+====================================================================================================
+1. THE ELEVEN ARMS, THEIR ROW COUNTS, AND THE LIKE-FOR-LIKE MAP
+====================================================================================================
+
+Every arm runs its OWN harness source; `wall_s` brackets the solve only. The per-ROW wall is
+like-for-like at every arm. The whole-process INSTRUCTION count is like-for-like only between
+consecutive arms whose ROW SET did not change -- and the row counts below, read off this leg's
+own CSVs rather than assumed, are what decide that.
+
+  arm  task   sha        rows written   step into this arm
+  a01   base   102f729       15         (base)
+  a02   T8.1   b3915ff       15         LIKE-FOR-LIKE -- row set unchanged
+  a03   T8.2   b43580f       19         ROW-ADDING (+4) -- NO INSTRUCTION VERDICT
+  a04   T8.3   510a4bb       19         LIKE-FOR-LIKE -- row set unchanged
+  a05   T8.4   3c8e43b       21         ROW-ADDING (+2) -- NO INSTRUCTION VERDICT
+  a06   T8.5   8f95655       23         ROW-ADDING (+2) -- NO INSTRUCTION VERDICT
+  a07   T8.6   8cbaa39       23         LIKE-FOR-LIKE -- row set unchanged
+  a08   T8.7   56042be       23         LIKE-FOR-LIKE -- row set unchanged
+  a09   T8.7b  ddac2cf       23         LIKE-FOR-LIKE -- row set unchanged
+  a10   T8.8   b9848bf       23         LIKE-FOR-LIKE -- row set unchanged
+  a11   T8.9   e51a7e0       25         ROW-ADDING (+2) -- NO INSTRUCTION VERDICT
+
+  LIKE-FOR-LIKE pairs: T8.1, T8.3, T8.6, T8.7, T8.7b, T8.8
+  ROW-ADDING pairs:    T8.2, T8.4, T8.5, T8.9
+
+====================================================================================================
+2. THE PER-ROW WALL STEP PER TASK -- median of five rounds, arm order rotated per round
+====================================================================================================
+
+THIS ASSERTS WALL CLOCK (CLAUDE.md section 7). Solo, taskset -c 2, MKL_NUM_THREADS=1,
+one solve at a time under the box lock, the fix1 R2 pinned-core discipline; IDLE-PROOF.md.
+
+R3 -- THE FIRST ROW EVERY PROCESS WRITES IS EXCLUDED BY POSITION. The cell order was chosen
+so that row is the SAME row at every arm: f7_n1000_bound_physics/MakeParameter.
+It is the process's warm-up and it is excluded from every score below; its own steps are
+printed, marked EXCL, so a reader can see why.
+
+  row                                          T8.1     T8.2     T8.3     T8.4     T8.5     T8.6     T8.7    T8.7b     T8.8     T8.9   cumul
+  ------------------------------------------------------------------------------------------------------------------------------------------
+  f7_n1000_bound_physics/MakeParameter       2.8937   0.9605   0.9809   1.0116   0.7024   1.1276   0.9338   0.9936   0.8865   0.8996  1.6162   EXCL
+  f7_n1000_bound_physics/MakeConstraint      1.0079   0.9937   0.9967   1.0331   0.9938   0.9990   1.0020   1.0002   1.0027   0.9913  1.0199
+  f7_n1000_bound_physics/RelaxBounds         1.0066   0.9972   0.9979   1.0255   0.9932   1.0038   1.0009   1.0001   1.0043   0.9920  1.0214
+  f7_n5000_bound_physics/MakeParameter       1.0028   0.9982   0.9994   1.0425   0.9963   1.0041   0.9963   1.0003   1.0041   0.9957  1.0394
+  f7_n5000_bound_physics/MakeConstraint      1.0024   0.9996   0.9985   1.0329   0.9976   1.0041   0.9966   0.9997   1.0033   1.0058  1.0406
+  f7_n5000_bound_physics/RelaxBounds         1.0045   0.9972   0.9992   1.0343   0.9923   1.0072   1.0007   0.9976   1.0041   1.0031  1.0403
+  f7_n10000_bound_neutral/MakeParameter      1.0008   0.9972   1.0007   1.0147   1.0076   0.9925   1.0111   0.9868   1.0025   1.0085  1.0222
+  f7_n10000_bound_neutral/MakeConstraint     1.0037   0.9987   0.9999   1.0301   0.9917   1.0068   0.9917   0.9976   1.0034   1.0057  1.0292
+  f7_n10000_bound_neutral/RelaxBounds        1.0000   0.9997   1.0000   1.0300   0.9845   1.0053   0.9993   1.0024   1.0040   0.9934  1.0181
+  f7_n20000_bound_neutral/MakeParameter      1.0031   0.9993   1.0015   1.0255   0.9964   1.0037   1.0019   0.9975   1.0038   0.9939  1.0266
+  f7_n20000_bound_neutral/MakeConstraint     1.0011   0.9998   1.0020   1.0178   0.9941   1.0078   0.9991   1.0049   1.0043   0.9972  1.0282
+  f7_n20000_bound_neutral/RelaxBounds        1.0005   1.0017   0.9983   1.0194   0.9982   1.0004   1.0063   1.0027   1.0044   0.9843  1.0160
+
+  Scored rows: 11 (the twelve base rows less the R3 warm-up).
+  Per-task worst and best step over the scored rows:
+    T8.1   min 1.0000  max 1.0079  median 1.0028  rows above 1.01:  0/11
+    T8.2   min 0.9937  max 1.0017  median 0.9987  rows above 1.01:  0/11
+    T8.3   min 0.9967  max 1.0020  median 0.9994  rows above 1.01:  0/11
+    T8.4   min 1.0147  max 1.0425  median 1.0300  rows above 1.01: 11/11
+    T8.5   min 0.9845  max 1.0076  median 0.9941  rows above 1.01:  0/11
+    T8.6   min 0.9925  max 1.0078  median 1.0041  rows above 1.01:  0/11
+    T8.7   min 0.9917  max 1.0111  median 1.0007  rows above 1.01:  1/11
+    T8.7b  min 0.9868  max 1.0049  median 1.0001  rows above 1.01:  0/11
+    T8.8   min 1.0025  max 1.0044  median 1.0040  rows above 1.01:  0/11
+    T8.9   min 0.9843  max 1.0085  median 0.9957  rows above 1.01:  0/11
+
+====================================================================================================
+3. THE CUMULATIVE CHECK AGAINST reading.md SECTION 5
+====================================================================================================
+
+  Left: this leg's cumulative a01 -> a11 (median of 5). Right: the artifact's own
+  102f729 -> head per-row ratio on the SAME row, recomputed from raw/interior/ one
+  directory up (three alternating rounds, paired medians).
+
+  row                                     this leg   section 5   difference
+  f7_n1000_bound_physics/MakeConstraint     1.0199      1.0235     -0.0036
+  f7_n1000_bound_physics/RelaxBounds        1.0214      1.0500     -0.0286
+  f7_n5000_bound_physics/MakeParameter      1.0394      1.0357     +0.0037
+  f7_n5000_bound_physics/MakeConstraint     1.0406      1.0224     +0.0182
+  f7_n5000_bound_physics/RelaxBounds        1.0403      1.0138     +0.0265
+  f7_n10000_bound_neutral/MakeParameter     1.0222      1.0423     -0.0201
+  f7_n10000_bound_neutral/MakeConstraint    1.0292      1.0241     +0.0051
+  f7_n10000_bound_neutral/RelaxBounds       1.0181      1.0166     +0.0015
+  f7_n20000_bound_neutral/MakeParameter     1.0266      1.0255     +0.0012
+  f7_n20000_bound_neutral/MakeConstraint    1.0282      1.0175     +0.0108
+  f7_n20000_bound_neutral/RelaxBounds       1.0160      1.0220     -0.0061
+
+  Corpus over the eleven scored rows, this leg: 1.0250
+  reading.md section 5's corpus over its 29 banded F7 rows: 1.0249
+  Worst per-row deviation between the two readings: 0.0286
+
+  THE PER-ROW COLUMNS DISAGREE BY UP TO 2.9 PERCENTAGE POINTS AND THAT IS REPORTED, NOT
+  SMOOTHED. Two independent legs, no shared round and no shared process, five medians here
+  against three there, and a per-process layout term in both. What reproduces is the
+  QUANTITY THE OWNER ASKED ABOUT -- the corpus ratio, 1.0250 against 1.0249 -- and the shape:
+  every scored row moves the same way in both legs, and both legs put the move in one task.
+
+====================================================================================================
+4. THE LOCALISATION -- each task's share of the cumulative, in log space
+====================================================================================================
+
+  Shares are ln(step)/ln(cumulative). They sum to 1 by construction. A share ABOVE 1 means
+  the other tasks net NEGATIVE on that row -- the task carries more than the whole move.
+
+  row                                         T8.1    T8.2    T8.3    T8.4    T8.5    T8.6    T8.7   T8.7b    T8.8    T8.9
+  f7_n1000_bound_physics/MakeConstraint       0.40   -0.32   -0.17    1.65   -0.32   -0.05    0.10    0.01    0.14   -0.44
+  f7_n1000_bound_physics/RelaxBounds          0.31   -0.13   -0.10    1.19   -0.32    0.18    0.04    0.00    0.20   -0.38
+  f7_n5000_bound_physics/MakeParameter        0.07   -0.05   -0.02    1.08   -0.10    0.11   -0.10    0.01    0.11   -0.11
+  f7_n5000_bound_physics/MakeConstraint       0.06   -0.01   -0.04    0.81   -0.06    0.10   -0.09   -0.01    0.08    0.14
+  f7_n5000_bound_physics/RelaxBounds          0.11   -0.07   -0.02    0.85   -0.20    0.18    0.02   -0.06    0.10    0.08
+  f7_n10000_bound_neutral/MakeParameter       0.04   -0.13    0.03    0.67    0.34   -0.35    0.50   -0.60    0.11    0.39
+  f7_n10000_bound_neutral/MakeConstraint      0.13   -0.05   -0.00    1.03   -0.29    0.23   -0.29   -0.08    0.12    0.20
+  f7_n10000_bound_neutral/RelaxBounds        -0.00   -0.02    0.00    1.65   -0.87    0.29   -0.04    0.13    0.22   -0.37
+  f7_n20000_bound_neutral/MakeParameter       0.12   -0.03    0.06    0.96   -0.14    0.14    0.07   -0.10    0.14   -0.23
+  f7_n20000_bound_neutral/MakeConstraint      0.04   -0.01    0.07    0.63   -0.21    0.28   -0.03    0.17    0.15   -0.10
+  f7_n20000_bound_neutral/RelaxBounds         0.03    0.10   -0.11    1.22   -0.12    0.03    0.40    0.17    0.28   -1.00
+
+  Per task, over the eleven scored rows:
+    T8.1   median share  +0.07   rows at or above 0.80:  0/11
+    T8.2   median share  -0.05   rows at or above 0.80:  0/11
+    T8.3   median share  -0.02   rows at or above 0.80:  0/11
+    T8.4   median share  +1.03   rows at or above 0.80:  9/11
+    T8.5   median share  -0.20   rows at or above 0.80:  0/11
+    T8.6   median share  +0.14   rows at or above 0.80:  0/11
+    T8.7   median share  +0.02   rows at or above 0.80:  0/11
+    T8.7b  median share  +0.00   rows at or above 0.80:  0/11
+    T8.8   median share  +0.14   rows at or above 0.80:  0/11
+    T8.9   median share  -0.11   rows at or above 0.80:  0/11
+
+====================================================================================================
+5. WHOLE-PROCESS INSTRUCTIONS -- pass A, and the floor the control arm measures
+====================================================================================================
+
+  The five-round set is the diff leg's P process: the SAME invocation the wall leg times,
+  with perf attached. The three-round pass-A set is printed beside it as a second sample.
+
+  arm  task   rows      instructions (P, med 5)      branches           cycles        IPC
+  a01   base     15        56,070,666,577    8,186,179,069   18,888,219,316   2.9686
+  a02   T8.1     15        56,783,440,885    8,393,155,241   19,471,446,381   2.9162
+  a03   T8.2     19        57,011,102,370    8,432,225,055   19,540,995,950   2.9175
+  a04   T8.3     19        57,126,950,109    8,465,850,699   19,467,516,010   2.9345
+  a05   T8.4     21        57,703,015,283    8,515,042,732   19,800,539,268   2.9142
+  a06   T8.5     23        57,420,511,721    8,432,669,798   19,460,940,605   2.9506
+  a07   T8.6     23        57,593,883,973    8,482,876,560   19,589,323,274   2.9401
+  a08   T8.7     23        57,417,479,867    8,431,962,063   19,568,748,207   2.9341
+  a09   T8.7b    23        57,437,503,309    8,437,628,628   19,540,716,056   2.9394
+  a10   T8.8     23        57,563,161,359    8,474,109,673   19,585,225,586   2.9391
+  a11   T8.9     25        58,298,151,162    8,560,113,950   19,776,291,463   2.9479
+
+  Consecutive whole-process steps. `b/i` is the branch fraction over the instruction
+  fraction -- attribution.md section 3's fingerprint, where a LAYOUT cluster transition
+  reads about 2.4 and executed work about 1.1.
+
+  T8.1   instr  1.012712 (+0.012712)   branch  1.025284 (+0.025284)   b/i   1.99   LIKE-FOR-LIKE
+  T8.2   instr  1.004009 (+0.004009)   branch  1.004655 (+0.004655)   b/i   1.16   ROW-ADDING -- NO VERDICT
+  T8.3   instr  1.002032 (+0.002032)   branch  1.003988 (+0.003988)   b/i   1.96   LIKE-FOR-LIKE
+  T8.4   instr  1.010084 (+0.010084)   branch  1.005811 (+0.005811)   b/i   0.58   ROW-ADDING -- NO VERDICT
+  T8.5   instr  0.995104 (-0.004896)   branch  0.990326 (-0.009674)   b/i   1.98   ROW-ADDING -- NO VERDICT
+  T8.6   instr  1.003019 (+0.003019)   branch  1.005954 (+0.005954)   b/i   1.97   LIKE-FOR-LIKE
+  T8.7   instr  0.996937 (-0.003063)   branch  0.993998 (-0.006002)   b/i   1.96   LIKE-FOR-LIKE
+  T8.7b  instr  1.000349 (+0.000349)   branch  1.000672 (+0.000672)   b/i   1.93   LIKE-FOR-LIKE
+  T8.8   instr  1.002188 (+0.002188)   branch  1.004324 (+0.004324)   b/i   1.98   LIKE-FOR-LIKE
+  T8.9   instr  1.012768 (+0.012768)   branch  1.010149 (+0.010149)   b/i   0.79   ROW-ADDING -- NO VERDICT
+
+  THE FLOOR IS MEASURED, NOT ASSUMED. Arm 02 (T8.1) has a libhven.a BYTE-IDENTICAL to arm
+  01's (arms.txt: T8.1 touched only bench/ and tests/), so its LIBRARY work is exactly zero
+  and its step is this instrument's floor on this leg. It reads instr +0.012712, branch +0.025284,
+  b/i 1.99 -- the layout value. Every LIKE-FOR-LIKE step measured above is SMALLER than
+  that floor in magnitude, and so is the step on the pair the wall localises to.
+
+  Round-to-round spread of the whole-process count, per arm (five rounds):
+    a01 base    1.78e-02   57.036  56.071  56.040  56.063  56.096
+    a02 T8.1    1.46e-02   56.825  56.006  56.775  56.783  56.820
+    a03 T8.2    8.57e-03   57.011  57.051  56.567  57.005  57.021
+    a04 T8.3    6.35e-03   57.127  57.133  57.114  56.780  57.140
+    a05 T8.4    9.15e-03   57.687  57.724  57.710  57.703  57.201
+    a06 T8.5    9.44e-04   57.404  57.445  57.421  57.419  57.458
+    a07 T8.6    9.04e-04   57.569  57.603  57.594  57.582  57.621
+    a08 T8.7    6.06e-04   57.399  57.413  57.424  57.417  57.434
+    a09 T8.7b   1.13e-03   57.418  57.438  57.451  57.395  57.460
+    a10 T8.8    7.15e-04   57.563  57.591  57.581  57.561  57.550
+    a11 T8.9    9.75e-04   58.302  58.298  58.294  58.267  58.323
+
+====================================================================================================
+6. THE ADDED-ROW ACCOUNTING for the three row-adding pairs
+====================================================================================================
+
+  A row-adding pair's whole-process instruction step gets NO VERDICT (section 1). What CAN
+  be asked of it is narrower and is arithmetic: does the step EQUAL the rows the later arm
+  added? The added rows' own wall is in the CSV; multiplied by the EARLIER arm's own
+  whole-process instruction rate it gives an estimate of what they cost. If the estimate
+  accounts for the step, the rows the two arms SHARE did not move.
+
+  THIS IS AN ESTIMATE AND ITS ASSUMPTION IS STATED: it charges the added rows the process's
+  AVERAGE instructions per second. The arm-to-arm spread of that rate is printed, and the
+  residual is bounded with the extreme rates rather than the central one.
+
+  Instruction rate across the eleven arms: 9.548 to 9.860 e9/s (spread 3.3 %)
+
+  T8.2 (a02 -> a03) adds 4 row(s):
+      f7_n1000_bound_neutral/MakeParameter/cap1            wall 0.016021 s
+      hs071_x1_fixed/MakeParameter/cap1                    wall 0.000077 s
+      infeas2_spike/MakeParameter/stalled                  wall 0.000623 s
+      infeas2_stationary/MakeParameter/resto_infeasible    wall 0.000187 s
+      added-row wall total              0.016907 s
+      estimated at this arm's own rate  0.164 e9 instructions
+      MEASURED whole-process step       0.228 e9 instructions
+      residual charged to the SHARED rows: +0.063 e9  (+1.12e-03 of the process)
+      residual with the EXTREME rates:  +0.061 e9 to +0.066 e9
+
+  T8.4 (a04 -> a05) adds 2 row(s):
+      f7_n1000_bound_neutral/MakeParameter/solve_optimize  wall 0.057387 s
+      hs071_x1_fixed/MakeParameter/solve_optimize          wall 0.000191 s
+      added-row wall total              0.057578 s
+      estimated at this arm's own rate  0.563 e9 instructions
+      MEASURED whole-process step       0.576 e9 instructions
+      residual charged to the SHARED rows: +0.013 e9  (+2.33e-04 of the process)
+      residual with the EXTREME rates:  +0.008 e9 to +0.026 e9
+      for comparison, a WORK increase matching this task's median wall step of
+      +0.0300 on the shared rows would require about 1.716 e9 more instructions.
+
+  T8.9 (a10 -> a11) adds 2 row(s):
+      f7_n1000_bound_neutral/MakeConstraint/parts2         wall 0.039091 s
+      f7_n1000_bound_neutral/MakeParameter/parts2          wall 0.038214 s
+      added-row wall total              0.077305 s
+      estimated at this arm's own rate  0.744 e9 instructions
+      MEASURED whole-process step       0.735 e9 instructions
+      residual charged to the SHARED rows: -0.009 e9  (-1.48e-04 of the process)
+      residual with the EXTREME rates:  -0.027 e9 to -0.003 e9
+
+====================================================================================================
+7. PASS B -- the Zen 3 front-end events, on the localised pair and on the control pair
+====================================================================================================
+
+  event                                          a01(base)         a02(T8.1)         a04(T8.3)         a05(T8.4)
+  instructions:u                            56,367,331,685    57,072,944,361    57,170,184,676    57,805,967,390
+  cycles:u                                  19,083,384,867    19,764,561,623    19,429,034,405    19,836,571,603
+  de_dis_uop_queue_empty_di0:u                 743,503,037       912,251,045       718,218,866       828,561,304
+  op_cache_hit_miss.op_cache_miss:u            882,740,862       895,273,040       886,335,169       883,050,420
+  op_cache_hit_miss.op_cache_hit:u           7,576,694,267     7,891,370,621     7,783,677,112     7,827,989,865
+  ic_fetch_stall.ic_stall_any:u              8,938,231,855     9,192,314,525     9,086,475,437     9,412,277,439
+
+  T8.1 -- THE CONTROL (libhven.a byte-identical to the base's)
+     instructions:u                            1.01252
+     cycles:u                                  1.03569
+     de_dis_uop_queue_empty_di0:u              1.22696
+     op_cache_hit_miss.op_cache_miss:u         1.01420
+     op_cache_hit_miss.op_cache_hit:u          1.04153
+     ic_fetch_stall.ic_stall_any:u             1.02843
+     IPC ratio                                 0.97762
+
+  T8.4 -- the pair the wall localises to
+     instructions:u                            1.01112
+     cycles:u                                  1.02098
+     de_dis_uop_queue_empty_di0:u              1.15363
+     op_cache_hit_miss.op_cache_miss:u         0.99629
+     op_cache_hit_miss.op_cache_hit:u          1.00569
+     ic_fetch_stall.ic_stall_any:u             1.03586
+     IPC ratio                                 0.99035
+
+  READ IT ON THE CONTROL FIRST. The control pair's library work is exactly zero, so whatever
+  it moves is this instrument's floor. It moves FURTHER than the pair under test on 5 of
+  the 6 events (instructions, cycles, de_dis_uop_queue_empty_di0, op_cache_hit_miss.op_cache_miss, op_cache_hit_miss.op_cache_hit)
+  and further on IPC as well. The one event where the pair under test moves further is
+  ic_fetch_stall.ic_stall_any, by 1.0359 against the control's 1.0284 -- a gap far inside
+  the floor the rest of the row establishes. PASS B THEREFORE SEPARATES NOTHING HERE AND
+  RETURNS NO VERDICT -- which is a fact about this leg's instrument, not about T8.4.
+
+====================================================================================================
+8. THE DIFFERENCING INSTRUMENT -- BUILT, RUN, AND REJECTED. Its evidence, in full.
+====================================================================================================
+
+  The design: two processes per arm per round, Q = --cells <the first cell only>,
+  P = --cells <the four>. P - Q is exactly the nine large base rows; every unconditional
+  row, every variant row and the R3 warm-up row is in BOTH and cancels, which would make
+  the differenced quantity like-for-like even across a row-adding pair. Both processes'
+  FIRST solve is the same row in the same position -- the asymmetry that sank fix1's I4.
+
+  arm  task   P-rows  Q-rows  P-Q rows      med(P-Q) instructions   spread of Q over 5
+  a01   base       15       6         9         51,738,400,192   2.23e-01
+  a02   T8.1       15       6         9         52,393,486,662   2.24e-01
+  a03   T8.2       19      10         9         52,502,347,153   8.27e-02
+  a04   T8.3       19      10         9         52,036,060,715   1.03e-01
+  a05   T8.4       21      12         9         52,973,117,914   1.83e-01
+  a06   T8.5       23      14         9         52,556,027,347   2.24e-01
+  a07   T8.6       23      14         9         52,374,445,400   2.36e-01
+  a08   T8.7       23      14         9         52,672,248,814   2.42e-01
+  a09   T8.7b      23      14         9         52,768,165,485   2.35e-01
+  a10   T8.8       23      14         9         52,513,611,886   3.77e-02
+  a11   T8.9       25      16         9         53,222,435,011   9.71e-02
+
+  P - Q IS 9 ROWS AT EVERY ARM, so the construction did what it was built to do.
+  WHAT REJECTS IT is the last column: the Q process's own instruction count scatters by
+  15-22 %% round to round, while the P process at the later arms is reproducible to under
+  0.2 %%. The rows Q contains are in P too -- so those rows DO NOT COST THE SAME inside a
+  process that goes on to run nine large solves as they do in a process that does not.
+  The cancellation the instrument depends on is therefore not exact, and the differenced
+  steps below carry a floor larger than anything they were built to resolve:
+
+    T8.1   differenced step  1.012662
+    T8.2   differenced step  1.002078
+    T8.3   differenced step  0.991119
+    T8.4   differenced step  1.018008
+    T8.5   differenced step  0.992126
+    T8.6   differenced step  0.996545
+    T8.7   differenced step  1.005686
+    T8.7b  differenced step  1.001821
+    T8.8   differenced step  0.995176
+    T8.9   differenced step  1.013498
+
+  The control arm T8.1 -- true step exactly zero -- reads a differenced step far from 1,
+  which is the whole verdict on this instrument. IT IS REPORTED, NOT USED. Its raw data
+  is retained in raw/diff/ as data, and the P process it produced IS used above, on its
+  own, as the five-round whole-process sample.
+
+APPLE / ACCELERATE: UNOBSERVED.   WINDOWS: UNOBSERVED.

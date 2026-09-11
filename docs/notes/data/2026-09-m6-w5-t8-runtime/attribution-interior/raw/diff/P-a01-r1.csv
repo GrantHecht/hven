@@ -1,0 +1,29 @@
+# hven_sqp_corpus provenance -- ENGINE interior (top-level interior-point driver)
+# binary: b18ff8108149
+# schema: 19
+# invocation: /home/ghecht/Projects/hven/.scratch/w5t89ra/bin/102f729/hven_sqp_corpus --engine interior --cells f7_n1000_bound_physics,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n20000_bound_neutral --csv /home/ghecht/Projects/hven/.scratch/w5t89ra2/art/csv/P-a01-r1.csv
+# MKL_NUM_THREADS: 1
+# OMP_NUM_THREADS: 1
+# host: fedora
+# generated: 2026-09-11T18:06:00Z
+# levers: max_iters=200 print_level=10 partitions=1 qp_threads=1
+# levers: kkt_tol=1.000000000e-08 econ_tol=1.000000000e-08 icon_tol=1.000000000e-08 barr_tol=1.000000000e-08
+# levers: bound_relax_factor=1.000000000e-08
+# treatments: MakeParameter,MakeConstraint,RelaxBounds -- one row each, per cell
+# key: column 0 is <cell_id>/<fixed_treatment>, unique per row
+cell_id,family,n_nodes,window,taxonomy,status,iter_num,obj_val,kkt_inf,barr_inf,econ_inf,icon_inf,factorizations,solves,analyses,soc_steps,watchdog_activations,fixed_treatment,wall_s
+f7_n1000_bound_physics/MakeParameter,F7,1000,bound,physics,CONVERGED,5,-4.075173558e-01,2.380795236e-10,3.669294146e-11,1.081291806e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,0.395756055
+f7_n1000_bound_physics/MakeConstraint,F7,1000,bound,physics,CONVERGED,5,-4.075173558e-01,2.380795236e-10,3.669294146e-11,1.081291806e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,0.031899286
+f7_n1000_bound_physics/RelaxBounds,F7,1000,bound,physics,CONVERGED,5,-4.075173558e-01,2.380795236e-10,3.669294146e-11,1.081291806e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,0.031790516
+f7_n5000_bound_physics/MakeParameter,F7,5000,bound,physics,CONVERGED,5,-4.061354862e-01,2.466487686e-10,3.783082487e-11,1.096120960e-16,0.000000000e+00,5,5,1,0,0,MakeParameter,0.178782375
+f7_n5000_bound_physics/MakeConstraint,F7,5000,bound,physics,CONVERGED,5,-4.061354862e-01,2.466487686e-10,3.783082487e-11,1.096120960e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,0.172914463
+f7_n5000_bound_physics/RelaxBounds,F7,5000,bound,physics,CONVERGED,5,-4.061354862e-01,2.466487686e-10,3.783082487e-11,1.096120960e-16,0.000000000e+00,5,5,1,0,0,RelaxBounds,0.172788474
+f7_n10000_bound_neutral/MakeParameter,F7,10000,bound,neutral,CONVERGED,9,-4.059629708e-01,4.384091675e-10,6.954131848e-11,6.138253342e-16,0.000000000e+00,9,9,1,0,0,MakeParameter,0.538686134
+f7_n10000_bound_neutral/MakeConstraint,F7,10000,bound,neutral,CONVERGED,9,-4.059629708e-01,4.384091675e-10,6.954131848e-11,6.138253342e-16,0.000000000e+00,9,9,1,0,0,MakeConstraint,0.520420552
+f7_n10000_bound_neutral/RelaxBounds,F7,10000,bound,neutral,CONVERGED,9,-4.059629708e-01,4.384091675e-10,6.954131848e-11,6.138253342e-16,0.000000000e+00,9,9,1,0,0,RelaxBounds,0.522907850
+f7_n20000_bound_neutral/MakeParameter,F7,20000,bound,neutral,CONVERGED,9,-4.058767313e-01,5.551597096e-10,9.900664080e-11,3.404097007e-15,0.000000000e+00,9,9,1,0,0,MakeParameter,1.122149320
+f7_n20000_bound_neutral/MakeConstraint,F7,20000,bound,neutral,CONVERGED,9,-4.058767313e-01,5.551597096e-10,9.900664080e-11,3.404097007e-15,0.000000000e+00,9,9,1,0,0,MakeConstraint,1.088944581
+f7_n20000_bound_neutral/RelaxBounds,F7,20000,bound,neutral,CONVERGED,9,-4.058767313e-01,5.551597096e-10,9.900664080e-11,3.404097007e-15,0.000000000e+00,9,9,1,0,0,RelaxBounds,1.088982581
+hs071_x1_fixed/MakeParameter,hs,4,none,fixed_variable,CONVERGED,9,1.701401729e+01,1.463526456e-09,1.744133762e-10,0.000000000e+00,0.000000000e+00,9,9,2,0,0,MakeParameter,0.000176419
+hs071_x1_fixed/MakeConstraint,hs,4,none,fixed_variable,CONVERGED,9,1.701401729e+01,2.096454566e-09,1.744133762e-10,0.000000000e+00,0.000000000e+00,9,9,2,0,0,MakeConstraint,0.000127709
+hs071_x1_fixed/RelaxBounds,hs,4,none,fixed_variable,CONVERGED,11,1.701401728e+01,3.969047313e-15,3.943132698e-09,0.000000000e+00,0.000000000e+00,11,11,1,0,0,RelaxBounds,0.000133150

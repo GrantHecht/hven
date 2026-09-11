@@ -1631,3 +1631,89 @@ reproduces §3's numbers to 2e-5 on 13 of the 18 end-arm cells and not on the ot
 smallest cells, worst +4.16e-05, every deviation positive and common-mode between base and head of
 the same cell to within 2e-6, which is the residual of the process-layout term above and is why the
 ratio form is untouched by it. Apple/Accelerate and Windows: UNOBSERVED, as everywhere here.
+
+---
+## 11. The interior leg's movement per task (T8.9r-attrib2, 2026-09-11)
+
+§5's interior leg said the top-level IPM got **2.49 % slower across the whole of group 1**, on 29 of
+29 banded rows, with the twelve common counter columns **identical** — and could not say which task
+did it, having no arm between `102f729` and `b9848bf`. A later leg, same box, same day, put an arm at
+**every one of the eleven group-1 heads** and measured the per-row **wall** at each: five rounds, arm
+order rotated per round, `--engine interior` on four dual-binding F7 cells × three treatments. It is
+in `attribution-interior/` (`attribution-interior.md`, `arms.txt`, `wall.csv`, `perf.csv`,
+`attribute_interior.py` + its sha256 and saved output, `IDLE-PROOF.md`, and every CSV, perf output,
+batch log and script under `raw/`). It built nothing: the eleven arm binaries are `attribution/`'s,
+re-verified by sha256 before use, 11/11 and 11/11.
+
+**IT IS T8.4, AND NOTHING ELSE IS CLOSE.** Per-row wall step, median of five rounds; **bold** = above
+1.01. The first row every process writes is excluded by the pre-declared positional rule, and the cell
+order was chosen so that row is the SAME row at every arm (`f7_n1000_bound_physics/MakeParameter`);
+eleven rows are scored.
+
+| row | T8.1 | T8.2 | T8.3 | **T8.4** | T8.5 | T8.6 | T8.7 | T8.7b | T8.8 | T8.9 | cumul |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `f7_n1000_bound_physics/MakeConstraint` | 1.0079 | 0.9937 | 0.9967 | **1.0331** | 0.9938 | 0.9990 | 1.0020 | 1.0002 | 1.0027 | 0.9913 | 1.0199 |
+| `f7_n1000_bound_physics/RelaxBounds` | 1.0066 | 0.9972 | 0.9979 | **1.0255** | 0.9932 | 1.0038 | 1.0009 | 1.0001 | 1.0043 | 0.9920 | 1.0214 |
+| `f7_n5000_bound_physics/MakeParameter` | 1.0028 | 0.9982 | 0.9994 | **1.0425** | 0.9963 | 1.0041 | 0.9963 | 1.0003 | 1.0041 | 0.9957 | 1.0394 |
+| `f7_n5000_bound_physics/MakeConstraint` | 1.0024 | 0.9996 | 0.9985 | **1.0329** | 0.9976 | 1.0041 | 0.9966 | 0.9997 | 1.0033 | 1.0058 | 1.0406 |
+| `f7_n5000_bound_physics/RelaxBounds` | 1.0045 | 0.9972 | 0.9992 | **1.0343** | 0.9923 | 1.0072 | 1.0007 | 0.9976 | 1.0041 | 1.0031 | 1.0403 |
+| `f7_n10000_bound_neutral/MakeParameter` | 1.0008 | 0.9972 | 1.0007 | **1.0147** | 1.0076 | 0.9925 | **1.0111** | 0.9868 | 1.0025 | 1.0085 | 1.0222 |
+| `f7_n10000_bound_neutral/MakeConstraint` | 1.0037 | 0.9987 | 0.9999 | **1.0301** | 0.9917 | 1.0068 | 0.9917 | 0.9976 | 1.0034 | 1.0057 | 1.0292 |
+| `f7_n10000_bound_neutral/RelaxBounds` | 1.0000 | 0.9997 | 1.0000 | **1.0300** | 0.9845 | 1.0053 | 0.9993 | 1.0024 | 1.0040 | 0.9934 | 1.0181 |
+| `f7_n20000_bound_neutral/MakeParameter` | 1.0031 | 0.9993 | 1.0015 | **1.0255** | 0.9964 | 1.0037 | 1.0019 | 0.9975 | 1.0038 | 0.9939 | 1.0266 |
+| `f7_n20000_bound_neutral/MakeConstraint` | 1.0011 | 0.9998 | 1.0020 | **1.0178** | 0.9941 | 1.0078 | 0.9991 | 1.0049 | 1.0043 | 0.9972 | 1.0282 |
+| `f7_n20000_bound_neutral/RelaxBounds` | 1.0005 | 1.0017 | 0.9983 | **1.0194** | 0.9982 | 1.0004 | 1.0063 | 1.0027 | 1.0044 | 0.9843 | 1.0160 |
+| **rows above 1.01, of 11** | 0 | 0 | 0 | **11** | 0 | 0 | 1 | 0 | 0 | 0 | — |
+| **median share of the cumulative** | +0.07 | −0.05 | −0.02 | **+1.03** | −0.20 | +0.14 | +0.02 | +0.00 | +0.14 | −0.11 | — |
+| **whole-process instruction step** | *+0.0127 (FLOOR)* | +0.0040 ‡ | +0.0020 | *+0.0101* ‡ | −0.0049 ‡ | +0.0030 | −0.0031 | +0.0003 | +0.0022 | +0.0128 ‡ | — |
+
+‡ = ROW-ADDING pair; **no instruction verdict** (T8.2, T8.4, T8.5 and T8.9 each add rows, so the two
+arms' processes do not run the same work). The six unmarked columns are like-for-like, verified from
+each arm's row count (15/15/19/19/21/23/23/23/23/23/25).
+
+**THE CUMULATIVE REPRODUCES §5:** 1.0250 over the eleven scored rows against §5's **1.0249**, from a
+different day's rounds and a different cell set. The per-row columns of the two legs differ by up to
+2.9 points — five medians here against three there, a per-process layout term in both — and that is
+reported rather than smoothed; what reproduces is the corpus ratio and the shape.
+
+**THE LOCALISATION.** *All of the interior leg's +2.49 % is T8.4*: it is the only task whose step
+exceeds 1.01 on any scored row, it does so on **all eleven**, its median share of the cumulative is
+**+1.03** (the other nine net slightly negative), and it is at or above 0.80 on 9 of 11 rows while
+every other task reaches 0.80 on none.
+
+**AND THE INSTRUCTION CURRENCY RETURNS NO VERDICT ON THIS LEG, IN EITHER PASS.** T8.4's pair is
+row-adding, which forbids one outright; and independently the floor of the whole-process count here,
+read off the control arm whose `libhven.a` is **byte-identical** to the base's, is **+1.27 %** —
+larger than every like-for-like step measured and larger than T8.4's own +1.01 %. Pass B is worse
+still: the control pair moves further than the pair under test on five of the six Zen 3 front-end
+events and further on IPC. The floor is a hundred times the SQP legs' 2e-5 because the whole-process
+count is dominated by the warm-up row the wall reading excludes and `perf stat` cannot; a single-row
+interior process would fix it and **is not reachable without a source change** —
+`--internal-run-one` rejects `interior` (`bench/corpus_cells.h:1843`) — so §5 (iv)'s W6 registration
+stands, with this floor measurement added to it.
+
+**WHAT IS AVAILABLE IN PLACE OF A VERDICT, DECLARED AS THE DERIVATION IT IS.** T8.4's whole-process
+instruction step (**0.576 e9**) is accounted for, to **2.3e-4 of the process**, by the two rows T8.4
+*added* (0.563 e9, estimated from those rows' own wall at the earlier arm's own instruction rate;
+residual +0.008 to +0.026 e9 across the arms' extreme rates). A WORK increase on the nineteen shared
+rows matching T8.4's median wall step of +3.00 % would need about **1.716 e9** — 66 to 214 times the
+residual. So the nineteen rows both arms run cost the same instructions, take 2–4 % more wall, and
+§5 already established their twelve counter columns are identical end to end. **That is §11.1's
+LAYOUT-MOVED signature, not WORK-MOVED — as a derivation from a stated estimate, not a measurement.**
+
+**THE MECHANISM IS CODE PLACEMENT, AND IT IS NOT THE DECLARED DIAGNOSTICS.** T8.4's own new per-call
+work, `compute_declared_diagnostics`, is called **once per solve** at
+`src/drivers/interior_point_solver.cpp:2215`; §10's leg measured that same commit's cost at ≈342 500
+instructions at n = 1000, linear in the declared dimension, so ≈6.7 M at n = 20000 against the
+≈10.6 e9 an `f7_n20000` row executes — **0.06 % of a row whose wall moved 2.0 %**. What moves
+addresses is the rest of the same commit: it rewrote `src/drivers/interior_point_solver.cpp` (1101
+lines — the TU carrying the IPM iteration loop) and **inserted a new translation unit**,
+`drivers/solve_result.cpp`, at `src/CMakeLists.txt:76`, taking the library's source count 42 → 43.
+A new object in the archive and a rewritten hot TU relocate everything that follows them.
+
+**This addendum ASSERTS WALL CLOCK, under the fix1 R2 discipline of §8.1; the solo evidence is in
+`attribution-interior/` per batch** — sixteen timed batches, all **PINNED-CLEAN**, `scripts/idle_proof.py`
+exits 0 over all of them, and **the five wall batches, the only ones asserting wall clock, read
+foreign un-niced user time on the pinned core of EXACTLY ZERO, every one**. Five batches were re-run
+after failing their window and the re-runs are the retained data; nothing was ever signalled.
+**No disposition is offered — §11.1 and the owner have it.** Apple/Accelerate and Windows: UNOBSERVED.
