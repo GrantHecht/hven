@@ -1,0 +1,8 @@
+RUN_ALL_START 2026-09-11T17:20:16Z skip_legs=1
+IDLE_PROOF 2026-09-11T17:20:16Z
+   LEG_RC after the idle proof = 0
+COMPARATOR 2026-09-11T17:20:16Z: bash /home/ghecht/Projects/hven/.scratch/w5t89r/fix1/stub_comparator_fail.sh
+STUB COMPARATOR (run_all fold proof): deliberate failure
+   LEG_RC after the comparator = 3
+RUN_ALL_END 2026-09-11T17:20:16Z WRAPPER_EXIT=3
+FOLD-PROOF-FAIL WRAPPER_EXIT=3

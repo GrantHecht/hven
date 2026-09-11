@@ -2911,48 +2911,70 @@ of that artifact.
 
 ### T8.9r — the runtime reading
 
-Solo, one solve at a time, `taskset -c 2`, `MKL_NUM_THREADS=OMP_NUM_THREADS=1`,
-3× alternating A/B, the lock held across each whole sequence. Per-cell median of
-three runs; corpus = the sum of per-cell medians.
+Solo, one solve at a time, `taskset -c 2` **with the driving shell pinned off
+that core and its SMT sibling**, `MKL_NUM_THREADS=OMP_NUM_THREADS=1`, 3×
+alternating A/B, the lock held across each whole alternating sequence. Per-cell
+median of three runs; corpus = the sum of per-cell medians. **Re-measured at fix
+round 1** after review found the round-1 solo evidence insufficient: the solo
+proof is now CPU time on the pinned core — 30 of 30 timed batches PINNED-CLEAN,
+`logs/IDLE-PROOF.md` — not a list of process names.
 
-| leg | mode | corpus ratio | outside 0.99–1.01 | band | instructions |
-|---|---|---|---|---|---|
-| leg 1 — U0, 27 cells (the wall-clock leg) | ipm | **0.99992** (14.8418 → 14.8406 s) | **0/27** | **FLAT** | **+0.032…+0.046 %** |
-| leg 1 | ssn | **0.99990** (11.0930 → 11.0918 s) | **0/27** | **FLAT** | **+0.065…+0.087 %** |
-| leg 1 | walk | **1.00093** (6.0222 → 6.0278 s) | **0/27** | **FLAT** | **+0.092…+0.133 %** |
-| leg 2 — 27 HS, `--repeat` | ipm off / sink | 0.9917 / 0.9912 | 23/27, 24/27 | MOVED (faster) | no verdict at 1e-4 |
-| leg 2 | ssn off / sink | 0.9782 / 0.9816 | 20/27, 17/27 | MOVED (faster) | no verdict at 1e-4 |
-| leg 2 | walk off / sink | 0.9798 / 0.9829 | 24/27, 16/27 | MOVED (faster) | no verdict at 1e-4 |
-| interior — `b9848bf` → head, F7 rows | — | **1.0002** | 6/31 | UNRESOLVED | no verdict at 1e-4 |
+| leg | mode | corpus ratio | outside 0.99–1.01 | band | banded veto cells | instructions |
+|---|---|---|---|---|---|---|
+| leg 1 — U0, 27 cells (the seconds-scale wall leg) | ipm | **1.00062** (14.8524 → 14.8617 s) | **0/27** | **FLAT** | 0 | **+0.032…+0.046 %** |
+| leg 1 | ssn | **0.99924** (11.0994 → 11.0909 s) | **0/27** | **FLAT** | 0 | **+0.065…+0.087 %** |
+| leg 1 | walk | **1.00014** (6.0245 → 6.0253 s) | **0/27** | **FLAT** | 0 | **+0.092…+0.132 %** |
+| leg 2 — 27 HS, `--repeat` (wall informational, §11.3 (ii)) | ipm off / sink | 0.9913 / 0.9861 | 21/27, 26/27 | MOVED (faster) | 2 / 2 | no verdict at 1e-4 |
+| leg 2 | ssn off / sink | 0.9822 / 0.9754 | 17/27, 23/27 | MOVED (faster) | 0 / 0 | no verdict at 1e-4 |
+| leg 2 | walk off / sink | 0.9931 / 0.9761 | 8/27, 24/27 | UNRESOLVED / MOVED | 0 / 0 | no verdict at 1e-4 |
+| **interior — `102f729` → head, 29 banded F7 rows** | — | **1.0249** (10.1030 → 10.3545 s) | **29/29** | **MOVED** | **28** | no verdict |
+| interior — `b9848bf` → head, 31 banded F7 rows | — | 0.9948 (10.4830 → 10.4284 s) | 7/31 | UNRESOLVED | 1 | no verdict |
 
-Composed with the T6 close (`50f616a` → `1997159`), arithmetically and with no
-third arm: **ipm 1.00222, ssn 1.00140, walk 1.00023 — all inside ±0.5 %.** T7
-was comment-only and `arm-base`'s `libhven.a` hash is the T6-era one, so the two
-spans meet end to end with no unmeasured code gap.
+**What is measured, bounded to exactly that.**
 
-**What a consumer should take from it.** The wall is flat: on the leg §11.3
-leaves as the wall-clock leg, no cell of any mode moved outside 0.99–1.01, and
-the leg's own counters are byte-identical between the arms across 75 columns ×
-27 cells × 3 rounds × 3 modes. **Group 1 costs you no measurable wall time.**
+* **The SQP corpus leg's wall is FLAT in all three modes** — 0 of 27 cells
+  outside 0.99–1.01 in every mode, corpus ratios 1.00062 / 0.99924 / 1.00014,
+  zero banded veto cells — and the leg's own counters are byte-identical between
+  the arms across 75 columns × 27 cells × 3 rounds × 3 modes.
+* **The instruction increase is +0.03…0.13 % and it is ONE quantity**: T8.4's
+  shared declared diagnostics, computed once per call over the declared NLP,
+  `O(n)` in the declared dimension and mode-independent. The eleven-arm
+  attribution charges the whole of it to that task (every other task's step is
+  inside ±2e-5), and the call chain puts it inside the timed bracket on both
+  engines. It is outside §11.1's 1e-4 identity band, which makes it
+  **WORK-MOVED and a veto trigger under §11.1.1** notwithstanding the FLAT
+  timing.
+* **THE TOP-LEVEL IPM IS 2.49 % SLOWER ACROSS GROUP 1, AND THE WORK IS
+  IDENTICAL.** The interior leg reaches back to `102f729` (round 1 wrongly said
+  it could not), so group 1's effect on the top-level solver is measured. On the
+  29 banded F7 rows the corpus goes 10.1030 → 10.3545 s; **all 29 rows are
+  outside 0.99–1.01 and 28 are slower in all three alternating rounds**. Across
+  33 common rows × 12 common counter columns × 3 rounds the only column that
+  differs is `status`, and only because T8.2 renamed the vocabulary. **It is not
+  T8.9's**: `b9848bf` → head reads −0.52 %. It is in T8.1–T8.8 and this artifact
+  does not localise it further.
+* **Leg 2 is informational.** §11.3 (ii) reads its wall only as the paired A/B
+  ratio, and this leg's own noise floor (0.2452 %) is twenty-four times the
+  identity band, so it returns no instruction verdict either.
 
-**What is NOT settled, and is with the owner.** Leg 1's *instruction* counts are
-reproducibly up by 0.03–0.13 % — outside §11.1's 1e-4 identity band, which makes
-it WORK-MOVED and a veto trigger under §11.1.1, notwithstanding the FLAT timing.
-An attribution probe (`--dump-qp`, which solves nothing) shows startup, model
-construction and QP assembly are instruction-identical (+413 instructions, a
-constant), so the increase is inside the solve: the same solve, the same number
-of steps, slightly more instructions per unit of work, absorbed by the front end.
-The interior leg reads UNRESOLVED with two banded veto candidates. **Both go to
-§11.5 and the owner with their numbers; this guide records the measurement, not
-a disposition.**
+**What is NOT measured, said plainly.** **The interior leg carries no instruction
+verdict at all** — its whole-process counts are not like-for-like (33 / 41 / 43
+rows) and the per-cell instrument built to fix that is unsound and is refused
+rather than published, so **A7 (ii) is unsatisfied for that leg**. **The cost of
+an attached iteration callback or an attached trace sink is UNMEASURED**: the
+bench harness has no callback lever — `bench_corpus.cpp` has none, and
+`ipm_corpus_leg.cpp`'s `HVEN_LEG_COUNT_CALLBACK` is an event counter, not an A/B
+pair — and the two library call sites that run only with something attached
+(`sqp_driver.cpp:4732`, `interior_point_solver.cpp:2358`) were executed zero
+times here. T8.6's callback and T8.7's sink therefore carry no runtime number;
+both gaps are registered for W6. Apple/Accelerate, Windows and the Intel pass-B
+events are **UNOBSERVED**.
 
-**And what the leg does not cover, said plainly:** the top-level IPM's runtime
-across T8.1–T8.8 has NO base arm and is NOT measured — the interior leg reaches
-back only to `b9848bf`, and leg 1's `ipm` arm is the SQP corpus's QP tier, not
-the top-level solver. T8.1's coverage rule and the identity replays are what
-cover those tasks for correctness; the M7 benchmark suite is what will measure
-them for runtime. Apple/Accelerate, Windows and the Intel pass-B events are
-**UNOBSERVED**.
+**The disposition is the owner's.** §11.1.1 sends demonstrated instructions UP —
+and a MOVED band with 28 reproducible slowdowns — to §11.5 with the numbers.
+This guide records the measurement, not a disposition. Read
+`docs/notes/data/2026-09-m6-w5-t8-runtime/PROVENANCE.txt` first and then
+`reading.md`, whose §0 is the revision record.
 
 | task | concern | what changed for a caller | the pin |
 |---|---|---|---|

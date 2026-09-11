@@ -2,6 +2,12 @@ M6 W5 T8.9r -- THE GROUP-1 RUNTIME PROTOCOL: PROVENANCE (CLAUDE.md section 7)
 =============================================================================
 Read this first: it governs every number in this directory.
 
+  *** THIS FILE HAS A FIX-ROUND-1 BLOCK AT THE END (2026-09-11). Read it: it
+  *** records which of the statements below were WRONG, what replaced them,
+  *** and the two rules (R1, R3) that were fixed BEFORE the round's
+  *** re-measurement -- see predeclaration-R1-R3.txt and
+  *** logs/F0-predeclaration.log.
+
 WHAT THIS DIRECTORY IS
   The ONE solo runtime measurement of W5 T8's group 1 (T8.1-T8.9). Group 1
   asserts no runtime number anywhere else: every pin in it is a COUNTER pin,
@@ -247,10 +253,15 @@ WHAT THIS LEG DOES NOT MEASURE, SAID PLAINLY
 
 WHAT IS IN HERE
   PROVENANCE.txt         this file
-  calibration.csv        the leg-2 --repeat calibration transcript, N per mode
+  predeclaration-R1-R3.txt  R1 and R3, fixed BEFORE the fix-round runs
+  calibration/           the leg-2 --repeat calibration and the timing survey:
+                         calibration.csv, the 15 per-cell CSVs, the 8 survey
+                         CSVs, and a README (astra I3)
   comparator.py          reproduces every table in reading.md from raw/ and
-                         perf/ alone
+                         perf/ alone -- the FIX-ROUND version
   comparator.py.sha256   its hash
+  comparator-round1-superseded.py  the round-1 comparator, retained with its
+                         own sha256; it reads raw/round1-superseded/
   reading.md             the reading: the tables, the bands, the LAYOUT/WORK
                          classification, the veto check, the composed chain,
                          and what is NOT claimed
@@ -265,6 +276,16 @@ WHAT IS IN HERE
                          attribution probe
   provenance-facts.txt   the raw lscpu / cpufreq / kernel / MKL capture the
                          hardware section above is written from
+  provenance-facts-fix1.txt  the fix-round capture: all 16 CPUs' frequency
+                         state, the core reservation, the /tmp declaration and
+                         the re-verified arm hashes
+  logs/IDLE-PROOF.md     R2's per-batch solo proof, computed by
+                         scripts/idle_proof.py from the batch logs
+  logs/F0-predeclaration.log   R1 and R3 hashed, with the time
+  logs/F1-comparator-proofs.log  the four comparator defects, each proved fixed
+  logs/F2-runall-fold-*.log      run_all.sh's fold, both ways
+  raw/round1-superseded/ round 1's raw and perf, with a README saying why
+  logs/round1-superseded/  round 1's logs
 
   REPRODUCE:  cd <this directory> && python3 comparator.py --root . --out -
   The comparator exits non-zero if any input is missing or unparseable, and
@@ -272,3 +293,222 @@ WHAT IS IN HERE
   PROVED both ways before any timed run: logs/L2-fold-proof-fail.log ends
   WRAPPER_EXIT=3 from a stubbed failing comparator with SUCCEEDING steps after
   it, and logs/L2-fold-proof-pass.log ends WRAPPER_EXIT=0 on the control.
+
+
+=============================================================================
+FIX ROUND 1 -- 2026-09-11 (astra FIX-ROUND SIGNOFF W5-T8-9R-REVIEW-ASTRA;
+settler rulings R1-R7). Appended, never overwriting what is above: what is
+above is what the round-1 leg was run and written under, and the corrections
+are dated rather than silent (CLAUDE.md section 7).
+=============================================================================
+
+(F1) THE TWO RULES FIXED BEFORE THE RE-MEASUREMENT, VERBATIM IN
+     predeclaration-R1-R3.txt (sha256 281ca5a87718581cc0522c0b2d22b563da4b81e53c90eb86bb4d2b0b955feb92)
+     and implemented in comparator.py's docstring in the same words:
+
+  R1  A CELL IS A REPRODUCIBLE SLOWDOWN -- 11.1's veto trigger -- WHEN ITS
+      MEDIAN RATIO IS OUTSIDE 0.99-1.01 AND IT IS SLOWER IN ALL THREE ROUNDS.
+      Same-sign movement INSIDE the band is what FLAT means; a fair coin gives
+      ~3.4 same-sign cells of 27, and round 1 observed 4/3/7. The comparator
+      prints BOTH counts, classifies on the BANDED one, and says so; the
+      strict count is informational.
+
+  R3  THE FIRST ROW EACH "--engine interior" PROCESS WRITES IS THAT PROCESS'S
+      WARM-UP (MKL's first call, the allocator's first growth, the page faults
+      for the working set) AND IS EXCLUDED FROM THE BAND BY POSITION -- not by
+      name, not after looking at its value. It is reported separately with its
+      three paired ratios, and the corpus figure is printed BOTH ways: WITHOUT
+      it (PRIMARY) and WITH it. If the arms or rounds disagree about which row
+      came first, the comparator exits non-zero rather than choosing.
+
+     logs/F0-predeclaration.log records both files' sha256 with the UTC time at
+     which they were fixed. EVERY timed log of this round carries a LATER
+     FOREGROUND_START, which is what makes "the rule preceded the runs" a
+     checkable fact rather than a claim.
+
+(F2) THE SOLO PROOF, REPLACED (astra I1, settler ruling R2). Round 1 proved
+     solo-ness with "pgrep -af 'cmake|ninja|ctest|hven_|codex|clang'", and the
+     paragraph above ("WHAT THE pgrep CAPTURES CONTAIN ... none of what they
+     show is load") argued from command NAMES. That argument does not hold, and
+     the audit it rests on was also INCOMPLETE: the pattern matches neither
+     kwin_wayland nor firefox nor this agent's own daemon, and all three were
+     running. THE FOLLOWING IS THE FIX-ROUND PROOF, and it supersedes it.
+
+     TEST 1, R2 AS WRITTEN -- every foreign process on the box (everything but
+     this agent's own process tree and the kernel threads) is snapshotted with
+     "ps -eo pid,ppid,stat,pcpu,cputimes,etimes,comm,args" at the start and the
+     end of every timed BATCH and between every A/B alternation, with each
+     pid's utime+stime in CLOCK TICKS from /proc/<pid>/stat beside it (ps
+     reports whole seconds; 0.5 % of a 200 s window is 1 s, below that column's
+     resolution). R2's bar is: every foreign pid under 0.5 % of the window's
+     wall, and no "R" state in any snapshot.
+
+     THIS BAR IS NOT MET ON THIS BOX AND CANNOT BE, and that is reported rather
+     than worked around. The box is a desktop: kwin_wayland, firefox and the
+     agent's own daemon are resident and accrue CPU continuously across 16
+     logical CPUs. The per-batch numbers are in logs/IDLE-PROOF.md, and the
+     worst of them is quoted in the report. Every occurrence PAUSED the batch
+     and was RECORDED (BOX_PAUSE lines); NOTHING WAS EVER SIGNALLED.
+
+     TEST 2, THE PINNED CORE -- and this is the one the recipe actually turns
+     on. /proc/stat accounts every jiffy per LOGICAL CPU, so around EACH TIMED
+     RUN (not around the batch, so none of this agent's analysis falls inside
+     it) the leg reads cpu2's and cpu10's counters and the run's own user+sys
+     from /usr/bin/time:
+
+         foreign TASK time on cpu2 = cpu2's (user+nice+system+steal+guest)
+                                     MINUS the run's own user+sys
+         SMT contention            = cpu10's (user+nice+system+steal+guest)
+                                     (cpu10 is cpu2's thread sibling)
+
+     "irq" and "softirq" are reported SEPARATELY and are not counted as foreign:
+     they are the kernel servicing the machine on that core -- timer ticks, the
+     page-fault path of the measured process itself -- they are not another
+     runnable thing, and they are present in every measurement this protocol
+     has taken, T6's included.
+
+     AND THE DRIVING SHELL IS PINNED OFF cpu2 AND cpu10 (taskset -cp on the leg
+     script's own pid, mask 0,1,3-9,11-15). Round 1 pinned the solve and left
+     the harness -- the shell, ps, awk, perf's setup -- free to land on the
+     measurement core.
+
+(F3) THE INTERIOR LEG'S BASE ARM: THE PREMISE ABOVE IS FALSE (astra I2,
+     settler ruling R4). The section "THE INTERIOR LEG'S BASE ARM, AND WHY IT
+     IS b9848bf" opens "The interior leg DOES NOT EXIST at 102f729". IT DOES.
+     "git merge-base --is-ancestor 149f29b 102f729" returns 0, and the base
+     arm's own extraction carries the "--engine interior" dispatch; RUN at fix1
+     it writes 33 rows in the 19-column schema. The same false premise is in
+     reading.md (round 1's line 215), the round-1 report (line 184) and the
+     T8.9r brief (line 9, the settler's own text -- listed here, not edited).
+
+     THE CORRECTED STATEMENT. The interior leg has THREE arms at fix1:
+       arm102  102f729  33 rows, 19 columns -- the SQP legs' own base
+       armb98  b9848bf  41 rows, 31 columns -- round 1's base, kept
+       head    e51a7e0  43 rows, 31 columns
+     The 33 keys join arm102 to the head, so THE TOP-LEVEL IPM'S RUNTIME ACROSS
+     THE WHOLE OF GROUP 1 IS MEASURED on those rows, and the twelve counter
+     columns common to the two schemas (status, iter_num, obj_val, kkt_inf,
+     barr_inf, econ_inf, icon_inf, factorizations, solves, analyses, soc_steps,
+     watchdog_activations) are compared row by row and round by round. What
+     armb98 adds is the 8 further rows T8.1-T8.8 created; the two "parts2" rows
+     remain head-only and carry no band.
+
+     SO THE "WHAT THIS LEG DOES NOT MEASURE" PARAGRAPH ABOVE IS WITHDRAWN IN
+     PART: the top-level IPM's runtime across T8.1-T8.8 IS measured here, on
+     the 33 base rows, at 102f729 -> e51a7e0. What remains unmeasured is the
+     runtime of the 8 rows that did not exist at 102f729 before b9848bf, and
+     any workload outside those 33 rows -- the M7 benchmark suite's job.
+
+(F4) THE ATTRIBUTION (astra I8, settler ruling R5). reading.md's section 6 no
+     longer argues from the "--dump-qp" probe. The probe does not run the
+     post-solve KKT gate, the result processing or the neutral-path driver
+     construction, so it cannot bound what round 1 claimed from it; its
+     captures are retained under raw/round1-superseded/perf/attribution/ and
+     are cited nowhere. Section 6 now cites section 10's ELEVEN-ARM attribution
+     for WHAT the increase is (all of it is T8.4's per-call declared
+     diagnostics, one O(n) quantity, mode-independent) and reads the SOURCE for
+     where it runs (the call chains and both harnesses' clock brackets, cited
+     file:line). "Five orders of magnitude" and "the entire increase is inside
+     the solve" are gone.
+
+(F5) A7 (iii)'s CALLBACK LEVER DOES NOT EXIST IN THE HARNESS (settler ruling
+     R7). "bench/bench_corpus.cpp" has no callback option -- its flags are
+     --cells --csv --dump-qp --dump-qp-out --engine --from-csv --help --hs
+     --hs-cells --hs-trace --hs-warmup --list --repeat --score-gates
+     --score-model-surface --ssn-* and the --internal-* levers.
+     "bench/ipm_corpus_leg.cpp:638" installs a COUNTING callback when
+     HVEN_LEG_COUNT_CALLBACK is set in the environment; that is an instrument,
+     not an A/B pair, and it was not used. THE ATTACHED-CALLBACK AND
+     ATTACHED-SINK COSTS OF T8.6 AND T8.7 ARE UNMEASURED BY THIS ARTIFACT and
+     none is inferred from the detached numbers. REGISTERED for W6 by the
+     settler. No lever was added: that would be a bench source change, which
+     this leg may not make.
+
+(F6) THE BINARY STAMP (Minor M1). The paragraph above says all three arms stamp
+     "unknown". They do not: every provenance-bearing raw CSV of this artifact
+     stamps "# binary: 335a6669adf1". The stamp reads "git describe" from the
+     SUPERPROJECT at configure time, and a "git archive" extraction sitting
+     inside the repository's own .scratch/ tree picks the repository up -- so
+     all three arms stamp the SAME sha16 (the T8.9 close ledger commit), which
+     names a commit that is none of them. That is the T8.8 deviation-8 failure
+     mode exactly, not a cleaner form of it. THE SHA256 HASHES ABOVE REMAIN THE
+     ARM IDENTIFIERS and are unaffected; they were re-verified at fix1 against
+     the three executables on disk and match.
+
+(F7) THE FREQUENCY EVIDENCE (Minor M2). provenance-facts.txt's "governor /
+     frequency state (all cores)" block carried cpu0, cpu2 and cpu10 only, and
+     the sibling's idleness was asserted. provenance-facts-fix1.txt carries all
+     16 logical CPUs, and cpu10's idleness is now MEASURED per timed run --
+     logs/IDLE-PROOF.md's "TASK time on cpu10" column -- rather than asserted.
+
+(F8) THE /tmp EXEMPTION, DECLARED ONCE (astra I7, settler ruling R2). Two things
+     of this leg's touch /tmp and nothing else does:
+       /tmp/box-build.lock                     the box lock itself
+       /tmp/hven_sqp_corpus_internal_*         the corpus harness's own
+                                               row/marker files, written by
+                                               bench/bench_corpus.cpp, not by
+                                               anything this leg wrote
+     Both are EXEMPT from the dispatch's no-/tmp term, which is about this
+     leg's scratch. Everything else -- the arms, the staging tree, the snapshot
+     buffers, the proof trees -- is under .scratch/w5t89r/.
+
+(F9) WHAT THE FIX ROUND RE-RAN, AND WHAT IT DID NOT.
+     RE-RUN, all of it under R2: leg 1's wall (3 modes x 3 round-batches), leg
+     1's pass A and pass B (3 batches), leg 2 (6 mode x trace x 2 passes = 12
+     batches), the interior leg (3 arms x wall/perfA/perfB = 3 batches) and I4's
+     per-cell interior perf (3 round-batches). THIRTY timed batches, every one
+     PINNED-CLEAN, logs/IDLE-PROOF.md.
+
+     NOT RE-RUN: the leg-2 --repeat CALIBRATION. It asserts no wall number of
+     its own -- what it produces is N, a property of the A arm's dispersion,
+     identical across arms by construction -- and astra's I1 lists only the
+     wall-ASSERTING legs. The three adopted counts (ipm 1000, walk 1000, ssn
+     2000) are carried forward unchanged and the round-1 calibration transcript
+     is retained at logs/round1-superseded/L3-calibration.log. Its 15 per-cell
+     CSVs and 8 survey CSVs are now IN the artifact, at calibration/ (astra I3).
+
+     NOT REBUILT: the three arms. They are the same extractions round 1 built,
+     at the same absolute paths, and their executables' sha256 were re-verified
+     against this file at fix1 (provenance-facts-fix1.txt) and match.
+
+(F10) THE BATCHING, AND THE ONE SHAPE OF THE RUN THAT IS NOT AS run_all.sh
+     WOULD DO IT. The timed legs together run about ninety minutes, longer than
+     this session's per-command cap, so each BATCH was invoked separately --
+     the same script, the same arguments, the same "flock /tmp/box-build.lock",
+     the same log -- rather than through one scripts/run_all.sh invocation. A
+     batch is one complete alternating sequence held under the lock, which is
+     what 11.3 requires; nothing was split MID-sequence. run_all.sh's fold and
+     its comparator integration are proved separately: logs/F2-runall-fold-fail.log
+     ends WRAPPER_EXIT=3 on a stubbed comparator failure and
+     logs/F2-runall-fold-pass.log ends 0 on the control (astra I6).
+
+     AND THE OUTER COMMAND PATTERN IS FIXED (astra I6): every retained launch
+     is "...; rc=$?; echo \"WRAPPER_EXIT=$rc\"; exit $rc", not the round-1
+     "echo \"...WRAPPER_EXIT=$?\"" whose shell status was the echo's.
+
+(F11) THE COMPARATOR'S FOUR DEFECTS, EACH PROVED FIXED (astra I5). The proofs
+     are logs/F1-comparator-proofs.log, run by scripts/comparator_proofs.sh,
+     each a stubbed failing input beside the passing control:
+       (a) the interior first-row rule is POSITIONAL -- a stub that reorders one
+           run's rows so a different row comes first makes the comparator exit 1
+           rather than choose; both corpus figures print, primary = WITHOUT.
+       (b) leg 2's floor is the MAXIMUM per-(mode, trace) same-arm disagreement
+           (0.245198 %), not a median across combinations (round 1's 0.0793 %);
+           a stub that halves one combination's pass-B counts moves the printed
+           floor to 100.000118 %, which a median could not do.
+       (c) pass B carries NO verdict wherever pass A carries none; a stub that
+           makes leg 2's two passes agree opens the gate and a verdict appears,
+           which is what proves the gate is live.
+       (d) the three-round manifest is ENFORCED: a stub with round 3 removed
+           exits 1 and names the missing round. MANIFEST takes precedence over
+           every other problem, so the status names the cause.
+       (e) R1's two counts both print and the BANDED one classifies.
+     comparator.py exits 0 on the artifact; its sha256 is in comparator.py.sha256.
+
+(F12) THE ARTIFACT'S SIZE, DECLARED. The retained batch logs are about 13 MB,
+     because R2's proof is a full "ps" snapshot of every foreign process at
+     every batch boundary and every alternation -- roughly 200 processes, twice
+     per snapshot, ~400 snapshots. They are retained in full and unedited: the
+     distilled proof is logs/IDLE-PROOF.md and these are what it is computed
+     from. Round 1's raw and perf move under raw/round1-superseded/ (with a
+     README) and its logs under logs/round1-superseded/; nothing is deleted.

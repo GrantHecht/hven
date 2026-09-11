@@ -1,0 +1,17 @@
+# started on Fri Sep 11 12:52:33 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89r/arm-interior-base/build/bench/hven_sqp_corpus --engine interior --cells f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n1000_bound_corrupted,f7_n1000_bound_activity,f7_n1000_bound_warm,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n2000_bound_corrupted,f7_n2000_bound_activity,f7_n2000_bound_warm,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n5000_bound_corrupted,f7_n5000_bound_activity,f7_n5000_bound_warm,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n10000_bound_corrupted,f7_n10000_bound_activity,f7_n10000_bound_warm,f7_n20000_bound_neutral,f7_n20000_bound_physics,f7_n20000_bound_corrupted,f7_n20000_bound_activity,f7_n20000_bound_warm,f7_n1000_path_warm,f7_n800_path_warm --csv /home/ghecht/Projects/hven/.scratch/w5t89r/art2/raw/interior/passA-armb98-r1.csv':
+
+   106,370,985,568      instructions:u                                                        
+    15,957,343,428      branches:u                                                            
+    36,615,624,316      cycles:u                                                              
+        36,308,776      branch-misses:u                                                       
+        12,776,335      L1-icache-load-misses:u                                               
+
+      12.111406708 seconds time elapsed
+
+      10.903731000 seconds user
+       1.153565000 seconds sys
+
+

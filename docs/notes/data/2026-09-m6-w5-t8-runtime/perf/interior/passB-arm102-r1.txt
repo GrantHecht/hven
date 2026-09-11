@@ -1,0 +1,18 @@
+# started on Fri Sep 11 13:09:09 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89r/arm-base/build/bench/hven_sqp_corpus --engine interior --cells f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n1000_bound_corrupted,f7_n1000_bound_activity,f7_n1000_bound_warm,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n2000_bound_corrupted,f7_n2000_bound_activity,f7_n2000_bound_warm,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n5000_bound_corrupted,f7_n5000_bound_activity,f7_n5000_bound_warm,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n10000_bound_corrupted,f7_n10000_bound_activity,f7_n10000_bound_warm,f7_n20000_bound_neutral,f7_n20000_bound_physics,f7_n20000_bound_corrupted,f7_n20000_bound_activity,f7_n20000_bound_warm,f7_n1000_path_warm,f7_n800_path_warm --csv /home/ghecht/Projects/hven/.scratch/w5t89r/art2/raw/interior/passB-arm102-r1.csv':
+
+   106,109,348,828      instructions:u                                                        
+    37,163,134,593      cycles:u                                                              
+     1,852,310,772      de_dis_uop_queue_empty_di0:u                                          
+     1,553,498,022      op_cache_hit_miss.op_cache_miss:u                                      
+    14,845,767,653      op_cache_hit_miss.op_cache_hit:u                                      
+    17,534,166,942      ic_fetch_stall.ic_stall_any:u                                         
+
+      12.241006619 seconds time elapsed
+
+      11.121128000 seconds user
+       1.063761000 seconds sys
+
+

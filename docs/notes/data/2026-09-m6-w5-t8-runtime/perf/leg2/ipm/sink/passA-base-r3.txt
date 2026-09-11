@@ -1,17 +1,17 @@
-# started on Fri Sep 11 09:16:13 2026
+# started on Fri Sep 11 12:20:39 2026
 
 
- Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89r/arm-base/build/bench/hven_sqp_corpus --hs --engine ipm --repeat 1000 --hs-warmup 1 --hs-trace sink --csv /home/ghecht/Projects/hven/.scratch/w5t89r/art/raw/leg2/ipm/sink/base-r3.csv':
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89r/arm-base/build/bench/hven_sqp_corpus --hs --engine ipm --repeat 1000 --hs-warmup 1 --hs-trace sink --csv /home/ghecht/Projects/hven/.scratch/w5t89r/art2/raw/leg2/ipm/sink/base-r3.csv':
 
-   247,269,979,040      instructions:u                                                        
-    45,254,236,581      branches:u                                                            
-   127,067,130,368      cycles:u                                                              
-       372,226,799      branch-misses:u                                                       
-       714,098,890      L1-icache-load-misses:u                                               
+   246,877,606,411      instructions:u                                                        
+    45,134,833,366      branches:u                                                            
+   126,782,297,518      cycles:u                                                              
+       351,535,591      branch-misses:u                                                       
+       703,605,738      L1-icache-load-misses:u                                               
 
-      38.012561548 seconds time elapsed
+      37.937019461 seconds time elapsed
 
-      37.693712000 seconds user
-       0.066446000 seconds sys
+      37.620571000 seconds user
+       0.057554000 seconds sys
 
 

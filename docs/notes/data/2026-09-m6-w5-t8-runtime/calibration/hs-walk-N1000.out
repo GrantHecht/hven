@@ -1,0 +1,36 @@
+hs1 walk trace=off median=0.001309s spread=26.528% majors=29 elastic=0 rung_b=0
+hs3 walk trace=off median=0.000225s spread=88.096% majors=4 elastic=0 rung_b=0
+hs5 walk trace=off median=0.000187s spread=69.381% majors=4 elastic=0 rung_b=0
+hs6 walk trace=off median=0.000591s spread=46.043% majors=8 elastic=0 rung_b=0
+hs7 walk trace=off median=0.000752s spread=34.426% majors=9 elastic=0 rung_b=0
+hs10 walk trace=off median=0.005674s spread=13.151% majors=14 elastic=8 rung_b=0
+hs11 walk trace=off median=0.001441s spread=22.706% majors=7 elastic=2 rung_b=0
+hs12 walk trace=off median=0.000419s spread=52.522% majors=6 elastic=0 rung_b=0
+hs14 walk trace=off median=0.000260s spread=76.048% majors=5 elastic=0 rung_b=0
+hs15 walk trace=off median=0.001069s spread=23.013% majors=7 elastic=1 rung_b=0
+hs22 walk trace=off median=0.000275s spread=48.199% majors=2 elastic=0 rung_b=0
+hs24 walk trace=off median=0.000469s spread=43.419% majors=3 elastic=0 rung_b=0
+hs25 walk trace=off median=0.000027s spread=201.494% majors=0 elastic=0 rung_b=0
+hs26 walk trace=off median=0.000911s spread=38.945% majors=17 elastic=0 rung_b=0
+hs27 walk trace=off median=0.001386s spread=41.630% majors=4 elastic=1 rung_b=0
+hs28 walk trace=off median=0.000228s spread=76.910% majors=3 elastic=0 rung_b=0
+hs30 walk trace=off median=0.000646s spread=46.511% majors=11 elastic=0 rung_b=0
+hs33 walk trace=off median=0.000681s spread=37.554% majors=4 elastic=0 rung_b=0
+hs35 walk trace=off median=0.000092s spread=93.016% majors=1 elastic=0 rung_b=0
+hs38 walk trace=off median=0.003439s spread=11.663% majors=49 elastic=0 rung_b=0
+hs39 walk trace=off median=0.000695s spread=40.552% majors=9 elastic=0 rung_b=0
+hs40 walk trace=off median=0.000236s spread=51.655% majors=4 elastic=0 rung_b=0
+hs43 walk trace=off median=0.000659s spread=28.148% majors=7 elastic=0 rung_b=0
+hs45 walk trace=off median=0.000527s spread=41.203% majors=3 elastic=0 rung_b=0
+hs76 walk trace=off median=0.000281s spread=46.656% majors=2 elastic=0 rung_b=0
+hs77 walk trace=off median=0.000731s spread=47.043% majors=12 elastic=0 rung_b=0
+hs79 walk trace=off median=0.000243s spread=68.880% majors=4 elastic=0 rung_b=0
+
+HS SUITE: 27 cell(s), engine walk, trace off, repeat 1000, warmup 1
+  corpus (sum of per-cell medians): 0.023452 s
+  worst per-cell median SE: 0.419 %   <-- THE CALIBRATION READING (target <= 0.5, falls as 1/sqrt(N))
+  worst per-cell max-min spread: 201.494 %  (raw cloud; NOT a calibration
+                                            statistic -- it is monotone in N)
+  cells with unstable counters across repeats: 0
+  elastic activations: 12   fallback rung B: 0
+wrote 27 row(s) to /home/ghecht/Projects/hven/.scratch/w5t89r/calib/hs-walk-N1000.csv

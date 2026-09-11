@@ -1,0 +1,151 @@
+FOREGROUND_START 2026-09-11T17:19:44Z  (no solver runs here; nothing is timed)
+comparator under proof: /home/ghecht/Projects/hven/docs/notes/data/2026-09-m6-w5-t8-runtime/comparator.py
+1c12a94dc633bbee548b0ab21b3e3acc5d2a2bb5bf74ceab5a09803e416235f7  /home/ghecht/Projects/hven/docs/notes/data/2026-09-m6-w5-t8-runtime/comparator.py
+
+==============================================================
+CONTROL -- the real tree must PASS (exit 0)
+==============================================================
+CONTROL exit=0  (expected 0)
+
+==============================================================
+I5 (d) -- THE THREE-ROUND MANIFEST IS ENFORCED. Stub: round 3 removed.
+==============================================================
+comparator: MANIFEST: leg 1 / ipm / arm head: rounds r3 are missing (have r1,r2) -- the three-round manifest is not satisfied
+comparator: leg 1 / ipm f7_n1000_bound_neutral: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n1000_bound_physics: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n1000_bound_corrupted: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n1000_bound_activity: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n1000_bound_warm: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n2000_bound_neutral: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n2000_bound_physics: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n2000_bound_corrupted: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n2000_bound_activity: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n2000_bound_warm: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n5000_bound_neutral: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n5000_bound_physics: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n5000_bound_corrupted: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n5000_bound_activity: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n5000_bound_warm: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n10000_bound_neutral: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n10000_bound_physics: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n10000_bound_corrupted: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n10000_bound_activity: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n10000_bound_warm: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n20000_bound_neutral: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n20000_bound_physics: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n20000_bound_corrupted: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n20000_bound_activity: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n20000_bound_warm: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n1000_path_warm: 3 base runs vs 2 head runs
+comparator: leg 1 / ipm f7_n800_path_warm: 3 base runs vs 2 head runs
+STUB exit=1  (expected 1 -- a MANIFEST failure, not a generic problem)
+## MANIFEST FAILURES (1) -- exit 1
+I5(d) PROVED
+
+==============================================================
+I5 (a) -- THE INTERIOR FIRST-ROW RULE KEYS ON POSITION, NOT ON A NAME.
+==============================================================
+Stub: one interior run's rows are REORDERED so a DIFFERENT row is written
+first. A rule that keyed on the name would not notice; this one must, and
+must refuse to choose (exit 1, MANIFEST).
+the first data row of head-r2.csv is now:
+f7_n1000_bound_neutral/MakeParameter/parts2
+comparator: MANIFEST: the interior leg: the runs disagree about which row the process writes FIRST (f7_n1000_bound_neutral/MakeParameter <- arm102-r1.csv,arm102-r2.csv,arm102-r3.csv,armb98-r1.csv,armb98-r2.csv,armb98-r3.csv,head-r1.csv,head-r3.csv,passA-arm102-r1.csv,passA-arm102-r2.csv,passA-arm102-r3.csv,passA-armb98-r1.csv,passA-armb98-r2.csv,passA-armb98-r3.csv,passA-head-r1.csv,passA-head-r2.csv,passA-head-r3.csv,passB-arm102-r1.csv,passB-arm102-r2.csv,passB-arm102-r3.csv,passB-armb98-r1.csv,passB-armb98-r2.csv,passB-armb98-r3.csv,passB-head-r1.csv,passB-head-r2.csv,passB-head-r3.csv; f7_n1000_bound_neutral/MakeParameter/parts2 <- head-r2.csv); R3's warm-up exclusion keys on POSITION and cannot be applied
+STUB exit=1  (expected 1)
+- the interior leg: the runs disagree about which row the process writes FIRST (f7_n1000_bound_neutral/MakeParameter <- arm102-r1.csv,arm102-r2.csv,arm102-r3.csv,armb98-r1.csv,armb98-r2.csv,armb98-r3.csv,head-r1.csv,head-r3.csv,passA-arm102-r1.csv,passA-arm102-r2.csv,passA-arm102-r3.csv,passA-armb98-r1.csv,passA-armb98-r2.csv,passA-armb98-r3.csv,passA-head-r1.csv,passA-head-r2.csv,passA-head-r3.csv,passB-arm102-r1.csv,passB-arm102-r2.csv,passB-arm102-r3.csv,passB-armb98-r1.csv,passB-armb98-r2.csv,passB-armb98-r3.csv,passB-head-r1.csv,passB-head-r2.csv,passB-head-r3.csv; f7_n1000_bound_neutral/MakeParameter/parts2 <- head-r2.csv); R3's warm-up exclusion keys on POSITION and cannot be applied
+I5(a) rule-is-positional PROVED
+
+AND BOTH FIGURES PRINT on the control (primary = WITHOUT the first row):
+726:#### R3 -- the process's FIRST row, excluded from the band by the pre-declared rule: `f7_n1000_bound_neutral/MakeParameter`
+730:corpus WITHOUT it (**PRIMARY**, 29 rows): base 10.1030 -> head 10.3545, ratio **1.0249** (+2.490 %); outside 0.99-1.01: **29**; band **MOVED**
+732:corpus WITH it (30 rows, reported for completeness): base 11.1107 -> head 10.8430, ratio **0.9759** (-2.409 %); outside 0.99-1.01: **30**; band **MOVED**
+789:#### R3 -- the process's FIRST row, excluded from the band by the pre-declared rule: `f7_n1000_bound_neutral/MakeParameter`
+793:corpus WITHOUT it (**PRIMARY**, 31 rows): base 10.4830 -> head 10.4284, ratio **0.9948** (-0.520 %); outside 0.99-1.01: **7**; band **UNRESOLVED**
+795:corpus WITH it (32 rows, reported for completeness): base 11.2045 -> head 10.9169, ratio **0.9743** (-2.566 %); outside 0.99-1.01: **8**; band **MOVED**
+
+==============================================================
+I5 (b) -- LEG 2'S FLOOR IS THE MAXIMUM PER-(mode, trace), NOT A MEDIAN.
+==============================================================
+Control: the per-combination table and the maximum the comparator prints.
+**Leg 2's noise floor (I5 (b)).** The same binary measured twice, per (mode, trace) population; the floor this leg is gated on is the MAXIMUM, not a median across combinations:
+
+| mode / trace | worst same-arm passA/passB disagreement |
+|---|---|
+| ipm / off | 0.158309 % |
+| ipm / sink | 0.158621 % |
+| ssn / off | 0.153612 % |
+| ssn / sink | 0.152999 % |
+| walk / off | 0.011700 % |
+| walk / sink | 0.245198 % |
+
+**Leg 2 floor = 0.245198 %** (the maximum above); the 1e-4 identity band is 0.01 %.
+
+Stub: ONE combination's pass-B instruction counts are halved, so that
+combination's own two passes disagree by ~100 %. If the floor were a
+median across combinations it would barely move; as the MAXIMUM it must
+jump to that value and gate EVERY leg-2 verdict.
+STUB exit=0
+**Leg 2's noise floor (I5 (b)).** The same binary measured twice, per (mode, trace) population; the floor this leg is gated on is the MAXIMUM, not a median across combinations:
+
+| mode / trace | worst same-arm passA/passB disagreement |
+|---|---|
+| ipm / off | 100.000118 % |
+| ipm / sink | 0.158621 % |
+| ssn / off | 0.153612 % |
+| ssn / sink | 0.152999 % |
+| walk / off | 0.011700 % |
+| walk / sink | 0.245198 % |
+
+**Leg 2 floor = 100.000118 %** (the maximum above); the 1e-4 identity band is 0.01 %.
+verdicts on leg 2 in the stub (every one must read NO VERDICT):
+18
+
+==============================================================
+I5 (c) -- PASS B CARRIES NO VERDICT WHEREVER PASS A CARRIES NONE.
+==============================================================
+Control: leg 2's and the interior leg's pass-B lines.
+385:pass B: NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO)
+442:pass B: NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO)
+499:pass B: NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO)
+556:pass B: NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO)
+613:pass B: NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO)
+670:pass B: NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO)
+
+...and the interior leg's whole-process lines, both passes:
+815:passA, 102f729 -> e51a7e0: NO VERDICT -- the two arms' processes do not run the same rows (102f729 -> e51a7e0), so `perf stat`, which counts the PROCESS, is not like-for-like (the ratios below are reported, not classified)
+825:passB, 102f729 -> e51a7e0: NO VERDICT -- the two arms' processes do not run the same rows (102f729 -> e51a7e0), so `perf stat`, which counts the PROCESS, is not like-for-like (the ratios below are reported, not classified)
+836:passA, b9848bf -> e51a7e0: NO VERDICT -- the two arms' processes do not run the same rows (b9848bf -> e51a7e0), so `perf stat`, which counts the PROCESS, is not like-for-like (the ratios below are reported, not classified)
+846:passB, b9848bf -> e51a7e0: NO VERDICT -- the two arms' processes do not run the same rows (b9848bf -> e51a7e0), so `perf stat`, which counts the PROCESS, is not like-for-like (the ratios below are reported, not classified)
+
+Stub: leg 2's pass-B captures are replaced by copies of its pass-A ones,
+so the same-arm A/B disagreement becomes 0 and the floor gate OPENS. If
+the gate were cosmetic, nothing would change; it is not, so a verdict
+must appear -- which is what makes its absence in the control a gate.
+STUB exit=0
+leg-2 NO VERDICT count in the stub (expected 0):
+0
+leg-2 classified verdicts in the stub:
+perf: WORK-MOVED (instructions UP) -- THE VETO
+pass B: WORK-MOVED (instructions UP) -- THE VETO
+perf: WORK-MOVED (instructions UP) -- THE VETO
+pass B: WORK-MOVED (instructions UP) -- THE VETO
+perf: WORK-MOVED (instructions UP) -- THE VETO
+pass B: WORK-MOVED (instructions UP) -- THE VETO
+
+==============================================================
+I5 (e) / R1 -- BOTH COUNTS PRINT, THE BANDED ONE CLASSIFIES.
+==============================================================
+13:veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 0 **; strict, informational, 3 ['f7_n10000_bound_warm', 'f7_n1000_bound_activity', 'f7_n20000_bound_warm']
+118:veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 0 **; strict, informational, 3 ['f7_n10000_bound_warm', 'f7_n5000_bound_corrupted', 'f7_n800_path_warm']
+223:veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 0 **; strict, informational, 2 ['f7_n2000_bound_corrupted', 'f7_n5000_bound_corrupted']
+343:veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 2 ['12', '15']**; strict, informational, 2 ['12', '15']
+400:veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 2 ['12', '15']**; strict, informational, 2 ['12', '15']
+457:veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 0 **; strict, informational, 1 ['25']
+514:veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 0 **; strict, informational, 1 ['25']
+571:veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 0 **; strict, informational, 1 ['35']
+628:veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 0 **; strict, informational, 1 ['25']
+691:veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 28 ['f7_n10000_bound_neutral/MakeConstraint', 'f7_n10000_bound_neutral/MakeParameter', 'f7_n10000_bound_physics/MakeConstraint', 'f7_n10000_bound_physics/MakeParameter', 'f7_n10000_bound_physics/RelaxBounds', 'f7_n1000_bound_neutral/MakeConstraint', 'f7_n1000_bound_neutral/RelaxBounds', 'f7_n1000_bound_physics/MakeConstraint', 'f7_n1000_bound_physics/MakeParameter', 'f7_n1000_bound_physics/RelaxBounds', 'f7_n20000_bound_neutral/MakeConstraint', 'f7_n20000_bound_neutral/MakeParameter', 'f7_n20000_bound_neutral/RelaxBounds', 'f7_n20000_bound_physics/MakeConstraint', 'f7_n20000_bound_physics/MakeParameter', 'f7_n20000_bound_physics/RelaxBounds', 'f7_n2000_bound_neutral/MakeConstraint', 'f7_n2000_bound_neutral/MakeParameter', 'f7_n2000_bound_neutral/RelaxBounds', 'f7_n2000_bound_physics/MakeConstraint', 'f7_n2000_bound_physics/MakeParameter', 'f7_n2000_bound_physics/RelaxBounds', 'f7_n5000_bound_neutral/MakeConstraint', 'f7_n5000_bound_neutral/MakeParameter', 'f7_n5000_bound_neutral/RelaxBounds', 'f7_n5000_bound_physics/MakeConstraint', 'f7_n5000_bound_physics/MakeParameter', 'f7_n5000_bound_physics/RelaxBounds']**; strict, informational, 28 ['f7_n10000_bound_neutral/MakeConstraint', 'f7_n10000_bound_neutral/MakeParameter', 'f7_n10000_bound_physics/MakeConstraint', 'f7_n10000_bound_physics/MakeParameter', 'f7_n10000_bound_physics/RelaxBounds', 'f7_n1000_bound_neutral/MakeConstraint', 'f7_n1000_bound_neutral/RelaxBounds', 'f7_n1000_bound_physics/MakeConstraint', 'f7_n1000_bound_physics/MakeParameter', 'f7_n1000_bound_physics/RelaxBounds', 'f7_n20000_bound_neutral/MakeConstraint', 'f7_n20000_bound_neutral/MakeParameter', 'f7_n20000_bound_neutral/RelaxBounds', 'f7_n20000_bound_physics/MakeConstraint', 'f7_n20000_bound_physics/MakeParameter', 'f7_n20000_bound_physics/RelaxBounds', 'f7_n2000_bound_neutral/MakeConstraint', 'f7_n2000_bound_neutral/MakeParameter', 'f7_n2000_bound_neutral/RelaxBounds', 'f7_n2000_bound_physics/MakeConstraint', 'f7_n2000_bound_physics/MakeParameter', 'f7_n2000_bound_physics/RelaxBounds', 'f7_n5000_bound_neutral/MakeConstraint', 'f7_n5000_bound_neutral/MakeParameter', 'f7_n5000_bound_neutral/RelaxBounds', 'f7_n5000_bound_physics/MakeConstraint', 'f7_n5000_bound_physics/MakeParameter', 'f7_n5000_bound_physics/RelaxBounds']
+752:veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 1 ['f7_n1000_bound_physics/RelaxBounds']**; strict, informational, 2 ['f7_n1000_bound_physics/RelaxBounds', 'f7_n2000_bound_neutral/MakeConstraint']
+
+FOREGROUND_END 2026-09-11T17:19:46Z
+WRAPPER_EXIT=0

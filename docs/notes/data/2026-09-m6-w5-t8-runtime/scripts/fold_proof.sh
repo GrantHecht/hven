@@ -1,14 +1,17 @@
 #!/bin/bash
-# W5 T8.9r fold proof. $1 = fail|pass. Sources the SAME common.sh the timed
+# W5 T8.9r fix1 fold proof. $1 = fail|pass. Sources the SAME common.sh the timed
 # legs source; the only difference is the comparator stub's exit status.
 R=/home/ghecht/Projects/hven/.scratch/w5t89r
-. $R/common.sh
+. $R/fix1/common.sh
 MODE=${1:?fail|pass}
-LOG=$R/logs/L2-fold-proof-$MODE.log
+LOG=$R/logs2/L2-fold-proof-$MODE.log
+mkdir -p $R/logs2
 {
-echo "PGREP_SEPARATE $(utc)"
-cat $R/logs/L2-pgrep-separate.txt
-box_pgrep
+echo "PGREP_SEPARATE $(utc) -- taken OUTSIDE the lock by the caller, verbatim:"
+cat $R/logs2/fold-proof-$MODE.pgrep
+echo "--- inside the lock from here ---"
+echo "PGREP_INLOCK $(utc)"
+pgrep -af 'cmake|ninja|ctest|hven_|codex|clang' || echo PGREP_EMPTY
 echo "FOREGROUND_START $(utc)"
 echo "-- step 1: a harness invocation that SUCCEEDS (control, rc 0)"
 run /bin/true

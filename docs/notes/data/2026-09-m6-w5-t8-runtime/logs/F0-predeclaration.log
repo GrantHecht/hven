@@ -1,0 +1,54 @@
+W5 T8.9r FIX ROUND 1 -- F0: THE PRE-DECLARATION, AND ITS TIME
+=============================================================
+UTC now: 2026-09-11T15:22:25Z
+monotonic: 1731590.05
+
+R1 (the banded veto reading) and R3 (the interior first-row rule) are FIXED
+as of this moment, in these two files, BEFORE any timed run of this round.
+Every timed log of the round carries a LATER FOREGROUND_START.
+
+sha256, as fixed:
+52307ccfdc700d5ee3704365cd249c887b472f8b6edbf312a6faf1e883d97be5  comparator.py
+281ca5a87718581cc0522c0b2d22b563da4b81e53c90eb86bb4d2b0b955feb92  predeclaration-R1-R3.txt
+cbef4998844ded417d8a43777c7f3e01f4cdd2ce76385e0c11b73bbc6d755634  PROVENANCE.txt
+
+git HEAD at pre-declaration: e096f7f647a9a4dad30cebc1f7991e6609db4555
+git status of the three files (M = modified/untracked in the working tree,
+which is where the rule was fixed; the commit lands at the end of the round):
+ M docs/notes/data/2026-09-m6-w5-t8-runtime/PROVENANCE.txt
+ M docs/notes/data/2026-09-m6-w5-t8-runtime/comparator.py
+?? docs/notes/data/2026-09-m6-w5-t8-runtime/predeclaration-R1-R3.txt
+
+The rules, as fixed, quoted from comparator.py's docstring:
+  R1 -- THE VETO'S "REPRODUCIBLE SLOWDOWN" IS THE BANDED READING.
+  11.1's sentence "a reproducible slowdown -- three solo runs, same sign -- on
+  ANY cell" admits a strict reading (any cell slower in all three paired
+  rounds, however small) and a banded one (a cell OUTSIDE 0.99-1.01, slower in
+  all three). A fair coin gives ~3.4 same-sign cells of 27 by chance, so the
+  strict count fires on sampling alone and cannot be the trigger.
+  **A cell is a reproducible slowdown when its median ratio is outside
+  0.99-1.01 AND it is slower in all three rounds.** This tool prints BOTH
+  counts, CLASSIFIES ON THE BANDED ONE, and says so on the line it prints.
+  The strict count is informational.
+
+  R3 -- THE INTERIOR LEG'S FIRST-ROW RULE, PRE-DECLARED.
+  The interior leg runs in ONE process and writes its rows in order. The FIRST
+  row each `--engine interior` process writes is that process's warm-up -- MKL's
+  first call, the allocator's first growth, the page faults for the whole
+  working set -- and is EXCLUDED FROM THE BAND BY POSITION, not by name and not
+  after looking at its value. It is reported separately with its own three
+  paired ratios, and the corpus figure is printed BOTH ways: WITHOUT it
+  (PRIMARY, by this rule) and WITH it. The rule keys on the row's POSITION in
+  every raw CSV of the leg; if the arms or the rounds disagree about which row
+  came first, that is a MANIFEST failure, not a choice for this tool to make.
+
+FOUR DEFECTS OF THE ROUND-1 INSTRUMENT ARE FIXED HERE (astra I5):
+  (a) the interior primary population is the R3 one, and both figures print;
+  (b) leg 2's noise floor is the MAXIMUM per-(mode, trace) same-arm pass A /
+      pass B disagreement -- never a median across different modes, traces or
+      repeat counts, which is an average of incomparable instruments;
+  (c) pass B prints NO verdict wherever pass A carries none -- the floor gate
+      applies to both passes, and an unmatched population carries neither;
+  (d) the three-round manifest is ENFORCED: a missing round exits 1.
+
+F0_EXIT=0

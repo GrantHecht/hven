@@ -1,0 +1,17 @@
+# started on Fri Sep 11 13:16:05 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89r/arm-base/build/bench/hven_sqp_corpus --engine interior --cells f7_n5000_bound_neutral --csv /home/ghecht/Projects/hven/.scratch/w5t89r/art2/raw/interior_cells/f7_n5000_bound_neutral/arm102-r2.csv':
+
+    11,425,886,789      instructions:u                                                        
+     2,244,089,923      branches:u                                                            
+     5,751,924,535      cycles:u                                                              
+         2,706,976      branch-misses:u                                                       
+           755,602      L1-icache-load-misses:u                                               
+
+       1.805392612 seconds time elapsed
+
+       1.712667000 seconds user
+       0.085521000 seconds sys
+
+

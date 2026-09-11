@@ -1,18 +1,18 @@
-# started on Fri Sep 11 09:17:29 2026
+# started on Fri Sep 11 12:21:56 2026
 
 
- Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89r/arm-base/build/bench/hven_sqp_corpus --hs --engine ipm --repeat 1000 --hs-warmup 1 --hs-trace sink --csv /home/ghecht/Projects/hven/.scratch/w5t89r/art/raw/leg2/ipm/sink/passB-base-r1.csv':
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89r/arm-base/build/bench/hven_sqp_corpus --hs --engine ipm --repeat 1000 --hs-warmup 1 --hs-trace sink --csv /home/ghecht/Projects/hven/.scratch/w5t89r/art2/raw/leg2/ipm/sink/passB-base-r1.csv':
 
-   247,269,778,762      instructions:u                                                        
-   127,627,330,554      cycles:u                                                              
-    29,428,719,969      de_dis_uop_queue_empty_di0:u                                          
-    24,608,728,835      op_cache_hit_miss.op_cache_miss:u                                      
-    22,851,368,558      op_cache_hit_miss.op_cache_hit:u                                      
-    53,956,294,237      ic_fetch_stall.ic_stall_any:u                                         
+   247,269,938,321      instructions:u                                                        
+   127,446,368,910      cycles:u                                                              
+    29,370,166,374      de_dis_uop_queue_empty_di0:u                                          
+    24,752,081,744      op_cache_hit_miss.op_cache_miss:u                                      
+    22,572,642,605      op_cache_hit_miss.op_cache_hit:u                                      
+    53,952,935,716      ic_fetch_stall.ic_stall_any:u                                         
 
-      38.186411200 seconds time elapsed
+      38.136751159 seconds time elapsed
 
-      37.870788000 seconds user
-       0.056580000 seconds sys
+      37.807449000 seconds user
+       0.066475000 seconds sys
 
 

@@ -1,36 +1,36 @@
-hs1 ipm trace=off median=0.002338s spread=25.980% majors=29 elastic=0 rung_b=0
-hs3 ipm trace=off median=0.000599s spread=37.605% majors=4 elastic=0 rung_b=0
-hs5 ipm trace=off median=0.000376s spread=17.027% majors=4 elastic=0 rung_b=0
-hs6 ipm trace=off median=0.000946s spread=22.605% majors=8 elastic=0 rung_b=0
-hs7 ipm trace=off median=0.001099s spread=28.880% majors=9 elastic=0 rung_b=0
-hs10 ipm trace=off median=0.004643s spread=86.994% majors=14 elastic=8 rung_b=0
-hs11 ipm trace=off median=0.001231s spread=27.768% majors=7 elastic=2 rung_b=0
-hs12 ipm trace=off median=0.000764s spread=33.356% majors=6 elastic=0 rung_b=0
-hs14 ipm trace=off median=0.000579s spread=30.782% majors=5 elastic=0 rung_b=0
-hs15 ipm trace=off median=0.003129s spread=9.393% majors=9 elastic=2 rung_b=0
-hs22 ipm trace=off median=0.000753s spread=32.585% majors=2 elastic=0 rung_b=0
-hs24 ipm trace=off median=0.000593s spread=15.798% majors=3 elastic=0 rung_b=0
-hs25 ipm trace=off median=0.000026s spread=36.106% majors=0 elastic=0 rung_b=0
-hs26 ipm trace=off median=0.001713s spread=14.665% majors=17 elastic=0 rung_b=0
-hs27 ipm trace=off median=0.001902s spread=11.358% majors=4 elastic=1 rung_b=0
-hs28 ipm trace=off median=0.000467s spread=31.350% majors=3 elastic=0 rung_b=0
-hs30 ipm trace=off median=0.001261s spread=16.647% majors=11 elastic=0 rung_b=0
-hs33 ipm trace=off median=0.001915s spread=11.887% majors=7 elastic=0 rung_b=0
-hs35 ipm trace=off median=0.000156s spread=36.804% majors=1 elastic=0 rung_b=0
-hs38 ipm trace=off median=0.006263s spread=5.369% majors=49 elastic=0 rung_b=0
-hs39 ipm trace=off median=0.001208s spread=15.757% majors=9 elastic=0 rung_b=0
-hs40 ipm trace=off median=0.000492s spread=35.202% majors=4 elastic=0 rung_b=0
-hs43 ipm trace=off median=0.001362s spread=26.820% majors=7 elastic=0 rung_b=0
-hs45 ipm trace=off median=0.001131s spread=14.075% majors=3 elastic=0 rung_b=0
-hs76 ipm trace=off median=0.000533s spread=33.646% majors=2 elastic=0 rung_b=0
-hs77 ipm trace=off median=0.001473s spread=12.981% majors=12 elastic=0 rung_b=0
-hs79 ipm trace=off median=0.000511s spread=21.421% majors=4 elastic=0 rung_b=0
+hs1 ipm trace=off median=0.002324s spread=37.246% majors=29 elastic=0 rung_b=0
+hs3 ipm trace=off median=0.000593s spread=48.352% majors=4 elastic=0 rung_b=0
+hs5 ipm trace=off median=0.000367s spread=24.264% majors=4 elastic=0 rung_b=0
+hs6 ipm trace=off median=0.000932s spread=41.861% majors=8 elastic=0 rung_b=0
+hs7 ipm trace=off median=0.001084s spread=20.787% majors=9 elastic=0 rung_b=0
+hs10 ipm trace=off median=0.004609s spread=11.746% majors=14 elastic=8 rung_b=0
+hs11 ipm trace=off median=0.001210s spread=54.217% majors=7 elastic=2 rung_b=0
+hs12 ipm trace=off median=0.000757s spread=46.809% majors=6 elastic=0 rung_b=0
+hs14 ipm trace=off median=0.000572s spread=54.774% majors=5 elastic=0 rung_b=0
+hs15 ipm trace=off median=0.003096s spread=13.459% majors=9 elastic=2 rung_b=0
+hs22 ipm trace=off median=0.000743s spread=12.197% majors=2 elastic=0 rung_b=0
+hs24 ipm trace=off median=0.000588s spread=54.939% majors=3 elastic=0 rung_b=0
+hs25 ipm trace=off median=0.000027s spread=34.288% majors=0 elastic=0 rung_b=0
+hs26 ipm trace=off median=0.001699s spread=21.077% majors=17 elastic=0 rung_b=0
+hs27 ipm trace=off median=0.001896s spread=17.166% majors=4 elastic=1 rung_b=0
+hs28 ipm trace=off median=0.000464s spread=616.104% majors=3 elastic=0 rung_b=0
+hs30 ipm trace=off median=0.001252s spread=21.452% majors=11 elastic=0 rung_b=0
+hs33 ipm trace=off median=0.001902s spread=13.769% majors=7 elastic=0 rung_b=0
+hs35 ipm trace=off median=0.000155s spread=41.102% majors=1 elastic=0 rung_b=0
+hs38 ipm trace=off median=0.006233s spread=8.130% majors=49 elastic=0 rung_b=0
+hs39 ipm trace=off median=0.001206s spread=47.173% majors=9 elastic=0 rung_b=0
+hs40 ipm trace=off median=0.000489s spread=16.292% majors=4 elastic=0 rung_b=0
+hs43 ipm trace=off median=0.001353s spread=24.316% majors=7 elastic=0 rung_b=0
+hs45 ipm trace=off median=0.001117s spread=16.471% majors=3 elastic=0 rung_b=0
+hs76 ipm trace=off median=0.000532s spread=36.433% majors=2 elastic=0 rung_b=0
+hs77 ipm trace=off median=0.001464s spread=21.453% majors=12 elastic=0 rung_b=0
+hs79 ipm trace=off median=0.000510s spread=52.789% majors=4 elastic=0 rung_b=0
 
 HS SUITE: 27 cell(s), engine ipm, trace off, repeat 1000, warmup 1
-  corpus (sum of per-cell medians): 0.037461 s
-  worst per-cell median SE: 0.195 %   <-- THE CALIBRATION READING (target <= 0.5, falls as 1/sqrt(N))
-  worst per-cell max-min spread: 86.994 %  (raw cloud; NOT a calibration
+  corpus (sum of per-cell medians): 0.037175 s
+  worst per-cell median SE: 0.825 %   <-- THE CALIBRATION READING (target <= 0.5, falls as 1/sqrt(N))
+  worst per-cell max-min spread: 616.104 %  (raw cloud; NOT a calibration
                                             statistic -- it is monotone in N)
   cells with unstable counters across repeats: 0
   elastic activations: 13   fallback rung B: 0
-wrote 27 row(s) to /home/ghecht/Projects/hven/.scratch/w5t89r/art/raw/leg2/ipm/off/passB-base-r1.csv
+wrote 27 row(s) to /home/ghecht/Projects/hven/.scratch/w5t89r/art2/raw/leg2/ipm/off/passB-base-r1.csv

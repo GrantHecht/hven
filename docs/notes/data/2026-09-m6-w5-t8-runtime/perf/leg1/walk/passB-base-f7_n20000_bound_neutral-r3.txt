@@ -1,18 +1,18 @@
-# started on Fri Sep 11 08:55:20 2026
+# started on Fri Sep 11 12:00:44 2026
 
 
- Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89r/arm-base/build/bench/hven_sqp_corpus --internal-run-one f7_n20000_bound_neutral --engine walk --internal-out /home/ghecht/Projects/hven/.scratch/w5t89r/art/raw/leg1perf/walk/B-base-f7_n20000_bound_neutral-r3.csv':
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89r/arm-base/build/bench/hven_sqp_corpus --internal-run-one f7_n20000_bound_neutral --engine walk --internal-out /home/ghecht/Projects/hven/.scratch/w5t89r/art2/raw/leg1perf/walk/B-base-f7_n20000_bound_neutral-r3.csv':
 
-     5,640,377,781      instructions:u                                                        
-     1,872,708,727      cycles:u                                                              
-        46,729,122      de_dis_uop_queue_empty_di0:u                                          
-        23,921,066      op_cache_hit_miss.op_cache_miss:u                                      
-       863,702,225      op_cache_hit_miss.op_cache_hit:u                                      
-       874,551,668      ic_fetch_stall.ic_stall_any:u                                         
+     5,640,391,548      instructions:u                                                        
+     1,866,964,776      cycles:u                                                              
+        45,794,954      de_dis_uop_queue_empty_di0:u                                          
+        24,073,297      op_cache_hit_miss.op_cache_miss:u                                      
+       861,378,988      op_cache_hit_miss.op_cache_hit:u                                      
+       872,233,972      ic_fetch_stall.ic_stall_any:u                                         
 
-       0.681235671 seconds time elapsed
+       0.675826569 seconds time elapsed
 
-       0.558232000 seconds user
-       0.119585000 seconds sys
+       0.571329000 seconds user
+       0.101492000 seconds sys
 
 

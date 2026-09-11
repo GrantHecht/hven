@@ -1,0 +1,37 @@
+hs1 ipm trace=sink median=0.002310s spread=28.670% majors=29 elastic=0 rung_b=0
+hs3 ipm trace=sink median=0.000592s spread=35.460% majors=4 elastic=0 rung_b=0
+hs5 ipm trace=sink median=0.000367s spread=52.279% majors=4 elastic=0 rung_b=0
+hs6 ipm trace=sink median=0.000927s spread=27.582% majors=8 elastic=0 rung_b=0
+hs7 ipm trace=sink median=0.001081s spread=39.392% majors=9 elastic=0 rung_b=0
+hs10 ipm trace=sink median=0.004553s spread=11.645% majors=14 elastic=8 rung_b=0
+hs11 ipm trace=sink median=0.001191s spread=13.041% majors=7 elastic=2 rung_b=0
+hs12 ipm trace=sink median=0.000859s spread=40.764% majors=6 elastic=0 rung_b=0
+hs14 ipm trace=sink median=0.000560s spread=514.142% majors=5 elastic=0 rung_b=0
+hs15 ipm trace=sink median=0.003272s spread=11.454% majors=9 elastic=2 rung_b=0
+hs22 ipm trace=sink median=0.000704s spread=23.350% majors=2 elastic=0 rung_b=0
+hs24 ipm trace=sink median=0.000577s spread=12.463% majors=3 elastic=0 rung_b=0
+hs25 ipm trace=sink median=0.000027s spread=121.261% majors=0 elastic=0 rung_b=0
+hs26 ipm trace=sink median=0.001687s spread=22.367% majors=17 elastic=0 rung_b=0
+hs27 ipm trace=sink median=0.001869s spread=17.349% majors=4 elastic=1 rung_b=0
+hs28 ipm trace=sink median=0.000458s spread=17.520% majors=3 elastic=0 rung_b=0
+hs30 ipm trace=sink median=0.001230s spread=22.011% majors=11 elastic=0 rung_b=0
+hs33 ipm trace=sink median=0.001891s spread=23.093% majors=7 elastic=0 rung_b=0
+hs35 ipm trace=sink median=0.000153s spread=77.038% majors=1 elastic=0 rung_b=0
+hs38 ipm trace=sink median=0.006125s spread=8.235% majors=49 elastic=0 rung_b=0
+hs39 ipm trace=sink median=0.001191s spread=16.708% majors=9 elastic=0 rung_b=0
+hs40 ipm trace=sink median=0.000485s spread=39.634% majors=4 elastic=0 rung_b=0
+hs43 ipm trace=sink median=0.001347s spread=29.300% majors=7 elastic=0 rung_b=0
+hs45 ipm trace=sink median=0.001123s spread=29.236% majors=3 elastic=0 rung_b=0
+hs76 ipm trace=sink median=0.000527s spread=17.293% majors=2 elastic=0 rung_b=0
+hs77 ipm trace=sink median=0.001452s spread=25.078% majors=12 elastic=0 rung_b=0
+hs79 ipm trace=sink median=0.000504s spread=22.625% majors=4 elastic=0 rung_b=0
+
+HS SUITE: 27 cell(s), engine ipm, trace sink, repeat 1000, warmup 1
+  corpus (sum of per-cell medians): 0.037062 s
+  worst per-cell median SE: 0.689 %   <-- THE CALIBRATION READING (target <= 0.5, falls as 1/sqrt(N))
+  worst per-cell max-min spread: 514.142 %  (raw cloud; NOT a calibration
+                                            statistic -- it is monotone in N)
+  cells with unstable counters across repeats: 0
+  elastic activations: 13   fallback rung B: 0
+  qp.mode events by site: dispatch=236 soc_resolve=2 elastic_rung=78 fallback_rung_b=3
+wrote 27 row(s) to /home/ghecht/Projects/hven/.scratch/w5t89r/art/raw/leg2/ipm/sink/head-r3.csv

@@ -1,0 +1,36 @@
+hs1 ssn trace=off median=0.001651s spread=67.097% majors=29 elastic=0 rung_b=0
+hs3 ssn trace=off median=0.000315s spread=35.119% majors=4 elastic=0 rung_b=0
+hs5 ssn trace=off median=0.000294s spread=28.995% majors=4 elastic=0 rung_b=0
+hs6 ssn trace=off median=0.001070s spread=10.771% majors=8 elastic=0 rung_b=0
+hs7 ssn trace=off median=0.001117s spread=30.249% majors=9 elastic=0 rung_b=0
+hs10 ssn trace=off median=0.006527s spread=8.017% majors=14 elastic=8 rung_b=0
+hs11 ssn trace=off median=0.001894s spread=7.286% majors=7 elastic=2 rung_b=0
+hs12 ssn trace=off median=0.000402s spread=19.072% majors=6 elastic=0 rung_b=0
+hs14 ssn trace=off median=0.000352s spread=36.112% majors=5 elastic=0 rung_b=0
+hs15 ssn trace=off median=0.001159s spread=32.731% majors=7 elastic=1 rung_b=0
+hs22 ssn trace=off median=0.000495s spread=19.851% majors=2 elastic=0 rung_b=0
+hs24 ssn trace=off median=0.000622s spread=11.561% majors=3 elastic=0 rung_b=0
+hs25 ssn trace=off median=0.000027s spread=33.109% majors=0 elastic=0 rung_b=0
+hs26 ssn trace=off median=0.001097s spread=14.453% majors=17 elastic=0 rung_b=0
+hs27 ssn trace=off median=0.001506s spread=18.262% majors=4 elastic=1 rung_b=0
+hs28 ssn trace=off median=0.000270s spread=22.615% majors=3 elastic=0 rung_b=0
+hs30 ssn trace=off median=0.000687s spread=14.802% majors=11 elastic=0 rung_b=0
+hs33 ssn trace=off median=0.000532s spread=20.730% majors=4 elastic=0 rung_b=0
+hs35 ssn trace=off median=0.000131s spread=40.074% majors=1 elastic=0 rung_b=0
+hs38 ssn trace=off median=0.005095s spread=56.623% majors=49 elastic=0 rung_b=0
+hs39 ssn trace=off median=0.001120s spread=38.550% majors=9 elastic=0 rung_b=0
+hs40 ssn trace=off median=0.000315s spread=34.813% majors=4 elastic=0 rung_b=0
+hs43 ssn trace=off median=0.000891s spread=22.060% majors=7 elastic=0 rung_b=0
+hs45 ssn trace=off median=0.000777s spread=20.495% majors=3 elastic=0 rung_b=0
+hs76 ssn trace=off median=0.000275s spread=37.351% majors=2 elastic=0 rung_b=0
+hs77 ssn trace=off median=0.001029s spread=20.967% majors=12 elastic=0 rung_b=0
+hs79 ssn trace=off median=0.000334s spread=46.984% majors=4 elastic=0 rung_b=0
+
+HS SUITE: 27 cell(s), engine ssn, trace off, repeat 2000, warmup 1
+  corpus (sum of per-cell medians): 0.029985 s
+  worst per-cell median SE: 0.197 %   <-- THE CALIBRATION READING (target <= 0.5, falls as 1/sqrt(N))
+  worst per-cell max-min spread: 67.097 %  (raw cloud; NOT a calibration
+                                            statistic -- it is monotone in N)
+  cells with unstable counters across repeats: 0
+  elastic activations: 12   fallback rung B: 0
+wrote 27 row(s) to /home/ghecht/Projects/hven/.scratch/w5t89r/art/raw/leg2/ssn/off/head-r2.csv

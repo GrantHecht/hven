@@ -1,0 +1,38 @@
+# hven_sqp_corpus provenance -- ENGINE interior (top-level interior-point driver)
+# binary: 335a6669adf1
+# schema: 31
+# invocation: /home/ghecht/Projects/hven/.scratch/w5t89r/arm-interior-base/build/bench/hven_sqp_corpus --engine interior --cells f7_n1000_bound_neutral --csv /home/ghecht/Projects/hven/.scratch/w5t89r/art2/raw/interior_cells/f7_n1000_bound_neutral/armb98-r3.csv
+# MKL_NUM_THREADS: 1
+# OMP_NUM_THREADS: 1
+# host: fedora
+# generated: 2026-09-11T17:13:21Z
+# levers: max_iters=200 print_level=10 partitions=1 qp_threads=1
+# levers: kkt_tol=1.000000000e-08 econ_tol=1.000000000e-08 icon_tol=1.000000000e-08 barr_tol=1.000000000e-08
+# levers: bound_relax_factor=1.000000000e-08
+# treatments: MakeParameter,MakeConstraint,RelaxBounds -- one row each, per cell
+# key: column 0 is <cell_id>/<fixed_treatment>, plus /<variant> on a non-base row
+# variant: base entry=optimize warm=<none> max_iters=<levers> restoration=off max_feas_rest=<unused> con_tol=<levers> acc_tols=<default>/<default>/<default> div_tol=<default>
+# variant: cap1 entry=optimize warm=<none> max_iters=1 restoration=off max_feas_rest=<unused> con_tol=<levers> acc_tols=<default>/<default>/<default> div_tol=<default>
+# variant: stalled entry=solve warm=<none> max_iters=600 restoration=l1_nested max_feas_rest=1 con_tol=2.000000000e-02 acc_tols=1.000000000e-06/2.000000000e-01/1.000000000e-06 div_tol=1.000000000e+300
+# variant: resto_infeasible entry=optimize warm=<none> max_iters=200 restoration=l1_nested max_feas_rest=1 con_tol=<levers> acc_tols=<default>/<default>/<default> div_tol=<default>
+# variant: solve_optimize entry=solve_optimize warm=<none> max_iters=<levers> restoration=off max_feas_rest=<unused> con_tol=<levers> acc_tols=<default>/<default>/<default> div_tol=<default>
+# variant: warm_payload entry=optimize warm=payload max_iters=<levers> restoration=off max_feas_rest=<unused> con_tol=<levers> acc_tols=<default>/<default>/<default> div_tol=<default>
+# variant: warm_multiplier_seed entry=optimize warm=multiplier_seed max_iters=<levers> restoration=off max_feas_rest=<unused> con_tol=<levers> acc_tols=<default>/<default>/<default> div_tol=<default>
+# abnormal-exit rows run under MakeParameter only, unconditionally (they do not vary with --cells), on the cells named in their keys
+# warm rows (M6 W5 T8.5): hs071_x1_fixed/MakeParameter/warm_payload and /warm_multiplier_seed re-solve the SAME cell from the SAME x0 through solve(model, x0, WarmStartData, budget), after a converged producing solve ON A SEPARATE SOLVER -- separate because the factor counters accumulate across calls on one solver, so a shared solver would report the producing solve's work in these rows. The producing solve is setup: not timed, not reported.
+# warm rows, what each one is read by: warm_payload by iter_num, which must be STRICTLY BELOW hs071_x1_fixed/MakeParameter's; warm_multiplier_seed by its TERMINAL RESIDUALS (kkt_inf/econ_inf/icon_inf), which differ from the base row's -- its iter_num does NOT improve on this cell, and that is the measured value of the multipliers-only form here, not a failure of the row
+cell_id,family,n_nodes,window,taxonomy,status,iter_num,obj_val,kkt_inf,barr_inf,econ_inf,icon_inf,factorizations,solves,analyses,soc_steps,watchdog_activations,fixed_treatment,stop_reason,phase_count,phases_ran,phases,x_size,lambda_e_size,lambda_i_size,z_size,stationarity,feasibility_e,feasibility_i,complementarity,wall_s
+f7_n1000_bound_neutral/MakeParameter,F7,1000,bound,neutral,optimal,7,-4.075173558e-01,4.165961184e-09,6.604566508e-10,1.123981747e-16,0.000000000e+00,7,7,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:7,5000,3000,1000,5000,4.165961184e-09,1.123981747e-16,0.000000000e+00,6.604566508e-10,0.855173513
+f7_n1000_bound_neutral/MakeConstraint,F7,1000,bound,neutral,optimal,7,-4.075173558e-01,4.165961184e-09,6.604566508e-10,1.123981747e-16,0.000000000e+00,7,7,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:7,5000,3000,1000,5000,4.165961184e-09,1.123981747e-16,0.000000000e+00,6.604566508e-10,0.040947090
+f7_n1000_bound_neutral/RelaxBounds,F7,1000,bound,neutral,optimal,7,-4.075173558e-01,4.165961184e-09,6.604566508e-10,1.123981747e-16,0.000000000e+00,7,7,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:7,5000,3000,1000,5000,4.165961184e-09,1.123981747e-16,0.000000000e+00,6.604566508e-10,0.041030790
+hs071_x1_fixed/MakeParameter,hs,4,none,fixed_variable,optimal,9,1.701401729e+01,1.463526456e-09,1.744133762e-10,0.000000000e+00,0.000000000e+00,9,9,2,0,0,MakeParameter,none,1,1,kOptimize:optimal:9,4,1,1,4,1.463526456e-09,0.000000000e+00,0.000000000e+00,1.712034355e-10,0.000132209
+hs071_x1_fixed/MakeConstraint,hs,4,none,fixed_variable,optimal,9,1.701401729e+01,2.096454566e-09,1.744133762e-10,0.000000000e+00,0.000000000e+00,9,9,2,0,0,MakeConstraint,none,1,1,kOptimize:optimal:9,4,1,1,4,2.096454566e-09,0.000000000e+00,0.000000000e+00,1.712034468e-10,0.000130549
+hs071_x1_fixed/RelaxBounds,hs,4,none,fixed_variable,optimal,11,1.701401728e+01,3.969047313e-15,3.943132698e-09,0.000000000e+00,0.000000000e+00,11,11,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:11,4,1,1,4,3.996802889e-15,0.000000000e+00,8.248617456e-09,8.973433560e-09,0.000143880
+f7_n1000_bound_neutral/MakeParameter/cap1,F7,1000,bound,neutral,max_iter,1,-1.764445221e-01,7.550671264e-04,1.000000000e-03,1.060660172e-01,0.000000000e+00,2,2,1,0,0,MakeParameter,iteration_cap,1,1,kOptimize:max_iter:1,5000,3000,1000,5000,7.550671264e-04,1.060660172e-01,0.000000000e+00,1.000000000e-03,0.019041387
+hs071_x1_fixed/MakeParameter/cap1,hs,4,none,fixed_variable,max_iter,1,1.599599004e+01,1.481450094e+01,1.000000000e-03,1.190205198e+01,2.602472500e-02,2,2,2,0,0,MakeParameter,iteration_cap,1,1,kOptimize:max_iter:1,4,1,1,4,1.481450094e+01,1.190205198e+01,2.502472500e-02,2.502472500e-02,0.000083139
+infeas2_spike/MakeParameter/stalled,synthetic,2,none,infeasible,stalled,141,0.000000000e+00,0.000000000e+00,0.000000000e+00,3.791662080e+17,0.000000000e+00,142,142,1,0,0,MakeParameter,stage_stalled,1,1,kSolve:stalled:141,2,1,0,2,nan,3.791662080e+17,0.000000000e+00,0.000000000e+00,0.000604457
+infeas2_stationary/MakeParameter/resto_infeasible,synthetic,2,none,infeasible,stalled,25,2.653226544e-04,2.750577544e-13,0.000000000e+00,4.107825191e-14,0.000000000e+00,30,25,1,0,0,MakeParameter,restoration_locally_infeasible,1,1,kOptimize:stalled:25,2,1,0,2,nan,nan,nan,nan,0.000185299
+f7_n1000_bound_neutral/MakeParameter/solve_optimize,F7,1000,bound,neutral,optimal,12,-4.075173558e-01,4.680086978e-10,7.139636651e-11,1.070248685e-16,0.000000000e+00,12,12,1,0,0,MakeParameter,none,2,2,kSolve:optimal:5|kOptimize:optimal:7,5000,3000,1000,5000,4.680086978e-10,1.070248685e-16,0.000000000e+00,7.139636651e-11,0.060326656
+hs071_x1_fixed/MakeParameter/solve_optimize,hs,4,none,fixed_variable,optimal,19,1.701401729e+01,6.725227498e-11,2.209420442e-12,5.752553989e-11,6.068399180e-11,19,19,2,0,0,MakeParameter,none,2,2,kSolve:optimal:7|kOptimize:optimal:12,4,1,1,4,6.725227498e-11,5.752553989e-11,5.668354675e-11,3.130596350e-11,0.000195219
+hs071_x1_fixed/MakeParameter/warm_payload,hs,4,none,fixed_variable,optimal,3,1.701401729e+01,2.380127720e-15,1.371595592e-10,0.000000000e+00,0.000000000e+00,3,3,2,0,0,MakeParameter,none,1,1,kOptimize:optimal:3,4,1,1,4,2.380127720e-15,0.000000000e+00,0.000000000e+00,1.371595592e-10,0.000081380
+hs071_x1_fixed/MakeParameter/warm_multiplier_seed,hs,4,none,fixed_variable,optimal,9,1.701401729e+01,9.321062880e-11,2.135769496e-11,2.117630515e-10,2.080614431e-10,9,9,2,0,0,MakeParameter,none,1,1,kOptimize:optimal:9,4,1,1,4,9.321062880e-11,2.117630515e-10,1.942552785e-10,1.072859588e-10,0.000113650

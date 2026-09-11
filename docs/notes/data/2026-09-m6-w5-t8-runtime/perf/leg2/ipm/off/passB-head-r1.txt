@@ -1,18 +1,18 @@
-# started on Fri Sep 11 09:10:26 2026
+# started on Fri Sep 11 12:14:46 2026
 
 
- Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89r/arm-head/build/bench/hven_sqp_corpus --hs --engine ipm --repeat 1000 --hs-warmup 1 --hs-trace off --csv /home/ghecht/Projects/hven/.scratch/w5t89r/art/raw/leg2/ipm/off/passB-head-r1.csv':
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89r/arm-head/build/bench/hven_sqp_corpus --hs --engine ipm --repeat 1000 --hs-warmup 1 --hs-trace off --csv /home/ghecht/Projects/hven/.scratch/w5t89r/art2/raw/leg2/ipm/off/passB-head-r1.csv':
 
-   246,929,524,711      instructions:u                                                        
-   124,564,650,131      cycles:u                                                              
-    28,113,552,663      de_dis_uop_queue_empty_di0:u                                          
-    24,150,181,678      op_cache_hit_miss.op_cache_miss:u                                      
-    22,658,531,922      op_cache_hit_miss.op_cache_hit:u                                      
-    52,471,225,319      ic_fetch_stall.ic_stall_any:u                                         
+   247,322,088,920      instructions:u                                                        
+   124,554,439,614      cycles:u                                                              
+    27,983,936,699      de_dis_uop_queue_empty_di0:u                                          
+    24,231,489,007      op_cache_hit_miss.op_cache_miss:u                                      
+    22,685,279,630      op_cache_hit_miss.op_cache_hit:u                                      
+    52,254,460,970      ic_fetch_stall.ic_stall_any:u                                         
 
-      37.414427785 seconds time elapsed
+      37.413091090 seconds time elapsed
 
-      36.993782000 seconds user
-       0.164704000 seconds sys
+      36.959406000 seconds user
+       0.200479000 seconds sys
 
 

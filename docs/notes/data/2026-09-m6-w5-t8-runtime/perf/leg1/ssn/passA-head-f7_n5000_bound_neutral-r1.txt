@@ -1,17 +1,17 @@
-# started on Fri Sep 11 08:54:43 2026
+# started on Fri Sep 11 12:00:04 2026
 
 
- Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89r/arm-head/build/bench/hven_sqp_corpus --internal-run-one f7_n5000_bound_neutral --engine ssn --internal-out /home/ghecht/Projects/hven/.scratch/w5t89r/art/raw/leg1perf/ssn/A-head-f7_n5000_bound_neutral-r1.csv':
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89r/arm-head/build/bench/hven_sqp_corpus --internal-run-one f7_n5000_bound_neutral --engine ssn --internal-out /home/ghecht/Projects/hven/.scratch/w5t89r/art2/raw/leg1perf/ssn/A-head-f7_n5000_bound_neutral-r1.csv':
 
-     2,630,729,972      instructions:u                                                        
-       414,208,311      branches:u                                                            
-       948,300,026      cycles:u                                                              
-         2,245,059      branch-misses:u                                                       
-           136,844      L1-icache-load-misses:u                                               
+     2,630,743,395      instructions:u                                                        
+       414,211,749      branches:u                                                            
+       947,284,560      cycles:u                                                              
+         2,264,303      branch-misses:u                                                       
+           141,011      L1-icache-load-misses:u                                               
 
-       0.346031586 seconds time elapsed
+       0.345319069 seconds time elapsed
 
-       0.287611000 seconds user
-       0.056657000 seconds sys
+       0.277854000 seconds user
+       0.065672000 seconds sys
 
 

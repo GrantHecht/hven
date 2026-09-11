@@ -1,37 +1,37 @@
-hs1 ssn trace=sink median=0.001666s spread=38.580% majors=29 elastic=0 rung_b=0
-hs3 ssn trace=sink median=0.000318s spread=44.521% majors=4 elastic=0 rung_b=0
-hs5 ssn trace=sink median=0.000296s spread=29.373% majors=4 elastic=0 rung_b=0
-hs6 ssn trace=sink median=0.001066s spread=26.478% majors=8 elastic=0 rung_b=0
-hs7 ssn trace=sink median=0.001114s spread=21.484% majors=9 elastic=0 rung_b=0
-hs10 ssn trace=sink median=0.006521s spread=40.247% majors=14 elastic=8 rung_b=0
-hs11 ssn trace=sink median=0.001898s spread=15.849% majors=7 elastic=2 rung_b=0
-hs12 ssn trace=sink median=0.000404s spread=17.057% majors=6 elastic=0 rung_b=0
-hs14 ssn trace=sink median=0.000354s spread=42.442% majors=5 elastic=0 rung_b=0
-hs15 ssn trace=sink median=0.001165s spread=20.478% majors=7 elastic=1 rung_b=0
-hs22 ssn trace=sink median=0.000497s spread=38.846% majors=2 elastic=0 rung_b=0
-hs24 ssn trace=sink median=0.000625s spread=61.367% majors=3 elastic=0 rung_b=0
-hs25 ssn trace=sink median=0.000027s spread=33.395% majors=0 elastic=0 rung_b=0
-hs26 ssn trace=sink median=0.001107s spread=260.721% majors=17 elastic=0 rung_b=0
-hs27 ssn trace=sink median=0.001510s spread=19.804% majors=4 elastic=1 rung_b=0
-hs28 ssn trace=sink median=0.000272s spread=112.309% majors=3 elastic=0 rung_b=0
-hs30 ssn trace=sink median=0.000691s spread=27.175% majors=11 elastic=0 rung_b=0
-hs33 ssn trace=sink median=0.000532s spread=38.228% majors=4 elastic=0 rung_b=0
-hs35 ssn trace=sink median=0.000131s spread=54.121% majors=1 elastic=0 rung_b=0
-hs38 ssn trace=sink median=0.005104s spread=8.474% majors=49 elastic=0 rung_b=0
-hs39 ssn trace=sink median=0.001125s spread=27.625% majors=9 elastic=0 rung_b=0
-hs40 ssn trace=sink median=0.000316s spread=37.713% majors=4 elastic=0 rung_b=0
-hs43 ssn trace=sink median=0.000894s spread=25.588% majors=7 elastic=0 rung_b=0
-hs45 ssn trace=sink median=0.000784s spread=64.945% majors=3 elastic=0 rung_b=0
-hs76 ssn trace=sink median=0.000276s spread=68.584% majors=2 elastic=0 rung_b=0
-hs77 ssn trace=sink median=0.001030s spread=33.895% majors=12 elastic=0 rung_b=0
-hs79 ssn trace=sink median=0.000337s spread=35.895% majors=4 elastic=0 rung_b=0
+hs1 ssn trace=sink median=0.001648s spread=50.343% majors=29 elastic=0 rung_b=0
+hs3 ssn trace=sink median=0.000315s spread=67.380% majors=4 elastic=0 rung_b=0
+hs5 ssn trace=sink median=0.000294s spread=55.801% majors=4 elastic=0 rung_b=0
+hs6 ssn trace=sink median=0.001076s spread=46.663% majors=8 elastic=0 rung_b=0
+hs7 ssn trace=sink median=0.001123s spread=42.185% majors=9 elastic=0 rung_b=0
+hs10 ssn trace=sink median=0.006496s spread=22.243% majors=14 elastic=8 rung_b=0
+hs11 ssn trace=sink median=0.001886s spread=28.035% majors=7 elastic=2 rung_b=0
+hs12 ssn trace=sink median=0.000403s spread=36.767% majors=6 elastic=0 rung_b=0
+hs14 ssn trace=sink median=0.000353s spread=40.780% majors=5 elastic=0 rung_b=0
+hs15 ssn trace=sink median=0.001155s spread=21.200% majors=7 elastic=1 rung_b=0
+hs22 ssn trace=sink median=0.000495s spread=55.503% majors=2 elastic=0 rung_b=0
+hs24 ssn trace=sink median=0.000620s spread=28.932% majors=3 elastic=0 rung_b=0
+hs25 ssn trace=sink median=0.000027s spread=111.891% majors=0 elastic=0 rung_b=0
+hs26 ssn trace=sink median=0.001096s spread=22.655% majors=17 elastic=0 rung_b=0
+hs27 ssn trace=sink median=0.001503s spread=17.253% majors=4 elastic=1 rung_b=0
+hs28 ssn trace=sink median=0.000271s spread=21.943% majors=3 elastic=0 rung_b=0
+hs30 ssn trace=sink median=0.000689s spread=56.694% majors=11 elastic=0 rung_b=0
+hs33 ssn trace=sink median=0.000533s spread=36.158% majors=4 elastic=0 rung_b=0
+hs35 ssn trace=sink median=0.000132s spread=56.254% majors=1 elastic=0 rung_b=0
+hs38 ssn trace=sink median=0.005091s spread=64.391% majors=49 elastic=0 rung_b=0
+hs39 ssn trace=sink median=0.001121s spread=41.101% majors=9 elastic=0 rung_b=0
+hs40 ssn trace=sink median=0.000317s spread=550.545% majors=4 elastic=0 rung_b=0
+hs43 ssn trace=sink median=0.000891s spread=35.127% majors=7 elastic=0 rung_b=0
+hs45 ssn trace=sink median=0.000778s spread=17.628% majors=3 elastic=0 rung_b=0
+hs76 ssn trace=sink median=0.000275s spread=32.240% majors=2 elastic=0 rung_b=0
+hs77 ssn trace=sink median=0.001032s spread=12.603% majors=12 elastic=0 rung_b=0
+hs79 ssn trace=sink median=0.000337s spread=33.319% majors=4 elastic=0 rung_b=0
 
 HS SUITE: 27 cell(s), engine ssn, trace sink, repeat 2000, warmup 1
-  corpus (sum of per-cell medians): 0.030060 s
-  worst per-cell median SE: 0.205 %   <-- THE CALIBRATION READING (target <= 0.5, falls as 1/sqrt(N))
-  worst per-cell max-min spread: 260.721 %  (raw cloud; NOT a calibration
+  corpus (sum of per-cell medians): 0.029956 s
+  worst per-cell median SE: 0.473 %   <-- THE CALIBRATION READING (target <= 0.5, falls as 1/sqrt(N))
+  worst per-cell max-min spread: 550.545 %  (raw cloud; NOT a calibration
                                             statistic -- it is monotone in N)
   cells with unstable counters across repeats: 0
   elastic activations: 12   fallback rung B: 0
   qp.mode events by site: dispatch=261 soc_resolve=2 elastic_rung=84 fallback_rung_b=0
-wrote 27 row(s) to /home/ghecht/Projects/hven/.scratch/w5t89r/art/raw/leg2/ssn/sink/passB-head-r1.csv
+wrote 27 row(s) to /home/ghecht/Projects/hven/.scratch/w5t89r/art2/raw/leg2/ssn/sink/passB-head-r1.csv

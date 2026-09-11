@@ -1,18 +1,18 @@
-# started on Fri Sep 11 08:54:26 2026
+# started on Fri Sep 11 11:59:45 2026
 
 
- Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89r/arm-base/build/bench/hven_sqp_corpus --internal-run-one f7_n5000_bound_neutral --engine ipm --internal-out /home/ghecht/Projects/hven/.scratch/w5t89r/art/raw/leg1perf/ipm/B-base-f7_n5000_bound_neutral-r1.csv':
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89r/arm-base/build/bench/hven_sqp_corpus --internal-run-one f7_n5000_bound_neutral --engine ipm --internal-out /home/ghecht/Projects/hven/.scratch/w5t89r/art2/raw/leg1perf/ipm/B-base-f7_n5000_bound_neutral-r1.csv':
 
-     3,834,865,455      instructions:u                                                        
-     1,226,888,162      cycles:u                                                              
-        34,907,470      de_dis_uop_queue_empty_di0:u                                          
-        54,373,801      op_cache_hit_miss.op_cache_miss:u                                      
-       540,135,720      op_cache_hit_miss.op_cache_hit:u                                      
-       532,943,398      ic_fetch_stall.ic_stall_any:u                                         
+     3,834,878,034      instructions:u                                                        
+     1,222,272,900      cycles:u                                                              
+        34,014,263      de_dis_uop_queue_empty_di0:u                                          
+        54,155,399      op_cache_hit_miss.op_cache_miss:u                                      
+       540,722,088      op_cache_hit_miss.op_cache_hit:u                                      
+       528,537,913      ic_fetch_stall.ic_stall_any:u                                         
 
-       0.418430865 seconds time elapsed
+       0.417167308 seconds time elapsed
 
-       0.361581000 seconds user
-       0.054752000 seconds sys
+       0.368271000 seconds user
+       0.046750000 seconds sys
 
 
