@@ -1,0 +1,41 @@
+========================================================================================================
+THE TWO EXPERIMENTS -- per-row wall, median of five rounds, R3 warm-up row EXCLUDED
+========================================================================================================
+
+  row                                         culprit/parent      E1/parent      E2/parent   E1 recov   E2 repro
+  ----------------------------------------------------------------------------------------------------
+  f7_n1000_bound_physics/MakeParameter               1.0263         0.6164         0.8721      19.64      -5.27   EXCL
+  f7_n1000_bound_physics/MakeConstraint              1.0213         1.0196         0.9975       0.08      -0.12
+  f7_n1000_bound_physics/RelaxBounds                 1.0242         1.0191         0.9981       0.21      -0.08
+  f7_n5000_bound_physics/MakeParameter               1.0384         1.0397         0.9985      -0.03      -0.04
+  f7_n5000_bound_physics/MakeConstraint              1.0301         1.0333         1.0005      -0.10       0.02
+  f7_n5000_bound_physics/RelaxBounds                 1.0300         1.0230         0.9982       0.23      -0.06
+  f7_n10000_bound_neutral/MakeParameter              1.0393         1.0251         1.0105       0.36       0.27
+  f7_n10000_bound_neutral/MakeConstraint             1.0300         1.0285         1.0008       0.05       0.03
+  f7_n10000_bound_neutral/RelaxBounds                1.0293         1.0280         0.9997       0.04      -0.01
+  f7_n20000_bound_neutral/MakeParameter              1.0302         1.0270         1.0000       0.11       0.00
+  f7_n20000_bound_neutral/MakeConstraint             1.0311         1.0287         1.0011       0.08       0.03
+  f7_n20000_bound_neutral/RelaxBounds                1.0281         1.0164         1.0009       0.42       0.03
+
+  Scored rows: 11
+
+  CORPUS over the eleven scored rows (sum of the medians):
+    e1       parent    5.474975 s   ratio to parent 1.0000
+    e2       culprit   5.644315 s   ratio to parent 1.0309
+    e3       E1        5.615536 s   ratio to parent 1.0257
+    e4       E2        5.482352 s   ratio to parent 1.0013
+
+    the step under test (culprit/parent)  +3.0930 %
+    E1 corpus RECOVERY   16.8 %   (1 - ln(E1/parent)/ln(culprit/parent))
+    E2 corpus REPRODUCTION 4.4 %   (ln(E2/parent)/ln(culprit/parent))
+
+  Per-row medians: E1 recovery 0.08, E2 reproduction 0.00
+  E1 recovery >= 0.80 on 0 of 11 rows; E2 reproduction >= 0.80 on 0 of 11 rows.
+
+  Round-to-round spread of each arm's scored-row total (max/min - 1):
+    e1       parent   0.0018   5.4705  5.4737  5.4800  5.4804  5.4770
+    e2       culprit  0.0050   5.6507  5.6327  5.6476  5.6607  5.6512
+    e3       E1       0.0023   5.6198  5.6241  5.6154  5.6114  5.6185
+    e4       E2       0.0045   5.4710  5.4726  5.4956  5.4872  5.4868
+
+APPLE / ACCELERATE: UNOBSERVED.   WINDOWS: UNOBSERVED.

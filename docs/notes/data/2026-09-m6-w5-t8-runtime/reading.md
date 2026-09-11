@@ -1717,3 +1717,93 @@ exits 0 over all of them, and **the five wall batches, the only ones asserting w
 foreign un-niced user time on the pinned core of EXACTLY ZERO, every one**. Five batches were re-run
 after failing their window and the re-runs are the retained data; nothing was ever signalled.
 **No disposition is offered — §11.1 and the owner have it.** Apple/Accelerate and Windows: UNOBSERVED.
+
+---
+
+## 12. Inside T8.4 (T8.9r-attrib3, 2026-09-11)
+
+§11 charged the interior leg's **+2.49 %** to T8.4 — the only group-1 task whose
+per-row wall step exceeded 1.01 on any scored row, and it exceeded it on all eleven —
+and could go no further: its arms sat at task HEADS, and T8.4 is seven commits. A third
+leg, same box, same day, put an arm at **every T8.4 library commit** and measured the
+per-row wall at each: five rounds, arm order rotated per round, `--engine interior` on
+the same four dual-binding F7 cells × three treatments, solo, the R3 positional warm-up
+row excluded by a rule hashed before the first sample existed. It is in
+`attribution-interior/t84/` (`arms.txt`, `steps.md`, `mechanism.md`, `layout.txt`,
+`predeclaration.txt`, `wall.csv`, `experiments.csv`, `mechanism-tables.txt`, the three
+analysis tools with their sha256s and saved output, three idle proofs, five experiment
+patches, and every CSV, perf output, batch log and script under `raw/`, `perf/`,
+`logs/` and `scripts/`). It built its own eleven arms; both end arms' `libhven.a`
+reproduce `attribution/arms.txt` **byte for byte**.
+
+**IT IS `9cebbbe`** — *IpmResult; `solve(model, x0, budget)` with phases; the model
+borrowed per call; the five entries, the mutable accessors and `ConvergenceFlags`
+removed*. Per-row wall step, median of five rounds, over the eleven scored rows:
+
+| | 8ae1618 | **9cebbbe** | 9ce9bb2 | fix1 5124aa1 | 3c8e43b | cumul |
+|---|---|---|---|---|---|---|
+| median step | 0.9995 | **1.0324** | 1.0028 | 0.9950 | 1.0009 | **1.0283** |
+| rows above 1.01, of 11 | 0 | **11** | 0 | 0 | 0 | — |
+| median share of the cumulative | −0.01 | **+1.02** | +0.10 | −0.14 | +0.04 | — |
+
+The cumulative **1.0283** reproduces §11's 1.0250 and §5's 1.0249 from a third round
+set. **Two of the five steps are EXACTLY ZERO by construction** — `510a4bb → 8ae1618`
+and `5124aa1 → 3c8e43b` each produced a **byte-identical `hven_sqp_corpus`** — and they
+read 0.9995 and 1.0009, median |ln step| 0.00075 and 0.00087, against the carrier's
+0.03189: **36.5× the floor**, on a control stronger than §11's (a byte-identical
+binary, not merely a byte-identical library).
+
+**AND THE MECHANISM §11 NAMED IS REFUTED IN BOTH HALVES.** §11 read the movement as code
+placement — "a new object in the archive and a rewritten hot TU relocate everything that
+follows them". (a) `8ae1618` is the commit that adds `drivers/solve_result.cpp` to
+`src/CMakeLists.txt` and takes the source count 42 → 43; `ar t` shows the new member
+inserted at position 13 of 43, and **the linked executable is byte-identical** — nothing
+references it there, and a linker does not pull an unreferenced archive member in.
+(b) Inserting 4 096, 9 712 or 16 384 bytes of unreachable `.text` at the head of
+`src/drivers/interior_point_solver.cpp` at the parent — 9 712 being exactly the amount
+the culprit grew that object by — moves the scored-row corpus by **+0.05 %, +0.19 % and
++0.01 %**, reproducing 1.5 %, 6.4 % and 0.3 % of the step. This box is not generically
+placement-sensitive at this scale, and two later commits that rewrote the same files
+(`9ce9bb2`, 280 lines of `sqp_driver.cpp`; fix1, 302 lines of the IPM's own TU) cost
++0.28 % and **−0.50 %**.
+
+**THE MECHANISM, AS FAR AS IT IS PROVEN.** `9cebbbe`'s hot loop is a rename almost line
+for line — 31 of 70 diff hunks survive filtering the commit's rename set, and none of
+the survivors is inside the iteration; `eval_nlp` compiles to the byte. What the commit
+does change is the result core's **lifetime**: where the parent handed the result out by
+reference and kept its buffers across calls
+(`include/hven/drivers/interior_point_solver.h:511`, `:360`), the culprit
+default-constructs it at every entry and moves it out at every exit
+(`src/drivers/interior_point_solver.cpp:4263` and `:5060`), so every buffer it owns is
+freed and re-allocated inside each solve. The measured consequence is **+53 149 minor
+page faults per process, +17.2 %, against a control-pair floor of 1 count in 308 106**
+— the tightest instrument in this artifact — with **+0.090 s of kernel time** beside it,
+counted in the wall leg's own condition with no `perf` attached. Telling glibc to stop
+returning large blocks to the kernel, applied **identically to both arms**, removes
+**99.7 % of the extra faults and 32.8 % of the step** (+2.999 % → +2.006 %).
+
+**THAT IS A THIRD OF IT, AND THE REST IS NOT EXPLAINED.** Four experiments were run, each
+a scratch build of a patched `git archive` extraction, each leaving all nineteen CSV
+columns on all nineteen rows bit-identical to its unpatched base: restoring the culprit's
+hot members to the parent's exact byte offsets recovers **16.8 %**; moving the parent's to
+the culprit's reproduces **4.4 %**; the three code shifts reproduce **0.3–6.4 %**; the
+allocator intervention removes **32.8 %**. The remainder sits in user time, spread across
+MKL's own Pardiso kernels (66 % of the profile, unchanged source) and Eigen's assembly in
+**unchanged proportion** — no function got slower relative to the others, and the
+whole-process instruction and cycle counters return no verdict because the
+byte-identical control pair moves them **+1.02 %** and **+1.81 %** where the pair under
+test moves them −0.13 % and +0.71 %. §11's LAYOUT-MOVED derivation is therefore **not
+refuted as a description** — the work is still identical and the cost is still not in any
+named function — but its stated cause is, and a named per-call mechanism now carries a
+third of it. **No committed source changed; the experiment patches are evidence, not a
+fix.**
+
+**This addendum ASSERTS WALL CLOCK, under the fix1 R2 discipline of §8.1.** Twenty-five timed
+wall batches across five legs, **all PINNED-CLEAN**, `scripts/idle_proof.py` exits 0 over
+each of the five; foreign un-niced user time on the pinned core reads **exactly zero on
+twenty of the twenty-five** and never exceeds 0.050 s (0.1292 %) on the rest. Nine batches
+failed their window on a first pass and were re-run; the re-runs are the retained data, and one
+further experiment round set was discarded and re-run for breaking the argv lock by one
+byte — it is retained, unedited, with its README. Nothing was ever signalled. **No
+disposition is offered — §11.1 and the owner have it.** Apple/Accelerate and Windows:
+UNOBSERVED.

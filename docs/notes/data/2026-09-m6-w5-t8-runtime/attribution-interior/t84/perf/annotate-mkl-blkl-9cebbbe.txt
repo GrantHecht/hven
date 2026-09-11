@@ -1,0 +1,3380 @@
+ Percent |	Source code & Disassembly of hven_sqp_corpus for cycles:u (634 samples, percent: local period)
+--------------------------------------------------------------------------------------------------------------
+         : 0      0xda0ed0 <mkl_pds_lp64_blkl_ll_real.extracted>:
+    0.00 :   da0ed0:        endbr64
+    0.00 :   da0ed4:        pushq   %rbp
+    0.00 :   da0ed5:        pushq   %r15
+    0.00 :   da0ed7:        pushq   %r14
+    0.00 :   da0ed9:        pushq   %r13
+    0.00 :   da0edb:        pushq   %r12
+    0.00 :   da0edd:        pushq   %rbx
+    0.00 :   da0ede:        subq    $0x488, %rsp
+    0.00 :   da0ee5:        movq    %r9, 0x348(%rsp)
+    0.00 :   da0eed:        movq    %rdi, 0x140(%rsp)
+    0.00 :   da0ef5:        movq    0x628(%rsp), %rax
+    0.00 :   da0efd:        movq    0x650(%rsp), %rsi
+    0.00 :   da0f05:        movq    0x538(%rsp), %rdi
+    0.00 :   da0f0d:        movq    0x530(%rsp), %r9
+    0.00 :   da0f15:        movq    0x528(%rsp), %r10
+    0.00 :   da0f1d:        movq    0x520(%rsp), %r11
+    0.00 :   da0f25:        movq    0x518(%rsp), %rbx
+    0.00 :   da0f2d:        movq    0x510(%rsp), %r14
+    0.00 :   da0f35:        movq    0x508(%rsp), %r15
+    0.00 :   da0f3d:        movq    %fs:0x28, %r12
+    0.00 :   da0f46:        movq    %r12, 0x480(%rsp)
+    0.00 :   da0f4e:        movq    0x500(%rsp), %rbp
+    0.00 :   da0f56:        cmpl    $0x0, (%rax)
+    0.00 :   da0f59:        movq    0x4f8(%rsp), %rax
+    0.00 :   da0f61:        movsd   (%rsi), %xmm0
+    0.00 :   da0f65:        movsd   %xmm0, 0x3a8(%rsp)
+    0.00 :   da0f6e:        movq    0x4f0(%rsp), %rsi
+    0.00 :   da0f76:        movq    (%rdx), %rdx
+    0.00 :   da0f79:        movq    %rdx, 0xf0(%rsp)
+    0.00 :   da0f81:        movq    (%rcx), %rcx
+    0.00 :   da0f84:        movq    %rcx, 0x2c8(%rsp)
+    0.00 :   da0f8c:        movq    (%r8), %rcx
+    0.00 :   da0f8f:        movq    %rcx, 0x2c0(%rsp)
+    0.00 :   da0f97:        movq    (%rsi), %rcx
+    0.00 :   da0f9a:        movq    %rcx, 0x240(%rsp)
+    0.00 :   da0fa2:        movq    (%rax), %rax
+    0.00 :   da0fa5:        movq    %rax, 0x88(%rsp)
+    0.00 :   da0fad:        movq    (%rbp), %rax
+    0.00 :   da0fb1:        movq    %rax, 0x2e8(%rsp)
+    0.00 :   da0fb9:        movq    (%r15), %rax
+    0.00 :   da0fbc:        movq    %rax, 0xb8(%rsp)
+    0.00 :   da0fc4:        movq    (%r14), %rax
+    0.00 :   da0fc7:        movq    %rax, 0x100(%rsp)
+    0.00 :   da0fcf:        movq    (%rbx), %rax
+    0.00 :   da0fd2:        movq    %rax, 0x60(%rsp)
+    0.00 :   da0fd7:        movq    (%r11), %rax
+    0.00 :   da0fda:        movq    %rax, 0x1d8(%rsp)
+    0.00 :   da0fe2:        movq    (%r10), %rax
+    0.00 :   da0fe5:        movq    %rax, 0x68(%rsp)
+    0.00 :   da0fea:        movq    (%r9), %rax
+    0.00 :   da0fed:        movq    %rax, 0x1a8(%rsp)
+    0.00 :   da0ff5:        movq    (%rdi), %rax
+    0.00 :   da0ff8:        movq    %rax, 0x3e0(%rsp)
+    0.00 :   da1000:        movq    0x540(%rsp), %rax
+    0.00 :   da1008:        movq    (%rax), %rax
+    0.00 :   da100b:        movq    %rax, 0x2d8(%rsp)
+    0.00 :   da1013:        movq    0x548(%rsp), %rax
+    0.00 :   da101b:        movq    (%rax), %rax
+    0.00 :   da101e:        movq    %rax, 0x198(%rsp)
+    0.00 :   da1026:        movq    0x550(%rsp), %rax
+    0.00 :   da102e:        movq    (%rax), %rax
+    0.00 :   da1031:        movq    %rax, 0x2b8(%rsp)
+    0.00 :   da1039:        movq    0x558(%rsp), %rax
+    0.00 :   da1041:        movq    (%rax), %rax
+    0.00 :   da1044:        movq    %rax, 0xa8(%rsp)
+    0.00 :   da104c:        movq    0x560(%rsp), %rax
+    0.00 :   da1054:        movq    (%rax), %rax
+    0.00 :   da1057:        movq    %rax, 0x120(%rsp)
+    0.00 :   da105f:        movq    0x568(%rsp), %rax
+    0.00 :   da1067:        movq    (%rax), %rax
+    0.00 :   da106a:        movq    %rax, 0xe8(%rsp)
+    0.00 :   da1072:        movq    0x570(%rsp), %rax
+    0.00 :   da107a:        movq    (%rax), %rax
+    0.00 :   da107d:        movq    %rax, 0x230(%rsp)
+    0.00 :   da1085:        movq    0x578(%rsp), %rax
+    0.00 :   da108d:        movq    (%rax), %rax
+    0.00 :   da1090:        movq    %rax, 0x188(%rsp)
+    0.00 :   da1098:        movq    0x580(%rsp), %rax
+    0.00 :   da10a0:        movq    (%rax), %rax
+    0.00 :   da10a3:        movq    %rax, 0xc0(%rsp)
+    0.00 :   da10ab:        movq    0x588(%rsp), %rax
+    0.00 :   da10b3:        movq    (%rax), %rax
+    0.00 :   da10b6:        movq    %rax, 0x168(%rsp)
+    0.00 :   da10be:        movq    0x590(%rsp), %rax
+    0.00 :   da10c6:        movq    (%rax), %rax
+    0.00 :   da10c9:        movq    %rax, 0x180(%rsp)
+    0.00 :   da10d1:        movq    0x598(%rsp), %rax
+    0.00 :   da10d9:        movq    (%rax), %rax
+    0.00 :   da10dc:        movq    %rax, 0x3a0(%rsp)
+    0.00 :   da10e4:        movq    0x5a0(%rsp), %rax
+    0.00 :   da10ec:        movq    (%rax), %rax
+    0.00 :   da10ef:        movq    %rax, 0x340(%rsp)
+    0.00 :   da10f7:        movq    0x5a8(%rsp), %rax
+    0.00 :   da10ff:        movq    (%rax), %rax
+    0.00 :   da1102:        movq    %rax, 0x300(%rsp)
+    0.00 :   da110a:        movq    0x5b0(%rsp), %rax
+    0.00 :   da1112:        movq    (%rax), %rax
+    0.00 :   da1115:        movq    %rax, 0x338(%rsp)
+    0.00 :   da111d:        movq    0x5b8(%rsp), %rax
+    0.00 :   da1125:        movq    (%rax), %rax
+    0.00 :   da1128:        movq    %rax, 0x330(%rsp)
+    0.00 :   da1130:        movq    0x5c0(%rsp), %rax
+    0.00 :   da1138:        movq    (%rax), %rax
+    0.00 :   da113b:        movq    %rax, 0x238(%rsp)
+    0.00 :   da1143:        movq    0x5c8(%rsp), %rax
+    0.00 :   da114b:        movq    (%rax), %rax
+    0.00 :   da114e:        movq    %rax, 0x400(%rsp)
+    0.00 :   da1156:        movq    0x5d0(%rsp), %rax
+    0.00 :   da115e:        movq    (%rax), %rax
+    0.00 :   da1161:        movq    %rax, 0x3f8(%rsp)
+    0.00 :   da1169:        movq    0x5d8(%rsp), %rax
+    0.00 :   da1171:        movq    (%rax), %rax
+    0.00 :   da1174:        movq    %rax, 0x1f0(%rsp)
+    0.00 :   da117c:        movq    0x5e0(%rsp), %rax
+    0.00 :   da1184:        movq    (%rax), %rax
+    0.00 :   da1187:        movq    %rax, 0x150(%rsp)
+    0.00 :   da118f:        movq    0x5e8(%rsp), %rax
+    0.00 :   da1197:        movq    (%rax), %rax
+    0.00 :   da119a:        movq    %rax, 0x208(%rsp)
+    0.00 :   da11a2:        movq    0x5f0(%rsp), %rax
+    0.00 :   da11aa:        movq    (%rax), %rax
+    0.00 :   da11ad:        movq    %rax, 0x3e8(%rsp)
+    0.00 :   da11b5:        movq    0x5f8(%rsp), %rax
+    0.00 :   da11bd:        movslq  (%rax), %rbp
+    0.00 :   da11c0:        movq    0x600(%rsp), %rax
+    0.00 :   da11c8:        movl    (%rax), %eax
+    0.00 :   da11ca:        movq    %rax, 0x2b0(%rsp)
+    0.00 :   da11d2:        movq    0x610(%rsp), %rax
+    0.00 :   da11da:        movl    (%rax), %eax
+    0.00 :   da11dc:        movl    %eax, 0x134(%rsp)
+    0.00 :   da11e3:        movq    0x618(%rsp), %rax
+    0.00 :   da11eb:        movl    (%rax), %eax
+    0.00 :   da11ed:        movl    %eax, 0x12c(%rsp)
+    0.00 :   da11f4:        movq    0x620(%rsp), %rax
+    0.00 :   da11fc:        movslq  (%rax), %rax
+    0.00 :   da11ff:        movq    %rax, 0x350(%rsp)
+    0.00 :   da1207:        movq    0x630(%rsp), %rax
+    0.00 :   da120f:        movl    (%rax), %eax
+    0.00 :   da1211:        movl    %eax, 0x74(%rsp)
+    0.00 :   da1215:        movq    0x638(%rsp), %rax
+    0.00 :   da121d:        movq    (%rax), %rbx
+    0.00 :   da1220:        movq    %rbx, 0x200(%rsp)
+    0.00 :   da1228:        movq    0x640(%rsp), %rax
+    0.00 :   da1230:        movq    (%rax), %r14
+    0.00 :   da1233:        movq    0x648(%rsp), %rax
+    0.00 :   da123b:        movq    (%rax), %rax
+    0.00 :   da123e:        movq    %rax, 0x3c0(%rsp)
+    0.00 :   da1246:        movq    0x658(%rsp), %rax
+    0.00 :   da124e:        movslq  (%rax), %rax
+    0.00 :   da1251:        movq    %rax, 0x90(%rsp)
+    0.00 :   da1259:        movq    0x660(%rsp), %rax
+    0.00 :   da1261:        movl    (%rax), %eax
+    0.00 :   da1263:        movl    %eax, 0x1b4(%rsp)
+    0.00 :   da126a:        movq    0x668(%rsp), %rax
+    0.00 :   da1272:        movl    (%rax), %r13d
+    0.00 :   da1275:        movq    0x670(%rsp), %rax
+    0.00 :   da127d:        movslq  (%rax), %rax
+    0.00 :   da1280:        movq    %rax, 0x1d0(%rsp)
+    0.00 :   da1288:        movl    $0x0, 0x458(%rsp)
+    0.00 :   da1293:        movl    $0x0, 0x450(%rsp)
+    0.00 :   da129e:        movl    $0x0, 0x454(%rsp)
+    0.00 :   da12a9:        movl    $0x0, 0x45c(%rsp)
+    0.00 :   da12b4:        movl    $0x0, 0xfc(%rsp)
+    0.00 :   da12bf:        setg    %r15b
+    0.00 :   da12c3:        callq   0x400660 <_init+0x27c>
+    0.00 :   da12c8:        movl    %r13d, %r9d
+    0.00 :   da12cb:        movq    0x180(%rsp), %r8
+    0.00 :   da12d3:        movq    0xc0(%rsp), %rdi
+    0.00 :   da12db:        movq    0x1d8(%rsp), %rsi
+    0.00 :   da12e3:        movq    0x60(%rsp), %rdx
+    0.00 :   da12e8:        movl    %eax, 0x130(%rsp)
+    0.00 :   da12ef:        movl    %eax, %r10d
+    0.00 :   da12f2:        movq    %rbx, %r11
+    0.00 :   da12f5:        imulq   %r10, %r11
+    0.00 :   da12f9:        leaq    (%rsi,%r11,8), %rax
+    0.00 :   da12fd:        movq    %rax, 0x2e0(%rsp)
+    0.00 :   da1305:        imulq   %r14, %r10
+    0.00 :   da1309:        cmpq    $0x2, 0x690(%rsp)
+    0.00 :   da1312:        sete    %al
+    0.00 :   da1315:        andb    %r15b, %al
+    0.00 :   da1318:        movb    %al, 0x3e(%rsp)
+    0.00 :   da131c:        leal    -0x1(%rbp), %eax
+    0.00 :   da131f:        imull   %ebp, %eax
+    0.00 :   da1322:        movq    %rax, 0x2f8(%rsp)
+    0.00 :   da132a:        movq    %r10, %rax
+    0.00 :   da132d:        movq    0x90(%rsp), %rbx
+    0.00 :   da1335:        imulq   %rbx, %rax
+    0.00 :   da1339:        movq    0x1a8(%rsp), %rcx
+    0.00 :   da1341:        leaq    (%rcx,%rax,8), %rax
+    0.00 :   da1345:        movq    %rax, 0x220(%rsp)
+    0.00 :   da134d:        movl    %r14d, %eax
+    0.00 :   da1350:        imull   %ebx, %eax
+    0.00 :   da1353:        movl    %eax, %ecx
+    0.00 :   da1355:        shrl    $0x1f, %ecx
+    0.00 :   da1358:        movq    %rax, 0x3f0(%rsp)
+    0.00 :   da1360:        addl    %eax, %ecx
+    0.00 :   da1362:        sarl    %ecx
+    0.00 :   da1364:        movl    %ecx, 0x264(%rsp)
+    0.00 :   da136b:        movq    0x68(%rsp), %rax
+    0.00 :   da1370:        leaq    (%rax,%r11,8), %rax
+    0.00 :   da1374:        movq    %rax, 0x228(%rsp)
+    0.00 :   da137c:        movq    0x88(%rsp), %rcx
+    0.00 :   da1384:        movq    0x140(%rsp), %r13
+    0.00 :   da138c:        decq    %r11
+    0.00 :   da138f:        movq    %r11, 0x2d0(%rsp)
+    0.00 :   da1397:        addq    %r14, %r10
+    0.00 :   da139a:        movq    %r10, 0x1a0(%rsp)
+    0.00 :   da13a2:        movq    0x690(%rsp), %rax
+    0.00 :   da13aa:        orq     0x698(%rsp), %rax
+    0.00 :   da13b2:        sete    0x3f(%rsp)
+    0.00 :   da13b7:        movq    %rbp, %r10
+    0.00 :   da13ba:        imulq   %rbp, %r10
+    0.00 :   da13be:        movq    %rbp, %rax
+    0.00 :   da13c1:        shrq    $0x3, %rax
+    0.00 :   da13c5:        movl    %ebp, %r11d
+    0.00 :   da13c8:        andl    $0x7ffffff8, %r11d
+    0.00 :   da13cf:        movq    %r11, 0x108(%rsp)
+    0.00 :   da13d7:        movq    %rbp, %r11
+    0.00 :   da13da:        shrq    $0x2, %r11
+    0.00 :   da13de:        movl    %ebp, %r14d
+    0.00 :   da13e1:        andl    $0x7ffffffc, %r14d
+    0.00 :   da13e8:        movq    %r14, 0x328(%rsp)
+    0.00 :   da13f0:        movd    0x74(%rsp), %xmm0
+    0.00 :   da13f6:        pshufd  $0x0, %xmm0, %xmm1
+    0.00 :   da13fb:        movd    %r9d, %xmm0
+    0.00 :   da1400:        pshufd  $0x0, %xmm0, %xmm0
+    0.00 :   da1405:        movq    %rax, 0x68(%rsp)
+    0.00 :   da140a:        andl    $0xfffffff, %eax
+    0.00 :   da140f:        movq    %rbp, %r15
+    0.00 :   da1412:        imulq   %rax, %r15
+    0.00 :   da1416:        shlq    $0x6, %rax
+    0.00 :   da141a:        movq    %rbp, %r14
+    0.00 :   da141d:        andq    $-0x7ffffff9, %r14
+    0.00 :   da1424:        movq    %rbp, %r12
+    0.00 :   da1427:        shlq    $0x6, %r12
+    0.00 :   da142b:        movq    %r12, 0x250(%rsp)
+    0.00 :   da1433:        shlq    $0x6, %r15
+    0.00 :   da1437:        addq    %rcx, %r15
+    0.00 :   da143a:        movq    %r15, 0x218(%rsp)
+    0.00 :   da1442:        leaq    (%rcx,%rax), %r15
+    0.00 :   da1446:        movq    %r15, 0x190(%rsp)
+    0.00 :   da144e:        leaq    (%rdx,%rax), %r15
+    0.00 :   da1452:        movq    %r15, 0x288(%rsp)
+    0.00 :   da145a:        addq    %rdi, %rax
+    0.00 :   da145d:        movq    %rax, 0x280(%rsp)
+    0.00 :   da1465:        movq    %rbp, %rax
+    0.00 :   da1468:        shlq    $0x5, %rax
+    0.00 :   da146c:        movq    %rax, 0x320(%rsp)
+    0.00 :   da1474:        movq    %rbp, %rax
+    0.00 :   da1477:        shlq    $0x4, %rax
+    0.00 :   da147b:        movq    %rax, 0x248(%rsp)
+    0.00 :   da1483:        movq    %rbp, %rax
+    0.00 :   da1486:        andq    $-0x7ffffffd, %rax
+    0.00 :   da148c:        movq    %rax, 0x318(%rsp)
+    0.00 :   da1494:        movq    %r11, 0x1f8(%rsp)
+    0.00 :   da149c:        andl    $0x1fffffff, %r11d
+    0.00 :   da14a3:        movq    %rbp, %rax
+    0.00 :   da14a6:        imulq   %r11, %rax
+    0.00 :   da14aa:        shlq    $0x5, %rax
+    0.00 :   da14ae:        addq    %rcx, %rax
+    0.00 :   da14b1:        movq    %rax, 0x2a8(%rsp)
+    0.00 :   da14b9:        shlq    $0x5, %r11
+    0.00 :   da14bd:        addq    %rdx, %r11
+    0.00 :   da14c0:        movq    %r11, 0x380(%rsp)
+    0.00 :   da14c8:        movq    0xb8(%rsp), %r11
+    0.00 :   da14d0:        movq    0x200(%rsp), %rax
+    0.00 :   da14d8:        decq    %rax
+    0.00 :   da14db:        movq    %rax, 0x308(%rsp)
+    0.00 :   da14e3:        leaq    (,%rbx,8), %rax
+    0.00 :   da14eb:        movq    %rax, 0x158(%rsp)
+    0.00 :   da14f3:        movq    0x4e0(%rsp), %rax
+    0.00 :   da14fb:        movl    (%rax), %eax
+    0.00 :   da14fd:        leaq    -0x1(%rbp), %r12
+    0.00 :   da1501:        movq    %r10, 0x368(%rsp)
+    0.00 :   da1509:        leaq    -0x1(%r10), %rcx
+    0.00 :   da150d:        movq    %rcx, 0x408(%rsp)
+    0.00 :   da1515:        movq    0xe8(%rsp), %rbx
+    0.00 :   da151d:        leaq    0x4(%rbx), %rcx
+    0.00 :   da1521:        movq    %rcx, 0x3d8(%rsp)
+    0.00 :   da1529:        movq    0x120(%rsp), %r10
+    0.00 :   da1531:        leaq    0x8(%r10), %rcx
+    0.00 :   da1535:        movq    %rcx, 0x3d0(%rsp)
+    0.00 :   da153d:        leaq    0xc(%rbx), %rcx
+    0.00 :   da1541:        movq    %rcx, 0x3b8(%rsp)
+    0.00 :   da1549:        leaq    0x18(%r10), %rcx
+    0.00 :   da154d:        movq    %rcx, 0x3b0(%rsp)
+    0.00 :   da1555:        leaq    -0x4(%rbx), %rcx
+    0.00 :   da1559:        movq    %rcx, 0x1c0(%rsp)
+    0.00 :   da1561:        leaq    -0x8(%r10), %rcx
+    0.00 :   da1565:        movq    %rcx, 0x1b8(%rsp)
+    0.00 :   da156d:        leaq    -0x8(%r8), %rcx
+    0.00 :   da1571:        movq    %rcx, 0x370(%rsp)
+    0.00 :   da1579:        leaq    -0x8(%rbx), %rcx
+    0.00 :   da157d:        movq    %rcx, 0x278(%rsp)
+    0.00 :   da1585:        leaq    (,%rbp,8), %r15
+    0.00 :   da158d:        leaq    0x38(%rdx), %rcx
+    0.00 :   da1591:        movq    %rcx, 0x390(%rsp)
+    0.00 :   da1599:        leaq    0x38(%rdi), %rcx
+    0.00 :   da159d:        movq    %rcx, 0x360(%rsp)
+    0.00 :   da15a5:        movq    0x238(%rsp), %rcx
+    0.00 :   da15ad:        leaq    -0x8(%rcx), %rcx
+    0.00 :   da15b1:        movq    %rcx, 0x358(%rsp)
+    0.00 :   da15b9:        leaq    0x18(%rdx), %rcx
+    0.00 :   da15bd:        movq    %rcx, 0x378(%rsp)
+    0.00 :   da15c5:        leaq    -0x4(%r11), %rcx
+    0.00 :   da15c9:        movq    %rcx, 0x160(%rsp)
+    0.00 :   da15d1:        leaq    -0x8(%rdx), %rcx
+    0.00 :   da15d5:        movq    %rcx, 0x118(%rsp)
+    0.00 :   da15dd:        leaq    -0x8(%rdi), %rcx
+    0.00 :   da15e1:        movq    %rcx, 0x3c8(%rsp)
+    0.00 :   da15e9:        movq    0x208(%rsp), %rcx
+    0.00 :   da15f1:        addq    $-0x8, %rcx
+    0.00 :   da15f5:        movq    %rcx, 0x270(%rsp)
+    0.00 :   da15fd:        movb    $0x1, %cl
+    0.00 :   da15ff:        movl    $0x1, %r10d
+    0.00 :   da1605:        movq    %r10, 0x110(%rsp)
+    0.00 :   da160d:        movq    $0x0, 0x2f0(%rsp)
+    0.00 :   da1619:        movq    $0x0, 0xe0(%rsp)
+    0.00 :   da1625:        xorl    %r10d, %r10d
+    0.00 :   da1628:        movq    %rbp, 0x310(%rsp)
+    0.00 :   da1630:        movl    %r9d, 0xf8(%rsp)
+    0.00 :   da1638:        movdqa  %xmm1, 0x420(%rsp)
+    0.00 :   da1641:        movdqa  %xmm0, 0x410(%rsp)
+    0.00 :   da164a:        jmp     0xda1677 <mkl_pds_lp64_blkl_ll_real.extracted+0x7a7>
+    0.00 :   da164c:        nopl    (%rax)
+    0.00 :   da1650:        movq    %rbx, %r11
+    0.00 :   da1653:        movq    0x688(%rsp), %rcx
+    0.00 :   da165b:        cmpq    $0x2, %rcx
+    0.00 :   da165f:        sete    %cl
+    0.00 :   da1662:        movb    $0x1, %r10b
+    0.00 :   da1665:        testb   %cl, 0x25c(%rsp)
+    0.00 :   da166c:        movl    $0x0, %ecx
+    0.00 :   da1671:        je      0xda5013 <mkl_pds_lp64_blkl_ll_real.extracted+0x4143>
+    0.00 :   da1677:        movq    %r11, %rbx
+    0.00 :   da167a:        movl    %ecx, 0x25c(%rsp)
+    0.00 :   da1681:        movq    %r10, 0x1e0(%rsp)
+    0.00 :   da1689:        testb   $0x1, %r10b
+    0.00 :   da168d:        movl    $0x1, %edx
+    0.00 :   da1692:        cmovneq 0x1d0(%rsp), %rdx
+    0.00 :   da169b:        cmpq    $0x2, 0x688(%rsp)
+    0.00 :   da16a4:        movl    $0x1, %ecx
+    0.00 :   da16a9:        cmovneq %rcx, %rdx
+    0.00 :   da16ad:        movq    %rdx, 0x290(%rsp)
+    0.00 :   da16b5:        testl   %eax, %eax
+    0.00 :   da16b7:        je      0xda16e2 <mkl_pds_lp64_blkl_ll_real.extracted+0x812>
+    0.00 :   da16b9:        cmpl    $0x0, 0x130(%rsp)
+    0.00 :   da16c1:        jne     0xda16e2 <mkl_pds_lp64_blkl_ll_real.extracted+0x812>
+    0.00 :   da16c3:        cmpl    $0x0, 0x12c(%rsp)
+    0.00 :   da16cb:        je      0xda16e2 <mkl_pds_lp64_blkl_ll_real.extracted+0x812>
+    0.00 :   da16cd:        movq    0x4c0(%rsp), %rdi
+    0.00 :   da16d5:        movq    0x4d0(%rsp), %rsi
+    0.00 :   da16dd:        callq   0x696da0 <mkl_pds_lp64_prints_per_cent>
+    0.00 :   da16e2:        movl    (%r13), %esi
+    0.00 :   da16e6:        leaq    0x611fc13(%rip), %rdi  # 0x6ec1300
+    0.00 :   da16ed:        callq   0x400460 <_init+0x7c>
+    0.00 :   da16f2:        movq    0x350(%rsp), %rax
+    0.00 :   da16fa:        subq    0x290(%rsp), %rax
+    0.00 :   da1702:        jl      0xda17d5 <mkl_pds_lp64_blkl_ll_real.extracted+0x905>
+    0.00 :   da1708:        movl    $0x0, 0x44c(%rsp)
+    0.00 :   da1713:        movl    (%r13), %esi
+    0.00 :   da1717:        movq    $0x0, 0x440(%rsp)
+    0.00 :   da1723:        movq    %rax, 0x438(%rsp)
+    0.00 :   da172b:        movq    $0x1, 0x430(%rsp)
+    0.00 :   da1737:        subq    $0x8, %rsp
+    0.00 :   da173b:        leaq    0x611fcbe(%rip), %rdi  # 0x6ec1400
+    0.00 :   da1742:        movl    %esi, 0x260(%rsp)
+    0.00 :   da1749:        movl    $0x21, %edx
+    0.00 :   da174e:        leaq    0x454(%rsp), %rcx
+    0.00 :   da1756:        leaq    0x448(%rsp), %r8
+    0.00 :   da175e:        leaq    0x440(%rsp), %r9
+    0.00 :   da1766:        pushq   $0x1
+    0.00 :   da1768:        pushq   $0x1
+    0.00 :   da176a:        movq    %rax, 0x280(%rsp)
+    0.00 :   da1772:        leaq    0x448(%rsp), %rax
+    0.00 :   da177a:        pushq   %rax
+    0.00 :   da177b:        callq   0x400810 <_init+0x42c>
+    0.00 :   da1780:        movq    0x288(%rsp), %rax
+    0.00 :   da1788:        addq    $0x20, %rsp
+    0.00 :   da178c:        movq    0x438(%rsp), %rcx
+    0.00 :   da1794:        cmpq    %rax, %rcx
+    0.00 :   da1797:        cmovgeq %rax, %rcx
+    0.00 :   da179b:        movq    %rcx, 0x438(%rsp)
+    0.00 :   da17a3:        movq    0x440(%rsp), %rax
+    0.00 :   da17ab:        movq    %rcx, 0x298(%rsp)
+    0.00 :   da17b3:        cmpq    %rcx, %rax
+    0.00 :   da17b6:        jbe     0xda1880 <mkl_pds_lp64_blkl_ll_real.extracted+0x9b0>
+    0.00 :   da17bc:        movq    %rbx, %r11
+    0.00 :   da17bf:        movq    %r11, %rbx
+    0.00 :   da17c2:        leaq    0x611fc57(%rip), %rdi  # 0x6ec1420
+    0.00 :   da17c9:        movl    0x258(%rsp), %esi
+    0.00 :   da17d0:        callq   0x401040 <_init+0xc5c>
+    0.00 :   da17d5:        movl    (%r13), %esi
+    0.00 :   da17d9:        leaq    0x611fc60(%rip), %rdi  # 0x6ec1440
+    0.00 :   da17e0:        callq   0x400460 <_init+0x7c>
+    0.00 :   da17e5:        movq    0x4e0(%rsp), %rax
+    0.00 :   da17ed:        movl    (%rax), %eax
+    0.00 :   da17ef:        testl   %eax, %eax
+    0.00 :   da17f1:        je      0xda1650 <mkl_pds_lp64_blkl_ll_real.extracted+0x780>
+    0.00 :   da17f7:        cmpl    $0x0, 0x130(%rsp)
+    0.00 :   da17ff:        movq    %rbx, %r11
+    0.00 :   da1802:        jne     0xda1653 <mkl_pds_lp64_blkl_ll_real.extracted+0x783>
+    0.00 :   da1808:        movq    0x4d0(%rsp), %rax
+    0.00 :   da1810:        cmpl    $0x63, (%rax)
+    0.00 :   da1813:        jg      0xda1860 <mkl_pds_lp64_blkl_ll_real.extracted+0x990>
+    0.00 :   da1815:        movq    0x608(%rsp), %rax
+    0.00 :   da181d:        cmpl    $0x0, (%rax)
+    0.00 :   da1820:        jne     0xda1860 <mkl_pds_lp64_blkl_ll_real.extracted+0x990>
+    0.00 :   da1822:        cmpl    $0x0, 0x12c(%rsp)
+    0.00 :   da182a:        je      0xda1860 <mkl_pds_lp64_blkl_ll_real.extracted+0x990>
+    0.00 :   da182c:        movq    0x4c8(%rsp), %rdi
+    0.00 :   da1834:        movq    0x348(%rsp), %rsi
+    0.00 :   da183c:        callq   0x696da0 <mkl_pds_lp64_prints_per_cent>
+    0.00 :   da1841:        movq    %rbx, %r11
+    0.00 :   da1844:        movq    0x4e0(%rsp), %rax
+    0.00 :   da184c:        cmpl    $0x0, (%rax)
+    0.00 :   da184f:        je      0xda186e <mkl_pds_lp64_blkl_ll_real.extracted+0x99e>
+    0.00 :   da1851:        nopw    %cs:(%rax,%rax)
+    0.00 :   da1860:        movq    0x4e0(%rsp), %rax
+    0.00 :   da1868:        movl    $0x0, (%rax)
+    0.00 :   da186e:        xorl    %eax, %eax
+    0.00 :   da1870:        jmp     0xda1653 <mkl_pds_lp64_blkl_ll_real.extracted+0x783>
+    0.00 :   da1875:        nopw    %cs:(%rax,%rax)
+    0.00 :   da1880:        movq    %rax, %rcx
+    0.00 :   da1883:        cmpq    $0x0, 0x688(%rsp)
+    0.00 :   da188c:        sete    %al
+    0.00 :   da188f:        orb     0x1e0(%rsp), %al
+    0.00 :   da1896:        movb    %al, 0x9f(%rsp)
+    0.00 :   da189d:        movq    %rbx, %r11
+    0.00 :   da18a0:        jmp     0xda18ce <mkl_pds_lp64_blkl_ll_real.extracted+0x9fe>
+    0.00 :   da18a2:        nopw    %cs:(%rax,%rax)
+    0.00 :   da18b0:        movq    0xf0(%rsp), %rax
+    0.00 :   da18b8:        incl    -0x4(%rax,%rbx,4)
+    0.00 :   da18bc:        cmpq    0x298(%rsp), %rcx
+    0.00 :   da18c4:        leaq    0x1(%rcx), %rcx
+    0.00 :   da18c8:        jae     0xda44aa <mkl_pds_lp64_blkl_ll_real.extracted+0x35da>
+    0.00 :   da18ce:        movq    %r11, %r13
+    0.16 :   da18d1:        movq    0x290(%rsp), %rax
+    0.00 :   da18d9:        movq    %rcx, 0x170(%rsp)
+    0.00 :   da18e1:        leaq    (%rcx,%rax), %rbx
+    0.00 :   da18e5:        leaq    0x611fa74(%rip), %rdi  # 0x6ec1360
+    0.00 :   da18ec:        callq   0x400490 <_init+0xac>
+    0.14 :   da18f1:        cmpl    $0x2, 0x1b4(%rsp)
+    0.00 :   da18f9:        jl      0xda190e <mkl_pds_lp64_blkl_ll_real.extracted+0xa3e>
+    0.00 :   da18fb:        movq    0x3e8(%rsp), %rax
+    0.00 :   da1903:        movl    -0x4(%rax,%rbx,4), %eax
+    0.00 :   da1907:        movl    %eax, %ebx
+    0.00 :   da1909:        negl    %ebx
+    0.00 :   da190b:        cmovsl  %eax, %ebx
+    0.16 :   da190e:        movq    0x608(%rsp), %rax
+    0.00 :   da1916:        movq    %r13, %r11
+    0.00 :   da1919:        cmpl    $0x0, (%rax)
+    0.95 :   da191c:        movq    0x170(%rsp), %rcx
+    0.00 :   da1924:        movq    0x140(%rsp), %r13
+    0.00 :   da192c:        jne     0xda18b0 <mkl_pds_lp64_blkl_ll_real.extracted+0x9e0>
+    0.96 :   da192e:        movq    0x198(%rsp), %rax
+    0.00 :   da1936:        movslq  -0x4(%rax,%rbx,4), %rcx
+    0.47 :   da193b:        cmpq    $0x1, 0x698(%rsp)
+    0.00 :   da1944:        jne     0xda195b <mkl_pds_lp64_blkl_ll_real.extracted+0xa8b>
+    0.00 :   da1946:        movq    0x188(%rsp), %rax
+    0.00 :   da194e:        movq    -0x8(%rax,%rcx,8), %rax
+    0.00 :   da1953:        movq    %rax, 0x110(%rsp)
+    0.16 :   da195b:        movq    0x198(%rsp), %rax
+    0.00 :   da1963:        movslq  (%rax,%rbx,4), %rdx
+    0.64 :   da1967:        movq    %rdx, 0x50(%rsp)
+    0.00 :   da196c:        leal    -0x1(%rdx), %eax
+    0.00 :   da196f:        movl    %eax, 0x18(%rsp)
+    0.00 :   da1973:        movslq  %eax, %rdx
+    0.15 :   da1976:        movq    %rdx, %rax
+    0.00 :   da1979:        movq    %rdx, 0x178(%rsp)
+    0.00 :   da1981:        subq    %rcx, %rax
+    0.32 :   da1984:        incq    %rax
+    0.32 :   da1987:        movq    %rax, 0x8(%rsp)
+    0.00 :   da198c:        imulq   %rbp, %rax
+    0.00 :   da1990:        movq    %rax, 0x58(%rsp)
+    0.32 :   da1995:        movq    0x100(%rsp), %rax
+    0.00 :   da199d:        movq    %rcx, %rdx
+    0.00 :   da19a0:        movq    -0x8(%rax,%rcx,8), %rcx
+    0.00 :   da19a5:        movq    (%rax,%rdx,8), %rdi
+    0.00 :   da19a9:        movq    %rdx, 0x28(%rsp)
+    0.00 :   da19ae:        leaq    -0x1(%rdx), %rax
+    0.00 :   da19b2:        movq    %rax, 0x1c8(%rsp)
+    0.00 :   da19ba:        movq    %rdi, 0x138(%rsp)
+    0.48 :   da19c2:        movq    %rcx, 0xa0(%rsp)
+    0.00 :   da19ca:        subq    %rcx, %rdi
+    0.00 :   da19cd:        movq    0x2e8(%rsp), %rax
+    0.00 :   da19d5:        movq    -0x8(%rax,%rbx,8), %rax
+    0.00 :   da19da:        movq    %rax, 0x210(%rsp)
+    0.00 :   da19e2:        leaq    (%r11,%rax,4), %rsi
+    0.00 :   da19e6:        addq    $-0x4, %rsi
+    0.16 :   da19ea:        movq    %rdi, 0xc8(%rsp)
+    0.47 :   da19f2:        movq    0x2e0(%rsp), %rdx
+    0.00 :   da19fa:        callq   0x1a9fe50 <mkl_pds_lp64_ldindx_pardiso_mic>
+    1.44 :   da19ff:        movq    0x3e0(%rsp), %rax
+    0.00 :   da1a07:        movq    %rbx, 0x1e8(%rsp)
+    0.00 :   da1a0f:        movl    -0x4(%rax,%rbx,4), %eax
+    0.00 :   da1a13:        movl    %eax, 0x260(%rsp)
+    0.00 :   da1a1a:        cmpq    $0x0, 0xa8(%rsp)
+    0.00 :   da1a23:        je      0xda1ff6 <mkl_pds_lp64_blkl_ll_real.extracted+0x1126>
+    0.00 :   da1a29:        cmpq    $0x1, 0x680(%rsp)
+    0.15 :   da1a32:        jne     0xda1fe0 <mkl_pds_lp64_blkl_ll_real.extracted+0x1110>
+    0.00 :   da1a38:        movq    0x28(%rsp), %rax
+    0.00 :   da1a3d:        decl    %eax
+    0.00 :   da1a3f:        movslq  %eax, %rcx
+    0.00 :   da1a42:        movq    %rcx, 0x30(%rsp)
+    0.00 :   da1a47:        cmpq    $0x0, 0x698(%rsp)
+    0.00 :   da1a50:        je      0xda1d46 <mkl_pds_lp64_blkl_ll_real.extracted+0xe76>
+    0.00 :   da1a56:        cmpl    %eax, 0x18(%rsp)
+    0.00 :   da1a5a:        jle     0xda1fe0 <mkl_pds_lp64_blkl_ll_real.extracted+0x1110>
+    0.00 :   da1a60:        movq    0xa8(%rsp), %rax
+    0.00 :   da1a68:        movq    0x30(%rsp), %rcx
+    0.00 :   da1a6d:        movl    (%rax,%rcx,4), %edi
+    0.00 :   da1a70:        movq    %rcx, %rsi
+    0.00 :   da1a73:        notq    %rsi
+    0.00 :   da1a76:        addq    0x178(%rsp), %rsi
+    0.00 :   da1a7e:        leaq    0x1(%rcx), %r8
+    0.00 :   da1a82:        movq    0x28(%rsp), %rax
+    0.00 :   da1a87:        negq    %rax
+    0.00 :   da1a8a:        addq    %rax, %rcx
+    0.00 :   da1a8d:        incq    %rcx
+    0.00 :   da1a90:        imulq   0x58(%rsp), %rcx
+    0.00 :   da1a96:        movq    0x8(%rsp), %rax
+    0.00 :   da1a9b:        imulq   %rax, %rax
+    0.00 :   da1a9f:        imulq   0x368(%rsp), %rax
+    0.00 :   da1aa8:        movq    %rax, 0x8(%rsp)
+    0.00 :   da1aad:        movq    0x1a0(%rsp), %rax
+    0.00 :   da1ab5:        movq    %rcx, 0x18(%rsp)
+    0.00 :   da1aba:        addq    %rcx, %rax
+    0.00 :   da1abd:        movq    %rax, 0x20(%rsp)
+    0.00 :   da1ac2:        xorl    %r9d, %r9d
+    0.00 :   da1ac5:        movq    %rsi, 0x48(%rsp)
+    0.00 :   da1aca:        movq    %r8, 0xb0(%rsp)
+    0.00 :   da1ad2:        jmp     0xda1b2d <mkl_pds_lp64_blkl_ll_real.extracted+0xc5d>
+    0.00 :   da1ad4:        addq    %rcx, %rbx
+    0.00 :   da1ad7:        addq    0x8(%rsp), %rbx
+    0.00 :   da1adc:        movq    0x20(%rsp), %rax
+    0.00 :   da1ae1:        subq    %rbx, %rax
+    0.00 :   da1ae4:        movq    0xe8(%rsp), %rcx
+    0.00 :   da1aec:        movslq  (%rcx,%r10,4), %rcx
+    0.00 :   da1af0:        movq    0x88(%rsp), %rdx
+    0.00 :   da1af8:        movq    -0x8(%rdx,%rcx,8), %xmm0
+    0.00 :   da1afe:        movq    0x58(%rsp), %rcx
+    0.00 :   da1b03:        imulq   %r9, %rcx
+    0.00 :   da1b07:        addq    %rax, %rcx
+    0.00 :   da1b0a:        movq    0x1a8(%rsp), %rax
+    0.00 :   da1b12:        movq    %xmm0, (%rax,%rcx,8)
+    0.00 :   da1b17:        nopw    (%rax,%rax)
+    0.00 :   da1b20:        cmpq    %rsi, %r9
+    0.00 :   da1b23:        leaq    0x1(%r9), %r9
+    0.00 :   da1b27:        je      0xda1fe0 <mkl_pds_lp64_blkl_ll_real.extracted+0x1110>
+    0.00 :   da1b2d:        movl    %edi, %edx
+    0.00 :   da1b2f:        leaq    (%r8,%r9), %rcx
+    0.00 :   da1b33:        movq    0xa8(%rsp), %rax
+    0.00 :   da1b3b:        movl    (%rax,%rcx,4), %edi
+    0.00 :   da1b3e:        cmpl    %edi, %edx
+    0.00 :   da1b40:        jge     0xda1b20 <mkl_pds_lp64_blkl_ll_real.extracted+0xc50>
+    0.00 :   da1b42:        movq    %rcx, 0x40(%rsp)
+    0.00 :   da1b47:        movq    0x30(%rsp), %rax
+    0.00 :   da1b4c:        addq    %r9, %rax
+    0.00 :   da1b4f:        movq    0x100(%rsp), %rcx
+    0.00 :   da1b57:        movq    (%rcx,%rax,8), %rbx
+    0.00 :   da1b5b:        movq    %rdx, 0x80(%rsp)
+    0.00 :   da1b63:        notl    %edx
+    0.00 :   da1b65:        movl    %edi, 0x78(%rsp)
+    0.00 :   da1b69:        addl    %edi, %edx
+    0.00 :   da1b6b:        movq    %rdx, 0xd8(%rsp)
+    0.00 :   da1b73:        leaq    0x1(%rdx), %r10
+    0.00 :   da1b77:        shrq    %r10
+    0.00 :   da1b7a:        je      0xda1cb0 <mkl_pds_lp64_blkl_ll_real.extracted+0xde0>
+    0.00 :   da1b80:        movq    0x80(%rsp), %rax
+    0.00 :   da1b88:        decl    %eax
+    0.00 :   da1b8a:        cltq
+    0.00 :   da1b8c:        movq    0x40(%rsp), %rsi
+    0.00 :   da1b91:        subq    0x28(%rsp), %rsi
+    0.00 :   da1b96:        movq    0x58(%rsp), %r8
+    0.00 :   da1b9b:        imulq   %r9, %r8
+    0.00 :   da1b9f:        movq    0x8(%rsp), %rcx
+    0.00 :   da1ba4:        addq    %rbx, %rcx
+    0.00 :   da1ba7:        movq    %rcx, 0x10(%rsp)
+    0.00 :   da1bac:        movq    0x3d8(%rsp), %rcx
+    0.00 :   da1bb4:        leaq    (%rcx,%rax,4), %rdx
+    0.00 :   da1bb8:        movq    0x3d0(%rsp), %rcx
+    0.00 :   da1bc0:        leaq    (%rcx,%rax,8), %rcx
+    0.00 :   da1bc4:        shlq    $0x3, %r10
+    0.00 :   da1bc8:        xorl    %eax, %eax
+    0.00 :   da1bca:        jmp     0xda1c0a <mkl_pds_lp64_blkl_ll_real.extracted+0xd3a>
+    0.00 :   da1bcc:        addq    0x10(%rsp), %r13
+    0.00 :   da1bd1:        movq    0x20(%rsp), %rdi
+    0.00 :   da1bd6:        subq    %r13, %rdi
+    0.00 :   da1bd9:        movslq  (%rdx,%rax), %r11
+    0.00 :   da1bdd:        movq    0x88(%rsp), %r13
+    0.00 :   da1be5:        movq    -0x8(%r13,%r11,8), %xmm0
+    0.00 :   da1bec:        addq    %r8, %rdi
+    0.00 :   da1bef:        movq    0x1a8(%rsp), %r11
+    0.00 :   da1bf7:        movq    %xmm0, (%r11,%rdi,8)
+    0.00 :   da1bfd:        addq    $0x8, %rax
+    0.00 :   da1c01:        cmpq    %rax, %r10
+    0.00 :   da1c04:        je      0xda1cb0 <mkl_pds_lp64_blkl_ll_real.extracted+0xde0>
+    0.00 :   da1c0a:        movq    -0x8(%rcx,%rax,2), %r13
+    0.00 :   da1c0f:        movq    %r13, %rdi
+    0.00 :   da1c12:        subq    %rbx, %rdi
+    0.00 :   da1c15:        cmpq    %rsi, %rdi
+    0.00 :   da1c18:        je      0xda1c25 <mkl_pds_lp64_blkl_ll_real.extracted+0xd55>
+    0.00 :   da1c1a:        movq    %rbx, %r11
+    0.00 :   da1c1d:        subq    %r13, %r11
+    0.00 :   da1c20:        cmpq    %rsi, %r11
+    0.00 :   da1c23:        jne     0xda1c70 <mkl_pds_lp64_blkl_ll_real.extracted+0xda0>
+    0.00 :   da1c25:        testq   %r13, %r13
+    0.00 :   da1c28:        jle     0xda1c3e <mkl_pds_lp64_blkl_ll_real.extracted+0xd6e>
+    0.00 :   da1c2a:        addq    0x18(%rsp), %rdi
+    0.00 :   da1c2f:        subq    0x8(%rsp), %rdi
+    0.00 :   da1c34:        addq    0x1a0(%rsp), %rdi
+    0.00 :   da1c3c:        jmp     0xda1c4b <mkl_pds_lp64_blkl_ll_real.extracted+0xd7b>
+    0.00 :   da1c3e:        addq    0x10(%rsp), %r13
+    0.00 :   da1c43:        movq    0x20(%rsp), %rdi
+    0.00 :   da1c48:        subq    %r13, %rdi
+    0.00 :   da1c4b:        movslq  -0x4(%rdx,%rax), %r11
+    0.00 :   da1c50:        movq    0x88(%rsp), %r13
+    0.00 :   da1c58:        movq    -0x8(%r13,%r11,8), %xmm0
+    0.00 :   da1c5f:        addq    %r8, %rdi
+    0.00 :   da1c62:        movq    0x1a8(%rsp), %r11
+    0.00 :   da1c6a:        movq    %xmm0, (%r11,%rdi,8)
+    0.00 :   da1c70:        movq    (%rcx,%rax,2), %r13
+    0.00 :   da1c74:        movq    %r13, %rdi
+    0.00 :   da1c77:        subq    %rbx, %rdi
+    0.00 :   da1c7a:        cmpq    %rsi, %rdi
+    0.00 :   da1c7d:        je      0xda1c8e <mkl_pds_lp64_blkl_ll_real.extracted+0xdbe>
+    0.00 :   da1c7f:        movq    %rbx, %r11
+    0.00 :   da1c82:        subq    %r13, %r11
+    0.00 :   da1c85:        cmpq    %rsi, %r11
+    0.00 :   da1c88:        jne     0xda1bfd <mkl_pds_lp64_blkl_ll_real.extracted+0xd2d>
+    0.00 :   da1c8e:        testq   %r13, %r13
+    0.00 :   da1c91:        jle     0xda1bcc <mkl_pds_lp64_blkl_ll_real.extracted+0xcfc>
+    0.00 :   da1c97:        addq    0x18(%rsp), %rdi
+    0.00 :   da1c9c:        subq    0x8(%rsp), %rdi
+    0.00 :   da1ca1:        addq    0x1a0(%rsp), %rdi
+    0.00 :   da1ca9:        jmp     0xda1bd9 <mkl_pds_lp64_blkl_ll_real.extracted+0xd09>
+    0.00 :   da1cae:        nop
+    0.00 :   da1cb0:        movabsq $0x1fffffffc, %rax
+    0.00 :   da1cba:        addq    $0x2, %rax
+    0.00 :   da1cbe:        movq    0xd8(%rsp), %rcx
+    0.00 :   da1cc6:        leaq    0x1(%rcx), %r10
+    0.00 :   da1cca:        andq    %rax, %r10
+    0.00 :   da1ccd:        cmpq    %rcx, %r10
+    0.00 :   da1cd0:        movq    0x48(%rsp), %rsi
+    0.00 :   da1cd5:        movl    0x78(%rsp), %edi
+    0.00 :   da1cd9:        movq    0xb0(%rsp), %r8
+    0.00 :   da1ce1:        movq    0x40(%rsp), %r11
+    0.00 :   da1ce6:        movq    0x80(%rsp), %rax
+    0.00 :   da1cee:        ja      0xda1b20 <mkl_pds_lp64_blkl_ll_real.extracted+0xc50>
+    0.00 :   da1cf4:        decl    %eax
+    0.00 :   da1cf6:        cltq
+    0.00 :   da1cf8:        addq    %rax, %r10
+    0.00 :   da1cfb:        movq    0x120(%rsp), %rax
+    0.00 :   da1d03:        movq    (%rax,%r10,8), %rcx
+    0.00 :   da1d07:        subq    0x28(%rsp), %r11
+    0.00 :   da1d0c:        movq    %rcx, %rax
+    0.00 :   da1d0f:        subq    %rbx, %rax
+    0.00 :   da1d12:        cmpq    %r11, %rax
+    0.00 :   da1d15:        je      0xda1d26 <mkl_pds_lp64_blkl_ll_real.extracted+0xe56>
+    0.00 :   da1d17:        movq    %rbx, %rdx
+    0.00 :   da1d1a:        subq    %rcx, %rdx
+    0.00 :   da1d1d:        cmpq    %r11, %rdx
+    0.00 :   da1d20:        jne     0xda1b20 <mkl_pds_lp64_blkl_ll_real.extracted+0xc50>
+    0.00 :   da1d26:        testq   %rcx, %rcx
+    0.00 :   da1d29:        jle     0xda1ad4 <mkl_pds_lp64_blkl_ll_real.extracted+0xc04>
+    0.00 :   da1d2f:        addq    0x18(%rsp), %rax
+    0.00 :   da1d34:        subq    0x8(%rsp), %rax
+    0.00 :   da1d39:        addq    0x1a0(%rsp), %rax
+    0.00 :   da1d41:        jmp     0xda1ae4 <mkl_pds_lp64_blkl_ll_real.extracted+0xc14>
+    0.00 :   da1d46:        cmpl    %eax, 0x18(%rsp)
+    0.00 :   da1d4a:        jle     0xda1fe0 <mkl_pds_lp64_blkl_ll_real.extracted+0x1110>
+    0.00 :   da1d50:        movq    0xa8(%rsp), %rax
+    0.00 :   da1d58:        movq    0x30(%rsp), %r13
+    0.00 :   da1d5d:        movl    (%rax,%r13,4), %eax
+    0.00 :   da1d61:        movl    %eax, 0x8(%rsp)
+    0.00 :   da1d65:        notq    %r13
+    0.00 :   da1d68:        addq    0x178(%rsp), %r13
+    0.00 :   da1d70:        xorl    %ecx, %ecx
+    0.00 :   da1d72:        movq    %r13, 0x40(%rsp)
+    0.00 :   da1d77:        jmp     0xda1d92 <mkl_pds_lp64_blkl_ll_real.extracted+0xec2>
+    0.00 :   da1d79:        nopl    (%rax)
+    0.00 :   da1d80:        movq    0x18(%rsp), %rax
+    0.00 :   da1d85:        cmpq    %r13, %rax
+    0.00 :   da1d88:        leaq    0x1(%rax), %rcx
+    0.00 :   da1d8c:        je      0xda1fe0 <mkl_pds_lp64_blkl_ll_real.extracted+0x1110>
+    0.00 :   da1d92:        movl    0x8(%rsp), %eax
+    0.00 :   da1d96:        movl    %eax, %edx
+    0.00 :   da1d98:        movq    0x30(%rsp), %rax
+    0.00 :   da1d9d:        movq    %rcx, 0x18(%rsp)
+    0.00 :   da1da2:        leaq    (%rcx,%rax), %rdi
+    0.00 :   da1da6:        movq    0xa8(%rsp), %rax
+    0.00 :   da1dae:        movl    0x4(%rax,%rdi,4), %eax
+    0.00 :   da1db2:        movl    %eax, 0x8(%rsp)
+    0.00 :   da1db6:        cmpl    %eax, %edx
+    0.00 :   da1db8:        jge     0xda1d80 <mkl_pds_lp64_blkl_ll_real.extracted+0xeb0>
+    0.00 :   da1dba:        movq    0x30(%rsp), %rax
+    0.00 :   da1dbf:        movq    0x18(%rsp), %rcx
+    0.00 :   da1dc4:        addq    %rax, %rcx
+    0.00 :   da1dc7:        incq    %rcx
+    0.00 :   da1dca:        movq    0x100(%rsp), %rax
+    0.00 :   da1dd2:        movq    (%rax,%rdi,8), %r9
+    0.00 :   da1dd6:        movq    %rdx, 0x10(%rsp)
+    0.00 :   da1ddb:        notl    %edx
+    0.00 :   da1ddd:        addl    0x8(%rsp), %edx
+    0.00 :   da1de1:        movq    %rdx, 0x20(%rsp)
+    0.00 :   da1de6:        leaq    0x1(%rdx), %r10
+    0.00 :   da1dea:        movq    %r10, %rbx
+    0.00 :   da1ded:        shrq    $0x2, %rbx
+    0.00 :   da1df1:        je      0xda1f40 <mkl_pds_lp64_blkl_ll_real.extracted+0x1070>
+    0.00 :   da1df7:        movq    0x10(%rsp), %rax
+    0.00 :   da1dfc:        decl    %eax
+    0.00 :   da1dfe:        cltq
+    0.00 :   da1e00:        movq    %rcx, %r8
+    0.00 :   da1e03:        subq    0x28(%rsp), %r8
+    0.00 :   da1e08:        movq    0x3b8(%rsp), %rdx
+    0.00 :   da1e10:        leaq    (%rdx,%rax,4), %rdx
+    0.00 :   da1e14:        movq    0x3b0(%rsp), %rsi
+    0.00 :   da1e1c:        leaq    (%rsi,%rax,8), %rax
+    0.00 :   da1e20:        shlq    $0x4, %rbx
+    0.00 :   da1e24:        xorl    %r11d, %r11d
+    0.00 :   da1e27:        jmp     0xda1e5d <mkl_pds_lp64_blkl_ll_real.extracted+0xf8d>
+    0.00 :   da1e29:        nopl    (%rax)
+    0.00 :   da1e30:        movslq  (%rdx,%r11), %rsi
+    0.00 :   da1e34:        movq    0x88(%rsp), %r13
+    0.00 :   da1e3c:        movq    -0x8(%r13,%rsi,8), %xmm0
+    0.00 :   da1e43:        movq    0x150(%rsp), %rsi
+    0.00 :   da1e4b:        movq    %xmm0, (%rsi,%rdi,8)
+    0.00 :   da1e50:        addq    $0x10, %r11
+    0.00 :   da1e54:        cmpq    %r11, %rbx
+    0.00 :   da1e57:        je      0xda1f40 <mkl_pds_lp64_blkl_ll_real.extracted+0x1070>
+    0.00 :   da1e5d:        movq    -0x18(%rax,%r11,2), %rsi
+    0.00 :   da1e62:        movq    %rsi, %r13
+    0.00 :   da1e65:        subq    %r9, %r13
+    0.00 :   da1e68:        cmpq    %r8, %r13
+    0.00 :   da1e6b:        je      0xda1e78 <mkl_pds_lp64_blkl_ll_real.extracted+0xfa8>
+    0.00 :   da1e6d:        movq    %r9, %r13
+    0.00 :   da1e70:        subq    %rsi, %r13
+    0.00 :   da1e73:        cmpq    %r8, %r13
+    0.00 :   da1e76:        jne     0xda1e99 <mkl_pds_lp64_blkl_ll_real.extracted+0xfc9>
+    0.00 :   da1e78:        movslq  -0xc(%rdx,%r11), %rsi
+    0.00 :   da1e7d:        movq    0x88(%rsp), %r13
+    0.00 :   da1e85:        movq    -0x8(%r13,%rsi,8), %xmm0
+    0.00 :   da1e8c:        movq    0x150(%rsp), %rsi
+    0.00 :   da1e94:        movq    %xmm0, (%rsi,%rdi,8)
+    0.00 :   da1e99:        movq    -0x10(%rax,%r11,2), %r13
+    0.00 :   da1e9e:        movq    %r13, %rsi
+    0.00 :   da1ea1:        subq    %r9, %rsi
+    0.00 :   da1ea4:        cmpq    %r8, %rsi
+    0.00 :   da1ea7:        je      0xda1eb4 <mkl_pds_lp64_blkl_ll_real.extracted+0xfe4>
+    0.00 :   da1ea9:        movq    %r9, %rsi
+    0.00 :   da1eac:        subq    %r13, %rsi
+    0.00 :   da1eaf:        cmpq    %r8, %rsi
+    0.00 :   da1eb2:        jne     0xda1ed5 <mkl_pds_lp64_blkl_ll_real.extracted+0x1005>
+    0.00 :   da1eb4:        movslq  -0x8(%rdx,%r11), %rsi
+    0.00 :   da1eb9:        movq    0x88(%rsp), %r13
+    0.00 :   da1ec1:        movq    -0x8(%r13,%rsi,8), %xmm0
+    0.00 :   da1ec8:        movq    0x150(%rsp), %rsi
+    0.00 :   da1ed0:        movq    %xmm0, (%rsi,%rdi,8)
+    0.00 :   da1ed5:        movq    -0x8(%rax,%r11,2), %r13
+    0.00 :   da1eda:        movq    %r13, %rsi
+    0.00 :   da1edd:        subq    %r9, %rsi
+    0.00 :   da1ee0:        cmpq    %r8, %rsi
+    0.00 :   da1ee3:        je      0xda1ef0 <mkl_pds_lp64_blkl_ll_real.extracted+0x1020>
+    0.00 :   da1ee5:        movq    %r9, %rsi
+    0.00 :   da1ee8:        subq    %r13, %rsi
+    0.00 :   da1eeb:        cmpq    %r8, %rsi
+    0.00 :   da1eee:        jne     0xda1f11 <mkl_pds_lp64_blkl_ll_real.extracted+0x1041>
+    0.00 :   da1ef0:        movslq  -0x4(%rdx,%r11), %rsi
+    0.00 :   da1ef5:        movq    0x88(%rsp), %r13
+    0.00 :   da1efd:        movq    -0x8(%r13,%rsi,8), %xmm0
+    0.00 :   da1f04:        movq    0x150(%rsp), %rsi
+    0.00 :   da1f0c:        movq    %xmm0, (%rsi,%rdi,8)
+    0.00 :   da1f11:        movq    (%rax,%r11,2), %r13
+    0.00 :   da1f15:        movq    %r13, %rsi
+    0.00 :   da1f18:        subq    %r9, %rsi
+    0.00 :   da1f1b:        cmpq    %r8, %rsi
+    0.00 :   da1f1e:        je      0xda1e30 <mkl_pds_lp64_blkl_ll_real.extracted+0xf60>
+    0.00 :   da1f24:        movq    %r9, %rsi
+    0.00 :   da1f27:        subq    %r13, %rsi
+    0.00 :   da1f2a:        cmpq    %r8, %rsi
+    0.00 :   da1f2d:        jne     0xda1e50 <mkl_pds_lp64_blkl_ll_real.extracted+0xf80>
+    0.00 :   da1f33:        jmp     0xda1e30 <mkl_pds_lp64_blkl_ll_real.extracted+0xf60>
+    0.00 :   da1f38:        nopl    (%rax,%rax)
+    0.00 :   da1f40:        movq    %r10, %rax
+    0.00 :   da1f43:        movabsq $0x1fffffffc, %rdx
+    0.00 :   da1f4d:        andq    %rdx, %rax
+    0.00 :   da1f50:        cmpq    0x20(%rsp), %rax
+    0.00 :   da1f55:        movq    0x88(%rsp), %rbx
+    0.00 :   da1f5d:        movq    0x40(%rsp), %r13
+    0.00 :   da1f62:        movq    0x10(%rsp), %rdx
+    0.00 :   da1f67:        ja      0xda1d80 <mkl_pds_lp64_blkl_ll_real.extracted+0xeb0>
+    0.00 :   da1f6d:        decl    %edx
+    0.00 :   da1f6f:        movslq  %edx, %rsi
+    0.00 :   da1f72:        subq    0x28(%rsp), %rcx
+    0.00 :   da1f77:        movq    0xe8(%rsp), %rdx
+    0.00 :   da1f7f:        leaq    (%rdx,%rsi,4), %rdx
+    0.00 :   da1f83:        movq    0x120(%rsp), %r8
+    0.00 :   da1f8b:        leaq    (%r8,%rsi,8), %r8
+    0.00 :   da1f8f:        jmp     0xda1fc3 <mkl_pds_lp64_blkl_ll_real.extracted+0x10f3>
+    0.00 :   da1f91:        nopw    %cs:(%rax,%rax)
+    0.00 :   da1fa0:        movslq  (%rdx,%rax,4), %rsi
+    0.00 :   da1fa4:        movq    -0x8(%rbx,%rsi,8), %xmm0
+    0.00 :   da1faa:        movq    0x150(%rsp), %rsi
+    0.00 :   da1fb2:        movq    %xmm0, (%rsi,%rdi,8)
+    0.00 :   da1fb7:        incq    %rax
+    0.00 :   da1fba:        cmpq    %rax, %r10
+    0.00 :   da1fbd:        je      0xda1d80 <mkl_pds_lp64_blkl_ll_real.extracted+0xeb0>
+    0.00 :   da1fc3:        movq    (%r8,%rax,8), %r11
+    0.00 :   da1fc7:        movq    %r11, %rsi
+    0.00 :   da1fca:        subq    %r9, %rsi
+    0.00 :   da1fcd:        cmpq    %rcx, %rsi
+    0.00 :   da1fd0:        je      0xda1fa0 <mkl_pds_lp64_blkl_ll_real.extracted+0x10d0>
+    0.00 :   da1fd2:        movq    %r9, %rsi
+    0.00 :   da1fd5:        subq    %r11, %rsi
+    0.00 :   da1fd8:        cmpq    %rcx, %rsi
+    0.00 :   da1fdb:        jne     0xda1fb7 <mkl_pds_lp64_blkl_ll_real.extracted+0x10e7>
+    0.00 :   da1fdd:        jmp     0xda1fa0 <mkl_pds_lp64_blkl_ll_real.extracted+0x10d0>
+    0.00 :   da1fdf:        nop
+    0.00 :   da1fe0:        testb   $0x1, 0x1e0(%rsp)
+    0.00 :   da1fe8:        movq    0x88(%rsp), %rbx
+    0.00 :   da1ff0:        je      0xda2b35 <mkl_pds_lp64_blkl_ll_real.extracted+0x1c65>
+    0.00 :   da1ff6:        cmpl    $0x0, 0x260(%rsp)
+    0.32 :   da1ffe:        je      0xda26c9 <mkl_pds_lp64_blkl_ll_real.extracted+0x17f9>
+    0.00 :   da2004:        movq    0x2d8(%rsp), %rax
+    0.00 :   da200c:        movq    0x1e8(%rsp), %rcx
+    0.00 :   da2014:        movq    -0x8(%rax,%rcx,8), %rbx
+    0.31 :   da2019:        movq    (%rax,%rcx,8), %rax
+    0.16 :   da201d:        cmpq    %rax, %rbx
+    0.16 :   da2020:        movq    0x60(%rsp), %r8
+    0.00 :   da2025:        movq    0x1d8(%rsp), %rdi
+    0.00 :   da202d:        movq    0xc0(%rsp), %rsi
+    0.00 :   da2035:        movq    0x1d0(%rsp), %r9
+    0.14 :   da203d:        movq    0x688(%rsp), %r10
+    0.00 :   da2045:        movq    0x1e0(%rsp), %r11
+    0.00 :   da204d:        jge     0xda26d9 <mkl_pds_lp64_blkl_ll_real.extracted+0x1809>
+    0.00 :   da2053:        movq    0xa0(%rsp), %rcx
+    0.00 :   da205b:        decq    %rcx
+    0.00 :   da205e:        movq    0x90(%rsp), %rdx
+    0.16 :   da2066:        imulq   %rdx, %rcx
+    0.00 :   da206a:        leaq    (%r8,%rcx,8), %rcx
+    0.00 :   da206e:        movq    %rcx, 0x78(%rsp)
+    0.00 :   da2073:        movq    0x110(%rsp), %rcx
+    0.00 :   da207b:        decq    %rcx
+    0.00 :   da207e:        imulq   %rdx, %rcx
+    0.00 :   da2082:        leaq    (%rsi,%rcx,8), %rcx
+    0.00 :   da2086:        movq    %rcx, 0xd8(%rsp)
+    0.00 :   da208e:        movq    0xe0(%rsp), %rdx
+    0.00 :   da2096:        jmp     0xda2204 <mkl_pds_lp64_blkl_ll_real.extracted+0x1334>
+    0.00 :   da209b:        nopl    (%rax,%rax)
+    0.00 :   da20a0:        movq    0xb8(%rsp), %rdx
+    0.00 :   da20a8:        movq    0x10(%rsp), %rax
+    0.00 :   da20ad:        leaq    (%rdx,%rax,4), %r10
+    0.16 :   da20b1:        addq    $-0x4, %r10
+    0.00 :   da20b5:        movq    0x60(%rsp), %rax
+    0.00 :   da20ba:        leaq    (%rax,%rsi,8), %r11
+    0.80 :   da20be:        imulq   %rbp, %rcx
+    0.30 :   da20c2:        movq    0x2b8(%rsp), %rdx
+    0.16 :   da20ca:        leaq    (%rdx,%rcx,4), %rbx
+    0.00 :   da20ce:        movq    0x2f0(%rsp), %rcx
+    0.30 :   da20d6:        movq    0xc0(%rsp), %rax
+    0.16 :   da20de:        leaq    (%rax,%rcx,8), %rax
+    0.00 :   da20e2:        movq    0x2c0(%rsp), %rdi
+    0.16 :   da20ea:        movq    0x2c8(%rsp), %rsi
+    0.00 :   da20f2:        movl    $0x1, %edx
+    0.16 :   da20f7:        xorl    %ecx, %ecx
+    0.00 :   da20f9:        movl    0x264(%rsp), %r8d
+    0.31 :   da2101:        movq    %r13, %r9
+    0.00 :   da2104:        pushq   $0x0
+    0.16 :   da2106:        movq    0xe8(%rsp), %r13
+    0.14 :   da210e:        pushq   %r13
+    0.00 :   da2110:        pushq   0x28(%rsp)
+    0.96 :   da2114:        pushq   %rbp
+    0.00 :   da2115:        pushq   0x628(%rsp)
+    0.16 :   da211c:        pushq   0x2d8(%rsp)
+    0.16 :   da2123:        pushq   0xf0(%rsp)
+    0.64 :   da212a:        pushq   0x110(%rsp)
+    0.00 :   da2131:        pushq   %rax
+    0.32 :   da2132:        pushq   0x6e0(%rsp)
+    0.00 :   da2139:        pushq   0x6e0(%rsp)
+    0.16 :   da2140:        movl    0x6f8(%rsp), %eax
+    0.16 :   da2147:        pushq   %rax
+    0.00 :   da2148:        pushq   %rbx
+    0.31 :   da2149:        pushq   0x458(%rsp)
+    0.48 :   da2150:        pushq   0x290(%rsp)
+    1.27 :   da2157:        pushq   0xd8(%rsp)
+    0.16 :   da215e:        pushq   0xf8(%rsp)
+    0.14 :   da2165:        pushq   0xe8(%rsp)
+    0.16 :   da216c:        pushq   %r11
+    0.64 :   da216e:        pushq   0x2c0(%rsp)
+    0.00 :   da2175:        pushq   0x380(%rsp)
+    0.14 :   da217c:        pushq   %r10
+    0.16 :   da217e:        pushq   0x238(%rsp)
+    0.32 :   da2185:        pushq   0x1b8(%rsp)
+    0.81 :   da218c:        pushq   0xe0(%rsp)
+    0.16 :   da2193:        pushq   0x240(%rsp)
+    0.14 :   da219a:        pushq   0xf8(%rsp)
+    0.48 :   da21a1:        pushq   0xe0(%rsp)
+    0.93 :   da21a8:        callq   0x19dd190 <mkl_pds_lp64_upd_real_block>
+    0.16 :   da21ad:        movq    %r13, %rdx
+    0.00 :   da21b0:        movq    0x1a0(%rsp), %rsi
+    0.32 :   da21b8:        addq    $0xe0, %rsp
+    0.14 :   da21bf:        movq    0x2d8(%rsp), %rax
+    0.44 :   da21c7:        movq    0x1e8(%rsp), %rcx
+    0.30 :   da21cf:        movq    (%rax,%rcx,8), %rax
+    0.79 :   da21d3:        movq    0x1d8(%rsp), %rdi
+    0.00 :   da21db:        movq    0x1d0(%rsp), %r9
+    0.16 :   da21e3:        movq    0x688(%rsp), %r10
+    0.00 :   da21eb:        movq    0x1e0(%rsp), %r11
+    0.32 :   da21f3:        movq    0x30(%rsp), %rbx
+    0.00 :   da21f8:        incq    %rbx
+    0.00 :   da21fb:        cmpq    %rax, %rbx
+    0.16 :   da21fe:        jge     0xda26e1 <mkl_pds_lp64_blkl_ll_real.extracted+0x1811>
+    0.32 :   da2204:        movq    0x400(%rsp), %rcx
+    0.45 :   da220c:        movslq  (%rcx,%rbx,4), %r8
+    1.99 :   da2210:        testq   %r10, %r10
+    0.00 :   da2213:        je      0xda2235 <mkl_pds_lp64_blkl_ll_real.extracted+0x1365>
+    0.00 :   da2215:        testb   $0x1, %r11b
+    0.00 :   da2219:        je      0xda2230 <mkl_pds_lp64_blkl_ll_real.extracted+0x1360>
+    0.00 :   da221b:        cmpl    %r9d, %r8d
+    0.00 :   da221e:        jl      0xda21f8 <mkl_pds_lp64_blkl_ll_real.extracted+0x1328>
+    0.00 :   da2220:        jmp     0xda2235 <mkl_pds_lp64_blkl_ll_real.extracted+0x1365>
+    0.00 :   da2222:        nopw    %cs:(%rax,%rax)
+    0.00 :   da2230:        cmpl    %r9d, %r8d
+    0.00 :   da2233:        jge     0xda21f8 <mkl_pds_lp64_blkl_ll_real.extracted+0x1328>
+    0.00 :   da2235:        movq    %rdx, 0xe0(%rsp)
+    0.00 :   da223d:        movq    0x3f8(%rsp), %rax
+    0.47 :   da2245:        movq    %rbx, 0x30(%rsp)
+    0.00 :   da224a:        movl    (%rax,%rbx,4), %ebx
+    1.12 :   da224d:        movslq  %ebx, %rsi
+    0.80 :   da2250:        movq    0x198(%rsp), %rax
+    0.00 :   da2258:        movslq  -0x4(%rax,%r8,4), %r11
+    3.35 :   da225d:        movq    %rbp, %r9
+    0.00 :   da2260:        imulq   %rsi, %r9
+    0.32 :   da2264:        cmpq    $0x1, 0x698(%rsp)
+    0.15 :   da226d:        jne     0xda22a7 <mkl_pds_lp64_blkl_ll_real.extracted+0x13d7>
+    0.00 :   da226f:        movq    0x188(%rsp), %rax
+    0.00 :   da2277:        movq    -0x8(%rax,%r11,8), %rdx
+    0.00 :   da227c:        movq    (%rax,%r11,8), %rax
+    0.00 :   da2280:        leaq    -0x1(%rax), %rcx
+    0.00 :   da2284:        imulq   0x90(%rsp), %rcx
+    0.00 :   da228d:        subq    %r9, %rcx
+    0.00 :   da2290:        subq    %rax, %rdx
+    0.00 :   da2293:        imulq   0x2f8(%rsp), %rdx
+    0.00 :   da229c:        addq    %rcx, %rdx
+    0.00 :   da229f:        movq    %rdx, 0x2f0(%rsp)
+    0.00 :   da22a7:        movq    %r9, 0x40(%rsp)
+    0.16 :   da22ac:        movq    0x198(%rsp), %rax
+    0.16 :   da22b4:        movslq  (%rax,%r8,4), %rax
+    0.16 :   da22b8:        subq    %r11, %rax
+    0.64 :   da22bb:        movq    %rax, 0x8(%rsp)
+    0.12 :   da22c0:        movq    0x2e8(%rsp), %rax
+    0.00 :   da22c8:        movq    (%rax,%r8,8), %rdx
+    0.81 :   da22cc:        movq    %rdx, %rax
+    0.16 :   da22cf:        subq    %rsi, %rax
+    0.80 :   da22d2:        movq    %rax, 0x10(%rsp)
+    0.00 :   da22d7:        movq    0x100(%rsp), %rax
+    0.00 :   da22df:        movq    -0x8(%rax,%r11,8), %rcx
+    2.07 :   da22e4:        movq    %rcx, 0x80(%rsp)
+    0.00 :   da22ec:        movq    (%rax,%r11,8), %rcx
+    0.47 :   da22f0:        movl    $0x1, %eax
+    0.00 :   da22f5:        movq    %rax, 0x18(%rsp)
+    0.00 :   da22fa:        cmpq    %rsi, 0xc8(%rsp)
+    0.00 :   da2302:        movq    0xf0(%rsp), %rax
+    0.00 :   da230a:        movq    0x2d0(%rsp), %r9
+    0.00 :   da2312:        movq    0x228(%rsp), %r10
+    0.48 :   da231a:        movq    %rsi, %r13
+    0.15 :   da231d:        movq    %r11, 0x20(%rsp)
+    0.00 :   da2322:        je      0xda264b <mkl_pds_lp64_blkl_ll_real.extracted+0x177b>
+    0.00 :   da2328:        testl   %ebx, %ebx
+    0.00 :   da232a:        movq    %rdx, 0xb0(%rsp)
+    0.16 :   da2332:        jle     0xda245f <mkl_pds_lp64_blkl_ll_real.extracted+0x158f>
+    0.16 :   da2338:        movq    %rcx, 0x48(%rsp)
+    0.00 :   da233d:        movq    %rsi, %rcx
+    0.48 :   da2340:        movq    %r8, %rsi
+    0.00 :   da2343:        movq    %r11, %r8
+    0.00 :   da2346:        movq    0x10(%rsp), %rax
+    0.32 :   da234b:        decq    %rax
+    0.00 :   da234e:        movq    %rdx, %r11
+    0.48 :   da2351:        leaq    (,%rcx,4), %rdx
+    0.16 :   da2359:        movq    0x160(%rsp), %rcx
+    0.00 :   da2361:        leaq    (%rcx,%r11,4), %rcx
+    0.32 :   da2365:        subq    %rdx, %rcx
+    0.14 :   da2368:        xorl    %edx, %edx
+    0.16 :   da236a:        nopw    (%rax,%rax)
+    0.16 :   da2370:        movq    0x50(%rsp), %r11
+    0.00 :   da2375:        cmpl    (%rcx,%rdx,4), %r11d
+    4.92 :   da2379:        jle     0xda2385 <mkl_pds_lp64_blkl_ll_real.extracted+0x14b5>
+    0.00 :   da237b:        incq    %rdx
+    0.80 :   da237e:        cmpq    %rdx, %r13
+    0.00 :   da2381:        jne     0xda2370 <mkl_pds_lp64_blkl_ll_real.extracted+0x14a0>
+    0.00 :   da2383:        movl    %ebx, %edx
+    0.00 :   da2385:        cmpq    $0x1, 0x8(%rsp)
+    0.48 :   da238b:        movq    %rdx, 0xe0(%rsp)
+    0.00 :   da2393:        jg      0xda24a2 <mkl_pds_lp64_blkl_ll_real.extracted+0x15d2>
+    0.00 :   da2399:        cmpl    $0x1, %ebp
+    0.64 :   da239c:        movq    %r8, %r11
+    0.00 :   da239f:        jg      0xda24a5 <mkl_pds_lp64_blkl_ll_real.extracted+0x15d5>
+    0.00 :   da23a5:        movq    %r13, %rax
+    0.00 :   da23a8:        shrq    $0x2, %rax
+    0.32 :   da23ac:        movq    %rsi, %r8
+    0.00 :   da23af:        je      0xda2417 <mkl_pds_lp64_blkl_ll_real.extracted+0x1547>
+    0.00 :   da23b1:        movl    $0x8, %edx
+    0.00 :   da23b6:        nopw    %cs:(%rax,%rax)
+    0.00 :   da23c0:        movslq  -0x8(%rcx,%rdx), %rsi
+    0.16 :   da23c5:        addq    %r9, %rsi
+    0.46 :   da23c8:        movq    (%rdi,%rsi,8), %rsi
+    2.66 :   da23cc:        notq    %rsi
+    0.43 :   da23cf:        movq    %rsi, -0x10(%r10,%rdx,2)
+    0.00 :   da23d4:        movslq  -0x4(%rcx,%rdx), %rsi
+    0.00 :   da23d9:        addq    %r9, %rsi
+    0.00 :   da23dc:        movq    (%rdi,%rsi,8), %rsi
+    0.64 :   da23e0:        notq    %rsi
+    0.32 :   da23e3:        movq    %rsi, -0x8(%r10,%rdx,2)
+    0.16 :   da23e8:        movslq  (%rcx,%rdx), %rsi
+    0.00 :   da23ec:        addq    %r9, %rsi
+    0.32 :   da23ef:        movq    (%rdi,%rsi,8), %rsi
+    0.16 :   da23f3:        notq    %rsi
+    0.16 :   da23f6:        movq    %rsi, (%r10,%rdx,2)
+    0.00 :   da23fa:        movslq  0x4(%rcx,%rdx), %rsi
+    0.00 :   da23ff:        addq    %r9, %rsi
+    0.45 :   da2402:        movq    (%rdi,%rsi,8), %rsi
+    0.32 :   da2406:        notq    %rsi
+    0.16 :   da2409:        movq    %rsi, 0x8(%r10,%rdx,2)
+    0.14 :   da240e:        addq    $0x10, %rdx
+    0.00 :   da2412:        decq    %rax
+    0.00 :   da2415:        jne     0xda23c0 <mkl_pds_lp64_blkl_ll_real.extracted+0x14f0>
+    0.00 :   da2417:        andl    $0x7ffffffc, %ebx
+    0.16 :   da241d:        movl    $0x2, %eax
+    0.00 :   da2422:        movq    %rax, 0x18(%rsp)
+    0.47 :   da2427:        cmpq    %r13, %rbx
+    0.00 :   da242a:        je      0xda263e <mkl_pds_lp64_blkl_ll_real.extracted+0x176e>
+    0.00 :   da2430:        movq    %r13, %rax
+    0.00 :   da2433:        nopw    %cs:(%rax,%rax)
+    0.00 :   da2440:        movslq  (%rcx,%rbx,4), %rdx
+    0.00 :   da2444:        addq    %r9, %rdx
+    0.16 :   da2447:        movq    (%rdi,%rdx,8), %rdx
+    1.72 :   da244b:        notq    %rdx
+    0.61 :   da244e:        movq    %rdx, (%r10,%rbx,8)
+    0.32 :   da2452:        incq    %rbx
+    0.00 :   da2455:        cmpq    %rbx, %rax
+    0.32 :   da2458:        jne     0xda2440 <mkl_pds_lp64_blkl_ll_real.extracted+0x1570>
+    0.00 :   da245a:        jmp     0xda263e <mkl_pds_lp64_blkl_ll_real.extracted+0x176e>
+    0.00 :   da245f:        cmpq    $0x1, 0x8(%rsp)
+    0.00 :   da2465:        jg      0xda2487 <mkl_pds_lp64_blkl_ll_real.extracted+0x15b7>
+    0.00 :   da2467:        cmpl    $0x2, %ebp
+    0.00 :   da246a:        jge     0xda2487 <mkl_pds_lp64_blkl_ll_real.extracted+0x15b7>
+    0.00 :   da246c:        movq    $0x0, 0xe0(%rsp)
+    0.00 :   da2478:        movl    $0x2, %edx
+    0.00 :   da247d:        movq    %rdx, 0x18(%rsp)
+    0.00 :   da2482:        jmp     0xda264b <mkl_pds_lp64_blkl_ll_real.extracted+0x177b>
+    0.00 :   da2487:        movq    %rcx, 0x48(%rsp)
+    0.00 :   da248c:        movq    0x10(%rsp), %rax
+    0.00 :   da2491:        decq    %rax
+    0.00 :   da2494:        movq    $0x0, 0xe0(%rsp)
+    0.00 :   da24a0:        jmp     0xda24b3 <mkl_pds_lp64_blkl_ll_real.extracted+0x15e3>
+    0.16 :   da24a2:        movq    %r8, %r11
+    0.16 :   da24a5:        movq    %rsi, %r8
+    0.00 :   da24a8:        movq    %r13, %rsi
+    0.00 :   da24ab:        movq    0xb0(%rsp), %rdx
+    0.12 :   da24b3:        movq    0xb8(%rsp), %rcx
+    0.00 :   da24bb:        movslq  (%rcx,%rax,4), %rax
+    0.00 :   da24bf:        movslq  -0x8(%rcx,%rdx,4), %rcx
+    0.16 :   da24c4:        addq    %r9, %rax
+    0.00 :   da24c7:        movl    (%rdi,%rax,8), %edx
+    0.94 :   da24ca:        addq    %r9, %rcx
+    0.16 :   da24cd:        subl    (%rdi,%rcx,8), %edx
+    0.80 :   da24d0:        cmpl    %edx, %ebx
+    0.16 :   da24d2:        jle     0xda24e3 <mkl_pds_lp64_blkl_ll_real.extracted+0x1613>
+    0.00 :   da24d4:        movl    $0x3, %eax
+    0.00 :   da24d9:        movq    %rax, 0x18(%rsp)
+    0.00 :   da24de:        jmp     0xda263e <mkl_pds_lp64_blkl_ll_real.extracted+0x176e>
+    0.00 :   da24e3:        movq    %r8, 0xd0(%rsp)
+    0.00 :   da24eb:        movl    0xe0(%rsp), %eax
+    0.00 :   da24f2:        movq    0x158(%rsp), %rdx
+    0.00 :   da24fa:        imulq   %rsi, %rdx
+    0.00 :   da24fe:        imulq   %rax, %rdx
+    0.00 :   da2502:        movq    0x220(%rsp), %rdi
+    0.00 :   da250a:        movq    %rsi, 0x148(%rsp)
+    0.00 :   da2512:        xorl    %esi, %esi
+    0.32 :   da2514:        callq   0x400730 <_init+0x34c>
+    0.00 :   da2519:        movl    $0x4, %eax
+    0.00 :   da251e:        testl   %ebx, %ebx
+    0.00 :   da2520:        jle     0xda262c <mkl_pds_lp64_blkl_ll_real.extracted+0x175c>
+    0.00 :   da2526:        movq    %rax, 0x18(%rsp)
+    0.00 :   da252b:        movq    0x148(%rsp), %rcx
+    0.16 :   da2533:        shrq    $0x2, %rcx
+    0.00 :   da2537:        movq    0x1d8(%rsp), %r8
+    0.00 :   da253f:        movq    0x2d0(%rsp), %r9
+    0.00 :   da2547:        movq    0x228(%rsp), %r10
+    0.00 :   da254f:        je      0xda25d7 <mkl_pds_lp64_blkl_ll_real.extracted+0x1707>
+    0.00 :   da2555:        leaq    (,%r13,4), %rsi
+    0.00 :   da255d:        movq    0x160(%rsp), %rdx
+    0.16 :   da2565:        movq    0xb0(%rsp), %rax
+    0.00 :   da256d:        leaq    (%rdx,%rax,4), %rdx
+    0.00 :   da2571:        subq    %rsi, %rdx
+    0.00 :   da2574:        movl    $0x8, %esi
+    0.00 :   da2579:        nopl    (%rax)
+    0.00 :   da2580:        movslq  -0x8(%rdx,%rsi), %rdi
+    0.16 :   da2585:        addq    %r9, %rdi
+    0.00 :   da2588:        movq    (%r8,%rdi,8), %rdi
+    0.14 :   da258c:        notq    %rdi
+    0.00 :   da258f:        movq    %rdi, -0x10(%r10,%rsi,2)
+    0.00 :   da2594:        movslq  -0x4(%rdx,%rsi), %rdi
+    0.16 :   da2599:        addq    %r9, %rdi
+    0.00 :   da259c:        movq    (%r8,%rdi,8), %rdi
+    0.00 :   da25a0:        notq    %rdi
+    0.00 :   da25a3:        movq    %rdi, -0x8(%r10,%rsi,2)
+    0.16 :   da25a8:        movslq  (%rdx,%rsi), %rdi
+    0.00 :   da25ac:        addq    %r9, %rdi
+    0.00 :   da25af:        movq    (%r8,%rdi,8), %rdi
+    0.11 :   da25b3:        notq    %rdi
+    0.00 :   da25b6:        movq    %rdi, (%r10,%rsi,2)
+    0.00 :   da25ba:        movslq  0x4(%rdx,%rsi), %rdi
+    0.00 :   da25bf:        addq    %r9, %rdi
+    0.00 :   da25c2:        movq    (%r8,%rdi,8), %rdi
+    0.30 :   da25c6:        notq    %rdi
+    0.00 :   da25c9:        movq    %rdi, 0x8(%r10,%rsi,2)
+    0.00 :   da25ce:        addq    $0x10, %rsi
+    0.00 :   da25d2:        decq    %rcx
+    0.00 :   da25d5:        jne     0xda2580 <mkl_pds_lp64_blkl_ll_real.extracted+0x16b0>
+    0.00 :   da25d7:        andl    $0x7ffffffc, %ebx
+    0.00 :   da25dd:        cmpq    %r13, %rbx
+    0.00 :   da25e0:        movq    0x20(%rsp), %r11
+    0.00 :   da25e5:        je      0xda2636 <mkl_pds_lp64_blkl_ll_real.extracted+0x1766>
+    0.00 :   da25e7:        movq    %r13, %rax
+    0.00 :   da25ea:        leaq    (,%r13,4), %rdx
+    0.00 :   da25f2:        movq    0x160(%rsp), %rcx
+    0.00 :   da25fa:        movq    0xb0(%rsp), %rsi
+    0.00 :   da2602:        leaq    (%rcx,%rsi,4), %rcx
+    0.00 :   da2606:        subq    %rdx, %rcx
+    0.00 :   da2609:        nopl    (%rax)
+    0.00 :   da2610:        movslq  (%rcx,%rbx,4), %rdx
+    0.16 :   da2614:        addq    %r9, %rdx
+    0.00 :   da2617:        movq    (%r8,%rdx,8), %rdx
+    0.00 :   da261b:        notq    %rdx
+    0.15 :   da261e:        movq    %rdx, (%r10,%rbx,8)
+    0.00 :   da2622:        incq    %rbx
+    0.00 :   da2625:        cmpq    %rbx, %rax
+    0.00 :   da2628:        jne     0xda2610 <mkl_pds_lp64_blkl_ll_real.extracted+0x1740>
+    0.00 :   da262a:        jmp     0xda2636 <mkl_pds_lp64_blkl_ll_real.extracted+0x1766>
+    0.00 :   da262c:        movq    %rax, 0x18(%rsp)
+    0.00 :   da2631:        movq    0x20(%rsp), %r11
+    0.00 :   da2636:        movq    0xd0(%rsp), %r8
+    0.00 :   da263e:        movq    0xf0(%rsp), %rax
+    0.00 :   da2646:        movq    0x48(%rsp), %rcx
+    0.16 :   da264b:        leaq    -0x1(%rcx), %rdx
+    0.00 :   da264f:        imulq   0x90(%rsp), %rdx
+    0.32 :   da2658:        subq    0x40(%rsp), %rdx
+    0.64 :   da265d:        movq    %rcx, %rdi
+    0.16 :   da2660:        leaq    -0x1(%r11), %rcx
+    0.00 :   da2664:        movq    0x80(%rsp), %rsi
+    0.16 :   da266c:        subq    %rdi, %rsi
+    0.16 :   da266f:        imulq   0x2f8(%rsp), %rsi
+    0.00 :   da2678:        addq    %rdx, %rsi
+    0.00 :   da267b:        movl    $0x0, 0xfc(%rsp)
+    0.48 :   da2686:        cmpl    $0x2, 0x1b4(%rsp)
+    0.30 :   da268e:        jl      0xda20a0 <mkl_pds_lp64_blkl_ll_real.extracted+0x11d0>
+    0.00 :   da2694:        nopw    %cs:(%rax,%rax)
+    0.00 :   da26a0:        cmpl    $0x0, 0xfc(%rsp)
+    0.00 :   da26a8:        jne     0xda20a0 <mkl_pds_lp64_blkl_ll_real.extracted+0x11d0>
+    0.00 :   da26ae:        movl    -0x4(%rax,%r8,4), %edx
+    0.00 :   da26b3:        addl    %edx, 0xfc(%rsp)
+    0.00 :   da26ba:        cmpl    $0x0, 0xfc(%rsp)
+    0.00 :   da26c2:        je      0xda26ae <mkl_pds_lp64_blkl_ll_real.extracted+0x17de>
+    0.00 :   da26c4:        jmp     0xda20a0 <mkl_pds_lp64_blkl_ll_real.extracted+0x11d0>
+    0.00 :   da26c9:        movq    0xc0(%rsp), %rsi
+    0.00 :   da26d1:        movq    0x1d0(%rsp), %r9
+    0.00 :   da26d9:        movq    0xe0(%rsp), %rdx
+    0.00 :   da26e1:        movq    0x1e8(%rsp), %rdi
+    0.16 :   da26e9:        cmpq    %r9, %rdi
+    0.00 :   da26ec:        setl    %al
+    0.00 :   da26ef:        orb     0x9f(%rsp), %al
+    0.00 :   da26f6:        testb   $0x1, %al
+    0.00 :   da26f8:        movq    %rdx, 0xe0(%rsp)
+    0.00 :   da2700:        je      0xda289b <mkl_pds_lp64_blkl_ll_real.extracted+0x19cb>
+    0.00 :   da2706:        movq    0xc8(%rsp), %r9
+    0.14 :   da270e:        imulq   %rbp, %r9
+    0.00 :   da2712:        movq    0xa0(%rsp), %rax
+    0.00 :   da271a:        decq    %rax
+    0.00 :   da271d:        movq    %rax, 0x80(%rsp)
+    0.00 :   da2725:        movq    0x90(%rsp), %rdi
+    0.00 :   da272d:        imulq   %rdi, %rax
+    0.00 :   da2731:        movq    0x60(%rsp), %rcx
+    0.00 :   da2736:        leaq    (%rcx,%rax,8), %rax
+    0.00 :   da273a:        movq    %rax, 0x8(%rsp)
+    0.00 :   da273f:        movq    0x110(%rsp), %rax
+    0.00 :   da2747:        leaq    -0x1(%rax), %rcx
+    0.00 :   da274b:        imulq   %rdi, %rcx
+    0.00 :   da274f:        leaq    (%rsi,%rcx,8), %r10
+    0.00 :   da2753:        movq    0x1c8(%rsp), %rsi
+    0.00 :   da275b:        imulq   %rbp, %rsi
+    0.00 :   da275f:        movq    0x3a0(%rsp), %rax
+    0.16 :   da2767:        leaq    (%rax,%rsi,4), %r11
+    0.00 :   da276b:        movq    0x58(%rsp), %r8
+    0.00 :   da2770:        movq    %r8, %rcx
+    0.00 :   da2773:        imulq   %r8, %rcx
+    0.00 :   da2777:        movq    0x1a0(%rsp), %rdx
+    0.13 :   da277f:        subq    %rcx, %rdx
+    0.00 :   da2782:        movq    0x2b8(%rsp), %rax
+    0.00 :   da278a:        leaq    (%rax,%rsi,4), %rbx
+    0.16 :   da278e:        movq    0x150(%rsp), %rax
+    0.00 :   da2796:        leaq    (%rax,%rsi,8), %r13
+    0.00 :   da279a:        imulq   %rdi, %rdx
+    0.00 :   da279e:        movq    0x1a8(%rsp), %rax
+    0.00 :   da27a6:        leaq    (%rax,%rdx,8), %rax
+    0.16 :   da27aa:        subq    $0x8, %rsp
+    0.16 :   da27ae:        movq    0x2c8(%rsp), %rdi
+    0.16 :   da27b6:        movq    0x2d0(%rsp), %rsi
+    0.00 :   da27be:        movl    $0x1, %edx
+    0.00 :   da27c3:        xorl    %ecx, %ecx
+    0.00 :   da27c5:        movsd   0x3b0(%rsp), %xmm0
+    0.00 :   da27ce:        pushq   $0x0
+    0.00 :   da27d0:        pushq   %rax
+    0.00 :   da27d1:        pushq   %r13
+    0.00 :   da27d3:        movq    0x6a0(%rsp), %r13
+    0.16 :   da27db:        pushq   %r13
+    0.00 :   da27dd:        leaq    0x484(%rsp), %rax
+    0.00 :   da27e5:        pushq   %rax
+    0.00 :   da27e6:        pushq   0x2e0(%rsp)
+    0.16 :   da27ed:        pushq   0x6d0(%rsp)
+    0.64 :   da27f4:        pushq   0x6d0(%rsp)
+    0.00 :   da27fb:        movl    0x6e8(%rsp), %eax
+    0.00 :   da2802:        pushq   %rax
+    0.16 :   da2803:        leaq    0x4a0(%rsp), %rax
+    0.00 :   da280b:        pushq   %rax
+    0.00 :   da280c:        leaq    0x4b0(%rsp), %rax
+    0.00 :   da2814:        pushq   %rax
+    0.00 :   da2815:        leaq    0x4b4(%rsp), %rax
+    0.00 :   da281d:        pushq   %rax
+    0.00 :   da281e:        pushq   %rbx
+    0.14 :   da281f:        pushq   %r11
+    0.00 :   da2821:        pushq   0x298(%rsp)
+    0.32 :   da2828:        pushq   %r10
+    0.48 :   da282a:        pushq   0x90(%rsp)
+    0.48 :   da2831:        callq   0x19e53a0 <mkl_pds_lp64_fct_real_block>
+    0.16 :   da2836:        addq    $0x90, %rsp
+    0.00 :   da283d:        movq    0xf0(%rsp), %rax
+    0.32 :   da2845:        movq    0x1e8(%rsp), %rcx
+    0.00 :   da284d:        incl    -0x4(%rax,%rcx,4)
+    1.29 :   da2851:        movl    0x45c(%rsp), %ecx
+    0.00 :   da2858:        movl    %ecx, %eax
+    0.16 :   da285a:        testl   %ecx, %ecx
+    0.00 :   da285c:        setg    %cl
+    0.00 :   da285f:        testb   %cl, 0x3f(%rsp)
+    0.00 :   da2863:        je      0xda2e18 <mkl_pds_lp64_blkl_ll_real.extracted+0x1f48>
+    0.00 :   da2869:        addq    0x28(%rsp), %rax
+    0.00 :   da286e:        movq    0x230(%rsp), %rcx
+    0.00 :   da2876:        movl    -0x8(%rcx,%rax,4), %eax
+    0.00 :   da287a:        movq    0x608(%rsp), %rcx
+    0.00 :   da2882:        movl    %eax, (%rcx)
+    0.00 :   da2884:        cmpq    $0x1, %r13
+    0.00 :   da2888:        movq    0xb8(%rsp), %r11
+    0.00 :   da2890:        je      0xda2e4d <mkl_pds_lp64_blkl_ll_real.extracted+0x1f7d>
+    0.00 :   da2896:        jmp     0xda4700 <mkl_pds_lp64_blkl_ll_real.extracted+0x3830>
+    0.00 :   da289b:        movq    0x210(%rsp), %rcx
+    0.00 :   da28a3:        leaq    -0x1(%rcx), %r10
+    0.00 :   da28a7:        movq    0x198(%rsp), %rax
+    0.00 :   da28af:        movl    -0x4(%rax,%rdi,4), %edx
+    0.00 :   da28b3:        movl    -0x4(%rax,%r9,4), %esi
+    0.00 :   da28b8:        movq    %rdx, 0x78(%rsp)
+    0.00 :   da28bd:        movl    %edx, %eax
+    0.00 :   da28bf:        subl    %esi, %eax
+    0.00 :   da28c1:        movq    %rax, 0x20(%rsp)
+    0.00 :   da28c6:        cmpq    $0x0, 0x698(%rsp)
+    0.00 :   da28cf:        movq    0xb8(%rsp), %r11
+    0.00 :   da28d7:        movdqa  0x420(%rsp), %xmm9
+    0.00 :   da28e1:        movdqa  0x410(%rsp), %xmm10
+    0.00 :   da28eb:        movq    %r10, 0x18(%rsp)
+    0.00 :   da28f0:        je      0xda331c <mkl_pds_lp64_blkl_ll_real.extracted+0x244c>
+    0.00 :   da28f6:        cmpq    $0x0, 0x58(%rsp)
+    0.00 :   da28fc:        jle     0xda4700 <mkl_pds_lp64_blkl_ll_real.extracted+0x3830>
+    0.00 :   da2902:        movq    0xc8(%rsp), %r13
+    0.00 :   da290a:        testq   %r13, %r13
+    0.00 :   da290d:        jle     0xda306d <mkl_pds_lp64_blkl_ll_real.extracted+0x219d>
+    0.00 :   da2913:        movq    0x58(%rsp), %rax
+    0.00 :   da2918:        decq    %rax
+    0.00 :   da291b:        movq    %rax, 0x30(%rsp)
+    0.00 :   da2920:        movq    %r13, %rax
+    0.00 :   da2923:        shrq    $0x2, %rax
+    0.00 :   da2927:        movq    %rax, 0x40(%rsp)
+    0.00 :   da292c:        leaq    -0x1(%rax), %r9
+    0.00 :   da2930:        movd    %esi, %xmm0
+    0.00 :   da2934:        pshufd  $0x0, %xmm0, %xmm0
+    0.00 :   da2939:        movd    0x78(%rsp), %xmm1
+    0.00 :   da293f:        movabsq $0x7ffffffffffffff8, %rax
+    0.00 :   da2949:        addq    $0x4, %rax
+    0.00 :   da294d:        andq    %r13, %rax
+    0.00 :   da2950:        movq    %rax, 0x10(%rsp)
+    0.00 :   da2955:        movq    0x160(%rsp), %rax
+    0.00 :   da295d:        movq    0x210(%rsp), %rcx
+    0.00 :   da2965:        leaq    (%rax,%rcx,4), %rbx
+    0.00 :   da2969:        xorl    %ecx, %ecx
+    0.00 :   da296b:        xorl    %eax, %eax
+    0.00 :   da296d:        movq    %rbx, 0x80(%rsp)
+    0.00 :   da2975:        jmp     0xda2997 <mkl_pds_lp64_blkl_ll_real.extracted+0x1ac7>
+    0.00 :   da2977:        nopw    (%rax,%rax)
+    0.00 :   da2980:        movq    0x8(%rsp), %rcx
+    0.00 :   da2985:        addq    %r13, %rcx
+    0.00 :   da2988:        cmpq    0x30(%rsp), %rax
+    0.00 :   da298d:        leaq    0x1(%rax), %rax
+    0.00 :   da2991:        je      0xda306d <mkl_pds_lp64_blkl_ll_real.extracted+0x219d>
+    0.00 :   da2997:        movslq  %ecx, %rcx
+    0.00 :   da299a:        movq    %rcx, 0x8(%rsp)
+    0.00 :   da299f:        cmpq    $0x0, 0x40(%rsp)
+    0.00 :   da29a5:        movq    0xb8(%rsp), %r10
+    0.00 :   da29ad:        movq    0x60(%rsp), %rcx
+    0.00 :   da29b2:        movq    0x1f0(%rsp), %r11
+    0.00 :   da29ba:        movq    0x18(%rsp), %rbx
+    0.00 :   da29bf:        je      0xda2aa2 <mkl_pds_lp64_blkl_ll_real.extracted+0x1bd2>
+    0.00 :   da29c5:        movd    %eax, %xmm2
+    0.00 :   da29c9:        paddd   %xmm1, %xmm2
+    0.00 :   da29cd:        movq    0xa0(%rsp), %rdx
+    0.00 :   da29d5:        movq    0x8(%rsp), %rdi
+    0.00 :   da29da:        addq    %rdx, %rdi
+    0.00 :   da29dd:        pshufd  $0x0, %xmm2, %xmm2
+    0.00 :   da29e2:        xorl    %edx, %edx
+    0.00 :   da29e4:        nopw    %cs:(%rax,%rax)
+    0.00 :   da29f0:        leaq    (%rbx,%rdx,4), %r13
+    0.00 :   da29f4:        leaq    (%rdi,%rdx,4), %r8
+    0.00 :   da29f8:        movsd   -0x8(%rcx,%r8,8), %xmm3
+    0.00 :   da29ff:        movsd   (%rcx,%r8,8), %xmm4
+    0.00 :   da2a05:        movq    0x8(%rcx,%r8,8), %xmm5
+    0.00 :   da2a0c:        movdqu  (%r10,%r13,4), %xmm6
+    0.00 :   da2a12:        psubd   %xmm10, %xmm6
+    0.00 :   da2a17:        movdqa  %xmm9, %xmm7
+    0.00 :   da2a1c:        pmuludq %xmm6, %xmm7
+    0.00 :   da2a20:        pshufd  $0xe8, %xmm7, %xmm7
+    0.00 :   da2a25:        pshufd  $0xf5, %xmm6, %xmm6
+    0.00 :   da2a2a:        pshufd  $0xf5, %xmm9, %xmm8
+    0.00 :   da2a30:        pmuludq %xmm6, %xmm8
+    0.00 :   da2a35:        pshufd  $0xe8, %xmm8, %xmm6
+    0.00 :   da2a3b:        punpckldq       %xmm6, %xmm7
+    0.00 :   da2a3f:        psubd   %xmm0, %xmm7
+    0.00 :   da2a43:        paddd   %xmm2, %xmm7
+    0.00 :   da2a47:        movd    %xmm7, %r13d
+    0.00 :   da2a4c:        movslq  %r13d, %r13
+    0.00 :   da2a4f:        movsd   %xmm3, (%r11,%r13,8)
+    0.00 :   da2a55:        pshufd  $0x55, %xmm7, %xmm3
+    0.00 :   da2a5a:        movd    %xmm3, %r13d
+    0.00 :   da2a5f:        movslq  %r13d, %r13
+    0.00 :   da2a62:        movsd   %xmm4, (%r11,%r13,8)
+    0.00 :   da2a68:        pshufd  $0xee, %xmm7, %xmm3
+    0.00 :   da2a6d:        movd    %xmm3, %r13d
+    0.00 :   da2a72:        movslq  %r13d, %r13
+    0.00 :   da2a75:        movq    %xmm5, (%r11,%r13,8)
+    0.00 :   da2a7b:        pshufd  $0xff, %xmm7, %xmm3
+    0.00 :   da2a80:        movd    %xmm3, %r13d
+    0.00 :   da2a85:        movslq  %r13d, %r13
+    0.00 :   da2a88:        movsd   0x10(%rcx,%r8,8), %xmm3
+    0.00 :   da2a8f:        movsd   %xmm3, (%r11,%r13,8)
+    0.00 :   da2a95:        cmpq    %r9, %rdx
+    0.00 :   da2a98:        leaq    0x1(%rdx), %rdx
+    0.00 :   da2a9c:        jne     0xda29f0 <mkl_pds_lp64_blkl_ll_real.extracted+0x1b20>
+    0.00 :   da2aa2:        movq    0xc8(%rsp), %r13
+    0.00 :   da2aaa:        cmpq    %r13, 0x10(%rsp)
+    0.00 :   da2aaf:        movl    0x74(%rsp), %ecx
+    0.00 :   da2ab3:        movl    0xf8(%rsp), %r10d
+    0.00 :   da2abb:        movq    0x80(%rsp), %rbx
+    0.00 :   da2ac3:        je      0xda2980 <mkl_pds_lp64_blkl_ll_real.extracted+0x1ab0>
+    0.00 :   da2ac9:        movq    0x78(%rsp), %rdx
+    0.00 :   da2ace:        addl    %eax, %edx
+    0.00 :   da2ad0:        movq    0xa0(%rsp), %rdi
+    0.00 :   da2ad8:        movq    0x8(%rsp), %r8
+    0.00 :   da2add:        addq    %r8, %rdi
+    0.00 :   da2ae0:        movq    0x118(%rsp), %r8
+    0.00 :   da2ae8:        leaq    (%r8,%rdi,8), %rdi
+    0.00 :   da2aec:        movq    0x10(%rsp), %r8
+    0.00 :   da2af1:        nopw    %cs:(%rax,%rax)
+    0.00 :   da2b00:        movl    (%rbx,%r8,4), %r13d
+    0.00 :   da2b04:        subl    %r10d, %r13d
+    0.00 :   da2b07:        imull   %ecx, %r13d
+    0.00 :   da2b0b:        subl    %esi, %r13d
+    0.00 :   da2b0e:        addl    %edx, %r13d
+    0.00 :   da2b11:        movslq  %r13d, %r13
+    0.00 :   da2b14:        movq    (%rdi,%r8,8), %xmm2
+    0.00 :   da2b1a:        movq    %xmm2, (%r11,%r13,8)
+    0.00 :   da2b20:        movq    0xc8(%rsp), %r13
+    0.00 :   da2b28:        incq    %r8
+    0.00 :   da2b2b:        cmpq    %r8, %r13
+    0.00 :   da2b2e:        jne     0xda2b00 <mkl_pds_lp64_blkl_ll_real.extracted+0x1c30>
+    0.00 :   da2b30:        jmp     0xda2980 <mkl_pds_lp64_blkl_ll_real.extracted+0x1ab0>
+    0.00 :   da2b35:        movq    0x100(%rsp), %rax
+    0.00 :   da2b3d:        movq    0x178(%rsp), %rcx
+    0.00 :   da2b45:        movq    (%rax,%rcx,8), %rdx
+    0.30 :   da2b49:        movq    0xa0(%rsp), %rax
+    0.48 :   da2b51:        subq    %rax, %rdx
+    0.00 :   da2b54:        movq    0x90(%rsp), %rcx
+    0.00 :   da2b5c:        imulq   %rcx, %rdx
+    0.00 :   da2b60:        shlq    $0x3, %rdx
+    0.00 :   da2b64:        testq   %rdx, %rdx
+    0.32 :   da2b67:        jle     0xda2b88 <mkl_pds_lp64_blkl_ll_real.extracted+0x1cb8>
+    0.00 :   da2b69:        decq    %rax
+    0.00 :   da2b6c:        imulq   %rcx, %rax
+    0.00 :   da2b70:        movq    0x60(%rsp), %rcx
+    0.00 :   da2b75:        leaq    (%rcx,%rax,8), %rdi
+    0.00 :   da2b79:        xorl    %esi, %esi
+    0.00 :   da2b7b:        callq   0x400730 <_init+0x34c>
+    0.00 :   da2b80:        movq    0x90(%rsp), %rcx
+    0.16 :   da2b88:        cmpq    $0x0, 0x698(%rsp)
+    0.00 :   da2b91:        je      0xda35c7 <mkl_pds_lp64_blkl_ll_real.extracted+0x26f7>
+    0.00 :   da2b97:        movq    0x188(%rsp), %rax
+    0.00 :   da2b9f:        movq    0x178(%rsp), %rdx
+    0.00 :   da2ba7:        movq    (%rax,%rdx,8), %rdx
+    0.00 :   da2bab:        subq    0x110(%rsp), %rdx
+    0.00 :   da2bb3:        imulq   %rcx, %rdx
+    0.00 :   da2bb7:        shlq    $0x3, %rdx
+    0.00 :   da2bbb:        testq   %rdx, %rdx
+    0.00 :   da2bbe:        jle     0xda2be2 <mkl_pds_lp64_blkl_ll_real.extracted+0x1d12>
+    0.00 :   da2bc0:        movq    0x110(%rsp), %rax
+    0.00 :   da2bc8:        decq    %rax
+    0.00 :   da2bcb:        imulq   %rcx, %rax
+    0.00 :   da2bcf:        movq    0xc0(%rsp), %rcx
+    0.00 :   da2bd7:        leaq    (%rcx,%rax,8), %rdi
+    0.00 :   da2bdb:        xorl    %esi, %esi
+    0.00 :   da2bdd:        callq   0x400730 <_init+0x34c>
+    0.00 :   da2be2:        cmpb    $0x0, 0x3e(%rsp)
+    0.00 :   da2be7:        je      0xda36dc <mkl_pds_lp64_blkl_ll_real.extracted+0x280c>
+    0.00 :   da2bed:        movq    0x50(%rsp), %rax
+    0.00 :   da2bf2:        cmpl    0x28(%rsp), %eax
+    0.00 :   da2bf6:        jle     0xda1ff6 <mkl_pds_lp64_blkl_ll_real.extracted+0x1126>
+    0.00 :   da2bfc:        movq    0xa8(%rsp), %rax
+    0.00 :   da2c04:        movq    0x200(%rsp), %rcx
+    0.00 :   da2c0c:        movslq  (%rax,%rcx,4), %rdx
+    0.00 :   da2c10:        movq    0x28(%rsp), %rsi
+    0.00 :   da2c15:        movl    -0x4(%rax,%rsi,4), %eax
+    0.00 :   da2c19:        movq    0x168(%rsp), %rcx
+    0.00 :   da2c21:        movl    -0x4(%rcx,%rsi,4), %r8d
+    0.00 :   da2c26:        notq    %rsi
+    0.00 :   da2c29:        addq    0x50(%rsp), %rsi
+    0.00 :   da2c2e:        movq    %rsi, 0x30(%rsp)
+    0.00 :   da2c33:        movq    0x358(%rsp), %rcx
+    0.00 :   da2c3b:        leaq    (%rcx,%rdx,4), %rcx
+    0.00 :   da2c3f:        movq    %rcx, 0x40(%rsp)
+    0.00 :   da2c44:        movq    0x278(%rsp), %rcx
+    0.00 :   da2c4c:        leaq    (%rcx,%rdx,4), %rdx
+    0.00 :   da2c50:        xorl    %esi, %esi
+    0.00 :   da2c52:        jmp     0xda2c84 <mkl_pds_lp64_blkl_ll_real.extracted+0x1db4>
+    0.00 :   da2c54:        nopw    %cs:(%rax,%rax)
+    0.00 :   da2c60:        movl    0x10(%rsp), %r8d
+    0.00 :   da2c65:        movl    0x20(%rsp), %eax
+    0.00 :   da2c69:        movq    0x18(%rsp), %rcx
+    0.00 :   da2c6e:        cmpq    0x30(%rsp), %rcx
+    0.00 :   da2c73:        leaq    0x1(%rcx), %rsi
+    0.00 :   da2c77:        leaq    -0x1(%rbp), %r12
+    0.00 :   da2c7b:        movq    %r11, %rdx
+    0.00 :   da2c7e:        je      0xda1ff6 <mkl_pds_lp64_blkl_ll_real.extracted+0x1126>
+    0.00 :   da2c84:        movq    0x28(%rsp), %rcx
+    0.00 :   da2c89:        movq    %rsi, 0x18(%rsp)
+    0.00 :   da2c8e:        addq    %rsi, %rcx
+    0.00 :   da2c91:        movq    0xa8(%rsp), %rdi
+    0.00 :   da2c99:        movq    %rcx, 0x8(%rsp)
+    0.00 :   da2c9e:        movl    (%rdi,%rcx,4), %r12d
+    0.00 :   da2ca2:        cmpl    %r12d, %eax
+    0.00 :   da2ca5:        movq    0x300(%rsp), %rsi
+    0.00 :   da2cad:        movq    0x238(%rsp), %rcx
+    0.00 :   da2cb5:        movq    0x308(%rsp), %r9
+    0.00 :   da2cbd:        jge     0xda2d70 <mkl_pds_lp64_blkl_ll_real.extracted+0x1ea0>
+    0.00 :   da2cc3:        movslq  %r12d, %r10
+    0.00 :   da2cc6:        movslq  %eax, %r11
+    0.00 :   da2cc9:        movq    0x1c8(%rsp), %rax
+    0.00 :   da2cd1:        movq    0x18(%rsp), %rdi
+    0.00 :   da2cd6:        leaq    (%rax,%rdi), %rbx
+    0.00 :   da2cda:        jmp     0xda2d0c <mkl_pds_lp64_blkl_ll_real.extracted+0x1e3c>
+    0.00 :   da2cdc:        nopl    (%rax)
+    0.00 :   da2ce0:        movq    0x230(%rsp), %rdi
+    0.00 :   da2ce8:        movslq  (%rdi,%rbx,4), %r13
+    0.00 :   da2cec:        mulsd   %xmm1, %xmm0
+    0.00 :   da2cf0:        mulsd   -0x8(%rsi,%r13,8), %xmm0
+    0.00 :   da2cf7:        notq    %rax
+    0.00 :   da2cfa:        movq    0x60(%rsp), %rdi
+    0.00 :   da2cff:        movsd   %xmm0, (%rdi,%rax,8)
+    0.00 :   da2d04:        incq    %r11
+    0.00 :   da2d07:        cmpq    %r11, %r10
+    0.00 :   da2d0a:        je      0xda2d70 <mkl_pds_lp64_blkl_ll_real.extracted+0x1ea0>
+    0.00 :   da2d0c:        movslq  -0x4(%rcx,%r11,4), %rax
+    0.00 :   da2d11:        addq    %r9, %rax
+    0.00 :   da2d14:        movsd   (%rsi,%rax,8), %xmm1
+    0.00 :   da2d19:        movq    0x120(%rsp), %rax
+    0.00 :   da2d21:        movq    -0x8(%rax,%r11,8), %rax
+    0.00 :   da2d26:        movq    0xe8(%rsp), %rdi
+    0.00 :   da2d2e:        movslq  -0x4(%rdi,%r11,4), %r13
+    0.00 :   da2d33:        movq    0x88(%rsp), %rdi
+    0.00 :   da2d3b:        movsd   -0x8(%rdi,%r13,8), %xmm0
+    0.00 :   da2d42:        testq   %rax, %rax
+    0.00 :   da2d45:        jle     0xda2ce0 <mkl_pds_lp64_blkl_ll_real.extracted+0x1e10>
+    0.00 :   da2d47:        movq    0x240(%rsp), %r9
+    0.00 :   da2d4f:        movslq  -0x4(%r9,%r13,4), %r13
+    0.00 :   da2d54:        movq    0x308(%rsp), %r9
+    0.00 :   da2d5c:        mulsd   %xmm1, %xmm0
+    0.00 :   da2d60:        mulsd   -0x8(%rsi,%r13,8), %xmm0
+    0.00 :   da2d67:        decq    %rax
+    0.00 :   da2d6a:        jmp     0xda2cfa <mkl_pds_lp64_blkl_ll_real.extracted+0x1e2a>
+    0.00 :   da2d6c:        nopl    (%rax)
+    0.00 :   da2d70:        movl    %r12d, 0x20(%rsp)
+    0.00 :   da2d75:        movq    0x168(%rsp), %rax
+    0.00 :   da2d7d:        movq    0x8(%rsp), %rcx
+    0.00 :   da2d82:        movl    (%rax,%rcx,4), %eax
+    0.00 :   da2d85:        movl    %eax, 0x10(%rsp)
+    0.00 :   da2d89:        cmpl    %eax, %r8d
+    0.00 :   da2d8c:        movq    0x240(%rsp), %rbx
+    0.00 :   da2d94:        movq    0xc0(%rsp), %rdi
+    0.00 :   da2d9c:        movq    0x180(%rsp), %rcx
+    0.00 :   da2da4:        movq    %rdx, %r11
+    0.00 :   da2da7:        movq    0x40(%rsp), %rdx
+    0.00 :   da2dac:        jge     0xda2c60 <mkl_pds_lp64_blkl_ll_real.extracted+0x1d90>
+    0.00 :   da2db2:        movslq  0x10(%rsp), %rax
+    0.00 :   da2db7:        movq    %rax, 0x8(%rsp)
+    0.00 :   da2dbc:        movslq  %r8d, %r8
+    0.00 :   da2dbf:        nop
+    0.00 :   da2dc0:        movslq  (%rdx,%r8,4), %r10
+    0.00 :   da2dc4:        movq    %r11, %r13
+    0.00 :   da2dc7:        movslq  (%r11,%r8,4), %r11
+    0.00 :   da2dcb:        movq    %rcx, %rax
+    0.00 :   da2dce:        movq    %rdi, %rcx
+    0.00 :   da2dd1:        movslq  -0x4(%rbx,%r11,4), %rdi
+    0.00 :   da2dd6:        movq    0x88(%rsp), %r12
+    0.00 :   da2dde:        movsd   -0x8(%r12,%r11,8), %xmm0
+    0.00 :   da2de5:        movq    %r13, %r11
+    0.00 :   da2de8:        addq    %r9, %r10
+    0.00 :   da2deb:        mulsd   (%rsi,%r10,8), %xmm0
+    0.00 :   da2df1:        mulsd   -0x8(%rsi,%rdi,8), %xmm0
+    0.00 :   da2df7:        movq    %rcx, %rdi
+    0.00 :   da2dfa:        movq    %rax, %rcx
+    0.00 :   da2dfd:        movq    -0x8(%rax,%r8,8), %r10
+    0.00 :   da2e02:        movsd   %xmm0, -0x8(%rdi,%r10,8)
+    0.00 :   da2e09:        incq    %r8
+    0.00 :   da2e0c:        cmpq    %r8, 0x8(%rsp)
+    0.00 :   da2e11:        jne     0xda2dc0 <mkl_pds_lp64_blkl_ll_real.extracted+0x1ef0>
+    0.00 :   da2e13:        jmp     0xda2c60 <mkl_pds_lp64_blkl_ll_real.extracted+0x1d90>
+    0.00 :   da2e18:        testq   %rax, %rax
+    0.00 :   da2e1b:        movq    0xb8(%rsp), %r11
+    0.00 :   da2e23:        je      0xda2e33 <mkl_pds_lp64_blkl_ll_real.extracted+0x1f63>
+    0.00 :   da2e25:        movq    0x608(%rsp), %rax
+    0.00 :   da2e2d:        movl    $0xffffffff, (%rax)
+    0.00 :   da2e33:        cmpq    $0x1, 0x680(%rsp)
+    0.00 :   da2e3c:        jne     0xda4700 <mkl_pds_lp64_blkl_ll_real.extracted+0x3830>
+    0.00 :   da2e42:        cmpb    $0x0, 0x3f(%rsp)
+    0.00 :   da2e47:        je      0xda44fd <mkl_pds_lp64_blkl_ll_real.extracted+0x362d>
+    0.00 :   da2e4d:        cmpq    $0x0, 0x58(%rsp)
+    0.00 :   da2e53:        jle     0xda4700 <mkl_pds_lp64_blkl_ll_real.extracted+0x3830>
+    0.00 :   da2e59:        movq    0x58(%rsp), %rax
+    0.00 :   da2e5e:        cmpq    $0x2, %rax
+    0.00 :   da2e62:        movl    $0x1, %ecx
+    0.00 :   da2e67:        cmovgeq %rax, %rcx
+    0.00 :   da2e6b:        movq    %rcx, 0x40(%rsp)
+    0.00 :   da2e70:        shrq    $0x3, %rcx
+    0.00 :   da2e74:        movq    %rcx, 0x30(%rsp)
+    0.00 :   da2e79:        movq    0x60(%rsp), %r8
+    0.00 :   da2e7e:        movq    0x138(%rsp), %rdx
+    0.00 :   da2e86:        je      0xda2fde <mkl_pds_lp64_blkl_ll_real.extracted+0x210e>
+    0.00 :   da2e8c:        movq    0xc8(%rsp), %rsi
+    0.00 :   da2e94:        leaq    0x1(%rsi), %r10
+    0.00 :   da2e98:        leaq    0x8(,%rsi,8), %rax
+    0.00 :   da2ea0:        movq    %rax, 0x8(%rsp)
+    0.00 :   da2ea5:        movq    0xa0(%rsp), %r9
+    0.00 :   da2ead:        leaq    0x1(%r9,%rsi,2), %rax
+    0.00 :   da2eb2:        movq    %rax, 0x50(%rsp)
+    0.00 :   da2eb7:        leaq    (%rsi,%rsi,2), %rax
+    0.00 :   da2ebb:        leaq    0x2(%r9,%rax), %rcx
+    0.00 :   da2ec0:        movq    %rcx, 0x18(%rsp)
+    0.00 :   da2ec5:        leaq    0x3(%r9,%rsi,4), %rcx
+    0.00 :   da2eca:        movq    %rcx, 0x10(%rsp)
+    0.00 :   da2ecf:        leaq    (%rsi,%rsi,4), %rcx
+    0.00 :   da2ed3:        leaq    0x4(%r9,%rcx), %rcx
+    0.00 :   da2ed8:        movq    %rcx, 0x20(%rsp)
+    0.00 :   da2edd:        leaq    (%r9,%rax,2), %r11
+    0.00 :   da2ee1:        addq    $0x5, %r11
+    0.00 :   da2ee5:        leaq    (%r9,%rsi,8), %rbx
+    0.00 :   da2ee9:        subq    %rsi, %rbx
+    0.00 :   da2eec:        addq    $0x6, %rbx
+    0.00 :   da2ef0:        movq    0x208(%rsp), %rax
+    0.00 :   da2ef8:        movq    0x28(%rsp), %rcx
+    0.00 :   da2efd:        leaq    (%rax,%rcx,8), %rcx
+    0.00 :   da2f01:        movq    0x30(%rsp), %rdi
+    0.00 :   da2f06:        negq    %rdi
+    0.00 :   da2f09:        movq    0x118(%rsp), %rax
+    0.00 :   da2f11:        leaq    (%rax,%r9,8), %rsi
+    0.00 :   da2f15:        shlq    $0x6, %r10
+    0.00 :   da2f19:        xorl    %r9d, %r9d
+    0.00 :   da2f1c:        nopl    (%rax)
+    0.00 :   da2f20:        movq    0x8(%rsp), %rax
+    0.00 :   da2f25:        imulq   %r9, %rax
+    0.00 :   da2f29:        movsd   (%rsi), %xmm0
+    0.00 :   da2f2d:        mulsd   %xmm0, %xmm0
+    0.00 :   da2f31:        movsd   %xmm0, -0x8(%rcx)
+    0.00 :   da2f36:        leaq    (%rdx,%rax), %r13
+    0.00 :   da2f3a:        movsd   (%r8,%r13,8), %xmm0
+    0.00 :   da2f40:        mulsd   %xmm0, %xmm0
+    0.00 :   da2f44:        movsd   %xmm0, (%rcx)
+    0.00 :   da2f48:        movq    0x50(%rsp), %r13
+    0.00 :   da2f4d:        addq    %rax, %r13
+    0.00 :   da2f50:        movsd   (%r8,%r13,8), %xmm0
+    0.00 :   da2f56:        mulsd   %xmm0, %xmm0
+    0.00 :   da2f5a:        movsd   %xmm0, 0x8(%rcx)
+    0.00 :   da2f5f:        movq    0x18(%rsp), %r13
+    0.00 :   da2f64:        leaq    (%rax,%r13), %r13
+    0.00 :   da2f68:        movsd   (%r8,%r13,8), %xmm0
+    0.00 :   da2f6e:        mulsd   %xmm0, %xmm0
+    0.00 :   da2f72:        movsd   %xmm0, 0x10(%rcx)
+    0.00 :   da2f77:        movq    0x10(%rsp), %r13
+    0.00 :   da2f7c:        leaq    (%rax,%r13), %r13
+    0.00 :   da2f80:        movsd   (%r8,%r13,8), %xmm0
+    0.00 :   da2f86:        mulsd   %xmm0, %xmm0
+    0.00 :   da2f8a:        movsd   %xmm0, 0x18(%rcx)
+    0.00 :   da2f8f:        movq    0x20(%rsp), %r13
+    0.00 :   da2f94:        addq    %rax, %r13
+    0.00 :   da2f97:        movsd   (%r8,%r13,8), %xmm0
+    0.00 :   da2f9d:        mulsd   %xmm0, %xmm0
+    0.00 :   da2fa1:        movsd   %xmm0, 0x20(%rcx)
+    0.00 :   da2fa6:        leaq    (%rax,%r11), %r13
+    0.00 :   da2faa:        movsd   (%r8,%r13,8), %xmm0
+    0.00 :   da2fb0:        mulsd   %xmm0, %xmm0
+    0.00 :   da2fb4:        movsd   %xmm0, 0x28(%rcx)
+    0.00 :   da2fb9:        addq    %rbx, %rax
+    0.00 :   da2fbc:        movsd   (%r8,%rax,8), %xmm0
+    0.00 :   da2fc2:        mulsd   %xmm0, %xmm0
+    0.00 :   da2fc6:        movsd   %xmm0, 0x30(%rcx)
+    0.00 :   da2fcb:        incq    %r9
+    0.00 :   da2fce:        addq    $0x40, %rcx
+    0.00 :   da2fd2:        addq    %r10, %rsi
+    0.00 :   da2fd5:        incq    %rdi
+    0.00 :   da2fd8:        jne     0xda2f20 <mkl_pds_lp64_blkl_ll_real.extracted+0x2050>
+    0.00 :   da2fde:        movq    0x40(%rsp), %r8
+    0.00 :   da2fe3:        movq    %r8, %rax
+    0.00 :   da2fe6:        movabsq $0x7ffffffffffffff8, %rcx
+    0.00 :   da2ff0:        andq    %rcx, %rax
+    0.00 :   da2ff3:        cmpq    %r8, %rax
+    0.00 :   da2ff6:        movq    0xb8(%rsp), %r11
+    0.00 :   da2ffe:        je      0xda4700 <mkl_pds_lp64_blkl_ll_real.extracted+0x3830>
+    0.00 :   da3004:        movq    0xc8(%rsp), %rsi
+    0.00 :   da300c:        leaq    0x1(%rsi), %rdx
+    0.00 :   da3010:        movq    0x270(%rsp), %rcx
+    0.00 :   da3018:        movq    0x28(%rsp), %rdi
+    0.00 :   da301d:        leaq    (%rcx,%rdi,8), %rcx
+    0.00 :   da3021:        movq    0x30(%rsp), %rdi
+    0.00 :   da3026:        imulq   %rdx, %rdi
+    0.00 :   da302a:        shlq    $0x6, %rdi
+    0.00 :   da302e:        movq    0xa0(%rsp), %rdx
+    0.00 :   da3036:        leaq    (%rdi,%rdx,8), %rdx
+    0.00 :   da303a:        addq    0x118(%rsp), %rdx
+    0.00 :   da3042:        leaq    0x8(,%rsi,8), %rsi
+    0.00 :   da304a:        nopw    (%rax,%rax)
+    0.00 :   da3050:        movsd   (%rdx), %xmm0
+    0.00 :   da3054:        mulsd   %xmm0, %xmm0
+    0.00 :   da3058:        movsd   %xmm0, (%rcx,%rax,8)
+    0.00 :   da305d:        incq    %rax
+    0.00 :   da3060:        addq    %rsi, %rdx
+    0.00 :   da3063:        cmpq    %rax, %r8
+    0.00 :   da3066:        jne     0xda3050 <mkl_pds_lp64_blkl_ll_real.extracted+0x2180>
+    0.00 :   da3068:        jmp     0xda4700 <mkl_pds_lp64_blkl_ll_real.extracted+0x3830>
+    0.00 :   da306d:        cmpq    0x58(%rsp), %r13
+    0.00 :   da3072:        movq    0xb8(%rsp), %r11
+    0.00 :   da307a:        jle     0xda4700 <mkl_pds_lp64_blkl_ll_real.extracted+0x3830>
+    0.00 :   da3080:        movslq  0x58(%rsp), %rax
+    0.00 :   da3085:        cmpq    %rax, 0xc8(%rsp)
+    0.00 :   da308d:        jle     0xda4700 <mkl_pds_lp64_blkl_ll_real.extracted+0x3830>
+    0.00 :   da3093:        movq    0x58(%rsp), %rax
+    0.00 :   da3098:        decq    %rax
+    0.00 :   da309b:        movq    %rax, 0x18(%rsp)
+    0.00 :   da30a0:        movq    0x50(%rsp), %rax
+    0.00 :   da30a5:        subl    0x28(%rsp), %eax
+    0.00 :   da30a9:        imull   %ebp, %eax
+    0.00 :   da30ac:        cltq
+    0.00 :   da30ae:        movq    0xa0(%rsp), %rcx
+    0.00 :   da30b6:        addq    %rax, %rcx
+    0.00 :   da30b9:        movq    0x138(%rsp), %rdx
+    0.00 :   da30c1:        subq    %rcx, %rdx
+    0.00 :   da30c4:        movq    0x210(%rsp), %rcx
+    0.00 :   da30cc:        movq    %rdx, %rsi
+    0.00 :   da30cf:        shrq    $0x3, %rsi
+    0.00 :   da30d3:        movq    0x20(%rsp), %rdi
+    0.00 :   da30d8:        imull   0x74(%rsp), %edi
+    0.00 :   da30dd:        movq    %rsi, 0x50(%rsp)
+    0.00 :   da30e2:        decq    %rsi
+    0.00 :   da30e5:        movq    %rdi, 0x20(%rsp)
+    0.00 :   da30ea:        movd    %edi, %xmm0
+    0.00 :   da30ee:        pshufd  $0x0, %xmm0, %xmm0
+    0.00 :   da30f3:        addq    %rax, %rcx
+    0.00 :   da30f6:        movq    %rdx, 0x138(%rsp)
+    0.00 :   da30fe:        movq    %rdx, %rbx
+    0.00 :   da3101:        andq    $-0x8, %rbx
+    0.00 :   da3105:        movq    0x160(%rsp), %rax
+    0.00 :   da310d:        leaq    (%rax,%rcx,4), %rax
+    0.00 :   da3111:        movq    %rax, 0x28(%rsp)
+    0.00 :   da3116:        xorl    %eax, %eax
+    0.00 :   da3118:        xorl    %r10d, %r10d
+    0.00 :   da311b:        movq    %rcx, %r9
+    0.00 :   da311e:        movq    %rbx, 0x10(%rsp)
+    0.00 :   da3123:        jmp     0xda3151 <mkl_pds_lp64_blkl_ll_real.extracted+0x2281>
+    0.00 :   da3125:        nopw    %cs:(%rax,%rax)
+    0.00 :   da3130:        movq    0x8(%rsp), %rax
+    0.00 :   da3135:        cltq
+    0.00 :   da3137:        addq    %r8, %rax
+    0.00 :   da313a:        cmpq    0x18(%rsp), %r10
+    0.00 :   da313f:        leaq    0x1(%r10), %r10
+    0.00 :   da3143:        movq    0xb8(%rsp), %r11
+    0.00 :   da314b:        je      0xda4700 <mkl_pds_lp64_blkl_ll_real.extracted+0x3830>
+    0.00 :   da3151:        movq    %rax, 0x8(%rsp)
+    0.00 :   da3156:        cmpq    $0x0, 0x50(%rsp)
+    0.00 :   da315c:        movq    0xc0(%rsp), %rdi
+    0.00 :   da3164:        movq    0x1f0(%rsp), %r8
+    0.00 :   da316c:        je      0xda328d <mkl_pds_lp64_blkl_ll_real.extracted+0x23bd>
+    0.00 :   da3172:        movq    %r11, %rdx
+    0.00 :   da3175:        movl    0x74(%rsp), %r11d
+    0.00 :   da317a:        imull   %r10d, %r11d
+    0.00 :   da317e:        movslq  0x8(%rsp), %rax
+    0.00 :   da3183:        movd    %r11d, %xmm1
+    0.00 :   da3188:        pshufd  $0x0, %xmm1, %xmm1
+    0.00 :   da318d:        paddd   %xmm0, %xmm1
+    0.00 :   da3191:        addq    0x110(%rsp), %rax
+    0.00 :   da3199:        xorl    %r11d, %r11d
+    0.00 :   da319c:        nopl    (%rax)
+    0.00 :   da31a0:        leaq    (%rcx,%r11,8), %r13
+    0.00 :   da31a4:        leaq    (%rax,%r11,8), %rbx
+    0.00 :   da31a8:        leaq    (%rdi,%rbx,8), %rbx
+    0.00 :   da31ac:        addq    $-0x8, %rbx
+    0.00 :   da31b0:        movsd   (%rbx), %xmm2
+    0.00 :   da31b4:        movsd   0x8(%rbx), %xmm3
+    0.00 :   da31b9:        movsd   0x10(%rbx), %xmm4
+    0.00 :   da31be:        movdqu  -0x4(%rdx,%r13,4), %xmm5
+    0.00 :   da31c5:        psubd   %xmm10, %xmm5
+    0.00 :   da31ca:        paddd   %xmm1, %xmm5
+    0.00 :   da31ce:        movd    %xmm5, %ecx
+    0.00 :   da31d2:        movslq  %ecx, %rcx
+    0.00 :   da31d5:        movsd   %xmm2, (%r8,%rcx,8)
+    0.00 :   da31db:        pshufd  $0x55, %xmm5, %xmm2
+    0.00 :   da31e0:        movd    %xmm2, %ecx
+    0.00 :   da31e4:        movslq  %ecx, %rcx
+    0.00 :   da31e7:        movsd   %xmm3, (%r8,%rcx,8)
+    0.00 :   da31ed:        pshufd  $0xee, %xmm5, %xmm2
+    0.00 :   da31f2:        movd    %xmm2, %ecx
+    0.00 :   da31f6:        movslq  %ecx, %rcx
+    0.00 :   da31f9:        movsd   %xmm4, (%r8,%rcx,8)
+    0.00 :   da31ff:        pshufd  $0xff, %xmm5, %xmm2
+    0.00 :   da3204:        movd    %xmm2, %ecx
+    0.00 :   da3208:        movslq  %ecx, %rcx
+    0.00 :   da320b:        movsd   0x18(%rbx), %xmm2
+    0.00 :   da3210:        movsd   %xmm2, (%r8,%rcx,8)
+    0.00 :   da3216:        movsd   0x20(%rbx), %xmm2
+    0.00 :   da321b:        movsd   0x28(%rbx), %xmm3
+    0.00 :   da3220:        movsd   0x30(%rbx), %xmm4
+    0.00 :   da3225:        movdqu  0xc(%rdx,%r13,4), %xmm5
+    0.00 :   da322c:        psubd   %xmm10, %xmm5
+    0.00 :   da3231:        paddd   %xmm1, %xmm5
+    0.00 :   da3235:        movd    %xmm5, %ecx
+    0.00 :   da3239:        movslq  %ecx, %rcx
+    0.00 :   da323c:        movsd   %xmm2, (%r8,%rcx,8)
+    0.00 :   da3242:        pshufd  $0x55, %xmm5, %xmm2
+    0.00 :   da3247:        movd    %xmm2, %ecx
+    0.00 :   da324b:        movslq  %ecx, %rcx
+    0.00 :   da324e:        movsd   %xmm3, (%r8,%rcx,8)
+    0.00 :   da3254:        pshufd  $0xee, %xmm5, %xmm2
+    0.00 :   da3259:        movd    %xmm2, %ecx
+    0.00 :   da325d:        movslq  %ecx, %rcx
+    0.00 :   da3260:        movsd   %xmm4, (%r8,%rcx,8)
+    0.00 :   da3266:        pshufd  $0xff, %xmm5, %xmm2
+    0.00 :   da326b:        movd    %xmm2, %ecx
+    0.00 :   da326f:        movslq  %ecx, %rcx
+    0.00 :   da3272:        movq    0x38(%rbx), %xmm2
+    0.00 :   da3277:        movq    %xmm2, (%r8,%rcx,8)
+    0.00 :   da327d:        movq    %r9, %rcx
+    0.00 :   da3280:        cmpq    %rsi, %r11
+    0.00 :   da3283:        leaq    0x1(%r11), %r11
+    0.00 :   da3287:        jne     0xda31a0 <mkl_pds_lp64_blkl_ll_real.extracted+0x22d0>
+    0.00 :   da328d:        movq    0x138(%rsp), %r8
+    0.00 :   da3295:        movq    0x10(%rsp), %rbx
+    0.00 :   da329a:        cmpq    %r8, %rbx
+    0.00 :   da329d:        je      0xda3130 <mkl_pds_lp64_blkl_ll_real.extracted+0x2260>
+    0.00 :   da32a3:        movl    0x74(%rsp), %eax
+    0.00 :   da32a7:        imull   %r10d, %eax
+    0.00 :   da32ab:        movq    0x8(%rsp), %rdx
+    0.00 :   da32b0:        movslq  %edx, %rdx
+    0.00 :   da32b3:        addl    0x20(%rsp), %eax
+    0.00 :   da32b7:        movq    0x110(%rsp), %rcx
+    0.00 :   da32bf:        movq    %rdx, 0x8(%rsp)
+    0.00 :   da32c4:        addq    %rdx, %rcx
+    0.00 :   da32c7:        movq    0x3c8(%rsp), %rdx
+    0.00 :   da32cf:        leaq    (%rdx,%rcx,8), %r11
+    0.00 :   da32d3:        movq    0x1f0(%rsp), %rdx
+    0.00 :   da32db:        movl    0xf8(%rsp), %edi
+    0.00 :   da32e2:        movq    0x28(%rsp), %r13
+    0.00 :   da32e7:        nopw    (%rax,%rax)
+    0.00 :   da32f0:        movl    (%r13,%rbx,4), %ecx
+    0.00 :   da32f5:        subl    %edi, %ecx
+    0.00 :   da32f7:        addl    %eax, %ecx
+    0.00 :   da32f9:        movslq  %ecx, %rcx
+    0.00 :   da32fc:        movq    (%r11,%rbx,8), %xmm1
+    0.00 :   da3302:        movq    %xmm1, (%rdx,%rcx,8)
+    0.00 :   da3307:        incq    %rbx
+    0.00 :   da330a:        cmpq    %rbx, %r8
+    0.00 :   da330d:        jne     0xda32f0 <mkl_pds_lp64_blkl_ll_real.extracted+0x2420>
+    0.00 :   da330f:        movq    %r9, %rcx
+    0.00 :   da3312:        movq    0x8(%rsp), %rax
+    0.00 :   da3317:        jmp     0xda3137 <mkl_pds_lp64_blkl_ll_real.extracted+0x2267>
+    0.00 :   da331c:        cmpq    $0x0, 0x58(%rsp)
+    0.00 :   da3322:        jle     0xda4700 <mkl_pds_lp64_blkl_ll_real.extracted+0x3830>
+    0.00 :   da3328:        movq    0xa0(%rsp), %rax
+    0.00 :   da3330:        movq    %rcx, %rdx
+    0.00 :   da3333:        movq    %rax, %rcx
+    0.00 :   da3336:        leaq    -0x1(%rax), %rdi
+    0.00 :   da333a:        movq    0x58(%rsp), %rax
+    0.00 :   da333f:        leaq    -0x1(%rax), %r9
+    0.00 :   da3343:        movl    0x74(%rsp), %eax
+    0.00 :   da3347:        imull   0x20(%rsp), %eax
+    0.00 :   da334c:        movl    %eax, 0x80(%rsp)
+    0.00 :   da3353:        leaq    (%r11,%rdx,4), %r8
+    0.00 :   da3357:        notq    %rcx
+    0.00 :   da335a:        addq    0x138(%rsp), %rcx
+    0.00 :   da3362:        movq    %rcx, 0x8(%rsp)
+    0.00 :   da3367:        xorl    %ebx, %ebx
+    0.00 :   da3369:        xorl    %eax, %eax
+    0.00 :   da336b:        movq    %rdi, 0x78(%rsp)
+    0.00 :   da3370:        movq    %r9, 0xd8(%rsp)
+    0.00 :   da3378:        jmp     0xda33c7 <mkl_pds_lp64_blkl_ll_real.extracted+0x24f7>
+    0.00 :   da337a:        nopw    (%rax,%rax)
+    0.00 :   da3380:        movq    0x40(%rsp), %r13
+    0.00 :   da3385:        addl    0x10(%rsp), %r13d
+    0.00 :   da338a:        movq    0xb8(%rsp), %r11
+    0.00 :   da3392:        movq    0x18(%rsp), %r10
+    0.00 :   da3397:        movq    0x78(%rsp), %rdi
+    0.00 :   da339c:        movq    0xd8(%rsp), %r9
+    0.00 :   da33a4:        movq    0x50(%rsp), %rbx
+    0.00 :   da33a9:        movq    0x30(%rsp), %rsi
+    0.00 :   da33ae:        leal    (%rsi,%r13), %eax
+    0.00 :   da33b2:        addq    $0x4, %r8
+    0.00 :   da33b6:        decq    0x8(%rsp)
+    0.00 :   da33bb:        cmpq    %r9, %rbx
+    0.00 :   da33be:        movq    %rsi, %rbx
+    0.00 :   da33c1:        je      0xda4700 <mkl_pds_lp64_blkl_ll_real.extracted+0x3830>
+    0.00 :   da33c7:        leaq    (%r10,%rbx), %rdx
+    0.00 :   da33cb:        movl    (%r11,%rdx,4), %esi
+    0.00 :   da33cf:        subl    0xf8(%rsp), %esi
+    0.00 :   da33d6:        imull   0x74(%rsp), %esi
+    0.00 :   da33db:        movq    0x20(%rsp), %rcx
+    0.00 :   da33e0:        leal    (%rcx,%rbx), %edx
+    0.00 :   da33e3:        addl    %edx, %esi
+    0.00 :   da33e5:        movslq  %esi, %rsi
+    0.00 :   da33e8:        movslq  %eax, %r13
+    0.00 :   da33eb:        leaq    (%rdi,%r13), %rax
+    0.00 :   da33ef:        movq    0x60(%rsp), %rcx
+    0.00 :   da33f4:        movq    (%rcx,%rax,8), %xmm0
+    0.00 :   da33f9:        movq    0x1f0(%rsp), %rcx
+    0.00 :   da3401:        movq    %xmm0, (%rcx,%rsi,8)
+    0.00 :   da3406:        incl    %r13d
+    0.00 :   da3409:        leaq    0x1(%rbx), %rsi
+    0.00 :   da340d:        movq    0xc8(%rsp), %rax
+    0.00 :   da3415:        cmpq    %rsi, %rax
+    0.00 :   da3418:        jle     0xda33ae <mkl_pds_lp64_blkl_ll_real.extracted+0x24de>
+    0.00 :   da341a:        movq    %rsi, 0x30(%rsp)
+    0.00 :   da341f:        movq    %rbx, 0x50(%rsp)
+    0.00 :   da3424:        notq    %rbx
+    0.00 :   da3427:        addq    %rax, %rbx
+    0.00 :   da342a:        movq    %r13, 0x40(%rsp)
+    0.00 :   da342f:        movslq  %r13d, %rax
+    0.00 :   da3432:        movq    %rax, 0x28(%rsp)
+    0.00 :   da3437:        movq    %rbx, 0x10(%rsp)
+    0.00 :   da343c:        testq   $-0x4, %rbx
+    0.00 :   da3443:        movl    0x74(%rsp), %r10d
+    0.00 :   da3448:        movl    0xf8(%rsp), %edi
+    0.00 :   da344f:        je      0xda3547 <mkl_pds_lp64_blkl_ll_real.extracted+0x2677>
+    0.00 :   da3455:        movq    0x8(%rsp), %r9
+    0.00 :   da345a:        shrq    $0x2, %r9
+    0.00 :   da345e:        movl    %r10d, %eax
+    0.00 :   da3461:        imull   0x50(%rsp), %eax
+    0.00 :   da3466:        addl    0x80(%rsp), %eax
+    0.00 :   da346d:        movq    0xa0(%rsp), %rsi
+    0.00 :   da3475:        movq    0x28(%rsp), %r11
+    0.00 :   da347a:        addq    %r11, %rsi
+    0.00 :   da347d:        movq    0x118(%rsp), %r11
+    0.00 :   da3485:        leaq    (%r11,%rsi,8), %r11
+    0.00 :   da3489:        movl    $0x8, %esi
+    0.00 :   da348e:        nop
+    0.00 :   da3490:        movsd   -0x10(%r11,%rsi,2), %xmm0
+    0.00 :   da3497:        movl    -0x8(%r8,%rsi), %r13d
+    0.00 :   da349c:        subl    %edi, %r13d
+    0.00 :   da349f:        movl    %r10d, %ebx
+    0.00 :   da34a2:        imull   %r13d, %ebx
+    0.00 :   da34a6:        addl    %edx, %ebx
+    0.00 :   da34a8:        movslq  %ebx, %rbx
+    0.00 :   da34ab:        movsd   %xmm0, (%rcx,%rbx,8)
+    0.00 :   da34b0:        addl    %eax, %r13d
+    0.00 :   da34b3:        movslq  %r13d, %rbx
+    0.00 :   da34b6:        movsd   %xmm0, (%rcx,%rbx,8)
+    0.00 :   da34bb:        movsd   -0x8(%r11,%rsi,2), %xmm0
+    0.00 :   da34c2:        movl    -0x4(%r8,%rsi), %ebx
+    0.00 :   da34c7:        subl    %edi, %ebx
+    0.00 :   da34c9:        movl    %r10d, %r13d
+    0.00 :   da34cc:        imull   %ebx, %r13d
+    0.00 :   da34d0:        addl    %edx, %r13d
+    0.00 :   da34d3:        movslq  %r13d, %r13
+    0.00 :   da34d6:        movsd   %xmm0, (%rcx,%r13,8)
+    0.00 :   da34dc:        addl    %eax, %ebx
+    0.00 :   da34de:        movslq  %ebx, %rbx
+    0.00 :   da34e1:        movsd   %xmm0, (%rcx,%rbx,8)
+    0.00 :   da34e6:        movsd   (%r11,%rsi,2), %xmm0
+    0.00 :   da34ec:        movl    (%r8,%rsi), %ebx
+    0.00 :   da34f0:        subl    %edi, %ebx
+    0.00 :   da34f2:        movl    %r10d, %r13d
+    0.00 :   da34f5:        imull   %ebx, %r13d
+    0.00 :   da34f9:        addl    %edx, %r13d
+    0.00 :   da34fc:        movslq  %r13d, %r13
+    0.00 :   da34ff:        movsd   %xmm0, (%rcx,%r13,8)
+    0.00 :   da3505:        addl    %eax, %ebx
+    0.00 :   da3507:        movslq  %ebx, %rbx
+    0.00 :   da350a:        movsd   %xmm0, (%rcx,%rbx,8)
+    0.00 :   da350f:        movq    0x8(%r11,%rsi,2), %xmm0
+    0.00 :   da3516:        movl    0x4(%r8,%rsi), %ebx
+    0.00 :   da351b:        subl    %edi, %ebx
+    0.00 :   da351d:        movl    %r10d, %r13d
+    0.00 :   da3520:        imull   %ebx, %r13d
+    0.00 :   da3524:        addl    %edx, %r13d
+    0.00 :   da3527:        movslq  %r13d, %r13
+    0.00 :   da352a:        movq    %xmm0, (%rcx,%r13,8)
+    0.00 :   da3530:        addl    %eax, %ebx
+    0.00 :   da3532:        movslq  %ebx, %rbx
+    0.00 :   da3535:        movq    %xmm0, (%rcx,%rbx,8)
+    0.00 :   da353a:        addq    $0x10, %rsi
+    0.00 :   da353e:        decq    %r9
+    0.00 :   da3541:        jne     0xda3490 <mkl_pds_lp64_blkl_ll_real.extracted+0x25c0>
+    0.00 :   da3547:        movq    0x10(%rsp), %rsi
+    0.00 :   da354c:        movq    %rsi, %rax
+    0.00 :   da354f:        andq    $-0x4, %rax
+    0.00 :   da3553:        cmpq    %rsi, %rax
+    0.00 :   da3556:        movq    0x8(%rsp), %r13
+    0.00 :   da355b:        je      0xda3380 <mkl_pds_lp64_blkl_ll_real.extracted+0x24b0>
+    0.00 :   da3561:        movl    %r10d, %esi
+    0.00 :   da3564:        imull   0x50(%rsp), %esi
+    0.00 :   da3569:        addl    0x80(%rsp), %esi
+    0.00 :   da3570:        movq    0x28(%rsp), %r11
+    0.00 :   da3575:        addq    0xa0(%rsp), %r11
+    0.00 :   da357d:        movq    0x118(%rsp), %r9
+    0.00 :   da3585:        leaq    (%r9,%r11,8), %r9
+    0.00 :   da3589:        nopl    (%rax)
+    0.00 :   da3590:        movq    (%r9,%rax,8), %xmm0
+    0.00 :   da3596:        movl    (%r8,%rax,4), %r11d
+    0.00 :   da359a:        subl    %edi, %r11d
+    0.00 :   da359d:        movl    %r10d, %ebx
+    0.00 :   da35a0:        imull   %r11d, %ebx
+    0.00 :   da35a4:        addl    %edx, %ebx
+    0.00 :   da35a6:        movslq  %ebx, %rbx
+    0.00 :   da35a9:        movq    %xmm0, (%rcx,%rbx,8)
+    0.00 :   da35ae:        addl    %esi, %r11d
+    0.00 :   da35b1:        movslq  %r11d, %r11
+    0.00 :   da35b4:        movq    %xmm0, (%rcx,%r11,8)
+    0.00 :   da35ba:        incq    %rax
+    0.00 :   da35bd:        cmpq    %rax, %r13
+    0.00 :   da35c0:        jne     0xda3590 <mkl_pds_lp64_blkl_ll_real.extracted+0x26c0>
+    0.00 :   da35c2:        jmp     0xda3380 <mkl_pds_lp64_blkl_ll_real.extracted+0x24b0>
+    0.00 :   da35c7:        cmpb    $0x0, 0x3e(%rsp)
+    0.00 :   da35cc:        je      0xda485c <mkl_pds_lp64_blkl_ll_real.extracted+0x398c>
+    0.00 :   da35d2:        movq    0x50(%rsp), %rax
+    0.00 :   da35d7:        cmpl    0x28(%rsp), %eax
+    0.00 :   da35db:        jle     0xda1ff6 <mkl_pds_lp64_blkl_ll_real.extracted+0x1126>
+    0.00 :   da35e1:        movq    0xa8(%rsp), %rax
+    0.00 :   da35e9:        movq    0x28(%rsp), %rcx
+    0.00 :   da35ee:        movl    -0x4(%rax,%rcx,4), %edi
+    0.00 :   da35f2:        notq    %rcx
+    0.00 :   da35f5:        addq    0x50(%rsp), %rcx
+    0.00 :   da35fa:        movq    %rcx, 0x8(%rsp)
+    0.00 :   da35ff:        xorl    %ecx, %ecx
+    0.00 :   da3601:        jmp     0xda3621 <mkl_pds_lp64_blkl_ll_real.extracted+0x2751>
+    0.00 :   da3603:        nopw    %cs:(%rax,%rax)
+    0.00 :   da3610:        movl    %edx, %edi
+    0.00 :   da3612:        cmpq    0x8(%rsp), %rcx
+    0.00 :   da3617:        leaq    0x1(%rcx), %rcx
+    0.00 :   da361b:        je      0xda1ff6 <mkl_pds_lp64_blkl_ll_real.extracted+0x1126>
+    0.00 :   da3621:        movq    0x28(%rsp), %rax
+    0.00 :   da3626:        leaq    (%rcx,%rax), %rdx
+    0.00 :   da362a:        movq    0xa8(%rsp), %rsi
+    0.00 :   da3632:        movl    (%rsi,%rdx,4), %edx
+    0.00 :   da3635:        cmpl    %edx, %edi
+    0.00 :   da3637:        jge     0xda3610 <mkl_pds_lp64_blkl_ll_real.extracted+0x2740>
+    0.00 :   da3639:        movslq  %edx, %rsi
+    0.00 :   da363c:        movslq  %edi, %rdi
+    0.00 :   da363f:        movq    0x1c8(%rsp), %rax
+    0.00 :   da3647:        leaq    (%rax,%rcx), %r8
+    0.00 :   da364b:        jmp     0xda367d <mkl_pds_lp64_blkl_ll_real.extracted+0x27ad>
+    0.00 :   da364d:        nopl    (%rax)
+    0.00 :   da3650:        movq    0x230(%rsp), %r10
+    0.00 :   da3658:        movslq  (%r10,%r8,4), %r10
+    0.00 :   da365c:        mulsd   %xmm1, %xmm0
+    0.00 :   da3660:        mulsd   -0x8(%rax,%r10,8), %xmm0
+    0.00 :   da3667:        notq    %r9
+    0.00 :   da366a:        movq    0x60(%rsp), %r10
+    0.00 :   da366f:        movsd   %xmm0, (%r10,%r9,8)
+    0.00 :   da3675:        incq    %rdi
+    0.00 :   da3678:        cmpq    %rdi, %rsi
+    0.00 :   da367b:        je      0xda3610 <mkl_pds_lp64_blkl_ll_real.extracted+0x2740>
+    0.00 :   da367d:        movq    0x238(%rsp), %rax
+    0.00 :   da3685:        movslq  -0x4(%rax,%rdi,4), %r9
+    0.00 :   da368a:        movq    0x300(%rsp), %rax
+    0.00 :   da3692:        movsd   -0x8(%rax,%r9,8), %xmm1
+    0.00 :   da3699:        movq    0x120(%rsp), %r9
+    0.00 :   da36a1:        movq    -0x8(%r9,%rdi,8), %r9
+    0.00 :   da36a6:        movq    0xe8(%rsp), %r10
+    0.00 :   da36ae:        movslq  -0x4(%r10,%rdi,4), %r10
+    0.00 :   da36b3:        movsd   -0x8(%rbx,%r10,8), %xmm0
+    0.00 :   da36ba:        testq   %r9, %r9
+    0.00 :   da36bd:        jle     0xda3650 <mkl_pds_lp64_blkl_ll_real.extracted+0x2780>
+    0.00 :   da36bf:        movq    0x240(%rsp), %r11
+    0.00 :   da36c7:        movslq  -0x4(%r11,%r10,4), %r10
+    0.00 :   da36cc:        mulsd   %xmm1, %xmm0
+    0.00 :   da36d0:        mulsd   -0x8(%rax,%r10,8), %xmm0
+    0.00 :   da36d7:        decq    %r9
+    0.00 :   da36da:        jmp     0xda366a <mkl_pds_lp64_blkl_ll_real.extracted+0x279a>
+    0.00 :   da36dc:        movq    0x50(%rsp), %rax
+    0.00 :   da36e1:        cmpl    0x28(%rsp), %eax
+    0.00 :   da36e5:        jle     0xda1ff6 <mkl_pds_lp64_blkl_ll_real.extracted+0x1126>
+    0.00 :   da36eb:        movq    0xa8(%rsp), %rax
+    0.00 :   da36f3:        movq    0x200(%rsp), %rcx
+    0.00 :   da36fb:        movslq  (%rax,%rcx,4), %rcx
+    0.00 :   da36ff:        leaq    -0x2(%rcx), %rax
+    0.00 :   da3703:        movq    %rax, 0xb0(%rsp)
+    0.00 :   da370b:        movq    0xe8(%rsp), %rax
+    0.00 :   da3713:        movq    %rcx, 0x388(%rsp)
+    0.00 :   da371b:        leaq    (%rax,%rcx,4), %rax
+    0.00 :   da371f:        movq    %rax, 0x398(%rsp)
+    0.00 :   da3727:        movq    0x28(%rsp), %rdx
+    0.00 :   da372c:        jmp     0xda3746 <mkl_pds_lp64_blkl_ll_real.extracted+0x2876>
+    0.00 :   da372e:        nop
+    0.00 :   da3730:        movq    0x148(%rsp), %rdx
+    0.00 :   da3738:        incq    %rdx
+    0.00 :   da373b:        cmpq    0x50(%rsp), %rdx
+    0.00 :   da3740:        je      0xda1ff6 <mkl_pds_lp64_blkl_ll_real.extracted+0x1126>
+    0.00 :   da3746:        movq    0xa8(%rsp), %rax
+    0.00 :   da374e:        movslq  -0x4(%rax,%rdx,4), %rsi
+    0.00 :   da3753:        movslq  (%rax,%rdx,4), %rcx
+    0.00 :   da3757:        cmpl    %ecx, %esi
+    0.00 :   da3759:        movq    %rdx, 0x148(%rsp)
+    0.00 :   da3761:        jge     0xda3e70 <mkl_pds_lp64_blkl_ll_real.extracted+0x2fa0>
+    0.00 :   da3767:        movq    %rsi, %r13
+    0.00 :   da376a:        cmpl    $0x2, %ebp
+    0.00 :   da376d:        jl      0xda3ea0 <mkl_pds_lp64_blkl_ll_real.extracted+0x2fd0>
+    0.00 :   da3773:        movq    0x100(%rsp), %rax
+    0.00 :   da377b:        movq    -0x8(%rax,%rdx,8), %rsi
+    0.00 :   da3780:        movq    (%rax,%rdx,8), %rdx
+    0.00 :   da3784:        leaq    -0x1(%rsi), %rdi
+    0.00 :   da3788:        movq    %rdi, %rax
+    0.00 :   da378b:        imulq   0x90(%rsp), %rax
+    0.00 :   da3794:        movq    %rax, 0x30(%rsp)
+    0.00 :   da3799:        movq    %r13, %rax
+    0.00 :   da379c:        notq    %rax
+    0.00 :   da379f:        addq    %rcx, %rax
+    0.00 :   da37a2:        movq    %rax, 0x40(%rsp)
+    0.00 :   da37a7:        decq    %r13
+    0.00 :   da37aa:        movq    %r13, 0x18(%rsp)
+    0.00 :   da37af:        movq    %rsi, 0x10(%rsp)
+    0.00 :   da37b4:        subq    %rsi, %rdx
+    0.00 :   da37b7:        movq    %r15, %rax
+    0.00 :   da37ba:        imulq   %rdx, %rax
+    0.00 :   da37be:        movq    %rax, 0x8(%rsp)
+    0.00 :   da37c3:        imulq   %rbp, %rdx
+    0.00 :   da37c7:        movq    %rdx, %rax
+    0.00 :   da37ca:        sarq    $0x3f, %rax
+    0.00 :   da37ce:        andq    %rdx, %rax
+    0.00 :   da37d1:        movq    %rax, 0x80(%rsp)
+    0.00 :   da37d9:        imulq   %rbp, %rax
+    0.00 :   da37dd:        movq    %rax, 0x78(%rsp)
+    0.00 :   da37e2:        testq   %rdx, %rdx
+    0.00 :   da37e5:        movl    $0x0, %eax
+    0.00 :   da37ea:        cmovleq %rax, %rdx
+    0.00 :   da37ee:        movq    %rdx, 0x20(%rsp)
+    0.00 :   da37f3:        imulq   %rbp, %rdx
+    0.00 :   da37f7:        decq    %rdx
+    0.00 :   da37fa:        movq    %rdx, 0xd8(%rsp)
+    0.00 :   da3802:        imulq   0x158(%rsp), %rdi
+    0.00 :   da380b:        movq    0x60(%rsp), %rax
+    0.00 :   da3810:        addq    %rdi, %rax
+    0.00 :   da3813:        movq    %rax, 0x48(%rsp)
+    0.00 :   da3818:        movq    0x288(%rsp), %rax
+    0.00 :   da3820:        addq    %rdi, %rax
+    0.00 :   da3823:        movq    %rax, 0xd0(%rsp)
+    0.00 :   da382b:        addq    0x390(%rsp), %rdi
+    0.00 :   da3833:        movq    %rdi, 0x2a0(%rsp)
+    0.00 :   da383b:        xorl    %r8d, %r8d
+    0.00 :   da383e:        jmp     0xda3857 <mkl_pds_lp64_blkl_ll_real.extracted+0x2987>
+    0.00 :   da3840:        cmpq    0x40(%rsp), %r8
+    0.00 :   da3845:        leaq    0x1(%r8), %r8
+    0.00 :   da3849:        movq    0x88(%rsp), %rbx
+    0.00 :   da3851:        je      0xda4100 <mkl_pds_lp64_blkl_ll_real.extracted+0x3230>
+    0.00 :   da3857:        movq    0x18(%rsp), %rax
+    0.00 :   da385c:        leaq    (%r8,%rax), %rsi
+    0.00 :   da3860:        movq    0x120(%rsp), %rax
+    0.00 :   da3868:        movq    (%rax,%rsi,8), %rdx
+    0.00 :   da386c:        testq   %rdx, %rdx
+    0.00 :   da386f:        jle     0xda3880 <mkl_pds_lp64_blkl_ll_real.extracted+0x29b0>
+    0.00 :   da3871:        movq    %rdx, %rax
+    0.00 :   da3874:        subq    0x10(%rsp), %rax
+    0.00 :   da3879:        imulq   %rbp, %rax
+    0.00 :   da387d:        jmp     0xda388f <mkl_pds_lp64_blkl_ll_real.extracted+0x29bf>
+    0.00 :   da387f:        nop
+    0.00 :   da3880:        movq    0x10(%rsp), %rax
+    0.00 :   da3885:        addq    %rdx, %rax
+    0.00 :   da3888:        imulq   %rbp, %rax
+    0.00 :   da388c:        negq    %rax
+    0.00 :   da388f:        movq    0xe8(%rsp), %rdi
+    0.00 :   da3897:        movl    (%rdi,%rsi,4), %esi
+    0.00 :   da389a:        decl    %esi
+    0.00 :   da389c:        imull   0x90(%rsp), %esi
+    0.00 :   da38a4:        movslq  %esi, %rsi
+    0.00 :   da38a7:        movq    0x408(%rsp), %rcx
+    0.00 :   da38af:        leaq    (%rsi,%rcx), %rdi
+    0.00 :   da38b3:        leaq    (%rbx,%rdi,8), %rdi
+    0.00 :   da38b7:        movq    0x30(%rsp), %rcx
+    0.00 :   da38bc:        leaq    (%rcx,%rax), %r9
+    0.00 :   da38c0:        movq    %r9, %r10
+    0.00 :   da38c3:        subq    0x80(%rsp), %r10
+    0.00 :   da38cb:        addq    0x78(%rsp), %r10
+    0.00 :   da38d0:        movq    0x60(%rsp), %r13
+    0.00 :   da38d5:        leaq    (,%r10,8), %r10
+    0.00 :   da38dd:        addq    %r13, %r10
+    0.00 :   da38e0:        cmpq    %r10, %rdi
+    0.00 :   da38e3:        setb    %r11b
+    0.00 :   da38e7:        addq    %rbp, %r9
+    0.00 :   da38ea:        subq    0x20(%rsp), %r9
+    0.00 :   da38ef:        addq    0xd8(%rsp), %r9
+    0.00 :   da38f7:        leaq    (,%r9,8), %rdi
+    0.00 :   da38ff:        addq    %r13, %rdi
+    0.00 :   da3902:        leaq    (%rbx,%rsi,8), %r10
+    0.00 :   da3906:        cmpq    %r10, %rdi
+    0.00 :   da3909:        setb    %dil
+    0.00 :   da390d:        orb     %r11b, %dil
+    0.00 :   da3910:        cmpl    $0x0, 0x134(%rsp)
+    0.00 :   da3918:        je      0xda3a50 <mkl_pds_lp64_blkl_ll_real.extracted+0x2b80>
+    0.00 :   da391e:        testq   %rdx, %rdx
+    0.00 :   da3921:        jle     0xda3b30 <mkl_pds_lp64_blkl_ll_real.extracted+0x2c60>
+    0.00 :   da3927:        testb   %dil, %dil
+    0.00 :   da392a:        je      0xda3c07 <mkl_pds_lp64_blkl_ll_real.extracted+0x2d37>
+    0.00 :   da3930:        movq    0x2a0(%rsp), %rcx
+    0.00 :   da3938:        leaq    (%rcx,%rax,8), %rbx
+    0.00 :   da393c:        movq    0xd0(%rsp), %rcx
+    0.00 :   da3944:        leaq    (%rcx,%rax,8), %rdx
+    0.00 :   da3948:        movq    0x218(%rsp), %rax
+    0.00 :   da3950:        leaq    (%rax,%rsi,8), %rax
+    0.00 :   da3954:        xorl    %esi, %esi
+    0.00 :   da3956:        jmp     0xda3980 <mkl_pds_lp64_blkl_ll_real.extracted+0x2ab0>
+    0.00 :   da3958:        nopl    (%rax,%rax)
+    0.00 :   da3960:        movq    0x8(%rsp), %rcx
+    0.00 :   da3965:        addq    %rcx, %rbx
+    0.00 :   da3968:        addq    $0x8, %r10
+    0.00 :   da396c:        addq    %rcx, %rdx
+    0.00 :   da396f:        addq    $0x8, %rax
+    0.00 :   da3973:        cmpq    %r12, %rsi
+    0.00 :   da3976:        leaq    0x1(%rsi), %rsi
+    0.00 :   da397a:        je      0xda3840 <mkl_pds_lp64_blkl_ll_real.extracted+0x2970>
+    0.00 :   da3980:        cmpq    $0x0, 0x68(%rsp)
+    0.00 :   da3986:        movq    0x250(%rsp), %rcx
+    0.00 :   da398e:        je      0xda3a1d <mkl_pds_lp64_blkl_ll_real.extracted+0x2b4d>
+    0.00 :   da3994:        movq    %r10, %r11
+    0.00 :   da3997:        movq    0x68(%rsp), %rdi
+    0.00 :   da399c:        movq    %rbx, %r9
+    0.00 :   da399f:        nop
+    0.00 :   da39a0:        movsd   (%r11), %xmm0
+    0.00 :   da39a5:        movsd   %xmm0, -0x38(%r9)
+    0.00 :   da39ab:        leaq    (%r11,%r15), %r13
+    0.00 :   da39af:        movsd   (%r11,%r15), %xmm0
+    0.00 :   da39b5:        movsd   %xmm0, -0x30(%r9)
+    0.00 :   da39bb:        movsd   (%r15,%r13), %xmm0
+    0.00 :   da39c1:        addq    %r15, %r13
+    0.00 :   da39c4:        movsd   %xmm0, -0x28(%r9)
+    0.00 :   da39ca:        movsd   (%r15,%r13), %xmm0
+    0.00 :   da39d0:        addq    %r15, %r13
+    0.00 :   da39d3:        movsd   %xmm0, -0x20(%r9)
+    0.00 :   da39d9:        movsd   (%r15,%r13), %xmm0
+    0.00 :   da39df:        addq    %r15, %r13
+    0.00 :   da39e2:        movsd   %xmm0, -0x18(%r9)
+    0.00 :   da39e8:        movsd   (%r15,%r13), %xmm0
+    0.00 :   da39ee:        addq    %r15, %r13
+    0.00 :   da39f1:        movsd   %xmm0, -0x10(%r9)
+    0.00 :   da39f7:        movsd   (%r15,%r13), %xmm0
+    0.00 :   da39fd:        addq    %r15, %r13
+    0.00 :   da3a00:        movsd   %xmm0, -0x8(%r9)
+    0.00 :   da3a06:        movq    (%r15,%r13), %xmm0
+    0.00 :   da3a0c:        movq    %xmm0, (%r9)
+    0.00 :   da3a11:        addq    $0x40, %r9
+    0.00 :   da3a15:        addq    %rcx, %r11
+    0.00 :   da3a18:        decq    %rdi
+    0.00 :   da3a1b:        jne     0xda39a0 <mkl_pds_lp64_blkl_ll_real.extracted+0x2ad0>
+    0.00 :   da3a1d:        cmpl    %ebp, 0x108(%rsp)
+    0.00 :   da3a24:        je      0xda3960 <mkl_pds_lp64_blkl_ll_real.extracted+0x2a90>
+    0.00 :   da3a2a:        movq    %rax, %rdi
+    0.00 :   da3a2d:        xorl    %r9d, %r9d
+    0.00 :   da3a30:        movq    (%rdi), %xmm0
+    0.00 :   da3a34:        movq    %xmm0, (%rdx,%r9,8)
+    0.00 :   da3a3a:        incq    %r9
+    0.00 :   da3a3d:        addq    %r15, %rdi
+    0.00 :   da3a40:        cmpq    %r9, %r14
+    0.00 :   da3a43:        jne     0xda3a30 <mkl_pds_lp64_blkl_ll_real.extracted+0x2b60>
+    0.00 :   da3a45:        jmp     0xda3960 <mkl_pds_lp64_blkl_ll_real.extracted+0x2a90>
+    0.00 :   da3a4a:        nopw    (%rax,%rax)
+    0.00 :   da3a50:        testq   %rdx, %rdx
+    0.00 :   da3a53:        jle     0xda3c59 <mkl_pds_lp64_blkl_ll_real.extracted+0x2d89>
+    0.00 :   da3a59:        testb   %dil, %dil
+    0.00 :   da3a5c:        je      0xda3d7a <mkl_pds_lp64_blkl_ll_real.extracted+0x2eaa>
+    0.00 :   da3a62:        movq    0x48(%rsp), %rcx
+    0.00 :   da3a67:        leaq    (%rcx,%rax,8), %rdx
+    0.00 :   da3a6b:        movq    0x190(%rsp), %rcx
+    0.00 :   da3a73:        leaq    (%rcx,%rsi,8), %rsi
+    0.00 :   da3a77:        movq    0xd0(%rsp), %rcx
+    0.00 :   da3a7f:        leaq    (%rcx,%rax,8), %rax
+    0.00 :   da3a83:        xorl    %ebx, %ebx
+    0.00 :   da3a85:        movq    0x8(%rsp), %rcx
+    0.00 :   da3a8a:        jmp     0xda3aa9 <mkl_pds_lp64_blkl_ll_real.extracted+0x2bd9>
+    0.00 :   da3a8c:        nopl    (%rax)
+    0.00 :   da3a90:        addq    %rcx, %rdx
+    0.00 :   da3a93:        addq    %r15, %r10
+    0.00 :   da3a96:        addq    %r15, %rsi
+    0.00 :   da3a99:        addq    %rcx, %rax
+    0.00 :   da3a9c:        cmpq    %r12, %rbx
+    0.00 :   da3a9f:        leaq    0x1(%rbx), %rbx
+    0.00 :   da3aa3:        je      0xda3840 <mkl_pds_lp64_blkl_ll_real.extracted+0x2970>
+    0.00 :   da3aa9:        cmpq    $0x0, 0x68(%rsp)
+    0.00 :   da3aaf:        je      0xda3b02 <mkl_pds_lp64_blkl_ll_real.extracted+0x2c32>
+    0.00 :   da3ab1:        movl    $0x38, %edi
+    0.00 :   da3ab6:        movq    0x68(%rsp), %r9
+    0.00 :   da3abb:        nopl    (%rax,%rax)
+    0.00 :   da3ac0:        movsd   -0x38(%r10,%rdi), %xmm0
+    0.00 :   da3ac7:        movsd   %xmm0, -0x38(%rdx,%rdi)
+    0.00 :   da3acd:        movups  -0x30(%r10,%rdi), %xmm0
+    0.00 :   da3ad3:        movups  %xmm0, -0x30(%rdx,%rdi)
+    0.00 :   da3ad8:        movups  -0x20(%r10,%rdi), %xmm0
+    0.00 :   da3ade:        movups  %xmm0, -0x20(%rdx,%rdi)
+    0.00 :   da3ae3:        movups  -0x10(%r10,%rdi), %xmm0
+    0.00 :   da3ae9:        movups  %xmm0, -0x10(%rdx,%rdi)
+    0.00 :   da3aee:        movq    (%r10,%rdi), %xmm0
+    0.00 :   da3af4:        movq    %xmm0, (%rdx,%rdi)
+    0.00 :   da3af9:        addq    $0x40, %rdi
+    0.00 :   da3afd:        decq    %r9
+    0.00 :   da3b00:        jne     0xda3ac0 <mkl_pds_lp64_blkl_ll_real.extracted+0x2bf0>
+    0.00 :   da3b02:        cmpl    %ebp, 0x108(%rsp)
+    0.00 :   da3b09:        je      0xda3a90 <mkl_pds_lp64_blkl_ll_real.extracted+0x2bc0>
+    0.00 :   da3b0b:        xorl    %edi, %edi
+    0.00 :   da3b0d:        nopl    (%rax)
+    0.00 :   da3b10:        movq    (%rsi,%rdi,8), %xmm0
+    0.00 :   da3b15:        movq    %xmm0, (%rax,%rdi,8)
+    0.00 :   da3b1a:        incq    %rdi
+    0.00 :   da3b1d:        cmpq    %rdi, %r14
+    0.00 :   da3b20:        jne     0xda3b10 <mkl_pds_lp64_blkl_ll_real.extracted+0x2c40>
+    0.00 :   da3b22:        jmp     0xda3a90 <mkl_pds_lp64_blkl_ll_real.extracted+0x2bc0>
+    0.00 :   da3b27:        nopw    (%rax,%rax)
+    0.00 :   da3b30:        testb   %dil, %dil
+    0.00 :   da3b33:        je      0xda3dc7 <mkl_pds_lp64_blkl_ll_real.extracted+0x2ef7>
+    0.00 :   da3b39:        movq    0x48(%rsp), %rcx
+    0.00 :   da3b3e:        leaq    (%rcx,%rax,8), %rdx
+    0.00 :   da3b42:        movq    0x190(%rsp), %rcx
+    0.00 :   da3b4a:        leaq    (%rcx,%rsi,8), %rsi
+    0.00 :   da3b4e:        movq    0xd0(%rsp), %rcx
+    0.00 :   da3b56:        leaq    (%rcx,%rax,8), %rax
+    0.00 :   da3b5a:        xorl    %ebx, %ebx
+    0.00 :   da3b5c:        movq    0x8(%rsp), %rcx
+    0.00 :   da3b61:        jmp     0xda3b89 <mkl_pds_lp64_blkl_ll_real.extracted+0x2cb9>
+    0.00 :   da3b63:        nopw    %cs:(%rax,%rax)
+    0.00 :   da3b70:        addq    %rcx, %rdx
+    0.00 :   da3b73:        addq    %r15, %r10
+    0.00 :   da3b76:        addq    %r15, %rsi
+    0.00 :   da3b79:        addq    %rcx, %rax
+    0.00 :   da3b7c:        cmpq    %r12, %rbx
+    0.00 :   da3b7f:        leaq    0x1(%rbx), %rbx
+    0.00 :   da3b83:        je      0xda3840 <mkl_pds_lp64_blkl_ll_real.extracted+0x2970>
+    0.00 :   da3b89:        cmpq    $0x0, 0x68(%rsp)
+    0.00 :   da3b8f:        je      0xda3be2 <mkl_pds_lp64_blkl_ll_real.extracted+0x2d12>
+    0.00 :   da3b91:        movl    $0x38, %edi
+    0.00 :   da3b96:        movq    0x68(%rsp), %r9
+    0.00 :   da3b9b:        nopl    (%rax,%rax)
+    0.00 :   da3ba0:        movsd   -0x38(%r10,%rdi), %xmm0
+    0.00 :   da3ba7:        movsd   %xmm0, -0x38(%rdx,%rdi)
+    0.00 :   da3bad:        movups  -0x30(%r10,%rdi), %xmm0
+    0.00 :   da3bb3:        movups  %xmm0, -0x30(%rdx,%rdi)
+    0.00 :   da3bb8:        movups  -0x20(%r10,%rdi), %xmm0
+    0.00 :   da3bbe:        movups  %xmm0, -0x20(%rdx,%rdi)
+    0.00 :   da3bc3:        movups  -0x10(%r10,%rdi), %xmm0
+    0.00 :   da3bc9:        movups  %xmm0, -0x10(%rdx,%rdi)
+    0.00 :   da3bce:        movq    (%r10,%rdi), %xmm0
+    0.00 :   da3bd4:        movq    %xmm0, (%rdx,%rdi)
+    0.00 :   da3bd9:        addq    $0x40, %rdi
+    0.00 :   da3bdd:        decq    %r9
+    0.00 :   da3be0:        jne     0xda3ba0 <mkl_pds_lp64_blkl_ll_real.extracted+0x2cd0>
+    0.00 :   da3be2:        cmpl    0x108(%rsp), %ebp
+    0.00 :   da3be9:        je      0xda3b70 <mkl_pds_lp64_blkl_ll_real.extracted+0x2ca0>
+    0.00 :   da3beb:        xorl    %edi, %edi
+    0.00 :   da3bed:        nopl    (%rax)
+    0.00 :   da3bf0:        movq    (%rsi,%rdi,8), %xmm0
+    0.00 :   da3bf5:        movq    %xmm0, (%rax,%rdi,8)
+    0.00 :   da3bfa:        incq    %rdi
+    0.00 :   da3bfd:        cmpq    %rdi, %r14
+    0.00 :   da3c00:        jne     0xda3bf0 <mkl_pds_lp64_blkl_ll_real.extracted+0x2d20>
+    0.00 :   da3c02:        jmp     0xda3b70 <mkl_pds_lp64_blkl_ll_real.extracted+0x2ca0>
+    0.00 :   da3c07:        movq    0x48(%rsp), %rcx
+    0.00 :   da3c0c:        leaq    (%rcx,%rax,8), %rax
+    0.00 :   da3c10:        xorl    %edx, %edx
+    0.00 :   da3c12:        movq    0x8(%rsp), %rcx
+    0.00 :   da3c17:        nopw    (%rax,%rax)
+    0.00 :   da3c20:        movq    %r10, %rsi
+    0.00 :   da3c23:        xorl    %edi, %edi
+    0.00 :   da3c25:        nopw    %cs:(%rax,%rax)
+    0.00 :   da3c30:        movq    (%rsi), %xmm0
+    0.00 :   da3c34:        movq    %xmm0, (%rax,%rdi,8)
+    0.00 :   da3c39:        incq    %rdi
+    0.00 :   da3c3c:        addq    %r15, %rsi
+    0.00 :   da3c3f:        cmpq    %rdi, %rbp
+    0.00 :   da3c42:        jne     0xda3c30 <mkl_pds_lp64_blkl_ll_real.extracted+0x2d60>
+    0.00 :   da3c44:        addq    %rcx, %rax
+    0.00 :   da3c47:        addq    $0x8, %r10
+    0.00 :   da3c4b:        cmpq    %r12, %rdx
+    0.00 :   da3c4e:        leaq    0x1(%rdx), %rdx
+    0.00 :   da3c52:        jne     0xda3c20 <mkl_pds_lp64_blkl_ll_real.extracted+0x2d50>
+    0.00 :   da3c54:        jmp     0xda3840 <mkl_pds_lp64_blkl_ll_real.extracted+0x2970>
+    0.00 :   da3c59:        testb   %dil, %dil
+    0.00 :   da3c5c:        je      0xda3e17 <mkl_pds_lp64_blkl_ll_real.extracted+0x2f47>
+    0.00 :   da3c62:        movq    0x2a0(%rsp), %rcx
+    0.00 :   da3c6a:        leaq    (%rcx,%rax,8), %r9
+    0.00 :   da3c6e:        movq    0xd0(%rsp), %rcx
+    0.00 :   da3c76:        leaq    (%rcx,%rax,8), %rdx
+    0.00 :   da3c7a:        movq    0x218(%rsp), %rax
+    0.00 :   da3c82:        leaq    (%rax,%rsi,8), %rax
+    0.00 :   da3c86:        xorl    %esi, %esi
+    0.00 :   da3c88:        jmp     0xda3cb0 <mkl_pds_lp64_blkl_ll_real.extracted+0x2de0>
+    0.00 :   da3c8a:        nopw    (%rax,%rax)
+    0.00 :   da3c90:        movq    0x8(%rsp), %rcx
+    0.00 :   da3c95:        addq    %rcx, %r9
+    0.00 :   da3c98:        addq    $0x8, %r10
+    0.00 :   da3c9c:        addq    %rcx, %rdx
+    0.00 :   da3c9f:        addq    $0x8, %rax
+    0.00 :   da3ca3:        cmpq    %r12, %rsi
+    0.00 :   da3ca6:        leaq    0x1(%rsi), %rsi
+    0.00 :   da3caa:        je      0xda3840 <mkl_pds_lp64_blkl_ll_real.extracted+0x2970>
+    0.00 :   da3cb0:        cmpq    $0x0, 0x68(%rsp)
+    0.00 :   da3cb6:        movq    0x250(%rsp), %rcx
+    0.00 :   da3cbe:        je      0xda3d45 <mkl_pds_lp64_blkl_ll_real.extracted+0x2e75>
+    0.00 :   da3cc4:        movq    %r10, %r11
+    0.00 :   da3cc7:        movq    0x68(%rsp), %rdi
+    0.00 :   da3ccc:        movq    %r9, %rbx
+    0.00 :   da3ccf:        nop
+    0.00 :   da3cd0:        movsd   (%r11), %xmm0
+    0.00 :   da3cd5:        movsd   %xmm0, -0x38(%rbx)
+    0.00 :   da3cda:        leaq    (%r11,%r15), %r13
+    0.00 :   da3cde:        movsd   (%r11,%r15), %xmm0
+    0.00 :   da3ce4:        movsd   %xmm0, -0x30(%rbx)
+    0.00 :   da3ce9:        movsd   (%r15,%r13), %xmm0
+    0.00 :   da3cef:        addq    %r15, %r13
+    0.00 :   da3cf2:        movsd   %xmm0, -0x28(%rbx)
+    0.00 :   da3cf7:        movsd   (%r15,%r13), %xmm0
+    0.00 :   da3cfd:        addq    %r15, %r13
+    0.00 :   da3d00:        movsd   %xmm0, -0x20(%rbx)
+    0.00 :   da3d05:        movsd   (%r15,%r13), %xmm0
+    0.00 :   da3d0b:        addq    %r15, %r13
+    0.00 :   da3d0e:        movsd   %xmm0, -0x18(%rbx)
+    0.00 :   da3d13:        movsd   (%r15,%r13), %xmm0
+    0.00 :   da3d19:        addq    %r15, %r13
+    0.00 :   da3d1c:        movsd   %xmm0, -0x10(%rbx)
+    0.00 :   da3d21:        movsd   (%r15,%r13), %xmm0
+    0.00 :   da3d27:        addq    %r15, %r13
+    0.00 :   da3d2a:        movsd   %xmm0, -0x8(%rbx)
+    0.00 :   da3d2f:        movq    (%r15,%r13), %xmm0
+    0.00 :   da3d35:        movq    %xmm0, (%rbx)
+    0.00 :   da3d39:        addq    $0x40, %rbx
+    0.00 :   da3d3d:        addq    %rcx, %r11
+    0.00 :   da3d40:        decq    %rdi
+    0.00 :   da3d43:        jne     0xda3cd0 <mkl_pds_lp64_blkl_ll_real.extracted+0x2e00>
+    0.00 :   da3d45:        cmpl    %ebp, 0x108(%rsp)
+    0.00 :   da3d4c:        je      0xda3c90 <mkl_pds_lp64_blkl_ll_real.extracted+0x2dc0>
+    0.00 :   da3d52:        movq    %rax, %rdi
+    0.00 :   da3d55:        xorl    %r11d, %r11d
+    0.00 :   da3d58:        nopl    (%rax,%rax)
+    0.00 :   da3d60:        movq    (%rdi), %xmm0
+    0.00 :   da3d64:        movq    %xmm0, (%rdx,%r11,8)
+    0.00 :   da3d6a:        incq    %r11
+    0.00 :   da3d6d:        addq    %r15, %rdi
+    0.00 :   da3d70:        cmpq    %r11, %r14
+    0.00 :   da3d73:        jne     0xda3d60 <mkl_pds_lp64_blkl_ll_real.extracted+0x2e90>
+    0.00 :   da3d75:        jmp     0xda3c90 <mkl_pds_lp64_blkl_ll_real.extracted+0x2dc0>
+    0.00 :   da3d7a:        movq    0x48(%rsp), %rcx
+    0.00 :   da3d7f:        leaq    (%rcx,%rax,8), %rax
+    0.00 :   da3d83:        xorl    %edx, %edx
+    0.00 :   da3d85:        movq    0x8(%rsp), %rcx
+    0.00 :   da3d8a:        nopw    (%rax,%rax)
+    0.00 :   da3d90:        xorl    %esi, %esi
+    0.00 :   da3d92:        nopw    %cs:(%rax,%rax)
+    0.00 :   da3da0:        movq    (%r10,%rsi,8), %xmm0
+    0.00 :   da3da6:        movq    %xmm0, (%rax,%rsi,8)
+    0.00 :   da3dab:        incq    %rsi
+    0.00 :   da3dae:        cmpq    %rsi, %rbp
+    0.00 :   da3db1:        jne     0xda3da0 <mkl_pds_lp64_blkl_ll_real.extracted+0x2ed0>
+    0.00 :   da3db3:        addq    %r15, %r10
+    0.00 :   da3db6:        addq    %rcx, %rax
+    0.00 :   da3db9:        cmpq    %r12, %rdx
+    0.00 :   da3dbc:        leaq    0x1(%rdx), %rdx
+    0.00 :   da3dc0:        jne     0xda3d90 <mkl_pds_lp64_blkl_ll_real.extracted+0x2ec0>
+    0.00 :   da3dc2:        jmp     0xda3840 <mkl_pds_lp64_blkl_ll_real.extracted+0x2970>
+    0.00 :   da3dc7:        movq    0x48(%rsp), %rcx
+    0.00 :   da3dcc:        leaq    (%rcx,%rax,8), %rax
+    0.00 :   da3dd0:        xorl    %edx, %edx
+    0.00 :   da3dd2:        movq    0x8(%rsp), %rcx
+    0.00 :   da3dd7:        nopw    (%rax,%rax)
+    0.00 :   da3de0:        xorl    %esi, %esi
+    0.00 :   da3de2:        nopw    %cs:(%rax,%rax)
+    0.00 :   da3df0:        movq    (%r10,%rsi,8), %xmm0
+    0.00 :   da3df6:        movq    %xmm0, (%rax,%rsi,8)
+    0.00 :   da3dfb:        incq    %rsi
+    0.00 :   da3dfe:        cmpq    %rsi, %rbp
+    0.00 :   da3e01:        jne     0xda3df0 <mkl_pds_lp64_blkl_ll_real.extracted+0x2f20>
+    0.00 :   da3e03:        addq    %r15, %r10
+    0.00 :   da3e06:        addq    %rcx, %rax
+    0.00 :   da3e09:        cmpq    %r12, %rdx
+    0.00 :   da3e0c:        leaq    0x1(%rdx), %rdx
+    0.00 :   da3e10:        jne     0xda3de0 <mkl_pds_lp64_blkl_ll_real.extracted+0x2f10>
+    0.00 :   da3e12:        jmp     0xda3840 <mkl_pds_lp64_blkl_ll_real.extracted+0x2970>
+    0.00 :   da3e17:        movq    0x48(%rsp), %rcx
+    0.00 :   da3e1c:        leaq    (%rcx,%rax,8), %rax
+    0.00 :   da3e20:        xorl    %edx, %edx
+    0.00 :   da3e22:        movq    0x8(%rsp), %rcx
+    0.00 :   da3e27:        nopw    (%rax,%rax)
+    0.00 :   da3e30:        movq    %r10, %rsi
+    0.00 :   da3e33:        xorl    %edi, %edi
+    0.00 :   da3e35:        nopw    %cs:(%rax,%rax)
+    0.00 :   da3e40:        movq    (%rsi), %xmm0
+    0.00 :   da3e44:        movq    %xmm0, (%rax,%rdi,8)
+    0.00 :   da3e49:        incq    %rdi
+    0.00 :   da3e4c:        addq    %r15, %rsi
+    0.00 :   da3e4f:        cmpq    %rdi, %rbp
+    0.00 :   da3e52:        jne     0xda3e40 <mkl_pds_lp64_blkl_ll_real.extracted+0x2f70>
+    0.00 :   da3e54:        addq    %rcx, %rax
+    0.00 :   da3e57:        addq    $0x8, %r10
+    0.00 :   da3e5b:        cmpq    %r12, %rdx
+    0.00 :   da3e5e:        leaq    0x1(%rdx), %rdx
+    0.00 :   da3e62:        jne     0xda3e30 <mkl_pds_lp64_blkl_ll_real.extracted+0x2f60>
+    0.00 :   da3e64:        jmp     0xda3840 <mkl_pds_lp64_blkl_ll_real.extracted+0x2970>
+    0.00 :   da3e69:        nopl    (%rax)
+    0.00 :   da3e70:        movq    0x168(%rsp), %rax
+    0.00 :   da3e78:        movl    -0x4(%rax,%rdx,4), %ecx
+    0.00 :   da3e7c:        movslq  %ecx, %rsi
+    0.00 :   da3e7f:        movq    %rsi, 0x8(%rsp)
+    0.00 :   da3e84:        cmpl    $0x1, %ebp
+    0.00 :   da3e87:        jle     0xda3fe6 <mkl_pds_lp64_blkl_ll_real.extracted+0x3116>
+    0.00 :   da3e8d:        movslq  (%rax,%rdx,4), %rax
+    0.00 :   da3e91:        cmpl    %eax, %ecx
+    0.00 :   da3e93:        jge     0xda3730 <mkl_pds_lp64_blkl_ll_real.extracted+0x2860>
+    0.00 :   da3e99:        jmp     0xda4128 <mkl_pds_lp64_blkl_ll_real.extracted+0x3258>
+    0.00 :   da3e9e:        nop
+    0.00 :   da3ea0:        movq    %rcx, %rax
+    0.00 :   da3ea3:        subq    %r13, %rax
+    0.00 :   da3ea6:        movq    %rax, %rdx
+    0.00 :   da3ea9:        shrq    $0x2, %rdx
+    0.00 :   da3ead:        movq    0x60(%rsp), %r11
+    0.00 :   da3eb2:        je      0xda3f7f <mkl_pds_lp64_blkl_ll_real.extracted+0x30af>
+    0.00 :   da3eb8:        movq    0x1c0(%rsp), %rsi
+    0.00 :   da3ec0:        leaq    (%rsi,%r13,4), %rsi
+    0.00 :   da3ec4:        movq    0x1b8(%rsp), %rdi
+    0.00 :   da3ecc:        leaq    (%rdi,%r13,8), %r8
+    0.00 :   da3ed0:        movl    $0x8, %r9d
+    0.00 :   da3ed6:        nopw    %cs:(%rax,%rax)
+    0.00 :   da3ee0:        movq    -0x10(%r8,%r9,2), %rdi
+    0.00 :   da3ee5:        movslq  -0x8(%rsi,%r9), %r10
+    0.00 :   da3eea:        movsd   -0x8(%rbx,%r10,8), %xmm0
+    0.00 :   da3ef1:        leaq    -0x1(%rdi), %r10
+    0.00 :   da3ef5:        testq   %rdi, %rdi
+    0.00 :   da3ef8:        notq    %rdi
+    0.00 :   da3efb:        cmovgq  %r10, %rdi
+    0.00 :   da3eff:        movsd   %xmm0, (%r11,%rdi,8)
+    0.00 :   da3f05:        movq    -0x8(%r8,%r9,2), %rdi
+    0.00 :   da3f0a:        movslq  -0x4(%rsi,%r9), %r10
+    0.00 :   da3f0f:        movsd   -0x8(%rbx,%r10,8), %xmm0
+    0.00 :   da3f16:        leaq    -0x1(%rdi), %r10
+    0.00 :   da3f1a:        testq   %rdi, %rdi
+    0.00 :   da3f1d:        notq    %rdi
+    0.00 :   da3f20:        cmovgq  %r10, %rdi
+    0.00 :   da3f24:        movsd   %xmm0, (%r11,%rdi,8)
+    0.00 :   da3f2a:        movq    (%r8,%r9,2), %rdi
+    0.00 :   da3f2e:        movslq  (%rsi,%r9), %r10
+    0.00 :   da3f32:        movsd   -0x8(%rbx,%r10,8), %xmm0
+    0.00 :   da3f39:        leaq    -0x1(%rdi), %r10
+    0.00 :   da3f3d:        testq   %rdi, %rdi
+    0.00 :   da3f40:        notq    %rdi
+    0.00 :   da3f43:        cmovgq  %r10, %rdi
+    0.00 :   da3f47:        movsd   %xmm0, (%r11,%rdi,8)
+    0.00 :   da3f4d:        movq    0x8(%r8,%r9,2), %rdi
+    0.00 :   da3f52:        leaq    -0x1(%rdi), %r10
+    0.00 :   da3f56:        testq   %rdi, %rdi
+    0.00 :   da3f59:        notq    %rdi
+    0.00 :   da3f5c:        cmovgq  %r10, %rdi
+    0.00 :   da3f60:        movslq  0x4(%rsi,%r9), %r10
+    0.00 :   da3f65:        movq    -0x8(%rbx,%r10,8), %xmm0
+    0.00 :   da3f6c:        movq    %xmm0, (%r11,%rdi,8)
+    0.00 :   da3f72:        addq    $0x10, %r9
+    0.00 :   da3f76:        decq    %rdx
+    0.00 :   da3f79:        jne     0xda3ee0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3010>
+    0.00 :   da3f7f:        movq    %rax, %rdx
+    0.00 :   da3f82:        andq    $-0x4, %rdx
+    0.00 :   da3f86:        cmpq    %rax, %rdx
+    0.00 :   da3f89:        movq    0x1c0(%rsp), %rdi
+    0.00 :   da3f91:        movq    0x1b8(%rsp), %r8
+    0.00 :   da3f99:        je      0xda3fca <mkl_pds_lp64_blkl_ll_real.extracted+0x30fa>
+    0.00 :   da3f9b:        addq    %r13, %rdx
+    0.00 :   da3f9e:        nop
+    0.00 :   da3fa0:        movq    (%r8,%rdx,8), %rax
+    0.00 :   da3fa4:        leaq    -0x1(%rax), %rsi
+    0.00 :   da3fa8:        testq   %rax, %rax
+    0.00 :   da3fab:        notq    %rax
+    0.00 :   da3fae:        cmovgq  %rsi, %rax
+    0.00 :   da3fb2:        movslq  (%rdi,%rdx,4), %rsi
+    0.00 :   da3fb6:        movq    -0x8(%rbx,%rsi,8), %xmm0
+    0.00 :   da3fbc:        movq    %xmm0, (%r11,%rax,8)
+    0.00 :   da3fc2:        incq    %rdx
+    0.00 :   da3fc5:        cmpq    %rdx, %rcx
+    0.00 :   da3fc8:        jne     0xda3fa0 <mkl_pds_lp64_blkl_ll_real.extracted+0x30d0>
+    0.00 :   da3fca:        movq    0x168(%rsp), %rax
+    0.00 :   da3fd2:        movq    0x148(%rsp), %rdx
+    0.00 :   da3fda:        movl    -0x4(%rax,%rdx,4), %ecx
+    0.00 :   da3fde:        movslq  %ecx, %rsi
+    0.00 :   da3fe1:        movq    %rsi, 0x8(%rsp)
+    0.00 :   da3fe6:        movslq  (%rax,%rdx,4), %rax
+    0.00 :   da3fea:        cmpl    %eax, %ecx
+    0.00 :   da3fec:        jge     0xda3730 <mkl_pds_lp64_blkl_ll_real.extracted+0x2860>
+    0.00 :   da3ff2:        subq    0x8(%rsp), %rax
+    0.00 :   da3ff7:        movq    %rax, %rcx
+    0.00 :   da3ffa:        shrq    $0x2, %rcx
+    0.00 :   da3ffe:        movq    0xc0(%rsp), %r8
+    0.00 :   da4006:        movq    0x180(%rsp), %r9
+    0.00 :   da400e:        movq    0x398(%rsp), %r10
+    0.00 :   da4016:        je      0xda4093 <mkl_pds_lp64_blkl_ll_real.extracted+0x31c3>
+    0.00 :   da4018:        movq    0x8(%rsp), %rdx
+    0.00 :   da401d:        leaq    (,%rdx,4), %rdx
+    0.00 :   da4025:        nopw    %cs:(%rax,%rax)
+    0.00 :   da4030:        movslq  -0x8(%r10,%rdx), %rsi
+    0.00 :   da4035:        movq    -0x8(%r9,%rdx,2), %rdi
+    0.00 :   da403a:        movsd   -0x8(%rbx,%rsi,8), %xmm0
+    0.00 :   da4040:        movsd   %xmm0, -0x8(%r8,%rdi,8)
+    0.00 :   da4047:        movslq  -0x4(%r10,%rdx), %rsi
+    0.00 :   da404c:        movq    (%r9,%rdx,2), %rdi
+    0.00 :   da4050:        movsd   -0x8(%rbx,%rsi,8), %xmm0
+    0.00 :   da4056:        movsd   %xmm0, -0x8(%r8,%rdi,8)
+    0.00 :   da405d:        movslq  (%r10,%rdx), %rsi
+    0.00 :   da4061:        movq    0x8(%r9,%rdx,2), %rdi
+    0.00 :   da4066:        movsd   -0x8(%rbx,%rsi,8), %xmm0
+    0.00 :   da406c:        movsd   %xmm0, -0x8(%r8,%rdi,8)
+    0.00 :   da4073:        movslq  0x4(%r10,%rdx), %rsi
+    0.00 :   da4078:        movq    0x10(%r9,%rdx,2), %rdi
+    0.00 :   da407d:        movq    -0x8(%rbx,%rsi,8), %xmm0
+    0.00 :   da4083:        movq    %xmm0, -0x8(%r8,%rdi,8)
+    0.00 :   da408a:        addq    $0x10, %rdx
+    0.00 :   da408e:        decq    %rcx
+    0.00 :   da4091:        jne     0xda4030 <mkl_pds_lp64_blkl_ll_real.extracted+0x3160>
+    0.00 :   da4093:        movq    %rax, %rcx
+    0.00 :   da4096:        andq    $-0x4, %rcx
+    0.00 :   da409a:        cmpq    %rax, %rcx
+    0.00 :   da409d:        je      0xda3730 <mkl_pds_lp64_blkl_ll_real.extracted+0x2860>
+    0.00 :   da40a3:        movq    0x370(%rsp), %rdx
+    0.00 :   da40ab:        movq    0x8(%rsp), %rdi
+    0.00 :   da40b0:        leaq    (%rdx,%rdi,8), %rdx
+    0.00 :   da40b4:        addq    0x388(%rsp), %rdi
+    0.00 :   da40bc:        movq    0x278(%rsp), %rsi
+    0.00 :   da40c4:        leaq    (%rsi,%rdi,4), %rsi
+    0.00 :   da40c8:        nopl    (%rax,%rax)
+    0.00 :   da40d0:        movslq  (%rsi,%rcx,4), %rdi
+    0.00 :   da40d4:        movq    (%rdx,%rcx,8), %r8
+    0.00 :   da40d8:        movq    -0x8(%rbx,%rdi,8), %xmm0
+    0.00 :   da40de:        movq    0xc0(%rsp), %rdi
+    0.00 :   da40e6:        movq    %xmm0, -0x8(%rdi,%r8,8)
+    0.00 :   da40ed:        incq    %rcx
+    0.00 :   da40f0:        cmpq    %rcx, %rax
+    0.00 :   da40f3:        jne     0xda40d0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3200>
+    0.00 :   da40f5:        jmp     0xda3730 <mkl_pds_lp64_blkl_ll_real.extracted+0x2860>
+    0.00 :   da40fa:        nopw    (%rax,%rax)
+    0.00 :   da4100:        movq    0x168(%rsp), %rax
+    0.00 :   da4108:        movq    0x148(%rsp), %rdx
+    0.00 :   da4110:        movl    -0x4(%rax,%rdx,4), %ecx
+    0.00 :   da4114:        movslq  %ecx, %rsi
+    0.00 :   da4117:        movq    %rsi, 0x8(%rsp)
+    0.00 :   da411c:        movslq  (%rax,%rdx,4), %rax
+    0.00 :   da4120:        cmpl    %eax, %ecx
+    0.00 :   da4122:        jge     0xda3730 <mkl_pds_lp64_blkl_ll_real.extracted+0x2860>
+    0.00 :   da4128:        testl   %ebp, %ebp
+    0.00 :   da412a:        jle     0xda3730 <mkl_pds_lp64_blkl_ll_real.extracted+0x2860>
+    0.00 :   da4130:        movq    0x188(%rsp), %rcx
+    0.00 :   da4138:        movq    0x148(%rsp), %rdx
+    0.00 :   da4140:        movq    -0x8(%rcx,%rdx,8), %rdi
+    0.00 :   da4145:        leaq    -0x1(%rdi), %r8
+    0.00 :   da4149:        movq    (%rcx,%rdx,8), %rsi
+    0.00 :   da414d:        movq    %rdi, 0x18(%rsp)
+    0.00 :   da4152:        subq    %rdi, %rsi
+    0.00 :   da4155:        movq    0x8(%rsp), %rcx
+    0.00 :   da415a:        notq    %rcx
+    0.00 :   da415d:        addq    %rax, %rcx
+    0.00 :   da4160:        movq    %rcx, 0x20(%rsp)
+    0.00 :   da4165:        cmpl    $0x0, 0x134(%rsp)
+    0.00 :   da416d:        je      0xda4308 <mkl_pds_lp64_blkl_ll_real.extracted+0x3438>
+    0.00 :   da4173:        imulq   0x158(%rsp), %r8
+    0.00 :   da417c:        movq    0xc0(%rsp), %rax
+    0.00 :   da4184:        addq    %r8, %rax
+    0.00 :   da4187:        movq    %rax, 0x30(%rsp)
+    0.00 :   da418c:        imulq   %r15, %rsi
+    0.00 :   da4190:        addq    0x280(%rsp), %r8
+    0.00 :   da4198:        xorl    %r9d, %r9d
+    0.00 :   da419b:        movq    %r8, 0x10(%rsp)
+    0.00 :   da41a0:        jmp     0xda41cc <mkl_pds_lp64_blkl_ll_real.extracted+0x32fc>
+    0.00 :   da41a2:        nopw    %cs:(%rax,%rax)
+    0.00 :   da41b0:        cmpq    0x20(%rsp), %r9
+    0.00 :   da41b5:        leaq    0x1(%r9), %r9
+    0.00 :   da41b9:        movq    0x88(%rsp), %rbx
+    0.00 :   da41c1:        movq    0x10(%rsp), %r8
+    0.00 :   da41c6:        je      0xda3730 <mkl_pds_lp64_blkl_ll_real.extracted+0x2860>
+    0.00 :   da41cc:        movq    0x8(%rsp), %rax
+    0.00 :   da41d1:        addq    %r9, %rax
+    0.00 :   da41d4:        movq    0x180(%rsp), %rcx
+    0.00 :   da41dc:        movq    -0x8(%rcx,%rax,8), %r10
+    0.00 :   da41e1:        addq    0xb0(%rsp), %rax
+    0.00 :   da41e9:        movq    0xe8(%rsp), %rcx
+    0.00 :   da41f1:        movl    (%rcx,%rax,4), %eax
+    0.00 :   da41f4:        decl    %eax
+    0.00 :   da41f6:        imull   0x90(%rsp), %eax
+    0.00 :   da41fe:        cltq
+    0.00 :   da4200:        subq    0x18(%rsp), %r10
+    0.00 :   da4205:        imulq   %r15, %r10
+    0.00 :   da4209:        movq    0x30(%rsp), %rcx
+    0.00 :   da420e:        addq    %r10, %rcx
+    0.00 :   da4211:        leaq    (%rbx,%rax,8), %r11
+    0.00 :   da4215:        addq    %r8, %r10
+    0.00 :   da4218:        movq    0x190(%rsp), %rdx
+    0.00 :   da4220:        leaq    (%rdx,%rax,8), %rbx
+    0.00 :   da4224:        xorl    %eax, %eax
+    0.00 :   da4226:        jmp     0xda4249 <mkl_pds_lp64_blkl_ll_real.extracted+0x3379>
+    0.00 :   da4228:        nopl    (%rax,%rax)
+    0.00 :   da4230:        addq    %rsi, %rcx
+    0.00 :   da4233:        addq    %r15, %r11
+    0.00 :   da4236:        addq    %rsi, %r10
+    0.00 :   da4239:        addq    %r15, %rbx
+    0.00 :   da423c:        cmpq    %r12, %rax
+    0.00 :   da423f:        leaq    0x1(%rax), %rax
+    0.00 :   da4243:        je      0xda41b0 <mkl_pds_lp64_blkl_ll_real.extracted+0x32e0>
+    0.00 :   da4249:        cmpq    $0x0, 0x68(%rsp)
+    0.00 :   da424f:        je      0xda42d5 <mkl_pds_lp64_blkl_ll_real.extracted+0x3405>
+    0.00 :   da4255:        movl    $0x38, %edx
+    0.00 :   da425a:        movq    0x68(%rsp), %rdi
+    0.00 :   da425f:        nop
+    0.00 :   da4260:        leaq    (%r11,%rdx), %r13
+    0.00 :   da4264:        addq    $-0x38, %r13
+    0.00 :   da4268:        movsd   (%r13), %xmm0
+    0.00 :   da426e:        leaq    -0x38(%rcx,%rdx), %r8
+    0.00 :   da4273:        movsd   %xmm0, (%r8)
+    0.00 :   da4278:        movsd   0x8(%r13), %xmm0
+    0.00 :   da427e:        movsd   %xmm0, 0x8(%r8)
+    0.00 :   da4284:        movsd   0x10(%r13), %xmm0
+    0.00 :   da428a:        movsd   %xmm0, 0x10(%r8)
+    0.00 :   da4290:        movsd   0x18(%r13), %xmm0
+    0.00 :   da4296:        movsd   %xmm0, 0x18(%r8)
+    0.00 :   da429c:        movsd   0x20(%r13), %xmm0
+    0.00 :   da42a2:        movsd   %xmm0, 0x20(%r8)
+    0.00 :   da42a8:        movsd   0x28(%r13), %xmm0
+    0.00 :   da42ae:        movsd   %xmm0, 0x28(%r8)
+    0.00 :   da42b4:        movsd   0x30(%r13), %xmm0
+    0.00 :   da42ba:        movsd   %xmm0, 0x30(%r8)
+    0.00 :   da42c0:        movq    0x38(%r13), %xmm0
+    0.00 :   da42c6:        movq    %xmm0, 0x38(%r8)
+    0.00 :   da42cc:        addq    $0x40, %rdx
+    0.00 :   da42d0:        decq    %rdi
+    0.00 :   da42d3:        jne     0xda4260 <mkl_pds_lp64_blkl_ll_real.extracted+0x3390>
+    0.00 :   da42d5:        cmpl    %ebp, 0x108(%rsp)
+    0.00 :   da42dc:        je      0xda4230 <mkl_pds_lp64_blkl_ll_real.extracted+0x3360>
+    0.00 :   da42e2:        xorl    %edx, %edx
+    0.00 :   da42e4:        nopw    %cs:(%rax,%rax)
+    0.00 :   da42f0:        movq    (%rbx,%rdx,8), %xmm0
+    0.00 :   da42f5:        movq    %xmm0, (%r10,%rdx,8)
+    0.00 :   da42fb:        incq    %rdx
+    0.00 :   da42fe:        cmpq    %rdx, %r14
+    0.00 :   da4301:        jne     0xda42f0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3420>
+    0.00 :   da4303:        jmp     0xda4230 <mkl_pds_lp64_blkl_ll_real.extracted+0x3360>
+    0.00 :   da4308:        imulq   0x158(%rsp), %r8
+    0.00 :   da4311:        movq    0x360(%rsp), %rax
+    0.00 :   da4319:        addq    %r8, %rax
+    0.00 :   da431c:        movq    %rax, 0x30(%rsp)
+    0.00 :   da4321:        imulq   %r15, %rsi
+    0.00 :   da4325:        addq    0x280(%rsp), %r8
+    0.00 :   da432d:        xorl    %r9d, %r9d
+    0.00 :   da4330:        movq    %r8, 0x10(%rsp)
+    0.00 :   da4335:        jmp     0xda435c <mkl_pds_lp64_blkl_ll_real.extracted+0x348c>
+    0.00 :   da4337:        nopw    (%rax,%rax)
+    0.00 :   da4340:        cmpq    0x20(%rsp), %r9
+    0.00 :   da4345:        leaq    0x1(%r9), %r9
+    0.00 :   da4349:        movq    0x88(%rsp), %rbx
+    0.00 :   da4351:        movq    0x10(%rsp), %r8
+    0.00 :   da4356:        je      0xda3730 <mkl_pds_lp64_blkl_ll_real.extracted+0x2860>
+    0.00 :   da435c:        movq    0x8(%rsp), %rax
+    0.00 :   da4361:        addq    %r9, %rax
+    0.00 :   da4364:        movq    0x180(%rsp), %rcx
+    0.00 :   da436c:        movq    -0x8(%rcx,%rax,8), %r10
+    0.00 :   da4371:        addq    0xb0(%rsp), %rax
+    0.00 :   da4379:        movq    0xe8(%rsp), %rcx
+    0.00 :   da4381:        movl    (%rcx,%rax,4), %eax
+    0.00 :   da4384:        decl    %eax
+    0.00 :   da4386:        imull   0x90(%rsp), %eax
+    0.00 :   da438e:        cltq
+    0.00 :   da4390:        subq    0x18(%rsp), %r10
+    0.00 :   da4395:        imulq   %r15, %r10
+    0.00 :   da4399:        movq    0x30(%rsp), %rcx
+    0.00 :   da439e:        leaq    (%rcx,%r10), %rdx
+    0.00 :   da43a2:        leaq    (%rbx,%rax,8), %rbx
+    0.00 :   da43a6:        addq    %r8, %r10
+    0.00 :   da43a9:        movq    0x218(%rsp), %rcx
+    0.00 :   da43b1:        leaq    (%rcx,%rax,8), %r8
+    0.00 :   da43b5:        xorl    %ecx, %ecx
+    0.00 :   da43b7:        jmp     0xda43df <mkl_pds_lp64_blkl_ll_real.extracted+0x350f>
+    0.00 :   da43b9:        nopl    (%rax)
+    0.00 :   da43c0:        addq    %rsi, %rdx
+    0.00 :   da43c3:        addq    $0x8, %rbx
+    0.00 :   da43c7:        addq    %rsi, %r10
+    0.00 :   da43ca:        addq    $0x8, %r8
+    0.00 :   da43ce:        leaq    -0x1(%rbp), %r12
+    0.00 :   da43d2:        cmpq    %r12, %rcx
+    0.00 :   da43d5:        leaq    0x1(%rcx), %rcx
+    0.00 :   da43d9:        je      0xda4340 <mkl_pds_lp64_blkl_ll_real.extracted+0x3470>
+    0.00 :   da43df:        cmpq    $0x0, 0x68(%rsp)
+    0.00 :   da43e5:        movq    0x250(%rsp), %r12
+    0.00 :   da43ed:        je      0xda447c <mkl_pds_lp64_blkl_ll_real.extracted+0x35ac>
+    0.00 :   da43f3:        movq    %rbx, %rax
+    0.00 :   da43f6:        movq    0x68(%rsp), %rdi
+    0.00 :   da43fb:        movq    %rdx, %r11
+    0.00 :   da43fe:        nop
+    0.00 :   da4400:        movsd   (%rax), %xmm0
+    0.00 :   da4404:        movsd   %xmm0, -0x38(%r11)
+    0.00 :   da440a:        leaq    (%rax,%r15), %r13
+    0.00 :   da440e:        movsd   (%rax,%r15), %xmm0
+    0.00 :   da4414:        movsd   %xmm0, -0x30(%r11)
+    0.00 :   da441a:        movsd   (%r15,%r13), %xmm0
+    0.00 :   da4420:        addq    %r15, %r13
+    0.00 :   da4423:        movsd   %xmm0, -0x28(%r11)
+    0.00 :   da4429:        movsd   (%r15,%r13), %xmm0
+    0.00 :   da442f:        addq    %r15, %r13
+    0.00 :   da4432:        movsd   %xmm0, -0x20(%r11)
+    0.00 :   da4438:        movsd   (%r15,%r13), %xmm0
+    0.00 :   da443e:        addq    %r15, %r13
+    0.00 :   da4441:        movsd   %xmm0, -0x18(%r11)
+    0.00 :   da4447:        movsd   (%r15,%r13), %xmm0
+    0.00 :   da444d:        addq    %r15, %r13
+    0.00 :   da4450:        movsd   %xmm0, -0x10(%r11)
+    0.00 :   da4456:        movsd   (%r15,%r13), %xmm0
+    0.00 :   da445c:        addq    %r15, %r13
+    0.00 :   da445f:        movsd   %xmm0, -0x8(%r11)
+    0.00 :   da4465:        movq    (%r15,%r13), %xmm0
+    0.00 :   da446b:        movq    %xmm0, (%r11)
+    0.00 :   da4470:        addq    $0x40, %r11
+    0.00 :   da4474:        addq    %r12, %rax
+    0.00 :   da4477:        decq    %rdi
+    0.00 :   da447a:        jne     0xda4400 <mkl_pds_lp64_blkl_ll_real.extracted+0x3530>
+    0.00 :   da447c:        cmpl    %ebp, 0x108(%rsp)
+    0.00 :   da4483:        je      0xda43c0 <mkl_pds_lp64_blkl_ll_real.extracted+0x34f0>
+    0.00 :   da4489:        movq    %r8, %rax
+    0.00 :   da448c:        xorl    %edi, %edi
+    0.00 :   da448e:        nop
+    0.00 :   da4490:        movq    (%rax), %xmm0
+    0.00 :   da4494:        movq    %xmm0, (%r10,%rdi,8)
+    0.00 :   da449a:        incq    %rdi
+    0.00 :   da449d:        addq    %r15, %rax
+    0.00 :   da44a0:        cmpq    %rdi, %r14
+    0.00 :   da44a3:        jne     0xda4490 <mkl_pds_lp64_blkl_ll_real.extracted+0x35c0>
+    0.00 :   da44a5:        jmp     0xda43c0 <mkl_pds_lp64_blkl_ll_real.extracted+0x34f0>
+    0.00 :   da44aa:        movq    0x430(%rsp), %rcx
+    0.00 :   da44b2:        movq    0x440(%rsp), %rdx
+    0.00 :   da44ba:        addq    %rcx, %rdx
+    0.00 :   da44bd:        addq    0x438(%rsp), %rcx
+    0.00 :   da44c5:        movq    %rdx, 0x440(%rsp)
+    0.00 :   da44cd:        movq    0x268(%rsp), %rax
+    0.00 :   da44d5:        cmpq    %rax, %rcx
+    0.00 :   da44d8:        cmovgeq %rax, %rcx
+    0.00 :   da44dc:        movq    %rcx, 0x438(%rsp)
+    0.00 :   da44e4:        movq    %rcx, 0x298(%rsp)
+    0.00 :   da44ec:        cmpq    %rcx, %rdx
+    0.00 :   da44ef:        movq    %rdx, %rcx
+    0.00 :   da44f2:        jbe     0xda18ce <mkl_pds_lp64_blkl_ll_real.extracted+0x9fe>
+    0.00 :   da44f8:        jmp     0xda17bf <mkl_pds_lp64_blkl_ll_real.extracted+0x8ef>
+    0.00 :   da44fd:        cmpq    $0x0, 0x58(%rsp)
+    0.00 :   da4503:        jle     0xda4700 <mkl_pds_lp64_blkl_ll_real.extracted+0x3830>
+    0.00 :   da4509:        movq    0x58(%rsp), %rax
+    0.00 :   da450e:        shrq    $0x3, %rax
+    0.00 :   da4512:        movq    %rax, 0x78(%rsp)
+    0.00 :   da4517:        movq    0x60(%rsp), %r9
+    0.00 :   da451c:        movq    0x138(%rsp), %rdi
+    0.00 :   da4524:        movq    0x80(%rsp), %r10
+    0.00 :   da452c:        je      0xda4678 <mkl_pds_lp64_blkl_ll_real.extracted+0x37a8>
+    0.00 :   da4532:        movq    0xc8(%rsp), %rdx
+    0.00 :   da453a:        leaq    0x1(%rdx), %r8
+    0.00 :   da453e:        leaq    0x8(,%rdx,8), %rax
+    0.00 :   da4546:        movq    %rax, 0x8(%rsp)
+    0.00 :   da454b:        leaq    0x2(,%rdx,2), %rax
+    0.00 :   da4553:        movq    %rax, 0x18(%rsp)
+    0.00 :   da4558:        leaq    (%r8,%r8,2), %rax
+    0.00 :   da455c:        movq    %rax, 0x10(%rsp)
+    0.00 :   da4561:        movq    0xa0(%rsp), %rsi
+    0.00 :   da4569:        leaq    0x3(%rsi,%rdx,4), %rax
+    0.00 :   da456e:        movq    %rax, 0x20(%rsp)
+    0.00 :   da4573:        leaq    (%rdx,%rdx,4), %rax
+    0.00 :   da4577:        leaq    0x4(%rsi,%rax), %rax
+    0.00 :   da457c:        movq    %rax, 0x30(%rsp)
+    0.00 :   da4581:        leaq    (%rdx,%rdx,2), %rax
+    0.00 :   da4585:        leaq    (%rsi,%rax,2), %rax
+    0.00 :   da4589:        addq    $0x5, %rax
+    0.00 :   da458d:        movq    %rax, 0x40(%rsp)
+    0.00 :   da4592:        leaq    (%rsi,%rdx,8), %r11
+    0.00 :   da4596:        subq    %rdx, %r11
+    0.00 :   da4599:        addq    $0x6, %r11
+    0.00 :   da459d:        movq    0x208(%rsp), %rax
+    0.00 :   da45a5:        movq    0x28(%rsp), %rdx
+    0.00 :   da45aa:        leaq    (%rax,%rdx,8), %rax
+    0.00 :   da45ae:        movq    0x118(%rsp), %rdx
+    0.00 :   da45b6:        leaq    (%rdx,%rsi,8), %rdx
+    0.00 :   da45ba:        shlq    $0x6, %r8
+    0.00 :   da45be:        movq    %r8, 0x50(%rsp)
+    0.00 :   da45c3:        movq    0x78(%rsp), %rsi
+    0.00 :   da45c8:        xorl    %r8d, %r8d
+    0.00 :   da45cb:        nopl    (%rax,%rax)
+    0.00 :   da45d0:        movq    0x8(%rsp), %rbx
+    0.00 :   da45d5:        imulq   %r8, %rbx
+    0.00 :   da45d9:        leaq    (%r10,%rbx), %r13
+    0.00 :   da45dd:        movsd   (%rdx), %xmm0
+    0.00 :   da45e1:        movsd   %xmm0, -0x8(%rax)
+    0.00 :   da45e6:        movq    %rdi, %rcx
+    0.00 :   da45e9:        addq    %rbx, %rdi
+    0.00 :   da45ec:        movsd   (%r9,%rdi,8), %xmm0
+    0.00 :   da45f2:        movsd   %xmm0, (%rax)
+    0.00 :   da45f6:        movq    0x18(%rsp), %rdi
+    0.00 :   da45fb:        addq    %r13, %rdi
+    0.00 :   da45fe:        movsd   (%r9,%rdi,8), %xmm0
+    0.00 :   da4604:        movsd   %xmm0, 0x8(%rax)
+    0.00 :   da4609:        addq    0x10(%rsp), %r13
+    0.00 :   da460e:        movsd   (%r9,%r13,8), %xmm0
+    0.00 :   da4614:        movsd   %xmm0, 0x10(%rax)
+    0.00 :   da4619:        movq    0x20(%rsp), %rdi
+    0.00 :   da461e:        addq    %rbx, %rdi
+    0.00 :   da4621:        movsd   (%r9,%rdi,8), %xmm0
+    0.00 :   da4627:        movsd   %xmm0, 0x18(%rax)
+    0.00 :   da462c:        movq    0x30(%rsp), %rdi
+    0.00 :   da4631:        addq    %rbx, %rdi
+    0.00 :   da4634:        movsd   (%r9,%rdi,8), %xmm0
+    0.00 :   da463a:        movsd   %xmm0, 0x20(%rax)
+    0.00 :   da463f:        movq    0x40(%rsp), %rdi
+    0.00 :   da4644:        addq    %rbx, %rdi
+    0.00 :   da4647:        movsd   (%r9,%rdi,8), %xmm0
+    0.00 :   da464d:        movq    %rcx, %rdi
+    0.00 :   da4650:        movsd   %xmm0, 0x28(%rax)
+    0.00 :   da4655:        addq    %r11, %rbx
+    0.00 :   da4658:        movsd   (%r9,%rbx,8), %xmm0
+    0.00 :   da465e:        movsd   %xmm0, 0x30(%rax)
+    0.00 :   da4663:        incq    %r8
+    0.00 :   da4666:        addq    $0x40, %rax
+    0.00 :   da466a:        addq    0x50(%rsp), %rdx
+    0.00 :   da466f:        decq    %rsi
+    0.00 :   da4672:        jne     0xda45d0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3700>
+    0.00 :   da4678:        movq    0x58(%rsp), %rcx
+    0.00 :   da467d:        movq    %rcx, %rax
+    0.00 :   da4680:        andq    $-0x8, %rax
+    0.00 :   da4684:        cmpq    %rcx, %rax
+    0.00 :   da4687:        movq    0xb8(%rsp), %r11
+    0.00 :   da468f:        je      0xda4700 <mkl_pds_lp64_blkl_ll_real.extracted+0x3830>
+    0.00 :   da4691:        movq    0xc8(%rsp), %rsi
+    0.00 :   da4699:        leaq    0x1(%rsi), %rdx
+    0.00 :   da469d:        movq    0x270(%rsp), %rcx
+    0.00 :   da46a5:        movq    0x28(%rsp), %rdi
+    0.00 :   da46aa:        leaq    (%rcx,%rdi,8), %rcx
+    0.00 :   da46ae:        movq    0x78(%rsp), %rdi
+    0.00 :   da46b3:        imulq   %rdx, %rdi
+    0.00 :   da46b7:        shlq    $0x6, %rdi
+    0.00 :   da46bb:        movq    0xa0(%rsp), %rdx
+    0.00 :   da46c3:        leaq    (%rdi,%rdx,8), %rdx
+    0.00 :   da46c7:        addq    0x118(%rsp), %rdx
+    0.00 :   da46cf:        leaq    0x8(,%rsi,8), %rsi
+    0.00 :   da46d7:        nopw    (%rax,%rax)
+    0.00 :   da46e0:        movq    (%rdx), %xmm0
+    0.00 :   da46e4:        movq    %xmm0, (%rcx,%rax,8)
+    0.00 :   da46e9:        incq    %rax
+    0.00 :   da46ec:        addq    %rsi, %rdx
+    0.00 :   da46ef:        cmpq    %rax, 0x58(%rsp)
+    0.00 :   da46f4:        jne     0xda46e0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3810>
+    0.00 :   da46f6:        nopw    %cs:(%rax,%rax)
+    0.16 :   da4700:        movq    0x58(%rsp), %rcx
+    0.00 :   da4705:        imulq   0xc8(%rsp), %rcx
+    0.16 :   da470e:        movq    0x678(%rsp), %rax
+    0.16 :   da4716:        lock
+    0.00 :   da4717:        addq    %rcx, (%rax)
+    1.59 :   da471a:        movq    0x4e0(%rsp), %rax
+    0.00 :   da4722:        cmpl    $0x0, (%rax)
+    0.16 :   da4725:        je      0xda475b <mkl_pds_lp64_blkl_ll_real.extracted+0x388b>
+    0.00 :   da4727:        cmpl    $0x0, 0x130(%rsp)
+    0.00 :   da472f:        movq    0x3c0(%rsp), %rsi
+    0.00 :   da4737:        jne     0xda475b <mkl_pds_lp64_blkl_ll_real.extracted+0x388b>
+    0.00 :   da4739:        movq    0x678(%rsp), %rax
+    1.11 :   da4741:        imulq   $0x64, (%rax), %rax
+    1.21 :   da4745:        movq    %rax, %rcx
+    0.00 :   da4748:        orq     %rsi, %rcx
+    1.57 :   da474b:        movq    %r11, %rbx
+    0.00 :   da474e:        shrq    $0x20, %rcx
+    0.46 :   da4752:        je      0xda4770 <mkl_pds_lp64_blkl_ll_real.extracted+0x38a0>
+    0.00 :   da4754:        cqto
+    0.00 :   da4756:        idivq   %rsi
+    0.00 :   da4759:        jmp     0xda4774 <mkl_pds_lp64_blkl_ll_real.extracted+0x38a4>
+    0.00 :   da475b:        movq    0x170(%rsp), %rcx
+    0.00 :   da4763:        movq    0x140(%rsp), %r13
+    0.00 :   da476b:        jmp     0xda18bc <mkl_pds_lp64_blkl_ll_real.extracted+0x9ec>
+    0.16 :   da4770:        xorl    %edx, %edx
+    1.42 :   da4772:        divl    %esi
+    0.00 :   da4774:        movq    0x140(%rsp), %r13
+    0.00 :   da477c:        movq    0x4d0(%rsp), %rsi
+    0.00 :   da4784:        movl    %eax, (%rsi)
+    0.00 :   da4786:        movups  0x5c43a50(%rip), %xmm0  # 0x69e81dd
+    0.16 :   da478d:        movups  %xmm0, 0x46d(%rsp)
+    0.00 :   da4795:        movdqa  0x5c43a33(%rip), %xmm0  # 0x69e81d0
+    0.00 :   da479d:        movdqa  %xmm0, 0x460(%rsp)
+    0.00 :   da47a6:        movq    0x4e8(%rsp), %rdi
+    0.00 :   da47ae:        leaq    0x460(%rsp), %rdx
+    0.00 :   da47b6:        movl    $0x1d, %ecx
+    0.00 :   da47bb:        callq   0x5c1650 <mkl_serv_progress>
+    0.00 :   da47c0:        testl   %eax, %eax
+    0.48 :   da47c2:        je      0xda47cf <mkl_pds_lp64_blkl_ll_real.extracted+0x38ff>
+    0.00 :   da47c4:        movl    $0xffffffff, 0x45c(%rsp)
+    0.00 :   da47cf:        movq    0x4d0(%rsp), %rax
+    0.16 :   da47d7:        movl    (%rax), %eax
+    0.16 :   da47d9:        movq    0x4d8(%rsp), %rcx
+    0.00 :   da47e1:        cmpl    (%rcx), %eax
+    0.32 :   da47e3:        movq    %rbx, %r11
+    0.00 :   da47e6:        jle     0xda4821 <mkl_pds_lp64_blkl_ll_real.extracted+0x3951>
+    0.00 :   da47e8:        cmpl    $0x0, 0x12c(%rsp)
+    0.00 :   da47f0:        je      0xda4817 <mkl_pds_lp64_blkl_ll_real.extracted+0x3947>
+    0.00 :   da47f2:        movq    0x4c8(%rsp), %rdi
+    0.00 :   da47fa:        movq    0x4d0(%rsp), %rsi
+    0.00 :   da4802:        movq    %r11, %rbx
+    0.00 :   da4805:        callq   0x696da0 <mkl_pds_lp64_prints_per_cent>
+    0.00 :   da480a:        movq    %rbx, %r11
+    0.00 :   da480d:        movq    0x4d0(%rsp), %rax
+    0.00 :   da4815:        movl    (%rax), %eax
+    0.00 :   da4817:        movq    0x4d8(%rsp), %rcx
+    0.00 :   da481f:        movl    %eax, (%rcx)
+    0.16 :   da4821:        cmpl    $0x0, 0x45c(%rsp)
+    0.00 :   da4829:        je      0xda484f <mkl_pds_lp64_blkl_ll_real.extracted+0x397f>
+    0.00 :   da482b:        movq    0x608(%rsp), %rax
+    0.00 :   da4833:        cmpl    $0x0, (%rax)
+    0.00 :   da4836:        movq    0x170(%rsp), %rcx
+    0.00 :   da483e:        jne     0xda18bc <mkl_pds_lp64_blkl_ll_real.extracted+0x9ec>
+    0.00 :   da4844:        movl    $0xfffffff3, (%rax)
+    0.00 :   da484a:        jmp     0xda18bc <mkl_pds_lp64_blkl_ll_real.extracted+0x9ec>
+    0.00 :   da484f:        movq    0x170(%rsp), %rcx
+    0.16 :   da4857:        jmp     0xda18bc <mkl_pds_lp64_blkl_ll_real.extracted+0x9ec>
+    0.32 :   da485c:        movq    0x50(%rsp), %rax
+    0.00 :   da4861:        cmpl    0x28(%rsp), %eax
+    0.00 :   da4865:        jle     0xda1ff6 <mkl_pds_lp64_blkl_ll_real.extracted+0x1126>
+    0.00 :   da486b:        movq    0xa8(%rsp), %rax
+    0.00 :   da4873:        movq    0x28(%rsp), %rcx
+    0.00 :   da4878:        movl    -0x4(%rax,%rcx,4), %eax
+    0.31 :   da487c:        movl    %eax, 0x48(%rsp)
+    0.00 :   da4880:        notq    %rcx
+    0.00 :   da4883:        addq    0x50(%rsp), %rcx
+    0.00 :   da4888:        movq    %rcx, 0xd0(%rsp)
+    0.00 :   da4890:        xorl    %ecx, %ecx
+    0.00 :   da4892:        jmp     0xda48ba <mkl_pds_lp64_blkl_ll_real.extracted+0x39ea>
+    0.00 :   da4894:        nopw    %cs:(%rax,%rax)
+    0.00 :   da48a0:        movq    0xb0(%rsp), %rax
+    0.00 :   da48a8:        cmpq    0xd0(%rsp), %rax
+    0.32 :   da48b0:        leaq    0x1(%rax), %rcx
+    0.00 :   da48b4:        je      0xda1ff6 <mkl_pds_lp64_blkl_ll_real.extracted+0x1126>
+    0.00 :   da48ba:        movl    0x48(%rsp), %edx
+    0.16 :   da48be:        movq    0x28(%rsp), %rax
+    0.00 :   da48c3:        movq    %rcx, 0xb0(%rsp)
+    0.00 :   da48cb:        addq    %rax, %rcx
+    0.14 :   da48ce:        movq    0xa8(%rsp), %rax
+    0.16 :   da48d6:        movl    (%rax,%rcx,4), %eax
+    0.29 :   da48d9:        movl    %eax, 0x48(%rsp)
+    0.16 :   da48dd:        cmpl    %eax, %edx
+    0.00 :   da48df:        movq    0x248(%rsp), %r10
+    0.00 :   da48e7:        jge     0xda48a0 <mkl_pds_lp64_blkl_ll_real.extracted+0x39d0>
+    0.16 :   da48e9:        movslq  0x48(%rsp), %rax
+    2.17 :   da48ee:        movslq  %edx, %rdi
+    0.00 :   da48f1:        cmpl    $0x2, %ebp
+    0.00 :   da48f4:        jl      0xda4ed0 <mkl_pds_lp64_blkl_ll_real.extracted+0x4000>
+    0.00 :   da48fa:        movq    0x1c8(%rsp), %rdx
+    0.00 :   da4902:        movq    0xb0(%rsp), %rsi
+    0.00 :   da490a:        addq    %rsi, %rdx
+    0.00 :   da490d:        movq    0x100(%rsp), %rsi
+    0.00 :   da4915:        movq    (%rsi,%rdx,8), %rdx
+    0.00 :   da4919:        movq    %rdi, %r8
+    0.00 :   da491c:        notq    %r8
+    0.00 :   da491f:        addq    %rax, %r8
+    0.00 :   da4922:        movq    %r8, 0x30(%rsp)
+    0.00 :   da4927:        leaq    -0x1(%rdx), %r8
+    0.00 :   da492b:        decq    %rdi
+    0.00 :   da492e:        movq    (%rsi,%rcx,8), %rcx
+    0.00 :   da4932:        movq    %rdx, 0x20(%rsp)
+    0.00 :   da4937:        subq    %rdx, %rcx
+    0.00 :   da493a:        imulq   0x158(%rsp), %r8
+    0.00 :   da4943:        movq    0x378(%rsp), %rax
+    0.00 :   da494b:        addq    %r8, %rax
+    0.00 :   da494e:        movq    %rax, 0x80(%rsp)
+    0.00 :   da4956:        imulq   %r15, %rcx
+    0.00 :   da495a:        movq    %rcx, 0x8(%rsp)
+    0.00 :   da495f:        movq    0x380(%rsp), %rax
+    0.00 :   da4967:        addq    %r8, %rax
+    0.00 :   da496a:        movq    %rax, 0x78(%rsp)
+    0.00 :   da496f:        movq    0x60(%rsp), %rax
+    0.00 :   da4974:        addq    %r8, %rax
+    0.00 :   da4977:        movq    %rax, 0xd8(%rsp)
+    0.00 :   da497f:        addq    0x288(%rsp), %r8
+    0.00 :   da4987:        movq    %r8, 0x40(%rsp)
+    0.00 :   da498c:        xorl    %r8d, %r8d
+    0.00 :   da498f:        movq    %rdi, 0x10(%rsp)
+    0.00 :   da4994:        jmp     0xda49c1 <mkl_pds_lp64_blkl_ll_real.extracted+0x3af1>
+    0.00 :   da4996:        nopw    %cs:(%rax,%rax)
+    0.00 :   da49a0:        movq    0x18(%rsp), %rax
+    0.00 :   da49a5:        cmpq    0x30(%rsp), %rax
+    0.00 :   da49aa:        leaq    0x1(%rax), %r8
+    0.00 :   da49ae:        movq    0x88(%rsp), %rbx
+    0.00 :   da49b6:        movq    0x10(%rsp), %rdi
+    0.00 :   da49bb:        je      0xda48a0 <mkl_pds_lp64_blkl_ll_real.extracted+0x39d0>
+    0.00 :   da49c1:        leaq    (%r8,%rdi), %rax
+    0.00 :   da49c5:        movq    0x120(%rsp), %rcx
+    0.00 :   da49cd:        movq    (%rcx,%rax,8), %rcx
+    0.00 :   da49d1:        testq   %rcx, %rcx
+    0.00 :   da49d4:        jle     0xda49f0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3b20>
+    0.00 :   da49d6:        movq    %rcx, %rsi
+    0.00 :   da49d9:        subq    0x20(%rsp), %rsi
+    0.00 :   da49de:        imulq   %rbp, %rsi
+    0.00 :   da49e2:        jmp     0xda4a00 <mkl_pds_lp64_blkl_ll_real.extracted+0x3b30>
+    0.00 :   da49e4:        nopw    %cs:(%rax,%rax)
+    0.00 :   da49f0:        movq    0x20(%rsp), %rdx
+    0.00 :   da49f5:        leaq    (%rdx,%rcx), %rsi
+    0.00 :   da49f9:        imulq   %rbp, %rsi
+    0.00 :   da49fd:        negq    %rsi
+    0.00 :   da4a00:        testq   %rcx, %rcx
+    0.00 :   da4a03:        setle   %dl
+    0.00 :   da4a06:        testq   %r8, %r8
+    0.00 :   da4a09:        sete    %cl
+    0.00 :   da4a0c:        orb     %dl, %cl
+    0.00 :   da4a0e:        movq    0xe8(%rsp), %rdx
+    0.00 :   da4a16:        movl    (%rdx,%rax,4), %eax
+    0.00 :   da4a19:        cmpl    $0x0, 0x134(%rsp)
+    0.00 :   da4a21:        movq    %r8, 0x18(%rsp)
+    0.00 :   da4a26:        je      0xda4b60 <mkl_pds_lp64_blkl_ll_real.extracted+0x3c90>
+    0.00 :   da4a2c:        decl    %eax
+    0.00 :   da4a2e:        testb   %cl, %cl
+    0.00 :   da4a30:        je      0xda4c90 <mkl_pds_lp64_blkl_ll_real.extracted+0x3dc0>
+    0.00 :   da4a36:        imull   0x90(%rsp), %eax
+    0.00 :   da4a3e:        movslq  %eax, %rdx
+    0.00 :   da4a41:        leaq    (%rbx,%rdx,8), %rax
+    0.00 :   da4a45:        movq    0xd8(%rsp), %rcx
+    0.00 :   da4a4d:        leaq    (%rcx,%rsi,8), %rcx
+    0.00 :   da4a51:        movq    0x190(%rsp), %rdi
+    0.00 :   da4a59:        leaq    (%rdi,%rdx,8), %rdx
+    0.00 :   da4a5d:        movq    0x40(%rsp), %rdi
+    0.00 :   da4a62:        leaq    (%rdi,%rsi,8), %r9
+    0.00 :   da4a66:        xorl    %esi, %esi
+    0.00 :   da4a68:        jmp     0xda4a8e <mkl_pds_lp64_blkl_ll_real.extracted+0x3bbe>
+    0.00 :   da4a6a:        nopw    (%rax,%rax)
+    0.00 :   da4a70:        addq    %r15, %rax
+    0.00 :   da4a73:        movq    0x8(%rsp), %rdi
+    0.00 :   da4a78:        addq    %rdi, %rcx
+    0.00 :   da4a7b:        addq    %r15, %rdx
+    0.00 :   da4a7e:        addq    %rdi, %r9
+    0.00 :   da4a81:        cmpq    %r12, %rsi
+    0.00 :   da4a84:        leaq    0x1(%rsi), %rsi
+    0.00 :   da4a88:        je      0xda49a0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3ad0>
+    0.00 :   da4a8e:        cmpq    $0x0, 0x68(%rsp)
+    0.00 :   da4a94:        je      0xda4b24 <mkl_pds_lp64_blkl_ll_real.extracted+0x3c54>
+    0.00 :   da4a9a:        movl    $0x38, %ebx
+    0.00 :   da4a9f:        movq    0x68(%rsp), %rdi
+    0.00 :   da4aa4:        nopw    %cs:(%rax,%rax)
+    0.00 :   da4ab0:        leaq    (%rax,%rbx), %r8
+    0.00 :   da4ab4:        addq    $-0x38, %r8
+    0.00 :   da4ab8:        movsd   (%r8), %xmm0
+    0.00 :   da4abd:        leaq    -0x38(%rcx,%rbx), %r11
+    0.00 :   da4ac2:        movsd   %xmm0, (%r11)
+    0.00 :   da4ac7:        movsd   0x8(%r8), %xmm0
+    0.00 :   da4acd:        movsd   %xmm0, 0x8(%r11)
+    0.00 :   da4ad3:        movsd   0x10(%r8), %xmm0
+    0.00 :   da4ad9:        movsd   %xmm0, 0x10(%r11)
+    0.00 :   da4adf:        movsd   0x18(%r8), %xmm0
+    0.00 :   da4ae5:        movsd   %xmm0, 0x18(%r11)
+    0.00 :   da4aeb:        movsd   0x20(%r8), %xmm0
+    0.00 :   da4af1:        movsd   %xmm0, 0x20(%r11)
+    0.00 :   da4af7:        movsd   0x28(%r8), %xmm0
+    0.00 :   da4afd:        movsd   %xmm0, 0x28(%r11)
+    0.00 :   da4b03:        movsd   0x30(%r8), %xmm0
+    0.00 :   da4b09:        movsd   %xmm0, 0x30(%r11)
+    0.00 :   da4b0f:        movq    0x38(%r8), %xmm0
+    0.00 :   da4b15:        movq    %xmm0, 0x38(%r11)
+    0.00 :   da4b1b:        addq    $0x40, %rbx
+    0.00 :   da4b1f:        decq    %rdi
+    0.00 :   da4b22:        jne     0xda4ab0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3be0>
+    0.00 :   da4b24:        cmpl    %ebp, 0x108(%rsp)
+    0.00 :   da4b2b:        je      0xda4a70 <mkl_pds_lp64_blkl_ll_real.extracted+0x3ba0>
+    0.00 :   da4b31:        xorl    %edi, %edi
+    0.00 :   da4b33:        nopw    %cs:(%rax,%rax)
+    0.00 :   da4b40:        movq    (%rdx,%rdi,8), %xmm0
+    0.00 :   da4b45:        movq    %xmm0, (%r9,%rdi,8)
+    0.00 :   da4b4b:        incq    %rdi
+    0.00 :   da4b4e:        cmpq    %rdi, %r14
+    0.00 :   da4b51:        jne     0xda4b40 <mkl_pds_lp64_blkl_ll_real.extracted+0x3c70>
+    0.00 :   da4b53:        jmp     0xda4a70 <mkl_pds_lp64_blkl_ll_real.extracted+0x3ba0>
+    0.00 :   da4b58:        nopl    (%rax,%rax)
+    0.00 :   da4b60:        decl    %eax
+    0.00 :   da4b62:        testb   %cl, %cl
+    0.00 :   da4b64:        je      0xda4daa <mkl_pds_lp64_blkl_ll_real.extracted+0x3eda>
+    0.00 :   da4b6a:        imull   0x90(%rsp), %eax
+    0.00 :   da4b72:        cltq
+    0.00 :   da4b74:        movq    0x80(%rsp), %rcx
+    0.00 :   da4b7c:        leaq    (%rcx,%rsi,8), %r13
+    0.00 :   da4b80:        leaq    (%rbx,%rax,8), %r8
+    0.00 :   da4b84:        leaq    (%rbp,%rax), %rcx
+    0.00 :   da4b89:        leaq    (%rbx,%rcx,8), %rdi
+    0.00 :   da4b8d:        movq    0x2a8(%rsp), %rcx
+    0.00 :   da4b95:        leaq    (%rcx,%rax,8), %rdx
+    0.00 :   da4b99:        movq    0x78(%rsp), %rax
+    0.00 :   da4b9e:        leaq    (%rax,%rsi,8), %r9
+    0.00 :   da4ba2:        xorl    %esi, %esi
+    0.00 :   da4ba4:        jmp     0xda4be0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3d10>
+    0.00 :   da4ba6:        nopw    %cs:(%rax,%rax)
+    0.00 :   da4bb0:        movq    0x8(%rsp), %rax
+    0.00 :   da4bb5:        addq    %rax, %r13
+    0.00 :   da4bb8:        addq    $0x8, %r8
+    0.00 :   da4bbc:        addq    $0x8, %rdi
+    0.00 :   da4bc0:        addq    $0x8, %rdx
+    0.00 :   da4bc4:        addq    %rax, %r9
+    0.00 :   da4bc7:        leaq    -0x1(%rbp), %r12
+    0.00 :   da4bcb:        cmpq    %r12, %rsi
+    0.00 :   da4bce:        leaq    0x1(%rsi), %rsi
+    0.00 :   da4bd2:        movq    0x248(%rsp), %r10
+    0.00 :   da4bda:        je      0xda49a0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3ad0>
+    0.00 :   da4be0:        cmpq    $0x0, 0x1f8(%rsp)
+    0.00 :   da4be9:        movq    0x320(%rsp), %r12
+    0.00 :   da4bf1:        leaq    (%r15,%r15,2), %rbp
+    0.00 :   da4bf5:        je      0xda4c45 <mkl_pds_lp64_blkl_ll_real.extracted+0x3d75>
+    0.00 :   da4bf7:        movq    %rdi, %rcx
+    0.00 :   da4bfa:        movq    %r8, %rax
+    0.00 :   da4bfd:        movq    0x1f8(%rsp), %r11
+    0.00 :   da4c05:        movq    %r13, %rbx
+    0.00 :   da4c08:        nopl    (%rax,%rax)
+    0.00 :   da4c10:        movsd   (%rax), %xmm0
+    0.00 :   da4c14:        movsd   %xmm0, -0x18(%rbx)
+    0.00 :   da4c19:        movsd   (%rcx), %xmm0
+    0.00 :   da4c1d:        movsd   %xmm0, -0x10(%rbx)
+    0.00 :   da4c22:        movsd   (%rax,%r10), %xmm0
+    0.00 :   da4c28:        movsd   %xmm0, -0x8(%rbx)
+    0.00 :   da4c2d:        movq    (%rax,%rbp), %xmm0
+    0.00 :   da4c32:        movq    %xmm0, (%rbx)
+    0.00 :   da4c36:        addq    $0x20, %rbx
+    0.00 :   da4c3a:        addq    %r12, %rax
+    0.00 :   da4c3d:        addq    %r12, %rcx
+    0.00 :   da4c40:        decq    %r11
+    0.00 :   da4c43:        jne     0xda4c10 <mkl_pds_lp64_blkl_ll_real.extracted+0x3d40>
+    0.00 :   da4c45:        movq    0x310(%rsp), %rbp
+    0.00 :   da4c4d:        cmpl    %ebp, 0x328(%rsp)
+    0.00 :   da4c54:        movq    0x318(%rsp), %r10
+    0.00 :   da4c5c:        je      0xda4bb0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3ce0>
+    0.00 :   da4c62:        movq    %rdx, %rax
+    0.00 :   da4c65:        xorl    %ecx, %ecx
+    0.00 :   da4c67:        nopw    (%rax,%rax)
+    0.00 :   da4c70:        movq    (%rax), %xmm0
+    0.00 :   da4c74:        movq    %xmm0, (%r9,%rcx,8)
+    0.00 :   da4c7a:        incq    %rcx
+    0.00 :   da4c7d:        addq    %r15, %rax
+    0.00 :   da4c80:        cmpq    %rcx, %r10
+    0.00 :   da4c83:        jne     0xda4c70 <mkl_pds_lp64_blkl_ll_real.extracted+0x3da0>
+    0.00 :   da4c85:        jmp     0xda4bb0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3ce0>
+    0.00 :   da4c8a:        nopw    (%rax,%rax)
+    0.00 :   da4c90:        imull   0x90(%rsp), %eax
+    0.00 :   da4c98:        movslq  %eax, %rdx
+    0.00 :   da4c9b:        movq    %rbx, %rdi
+    0.00 :   da4c9e:        movq    0x80(%rsp), %rax
+    0.00 :   da4ca6:        leaq    (%rax,%rsi,8), %rbx
+    0.00 :   da4caa:        leaq    (%rdi,%rdx,8), %rax
+    0.00 :   da4cae:        leaq    (%rbp,%rdx), %rcx
+    0.00 :   da4cb3:        leaq    (%rdi,%rcx,8), %rcx
+    0.00 :   da4cb7:        movq    0x2a8(%rsp), %rdi
+    0.00 :   da4cbf:        leaq    (%rdi,%rdx,8), %rdx
+    0.00 :   da4cc3:        movq    0x78(%rsp), %rdi
+    0.00 :   da4cc8:        leaq    (%rdi,%rsi,8), %r9
+    0.00 :   da4ccc:        xorl    %esi, %esi
+    0.00 :   da4cce:        jmp     0xda4d00 <mkl_pds_lp64_blkl_ll_real.extracted+0x3e30>
+    0.00 :   da4cd0:        movq    0x8(%rsp), %rdi
+    0.00 :   da4cd5:        addq    %rdi, %rbx
+    0.00 :   da4cd8:        addq    $0x8, %rax
+    0.00 :   da4cdc:        addq    $0x8, %rcx
+    0.00 :   da4ce0:        addq    $0x8, %rdx
+    0.00 :   da4ce4:        addq    %rdi, %r9
+    0.00 :   da4ce7:        leaq    -0x1(%rbp), %r12
+    0.00 :   da4ceb:        cmpq    %r12, %rsi
+    0.00 :   da4cee:        leaq    0x1(%rsi), %rsi
+    0.00 :   da4cf2:        movq    0x248(%rsp), %r10
+    0.00 :   da4cfa:        je      0xda49a0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3ad0>
+    0.00 :   da4d00:        cmpq    $0x0, 0x1f8(%rsp)
+    0.00 :   da4d09:        movq    0x320(%rsp), %r12
+    0.00 :   da4d11:        leaq    (%r15,%r15,2), %rbp
+    0.00 :   da4d15:        je      0xda4d6c <mkl_pds_lp64_blkl_ll_real.extracted+0x3e9c>
+    0.00 :   da4d17:        movq    %rcx, %rdi
+    0.00 :   da4d1a:        movq    %rax, %r8
+    0.00 :   da4d1d:        movq    0x1f8(%rsp), %r11
+    0.00 :   da4d25:        movq    %rbx, %r13
+    0.00 :   da4d28:        nopl    (%rax,%rax)
+    0.00 :   da4d30:        movsd   (%r8), %xmm0
+    0.00 :   da4d35:        movsd   %xmm0, -0x18(%r13)
+    0.00 :   da4d3b:        movsd   (%rdi), %xmm0
+    0.00 :   da4d3f:        movsd   %xmm0, -0x10(%r13)
+    0.00 :   da4d45:        movsd   (%r8,%r10), %xmm0
+    0.00 :   da4d4b:        movsd   %xmm0, -0x8(%r13)
+    0.00 :   da4d51:        movq    (%r8,%rbp), %xmm0
+    0.00 :   da4d57:        movq    %xmm0, (%r13)
+    0.00 :   da4d5d:        addq    $0x20, %r13
+    0.00 :   da4d61:        addq    %r12, %r8
+    0.00 :   da4d64:        addq    %r12, %rdi
+    0.00 :   da4d67:        decq    %r11
+    0.00 :   da4d6a:        jne     0xda4d30 <mkl_pds_lp64_blkl_ll_real.extracted+0x3e60>
+    0.00 :   da4d6c:        movq    0x310(%rsp), %rbp
+    0.00 :   da4d74:        cmpl    0x328(%rsp), %ebp
+    0.00 :   da4d7b:        movq    0x318(%rsp), %r10
+    0.00 :   da4d83:        je      0xda4cd0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3e00>
+    0.00 :   da4d89:        movq    %rdx, %rdi
+    0.00 :   da4d8c:        xorl    %r8d, %r8d
+    0.00 :   da4d8f:        nop
+    0.00 :   da4d90:        movq    (%rdi), %xmm0
+    0.00 :   da4d94:        movq    %xmm0, (%r9,%r8,8)
+    0.00 :   da4d9a:        incq    %r8
+    0.00 :   da4d9d:        addq    %r15, %rdi
+    0.00 :   da4da0:        cmpq    %r8, %r10
+    0.00 :   da4da3:        jne     0xda4d90 <mkl_pds_lp64_blkl_ll_real.extracted+0x3ec0>
+    0.00 :   da4da5:        jmp     0xda4cd0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3e00>
+    0.00 :   da4daa:        imull   0x90(%rsp), %eax
+    0.00 :   da4db2:        movslq  %eax, %rdx
+    0.00 :   da4db5:        leaq    (%rbx,%rdx,8), %rax
+    0.00 :   da4db9:        movq    0xd8(%rsp), %rcx
+    0.00 :   da4dc1:        leaq    (%rcx,%rsi,8), %rcx
+    0.00 :   da4dc5:        movq    0x190(%rsp), %rdi
+    0.00 :   da4dcd:        leaq    (%rdi,%rdx,8), %rdx
+    0.00 :   da4dd1:        movq    0x40(%rsp), %rdi
+    0.00 :   da4dd6:        leaq    (%rdi,%rsi,8), %r9
+    0.00 :   da4dda:        xorl    %esi, %esi
+    0.00 :   da4ddc:        jmp     0xda4dfe <mkl_pds_lp64_blkl_ll_real.extracted+0x3f2e>
+    0.00 :   da4dde:        nop
+    0.00 :   da4de0:        addq    %r15, %rax
+    0.00 :   da4de3:        movq    0x8(%rsp), %rdi
+    0.00 :   da4de8:        addq    %rdi, %rcx
+    0.00 :   da4deb:        addq    %r15, %rdx
+    0.00 :   da4dee:        addq    %rdi, %r9
+    0.00 :   da4df1:        cmpq    %r12, %rsi
+    0.00 :   da4df4:        leaq    0x1(%rsi), %rsi
+    0.00 :   da4df8:        je      0xda49a0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3ad0>
+    0.00 :   da4dfe:        cmpq    $0x0, 0x68(%rsp)
+    0.00 :   da4e04:        je      0xda4e94 <mkl_pds_lp64_blkl_ll_real.extracted+0x3fc4>
+    0.00 :   da4e0a:        movl    $0x38, %ebx
+    0.00 :   da4e0f:        movq    0x68(%rsp), %rdi
+    0.00 :   da4e14:        nopw    %cs:(%rax,%rax)
+    0.00 :   da4e20:        leaq    (%rax,%rbx), %r8
+    0.00 :   da4e24:        addq    $-0x38, %r8
+    0.00 :   da4e28:        movsd   (%r8), %xmm0
+    0.00 :   da4e2d:        leaq    -0x38(%rcx,%rbx), %r11
+    0.00 :   da4e32:        movsd   %xmm0, (%r11)
+    0.00 :   da4e37:        movsd   0x8(%r8), %xmm0
+    0.00 :   da4e3d:        movsd   %xmm0, 0x8(%r11)
+    0.00 :   da4e43:        movsd   0x10(%r8), %xmm0
+    0.00 :   da4e49:        movsd   %xmm0, 0x10(%r11)
+    0.00 :   da4e4f:        movsd   0x18(%r8), %xmm0
+    0.00 :   da4e55:        movsd   %xmm0, 0x18(%r11)
+    0.00 :   da4e5b:        movsd   0x20(%r8), %xmm0
+    0.00 :   da4e61:        movsd   %xmm0, 0x20(%r11)
+    0.00 :   da4e67:        movsd   0x28(%r8), %xmm0
+    0.00 :   da4e6d:        movsd   %xmm0, 0x28(%r11)
+    0.00 :   da4e73:        movsd   0x30(%r8), %xmm0
+    0.00 :   da4e79:        movsd   %xmm0, 0x30(%r11)
+    0.00 :   da4e7f:        movq    0x38(%r8), %xmm0
+    0.00 :   da4e85:        movq    %xmm0, 0x38(%r11)
+    0.00 :   da4e8b:        addq    $0x40, %rbx
+    0.00 :   da4e8f:        decq    %rdi
+    0.00 :   da4e92:        jne     0xda4e20 <mkl_pds_lp64_blkl_ll_real.extracted+0x3f50>
+    0.00 :   da4e94:        cmpl    %ebp, 0x108(%rsp)
+    0.00 :   da4e9b:        je      0xda4de0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3f10>
+    0.00 :   da4ea1:        xorl    %edi, %edi
+    0.00 :   da4ea3:        nopw    %cs:(%rax,%rax)
+    0.00 :   da4eb0:        movq    (%rdx,%rdi,8), %xmm0
+    0.00 :   da4eb5:        movq    %xmm0, (%r9,%rdi,8)
+    0.00 :   da4ebb:        incq    %rdi
+    0.00 :   da4ebe:        cmpq    %rdi, %r14
+    0.00 :   da4ec1:        jne     0xda4eb0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3fe0>
+    0.00 :   da4ec3:        jmp     0xda4de0 <mkl_pds_lp64_blkl_ll_real.extracted+0x3f10>
+    0.00 :   da4ec8:        nopl    (%rax,%rax)
+    0.00 :   da4ed0:        movq    %rax, %rcx
+    0.00 :   da4ed3:        movq    %rdi, 0x10(%rsp)
+    0.16 :   da4ed8:        subq    %rdi, %rcx
+    0.16 :   da4edb:        movq    %rcx, %rdx
+    0.48 :   da4ede:        shrq    $0x2, %rdx
+    0.32 :   da4ee2:        movq    0x60(%rsp), %r11
+    0.00 :   da4ee7:        je      0xda4faf <mkl_pds_lp64_blkl_ll_real.extracted+0x40df>
+    0.16 :   da4eed:        movq    0x1c0(%rsp), %rsi
+    0.00 :   da4ef5:        movq    0x10(%rsp), %r8
+    0.00 :   da4efa:        leaq    (%rsi,%r8,4), %rsi
+    0.00 :   da4efe:        movq    0x1b8(%rsp), %rdi
+    0.00 :   da4f06:        leaq    (%rdi,%r8,8), %rdi
+    0.00 :   da4f0a:        movl    $0x8, %r8d
+    0.00 :   da4f10:        movq    -0x10(%rdi,%r8,2), %r9
+    0.29 :   da4f15:        movslq  -0x8(%rsi,%r8), %r10
+    0.00 :   da4f1a:        movsd   -0x8(%rbx,%r10,8), %xmm0
+    0.97 :   da4f21:        leaq    -0x1(%r9), %r10
+    0.00 :   da4f25:        testq   %r9, %r9
+    0.00 :   da4f28:        notq    %r9
+    0.00 :   da4f2b:        cmovgq  %r10, %r9
+    0.00 :   da4f2f:        movsd   %xmm0, (%r11,%r9,8)
+    0.48 :   da4f35:        movq    -0x8(%rdi,%r8,2), %r9
+    0.16 :   da4f3a:        movslq  -0x4(%rsi,%r8), %r10
+    0.00 :   da4f3f:        movsd   -0x8(%rbx,%r10,8), %xmm0
+    0.30 :   da4f46:        leaq    -0x1(%r9), %r10
+    0.00 :   da4f4a:        testq   %r9, %r9
+    0.00 :   da4f4d:        notq    %r9
+    0.00 :   da4f50:        cmovgq  %r10, %r9
+    0.00 :   da4f54:        movsd   %xmm0, (%r11,%r9,8)
+    0.81 :   da4f5a:        movq    (%rdi,%r8,2), %r9
+    0.00 :   da4f5e:        movslq  (%rsi,%r8), %r10
+    0.00 :   da4f62:        movsd   -0x8(%rbx,%r10,8), %xmm0
+    0.16 :   da4f69:        leaq    -0x1(%r9), %r10
+    0.00 :   da4f6d:        testq   %r9, %r9
+    0.00 :   da4f70:        notq    %r9
+    0.00 :   da4f73:        cmovgq  %r10, %r9
+    0.00 :   da4f77:        movsd   %xmm0, (%r11,%r9,8)
+    0.30 :   da4f7d:        movq    0x8(%rdi,%r8,2), %r9
+    0.00 :   da4f82:        leaq    -0x1(%r9), %r10
+    0.00 :   da4f86:        testq   %r9, %r9
+    0.00 :   da4f89:        notq    %r9
+    0.00 :   da4f8c:        cmovgq  %r10, %r9
+    0.00 :   da4f90:        movslq  0x4(%rsi,%r8), %r10
+    0.00 :   da4f95:        movq    -0x8(%rbx,%r10,8), %xmm0
+    0.00 :   da4f9c:        movq    %xmm0, (%r11,%r9,8)
+    0.48 :   da4fa2:        addq    $0x10, %r8
+    0.00 :   da4fa6:        decq    %rdx
+    0.00 :   da4fa9:        jne     0xda4f10 <mkl_pds_lp64_blkl_ll_real.extracted+0x4040>
+    0.00 :   da4faf:        movq    %rcx, %rdx
+    0.00 :   da4fb2:        andq    $-0x4, %rdx
+    0.00 :   da4fb6:        cmpq    %rcx, %rdx
+    0.00 :   da4fb9:        movq    0x1c0(%rsp), %rdi
+    0.14 :   da4fc1:        movq    0x1b8(%rsp), %r8
+    0.00 :   da4fc9:        movq    0x10(%rsp), %rcx
+    0.48 :   da4fce:        je      0xda48a0 <mkl_pds_lp64_blkl_ll_real.extracted+0x39d0>
+    0.80 :   da4fd4:        addq    %rcx, %rdx
+    0.00 :   da4fd7:        nopw    (%rax,%rax)
+    0.00 :   da4fe0:        movq    (%r8,%rdx,8), %rcx
+    1.55 :   da4fe4:        leaq    -0x1(%rcx), %rsi
+    0.00 :   da4fe8:        testq   %rcx, %rcx
+    0.14 :   da4feb:        notq    %rcx
+    0.16 :   da4fee:        cmovgq  %rsi, %rcx
+    0.32 :   da4ff2:        movslq  (%rdi,%rdx,4), %rsi
+    0.00 :   da4ff6:        movq    -0x8(%rbx,%rsi,8), %xmm0
+    2.24 :   da4ffc:        movq    0x60(%rsp), %rsi
+    0.00 :   da5001:        movq    %xmm0, (%rsi,%rcx,8)
+    2.38 :   da5006:        incq    %rdx
+    0.16 :   da5009:        cmpq    %rdx, %rax
+    0.00 :   da500c:        jne     0xda4fe0 <mkl_pds_lp64_blkl_ll_real.extracted+0x4110>
+    0.00 :   da500e:        jmp     0xda48a0 <mkl_pds_lp64_blkl_ll_real.extracted+0x39d0>
+    0.00 :   da5013:        movl    (%r13), %esi
+    0.00 :   da5017:        leaq    0x611c302(%rip), %rdi  # 0x6ec1320
+    0.00 :   da501e:        movq    $0x6f37cb0, %rbx
+    0.00 :   da5025:        movq    %rbx, %rdx
+    0.00 :   da5028:        callq   0x400c50 <_init+0x86c>
+    0.00 :   da502d:        movl    0x454(%rsp), %eax
+    0.00 :   da5034:        movq    0x340(%rsp), %rcx
+    0.00 :   da503c:        addl    %eax, (%rcx)
+    0.00 :   da503e:        movl    0x458(%rsp), %eax
+    0.00 :   da5045:        movq    0x330(%rsp), %rcx
+    0.00 :   da504d:        addl    %eax, (%rcx)
+    0.00 :   da504f:        movl    0x450(%rsp), %eax
+    0.00 :   da5056:        movq    0x338(%rsp), %rcx
+    0.00 :   da505e:        addl    %eax, (%rcx)
+    0.00 :   da5060:        movl    (%r13), %esi
+    0.00 :   da5064:        leaq    0x611c2d5(%rip), %rdi  # 0x6ec1340
+    0.00 :   da506b:        movq    %rbx, %rdx
+    0.00 :   da506e:        callq   0x4009d0 <_init+0x5ec>
+    0.00 :   da5073:        movq    %fs:0x28, %rax
+    0.00 :   da507c:        cmpq    0x480(%rsp), %rax
+    0.00 :   da5084:        jne     0xda5098 <mkl_pds_lp64_blkl_ll_real.extracted+0x41c8>
+    0.00 :   da5086:        addq    $0x488, %rsp
+    0.00 :   da508d:        popq    %rbx
+    0.00 :   da508e:        popq    %r12
+    0.00 :   da5090:        popq    %r13
+    0.00 :   da5092:        popq    %r14
+    0.00 :   da5094:        popq    %r15
+    0.00 :   da5096:        popq    %rbp
+    0.00 :   da5097:        retq
+    0.00 :   da5098:        callq   0x400720 <_init+0x33c>

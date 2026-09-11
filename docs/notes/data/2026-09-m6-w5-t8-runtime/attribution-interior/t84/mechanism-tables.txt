@@ -1,0 +1,175 @@
+========================================================================================================
+B0. THE STEP ON EVERY ROW BOTH ARMS WRITE, INCLUDING THE SEVEN UNCONDITIONAL ONES -- is the
+    extra time a FIXED per-call cost, or does it scale with what the row does?
+========================================================================================================
+
+  row                                            parent wall_s  culprit wall_s     step    delta (ms)
+  f7_n1000_bound_physics/MakeParameter                0.297664        0.306771   1.0306          9.11
+  f7_n1000_bound_physics/MakeConstraint               0.032277        0.032923   1.0200          0.65
+  f7_n1000_bound_physics/RelaxBounds                  0.032242        0.033009   1.0238          0.77
+  f7_n5000_bound_physics/MakeParameter                0.180920        0.188336   1.0410          7.42
+  f7_n5000_bound_physics/MakeConstraint               0.174974        0.180719   1.0328          5.74
+  f7_n5000_bound_physics/RelaxBounds                  0.174899        0.180663   1.0330          5.76
+  f7_n10000_bound_neutral/MakeParameter               0.538042        0.560247   1.0413         22.21
+  f7_n10000_bound_neutral/MakeConstraint              0.526221        0.542285   1.0305         16.06
+  f7_n10000_bound_neutral/RelaxBounds                 0.528016        0.542840   1.0281         14.82
+  f7_n20000_bound_neutral/MakeParameter               1.136527        1.169119   1.0287         32.59
+  f7_n20000_bound_neutral/MakeConstraint              1.101136        1.137671   1.0332         36.54
+  f7_n20000_bound_neutral/RelaxBounds                 1.101482        1.137169   1.0324         35.69
+  hs071_x1_fixed/MakeParameter                        0.000170        0.000182   1.0718          0.01
+  hs071_x1_fixed/MakeConstraint                       0.000125        0.000139   1.1118          0.01
+  hs071_x1_fixed/RelaxBounds                          0.000128        0.000141   1.1013          0.01
+  f7_n1000_bound_neutral/MakeParameter/cap1           0.016222        0.017029   1.0497          0.81
+  hs071_x1_fixed/MakeParameter/cap1                   0.000076        0.000083   1.0860          0.01
+  infeas2_spike/MakeParameter/stalled                 0.000599        0.000632   1.0552          0.03
+  infeas2_stationary/MakeParameter/resto_infeasible        0.000183        0.000198   1.0810          0.01
+  TOTAL over all nineteen rows                        5.841905        6.030156   1.0322        188.25
+
+  The step is between 1.02 and 1.04 on the eleven big rows and 1.05-1.11 on the four tiny
+  ones, but the ABSOLUTE delta runs from 0.01 ms on a 0.13 ms row to 36.5 ms on a 1101 ms
+  row. It scales with what the row does. A fixed per-call cost would look like the opposite.
+
+========================================================================================================
+B1. WHOLE-PROCESS perf stat ACROSS THE SIX BISECT ARMS -- three rounds, the wall pin's
+    invocation with perf attached. b01->b02 and b05->b06 are BYTE-IDENTICAL executables,
+    so their steps are this instrument's floor and can be nothing else.
+========================================================================================================
+
+  arm  commit                    instructions                cycles              branches         branch-misses L1-icache-load-misses      IPC
+  b01   T8.3 510a4bb          56,740,290,319        19,146,787,961         8,353,269,398            18,172,388             4,966,548   2.9634
+  b02   8ae1618               57,318,980,089        19,493,172,659         8,521,275,961            18,306,917             4,498,822   2.9405
+  b03   9cebbbe               57,242,935,674        19,632,473,469         8,476,077,941            18,387,769             3,687,798   2.9157
+  b04   9ce9bb2               57,097,417,931        19,569,165,568         8,433,830,768            18,263,193             4,176,107   2.9177
+  b05   fix1 5124aa1          57,680,367,935        19,644,051,681         8,508,076,797            18,531,259             3,364,833   2.9363
+  b06   T8.4 3c8e43b          57,422,234,232        19,479,178,325         8,433,135,246            18,484,045             3,533,942   2.9479
+
+  consecutive steps (median of three):
+    8ae1618                           1.010199              1.018091              1.020113              1.007403              0.905825  <-- ZERO CONTROL (identical bytes)
+    9cebbbe                           0.998673              1.007146              0.994696              1.004416              0.819725
+    9ce9bb2                           0.997458              0.996775              0.995016              0.993225              1.132412
+    fix1 5124aa1                      1.010210              1.003827              1.008803              1.014678              0.805734
+    T8.4 3c8e43b                      0.995525              0.991607              0.991192              0.997452              1.050258  <-- ZERO CONTROL (identical bytes)
+
+  round-to-round spread per arm (max/min - 1):
+    b01 T8.3 510a4bb   instructions 2.66e-02   cycles 5.61e-02
+    b02 8ae1618        instructions 2.32e-02   cycles 5.06e-02
+    b03 9cebbbe        instructions 1.13e-02   cycles 2.39e-02
+    b04 9ce9bb2        instructions 8.59e-04   cycles 4.56e-03
+    b05 fix1 5124aa1   instructions 9.18e-04   cycles 3.60e-03
+    b06 T8.4 3c8e43b   instructions 2.29e-03   cycles 9.26e-03
+
+  VERDICT: the b01->b02 zero control moves instructions by +1.02 % and cycles by +1.81 %
+  with a true step of EXACTLY ZERO, while the pair under test moves them -0.13 % and
+  +0.71 %; every arm's own round-to-round spread is 0.1-6 %. The whole-process instruction
+  and cycle counts RESOLVE NOTHING on this leg -- the floor is larger than the step. This
+  reproduces reading.md section 11's finding on a control stronger than T8.1's: not merely
+  a byte-identical libhven.a, a byte-identical BINARY.
+
+========================================================================================================
+B2. THE CYCLE PROFILE, PARENT AGAINST CULPRIT -- perf record -e cycles:u -F 997, three
+    rounds each, alternating, the wall pin's four-cell invocation.
+========================================================================================================
+
+  the fifteen largest share deltas:
+   d(share)  parent%  culprit%  symbol
+      1.240    1.800     3.040  [libc.so.6] difftime
+     -0.910   11.640    10.730  [hven_sqp_corpus] mkl_pds_lp64_blkl_ll_real.extracted
+     -0.480    4.830     4.350  [hven_sqp_corpus] mkl_pds_lp64_metis_createcoarsegraphnomask
+      0.420    9.110     9.530  [hven_sqp_corpus] mkl_pds_lp64_upd_real_block
+      0.370    2.490     2.860  [hven_sqp_corpus] mkl_blas_def_dgemm_pst
+     -0.340    2.260     1.920  [hven_sqp_corpus] mkl_pds_lp64_dsytrs_bklfw_pardiso
+      0.320    0.000     0.320  [hven_sqp_corpus] hven::Fnv1a::feed_index_pairs(int const*, int const*, unsigned long)
+     -0.270    2.390     2.120  [hven_sqp_corpus] void Eigen::internal::set_from_triplets<__gnu_cxx::__normal_iterator<Eigen::Tr
+     -0.200    3.480     3.280  [hven_sqp_corpus] mkl_pds_lp64_blkslv_ll_undef_bk_real.extracted
+      0.170    0.100     0.270  [hven_sqp_corpus] mkl_serv_cpuisitbarcelona
+     -0.150    0.460     0.310  [hven_sqp_corpus] hven::solvers::nlp_require_claimed_pattern(Eigen::SparseMatrix<double, 1, int>
+      0.140    0.250     0.390  [hven_sqp_corpus] mkl_pds_lp64_metis_fm_2wayedgerefine
+      0.140    0.930     1.070  [hven_sqp_corpus] mkl_serv_get_clocks_frequency
+      0.130    1.430     1.560  [hven_sqp_corpus] mkl_pds_lp64_metis_fm_2waynoderefine_onesided
+      0.130    0.210     0.340  [[unknown]] 0xffffffff89e01280
+
+  RAW SHARES
+    group                         parent%  culprit%   delta
+    MKL kernels (in-binary)         64.70     63.28   -1.42
+    Eigen                           19.84     19.51   -0.33
+    MKL clock calibration            2.99      4.81    1.82
+    libiomp5.so                      3.13      3.15    0.02
+    [unknown]                        2.93      2.93    0.00
+    hven::                           2.18      2.51    0.33
+    libc.so.6                        2.24      2.07   -0.17
+    libm.so.6                        1.75      1.77    0.02
+    other-in-binary                  0.12      0.09   -0.03
+    libstdc++.so.6.0.36              0.00      0.02    0.02
+    ld-linux-x86-64.so.2             0.00      0.00    0.00
+    [vdso]                           0.03      0.00   -0.03
+
+  RENORMALISED with the clock-calibration family removed
+    group                         parent%  culprit%   delta
+    MKL kernels (in-binary)         66.78     66.37   -0.40
+    Eigen                           20.46     20.60    0.14
+    libiomp5.so                      3.22      3.21   -0.02
+    [unknown]                        3.02      3.08    0.06
+    hven::                           2.23      2.65    0.41
+    libc.so.6                        2.30      2.17   -0.12
+    libm.so.6                        1.82      1.85    0.03
+    other-in-binary                  0.12      0.09   -0.03
+    libstdc++.so.6.0.36              0.00      0.02    0.02
+    ld-linux-x86-64.so.2             0.00      0.00    0.00
+    [vdso]                           0.03      0.00   -0.03
+
+========================================================================================================
+B3. MINOR PAGE FAULTS AND KERNEL TIME
+========================================================================================================
+
+  (a) the mem leg -- under `perf stat`, six rounds, with a BYTE-IDENTICAL control pair:
+
+    arm                   minor faults        median     sys (s)
+    ctrlA 510a4bb       308104..308107       308,105      0.6223
+    ctrlB 8ae1618       308104..308108       308,106      0.6213
+    culprit 9cebbbe     361254..361286       361,263      0.7368
+
+    control step (identical bytes): faults x1.000003, sys x0.9984
+    CULPRIT step:                   faults x1.172526 (+53156), sys x1.1860 (+0.1155 s)
+
+  (b) the wallpf leg -- NO perf, the wall pin's invocation byte for byte, the fault count
+      read from /usr/bin/time's %R (the format string is /usr/bin/time's argv, not the
+      child's, so the measured process sees exactly what it sees in a wall batch):
+
+    parent 8ae1618       faults [308272, 308271, 308269, 308297, 308331]  median 308,272   sys median 0.590   user median 5.680
+    culprit 9cebbbe      faults [361421, 361424, 361415, 361416, 361423]  median 361,421   sys median 0.680   user median 5.870
+
+    CULPRIT step in the WALL condition: faults x1.1724 (+53149), sys +0.090 s, user +0.190 s
+    53149 extra first-touched 4 KiB pages = 207.6 MiB per process.
+
+========================================================================================================
+B4. EXPERIMENT 4 -- the allocator intervention, applied IDENTICALLY to both arms
+========================================================================================================
+
+  arm                      scored corpus s    minor faults       sys (s)
+  default / parent                5.473976         308,271         0.600
+  default / culprit               5.638122         361,420         0.680
+  bigthresh / parent              5.130077          66,400         0.140
+  bigthresh / culprit             5.233006          66,554         0.140
+
+  step under the PIN's environment      1.0300  (+2.999 %)   faults +53149
+  step with the intervention            1.0201  (+2.006 %)   faults +154
+  FRACTION OF THE STEP THE INTERVENTION REMOVES: 32.8 %
+  fraction of the extra faults it removes:       99.7 %
+
+  and what it does to each arm on its own (bigthresh/default): parent 0.9372, culprit 0.9281
+
+  per-row, both modes:
+  row                                             default step    bigthresh step
+  f7_n1000_bound_physics/MakeConstraint                 1.0234            1.0250
+  f7_n1000_bound_physics/RelaxBounds                    1.0225            1.0256
+  f7_n5000_bound_physics/MakeParameter                  1.0401            1.0391
+  f7_n5000_bound_physics/MakeConstraint                 1.0303            1.0222
+  f7_n5000_bound_physics/RelaxBounds                    1.0295            1.0224
+  f7_n10000_bound_neutral/MakeParameter                 1.0409            1.0174
+  f7_n10000_bound_neutral/MakeConstraint                1.0280            1.0138
+  f7_n10000_bound_neutral/RelaxBounds                   1.0275            1.0176
+  f7_n20000_bound_neutral/MakeParameter                 1.0282            1.0217
+  f7_n20000_bound_neutral/MakeConstraint                1.0266            1.0218
+  f7_n20000_bound_neutral/RelaxBounds                   1.0308            1.0180
+
+APPLE / ACCELERATE: UNOBSERVED.   WINDOWS: UNOBSERVED.

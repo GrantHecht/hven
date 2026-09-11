@@ -1,0 +1,342 @@
+    10.69%  hven_sqp_corpus       [.] mkl_pds_lp64_blkl_ll_real.extracted
+     9.24%  hven_sqp_corpus       [.] mkl_pds_lp64_upd_real_block
+     4.35%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_createcoarsegraphnomask
+     4.12%  hven_sqp_corpus       [.] mkl_pds_lp64_fct_real_block
+     3.90%  hven_sqp_corpus       [.] Eigen::SparseMatrix<double, 1, int>& Eigen::SparseMatrix<double, 1, int>::operator=<Eigen::SparseMatrix<double, 0, int> >(Eigen::SparseMatrixBase<Eigen::SparseMatrix<double, 0, int> > const&)
+     3.28%  hven_sqp_corpus       [.] mkl_pds_lp64_blkslv_ll_undef_bk_real.extracted
+     3.18%  libc.so.6             [.] difftime
+     3.17%  libiomp5.so           [.] __kmpc_flush
+     2.85%  hven_sqp_corpus       [.] mkl_blas_def_dgemm_pst
+     2.12%  hven_sqp_corpus       [.] void Eigen::internal::set_from_triplets<__gnu_cxx::__normal_iterator<Eigen::Triplet<double, int> const*, std::vector<Eigen::Triplet<double, int>, std::allocator<Eigen::Triplet<double, int> > > >, Eigen::SparseMatrix<double, 1, int>, Eigen::internal::scalar_sum_op<double, double> >(__gnu_cxx::__normal_iterator<Eigen::Triplet<double, int> const*, std::vector<Eigen::Triplet<double, int>, std::allocator<Eigen::Triplet<double, int> > > > const&, __gnu_cxx::__normal_iterator<Eigen::Triplet<double, int> const*, std::vector<Eigen::Triplet<double, int>, std::allocator<Eigen::Triplet<double, int> > > > const&, Eigen::SparseMatrix<double, 1, int>&, Eigen::internal::scalar_sum_op<double, double>)
+     2.06%  hven_sqp_corpus       [.] mkl_pds_lp64_dsytf2_pardiso
+     1.89%  hven_sqp_corpus       [.] mkl_pds_lp64_dsytrs_bklfw_pardiso
+     1.69%  hven_sqp_corpus       [.] void Eigen::internal::set_from_triplets<__gnu_cxx::__normal_iterator<Eigen::Triplet<double, int>*, std::vector<Eigen::Triplet<double, int>, std::allocator<Eigen::Triplet<double, int> > > >, Eigen::SparseMatrix<double, 1, int>, Eigen::internal::scalar_sum_op<double, double> >(__gnu_cxx::__normal_iterator<Eigen::Triplet<double, int>*, std::vector<Eigen::Triplet<double, int>, std::allocator<Eigen::Triplet<double, int> > > > const&, __gnu_cxx::__normal_iterator<Eigen::Triplet<double, int>*, std::vector<Eigen::Triplet<double, int>, std::allocator<Eigen::Triplet<double, int> > > > const&, Eigen::SparseMatrix<double, 1, int>&, Eigen::internal::scalar_sum_op<double, double>)
+     1.66%  hven_sqp_corpus       [.] void Eigen::SparseMatrix<double, 0, int>::collapseDuplicates<Eigen::Map<Eigen::Matrix<int, -1, 1, 0, -1, 1>, 32, Eigen::Stride<0, 0> >, Eigen::internal::scalar_sum_op<double, double> >(Eigen::DenseBase<Eigen::Map<Eigen::Matrix<int, -1, 1, 0, -1, 1>, 32, Eigen::Stride<0, 0> > >&, Eigen::internal::scalar_sum_op<double, double>)
+     1.57%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_fm_2waynoderefine_onesided
+     1.42%  libm.so.6             [.] __ieee754_log_fma
+     1.26%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_splitgraphorder
+     1.19%  hven_sqp_corpus       [.] mkl_serv_get_clocks_frequency
+     1.18%  libc.so.6             [.] __memset_avx2_unaligned_erms
+     1.15%  hven_sqp_corpus       [.] hven::solvers::NLPConstraintPiece::scatter_jacobian(Eigen::SparseMatrix<double, 1, int>&, Eigen::Ref<Eigen::Matrix<int, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, Eigen::Ref<Eigen::Matrix<int, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, std::vector<std::mutex, std::allocator<std::mutex> >&, hven::solvers::SolverIndexingData const&) const
+     1.03%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_createcoarsegraph
+     0.96%  hven_sqp_corpus       [.] mkl_pds_lp64_dsytrs_bkl_scal_pardiso
+     0.93%  hven_sqp_corpus       [.] mkl_pds_lp64_ldindx_pardiso_mic
+     0.86%  hven_sqp_corpus       [.] piv_real
+     0.74%  [unknown]             [k] 0xffffffff8a5d1535
+     0.74%  hven_sqp_corpus       [.] mkl_blas_def_xdgemm_bdz
+     0.68%  hven_sqp_corpus       [.] mkl_blas_def_xdger_kernel
+     0.68%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_match_shem
+     0.67%  hven_sqp_corpus       [.] hven::solvers::crossover::ModelAsNlpProblem::merge_into_slots(Eigen::SparseMatrix<double, 1, int> const&, Eigen::SparseMatrix<double, 1, int> const&, char const*, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >)
+     0.65%  hven_sqp_corpus       [.] mkl_pds_lp64_sagg_smat_to_full_structure
+     0.60%  hven_sqp_corpus       [.] hven::solvers::nlp_scatter_hessian_block(hven::solvers::NLPAdapterCore const&, int, Eigen::SparseMatrix<double, 1, int>&, Eigen::Ref<Eigen::Matrix<int, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, Eigen::Ref<Eigen::Matrix<int, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, std::vector<std::mutex, std::allocator<std::mutex> >&, hven::solvers::SolverIndexingData const&)
+     0.58%  hven_sqp_corpus       [.] hven::solvers::InteriorPointSolver::alg_impl(hven::solvers::AlgorithmModes, hven::solvers::BarrierModes, hven::solvers::LineSearchModes, double, double, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >)
+     0.57%  hven_sqp_corpus       [.] hven::solvers::BacktrackingLineSearch::max_primal_dual_step(Eigen::Matrix<double, -1, 1, 0, -1, 1>&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&, double, double&, double&, hven::solvers::SolverContext const&)
+     0.56%  hven_sqp_corpus       [.] mkl_pds_lp64_dsytrs_bklbw_pardiso
+     0.56%  hven_sqp_corpus       [.] mkl_blas_def_xidamax
+     0.55%  libc.so.6             [.] __memmove_avx_unaligned_erms
+     0.54%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_mmdupd
+     0.50%  hven_sqp_corpus       [.] mkl_blas_def_xdgemm
+     0.50%  hven_sqp_corpus       [.] mkl_pds_lp64_symfct_pardiso
+     0.49%  hven_sqp_corpus       [.] mkl_serv_cbwr_get
+     0.46%  hven_sqp_corpus       [.] hven::solvers::NLPConstraintPiece::constraints_jacobian_adjointgradient(Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, Eigen::SparseMatrix<double, 1, int>&, Eigen::Ref<Eigen::Matrix<int, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, Eigen::Ref<Eigen::Matrix<int, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, std::vector<std::mutex, std::allocator<std::mutex> >&, hven::solvers::SolverIndexingData const&) const
+     0.45%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_fm_2wayedgerefine
+     0.44%  hven_sqp_corpus       [.] hven::solvers::crossover::ModelAsNlpProblem::stacked_jacobian(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+     0.43%  hven_sqp_corpus       [.] mkl_pds_lp64_dsytrs_bklfw_noscal_pardiso
+     0.42%  hven_sqp_corpus       [.] hven::solvers::nlp_require_claimed_pattern(Eigen::SparseMatrix<double, 1, int> const&, std::vector<hven::solvers::NLPCoordinate, std::allocator<hven::solvers::NLPCoordinate> > const&, char const*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&)
+     0.42%  hven_sqp_corpus       [.] mkl_pds_keyiqst
+     0.41%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_bucketsortkeysinc
+     0.40%  hven_sqp_corpus       [.] mkl_pds_lp64_flops_pardiso
+     0.40%  hven_sqp_corpus       [.] hven::solvers::InteriorPointSolver::apply_bound_dual_step(double, hven::solvers::KKTVector&, double, bool)
+     0.39%  hven_sqp_corpus       [.] mkl_pds_lp64_lnnt_pardiso.extracted
+     0.37%  hven_sqp_corpus       [.] mkl_pds_lp64_etep_pardiso
+     0.36%  [unknown]             [k] 0xffffffff89e01280
+     0.34%  hven_sqp_corpus       [.] hven::solvers::NLPAdapterCore::sync_x(Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&)
+     0.34%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_mmdelm
+     0.33%  hven_sqp_corpus       [.] mkl_pds_lp64_pardiso_c
+     0.33%  hven_sqp_corpus       [.] hven::solvers::ClassicMeritAcceptance::eval_trial_point_occ(double, double, double, hven::solvers::KKTVector&, hven::solvers::KKTVector&, hven::solvers::KKTVector&, hven::solvers::KKTVector&, double&, double&)
+     0.33%  hven_sqp_corpus       [.] void hven::feed_pattern<double, 1, int>(hven::Fnv1a&, Eigen::SparseMatrix<double, 1, int> const&)
+     0.32%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_match_rm
+     0.32%  hven_sqp_corpus       [.] hven::Fnv1a::feed_index_pairs(int const*, int const*, unsigned long)
+     0.31%  hven_sqp_corpus       [.] hven::solvers::detail::augment_bound_complementarity(Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, hven::solvers::BoundSet const&, hven::solvers::BoundDualState const&, int, double&, double&, double&)
+     0.29%  hven_sqp_corpus       [.] hven::solvers::NlpProblemModel::sync_x(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+     0.28%  hven_sqp_corpus       [.] mkl_serv_cpuisitbarcelona
+     0.28%  hven_sqp_corpus       [.] hven::solvers::NlpProblemModel::eval_jac_e_in_place(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::SparseMatrix<double, 1, int>&) const
+     0.27%  hven_sqp_corpus       [.] hven::solvers::InteriorPointSolver::dual_infeasibility_inf(Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&) const
+     0.27%  hven_sqp_corpus       [.] hven::solvers::test_support::F7CollocationChain::eval_f(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+     0.27%  hven_sqp_corpus       [.] mkl_pds_lp64_sagg_smat_is_consistent
+     0.25%  hven_sqp_corpus       [.] hven::solvers::test_support::F7CollocationChain::eval_jac_e(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+     0.25%  hven_sqp_corpus       [.] mkl_blas_xdgemm
+     0.25%  hven_sqp_corpus       [.] void hven::utils::parallel_blocks<hven::solvers::NonLinearProgram::fill_solver_coeffs(Eigen::SparseMatrix<double, 1, int>&)::{lambda(int, int)#1}&>(int, hven::solvers::NonLinearProgram::fill_solver_coeffs(Eigen::SparseMatrix<double, 1, int>&)::{lambda(int, int)#1}&, int)
+     0.25%  hven_sqp_corpus       [.] hven::solvers::NonLinearProgram::analyze_sparsity(Eigen::SparseMatrix<double, 1, int>&)
+     0.25%  hven_sqp_corpus       [.] mkl_pds_lp64_invs_perm_mod_pardiso
+     0.24%  [vdso]                [.] __vdso_time
+     0.24%  hven_sqp_corpus       [.] hven::solvers::InteriorPointSolver::install_primal_diags_with_sigma(Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, double)
+     0.24%  hven_sqp_corpus       [.] mkl_blas_dscal
+     0.23%  hven_sqp_corpus       [.] mkl_pds_lp64_mps_pardiso
+     0.23%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_compute2waynodepartitionparams
+     0.22%  hven_sqp_corpus       [.] mkl_pds_lp64_kgjmerge
+     0.21%  hven_sqp_corpus       [.] difftime@plt
+     0.21%  hven_sqp_corpus       [.] hven::solvers::(anonymous namespace)::append_vector(std::vector<std::byte, std::allocator<std::byte> >&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&)
+     0.20%  hven_sqp_corpus       [.] mkl_serv_cpuiszen
+     0.20%  hven_sqp_corpus       [.] void Eigen::internal::assign_sparse_to_sparse<Eigen::SparseMatrix<double, 1, int>, Eigen::CwiseBinaryOp<Eigen::internal::scalar_sum_op<double, double>, Eigen::SparseMatrix<double, 1, int> const, Eigen::SparseMatrix<double, 1, int> const> >(Eigen::SparseMatrix<double, 1, int>&, Eigen::CwiseBinaryOp<Eigen::internal::scalar_sum_op<double, double>, Eigen::SparseMatrix<double, 1, int> const, Eigen::SparseMatrix<double, 1, int> const> const&)
+     0.20%  hven_sqp_corpus       [.] mkl_blas_lp64_dgemv
+     0.20%  hven_sqp_corpus       [.] mkl_pds_lp64_sssfct_pardiso
+     0.20%  hven_sqp_corpus       [.] hven::solvers::NlpProblemModel::build_jacobian_pattern()
+     0.20%  hven_sqp_corpus       [.] mkl_pds_lp64_sagg_smat_copy_permute
+     0.20%  [unknown]             [k] 0xffffffff8abaeb5b
+     0.20%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_compute2waypartitionparams
+     0.19%  libc.so.6             [.] __memcmp_avx2_movbe
+     0.19%  hven_sqp_corpus       [.] mkl_pds_lp64_psol_bwscat_pardiso_mic.DIR.OMP.PARALLEL.6
+     0.19%  hven_sqp_corpus       [.] mkl_pds_lp64_psol_fwgath_pardiso_mic
+     0.18%  hven_sqp_corpus       [.] mkl_pds_lp64_kuhn_munkres
+     0.18%  hven_sqp_corpus       [.] hven::solvers::(anonymous namespace)::compressed_value_index(Eigen::SparseMatrix<double, 1, int> const&, int, int)
+     0.18%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_idxset
+     0.17%  hven_sqp_corpus       [.] hven::solvers::test_support::F7CollocationChain::eval_grad(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+     0.16%  hven_sqp_corpus       [.] hven::solvers::test_support::F7CollocationChain::rebuild_data()
+     0.16%  libm.so.6             [.] __cos_fma
+     0.16%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_genmmd
+     0.16%  hven_sqp_corpus       [.] mkl_pds_lp64_up_calc
+     0.14%  hven_sqp_corpus       [.] hven::solvers::NonLinearProgram::assemble_impl(hven::solvers::CandidatePoint const&, hven::solvers::EvalRequest, hven::solvers::KktScatterView, hven::solvers::RhsScatterView)
+     0.14%  hven_sqp_corpus       [.] L_not_one_loopgas_1
+     0.13%  hven_sqp_corpus       [.] mkl_pds_lp64_ldindx_pardiso
+     0.13%  hven_sqp_corpus       [.] mkl_pds_lp64_sagg_compress_2x2_blocks
+     0.13%  hven_sqp_corpus       [.] mkl_serv_memcpy_unbounded_s
+     0.13%  hven_sqp_corpus       [.] mkl_pds_lp64_ladj_mod_pardiso
+     0.13%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_compressgraph
+     0.12%  hven_sqp_corpus       [.] hven::solvers::ClassicMeritAcceptance::ls_auglang(double, double, double, double, hven::solvers::KKTVector&, hven::solvers::KKTVector&, hven::solvers::KKTVector&, hven::solvers::KKTVector&, hven::solvers::KKTVector&, hven::solvers::IterateInfo&)
+     0.12%  hven_sqp_corpus       [.] mkl_blas_def_xdgemv
+     0.12%  hven_sqp_corpus       [.] hven::solvers::crossover::ModelAsNlpProblem::build_structures()
+     0.12%  hven_sqp_corpus       [.] mkl_pds_lp64_invs_perm_mod_pardiso.extracted.35
+     0.12%  hven_sqp_corpus       [.] hven::solvers::test_support::F7CollocationChain::eval_hess(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, double, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+     0.12%  hven_sqp_corpus       [.] mkl_blas_def_dgemm_mscale
+     0.12%  hven_sqp_corpus       [.] mkl_blas_def_xdsyr_kernel_l
+     0.12%  hven_sqp_corpus       [.] mkl_pds_lp64_kgiqsort_pardiso
+     0.12%  hven_sqp_corpus       [.] mkl_blas_def_xdger
+     0.12%  hven_sqp_corpus       [.] mkl_blas_xdger
+     0.11%  hven_sqp_corpus       [.] hven::linear::(anonymous namespace)::run_solve(hven::linear::detail::FactorSession const&, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, char const*)
+     0.11%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_idxamax
+     0.10%  hven_sqp_corpus       [.] mkl_pds_lp64_sagg_mps_sym_pardiso
+     0.10%  hven_sqp_corpus       [.] mkl_blas_lp64_dscal
+     0.10%  hven_sqp_corpus       [.] mkl_blas_dger
+     0.10%  hven_sqp_corpus       [.] mkl_blas_def_xdgemv_kernel_t
+     0.10%  hven_sqp_corpus       [.] mkl_blas_idamax
+     0.10%  hven_sqp_corpus       [.] mkl_pds_lp64_fnpmod_pardiso
+     0.10%  libm.so.6             [.] __sin_fma
+     0.10%  hven_sqp_corpus       [.] hven::solvers::test_support::F7CollocationChain::eval_jac_i(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+     0.09%  hven_sqp_corpus       [.] hven::solvers::materialized_bound_digest(hven::solvers::AggregateDeclaration const&)
+     0.09%  hven_sqp_corpus       [.] mkl_pds_lp64_fndspa_pardiso
+     0.09%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_growbisection
+     0.09%  hven_sqp_corpus       [.] hven::solvers::detail::restate_claim_stream(hven::solvers::detail::RawClaimLayout const&, hven::solvers::detail::ClaimDomainCounts const&, hven::solvers::detail::ClaimArena&)
+     0.09%  hven_sqp_corpus       [.] hven::solvers::NLPConstraintPiece::get_kkt_space(Eigen::Ref<Eigen::Matrix<int, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, Eigen::Ref<Eigen::Matrix<int, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, int&, int, bool, bool, hven::solvers::SolverIndexingData&)
+     0.09%  hven_sqp_corpus       [.] hven::solvers::NlpProblemModel::read_structures()
+     0.09%  hven_sqp_corpus       [.] hven::solvers::InteriorPointSolver::push_initial_point_interior(Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, double)
+     0.09%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_project2waynodepartition
+     0.09%  hven_sqp_corpus       [.] mkl_blas_lp64_idamax
+     0.08%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_pqueuegetmax
+     0.08%  hven_sqp_corpus       [.] mkl_blas_def_xdamax_kernel
+     0.08%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_fm_2waynoderefine
+     0.08%  hven_sqp_corpus       [.] hven::solvers::NonLinearProgram::get_mat_space()
+     0.08%  hven_sqp_corpus       [.] hven::linear::SymmetricFactor::analyze(Eigen::SparseMatrix<double, 1, int> const&)
+     0.08%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_pqueueinsert
+     0.08%  hven_sqp_corpus       [.] mkl_pds_lp64_blkpre_pardiso
+     0.07%  hven_sqp_corpus       [.] hven::solvers::(anonymous namespace)::record_coordinates(Eigen::SparseMatrix<double, 1, int> const&)
+     0.07%  hven_sqp_corpus       [.] hven::solvers::crossover::ModelAsNlpProblem::eval_grad_f(Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >) const
+     0.07%  hven_sqp_corpus       [.] mkl_serv_cpuisbulldozer
+     0.07%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_pqueueupdate
+     0.07%  hven_sqp_corpus       [.] mkl_serv_mem_prim_move
+     0.07%  hven_sqp_corpus       [.] mkl_pds_lp64_gms2
+     0.07%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_mmdorder
+     0.07%  hven_sqp_corpus       [.] mkl_pds_lp64_sagg_bitvec_is_set
+     0.06%  hven_sqp_corpus       [.] hven::solvers::NonLinearProgram::configure_variable_treatment(hven::solvers::FixedVariableTreatments, double)
+     0.06%  hven_sqp_corpus       [.] hven::solvers::test_support::F7CollocationChain::eval_ce(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+     0.05%  hven_sqp_corpus       [.] mkl_serv_progress
+     0.05%  hven_sqp_corpus       [.] mkl_blas_def_xdscal
+     0.05%  hven_sqp_corpus       [.] mkl_blas_lp64_dger
+     0.05%  hven_sqp_corpus       [.] hven::solvers::compute_declared_diagnostics_from_grad_lag(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, std::vector<long, std::allocator<long> > const&)
+     0.05%  hven_sqp_corpus       [.] hven::solvers::NonLinearProgram::finalize_data()
+     0.05%  libc.so.6             [.] _int_malloc
+     0.05%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_pqueueupdateup
+     0.05%  hven_sqp_corpus       [.] mkl_pds_lp64_fntz_pardiso
+     0.05%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_idxsum
+     0.05%  hven_sqp_corpus       [.] mkl_blas_def_xdsyr
+     0.05%  hven_sqp_corpus       [.] hven::solvers::test_support::F7CollocationChain::apply_c_transpose(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+     0.05%  hven_sqp_corpus       [.] mkl_blas_xdscal
+     0.05%  hven_sqp_corpus       [.] hven::solvers::crossover::ModelAsNlpProblem::eval_f(Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, double&) const
+     0.04%  hven_sqp_corpus       [.] hven::solvers::NonLinearProgram::set_variable_bound(int, double, double)
+     0.04%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_pqueueinit
+     0.03%  hven_sqp_corpus       [.] mkl_blas_def_xdgemv_kernel_n
+     0.03%  hven_sqp_corpus       [.] hven::solvers::test_support::F7CollocationChain::eval_ci(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+     0.03%  hven_sqp_corpus       [.] hven::solvers::NlpProblemModel::eval_ce_in_place(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&) const
+     0.03%  hven_sqp_corpus       [.] hven::solvers::NlpProblemModel::eval_ci_in_place(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&) const
+     0.03%  [unknown]             [k] 0xffffffff89e015f0
+     0.03%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_ikeysort
+     0.03%  hven_sqp_corpus       [.] MKL_PROGRESS_
+     0.03%  hven_sqp_corpus       [.] mkl_pds_lp64_psol_bwscat_pardiso_mic
+     0.03%  hven_sqp_corpus       [.] hven::solvers::NLPAdapterCore::eval_hessian_values(Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, double, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&)
+     0.03%  hven_sqp_corpus       [.] hven::solvers::ConstraintModel<hven::solvers::NLPConstraintPiece>::constraints(Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, hven::solvers::SolverIndexingData const&) const
+     0.03%  hven_sqp_corpus       [.] hven::solvers::ClassicMeritAcceptance::compute_penalties(hven::solvers::KKTVector&, hven::solvers::KKTVector&) const
+     0.03%  hven_sqp_corpus       [.] mkl_pds_lp64_sagg_smat_build_adjacency
+     0.03%  hven_sqp_corpus       [.] Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >::resize(long, long)
+     0.03%  hven_sqp_corpus       [.] hven::solvers::NlpProblemModel::build_jacobian_pattern()::$_0::operator()(std::vector<Eigen::Triplet<double, int>, std::allocator<Eigen::Triplet<double, int> > >&, std::vector<std::pair<int, int>, std::allocator<std::pair<int, int> > >&, std::vector<hven::solvers::NlpProblemModel::JacTarget, std::allocator<hven::solvers::NlpProblemModel::JacTarget> >&, int, int, double) const
+     0.03%  hven_sqp_corpus       [.] mkl_blas_xidamax
+     0.03%  [unknown]             [k] 0xffffffff8a6629fc
+     0.03%  hven_sqp_corpus       [.] mkl_serv_cpu_detect
+     0.03%  hven_sqp_corpus       [.] hven::solvers::NlpProblemModel::compose_into(Eigen::Matrix<double, -1, 1, 0, -1, 1>&, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, char const*) const
+     0.03%  hven_sqp_corpus       [.] mkl_pds_lp64_sagg_perm_invert
+     0.03%  [unknown]             [k] 0xffffffff8a65c2e3
+     0.03%  hven_sqp_corpus       [.] mkl_pds_lp64_sched_pardiso
+     0.03%  [unknown]             [k] 0xffffffff8a1ad64b
+     0.03%  [unknown]             [k] 0xffffffff8a622918
+     0.03%  libm.so.6             [.] log@@GLIBC_2.29
+     0.03%  [unknown]             [k] 0xffffffff8a5de300
+     0.03%  hven_sqp_corpus       [.] hven::solvers::RhsLocationTable::RhsLocationTable(int const*, int)
+     0.03%  [unknown]             [k] 0xffffffff8a1ac6e1
+     0.03%  [unknown]             [k] 0xffffffff8a5daa5a
+     0.03%  [unknown]             [k] 0xffffffff8b553d5f
+     0.03%  libc.so.6             [.] _int_free_create_chunk
+     0.03%  [unknown]             [k] 0xffffffff8a65db59
+     0.02%  [unknown]             [k] 0xffffffff8a5a280f
+     0.02%  [unknown]             [k] 0xffffffff8a5dcc64
+     0.02%  [unknown]             [k] 0xffffffff8a5b67b2
+     0.02%  [unknown]             [k] 0xffffffff8a590987
+     0.02%  [unknown]             [k] 0xffffffff89e01d22
+     0.02%  hven_sqp_corpus       [.] hven::solvers::AggregateDeclaration::materialize_variable_bounds() const
+     0.02%  [unknown]             [k] 0xffffffff8a61f35c
+     0.02%  [unknown]             [k] 0xffffffff89e01284
+     0.02%  [unknown]             [k] 0xffffffff8a662a0f
+     0.02%  [unknown]             [k] 0xffffffff8a5dcb9a
+     0.02%  libiomp5.so           [.] __kmp_env_blk_var
+     0.02%  hven_sqp_corpus       [.] hven::solvers::crossover::ModelAsNlpProblem::eval_jac(Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >) const
+     0.02%  hven_sqp_corpus       [.] mkl_pds_lp64_sagg_expand_cond_perm
+     0.02%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_nodend_vbsr_pardiso
+     0.02%  [unknown]             [k] 0xffffffff8a1f1ef3
+     0.02%  hven_sqp_corpus       [.] mkl_blas_xdsyr
+     0.02%  hven_sqp_corpus       [.] mkl_serv_allocate
+     0.02%  hven_sqp_corpus       [.] hven::solvers::crossover::ModelAsNlpProblem::eval_hess(Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, double, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >) const
+     0.02%  hven_sqp_corpus       [.] hven::solvers::InteriorPointSolver::fill_residual_info(hven::solvers::KKTVector&, hven::solvers::KKTVector&, double, hven::solvers::IterateInfo&) const
+     0.02%  [unknown]             [k] 0xffffffff8a61f345
+     0.02%  hven_sqp_corpus       [.] malloc@plt
+     0.02%  hven_sqp_corpus       [.] hven::solvers::NlpProblemModel::eval_hess_in_place(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, double, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::SparseMatrix<double, 1, int>&) const
+     0.02%  hven_sqp_corpus       [.] hven::solvers::NonLinearProgram::set_con_coeffs_zero()
+     0.02%  [unknown]             [k] 0xffffffff89e01d30
+     0.02%  hven_sqp_corpus       [.] mkl_blas_dgemv
+     0.02%  hven_sqp_corpus       [.] hven::solvers::InteriorPointSolver::complementarity(Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, double&, double&, double&) const
+     0.02%  hven_sqp_corpus       [.] hven::solvers::NLPConstraintPiece::constraints_jacobian_adjointgradient_adjointhessian(Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, Eigen::SparseMatrix<double, 1, int>&, Eigen::Ref<Eigen::Matrix<int, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, Eigen::Ref<Eigen::Matrix<int, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, std::vector<std::mutex, std::allocator<std::mutex> >&, hven::solvers::SolverIndexingData const&) const
+     0.02%  hven_sqp_corpus       [.] hven::solvers::InteriorPointSolver::run_phase_sequence(hven::solvers::NonLinearProgram&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, std::vector<hven::solvers::InteriorPointSolver::PhaseStep, std::allocator<hven::solvers::InteriorPointSolver::PhaseStep> > const&, hven::solvers::SolveBudget)
+     0.02%  hven_sqp_corpus       [.] hven::solvers::InteriorPointSolver::barrier_hessian(Eigen::SparseMatrix<double, 1, int>&, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >, double)
+     0.02%  hven_sqp_corpus       [.] hven::solvers::InteriorPointSolver::build_polish_extension(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::WarmExtension&) const
+     0.02%  hven_sqp_corpus       [.] hven::solvers::ClassicAdaptiveGovernor::update_barrier(hven::solvers::BarrierModes, double, double, double, Eigen::Matrix<double, -1, 1, 0, -1, 1>&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&, Eigen::Matrix<double, -1, 1, 0, -1, 1>&, hven::solvers::GlobalizationMechanism&, hven::solvers::SolverContext&, double&, hven::solvers::IterateInfo const&, bool&)
+     0.02%  hven_sqp_corpus       [.] mkl_serv_malloc
+     0.02%  [unknown]             [k] 0xffffffff8a5de23a
+     0.02%  hven_sqp_corpus       [.] hven::solvers::crossover::ModelAsNlpProblem::eval_g(Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1> const, 0, Eigen::InnerStride<1> > const&, Eigen::Ref<Eigen::Matrix<double, -1, 1, 0, -1, 1>, 0, Eigen::InnerStride<1> >) const
+     0.02%  libiomp5.so           [.] __kmp_get_global_thread_id_reg
+     0.02%  hven_sqp_corpus       [.] mkl_pds_lp64_sagg_bitvec_permute
+     0.02%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_setupcoarsegraph
+     0.02%  [unknown]             [k] 0xffffffff8a33b7fc
+     0.02%  hven_sqp_corpus       [.] mkl_blas_xdgemv
+     0.02%  hven_sqp_corpus       [.] hven::solvers::NlpProblemModel::validate_variable_bounds() const
+     0.02%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_idxwspacemalloc
+     0.02%  hven_sqp_corpus       [.] hven::solvers::NlpProblemModel::start_point() const
+     0.02%  [unknown]             [k] 0xffffffff8abaeb10
+     0.02%  hven_sqp_corpus       [.] mkl_pds_lp64_stree_pardiso
+     0.02%  hven_sqp_corpus       [.] mkl_pds_lp64_metis_randompermute
+     0.02%  [unknown]             [k] 0xffffffff8b553cbb
+     0.02%  hven_sqp_corpus       [.] mkl_blas_def_xdgemv_mscale
+     0.02%  hven_sqp_corpus       [.] mkl_pds_lp64_sagg_permcycle_new_from
+     0.02%  hven_sqp_corpus       [.] Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >::resize(long)
+     0.02%  [unknown]             [k] 0xffffffff89e01290
+     0.02%  [unknown]             [k] 0xffffffff8a5de194
+     0.02%  [unknown]             [k] 0xffffffff8a5de250
+     0.02%  hven_sqp_corpus       [.] hven::solvers::NonLinearProgram::materialize_variable_bounds()
+     0.02%  hven_sqp_corpus       [.] hven::solvers::NonLinearProgram::get_rhs_space()
+     0.02%  hven_sqp_corpus       [.] hven::solvers::test_support::F7CollocationChain::start_point() const
+     0.02%  [unknown]             [k] 0xffffffff8a3215e0
+     0.02%  hven_sqp_corpus       [.] hven::solvers::(anonymous namespace)::zero_values(Eigen::SparseMatrix<double, 1, int>&)
+     0.02%  hven_sqp_corpus       [.] mkl_pds_lp64_rr33adcopy
+     0.02%  libc.so.6             [.] cfree@GLIBC_2.2.5
+     0.02%  [unknown]             [k] 0xffffffff89e01cb0
+     0.02%  [unknown]             [k] 0xffffffff8b553dec
+     0.02%  libc.so.6             [.] malloc
+     0.02%  [unknown]             [k] 0xffffffff8a5de369
+     0.02%  hven_sqp_corpus       [.] mkl_blas_lp64_dsyr
+     0.02%  [unknown]             [k] 0xffffffff8a5dcf75
+     0.02%  [unknown]             [k] 0xffffffff8a5a2ecb
+     0.02%  [unknown]             [k] 0xffffffff8a61f337
+     0.02%  [unknown]             [k] 0xffffffff8a590937
+     0.02%  [unknown]             [k] 0xffffffff8a5b6790
+     0.02%  [unknown]             [k] 0xffffffff89e01288
+     0.02%  [unknown]             [k] 0xffffffff8a5a0d98
+     0.02%  [unknown]             [k] 0xffffffff8a5a2998
+     0.02%  [unknown]             [k] 0xffffffff8b5889fb
+     0.01%  [unknown]             [k] 0xffffffff8a658a70
+     0.01%  [unknown]             [k] 0xffffffff8a61f3e6
+     0.01%  hven_sqp_corpus       [.] mm_account_ptr_by_tid
+     0.01%  hven_sqp_corpus       [.] hven::solvers::NlpProblemModel::eval_jac_i_in_place(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, Eigen::SparseMatrix<double, 1, int>&) const
+     0.01%  [unknown]             [k] 0xffffffff8a65c2ea
+     0.01%  [unknown]             [k] 0xffffffff8a5a289a
+     0.01%  hven_sqp_corpus       [.] mkl_pds_lp64_reorder2_pardiso
+     0.01%  [unknown]             [k] 0xffffffff8a5a25d6
+     0.01%  [unknown]             [k] 0xffffffff8a622a5a
+     0.01%  libc.so.6             [.] _int_free_merge_chunk
+     0.01%  [unknown]             [k] 0xffffffff8a5d734a
+     0.01%  [unknown]             [k] 0xffffffff8b584595
+     0.01%  [unknown]             [k] 0xffffffff8a5d153c
+     0.01%  hven_sqp_corpus       [.] mkl_pds_lp64_invs_perm_mod_pardiso.extracted.63
+     0.01%  [unknown]             [k] 0xffffffff8a5909e9
+     0.01%  [unknown]             [k] 0xffffffff8a5a2939
+     0.01%  [unknown]             [k] 0xffffffff8a5a25f5
+     0.01%  [unknown]             [k] 0xffffffff8a5de333
+     0.01%  [unknown]             [k] 0xffffffff8a660bc5
+     0.01%  [unknown]             [k] 0xffffffff8b553cfe
+     0.01%  hven_sqp_corpus       [.] mkl_pds_lp64_invs_perm_mod_pardiso.extracted.28
+     0.01%  [unknown]             [k] 0xffffffff8a5de203
+     0.01%  [unknown]             [k] 0xffffffff8a66227d
+     0.01%  [unknown]             [k] 0xffffffff8a5de1a2
+     0.01%  [unknown]             [k] 0xffffffff8a5b67d7
+     0.01%  [unknown]             [k] 0xffffffff89e01e18
+     0.01%  [unknown]             [k] 0xffffffff8a5d9486
+     0.01%  [unknown]             [k] 0xffffffff8a5d97ad
+     0.01%  [unknown]             [k] 0xffffffff8a5a2abc
+     0.01%  [unknown]             [k] 0xffffffff8a662a35
+     0.01%  [unknown]             [k] 0xffffffff8a5dcc67
+     0.01%  [unknown]             [k] 0xffffffff8a5d72ee
+     0.01%  [unknown]             [k] 0xffffffff8a622a5d
+     0.01%  [unknown]             [k] 0xffffffff8a61f366
+     0.01%  [unknown]             [k] 0xffffffff89e0128d
+     0.01%  [unknown]             [k] 0xffffffff8a5909c9
+     0.01%  [unknown]             [k] 0xffffffff8a5b65fc
+     0.01%  [unknown]             [k] 0xffffffff8a5a12e2
+     0.01%  [unknown]             [k] 0xffffffff8aacb372
+     0.01%  [unknown]             [k] 0xffffffff8a658a86
+     0.01%  [unknown]             [k] 0xffffffff8a5a262d
+     0.01%  [unknown]             [k] 0xffffffff8a1ad6df
+     0.01%  [unknown]             [k] 0xffffffff8a6579e0
+     0.01%  [unknown]             [k] 0xffffffff8a5a287b
+     0.01%  [unknown]             [k] 0xffffffff8a5a2aac
+     0.01%  [unknown]             [k] 0xffffffff8a5a0f73
+     0.01%  [unknown]             [k] 0xffffffff8a66445e
+     0.01%  [unknown]             [k] 0xffffffff8a1ad706
+     0.01%  hven_sqp_corpus       [.] hven::solvers::SolverIndexingData::set_v_index(Eigen::Matrix<int, -1, -1, 0, -1, -1> const&)
+     0.01%  [unknown]             [k] 0xffffffff8a65c2c5
+     0.01%  [unknown]             [k] 0xffffffff8a5a25eb
+     0.01%  [unknown]             [k] 0xffffffff8a2ec2c0
+     0.01%  [unknown]             [k] 0xffffffff8a5dcf66
+     0.01%  [unknown]             [k] 0xffffffff8a61f3ea
+     0.01%  [unknown]             [k] 0xffffffff8a5d9460
+     0.01%  [unknown]             [k] 0xffffffff8a5a12ce
+     0.01%  [unknown]             [k] 0xffffffff8a5a2efc
+     0.01%  [unknown]             [k] 0xffffffff89e01cb8
+     0.01%  [unknown]             [k] 0xffffffff8a61f36d
+     0.01%  [unknown]             [k] 0xffffffff8b588a16
+     0.01%  [unknown]             [k] 0xffffffff8b553cf7
+     0.01%  [unknown]             [k] 0xffffffff8ab6b290
+     0.01%  [unknown]             [k] 0xffffffff8a61f3f7
+     0.01%  [unknown]             [k] 0xffffffff8a9cd329
+     0.00%  ld-linux-x86-64.so.2  [.] _dl_relocate_object_no_relro
+     0.00%  ld-linux-x86-64.so.2  [.] _dl_x86_init_cpu_features
+     0.00%  [unknown]             [k] 0xffffffff8a592f67
+     0.00%  [unknown]             [k] 0xffffffff8a5a2621
+     0.00%  [unknown]             [k] 0xffffffff8a59cd55
+     0.00%  [unknown]             [k] 0xffffffff8a5f29f3
+
+

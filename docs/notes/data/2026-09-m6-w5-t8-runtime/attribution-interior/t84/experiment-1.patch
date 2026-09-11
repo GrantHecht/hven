@@ -1,0 +1,19 @@
+--- a/include/hven/drivers/interior_point_solver.h
++++ b/include/hven/drivers/interior_point_solver.h
+@@ -580,7 +580,7 @@
+     // dense over the REDUCED primal space until the reinsertion seam scatters
+     // it to declared width, and f/lambda_* carry the objective scale until
+     // unscale_reported_outputs divides it out.
+-    IpmResult result_;
++    char hven_t89ra3_layout_pad_[320]; // W5 T8.9r-attrib3 experiment 1
+     EvalErrorLog eval_error_log_;
+     // BORROWED, NOT OWNED (M6 W5 T8.4). Non-null only for the duration of one
+     // solve() call: bound after the argument checks and nulled on every exit,
+@@ -1360,6 +1360,7 @@
+                           double tottime, double nlptime, double qptime, double printtime);
+     void print_timing_summary();
+     static fmt::text_style calculate_color(double val, double targ, double acc);
++    IpmResult result_; // W5 T8.9r-attrib3 experiment 1: moved to the end
+ };
+ 
+ } // namespace hven::solvers
