@@ -1177,3 +1177,73 @@ The head arm's leg runs 43 rows, the base arm's 41 -- the two `parts2` rows exis
 | leg2/ssn/sink | 0.9816 | 17/27 | MOVED | NO VERDICT AT 1e-4 -- this leg's own two passes of the SAME binary disagree by 0.0793 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO) |
 | leg2/walk/off | 0.9798 | 24/27 | MOVED | NO VERDICT AT 1e-4 -- this leg's own two passes of the SAME binary disagree by 0.0793 %, above the identity band; the ratio below is reported, not classified (original label: INSTRUCTIONS DOWN outside the identity band -- owner classification (11.1.1)) |
 | leg2/walk/sink | 0.9829 | 16/27 | MOVED | NO VERDICT AT 1e-4 -- this leg's own two passes of the SAME binary disagree by 0.0793 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO) |
+
+---
+
+## 10. Attribution per task (T8.9r-attrib, 2026-09-11)
+
+A later leg, on the same box and the same day, re-measured §3's nine cells at **eleven arms** — the
+base and every group-1 code head in order — so §3's increase could be charged to the task that added
+it, which is what §11.1.1 sends to the owner. It is in `attribution/`
+(`attribution.md`, `arms.txt`, `table.csv`, `attribute.py` + its sha256, and every perf output, leg
+log and script under `raw/`). **This addendum asserts no wall-clock number and none was taken**;
+`cycles` there is informational, as here.
+
+**All of §3's increase is T8.4, and T8.4 declared it.** Per-task instruction steps as a fraction of
+the base arm; **bold** = outside the ±2e-5 band the eleven-arm leg reads at.
+
+| task (code head) | ipm n1000/n5000/n20000 | ssn n1000/n5000/n20000 | walk n1000/n5000/n20000 |
+|---|---|---|---|
+| T8.1 `b3915ff` | +0.000000 / +0.000000 / +0.000000 | +0.000001 / +0.000000 / −0.000000 | **+0.000020** / −0.000000 / +0.000000 |
+| T8.2 `b43580f` | +0.000000 / +0.000001 / +0.000000 | −0.000000 / +0.000000 / +0.000000 | −0.000019 / −0.000004 / −0.000000 |
+| T8.3 `510a4bb` | +0.000001 / **−0.000125** / −0.000000 | **+0.000157** / +0.000000 / **+0.000130** | **+0.000024** / +0.000005 / **−0.000269** |
+| **T8.4 `3c8e43b`** | **+0.000457 / +0.000442 / +0.000422** | **+0.000700 / +0.000641 / +0.000576** | **+0.001305 / +0.001264 / +0.001192** |
+| T8.5 `8f95655` | +0.000002 / −0.000000 / +0.000000 | +0.000002 / +0.000000 / +0.000000 | +0.000002 / −0.000004 / +0.000000 |
+| T8.6 `8cbaa39` | +0.000001 / +0.000000 / −0.000000 | −0.000009 / +0.000000 / −0.000000 | +0.000006 / +0.000005 / +0.000000 |
+| T8.7 `56042be` | −0.000007 / −0.000001 / −0.000000 | +0.000011 / −0.000000 / +0.000000 | −0.000004 / −0.000000 / −0.000000 |
+| T8.7b `ddac2cf` | −0.000004 / +0.000000 / −0.000000 | +0.000000 / +0.000000 / −0.000000 | +0.000003 / +0.000000 / −0.000000 |
+| T8.8 `b9848bf` | +0.000014 / +0.000006 / +0.000004 | +0.000007 / +0.000007 / +0.000006 | −0.000003 / +0.000001 / −0.000000 |
+| T8.9 `e51a7e0` | +0.000000 / +0.000000 / −0.000000 | +0.000001 / +0.000000 / +0.000000 | **−0.000021** / −0.000000 / +0.000000 |
+| **cumulative** | **+0.000465 / +0.000323 / +0.000426** | **+0.000867 / +0.000649 / +0.000713** | **+0.001314 / +0.001265 / +0.000923** |
+
+The steps sum to the end-to-end delta on every cell (residual < 1e-9), and the cumulative row
+reproduces §3's ratios: 1.00046 / 1.00032 / 1.00043, 1.00087 / 1.00065 / 1.00071, 1.00131 / 1.00127 /
+1.00092.
+
+**The T8.4 step is one fixed `O(n)` cost per call, the same on all three QP tiers** — +342 533
+(ipm), +341 797 (ssn), +340 870 (walk) instructions at n = 1000, ≈1.688 M at n = 5000, ≈6.73 M at
+n = 20000; linear in `n` to better than 2 %, mode-independent to better than 0.5 %. **That is why §3's
+fraction differs by mode**: one number divided by three different totals, largest as a fraction on
+walk because walk is the cheapest solve. §3's "+0.03 %…+0.13 %" is one quantity, not nine. The
+mechanism is the one T8.4's design §2.3 and §2.7 item (7) and its ledger close line declare — the
+shared declared diagnostics computed once per call over the declared NLP
+(`compute_declared_diagnostics`) and the declared-space vectors the new `SolveResult` carries by
+value. It executes per call and is linear in the declared dimension, which is the shape measured.
+
+**UNDECLARED list: EMPTY.** No task added an instruction step that leg can resolve which its design
+or ledger close line does not declare. Two riders, both stated there in full:
+
+* The non-T8.4 movements outside the band — T8.3 on four cells, and three ±2e-5 flags on walk/n1000
+  — are **code-layout cluster transitions, not work**, identified by a branch-density fingerprint the
+  leg measures rather than assumes: a layout cluster moves branches by ≈2.4× the instruction
+  fraction, executed work by ≈1.1×. Every T8.4 step reads 1.05–1.11; every other step outside the
+  band reads 2.32–2.48; nothing lands between. One of them is a control — T8.1's `libhven.a` is
+  byte-identical to the base's, so its +2.0e-5 on walk/n1000 is that cell's floor and can be nothing
+  else.
+* **§4's floor is a WITHIN-layout floor, and this reading's leg 1 is unaffected by that.**
+  `instructions:u` on these cells is bimodal in the byte footprint of the measured process's argv and
+  environment: `attribution/raw/logs/A12-layout-probe.log` moves one binary between clusters ~1.2e-4
+  apart on one cell by changing nothing but the length of an output path. Leg 1's two arms were
+  length-matched by construction (`arm-base`/`arm-head`, `A-base-`/`A-head-`), so both sat in one
+  cluster and the term cancelled — §3 stands. What the probe adds is the controlling variable, and
+  the refinement that branch proportionality alone does not separate work from a layout cluster (a
+  cluster moves branches too); it is the *value* of the ratio that does, and §3's cells sit at the
+  work value.
+
+**Calibration, declared in both forms.** All three `libhven.a` `PROVENANCE.txt` retained rebuild
+BYTE-IDENTICALLY under that leg's recipe (`735eea1d…`, `d236166e…`, `60bfe03f…`), and its end-to-end
+head/base ratios reproduce §3's on all nine cells to within **1.87e-06**. In ABSOLUTE counts it
+reproduces §3's numbers to 2e-5 on 13 of the 18 end-arm cells and not on the other 5 — the three
+smallest cells, worst +4.16e-05, every deviation positive and common-mode between base and head of
+the same cell to within 2e-6, which is the residual of the process-layout term above and is why the
+ratio form is untouched by it. Apple/Accelerate and Windows: UNOBSERVED, as everywhere here.

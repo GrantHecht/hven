@@ -1,0 +1,17 @@
+# started on Fri Sep 11 10:44:50 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89ra/build/bench/hven_sqp_corpus --internal-run-one f7_n20000_bound_neutral --engine ipm --internal-out /home/ghecht/Projects/hven/.scratch/w5t89ra/art/csv/a05_argv_pad_12/ipm-f7_n20000_bound_neutral-r1.csv':
+
+    15,965,047,811      instructions:u                                                        
+     2,406,771,637      branches:u                                                            
+     5,325,720,220      cycles:u                                                              
+         8,730,022      branch-misses:u                                                       
+           858,088      L1-icache-load-misses:u                                               
+
+       1.798757614 seconds time elapsed
+
+       1.590894000 seconds user
+       0.198942000 seconds sys
+
+
