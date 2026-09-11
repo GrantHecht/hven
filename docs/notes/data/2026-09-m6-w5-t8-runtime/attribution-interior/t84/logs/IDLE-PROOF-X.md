@@ -1,5 +1,15 @@
 # W5 T8.9r fix1 -- R2 idle proof, per timed batch
 
+> **SUPERSEDED AT FIX2 (2026-09-11).** R2 was AMENDED to **R2'** (the pinned-core
+> rule) and **every retained batch of every round was re-audited** under it with
+> ONE `idle_proof.py` — the attrib4 NICE-INCLUSIVE version. The verdicts in this
+> file were taken on the superseded `user`-only accounting, which did not count a
+> foreign task's `nice` time. **The governing table is
+> `logs/IDLE-PROOF.md`** (artifact root). This file is retained, unedited below
+> this line, because the amendment changes which test carries the verdict, not
+> what the superseded test measured.
+
+
 Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` blocks. A batch is PROVEN when the worst foreign CPU-time delta is under 0.5 %% of the window's wall AND no foreign process was seen in state `R`.
 
 ## Test 1 (R2, as written) -- foreign CPU time anywhere on the box, per batch

@@ -13,16 +13,24 @@ having no arm between them. This directory puts an arm at every group-1 head and
 
 ## 1. The answer, in four sentences
 
-**It is T8.4, and nothing else is close.** On all eleven scored rows T8.4's wall step is
-above 1.01 (1.0147 to 1.0425, median **1.0300**); on those same rows **no other task has a
-single step above 1.01 except one** (T8.7 on one row, 1.0111). In log space T8.4's median
-share of the whole cumulative is **+1.03** — it carries the entire move and a little more,
-because the other nine net slightly negative — and it is at or above 0.80 on 9 of the 11
-rows, while every other task's median share is between −0.20 and +0.14 and reaches 0.80 on
-**zero** rows.
+**T8.4 is the DOMINANT step, and nothing else is close — bounded to exactly that (corrected
+at fix2; astra's fix1 review, item 7).** On all eleven scored rows T8.4's wall step is above
+1.01 (1.0147 to 1.0425, median **1.0300**); on those same rows **no other task has a single
+step above 1.01 except one** (T8.7 on one row, 1.0111). T8.4's median share of the whole
+cumulative in log space is **+1.03**, and it is at or above 0.80 on 9 of the 11 rows, while
+every other task's median share is between −0.20 and +0.14 and reaches 0.80 on **zero** rows.
 
-**The cumulative reproduces §5.** Over the eleven scored rows this leg reads **1.0250**
-against §5's **1.0249**, from a different day's rounds and a different cell set.
+**What that median share does NOT license is a statement about the aggregate.** On the
+eleven-row corpus T8.4's own step is **1.0236838** and the remaining ten tasks' aggregate
+factor is **≈1.0013197** — small, but POSITIVE, not the "other nine net slightly negative"
+this file first wrote. So: one task carries the great majority of the step, and no other
+carries more than about a tenth of a percent of it. "All of it is T8.4" is withdrawn.
+
+**The cumulative, and what it does and does not reproduce.** Over the eleven scored rows this
+leg reads **1.0250** against §5's **1.0249** — a different round set of the SAME DAY (fix1's
+timed logs end 17:16:56 UTC and this leg's begin after them; "a different day" was wrong) and
+a different cell set. **It is NOT a like-population reproduction**: §5's 1.0249 is its full
+29-row population, and §5's own ratio over THESE eleven rows is **1.0238**.
 
 **On the instruction side this leg returns NO VERDICT, and the reason is measured.** T8.4's
 pair is ROW-ADDING (19 → 21 rows), which by itself forbids a verdict; and independently of
@@ -31,11 +39,15 @@ arm whose `libhven.a` is byte-identical to the base's — is **+1.27 %**, larger
 like-for-like step this leg measured and larger than T8.4's own +1.01 %. Pass B is worse:
 the control moves further than the pair under test on five of the six Zen 3 events.
 
-**What the numbers are consistent with is LAYOUT, not WORK — and that is a derivation, not
-a measurement.** §6 below shows T8.4's whole-process instruction step is accounted for, to
-2.3e-4 of the process, by *the two rows T8.4 added*, leaving the nineteen rows both arms
-share unmoved in instructions while their wall rose 2–4 %. The disposition is not this
-directory's; §11.1 and the owner have it.
+**AND THE LAYOUT READING §6 DERIVED IS WITHDRAWN AT FIX2.** §6 estimated T8.4's
+whole-process instruction step from the two rows T8.4 added and concluded LAYOUT-MOVED; the
+estimate never measured those rows' instructions, read a central residual as an upper bound,
+and established no branch or cycle/miss identity. **Under §11.1 the classification is
+UNRESOLVED.** `reading.md` §14 later measured the instruction question directly, in a
+single-row process, and returned **NOT WORK-MOVED without reaching the identity band
+either** — the same UNRESOLVED, with an instrument instead of a derivation. The disposition
+is not this directory's; §11.1 and the owner have it, and the owner ruled KEEP on
+2026-09-11 (`reading.md` §15).
 
 ---
 
@@ -231,22 +243,31 @@ residual below is bounded with the extreme rates, not the central one.
 | **T8.4** | 2 (`solve_optimize` ×2) | 0.057578 s | 0.563 e9 | **0.576 e9** | **+0.008 to +0.026 e9 (+2.3e-4)** |
 | T8.9 | 2 (`parts2` ×2) | 0.077305 s | 0.744 e9 | 0.735 e9 | −0.027 to −0.003 e9 (−1.5e-4) |
 
-**T8.4's whole-process instruction step is its two new rows, to within 2.3e-4 of the
-process.** For comparison: an increase in *executed work* on the nineteen shared rows
-matching T8.4's median wall step of +3.00 % would require about **1.716 e9** more
-instructions. The residual is 66–214× smaller than that.
+**THE CONCLUSION THIS TABLE WAS USED FOR IS WITHDRAWN AT FIX2 (astra's fix1 review,
+item 7).** The arithmetic is retained — it is retained evidence — and the reading taken from
+it is not. Three things are wrong with it:
 
-So the shape of the evidence is:
+* **The added rows' instructions are never measured.** The "estimated" column multiplies
+  those rows' round-1 WALL by the whole process's instructions divided by the summed row
+  wall. Whole-process instructions include work outside every row's timing bracket, and the
+  3.3 % spread of aggregate rates does not bound any individual row's rate.
+* **2.3e-4 is the CENTRAL residual fraction, not an upper bound.** The "+0.008 to +0.026 e9"
+  beside it is the extreme-rate spread; the fraction was then read as though it were the
+  worst case. On its own it already exceeds §11.1's 1e-4 identity tolerance.
+* **No branch identity and no cycle/miss accounting was established**, both of which §11.1's
+  LAYOUT-MOVED band requires beside the instruction identity. And a 3 % wall increase does
+  not imply 3 % more instructions to begin with.
 
-* the nineteen rows both arms run cost the **same instructions** (residual ≤ 2.3e-4);
-* those same rows take **2–4 % more wall**, reproducibly, across five rounds;
-* §5 established their **twelve counter columns are identical** end to end — same
-  iterations, same factorizations, same solves, same residuals.
+So the earlier sentence — "that is the signature §11.1 calls LAYOUT-MOVED" — **is withdrawn.
+Under §11.1 the classification is UNRESOLVED**: neither identity-banded nor instructions-up.
 
-That is the signature §11.1 calls **LAYOUT-MOVED**, not WORK-MOVED. **It is a derivation
-from an estimate, not a direct measurement, and this file does not upgrade it into one.**
-The direct measurement is refused twice over — by the row-adding rule and by the control
-arm's floor.
+**What still stands from the table:** the nineteen rows both arms run take **2–4 % more
+wall**, reproducibly, across five rounds, and §5 established their **twelve counter columns
+are identical** end to end — same iterations, same factorizations, same solves, same
+residuals. The direct instruction measurement is refused here twice over — by the row-adding
+rule and by the control arm's floor — and `reading.md` §14 later took it with a single-row
+process, where the verdict is **NOT WORK-MOVED** and §11.1's identity band is **not reached
+either**: the same UNRESOLVED, arrived at with an instrument rather than a derivation.
 
 ### The mechanism, and what it is not
 
@@ -257,6 +278,15 @@ cost on the SQP legs at ≈342 500 instructions at n = 1000, linear in the decla
 — about 6.7 M at n = 20000, against the ≈10.6 e9 instructions an `f7_n20000` row executes.
 **That is 0.06 % of a row whose wall moved 2.0 %.** The cost T8.4 declared is real, is
 where it said it would be, and is two orders of magnitude too small to be this.
+
+**AND THE PLACEMENT MECHANISM BELOW IS REFUTED IN BOTH HALVES BY `t84/` (§12 of
+`reading.md`), which is retained here as the reading this file published.** `8ae1618` is the
+commit that adds `drivers/solve_result.cpp` to `src/CMakeLists.txt`; `ar t` puts the new
+member at position 13 of 43 and **the linked executable is byte-identical across it** — a
+linker does not pull an unreferenced archive member in. And inserting 4 096 / 9 712 / 16 384
+bytes of unreachable `.text` at the head of the IPM's own TU at the parent moves the scored
+corpus by +0.05 %, +0.19 % and +0.01 %, reproducing 1.5 %, 6.4 % and 0.3 % of the step. The
+paragraph as published follows.
 
 **What T8.4 did that moves code addresses** is in the same commit and is large. Against
 `510a4bb` it rewrote `src/drivers/interior_point_solver.cpp` (1101 lines changed — the TU
@@ -271,8 +301,13 @@ as proof**: §4 shows the control arm moves those same counters further.
 
 ## 7. The solo evidence, per batch
 
-**Sixteen timed batches, all PINNED-CLEAN; `../scripts/idle_proof.py` — the artifact's own
-instrument, unmodified — exits 0 over all sixteen.** Full table in `IDLE-PROOF.md`.
+**Sixteen timed batches, RE-AUDITED AT FIX2 UNDER R2' — the pinned-core rule with foreign `nice`
+time counted. FOURTEEN ARE PROVEN, and the two that are not are both COUNTER batches**: `diff-r1`
+at 0.6828 % on the pinned core and `perfB-r2` at 0.7559 % on its sibling (the second is astra's own
+worked example — 0.11 s user + 0.09 s nice on `cpu10`, which the superseded `user`-only accounting
+reported as 0.1120 % and passed). **The five WALL batches — the only ones asserting wall clock —
+are all PROVEN**, core 0.0561–0.0837 % and sibling 0.3084–0.3363 %. The governing table is
+`../logs/IDLE-PROOF.md`; this directory's `IDLE-PROOF.md` is the superseded `user`-only proof.
 
 * **The five WALL batches, which are the only ones that assert wall clock, read foreign
   un-niced user time on the pinned core `cpu2` of EXACTLY ZERO — 0.0000 % — every one.** The

@@ -2915,9 +2915,13 @@ Solo, one solve at a time, `taskset -c 2` **with the driving shell pinned off
 that core and its SMT sibling**, `MKL_NUM_THREADS=OMP_NUM_THREADS=1`, 3×
 alternating A/B, the lock held across each whole alternating sequence. Per-cell
 median of three runs; corpus = the sum of per-cell medians. **Re-measured at fix
-round 1** after review found the round-1 solo evidence insufficient: the solo
-proof is now CPU time on the pinned core — 30 of 30 timed batches PINNED-CLEAN,
-`logs/IDLE-PROOF.md` — not a list of process names.
+round 1** after review found the round-1 solo evidence insufficient, and the solo
+rule itself **amended at fix round 2** to the one the recipe actually reserves:
+foreign task time on the pinned core AND its SMT sibling, under 0.5 % of the
+batch's wall, `user + nice + steal + guest`. Every retained batch of every round
+was re-audited under it — **every wall batch behind the table below is proven**;
+`logs/IDLE-PROOF.md` names the four batches of a later attribution leg that are
+not, and `reading.md` §12 carries their flag.
 
 | leg | mode | corpus ratio | outside 0.99–1.01 | band | banded veto cells | instructions |
 |---|---|---|---|---|---|---|
@@ -2927,8 +2931,9 @@ proof is now CPU time on the pinned core — 30 of 30 timed batches PINNED-CLEAN
 | leg 2 — 27 HS, `--repeat` (wall informational, §11.3 (ii)) | ipm off / sink | 0.9913 / 0.9861 | 21/27, 26/27 | MOVED (faster) | 2 / 2 | no verdict at 1e-4 |
 | leg 2 | ssn off / sink | 0.9822 / 0.9754 | 17/27, 23/27 | MOVED (faster) | 0 / 0 | no verdict at 1e-4 |
 | leg 2 | walk off / sink | 0.9931 / 0.9761 | 8/27, 24/27 | UNRESOLVED / MOVED | 0 / 0 | no verdict at 1e-4 |
-| **interior — `102f729` → head, 29 banded F7 rows** | — | **1.0249** (10.1030 → 10.3545 s) | **29/29** | **MOVED** | **28** | no verdict |
+| **interior — `102f729` → head, 29 banded F7 rows, IN THE LEG PROCESS** | — | **1.0249** (10.1030 → 10.3545 s) | **29/29** | **MOVED**, carrier unidentified | **28** | no verdict from this leg |
 | interior — `b9848bf` → head, 31 banded F7 rows | — | 0.9948 (10.4830 → 10.4284 s) | 7/31 | UNRESOLVED | 1 | no verdict |
+| **interior — the CARRIER PAIR `510a4bb → 9cebbbe` in a SINGLE-ROW process** (11 rows, the `d5931e8` lever) | — | wall 0.995–1.009, **informational** | — | **FLAT** | — | **NOT WORK-MOVED**; cycles flat |
 
 **What is measured, bounded to exactly that.**
 
@@ -2939,28 +2944,51 @@ proof is now CPU time on the pinned core — 30 of 30 timed batches PINNED-CLEAN
 * **The instruction increase is +0.03…0.13 % and it is ONE quantity**: T8.4's
   shared declared diagnostics, computed once per call over the declared NLP,
   `O(n)` in the declared dimension and mode-independent. The eleven-arm
-  attribution charges the whole of it to that task (every other task's step is
-  inside ±2e-5), and the call chain puts it inside the timed bracket on both
-  engines. It is outside §11.1's 1e-4 identity band, which makes it
-  **WORK-MOVED and a veto trigger under §11.1.1** notwithstanding the FLAT
+  attribution charges the added WORK to that task — it is the only step whose
+  branch/instruction fingerprint reads as executed work — and the call chain puts
+  it inside the timed bracket on both engines. (Seven other steps also sit outside
+  the leg's ±2e-5 floor, spanning −2.7e-4 to +1.6e-4; every one reads at the
+  layout-cluster value of that fingerprint, and one of them is a control with a
+  byte-identical library.) It is outside §11.1's 1e-4 identity band, which makes
+  it **WORK-MOVED and a veto trigger under §11.1.1** notwithstanding the FLAT
   timing.
-* **THE TOP-LEVEL IPM IS 2.49 % SLOWER ACROSS GROUP 1, AND THE WORK IS
-  IDENTICAL.** The interior leg reaches back to `102f729` (round 1 wrongly said
-  it could not), so group 1's effect on the top-level solver is measured. On the
-  29 banded F7 rows the corpus goes 10.1030 → 10.3545 s; **all 29 rows are
-  outside 0.99–1.01 and 28 are slower in all three alternating rounds**. Across
-  33 common rows × 12 common counter columns × 3 rounds the only column that
-  differs is `status`, and only because T8.2 renamed the vocabulary. **It is not
-  T8.9's**: `b9848bf` → head reads −0.52 %. It is in T8.1–T8.8 and this artifact
-  does not localise it further.
+* **THE TOP-LEVEL IPM IS 2.5 % SLOWER IN THE LEG PROCESS, AND THE WORK IS
+  IDENTICAL — BUT NOT IN A SINGLE-ROW PROCESS, AND BOTH READINGS STAND.** The
+  interior leg reaches back to `102f729` (round 1 wrongly said it could not), so
+  group 1's effect on the top-level solver is measured. On the 29 banded F7 rows
+  the corpus goes 10.1030 → 10.3545 s; **all 29 rows are outside 0.99–1.01 and 28
+  are slower in all three alternating rounds**. Across 33 common rows × 12 common
+  counter columns × 3 rounds the only column that differs is `status`, and only
+  because T8.2 renamed the vocabulary. **It is not T8.9's**: `b9848bf` → head
+  reads −0.52 %. Four further legs narrowed it to one commit inside T8.4 and
+  **did not identify its carrier**; the classification is **UNRESOLVED**, not
+  LAYOUT-MOVED. Measured one row per process through the `d5931e8` lever, **the carrier
+  pair itself** — `510a4bb → 9cebbbe`, which carries essentially the whole
+  leg-process step — is **FLAT**: instructions NOT WORK-MOVED, cycles flat, wall
+  0.995–1.009 (informational). **The step needs the leg's own multi-row process
+  to appear**, which is a constraint on any mechanism rather than a refutation of
+  the step.
 * **Leg 2 is informational.** §11.3 (ii) reads its wall only as the paired A/B
   ratio, and this leg's own noise floor (0.2452 %) is twenty-four times the
   identity band, so it returns no instruction verdict either.
 
-**What is NOT measured, said plainly.** **The interior leg carries no instruction
-verdict at all** — its whole-process counts are not like-for-like (33 / 41 / 43
-rows) and the per-cell instrument built to fix that is unsound and is refused
-rather than published, so **A7 (ii) is unsatisfied for that leg**. **The cost of
+**ONE HARNESS ADDITION LANDED FOR THIS READING, AND IT IS BENCH AND TEST SOURCE
+ONLY.** `d5931e8` adds `--internal-run-one <cell> --engine interior --treatment T
+--internal-out <path>`: one BASE ROW of the interior leg per process, no variant
+row, no other cell, no fork. **Its pin**: both configs' `libhven.a` are
+byte-identical across it, the public leg reproduces the committed 43-row baseline
+(43 cells × 30 columns, **0 differences**, twice, byte-identically outside
+`wall_s`), and `CorpusCells.TheSingleRowInteriorModeProducesTheLegsOwnRow` pins
+the mode's row against the leg's own in process. **No library source changed.**
+It is what makes the single-row reading above possible: the instruction floor
+falls from 1.27 % to 0.30 % at worst.
+
+**What is NOT measured, said plainly.** **The interior leg's WHOLE-PROCESS
+instruction counts carry no verdict** — the arms' processes do not run the same
+rows (33 / 41 / 43) and the per-cell differencing instrument built to fix that is
+unsound and is refused rather than published. The single-row lever above is what
+answers A7 (ii) for that leg, and its answer is **NOT WORK-MOVED, without
+reaching the 1e-4 identity band either**. **The cost of
 an attached iteration callback or an attached trace sink is UNMEASURED**: the
 bench harness has no callback lever — `bench_corpus.cpp` has none, and
 `ipm_corpus_leg.cpp`'s `HVEN_LEG_COUNT_CALLBACK` is an event counter, not an A/B
@@ -2970,11 +2998,25 @@ times here. T8.6's callback and T8.7's sink therefore carry no runtime number;
 both gaps are registered for W6. Apple/Accelerate, Windows and the Intel pass-B
 events are **UNOBSERVED**.
 
-**The disposition is the owner's.** §11.1.1 sends demonstrated instructions UP —
-and a MOVED band with 28 reproducible slowdowns — to §11.5 with the numbers.
-This guide records the measurement, not a disposition. Read
-`docs/notes/data/2026-09-m6-w5-t8-runtime/PROVENANCE.txt` first and then
-`reading.md`, whose §0 is the revision record.
+**THE OWNER RULED: GROUP 1 IS KEPT (2026-09-11).** §11.1.1 sends demonstrated
+instructions UP — and a MOVED band with 28 reproducible slowdowns — to §11.5
+with the numbers, and states that there is no automatic KEEP; this is the owner
+exercising that discretion, on these grounds: **one solve per process is FLAT on
+both engines** (the SQP corpus leg in all three modes; the top-level IPM's
+carrier pair in a single-row process, wall 0.995–1.009, cycles flat,
+instructions not WORK-MOVED);
+the SQP leg's **+0.03…0.13 % of instructions is T8.4's declared per-call
+diagnostics**, the cost of the shared result core group 1 was for; and the
+top-level IPM's **+2.5…2.8 % exists only in the multi-row leg process**, is one
+commit's, and after six legs **its carrier is UNIDENTIFIED** — code placement
+refuted three ways, per-call storage lifetime, the fault count, glibc placement
+history and the evaluation pool each refuted in turn. **REGISTERED for M7** (the
+benchmark-suite milestone): a many-solves-per-process leg on both engines, with
+the single-row lever `d5931e8` and that artifact as its starting point, to
+identify the cross-row carrier — harness or library. The KEEP retires no veto and
+reclassifies nothing; the numbers stand as measured. Read
+`docs/notes/data/2026-09-m6-w5-t8-runtime/PROVENANCE.txt` first, then
+`reading.md` — §0 is the revision record and §15 is the ruling.
 
 | task | concern | what changed for a caller | the pin |
 |---|---|---|---|

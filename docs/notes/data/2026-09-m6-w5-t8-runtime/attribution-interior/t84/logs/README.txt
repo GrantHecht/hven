@@ -38,7 +38,16 @@ Every batch this leg ran, as its script wrote it, unedited. The naming:
   IDLE-PROOF-Y.md         ... over the experiment-3 wall batches
   IDLE-PROOF-A.md         ... over experiment 4's wall batches
   IDLE-PROOF-F.md         ... over the wallpf batches
-  All five exit 0: twenty-five timed wall batches, all PINNED-CLEAN.
+  All five exit 0 on the user-only accounting they were taken with, over
+  twenty-five timed wall batches.
+
+  SUPERSEDED AT FIX2 (2026-09-11). R2 was amended to R2' -- the pinned-core rule
+  with a foreign task's `nice` time COUNTED -- and all twenty-five were
+  re-audited under it: TWENTY-ONE are PROVEN and four are not (wall-r1,
+  ywall-r2, ywall-r3, ywall-r5), every one of them on the SMT SIBLING and none on
+  the measurement core. Five of this leg's fourteen counter batches are unproven
+  too. The governing table is ../../../logs/IDLE-PROOF.md; the five files above
+  are retained, unedited, each with a banner saying so.
 
 EVERY BATCH LOG CARRIES, IN THIS ORDER: the `pgrep -af 'cmake|ninja|ctest|hven_|
 codex|clang'` audit taken OUTSIDE the box lock by the caller, verbatim; the same

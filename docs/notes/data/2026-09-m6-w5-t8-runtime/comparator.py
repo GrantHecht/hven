@@ -86,6 +86,41 @@ ROUNDS = ("r1", "r2", "r3")
 PROBLEMS = []
 MANIFEST = []
 
+# ---------------------------------------------------------------------------
+# THE EXPLICIT MANIFEST (settler ruling R9, fix2; astra's fix1 review item 4).
+#
+# The fix1 manifest checked ROUNDS within whatever populations it FOUND ON DISK:
+# it listed `perf/leg1/<mode>/` to learn which cells existed, and `raw/leg2/` to
+# learn which combinations existed, and then demanded r1/r2/r3 of each. A whole
+# missing cell, or a whole missing (mode, trace) combination, therefore produced
+# a SMALLER discovered population and exit 0 -- the tool reported nothing at all
+# about the thing that was not there. A manifest that is discovered from the
+# data cannot detect a missing population; it can only detect a hole inside one
+# it was told about.
+#
+# So the expected population is WRITTEN DOWN here, in full, and checked against
+# what is on disk before anything is scored. Every member below is a member this
+# leg RAN; a missing one is a MANIFEST failure naming it, and exit 1.
+# ---------------------------------------------------------------------------
+LEG1_MODES = ("ipm", "ssn", "walk")
+LEG1_ARMS = ("base", "head")
+LEG1_CELLS = 27                       # the U0 corpus, scored per mode
+# Listed in the order the tables are EMITTED in (lexicographic, which is the
+# order round 1's `sorted(...)` discovery produced), so writing the population
+# down does not reorder a single line of the output.
+LEG1_PERF_CELLS = ("f7_n1000_bound_neutral", "f7_n20000_bound_neutral",
+                   "f7_n5000_bound_neutral")
+LEG1_PERF_PASSES = ("passA", "passB")
+LEG2_COMBOS = (("ipm", "off"), ("ipm", "sink"), ("ssn", "off"), ("ssn", "sink"),
+               ("walk", "off"), ("walk", "sink"))
+INTERIOR_ARMS = ("arm102", "armb98", "head")
+INTERIOR_CELLS = ("f7_n10000_bound_neutral", "f7_n10000_bound_physics",
+                  "f7_n1000_bound_neutral", "f7_n1000_bound_physics",
+                  "f7_n20000_bound_neutral", "f7_n20000_bound_physics",
+                  "f7_n2000_bound_neutral", "f7_n2000_bound_physics",
+                  "f7_n5000_bound_neutral", "f7_n5000_bound_physics",
+                  "hs071_x1_fixed")
+
 # The interior counter columns COMMON to the 19-column schema at 102f729 and
 # the 31-column schema at b9848bf / e51a7e0 (R4). `wall_s` is compared as a
 # TIME, separately; these twelve must be identical.
@@ -363,6 +398,37 @@ def check_rounds(label, files, arm, prefix=""):
     return not missing
 
 
+def check_members(label, kind, expected, found):
+    """R9: the EXPECTED population, written down, checked against what is on disk.
+
+    `expected` and `found` are sequences of comparable members (names, or
+    (mode, trace) pairs). A member that is expected and absent is a MANIFEST
+    failure naming it; a member that is present and NOT expected is also named,
+    because an unexpected population is a population nobody declared and the
+    tables would silently include it.
+    """
+    missing = [m for m in expected if m not in found]
+    extra = [m for m in found if m not in expected]
+    if missing:
+        manifest_fail("%s: %s %s are MISSING (expected %d, found %d) -- the explicit "
+                      "manifest is not satisfied"
+                      % (label, kind, ", ".join(str(m) for m in missing),
+                         len(expected), len(found)))
+    if extra:
+        manifest_fail("%s: %s %s are present but NOT in the declared manifest"
+                      % (label, kind, ", ".join(str(m) for m in extra)))
+    return not missing and not extra
+
+
+def check_count(label, kind, expected, found):
+    """R9: a scored population's SIZE, declared rather than accepted."""
+    if expected != found:
+        manifest_fail("%s: %d %s scored, %d expected -- the explicit manifest is not satisfied"
+                      % (label, found, kind, expected))
+        return False
+    return True
+
+
 def first_row_rule(paths, label):
     """R3: the first row every process of this leg wrote. MANIFEST if they disagree."""
     firsts = {}
@@ -459,24 +525,36 @@ def main():
 
     # ---- leg 1: the U0 27-cell corpus, three SQP modes -------------------
     out.write("\n## Leg 1 -- the U0 27-cell corpus (102f729 -> e51a7e0)\n")
-    for mode in ("ipm", "ssn", "walk"):
+    # R9: the modes themselves are a declared population, not a discovered one.
+    leg1root = os.path.join(root, "raw", "leg1")
+    check_members("leg 1", "modes", LEG1_MODES,
+                  sorted(os.listdir(leg1root)) if os.path.isdir(leg1root) else [])
+    for mode in LEG1_MODES:
         files = runs(root, "raw", "leg1", mode)
-        check_rounds("leg 1 / %s" % mode, files, "base")
-        check_rounds("leg 1 / %s" % mode, files, "head")
+        for arm in LEG1_ARMS:
+            check_rounds("leg 1 / %s" % mode, files, arm)
         b = arm_files(files, "base")
         h = arm_files(files, "head")
         res = score(b, h, label="leg 1 / %s" % mode)
+        # R9: 27 cells, declared. A short corpus is a MANIFEST failure, not a
+        # quietly smaller table.
+        check_count("leg 1 / %s" % mode, "cells", LEG1_CELLS, len(res["cells"]))
         emit(res, out)
         perf_files = runs(root, "perf", "leg1", mode, ext=".txt")
         cells = sorted(set(
             os.path.basename(f).split("-", 2)[2].rsplit("-r", 1)[0] for f in perf_files))
+        # R9: the three perf cells are declared. Round 1's tool learned them
+        # from the directory, so an omitted cell shrank the population silently.
+        check_members("leg 1 perf / %s" % mode, "cells", LEG1_PERF_CELLS, cells)
         pa_all = {}
-        for cell in cells:
+        for cell in LEG1_PERF_CELLS:
+            if cell not in cells:
+                continue
             cell_files = [f for f in perf_files if ("-" + cell + "-r") in os.path.basename(f)]
-            check_rounds("leg 1 perf / %s / %s" % (mode, cell), cell_files, "base", "passA-")
-            check_rounds("leg 1 perf / %s / %s" % (mode, cell), cell_files, "head", "passA-")
-            check_rounds("leg 1 perf / %s / %s" % (mode, cell), cell_files, "base", "passB-")
-            check_rounds("leg 1 perf / %s / %s" % (mode, cell), cell_files, "head", "passB-")
+            for pn in LEG1_PERF_PASSES:          # R9: both passes, both arms,
+                for arm in LEG1_ARMS:            # three rounds each -- declared
+                    check_rounds("leg 1 perf / %s / %s" % (mode, cell), cell_files,
+                                 arm, pn + "-")
             # I5 (b): the floor is a property of THIS population -- one cell,
             # one mode, one binary measured twice.
             dis = same_arm_disagreement(cell_files)
@@ -516,13 +594,19 @@ def main():
     # ---- leg 2: the 27 HS problems --------------------------------------
     out.write("\n## Leg 2 -- the 27 Hock-Schittkowski problems, --repeat N\n")
     leg2root = os.path.join(root, "raw", "leg2")
-    combos = []
+    found_combos = []
     if os.path.isdir(leg2root):
         for mode in sorted(os.listdir(leg2root)):
             for trace in sorted(os.listdir(os.path.join(leg2root, mode))):
-                combos.append((mode, trace))
+                found_combos.append((mode, trace))
     else:
         problem("missing directory: %s" % leg2root)
+    # R9: the six combinations are DECLARED. Round 1's tool discovered them from
+    # the directory tree, so deleting `raw/leg2/ipm/off` wholesale produced a
+    # five-combination table and exit 0 -- the population nobody declared was the
+    # population it scored.
+    check_members("leg 2", "combinations", LEG2_COMBOS, found_combos)
+    combos = [c for c in LEG2_COMBOS if c in found_combos]
 
     # I5 (b): the floor is the MAXIMUM per-(mode, trace) same-arm disagreement.
     # A median across modes, traces and repeat counts averages instruments that
@@ -580,7 +664,11 @@ def main():
               "those 33 rows.\n")
 
     ifiles = runs(root, "raw", "interior")
-    for arm in ("arm102", "armb98", "head"):
+    # R9: three arms x three rounds, declared.
+    check_members("interior", "arms", INTERIOR_ARMS,
+                  sorted({os.path.basename(f).rsplit("-r", 1)[0] for f in ifiles
+                          if not os.path.basename(f).startswith("pass")}))
+    for arm in INTERIOR_ARMS:
         check_rounds("interior", ifiles, arm)
     first_key = first_row_rule(ifiles, "the interior leg")
 
@@ -612,9 +700,9 @@ def main():
     # whole-process perf on the interior leg: NO verdict, the populations differ
     out.write("\n### The interior leg's WHOLE-PROCESS instruction counts -- NO VERDICT\n\n")
     ipf = runs(root, "perf", "interior", ext=".txt")
-    for arm in ("arm102", "armb98", "head"):
-        check_rounds("interior perf", ipf, arm, "passA-")
-        check_rounds("interior perf", ipf, arm, "passB-")
+    for arm in INTERIOR_ARMS:                    # R9: three arms, both passes
+        for pn in LEG1_PERF_PASSES:
+            check_rounds("interior perf", ipf, arm, pn + "-")
     for arm, span in (("arm102", "102f729 -> e51a7e0"), ("armb98", "b9848bf -> e51a7e0")):
         for pass_name in ("passA", "passB"):
             pb = classify_perf(arm_files(ipf, arm, pass_name + "-"),
@@ -639,8 +727,13 @@ def main():
     cellroot = os.path.join(root, "perf", "interior_cells")
     base_key = "hs071_x1_fixed"
     if os.path.isdir(cellroot):
+        # R9: the eleven per-cell populations are DECLARED. Round 1's tool
+        # listed the directory, so an omitted cell simply left the table.
+        check_members("interior_cells", "cells", INTERIOR_CELLS,
+                      sorted(d for d in os.listdir(cellroot)
+                             if os.path.isdir(os.path.join(cellroot, d))))
         commons = {}
-        for arm in ("arm102", "armb98", "head"):
+        for arm in INTERIOR_ARMS:
             cf = runs(root, "perf", "interior_cells", base_key, ext=".txt")
             check_rounds("interior_cells / %s" % base_key, cf, arm, "passA-")
             m, _ = perf_medians(arm_files(cf, arm, "passA-"))
@@ -652,8 +745,9 @@ def main():
                 out.write("| %s | %d | %d | %d |\n" % (
                     arm, nrows, commons[arm].get("instructions:u", 0),
                     commons[arm].get("branches:u", 0)))
-        cells = sorted(d for d in os.listdir(cellroot)
-                       if os.path.isdir(os.path.join(cellroot, d)) and d != base_key)
+        present = {d for d in os.listdir(cellroot)
+                   if os.path.isdir(os.path.join(cellroot, d))}
+        cells = [c for c in INTERIOR_CELLS if c != base_key and c in present]
         # First the RAW whole-process counts, which are data whatever the
         # differencing turns out to be worth.
         out.write("\nThe per-cell processes, whole-process `instructions:u`, median of three:\n\n")
@@ -662,7 +756,7 @@ def main():
         for cell in cells:
             cf = runs(root, "perf", "interior_cells", cell, ext=".txt")
             row = {}
-            for arm in ("arm102", "armb98", "head"):
+            for arm in INTERIOR_ARMS:
                 check_rounds("interior_cells / %s" % cell, cf, arm, "passA-")
                 m, _ = perf_medians(arm_files(cf, arm, "passA-"))
                 row[arm] = m

@@ -32,7 +32,9 @@ E1 in particular should NOT be adopted: it is slower on both instruments.
 
 **The wall figures were taken under the T8.9r fix1 R2 discipline with the
 NICE-INCLUSIVE accounting correction** astra's fix1-review item 7 required —
-five timed batches, all PINNED-CLEAN, `scripts/idle_proof.py` exits 0, round 2
+five timed WALL batches, all PROVEN on the fix2 R2' re-audit (this leg's four
+COUNT batches — `e3` and `pf-r1..r3` — bracket no timed run at all and are
+therefore UNPROVEN; `../../../logs/IDLE-PROOF.md` says so), round 2
 re-run twice (the second failure was visible ONLY under the correction).
 Nothing was ever signalled.
 

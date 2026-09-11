@@ -24,11 +24,19 @@ whose smallest edit moves the cost.
 **Everything here asserting wall clock was taken under the T8.9r fix1 R2
 discipline** — one solve at a time, `taskset -c 2`, `MKL_NUM_THREADS=1`, the box
 lock held for the whole batch, the driving shell pinned off the measurement core
-and its SMT sibling. **Twenty-five timed wall batches across five legs, all
-PINNED-CLEAN**; `scripts/idle_proof.py` exits 0 over each of the five
-(`logs/IDLE-PROOF.md`, `-X.md`, `-Y.md`, `-A.md`, `-F.md`). Foreign un-niced user
-time on the pinned core reads exactly zero on twenty of the twenty-five and never
-exceeds 0.050 s (0.1292 %) on the rest. **Nine batches** failed their window on a
+and its SMT sibling. **Twenty-five timed wall batches across five legs. RE-AUDITED AT FIX2 UNDER
+R2' — the pinned-core rule, with foreign `nice` time counted — and 21 OF THE 25
+ARE PROVEN.** The four that are not (`wall-r1`, `ywall-r2`, `ywall-r3`,
+`ywall-r5`) fail on the SMT SIBLING, never on the measurement core, at 0.5291 %
+to 0.8065 % against the 0.5 % bar; `../../../reading.md` §12 carries the flag
+where each feeds a number, and none was re-measured — the fix2 ruling flags
+rather than re-runs. Five of this leg's fourteen counter batches are unproven
+too (`mem-r1`, `mem-r6`, `perf`, `perfrec-r2`, `perfrec-r3`); they assert
+counters, deterministic per process at `MKL_NUM_THREADS=1`. The governing table
+is **`../../../logs/IDLE-PROOF.md`**. The five files below
+(`logs/IDLE-PROOF.md`, `-X.md`, `-Y.md`, `-A.md`, `-F.md`) are the SUPERSEDED
+per-leg proofs, taken on the `user`-only accounting; they are retained with a
+banner saying so. **Nine batches** failed their window on a
 first pass and were **re-run** — `xwall-r1..r4` on the pinned core, `alloc-r3` and
 `wallpf-r1..r4` on its SMT sibling; the re-runs are the retained data and nothing
 was ever signalled.

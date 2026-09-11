@@ -33,6 +33,37 @@ same cells at the same N do exceed 0.5 % — `ipm`/`sink` base-r2 HS5 reached
 1.027244 % and `walk`/`sink` head-r1 HS3 reached 1.739174 % in round 1. That is
 the population being bimodal per process, which §11.3 (ii) already records as
 the reason leg 2's wall is informational and read only as the paired A/B ratio.
-It is a further reason, not a new one: **N cannot be raised to fix it**, because
-the term is a per-process constant that `--repeat` cannot average away at any N.
-The round-2 exceedances are listed in `reading.md` §5.
+It is a further reason, not a new one.
+
+**AND TWO CLAIMS IN THAT PARAGRAPH ARE NARROWED AT FIX2 (astra's fix1 review,
+item 8).**
+
+*(1) The fix1 round's own exceedances are listed HERE, because they were not
+listed in `reading.md` §5 as this file said they were.* On the WALL (pass A)
+captures, three cells exceed 0.5 %:
+
+| combination / arm / round | HS cell | `median_se_pct` |
+|---|---|---|
+| `ipm`/`sink`, head, r2 | 79 | **1.030663 %** |
+| `ssn`/`off`, head, r2 | 25 | **0.808699 %** |
+| `walk`/`off`, head, r2 | 30 | **0.618392 %** |
+
+Eight more sit in the pass-B captures (`ipm`/off base-r1 HS28 0.825153 %;
+`ipm`/sink head-r3 HS79 0.756542 %; `ssn`/sink base-r1 HS40 0.530673 %;
+`walk`/off base-r1 HS12 0.528402 %, base-r2 HS39 0.557926 %, head-r3 HS24
+0.895165 %; `walk`/sink base-r1 HS76 **1.380392 %**, head-r1 HS40 0.503930 %).
+Every one is a single HS cell inside a 27-cell corpus, and none of them is quoted
+as a measurement anywhere: §11.3 (ii) reads this leg's wall only as the paired
+A/B ratio, and §4 gives it no instruction verdict.
+
+*(2) "N cannot be raised to fix it" is a CONJECTURE from the between-process
+evidence, not a result.* What is measured is a BETWEEN-process constant — three
+runs of the same binary disagree by up to 1.4 % at the walk corpus level, and
+`--repeat` inside one process cannot average across processes. **That does not
+establish the cause of a WITHIN-process `median_se_pct` exceedance, and it does
+not prove that a larger N could not reduce one**: `median_se_pct` is the
+dispersion of the repeats INSIDE one process, which is exactly the quantity N is
+supposed to shrink. No larger-N experiment was run here to test it. The claim
+that stands is the narrow one — the leg's ABSOLUTE wall figure cannot resolve
+the 0.5 % effect the veto turns on — and it rests on the between-process spread,
+which is measured.

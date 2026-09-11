@@ -1,4 +1,4 @@
-# W5 T8.9r — the group-1 runtime reading (v2, fix round 1)
+# W5 T8.9r — the group-1 runtime reading (v3, fix round 2)
 
 `102f729 → e51a7e0` (the three SQP arms **and now the interior leg's base arm**)
 and `b9848bf → e51a7e0` (the interior leg's 41-key arm), solo. Read
@@ -10,19 +10,51 @@ Every table is regenerated from `raw/` and `perf/` by
 `python3 comparator.py --root . --out -`; the tool's own output is reproduced
 verbatim at §9. Nothing here is hand-transcribed.
 
-**This is a measurement, not a disposition.** §11.1.1 puts the disposition with
-the settler and the owner, and **three** of the findings below need one.
+**This was a measurement, and §15 is now the disposition.** §11.1.1 puts the
+disposition with the settler and the owner; the owner ruled on 2026-09-11 and
+**§15 records it: group 1 is KEPT**, with the cross-row carrier registered for
+M7. Everything in §1–§14 is the measurement, unchanged in its numbers by that
+ruling.
 
 ---
 
-## 0. Revision record — what fix round 1 changed, and why
+## 0. Revision record
 
-This file is **v2**. It was rewritten in place on 2026-09-11 after astra's
-review (`FIX-ROUND`, SIGNOFF `W5-T8-9R-REVIEW-ASTRA`: nine Important items and
-a set of Minors) and the settler's seven rulings R1–R7. **Every wall number in
-v2 comes from a re-measurement taken after those rulings were fixed**; v1's raw
-captures are retained, unedited, under `raw/round1-superseded/` with a README
-saying why, and its logs under `logs/round1-superseded/`.
+### 0.1 What fix round 2 changed, and why
+
+This file is **v3**. Fix round 2 is an **AUDIT, COMPARATOR AND TEXT** round:
+**no measurement was taken, no number was re-derived, and no library, test or
+bench source was touched.** It follows astra's fix1 review (`FIX-ROUND`, SIGNOFF
+`W5-T8-9R-FIX1-REVIEW-ASTRA`), the settler's rulings R2', R8–R11, and the
+owner's ruling of 2026-09-11.
+
+| section | what changed | why |
+|---|---|---|
+| §8.1 | **REWRITTEN.** R2 is AMENDED to **R2'**, the pinned-core rule; **99 batches across five rounds are re-audited** under it with ONE `idle_proof.py` (the attrib4 nice-inclusive version, now byte-identical in all three places); the per-batch table is `logs/IDLE-PROOF.md` | astra fix1 item 1; settler R2' |
+| §8.1, §12, §13, §14 | the batches R2' does **not** prove are FLAGGED where they feed a number — three leg-1 `perf` batches here, four of §12's twenty-five wall batches, §13's four bracket-less COUNT batches, and §14's leg, for which R2' cannot be computed at all | settler R2' |
+| §1, §5 | **the interior leg is stated BOTH ways** — MOVED +2.5 % with an unidentified carrier in the leg process, FLAT and NOT WORK-MOVED in a single-row process — and neither replaces the other | astra fix1 item 7; settler R8 |
+| §6 | "every task's step is inside ±2e-5 except T8.4's" was **false**: seven other steps are outside it. The settled attribution of WORK is distinguished from the measured net step | astra fix1 item 5; settler R8 |
+| §10 | the calibration is re-stated against **v2 §3's** counts (16 of 18 inside 2e-5) with the superseded round-1 result beside it; `attribute.py`'s hardcode corrected, its tables untouched | astra fix1 item 5; settler R9 |
+| §11 | the "only task above 1.01", "all of it is T8.4" and "different day" sentences corrected; the **LAYOUT-MOVED derivation WITHDRAWN** — the classification is UNRESOLVED; the code-placement mechanism marked as §12 refuted it | astra fix1 item 7; settler R8 |
+| §5, §8 | leg 2: **THREE** combinations exceed 1.4 %, not four (`ipm`/sink is 1.39 %) | astra fix1 item 8 |
+| §8 | the `jet.h` condition is now actually stated here, as §0 claimed | astra fix1 item 8 |
+| §15 | **NEW: the owner's ruling — group 1 is KEPT**, with the cross-row carrier registered for M7 | owner, 2026-09-11 |
+| `comparator.py` | the expected cells, combinations, arms and rounds are an **EXPLICIT MANIFEST**; a missing whole population is exit 1 naming it. Proved by three stubs and a control, `logs/F3-manifest-proofs.log`. **Its output on the complete tree is BYTE-IDENTICAL to the pre-manifest tool's**, which is what lets §9 stand unrewritten | astra fix1 item 4; settler R9 |
+
+**What did NOT change: any number that was measured.** Fix2 re-derived nothing.
+Where it changes a figure quoted in prose — the pause count, the leg-2
+over-1.4 % count, the calibration's pass count — it is because the prose
+miscounted retained data, and the retained data is unedited.
+
+### 0.2 What fix round 1 changed, and why
+
+This file was **v2** at fix1. It was rewritten in place on 2026-09-11 after
+astra's review (`FIX-ROUND`, SIGNOFF `W5-T8-9R-REVIEW-ASTRA`: nine Important
+items and a set of Minors) and the settler's seven rulings R1–R7. **Every wall
+number in v2 comes from a re-measurement taken after those rulings were
+fixed**; v1's raw captures are retained, unedited, under
+`raw/round1-superseded/` with a README saying why, and its logs under
+`logs/round1-superseded/`.
 
 | section | what changed | why |
 |---|---|---|
@@ -38,7 +70,7 @@ saying why, and its logs under `logs/round1-superseded/`.
 | §7 | "T7 was comment-only" replaced by the library-hash argument; "+327 lines" → "327 changed lines" | Minor |
 | §8 | the attached-callback and attached-sink costs are stated UNMEASURED; the `jet.h` condition is stated as settled here, not only in PROVENANCE | R7; astra §5 |
 | §8.1 | NEW: the solo proof, by CPU time on the pinned core | astra I1; R2 |
-| §10 | unchanged, as landed at `e096f7f` | — |
+| §10 | unchanged at fix1, as landed at `e096f7f` (its calibration paragraph is corrected at fix2 — see §0.1) | — |
 
 **What did NOT change: the shape of the finding.** Leg 1's wall is FLAT and its
 instructions are UP. The veto trigger fired in v1 and it fires in v2. What the
@@ -57,7 +89,8 @@ the increase can be attributed to.
 | **leg 2** (27 HS, `--repeat`) | ipm off / sink | 0.9913 / 0.9861 | 21/27, 26/27 | **MOVED (faster)** | 2 / 2 | no verdict at 1e-4 — §4 |
 | leg 2 | ssn off / sink | 0.9822 / 0.9754 | 17/27, 23/27 | **MOVED (faster)** | 0 / 0 | no verdict at 1e-4 |
 | leg 2 | walk off / sink | 0.9931 / 0.9761 | 8/27, 24/27 | **UNRESOLVED / MOVED** | 0 / 0 | no verdict at 1e-4 |
-| **interior, `102f729` → head** (29 F7 rows, R3-primary) | — | **1.0249** (10.1030 → 10.3545 s) | **29/29** | **MOVED** | **28** | no verdict — §5 |
+| **interior, `102f729` → head** (29 F7 rows, R3-primary), IN THE LEG PROCESS | — | **1.0249** (10.1030 → 10.3545 s) | **29/29** | **MOVED** | **28** | no verdict — §5 |
+| **interior, the CARRIER PAIR `510a4bb → 9cebbbe` in a SINGLE-ROW process** (the `d5931e8` lever, 11 rows) | — | wall 0.995–1.009, **informational** | — | **FLAT** | — | **NOT WORK-MOVED**; cycles flat — §14 |
 | **interior, `b9848bf` → head** (31 F7 rows, R3-primary) | — | **0.9948** (10.4830 → 10.4284 s) | 7/31 | **UNRESOLVED** | 1 | no verdict — §5 |
 
 **Four things follow, and they are independent of one another.**
@@ -78,12 +111,14 @@ ANSWER: YES. There is NO automatic KEEP."* **The veto trigger has fired.** §6
 charges the whole of it to T8.4's per-call declared diagnostics and shows, from
 the call chain, that they run inside the timed window.
 
-**(c) AND THE TOP-LEVEL IPM IS 2.5 % SLOWER ACROSS GROUP 1, REPRODUCIBLY, DOING
-IDENTICAL WORK. THIS IS NEW AT FIX1 AND IT IS THE LARGEST FINDING IN THE
-DIRECTORY.** The interior leg exists at `102f729` (astra I2; round 1 said it did
-not, and that was false), so group 1's effect on the top-level solver is now
-measured rather than declared unmeasurable. On the 29 banded F7 rows the corpus
-goes **10.1030 → 10.3545 s, +2.49 %**; **every one of the 29 rows is outside
+**(c) THE TOP-LEVEL IPM READS TWO WAYS, AND BOTH ARE STATED (settler ruling R8).
+NEITHER REPLACES THE OTHER.**
+
+**(c)(i) IN THE LEG PROCESS: MOVED, +2.5 %, and the carrier is UNIDENTIFIED.**
+The interior leg exists at `102f729` (astra I2; round 1 said it did not, and that
+was false), so group 1's effect on the top-level solver is measured rather than
+declared unmeasurable. On the 29 banded F7 rows the corpus goes
+**10.1030 → 10.3545 s, ratio 1.0249**; **every one of the 29 rows is outside
 0.99–1.01** and **28 of them are slower in all three alternating rounds** — the
 banded reading R1 fixes, on 28 cells, not one. And the work is the same: across
 33 common rows × 12 common counter columns × 3 rounds the **only** column that
@@ -91,13 +126,42 @@ differs is `status`, and it differs because T8.2 renamed the vocabulary
 (`CONVERGED` → `optimal`). Same iterations, same factorizations, same solves,
 same analyses, same residuals to the last printed digit — 2.5 % more wall.
 **The regression is NOT in T8.9**: `b9848bf` → head is −0.52 % (UNRESOLVED,
-1 banded veto cell), so it sits inside T8.1–T8.8.
+1 banded veto cell), so it sits inside T8.1–T8.8. Four more legs then narrowed it
+to one commit (§11, §12) and **failed to identify its carrier** — code placement
+refuted three ways, per-call storage lifetime refuted, the fault count refuted,
+the evaluation pool refuted. §11's classification is **UNRESOLVED**, not
+LAYOUT-MOVED; §11's own derivation to the contrary is withdrawn at fix2.
 
-**(d) THE INTERIOR LEG'S INSTRUCTION VERDICT REMAINS UNAVAILABLE, AND THE REASON
-IS NOW MEASURED RATHER THAN ASSERTED.** I4's per-cell `perf stat` ran — 11 cells
-× 3 arms × 3 rounds — and the differencing instrument built to make it
+**(c)(ii) IN A SINGLE-ROW PROCESS: FLAT, and the step is not there at all.** The
+lever `d5931e8` (a bench/test addition; both configs' `libhven.a` byte-identical
+across it) runs exactly ONE base row of the leg in process, which is what makes a
+like-for-like instruction count of this leg possible at all. **What was measured
+through it is the CARRIER PAIR — `510a4bb` (parent) → `9cebbbe` (the commit §12
+charges the step to), plus a byte-identical control** — not the whole group-1
+span; §12 puts essentially all of the leg-process step in that one pair
+(its median row step is 1.0324 against a cumulative of 1.0283), so it is the
+pair the question turns on. Measured that way, on §11's eleven rows:
+**instructions NOT WORK-MOVED** — per-symbol, with MKL's first-call clock
+calibration set aside, the culprit and the parent run the same n20000 row to
+within 0.3–0.6 % in the marginally FEWER direction, and no named function's
+share grows by more than +0.34 %; **cycles flat** (0.996–1.008 against a control
+of 0.998–1.003); and **wall 0.995–1.009**, informational under CLAUDE.md §7,
+against a control of 0.999–1.002. §14 has it in full.
+
+**So the step needs the leg's own multi-row process to appear.** That is a
+constraint on any mechanism, not a refutation of the step — four independent
+round sets measure it — and it is why the owner's disposition (§15) registers a
+many-solves-per-process leg for M7 rather than treating either reading as the
+whole answer.
+
+**(d) THE INTERIOR LEG'S WHOLE-PROCESS INSTRUCTION VERDICT REMAINS UNAVAILABLE,
+AND THE REASON IS MEASURED RATHER THAN ASSERTED.** I4's per-cell `perf stat` ran
+— 11 cells × 3 arms × 3 rounds — and the differencing instrument built to make it
 like-for-like is **unsound**: it produces negative differenced counts (§5). The
-numbers are retained as data; no verdict is issued; the gap is registered.
+numbers are retained as data and no verdict is issued from them. **The question
+itself was later answered, by a lever rather than an instrument** — `d5931e8`'s
+single-row process, §14, where the floor falls from §11's +1.27 % to 0.30 % at
+worst and the verdict on the carrier pair is NOT WORK-MOVED.
 
 ---
 
@@ -235,10 +299,11 @@ Two caveats, both written down before this leg ran:
   **1.4 %** at the walk corpus level on this leg, because at 0.3–3 ms the
   between-run variation is a per-process constant — address layout, allocator
   state, page placement — that `--repeat` cannot average away at any N.
-  **FOUR of the six combinations moved by MORE than that 1.4 %** (`ipm`/sink
-  1.39 %, `ssn`/off 1.78 %, `ssn`/sink 2.46 %, `walk`/sink 2.39 %), so the
-  movement is not simply inside the declared limit and round 1's sentences
-  saying it was are withdrawn. What the limit does establish is that **leg 2's
+  **THREE of the six combinations moved by MORE than that 1.4 %** (`ssn`/off
+  1.78 %, `ssn`/sink 2.46 %, `walk`/sink 2.39 %), and a fourth sits just under
+  it (`ipm`/sink **1.39 %**) — fix1 counted that one as over and it is not
+  (astra's fix1 review, item 8). So the movement is not simply inside the
+  declared limit and round 1's sentences saying it was are withdrawn. What the limit does establish is that **leg 2's
   absolute wall figure cannot resolve the 0.5 % effect the veto turns on**, and
   §11.3 (ii) reads its wall only as the paired A/B ratio, never as a magnitude.
 * What is *not* inside that caveat is the SIGN. All six moved the same way.
@@ -256,12 +321,19 @@ from the null-sink arm, never averaged with it.
 The per-cell veto check on leg 2 (R1, banded): `ipm`/off and `ipm`/sink each
 carry **2** — `hs12` and `hs15`; the other four combinations carry none.
 
-**And the calibration's exceedances are not hidden.** N was adopted on the worst
-per-cell `median_se_pct` of the calibrating run (ipm 0.354782 %, walk 0.419009 %,
-ssn 0.390189 %); later runs of the same cells at the same N do exceed 0.5 % —
-round 1 saw 1.027244 % and 1.739174 % on individual HS rows. That is the same
-per-process bimodality, and **N cannot be raised to fix it**. `calibration/README.md`
-records it in full.
+**And the calibration's exceedances are not hidden — THIS round's included.** N
+was adopted on the worst per-cell `median_se_pct` of the calibrating run (ipm
+0.354782 %, walk 0.419009 %, ssn 0.390189 %); later runs of the same cells at the
+same N do exceed 0.5 %. Round 1 saw 1.027244 % and 1.739174 % on individual HS
+rows; **the fix1 round's own wall captures carry three** — `ipm`/sink head-r2
+HS79 **1.030663 %**, `ssn`/off head-r2 HS25 **0.808699 %**, `walk`/off head-r2
+HS30 **0.618392 %** — and eight more in its pass-B captures.
+`calibration/README.md` lists every one (fix1 said this section listed them and
+it did not — astra's fix1 review, item 8). The between-process bimodality is what
+makes this leg's absolute wall unusable, which is the claim that rests on
+measured evidence; **whether a larger N would reduce a WITHIN-process dispersion
+was never tested here**, and fix1's flat "N cannot be raised to fix it" is
+narrowed to that.
 
 ### The interior leg — THREE arms (R4)
 
@@ -278,8 +350,21 @@ impossible.
 | `armb98` | `b9848bf` | 41 | 31 columns | T8.9's harness rewrite alone (round 1's only arm) |
 | `head` | `e51a7e0` | 43 | 31 columns | — |
 
-**(i) `102f729` → head: MOVED, +2.49 %, 29 of 29 rows outside the band, 28
-reproducible slowdowns.**
+**AND THE LEG READS TWO WAYS. BOTH ARE STATED HERE (settler ruling R8), AND
+NEITHER REPLACES THE OTHER.** (i) and (ii) below are the LEG PROCESS — 33/41/43
+rows in one process, which is the shape the harness ships and the shape the
+baseline pins. §14's is a SINGLE-ROW process, one base row per process, reached
+through the `d5931e8` lever; it is the only shape in which an instruction count
+of this leg is like-for-like across arms. What it measures is **the CARRIER PAIR**
+— `510a4bb` → `9cebbbe`, the commit §12 charges the leg-process step to, whose
+own median row step is 1.0324 against a cumulative of 1.0283 — and **in that
+shape the step is not present**: instructions NOT WORK-MOVED, cycles flat, wall
+0.995–1.009 (informational). A reader who takes either number without the other
+has the wrong picture: the leg process is 2.5 % slower and its carrier is
+unidentified; the same commit measured one row at a time is not.
+
+**(i) `102f729` → head, IN THE LEG PROCESS: MOVED, +2.49 %, 29 of 29 rows
+outside the band, 28 reproducible slowdowns.**
 
 corpus **10.1030 → 10.3545 s, ratio 1.0249**, on the 29 F7 rows the R3 rule
 leaves banded. Per-row ratios run 1.0112 to 1.0500; the only row inside
@@ -349,9 +434,14 @@ unconditional set costs FEWER instructions (5 164 860 443) than `b9848bf`'s
 across the arms.
 
 **A7 (ii)'s per-row instructions-only reading for the interior leg is NOT
-AVAILABLE from this harness, by either route.** The measurements are retained in
-`raw/interior_cells/` and `perf/interior_cells/` as data; the gap is REGISTERED
-for W6 with the rest of A7. `hs071_x1_fixed` and the two `infeas2` rows are a
+AVAILABLE from this harness AS IT STOOD, by either route.** The measurements are
+retained in `raw/interior_cells/` and `perf/interior_cells/` as data. **§14 later
+closed this gap with a harness lever rather than an instrument**: `d5931e8` adds
+`--internal-run-one <cell> --engine interior`, a single BASE ROW per process, no
+library source changed and both configs' `libhven.a` byte-identical across it.
+Measured through it the floor falls from §11's +1.27 % to **0.30 % at worst**,
+and the verdict it returns is **NOT WORK-MOVED** — §14. The registration that
+remains for M7 is the many-solves-per-process leg §15 names, not this one. `hs071_x1_fixed` and the two `infeas2` rows are a
 special case of the same thing — they ARE the unconditional set, so there is
 nothing to difference them against.
 
@@ -370,9 +460,18 @@ increase is, and the SOURCE for WHERE it runs.
 
 **What it is: T8.4's per-call declared diagnostics, and nothing else.** §10
 re-measured §3's nine cells at eleven arms — the base and every group-1 code
-head in order. Every task's step is inside ±2e-5 except T8.4's, and T8.4's step
-IS the whole increase on all nine cells (the steps sum to the end-to-end delta
-to better than 1e-9). It is **one fixed `O(n)` cost per call** — ≈+341 K
+head in order. **T8.4's step IS the added work on all nine cells** — the eleven
+arms' steps sum to the end-to-end delta to better than 1e-9, and T8.4's is the
+only step whose branch/instruction fingerprint reads as executed work (1.05–1.11,
+against a layout cluster's 2.32–2.48). **What is NOT true, and fix1 wrote it, is
+that every other step is inside ±2e-5: SEVEN are outside it** — T8.3 on five
+cells and T8.1 and T8.9 on `walk`/n1000, spanning −2.69e-4 to +1.57e-4 (astra's
+fix1 review, item 5). They are not work: every one reads at the layout-cluster
+value of the fingerprint, and one is a control — T8.1's `libhven.a` is
+byte-identical to the base's, so its +2.0e-5 can be nothing but that cell's
+floor. **The settled ATTRIBUTION of added work and the measured NET instruction
+step are two different statements; ±2e-5 is this leg's floor, not a claim that
+every step lands inside it.** It is **one fixed `O(n)` cost per call** — ≈+341 K
 instructions at n = 1000, ≈1.688 M at n = 5000, ≈6.73 M at n = 20000, linear in
 `n` to better than 2 % and the same on all three QP tiers to better than 0.5 %.
 §3's "+0.03 %…+0.13 %" is that one quantity divided by three different solve
@@ -440,7 +539,8 @@ reported as its own finding (§1 (c)).
 **Claims, with the numbers above:**
 
 * Leg 1 is FLAT in all three modes, 0/27 cells outside 0.99–1.01, on
-  re-measurement under R2's CPU-time solo proof.
+  re-measurement under R2''s pinned-core solo proof — which all nine of its
+  wall batches meet (§8.1).
 * Leg 1's counters are byte-identical between the arms across 75 columns, 27
   cells, three rounds, three modes.
 * Leg 1's instructions are UP, reproducibly and far above that leg's measured
@@ -455,9 +555,10 @@ reported as its own finding (§1 (c)).
 * The interior leg has a base arm at `102f729` as well as at `b9848bf`, so the
   top-level IPM's runtime across the WHOLE of group 1 is measured on the 33
   base rows — the limitation round 1 declared was false (R4).
-* Leg 2 moved in the FASTER direction in all six combinations. Four of the six
-  moved by more than §11.3 (ii)'s 1.4 % same-binary limit, so the magnitude is
-  NOT inside that limit — but the limit is still what says the magnitude cannot
+* Leg 2 moved in the FASTER direction in all six combinations. THREE of the six
+  moved by more than §11.3 (ii)'s 1.4 % same-binary limit (and a fourth,
+  `ipm`/sink at 1.39 %, sits just under), so the magnitude is NOT inside that
+  limit — but the limit is still what says the magnitude cannot
   be resolved, so it is not quoted as a measurement either way.
 
 **Does not claim:**
@@ -488,15 +589,33 @@ reported as its own finding (§1 (c)).
   settler's and the owner's to commission.
 * Any Apple/Accelerate or Windows value, and any Intel pass-B value. All
   **UNOBSERVED**.
-* **That the box was solo in R2's per-process sense.** It was not, and no run
-  on this machine can be: a Wayland compositor, a browser and this agent's own
-  daemon are resident and accrue CPU continuously. What IS proved, per timed
-  run, is that the PINNED CORE and its SMT sibling ran no foreign task — see
-  `logs/IDLE-PROOF.md` and §8.1.
+
+**And one condition this reading was dispatched under is DISCHARGED, stated here
+rather than only in `PROVENANCE.txt`** (astra's round-1 review §5; fix1 claimed
+§8 carried this and it did not — astra's fix1 review, item 8). `PROVENANCE.txt`'s
+"one code change may still land in group 1" paragraph was written against an open
+owner decision on restoring `detail/interior/jet.h`. **That decision is settled:
+`jet.h` stays deleted** — hven provides thread-safe solves, not a parallel-solve
+facility — by the settler's ruling `30e62ec`, which is DOCS-ONLY and landed
+inside this leg's window (declared in `PROVENANCE.txt`). So no code change lands,
+**`e51a7e0` remains the group-1 code head**, and this reading is the reading of
+that head rather than of a head that might still move.
+* **That the box was solo in R2's original per-process sense.** It was not, and
+  no run on this machine can be: a Wayland compositor, a browser and this
+  agent's own daemon are resident and accrue CPU continuously. **R2 was AMENDED
+  to R2' for exactly that reason**, and what IS proved, per batch, is that
+  foreign task time on the PINNED CORE and on its SMT sibling stayed under
+  0.5 % of the batch's wall — `logs/IDLE-PROOF.md` and §8.1, where the four
+  batches of other rounds that fail even that are named. It is a bound on
+  contention, not an absence of it.
+
+* **Any wall reading from leg 1's three `perf` batches.** They are the only
+  batches of THIS round R2' does not prove (§8.1), they assert counters, and
+  no elapsed time is read from them anywhere in this reading.
 
 ---
 
-### 8.1 The solo proof — by CPU time, on the pinned core
+### 8.1 The solo proof — R2', the pinned-core rule, re-audited at fix2
 
 **Round 1's solo proof was `pgrep`, and astra's I1 refused it.** A command name
 cannot say whether a process ran; the checks were taken before rounds rather
@@ -504,34 +623,80 @@ than between alternations; and `box_pgrep` printed matches and continued — it
 implemented no pause. Worse, the audit was incomplete on its own terms: the
 pattern `cmake|ninja|ctest|hven_|codex|clang` matches neither `kwin_wayland`
 nor `firefox` nor this agent's own daemon, and all three were running the whole
-time. Settler ruling R2 replaced it. The full per-batch table is
-`logs/IDLE-PROOF.md`, computed by `scripts/idle_proof.py` from the batch logs.
+time. Settler ruling R2 replaced it.
 
-**Test 1 — R2 as written, and it is NOT met.** Every foreign process (everything
-but this agent's own process tree and the kernel threads) is snapshotted at the
-start and end of every timed batch and between every A/B alternation, with each
-pid's `utime+stime` in clock ticks beside the verbatim `ps` row. R2's bar is
-every foreign pid under 0.5 % of the window's wall with no `R` state seen.
-**On this box that bar is unreachable and re-running cannot reach it**: the
-desktop's resident processes — the Wayland compositor, the browser, the agent's
-own daemon — accrue CPU continuously across 16 logical CPUs. Every occurrence
-paused the batch and was recorded; nothing was ever signalled. The numbers are
-reported, not worked around.
+**And fix1's answer to R2 was not compliance either.** R2 as written asked for
+a PER-PROCESS bar — every foreign pid on the box under 0.5 % of the batch's
+wall, with no `R` state seen. Fix1 measured that bar, reported it **NOT met on
+every batch**, and then took its verdict on a second and narrower test it had
+not been granted. astra's fix1 review is right that a disclosed substitution is
+not a satisfied ruling.
 
-**Test 2 — the pinned core, which is what the recipe actually reserves.**
-`/proc/stat` accounts every jiffy per logical CPU. Around **each timed run** —
-not around the batch, so none of this agent's own analysis falls inside the
-bracket — the leg reads `cpu2` and `cpu10` and the run's own `user+sys` from
-`/usr/bin/time`:
+**So the SETTLER AMENDED THE RULE (2026-09-11), rather than pretend the old one
+passed.** R2's per-process bar was **unmeetable on this box and unreachable by
+re-running**: a Wayland compositor, a browser and this agent's own daemon are
+resident, accrue CPU continuously across 16 logical CPUs, and put ~3 % of any
+window on the board whatever the leg does. What the recipe actually reserves is
+a core.
 
-* **foreign TASK time on `cpu2`** = `cpu2`'s `user+nice+system+steal+guest`
-  minus the run's own `user+sys`;
-* **SMT contention** = `cpu10`'s task time (`cpu10` is `cpu2`'s thread sibling).
+> **R2' — THE PINNED-CORE RULE.** Foreign TASK time on the measurement core
+> (`cpu2`) **and** on its SMT sibling (`cpu10`), counted as
+> `user + nice + steal + guest` from `/proc/stat` across the batch, must be
+> under **0.5 %** of the batch's wall. Every foreign pid and state seen in any
+> snapshot is listed, transients included. A foreign `R` is a pause and a
+> **re-snapshot**. A batch that cannot be proven is re-run.
 
-`irq`/`softirq` are reported separately and are not counted as foreign: they are
-the kernel servicing the machine on that core — timer ticks, the measured
-process's own page-fault path — not another runnable thing, and they are in
-every measurement this protocol has taken, T6's included.
+**EVERY RETAINED BATCH OF EVERY ROUND IS RE-AUDITED UNDER R2' — 99 of them,
+including the rounds that had already published a verdict.** One tool computes
+all of it: `scripts/idle_proof.py`, now the attrib4 NICE-INCLUSIVE version
+(`7c90914d…`), byte-identical in all three places it sits — the two older
+`ca107629…` copies were replaced by it. Nothing was re-measured; this is
+arithmetic on snapshots that were already on disk. The per-batch table, every
+foreign pid count, every state seen, the transients and the pauses are
+`logs/IDLE-PROOF.md`; the run is `logs/F4-idle-audit-fix2.log`.
+
+| round | wall-asserting batches | **proven under R2'** | counter/other batches | proven |
+|---|---:|---:|---:|---:|
+| fix1 (this reading's own legs) | 22 | **22** | 8 | 5 |
+| attrib2 (§11) | 5 | **5** | 11 | 9 |
+| attrib3 (§12) | 25 | **21** | 14 | 9 |
+| attrib3, the superseded argv round set | 0 | — | 5 | 4 |
+| attrib4 (§13) | 5 | **5** | 4 | 0 |
+
+**THE RESULT FOR THIS READING: every wall-asserting batch of the fix1 round is
+PROVEN under R2'** — all nine leg-1 wall batches (foreign task time on the
+pinned core 0.000–0.056 %, on the sibling 0.111–0.428 %), all twelve leg-2
+batches (core 0.018–0.036 %, sibling 0.097–0.290 %) and the interior wall batch
+(core 0.0552 %, sibling 0.3034 %). **§1's, §2's and §5's wall numbers rest on
+batches this rule proves.**
+
+**AND THREE BATCHES OF THIS ROUND ARE NOT PROVEN, all of them COUNTER batches.**
+`leg1perf-ipm`, `-ssn` and `-walk` read **0.7503 %, 0.6160 % and 1.5957 %** of
+foreign task time on the pinned core. They are leg 1's pass-A/pass-B `perf`
+batches — the instruction measurement of §3 and §4. **What that forbids is
+reading their ELAPSED time as a measurement, and §3 reads none**: it reads
+`instructions:u`, `branches:u`, `cycles:u` and the miss counters, which
+CLAUDE.md §7 makes deterministic per process at `MKL_NUM_THREADS=1` and
+scheduling-invariant — a busy neighbour cannot change how many instructions a
+process retires. The finding they carry is a **32× to 132×** signal against a
+**0.0010 %** same-binary floor, and that floor was measured on the same batches
+under the same conditions. **They are flagged, not re-run** — the fix2 ruling
+owes no re-measurement — and §12's flags are the other four.
+
+**What "solo" is and is not a claim about.** `irq`/`softirq` are reported
+separately and are not counted as foreign: they are the kernel servicing the
+machine on that core — timer ticks, the measured process's own page-fault path
+— not another runnable thing, and they are present in every measurement this
+protocol has taken, T6's included. `system` beyond the run's own `sys` is
+kernel-side work done FOR the measurement (process creation, PMU programming,
+CSV writeback) and scales with the number of processes a batch launches rather
+than with its wall.
+
+**The two accounting repairs astra's fix1 review required are in the tool that
+computed this table** (item 7): foreign task time now counts **`nice`** —
+foreign `SN`/`RN` tasks are present in the retained logs, and reading `user`
+alone made them invisible — and **transients are counted and named** rather than
+dropped, along with every foreign state seen, not only `R`.
 
 **And the driving shell is pinned OFF `cpu2` and `cpu10`** (`taskset -cp` with
 mask `0,1,3-9,11-15` on the leg script's own pid). Round 1 pinned the solve and
@@ -539,43 +704,36 @@ left the harness — the shell, `ps`, `awk`, `perf`'s setup, the timestamps —
 free to land on the measurement core, so "cpu2 ran nothing but the solve" was
 not true even of the leg's own scaffold.
 
-**AND THE MEASURED PROCESS IS NICED, WHICH MAKES THE TEST DIRECT.** This agent's
-shell runs niced, so the solve's user time lands in `/proc/stat`'s `nice`
-bucket; every foreign user task on this box — the compositor, the browser, the
-daemons — is UN-niced and lands in `user`. **The `user` delta on the pinned core
-is therefore foreign user-task time with nothing of the measurement in it and
-nothing subtracted.**
+**THE `R` TERM, DISCLOSED RATHER THAN DISCHARGED.** R2' requires a pause and a
+**re-snapshot** when a foreign process is seen in state `R`. The recipe these
+batches ran under paused, slept 5 s, printed `BOX_PAUSE_GIVEUP` and continued
+**without re-snapshotting** (`scripts/common.sh:102`, whose `tries >= 1` test at
+`:113` leaves the loop after the first sleep, so the promise its own `:111` line
+prints is not kept; astra's fix1 review found it). Nothing was ever signalled. Six pauses were taken across five batches of
+this round; `logs/IDLE-PROOF.md` names every batch in any round that saw one.
+**It moves no verdict** — any CPU such a task consumed on `cpu2` or `cpu10` is
+already inside the buckets R2' counts, because R2''s bar is on the resource and
+not on the state — and **R2''s re-snapshot term binds the next measurement, not
+this audit.**
 
-**THE RESULT: 30 of 30 timed batches PINNED-CLEAN, and `scripts/idle_proof.py`
-exits 0.**
+**FIVE BATCHES WERE RE-RUN, as R2 required, and the re-runs are the retained
+data.** On the first pass `leg1-walk-r2` failed on the SMT sibling,
+`interior-perfB` and `interior-cells-r1/r2/r3` on `cpu2`. All five were re-run
+under the same recipe; `interior-cells-r1` and `-r2` needed a second re-run.
+**Nothing was ever signalled.** The superseded first-pass logs are not retained
+separately — each re-run overwrote its batch's log, raw and perf files, which is
+what "the batch is re-run" means.
 
-* **Foreign un-niced user time on `cpu2` is EXACTLY ZERO on 28 of the 30
-  batches** — including all nine leg-1 wall batches, all twelve leg-2 batches,
-  all three leg-1 perf batches and the interior wall batch, which is every
-  batch that asserts a wall number.
-* The worst any batch shows is **0.440 s / 0.4019 %** (`interior-perfA`), under
-  the 0.5 % bar; the worst SMT-sibling figure is **0.280 s / 0.2558 %** on the
-  same batch.
-* `system` beyond the run's own `sys` (0.00–1.38 s per batch) and
-  `irq`+`softirq` (0.06–2.48 s) are reported separately and are not counted as
-  foreign: they scale with the NUMBER OF PROCESSES a batch launches, not with
-  its wall, which is what kernel-side process creation, PMU programming and CSV
-  writeback look like.
-
-**FIVE BATCHES WERE RE-RUN, as R2 requires, and the re-runs are the retained
-data.** On the first pass `leg1-walk-r2` failed on the SMT sibling (5.82 s of
-foreign un-niced user time on `cpu10`, 1.39 %), `interior-perfB` and
-`interior-cells-r1/r2/r3` failed on `cpu2`. All five were re-run under the same
-recipe; `interior-cells-r1` and `-r2` needed a second re-run. **Nothing was ever
-signalled.** The superseded first-pass logs are not retained separately — each
-re-run overwrote its batch's log, raw and perf files, which is what "the batch
-is re-run" means.
-
-**Test 1's numbers, reported because R2 asks for them.** Worst foreign CPU-time
-delta across any batch window: **1.420 s, 2.9418 % of the window** — pid 50122,
-`kwin_wayland`, the desktop compositor. Twelve pauses were taken across five
-batches in which a foreign process was seen in state `R`. None of it landed on
-the pinned core.
+**Test 1's numbers, reported because R2 asked for them.** The worst FRACTION any
+batch window shows is **2.9418 %** — 1.420 s of pid 50122, `kwin_wayland`, the
+desktop compositor, across `leg1-ipm-r1`'s 48.27 s. The largest ABSOLUTE foreign
+delta is a different cell: **11.740 s**, the same process across `leg1-walk-r1`'s
+414.78 s, which is 2.8304 % (astra's fix1 review, item 8 — fix1 quoted 1.420 s as
+though it were both). **Six pauses** were taken across five batches in which a
+foreign process was seen in state `R`; fix1 said twelve by counting each
+`BOX_PAUSE` and its `BOX_PAUSE_GIVEUP` line separately. None of it landed on the
+pinned core. **Those numbers are retained, not deleted: the amendment changes
+which test carries the verdict, not what the superseded test measured.**
 
 
 ---
@@ -1624,13 +1782,25 @@ or ledger close line does not declare. Two riders, both stated there in full:
   cluster moves branches too); it is the *value* of the ratio that does, and §3's cells sit at the
   work value.
 
-**Calibration, declared in both forms.** All three `libhven.a` `PROVENANCE.txt` retained rebuild
-BYTE-IDENTICALLY under that leg's recipe (`735eea1d…`, `d236166e…`, `60bfe03f…`), and its end-to-end
-head/base ratios reproduce §3's on all nine cells to within **1.87e-06**. In ABSOLUTE counts it
-reproduces §3's numbers to 2e-5 on 13 of the 18 end-arm cells and not on the other 5 — the three
-smallest cells, worst +4.16e-05, every deviation positive and common-mode between base and head of
-the same cell to within 2e-6, which is the residual of the process-layout term above and is why the
-ratio form is untouched by it. Apple/Accelerate and Windows: UNOBSERVED, as everywhere here.
+**Calibration, declared in both forms — AND AGAINST THE RIGHT READING, corrected at fix2 (settler
+ruling R9; astra's fix1 review, item 5).** All three of the `libhven.a` that `PROVENANCE.txt` retains rebuild
+BYTE-IDENTICALLY under that leg's recipe (`735eea1d…`, `d236166e…`, `60bfe03f…`). The calibration
+itself was taken against **round 1's** counts while `attribute.py` printed "reading.md section 3" —
+and round 1's captures were superseded by the fix1 re-measurement, so it was calibrating against a
+reading this artifact no longer publishes. `attribute.py` now carries **v2 §3's** counts, and both
+results are recorded because changing the reference changes them:
+
+| reference | ratio form (the quantity attributed) | absolute form |
+|---|---|---|
+| **`reading.md` v2 §3 (current)** | worst deviation **5.48e-06** | **16 of 18** inside 2e-5; worst **3.26e-05**; the two outside are `walk`/n1000, base −3.13e-05 and head −3.26e-05 |
+| round 1 (superseded) | worst deviation 1.87e-06 | 12 of 18 inside 2e-5; worst 4.16e-05; **six** outside, all on n1000 cells, all positive |
+
+Fix1's sentence here said "13 of 18 and not on 5", which was wrong on its own reference as well as
+being taken against the superseded one. On either reference the deviations are confined to the three
+smallest cells and move base and head together, which is why the ratio form stays four to ten times
+finer than this leg's own 2e-5 floor: it is the residual of the process-layout term above. **The
+attribution tables, the steps and the closure check are untouched by this correction** — the
+calibration block is the only part of `attribute.py`'s output that moved. Apple/Accelerate and Windows: UNOBSERVED, as everywhere here.
 
 ---
 ## 11. The interior leg's movement per task (T8.9r-attrib2, 2026-09-11)
@@ -1645,8 +1815,8 @@ in `attribution-interior/` (`attribution-interior.md`, `arms.txt`, `wall.csv`, `
 batch log and script under `raw/`). It built nothing: the eleven arm binaries are `attribution/`'s,
 re-verified by sha256 before use, 11/11 and 11/11.
 
-**IT IS T8.4, AND NOTHING ELSE IS CLOSE.** Per-row wall step, median of five rounds; **bold** = above
-1.01. The first row every process writes is excluded by the pre-declared positional rule, and the cell
+**T8.4 IS THE DOMINANT STEP, AND NOTHING ELSE IS CLOSE — bounded to exactly that (corrected at fix2;
+astra's fix1 review, item 7).** Per-row wall step, median of five rounds; **bold** = above 1.01. The first row every process writes is excluded by the pre-declared positional rule, and the cell
 order was chosen so that row is the SAME row at every arm (`f7_n1000_bound_physics/MakeParameter`);
 eleven rows are scored.
 
@@ -1671,38 +1841,77 @@ eleven rows are scored.
 arms' processes do not run the same work). The six unmarked columns are like-for-like, verified from
 each arm's row count (15/15/19/19/21/23/23/23/23/23/25).
 
-**THE CUMULATIVE REPRODUCES §5:** 1.0250 over the eleven scored rows against §5's **1.0249**, from a
-different day's rounds and a different cell set. The per-row columns of the two legs differ by up to
+**THE CUMULATIVE, AND WHAT IT DOES AND DOES NOT REPRODUCE:** 1.0250 over the eleven scored rows
+against §5's **1.0249** — from a different round set of the SAME day (fix1's timed logs end 17:16:56
+UTC and this leg's begin after them; fix1 said "a different day" and that was wrong — astra's fix1
+review, item 8) and a different cell set. **It is not a LIKE-POPULATION reproduction and is not
+offered as one**: §5's 1.0249 is its full 29-row population, and §5's own ratio over THESE eleven
+rows is **1.0238**, so the agreement to four digits is between two different populations that happen
+to land together. The per-row columns of the two legs differ by up to
 2.9 points — five medians here against three there, a per-process layout term in both — and that is
 reported rather than smoothed; what reproduces is the corpus ratio and the shape.
 
-**THE LOCALISATION.** *All of the interior leg's +2.49 % is T8.4*: it is the only task whose step
-exceeds 1.01 on any scored row, it does so on **all eleven**, its median share of the cumulative is
-**+1.03** (the other nine net slightly negative), and it is at or above 0.80 on 9 of 11 rows while
-every other task reaches 0.80 on none.
+**THE LOCALISATION, BOUNDED.** T8.4 is the **dominant** step: it exceeds 1.01 on **all eleven**
+scored rows, rising 1.47–4.25 % with a median of 3.00 %, its median share of the cumulative is
+**+1.03**, and it is at or above 0.80 on 9 of 11 rows while every other task reaches 0.80 on none.
+**Three fix1 sentences went further than that and are WITHDRAWN** (astra's fix1 review, item 7):
+
+* *"the only task exceeding 1.01 on any scored row"* — **false**: **T8.7 reads 1.0111** on
+  `f7_n10000_bound_neutral/MakeParameter`, in the table above.
+* *"all of the +2.49 % is T8.4"* — **not what this leg measures**. On the corpus of the eleven scored
+  rows T8.4's own step is **1.0236838** and the remaining ten tasks' aggregate factor is
+  **≈1.0013197** — small, but **POSITIVE**, not the "net slightly negative" a median of per-row log
+  shares suggested. A median share cannot carry a statement about the aggregate.
+* the cumulative as a like-population reproduction of §5 — see the paragraph above.
+
+**What stands is the dominant-step finding**: one task carries the great majority of a +2.5 % step
+that four independent round sets measure, and no other task carries more than about a tenth of a
+percent of it.
 
 **AND THE INSTRUCTION CURRENCY RETURNS NO VERDICT ON THIS LEG, IN EITHER PASS.** T8.4's pair is
 row-adding, which forbids one outright; and independently the floor of the whole-process count here,
 read off the control arm whose `libhven.a` is **byte-identical** to the base's, is **+1.27 %** —
 larger than every like-for-like step measured and larger than T8.4's own +1.01 %. Pass B is worse
 still: the control pair moves further than the pair under test on five of the six Zen 3 front-end
-events and further on IPC. The floor is a hundred times the SQP legs' 2e-5 because the whole-process
-count is dominated by the warm-up row the wall reading excludes and `perf stat` cannot; a single-row
-interior process would fix it and **is not reachable without a source change** —
+events and further on IPC. The floor is far above the SQP legs' 2e-5 because the whole-process
+count is dominated by the warm-up row the wall reading excludes and `perf stat` cannot. **+1.27 % is
+about 635 times** the SQP legs' 2e-5, not the "hundred times" fix1 wrote (astra's fix1 review,
+item 8). A single-row interior process would fix it and **is not reachable without a source change** —
 `--internal-run-one` rejects `interior` (`bench/corpus_cells.h:1843`) — so §5 (iv)'s W6 registration
 stands, with this floor measurement added to it.
 
-**WHAT IS AVAILABLE IN PLACE OF A VERDICT, DECLARED AS THE DERIVATION IT IS.** T8.4's whole-process
-instruction step (**0.576 e9**) is accounted for, to **2.3e-4 of the process**, by the two rows T8.4
-*added* (0.563 e9, estimated from those rows' own wall at the earlier arm's own instruction rate;
-residual +0.008 to +0.026 e9 across the arms' extreme rates). A WORK increase on the nineteen shared
-rows matching T8.4's median wall step of +3.00 % would need about **1.716 e9** — 66 to 214 times the
-residual. So the nineteen rows both arms run cost the same instructions, take 2–4 % more wall, and
-§5 already established their twelve counter columns are identical end to end. **That is §11.1's
-LAYOUT-MOVED signature, not WORK-MOVED — as a derivation from a stated estimate, not a measurement.**
+**AN ESTIMATE WAS OFFERED IN PLACE OF A VERDICT, AND AT FIX2 IT IS WITHDRAWN (astra's fix1 review,
+item 7).** The estimate: T8.4's whole-process instruction step (**0.576 e9**) is accounted for, to
+**2.3e-4 of the process**, by the two rows T8.4 *added* (**0.563 e9**, obtained by multiplying those
+rows' round-1 WALL by the whole process's instructions divided by the summed row wall); a WORK
+increase on the nineteen shared rows matching T8.4's median wall step of +3.00 % would need about
+**1.716 e9**. **The arithmetic is retained because it is retained evidence; the CONCLUSION drawn
+from it is not, and three things are wrong with it:**
 
-**THE MECHANISM IS CODE PLACEMENT, AND IT IS NOT THE DECLARED DIAGNOSTICS.** T8.4's own new per-call
-work, `compute_declared_diagnostics`, is called **once per solve** at
+* **It never measures the added rows' instructions.** It multiplies their wall by an AGGREGATE
+  instruction rate, and whole-process instructions include work outside any row's timing bracket.
+  The 3.3 % spread of those aggregate rates does not bound an individual row's rate.
+* **2.3e-4 is the CENTRAL residual fraction, not an upper bound** — fix1 quoted "+0.008 to
+  +0.026 e9" as the extreme-rate spread and then read 2.3e-4 as though it were the worst case. It
+  already exceeds §11.1's 1e-4 identity tolerance on its own.
+* **No branch identity and no cycle/miss accounting was established**, which §11.1's LAYOUT-MOVED
+  band requires in addition to the instruction identity; and a 3 % wall increase does not imply 3 %
+  more instructions in the first place.
+
+**SO THE CLASSIFICATION IS UNRESOLVED, NOT LAYOUT-MOVED.** Under
+`docs/notes/2026-09-m6-w5-t6-ownership.md` §11.1 a non-FLAT result that is neither identity-banded
+nor instructions-up **stays UNRESOLVED pending re-measurement**, and that is what this leg leaves.
+What IS measured and stands: the nineteen shared rows take 2–4 % more wall, and §5 established that
+their twelve counter columns are identical end to end. §14 later measured the instruction question
+directly, on a single-row process, and found **NOT WORK-MOVED without reaching the identity band
+either** — which is the same UNRESOLVED, arrived at with an instrument instead of a derivation.
+
+**AND THE "CODE PLACEMENT" MECHANISM BELOW IS ALSO WITHDRAWN — §12 REFUTED IT IN BOTH HALVES.** It
+is left standing here as the reading fix1 published, with §12's refutation named: the archive
+member `8ae1618` inserts is unreferenced and the linked executable is byte-identical across it, and
+inserting 4 096 / 9 712 / 16 384 bytes of unreachable `.text` at the parent reproduces only
+0.3–6.4 % of the step. T8.4's own new per-call work,
+`compute_declared_diagnostics`, is called **once per solve** at
 `src/drivers/interior_point_solver.cpp:2215`; §10's leg measured that same commit's cost at ≈342 500
 instructions at n = 1000, linear in the declared dimension, so ≈6.7 M at n = 20000 against the
 ≈10.6 e9 an `f7_n20000` row executes — **0.06 % of a row whose wall moved 2.0 %**. What moves
@@ -1711,12 +1920,18 @@ lines — the TU carrying the IPM iteration loop) and **inserted a new translati
 `drivers/solve_result.cpp`, at `src/CMakeLists.txt:76`, taking the library's source count 42 → 43.
 A new object in the archive and a rewritten hot TU relocate everything that follows them.
 
-**This addendum ASSERTS WALL CLOCK, under the fix1 R2 discipline of §8.1; the solo evidence is in
-`attribution-interior/` per batch** — sixteen timed batches, all **PINNED-CLEAN**, `scripts/idle_proof.py`
-exits 0 over all of them, and **the five wall batches, the only ones asserting wall clock, read
-foreign un-niced user time on the pinned core of EXACTLY ZERO, every one**. Five batches were re-run
-after failing their window and the re-runs are the retained data; nothing was ever signalled.
-**No disposition is offered — §11.1 and the owner have it.** Apple/Accelerate and Windows: UNOBSERVED.
+**This addendum ASSERTS WALL CLOCK, and its sixteen batches are RE-AUDITED UNDER R2' (fix2).**
+`logs/IDLE-PROOF.md` carries the per-batch table. **The five WALL batches — the only ones asserting
+wall clock — are PROVEN**, foreign task time on the pinned core 0.0561–0.0837 % and on its SMT
+sibling 0.3084–0.3363 %, both under the 0.5 % bar on the NICE-INCLUSIVE accounting. **Two of the
+eleven COUNT batches are NOT proven** and are flagged rather than re-run: `diff-r1` at **0.6828 %**
+on the core and `perfB-r2` at **0.7559 %** on the sibling — the second is astra's own worked example
+(0.11 s user + 0.09 s nice on `cpu10`, which the superseded `user`-only accounting reported as
+0.1120 % and passed). Both assert COUNTERS, which CLAUDE.md §7 makes deterministic per process at
+`MKL_NUM_THREADS=1`; an unproven window forbids reading their ELAPSED times as a measurement, and
+this addendum reads none from them. Five batches were re-run after failing their window and the
+re-runs are the retained data; nothing was ever signalled. **No disposition is offered — §11.1 and
+the owner have it.** Apple/Accelerate and Windows: UNOBSERVED.
 
 ---
 
@@ -1798,15 +2013,31 @@ named function — but its stated cause is, and a named per-call mechanism now c
 third of it. **No committed source changed; the experiment patches are evidence, not a
 fix.**
 
-**This addendum ASSERTS WALL CLOCK, under the fix1 R2 discipline of §8.1.** Twenty-five timed
-wall batches across five legs, **all PINNED-CLEAN**, `scripts/idle_proof.py` exits 0 over
-each of the five; foreign un-niced user time on the pinned core reads **exactly zero on
-twenty of the twenty-five** and never exceeds 0.050 s (0.1292 %) on the rest. Nine batches
-failed their window on a first pass and were re-run; the re-runs are the retained data, and one
-further experiment round set was discarded and re-run for breaking the argv lock by one
-byte — it is retained, unedited, with its README. Nothing was ever signalled. **No
-disposition is offered — §11.1 and the owner have it.** Apple/Accelerate and Windows:
-UNOBSERVED.
+**This addendum ASSERTS WALL CLOCK, and its batches are RE-AUDITED UNDER R2' (fix2) — with FOUR
+of the twenty-five wall batches NOT PROVEN.** `logs/IDLE-PROOF.md` carries the per-batch table.
+**21 of 25 are PROVEN.** The four that are not fail on the SMT SIBLING, never on the measurement
+core, and every one of them by less than a third of a percentage point over the bar:
+
+| batch | what it feeds | core `cpu2` | sibling `cpu10` |
+|---|---|---|---|
+| `wall-r1` | round 1 of the five behind **the carrier table above** | 0.1290 % | **0.6706 %** |
+| `ywall-r2`, `ywall-r3`, `ywall-r5` | three of the five rounds behind **experiment 3's +0.05 / +0.19 / +0.01 %** | 0.062–0.156 % | **0.5291 / 0.8065 / 0.5293 %** |
+
+**So two numbers in this section carry a flag.** The carrier table's medians are medians of five
+rounds of which one is unproven — a median of five is not moved by one member, and the carrier's
+step (median |ln| 0.03189) is 36.5× the control's, so the finding survives the loss of any single
+round; it is nonetheless not a five-clean-round median and is not quoted as one. Experiment 3's
+three code-shift figures rest on five rounds of which THREE are unproven, and **they are the weakest
+numbers in this section** — they are used only to say that the box is *not* generically
+placement-sensitive at this scale, a negative claim that a contended sibling could only push the
+wrong way for. Five of the fourteen COUNT batches (`mem-r1`, `mem-r6`, `perf`, `perfrec-r2`,
+`perfrec-r3`) are also unproven; they assert counters, which are deterministic per process at
+`MKL_NUM_THREADS=1`, and no elapsed time is read from them. **Nothing here is re-measured — the fix2
+ruling flags rather than re-runs.** Nine batches failed their window on a first pass and were re-run;
+the re-runs are the retained data, and one further experiment round set was discarded and re-run for
+breaking the argv lock by one byte — it is retained, unedited, with its README. Nothing was ever
+signalled. **No disposition is offered — §11.1 and the owner have it.** Apple/Accelerate and
+Windows: UNOBSERVED.
 
 ---
 
@@ -1909,9 +2140,16 @@ the NICE-INCLUSIVE accounting correction astra's fix1-review item 7 required**:
 foreign task time counts `user + nice + steal + guest` on the pinned core AND
 its SMT sibling, with only the run's own user time subtracted and only on
 `cpu2`; transients and every foreign state are disclosed. **Five timed wall
-batches, all PINNED-CLEAN, `scripts/idle_proof.py` exits 0**; worst foreign task
+batches, all PROVEN under R2' on the fix2 re-audit**; worst foreign task
 time on the pinned core is 0.020 s (0.0756 %) and on the sibling 0.130 s
-(0.4867 %). **Round 2 was re-run twice, and the correction is what caught the
+(0.4867 %). **This leg's four COUNT batches — `e3` and `pf-r1..r3`, the
+`perf record` and the fault-count rounds — bracket no timed run at all**
+(they write `PS_SNAPSHOT` blocks but no `CPUSTAT`/`CPUTIME_SELF` pair), so R2'
+cannot be computed for them and they are marked UNPROVEN in
+`logs/IDLE-PROOF.md`. **The fault table below is therefore a COUNT reading
+without a pinned-core proof of its window**; minor faults per process are a
+deterministic per-process quantity that a busy sibling does not change, and its
+within-arm spread of 3 counts in 300 000 is the evidence that it did not. **Round 2 was re-run twice, and the correction is what caught the
 second failure** — 0.110 s of foreign `nice` on the sibling that the superseded
 `user`-only accounting would have reported as 0.114 % and passed. Nothing was
 ever signalled. **No disposition is offered — §11.1 and the owner have it.**
@@ -2053,6 +2291,58 @@ disclosed rather than smoothed.
 This addendum **asserts no wall clock**: instruction and branch counts are the
 asserted currency, cycles are informational, and the elapsed figures are printed
 only because they are the strongest evidence that this instrument does not see the
-step. No experiment was run — the brief's one permitted experiment was provisioned
+step. **Its batch logs carry the `pgrep` audit, the lock and the
+`FOREGROUND_START`/`_END` brackets but no `PS_SNAPSHOT`/`CPUSTAT` blocks, so R2'
+CANNOT BE COMPUTED for this leg and is NOT CLAIMED** (`logs/IDLE-PROOF.md`
+records that). R2' governs wall-asserting batches, and this leg asserts none;
+its counters are deterministic per process at `MKL_NUM_THREADS=1` under
+CLAUDE.md §7, and the 0.995–1.009 elapsed figures above stay informational,
+which is all they were ever offered as. No experiment was run — the brief's one permitted experiment was provisioned
 for a WORK-MOVED finding, and this is its opposite. **No disposition is offered —
 §11.1 and the owner have it.** Apple/Accelerate and Windows: UNOBSERVED.
+
+---
+
+## 15. Disposition (owner ruling, 2026-09-11)
+
+**GROUP 1 IS KEPT.** The owner ruled after reading this artifact. §11.1.1 sends
+"demonstrated instructions UP" to §11.5 with the numbers and states that there is
+**no automatic KEEP**; this is the owner exercising that discretion explicitly,
+not the taxonomy deciding it. The reading above stops at the measurement, as it
+says it does; this section records what was decided on it.
+
+**The grounds, as ruled:**
+
+* **One solve per process is FLAT on both engines.** The SQP corpus leg is FLAT
+  in all three modes — 0 of 27 cells outside 0.99–1.01, corpus ratios inside
+  ±0.08 %, zero banded veto cells (§1, §2). The top-level IPM measured in a
+  SINGLE-ROW process is flat too — measured on the carrier pair
+  `510a4bb → 9cebbbe`, which carries essentially the whole leg-process step:
+  wall 0.995–1.009 (informational), cycles flat, instructions **NOT WORK-MOVED**
+  (§14).
+* **The SQP leg's +0.03…0.13 % of instructions is T8.4's declared per-call
+  diagnostics** — one fixed `O(n)` quantity per call, mode-independent, charged
+  to the task whose design and ledger close line declare it, executing inside the
+  timed bracket on both engines by call chain (§6, §10). It is the cost of the
+  shared result core that group 1 was for.
+* **The top-level IPM's +2.5…2.8 % exists ONLY in the multi-row leg process.** It
+  is `9cebbbe`'s (§12), and after six legs **its carrier is UNIDENTIFIED**:
+  code placement refuted three ways (the unreferenced archive member and the
+  byte-identical executable; three padding sizes reproducing 0.3–6.4 %; two later
+  commits rewriting the same files for +0.28 % and −0.50 %), per-call storage
+  lifetime refuted (§13's E1 and E2), the fault count refuted (57.3 % of the
+  excess faults removed buys 4.5 % of the step), glibc placement history and the
+  evaluation pool refuted. §11's LAYOUT-MOVED derivation is withdrawn at fix2 and
+  the classification is **UNRESOLVED**.
+
+**REGISTERED FOR M7 (the benchmark-suite milestone): a many-solves-per-process
+leg on both engines**, with the single-row lever `d5931e8` and this artifact as
+its starting point, to identify the cross-row carrier — harness or library. That
+is the measurement this artifact could not make and the one that would settle it:
+everything here is either one solve per process (flat) or the leg's own 43-row
+process (2.5 %), and nothing between.
+
+**What this KEEP does not do.** It does not retire the veto, reclassify anything,
+or convert an UNRESOLVED band into a FLAT one. The numbers stand exactly as
+measured, with the flags §8.1 and §12 carry. It is a disposition on a measurement,
+which is what §11.5 reserves to the owner.

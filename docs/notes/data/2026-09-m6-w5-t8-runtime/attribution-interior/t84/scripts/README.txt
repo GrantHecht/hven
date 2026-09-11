@@ -35,9 +35,15 @@ ran. They are retained as they ran, not rewritten to be portable.
   leg_perfstat.sh  perf stat across all six bisect arms, three rounds
   leg_mem.sh       page faults / dTLB / kernel time, six rounds
   screen_malloc.sh the screening probe (nothing in any table comes from it)
-  idle_proof.py    the T8.9r artifact's own ../../scripts/idle_proof.py, BYTE
-                   IDENTICAL, reused unchanged. It is what computes every
-                   IDLE-PROOF*.md in logs/ and it exits 0 over all five.
+  idle_proof.py    the T8.9r artifact's own ../../../scripts/idle_proof.py, BYTE
+                   IDENTICAL, reused unchanged -- and REPLACED AT FIX2, in both
+                   places at once, by the attrib4 NICE-INCLUSIVE version
+                   (7c90914d...), which counts a foreign task's `nice` time and
+                   discloses transients and every foreign state. The logs/
+                   IDLE-PROOF*.md files were computed by the SUPERSEDED version
+                   and are retained with a banner; the governing table is
+                   ../../../logs/IDLE-PROOF.md, computed by the one version now
+                   in all three places (sha256 sidecars beside each).
   probe.cpp        prints sizeof/alignof(InteriorPointSolver); also the TU whose
                    record layouts layout.txt is cut from
   probe2.cpp       prints sizeof of the solver and of its result_ member type

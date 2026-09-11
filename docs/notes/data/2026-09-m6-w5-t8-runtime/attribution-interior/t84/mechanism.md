@@ -143,8 +143,9 @@ Nothing executed changes: all 19 CSV columns on all 19 rows are identical to the
 unpatched culprit's (361 cells, 0 mismatches, `experiments.out`).
 
 **The result.** Measured against the parent and the culprit in the **same five
-rounds**, arm order rotated, all five batches PINNED-CLEAN
-(`logs/IDLE-PROOF-X.md`):
+rounds**, arm order rotated, **all five batches PROVEN on the fix2 R2' re-audit**
+(`../../../logs/IDLE-PROOF.md`; `logs/IDLE-PROOF-X.md` is the superseded
+`user`-only proof):
 
 | | scored corpus (s) | ratio to parent |
 |---|---|---|
@@ -189,8 +190,15 @@ block, so every function below it and every object after it moves. **9 712 is
 the exact amount the culprit grew that object by** (the padded object measures
 295 058 against the culprit's 295 042); 4 096 and 16 384 bracket it.
 
-**The result**, five rounds, five arms in one batch set, all PINNED-CLEAN
-(`logs/IDLE-PROOF-Y.md`):
+**The result**, five rounds, five arms in one batch set. **THREE OF THE FIVE
+BATCHES ARE NOT PROVEN under the fix2 R2' re-audit** — `ywall-r2`, `-r3` and
+`-r5` read 0.5291 %, 0.8065 % and 0.5293 % on the SMT sibling against a 0.5 %
+bar, the pinned core itself staying under 0.16 % throughout
+(`../../../logs/IDLE-PROOF.md`; `logs/IDLE-PROOF-Y.md` is the superseded
+`user`-only proof). **These are the weakest numbers in this file**, and they are
+used only for a NEGATIVE claim — that this box is not generically
+placement-sensitive at this scale — which sibling contention could only push the
+other way for. They are flagged, not re-measured:
 
 | arm | scored corpus (s) | ratio to parent | reproduction of the step |
 |---|---|---|---|
@@ -232,8 +240,9 @@ with **+0.1155 s of kernel time** beside it.
 `attribution.md` §6 records that these cells are bimodal in exactly that; so the
 count was re-taken with **no perf at all**, the wall pin's invocation byte for
 byte, reading `/usr/bin/time`'s `%R` (whose format string is `/usr/bin/time`'s
-argv, not the child's). Five rounds, alternating, all five batches PINNED-CLEAN
-(`logs/IDLE-PROOF-F.md`) — `§B3b`:
+argv, not the child's). Five rounds, alternating, **all five batches PROVEN on
+the fix2 R2' re-audit** (`../../../logs/IDLE-PROOF.md`; `logs/IDLE-PROOF-F.md`
+is the superseded `user`-only proof) — `§B3b`:
 
 | arm | minor faults | median | sys (s) | user (s) |
 |---|---|---|---|---|

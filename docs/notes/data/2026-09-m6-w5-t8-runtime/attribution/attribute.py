@@ -21,7 +21,8 @@ five rounds per arm x mode x cell, eleven arms) and prints, per mode per cell:
 
 then the closure check (the steps must sum to the end-to-end delta inside the
 floor) and the calibration against the T8.9r artifact's own published counts
-(`reading.md` section 3, quoted verbatim below).
+(`reading.md` **v2** section 3, quoted verbatim below -- corrected at fix2 from
+the superseded round-1 counts this file first carried).
 
 No arguments. Deterministic: integer counts in, medians of five out.
 """
@@ -47,16 +48,34 @@ PROBE_RATIO = 2.46          # measured, raw/logs/A12-layout-probe.log
 
 # reading.md section 3, "The absolute deltas": (base, head) instructions:u, the
 # artifact's own medians of three on its pass A. Quoted, not recomputed.
+#
+# CORRECTED AT FIX2 (settler ruling R9; astra's fix1 review item 5). These were
+# round 1's counts, and round 1's wall and perf captures were SUPERSEDED by the
+# fix1 re-measurement -- so this program calibrated itself against a reading
+# that no longer exists while its output said "reading.md section 3". The nine
+# pairs below are reading.md **v2** section 3's, which is the reading this
+# artifact publishes. The superseded round-1 pairs are retained in
+# `raw/round1-superseded/` and the calibration against them is recorded in
+# `attribution.md` section 6, because changing the reference changes the result
+# and both results belong in the record:
+#
+#   against round 1's counts   12 of 18 inside 2e-5, worst 4.16e-05 (six outside,
+#                              every one on an n1000 cell, all positive)
+#   against v2's counts        16 of 18 inside 2e-5, worst 3.26e-05 (two outside,
+#                              both walk/n1000, both negative)
+#
+# The RATIO form -- the quantity actually being attributed -- is unaffected in
+# either direction: worst 1.87e-06 against round 1, 5.48e-06 against v2.
 ARTIFACT = {
-    ("ipm", "f7_n1000_bound_neutral"):   (749_104_475, 749_451_809),
-    ("ipm", "f7_n5000_bound_neutral"):   (3_834_858_737, 3_836_095_428),
-    ("ipm", "f7_n20000_bound_neutral"):  (15_958_310_647, 15_965_108_235),
-    ("ssn", "f7_n1000_bound_neutral"):   (488_466_427, 488_889_622),
-    ("ssn", "f7_n5000_bound_neutral"):   (2_629_019_851, 2_630_729_726),
-    ("ssn", "f7_n20000_bound_neutral"):  (11_674_687_728, 11_683_005_904),
-    ("walk", "f7_n1000_bound_neutral"):  (261_282_683, 261_625_450),
-    ("walk", "f7_n5000_bound_neutral"):  (1_333_963_362, 1_335_651_610),
-    ("walk", "f7_n20000_bound_neutral"): (5_640_377_762, 5_645_586_494),
+    ("ipm", "f7_n1000_bound_neutral"):   (749_122_644, 749_466_678),
+    ("ipm", "f7_n5000_bound_neutral"):   (3_834_878_023, 3_836_104_607),
+    ("ipm", "f7_n20000_bound_neutral"):  (15_958_318_794, 15_965_123_025),
+    ("ssn", "f7_n1000_bound_neutral"):   (488_479_834, 488_903_314),
+    ("ssn", "f7_n5000_bound_neutral"):   (2_629_037_411, 2_630_743_395),
+    ("ssn", "f7_n20000_bound_neutral"):  (11_674_701_748, 11_683_014_698),
+    ("walk", "f7_n1000_bound_neutral"):  (261_301_248, 261_644_867),
+    ("walk", "f7_n5000_bound_neutral"):  (1_333_971_634, 1_335_665_712),
+    ("walk", "f7_n20000_bound_neutral"): (5_640_392_312, 5_645_600_279),
 }
 
 
@@ -143,7 +162,7 @@ def main():
                   f"{s - e2e:+12.9f}")
 
     print("\n" + "=" * 100)
-    print("CALIBRATION against the T8.9r artifact (reading.md section 3)")
+    print("CALIBRATION against the T8.9r artifact (reading.md v2 section 3, fix1 counts)")
     print("=" * 100)
     print(f"   {'mode':5s} {'cell':24s} {'arm':5s} {'this leg':>16s} "
           f"{'artifact':>16s} {'rel diff':>11s}")

@@ -512,3 +512,120 @@ are dated rather than silent (CLAUDE.md section 7).
      distilled proof is logs/IDLE-PROOF.md and these are what it is computed
      from. Round 1's raw and perf move under raw/round1-superseded/ (with a
      README) and its logs under logs/round1-superseded/; nothing is deleted.
+
+================================================================================
+FIX ROUND 2 -- 2026-09-11. AUDIT, COMPARATOR AND TEXT. NOTHING WAS MEASURED.
+================================================================================
+  This block amends the fix1 block above. Nothing above it is rewritten: the
+  lines it corrects are quoted here with what is true instead, because a
+  provenance record that is edited in place stops being a record. No number in
+  this artifact was re-derived by fix round 2, and no library, test or bench
+  source was touched.
+
+(G1) R2 IS AMENDED TO R2' (settler, 2026-09-11; astra's fix1 review item 1).
+     The fix1 block's TEST 1 is R2 as written, and the block says plainly that
+     its bar "IS NOT MET ON THIS BOX AND CANNOT BE". Fix1 then took its verdict
+     on TEST 2, which it had not been granted. A disclosed substitution is not a
+     satisfied ruling. The settler has amended the RULE:
+
+       R2' -- foreign TASK time on the measurement core (cpu2) AND on its SMT
+       sibling (cpu10), counted as user+nice+steal+guest from /proc/stat across
+       the batch, must be under 0.5 % of the batch's wall; every foreign pid and
+       state seen in any snapshot is listed, transients included; a foreign "R"
+       is a pause and a RE-SNAPSHOT; a batch that cannot be proven is re-run.
+
+     EVERY RETAINED BATCH OF EVERY ROUND -- 99 of them across five rounds -- is
+     re-audited under R2' from the snapshots already on disk, by ONE tool:
+     scripts/idle_proof.py, now the attrib4 NICE-INCLUSIVE version
+     (7c90914d55b5ee5c3dbcc53c146289484f8a0bede4a486ed41cc6ad9364c68aa), which
+     REPLACED the two older ca107629... copies so that one version computes
+     everything. The per-batch table is logs/IDLE-PROOF.md; the run is
+     logs/F4-idle-audit-fix2.log; the assembler is scripts/idle_audit_fix2.py
+     and the driver scripts/idle_audit_fix2.sh.
+
+     RESULT: 53 of the 57 wall-asserting batches are PROVEN. The four that are
+     not are all in the attrib3 round (t84/), all fail on the SMT SIBLING rather
+     than the measurement core, and all are FLAGGED in reading.md section 12
+     rather than re-measured -- the fix2 ruling owes no re-measurement. Eleven
+     counter-asserting batches are also unproven, including leg 1's three perf
+     batches (0.6160-1.5957 % on cpu2); they assert counters, which CLAUDE.md
+     section 7 makes deterministic per process at MKL_NUM_THREADS=1, and no
+     elapsed time is read from any of them.
+
+(G2) TWO SENTENCES OF THE FIX1 BLOCK ARE FALSE AND ARE CORRECTED HERE
+     (astra's fix1 review item 8). Dated lines, not edits.
+
+     2026-09-11, fix2: the TEST 1 paragraph (F2) says snapshots are taken "at
+     the start and the end of every timed BATCH and between every A/B
+     alternation". TRUE OF LEG 1's NINE WALL BATCHES ONLY. The other scripts
+     place box_guard AFTER their arm loops -- scripts/leg1_perf.sh:40,
+     leg2.sh:42, leg_interior.sh:63, leg_interior_cells.sh:59 -- so leg-1 perf,
+     leg 2, the interior leg and the per-cell interior leg carry opening and
+     closing snapshots and NOT one between every alternation. The CPUSTAT /
+     CPUTIME_SELF bracket around EVERY TIMED RUN is present in all of them, and
+     that bracket is what R2' takes its verdict on.
+
+     2026-09-11, fix2: the same paragraph says "Every occurrence PAUSED the
+     batch and was RECORDED". The recipe paused ONCE, slept 5 s, printed
+     BOX_PAUSE_GIVEUP and continued WITHOUT RE-SNAPSHOTTING (scripts/common.sh's
+     box_guard at :102 -- its "if [ $tries -ge 1 ]" at :113 breaks out of the
+     loop after the first sleep, so the printed promise at :111 to "re-snapshot"
+     is not kept). Nothing was ever signalled, and
+     every pause and giveup is in the logs. R2' requires the re-snapshot; the
+     retained batches predate that term, so an "R" observation in them is
+     DISCLOSED in logs/IDLE-PROOF.md rather than discharged. R2''s re-snapshot
+     term binds the next measurement.
+
+     2026-09-11, fix2: (F6) calls 335a6669adf1 a "sha16". It is TWELVE hex
+     digits, which is what "git describe" abbreviates to here; the stamp and the
+     finding are unchanged, the word was wrong.
+
+(G3) THE COMPARATOR'S MANIFEST IS NOW EXPLICIT (settler ruling R9; astra's fix1
+     review item 4). (F11)(d) above says "the three-round manifest is ENFORCED",
+     and it was -- INSIDE whatever populations the tool discovered on disk.
+     Omitting a whole leg-1 perf cell, or the whole leg2/ipm/off combination,
+     produced a smaller discovered population and exit 0. comparator.py now
+     WRITES DOWN the expected populations (3 leg-1 modes x 27 cells x 3 rounds x
+     2 arms; 3 leg-1 perf cells x 3 modes x 2 passes x 3 rounds x 2 arms; the 6
+     leg-2 combinations; the interior leg's 3 arms x 3 rounds, both passes; the
+     11 per-cell interior populations) and a missing member is a MANIFEST
+     failure naming it, exit 1.
+
+     PROVED, logs/F3-manifest-proofs.log, scripts/comparator_manifest_proofs.sh:
+       stub 1  perf/leg1/ipm/*f7_n5000_bound_neutral* removed       -> exit 1
+       stub 2  raw+perf/leg2/ipm/off removed                        -> exit 1
+       stub 3  perf/interior_cells/f7_n2000_bound_physics removed   -> exit 1
+       regression  raw/leg1/ipm/head-r3.csv removed (the fix1 check) -> exit 1
+       control     the untouched tree                               -> exit 0
+     AND THE CONTROL'S SECOND HALF: the pre-manifest tool and the manifest tool
+     produce BYTE-IDENTICAL output on the complete tree (66 702 bytes both),
+     which is what lets reading.md section 9 stand unrewritten. comparator.py's
+     sha256 moves to 3688351794cc8be543a64044fd884b08e904ff3643fcd2f192971049f1eaaadb.
+
+(G4) attribution/attribute.py CALIBRATED AGAINST THE WRONG READING (settler
+     ruling R9; astra's fix1 review item 5). Its ARTIFACT table hardcoded ROUND
+     1's nine count pairs while its output line said "reading.md section 3" --
+     and round 1's captures were superseded. The hardcode is now reading.md v2
+     section 3's counts; its sha256 moves to
+     e4162f3b69b407e2596bd5a9cb2c62510d5a58bd5ec4c2fec2cdeee3e36e8406. Against
+     v2: 16 of 18 inside 2e-5, worst 3.26e-05, ratio form worst 5.48e-06.
+     Against round 1: 12 of 18, worst 4.16e-05, ratio form worst 1.87e-06 --
+     NOT the "13 of 18 and 5 outside" the fix1 text claimed on its own
+     reference. The steps, the tables and the closure check are unchanged.
+
+(G5) THE OWNER RULED: GROUP 1 IS KEPT (Grant, 2026-09-11). reading.md section 15
+     records the ruling and its grounds, and the migration guide's "T8 group 1"
+     section closes with it. A many-solves-per-process leg on both engines is
+     REGISTERED FOR M7 to identify the cross-row carrier, with the single-row
+     lever d5931e8 and this artifact as its starting point.
+
+(G6) THE ONE NEW PIN OF THE ATTRIB5 LEG, restated because the guide names it:
+     d5931e8 adds "--internal-run-one <cell> --engine interior --treatment T
+     --internal-out <path>" to the bench harness plus one test. BENCH AND TEST
+     SOURCE ONLY -- both configs' libhven.a are byte-identical across it, the
+     public leg reproduces the committed 43-row baseline (43 cells / 30 columns
+     / 0 differences, twice, byte-identically outside wall_s), and
+     CorpusCells.TheSingleRowInteriorModeProducesTheLegsOwnRow pins the mode's
+     row against the leg's own in process.
+
+  APPLE / ACCELERATE: UNOBSERVED.  WINDOWS: UNOBSERVED. Unchanged by fix2.

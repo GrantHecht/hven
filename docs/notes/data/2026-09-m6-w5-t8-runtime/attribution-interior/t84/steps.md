@@ -12,9 +12,15 @@ below in the parts that carry the finding. Nothing here is hand-transcribed.
 **THIS ASSERTS WALL CLOCK** (CLAUDE.md §7) under the T8.9r fix1 R2 discipline:
 one solve at a time, `taskset -c 2`, `MKL_NUM_THREADS=1`, the box lock held for
 the whole batch, the driving shell pinned off the measurement core and its SMT
-sibling. `logs/IDLE-PROOF.md` is the arithmetic: **5 of 5 wall batches
-PINNED-CLEAN**, foreign un-niced user time on `cpu2` between 0.000 and 0.050 s
-(0.0000–0.1292 % of the window), `scripts/idle_proof.py` exits 0.
+sibling. **RE-AUDITED AT FIX2 UNDER R2'** (the pinned-core rule, foreign `nice`
+counted): **4 of these 5 wall batches are PROVEN and `wall-r1` is NOT** — 0.1290 %
+on the pinned core, **0.6706 %** on its SMT sibling, against the 0.5 % bar. The
+table below is a median of five rounds of which one is unproven; a median of five
+does not turn on one member, and the carrier's step is 36.5× the byte-identical
+control's, so the finding survives the loss of any single round — but it is not a
+five-clean-round median and is not offered as one. The governing table is
+`../../../logs/IDLE-PROOF.md`; `logs/IDLE-PROOF.md` here is the superseded
+`user`-only proof.
 
 The scoring rules — the R3 positional exclusion, the scored set, the statistic,
 and **the rule for naming a carrier** — were written down and hashed at

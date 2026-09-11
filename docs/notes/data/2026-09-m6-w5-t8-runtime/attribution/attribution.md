@@ -15,9 +15,12 @@ UNOBSERVED.
 ## 1. The answer in one line
 
 **All of it is T8.4, and T8.4 declared it.** On every one of the nine cells the single work step is
-the base→T8.4 step, and it is the whole end-to-end delta; every other task's step is inside this
-leg's floor, and the two visible non-T8.4 movements are code-layout cluster transitions, not work
-(§3). The mechanism T8.4's design and ledger declare — the shared declared diagnostics computed once
+the base→T8.4 step, and it is the whole end-to-end delta. **SEVEN other steps fall outside this
+leg's ±2e-5 floor** (T8.3 on five cells, T8.1 and T8.9 on `walk`/n1000, spanning −2.69e-4 to
++1.57e-4) and every one of them is a code-layout cluster transition, not work, by the branch-density
+fingerprint of §3 — 2.32–2.48 against executed work's 1.05–1.11, with nothing in between. Fix1's
+summary here said "two visible movements"; it is seven, and §3's table says so (astra's fix1 review,
+item 8). The mechanism T8.4's design and ledger declare — the shared declared diagnostics computed once
 per call over the declared NLP (`compute_declared_diagnostics`), and the declared-space vectors the
 new `SolveResult` carries by value — executes per call and is `O(n)`, which is exactly the shape the
 measurement has. **The UNDECLARED list is EMPTY.**
@@ -80,7 +83,7 @@ fraction; executed work moves them by ≈1.1× — this program's own average br
 |---|---|---|---|
 | layout probe, ipm/n1000, padding only | −1.01e-4 | −2.48e-4 | **2.46** |
 | every T8.4 step (nine cells) | +4.2e-4 … +1.31e-3 | +4.6e-4 … +1.43e-3 | **1.05 – 1.11** |
-| every other step outside the band (six) | ±2.0e-5 … ±2.7e-4 | ±5.0e-5 … ±6.5e-4 | **2.32 – 2.48** |
+| every other step outside the band (**seven**) | ±2.0e-5 … ±2.7e-4 | ±5.0e-5 … ±6.5e-4 | **2.32 – 2.48** |
 
 `attribute.py` prints this ratio for every step outside the band and labels it. **No step came back
 UNCLASSIFIED.** The separation is clean: 1.05–1.11 on one side, 2.32–2.48 on the other, nothing
@@ -210,23 +213,43 @@ line does not declare.
 
 ## 6. Calibration against the artifact, in full
 
-`attribute.py` prints both forms.
+**CORRECTED AT FIX2 (settler ruling R9; astra's fix1 review item 5), and the correction is the
+REFERENCE, not the arithmetic.** `attribute.py` hardcoded ROUND 1's nine count pairs while its own
+output line said "reading.md section 3" — and round 1's captures were superseded by the fix1
+re-measurement, so this section was calibrating against a reading the artifact no longer publishes.
+The hardcode is now **reading.md v2 §3's** counts. Both results are recorded below, because
+changing the reference changes the numbers and a reader is entitled to see which reference each one
+belongs to. **`attribute.py`'s tables, steps and closure are untouched by this** — the calibration
+block is the only part of its output that moved.
 
-**Ratio form — the quantity being attributed, and layout-free.** This leg's end-to-end
-head/base ratio against `reading.md` §3's, all nine cells: **worst deviation 1.87e-06**, ten times
-finer than the artifact's own 2e-5 leg-1 floor. Every cell agrees to six decimals.
+**Against `reading.md` v2 §3 — THE CURRENT REFERENCE.**
 
-**Absolute form — 13 of the 18 end-arm counts inside 2e-5; worst 4.16e-05; DECLARED.** The five
-outside are `ipm`/`n1000` (+2.05e-5 base, +2.15e-5 head), `ssn`/`n1000` (+2.17e-5, +2.26e-5) and
-`walk`/`n1000` (+3.97e-5, +4.16e-5) — the three smallest cells. Every deviation is **positive and
-common-mode**: base and head of the same cell differ from the artifact by the same amount to within
-2e-6, which is why the ratio form is unaffected. This is the residual of the process-layout term of
-§2, which no rebuild in a different session can null out: the environment of the measuring shell is
-part of the measured process's footprint, and it is not the same shell. **The brief asks the end arms
-to reproduce the artifact's counts to 2e-5; in absolute form they do so on 13 of 18 and not on 5, and
-this file says so rather than choosing a statistic that hides it.** What stands in its place is
-stronger and exact: all three of the artifact's retained `libhven.a` reproduce byte-identically, and
-the end-to-end ratios reproduce to 1.9e-6.
+* *Ratio form, the quantity being attributed and layout-free:* **worst deviation 5.48e-06** across
+  all nine cells, roughly four times finer than the artifact's own 2e-5 leg-1 floor. (Round 1's
+  sentence "every cell agrees to six decimals" was **false against either reference** and is
+  withdrawn: `ipm`/`n1000` reads 1.000465 here against 1.000459 there. What is true is the bound.)
+* *Absolute form:* **16 of the 18 end-arm counts inside 2e-5; worst 3.26e-05.** The **two** outside
+  are `walk`/`n1000` — base **−3.13e-05**, head **−3.26e-05** — the smallest cell, and both
+  NEGATIVE.
+
+**Against round 1's counts — THE SUPERSEDED REFERENCE this file used to quote.** Ratio form: worst
+**1.87e-06**. Absolute form: **12 of 18 inside 2e-5, worst 4.16e-05**, with **six** outside —
+`ipm`/`n1000` (+2.05e-5 base, +2.15e-5 head), `ssn`/`n1000` (+2.17e-5, +2.26e-5), `walk`/`n1000`
+(+3.97e-5, +4.16e-5). Round 1's own sentence here said "13 of 18 and not on 5"; **that count was
+wrong on its own reference as well as being taken against the wrong one**, and astra's item 5 is
+what found it.
+
+**What the failures are, on either reference.** Every deviation is confined to the three smallest
+cells, and on each reference base and head of the same cell move TOGETHER — common-mode to within
+about 2e-6 against round 1, and both `walk`/`n1000` deviations negative and within 1.3e-6 of each
+other against v2 — which is why the ratio form is barely touched by a term that visibly moves the
+absolute counts. This is the residual of the process-layout term of §2, which no rebuild in a
+different session can null out: the environment of the measuring shell is part of the measured
+process's footprint, and it is not the same shell. **The brief asks the end arms to reproduce the
+artifact's counts to 2e-5; against the current reading they do so on 16 of 18 and not on 2, and this
+file says so rather than choosing a statistic that hides it.** What stands in its place is stronger
+and exact: all three of the artifact's retained `libhven.a` reproduce byte-identically, and the
+end-to-end ratios reproduce to 5.5e-6.
 
 ---
 

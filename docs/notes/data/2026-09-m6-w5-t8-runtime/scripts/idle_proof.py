@@ -30,6 +30,35 @@ whole-second column, because 0.5 % of a 200 s window is 1 s -- at that column's
 resolution the test could not be run.
 
 Exit 0 when every batch is proven, 1 when any is not.
+
+-----------------------------------------------------------------------------
+W5 T8.9r-attrib4 -- THE NICE-INCLUSIVE CORRECTION (astra, fix1 review item 7).
+
+This file is T8.9r's `idle_proof.py` with ONE accounting defect repaired and two
+disclosures added; every other line is that file's.
+
+THE DEFECT. The earlier version took foreign task time on each core from the
+`user` bucket ALONE, on the argument that the measured process is niced and
+every foreign task on this box is not. The first half is true and stays load-
+bearing; the second half is an ASSUMPTION about other people's processes, and
+the retained logs falsify it -- foreign tasks in states `SN`/`RN` (niced) are
+present. A niced foreign task lands in `nice`, exactly where the measurement's
+own user time lands, and reading `user` alone made it invisible.
+
+THE REPAIR. Foreign task time on a core is now
+    user + nice + steal + guest + guest_nice
+with ONLY the run's own `user` seconds subtracted, and only on cpu2 (nothing of
+the measurement runs on cpu10: the solve is pinned to cpu2 and the driving shell
+is pinned off both). `system` is still reported separately and still not counted
+as foreign -- it is the kernel serving this measurement's own process creation,
+page-fault path and CSV writeback -- and so are `irq`/`softirq`. The verdict is
+taken on the repaired figure, and the superseded `user`-only figure is printed
+beside it so the two can be compared.
+
+THE DISCLOSURES. (a) TRANSIENTS: a pid present in one snapshot of a batch but
+not the other cannot have its CPU delta differenced, and the earlier version
+silently dropped it. They are counted and named now. (b) EVERY foreign state
+seen in any snapshot is listed, not just `R`.
 """
 import os
 import re
@@ -128,6 +157,14 @@ def busy_kernel(v):
     return v[5] + v[6]
 
 
+# THE REPAIRED FOREIGN-TASK TOTAL (attrib4). Every bucket a RUNNABLE TASK can
+# land in: un-niced user, NICED user, steal and the two guest buckets. `system`
+# and `irq`/`softirq` are excluded and reported separately, for the reason the
+# module docstring gives.
+def task_all(v):
+    return v[0] + v[1] + sum(v[7:10])
+
+
 def pinned_runs(batch, clk=100.0):
     """-> [(tag, real, foreign_cpu2_s, sibling_cpu10_s)] for every timed run."""
     out = []
@@ -154,7 +191,8 @@ def pinned_runs(batch, clk=100.0):
                     user=(user_unniced(post["cpus"][c]) - user_unniced(pre["cpus"][c])) / clk,
                     nice=(nice_time(post["cpus"][c]) - nice_time(pre["cpus"][c])) / clk,
                     system=(system_time(post["cpus"][c]) - system_time(pre["cpus"][c])) / clk,
-                    steal=(steal_guest(post["cpus"][c]) - steal_guest(pre["cpus"][c])) / clk)
+                    steal=(steal_guest(post["cpus"][c]) - steal_guest(pre["cpus"][c])) / clk,
+                    task_all=(task_all(post["cpus"][c]) - task_all(pre["cpus"][c])) / clk)
         out.append((tag, real, foreign2, d.get("cpu10", float("nan")),
                     k.get("cpu2", float("nan")), k.get("cpu10", float("nan")), u, self_))
     return out
@@ -168,15 +206,20 @@ def report(batches, out):
               "delta is under 0.5 %% of the window's wall AND no foreign process was "
               "seen in state `R`.\n\n")
     out.write("## Test 1 (R2, as written) -- foreign CPU time anywhere on the box, per batch\n\n")
-    out.write("| log | batch | window wall (s) | snapshots | foreign pids | worst foreign "
-              "cputime delta (s) | worst fraction | `R` seen | pauses | R2-as-written |\n")
-    out.write("|---|---|---|---|---|---|---|---|---|---|\n")
+    out.write("**TRANSIENTS AND STATES ARE DISCLOSED (attrib4).** A pid present in one snapshot "
+              "of a batch but not the other cannot have its CPU delta differenced; the column "
+              "counts them rather than dropping them silently, and EVERY foreign state seen in "
+              "any snapshot is listed, not only `R`.\n\n")
+    out.write("| log | batch | window wall (s) | snapshots | foreign pids | transients | "
+              "worst foreign cputime delta (s) | worst fraction | states seen | `R` seen | "
+              "pauses | R2-as-written |\n")
+    out.write("|---|---|---|---|---|---|---|---|---|---|---|---|\n")
     details = []
     for b in batches:
         snaps = b["snaps"]
         if len(snaps) < 2:
-            out.write("| %s | %s | - | %d | - | - | - | - | - | **UNPROVEN (fewer than two "
-                      "snapshots)** |\n" % (b["log"], b["name"], len(snaps)))
+            out.write("| %s | %s | - | %d | - | - | - | - | - | - | - | **UNPROVEN (fewer than "
+                      "two snapshots)** |\n" % (b["log"], b["name"], len(snaps)))
             ok = False
             continue
         wall = snaps[-1]["mono"] - snaps[0]["mono"]
@@ -188,12 +231,23 @@ def report(batches, out):
             d = (last[p][1] - first[p][1]) / float(clk)
             if d > worst_d:
                 worst_d, worst_pid = d, p
-        rseen = sorted({p for s in snaps for p, v in s["pids"].items() if v[0] == "R"})
+        rseen = sorted({p for s in snaps for p, v in s["pids"].items() if v[0].startswith("R")})
+        states = sorted({v[0] for s in snaps for v in s["pids"].values()})
+        # TRANSIENTS: seen in SOME snapshot of this batch but not in BOTH ends, so
+        # no delta exists for them. Counted, not dropped.
+        everseen = {p for s in snaps for p in s["pids"]}
+        transient = sorted(everseen - set(common))
         frac = worst_d / wall if wall > 0 else float("inf")
-        verdict = "met" if (frac < THRESHOLD and not rseen) else "**NOT met**"
-        out.write("| %s | %s | %.2f | %d | %d | %.3f (pid %s) | **%.4f %%** | %s | %d | %s |\n" % (
-            b["log"], b["name"], wall, len(snaps), len(common), worst_d, worst_pid,
-            100.0 * frac, ",".join(rseen) if rseen else "none", len(b["pauses"]), verdict))
+        verdict = "met" if (frac < THRESHOLD and not rseen and not transient) else "**NOT met**"
+        out.write("| %s | %s | %.2f | %d | %d | %d | %.3f (pid %s) | **%.4f %%** | %s | %s | %d | "
+                  "%s |\n" % (
+            b["log"], b["name"], wall, len(snaps), len(common), len(transient), worst_d, worst_pid,
+            100.0 * frac, ",".join(states), ",".join(rseen) if rseen else "none",
+            len(b["pauses"]), verdict))
+        if transient:
+            details.append((b["log"], b["name"], None,
+                            "TRANSIENT pids (present in some snapshot, not in both ends): "
+                            + ",".join(transient)))
         # the five busiest foreign pids, for the record
         tops = sorted(((last[p][1] - first[p][1]) / float(clk), p) for p in common)[-5:][::-1]
         details.append((b["log"], b["name"], wall, tops))
@@ -220,15 +274,22 @@ def report(batches, out):
               "programming, CSV writeback in kworker context -- and it scales with the number of "
               "processes a batch launches, not with its wall; it is reported, not counted as "
               "foreign.\n\n")
-    out.write("| log | batch | runs | timed wall (s) | **cpu2 un-niced USER (s)** | **fraction** | "
-              "**cpu10 un-niced USER (s)** | **fraction** | cpu2 nice (s) | self user+sys (s) | "
-              "cpu2 sys beyond self (s) | cpu2 irq+sirq (s) | verdict |\n")
-    out.write("|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+    out.write("**THE NICE-INCLUSIVE REPAIR (attrib4).** The two bold columns are the "
+              "REPAIRED figure: `user + nice + steal + guest` on the core, with only the run's "
+              "own `user` seconds subtracted on cpu2 and nothing subtracted on cpu10. The "
+              "`user`-only columns beside them are the SUPERSEDED figure the earlier proof took "
+              "its verdict on; they are printed so the two can be compared and are not what any "
+              "verdict here rests on.\n\n")
+    out.write("| log | batch | runs | timed wall (s) | **cpu2 foreign TASK (s)** | **fraction** | "
+              "**cpu10 TASK (s)** | **fraction** | cpu2 user-only (s) | cpu10 user-only (s) | "
+              "cpu2 nice (s) | self user+sys (s) | cpu2 sys beyond self (s) | cpu2 irq+sirq (s) | "
+              "verdict |\n")
+    out.write("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
     for b in batches:
         rs = pinned_runs(b)
         if not rs:
-            out.write("| %s | %s | 0 | - | - | - | - | **UNPROVEN (no timed run bracketed)** |\n"
-                      % (b["log"], b["name"]))
+            out.write("| %s | %s | 0 | - | - | - | - | - | - | - | - | - | - | - | "
+                      "**UNPROVEN (no timed run bracketed)** |\n" % (b["log"], b["name"]))
             ok = False
             continue
         tot_wall = sum(t[1] for t in rs)
@@ -238,17 +299,23 @@ def report(batches, out):
         n2 = sum(t[6].get("cpu2", {}).get("nice", 0.0) for t in rs)
         s2 = sum(t[6].get("cpu2", {}).get("system", 0.0) for t in rs)
         st2 = sum(t[6].get("cpu2", {}).get("steal", 0.0) for t in rs)
+        a2 = sum(t[6].get("cpu2", {}).get("task_all", 0.0) for t in rs)
+        a10 = sum(t[6].get("cpu10", {}).get("task_all", 0.0) for t in rs)
         selfcpu = sum(t[7]["user"] + t[7]["sys"] for t in rs)
         selfsys = sum(t[7]["sys"] for t in rs)
-        f2 = (u2 + st2) / tot_wall if tot_wall else float("inf")
-        f10 = u10 / tot_wall if tot_wall else float("inf")
+        selfuser = sum(t[7]["user"] for t in rs)
+        # THE REPAIRED FIGURE: every task bucket, own user time out on cpu2 only.
+        fo2 = max(0.0, a2 - selfuser)
+        fo10 = a10
+        f2 = fo2 / tot_wall if tot_wall else float("inf")
+        f10 = fo10 / tot_wall if tot_wall else float("inf")
         good = f2 < THRESHOLD and f10 < THRESHOLD
         if not good:
             ok = False
         out.write("| %s | %s | %d | %.2f | **%.3f** | **%.4f %%** | **%.3f** | **%.4f %%** | "
-                  "%.2f | %.2f | %.3f | %.3f | %s |\n" % (
-                      b["log"], b["name"], len(rs), tot_wall, u2 + st2, 100.0 * f2, u10,
-                      100.0 * f10, n2, selfcpu, max(0.0, s2 - selfsys), totk,
+                  "%.3f | %.3f | %.2f | %.2f | %.3f | %.3f | %s |\n" % (
+                      b["log"], b["name"], len(rs), tot_wall, fo2, 100.0 * f2, fo10,
+                      100.0 * f10, u2 + st2, u10, n2, selfcpu, max(0.0, s2 - selfsys), totk,
                       "PINNED-CLEAN" if good else "**UNPROVEN**"))
 
     out.write("\n## The five busiest foreign processes per batch\n\n")
