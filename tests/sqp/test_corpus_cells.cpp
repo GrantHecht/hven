@@ -2565,13 +2565,22 @@ const std::vector<ExpectedExitRow> &expected_interior_exit_rows() {
         // re-solved from the same x0 through the PAYLOAD entry after a
         // converged producing solve on a separate solver.
         {"hs071_x1_fixed/MakeParameter/warm_payload", "optimal", "none"},
-        {"hs071_x1_fixed/MakeParameter/warm_multiplier_seed", "optimal", "none"}};
+        {"hs071_x1_fixed/MakeParameter/warm_multiplier_seed", "optimal", "none"},
+        // THE TWO PARTITIONED ROWS (M6 W5 T8.9): one F7 cell laid over TWO
+        // partitions, under two treatments -- the only variant that is not
+        // MakeParameter-only, because a partitioning question is not an exit
+        // question and the treatment is the only thing that can put work in a
+        // partition the adapter does not occupy. Both are LAYOUT rows (the
+        // artifact's header says why), and both must land exactly where their
+        // one-partition rows did.
+        {"f7_n1000_bound_neutral/MakeConstraint/parts2", "optimal", "none"},
+        {"f7_n1000_bound_neutral/MakeParameter/parts2", "optimal", "none"}};
     return kRows;
 }
 
-// The 41 keys, in the order the leg writes them: eleven cells x three
-// treatments, then the four abnormal-exit rows, the two multi-phase ones and
-// the two warm-start ones (M6 W5 T8.5).
+// The 43 keys, in the order the leg writes them: eleven cells x three
+// treatments, then the four abnormal-exit rows, the two multi-phase ones, the
+// two warm-start ones (M6 W5 T8.5) and the two partitioned ones (M6 W5 T8.9).
 // Listed rather than derived, so a leg that stopped writing a cell fails this
 // rather than agreeing with itself.
 const std::vector<std::string> &expected_interior_keys() {
@@ -2743,9 +2752,9 @@ std::vector<std::string> committed_data_rows() {
 TEST(CorpusCells, InteriorBaselineRescoresOffline) {
     const std::string csv = std::string(HVEN_SQP_INTERIOR_BASELINE_CSV);
     const interior_test::Artifact art = interior_test::read_interior_csv(csv);
-    ASSERT_EQ(art.rows.size(), 41u) << "eleven cells x three fixed-variable treatments, plus four "
-                                       "abnormal-exit rows, two multi-phase rows and two "
-                                       "warm-start rows";
+    ASSERT_EQ(art.rows.size(), 43u) << "eleven cells x three fixed-variable treatments, plus four "
+                                       "abnormal-exit rows, two multi-phase rows, two warm-start "
+                                       "rows and two partitioned rows";
     const std::vector<std::string> violations = interior_test::interior_artifact_violations(art);
     EXPECT_TRUE(violations.empty()) << interior_test::join_violations(violations);
 }
@@ -2848,6 +2857,68 @@ TEST(CorpusCells, TheWarmRowsShowThePayloadAndTheSeedReachedTheSolve) {
 
 // THE FIXED-COORDINATE RULE, LIVE (M6 W5 T8.4, design §2.3).
 //
+// THE TWO PARTITIONED ROWS' COMPARISON, ASSERTED (M6 W5 T8.9).
+//
+// The leg is linked by no test target, so its rows would otherwise be evidence
+// nobody checks. `make_nlp_program(problem, 2)` lays TWO partitions over the
+// same F7 cell the one-partition rows run, and what that means here is LAYOUT
+// and not parallelism: all three adapter pieces are MainThread, so the whole
+// problem sits in the last partition and runs inline on the calling thread.
+// The evaluation is therefore the same evaluation at either count.
+//
+// SO THE COMPARISON IS PINNED RATHER THAN DECLINED. `status` and `iter_num`
+// must be EQUAL to the one-partition row's and `obj_val` equal to 1e-12
+// relative; BITWISE identity across every measured column is the EXPECTATION
+// and is checked here too. A failure of the bitwise half would be a finding
+// about the partitioned assembly's slot order -- and therefore about the order
+// the backend is handed its input -- not a reason to have asserted nothing.
+TEST(CorpusCells, TheTwoPartitionRowsMatchTheirOnePartitionRows) {
+    const interior_test::Artifact art =
+        interior_test::read_interior_csv(std::string(HVEN_SQP_INTERIOR_BASELINE_CSV));
+    ASSERT_TRUE(art.problems.empty()) << interior_test::join_violations(art.problems);
+
+    const auto row_of = [&art](const std::string &key) {
+        for (const auto &row : art.rows) {
+            const auto id = row.find("cell_id");
+            if (id != row.end() && id->second == key) {
+                return row;
+            }
+        }
+        ADD_FAILURE() << "missing row " << key;
+        return std::map<std::string, std::string>{};
+    };
+
+    for (const char *treatment : {"MakeConstraint", "MakeParameter"}) {
+        SCOPED_TRACE(treatment);
+        const std::string base = std::string("f7_n1000_bound_neutral/") + treatment;
+        const auto one = row_of(base);
+        const auto two = row_of(base + "/parts2");
+        ASSERT_FALSE(one.empty());
+        ASSERT_FALSE(two.empty());
+
+        ASSERT_NE(one.find("status"), one.end());
+        EXPECT_EQ(two.at("status"), one.at("status"));
+        EXPECT_EQ(two.at("iter_num"), one.at("iter_num"));
+        const double f1 = std::stod(one.at("obj_val"));
+        const double f2 = std::stod(two.at("obj_val"));
+        EXPECT_NEAR(f2, f1, 1e-12 * std::max(1.0, std::abs(f1)));
+
+        // BITWISE, over every column but the row key, the treatment tag and
+        // `wall_s` -- the artifact stores its numbers as text, so equal text is
+        // equal bits.
+        for (const auto &entry : one) {
+            if (entry.first == "cell_id" || entry.first == "fixed_treatment" ||
+                entry.first == "wall_s") {
+                continue;
+            }
+            const auto it = two.find(entry.first);
+            ASSERT_NE(it, two.end()) << entry.first;
+            EXPECT_EQ(it->second, entry.second)
+                << "column " << entry.first << " moved between one and two laid partitions";
+        }
+    }
+}
+
 // hs071_x1_fixed is the same declared problem under three fixed-variable
 // treatments, and the treatments do genuinely different things to the fixed
 // coordinate: MakeParameter ELIMINATES it (no row at all, so its stationarity
@@ -2983,8 +3054,9 @@ TEST(CorpusCells, InteriorArtifactCheckRejectsAnIncompleteArtifact) {
 
     const std::vector<std::string> violations =
         interior_test::interior_artifact_violations(interior_test::read_interior_csv(path));
-    // 36 -> 38 at M6 W5 T8.5: two more expected keys to be missing.
-    EXPECT_EQ(violations.size(), 38u) << interior_test::join_violations(violations);
+    // 36 -> 38 at M6 W5 T8.5 and 38 -> 40 at M6 W5 T8.9: two more expected keys
+    // to be missing each time.
+    EXPECT_EQ(violations.size(), 40u) << interior_test::join_violations(violations);
     EXPECT_NE(interior_test::join_violations(violations)
                   .find("missing row key 'f7_n1000_bound_neutral/MakeParameter'"),
               std::string::npos);
@@ -2995,7 +3067,7 @@ TEST(CorpusCells, InteriorArtifactCheckRejectsDuplicateAndMalformedRows) {
     // (a) a repeated key -- the shape the replay comparator would silently
     //     collapse to one row.
     std::vector<std::string> rows = interior_test::committed_data_rows();
-    ASSERT_EQ(rows.size(), 41u);
+    ASSERT_EQ(rows.size(), 43u);
     rows.push_back(rows.front());
     const std::string dup = runner_test::temp_path("interior_probe_duplicate.csv");
     interior_test::write_probe_artifact(dup, rows);
