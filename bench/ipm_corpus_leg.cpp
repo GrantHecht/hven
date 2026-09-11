@@ -823,6 +823,36 @@ InteriorRow run_interior_infeasible(std::string_view cell_id, FixedVariableTreat
                                 variant);
 }
 
+FixedVariableTreatments interior_treatment_from_tag(std::string_view tag) {
+    for (const FixedVariableTreatments treatment : interior_treatments()) {
+        if (tag == interior_treatment_tag(treatment)) {
+            return treatment;
+        }
+    }
+    throw std::invalid_argument(fmt::format("interior_treatment_from_tag: '{}' is not one of "
+                                            "MakeParameter|MakeConstraint|RelaxBounds",
+                                            tag));
+}
+
+InteriorRow run_interior_single_row(std::string_view cell_id, FixedVariableTreatments treatment,
+                                    const InteriorLevers &levers) {
+    // The fixed-variable cell is not a corpus cell -- the leg runs it
+    // unconditionally from its own id, and find_cell would not know it.
+    if (cell_id == kHs071FixedCellId) {
+        return run_interior_hs071(treatment, levers, interior_base_variant());
+    }
+    const CorpusCell *cell = find_cell(std::string(cell_id));
+    if (cell == nullptr) {
+        throw std::invalid_argument(
+            fmt::format("run_interior_single_row: unknown cell id '{}' (a corpus cell id, or "
+                        "'{}')",
+                        cell_id, kHs071FixedCellId));
+    }
+    // run_interior_cell refuses a cell that does not dual-bind, with the reason
+    // folded into the message; this mode does not need its own copy of that.
+    return run_interior_cell(*cell, treatment, levers, interior_base_variant());
+}
+
 std::string interior_row_key(const InteriorRow &row) {
     if (row.variant.empty()) {
         return fmt::format("{}/{}", row.cell_id, row.fixed_treatment);

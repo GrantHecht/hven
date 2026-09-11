@@ -151,6 +151,7 @@ using hven::solvers::FixedVariableTreatments;
 using hven::solvers::corpus::interior_base_variant;
 using hven::solvers::corpus::interior_csv_header;
 using hven::solvers::corpus::interior_exit_variants;
+using hven::solvers::corpus::interior_treatment_from_tag;
 using hven::solvers::corpus::interior_treatment_tag;
 using hven::solvers::corpus::interior_treatments;
 using hven::solvers::corpus::interior_variant_stamp;
@@ -166,6 +167,7 @@ using hven::solvers::corpus::kStationaryCellId;
 using hven::solvers::corpus::run_interior_cell;
 using hven::solvers::corpus::run_interior_hs071;
 using hven::solvers::corpus::run_interior_infeasible;
+using hven::solvers::corpus::run_interior_single_row;
 
 // The measurement-arm levers, named once. See corpus_cells.h's EngineConfig.
 using EngineLevers = hven::solvers::corpus::detail::EngineConfig;
@@ -192,6 +194,9 @@ constexpr const char *kUsage =
     "                       [--hs-cells all|<n1,n2,...>] [--hs-trace off|sink]\n"
     "       hven_sqp_corpus --from-csv <path1[,path2,...]> [--csv <merged>] [--score-gates]\n"
     "       hven_sqp_corpus --dump-qp <cell> --dump-qp-out <path>\n"
+    "       hven_sqp_corpus --internal-run-one <cell> --engine interior\n"
+    "                       --treatment MakeParameter|MakeConstraint|RelaxBounds\n"
+    "                       --internal-out <path>\n"
     "       hven_sqp_corpus --list\n"
     "       hven_sqp_corpus --help\n"
     "\n"
@@ -246,6 +251,24 @@ constexpr const char *kUsage =
     "                    Partitions and backend threads are pinned to 1 and\n"
     "                    stamped; there is no wall deadline (these cells are\n"
     "                    seconds-scale through this driver).\n"
+    "  --treatment T     THE SINGLE-ROW INTERIOR MODE (M6 W5 T8.9r), and the only\n"
+    "                    form in which --internal-run-one is a DOCUMENTED\n"
+    "                    surface. With --internal-run-one <cell> --engine\n"
+    "                    interior --internal-out <path> it runs EXACTLY ONE BASE\n"
+    "                    ROW of the interior leg, in process -- no variant row,\n"
+    "                    no other cell, no fork -- and writes it under the leg's\n"
+    "                    own column header, behind a provenance header of its\n"
+    "                    own. T is MakeParameter | MakeConstraint | RelaxBounds;\n"
+    "                    <cell> is a dual-bindable corpus cell id or\n"
+    "                    hs071_x1_fixed. IT EXISTS AS AN INSTRUMENT: a\n"
+    "                    whole-process counter reading of the leg is not\n"
+    "                    like-for-like between arms that write different row\n"
+    "                    sets, and is dominated by the first row's warm-up in\n"
+    "                    any case -- one row per process is what fixes both.\n"
+    "                    The walk/ssn/ipm arms' own --internal-run-one stays\n"
+    "                    undocumented: it is the fork/exec child of this file's\n"
+    "                    wall deadline, not a surface a caller drives. REFUSED\n"
+    "                    with any other invocation.\n"
     "  --ssn-prox-carry  MEASUREMENT ARM. Set SqpOptions::ssn_prox_carry (a real,\n"
     "                    shipped option that ships OFF -- see sqp_types.h for the\n"
     "                    sweep that ruled it off). Stamped into the CSV's own\n"
@@ -433,6 +456,13 @@ struct Args {
     // --engine/--cells/--csv, never these three directly.
     std::optional<std::string> internal_run_one;
     std::optional<std::string> internal_out;
+    // THE SINGLE-ROW INTERIOR MODE'S one extra word (M6 W5 T8.9r). The SQP
+    // arms' `--internal-run-one` writes a cell's one row and the treatment
+    // question does not arise; the interior leg writes THREE rows per cell,
+    // one per fixed-variable treatment, so a single-row interior process has
+    // to be told which of the three it is. Accepted with
+    // `--internal-run-one --engine interior` and REFUSED everywhere else.
+    std::optional<std::string> treatment;
     // Hidden TEST-ONLY overrides of the two phase budgets in THIS invocation,
     // so tests/test_corpus_cells.cpp can force each DNF path deterministically
     // (kill during setup vs kill during the reported solve) without waiting
@@ -559,6 +589,8 @@ Args parse_args(int argc, char **argv) {
             a.internal_run_one = next_value(arg);
         } else if (arg == "--internal-out") {
             a.internal_out = next_value(arg);
+        } else if (arg == "--treatment") {
+            a.treatment = next_value(arg);
         } else if (arg == "--internal-force-wall-budget-seconds") {
             // Legacy spelling, kept so an existing invocation keeps working:
             // forces BOTH phases.
@@ -2188,10 +2220,14 @@ void write_hs_row(std::ostream &os, const HsRow &r, const std::string &engine, b
 // this arm shares neither. Every lever a row depends on is written here, so a
 // reader never has to know which defaults were in force when it was captured.
 
-void write_interior_provenance(std::ostream &os, int argc, char **argv,
-                               const InteriorLevers &levers,
-                               const std::vector<std::string> &refusals,
-                               const InteriorPartitionStamp &parts2) {
+// The half of the header BOTH interior writers emit: what binary ran, under
+// what invocation, on what box, at what schema, with every lever a row depends
+// on. Everything below it describes the ROW SET a particular invocation writes,
+// which is where the leg proper and the single-row mode part company -- and a
+// header that described rows its own file does not contain would be the wrong
+// record, not a harmless extra.
+void write_interior_provenance_head(std::ostream &os, int argc, char **argv,
+                                    const InteriorLevers &levers) {
     std::string invocation;
     for (int i = 0; i < argc; ++i) {
         invocation += (i == 0 ? "" : " ");
@@ -2226,6 +2262,30 @@ void write_interior_provenance(std::ostream &os, int argc, char **argv,
     os << fmt::format("# levers: kkt_tol={:.9e} econ_tol={:.9e} icon_tol={:.9e} barr_tol={:.9e}\n",
                       levers.kkt_tol, levers.econ_tol, levers.icon_tol, levers.barr_tol);
     os << fmt::format("# levers: bound_relax_factor={:.9e}\n", levers.bound_relax_factor);
+}
+
+// THE SINGLE-ROW MODE'S header (M6 W5 T8.9r). One base row, so the leg's
+// treatments/variant/exit/warm/parts2 lines all describe rows this file does
+// not carry and none of them is written. The parts2 stamp is not merely
+// omitted from the text: it is not COMPUTED, because computing it builds a
+// model and a program, and this mode exists to put one row's work and nothing
+// else inside one process's counters.
+void write_interior_single_row_provenance(std::ostream &os, int argc, char **argv,
+                                          const InteriorLevers &levers) {
+    write_interior_provenance_head(os, argc, argv, levers);
+    os << "# single row: this file carries EXACTLY ONE BASE ROW -- one cell, one treatment, the "
+          "base variant -- written in process by --internal-run-one --engine interior. No variant "
+          "row, no other cell, no fork.\n";
+    os << "# key: column 0 is <cell_id>/<fixed_treatment>; this mode never writes the third "
+          "(variant) segment\n";
+    os << fmt::format("# {}\n", interior_variant_stamp(interior_base_variant()));
+}
+
+void write_interior_provenance(std::ostream &os, int argc, char **argv,
+                               const InteriorLevers &levers,
+                               const std::vector<std::string> &refusals,
+                               const InteriorPartitionStamp &parts2) {
+    write_interior_provenance_head(os, argc, argv, levers);
     os << "# treatments: MakeParameter,MakeConstraint,RelaxBounds -- one row each, per cell\n";
     os << "# key: column 0 is <cell_id>/<fixed_treatment>, plus /<variant> on a non-base row\n";
     os << fmt::format("# {}\n", interior_variant_stamp(interior_base_variant()));
@@ -2349,6 +2409,28 @@ class InteriorArtifactWriter {
     std::size_t written_ = 0;
 };
 
+// THE SINGLE-ROW INTERIOR MODE (M6 W5 T8.9r). One cell, one treatment, the base
+// variant, in process, written through the leg's own writer so a single-row
+// file is read by exactly the readers a leg file is.
+//
+// THE OUTPUT FILE IS OPENED AND ITS HEADER WRITTEN BEFORE THE SOLVE, not after:
+// an unwritable path is the caller's mistake, and it should cost a failed open
+// rather than a finished solve thrown away.
+void run_internal_interior_one(const std::string &cell_id, const std::string &treatment_tag,
+                               const std::string &out_path, int argc, char **argv) {
+    const FixedVariableTreatments treatment = interior_treatment_from_tag(treatment_tag);
+    // The leg's own defaults, unchanged and unreachable from the CLI: this mode
+    // measures the leg's row, so it runs the leg's levers. They are stamped.
+    const InteriorLevers levers;
+    InteriorArtifactWriter writer(out_path);
+    write_interior_single_row_provenance(writer.stream(), argc, argv, levers);
+    writer.stream() << interior_csv_header();
+    writer.stream().flush();
+    writer.require_ok("the header");
+    writer.write_row(run_interior_single_row(cell_id, treatment, levers));
+    writer.close();
+}
+
 // The cells this arm runs, and the refusal line for every requested cell it
 // cannot: a cell an NLPProblem cannot state is named, never silently dropped.
 struct InteriorPlan {
@@ -2414,9 +2496,46 @@ int main(int argc, char **argv) {
             print_list();
             return 0;
         }
+        // REFUSED, NOT IGNORED, on this file's standing rule: a flag that reads
+        // as accepted and does nothing is how an arm gets mislabelled in a
+        // report that quotes its invocation line. --treatment names the ONE
+        // fixed-variable treatment a single interior row runs under; the public
+        // leg writes all three per cell and has nothing to select.
+        if (args.treatment &&
+            !(args.internal_run_one && args.engine && *args.engine == "interior")) {
+            throw_usage("--treatment applies to --internal-run-one --engine interior only: it "
+                        "names the one fixed-variable treatment that mode's single row runs "
+                        "under, and the --engine interior leg writes all three per cell");
+        }
         if (args.internal_run_one) {
             if (!args.engine || !args.internal_out) {
                 throw_usage("--internal-run-one requires --engine and --internal-out");
+            }
+            // THE SINGLE-ROW INTERIOR MODE, routed AHEAD of run_internal_one:
+            // that one goes to corpus_cells.h's run_cell, which knows the three
+            // SQP arms and refuses every other name -- `interior` included. The
+            // interior leg is not an SQP arm and never was.
+            if (*args.engine == "interior") {
+                if (!args.treatment) {
+                    throw_usage("--internal-run-one --engine interior requires --treatment "
+                                "MakeParameter|MakeConstraint|RelaxBounds: the leg writes one row "
+                                "per treatment and a single-row process writes exactly one");
+                }
+                if (args.ssn_prox_carry || args.ssn_certify_from_face ||
+                    args.ssn_sigma_rule != SsnSigmaRule::kLadder ||
+                    args.ssn_hint_rule != SsnHintRule::kIterationZeroFree ||
+                    args.ssn_infeasibility_rule != SsnInfeasibilityRule::kSymptoms ||
+                    args.score_model_surface || args.internal_force_setup_budget_s ||
+                    args.internal_force_solve_budget_s || args.internal_force_child_throw ||
+                    args.internal_force_child_abort) {
+                    throw_usage("--internal-run-one --engine interior takes none of the SSN "
+                                "measurement levers, the model-surface hook or the hidden child "
+                                "levers: it runs the interior leg in process, drives no "
+                                "SqpDriver, has no parent polling a marker and no child to force");
+                }
+                run_internal_interior_one(*args.internal_run_one, *args.treatment,
+                                          *args.internal_out, argc, argv);
+                return 0;
             }
             EngineLevers levers;
             levers.ssn_prox_carry = args.ssn_prox_carry;

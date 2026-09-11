@@ -81,6 +81,17 @@ add_executable(hven_sqp_tests ${HVEN_SQP_TEST_SOURCES})
 target_link_libraries(hven_sqp_tests PRIVATE hven::hven GTest::gtest_main)
 target_compile_options(hven_sqp_tests PRIVATE ${COMPILE_FLAGS})
 
+# M6 W5 T8.9r: bench/ipm_corpus_leg.cpp is COMPILED INTO this binary, on the
+# same reasoning corpus_cells.h is quote-included into test_corpus_cells.cpp —
+# one implementation shared by the measurement binary and the assertion that
+# guards it, never a second copy. Until T8.9r every interior gate here read the
+# committed ARTIFACT, so the leg needed no link; the single-row mode's pin is a
+# statement about two of the leg's OWN FUNCTIONS agreeing (the routing and the
+# row builder), which only an in-process call can make. It is listed apart from
+# HVEN_SQP_TEST_SOURCES above because that list is this directory's own files,
+# in sorted order, and a path out of the tree has no place in it.
+target_sources(hven_sqp_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../bench/ipm_corpus_leg.cpp")
+
 # test_corpus_cells.cpp includes "../../bench/corpus_cells.h" by relative path
 # (one implementation shared by the measurement binary and the assertion that
 # guards it, never a second copy) — a quoted include resolves relative to the

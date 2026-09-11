@@ -344,6 +344,43 @@ InteriorRow run_interior_hs071(FixedVariableTreatments treatment, const Interior
 InteriorRow run_interior_infeasible(std::string_view cell_id, FixedVariableTreatments treatment,
                                     const InteriorLevers &levers, const InteriorVariant &variant);
 
+/// @brief The treatment named by @p tag, spelled as interior_treatment_tag
+///        spells it.
+///
+/// The CLI's own parse for the single-row mode below. It lives beside the tag
+/// writer so the two spellings can never drift: a tag this leg writes into a
+/// row is a tag this function reads back.
+///
+/// @param tag MakeParameter | MakeConstraint | RelaxBounds.
+/// @throws std::invalid_argument naming @p tag and the three accepted values.
+FixedVariableTreatments interior_treatment_from_tag(std::string_view tag);
+
+/// @brief Runs EXACTLY ONE BASE ROW of this leg, in process, and returns it.
+///
+/// THE SINGLE-ROW MODE (M6 W5 T8.9r). The leg proper writes three rows per
+/// cell plus the fixed-variable cell plus the abnormal-exit rows, all in one
+/// process, which is what makes a whole-process instruction count of it
+/// unreadable: the arms of a comparison do not run the same row set, and the
+/// count is dominated by the first row's warm-up either way (reading.md §5 (iv)
+/// and §11). One row per process is the instrument that fixes that, and this is
+/// the function it needs. It runs NO variant row, NO other cell and NO
+/// fork.
+///
+/// The row is the SAME row the leg writes for the same key: this function is
+/// the routing only -- @p cell_id selects between run_interior_hs071 and
+/// run_interior_cell exactly as the leg's own two loops do, at
+/// interior_base_variant().
+///
+/// @param cell_id   kHs071FixedCellId, or a corpus cell id that dual-binds.
+/// @param treatment The fixed-variable treatment the row runs under.
+/// @param levers    The knobs above.
+/// @return The finished row, `wall_s` included.
+/// @throws std::invalid_argument if @p cell_id is neither the fixed-variable
+///         cell nor a known corpus cell, or (from run_interior_cell) if the
+///         cell does not dual-bind.
+InteriorRow run_interior_single_row(std::string_view cell_id, FixedVariableTreatments treatment,
+                                    const InteriorLevers &levers);
+
 /// @brief The row's key: the cell id joined to the treatment by a slash, plus
 ///        the variant name on a non-base row.
 ///

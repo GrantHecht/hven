@@ -38,6 +38,7 @@
 #include <gtest/gtest.h>
 
 #include "../../bench/corpus_cells.h"
+#include "../../bench/ipm_corpus_leg.h"
 
 #ifndef HVEN_SQP_CORPUS_BINARY
 #error "HVEN_SQP_CORPUS_BINARY must be defined by bench/CMakeLists.txt (see its own comment)"
@@ -3091,6 +3092,85 @@ TEST(CorpusCells, InteriorArtifactCheckRejectsDuplicateAndMalformedRows) {
               std::string::npos)
         << interior_test::join_violations(bad_violations);
     std::remove(bad.c_str());
+}
+
+// M6 W5 T8.9r: THE SINGLE-ROW INTERIOR MODE writes the leg's own row.
+//
+// `--internal-run-one <cell> --engine interior --treatment T --internal-out
+// <path>` exists to put ONE interior row's work, and nothing else, inside one
+// process's counters: the leg proper writes 43 rows per process, so a
+// whole-process instruction count of it is neither like-for-like across arms
+// that write different row sets nor free of the first row's warm-up
+// (docs/notes/data/2026-09-m6-w5-t8-runtime/reading.md §5 (iv) and §11).
+//
+// An instrument is only worth what its agreement with the thing it stands in
+// for is worth, and THAT is what this pins: the mode's routing
+// (`run_interior_single_row`) and the leg's own row builder produce the SAME
+// ROW for the same key. IN PROCESS, both of them -- bench/ipm_corpus_leg.cpp is
+// compiled into this binary (tests/sqp/CMakeLists.txt) precisely so this
+// comparison needs no fork, no artifact and no second box. The CLI plumbing
+// around it (the flag, the refusals, the provenance header) is glue in
+// bench_corpus.cpp's main(); what could silently produce a WRONG NUMBER is the
+// routing, and the routing is here.
+//
+// hs071_x1_fixed is the cell: it is the one the leg runs unconditionally, it is
+// four variables dense and converges in single-digit iterations, and it is
+// therefore the only cell in the leg this every-commit suite can afford to
+// solve twice.
+//
+// THE FLOATING-POINT MEASURE COLUMNS GO THROUGH runner_test's residual gate
+// rather than byte equality, for the reason that gate's own derivation gives:
+// MKL's kernels are address-sensitive, and two solves are two sets of
+// addresses even inside one process. Byte equality is still the expected
+// outcome and the gate checks it first; everything that is not a float --
+// the key, the identity columns, the status, the stop reason, every counter,
+// the per-phase account and the four declared widths -- is held EXACT, because
+// no floating-point arithmetic produces it. `wall_s` is excluded outright: it
+// is informational (CLAUDE.md §7) and the leg's own comparator excludes it too.
+TEST(CorpusCells, TheSingleRowInteriorModeProducesTheLegsOwnRow) {
+    namespace corpus = hven::solvers::corpus;
+    using hven::solvers::FixedVariableTreatments;
+
+    const corpus::InteriorLevers levers;
+    const corpus::InteriorRow routed = corpus::run_interior_single_row(
+        corpus::kHs071FixedCellId, FixedVariableTreatments::MakeParameter, levers);
+    const corpus::InteriorRow leg = corpus::run_interior_hs071(
+        FixedVariableTreatments::MakeParameter, levers, corpus::interior_base_variant());
+
+    const std::vector<std::string> a = runner_test::split_all(corpus::interior_csv_row(routed));
+    const std::vector<std::string> b = runner_test::split_all(corpus::interior_csv_row(leg));
+    ASSERT_EQ(a.size(), 31u) << corpus::interior_csv_row(routed);
+    ASSERT_EQ(b.size(), 31u) << corpus::interior_csv_row(leg);
+    EXPECT_EQ(a[0], "hs071_x1_fixed/MakeParameter")
+        << "the single-row mode's key carries no variant segment: it runs the BASE variant";
+
+    // obj_val, kkt_inf, barr_inf, econ_inf, icon_inf (7-11) and the four shared
+    // declared diagnostics (26-29), by the schema interior_csv_header() writes.
+    const auto is_measure = [](std::size_t i) {
+        return (i >= 7 && i <= 11) || (i >= 26 && i <= 29);
+    };
+    for (std::size_t i = 0; i + 1 < a.size(); ++i) { // the last column is wall_s
+        if (is_measure(i)) {
+            EXPECT_TRUE(runner_test::residual_columns_agree(a[i], b[i]))
+                << "column " << i << " differs by more than " << runner_test::kResidualRelativeGate
+                << " relative: single-row=" << a[i] << " leg=" << b[i];
+        } else {
+            EXPECT_EQ(a[i], b[i]) << "column " << i
+                                  << " is not a floating-point measure and must "
+                                     "be identical";
+        }
+    }
+
+    // THE TWO WAYS THE ROUTING CAN BE ASKED FOR A ROW THAT DOES NOT EXIST, both
+    // refused before any solve: an id the corpus does not carry, and a cell the
+    // leg cannot state as an NLPProblem. Neither costs a solve, which is why
+    // they ride along here rather than in a test of their own.
+    EXPECT_THROW((void)corpus::run_interior_single_row(
+                     "not_a_cell_id", FixedVariableTreatments::MakeParameter, levers),
+                 std::invalid_argument);
+    EXPECT_THROW((void)corpus::run_interior_single_row(
+                     "f7_n1000_bound_warm", FixedVariableTreatments::MakeParameter, levers),
+                 std::invalid_argument);
 }
 
 TEST(CorpusBaseline, TheCommittedWalkBaselineScoresToItsDocumentedVerdict) {
