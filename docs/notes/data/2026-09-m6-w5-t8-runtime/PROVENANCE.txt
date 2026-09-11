@@ -126,9 +126,50 @@ THE SOLO RULE, AS DECLARED (CLAUDE.md section 7)
   Nothing that BUILDS or SOLVES appeared at any check. No foreign process was
   signalled or killed at any point, and none needed to be.
 
-  THE SOLO WINDOW: 2026-09-11, opened at the calibration (12:22 UTC) and
-  closed after the attribution probe (15:0x UTC). Announced in
-  .superpowers/w5-t8-9r-progress.md before it opened, and closed there.
+  THE SOLO WINDOW, from the logs rather than from memory. 2026-09-11 UTC; every
+  span is a FOREGROUND_START / FOREGROUND_END pair in the named log:
+    12:08:24-12:09:59  the three arm builds          logs/L1-build.log
+    12:11:34-12:11:35  the schema smoke              logs/L1b-smoke.log
+    12:12:11            the fold proof, both ways     logs/L2-fold-proof-*.log
+    12:13:07-12:28:00  calibration + timing survey   logs/L3-calibration.log
+    12:28:34-12:53:27  leg 1, the wall, three modes  logs/L4-leg1-*.log
+    12:54:12-12:55:22  leg 1, pass A and pass B      logs/L5-leg1perf-*.log
+    12:56:41-13:54:01  leg 2, six mode x trace       logs/L6-leg2-*.log
+    14:02:04-14:05:40  the interior leg              logs/L7-interior.log
+    14:06:07-14:06:08  the attribution probe         logs/L7b-attrib-probe.log
+  Announced in .superpowers/w5-t8-9r-progress.md before it opened, and closed
+  there. The gaps between spans are this agent's own analysis turns, with the
+  box idle and the lock released.
+
+  THE pgrep AUDIT, over every capture in every log. The DISTINCT process
+  signatures seen across the whole window are exactly seven, and every one is
+  on the idle list above:
+    /bin/bash -c ...                     (this agent's own shells, and two
+                                          sleep-loop waiters from earlier
+                                          sessions)
+    clangd --background-index
+    codex app-server
+    .../bin/codex-code-mode-host         (two versions)
+    /usr/bin/node-22 .../app-server-broker.mjs
+    /usr/bin/earlyoom -m ...
+  NOTHING THAT BUILDS OR SOLVES APPEARED AT ANY CHECK, in any leg, at any
+  alternation.
+
+  ONE COMMIT BY ANOTHER AGENT LANDED INSIDE THE WINDOW, and it is declared
+  here rather than left for a reader to find: 30e62ec, the settler's jet.h
+  ruling, at 13:42 UTC -- during the leg-2 ssn/sink span. It is DOCS-ONLY
+  (docs/notes/2026-08-m6-ledger.md and docs/notes/2026-09-m6-w5-t8-design.md,
+  13 lines); it compiled nothing and solved nothing, the pgrep audit above
+  covers that span, and no measurement here is affected.
+
+  AND THAT RULING ANSWERS THE PENDING QUESTION BELOW. The "one code change may
+  still land in group 1" paragraph was written against an open owner decision
+  on restoring detail/interior/jet.h. The ruling is that **jet.h stays
+  deleted** -- hven provides thread-safe solves, not a parallel-solve facility
+  -- so NO code change lands, e51a7e0 remains the group-1 code head, and the
+  conditional in that paragraph is discharged rather than merely survivable.
+  The paragraph is left as written: it is what this leg was dispatched under,
+  and the reading stands either way.
 
 THE LEGS, AND WHAT EACH ONE MEASURES
   LEG 1 -- the U0 27-cell corpus (docs/notes/data/2026-08-m6-w1-acceptance/
