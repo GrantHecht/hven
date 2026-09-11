@@ -2638,7 +2638,12 @@ and it is what would turn the two construction-rule items into observations.
 The wrapper, its header `hven/model/nlp_solver.h` and its TU are deleted, and
 so is `hven/detail/interior/jet.h` (`Jet`, `MklLocalPinGuard`) — dead code with
 zero instantiations in this tree. Every responsibility the wrapper held has a
-named replacement, listed below, and every one of them was already public.
+named replacement, listed below. Most of them were already public and are named
+here rather than written: `compose_user_multipliers`, `split_user_multipliers`,
+`IpmOptions::phases`, `IpmResult`. **Two are new in this task** — the
+problem-taking `make_nlp_program(problem, num_partitions = 1)` overload and the
+`ipm_worker_options(IpmOptions)` preset — and both are one-call spellings of a
+sequence a caller could already have written by hand.
 
 ### 1. The responsibility table
 
@@ -2756,12 +2761,31 @@ naming the problem; that refusal is now the caller's, at the same place.
   multiplier is minus the engine's (HS071's `g1 >= 25` is one), a Range row's is
   a difference, and a Free row reads 0. That is the composition doing its job.
 * **The route is the same solve.** The top-level interior-point replay leg —
-  41 rows, every dual-bindable U0 cell under three treatments plus the
-  fixed-variable cell and the six variant rows — is **byte-identical outside
-  `wall_s`** before and after the rewrite, against the committed baseline.
+  the 41 rows that existed before this task: every dual-bindable U0 cell under
+  three treatments plus the fixed-variable cell and the six variant rows — is
+  **byte-identical outside `wall_s`** before and after the rewrite, against the
+  then-committed 41-row baseline. The committed artifact is **43 rows** now: the
+  same 41, byte-identical, plus the two `parts2` rows §8 describes, captured
+  twice and re-derived as a declared event (CLAUDE.md §7).
 * the worker preset's three settings, read off a configured solver and off the
-  program; `make_nlp_program(problem, N)`'s adopted count and refusals; every
-  rewritten test keeps its assertions.
+  program; `make_nlp_program(problem, N)`'s adopted count and refusals.
+* **the rewritten tests keep their assertions with the declared exceptions in
+  §9** — thirteen of the fifteen migrated files changed no assertion at all, and
+  the two that did are listed there, weakenings included.
+
+### 5b. Runtime is NOT measured by this task
+
+Nothing in T8.9, and nothing in group 1 at all, asserts a runtime number. Every
+claim above is a COUNTER claim (CLAUDE.md §7: counters are the asserted currency;
+wall-clock is informational). The group's runtime neutrality is measured ONCE,
+by a separate solo leg — **T8.9r** — run on the FINAL group-1 head after this
+task's fix round closes: pass A + pass B over the three SQP arms and the interior
+leg, post-T7 head `102f729` → the group-1 head, the T6 §11 recipe and bands, the
+evidence artifact under `docs/notes/data/2026-09-m6-w5-t8-runtime/` with the §7
+provenance header. Until that artifact exists, no runtime statement about group 1
+is supported, and the `wall_s` column of every baseline named above is
+informational — which is exactly why it is the one column excluded from every
+identity comparison.
 
 ### 6. Partitions through the adapter are LAYOUT ONLY
 
@@ -2799,16 +2823,95 @@ engine fails to compile there, against an installed prefix.
 `cmake/hvenConfig.cmake.in`'s installed-header sentinel moves from
 `hven/model/nlp_solver.h` to `hven/drivers/interior_point_solver.h`.
 
+### 8. The two rows the interior baseline grew, and what they are
+
+The committed artifact `bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv`
+went from **41 rows to 43**. The two added rows are, by key:
+
+```
+f7_n1000_bound_neutral/MakeConstraint/parts2
+f7_n1000_bound_neutral/MakeParameter/parts2
+```
+
+Both are produced by `make_nlp_program(problem, 2)` on the leg's cheapest F7
+cell, and their header stamps the count the program ADOPTED and the pool it ran
+against: `# parts2: requested=2 adopted=2 eval_pool_threads=16 on cell
+f7_n1000_bound_neutral`.
+
+**BOTH ARE LAYOUT ROWS.** Neither runs any model work on a second thread:
+
+* every adapter piece is `ThreadingFlags::MainThread` (§6), so
+  `analyze_partitioning` puts all of them in the LAST partition, inline on the
+  calling thread;
+* partition 0 is therefore dispatched to the pool with **no model function in
+  it**;
+* the one mechanism that could have put real work there — the `RoundRobin`
+  fixing rows a `MakeConstraint` treatment adds — **needs a BOUND-FIXED
+  variable, and no F7 cell has one**: F7 pins node 0 through EQUALITY rows. (An
+  earlier description of the `MakeConstraint` row as "the real two-partition
+  dispatch" was wrong for exactly this reason and is corrected here.) The only
+  bound-fixed cell in the corpus is HS071, at ~18 KKT elements, which the
+  1000-elements-per-partition clamp collapses to one partition.
+
+So what the two rows DO prove is: the layout is preserved at N = 2 (the adopted
+count is 2, and no solver-side reset collapses it), the solve AGREES with the
+one-partition row (`status` and `iter_num` equal, `obj_val` to 1e-12 relative,
+and every other measured column bitwise equal — pinned by
+`CorpusCells.TheTwoPartitionRowsMatchTheirOnePartitionRows`), and the capture
+REPEATS (two captures byte-identical outside `wall_s`).
+
+What they do **NOT** prove: parallel model evaluation, or any speedup. No
+runtime claim rests on them (§5b). Genuine partitioned evaluation over an
+`NLPProblem` — per-partition cores, `ByApplication` with `thread_split` — is
+registered for the M7 `ClaimStreamSource` widening.
+
+### 9. The declared assertion changes, per file
+
+Of the migrated consumers, **thirteen changed no assertion at all**:
+`test_ipm_stop_reason.cpp` (11 tests), `test_ipm_trace.cpp` (35),
+`test_ipm_warm_start.cpp` (39), `test_kkt_factorization.cpp` (19),
+`test_nlp_multiplier_seeding.cpp` (11), `test_objective_scale_reporting.cpp` (6),
+`test_structure_epoch_gating.cpp` (11), `test_callback.cpp` (22),
+`test_options.cpp` (16), `test_solve_result.cpp` (21),
+`test_sqp_warm_currency.cpp` (32), and the two bench legs — every assertion is
+the one it was, re-pointed from `solver.optimizer_`/`solver.nlp_` to the engine
+and the program. Two files changed, and one test was deleted with its subject:
+
+| file | before → after | what changed |
+|---|---|---|
+| `test_nlp_solver.cpp` → **`test_ipm_solver_entry.cpp`** | 39 → 36 | the five job-mode PARSER tests become two `IpmOptions::phases` tests (the parser has no successor); four `static_assert`s about the deleted type go; **three tests are declared WEAKER or NARROWER**: the jet-lifecycle test keeps the observable it was built for (the partition count seen from inside an evaluation) and loses its falsifying arm; the faulted-transcription test loses four member-identity assertions that have no successor (there is no partial state left to assert about) and gains "the standing program is untouched and still solves"; the unsolved-residual test becomes a statement about a default-constructed `IpmResult` rather than about a solver. **Two are STRONGER**: the wrong-size refusal now checks an empty vector AND a wrong non-zero size, and the partition test now asserts the clamp and both non-positive refusals |
+| `test_warm_protocol.cpp` | 14 → 14 | one test replaced: `NlpSolverKeepsItsTwoArgumentEntry` → `TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries`, which pins all FOUR spellings of the solve family (`(program, x0)`, `(program, x0, budget)`, `(program, x0, payload)`, `(program, x0, payload, budget)`), each pair agreeing on every reported number, with `payload_ignored`/`polish_ignored` asserted per rung |
+| `test_jet_mkl_guard.cpp` | 2 → **deleted** | its whole subject was `MklLocalPinGuard`, which lives in the deleted `jet.h` |
+| `test_crossover_legs.cpp` | 9 → **10** | nothing removed; `CrossoverAdapter.TwoLaidPartitionsSolveTheSameProblemAsOne` added |
+| `test_corpus_cells.cpp` | 111 → **112** | nothing removed; `CorpusCells.TheTwoPartitionRowsMatchTheirOnePartitionRows` added, and the artifact's row count / key list updated 41 → 43 |
+
+Net `ctest -N` across the task: **−4** at the code commit (−3 job-mode, −2 jet
+guard, +1 crossover), **+1** at the baseline commit.
+
 ---
 
 ## T8 group 1 — the shared shape
 
-The nine tasks of group 1, what each moved, and what pins it. Every one is
-detailed in its own section above; this table is the index.
+The ten tasks of group 1 (T8.1–T8.9, with T8.7b between T8.7 and T8.8), what
+each moved, and what pins it. Every one is detailed in its own section above;
+this table is the index.
+
+**Every pin in this table is a COUNTER pin.** Group 1 asserts no runtime number
+anywhere: CLAUDE.md §7 makes counters the asserted currency and wall-clock
+informational, and the `wall_s` column is the one column excluded from every
+identity comparison below. The group's runtime neutrality is measured ONCE, by a
+separate solo leg — **T8.9r** — on the FINAL group-1 head, after T8.9's fix round
+closes: pass A + pass B over the three SQP arms AND the interior leg (calibrated
+in its own right — the interior leg is a FOURTH arm, not one of T6's three),
+post-T7 head `102f729` → the group-1 head, the T6 §11 recipe and bands, with the
+evidence artifact under `docs/notes/data/2026-09-m6-w5-t8-runtime/` carrying the
+§7 provenance header. The settler's `docs(m6): W5 T8 group 1 CLOSED` ledger
+commit follows the lane's reading of that artifact. **Nothing here is a runtime
+claim until it exists.**
 
 | task | concern | what changed for a caller | the pin |
 |---|---|---|---|
-| **T8.1** | the top-level IPM replay leg | nothing — a bench arm was added (`--engine interior`) | the 41-row baseline under `bench/baselines/2026-09-t8-ipm-leg/`, re-derived at T8.4 and again at T8.9 |
+| **T8.1** | the top-level IPM replay leg | nothing — a bench arm was added (`--engine interior`) | the baseline under `bench/baselines/2026-09-t8-ipm-leg/` — 41 rows at T8.1, re-derived at T8.4, and re-derived again at T8.9 as **43 rows** (the same 41 byte-identical outside `wall_s`, plus the two `parts2` LAYOUT rows) |
 | **T8.2** | `SolveStatus` | `ConvergenceFlags` is gone; both engines report `SolveStatus`, and `kStalled` is split out of NOTCONVERGED | the status map, the two abnormal doors live, the leg's `status`/`stop_reason` columns |
 | **T8.3** | options as values | the `set_*()` methods are gone; `options()` / `set_options(value)` with `validate()`; `CommonOptions` on both; a change DURING a solve is refused with `std::logic_error` | `validate()` per field, the in-flight refusal on both engines, the options fingerprint's hot reuse |
 | **T8.4** | one result core | `SolveResult` base, `SolveBudget`, the four shared declared diagnostics, the phase sequence as an option, the program as an ARGUMENT of `solve()` | the leg's eleven added columns, the per-phase account, the declared-width blocks |
@@ -2817,7 +2920,7 @@ detailed in its own section above; this table is the index.
 | **T8.7** | the ledger and the console | `attach_ledger` on the IPM with `IpmSolveRecord`; the console table is a `ConsoleTraceSink`; SQP console output at the same print levels | the console byte-pins, the fan-out, the phase resets |
 | **T8.7b** | the engine's last direct prints | the per-phase lines, the KKT-analysis block and the eight warnings are serialized events | five new events, the live line-count arithmetic, `interior_point_solver_print.cpp` deleted |
 | **T8.8** | threading | `common.threads` reaches every SQP factor path, including the dense Schur border; the caller's setting is restored on every exit | the tier reads, the 0-vs-1 bitwise pin, replay 0/75 at the shipped default |
-| **T8.9** | `NLPSolver` retired | the wrapper is deleted; `make_nlp_program`, `IpmOptions::phases`, `ipm_worker_options`, the value result | the BASE equality pin, the leg's 41-row byte identity, the generic installed consumer |
+| **T8.9** | `NLPSolver` retired | the wrapper is deleted; `make_nlp_program`, `IpmOptions::phases`, `ipm_worker_options`, the value result | the BASE equality pin (`return_x`/`return_multipliers` bitwise against the wrapper before deletion), the leg's 41 pre-existing rows byte-identical inside the re-derived **43-row** baseline, the generic installed consumer over both engines |
 
 **The fourteen behaviour changes named in the design's §2.7**, with the task
 that shipped each: the SQP's identity-mismatch refusal (T8.5); `kInterrupted`

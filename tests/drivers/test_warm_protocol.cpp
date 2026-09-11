@@ -923,7 +923,7 @@ TEST(WarmProtocol, ThePolishIgnoredCountAgreesAcrossTraceResultAndLedger) {
 }
 
 // ===========================================================================
-// THE PAYLOAD OVERLOAD KEEPS BOTH ARITIES
+// THE SOLVE FAMILY KEEPS ALL FOUR OF ITS SPELLINGS
 // ===========================================================================
 
 // T8.5 gave the retired wrapper's `run_nlp_solver` a third argument -- the
@@ -931,18 +931,38 @@ TEST(WarmProtocol, ThePolishIgnoredCountAgreesAcrossTraceResultAndLedger) {
 // overload, so every existing two-argument caller stopped compiling; the fix
 // round restored the two-argument entry and pinned it (astra I2). M6 W5 T8.9
 // retires the wrapper, and the property moves to its named replacement: the
-// engine's own solve family carries BOTH arities, and the seedless one is the
-// cold solve it always was.
+// engine's own solve family, whose TWO overloads carry FOUR spellings --
 //
-// THE PIN IS THE CALL ITSELF: both must COMPILE, and the solve the seedless one
-// runs must be identical to the one an explicitly absent payload runs.
-TEST(WarmProtocol, TheSolveFamilyKeepsItsSeedlessEntry) {
-    const auto problem = std::make_shared<hven_drivers_tests::Hs071Problem>();
+//     solve(program, x0)                        the cold one, budget defaulted
+//     solve(program, x0, budget)                the SAME overload, budget given
+//     solve(program, x0, payload)               the PAYLOAD one, budget defaulted
+//     solve(program, x0, payload, budget)       the PAYLOAD one, budget given
+//
+// -- and the old two-argument caller is the first of them.
+//
+// M6 W5 T8.9 FIX ROUND 1 (astra I1). The first version of this test compared
+// `solve(program, x0)` against `solve(program, x0, SolveBudget{})` and called
+// that the payload pin. It is not: BOTH of those spellings resolve to the COLD
+// overload, the second merely supplying its default argument, so the payload
+// overload -- the half of the family that actually replaced the wrapper's seed
+// argument -- was never called at all. The comparison is kept below, correctly
+// labelled as what it is (a pin on the cold overload's default argument), and
+// the PAYLOAD overload is now exercised at BOTH of ITS arities, under the
+// documented rungs of the ladder at the bottom of this file, with
+// `payload_ignored` / `polish_ignored` asserted per rung.
+//
+// THE PIN IS THE CALL ITSELF: all four spellings must COMPILE, each pair must
+// run the same solve, and the payload pair must be shown to have gone somewhere
+// the cold pair cannot -- `polish_ignored == 1` is a number no cold call can
+// report, because a cold call has no payload whose extension it could drop.
+TEST(WarmProtocol, TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries) {
+    const Hs071Export exported;
+    const auto &problem = exported.problem;
+
+    // --- (1) THE SEEDLESS CALL. If this file compiles, the entry exists. ---
     const auto program = hven::solvers::make_nlp_program(problem);
     hven::solvers::InteriorPointSolver ipm;
     ipm.set_options(quiet_ipm(ipm));
-
-    // THE SEEDLESS CALL. If this file compiles, the entry exists.
     const hven::solvers::IpmResult out = ipm.solve(*program, hs071_start());
 
     EXPECT_EQ(out.status, SolveStatus::kOptimal);
@@ -954,8 +974,12 @@ TEST(WarmProtocol, TheSolveFamilyKeepsItsSeedlessEntry) {
     EXPECT_EQ(out.payload_ignored, 0);
     EXPECT_EQ(out.polish_ignored, 0);
 
-    // And it agrees with the BUDGET-taking form spelled at its default, which
-    // is the same cold call one overload down.
+    // --- (2) THE COLD OVERLOAD'S OWN DEFAULT ARGUMENT ---
+    //
+    // `solve(program, x0, SolveBudget{})` is THE SAME OVERLOAD as (1) with its
+    // default supplied explicitly, and this comparison pins exactly that and
+    // nothing more: supplying the default changes no number. It is NOT evidence
+    // about the payload overload; (3) and (4) below are.
     const auto other_program = hven::solvers::make_nlp_program(problem);
     hven::solvers::InteriorPointSolver other;
     other.set_options(quiet_ipm(other));
@@ -964,6 +988,78 @@ TEST(WarmProtocol, TheSolveFamilyKeepsItsSeedlessEntry) {
     EXPECT_EQ(explicit_default.status, out.status);
     expect_same_reported_numbers(explicit_default, out,
                                  "solve(program, x0) vs solve(program, x0, SolveBudget{})");
+
+    // A tiny helper so each arm below is one line and the two arities of the
+    // payload overload differ ONLY in whether the budget is spelled.
+    const auto solve_with_payload = [&](const WarmStartData &w, bool spell_the_budget) {
+        const auto p = hven::solvers::make_nlp_program(problem);
+        hven::solvers::InteriorPointSolver s;
+        s.set_options(quiet_ipm(s));
+        return spell_the_budget ? s.solve(*p, hs071_start(), w, hven::solvers::SolveBudget{})
+                                : s.solve(*p, hs071_start(), w);
+    };
+
+    // --- (3) THE PAYLOAD OVERLOAD ON THE MULTIPLIERS-ONLY SEED ---
+    //
+    // This is the wrapper's retired `run_nlp_solver(mode, x0, seed)`, spelled on
+    // the engine. The seed carries the exporter's polish extension, so the rung
+    // is not vacuous: at this file's default ceiling (`IpmOptions` ships
+    // `start_level = kWarm`) a seed's MULTIPLIERS are applied -- `payload_ignored
+    // == 0` -- while its extension states bound duals at a point this call is
+    // not standing on, so it is IGNORED AND COUNTED: `polish_ignored == 1`.
+    //
+    // That 1 is the discriminator. No spelling of the COLD overload can produce
+    // it, so this arm provably reached the payload overload.
+    ASSERT_NE(hven::solvers::find_ipm_polish(exported.payload), nullptr)
+        << "the export must carry the extension, or the polish_ignored pin is vacuous";
+    WarmStartData seed = seed_form(exported.payload);
+    seed.extensions_ = exported.payload.extensions_;
+    ASSERT_EQ(seed.primal_.size(), 0);
+    ASSERT_EQ(seed.extensions_.size(), 1u);
+
+    const hven::solvers::IpmResult seeded_default_budget = solve_with_payload(seed, false);
+    const hven::solvers::IpmResult seeded_spelled_budget = solve_with_payload(seed, true);
+
+    EXPECT_EQ(seeded_default_budget.status, SolveStatus::kOptimal);
+    EXPECT_EQ(seeded_default_budget.payload_ignored, 0) << "the seed was applied, not ignored";
+    EXPECT_EQ(seeded_default_budget.polish_ignored, 1)
+        << "a seed's polish extension is dropped and counted";
+    expect_same_reported_numbers(seeded_spelled_budget, seeded_default_budget,
+                                 "solve(program, x0, seed) vs solve(program, x0, seed, "
+                                 "SolveBudget{})");
+    EXPECT_EQ(seeded_spelled_budget.payload_ignored, seeded_default_budget.payload_ignored);
+    EXPECT_EQ(seeded_spelled_budget.polish_ignored, seeded_default_budget.polish_ignored);
+
+    // --- (4) THE PAYLOAD OVERLOAD ON A WHOLE PAYLOAD, the kWarm rung ---
+    //
+    // The whole payload applies at this ceiling: the point, the multipliers and
+    // the extension. Nothing is dropped, so BOTH counters read 0 -- which is why
+    // (3) and not this arm carries the discriminating 1.
+    const hven::solvers::IpmResult warm_default_budget =
+        solve_with_payload(exported.payload, false);
+    const hven::solvers::IpmResult warm_spelled_budget = solve_with_payload(exported.payload, true);
+
+    EXPECT_EQ(warm_default_budget.status, SolveStatus::kOptimal);
+    EXPECT_EQ(warm_default_budget.payload_ignored, 0);
+    EXPECT_EQ(warm_default_budget.polish_ignored, 0) << "a full payload's extension IS consumed";
+    expect_same_reported_numbers(warm_spelled_budget, warm_default_budget,
+                                 "solve(program, x0, payload) vs solve(program, x0, payload, "
+                                 "SolveBudget{})");
+
+    // --- (5) AND THE PAYLOAD ARMS AGAINST THE TWO-ARGUMENT FORM'S OUTCOME ---
+    //
+    // The same problem and the same optimum, reached from a different start:
+    // status and objective agree with (1), and neither payload arm is the cold
+    // solve -- (3) reports a counter (1) cannot, and (4), standing on the
+    // exporter's converged point, needs NO MORE iterations than the cold solve
+    // from x0. The bound is one-sided on purpose: it is a statement about a warm
+    // start not being worse, not a pinned iteration count.
+    EXPECT_EQ(seeded_default_budget.status, out.status);
+    EXPECT_EQ(warm_default_budget.status, out.status);
+    EXPECT_NEAR(seeded_default_budget.f, out.f, 1e-5);
+    EXPECT_NEAR(warm_default_budget.f, out.f, 1e-5);
+    EXPECT_LE(warm_default_budget.iterations, out.iterations)
+        << "the whole payload starts at the exporter's converged point";
 }
 
 // ===========================================================================
