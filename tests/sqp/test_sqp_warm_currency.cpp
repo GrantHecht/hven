@@ -52,6 +52,7 @@
 #include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
+#include <hven/detail/model/nlp_adapter.h>
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/interior_point_solver.h>
 #include <hven/drivers/sqp_driver.h>
@@ -59,7 +60,6 @@
 #include <hven/model/nlp_model.h>
 #include <hven/model/nlp_model_aggregate.h>
 #include <hven/model/nlp_problem_model.h>
-#include <hven/model/nlp_solver.h>
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/warm_start_data.h>
 
@@ -74,7 +74,6 @@ using hven::solvers::NlpModel;
 using hven::solvers::NlpModelAggregate;
 using hven::solvers::NLPProblem;
 using hven::solvers::NlpProblemModel;
-using hven::solvers::NLPSolver;
 using hven::solvers::QpMode;
 using hven::solvers::serialize_ipm_polish;
 using hven::solvers::SolveStatus;
@@ -981,16 +980,16 @@ TEST(SqpWarmCurrency, PassingTheSameValueTwiceFromColdIsBitIdentical) {
 TEST(SqpWarmCurrency, InteriorPointExportCrossesOverIntoTheSqpEngine) {
     const auto problem = std::make_shared<CurrencyIpmProblem>();
 
-    NLPSolver ipm(problem);
+    const auto ipm_program = hven::solvers::make_nlp_program(problem);
+    hven::solvers::InteriorPointSolver ipm;
     {
-        auto o = ipm.optimizer_->options();
+        auto o = ipm.options();
         o.common.print_level = 10;
-        ipm.optimizer_->set_options(std::move(o));
+        ipm.set_options(std::move(o));
     }
-    ipm.transcribe();
     Eigen::VectorXd x0(3);
     x0 << 0.0, 0.0, 0.5;
-    const hven::solvers::IpmResult ipm_result = ipm.optimizer_->solve(*ipm.nlp_, x0);
+    const hven::solvers::IpmResult ipm_result = ipm.solve(*ipm_program, x0);
     ASSERT_EQ(ipm_result.status, hven::solvers::SolveStatus::kOptimal);
 
     // THE EXPORT, OFF THE RESULT (M6 W5 T8.5): the solver-side
@@ -1018,12 +1017,13 @@ TEST(SqpWarmCurrency, InteriorPointExportCrossesOverIntoTheSqpEngine) {
 
     // THE TWO KEYS, side by side. The layout keys differ -- the claim orders
     // are genuinely different -- and the stamps do not.
-    EXPECT_NE(ipm.nlp_->model_structure_key().claim_digest_,
+    EXPECT_NE(ipm_program->model_structure_key().claim_digest_,
               bridge->model_structure_key().claim_digest_)
         << "the two engines really do lay this declaration's claims differently; "
            "if they ever stop, this pin is the note that says the layout keys "
            "converged, not that anything broke";
-    EXPECT_TRUE(declaration_key(ipm.nlp_->declaration()) == declaration_key(bridge->declaration()))
+    EXPECT_TRUE(declaration_key(ipm_program->declaration()) ==
+                declaration_key(bridge->declaration()))
         << "one declared problem must key the same on both engines -- that is "
            "the whole content of the declaration-identity ruling";
     EXPECT_TRUE(exported.structure_key_ == declaration_key(bridge->declaration()))

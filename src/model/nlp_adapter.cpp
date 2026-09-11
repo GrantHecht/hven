@@ -5,9 +5,13 @@
 
 #include <cmath>
 #include <limits>
+#include <stdexcept>
+#include <utility>
 
 #include <fmt/format.h>
 
+#include "hven/model/nlp_problem.h"
+#include "hven/model/nlp_problem_model.h"
 #include "hven/model/non_linear_program.h"
 
 namespace hven::solvers {
@@ -308,14 +312,19 @@ void NLPAdapterCore::eval_hessian_values(ConstEigenRef<Eigen::VectorXd> x, doubl
     nlp_require_claimed_pattern(this->hessian(), hess_, "eval_hess", name_);
 }
 
-std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdapterCore> &core) {
+std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdapterCore> &core,
+                                                   int num_partitions) {
+    if (num_partitions < 1) {
+        throw std::invalid_argument(fmt::format(
+            "make_nlp_program: a partition count must be at least 1 (got {})", num_partitions));
+    }
     const int n = core->n_;
     Eigen::MatrixXi vindex(n, 1);
     for (int i = 0; i < n; i++) {
         vindex(i, 0) = i;
     }
 
-    auto nlp = std::make_shared<NonLinearProgram>(1);
+    auto nlp = std::make_shared<NonLinearProgram>(num_partitions);
 
     ObjectiveFunction obj(ObjectiveInterface(NLPObjectivePiece(core)), vindex);
     obj.set_thread_mode(ThreadingFlags::MainThread);
@@ -346,8 +355,27 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdap
         }
     }
 
+    // make_nlp lays the problem out and CLAMPS num_partitions_ to what the
+    // element count supports, so the program a caller gets back already
+    // reports the ADOPTED count on its public num_partitions_ member.
     nlp->make_nlp(n, core->num_eq_, core->num_iq_);
     return nlp;
+}
+
+std::shared_ptr<NonLinearProgram> make_nlp_program(std::shared_ptr<NLPProblem> problem,
+                                                   int num_partitions) {
+    if (problem == nullptr) {
+        throw std::invalid_argument("make_nlp_program: the problem pointer is null");
+    }
+    // Built whole, then returned: the conversion validates the declaration, the
+    // host runs the model's derivative callbacks at its start point, and the
+    // layout sizes the program. Any of the three can throw, and a throw leaves
+    // the caller holding nothing half-built -- there is no state here to leave
+    // behind.
+    const std::string name = problem->name();
+    auto model = std::make_shared<NlpProblemModel>(std::move(problem));
+    auto core = std::make_shared<NLPAdapterCore>(std::move(model), name);
+    return make_nlp_program(core, num_partitions);
 }
 
 } // namespace hven::solvers

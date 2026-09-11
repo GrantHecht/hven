@@ -10,10 +10,11 @@
 // bound-fixed-variable cell, under all three fixed-variable treatments.
 //
 // Determinism, and what the two-capture gate is a gate on: the leg pins the
-// backend thread count explicitly (InteriorLevers below), because NLPSolver's
+// backend thread count explicitly (InteriorLevers below), because the engine's
 // default is a function of the box's core count and reaches MKL as a
 // thread-local override that MKL_NUM_THREADS does not touch. It pins the
-// partition count too, which through this path reaches no layout.
+// partition count too, which since M6 W5 T8.9 reaches the LAYOUT -- as N layout
+// partitions with the adapter's work on the calling thread, and CLAMPED.
 //
 // Counters are the asserted currency (CLAUDE.md §7); `wall_s` is
 // informational and is the one column the replay comparator excludes.
@@ -56,12 +57,16 @@ struct InteriorLevers {
     double econ_tol = detail::kFeasTol;
     double icon_tol = detail::kFeasTol;
     double barr_tol = detail::kKktTol;
-    /// Backend thread count, set explicitly rather than left at NLPSolver's
+    /// Backend thread count, set explicitly rather than left at the engine's
     /// core-count default; the default reaches MKL as a thread-local override.
     int qp_threads = 1;
-    /// Evaluation partition count. Set on the wrapper and recorded, but it
-    /// reaches no layout through this path: make_nlp_program constructs
-    /// NonLinearProgram(1) unconditionally (src/model/nlp_adapter.cpp).
+    /// REQUESTED evaluation partition count, handed to make_nlp_program (M6 W5
+    /// T8.9). It reaches the LAYOUT, but LAYOUT ONLY: the adapter's three
+    /// pieces are MainThread, so N means N laid partitions with the whole
+    /// problem in the last one, evaluated serially on the calling thread; only
+    /// treatment-added rows populate the others. The count is CLAMPED by the
+    /// 1000-element rule, so the ADOPTED count -- `program->num_partitions_` --
+    /// is what a row is stamped with, never this request.
     int num_partitions = 1;
     /// Widening RelaxBounds applies to a fixed pair; a zero factor is refused
     /// under that treatment (non_linear_program.h).
@@ -133,7 +138,37 @@ struct InteriorVariant {
     double acc_barr_tol = 0.0;
     /// All four divergence thresholds, when positive.
     double div_tol = 0.0;
+    /// REQUESTED evaluation partition count, when positive; 0 leaves the lever
+    /// alone (M6 W5 T8.9). LAYOUT ONLY and CLAMPED -- see InteriorLevers above.
+    int num_partitions = 0;
 };
+
+/// @brief What a cell's transcription ADOPTS for a requested partition count,
+///        and the evaluation pool it would dispatch to.
+///
+/// The request is not the answer: make_nlp clamps the count at
+/// num_user_kkt_elems_ / kMinKktElementsPerPartition, so a small cell adopts
+/// fewer. A partitioned row's provenance carries the ADOPTED number, which is
+/// what this reports, alongside the PROCESS-GLOBAL evaluation pool size -- a
+/// dispatched partition runs on that pool, and this leg does not set it.
+struct InteriorPartitionStamp {
+    int requested = 0;
+    int adopted = 0;
+    int pool_threads = 0;
+};
+
+/// @brief Transcribes @p cell at @p requested partitions and reports what was
+///        adopted.
+/// @throws std::invalid_argument if @p cell does not dual-bind.
+InteriorPartitionStamp interior_partition_stamp(const CorpusCell &cell, int requested);
+
+/// @brief The variant that lays TWO partitions, run under two treatments.
+///
+/// Its two rows are the leg's only partitioned ones, and they are LAYOUT rows:
+/// the adapter's pieces are all MainThread, so partition N-1 holds the whole
+/// problem and runs inline on the calling thread. Which is which is stated in
+/// the artifact's own header.
+inline constexpr const char *kParts2VariantName = "parts2";
 
 /// @brief The base variant: today's levers, `optimize`, no key segment.
 const InteriorVariant &interior_base_variant();

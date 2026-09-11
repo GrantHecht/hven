@@ -155,10 +155,12 @@ using hven::solvers::corpus::interior_treatment_tag;
 using hven::solvers::corpus::interior_treatments;
 using hven::solvers::corpus::interior_variant_stamp;
 using hven::solvers::corpus::InteriorLevers;
+using hven::solvers::corpus::InteriorPartitionStamp;
 using hven::solvers::corpus::InteriorRow;
 using hven::solvers::corpus::InteriorVariant;
 using hven::solvers::corpus::kCap1F7CellId;
 using hven::solvers::corpus::kHs071FixedCellId;
+using hven::solvers::corpus::kParts2VariantName;
 using hven::solvers::corpus::kSpikeCellId;
 using hven::solvers::corpus::kStationaryCellId;
 using hven::solvers::corpus::run_interior_cell;
@@ -2188,7 +2190,8 @@ void write_hs_row(std::ostream &os, const HsRow &r, const std::string &engine, b
 
 void write_interior_provenance(std::ostream &os, int argc, char **argv,
                                const InteriorLevers &levers,
-                               const std::vector<std::string> &refusals) {
+                               const std::vector<std::string> &refusals,
+                               const InteriorPartitionStamp &parts2) {
     std::string invocation;
     for (int i = 0; i < argc; ++i) {
         invocation += (i == 0 ? "" : " ");
@@ -2231,6 +2234,20 @@ void write_interior_provenance(std::ostream &os, int argc, char **argv,
     }
     os << "# abnormal-exit rows run under MakeParameter only, unconditionally (they do not vary "
           "with --cells), on the cells named in their keys\n";
+    // THE PARTITIONED ROWS' OWN PROVENANCE (M6 W5 T8.9). A partition count is
+    // REQUESTED and ADOPTED, and the two are not the same number: make_nlp
+    // clamps the request at one partition per 1000 KKT elements. The ADOPTED
+    // count is the one a row actually ran at, so it is the one stamped. The
+    // evaluation POOL is process-global and this leg does not set it, so it is
+    // stamped too -- a dispatched partition would run on it.
+    os << fmt::format("# parts2: requested={} adopted={} eval_pool_threads={} on cell {}\n",
+                      parts2.requested, parts2.adopted, parts2.pool_threads, kCap1F7CellId);
+    os << "# parts2 rows are LAYOUT rows: all three adapter pieces are MainThread, so the "
+          "adapter's whole problem sits in the LAST partition and runs inline on the calling "
+          "thread\n";
+    os << "# parts2/MakeConstraint and parts2/MakeParameter therefore BOTH have an empty "
+          "partition 0 -- no F7 cell has a bound-fixed variable, so MakeConstraint adds no "
+          "RoundRobin fixing row here; the two rows differ in the treatment alone\n";
     // THE TWO WARM ROWS' OWN OBSERVABLES, stated in the artifact (M6 W5 T8.5).
     // This engine reports no `start_level_used` column, so each row has to be
     // read off the measurements it does carry -- and the two rows are read
@@ -2567,7 +2584,18 @@ int main(int argc, char **argv) {
             const InteriorPlan plan = plan_interior_cells(*args.cells);
 
             InteriorArtifactWriter writer(*args.csv);
-            write_interior_provenance(writer.stream(), argc, argv, levers, plan.refusals);
+            const InteriorPartitionStamp parts2_stamp = [&] {
+                const CorpusCell *f7 = find_cell(kCap1F7CellId);
+                if (f7 == nullptr) {
+                    throw std::runtime_error(
+                        fmt::format("--engine interior: the parts2 variant's cell '{}' is not in "
+                                    "the corpus",
+                                    kCap1F7CellId));
+                }
+                return hven::solvers::corpus::interior_partition_stamp(*f7, 2);
+            }();
+            write_interior_provenance(writer.stream(), argc, argv, levers, plan.refusals,
+                                      parts2_stamp);
             writer.stream() << interior_csv_header();
             writer.stream().flush();
             writer.require_ok("the header");
@@ -2652,6 +2680,25 @@ int main(int argc, char **argv) {
                     // as much cherry-picking as adopting one that made them
                     // look better.
                     rows.push_back(run_interior_hs071(treatment, levers, variant));
+                } else if (name == kParts2VariantName) {
+                    // THE ONLY VARIANT THAT RUNS UNDER TWO TREATMENTS (M6 W5
+                    // T8.9). Both rows lay two partitions over the same cell;
+                    // what separates them is the treatment, which is the only
+                    // thing that can put work in a partition the adapter does
+                    // not occupy. Handled here rather than in the loop's
+                    // MakeParameter default because a partitioning question is
+                    // not an exit question.
+                    const CorpusCell *f7 = find_cell(kCap1F7CellId);
+                    if (f7 == nullptr) {
+                        throw std::runtime_error(fmt::format(
+                            "--engine interior: the parts2 variant's cell '{}' is not in the "
+                            "corpus",
+                            kCap1F7CellId));
+                    }
+                    rows.push_back(run_interior_cell(*f7, FixedVariableTreatments::MakeConstraint,
+                                                     levers, variant));
+                    rows.push_back(run_interior_cell(*f7, FixedVariableTreatments::MakeParameter,
+                                                     levers, variant));
                 } else if (name == "stalled") {
                     rows.push_back(
                         run_interior_infeasible(kSpikeCellId, treatment, levers, variant));
@@ -2661,7 +2708,7 @@ int main(int argc, char **argv) {
                 }
                 for (const InteriorRow &row : rows) {
                     fmt::print("running {} (treatment {}, variant {})...\n", row.cell_id,
-                               interior_treatment_tag(treatment), variant.name);
+                               row.fixed_treatment, variant.name);
                     writer.write_row(row);
                     fmt::print("  -> {} in {} iterations, stop reason {}\n", row.status,
                                row.iter_num, row.stop_reason);

@@ -51,6 +51,7 @@
 #include <Eigen/SparseCore>
 
 #include <hven/core/ledger.h>
+#include <hven/detail/model/nlp_adapter.h>
 #include <hven/drivers/interior_point_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
 #include <hven/drivers/solve_result.h>
@@ -61,7 +62,6 @@
 #include <hven/model/nlp_model_aggregate.h>
 #include <hven/model/nlp_problem.h>
 #include <hven/model/nlp_problem_model.h>
-#include <hven/model/nlp_solver.h>
 
 #include "support/hs071_problem.h"
 
@@ -73,7 +73,6 @@ using hven::solvers::IterationEvent;
 using hven::solvers::Ledger;
 using hven::solvers::NlpModel;
 using hven::solvers::NlpProblemModel;
-using hven::solvers::NLPSolver;
 using hven::solvers::SolveStatus;
 using hven::solvers::SqpDriver;
 using hven::solvers::SqpOptions;
@@ -148,8 +147,8 @@ SqpOptions quiet_sqp() {
     return o;
 }
 
-hven::solvers::IpmOptions quiet_ipm(const NLPSolver &solver) {
-    hven::solvers::IpmOptions o = solver.optimizer_->options();
+hven::solvers::IpmOptions quiet_ipm(const hven::solvers::InteriorPointSolver &solver) {
+    hven::solvers::IpmOptions o = solver.options();
     o.common.print_level = 10;
     return o;
 }
@@ -346,7 +345,7 @@ struct Hs071View {
 //
 //   min (x0-1)^2 + (x1-1)^2,   x1 fixed at 3 by equal bounds.
 //
-// Shaped after tests/interior/test_nlp_solver.cpp's FixedVarProblem, which the
+// Shaped after tests/interior/test_ipm_solver_entry.cpp's FixedVarProblem, which the
 // treatment pins already use; copied rather than shared because that fixture is
 // a local of a .cpp in another suite.
 struct FixedVarProblem final : hven::solvers::NLPProblem {
@@ -402,7 +401,7 @@ bool bit_equal(const Vec &a, const Vec &b) {
 // EARLY one -- which is what a `return_best` substitution needs in order to
 // substitute anything at all.
 //
-// VERBATIM from tests/interior/test_nlp_solver.cpp's
+// VERBATIM from tests/interior/test_ipm_solver_entry.cpp's
 // BestIterateRisingObjectiveProblem, copied for the reason the two SQP fixtures
 // above are: it is a local of a .cpp in another suite.
 struct RisingObjectiveProblem final : hven::solvers::NLPProblem {
@@ -993,12 +992,13 @@ TEST(Callback, ClearingTheCallbackFromInsideItIsSafe) {
 
     // ---- the interior-point engine ----
     {
-        NLPSolver solver(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        solver.optimizer_->set_options(quiet_ipm(solver));
-        solver.transcribe();
+        const auto program =
+            hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::solvers::InteriorPointSolver solver;
+        solver.set_options(quiet_ipm(solver));
         std::string witness(256, 'w');
         int calls = 0;
-        hven::solvers::InteriorPointSolver *ipm = solver.optimizer_.get();
+        hven::solvers::InteriorPointSolver *ipm = &solver;
         ipm->set_iteration_callback([ipm, witness, &calls](const IterationEvent &) mutable {
             ++calls;
             ipm->clear_iteration_callback();
@@ -1008,7 +1008,7 @@ TEST(Callback, ClearingTheCallbackFromInsideItIsSafe) {
             EXPECT_EQ(witness[0], 'x');
             return CallbackAction::kContinue;
         });
-        const hven::solvers::IpmResult r = ipm->solve(*solver.nlp_, hs071_start());
+        const hven::solvers::IpmResult r = ipm->solve(*program, hs071_start());
         EXPECT_EQ(r.status, SolveStatus::kOptimal);
         EXPECT_EQ(calls, 1);
         EXPECT_GT(r.iterations, 1);
@@ -1016,12 +1016,13 @@ TEST(Callback, ClearingTheCallbackFromInsideItIsSafe) {
 
     // ---- the interior-point-only KKT hook, the same rule ----
     {
-        NLPSolver solver(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        solver.optimizer_->set_options(quiet_ipm(solver));
-        solver.transcribe();
+        const auto program =
+            hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::solvers::InteriorPointSolver solver;
+        solver.set_options(quiet_ipm(solver));
         std::string witness(256, 'w');
         int calls = 0;
-        hven::solvers::InteriorPointSolver *ipm = solver.optimizer_.get();
+        hven::solvers::InteriorPointSolver *ipm = &solver;
         ipm->set_kkt_hook(
             [ipm, witness, &calls](int, double, hven::ConstEigenRef<Vec>, double,
                                    hven::ConstEigenRef<Vec>, hven::ConstEigenRef<Vec>,
@@ -1034,7 +1035,7 @@ TEST(Callback, ClearingTheCallbackFromInsideItIsSafe) {
                 EXPECT_EQ(witness[0], 'x');
                 return 0;
             });
-        const hven::solvers::IpmResult r = ipm->solve(*solver.nlp_, hs071_start());
+        const hven::solvers::IpmResult r = ipm->solve(*program, hs071_start());
         EXPECT_EQ(r.status, SolveStatus::kOptimal);
         EXPECT_EQ(calls, 1);
     }
@@ -1097,58 +1098,61 @@ TEST(Callback, ADirectSetAfterAThrownDeferralSupersedesIt) {
 
     // ---- the interior-point engine ----
     {
-        NLPSolver solver(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        solver.optimizer_->set_options(quiet_ipm(solver));
-        solver.transcribe();
-        hven::solvers::InteriorPointSolver *ipm = solver.optimizer_.get();
+        const auto program =
+            hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::solvers::InteriorPointSolver solver;
+        solver.set_options(quiet_ipm(solver));
+        hven::solvers::InteriorPointSolver *ipm = &solver;
         ipm->set_iteration_callback([ipm](const IterationEvent &) -> CallbackAction {
             ipm->clear_iteration_callback();
             throw std::runtime_error("bail");
         });
-        EXPECT_THROW(ipm->solve(*solver.nlp_, hs071_start()), std::runtime_error);
+        EXPECT_THROW(ipm->solve(*program, hs071_start()), std::runtime_error);
 
         int fresh_calls = 0;
         ipm->set_iteration_callback([&fresh_calls](const IterationEvent &) {
             ++fresh_calls;
             return CallbackAction::kContinue;
         });
-        const hven::solvers::IpmResult r = ipm->solve(*solver.nlp_, hs071_start());
+        const hven::solvers::IpmResult r = ipm->solve(*program, hs071_start());
         EXPECT_EQ(r.status, SolveStatus::kOptimal);
         EXPECT_GT(fresh_calls, 0) << "the stale deferred clear replaced the new callback";
     }
 
     // ---- the interior-point engine, the other direction ----
     {
-        NLPSolver solver(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        solver.optimizer_->set_options(quiet_ipm(solver));
-        solver.transcribe();
-        hven::solvers::InteriorPointSolver *ipm = solver.optimizer_.get();
+        const auto program =
+            hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::solvers::InteriorPointSolver solver;
+        solver.set_options(quiet_ipm(solver));
+        hven::solvers::InteriorPointSolver *ipm = &solver;
         int calls = 0;
         ipm->set_iteration_callback([ipm, &calls](const IterationEvent &) -> CallbackAction {
             ++calls;
             ipm->clear_iteration_callback();
             throw std::runtime_error("bail");
         });
-        EXPECT_THROW(ipm->solve(*solver.nlp_, hs071_start()), std::runtime_error);
+        EXPECT_THROW(ipm->solve(*program, hs071_start()), std::runtime_error);
         EXPECT_EQ(calls, 1);
-        const hven::solvers::IpmResult r = ipm->solve(*solver.nlp_, hs071_start());
+        const hven::solvers::IpmResult r = ipm->solve(*program, hs071_start());
         EXPECT_EQ(r.status, SolveStatus::kOptimal);
         EXPECT_EQ(calls, 1) << "the deferred clear must still apply at the next entry";
     }
 
     // ---- the interior-point-only KKT hook, both directions ----
     {
-        NLPSolver solver(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        solver.optimizer_->set_options(quiet_ipm(solver));
-        solver.transcribe();
-        hven::solvers::InteriorPointSolver *ipm = solver.optimizer_.get();
+        const auto program =
+            hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::solvers::InteriorPointSolver solver;
+        solver.set_options(quiet_ipm(solver));
+        hven::solvers::InteriorPointSolver *ipm = &solver;
         ipm->set_kkt_hook([ipm](int, double, hven::ConstEigenRef<Vec>, double,
                                 hven::ConstEigenRef<Vec>, hven::ConstEigenRef<Vec>,
                                 Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
             ipm->clear_kkt_hook();
             throw std::runtime_error("bail");
         });
-        EXPECT_THROW(ipm->solve(*solver.nlp_, hs071_start()), std::runtime_error);
+        EXPECT_THROW(ipm->solve(*program, hs071_start()), std::runtime_error);
 
         int fresh_calls = 0;
         ipm->set_kkt_hook([&fresh_calls](int, double, hven::ConstEigenRef<Vec>, double,
@@ -1157,15 +1161,16 @@ TEST(Callback, ADirectSetAfterAThrownDeferralSupersedesIt) {
             ++fresh_calls;
             return 0;
         });
-        const hven::solvers::IpmResult r = ipm->solve(*solver.nlp_, hs071_start());
+        const hven::solvers::IpmResult r = ipm->solve(*program, hs071_start());
         EXPECT_EQ(r.status, SolveStatus::kOptimal);
         EXPECT_GT(fresh_calls, 0) << "the stale deferred clear replaced the new hook";
     }
     {
-        NLPSolver solver(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        solver.optimizer_->set_options(quiet_ipm(solver));
-        solver.transcribe();
-        hven::solvers::InteriorPointSolver *ipm = solver.optimizer_.get();
+        const auto program =
+            hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::solvers::InteriorPointSolver solver;
+        solver.set_options(quiet_ipm(solver));
+        hven::solvers::InteriorPointSolver *ipm = &solver;
         int calls = 0;
         ipm->set_kkt_hook([ipm, &calls](int, double, hven::ConstEigenRef<Vec>, double,
                                         hven::ConstEigenRef<Vec>, hven::ConstEigenRef<Vec>,
@@ -1174,9 +1179,9 @@ TEST(Callback, ADirectSetAfterAThrownDeferralSupersedesIt) {
             ipm->clear_kkt_hook();
             throw std::runtime_error("bail");
         });
-        EXPECT_THROW(ipm->solve(*solver.nlp_, hs071_start()), std::runtime_error);
+        EXPECT_THROW(ipm->solve(*program, hs071_start()), std::runtime_error);
         EXPECT_EQ(calls, 1);
-        const hven::solvers::IpmResult r = ipm->solve(*solver.nlp_, hs071_start());
+        const hven::solvers::IpmResult r = ipm->solve(*program, hs071_start());
         EXPECT_EQ(r.status, SolveStatus::kOptimal);
         EXPECT_EQ(calls, 1) << "the deferred clear must still apply at the next entry";
     }
@@ -1215,13 +1220,14 @@ TEST(Callback, ZeroMajorExitFiresOnceOrNever) {
 // ===========================================================================
 
 TEST(Callback, IpmContinuingEventObservesTheCommittedPoint) {
-    NLPSolver solver(std::make_shared<hven_drivers_tests::Hs071Problem>());
-    solver.optimizer_->set_options(quiet_ipm(solver));
-    solver.transcribe();
+    const auto program =
+        hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    hven::solvers::InteriorPointSolver solver;
+    solver.set_options(quiet_ipm(solver));
 
     Recorder rec;
-    solver.optimizer_->set_iteration_callback(rec.hook());
-    const hven::solvers::IpmResult r = solver.optimizer_->solve(*solver.nlp_, hs071_start());
+    solver.set_iteration_callback(rec.hook());
+    const hven::solvers::IpmResult r = solver.solve(*program, hs071_start());
     ASSERT_EQ(r.status, SolveStatus::kOptimal);
     ASSERT_GT(rec.seen.size(), 2u) << "non-vacuous: the solve really iterates";
 
@@ -1277,15 +1283,16 @@ class IterCountingSink : public hven::solvers::TraceSink {
 } // namespace
 
 TEST(Callback, IpmTerminalRowStillFires) {
-    NLPSolver solver(std::make_shared<hven_drivers_tests::Hs071Problem>());
-    solver.optimizer_->set_options(quiet_ipm(solver));
-    solver.transcribe();
+    const auto program =
+        hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    hven::solvers::InteriorPointSolver solver;
+    solver.set_options(quiet_ipm(solver));
 
     IterCountingSink sink;
-    solver.optimizer_->attach_trace(&sink);
+    solver.attach_trace(&sink);
     Recorder rec;
-    solver.optimizer_->set_iteration_callback(rec.hook());
-    const hven::solvers::IpmResult r = solver.optimizer_->solve(*solver.nlp_, hs071_start());
+    solver.set_iteration_callback(rec.hook());
+    const hven::solvers::IpmResult r = solver.solve(*program, hs071_start());
 
     ASSERT_EQ(r.status, SolveStatus::kOptimal);
     ASSERT_GT(sink.rows, 1);
@@ -1297,25 +1304,26 @@ TEST(Callback, IpmTerminalRowStillFires) {
 }
 
 TEST(Callback, IpmStopEndsThePhaseSequence) {
-    NLPSolver solver(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    const auto program =
+        hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    hven::solvers::InteriorPointSolver solver;
     {
         hven::solvers::IpmOptions o = quiet_ipm(solver);
         o.phases = {hven::solvers::IpmPhase::kSolve, hven::solvers::IpmPhase::kOptimize};
-        solver.optimizer_->set_options(std::move(o));
+        solver.set_options(std::move(o));
     }
-    solver.transcribe();
 
     std::vector<Seen> seen;
-    solver.optimizer_->set_iteration_callback([&](const IterationEvent &e) {
+    solver.set_iteration_callback([&](const IterationEvent &e) {
         seen.push_back(copy_of(e));
         // The second event of phase 0: the first describes the start point, so
         // stopping there would prove nothing about a committed iterate.
         return seen.size() == 2 ? CallbackAction::kStop : CallbackAction::kContinue;
     });
-    const hven::solvers::IpmResult r = solver.optimizer_->solve(*solver.nlp_, hs071_start());
+    const hven::solvers::IpmResult r = solver.solve(*program, hs071_start());
 
     EXPECT_EQ(r.status, SolveStatus::kInterrupted);
-    EXPECT_EQ(solver.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kInterrupted);
+    EXPECT_EQ(solver.last_stop_reason(), hven::solvers::IpmStopReason::kInterrupted);
     ASSERT_EQ(r.phases.size(), 2u);
     EXPECT_TRUE(r.phases[0].ran);
     EXPECT_EQ(r.phases[0].status, SolveStatus::kInterrupted);
@@ -1332,19 +1340,20 @@ TEST(Callback, IpmStopEndsThePhaseSequence) {
     // of the same fixture, stopped one event LATER, must have spent exactly one
     // more factorization: that difference is what makes "the stopped iteration
     // was never factorized" a measurement rather than a description.
-    NLPSolver later(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    const auto later_program =
+        hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    hven::solvers::InteriorPointSolver later;
     {
         hven::solvers::IpmOptions o = quiet_ipm(later);
         o.phases = {hven::solvers::IpmPhase::kSolve, hven::solvers::IpmPhase::kOptimize};
-        later.optimizer_->set_options(std::move(o));
+        later.set_options(std::move(o));
     }
-    later.transcribe();
     std::size_t later_events = 0;
-    later.optimizer_->set_iteration_callback([&](const IterationEvent &) {
+    later.set_iteration_callback([&](const IterationEvent &) {
         ++later_events;
         return later_events == 3 ? CallbackAction::kStop : CallbackAction::kContinue;
     });
-    const hven::solvers::IpmResult r3 = later.optimizer_->solve(*later.nlp_, hs071_start());
+    const hven::solvers::IpmResult r3 = later.solve(*later_program, hs071_start());
     ASSERT_EQ(r3.status, SolveStatus::kInterrupted);
     ASSERT_EQ(later_events, 3u);
     EXPECT_EQ(r3.kkt_factor_counters.factorize_count, r.kkt_factor_counters.factorize_count + 1)
@@ -1378,11 +1387,13 @@ TEST(Callback, IpmStopEndsThePhaseSequence) {
 // `z` and the `excluded` set the eliminated-coordinate rule builds are both
 // exercised there.
 namespace {
-void expect_terminal_event_is_the_ipm_result(NLPSolver &solver, const Vec &x0,
+void expect_terminal_event_is_the_ipm_result(hven::solvers::InteriorPointSolver &solver,
+                                             hven::solvers::NonLinearProgram &program,
+                                             const Vec &x0,
                                              hven::solvers::IpmResult *out = nullptr) {
     Recorder rec;
-    solver.optimizer_->set_iteration_callback(rec.hook());
-    const hven::solvers::IpmResult r = solver.optimizer_->solve(*solver.nlp_, x0);
+    solver.set_iteration_callback(rec.hook());
+    const hven::solvers::IpmResult r = solver.solve(program, x0);
     if (out != nullptr) {
         *out = r;
     }
@@ -1407,24 +1418,25 @@ void expect_terminal_event_is_the_ipm_result(NLPSolver &solver, const Vec &x0,
 TEST(Callback, IpmTerminalEventDiagnosticsAreTheResultsOwn) {
     {
         SCOPED_TRACE("HS071");
-        NLPSolver solver(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        solver.optimizer_->set_options(quiet_ipm(solver));
-        solver.transcribe();
-        expect_terminal_event_is_the_ipm_result(solver, hs071_start());
+        const auto program =
+            hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::solvers::InteriorPointSolver solver;
+        solver.set_options(quiet_ipm(solver));
+        expect_terminal_event_is_the_ipm_result(solver, *program, hs071_start());
     }
     {
         SCOPED_TRACE("the fixed-variable MakeConstraint arm");
-        NLPSolver solver(std::make_shared<FixedVarProblem>());
+        const auto program = hven::solvers::make_nlp_program(std::make_shared<FixedVarProblem>());
+        hven::solvers::InteriorPointSolver solver;
         {
             hven::solvers::IpmOptions o = quiet_ipm(solver);
             o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeConstraint;
-            solver.optimizer_->set_options(std::move(o));
+            solver.set_options(std::move(o));
         }
-        solver.transcribe();
         Vec x0(2);
         x0 << 0.0, 3.0;
         hven::solvers::IpmResult r;
-        expect_terminal_event_is_the_ipm_result(solver, x0, &r);
+        expect_terminal_event_is_the_ipm_result(solver, *program, x0, &r);
         // FIXTURE PREMISE: the treatment really installed its internal fixing
         // row, so the -lambda_fix fold and the excluded set were exercised.
         EXPECT_EQ(r.fixed_variable_treatment,
@@ -1441,16 +1453,17 @@ TEST(Callback, IpmTerminalEventDiagnosticsAreTheResultsOwn) {
 // at the exit; an event evaluates nothing, so what it can honestly report is
 // NaN -- solve_result.h's "unmeasured is NaN, never zero", applied to `f`.
 TEST(Callback, IpmEventObjectiveIsNaNOnANonObjectiveBearingPhase) {
-    NLPSolver solver(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    const auto program =
+        hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    hven::solvers::InteriorPointSolver solver;
     {
         hven::solvers::IpmOptions o = quiet_ipm(solver);
         o.phases = {hven::solvers::IpmPhase::kSolve, hven::solvers::IpmPhase::kOptimize};
-        solver.optimizer_->set_options(std::move(o));
+        solver.set_options(std::move(o));
     }
-    solver.transcribe();
     Recorder rec;
-    solver.optimizer_->set_iteration_callback(rec.hook());
-    const hven::solvers::IpmResult r = solver.optimizer_->solve(*solver.nlp_, hs071_start());
+    solver.set_iteration_callback(rec.hook());
+    const hven::solvers::IpmResult r = solver.solve(*program, hs071_start());
     ASSERT_EQ(r.status, SolveStatus::kOptimal);
     ASSERT_EQ(r.phases.size(), 2u);
     ASSERT_TRUE(r.phases[0].ran);
@@ -1533,34 +1546,37 @@ TEST(Callback, IpmTerminalEventDescribesTheReturnedPointUnderReturnBest) {
         if (ran) {
             break;
         }
-        NLPSolver with(std::make_shared<RisingObjectiveProblem>());
-        NLPSolver without(std::make_shared<RisingObjectiveProblem>());
-        for (NLPSolver *s : {&with, &without}) {
+        const auto with_program =
+            hven::solvers::make_nlp_program(std::make_shared<RisingObjectiveProblem>());
+        hven::solvers::InteriorPointSolver with;
+        const auto without_program =
+            hven::solvers::make_nlp_program(std::make_shared<RisingObjectiveProblem>());
+        hven::solvers::InteriorPointSolver without;
+        for (hven::solvers::InteriorPointSolver *s : {&with, &without}) {
             hven::solvers::IpmOptions o = quiet_ipm(*s);
             o.max_acc_iters = 1;
             o.acc_kkt_tol = acc;
             o.acc_econ_tol = acc;
             o.acc_icon_tol = acc;
             o.acc_bar_tol = acc;
-            s->optimizer_->set_options(std::move(o));
-            s->transcribe();
+            s->set_options(std::move(o));
         }
         {
-            hven::solvers::IpmOptions o = with.optimizer_->options();
+            hven::solvers::IpmOptions o = with.options();
             o.return_best = true;
             o.best_criteria = hven::solvers::InteriorPointSolver::BestCriteriaModes::OBJ;
-            with.optimizer_->set_options(std::move(o));
+            with.set_options(std::move(o));
         }
 
         LastRowSink sink;
-        with.optimizer_->attach_trace(&sink);
+        with.attach_trace(&sink);
         Recorder rec;
-        with.optimizer_->set_iteration_callback(rec.hook());
+        with.set_iteration_callback(rec.hook());
         const Vec x0 = Vec::Zero(RisingObjectiveProblem::kN);
-        const hven::solvers::IpmResult b = with.optimizer_->solve(*with.nlp_, x0);
+        const hven::solvers::IpmResult b = with.solve(*with_program, x0);
         Recorder plain;
-        without.optimizer_->set_iteration_callback(plain.hook());
-        const hven::solvers::IpmResult l = without.optimizer_->solve(*without.nlp_, x0);
+        without.set_iteration_callback(plain.hook());
+        const hven::solvers::IpmResult l = without.solve(*without_program, x0);
 
         const bool early_exit = sink.rows > 0 && looks_like_the_early_exit_site(sink.last);
         const bool substituted = b.x.size() == l.x.size() && b.x.allFinite() &&
@@ -1674,21 +1690,21 @@ TEST(Callback, ThrowingCallbackPropagatesAndTheSolverIsReusable) {
 
     // ---- the interior-point engine ----
     {
-        NLPSolver solver(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        solver.optimizer_->set_options(quiet_ipm(solver));
-        solver.transcribe();
+        const auto program =
+            hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::solvers::InteriorPointSolver solver;
+        solver.set_options(quiet_ipm(solver));
 
         std::ostringstream os;
         hven::solvers::JsonLinesTraceSink sink(os);
-        solver.optimizer_->attach_trace(&sink);
-        solver.optimizer_->set_iteration_callback([](const IterationEvent &e) -> CallbackAction {
+        solver.attach_trace(&sink);
+        solver.set_iteration_callback([](const IterationEvent &e) -> CallbackAction {
             if (e.iteration == 1) {
                 throw std::runtime_error("a callback that leaves the solve by throwing");
             }
             return CallbackAction::kContinue;
         });
-        EXPECT_THROW((void)solver.optimizer_->solve(*solver.nlp_, hs071_start()),
-                     std::runtime_error);
+        EXPECT_THROW((void)solver.solve(*program, hs071_start()), std::runtime_error);
         const std::string text = os.str();
         EXPECT_NE(text.find("\"ipm.solve.begin\""), std::string::npos);
         EXPECT_EQ(text.find("\"ipm.solve.end\""), std::string::npos);
@@ -1708,16 +1724,15 @@ TEST(Callback, ThrowingCallbackPropagatesAndTheSolverIsReusable) {
         // solver that has already analysed and 1 on one that has not -- both are
         // facts about the OBJECT's history, which is precisely what "reused"
         // means. Timing is excluded on top of those, and only timing.
-        solver.optimizer_->clear_iteration_callback();
-        solver.optimizer_->attach_trace(nullptr);
-        const hven::solvers::IpmResult again =
-            solver.optimizer_->solve(*solver.nlp_, hs071_start());
+        solver.clear_iteration_callback();
+        solver.attach_trace(nullptr);
+        const hven::solvers::IpmResult again = solver.solve(*program, hs071_start());
 
-        NLPSolver fresh(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        fresh.optimizer_->set_options(quiet_ipm(fresh));
-        fresh.transcribe();
-        const hven::solvers::IpmResult baseline =
-            fresh.optimizer_->solve(*fresh.nlp_, hs071_start());
+        const auto fresh_program =
+            hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::solvers::InteriorPointSolver fresh;
+        fresh.set_options(quiet_ipm(fresh));
+        const hven::solvers::IpmResult baseline = fresh.solve(*fresh_program, hs071_start());
 
         EXPECT_EQ(again.status, SolveStatus::kOptimal);
         EXPECT_EQ(again.status, baseline.status);
@@ -1776,18 +1791,19 @@ TEST(Callback, AReadOnlyCallbackChangesNothingOnEitherEngine) {
 
     // ---- the interior-point engine ----
     {
-        NLPSolver with(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        with.optimizer_->set_options(quiet_ipm(with));
-        with.transcribe();
+        const auto with_program =
+            hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::solvers::InteriorPointSolver with;
+        with.set_options(quiet_ipm(with));
         Recorder rec;
-        with.optimizer_->set_iteration_callback(rec.hook());
-        const hven::solvers::IpmResult attached = with.optimizer_->solve(*with.nlp_, hs071_start());
+        with.set_iteration_callback(rec.hook());
+        const hven::solvers::IpmResult attached = with.solve(*with_program, hs071_start());
 
-        NLPSolver without(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        without.optimizer_->set_options(quiet_ipm(without));
-        without.transcribe();
-        const hven::solvers::IpmResult absent =
-            without.optimizer_->solve(*without.nlp_, hs071_start());
+        const auto without_program =
+            hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::solvers::InteriorPointSolver without;
+        without.set_options(quiet_ipm(without));
+        const hven::solvers::IpmResult absent = without.solve(*without_program, hs071_start());
 
         EXPECT_EQ(attached.status, absent.status);
         EXPECT_EQ(attached.iterations, absent.iterations);
@@ -1813,15 +1829,16 @@ TEST(Callback, ClearingTheCallbackStopsTheEvents) {
     (void)driver.solve(*view.bridge, hs071_start());
     EXPECT_EQ(rec.seen.size(), first);
 
-    NLPSolver solver(std::make_shared<hven_drivers_tests::Hs071Problem>());
-    solver.optimizer_->set_options(quiet_ipm(solver));
-    solver.transcribe();
+    const auto program =
+        hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    hven::solvers::InteriorPointSolver solver;
+    solver.set_options(quiet_ipm(solver));
     Recorder ipm_rec;
-    solver.optimizer_->set_iteration_callback(ipm_rec.hook());
-    (void)solver.optimizer_->solve(*solver.nlp_, hs071_start());
+    solver.set_iteration_callback(ipm_rec.hook());
+    (void)solver.solve(*program, hs071_start());
     const std::size_t ipm_first = ipm_rec.seen.size();
     ASSERT_GT(ipm_first, 0u);
-    solver.optimizer_->clear_iteration_callback();
-    (void)solver.optimizer_->solve(*solver.nlp_, hs071_start());
+    solver.clear_iteration_callback();
+    (void)solver.solve(*program, hs071_start());
     EXPECT_EQ(ipm_rec.seen.size(), ipm_first);
 }

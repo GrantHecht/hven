@@ -698,4 +698,33 @@ void validate(const IpmOptions &o);
 ///         the table.
 IpmOptions ipm_preset(std::string_view name);
 
+/// @brief Returns @p base prepared for a JET-WORKER context: one backend
+///        thread, silent printing.
+///
+/// The named replacement for NLPSolver::jet_initialize() (M6 W5 T8.9), which
+/// set exactly `common.threads = 1` and `common.print_level = 10` on the
+/// solver it was preparing. Those two fields are the whole of it, and this
+/// preset writes those two fields and nothing else -- every other field of
+/// @p base is carried through untouched.
+///
+/// THE PARTITION COUNT IS THE PROGRAM'S, NOT AN OPTION. jet_initialize()'s
+/// third act was a partition count of one, and no options value can reach a
+/// layout: the caller asks the program for it, either as
+/// `make_nlp_program(problem, 1)` or, on a program already laid, as
+/// `program.negotiate_partition_count(1)` (whose return is the ADOPTED count).
+///
+/// TWO THINGS THE WORKER CONTEXT HAD THAT THIS PRESET DOES NOT CARRY:
+///  * the old `MklLocalPinGuard` pinned the worker THREAD's MKL to one thread
+///    for the whole job. `common.threads = 1` pins only hven's own bracketed
+///    backend calls (a per-call scope), so any other MKL use on that thread --
+///    a caller's own calls, Eigen-dispatched BLAS -- is no longer pinned. The
+///    outcome for this engine's factorizations is the same; the promise about
+///    the thread is narrower.
+///  * the evaluation pool is process-global (`hven::utils::set_num_threads`)
+///    and was never touched by jet_initialize(); it is not touched here either.
+///
+/// @param base The options to start from, taken by value.
+/// @return @p base with the two worker settings applied.
+IpmOptions ipm_worker_options(IpmOptions base);
+
 } // namespace hven::solvers

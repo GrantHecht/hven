@@ -18,7 +18,9 @@
 #include <Eigen/Core>
 
 #include "hven/detail/interior/kkt_factorization.h"
-#include "hven/model/nlp_solver.h"
+#include "hven/detail/model/nlp_adapter.h"
+#include "hven/drivers/interior_point_solver.h"
+#include "hven/model/nlp_problem.h"
 
 namespace {
 
@@ -352,23 +354,25 @@ struct KktConfigRejectProblem : hven::solvers::NLPProblem {
 // left behind -- so the second solve below (the one that matters) runs
 // against that analysis at the new width rather than paying to rebuild it.
 TEST(KktFactorizationTest, AThreadCountChangedAfterTranscriptionStillSolves) {
-    hven::solvers::NLPSolver solver(std::make_shared<KktConfigRejectProblem>());
+    const auto program =
+        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    hven::solvers::InteriorPointSolver solver;
     {
-        auto o = solver.optimizer_->options();
+        auto o = solver.options();
         o.common.print_level = 10;
-        solver.optimizer_->set_options(std::move(o));
+        solver.set_options(std::move(o));
     }
     Eigen::VectorXd x0(1);
     x0 << 3.0;
 
-    ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(solver.solve(*program, x0).status, hven::solvers::SolveStatus::kOptimal);
 
     {
-        auto o = solver.optimizer_->options();
-        o.common.threads = solver.optimizer_->options().common.threads + 1;
-        solver.optimizer_->set_options(std::move(o));
+        auto o = solver.options();
+        o.common.threads = solver.options().common.threads + 1;
+        solver.set_options(std::move(o));
     }
-    EXPECT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(solver.solve(*program, x0).status, hven::solvers::SolveStatus::kOptimal);
 }
 
 #if defined(USE_ACCELERATE_SPARSE)
@@ -377,62 +381,70 @@ TEST(KktFactorizationTest, AThreadCountChangedAfterTranscriptionStillSolves) {
 // performs no refinement, where the engine's previous interface ran its own
 // loop. A nonzero cap would be inert.
 TEST(KktFactorizationTest, AccelerateRejectsANonzeroRefinementCap) {
-    hven::solvers::NLPSolver solver(std::make_shared<KktConfigRejectProblem>());
+    const auto program =
+        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    hven::solvers::InteriorPointSolver solver;
     {
-        auto o = solver.optimizer_->options();
+        auto o = solver.options();
         o.qp_ref_steps = 2;
-        solver.optimizer_->set_options(std::move(o));
+        solver.set_options(std::move(o));
     }
     // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
     // from an attach step, so the refusal surfaces there. The problem has one
     // free variable, so the guess is a 1-vector.
-    EXPECT_THROW(solver.optimize(Eigen::VectorXd::Zero(1)), std::invalid_argument);
+    EXPECT_THROW(solver.solve(*program, Eigen::VectorXd::Zero(1)), std::invalid_argument);
 }
 
 // The pivot tolerance is fixed at the value the engine has always requested.
 TEST(KktFactorizationTest, AccelerateRejectsANonDefaultPivotTolerance) {
-    hven::solvers::NLPSolver solver(std::make_shared<KktConfigRejectProblem>());
+    const auto program =
+        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    hven::solvers::InteriorPointSolver solver;
     {
-        auto o = solver.optimizer_->options();
+        auto o = solver.options();
         o.accel_pivot_tolerance = 0.05;
-        solver.optimizer_->set_options(std::move(o));
+        solver.set_options(std::move(o));
     }
     // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
     // from an attach step, so the refusal surfaces there. The problem has one
     // free variable, so the guess is a 1-vector.
-    EXPECT_THROW(solver.optimize(Eigen::VectorXd::Zero(1)), std::invalid_argument);
+    EXPECT_THROW(solver.solve(*program, Eigen::VectorXd::Zero(1)), std::invalid_argument);
 }
 
 #else
 
 // The surface calls the backend silently and exposes no message-level control.
 TEST(KktFactorizationTest, MklRejectsBackendMessageOutput) {
-    hven::solvers::NLPSolver solver(std::make_shared<KktConfigRejectProblem>());
+    const auto program =
+        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    hven::solvers::InteriorPointSolver solver;
     {
-        auto o = solver.optimizer_->options();
+        auto o = solver.options();
         o.qp_print = true;
-        solver.optimizer_->set_options(std::move(o));
+        solver.set_options(std::move(o));
     }
     // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
     // from an attach step, so the refusal surfaces there. The problem has one
     // free variable, so the guess is a 1-vector.
-    EXPECT_THROW(solver.optimize(Eigen::VectorXd::Zero(1)), std::invalid_argument);
+    EXPECT_THROW(solver.solve(*program, Eigen::VectorXd::Zero(1)), std::invalid_argument);
 }
 
 // Only the backend's own documented pivoting-strategy codes are expressible;
 // the undocumented ones this enum also carries are not passed through as raw
 // integers.
 TEST(KktFactorizationTest, MklRejectsAnUndocumentedPivotingStrategyCode) {
-    hven::solvers::NLPSolver solver(std::make_shared<KktConfigRejectProblem>());
+    const auto program =
+        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    hven::solvers::InteriorPointSolver solver;
     {
-        auto o = solver.optimizer_->options();
+        auto o = solver.options();
         o.qp_pivot_strategy = hven::solvers::InteriorPointSolver::QPPivotModes::E13;
-        solver.optimizer_->set_options(std::move(o));
+        solver.set_options(std::move(o));
     }
     // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
     // from an attach step, so the refusal surfaces there. The problem has one
     // free variable, so the guess is a 1-vector.
-    EXPECT_THROW(solver.optimize(Eigen::VectorXd::Zero(1)), std::invalid_argument);
+    EXPECT_THROW(solver.solve(*program, Eigen::VectorXd::Zero(1)), std::invalid_argument);
 }
 
 #endif

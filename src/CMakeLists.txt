@@ -78,7 +78,7 @@ target_sources(hven PRIVATE
 
 ################################################################################
 # Interior-point engine — the top-level InteriorPointSolver algorithm
-# (drivers/), the NLPProblem/NLPSolver contract with its adapter and the
+# (drivers/), the NLPProblem contract with its adapter and the
 # partitioned-evaluation NonLinearProgram engine (model/), and the barrier /
 # interior-point machinery under include/hven/detail/ (interior/ +
 # globalization/), split along those same seams.
@@ -91,7 +91,6 @@ target_sources(hven PRIVATE
     drivers/solver_init.cpp
     model/non_linear_program.cpp
     model/nlp_adapter.cpp
-    model/nlp_solver.cpp
     interior/kkt_factorization.cpp
     interior/utils/color_text.cpp
     interior/utils/get_core_count.cpp
@@ -285,6 +284,8 @@ target_sources(hven PRIVATE
 #     here)
 #   drivers/interior_point_solver_print.cpp       4.09 -> 2.56  -1.53  identical
 #   model/nlp_solver.cpp                          4.09 -> 2.56  -1.53  identical
+#     (this source was DELETED at M6 W5 T8.9 with the NLPSolver wrapper; the
+#      row is left as it ran)
 #   model/nlp_adapter.cpp                         4.61 -> 3.15  -1.46  identical
 #     ------ opted out, faster but NOT byte-identical ------
 #   drivers/interior_point_solver_globalization.cpp 4.94 -> 3.39 -1.55  differs
@@ -326,7 +327,6 @@ set(_hven_pch_sources
     drivers/ipm_options.cpp
     model/non_linear_program.cpp
     model/nlp_adapter.cpp
-    model/nlp_solver.cpp
 )
 
 target_precompile_headers(hven PRIVATE hven_pch.h)
@@ -491,7 +491,7 @@ endif()
 # THIS IS THE FIRST TIME THE COUNT HAS GONE DOWN, and it goes down because the
 # engine has no printing TU left at all: there is no fmt::print anywhere in
 # src/drivers/interior_point_solver.cpp.
-set(_hven_expected_source_count 43)
+set(_hven_expected_source_count 42)
 
 # Everything below runs DEFERRED, at the end of the directory scope that
 # defines the hven target, rather than here.

@@ -2629,3 +2629,209 @@ and MKL's own thread state before and after.
 
 An `HVEN_TESTING` construction observer in `qp_engine.cpp` is REGISTERED for W6,
 and it is what would turn the two construction-rule items into observations.
+
+---
+
+## T8.9 — `NLPSolver` is retired; `make_nlp_program(problem)` and the engine
+
+**If you constructed `hven::solvers::NLPSolver`, your code no longer compiles.**
+The wrapper, its header `hven/model/nlp_solver.h` and its TU are deleted, and
+so is `hven/detail/interior/jet.h` (`Jet`, `MklLocalPinGuard`) — dead code with
+zero instantiations in this tree. Every responsibility the wrapper held has a
+named replacement, listed below, and every one of them was already public.
+
+### 1. The responsibility table
+
+| the wrapper did | its replacement |
+|---|---|
+| lazy triplet-model transcription (`transcribe()`, `nlp_`, `model_`, `core_`, `do_transcription_`) | **`make_nlp_program(problem, num_partitions = 1)`** — `detail/model/nlp_adapter.h` — one call, returns the program |
+| starting-multiplier staging from `NLPProblem::starting_multipliers()` | **`NlpProblemModel::split_user_multipliers`** into a multipliers-only `WarmStartData`, handed to the payload overload of `solve()` (§4) |
+| `return_multipliers()` | **`NlpProblemModel::compose_user_multipliers(result.lambda_e, result.lambda_i)`** |
+| `return_x()` | **`IpmResult::x`** — bitwise the same vector (§5) |
+| `result()`, `last_result_` | the value `IpmResult` **`solve()` returns** |
+| the five jet modes and `strto_jet_job_mode` | **`IpmOptions::phases`** (T8.4) |
+| `jet_initialize()` / `jet_release()` / `jet_run()` | **`ipm_worker_options(IpmOptions)`** plus the program's own `negotiate_partition_count(1)` (§3) |
+| `num_partitions_`, `default_num_partitions()`, `set_num_partitions()`, `init_partitions()` | the **program's** count: `make_nlp_program(problem, N)` or `program.negotiate_partition_count(N)` (§2) |
+| `run_nlp_solver(mode, x0[, seed])` | `solver.solve(program, x0)` and `solver.solve(program, x0, payload)` |
+| `NlpSolveOutput` | `IpmResult` |
+
+### 2. What you write instead
+
+```cpp
+// BEFORE
+hven::solvers::NLPSolver solver(problem);
+auto o = solver.optimizer_->options();
+o.max_iters = 200;
+solver.optimizer_->set_options(std::move(o));
+const auto flag = solver.optimize(x0);
+const Eigen::VectorXd x = solver.return_x();
+const Eigen::VectorXd lam = solver.return_multipliers();
+
+// AFTER
+const auto program = hven::solvers::make_nlp_program(problem);
+hven::solvers::InteriorPointSolver solver;
+auto o = solver.options();
+o.max_iters = 200;
+o.phases = {hven::solvers::IpmPhase::kOptimize};   // the default; write it for another sequence
+solver.set_options(std::move(o));
+const hven::solvers::IpmResult result = solver.solve(*program, x0);
+const hven::solvers::SolveStatus flag = result.status;
+const Eigen::VectorXd &x = result.x;
+// the multipliers in the PROBLEM's own row space need the model, so build it
+// yourself and use the core-taking overload:
+const auto model = std::make_shared<hven::solvers::NlpProblemModel>(problem);
+const auto program2 = hven::solvers::make_nlp_program(
+    std::make_shared<hven::solvers::NLPAdapterCore>(model, problem->name()));
+const Eigen::VectorXd lam =
+    model->compose_user_multipliers(result.lambda_e, result.lambda_i);
+```
+
+The five retired entry points are five phase sequences, and nothing else:
+
+| retired entry | `IpmOptions::phases` |
+|---|---|
+| `optimize()` | `{kOptimize}` — the default |
+| `solve()` | `{kSolve}` |
+| `solve_optimize()` | `{kSolve, kOptimize}` |
+| `solve_optimize_solve()` | `{kSolve, kOptimize, kSolve}` |
+| `optimize_solve()` | `{kOptimize, kSolve}` |
+
+`DoNothing` and `NotSet` parsed and then dispatched to nothing. Their successor
+is the EMPTY sequence, which `validate()` **refuses**.
+
+The no-argument entry points (`solve()`, `optimize()`, …) are gone with the
+iterate the wrapper kept between calls: every solve names its own start point.
+
+### 3. `ipm_worker_options`, and the two things it does not carry
+
+```cpp
+solver.set_options(hven::solvers::ipm_worker_options(solver.options()));
+program->negotiate_partition_count(1);   // returns the ADOPTED count
+```
+
+The preset writes `common.threads = 1` and `common.print_level = 10` and
+nothing else — that was the whole of `jet_initialize()` apart from the partition
+count, which is the PROGRAM's and which no options value can reach. Two things
+the old worker context had that the preset does not:
+
+* `MklLocalPinGuard` pinned the whole worker THREAD's MKL for the job's
+  lifetime. `common.threads = 1` pins only hven's own bracketed backend calls,
+  so other MKL use on that thread is no longer pinned. Same outcome for this
+  engine's factorizations; a narrower promise about the thread.
+* the evaluation pool (`hven::utils::set_num_threads`) is PROCESS-GLOBAL and was
+  never touched by `jet_initialize()`; it is not touched here either.
+
+### 4. The problem's own multiplier seed, spelled out
+
+`NLPSolver::run()` consulted `NLPProblem::starting_multipliers()` on every solve
+and, when it returned true, built a multipliers-only payload. A caller does that
+itself now, in six lines:
+
+```cpp
+Eigen::VectorXd lam = Eigen::VectorXd::Zero(model->num_declared_rows());
+std::optional<hven::solvers::WarmStartData> seed;
+if (problem->starting_multipliers(lam)) {
+    Eigen::VectorXd eqm, iqm;
+    model->split_user_multipliers(lam, eqm, iqm);   // the named replacement
+    hven::solvers::WarmStartData s;                  // primal_ stays EMPTY
+    s.eq_lmults_ = std::move(eqm);
+    s.iq_lmults_ = std::move(iqm);
+    s.structure_key_ = hven::solvers::declaration_key(program->declaration());
+    seed = std::move(s);
+}
+const auto r = seed ? solver.solve(*program, x0, *seed) : solver.solve(*program, x0);
+```
+
+A non-finite value from the hook was refused by the wrapper with a message
+naming the problem; that refusal is now the caller's, at the same place.
+
+### 5. What is pinned
+
+* **The retired accessors were exact.** Measured against the wrapper at
+  `516779c`, before it was deleted, on HS071 and a fixed-variable fixture under
+  all three treatments: `return_x() == result.x` **bitwise**, and
+  `model->compose_user_multipliers(result.lambda_e, result.lambda_i) ==
+  return_multipliers()` **bitwise**. The RAW `IpmResult` blocks are NOT
+  `return_multipliers()` and never were: a LowerBounded row's declared
+  multiplier is minus the engine's (HS071's `g1 >= 25` is one), a Range row's is
+  a difference, and a Free row reads 0. That is the composition doing its job.
+* **The route is the same solve.** The top-level interior-point replay leg —
+  41 rows, every dual-bindable U0 cell under three treatments plus the
+  fixed-variable cell and the six variant rows — is **byte-identical outside
+  `wall_s`** before and after the rewrite, against the committed baseline.
+* the worker preset's three settings, read off a configured solver and off the
+  program; `make_nlp_program(problem, N)`'s adopted count and refusals; every
+  rewritten test keeps its assertions.
+
+### 6. Partitions through the adapter are LAYOUT ONLY
+
+`make_nlp_program(problem, N)` now reaches the layout, where the wrapper's
+`num_partitions_` reached nothing at all (it constructed `NonLinearProgram(1)`
+unconditionally). Two things to know before using it:
+
+* **It lays partitions; it does not parallelise the evaluation.** All three
+  adapter pieces are `ThreadingFlags::MainThread`, because `NLPAdapterCore` is
+  one shared stateful object, and `analyze_partitioning` forces every
+  `MainThread` function into the LAST partition to run inline on the calling
+  thread. `N` therefore means N−1 empty partitions plus the whole problem
+  evaluated serially. Only treatment-added rows (the `MakeConstraint` fixing
+  rows, which are `RoundRobin`) ever populate the others. Genuine partitioned
+  evaluation over an `NLPProblem` needs a thread-safe adapter and is registered
+  for the M7 `ClaimStreamSource` widening.
+* **The count is CLAMPED, not refused.** `make_nlp` caps it at
+  `num_user_kkt_elems_ / kMinKktElementsPerPartition` (1000), so a small problem
+  silently adopts fewer — HS071 adopts 1 whatever is asked. **Read the adopted
+  count off the returned program** (`program->num_partitions_`, equivalently
+  `program->declaration().partition_count_`), never off your request. A
+  non-positive request is a different thing and is refused by name.
+
+### 7. The install smoke is a GENERIC consumer now
+
+`tests/install_smoke/main.cpp` carries one `run_once<Solver, Model>` written
+against the shared shape and instantiated for BOTH engines —
+`InteriorPointSolver` over a `NonLinearProgram`, `SqpDriver` over the same
+problem's `NlpProblemModel` — exercising `options()`/`set_options`, the solve
+family with and without a payload, `set_iteration_callback`, `attach_trace`,
+`attach_ledger` and `export_warm_start()`. A shape that drifts apart on one
+engine fails to compile there, against an installed prefix.
+`include_nlp_solver.cpp` is replaced by `include_interior_point_solver.cpp` and
+`include_sqp_driver.cpp` (17 → 18 standalone-include TUs), and
+`cmake/hvenConfig.cmake.in`'s installed-header sentinel moves from
+`hven/model/nlp_solver.h` to `hven/drivers/interior_point_solver.h`.
+
+---
+
+## T8 group 1 — the shared shape
+
+The nine tasks of group 1, what each moved, and what pins it. Every one is
+detailed in its own section above; this table is the index.
+
+| task | concern | what changed for a caller | the pin |
+|---|---|---|---|
+| **T8.1** | the top-level IPM replay leg | nothing — a bench arm was added (`--engine interior`) | the 41-row baseline under `bench/baselines/2026-09-t8-ipm-leg/`, re-derived at T8.4 and again at T8.9 |
+| **T8.2** | `SolveStatus` | `ConvergenceFlags` is gone; both engines report `SolveStatus`, and `kStalled` is split out of NOTCONVERGED | the status map, the two abnormal doors live, the leg's `status`/`stop_reason` columns |
+| **T8.3** | options as values | the `set_*()` methods are gone; `options()` / `set_options(value)` with `validate()`; `CommonOptions` on both; a change DURING a solve is refused with `std::logic_error` | `validate()` per field, the in-flight refusal on both engines, the options fingerprint's hot reuse |
+| **T8.4** | one result core | `SolveResult` base, `SolveBudget`, the four shared declared diagnostics, the phase sequence as an option, the program as an ARGUMENT of `solve()` | the leg's eleven added columns, the per-phase account, the declared-width blocks |
+| **T8.5** | warm start | one payload protocol: `solve(model, x0, payload)`; `export_warm_start()` off the result; the `start_level` ladder on the IPM's payload route | the full warm matrix, the two warm leg rows read on the APPLIED rung |
+| **T8.6** | the iteration callback | one `IterationCallback` on both engines; `kInterrupted`; the IPM's KKT hook stays labelled IPM-only | callback coherence, the terminal row on every door, the leg's callback-count instrument |
+| **T8.7** | the ledger and the console | `attach_ledger` on the IPM with `IpmSolveRecord`; the console table is a `ConsoleTraceSink`; SQP console output at the same print levels | the console byte-pins, the fan-out, the phase resets |
+| **T8.7b** | the engine's last direct prints | the per-phase lines, the KKT-analysis block and the eight warnings are serialized events | five new events, the live line-count arithmetic, `interior_point_solver_print.cpp` deleted |
+| **T8.8** | threading | `common.threads` reaches every SQP factor path, including the dense Schur border; the caller's setting is restored on every exit | the tier reads, the 0-vs-1 bitwise pin, replay 0/75 at the shipped default |
+| **T8.9** | `NLPSolver` retired | the wrapper is deleted; `make_nlp_program`, `IpmOptions::phases`, `ipm_worker_options`, the value result | the BASE equality pin, the leg's 41-row byte identity, the generic installed consumer |
+
+**The fourteen behaviour changes named in the design's §2.7**, with the task
+that shipped each: the SQP's identity-mismatch refusal (T8.5); `kInterrupted`
+(T8.6); the IPM's continuing callback dispatch observing the committed point
+(T8.6); the SQP thread count when non-zero (T8.8); the multipliers-only seed
+resolving seeded on the SQP (T8.5); `kStalled` split out (T8.2); the shared
+diagnostics on every result (T8.4); `set_options` rebuilding the SQP engines
+with fingerprinted hot reuse (T8.3); the restoration-exit row as an event
+(T8.6/T8.7); the common `wall_seconds` boundary (T8.4); SQP console output
+(T8.7); `kkt_pattern_is_analyzed` taking the model (T8.4); the polish extension
+ignored on a multipliers-only payload (T8.5); restoration budgeted from the
+effective cap (T8.4). **(15)**, added at the T8.3 review: an option change
+during a solve is REFUSED rather than deferred.
+
+Nothing else moved. Everything outside that list is identity, and the U0 replay
+(0/75 on all three SQP arms), the interior leg's byte identity, the HS pins, the
+golden rig, the install smoke and the export contract are what say so.

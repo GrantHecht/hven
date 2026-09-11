@@ -15,23 +15,24 @@ namespace hven::solvers {
 ///
 ///        min  f(x)   s.t.  g_lower <= g(x) <= g_upper,  x_lower <= x <= x_upper
 ///
-/// Subclass this (in C++ or Python) and hand it to NLPSolver. Conventions are
-/// Ipopt's, verbatim: the Lagrangian is L = obj_factor*f + lambda^T g; eval_hess
-/// fills the LOWER TRIANGLE of grad^2 L (row >= col); lambda is in THIS
-/// problem's own row space in every signature here. Rows with
-/// g_lower == g_upper are equalities; +/-infinity means unbounded on that side;
-/// rows with two finite, unequal bounds are handled (internally split);
-/// rows unbounded on both sides are dropped.
+/// Subclass this (in C++ or Python), transcribe it with make_nlp_program(problem)
+/// (detail/model/nlp_adapter.h) and hand the program to
+/// InteriorPointSolver::solve. Conventions are Ipopt's, verbatim: the Lagrangian
+/// is L = obj_factor*f + lambda^T g; eval_hess fills the LOWER TRIANGLE of
+/// grad^2 L (row >= col); lambda is in THIS problem's own row space in every
+/// signature here. Rows with g_lower == g_upper are equalities; +/-infinity
+/// means unbounded on that side; rows with two finite, unequal bounds are
+/// handled (internally split); rows unbounded on both sides are dropped.
 ///
 /// Structures are queried once at setup and must not change afterwards.
 /// Evaluation callbacks must be pure (same x -> same values): results are
 /// cached per iterate. Duplicate (row, col) entries in a structure are legal;
 /// their values are summed.
 ///
-/// Where the callbacks are first called: NLPSolver's transcription, before any
-/// solve iterate exists, calls eval_jac once and eval_hess once at a point it
-/// chooses -- the origin projected onto the declared variable bounds. Their
-/// values are discarded; what setup takes from them is the sparsity pattern,
+/// Where the callbacks are first called: make_nlp_program's transcription,
+/// before any solve iterate exists, calls eval_jac once and eval_hess once at a
+/// point it chooses -- the origin projected onto the declared variable bounds.
+/// Their values are discarded; what setup takes from them is the sparsity pattern,
 /// which is the only way the solver can learn it once the problem has been
 /// converted. eval_f, eval_grad_f and eval_g are not called at that point.
 /// So eval_jac and eval_hess must be defined at that point, not only at

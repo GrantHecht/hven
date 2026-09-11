@@ -26,6 +26,10 @@ find_package(hven REQUIRED)
 # header, and T8 renames the four model-layer headers listed below. Both are
 # public-surface changes whose failure mode is "compiles in-tree, does not
 # compile for a consumer".
+#
+# M6 W5 T8.9: include_nlp_solver.cpp went with the retired NLPSolver wrapper,
+# and the TWO ENGINE HEADERS took its place -- they are what a consumer reaches
+# for now, and T8.10 renames both.
 set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
     include_trace_writer.cpp
     include_trace.cpp
@@ -34,7 +38,8 @@ set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
     include_nlp_aggregate.cpp
     include_aggregate_declaration.cpp
     include_nlp_model_aggregate.cpp
-    include_nlp_solver.cpp
+    include_interior_point_solver.cpp
+    include_sqp_driver.cpp
     include_solve_status.cpp
     include_core_solver_status.cpp
     include_common_options.cpp

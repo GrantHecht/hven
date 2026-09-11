@@ -5,19 +5,42 @@
 // Not part of hven's own build (see this directory's CMakeLists.txt) --
 // built against an *installed* hven package via find_package(hven), the
 // same way an external consumer would. Solves the canonical Ipopt HS071
-// example (borrowed from tests/interior/test_nlp_solver.cpp) through the
-// public NLPProblem/NLPSolver surface and checks the known optimum, so a
-// green run proves both link-time (libhven.a's symbols actually resolve)
-// and run-time (the sparse backend the installed package re-found is the
-// real one) correctness -- not just "it configured".
+// example (borrowed from tests/interior/test_ipm_solver_entry.cpp) and checks
+// the known optimum, so a green run proves both link-time (libhven.a's symbols
+// actually resolve) and run-time (the sparse backend the installed package
+// re-found is the real one) correctness -- not just "it configured".
+//
+// M6 W5 T8.9: THE CONSUMER IS GENERIC AND COMPILES AGAINST BOTH ENGINES.
+// `run_once` below is written once, against the SHARED SHAPE W5 T8 gives the
+// two solvers -- construction, `options()`/`set_options`, the solve family with
+// and without a warm-start payload, `set_iteration_callback`, `attach_trace`,
+// `attach_ledger`, and `export_warm_start()` off the returned result -- and is
+// instantiated for `InteriorPointSolver` over a `NonLinearProgram` and for
+// `SqpDriver` over the same problem's `NlpProblemModel`. A shape that has
+// drifted apart on one engine fails to COMPILE here, against an installed
+// prefix, which is the whole point of the exercise.
 
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <limits>
 #include <memory>
+#include <optional>
+#include <sstream>
+#include <string>
 
-#include "hven/model/nlp_solver.h"
+#include "hven/core/ledger.h"
+#include "hven/core/solver_status.h"
+#include "hven/detail/model/nlp_adapter.h"
+#include "hven/drivers/interior_point_solver.h"
+#include "hven/drivers/solve_result.h"
+#include "hven/drivers/solve_status.h"
+#include "hven/drivers/sqp_driver.h"
+#include "hven/drivers/trace_writer.h"
+#include "hven/model/nlp_problem.h"
+#include "hven/model/nlp_problem_model.h"
+#include "hven/model/non_linear_program.h"
+#include "hven/warmstart/warm_start_data.h"
 
 namespace {
 constexpr double kInf = std::numeric_limits<double>::infinity();
@@ -88,14 +111,97 @@ struct Hs071Problem : hven::solvers::NLPProblem {
     }
     std::string name() const override { return "Hs071Problem"; }
 };
+
+/// @brief The known optimum's objective value.
+constexpr double kHs071Optimum = 17.0140172;
+
+/// @brief The whole shared shape, exercised once, on whichever engine.
+///
+/// Written against the SHAPE and not against either engine: every call below is
+/// spelled the same way on `InteriorPointSolver` and on `SqpDriver`, which is
+/// what W5 T8 set out to make true and what this instantiation pair checks from
+/// outside the project.
+///
+/// @param solver The engine, already constructed with its own options type.
+/// @param model  The model that engine consumes.
+/// @param x0     The start point.
+/// @param label  Names the arm in the diagnostics this prints.
+/// @return true when the arm converged to the known optimum.
+template <class Solver, class Model>
+bool run_once(Solver &solver, Model &model, const Eigen::VectorXd &x0, const char *label) {
+    // (1) options() / set_options: read the value in force, edit it, hand it
+    //     back. Print level 10 is silent under the convention both engines now
+    //     share.
+    auto opts = solver.options();
+    opts.common.print_level = 10;
+    solver.set_options(std::move(opts));
+
+    // (2) the per-iteration callback, on both engines, with the same event type
+    //     and the same continue/stop verdict.
+    long long iterations_seen = 0;
+    solver.set_iteration_callback([&iterations_seen](const hven::solvers::IterationEvent &) {
+        ++iterations_seen;
+        return hven::solvers::CallbackAction::kContinue;
+    });
+
+    // (3) attach_trace and attach_ledger, both public, both the same call.
+    std::ostringstream trace;
+    hven::solvers::JsonLinesTraceSink sink(trace);
+    solver.attach_trace(&sink);
+    hven::solvers::Ledger ledger;
+    solver.attach_ledger(&ledger, std::string(label));
+
+    // (4) the COLD solve, and its result by value.
+    const auto cold = solver.solve(model, x0);
+    if (cold.status != hven::solvers::SolveStatus::kOptimal) {
+        std::fprintf(stderr, "install smoke: %s did not converge (status %s)\n", label,
+                     hven::solvers::to_string(cold.status));
+        return false;
+    }
+    if (iterations_seen <= 0) {
+        std::fprintf(stderr, "install smoke: %s installed a callback that never fired\n", label);
+        return false;
+    }
+    if (trace.str().empty()) {
+        std::fprintf(stderr, "install smoke: %s wrote no trace\n", label);
+        return false;
+    }
+
+    // (5) export_warm_start() off the result, and the PAYLOAD solve that takes
+    //     it back -- one currency, one entry, on both engines.
+    const std::optional<hven::solvers::WarmStartData> payload = cold.export_warm_start();
+    if (!payload.has_value()) {
+        std::fprintf(stderr, "install smoke: %s exported no warm start\n", label);
+        return false;
+    }
+    solver.clear_iteration_callback();
+    solver.attach_trace(nullptr);
+    const auto warm = solver.solve(model, x0, *payload);
+    if (warm.status != hven::solvers::SolveStatus::kOptimal) {
+        std::fprintf(stderr, "install smoke: %s did not converge from its own warm start\n", label);
+        return false;
+    }
+
+    // (6) the ANSWER, checked against the known optimum on both arms.
+    double f_actual = 0.0;
+    Hs071Problem{}.eval_f(warm.x, f_actual);
+    if (std::abs(f_actual - kHs071Optimum) > 1e-5) {
+        std::fprintf(stderr,
+                     "install smoke: %s objective %.7f does not match the known optimum %.7f\n",
+                     label, f_actual, kHs071Optimum);
+        return false;
+    }
+    std::printf("install smoke: %s converged, objective = %.7f (OK)\n", label, f_actual);
+    return true;
+}
 } // namespace
 
 // The standalone-include TUs (M6 W5 T0; nlp_solver joined at T1 fix1,
 // ipqp_evidence at T4, compiler at T3, solve_status at T8.2, common_options and
-// ipm_solver_types at T8.3, console_trace_sink at T8.7). Each proves
-// COMPILE-TIME self-containment only:
-// none odr-uses anything its header declares, so the link proves the twelve
-// objects link, nothing about exports.
+// ipm_solver_types at T8.3, console_trace_sink at T8.7; at T8.9 nlp_solver went
+// with the retired wrapper and the TWO ENGINE HEADERS took its place, 17 -> 18).
+// Each proves COMPILE-TIME self-containment only: none odr-uses anything its
+// header declares, so the link proves the objects link, nothing about exports.
 namespace hven_install_smoke {
 int standalone_include_trace_writer();
 int standalone_include_trace();
@@ -104,7 +210,8 @@ int standalone_include_nlp_problem();
 int standalone_include_nlp_aggregate();
 int standalone_include_aggregate_declaration();
 int standalone_include_nlp_model_aggregate();
-int standalone_include_nlp_solver();
+int standalone_include_interior_point_solver();
+int standalone_include_sqp_driver();
 int standalone_include_solve_status();
 int standalone_include_core_solver_status();
 int standalone_include_common_options();
@@ -124,7 +231,8 @@ int main() {
                                hven_install_smoke::standalone_include_nlp_aggregate() +
                                hven_install_smoke::standalone_include_aggregate_declaration() +
                                hven_install_smoke::standalone_include_nlp_model_aggregate() +
-                               hven_install_smoke::standalone_include_nlp_solver() +
+                               hven_install_smoke::standalone_include_interior_point_solver() +
+                               hven_install_smoke::standalone_include_sqp_driver() +
                                hven_install_smoke::standalone_include_solve_status() +
                                hven_install_smoke::standalone_include_core_solver_status() +
                                hven_install_smoke::standalone_include_common_options() +
@@ -134,38 +242,34 @@ int main() {
                                hven_install_smoke::standalone_include_seeding() +
                                hven_install_smoke::standalone_include_console_trace_sink() +
                                hven_install_smoke::standalone_include_compiler();
-    if (standalone_tus != 17) {
-        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 17\n",
+    if (standalone_tus != 18) {
+        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 18\n",
                      standalone_tus);
         return 1;
     }
 
-    hven::solvers::NLPSolver solver(std::make_shared<Hs071Problem>());
-
     Eigen::VectorXd x0(4);
     x0 << 1.0, 5.0, 5.0, 1.0;
-    const auto flag = solver.optimize(x0);
 
-    if (flag != hven::solvers::SolveStatus::kOptimal) {
-        std::fprintf(stderr, "install smoke: solve did not converge (flag=%d)\n",
-                     static_cast<int>(flag));
+    // ONE DECLARED PROBLEM, TWO ENGINES. The interior-point engine consumes the
+    // program `make_nlp_program` transcribes; the SQP engine consumes the same
+    // problem's model conversion. Everything after that is `run_once`, written
+    // once.
+    const auto problem = std::make_shared<Hs071Problem>();
+    const auto program = hven::solvers::make_nlp_program(problem);
+    hven::solvers::InteriorPointSolver ipm;
+    if (!run_once(ipm, *program, x0, "InteriorPointSolver")) {
         return 1;
     }
 
-    const Eigen::VectorXd x = solver.return_x();
-    const double f_expected = 17.0140172;
-    double f_actual = 0.0;
-    Hs071Problem{}.eval_f(x, f_actual);
-
-    if (std::abs(f_actual - f_expected) > 1e-5) {
-        std::fprintf(stderr,
-                     "install smoke: objective %.7f does not match the known optimum %.7f\n",
-                     f_actual, f_expected);
+    const auto model = std::make_shared<hven::solvers::NlpProblemModel>(problem);
+    hven::solvers::SqpDriver sqp{hven::solvers::SqpOptions{}};
+    if (!run_once(sqp, *model, x0, "SqpDriver")) {
         return 1;
     }
 
-    std::printf("install smoke: hven::solvers::NLPSolver converged, objective = %.7f (OK); "
+    std::printf("install smoke: both solvers converged through one generic consumer; "
                 "%d standalone-include TUs compiled and linked\n",
-                f_actual, standalone_tus);
+                standalone_tus);
     return 0;
 }

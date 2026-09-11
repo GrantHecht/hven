@@ -58,6 +58,7 @@
 
 #include <hven/core/ledger.h>
 #include <hven/core/start_level.h>
+#include <hven/detail/model/nlp_adapter.h>
 #include <hven/detail/warmstart/warm_start.h>
 #include <hven/drivers/interior_point_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
@@ -66,7 +67,6 @@
 #include <hven/drivers/trace_writer.h>
 #include <hven/model/nlp_model_aggregate.h>
 #include <hven/model/nlp_problem_model.h>
-#include <hven/model/nlp_solver.h>
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/seeding.h>
 #include <hven/warmstart/sqp_warm_start.h>
@@ -80,7 +80,6 @@ using hven::solvers::declaration_key;
 using hven::solvers::kIpmPolishTag;
 using hven::solvers::NlpModelAggregate;
 using hven::solvers::NlpProblemModel;
-using hven::solvers::NLPSolver;
 using hven::solvers::SolveStatus;
 using hven::solvers::SqpDriver;
 using hven::solvers::SqpOptions;
@@ -142,8 +141,8 @@ SqpOptions quiet_sqp(hven::solvers::QpMode mode = hven::solvers::QpMode::kWalk) 
     return o;
 }
 
-hven::solvers::IpmOptions quiet_ipm(const NLPSolver &solver) {
-    hven::solvers::IpmOptions o = solver.optimizer_->options();
+hven::solvers::IpmOptions quiet_ipm(const hven::solvers::InteriorPointSolver &solver) {
+    hven::solvers::IpmOptions o = solver.options();
     o.common.print_level = 10;
     return o;
 }
@@ -154,13 +153,15 @@ hven::solvers::IpmOptions quiet_ipm(const NLPSolver &solver) {
 // produced.
 struct Hs071Export {
     std::shared_ptr<hven::solvers::NLPProblem> problem;
-    NLPSolver ipm;
+    std::shared_ptr<hven::solvers::NonLinearProgram> program;
+    hven::solvers::InteriorPointSolver ipm;
     WarmStartData payload;
 
-    Hs071Export() : problem(std::make_shared<hven_drivers_tests::Hs071Problem>()), ipm(problem) {
-        ipm.optimizer_->set_options(quiet_ipm(ipm));
-        ipm.transcribe();
-        const hven::solvers::IpmResult r = ipm.optimizer_->solve(*ipm.nlp_, hs071_start());
+    Hs071Export()
+        : problem(std::make_shared<hven_drivers_tests::Hs071Problem>()),
+          program(hven::solvers::make_nlp_program(problem)) {
+        ipm.set_options(quiet_ipm(ipm));
+        const hven::solvers::IpmResult r = ipm.solve(*program, hs071_start());
         EXPECT_EQ(r.status, SolveStatus::kOptimal);
         const std::optional<WarmStartData> snapshot = r.export_warm_start();
         EXPECT_TRUE(snapshot.has_value());
@@ -338,10 +339,10 @@ TEST(WarmProtocol, PayloadStampMismatchRefusesOnBothEngines) {
 
     // --- The interior-point engine ---
     const auto three = std::make_shared<ThreeVarProblem>();
-    NLPSolver ipm(three);
-    ipm.optimizer_->set_options(quiet_ipm(ipm));
-    ipm.transcribe();
-    EXPECT_THROW((void)ipm.optimizer_->solve(*ipm.nlp_, Vec::Zero(3), exported.payload),
+    const auto ipm_program = hven::solvers::make_nlp_program(three);
+    hven::solvers::InteriorPointSolver ipm;
+    ipm.set_options(quiet_ipm(ipm));
+    EXPECT_THROW((void)ipm.solve(*ipm_program, Vec::Zero(3), exported.payload),
                  std::invalid_argument);
 
     // --- The SQP engine, in EVERY mode ---
@@ -513,20 +514,19 @@ TEST(WarmProtocol, MultipliersOnlySeedIgnoresAPolishExtension) {
     // (z_lower, z_upper) pair the barrier holds, and the pair that would have
     // travelled in the extension describes the exporter's point.
     {
-        NLPSolver ipm(exported.problem);
-        ipm.optimizer_->set_options(quiet_ipm(ipm));
-        ipm.transcribe();
-        const hven::solvers::IpmResult r = ipm.optimizer_->solve(*ipm.nlp_, hs071_start(), seed);
+        const auto ipm_program = hven::solvers::make_nlp_program(exported.problem);
+        hven::solvers::InteriorPointSolver ipm;
+        ipm.set_options(quiet_ipm(ipm));
+        const hven::solvers::IpmResult r = ipm.solve(*ipm_program, hs071_start(), seed);
         EXPECT_EQ(r.status, SolveStatus::kOptimal);
         EXPECT_EQ(r.polish_ignored, 1);
         EXPECT_EQ(r.payload_ignored, 0) << "the seed was applied, not ignored";
     }
     {
-        NLPSolver ipm(exported.problem);
-        ipm.optimizer_->set_options(quiet_ipm(ipm));
-        ipm.transcribe();
-        const hven::solvers::IpmResult r =
-            ipm.optimizer_->solve(*ipm.nlp_, hs071_start(), exported.payload);
+        const auto ipm_program = hven::solvers::make_nlp_program(exported.problem);
+        hven::solvers::InteriorPointSolver ipm;
+        ipm.set_options(quiet_ipm(ipm));
+        const hven::solvers::IpmResult r = ipm.solve(*ipm_program, hs071_start(), exported.payload);
         EXPECT_EQ(r.polish_ignored, 0) << "a full payload's extension IS consumed";
     }
 }
@@ -558,11 +558,11 @@ TEST(WarmProtocol, EmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver) {
         }
     }
     {
-        NLPSolver ipm(exported.problem);
-        ipm.optimizer_->set_options(quiet_ipm(ipm));
-        ipm.transcribe();
+        const auto ipm_program = hven::solvers::make_nlp_program(exported.problem);
+        hven::solvers::InteriorPointSolver ipm;
+        ipm.set_options(quiet_ipm(ipm));
         try {
-            (void)ipm.optimizer_->solve(*ipm.nlp_, hs071_start(), half_empty);
+            (void)ipm.solve(*ipm_program, hs071_start(), half_empty);
             FAIL() << "an empty primal_ beside populated bound prices must refuse";
         } catch (const std::invalid_argument &error) {
             const std::string message = error.what();
@@ -694,13 +694,13 @@ TEST(WarmProtocol, ColdCeilingIgnoresAndCountsThePayload) {
     const Hs071Export exported;
 
     const auto solve_at = [&](StartLevel ceiling, const WarmStartData *payload) {
-        NLPSolver ipm(exported.problem);
+        const auto ipm_program = hven::solvers::make_nlp_program(exported.problem);
+        hven::solvers::InteriorPointSolver ipm;
         hven::solvers::IpmOptions o = quiet_ipm(ipm);
         o.common.start_level = ceiling;
-        ipm.optimizer_->set_options(std::move(o));
-        ipm.transcribe();
-        return payload != nullptr ? ipm.optimizer_->solve(*ipm.nlp_, hs071_start(), *payload)
-                                  : ipm.optimizer_->solve(*ipm.nlp_, hs071_start());
+        ipm.set_options(std::move(o));
+        return payload != nullptr ? ipm.solve(*ipm_program, hs071_start(), *payload)
+                                  : ipm.solve(*ipm_program, hs071_start());
     };
 
     const hven::solvers::IpmResult no_payload = solve_at(StartLevel::kCold, nullptr);
@@ -726,12 +726,12 @@ TEST(WarmProtocol, ColdCeilingIgnoresAndCountsThePayload) {
     // IDENTITY IS STILL CHECKED AT THIS RUNG. A foreign payload under a kCold
     // ceiling is refused, not quietly discarded.
     const auto three = std::make_shared<ThreeVarProblem>();
-    NLPSolver other(three);
+    const auto other_program = hven::solvers::make_nlp_program(three);
+    hven::solvers::InteriorPointSolver other;
     hven::solvers::IpmOptions o = quiet_ipm(other);
     o.common.start_level = StartLevel::kCold;
-    other.optimizer_->set_options(std::move(o));
-    other.transcribe();
-    EXPECT_THROW((void)other.optimizer_->solve(*other.nlp_, Vec::Zero(3), exported.payload),
+    other.set_options(std::move(o));
+    EXPECT_THROW((void)other.solve(*other_program, Vec::Zero(3), exported.payload),
                  std::invalid_argument);
 }
 
@@ -765,12 +765,12 @@ TEST(WarmProtocol, ColdCeilingStillRefusesAWrongStampAtTheRightDimensions) {
 
     for (const StartLevel ceiling :
          {StartLevel::kCold, StartLevel::kSeeded, StartLevel::kWarm, StartLevel::kHot}) {
-        NLPSolver ipm(exported.problem);
+        const auto ipm_program = hven::solvers::make_nlp_program(exported.problem);
+        hven::solvers::InteriorPointSolver ipm;
         hven::solvers::IpmOptions o = quiet_ipm(ipm);
         o.common.start_level = ceiling;
-        ipm.optimizer_->set_options(std::move(o));
-        ipm.transcribe();
-        EXPECT_THROW((void)ipm.optimizer_->solve(*ipm.nlp_, hs071_start(), wrong_stamp),
+        ipm.set_options(std::move(o));
+        EXPECT_THROW((void)ipm.solve(*ipm_program, hs071_start(), wrong_stamp),
                      std::invalid_argument)
             << "ceiling ordinal " << static_cast<int>(ceiling);
     }
@@ -778,13 +778,13 @@ TEST(WarmProtocol, ColdCeilingStillRefusesAWrongStampAtTheRightDimensions) {
     // And the SAME payload with its stamp untouched is accepted, so the throws
     // above are about the stamp and not about anything else this test built.
     {
-        NLPSolver ipm(exported.problem);
+        const auto ipm_program = hven::solvers::make_nlp_program(exported.problem);
+        hven::solvers::InteriorPointSolver ipm;
         hven::solvers::IpmOptions o = quiet_ipm(ipm);
         o.common.start_level = StartLevel::kCold;
-        ipm.optimizer_->set_options(std::move(o));
-        ipm.transcribe();
+        ipm.set_options(std::move(o));
         const hven::solvers::IpmResult ok =
-            ipm.optimizer_->solve(*ipm.nlp_, hs071_start(), exported.payload);
+            ipm.solve(*ipm_program, hs071_start(), exported.payload);
         EXPECT_EQ(ok.status, SolveStatus::kOptimal);
         EXPECT_EQ(ok.payload_ignored, 1);
     }
@@ -799,12 +799,12 @@ TEST(WarmProtocol, TheIpmCeilingHasFourRungs) {
     ASSERT_NE(hven::solvers::find_ipm_polish(exported.payload), nullptr);
 
     const auto solve_at = [&](StartLevel ceiling) {
-        NLPSolver ipm(exported.problem);
+        const auto ipm_program = hven::solvers::make_nlp_program(exported.problem);
+        hven::solvers::InteriorPointSolver ipm;
         hven::solvers::IpmOptions o = quiet_ipm(ipm);
         o.common.start_level = ceiling;
-        ipm.optimizer_->set_options(std::move(o));
-        ipm.transcribe();
-        return ipm.optimizer_->solve(*ipm.nlp_, hs071_start(), exported.payload);
+        ipm.set_options(std::move(o));
+        return ipm.solve(*ipm_program, hs071_start(), exported.payload);
     };
 
     const hven::solvers::IpmResult seeded = solve_at(StartLevel::kSeeded);
@@ -923,45 +923,47 @@ TEST(WarmProtocol, ThePolishIgnoredCountAgreesAcrossTraceResultAndLedger) {
 }
 
 // ===========================================================================
-// THE WRAPPER'S SURFACE: NLPSolver::run_nlp_solver keeps both arities
+// THE PAYLOAD OVERLOAD KEEPS BOTH ARITIES
 // ===========================================================================
 
-// T8.5 gave `run_nlp_solver` a third argument -- the optional multipliers-only
-// seed -- with no default and no compatibility overload, so every existing
-// two-argument caller stopped compiling. The guide said "NLPSolver keeps its
-// surface"; this makes that true and pins it (M6 W5 T8.5 fix round 1, astra I2).
+// T8.5 gave the retired wrapper's `run_nlp_solver` a third argument -- the
+// optional multipliers-only seed -- with no default and no compatibility
+// overload, so every existing two-argument caller stopped compiling; the fix
+// round restored the two-argument entry and pinned it (astra I2). M6 W5 T8.9
+// retires the wrapper, and the property moves to its named replacement: the
+// engine's own solve family carries BOTH arities, and the seedless one is the
+// cold solve it always was.
 //
-// THE PIN IS THE CALL ITSELF: it must COMPILE at two arguments, and the solve it
-// runs must be the cold solve it always was.
-TEST(WarmProtocol, NlpSolverKeepsItsTwoArgumentEntry) {
+// THE PIN IS THE CALL ITSELF: both must COMPILE, and the solve the seedless one
+// runs must be identical to the one an explicitly absent payload runs.
+TEST(WarmProtocol, TheSolveFamilyKeepsItsSeedlessEntry) {
     const auto problem = std::make_shared<hven_drivers_tests::Hs071Problem>();
-    NLPSolver ipm(problem);
-    ipm.optimizer_->set_options(quiet_ipm(ipm));
-    ipm.transcribe();
+    const auto program = hven::solvers::make_nlp_program(problem);
+    hven::solvers::InteriorPointSolver ipm;
+    ipm.set_options(quiet_ipm(ipm));
 
-    // THE TWO-ARGUMENT CALL. If this file compiles, the entry exists.
-    const NLPSolver::NlpSolveOutput out =
-        ipm.run_nlp_solver(NLPSolver::JetJobModes::Optimize, hs071_start());
+    // THE SEEDLESS CALL. If this file compiles, the entry exists.
+    const hven::solvers::IpmResult out = ipm.solve(*program, hs071_start());
 
-    EXPECT_EQ(out.flag_, SolveStatus::kOptimal);
-    EXPECT_EQ(out.variables_.size(), 4);
-    EXPECT_EQ(out.eq_lmults_.size(), 1);
-    EXPECT_EQ(out.iq_lmults_.size(), 1);
-    EXPECT_NEAR(ipm.result().f, 17.0140173, 1e-5);
+    EXPECT_EQ(out.status, SolveStatus::kOptimal);
+    EXPECT_EQ(out.x.size(), 4);
+    EXPECT_EQ(out.lambda_e.size(), 1);
+    EXPECT_EQ(out.lambda_i.size(), 1);
+    EXPECT_NEAR(out.f, 17.0140173, 1e-5);
     // It is the COLD solve: no payload was handed over, so neither counter moved.
-    EXPECT_EQ(ipm.result().payload_ignored, 0);
-    EXPECT_EQ(ipm.result().polish_ignored, 0);
+    EXPECT_EQ(out.payload_ignored, 0);
+    EXPECT_EQ(out.polish_ignored, 0);
 
-    // And it agrees with the three-argument form spelled with no seed, which is
-    // the forward it performs.
-    NLPSolver other(problem);
-    other.optimizer_->set_options(quiet_ipm(other));
-    other.transcribe();
-    const NLPSolver::NlpSolveOutput explicit_none =
-        other.run_nlp_solver(NLPSolver::JetJobModes::Optimize, hs071_start(), std::nullopt);
-    EXPECT_EQ(explicit_none.flag_, out.flag_);
-    expect_same_reported_numbers(other.result(), ipm.result(),
-                                 "run_nlp_solver(mode, x0) vs (mode, x0, nullopt)");
+    // And it agrees with the BUDGET-taking form spelled at its default, which
+    // is the same cold call one overload down.
+    const auto other_program = hven::solvers::make_nlp_program(problem);
+    hven::solvers::InteriorPointSolver other;
+    other.set_options(quiet_ipm(other));
+    const hven::solvers::IpmResult explicit_default =
+        other.solve(*other_program, hs071_start(), hven::solvers::SolveBudget{});
+    EXPECT_EQ(explicit_default.status, out.status);
+    expect_same_reported_numbers(explicit_default, out,
+                                 "solve(program, x0) vs solve(program, x0, SolveBudget{})");
 }
 
 // ===========================================================================
@@ -988,11 +990,10 @@ TEST(WarmProtocol, RoundTripIpmToSqpToIpmStillWorks) {
     // The SQP produces no extensions, so this is the core-only shape.
     EXPECT_TRUE(back->extensions_.empty());
 
-    NLPSolver ipm(exported.problem);
-    ipm.optimizer_->set_options(quiet_ipm(ipm));
-    ipm.transcribe();
-    const hven::solvers::IpmResult returned =
-        ipm.optimizer_->solve(*ipm.nlp_, hs071_start(), *back);
+    const auto ipm_program = hven::solvers::make_nlp_program(exported.problem);
+    hven::solvers::InteriorPointSolver ipm;
+    ipm.set_options(quiet_ipm(ipm));
+    const hven::solvers::IpmResult returned = ipm.solve(*ipm_program, hs071_start(), *back);
     EXPECT_EQ(returned.status, SolveStatus::kOptimal);
     EXPECT_EQ(returned.payload_ignored, 0);
     // No extension came back, so there was none to drop.

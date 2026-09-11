@@ -4,7 +4,7 @@
 // The LIVE pins on InteriorPointSolver::last_stop_reason(): the two abnormal
 // NOTCONVERGED doors and the stall-beats-cap tie. The mapping onto SolveStatus
 // is pinned in tests/drivers/test_solve_status.cpp; the iteration-cap pin is in
-// test_nlp_solver.cpp, on HS071.
+// test_ipm_solver_entry.cpp, on HS071.
 
 #include <gtest/gtest.h>
 
@@ -23,14 +23,15 @@
 #include <hven/drivers/trace.h>
 #include <hven/drivers/trace_writer.h>
 #include <hven/model/nlp_problem.h>
-#include <hven/model/nlp_solver.h>
+#include <hven/model/non_linear_program.h>
 
 #include "../common_support/console_capture.h" // NOLINT(build/include_subdir)
+#include "declared_route.h"                    // NOLINT(build/include_subdir)
 
 namespace stop_reason_test {
 namespace {
 
-using hven::solvers::NLPSolver;
+using hven::solvers::InteriorPointSolver;
 using hven::solvers::RestorationModes;
 
 constexpr double kStopReasonInf = std::numeric_limits<double>::infinity();
@@ -153,10 +154,18 @@ Eigen::VectorXd two_var_start(double a, double b) {
 // lift_div_tols is the one lever the pair of pins below differ in: with it the
 // stage runs long enough to stall, without it the same fixture is DIVERGING in a
 // handful of iterations. See WithDefaultDivergenceThresholdsTheSameFixtureDiverges.
-NLPSolver make_stall_solver(int max_iters, bool lift_div_tols = true) {
-    NLPSolver solver(std::make_shared<PowerSpikeProblem>());
+//
+// M6 W5 T8.9: the retired wrapper used to own the program and the engine
+// together, which is the only reason these builders return one object
+// (declared_route.h's IpmCase). Each fixture's PHASE SEQUENCE is written on the
+// options here rather than chosen by which entry point the test calls.
+hven_interior_tests::IpmCase make_stall_solver(int max_iters, bool lift_div_tols = true) {
+    hven_interior_tests::IpmCase c{
+        hven::solvers::make_nlp_program(std::make_shared<PowerSpikeProblem>()),
+        std::make_unique<InteriorPointSolver>()};
     {
-        auto o = solver.optimizer_->options();
+        auto o = c.engine->options();
+        o.phases = {hven::solvers::IpmPhase::kSolve}; // what solve() ran
         o.common.print_level = 10;
         o.common.threads = 1;
         o.max_iters = max_iters;
@@ -168,27 +177,27 @@ NLPSolver make_stall_solver(int max_iters, bool lift_div_tols = true) {
         o.acc_econ_tol = 0.2;
         o.acc_icon_tol = 0.2;
         o.acc_bar_tol = 1.0e-6;
-        solver.optimizer_->set_options(std::move(o));
+        c.engine->set_options(std::move(o));
     }
     if (lift_div_tols) {
-        auto o = solver.optimizer_->options();
+        auto o = c.engine->options();
         o.div_kkt_tol = 1.0e300;
         o.div_econ_tol = 1.0e300;
         o.div_icon_tol = 1.0e300;
         o.div_bar_tol = 1.0e300;
-        solver.optimizer_->set_options(std::move(o));
+        c.engine->set_options(std::move(o));
     }
     {
-        auto o = solver.optimizer_->options();
+        auto o = c.engine->options();
         o.restoration_mode = RestorationModes::l1_nested;
-        solver.optimizer_->set_options(std::move(o));
+        c.engine->set_options(std::move(o));
     }
     {
-        auto o = solver.optimizer_->options();
+        auto o = c.engine->options();
         o.max_feas_rest = 1;
-        solver.optimizer_->set_options(std::move(o));
+        c.engine->set_options(std::move(o));
     }
-    return solver;
+    return c;
 }
 
 // The TERMINAL LOOP INDEX of the last phase that ran, recorded through the late
@@ -203,11 +212,11 @@ struct TerminalIter {
     int last = -1;
 };
 
-void record_terminal_iter(NLPSolver &solver, TerminalIter &rec) {
+void record_terminal_iter(hven_interior_tests::IpmCase &c, TerminalIter &rec) {
     // M6 W5 T8.6: the shared iteration callback in place of the late one. The
     // TERMINAL row's index is the same number either way -- one event per
     // `ipm.iter` row, and the last event is the last row.
-    solver.optimizer_->set_iteration_callback([&rec](const hven::solvers::IterationEvent &ev) {
+    c.engine->set_iteration_callback([&rec](const hven::solvers::IterationEvent &ev) {
         rec.last = static_cast<int>(ev.iteration);
         return hven::solvers::CallbackAction::kContinue;
     });
@@ -216,26 +225,29 @@ void record_terminal_iter(NLPSolver &solver, TerminalIter &rec) {
 // The restoration-locally-infeasible lever set, on the other fixture and the
 // OPTIMIZE entry: the optimality phase's own switch enters restoration and the
 // subproblem converges at a still-infeasible point. Default tolerances.
-NLPSolver make_locally_infeasible_solver(int max_iters) {
-    NLPSolver solver(std::make_shared<LocallyInfeasibleProblem>());
+hven_interior_tests::IpmCase make_locally_infeasible_solver(int max_iters) {
+    hven_interior_tests::IpmCase c{
+        hven::solvers::make_nlp_program(std::make_shared<LocallyInfeasibleProblem>()),
+        std::make_unique<InteriorPointSolver>()};
     {
-        auto o = solver.optimizer_->options();
+        auto o = c.engine->options();
+        o.phases = {hven::solvers::IpmPhase::kOptimize}; // what optimize() ran
         o.common.print_level = 10;
         o.common.threads = 1;
         o.max_iters = max_iters;
-        solver.optimizer_->set_options(std::move(o));
+        c.engine->set_options(std::move(o));
     }
     {
-        auto o = solver.optimizer_->options();
+        auto o = c.engine->options();
         o.restoration_mode = RestorationModes::l1_nested;
-        solver.optimizer_->set_options(std::move(o));
+        c.engine->set_options(std::move(o));
     }
     {
-        auto o = solver.optimizer_->options();
+        auto o = c.engine->options();
         o.max_feas_rest = 1;
-        solver.optimizer_->set_options(std::move(o));
+        c.engine->set_options(std::move(o));
     }
-    return solver;
+    return c;
 }
 
 // A sink that counts `ipm.iter` lines and nothing else (M6 W5 T8.6 fix1).
@@ -298,20 +310,22 @@ TEST(IpmStopReason, NoSolveHasHappenedYet) {
     // kNone is not "we did not look": it is the engine saying no labelled door
     // was taken, so the verdict itself explains the exit.
     auto solver = stop_reason_test::make_locally_infeasible_solver(200);
-    EXPECT_EQ(solver.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kNone);
+    EXPECT_EQ(solver.engine->last_stop_reason(), hven::solvers::IpmStopReason::kNone);
 }
 
 TEST(IpmStopReason, AStalledFeasibilityStageIsRecordedAsSuch) {
     auto solver = stop_reason_test::make_stall_solver(600);
     stop_reason_test::TerminalIter term;
     stop_reason_test::record_terminal_iter(solver, term);
-    const hven::solvers::SolveStatus flag = solver.solve(stop_reason_test::two_var_start(0.0, 0.0));
+    const hven::solvers::IpmResult result =
+        solver.engine->solve(*solver.program, stop_reason_test::two_var_start(0.0, 0.0));
+    const hven::solvers::SolveStatus flag = result.status;
     // THE ENGINE RESOLVES THE SPLIT ITSELF NOW (M6 W5 T8.4): the phase's raw
     // "ran out of iterations with nothing better to say" verdict is reconciled
     // against the stop reason at the phase's own exit, so the reported status IS
     // kStalled rather than a kMaxIter a caller has to reinterpret.
     EXPECT_EQ(flag, hven::solvers::SolveStatus::kStalled);
-    EXPECT_EQ(solver.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kStageStalled);
+    EXPECT_EQ(solver.engine->last_stop_reason(), hven::solvers::IpmStopReason::kStageStalled);
     // Well inside the iteration budget, asserted on the LOOP INDEX: the phase's
     // last iteration was not the cap iteration, so this is not the cap wearing
     // another label. result().iterations would not answer that question -- it
@@ -319,7 +333,7 @@ TEST(IpmStopReason, AStalledFeasibilityStageIsRecordedAsSuch) {
     EXPECT_LT(term.last, 600 - 1);
     // And the resolution is IDEMPOTENT: applying it again to an already-resolved
     // status returns it unchanged.
-    EXPECT_EQ(hven::solvers::resolve_ipm_phase_status(flag, solver.optimizer_->last_stop_reason()),
+    EXPECT_EQ(hven::solvers::resolve_ipm_phase_status(flag, solver.engine->last_stop_reason()),
               hven::solvers::SolveStatus::kStalled);
 }
 
@@ -335,30 +349,33 @@ TEST(IpmStopReason, WithDefaultDivergenceThresholdsTheSameFixtureDiverges) {
     auto solver = stop_reason_test::make_stall_solver(600, /*lift_div_tols=*/false);
     stop_reason_test::TerminalIter term;
     stop_reason_test::record_terminal_iter(solver, term);
-    const hven::solvers::SolveStatus flag = solver.solve(stop_reason_test::two_var_start(0.0, 0.0));
+    const hven::solvers::IpmResult result =
+        solver.engine->solve(*solver.program, stop_reason_test::two_var_start(0.0, 0.0));
+    const hven::solvers::SolveStatus flag = result.status;
     EXPECT_EQ(flag, hven::solvers::SolveStatus::kDiverging);
-    EXPECT_EQ(solver.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kNone);
+    EXPECT_EQ(solver.engine->last_stop_reason(), hven::solvers::IpmStopReason::kNone);
     // Inside the detector's own window (kFeasStallWindow = 50), which is what
     // makes this the reason the stall is out of reach here.
     EXPECT_LT(term.last, 50);
-    EXPECT_EQ(hven::solvers::resolve_ipm_phase_status(flag, solver.optimizer_->last_stop_reason()),
+    EXPECT_EQ(hven::solvers::resolve_ipm_phase_status(flag, solver.engine->last_stop_reason()),
               hven::solvers::SolveStatus::kDiverging);
 }
 
 TEST(IpmStopReason, ARestorationLocalInfeasibilityIsRecordedAsSuch) {
     auto solver = stop_reason_test::make_locally_infeasible_solver(200);
-    const hven::solvers::SolveStatus flag =
-        solver.optimize(stop_reason_test::two_var_start(1.0, 1.0));
+    const hven::solvers::IpmResult result =
+        solver.engine->solve(*solver.program, stop_reason_test::two_var_start(1.0, 1.0));
+    const hven::solvers::SolveStatus flag = result.status;
     // Resolved by the engine at the phase's exit (M6 W5 T8.4), like the stall
     // above: the locally-infeasible restoration return is the OTHER exit the
     // old vocabulary could not tell from the cap.
     EXPECT_EQ(flag, hven::solvers::SolveStatus::kStalled);
-    EXPECT_EQ(solver.optimizer_->last_stop_reason(),
+    EXPECT_EQ(solver.engine->last_stop_reason(),
               hven::solvers::IpmStopReason::kRestorationLocallyInfeasible);
-    EXPECT_LT(solver.result().iterations, 200);
+    EXPECT_LT(result.iterations, 200);
     // And the resolution is IDEMPOTENT: applying it again to an already-resolved
     // status returns it unchanged.
-    EXPECT_EQ(hven::solvers::resolve_ipm_phase_status(flag, solver.optimizer_->last_stop_reason()),
+    EXPECT_EQ(hven::solvers::resolve_ipm_phase_status(flag, solver.engine->last_stop_reason()),
               hven::solvers::SolveStatus::kStalled);
 }
 
@@ -378,23 +395,24 @@ TEST(IpmStopReason, TheLocallyInfeasibleDoorFiresItsRowOnBothStreams) {
     auto solver = stop_reason_test::make_locally_infeasible_solver(200);
 
     stop_reason_test::IterCountingSink sink;
-    solver.optimizer_->attach_trace(&sink);
+    solver.engine->attach_trace(&sink);
     std::vector<Eigen::VectorXd> points;
     hven::Index events = 0;
-    solver.optimizer_->set_iteration_callback([&](const hven::solvers::IterationEvent &ev) {
+    solver.engine->set_iteration_callback([&](const hven::solvers::IterationEvent &ev) {
         ++events;
         points.emplace_back(ev.x);
         return hven::solvers::CallbackAction::kContinue;
     });
 
-    const hven::solvers::SolveStatus flag =
-        solver.optimize(stop_reason_test::two_var_start(1.0, 1.0));
+    const hven::solvers::IpmResult result =
+        solver.engine->solve(*solver.program, stop_reason_test::two_var_start(1.0, 1.0));
+    const hven::solvers::SolveStatus flag = result.status;
     ASSERT_EQ(flag, hven::solvers::SolveStatus::kStalled);
-    ASSERT_EQ(solver.optimizer_->last_stop_reason(),
+    ASSERT_EQ(solver.engine->last_stop_reason(),
               hven::solvers::IpmStopReason::kRestorationLocallyInfeasible)
         << "fixture premise: the solve must leave through the locally-infeasible door";
 
-    const hven::solvers::IpmResult &r = solver.result();
+    const hven::solvers::IpmResult &r = result;
     ASSERT_GT(r.iterations, 1);
     // ONE EVENT PER `ipm.iter` ROW PER COUNTED ITERATION, all three equal.
     EXPECT_EQ(events, sink.rows);
@@ -424,12 +442,13 @@ TEST(IpmStopReason, TheDoorsMarkerFollowsItsOwnIterLineOnALiveSolve) {
     auto solver = stop_reason_test::make_locally_infeasible_solver(200);
     std::ostringstream os;
     hven::solvers::JsonLinesTraceSink sink(os);
-    solver.optimizer_->attach_trace(&sink);
+    solver.engine->attach_trace(&sink);
 
-    const hven::solvers::SolveStatus flag =
-        solver.optimize(stop_reason_test::two_var_start(1.0, 1.0));
+    const hven::solvers::IpmResult result =
+        solver.engine->solve(*solver.program, stop_reason_test::two_var_start(1.0, 1.0));
+    const hven::solvers::SolveStatus flag = result.status;
     ASSERT_EQ(flag, hven::solvers::SolveStatus::kStalled);
-    ASSERT_EQ(solver.optimizer_->last_stop_reason(),
+    ASSERT_EQ(solver.engine->last_stop_reason(),
               hven::solvers::IpmStopReason::kRestorationLocallyInfeasible)
         << "fixture premise: the solve must leave through the locally-infeasible door";
 
@@ -499,10 +518,10 @@ TEST(IpmStopReason, AStallOnTheCapIterationKeepsTheStallLabel) {
     // terminal-index == cap - 1 assertion is what refuses that: it requires both
     // disjuncts to hold on ONE iteration.
     auto unbounded = stop_reason_test::make_stall_solver(600);
-    (void)unbounded.solve(stop_reason_test::two_var_start(0.0, 0.0));
-    ASSERT_EQ(unbounded.optimizer_->last_stop_reason(),
-              hven::solvers::IpmStopReason::kStageStalled);
-    const int reported = unbounded.result().iterations;
+    const hven::solvers::IpmResult unbounded_result =
+        unbounded.engine->solve(*unbounded.program, stop_reason_test::two_var_start(0.0, 0.0));
+    ASSERT_EQ(unbounded.engine->last_stop_reason(), hven::solvers::IpmStopReason::kStageStalled);
+    const int reported = unbounded_result.iterations;
 
     int tie_cap = -1;
     int tie_terminal_iter = -1;
@@ -510,8 +529,8 @@ TEST(IpmStopReason, AStallOnTheCapIterationKeepsTheStallLabel) {
         auto solver = stop_reason_test::make_stall_solver(cap);
         stop_reason_test::TerminalIter term;
         stop_reason_test::record_terminal_iter(solver, term);
-        (void)solver.solve(stop_reason_test::two_var_start(0.0, 0.0));
-        const hven::solvers::IpmStopReason reason = solver.optimizer_->last_stop_reason();
+        (void)solver.engine->solve(*solver.program, stop_reason_test::two_var_start(0.0, 0.0));
+        const hven::solvers::IpmStopReason reason = solver.engine->last_stop_reason();
         if (reason == hven::solvers::IpmStopReason::kStageStalled) {
             tie_cap = cap;
             tie_terminal_iter = term.last;
@@ -540,25 +559,26 @@ TEST(IpmStopReason, AStallOnTheCapIterationKeepsTheStallLabel) {
 TEST(IpmStopReason, TheStalledDoorStillPrintsNoSolutionFoundAndCarriesItsMessage) {
     auto solver = stop_reason_test::make_stall_solver(200);
     {
-        auto o = solver.optimizer_->options();
+        auto o = solver.engine->options();
         o.common.print_level = 0;
-        solver.optimizer_->set_options(std::move(o));
+        solver.engine->set_options(std::move(o));
     }
     std::ostringstream os;
     hven::solvers::JsonLinesTraceSink sink(os);
-    solver.optimizer_->attach_trace(&sink);
+    solver.engine->attach_trace(&sink);
 
     std::string printed;
     {
         hven::testing::StdoutCapture capture;
         EXPECT_TRUE(capture.active());
-        const hven::solvers::SolveStatus flag =
-            solver.solve(stop_reason_test::two_var_start(0.0, 0.0));
+        const hven::solvers::IpmResult result =
+            solver.engine->solve(*solver.program, stop_reason_test::two_var_start(0.0, 0.0));
+        const hven::solvers::SolveStatus flag = result.status;
         ASSERT_EQ(flag, hven::solvers::SolveStatus::kStalled)
             << "fixture premise: this cell must leave through the stall door";
         printed = capture.text();
     }
-    ASSERT_EQ(solver.optimizer_->last_stop_reason(), hven::solvers::IpmStopReason::kStageStalled);
+    ASSERT_EQ(solver.engine->last_stop_reason(), hven::solvers::IpmStopReason::kStageStalled);
 
     // THE VERDICT LINE IS UNCHANGED. The raw code at this door is kMaxIter and
     // the resolved status is kStalled; both take the `No Solution Found`
@@ -596,24 +616,25 @@ TEST(IpmStopReason, TheStalledDoorStillPrintsNoSolutionFoundAndCarriesItsMessage
 TEST(IpmStopReason, TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarriesItsMessage) {
     auto solver = stop_reason_test::make_locally_infeasible_solver(200);
     {
-        auto o = solver.optimizer_->options();
+        auto o = solver.engine->options();
         o.common.print_level = 0;
-        solver.optimizer_->set_options(std::move(o));
+        solver.engine->set_options(std::move(o));
     }
     std::ostringstream os;
     hven::solvers::JsonLinesTraceSink sink(os);
-    solver.optimizer_->attach_trace(&sink);
+    solver.engine->attach_trace(&sink);
 
     std::string printed;
     {
         hven::testing::StdoutCapture capture;
         EXPECT_TRUE(capture.active());
-        const hven::solvers::SolveStatus flag =
-            solver.optimize(stop_reason_test::two_var_start(1.0, 1.0));
+        const hven::solvers::IpmResult result =
+            solver.engine->solve(*solver.program, stop_reason_test::two_var_start(1.0, 1.0));
+        const hven::solvers::SolveStatus flag = result.status;
         ASSERT_EQ(flag, hven::solvers::SolveStatus::kStalled);
         printed = capture.text();
     }
-    ASSERT_EQ(solver.optimizer_->last_stop_reason(),
+    ASSERT_EQ(solver.engine->last_stop_reason(),
               hven::solvers::IpmStopReason::kRestorationLocallyInfeasible);
 
     EXPECT_NE(printed.find("No Solution Found"), std::string::npos) << printed;
@@ -647,15 +668,15 @@ TEST(IpmStopReason, TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarries
 TEST(IpmStopReason, TheInterruptDoorStillPrintsNoSolutionFoundAndCarriesItsMessage) {
     auto solver = stop_reason_test::make_locally_infeasible_solver(200);
     {
-        auto o = solver.optimizer_->options();
+        auto o = solver.engine->options();
         o.common.print_level = 0;
-        solver.optimizer_->set_options(std::move(o));
+        solver.engine->set_options(std::move(o));
     }
     std::ostringstream os;
     hven::solvers::JsonLinesTraceSink sink(os);
-    solver.optimizer_->attach_trace(&sink);
+    solver.engine->attach_trace(&sink);
     hven::Index seen = 0;
-    solver.optimizer_->set_iteration_callback([&seen](const hven::solvers::IterationEvent &) {
+    solver.engine->set_iteration_callback([&seen](const hven::solvers::IterationEvent &) {
         ++seen;
         return (seen >= 3) ? hven::solvers::CallbackAction::kStop
                            : hven::solvers::CallbackAction::kContinue;
@@ -665,8 +686,9 @@ TEST(IpmStopReason, TheInterruptDoorStillPrintsNoSolutionFoundAndCarriesItsMessa
     {
         hven::testing::StdoutCapture capture;
         EXPECT_TRUE(capture.active());
-        const hven::solvers::SolveStatus flag =
-            solver.optimize(stop_reason_test::two_var_start(1.0, 1.0));
+        const hven::solvers::IpmResult result =
+            solver.engine->solve(*solver.program, stop_reason_test::two_var_start(1.0, 1.0));
+        const hven::solvers::SolveStatus flag = result.status;
         ASSERT_EQ(flag, hven::solvers::SolveStatus::kInterrupted);
         printed = capture.text();
     }
@@ -703,12 +725,12 @@ TEST(IpmStopReason, OnlyResolutionEverProducesStalledOrInterrupted) {
         hven::solvers::JsonLinesTraceSink sink(os);
         if (which == 0) {
             auto solver = stop_reason_test::make_stall_solver(200);
-            solver.optimizer_->attach_trace(&sink);
-            solver.solve(stop_reason_test::two_var_start(0.0, 0.0));
+            solver.engine->attach_trace(&sink);
+            solver.engine->solve(*solver.program, stop_reason_test::two_var_start(0.0, 0.0));
         } else {
             auto solver = stop_reason_test::make_locally_infeasible_solver(200);
-            solver.optimizer_->attach_trace(&sink);
-            solver.optimize(stop_reason_test::two_var_start(1.0, 1.0));
+            solver.engine->attach_trace(&sink);
+            solver.engine->solve(*solver.program, stop_reason_test::two_var_start(1.0, 1.0));
         }
         return os.str();
     };

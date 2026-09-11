@@ -24,11 +24,15 @@
 #include <Eigen/Core>
 
 #include "hven/drivers/interior_point_solver.h"
-#include "hven/model/nlp_solver.h"
+#include "hven/model/nlp_problem.h"
+
+#include "declared_route.h" // NOLINT(build/include_subdir)
 
 using hven::ConstEigenRef;
+using hven::solvers::InteriorPointSolver;
 using hven::solvers::NLPProblem;
-using hven::solvers::NLPSolver;
+using hven_interior_tests::solve_declared;
+using hven_interior_tests::transcribe;
 
 // min 0.5*|x|^2 subject to sum(x) == 3, with a two-sided box on every
 // variable. The optimum is x_i = 0.75 with f = 1.125, and the equality
@@ -82,9 +86,11 @@ struct ObjScaleBoxedProblem : NLPProblem {
         v.setConstant(obj_factor);
     }
     /// The seed the installation test relies on: a multiplier on the CALLER's
-    /// convention, handed over through the problem's own seed hook (which is
-    /// what NLPSolver consults -- a seed staged directly on the optimizer is
-    /// discarded when this returns false).
+    /// convention, handed over through the problem's own seed hook. Since M6 W5
+    /// T8.9 the CALLER consults it (declared_route.h's
+    /// starting_multiplier_seed, over NlpProblemModel::split_user_multipliers)
+    /// and hands the result to the payload overload of solve(); a hook that
+    /// returns false yields no payload at all.
     bool starting_multipliers(Eigen::Ref<Eigen::VectorXd> lambda) const override {
         lambda.setConstant(kSeed);
         return true;
@@ -156,18 +162,19 @@ constexpr double kObjScaleTol = 1e-5;
 
 TEST(ObjectiveScaleReporting, TheReportedObjectiveAndMultipliersDoNotMoveWithTheScale) {
     for (double scale : {1.0, 2.0, 10.0, 0.125}) {
-        NLPSolver solver(std::make_shared<ObjScaleBoxedProblem>());
+        const auto route = transcribe(std::make_shared<ObjScaleBoxedProblem>());
+        InteriorPointSolver solver;
         {
-            auto o = solver.optimizer_->options();
+            auto o = solver.options();
             o.common.print_level = 3;
             o.obj_scale = scale;
-            solver.optimizer_->set_options(std::move(o));
+            solver.set_options(std::move(o));
         }
 
         const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6);
-        ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal) << "scale " << scale;
+        const hven::solvers::IpmResult result = solve_declared(solver, route, x0);
+        ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal) << "scale " << scale;
 
-        const auto &result = solver.result();
         EXPECT_NEAR(result.f, 1.125, kObjScaleTol) << "scale " << scale;
         ASSERT_EQ(result.lambda_e.size(), 1);
         EXPECT_NEAR(result.lambda_e[0], -0.75, kObjScaleTol) << "scale " << scale;
@@ -175,30 +182,31 @@ TEST(ObjectiveScaleReporting, TheReportedObjectiveAndMultipliersDoNotMoveWithThe
         // The control: the minimizer never depended on the scale, and still
         // does not.
         for (int i = 0; i < ObjScaleBoxedProblem::kN; i++) {
-            EXPECT_NEAR(solver.return_x()[i], 0.75, kObjScaleTol) << "scale " << scale;
+            EXPECT_NEAR(result.x[i], 0.75, kObjScaleTol) << "scale " << scale;
         }
     }
 }
 
 TEST(ObjectiveScaleReporting, AnActiveBoundMultiplierDoesNotMoveWithTheScale) {
     for (double scale : {1.0, 2.0, 10.0}) {
-        NLPSolver solver(std::make_shared<ObjScaleActiveBoundProblem>());
+        const auto route = transcribe(std::make_shared<ObjScaleActiveBoundProblem>());
+        InteriorPointSolver solver;
         {
-            auto o = solver.optimizer_->options();
+            auto o = solver.options();
             o.common.print_level = 3;
             o.obj_scale = scale;
-            solver.optimizer_->set_options(std::move(o));
+            solver.set_options(std::move(o));
         }
 
         const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(ObjScaleActiveBoundProblem::kN, 0.6);
-        ASSERT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal) << "scale " << scale;
+        const hven::solvers::IpmResult result = solve_declared(solver, route, x0);
+        ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal) << "scale " << scale;
 
-        const auto &result = solver.result();
         ASSERT_EQ(result.z.size(), ObjScaleActiveBoundProblem::kN);
         // x0 sits on its lower bound, and the bound multiplier that holds it
         // there balances the objective gradient: 1.0 on the caller's scale.
         EXPECT_NEAR(result.z[0], 1.0, kObjScaleTol) << "scale " << scale;
-        EXPECT_NEAR(solver.return_x()[0], 1.0, kObjScaleTol) << "scale " << scale;
+        EXPECT_NEAR(result.x[0], 1.0, kObjScaleTol) << "scale " << scale;
     }
 }
 
@@ -208,31 +216,32 @@ namespace {
 /// the iterate at the first callback -- the last moment before any algorithmic
 /// step has moved it, and therefore the installed seed itself.
 double obj_scale_installed_seed(double scale) {
-    NLPSolver solver(std::make_shared<ObjScaleBoxedProblem>());
+    const auto route = transcribe(std::make_shared<ObjScaleBoxedProblem>());
+    InteriorPointSolver solver;
     {
-        auto o = solver.optimizer_->options();
+        auto o = solver.options();
         o.common.print_level = 3;
         o.obj_scale = scale;
-        solver.optimizer_->set_options(std::move(o));
+        solver.set_options(std::move(o));
     }
 
     double installed = 0.0;
     bool seen = false;
     const int primal_vars = ObjScaleBoxedProblem::kN;
-    solver.optimizer_->set_kkt_hook(
-        [&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd> xsl, double,
-            hven::ConstEigenRef<Eigen::VectorXd>, hven::ConstEigenRef<Eigen::VectorXd>,
-            Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
-            if (iteration == 0 && !seen) {
-                // No slack variables on this problem, so the equality
-                // multiplier block follows the primals directly.
-                installed = xsl[primal_vars];
-                seen = true;
-            }
-            return 0;
-        });
+    solver.set_kkt_hook([&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd> xsl, double,
+                            hven::ConstEigenRef<Eigen::VectorXd>,
+                            hven::ConstEigenRef<Eigen::VectorXd>,
+                            Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+        if (iteration == 0 && !seen) {
+            // No slack variables on this problem, so the equality
+            // multiplier block follows the primals directly.
+            installed = xsl[primal_vars];
+            seen = true;
+        }
+        return 0;
+    });
 
-    EXPECT_EQ(solver.optimize(Eigen::VectorXd::Constant(primal_vars, 0.6)),
+    EXPECT_EQ(solve_declared(solver, route, Eigen::VectorXd::Constant(primal_vars, 0.6)).status,
               hven::solvers::SolveStatus::kOptimal)
         << "scale " << scale;
     EXPECT_TRUE(seen) << "the early callback never ran, so nothing was observed";
@@ -307,30 +316,31 @@ struct ObjScaleUnconstrainedProblem : NLPProblem {
 // so an invalid scale cannot reach opts_ at all. run_phase_sequence() still
 // validates at entry, as defense in depth for a future write path.
 TEST(ObjectiveScaleReporting, ANegativeScaleIsRefusedByValidate) {
-    NLPSolver solver(std::make_shared<ObjScaleBoxedProblem>());
+    const auto route = transcribe(std::make_shared<ObjScaleBoxedProblem>());
+    InteriorPointSolver solver;
     {
-        auto o = solver.optimizer_->options();
+        auto o = solver.options();
         o.common.print_level = 3;
-        solver.optimizer_->set_options(std::move(o));
+        solver.set_options(std::move(o));
     }
 
     const auto with_scale = [&](double scale) {
-        auto o = solver.optimizer_->options();
+        auto o = solver.options();
         o.obj_scale = scale;
         return o;
     };
     EXPECT_THROW(hven::solvers::validate(with_scale(-1.0)), std::invalid_argument);
     EXPECT_THROW(hven::solvers::validate(with_scale(0.0)), std::invalid_argument);
     EXPECT_THROW(hven::solvers::validate(with_scale(-1e-12)), std::invalid_argument);
-    EXPECT_NO_THROW(solver.optimizer_->set_options(with_scale(2.0)));
+    EXPECT_NO_THROW(solver.set_options(with_scale(2.0)));
 
     // The refusal names the value, so the reader is not left to guess which
     // setting was rejected.
     try {
         {
-            auto o = solver.optimizer_->options();
+            auto o = solver.options();
             o.obj_scale = -3.5;
-            solver.optimizer_->set_options(std::move(o));
+            solver.set_options(std::move(o));
         }
         FAIL() << "a negative scale must be refused";
     } catch (const std::invalid_argument &error) {
@@ -341,9 +351,9 @@ TEST(ObjectiveScaleReporting, ANegativeScaleIsRefusedByValidate) {
 
     // The refusal left the previous value standing, so the solver is still
     // usable and still running at the scale it accepted.
-    EXPECT_EQ(solver.optimizer_->options().obj_scale, 2.0);
+    EXPECT_EQ(solver.options().obj_scale, 2.0);
     const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6);
-    EXPECT_EQ(solver.optimize(x0), hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(solve_declared(solver, route, x0).status, hven::solvers::SolveStatus::kOptimal);
 }
 
 // The reported constraint blocks describe the problem the call just solved,
@@ -351,29 +361,31 @@ TEST(ObjectiveScaleReporting, ANegativeScaleIsRefusedByValidate) {
 // earlier call's block standing and the scale seam would divide it a second
 // time on every subsequent call.
 TEST(ObjectiveScaleReporting, AnUnconstrainedCallReportsNoConstraintBlocks) {
-    NLPSolver solver(std::make_shared<ObjScaleBoxedProblem>());
+    const auto route = transcribe(std::make_shared<ObjScaleBoxedProblem>());
+    InteriorPointSolver solver;
     {
-        auto o = solver.optimizer_->options();
+        auto o = solver.options();
         o.common.print_level = 3;
         o.obj_scale = 2.0;
-        solver.optimizer_->set_options(std::move(o));
+        solver.set_options(std::move(o));
     }
 
-    ASSERT_EQ(solver.optimize(Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6)),
-              hven::solvers::SolveStatus::kOptimal);
-    ASSERT_EQ(solver.result().lambda_e.size(), 1);
-    const double constrained_eq = solver.result().lambda_e[0];
+    const hven::solvers::IpmResult boxed =
+        solve_declared(solver, route, Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6));
+    ASSERT_EQ(boxed.status, hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(boxed.lambda_e.size(), 1);
+    const double constrained_eq = boxed.lambda_e[0];
     EXPECT_NEAR(constrained_eq, -0.75, kObjScaleTol);
 
     // The SAME engine, at the same scale, pointed at a program with no
     // constraint rows at all.
-    NLPSolver unconstrained(std::make_shared<ObjScaleUnconstrainedProblem>());
-    unconstrained.transcribe();
+    const auto unconstrained =
+        hven::solvers::make_nlp_program(std::make_shared<ObjScaleUnconstrainedProblem>());
 
     // THE SAME ENGINE, THE OTHER PROGRAM -- expressed by handing the other
     // program to solve() rather than by re-attaching (M6 W5 T8.4).
     const Eigen::VectorXd x0 = Eigen::VectorXd::Constant(ObjScaleUnconstrainedProblem::kN, 0.6);
-    const hven::solvers::IpmResult first = solver.optimizer_->solve(*unconstrained.nlp_, x0);
+    const hven::solvers::IpmResult first = solver.solve(*unconstrained, x0);
     ASSERT_EQ(first.status, hven::solvers::SolveStatus::kOptimal);
 
     EXPECT_EQ(first.lambda_e.size(), 0)
@@ -384,7 +396,7 @@ TEST(ObjectiveScaleReporting, AnUnconstrainedCallReportsNoConstraintBlocks) {
 
     // And a second call still reports nothing, rather than a block that has
     // been divided by the scale one more time.
-    const hven::solvers::IpmResult second = solver.optimizer_->solve(*unconstrained.nlp_, x0);
+    const hven::solvers::IpmResult second = solver.solve(*unconstrained, x0);
     ASSERT_EQ(second.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_EQ(second.lambda_e.size(), 0);
     EXPECT_NEAR(constrained_eq, -0.75, kObjScaleTol) << "the first call's value is not in doubt";
@@ -396,25 +408,26 @@ TEST(ObjectiveScaleReporting, AnUnconstrainedCallReportsNoConstraintBlocks) {
 // deferred to the next call -- either way this call cannot be split between two
 // scales, which would report an objective and duals belonging to no problem.
 TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedOn) {
-    NLPSolver solver(std::make_shared<ObjScaleBoxedProblem>());
+    const auto route = transcribe(std::make_shared<ObjScaleBoxedProblem>());
+    InteriorPointSolver solver;
     {
-        auto o = solver.optimizer_->options();
+        auto o = solver.options();
         o.common.print_level = 3;
         o.obj_scale = 2.0;
-        solver.optimizer_->set_options(std::move(o));
+        solver.set_options(std::move(o));
     }
 
     bool attempted = false;
     bool refused = false;
-    solver.optimizer_->set_kkt_hook([&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd>,
-                                        double, hven::ConstEigenRef<Eigen::VectorXd>,
-                                        hven::ConstEigenRef<Eigen::VectorXd>,
-                                        Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
+    solver.set_kkt_hook([&](int iteration, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
+                            hven::ConstEigenRef<Eigen::VectorXd>,
+                            hven::ConstEigenRef<Eigen::VectorXd>,
+                            Eigen::SparseMatrix<double, Eigen::RowMajor> &) {
         if (iteration == 0 && !attempted) {
-            auto o = solver.optimizer_->options();
+            auto o = solver.options();
             o.obj_scale = 4.0;
             try {
-                solver.optimizer_->set_options(std::move(o));
+                solver.set_options(std::move(o));
             } catch (const std::logic_error &) {
                 refused = true;
             }
@@ -423,28 +436,30 @@ TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedO
         return 0;
     });
 
-    ASSERT_EQ(solver.optimize(Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6)),
-              hven::solvers::SolveStatus::kOptimal);
+    hven::solvers::IpmResult result =
+        solve_declared(solver, route, Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6));
+    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     ASSERT_TRUE(attempted) << "the callback never ran, so nothing was attempted under the call";
     EXPECT_TRUE(refused) << "a replacement under an in-flight solve must be a logic_error";
 
     // Reported on the entry scale of 2, which is what every phase evaluated
     // at -- and the refusal left that scale in force.
-    EXPECT_NEAR(solver.result().f, 1.125, kObjScaleTol);
-    ASSERT_EQ(solver.result().lambda_e.size(), 1);
-    EXPECT_NEAR(solver.result().lambda_e[0], -0.75, kObjScaleTol);
-    EXPECT_EQ(solver.optimizer_->options().obj_scale, 2.0);
+    EXPECT_NEAR(result.f, 1.125, kObjScaleTol);
+    ASSERT_EQ(result.lambda_e.size(), 1);
+    EXPECT_NEAR(result.lambda_e[0], -0.75, kObjScaleTol);
+    EXPECT_EQ(solver.options().obj_scale, 2.0);
 
     // Between calls the replacement goes through, and the next call runs at 4
     // and reports the same caller-scale numbers because that is what the seam
     // is for.
-    solver.optimizer_->clear_kkt_hook();
+    solver.clear_kkt_hook();
     {
-        auto o = solver.optimizer_->options();
+        auto o = solver.options();
         o.obj_scale = 4.0;
-        solver.optimizer_->set_options(std::move(o));
+        solver.set_options(std::move(o));
     }
-    ASSERT_EQ(solver.optimize(Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6)),
-              hven::solvers::SolveStatus::kOptimal);
-    EXPECT_NEAR(solver.result().f, 1.125, kObjScaleTol);
+    result =
+        solve_declared(solver, route, Eigen::VectorXd::Constant(ObjScaleBoxedProblem::kN, 0.6));
+    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_NEAR(result.f, 1.125, kObjScaleTol);
 }

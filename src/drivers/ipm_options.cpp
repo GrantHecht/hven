@@ -370,3 +370,13 @@ hven::solvers::IpmOptions hven::solvers::ipm_preset(std::string_view name) {
     throw std::invalid_argument(fmt::format(
         "Unrecognized InteriorPointSolver preset '{}'. Valid options are: {}", name, valid_names));
 }
+
+hven::solvers::IpmOptions hven::solvers::ipm_worker_options(IpmOptions base) {
+    // The whole of the old jet_initialize(): one backend thread and silent
+    // printing under the IPM convention (3 and above is silent; 10 is what the
+    // wrapper wrote). The partition count it also set is the PROGRAM's and is
+    // documented on the declaration -- no options value reaches a layout.
+    base.common.threads = 1;
+    base.common.print_level = 10;
+    return base;
+}

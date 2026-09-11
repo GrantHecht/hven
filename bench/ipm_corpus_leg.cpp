@@ -15,9 +15,10 @@
 #include <fmt/format.h>
 
 #include <hven/core/solver_status.h>
+#include <hven/detail/interior/utils/thread_pool.h>
+#include <hven/detail/model/nlp_adapter.h>
 #include <hven/drivers/solve_result.h>
 #include <hven/drivers/solve_status.h>
-#include <hven/model/nlp_solver.h>
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/warm_start_data.h>
 
@@ -30,7 +31,7 @@ namespace {
 using hven::solvers::crossover::ModelAsNlpProblem;
 
 // The test fixture's own spelling of an absent upper bound
-// (tests/interior/test_nlp_solver.cpp:20), copied with it.
+// (tests/interior/test_ipm_solver_entry.cpp:20), copied with it.
 constexpr double kSolverInf = std::numeric_limits<double>::infinity();
 
 double seconds_since(const std::chrono::steady_clock::time_point &t0) {
@@ -38,8 +39,8 @@ double seconds_since(const std::chrono::steady_clock::time_point &t0) {
 }
 
 // The Ipopt HS071 example with x1 PINNED by equal bounds, copied from
-// tests/interior/test_nlp_solver.cpp:33 because a bench binary does not include
-// a test file. The known optimum has x1 = 1.0 exactly, so the pin does not move
+// tests/interior/test_ipm_solver_entry.cpp:33 because a bench binary does not
+// include a test file. The known optimum has x1 = 1.0 exactly, so the pin does not move
 // the answer and the three treatments stay comparable on obj_val.
 struct Hs071FixedProblem final : NLPProblem {
     int num_vars() const override { return 4; }
@@ -391,6 +392,36 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
         warm_seed.entry = InteriorVariant::Entry::kOptimize;
         warm_seed.warm = InteriorVariant::Warm::kSeed;
         v.push_back(warm_seed);
+
+        // THE PARTITIONED ROWS (M6 W5 T8.9), the fourth instalment of the T8
+        // coverage rule and the first partitioned cell set this leg has had:
+        // before T8.9 no path from an NLPProblem reached a layout with more
+        // than one partition at all.
+        //
+        // WHAT THEY ARE, EXACTLY. `make_nlp_program(problem, 2)` lays TWO
+        // partitions; all three adapter pieces are ThreadingFlags::MainThread,
+        // and analyze_partitioning forces every MainThread function into the
+        // LAST partition to run inline on the calling thread. So both rows are
+        // LAYOUT rows: partition 1 holds the whole problem and runs serially,
+        // partition 0 holds whatever the TREATMENT added. Under MakeConstraint
+        // that would be the RoundRobin fixing rows -- but no F7 cell has a
+        // bound-fixed variable (F7 pins node 0 through equality rows), so
+        // partition 0 is empty on BOTH rows here. The two rows differ in the
+        // treatment and in nothing else; neither is a two-thread evaluation,
+        // and the artifact's header says so.
+        //
+        // WHY NOT HS071, which does have a bound-fixed variable: its ~18 KKT
+        // elements are far below the 1000-per-partition clamp, so it ADOPTS 1
+        // and the row would be a one-partition row under a two-partition name.
+        // A cell that is both big enough to adopt two partitions and carries a
+        // bound-fixed variable does not exist in this corpus; a genuinely
+        // two-thread evaluation over an NLPProblem is registered for the M7
+        // ClaimStreamSource widening, not claimed here.
+        InteriorVariant parts2;
+        parts2.name = kParts2VariantName;
+        parts2.entry = InteriorVariant::Entry::kOptimize;
+        parts2.num_partitions = 2;
+        v.push_back(parts2);
         return v;
     }();
     return kVariants;
@@ -416,19 +447,39 @@ std::string interior_variant_stamp(const InteriorVariant &variant) {
         variant.div_tol > 0.0 ? fmt::format("{:.9e}", variant.div_tol) : std::string("<default>"));
 }
 
-// Every lever, variant override and treatment this leg applies to one wrapper,
+// The PHASE SEQUENCE each entry names (M6 W5 T8.4's option; M6 W5 T8.9 writes
+// it here, where the five retired entry points used to write it from their own
+// names).
+std::vector<IpmPhase> phases_for(InteriorVariant::Entry entry) {
+    switch (entry) {
+    case InteriorVariant::Entry::kSolve:
+        return {IpmPhase::kSolve};
+    case InteriorVariant::Entry::kSolveOptimize:
+        return {IpmPhase::kSolve, IpmPhase::kOptimize};
+    case InteriorVariant::Entry::kOptimize:
+    default:
+        return {IpmPhase::kOptimize};
+    }
+}
+
+// Every lever, variant override and treatment this leg applies to one solver,
 // in ONE place (M6 W5 T8.5 factored it out of run_interior_problem so the warm
-// rows' second wrapper is configured identically to the first). Does not
+// rows' second solver is configured identically to the first). Does not
 // transcribe: the caller does that, because it is the step after which the
 // program exists.
-void configure_interior_solver(NLPSolver &ipm, FixedVariableTreatments treatment,
+void configure_interior_solver(InteriorPointSolver &ipm, FixedVariableTreatments treatment,
                                const InteriorLevers &levers, const InteriorVariant &variant) {
-    ipm.set_num_partitions(levers.num_partitions);
     // One options value, built here and handed over once. Every lever and every
     // variant override below is a field write on it, so a dependent pair (the
     // stall variant's restoration_mode and max_feas_rest) can never reach the
     // solver half-applied.
-    IpmOptions o = ipm.optimizer_->options();
+    //
+    // M6 W5 T8.9: the PARTITION COUNT is the program's, not an option, so it is
+    // no longer written here -- make_configured() passes it to
+    // make_nlp_program() instead. The PHASE SEQUENCE is a field now too, set
+    // from the variant's entry rather than by which entry point is called.
+    IpmOptions o = ipm.options();
+    o.phases = phases_for(variant.entry);
     o.common.threads = levers.qp_threads;
     o.common.print_level = levers.print_level;
     o.max_iters = levers.max_iters;
@@ -463,7 +514,7 @@ void configure_interior_solver(NLPSolver &ipm, FixedVariableTreatments treatment
         o.restoration_mode = variant.restoration_mode;
         o.max_feas_rest = variant.max_feas_rest;
     }
-    ipm.optimizer_->set_options(std::move(o));
+    ipm.set_options(std::move(o));
 }
 
 // Forward-declared: the callback-events instrument below prints the row's own
@@ -479,26 +530,45 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
             fmt::format("run_interior_problem: cell '{}' has a null problem", identity.cell_id));
     }
 
-    // ONE CONFIGURED WRAPPER, built by this lambda rather than inline, so the
-    // warm arm below can build a SECOND one under exactly the same levers,
-    // variant overrides and treatment (M6 W5 T8.5). Every field write is here,
-    // once, and neither caller can drift from the other.
+    // ONE CONFIGURED SOLVE -- A PROGRAM AND AN ENGINE -- built by this lambda
+    // rather than inline, so the warm arm below can build a SECOND one under
+    // exactly the same levers, variant overrides and treatment (M6 W5 T8.5).
+    // Every field write is here, once, and neither caller can drift from the
+    // other.
+    //
+    // THE PROGRAM IS PER SOLVE, NOT SHARED (M6 W5 T8.9). The retired wrapper
+    // owned a program each, and a program CARRIES STATE a solve writes: the
+    // fixed-variable treatment reconfiguration re-lays it and moves its
+    // structure epoch, which is what makes the measured solve pay its own
+    // analysis. Sharing one program between the producer and the measured solve
+    // would hand the measured row an already-reduced layout and drop its
+    // `analyses` from 2 to 1 -- measured, not assumed.
+    //
+    // The requested partition count reaches the LAYOUT now, where the wrapper's
+    // field reached nothing -- and it is clamped, so the ADOPTED count is what
+    // the header stamps.
+    struct ConfiguredSolve {
+        std::shared_ptr<NonLinearProgram> program;
+        std::unique_ptr<InteriorPointSolver> engine;
+    };
+    const int requested_partitions =
+        variant.num_partitions > 0 ? variant.num_partitions : levers.num_partitions;
     const auto make_configured = [&]() {
-        auto wrapper = std::make_unique<NLPSolver>(problem);
-        configure_interior_solver(*wrapper, treatment, levers, variant);
-        wrapper->transcribe();
-        return wrapper;
+        ConfiguredSolve configured{hven::solvers::make_nlp_program(problem, requested_partitions),
+                                   std::make_unique<InteriorPointSolver>()};
+        configure_interior_solver(*configured.engine, treatment, levers, variant);
+        return configured;
     };
 
     // THE WARM ARM'S PRODUCING SOLVE (M6 W5 T8.5), when this variant has one.
     //
-    // ON A WRAPPER OF ITS OWN, thrown away before the measured solve begins.
+    // ON A SOLVER OF ITS OWN, thrown away before the measured solve begins.
     // That is not tidiness: `IpmResult::kkt_factor_counters` and
     // `kkt_analyses_total` ACCUMULATE across calls on one solver, so a measured
     // solve that shared a solver with its producer would report the producing
     // solve's factorizations and analyses in its own columns -- 18 where the
     // base row reads 9 -- and the artifact would say the warm row cost twice
-    // what it cost. A second wrapper is also the truer shape: a warm start's
+    // what it cost. A second solver is also the truer shape: a warm start's
     // value is realised on a LATER solve, and nothing about the hand-off
     // requires the two to be the same object.
     //
@@ -506,8 +576,10 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
     // as the bridge lay is on the other engine.
     std::optional<hven::solvers::WarmStartData> payload;
     if (variant.warm != InteriorVariant::Warm::kNone) {
-        std::unique_ptr<NLPSolver> producer = make_configured();
-        const hven::solvers::SolveStatus produced = producer->optimize(x0);
+        ConfiguredSolve producer = make_configured();
+        const hven::solvers::IpmResult produced_result =
+            producer.engine->solve(*producer.program, x0);
+        const hven::solvers::SolveStatus produced = produced_result.status;
         if (produced != hven::solvers::SolveStatus::kOptimal) {
             throw std::runtime_error(fmt::format(
                 "run_interior_problem: the '{}' variant's producing solve of cell '{}' did not "
@@ -515,7 +587,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
                 "would pin nothing",
                 variant.name, identity.cell_id, to_string(produced)));
         }
-        payload = producer->result().export_warm_start();
+        payload = produced_result.export_warm_start();
         if (!payload.has_value()) {
             throw std::runtime_error(
                 fmt::format("run_interior_problem: the '{}' variant's producing solve of cell "
@@ -545,10 +617,11 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
         }
     }
 
-    // THE MEASURED SOLVE'S WRAPPER, fresh, so its counters start at zero
+    // THE MEASURED SOLVE'S SOLVER, fresh, so its counters start at zero
     // whatever ran above.
-    std::unique_ptr<NLPSolver> ipm_owner = make_configured();
-    NLPSolver &ipm = *ipm_owner;
+    ConfiguredSolve ipm_owner = make_configured();
+    InteriorPointSolver &ipm = *ipm_owner.engine;
+    NonLinearProgram &program = *ipm_owner.program;
 
     // THE COVERAGE RULE'S SECOND RUN (M6 W5 T8.6), and it is a MEASUREMENT
     // INSTRUMENT rather than a row: with HVEN_LEG_COUNT_CALLBACK set in the
@@ -565,46 +638,23 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
     const bool count_events = std::getenv("HVEN_LEG_COUNT_CALLBACK") != nullptr;
     long long events_seen = 0;
     if (count_events) {
-        ipm.optimizer_->set_iteration_callback(
-            [&events_seen](const hven::solvers::IterationEvent &) {
-                ++events_seen;
-                return hven::solvers::CallbackAction::kContinue;
-            });
+        ipm.set_iteration_callback([&events_seen](const hven::solvers::IterationEvent &) {
+            ++events_seen;
+            return hven::solvers::CallbackAction::kContinue;
+        });
     }
 
-    // THE SEQUENCE IS AN OPTION SINCE M6 W5 T8.4, but this leg drives the
-    // engine through NLPSolver, whose five entries each SET that option from
-    // their own name before solving -- so the sequence is still chosen by which
-    // of them is called, and writing `phases` on the options in
-    // configure_interior_solver would be overwritten here. T8.9 rewrites this
-    // function to construct the solver directly, and the sequence becomes a
-    // field write then.
+    // THE SEQUENCE IS AN OPTION SINCE M6 W5 T8.4, and since M6 W5 T8.9 this leg
+    // WRITES it (configure_interior_solver, from the variant's entry) rather
+    // than choosing it by which retired entry point it called. One call either
+    // way, and the TIMED WINDOW is what it always was: it brackets the solve
+    // only -- the transcription ran above, before `t0`.
     const auto t0 = std::chrono::steady_clock::now();
-    hven::solvers::SolveStatus flag = hven::solvers::SolveStatus::kNumericalError;
-    hven::solvers::IpmResult warm_result;
-    if (payload.has_value()) {
-        // THE PAYLOAD ROUTE, called on the solver directly: NLPSolver's five
-        // entries take no warm start, and giving the wrapper one would be a
-        // surface change this task does not make (T8.9 retires the wrapper).
-        // The program is the one THIS wrapper transcribed and still owns -- a
-        // different NonLinearProgram object from the producer's, and the same
-        // DECLARED problem, which is exactly what the payload's stamp asks.
-        warm_result = ipm.optimizer_->solve(*ipm.nlp_, x0, *payload);
-        flag = warm_result.status;
-    } else {
-        switch (variant.entry) {
-        case InteriorVariant::Entry::kOptimize:
-            flag = ipm.optimize(x0);
-            break;
-        case InteriorVariant::Entry::kSolve:
-            flag = ipm.solve(x0);
-            break;
-        case InteriorVariant::Entry::kSolveOptimize:
-            flag = ipm.solve_optimize(x0);
-            break;
-        }
-    }
+    const hven::solvers::IpmResult measured =
+        payload.has_value() ? ipm.solve(program, x0, *payload) : ipm.solve(program, x0);
     const double wall_s = seconds_since(t0);
+    const hven::solvers::SolveStatus flag = measured.status;
+    const hven::solvers::IpmResult &warm_result = measured;
 
     // THE APPLIED RUNG, CHECKED BEFORE THE ROW IS BUILT (M6 W5 T8.5 fix round
     // 1; the SQP lane's M1). A warm row whose payload was silently ignored
@@ -631,7 +681,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
     }
 
     // The MEASURED solve's result, whichever door it came through.
-    const hven::solvers::IpmResult &result = payload.has_value() ? warm_result : ipm.result();
+    const hven::solvers::IpmResult &result = measured;
     InteriorRow row;
     row.cell_id = identity.cell_id;
     row.family = identity.family;
@@ -651,7 +701,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
     row.soc_steps = result.soc_steps_taken;
     row.watchdog_activations = result.watchdog_activations;
     row.fixed_treatment = interior_treatment_tag(result.fixed_variable_treatment);
-    row.stop_reason = to_string(ipm.optimizer_->last_stop_reason());
+    row.stop_reason = to_string(ipm.last_stop_reason());
     row.variant = variant.name;
 
     // THE PER-PHASE ACCOUNT, packed into one column so the schema does not grow
@@ -709,6 +759,22 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
 
 std::string interior_cell_refusal(const CorpusCell &cell) {
     return crossover::dual_bind_refusal(cell);
+}
+
+InteriorPartitionStamp interior_partition_stamp(const CorpusCell &cell, int requested) {
+    if (!crossover::cell_dual_binds(cell)) {
+        throw std::invalid_argument(
+            fmt::format("interior_partition_stamp: cell '{}' does not dual-bind: {}", cell.id,
+                        crossover::dual_bind_refusal(cell)));
+    }
+    const auto f7 = std::make_shared<F7CollocationChain>(detail::make_model(cell));
+    const auto declared = std::make_shared<ModelAsNlpProblem>(f7, std::string(cell.id));
+    const auto program = hven::solvers::make_nlp_program(declared, requested);
+    InteriorPartitionStamp stamp;
+    stamp.requested = requested;
+    stamp.adopted = program->num_partitions_;
+    stamp.pool_threads = hven::utils::get_num_threads();
+    return stamp;
 }
 
 InteriorRow run_interior_cell(const CorpusCell &cell, FixedVariableTreatments treatment,

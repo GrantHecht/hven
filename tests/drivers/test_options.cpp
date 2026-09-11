@@ -42,12 +42,12 @@
 
 #include "hven/core/ledger.h"
 #include "hven/detail/drivers/interior_point_solver_presets.h"
+#include "hven/detail/model/nlp_adapter.h"
 #include "hven/drivers/common_options.h"
 #include "hven/drivers/interior_point_solver.h"
 #include "hven/drivers/ipm_solver_types.h"
 #include "hven/drivers/sqp_driver.h"
 #include "hven/drivers/sqp_types.h"
-#include "hven/model/nlp_solver.h"
 #include "hven/qp/qp_types.h"
 
 #include "sqp/support/hs_problems.h"
@@ -313,15 +313,18 @@ TEST(Options, IpmSetOptionsIsTransactional) {
 // taken, and the analysis laid under the old value stops counting as this
 // program's.
 TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
-    hven::solvers::NLPSolver solver(std::make_shared<Hs071Problem>());
+    // M6 W5 T8.9: the program is transcribed once, here, and handed to every
+    // solve below as an argument -- the wrapper's lazy transcribe() is gone.
+    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
+    ASSERT_NE(program, nullptr);
+    InteriorPointSolver solver;
     {
-        IpmOptions o = solver.optimizer_->options();
+        IpmOptions o = solver.options();
         o.common.print_level = 10;
-        solver.optimizer_->set_options(std::move(o));
+        solver.set_options(std::move(o));
     }
-    solver.transcribe();
-    ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
-    ASSERT_NE(solver.nlp_, nullptr);
+    hven::solvers::IpmResult result = solver.solve(*program, hs071_start());
+    ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
 
     // Each edit is applied to the value in force, attempted alone, ACCEPTED,
     // and required to invalidate the analysis. qp_matching is left out and
@@ -337,16 +340,16 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
     // solve. Leaving such a value in force would make every later step of this
     // test throw out of set_qp_params() instead of testing what it is for.
     const auto accepts = [&](const char *field, auto edit) {
-        ASSERT_TRUE(solver.optimizer_->kkt_pattern_is_analyzed(*solver.nlp_))
-            << "precondition for " << field;
-        const IpmOptions before = solver.optimizer_->options();
+        ASSERT_TRUE(solver.kkt_pattern_is_analyzed(*program)) << "precondition for " << field;
+        const IpmOptions before = solver.options();
         IpmOptions changed = before;
         edit(changed);
-        EXPECT_NO_THROW(solver.optimizer_->set_options(changed)) << field;
-        EXPECT_FALSE(solver.optimizer_->kkt_pattern_is_analyzed(*solver.nlp_))
+        EXPECT_NO_THROW(solver.set_options(changed)) << field;
+        EXPECT_FALSE(solver.kkt_pattern_is_analyzed(*program))
             << "a transcription-time change must not leave the old analysis standing: " << field;
-        solver.optimizer_->set_options(before);
-        ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
+        solver.set_options(before);
+        result = solver.solve(*program, hs071_start());
+        ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     };
 
     accepts("qp_ref_steps", [](IpmOptions &o) { o.qp_ref_steps = 1; }); // int
@@ -369,32 +372,33 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
     // Accelerate does not read it at all), so the re-transcription cannot throw
     // out of set_qp_params() on either.
     {
-        const hven::Index analyses_before = solver.result().kkt_analyses_total;
-        IpmOptions changed = solver.optimizer_->options();
+        const hven::Index analyses_before = result.kkt_analyses_total;
+        IpmOptions changed = solver.options();
         changed.qp_matching = changed.qp_matching != 0 ? 0 : 1;
-        EXPECT_NO_THROW(solver.optimizer_->set_options(changed));
-        EXPECT_FALSE(solver.optimizer_->kkt_pattern_is_analyzed(*solver.nlp_));
-        ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
-        EXPECT_EQ(solver.result().kkt_analyses_total, analyses_before + 1);
-        EXPECT_EQ(solver.result().kkt_analyses_this_call, 1);
-        EXPECT_EQ(solver.optimizer_->options().qp_matching, changed.qp_matching);
-        EXPECT_TRUE(solver.optimizer_->kkt_pattern_is_analyzed(*solver.nlp_));
+        EXPECT_NO_THROW(solver.set_options(changed));
+        EXPECT_FALSE(solver.kkt_pattern_is_analyzed(*program));
+        result = solver.solve(*program, hs071_start());
+        ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
+        EXPECT_EQ(result.kkt_analyses_total, analyses_before + 1);
+        EXPECT_EQ(result.kkt_analyses_this_call, 1);
+        EXPECT_EQ(solver.options().qp_matching, changed.qp_matching);
+        EXPECT_TRUE(solver.kkt_pattern_is_analyzed(*program));
     }
 
     // THE COUNTER-EXAMPLE, unchanged: a PER-SOLVE field is accepted too and
     // does NOT invalidate the analysis -- fixed_variable_treatment excepted,
     // which changes the problem's dimensions and is part of the identity token.
-    IpmOptions ok = solver.optimizer_->options();
+    IpmOptions ok = solver.options();
     ok.max_iters = 77;
-    EXPECT_NO_THROW(solver.optimizer_->set_options(std::move(ok)));
-    EXPECT_EQ(solver.optimizer_->options().max_iters, 77);
-    EXPECT_TRUE(solver.optimizer_->kkt_pattern_is_analyzed(*solver.nlp_))
+    EXPECT_NO_THROW(solver.set_options(std::move(ok)));
+    EXPECT_EQ(solver.options().max_iters, 77);
+    EXPECT_TRUE(solver.kkt_pattern_is_analyzed(*program))
         << "a per-solve field does not touch the analysis";
 
-    IpmOptions treatment = solver.optimizer_->options();
+    IpmOptions treatment = solver.options();
     treatment.fixed_variable_treatment = FixedVariableTreatments::MakeConstraint;
-    EXPECT_NO_THROW(solver.optimizer_->set_options(std::move(treatment)));
-    EXPECT_FALSE(solver.optimizer_->kkt_pattern_is_analyzed(*solver.nlp_))
+    EXPECT_NO_THROW(solver.set_options(std::move(treatment)));
+    EXPECT_FALSE(solver.kkt_pattern_is_analyzed(*program))
         << "the treatment is part of the identity token: a change re-analyses";
 }
 
@@ -409,17 +413,18 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
 // A replacement from inside the solve is a logic_error, the options do not
 // move, and the guard clears on the unwind so the next solve still runs.
 TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
-    hven::solvers::NLPSolver solver(std::make_shared<Hs071Problem>());
+    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
+    InteriorPointSolver solver;
     {
-        IpmOptions o = solver.optimizer_->options();
+        IpmOptions o = solver.options();
         o.common.print_level = 10;
-        solver.optimizer_->set_options(std::move(o));
+        solver.set_options(std::move(o));
     }
-    const IpmOptions before = solver.optimizer_->options();
+    const IpmOptions before = solver.options();
 
     int attempts = 0;
     bool saw_logic_error = false;
-    InteriorPointSolver *engine = solver.optimizer_.get();
+    InteriorPointSolver *engine = &solver;
     // M6 W5 T8.6: the shared iteration callback, in place of the late callback
     // this test used to arm. Same assertions, same solve.
     engine->set_iteration_callback([&](const hven::solvers::IterationEvent &) {
@@ -434,19 +439,19 @@ TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
         return hven::solvers::CallbackAction::kContinue;
     });
 
-    ASSERT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
+    ASSERT_EQ(solver.solve(*program, hs071_start()).status, hven::solvers::SolveStatus::kOptimal);
     ASSERT_GT(attempts, 0);
     EXPECT_TRUE(saw_logic_error);
-    EXPECT_EQ(solver.optimizer_->options().max_iters, before.max_iters);
+    EXPECT_EQ(solver.options().max_iters, before.max_iters);
 
     // The guard cleared on the way out: a replacement between calls works, and
     // so does the next solve.
-    IpmOptions after = solver.optimizer_->options();
+    IpmOptions after = solver.options();
     after.max_iters = 400;
-    EXPECT_NO_THROW(solver.optimizer_->set_options(std::move(after)));
-    EXPECT_EQ(solver.optimizer_->options().max_iters, 400);
+    EXPECT_NO_THROW(solver.set_options(std::move(after)));
+    EXPECT_EQ(solver.options().max_iters, 400);
     engine->clear_iteration_callback();
-    EXPECT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(solver.solve(*program, hs071_start()).status, hven::solvers::SolveStatus::kOptimal);
 }
 
 // THE SAME GUARD, CLEARED ON AN UNWIND RATHER THAN A RETURN (fix round 1). The
@@ -456,18 +461,19 @@ TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
 // run_phase_sequence() unwinds, SolveInFlightGuard's destructor clears the
 // flag, and the solver is usable again.
 TEST(Options, IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
-    hven::solvers::NLPSolver solver(std::make_shared<Hs071Problem>());
+    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
+    InteriorPointSolver solver;
     {
-        IpmOptions o = solver.optimizer_->options();
+        IpmOptions o = solver.options();
         o.common.print_level = 10;
-        solver.optimizer_->set_options(std::move(o));
+        solver.set_options(std::move(o));
     }
-    InteriorPointSolver *engine = solver.optimizer_.get();
+    InteriorPointSolver *engine = &solver;
     engine->set_iteration_callback(
         [](const hven::solvers::IterationEvent &) -> hven::solvers::CallbackAction {
             throw std::logic_error("a hook that leaves the solve by throwing");
         });
-    EXPECT_THROW(solver.optimize(hs071_start()), std::logic_error);
+    EXPECT_THROW(solver.solve(*program, hs071_start()), std::logic_error);
     engine->clear_iteration_callback();
 
     // The guard did not survive the unwind: a replacement is accepted and the
@@ -476,7 +482,7 @@ TEST(Options, IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
     after.max_iters = 400;
     EXPECT_NO_THROW(engine->set_options(std::move(after)));
     EXPECT_EQ(engine->options().max_iters, 400);
-    EXPECT_EQ(solver.optimize(hs071_start()), hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(solver.solve(*program, hs071_start()).status, hven::solvers::SolveStatus::kOptimal);
 }
 
 // ---------------------------------------------------------------------------

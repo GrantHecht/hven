@@ -23,7 +23,7 @@
 // never a claim.
 //
 // Both engines reach the cell through the ONE declared NLPProblem -- the
-// interior-point engine via NLPSolver's own transcription, the SQP engine via
+// interior-point engine via make_nlp_program's transcription, the SQP engine via
 // NlpProblemModel -- so both key the same DeclarationKey and an export stages
 // across with no conversion and no re-stamp. The corpus's cells are NlpModels
 // (F7CollocationChain), so the declaration is ModelAsNlpProblem below; neither
@@ -61,6 +61,7 @@
 #include <hven/core/solver_counters.h>
 #include <hven/core/solver_status.h>
 #include <hven/core/start_level.h>
+#include <hven/detail/model/nlp_adapter.h>
 #include <hven/drivers/interior_point_solver.h>
 #include <hven/drivers/sqp_driver.h>
 #include <hven/drivers/sqp_types.h>
@@ -68,7 +69,6 @@
 #include <hven/model/nlp_model_aggregate.h>
 #include <hven/model/nlp_problem.h>
 #include <hven/model/nlp_problem_model.h>
-#include <hven/model/nlp_solver.h>
 #include <hven/model/structure_identity.h>
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/warm_start_data.h>
@@ -103,7 +103,7 @@ using hven::solvers::corpus::StartTaxonomy;
 /// STRUCTURE. NLPProblem queries the two sparsity patterns once and they must
 /// not move afterwards, but an NlpModel decides its pattern per point. The
 /// declared structure is therefore the UNION of the patterns at two points: the
-/// model's own start point, and the point NLPSolver's transcription evaluates
+/// model's own start point, and the point make_nlp_program's transcription evaluates
 /// at (the origin projected onto the declared box). Every later evaluation is
 /// merged into the declared slots, and a nonzero arriving at a slot the union
 /// did not declare is REFUSED by name: a model whose pattern depends on the
@@ -211,7 +211,7 @@ class ModelAsNlpProblem final : public NLPProblem {
   private:
     using SpRM = Eigen::SparseMatrix<double, Eigen::RowMajor>;
 
-    // The point NLPSolver's transcription evaluates at: the origin projected
+    // The point make_nlp_program's transcription evaluates at: the origin projected
     // onto the declared box. The pattern union has to cover it -- that call
     // happens before any solve iterate exists, and its pattern is what the
     // solver keeps.
@@ -599,30 +599,34 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
     // --- leg (a): the interior-point baseline, and the exporter ---
     WarmStartData exported;
     {
-        NLPSolver ipm(declared);
-        hven::solvers::IpmOptions ipm_opts = ipm.optimizer_->options();
+        // THE ENGINE, CONSTRUCTED DIRECTLY (M6 W5 T8.9): the transcription is
+        // the one-call make_nlp_program, the phase sequence is a field, and the
+        // program is an argument of the solve. The TIMED WINDOW is unchanged --
+        // it brackets the solve only, and the transcription runs above `t0`.
+        const auto ipm_program = hven::solvers::make_nlp_program(declared);
+        hven::solvers::InteriorPointSolver ipm;
+        hven::solvers::IpmOptions ipm_opts = ipm.options();
         ipm_opts.common.print_level = opts.ipm_print_level;
         ipm_opts.max_iters = opts.ipm_max_iters;
         ipm_opts.kkt_tol = corpus::detail::kKktTol;
         ipm_opts.econ_tol = corpus::detail::kFeasTol;
         ipm_opts.icon_tol = corpus::detail::kFeasTol;
         ipm_opts.bar_tol = corpus::detail::kKktTol;
-        ipm.optimizer_->set_options(std::move(ipm_opts));
-        ipm.transcribe();
+        ipm.set_options(std::move(ipm_opts));
         const auto t0 = std::chrono::steady_clock::now();
-        legs.a.flag = ipm.optimize(x0);
+        const hven::solvers::IpmResult result = ipm.solve(*ipm_program, x0);
         legs.a.wall_s = detail::seconds_since(t0);
 
-        const auto &result = ipm.result();
+        legs.a.flag = result.status;
         legs.a.iters = result.iterations;
         legs.a.f = result.f;
         legs.a.kkt_inf = result.kkt_inf;
         legs.a.econ_inf = result.econ_inf;
         legs.a.icon_inf = result.icon_inf;
         legs.a.barr_inf = result.barr_inf;
-        legs.a.analyses = ipm.result().kkt_analyses_total;
-        legs.a.factorizations = ipm.result().kkt_factor_counters.factorize_count;
-        legs.a.solves = ipm.result().kkt_factor_counters.solve_count;
+        legs.a.analyses = result.kkt_analyses_total;
+        legs.a.factorizations = result.kkt_factor_counters.factorize_count;
+        legs.a.solves = result.kkt_factor_counters.solve_count;
 
         // THE RESULT'S OWN SNAPSHOT (M6 W5 T8.5): the solver-side
         // export_warm_start() is gone, and the capture it served now travels on
@@ -631,7 +635,7 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
         // disengaged one leaves `exported` default-constructed, which the two
         // warm legs then hand over and which is refused for its stamp -- loud,
         // where the old shape would have thrown at the export instead.
-        const std::optional<WarmStartData> snapshot = ipm.result().export_warm_start();
+        const std::optional<WarmStartData> snapshot = result.export_warm_start();
         exported = snapshot.value_or(WarmStartData{});
         legs.a.export_has_polish = find_ipm_polish(exported) != nullptr;
         legs.a.ran = true;
