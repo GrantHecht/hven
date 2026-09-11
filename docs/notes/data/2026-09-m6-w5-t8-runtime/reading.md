@@ -1916,3 +1916,143 @@ second failure** — 0.110 s of foreign `nice` on the sibling that the supersede
 `user`-only accounting would have reported as 0.114 % and passed. Nothing was
 ever signalled. **No disposition is offered — §11.1 and the owner have it.**
 Apple/Accelerate and Windows: UNOBSERVED.
+
+---
+
+## 14. The single-row instruction verdict (T8.9r-attrib5, 2026-09-11)
+
+§5 (iv) and §11 both stopped at the same wall: **the interior leg returns no
+instruction verdict**, because a `--engine interior` process writes 33 / 41 / 43
+rows depending on the arm and `perf stat` counts the process, and because the
+count is dominated by the first row's warm-up — the row the wall reading excludes
+by a pre-declared positional rule and a counter cannot. §11 measured that floor at
+**+1.27 %** on a byte-identical control pair, larger than every like-for-like step
+it measured, and said a single-row interior process would fix it and "is not
+reachable without a source change".
+
+**The lever is commit `d5931e8`; no library source changed.** It adds
+`--internal-run-one <cell> --engine interior --treatment T --internal-out <path>`,
+which runs EXACTLY ONE BASE ROW of the leg in process — no variant row, no other
+cell, no fork — and writes it under the leg's own header. Bench and test source
+only: both configs' `libhven.a` are byte-identical across it, the public leg
+reproduces the committed 43-row baseline **43 cells / 30 columns / 0 differences**
+twice and byte-identically outside `wall_s`, and
+`CorpusCells.TheSingleRowInteriorModeProducesTheLegsOwnRow` pins the mode's row
+against the leg's own for `hs071_x1_fixed/MakeParameter` in process.
+
+A fifth leg then measured **510a4bb (parent), 9cebbbe (culprit) and a
+byte-identical control** — the parent's executable copied to a second path —
+through it: five rounds, arm order rotated, argv length-matched, `taskset -c 2`,
+`MKL_NUM_THREADS=1`, solo under the lock, on §11's four dual-binding F7 cells ×
+three treatments, in four passes (A: instructions/branches/cycles/branch-misses/
+L1-icache; B: the Zen 3 front-end set; C: L1-D/LLC/dTLB/page-faults; S: a
+subtrahend process). Both arms' `libhven.a` reproduce `attribution/arms.txt`'s and
+`t84/arms.txt`'s **byte for byte** — the STOP condition passed. It is in
+`attribution-interior/t84/single-row/`.
+
+**THE LEVER WORKED: the floor fell from §11's +1.27 % to 0.30 % at worst and
+0.05 % typically**, four to twenty-five times tighter, measured on a
+byte-identical *binary* rather than a byte-identical library.
+
+**AND THE ANSWER IS NO.** With MKL's first-call clock calibration set aside
+inside each sampled profile, the culprit and the parent execute the same n20000
+row to within **0.3–0.6 %**, in the marginally FEWER direction, against a control
+pair separated by 0.02–0.14 %, and the three rounds' values **interleave between
+the arms**:
+
+| row (per-symbol, calibration set aside) | parent e9 | culprit e9 | control e9 | c/p | x/p |
+|---|---|---|---|---|---|
+| `f7_n20000_bound_neutral/MakeParameter` | 11.3220 | 11.2600 | 11.3065 | **0.99452** | 0.99863 |
+| `f7_n20000_bound_neutral/MakeConstraint` | 11.2270 | 11.1928 | 11.2247 | **0.99696** | 0.99980 |
+
+`perf diff --sort symbol` agrees from the other side: no named function's
+instruction share grew by more than **+0.34 %**, and MKL's Pardiso kernels,
+Eigen's assembly and hven's own functions all move by a tenth of a point either
+way. **NOT WORK-MOVED.** §11.1's LAYOUT-MOVED band (identical within 1e-4) is not
+reached either, so no §11.1 label is claimed from this leg.
+
+**THE WHOLE-PROCESS COUNTS SAY THE SAME THING LOUDER, AND ARE NOT BANKED.**
+Instructions are DOWN at the culprit on **eleven of eleven** scored rows, by 1.4 %
+to 14.4 %, five to forty-eight times the floor, with cycles flat (0.996–1.008
+against a control of 0.998–1.003). Read at face value that is an emphatic "not
+WORK-MOVED". It is not read at face value, because most of each number is not the
+row:
+
+| row | parent e9 | culprit e9 | control e9 | c/p | x/p |
+|---|---|---|---|---|---|
+| `f7_n1000_bound_physics/MakeConstraint` | 4.7528 | 4.0673 | 4.7498 | **0.85576** | 0.99935 |
+| `f7_n1000_bound_physics/RelaxBounds` | 4.7543 | 4.0686 | 4.7517 | **0.85577** | 0.99946 |
+| `f7_n5000_bound_physics/MakeParameter` | 6.0329 | 5.3862 | 6.0367 | **0.89280** | 1.00062 |
+| `f7_n5000_bound_physics/MakeConstraint` | 5.3205 | 4.7795 | 5.3221 | **0.89831** | 1.00030 |
+| `f7_n5000_bound_physics/RelaxBounds` | 5.3226 | 4.7593 | 5.3245 | **0.89418** | 1.00036 |
+| `f7_n10000_bound_neutral/MakeParameter` | 8.7929 | 8.2743 | 8.7938 | **0.94103** | 1.00011 |
+| `f7_n10000_bound_neutral/MakeConstraint` | 7.0281 | 6.7903 | 7.0341 | **0.96617** | 1.00086 |
+| `f7_n10000_bound_neutral/RelaxBounds` | 6.9885 | 6.7899 | 7.0095 | **0.97159** | 1.00301 |
+| `f7_n20000_bound_neutral/MakeParameter` | 12.2102 | 12.0365 | 12.2109 | **0.98577** | 1.00006 |
+| `f7_n20000_bound_neutral/MakeConstraint` | 14.1421 | 13.6474 | 14.1397 | **0.96502** | 0.99983 |
+| `f7_n20000_bound_neutral/RelaxBounds` | 14.1426 | 13.6620 | 14.1426 | **0.96602** | 1.00000 |
+
+**"THE FIRST ROW'S WARM-UP" NOW HAS A NAME, A FILE AND A LINE.** `perf record -g`
+on a single-row `hs071_x1_fixed` process — four variables, dense, **0.00018 s** of
+solve inside a warm leg — puts **89.5 %** of that whole process in `difftime`
+(63.6 %) and `mkl_serv_get_clocks_frequency` (25.9 %), both reached through
+`pthread_once` from **`hven::solvers::ensure_solver_initialized()`**: MKL's
+`dsecnd()` first-call clock calibration, called deliberately and once per process
+at **`src/drivers/solver_init.cpp:27`**, through
+**`src/drivers/interior_point_solver.cpp:798`** from the call site at **`:5535`**.
+It is a **wall-timed busy-wait of about 0.95 s**. The leg proper pays it ONCE for
+43 rows — its committed artifact reads 0.602 s on the first row, 0.033–0.042 s on
+the next `n1000` rows and 0.00018 s on `hs071_x1_fixed` — and **the single-row
+instrument pays it once per row**, so it is 17 % of an `n20000` process and **96 %
+of an `n1000` one**. Its instruction count measures how fast that loop's own code
+runs, not any work the solver does.
+
+**THE OBVIOUS REPAIR IS REFUSED, ON MEASURED GROUNDS.** Subtracting a single-row
+`hs071_x1_fixed` process (pass S: 4.612 / 3.899 / 4.614 e9, the control
+reproducing the parent to 0.05 %) would invert the table to **+2.3 % to +24.3 %** —
+WORK-MOVED. That difference is not taken, because the term is not constant: pass
+S's own five rounds spread **29.9 %** at the parent, the sampled profiles put the
+calibration at 2.9 e9 inside an `n20000` process at the same arm whose `hs071`
+process reads 4.6 e9, and one sample read 0.9 e9 where its siblings read 4.2. A
+term that moves by 5× is not a term to subtract. §5 (iv) refused a differencing
+instrument for a related reason; this leg refuses this one on its own evidence,
+and the per-symbol measurement above — which sets the calibration aside INSIDE
+each profile and assumes nothing about its size — stands in its place.
+
+**PASS B AND PASS C.** Front end: `de_dis_uop_queue_empty_di0` **UP 13.9–26.0 %**
+at the culprit on every row (control 0.99–1.00) and `ic_fetch_stall.ic_stall_any`
+**UP 2.5–8.0 %**, with both op-cache counters DOWN in step with the shorter
+instruction stream — a front-end signature on the whole-process scale, reported
+and not leant on, since it covers the calibration loop as much as the solve.
+Memory: `L1-dcache-load-misses` **+0.4 % to +0.9 %** (control ±0.5 %),
+`dTLB-load-misses` inside its own control (**no verdict**), and **`page-faults`
+identical to five significant figures on every row** (0.9949–1.0000, within-arm
+spread under 6 counts in 10 000) — so §12's **+53 149** and §13's **+41 627** extra
+faults are a property of the **43-row leg process**, not of one row.
+`LLC-load-misses` reads `<not supported>` on this PMU and is reported **ABSENT**,
+never zero-filled.
+
+**AND THE SECOND FINDING, WHICH BOUNDS THE FIRST: the +2.5 % step does not appear
+in a single-row process at all.** Wall (informational only, CLAUDE.md §7) reads
+culprit/parent **0.995–1.009** against a control of 0.999–1.002, and cycles read
+the same. Whatever carries the step needs the leg's own multi-row process to show
+up — which is a constraint on any mechanism, not a refutation of the step §5, §11,
+§12 and §13 each measured on four independent round sets.
+
+**THE TWELFTH ROW.** §11 scored eleven rows — four cells × three treatments minus
+`f7_n1000_bound_physics/MakeParameter`, excluded by its pre-declared positional
+rule. This leg runs all twelve (no row is any other row's warm-up here) and
+reports the twelfth without folding it in, because it is the one row whose counts
+are unstable: 0.914 / 4.203 / 4.199 / 3.835 / 4.188 e9 at the parent, a 79 %
+spread, where every other row spreads under 1.7 %. The cause is the calibration
+and it is positional — the **first process of each batch** pays a cheaper one, the
+arm order rotates with the round, and that first process is always this row at
+whichever arm leads. Noise in one unscored row, on a different arm each round;
+disclosed rather than smoothed.
+
+This addendum **asserts no wall clock**: instruction and branch counts are the
+asserted currency, cycles are informational, and the elapsed figures are printed
+only because they are the strongest evidence that this instrument does not see the
+step. No experiment was run — the brief's one permitted experiment was provisioned
+for a WORK-MOVED finding, and this is its opposite. **No disposition is offered —
+§11.1 and the owner have it.** Apple/Accelerate and Windows: UNOBSERVED.

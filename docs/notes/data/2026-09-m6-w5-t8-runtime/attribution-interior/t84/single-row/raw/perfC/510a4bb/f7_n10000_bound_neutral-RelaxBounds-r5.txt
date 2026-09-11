@@ -1,0 +1,16 @@
+# started on Fri Sep 11 17:49:13 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89ra5/bin/510a4bb/hven_sqp_corpus --internal-run-one f7_n10000_bound_neutral --engine interior --treatment RelaxBounds --internal-out /home/ghecht/Projects/hven/.scratch/w5t89ra5/art/C/510a4bb/f7_n10000_bound_neutral-RelaxBounds-r5.csv':
+
+        73,936,375      L1-dcache-load-misses:u                                               
+   <not supported>      LLC-load-misses:u                                                     
+           530,379      dTLB-load-misses:u                                                    
+            50,741      page-faults:u                                                         
+
+       0.966335066 seconds time elapsed
+
+       0.864659000 seconds user
+       0.097527000 seconds sys
+
+

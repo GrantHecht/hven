@@ -1,0 +1,7 @@
+FOLD PROOF 2026-09-11T21:03:06Z
+after true            LEG_RC=0  (expect 0)
+after exit 7          LEG_RC=7  (expect 7)
+after true            LEG_RC=7  (expect 7 -- NOT reset by a later success)
+after exit 3          LEG_RC=7  (expect 7 -- a SMALLER status never lowers it)
+after exit 9          LEG_RC=9  (expect 9)
+WRAPPER_EXIT=9

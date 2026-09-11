@@ -1,0 +1,17 @@
+# started on Fri Sep 11 17:36:59 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89ra5/bin/510a4bb/hven_sqp_corpus --internal-run-one f7_n10000_bound_neutral --engine interior --treatment MakeConstraint --internal-out /home/ghecht/Projects/hven/.scratch/w5t89ra5/art/A/510a4bb/f7_n10000_bound_neutral-MakeConstraint-r3.csv':
+
+     7,028,083,585      instructions:u                                                        
+     1,246,978,436      branches:u                                                            
+     2,900,042,114      cycles:u                                                              
+         1,788,783      branch-misses:u                                                       
+           436,281      L1-icache-load-misses:u                                               
+
+       0.966788900 seconds time elapsed
+
+       0.870945000 seconds user
+       0.091491000 seconds sys
+
+

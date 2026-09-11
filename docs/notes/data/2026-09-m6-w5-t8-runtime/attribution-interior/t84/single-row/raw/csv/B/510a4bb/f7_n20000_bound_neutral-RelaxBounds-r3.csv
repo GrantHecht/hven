@@ -1,0 +1,16 @@
+# hven_sqp_corpus provenance -- ENGINE interior (top-level interior-point driver)
+# binary: d5931e8e30e0
+# schema: 20
+# invocation: /home/ghecht/Projects/hven/.scratch/w5t89ra5/bin/510a4bb/hven_sqp_corpus --internal-run-one f7_n20000_bound_neutral --engine interior --treatment RelaxBounds --internal-out /home/ghecht/Projects/hven/.scratch/w5t89ra5/art/B/510a4bb/f7_n20000_bound_neutral-RelaxBounds-r3.csv
+# MKL_NUM_THREADS: 1
+# OMP_NUM_THREADS: 1
+# host: fedora
+# generated: 2026-09-11T21:40:56Z
+# levers: max_iters=200 print_level=10 partitions=1 qp_threads=1
+# levers: kkt_tol=1.000000000e-08 econ_tol=1.000000000e-08 icon_tol=1.000000000e-08 barr_tol=1.000000000e-08
+# levers: bound_relax_factor=1.000000000e-08
+# single row: this file carries EXACTLY ONE BASE ROW -- one cell, one treatment, the base variant -- written in process by --internal-run-one --engine interior. No variant row, no other cell, no fork.
+# key: column 0 is <cell_id>/<fixed_treatment>; this mode never writes the third (variant) segment
+# variant: base entry=optimize max_iters=<levers> restoration=off max_feas_rest=<unused> con_tol=<levers> acc_tols=<default>/<default>/<default> div_tol=<default>
+cell_id,family,n_nodes,window,taxonomy,status,iter_num,obj_val,kkt_inf,barr_inf,econ_inf,icon_inf,factorizations,solves,analyses,soc_steps,watchdog_activations,fixed_treatment,stop_reason,wall_s
+f7_n20000_bound_neutral/RelaxBounds,F7,20000,bound,neutral,CONVERGED,9,-4.058767313e-01,5.551597096e-10,9.900664080e-11,3.404097007e-15,0.000000000e+00,9,9,1,0,0,RelaxBounds,none,1.795485324

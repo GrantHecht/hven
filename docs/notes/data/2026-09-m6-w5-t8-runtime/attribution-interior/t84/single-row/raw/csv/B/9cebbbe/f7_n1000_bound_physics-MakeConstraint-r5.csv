@@ -1,0 +1,16 @@
+# hven_sqp_corpus provenance -- ENGINE interior (top-level interior-point driver)
+# binary: d5931e8e30e0
+# schema: 20
+# invocation: /home/ghecht/Projects/hven/.scratch/w5t89ra5/bin/9cebbbe/hven_sqp_corpus --internal-run-one f7_n1000_bound_physics --engine interior --treatment MakeConstraint --internal-out /home/ghecht/Projects/hven/.scratch/w5t89ra5/art/B/9cebbbe/f7_n1000_bound_physics-MakeConstraint-r5.csv
+# MKL_NUM_THREADS: 1
+# OMP_NUM_THREADS: 1
+# host: fedora
+# generated: 2026-09-11T21:41:59Z
+# levers: max_iters=200 print_level=10 partitions=1 qp_threads=1
+# levers: kkt_tol=1.000000000e-08 econ_tol=1.000000000e-08 icon_tol=1.000000000e-08 barr_tol=1.000000000e-08
+# levers: bound_relax_factor=1.000000000e-08
+# single row: this file carries EXACTLY ONE BASE ROW -- one cell, one treatment, the base variant -- written in process by --internal-run-one --engine interior. No variant row, no other cell, no fork.
+# key: column 0 is <cell_id>/<fixed_treatment>; this mode never writes the third (variant) segment
+# variant: base entry=optimize max_iters=<levers> restoration=off max_feas_rest=<unused> con_tol=<levers> acc_tols=<default>/<default>/<default> div_tol=<default>
+cell_id,family,n_nodes,window,taxonomy,status,iter_num,obj_val,kkt_inf,barr_inf,econ_inf,icon_inf,factorizations,solves,analyses,soc_steps,watchdog_activations,fixed_treatment,stop_reason,wall_s
+f7_n1000_bound_physics/MakeConstraint,F7,1000,bound,physics,optimal,5,-4.075173558e-01,2.380795236e-10,3.669294146e-11,1.081291806e-16,0.000000000e+00,5,5,1,0,0,MakeConstraint,none,0.957515848

@@ -1,0 +1,17 @@
+# started on Fri Sep 11 17:52:38 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89ra5/bin/510a4bb/hven_sqp_corpus --internal-run-one hs071_x1_fixed --engine interior --treatment MakeParameter --internal-out /home/ghecht/Projects/hven/.scratch/w5t89ra5/art/S/510a4bb/hs071_x1_fixed-MakeParameter-r4.csv':
+
+     4,245,397,636      instructions:u                                                        
+     1,231,966,804      branches:u                                                            
+     2,984,086,678      cycles:u                                                              
+            44,455      branch-misses:u                                                       
+             4,266      L1-icache-load-misses:u                                               
+
+       0.891830096 seconds time elapsed
+
+       0.885917000 seconds user
+       0.002969000 seconds sys
+
+

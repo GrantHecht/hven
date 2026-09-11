@@ -1,0 +1,83 @@
+PGREP_SEPARATE 2026-09-11T21:40:28Z -- taken OUTSIDE the lock by the caller; build/solve processes:
+PGREP_EMPTY_BUILD
+--- inside the lock from here ---
+PGREP_INLOCK 2026-09-11T21:40:28Z
+PGREP_EMPTY_BUILD
+FOREGROUND_START 2026-09-11T21:40:28Z perf pass=B round=3
+events: instructions:u,cycles:u,de_dis_uop_queue_empty_di0:u,op_cache_hit_miss.op_cache_miss:u,op_cache_hit_miss.op_cache_hit:u,ic_fetch_stall.ic_stall_any:u
+ENV_FOOTPRINT bytes=4374 md5=d2966e3d3cc4d732024d2b5df2d17169 pwd=/home/ghecht/Projects/hven shlvl=5
+ARM_ORDER pass=B round=3: control 510a4bb 9cebbbe
+ARGV_LEN arm=control row=f7_n1000_bound_physics/MakeParameter 276
+RUN  2026-09-11T21:40:28Z perfB arm=control row=f7_n1000_bound_physics/MakeParameter round=3
+ARGV_LEN arm=control row=f7_n1000_bound_physics/MakeConstraint 278
+RUN  2026-09-11T21:40:29Z perfB arm=control row=f7_n1000_bound_physics/MakeConstraint round=3
+ARGV_LEN arm=control row=f7_n1000_bound_physics/RelaxBounds 272
+RUN  2026-09-11T21:40:30Z perfB arm=control row=f7_n1000_bound_physics/RelaxBounds round=3
+ARGV_LEN arm=control row=f7_n5000_bound_physics/MakeParameter 276
+RUN  2026-09-11T21:40:31Z perfB arm=control row=f7_n5000_bound_physics/MakeParameter round=3
+ARGV_LEN arm=control row=f7_n5000_bound_physics/MakeConstraint 278
+RUN  2026-09-11T21:40:32Z perfB arm=control row=f7_n5000_bound_physics/MakeConstraint round=3
+ARGV_LEN arm=control row=f7_n5000_bound_physics/RelaxBounds 272
+RUN  2026-09-11T21:40:33Z perfB arm=control row=f7_n5000_bound_physics/RelaxBounds round=3
+ARGV_LEN arm=control row=f7_n10000_bound_neutral/MakeParameter 278
+RUN  2026-09-11T21:40:34Z perfB arm=control row=f7_n10000_bound_neutral/MakeParameter round=3
+ARGV_LEN arm=control row=f7_n10000_bound_neutral/MakeConstraint 280
+RUN  2026-09-11T21:40:35Z perfB arm=control row=f7_n10000_bound_neutral/MakeConstraint round=3
+ARGV_LEN arm=control row=f7_n10000_bound_neutral/RelaxBounds 274
+RUN  2026-09-11T21:40:36Z perfB arm=control row=f7_n10000_bound_neutral/RelaxBounds round=3
+ARGV_LEN arm=control row=f7_n20000_bound_neutral/MakeParameter 278
+RUN  2026-09-11T21:40:37Z perfB arm=control row=f7_n20000_bound_neutral/MakeParameter round=3
+ARGV_LEN arm=control row=f7_n20000_bound_neutral/MakeConstraint 280
+RUN  2026-09-11T21:40:39Z perfB arm=control row=f7_n20000_bound_neutral/MakeConstraint round=3
+ARGV_LEN arm=control row=f7_n20000_bound_neutral/RelaxBounds 274
+RUN  2026-09-11T21:40:41Z perfB arm=control row=f7_n20000_bound_neutral/RelaxBounds round=3
+ARGV_LEN arm=510a4bb row=f7_n1000_bound_physics/MakeParameter 276
+RUN  2026-09-11T21:40:43Z perfB arm=510a4bb row=f7_n1000_bound_physics/MakeParameter round=3
+ARGV_LEN arm=510a4bb row=f7_n1000_bound_physics/MakeConstraint 278
+RUN  2026-09-11T21:40:44Z perfB arm=510a4bb row=f7_n1000_bound_physics/MakeConstraint round=3
+ARGV_LEN arm=510a4bb row=f7_n1000_bound_physics/RelaxBounds 272
+RUN  2026-09-11T21:40:45Z perfB arm=510a4bb row=f7_n1000_bound_physics/RelaxBounds round=3
+ARGV_LEN arm=510a4bb row=f7_n5000_bound_physics/MakeParameter 276
+RUN  2026-09-11T21:40:46Z perfB arm=510a4bb row=f7_n5000_bound_physics/MakeParameter round=3
+ARGV_LEN arm=510a4bb row=f7_n5000_bound_physics/MakeConstraint 278
+RUN  2026-09-11T21:40:47Z perfB arm=510a4bb row=f7_n5000_bound_physics/MakeConstraint round=3
+ARGV_LEN arm=510a4bb row=f7_n5000_bound_physics/RelaxBounds 272
+RUN  2026-09-11T21:40:48Z perfB arm=510a4bb row=f7_n5000_bound_physics/RelaxBounds round=3
+ARGV_LEN arm=510a4bb row=f7_n10000_bound_neutral/MakeParameter 278
+RUN  2026-09-11T21:40:49Z perfB arm=510a4bb row=f7_n10000_bound_neutral/MakeParameter round=3
+ARGV_LEN arm=510a4bb row=f7_n10000_bound_neutral/MakeConstraint 280
+RUN  2026-09-11T21:40:50Z perfB arm=510a4bb row=f7_n10000_bound_neutral/MakeConstraint round=3
+ARGV_LEN arm=510a4bb row=f7_n10000_bound_neutral/RelaxBounds 274
+RUN  2026-09-11T21:40:51Z perfB arm=510a4bb row=f7_n10000_bound_neutral/RelaxBounds round=3
+ARGV_LEN arm=510a4bb row=f7_n20000_bound_neutral/MakeParameter 278
+RUN  2026-09-11T21:40:52Z perfB arm=510a4bb row=f7_n20000_bound_neutral/MakeParameter round=3
+ARGV_LEN arm=510a4bb row=f7_n20000_bound_neutral/MakeConstraint 280
+RUN  2026-09-11T21:40:54Z perfB arm=510a4bb row=f7_n20000_bound_neutral/MakeConstraint round=3
+ARGV_LEN arm=510a4bb row=f7_n20000_bound_neutral/RelaxBounds 274
+RUN  2026-09-11T21:40:56Z perfB arm=510a4bb row=f7_n20000_bound_neutral/RelaxBounds round=3
+ARGV_LEN arm=9cebbbe row=f7_n1000_bound_physics/MakeParameter 276
+RUN  2026-09-11T21:40:58Z perfB arm=9cebbbe row=f7_n1000_bound_physics/MakeParameter round=3
+ARGV_LEN arm=9cebbbe row=f7_n1000_bound_physics/MakeConstraint 278
+RUN  2026-09-11T21:40:59Z perfB arm=9cebbbe row=f7_n1000_bound_physics/MakeConstraint round=3
+ARGV_LEN arm=9cebbbe row=f7_n1000_bound_physics/RelaxBounds 272
+RUN  2026-09-11T21:41:00Z perfB arm=9cebbbe row=f7_n1000_bound_physics/RelaxBounds round=3
+ARGV_LEN arm=9cebbbe row=f7_n5000_bound_physics/MakeParameter 276
+RUN  2026-09-11T21:41:01Z perfB arm=9cebbbe row=f7_n5000_bound_physics/MakeParameter round=3
+ARGV_LEN arm=9cebbbe row=f7_n5000_bound_physics/MakeConstraint 278
+RUN  2026-09-11T21:41:02Z perfB arm=9cebbbe row=f7_n5000_bound_physics/MakeConstraint round=3
+ARGV_LEN arm=9cebbbe row=f7_n5000_bound_physics/RelaxBounds 272
+RUN  2026-09-11T21:41:03Z perfB arm=9cebbbe row=f7_n5000_bound_physics/RelaxBounds round=3
+ARGV_LEN arm=9cebbbe row=f7_n10000_bound_neutral/MakeParameter 278
+RUN  2026-09-11T21:41:04Z perfB arm=9cebbbe row=f7_n10000_bound_neutral/MakeParameter round=3
+ARGV_LEN arm=9cebbbe row=f7_n10000_bound_neutral/MakeConstraint 280
+RUN  2026-09-11T21:41:05Z perfB arm=9cebbbe row=f7_n10000_bound_neutral/MakeConstraint round=3
+ARGV_LEN arm=9cebbbe row=f7_n10000_bound_neutral/RelaxBounds 274
+RUN  2026-09-11T21:41:06Z perfB arm=9cebbbe row=f7_n10000_bound_neutral/RelaxBounds round=3
+ARGV_LEN arm=9cebbbe row=f7_n20000_bound_neutral/MakeParameter 278
+RUN  2026-09-11T21:41:07Z perfB arm=9cebbbe row=f7_n20000_bound_neutral/MakeParameter round=3
+ARGV_LEN arm=9cebbbe row=f7_n20000_bound_neutral/MakeConstraint 280
+RUN  2026-09-11T21:41:09Z perfB arm=9cebbbe row=f7_n20000_bound_neutral/MakeConstraint round=3
+ARGV_LEN arm=9cebbbe row=f7_n20000_bound_neutral/RelaxBounds 274
+RUN  2026-09-11T21:41:11Z perfB arm=9cebbbe row=f7_n20000_bound_neutral/RelaxBounds round=3
+FOREGROUND_END 2026-09-11T21:41:13Z perf pass=B round=3
+WRAPPER_EXIT=0

@@ -1,0 +1,18 @@
+# started on Fri Sep 11 17:40:17 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89ra5/bin/510a4bb/hven_sqp_corpus --internal-run-one f7_n5000_bound_physics --engine interior --treatment MakeConstraint --internal-out /home/ghecht/Projects/hven/.scratch/w5t89ra5/art/B/510a4bb/f7_n5000_bound_physics-MakeConstraint-r2.csv':
+
+     5,320,759,666      instructions:u                                                        
+     3,078,070,843      cycles:u                                                              
+       535,715,568      de_dis_uop_queue_empty_di0:u                                          
+        26,755,628      op_cache_hit_miss.op_cache_miss:u                                      
+     1,268,076,547      op_cache_hit_miss.op_cache_hit:u                                      
+     1,505,630,495      ic_fetch_stall.ic_stall_any:u                                         
+
+       0.967371671 seconds time elapsed
+
+       0.920064000 seconds user
+       0.043743000 seconds sys
+
+

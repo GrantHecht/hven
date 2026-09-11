@@ -1,0 +1,77 @@
+M6 W5 T8.9r-attrib5 -- THE THREE ARMS OF THE SINGLE-ROW INTERIOR LEG, AND THEIR
+VERIFICATION
+============================================================================
+
+THE LEVER IS A COMMIT ON m6, NOT A SCRATCH PATCH. `--internal-run-one <cell>
+--engine interior --treatment T --internal-out <path>` runs exactly one base row
+of the interior leg in process and writes it under the leg's own header. It is
+d5931e8 (`bench(corpus): M6 W5 T8.9r -- a single-row interior process ...`), bench
+and test source only; both configs' `libhven.a` are byte-identical across it
+(Release 60bfe03f79078eb8ab51fd099a7253f91e232714a008a52be0a40e49403fa30a, Debug
+3efe888df9b940bcdc02e85bb365e401c2e89130c96c17e06e565dd3a5de6035).
+
+THE ARMS ARE NOT AT THAT COMMIT. They are `git archive` extractions of 510a4bb
+and 9cebbbe with the lever's edits applied by `scripts/adapt_arm.py`, because the
+committed diff cannot be `git apply`-ed to trees that old: at both of those
+commits `write_interior_provenance` has no `parts2` parameter (that is T8.9's)
+and the surrounding text has moved. The script performs the SAME EDITS against
+anchors those trees do carry, and `adapted-lever.patch` is the resulting diff,
+retained verbatim.
+
+  THE TWO ARMS' ADAPTED PATCHES ARE BYTE-IDENTICAL TO EACH OTHER. 510a4bb's and
+  9cebbbe's `bench/bench_corpus.cpp` and `bench/ipm_corpus_leg.h` are themselves
+  byte-identical (9cebbbe changes the leg's `.cpp` only, in the field names it
+  reads off the result), so the lever is common-mode by construction and the
+  build log of each arm asserts the equality before it configures.
+
+  THE tests/ HALF OF THE LEVER IS NOT APPLIED. These builds are
+  -DHVEN_BUILD_TESTS=OFF and compile no test target.
+
+THE RECIPE, the T8.9r artifact's own, verbatim:
+
+  cmake -S <arm> -B <build> -G Ninja -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/bin/clang
+        -DHVEN_BUILD_TESTS=OFF -DHVEN_BUILD_BENCH=ON -DHVEN_A4_GATE=OFF
+  cmake --build <build> --target hven_sqp_corpus -j 8
+  CCACHE_DISABLE=1 on both, in the environment of both.
+
+  extraction  /home/ghecht/Projects/hven/.scratch/w5t89ra5/arm        (same path, both arms)
+  build       /home/ghecht/Projects/hven/.scratch/w5t89ra5/build-arm  (emptied before each)
+
+Submodules, checked against the repository's own pinned checkouts at both arms
+and printed in each build log -- the same two commits `../arms.txt` and
+`../../attribution/arms.txt` name:
+  dep/eigen bc3b39870ecb690a623a3f49149a358b95c5781d
+  dep/fmt   407c905e45ad75fc29bf0f9bb7c5c2fd3475976f
+
+THE ARMS
+arm       sha       what it is
+510a4bb   510a4bb   the PARENT: T8.3's code head, the base of T8.4
+9cebbbe   9cebbbe   the CULPRIT: T8.4 #2 -- IpmResult; solve(model, x0, budget) with
+                    phases; the model borrowed per call; the five phase-named
+                    entries, the mutable accessors and ConvergenceFlags removed
+control   510a4bb   the FLOOR: 510a4bb's executable COPIED to a second path. Its
+                    "step" against the parent is the instrument's own, measured on
+                    a byte-identical binary rather than merely a byte-identical
+                    library.
+
+THE MEASURED BINARIES
+arm       libhven.a sha256                                                  hven_sqp_corpus sha256
+510a4bb   6f0dc91e24328b7cc39770cd2f21647db64ec657e371e6109aa61412e5f26148  2b11b43ff6d24ee17af76712c08e1404c47892019fa32dcef432bc686e4f0b80
+9cebbbe   25027b509a02e0a5917875f271efab4bc11d79a1075f0f5b1110e5da3c4232cd  7c706df86bfe0f2ec0dd9137bdf023f11e309ac11d04aa663971833ed9cfb031
+control   6f0dc91e24328b7cc39770cd2f21647db64ec657e371e6109aa61412e5f26148  2b11b43ff6d24ee17af76712c08e1404c47892019fa32dcef432bc686e4f0b80
+
+BOTH ARMS' `libhven.a` REPRODUCE THE EARLIER LEGS' BYTE FOR BYTE -- 510a4bb's is
+`../../attribution/arms.txt`'s a04 and `../arms.txt`'s b01, 9cebbbe's is
+`../arms.txt`'s b03. That is the check the brief made a STOP condition: the lever
+touches no library code, and the library each arm links is the library the wall
+legs measured. The build logs assert it inline
+(`logs/A01-build-510a4bb.log`, `logs/A02-build-9cebbbe.log`), and the control's
+executable is `cmp`-equal to the parent's.
+
+The arm directory names are the same length (bin/510a4bb, bin/9cebbbe,
+bin/control), which is what keeps the measured child's argv byte length identical
+across arms for the same row -- the layout lock `../../attribution/raw/arm_leg.sh`
+introduced. Every run prints its own ARGV_LEN into the batch log.
+
+Apple/Accelerate and Windows: UNOBSERVED.
