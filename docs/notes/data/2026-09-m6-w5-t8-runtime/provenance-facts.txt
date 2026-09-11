@@ -1,0 +1,58 @@
+### lscpu
+Architecture:                            x86_64
+CPU op-mode(s):                          32-bit, 64-bit
+Address sizes:                           48 bits physical, 48 bits virtual
+Byte Order:                              Little Endian
+CPU(s):                                  16
+On-line CPU(s) list:                     0-15
+Vendor ID:                               AuthenticAMD
+Model name:                              AMD Ryzen 7 5800X3D 8-Core Processor
+CPU family:                              25
+Model:                                   33
+Thread(s) per core:                      2
+Core(s) per socket:                      8
+Socket(s):                               1
+Stepping:                                2
+Frequency boost:                         enabled
+CPU(s) scaling MHz:                      69%
+CPU max MHz:                             3401.0000
+CPU min MHz:                             575.9760
+BogoMIPS:                                6799.95
+Virtualization:                          AMD-V
+L1d cache:                               256 KiB (8 instances)
+L1i cache:                               256 KiB (8 instances)
+L2 cache:                                4 MiB (8 instances)
+L3 cache:                                96 MiB (1 instance)
+NUMA node(s):                            1
+NUMA node0 CPU(s):                       0-15
+
+### governor / frequency state (all cores)
+cpu0 governor=powersave min=1755355 max=3401000 cur=3374690
+cpu2 governor=powersave min=1755355 max=3401000 cur=3371381
+cpu10 governor=powersave min=1755355 max=3401000 cur=3374846
+boost=1
+smt=on  active=1
+core 2 thread siblings: 2,10
+
+### kernel / os
+Linux fedora 7.1.9-200.fc44.x86_64 #1 SMP PREEMPT_DYNAMIC Wed Aug 19 17:41:40 UTC 2026 x86_64 GNU/Linux
+Fedora release 44 (Forty Four)
+perf_event_paranoid=2
+perf: perf version 7.1.9-200.fc44.x86_64
+THP: always [madvise] never
+
+### toolchain
+clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+Target: x86_64-redhat-linux-gnu
+cmake version 4.3.0
+ninja 1.13.2
+
+### MKL
+/opt/intel/oneapi/mkl/2025.3
+/opt/intel/oneapi/mkl/2026.0
+/opt/intel/oneapi/mkl/2026.1
+/opt/intel/oneapi/mkl/latest
+#define __INTEL_MKL__          2026
+#define __INTEL_MKL_MINOR__    0
+#define __INTEL_MKL_UPDATE__   1
+#define INTEL_MKL_VERSION      20260100

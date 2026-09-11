@@ -1,0 +1,22 @@
+# W5 T8.9r -- the leg-2 (--repeat) calibration transcript.
+# 11.3 (i): N is raised against median_se_pct -- the standard error of the REPORTED
+# median as a percentage of it -- NOT spread_pct, which is monotone in N by construction.
+# A arm ALONE (102f729), solo, taskset -c 2, MKL_NUM_THREADS=OMP_NUM_THREADS=1, warmup 1,
+# trace off. worst_median_se_pct is the worst of the 27 cells; the target is <= 0.5 %.
+# Source: logs/L3-calibration.log (retained).
+engine,repeat_N,worst_median_se_pct,worst_spread_pct,corpus_sum_of_medians_s,elapsed_s,adopted
+ipm,125,1.263,72.175,0.038063,4.88,no
+ipm,250,0.840,84.187,0.037845,9.65,no
+ipm,500,4.967,1854.368,0.037720,19.20,no
+ipm,1000,0.355,101.242,0.038182,38.82,YES
+ipm,2000,0.416,583.277,0.038374,78.05,no
+walk,125,1.493,81.353,0.023127,2.98,no
+walk,250,0.917,103.871,0.023299,5.97,no
+walk,500,3.004,1183.525,0.023083,11.79,no
+walk,1000,0.419,201.494,0.023452,23.95,YES
+walk,2000,0.301,92.934,0.023422,47.91,no
+ssn,125,1.215,75.279,0.030583,3.94,no
+ssn,250,0.833,87.933,0.030778,7.89,no
+ssn,500,0.528,80.750,0.030751,15.73,no
+ssn,1000,1.159,842.478,0.030629,31.32,no
+ssn,2000,0.390,540.784,0.031472,64.27,YES

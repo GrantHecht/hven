@@ -1,0 +1,18 @@
+# started on Fri Sep 11 09:49:56 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89r/arm-base/build/bench/hven_sqp_corpus --hs --engine ssn --repeat 2000 --hs-warmup 1 --hs-trace sink --csv /home/ghecht/Projects/hven/.scratch/w5t89r/art/raw/leg2/ssn/sink/passB-base-r2.csv':
+
+   420,693,118,588      instructions:u                                                        
+   205,789,696,226      cycles:u                                                              
+    44,579,717,059      de_dis_uop_queue_empty_di0:u                                          
+    37,548,101,125      op_cache_hit_miss.op_cache_miss:u                                      
+    42,117,422,266      op_cache_hit_miss.op_cache_hit:u                                      
+    85,504,779,422      ic_fetch_stall.ic_stall_any:u                                         
+
+      61.916597749 seconds time elapsed
+
+      61.092386000 seconds user
+       0.397025000 seconds sys
+
+

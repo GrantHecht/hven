@@ -1,0 +1,233 @@
+M6 W5 T8.9r -- THE GROUP-1 RUNTIME PROTOCOL: PROVENANCE (CLAUDE.md section 7)
+=============================================================================
+Read this first: it governs every number in this directory.
+
+WHAT THIS DIRECTORY IS
+  The ONE solo runtime measurement of W5 T8's group 1 (T8.1-T8.9). Group 1
+  asserts no runtime number anywhere else: every pin in it is a COUNTER pin,
+  and the migration guide's group-1 section says so. This is where the runtime
+  question is answered, on the recipe and the bands of
+  docs/notes/2026-09-m6-w5-t6-ownership.md section 11 (bands 11.1, the
+  disposition table 11.1.1, LAYOUT-vs-WORK 11.2, the two legs 11.3), with the
+  T6 close reading (docs/notes/2026-08-m6-ledger.md) as the table's shape.
+
+  IT IS A MEASUREMENT, NOT A DISPOSITION. Where a band reads MOVED or
+  UNRESOLVED, or where a veto trigger fires, this directory reports it with its
+  numbers and stops. Section 11.5 and the owner decide what follows.
+
+THE ARMS, AND WHAT EACH ONE IS
+  THREE arms, each a "git archive" extraction built from an EMPTY build
+  directory at ONE absolute path, Release, the same flags, CCACHE_DISABLE=1.
+
+  arm-base            102f729  the post-T7 head -- the SQP legs' A arm
+  arm-head            e51a7e0  the group-1 head (T8.9 fix1) -- the B arm
+  arm-interior-base   b9848bf  the T8.8 code head -- the interior leg's A arm
+
+  DOCS-ONLY COMMITS SIT ON TOP OF THE MEASURED HEAD. The task's BASE is
+  335a666 (the T8.9 CLOSE ledger commit); its code head is e51a7e0. The diff
+  335a666..e51a7e0 touches three files, all under docs/notes/ -- so the
+  compiled tree that produced every number here IS e51a7e0, and 335a666's tree
+  differs from it in no compiled object.
+
+  EXECUTABLE AND LIBRARY HASHES, RETAINED. The corpus binary's "# binary:"
+  provenance stamp reads "git describe" at CONFIGURE time from the source
+  tree; a "git archive" extraction has no .git, so all three arms stamp
+  "unknown" and the stamp cannot tell them apart. (This is T8.8's deviation 8
+  in a cleaner form: there, both arms stamped the WORKING TREE's sha, which
+  was worse -- it named a commit neither arm was.) The hashes below are what
+  identifies an arm.
+
+    arm-base            hven_sqp_corpus  sha256 489def040105b8c98427b8cbc83d9ab1a0c05037c620938b6706ff36d794c84f
+    arm-base            libhven.a        sha256 735eea1d9d51ef93ba2e512611475f758c2b60729f29bec0dda9e75fda9a8f7f
+    arm-head            hven_sqp_corpus  sha256 41d2c72a290e52ce04afdff3138a1858ad08a745807e01e3ccb59406b7abdb86
+    arm-head            libhven.a        sha256 60bfe03f79078eb8ab51fd099a7253f91e232714a008a52be0a40e49403fa30a
+    arm-interior-base   hven_sqp_corpus  sha256 560914cd873dda31a684c1e4673ea109ee2baeb40d7b0963d63d1f5ad0d47243
+    arm-interior-base   libhven.a        sha256 d236166ec9dbf84a395f220049ed7215e5e418850ca82a211312afd32a47b3fe
+
+  AND THE BASE ARM TIES THIS LEG TO T6's. arm-base's libhven.a sha256 begins
+  735eea1d9d51ef93 -- the sha16 the T6 close record gives for the post-(d)
+  revert arm's library (ledger, T6 close line). T7 was comment-only, so the
+  library at 102f729 is the library at the T6 close head 1997159, and the
+  composed chain 50f616a -> 1997159 -> 102f729 -> e51a7e0 has NO unmeasured
+  code gap. It also means this leg's build recipe reproduces T6's flag regime,
+  which is what makes the two readings composable at all.
+
+THE BUILD RECIPE, IDENTICAL ON ALL THREE ARMS
+  cmake -S <arm> -B <arm>/build -G Ninja
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_CXX_COMPILER=/usr/bin/clang++
+        -DCMAKE_C_COMPILER=/usr/bin/clang
+        -DHVEN_BUILD_TESTS=OFF -DHVEN_BUILD_BENCH=ON -DHVEN_A4_GATE=OFF
+  cmake --build <arm>/build --target hven_sqp_corpus -j 8
+
+  HVEN_FP_MODE is left at its default, SAFER_FAST -- the same value T6's arms
+  passed explicitly. HVEN_BUILD_TESTS=OFF is the ONE recipe difference from
+  T6's arms; it changes no compile flag on the library or on bench (the
+  uniform regime is set at the top level), and it removes a gtest FetchContent
+  that would need the network in a scratch tree. The libhven.a hash agreeing
+  with T6's is the evidence that it changed nothing that matters here.
+
+  Submodules: "git archive" carries no submodule content, so dep/eigen
+  (bc3b39870ecb690a623a3f49149a358b95c5781d) and dep/fmt
+  (407c905e45ad75fc29bf0f9bb7c5c2fd3475976f) were extracted from the
+  superproject's own checkouts at those commits. All three arms name the SAME
+  two commits -- checked against each arm's tree, not assumed.
+
+TOOLCHAIN AND HARDWARE
+  clang 22.1.8 (Fedora 22.1.8-4.fc44); CMake 4.3.0; Ninja 1.13.2; ccache
+  DISABLED for every configure and every build.
+  Intel oneAPI MKL 2026.1 (INTEL_MKL_VERSION 20260100),
+  /opt/intel/oneapi/mkl/latest.
+  AMD Ryzen 7 5800X3D, 8 cores / 16 threads, Zen 3, 96 MiB L3 (3D V-Cache),
+  1 NUMA node; Fedora 44, kernel 7.1.9-200.fc44.x86_64.
+  cpufreq governor "powersave" on every core, min 1755355 kHz, max 3401000
+  kHz, boost enabled; observed current frequency ~3.37 GHz on cpu2 and on its
+  sibling during the window. SMT is ON; the pinned core's thread siblings are
+  2,10, and cpu10 was left idle for the whole window.
+  perf 7.1.9-200.fc44.x86_64, perf_event_paranoid = 2 -- user-space ":u"
+  events only, which is exactly what section 11.2's two event sets ask for.
+  transparent_hugepage: always [madvise] never.
+
+  APPLE / ACCELERATE: UNOBSERVED. Every number in this directory is
+  MKL-on-Linux. No Apple value is inferred, interpolated or zero-filled from
+  it, and none is quoted anywhere here.
+  WINDOWS: UNOBSERVED, for the same reason.
+  INTEL pass-B events (topdown-fe-bound, idq.dsb_uops / idq.mite_uops):
+  UNOBSERVED -- no leg has run on such a machine. The pass-B set recorded here
+  is the Zen 3 one section 11.2 fixes for this box, and it is exactly six
+  events because a seventh multiplexes on Zen 3's six programmable counters.
+
+THE SOLO RULE, AS DECLARED (CLAUDE.md section 7)
+  This leg ASSERTS wall clock, so it ran ALONE. Every timed leg:
+    * one solve at a time, one process;
+    * "taskset -c 2", with the SMT sibling cpu10 left idle;
+    * MKL_NUM_THREADS=1 and OMP_NUM_THREADS=1 in every process;
+    * held under "flock /tmp/box-build.lock" for the WHOLE alternating
+      sequence -- the lock is never released between the A and the B arm of a
+      round, nor between rounds;
+    * "pgrep -af 'cmake|ninja|ctest|hven_|codex|clang'" run SEPARATELY before
+      the lock was taken, again INSIDE the lock, and again between every
+      alternation. Every one of those captures is in the leg's log, verbatim,
+      with its UTC timestamp.
+  NO CO-RUN PROTOCOL WAS USED and none is declared: nothing here was measured
+  under contention. Every wall number here is therefore quotable; no number
+  from any co-run appears anywhere in this directory.
+
+  WHAT THE pgrep CAPTURES CONTAIN, so a reader is not misled by a non-empty
+  list. They are never empty, and none of what they show is load:
+    * the driving shell itself -- the agent's own "bash -c" wrapper, which
+      matches "codex" on its exported environment variables, not on any
+      running Codex work;
+    * "earlyoom", whose own command line lists "clang" among the processes it
+      would PREFER to kill -- a daemon, not a compile;
+    * two bash "sleep"-loop waiters left from earlier sessions, idle;
+    * "clangd --background-index" language servers, idle;
+    * the Codex app-server / broker, idle.
+  Nothing that BUILDS or SOLVES appeared at any check. No foreign process was
+  signalled or killed at any point, and none needed to be.
+
+  THE SOLO WINDOW: 2026-09-11, opened at the calibration (12:22 UTC) and
+  closed after the attribution probe (15:0x UTC). Announced in
+  .superpowers/w5-t8-9r-progress.md before it opened, and closed there.
+
+THE LEGS, AND WHAT EACH ONE MEASURES
+  LEG 1 -- the U0 27-cell corpus (docs/notes/data/2026-08-m6-w1-acceptance/
+  u0-replay-cells.txt line 3), "--engine walk|ssn|ipm", 3x alternating
+  A/B/A/B/A/B; per-cell MEDIAN of the three runs per arm; corpus = the SUM of
+  the per-cell medians, never a mean of ratios. This is the WALL-CLOCK leg:
+  its cells are seconds-scale and its "wall_s" column brackets the SOLVE alone
+  (bench/corpus_cells.h, "timed_row" -- the KKT gate sits deliberately outside
+  that window).
+  Pass A and pass B ran on THREE designated cells per mode --
+  f7_n1000_bound_neutral, f7_n5000_bound_neutral, f7_n20000_bound_neutral --
+  each as ONE process through "--internal-run-one", so the counts are that
+  cell's own setup and solve and not the fork/exec parent's. T6 measured one
+  perf cell per mode; this is three per mode, spanning a 20x size range.
+
+  LEG 2 -- the 27 Hock-Schittkowski problems (tests/sqp/support/hs_problems.h)
+  driven through the SQP solver by "--hs --repeat N", in BOTH trace variants
+  ("--hs-trace off" and "--hs-trace sink"), kept separately identifiable as
+  11.3 requires rather than averaged together. N is the calibrated count; see
+  calibration.csv.
+
+  THE INTERIOR LEG -- "--engine interior", b9848bf -> e51a7e0. Runs in
+  process, with no fork, so a perf capture counts exactly the leg.
+
+THE INTERIOR LEG'S BASE ARM, AND WHY IT IS b9848bf
+  The interior leg DOES NOT EXIST at 102f729: T8.1 created it and T8.9 rewrote
+  it. So it has no arm at the SQP legs' base, and the honest base is the FIRST
+  head at which the leg exists with the same row keys -- the T8.9 close's
+  predecessor b9848bf (the T8.8 code head), whose leg carries 41 rows. The
+  head's leg carries 43: the two "parts2" rows are new at T8.9, have no base,
+  and are reported head-only, informational, with NO band. The 41 row keys are
+  the join.
+
+  WHAT THAT ARM MEASURES is therefore T8.9's harness rewrite (wrapper ->
+  direct construction) and nothing else. Three terms of T6 section 11 do not
+  transfer to it, and the T8.9 brief's A7 said so before any number was taken:
+   (i)   the "identical harness SOURCE" term cannot hold -- the head harness
+         does not compile against the base library. EACH ARM RUNS ITS OWN
+         HARNESS SOURCE, and both executables' sha256 are retained above. What
+         saves the comparison is that "wall_s" brackets the SOLVE only
+         (transcription precedes t0); the route equivalence rests on T8.9's
+         41-row identity pin, not on this leg.
+   (ii)  "--repeat" is HS-only (bench/bench_corpus.cpp). The HS071 and
+         infeasible rows are millisecond-scale and carry NO wall band; they
+         are listed with their ratios and nothing is claimed from them. The F7
+         rows are seconds-scale and carry the band under leg-1 rules.
+   (iii) the warm rows time the measured solve only, and the callback lever is
+         interior-only.
+
+  THE HARNESS-PER-ARM QUESTION FOR THE THREE SQP ARMS, ANSWERED SEPARATELY.
+  bench/bench_corpus.cpp DID change between 102f729 and e51a7e0 (+327 lines),
+  but every hunk is outside the timed window: the file banner, the includes,
+  the using-declarations, the usage text, "write_outcome" and "parse_status"
+  (both post-solve CSV code), the HsRow status type, and the interior leg's
+  own dispatch. The timed window is bench/corpus_cells.h "timed_row", which
+  brackets "solve_target()" alone; inside it the only change is that the
+  fourth argument of "driver.solve" became a SolveBudget aggregate -- which is
+  the library API under measurement, not a change of measurement method.
+
+WHAT THIS LEG DOES NOT MEASURE, SAID PLAINLY
+  THE TOP-LEVEL IPM's RUNTIME ACROSS T8.1-T8.8 HAS NO BASE ARM AND IS NOT
+  MEASURED HERE. The interior leg reaches back only to b9848bf. The "ipm" arm
+  of leg 1 is the SQP corpus's interior-point QP tier, NOT the top-level
+  interior-point solver. What covers T8.1-T8.8 on the top-level IPM is T8.1's
+  coverage rule and the identity replays, for CORRECTNESS; its RUNTIME is what
+  the M7 benchmark suite will measure.
+
+  AND ONE CODE CHANGE MAY STILL LAND IN GROUP 1 AFTER THIS LEG: the owner's
+  pending decision on restoring detail/interior/jet.h as a standalone facility
+  (a header plus a test TU; nothing in bench/ includes it and no src/ object
+  would change). If it lands, its runtime neutrality is proven by P-SYM byte
+  identity of libhven.a and both corpus executables against e51a7e0 -- NOT by
+  re-running this leg. This reading stands for the group-1 head whichever way
+  that decision goes.
+
+WHAT IS IN HERE
+  PROVENANCE.txt         this file
+  calibration.csv        the leg-2 --repeat calibration transcript, N per mode
+  comparator.py          reproduces every table in reading.md from raw/ and
+                         perf/ alone
+  comparator.py.sha256   its hash
+  reading.md             the reading: the tables, the bands, the LAYOUT/WORK
+                         classification, the veto check, the composed chain,
+                         and what is NOT claimed
+  raw/                   EVERY run's CSV, not medians only
+  perf/                  EVERY "perf stat" capture, raw
+  logs/                  every leg's log: the alternating order with UTC
+                         timestamps, the lock, and the pgrep captures
+  scripts/               the leg wrappers themselves, as they ran -- common.sh
+                         (the worst-fold, sourced by every leg AND by the fold
+                         proof, so the proof exercises the same code), the arm
+                         build, the calibration, the four legs and the
+                         attribution probe
+  provenance-facts.txt   the raw lscpu / cpufreq / kernel / MKL capture the
+                         hardware section above is written from
+
+  REPRODUCE:  cd <this directory> && python3 comparator.py --root . --out -
+  The comparator exits non-zero if any input is missing or unparseable, and
+  every leg wrapper worst-folds that status into its own exit. The fold was
+  PROVED both ways before any timed run: logs/L2-fold-proof-fail.log ends
+  WRAPPER_EXIT=3 from a stubbed failing comparator with SUCCEEDING steps after
+  it, and logs/L2-fold-proof-pass.log ends WRAPPER_EXIT=0 on the control.

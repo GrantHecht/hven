@@ -2900,14 +2900,59 @@ this table is the index.
 anywhere: CLAUDE.md §7 makes counters the asserted currency and wall-clock
 informational, and the `wall_s` column is the one column excluded from every
 identity comparison below. The group's runtime neutrality is measured ONCE, by a
-separate solo leg — **T8.9r** — on the FINAL group-1 head, after T8.9's fix round
-closes: pass A + pass B over the three SQP arms AND the interior leg (calibrated
-in its own right — the interior leg is a FOURTH arm, not one of T6's three),
-post-T7 head `102f729` → the group-1 head, the T6 §11 recipe and bands, with the
-evidence artifact under `docs/notes/data/2026-09-m6-w5-t8-runtime/` carrying the
-§7 provenance header. The settler's `docs(m6): W5 T8 group 1 CLOSED` ledger
-commit follows the lane's reading of that artifact. **Nothing here is a runtime
-claim until it exists.**
+separate solo leg — **T8.9r** — on the FINAL group-1 head: pass A + pass B over
+the three SQP arms AND the interior leg (calibrated in its own right — the
+interior leg is a FOURTH arm, not one of T6's three), post-T7 head `102f729` →
+the group-1 head `e51a7e0`, the T6 §11 recipe and bands. **That leg has now
+run**; its evidence is `docs/notes/data/2026-09-m6-w5-t8-runtime/`
+(`PROVENANCE.txt` first, then `reading.md`), and its reading is below. The
+settler's `docs(m6): W5 T8 group 1 CLOSED` ledger commit follows the lane's read
+of that artifact.
+
+### T8.9r — the runtime reading
+
+Solo, one solve at a time, `taskset -c 2`, `MKL_NUM_THREADS=OMP_NUM_THREADS=1`,
+3× alternating A/B, the lock held across each whole sequence. Per-cell median of
+three runs; corpus = the sum of per-cell medians.
+
+| leg | mode | corpus ratio | outside 0.99–1.01 | band | instructions |
+|---|---|---|---|---|---|
+| leg 1 — U0, 27 cells (the wall-clock leg) | ipm | **0.99992** (14.8418 → 14.8406 s) | **0/27** | **FLAT** | **+0.032…+0.046 %** |
+| leg 1 | ssn | **0.99990** (11.0930 → 11.0918 s) | **0/27** | **FLAT** | **+0.065…+0.087 %** |
+| leg 1 | walk | **1.00093** (6.0222 → 6.0278 s) | **0/27** | **FLAT** | **+0.092…+0.133 %** |
+| leg 2 — 27 HS, `--repeat` | ipm off / sink | 0.9917 / 0.9912 | 23/27, 24/27 | MOVED (faster) | no verdict at 1e-4 |
+| leg 2 | ssn off / sink | 0.9782 / 0.9816 | 20/27, 17/27 | MOVED (faster) | no verdict at 1e-4 |
+| leg 2 | walk off / sink | 0.9798 / 0.9829 | 24/27, 16/27 | MOVED (faster) | no verdict at 1e-4 |
+| interior — `b9848bf` → head, F7 rows | — | **1.0002** | 6/31 | UNRESOLVED | no verdict at 1e-4 |
+
+Composed with the T6 close (`50f616a` → `1997159`), arithmetically and with no
+third arm: **ipm 1.00222, ssn 1.00140, walk 1.00023 — all inside ±0.5 %.** T7
+was comment-only and `arm-base`'s `libhven.a` hash is the T6-era one, so the two
+spans meet end to end with no unmeasured code gap.
+
+**What a consumer should take from it.** The wall is flat: on the leg §11.3
+leaves as the wall-clock leg, no cell of any mode moved outside 0.99–1.01, and
+the leg's own counters are byte-identical between the arms across 75 columns ×
+27 cells × 3 rounds × 3 modes. **Group 1 costs you no measurable wall time.**
+
+**What is NOT settled, and is with the owner.** Leg 1's *instruction* counts are
+reproducibly up by 0.03–0.13 % — outside §11.1's 1e-4 identity band, which makes
+it WORK-MOVED and a veto trigger under §11.1.1, notwithstanding the FLAT timing.
+An attribution probe (`--dump-qp`, which solves nothing) shows startup, model
+construction and QP assembly are instruction-identical (+413 instructions, a
+constant), so the increase is inside the solve: the same solve, the same number
+of steps, slightly more instructions per unit of work, absorbed by the front end.
+The interior leg reads UNRESOLVED with two banded veto candidates. **Both go to
+§11.5 and the owner with their numbers; this guide records the measurement, not
+a disposition.**
+
+**And what the leg does not cover, said plainly:** the top-level IPM's runtime
+across T8.1–T8.8 has NO base arm and is NOT measured — the interior leg reaches
+back only to `b9848bf`, and leg 1's `ipm` arm is the SQP corpus's QP tier, not
+the top-level solver. T8.1's coverage rule and the identity replays are what
+cover those tasks for correctness; the M7 benchmark suite is what will measure
+them for runtime. Apple/Accelerate, Windows and the Intel pass-B events are
+**UNOBSERVED**.
 
 | task | concern | what changed for a caller | the pin |
 |---|---|---|---|
