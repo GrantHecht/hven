@@ -1,0 +1,64 @@
+W5 T8.9r-attrib4 -- THE SCORING RULES, FIXED BEFORE THE FIRST TIMED SAMPLE
+==========================================================================
+
+These are the brief's rules, written down here and hashed before this leg's
+first timed run exists. Nothing below is decided after looking at a number.
+
+R3 (INHERITED, POSITIONAL). The first row every `--engine interior` process
+writes is EXCLUDED from every corpus figure and every per-row table, BY
+POSITION, not by name. The cell order is fixed by the measurement pin so that
+row is the SAME row at every arm: `f7_n1000_bound_physics/MakeParameter`.
+Eleven rows are scored.
+
+THE ARMS, and the pairing. Four arms measured in ONE set of rounds so all four
+are paired inside every batch:
+   a1 base___  102f729   the interior leg's base
+   a2 head___  e51a7e0   the group-1 head
+   a3 e1_____  e51a7e0 + experiment-E1.patch
+   a4 e2_____  e51a7e0 + experiment-E2.patch
+FIVE rounds, one batch per round, arm order ROTATED by (round-1).
+
+THE PER-ROW STATISTIC is the MEDIAN of the five rounds' wall_s for that row at
+that arm. The corpus figure is the SUM over the eleven scored rows of those
+medians.
+
+RECOVERY, per the brief, per row and per corpus:
+    RECOVERY(E) = 1 - (E/base - 1) / (head/base - 1)
+where base = a1's figure, head = a2's figure, E = the experiment arm's. It is
+reported per row and as the MEDIAN over the eleven scored rows, and separately
+on the corpus figure. A recovery is reported with its sign; a NEGATIVE recovery
+(the experiment arm slower than the head) is reported as such and is not
+clipped.
+
+E3 RUNS ONLY IF the better of E1 and E2 recovers LESS THAN 80 % of the corpus
+step. If it runs it is: `perf record -e page-faults -g --call-graph dwarf` on
+e51a7e0 for one large cell, reported as a site list by user stack; and
+`perf stat -e dTLB-load-misses,dTLB-store-misses,dTLB-loads,L1-dcache-load-misses`
+on a culprit-vs-parent pair. At most ONE further experiment, and only if a site
+is obvious.
+
+THE CORRECTNESS GATE, for every patched arm, decided before it is run: the
+whole 43-row `--engine interior` CSV at the patched arm must be IDENTICAL to
+e51a7e0's in every column except `wall_s`. Any single differing cell fails the
+gate and the arm's wall figures are reported as UNGATED. `hven_tests` is NOT
+built at any arm (-DHVEN_BUILD_TESTS=OFF), so no unit suite is claimed here.
+
+THE RECIPE CALIBRATION, decided before it is run: an unpatched e51a7e0 built by
+this leg's recipe must reproduce `attribution/arms.txt`'s libhven.a sha256
+(60bfe03f79078eb8ab51fd099a7253f91e232714a008a52be0a40e49403fa30a). If it does
+not, this leg STOPS and reports that instead.
+
+THE SOLO DISCIPLINE. Everything asserting wall clock runs under the T8.9r fix1
+R2 discipline: one solve at a time, `taskset -c 2`, MKL_NUM_THREADS=1,
+OMP_NUM_THREADS=1, the box lock held for the whole batch, the driving shell
+pinned off cpu2 and cpu10. THE IDLE ACCOUNTING IS CORRECTED per astra's item 7
+(`.superpowers/w5-t8-9r-fix1-review-astra.md`): foreign task time counts
+`user + nice + steal + guest` on BOTH cpu2 and cpu10 -- not `user` alone -- with
+only the measured run's OWN user time subtracted on cpu2, and pids present in
+one snapshot of a batch but not the other are reported as TRANSIENTS rather
+than silently dropped. A batch whose window fails the 0.5 % bar on either core
+is RE-RUN; nothing is ever signalled.
+
+THE FAULT PASS is separately declared as CO-RUN TOLERANT: `perf stat -e
+page-faults,minor-faults` asserts a deterministic per-process counter, not wall
+clock, and its wall column is not quoted.

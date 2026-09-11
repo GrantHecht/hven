@@ -1,0 +1,10 @@
+# started on Fri Sep 11 16:37:50 2026
+
+5667347,,dTLB-load-misses:u,6743362669,100.00,,
+<not supported>,,dTLB-store-misses:u,0,100.00,,
+12725879,,dTLB-loads:u,6743362669,100.00,,
+<not supported>,,dTLB-stores:u,0,100.00,,
+764240499,,L1-dcache-load-misses:u,6743362669,100.00,,
+23791429345,,L1-dcache-loads:u,6743362669,100.00,,
+58196079989,,instructions:u,6743362669,100.00,,
+20600165159,,cycles:u,6743362669,100.00,,

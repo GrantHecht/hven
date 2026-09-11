@@ -1,0 +1,281 @@
+arm,arm_label,row,round,wall_s
+a1,base 102f729,f7_n1000_bound_physics/MakeConstraint,1,0.031905426
+a1,base 102f729,f7_n1000_bound_physics/RelaxBounds,1,0.031970775
+a1,base 102f729,f7_n5000_bound_physics/MakeParameter,1,0.178894273
+a1,base 102f729,f7_n5000_bound_physics/MakeConstraint,1,0.173627350
+a1,base 102f729,f7_n5000_bound_physics/RelaxBounds,1,0.173010292
+a1,base 102f729,f7_n10000_bound_neutral/MakeParameter,1,0.539286857
+a1,base 102f729,f7_n10000_bound_neutral/MakeConstraint,1,0.523103816
+a1,base 102f729,f7_n10000_bound_neutral/RelaxBounds,1,0.522817448
+a1,base 102f729,f7_n20000_bound_neutral/MakeParameter,1,1.123129190
+a1,base 102f729,f7_n20000_bound_neutral/MakeConstraint,1,1.091930731
+a1,base 102f729,f7_n20000_bound_neutral/RelaxBounds,1,1.090887456
+a1,base 102f729,hs071_x1_fixed/MakeParameter,1,0.000175819
+a1,base 102f729,hs071_x1_fixed/MakeConstraint,1,0.000129349
+a1,base 102f729,hs071_x1_fixed/RelaxBounds,1,0.000132790
+a1,base 102f729,f7_n1000_bound_physics/MakeConstraint,2,0.032120315
+a1,base 102f729,f7_n1000_bound_physics/RelaxBounds,2,0.032088615
+a1,base 102f729,f7_n5000_bound_physics/MakeParameter,2,0.179129504
+a1,base 102f729,f7_n5000_bound_physics/MakeConstraint,2,0.174359646
+a1,base 102f729,f7_n5000_bound_physics/RelaxBounds,2,0.173805739
+a1,base 102f729,f7_n10000_bound_neutral/MakeParameter,2,0.539923967
+a1,base 102f729,f7_n10000_bound_neutral/MakeConstraint,2,0.522787780
+a1,base 102f729,f7_n10000_bound_neutral/RelaxBounds,2,0.522800241
+a1,base 102f729,f7_n20000_bound_neutral/MakeParameter,2,1.128975668
+a1,base 102f729,f7_n20000_bound_neutral/MakeConstraint,2,1.094047427
+a1,base 102f729,f7_n20000_bound_neutral/RelaxBounds,2,1.094001237
+a1,base 102f729,hs071_x1_fixed/MakeParameter,2,0.000178529
+a1,base 102f729,hs071_x1_fixed/MakeConstraint,2,0.000127930
+a1,base 102f729,hs071_x1_fixed/RelaxBounds,2,0.000133539
+a1,base 102f729,f7_n1000_bound_physics/MakeConstraint,3,0.031988825
+a1,base 102f729,f7_n1000_bound_physics/RelaxBounds,3,0.031874085
+a1,base 102f729,f7_n5000_bound_physics/MakeParameter,3,0.178948004
+a1,base 102f729,f7_n5000_bound_physics/MakeConstraint,3,0.174288897
+a1,base 102f729,f7_n5000_bound_physics/RelaxBounds,3,0.173521110
+a1,base 102f729,f7_n10000_bound_neutral/MakeParameter,3,0.538391985
+a1,base 102f729,f7_n10000_bound_neutral/MakeConstraint,3,0.521955535
+a1,base 102f729,f7_n10000_bound_neutral/RelaxBounds,3,0.523523297
+a1,base 102f729,f7_n20000_bound_neutral/MakeParameter,3,1.127292436
+a1,base 102f729,f7_n20000_bound_neutral/MakeConstraint,3,1.093735048
+a1,base 102f729,f7_n20000_bound_neutral/RelaxBounds,3,1.093668308
+a1,base 102f729,hs071_x1_fixed/MakeParameter,3,0.000186849
+a1,base 102f729,hs071_x1_fixed/MakeConstraint,3,0.000365248
+a1,base 102f729,hs071_x1_fixed/RelaxBounds,3,0.000131709
+a1,base 102f729,f7_n1000_bound_physics/MakeConstraint,4,0.031983345
+a1,base 102f729,f7_n1000_bound_physics/RelaxBounds,4,0.031918135
+a1,base 102f729,f7_n5000_bound_physics/MakeParameter,4,0.179003934
+a1,base 102f729,f7_n5000_bound_physics/MakeConstraint,4,0.174188507
+a1,base 102f729,f7_n5000_bound_physics/RelaxBounds,4,0.173496381
+a1,base 102f729,f7_n10000_bound_neutral/MakeParameter,4,0.539912848
+a1,base 102f729,f7_n10000_bound_neutral/MakeConstraint,4,0.523196809
+a1,base 102f729,f7_n10000_bound_neutral/RelaxBounds,4,0.530118355
+a1,base 102f729,f7_n20000_bound_neutral/MakeParameter,4,1.127345296
+a1,base 102f729,f7_n20000_bound_neutral/MakeConstraint,4,1.094291266
+a1,base 102f729,f7_n20000_bound_neutral/RelaxBounds,4,1.092237216
+a1,base 102f729,hs071_x1_fixed/MakeParameter,4,0.000188909
+a1,base 102f729,hs071_x1_fixed/MakeConstraint,4,0.000127010
+a1,base 102f729,hs071_x1_fixed/RelaxBounds,4,0.000132389
+a1,base 102f729,f7_n1000_bound_physics/MakeConstraint,5,0.032008315
+a1,base 102f729,f7_n1000_bound_physics/RelaxBounds,5,0.031971966
+a1,base 102f729,f7_n5000_bound_physics/MakeParameter,5,0.182398317
+a1,base 102f729,f7_n5000_bound_physics/MakeConstraint,5,0.174961263
+a1,base 102f729,f7_n5000_bound_physics/RelaxBounds,5,0.174074287
+a1,base 102f729,f7_n10000_bound_neutral/MakeParameter,5,0.538154266
+a1,base 102f729,f7_n10000_bound_neutral/MakeConstraint,5,0.523179729
+a1,base 102f729,f7_n10000_bound_neutral/RelaxBounds,5,0.523597556
+a1,base 102f729,f7_n20000_bound_neutral/MakeParameter,5,1.126146282
+a1,base 102f729,f7_n20000_bound_neutral/MakeConstraint,5,1.092591484
+a1,base 102f729,f7_n20000_bound_neutral/RelaxBounds,5,1.091462749
+a1,base 102f729,hs071_x1_fixed/MakeParameter,5,0.000177039
+a1,base 102f729,hs071_x1_fixed/MakeConstraint,5,0.000126810
+a1,base 102f729,hs071_x1_fixed/RelaxBounds,5,0.000133929
+a2,head e51a7e0,f7_n1000_bound_physics/MakeConstraint,1,0.032410663
+a2,head e51a7e0,f7_n1000_bound_physics/RelaxBounds,1,0.032448743
+a2,head e51a7e0,f7_n5000_bound_physics/MakeParameter,1,0.185896300
+a2,head e51a7e0,f7_n5000_bound_physics/MakeConstraint,1,0.180905694
+a2,head e51a7e0,f7_n5000_bound_physics/RelaxBounds,1,0.180381857
+a2,head e51a7e0,f7_n10000_bound_neutral/MakeParameter,1,0.554721153
+a2,head e51a7e0,f7_n10000_bound_neutral/MakeConstraint,1,0.538628121
+a2,head e51a7e0,f7_n10000_bound_neutral/RelaxBounds,1,0.535555676
+a2,head e51a7e0,f7_n20000_bound_neutral/MakeParameter,1,1.173458067
+a2,head e51a7e0,f7_n20000_bound_neutral/MakeConstraint,1,1.122211744
+a2,head e51a7e0,f7_n20000_bound_neutral/RelaxBounds,1,1.112510512
+a2,head e51a7e0,hs071_x1_fixed/MakeParameter,1,0.000183949
+a2,head e51a7e0,hs071_x1_fixed/MakeConstraint,1,0.000137989
+a2,head e51a7e0,hs071_x1_fixed/RelaxBounds,1,0.000140729
+a2,head e51a7e0,f7_n1000_bound_physics/MakeConstraint,2,0.032801362
+a2,head e51a7e0,f7_n1000_bound_physics/RelaxBounds,2,0.032397363
+a2,head e51a7e0,f7_n5000_bound_physics/MakeParameter,2,0.185738292
+a2,head e51a7e0,f7_n5000_bound_physics/MakeConstraint,2,0.180619327
+a2,head e51a7e0,f7_n5000_bound_physics/RelaxBounds,2,0.180043939
+a2,head e51a7e0,f7_n10000_bound_neutral/MakeParameter,2,0.556819126
+a2,head e51a7e0,f7_n10000_bound_neutral/MakeConstraint,2,0.540563785
+a2,head e51a7e0,f7_n10000_bound_neutral/RelaxBounds,2,0.533463629
+a2,head e51a7e0,f7_n20000_bound_neutral/MakeParameter,2,1.157332851
+a2,head e51a7e0,f7_n20000_bound_neutral/MakeConstraint,2,1.125923922
+a2,head e51a7e0,f7_n20000_bound_neutral/RelaxBounds,2,1.112103650
+a2,head e51a7e0,hs071_x1_fixed/MakeParameter,2,0.000191659
+a2,head e51a7e0,hs071_x1_fixed/MakeConstraint,2,0.000136789
+a2,head e51a7e0,hs071_x1_fixed/RelaxBounds,2,0.000137279
+a2,head e51a7e0,f7_n1000_bound_physics/MakeConstraint,3,0.032854001
+a2,head e51a7e0,f7_n1000_bound_physics/RelaxBounds,3,0.032436363
+a2,head e51a7e0,f7_n5000_bound_physics/MakeParameter,3,0.185922090
+a2,head e51a7e0,f7_n5000_bound_physics/MakeConstraint,3,0.180880055
+a2,head e51a7e0,f7_n5000_bound_physics/RelaxBounds,3,0.180013399
+a2,head e51a7e0,f7_n10000_bound_neutral/MakeParameter,3,0.553816941
+a2,head e51a7e0,f7_n10000_bound_neutral/MakeConstraint,3,0.537981737
+a2,head e51a7e0,f7_n10000_bound_neutral/RelaxBounds,3,0.533108401
+a2,head e51a7e0,f7_n20000_bound_neutral/MakeParameter,3,1.156220906
+a2,head e51a7e0,f7_n20000_bound_neutral/MakeConstraint,3,1.122501609
+a2,head e51a7e0,f7_n20000_bound_neutral/RelaxBounds,3,1.111875570
+a2,head e51a7e0,hs071_x1_fixed/MakeParameter,3,0.000180719
+a2,head e51a7e0,hs071_x1_fixed/MakeConstraint,3,0.000134759
+a2,head e51a7e0,hs071_x1_fixed/RelaxBounds,3,0.000140719
+a2,head e51a7e0,f7_n1000_bound_physics/MakeConstraint,4,0.032535743
+a2,head e51a7e0,f7_n1000_bound_physics/RelaxBounds,4,0.032732821
+a2,head e51a7e0,f7_n5000_bound_physics/MakeParameter,4,0.186502728
+a2,head e51a7e0,f7_n5000_bound_physics/MakeConstraint,4,0.180803315
+a2,head e51a7e0,f7_n5000_bound_physics/RelaxBounds,4,0.179840770
+a2,head e51a7e0,f7_n10000_bound_neutral/MakeParameter,4,0.554786566
+a2,head e51a7e0,f7_n10000_bound_neutral/MakeConstraint,4,0.538662194
+a2,head e51a7e0,f7_n10000_bound_neutral/RelaxBounds,4,0.533853067
+a2,head e51a7e0,f7_n20000_bound_neutral/MakeParameter,4,1.158558175
+a2,head e51a7e0,f7_n20000_bound_neutral/MakeConstraint,4,1.125525825
+a2,head e51a7e0,f7_n20000_bound_neutral/RelaxBounds,4,1.113429203
+a2,head e51a7e0,hs071_x1_fixed/MakeParameter,4,0.000186929
+a2,head e51a7e0,hs071_x1_fixed/MakeConstraint,4,0.000137970
+a2,head e51a7e0,hs071_x1_fixed/RelaxBounds,4,0.000140510
+a2,head e51a7e0,f7_n1000_bound_physics/MakeConstraint,5,0.032434953
+a2,head e51a7e0,f7_n1000_bound_physics/RelaxBounds,5,0.032407653
+a2,head e51a7e0,f7_n5000_bound_physics/MakeParameter,5,0.185620602
+a2,head e51a7e0,f7_n5000_bound_physics/MakeConstraint,5,0.180409398
+a2,head e51a7e0,f7_n5000_bound_physics/RelaxBounds,5,0.179280862
+a2,head e51a7e0,f7_n10000_bound_neutral/MakeParameter,5,0.553930020
+a2,head e51a7e0,f7_n10000_bound_neutral/MakeConstraint,5,0.536355625
+a2,head e51a7e0,f7_n10000_bound_neutral/RelaxBounds,5,0.531965756
+a2,head e51a7e0,f7_n20000_bound_neutral/MakeParameter,5,1.156576124
+a2,head e51a7e0,f7_n20000_bound_neutral/MakeConstraint,5,1.127219376
+a2,head e51a7e0,f7_n20000_bound_neutral/RelaxBounds,5,1.110555517
+a2,head e51a7e0,hs071_x1_fixed/MakeParameter,5,0.000180559
+a2,head e51a7e0,hs071_x1_fixed/MakeConstraint,5,0.000135209
+a2,head e51a7e0,hs071_x1_fixed/RelaxBounds,5,0.000138000
+a3,E1,f7_n1000_bound_physics/MakeConstraint,1,0.032675701
+a3,E1,f7_n1000_bound_physics/RelaxBounds,1,0.032602683
+a3,E1,f7_n5000_bound_physics/MakeParameter,1,0.185781380
+a3,E1,f7_n5000_bound_physics/MakeConstraint,1,0.180551846
+a3,E1,f7_n5000_bound_physics/RelaxBounds,1,0.177362711
+a3,E1,f7_n10000_bound_neutral/MakeParameter,1,0.554695763
+a3,E1,f7_n10000_bound_neutral/MakeConstraint,1,0.538507012
+a3,E1,f7_n10000_bound_neutral/RelaxBounds,1,0.541195218
+a3,E1,f7_n20000_bound_neutral/MakeParameter,1,1.155959501
+a3,E1,f7_n20000_bound_neutral/MakeConstraint,1,1.126744422
+a3,E1,f7_n20000_bound_neutral/RelaxBounds,1,1.129586908
+a3,E1,hs071_x1_fixed/MakeParameter,1,0.000180739
+a3,E1,hs071_x1_fixed/MakeConstraint,1,0.000137599
+a3,E1,hs071_x1_fixed/RelaxBounds,1,0.000137710
+a3,E1,f7_n1000_bound_physics/MakeConstraint,2,0.033007990
+a3,E1,f7_n1000_bound_physics/RelaxBounds,2,0.032630643
+a3,E1,f7_n5000_bound_physics/MakeParameter,2,0.187524873
+a3,E1,f7_n5000_bound_physics/MakeConstraint,2,0.181258783
+a3,E1,f7_n5000_bound_physics/RelaxBounds,2,0.178107768
+a3,E1,f7_n10000_bound_neutral/MakeParameter,2,0.555350813
+a3,E1,f7_n10000_bound_neutral/MakeConstraint,2,0.538582815
+a3,E1,f7_n10000_bound_neutral/RelaxBounds,2,0.543028032
+a3,E1,f7_n20000_bound_neutral/MakeParameter,2,1.164294347
+a3,E1,f7_n20000_bound_neutral/MakeConstraint,2,1.126239781
+a3,E1,f7_n20000_bound_neutral/RelaxBounds,2,1.125685884
+a3,E1,hs071_x1_fixed/MakeParameter,2,0.000184089
+a3,E1,hs071_x1_fixed/MakeConstraint,2,0.000142609
+a3,E1,hs071_x1_fixed/RelaxBounds,2,0.000134450
+a3,E1,f7_n1000_bound_physics/MakeConstraint,3,0.032570082
+a3,E1,f7_n1000_bound_physics/RelaxBounds,3,0.032669302
+a3,E1,f7_n5000_bound_physics/MakeParameter,3,0.186295709
+a3,E1,f7_n5000_bound_physics/MakeConstraint,3,0.180941364
+a3,E1,f7_n5000_bound_physics/RelaxBounds,3,0.177563481
+a3,E1,f7_n10000_bound_neutral/MakeParameter,3,0.558546078
+a3,E1,f7_n10000_bound_neutral/MakeConstraint,3,0.539214391
+a3,E1,f7_n10000_bound_neutral/RelaxBounds,3,0.542332416
+a3,E1,f7_n20000_bound_neutral/MakeParameter,3,1.160374445
+a3,E1,f7_n20000_bound_neutral/MakeConstraint,3,1.130021342
+a3,E1,f7_n20000_bound_neutral/RelaxBounds,3,1.124455149
+a3,E1,hs071_x1_fixed/MakeParameter,3,0.000181969
+a3,E1,hs071_x1_fixed/MakeConstraint,3,0.000141759
+a3,E1,hs071_x1_fixed/RelaxBounds,3,0.000135079
+a3,E1,f7_n1000_bound_physics/MakeConstraint,4,0.032726532
+a3,E1,f7_n1000_bound_physics/RelaxBounds,4,0.032676982
+a3,E1,f7_n5000_bound_physics/MakeParameter,4,0.186004980
+a3,E1,f7_n5000_bound_physics/MakeConstraint,4,0.180849975
+a3,E1,f7_n5000_bound_physics/RelaxBounds,4,0.177737090
+a3,E1,f7_n10000_bound_neutral/MakeParameter,4,0.553527242
+a3,E1,f7_n10000_bound_neutral/MakeConstraint,4,0.536482234
+a3,E1,f7_n10000_bound_neutral/RelaxBounds,4,0.539343331
+a3,E1,f7_n20000_bound_neutral/MakeParameter,4,1.159522130
+a3,E1,f7_n20000_bound_neutral/MakeConstraint,4,1.125944733
+a3,E1,f7_n20000_bound_neutral/RelaxBounds,4,1.125488744
+a3,E1,hs071_x1_fixed/MakeParameter,4,0.000184169
+a3,E1,hs071_x1_fixed/MakeConstraint,4,0.000143329
+a3,E1,hs071_x1_fixed/RelaxBounds,4,0.000137219
+a3,E1,f7_n1000_bound_physics/MakeConstraint,5,0.032453133
+a3,E1,f7_n1000_bound_physics/RelaxBounds,5,0.032525182
+a3,E1,f7_n5000_bound_physics/MakeParameter,5,0.185859850
+a3,E1,f7_n5000_bound_physics/MakeConstraint,5,0.181871730
+a3,E1,f7_n5000_bound_physics/RelaxBounds,5,0.177631221
+a3,E1,f7_n10000_bound_neutral/MakeParameter,5,0.553852671
+a3,E1,f7_n10000_bound_neutral/MakeConstraint,5,0.538112727
+a3,E1,f7_n10000_bound_neutral/RelaxBounds,5,0.540748354
+a3,E1,f7_n20000_bound_neutral/MakeParameter,5,1.161706709
+a3,E1,f7_n20000_bound_neutral/MakeConstraint,5,1.127303506
+a3,E1,f7_n20000_bound_neutral/RelaxBounds,5,1.127889683
+a3,E1,hs071_x1_fixed/MakeParameter,5,0.000180189
+a3,E1,hs071_x1_fixed/MakeConstraint,5,0.000133379
+a3,E1,hs071_x1_fixed/RelaxBounds,5,0.000135670
+a4,E2,f7_n1000_bound_physics/MakeConstraint,1,0.032439693
+a4,E2,f7_n1000_bound_physics/RelaxBounds,1,0.032550852
+a4,E2,f7_n5000_bound_physics/MakeParameter,1,0.185621821
+a4,E2,f7_n5000_bound_physics/MakeConstraint,1,0.179384231
+a4,E2,f7_n5000_bound_physics/RelaxBounds,1,0.177518301
+a4,E2,f7_n10000_bound_neutral/MakeParameter,1,0.553845107
+a4,E2,f7_n10000_bound_neutral/MakeConstraint,1,0.536671981
+a4,E2,f7_n10000_bound_neutral/RelaxBounds,1,0.538129103
+a4,E2,f7_n20000_bound_neutral/MakeParameter,1,1.155107435
+a4,E2,f7_n20000_bound_neutral/MakeConstraint,1,1.110569001
+a4,E2,f7_n20000_bound_neutral/RelaxBounds,1,1.115862566
+a4,E2,hs071_x1_fixed/MakeParameter,1,0.000177949
+a4,E2,hs071_x1_fixed/MakeConstraint,1,0.000145079
+a4,E2,hs071_x1_fixed/RelaxBounds,1,0.000133999
+a4,E2,f7_n1000_bound_physics/MakeConstraint,2,0.032699822
+a4,E2,f7_n1000_bound_physics/RelaxBounds,2,0.032679261
+a4,E2,f7_n5000_bound_physics/MakeParameter,2,0.186580377
+a4,E2,f7_n5000_bound_physics/MakeConstraint,2,0.179557841
+a4,E2,f7_n5000_bound_physics/RelaxBounds,2,0.177866139
+a4,E2,f7_n10000_bound_neutral/MakeParameter,2,0.554962715
+a4,E2,f7_n10000_bound_neutral/MakeConstraint,2,0.537361060
+a4,E2,f7_n10000_bound_neutral/RelaxBounds,2,0.538495995
+a4,E2,f7_n20000_bound_neutral/MakeParameter,2,1.157033542
+a4,E2,f7_n20000_bound_neutral/MakeConstraint,2,1.113727442
+a4,E2,f7_n20000_bound_neutral/RelaxBounds,2,1.122619179
+a4,E2,hs071_x1_fixed/MakeParameter,2,0.000182569
+a4,E2,hs071_x1_fixed/MakeConstraint,2,0.000140199
+a4,E2,hs071_x1_fixed/RelaxBounds,2,0.000136289
+a4,E2,f7_n1000_bound_physics/MakeConstraint,3,0.032734271
+a4,E2,f7_n1000_bound_physics/RelaxBounds,3,0.032609153
+a4,E2,f7_n5000_bound_physics/MakeParameter,3,0.186678536
+a4,E2,f7_n5000_bound_physics/MakeConstraint,3,0.180096909
+a4,E2,f7_n5000_bound_physics/RelaxBounds,3,0.178136748
+a4,E2,f7_n10000_bound_neutral/MakeParameter,3,0.554727637
+a4,E2,f7_n10000_bound_neutral/MakeConstraint,3,0.537214001
+a4,E2,f7_n10000_bound_neutral/RelaxBounds,3,0.540629725
+a4,E2,f7_n20000_bound_neutral/MakeParameter,3,1.159118452
+a4,E2,f7_n20000_bound_neutral/MakeConstraint,3,1.118738497
+a4,E2,f7_n20000_bound_neutral/RelaxBounds,3,1.120976447
+a4,E2,hs071_x1_fixed/MakeParameter,3,0.000188709
+a4,E2,hs071_x1_fixed/MakeConstraint,3,0.000137420
+a4,E2,hs071_x1_fixed/RelaxBounds,3,0.000135699
+a4,E2,f7_n1000_bound_physics/MakeConstraint,4,0.032593132
+a4,E2,f7_n1000_bound_physics/RelaxBounds,4,0.032516552
+a4,E2,f7_n5000_bound_physics/MakeParameter,4,0.185878751
+a4,E2,f7_n5000_bound_physics/MakeConstraint,4,0.179688001
+a4,E2,f7_n5000_bound_physics/RelaxBounds,4,0.177515951
+a4,E2,f7_n10000_bound_neutral/MakeParameter,4,0.553807071
+a4,E2,f7_n10000_bound_neutral/MakeConstraint,4,0.540320406
+a4,E2,f7_n10000_bound_neutral/RelaxBounds,4,0.540582884
+a4,E2,f7_n20000_bound_neutral/MakeParameter,4,1.157245391
+a4,E2,f7_n20000_bound_neutral/MakeConstraint,4,1.111946750
+a4,E2,f7_n20000_bound_neutral/RelaxBounds,4,1.115042355
+a4,E2,hs071_x1_fixed/MakeParameter,4,0.000187379
+a4,E2,hs071_x1_fixed/MakeConstraint,4,0.000145100
+a4,E2,hs071_x1_fixed/RelaxBounds,4,0.000134229
+a4,E2,f7_n1000_bound_physics/MakeConstraint,5,0.032539273
+a4,E2,f7_n1000_bound_physics/RelaxBounds,5,0.032569023
+a4,E2,f7_n5000_bound_physics/MakeParameter,5,0.186339559
+a4,E2,f7_n5000_bound_physics/MakeConstraint,5,0.181877860
+a4,E2,f7_n5000_bound_physics/RelaxBounds,5,0.177710770
+a4,E2,f7_n10000_bound_neutral/MakeParameter,5,0.554164059
+a4,E2,f7_n10000_bound_neutral/MakeConstraint,5,0.536380605
+a4,E2,f7_n10000_bound_neutral/RelaxBounds,5,0.538622434
+a4,E2,f7_n20000_bound_neutral/MakeParameter,5,1.157530570
+a4,E2,f7_n20000_bound_neutral/MakeConstraint,5,1.114162560
+a4,E2,f7_n20000_bound_neutral/RelaxBounds,5,1.117175775
+a4,E2,hs071_x1_fixed/MakeParameter,5,0.000176589
+a4,E2,hs071_x1_fixed/MakeConstraint,5,0.000137669
+a4,E2,hs071_x1_fixed/RelaxBounds,5,0.000143969

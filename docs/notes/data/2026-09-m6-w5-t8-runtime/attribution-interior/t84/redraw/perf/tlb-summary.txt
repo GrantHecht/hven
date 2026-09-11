@@ -1,0 +1,19 @@
+W5 T8.9r-attrib4 E3 (b) -- dTLB / L1-D / instructions / cycles, whole process,
+median of three rounds, four-cell invocation, MKL_NUM_THREADS=1, co-run tolerant.
+a1 runs 15 rows and a2/a4 run 25: ONLY a2-vs-a4 is like-for-like.
+
+| event | base 102f729 (15 rows) | head e51a7e0 (25 rows) | E2 (25 rows) | a4/a2 |
+|---|---|---|---|---|
+| `dTLB-load-misses:u` | 5690786 | 5874701 | 5800785 | 0.9874 |
+| `dTLB-loads:u` | 12944411 | 13568182 | 13451158 | 0.9914 |
+| `L1-dcache-load-misses:u` | 757074585 | 782871927 | 783933309 | 1.0014 |
+| `L1-dcache-loads:u` | 23791559226 | 24859617281 | 24597358577 | 0.9895 |
+| `instructions:u` | 58196079989 | 60959150154 | 60301837460 | 0.9892 |
+| `cycles:u` | 20605005018 | 21964570336 | 21047904487 | 0.9583 |
+MISS RATES a1: dTLB-load-miss/dTLB-load = 0.4396 ; L1-D load-miss/load = 0.031821
+MISS RATES a2: dTLB-load-miss/dTLB-load = 0.4330 ; L1-D load-miss/load = 0.031492
+MISS RATES a4: dTLB-load-miss/dTLB-load = 0.4312 ; L1-D load-miss/load = 0.031871
+
+NOT SUPPORTED on this PMU (Zen 3, perf_event_paranoid=2): dTLB-store-misses,
+dTLB-stores -- both read <not supported> in every round and are reported absent,
+never zero-filled.

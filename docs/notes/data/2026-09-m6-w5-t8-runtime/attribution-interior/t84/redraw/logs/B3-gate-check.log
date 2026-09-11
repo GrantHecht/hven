@@ -1,0 +1,3 @@
+REFERENCE .scratch/w5t89ra4/art/gate/g-head___.csv rows=85 cols=31
+GATE .scratch/w5t89ra4/art/gate/g-e1_____.csv rows=85 compared_cells=2550 mismatches=0 -- PASS
+GATE .scratch/w5t89ra4/art/gate/g-e2_____.csv rows=85 compared_cells=2550 mismatches=0 -- PASS

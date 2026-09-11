@@ -1,0 +1,1 @@
+TIMER_FAULTS arm=a3 round=3 minor=364428 major=0 user=6.21 sys=0.68 real=6.93 maxrss=261856

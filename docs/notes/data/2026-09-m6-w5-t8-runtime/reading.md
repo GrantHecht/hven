@@ -1807,3 +1807,112 @@ further experiment round set was discarded and re-run for breaking the argv lock
 byte — it is retained, unedited, with its README. Nothing was ever signalled. **No
 disposition is offered — §11.1 and the owner have it.** Apple/Accelerate and Windows:
 UNOBSERVED.
+
+---
+
+## 13. The redraw experiment (T8.9r-attrib4, 2026-09-11)
+
+§12 charged a third of `9cebbbe`'s step to the result core's per-call
+allocate/free churn — measured through an allocator intervention that removed
+**99.7 %** of the extra minor page faults and **32.8 %** of the step — and left
+two thirds unexplained. A fourth leg asks the direct follow-up: **does making
+that per-call storage PERSISTENT in SOURCE recover it?** Two candidate fixes,
+each a scratch build of a `git archive` extraction of `e51a7e0` with one patch,
+measured against `102f729` and `e51a7e0` in the same five solo rounds on the
+same four dual-binding F7 cells, the R3 positional warm-up row excluded by a
+rule hashed before the first sample existed. It is in
+`attribution-interior/t84/redraw/` (`README.md`, `steps.md`, `mechanism.md`,
+`predeclaration.txt`, the two patches, `wall.csv`, `faults.csv`, both analysis
+tools' saved output, the corrected idle proof, and every CSV, perf output, batch
+log and script under `raw/`, `perf/`, `logs/` and `scripts/`).
+
+**E1** — `result_` reset FIELD BY FIELD at entry instead of reconstructed
+(`reset_for_call()` on `SolveResult` and `IpmResult`), and COPIED out at exit
+instead of moved, so the member keeps its buffers
+(`src/drivers/interior_point_solver.cpp:5075` and `:6086`).
+**E2** — E1 plus `alg_impl`'s `iters` history hoisted to a member, cleared
+rather than rebuilt per phase (`:2580`).
+
+**THE STEP REPRODUCES AND NEITHER EXPERIMENT RECOVERS IT.** Per-row wall, median
+of five rounds, eleven scored rows:
+
+| | base `102f729` | head `e51a7e0` | E1 | E2 |
+|---|---|---|---|---|
+| scored corpus (s) | 5.489952 | 5.633460 | 5.657087 | 5.627050 |
+| ratio to base | 1.0000 | **1.0261** | 1.0304 | 1.0250 |
+| **corpus recovery** | — | — | **−16.5 %** | **+4.5 %** |
+| median per-row recovery | — | — | −3.8 % | +0.3 % |
+
+The head/base step of **1.0261 (+2.614 %)** is a fourth independent round set
+agreeing with §5's 1.0249, §11's 1.0250 and §12's 1.0283. E2's corpus sits
+0.114 % below the head's and E1's 0.419 % above it, against a per-arm
+round-to-round corpus spread of **0.27–0.43 %** — so **E2's +4.5 % is inside the
+spread and E1 is a REGRESSION**, and neither is reported as a recovery anyone
+should act on.
+
+**THE CORRECTNESS GATE PASSED ON BOTH, on a larger population than asked for**:
+the whole `--engine interior --cells all` leg, **85 rows × 30 columns = 2 550
+cells, 0 mismatches** against `e51a7e0` at each patched arm, `wall_s` the only
+exempt column. `hven_tests` was not built at any arm (`-DHVEN_BUILD_TESTS=OFF`),
+so no unit suite is claimed. The recipe calibration passed: an unpatched
+`e51a7e0` put through this leg's recipe reproduced `attribution/arms.txt`'s
+`libhven.a` **byte for byte**.
+
+**AND THE FAULT INSTRUMENT IS THE RESULT.** Minor faults per process, no perf
+attached, three rounds, within-arm spread 3 counts in 300 000:
+
+| arm | minor faults | vs base | vs head |
+|---|---|---|---|
+| base `102f729` | 299 658 | — | −41 627 |
+| head `e51a7e0` | 341 285 | **+41 627 (+13.89 %)** | — |
+| E1 | 364 428 | +64 770 | **+23 143** |
+| E2 | 317 430 | +17 772 | **−23 855 (57.3 % of the excess removed)** |
+
+**A SOURCE CHANGE THAT REMOVES 57.3 % OF THE HEAD'S EXCESS FAULTS BUYS 4.5 % OF
+THE WALL STEP**, where §12's allocator intervention removed 99.7 % and bought
+32.8 %. **The fault COUNT is therefore not what carries the step**, and most of
+that 32.8 % belongs to something the intervention did besides removing faults —
+§12 already recorded that the same intervention made BOTH arms 6–7 % faster.
+§12's closing sentence, that its mechanism reading "is the reading of the
+evidence, not a pinned measurement", is the sentence this bounds.
+
+**E3 RAN, on the pre-declared trigger, and found no obvious site.**
+`perf record -e page-faults -g --call-graph dwarf` on one large cell at three
+arms: **the fault-site distribution is the same at all three**, largest share
+delta +0.96 points, so the head's extra faults are the SAME sites faulting more
+rather than any new allocation; and the largest single site is **MKL Pardiso's
+own `mkl_serv_calloc` + `memset` inside the symbolic analysis**, reached through
+`init_impl` → `KktFactorization::compute` → `SymmetricFactor::analyze`, code
+`9cebbbe` did not touch. The one permitted further experiment was NOT taken.
+`dTLB`/`L1-D` return **no verdict**: `dTLB-store-misses` and `dTLB-stores` read
+`<not supported>` on this PMU and are reported absent rather than zero-filled,
+and the whole-process `instructions`/`cycles` deltas (−1.08 %, −4.17 % head→E2)
+sit against the byte-identical control floor §12 measured (+1.02 %, +1.81 %)
+beside a wall that moved −0.11 %.
+
+**ONE BOUNDING FACT, established by reading before the arms were built and
+reported here because it limits what any persistence experiment can reach**:
+the benchmark **constructs a fresh `InteriorPointSolver` for every measured
+row** (`bench/ipm_corpus_leg.cpp:620`–`:622`, one `solve()` at `:654`), at every
+arm including the base. So `result_` and `iters` are default at the entry of the
+only call each solver takes, and a CROSS-CALL persistence mechanism has nothing
+to persist into; E2's effect is per-PHASE, which is the only persistence this
+harness can express. Whatever carries the step is reached inside one solve on a
+freshly-built solver, under the same condition at both arms.
+
+**NO COMMITTED SOURCE CHANGED; E1 AND E2 ARE THE REDRAW CANDIDATES**, applied
+only to scratch extractions and built there. E1 should not be adopted — it is
+slower on both instruments.
+
+**This addendum ASSERTS WALL CLOCK, under the fix1 R2 discipline of §8.1 with
+the NICE-INCLUSIVE accounting correction astra's fix1-review item 7 required**:
+foreign task time counts `user + nice + steal + guest` on the pinned core AND
+its SMT sibling, with only the run's own user time subtracted and only on
+`cpu2`; transients and every foreign state are disclosed. **Five timed wall
+batches, all PINNED-CLEAN, `scripts/idle_proof.py` exits 0**; worst foreign task
+time on the pinned core is 0.020 s (0.0756 %) and on the sibling 0.130 s
+(0.4867 %). **Round 2 was re-run twice, and the correction is what caught the
+second failure** — 0.110 s of foreign `nice` on the sibling that the superseded
+`user`-only accounting would have reported as 0.114 % and passed. Nothing was
+ever signalled. **No disposition is offered — §11.1 and the owner have it.**
+Apple/Accelerate and Windows: UNOBSERVED.

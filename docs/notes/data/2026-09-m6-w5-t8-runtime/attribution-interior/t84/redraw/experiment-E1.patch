@@ -1,0 +1,153 @@
+diff --git a/include/hven/drivers/ipm_solver_types.h b/include/hven/drivers/ipm_solver_types.h
+index 5bbd13d..4f685b7 100644
+--- a/include/hven/drivers/ipm_solver_types.h
++++ b/include/hven/drivers/ipm_solver_types.h
+@@ -659,6 +659,59 @@ struct IpmResult : SolveResult {
+     KktFactorization::Counters kkt_factor_counters;
+     /// @brief The log of NLP evaluation errors absorbed during this call.
+     EvalErrorLog eval_error_log;
++
++    /// @brief Restores this result to the VALUE a default @ref IpmResult
++    ///        carries, base included, without destroying the object.
++    ///
++    /// THE PER-CALL RESET THE ENGINE RUNS AT ITS ENTRY (M6 W5 T8.9r-attrib4,
++    /// experiment E1), in place of `result_ = IpmResult{}`. Every field below
++    /// is assigned the initialiser its own declaration gives it a few lines
++    /// up, so the post-condition is identical to the assignment's: a default
++    /// value, every sentinel written, nothing of the previous call reachable.
++    /// What differs is that the member's containers are not destroyed, so the
++    /// `std::vector` and `std::string` blocks here -- `phases`, the two
++    /// message strings -- keep the capacity the last call grew them to. Hides
++    /// the base's function of the same name and calls it first; neither is
++    /// virtual and neither is meant to be called through a base pointer.
++    void reset_for_call() {
++        SolveResult::reset_for_call();
++        payload_ignored = 0;
++        polish_ignored = 0;
++        fixed_variable_treatment = FixedVariableTreatments::MakeParameter;
++        internal_fixed_ce.resize(0);
++        internal_fixed_lambda_e.resize(0);
++        kkt_inf = std::numeric_limits<double>::quiet_NaN();
++        barr_inf = std::numeric_limits<double>::quiet_NaN();
++        econ_inf = std::numeric_limits<double>::quiet_NaN();
++        icon_inf = std::numeric_limits<double>::quiet_NaN();
++        total_time = 0;
++        pre_time = 0;
++        func_time = 0;
++        kkt_time = 0;
++        print_time = 0;
++        solver_init_time = 0;
++        factor_mem = 0;
++        factor_flops = 0;
++        soc_steps_taken = 0;
++        watchdog_activations = 0;
++        recovery_depth_histogram.fill(0);
++        last_funnel_width = -1.0;
++        last_filter_size = -1;
++        last_filter_resets = -1;
++        last_monotone_switches = -1;
++        last_monotone_iters = -1;
++        last_feas_rest_entries = -1;
++        last_feas_rest_iters = -1;
++        last_prox_reg_primal = -1.0;
++        last_prox_reg_dual = -1.0;
++        last_eval_exception.clear();
++        last_kkt_info = Eigen::Success;
++        phases.clear();
++        kkt_analyses_total = 0;
++        kkt_analyses_this_call = 0;
++        kkt_factor_counters = KktFactorization::Counters{};
++        eval_error_log.reset();
++    }
+ };
+ 
+ /// @brief Validates a whole IpmOptions value, throwing std::invalid_argument on
+diff --git a/include/hven/drivers/solve_result.h b/include/hven/drivers/solve_result.h
+index 4ff2c48..eabc1bc 100644
+--- a/include/hven/drivers/solve_result.h
++++ b/include/hven/drivers/solve_result.h
+@@ -182,6 +182,39 @@ struct SolveResult {
+     ///         multipliers and a valid stamp.
+     std::optional<WarmStartData> export_warm_start() const { return export_snapshot_; }
+ 
++    /// @brief Restores this result to the VALUE a default @ref SolveResult
++    ///        carries, without destroying the object.
++    ///
++    /// PER-CALL STATE, NOT A PER-CALL OBJECT (M6 W5 T8.9r-attrib4, experiment
++    /// E1). The engines hold a result member as the workspace of the call in
++    /// flight and it must start every call carrying nothing of the last one --
++    /// which `*this = SolveResult{}` also achieves, by destroying every buffer
++    /// the member owns and building a fresh empty one in its place. This
++    /// function states the same reset as an assignment per field, so the
++    /// containers that HAVE a capacity distinct from their size (the engine
++    /// layers' `std::vector` and `std::string` members) keep theirs across
++    /// calls. `Vec` is an Eigen dense block, which has no such distinction:
++    /// `resize(0)` frees its storage, and an empty block is the DECLARED
++    /// meaning of "unmeasured" for `ce`, `ci` and the multiplier blocks, so it
++    /// is the reset this contract requires whatever it costs.
++    void reset_for_call() {
++        status = SolveStatus::kNumericalError;
++        x.resize(0);
++        lambda_e.resize(0);
++        lambda_i.resize(0);
++        z.resize(0);
++        f = std::numeric_limits<double>::quiet_NaN();
++        stationarity = std::numeric_limits<double>::quiet_NaN();
++        feasibility_e = std::numeric_limits<double>::quiet_NaN();
++        feasibility_i = std::numeric_limits<double>::quiet_NaN();
++        complementarity = std::numeric_limits<double>::quiet_NaN();
++        ce.resize(0);
++        ci.resize(0);
++        iterations = 0;
++        wall_seconds = 0.0;
++        export_snapshot_.reset();
++    }
++
+   protected:
+     /// The snapshot @ref export_warm_start hands out; written by the engine at
+     /// solve exit and by nothing else.
+diff --git a/src/drivers/interior_point_solver.cpp b/src/drivers/interior_point_solver.cpp
+index a748722..c3a4765 100644
+--- a/src/drivers/interior_point_solver.cpp
++++ b/src/drivers/interior_point_solver.cpp
+@@ -5072,7 +5072,17 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
+     // a default IpmResult already carries every sentinel that reset wrote, and
+     // a value that starts empty cannot leak a previous call's block into this
+     // one.
+-    this->result_ = IpmResult{};
++    //
++    // RESET IN PLACE RATHER THAN REBUILT (M6 W5 T8.9r-attrib4, experiment E1).
++    // `result_ = IpmResult{}` destroyed every buffer the member owned and put
++    // a fresh empty value in its place; `reset_for_call()` assigns the same
++    // default to every field one at a time, so the post-condition is the same
++    // -- a default IpmResult, every sentinel written, nothing of a previous
++    // call reachable -- and the member's `std::vector`/`std::string` storage
++    // survives to be re-filled instead of being freed and re-allocated. The
++    // Eigen blocks do not survive it and cannot: an empty block IS the
++    // declared meaning of "unmeasured", and Eigen frees on `resize(0)`.
++    this->result_.reset_for_call();
+     this->exit_grad_lag_.resize(0);
+     this->exit_eval_prov_ = ExitEvalProvenance{};
+     this->cur_eval_prov_ = ExitEvalProvenance{};
+@@ -6080,10 +6090,17 @@ hven::solvers::IpmResult hven::solvers::InteriorPointSolver::run_phase_sequence(
+     // The common clock closes here, around everything the entry took on: the
+     // transcription, every phase, the final reporting and the export snapshot.
+ 
+-    // MOVED OUT. The solver keeps no result between calls -- the member is a
+-    // workspace for the call in flight, and the next call default-constructs it
+-    // again at entry.
+-    return std::move(this->result_);
++    // COPIED OUT, NOT MOVED (M6 W5 T8.9r-attrib4, experiment E1). The caller's
++    // contract is unchanged -- it receives a value that owns everything it
++    // reports, and the solver keeps no result the caller can reach, there
++    // being no accessor. What changes is which side of the call keeps the
++    // BUFFERS: a move left the member empty, so every block the next call
++    // reports had to be allocated from nothing, while a copy leaves the
++    // member holding storage the next call's writes can land in. The copy
++    // itself is one pass over the returned blocks, once per solve, at the
++    // exit seam of a call that has already run its iterations.
++    IpmResult out = this->result_;
++    return out;
+ }
+ 
+ // THE ONE ENTRY POINT (M6 W5 T8.4). The five phase-named entries it replaces --
