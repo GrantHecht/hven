@@ -472,7 +472,7 @@ bool IpqpBounds::in_domain() const { return zero_width_index < 0; }
 
 IpqpEscapeLadder::IpqpEscapeLadder(const IpqpOptions &iopts)
     : retire_after_(iopts.ipqp_retire_after) {
-    // Re-checked HERE and not only in `validate_sqp_options`: this type is reachable without a
+    // Re-checked HERE and not only in `validate`: this type is reachable without a
     // driver, and a retirement threshold of 0 would retire the tier before it had ever run.
     if (retire_after_ <= 0) {
         throw std::invalid_argument(
@@ -757,12 +757,12 @@ IpqpResult IpqpEngine::solve(const QpProblem &qp, const IpqpSeed *seed, const Ip
     qp.validate();
     validate_overrides(overrides);
     {
-        // THE SAME CODE THE DRIVER RUNS, not a second copy of the rules: `validate_sqp_options`
+        // THE SAME CODE THE DRIVER RUNS, not a second copy of the rules: `validate`
         // owns every IpqpOptions band (task 1), and this engine is reachable without a driver,
         // so the check happens here by CALLING the owner with an otherwise default SqpOptions.
         SqpOptions probe;
         probe.ipqp = iopts;
-        validate_sqp_options(probe);
+        validate(probe);
     }
 
     const Index n = qp.n();

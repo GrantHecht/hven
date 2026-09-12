@@ -29,10 +29,10 @@
 // nine and keeps the old five in their old relative order.
 
 namespace hven::solvers {
-class InteriorPointSolver;
+class IpmSolver;
 
 // Step-acceptance strategy selector (IpmOptions::acceptance_strategy).
-// Declared here rather than nested in InteriorPointSolver so both
+// Declared here rather than nested in IpmSolver so both
 // IpmOptions and the acceptance components can name it
 // without a circular include.
 //   classic_merit — the fused classic backtracking merit line search
@@ -99,7 +99,7 @@ enum class RestorationModes { off = 0, proximal_switch = 1, l1_nested = 2 };
 // (IpmOptions::inertia_mode), declared here for the same
 // no-circular-include reason as the selectors above.
 //   classic                 — the on-demand inertia ladder inline in
-//                             InteriorPointSolver::factor_impl (the bit-identical default):
+//                             IpmSolver::factor_impl (the bit-identical default):
 //                             each iteration first attempts an unperturbed
 //                             factorization and only shifts the Hessian diagonal
 //                             (by increasing amounts) when the factorization
@@ -129,7 +129,7 @@ enum class InertiaModes { classic = 0, proximal_regularization = 1 };
 /// Declaration ORDER is contractual: it is what `static_cast<int>` and any
 /// packed diagnostic column print.
 enum class IpmPhase {
-    /// The optimality phase -- `AlgorithmModes::OPT` at the optimality barrier
+    /// The optimality phase -- `AlgorithmModes::kOpt` at the optimality barrier
     /// and line-search modes. This is what the old `optimize()` entry ran.
     kOptimize = 0,
     /// The feasibility ("solve the equations") phase -- `IpmOptions::soe_mode`

@@ -20,11 +20,11 @@
 
 #include <hven/core/solver_status.h>
 #include <hven/core/types.h>
-#include <hven/detail/drivers/interior_point_solver_fwd.h>
+#include <hven/detail/drivers/ipm_solver_fwd.h>
 #include <hven/detail/interior/iterate_info.h>
 #include <hven/detail/qp/ipqp_evidence.h>
 #include <hven/drivers/solve_status.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::solvers {
@@ -112,7 +112,7 @@ struct IpqpTraceRestartEvent {
 };
 
 /// @brief The section 2.3 routing chain's destination for this subproblem
-/// (schema `ipqp.route`). Driver-emitted (sqp_driver.cpp's kIpm arm): the
+/// (schema `ipqp.route`). Driver-emitted (sqp_solver.cpp's kIpm arm): the
 /// engine itself has no notion of refine/ssn/walk.
 struct IpqpTraceRouteEvent {
     IpqpTraceRouteTo to = IpqpTraceRouteTo::kWalk;
@@ -224,7 +224,7 @@ struct SqpFallbackVerdictTraceEvent {
     Index qp_factorizations = 0;
 };
 
-/// @brief One exported `SqpSolution::history` row (schema `sqp.major`, M6 W4 T2).
+/// @brief One exported `SqpResult::history` row (schema `sqp.major`, M6 W4 T2).
 ///
 /// THE ROW IS HELD BY REFERENCE, not copied into a second struct: the serializer
 /// writes `SqpIterate`'s own fields in DECLARATION ORDER, so a field added to
@@ -238,7 +238,7 @@ struct SqpMajorTraceEvent {
     /// The row, in the units it will be exported in. Valid for the duration of
     /// the `on_sqp_major` call only.
     const SqpIterate &row;
-    /// This row's index in `SqpSolution::history` -- the value `history.size()`
+    /// This row's index in `SqpResult::history` -- the value `history.size()`
     /// had before the push, so the stream and the vector share one numbering.
     Index major = 0;
     /// THE ARM THAT PRODUCED THIS ROW'S STEP, which is not the same reading as
@@ -322,7 +322,7 @@ struct SqpSolveEndTraceEvent {
 
     // --- THE SCALING BLOCK (M6 W5 T8.7) ---
     //
-    // `SqpSolution::scaling`'s own five values, flat and in its own field
+    // `SqpResult::scaling`'s own five values, flat and in its own field
     // order. They are on the END event because the factors are settled by the
     // time the solve closes and because the console's trailer -- the
     // `Scaling:` line `format_iteration_table` writes -- has no other source:
@@ -332,7 +332,7 @@ struct SqpSolveEndTraceEvent {
     // AFTER `counters`, which is a REFERENCE and therefore has no default
     // member initializer: every one of these does, so the three-argument
     // brace initialization every existing emit site writes still compiles.
-    bool scaling_active = false; ///< `SqpSolution::Scaling::active`.
+    bool scaling_active = false; ///< `SqpResult::Scaling::active`.
     double obj_scale = 1.0;      ///< `::obj`; 1.0 when scaling is off.
     double row_scale_min = 1.0;  ///< `::row_min`.
     double row_scale_max = 1.0;  ///< `::row_max`.

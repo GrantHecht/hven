@@ -22,7 +22,7 @@
 // per cell. Wall is recorded and is INFORMATIONAL ONLY -- never a margin,
 // never a claim.
 //
-// Both engines reach the cell through the ONE declared NLPProblem -- the
+// Both engines reach the cell through the ONE declared NlpTripletModel -- the
 // interior-point engine via make_nlp_program's transcription, the SQP engine via
 // NlpProblemModel -- so both key the same DeclarationKey and an export stages
 // across with no conversion and no re-stamp. The corpus's cells are NlpModels
@@ -62,13 +62,13 @@
 #include <hven/core/solver_status.h>
 #include <hven/core/start_level.h>
 #include <hven/detail/model/nlp_adapter.h>
-#include <hven/drivers/interior_point_solver.h>
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/ipm_solver.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/nlp_model.h>
-#include <hven/model/nlp_model_aggregate.h>
-#include <hven/model/nlp_problem.h>
+#include <hven/model/nlp_model_assembly.h>
 #include <hven/model/nlp_problem_model.h>
+#include <hven/model/nlp_triplet_model.h>
 #include <hven/model/structure_identity.h>
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/warm_start_data.h>
@@ -83,10 +83,10 @@ using hven::solvers::corpus::CorpusCell;
 using hven::solvers::corpus::StartTaxonomy;
 
 // =============================================================================
-// ModelAsNlpProblem — an NlpModel, stated the way NLPProblem states a problem
+// ModelAsNlpProblem — an NlpModel, stated the way NlpTripletModel states a problem
 // =============================================================================
 
-/// @brief One NlpModel declared as an NLPProblem, so that both engines can be
+/// @brief One NlpModel declared as an NlpTripletModel, so that both engines can be
 ///        bound to it.
 ///
 /// ROW LAYOUT. The declared rows are the equalities first, in the model's own
@@ -96,26 +96,26 @@ using hven::solvers::corpus::StartTaxonomy;
 ///   row me + j     in [0, mi)        gl = -inf, gu = 0  -> cI_j(x) <= 0
 ///
 /// Reading the declaration back through NlpProblemModel reproduces the ORIGINAL
-/// model's cE and cI, in the original order, with no sign flip, so NLPProblem's
+/// model's cE and cI, in the original order, with no sign flip, so NlpTripletModel's
 /// lambda over [cE; cI] splits into the model's (lambda_e, lambda_i) by a
 /// head/tail cut and nothing else.
 ///
-/// STRUCTURE. NLPProblem queries the two sparsity patterns once and they must
+/// STRUCTURE. NlpTripletModel queries the two sparsity patterns once and they must
 /// not move afterwards, but an NlpModel decides its pattern per point. The
 /// declared structure is therefore the UNION of the patterns at two points: the
 /// model's own start point, and the point make_nlp_program's transcription evaluates
 /// at (the origin projected onto the declared box). Every later evaluation is
 /// merged into the declared slots, and a nonzero arriving at a slot the union
 /// did not declare is REFUSED by name: a model whose pattern depends on the
-/// iterate cannot be stated as an NLPProblem.
+/// iterate cannot be stated as an NlpTripletModel.
 ///
 /// HESSIAN TRIANGLE. NlpModel returns the UPPER triangle (row <= col);
-/// NLPProblem declares the LOWER one (row >= col). Same symmetric matrix, so
+/// NlpTripletModel declares the LOWER one (row >= col). Same symmetric matrix, so
 /// the conversion is an index transpose on the declared structure and nothing
 /// at all on the values.
-class ModelAsNlpProblem final : public NLPProblem {
+class ModelAsNlpProblem final : public NlpTripletModel {
   public:
-    /// @brief Declares @p model as an NLPProblem.
+    /// @brief Declares @p model as an NlpTripletModel.
     /// @param model The model to state; retained.
     /// @param name  Diagnostic name, reported by name().
     /// @throws std::invalid_argument if @p model is null.
@@ -305,7 +305,7 @@ class ModelAsNlpProblem final : public NLPProblem {
                         "(row {}, col {}) is not in the structure declared at setup. The "
                         "declared structure is the union of the patterns at the model's start "
                         "point and at the projected origin; a model whose pattern depends on "
-                        "the iterate cannot be stated as an NLPProblem, whose structures are "
+                        "the iterate cannot be stated as an NlpTripletModel, whose structures are "
                         "queried once and must not change.",
                         what, r, v_inner[vk]));
                 }
@@ -351,7 +351,7 @@ class ModelAsNlpProblem final : public NLPProblem {
             for (Index r = 0; r < hess_pattern_.outerSize(); ++r) {
                 for (SpRM::InnerIterator it(hess_pattern_, r); it; ++it, ++slot) {
                     // Upper (row, col) declared as lower (col, row): same
-                    // symmetric entry, the triangle NLPProblem asks for.
+                    // symmetric entry, the triangle NlpTripletModel asks for.
                     hess_rows_(slot) = static_cast<int>(it.col());
                     hess_cols_(slot) = static_cast<int>(it.row());
                 }
@@ -378,10 +378,10 @@ inline std::string dual_bind_refusal(const CorpusCell &cell) {
     case StartTaxonomy::kPhysicsInformed:
         return {};
     case StartTaxonomy::kCorrupted:
-        return "start is a damaged SQP WarmStart from a prior solve at p0; the interior-point "
+        return "start is a damaged SQP SqpWarmStart from a prior solve at p0; the interior-point "
                "engine accepts no such value, so leg (a) cannot run from this cell's own start";
     case StartTaxonomy::kFullWarm:
-        return "start is an SQP WarmStart carried from a prior solve at p0 (hot handle and "
+        return "start is an SQP SqpWarmStart carried from a prior solve at p0 (hot handle and "
                "activity encoding, no interior-point counterpart), so leg (a) cannot run from "
                "this cell's own start";
     case StartTaxonomy::kActivityOnly:
@@ -495,7 +495,7 @@ inline Vec start_point_for(const CorpusCell &cell, const test_support::F7Colloca
     }
 }
 
-inline SqpLegRow record_sqp(const SqpSolution &sol, double wall_s) {
+inline SqpLegRow record_sqp(const SqpResult &sol, double wall_s) {
     SqpLegRow row;
     row.ran = true;
     row.status = sol.status;
@@ -539,10 +539,10 @@ inline SqpLegRow record_sqp(const SqpSolution &sol, double wall_s) {
 /// make the margins incomparable.
 inline SqpLegRow run_sqp_leg(const std::shared_ptr<NlpProblemModel> &model, const Vec &x0,
                              const SqpOptions &opts, const WarmStartData *payload) {
-    NlpModelAggregate bridge(model);
-    SqpDriver driver{opts};
+    NlpModelAssembly bridge(model);
+    SqpSolver driver{opts};
     const auto t0 = std::chrono::steady_clock::now();
-    const SqpSolution sol =
+    const SqpResult sol =
         payload != nullptr ? driver.solve(bridge, x0, *payload) : driver.solve(bridge, x0);
     return record_sqp(sol, seconds_since(t0));
 }
@@ -604,7 +604,7 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
         // program is an argument of the solve. The TIMED WINDOW is unchanged --
         // it brackets the solve only, and the transcription runs above `t0`.
         const auto ipm_program = hven::solvers::make_nlp_program(declared);
-        hven::solvers::InteriorPointSolver ipm;
+        hven::solvers::IpmSolver ipm;
         hven::solvers::IpmOptions ipm_opts = ipm.options();
         ipm_opts.common.print_level = opts.ipm_print_level;
         ipm_opts.max_iters = opts.ipm_max_iters;

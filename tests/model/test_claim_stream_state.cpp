@@ -31,7 +31,7 @@
 #include <Eigen/Sparse>
 
 #include "hven/detail/model/claim_restatement.h"
-#include "hven/model/aggregate_declaration.h"
+#include "hven/model/assembly_declaration.h"
 #include "hven/model/candidate_point.h"
 #include "hven/model/claim_space.h"
 #include "hven/model/non_linear_program.h"
@@ -42,7 +42,7 @@ using hven::model_tests::build_corpus;
 using hven::model_tests::CorpusCase;
 using hven::model_tests::CorpusConstraintPiece;
 using hven::model_tests::reference_restatement;
-using hven::solvers::AggregateDeclaration;
+using hven::solvers::AssemblyDeclaration;
 using hven::solvers::ClaimBlock;
 using hven::solvers::FixedVariableTreatments;
 using hven::solvers::NonLinearProgram;
@@ -218,7 +218,7 @@ TEST(ClaimStreamState, AdoptingADeclarationWithFixingRowsRestatesOnBothRebuilds)
     ASSERT_TRUE(source->configure_variable_treatment(FixedVariableTreatments::MakeConstraint, 0.0));
     ASSERT_GT(source->internal_fixed_constraints(), 0);
 
-    AggregateDeclaration declaration = source->declaration();
+    AssemblyDeclaration declaration = source->declaration();
     ASSERT_GT(declaration.fixing_rows_, 0);
 
     auto target = std::make_shared<NonLinearProgram>(1);

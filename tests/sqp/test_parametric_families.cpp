@@ -30,7 +30,7 @@
 // multiplier on its whole middle branch (parametric_families.h's DEGENERACY
 // note): at a zero multiplier, whether a solver reports the row in its exit
 // working set is not determined by the KKT conditions, so asserting
-// WarmStart::ineq_active there would be asserting a solver-internal choice as
+// SqpWarmStart::ineq_active there would be asserting a solver-internal choice as
 // if it were mathematics. Where the analytic multiplier is nonzero the two
 // notions coincide and the assertion is the same either way.
 
@@ -44,8 +44,8 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/nlp_model.h>
 
 #include "support/derivative_check.h"
@@ -86,7 +86,7 @@ SqpOptions tight_options() {
 }
 
 // Which constraints hold with equality at `x`, in AnalyticActiveSet's (and
-// therefore WarmStart's) encoding. See this file's ACTIVITY note.
+// therefore SqpWarmStart's) encoding. See this file's ACTIVITY note.
 AnalyticActiveSet geometric_active_set(const NlpModel &model, const Vec &x, double tol) {
     AnalyticActiveSet a;
     a.bound_active.assign(static_cast<std::size_t>(model.n()), 0);
@@ -173,8 +173,8 @@ void check_path_at(const NlpModel &model, double p, const Vec &x_star, double f_
                    const AnalyticActiveSet &active) {
     SCOPED_TRACE(::testing::Message() << "p = " << p);
     const SqpOptions opts = tight_options();
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE(std::abs(sol.f - f_star), kFRelTol * std::max(1.0, std::abs(f_star)))

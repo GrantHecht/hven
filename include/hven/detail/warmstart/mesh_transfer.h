@@ -3,7 +3,7 @@
 
 #pragma once
 
-// mesh_transfer.h — MeshTransfer: mapping a WarmStart (warm_start.h) from one
+// mesh_transfer.h — MeshTransfer: mapping a SqpWarmStart (warm_start.h) from one
 // DISCRETIZATION MESH onto another, which is the operation a mesh-refinement
 // loop needs between its solves.
 //
@@ -112,13 +112,13 @@
 // 2. THE LAYOUT CONTRACT
 // =====================================================================
 //
-// FOR THE SYNTHETIC MODEL, EVERY FLAT VECTOR OF A WarmStart IS ONE VALUE PER
+// FOR THE SYNTHETIC MODEL, EVERY FLAT VECTOR OF A SqpWarmStart IS ONE VALUE PER
 // MESH NODE, IN NODE ORDER:
 //
 //     ws.x[i], ws.lambda_e[i], ws.lambda_i[i], ws.z[i],
 //     ws.ineq_active[i], ws.bound_active[i]      <-> mesh node i
 //
-// so a source WarmStart's every non-empty vector has EXACTLY from.nodes.size()
+// so a source SqpWarmStart's every non-empty vector has EXACTLY from.nodes.size()
 // entries and every vector of the result has to.nodes.size(). AN EMPTY VECTOR
 // IS ABSENT, NOT MALFORMED (a model with me == 0 emits an empty lambda_e; a
 // solve that could attribute no activity emits empty activity vectors --
@@ -195,14 +195,14 @@
 // arithmetic.
 //
 // =====================================================================
-// 4. WHAT THE TRANSFERRED WarmStart CLAIMS, AND WHAT IT REFUSES TO
+// 4. WHAT THE TRANSFERRED SqpWarmStart CLAIMS, AND WHAT IT REFUSES TO
 // =====================================================================
 //
 // THE OUTPUT DESCRIBES A DIFFERENT PROBLEM SIZE THAN THE INPUT, and every
 // field below is decided from that single fact.
 //
 // structure_hash == 0, ALWAYS. That is warm_start.h's own "no model was seen"
-// sentinel, and sqp_driver.h's warm-start ingest treats it EXACTLY like a
+// sentinel, and sqp_solver.h's warm-start ingest treats it EXACTLY like a
 // mismatch -- so a transferred object can never reach kWarm or kHot. That is
 // correct and intended: the destination is a different model with a different
 // sparsity pattern, so a hash carried over from the source could only ever be
@@ -261,7 +261,7 @@
 // transfer's provenance could read them.)
 //
 // valid IS TRUE, and a cold input THROWS rather than producing a cold output: a
-// WarmStart with valid == false carries nothing that may be trusted or fed
+// SqpWarmStart with valid == false carries nothing that may be trusted or fed
 // forward (warm_start.h), so asking to transfer one is a caller error, not a
 // request for an empty answer.
 //
@@ -271,7 +271,7 @@
 // seeding consumes, so re-deriving it is free and makes it impossible for the
 // two representations to disagree on the destination mesh.
 //
-// THE INPUT IS NEVER MUTATED (transfer() is const and takes its WarmStart by
+// THE INPUT IS NEVER MUTATED (transfer() is const and takes its SqpWarmStart by
 // const reference; every output vector is freshly allocated).
 
 #include <algorithm>
@@ -455,16 +455,17 @@ std::vector<Label> inherit_activity(const std::vector<Label> &src, const Mesh &f
 // or has exactly one entry per source node.
 inline void check_layout(Index size, Index expected, const char *field) {
     if (size != 0 && size != expected) {
-        throw std::invalid_argument(fmt::format(
-            "MeshTransfer::transfer: WarmStart::{} has size {}, expected {} (one value per `from` "
-            "mesh node) or 0 (absent) -- see mesh_transfer.h's LAYOUT CONTRACT",
-            field, size, expected));
+        throw std::invalid_argument(
+            fmt::format("MeshTransfer::transfer: SqpWarmStart::{} has size {}, expected {} (one "
+                        "value per `from` "
+                        "mesh node) or 0 (absent) -- see mesh_transfer.h's LAYOUT CONTRACT",
+                        field, size, expected));
     }
 }
 
 } // namespace mesh_detail
 
-// Maps a WarmStart between discretization meshes. Stateless and const; one
+// Maps a SqpWarmStart between discretization meshes. Stateless and const; one
 // instance may serve any number of transfers.
 class MeshTransfer {
   public:
@@ -478,17 +479,17 @@ class MeshTransfer {
     // Throws std::invalid_argument (the offending value in
     // the message) on: a mesh with fewer than two nodes, non-finite or
     // non-increasing nodes, a non-finite or non-positive weight, a
-    // nodes/weights length mismatch, a WarmStart vector that is neither empty
+    // nodes/weights length mismatch, a SqpWarmStart vector that is neither empty
     // nor one-per-node, a qp_working_set whose shape contradicts the source
     // mesh, or a `from_ws` that is not `valid`.
-    WarmStart transfer(const WarmStart &from_ws, const Mesh &from, const Mesh &to) const {
+    SqpWarmStart transfer(const SqpWarmStart &from_ws, const Mesh &from, const Mesh &to) const {
         mesh_detail::validate_mesh(from, "from");
         mesh_detail::validate_mesh(to, "to");
 
         if (!from_ws.valid) {
             throw std::invalid_argument(
                 "MeshTransfer::transfer: `from_ws` is not valid (warm_start.h's cold state); a "
-                "cold WarmStart carries nothing that may be trusted or fed forward, so there is "
+                "cold SqpWarmStart carries nothing that may be trusted or fed forward, so there is "
                 "nothing to transfer");
         }
 
@@ -499,7 +500,7 @@ class MeshTransfer {
         // -- while every other vector may be absent (layout contract).
         if (from_ws.x.size() != m) {
             throw std::invalid_argument(fmt::format(
-                "MeshTransfer::transfer: WarmStart::x has size {}, expected {} (one value per "
+                "MeshTransfer::transfer: SqpWarmStart::x has size {}, expected {} (one value per "
                 "`from` mesh node); the primal point is mandatory and may not be absent",
                 from_ws.x.size(), m));
         }
@@ -514,14 +515,15 @@ class MeshTransfer {
         // assumption and this header's disagree, which is worth reporting
         // rather than silently overwriting.
         if (from_ws.qp_working_set.n() != m) {
-            throw std::invalid_argument(fmt::format(
-                "MeshTransfer::transfer: WarmStart::qp_working_set has n() = {}, expected {} (one "
-                "variable per `from` mesh node)",
-                from_ws.qp_working_set.n(), m));
+            throw std::invalid_argument(
+                fmt::format("MeshTransfer::transfer: SqpWarmStart::qp_working_set has n() = {}, "
+                            "expected {} (one "
+                            "variable per `from` mesh node)",
+                            from_ws.qp_working_set.n(), m));
         }
         mesh_detail::check_layout(from_ws.qp_working_set.mi(), m, "qp_working_set.mi()");
 
-        WarmStart out;
+        SqpWarmStart out;
 
         // PRIMAL: a pointwise state value, interpolated plainly (section 1's
         // last paragraph).

@@ -3,7 +3,7 @@
 
 #pragma once
 
-// The canonical HS071 as an NLPProblem, shared by this suite's live-solve pins.
+// The canonical HS071 as an NlpTripletModel, shared by this suite's live-solve pins.
 //
 // It lives in a header rather than in one TU because two suites in this
 // directory need a real program to solve and this directory links no engine
@@ -21,13 +21,13 @@
 
 #include <Eigen/Core>
 
-#include "hven/model/nlp_problem.h"
+#include "hven/model/nlp_triplet_model.h"
 
 namespace hven_drivers_tests {
 
 inline constexpr double kHs071Inf = std::numeric_limits<double>::infinity();
 
-struct Hs071Problem final : hven::solvers::NLPProblem {
+struct Hs071Problem final : hven::solvers::NlpTripletModel {
     int num_vars() const override { return 4; }
     int num_cons() const override { return 2; }
     int num_jac_nonzeros() const override { return 8; }

@@ -7,7 +7,7 @@
 // (see LICENSE).
 
 // This file defines the default composite non-linear program class
-// for interfacing with InteriorPointSolver. This class is responsible for combining many different
+// for interfacing with IpmSolver. This class is responsible for combining many different
 // dense or sparse objective or constraints into a single optimization problem and
 // manages all memory allocation, sparsity pattern computation, work partitioning, and function
 // evaluation.
@@ -38,7 +38,7 @@
 #include "hven/detail/interior/utils/thread_pool.h"
 #include "hven/detail/model/claim_restatement.h"
 #include "hven/model/claim_stream_source.h"
-#include "hven/model/nlp_aggregate.h"
+#include "hven/model/nlp_assembly.h"
 
 namespace hven::solvers {
 
@@ -113,7 +113,7 @@ inline constexpr int kMinKktElementsPerPartition = 1000;
 /// Accumulation-value determinism is a property of this path, not a library
 /// absolute. Layout determinism -- claim order, structural keys and location
 /// tables -- holds on every path.
-struct NonLinearProgram : public NlpAggregate {
+struct NonLinearProgram : public NlpAssembly {
     using VectorXi = Eigen::VectorXi;
     using VectorXd = Eigen::VectorXd;
     using MatrixXi = Eigen::MatrixXi;
@@ -282,7 +282,7 @@ struct NonLinearProgram : public NlpAggregate {
     ///         fixing row names other than exactly one constraint row; or if
     ///         one names an equality row outside the [declared equality rows
     ///         less the fixing-row count, declared equality rows) band.
-    void adopt_declaration(AggregateDeclaration declaration);
+    void adopt_declaration(AssemblyDeclaration declaration);
 
     /// One staged variable-bound declaration, as handed to set_variable_bound.
     /// Recorded verbatim (no merging at declaration time) so that repeated
@@ -395,7 +395,7 @@ struct NonLinearProgram : public NlpAggregate {
     ///
     /// @return true iff this call rebuilt the KKT/RHS structures, in which case
     ///         the caller must re-read the dimensions and recompute the sparsity
-    ///         pattern (InteriorPointSolver does both at its solve entry). false
+    ///         pattern (IpmSolver does both at its solve entry). false
     ///         means nothing changed.
     ///
     /// @throws std::invalid_argument for an unrecognized treatment, for a
@@ -493,7 +493,7 @@ struct NonLinearProgram : public NlpAggregate {
     // Private because they describe what the last CONFIGURATION was told, which
     // may predate the caller's own solve. The treatment a SOLVE actually ran
     // under is reported per call as
-    // InteriorPointSolver::SolveResult::fixed_variable_treatment_.
+    // IpmSolver::SolveResult::fixed_variable_treatment_.
 
     /// Selected treatment, as last configured.
     FixedVariableTreatments variable_treatment_ = FixedVariableTreatments::MakeParameter;
@@ -749,7 +749,7 @@ struct NonLinearProgram : public NlpAggregate {
     // the dual shift (−δ_c) here as part of the base matrix, after the KKT
     // assembly and before the first factorization; the classic (default) mode
     // calls it on demand, at most once per phase, when a factorization reports
-    // the singularity signal (see InteriorPointSolver::factor_impl). Until either happens
+    // the singularity signal (see IpmSolver::factor_impl). Until either happens
     // these slots hold 0.0.
     void perturb_kkt_c_diags(double pert, Eigen::SparseMatrix<double, Eigen::RowMajor> &mat) {
         int eofs = this->e_pivot_data_start_ + this->num_user_kkt_elems_;
@@ -947,7 +947,7 @@ struct NonLinearProgram : public NlpAggregate {
     /// Not reentrant against itself: the first read after a lay writes the
     /// stored state, so two threads reading a freshly laid declaration
     /// concurrently race. The contract forbids overlapping operations on one
-    /// aggregate (see the threading sentence on NlpAggregate), so this asks for
+    /// aggregate (see the threading sentence on NlpAssembly), so this asks for
     /// nothing new -- one thread drives the provider, and its fan-out is
     /// internal.
     ///
@@ -972,7 +972,7 @@ struct NonLinearProgram : public NlpAggregate {
     ///         evaluation path below can evaluate a row no piece names. Only a
     ///         hand-laid layout can reach this; adopt_declaration() refuses
     ///         rows-without-pieces before a lay is ever attempted.
-    const AggregateDeclaration &declaration() const override {
+    const AssemblyDeclaration &declaration() const override {
         this->require_master_lists_unmoved();
         this->materialize_declaration_bounds();
         this->materialize_declaration_pieces();
@@ -1039,9 +1039,7 @@ struct NonLinearProgram : public NlpAggregate {
     /// the whole provider, so the right-hand-side fill path holding an
     /// intermediate (by design -- see the determinism argument at the top of
     /// this class) settles it for all of them.
-    AggregateCapability capabilities() const override {
-        return AggregateCapability::kValuesFastPath;
-    }
+    AssemblyCapability capabilities() const override { return AssemblyCapability::kValuesFastPath; }
 
     /// The KKT value array this provider's location tables are bound to.
     ///
@@ -1054,7 +1052,7 @@ struct NonLinearProgram : public NlpAggregate {
     /// A CAPTURED VALUE. This returns the address recorded at analysis time and
     /// touches no matrix to produce it; re-reading valuePtr() from the analysed
     /// matrix would make the check vacuous against a resize and unsafe against
-    /// destruction (see validate_bound_destination in model/nlp_aggregate.h).
+    /// destruction (see validate_bound_destination in model/nlp_assembly.h).
     const double *bound_kkt_destination() const override { return this->analyzed_kkt_values_; }
 
     /// @brief The process-unique id of the solver whose analysis this
@@ -1190,7 +1188,7 @@ struct NonLinearProgram : public NlpAggregate {
     // THE CONSUMER-SIDE RULE that makes both facts harmless: a correct scorer
     // EXCLUDES declared-fixed coordinates -- those whose materialized bound
     // record has lower == upper -- from stationarity scoring, per
-    // evaluate_candidate_first_order in model/nlp_aggregate.h. A scorer that
+    // evaluate_candidate_first_order in model/nlp_assembly.h. A scorer that
     // does so never reads either row and is insensitive to which treatment is
     // configured.
 
@@ -1578,7 +1576,7 @@ struct NonLinearProgram : public NlpAggregate {
     detail::ClaimDomainCounts claim_domain_counts_{};
 
     /// The declaration as of the last lay -- see declaration().
-    mutable AggregateDeclaration declaration_;
+    mutable AssemblyDeclaration declaration_;
 
     /// What the last lay left owing. Each is set by invalidate_laid_state() and
     /// cleared by the one read that discharges it; all four start FALSE, so an

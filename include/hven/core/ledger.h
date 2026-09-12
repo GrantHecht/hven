@@ -35,8 +35,8 @@ struct SolveRecord {
 
 /// One record per WHOLE SQP DRIVER SOLVE -- the aggregate counters a caller
 /// wants when comparing driver-level runs, exactly as SolveRecord above is
-/// one record per QP-engine solve. Emitted by SqpDriver::attach_ledger (see
-/// sqp_driver.h), which also forwards the same Ledger to the driver's own
+/// one record per QP-engine solve. Emitted by SqpSolver::attach_ledger (see
+/// sqp_solver.h), which also forwards the same Ledger to the driver's own
 /// internal QpEngine, so a Ledger attached to a driver ends up holding BOTH
 /// kinds of record: one SqpSolveRecord per solve() call, and the QP-level
 /// SolveRecord entries (one per subproblem/SOC/elastic re-solve) the engine
@@ -50,7 +50,7 @@ struct SolveRecord {
 /// comparison actually needs. Each name matches its source field in
 /// SqpCounters / SsnCounters (solver_counters.h) exactly --
 /// `soc_steps` here IS `counters.soc_steps`, not a rename. They can never
-/// drift from `counters`: SqpDriver::record_solve populates both from the
+/// drift from `counters`: SqpSolver::record_solve populates both from the
 /// same `out.counters` in the same statement list, so `counters` remains the
 /// single source of truth and these are a read-only-shaped copy of part of
 /// it, never an independent measurement.
@@ -125,7 +125,7 @@ struct SqpSolveRecord {
     Index ssn_escapes = 0;
 
     /// Wall-clock time this ONE public solve() call spent inside solve_impl
-    /// (sqp_driver.h times std::chrono::steady_clock around that call alone,
+    /// (sqp_solver.h times std::chrono::steady_clock around that call alone,
     /// never around model construction or CSV/ledger bookkeeping).
     ///
     /// INFORMATIONAL ONLY, EXACTLY LIKE PEAK RSS ELSEWHERE IN THIS PROJECT:
@@ -142,7 +142,7 @@ struct SqpSolveRecord {
 
 /// One record per WHOLE INTERIOR-POINT SOLVE -- the interior-point engine's
 /// counterpart to SqpSolveRecord above, written by
-/// InteriorPointSolver::attach_ledger (see drivers/interior_point_solver.h),
+/// IpmSolver::attach_ledger (see drivers/ipm_solver.h),
 /// one per public solve() call that RETURNS. A call that leaves by an
 /// exception writes nothing, which is the honest record of one.
 ///
@@ -172,7 +172,7 @@ struct IpmSolveRecord {
     ///        `wall_seconds` below; never asserted on a value.
     double total_time = 0.0;
     /// KKT factorizations paid by THIS CALL -- the difference between
-    /// `InteriorPointSolver::lifetime_factorize_count()` after the call and
+    /// `IpmSolver::lifetime_factorize_count()` after the call and
     /// before it, NOT that total itself. On a solver reused for a second solve
     /// the total would charge this record for the previous call's work.
     ///

@@ -27,7 +27,7 @@
 
 #include <hven/core/detail/aggregate_arity.h>
 #include <hven/detail/globalization/sqp/globalization.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/drivers/trace_writer.h>
 
 namespace hven::solvers {
@@ -886,7 +886,7 @@ void JsonLinesTraceSink::on_sqp_solve_end(const SqpSolveEndTraceEvent &event) {
     key(b, first, "counters");
     b += counters_object(event.counters);
     // THE SCALING BLOCK (M6 W5 T8.7), after the counters object and flat: the
-    // five values `SqpSolution::scaling` carries, so a reader can tell a scaled
+    // five values `SqpResult::scaling` carries, so a reader can tell a scaled
     // solve from an unscaled one and can see the residual the convergence test
     // gated on, which no caller-scale column reports.
     key_bool(b, first, "scaling_active", event.scaling_active);

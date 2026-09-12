@@ -15,7 +15,7 @@ ccache disabled):
 
 - Parsing the header set in `src/hven_pch.h` costs **3.01 s**, and that
   cost is paid once per TU that includes it.
-- `src/drivers/interior_point_solver.cpp` is the largest TU at 3722
+- `src/drivers/ipm_solver.cpp` is the largest TU at 3722
   lines and 7.02 s. **3.01 s of that is the headers**; only 4.01 s is
   its own body. (The per-TU table in `src/CMakeLists.txt` records 6.99 s
   for the same file. The two figures are separate measurements — this
@@ -57,7 +57,7 @@ Linux build produces (28 of them: 21 after M3 phase-C T1/T2 added
 `drivers/sqp_print.cpp` and `core/ledger.cpp` and brought the
 previously-unmeasured `kkt/kkt_calls.cpp` into the measurement table,
 then T3's `drivers/sqp_options.cpp` and `core/enum_names.cpp`, then
-T4's `globalization/sqp/funnel.cpp`, then T5's `drivers/sqp_driver.cpp`,
+T4's `globalization/sqp/funnel.cpp`, then T5's `drivers/sqp_solver.cpp`,
 then T6's `globalization/sqp/soc_elastic_restoration.cpp`, then
 T7's `warmstart/warm_start.cpp`, then T8's
 `warmstart/continuation.cpp`)
@@ -80,7 +80,7 @@ decision, not a build decision.
 ### If you edit `src/hven_pch.h`
 
 The header's include list is the include block of
-`src/drivers/interior_point_solver.cpp`, verbatim and in the same order.
+`src/drivers/ipm_solver.cpp`, verbatim and in the same order.
 That ordering is load-bearing — it is what makes the byte-identity
 property hold, which is why both lists carry a `// clang-format off`
 guard (clang-format would otherwise alphabetize them). After any edit,

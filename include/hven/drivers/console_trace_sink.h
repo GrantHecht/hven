@@ -66,7 +66,7 @@ namespace hven::solvers {
 
 /// @brief The interior-point iteration table's five-band residual colouring.
 ///
-/// THE ONE COPY. It was `InteriorPointSolver::calculate_color`, a private
+/// THE ONE COPY. It was `IpmSolver::calculate_color`, a private
 /// static, until M6 W5 T8.7 moved the table out of the solver and into
 /// `ConsoleTraceSink`. Through T8.7 the engine's own `print_exit_stats` called
 /// it here so the two renderings could not drift apart; T8.7b moved that block
@@ -105,7 +105,7 @@ fmt::text_style ipm_residual_color(double value, double target, double acceptabl
 ///
 /// NESTING. The SQP side tracks `depth` exactly as `JsonLinesTraceSink` does
 /// (a nested solve's own pair pushes and pops) and renders ONLY depth-0 majors:
-/// `format_iteration_table` renders `SqpSolution::history`, which holds
+/// `format_iteration_table` renders `SqpResult::history`, which holds
 /// top-level rows only, so rendering a nested row would make this sink differ
 /// from the function it is pinned against. The interior-point pair moves no
 /// depth, as `trace.h` says.

@@ -38,7 +38,7 @@
 namespace {
 
 using hven::solvers::ElasticSlackInit;
-using hven::solvers::InteriorPointSolver;
+using hven::solvers::IpmSolver;
 using hven::solvers::kBoundMultResetThreshold;
 using hven::solvers::kNearFeasibleGuardFactor;
 using hven::solvers::kRestoPenaltyParameter;

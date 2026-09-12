@@ -7,10 +7,10 @@
 // reads the solver state (settings, equal_cons, inequal_cons, nlp) through the
 // SolverContext reference ctx_ rather than off a member of its own. Statement
 // order and operand order in these bodies are load-bearing: the iteration
-// counts they produce are bit-identical to InteriorPointSolver's own under CBWR,
+// counts they produce are bit-identical to IpmSolver's own under CBWR,
 // and reordering either changes them. Of the four barrier/eval
 // helpers, apply_reset_slacks/barrier_objective/barrier_gradient forward to
-// the shared inline kernels in barrier_math.h (as do InteriorPointSolver's own
+// the shared inline kernels in barrier_math.h (as do IpmSolver's own
 // identically-named methods); eval_rhs has no shared counterpart and stays a
 // real body, issuing the first-order right-hand-side request through the
 // aggregate contract (see merit_acceptance.h's byte-identity design note).
@@ -24,7 +24,7 @@
 // the PROBE/LOQO barmode switch + common clamp/objective/gradient tail, plus
 // the loqo_mu / mpc_mu oracles it consumes. Its barrier_*
 // helpers forward to the shared inline kernels in barrier_math.h; complementarity
-// stays a real, TOKEN-IDENTICAL copy of InteriorPointSolver's own (including its
+// stays a real, TOKEN-IDENTICAL copy of IpmSolver's own (including its
 // ULP-load-bearing .sum() warning), since its avgcomp/mincomp feed mu and are not
 // candidates for the shared header. See classic_adaptive_governor.h's
 // PROBE-impurity design note.
@@ -39,9 +39,6 @@
 // l1_restoration.h for the formulations and citations, and restoration.h for
 // the wiring overview.
 
-#include "hven/detail/interior/aggregate_views.h"
-#include "hven/detail/interior/barrier_math.h"
-#include "hven/detail/interior/eval_error_log.h"
 #include "hven/detail/globalization/backtracking_line_search.h"
 #include "hven/detail/globalization/classic_adaptive_governor.h"
 #include "hven/detail/globalization/feasibility_switch_recovery.h"
@@ -55,6 +52,9 @@
 #include "hven/detail/globalization/soc.h"
 #include "hven/detail/globalization/switching_acceptance.h"
 #include "hven/detail/globalization/watchdog.h"
+#include "hven/detail/interior/aggregate_views.h"
+#include "hven/detail/interior/barrier_math.h"
+#include "hven/detail/interior/eval_error_log.h"
 
 #include <algorithm>
 #include <array>
@@ -88,7 +88,7 @@ void note_eval_error_unknown(EvalErrorLog *log) {
 // strategies are the ones that give it a real body, since they are the ones
 // that actually drive it. is_infeasibility_sufficiently_reduced below is a
 // separate case: it has a real body right here, because it IS driven on the
-// classic path (see alg_impl, interior_point_solver.cpp).
+// classic path (see alg_impl, ipm_solver.cpp).
 bool ClassicMeritAcceptance::is_iterate_acceptable(const ProgressMeasures &current,
                                                    const ProgressMeasures &trial,
                                                    const ProgressMeasures &predicted_reduction,
@@ -478,9 +478,9 @@ double ClassicMeritAcceptance::ls_auglang(double obj_scale, double mu, double pr
     return alpha;
 }
 
-// Line search — dispatcher (verbatim today's InteriorPointSolver::ls_impl)
+// Line search — dispatcher (verbatim today's IpmSolver::ls_impl)
 
-double ClassicMeritAcceptance::classic_line_search(InteriorPointSolver::LineSearchModes lsmode,
+double ClassicMeritAcceptance::classic_line_search(IpmSolver::LineSearchModes lsmode,
                                                    double obj_scale, double mu, double prim_obj,
                                                    double barr_obj, Eigen::VectorXd &XSL,
                                                    Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
@@ -503,16 +503,16 @@ double ClassicMeritAcceptance::classic_line_search(InteriorPointSolver::LineSear
     KKTVector v_rhs2 = kkt_view(RHS2);
 
     switch (lsmode) {
-    case InteriorPointSolver::LineSearchModes::LANG:
+    case IpmSolver::LineSearchModes::kLang:
         return ls_lang(obj_scale, mu, prim_obj, barr_obj, v_xsl, v_dxsl, v_xsl2, v_rhs, v_rhs2,
                        Citer);
-    case InteriorPointSolver::LineSearchModes::L1:
+    case IpmSolver::LineSearchModes::kL1:
         return ls_l1(obj_scale, mu, prim_obj, barr_obj, v_xsl, v_dxsl, v_xsl2, v_rhs, v_rhs2,
                      Citer);
-    case InteriorPointSolver::LineSearchModes::AUGLANG:
+    case IpmSolver::LineSearchModes::kAugLang:
         return ls_auglang(obj_scale, mu, prim_obj, barr_obj, v_xsl, v_dxsl, v_xsl2, v_rhs, v_rhs2,
                           Citer);
-    case InteriorPointSolver::LineSearchModes::NOLS:
+    case IpmSolver::LineSearchModes::kNoLs:
         // Unreachable through the mechanism: run_acceptance_backtrack takes the
         // NOLS early-out before dispatching here. Kept as an explicit case so a
         // direct call still gets the NOLS convention rather than the default throw.
@@ -724,14 +724,13 @@ namespace {
 // copy of ClassicMeritAcceptance::eval_trial_point_occ's math (same slack-reset
 // + barrier convention as apply_reset_slacks / barrier_objective) — the classic
 // path's own copies are deliberately NOT reused or touched, so the classic
-// diff stays empty. Reaches InteriorPointSolver state through the SolverContext only.
+// diff stays empty. Reaches IpmSolver state through the SolverContext only.
 // Returns ptest (σ-scaled primal objective at the trial), btest (barrier term
 // −μ·Σ log s), and theta (L1 constraint-norm merit infeasibility ‖c‖₁).
 void modern_eval_trial_point(SolverContext &ctx, double obj_scale, double mu, double alpha,
                              const Eigen::VectorXd &XSL, const Eigen::VectorXd &DXSL,
                              Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS2, double &ptest,
-                             double &btest, double &theta,
-                             Eigen::VectorXd &resto_eq_shift_scratch,
+                             double &btest, double &theta, Eigen::VectorXd &resto_eq_shift_scratch,
                              Eigen::VectorXd &resto_iq_shift_scratch) {
     const int pv = ctx.primal_vars_;
     const int sv = ctx.slack_vars_;
@@ -889,17 +888,16 @@ void BacktrackingLineSearch::max_primal_dual_step(Eigen::VectorXd &XSL, Eigen::V
     double eqmultstep = Smax;
     double iqmultstep = Lmax;
 
-    if (ctx.opts_.pd_step_strategy == InteriorPointSolver::PDStepStrategies::PrimSlackEq_Iq) {
-    } else if (ctx.opts_.pd_step_strategy == InteriorPointSolver::PDStepStrategies::AllMinimum) {
+    if (ctx.opts_.pd_step_strategy == IpmSolver::PDStepStrategies::kPrimSlackEqSplitIq) {
+    } else if (ctx.opts_.pd_step_strategy == IpmSolver::PDStepStrategies::kAllMinimum) {
         double step = std::min(Smax, Lmax);
         primstep = step;
         slackstep = step;
         eqmultstep = step;
         iqmultstep = step;
-    } else if (ctx.opts_.pd_step_strategy ==
-               InteriorPointSolver::PDStepStrategies::PrimSlack_EqIq) {
+    } else if (ctx.opts_.pd_step_strategy == IpmSolver::PDStepStrategies::kPrimSlackSplitEqIq) {
         eqmultstep = Lmax;
-    } else if (ctx.opts_.pd_step_strategy == InteriorPointSolver::PDStepStrategies::MaxEq) {
+    } else if (ctx.opts_.pd_step_strategy == IpmSolver::PDStepStrategies::kMaxEq) {
         double step = std::max(Smax, Lmax);
         eqmultstep = step;
     }
@@ -923,7 +921,7 @@ void BacktrackingLineSearch::max_primal_dual_step(Eigen::VectorXd &XSL, Eigen::V
 // DXSL. SocRecovery::do_correction applies the same rule to corrected
 // directions.
 double BacktrackingLineSearch::compute_step(
-    InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
+    IpmSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
     double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
     Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance, double &alphap,
     double &alphad, IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx) {
@@ -955,14 +953,14 @@ double BacktrackingLineSearch::compute_step(
 // classic_line_search; the generic path (drives_classic_path() == false) runs
 // the loop-in-mechanism generic_line_search.
 double BacktrackingLineSearch::run_acceptance_backtrack(
-    InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
+    IpmSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
     double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
     Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance, IterateInfo &Citer,
     const std::vector<IterateInfo> &iters, SolverContext &ctx) {
     // NOLS short-circuits both driving paths identically, so the early-out lives
     // here rather than being repeated at the head of each. Both dispatch arms are
     // reached only through this function.
-    if (lsmode == InteriorPointSolver::LineSearchModes::NOLS) {
+    if (lsmode == IpmSolver::LineSearchModes::kNoLs) {
         Citer.ls_iters_ = 0;
         // No line search runs: the full step is taken, i.e. accepted.
         Citer.accepted_ = true;
@@ -980,7 +978,7 @@ double BacktrackingLineSearch::run_acceptance_backtrack(
 // max_ls_iters_, alpha /= alpha_red_ on reject) and the classic signal stores,
 // but the accept/reject verdict comes from
 // AcceptanceStrategy::is_iterate_acceptable on a ProgressMeasures triple.
-double BacktrackingLineSearch::generic_line_search(InteriorPointSolver::LineSearchModes lsmode,
+double BacktrackingLineSearch::generic_line_search(IpmSolver::LineSearchModes lsmode,
                                                    double obj_scale, double mu, double prim_obj,
                                                    double barr_obj, Eigen::VectorXd &XSL,
                                                    Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
@@ -1067,7 +1065,7 @@ double BacktrackingLineSearch::generic_line_search(InteriorPointSolver::LineSear
 // file block above states. Of the barrier_* / complementarity helpers below,
 // barrier_objective/barrier_gradient are one-line forwarders into the shared
 // kernels in barrier_math.h;
-// complementarity remains a real, TOKEN-IDENTICAL copy of InteriorPointSolver's own
+// complementarity remains a real, TOKEN-IDENTICAL copy of IpmSolver's own
 // (including its ULP-load-bearing .sum() warning), since its avgcomp/mincomp
 // feed mu and are not a candidate for the shared header. See
 // classic_adaptive_governor.h's PROBE-impurity and byte-identity design notes.
@@ -1168,7 +1166,7 @@ double ClassicAdaptiveGovernor::mpc_mu(Eigen::Ref<Eigen::VectorXd> X, Eigen::Ref
     return std::pow(navgcomp / avgcomp, 3) * avgcomp;
 }
 
-// Verbatim today's interior_point_solver.cpp barmode switch (the former `if (inequal_cons_ > 0)`
+// Verbatim today's ipm_solver.cpp barmode switch (the former `if (inequal_cons_ > 0)`
 // body). The guard stays at the alg_impl call site, but it is no longer an
 // inequality-count guard: it fires when there is ANY barrier term to drive, so
 // this function must NOT assume inequal_cons_ > 0. It does not need to -- the
@@ -1180,7 +1178,7 @@ double ClassicAdaptiveGovernor::mpc_mu(Eigen::Ref<Eigen::VectorXd> X, Eigen::Ref
 // header). `current` is ignored and `mu_event` is never written (free mode only;
 // see the header).
 double ClassicAdaptiveGovernor::update_barrier(
-    InteriorPointSolver::BarrierModes barmode, double mu_in, double avgcomp, double mincomp,
+    IpmSolver::BarrierModes barmode, double mu_in, double avgcomp, double mincomp,
     Eigen::VectorXd &XSL, Eigen::VectorXd &RHS, Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
     GlobalizationMechanism &mechanism, SolverContext &ctx, double &barr_obj,
     const IterateInfo & /*current*/, bool & /*mu_event*/) {
@@ -1193,7 +1191,7 @@ double ClassicAdaptiveGovernor::update_barrier(
     double alphad = 1.0;
 
     switch (barmode) {
-    case InteriorPointSolver::BarrierModes::PROBE:
+    case IpmSolver::BarrierModes::kProbe:
         this->barrier_gradient(v_xsl.iq_lmults(), v_rhs.dual_grad());
         // Solve straight into DXSL, then negate in place (elementwise,
         // alias-safe) -- the same order the main step solve keeps, so the
@@ -1206,7 +1204,7 @@ double ClassicAdaptiveGovernor::update_barrier(
                           ctx);
 
         break;
-    case InteriorPointSolver::BarrierModes::LOQO:
+    case IpmSolver::BarrierModes::kLoqo:
         mu = this->loqo_mu(avgcomp, mincomp);
         break;
     default:
@@ -1335,7 +1333,7 @@ void SocRecovery::eval_trial_constraints(SolverContext &ctx, double obj_scale,
 RecoveryChain::Action SocRecovery::on_step_rejected(
     IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
-    InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
+    IpmSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
     double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
     Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
     int &soc_steps, int & /*resolved_depth*/, int & /*watchdog_activations*/) {
@@ -1353,7 +1351,7 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
     // the norm by drives_classic_path() keeps the classic path byte-identical
     // (squaredNorm, unchanged) while making the generic trigger dimensionally
     // consistent. RHS's inequality block already carries the merit slack reset
-    // (see the RHS assembly in interior_point_solver.cpp), and during a nested restoration
+    // (see the RHS assembly in ipm_solver.cpp), and during a nested restoration
     // phase it carries the condensed residual r̃ — the same quantity the driving
     // line search's current measure reads, so the comparison stays internally
     // consistent on that path too.
@@ -1484,7 +1482,7 @@ RecoveryChain::Action SocRecovery::on_step_rejected(
 RecoveryChain::Action ExtendedBacktrackRecovery::on_step_rejected(
     IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
-    InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
+    IpmSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
     double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
     Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha, double & /*alphap*/,
     double & /*alphad*/, int & /*soc_steps*/, int & /*resolved_depth*/,
@@ -1530,7 +1528,7 @@ RecoveryChain::Action ExtendedBacktrackRecovery::on_step_rejected(
 RecoveryChain::Action WatchdogRecovery::on_step_rejected(
     IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
-    InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
+    IpmSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
     double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
     Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
     int &soc_steps, int &resolved_depth, int &watchdog_activations) {
@@ -1545,9 +1543,9 @@ RecoveryChain::Action WatchdogRecovery::on_step_rejected(
         // inner_ is enforced non-null at construction (see the class doc) --
         // no kAcceptAsIs/kRecoveryDepthUnresolved fallback branch is reachable
         // here.
-        return inner_->on_step_rejected(Citer, iters, ctx, acceptance, mechanism, lsmode,
-                                        obj_scale, mu, prim_obj, barr_obj, XSL, DXSL, XSL2, RHS,
-                                        RHS2, alpha, alphap, alphad, soc_steps, resolved_depth,
+        return inner_->on_step_rejected(Citer, iters, ctx, acceptance, mechanism, lsmode, obj_scale,
+                                        mu, prim_obj, barr_obj, XSL, DXSL, XSL2, RHS, RHS2, alpha,
+                                        alphap, alphad, soc_steps, resolved_depth,
                                         watchdog_activations);
 
     case WatchdogState::Outcome::kArmed:
@@ -1573,9 +1571,9 @@ RecoveryChain::Action WatchdogRecovery::on_step_rejected(
         // non-null at construction (see the class doc) -- no
         // kAcceptAsIs/kRecoveryDepthUnresolved fallback branch is reachable
         // here.
-        return inner_->on_step_rejected(Citer, iters, ctx, acceptance, mechanism, lsmode,
-                                        obj_scale, mu, prim_obj, barr_obj, XSL, DXSL, XSL2, RHS,
-                                        RHS2, alpha, alphap, alphad, soc_steps, resolved_depth,
+        return inner_->on_step_rejected(Citer, iters, ctx, acceptance, mechanism, lsmode, obj_scale,
+                                        mu, prim_obj, barr_obj, XSL, DXSL, XSL2, RHS, RHS2, alpha,
+                                        alphap, alphad, soc_steps, resolved_depth,
                                         watchdog_activations);
 
     case WatchdogState::Outcome::kTrialRevert:
@@ -1613,7 +1611,7 @@ RecoveryChain::Action WatchdogRecovery::on_step_rejected(
 RecoveryChain::Action ChainedRecovery::on_step_rejected(
     IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
-    InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
+    IpmSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
     double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
     Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
     int &soc_steps, int &resolved_depth, int &watchdog_activations) {
@@ -1625,10 +1623,10 @@ RecoveryChain::Action ChainedRecovery::on_step_rejected(
     for (const auto &[link, depth] : links) {
         if (!link)
             continue;
-        const Action action = link->on_step_rejected(
-            Citer, iters, ctx, acceptance, mechanism, lsmode, obj_scale, mu, prim_obj, barr_obj,
-            XSL, DXSL, XSL2, RHS, RHS2, alpha, alphap, alphad, soc_steps, resolved_depth,
-            watchdog_activations);
+        const Action action =
+            link->on_step_rejected(Citer, iters, ctx, acceptance, mechanism, lsmode, obj_scale, mu,
+                                   prim_obj, barr_obj, XSL, DXSL, XSL2, RHS, RHS2, alpha, alphap,
+                                   alphad, soc_steps, resolved_depth, watchdog_activations);
         if (action != Action::kAcceptAsIs) {
             resolved_depth = depth;
             return action;
@@ -1645,15 +1643,15 @@ RecoveryChain::Action ChainedRecovery::on_step_rejected(
 RecoveryChain::Action FeasibilitySwitchRecovery::on_step_rejected(
     IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
-    InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
+    IpmSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
     double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
     Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
     int &soc_steps, int &resolved_depth, int &watchdog_activations) {
     // Delegate the whole rejection to the inner chain first.
-    const Action inner = inner_->on_step_rejected(
-        Citer, iters, ctx, acceptance, mechanism, lsmode, obj_scale, mu, prim_obj, barr_obj, XSL,
-        DXSL, XSL2, RHS, RHS2, alpha, alphap, alphad, soc_steps, resolved_depth,
-        watchdog_activations);
+    const Action inner =
+        inner_->on_step_rejected(Citer, iters, ctx, acceptance, mechanism, lsmode, obj_scale, mu,
+                                 prim_obj, barr_obj, XSL, DXSL, XSL2, RHS, RHS2, alpha, alphap,
+                                 alphad, soc_steps, resolved_depth, watchdog_activations);
 
     // Only a ladder-exhausted rejection is a candidate for a feasibility
     // switch. kAcceptAsIs alone is NOT a sufficient discriminator: it is
@@ -1800,8 +1798,7 @@ bool SwitchingAcceptance::is_iterate_acceptable(const ProgressMeasures &current,
     }
 
     // Switching condition (Eq. 19) selects F-type vs H-type.
-    const bool switching_holds =
-        compute_switching_holds(current, predicted_reduction, step_length);
+    const bool switching_holds = compute_switching_holds(current, predicted_reduction, step_length);
 
     if (switching_holds) {
         // F-type: accept iff the Armijo condition on φ holds (Eq. 20).
@@ -2216,8 +2213,8 @@ MonitoredBarrierGovernor::~MonitoredBarrierGovernor() = default;
 double MonitoredBarrierGovernor::monitor_error(const IterateInfo &it) {
     // (1): sum of squared ∞-norm residual parts — this engine's mapping of Ipopt's
     // 2-norm-squared quality function (IpAdaptiveMuUpdate.cpp:657-675).
-    return it.kkt_inf_ * it.kkt_inf_ + it.econ_inf_ * it.econ_inf_ +
-           it.icon_inf_ * it.icon_inf_ + it.barr_inf_ * it.barr_inf_;
+    return it.kkt_inf_ * it.kkt_inf_ + it.econ_inf_ * it.econ_inf_ + it.icon_inf_ * it.icon_inf_ +
+           it.barr_inf_ * it.barr_inf_;
 }
 
 double MonitoredBarrierGovernor::barrier_subproblem_error(const IterateInfo &it) {
@@ -2330,8 +2327,8 @@ void MonitoredBarrierGovernor::barrier_gradient(Eigen::Ref<Eigen::VectorXd> S,
     detail::barrier_gradient(S, LI, mu, AGS);
 }
 
-double MonitoredBarrierGovernor::update_barrier(InteriorPointSolver::BarrierModes barmode,
-                                                double mu_in, double avgcomp, double mincomp,
+double MonitoredBarrierGovernor::update_barrier(IpmSolver::BarrierModes barmode, double mu_in,
+                                                double avgcomp, double mincomp,
                                                 Eigen::VectorXd &XSL, Eigen::VectorXd &RHS,
                                                 Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
                                                 GlobalizationMechanism &mechanism,
@@ -2345,7 +2342,7 @@ double MonitoredBarrierGovernor::update_barrier(InteriorPointSolver::BarrierMode
         // Monotone mode: hold μ fixed and write the barrier tail directly (the
         // same objective/dual-gradient the free-mode common tail produces). The
         // slack / inequality-multiplier / dual-gradient blocks are the same
-        // contiguous segments InteriorPointSolver::KKTVector names (slacks/iq_lmults on XSL,
+        // contiguous segments IpmSolver::KKTVector names (slacks/iq_lmults on XSL,
         // dual_grad on RHS): segment(primal_vars_, slack_vars_) and tail(...).
         const double mu = d.mu;
         auto slacks = XSL.segment(ctx.primal_vars_, ctx.slack_vars_);
@@ -2606,12 +2603,13 @@ void NestedL1Restoration::nested_complementarity(double &sum, double &min_comp, 
     accumulate(p_i_, z_pi_);
 }
 
-void NestedL1Restoration::condensed_residuals(
-    double mu, const Eigen::Ref<const Eigen::VectorXd> &eq_residuals,
-    const Eigen::Ref<const Eigen::VectorXd> &iq_residuals,
-    const Eigen::Ref<const Eigen::VectorXd> &eq_lmults,
-    const Eigen::Ref<const Eigen::VectorXd> &iq_lmults, Eigen::Ref<Eigen::VectorXd> eq_rtilde_out,
-    Eigen::Ref<Eigen::VectorXd> iq_rtilde_out) const {
+void NestedL1Restoration::condensed_residuals(double mu,
+                                              const Eigen::Ref<const Eigen::VectorXd> &eq_residuals,
+                                              const Eigen::Ref<const Eigen::VectorXd> &iq_residuals,
+                                              const Eigen::Ref<const Eigen::VectorXd> &eq_lmults,
+                                              const Eigen::Ref<const Eigen::VectorXd> &iq_lmults,
+                                              Eigen::Ref<Eigen::VectorXd> eq_rtilde_out,
+                                              Eigen::Ref<Eigen::VectorXd> iq_rtilde_out) const {
     const double rho = kRestoPenaltyParameter;
     // (5): r̃ = (c+n−p) + μ/z_n − (n/z_n)(ρ+y) − μ/z_p + (p/z_p)(ρ−y).
     auto condense = [&](const Eigen::Ref<const Eigen::VectorXd> &c, const Eigen::VectorXd &n,
@@ -2627,9 +2625,9 @@ void NestedL1Restoration::condensed_residuals(
     condense(iq_residuals, n_i_, p_i_, z_ni_, z_pi_, iq_lmults, iq_rtilde_out);
 }
 
-double NestedL1Restoration::nested_objective(double mu,
-                                             const Eigen::Ref<const Eigen::VectorXd> &primals)
-    const {
+double
+NestedL1Restoration::nested_objective(double mu,
+                                      const Eigen::Ref<const Eigen::VectorXd> &primals) const {
     // (2)/(3): ρ·Σ(n+p) + (η(μ)/2)‖D_R(x−x_R)‖², η(μ) recomputed from μ.
     const double eta = kRestoProximityWeight * std::sqrt(mu);
     const double slack_sum = n_e_.sum() + p_e_.sum() + n_i_.sum() + p_i_.sum();
@@ -2653,11 +2651,11 @@ void NestedL1Restoration::nested_primal_diagonal(double mu,
     diag_out = eta * dr2_;
 }
 
-void NestedL1Restoration::recover_elastic_steps(
-    double mu, const Eigen::Ref<const Eigen::VectorXd> &eq_lmults,
-    const Eigen::Ref<const Eigen::VectorXd> &iq_lmults,
-    const Eigen::Ref<const Eigen::VectorXd> &eq_dy,
-    const Eigen::Ref<const Eigen::VectorXd> &iq_dy) {
+void NestedL1Restoration::recover_elastic_steps(double mu,
+                                                const Eigen::Ref<const Eigen::VectorXd> &eq_lmults,
+                                                const Eigen::Ref<const Eigen::VectorXd> &iq_lmults,
+                                                const Eigen::Ref<const Eigen::VectorXd> &eq_dy,
+                                                const Eigen::Ref<const Eigen::VectorXd> &iq_dy) {
     const double rho = kRestoPenaltyParameter;
     // (5): Δn = μ/z_n − (n/z_n)(ρ+y) − (n/z_n)Δy;
     //      Δp = μ/z_p − (p/z_p)(ρ−y) + (p/z_p)Δy;
@@ -2683,9 +2681,9 @@ void NestedL1Restoration::recover_elastic_steps(
     recover(n_i_, p_i_, z_ni_, z_pi_, iq_lmults, iq_dy, dn_i_, dp_i_, dzn_i_, dzp_i_);
 }
 
-void NestedL1Restoration::recenter_elastics(
-    double mu, const Eigen::Ref<const Eigen::VectorXd> &eq_residuals,
-    const Eigen::Ref<const Eigen::VectorXd> &iq_residuals) {
+void NestedL1Restoration::recenter_elastics(double mu,
+                                            const Eigen::Ref<const Eigen::VectorXd> &eq_residuals,
+                                            const Eigen::Ref<const Eigen::VectorXd> &iq_residuals) {
     // (f): second-level closed-form re-solve of the separable elastic subproblem
     // holding x and s fixed. Re-center BOTH channels' pairs at the LIVE μ from the
     // current raw residuals, reusing the entry-init quadratic (init_channel) — the
@@ -2756,9 +2754,9 @@ void NestedL1Restoration::apply_elastic_step(double alpha_primal, double alpha_d
     update_pivots(n_i_, p_i_, z_ni_, z_pi_, i_pivots_);
 }
 
-double NestedL1Restoration::trial_objective(double mu, double alpha,
-                                            const Eigen::Ref<const Eigen::VectorXd> &trial_primals)
-    const {
+double
+NestedL1Restoration::trial_objective(double mu, double alpha,
+                                     const Eigen::Ref<const Eigen::VectorXd> &trial_primals) const {
     const double eta = kRestoProximityWeight * std::sqrt(mu);
     // Slacks along the step at fraction alpha: n+αΔn, p+αΔp (both channels).
     const double slack_sum = (n_e_ + alpha * dn_e_).sum() + (p_e_ + alpha * dp_e_).sum() +

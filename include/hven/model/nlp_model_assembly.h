@@ -3,12 +3,12 @@
 
 #pragma once
 
-// nlp_model_aggregate.h — the bridge that carries a native NlpModel onto the
+// nlp_model_assembly.h — the bridge that carries a native NlpModel onto the
 // Level 2 aggregate contract.
 //
 // NlpModel (model/nlp_model.h) is one problem's callbacks: f, cE, cI, their
 // derivatives, and the exact Lagrangian Hessian, each returned whole by value.
-// NlpAggregate (model/nlp_aggregate.h) is a collection of pieces plus the
+// NlpAssembly (model/nlp_assembly.h) is a collection of pieces plus the
 // arenas they claim out of. This bridge is how a single-model problem reaches
 // the second surface without the first gaining a method, a base class or an
 // obligation.
@@ -50,12 +50,12 @@
 
 #include "hven/core/types.h"
 #include "hven/model/claim_stream_source.h"
-#include "hven/model/nlp_aggregate.h"
+#include "hven/model/nlp_assembly.h"
 #include "hven/model/nlp_model.h"
 
 namespace hven::solvers {
 
-/// @brief An NlpAggregate over one NlpModel: a single serial piece at partition
+/// @brief An NlpAssembly over one NlpModel: a single serial piece at partition
 ///        count 1.
 ///
 /// The bridge owns the decomposition. The model returns whole objects -- a
@@ -76,7 +76,7 @@ namespace hven::solvers {
 /// Concurrency: the contract's posture applies unchanged -- one operation at a
 /// time, structural mutation included. Nothing in this class is thread-safe
 /// beyond the epoch counter the base owns.
-class NlpModelAggregate final : public ClaimStreamSource {
+class NlpModelAssembly final : public ClaimStreamSource {
   public:
     /// @brief Builds the bridge and lays its structures for the first time.
     ///
@@ -99,7 +99,7 @@ class NlpModelAggregate final : public ClaimStreamSource {
     /// widening is source-compatible. It also lets a consumer that does not own
     /// its model bridge a `const NlpModel &` through shared_ptr's aliasing
     /// constructor with a null owner.
-    explicit NlpModelAggregate(std::shared_ptr<const NlpModel> model);
+    explicit NlpModelAssembly(std::shared_ptr<const NlpModel> model);
 
     /// @brief The declaration these structures were laid from.
     ///
@@ -108,7 +108,7 @@ class NlpModelAggregate final : public ClaimStreamSource {
     /// one serial piece of its own rather than a collection of them. The
     /// dimensions, the partition count and the bound records are what a consumer
     /// of this declaration reads, and they are all as laid.
-    const AggregateDeclaration &declaration() const override { return laid_.declaration_; }
+    const AssemblyDeclaration &declaration() const override { return laid_.declaration_; }
 
     /// @brief Adopts a partition count and returns what was adopted, which is
     ///        always 1.
@@ -149,9 +149,7 @@ class NlpModelAggregate final : public ClaimStreamSource {
     ModelStructureKey model_structure_key() const override { return laid_.key_; }
 
     /// @brief kValuesFastPath, and only that.
-    AggregateCapability capabilities() const override {
-        return AggregateCapability::kValuesFastPath;
-    }
+    AssemblyCapability capabilities() const override { return AssemblyCapability::kValuesFastPath; }
 
     /// @brief The structure epoch paired with a digest of the candidate values
     ///        at @p x.
@@ -300,7 +298,7 @@ class NlpModelAggregate final : public ClaimStreamSource {
     /// lay that throws part-way leaves the structures on hand untouched -- there
     /// is then nothing to restore and no structural event to report.
     struct LaidStructures {
-        AggregateDeclaration declaration_;
+        AssemblyDeclaration declaration_;
 
         Eigen::VectorXi kkt_claim_rows_;
         Eigen::VectorXi kkt_claim_cols_;

@@ -26,7 +26,7 @@
 //
 // Everything above this line is Phase-3's QP-LEVEL spike (a hand-built banded
 // QP handed straight to a QpEngine). What follows is Phase-5's DRIVER-LEVEL
-// one: whole SqpDriver cold solves of tests/sqp/support/scale_problems.h's F7
+// one: whole SqpSolver cold solves of tests/sqp/support/scale_problems.h's F7
 // collocation family, whose optimum is known in closed form at every size, so
 // these can pin CORRECTNESS at scale and not merely self-consistency.
 //
@@ -72,8 +72,8 @@
 
 #include <hven/core/ledger.h>
 #include <hven/detail/qp/qp_engine.h>
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 
 #include "support/nlp_kkt_check.h"
 #include "support/scale_problems.h"
@@ -494,7 +494,7 @@ SqpOptions f7_smoke_options() {
 // therefore means a real change, not the conditioning that is already
 // accounted for. This is a COST/CONDITIONING REALITY, not a defect -- see the
 // note's per-decade analysis.
-void check_against_manufactured_optimum(const F7CollocationChain &model, const SqpSolution &sol,
+void check_against_manufactured_optimum(const F7CollocationChain &model, const SqpResult &sol,
                                         double p, const SqpOptions &opts, double x_tol,
                                         const char *label) {
     ASSERT_EQ(sol.status, SolveStatus::kOptimal) << label;
@@ -558,12 +558,12 @@ TEST(F7ColdScaleSmoke, EmptyWindowColdSolveAtTenThousandVariables) {
     ASSERT_LT(kP, model.p_activation()); // the empty-window branch, by construction
 
     const SqpOptions opts = f7_smoke_options();
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     Ledger ledger;
     driver.attach_ledger(&ledger, "f7_1e4_empty");
 
     const auto t0 = std::chrono::steady_clock::now();
-    const SqpSolution sol = driver.solve(model, model.start_point());
+    const SqpResult sol = driver.solve(model, model.start_point());
     const auto t1 = std::chrono::steady_clock::now();
 
     ASSERT_NO_FATAL_FAILURE(
@@ -669,7 +669,7 @@ TEST(F7ColdScaleSmoke, SchurCapExhaustionBuysFactorizationsNotIterations) {
         SqpOptions opts = f7_smoke_options();
         opts.qp.max_iter = 5000; // the wide window needs it -- see the note
         opts.qp.schur_cap = schur_cap;
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         return std::pair{driver.solve(model, model.start_point()), opts};
     };
 
@@ -769,12 +769,12 @@ TEST(ScaleF7Slow, EmptyWindowColdSolveAtOneMillionVariables) {
     ASSERT_LT(kP, model.p_activation()); // the empty-window branch, by construction
 
     const SqpOptions opts = f7_smoke_options();
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     Ledger ledger;
     driver.attach_ledger(&ledger, "f7_1e6_empty");
 
     const auto t0 = std::chrono::steady_clock::now();
-    const SqpSolution sol = driver.solve(model, model.start_point());
+    const SqpResult sol = driver.solve(model, model.start_point());
     const auto t1 = std::chrono::steady_clock::now();
 
     ASSERT_NO_FATAL_FAILURE(
@@ -805,7 +805,7 @@ TEST(ScaleF7Slow, EmptyWindowColdSolveAtOneMillionVariables) {
 // =====================================================================
 // M6 W0.3 -- THE R6 SIGN SWEEP, END TO END.
 //
-// WHY IT IS HERE AND NOT IN tests/sqp/test_sqp_driver.cpp. The negative face
+// WHY IT IS HERE AND NOT IN tests/sqp/test_sqp_solver.cpp. The negative face
 // price this repairs is not a hand-buildable condition: it is what the
 // tier-3 refinement's `price(...)` actually returns on a wide-window F7 whose
 // identified face has a weakly active row, and this family does not produce
@@ -855,28 +855,28 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
         opts.warm_full_step = true;
         opts.qp.max_iter = 20000;
         opts.qp_mode = QpMode::kSsn;
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
 
         model.set_parameters(Vec::Constant(1, kP0));
-        const SqpSolution setup = driver.solve(model, model.start_point());
+        const SqpResult setup = driver.solve(model, model.start_point());
         ASSERT_EQ(setup.status, SolveStatus::kOptimal) << "the hop's premise";
 
         model.set_parameters(Vec::Constant(1, kP));
-        const SqpSolution hop = driver.solve(model, setup.warm_start.x, setup.warm_start);
+        const SqpResult hop = driver.solve(model, setup.warm_start.x, setup.warm_start);
         EXPECT_EQ(hop.status, SolveStatus::kOptimal)
             << "the sweep runs at the export boundary and must not cost the hop its certificate";
 
-        for (const SqpSolution *sol : {&setup, &hop}) {
+        for (const SqpResult *sol : {&setup, &hop}) {
             // (b) THE INVARIANT, on BOTH halves of the export. lambda_i is
             // what a caller reads; warm_start.lambda_i is what reaches
             // WarmStartData::iq_lmults_ and, through it, an interior-point
             // inequality seed -- the leak R6 exists to close.
             ASSERT_GT(sol->lambda_i.size(), 0);
             EXPECT_GE(sol->lambda_i.minCoeff(), 0.0)
-                << "no negative price may escape in SqpSolution::lambda_i";
+                << "no negative price may escape in SqpResult::lambda_i";
             ASSERT_EQ(sol->warm_start.lambda_i.size(), sol->lambda_i.size());
             EXPECT_GE(sol->warm_start.lambda_i.minCoeff(), 0.0)
-                << "nor in WarmStart::lambda_i, which is the half that reaches the currency";
+                << "nor in SqpWarmStart::lambda_i, which is the half that reaches the currency";
 
             // (c) EVERY SWEPT MAGNITUDE IS BELOW THE DISCLOSED SCALE. The
             // counter is exactly the number of prices that WOULD have escaped
@@ -894,11 +894,11 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
             }
         }
 
-        // (d) THE DISCLOSED OPTIMISM GAP, MADE EXECUTABLE. SqpSolution::kkt is
+        // (d) THE DISCLOSED OPTIMISM GAP, MADE EXECUTABLE. SqpResult::kkt is
         // measured BEFORE the sweep, at the multipliers the solve reached, so
         // on a swept solve an independent re-scoring of the RETURNED point --
         // which reads the SWEPT lambda_i -- must report a LARGER stationarity.
-        // That inequality is the contract sqp_types.h's terminal-KKT note
+        // That inequality is the contract sqp_solver_types.h's terminal-KKT note
         // states; pinning it here means a future change that moved
         // record_terminal_kkt to after the sweep would fail loudly instead of
         // silently changing what these columns mean. Scoped to `hop` because
@@ -909,7 +909,7 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
                 hven::solvers::test_support::self_check_kkt(model, hop, opts.feas_tol);
             EXPECT_GT(rescored.stationarity, hop.sqp_stationarity)
                 << "the returned point's own stationarity must exceed the reported one whenever "
-                   "prices were swept -- see SqpSolution's terminal-KKT note";
+                   "prices were swept -- see SqpResult's terminal-KKT note";
             EXPECT_LE(rescored.stationarity - hop.sqp_stationarity,
                       hop.counters.ssn.ssn_sign_sweep_max *
                           std::max(1.0, hop.lambda_i.template lpNorm<Eigen::Infinity>()) * 1e3)
@@ -937,7 +937,7 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepRepairsTheWarmHopsExportedFacePrices) {
 // negative under any kernel -- so they pass on a build that bypassed the
 // capture and the sweep entirely. This test supplies the case that does not:
 // the SAME F7 family, at the SAME weight class, solved through the kIpm chain,
-// really does hand `SqpDriver::finish` a negative inequality price, and the
+// really does hand `SqpSolver::finish` a negative inequality price, and the
 // single sign sweep at that one export boundary is what repairs it.
 //
 // WHERE THE PRICE COMES FROM under kIpm, stated because it is not the same
@@ -981,21 +981,21 @@ TEST(F7ColdScaleSmoke, TheR6SignSweepAlsoRepairsTheInteriorPointChainsExportedFa
         opts.warm_full_step = true;
         opts.qp.max_iter = 20000;
         opts.qp_mode = QpMode::kIpm;
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
 
         model.set_parameters(Vec::Constant(1, kP0));
-        const SqpSolution setup = driver.solve(model, model.start_point());
+        const SqpResult setup = driver.solve(model, model.start_point());
         ASSERT_EQ(setup.status, SolveStatus::kOptimal);
         ASSERT_GT(setup.counters.ipqp.ipqp_to_refine, 0)
             << "the tier must have reached tier 3, or the producer under test never ran";
 
-        for (const SqpSolution *sol : {&setup}) {
+        for (const SqpResult *sol : {&setup}) {
             ASSERT_GT(sol->lambda_i.size(), 0);
             EXPECT_GE(sol->lambda_i.minCoeff(), 0.0)
-                << "no negative price may escape in SqpSolution::lambda_i";
+                << "no negative price may escape in SqpResult::lambda_i";
             ASSERT_EQ(sol->warm_start.lambda_i.size(), sol->lambda_i.size());
             EXPECT_GE(sol->warm_start.lambda_i.minCoeff(), 0.0)
-                << "nor in WarmStart::lambda_i, which is the half that reaches the currency";
+                << "nor in SqpWarmStart::lambda_i, which is the half that reaches the currency";
 
             swept_over_the_band += sol->counters.ssn.ssn_sign_swept;
             if (sol->counters.ssn.ssn_sign_swept > 0) {

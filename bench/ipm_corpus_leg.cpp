@@ -42,7 +42,7 @@ double seconds_since(const std::chrono::steady_clock::time_point &t0) {
 // tests/interior/test_ipm_solver_entry.cpp:33 because a bench binary does not
 // include a test file. The known optimum has x1 = 1.0 exactly, so the pin does not move
 // the answer and the three treatments stay comparable on obj_val.
-struct Hs071FixedProblem final : NLPProblem {
+struct Hs071FixedProblem final : NlpTripletModel {
     int num_vars() const override { return 4; }
     int num_cons() const override { return 2; }
     int num_jac_nonzeros() const override { return 8; }
@@ -131,7 +131,7 @@ Vec hs071_fixed_start() {
 // the stall detector certifies. Shares its shape with the live pin in
 // tests/interior/test_ipm_stop_reason.cpp; a bench binary does not include a
 // test file, so it is a copy.
-struct PowerSpikeProblem final : NLPProblem {
+struct PowerSpikeProblem final : NlpTripletModel {
     static constexpr double kEps = 1.0e-4;
     static constexpr int kPower = 10;
 
@@ -177,7 +177,7 @@ struct PowerSpikeProblem final : NLPProblem {
 // c(x) = x0^2 + x1^2 + 1 = 0 has no real solution and its violation has a STRICT
 // stationary point at the origin -- the shape a restoration phase converges to
 // and then declares locally infeasible. Copied for the same reason as above.
-struct LocallyInfeasibleProblem final : NLPProblem {
+struct LocallyInfeasibleProblem final : NlpTripletModel {
     int num_vars() const override { return 2; }
     int num_cons() const override { return 1; }
     int num_jac_nonzeros() const override { return 2; }
@@ -395,7 +395,7 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
 
         // THE PARTITIONED ROWS (M6 W5 T8.9), the fourth instalment of the T8
         // coverage rule and the first partitioned cell set this leg has had:
-        // before T8.9 no path from an NLPProblem reached a layout with more
+        // before T8.9 no path from an NlpTripletModel reached a layout with more
         // than one partition at all.
         //
         // WHAT THEY ARE, EXACTLY. `make_nlp_program(problem, 2)` lays TWO
@@ -415,7 +415,7 @@ const std::vector<InteriorVariant> &interior_exit_variants() {
         // and the row would be a one-partition row under a two-partition name.
         // A cell that is both big enough to adopt two partitions and carries a
         // bound-fixed variable does not exist in this corpus; a genuinely
-        // two-thread evaluation over an NLPProblem is registered for the M7
+        // two-thread evaluation over an NlpTripletModel is registered for the M7
         // ClaimStreamSource widening, not claimed here.
         InteriorVariant parts2;
         parts2.name = kParts2VariantName;
@@ -467,7 +467,7 @@ std::vector<IpmPhase> phases_for(InteriorVariant::Entry entry) {
 // rows' second solver is configured identically to the first). Does not
 // transcribe: the caller does that, because it is the step after which the
 // program exists.
-void configure_interior_solver(InteriorPointSolver &ipm, FixedVariableTreatments treatment,
+void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatments treatment,
                                const InteriorLevers &levers, const InteriorVariant &variant) {
     // One options value, built here and handed over once. Every lever and every
     // variant override below is a field write on it, so a dependent pair (the
@@ -521,7 +521,7 @@ void configure_interior_solver(InteriorPointSolver &ipm, FixedVariableTreatments
 // key, which is defined with the CSV writers further down (M6 W5 T8.6 fix1).
 std::string interior_row_key(const InteriorRow &row);
 
-InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
+InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem,
                                  const InteriorRowIdentity &identity, const Vec &x0,
                                  FixedVariableTreatments treatment, const InteriorLevers &levers,
                                  const InteriorVariant &variant) {
@@ -549,13 +549,13 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
     // the header stamps.
     struct ConfiguredSolve {
         std::shared_ptr<NonLinearProgram> program;
-        std::unique_ptr<InteriorPointSolver> engine;
+        std::unique_ptr<IpmSolver> engine;
     };
     const int requested_partitions =
         variant.num_partitions > 0 ? variant.num_partitions : levers.num_partitions;
     const auto make_configured = [&]() {
         ConfiguredSolve configured{hven::solvers::make_nlp_program(problem, requested_partitions),
-                                   std::make_unique<InteriorPointSolver>()};
+                                   std::make_unique<IpmSolver>()};
         configure_interior_solver(*configured.engine, treatment, levers, variant);
         return configured;
     };
@@ -620,7 +620,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
     // THE MEASURED SOLVE'S SOLVER, fresh, so its counters start at zero
     // whatever ran above.
     ConfiguredSolve ipm_owner = make_configured();
-    InteriorPointSolver &ipm = *ipm_owner.engine;
+    IpmSolver &ipm = *ipm_owner.engine;
     NonLinearProgram &program = *ipm_owner.program;
 
     // THE COVERAGE RULE'S SECOND RUN (M6 W5 T8.6), and it is a MEASUREMENT
@@ -805,7 +805,7 @@ InteriorRow run_interior_hs071(FixedVariableTreatments treatment, const Interior
 
 InteriorRow run_interior_infeasible(std::string_view cell_id, FixedVariableTreatments treatment,
                                     const InteriorLevers &levers, const InteriorVariant &variant) {
-    std::shared_ptr<NLPProblem> problem;
+    std::shared_ptr<NlpTripletModel> problem;
     if (cell_id == kSpikeCellId) {
         problem = std::make_shared<PowerSpikeProblem>();
     } else if (cell_id == kStationaryCellId) {

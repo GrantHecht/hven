@@ -203,7 +203,7 @@
 // solves: SnoptF7Driver owns x/xstate/Fstate/xmul/Fmul/nS for its lifetime,
 // so a second solve() at a new p starts from the first solve's exit state.
 // THE ARRAYS ARE THE WARM START -- there is no separate hand-off object,
-// which is the honest analogue of what our own WarmStart does and is
+// which is the honest analogue of what our own SqpWarmStart does and is
 // deliberately not dressed up as more than SNOPT offers.
 //
 // WHAT MOVES WHEN p MOVES, and it is only two things: the equality-row

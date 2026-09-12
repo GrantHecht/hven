@@ -43,7 +43,7 @@
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/drivers/console_trace_sink.h>
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/trace_writer.h>
 #include <hven/model/nlp_model.h>
 
@@ -60,7 +60,7 @@ namespace {
 
 using test_support::HsProblem;
 using test_support::make_hs;
-// W5 T5: these four were replicas of test_sqp_driver.cpp's own W2 fixtures and
+// W5 T5: these four were replicas of test_sqp_solver.cpp's own W2 fixtures and
 // now have ONE home. `w2_escaped_evidence` is gone: its consumers take the
 // evidence block by value off the full result.
 using test_support::PinnedVariableModel;
@@ -1344,12 +1344,12 @@ TEST(JsonLinesTraceSink, WholeSolveStreamCountsEqualTheCurrencyOnHS11AndHS38AtKI
         opts.qp_mode = QpMode::kIpm;
         opts.max_iter = 60;
         const HsProblem p = make_hs(leg.hs);
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         std::ostringstream os;
         JsonLinesTraceSink json(os);
         TeeSink tee(json);
         driver.attach_trace(&tee);
-        const SqpSolution sol = driver.solve(*p.model);
+        const SqpResult sol = driver.solve(*p.model);
 
         const std::map<std::string, Index> by_ev = census(os.str());
         const auto at = [&](const char *k) {
@@ -1431,14 +1431,14 @@ TEST(JsonLinesTraceSink, OnAWalkCellTheSinkChangesNoCounterAndWritesOnlyRows) {
     opts.max_iter = 60;
     const HsProblem p = make_hs(24);
 
-    SqpDriver bare(opts);
-    const SqpSolution without = bare.solve(*p.model);
+    SqpSolver bare(opts);
+    const SqpResult without = bare.solve(*p.model);
 
-    SqpDriver traced(opts);
+    SqpSolver traced(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     traced.attach_trace(&json);
-    const SqpSolution with = traced.solve(*p.model);
+    const SqpResult with = traced.solve(*p.model);
 
     ASSERT_EQ(without.status, with.status);
     ASSERT_GT(without.counters.major_iters, 0) << "non-vacuous: the cell really solves";
@@ -1661,15 +1661,15 @@ TEST(JsonLinesTraceSink, AStreamThatFailsMidSolveDoesNotChangeTheSolve) {
     opts.max_iter = 60;
     const HsProblem p = make_hs(38);
 
-    SqpDriver bare(opts);
-    const SqpSolution without = bare.solve(*p.model);
+    SqpSolver bare(opts);
+    const SqpResult without = bare.solve(*p.model);
 
     FailAfterBuf buf(4096); // a few lines in, then ENOSPC
     std::ostream out(&buf);
-    SqpDriver traced(opts);
+    SqpSolver traced(opts);
     JsonLinesTraceSink json(out);
     traced.attach_trace(&json);
-    const SqpSolution with = traced.solve(*p.model);
+    const SqpResult with = traced.solve(*p.model);
 
     ASSERT_EQ(without.status, with.status);
     expect_counters_identical(without.counters, with.counters);
@@ -1683,7 +1683,7 @@ TEST(JsonLinesTraceSink, AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign) {
     // sink neither swallows nor re-labels one, and nothing in the driver catches
     // it today.
     //
-    // NO RULE FORBIDS ONE. `sqp_driver.cpp:1746`'s `catch (const std::exception
+    // NO RULE FORBIDS ONE. `sqp_solver.cpp:1746`'s `catch (const std::exception
     // &)` would already swallow `std::ios_base::failure` if an emit site ever
     // moved inside its try, and THIS PIN is the only thing that would notice.
     SqpOptions opts;
@@ -1693,7 +1693,7 @@ TEST(JsonLinesTraceSink, AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign) {
     FailAfterBuf buf(4096);
     std::ostream out(&buf);
     out.exceptions(std::ios::badbit);
-    SqpDriver traced(opts);
+    SqpSolver traced(opts);
     JsonLinesTraceSink json(out);
     traced.attach_trace(&json);
     EXPECT_THROW(traced.solve(*p.model), std::ios_base::failure);
@@ -1712,14 +1712,14 @@ TEST(JsonLinesTraceSink, OnHS38AtKIpmTheSinkWritesHundredsOfLinesAndStillMovesNo
     opts.max_iter = 60;
     const HsProblem p = make_hs(38);
 
-    SqpDriver bare(opts);
-    const SqpSolution without = bare.solve(*p.model);
+    SqpSolver bare(opts);
+    const SqpResult without = bare.solve(*p.model);
 
-    SqpDriver traced(opts);
+    SqpSolver traced(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     traced.attach_trace(&json);
-    const SqpSolution with = traced.solve(*p.model);
+    const SqpResult with = traced.solve(*p.model);
 
     ASSERT_EQ(without.status, with.status);
     ASSERT_GT(json.lines_written(), 0) << "non-vacuous: the sink really ran";
@@ -1742,11 +1742,11 @@ TEST(JsonLinesTraceSink, ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinn
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
     PinnedVariableModel model(true);
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpSolution sol = driver.solve(model);
+    const SqpResult sol = driver.solve(model);
 
     const IpqpCounters &c = sol.counters.ipqp;
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
@@ -1768,8 +1768,8 @@ TEST(JsonLinesTraceSink, ThePinnedDeclineIsWhyTheEntryCountSubtractsDeclinedPinn
 }
 
 TEST(JsonLinesTraceSink, TheVerdictStreamReproducesTheWHOLEPartitionOnAFiveClassPopulation) {
-    // W2 T5's own five-class population (test_sqp_driver.cpp:9806), driven
-    // through the sink the way the driver drives it (sqp_driver.cpp:3915: the
+    // W2 T5's own five-class population (test_sqp_solver.cpp:9806), driven
+    // through the sink the way the driver drives it (sqp_solver.cpp:3915: the
     // judge fills the out-param, the caller emits it).
     //
     // Plus a SIXTH entry declined ABOVE the floor, so `elastic_floor_retries` is
@@ -2161,11 +2161,11 @@ TEST(JsonLinesTraceSink, SqpMajorReproducesTheHistoryRowByRowOnAWalkCellAndAKIpm
         opts.qp_mode = leg.mode;
         opts.max_iter = 60;
         const HsProblem p = make_hs(leg.hs);
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         std::ostringstream os;
         JsonLinesTraceSink json(os);
         driver.attach_trace(&json);
-        const SqpSolution sol = driver.solve(*p.model);
+        const SqpResult sol = driver.solve(*p.model);
 
         SCOPED_TRACE("HS" + std::to_string(leg.hs));
         const std::vector<std::string> rows = major_lines(os.str());
@@ -2189,11 +2189,11 @@ TEST(JsonLinesTraceSink, SqpMajorIsInCallerUnitsOnAScaledSolve) {
     opts.enable_scaling = true;
     opts.max_iter = 60;
     const HsProblem p = make_hs(25);
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpSolution sol = driver.solve(*p.model);
+    const SqpResult sol = driver.solve(*p.model);
 
     ASSERT_TRUE(sol.scaling.active) << "non-vacuous: the solve really scaled";
     const std::vector<std::string> rows = major_lines(os.str());
@@ -2226,7 +2226,7 @@ std::map<std::string, Index> qp_mode_census(const std::string &stream) {
     return by_mode;
 }
 
-Index rows_with_a_qp(const SqpSolution &sol) {
+Index rows_with_a_qp(const SqpResult &sol) {
     Index rows = 0;
     for (const SqpIterate &r : sol.history) {
         rows += r.qp_solved ? 1 : 0;
@@ -2239,11 +2239,11 @@ TEST(JsonLinesTraceSink, QpModeOnAWalkCellIsOneLinePerMajorAndNamesTheWalk) {
     opts.qp_mode = QpMode::kWalk;
     opts.max_iter = 60;
     const HsProblem p = make_hs(24);
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpSolution sol = driver.solve(*p.model);
+    const SqpResult sol = driver.solve(*p.model);
 
     const std::map<std::string, Index> by_mode = qp_mode_census(os.str());
     ASSERT_GT(sol.counters.major_iters, 1);
@@ -2262,11 +2262,11 @@ TEST(JsonLinesTraceSink, QpModeOnAnSsnCellCountsTheArmAndItsHandOffs) {
     opts.qp_mode = QpMode::kSsn;
     opts.max_iter = 60;
     const HsProblem p = make_hs(33);
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpSolution sol = driver.solve(*p.model);
+    const SqpResult sol = driver.solve(*p.model);
 
     const std::map<std::string, Index> by_mode = qp_mode_census(os.str());
     const auto at = [&](const char *k) {
@@ -2312,12 +2312,12 @@ TEST(JsonLinesTraceSink, QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWa
         opts.qp_mode = QpMode::kIpm;
         opts.max_iter = 60;
         const HsProblem p = make_hs(38);
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         std::ostringstream os;
         JsonLinesTraceSink json(os);
         TeeSink tee(json);
         driver.attach_trace(&tee);
-        const SqpSolution sol = driver.solve(*p.model);
+        const SqpResult sol = driver.solve(*p.model);
 
         const std::map<std::string, Index> by_mode = qp_mode_census(os.str());
         const auto at = [&](const char *k) {
@@ -2346,11 +2346,11 @@ TEST(JsonLinesTraceSink, QpModeOnAKIpmCellNamesTheTierAndTheDeclineRoutesToTheWa
         SqpOptions opts;
         opts.qp_mode = QpMode::kIpm;
         opts.max_iter = 60;
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         std::ostringstream os;
         JsonLinesTraceSink json(os);
         driver.attach_trace(&json);
-        const SqpSolution sol = driver.solve(model);
+        const SqpResult sol = driver.solve(model);
 
         const std::map<std::string, Index> by_mode = qp_mode_census(os.str());
         ASSERT_GT(sol.counters.ipqp.ipqp_declined_pinned, 0) << "non-vacuous: it really declines";
@@ -2447,11 +2447,11 @@ TEST(JsonLinesTraceSink, SqpSolveEndCarriesTheWholeCountersObject) {
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
     const HsProblem p = make_hs(38);
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpSolution sol = driver.solve(*p.model);
+    const SqpResult sol = driver.solve(*p.model);
 
     const std::string end = only_line(os.str(), "sqp.solve.end");
     ASSERT_FALSE(end.empty());
@@ -2488,12 +2488,12 @@ TEST(JsonLinesTraceSink, SqpSolvePartitionsTwoSolvesOnOneSinkAndSeqStaysContiguo
     std::ostringstream os;
     JsonLinesTraceSink json(os);
 
-    SqpDriver a(opts);
+    SqpSolver a(opts);
     a.attach_trace(&json);
-    const SqpSolution first = a.solve(*p24.model);
-    SqpDriver b(opts);
+    const SqpResult first = a.solve(*p24.model);
+    SqpSolver b(opts);
     b.attach_trace(&json);
-    const SqpSolution second = b.solve(*p11.model);
+    const SqpResult second = b.solve(*p11.model);
 
     const std::vector<std::string> lines = split_lines(os.str());
     ASSERT_GT(lines.size(), 4u);
@@ -2548,11 +2548,11 @@ TEST(JsonLinesTraceSink, OrderIsTheJoinKeyOnHS38AtKIpm) {
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
     const HsProblem p = make_hs(38);
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpSolution sol = driver.solve(*p.model);
+    const SqpResult sol = driver.solve(*p.model);
 
     Index brackets = 0;
     Index pending = 0;
@@ -2663,11 +2663,11 @@ TEST(JsonLinesTraceSink, SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkip
         SqpOptions opts;
         opts.max_iter = 60;
         const HsProblem p = make_hs(24);
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         std::ostringstream os;
         JsonLinesTraceSink json(os);
         driver.attach_trace(&json);
-        const SqpSolution sol = driver.solve(*p.model);
+        const SqpResult sol = driver.solve(*p.model);
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_EQ(raw_field(only_line(os.str(), "sqp.solve.end"), "status"), "\"optimal\"");
         EXPECT_EQ(json.depth(), 0);
@@ -2676,11 +2676,11 @@ TEST(JsonLinesTraceSink, SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkip
         SqpOptions opts;
         opts.max_iter = 1;
         const HsProblem p = make_hs(38);
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         std::ostringstream os;
         JsonLinesTraceSink json(os);
         driver.attach_trace(&json);
-        const SqpSolution sol = driver.solve(*p.model);
+        const SqpResult sol = driver.solve(*p.model);
         ASSERT_EQ(sol.status, SolveStatus::kMaxIter);
         EXPECT_EQ(raw_field(only_line(os.str(), "sqp.solve.end"), "status"), "\"max_iter\"");
         EXPECT_EQ(json.depth(), 0);
@@ -2689,11 +2689,11 @@ TEST(JsonLinesTraceSink, SqpSolveEndFiresOnEveryExitPathIncludingTheOnesThatSkip
         CircleAndFarLineModel model;
         SqpOptions opts;
         opts.max_iter = 200;
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         std::ostringstream os;
         JsonLinesTraceSink json(os);
         driver.attach_trace(&json);
-        const SqpSolution sol = driver.solve(model);
+        const SqpResult sol = driver.solve(model);
         ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
         EXPECT_EQ(raw_field(only_line(os.str(), "sqp.solve.end"), "status"), "\"infeasible\"");
         EXPECT_EQ(json.depth(), 0);
@@ -2711,11 +2711,11 @@ TEST(JsonLinesTraceSink, TheNestedSolvesFirstRowCountsAgainstItsOwnEmptySet) {
     CircleAndFarLineModel model;
     SqpOptions opts;
     opts.max_iter = 200;
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpSolution sol = driver.solve(model);
+    const SqpResult sol = driver.solve(model);
     ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
     ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN";
 
@@ -2749,11 +2749,11 @@ TEST(JsonLinesTraceSink, TheNestedSolvesActivityChurnStaysOutOfTheOuterTotals) {
     CircleAndFarLineModel model;
     SqpOptions opts;
     opts.max_iter = 200;
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpSolution sol = driver.solve(model);
+    const SqpResult sol = driver.solve(model);
     ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
     ASSERT_GE(sol.counters.restoration_iters, 1);
 
@@ -2779,11 +2779,11 @@ TEST(JsonLinesTraceSink, TheNestedRestorationSolveIsBracketedAtDepthOne) {
     CircleAndFarLineModel model;
     SqpOptions opts;
     opts.max_iter = 200;
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpSolution sol = driver.solve(model);
+    const SqpResult sol = driver.solve(model);
 
     ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
     ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN";
@@ -3057,13 +3057,13 @@ TEST(JsonLinesTraceSink, SqpSolveEndReadsTheReturnedSolutionAndNotAMovedFromLoca
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
     const HsProblem p = make_hs(38);
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    SqpSolution sol = driver.solve(*p.model);
+    SqpResult sol = driver.solve(*p.model);
     ASSERT_FALSE(sol.history.empty());
-    const SqpSolution moved = std::move(sol);
+    const SqpResult moved = std::move(sol);
 
     const std::string end = only_line(os.str(), "sqp.solve.end");
     ASSERT_FALSE(end.empty());
@@ -3086,7 +3086,7 @@ TEST(JsonLinesTraceSink, AnArmedMaskFailingOnTheVERYLASTLinePropagatesRatherThan
     std::ostringstream measure;
     {
         JsonLinesTraceSink json(measure);
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         driver.attach_trace(&json);
         driver.solve(*p.model);
     }
@@ -3099,7 +3099,7 @@ TEST(JsonLinesTraceSink, AnArmedMaskFailingOnTheVERYLASTLinePropagatesRatherThan
     FailAfterBuf buf(budget);
     std::ostream out(&buf);
     out.exceptions(std::ios::badbit);
-    SqpDriver traced(opts);
+    SqpSolver traced(opts);
     JsonLinesTraceSink json(out);
     traced.attach_trace(&json);
     EXPECT_THROW(traced.solve(*p.model), std::ios_base::failure);
@@ -3107,7 +3107,7 @@ TEST(JsonLinesTraceSink, AnArmedMaskFailingOnTheVERYLASTLinePropagatesRatherThan
 }
 
 TEST(JsonLinesTraceSink, ARefusedArgumentWritesNothingAndLeavesTheNextSolveAtDepthZero) {
-    // FIX ROUND 1, R3(a)/R11. `SqpDriver::solve` refuses a wrong-sized `x0`
+    // FIX ROUND 1, R3(a)/R11. `SqpSolver::solve` refuses a wrong-sized `x0`
     // with `std::invalid_argument` -- a recoverable API refusal.
     //
     // Emitting `begin` first left the sink one solve deep for ever, and every
@@ -3121,15 +3121,15 @@ TEST(JsonLinesTraceSink, ARefusedArgumentWritesNothingAndLeavesTheNextSolveAtDep
     std::ostringstream os;
     JsonLinesTraceSink json(os);
 
-    SqpDriver bad(opts);
+    SqpSolver bad(opts);
     bad.attach_trace(&json);
     EXPECT_THROW(bad.solve(*p.model, Vec::Zero(p.model->n() + 1)), std::invalid_argument);
     EXPECT_EQ(os.str(), "") << "a refused call writes nothing at all";
     EXPECT_EQ(json.lines_written(), 0);
 
-    SqpDriver good(opts);
+    SqpSolver good(opts);
     good.attach_trace(&json);
-    const SqpSolution sol = good.solve(*p.model);
+    const SqpResult sol = good.solve(*p.model);
     ASSERT_GT(sol.counters.major_iters, 0);
     const std::vector<std::string> lines = split_lines(os.str());
     ASSERT_FALSE(lines.empty());
@@ -3198,7 +3198,7 @@ TEST(JsonLinesTraceSink, ResetNestingRecoversASinkAfterASolveThatThrewMidBody) {
     JsonLinesTraceSink json(os);
 
     ThrowsOnSecondGradientModel bad_model;
-    SqpDriver thrower(opts);
+    SqpSolver thrower(opts);
     thrower.attach_trace(&json);
     EXPECT_THROW(thrower.solve(bad_model), std::runtime_error);
     const Index lines_after_throw = json.lines_written();
@@ -3241,9 +3241,9 @@ TEST(JsonLinesTraceSink, ResetNestingRecoversASinkAfterASolveThatThrewMidBody) {
     json.reset_nesting();
 
     const HsProblem p = make_hs(24);
-    SqpDriver good(opts);
+    SqpSolver good(opts);
     good.attach_trace(&json);
-    const SqpSolution sol = good.solve(*p.model);
+    const SqpResult sol = good.solve(*p.model);
     ASSERT_GT(sol.counters.major_iters, 0);
 
     const std::vector<std::string> lines = split_lines(os.str());
@@ -3270,11 +3270,11 @@ TEST(JsonLinesTraceSink, SqpMajorReproducesTheHistoryOnTheRowThatSeedsRestoratio
     CircleAndFarLineModel model;
     SqpOptions opts;
     opts.max_iter = 200;
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpSolution sol = driver.solve(model);
+    const SqpResult sol = driver.solve(model);
 
     ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN";
     Index seeded_rows = 0;
@@ -3310,11 +3310,11 @@ TEST(JsonLinesTraceSink, TheRowsModeAndTheDispatchRecordDifferOnTheSsnWarmGrade)
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
     const HsProblem p = make_hs(3);
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpSolution sol = driver.solve(*p.model);
+    const SqpResult sol = driver.solve(*p.model);
 
     ASSERT_GT(sol.counters.ipqp.ipqp_to_ssn, 0) << "non-vacuous: the grade must be reached";
     Index rows_reading_ssn = 0;
@@ -3353,11 +3353,11 @@ TEST(JsonLinesTraceSink, TheRequestingRowIsWrittenAFTERTheNestedSolveItAskedFor)
     CircleAndFarLineModel model;
     SqpOptions opts;
     opts.max_iter = 200;
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpSolution sol = driver.solve(model);
+    const SqpResult sol = driver.solve(model);
     ASSERT_GE(sol.counters.restoration_iters, 1);
 
     Index nested_end_seq = 0;
@@ -4008,13 +4008,13 @@ TEST(SqpConsole, TheUsersJsonStreamIsByteIdenticalWithAndWithoutTheConsole) {
         SqpOptions opts;
         opts.max_iter = 200;
         opts.common.print_level = print_level;
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         std::ostringstream os;
         JsonLinesTraceSink json(os);
         driver.attach_trace(&json);
         StdoutCapture capture;
         EXPECT_TRUE(capture.active());
-        const SqpSolution sol = driver.solve(model);
+        const SqpResult sol = driver.solve(model);
         return std::pair<std::string, Index>{os.str(), sol.counters.restoration_iters};
     };
     const auto silent = run(3);
@@ -4037,9 +4037,9 @@ TEST(SqpConsole, TheLiveConsoleEqualsFormatIterationTable) {
     SqpOptions opts;
     opts.max_iter = 200;
     opts.common.print_level = 0;
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::string written;
-    SqpSolution sol;
+    SqpResult sol;
     {
         StdoutCapture capture;
         EXPECT_TRUE(capture.active());
@@ -4058,12 +4058,12 @@ TEST(SqpConsole, TheSqpDefaultPrintLevelWritesNothing) {
     HsProblem p = make_hs(38);
     SqpOptions opts;
     opts.max_iter = 60;
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::string written;
     {
         StdoutCapture capture;
         EXPECT_TRUE(capture.active());
-        const SqpSolution sol = driver.solve(*p.model);
+        const SqpResult sol = driver.solve(*p.model);
         written = capture.text();
         EXPECT_FALSE(sol.history.empty());
     }
@@ -4081,7 +4081,7 @@ TEST(SqpConsole, ACountingSinkSeesTheSameEventsWithPrintingOnAndOff) {
         // ATTACH ORDER IS FREE, and this is where that is proved: the sink is
         // attached before or after `set_options` and the composition happens at
         // solve entry either way.
-        SqpDriver driver(attach_first ? opts : SqpOptions{});
+        SqpSolver driver(attach_first ? opts : SqpOptions{});
         if (attach_first) {
             driver.attach_trace(&tally);
         } else {
@@ -4118,9 +4118,9 @@ TEST(SqpConsole, TheRestorationSubDriverIsTheOneDriverThatNeverPrints) {
     SqpOptions opts;
     opts.max_iter = 200;
     opts.common.print_level = 0;
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::string written;
-    SqpSolution sol;
+    SqpResult sol;
     {
         StdoutCapture capture;
         EXPECT_TRUE(capture.active());
@@ -4151,7 +4151,7 @@ TEST(SqpConsole, AttachTraceDuringASolveIsRefused) {
     HsProblem p = make_hs(38);
     SqpOptions opts;
     opts.max_iter = 60;
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     bool threw = false;

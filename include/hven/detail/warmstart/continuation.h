@@ -8,7 +8,7 @@
 // p0 and then only warm ones.
 //
 // This is the workflow the whole warm-start subsystem exists for. Nothing
-// here is a new algorithm: it is a COMPOSITION LAYER over WarmStart + the
+// here is a new algorithm: it is a COMPOSITION LAYER over SqpWarmStart + the
 // 3-arg solve (the hand-off between consecutive parameter values), the `hot`
 // factorization handle (reachable only when the caller raises
 // SqpOptions::start_level to kHot; the predictor drops `hot` by contract, so
@@ -105,7 +105,7 @@
 // three budgets is not a cheap step and must not lengthen the next one.
 //
 // With budget_mode OFF (the default) none of this is reachable:
-// sqp_types.h guarantees kBudgetExhausted is NEVER reported then, and every
+// sqp_solver_types.h guarantees kBudgetExhausted is NEVER reported then, and every
 // max_iter exhaustion arrives as kMaxIter, which is an ordinary failure here.
 //
 // ---------------------------------------------------------------------
@@ -167,7 +167,7 @@
 // ---------------------------------------------------------------------
 // WHAT THIS HEADER DOES NOT HAVE, AND WHY:
 //
-//   - NO `SqpOptions solve_options` FIELD ON ContinuationOptions. SqpDriver
+//   - NO `SqpOptions solve_options` FIELD ON ContinuationOptions. SqpSolver
 //     copies its SqpOptions AT CONSTRUCTION and exposes neither a setter nor
 //     a getter, so a driver passed in BY REFERENCE cannot be re-configured
 //     per sweep; such a field could only ever have been inert. The per-step
@@ -190,8 +190,8 @@
 
 #include <hven/detail/warmstart/predictor.h>
 #include <hven/detail/warmstart/warm_start.h>
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
@@ -201,7 +201,7 @@ namespace hven::solvers {
 // CALLER-VISIBLE POLICY: none of them changes what a converged step means,
 // only which parameter values are visited and in what order.
 //
-// PER-STEP SOLVER CONFIGURATION IS THE SqpDriver's, not this struct's -- see
+// PER-STEP SOLVER CONFIGURATION IS THE SqpSolver's, not this struct's -- see
 // this header's WHAT THIS HEADER DOES NOT HAVE note.
 struct ContinuationOptions {
     // The first proposal's arc length along the p0 -> p1 segment. Must be
@@ -289,7 +289,7 @@ struct ContinuationStep {
     // The parameter value this attempt was solved AT (the proposal, not the
     // point it was proposed from).
     Vec p;
-    // The point the solve returned -- SqpSolution::x. On a successful step
+    // The point the solve returned -- SqpResult::x. On a successful step
     // this is x*(p) to the driver's own tolerance, so the sequence of these
     // IS the computed solution path, which is the sweep's actual product.
     Vec x;
@@ -343,7 +343,7 @@ struct ContinuationResult {
     // parameter value is the last kOptimal step's `p`. If NO step converged
     // (the cold solve at p0 failed), this is that failed solve's own warm
     // start, which warm_start.h guarantees is still safe to feed forward.
-    WarmStart final_warm;
+    SqpWarmStart final_warm;
 
     // Aggregate accounting over `steps`. Sums rather than new measurements:
     // total_majors is sum of counters.major_iters, predictor_calls counts the
@@ -458,9 +458,9 @@ void validate(const ParametricNlpModel &model, const Vec &p0, const Vec &p1,
 //
 // The body is in src/warmstart/continuation.cpp, together with
 // continuation_detail::validate above: this function runs once per sweep,
-// each of its steps is a whole SqpDriver::solve(), and it was never inlined.
+// each of its steps is a whole SqpSolver::solve(), and it was never inlined.
 // The algorithm, the budget rule and every "why" stay here.
 ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, const Vec &p1,
-                                    SqpDriver &driver, const ContinuationOptions &opts = {});
+                                    SqpSolver &driver, const ContinuationOptions &opts = {});
 
 } // namespace hven::solvers

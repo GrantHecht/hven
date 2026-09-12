@@ -26,7 +26,7 @@
 #include <fmt/color.h>
 #include <fmt/core.h>
 
-#include "hven/detail/drivers/interior_point_solver_fwd.h"
+#include "hven/detail/drivers/ipm_solver_fwd.h"
 #include "hven/detail/interior/bound_set.h"
 #include "hven/detail/interior/eval_error_log.h"
 #include "hven/detail/interior/iterate_info.h"
@@ -66,7 +66,7 @@ class NativeBoundsHarness;
 
 namespace hven::solvers {
 
-// Pull root-namespace Eigen type aliases into hven::solvers so that InteriorPointSolver
+// Pull root-namespace Eigen type aliases into hven::solvers so that IpmSolver
 // member declarations (EigenRef<VectorXd>, ConstEigenRef<VectorXd>, …) resolve
 // without full qualification inside this namespace.
 using hven::ConstEigenRef;
@@ -76,7 +76,7 @@ using hven::EigenRef;
 // forward-declared rather than included: it appears here only as a `const &`
 // parameter of one private method, and including it would pull the SQP
 // crossover header and hven/qp/qp_types.h behind it into every consumer of
-// this header. src/drivers/interior_point_solver.cpp takes the include.
+// this header. src/drivers/ipm_solver.cpp takes the include.
 struct IpmPolishData;
 
 /// @brief Number of consecutive trailing iterates that must ALL exceed a
@@ -86,11 +86,11 @@ struct IpmPolishData;
 /// A non-finite residual remains an immediate hard abort, so this window governs
 /// only the finite-overshoot case, where a single blown-up iterate can be a
 /// recoverable transient.
-/// @see docs/notes/2026-09-header-prose-archive.md §interior_point_solver.h
+/// @see docs/notes/2026-09-header-prose-archive.md §ipm_solver.h
 inline constexpr int kDivergencePersistIters = 3;
 
 // The five globalization components below are held through unique_ptr members
-// whose concrete types are complete only in interior_point_solver.cpp, which is
+// whose concrete types are complete only in ipm_solver.cpp, which is
 // why the constructors and the destructor are defined out-of-line there. The
 // acceptance_strategy.h header includes THIS header, so it must not be included
 // back. RestorationStrategy is the one that is not always constructed: it stays
@@ -127,12 +127,12 @@ class Ledger;
 /// sequence over barrier/line-search modes with pluggable step acceptance, a
 /// barrier governor, a post-rejection recovery chain and optional
 /// feasibility-restoration mode switches.
-class InteriorPointSolver {
+class IpmSolver {
   public:
     // --- Mode enums (declared at namespace scope in drivers/ipm_solver_types.h) ---
     // These eight were NESTED here until M6 W5 T8.3 moved them out beside
     // IpmOptions, so a caller can name an option's value without including the
-    // solver. The aliases keep every InteriorPointSolver::<Enum> spelling in the
+    // solver. The aliases keep every IpmSolver::<Enum> spelling in the
     // tree naming the same type it always did. The four strto_*() parsers that
     // sat here went with the string-taking setters: a caller builds an
     // IpmOptions value and names the enumerator.
@@ -145,7 +145,7 @@ class InteriorPointSolver {
     using QPPivotModes = hven::solvers::QPPivotModes;
     using PDStepStrategies = hven::solvers::PDStepStrategies;
 
-    // The options struct that used to live here as InteriorPointSolver::Settings
+    // The options struct that used to live here as IpmSolver::Settings
     // is now hven::solvers::IpmOptions in drivers/ipm_solver_types.h: the same
     // 65 knobs in the same order, trailing underscores gone, with qp_threads_
     // and print_level_ moved into CommonOptions and reached as
@@ -208,8 +208,8 @@ class InteriorPointSolver {
     /// point after the callback returns, including before this iteration computes
     /// a step at all -- the nested-restoration pre-exit re-initialises XSL's
     /// multiplier blocks and abandons the iteration
-    /// (src/drivers/interior_point_solver.cpp:2199).
-    /// @see docs/notes/2026-09-header-prose-archive.md §interior_point_solver.h
+    /// (src/drivers/ipm_solver.cpp:2199).
+    /// @see docs/notes/2026-09-header-prose-archive.md §ipm_solver.h
     using KktHook =
         std::function<int(int, double, ConstEigenRef<VectorXd>, double, ConstEigenRef<VectorXd>,
                           ConstEigenRef<VectorXd>, Eigen::SparseMatrix<double, Eigen::RowMajor> &)>;
@@ -231,7 +231,7 @@ class InteriorPointSolver {
     // field-by-field table.
 
     // --- Constructors / destructor ---
-    // All three are defined out-of-line in interior_point_solver.cpp: the
+    // All three are defined out-of-line in ipm_solver.cpp: the
     // unique_ptr members with incomplete element types force even the
     // constructors' exception-cleanup paths to see the complete types.
 
@@ -250,21 +250,21 @@ class InteriorPointSolver {
     ///
     /// @param opts The options; validated here, exactly as set_options() would.
     /// @throws std::invalid_argument if validate(opts) rejects the value.
-    explicit InteriorPointSolver(IpmOptions opts = {});
+    explicit IpmSolver(IpmOptions opts = {});
     /// @brief Releases the factorization and the globalization components.
-    ~InteriorPointSolver();
+    ~IpmSolver();
 
     // Neither copyable nor movable: the kkt_sol_ factorization and the
     // unique_ptr globalization components have no defined transfer semantics.
 
     /// @brief Deleted: a solver is not copy-constructible.
-    InteriorPointSolver(const InteriorPointSolver &) = delete;
+    IpmSolver(const IpmSolver &) = delete;
     /// @brief Deleted: a solver is not copy-assignable.
-    InteriorPointSolver &operator=(const InteriorPointSolver &) = delete;
+    IpmSolver &operator=(const IpmSolver &) = delete;
     /// @brief Deleted: a solver is not move-constructible.
-    InteriorPointSolver(InteriorPointSolver &&) = delete;
+    IpmSolver(IpmSolver &&) = delete;
     /// @brief Deleted: a solver is not move-assignable.
-    InteriorPointSolver &operator=(InteriorPointSolver &&) = delete;
+    IpmSolver &operator=(IpmSolver &&) = delete;
 
     // --- Accessors ---
     /// @brief Returns the options this solver runs under.
@@ -508,7 +508,7 @@ class InteriorPointSolver {
     /// row" is the identity that placement buys.
     ///
     /// NESTED RESTORATION IS SILENT. Under a nested l1 restoration the
-    /// feasibility subproblem is solved by a DISTINCT InteriorPointSolver, which
+    /// feasibility subproblem is solved by a DISTINCT IpmSolver, which
     /// carries no callback of its own: its iterations fire nothing, and a kStop
     /// is honoured only once control is back in this solver's loop. The SQP
     /// engine forwards into its restoration sub-solve and this one does not;
@@ -689,7 +689,7 @@ class InteriorPointSolver {
     ///         console mid-table -- and a sink that detached itself from inside
     ///         `on_ipm_iter` left the restoration door's very next emit
     ///         dereferencing a null. `set_options` refuses on the same rule and
-    ///         for the same reason, as does `SqpDriver::attach_trace`.
+    ///         for the same reason, as does `SqpSolver::attach_trace`.
     void attach_trace(TraceSink *sink);
 
     // --- Instrumentation ledger ---
@@ -697,7 +697,7 @@ class InteriorPointSolver {
     ///        solve() call that RETURNS.
     ///
     /// The SQP driver's `attach_ledger` in shape and in every rule (see
-    /// `drivers/sqp_driver.h`): the ledger is borrowed and must outlive every
+    /// `drivers/sqp_solver.h`): the ledger is borrowed and must outlive every
     /// solve made while it is attached, the label is
     /// `"{label_prefix}_{n}"` with `n` a per-solver counter this call RESETS to
     /// 0, and the counter advances only when a record is actually written -- so
@@ -721,14 +721,10 @@ class InteriorPointSolver {
     //
     // THE TWO VALUES MOVED (M6 W5 T8.5) to `warmstart/seeding.h`, beside the
     // SQP's own seeded-dual band -- three policies, three derivations, one
-    // header, values DELIBERATELY NOT UNIFIED (design 2.4). The two names
-    // below are ALIASES at the old spellings, kept so nothing that already
-    // says `InteriorPointSolver::kSeededIqMultFloor` had to move with the
-    // constant; T8.10 rewrites those call sites and drops the aliases.
-    /// @brief Alias of hven::solvers::kSeededIqMultFloor (warmstart/seeding.h).
-    static constexpr double kSeededIqMultFloor = hven::solvers::kSeededIqMultFloor;
-    /// @brief Alias of hven::solvers::kSeededMultInitMax (warmstart/seeding.h).
-    static constexpr double kSeededMultInitMax = hven::solvers::kSeededMultInitMax;
+    // header, values DELIBERATELY NOT UNIFIED (design 2.4). M6 W5 T8.10 swept
+    // the call sites that spelled them on this class and dropped the aliases:
+    // `hven::solvers::kSeededIqMultFloor` and `::kSeededMultInitMax` are the
+    // only names for these two values now.
 
     // set_initial_multipliers() / clear_initial_multipliers() and the three
     // staged_*_mults_ / mults_staged_ members they armed were REMOVED in
@@ -786,7 +782,7 @@ class InteriorPointSolver {
     // the KKT-analysis block, the per-PHASE exit statistics and the nine
     // messages are `ipm.phase.begin`/`.end`, `ipm.kkt_analysis`,
     // `ipm.phase.exit` and `ipm.message`; `interior_point_solver_print.cpp` is
-    // gone. `grep fmt::print src/drivers/interior_point_solver.cpp` finds
+    // gone. `grep fmt::print src/drivers/ipm_solver.cpp` finds
     // nothing in the solve path -- the console is a SINK now, in full, and a
     // caller's own sink receives every fact the transcript carries.
 
@@ -1424,7 +1420,7 @@ class InteriorPointSolver {
                                  const std::vector<PhaseStep> &steps, SolveBudget budget,
                                  const WarmStartData *payload);
 
-    // --- Core algorithm (defined in interior_point_solver.cpp) ---
+    // --- Core algorithm (defined in ipm_solver.cpp) ---
     Eigen::VectorXd alg_impl(AlgorithmModes algmode, BarrierModes barmode, LineSearchModes lsmode,
                              double obj_scale, double MuI, Eigen::Ref<Eigen::VectorXd> xsl);
 
@@ -1506,7 +1502,7 @@ class InteriorPointSolver {
     // alg_impl drives both through mechanism_->compute_step (which fuses the
     // step scaling and acceptance backtrack).
 
-    // --- KKT factorization (defined in interior_point_solver.cpp) ---
+    // --- KKT factorization (defined in ipm_solver.cpp) ---
     // `finalpert` is the last perturbation DELTA applied via Perturb(), which is
     // what alg_impl's Hpert0 warm start consumes. `cumpert` is display-only: the
     // running SUM of every delta applied during this call, read by nothing else.
@@ -1524,7 +1520,7 @@ class InteriorPointSolver {
 
     void ensure_solver_initialized();
 
-    // --- Barrier math helpers (defined in interior_point_solver.cpp) ---
+    // --- Barrier math helpers (defined in ipm_solver.cpp) ---
     void apply_reset_slacks(Eigen::Ref<Eigen::VectorXd> S, Eigen::Ref<Eigen::VectorXd> FXI) const;
     // max_step_to_boundary is now a private helper of BacktrackingLineSearch.
     // The complementarity account mu is driven by and barr_inf_ reports: the
@@ -1549,7 +1545,7 @@ class InteriorPointSolver {
                                         int base_count) const;
     void barrier_hessian(Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat,
                          Eigen::Ref<Eigen::VectorXd> S, Eigen::Ref<Eigen::VectorXd> LI, double mu);
-    // --- Native variable-bound helpers (defined in interior_point_solver.cpp) ---
+    // --- Native variable-bound helpers (defined in ipm_solver.cpp) ---
     // Every one of these is a no-op when bounds_ is null.
 
     // Projects `x` into the strict interior of the recorded bounds and seeds the
@@ -1602,7 +1598,7 @@ class InteriorPointSolver {
     // complementarity() STAYS here — it is still called from the evaluate
     // stage (its maxcomp output feeds converge_check's barr_inf_).
 
-    // --- NLP eval dispatch methods (defined in interior_point_solver.cpp) ---
+    // --- NLP eval dispatch methods (defined in ipm_solver.cpp) ---
     // The four wrappers below differ only in which evaluation request they name.
     // They reach the NLP through the aggregate contract's assemble() entry; the
     // request constants pair with the evaluation shapes documented in the
@@ -1612,7 +1608,7 @@ class InteriorPointSolver {
     ///        contract, then scatter the solver's own KKT coefficients.
     ///
     /// Builds the candidate point and the scatter views from the compound
-    /// [primals | slacks | eq | iq] layout, calls NlpAggregate::assemble(), and
+    /// [primals | slacks | eq | iq] layout, calls NlpAssembly::assemble(), and
     /// — for a request naming KKT-bearing output — follows it with
     /// NonLinearProgram::fill_solver_coeffs(). The slack Jacobian, the primal
     /// and slack diagonals and the constraint-row pivots are consumer-owned
@@ -1664,7 +1660,7 @@ class InteriorPointSolver {
                   double &val, EigenRef<VectorXd> GX, EigenRef<VectorXd> AGXS_FX,
                   Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat, double mu);
 
-    // --- Feasibility-restoration exit measures (defined in interior_point_solver.cpp) ---
+    // --- Feasibility-restoration exit measures (defined in ipm_solver.cpp) ---
     // Shared by every restoration exit and teardown site. While restoration is
     // active the loop's own prim_obj_ is the restoration objective, which is not
     // comparable with the optimality filter/funnel's accumulated pairs; this
@@ -1675,7 +1671,7 @@ class InteriorPointSolver {
                                                      ConstEigenRef<VectorXd> primals,
                                                      double barr_obj);
 
-    // --- Feasibility-restoration lifecycle (defined in interior_point_solver.cpp) ---
+    // --- Feasibility-restoration lifecycle (defined in ipm_solver.cpp) ---
     // Shared entry orchestration for the kSwitchToFeasibility case: build the
     // (theta, f) entry measures, then dispatch on the strategy family. The
     // proximal switch takes enter_restoration; the nested l1 phase takes
@@ -1733,7 +1729,7 @@ class InteriorPointSolver {
     // original-problem infeasibility must fall to at most max(kKappaResto ·
     // previous-iteration infeasibility, econ_tol_) (Ipopt RestoConvCheck's
     // orig_inf_pr_max, single-tolerance floor). Reads resto_theta_orig_prev_
-    // (seeded at entry, ratcheted each phase iteration). Defined in interior_point_solver.cpp so
+    // (seeded at entry, ratcheted each phase iteration). Defined in ipm_solver.cpp so
     // the kKappaResto constant (globalization/acceptance_strategy.h) stays out of
     // this header's include set.
     bool resto_ratchet_passes(double theta_orig) const;

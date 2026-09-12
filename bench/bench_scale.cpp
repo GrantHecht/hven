@@ -4,7 +4,7 @@
 // bench/bench_scale.cpp — PHASE-5 TASK 2: the bench harness and wall-time
 // instrumentation, the measurement instrument the rest of Phase 5 (Tasks 3,
 // 4, 5, 9) reads. This is NOT a new algorithm: every number it reports comes
-// from a Ledger (ledger.h) attached to an ordinary SqpDriver, exactly as
+// from a Ledger (ledger.h) attached to an ordinary SqpSolver, exactly as
 // tests/test_warm_start_battery.cpp's corpus does -- see that file's own
 // EVERY COUNT IN THIS FILE COMES OFF A LEDGER note, which this harness
 // deliberately follows rather than re-deriving its own counters.
@@ -13,14 +13,14 @@
 // THE FOUR ARMS -- what varies is the START, nothing else (same framing as
 // the battery's own ARMS note):
 //
-//   cold   a FRESH SqpDriver (hence a fresh QpEngine, no retained K0) per
+//   cold   a FRESH SqpSolver (hence a fresh QpEngine, no retained K0) per
 //          grid point, solved from the model's own start_point() via the
 //          2-arg solve(). `--sweep N` is the LITERAL number of grid points,
 //          evenly spaced over the family's fixed [p0, p1] (linspace, N >= 1;
 //          N == 1 solves only at p1).
-//   hot    ONE SqpDriver, constructed with SqpOptions::start_level = kHot,
+//   hot    ONE SqpSolver, constructed with SqpOptions::start_level = kHot,
 //          walking the SAME evenly-spaced grid as `cold` but feeding each
-//          solve's own WarmStart (primal/dual point AND the retained
+//          solve's own SqpWarmStart (primal/dual point AND the retained
 //          factorization handle) into the next -- "chained solves on one
 //          driver feeding warm+hot back". The first grid point is always a
 //          plain 2-arg (cold) solve, since there is nothing to warm from yet.
@@ -56,7 +56,7 @@
 // WALL-TIME AND PEAK RSS -- BOTH INFORMATIONAL, NEVER A REGRESSION CONTRACT.
 //
 //   wall_seconds  ledger.h's SqpSolveRecord::wall_seconds (Phase-5 Task 2):
-//                 std::chrono::steady_clock timed by SqpDriver::solve()
+//                 std::chrono::steady_clock timed by SqpSolver::solve()
 //                 around solve_impl ALONE, per solve. For `cold`/`hot` this
 //                 is naturally one measurement per CSV row; for `warm`/`pred`
 //                 it is exactly as precise, because run_continuation makes
@@ -91,7 +91,7 @@
 //   peak_rss_mib
 //
 // One row per solve, EVERY COLUMN FROM major_iters ON READ OFF THE LEDGER'S
-// OWN SqpSolveRecord (ledger.h) -- never re-derived from SqpSolution or
+// OWN SqpSolveRecord (ledger.h) -- never re-derived from SqpResult or
 // ContinuationResult directly, per this file's own banner note above. `p` is
 // the one column that is not ledger-derivable (SqpSolveRecord carries no
 // parameter value) and comes from the grid/ContinuationStep the harness
@@ -183,7 +183,7 @@
 // PHASE-5 TASK 9 ADDITION -- --dump-solution, THE CROSS-SOLVER REFEREE HOOK.
 //
 // Task 9 puts this SQP engine head to head with the IPM engine (now
-// hven::solvers::InteriorPointSolver) on F7, and F7's MANUFACTURED SOLUTION is the referee:
+// hven::solvers::IpmSolver) on F7, and F7's MANUFACTURED SOLUTION is the referee:
 // both solvers must land on x*(p) = ( y*(t_k) ; u*(t_k) )_k with
 // y*(t) = min(p(1 + sin pi t), R) e, or the comparison is between two
 // different problems. Checking that needs the CONVERGED POINT, which the CSV
@@ -204,7 +204,7 @@
 // otherwise -- the dumped header's `p` line always states which, so a reader
 // never has to infer it.
 //
-// `f` in the header is SqpSolution::f for cold/hot and model.eval_f(x)
+// `f` in the header is SqpResult::f for cold/hot and model.eval_f(x)
 // recomputed at the step's own p for warm/pred (ContinuationStep carries x but
 // no objective value). Both are the objective at the dumped x; the
 // distinction is recorded because the two travel through different code.
@@ -234,8 +234,8 @@
 #include <hven/core/ledger.h>
 #include <hven/detail/warmstart/continuation.h>
 #include <hven/detail/warmstart/warm_start.h>
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/qp/qp_types.h>
 
 #include "bench_cli.h"
@@ -258,12 +258,12 @@ using hven::solvers::QpStatus;
 using hven::solvers::run_continuation;
 using hven::solvers::SolveRecord;
 using hven::solvers::SolveStatus;
-using hven::solvers::SqpDriver;
 using hven::solvers::SqpOptions;
-using hven::solvers::SqpSolution;
+using hven::solvers::SqpResult;
+using hven::solvers::SqpSolver;
 using hven::solvers::SqpSolveRecord;
+using hven::solvers::SqpWarmStart;
 using hven::solvers::StartLevel;
-using hven::solvers::WarmStart;
 using hven::solvers::WorkingSetLinearAlgebra;
 using hven::solvers::test_support::F3SpringChain;
 using hven::solvers::test_support::F7CollocationChain;
@@ -486,7 +486,7 @@ struct Tuning {
     // controller exactly as a caller who never heard of these flags does.
     ContinuationOptions controller{};
     // PHASE-7 TASK 6: which QP KERNEL the driver's subproblems go through
-    // (sqp_types.h's QpMode). Defaults to the library default kWalk, so an
+    // (sqp_solver_types.h's QpMode). Defaults to the library default kWalk, so an
     // invocation that does not pass --qp-mode is byte-identical to every
     // measurement this harness has ever produced -- including --self-check,
     // which does not read this struct's flags at all. The flag exists because
@@ -502,7 +502,7 @@ SqpOptions bench_options(StartLevel level, const Tuning &tuning) {
     opts.feas_tol = 1e-8;
     opts.max_iter = tuning.max_iter;
     opts.adaptive_mu = false;
-    opts.start_level = level;
+    opts.common.start_level = level;
     opts.warm_full_step = true;
     opts.qp = tuning.qp;
     opts.qp_mode = tuning.qp_mode;
@@ -515,10 +515,10 @@ void run_cold(ParametricNlpModel &model, const std::string &family, Index n, dou
               SolutionDump &dump) {
     const std::vector<double> grid = linspace(p0, p1, sweep);
     for (std::size_t i = 0; i < grid.size(); ++i) {
-        SqpDriver driver(bench_options(StartLevel::kCold, tuning));
+        SqpSolver driver(bench_options(StartLevel::kCold, tuning));
         driver.attach_ledger(&ledger, fmt::format("cold{}", i));
         model.set_parameters(Vec::Constant(1, grid[i]));
-        const SqpSolution sol = driver.solve(model, model.start_point());
+        const SqpResult sol = driver.solve(model, model.start_point());
         rows.push_back(
             Row{family, n, "cold", i, grid[i], ledger.sqp_records().back(), peak_rss_mib()});
         dump = SolutionDump{true, grid[i], sol.status, sol.f, sol.x}; // last solve wins
@@ -530,12 +530,12 @@ void run_hot(ParametricNlpModel &model, const std::string &family, Index n, doub
              std::size_t sweep, const Tuning &tuning, Ledger &ledger, std::vector<Row> &rows,
              SolutionDump &dump) {
     const std::vector<double> grid = linspace(p0, p1, sweep);
-    SqpDriver driver(bench_options(StartLevel::kHot, tuning));
+    SqpSolver driver(bench_options(StartLevel::kHot, tuning));
     driver.attach_ledger(&ledger, "hot");
-    WarmStart warm; // default-constructed: valid == false, i.e. cold
+    SqpWarmStart warm; // default-constructed: valid == false, i.e. cold
     for (std::size_t i = 0; i < grid.size(); ++i) {
         model.set_parameters(Vec::Constant(1, grid[i]));
-        const SqpSolution sol =
+        const SqpResult sol =
             (i == 0) ? driver.solve(model, model.start_point()) : driver.solve(model, warm.x, warm);
         warm = sol.warm_start;
         rows.push_back(
@@ -549,7 +549,7 @@ void run_continuation_arm(ParametricNlpModel &model, const std::string &family, 
                           double p1, std::size_t sweep, bool use_predictor, const std::string &arm,
                           const Tuning &tuning, Ledger &ledger, std::vector<Row> &rows,
                           SolutionDump &dump) {
-    SqpDriver driver(bench_options(StartLevel::kWarm, tuning));
+    SqpSolver driver(bench_options(StartLevel::kWarm, tuning));
     driver.attach_ledger(&ledger, arm);
 
     ContinuationOptions copts = tuning.controller;
@@ -655,10 +655,10 @@ bool run_self_check() {
     opts.feas_tol = 1e-8;
     opts.max_iter = 60;
     opts.adaptive_mu = false;
-    opts.start_level = StartLevel::kWarm;
+    opts.common.start_level = StartLevel::kWarm;
     opts.warm_full_step = true;
 
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     Ledger ledger;
     driver.attach_ledger(&ledger, "selfcheck");
 

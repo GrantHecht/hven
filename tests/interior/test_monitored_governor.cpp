@@ -43,7 +43,7 @@ namespace {
 using hven::solvers::AcceptanceStrategy;
 using hven::solvers::BarrierGovernor;
 using hven::solvers::GlobalizationMechanism;
-using hven::solvers::InteriorPointSolver;
+using hven::solvers::IpmSolver;
 using hven::solvers::IterateInfo;
 using hven::solvers::kAdaptiveMuKktErrorRedFact;
 using hven::solvers::kBarrierTolFactor;
@@ -78,8 +78,8 @@ class MonGovFakeDelegate : public BarrierGovernor {
     double return_mu = 12345.0;
     double set_barr_obj = 678.0;
 
-    double update_barrier(InteriorPointSolver::BarrierModes, double mu_in, double avgcomp,
-                          double mincomp, Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
+    double update_barrier(IpmSolver::BarrierModes, double mu_in, double avgcomp, double mincomp,
+                          Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
                           Eigen::VectorXd &, GlobalizationMechanism &, SolverContext &,
                           double &barr_obj, const IterateInfo &, bool &mu_event) override {
         ++calls;
@@ -96,7 +96,7 @@ class MonGovFakeDelegate : public BarrierGovernor {
 // Inert mechanism — the fake delegate ignores it, so its body must never run.
 class MonGovUnusedMechanism : public GlobalizationMechanism {
   public:
-    double compute_step(InteriorPointSolver::LineSearchModes, double, double, double, double,
+    double compute_step(IpmSolver::LineSearchModes, double, double, double, double,
                         Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
                         Eigen::VectorXd &, AcceptanceStrategy &, double &, double &, IterateInfo &,
                         const std::vector<IterateInfo> &, SolverContext &) override {
@@ -364,7 +364,7 @@ TEST(MonGovDelegation, FreeModeForwardsToDelegateVerbatim) {
     const auto current = MonGovUniform(1.0);
     double barr_obj = -1.0;
     bool mu_event = false;
-    const double mu = g.update_barrier(InteriorPointSolver::BarrierModes::LOQO, /*mu_in=*/0.007,
+    const double mu = g.update_barrier(IpmSolver::BarrierModes::kLoqo, /*mu_in=*/0.007,
                                        /*avgcomp=*/0.55, /*mincomp=*/0.11, XSL, RHS, DXSL, Temp,
                                        mechanism, ctx, barr_obj, current, mu_event);
     EXPECT_EQ(fake->calls, 1);
@@ -411,8 +411,8 @@ TEST(MonGovSequence, SufficientProgressVerdictFlipsWithPassedCurrent) {
     const IterateInfo current1 = MonGovIterate(0.0, 0.0, 0.9, 0.0);
     double barr_obj1 = 0.0;
     bool event1 = false;
-    g.update_barrier(InteriorPointSolver::BarrierModes::LOQO, 0.01, 0.0125, 0.0, XSL, RHS, DXSL,
-                     Temp, mechanism, ctx, barr_obj1, current1, event1);
+    g.update_barrier(IpmSolver::BarrierModes::kLoqo, 0.01, 0.0125, 0.0, XSL, RHS, DXSL, Temp,
+                     mechanism, ctx, barr_obj1, current1, event1);
     EXPECT_FALSE(event1);
     EXPECT_FALSE(g.in_monotone_mode());
     EXPECT_EQ(fake->calls, 1);
@@ -429,8 +429,8 @@ TEST(MonGovSequence, SufficientProgressVerdictFlipsWithPassedCurrent) {
     const IterateInfo current2 = MonGovIterate(0.0, 0.0, 1.0, 0.0);
     double barr_obj2 = 0.0;
     bool event2 = false;
-    g.update_barrier(InteriorPointSolver::BarrierModes::LOQO, 0.01, 0.0125, 0.0, XSL, RHS, DXSL,
-                     Temp, mechanism, ctx, barr_obj2, current2, event2);
+    g.update_barrier(IpmSolver::BarrierModes::kLoqo, 0.01, 0.0125, 0.0, XSL, RHS, DXSL, Temp,
+                     mechanism, ctx, barr_obj2, current2, event2);
     EXPECT_TRUE(event2);
     EXPECT_TRUE(g.in_monotone_mode());
     EXPECT_DOUBLE_EQ(g.monotone_mu(), 0.01); // handoff_mu(0.0125, ...) = 0.8*0.0125.
@@ -459,8 +459,8 @@ TEST(MonGovSequence, FiaccoMcCormickGateAdvancesOnSatisfyingCall) {
     // monotone_mu_ = handoff_mu(0.0125, ...) = 0.8*0.0125 = 0.01.
     double barr_obj = 0.0;
     bool event = false;
-    g.update_barrier(InteriorPointSolver::BarrierModes::LOQO, 0.01, /*avgcomp=*/0.0125, 0.0, XSL,
-                     RHS, DXSL, Temp, mechanism, ctx, barr_obj, MonGovUniform(1.0), event);
+    g.update_barrier(IpmSolver::BarrierModes::kLoqo, 0.01, /*avgcomp=*/0.0125, 0.0, XSL, RHS, DXSL,
+                     Temp, mechanism, ctx, barr_obj, MonGovUniform(1.0), event);
     ASSERT_TRUE(g.in_monotone_mode());
     ASSERT_DOUBLE_EQ(g.monotone_mu(), 0.01);
     ASSERT_TRUE(event);
@@ -470,14 +470,14 @@ TEST(MonGovSequence, FiaccoMcCormickGateAdvancesOnSatisfyingCall) {
     // > 0.1 -> gate blocks -> NO advance, NO mu_event.
     event = false;
     const double mu_after_hold = g.update_barrier(
-        InteriorPointSolver::BarrierModes::LOQO, g.monotone_mu(), 0.0125, 0.0, XSL, RHS, DXSL, Temp,
+        IpmSolver::BarrierModes::kLoqo, g.monotone_mu(), 0.0125, 0.0, XSL, RHS, DXSL, Temp,
         mechanism, ctx, barr_obj, MonGovIterate(0.05, 0.05, 0.05, 0.2), event);
     EXPECT_FALSE(event);
     EXPECT_DOUBLE_EQ(g.monotone_mu(), 0.01);
     EXPECT_DOUBLE_EQ(mu_after_hold, 0.01);
 
     // Call 3 (advance): current = {0.05,0.05,0.05,0.05} -> sub_problem_error =
-    // 0.05 <= 0.1 -> gate passes -> advance. InteriorPointSolver::Settings defaults
+    // 0.05 <= 0.1 -> gate passes -> advance. IpmSolver::Settings defaults
     // bar_tol_ = kkt_tol_ = 1e-6, so floor = min(1e-6,1e-6)/(10+1) ≈ 9.09e-8,
     // well below the candidate, so
     // fiacco_mccormick_mu(0.01, 1e-6, 1e-6, min_mu_, max_mu_) =
@@ -486,7 +486,7 @@ TEST(MonGovSequence, FiaccoMcCormickGateAdvancesOnSatisfyingCall) {
     // then clamped to [1e-12, 100] (inert).
     event = false;
     const double mu_after_advance = g.update_barrier(
-        InteriorPointSolver::BarrierModes::LOQO, g.monotone_mu(), 0.0125, 0.0, XSL, RHS, DXSL, Temp,
+        IpmSolver::BarrierModes::kLoqo, g.monotone_mu(), 0.0125, 0.0, XSL, RHS, DXSL, Temp,
         mechanism, ctx, barr_obj, MonGovIterate(0.05, 0.05, 0.05, 0.05), event);
     EXPECT_TRUE(event); // advance on exactly this call, not the previous hold.
     EXPECT_DOUBLE_EQ(g.monotone_mu(), 0.001);

@@ -56,12 +56,11 @@ class ExtendedBacktrackRecovery : public RecoveryChain {
 
     Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism,
-                            InteriorPointSolver::LineSearchModes lsmode, double obj_scale,
-                            double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
-                            Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-                            Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
-                            int &soc_steps, int &resolved_depth,
+                            GlobalizationMechanism &mechanism, IpmSolver::LineSearchModes lsmode,
+                            double obj_scale, double mu, double prim_obj, double barr_obj,
+                            Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
+                            Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
+                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
                             int &watchdog_activations) override;
 
     /// Stateless: nothing to clear.
@@ -198,12 +197,11 @@ class WatchdogRecovery : public RecoveryChain {
 
     Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism,
-                            InteriorPointSolver::LineSearchModes lsmode, double obj_scale,
-                            double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
-                            Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-                            Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
-                            int &soc_steps, int &resolved_depth,
+                            GlobalizationMechanism &mechanism, IpmSolver::LineSearchModes lsmode,
+                            double obj_scale, double mu, double prim_obj, double barr_obj,
+                            Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
+                            Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
+                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
                             int &watchdog_activations) override;
 
     /// Resets the shortened-iteration counter on real progress, then threads
@@ -249,12 +247,11 @@ class ChainedRecovery : public RecoveryChain {
 
     Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism,
-                            InteriorPointSolver::LineSearchModes lsmode, double obj_scale,
-                            double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
-                            Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-                            Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
-                            int &soc_steps, int &resolved_depth,
+                            GlobalizationMechanism &mechanism, IpmSolver::LineSearchModes lsmode,
+                            double obj_scale, double mu, double prim_obj, double barr_obj,
+                            Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
+                            Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
+                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
                             int &watchdog_activations) override;
 
     /// Propagates to whichever links are present (legitimately null when a

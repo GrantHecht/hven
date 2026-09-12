@@ -10,7 +10,7 @@
 // primal_vars + slack_vars + equal_cons + inequal_cons. KKTVector is the
 // non-owning view giving those four blocks names, and ConstKKTVector is its
 // read-only twin for storage the holder may not write. Deliberately a standalone
-// header with no InteriorPointSolver dependency: the solver and every
+// header with no IpmSolver dependency: the solver and every
 // globalization component build views from the SAME two types, so ONE layout
 // contract governs every compound KKT vector in the engine. The two views
 // duplicate the short accessor expressions that spell that contract out -- see
@@ -108,7 +108,7 @@ class KKTVector {
 /// able to say so in its signature. KKTVector's constructor takes
 /// `Eigen::VectorXd &`, so before this class a const `Eigen::VectorXd` could
 /// not be viewed at all without a const_cast or a copy -- which is why
-/// InteriorPointSolver::enter_feasibility_restoration took its RHS by mutable
+/// IpmSolver::enter_feasibility_restoration took its RHS by mutable
 /// reference while never writing it (M6 W5 T2).
 ///
 /// DELIBERATELY NOT A TEMPLATE, and this is the whole design decision. The

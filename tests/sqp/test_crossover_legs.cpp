@@ -31,8 +31,8 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/model/nlp_adapter.h>
-#include <hven/drivers/interior_point_solver.h>
-#include <hven/model/nlp_model_aggregate.h>
+#include <hven/drivers/ipm_solver.h>
+#include <hven/model/nlp_model_assembly.h>
 #include <hven/model/nlp_problem_model.h>
 #include <hven/model/non_linear_program.h>
 #include <hven/model/structure_identity.h>
@@ -53,12 +53,12 @@ using hven::SpMatRM;
 using hven::Vec;
 using hven::solvers::declaration_key;
 using hven::solvers::NlpModel;
-using hven::solvers::NlpModelAggregate;
+using hven::solvers::NlpModelAssembly;
 using hven::solvers::NlpProblemModel;
 using hven::solvers::SolveStatus;
-using hven::solvers::SqpDriver;
 using hven::solvers::SqpOptions;
-using hven::solvers::SqpSolution;
+using hven::solvers::SqpResult;
+using hven::solvers::SqpSolver;
 using hven::solvers::StartLevel;
 using hven::solvers::WarmStartData;
 using hven::solvers::corpus::CorpusCell;
@@ -101,7 +101,7 @@ void expect_sparse_near(const SpMatRM &a, const SpMatRM &b, const std::string &w
 // --- The adapter states the same problem ---
 
 // The round trip, through the path the SQP leg actually takes: declared as an
-// NLPProblem, read straight back as a native model. A wrong sign in the
+// NlpTripletModel, read straight back as a native model. A wrong sign in the
 // row-kind mapping shows up here as a cI block off by more than a tolerance.
 TEST(CrossoverAdapter, StatesTheSameProblemAsTheModelItWraps) {
     const auto model = crossover_model();
@@ -124,9 +124,9 @@ TEST(CrossoverAdapter, StatesTheSameProblemAsTheModelItWraps) {
     expect_sparse_near(converted.eval_jac_i(x), model->eval_jac_i(x), "inequality Jacobian");
 
     // The Hessian is the one piece the adapter transposes on the way out (the
-    // model returns the upper triangle, NLPProblem the lower), so it is checked
+    // model returns the upper triangle, NlpTripletModel the lower), so it is checked
     // at multipliers that are neither zero nor all equal -- a wrong head/tail
-    // cut of NLPProblem's single lambda block would survive either.
+    // cut of NlpTripletModel's single lambda block would survive either.
     Vec lambda_e(model->me());
     for (Index i = 0; i < lambda_e.size(); ++i) {
         lambda_e(i) = 0.5 + 0.1 * static_cast<double>(i % 7);
@@ -147,7 +147,7 @@ TEST(CrossoverAdapter, StatesTheSameProblemAsTheModelItWraps) {
 namespace {
 
 // A model whose Jacobian pattern depends on the iterate: the second column of
-// row 0 exists only where x(0) is positive. NLPProblem's structures are queried
+// row 0 exists only where x(0) is positive. NlpTripletModel's structures are queried
 // once, so such a model cannot be stated as one and the adapter must say so by
 // name rather than write the entry into whatever slot comes next.
 class CrossoverMovingPatternModel final : public NlpModel {
@@ -232,7 +232,7 @@ TEST(CrossoverLegs, BothEnginesKeyOneDeclarationTheSameWay) {
     const auto ipm_program = hven::solvers::make_nlp_program(declared);
 
     const auto converted = std::make_shared<NlpProblemModel>(declared);
-    NlpModelAggregate bridge(converted);
+    NlpModelAssembly bridge(converted);
 
     EXPECT_TRUE(declaration_key(ipm_program->declaration()) ==
                 declaration_key(bridge.declaration()))
@@ -250,7 +250,7 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
     const Vec x0 = model->start_point();
 
     const auto ipm_program = hven::solvers::make_nlp_program(declared);
-    hven::solvers::InteriorPointSolver ipm;
+    hven::solvers::IpmSolver ipm;
     {
         auto o = ipm.options();
         o.common.print_level = 10;
@@ -278,19 +278,19 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
     // THE ARGUMENT FORM (M6 W5 T8.5): `stage(p); solve(b, x0)` is
     // `solve(b, x0, p)`, and the cold arm is simply the overload without one.
     const auto solve_with = [&](const WarmStartData *payload) {
-        NlpModelAggregate bridge(converted);
-        SqpDriver driver{opts};
+        NlpModelAssembly bridge(converted);
+        SqpSolver driver{opts};
         return payload != nullptr ? driver.solve(bridge, x0, *payload) : driver.solve(bridge, x0);
     };
 
-    const SqpSolution cold = solve_with(nullptr);
+    const SqpResult cold = solve_with(nullptr);
     ASSERT_EQ(cold.status, SolveStatus::kOptimal);
     EXPECT_EQ(cold.counters.start_level_used, StartLevel::kCold);
 
     WarmStartData core = exported;
     core.extensions_.clear();
-    const SqpSolution warm_core = solve_with(&core);
-    const SqpSolution warm_polish = solve_with(&exported);
+    const SqpResult warm_core = solve_with(&core);
+    const SqpResult warm_polish = solve_with(&exported);
 
     // Both warm routes were actually ingested: a payload that was refused or
     // ignored comes back kCold, leaving the margins below cold against cold.
@@ -516,9 +516,9 @@ HVEN_SUPPRESS_DEPRECATED_END
 // ThreadingFlags::MainThread (the shared stateful NLPAdapterCore), and
 // analyze_partitioning forces every MainThread function into the LAST
 // partition, run inline on the calling thread. So two partitions over an
-// NLPProblem is ONE empty partition plus the whole problem evaluated serially:
+// NlpTripletModel is ONE empty partition plus the whole problem evaluated serially:
 // LAYOUT, not parallel evaluation. Genuine partitioned evaluation over an
-// NLPProblem needs per-partition cores and is registered for the M7
+// NlpTripletModel needs per-partition cores and is registered for the M7
 // ClaimStreamSource widening.
 //
 // The pin is therefore: the ADOPTED count is what was asked for, and the solve
@@ -547,7 +547,7 @@ TEST(CrossoverAdapter, TwoLaidPartitionsSolveTheSameProblemAsOne) {
     EXPECT_EQ(two->declaration().partition_count_, two->num_partitions_);
 
     const auto solve_it = [&](hven::solvers::NonLinearProgram &program) {
-        hven::solvers::InteriorPointSolver ipm;
+        hven::solvers::IpmSolver ipm;
         auto o = ipm.options();
         o.common.print_level = 10;
         o.common.threads = 1;

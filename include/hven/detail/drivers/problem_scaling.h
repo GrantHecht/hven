@@ -9,7 +9,7 @@
 // CONSTRAINT ROW, computed once from the derivatives at the start point and
 // held fixed for the solve. The declared problem is never touched: the caller's
 // model is read verbatim, the transformation is applied where the engine reads
-// it (detail/drivers/aggregate_eval_seam.h), and every exported quantity is
+// it (detail/drivers/assembly_eval_seam.h), and every exported quantity is
 // mapped back to the caller's units at the driver's one export boundary.
 //
 // THE TRANSFORMATION.
@@ -46,8 +46,8 @@
 // this layer, not an oversight -- the reasoning is in the W0.2 report.
 //
 // THE TWO NEIGHBOURING `obj_scale` SURFACES, neither of which this is and
-// neither of which it changes. `SqpDriver`'s per-subproblem `obj_scale`
-// (drivers/sqp_driver.h) is the Lagrangian's objective WEIGHT -- 1.0 normally,
+// neither of which it changes. `SqpSolver`'s per-subproblem `obj_scale`
+// (drivers/sqp_solver.h) is the Lagrangian's objective WEIGHT -- 1.0 normally,
 // 0.0 to drop the objective during restoration -- and it multiplies ON TOP of
 // `obj` here, exactly as THE HESSIAN above spells out.
 // `IpmOptions::obj_scale` is the OTHER engine's

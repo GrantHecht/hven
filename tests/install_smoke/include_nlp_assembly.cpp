@@ -5,10 +5,8 @@
 // transitive includes, this TU does not compile. Why, and which W5 tasks depend
 // on it: this directory's CMakeLists.txt.
 
-// W5 T8.10 renames this to sqp_solver.h / SqpSolver.
-
-#include "hven/drivers/sqp_driver.h"
+#include "hven/model/nlp_assembly.h"
 
 namespace hven_install_smoke {
-int standalone_include_sqp_driver() { return 1; }
+int standalone_include_nlp_aggregate() { return 1; }
 } // namespace hven_install_smoke

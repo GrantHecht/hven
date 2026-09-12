@@ -1,14 +1,14 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_aggregate_eval_seam.cpp — the consumer-side binding's pins.
+// tests/sqp/test_assembly_eval_seam.cpp — the consumer-side binding's pins.
 //
-// WHAT IS BEING PINNED. AggregateEvalSeam
-// (include/hven/detail/drivers/aggregate_eval_seam.h) reproduces the driver's
-// evaluation moments against an NlpAggregate instead of an NlpModel. The
+// WHAT IS BEING PINNED. AssemblyEvalSeam
+// (include/hven/detail/drivers/assembly_eval_seam.h) reproduces the driver's
+// evaluation moments against an NlpAssembly instead of an NlpModel. The
 // preservation bar is BIT-IDENTITY: every NlpEval field and every QpProblem
 // block the seam produces must equal, bit for bit, what the free functions in
-// drivers/sqp_driver.h produce from the same model at the same point, with
+// drivers/sqp_solver.h produce from the same model at the same point, with
 // identical sparse structure arrays. Everything downstream -- the KKT residual,
 // the funnel, the structural hash, every pinned counter -- reads those two
 // objects and nothing else, so their bit-identity is the whole preservation
@@ -50,11 +50,11 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 
-#include <hven/detail/drivers/aggregate_eval_seam.h>
+#include <hven/detail/drivers/assembly_eval_seam.h>
 #include <hven/model/nlp_model.h>
-#include <hven/model/nlp_model_aggregate.h>
+#include <hven/model/nlp_model_assembly.h>
 
 #include "support/claim_stream_double.h"
 #include "support/hs_problems.h"
@@ -71,9 +71,9 @@ namespace hven::solvers {
 /// a friend by the seam and defined ONLY here. Nothing in the shipped class can
 /// mutate a location table.
 struct AggregateEvalSeamTestAccess {
-    static int hessian_claim_count(const AggregateEvalSeam &seam) { return seam.hessian_.count_; }
+    static int hessian_claim_count(const AssemblyEvalSeam &seam) { return seam.hessian_.count_; }
 
-    static int location(const AggregateEvalSeam &seam, int claim_slot) {
+    static int location(const AssemblyEvalSeam &seam, int claim_slot) {
         return seam.kkt_locations_[static_cast<std::size_t>(claim_slot)];
     }
 
@@ -81,7 +81,7 @@ struct AggregateEvalSeamTestAccess {
     /// write, deliberately: it keeps every offset in range, so what the pin
     /// catches is a wrong PERMUTATION and never an out-of-bounds access that
     /// would have been caught by something else.
-    static void swap_locations(AggregateEvalSeam &seam, int left_slot, int right_slot) {
+    static void swap_locations(AssemblyEvalSeam &seam, int left_slot, int right_slot) {
         std::swap(seam.kkt_locations_[static_cast<std::size_t>(left_slot)],
                   seam.kkt_locations_[static_cast<std::size_t>(right_slot)]);
     }
@@ -90,7 +90,7 @@ struct AggregateEvalSeamTestAccess {
     /// the structures. Used to construct the two states a lay that throws could
     /// leave behind -- structures partial, epoch either committed or stale --
     /// so the recovery rule can be pinned in both directions.
-    static void adopt_epoch(AggregateEvalSeam &seam, hven::solvers::StructureEpoch epoch) {
+    static void adopt_epoch(AssemblyEvalSeam &seam, hven::solvers::StructureEpoch epoch) {
         seam.epoch_at_lay_ = epoch;
     }
 };
@@ -102,25 +102,25 @@ namespace {
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
-using hven::solvers::AggregateEvalSeam;
 using hven::solvers::AggregateEvalSeamTestAccess;
+using hven::solvers::AssemblyEvalSeam;
 using hven::solvers::build_subproblem;
 using hven::solvers::eval_nlp;
 using hven::solvers::eval_nlp_values;
 using hven::solvers::NlpEval;
 using hven::solvers::NlpModel;
-using hven::solvers::NlpModelAggregate;
+using hven::solvers::NlpModelAssembly;
 using hven::solvers::QpProblem;
 using hven::solvers::upgrade_to_full;
 // The driver-entry battery at the end of this file.
 using hven::solvers::SolveStatus;
 using hven::solvers::SqpCounters;
-using hven::solvers::SqpDriver;
 using hven::solvers::SqpIterate;
 using hven::solvers::SqpOptions;
-using hven::solvers::SqpSolution;
+using hven::solvers::SqpResult;
+using hven::solvers::SqpSolver;
+using hven::solvers::SqpWarmStart;
 using hven::solvers::StartLevel;
-using hven::solvers::WarmStart;
 using hven::solvers::test_support::detail::kInf;
 using hven::solvers::test_support::detail::make_jac;
 using hven::solvers::test_support::detail::make_upper;
@@ -358,8 +358,8 @@ bool hessians_differ(const SpMatRM &left, const SpMatRM &right) {
 
 TEST(AggregateEvalSeamIdentity, EvalNlpReproducesTheFreeFunction) {
     for (const SeamFixture &fixture : fixtures()) {
-        NlpModelAggregate aggregate(fixture.model_);
-        AggregateEvalSeam seam(aggregate);
+        NlpModelAssembly aggregate(fixture.model_);
+        AssemblyEvalSeam seam(aggregate);
         for (const Vec &x : fixture.points_) {
             SCOPED_TRACE(fixture.name_ + " at " + std::to_string(x[0]));
             const Vec lambda_e = multipliers(fixture.model_->me(), 0.5);
@@ -371,8 +371,8 @@ TEST(AggregateEvalSeamIdentity, EvalNlpReproducesTheFreeFunction) {
 
 TEST(AggregateEvalSeamIdentity, EvalNlpValuesReproducesTheFreeFunction) {
     for (const SeamFixture &fixture : fixtures()) {
-        NlpModelAggregate aggregate(fixture.model_);
-        AggregateEvalSeam seam(aggregate);
+        NlpModelAssembly aggregate(fixture.model_);
+        AssemblyEvalSeam seam(aggregate);
         for (const Vec &x : fixture.points_) {
             SCOPED_TRACE(fixture.name_ + " at " + std::to_string(x[0]));
             expect_same_eval(seam.eval_nlp_values(x), eval_nlp_values(*fixture.model_, x));
@@ -382,8 +382,8 @@ TEST(AggregateEvalSeamIdentity, EvalNlpValuesReproducesTheFreeFunction) {
 
 TEST(AggregateEvalSeamIdentity, RefreshDerivativesReproducesUpgradeToFull) {
     for (const SeamFixture &fixture : fixtures()) {
-        NlpModelAggregate aggregate(fixture.model_);
-        AggregateEvalSeam seam(aggregate);
+        NlpModelAssembly aggregate(fixture.model_);
+        AssemblyEvalSeam seam(aggregate);
         for (const Vec &x : fixture.points_) {
             SCOPED_TRACE(fixture.name_ + " at " + std::to_string(x[0]));
             NlpEval seam_ev = seam.eval_nlp_values(x);
@@ -400,8 +400,8 @@ TEST(AggregateEvalSeamIdentity, RefreshDerivativesReproducesUpgradeToFull) {
 
 TEST(AggregateEvalSeamIdentity, JacobiansOnlyReproducesTheProbeFetch) {
     for (const SeamFixture &fixture : fixtures()) {
-        NlpModelAggregate aggregate(fixture.model_);
-        AggregateEvalSeam seam(aggregate);
+        NlpModelAssembly aggregate(fixture.model_);
+        AssemblyEvalSeam seam(aggregate);
         for (const Vec &x : fixture.points_) {
             SCOPED_TRACE(fixture.name_ + " at " + std::to_string(x[0]));
             NlpEval seam_ev = seam.eval_nlp_values(x);
@@ -422,8 +422,8 @@ TEST(AggregateEvalSeamIdentity, JacobiansOnlyReproducesTheProbeFetch) {
 TEST(AggregateEvalSeamIdentity, BuildSubproblemReproducesTheFreeFunction) {
     for (const double obj_scale : {1.0, 0.75, 0.0}) {
         for (const SeamFixture &fixture : fixtures()) {
-            NlpModelAggregate aggregate(fixture.model_);
-            AggregateEvalSeam seam(aggregate);
+            NlpModelAssembly aggregate(fixture.model_);
+            AssemblyEvalSeam seam(aggregate);
             for (const Vec &x : fixture.points_) {
                 SCOPED_TRACE(fixture.name_ + " at " + std::to_string(x[0]) + ", obj_scale " +
                              std::to_string(obj_scale));
@@ -442,8 +442,8 @@ TEST(AggregateEvalSeamIdentity, BuildSubproblemReproducesTheFreeFunction) {
 TEST(AggregateEvalSeamIdentity, LaysTheDeclarationsDimensionsAndBounds) {
     for (const SeamFixture &fixture : fixtures()) {
         SCOPED_TRACE(fixture.name_);
-        NlpModelAggregate aggregate(fixture.model_);
-        AggregateEvalSeam seam(aggregate);
+        NlpModelAssembly aggregate(fixture.model_);
+        AssemblyEvalSeam seam(aggregate);
         EXPECT_EQ(seam.n(), fixture.model_->n());
         EXPECT_EQ(seam.me(), fixture.model_->me());
         EXPECT_EQ(seam.mi(), fixture.model_->mi());
@@ -478,8 +478,8 @@ TEST(AggregateEvalSeamIdentity, PublishesCompressedJacobiansWhereAModelReturnMay
     // compresses this return, the divergence disappears and this line says so.
     ASSERT_FALSE(model->eval_jac_i(x).isCompressed());
 
-    NlpModelAggregate aggregate(model);
-    AggregateEvalSeam seam(aggregate);
+    NlpModelAssembly aggregate(model);
+    AssemblyEvalSeam seam(aggregate);
     const NlpEval seam_ev = seam.eval_nlp(x, lambda_e, lambda_i);
     const NlpEval free_ev = eval_nlp(*model, x);
 
@@ -505,8 +505,8 @@ TEST(AggregateEvalSeamIdentity, PublishesCompressedJacobiansWhereAModelReturnMay
 
 TEST(AggregateEvalSeamFalsification, ASwappedLocationBreaksTheHessianComparison) {
     const auto model = std::make_shared<SeamCouplingModel>();
-    NlpModelAggregate aggregate(model);
-    AggregateEvalSeam seam(aggregate);
+    NlpModelAssembly aggregate(model);
+    AssemblyEvalSeam seam(aggregate);
 
     const Vec x = (Vec(3) << 0.7, -0.3, 1.25).finished();
     const Vec lambda_e = multipliers(1, 0.5);
@@ -538,8 +538,8 @@ TEST(AggregateEvalSeamFalsification, ASwappedLocationBreaksTheHessianComparison)
 
 TEST(AggregateEvalSeamEpoch, ARenegotiationForcesARelayAndTheOutputsStillAgree) {
     const auto model = std::make_shared<SeamCouplingModel>();
-    NlpModelAggregate aggregate(model);
-    AggregateEvalSeam seam(aggregate);
+    NlpModelAssembly aggregate(model);
+    AssemblyEvalSeam seam(aggregate);
 
     const Vec x = (Vec(3) << 0.7, -0.3, 1.25).finished();
     const Vec lambda_e = multipliers(1, 0.5);
@@ -593,8 +593,8 @@ TEST(AggregateEvalSeamEpoch, ARelayPicksUpAClaimStreamThatActuallyChanged) {
     // that merely re-read the epoch and rebuilt nothing would still agree with
     // the free functions. Here the claim stream genuinely moves.
     const auto model = std::make_shared<SeamShrinkingJacobianModel>();
-    NlpModelAggregate aggregate(model);
-    AggregateEvalSeam seam(aggregate);
+    NlpModelAssembly aggregate(model);
+    AssemblyEvalSeam seam(aggregate);
 
     const Vec x = (Vec(3) << 0.7, -0.3, 1.25).finished();
     const Vec lambda_e = multipliers(1, 0.5);
@@ -627,13 +627,13 @@ TEST(AggregateEvalSeamEpoch, AStaleEpochOverBrokenStructuresHealsAtTheNextMoment
     // would never be rebuilt.
     //
     // The broken state is CONSTRUCTED rather than injected: no live
-    // NlpModelAggregate can make this seam's lay throw (every refusal in it is
+    // NlpModelAssembly can make this seam's lay throw (every refusal in it is
     // one the bridge has already made against its own claims), so the pin
     // reproduces the two states a throw would leave and asserts what each does
     // next.
     const auto model = std::make_shared<SeamCouplingModel>();
-    NlpModelAggregate aggregate(model);
-    AggregateEvalSeam seam(aggregate);
+    NlpModelAssembly aggregate(model);
+    AssemblyEvalSeam seam(aggregate);
 
     const Vec x = (Vec(3) << 0.7, -0.3, 1.25).finished();
     const Vec lambda_e = multipliers(1, 0.5);
@@ -671,8 +671,8 @@ TEST(AggregateEvalSeamEpoch, AStaleEpochOverBrokenStructuresHealsAtTheNextMoment
 
 TEST(AggregateEvalSeamArena, ConsecutiveEvaluationsDoNotAccumulate) {
     for (const SeamFixture &fixture : fixtures()) {
-        NlpModelAggregate aggregate(fixture.model_);
-        AggregateEvalSeam seam(aggregate);
+        NlpModelAssembly aggregate(fixture.model_);
+        AssemblyEvalSeam seam(aggregate);
         const Vec lambda_e = multipliers(fixture.model_->me(), 0.5);
         const Vec lambda_i = multipliers(fixture.model_->mi(), 0.25);
 
@@ -718,7 +718,7 @@ TEST(AggregateEvalSeamBoundary, TwoClaimsOnOneCoordinateInADomainAreRefusedByNam
     source.set_kkt_stream({0, 0}, {0, 0}, {0, 2}, {2, 0}, {2, 0});
 
     try {
-        AggregateEvalSeam seam(source);
+        AssemblyEvalSeam seam(source);
         FAIL() << "a domain naming one coordinate twice must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -736,7 +736,7 @@ TEST(AggregateEvalSeamBoundary, AProviderThatClaimsNothingLaysAndPublishesEmptyB
     SettableClaimStreamSource source(2, 1, 1);
     source.set_kkt_stream({}, {}, {0, 0}, {0, 0}, {0, 0});
 
-    AggregateEvalSeam seam(source);
+    AssemblyEvalSeam seam(source);
     const Vec x = (Vec(2) << 0.5, -0.25).finished();
     const Vec lambda_e = Vec::Zero(1);
     const Vec lambda_i = Vec::Zero(1);
@@ -765,7 +765,7 @@ TEST(AggregateEvalSeamBoundary, OverlappingClaimBlocksAreRefused) {
     source.set_kkt_stream({0, 1, 4, 5}, {0, 1, 0, 1}, {0, 2}, {1, 2}, {3, 0});
 
     try {
-        AggregateEvalSeam seam(source);
+        AssemblyEvalSeam seam(source);
         FAIL() << "overlapping claim blocks must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -791,7 +791,7 @@ TEST(AggregateEvalSeamBoundary, ClaimBlocksInAnyOrderAreServedFromTheirOwnStarts
     SettableClaimStreamSource source(4, 1, 1);
     source.set_kkt_stream({4, 4, 0, 1}, {0, 1, 0, 1}, {2, 2}, {0, 2}, {0, 0});
 
-    AggregateEvalSeam seam(source);
+    AssemblyEvalSeam seam(source);
 
     // The property that makes it order-agnostic, asserted directly: every
     // claim's arena offset lies inside ITS OWN block's range. A base derived
@@ -831,12 +831,12 @@ TEST(AggregateEvalSeamBoundary, AnEmptyBlockNeedNotCarryTheCursorButANonEmptyOne
     // Slots 0-1 are Hessian coordinates; slots 2-3 are inequality Jacobian
     // claims, whose assembled rows sit at primal + equality rows = 5.
     permitted.set_kkt_stream({0, 1, 5, 5}, {0, 1, 0, 1}, {0, 2}, {0, 0}, {2, 2});
-    EXPECT_NO_THROW({ AggregateEvalSeam seam(permitted); });
+    EXPECT_NO_THROW({ AssemblyEvalSeam seam(permitted); });
 
     SettableClaimStreamSource refused(4, 1, 1);
     refused.set_kkt_stream({0, 1, 4, 4}, {0, 1, 0, 1}, {0, 2}, {0, 2}, {4, 0});
     try {
-        AggregateEvalSeam seam(refused);
+        AssemblyEvalSeam seam(refused);
         FAIL() << "a non-empty block starting before the previous one ended must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -856,7 +856,7 @@ TEST(AggregateEvalSeamBoundary, BlockMetadataNearTheTopOfTheTypeIsRefusedRatherT
     huge_counts.set_kkt_stream({}, {}, {0, std::numeric_limits<int>::max()},
                                {0, std::numeric_limits<int>::max()}, {0, 2});
     try {
-        AggregateEvalSeam seam(huge_counts);
+        AssemblyEvalSeam seam(huge_counts);
         FAIL() << "counts that cannot cover the stream must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -868,7 +868,7 @@ TEST(AggregateEvalSeamBoundary, BlockMetadataNearTheTopOfTheTypeIsRefusedRatherT
     SettableClaimStreamSource huge_start(2, 0, 0);
     huge_start.set_kkt_stream({0, 1}, {0, 1}, {std::numeric_limits<int>::max(), 2}, {0, 0}, {0, 0});
     try {
-        AggregateEvalSeam seam(huge_start);
+        AssemblyEvalSeam seam(huge_start);
         FAIL() << "a block starting past the end of the stream must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -881,7 +881,7 @@ TEST(AggregateEvalSeamBoundary, BlockMetadataNearTheTopOfTheTypeIsRefusedRatherT
     SettableClaimStreamSource negative(2, 0, 0);
     negative.set_kkt_stream({0, 1}, {0, 1}, {-1, 2}, {0, 0}, {0, 0});
     try {
-        AggregateEvalSeam seam(negative);
+        AssemblyEvalSeam seam(negative);
         FAIL() << "a negative start must be refused before anything is summed";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -895,7 +895,7 @@ TEST(AggregateEvalSeamBoundary, AGradientRowPastItsArenaIsRefusedWhereTheTableIs
     // from outside. Unchecked it is a heap write during the provider's own
     // scatter, in a build with the asserts compiled out.
     //
-    // THE CONSUMER HERE IS AggregateEvalSeam, and this pin exercises the
+    // THE CONSUMER HERE IS AssemblyEvalSeam, and this pin exercises the
     // LAY-TIME scan. The scan is contracted to run at every table BIND, which
     // includes a re-bind without a re-lay -- but for this consumer that second
     // leg is COVERED BY CONSTRUCTION and cannot be exercised: lay() rebuilds
@@ -909,7 +909,7 @@ TEST(AggregateEvalSeamBoundary, AGradientRowPastItsArenaIsRefusedWhereTheTableIs
     source.set_objective_gradient_rows({0, 5});
 
     try {
-        AggregateEvalSeam seam(source);
+        AssemblyEvalSeam seam(source);
         FAIL() << "a published row past the end of its arena must be refused";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
@@ -926,12 +926,12 @@ TEST(AggregateEvalSeamBoundary, AGradientRowPastItsArenaIsRefusedWhereTheTableIs
     SettableClaimStreamSource one_past(2, 0, 0);
     one_past.set_kkt_stream({}, {}, {0, 0}, {0, 0}, {0, 0});
     one_past.set_objective_gradient_rows({0, 2});
-    EXPECT_THROW({ AggregateEvalSeam seam(one_past); }, std::invalid_argument);
+    EXPECT_THROW({ AssemblyEvalSeam seam(one_past); }, std::invalid_argument);
 
     SettableClaimStreamSource last_legal(2, 0, 0);
     last_legal.set_kkt_stream({}, {}, {0, 0}, {0, 0}, {0, 0});
     last_legal.set_objective_gradient_rows({0, 1});
-    EXPECT_NO_THROW({ AggregateEvalSeam seam(last_legal); });
+    EXPECT_NO_THROW({ AssemblyEvalSeam seam(last_legal); });
 }
 
 TEST(AggregateEvalSeamBoundary, ABundleTakenBeforeARowCountChangeIsRefused) {
@@ -942,7 +942,7 @@ TEST(AggregateEvalSeamBoundary, ABundleTakenBeforeARowCountChangeIsRefused) {
     SettableClaimStreamSource source(2, 1, 1);
     source.set_kkt_stream({}, {}, {0, 0}, {0, 0}, {0, 0});
 
-    AggregateEvalSeam seam(source);
+    AssemblyEvalSeam seam(source);
     const Vec x = (Vec(2) << 0.25, 0.75).finished();
     const NlpEval ev = seam.eval_nlp_values(x);
 
@@ -966,20 +966,20 @@ TEST(AggregateEvalSeamBoundary, ABundleTakenBeforeARowCountChangeIsRefused) {
 // WHAT IS BEING PINNED, and why it is a different claim from the four batteries
 // above. Those pin that the SEAM reproduces the free functions bit for bit at
 // one point. This one pins the consequence at the level a caller sees: that
-// SqpDriver::solve(NlpModelAggregate &, ...) -- the primary path -- and
-// SqpDriver::solve(const NlpModel &, ...) -- the convenience wrapper, which
+// SqpSolver::solve(NlpModelAssembly &, ...) -- the primary path -- and
+// SqpSolver::solve(const NlpModel &, ...) -- the convenience wrapper, which
 // borrows the model into a bridge of its own for the duration of the call --
 // run THE SAME SOLVE. Same status, bit-equal iterate, every counter equal,
-// and a WarmStart whose emitted fields agree field by field, on both a cold
+// and a SqpWarmStart whose emitted fields agree field by field, on both a cold
 // and a warm arm of two battery families.
 //
 // THE ASYMMETRY IS DELIBERATE AND IS THE INTERESTING PART. The bridge arm
-// builds ONE NlpModelAggregate outside both of its solves; the model arm
+// builds ONE NlpModelAssembly outside both of its solves; the model arm
 // builds one PER CALL. So on the warm arm the two sides do not perform the
 // same number of bridge lays -- two against one -- and the driver's counters
 // must still agree to the integer, because a lay is a structural walk of the
 // model's three derivative patterns and is invisible to every counter the
-// driver keeps (include/hven/model/nlp_model_aggregate.h's constructor doc;
+// driver keeps (include/hven/model/nlp_model_assembly.h's constructor doc;
 // SqpDriverContract.CallCountPerMajorIsBounded is where that cost IS pinned,
 // against a counting model). PLAIN MODELS ARE USED HERE FOR EXACTLY THAT
 // REASON: a CountingModel would make the two arms differ by one lay's worth of
@@ -1051,7 +1051,7 @@ void expect_bit_equal(const Vec &bridge, const Vec &model, const std::string &wh
 /// The emitted hand-off, field by field. `hot` is compared by PRESENCE rather
 /// than by address: it is a handle onto one driver's own engine state, so two
 /// drivers cannot share one and equality of the pointers is not the claim.
-void expect_same_warm_start(const WarmStart &bridge, const WarmStart &model,
+void expect_same_warm_start(const SqpWarmStart &bridge, const SqpWarmStart &model,
                             const std::string &tag) {
     SCOPED_TRACE(tag);
     EXPECT_EQ(bridge.valid, model.valid);
@@ -1124,8 +1124,7 @@ void expect_same_history(const std::vector<SqpIterate> &bridge,
 }
 
 /// The whole comparison for one solve pair.
-void expect_same_solution(const SqpSolution &bridge, const SqpSolution &model,
-                          const std::string &tag) {
+void expect_same_solution(const SqpResult &bridge, const SqpResult &model, const std::string &tag) {
     SCOPED_TRACE(tag);
     ASSERT_EQ(bridge.status, model.status);
     EXPECT_EQ(bridge.infeasibility_certified, model.infeasibility_certified);
@@ -1148,14 +1147,14 @@ template <typename Make> void check_cold_arm(Make make, const std::string &tag) 
     const Vec x0 = model_side->start_point();
 
     SqpOptions opts;
-    SqpDriver model_driver{opts};
-    const SqpSolution via_model = model_driver.solve(*model_side, x0);
+    SqpSolver model_driver{opts};
+    const SqpResult via_model = model_driver.solve(*model_side, x0);
 
     // ONE bridge, built outside the solve -- the hot-loop shape the driver
     // header's model-taking overloads point callers at.
-    NlpModelAggregate bridge{bridge_side};
-    SqpDriver bridge_driver{opts};
-    const SqpSolution via_bridge = bridge_driver.solve(bridge, x0);
+    NlpModelAssembly bridge{bridge_side};
+    SqpSolver bridge_driver{opts};
+    const SqpResult via_bridge = bridge_driver.solve(bridge, x0);
 
     ASSERT_EQ(via_model.status, SolveStatus::kOptimal) << tag;
     expect_same_solution(via_bridge, via_model, tag + " cold");
@@ -1171,16 +1170,16 @@ template <typename Make> void check_warm_arm(Make make, const std::string &tag) 
     const Vec x0 = model_side->start_point();
 
     SqpOptions opts;
-    SqpDriver model_driver{opts};
-    const SqpSolution model_seed = model_driver.solve(*model_side, x0);
+    SqpSolver model_driver{opts};
+    const SqpResult model_seed = model_driver.solve(*model_side, x0);
     ASSERT_TRUE(model_seed.warm_start.valid) << tag;
-    const SqpSolution via_model = model_driver.solve(*model_side, x0, model_seed.warm_start);
+    const SqpResult via_model = model_driver.solve(*model_side, x0, model_seed.warm_start);
 
-    NlpModelAggregate bridge{bridge_side};
-    SqpDriver bridge_driver{opts};
-    const SqpSolution bridge_seed = bridge_driver.solve(bridge, x0);
+    NlpModelAssembly bridge{bridge_side};
+    SqpSolver bridge_driver{opts};
+    const SqpResult bridge_seed = bridge_driver.solve(bridge, x0);
     ASSERT_TRUE(bridge_seed.warm_start.valid) << tag;
-    const SqpSolution via_bridge = bridge_driver.solve(bridge, x0, bridge_seed.warm_start);
+    const SqpResult via_bridge = bridge_driver.solve(bridge, x0, bridge_seed.warm_start);
 
     // THE SEEDING SOLVES ARE COMPARED IN FULL, not just their hand-offs, and
     // that is not redundant with the cold battery: those two solves are what

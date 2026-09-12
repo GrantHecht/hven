@@ -7,7 +7,7 @@
 // THE INCLUDE LIST BELOW IS ITSELF A CLAIM: no driver/, qp/, or kkt/ header
 // appears anywhere in this translation unit. Every fixture
 // here is a plain NlpModel transcription (nlp_model.h), reached through the
-// NlpModelAggregate bridge (nlp_model_aggregate.h) -- both model/ headers, the
+// NlpModelAssembly bridge (nlp_model_assembly.h) -- both model/ headers, the
 // same standing bench/model_surface_kkt.h's own banner claims for itself. If a
 // later edit needs a driver type to make one of these tests pass, that is a
 // sign the scorer stopped being engine-independent, not a reason to add the
@@ -29,7 +29,7 @@
 //                        FIXED (lower == upper == 3, no degree of freedom),
 //                        whose eval_grad row is a deliberate, unrelated
 //                        constant -- proving the scorer's declared-fixed
-//                        exclusion (nlp_aggregate.h's own "WHAT A SCORER
+//                        exclusion (nlp_assembly.h's own "WHAT A SCORER
 //                        OWES") rather than reading whatever a provider
 //                        leaves there.
 
@@ -43,9 +43,9 @@
 
 #include <gtest/gtest.h>
 
-#include "hven/model/nlp_aggregate.h"
+#include "hven/model/nlp_assembly.h"
 #include "hven/model/nlp_model.h"
-#include "hven/model/nlp_model_aggregate.h"
+#include "hven/model/nlp_model_assembly.h"
 
 #include "../../bench/model_surface_kkt.h"
 
@@ -55,7 +55,7 @@ using hven::Vec;
 using hven::solvers::model_surface_kkt_residuals;
 using hven::solvers::ModelSurfaceKktResiduals;
 using hven::solvers::NlpModel;
-using hven::solvers::NlpModelAggregate;
+using hven::solvers::NlpModelAssembly;
 
 namespace {
 
@@ -206,7 +206,7 @@ void expect_all_residuals_infinite(const ModelSurfaceKktResiduals &r) {
 
 // (a) A known KKT point: every residual reads near-ulp of zero.
 TEST(ModelSurfaceKkt, KnownKktPointIsNearUlpZero) {
-    NlpModelAggregate aggregate(std::make_shared<ToyModel>());
+    NlpModelAssembly aggregate(std::make_shared<ToyModel>());
 
     Vec x(2);
     x << 2.0, 3.0;
@@ -229,7 +229,7 @@ TEST(ModelSurfaceKkt, KnownKktPointIsNearUlpZero) {
 // (b) A declared-fixed variable's garbage gradient row must not corrupt
 // stationarity: if the exclusion were missing this would read ~1e9, not ~0.
 TEST(ModelSurfaceKkt, DeclaredFixedVariableGarbageRowIsExcluded) {
-    NlpModelAggregate aggregate(std::make_shared<ToyModelWithFixedVar>());
+    NlpModelAssembly aggregate(std::make_shared<ToyModelWithFixedVar>());
 
     Vec x(3);
     x << 2.0, 3.0, 3.0;
@@ -252,7 +252,7 @@ TEST(ModelSurfaceKkt, DeclaredFixedVariableGarbageRowIsExcluded) {
 // (c) Falsification: perturbing the point off the KKT point moves the
 // residuals away from zero.
 TEST(ModelSurfaceKkt, PerturbedPointResidualsMove) {
-    NlpModelAggregate aggregate(std::make_shared<ToyModel>());
+    NlpModelAssembly aggregate(std::make_shared<ToyModel>());
 
     Vec x(2);
     x << 2.5, 3.0; // x0 perturbed off the KKT point; equality and stationarity
@@ -270,11 +270,11 @@ TEST(ModelSurfaceKkt, PerturbedPointResidualsMove) {
     EXPECT_GT(r.primal_, 1.0e-3);
 }
 
-// (d) The scorer runs against a bare NlpModelAggregate -- this file's own
+// (d) The scorer runs against a bare NlpModelAssembly -- this file's own
 // include list is the engine-independence proof; this test is its functional
 // half.
 TEST(ModelSurfaceKkt, RunsAgainstBareNlpModelAggregateWithNoEngineInTheLink) {
-    NlpModelAggregate aggregate(std::make_shared<ToyModel>());
+    NlpModelAssembly aggregate(std::make_shared<ToyModel>());
 
     Vec x(2);
     x << 2.0, 3.0;
@@ -293,7 +293,7 @@ TEST(ModelSurfaceKkt, RunsAgainstBareNlpModelAggregateWithNoEngineInTheLink) {
 // scorer checks its length itself rather than silently reading past the end
 // (T6: never fabricate, never truncate silently).
 TEST(ModelSurfaceKkt, MismatchedZSizeThrows) {
-    NlpModelAggregate aggregate(std::make_shared<ToyModel>());
+    NlpModelAssembly aggregate(std::make_shared<ToyModel>());
 
     Vec x(2);
     x << 2.0, 3.0;
@@ -314,7 +314,7 @@ TEST(ModelSurfaceKkt, MismatchedZSizeThrows) {
 // not an exception either: a row that claimed a point and cannot be scored is a
 // gate FAILURE, and +inf is what spells that.
 TEST(ModelSurfaceKkt, ANanGradientRowScoresInfiniteRatherThanPerfect) {
-    NlpModelAggregate aggregate(std::make_shared<ToyModelWithNanGradient>());
+    NlpModelAssembly aggregate(std::make_shared<ToyModelWithNanGradient>());
 
     Vec x(2);
     x << 2.0, 3.0; // the KKT point of the underlying ToyModel
@@ -338,7 +338,7 @@ TEST(ModelSurfaceKkt, ANanGradientRowScoresInfiniteRatherThanPerfect) {
 // (g) The same rule for a non-finite quantity the CALLER supplies. z is not
 // produced by the model at all, so this is the other half of the sweep's scope.
 TEST(ModelSurfaceKkt, ANanInACallerSuppliedBlockScoresInfinite) {
-    NlpModelAggregate aggregate(std::make_shared<ToyModel>());
+    NlpModelAssembly aggregate(std::make_shared<ToyModel>());
 
     Vec x(2);
     x << 2.0, 3.0;
@@ -358,7 +358,7 @@ TEST(ModelSurfaceKkt, ANanInACallerSuppliedBlockScoresInfinite) {
 // over the bounds" fails here rather than silently turning every unbounded
 // model's row into a wrong answer.
 TEST(ModelSurfaceKkt, AnInfiniteBoundIsNotPoison) {
-    NlpModelAggregate aggregate(std::make_shared<ToyModel>());
+    NlpModelAssembly aggregate(std::make_shared<ToyModel>());
 
     Vec x(2);
     x << 2.0, 3.0;

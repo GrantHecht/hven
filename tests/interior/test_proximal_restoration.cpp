@@ -37,7 +37,7 @@
 
 namespace {
 
-using hven::solvers::InteriorPointSolver;
+using hven::solvers::IpmSolver;
 using hven::solvers::kNearFeasibleGuardFactor;
 using hven::solvers::kRestoProximityWeight;
 using hven::solvers::ProgressMeasures;

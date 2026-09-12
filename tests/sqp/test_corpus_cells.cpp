@@ -401,7 +401,7 @@ TEST(CorpusCellsRunner, TheKktCheckRecordsTheRowsOwnScaleDenominators) {
     // regime the relative rule exists for.
     hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
     model.set_parameters(hven::Vec::Constant(1, 0.85));
-    hven::solvers::SqpSolution sol;
+    hven::solvers::SqpResult sol;
     sol.x = hven::Vec::Constant(model.n(), 3.0);
     sol.lambda_e = hven::Vec::Zero(model.me());
     sol.lambda_i = hven::Vec::Zero(model.mi());
@@ -459,7 +459,7 @@ TEST(CorpusCellsRunner, BothKernelsAgreeOnTheANSWEREvenWhereTheyDisagreeOnTheCOS
 
 TEST(CorpusCellsRunner, WalkEngineIsDeterministic) {
     // ALL FIVE taxonomies, not just kNeutralCold -- each one's producer takes
-    // a different route to a WarmStart (or none at all), and each route is a
+    // a different route to a SqpWarmStart (or none at all), and each route is a
     // place an accidental coupling to wall-clock/address/allocator state
     // could sneak in without the others catching it (this is precisely what
     // caught a hand-injected mutation in kCorrupted's displacement during
@@ -504,7 +504,7 @@ TEST(CorpusCellsRunner, PerQpFactorizationsMatchTheIterateHistoryExactly) {
     // caught.
     hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
     model.set_parameters(hven::Vec::Constant(1, 0.85));
-    hven::solvers::SqpDriver driver(
+    hven::solvers::SqpSolver driver(
         detail::options_for_cell(tiny_cell(StartTaxonomy::kNeutralCold)));
     const auto sol = detail::budgeted_solve(driver, model, model.start_point());
 
@@ -564,7 +564,7 @@ TEST(CorpusCellsRunner, ActivityOnlyStartsOffTheOptimumAndCarriesAnExactActivity
     const detail::IpIterate it =
         detail::f7_ip_iterate(model, 0.85, detail::crossover_mu_for_n(12), x0);
     EXPECT_EQ(it.x, x0) << "the iterate carries the physics-informed primal, not x*";
-    const hven::solvers::WarmStart crossover = hven::solvers::from_interior_point(
+    const hven::solvers::SqpWarmStart crossover = hven::solvers::from_interior_point(
         it.x, it.lambda_e, it.lambda_i, it.slack_i, it.z_lower, it.z_upper, model.lower(),
         model.upper(), hven::solvers::IpCrossoverOptions{});
 
@@ -625,11 +625,11 @@ TEST(CorpusCellsRunner, CorruptedProducerStillResolvesWarmAndConverges) {
 }
 
 TEST(CorpusCellsRunner, KktResidualSentinelOnEmptyHistory) {
-    // A default-constructed SqpSolution has an empty history (no subproblem
+    // A default-constructed SqpResult has an empty history (no subproblem
     // was ever built) -- the -1.0 sentinel this file's own last_kkt_residual
     // documents, tested directly rather than by hunting for a real F7 cell
     // that happens to converge at major_iters == 0.
-    hven::solvers::SqpSolution sol;
+    hven::solvers::SqpResult sol;
     ASSERT_TRUE(sol.history.empty());
     EXPECT_DOUBLE_EQ(hven::solvers::corpus::detail::last_kkt_residual(sol), -1.0);
 }
@@ -641,7 +641,7 @@ TEST(CorpusCellsRunner, KktResidualSentinelOnEmptyHistory) {
 
 TEST(CorpusCellsRunner, FirstQpForCellMatchesBuildSubproblemOnNeutralCold) {
     // kNeutralCold's designated hop starts at (x0, 0, 0) -- exactly what
-    // SqpDriver::solve's own first iteration would build. Compared against a
+    // SqpSolver::solve's own first iteration would build. Compared against a
     // build_subproblem call made directly here, with the model built the same
     // way detail::make_model does, so a mutation that (say) fed the wrong x or
     // nonzero initial multipliers is caught.
@@ -674,7 +674,7 @@ TEST(CorpusCellsRunner, FirstQpForCellUsesTheWarmHandoffsOwnDualsOnFullWarm) {
     const CorpusCell cell = tiny_cell(StartTaxonomy::kFullWarm);
     hven::solvers::corpus::F7CollocationChain model(cell.n_nodes, 3, 2, cell.p0, 1.0);
     model.set_parameters(hven::Vec::Constant(1, cell.p0));
-    hven::solvers::SqpDriver driver(detail::options_for_cell(cell));
+    hven::solvers::SqpSolver driver(detail::options_for_cell(cell));
     const auto seed = detail::budgeted_solve(driver, model, model.start_point());
     ASSERT_EQ(seed.status, hven::solvers::SolveStatus::kOptimal);
 
@@ -819,11 +819,11 @@ TEST(CorpusCellsRunner, BudgetedSolveMatchesAnExplicitDriverCallAtTheSameBudget)
     opts.kkt_tol = 1e-8;
     opts.feas_tol = 1e-8;
 
-    hven::solvers::SqpDriver driver_a(opts);
+    hven::solvers::SqpSolver driver_a(opts);
     const auto direct =
-        driver_a.solve(model, model.start_point(), hven::solvers::WarmStart{},
+        driver_a.solve(model, model.start_point(), hven::solvers::SqpWarmStart{},
                        hven::solvers::SolveBudget{hven::solvers::corpus::detail::kMinorBudget});
-    hven::solvers::SqpDriver driver_b(opts);
+    hven::solvers::SqpSolver driver_b(opts);
     const auto via_helper =
         hven::solvers::corpus::detail::budgeted_solve(driver_b, model, model.start_point());
 
@@ -836,7 +836,7 @@ TEST(CorpusCellsRunner, BudgetedSolveMatchesAnExplicitDriverCallAtTheSameBudget)
 TEST(CorpusCellsRunner, BudgetedSolveTruncatesIntoADnfRowRatherThanHanging) {
     // A tiny EXPLICIT budget (1 minor) on a fixture that genuinely needs more
     // must stop at SolveStatus::kMaxIter with probe_budget_stops == 1 --
-    // sqp_types.h's own documented contract -- rather than run to completion
+    // sqp_solver_types.h's own documented contract -- rather than run to completion
     // or hang.
     hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
     model.set_parameters(hven::Vec::Constant(1, 0.85));
@@ -844,10 +844,10 @@ TEST(CorpusCellsRunner, BudgetedSolveTruncatesIntoADnfRowRatherThanHanging) {
     opts.kkt_tol = 1e-8;
     opts.feas_tol = 1e-8;
     opts.max_iter = 10;
-    hven::solvers::SqpDriver driver(opts);
+    hven::solvers::SqpSolver driver(opts);
 
     const auto sol = hven::solvers::corpus::detail::budgeted_solve(
-        driver, model, model.start_point(), hven::solvers::WarmStart{}, /*budget=*/1);
+        driver, model, model.start_point(), hven::solvers::SqpWarmStart{}, /*budget=*/1);
 
     EXPECT_EQ(sol.status, hven::solvers::SolveStatus::kMaxIter);
     EXPECT_EQ(sol.counters.probe_budget_stops, 1);
@@ -2524,7 +2524,7 @@ std::string variant_of(const std::map<std::string, std::string> &row) {
     return second == std::string::npos ? std::string() : key.substr(second + 1);
 }
 
-// The eleven cells the leg runs: the ten U0 cells an NLPProblem can state, plus
+// The eleven cells the leg runs: the ten U0 cells an NlpTripletModel can state, plus
 // the fixed-variable cell no F7 cell provides.
 const std::vector<std::string> &expected_interior_cells() {
     static const std::vector<std::string> kCells{
@@ -3163,7 +3163,7 @@ TEST(CorpusCells, TheSingleRowInteriorModeProducesTheLegsOwnRow) {
 
     // THE TWO WAYS THE ROUTING CAN BE ASKED FOR A ROW THAT DOES NOT EXIST, both
     // refused before any solve: an id the corpus does not carry, and a cell the
-    // leg cannot state as an NLPProblem. Neither costs a solve, which is why
+    // leg cannot state as an NlpTripletModel. Neither costs a solve, which is why
     // they ride along here rather than in a test of their own.
     EXPECT_THROW((void)corpus::run_interior_single_row(
                      "not_a_cell_id", FixedVariableTreatments::MakeParameter, levers),

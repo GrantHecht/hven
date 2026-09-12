@@ -7,10 +7,10 @@
 
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/iterate_info.h"
-// InteriorPointSolver::BarrierModes requires the complete InteriorPointSolver class; see
+// IpmSolver::BarrierModes requires the complete IpmSolver class; see
 // acceptance_strategy.h's include note for why this is a plain,
-// non-circular include (interior_point_solver.h does not include this directory back).
-#include "hven/drivers/interior_point_solver.h"
+// non-circular include (ipm_solver.h does not include this directory back).
+#include "hven/drivers/ipm_solver.h"
 
 namespace hven::solvers {
 
@@ -66,12 +66,11 @@ class BarrierGovernor {
     ///   Free-mode oracles never set it, so the caller's reset branch stays
     ///   dead and the default path remains bit-identical.
     /// @return The new (already-clamped) mu.
-    virtual double update_barrier(InteriorPointSolver::BarrierModes barmode, double mu_in,
-                                  double avgcomp, double mincomp, Eigen::VectorXd &XSL,
-                                  Eigen::VectorXd &RHS, Eigen::VectorXd &DXSL,
-                                  Eigen::VectorXd &Temp, GlobalizationMechanism &mechanism,
-                                  SolverContext &ctx, double &barr_obj, const IterateInfo &current,
-                                  bool &mu_event) = 0;
+    virtual double update_barrier(IpmSolver::BarrierModes barmode, double mu_in, double avgcomp,
+                                  double mincomp, Eigen::VectorXd &XSL, Eigen::VectorXd &RHS,
+                                  Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
+                                  GlobalizationMechanism &mechanism, SolverContext &ctx,
+                                  double &barr_obj, const IterateInfo &current, bool &mu_event) = 0;
 
     /// @brief Barrier update while a nested l1 feasibility-restoration phase is
     /// active, for governors WITHOUT their own monotone safeguard. Shared,

@@ -5,12 +5,12 @@
 
 // The interior-point engine's options AS A VALUE (M6 W5 T8.3).
 //
-// This header carries what used to be InteriorPointSolver::Settings -- the same
+// This header carries what used to be IpmSolver::Settings -- the same
 // 65 knobs, in the same declaration order, with the trailing underscores gone --
 // plus the mode enums the struct is written in terms of, which used to be nested
 // inside the solver class and are now namespace-scope here so that a caller can
-// name an option without including the solver. InteriorPointSolver keeps member
-// type aliases for all eight, so `InteriorPointSolver::BarrierModes::LOQO` still
+// name an option without including the solver. IpmSolver keeps member
+// type aliases for all eight, so `IpmSolver::BarrierModes::kLoqo` still
 // names the same type it always did.
 //
 // Two fields LEFT the struct: qp_threads_ became CommonOptions::threads and
@@ -43,7 +43,7 @@
 
 #include <Eigen/Core>
 
-#include "hven/detail/drivers/interior_point_solver_fwd.h"
+#include "hven/detail/drivers/ipm_solver_fwd.h"
 #include "hven/detail/interior/eval_error_log.h"
 #include "hven/detail/interior/kkt_factorization.h"
 #include "hven/drivers/common_options.h"
@@ -57,36 +57,36 @@
 namespace hven::solvers {
 
 /// Barrier-mode selector (IpmOptions::opt_bar_mode/soe_bar_mode).
-enum class BarrierModes { PROBE, LOQO };
+enum class BarrierModes { kProbe, kLoqo };
 /// Line-search-mode selector (IpmOptions::opt_ls_mode/soe_ls_mode).
-enum class LineSearchModes { AUGLANG, LANG, L1, NOLS };
+enum class LineSearchModes { kAugLang, kLang, kL1, kNoLs };
 /// @brief Algorithm mode of one solve phase.
-enum class AlgorithmModes { OPT, OPTNO, SOE, INIT };
+enum class AlgorithmModes { kOpt, kOptNo, kSoe, kInit };
 
 /// @brief QP factorization algorithm variant.
 enum class QPAlgModes {
-    Classic = 0,
-    TwoLevel = 1,
+    kClassic = 0,
+    kTwoLevel = 1,
 };
 
 /// QP fill-reducing ordering.
-enum class QPOrderingModes { MINDEG = 0, METIS = 2, PARMETIS = 3 };
+enum class QPOrderingModes { kMinDeg = 0, kMetis = 2, kParMetis = 3 };
 /// Criterion used to score iterates when return_best is on.
-enum class BestCriteriaModes { ECONS, ICONS, KKT, OBJ };
+enum class BestCriteriaModes { kEcons, kIcons, kKkt, kObj };
 
 /// @brief QP pivot strategy code passed through to the sparse backend.
 enum class QPPivotModes {
-    OneByOne = 0,
-    TwoByTwo = 1,
-    E4 = 4,
-    E6 = 6,
-    E8 = 8,
-    E13 = 13,
+    kOneByOne = 0,
+    kTwoByTwo = 1,
+    kE4 = 4,
+    kE6 = 6,
+    kE8 = 8,
+    kE13 = 13,
 };
 /// @brief Primal-dual step computation strategy for the QP subproblem.
-enum class PDStepStrategies { PrimSlackEq_Iq, AllMinimum, PrimSlack_EqIq, MaxEq };
+enum class PDStepStrategies { kPrimSlackEqSplitIq, kAllMinimum, kPrimSlackSplitEqIq, kMaxEq };
 
-// IpmPhase MOVED to detail/drivers/interior_point_solver_fwd.h (M6 W5 T8.7b),
+// IpmPhase MOVED to detail/drivers/ipm_solver_fwd.h (M6 W5 T8.7b),
 // which this header already includes -- so nothing that named it here had to
 // move with it. The reason is the one every selector enum in that file was put
 // there for: `drivers/trace.h` embeds `IpmPhaseReport` on the phase events and
@@ -175,25 +175,25 @@ struct IpmOptions {
     double div_bar_tol = 1.0e15;
 
     // --- Algorithm modes ---
-    /// @brief Phase algorithm mode. Default SOE.
-    AlgorithmModes soe_mode = AlgorithmModes::SOE;
-    /// @brief OPT-phase barrier mode. Default LOQO.
-    BarrierModes opt_bar_mode = BarrierModes::LOQO;
-    /// @brief SOE-phase barrier mode. Default LOQO.
-    BarrierModes soe_bar_mode = BarrierModes::LOQO;
-    /// @brief OPT-phase line-search mode. Default AUGLANG.
-    LineSearchModes opt_ls_mode = LineSearchModes::AUGLANG;
-    /// @brief SOE-phase line-search mode. Default NOLS.
-    LineSearchModes soe_ls_mode = LineSearchModes::NOLS;
+    /// @brief Phase algorithm mode. Default kSoe.
+    AlgorithmModes soe_mode = AlgorithmModes::kSoe;
+    /// @brief OPT-phase barrier mode. Default kLoqo.
+    BarrierModes opt_bar_mode = BarrierModes::kLoqo;
+    /// @brief SOE-phase barrier mode. Default kLoqo.
+    BarrierModes soe_bar_mode = BarrierModes::kLoqo;
+    /// @brief OPT-phase line-search mode. Default kAugLang.
+    LineSearchModes opt_ls_mode = LineSearchModes::kAugLang;
+    /// @brief SOE-phase line-search mode. Default kNoLs.
+    LineSearchModes soe_ls_mode = LineSearchModes::kNoLs;
     /// Primal-dual step strategy for the QP subproblem.
-    /// Default PrimSlackEq_Iq.
-    PDStepStrategies pd_step_strategy = PDStepStrategies::PrimSlackEq_Iq;
+    /// Default kPrimSlackEqSplitIq.
+    PDStepStrategies pd_step_strategy = PDStepStrategies::kPrimSlackEqSplitIq;
 
     // --- Step-acceptance strategy (opt-in modernized merit) ---
     /// classic_merit (the default) is the fused backtracking merit line
     /// search; merit selects the modernized merit family, whose penalty rule
     /// is merit_penalty_rule (read only under merit). Both enums live in
-    /// interior_point_solver_fwd.h.
+    /// ipm_solver_fwd.h.
     AcceptanceStrategies acceptance_strategy = AcceptanceStrategies::classic_merit;
     /// Merit penalty rule for the generic merit family; only read when
     /// acceptance_strategy == merit. Default wmno.
@@ -204,7 +204,7 @@ struct IpmOptions {
     /// update; monitored selects the free<->monotone governor, which composes
     /// a classic_adaptive delegate and so pairs with any acceptance_strategy.
     /// validate() rejects funnel or filter over classic_adaptive unless
-    /// never_monotone is set. Enum in interior_point_solver_fwd.h.
+    /// never_monotone is set. Enum in ipm_solver_fwd.h.
     BarrierGovernors barrier_governor = BarrierGovernors::classic_adaptive;
 
     /// Expert escape hatch mirroring Ipopt's never-monotone-mode: explicitly
@@ -222,7 +222,7 @@ struct IpmOptions {
     /// reduced. l1_nested instead runs an l1 elastic reformulation as a
     /// condensed in-place phase reusing the outer KKT system. Both compose
     /// with every acceptance_strategy and barrier_governor and share the
-    /// max_feas_rest entry budget. Enum in interior_point_solver_fwd.h.
+    /// max_feas_rest entry budget. Enum in ipm_solver_fwd.h.
     RestorationModes restoration_mode = RestorationModes::off;
 
     // --- Barrier parameters ---
@@ -294,22 +294,22 @@ struct IpmOptions {
     /// base shift rho_k and an always-on barrier-scaled -delta_c into the base
     /// matrix each iteration, with the same ladder escalating on top; delta_c
     /// is suppressed while a nested l1 restoration phase is active. Closed-set
-    /// enum, declared in interior_point_solver_fwd.h.
+    /// enum, declared in ipm_solver_fwd.h.
     InertiaModes inertia_mode = InertiaModes::classic;
 
     // --- QP solver ---
-    /// @brief QP factorization algorithm variant. Default Classic.
-    QPAlgModes qp_alg = QPAlgModes::Classic;
-    /// @brief QP fill-reducing ordering. Default METIS.
-    QPOrderingModes qp_ord = QPOrderingModes::METIS;
-    /// @brief QP pivot strategy. Default TwoByTwo.
-    QPPivotModes qp_pivot_strategy = QPPivotModes::TwoByTwo;
+    /// @brief QP factorization algorithm variant. Default kClassic.
+    QPAlgModes qp_alg = QPAlgModes::kClassic;
+    /// @brief QP fill-reducing ordering. Default kMetis.
+    QPOrderingModes qp_ord = QPOrderingModes::kMetis;
+    /// @brief QP pivot strategy. Default kTwoByTwo.
+    QPPivotModes qp_pivot_strategy = QPPivotModes::kTwoByTwo;
     /// @brief MKL Pardiso weighted matching (iparm[12]) flag, 0/1. ON by default.
     int qp_matching = 1;
     /// MKL Pardiso MPS scaling (iparm[10]) flag, 0/1. OFF by default: it
     /// helps on some problem classes and deterministically degrades
     /// convergence on others.
-    /// @see docs/notes/2026-09-header-prose-archive.md §interior_point_solver.h
+    /// @see docs/notes/2026-09-header-prose-archive.md §ipm_solver.h
     int qp_scaling = 0;
     /// @brief Pivot perturbation level handed to the backend. Default 8.
     int qp_pivot_perturb = 8;
@@ -362,8 +362,8 @@ struct IpmOptions {
     /// about a point it has just been handed, and substituting a different
     /// iterate for it would make the event a lie. Default false.
     bool return_best = false;
-    /// @brief Scoring criterion for the return_best path. Default ECONS.
-    BestCriteriaModes best_criteria = BestCriteriaModes::ECONS;
+    /// @brief Scoring criterion for the return_best path. Default kEcons.
+    BestCriteriaModes best_criteria = BestCriteriaModes::kEcons;
     /// The options both engines share, defaulted to the INTERIOR-POINT engine's
     /// historical values: threads = HVEN_DEFAULT_QP_THREADS (what
     /// Settings::qp_threads_ defaulted to) and print_level = 0 (full output,
@@ -401,7 +401,7 @@ struct IpmOptions {
     std::vector<IpmPhase> phases{IpmPhase::kOptimize};
 };
 
-// IpmPhaseReport MOVED to detail/drivers/interior_point_solver_fwd.h with
+// IpmPhaseReport MOVED to detail/drivers/ipm_solver_fwd.h with
 // IpmPhase (M6 W5 T8.7b): `ipm.phase.exit` EMBEDS the report rather than
 // mirroring its fields, so `drivers/trace.h` needs the complete type and this
 // header is too heavy for it to include. Nothing that named it here moved.
@@ -673,7 +673,7 @@ struct IpmResult : SolveResult {
 /// (threads must be positive, print_level non-negative -- the same conditions
 /// qp_threads_ and print_level_ faced).
 ///
-/// This is the body of what was InteriorPointSolver::Settings::validate(), with
+/// This is the body of what was IpmSolver::Settings::validate(), with
 /// the two `common` checks added and every message unchanged.
 ///
 /// @throws std::invalid_argument naming the first violated setting or the
@@ -687,9 +687,9 @@ void validate(const IpmOptions &o);
 /// barrier_governor, never_monotone, restoration_mode, inertia_mode, max_soc,
 /// ls_extended_iters, watchdog) on top of a default-constructed value and
 /// leaves every other field at its default. The preset table lives in
-/// detail/drivers/interior_point_solver_presets.h.
+/// detail/drivers/ipm_solver_presets.h.
 ///
-/// This replaces InteriorPointSolver::apply_preset(), which mutated the
+/// This replaces IpmSolver::apply_preset(), which mutated the
 /// solver's own settings in place; the free function returns a full value the
 /// caller can edit further before handing it over.
 ///

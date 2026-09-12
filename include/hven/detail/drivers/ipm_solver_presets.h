@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// Named InteriorPointSolver configuration presets: five mechanism-named
+// Named IpmSolver configuration presets: five mechanism-named
 // globalization configurations, each a pure Settings field assignment (no
 // algorithm code is touched). `classic` is the stock Settings{} baseline,
 // pinned here as literals rather than read off a default-constructed Settings
@@ -9,7 +9,7 @@
 // struct's own defaults.
 //
 // Every preset assigns exactly the same nine globalization fields (the full
-// set InteriorPointSolver::apply_preset() touches): acceptance_strategy_,
+// set IpmSolver::apply_preset() touches): acceptance_strategy_,
 // merit_penalty_rule_, barrier_governor_, never_monotone_, restoration_mode_,
 // inertia_mode_, max_soc_, ls_extended_iters_, watchdog_. No other Settings
 // field (tolerances, iteration caps, QP parameters, ...) is read or written by
@@ -26,7 +26,7 @@
 #include <array>
 #include <string_view>
 
-#include "hven/detail/drivers/interior_point_solver_fwd.h"
+#include "hven/detail/drivers/ipm_solver_fwd.h"
 
 namespace hven::solvers {
 

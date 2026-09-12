@@ -4,7 +4,7 @@
 #pragma once
 
 // globalization.h — the acceptance decision that turns the full-step driver of
-// sqp_driver.h into a globally convergent method: given the OLD and NEW values
+// sqp_solver.h into a globally convergent method: given the OLD and NEW values
 // of the objective f and the infeasibility measure h, plus what the QP model
 // PREDICTED, decide whether the trial iterate may be kept.
 //
@@ -154,7 +154,7 @@ inline constexpr Index kRestoreMinRejections = 4;
 /// @brief Everything the acceptance test reads about one trial step.
 ///
 /// h is the KLV infeasibility measure (see the generalization note at
-/// GlobalizationStrategy); sqp_driver.h's constraint_violation_l1 computes it.
+/// GlobalizationStrategy); sqp_solver.h's constraint_violation_l1 computes it.
 struct StepContext {
     double f_old = 0.0;   ///< f(x_k)
     double f_new = 0.0;   ///< f(x_k + d)
@@ -202,10 +202,10 @@ enum class StepVerdict {
     /// Eq. (11) with sigma = 1e-4 is satisfied by arbitrarily small decreases.
     kAcceptF,
     /// h-type: Eq. (10) fails, Eq. (12) holds. Width shrinks by Eq. (13).
-    kAcceptH, 
+    kAcceptH,
     /// "The step is rejected, and either the trust-region radius or the step
     /// size is reduced" (KLV Sec. 2.4.2).
-    kReject,  
+    kReject,
     /// Switch to the feasibility restoration phase (see FunnelStrategy).
     ///
     /// DRIVER OBLIGATION: ADDITIVE, NOT A REPLACEMENT. KLV's authoritative
@@ -214,7 +214,7 @@ enum class StepVerdict {
     /// floor). The driver must not skip them because the strategy also reports
     /// kRestore: this signature is a heuristic early signal that can miss;
     /// an infeasible subproblem is a fact leaving no step at all. Both
-    /// authoritative triggers ship in sqp_driver.h (ELASTIC TIER; RADIUS
+    /// authoritative triggers ship in sqp_solver.h (ELASTIC TIER; RADIUS
     /// FLOOR), firing independently of this verdict; all three enter the SAME
     /// restoration phase. This one can fire EARLIEST and can also miss; the
     /// other two are facts.
@@ -229,7 +229,7 @@ enum class StepVerdict {
 // and here that assumption is a THEOREM, since the subproblem's box is
 // l - x .. u - x, so every driver-produced iterate satisfies the bounds by
 // construction. The measure lives beside the evaluation it is computed from
-// (sqp_driver.h's constraint_violation_l1).
+// (sqp_solver.h's constraint_violation_l1).
 
 /// @brief Interface the driver holds.
 class GlobalizationStrategy {

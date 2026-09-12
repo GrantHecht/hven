@@ -11,8 +11,8 @@
 #include "hven/detail/globalization/solver_context.h"
 // IpmResult lives in drivers/ipm_solver_types.h; see
 // acceptance_strategy.h's include note for why this is a plain, non-circular
-// include (interior_point_solver.h does not include this directory back).
-#include "hven/drivers/interior_point_solver.h"
+// include (ipm_solver.h does not include this directory back).
+#include "hven/drivers/ipm_solver.h"
 
 namespace hven::solvers {
 

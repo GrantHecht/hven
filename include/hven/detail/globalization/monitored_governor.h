@@ -100,7 +100,7 @@ class MonitoredBarrierGovernor : public BarrierGovernor {
     explicit MonitoredBarrierGovernor(std::unique_ptr<BarrierGovernor> free_delegate);
     ~MonitoredBarrierGovernor() override;
 
-    double update_barrier(InteriorPointSolver::BarrierModes barmode, double mu_in, double avgcomp,
+    double update_barrier(IpmSolver::BarrierModes barmode, double mu_in, double avgcomp,
                           double mincomp, Eigen::VectorXd &XSL, Eigen::VectorXd &RHS,
                           Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
                           GlobalizationMechanism &mechanism, SolverContext &ctx, double &barr_obj,

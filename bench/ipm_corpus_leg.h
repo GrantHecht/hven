@@ -5,7 +5,7 @@
 
 // bench/ipm_corpus_leg.h — the TOP-LEVEL interior-point replay leg
 // (`--engine interior`). The corpus's `ipm` arm is the SQP driver's
-// interior-point QP tier; nothing in bench/ replays the InteriorPointSolver
+// interior-point QP tier; nothing in bench/ replays the IpmSolver
 // loop itself. This leg does, over the dual-bindable U0 cells plus one
 // bound-fixed-variable cell, under all three fixed-variable treatments.
 //
@@ -25,9 +25,9 @@
 #include <vector>
 
 #include <hven/core/types.h>
-#include <hven/drivers/interior_point_solver.h>
+#include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/solve_status.h>
-#include <hven/model/nlp_problem.h>
+#include <hven/model/nlp_triplet_model.h>
 #include <hven/model/non_linear_program.h>
 
 #include "corpus_cells.h"
@@ -280,7 +280,7 @@ const std::vector<FixedVariableTreatments> &interior_treatments();
 /// @brief Runs one declared problem through the top-level interior-point driver
 ///        under one fixed-variable treatment.
 ///
-/// The one function T8.9 rewrites to construct InteriorPointSolver directly.
+/// The one function T8.9 rewrites to construct IpmSolver directly.
 ///
 /// @param problem   The declared problem; retained for the call only.
 /// @param identity  The row's four identity columns.
@@ -290,12 +290,12 @@ const std::vector<FixedVariableTreatments> &interior_treatments();
 /// @return The finished row, `wall_s` included.
 /// @throws std::invalid_argument if @p problem is null, or from the solver's own
 ///         boundary validation (a treatment the declaration refuses included).
-InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
+InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem,
                                  const InteriorRowIdentity &identity, const Vec &x0,
                                  FixedVariableTreatments treatment, const InteriorLevers &levers,
                                  const InteriorVariant &variant);
 
-/// @brief Why @p cell cannot be stated as an NLPProblem, or an empty string when
+/// @brief Why @p cell cannot be stated as an NlpTripletModel, or an empty string when
 ///        it can.
 ///
 /// crossover_legs.h's dual_bind_refusal, forwarded so the CLI glue spells one
@@ -303,7 +303,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<NLPProblem> &problem,
 std::string interior_cell_refusal(const CorpusCell &cell);
 
 /// @brief Runs one U0 corpus cell through the same driver, stating it as an
-///        NLPProblem exactly as the crossover leg (a) does.
+///        NlpTripletModel exactly as the crossover leg (a) does.
 /// @param cell      The cell; must dual-bind.
 /// @param treatment The fixed-variable treatment this row runs under.
 /// @param levers    The knobs above.

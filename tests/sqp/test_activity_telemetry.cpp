@@ -28,7 +28,7 @@
 #include <Eigen/SparseCore>
 #include <gtest/gtest.h>
 
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 #include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
@@ -240,7 +240,7 @@ TEST(ActivityTelemetry, AMismatchedExportContributesZeroToItsOwnHalfOnly) {
 
 /// The rows a solve REPORTS on -- every row but the ones whose QpSolution never
 /// became a major's answer.
-std::vector<SqpIterate> reporting_rows(const SqpSolution &sol) {
+std::vector<SqpIterate> reporting_rows(const SqpResult &sol) {
     std::vector<SqpIterate> out;
     for (const SqpIterate &r : sol.history) {
         if (r.qp_solved) {
@@ -283,8 +283,8 @@ TEST(ActivityTelemetry, NearActiveRowsIsNonVacuousOnAControlledSlack) {
     for (const auto &cell :
          {std::pair<double, Index>{1e-9, 1}, std::pair<double, Index>{1e-3, 0}}) {
         QpAsNlpModel model(one_var_qp(0.0, 1.0, cell.first), (Vec(1) << -0.5).finished());
-        SqpDriver driver(telemetry_opts());
-        const SqpSolution sol = driver.solve(model);
+        SqpSolver driver(telemetry_opts());
+        const SqpResult sol = driver.solve(model);
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         const std::vector<SqpIterate> rows = reporting_rows(sol);
         ASSERT_FALSE(rows.empty());
@@ -301,8 +301,8 @@ TEST(ActivityTelemetry, WeakActiveRowsIsNonVacuousOnAControlledPrice) {
     for (const auto &cell :
          {std::pair<double, Index>{1e-9, 1}, std::pair<double, Index>{1e-3, 0}}) {
         QpAsNlpModel model(one_var_qp(cell.first, 0.0, 10.0), (Vec(1) << -0.5).finished());
-        SqpDriver driver(telemetry_opts());
-        const SqpSolution sol = driver.solve(model);
+        SqpSolver driver(telemetry_opts());
+        const SqpResult sol = driver.solve(model);
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         const std::vector<SqpIterate> rows = reporting_rows(sol);
         ASSERT_FALSE(rows.empty());
@@ -328,8 +328,8 @@ TEST(ActivityTelemetry, EveryFieldIsZeroOnABoundOnlyQpNlpWithNoActiveBound) {
     qp.upper = Vec::Constant(2, 3.0);
 
     QpAsNlpModel model(qp, Vec::Zero(2));
-    SqpDriver driver(telemetry_opts());
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(telemetry_opts());
+    const SqpResult sol = driver.solve(model);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_FALSE(reporting_rows(sol).empty());
     for (const SqpIterate &r : sol.history) {
@@ -351,8 +351,8 @@ TEST(ActivityTelemetry, TheCensusEqualsAHandCountOnHs35sActiveRow) {
     // (4/3, 7/9, 4/9) is strictly inside the box and satisfies the row with
     // equality, so the hand count is one active row and no active bound side.
     const HsProblem p = make_hs(35);
-    SqpDriver driver(telemetry_opts());
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(telemetry_opts());
+    const SqpResult sol = driver.solve(*p.model);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     const std::vector<SqpIterate> rows = reporting_rows(sol);
     ASSERT_FALSE(rows.empty());
@@ -374,8 +374,8 @@ TEST(ActivityTelemetry, TheCensusEqualsAHandCountOnHs45sVertex) {
     const HsProblem p = make_hs(45);
     SqpOptions opts = telemetry_opts();
     opts.max_iter = 200;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     const std::vector<SqpIterate> rows = reporting_rows(sol);
     ASSERT_FALSE(rows.empty());
@@ -390,8 +390,8 @@ TEST(ActivityTelemetry, ARowWithNoAnswerOfItsOwnReportsZeroAndCarriesTheSetForwa
     // became this major's answer": it must read zero in all six fields even
     // though the major before it did not.
     const HsProblem p = make_hs(35);
-    SqpDriver driver(telemetry_opts());
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(telemetry_opts());
+    const SqpResult sol = driver.solve(*p.model);
     ASSERT_FALSE(sol.history.empty());
     const SqpIterate &stopped = sol.history.back();
     ASSERT_FALSE(stopped.qp_solved);
@@ -410,8 +410,8 @@ TEST(ActivityTelemetry, TheFourFoldsAreTheRowsOwnSumAndPeaks) {
         const HsProblem p = make_hs(number);
         SqpOptions opts = telemetry_opts();
         opts.max_iter = 200;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(*p.model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(*p.model);
         Index total = 0;
         Index delta_peak = 0;
         Index weak_peak = 0;
@@ -457,8 +457,8 @@ TEST(ActivityTelemetry, TheTieFixtureIsFlaggedByBothReadingsForDifferentReasons)
     QpAsNlpModel model(weakly_active_qp(), Vec::Zero(2));
     SqpOptions opts = telemetry_opts();
     opts.qp_mode = QpMode::kSsn;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     const std::vector<SqpIterate> rows = reporting_rows(sol);
     ASSERT_FALSE(rows.empty());

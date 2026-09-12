@@ -3,7 +3,7 @@
 
 #pragma once
 
-// aggregate_declaration.h — what a provider DECLARES, and what a declared piece
+// assembly_declaration.h — what a provider DECLARES, and what a declared piece
 // must be able to do.
 //
 // The declaration is a VALUE, not a sequence of setter calls: the layout is
@@ -12,7 +12,7 @@
 // Engine-independent by construction: this header includes nothing from the
 // interior-point machinery. It does DECLARE the two piece handle types the
 // pieces are stored as, so the declaration can hold them by value -- a
-// translation unit that constructs, copies or destroys an AggregateDeclaration
+// translation unit that constructs, copies or destroys an AssemblyDeclaration
 // therefore needs the piece definitions in scope; one that merely names the
 // type does not.
 
@@ -53,7 +53,7 @@ struct VariableBound {
 /// contract names no provider's internals. The type-erasure seam still decides
 /// what gets stored; this concept says what a stored thing must be able to do.
 template <class Piece, class IndexData>
-concept AggregatePiece =
+concept AssemblyPiece =
     requires(const Piece &piece, Piece &mutable_piece, Eigen::Ref<Eigen::VectorXi> indices,
              int &free_slot, int offset, bool flag, IndexData &data) {
         { piece.name() } -> std::convertible_to<std::string>;
@@ -68,7 +68,7 @@ concept AggregatePiece =
 ///        surface the same way the type-erasure seam splits them, so a type
 ///        missing exactly one group is diagnosed for exactly that.
 template <class Piece, class IndexData>
-concept ObjectiveAggregateSurface = requires(
+concept ObjectiveAssemblySurface = requires(
     const Piece &piece, double scale, const Eigen::Ref<const Eigen::VectorXd> &x, double &value,
     Eigen::Ref<Eigen::VectorXd> gradient, Eigen::SparseMatrix<double, Eigen::RowMajor> &kkt,
     Eigen::Ref<Eigen::VectorXi> indices, std::vector<std::mutex> &locks, const IndexData &data) {
@@ -80,8 +80,8 @@ concept ObjectiveAggregateSurface = requires(
 /// A piece of the constraint kind: everything a piece must do, plus the five
 /// constraint evaluation shapes.
 template <class Piece, class IndexData>
-concept ConstraintAggregatePiece =
-    AggregatePiece<Piece, IndexData> &&
+concept ConstraintAssemblyPiece =
+    AssemblyPiece<Piece, IndexData> &&
     requires(const Piece &piece, const Eigen::Ref<const Eigen::VectorXd> &x,
              Eigen::Ref<Eigen::VectorXd> values, Eigen::SparseMatrix<double, Eigen::RowMajor> &kkt,
              Eigen::Ref<Eigen::VectorXi> indices, std::vector<std::mutex> &locks,
@@ -105,8 +105,8 @@ concept ConstraintAggregatePiece =
 /// objective piece answers the constraint surface by refusing it at run time,
 /// which is a different question from whether the members are there to call.
 template <class Piece, class IndexData>
-concept ObjectiveAggregatePiece =
-    ConstraintAggregatePiece<Piece, IndexData> && ObjectiveAggregateSurface<Piece, IndexData>;
+concept ObjectiveAssemblyPiece =
+    ConstraintAssemblyPiece<Piece, IndexData> && ObjectiveAssemblySurface<Piece, IndexData>;
 
 /// The value a provider hands over: the three piece lists, the three
 /// dimensions, the partition count it wants, and the declared variable bounds.
@@ -114,13 +114,13 @@ concept ObjectiveAggregatePiece =
 /// Special members are declared here and defined out of line, so a consumer may
 /// name, default-construct, inspect and validate a declaration without the
 /// piece definitions in scope; filling the piece lists needs them.
-struct AggregateDeclaration {
-    AggregateDeclaration();
-    ~AggregateDeclaration();
-    AggregateDeclaration(const AggregateDeclaration &);
-    AggregateDeclaration &operator=(const AggregateDeclaration &);
-    AggregateDeclaration(AggregateDeclaration &&) noexcept;
-    AggregateDeclaration &operator=(AggregateDeclaration &&) noexcept;
+struct AssemblyDeclaration {
+    AssemblyDeclaration();
+    ~AssemblyDeclaration();
+    AssemblyDeclaration(const AssemblyDeclaration &);
+    AssemblyDeclaration &operator=(const AssemblyDeclaration &);
+    AssemblyDeclaration(AssemblyDeclaration &&) noexcept;
+    AssemblyDeclaration &operator=(AssemblyDeclaration &&) noexcept;
 
     std::vector<ObjectiveFunction> objectives_;
     std::vector<ConstraintFunction> equality_constraints_;

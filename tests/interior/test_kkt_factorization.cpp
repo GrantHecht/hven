@@ -19,8 +19,8 @@
 
 #include "hven/detail/interior/kkt_factorization.h"
 #include "hven/detail/model/nlp_adapter.h"
-#include "hven/drivers/interior_point_solver.h"
-#include "hven/model/nlp_problem.h"
+#include "hven/drivers/ipm_solver.h"
+#include "hven/model/nlp_triplet_model.h"
 
 namespace {
 
@@ -313,7 +313,7 @@ TEST(KktFactorizationTest, ReleaseAndReconfigureClearTheInertiaEvidence) {
 
 // A one-variable unconstrained problem, only ever transcribed -- these tests
 // reject at configuration time and never reach a solve.
-struct KktConfigRejectProblem : hven::solvers::NLPProblem {
+struct KktConfigRejectProblem : hven::solvers::NlpTripletModel {
     int num_vars() const override { return 1; }
     int num_cons() const override { return 0; }
     int num_jac_nonzeros() const override { return 0; }
@@ -356,7 +356,7 @@ struct KktConfigRejectProblem : hven::solvers::NLPProblem {
 TEST(KktFactorizationTest, AThreadCountChangedAfterTranscriptionStillSolves) {
     const auto program =
         hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -383,7 +383,7 @@ TEST(KktFactorizationTest, AThreadCountChangedAfterTranscriptionStillSolves) {
 TEST(KktFactorizationTest, AccelerateRejectsANonzeroRefinementCap) {
     const auto program =
         hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.qp_ref_steps = 2;
@@ -399,7 +399,7 @@ TEST(KktFactorizationTest, AccelerateRejectsANonzeroRefinementCap) {
 TEST(KktFactorizationTest, AccelerateRejectsANonDefaultPivotTolerance) {
     const auto program =
         hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.accel_pivot_tolerance = 0.05;
@@ -417,7 +417,7 @@ TEST(KktFactorizationTest, AccelerateRejectsANonDefaultPivotTolerance) {
 TEST(KktFactorizationTest, MklRejectsBackendMessageOutput) {
     const auto program =
         hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.qp_print = true;
@@ -435,10 +435,10 @@ TEST(KktFactorizationTest, MklRejectsBackendMessageOutput) {
 TEST(KktFactorizationTest, MklRejectsAnUndocumentedPivotingStrategyCode) {
     const auto program =
         hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
-        o.qp_pivot_strategy = hven::solvers::InteriorPointSolver::QPPivotModes::E13;
+        o.qp_pivot_strategy = hven::solvers::IpmSolver::QPPivotModes::kE13;
         solver.set_options(std::move(o));
     }
     // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not

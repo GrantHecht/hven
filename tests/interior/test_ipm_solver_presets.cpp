@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // Default-drift tripwire for ipm_preset()'s `classic` entry
-// (interior_point_solver_presets.h). `classic` is pinned there as
+// (ipm_solver_presets.h). `classic` is pinned there as
 // literals -- not read off a default-constructed IpmOptions{} -- so the preset
 // keeps its documented mechanism meaning even if a future change moves one of
 // IpmOptions{}'s own defaults. This test is the other half of that guarantee:
@@ -13,14 +13,14 @@
 // default or keep its pinned meaning, rather than silently drifting out of
 // sync with what "classic" is documented to mean.
 //
-// Ported from tycho's tests/cpp/solvers/test_interior_point_solver_presets.cpp
+// Ported from tycho's tests/cpp/solvers/test_ipm_solver_presets.cpp
 // (the file-name-uniqueness prefix there was PresetGate; kept here so the
 // intent stays traceable, and because it does not collide with anything else
 // in this unity-merged test binary).
 
 #include <gtest/gtest.h>
 
-#include "hven/detail/drivers/interior_point_solver_presets.h"
+#include "hven/detail/drivers/ipm_solver_presets.h"
 #include "hven/drivers/ipm_solver_types.h"
 
 using hven::solvers::InteriorPointSolverPresetFields;

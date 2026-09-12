@@ -15,7 +15,7 @@
 
 #include <hven/core/ledger.h>
 #include <hven/detail/qp/ipqp_engine.h>
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/trace.h>
 
 #include "support/hs_problems.h"
@@ -526,9 +526,9 @@ TEST(IpqpTrace, DriverRouteAndQpModeEventsMatchTheRoutingCounters) {
         SqpOptions o;
         o.qp_mode = QpMode::kIpm;
         o.max_iter = 60;
-        SqpDriver driver(o);
+        SqpSolver driver(o);
         driver.attach_trace(&sink);
-        const SqpSolution s = driver.solve(*p.model);
+        const SqpResult s = driver.solve(*p.model);
         const IpqpCounters &c = s.counters.ipqp;
         refine_accepted += c.ipqp_refine_accepted;
         to_ssn += c.ipqp_to_ssn;
@@ -715,10 +715,10 @@ TEST(IpqpTrace, RouteEventFaceRowsAndFaceBoundsAreSwapFalsifiable) {
         RecordingTraceSink sink;
         SqpOptions o;
         o.qp_mode = QpMode::kIpm;
-        SqpDriver driver(o);
+        SqpSolver driver(o);
         driver.attach_trace(&sink);
         BoundActiveOnlyModel model;
-        const SqpSolution s = driver.solve(model);
+        const SqpResult s = driver.solve(model);
         ASSERT_EQ(s.status, SolveStatus::kOptimal);
         ASSERT_FALSE(sink.routes.empty()) << "at least one subproblem was consulted";
         Index face_rows_sum = 0, face_bounds_sum = 0;
@@ -733,10 +733,10 @@ TEST(IpqpTrace, RouteEventFaceRowsAndFaceBoundsAreSwapFalsifiable) {
         RecordingTraceSink sink;
         SqpOptions o;
         o.qp_mode = QpMode::kIpm;
-        SqpDriver driver(o);
+        SqpSolver driver(o);
         driver.attach_trace(&sink);
         RowActiveOnlyModel model;
-        const SqpSolution s = driver.solve(model);
+        const SqpResult s = driver.solve(model);
         ASSERT_EQ(s.status, SolveStatus::kOptimal);
         ASSERT_FALSE(sink.routes.empty()) << "at least one subproblem was consulted";
         Index face_rows_sum = 0, face_bounds_sum = 0;
@@ -760,9 +760,9 @@ TEST(IpqpTrace, FallbackVerdictEventsReproduceThePartitionCountersWithoutAFilter
         SqpOptions o;
         o.qp_mode = QpMode::kIpm;
         o.max_iter = 60;
-        SqpDriver driver(o);
+        SqpSolver driver(o);
         driver.attach_trace(&sink);
-        const SqpSolution s = driver.solve(*p.model);
+        const SqpResult s = driver.solve(*p.model);
         disproved += s.counters.ipqp_suspicion_disproved;
         rung_b += s.counters.ipqp_fallback_rung_b;
         from_escape += s.counters.elastic_from_ipqp_escape;

@@ -9,7 +9,7 @@ namespace hven::solvers {
 // Toint, "Trust-Region Methods" (MPS-SIAM, 2000), Algorithm BTR and Table
 // 6.1.1 -- eta_2, gamma_2, gamma_1 respectively. [KLV] states the RULE ("if
 // the trust region is active at d then increase the radius", Algorithm 3) but
-// no values, so these are ported rather than transcribed. See sqp_driver.h's
+// no values, so these are ported rather than transcribed. See sqp_solver.h's
 // RADIUS MANAGEMENT note for the full radius lifecycle.
 
 /// rho = actual/predicted objective decrease at or above which an accepted step

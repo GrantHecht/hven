@@ -38,7 +38,7 @@
 #include <Eigen/SparseCore>
 
 #include <hven/core/types.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/nlp_model.h>
 
 #include "support/nlp_kkt_check.h"
@@ -49,7 +49,7 @@ using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
 using hven::solvers::NlpModel;
-using hven::solvers::SqpSolution;
+using hven::solvers::SqpResult;
 using hven::solvers::test_support::NlpKktResidual;
 using hven::solvers::test_support::self_check_kkt;
 
@@ -136,8 +136,8 @@ class PoisonableNlp : public NlpModel {
 };
 
 // The KKT point above, as a driver would have returned it.
-SqpSolution optimal_solution() {
-    SqpSolution sol;
+SqpResult optimal_solution() {
+    SqpResult sol;
     sol.status = hven::solvers::SolveStatus::kOptimal;
     sol.x = Vec(2);
     sol.x << 1.0, 1.0;
@@ -169,7 +169,7 @@ bool reads_as_a_clean_optimum(const NlpKktResidual &r) {
 // ---------------------------------------------------------------------------
 TEST(NlpKktSelfCheck, CleanPointScoresFourZerosAndInfiniteBoundsStayLegal) {
     PoisonableNlp model;
-    const SqpSolution sol = optimal_solution();
+    const SqpResult sol = optimal_solution();
 
     const NlpKktResidual boxed = self_check_kkt(model, sol, kBoundTol);
     EXPECT_TRUE(reads_as_a_clean_optimum(boxed));
@@ -276,28 +276,28 @@ TEST(NlpKktSelfCheck, NanBoundIsNotReadAsAFreeVariable) {
 TEST(NlpKktSelfCheck, NoPoisonedInputEverScoresAsACleanOptimum) {
     struct Site {
         const char *name;
-        void (*poison)(PoisonableNlp &, SqpSolution &, double &);
+        void (*poison)(PoisonableNlp &, SqpResult &, double &);
     };
     const Site sites[] = {
-        {"x", [](PoisonableNlp &, SqpSolution &s, double &) { s.x(0) = kNan; }},
-        {"x infinite", [](PoisonableNlp &, SqpSolution &s, double &) { s.x(1) = kInf; }},
-        {"z", [](PoisonableNlp &, SqpSolution &s, double &) { s.z(1) = kNan; }},
-        {"z infinite", [](PoisonableNlp &, SqpSolution &s, double &) { s.z(0) = kInf; }},
-        {"lambda_e", [](PoisonableNlp &, SqpSolution &s, double &) { s.lambda_e(0) = kNan; }},
-        {"lambda_i", [](PoisonableNlp &, SqpSolution &s, double &) { s.lambda_i(0) = kNan; }},
-        {"gradient", [](PoisonableNlp &m, SqpSolution &, double &) { m.grad_poison_ = kNan; }},
+        {"x", [](PoisonableNlp &, SqpResult &s, double &) { s.x(0) = kNan; }},
+        {"x infinite", [](PoisonableNlp &, SqpResult &s, double &) { s.x(1) = kInf; }},
+        {"z", [](PoisonableNlp &, SqpResult &s, double &) { s.z(1) = kNan; }},
+        {"z infinite", [](PoisonableNlp &, SqpResult &s, double &) { s.z(0) = kInf; }},
+        {"lambda_e", [](PoisonableNlp &, SqpResult &s, double &) { s.lambda_e(0) = kNan; }},
+        {"lambda_i", [](PoisonableNlp &, SqpResult &s, double &) { s.lambda_i(0) = kNan; }},
+        {"gradient", [](PoisonableNlp &m, SqpResult &, double &) { m.grad_poison_ = kNan; }},
         {"gradient infinite",
-         [](PoisonableNlp &m, SqpSolution &, double &) { m.grad_poison_ = kInf; }},
-        {"cE", [](PoisonableNlp &m, SqpSolution &, double &) { m.ce_poison_ = kNan; }},
-        {"cI", [](PoisonableNlp &m, SqpSolution &, double &) { m.ci_poison_ = kNan; }},
-        {"lower bound", [](PoisonableNlp &m, SqpSolution &, double &) { m.lower_(1) = kNan; }},
-        {"upper bound", [](PoisonableNlp &m, SqpSolution &, double &) { m.upper_(0) = kNan; }},
-        {"bound_tol", [](PoisonableNlp &, SqpSolution &, double &t) { t = kNan; }},
+         [](PoisonableNlp &m, SqpResult &, double &) { m.grad_poison_ = kInf; }},
+        {"cE", [](PoisonableNlp &m, SqpResult &, double &) { m.ce_poison_ = kNan; }},
+        {"cI", [](PoisonableNlp &m, SqpResult &, double &) { m.ci_poison_ = kNan; }},
+        {"lower bound", [](PoisonableNlp &m, SqpResult &, double &) { m.lower_(1) = kNan; }},
+        {"upper bound", [](PoisonableNlp &m, SqpResult &, double &) { m.upper_(0) = kNan; }},
+        {"bound_tol", [](PoisonableNlp &, SqpResult &, double &t) { t = kNan; }},
     };
 
     for (const Site &site : sites) {
         PoisonableNlp model;
-        SqpSolution sol = optimal_solution();
+        SqpResult sol = optimal_solution();
         double tol = kBoundTol;
         site.poison(model, sol, tol);
 

@@ -3,7 +3,7 @@
 
 // tests/sqp/test_predictor.cpp — Phase-4 Task 9: the TANGENTIAL PREDICTOR
 // (predictor.h), i.e. the parametric-sensitivity step that turns a converged
-// WarmStart at p into a first-order-accurate WarmStart at p + dp.
+// SqpWarmStart at p into a first-order-accurate SqpWarmStart at p + dp.
 //
 // WHAT IS ASSERTED, AND WHY EACH FAMILY WAS PICKED FOR IT
 // (tests/sqp/support/parametric_families.h has the analytic paths):
@@ -80,7 +80,7 @@
 // ACTIVITY IS COMPARED THE WAY TASK 8 ESTABLISHED: GEOMETRICALLY (the
 // constraint holds with equality at the predicted point) wherever F1's zero
 // multiplier makes working-set membership indeterminate, and field-for-field
-// against WarmStart::bound_active where it is determinate (F1's bound
+// against SqpWarmStart::bound_active where it is determinate (F1's bound
 // activations are strictly complementary on both sides -- z crosses zero with
 // slope 1 -- so the BOX is a clean fixture even though the ROW is not).
 
@@ -97,8 +97,8 @@
 
 #include <hven/detail/warmstart/predictor.h>
 #include <hven/detail/warmstart/warm_start.h>
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/nlp_model.h>
 
 #include "support/derivative_check.h"
@@ -121,7 +121,7 @@ using test_support::F4MovingConstraints;
 using test_support::F5MovingThreshold;
 
 // The regularization floor the affine-path tests measure against: predict()
-// inherits WarmStart::primal_delta/dual_mu, which a default solve leaves at
+// inherits SqpWarmStart::primal_delta/dual_mu, which a default solve leaves at
 // QpOptions' own 1e-8, and drives them to 1e-12 for the second measurement.
 constexpr double kTightReg = 1e-12;
 
@@ -140,13 +140,13 @@ SqpOptions tight_options() {
 
 Vec p_vec(double p) { return Vec::Constant(1, p); }
 
-// A converged WarmStart at parameter p, from a COLD solve -- the object the
+// A converged SqpWarmStart at parameter p, from a COLD solve -- the object the
 // predictor is contractually fed.
-WarmStart converged_warm(ParametricNlpModel &model, double p,
-                         const SqpOptions &opts = tight_options()) {
+SqpWarmStart converged_warm(ParametricNlpModel &model, double p,
+                            const SqpOptions &opts = tight_options()) {
     model.set_parameters(p_vec(p));
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
     EXPECT_EQ(sol.status, SolveStatus::kOptimal)
         << "cold solve at p = " << p << " did not converge";
     return sol.warm_start;
@@ -154,13 +154,13 @@ WarmStart converged_warm(ParametricNlpModel &model, double p,
 
 // The same warm start with its effective regularization overridden -- the
 // knob predict() reads to build its KKT system (see this file's banner item 2).
-WarmStart with_regularization(WarmStart warm, double reg) {
+SqpWarmStart with_regularization(SqpWarmStart warm, double reg) {
     warm.primal_delta = reg;
     warm.dual_mu = reg;
     return warm;
 }
 
-// WarmStart::bound_active's encoding, read off a point geometrically. Same
+// SqpWarmStart::bound_active's encoding, read off a point geometrically. Same
 // notion tests/test_parametric_families.cpp uses, and the only one that is
 // determinate at a zero multiplier.
 std::vector<std::int8_t> geometric_bound_active(const NlpModel &model, const Vec &x, double tol) {
@@ -244,8 +244,8 @@ TEST(Predictor, MovingConstraintFamiliesMatchTheirAnalyticPaths) {
             EXPECT_TRUE(test_support::assert_hessian(model, x_probe, Vec::Constant(1, 0.4),
                                                      Vec::Constant(1, 0.3), 1e-6));
 
-            SqpDriver driver(opts);
-            const SqpSolution sol = driver.solve(model);
+            SqpSolver driver(opts);
+            const SqpResult sol = driver.solve(model);
             ASSERT_EQ(sol.status, SolveStatus::kOptimal) << "p = " << p.transpose();
             EXPECT_LE((sol.x - F4MovingConstraints::x_star(p)).lpNorm<Eigen::Infinity>(), 1e-8)
                 << "x = " << sol.x.transpose() << " vs "
@@ -273,8 +273,8 @@ TEST(Predictor, MovingConstraintFamiliesMatchTheirAnalyticPaths) {
             EXPECT_TRUE(
                 test_support::assert_hessian(model, x_probe, Vec(0), Vec::Constant(1, 0.2), 1e-6));
 
-            SqpDriver driver(opts);
-            const SqpSolution sol = driver.solve(model);
+            SqpSolver driver(opts);
+            const SqpResult sol = driver.solve(model);
             ASSERT_EQ(sol.status, SolveStatus::kOptimal) << "p = " << p;
             EXPECT_LE((sol.x - F5MovingThreshold::x_star(p)).lpNorm<Eigen::Infinity>(), 1e-8)
                 << "x = " << sol.x.transpose();
@@ -312,13 +312,13 @@ TEST(Predictor, PredictorTracksConstraintsThatMoveWithP) {
 
     F4MovingConstraints model;
     model.set_parameters(p0);
-    SqpDriver driver(tight_options());
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(tight_options());
+    const SqpResult sol = driver.solve(model);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
-    const WarmStart warm = sol.warm_start;
+    const SqpWarmStart warm = sol.warm_start;
 
     model.set_parameters(p0);
-    const WarmStart pred = predict(model, warm, dp);
+    const SqpWarmStart pred = predict(model, warm, dp);
 
     // The path is affine in p on this branch, so there is no linearization
     // error at all and the residual is the regularization floor (measured
@@ -356,7 +356,7 @@ TEST(Predictor, PredictorTracksConstraintsThatMoveWithP) {
     PredictorOptions wide_fd;
     wide_fd.fd_step_scale = 100.0;
     model.set_parameters(p0);
-    const WarmStart sharp = predict(model, with_regularization(warm, kTightReg), dp, wide_fd);
+    const SqpWarmStart sharp = predict(model, with_regularization(warm, kTightReg), dp, wide_fd);
     EXPECT_LE((sharp.x - F4MovingConstraints::x_star(p1)).lpNorm<Eigen::Infinity>(), 5e-12)
         << "x_pred = " << sharp.x.transpose();
 }
@@ -370,12 +370,12 @@ TEST(Predictor, PredictorActivatesConstraintsThatMoveWithP) {
     constexpr double kP = -0.1;
     constexpr double kDp = 0.2;
     F5MovingThreshold model(kP);
-    const WarmStart warm = converged_warm(model, kP);
+    const SqpWarmStart warm = converged_warm(model, kP);
     ASSERT_EQ(warm.ineq_active[0], 0) << "fixture premise: nothing active at p < 0";
     ASSERT_EQ(warm.bound_active[1], 0);
 
     model.set_parameters(p_vec(kP));
-    const WarmStart pred = predict(model, warm, p_vec(kDp));
+    const SqpWarmStart pred = predict(model, warm, p_vec(kDp));
     const double p_far = kP + kDp;
 
     // Both branches are affine, so the far side is hit exactly (up to the
@@ -391,8 +391,8 @@ TEST(Predictor, PredictorActivatesConstraintsThatMoveWithP) {
 
     // And it is consumable: seeded at p_far, the solve confirms the far side.
     model.set_parameters(p_vec(p_far));
-    SqpDriver driver(tight_options());
-    const SqpSolution sol = driver.solve(model, model.start_point(), pred);
+    SqpSolver driver(tight_options());
+    const SqpResult sol = driver.solve(model, model.start_point(), pred);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE((sol.x - F5MovingThreshold::x_star(p_far)).lpNorm<Eigen::Infinity>(), 1e-8);
 }
@@ -409,14 +409,14 @@ TEST(Predictor, PredictorTracksSmoothPath) {
     const std::vector<double> steps = {0.04, 0.02, 0.01};
 
     F2CircleNlp model(kP);
-    const WarmStart warm = converged_warm(model, kP);
+    const SqpWarmStart warm = converged_warm(model, kP);
     ASSERT_TRUE(warm.valid);
     ASSERT_LE((warm.x - F2CircleNlp::x_star(kP)).norm(), 1e-9);
 
     std::vector<double> errors;
     for (double dp : steps) {
         model.set_parameters(p_vec(kP));
-        const WarmStart pred = predict(model, warm, p_vec(dp));
+        const SqpWarmStart pred = predict(model, warm, p_vec(dp));
         EXPECT_TRUE(pred.valid);
         // predict() must leave the model at its ENTRY parameters (predictor.h's
         // PARAMETER RESTORATION contract).
@@ -463,18 +463,18 @@ TEST(Predictor, PredictorIsExactUpToRegularizationOnAffinePaths) {
         constexpr double kP = 0.45;
         constexpr double kDp = 0.2; // 0.45 -> 0.65, both interior to branch M
         F1BoxQp model(kP);
-        const WarmStart warm = converged_warm(model, kP);
+        const SqpWarmStart warm = converged_warm(model, kP);
         ASSERT_DOUBLE_EQ(warm.primal_delta, 1e-8) << "fixture premise: the default regularization";
 
         model.set_parameters(p_vec(kP));
-        const WarmStart pred = predict(model, warm, p_vec(kDp));
+        const SqpWarmStart pred = predict(model, warm, p_vec(kDp));
         // delta * ||dp|| = 2e-9; measured 2.000e-09.
         EXPECT_LE((pred.x - F1BoxQp::x_star(kP + kDp)).lpNorm<Eigen::Infinity>(), 5e-9)
             << "x_pred = " << pred.x.transpose()
             << " vs x_star = " << F1BoxQp::x_star(kP + kDp).transpose();
 
         model.set_parameters(p_vec(kP));
-        const WarmStart sharp = predict(model, with_regularization(warm, kTightReg), p_vec(kDp));
+        const SqpWarmStart sharp = predict(model, with_regularization(warm, kTightReg), p_vec(kDp));
         // Four orders less regularization, four orders less error: 2.001e-13.
         EXPECT_LE((sharp.x - F1BoxQp::x_star(kP + kDp)).lpNorm<Eigen::Infinity>(), 5e-13)
             << "x_pred = " << sharp.x.transpose();
@@ -487,10 +487,10 @@ TEST(Predictor, PredictorIsExactUpToRegularizationOnAffinePaths) {
         constexpr double kP = 0.20;
         constexpr double kDp = 0.15; // 0.20 -> 0.35, both below p_act = 0.5
         F3SpringChain model(/*n=*/12, /*p_act=*/0.5, /*p0=*/kP);
-        const WarmStart warm = converged_warm(model, kP);
+        const SqpWarmStart warm = converged_warm(model, kP);
 
         model.set_parameters(p_vec(kP));
-        const WarmStart pred = predict(model, warm, p_vec(kDp));
+        const SqpWarmStart pred = predict(model, warm, p_vec(kDp));
         // ~500 * delta * ||dp||, the chain's own conditioning: measured
         // 7.590e-07 in x and 9.900e-08 in lambda_e.
         EXPECT_LE((pred.x - model.x_star(kP + kDp)).lpNorm<Eigen::Infinity>(), 2e-6)
@@ -498,7 +498,7 @@ TEST(Predictor, PredictorIsExactUpToRegularizationOnAffinePaths) {
         EXPECT_LE((pred.lambda_e - model.lambda_e_star(kP + kDp)).lpNorm<Eigen::Infinity>(), 5e-7);
 
         model.set_parameters(p_vec(kP));
-        const WarmStart sharp = predict(model, with_regularization(warm, kTightReg), p_vec(kDp));
+        const SqpWarmStart sharp = predict(model, with_regularization(warm, kTightReg), p_vec(kDp));
         // Measured 7.619e-11 and 9.940e-12 -- the same four orders.
 #ifdef USE_ACCELERATE_SPARSE
         // U0 (2026-08-16), and THE ONE PLACE IN THE FLAG-UNIFICATION EVENT
@@ -553,11 +553,11 @@ TEST(Predictor, PredictorHandlesBoundCrossing) {
         constexpr double kP = 0.15;
         constexpr double kDp = 0.10;
         F1BoxQp model(kP);
-        const WarmStart warm = converged_warm(model, kP);
+        const SqpWarmStart warm = converged_warm(model, kP);
         ASSERT_EQ(warm.bound_active[1], +1) << "fixture premise: x2 starts at its upper bound";
 
         model.set_parameters(p_vec(kP));
-        const WarmStart pred = predict(model, warm, p_vec(kDp));
+        const SqpWarmStart pred = predict(model, warm, p_vec(kDp));
         const double p_far = kP + kDp;
         // The regularization floor again (measured 7.5e-10), not a
         // linearization error: branch M is affine.
@@ -619,11 +619,11 @@ TEST(Predictor, PredictorHandlesBoundCrossing) {
         constexpr double kP = 0.25;
         constexpr double kDp = -0.10;
         F1BoxQp model(kP);
-        const WarmStart warm = converged_warm(model, kP);
+        const SqpWarmStart warm = converged_warm(model, kP);
         ASSERT_EQ(warm.bound_active[1], 0) << "fixture premise: x2 starts free";
 
         model.set_parameters(p_vec(kP));
-        const WarmStart pred = predict(model, warm, p_vec(kDp));
+        const SqpWarmStart pred = predict(model, warm, p_vec(kDp));
         const double p_far = kP + kDp;
         EXPECT_LE((pred.x - F1BoxQp::x_star(p_far)).lpNorm<Eigen::Infinity>(), 5e-9)
             << "x_pred = " << pred.x.transpose();
@@ -662,11 +662,11 @@ TEST(Predictor, PredictorKeepsWeaklyActiveRow) {
     constexpr double kP = 0.40;
     constexpr double kDp = 0.20; // 0.40 -> 0.60, both interior to branch M
     F1BoxQp model(kP);
-    const WarmStart warm = converged_warm(model, kP);
+    const SqpWarmStart warm = converged_warm(model, kP);
     ASSERT_NEAR(warm.lambda_i(0), 0.0, 1e-9) << "fixture premise: the row is weakly active";
 
     model.set_parameters(p_vec(kP));
-    const WarmStart pred = predict(model, warm, p_vec(kDp));
+    const SqpWarmStart pred = predict(model, warm, p_vec(kDp));
     const double p_far = kP + kDp;
 
     // (i) It does not crash, and the prediction is still accurate to the
@@ -694,8 +694,8 @@ TEST(Predictor, PredictorKeepsWeaklyActiveRow) {
     // (iii) The prediction is still CONSUMABLE: a solve seeded by it converges
     //       to the far-side path (the (c)-style consumption the brief asks be
     //       shown not to break at a zero multiplier).
-    SqpDriver driver(tight_options());
-    const SqpSolution sol = driver.solve(model, model.start_point(), pred);
+    SqpSolver driver(tight_options());
+    const SqpResult sol = driver.solve(model, model.start_point(), pred);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE((sol.x - F1BoxQp::x_star(p_far)).lpNorm<Eigen::Infinity>(), 1e-8);
 }
@@ -710,18 +710,18 @@ TEST(Predictor, PredictedWarmAcceleratesSolve) {
     constexpr double kP = 0.90;
     constexpr double kDp = 0.20;
     F2CircleNlp model(kP);
-    const WarmStart warm = converged_warm(model, kP);
+    const SqpWarmStart warm = converged_warm(model, kP);
 
     model.set_parameters(p_vec(kP));
-    const WarmStart pred = predict(model, warm, p_vec(kDp));
+    const SqpWarmStart pred = predict(model, warm, p_vec(kDp));
 
     const SqpOptions opts = tight_options();
     model.set_parameters(p_vec(kP + kDp));
 
-    SqpDriver plain_driver(opts);
-    const SqpSolution plain = plain_driver.solve(model, model.start_point(), warm);
-    SqpDriver pred_driver(opts);
-    const SqpSolution boosted = pred_driver.solve(model, model.start_point(), pred);
+    SqpSolver plain_driver(opts);
+    const SqpResult plain = plain_driver.solve(model, model.start_point(), warm);
+    SqpSolver pred_driver(opts);
+    const SqpResult boosted = pred_driver.solve(model, model.start_point(), pred);
 
     ASSERT_EQ(plain.status, SolveStatus::kOptimal);
     ASSERT_EQ(boosted.status, SolveStatus::kOptimal);
@@ -744,14 +744,14 @@ TEST(Predictor, PredictedWarmAcceleratesSolve) {
 TEST(Predictor, PredictorNeverMutatesItsInputs) {
     constexpr double kP = 0.9;
     F2CircleNlp model(kP);
-    const WarmStart warm = converged_warm(model, kP);
+    const SqpWarmStart warm = converged_warm(model, kP);
 
     model.set_parameters(p_vec(kP));
     const Vec x_before = warm.x;
     const Vec lam_before = warm.lambda_i;
     const std::vector<std::int8_t> bounds_before = warm.bound_active;
 
-    const WarmStart pred = predict(model, warm, p_vec(0.05));
+    const SqpWarmStart pred = predict(model, warm, p_vec(0.05));
 
     EXPECT_EQ(warm.x, x_before);
     EXPECT_EQ(warm.lambda_i, lam_before);
@@ -770,10 +770,10 @@ TEST(Predictor, PredictorNeverMutatesItsInputs) {
 TEST(Predictor, PredictorIsTheIdentityOnAZeroStep) {
     constexpr double kP = 0.45;
     F1BoxQp model(kP);
-    const WarmStart warm = converged_warm(model, kP);
+    const SqpWarmStart warm = converged_warm(model, kP);
 
     model.set_parameters(p_vec(kP));
-    const WarmStart pred = predict(model, warm, Vec::Zero(1));
+    const SqpWarmStart pred = predict(model, warm, Vec::Zero(1));
     EXPECT_EQ(pred.x, warm.x);
     EXPECT_EQ(pred.lambda_i, warm.lambda_i);
     EXPECT_EQ(pred.bound_active, warm.bound_active);
@@ -792,7 +792,7 @@ TEST(Predictor, PredictorIsTheIdentityOnAZeroStep) {
 TEST(Predictor, PredictorReportsWhichPathItTook) {
     constexpr double kP = 0.45;
     F1BoxQp model(kP);
-    const WarmStart warm = converged_warm(model, kP);
+    const SqpWarmStart warm = converged_warm(model, kP);
 
     // The sentinel is set to the WRONG value before each call, so a predict()
     // that failed to write would leave the assertion failing rather than
@@ -818,7 +818,7 @@ TEST(Predictor, DegradationIsReportedRatherThanThrown) {
     // the two are the same problem at the same p, which is all predict()
     // requires of a warm start.
     F1BoxQp plain(kP);
-    const WarmStart warm = converged_warm(plain, kP);
+    const SqpWarmStart warm = converged_warm(plain, kP);
 
     // BOTH exception types, because the net is by phase and not by type: a
     // std::invalid_argument raised AFTER caller validation is a numerical
@@ -828,7 +828,7 @@ TEST(Predictor, DegradationIsReportedRatherThanThrown) {
         SCOPED_TRACE(as_invalid_argument ? "std::invalid_argument" : "std::runtime_error");
         ProbeRejectingF1 model(kP, as_invalid_argument);
         PredictorOutcome outcome = PredictorOutcome::kPredicted;
-        WarmStart pred;
+        SqpWarmStart pred;
         // It does not THROW -- that is the whole contract: a predictor that
         // cannot predict declines, it does not kill the caller's sweep.
         ASSERT_NO_THROW(pred = predict(model, warm, p_vec(0.1), PredictorOptions{}, &outcome));
@@ -852,12 +852,12 @@ TEST(Predictor, FrozenActivityModeTakesTheRawStep) {
     constexpr double kP = 0.25;
     constexpr double kDp = -0.10;
     F1BoxQp model(kP);
-    const WarmStart warm = converged_warm(model, kP);
+    const SqpWarmStart warm = converged_warm(model, kP);
 
     PredictorOptions frozen;
     frozen.allow_activity_change = false;
     model.set_parameters(p_vec(kP));
-    const WarmStart pred = predict(model, warm, p_vec(kDp), frozen);
+    const SqpWarmStart pred = predict(model, warm, p_vec(kDp), frozen);
 
     EXPECT_GT(pred.x(1), F1BoxQp::kBoxUpper + 1e-3)
         << "x_pred = " << pred.x.transpose() << " should have crossed the 0.8 ceiling unrepaired";
@@ -866,17 +866,17 @@ TEST(Predictor, FrozenActivityModeTakesTheRawStep) {
 
 TEST(Predictor, PredictorRejectsMismatchedDimensions) {
     F1BoxQp model(0.45);
-    const WarmStart warm = converged_warm(model, 0.45);
+    const SqpWarmStart warm = converged_warm(model, 0.45);
     model.set_parameters(p_vec(0.45));
 
     // dp against parameter_dim()
     EXPECT_THROW(predict(model, warm, Vec::Zero(2)), std::invalid_argument);
     // a warm start from a DIFFERENT model shape
-    WarmStart foreign = warm;
+    SqpWarmStart foreign = warm;
     foreign.x = Vec::Zero(5);
     EXPECT_THROW(predict(model, foreign, p_vec(0.1)), std::invalid_argument);
     // a cold (default-constructed) object has nothing to predict FROM
-    EXPECT_THROW(predict(model, WarmStart{}, p_vec(0.1)), std::invalid_argument);
+    EXPECT_THROW(predict(model, SqpWarmStart{}, p_vec(0.1)), std::invalid_argument);
     // a non-finite step
     EXPECT_THROW(predict(model, warm, p_vec(std::nan(""))), std::invalid_argument);
     // a nonsensical finite-difference step
@@ -898,20 +898,20 @@ TEST(Predictor, PredictionAcrossAnInequalityThresholdIsStillSafeToConsume) {
     const double kP = p_star - 0.05;
     const double kDp = 0.10; // lands 0.05 past the threshold
     F2CircleNlp model(kP);
-    const WarmStart warm = converged_warm(model, kP);
+    const SqpWarmStart warm = converged_warm(model, kP);
     ASSERT_FALSE(F2CircleNlp::constraint_active(kP));
     ASSERT_TRUE(F2CircleNlp::constraint_active(kP + kDp));
 
     model.set_parameters(p_vec(kP));
-    const WarmStart pred = predict(model, warm, p_vec(kDp));
+    const SqpWarmStart pred = predict(model, warm, p_vec(kDp));
     // The ADD move fired: the row the warm start had inactive is active in the
     // prediction, and its multiplier is the positive one the far side carries.
     EXPECT_EQ(pred.ineq_active[0], 1);
     EXPECT_GT(pred.lambda_i(0), 0.0);
 
     model.set_parameters(p_vec(kP + kDp));
-    SqpDriver driver(tight_options());
-    const SqpSolution sol = driver.solve(model, model.start_point(), pred);
+    SqpSolver driver(tight_options());
+    const SqpResult sol = driver.solve(model, model.start_point(), pred);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE((sol.x - F2CircleNlp::x_star(kP + kDp)).norm(), 1e-8);
 }
@@ -927,13 +927,13 @@ TEST(Predictor, PredictorDropsAStrictlyActiveRowAcrossItsThreshold) {
     const double kP = p_star + 0.05;
     const double kDp = -0.10; // lands 0.05 short of the threshold
     F2CircleNlp model(kP);
-    const WarmStart warm = converged_warm(model, kP);
+    const SqpWarmStart warm = converged_warm(model, kP);
     ASSERT_TRUE(F2CircleNlp::constraint_active(kP));
     ASSERT_FALSE(F2CircleNlp::constraint_active(kP + kDp));
     ASSERT_GT(warm.lambda_i(0), 0.05) << "fixture premise: the row leaves with a real multiplier";
 
     model.set_parameters(p_vec(kP));
-    const WarmStart pred = predict(model, warm, p_vec(kDp));
+    const SqpWarmStart pred = predict(model, warm, p_vec(kDp));
 
     EXPECT_EQ(pred.ineq_active[0], 0);
     // EXACTLY zero: a deactivated row's multiplier is not "small", it is gone.
@@ -1013,14 +1013,14 @@ TEST(PredictorRatioTest, InheritsTheTrueActivitySetAcrossAnActivationThreshold) 
     opts.feas_tol = 1e-8;
     opts.max_iter = 60;
     opts.adaptive_mu = false;
-    const WarmStart warm = converged_warm(model, kP, opts);
+    const SqpWarmStart warm = converged_warm(model, kP, opts);
     ASSERT_EQ(warm.bound_active, model.active_set(kP).bound_active)
         << "fixture premise: nothing is on the ceiling at p = 0.35";
 
     model.set_parameters(p_vec(kP));
     PredictorOutcome outcome = PredictorOutcome::kDegraded;
     double reached_t = -1.0;
-    const WarmStart pred =
+    const SqpWarmStart pred =
         predict(model, warm, p_vec(kDp), PredictorOptions{}, &outcome, &reached_t);
     ASSERT_EQ(outcome, PredictorOutcome::kPredicted);
     // EXACTLY 1.0: F3's path is piecewise affine, so one breakpoint IS the whole
@@ -1050,16 +1050,16 @@ TEST(PredictorRatioTest, InheritsTheTrueActivitySetAcrossAnActivationThreshold) 
 
     // THE COST, which is what O-2 was reported in. Pinned exactly.
     model.set_parameters(p_vec(kP + kDp));
-    SqpDriver seeded(opts);
-    const SqpSolution boosted = seeded.solve(model, pred.x, pred);
+    SqpSolver seeded(opts);
+    const SqpResult boosted = seeded.solve(model, pred.x, pred);
     ASSERT_EQ(boosted.status, SolveStatus::kOptimal);
     EXPECT_EQ(boosted.counters.major_iters, 1);
     EXPECT_EQ(boosted.counters.qp_minor_iters, 2);
     EXPECT_EQ(boosted.counters.factorizations, 1);
 
     model.set_parameters(p_vec(kP + kDp));
-    SqpDriver plain(opts);
-    const SqpSolution unpredicted = plain.solve(model, warm.x, warm);
+    SqpSolver plain(opts);
+    const SqpResult unpredicted = plain.solve(model, warm.x, warm);
     ASSERT_EQ(unpredicted.status, SolveStatus::kOptimal);
     EXPECT_EQ(unpredicted.counters.qp_minor_iters, 24);
     // The comparison the battery could not make before: the predicted seed is
@@ -1080,7 +1080,7 @@ TEST(PredictorRatioTest, SimultaneousCrossingsAreOneBreakpoint) {
     constexpr double kP = -0.1;  // both constraints inactive
     constexpr double kDp = 0.25; // lands at p = 0.15, both active
     F5MovingThreshold model(kP);
-    const WarmStart warm = converged_warm(model, kP);
+    const SqpWarmStart warm = converged_warm(model, kP);
     ASSERT_EQ(warm.ineq_active[0], 0);
     ASSERT_EQ(warm.bound_active[1], 0);
 
@@ -1089,7 +1089,8 @@ TEST(PredictorRatioTest, SimultaneousCrossingsAreOneBreakpoint) {
     model.set_parameters(p_vec(kP));
     PredictorOutcome outcome = PredictorOutcome::kDegraded;
     double reached_t = -1.0;
-    const WarmStart pred = predict(model, warm, p_vec(kDp), one_breakpoint, &outcome, &reached_t);
+    const SqpWarmStart pred =
+        predict(model, warm, p_vec(kDp), one_breakpoint, &outcome, &reached_t);
     ASSERT_EQ(outcome, PredictorOutcome::kPredicted);
     // ONE breakpoint was enough to reach p + dp, which is the whole claim: if
     // the two crossings were taken as two breakpoints this budget would have
@@ -1112,7 +1113,7 @@ TEST(PredictorRatioTest, SimultaneousCrossingsAreOneBreakpoint) {
 // the prediction must land exactly ON the threshold -- x = (0, 0) at p = 0,
 // with nothing yet active -- rather than extrapolating past it (which is what
 // allow_activity_change = false does, and the two must stay distinguishable).
-// The result is still a WarmStart a solve consumes.
+// The result is still a SqpWarmStart a solve consumes.
 //
 // AND `reached_t` REPORTS IT. F5's shared crossing sits at p = 0, i.e. 0.4 of
 // the way along dp = 0.25 from p = -0.1, so a caller that asked is told the
@@ -1123,14 +1124,14 @@ TEST(PredictorRatioTest, AZeroRoundBudgetStopsAtTheFirstCrossing) {
     constexpr double kP = -0.1;
     constexpr double kDp = 0.25;
     F5MovingThreshold model(kP);
-    const WarmStart warm = converged_warm(model, kP);
+    const SqpWarmStart warm = converged_warm(model, kP);
 
     PredictorOptions truncate;
     truncate.max_activity_rounds = 0;
     model.set_parameters(p_vec(kP));
     PredictorOutcome outcome = PredictorOutcome::kDegraded;
     double reached_t = -1.0;
-    const WarmStart pred = predict(model, warm, p_vec(kDp), truncate, &outcome, &reached_t);
+    const SqpWarmStart pred = predict(model, warm, p_vec(kDp), truncate, &outcome, &reached_t);
     EXPECT_EQ(outcome, PredictorOutcome::kPredicted)
         << "truncation is a prediction, not a degradation -- see "
            "PredictorOptions::max_activity_rounds";
@@ -1146,8 +1147,8 @@ TEST(PredictorRatioTest, AZeroRoundBudgetStopsAtTheFirstCrossing) {
     EXPECT_EQ(pred.bound_active[1], 0);
 
     model.set_parameters(p_vec(kP + kDp));
-    SqpDriver driver(tight_options());
-    const SqpSolution sol = driver.solve(model, pred.x, pred);
+    SqpSolver driver(tight_options());
+    const SqpResult sol = driver.solve(model, pred.x, pred);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_LE((sol.x - F5MovingThreshold::x_star(kP + kDp)).lpNorm<Eigen::Infinity>(), 1e-8);
 }
@@ -1177,7 +1178,7 @@ TEST(PredictorRatioTest, ATruncationToTheIdentityIsVisibleToTheCaller) {
     constexpr double kP = -0.1;
     constexpr double kDp = 0.25;
     F5MovingThreshold model(kP);
-    WarmStart stale = converged_warm(model, kP);
+    SqpWarmStart stale = converged_warm(model, kP);
     ASSERT_EQ(stale.bound_active[1], 0) << "fixture premise: x2 is FREE at p = -0.1";
     // x2 marginally BELOW its lower bound (which is p = -0.1) and moving away
     // from it -- the bound rises with p at rate dp while dx2 is 0, so the gap
@@ -1189,7 +1190,7 @@ TEST(PredictorRatioTest, ATruncationToTheIdentityIsVisibleToTheCaller) {
     model.set_parameters(p_vec(kP));
     PredictorOutcome outcome = PredictorOutcome::kDegraded;
     double reached_t = -1.0;
-    const WarmStart pred = predict(model, stale, p_vec(kDp), truncate, &outcome, &reached_t);
+    const SqpWarmStart pred = predict(model, stale, p_vec(kDp), truncate, &outcome, &reached_t);
 
     // The pair, and only the pair, is unambiguous.
     EXPECT_EQ(outcome, PredictorOutcome::kPredicted)
@@ -1206,7 +1207,8 @@ TEST(PredictorRatioTest, ATruncationToTheIdentityIsVisibleToTheCaller) {
     // about staleness.
     model.set_parameters(p_vec(kP));
     double full_t = -1.0;
-    const WarmStart full = predict(model, stale, p_vec(kDp), PredictorOptions{}, &outcome, &full_t);
+    const SqpWarmStart full =
+        predict(model, stale, p_vec(kDp), PredictorOptions{}, &outcome, &full_t);
     EXPECT_EQ(full_t, 1.0);
     EXPECT_NE(full.x, stale.x);
 }
@@ -1241,12 +1243,12 @@ TEST(PredictorRatioTest, SurvivesACurvedManyJunctionThresholdCrossing) {
     opts.feas_tol = 1e-8;
     opts.max_iter = 60;
     opts.adaptive_mu = false;
-    const WarmStart warm = converged_warm(model, kP, opts);
+    const SqpWarmStart warm = converged_warm(model, kP, opts);
 
     model.set_parameters(p_vec(kP));
     PredictorOutcome outcome = PredictorOutcome::kDegraded;
     double reached_t = -1.0;
-    const WarmStart pred =
+    const SqpWarmStart pred =
         predict(model, warm, p_vec(kDp), PredictorOptions{}, &outcome, &reached_t);
     ASSERT_EQ(outcome, PredictorOutcome::kPredicted);
 
@@ -1273,8 +1275,8 @@ TEST(PredictorRatioTest, SurvivesACurvedManyJunctionThresholdCrossing) {
         << "the prediction pinned control bounds that are free at the solution";
 
     model.set_parameters(p_vec(kP + kDp));
-    SqpDriver seeded(opts);
-    const SqpSolution boosted = seeded.solve(model, pred.x, pred);
+    SqpSolver seeded(opts);
+    const SqpResult boosted = seeded.solve(model, pred.x, pred);
     // THE CLAIM: it converges at all. Pre-Task-6 this was kNumericalError.
     ASSERT_EQ(boosted.status, SolveStatus::kOptimal) << "status = " << to_string(boosted.status);
     EXPECT_EQ(boosted.counters.major_iters, 3);
@@ -1296,7 +1298,7 @@ TEST(PredictorRatioTest, SurvivesACurvedManyJunctionThresholdCrossing) {
 // one (project rule T6).
 TEST(PredictorRatioTest, RejectsANegativeRoundBudget) {
     F1BoxQp model(0.45);
-    const WarmStart warm = converged_warm(model, 0.45);
+    const SqpWarmStart warm = converged_warm(model, 0.45);
     model.set_parameters(p_vec(0.45));
     PredictorOptions bad;
     bad.max_activity_rounds = -1;
@@ -1307,8 +1309,8 @@ TEST(PredictorRatioTest, RejectsANegativeRoundBudget) {
 // =====================================================================
 // PHASE-6 FINAL FIX WAVE (W1) -- **THE EMITTED PRICE IS NEVER NEGATIVE.**
 //
-// THE BYPASS THIS PINS. `lambda_i >= 0` is a WarmStart PRECONDITION
-// (warm_start.h's SIGN CONVENTIONS), and sqp_driver.h gates it at kSeeded ONLY,
+// THE BYPASS THIS PINS. `lambda_i >= 0` is a SqpWarmStart PRECONDITION
+// (warm_start.h's SIGN CONVENTIONS), and sqp_solver.h gates it at kSeeded ONLY,
 // on the argument that every producer able to clear a HASH gate is either
 // non-negative by construction or "bounded by 1e-9 relative (predictor.h's
 // kDualSignTol)". predict() carries structure_hash forward, so its output does
@@ -1405,7 +1407,7 @@ SqpOptions scaled_price_options() {
 
 TEST(Predictor, TheEmittedInequalityPriceIsNeverNegative) {
     W1ScaledPriceLine model(0.0);
-    const WarmStart warm =
+    const SqpWarmStart warm =
         with_regularization(converged_warm(model, 0.0, scaled_price_options()), kTightReg);
     ASSERT_NEAR(W1ScaledPriceLine::lambda_star(0.0), warm.lambda_i(0), 1e3)
         << "fixture premise: the warm price is ~1e9, so the retention band is ~1.0 wide";
@@ -1415,7 +1417,7 @@ TEST(Predictor, TheEmittedInequalityPriceIsNeverNegative) {
     // the warm solve's last digits were -- see the fixture banner.
     const double kDp = (warm.lambda_i(0) + 0.5) / W1ScaledPriceLine::kScale;
     model.set_parameters(p_vec(0.0));
-    const WarmStart pred = predict(model, warm, p_vec(kDp));
+    const SqpWarmStart pred = predict(model, warm, p_vec(kDp));
 
     // The ratio test KEPT the row -- the retained value is inside the band, so
     // no DROP breakpoint fires and this is the bypass, not a drop.
@@ -1427,7 +1429,7 @@ TEST(Predictor, TheEmittedInequalityPriceIsNeverNegative) {
     // kWarm where nothing gates the sign at all.
     EXPECT_GE(pred.lambda_i(0), 0.0)
         << "predictor.h emitted " << pred.lambda_i(0)
-        << "; WarmStart's SIGN CONVENTIONS make lambda_i >= 0 a precondition its own producers "
+        << "; SqpWarmStart's SIGN CONVENTIONS make lambda_i >= 0 a precondition its own producers "
            "must honour";
     EXPECT_DOUBLE_EQ(pred.lambda_i(0), 0.0) << "clamped to zero, not merely made small";
 
@@ -1435,8 +1437,8 @@ TEST(Predictor, TheEmittedInequalityPriceIsNeverNegative) {
     // majors, never the answer. Just past the crossing the row no longer binds,
     // so the truth is the unconstrained minimizer x = A (1 - p) ~ 0.5.
     model.set_parameters(p_vec(kDp));
-    SqpDriver driver(scaled_price_options());
-    const SqpSolution sol = driver.solve(model, pred.x, pred);
+    SqpSolver driver(scaled_price_options());
+    const SqpResult sol = driver.solve(model, pred.x, pred);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_NEAR(sol.x(0), model.slope(), 1e-6);
     EXPECT_LT(model.slope(), 1.0) << "fixture premise: the row is no longer binding at p + dp";
@@ -1448,12 +1450,12 @@ TEST(Predictor, TheEmittedInequalityPriceIsNeverNegative) {
 // so the emitted multiplier can be negative by any amount at all.
 TEST(Predictor, TheFrozenSetStepAlsoEmitsANonNegativePrice) {
     W1ScaledPriceLine model(0.0);
-    const WarmStart warm = converged_warm(model, 0.0, scaled_price_options());
+    const SqpWarmStart warm = converged_warm(model, 0.0, scaled_price_options());
     model.set_parameters(p_vec(0.0));
 
     PredictorOptions frozen;
     frozen.allow_activity_change = false;
-    const WarmStart pred = predict(model, warm, p_vec(1.5), frozen);
+    const SqpWarmStart pred = predict(model, warm, p_vec(1.5), frozen);
 
     EXPECT_EQ(pred.ineq_active[0], 1) << "the frozen set is frozen -- the row stays nominated";
     EXPECT_GE(pred.lambda_i(0), 0.0)

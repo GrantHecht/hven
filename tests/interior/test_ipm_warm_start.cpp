@@ -46,7 +46,7 @@
 #include "hven/detail/globalization/l1_restoration.h"
 #include "hven/detail/globalization/recovery_chain.h"
 #include "hven/detail/model/nlp_adapter.h"
-#include "hven/drivers/interior_point_solver.h"
+#include "hven/drivers/ipm_solver.h"
 #include "hven/warmstart/ipm_polish_extension.h"
 #include "hven/warmstart/warm_start_data.h"
 
@@ -54,7 +54,7 @@
 
 using hven::ConstEigenRef;
 using hven::solvers::declaration_key;
-using hven::solvers::NLPProblem;
+using hven::solvers::NlpTripletModel;
 using hven::solvers::WarmStartData;
 
 namespace {
@@ -66,7 +66,7 @@ constexpr double kWarmInf = std::numeric_limits<double>::infinity();
 // right instrument for the start-point pins: with no bound set the solve's
 // interior push is a no-op, so the first iterate's primal block is exactly the
 // vector handed in.
-struct WarmEqOnlyProblem : NLPProblem {
+struct WarmEqOnlyProblem : NlpTripletModel {
     int num_vars() const override { return 2; }
     int num_cons() const override { return 1; }
     int num_jac_nonzeros() const override { return 2; }
@@ -114,7 +114,7 @@ struct WarmEqOnlyProblem : NLPProblem {
 
 // WarmEqOnlyProblem widened to three variables, so a solver re-bound onto it
 // carries a different declared structure (and therefore a different stamp).
-struct WarmWiderProblem : NLPProblem {
+struct WarmWiderProblem : NlpTripletModel {
     int num_vars() const override { return 3; }
     int num_cons() const override { return 1; }
     int num_jac_nonzeros() const override { return 3; }
@@ -164,7 +164,7 @@ struct WarmWiderProblem : NLPProblem {
 //
 // min 0.5*((x0+1)^2 + x1^2 + x2^2) s.t. x1 + x2 = 1, x0 in [0, 5], x2 == 0.25.
 // Optimum: x2 = 0.25 (held), x1 = 0.75, x0 = 0 (at its lower bound, z0 = 1).
-struct WarmFixedVarProblem : NLPProblem {
+struct WarmFixedVarProblem : NlpTripletModel {
     int num_vars() const override { return 3; }
     int num_cons() const override { return 1; }
     int num_jac_nonzeros() const override { return 2; }
@@ -218,7 +218,7 @@ Eigen::VectorXd warm_eq_start() {
     return x0;
 }
 
-// InteriorPointSolver's one entry returns the whole result and BORROWS the
+// IpmSolver's one entry returns the whole result and BORROWS the
 // program for the call (M6 W5 T8.4). Wrapped so the pins below read as flag
 // comparisons, and so the program each pin solves is named at its own call
 // site rather than left implicit in a prior attach.
@@ -230,7 +230,7 @@ Eigen::VectorXd warm_eq_start() {
 // exactly one writer.
 hven::solvers::IpmResult g_warm_result;
 
-hven::solvers::SolveStatus warm_optimize(hven::solvers::InteriorPointSolver &opt,
+hven::solvers::SolveStatus warm_optimize(hven::solvers::IpmSolver &opt,
                                          hven::solvers::NonLinearProgram &model,
                                          const Eigen::VectorXd &x0) {
     g_warm_result = opt.solve(model, x0);
@@ -241,7 +241,7 @@ hven::solvers::SolveStatus warm_optimize(hven::solvers::InteriorPointSolver &opt
 // stage_warm_start(p) and then solved calls this instead: the payload is an
 // ARGUMENT to the solve it applies to, so there is no one-shot state between
 // the two calls and nothing to consume, disarm or leak.
-hven::solvers::SolveStatus warm_optimize(hven::solvers::InteriorPointSolver &opt,
+hven::solvers::SolveStatus warm_optimize(hven::solvers::IpmSolver &opt,
                                          hven::solvers::NonLinearProgram &model,
                                          const Eigen::VectorXd &x0, const WarmStartData &payload) {
     g_warm_result = opt.solve(model, x0, payload);
@@ -251,7 +251,7 @@ hven::solvers::SolveStatus warm_optimize(hven::solvers::InteriorPointSolver &opt
 /// The result of the most recent warm_optimize() call.
 const hven::solvers::IpmResult &warm_result() { return g_warm_result; }
 
-// THE EXPORT, OFF THE RESULT (M6 W5 T8.5). InteriorPointSolver::
+// THE EXPORT, OFF THE RESULT (M6 W5 T8.5). IpmSolver::
 // export_warm_start() is gone; the capture it served travels on the returned
 // value as a std::optional. This helper reads the LAST warm_optimize() call's
 // snapshot -- the same value that entry returned -- and throws the same
@@ -273,7 +273,7 @@ struct FirstIterateProbe {
     Eigen::VectorXd primal_;
     bool seen_ = false;
 
-    void arm(hven::solvers::InteriorPointSolver &opt, int reduced_primal_vars) {
+    void arm(hven::solvers::IpmSolver &opt, int reduced_primal_vars) {
         this->primal_.resize(0);
         this->seen_ = false;
         opt.set_kkt_hook(
@@ -304,7 +304,7 @@ void expect_bit_identical(const Eigen::VectorXd &a, const Eigen::VectorXd &b, co
 
 // --- The no-completed-solve refusal ---
 //
-// DECLARED FLIP (M6 W5 T8.5): InteriorPointSolver::export_warm_start() is gone,
+// DECLARED FLIP (M6 W5 T8.5): IpmSolver::export_warm_start() is gone,
 // so "a fresh solver refuses to export" is now "a result no solve produced
 // carries no snapshot to export". The refusal moved from a throw at an entry
 // that no longer exists to a DISENGAGED std::optional on the value itself,
@@ -315,7 +315,7 @@ void expect_bit_identical(const Eigen::VectorXd &a, const Eigen::VectorXd &b, co
 TEST(IpmWarmStart, AFreshSolverHasNoCompletedSolveAndNoResultToExportFrom) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -342,7 +342,7 @@ TEST(IpmWarmStart, AFreshSolverHasNoCompletedSolveAndNoResultToExportFrom) {
 TEST(IpmWarmStart, ASolveThatThrewIsNotACompletedSolve) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -367,7 +367,7 @@ TEST(IpmWarmStart, ASolveThatThrewIsNotACompletedSolve) {
 TEST(IpmWarmStart, ExportIsStampedAndDeclaredWidthOnAnEliminatingProblem) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmFixedVarProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -431,7 +431,7 @@ TEST(IpmWarmStart, ExportIsStampedAndDeclaredWidthOnAnEliminatingProblem) {
 TEST(IpmWarmStart, TheStampIsCapturedAtSolveCompletionNotAtExport) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -467,7 +467,7 @@ TEST(IpmWarmStart, TheStampIsCapturedAtSolveCompletionNotAtExport) {
 TEST(IpmWarmStart, TheSizeRefusalNamesTheBlockAndBothCountsAtSolveEntry) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -495,7 +495,7 @@ TEST(IpmWarmStart, TheSizeRefusalNamesTheBlockAndBothCountsAtSolveEntry) {
 TEST(IpmWarmStart, TheHandOverRefusesANonFiniteBlock) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -521,7 +521,7 @@ TEST(IpmWarmStart, TheHandOverRefusesANonFiniteBlock) {
 TEST(IpmWarmStart, ARefusedPayloadLeavesNothingBehindForTheNextSolve) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -565,7 +565,7 @@ TEST(IpmWarmStart, ARefusedPayloadLeavesNothingBehindForTheNextSolve) {
 TEST(IpmWarmStart, ARelayBetweenExportAndSolvingRefusesAtSolveEntry) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -597,7 +597,7 @@ TEST(IpmWarmStart, ARelayBetweenExportAndSolvingRefusesAtSolveEntry) {
 TEST(IpmWarmStart, ARebindToADifferentStructureRefusesAtSolveEntry) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -609,7 +609,7 @@ TEST(IpmWarmStart, ARebindToADifferentStructureRefusesAtSolveEntry) {
 
     const auto wider_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmWiderProblem>());
-    hven::solvers::InteriorPointSolver wider;
+    hven::solvers::IpmSolver wider;
     {
         auto o = wider.options();
         o.common.print_level = 10;
@@ -629,7 +629,7 @@ TEST(IpmWarmStart, ARebindToADifferentStructureRefusesAtSolveEntry) {
 TEST(IpmWarmStart, APayloadSurvivesAnIdenticalStampRelayAndIsTheSolveStart) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -668,7 +668,7 @@ TEST(IpmWarmStart, APayloadSurvivesAnIdenticalStampRelayAndIsTheSolveStart) {
 TEST(IpmWarmStart, APayloadAppliesToItsOwnCallAndTheNextSolveIsCold) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -700,7 +700,7 @@ TEST(IpmWarmStart, APayloadAppliesToItsOwnCallAndTheNextSolveIsCold) {
 TEST(IpmWarmStart, PassingTheSamePayloadTwiceFromColdGivesBitIdenticalFirstIterates) {
     const auto source_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver source;
+    hven::solvers::IpmSolver source;
     {
         auto o = source.options();
         o.common.print_level = 10;
@@ -720,7 +720,7 @@ TEST(IpmWarmStart, PassingTheSamePayloadTwiceFromColdGivesBitIdenticalFirstItera
     for (Eigen::VectorXd *out : {&first_start, &second_start}) {
         const auto fresh_program =
             hven::solvers::make_nlp_program(std::make_shared<WarmEqOnlyProblem>());
-        hven::solvers::InteriorPointSolver fresh;
+        hven::solvers::IpmSolver fresh;
         {
             auto o = fresh.options();
             o.common.print_level = 10;
@@ -751,7 +751,7 @@ TEST(IpmWarmStart, PassingTheSamePayloadTwiceFromColdGivesBitIdenticalFirstItera
 TEST(IpmWarmStart, AnExportPayloadRoundTripStartsAtTheExportingSolvesTerminalPoint) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -779,7 +779,7 @@ TEST(IpmWarmStart, AnExportPayloadRoundTripStartsAtTheExportingSolvesTerminalPoi
 TEST(IpmWarmStart, ValuesAtEliminatedVariablesAreIgnoredOnApplication) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmFixedVarProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -827,7 +827,7 @@ TEST(IpmWarmStart, ValuesAtEliminatedVariablesAreIgnoredOnApplication) {
 TEST(IpmWarmStart, MakeConstraintExportDropsTheTreatmentsInternalFixingRow) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmFixedVarProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -916,7 +916,7 @@ TEST(IpmWarmStart, MakeConstraintExportDropsTheTreatmentsInternalFixingRow) {
 TEST(IpmWarmStart, AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings) {
     const auto source_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmFixedVarProblem>());
-    hven::solvers::InteriorPointSolver source;
+    hven::solvers::IpmSolver source;
     {
         auto o = source.options();
         o.common.print_level = 10;
@@ -942,7 +942,7 @@ TEST(IpmWarmStart, AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings)
     // A cold engine on the same declaration and the same settings.
     const auto fresh_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmFixedVarProblem>());
-    hven::solvers::InteriorPointSolver fresh;
+    hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
         o.common.print_level = 10;
@@ -1005,7 +1005,7 @@ TEST(IpmWarmStart, AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings)
 TEST(IpmWarmStart, AnExportUnderOneTreatmentStagesAndAppliesUnderAnother) {
     const auto source_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmFixedVarProblem>());
-    hven::solvers::InteriorPointSolver source;
+    hven::solvers::IpmSolver source;
     {
         auto o = source.options();
         o.common.print_level = 10;
@@ -1026,7 +1026,7 @@ TEST(IpmWarmStart, AnExportUnderOneTreatmentStagesAndAppliesUnderAnother) {
     // The receiving engine: same declaration, DIFFERENT treatment.
     const auto sink_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmFixedVarProblem>());
-    hven::solvers::InteriorPointSolver sink;
+    hven::solvers::IpmSolver sink;
     {
         auto o = sink.options();
         o.common.print_level = 10;
@@ -1082,7 +1082,7 @@ TEST(IpmWarmStart, AnExportUnderOneTreatmentStagesAndAppliesUnderAnother) {
 TEST(IpmWarmStart, ThePointFormAndTheSeedFormAreTheSameArgument) {
     const auto source_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver source;
+    hven::solvers::IpmSolver source;
     {
         auto o = source.options();
         o.common.print_level = 10;
@@ -1108,7 +1108,7 @@ TEST(IpmWarmStart, ThePointFormAndTheSeedFormAreTheSameArgument) {
 
     // The POINT form starts at the payload's point.
     const auto a_program = hven::solvers::make_nlp_program(std::make_shared<WarmEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver a;
+    hven::solvers::IpmSolver a;
     {
         auto o = a.options();
         o.common.print_level = 10;
@@ -1124,7 +1124,7 @@ TEST(IpmWarmStart, ThePointFormAndTheSeedFormAreTheSameArgument) {
     // The SEED form starts at x0 -- there being no point in it to start from --
     // and still converges, the multipliers having been installed.
     const auto b_program = hven::solvers::make_nlp_program(std::make_shared<WarmEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver b;
+    hven::solvers::IpmSolver b;
     {
         auto o = b.options();
         o.common.print_level = 10;
@@ -1148,7 +1148,7 @@ TEST(IpmWarmStart, ThePointFormAndTheSeedFormAreTheSameArgument) {
 TEST(IpmWarmStart, AnEmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -1204,7 +1204,7 @@ TEST(IpmWarmStart, AnEmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver) {
 // The genuinely two-sided case (where that inversion does NOT exist, which is
 // the whole reason this extension does) is covered by the hand-built bridge
 // pins in the warmstart suite.
-struct WarmBoundedProblem : NLPProblem {
+struct WarmBoundedProblem : NlpTripletModel {
     int num_vars() const override { return 2; }
     int num_cons() const override { return 1; }
     int num_jac_nonzeros() const override { return 2; }
@@ -1262,7 +1262,7 @@ Eigen::VectorXd warm_bounded_start() {
 struct WarmBoundedSolve {
     std::shared_ptr<hven::solvers::NonLinearProgram> program_ =
         hven::solvers::make_nlp_program(std::make_shared<WarmBoundedProblem>());
-    hven::solvers::InteriorPointSolver solver_;
+    hven::solvers::IpmSolver solver_;
     WarmStartData warm_;
 
     WarmBoundedSolve() {
@@ -1308,7 +1308,7 @@ struct FirstIterateDualProbe {
     int iter_ = -1;
     bool seen_ = false;
 
-    void arm(hven::solvers::InteriorPointSolver &opt) {
+    void arm(hven::solvers::IpmSolver &opt) {
         this->kkt_inf_ = -1.0;
         this->iter_ = -1;
         this->seen_ = false;
@@ -1333,7 +1333,7 @@ struct WarmRun {
 WarmRun run_warm(const WarmStartData &warm) {
     const auto fresh_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmBoundedProblem>());
-    hven::solvers::InteriorPointSolver fresh;
+    hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
         o.common.print_level = 10;
@@ -1397,7 +1397,7 @@ TEST(IpmWarmStart, ExportCarriesThePolishTagOnABoundedProblem) {
 TEST(IpmWarmStart, ExportCarriesNoExtensionWhenTheProblemHasNoFiniteBounds) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -1423,7 +1423,7 @@ TEST(IpmWarmStart, ExportCarriesNoExtensionWhenTheProblemHasNoFiniteBounds) {
 // with no re-declaration. That is what the pin below needs.
 //
 // min 0.5*((x0 - 1)^2 + (x1 + 2)^2)  s.t.  x0 + x1 <= 5.
-struct WarmFixedOnlyBoundProblem : NLPProblem {
+struct WarmFixedOnlyBoundProblem : NlpTripletModel {
     int num_vars() const override { return 2; }
     int num_cons() const override { return 1; }
     int num_jac_nonzeros() const override { return 2; }
@@ -1474,12 +1474,12 @@ struct WarmFixedOnlyBoundProblem : NLPProblem {
 // hand-off on a problem with no variable-bound barrier terms at all -- an
 // all-zero (z_lower, z_upper) pair a consumer would stage and seed from.
 //
-// Both solves run on ONE InteriorPointSolver instance holding ONE program;
+// Both solves run on ONE IpmSolver instance holding ONE program;
 // only Settings::fixed_variable_treatment_ moves between them.
 TEST(IpmWarmStart, ARelayThatEmptiesTheBoundSetLeavesNoBoundStoryOnTheSameInstance) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmFixedOnlyBoundProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -1582,7 +1582,7 @@ TEST(IpmWarmStart, ARelayThatEmptiesTheBoundSetLeavesNoBoundStoryOnTheSameInstan
 // eval seam writes the CONDENSED residual into the RHS -- the contamination
 // the suppression exists for), and the max_iters break with restoration still
 // active.
-struct WarmInfeasibleBoundedProblem : NLPProblem {
+struct WarmInfeasibleBoundedProblem : NlpTripletModel {
     // The first point ever evaluated. Mutable because the evaluation surface is
     // const; one instance per solve, and nothing here is shared across threads.
     mutable Eigen::VectorXd anchor_;
@@ -1664,7 +1664,7 @@ struct WarmInfeasibleBoundedProblem : NLPProblem {
 TEST(IpmWarmStart, ARestorationActiveExitExportsTheCoreWithoutThePolishTag) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmInfeasibleBoundedProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         // filter acceptance + monitored governor + nested-l1 restoration: the
         // shipped preset whose restoration arm this fixture is built for. The
@@ -1751,7 +1751,7 @@ TEST(IpmWarmStart, ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToThe
 
     const auto seeded_route =
         hven_interior_tests::transcribe(std::make_shared<WarmInfeasibleSeededMultProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = hven::solvers::ipm_preset("filter_l1");
         o.common.print_level = 10;
@@ -1850,7 +1850,7 @@ TEST(IpmWarmStart, ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToThe
 TEST(IpmWarmStart, ABoundedOptimalExitUnderTheSamePresetKeepsThePolishTag) {
     const auto solver_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmBoundedProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = hven::solvers::ipm_preset("filter_l1");
         o.common.print_level = 10;
@@ -1885,7 +1885,7 @@ TEST(IpmWarmStart, TheHandOverRefusesAMalformedPayloadUnderTheKnownTagNamingIt) 
 
     const auto fresh_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmBoundedProblem>());
-    hven::solvers::InteriorPointSolver fresh;
+    hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
         o.common.print_level = 10;
@@ -1896,7 +1896,7 @@ TEST(IpmWarmStart, TheHandOverRefusesAMalformedPayloadUnderTheKnownTagNamingIt) 
         ADD_FAILURE() << "expected a refusal";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
-        EXPECT_NE(message.find("InteriorPointSolver::solve"), std::string::npos) << message;
+        EXPECT_NE(message.find("IpmSolver::solve"), std::string::npos) << message;
         EXPECT_NE(message.find(std::string(hven::solvers::kIpmPolishTag)), std::string::npos)
             << message;
         EXPECT_NE(message.find("payload magic"), std::string::npos) << message;
@@ -1916,7 +1916,7 @@ TEST(IpmWarmStart, EveryTruncationOfThePolishPayloadRefusesAtTheHandOverNamingTh
 
     const auto fresh_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmBoundedProblem>());
-    hven::solvers::InteriorPointSolver fresh;
+    hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
         o.common.print_level = 10;
@@ -1950,7 +1950,7 @@ TEST(IpmWarmStart, TheHandOverRefusesAPolishBlockThatIsNotAtTheDeclaredWidth) {
 
     const auto fresh_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmBoundedProblem>());
-    hven::solvers::InteriorPointSolver fresh;
+    hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
         o.common.print_level = 10;
@@ -1986,7 +1986,7 @@ TEST(IpmWarmStart, TheHandOverRefusesANegativeLowerBoundPriceNamingTheTagAndTheB
 
     const auto fresh_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmBoundedProblem>());
-    hven::solvers::InteriorPointSolver fresh;
+    hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
         o.common.print_level = 10;
@@ -1997,7 +1997,7 @@ TEST(IpmWarmStart, TheHandOverRefusesANegativeLowerBoundPriceNamingTheTagAndTheB
         ADD_FAILURE() << "expected a refusal";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
-        EXPECT_EQ(message.rfind("InteriorPointSolver::solve:", 0), 0u) << message;
+        EXPECT_EQ(message.rfind("IpmSolver::solve:", 0), 0u) << message;
         EXPECT_NE(message.find(std::string(hven::solvers::kIpmPolishTag)), std::string::npos)
             << message;
         EXPECT_NE(message.find("lower-bound multiplier block"), std::string::npos) << message;
@@ -2016,7 +2016,7 @@ TEST(IpmWarmStart, TheHandOverRefusesANegativeUpperBoundPriceNamingTheTagAndTheB
 
     const auto fresh_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmBoundedProblem>());
-    hven::solvers::InteriorPointSolver fresh;
+    hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
         o.common.print_level = 10;
@@ -2027,7 +2027,7 @@ TEST(IpmWarmStart, TheHandOverRefusesANegativeUpperBoundPriceNamingTheTagAndTheB
         ADD_FAILURE() << "expected a refusal";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
-        EXPECT_EQ(message.rfind("InteriorPointSolver::solve:", 0), 0u) << message;
+        EXPECT_EQ(message.rfind("IpmSolver::solve:", 0), 0u) << message;
         EXPECT_NE(message.find(std::string(hven::solvers::kIpmPolishTag)), std::string::npos)
             << message;
         EXPECT_NE(message.find("upper-bound multiplier block"), std::string::npos) << message;
@@ -2049,7 +2049,7 @@ TEST(IpmWarmStart, AZeroValuedPriceBlockIsStillAcceptedAndSolves) {
 
     const auto fresh_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmBoundedProblem>());
-    hven::solvers::InteriorPointSolver fresh;
+    hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
         o.common.print_level = 10;
@@ -2070,7 +2070,7 @@ TEST(IpmWarmStart, TheHandOverRefusesThePolishTagCarriedTwiceNamingTheEntry) {
 
     const auto fresh_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmBoundedProblem>());
-    hven::solvers::InteriorPointSolver fresh;
+    hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
         o.common.print_level = 10;
@@ -2081,7 +2081,7 @@ TEST(IpmWarmStart, TheHandOverRefusesThePolishTagCarriedTwiceNamingTheEntry) {
         ADD_FAILURE() << "expected a refusal";
     } catch (const std::invalid_argument &error) {
         const std::string message = error.what();
-        EXPECT_EQ(message.rfind("InteriorPointSolver::solve:", 0), 0u) << message;
+        EXPECT_EQ(message.rfind("IpmSolver::solve:", 0), 0u) << message;
         EXPECT_NE(message.find("more than once"), std::string::npos) << message;
         EXPECT_NE(message.find(std::string(hven::solvers::kIpmPolishTag)), std::string::npos)
             << message;
@@ -2098,7 +2098,7 @@ TEST(IpmWarmStart, AForeignExtensionTagIsIgnoredAtTheHandOverAndAtSolve) {
 
     const auto fresh_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmBoundedProblem>());
-    hven::solvers::InteriorPointSolver fresh;
+    hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
         o.common.print_level = 10;
@@ -2154,7 +2154,7 @@ TEST(IpmWarmStart, TheBridgeEqualsTheCrossoverHandedTheSolvesOwnRawBlocks) {
     lower << -kWarmInf, -1.0;
     upper << 1.0, kWarmInf;
 
-    const hven::solvers::WarmStart bridged =
+    const hven::solvers::SqpWarmStart bridged =
         hven::solvers::to_sqp_warm_start(solved.warm_, lower, upper, solved.warm_.structure_key_);
 
     // THE RAW BLOCKS A CALLER WOULD HAVE HANDED OVER DIRECTLY, taken from the
@@ -2165,7 +2165,7 @@ TEST(IpmWarmStart, TheBridgeEqualsTheCrossoverHandedTheSolvesOwnRawBlocks) {
     const Eigen::VectorXd z = result.z;
     const Eigen::VectorXd z_lower = z.cwiseMax(0.0);
     const Eigen::VectorXd z_upper = (-z).cwiseMax(0.0);
-    const hven::solvers::WarmStart direct = hven::solvers::from_interior_point(
+    const hven::solvers::SqpWarmStart direct = hven::solvers::from_interior_point(
         result.x, result.lambda_e, result.lambda_i, result.ci, z_lower, z_upper, lower, upper);
 
     // BIT-EXACT: from_interior_point is deterministic and both calls reach it
@@ -2228,7 +2228,7 @@ struct WarmAnswer {
     Eigen::VectorXd primals_, eq_lmults_, iq_lmults_, bound_lmults_, eq_cons_, iq_cons_;
 };
 
-WarmAnswer answer_of(const hven::solvers::InteriorPointSolver &) {
+WarmAnswer answer_of(const hven::solvers::IpmSolver &) {
     const auto &r = warm_result();
     WarmAnswer a;
     a.flag_ = r.status;
@@ -2272,7 +2272,7 @@ void expect_same_answer(const WarmAnswer &hot, const WarmAnswer &cold) {
 TEST(IpmWarmStart, AnUnchangedEpochResolveAnswersExactlyWhatAFreshEngineAnswers) {
     const auto reused_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmBoundedProblem>());
-    hven::solvers::InteriorPointSolver reused;
+    hven::solvers::IpmSolver reused;
     {
         auto o = reused.options();
         o.common.print_level = 10;
@@ -2304,7 +2304,7 @@ TEST(IpmWarmStart, AnUnchangedEpochResolveAnswersExactlyWhatAFreshEngineAnswers)
     // analysis the second solve above skipped, and must land on the same bits.
     const auto fresh_program =
         hven::solvers::make_nlp_program(std::make_shared<WarmBoundedProblem>());
-    hven::solvers::InteriorPointSolver fresh;
+    hven::solvers::IpmSolver fresh;
     {
         auto o = fresh.options();
         o.common.print_level = 10;

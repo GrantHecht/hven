@@ -1625,7 +1625,7 @@ TEST(IpqpEscapeLadderTest, TheThresholdIsTheOptionAndIsValidatedAtTheBoundary) {
     EXPECT_EQ(patient.retired_after(), 5);
 
     // BOUNDARY VALIDATION (CLAUDE.md section 4): this type is reachable
-    // without a driver, so it re-checks the band `validate_sqp_options` owns
+    // without a driver, so it re-checks the band `validate` owns
     // rather than trusting a caller that may never have run one.
     IpqpOptions bad;
     bad.ipqp_retire_after = 0;

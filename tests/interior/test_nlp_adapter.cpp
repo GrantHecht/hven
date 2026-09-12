@@ -16,17 +16,17 @@ constexpr double kInf = std::numeric_limits<double>::infinity();
 
 using hven::ConstEigenRef;
 using hven::solvers::NLPAdapterCore;
-using hven::solvers::NLPProblem;
 using hven::solvers::NlpProblemModel;
 using hven::solvers::NLPRowClassification;
 using hven::solvers::NLPRowKind;
+using hven::solvers::NlpTripletModel;
 
 namespace {
 
 /// The whole route a declared problem takes to the engine: the triplet-to-
 /// native conversion, then the piece host over the model it produced. Every
 /// test below builds through this, because nothing else builds at all.
-std::shared_ptr<NLPAdapterCore> adapter_host(const std::shared_ptr<NLPProblem> &problem) {
+std::shared_ptr<NLPAdapterCore> adapter_host(const std::shared_ptr<NlpTripletModel> &problem) {
     auto model = std::make_shared<NlpProblemModel>(problem);
     return std::make_shared<NLPAdapterCore>(model, problem->name());
 }
@@ -35,7 +35,7 @@ std::shared_ptr<NLPAdapterCore> adapter_host(const std::shared_ptr<NLPProblem> &
 
 // Minimal configurable problem for validation tests. Field defaults describe a
 // valid 2-var, 2-con problem; individual tests break one field at a time.
-struct AdapterValProblem : NLPProblem {
+struct AdapterValProblem : NlpTripletModel {
     int n_ = 2, m_ = 2, jnnz_ = 4, hnnz_ = 2;
     Eigen::VectorXd xl_{{-kInf, -kInf}}, xu_{{kInf, kInf}};
     Eigen::VectorXd gl_{{0.0, -kInf}}, gu_{{0.0, 1.0}};
@@ -196,7 +196,7 @@ TEST(NLPAdapterCoreTest, HessianOwnerFallsBackToEqThenObjective) {
 // x0^2 + x1 <= 9 (upper-bounded), x0*x1 >= 1 (lower-bounded, negated by the
 // adapter). The Hessian structure carries a duplicate (0, 0) slot to prove
 // duplicate slots are summed rather than overwritten.
-struct AsmTestProblem : NLPProblem {
+struct AsmTestProblem : NlpTripletModel {
     mutable int n_eval_g_ = 0, n_eval_jac_ = 0, n_eval_hess_ = 0;
 
     int num_vars() const override { return 2; }
@@ -313,7 +313,7 @@ TEST(NLPAdapterAssemblyTest, KktMatchesDenseReferenceAndCallbacksAreCounted) {
     // User-space lambda: eq passes through, upper passes through, lower negates.
     const double lam1 = LI[0], lam2 = -LI[1];
     // NonLinearProgram::analyze_sparsity stores every claimed (row, col) pair
-    // physically at (min(row, col), max(row, col)) -- InteriorPointSolver's sparse backends
+    // physically at (min(row, col), max(row, col)) -- IpmSolver's sparse backends
     // want the upper triangle of the symmetric KKT system filled, so a claim
     // like (constraint_row, variable_col), with constraint_row always the
     // larger index, is read back via kkt.coeff(variable_col, constraint_row).
@@ -375,7 +375,7 @@ TEST(NLPAdapterAssemblyTest, ShortEqualityMultiplierBlockIsRefusedBeforeItIsRead
         // number in it would satisfy.
         EXPECT_NE(message.find("0 equality multipliers"), std::string::npos) << message;
         EXPECT_NE(message.find("hosts 1 equality rows"), std::string::npos) << message;
-        EXPECT_NE(message.find("NLPProblem"), std::string::npos) << message; // default name()
+        EXPECT_NE(message.find("NlpTripletModel"), std::string::npos) << message; // default name()
         // The site is what makes this pin discriminate: the refusal has to come
         // from the piece's first read of the block. Reaching the later record
         // means the fill already indexed a block too short for it, which under
@@ -523,7 +523,7 @@ TEST(NLPAdapterAssemblyTest, AbortedAssemblyDoesNotLeakStalePendingRecords) {
     EXPECT_THROW(nlp->eval_kkt(2.0, X2, LE, LI, val, PGX, AGX, FXE, FXI, kkt), std::runtime_error);
     prob->armed_ = false;
 
-    // (3) A no-objective assembly (InteriorPointSolver's restoration entry point) at the
+    // (3) A no-objective assembly (IpmSolver's restoration entry point) at the
     // now-cached x1 iterate must see obj_factor == 0: without the fix, the
     // stale pending_obj_scale_ left behind by the aborted assembly in (2)
     // would leak sigma's curvature into this constraint-only Hessian.
@@ -537,7 +537,7 @@ TEST(NLPAdapterAssemblyTest, AbortedAssemblyDoesNotLeakStalePendingRecords) {
 // the Range row's own composed multiplier); the single user row 1 <= x0 <= 3
 // is Range-kind and splits into two solver inequality rows sharing the one
 // declared Jacobian slot (upper: x0 - 3, lower: 1 - x0).
-struct RangeAsmTestProblem : NLPProblem {
+struct RangeAsmTestProblem : NlpTripletModel {
     int num_vars() const override { return 1; }
     int num_cons() const override { return 1; }
     int num_jac_nonzeros() const override { return 1; }

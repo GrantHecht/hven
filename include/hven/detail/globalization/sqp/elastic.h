@@ -5,11 +5,11 @@
 
 // elastic.h -- the elastic (l1 exact-penalty) tier's subproblem construction.
 // The ELASTIC TIER, WARM SEEDING and REPORTED BOUND MULTIPLIER notes cited
-// below live in drivers/sqp_driver.h, which includes this file at the point
+// below live in drivers/sqp_solver.h, which includes this file at the point
 // the construction stood; kZeroStepScale lives in
 // detail/globalization/sqp/trust_region.h. Rule of thumb: any "this file"/
 // "this header" reference that does not resolve here resolves in
-// drivers/sqp_driver.h. The bodies of ElasticQp's two member functions and of
+// drivers/sqp_solver.h. The bodies of ElasticQp's two member functions and of
 // build_elastic_subproblem / elastic_seed / elastic_project are in
 // src/globalization/sqp/soc_elastic_restoration.cpp (with soc.h's and
 // restoration.h's). ONE definition stays inline HERE: set_elastic_penalty --

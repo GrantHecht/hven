@@ -8,7 +8,7 @@
 
 // Implements the ObjectiveFunction class.
 // Holds an ObjectiveInterface type erasure class and SolverIndexingData struct.
-// Interfaces directly with NonLinearProgram and InteriorPointSolver.
+// Interfaces directly with NonLinearProgram and IpmSolver.
 
 #pragma once
 

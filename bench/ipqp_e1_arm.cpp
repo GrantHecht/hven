@@ -16,7 +16,7 @@
 
 #include <fmt/format.h>
 
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 
 #include "bench_cli.h"
 #include "corpus_cells.h"
@@ -352,7 +352,7 @@ int run_mu_sweep(std::ostream &os, const std::vector<Index> &sizes, Index hard_c
     stamp(os, "mu-sweep",
           option_stamp(opts_at(mus[0])) +
               "# ipqp_init_mu above is the FIRST level only; the mu column is authoritative.\n"
-              "# family: e1 = tier-direct A4 cell; hs/corpus = SqpDriver under kIpm;\n"
+              "# family: e1 = tier-direct A4 cell; hs/corpus = SqpSolver under kIpm;\n"
               "# indefinite = tier-direct nonconvex QP fixture.\n");
     os << "mu,family,id,status,wall_s," << counters_header() << "\n";
 
@@ -378,9 +378,9 @@ int run_mu_sweep(std::ostream &os, const std::vector<Index> &sizes, Index hard_c
             o.qp_mode = QpMode::kIpm;
             o.max_iter = 60;
             o.ipqp = iopts;
-            SqpDriver driver(o);
+            SqpSolver driver(o);
             const auto t0 = std::chrono::steady_clock::now();
-            const SqpSolution sol = driver.solve(*p.model);
+            const SqpResult sol = driver.solve(*p.model);
             const double wall =
                 std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
             os << fmt::format("{},hs,hs{},{},{},{}\n", fnum(mu), number,
@@ -447,9 +447,9 @@ int run_envelope(std::ostream &os, Index nodes, double p) {
         SqpOptions o;
         o.max_iter = 60;
         o.qp_mode = std::string(engine) == "ipm" ? QpMode::kIpm : QpMode::kWalk;
-        SqpDriver driver(o);
+        SqpSolver driver(o);
         const auto t0 = std::chrono::steady_clock::now();
-        const SqpSolution sol = driver.solve(model);
+        const SqpResult sol = driver.solve(model);
         const double wall =
             std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
         os << fmt::format("{},{},{},{},{},{},{},{},{},{}\n", engine, nodes, model.n(), fnum(p),

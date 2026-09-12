@@ -95,7 +95,7 @@ class SettableClaimStreamSource final : public hven::solvers::ClaimStreamSource 
         this->bump_structure_epoch();
     }
 
-    const hven::solvers::AggregateDeclaration &declaration() const override { return declaration_; }
+    const hven::solvers::AssemblyDeclaration &declaration() const override { return declaration_; }
 
     int negotiate_partition_count(int requested) override {
         if (requested < 1) {
@@ -207,7 +207,7 @@ class SettableClaimStreamSource final : public hven::solvers::ClaimStreamSource 
         }
     }
 
-    hven::solvers::AggregateDeclaration declaration_;
+    hven::solvers::AssemblyDeclaration declaration_;
     Eigen::VectorXi kkt_claim_rows_;
     Eigen::VectorXi kkt_claim_cols_;
     Eigen::VectorXi objective_gradient_rows_;

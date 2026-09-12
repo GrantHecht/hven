@@ -11,9 +11,9 @@
 #include "hven/detail/globalization/acceptance_strategy.h"
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/iterate_info.h"
-// InteriorPointSolver::LineSearchModes (forwarded to AcceptanceStrategy::classic_line_search)
-// requires the complete InteriorPointSolver class; see acceptance_strategy.h's include note.
-#include "hven/drivers/interior_point_solver.h"
+// IpmSolver::LineSearchModes (forwarded to AcceptanceStrategy::classic_line_search)
+// requires the complete IpmSolver class; see acceptance_strategy.h's include note.
+#include "hven/drivers/ipm_solver.h"
 
 namespace hven::solvers {
 
@@ -46,8 +46,8 @@ class GlobalizationMechanism {
     /// @param alphap Out: fraction-to-boundary primal step.
     /// @param alphad Out: fraction-to-boundary dual step.
     /// @return Final backtracked alpha.
-    virtual double compute_step(InteriorPointSolver::LineSearchModes lsmode, double obj_scale,
-                                double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+    virtual double compute_step(IpmSolver::LineSearchModes lsmode, double obj_scale, double mu,
+                                double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
                                 Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
                                 Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance,
                                 double &alphap, double &alphad, IterateInfo &Citer,
@@ -82,7 +82,7 @@ class GlobalizationMechanism {
     /// @throws std::logic_error Always, in the default body: a mechanism that
     ///   hosts a generic driving path must override it.
     virtual double run_acceptance_backtrack(
-        InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
+        IpmSolver::LineSearchModes lsmode, double obj_scale, double mu, double prim_obj,
         double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
         Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance,
         IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx) {

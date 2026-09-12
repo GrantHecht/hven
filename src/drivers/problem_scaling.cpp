@@ -9,7 +9,7 @@
 // runs ONCE PER SOLVE, over the start point's derivatives, and nothing in it
 // depends on inlining through a template parameter -- the per-major and
 // per-minor arithmetic that DOES is the applying, which stays where the values
-// are (drivers/aggregate_eval_seam.cpp).
+// are (drivers/assembly_eval_seam.cpp).
 //
 // THE `!(x > 0.0)` IDIOM APPEARS HERE FOR THE SAME REASON IT APPEARS IN
 // drivers/sqp_options.cpp, and that file's banner carries the full argument:

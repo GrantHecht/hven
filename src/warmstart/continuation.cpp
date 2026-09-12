@@ -80,13 +80,13 @@ void validate(const ParametricNlpModel &model, const Vec &p0, const Vec &p1,
 } // namespace continuation_detail
 
 ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, const Vec &p1,
-                                    SqpDriver &driver, const ContinuationOptions &opts) {
+                                    SqpSolver &driver, const ContinuationOptions &opts) {
     continuation_detail::validate(model, p0, p1, opts);
 
     ContinuationResult out;
 
     // Records one attempt and folds it into the aggregates.
-    const auto record = [&out](const Vec &p, double dp, const SqpSolution &sol,
+    const auto record = [&out](const Vec &p, double dp, const SqpResult &sol,
                                const std::optional<PredictorOutcome> &outcome, bool used) {
         ContinuationStep step;
         step.p = p;
@@ -103,7 +103,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
 
     // Step 0: the one cold solve.
     model.set_parameters(p0);
-    SqpSolution sol = driver.solve(model, model.start_point());
+    SqpResult sol = driver.solve(model, model.start_point());
     record(p0, 0.0, sol, std::nullopt, /*used=*/false);
 
     // THE COLD STEP PARTICIPATES IN THE BUDGET RULE TOO: a p0 needing two
@@ -126,7 +126,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
          sol.status == SolveStatus::kBudgetExhausted &&
          cold_continuations < continuation_detail::kBudgetContinuationsMax;
          ++cold_continuations) {
-        const WarmStart handoff = sol.warm_start;
+        const SqpWarmStart handoff = sol.warm_start;
         sol = driver.solve(model, handoff.x, handoff);
         minors_at_proposal += sol.counters.qp_minor_iters;
         record(p0, 0.0, sol, std::nullopt, /*used=*/false);
@@ -189,7 +189,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
     const Vec direction = segment / total;
 
     Vec p_cur = p0;
-    WarmStart warm_cur = sol.warm_start;
+    SqpWarmStart warm_cur = sol.warm_start;
     double s_cur = 0.0; // arc position of p_cur along the segment
     double dp = opts.dp_init;
 
@@ -203,7 +203,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
     Index majors_at_proposal = 0;
     int budget_continuations = 0;
     bool continuing = false;
-    WarmStart budget_warm;
+    SqpWarmStart budget_warm;
 
     // `last_good_minors` is the whole minor cost of arriving at the last
     // CONVERGED parameter value -- the cold solve at p0 to begin with -- and
@@ -214,7 +214,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
     bool growth_suspended = false;
 
     while (true) {
-        WarmStart seed;
+        SqpWarmStart seed;
         std::optional<PredictorOutcome> reported;
         bool predictor_used = false;
 
@@ -273,7 +273,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
                 : 0;
 
         model.set_parameters(p_next);
-        // seed.x is the COLD FALLBACK only (sqp_driver.h ignores x0 whenever
+        // seed.x is the COLD FALLBACK only (sqp_solver.h ignores x0 whenever
         // `warm` resolves warm or hot); passing the seed's own point keeps a
         // degraded-to-cold solve starting from the nearest thing available
         // rather than from the model's generic start point.
@@ -330,7 +330,7 @@ ContinuationResult run_continuation(ParametricNlpModel &model, const Vec &p0, co
         // Which KIND of failure this was -- caught by the probe budget, or
         // paid in full -- and the arming of the failure-history term. Both
         // read the solve that just came back: probe_budget_stops is set by,
-        // and only by, the driver's own budget exit (sqp_driver.h).
+        // and only by, the driver's own budget exit (sqp_solver.h).
         if (sol.counters.probe_budget_stops > 0) {
             ++out.proposals_abandoned;
         } else {

@@ -1,17 +1,17 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// sqp_options.cpp -- the SqpOptions boundary validation SqpDriver's
-// constructor runs, carved out of the class body in sqp_driver.h.
+// sqp_options.cpp -- the SqpOptions boundary validation SqpSolver's
+// constructor runs, carved out of the class body in sqp_solver.h.
 //
 // CLAUDE.md section 5 homes "orchestration, drivers, options,
 // printing, and instrumentation" in .cpp translation units regardless of how
 // hot the surrounding loop is; this block is options validation and runs
 // exactly ONCE per driver construction, so nothing about it depends on
 // inlining through a template parameter. As an inline body inside
-// `class SqpDriver`, the six comparison chains and six
+// `class SqpSolver`, the six comparison chains and six
 // `fmt::format` call chains were parsed and code-generated in every TU that
-// included sqp_driver.h -- and the SQP tree is header-only today, so that is
+// included sqp_solver.h -- and the SQP tree is header-only today, so that is
 // every test, bench and library TU that touches the driver at all.
 //
 // CLAUDE.md section 4 IS THE CONTRACT THIS FILE IMPLEMENTS, verbatim: validate
@@ -68,23 +68,23 @@
 
 #include <fmt/format.h>
 
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver_types.h>
 
 namespace hven::solvers {
 
 void validate(const SqpOptions &opts) {
     if (!(opts.kkt_tol > 0.0) || !(opts.feas_tol > 0.0)) {
         throw std::invalid_argument(
-            fmt::format("SqpDriver: kkt_tol ({}) and feas_tol ({}) must both be > 0", opts.kkt_tol,
+            fmt::format("SqpSolver: kkt_tol ({}) and feas_tol ({}) must both be > 0", opts.kkt_tol,
                         opts.feas_tol));
     }
     if (opts.max_iter < 0) {
         throw std::invalid_argument(
-            fmt::format("SqpDriver: max_iter ({}) must be >= 0", opts.max_iter));
+            fmt::format("SqpSolver: max_iter ({}) must be >= 0", opts.max_iter));
     }
     if (!(opts.tr_init > 0.0)) { // catches NaN, negatives and exactly 0
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: tr_init ({}) must be > 0 (use +inf for no trust region; 0 would "
+            "SqpSolver: tr_init ({}) must be > 0 (use +inf for no trust region; 0 would "
             "pin every step to zero and stall until max_iter)",
             opts.tr_init));
     }
@@ -96,14 +96,14 @@ void validate(const SqpOptions &opts) {
     // tr_init == +inf IS EXEMPT FROM THIS PARTICULAR CHECK, because at
     // that value there is no starting radius for tr_max to be a ceiling
     // ON. It is NOT exempt from tr_max MATTERING: the
-    // FIRST rejection lands the radius on tr_max (see sqp_driver.h's RADIUS
+    // FIRST rejection lands the radius on tr_max (see sqp_solver.h's RADIUS
     // MANAGEMENT), so the pair is meaningful after all -- what +inf now means
     // is "unbounded until the method finds it needs a bound, then tr_max".
     // The growth rule is still skipped while the radius is +inf
     // (min(+inf*2, tr_max) would REDUCE it, which no growth rule may do).
     if (!std::isinf(opts.tr_init) && !(opts.tr_max >= opts.tr_init)) { // catches NaN too
         throw std::invalid_argument(
-            fmt::format("SqpDriver: tr_max ({}) must be >= tr_init ({}); it is the ceiling "
+            fmt::format("SqpSolver: tr_max ({}) must be >= tr_init ({}); it is the ceiling "
                         "the trust-region growth rule expands toward",
                         opts.tr_max, opts.tr_init));
     }
@@ -116,13 +116,13 @@ void validate(const SqpOptions &opts) {
     // to the radius a +inf tr_init lands on. Both forms catch NaN.
     if (!(opts.tr_min > 0.0)) {
         throw std::invalid_argument(
-            fmt::format("SqpDriver: tr_min ({}) must be > 0; it is the radius floor whose crossing "
+            fmt::format("SqpSolver: tr_min ({}) must be > 0; it is the radius floor whose crossing "
                         "raises a restoration request, and 0 can never be crossed by halving",
                         opts.tr_min));
     }
     if (!(opts.tr_min <= opts.tr_init) || !(opts.tr_min <= opts.tr_max)) {
         throw std::invalid_argument(
-            fmt::format("SqpDriver: tr_min ({}) must be <= both tr_init ({}) and tr_max ({}); "
+            fmt::format("SqpSolver: tr_min ({}) must be <= both tr_init ({}) and tr_max ({}); "
                         "a floor above the starting radius requests restoration before the "
                         "first trial is judged",
                         opts.tr_min, opts.tr_init, opts.tr_max));
@@ -134,13 +134,13 @@ void validate(const SqpOptions &opts) {
     // was set. Both forms catch NaN, for this file's banner's reason.
     if (!(opts.scaling_max_gradient > 0.0) || std::isinf(opts.scaling_max_gradient)) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: scaling_max_gradient ({}) must be finite and > 0; it is the inf-norm "
+            "SqpSolver: scaling_max_gradient ({}) must be finite and > 0; it is the inf-norm "
             "the scaled objective gradient and each scaled Jacobian row are aimed at",
             opts.scaling_max_gradient));
     }
     if (!(opts.scaling_factor_limit >= 1.0) || std::isinf(opts.scaling_factor_limit)) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: scaling_factor_limit ({}) must be finite and >= 1; it clamps every "
+            "SqpSolver: scaling_factor_limit ({}) must be finite and >= 1; it clamps every "
             "factor to [1/limit, limit], and a limit below 1 inverts that interval",
             opts.scaling_factor_limit));
     }
@@ -155,45 +155,45 @@ void validate(const SqpOptions &opts) {
     // reason.
     if (opts.ipqp.ipqp_hard_iter_cap <= 0) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: ipqp.ipqp_hard_iter_cap ({}) must be > 0; it is the budget of last "
+            "SqpSolver: ipqp.ipqp_hard_iter_cap ({}) must be > 0; it is the budget of last "
             "resort and, unlike ipqp_max_iter, carries no size-derived sentinel reading",
             opts.ipqp.ipqp_hard_iter_cap));
     }
     if (!(opts.ipqp.ipqp_min_mu > 0.0) || std::isinf(opts.ipqp.ipqp_min_mu)) {
         throw std::invalid_argument(
-            fmt::format("SqpDriver: ipqp.ipqp_min_mu ({}) must be finite and > 0; it is the "
+            fmt::format("SqpSolver: ipqp.ipqp_min_mu ({}) must be finite and > 0; it is the "
                         "floor of the mu_0 clamp and the tier's own barrier-decay floor",
                         opts.ipqp.ipqp_min_mu));
     }
     if (!(opts.ipqp.ipqp_init_mu > 0.0) || std::isinf(opts.ipqp.ipqp_init_mu)) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: ipqp.ipqp_init_mu ({}) must be finite and > 0; it is the cold starting "
+            "SqpSolver: ipqp.ipqp_init_mu ({}) must be finite and > 0; it is the cold starting "
             "mu and the ceiling of the mu_0 clamp",
             opts.ipqp.ipqp_init_mu));
     }
     if (!(opts.ipqp.ipqp_min_mu <= opts.ipqp.ipqp_init_mu)) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: ipqp.ipqp_min_mu ({}) must be <= ipqp.ipqp_init_mu ({}); the mu_0 "
+            "SqpSolver: ipqp.ipqp_min_mu ({}) must be <= ipqp.ipqp_init_mu ({}); the mu_0 "
             "clamp's band [ipqp_min_mu, ipqp_init_mu] is otherwise inverted",
             opts.ipqp.ipqp_min_mu, opts.ipqp.ipqp_init_mu));
     }
     if (!(opts.ipqp.ipqp_reg_floor > 0.0) || std::isinf(opts.ipqp.ipqp_reg_floor)) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: ipqp.ipqp_reg_floor ({}) must be finite and > 0; it is the absolute "
+            "SqpSolver: ipqp.ipqp_reg_floor ({}) must be finite and > 0; it is the absolute "
             "floor the (rho, delta) ladder's gated decrease may never cross",
             opts.ipqp.ipqp_reg_floor));
     }
     if (!(opts.ipqp.ipqp_reg_max >= opts.ipqp.ipqp_reg_floor) ||
         std::isinf(opts.ipqp.ipqp_reg_max)) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: ipqp.ipqp_reg_max ({}) must be finite and >= ipqp.ipqp_reg_floor ({}); "
+            "SqpSolver: ipqp.ipqp_reg_max ({}) must be finite and >= ipqp.ipqp_reg_floor ({}); "
             "it is the ceiling the (rho, delta) ladder's growth may never cross",
             opts.ipqp.ipqp_reg_max, opts.ipqp.ipqp_reg_floor));
     }
     if (!(opts.ipqp.ipqp_rho_init >= opts.ipqp.ipqp_reg_floor) ||
         !(opts.ipqp.ipqp_rho_init <= opts.ipqp.ipqp_reg_max)) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: ipqp.ipqp_rho_init ({}) must lie in [ipqp_reg_floor ({}), ipqp_reg_max "
+            "SqpSolver: ipqp.ipqp_rho_init ({}) must lie in [ipqp_reg_floor ({}), ipqp_reg_max "
             "({})]; the starting value of a quantity the ladder only ever moves within that "
             "band must itself start inside it",
             opts.ipqp.ipqp_rho_init, opts.ipqp.ipqp_reg_floor, opts.ipqp.ipqp_reg_max));
@@ -201,28 +201,28 @@ void validate(const SqpOptions &opts) {
     if (!(opts.ipqp.ipqp_delta_init > 0.0) ||
         !(opts.ipqp.ipqp_delta_init <= opts.ipqp.ipqp_reg_max)) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: ipqp.ipqp_delta_init ({}) must lie in (0, ipqp_reg_max ({})]; unlike "
+            "SqpSolver: ipqp.ipqp_delta_init ({}) must lie in (0, ipqp_reg_max ({})]; unlike "
             "ipqp_rho_init it is NOT tied to ipqp_reg_floor -- spec section 2.2's monotone "
             "floor is stated for rho only",
             opts.ipqp.ipqp_delta_init, opts.ipqp.ipqp_reg_max));
     }
     if (!(opts.ipqp.ipqp_reg_decrease > 0.0) || !(opts.ipqp.ipqp_reg_decrease < 1.0)) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: ipqp.ipqp_reg_decrease ({}) must lie strictly in (0, 1); it is a "
+            "SqpSolver: ipqp.ipqp_reg_decrease ({}) must lie strictly in (0, 1); it is a "
             "gated multiplicative decrease -- 0 would collapse the regularization in one "
             "gated step and >= 1 would never decrease it",
             opts.ipqp.ipqp_reg_decrease));
     }
     if (!(opts.ipqp.ipqp_tau > 0.0) || !(opts.ipqp.ipqp_tau < 1.0)) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: ipqp.ipqp_tau ({}) must lie strictly in (0, 1); it is the "
+            "SqpSolver: ipqp.ipqp_tau ({}) must lie strictly in (0, 1); it is the "
             "fraction-to-boundary parameter -- 0 permits no step and >= 1 permits stepping "
             "onto or past a bound",
             opts.ipqp.ipqp_tau));
     }
     if (!(opts.ipqp.ipqp_face_kappa > 0.0) || !(opts.ipqp.ipqp_face_kappa < 1.0)) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: ipqp.ipqp_face_kappa ({}) must lie strictly in (0, 1); a non-positive "
+            "SqpSolver: ipqp.ipqp_face_kappa ({}) must lie strictly in (0, 1); a non-positive "
             "ratio-rule threshold can never classify a row active, and at kappa >= 1 the active "
             "test (s_j < kappa*z_j) and the inactive test (z_j < kappa*s_j) can no longer "
             "partition: at kappa == 1 an exact tie (s_j == z_j) satisfies NEITHER strict "
@@ -233,32 +233,32 @@ void validate(const SqpOptions &opts) {
     }
     if (!(opts.ipqp.ipqp_converge_slack >= 1.0) || std::isinf(opts.ipqp.ipqp_converge_slack)) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: ipqp.ipqp_converge_slack ({}) must be finite and >= 1; a slack below "
+            "SqpSolver: ipqp.ipqp_converge_slack ({}) must be finite and >= 1; a slack below "
             "1 would ask the barrier phase for more accuracy than tier 3's own finish, "
             "inverting the two-tier division of labor",
             opts.ipqp.ipqp_converge_slack));
     }
     if (opts.ipqp.ipqp_warm_iter_budget < 0) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: ipqp.ipqp_warm_iter_budget ({}) must be >= 0; 0 is legal (every warm "
+            "SqpSolver: ipqp.ipqp_warm_iter_budget ({}) must be >= 0; 0 is legal (every warm "
             "restart is killed on its first iteration) but a negative budget is not a count",
             opts.ipqp.ipqp_warm_iter_budget));
     }
     if (!(opts.ipqp.ipqp_mu_adopt_factor >= 0.0) || std::isinf(opts.ipqp.ipqp_mu_adopt_factor)) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: ipqp.ipqp_mu_adopt_factor ({}) must be finite and >= 0; 0 is a legal, "
+            "SqpSolver: ipqp.ipqp_mu_adopt_factor ({}) must be finite and >= 0; 0 is a legal, "
             "deliberate reading (adoption disabled), a negative one is not",
             opts.ipqp.ipqp_mu_adopt_factor));
     }
     if (opts.ipqp.ipqp_stall_window <= 0) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: ipqp.ipqp_stall_window ({}) must be > 0; a zero-width window can "
+            "SqpSolver: ipqp.ipqp_stall_window ({}) must be > 0; a zero-width window can "
             "never accumulate the whole-window evidence the early-stall test is built on",
             opts.ipqp.ipqp_stall_window));
     }
     if (opts.ipqp.ipqp_retire_after <= 0) {
         throw std::invalid_argument(
-            fmt::format("SqpDriver: ipqp.ipqp_retire_after ({}) must be > 0; retiring \"after zero "
+            fmt::format("SqpSolver: ipqp.ipqp_retire_after ({}) must be > 0; retiring \"after zero "
                         "consecutive escapes\" is not a count, it disables the tier outright",
                         opts.ipqp.ipqp_retire_after));
     }
@@ -269,13 +269,13 @@ void validate(const SqpOptions &opts) {
     // every other out-of-range setting gets it.
     if (opts.qp_mode == QpMode::kQpModeCount) {
         throw std::invalid_argument(
-            "SqpDriver: qp_mode == QpMode::kQpModeCount is the enumerator-count sentinel, not a "
+            "SqpSolver: qp_mode == QpMode::kQpModeCount is the enumerator-count sentinel, not a "
             "kernel -- it exists so a fourth QpMode cannot be added without an arm in the QP "
             "kernel dispatch. Use kWalk, kSsn or kIpm");
     }
     // TASK 1's TEMPORARY kIpm REFUSAL WAS HERE, AND IS GONE (M6 W1 task 6).
     // The routing chain it was waiting on now dispatches the mode
-    // (sqp_driver.cpp's THE QP KERNEL DISPATCH), so the mode is reachable and
+    // (sqp_solver.cpp's THE QP KERNEL DISPATCH), so the mode is reachable and
     // nothing here refuses it. The IpqpOptions predicates above are validated
     // UNCONDITIONALLY, at every mode, exactly as they were: a field is
     // out of range whether or not this solve will read it.
@@ -287,21 +287,17 @@ void validate(const SqpOptions &opts) {
     // starts reading it. Integers, so no NaN idiom applies.
     if (opts.common.threads < 0) {
         throw std::invalid_argument(
-            fmt::format("SqpDriver: common.threads ({}) must be >= 0 (0 = leave the backend's own "
+            fmt::format("SqpSolver: common.threads ({}) must be >= 0 (0 = leave the backend's own "
                         "default alone)",
                         opts.common.threads));
     }
     if (opts.common.print_level < 0) {
         throw std::invalid_argument(
-            fmt::format("SqpDriver: common.print_level ({}) must be >= 0 (0 = full output, "
+            fmt::format("SqpSolver: common.print_level ({}) must be >= 0 (0 = full output, "
                         "3 and above = silent)",
                         opts.common.print_level));
     }
 }
-
-// The pre-T8.3 name, kept as a forwarder so the ~60 call sites that spell it
-// this way stay byte-identical. T8.10 removes it.
-void validate_sqp_options(const SqpOptions &opts) { validate(opts); }
 
 // The SQP engine's named presets. "default" is the only one until M8's labeled
 // configs; it returns a default-constructed value, which is what every caller
@@ -312,7 +308,7 @@ SqpOptions sqp_preset(std::string_view name) {
         return SqpOptions{};
     }
     throw std::invalid_argument(
-        fmt::format("Unrecognized SqpDriver preset '{}'. Valid options are: default", name));
+        fmt::format("Unrecognized SqpSolver preset '{}'. Valid options are: default", name));
 }
 
 } // namespace hven::solvers

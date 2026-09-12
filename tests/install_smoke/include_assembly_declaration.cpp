@@ -5,10 +5,8 @@
 // transitive includes, this TU does not compile. Why, and which W5 tasks depend
 // on it: this directory's CMakeLists.txt.
 
-// W5 T8.10 renames this to ipm_solver.h / IpmSolver.
-
-#include "hven/drivers/interior_point_solver.h"
+#include "hven/model/assembly_declaration.h"
 
 namespace hven_install_smoke {
-int standalone_include_interior_point_solver() { return 1; }
+int standalone_include_aggregate_declaration() { return 1; }
 } // namespace hven_install_smoke

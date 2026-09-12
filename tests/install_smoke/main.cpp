@@ -15,8 +15,8 @@
 // two solvers -- construction, `options()`/`set_options`, the solve family with
 // and without a warm-start payload, `set_iteration_callback`, `attach_trace`,
 // `attach_ledger`, and `export_warm_start()` off the returned result -- and is
-// instantiated for `InteriorPointSolver` over a `NonLinearProgram` and for
-// `SqpDriver` over the same problem's `NlpProblemModel`. A shape that has
+// instantiated for `IpmSolver` over a `NonLinearProgram` and for
+// `SqpSolver` over the same problem's `NlpProblemModel`. A shape that has
 // drifted apart on one engine fails to COMPILE here, against an installed
 // prefix, which is the whole point of the exercise.
 
@@ -32,20 +32,20 @@
 #include "hven/core/ledger.h"
 #include "hven/core/solver_status.h"
 #include "hven/detail/model/nlp_adapter.h"
-#include "hven/drivers/interior_point_solver.h"
+#include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/solve_result.h"
 #include "hven/drivers/solve_status.h"
-#include "hven/drivers/sqp_driver.h"
+#include "hven/drivers/sqp_solver.h"
 #include "hven/drivers/trace_writer.h"
-#include "hven/model/nlp_problem.h"
 #include "hven/model/nlp_problem_model.h"
+#include "hven/model/nlp_triplet_model.h"
 #include "hven/model/non_linear_program.h"
 #include "hven/warmstart/warm_start_data.h"
 
 namespace {
 constexpr double kInf = std::numeric_limits<double>::infinity();
 
-struct Hs071Problem : hven::solvers::NLPProblem {
+struct Hs071Problem : hven::solvers::NlpTripletModel {
     int num_vars() const override { return 4; }
     int num_cons() const override { return 2; }
     int num_jac_nonzeros() const override { return 8; }
@@ -118,7 +118,7 @@ constexpr double kHs071Optimum = 17.0140172;
 /// @brief The whole shared shape, exercised once, on whichever engine.
 ///
 /// Written against the SHAPE and not against either engine: every call below is
-/// spelled the same way on `InteriorPointSolver` and on `SqpDriver`, which is
+/// spelled the same way on `IpmSolver` and on `SqpSolver`, which is
 /// what W5 T8 set out to make true and what this instantiation pair checks from
 /// outside the project.
 ///
@@ -257,14 +257,14 @@ int main() {
     // once.
     const auto problem = std::make_shared<Hs071Problem>();
     const auto program = hven::solvers::make_nlp_program(problem);
-    hven::solvers::InteriorPointSolver ipm;
-    if (!run_once(ipm, *program, x0, "InteriorPointSolver")) {
+    hven::solvers::IpmSolver ipm;
+    if (!run_once(ipm, *program, x0, "IpmSolver")) {
         return 1;
     }
 
     const auto model = std::make_shared<hven::solvers::NlpProblemModel>(problem);
-    hven::solvers::SqpDriver sqp{hven::solvers::SqpOptions{}};
-    if (!run_once(sqp, *model, x0, "SqpDriver")) {
+    hven::solvers::SqpSolver sqp{hven::solvers::SqpOptions{}};
+    if (!run_once(sqp, *model, x0, "SqpSolver")) {
         return 1;
     }
 

@@ -34,7 +34,7 @@ void TraceSink::on_ipm_kkt_analysis(const IpmKktAnalysisTraceEvent &) {}
 void TraceSink::on_ipm_phase_exit(const IpmPhaseExitTraceEvent &) {}
 void TraceSink::on_ipm_message(const IpmMessageTraceEvent &) {}
 
-// THE ONE COPY (M6 W4 T4). It lived in `sqp_driver.cpp`'s anonymous namespace
+// THE ONE COPY (M6 W4 T4). It lived in `sqp_solver.cpp`'s anonymous namespace
 // through T2/T3 and moved here unchanged the moment a second caller appeared;
 // the arithmetic, and therefore `sqp.solve.begin`'s golden line, is untouched.
 VariableBoundCensus census_variable_bounds(const Vec &lower, const Vec &upper, Index n) {

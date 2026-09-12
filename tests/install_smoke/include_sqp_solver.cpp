@@ -5,10 +5,8 @@
 // transitive includes, this TU does not compile. Why, and which W5 tasks depend
 // on it: this directory's CMakeLists.txt.
 
-// W5 T8 renames this to nlp_triplet_model.h / NlpTripletModel.
-
-#include "hven/model/nlp_problem.h"
+#include "hven/drivers/sqp_solver.h"
 
 namespace hven_install_smoke {
-int standalone_include_nlp_problem() { return 1; }
+int standalone_include_sqp_driver() { return 1; }
 } // namespace hven_install_smoke

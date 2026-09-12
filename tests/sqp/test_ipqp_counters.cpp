@@ -10,7 +10,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/solver_counters.h>
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 
 #include "support/ipqp_test_support.h"
 

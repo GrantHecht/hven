@@ -199,8 +199,9 @@ const WarmExtension *find_ipm_polish(const WarmStartData &data) {
     return found;
 }
 
-WarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, const Vec &upper,
-                            const DeclarationKey &structure_key, const IpCrossoverOptions &opts) {
+SqpWarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, const Vec &upper,
+                               const DeclarationKey &structure_key,
+                               const IpCrossoverOptions &opts) {
     const WarmExtension *extension = find_ipm_polish(data);
     if (extension == nullptr) {
         // A CORE-ONLY VALUE CANNOT BE BRIDGED, and the refusal is why this

@@ -47,7 +47,7 @@ enum class QpStatus {
 /// the constraint violation from the returned point, so SqpResult::x is
 /// a LOCAL certificate that the NLP is infeasible there, and lambda_e /
 /// lambda_i are its subgradient certificate -- see SqpResult's own note
-/// for the certificate and sqp_driver.h's RESTORATION PHASE for what
+/// for the certificate and sqp_solver.h's RESTORATION PHASE for what
 /// "stationary" is measured as.
 /// - Not certified: restoration could not run to a verdict -- its own
 /// subproblems stalled, or the one-restoration-per-solve cap was already
@@ -63,7 +63,7 @@ enum class QpStatus {
 /// THREE REQUEST SOURCES raised the restoration (the funnel's signature and
 /// the elastic tier's exhaustion leave kRestore; the radius floor leaves
 /// kReject, told apart by tr_radius sitting at the floor), not on which exit
-/// was reached -- sqp_driver.h's RESTORATION PHASE has the decision table.
+/// was reached -- sqp_solver.h's RESTORATION PHASE has the decision table.
 /// tests/sqp/test_sqp_restoration.cpp shows how to re-derive the certificate from
 /// the model if a caller wants to check the driver's claim.
 ///
@@ -73,7 +73,7 @@ enum class QpStatus {
 /// (x, lambda_e, lambda_i, z, f) than kMaxIter would report for the identical
 /// run -- the best iterate by the funnel's own ordering rather than the last
 /// one reached. See SqpOptions::budget_mode's own note for the full contract
-/// and sqp_driver.h's BUDGETED MODE note for the mechanics. It is NEVER
+/// and sqp_solver.h's BUDGETED MODE note for the mechanics. It is NEVER
 /// reported when budget_mode is false (every max_iter exhaustion is kMaxIter)
 /// and NEVER reported by the restoration phase's own budget exhaustion (that
 /// stays kMaxIter regardless of budget_mode).

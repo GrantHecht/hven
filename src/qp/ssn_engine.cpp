@@ -28,7 +28,7 @@
 //
 // The `detail::` free functions and constants above SsnEngine (kSsnInfBound,
 // the safeguard constants, ssn_fb, ssn_inertia_verdict, the row/bound/norm
-// types) stay inline in the header: tests, bench, src/drivers/sqp_driver.cpp
+// types) stay inline in the header: tests, bench, src/drivers/sqp_solver.cpp
 // and include/hven/detail/warmstart/warm_start.h name them directly, and this
 // TU inlines them exactly as before.
 //
@@ -824,7 +824,7 @@ void SsnEngine::solve(const QpProblem &qp, const SsnStart &start, const SsnOptio
         // partitions so the two cannot drift: one `switch` over the same
         // value the line above tested, and NO `default`, so a new
         // SsnEscape value raises -Wswitch rather than going silently
-        // uncounted. SqpCounters::ssn (sqp_types.h) is what the six fields
+        // uncounted. SqpCounters::ssn (sqp_solver_types.h) is what the six fields
         // feed.
         switch (out->escape_reason) {
         case SsnEscape::kBudget:

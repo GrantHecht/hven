@@ -5,7 +5,7 @@
 //
 // What this file pins:
 //   * validate(const IpmOptions &) refuses everything
-//     InteriorPointSolver::Settings::validate() refused -- one representative
+//     IpmSolver::Settings::validate() refused -- one representative
 //     per refusal class, enumerated from the old body.
 //   * set_options() is TRANSACTIONAL on the interior-point engine: a rejected
 //     replacement leaves the previous value in force and the solver usable.
@@ -19,7 +19,7 @@
 //     anyway.
 //   * Neither solver object is copyable or movable (static_asserts), and both
 //     options values are nothrow-move-assignable, which is what lets
-//     SqpDriver::set_options() commit the options after the engine swap.
+//     SqpSolver::set_options() commit the options after the engine swap.
 //   * The in-flight guard clears on an UNWIND as well as on a return, on both
 //     engines, and an option replacement does not restart the SQP ledger's QP
 //     label sequence.
@@ -41,13 +41,13 @@
 #include <gtest/gtest.h>
 
 #include "hven/core/ledger.h"
-#include "hven/detail/drivers/interior_point_solver_presets.h"
+#include "hven/detail/drivers/ipm_solver_presets.h"
 #include "hven/detail/model/nlp_adapter.h"
 #include "hven/drivers/common_options.h"
-#include "hven/drivers/interior_point_solver.h"
+#include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/ipm_solver_types.h"
-#include "hven/drivers/sqp_driver.h"
-#include "hven/drivers/sqp_types.h"
+#include "hven/drivers/sqp_solver.h"
+#include "hven/drivers/sqp_solver_types.h"
 #include "hven/qp/qp_types.h"
 
 #include "sqp/support/hs_problems.h"
@@ -59,8 +59,8 @@ using hven::solvers::AcceptanceStrategies;
 using hven::solvers::BarrierGovernors;
 using hven::solvers::CommonOptions;
 using hven::solvers::FixedVariableTreatments;
-using hven::solvers::InteriorPointSolver;
 using hven::solvers::IpmOptions;
+using hven::solvers::IpmSolver;
 
 constexpr double kInf = std::numeric_limits<double>::infinity();
 
@@ -93,8 +93,8 @@ void expect_refused(const IpmOptions &o, const char *field) {
 // NEITHER ENGINE'S SOLVER OBJECT MOVES (design §2.1; fix round 1)
 // ---------------------------------------------------------------------------
 //
-// Both classes own live backend sessions -- InteriorPointSolver its KktFactor
-// and its unique_ptr globalization components, SqpDriver its QpEngine and the
+// Both classes own live backend sessions -- IpmSolver its KktFactor
+// and its unique_ptr globalization components, SqpSolver its QpEngine and the
 // two lazy tiers -- and neither has defined transfer semantics. Before T8.3 the
 // SQP driver's by-value QpEngine member enforced HALF of that by accident:
 // QpEngine declares no assignment, so move ASSIGNMENT was implicitly deleted.
@@ -105,35 +105,31 @@ void expect_refused(const IpmOptions &o, const char *field) {
 //
 // These are static_asserts rather than a TEST body deliberately: what is being
 // pinned is a compile-time property, and a regression must fail the BUILD.
-static_assert(!std::is_copy_constructible_v<hven::solvers::SqpDriver>,
-              "SqpDriver must not be copy-constructible");
-static_assert(!std::is_copy_assignable_v<hven::solvers::SqpDriver>,
-              "SqpDriver must not be copy-assignable");
-static_assert(!std::is_move_constructible_v<hven::solvers::SqpDriver>,
-              "SqpDriver must not be move-constructible");
-static_assert(!std::is_move_assignable_v<hven::solvers::SqpDriver>,
-              "SqpDriver must not be move-assignable");
+static_assert(!std::is_copy_constructible_v<hven::solvers::SqpSolver>,
+              "SqpSolver must not be copy-constructible");
+static_assert(!std::is_copy_assignable_v<hven::solvers::SqpSolver>,
+              "SqpSolver must not be copy-assignable");
+static_assert(!std::is_move_constructible_v<hven::solvers::SqpSolver>,
+              "SqpSolver must not be move-constructible");
+static_assert(!std::is_move_assignable_v<hven::solvers::SqpSolver>,
+              "SqpSolver must not be move-assignable");
 
-static_assert(!std::is_copy_constructible_v<InteriorPointSolver>,
-              "InteriorPointSolver must not be copy-constructible");
-static_assert(!std::is_copy_assignable_v<InteriorPointSolver>,
-              "InteriorPointSolver must not be copy-assignable");
-static_assert(!std::is_move_constructible_v<InteriorPointSolver>,
-              "InteriorPointSolver must not be move-constructible");
-static_assert(!std::is_move_assignable_v<InteriorPointSolver>,
-              "InteriorPointSolver must not be move-assignable");
+static_assert(!std::is_copy_constructible_v<IpmSolver>, "IpmSolver must not be copy-constructible");
+static_assert(!std::is_copy_assignable_v<IpmSolver>, "IpmSolver must not be copy-assignable");
+static_assert(!std::is_move_constructible_v<IpmSolver>, "IpmSolver must not be move-constructible");
+static_assert(!std::is_move_assignable_v<IpmSolver>, "IpmSolver must not be move-assignable");
 
-// The OPTIONS VALUES, by contrast, must move -- and SqpDriver::set_options()
+// The OPTIONS VALUES, by contrast, must move -- and SqpSolver::set_options()
 // relies on more than that: it assigns `opts_ = std::move(o)` AFTER the engine
 // swap has already committed, so a throwing move assignment there would leave
 // the new engine standing beside the old options. This assert is what makes
 // that argument checkable: add a field whose move assignment can throw and the
-// build fails here, pointing at src/drivers/sqp_driver.cpp's set_options().
+// build fails here, pointing at src/drivers/sqp_solver.cpp's set_options().
 static_assert(std::is_nothrow_move_assignable_v<hven::solvers::SqpOptions>,
-              "SqpDriver::set_options() commits the options after the engine swap on the "
+              "SqpSolver::set_options() commits the options after the engine swap on the "
               "strength of this");
 static_assert(std::is_nothrow_move_assignable_v<IpmOptions>,
-              "InteriorPointSolver::set_options() assigns the value last, after every check");
+              "IpmSolver::set_options() assigns the value last, after every check");
 
 // ---------------------------------------------------------------------------
 // validate(const IpmOptions &): one representative per refusal class of the old
@@ -282,7 +278,7 @@ TEST(Options, CommonDefaultsAreEachEnginesOwn) {
 // ---------------------------------------------------------------------------
 
 TEST(Options, IpmSetOptionsIsTransactional) {
-    InteriorPointSolver solver(quiet());
+    IpmSolver solver(quiet());
     const int good_iters = 123;
     {
         IpmOptions o = solver.options();
@@ -317,7 +313,7 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
     // solve below as an argument -- the wrapper's lazy transcribe() is gone.
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
     ASSERT_NE(program, nullptr);
-    InteriorPointSolver solver;
+    IpmSolver solver;
     {
         IpmOptions o = solver.options();
         o.common.print_level = 10;
@@ -354,7 +350,7 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
 
     accepts("qp_ref_steps", [](IpmOptions &o) { o.qp_ref_steps = 1; }); // int
     accepts("qp_ord", [](IpmOptions &o) {                               // enum
-        o.qp_ord = hven::solvers::QPOrderingModes::MINDEG;
+        o.qp_ord = hven::solvers::QPOrderingModes::kMinDeg;
     });
     accepts("qp_print", [](IpmOptions &o) { o.qp_print = true; }); // bool
     accepts("cnr_mode", [](IpmOptions &o) { o.cnr_mode = true; }); // the CNR flag
@@ -414,7 +410,7 @@ TEST(Options, IpmEveryBackendFieldIsAcceptedAndTakesEffectAtTheNextSolve) {
 // move, and the guard clears on the unwind so the next solve still runs.
 TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    InteriorPointSolver solver;
+    IpmSolver solver;
     {
         IpmOptions o = solver.options();
         o.common.print_level = 10;
@@ -424,7 +420,7 @@ TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
 
     int attempts = 0;
     bool saw_logic_error = false;
-    InteriorPointSolver *engine = &solver;
+    IpmSolver *engine = &solver;
     // M6 W5 T8.6: the shared iteration callback, in place of the late callback
     // this test used to arm. Same assertions, same solve.
     engine->set_iteration_callback([&](const hven::solvers::IterationEvent &) {
@@ -462,13 +458,13 @@ TEST(Options, IpmSetOptionsDuringASolveThrowsLogicError) {
 // flag, and the solver is usable again.
 TEST(Options, IpmTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    InteriorPointSolver solver;
+    IpmSolver solver;
     {
         IpmOptions o = solver.options();
         o.common.print_level = 10;
         solver.set_options(std::move(o));
     }
-    InteriorPointSolver *engine = &solver;
+    IpmSolver *engine = &solver;
     engine->set_iteration_callback(
         [](const hven::solvers::IterationEvent &) -> hven::solvers::CallbackAction {
             throw std::logic_error("a hook that leaves the solve by throwing");
@@ -528,8 +524,8 @@ TEST(Options, AnUnknownIpmPresetIsRefusedAndListsTheValidNames) {
 
 namespace {
 
-using hven::solvers::SqpDriver;
 using hven::solvers::SqpOptions;
+using hven::solvers::SqpSolver;
 
 // Whatever the driver reads at construction, at the SQP engine's own defaults.
 SqpOptions sqp_default() { return SqpOptions{}; }
@@ -544,7 +540,7 @@ TEST(Options, SqpCommonDefaultsAreTheStructsOwn) {
     const SqpOptions o;
     EXPECT_EQ(o.common.threads, 0);
     EXPECT_EQ(o.common.print_level, 3);
-    EXPECT_EQ(o.common.start_level, o.start_level);
+    EXPECT_EQ(o.common.start_level, o.common.start_level);
 }
 
 TEST(Options, SqpValidateRefusesTheCommonFieldsAndWhatItAlwaysRefused) {
@@ -553,7 +549,7 @@ TEST(Options, SqpValidateRefusesTheCommonFieldsAndWhatItAlwaysRefused) {
         o.max_iter = -1;
         EXPECT_THROW(hven::solvers::validate(o), std::invalid_argument);
         // The pre-T8.3 name is a forwarder onto the same body.
-        EXPECT_THROW(hven::solvers::validate_sqp_options(o), std::invalid_argument);
+        EXPECT_THROW(hven::solvers::validate(o), std::invalid_argument);
     }
     {
         SqpOptions o;
@@ -595,7 +591,7 @@ TEST(Options, SqpPresetsReturnFullValues) {
 }
 
 TEST(Options, SqpSetOptionsIsTransactional) {
-    SqpDriver d(sqp_default());
+    SqpSolver d(sqp_default());
     {
         SqpOptions o = d.options();
         o.max_iter = 42;
@@ -619,7 +615,7 @@ TEST(Options, SqpSetOptionsIsTransactional) {
 // SqpOptions::make_strategy, which the driver calls once per solve from inside
 // solve_impl. The options do not move and the guard clears on the way out.
 TEST(Options, SqpSetOptionsDuringASolveThrowsLogicError) {
-    SqpDriver d(sqp_default());
+    SqpSolver d(sqp_default());
     bool attempted = false;
     bool refused = false;
     {
@@ -660,7 +656,7 @@ TEST(Options, SqpSetOptionsDuringASolveThrowsLogicError) {
 // unwinds, SolveInFlightGuard's destructor clears the flag, and the driver is
 // usable again.
 TEST(Options, SqpTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
-    SqpDriver d(sqp_default());
+    SqpSolver d(sqp_default());
     {
         SqpOptions o = d.options();
         o.make_strategy = []() -> std::unique_ptr<hven::solvers::GlobalizationStrategy> {
@@ -691,7 +687,7 @@ TEST(Options, SqpTheInFlightGuardClearsWhenAnExceptionLeavesTheSolve) {
 // The pin is over the WHOLE sequence, not a count: every label is
 // `<prefix>_qp_<i>` for its own position i, and all of them are distinct.
 TEST(Options, SqpAnOptionReplacementDoesNotRestartTheLedgerLabelSequence) {
-    SqpDriver d(sqp_default());
+    SqpSolver d(sqp_default());
     hven::solvers::Ledger ledger;
     d.attach_ledger(&ledger, "chain");
 

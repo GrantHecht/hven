@@ -21,7 +21,7 @@
 //                              than a corrupt object.
 //
 // COMPATIBILITY: the old spellings survive as aliases at their old homes --
-// `InteriorPointSolver::kSeededIqMultFloor` / `::kSeededMultInitMax` (static
+// `IpmSolver::kSeededIqMultFloor` / `::kSeededMultInitMax` (static
 // members) and `hven::solvers::kSeededDualClampTol` (which was already at this
 // namespace scope, and is simply defined here now). T8.10 rewrites the call
 // sites and drops the two member aliases.

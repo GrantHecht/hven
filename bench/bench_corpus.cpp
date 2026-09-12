@@ -36,7 +36,7 @@
 // minutes into what would have been another multi-hour run with only that
 // mechanism in place. A WALL deadline is enforced HERE, in the runner that
 // owns process lifetime, because that is what "wall-clock" means and nothing
-// inside a blocking SqpDriver::solve() call gives a safe mid-solve
+// inside a blocking SqpSolver::solve() call gives a safe mid-solve
 // interruption point (this project's engines are not written to be
 // preempted -- killing a thread mid-factorization is not a "DNF with
 // counters", it is undefined state).
@@ -171,7 +171,7 @@ using hven::solvers::corpus::run_interior_single_row;
 
 // The measurement-arm levers, named once. See corpus_cells.h's EngineConfig.
 using EngineLevers = hven::solvers::corpus::detail::EngineConfig;
-// Task 6b Phase B's three iteration-shape rules (sqp_types.h), named here for
+// Task 6b Phase B's three iteration-shape rules (sqp_solver_types.h), named here for
 // the same reason every other type above is: this file spells one namespace.
 using hven::solvers::SsnHintRule;
 using hven::solvers::SsnInfeasibilityRule;
@@ -182,9 +182,9 @@ using hven::solvers::SsnSigmaRule;
 using hven::solvers::QpMode;
 using hven::solvers::QpModeSite;
 using hven::solvers::QpModeTraceEvent;
-using hven::solvers::SqpDriver;
 using hven::solvers::SqpOptions;
-using hven::solvers::SqpSolution;
+using hven::solvers::SqpResult;
+using hven::solvers::SqpSolver;
 using hven::solvers::TraceSink;
 
 constexpr const char *kUsage =
@@ -203,7 +203,7 @@ constexpr const char *kUsage =
     "  --dump-qp <cell>  PHASE-7 TASK 2 (PIQP oracle). Build the cell's OWN\n"
     "                    designated (target) hop's FIRST QP subproblem --\n"
     "                    corpus_cells.h's first_qp_for_cell, the same\n"
-    "                    build_subproblem call SqpDriver::solve's own first\n"
+    "                    build_subproblem call SqpSolver::solve's own first\n"
     "                    iteration would make -- and write it to --dump-qp-out\n"
     "                    in the triplet text format documented at the top of\n"
     "                    write_qp_dump below. SOLVES NOTHING of the designated\n"
@@ -222,7 +222,7 @@ constexpr const char *kUsage =
     "                    `--engine walk` DNF, it is simply silence.\n"
     "  --dump-qp-out <path>  required with --dump-qp; the output file.\n"
     "\n"
-    "  --engine ARM      walk | ssn | ipm | interior. walk replays through the ordinary SqpDriver\n"
+    "  --engine ARM      walk | ssn | ipm | interior. walk replays through the ordinary SqpSolver\n"
     "                    (the only engine that exists today) under a PER-PHASE\n"
     "                    WALL DEADLINE (see this file's own banner; the deadline\n"
     "                    itself is corpus_cells.h's wall_budget_for_cell, whose\n"
@@ -270,7 +270,7 @@ constexpr const char *kUsage =
     "                    wall deadline, not a surface a caller drives. REFUSED\n"
     "                    with any other invocation.\n"
     "  --ssn-prox-carry  MEASUREMENT ARM. Set SqpOptions::ssn_prox_carry (a real,\n"
-    "                    shipped option that ships OFF -- see sqp_types.h for the\n"
+    "                    shipped option that ships OFF -- see sqp_solver_types.h for the\n"
     "                    sweep that ruled it off). Stamped into the CSV's own\n"
     "                    provenance header, so an arm can never be mistaken for a\n"
     "                    default-configuration run.\n"
@@ -310,7 +310,7 @@ constexpr const char *kUsage =
     "\n"
     "  --hs              THE HS SUITE (M6 W5 T6.d leg 2). Solve the 27\n"
     "                    Hock-Schittkowski problems of\n"
-    "                    tests/sqp/support/hs_problems.h through SqpDriver in\n"
+    "                    tests/sqp/support/hs_problems.h through SqpSolver in\n"
     "                    the --engine mode, IN PROCESS, and write one timed row\n"
     "                    per cell. Small, major-dense cells -- the corpus's own\n"
     "                    are F7 at n >= 800, where the QP dominates and a\n"
@@ -474,7 +474,7 @@ struct Args {
     std::optional<double> internal_force_setup_budget_s;
     std::optional<double> internal_force_solve_budget_s;
     // TASK 6 MEASUREMENT ARM. Sets SqpOptions::ssn_prox_carry for every solve
-    // in this invocation. A REAL, SHIPPED product option (sqp_types.h), not a
+    // in this invocation. A REAL, SHIPPED product option (sqp_solver_types.h), not a
     // hidden test lever -- but it ships OFF (Task 5's corrected sweep costs
     // more on 13 of 23 rows), so a run that passes it is a measurement arm and
     // the CSV's provenance header says so.
@@ -2032,12 +2032,12 @@ HsRow run_hs_cell(int number, QpMode mode, int repeat, int warmup, CountingTrace
         hven::solvers::test_support::HsProblem hs = hven::solvers::test_support::make_hs(number);
         SqpOptions opts;
         opts.qp_mode = mode;
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         if (sink != nullptr) {
             sink->reset();
             driver.attach_trace(sink);
         }
-        const SqpSolution discarded = driver.solve(*hs.model);
+        const SqpResult discarded = driver.solve(*hs.model);
         (void)discarded;
     }
     std::vector<double> walls;
@@ -2047,13 +2047,13 @@ HsRow run_hs_cell(int number, QpMode mode, int repeat, int warmup, CountingTrace
         hven::solvers::test_support::HsProblem hs = hven::solvers::test_support::make_hs(number);
         SqpOptions opts;
         opts.qp_mode = mode;
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         if (sink != nullptr) {
             sink->reset();
             driver.attach_trace(sink);
         }
         const auto t0 = std::chrono::steady_clock::now();
-        const SqpSolution sol = driver.solve(*hs.model);
+        const SqpResult sol = driver.solve(*hs.model);
         const auto t1 = std::chrono::steady_clock::now();
         walls.push_back(std::chrono::duration<double>(t1 - t0).count());
 
@@ -2432,7 +2432,7 @@ void run_internal_interior_one(const std::string &cell_id, const std::string &tr
 }
 
 // The cells this arm runs, and the refusal line for every requested cell it
-// cannot: a cell an NLPProblem cannot state is named, never silently dropped.
+// cannot: a cell an NlpTripletModel cannot state is named, never silently dropped.
 struct InteriorPlan {
     std::vector<const CorpusCell *> cells;
     std::vector<std::string> refusals;
@@ -2531,7 +2531,7 @@ int main(int argc, char **argv) {
                     throw_usage("--internal-run-one --engine interior takes none of the SSN "
                                 "measurement levers, the model-surface hook or the hidden child "
                                 "levers: it runs the interior leg in process, drives no "
-                                "SqpDriver, has no parent polling a marker and no child to force");
+                                "SqpSolver, has no parent polling a marker and no child to force");
                 }
                 run_internal_interior_one(*args.internal_run_one, *args.treatment,
                                           *args.internal_out, argc, argv);
@@ -2690,7 +2690,7 @@ int main(int argc, char **argv) {
                 args.ssn_hint_rule != SsnHintRule::kIterationZeroFree ||
                 args.ssn_infeasibility_rule != SsnInfeasibilityRule::kSymptoms) {
                 throw_usage("--engine interior takes none of the SSN measurement levers: they set "
-                            "SqpOptions fields, and this arm runs no SqpDriver");
+                            "SqpOptions fields, and this arm runs no SqpSolver");
             }
             if (args.internal_force_setup_budget_s || args.internal_force_solve_budget_s ||
                 args.internal_force_child_throw || args.internal_force_child_abort) {

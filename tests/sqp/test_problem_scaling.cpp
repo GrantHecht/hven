@@ -32,7 +32,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/drivers/problem_scaling.h>
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 
 #include "support/claim_stream_double.h"
 #include "support/hs_problems.h"
@@ -462,8 +462,8 @@ TEST(ProblemScalingOffPath, TheDefaultIsOffAndReportsTheIdentity) {
     EXPECT_DOUBLE_EQ(1e12, defaults.scaling_factor_limit);
 
     UnevenRowModel model;
-    SqpDriver driver{SqpOptions{}};
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver{SqpOptions{}};
+    const SqpResult sol = driver.solve(model);
     EXPECT_FALSE(sol.scaling.active);
     EXPECT_DOUBLE_EQ(1.0, sol.scaling.obj);
     EXPECT_DOUBLE_EQ(1.0, sol.scaling.row_max);
@@ -479,15 +479,15 @@ TEST(ProblemScalingOffPath, SettingTheRuleWithoutTheToggleChangesNothing) {
     // for bit -- which is what makes "default OFF" a claim about arithmetic
     // rather than about intent.
     UnevenRowModel model;
-    SqpDriver base{SqpOptions{}};
-    const SqpSolution a = base.solve(model);
+    SqpSolver base{SqpOptions{}};
+    const SqpResult a = base.solve(model);
 
     SqpOptions tuned;
     tuned.scaling_max_gradient = 3.0;
     tuned.scaling_factor_limit = 5.0;
     ASSERT_FALSE(tuned.enable_scaling);
-    SqpDriver other{tuned};
-    const SqpSolution b = other.solve(model);
+    SqpSolver other{tuned};
+    const SqpResult b = other.solve(model);
 
     EXPECT_EQ(a.status, b.status);
     EXPECT_EQ(a.counters.major_iters, b.counters.major_iters);
@@ -510,20 +510,19 @@ TEST(ProblemScalingOptions, TheRuleIsValidatedAtTheBoundary) {
     // be flipped later, so a nonsensical rule is refused when it is set.
     SqpOptions o;
     o.scaling_max_gradient = 0.0;
-    EXPECT_THROW(validate_sqp_options(o), std::invalid_argument);
+    EXPECT_THROW(validate(o), std::invalid_argument);
     o.scaling_max_gradient = std::numeric_limits<double>::quiet_NaN();
-    EXPECT_THROW(validate_sqp_options(o), std::invalid_argument);
+    EXPECT_THROW(validate(o), std::invalid_argument);
     o.scaling_max_gradient = std::numeric_limits<double>::infinity();
-    EXPECT_THROW(validate_sqp_options(o), std::invalid_argument);
+    EXPECT_THROW(validate(o), std::invalid_argument);
 
     SqpOptions p;
     p.scaling_factor_limit = 0.5;
-    EXPECT_THROW(validate_sqp_options(p), std::invalid_argument)
-        << "a limit below 1 inverts [1/L, L]";
+    EXPECT_THROW(validate(p), std::invalid_argument) << "a limit below 1 inverts [1/L, L]";
     p.scaling_factor_limit = std::numeric_limits<double>::quiet_NaN();
-    EXPECT_THROW(validate_sqp_options(p), std::invalid_argument);
+    EXPECT_THROW(validate(p), std::invalid_argument);
     p.scaling_factor_limit = 1.0;
-    EXPECT_NO_THROW(validate_sqp_options(p)) << "exactly 1 is the identity clamp, and is legal";
+    EXPECT_NO_THROW(validate(p)) << "exactly 1 is the identity clamp, and is legal";
 }
 
 // ===========================================================================
@@ -535,13 +534,13 @@ TEST(ProblemScalingAcceptance, TheS1e12DualScaleCellConvergesWithScalingOn) {
 
     SqpOptions off;
     off.max_iter = 60;
-    SqpDriver cold_off{off};
-    const SqpSolution before = cold_off.solve(model, model.start_point());
+    SqpSolver cold_off{off};
+    const SqpResult before = cold_off.solve(model, model.start_point());
 
     SqpOptions on = off;
     on.enable_scaling = true;
-    SqpDriver cold_on{on};
-    const SqpSolution after = cold_on.solve(model, model.start_point());
+    SqpSolver cold_on{on};
+    const SqpResult after = cold_on.solve(model, model.start_point());
 
     // THE MEASUREMENT, printed so the record carries it rather than only the
     // verdict.
@@ -577,8 +576,8 @@ TEST(ProblemScalingAcceptance, TheObjectiveFactorIsTheOneDoingTheWorkOnThatCell)
     SqpOptions on;
     on.max_iter = 60;
     on.enable_scaling = true;
-    SqpDriver driver{on};
-    const SqpSolution sol = driver.solve(model, model.start_point());
+    SqpSolver driver{on};
+    const SqpResult sol = driver.solve(model, model.start_point());
     EXPECT_DOUBLE_EQ(1.0, sol.scaling.row_max) << "already row-equilibrated, and left alone";
     EXPECT_DOUBLE_EQ(1.0, sol.scaling.row_min);
     EXPECT_DOUBLE_EQ(1.0e-10, sol.scaling.obj) << "100 / 1e12";
@@ -591,13 +590,13 @@ TEST(ProblemScalingAcceptance, TheObjectiveFactorIsTheOneDoingTheWorkOnThatCell)
 TEST(ProblemScalingAcceptance, Hs25IsMeasuredWithScalingOn) {
     test_support::Hs25Model model;
 
-    SqpDriver off{SqpOptions{}};
-    const SqpSolution before = off.solve(model, model.start_point());
+    SqpSolver off{SqpOptions{}};
+    const SqpResult before = off.solve(model, model.start_point());
 
     SqpOptions opts;
     opts.enable_scaling = true;
-    SqpDriver on{opts};
-    const SqpSolution after = on.solve(model, model.start_point());
+    SqpSolver on{opts};
+    const SqpResult after = on.solve(model, model.start_point());
 
     std::printf("[ W0.2 ] HS25 OFF: status=%d majors=%lld f=%.15g kkt=%.6g\n",
                 static_cast<int>(before.status),
@@ -649,8 +648,8 @@ TEST(ProblemScalingRoundTrip, AScaledSolveReportsOnTheCallersScale) {
     UnevenRowModel model;
     SqpOptions opts;
     opts.enable_scaling = true;
-    SqpDriver driver{opts};
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver{opts};
+    const SqpResult sol = driver.solve(model);
 
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     ASSERT_TRUE(sol.scaling.active);
@@ -693,13 +692,13 @@ TEST(ProblemScalingRoundTrip, TheMultipliersAreTheCallersNotTheEngines) {
     // unscaled, and require the two to report the same multipliers. If the
     // export forgot its map, this is where the sf/s_j factor would show.
     UnevenRowModel model;
-    SqpDriver off{SqpOptions{}};
-    const SqpSolution a = off.solve(model);
+    SqpSolver off{SqpOptions{}};
+    const SqpResult a = off.solve(model);
 
     SqpOptions opts;
     opts.enable_scaling = true;
-    SqpDriver on{opts};
-    const SqpSolution b = on.solve(model);
+    SqpSolver on{opts};
+    const SqpResult b = on.solve(model);
 
     ASSERT_EQ(SolveStatus::kOptimal, a.status);
     ASSERT_EQ(SolveStatus::kOptimal, b.status);
@@ -723,8 +722,8 @@ TEST(ProblemScalingWarmStart, AScaledSolvesExportIsAcceptedByAnUnscaledSolve) {
 
     SqpOptions opts;
     opts.enable_scaling = true;
-    SqpDriver scaled{opts};
-    const SqpSolution first = scaled.solve(model);
+    SqpSolver scaled{opts};
+    const SqpResult first = scaled.solve(model);
     ASSERT_EQ(SolveStatus::kOptimal, first.status);
     ASSERT_TRUE(first.scaling.active);
     ASSERT_TRUE(first.warm_start.valid);
@@ -733,9 +732,9 @@ TEST(ProblemScalingWarmStart, AScaledSolvesExportIsAcceptedByAnUnscaledSolve) {
     // UNSCALED one. It must be accepted (not silently degraded to cold) and it
     // must land where a cold unscaled solve lands.
     SqpOptions warm_opts;
-    warm_opts.start_level = StartLevel::kWarm;
-    SqpDriver consumer{warm_opts};
-    const SqpSolution second =
+    warm_opts.common.start_level = StartLevel::kWarm;
+    SqpSolver consumer{warm_opts};
+    const SqpResult second =
         consumer.solve(model, model.start_point(), first.warm_start, SolveBudget{});
 
     EXPECT_NE(StartLevel::kCold, second.counters.start_level_used)
@@ -743,8 +742,8 @@ TEST(ProblemScalingWarmStart, AScaledSolvesExportIsAcceptedByAnUnscaledSolve) {
     EXPECT_EQ(SolveStatus::kOptimal, second.status);
     EXPECT_FALSE(second.scaling.active);
 
-    SqpDriver reference{SqpOptions{}};
-    const SqpSolution cold = reference.solve(model);
+    SqpSolver reference{SqpOptions{}};
+    const SqpResult cold = reference.solve(model);
     EXPECT_NEAR(cold.f, second.f, 1e-9 * std::max(1.0, std::abs(cold.f)));
     ASSERT_EQ(cold.x.size(), second.x.size());
     for (Index i = 0; i < cold.x.size(); ++i) {
@@ -761,8 +760,8 @@ TEST(ProblemScalingWarmStart, AScaledExportDropsTheScaledSpaceStateItCannotMap) 
     UnevenRowModel model;
     SqpOptions opts;
     opts.enable_scaling = true;
-    SqpDriver driver{opts};
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver{opts};
+    const SqpResult sol = driver.solve(model);
     ASSERT_TRUE(sol.warm_start.valid);
     EXPECT_DOUBLE_EQ(-1.0, sol.warm_start.funnel_width);
     EXPECT_DOUBLE_EQ(-1.0, sol.warm_start.primal_delta);
@@ -776,7 +775,7 @@ TEST(ProblemScalingWarmStart, AScaledExportDropsTheScaledSpaceStateItCannotMap) 
 TEST(ProblemScalingWarmStart, TheExportedCurrencyIsTheSolutionsOwnMultipliers) {
     // The tightest statement of the export contract, and the one that catches a
     // block being written from the ENGINE-scale parameter instead of the
-    // caller-scale export: whatever `SqpSolution` reports, the WarmStart beside
+    // caller-scale export: whatever `SqpResult` reports, the SqpWarmStart beside
     // it must carry the SAME numbers, exactly. True on both paths -- on an
     // unscaled solve because the two are the same object, on a scaled one
     // because both went through the same map.
@@ -784,8 +783,8 @@ TEST(ProblemScalingWarmStart, TheExportedCurrencyIsTheSolutionsOwnMultipliers) {
     for (const bool scaled : {false, true}) {
         SqpOptions opts;
         opts.enable_scaling = scaled;
-        SqpDriver driver{opts};
-        const SqpSolution sol = driver.solve(model);
+        SqpSolver driver{opts};
+        const SqpResult sol = driver.solve(model);
         ASSERT_TRUE(sol.warm_start.valid) << "scaled=" << scaled;
         ASSERT_EQ(sol.lambda_e.size(), sol.warm_start.lambda_e.size());
         EXPECT_TRUE(sol.warm_start.lambda_e.isApprox(sol.lambda_e, 0.0))
@@ -809,9 +808,9 @@ TEST(ProblemScalingWarmStart, ACallerScaleSeedIsMappedInOnAScaledSolve) {
     SqpOptions opts;
     opts.max_iter = 60;
     opts.enable_scaling = true;
-    opts.start_level = StartLevel::kWarm;
+    opts.common.start_level = StartLevel::kWarm;
 
-    WarmStart seed;
+    SqpWarmStart seed;
     seed.x = Vec::Constant(1, model.x_star());
     seed.lambda_e = Vec(0);
     seed.lambda_i = Vec::Constant(1, 1e12); // the TRUE caller-scale price
@@ -822,8 +821,8 @@ TEST(ProblemScalingWarmStart, ACallerScaleSeedIsMappedInOnAScaledSolve) {
     seed.structure_hash = 0;
     seed.valid = true;
 
-    SqpDriver driver{opts};
-    const SqpSolution sol = driver.solve(model, model.start_point(), seed, SolveBudget{});
+    SqpSolver driver{opts};
+    const SqpResult sol = driver.solve(model, model.start_point(), seed, SolveBudget{});
     EXPECT_EQ(SolveStatus::kOptimal, sol.status);
     EXPECT_NEAR(model.x_star(), sol.x(0), 1e-9);
     EXPECT_NEAR(1e12, sol.lambda_i(0), 1e-3 * 1e12) << "and it comes back on the caller's scale";
@@ -832,7 +831,7 @@ TEST(ProblemScalingWarmStart, ACallerScaleSeedIsMappedInOnAScaledSolve) {
 // ===========================================================================
 // FIX ROUND 1, FINDING 1: THE ITERATION HISTORY IS ON THE CALLER'S SCALE.
 //
-// `SqpSolution::f` and the four terminal residuals were mapped back from the
+// `SqpResult::f` and the four terminal residuals were mapped back from the
 // first commit; the `history` rows were not, so a scaled solve printed a table
 // (sqp_print.cpp) whose f column was `sf` times the f reported underneath it.
 // The six scale-carrying columns are mapped at the export boundary now.
@@ -842,8 +841,8 @@ TEST(ProblemScalingHistory, TheExportedRowsAreOnTheCallersScale) {
     ScaledUnevenModel model;
     SqpOptions opts;
     opts.enable_scaling = true;
-    SqpDriver driver{opts};
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver{opts};
+    const SqpResult sol = driver.solve(model);
 
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     ASSERT_TRUE(sol.scaling.active);
@@ -886,8 +885,8 @@ TEST(ProblemScalingHistory, AnUnscaledSolvesHistoryIsUntouched) {
     // so an unscaled solve's rows are the measurements themselves, and the
     // trailer says so in one word.
     ScaledUnevenModel model;
-    SqpDriver driver{SqpOptions{}};
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver{SqpOptions{}};
+    const SqpResult sol = driver.solve(model);
 
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     EXPECT_FALSE(sol.scaling.active);
@@ -905,8 +904,8 @@ TEST(ProblemScalingHistory, TheNonFiniteIterateExitStillUnscalesAndReports) {
     NonFiniteRowModel model;
     SqpOptions opts;
     opts.enable_scaling = true;
-    SqpDriver driver{opts};
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver{opts};
+    const SqpResult sol = driver.solve(model);
 
     ASSERT_EQ(SolveStatus::kNumericalError, sol.status)
         << "the fixture must reach the non-finite-iterate exit for this pin to mean anything";
@@ -930,7 +929,7 @@ TEST(ProblemScalingHistory, TheNonFiniteIterateExitStillUnscalesAndReports) {
     EXPECT_TRUE(sol.lambda_i.isZero(0.0));
 
     // AND THE CURRENCY DROP IS THE ONE `finish` APPLIES (fix round 2). This
-    // exit builds its own WarmStart rather than routing through that boundary,
+    // exit builds its own SqpWarmStart rather than routing through that boundary,
     // so the scaled-space state it may not export has to be dropped here too --
     // otherwise a scaled solve's failed-exit object carries a primal_delta and
     // a dual_mu set in the SCALED subproblem's units under field names whose
@@ -960,15 +959,15 @@ TEST(ProblemScalingRestoration, TheAdoptedSelectorsAreNotMappedTwice) {
 
     SqpOptions off_opts;
     off_opts.max_iter = 200;
-    SqpDriver off{off_opts};
-    const SqpSolution a = off.solve(model);
+    SqpSolver off{off_opts};
+    const SqpResult a = off.solve(model);
     ASSERT_EQ(SolveStatus::kInfeasible, a.status);
     ASSERT_TRUE(a.infeasibility_certified);
 
     SqpOptions on_opts = off_opts;
     on_opts.enable_scaling = true;
-    SqpDriver on{on_opts};
-    const SqpSolution b = on.solve(model);
+    SqpSolver on{on_opts};
+    const SqpResult b = on.solve(model);
 
     ASSERT_TRUE(b.scaling.active);
     EXPECT_DOUBLE_EQ(100.0, b.scaling.obj) << "grad f is (1,1) everywhere: the full two-sided lift";
@@ -1012,7 +1011,7 @@ TEST(ProblemScalingRestoration, TheAdoptedSelectorsAreNotMappedTwice) {
 // FIX ROUND 1, FINDING 4: THE FACTORS ARE INDEXED BY ROW, SO A RE-LAY THAT
 // CHANGES A ROW COUNT UNDER THEM IS REFUSED RATHER THAN READ PAST.
 //
-// No in-tree provider can do this within one solve -- NlpModelAggregate re-lays
+// No in-tree provider can do this within one solve -- NlpModelAssembly re-lays
 // only from its own model, whose row counts are fixed for the object's life,
 // and the driver never asks it to. The guard is structural all the same: the
 // apply sites index the factor blocks directly, and Eigen's own bounds asserts
@@ -1023,7 +1022,7 @@ TEST(ProblemScalingRestoration, TheAdoptedSelectorsAreNotMappedTwice) {
 TEST(ProblemScalingSeam, ARelayThatChangesARowCountUnderActiveFactorsIsRefused) {
     hven::sqp_tests::SettableClaimStreamSource source(2, 1, 1);
     source.set_kkt_stream({}, {}, {0, 0}, {0, 0}, {0, 0});
-    AggregateEvalSeam seam(source);
+    AssemblyEvalSeam seam(source);
 
     detail::ProblemScaling sc;
     sc.active = true;
@@ -1059,7 +1058,7 @@ TEST(ProblemScalingSeam, AnUnscaledSeamStillAcceptsARowCountChange) {
     // untouched.
     hven::sqp_tests::SettableClaimStreamSource source(2, 1, 1);
     source.set_kkt_stream({}, {}, {0, 0}, {0, 0}, {0, 0});
-    AggregateEvalSeam seam(source);
+    AssemblyEvalSeam seam(source);
 
     const Vec x = (Vec(2) << 0.5, -0.25).finished();
     ASSERT_NO_THROW(seam.eval_nlp(x, Vec::Zero(1), Vec::Zero(1)));
@@ -1086,8 +1085,8 @@ TEST(ProblemScalingRoundTrip, TheBoundPricesAreTheReMeasurementsNotADivideBack) 
     ScaledBoundActiveModel model;
     SqpOptions opts;
     opts.enable_scaling = true;
-    SqpDriver driver{opts};
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver{opts};
+    const SqpResult sol = driver.solve(model);
 
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     ASSERT_TRUE(sol.scaling.active);

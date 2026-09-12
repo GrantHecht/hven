@@ -27,7 +27,7 @@
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/qp_engine.h>
 #include <hven/detail/qp/qp_problem.h>
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 
 #include "support/e1_cells.h"
 #include "support/scale_problems.h"
@@ -445,7 +445,7 @@ struct SolveRow {
     double wall_s = 0.0;
 
     // END-TO-END: the tier exit AFTER the driver's own tier-3 polish on the tier's working set
-    // (`sqp_driver.cpp`'s item-3 route). Rule A again on the polished point, and the whole
+    // (`sqp_solver.cpp`'s item-3 route). Rule A again on the polished point, and the whole
     // chain's factorizations. The same `kNotScored` sentinel as the tier columns above.
     bool e2e_usable = false;   ///< the exit was a usable step, so a polish ran at all
     bool e2e_polished = false; ///< ... and `refine_on_face` ACCEPTED its answer

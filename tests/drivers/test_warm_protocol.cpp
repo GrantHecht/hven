@@ -60,12 +60,12 @@
 #include <hven/core/start_level.h>
 #include <hven/detail/model/nlp_adapter.h>
 #include <hven/detail/warmstart/warm_start.h>
-#include <hven/drivers/interior_point_solver.h>
+#include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/drivers/trace_writer.h>
-#include <hven/model/nlp_model_aggregate.h>
+#include <hven/model/nlp_model_assembly.h>
 #include <hven/model/nlp_problem_model.h>
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/seeding.h>
@@ -78,12 +78,12 @@ namespace {
 
 using hven::solvers::declaration_key;
 using hven::solvers::kIpmPolishTag;
-using hven::solvers::NlpModelAggregate;
+using hven::solvers::NlpModelAssembly;
 using hven::solvers::NlpProblemModel;
 using hven::solvers::SolveStatus;
-using hven::solvers::SqpDriver;
 using hven::solvers::SqpOptions;
 using hven::solvers::SqpResult;
+using hven::solvers::SqpSolver;
 using hven::solvers::SqpWarmStart;
 using hven::solvers::StartLevel;
 using hven::solvers::WarmStartData;
@@ -94,7 +94,7 @@ using Vec = Eigen::VectorXd;
 // HS071's payload to this one is the identity mismatch every REFUSES pin below
 // is built on -- and it is a mismatch in the block lengths AND in the stamp, so
 // the two checks are exercised in the order the engines run them.
-struct ThreeVarProblem final : hven::solvers::NLPProblem {
+struct ThreeVarProblem final : hven::solvers::NlpTripletModel {
     int num_vars() const override { return 3; }
     int num_cons() const override { return 1; }
     int num_jac_nonzeros() const override { return 3; }
@@ -141,7 +141,7 @@ SqpOptions quiet_sqp(hven::solvers::QpMode mode = hven::solvers::QpMode::kWalk) 
     return o;
 }
 
-hven::solvers::IpmOptions quiet_ipm(const hven::solvers::InteriorPointSolver &solver) {
+hven::solvers::IpmOptions quiet_ipm(const hven::solvers::IpmSolver &solver) {
     hven::solvers::IpmOptions o = solver.options();
     o.common.print_level = 10;
     return o;
@@ -152,9 +152,9 @@ hven::solvers::IpmOptions quiet_ipm(const hven::solvers::InteriorPointSolver &so
 // from here, so no test hand-builds a value the engines would never have
 // produced.
 struct Hs071Export {
-    std::shared_ptr<hven::solvers::NLPProblem> problem;
+    std::shared_ptr<hven::solvers::NlpTripletModel> problem;
     std::shared_ptr<hven::solvers::NonLinearProgram> program;
-    hven::solvers::InteriorPointSolver ipm;
+    hven::solvers::IpmSolver ipm;
     WarmStartData payload;
 
     Hs071Export()
@@ -317,14 +317,14 @@ void expect_same_reported_numbers(const hven::solvers::IpmResult &a,
     }
 }
 
-// A SQP-side view of one NLPProblem, kept alive with its bridge.
+// A SQP-side view of one NlpTripletModel, kept alive with its bridge.
 struct SqpView {
     std::shared_ptr<NlpProblemModel> model;
-    std::shared_ptr<NlpModelAggregate> bridge;
+    std::shared_ptr<NlpModelAssembly> bridge;
 
-    explicit SqpView(std::shared_ptr<hven::solvers::NLPProblem> problem)
+    explicit SqpView(std::shared_ptr<hven::solvers::NlpTripletModel> problem)
         : model(std::make_shared<NlpProblemModel>(std::move(problem))),
-          bridge(std::make_shared<NlpModelAggregate>(model)) {}
+          bridge(std::make_shared<NlpModelAssembly>(model)) {}
 };
 
 } // namespace
@@ -340,7 +340,7 @@ TEST(WarmProtocol, PayloadStampMismatchRefusesOnBothEngines) {
     // --- The interior-point engine ---
     const auto three = std::make_shared<ThreeVarProblem>();
     const auto ipm_program = hven::solvers::make_nlp_program(three);
-    hven::solvers::InteriorPointSolver ipm;
+    hven::solvers::IpmSolver ipm;
     ipm.set_options(quiet_ipm(ipm));
     EXPECT_THROW((void)ipm.solve(*ipm_program, Vec::Zero(3), exported.payload),
                  std::invalid_argument);
@@ -354,7 +354,7 @@ TEST(WarmProtocol, PayloadStampMismatchRefusesOnBothEngines) {
     SqpView view(three);
     for (const hven::solvers::QpMode mode :
          {hven::solvers::QpMode::kWalk, hven::solvers::QpMode::kSsn, hven::solvers::QpMode::kIpm}) {
-        SqpDriver driver{quiet_sqp(mode)};
+        SqpSolver driver{quiet_sqp(mode)};
         EXPECT_THROW((void)driver.solve(*view.bridge, view.model->start_point(), exported.payload),
                      std::invalid_argument)
             << "qp_mode ordinal " << static_cast<int>(mode);
@@ -371,7 +371,7 @@ TEST(WarmProtocol, KIpmModeNoLongerColdGradesAMismatch) {
     SqpView view(three);
 
     const auto message_for = [&](hven::solvers::QpMode mode) {
-        SqpDriver driver{quiet_sqp(mode)};
+        SqpSolver driver{quiet_sqp(mode)};
         try {
             (void)driver.solve(*view.bridge, view.model->start_point(), exported.payload);
         } catch (const std::invalid_argument &error) {
@@ -388,7 +388,7 @@ TEST(WarmProtocol, KIpmModeNoLongerColdGradesAMismatch) {
     EXPECT_EQ(walk, ssn);
     EXPECT_EQ(walk, ipm) << "M5 ruling 4's mode-local cold grade is RETIRED: kIpm refuses an "
                             "identity mismatch exactly as kWalk does";
-    EXPECT_NE(walk.find("SqpDriver::solve"), std::string::npos) << walk;
+    EXPECT_NE(walk.find("SqpSolver::solve"), std::string::npos) << walk;
 }
 
 // ===========================================================================
@@ -415,7 +415,7 @@ TEST(WarmProtocol, MultipliersOnlySeedResolvesSeededOnSqp) {
         SCOPED_TRACE("qp_mode ordinal " + std::to_string(static_cast<int>(mode)));
 
         SqpView view(exported.problem);
-        SqpDriver driver{quiet_sqp(mode)};
+        SqpSolver driver{quiet_sqp(mode)};
         const SqpResult out = driver.solve(*view.bridge, x0, seed);
 
         // THE BEHAVIOUR CHANGE (design 2.7 item (5)): before T8.5 an empty
@@ -443,7 +443,7 @@ TEST(WarmProtocol, MultipliersOnlySeedResolvesSeededOnSqp) {
         // multipliers, which is exactly what the seed supplied and what makes
         // this solve different from the cold one.
         SqpView cold_view(exported.problem);
-        SqpDriver cold_driver{quiet_sqp(mode)};
+        SqpSolver cold_driver{quiet_sqp(mode)};
         const SqpResult cold = cold_driver.solve(*cold_view.bridge, x0);
         ASSERT_FALSE(out.history.empty());
         ASSERT_FALSE(cold.history.empty());
@@ -481,7 +481,7 @@ TEST(WarmProtocol, MultipliersOnlySeedIgnoresAPolishExtension) {
     // would attribute activity nothing measured here.
     {
         SqpView view(exported.problem);
-        SqpDriver driver{quiet_sqp()};
+        SqpSolver driver{quiet_sqp()};
         const SqpResult out = driver.solve(*view.bridge, hs071_start(), seed);
         EXPECT_EQ(out.status, SolveStatus::kOptimal);
         EXPECT_EQ(out.counters.start_level_used, StartLevel::kSeeded);
@@ -492,7 +492,7 @@ TEST(WarmProtocol, MultipliersOnlySeedIgnoresAPolishExtension) {
     // above is about the extension and not about the seed form.
     {
         SqpView view(exported.problem);
-        SqpDriver driver{quiet_sqp()};
+        SqpSolver driver{quiet_sqp()};
         const SqpResult out =
             driver.solve(*view.bridge, hs071_start(), seed_form(exported.payload));
         EXPECT_EQ(out.counters.polish_ignored, 0);
@@ -502,7 +502,7 @@ TEST(WarmProtocol, MultipliersOnlySeedIgnoresAPolishExtension) {
     // not the presence.
     {
         SqpView view(exported.problem);
-        SqpDriver driver{quiet_sqp()};
+        SqpSolver driver{quiet_sqp()};
         const SqpResult out = driver.solve(*view.bridge, hs071_start(), exported.payload);
         EXPECT_EQ(out.counters.polish_ignored, 0);
     }
@@ -515,7 +515,7 @@ TEST(WarmProtocol, MultipliersOnlySeedIgnoresAPolishExtension) {
     // travelled in the extension describes the exporter's point.
     {
         const auto ipm_program = hven::solvers::make_nlp_program(exported.problem);
-        hven::solvers::InteriorPointSolver ipm;
+        hven::solvers::IpmSolver ipm;
         ipm.set_options(quiet_ipm(ipm));
         const hven::solvers::IpmResult r = ipm.solve(*ipm_program, hs071_start(), seed);
         EXPECT_EQ(r.status, SolveStatus::kOptimal);
@@ -524,7 +524,7 @@ TEST(WarmProtocol, MultipliersOnlySeedIgnoresAPolishExtension) {
     }
     {
         const auto ipm_program = hven::solvers::make_nlp_program(exported.problem);
-        hven::solvers::InteriorPointSolver ipm;
+        hven::solvers::IpmSolver ipm;
         ipm.set_options(quiet_ipm(ipm));
         const hven::solvers::IpmResult r = ipm.solve(*ipm_program, hs071_start(), exported.payload);
         EXPECT_EQ(r.polish_ignored, 0) << "a full payload's extension IS consumed";
@@ -546,7 +546,7 @@ TEST(WarmProtocol, EmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver) {
     // standing, on both engines, before either runs anything.
     {
         SqpView view(exported.problem);
-        SqpDriver driver{quiet_sqp()};
+        SqpSolver driver{quiet_sqp()};
         try {
             (void)driver.solve(*view.bridge, hs071_start(), half_empty);
             FAIL() << "an empty primal_ beside populated bound prices must refuse";
@@ -559,7 +559,7 @@ TEST(WarmProtocol, EmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver) {
     }
     {
         const auto ipm_program = hven::solvers::make_nlp_program(exported.problem);
-        hven::solvers::InteriorPointSolver ipm;
+        hven::solvers::IpmSolver ipm;
         ipm.set_options(quiet_ipm(ipm));
         try {
             (void)ipm.solve(*ipm_program, hs071_start(), half_empty);
@@ -577,7 +577,7 @@ TEST(WarmProtocol, EmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver) {
     no_prices.bound_lmults_.resize(0);
     no_prices.extensions_.clear();
     SqpView view(exported.problem);
-    SqpDriver driver{quiet_sqp()};
+    SqpSolver driver{quiet_sqp()};
     EXPECT_THROW((void)driver.solve(*view.bridge, hs071_start(), no_prices), std::invalid_argument);
 }
 
@@ -589,7 +589,7 @@ TEST(WarmProtocol, NativePatternMismatchStillDegradesToSeeded) {
     const auto problem = std::make_shared<hven_drivers_tests::Hs071Problem>();
     SqpView view(problem);
 
-    SqpDriver producer{quiet_sqp()};
+    SqpSolver producer{quiet_sqp()};
     const SqpResult first = producer.solve(*view.bridge, hs071_start());
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
     ASSERT_NE(first.warm_start.structure_hash, 0u)
@@ -603,7 +603,7 @@ TEST(WarmProtocol, NativePatternMismatchStillDegradesToSeeded) {
     stale.structure_hash = 0x1;
     stale.hot.reset();
 
-    SqpDriver consumer{quiet_sqp()};
+    SqpSolver consumer{quiet_sqp()};
     SqpResult out;
     ASSERT_NO_THROW(out = consumer.solve(*view.bridge, hs071_start(), stale));
     EXPECT_EQ(out.status, SolveStatus::kOptimal);
@@ -613,7 +613,7 @@ TEST(WarmProtocol, NativePatternMismatchStillDegradesToSeeded) {
     // degradation and not the ceiling this route always hits.
     SqpWarmStart matching = first.warm_start;
     matching.hot.reset();
-    SqpDriver warm_consumer{quiet_sqp()};
+    SqpSolver warm_consumer{quiet_sqp()};
     const SqpResult warm = warm_consumer.solve(*view.bridge, hs071_start(), matching);
     EXPECT_EQ(warm.counters.start_level_used, StartLevel::kWarm);
 }
@@ -622,7 +622,7 @@ TEST(WarmProtocol, NativeNonFiniteResolvesCold) {
     const auto problem = std::make_shared<hven_drivers_tests::Hs071Problem>();
     SqpView view(problem);
 
-    SqpDriver producer{quiet_sqp()};
+    SqpSolver producer{quiet_sqp()};
     const SqpResult first = producer.solve(*view.bridge, hs071_start());
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
 
@@ -633,7 +633,7 @@ TEST(WarmProtocol, NativeNonFiniteResolvesCold) {
     // NOT A THROW. The native route's contract is that a defect resolves kCold,
     // and it does so with the hash still MATCHING -- which is what makes the
     // finiteness gate, and not the pattern gate, the thing being read.
-    SqpDriver consumer{quiet_sqp()};
+    SqpSolver consumer{quiet_sqp()};
     SqpResult out;
     ASSERT_NO_THROW(out = consumer.solve(*view.bridge, hs071_start(), poisoned));
     EXPECT_EQ(out.status, SolveStatus::kOptimal);
@@ -648,7 +648,7 @@ TEST(WarmProtocol, SeededClampBandStillDegradesNotRefuses) {
     const auto problem = std::make_shared<hven_drivers_tests::Hs071Problem>();
     SqpView view(problem);
 
-    SqpDriver producer{quiet_sqp()};
+    SqpSolver producer{quiet_sqp()};
     const SqpResult first = producer.solve(*view.bridge, hs071_start());
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
     ASSERT_GT(first.warm_start.lambda_i.size(), 0);
@@ -660,7 +660,7 @@ TEST(WarmProtocol, SeededClampBandStillDegradesNotRefuses) {
         // to resolve kSeeded before the band can be read at all.
         w.structure_hash = 0;
         w.lambda_i(0) = price;
-        SqpDriver driver{quiet_sqp()};
+        SqpSolver driver{quiet_sqp()};
         return driver.solve(*view.bridge, hs071_start(), w);
     };
 
@@ -695,7 +695,7 @@ TEST(WarmProtocol, ColdCeilingIgnoresAndCountsThePayload) {
 
     const auto solve_at = [&](StartLevel ceiling, const WarmStartData *payload) {
         const auto ipm_program = hven::solvers::make_nlp_program(exported.problem);
-        hven::solvers::InteriorPointSolver ipm;
+        hven::solvers::IpmSolver ipm;
         hven::solvers::IpmOptions o = quiet_ipm(ipm);
         o.common.start_level = ceiling;
         ipm.set_options(std::move(o));
@@ -727,7 +727,7 @@ TEST(WarmProtocol, ColdCeilingIgnoresAndCountsThePayload) {
     // ceiling is refused, not quietly discarded.
     const auto three = std::make_shared<ThreeVarProblem>();
     const auto other_program = hven::solvers::make_nlp_program(three);
-    hven::solvers::InteriorPointSolver other;
+    hven::solvers::IpmSolver other;
     hven::solvers::IpmOptions o = quiet_ipm(other);
     o.common.start_level = StartLevel::kCold;
     other.set_options(std::move(o));
@@ -766,7 +766,7 @@ TEST(WarmProtocol, ColdCeilingStillRefusesAWrongStampAtTheRightDimensions) {
     for (const StartLevel ceiling :
          {StartLevel::kCold, StartLevel::kSeeded, StartLevel::kWarm, StartLevel::kHot}) {
         const auto ipm_program = hven::solvers::make_nlp_program(exported.problem);
-        hven::solvers::InteriorPointSolver ipm;
+        hven::solvers::IpmSolver ipm;
         hven::solvers::IpmOptions o = quiet_ipm(ipm);
         o.common.start_level = ceiling;
         ipm.set_options(std::move(o));
@@ -779,7 +779,7 @@ TEST(WarmProtocol, ColdCeilingStillRefusesAWrongStampAtTheRightDimensions) {
     // above are about the stamp and not about anything else this test built.
     {
         const auto ipm_program = hven::solvers::make_nlp_program(exported.problem);
-        hven::solvers::InteriorPointSolver ipm;
+        hven::solvers::IpmSolver ipm;
         hven::solvers::IpmOptions o = quiet_ipm(ipm);
         o.common.start_level = StartLevel::kCold;
         ipm.set_options(std::move(o));
@@ -800,7 +800,7 @@ TEST(WarmProtocol, TheIpmCeilingHasFourRungs) {
 
     const auto solve_at = [&](StartLevel ceiling) {
         const auto ipm_program = hven::solvers::make_nlp_program(exported.problem);
-        hven::solvers::InteriorPointSolver ipm;
+        hven::solvers::IpmSolver ipm;
         hven::solvers::IpmOptions o = quiet_ipm(ipm);
         o.common.start_level = ceiling;
         ipm.set_options(std::move(o));
@@ -862,7 +862,7 @@ TEST(WarmProtocol, ThePolishIgnoredCountAgreesAcrossTraceResultAndLedger) {
         << "without the extension there is nothing to ignore and the pin is vacuous";
 
     SqpView view(exported.problem);
-    SqpDriver driver{quiet_sqp()};
+    SqpSolver driver{quiet_sqp()};
 
     std::ostringstream stream;
     hven::solvers::JsonLinesTraceSink sink{stream};
@@ -905,7 +905,7 @@ TEST(WarmProtocol, ThePolishIgnoredCountAgreesAcrossTraceResultAndLedger) {
     // 0 in all three places, so the 1s above are about the dropped extension.
     {
         SqpView plain_view(exported.problem);
-        SqpDriver plain{quiet_sqp()};
+        SqpSolver plain{quiet_sqp()};
         std::ostringstream plain_stream;
         hven::solvers::JsonLinesTraceSink plain_sink{plain_stream};
         plain.attach_trace(&plain_sink);
@@ -961,7 +961,7 @@ TEST(WarmProtocol, TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries) {
 
     // --- (1) THE SEEDLESS CALL. If this file compiles, the entry exists. ---
     const auto program = hven::solvers::make_nlp_program(problem);
-    hven::solvers::InteriorPointSolver ipm;
+    hven::solvers::IpmSolver ipm;
     ipm.set_options(quiet_ipm(ipm));
     const hven::solvers::IpmResult out = ipm.solve(*program, hs071_start());
 
@@ -981,7 +981,7 @@ TEST(WarmProtocol, TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries) {
     // nothing more: supplying the default changes no number. It is NOT evidence
     // about the payload overload; (3) and (4) below are.
     const auto other_program = hven::solvers::make_nlp_program(problem);
-    hven::solvers::InteriorPointSolver other;
+    hven::solvers::IpmSolver other;
     other.set_options(quiet_ipm(other));
     const hven::solvers::IpmResult explicit_default =
         other.solve(*other_program, hs071_start(), hven::solvers::SolveBudget{});
@@ -993,7 +993,7 @@ TEST(WarmProtocol, TheSolveFamilyKeepsItsSeedlessAndItsPayloadEntries) {
     // payload overload differ ONLY in whether the budget is spelled.
     const auto solve_with_payload = [&](const WarmStartData &w, bool spell_the_budget) {
         const auto p = hven::solvers::make_nlp_program(problem);
-        hven::solvers::InteriorPointSolver s;
+        hven::solvers::IpmSolver s;
         s.set_options(quiet_ipm(s));
         return spell_the_budget ? s.solve(*p, hs071_start(), w, hven::solvers::SolveBudget{})
                                 : s.solve(*p, hs071_start(), w);
@@ -1071,7 +1071,7 @@ TEST(WarmProtocol, RoundTripIpmToSqpToIpmStillWorks) {
 
     // --- IPM -> SQP, the crossover the bench's leg (d) runs ---
     SqpView view(exported.problem);
-    SqpDriver sqp{quiet_sqp()};
+    SqpSolver sqp{quiet_sqp()};
     const SqpResult crossed = sqp.solve(*view.bridge, hs071_start(), exported.payload);
     EXPECT_EQ(crossed.status, SolveStatus::kOptimal);
     // kSeeded, and it cannot be more: a payload carries structure hash 0 by
@@ -1087,7 +1087,7 @@ TEST(WarmProtocol, RoundTripIpmToSqpToIpmStillWorks) {
     EXPECT_TRUE(back->extensions_.empty());
 
     const auto ipm_program = hven::solvers::make_nlp_program(exported.problem);
-    hven::solvers::InteriorPointSolver ipm;
+    hven::solvers::IpmSolver ipm;
     ipm.set_options(quiet_ipm(ipm));
     const hven::solvers::IpmResult returned = ipm.solve(*ipm_program, hs071_start(), *back);
     EXPECT_EQ(returned.status, SolveStatus::kOptimal);

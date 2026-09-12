@@ -10,12 +10,12 @@
 
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/interior/iterate_info.h"
-// The complete InteriorPointSolver class is required here (classic_line_search
+// The complete IpmSolver class is required here (classic_line_search
 // takes its nested LineSearchModes by value, and a nested enum cannot be
 // forward-declared independently of its enclosing class). This include is
-// deliberately one-directional: interior_point_solver.h does not include back
+// deliberately one-directional: ipm_solver.h does not include back
 // into this directory.
-#include "hven/drivers/interior_point_solver.h"
+#include "hven/drivers/ipm_solver.h"
 
 namespace hven::solvers {
 
@@ -112,9 +112,9 @@ class AcceptanceStrategy {
     /// Returns the accepted step-length alpha.
     /// @throws std::logic_error Always, in the default body: reaching it means
     ///   a non-classic strategy was driven through the classic path.
-    virtual double classic_line_search(InteriorPointSolver::LineSearchModes lsmode,
-                                       double obj_scale, double mu, double prim_obj,
-                                       double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
+    virtual double classic_line_search(IpmSolver::LineSearchModes lsmode, double obj_scale,
+                                       double mu, double prim_obj, double barr_obj,
+                                       Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
                                        Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
                                        Eigen::VectorXd &RHS2, IterateInfo &Citer,
                                        const std::vector<IterateInfo> &iters) {

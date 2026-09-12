@@ -2570,7 +2570,7 @@ TEST(QpEngineIndefinite, PostProbeRestartIsOneShotPerSolve) {
         EXPECT_EQ(sol.lambda_i.lpNorm<Eigen::Infinity>(), 0.0);
 
         // ... and that iterate is finite and inside the box, which is exactly
-        // what sqp_driver.h's qp_failure_is_retryable tests.
+        // what sqp_solver.h's qp_failure_is_retryable tests.
         EXPECT_TRUE(sol.x.allFinite());
         EXPECT_LE(sol.x.lpNorm<Eigen::Infinity>(), 2.0 + 1e-12);
     }

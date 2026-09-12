@@ -38,7 +38,7 @@
 #include "hven/model/non_linear_program.h"
 
 using hven::ConstEigenRef;
-using hven::solvers::AggregateCapability;
+using hven::solvers::AssemblyCapability;
 using hven::solvers::CandidateFirstOrder;
 using hven::solvers::CandidatePoint;
 using hven::solvers::CandidateValues;
@@ -47,7 +47,7 @@ using hven::solvers::FixedVariableTreatments;
 using hven::solvers::has_capability;
 using hven::solvers::KktScatterView;
 using hven::solvers::NLPAdapterCore;
-using hven::solvers::NLPProblem;
+using hven::solvers::NlpTripletModel;
 using hven::solvers::NonLinearProgram;
 using hven::solvers::RhsArenaView;
 using hven::solvers::RhsLocationTable;
@@ -63,7 +63,7 @@ constexpr double kAggPinInf = std::numeric_limits<double>::infinity();
 ///
 /// `fix_` pins a variable by giving it equal bounds, which is what drives the
 /// fixed-variable treatments.
-struct AggPinProblem : NLPProblem {
+struct AggPinProblem : NlpTripletModel {
     int fix_ = -1;
     double fix_at_ = 0.0;
     bool fix_all_ = false;
@@ -159,7 +159,7 @@ struct AggPinProblem : NLPProblem {
 /// 1..20 -- the pair (r, r+k) is claimed while (r+k, r) is NOT, and a
 /// renumbering moves the set. (For k in 21..39 the wrap does claim both, which
 /// is why the quantifier is that range and not the whole band.)
-struct AggPinWideProblem : NLPProblem {
+struct AggPinWideProblem : NlpTripletModel {
     static constexpr int kVars = 60;
     static constexpr int kCons = 60;
     static constexpr int kBand = 40;
@@ -228,7 +228,7 @@ struct AggPinWideProblem : NLPProblem {
 /// mistake for a missing view -- the residual flag names both arenas at once,
 /// so getting this wrong locks such a model out of evaluating the block it does
 /// have.
-struct AggPinOneKindProblem : NLPProblem {
+struct AggPinOneKindProblem : NlpTripletModel {
     bool inequality_ = false;
 
     int num_vars() const override { return 3; }
@@ -282,7 +282,7 @@ struct AggPinOneKindProblem : NLPProblem {
     std::string name() const override { return "AggPinOneKindProblem"; }
 };
 
-std::shared_ptr<NonLinearProgram> agg_pin_build(const std::shared_ptr<NLPProblem> &problem) {
+std::shared_ptr<NonLinearProgram> agg_pin_build(const std::shared_ptr<NlpTripletModel> &problem) {
     auto model = std::make_shared<hven::solvers::NlpProblemModel>(problem);
     auto core = std::make_shared<NLPAdapterCore>(model, problem->name());
     return hven::solvers::make_nlp_program(core);
@@ -753,7 +753,7 @@ TEST(NlpAggregateEngineLayout, ARelayIsFullyVisibleThroughASecondDeclarationRead
     // stream did.
     auto nlp = agg_pin_build_small();
 
-    const hven::solvers::AggregateDeclaration &before = nlp->declaration();
+    const hven::solvers::AssemblyDeclaration &before = nlp->declaration();
     const std::size_t equalities_before = before.equality_constraints_.size();
     const auto key_before = nlp->model_structure_key();
     ASSERT_GT(equalities_before, 0u);
@@ -761,7 +761,7 @@ TEST(NlpAggregateEngineLayout, ARelayIsFullyVisibleThroughASecondDeclarationRead
     nlp->equality_constraints_.push_back(nlp->equality_constraints_.front());
     nlp->make_nlp(nlp->primal_vars_, nlp->user_equal_cons_, nlp->inequal_cons_);
 
-    const hven::solvers::AggregateDeclaration &after = nlp->declaration();
+    const hven::solvers::AssemblyDeclaration &after = nlp->declaration();
     EXPECT_EQ(after.equality_constraints_.size(), nlp->equality_constraints_.size());
     EXPECT_EQ(after.equality_constraints_.size(), equalities_before + 1);
     EXPECT_EQ(after.objectives_.size(), nlp->objectives_.size());
@@ -817,7 +817,7 @@ TEST(NlpAggregateEngineLayout, AFailedRelayNeverLeavesAMixedDeclaration) {
     // one outcome this setup can produce is what makes the pin catch a change
     // in it; a disjunction would pass either way.
     ASSERT_EQ(nlp->internal_fixed_constraints(), 0);
-    const hven::solvers::AggregateDeclaration &after = nlp->declaration();
+    const hven::solvers::AssemblyDeclaration &after = nlp->declaration();
     EXPECT_EQ(after.equality_constraints_.size(), nlp->equality_constraints_.size());
     EXPECT_EQ(after.equality_constraints_.size(), equalities);
     EXPECT_EQ(after.objectives_.size(), nlp->objectives_.size());
@@ -897,7 +897,7 @@ TEST(NlpAggregateEngineLayout, AnAggregateThatWasNeverLaidIsNotCheckedAgainstALa
     fresh.inequality_constraints_ = laid->inequality_constraints_;
     ASSERT_FALSE(fresh.objectives_.empty());
 
-    const hven::solvers::AggregateDeclaration *declared = nullptr;
+    const hven::solvers::AssemblyDeclaration *declared = nullptr;
     EXPECT_NO_THROW({ declared = &fresh.declaration(); });
     ASSERT_NE(declared, nullptr);
     EXPECT_TRUE(declared->objectives_.empty());
@@ -1204,7 +1204,7 @@ TEST(NlpAggregateEngineCandidate, TheProbePairsTheEpochWithTheValuesAtThePoint) 
 
 TEST(NlpAggregateEngineDeclaration, ItDescribesTheStructuresOnHandAndIsStoredState) {
     auto nlp = agg_pin_build_small();
-    const hven::solvers::AggregateDeclaration &first = nlp->declaration();
+    const hven::solvers::AssemblyDeclaration &first = nlp->declaration();
     EXPECT_EQ(&first, &nlp->declaration()) << "stored state, not rebuilt per call";
 
     EXPECT_EQ(first.primal_vars_, nlp->primal_vars_);
@@ -1225,7 +1225,7 @@ TEST(NlpAggregateEngineDeclaration, ObjectivePiecesAloneMakeADeclarationPieceSou
     ASSERT_FALSE(nlp->declaration().objectives_.empty());
     ASSERT_GT(nlp->declaration().equality_rows_, 0);
 
-    hven::solvers::AggregateDeclaration declared = nlp->declaration();
+    hven::solvers::AssemblyDeclaration declared = nlp->declaration();
     declared.equality_constraints_.clear();
     declared.inequality_constraints_.clear();
     EXPECT_THROW(declared.validate(), std::invalid_argument);
@@ -1250,7 +1250,7 @@ TEST(NlpAggregateEngineDeclaration, APieceSourcedDeclarationStillFailsOnABadRowS
     ASSERT_FALSE(nlp->declaration().equality_constraints_.empty());
 
     const int equality_claimed = nlp->declaration().equality_rows_;
-    hven::solvers::AggregateDeclaration declared = nlp->declaration();
+    hven::solvers::AssemblyDeclaration declared = nlp->declaration();
     declared.equality_rows_ += 1;
     try {
         declared.validate();
@@ -1295,13 +1295,13 @@ TEST(NlpAggregateEngineDeclaration, StagingABoundChangesNothingUntilItIsMaterial
 
 TEST(NlpAggregateEngineCapabilities, TheValuesFastPathIsDeclaredAndDirectScatterIsNot) {
     auto nlp = agg_pin_build_small();
-    const AggregateCapability declared = nlp->capabilities();
+    const AssemblyCapability declared = nlp->capabilities();
 
-    EXPECT_TRUE(has_capability(declared, AggregateCapability::kValuesFastPath));
+    EXPECT_TRUE(has_capability(declared, AssemblyCapability::kValuesFastPath));
     // Not declared, and the reason is the right-hand-side fold rather than the
     // KKT fill: the flag is the weakest claim over the whole provider, so one
     // path holding an intermediate settles it for all of them.
-    EXPECT_FALSE(has_capability(declared, AggregateCapability::kDirectScatter));
+    EXPECT_FALSE(has_capability(declared, AssemblyCapability::kDirectScatter));
 }
 
 // ---------------------------------------------------------------------------
@@ -1405,7 +1405,7 @@ TEST(NlpAggregateConsumerViews, BuildersAddressExactlyTheLegacySegments) {
 /// The contract lets a consumer run its own coefficient steps concurrently with
 /// assemble() when the two write disjoint destinations. For this engine they do
 /// not, and this pins which block is responsible, so the sequencing in
-/// InteriorPointSolver::assemble_dispatch is a recorded consequence rather than
+/// IpmSolver::assemble_dispatch is a recorded consequence rather than
 /// caution.
 ///
 /// The primal-diagonal coefficients share value-array slots with piece claims:
@@ -1861,7 +1861,7 @@ TEST(NlpAggregateEngineCandidate, TheScorerExclusionSetIsComputableFromTheDeclar
     problem->fix_at_ = 0.4;
     auto nlp = agg_pin_build(problem);
 
-    auto exclusion_set = [](const hven::solvers::AggregateDeclaration &declaration) {
+    auto exclusion_set = [](const hven::solvers::AssemblyDeclaration &declaration) {
         std::vector<int> fixed;
         for (const hven::solvers::VariableBound &bound :
              declaration.materialize_variable_bounds()) {

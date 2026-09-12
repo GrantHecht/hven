@@ -22,7 +22,7 @@
 
 #include <hven/core/types.h>
 #include <hven/detail/qp/qp_problem.h>
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 
 #include "scale_problems.h"
 

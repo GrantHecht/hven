@@ -3,14 +3,14 @@
 
 #pragma once
 
-// nlp_aggregate.h — the provider-side contract: a partitioned collection of
+// nlp_assembly.h — the provider-side contract: a partitioned collection of
 // pieces plus its layout, consumable by an engine and by an engine-independent
 // scorer alike.
 //
 // It sits BESIDE NlpModel, never over it. NlpModel is one problem's callbacks;
-// NlpAggregate is a collection of pieces and the arenas they claim out of. A
+// NlpAssembly is a collection of pieces and the arenas they claim out of. A
 // bridge implementing this interface over an NlpModel is how a single-model
-// problem reaches this level, and neither NlpModel nor NLPProblem gains a
+// problem reaches this level, and neither NlpModel nor NlpTripletModel gains a
 // method, a base class or an obligation from anything in this header.
 //
 // CONCURRENCY POSTURE, part of the contract: an aggregate is inside at most
@@ -50,7 +50,7 @@
 #include <fmt/format.h>
 
 #include "hven/core/types.h"
-#include "hven/model/aggregate_declaration.h"
+#include "hven/model/assembly_declaration.h"
 #include "hven/model/candidate_point.h"
 #include "hven/model/claim_space.h"
 #include "hven/model/structure_identity.h"
@@ -70,7 +70,7 @@ namespace hven::solvers {
 /// declares the weaker answer, because every decision a consumer makes from
 /// these bits (where to place a probe, what to assume about the fill path) is
 /// made once per solve rather than once per piece.
-enum class AggregateCapability : std::uint32_t {
+enum class AssemblyCapability : std::uint32_t {
     kNone = 0,
 
     /// The fill path writes the consumer's storage in place: no provider-owned
@@ -86,28 +86,26 @@ enum class AggregateCapability : std::uint32_t {
     kValuesFastPath = 1u << 1,
 };
 
-constexpr AggregateCapability operator|(AggregateCapability left,
-                                        AggregateCapability right) noexcept {
-    return static_cast<AggregateCapability>(static_cast<std::uint32_t>(left) |
-                                            static_cast<std::uint32_t>(right));
+constexpr AssemblyCapability operator|(AssemblyCapability left, AssemblyCapability right) noexcept {
+    return static_cast<AssemblyCapability>(static_cast<std::uint32_t>(left) |
+                                           static_cast<std::uint32_t>(right));
 }
 
-constexpr AggregateCapability operator&(AggregateCapability left,
-                                        AggregateCapability right) noexcept {
-    return static_cast<AggregateCapability>(static_cast<std::uint32_t>(left) &
-                                            static_cast<std::uint32_t>(right));
+constexpr AssemblyCapability operator&(AssemblyCapability left, AssemblyCapability right) noexcept {
+    return static_cast<AssemblyCapability>(static_cast<std::uint32_t>(left) &
+                                           static_cast<std::uint32_t>(right));
 }
 
-constexpr AggregateCapability &operator|=(AggregateCapability &left,
-                                          AggregateCapability right) noexcept {
+constexpr AssemblyCapability &operator|=(AssemblyCapability &left,
+                                         AssemblyCapability right) noexcept {
     left = left | right;
     return left;
 }
 
 /// In-place masking, so narrowing a declared set down to a subset compiles the
 /// same way widening one does.
-constexpr AggregateCapability &operator&=(AggregateCapability &left,
-                                          AggregateCapability right) noexcept {
+constexpr AssemblyCapability &operator&=(AssemblyCapability &left,
+                                         AssemblyCapability right) noexcept {
     left = left & right;
     return left;
 }
@@ -117,8 +115,8 @@ constexpr AggregateCapability &operator&=(AggregateCapability &left,
 /// declares both, which is the reduction a consumer wants when it is deciding
 /// what it may assume. Probing for kNone is vacuously true. To ask whether a
 /// set declares ANY of a group, compare the intersection:
-/// `(declared & group) != AggregateCapability::kNone`.
-constexpr bool has_capability(AggregateCapability declared, AggregateCapability probe) noexcept {
+/// `(declared & group) != AssemblyCapability::kNone`.
+constexpr bool has_capability(AssemblyCapability declared, AssemblyCapability probe) noexcept {
     return (declared & probe) == probe;
 }
 
@@ -216,7 +214,7 @@ inline void require_residual_arena(const RhsArenaView &view, Eigen::Index declar
 /// locked out of evaluating the kind it does declare -- see
 /// require_residual_arena for why that is the rule and require_arena_view for
 /// why the gradient arenas are not checked the same way.
-inline void validate_request_destinations(EvalRequest request, const AggregateDeclaration &declared,
+inline void validate_request_destinations(EvalRequest request, const AssemblyDeclaration &declared,
                                           const KktScatterView &kkt, const RhsScatterView &rhs) {
     if (has_request(request, EvalRequest::kObjectiveValue) && rhs.objective_ == nullptr) {
         throw std::invalid_argument(
@@ -262,7 +260,7 @@ inline void validate_request_destinations(EvalRequest request, const AggregateDe
 /// Such a table is meaningful for one particular value array and no other, so
 /// the binding is a fact about the tables rather than an extra obligation on
 /// the consumer. A provider that binds nothing returns nullptr from
-/// NlpAggregate::bound_kkt_destination and is never checked here.
+/// NlpAssembly::bound_kkt_destination and is never checked here.
 ///
 /// A CAPTURED VALUE, NOT A LIVE READING: the bound address must be the one
 /// recorded AT ANALYSIS TIME. Re-deriving it per call defeats the check twice
@@ -347,13 +345,13 @@ inline void validate_bound_destination(const double *bound, const KktScatterView
 /// Whether each domain's claims additionally occupy one contiguous slot range
 /// is a property of the claim-stream interface, not of this base, and is stated
 /// there (model/claim_stream_source.h).
-class NlpAggregate {
+class NlpAssembly {
   public:
-    virtual ~NlpAggregate() = default;
+    virtual ~NlpAssembly() = default;
 
-    NlpAggregate() = default;
-    NlpAggregate(const NlpAggregate &) = delete;
-    NlpAggregate &operator=(const NlpAggregate &) = delete;
+    NlpAssembly() = default;
+    NlpAssembly(const NlpAssembly &) = delete;
+    NlpAssembly &operator=(const NlpAssembly &) = delete;
 
     /// The declaration this aggregate was built from.
     ///
@@ -365,7 +363,7 @@ class NlpAggregate {
     /// temporary would dangle. An implementation MAY materialize the stored
     /// state on the first read after a structural mutation, since
     /// once-per-mutation is not per call.
-    virtual const AggregateDeclaration &declaration() const = 0;
+    virtual const AssemblyDeclaration &declaration() const = 0;
 
     /// Adopts a partition count and returns the count ACTUALLY adopted, which
     /// may be smaller than the request -- a provider with fewer pieces than
@@ -470,7 +468,7 @@ class NlpAggregate {
 
     /// What this provider declares about how it does its work. Declaring
     /// nothing is the default and is always a legal answer.
-    virtual AggregateCapability capabilities() const { return AggregateCapability::kNone; }
+    virtual AssemblyCapability capabilities() const { return AssemblyCapability::kNone; }
 
     /// The KKT value array this provider's location tables were bound to at
     /// analysis time, or nullptr when it binds none.
@@ -530,7 +528,7 @@ class NlpAggregate {
     /// output is written that the request did not name, and a request the
     /// entry accepts has a destination for everything it does. An
     /// implementation cannot skip the validation, forget it, or reorder it
-    /// after its own work; any NlpAggregate&, whatever is behind it, has
+    /// after its own work; any NlpAssembly&, whatever is behind it, has
     /// refused an unmapped request, a short-blocked point and a missing
     /// destination before a single value moved.
     ///
@@ -544,7 +542,7 @@ class NlpAggregate {
     /// Provider-internal scratch is a separate matter and stays the provider's
     /// own to zero. Accumulation is exact only against a -0.0-seeded arena;
     /// the seed choice is the consumer's and is byte-identity-relevant (the
-    /// mechanism is detail/drivers/aggregate_eval_seam.h's, not restated here).
+    /// mechanism is detail/drivers/assembly_eval_seam.h's, not restated here).
     ///
     /// IF assemble THROWS, the destinations hold an unspecified prefix of the
     /// fill. This call is not scratch-then-commit: a caller that retries
@@ -563,7 +561,7 @@ class NlpAggregate {
     /// engine does not meet it and sequences instead.
     void assemble(const CandidatePoint &point, EvalRequest request, KktScatterView kkt,
                   RhsScatterView rhs) {
-        const AggregateDeclaration &declared = this->declaration();
+        const AssemblyDeclaration &declared = this->declaration();
         validate_eval_request(request);
         validate_candidate_point(point, declared.primal_vars_, declared.equality_rows_,
                                  declared.inequality_rows_);
@@ -606,7 +604,7 @@ class NlpAggregate {
     /// declaration alone and needs to know nothing about the provider's
     /// internals -- which is the whole point of the surface existing.
     void evaluate_candidate_values(const CandidatePoint &point, CandidateValues out) {
-        const AggregateDeclaration &declared = this->declaration();
+        const AssemblyDeclaration &declared = this->declaration();
         validate_candidate_point(point, declared.primal_vars_, declared.equality_rows_,
                                  declared.inequality_rows_);
         validate_candidate_values(out, declared.equality_rows_, declared.inequality_rows_);
@@ -636,7 +634,7 @@ class NlpAggregate {
     /// Providers differ in what they leave in an excluded coordinate's row,
     /// and a scorer that skips those rows is insensitive to the difference.
     void evaluate_candidate_first_order(const CandidatePoint &point, CandidateFirstOrder out) {
-        const AggregateDeclaration &declared = this->declaration();
+        const AssemblyDeclaration &declared = this->declaration();
         validate_candidate_point(point, declared.primal_vars_, declared.equality_rows_,
                                  declared.inequality_rows_);
         validate_candidate_first_order(out, declared.primal_vars_, declared.equality_rows_,
@@ -699,7 +697,7 @@ class NlpAggregate {
 /// which cannot be confused with a digest taken over assembled matrices, and so
 /// the key has one free-function spelling for consumers regardless of how a
 /// provider chose to store it.
-inline ModelStructureKey model_structure_key(const NlpAggregate &aggregate) {
+inline ModelStructureKey model_structure_key(const NlpAssembly &aggregate) {
     return aggregate.model_structure_key();
 }
 

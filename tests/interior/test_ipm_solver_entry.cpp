@@ -14,10 +14,10 @@
 #include <vector>
 
 #include "hven/detail/model/nlp_adapter.h"
-#include "hven/drivers/interior_point_solver.h"
+#include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/solve_status.h"
 #include "hven/drivers/trace.h"
-#include "hven/model/nlp_problem.h"
+#include "hven/model/nlp_triplet_model.h"
 #include "hven/model/non_linear_program.h"
 
 #include "declared_route.h" // NOLINT(build/include_subdir)
@@ -27,11 +27,11 @@ constexpr double kSolverInf = std::numeric_limits<double>::infinity();
 } // namespace
 
 using hven::ConstEigenRef;
-using hven::solvers::NLPProblem;
+using hven::solvers::NlpTripletModel;
 
 // The canonical Ipopt HS071 example: n=4, one lower-bounded product row, one
 // equality sphere row, dense Jacobian and Hessian.
-struct Hs071Problem : NLPProblem {
+struct Hs071Problem : NlpTripletModel {
     int num_vars() const override { return 4; }
     int num_cons() const override { return 2; }
     int num_jac_nonzeros() const override { return 8; }
@@ -98,7 +98,7 @@ struct Hs071Problem : NLPProblem {
 
 TEST(IpmSolverEntry, Hs071ConvergesToKnownOptimum) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -124,7 +124,7 @@ TEST(IpmSolverEntry, Hs071ConvergesToKnownOptimum) {
 // >= 0 at an active lower bound, ~0 when free.
 TEST(IpmSolverEntry, Hs071BoundDualsMatchActiveLowerBound) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -146,7 +146,7 @@ TEST(IpmSolverEntry, Hs071BoundDualsMatchActiveLowerBound) {
 
 // Unconstrained Rosenbrock: exercises the objective-owned Hessian path (no
 // constraint rows at all).
-struct RosenbrockProblem : NLPProblem {
+struct RosenbrockProblem : NlpTripletModel {
     int num_vars() const override { return 2; }
     int num_cons() const override { return 0; }
     int num_jac_nonzeros() const override { return 0; }
@@ -188,7 +188,7 @@ struct RosenbrockProblem : NLPProblem {
 
 TEST(IpmSolverEntry, RosenbrockConvergesToKnownOptimum) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<RosenbrockProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -208,7 +208,7 @@ TEST(IpmSolverEntry, RosenbrockConvergesToKnownOptimum) {
 
 // f = x0^2 + x1^2 subject to x0 + x1 = 2 -- optimum (1, 1); the Ipopt-sign
 // multiplier satisfies 2*x_i + lambda = 0, so lambda = -2.
-struct EqOnlyProblem : NLPProblem {
+struct EqOnlyProblem : NlpTripletModel {
     int num_vars() const override { return 2; }
     int num_cons() const override { return 1; }
     int num_jac_nonzeros() const override { return 2; }
@@ -256,7 +256,7 @@ struct EqOnlyProblem : NLPProblem {
 
 TEST(IpmSolverEntry, EqualityMultiplierHasIpoptSign) {
     const auto route = hven_interior_tests::transcribe(std::make_shared<EqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -272,7 +272,7 @@ TEST(IpmSolverEntry, EqualityMultiplierHasIpoptSign) {
 
 // f = x0^2 subject to x0 >= 1 -- optimum x0 = 1, active lower bound, Ipopt
 // multiplier is negative there (lambda = -2).
-struct LowerBoundRowProblem : NLPProblem {
+struct LowerBoundRowProblem : NlpTripletModel {
     int num_vars() const override { return 1; }
     int num_cons() const override { return 1; }
     int num_jac_nonzeros() const override { return 1; }
@@ -315,7 +315,7 @@ struct LowerBoundRowProblem : NLPProblem {
 
 TEST(IpmSolverEntry, LowerBoundedRowActiveWithNegativeIpoptMultiplier) {
     const auto route = hven_interior_tests::transcribe(std::make_shared<LowerBoundRowProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -333,7 +333,7 @@ TEST(IpmSolverEntry, LowerBoundedRowActiveWithNegativeIpoptMultiplier) {
 
 // f = (x0-3)^2 subject to 1 <= x0 <= 2 (a Range row) -- optimum x0 = 2, active
 // upper end, positive Ipopt multiplier (lambda = +2).
-struct RangeRowProblem : NLPProblem {
+struct RangeRowProblem : NlpTripletModel {
     int num_vars() const override { return 1; }
     int num_cons() const override { return 1; }
     int num_jac_nonzeros() const override { return 1; }
@@ -379,7 +379,7 @@ struct RangeRowProblem : NLPProblem {
 
 TEST(IpmSolverEntry, RangeRowActiveAtUpperWithPositiveIpoptMultiplier) {
     const auto route = hven_interior_tests::transcribe(std::make_shared<RangeRowProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -398,7 +398,7 @@ TEST(IpmSolverEntry, RangeRowActiveAtUpperWithPositiveIpoptMultiplier) {
 // f = (x0-5)^2, n=1, m=1 with the single row unbounded on both sides (a Free
 // row the classification drops from the transcription entirely). Solves
 // unconstrained to x0 = 5; the dropped row's multiplier reads back as 0.
-struct FreeRowProblem : NLPProblem {
+struct FreeRowProblem : NlpTripletModel {
     int num_vars() const override { return 1; }
     int num_cons() const override { return 1; }
     int num_jac_nonzeros() const override { return 1; }
@@ -444,7 +444,7 @@ struct FreeRowProblem : NLPProblem {
 
 TEST(IpmSolverEntry, FreeRowDroppedFromTranscriptionReadsZeroMultiplier) {
     const auto route = hven_interior_tests::transcribe(std::make_shared<FreeRowProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -462,7 +462,7 @@ TEST(IpmSolverEntry, FreeRowDroppedFromTranscriptionReadsZeroMultiplier) {
 
 // f = (x0-1)^2 + (x1-1)^2, no constraint rows, x1 fixed via x_lower == x_upper.
 // Exercises the adapter's native fixed-variable treatment.
-struct FixedVarProblem : NLPProblem {
+struct FixedVarProblem : NlpTripletModel {
     int num_vars() const override { return 2; }
     int num_cons() const override { return 0; }
     int num_jac_nonzeros() const override { return 0; }
@@ -500,7 +500,7 @@ struct FixedVarProblem : NLPProblem {
 
 TEST(IpmSolverEntry, FixedVariableSolvesExactlyAtItsFixedValue) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<FixedVarProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -525,7 +525,7 @@ TEST(IpmSolverEntry, FixedVariableSolvesExactlyAtItsFixedValue) {
 TEST(IpmSolverEntry, FixedVariableTreatmentIsRecordedOnSolveResult) {
     {
         const auto program = hven::solvers::make_nlp_program(std::make_shared<FixedVarProblem>());
-        hven::solvers::InteriorPointSolver solver;
+        hven::solvers::IpmSolver solver;
         hven::solvers::IpmResult result;
         {
             auto o = solver.options();
@@ -542,7 +542,7 @@ TEST(IpmSolverEntry, FixedVariableTreatmentIsRecordedOnSolveResult) {
     }
     {
         const auto program = hven::solvers::make_nlp_program(std::make_shared<FixedVarProblem>());
-        hven::solvers::InteriorPointSolver solver;
+        hven::solvers::IpmSolver solver;
         hven::solvers::IpmResult result;
         {
             auto o = solver.options();
@@ -581,7 +581,7 @@ TEST(IpmSolverEntry, FixedVariableTreatmentIsRecordedOnSolveResult) {
 // coordinate, from a solve that never priced it.
 TEST(IpmSolverEntry, ZIsDeclaredWidthAndZeroAtAnEliminatedCoordinate) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<FixedVarProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -613,7 +613,7 @@ TEST(IpmSolverEntry, ZIsDeclaredWidthAndZeroAtAnEliminatedCoordinate) {
 
 // EqOnlyProblem plus a starting_multipliers() override that returns true and
 // seeds the exact solution multiplier (lambda = -2, see
-// EqualityMultiplierHasIpoptSign above) -- proves the seed reaches InteriorPointSolver and
+// EqualityMultiplierHasIpoptSign above) -- proves the seed reaches IpmSolver and
 // still converges to the same optimum as the unseeded solve.
 struct SeededEqOnlyProblem : EqOnlyProblem {
     bool starting_multipliers(Eigen::Ref<Eigen::VectorXd> lambda) const override {
@@ -625,7 +625,7 @@ struct SeededEqOnlyProblem : EqOnlyProblem {
 
 TEST(IpmSolverEntry, SeededSolveConverges) {
     const auto route = hven_interior_tests::transcribe(std::make_shared<SeededEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -651,7 +651,7 @@ TEST(IpmSolverEntry, TwoSolvesFromTheSameStartPointAgree) {
     const Eigen::VectorXd x0 = Eigen::VectorXd::Zero(2);
 
     const auto first_program = hven::solvers::make_nlp_program(std::make_shared<EqOnlyProblem>());
-    hven::solvers::InteriorPointSolver first;
+    hven::solvers::IpmSolver first;
     hven::solvers::IpmResult first_result;
     {
         auto o = first.options();
@@ -662,7 +662,7 @@ TEST(IpmSolverEntry, TwoSolvesFromTheSameStartPointAgree) {
     ASSERT_EQ(a.status, hven::solvers::SolveStatus::kOptimal);
 
     const auto second_program = hven::solvers::make_nlp_program(std::make_shared<EqOnlyProblem>());
-    hven::solvers::InteriorPointSolver second;
+    hven::solvers::IpmSolver second;
     hven::solvers::IpmResult second_result;
     {
         auto o = second.options();
@@ -677,7 +677,7 @@ TEST(IpmSolverEntry, TwoSolvesFromTheSameStartPointAgree) {
 
 TEST(IpmSolverEntry, AStartPointOfTheWrongSizeIsRefused) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<EqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -712,7 +712,7 @@ TEST(WorkerOptions, JetPreparationEquivalent) {
     //     the value: the preset is only worth anything if set_options accepts
     //     it and the solver reports it.
     const auto program = hven::solvers::make_nlp_program(std::make_shared<EqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     solver.set_options(hven::solvers::ipm_worker_options(solver.options()));
     EXPECT_EQ(solver.options().common.threads, 1);
     EXPECT_EQ(solver.options().common.print_level, 10);
@@ -741,7 +741,7 @@ struct NonFiniteSeedProblem : EqOnlyProblem {
 
 TEST(IpmSolverEntry, NonFiniteStartingMultipliersThrow) {
     const auto route = hven_interior_tests::transcribe(std::make_shared<NonFiniteSeedProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -770,7 +770,7 @@ TEST(IpmSolverEntry, NonFiniteStartingMultipliersThrow) {
 // thing and is refused by name.
 TEST(IpmSolverEntry, PartitionCountAndQpThreadCountAreSetIndependently) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<EqOnlyProblem>(), 2);
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -828,7 +828,7 @@ TEST(IpmSolverEntry, PartitionCountAndQpThreadCountAreSetIndependently) {
 // were the site-named set_*() methods; the checks and the messages are the
 // same ones, reached now through set_options().
 TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     const double nan = std::numeric_limits<double>::quiet_NaN();
 
@@ -959,7 +959,7 @@ TEST(InteriorPointSolverSettingsTest, NaNRejectedBySiteNamedSetters) {
 // "infinity means disabled" reading anywhere in the solver -- so +inf is
 // refused right alongside NaN, not just accepted as "greater than the bound".
 TEST(InteriorPointSolverSettingsTest, InfRejectedByGreaterThanSetters) {
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     const double inf = std::numeric_limits<double>::infinity();
 
@@ -1098,7 +1098,7 @@ TEST(IpmSolverEntry, AFaultedTranscriptionCommitsNothingAndRetriesCleanly) {
     const auto program = hven::solvers::make_nlp_program(problem);
     ASSERT_NE(program, nullptr);
 
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -1175,7 +1175,7 @@ struct TranscriptionCountingProblem : EqOnlyProblem {
 TEST(IpmSolverEntry, ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvaluation) {
     auto problem = std::make_shared<TranscriptionCountingProblem>();
     const auto program = hven::solvers::make_nlp_program(problem);
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -1223,7 +1223,7 @@ TEST(IpmSolverEntry, ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvalua
 // literal: the assertion is the relation to the gate.
 TEST(IpmSolverEntry, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -1273,11 +1273,11 @@ TEST(IpmSolverEntry, TheReportedKktResidualsAreTheOnesTheConvergenceTestGated) {
 
 // A problem whose OBJECTIVE RISES along the solve: min 0.5*|x|^2 subject to
 // sum(x) == 3 on a [-2, 2] box, started at the origin. f(x0) = 0 and
-// f(x*) = 1.125, so under BestCriteriaModes::OBJ the best-scoring iterate is an
+// f(x*) = 1.125, so under BestCriteriaModes::kObj the best-scoring iterate is an
 // EARLY one while the solve still exits CONVERGED. That pairing -- BestIter !=
 // last on a converged exit -- is what the pin below needs, and it is not
 // reachable with the default ECONS criterion.
-struct BestIterateRisingObjectiveProblem : NLPProblem {
+struct BestIterateRisingObjectiveProblem : NlpTripletModel {
     static constexpr int kN = 4;
 
     int num_vars() const override { return kN; }
@@ -1362,7 +1362,7 @@ class IterateRecordingSink : public hven::solvers::TraceSink {
 TEST(IpmSolverEntry, TheReportedKktResidualsDescribeTheIterateTheResultDescribes) {
     const auto program =
         hven::solvers::make_nlp_program(std::make_shared<BestIterateRisingObjectiveProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -1376,7 +1376,7 @@ TEST(IpmSolverEntry, TheReportedKktResidualsDescribeTheIterateTheResultDescribes
     }
     {
         auto o = solver.options();
-        o.best_criteria = hven::solvers::InteriorPointSolver::BestCriteriaModes::OBJ;
+        o.best_criteria = hven::solvers::IpmSolver::BestCriteriaModes::kObj;
         solver.set_options(std::move(o));
     }
 
@@ -1483,7 +1483,7 @@ TEST(IpmPhases, TheEmptySequenceIsRefusedByValidate) {
     hven::solvers::IpmOptions o;
     o.phases.clear();
     EXPECT_THROW(hven::solvers::validate(o), std::invalid_argument);
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     EXPECT_THROW(solver.set_options(o), std::invalid_argument);
 }
@@ -1499,7 +1499,7 @@ TEST(IpmSolverEntry, TheProgramsPartitionCountIsWhatEvaluationsSee) {
     auto problem = std::make_shared<TranscriptionCountingProblem>();
     const auto program = hven::solvers::make_nlp_program(problem, 7);
     problem->watch_ = program.get();
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 10;
@@ -1573,7 +1573,7 @@ namespace {
 IpmPhaseRecordingSink run_with_phase_sink(const std::vector<hven::solvers::IpmPhase> &phases,
                                           int max_iters, hven::solvers::SolveStatus *flag_out) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<EqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -1668,7 +1668,7 @@ TEST(IpmPhaseSemantics, SolveAndOptimizeEachRunExactlyOnePhase) {
 // doors are pinned in test_ipm_stop_reason.cpp.
 TEST(IpmSolverEntry, TheIterationCapIsTheRecordedStopReason) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -1690,7 +1690,7 @@ TEST(IpmSolverEntry, TheIterationCapIsTheRecordedStopReason) {
 // the capped run above does not leave its label behind on the next one.
 TEST(IpmSolverEntry, AConvergedSolveRecordsNoStopReason) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -1744,7 +1744,7 @@ TEST(IpmSolverEntry, AConvergedSolveRecordsNoStopReason) {
 TEST(IpmSolverEntry, AMultiPhaseCapIsLabelledByThePhaseThatHitIt) {
     constexpr int kCap = 10;
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -1828,7 +1828,7 @@ namespace {
 // return value is discarded and it is handed read-only views.
 int converging_loop_index() {
     const auto pilot_program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver pilot;
+    hven::solvers::IpmSolver pilot;
     hven::solvers::IpmResult pilot_result;
     {
         auto o = pilot.options();
@@ -1858,7 +1858,7 @@ struct CappedRun {
 
 CappedRun run_capped(int cap) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();

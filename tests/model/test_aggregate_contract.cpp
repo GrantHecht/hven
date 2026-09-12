@@ -21,25 +21,25 @@
 #include "hven/detail/interior/fixed_variable_row.h"
 #include "hven/detail/interior/indexing_data.h"
 #include "hven/detail/model/nlp_adapter.h"
-#include "hven/model/aggregate_declaration.h"
+#include "hven/model/assembly_declaration.h"
 #include "hven/model/candidate_point.h"
 #include "hven/model/claim_space.h"
-#include "hven/model/nlp_aggregate.h"
+#include "hven/model/nlp_assembly.h"
 #include "hven/model/non_linear_program.h"
 #include "hven/model/structure_identity.h"
 #include "support/fake_aggregate.h"
 
 using hven::Vec;
-using hven::solvers::AggregateDeclaration;
-using hven::solvers::AggregatePiece;
+using hven::solvers::AssemblyDeclaration;
+using hven::solvers::AssemblyPiece;
 using hven::solvers::CandidateFirstOrder;
 using hven::solvers::CandidatePoint;
 using hven::solvers::CandidateValues;
-using hven::solvers::ConstraintAggregatePiece;
+using hven::solvers::ConstraintAssemblyPiece;
 using hven::solvers::EvalRequest;
 using hven::solvers::KktLocationTable;
 using hven::solvers::KktScatterView;
-using hven::solvers::ObjectiveAggregatePiece;
+using hven::solvers::ObjectiveAssemblyPiece;
 using hven::solvers::RhsArenaView;
 using hven::solvers::RhsLocationTable;
 using hven::solvers::RhsScatterView;
@@ -78,19 +78,19 @@ struct ContractProbeSizedOnly {
     bool thread_safe() const { return true; }
 };
 
-static_assert(AggregatePiece<ContractProbeMinimalPiece, ContractProbeIndexData>,
+static_assert(AssemblyPiece<ContractProbeMinimalPiece, ContractProbeIndexData>,
               "the minimal piece must satisfy the piece concept");
-static_assert(!AggregatePiece<ContractProbeSizedOnly, ContractProbeIndexData>,
+static_assert(!AssemblyPiece<ContractProbeSizedOnly, ContractProbeIndexData>,
               "a type without the claim pass must not satisfy the piece concept");
 
 // The pieces that exist today satisfy the concept unchanged -- the concept
 // states the contract they already meet, it does not impose a new one.
-static_assert(AggregatePiece<hven::solvers::NLPObjectivePiece, hven::solvers::SolverIndexingData>);
-static_assert(AggregatePiece<hven::solvers::NLPConstraintPiece, hven::solvers::SolverIndexingData>);
+static_assert(AssemblyPiece<hven::solvers::NLPObjectivePiece, hven::solvers::SolverIndexingData>);
+static_assert(AssemblyPiece<hven::solvers::NLPConstraintPiece, hven::solvers::SolverIndexingData>);
 static_assert(
-    ObjectiveAggregatePiece<hven::solvers::NLPObjectivePiece, hven::solvers::SolverIndexingData>);
+    ObjectiveAssemblyPiece<hven::solvers::NLPObjectivePiece, hven::solvers::SolverIndexingData>);
 static_assert(
-    ConstraintAggregatePiece<hven::solvers::NLPConstraintPiece, hven::solvers::SolverIndexingData>);
+    ConstraintAssemblyPiece<hven::solvers::NLPConstraintPiece, hven::solvers::SolverIndexingData>);
 
 // The objective-kind concept is NOT weaker than the seam that stores an
 // objective: that seam forwards the constraint surface too, so a type carrying
@@ -98,10 +98,10 @@ static_assert(
 // looks. A constraint piece has the constraint surface and not the objective
 // one, and must fail the objective-kind concept for that reason alone.
 static_assert(
-    !ObjectiveAggregatePiece<hven::solvers::NLPConstraintPiece, hven::solvers::SolverIndexingData>);
-static_assert(!hven::solvers::ObjectiveAggregateSurface<hven::solvers::NLPConstraintPiece,
-                                                        hven::solvers::SolverIndexingData>);
-static_assert(!ObjectiveAggregatePiece<ContractProbeMinimalPiece, ContractProbeIndexData>);
+    !ObjectiveAssemblyPiece<hven::solvers::NLPConstraintPiece, hven::solvers::SolverIndexingData>);
+static_assert(!hven::solvers::ObjectiveAssemblySurface<hven::solvers::NLPConstraintPiece,
+                                                       hven::solvers::SolverIndexingData>);
+static_assert(!ObjectiveAssemblyPiece<ContractProbeMinimalPiece, ContractProbeIndexData>);
 
 /// The scalar objective surface alone, with no constraint surface behind it:
 /// objective-shaped, and still not storable as an objective.
@@ -127,9 +127,9 @@ struct ContractProbeObjectiveSurfaceOnly {
                                     const ContractProbeIndexData &) const {}
 };
 
-static_assert(hven::solvers::ObjectiveAggregateSurface<ContractProbeObjectiveSurfaceOnly,
-                                                       ContractProbeIndexData>);
-static_assert(!ObjectiveAggregatePiece<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>,
+static_assert(hven::solvers::ObjectiveAssemblySurface<ContractProbeObjectiveSurfaceOnly,
+                                                      ContractProbeIndexData>);
+static_assert(!ObjectiveAssemblyPiece<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>,
               "the objective-kind concept must be no weaker than the seam that stores one");
 
 } // namespace
@@ -138,32 +138,32 @@ TEST(AggregatePieceConcept, IsSatisfiedByAMinimalPieceAndByTheExistingPieces) {
     // The substance is in the static_asserts above; this case exists so a
     // regression in them is reported as a named failure rather than only as a
     // build break.
-    EXPECT_TRUE((AggregatePiece<ContractProbeMinimalPiece, ContractProbeIndexData>));
+    EXPECT_TRUE((AssemblyPiece<ContractProbeMinimalPiece, ContractProbeIndexData>));
     EXPECT_TRUE(
-        (AggregatePiece<hven::solvers::NLPObjectivePiece, hven::solvers::SolverIndexingData>));
+        (AssemblyPiece<hven::solvers::NLPObjectivePiece, hven::solvers::SolverIndexingData>));
     EXPECT_TRUE(
-        (AggregatePiece<hven::solvers::NLPConstraintPiece, hven::solvers::SolverIndexingData>));
+        (AssemblyPiece<hven::solvers::NLPConstraintPiece, hven::solvers::SolverIndexingData>));
 }
 
 TEST(AggregatePieceConcept, TheObjectiveKindIsNoWeakerThanTheSeamThatStoresOne) {
-    EXPECT_TRUE((ObjectiveAggregatePiece<hven::solvers::NLPObjectivePiece,
-                                         hven::solvers::SolverIndexingData>));
-    EXPECT_TRUE((hven::solvers::ObjectiveAggregateSurface<ContractProbeObjectiveSurfaceOnly,
-                                                          ContractProbeIndexData>));
+    EXPECT_TRUE((ObjectiveAssemblyPiece<hven::solvers::NLPObjectivePiece,
+                                        hven::solvers::SolverIndexingData>));
+    EXPECT_TRUE((hven::solvers::ObjectiveAssemblySurface<ContractProbeObjectiveSurfaceOnly,
+                                                         ContractProbeIndexData>));
     EXPECT_FALSE(
-        (ObjectiveAggregatePiece<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>));
-    EXPECT_FALSE((ObjectiveAggregatePiece<hven::solvers::NLPConstraintPiece,
-                                          hven::solvers::SolverIndexingData>));
+        (ObjectiveAssemblyPiece<ContractProbeObjectiveSurfaceOnly, ContractProbeIndexData>));
+    EXPECT_FALSE((ObjectiveAssemblyPiece<hven::solvers::NLPConstraintPiece,
+                                         hven::solvers::SolverIndexingData>));
 }
 
 // ---------------------------------------------------------------------------
-// AggregateDeclaration validation
+// AssemblyDeclaration validation
 // ---------------------------------------------------------------------------
 
 namespace {
 
-AggregateDeclaration consistent_declaration() {
-    AggregateDeclaration declaration;
+AssemblyDeclaration consistent_declaration() {
+    AssemblyDeclaration declaration;
     declaration.primal_vars_ = 4;
     declaration.equality_rows_ = 0;
     declaration.inequality_rows_ = 0;
@@ -173,7 +173,7 @@ AggregateDeclaration consistent_declaration() {
 
 /// Runs the call and returns the message of the std::invalid_argument it must
 /// throw, so a test can assert the message names the offender and both numbers.
-std::string invalid_argument_message(const AggregateDeclaration &declaration) {
+std::string invalid_argument_message(const AssemblyDeclaration &declaration) {
     try {
         declaration.validate();
     } catch (const std::invalid_argument &error) {
@@ -196,14 +196,14 @@ TEST(AggregateDeclarationTest, AcceptsRowCountsWhenNoPiecesAreDeclared) {
     // applies to such a declaration. The counterpart, where the pieces exist and
     // the sum is wrong, is pinned against a real piece-sourced declaration in the
     // engine's own aggregate suite.
-    AggregateDeclaration declaration = consistent_declaration();
+    AssemblyDeclaration declaration = consistent_declaration();
     declaration.equality_rows_ = 3;
     declaration.inequality_rows_ = 5;
     EXPECT_NO_THROW(declaration.validate());
 }
 
 TEST(AggregateDeclarationTest, RejectsANonPositivePartitionCount) {
-    AggregateDeclaration declaration = consistent_declaration();
+    AssemblyDeclaration declaration = consistent_declaration();
     declaration.partition_count_ = 0;
     EXPECT_THROW(declaration.validate(), std::invalid_argument);
     declaration.partition_count_ = -2;
@@ -211,13 +211,13 @@ TEST(AggregateDeclarationTest, RejectsANonPositivePartitionCount) {
 }
 
 TEST(AggregateDeclarationTest, RejectsANegativeDimension) {
-    AggregateDeclaration declaration = consistent_declaration();
+    AssemblyDeclaration declaration = consistent_declaration();
     declaration.primal_vars_ = -1;
     EXPECT_THROW(declaration.validate(), std::invalid_argument);
 }
 
 TEST(AggregateDeclarationTest, RejectsABoundOutsideTheVariableRange) {
-    AggregateDeclaration declaration = consistent_declaration();
+    AssemblyDeclaration declaration = consistent_declaration();
     declaration.variable_bounds_.push_back(VariableBound{7, 0.0, 1.0});
     const std::string message = invalid_argument_message(declaration);
     EXPECT_NE(message.find('7'), std::string::npos) << message;
@@ -225,20 +225,20 @@ TEST(AggregateDeclarationTest, RejectsABoundOutsideTheVariableRange) {
 }
 
 TEST(AggregateDeclarationTest, RejectsANotANumberBound) {
-    AggregateDeclaration declaration = consistent_declaration();
+    AssemblyDeclaration declaration = consistent_declaration();
     declaration.variable_bounds_.push_back(
         VariableBound{1, std::numeric_limits<double>::quiet_NaN(), 1.0});
     EXPECT_THROW(declaration.validate(), std::invalid_argument);
 }
 
 TEST(AggregateDeclarationTest, AcceptsAnInRangeBound) {
-    AggregateDeclaration declaration = consistent_declaration();
+    AssemblyDeclaration declaration = consistent_declaration();
     declaration.variable_bounds_.push_back(VariableBound{3, 0.0, 1.0});
     EXPECT_NO_THROW(declaration.validate());
 }
 
 TEST(AggregateDeclarationTest, RejectsAnInvertedBoundRecord) {
-    AggregateDeclaration declaration = consistent_declaration();
+    AssemblyDeclaration declaration = consistent_declaration();
     declaration.variable_bounds_.push_back(VariableBound{2, 4.0, 1.0});
     const std::string message = invalid_argument_message(declaration);
     EXPECT_NE(message.find("inverted"), std::string::npos) << message;
@@ -248,7 +248,7 @@ TEST(AggregateDeclarationTest, RejectsAnInvertedBoundRecord) {
 
 TEST(AggregateDeclarationTest, RejectsABoundHistoryWhoseIntersectionIsEmpty) {
     // Each record is fine on its own; together they leave the variable nothing.
-    AggregateDeclaration declaration = consistent_declaration();
+    AssemblyDeclaration declaration = consistent_declaration();
     declaration.variable_bounds_.push_back(VariableBound{2, 0.0, 1.0});
     declaration.variable_bounds_.push_back(VariableBound{2, 3.0, 4.0});
     const std::string message = invalid_argument_message(declaration);
@@ -257,14 +257,14 @@ TEST(AggregateDeclarationTest, RejectsABoundHistoryWhoseIntersectionIsEmpty) {
 }
 
 TEST(AggregateDeclarationTest, AcceptsABoundHistoryThatMerelyNarrows) {
-    AggregateDeclaration declaration = consistent_declaration();
+    AssemblyDeclaration declaration = consistent_declaration();
     declaration.variable_bounds_.push_back(VariableBound{2, 0.0, 4.0});
     declaration.variable_bounds_.push_back(VariableBound{2, 1.0, 3.0});
     EXPECT_NO_THROW(declaration.validate());
 }
 
 TEST(AggregateDeclarationTest, MaterializesOneRecordPerVariableTightestWins) {
-    AggregateDeclaration declaration = consistent_declaration();
+    AssemblyDeclaration declaration = consistent_declaration();
     declaration.variable_bounds_.push_back(VariableBound{1, 0.0, 4.0});
     declaration.variable_bounds_.push_back(VariableBound{1, 1.0, 3.0});
 
@@ -281,7 +281,7 @@ TEST(AggregateDeclarationTest, MaterializesOneRecordPerVariableTightestWins) {
 }
 
 TEST(AggregateDeclarationTest, MaterializationRejectsWhatValidationRejects) {
-    AggregateDeclaration declaration = consistent_declaration();
+    AssemblyDeclaration declaration = consistent_declaration();
     declaration.variable_bounds_.push_back(VariableBound{9, 0.0, 1.0});
     EXPECT_THROW(declaration.materialize_variable_bounds(), std::invalid_argument);
 }
@@ -922,10 +922,10 @@ TEST(AggregateNonVirtualEntryContract, ValidationIsAPropertyOfTheTypeNotOfTheImp
     // The fake performs NO validation of its own -- its hooks are pure work.
     // Every refusal below therefore comes from the entry, which is the
     // guarantee the non-virtual split buys: a consumer holding any
-    // NlpAggregate& knows an unmapped request and a mis-sized point were
+    // NlpAssembly& knows an unmapped request and a mis-sized point were
     // refused before a value moved, whoever wrote the implementation.
     FakeAggregate aggregate;
-    hven::solvers::NlpAggregate &surface = aggregate;
+    hven::solvers::NlpAssembly &surface = aggregate;
     ContractProbeDestinations out;
     Vec x = Vec::Zero(FakeAggregate::kPrimalVars);
     Vec short_x = Vec::Zero(FakeAggregate::kPrimalVars - 1);
@@ -1046,20 +1046,20 @@ TEST(AggregateCandidateContract, TheValuesPathStillAcceptsEmptyMultipliers) {
 
 TEST(AggregateCapabilityContract, AnAggregateDeclaresNothingUnlessItSaysOtherwise) {
     FakeAggregate aggregate;
-    EXPECT_EQ(aggregate.capabilities(), hven::solvers::AggregateCapability::kNone);
+    EXPECT_EQ(aggregate.capabilities(), hven::solvers::AssemblyCapability::kNone);
     EXPECT_FALSE(has_capability(aggregate.capabilities(),
-                                hven::solvers::AggregateCapability::kValuesFastPath));
+                                hven::solvers::AssemblyCapability::kValuesFastPath));
 
-    aggregate.set_capabilities(hven::solvers::AggregateCapability::kValuesFastPath);
+    aggregate.set_capabilities(hven::solvers::AssemblyCapability::kValuesFastPath);
     EXPECT_TRUE(has_capability(aggregate.capabilities(),
-                               hven::solvers::AggregateCapability::kValuesFastPath));
+                               hven::solvers::AssemblyCapability::kValuesFastPath));
     EXPECT_FALSE(has_capability(aggregate.capabilities(),
-                                hven::solvers::AggregateCapability::kDirectScatter));
+                                hven::solvers::AssemblyCapability::kDirectScatter));
 }
 
 TEST(AggregateContract, TheStructureKeyIsReachableThroughTheFreeFunctionSpelling) {
     FakeAggregate aggregate;
-    const hven::solvers::NlpAggregate &surface = aggregate;
+    const hven::solvers::NlpAssembly &surface = aggregate;
     EXPECT_EQ(hven::solvers::model_structure_key(surface), aggregate.model_structure_key());
 }
 
@@ -1304,8 +1304,8 @@ std::vector<ThreadingFlags> adopt_default_modes() {
 /// Every field of a declaration a round trip has to reproduce: the dimensions,
 /// the fixing-row count, the adopted partition count, the bound records
 /// verbatim, and the three piece lists with each piece's thread mode.
-void adopt_expect_same_declaration(const AggregateDeclaration &adopted,
-                                   const AggregateDeclaration &source) {
+void adopt_expect_same_declaration(const AssemblyDeclaration &adopted,
+                                   const AssemblyDeclaration &source) {
     EXPECT_EQ(adopted.primal_vars_, source.primal_vars_);
     EXPECT_EQ(adopted.equality_rows_, source.equality_rows_);
     EXPECT_EQ(adopted.inequality_rows_, source.inequality_rows_);
@@ -1349,7 +1349,7 @@ std::vector<int> adopt_claim_stream(const NonLinearProgram &nlp) {
 
 TEST(AdoptDeclaration, LaysWhatAHandAssembledProblemLays) {
     auto assembled = adopt_build(adopt_default_modes(), 8, false);
-    const AggregateDeclaration declaration = assembled->declaration();
+    const AssemblyDeclaration declaration = assembled->declaration();
 
     NonLinearProgram adopted(1);
     adopted.adopt_declaration(declaration);
@@ -1369,7 +1369,7 @@ TEST(AdoptDeclaration, RoundTripsExactlyWithFixingRowsInstalled) {
     ASSERT_TRUE(source->configure_variable_treatment(FixedVariableTreatments::MakeConstraint, 0.0));
     ASSERT_EQ(source->internal_fixed_constraints(), 1);
 
-    const AggregateDeclaration declaration = source->declaration();
+    const AssemblyDeclaration declaration = source->declaration();
     // The declaration is self-describing: the row count is the row space AS
     // LAID and the fixing-row count says how much of it is internal.
     ASSERT_EQ(declaration.equality_rows_, kAdoptRows + 1);
@@ -1392,7 +1392,7 @@ TEST(AdoptDeclaration, RoundTripsExactlyWithFixingRowsInstalled) {
     // fixing-row count buys -- a declaration read off a provider that never
     // ran a treatment of its own still says how much of its row space is
     // internal.
-    const AggregateDeclaration readopted_declaration = adopted.declaration();
+    const AssemblyDeclaration readopted_declaration = adopted.declaration();
     NonLinearProgram readopted(1);
     readopted.adopt_declaration(readopted_declaration);
     EXPECT_EQ(readopted.model_structure_key(), source->model_structure_key());
@@ -1403,7 +1403,7 @@ TEST(AdoptDeclaration, RoundTripsExactlyWithFixingRowsInstalled) {
 
 TEST(AdoptDeclaration, ReportsTheAdoptedPartitionCountNotTheRequestedOne) {
     auto assembled = adopt_build(adopt_default_modes(), 1, false);
-    AggregateDeclaration declaration = assembled->declaration();
+    AssemblyDeclaration declaration = assembled->declaration();
     declaration.partition_count_ = 64;
 
     NonLinearProgram adopted(1);
@@ -1419,7 +1419,7 @@ TEST(AdoptDeclaration, ReportsTheAdoptedPartitionCountNotTheRequestedOne) {
 
 TEST(AdoptDeclaration, ClaimOrderIsAFunctionOfTheDeclaredThreadModes) {
     auto assembled = adopt_build(adopt_default_modes(), 8, false);
-    const AggregateDeclaration declaration = assembled->declaration();
+    const AssemblyDeclaration declaration = assembled->declaration();
 
     NonLinearProgram first(1);
     first.adopt_declaration(declaration);
@@ -1433,7 +1433,7 @@ TEST(AdoptDeclaration, ClaimOrderIsAFunctionOfTheDeclaredThreadModes) {
     // piece that used to sit between them. Claims are handed out partition by
     // partition, so that is what a mode change moves: a mode that keeps a
     // piece's position in the partition order leaves the stream alone.
-    AggregateDeclaration moved = declaration;
+    AssemblyDeclaration moved = declaration;
     moved.equality_constraints_[kAdoptPieces - 1].set_thread_mode(ThreadingFlags::Thread0);
 
     const hven::solvers::StructureEpoch before = second.structure_epoch();
@@ -1483,14 +1483,14 @@ TEST(AdoptDeclaration, AThreadModeWriteAfterTheLayIsRefused) {
 
     // The copy a declaration hands out is declaration data, not part of a
     // layout, so it takes a new mode -- which is the one route to changing one.
-    AggregateDeclaration declaration = assembled->declaration();
+    AssemblyDeclaration declaration = assembled->declaration();
     EXPECT_NO_THROW(
         declaration.equality_constraints_[0].set_thread_mode(ThreadingFlags::RoundRobin));
 }
 
 TEST(AdoptDeclaration, ARefusedAdoptionLeavesTheProblemUnchanged) {
     auto target = adopt_build(adopt_default_modes(), 8, false);
-    const AggregateDeclaration before_declaration = target->declaration();
+    const AssemblyDeclaration before_declaration = target->declaration();
     const ModelStructureKey before_key = target->model_structure_key();
     const std::vector<int> before_stream = adopt_claim_stream(*target);
     const hven::solvers::StructureEpoch before_epoch = target->structure_epoch();
@@ -1501,7 +1501,7 @@ TEST(AdoptDeclaration, ARefusedAdoptionLeavesTheProblemUnchanged) {
     // A fixing-row count the equality tail cannot supply: a fixing row is one
     // piece claiming one row, and this declaration's last piece claims every
     // one of its many.
-    AggregateDeclaration malformed = before_declaration;
+    AssemblyDeclaration malformed = before_declaration;
     malformed.fixing_rows_ = 1;
     // Same three list SIZES as the layout on hand, different CONTENTS: the
     // size-only guard on the declaration readers cannot tell these lists apart
@@ -1533,7 +1533,7 @@ TEST(AdoptDeclaration, AModeSetOnTheDeclarationSurvivesTheLayAndIsFrozenAgain) {
 
     // Read the declaration, write a mode on its copy -- which is the one route
     // to changing one -- and adopt it back.
-    AggregateDeclaration redeclared = provider->declaration();
+    AssemblyDeclaration redeclared = provider->declaration();
     ASSERT_EQ(redeclared.equality_constraints_[0].get_thread_mode(), ThreadingFlags::Thread0);
     redeclared.equality_constraints_[0].set_thread_mode(ThreadingFlags::Thread1);
     provider->adopt_declaration(std::move(redeclared));
@@ -1547,7 +1547,7 @@ TEST(AdoptDeclaration, AModeSetOnTheDeclarationSurvivesTheLayAndIsFrozenAgain) {
     // the copy the declaration hands out still takes one.
     EXPECT_THROW(provider->equality_constraints_[0].set_thread_mode(ThreadingFlags::MainThread),
                  std::invalid_argument);
-    AggregateDeclaration again = provider->declaration();
+    AssemblyDeclaration again = provider->declaration();
     EXPECT_NO_THROW(again.equality_constraints_[0].set_thread_mode(ThreadingFlags::MainThread));
 }
 
@@ -1559,7 +1559,7 @@ TEST(AdoptDeclaration, RefusesADeclarationWithRowsAndNoPiecesToClaimThem) {
     // no pieces behind them. The declaration TYPE accepts it -- its piece-sum
     // conjunct has no sum to check -- and this entry must not, because it lays
     // the problem out of the pieces.
-    AggregateDeclaration piece_less;
+    AssemblyDeclaration piece_less;
     piece_less.primal_vars_ = 4;
     piece_less.equality_rows_ = 2;
     piece_less.inequality_rows_ = 1;
@@ -1577,21 +1577,21 @@ TEST(AdoptDeclaration, RefusesADeclarationWithRowsAndNoPiecesToClaimThem) {
 
     // Rows and pieces both absent is a different thing and is adoptable: there
     // is nothing to claim and nothing claiming it.
-    AggregateDeclaration empty;
+    AssemblyDeclaration empty;
     empty.primal_vars_ = 4;
     EXPECT_NO_THROW(target->adopt_declaration(empty));
 }
 
 TEST(AdoptDeclaration, RefusesAFixingRowThatWritesOutsideTheInternalBand) {
     auto target = adopt_build(adopt_default_modes(), 8, false);
-    const AggregateDeclaration before_declaration = target->declaration();
+    const AssemblyDeclaration before_declaration = target->declaration();
     const ModelStructureKey before_key = target->model_structure_key();
 
     // A tail piece of exactly the shape a fixing row has -- one piece, one row
     // -- but writing a row the transcription declared. The declared count is
     // trusted, so the shape check cannot tell this from a real fixing row; the
     // row it writes can.
-    AggregateDeclaration mislabelled = before_declaration;
+    AssemblyDeclaration mislabelled = before_declaration;
     mislabelled.equality_constraints_.push_back(hven::solvers::make_fixed_variable_row(0, 0.0, 0));
     mislabelled.equality_rows_ = kAdoptRows + 1;
     mislabelled.fixing_rows_ = 1;
@@ -1651,7 +1651,7 @@ TEST(AdoptDeclaration, TheLayMarkerEntriesAreNotReachableFromOutsideTheLay) {
 }
 
 TEST(AggregateDeclarationValidation, RefusesAFixingRowCountThatIsNotPartOfTheEqualityRows) {
-    AggregateDeclaration declaration;
+    AssemblyDeclaration declaration;
     declaration.primal_vars_ = 2;
     declaration.equality_rows_ = 3;
     declaration.fixing_rows_ = 4;
@@ -1687,9 +1687,9 @@ namespace {
 /// declaration states, by @p overlap -- the shape a provider with
 /// row-overlapping pieces produces. The pieces are untouched; only the
 /// declared row space and the stated excess move.
-AggregateDeclaration overcount_sharing_declaration(int overlap) {
+AssemblyDeclaration overcount_sharing_declaration(int overlap) {
     auto laid = adopt_build(adopt_default_modes(), 8, false, AdoptPieceKinds::kAllThreeLists);
-    AggregateDeclaration declaration = laid->declaration();
+    AssemblyDeclaration declaration = laid->declaration();
     declaration.equality_rows_ -= overlap;
     declaration.equality_shared_row_overcount_ = overlap;
     return declaration;
@@ -1699,7 +1699,7 @@ AggregateDeclaration overcount_sharing_declaration(int overlap) {
 
 TEST(AggregateDeclarationOvercount,
      AcceptsPiecesThatClaimMoreRowsThanDeclaredWhenTheExcessIsStated) {
-    const AggregateDeclaration declaration = overcount_sharing_declaration(5);
+    const AssemblyDeclaration declaration = overcount_sharing_declaration(5);
 
     const int claimed = kAdoptRows;
     ASSERT_EQ(declaration.equality_rows_, claimed - 5);
@@ -1709,7 +1709,7 @@ TEST(AggregateDeclarationOvercount,
 }
 
 TEST(AggregateDeclarationOvercount, RefusesTheSameSharingWithTheExcessUnstated) {
-    AggregateDeclaration declaration = overcount_sharing_declaration(5);
+    AssemblyDeclaration declaration = overcount_sharing_declaration(5);
     declaration.equality_shared_row_overcount_ = 0;
 
     try {
@@ -1725,13 +1725,13 @@ TEST(AggregateDeclarationOvercount, RefusesTheSameSharingWithTheExcessUnstated) 
 }
 
 TEST(AggregateDeclarationOvercount, RefusesAnExcessThatIsNotACount) {
-    AggregateDeclaration declaration = overcount_sharing_declaration(5);
+    AssemblyDeclaration declaration = overcount_sharing_declaration(5);
     declaration.equality_shared_row_overcount_ = -5;
     declaration.equality_rows_ = kAdoptRows + 5;
     EXPECT_THROW(declaration.validate(), std::invalid_argument);
 
     // The inequality block carries its own, refused on its own terms.
-    AggregateDeclaration inequality_side = overcount_sharing_declaration(0);
+    AssemblyDeclaration inequality_side = overcount_sharing_declaration(0);
     inequality_side.inequality_shared_row_overcount_ = -1;
     EXPECT_THROW(inequality_side.validate(), std::invalid_argument);
 }
@@ -1739,7 +1739,7 @@ TEST(AggregateDeclarationOvercount, RefusesAnExcessThatIsNotACount) {
 TEST(AggregateDeclarationOvercount, RefusesAnExcessOnADeclarationWithNoPieces) {
     // A provider that is not a piece collection: no pieces, and the piece-sum
     // conjunct is vacuous. An overcount there is an excess over nothing.
-    AggregateDeclaration declaration;
+    AssemblyDeclaration declaration;
     declaration.primal_vars_ = 4;
     EXPECT_NO_THROW(declaration.validate());
 
@@ -1753,7 +1753,7 @@ TEST(AggregateDeclarationOvercount, RefusesAnExcessOnADeclarationWithNoPieces) {
 
 TEST(AggregateDeclarationOvercount, IsNotAStructuralKeyConjunct) {
     auto laid = adopt_build(adopt_default_modes(), 8, false, AdoptPieceKinds::kAllThreeLists);
-    const AggregateDeclaration base = laid->declaration();
+    const AssemblyDeclaration base = laid->declaration();
 
     Eigen::VectorXi claim_rows(2);
     Eigen::VectorXi claim_cols(2);
@@ -1769,13 +1769,13 @@ TEST(AggregateDeclarationOvercount, IsNotAStructuralKeyConjunct) {
     // is taken over the declared dimensions and the claim stream, the bound
     // digest over the materialized per-variable structure, and neither field
     // appears in either.
-    AggregateDeclaration moved = base;
+    AssemblyDeclaration moved = base;
     moved.equality_shared_row_overcount_ = 7;
     moved.inequality_shared_row_overcount_ = 3;
     EXPECT_EQ(hven::solvers::claim_stream_digest(moved, claim_rows, claim_cols), base_claim);
     EXPECT_EQ(hven::solvers::materialized_bound_digest(moved), base_bounds);
 
-    AggregateDeclaration fixing_moved = base;
+    AssemblyDeclaration fixing_moved = base;
     fixing_moved.fixing_rows_ = 1;
     EXPECT_EQ(hven::solvers::claim_stream_digest(fixing_moved, claim_rows, claim_cols), base_claim);
     EXPECT_EQ(hven::solvers::materialized_bound_digest(fixing_moved), base_bounds);
@@ -1783,7 +1783,7 @@ TEST(AggregateDeclarationOvercount, IsNotAStructuralKeyConjunct) {
     // The row COUNT is a conjunct, which is what makes the two fields' absence
     // a statement rather than an accident: it is fed through the dimension
     // preamble, so moving it moves the digest.
-    AggregateDeclaration rows_moved = base;
+    AssemblyDeclaration rows_moved = base;
     rows_moved.equality_rows_ += 1;
     EXPECT_NE(hven::solvers::claim_stream_digest(rows_moved, claim_rows, claim_cols), base_claim);
 }
@@ -1828,7 +1828,7 @@ std::shared_ptr<NonLinearProgram> overcount_sharing_nlp(int overlap) {
 
 TEST(AggregateDeclarationOvercount, ALayoutWithSharedRowsEmitsTheExcessItActuallyCarries) {
     auto sharing = overcount_sharing_nlp(5);
-    const AggregateDeclaration emitted = sharing->declaration();
+    const AssemblyDeclaration emitted = sharing->declaration();
 
     // The row space is what the layout was laid over; the excess is what its
     // pieces claim beyond it, derived from the two rather than carried.
@@ -1844,7 +1844,7 @@ TEST(AggregateDeclarationOvercount, ALayoutWithSharedRowsEmitsTheExcessItActuall
 
 TEST(AggregateDeclarationOvercount, SurvivesAdoptionAndComesBackOutOfTheDeclarationItEmits) {
     auto sharing = overcount_sharing_nlp(5);
-    const AggregateDeclaration handed_over = sharing->declaration();
+    const AssemblyDeclaration handed_over = sharing->declaration();
     ASSERT_EQ(handed_over.equality_shared_row_overcount_, 5);
 
     auto adopted = std::make_shared<NonLinearProgram>(1);
@@ -1853,7 +1853,7 @@ TEST(AggregateDeclarationOvercount, SurvivesAdoptionAndComesBackOutOfTheDeclarat
     // The round trip closes: the adopting problem re-emits the same excess,
     // that declaration validates, and adopting it again works -- which is the
     // whole of what "self-describing" has to mean at a nonzero overcount.
-    const AggregateDeclaration re_emitted = adopted->declaration();
+    const AssemblyDeclaration re_emitted = adopted->declaration();
     EXPECT_EQ(re_emitted.equality_rows_, kAdoptRows);
     EXPECT_EQ(re_emitted.equality_shared_row_overcount_, 5);
     EXPECT_NO_THROW(re_emitted.validate());
@@ -1868,7 +1868,7 @@ TEST(AggregateDeclarationOvercount, IsZeroOnALayoutWhosePiecesClaimDisjointRows)
     // what a provider without shared rows emits: every piece claims its own
     // rows, so the piece sum IS the row space and there is no excess.
     auto laid = adopt_build(adopt_default_modes(), 8, false, AdoptPieceKinds::kAllThreeLists);
-    const AggregateDeclaration declaration = laid->declaration();
+    const AssemblyDeclaration declaration = laid->declaration();
 
     EXPECT_EQ(declaration.equality_shared_row_overcount_, 0);
     EXPECT_EQ(declaration.inequality_shared_row_overcount_, 0);

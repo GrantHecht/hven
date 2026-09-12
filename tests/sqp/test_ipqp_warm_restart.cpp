@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/qp/ipqp_engine.h>
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 
 #include "support/parametric_families.h"
 
@@ -664,10 +664,10 @@ TEST(IpqpWarmRestart, APerturbedContinuationAcrossAnActivationThresholdIsAbandon
         SqpOptions o;
         o.qp_mode = QpMode::kIpm;
         o.ipqp.ipqp_warm_iter_budget = warm_budget;
-        SqpDriver driver(o);
+        SqpSolver driver(o);
 
         // The FREE-branch solve, and its currency.
-        const SqpSolution seeded = driver.solve(model, model.start_point());
+        const SqpResult seeded = driver.solve(model, model.start_point());
         EXPECT_EQ(seeded.status, SolveStatus::kOptimal);
         const WarmStartData payload = driver.export_warm_start();
 
@@ -677,7 +677,7 @@ TEST(IpqpWarmRestart, APerturbedContinuationAcrossAnActivationThresholdIsAbandon
         return driver.solve(model, payload.primal_, payload);
     };
 
-    const SqpSolution killed = solve_continuation(1);
+    const SqpResult killed = solve_continuation(1);
     EXPECT_EQ(killed.status, SolveStatus::kOptimal)
         << "the cold restart recovers the answer the warm attempt was not reaching";
     EXPECT_GE(killed.counters.ipqp.ipqp_warm_restart_abandoned, 1)
@@ -685,7 +685,7 @@ TEST(IpqpWarmRestart, APerturbedContinuationAcrossAnActivationThresholdIsAbandon
 
     // NON-VACUITY: at the shipped budget the same continuation is not
     // abandoned, so the row above is about the budget and not about the cell.
-    const SqpSolution patient = solve_continuation(IpqpOptions{}.ipqp_warm_iter_budget);
+    const SqpResult patient = solve_continuation(IpqpOptions{}.ipqp_warm_iter_budget);
     EXPECT_EQ(patient.status, SolveStatus::kOptimal);
     EXPECT_EQ(patient.counters.ipqp.ipqp_warm_restart_abandoned, 0);
 

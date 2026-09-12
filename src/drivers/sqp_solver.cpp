@@ -1,11 +1,11 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// sqp_driver.cpp — SqpDriver's major loop, and everything the loop
+// sqp_solver.cpp — SqpSolver's major loop, and everything the loop
 // orchestrates.
 //
-// This TU holds the DEFINITIONS of every SqpDriver member function except the
-// two constructors, AND of the free functions drivers/sqp_driver.h declares
+// This TU holds the DEFINITIONS of every SqpSolver member function except the
+// two constructors, AND of the free functions drivers/sqp_solver.h declares
 // alongside the class -- the evaluation, measurement, subproblem-construction
 // and counter-folding helpers. The class, its data members, all of that
 // documentation and the constructors stay in the header. The members the
@@ -30,12 +30,12 @@
 #include <Eigen/SparseCore>
 #include <fmt/format.h>
 
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 
 // THE ONE TRANSLATION UNIT THAT COMPLETES THE SINK TYPES (M6 W5 T8.7 fix1, the
-// lane's M4). `sqp_driver.h` forward-declares `ConsoleTraceSink` and
+// lane's M4). `sqp_solver.h` forward-declares `ConsoleTraceSink` and
 // `FanOutTraceSink` and holds them through `unique_ptr`s; this file builds
-// them, resets them and defines `~SqpDriver`, so it is the file that needs them
+// them, resets them and defines `~SqpSolver`, so it is the file that needs them
 // complete.
 #include <hven/drivers/console_trace_sink.h>
 
@@ -80,7 +80,7 @@ void require_declared_box(const NlpModel &model) {
     const Index n = model.n();
     if (model.lower().size() != n || model.upper().size() != n) {
         throw std::invalid_argument(
-            fmt::format("SqpDriver::solve: model.lower()/model.upper() are sized ({}, {}), "
+            fmt::format("SqpSolver::solve: model.lower()/model.upper() are sized ({}, {}), "
                         "expected ({}, {}) (= model.n())",
                         model.lower().size(), model.upper().size(), n, n));
     }
@@ -112,7 +112,7 @@ void require_declared_box(const NlpModel &model) {
 void require_consistent_core(const WarmStartData &data) {
     if (data.primal_.size() != data.bound_lmults_.size()) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver::solve: warm-start block primal_ holds {0} entries but "
+            "SqpSolver::solve: warm-start block primal_ holds {0} entries but "
             "bound_lmults_ holds {1}; both are stated over the DECLARED variables and must be "
             "EITHER BOTH EMPTY (the multipliers-only seed, whose start is this call's own x0) OR "
             "ONE LENGTH -- one bound price per variable",
@@ -128,7 +128,7 @@ void require_finite_core(const WarmStartData &data) {
     const auto check = [](const char *block, const Vec &v) {
         if (!v.allFinite()) {
             throw std::invalid_argument(
-                fmt::format("SqpDriver::solve: warm-start block {0} holds a non-finite "
+                fmt::format("SqpSolver::solve: warm-start block {0} holds a non-finite "
                             "value; a warm start must name a point and multipliers the next solve "
                             "can start from",
                             block));
@@ -158,7 +158,7 @@ void validate_staged_polish(const WarmStartData &data) {
         // The inner message already names the tag and what it refused; the
         // entry the caller stood at is the only thing this wrapper adds.
         throw std::invalid_argument(
-            fmt::format("SqpDriver::solve: the warm-start payload's extension list "
+            fmt::format("SqpSolver::solve: the warm-start payload's extension list "
                         "could not be read -- {0}",
                         error.what()));
     }
@@ -171,7 +171,7 @@ void validate_staged_polish(const WarmStartData &data) {
         polish = deserialize_ipm_polish(extension->payload_);
     } catch (const std::invalid_argument &error) {
         throw std::invalid_argument(
-            fmt::format("SqpDriver::solve: the warm-start payload carries a \"{0}\" "
+            fmt::format("SqpSolver::solve: the warm-start payload carries a \"{0}\" "
                         "extension whose payload could not be read -- {1}",
                         kIpmPolishTag, error.what()));
     }
@@ -179,7 +179,7 @@ void validate_staged_polish(const WarmStartData &data) {
     const auto check_size = [](const char *block, Index held, Index core) {
         if (held != core) {
             throw std::invalid_argument(fmt::format(
-                "SqpDriver::solve: the warm-start payload's \"{0}\" extension holds {1} "
+                "SqpSolver::solve: the warm-start payload's \"{0}\" extension holds {1} "
                 "entries in {2} but the core block beside it holds {3} -- the extension is stated "
                 "over the same DECLARED problem, at exactly its dimensions",
                 kIpmPolishTag, held, block, core));
@@ -206,7 +206,7 @@ void validate_staged_polish(const WarmStartData &data) {
     const auto check_finite = [](const char *block, const Vec &v) {
         if (!v.allFinite()) {
             throw std::invalid_argument(fmt::format(
-                "SqpDriver::solve: the warm-start payload's \"{0}\" extension holds a "
+                "SqpSolver::solve: the warm-start payload's \"{0}\" extension holds a "
                 "non-finite value in {1}; the crossover's activity rule compares these against "
                 "each other and would certify nothing at all",
                 kIpmPolishTag, block));
@@ -237,7 +237,7 @@ void validate_staged_polish(const WarmStartData &data) {
         for (Index i = 0; i < v.size(); i++) {
             if (v[i] < 0.0) {
                 throw std::invalid_argument(fmt::format(
-                    "SqpDriver::solve: the warm-start payload's \"{0}\" extension holds "
+                    "SqpSolver::solve: the warm-start payload's \"{0}\" extension holds "
                     "a NEGATIVE value in {1} at index {2} ({3}); both bound-dual blocks are "
                     "prices, stated non-negative at every coordinate -- a negative entry is a "
                     "corrupt value, not a hand-off the crossover can infer activity from",
@@ -256,7 +256,7 @@ void validate_staged_polish(const WarmStartData &data) {
 // on the other would report a default as a measurement. Deliberately does NOT
 // take kkt.z: the restoration exits replace that vector, and out.z is written
 // by the caller for exactly that reason.
-void record_terminal_kkt(SqpSolution &out, const SqpKkt &kkt) {
+void record_terminal_kkt(SqpResult &out, const SqpKkt &kkt) {
     out.sqp_stationarity = kkt.stationarity;
     out.sqp_feasibility = kkt.feasibility;
     out.sqp_complementarity = kkt.complementarity;
@@ -271,7 +271,7 @@ void record_terminal_kkt(SqpSolution &out, const SqpKkt &kkt) {
 //
 // @param kkt the measurement at the returned point, IN THE SPACE THE SOLVE RAN
 //        IN, which is what `scaled_kkt_residual` is defined to carry.
-void record_scaling_report(SqpSolution &out, const detail::ProblemScaling &sc, const SqpKkt &kkt) {
+void record_scaling_report(SqpResult &out, const detail::ProblemScaling &sc, const SqpKkt &kkt) {
     out.scaling.active = sc.active;
     out.scaling.obj = sc.obj;
     out.scaling.row_max = sc.row_max();
@@ -298,7 +298,7 @@ void record_scaling_report(SqpSolution &out, const detail::ProblemScaling &sc, c
 //
 // `tr_radius` SURVIVES, and is deliberately not touched here: it is an
 // l-infinity radius in the variable space, and this layer scales no variable.
-void drop_scaled_space_state(WarmStart &warm) {
+void drop_scaled_space_state(SqpWarmStart &warm) {
     warm.funnel_width = -1.0;
     warm.primal_delta = -1.0;
     warm.dual_mu = -1.0;
@@ -356,7 +356,7 @@ CallerScaleRowMeasures caller_scale_row_measures(const Vec &lo, const Vec &up, c
 } // namespace
 
 // THE SHARED DECLARED DIAGNOSTICS OF ONE POINT (M6 W5 T8.4). Declared in
-// drivers/sqp_driver.h, defined here with its free-function neighbours.
+// drivers/sqp_solver.h, defined here with its free-function neighbours.
 DeclaredDiagnosticsStash stash_declared_diagnostics(const NlpEval &ev, const SqpKkt &kkt,
                                                     const Vec &x, const Vec &lambda_i,
                                                     const Vec &lo, const Vec &up,
@@ -396,7 +396,7 @@ DeclaredDiagnosticsStash stash_declared_diagnostics(const NlpEval &ev, const Sqp
 
 // --- THE DRIVER'S FREE FUNCTIONS ------------------------------------------
 // The evaluation, measurement, subproblem-construction and counter-folding
-// helpers declared in drivers/sqp_driver.h, defined here for the same reason
+// helpers declared in drivers/sqp_solver.h, defined here for the same reason
 // the class's own members are: none of them depends on inlining through a
 // template parameter, and every one of them is driver-tier orchestration or
 // instrumentation, which CLAUDE.md §5 places in a .cpp TU. They land in THIS
@@ -698,7 +698,7 @@ bool crash_basis_seed(const QpProblem &qp, double feas_tol, QpSolution &seed, In
     return rows > 0 || bounds > 0;
 }
 
-SqpKkt evaluate_kkt(const AggregateEvalSeam &seam, const NlpEval &ev, const Vec &x,
+SqpKkt evaluate_kkt(const AssemblyEvalSeam &seam, const NlpEval &ev, const Vec &x,
                     const Vec &lambda_e, const Vec &lambda_i, double bound_tol) {
     return detail::evaluate_kkt_over(seam.n(), seam.me(), seam.mi(), seam.lower(), seam.upper(), ev,
                                      x, lambda_e, lambda_i, bound_tol);
@@ -877,7 +877,7 @@ void assert_ssn_warm_grade_window(const IpqpResult &res, const SsnStart &start,
                              (start.box_center->array() == res.box.centre.array()).all();
     if (!centre_held || radius != res.box.radius) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: the SSN warm grade would run in a different window than the IPQP tier "
+            "SqpSolver: the SSN warm grade would run in a different window than the IPQP tier "
             "did (centre supplied: {}, radius {} vs the tier's {}) -- section 2.3 item 4 grades "
             "SSN from the tier's (x, lambda) IN THE TIER'S OWN WINDOW, which is the clamp-centred "
             "one QpEngine::refine_on_face also gates against; without SsnStart::box_center the "
@@ -886,7 +886,7 @@ void assert_ssn_warm_grade_window(const IpqpResult &res, const SsnStart &start,
     }
     if (start.x.size() != res.x.size() || !(start.x.array() == res.x.array()).all()) {
         throw std::invalid_argument(
-            "SqpDriver: the SSN warm grade's start is not the tier's iterate -- section 2.3 item "
+            "SqpSolver: the SSN warm grade's start is not the tier's iterate -- section 2.3 item "
             "4 grades SSN from (x, lambda), and the primal half is the acquisition the tier just "
             "paid for");
     }
@@ -905,7 +905,7 @@ void assert_ipqp_hand_off_window(const IpqpBox &driver_box, const IpqpResult &re
                              (res.box.up_eff.array() == driver_box.up_eff.array()).all();
     if (!same_window) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver: the IPQP tier's window is not the one refine_on_face will gate against "
+            "SqpSolver: the IPQP tier's window is not the one refine_on_face will gate against "
             "(radius {} vs {}, centre length {} vs {}) -- IpqpBox's centre is clamp(0, l, u) and "
             "a warm iterate lives INSIDE that box, so IpqpSeed::x may never redefine it (see "
             "IpqpBox's contract and QpEngine::refine_on_face's public-API precondition)",
@@ -945,7 +945,7 @@ namespace {
 
 // AMENDMENT H, Q-S4 AT c = 1, WITH W2 T5's TWO CAPS: the FIRED block's multiplier norm places the
 // first rung, FLOORED at today's start and capped by the escalation headroom and the
-// dual-regularization safety margin -- sqp_driver.h's THE PLACEMENT BOUND has the rule.
+// dual-regularization safety margin -- sqp_solver.h's THE PLACEMENT BOUND has the rule.
 double elastic_initial_rho(const ElasticSeedSource &seed, double dual_mu, bool &ceiling_hit) {
     ceiling_hit = false;
     if (seed.evidence == nullptr || !seed.evidence->fired ||
@@ -1060,7 +1060,7 @@ IpqpTraceOutcome trace_outcome_of(QpStatus status) {
 }
 
 /// @brief THE FREE EMIT (M6 W4 T5), for the two kernel call sites that live in
-/// free functions and so have no `SqpDriver::emit_trace_qp_mode` to reach.
+/// free functions and so have no `SqpSolver::emit_trace_qp_mode` to reach.
 ///
 /// The null check is HERE, once, so a caller with no sink pays one predictable
 /// branch and no event construction -- the same shape the driver's member has.
@@ -1364,7 +1364,7 @@ IpqpTraceQpMode trace_mode_of(QpMode mode) {
 /// explicit statements in `solve_impl`, so the last write of a solve is not
 /// inside a `noexcept` destructor.
 SqpSolveBeginTraceEvent make_solve_begin_event(const SqpOptions &opts,
-                                               const AggregateEvalSeam &seam) {
+                                               const AssemblyEvalSeam &seam) {
     SqpSolveBeginTraceEvent ev;
     ev.n = seam.n();
     ev.me = seam.me();
@@ -1426,7 +1426,7 @@ std::optional<IpqpSeed> build_ipqp_staged_seed(const WarmStartData &data, Index 
     return seed;
 }
 
-// NlpEval::all_finite screens f/grad/cE/cI and NOT the Jacobians (sqp_driver.h's
+// NlpEval::all_finite screens f/grad/cE/cI and NOT the Jacobians (sqp_solver.h's
 // NlpEval), which RestorationModel reads for its slack sigmas -- so a restoration
 // start candidate's STORED Je/Ji values are screened by this instead.
 bool jacobian_values_finite(const NlpEval &ev) {
@@ -1570,29 +1570,29 @@ void accumulate_ipqp_counters(IpqpCounters &total, const IpqpCounters &one) {
     total.ipqp_read_barrier_noise_sides += one.ipqp_read_barrier_noise_sides;
 }
 
-SqpSolution SqpDriver::solve(const NlpModel &model) {
+SqpResult SqpSolver::solve(const NlpModel &model) {
     // The shared clock on THIS overload too (M6 W5 T8.4 fix1: the boundary is
     // stated per public entry). It has no argument refusal of its own, so the
     // clock starts first and the start_point() read it delegates through is
     // inside it.
     const auto entry = std::chrono::steady_clock::now();
-    SqpSolution out = solve(model, model.start_point());
+    SqpResult out = solve(model, model.start_point());
     out.wall_seconds =
         std::chrono::duration<double>(std::chrono::steady_clock::now() - entry).count();
     return out;
 }
 
-void SqpDriver::attach_ledger(Ledger *ledger, std::string label_prefix) {
+void SqpSolver::attach_ledger(Ledger *ledger, std::string label_prefix) {
     ledger_ = ledger;
     label_prefix_ = std::move(label_prefix);
     solve_counter_ = 0;
     engine_->attach_ledger(ledger, label_prefix_ + "_qp");
 }
 
-void SqpDriver::set_options(SqpOptions o) {
+void SqpSolver::set_options(SqpOptions o) {
     if (solve_in_flight_) {
         throw std::logic_error(
-            "SqpDriver::set_options: a solve is in flight on this driver; options may only be "
+            "SqpSolver::set_options: a solve is in flight on this driver; options may only be "
             "replaced between calls");
     }
     // (1) VALIDATE FIRST. A throw here has touched nothing.
@@ -1645,35 +1645,35 @@ void SqpDriver::set_options(SqpOptions o) {
 // `make_unique<QpEngine>(opts.qp, opts.common.threads)`; since T8.8 applies
 // that count to a `SymmetricFactor`, a negative `common.threads` was refused by
 // the FACTOR's validator ("SymmetricFactor: num_threads must be >= 0 ...")
-// rather than by `validate_sqp_options` ("SqpDriver: common.threads (-1) must
+// rather than by `validate` ("SqpSolver: common.threads (-1) must
 // be >= 0 ..."). Same refusal, wrong message, and A10 asks for this one.
-const SqpOptions &SqpDriver::validated(const SqpOptions &opts) {
-    validate_sqp_options(opts);
+const SqpOptions &SqpSolver::validated(const SqpOptions &opts) {
+    validate(opts);
     return opts;
 }
 
-SqpDriver::SqpDriver(const SqpOptions &opts)
+SqpSolver::SqpSolver(const SqpOptions &opts)
     : opts_(validated(opts)), engine_(std::make_unique<QpEngine>(opts.qp, opts.common.threads)) {}
 
-SqpDriver::SqpDriver(const SqpOptions &opts, RestorationSubDriverTag)
+SqpSolver::SqpSolver(const SqpOptions &opts, RestorationSubDriverTag)
     : opts_(validated(opts)), engine_(std::make_unique<QpEngine>(opts.qp, opts.common.threads)),
       allow_restoration_(false), is_restoration_sub_driver_(true) {}
 
 // OUT OF LINE FOR THE FORWARD-DECLARED SINKS (M6 W5 T8.7 fix1). Defaulted, and
 // deliberately here rather than in the header: the two `unique_ptr` members'
 // deleters are instantiated at this point, where both types are complete, so no
-// consumer of `drivers/sqp_driver.h` has to see `drivers/console_trace_sink.h`
+// consumer of `drivers/sqp_solver.h` has to see `drivers/console_trace_sink.h`
 // (or the `fmt/color.h` it pulls) to destroy a driver.
-SqpDriver::~SqpDriver() = default;
+SqpSolver::~SqpSolver() = default;
 
-void SqpDriver::attach_trace(TraceSink *sink) {
+void SqpSolver::attach_trace(TraceSink *sink) {
     // BETWEEN SOLVES ONLY (M6 W5 T8.7), on `set_options`' rule: the effective
     // sink is composed at solve entry and fixed for the solve, so a change made
     // mid-solve -- from inside a callback -- could not take effect in it. This
     // says so rather than silently deferring.
     if (solve_in_flight_) {
         throw std::logic_error(
-            "SqpDriver::attach_trace: a solve is in flight on this driver; the trace sink may "
+            "SqpSolver::attach_trace: a solve is in flight on this driver; the trace sink may "
             "only be replaced between calls");
     }
     user_trace_ = sink;
@@ -1686,25 +1686,25 @@ void SqpDriver::attach_trace(TraceSink *sink) {
     }
 }
 
-void SqpDriver::emit_trace_route(const IpqpTraceRouteEvent &event) const {
+void SqpSolver::emit_trace_route(const IpqpTraceRouteEvent &event) const {
     if (ipqp_trace_ != nullptr) {
         ipqp_trace_->on_ipqp_route(event);
     }
 }
 
-void SqpDriver::emit_trace_qp_mode(const QpModeTraceEvent &event) const {
+void SqpSolver::emit_trace_qp_mode(const QpModeTraceEvent &event) const {
     if (ipqp_trace_ != nullptr) {
         ipqp_trace_->on_qp_mode(event);
     }
 }
 
-void SqpDriver::emit_trace_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) const {
+void SqpSolver::emit_trace_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) const {
     if (ipqp_trace_ != nullptr) {
         ipqp_trace_->on_fallback_verdict(event);
     }
 }
 
-void SqpDriver::emit_trace_sqp_major(const SqpMajorTraceEvent &event) const {
+void SqpSolver::emit_trace_sqp_major(const SqpMajorTraceEvent &event) const {
     if (ipqp_trace_ != nullptr) {
         ipqp_trace_->on_sqp_major(event);
     }
@@ -1716,16 +1716,16 @@ void SqpDriver::emit_trace_sqp_major(const SqpMajorTraceEvent &event) const {
 // with the same messages, and the solve they run is the same solve.
 //
 // The bridge is built per call, deliberately. Laying it walks the model's three
-// derivative patterns once (model/nlp_model_aggregate.h) -- real work, outside
+// derivative patterns once (model/nlp_model_assembly.h) -- real work, outside
 // the timed region below because it is setup, and paid per solve rather than
 // per major. A caller who solves the same model repeatedly and does not want
-// to pay it can hold its own NlpModelAggregate and call the bridge-taking
+// to pay it can hold its own NlpModelAssembly and call the bridge-taking
 // overload directly, which is the whole reason that overload is public.
-SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0) {
+SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0) {
     return solve(model, x0, SolveBudget{});
 }
 
-SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0, SolveBudget budget) {
+SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0, SolveBudget budget) {
     require_declared_box(model);
     // THE SHARED CLOCK, at THIS public entry and immediately after the
     // argument check above (M6 W5 T8.4 fix1). The bridge lay below is real
@@ -1735,41 +1735,41 @@ SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0, SolveBudget b
     // this assignment overwrites it with the wider, truer measurement, which
     // is the whole reason the boundary is stated per overload.
     const auto entry = std::chrono::steady_clock::now();
-    NlpModelAggregate bridge{borrow_model(model)};
+    NlpModelAssembly bridge{borrow_model(model)};
     // THE OUTER STAMP IS CARRIED DOWN (M6 W5 T8.6 fix1, astra item 4): the
     // delegate used to take a stamp of its OWN, below the bridge lay, and
     // IterationEvent::elapsed_seconds then omitted the lay while
     // SqpResult::wall_seconds included it -- two boundaries for one call.
-    SqpSolution out = solve_from_entry(bridge, x0, budget, entry);
+    SqpResult out = solve_from_entry(bridge, x0, budget, entry);
     out.wall_seconds =
         std::chrono::duration<double>(std::chrono::steady_clock::now() - entry).count();
     return out;
 }
 
-SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0, const SqpWarmStart &warm,
-                             SolveBudget budget) {
+SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0, const SqpWarmStart &warm,
+                           SolveBudget budget) {
     require_declared_box(model);
     // The shared clock, on the same boundary as the cold model overload above
     // and for the same reason: the bridge lay is this call's work.
     const auto entry = std::chrono::steady_clock::now();
-    NlpModelAggregate bridge{borrow_model(model)};
+    NlpModelAssembly bridge{borrow_model(model)};
     // The outer stamp, carried down; see the cold model overload above.
-    SqpSolution out = solve_from_entry(bridge, x0, warm, budget, entry);
+    SqpResult out = solve_from_entry(bridge, x0, warm, budget, entry);
     out.wall_seconds =
         std::chrono::duration<double>(std::chrono::steady_clock::now() - entry).count();
     return out;
 }
 
-SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0) {
+SqpResult SqpSolver::solve(NlpModelAssembly &bridge, const Vec &x0) {
     return solve(bridge, x0, SolveBudget{});
 }
 
-SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, SolveBudget budget) {
+SqpResult SqpSolver::solve(NlpModelAssembly &bridge, const Vec &x0, SolveBudget budget) {
     return solve_from_entry(bridge, x0, budget, std::nullopt);
 }
 
-SqpSolution
-SqpDriver::solve_from_entry(NlpModelAggregate &bridge, const Vec &x0, SolveBudget budget,
+SqpResult
+SqpSolver::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, SolveBudget budget,
                             std::optional<std::chrono::steady_clock::time_point> outer_entry) {
     // THE SHARED CLOCK'S START (design §2.3; placement corrected in M6 W5 T8.4
     // fix1): the FIRST statement of the public entry, this overload having no
@@ -1796,23 +1796,23 @@ SqpDriver::solve_from_entry(NlpModelAggregate &bridge, const Vec &x0, SolveBudge
     // is setup, not iteration. The seam binds the claim-stream interface the
     // bridge derives from; the bridge itself stays in this frame and rides
     // into solve_impl for the restoration phase's one Level 1 read.
-    AggregateEvalSeam seam{bridge};
+    AssemblyEvalSeam seam{bridge};
     // A COLD SOLVE, unconditionally (M6 W5 T8.5): staging is gone, so this
     // entry has no warm-start source to consult and runs the same solve it
-    // always ran when nothing was staged -- a default-constructed WarmStart.
+    // always ran when nothing was staged -- a default-constructed SqpWarmStart.
     // The tier seed is still cleared, for the reason the native overload below
     // states.
     ipqp_staged_seed_.reset();
     payload_polish_ignored_ = 0;
-    const WarmStart warm{};
+    const SqpWarmStart warm{};
     // Timed around solve_impl ALONE -- never around model construction,
     // x0/warm setup above, or record_solve's own ledger bookkeeping
     // below -- per ledger.h's SqpSolveRecord::wall_seconds note
     // (informational, never asserted).
     const auto t0 = std::chrono::steady_clock::now();
-    SqpSolution out = solve_impl(seam, bridge, x0, warm, budget);
+    SqpResult out = solve_impl(seam, bridge, x0, warm, budget);
     const auto t1 = std::chrono::steady_clock::now();
-    SqpSolution done = record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
+    SqpResult done = record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
     // THE EXPORT'S ONE CAPTURE, last: "completed" is a public solve() that
     // returned, and everything that could still throw has run.
     capture_completed_warm_start(done, seam, bridge);
@@ -1821,13 +1821,13 @@ SqpDriver::solve_from_entry(NlpModelAggregate &bridge, const Vec &x0, SolveBudge
     return done;
 }
 
-SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, const SqpWarmStart &warm,
-                             SolveBudget budget) {
+SqpResult SqpSolver::solve(NlpModelAssembly &bridge, const Vec &x0, const SqpWarmStart &warm,
+                           SolveBudget budget) {
     return solve_from_entry(bridge, x0, warm, budget, std::nullopt);
 }
 
-SqpSolution
-SqpDriver::solve_from_entry(NlpModelAggregate &bridge, const Vec &x0, const SqpWarmStart &warm,
+SqpResult
+SqpSolver::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const SqpWarmStart &warm,
                             SolveBudget budget,
                             std::optional<std::chrono::steady_clock::time_point> outer_entry) {
     // THE NATIVE ROUTE BUILDS NO TIER SEED, so it must still CLEAR one: a
@@ -1844,12 +1844,12 @@ SqpDriver::solve_from_entry(NlpModelAggregate &bridge, const Vec &x0, const SqpW
     entry_time_ = entry;
     // Both parked kinds, as at the entry above (M6 W5 T8.7b).
     apply_pending_iteration_callback(/*at_solve_entry=*/true);
-    AggregateEvalSeam seam{bridge};
+    AssemblyEvalSeam seam{bridge};
     // Same timing scope as the 2-arg overload above.
     const auto t0 = std::chrono::steady_clock::now();
-    SqpSolution out = solve_impl(seam, bridge, x0, warm, budget);
+    SqpResult out = solve_impl(seam, bridge, x0, warm, budget);
     const auto t1 = std::chrono::steady_clock::now();
-    SqpSolution done = record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
+    SqpResult done = record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
     capture_completed_warm_start(done, seam, bridge);
     // THE SHARED CLOCK (design §2.3), a DIFFERENT boundary from the one above:
     // it runs from this public entry -- after the argument refusals -- to the
@@ -1870,8 +1870,8 @@ SqpDriver::solve_from_entry(NlpModelAggregate &bridge, const Vec &x0, const SqpW
 // needs a PROBLEM -- the block lengths and the declaration stamp -- waits for
 // consume_payload, below the seam lay.
 
-SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0, const WarmStartData &warm,
-                             SolveBudget budget) {
+SqpResult SqpSolver::solve(const NlpModel &model, const Vec &x0, const WarmStartData &warm,
+                           SolveBudget budget) {
     // THE MODEL'S OWN DEFECT FIRST, before the payload is looked at and before
     // the bridge lay: a model that cannot describe a problem is not worth a
     // derivative-pattern walk, and its diagnostic is the more actionable one.
@@ -1879,21 +1879,21 @@ SqpSolution SqpDriver::solve(const NlpModel &model, const Vec &x0, const WarmSta
     // The shared clock, on the same boundary as every other model-taking
     // overload: the bridge lay is this call's work.
     const auto entry = std::chrono::steady_clock::now();
-    NlpModelAggregate bridge{borrow_model(model)};
+    NlpModelAssembly bridge{borrow_model(model)};
     // The outer stamp, carried down; see the cold model overload above.
-    SqpSolution out = solve_from_entry(bridge, x0, warm, budget, entry);
+    SqpResult out = solve_from_entry(bridge, x0, warm, budget, entry);
     out.wall_seconds =
         std::chrono::duration<double>(std::chrono::steady_clock::now() - entry).count();
     return out;
 }
 
-SqpSolution SqpDriver::solve(NlpModelAggregate &bridge, const Vec &x0, const WarmStartData &warm,
-                             SolveBudget budget) {
+SqpResult SqpSolver::solve(NlpModelAssembly &bridge, const Vec &x0, const WarmStartData &warm,
+                           SolveBudget budget) {
     return solve_from_entry(bridge, x0, warm, budget, std::nullopt);
 }
 
-SqpSolution
-SqpDriver::solve_from_entry(NlpModelAggregate &bridge, const Vec &x0, const WarmStartData &warm,
+SqpResult
+SqpSolver::solve_from_entry(NlpModelAssembly &bridge, const Vec &x0, const WarmStartData &warm,
                             SolveBudget budget,
                             std::optional<std::chrono::steady_clock::time_point> outer_entry) {
     // THE HAND-OVER CHECKS, in the order the staging call ran them and with
@@ -1915,22 +1915,22 @@ SqpDriver::solve_from_entry(NlpModelAggregate &bridge, const Vec &x0, const Warm
     entry_time_ = entry;
     // Both parked kinds, as at the entry above (M6 W5 T8.7b).
     apply_pending_iteration_callback(/*at_solve_entry=*/true);
-    AggregateEvalSeam seam{bridge};
+    AssemblyEvalSeam seam{bridge};
     // THE PAYLOAD'S ONE INGEST, after the lay so the dimensions and the key are
     // this solve's. It also owns the tier-seed reset and the polish-ignored
     // count for this call.
-    const WarmStart native = consume_payload(seam, bridge, x0, warm);
+    const SqpWarmStart native = consume_payload(seam, bridge, x0, warm);
     const auto t0 = std::chrono::steady_clock::now();
-    SqpSolution out = solve_impl(seam, bridge, x0, native, budget);
+    SqpResult out = solve_impl(seam, bridge, x0, native, budget);
     const auto t1 = std::chrono::steady_clock::now();
-    SqpSolution done = record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
+    SqpResult done = record_solve(std::move(out), std::chrono::duration<double>(t1 - t0).count());
     capture_completed_warm_start(done, seam, bridge);
     done.wall_seconds =
         std::chrono::duration<double>(std::chrono::steady_clock::now() - entry).count();
     return done;
 }
 
-SqpSolution SqpDriver::record_solve(SqpSolution out, double wall_seconds) {
+SqpResult SqpSolver::record_solve(SqpResult out, double wall_seconds) {
     // THE WALL TIME, REPORTED. Written here rather than at each of
     // solve_impl's exits for the same reason the proximal carry below is:
     // this function is the ONE point every public solve() overload funnels
@@ -1962,14 +1962,14 @@ SqpSolution SqpDriver::record_solve(SqpSolution out, double wall_seconds) {
     out.counters.polish_ignored = payload_polish_ignored_;
     // THE PROXIMAL CARRY, EXPORTED. Stamped here rather than in
     // make_warm_start because make_warm_start is static (it is called from
-    // a context with no `SqpDriver&`) while the accumulator is per-driver
+    // a context with no `SqpSolver&`) while the accumulator is per-driver
     // state, and because this function is the ONE point every public
     // solve() overload funnels through -- solve_impl has a dozen exits and
     // stamping at each would be a dozen chances to miss one.
     //
     // GATED ON A NONZERO SIGMA, which is what makes the whole block free at
     // the shipped default: at `qp_mode == QpMode::kWalk` no SSN subproblem
-    // runs, `ssn_prox_sigma_out_` is still 0.0, and the emitted WarmStart
+    // runs, `ssn_prox_sigma_out_` is still 0.0, and the emitted SqpWarmStart
     // is byte-for-byte the one this driver has always emitted -- the two
     // centre vectors stay empty and `has_prox_center` stays false. See
     // warm_start.h's THE COST GATE.
@@ -2024,21 +2024,22 @@ SqpSolution SqpDriver::record_solve(SqpSolution out, double wall_seconds) {
 
 // --- WARM-START CURRENCY: THE TWO PUBLIC ENTRIES AND THEIR TWO HOOKS ---
 
-WarmStartData SqpDriver::export_warm_start() const {
+WarmStartData SqpSolver::export_warm_start() const {
     // REFUSED, not served empty. An empty payload would stage cleanly against
     // any problem and then silently cold-start, which is the wrong-but-
     // plausible shape this entry exists to rule out.
     if (!solve_completed_) {
         throw std::logic_error(
-            "SqpDriver::export_warm_start: no completed solve on this instance -- there is no "
+            "SqpSolver::export_warm_start: no completed solve on this instance -- there is no "
             "warm-start value to export. Call solve() (a call that threw does not count as "
             "completed) before exporting.");
     }
     return completed_warm_;
 }
 
-WarmStart SqpDriver::consume_payload(const AggregateEvalSeam &seam, const NlpModelAggregate &bridge,
-                                     const Vec &x0, const WarmStartData &data) {
+SqpWarmStart SqpSolver::consume_payload(const AssemblyEvalSeam &seam,
+                                        const NlpModelAssembly &bridge, const Vec &x0,
+                                        const WarmStartData &data) {
     // The tier's seed is per solve and spent once; nothing may leak from the
     // previous one. Same for the polish-ignored count this call may raise.
     ipqp_staged_seed_.reset();
@@ -2055,7 +2056,7 @@ WarmStart SqpDriver::consume_payload(const AggregateEvalSeam &seam, const NlpMod
     // -- the sizes and the stamp have to be answered against the same reading,
     // and on a provider whose declaration() does real work one reading is also
     // the cheaper shape.
-    const AggregateDeclaration &declaration = bridge.declaration();
+    const AssemblyDeclaration &declaration = bridge.declaration();
 
     // THE SIZES, against that problem -- the check that had nowhere to stand at
     // staging time.
@@ -2063,7 +2064,7 @@ WarmStart SqpDriver::consume_payload(const AggregateEvalSeam &seam, const NlpMod
     // THE EQUALITY COUNT IS FIXING-ADJUSTED, matching what the stamp hashes. A
     // fixed-variable treatment's internal rows are the TREATMENT's, not the
     // declaration's, and the currency does not carry them. The subtraction is
-    // inert today -- NlpModelAggregate's fixing_rows_ is 0 by construction, so
+    // inert today -- NlpModelAssembly's fixing_rows_ is 0 by construction, so
     // seam.me() would give the same number -- and is written anyway because a
     // provider that did append fixing rows would pass the stamp check, which
     // subtracts them, and then be refused on eq_lmults_ size: two refusals
@@ -2072,7 +2073,7 @@ WarmStart SqpDriver::consume_payload(const AggregateEvalSeam &seam, const NlpMod
     const Index declared_eq = declaration.equality_rows_ - declaration.fixing_rows_;
 
     // THE MODE-LOCAL COLD DEGRADE UNDER kIpm IS GONE (M6 W5 T8.5, owner
-    // ruling; design 2.4). It stood here, and it returned a cold WarmStart
+    // ruling; design 2.4). It stood here, and it returned a cold SqpWarmStart
     // where kWalk and kSsn threw, so the SAME payload against the SAME problem
     // was refused or silently discarded depending on which QP kernel the
     // driver happened to be configured for -- an identity check whose answer
@@ -2086,7 +2087,7 @@ WarmStart SqpDriver::consume_payload(const AggregateEvalSeam &seam, const NlpMod
     const auto check_size = [](const char *block, Index held, Index declared) {
         if (held != declared) {
             throw std::invalid_argument(fmt::format(
-                "SqpDriver::solve: warm-start payload block {0} holds {1} entries but the "
+                "SqpSolver::solve: warm-start payload block {0} holds {1} entries but the "
                 "problem this solve binds declares {2} -- every block of the currency is stated "
                 "over the DECLARED problem, at exactly its dimensions",
                 block, held, declared));
@@ -2117,7 +2118,7 @@ WarmStart SqpDriver::consume_payload(const AggregateEvalSeam &seam, const NlpMod
     const DeclarationKey live = declaration_key(declaration);
     if (!(data.structure_key_ == live)) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver::solve: the warm-start payload was taken under declaration key {0:#x} but "
+            "SqpSolver::solve: the warm-start payload was taken under declaration key {0:#x} but "
             "the problem this solve binds keys {1:#x} -- the value describes a different declared "
             "problem. The key covers the declared dimensions (with any fixed-variable treatment's "
             "own rows subtracted) and the declared bound STRUCTURE, so one of those moved. The "
@@ -2128,7 +2129,7 @@ WarmStart SqpDriver::consume_payload(const AggregateEvalSeam &seam, const NlpMod
 
     // --- THE PRESERVED-SEED INGEST (plan ruling 4) -------------------------
     // Built HERE and never through `to_sqp_warm_start`, which collapses `zL`/`zU` into
-    // `WarmStart`'s single SIGNED `z` -- lossy at a two-sided bound. Flow (a) is untouched in
+    // `SqpWarmStart`'s single SIGNED `z` -- lossy at a two-sided bound. Flow (a) is untouched in
     // every mode; this is flow (b)'s own input (spec 5.1).
     //
     // THE SEED FORM YIELDS AN EMPTY STAGED SEED (M6 W5 T8.5): every field
@@ -2166,7 +2167,7 @@ WarmStart SqpDriver::consume_payload(const AggregateEvalSeam &seam, const NlpMod
         if (find_ipm_polish(data) != nullptr) {
             ++payload_polish_ignored_;
         }
-        WarmStart warm;
+        SqpWarmStart warm;
         warm.x = x0;
         warm.lambda_e = data.eq_lmults_;
         warm.lambda_i = data.iq_lmults_;
@@ -2206,7 +2207,7 @@ WarmStart SqpDriver::consume_payload(const AggregateEvalSeam &seam, const NlpMod
     //
     // structure_hash STAYS 0: it fingerprints assembled matrices this value
     // never saw and could not carry, which is what caps the level at kSeeded.
-    WarmStart warm;
+    SqpWarmStart warm;
     warm.x = data.primal_;
     warm.lambda_e = data.eq_lmults_;
     warm.lambda_i = data.iq_lmults_;
@@ -2219,8 +2220,8 @@ WarmStart SqpDriver::consume_payload(const AggregateEvalSeam &seam, const NlpMod
     return warm;
 }
 
-void SqpDriver::capture_completed_warm_start(SqpSolution &out, const AggregateEvalSeam &seam,
-                                             const NlpModelAggregate &bridge) {
+void SqpSolver::capture_completed_warm_start(SqpResult &out, const AssemblyEvalSeam &seam,
+                                             const NlpModelAssembly &bridge) {
     // A FAILED CHECK SKIPS THE CAPTURE rather than throwing: a throw here would
     // destroy a solved result the caller was about to receive, after
     // record_solve had already run, to report a defect in a side product.
@@ -2273,7 +2274,7 @@ void SqpDriver::capture_completed_warm_start(SqpSolution &out, const AggregateEv
     // UNDER THE SAME SKIP DISCIPLINE, because it is the one statement here that
     // CALLS OUT of this function: declaration_key can refuse (its fixing-row
     // split) and declaration() is a provider entry that may validate. Neither
-    // is reachable through NlpModelAggregate today, but a promise with one
+    // is reachable through NlpModelAssembly today, but a promise with one
     // unguarded call at its head is not one.
     try {
         captured.structure_key_ = declaration_key(bridge.declaration());
@@ -2298,13 +2299,13 @@ void SqpDriver::capture_completed_warm_start(SqpSolution &out, const AggregateEv
 // THE W0.2 PROBLEM-SCALING LAYER'S DRIVER-SIDE HALF.
 //
 // detail/drivers/problem_scaling.h carries the transformation and its inverse;
-// drivers/aggregate_eval_seam.cpp applies it. What is here is the three things
+// drivers/assembly_eval_seam.cpp applies it. What is here is the three things
 // only the driver can do: decide the factors once per solve, keep the
 // restoration phase out of the scaled space, and map everything back at the one
 // export boundary this driver has.
 // ===========================================================================
 
-Index SqpDriver::install_solve_scaling(AggregateEvalSeam &seam, const Vec &x0) const {
+Index SqpSolver::install_solve_scaling(AssemblyEvalSeam &seam, const Vec &x0) const {
     if (!opts_.enable_scaling) {
         // Not merely "install the identity": nothing is installed at all, so the
         // seam keeps the inactive value it was born with and every apply site in
@@ -2325,8 +2326,8 @@ Index SqpDriver::install_solve_scaling(AggregateEvalSeam &seam, const Vec &x0) c
     return 1;
 }
 
-SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &bridge, const Vec &x0,
-                                  const WarmStart &warm, SolveBudget budget) {
+SqpResult SqpSolver::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &bridge, const Vec &x0,
+                                const SqpWarmStart &warm, SolveBudget budget) {
     // THE IN-FLIGHT GUARD, AND THE ONE SITE IT IS SET FROM. The four public
     // solve() overloads NEST -- solve(model) -> solve(model, x0) -> solve(bridge,
     // x0) -> here -- so a flag set at each of them would double-set on the
@@ -2336,7 +2337,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     //
     // IT IS A BOOL, NOT A DEPTH COUNT, and that rests on two invariants (lane
     // review M2): (1) solve_impl is the SINGLE site the flag is set from, and
-    // (2) the restoration phase runs on a DISTINCT nested SqpDriver object
+    // (2) the restoration phase runs on a DISTINCT nested SqpSolver object
     // (see allow_restoration_), so it never re-enters this object's guard. A
     // bool is exact under both. Should a future path ever re-enter solve_impl
     // on the SAME driver, the inner scope's exit would clear the flag while the
@@ -2365,13 +2366,13 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // only as convergence that makes no sense. One pointer compare per solve.
     if (&seam.aggregate() != &bridge) {
         throw std::invalid_argument(
-            "SqpDriver::solve: the evaluation seam and the bridge name different providers; "
+            "SqpSolver::solve: the evaluation seam and the bridge name different providers; "
             "restoration reads the bridge while every evaluation goes through the seam, so the "
             "two must be laid over one aggregate");
     }
     if (x0.size() != n) {
         throw std::invalid_argument(fmt::format(
-            "SqpDriver::solve: x0 has size {}, expected {} (= model.n())", x0.size(), n));
+            "SqpSolver::solve: x0 has size {}, expected {} (= model.n())", x0.size(), n));
     }
     // A NON-FINITE x0 IS CALLER INPUT, so it is rejected rather than
     // reported as a status -- the same treatment as a NaN tr_init, and
@@ -2383,7 +2384,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     // and is reported as kNumericalError below.
     if (!x0.allFinite()) {
         throw std::invalid_argument(
-            "SqpDriver::solve: x0 contains a NaN or infinite entry; the start point must be "
+            "SqpSolver::solve: x0 contains a NaN or infinite entry; the start point must be "
             "finite in every coordinate");
     }
     // The box is checked at the model boundary, not here. See
@@ -2401,7 +2402,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
         opts_.make_strategy ? opts_.make_strategy() : std::make_unique<FunnelStrategy>();
     if (strategy == nullptr) {
         throw std::invalid_argument(
-            "SqpDriver::solve: SqpOptions::make_strategy returned a null strategy; leave it "
+            "SqpSolver::solve: SqpOptions::make_strategy returned a null strategy; leave it "
             "empty for the default funnel rather than returning nullptr");
     }
 
@@ -2460,7 +2461,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
     if (ipqp_trace_ != nullptr) {
         ipqp_trace_->on_sqp_solve_begin(make_solve_begin_event(opts_, seam));
     }
-    SqpSolution out = solve_impl_body(seam, bridge, x0, warm, budget, std::move(strategy));
+    SqpResult out = solve_impl_body(seam, bridge, x0, warm, budget, std::move(strategy));
     // THE POLISH-IGNORED COUNT, BEFORE THE TRACE READS IT (M6 W5 T8.5 fix1).
     //
     // The count is `consume_payload`'s, taken one frame ABOVE this one, so no
@@ -2503,7 +2504,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
 // the solve. NOT IN, deliberately: the seam, the bridge, the caller input and
 // the warm object (BORROWED -- they outlive the solve and are parameters);
 // the driver's own engines, trace sink, staged IPQP seed and proximal export
-// accumulators (members of SqpDriver, and `record_solve` READS the last of
+// accumulators (members of SqpSolver, and `record_solve` READS the last of
 // those after this body has returned); and every per-major object, which
 // dies with its major and joins `MajorState` at cut (b).
 //
@@ -2511,7 +2512,7 @@ SqpSolution SqpDriver::solve_impl(AggregateEvalSeam &seam, NlpModelAggregate &br
 // N. They are types rather than a flat run because each is written as a unit
 // by one piece of code and read as a unit by another.
 // ---------------------------------------------------------------------------
-struct SqpDriver::SolveState {
+struct SqpSolver::SolveState {
     explicit SolveState(const IpqpOptions &iopts) : ipqp_ladder(iopts) {}
 
     // THE RESTORATION EXIT PAYLOAD, and the ONE authoritative copy of it:
@@ -2579,7 +2580,7 @@ struct SqpDriver::SolveState {
 
     // THE BUDGETED-MODE BEST-ITERATE SNAPSHOT (ownership doc section 2.2 N).
     struct BudgetBest {
-        // BUDGETED MODE's own best-iterate tracking -- see sqp_types.h's
+        // BUDGETED MODE's own best-iterate tracking -- see sqp_solver_types.h's
         // SqpOptions::budget_mode note for the ordering (feasibility-first:
         // min h, tie-break min f) and why it is a DIFFERENT ranking from
         // the watchdog snapshot just above (that one answers "closest to a KKT point";
@@ -2622,7 +2623,7 @@ struct SqpDriver::SolveState {
     bool warm_state_ingest = false;
 
     // ---- the output ------------------------------------------------------
-    SqpSolution out;
+    SqpResult out;
 
     // ---- the iterate, its multipliers and their evaluation ----------------
     Vec x, lambda_e, lambda_i;
@@ -2826,7 +2827,7 @@ struct SqpDriver::SolveState {
 // counter moves at all. The rest are empty vectors, empty optionals and
 // scalars.
 // ---------------------------------------------------------------------------
-struct SqpDriver::MajorState {
+struct SqpSolver::MajorState {
     // ---- cut (b)'s FOUR ROUTING OUTPUTS, FIRST AND IN THEIR ORIGINAL ORDER --
     // THE ORDER IS LOAD-BEARING, and it is the only thing about this struct
     // that is. `route_through_ssn_tier` is not edited by cut (c) at all, and it
@@ -2945,15 +2946,15 @@ struct SqpDriver::MajorState {
 // initialisers on `SolveState` itself, where a reader can see them all at once
 // rather than hunting them out of 650 lines of setup.
 // ---------------------------------------------------------------------------
-void SqpDriver::prepare_solve(SolveState &st, AggregateEvalSeam &seam, const Vec &x0,
-                              const WarmStart &warm,
+void SqpSolver::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const Vec &x0,
+                              const SqpWarmStart &warm,
                               std::unique_ptr<GlobalizationStrategy> strategy) {
     // POINTER IDENTITY, taken first: `full_step_funnel` will aim at this object.
     st.strategy = std::move(strategy);
 
     // The names this function knows the state by. ALIASES, not copies -- there
     // is one instance and it is `st`.
-    SqpSolution &out = st.out;
+    SqpResult &out = st.out;
     detail::ProblemScaling &solve_scaling = st.solve_scaling;
     StartLevel &resolved_level = st.resolved_level;
     Vec &x = st.x;
@@ -3125,7 +3126,7 @@ void SqpDriver::prepare_solve(SolveState &st, AggregateEvalSeam &seam, const Vec
     // THE CEILING SHORT-CIRCUIT: a conjunct duplicating the ceiling block's
     // condition inline, placed first (cheapest -- a pure read, no model method
     // touched) so the probe never runs when the ceiling was always going
-    // to discard its answer: opts_.start_level == kCold means
+    // to discard its answer: opts_.common.start_level == kCold means
     // resolved_level is capped straight back to kCold a few lines below
     // NO MATTER WHAT the probe would have found -- SqpOptions::
     // start_level's own note says as much ("force EVERY solve on this
@@ -3148,7 +3149,7 @@ void SqpDriver::prepare_solve(SolveState &st, AggregateEvalSeam &seam, const Vec
         warm.valid && warm.x.size() == n && warm.lambda_e.size() == seam.me() &&
         warm.lambda_i.size() == seam.mi() && warm.qp_working_set.n() == n &&
         warm.qp_working_set.mi() == seam.mi();
-    // FINITENESS GATES EVERY INGEST ROUTE, not just the seeded one. WarmStart
+    // FINITENESS GATES EVERY INGEST ROUTE, not just the seeded one. SqpWarmStart
     // is an aggregate with public fields: a hand-assembled or
     // foreign-solver object can carry warm.x(0) = NaN and a structure_hash
     // that matches, resolve kWarm, and be ingested -- which would contradict
@@ -3159,9 +3160,9 @@ void SqpDriver::prepare_solve(SolveState &st, AggregateEvalSeam &seam, const Vec
     // exactly the three that are ingested; `z` is not (this ingest never
     // reads it), and `tr_radius`/`funnel_width` are guarded by their own
     // `>= 0.0` tests, which a NaN fails.
-    const bool ingest_allowed = opts_.start_level != StartLevel::kCold && warm_dims_plausible &&
-                                warm.x.allFinite() && warm.lambda_e.allFinite() &&
-                                warm.lambda_i.allFinite();
+    const bool ingest_allowed = opts_.common.start_level != StartLevel::kCold &&
+                                warm_dims_plausible && warm.x.allFinite() &&
+                                warm.lambda_e.allFinite() && warm.lambda_i.allFinite();
     // THE SEEDED GATE: dimensions plus FINITENESS, and nothing else --
     // no hash, no probe, no model evaluation.
     if (ingest_allowed) {
@@ -3169,7 +3170,7 @@ void SqpDriver::prepare_solve(SolveState &st, AggregateEvalSeam &seam, const Vec
     }
     const bool probe_is_worth_running =
         ingest_allowed && warm.structure_hash != 0 &&
-        static_cast<int>(opts_.start_level) >= static_cast<int>(StartLevel::kWarm);
+        static_cast<int>(opts_.common.start_level) >= static_cast<int>(StartLevel::kWarm);
     if (probe_is_worth_running) {
         // THE VALUES-ONLY PROBE. structural_hash reads H/Ae/Ai's
         // SPARSITY PATTERN ONLY (this block's own note above), never
@@ -3195,8 +3196,8 @@ void SqpDriver::prepare_solve(SolveState &st, AggregateEvalSeam &seam, const Vec
         }
     }
     // A CEILING, never a floor (SqpOptions::start_level's own note).
-    if (static_cast<int>(opts_.start_level) < static_cast<int>(resolved_level)) {
-        resolved_level = opts_.start_level;
+    if (static_cast<int>(opts_.common.start_level) < static_cast<int>(resolved_level)) {
+        resolved_level = opts_.common.start_level;
     }
     out.counters.start_level_used = resolved_level;
     // THE TWO INGEST PREDICATES. `warm_ingest` means "the values were taken"
@@ -3222,7 +3223,7 @@ void SqpDriver::prepare_solve(SolveState &st, AggregateEvalSeam &seam, const Vec
     lambda_e = warm_ingest ? warm.lambda_e : Vec::Zero(seam.me());
     lambda_i = warm_ingest ? warm.lambda_i : Vec::Zero(seam.mi());
     // THE W0.2 INGEST BOUNDARY, and it is exactly these two vectors. Every
-    // WarmStart this driver emits carries CALLER-scale multipliers (see
+    // SqpWarmStart this driver emits carries CALLER-scale multipliers (see
     // `finish`), so a scaled solve must map them into its own units before
     // adopting them -- lambda~_j = sf * lambda_j / s_j, the CALLER->ENGINE
     // direction of problem_scaling.h's multiplier map. `x` is untouched because
@@ -3455,9 +3456,9 @@ void SqpDriver::prepare_solve(SolveState &st, AggregateEvalSeam &seam, const Vec
 // so there is exactly one consumption per execution -- the property this cut may
 // not break, and the property extracting the arm WHOLE is what preserves.
 // ---------------------------------------------------------------------------
-void SqpDriver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
+void SqpSolver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
     // The names this arm knows the state by. ALIASES, not copies.
-    SqpSolution &out = st.out;
+    SqpResult &out = st.out;
     QpProblem &qp = st.qp;
     QpSolution &seed = st.seed;
     bool &have_seed = st.have_seed;
@@ -3573,7 +3574,7 @@ void SqpDriver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
         // x ssn_engine.h measures at 133x-160x the trust region and
         // whose export certifies nothing. The carried centre would
         // therefore, by construction, usually be a DIVERGED POINT --
-        // shipped on the WarmStart interface under a field documented
+        // shipped on the SqpWarmStart interface under a field documented
         // as "the point it was reached at". No live defect (the
         // centres are unread today), but this gate keeps them
         // trustworthy for when a reader does. The centre carries its
@@ -3628,7 +3629,7 @@ void SqpDriver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
             // object that holds the ADOPTED face prices at this
             // point and it is about to be moved from. Strictly
             // negative only -- see the counter's own note in
-            // sqp_types.h for why no tolerance appears here.
+            // sqp_solver_types.h for why no tolerance appears here.
             for (Index j = 0; j < refined.lambda_i.size(); ++j) {
                 if (refined.lambda_i(j) < 0.0) {
                     ++out.counters.ssn.ssn_refine_neg_duals;
@@ -3686,7 +3687,7 @@ void SqpDriver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
             // And it is the ONE census bucket with no SsnEscape
             // value behind it, written at the same site and under
             // the same condition as the total it partitions. See
-            // SqpCounters::ssn's census note (sqp_types.h) for why
+            // SqpCounters::ssn's census note (sqp_solver_types.h) for why
             // the sixth bucket exists.
             ++out.counters.ssn.ssn_escape_gate_refused;
         }
@@ -3694,7 +3695,7 @@ void SqpDriver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
         // solution, so the escaped attempt's own factorizations reach
         // no other accumulation site -- they were simply LOST, which
         // is the same "vanishing work" class as the restoration
-        // fold's, and it breaks sqp_types.h's documented `ssn_iters <=
+        // fold's, and it breaks sqp_solver_types.h's documented `ssn_iters <=
         // factorizations` invariant outright. Charged HERE and only
         // here: on the CERTIFYING path the same two fields travel
         // across inside ssn_result_to_qp_solution, so this branch is
@@ -3739,11 +3740,11 @@ void SqpDriver::route_through_ssn_tier(SolveState &st, MajorState &mj) {
 // `walk_owns_this_qp` false. It is not one of the four routes the shared
 // successor serves and it is not folded into it (ownership doc section 6.2).
 // ---------------------------------------------------------------------------
-void SqpDriver::route_through_ipqp_tier(SolveState &st, MajorState &mj, AggregateEvalSeam &seam,
+void SqpSolver::route_through_ipqp_tier(SolveState &st, MajorState &mj, AssemblyEvalSeam &seam,
                                         Index iter, bool tr_shrink_retry,
                                         const SolveOverrides &overrides) {
     // The names this arm knows the state by. ALIASES, not copies.
-    SqpSolution &out = st.out;
+    SqpResult &out = st.out;
     QpProblem &qp = st.qp;
     NlpEval &ev = st.ev;
     QpSolution &seed = st.seed;
@@ -3841,7 +3842,7 @@ void SqpDriver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Aggregat
     // result carrying a non-finite export is an engine regression, not a routing row.
     if (!usable && ires.escape_reason == IpqpEscape::kNone && !ires.declined_pinned) {
         throw std::runtime_error(fmt::format(
-            "SqpDriver: the IPQP tier returned IpqpEscape::kNone with a point the routing "
+            "SqpSolver: the IPQP tier returned IpqpEscape::kNone with a point the routing "
             "chain cannot use (x size {}, all-finite {}) at major {} -- kNone means a "
             "converged FINITE point, and every non-finite iterate, residual or step "
             "escapes kNumerical inside the tier (spec 2.2, plan section 7 note h). This is "
@@ -3988,7 +3989,7 @@ void SqpDriver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Aggregat
 // same engine, with `walk_owns_this_qp` false, and is deliberately left there
 // (ownership doc section 6.2).
 // ---------------------------------------------------------------------------
-void SqpDriver::solve_with_walk(SolveState &st, MajorState &mj, const WarmStart &warm,
+void SqpSolver::solve_with_walk(SolveState &st, MajorState &mj, const SqpWarmStart &warm,
                                 const SolveOverrides &overrides, bool offer_hot, bool use_crash) {
     // The names this successor knows the state by. ALIASES, not copies.
     QpProblem &qp = st.qp;
@@ -4038,9 +4039,9 @@ void SqpDriver::solve_with_walk(SolveState &st, MajorState &mj, const WarmStart 
 // call sites: `row.restoration_seed_used` is set INSIDE and must be in the row
 // that is emitted.
 // ---------------------------------------------------------------------------
-SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, MajorState &mj,
-                                                           AggregateEvalSeam &seam,
-                                                           NlpModelAggregate &bridge, Index iter,
+SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, MajorState &mj,
+                                                           AssemblyEvalSeam &seam,
+                                                           NlpModelAssembly &bridge, Index iter,
                                                            RestorationCandidate cand) {
     // Reset every call: a solve may enter restoration more than
     // once (a resumed restoration followed by a second request),
@@ -4167,7 +4168,7 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
     ropts.make_strategy = {};
     // BUDGETED MODE NEVER PROPAGATES TO THE RESTORATION
     // SUB-SOLVE, even when the caller's own solve has it on:
-    // sqp_types.h's SqpOptions::budget_mode SCOPE note says the
+    // sqp_solver_types.h's SqpOptions::budget_mode SCOPE note says the
     // lever governs only the MAIN loop's own max_iter exhaustion,
     // and the sub-solve exhausting its OWN slice of the shared
     // budget is deliberately still reported as kMaxIter just
@@ -4190,7 +4191,7 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
     //
     // MEASURED, not merely asserted: `rs.counters.ssn` is folded
     // below, so deleting this line MOVES a pinned number
-    // (tests/sqp/test_sqp_driver.cpp's
+    // (tests/sqp/test_sqp_solver.cpp's
     // RestorationStaysOnTheWalkUnderKSsn -- 131 SSN iterations and
     // 234 factorizations with the reset, 140 and 247 without it;
     // post-escaped-factorization-accumulation figures, matching the
@@ -4217,7 +4218,7 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
     // sub-driver gets what is left of the CALLER's ceiling and not what is left
     // of this engine's own option.
     ropts.max_iter = static_cast<int>(st.eff_max_iter - spent);
-    SqpDriver sub(ropts, SqpDriver::RestorationSubDriverTag{});
+    SqpSolver sub(ropts, SqpSolver::RestorationSubDriverTag{});
     // THE ONE SINK, SHARED SEQUENTIALLY (plan amendment A): the
     // sub-solve's own `sqp.solve` pair, rows and tier events land in the
     // same stream, told apart by the sink-owned `depth`.
@@ -4254,7 +4255,7 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
             return action;
         });
     }
-    const SqpSolution rs = sub.solve(feasibility, feasibility.start_point());
+    const SqpResult rs = sub.solve(feasibility, feasibility.start_point());
 
     // EVERY WORK counter the sub-solve moved is folded in: the
     // work was spent (the SOC/elastic convention, ported). Its
@@ -4333,7 +4334,7 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
     // also keeps the aggregate honest against the factorization fold
     // above, which does NOT discriminate by kernel: without it,
     // restoration-nested SSN work would contribute factorizations that
-    // `ssn_iters` denied, breaking sqp_types.h's `ssn_iters <=
+    // `ssn_iters` denied, breaking sqp_solver_types.h's `ssn_iters <=
     // factorizations` in the direction that hides work.
     //
     // DELETING THIS LINE IS AN EQUIVALENT MUTANT, AND SAYING SO IS
@@ -4434,7 +4435,7 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
     // NOT FEASIBLE ENOUGH: the phase's other outcome. The restored
     // point and the restoration's own multipliers are what is
     // returned -- on the kOptimal arm they are the SUBGRADIENT
-    // CERTIFICATE (sqp_types.h's SqpSolution note); on the others
+    // CERTIFICATE (sqp_solver_types.h's SqpResult note); on the others
     // they are the best evidence available at that point and not a
     // certificate. The status does not encode which, deliberately:
     // a caller that needs the distinction checks the certificate
@@ -4491,7 +4492,7 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
         // while h > feas_tol. Byrd-Curtis-Nocedal rapid
         // detection. This is the single place the certified flag
         // is ever set, and it is set on nothing else -- see
-        // sqp_types.h's SqpSolution note for why the status,
+        // sqp_solver_types.h's SqpResult note for why the status,
         // the counters and the history cannot carry this fact.
         st.resto.status = SolveStatus::kInfeasible;
         st.out.infeasibility_certified = true;
@@ -4556,7 +4557,7 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 // ONE ITERATION EVENT, IN CALLER UNITS (M6 W5 T8.6). Declared in
-// drivers/sqp_driver.h, where the contract is.
+// drivers/sqp_solver.h, where the contract is.
 //
 // AS OF fix1 THIS FUNCTION COMPUTES NOTHING. Every vector and every diagnostic
 // it hands out was snapshotted by `measure_iterate`, at the statement that
@@ -4564,7 +4565,7 @@ SqpDriver::RestorationOutcome SqpDriver::enter_restoration(SolveState &st, Major
 // cannot mix the row's measurement with a point `enter_restoration` moved the
 // driver to afterwards. See MajorState::event_x.
 // ---------------------------------------------------------------------------
-void SqpDriver::fire_iteration_event(SolveState &st, const SqpIterate &exported,
+void SqpSolver::fire_iteration_event(SolveState &st, const SqpIterate &exported,
                                      const MajorState &mj) {
     if (!iteration_callback_) {
         return;
@@ -4610,7 +4611,7 @@ void SqpDriver::fire_iteration_event(SolveState &st, const SqpIterate &exported,
 // Every public solve entry applies it before it reads the callable, which is
 // where a throwing callback's deferral lands.
 // ---------------------------------------------------------------------------
-CallbackAction SqpDriver::invoke_iteration_callback(const IterationEvent &event) {
+CallbackAction SqpSolver::invoke_iteration_callback(const IterationEvent &event) {
     callback_in_flight_ = true;
     CallbackAction action = CallbackAction::kContinue;
     try {
@@ -4624,7 +4625,7 @@ CallbackAction SqpDriver::invoke_iteration_callback(const IterationEvent &event)
     return action;
 }
 
-void SqpDriver::apply_pending_iteration_callback(bool at_solve_entry) {
+void SqpSolver::apply_pending_iteration_callback(bool at_solve_entry) {
     if (!pending_callback_.has_value()) {
         return;
     }
@@ -4639,10 +4640,9 @@ void SqpDriver::apply_pending_iteration_callback(bool at_solve_entry) {
     pending_callback_at_entry_ = false;
 }
 
-SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
-                                             AggregateEvalSeam &seam, NlpModelAggregate &bridge,
-                                             const WarmStart &warm, SolveBudget budget,
-                                             Index iter) {
+SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, AssemblyEvalSeam &seam,
+                                             NlpModelAssembly &bridge, const SqpWarmStart &warm,
+                                             SolveBudget budget, Index iter) {
     // RE-TAKEN, NOT FIXED: the full-step watchdog below may restore
     // an EARLIER iterate before this pass records or tests anything,
     // and the row and the convergence test must then describe the
@@ -4744,7 +4744,7 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
             // without a callback pays nothing" a fact rather than a claim about
             // where an `if` happens to sit.
             throw std::logic_error(
-                "SqpDriver::solve: the iteration event's measurement snapshot is populated on "
+                "SqpSolver::solve: the iteration event's measurement snapshot is populated on "
                 "a solve with no callback installed");
         }
         mj.row.f = st.ev.f;
@@ -4809,7 +4809,7 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
         // `rows_pushed` a reading of `history` rather than of this lambda.
         if (st.rows_pushed != static_cast<Index>(st.out.history.size())) {
             throw std::logic_error(fmt::format(
-                "SqpDriver::solve: the history holds {} rows after {} pushes -- something "
+                "SqpSolver::solve: the history holds {} rows after {} pushes -- something "
                 "other than push_history wrote to it, so the trace stream and the history "
                 "no longer describe the same rows",
                 st.out.history.size(), st.rows_pushed));
@@ -4820,7 +4820,7 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
         // about where the call happens to sit.
         if (iteration_callback_ && st.events_fired != st.rows_pushed) {
             throw std::logic_error(fmt::format(
-                "SqpDriver::solve: {} iteration events fired against {} history rows -- "
+                "SqpSolver::solve: {} iteration events fired against {} history rows -- "
                 "something other than push_history called the iteration callback",
                 st.events_fired, st.rows_pushed));
         }
@@ -5097,7 +5097,7 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
     }
 
     // BUDGETED MODE's best-iterate tracking (see the declaration note
-    // above for the ordering and sqp_types.h's
+    // above for the ordering and sqp_solver_types.h's
     // SqpOptions::budget_mode for the full contract). Runs on EVERY
     // measured pass, AFTER the full-step watchdog above -- so if this
     // pass just restored an earlier point, the candidate considered
@@ -5125,7 +5125,7 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
         }
     }
 
-    // THE BUDGET IS SHARED WITH THE RESTORATION PHASE (sqp_types.h's
+    // THE BUDGET IS SHARED WITH THE RESTORATION PHASE (sqp_solver_types.h's
     // SqpOptions note): max_iter bounds subproblems solved across
     // BOTH, so majors already spent restoring are not available here.
     //
@@ -5321,11 +5321,11 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
     case QpMode::kQpModeCount:
         // NOT A MODE, enumerated so `-Wswitch` stays live on a real fourth
         // one (see the sentinel's own doc comment). Unreachable: the
-        // constructor's `validate_sqp_options` refuses this value, and
+        // constructor's `validate` refuses this value, and
         // `qp_mode` cannot change during a solve.
         throw std::invalid_argument(
-            "SqpDriver: qp_mode == QpMode::kQpModeCount reached the QP kernel dispatch -- it "
-            "is the enumerator-count sentinel and names no kernel, and validate_sqp_options "
+            "SqpSolver: qp_mode == QpMode::kQpModeCount reached the QP kernel dispatch -- it "
+            "is the enumerator-count sentinel and names no kernel, and validate "
             "refuses it at construction");
     }
     // `SqpIterate::mu` REPORTS WHAT THE KERNEL THAT SOLVED THIS ROW USED. Under kIpm the
@@ -5367,7 +5367,7 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
     // full_step_majors: counted here, alongside major_iters and on exactly the
     // same event (a subproblem was solved), so full_step_majors <=
     // major_iters holds by construction -- see its own note in
-    // sqp_types.h for why a routed failure counts too.
+    // sqp_solver_types.h for why a routed failure counts too.
     if (st.full_step_funnel != nullptr) {
         ++st.out.counters.full_step_majors;
     }
@@ -5783,9 +5783,9 @@ SqpDriver::MajorOutcome SqpDriver::run_major(SolveState &st, MajorState &mj,
     return MajorOutcome::kCommitAccepted;
 }
 
-SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregate &bridge,
-                                       const Vec &x0, const WarmStart &warm, SolveBudget budget,
-                                       std::unique_ptr<GlobalizationStrategy> strategy_in) {
+SqpResult SqpSolver::solve_impl_body(AssemblyEvalSeam &seam, NlpModelAssembly &bridge,
+                                     const Vec &x0, const SqpWarmStart &warm, SolveBudget budget,
+                                     std::unique_ptr<GlobalizationStrategy> strategy_in) {
     // THE ARGUMENTS WERE VALIDATED BY `solve_impl`, the only caller, which
     // refuses before anything is written; `strategy_in` is the one it built.
 
@@ -5801,7 +5801,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
     for (Index iter = 0;; ++iter) {
         if (iter > 0 && st.rows_pushed != st.rows_at_major_entry + 1) {
             throw std::logic_error(fmt::format(
-                "SqpDriver::solve: major {} pushed {} history rows, expected exactly 1 -- every "
+                "SqpSolver::solve: major {} pushed {} history rows, expected exactly 1 -- every "
                 "path through a major records its iterate exactly once, and the branch that "
                 "returned or continued here did not",
                 iter - 1, st.rows_pushed - st.rows_at_major_entry));
@@ -5819,7 +5819,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
         auto check_major_pushed_once = [&](Index at_major) {
             if (st.rows_pushed != st.rows_at_major_entry + 1) {
                 throw std::logic_error(fmt::format(
-                    "SqpDriver::solve: major {} pushed {} history rows before the solve returned, "
+                    "SqpSolver::solve: major {} pushed {} history rows before the solve returned, "
                     "expected exactly 1 -- every path through a major records its iterate exactly "
                     "once, and the exit taken here did not",
                     at_major, st.rows_pushed - st.rows_at_major_entry));
@@ -6018,7 +6018,7 @@ SqpSolution SqpDriver::solve_impl_body(AggregateEvalSeam &seam, NlpModelAggregat
     }
 }
 
-SolveStatus SqpDriver::map_status(QpStatus qp_status) {
+SolveStatus SqpSolver::map_status(QpStatus qp_status) {
     switch (qp_status) {
     case QpStatus::kInfeasible:
         return SolveStatus::kInfeasible;
@@ -6030,20 +6030,20 @@ SolveStatus SqpDriver::map_status(QpStatus qp_status) {
     return SolveStatus::kNumericalError;
 }
 
-bool SqpDriver::shrink_hits_floor(double delta) const {
+bool SqpSolver::shrink_hits_floor(double delta) const {
     return std::isfinite(delta) && delta * kTrShrinkFactor < opts_.tr_min;
 }
 
-double SqpDriver::shrunk_radius(double delta) const {
+double SqpSolver::shrunk_radius(double delta) const {
     return std::isfinite(delta) ? delta * kTrShrinkFactor : opts_.tr_max;
 }
 
-double SqpDriver::restoration_restart_radius() const {
+double SqpSolver::restoration_restart_radius() const {
     const double base = std::isfinite(opts_.tr_init) ? opts_.tr_init : opts_.tr_max;
     return std::max(opts_.tr_min, kRestoreRadiusFactor * base);
 }
 
-SsnEngine &SqpDriver::ssn_engine() {
+SsnEngine &SqpSolver::ssn_engine() {
     if (ssn_engine_ == nullptr) {
         // THE THREAD COUNT REACHES THE LAZY TIER (M6 W5 T8.8): the tier holds
         // one persistent factor, configured once at construction, and
@@ -6054,7 +6054,7 @@ SsnEngine &SqpDriver::ssn_engine() {
     return *ssn_engine_;
 }
 
-SsnOptions SqpDriver::ssn_options(double prox_sigma_init) const {
+SsnOptions SqpSolver::ssn_options(double prox_sigma_init) const {
     SsnOptions sopts;
     sopts.fb_tol = ssn_fb_tol_for(opts_.kkt_tol, opts_.feas_tol);
     sopts.prox_sigma_init = prox_sigma_init;
@@ -6068,7 +6068,7 @@ SsnOptions SqpDriver::ssn_options(double prox_sigma_init) const {
     return sopts;
 }
 
-IpqpEngine &SqpDriver::ipqp_engine() {
+IpqpEngine &SqpSolver::ipqp_engine() {
     if (ipqp_engine_ == nullptr) {
         // The thread count reaches this tier too; see ssn_engine() above.
         ipqp_engine_ = std::make_unique<IpqpEngine>(opts_.qp, opts_.common.threads);
@@ -6080,7 +6080,7 @@ IpqpEngine &SqpDriver::ipqp_engine() {
     return *ipqp_engine_;
 }
 
-IpqpOptions SqpDriver::ipqp_options(bool structure_epoch_moved) const {
+IpqpOptions SqpSolver::ipqp_options(bool structure_epoch_moved) const {
     IpqpOptions iopts = opts_.ipqp;
     // A NARROWING ONLY (see the declaration's own note): the caller's kill switch, ANDed with
     // "the analysis this engine holds was taken at the epoch we are still in". `&&` rather
@@ -6089,7 +6089,7 @@ IpqpOptions SqpDriver::ipqp_options(bool structure_epoch_moved) const {
     return iopts;
 }
 
-bool SqpDriver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResult &ires,
+bool SqpSolver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResult &ires,
                                              double delta, double &ssn_prox_ingested,
                                              Index &ssn_budget_charge, SqpCounters &counters,
                                              QpSolution &qs) {
@@ -6193,12 +6193,13 @@ bool SqpDriver::route_through_ssn_warm_grade(const QpProblem &qp, const IpqpResu
     return false;
 }
 
-WarmStart SqpDriver::make_warm_start(AggregateEvalSeam &seam, const QpSolution *activity,
-                                     const QpProblem &qp, bool qp_built, const NlpEval *probe_ev,
-                                     const Vec *probe_x, double delta, double dual_mu_eff,
-                                     double primal_delta_eff, const GlobalizationStrategy *strategy,
-                                     std::shared_ptr<const HotState> hot) {
-    WarmStart w;
+SqpWarmStart SqpSolver::make_warm_start(AssemblyEvalSeam &seam, const QpSolution *activity,
+                                        const QpProblem &qp, bool qp_built, const NlpEval *probe_ev,
+                                        const Vec *probe_x, double delta, double dual_mu_eff,
+                                        double primal_delta_eff,
+                                        const GlobalizationStrategy *strategy,
+                                        std::shared_ptr<const HotState> hot) {
+    SqpWarmStart w;
     // TRUE ON EVERY EXIT BUT ONE -- see THE UNEVALUABLE EXIT above, and
     // warm_start.h's `valid` note, which documents that exception as the
     // boundary of its "a failed solve's point is still safe evidence"
@@ -6261,11 +6262,10 @@ WarmStart SqpDriver::make_warm_start(AggregateEvalSeam &seam, const QpSolution *
     return w;
 }
 
-SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SolveStatus status,
-                              const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
-                              const SqpKkt &kkt, double f, WarmStart warm,
-                              const DeclaredDiagnosticsStash &stash,
-                              bool multipliers_are_caller_scale) {
+SqpResult SqpSolver::finish(AssemblyEvalSeam &seam, SqpResult out, SolveStatus status, const Vec &x,
+                            const Vec &lambda_e, const Vec &lambda_i, const SqpKkt &kkt, double f,
+                            SqpWarmStart warm, const DeclaredDiagnosticsStash &stash,
+                            bool multipliers_are_caller_scale) {
     // A VALUE, NOT A REFERENCE INTO THE SEAM, and the distinction is
     // load-bearing rather than stylistic. The caller-scale re-measurement below
     // puts the seam back to the identity for the length of one evaluation; a
@@ -6297,7 +6297,7 @@ SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SolveSta
     // the sub-solve's own selectors, these blocks never entered the scaled
     // space -- that sub-solve ran unscaled over the raw model -- so mapping
     // them would divide a caller-scale price by `sf` a second time. See the
-    // parameter's own contract (sqp_driver.h).
+    // parameter's own contract (sqp_solver.h).
     if (sc.active && !multipliers_are_caller_scale) {
         // lambda_j = s_j * lambda~_j / sf, z = z~ / sf -- the ENGINE->CALLER
         // direction of problem_scaling.h's multiplier map. The bound duals
@@ -6310,7 +6310,7 @@ SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SolveSta
         }
     }
     // THE R6 SIGN SWEEP (M6 W0.3), AT THE ONE EXPORT BOUNDARY THIS DRIVER
-    // HAS. See sweep_negative_face_prices' own contract (sqp_driver.h) for
+    // HAS. See sweep_negative_face_prices' own contract (sqp_solver.h) for
     // the repair, for the measurement that ruled OUT sweeping at the adoption
     // site instead, and for what this placement leaves behind; only the
     // mechanics are here.
@@ -6327,7 +6327,7 @@ SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SolveSta
     // makes the disclosed caveat below ("terminal KKT is measured at PRE-sweep
     // multipliers") true with three producers rather than two: there is no
     // second export boundary for a third producer to have missed. The
-    // executable guard is tests/sqp/test_sqp_driver.cpp's
+    // executable guard is tests/sqp/test_sqp_solver.cpp's
     // SqpDriverSignSweep.ACorrectlySignedSolveSweepsNothingUnderEveryKernel,
     // which now runs all three modes, and the kIpm arm of
     // test_ipqp_dispatch.cpp's export pins.
@@ -6340,7 +6340,7 @@ SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SolveSta
     // optimistic by at most `ssn_sign_sweep_max * ||Ji||inf`.
     // THE PRE-SWEEP CALLER-SCALE MULTIPLIERS, held for the re-measurement below
     // so that the four terminal columns mean the SAME thing whether the solve
-    // was scaled or not. sqp_types.h's W0.3 qualification says they describe the
+    // was scaled or not. sqp_solver_types.h's W0.3 qualification says they describe the
     // PRE-sweep multipliers; measuring the scaled path at the POST-sweep ones
     // would quietly make that text false for exactly the solves this layer
     // touches. Empty, and free, when the solve is unscaled.
@@ -6434,7 +6434,7 @@ SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SolveSta
         record_terminal_kkt(out, kkt);
     }
     // The point/multipliers make_warm_start's caller reports are exactly
-    // the ones being finished here -- see WarmStart's own note on why a
+    // the ones being finished here -- see SqpWarmStart's own note on why a
     // failed solve's point is still safe to carry.
     warm.x = x;
     // THE EXPORTED VECTORS, not the parameters. `out.lambda_e` is the parameter
@@ -6492,7 +6492,7 @@ SqpSolution SqpDriver::finish(AggregateEvalSeam &seam, SqpSolution out, SolveSta
         // re-measurement above was taken at the exported prices outright, so
         // this holds there by construction rather than by comparison.
         //
-        // This is what retires the caveat T8.4 wrote into sqp_types.h. The old
+        // This is what retires the caveat T8.4 wrote into sqp_solver_types.h. The old
         // ENGINE measurements (`sqp_stationarity` and friends) keep their own
         // pre-sweep disclosure, which is theirs to make; the shared contract
         // does not inherit it.

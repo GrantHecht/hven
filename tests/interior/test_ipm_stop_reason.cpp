@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// The LIVE pins on InteriorPointSolver::last_stop_reason(): the two abnormal
+// The LIVE pins on IpmSolver::last_stop_reason(): the two abnormal
 // NOTCONVERGED doors and the stall-beats-cap tie. The mapping onto SolveStatus
 // is pinned in tests/drivers/test_solve_status.cpp; the iteration-cap pin is in
 // test_ipm_solver_entry.cpp, on HS071.
@@ -17,12 +17,12 @@
 
 #include <Eigen/Core>
 
-#include <hven/drivers/interior_point_solver.h>
+#include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/solve_result.h>
 #include <hven/drivers/solve_status.h>
 #include <hven/drivers/trace.h>
 #include <hven/drivers/trace_writer.h>
-#include <hven/model/nlp_problem.h>
+#include <hven/model/nlp_triplet_model.h>
 #include <hven/model/non_linear_program.h>
 
 #include "../common_support/console_capture.h" // NOLINT(build/include_subdir)
@@ -31,7 +31,7 @@
 namespace stop_reason_test {
 namespace {
 
-using hven::solvers::InteriorPointSolver;
+using hven::solvers::IpmSolver;
 using hven::solvers::RestorationModes;
 
 constexpr double kStopReasonInf = std::numeric_limits<double>::infinity();
@@ -42,7 +42,7 @@ constexpr double kStopReasonInf = std::numeric_limits<double>::infinity();
 // tenth per iteration. That long walk back is the SUSTAINED WORSENING the stall
 // detector certifies -- a violation a full window of iterations above the
 // phase's own best (detail/globalization/feasibility_stall.h).
-struct PowerSpikeProblem final : hven::solvers::NLPProblem {
+struct PowerSpikeProblem final : hven::solvers::NlpTripletModel {
     static constexpr double kEps = 1.0e-4;
     static constexpr int kPower = 10;
 
@@ -92,7 +92,7 @@ struct PowerSpikeProblem final : hven::solvers::NLPProblem {
 // c(x) = x0^2 + x1^2 + 1 = 0 has no real solution and its violation has a
 // STRICT stationary point at the origin: the shape a restoration phase converges
 // to and then declares locally infeasible.
-struct LocallyInfeasibleProblem final : hven::solvers::NLPProblem {
+struct LocallyInfeasibleProblem final : hven::solvers::NlpTripletModel {
     int num_vars() const override { return 2; }
     int num_cons() const override { return 1; }
     int num_jac_nonzeros() const override { return 2; }
@@ -162,7 +162,7 @@ Eigen::VectorXd two_var_start(double a, double b) {
 hven_interior_tests::IpmCase make_stall_solver(int max_iters, bool lift_div_tols = true) {
     hven_interior_tests::IpmCase c{
         hven::solvers::make_nlp_program(std::make_shared<PowerSpikeProblem>()),
-        std::make_unique<InteriorPointSolver>()};
+        std::make_unique<IpmSolver>()};
     {
         auto o = c.engine->options();
         o.phases = {hven::solvers::IpmPhase::kSolve}; // what solve() ran
@@ -228,7 +228,7 @@ void record_terminal_iter(hven_interior_tests::IpmCase &c, TerminalIter &rec) {
 hven_interior_tests::IpmCase make_locally_infeasible_solver(int max_iters) {
     hven_interior_tests::IpmCase c{
         hven::solvers::make_nlp_program(std::make_shared<LocallyInfeasibleProblem>()),
-        std::make_unique<InteriorPointSolver>()};
+        std::make_unique<IpmSolver>()};
     {
         auto o = c.engine->options();
         o.phases = {hven::solvers::IpmPhase::kOptimize}; // what optimize() ran

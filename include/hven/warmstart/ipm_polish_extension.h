@@ -5,7 +5,7 @@
 
 // ipm_polish_extension.h — the "hven.ipm.polish.v1" warm-start extension: the
 // interior-point state a hand-off carries beyond the currency's core, its byte
-// contract, and the one bridge that turns it into an SQP WarmStart.
+// contract, and the one bridge that turns it into an SQP SqpWarmStart.
 //
 // The tag is the version. A different payload shape travels under a different
 // tag ("...v2"), never these bytes rearranged, and there is no version field
@@ -97,7 +97,7 @@ IpmPolishData deserialize_ipm_polish(std::span<const std::byte> bytes);
 /// @throws std::invalid_argument if the value carries the tag MORE THAN ONCE.
 const WarmExtension *find_ipm_polish(const WarmStartData &data);
 
-/// @brief Builds an SQP `WarmStart` from a warm-start value carrying the
+/// @brief Builds an SQP `SqpWarmStart` from a warm-start value carrying the
 ///        polish extension -- the interior-point crossover, entered from the
 ///        currency.
 ///
@@ -128,8 +128,8 @@ const WarmExtension *find_ipm_polish(const WarmStartData &data);
 ///         digests), if the payload is malformed (the decode's own
 ///         offset-naming refusal), if the extension's block widths disagree
 ///         with the core's, or if `lower`/`upper` are not at the core's own n.
-WarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, const Vec &upper,
-                            const DeclarationKey &structure_key,
-                            const IpCrossoverOptions &opts = {});
+SqpWarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, const Vec &upper,
+                               const DeclarationKey &structure_key,
+                               const IpCrossoverOptions &opts = {});
 
 } // namespace hven::solvers

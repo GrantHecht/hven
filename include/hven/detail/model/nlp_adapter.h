@@ -47,7 +47,7 @@
 namespace hven::solvers {
 
 struct NonLinearProgram;
-class NLPProblem;
+class NlpTripletModel;
 
 /// One stored matrix entry's coordinates, in the order the model presents them.
 struct NLPCoordinate {
@@ -299,7 +299,7 @@ struct NLPObjectivePiece {
         // A model callback further down this same assembly (an eq/iq piece's
         // eval_ce/eval_jac_e/eval_hess) can throw after this method has already
         // recorded pending_obj_scale_. An aborted assembly must not leave that
-        // record behind for a later, unrelated chain (InteriorPointSolver's restoration
+        // record behind for a later, unrelated chain (IpmSolver's restoration
         // entry runs eval_kkt_no next; a caller can also retry solve() after a
         // propagated exception) to read as if it were this chain's own -- so
         // any exception escaping this method clears both consume-once records
@@ -594,7 +594,7 @@ struct SolverInterfaceAdapter<NLPConstraintPiece> : DirectFunctionModel<NLPConst
 /// laid partitions with the whole problem in partition N-1, evaluated serially
 /// -- nothing reorders and nothing runs in parallel. Only treatment-added rows
 /// (the MakeConstraint fixing rows, which are RoundRobin) ever populate the
-/// others. Genuine partitioned evaluation over an NLPProblem needs a
+/// others. Genuine partitioned evaluation over an NlpTripletModel needs a
 /// thread-safe adapter and is registered for the M7 ClaimStreamSource widening.
 ///
 /// THE COUNT IS CLAMPED, NOT REFUSED: make_nlp caps it at
@@ -605,7 +605,7 @@ struct SolverInterfaceAdapter<NLPConstraintPiece> : DirectFunctionModel<NLPConst
 std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdapterCore> &core,
                                                    int num_partitions = 1);
 
-/// @brief THE ONE-CALL TRANSCRIPTION: an NLPProblem to the program the
+/// @brief THE ONE-CALL TRANSCRIPTION: an NlpTripletModel to the program the
 ///        interior-point engine consumes.
 ///
 /// The named replacement for NLPSolver::transcribe() (M6 W5 T8.9), which is
@@ -626,7 +626,7 @@ std::shared_ptr<NonLinearProgram> make_nlp_program(const std::shared_ptr<NLPAdap
 /// @return The program.
 /// @throws std::invalid_argument if @p problem is null or @p num_partitions is
 ///         below 1, and whatever the conversion and the layout themselves throw.
-std::shared_ptr<NonLinearProgram> make_nlp_program(std::shared_ptr<NLPProblem> problem,
+std::shared_ptr<NonLinearProgram> make_nlp_program(std::shared_ptr<NlpTripletModel> problem,
                                                    int num_partitions = 1);
 
 } // namespace hven::solvers

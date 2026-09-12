@@ -3,12 +3,12 @@
 
 #pragma once
 
-// aggregate_eval_seam.h — the SQP driver's consumer-side binding onto the
-// provider contract (model/nlp_aggregate.h), through the claim-stream
+// assembly_eval_seam.h — the SQP driver's consumer-side binding onto the
+// provider contract (model/nlp_assembly.h), through the claim-stream
 // interface (model/claim_stream_source.h).
 //
 // WHAT IT IS. One object that reproduces the driver's evaluation moments —
-// today's free functions in drivers/sqp_driver.h — against an aggregate
+// today's free functions in drivers/sqp_solver.h — against an aggregate
 // instead of an NlpModel, and reproduces them BIT-IDENTICALLY: the same
 // NlpEval fields, the same QpProblem blocks, the same sparse structures. The
 // driver's own arithmetic is untouched by construction, because the objects it
@@ -35,7 +35,7 @@
 // indirection from any of it, which is the ground the per-minor scope stands on.
 //
 // WHY THE SEED IS NEGATIVE ZERO. The contract's assemble ACCUMULATES (see
-// model/nlp_aggregate.h) and the consumer owns the initial state, so every
+// model/nlp_assembly.h) and the consumer owns the initial state, so every
 // destination is seeded before the call. Seeding with -0.0 rather than +0.0 is
 // what makes the accumulation the exact IDENTITY on every double: IEEE 754
 // gives (-0.0) + x == x for every x including both zeros, whereas
@@ -46,7 +46,7 @@
 //
 // NOT SELF-CONTAINED BY DESIGN, on the same footing as
 // detail/globalization/sqp/soc.h: `NlpEval` is defined in
-// drivers/sqp_driver.h and nowhere else, and this header never includes that
+// drivers/sqp_solver.h and nowhere else, and this header never includes that
 // one (the driver includes this one). Any includer must have NlpEval complete
 // first.
 
@@ -64,11 +64,11 @@
 
 namespace hven::solvers {
 
-/// @brief The driver's evaluation moments, served from an NlpAggregate.
+/// @brief The driver's evaluation moments, served from an NlpAssembly.
 ///
 /// Constructed from the claim-stream interface (model/claim_stream_source.h)
 /// rather than from a concrete provider: this seam binds an interface, and any
-/// provider that publishes a claim stream is a subject of it. The NlpAggregate
+/// provider that publishes a claim stream is a subject of it. The NlpAssembly
 /// base publishes a declaration, an epoch and the evaluation entries -- what a
 /// consumer needs in order to ASK for a fill -- and the claim stream is what a
 /// consumer additionally needs in order to lay a destination it can be
@@ -78,7 +78,7 @@ namespace hven::solvers {
 /// CONCURRENCY: none of its own. The contract's posture applies unchanged —
 /// one operation at a time on the aggregate, structural mutation included —
 /// and this class adds no thread safety on top.
-class AggregateEvalSeam {
+class AssemblyEvalSeam {
   public:
     /// @brief Binds to a provider and lays the destinations its claim stream
     ///        describes.
@@ -88,15 +88,15 @@ class AggregateEvalSeam {
     ///         outside the assembled space the declaration describes, if a
     ///         Hessian claim is below the diagonal, or if the sorted claim
     ///         order does not reproduce the pattern it was built from.
-    explicit AggregateEvalSeam(ClaimStreamSource &aggregate);
+    explicit AssemblyEvalSeam(ClaimStreamSource &aggregate);
 
     /// Neither copied nor moved: the two location tables are non-owning views
     /// over THIS object's own index vectors, so a copy would publish tables
     /// addressing the original's storage. Deleting the copy also suppresses the
     /// implicit move, which is the intended posture -- a seam is constructed
     /// where it is used, beside the aggregate it binds to.
-    AggregateEvalSeam(const AggregateEvalSeam &) = delete;
-    AggregateEvalSeam &operator=(const AggregateEvalSeam &) = delete;
+    AssemblyEvalSeam(const AssemblyEvalSeam &) = delete;
+    AssemblyEvalSeam &operator=(const AssemblyEvalSeam &) = delete;
 
     /// @brief Primal variable count, as laid.
     Index n() const noexcept { return primal_vars_; }
@@ -119,7 +119,7 @@ class AggregateEvalSeam {
 
     /// @brief Full first-order evaluation at @p x: f, grad f, cE, cI, Je, Ji.
     ///
-    /// Reproduces eval_nlp (drivers/sqp_driver.h) field for field, through the
+    /// Reproduces eval_nlp (drivers/sqp_solver.h) field for field, through the
     /// candidate values entry plus one assemble of the gradient-and-Jacobians
     /// shape. `all_finite` covers f, grad, cE and cI, exactly as there.
     ///
@@ -141,7 +141,7 @@ class AggregateEvalSeam {
     /// @brief Values only at @p x: f, cE, cI, with grad/Je/Ji carrying no
     ///        derivative information.
     ///
-    /// Reproduces eval_nlp_values (drivers/sqp_driver.h), including its
+    /// Reproduces eval_nlp_values (drivers/sqp_solver.h), including its
     /// n / (me x n) / (mi x n)-sized empty linearization — an honestly empty
     /// one, not this seam's claim patterns.
     ///
@@ -154,7 +154,7 @@ class AggregateEvalSeam {
     ///        `all_finite`.
     ///
     /// The accepted-trial moment. Reproduces upgrade_to_full
-    /// (drivers/sqp_driver.h), values deliberately not re-evaluated.
+    /// (drivers/sqp_solver.h), values deliberately not re-evaluated.
     ///
     /// Jacobian finiteness is NOT screened here. `all_finite` carries the
     /// objective, the gradient and the two residual blocks and nothing else,
@@ -176,7 +176,7 @@ class AggregateEvalSeam {
 
     /// @brief The QP subproblem at @p x, from a bundle taken at THIS x.
     ///
-    /// Reproduces build_subproblem (drivers/sqp_driver.h): the Lagrangian
+    /// Reproduces build_subproblem (drivers/sqp_solver.h): the Lagrangian
     /// Hessian is the one evaluation this call makes, and every other block
     /// comes from @p ev or from the materialized bounds. No trust region is
     /// baked in.
@@ -225,7 +225,7 @@ class AggregateEvalSeam {
     ///
     /// It exists for ONE caller -- the restoration phase, which builds a
     /// `RestorationModel` around the RAW model but reads the entry bundle for
-    /// its slack sigmas and its start point (drivers/sqp_driver.cpp). Pairing a
+    /// its slack sigmas and its start point (drivers/sqp_solver.cpp). Pairing a
     /// scaled bundle with an unscaled model there would be a unit error, so the
     /// bundle is mapped back first.
     ///

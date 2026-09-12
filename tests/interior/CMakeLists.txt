@@ -19,7 +19,7 @@ set(HVEN_INTERIOR_TEST_SOURCES
     test_classic_merit_restoration.cpp
     test_filter_acceptance.cpp
     test_funnel_acceptance.cpp
-    test_interior_point_solver_presets.cpp
+    test_ipm_solver_presets.cpp
     test_ipm_solver_entry.cpp
     test_ipm_stop_reason.cpp
     test_ipm_trace.cpp
@@ -29,7 +29,7 @@ set(HVEN_INTERIOR_TEST_SOURCES
     test_merit_rules.cpp
     test_monitored_governor.cpp
     test_nlp_adapter.cpp
-    test_nlp_aggregate_contract.cpp
+    test_nlp_assembly_contract.cpp
     test_nlp_multiplier_seeding.cpp
     test_nlp_problem_model.cpp
     test_objective_scale_reporting.cpp

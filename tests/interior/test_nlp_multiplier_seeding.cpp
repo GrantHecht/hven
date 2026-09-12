@@ -2,11 +2,11 @@
 // (see LICENSE).
 
 // The opt-in constraint-multiplier seed and apply_staged_multipliers -- the
-// path NLPProblem::starting_multipliers() feeds through, which since M6 W5
+// path NlpTripletModel::starting_multipliers() feeds through, which since M6 W5
 // T8.9 is the caller's own: declared_route.h's starting_multiplier_seed over
 // NlpProblemModel::split_user_multipliers, handed to the payload overload.
 //
-// M6 W5 T8.5 REPLACED THE ENTRY, not the behaviour. InteriorPointSolver::
+// M6 W5 T8.5 REPLACED THE ENTRY, not the behaviour. IpmSolver::
 // set_initial_multipliers()/clear_initial_multipliers() are gone; a seed is the
 // MULTIPLIERS-ONLY FORM of the shared payload -- a WarmStartData with an EMPTY
 // `primal_` -- handed to `solve(model, x0, warm, budget)` as an argument. The
@@ -27,7 +27,7 @@
 #include <limits>
 #include <memory>
 
-#include "hven/drivers/interior_point_solver.h"
+#include "hven/drivers/ipm_solver.h"
 #include "hven/warmstart/warm_start_data.h"
 
 #include "declared_route.h" // NOLINT(build/include_subdir)
@@ -37,13 +37,13 @@ constexpr double kSeedSolverInf = std::numeric_limits<double>::infinity();
 } // namespace
 
 using hven::ConstEigenRef;
-using hven::solvers::NLPProblem;
+using hven::solvers::NlpTripletModel;
 
 // The canonical Ipopt HS071 example: n=4, one lower-bounded product row, one
 // equality sphere row, dense Jacobian and Hessian. Same problem as
 // test_ipm_solver_entry.cpp's Hs071Problem, duplicated under a distinct name to
 // avoid a unity-build symbol collision.
-struct SeedHs071Problem : NLPProblem {
+struct SeedHs071Problem : NlpTripletModel {
     int num_vars() const override { return 4; }
     int num_cons() const override { return 2; }
     int num_jac_nonzeros() const override { return 8; }
@@ -128,7 +128,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveMatchesUnseededSolution) {
 
     const auto unseeded_route =
         hven_interior_tests::transcribe(std::make_shared<SeedHs071Problem>());
-    hven::solvers::InteriorPointSolver unseeded;
+    hven::solvers::IpmSolver unseeded;
     hven::solvers::IpmResult unseeded_result;
     {
         auto o = unseeded.options();
@@ -140,7 +140,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveMatchesUnseededSolution) {
 
     const auto seeded_route =
         hven_interior_tests::transcribe(std::make_shared<SeededSeedHs071Problem>());
-    hven::solvers::InteriorPointSolver seeded;
+    hven::solvers::IpmSolver seeded;
     hven::solvers::IpmResult seeded_result;
     {
         auto o = seeded.options();
@@ -157,7 +157,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveMatchesUnseededSolution) {
 // row and no inequality rows. Used below to probe the seed payload directly
 // (rather than through starting_multipliers()) with deliberately wrong-sized
 // vectors.
-struct SeedEqOnlyProblem : NLPProblem {
+struct SeedEqOnlyProblem : NlpTripletModel {
     int num_vars() const override { return 2; }
     int num_cons() const override { return 1; }
     int num_jac_nonzeros() const override { return 2; }
@@ -204,7 +204,7 @@ struct SeedEqOnlyProblem : NLPProblem {
 };
 
 // THE MULTIPLIERS-ONLY SEED, built here (M6 W5 T8.5).
-// InteriorPointSolver::set_initial_multipliers() is gone; a seed is now a
+// IpmSolver::set_initial_multipliers() is gone; a seed is now a
 // WarmStartData whose `primal_` is EMPTY, carrying the two row blocks and the
 // program's declaration stamp, handed to `solve(model, x0, warm, budget)` as an
 // argument. `x0` is still the start -- which is what the old two-call shape
@@ -225,7 +225,7 @@ hven::solvers::WarmStartData seed_payload(const hven::solvers::NonLinearProgram 
 TEST(NLPMultiplierSeedingTest, SeedSizeMismatchThrowsAndTheNextSolveIsUnaffected) {
     const auto solver_route =
         hven_interior_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -265,7 +265,7 @@ TEST(NLPMultiplierSeedingTest, SeedSizeMismatchThrowsAndTheNextSolveIsUnaffected
 
 // f = x0^2 subject to x0 >= 1 -- optimum x0 = 1, a single active lower-bound
 // inequality row and no equality rows.
-struct SeedLowerBoundProblem : NLPProblem {
+struct SeedLowerBoundProblem : NlpTripletModel {
     int num_vars() const override { return 1; }
     int num_cons() const override { return 1; }
     int num_jac_nonzeros() const override { return 1; }
@@ -311,7 +311,7 @@ struct SeedLowerBoundProblem : NLPProblem {
 // LowerBoundedRowActiveWithNegativeIpoptMultiplier in test_ipm_solver_entry.cpp --
 // the correct sign is negative). apply_starting_multipliers's
 // LowerBounded-row mapping negates it (iqm = -lam), so this deliberately
-// produces a negative seed on the InteriorPointSolver-internal inequality multiplier,
+// produces a negative seed on the IpmSolver-internal inequality multiplier,
 // which apply_staged_multipliers must clamp to kSeededIqMultFloor rather than
 // installing it verbatim.
 struct SeededSeedLowerBoundProblem : SeedLowerBoundProblem {
@@ -325,7 +325,7 @@ struct SeededSeedLowerBoundProblem : SeedLowerBoundProblem {
 TEST(NLPMultiplierSeedingTest, NegativeIqSeedIsClamped) {
     const auto solver_route =
         hven_interior_tests::transcribe(std::make_shared<SeededSeedLowerBoundProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -346,7 +346,7 @@ TEST(NLPMultiplierSeedingTest, NegativeIqSeedIsClamped) {
 TEST(NLPMultiplierSeedingTest, TheUnseededPathBuildsNoPayload) {
     const auto solver_route =
         hven_interior_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -369,7 +369,7 @@ TEST(NLPMultiplierSeedingTest, TheUnseededPathBuildsNoPayload) {
 // -----------------------------------------------------------------------------
 
 // SeededPhaseEntryEqOnlyProblem's seed reaching the OPT phase's very first
-// iteration (before any Newton step) is observed through InteriorPointSolver's early
+// iteration (before any Newton step) is observed through IpmSolver's early
 // (per-iteration) callback: XSL's KKTVector layout is documented as
 // [primals | slacks | eq_lmults | iq_lmults] (kkt_vector.h). For
 // SeedEqOnlyProblem specifically -- 2 unbounded primal vars (so reduced ==
@@ -383,9 +383,9 @@ struct SeededPhaseEntryEqOnlyProblem : SeedEqOnlyProblem {
         // the true optimum with the true multiplier, and init_impl's own
         // fresh KKT solve at the inter-phase re-init would independently
         // re-derive that same -2.0 regardless of any seed. Seeding a value
-        // that is otherwise impossible for InteriorPointSolver to produce here is what
+        // that is otherwise impossible for IpmSolver to produce here is what
         // makes "the callback observed the seed" distinguishable from "the
-        // callback observed InteriorPointSolver's own correct answer by coincidence".
+        // callback observed IpmSolver's own correct answer by coincidence".
         lambda[0] = 7.0;
         return true;
     }
@@ -405,7 +405,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
     {
         const auto solver_route =
             hven_interior_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
-        hven::solvers::InteriorPointSolver solver;
+        hven::solvers::IpmSolver solver;
         hven::solvers::IpmResult result;
         {
             auto o = solver.options();
@@ -436,7 +436,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
     {
         const auto solver_route =
             hven_interior_tests::transcribe(std::make_shared<SeededPhaseEntryEqOnlyProblem>());
-        hven::solvers::InteriorPointSolver solver;
+        hven::solvers::IpmSolver solver;
         hven::solvers::IpmResult result;
         {
             auto o = solver.options();
@@ -462,20 +462,20 @@ TEST(NLPMultiplierSeedingTest, SeededSolveOptimizeReachesOptPhase) {
         ASSERT_EQ(result.status, hven::solvers::SolveStatus::kOptimal);
     }
 
-    EXPECT_DOUBLE_EQ(unseeded_opt_entry_eq_mult, -2.0); // InteriorPointSolver's own correct answer
+    EXPECT_DOUBLE_EQ(unseeded_opt_entry_eq_mult, -2.0); // IpmSolver's own correct answer
     EXPECT_DOUBLE_EQ(seeded_opt_entry_eq_mult, 7.0);    // the seed, verbatim
     EXPECT_NE(seeded_opt_entry_eq_mult, unseeded_opt_entry_eq_mult);
 }
 
 // Same objective/constraint as SeedEqOnlyProblem (x0^2 + x1^2 s.t. x0+x1=2),
 // but x1 is FIXED (xl==xu==1.0). Under the MakeConstraint fixed-variable
-// treatment InteriorPointSolver keeps x1 as a solver variable and adds one internal
+// treatment IpmSolver keeps x1 as a solver variable and adds one internal
 // equality row x1-1=0 on top of the problem's own single row -- growing
 // equal_cons_ to 2 while user_equal_cons_ (what starting_multipliers()/
 // the declared route sees) stays at 1. That mismatch is exactly what finding 1's fix
 // targets: a seed sized to the 1 user row must still be accepted, and the
 // internal row zero-padded, not rejected as a size mismatch against 2.
-struct SeedFixedVarEqProblem : NLPProblem {
+struct SeedFixedVarEqProblem : NlpTripletModel {
     int num_vars() const override { return 2; }
     int num_cons() const override { return 1; }
     int num_jac_nonzeros() const override { return 2; }
@@ -532,7 +532,7 @@ struct SeededSeedFixedVarEqProblem : SeedFixedVarEqProblem {
 TEST(NLPMultiplierSeedingTest, SeededSolveWithMakeConstraintFixedVarConverges) {
     const auto solver_route =
         hven_interior_tests::transcribe(std::make_shared<SeededSeedFixedVarEqProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -559,7 +559,7 @@ TEST(NLPMultiplierSeedingTest, SeededSolveWithMakeConstraintFixedVarConverges) {
 TEST(NLPMultiplierSeedingTest, ADecliningProblemSolvesColdThroughTheWrapper) {
     const auto solver_route =
         hven_interior_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -581,7 +581,7 @@ TEST(NLPMultiplierSeedingTest, ADecliningProblemSolvesColdThroughTheWrapper) {
 TEST(NLPMultiplierSeedingTest, NaNSeedThrows) {
     const auto solver_route =
         hven_interior_tests::transcribe(std::make_shared<SeedEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -597,7 +597,7 @@ TEST(NLPMultiplierSeedingTest, NaNSeedThrows) {
     // Direct payload call, not solve_declared() -- see the note in
     // SeedSizeMismatchThrowsAndTheNextSolveIsUnaffected above: SeedEqOnlyProblem
     // declines to seed, so the problem's own route would build no payload at
-    // all. Probing InteriorPointSolver's own validation this way is also the
+    // all. Probing IpmSolver's own validation this way is also the
     // point: it must reject a non-finite seed even from a caller that bypasses
     // starting_multiplier_seed's allFinite() guard entirely.
     //
@@ -627,7 +627,7 @@ struct SeededOversizedEqOnlyProblem : SeedEqOnlyProblem {
 TEST(NLPMultiplierSeedingTest, OversizedSeedIsCapped) {
     const auto solver_route =
         hven_interior_tests::transcribe(std::make_shared<SeededOversizedEqOnlyProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -656,7 +656,7 @@ TEST(NLPMultiplierSeedingTest, OversizedSeedIsCapped) {
 // slack for the single active lower-bound row, 0 eq rows) puts the iq
 // multiplier at XSL[2] (primal(1)+slack(1)+eq(0)). starting_multipliers()'s
 // LowerBounded-row mapping negates lam (iqm = -lam), so seeding lam=-1e12
-// arrives at InteriorPointSolver as a +1e12 iq seed, which the upper clamp (not the floor
+// arrives at IpmSolver as a +1e12 iq seed, which the upper clamp (not the floor
 // -- that only bites negative seeds) must cap.
 struct SeededOversizedLowerBoundProblem : SeedLowerBoundProblem {
     bool starting_multipliers(Eigen::Ref<Eigen::VectorXd> lambda) const override {
@@ -669,7 +669,7 @@ struct SeededOversizedLowerBoundProblem : SeedLowerBoundProblem {
 TEST(NLPMultiplierSeedingTest, OversizedIqSeedIsCapped) {
     const auto solver_route =
         hven_interior_tests::transcribe(std::make_shared<SeededOversizedLowerBoundProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -705,7 +705,7 @@ TEST(NLPMultiplierSeedingTest, OversizedIqSeedIsCapped) {
 TEST(NLPMultiplierSeedingTest, FixedVariableConstraintRowStaysOutOfTheReportedMultipliers) {
     const auto solver_route =
         hven_interior_tests::transcribe(std::make_shared<SeedFixedVarEqProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();

@@ -137,7 +137,7 @@ class KktFactorization {
     /// replacement starts at zero because it did no earlier work. A consumer
     /// that needs a number monotone across those events must accumulate one
     /// ITSELF, at the site that calls `reconfigure()` -- see
-    /// `InteriorPointSolver::set_qp_params()` and the ledger's `factorizations`
+    /// `IpmSolver::set_qp_params()` and the ledger's `factorizations`
     /// (M6 W5 T8.7 fix1). Deliberately not a member here: this class is
     /// embedded in `IpqpEngine`, so a field added to it moves every QP kernel
     /// object's member offsets, and this round's P-SYM gate is that those

@@ -41,7 +41,7 @@
 
 #include <hven/detail/interior/iterate_info.h>
 #include <hven/drivers/console_trace_sink.h>
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/trace.h>
 
 namespace hven::solvers {
@@ -645,8 +645,8 @@ SqpIterate make_row(Index trial, double f, bool solved, bool wd) {
     return r;
 }
 
-SqpSolution make_solution() {
-    SqpSolution sol;
+SqpResult make_solution() {
+    SqpResult sol;
     sol.status = SolveStatus::kOptimal;
     sol.counters.start_level_used = StartLevel::kWarm;
     sol.scaling.active = true;
@@ -661,7 +661,7 @@ SqpSolution make_solution() {
 }
 
 TEST(ConsoleSink, TheSqpTableIsByteIdenticalToFormatIterationTable) {
-    const SqpSolution sol = make_solution();
+    const SqpResult sol = make_solution();
     std::FILE *f = std::tmpfile();
     ASSERT_NE(f, nullptr);
     ConsoleTraceSink sink(ConsoleTraceSink::Format{false, 0}, f);
@@ -678,7 +678,7 @@ TEST(ConsoleSink, TheSqpTableIsByteIdenticalToFormatIterationTable) {
 }
 
 TEST(ConsoleSink, TheSqpTableRendersOnlyDepthZeroMajors) {
-    const SqpSolution sol = make_solution();
+    const SqpResult sol = make_solution();
     std::FILE *f = std::tmpfile();
     ASSERT_NE(f, nullptr);
     ConsoleTraceSink sink(ConsoleTraceSink::Format{false, 0}, f);
@@ -701,7 +701,7 @@ TEST(ConsoleSink, TheSqpTableRendersOnlyDepthZeroMajors) {
 }
 
 TEST(ConsoleSink, TheSqpTableHonoursTheThreeTiers) {
-    const SqpSolution sol = make_solution();
+    const SqpResult sol = make_solution();
     // 1: no rows; the head, Start Level and Scaling still render, and so does
     // Status.
     std::FILE *f1 = std::tmpfile();

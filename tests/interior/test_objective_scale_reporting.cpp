@@ -23,14 +23,14 @@
 
 #include <Eigen/Core>
 
-#include "hven/drivers/interior_point_solver.h"
-#include "hven/model/nlp_problem.h"
+#include "hven/drivers/ipm_solver.h"
+#include "hven/model/nlp_triplet_model.h"
 
 #include "declared_route.h" // NOLINT(build/include_subdir)
 
 using hven::ConstEigenRef;
-using hven::solvers::InteriorPointSolver;
-using hven::solvers::NLPProblem;
+using hven::solvers::IpmSolver;
+using hven::solvers::NlpTripletModel;
 using hven_interior_tests::solve_declared;
 using hven_interior_tests::transcribe;
 
@@ -39,7 +39,7 @@ using hven_interior_tests::transcribe;
 // multiplier is -0.75 under the caller's convention -- all three known by hand,
 // so a scale leaking into a report is a difference from a NUMBER rather than a
 // difference between two runs.
-struct ObjScaleBoxedProblem : NLPProblem {
+struct ObjScaleBoxedProblem : NlpTripletModel {
     static constexpr int kN = 4;
 
     int num_vars() const override { return kN; }
@@ -104,7 +104,7 @@ struct ObjScaleBoxedProblem : NLPProblem {
 // A variable pinned below by its own bound, so the bound multiplier at the
 // solution is a real active one (1.0 on the caller's scale) rather than a
 // vanishing residual.
-struct ObjScaleActiveBoundProblem : NLPProblem {
+struct ObjScaleActiveBoundProblem : NlpTripletModel {
     static constexpr int kN = 2;
     static constexpr double kInf = std::numeric_limits<double>::infinity();
 
@@ -163,7 +163,7 @@ constexpr double kObjScaleTol = 1e-5;
 TEST(ObjectiveScaleReporting, TheReportedObjectiveAndMultipliersDoNotMoveWithTheScale) {
     for (double scale : {1.0, 2.0, 10.0, 0.125}) {
         const auto route = transcribe(std::make_shared<ObjScaleBoxedProblem>());
-        InteriorPointSolver solver;
+        IpmSolver solver;
         {
             auto o = solver.options();
             o.common.print_level = 3;
@@ -190,7 +190,7 @@ TEST(ObjectiveScaleReporting, TheReportedObjectiveAndMultipliersDoNotMoveWithThe
 TEST(ObjectiveScaleReporting, AnActiveBoundMultiplierDoesNotMoveWithTheScale) {
     for (double scale : {1.0, 2.0, 10.0}) {
         const auto route = transcribe(std::make_shared<ObjScaleActiveBoundProblem>());
-        InteriorPointSolver solver;
+        IpmSolver solver;
         {
             auto o = solver.options();
             o.common.print_level = 3;
@@ -217,7 +217,7 @@ namespace {
 /// step has moved it, and therefore the installed seed itself.
 double obj_scale_installed_seed(double scale) {
     const auto route = transcribe(std::make_shared<ObjScaleBoxedProblem>());
-    InteriorPointSolver solver;
+    IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 3;
@@ -266,7 +266,7 @@ TEST(ObjectiveScaleReporting, ASeededMultiplierIsInstalledOnTheSolversScale) {
 
 // A problem with no constraint rows at all, used to show that a solver reused
 // across shapes reports the shape it just solved.
-struct ObjScaleUnconstrainedProblem : NLPProblem {
+struct ObjScaleUnconstrainedProblem : NlpTripletModel {
     static constexpr int kN = 3;
 
     int num_vars() const override { return kN; }
@@ -317,7 +317,7 @@ struct ObjScaleUnconstrainedProblem : NLPProblem {
 // validates at entry, as defense in depth for a future write path.
 TEST(ObjectiveScaleReporting, ANegativeScaleIsRefusedByValidate) {
     const auto route = transcribe(std::make_shared<ObjScaleBoxedProblem>());
-    InteriorPointSolver solver;
+    IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 3;
@@ -362,7 +362,7 @@ TEST(ObjectiveScaleReporting, ANegativeScaleIsRefusedByValidate) {
 // time on every subsequent call.
 TEST(ObjectiveScaleReporting, AnUnconstrainedCallReportsNoConstraintBlocks) {
     const auto route = transcribe(std::make_shared<ObjScaleBoxedProblem>());
-    InteriorPointSolver solver;
+    IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 3;
@@ -409,7 +409,7 @@ TEST(ObjectiveScaleReporting, AnUnconstrainedCallReportsNoConstraintBlocks) {
 // scales, which would report an objective and duals belonging to no problem.
 TEST(ObjectiveScaleReporting, TheScaleACallRanAtIsTheScaleItsOutputsAreReportedOn) {
     const auto route = transcribe(std::make_shared<ObjScaleBoxedProblem>());
-    InteriorPointSolver solver;
+    IpmSolver solver;
     {
         auto o = solver.options();
         o.common.print_level = 3;

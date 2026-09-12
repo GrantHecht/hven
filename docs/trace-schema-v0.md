@@ -81,26 +81,26 @@ blocks with different meanings.
 
 | `ev` | written by | one per |
 |---|---|---|
-| `sqp.solve.begin` | `SqpDriver::solve` | one accepted call |
-| `sqp.solve.end` | `SqpDriver::solve` | one normal return |
-| `sqp.major` | `SqpDriver`'s `push_history` | one exported `SqpSolution::history` row |
-| `qp.mode` | `SqpDriver` | one KERNEL INVOCATION |
+| `sqp.solve.begin` | `SqpSolver::solve` | one accepted call |
+| `sqp.solve.end` | `SqpSolver::solve` | one normal return |
+| `sqp.major` | `SqpSolver`'s `push_history` | one exported `SqpResult::history` row |
+| `qp.mode` | `SqpSolver` | one KERNEL INVOCATION |
 | `ipqp.iter` | `IpqpEngine` | one predictor+corrector pair |
 | `ipqp.reg` | `IpqpEngine` | one `(rho, delta)` schedule move |
 | `ipqp.restart` | `IpqpEngine` | one warm restart |
-| `ipqp.route` | `SqpDriver`'s kIpm arm | one routing decision |
-| `ipqp.certify` | `SqpDriver`'s kIpm arm | one certification READ actually taken |
+| `ipqp.route` | `SqpSolver`'s kIpm arm | one routing decision |
+| `ipqp.certify` | `SqpSolver`'s kIpm arm | one certification READ actually taken |
 | `ipqp.escape` | `IpqpEngine` | one tier escape |
 | `fallback.verdict` | `certified_feasibility_fallback` | one ENTRY, fired or not |
-| `ipm.solve.begin` | `InteriorPointSolver` | one public entry point call |
-| `ipm.solve.end` | `InteriorPointSolver` | one normal return |
-| `ipm.iter` | `InteriorPointSolver` | one interior-point iteration |
-| `ipm.restoration_exit_row` | `InteriorPointSolver` | one exit through the restoration-locally-infeasible door |
-| `ipm.phase.begin` | `InteriorPointSolver` | one phase that RAN, opening |
-| `ipm.phase.end` | `InteriorPointSolver` | one phase that RAN, closing |
-| `ipm.kkt_analysis` | `InteriorPointSolver` | one `init_impl` — an analysis or a re-initialization |
-| `ipm.phase.exit` | `InteriorPointSolver` | one phase that RAN, its exit statistics |
-| `ipm.message` | `InteriorPointSolver` | one diagnostic message |
+| `ipm.solve.begin` | `IpmSolver` | one public entry point call |
+| `ipm.solve.end` | `IpmSolver` | one normal return |
+| `ipm.iter` | `IpmSolver` | one interior-point iteration |
+| `ipm.restoration_exit_row` | `IpmSolver` | one exit through the restoration-locally-infeasible door |
+| `ipm.phase.begin` | `IpmSolver` | one phase that RAN, opening |
+| `ipm.phase.end` | `IpmSolver` | one phase that RAN, closing |
+| `ipm.kkt_analysis` | `IpmSolver` | one `init_impl` — an analysis or a re-initialization |
+| `ipm.phase.exit` | `IpmSolver` | one phase that RAN, its exit statistics |
+| `ipm.message` | `IpmSolver` | one diagnostic message |
 
 ## 4. Every event, every field
 
@@ -168,10 +168,10 @@ two trailing keys.
 | `active_set_delta` | integer | §6 (a) |
 | `weak_active_rows`, `near_active_rows` | integer | §6 (b) |
 | `active_rows`, `active_lower_sides`, `active_upper_sides` | integer | §6 (c) |
-| `major` | integer | this row's index in `SqpSolution::history` — the stream and the vector share one numbering |
+| `major` | integer | this row's index in `SqpResult::history` — the stream and the vector share one numbering |
 | `mode` | string `ipqp\|walk\|ssn` | **THE DISPATCH ARM that produced this row's step** |
 
-**`sqp.major` count == `SqpSolution::history.size()`.** One event per row, from
+**`sqp.major` count == `SqpResult::history.size()`.** One event per row, from
 all ten push sites, and the exactly-once guard is asserted in the driver at both
 ends of a major.
 
@@ -657,7 +657,7 @@ M6 reads them.
 12. **Exceptions have two cases.** Under the DEFAULT mask the sink never throws
     and can never end a solve. Under a mask the caller ARMED
     (`exceptions(std::ios::badbit)`), `std::ios_base::failure` propagates out of
-    `SqpDriver::solve` BY DESIGN — a caller who arms exceptions asked for them.
+    `SqpSolver::solve` BY DESIGN — a caller who arms exceptions asked for them.
     `reset_nesting()` is the recovery.
 13. **`_s` fields are wall-clock and informational, never asserted** (CLAUDE.md
     §7).

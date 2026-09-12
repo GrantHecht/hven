@@ -9,13 +9,13 @@
 
 // One include, deliberately not the three obvious ones: soc.h and restoration.h
 // are NOT self-contained -- their declarations name `NlpEval`, which only
-// drivers/sqp_driver.h defines -- and that header includes all three at exactly
+// drivers/sqp_solver.h defines -- and that header includes all three at exactly
 // the point after NlpEval where they belong. Including them here directly does
 // not work and must not be "restored" by a tidying pass or an
 // include-what-you-use run: clang-format sorts `detail/globalization/...`
 // ahead of `drivers/...`, which would put the three headers BEFORE the
 // definition they depend on and fail to compile.
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 
 namespace hven::solvers {
 
@@ -188,7 +188,7 @@ QpSolution elastic_project(const ElasticQp &e, const QpProblem &qp, const QpSolu
     // z IS QUARANTINED WITH THE MULTIPLIERS, not carried independently: a
     // bound price at index i is the stationarity residual there, so it is
     // contaminated by exactly the same rho the row multipliers are (see the
-    // carry_multipliers handling of lambda_e/lambda_i below). SqpDriver never
+    // carry_multipliers handling of lambda_e/lambda_i below). SqpSolver never
     // reads QpSolution::z -- it reports the MODEL-implied bound multiplier
     // instead -- so this changes nothing today; it removes a trap for the
     // next reader.

@@ -885,10 +885,10 @@ comment-only references that must be re-aimed mechanically:
 `qp_engine.h:16,119,128,505-522,645,1918,1929,2025-2037,2069,2094,2111,
 3033-3060,3314,4027,4512`; `ssn_engine.h:183,228-229,509-518,982,
 1564-1569,2886-2894,2963-2965`; `types.h:269-286`;
-`sqp_types.h:1244-1255`; `warm_start.h:24-29,205,423-425`;
+`sqp_solver_types.h:1244-1255`; `warm_start.h:24-29,205,423-425`;
 `kkt_assembly.h:18,45,62`; `border_ops.h:9-16,33-34,61,122,167`;
 `bordered_eqp.h:5,18,142,293`; `predictor.h:34,282-289,581,663`;
-`sqp_driver.h:6783-6799`. (Comments naming `KktSystem`/`kkt_system.h`
+`sqp_solver.h:6783-6799`. (Comments naming `KktSystem`/`kkt_system.h`
 retarget to `SymmetricFactor`/the helper; none carries code.)
 
 ### 8.4 The dense border (LAPACKE touches)

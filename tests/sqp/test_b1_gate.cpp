@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 // tests/sqp/test_b1_gate.cpp — PHASE-5 TASK 7b: THE REGRESSION CORPUS FOR THE B-1
-// REPAIR (sqp_driver.h's THE INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY).
+// REPAIR (sqp_solver.h's THE INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY).
 //
 // =====================================================================
 // THE DEFECT, AND WHY THIS FILE EXISTS AT ALL
@@ -19,7 +19,7 @@
 // quantities pass and the solve certifies the OLD answer having done nothing.
 //
 // Full analysis: docs/notes/2026-07-31-nonconvex-sweep-adjudications.md §1.
-// The repair: sqp_driver.h clears any ingested lambda_i whose row is not
+// The repair: sqp_solver.h clears any ingested lambda_i whose row is not
 // GEOMETRICALLY ACTIVE at the ingested x (cI_j(x) >= -feas_tol), the same
 // distance test and the same tolerance evaluate_kkt already applies to bounds.
 //
@@ -59,7 +59,7 @@
 //      criterion demonstrating itself                        -- (5)/(6) below.
 //   3. The Task-7 review's convex n = 3 sphere class, reconstructed and cited
 //                                                          -- (3)/(4) below.
-//   4. A TRANSFER-PRODUCED WarmStart into the B-1 exit -- ESTABLISHED VACUOUS
+//   4. A TRANSFER-PRODUCED SqpWarmStart into the B-1 exit -- ESTABLISHED VACUOUS
 //      and pinned as such                                       -- (7) below.
 //   5. Equality-only controls: bit-identity across the repair    -- (8) below.
 //   6. LEGITIMATE zero-major exits (Phase-5 Task 0's O-1 feature) still
@@ -77,7 +77,7 @@
 // a sign-consistency residual into the reduced stationarity measure for BOUNDS
 // only, and a general inequality row enters grad_lag unconditionally with no
 // sign test. It is an INGEST PRECONDITION -- warm_start.h's SIGN CONVENTIONS
-// paragraph -- and every test below assumes a WarmStart that honours it.
+// paragraph -- and every test below assumes a SqpWarmStart that honours it.
 //
 // AND THAT PRECONDITION HAS A LIVE IN-REPO PRODUCER, not only hand-assembly:
 // warm_start.h's from_interior_point COPIES THE CALLER'S lambda_i VERBATIM (its
@@ -85,7 +85,7 @@
 // interior-point crossover taken before full convergence can carry a negative
 // price on a GEOMETRICALLY ACTIVE row -- which is exactly the configuration the
 // clear leaves alone, since the clear only zeroes STRICTLY SLACK rows.
-// tests/test_warm_start.cpp's WarmStart.CrossoverWrongSignDualLeavesRowFree
+// tests/test_warm_start.cpp's SqpWarmStart.CrossoverWrongSignDualLeavesRowFree
 // ships a fixture of that shape (lambda_i = -1e-8 against a slack of -1e-9).
 // The magnitude is bounded by the producer's sign violation and is orders below
 // kkt_tol, which is why the repair's verdict is unchanged.
@@ -120,8 +120,8 @@
 #include <hven/detail/warmstart/continuation.h>
 #include <hven/detail/warmstart/mesh_transfer.h>
 #include <hven/detail/warmstart/warm_start.h>
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
@@ -156,7 +156,7 @@ SqpOptions probe_options(StartLevel level = StartLevel::kWarm) {
     opts.feas_tol = kTol;
     opts.max_iter = 60;
     opts.adaptive_mu = false;
-    opts.start_level = level;
+    opts.common.start_level = level;
     return opts;
 }
 
@@ -307,16 +307,16 @@ class B1ReviewSphere : public ParametricNlpModel {
 // that solve's own hand-off. This is the ONE pattern every reproduction below
 // uses, so "warm" means the same thing everywhere in this file.
 struct WarmLink {
-    SqpSolution first, second;
+    SqpResult first, second;
 };
 
 WarmLink warm_link(ParametricNlpModel &model, double p_from, double p_to, const SqpOptions &opts) {
     WarmLink out;
     model.set_parameters(Vec::Constant(1, p_from));
-    SqpDriver cold(probe_options(StartLevel::kCold));
+    SqpSolver cold(probe_options(StartLevel::kCold));
     out.first = cold.solve(model, model.start_point());
     model.set_parameters(Vec::Constant(1, p_to));
-    SqpDriver warm(opts);
+    SqpSolver warm(opts);
     out.second = warm.solve(model, out.first.x, out.first.warm_start);
     return out;
 }
@@ -329,7 +329,7 @@ WarmLink warm_link(ParametricNlpModel &model, double p_from, double p_to, const 
 // crossover, or anything a caller assembled. That is a SECOND ROUTE INTO THE
 // EXACT EXIT THIS FILE EXISTS FOR, and a repair that carried only to the kWarm
 // route would leave the defect alive on it. Nothing about B-1 is
-// level-specific -- sqp_driver.h's clear is gated on `warm_ingest`, which is
+// level-specific -- sqp_solver.h's clear is gated on `warm_ingest`, which is
 // true from kSeeded up -- but "nothing about it is level-specific" is an
 // argument, and this file's standing discipline is to pin mechanisms rather
 // than argue them.
@@ -344,12 +344,12 @@ WarmLink seeded_link(ParametricNlpModel &model, double p_from, double p_to,
                      const SqpOptions &opts) {
     WarmLink out;
     model.set_parameters(Vec::Constant(1, p_from));
-    SqpDriver cold(probe_options(StartLevel::kCold));
+    SqpSolver cold(probe_options(StartLevel::kCold));
     out.first = cold.solve(model, model.start_point());
-    WarmStart hashless = out.first.warm_start;
+    SqpWarmStart hashless = out.first.warm_start;
     hashless.structure_hash = 0; // the mesh-transfer / crossover sentinel
     model.set_parameters(Vec::Constant(1, p_to));
-    SqpDriver seeded(opts);
+    SqpSolver seeded(opts);
     out.second = seeded.solve(model, out.first.x, hashless);
     return out;
 }
@@ -432,7 +432,7 @@ TEST(B1Gate, MinimalReleaseNoLongerCertifiesTheOldPoint) {
 
 // The other half of element 7: a release LARGE enough that the row stays slack
 // at the answer. The returned quadruple must then carry lambda_i == 0 EXACTLY
-// on that row -- which is the repair's stronger claim (sqp_driver.h's point
+// on that row -- which is the repair's stronger claim (sqp_solver.h's point
 // (2)): the ingested multipliers are not merely refused, they are corrected to
 // the ones the KKT system actually asks for.
 TEST(B1Gate, AFullyReleasedRowExitsWithAnExactlyZeroPrice) {
@@ -494,7 +494,7 @@ TEST(B1Gate, ReviewSphereContinuationSweepTracksTheTruePath) {
     for (StartLevel level : {StartLevel::kWarm, StartLevel::kCold}) {
         SCOPED_TRACE(level == StartLevel::kWarm ? "warm" : "cold");
         B1ReviewSphere model(0.0);
-        SqpDriver driver(probe_options(level));
+        SqpSolver driver(probe_options(level));
         ContinuationOptions copts;
         copts.dp_init = 0.05;
         copts.use_predictor = false;
@@ -542,14 +542,14 @@ TEST(B1Gate, F6RelaxingStepsNoLongerFreezeTheObjective) {
         opts.kkt_tol = 1e-8;
         opts.feas_tol = 1e-8;
         SqpOptions cold_opts = opts;
-        cold_opts.start_level = StartLevel::kCold;
+        cold_opts.common.start_level = StartLevel::kCold;
 
-        SqpDriver cold(cold_opts);
-        const SqpSolution first = cold.solve(model, model.start_point());
+        SqpSolver cold(cold_opts);
+        const SqpResult first = cold.solve(model, model.start_point());
         ASSERT_EQ(SolveStatus::kOptimal, first.status);
         model.set_parameters(Vec::Constant(1, p_to));
-        SqpDriver warm(opts);
-        const SqpSolution second = warm.solve(model, first.x, first.warm_start);
+        SqpSolver warm(opts);
+        const SqpResult second = warm.solve(model, first.x, first.warm_start);
 
         EXPECT_EQ(StartLevel::kWarm, second.counters.start_level_used);
         ASSERT_EQ(SolveStatus::kOptimal, second.status);
@@ -576,14 +576,14 @@ TEST(B1Gate, F6TighteningStepWasNeverExposedAndIsUnchanged) {
     opts.kkt_tol = 1e-8;
     opts.feas_tol = 1e-8;
     SqpOptions cold_opts = opts;
-    cold_opts.start_level = StartLevel::kCold;
+    cold_opts.common.start_level = StartLevel::kCold;
 
-    SqpDriver cold(cold_opts);
-    const SqpSolution first = cold.solve(model, model.start_point());
+    SqpSolver cold(cold_opts);
+    const SqpResult first = cold.solve(model, model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, first.status);
     model.set_parameters(Vec::Constant(1, 0.20));
-    SqpDriver warm(opts);
-    const SqpSolution second = warm.solve(model, first.x, first.warm_start);
+    SqpSolver warm(opts);
+    const SqpResult second = warm.solve(model, first.x, first.warm_start);
 
     ASSERT_EQ(SolveStatus::kOptimal, second.status);
     EXPECT_EQ(StartLevel::kWarm, second.counters.start_level_used);
@@ -597,7 +597,7 @@ TEST(B1Gate, F6TighteningStepWasNeverExposedAndIsUnchanged) {
 }
 
 // =====================================================================
-// (7) CORPUS ELEMENT 4 -- A TRANSFER-PRODUCED WarmStart INTO THE B-1 EXIT.
+// (7) CORPUS ELEMENT 4 -- A TRANSFER-PRODUCED SqpWarmStart INTO THE B-1 EXIT.
 //
 // Carried from the Task-7 note's §5.1 as UNCHECKED BY BOTH PARTIES, with the
 // instruction to establish which of two truths holds and pin it either way.
@@ -606,7 +606,7 @@ TEST(B1Gate, F6TighteningStepWasNeverExposedAndIsUnchanged) {
 // mesh_transfer.h §4 sets structure_hash == 0 unconditionally (a transferred
 // object's hash is UNKNOWN -- the destination is a different model -- as
 // opposed to merely uncomputed, which is what Phase-5 Task 0 repaired), and
-// sqp_driver.h's ingest required `warm.structure_hash != 0` before it would
+// sqp_solver.h's ingest required `warm.structure_hash != 0` before it would
 // resolve above kCold, so a transferred object could not reach ANY ingest path,
 // B-1's included. The test recorded its own trigger: "WHAT THIS TEST WOULD
 // CATCH: a future change that makes transferred objects ingestible (Phase-6's
@@ -635,14 +635,14 @@ TEST(B1Gate, TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt) {
     fine.weights = trapezoid_weights(fine.nodes);
 
     F6PathBoundQuadrature coarse_model(coarse.nodes, coarse.weights, 0.30);
-    SqpDriver cold(probe_options(StartLevel::kCold));
-    const SqpSolution coarse_sol = cold.solve(coarse_model, coarse_model.start_point());
+    SqpSolver cold(probe_options(StartLevel::kCold));
+    const SqpResult coarse_sol = cold.solve(coarse_model, coarse_model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, coarse_sol.status);
     ASSERT_NE(0u, coarse_sol.warm_start.structure_hash) << "the SOURCE object is hash-valid";
     ASSERT_GT(coarse_sol.lambda_i.maxCoeff(), 0.0) << "and carries live inequality prices";
 
     const MeshTransfer transfer;
-    const WarmStart moved = transfer.transfer(coarse_sol.warm_start, coarse, fine);
+    const SqpWarmStart moved = transfer.transfer(coarse_sol.warm_start, coarse, fine);
     EXPECT_TRUE(moved.valid);
     EXPECT_EQ(0u, moved.structure_hash)
         << "mesh_transfer.h section 4: UNKNOWN, not uncomputed -- the sentinel is deliberate, and "
@@ -654,8 +654,8 @@ TEST(B1Gate, TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt) {
     // The consequence, on the destination mesh, at a RELAXED p -- i.e. into the
     // exact configuration (5) shows is exposed when the ingest resolves.
     F6PathBoundQuadrature fine_model(fine.nodes, fine.weights, 1.20);
-    SqpDriver warm(probe_options(StartLevel::kWarm));
-    const SqpSolution sol = warm.solve(fine_model, moved.x, moved);
+    SqpSolver warm(probe_options(StartLevel::kWarm));
+    const SqpResult sol = warm.solve(fine_model, moved.x, moved);
     EXPECT_EQ(StartLevel::kSeeded, sol.counters.start_level_used)
         << "THE PIN, INVERTED BY PHASE-6 TASK 5: a transferred object now REACHES the ingest, at "
            "the level that takes values without provenance";
@@ -670,7 +670,7 @@ TEST(B1Gate, TransferProducedWarmStartIsSeededAndTheB1ClearCarriesToIt) {
     //
     // **THIS ASSERTION IS A GUARD, NOT A MUTATION-SENSITIVE PIN, AND THE
     // DIFFERENCE IS RECORDED RATHER THAN LEFT FOR A LATER READER TO DISCOVER.**
-    // Measured: gating sqp_driver.h's B-1 clear on `warm_state_ingest` instead
+    // Measured: gating sqp_solver.h's B-1 clear on `warm_state_ingest` instead
     // of `warm_ingest` -- i.e. skipping it on the seeded route entirely -- does
     // NOT fail this test. The transferred point's interpolation error across
     // F6's two activity junctions is first-order (tests/test_mesh_transfer.cpp
@@ -724,7 +724,7 @@ struct EqualityControl {
 TEST(B1Gate, EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair) {
     // {HS number, cold majors, warm majors, the objective, x(0)}. MEASURED
     // TWICE -- once with the repaired header and once with HEAD's (0fbdca6)
-    // sqp_driver.h shadowing it, same binary otherwise -- and every field
+    // sqp_solver.h shadowing it, same binary otherwise -- and every field
     // below came back with the IDENTICAL BIT PATTERN both times (checked as
     // %a: HS7 -0x1.bb67ae8a20f7dp+0, HS26 0x1.4130f91e14ceep-39,
     // HS40 -0x1.000000000dfap-2, HS77 0x1.ee9a3dafc1692p-3).
@@ -736,7 +736,7 @@ TEST(B1Gate, EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair) {
     // file exists at this path") has no row for D16 -- so the observation
     // below is quoted in full in this comment, and this comment is the
     // citable record for it in this repository. What was observed: an
-    // on-Apple A/B (pre-repair 0fbdca6 sqp_driver.h shadowing the repaired
+    // on-Apple A/B (pre-repair 0fbdca6 sqp_solver.h shadowing the repaired
     // one, same protocol the origin documents for the MKL measurement)
     // reproduced every field below bit-identically ACROSS THE REPAIR, so the
     // control's PURPOSE -- the repair moves nothing on equality-only models
@@ -822,13 +822,13 @@ TEST(B1Gate, EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair) {
         ASSERT_EQ(0, p.model->mi()) << "this control is equality-only by construction";
         ASSERT_GT(p.model->me(), 0);
 
-        SqpDriver cold(probe_options(StartLevel::kCold));
-        const SqpSolution first = cold.solve(*p.model, p.model->start_point());
+        SqpSolver cold(probe_options(StartLevel::kCold));
+        const SqpResult first = cold.solve(*p.model, p.model->start_point());
         ASSERT_EQ(SolveStatus::kOptimal, first.status);
         EXPECT_EQ(c.cold_majors, first.counters.major_iters);
 
-        SqpDriver warm(probe_options(StartLevel::kWarm));
-        const SqpSolution second = warm.solve(*p.model, first.x, first.warm_start);
+        SqpSolver warm(probe_options(StartLevel::kWarm));
+        const SqpResult second = warm.solve(*p.model, first.x, first.warm_start);
         EXPECT_EQ(StartLevel::kWarm, second.counters.start_level_used);
         EXPECT_EQ(SolveStatus::kOptimal, second.status);
         EXPECT_EQ(c.warm_majors, second.counters.major_iters);
@@ -855,16 +855,16 @@ TEST(B1Gate, EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair) {
 // =====================================================================
 TEST(B1Gate, AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies) {
     B1MinimalRelease model(1.0);
-    SqpDriver cold(probe_options(StartLevel::kCold));
-    const SqpSolution first = cold.solve(model, model.start_point());
+    SqpSolver cold(probe_options(StartLevel::kCold));
+    const SqpResult first = cold.solve(model, model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, first.status);
     ASSERT_NEAR(1.0, first.lambda_i(0), 1e-8) << "a live, strictly positive price";
     ASSERT_NEAR(0.0, model.eval_ci(first.x)(0), 1e-9) << "on a row sitting ON its boundary";
 
     // The SAME p: the ingested point is an exact KKT point of the very problem
     // being posed, so the certificate is genuine and must be issued for free.
-    SqpDriver warm(probe_options(StartLevel::kWarm));
-    const SqpSolution second = warm.solve(model, first.x, first.warm_start);
+    SqpSolver warm(probe_options(StartLevel::kWarm));
+    const SqpResult second = warm.solve(model, first.x, first.warm_start);
     EXPECT_EQ(StartLevel::kWarm, second.counters.start_level_used);
     EXPECT_EQ(SolveStatus::kOptimal, second.status);
     EXPECT_EQ(0, second.counters.major_iters)
@@ -874,8 +874,8 @@ TEST(B1Gate, AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies) {
 
     // And a TIGHTENING move is still caught by feasibility, as it always was.
     model.set_parameters(Vec::Constant(1, 0.5));
-    SqpDriver tighten(probe_options(StartLevel::kWarm));
-    const SqpSolution third = tighten.solve(model, first.x, first.warm_start);
+    SqpSolver tighten(probe_options(StartLevel::kWarm));
+    const SqpResult third = tighten.solve(model, first.x, first.warm_start);
     EXPECT_GT(third.counters.major_iters, 0);
     EXPECT_NEAR(B1MinimalRelease::f_star(0.5), third.f, 1e-7);
 }
@@ -883,7 +883,7 @@ TEST(B1Gate, AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies) {
 // =====================================================================
 // (10) THE GATE'S OWN BOUNDARY. The activity test is `cI_j(x) >= -feas_tol`,
 // reusing feas_tol exactly as evaluate_kkt's at_lower/at_upper do -- no new
-// knob, and the derivation is the one sqp_driver.h already gives for bounds (a
+// knob, and the derivation is the one sqp_solver.h already gives for bounds (a
 // row is "on" its boundary exactly when the primal feasibility measure could
 // not tell it from being on the boundary).
 //
@@ -894,8 +894,8 @@ TEST(B1Gate, AZeroMajorWarmSolveWithALiveInequalityPriceStillCertifies) {
 // =====================================================================
 TEST(B1Gate, TheActivityBoundaryIsFeasTolOnBothSides) {
     B1MinimalRelease model(1.0);
-    SqpDriver cold(probe_options(StartLevel::kCold));
-    const SqpSolution first = cold.solve(model, model.start_point());
+    SqpSolver cold(probe_options(StartLevel::kCold));
+    const SqpResult first = cold.solve(model, model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, first.status);
 
     SqpOptions opts = probe_options();
@@ -903,8 +903,8 @@ TEST(B1Gate, TheActivityBoundaryIsFeasTolOnBothSides) {
     // as geometrically active, the price survives, and the point is certified
     // free -- which is correct, since it is a KKT point to within feas_tol.
     model.set_parameters(Vec::Constant(1, 1.0 + 0.1 * kTol));
-    SqpDriver inside(opts);
-    const SqpSolution s_in = inside.solve(model, first.x, first.warm_start);
+    SqpSolver inside(opts);
+    const SqpResult s_in = inside.solve(model, first.x, first.warm_start);
     EXPECT_EQ(SolveStatus::kOptimal, s_in.status);
     EXPECT_EQ(0, s_in.counters.major_iters) << "within feas_tol of the boundary: still active";
     EXPECT_GT(s_in.lambda_i(0), 0.0);
@@ -912,8 +912,8 @@ TEST(B1Gate, TheActivityBoundaryIsFeasTolOnBothSides) {
     // OUTSIDE it, by 100x: the row is strictly slack, the price is cleared and
     // the solve has to work for its answer.
     model.set_parameters(Vec::Constant(1, 1.0 + 100.0 * kTol));
-    SqpDriver outside(opts);
-    const SqpSolution s_out = outside.solve(model, first.x, first.warm_start);
+    SqpSolver outside(opts);
+    const SqpResult s_out = outside.solve(model, first.x, first.warm_start);
     EXPECT_EQ(SolveStatus::kOptimal, s_out.status);
     EXPECT_GT(s_out.counters.major_iters, 0) << "beyond feas_tol: the stale price is cleared";
     EXPECT_NEAR(B1MinimalRelease::x_star(1.0 + 100.0 * kTol), s_out.x(0), 1e-7);
@@ -927,7 +927,7 @@ TEST(B1Gate, TheActivityBoundaryIsFeasTolOnBothSides) {
 // oracle, exactly as its kWarm twin is, so nothing here rests on the two arms
 // agreeing with each other.
 //
-// WHAT WOULD FAIL HERE. Gating sqp_driver.h's B-1 clear on
+// WHAT WOULD FAIL HERE. Gating sqp_solver.h's B-1 clear on
 // `warm_state_ingest` (kWarm and up) instead of `warm_ingest` (kSeeded and up)
 // -- which is the single most natural way to get this wrong while adding a
 // level below kWarm -- reproduces the pre-repair symptom on every arm below:
@@ -985,16 +985,16 @@ TEST(B1Gate, SeededIngestCarriesTheB1Repair) {
             opts.kkt_tol = 1e-8;
             opts.feas_tol = 1e-8;
             SqpOptions cold_opts = opts;
-            cold_opts.start_level = StartLevel::kCold;
+            cold_opts.common.start_level = StartLevel::kCold;
 
-            SqpDriver cold(cold_opts);
-            const SqpSolution first = cold.solve(model, model.start_point());
+            SqpSolver cold(cold_opts);
+            const SqpResult first = cold.solve(model, model.start_point());
             ASSERT_EQ(SolveStatus::kOptimal, first.status);
-            WarmStart hashless = first.warm_start;
+            SqpWarmStart hashless = first.warm_start;
             hashless.structure_hash = 0;
             model.set_parameters(Vec::Constant(1, p_to));
-            SqpDriver seeded(opts);
-            const SqpSolution second = seeded.solve(model, first.x, hashless);
+            SqpSolver seeded(opts);
+            const SqpResult second = seeded.solve(model, first.x, hashless);
 
             EXPECT_EQ(StartLevel::kSeeded, second.counters.start_level_used);
             ASSERT_EQ(SolveStatus::kOptimal, second.status);
@@ -1024,20 +1024,20 @@ TEST(B1Gate, SeededIngestCarriesTheB1Repair) {
 // =====================================================================
 TEST(B1Gate, ASeededZeroMajorSolveWithALiveInequalityPriceStillCertifies) {
     B1MinimalRelease model(1.0);
-    SqpDriver cold(probe_options(StartLevel::kCold));
-    const SqpSolution first = cold.solve(model, model.start_point());
+    SqpSolver cold(probe_options(StartLevel::kCold));
+    const SqpResult first = cold.solve(model, model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, first.status);
     ASSERT_NEAR(1.0, first.lambda_i(0), 1e-8) << "a live, strictly positive price";
     ASSERT_NEAR(0.0, model.eval_ci(first.x)(0), 1e-9) << "on a row sitting ON its boundary";
 
-    WarmStart hashless = first.warm_start;
+    SqpWarmStart hashless = first.warm_start;
     hashless.structure_hash = 0; // the mesh-transfer / crossover sentinel
     ASSERT_TRUE(hashless.valid);
 
     // The SAME p: the seeded point is an exact KKT point of the very problem
     // being posed, so the certificate is genuine and must be issued for free.
-    SqpDriver seeded(probe_options(StartLevel::kWarm));
-    const SqpSolution second = seeded.solve(model, first.x, hashless);
+    SqpSolver seeded(probe_options(StartLevel::kWarm));
+    const SqpResult second = seeded.solve(model, first.x, hashless);
     EXPECT_EQ(StartLevel::kSeeded, second.counters.start_level_used);
     EXPECT_EQ(1, second.counters.n_seeded);
     EXPECT_EQ(SolveStatus::kOptimal, second.status);
@@ -1051,8 +1051,8 @@ TEST(B1Gate, ASeededZeroMajorSolveWithALiveInequalityPriceStillCertifies) {
 
     // And a TIGHTENING move is still caught by feasibility on this route too.
     model.set_parameters(Vec::Constant(1, 0.5));
-    SqpDriver tighten(probe_options(StartLevel::kWarm));
-    const SqpSolution third = tighten.solve(model, first.x, hashless);
+    SqpSolver tighten(probe_options(StartLevel::kWarm));
+    const SqpResult third = tighten.solve(model, first.x, hashless);
     EXPECT_EQ(StartLevel::kSeeded, third.counters.start_level_used);
     EXPECT_GT(third.counters.major_iters, 0);
     EXPECT_NEAR(B1MinimalRelease::f_star(0.5), third.f, 1e-7);
@@ -1068,7 +1068,7 @@ TEST(B1Gate, ASeededZeroMajorSolveWithALiveInequalityPriceStillCertifies) {
 //
 //     max_j |lambda_i(j) cI_j(x)| <= feas_tol * ||lambda_i||inf,
 //
-// which sqp_driver.h's own note is careful to call a DIFFERENT bound from the
+// which sqp_solver.h's own note is careful to call a DIFFERENT bound from the
 // vanishing one it replaced. What neither note said until now is that the
 // right-hand side has no upper limit: push ||lambda_i|| up and the same
 // "complementary by construction" ingest carries an arbitrarily large
@@ -1162,8 +1162,8 @@ class B1ScaledStalePrice : public NlpModel {
 // the same helper tests/test_warm_start.cpp's seeded arms use. The activity
 // hint is deliberately EMPTY: the B-1 clear and the W1 gate both read GEOMETRY,
 // not the hint, so leaving it out keeps the fixture about the multiplier.
-WarmStart scaled_seed(const Vec &x, double lambda_i0) {
-    WarmStart w;
+SqpWarmStart scaled_seed(const Vec &x, double lambda_i0) {
+    SqpWarmStart w;
     w.x = x;
     w.lambda_e = Vec(0);
     w.lambda_i = Vec::Constant(1, lambda_i0);
@@ -1182,8 +1182,8 @@ TEST(B1Gate, AScaledStalePriceIsRefusedAtIngest) {
     B1ScaledStalePrice model(1e6, 5e-7);
     ASSERT_DOUBLE_EQ(0.5, model.complementarity_at_seed());
 
-    SqpDriver driver(probe_options(StartLevel::kWarm));
-    const SqpSolution sol =
+    SqpSolver driver(probe_options(StartLevel::kWarm));
+    const SqpResult sol =
         driver.solve(model, model.start_point(), scaled_seed(Vec::Zero(1), model.stale_price()));
 
     ASSERT_EQ(StartLevel::kSeeded, sol.counters.start_level_used)
@@ -1203,7 +1203,7 @@ TEST(B1Gate, AScaledStalePriceIsRefusedAtIngest) {
     // half orders better than the ingest's 0.5, and still a hundred times
     // kkt_tol, because the QP lands x a few 1e-10 outside a row priced at 1e6.
     // **SO A GATE APPLIED AT EVERY MAJOR WOULD REFUSE THIS SOLVE'S OWN CORRECT
-    // ANSWER**, which is exactly why sqp_driver.h scopes the conjunct to the
+    // ANSWER**, which is exactly why sqp_solver.h scopes the conjunct to the
     // ingested multipliers: once a subproblem has priced them, the
     // O(||lambda|| ||p||) argument is live and the residual is the step's, not
     // a stale set's.
@@ -1222,8 +1222,8 @@ TEST(B1Gate, TheReportedScaleIsRefusedEvenThoughTheSolveThenRunsOut) {
     B1ScaledStalePrice model(1e12, 5e-7);
     ASSERT_DOUBLE_EQ(5.0e5, model.complementarity_at_seed());
 
-    SqpDriver driver(probe_options(StartLevel::kWarm));
-    const SqpSolution sol =
+    SqpSolver driver(probe_options(StartLevel::kWarm));
+    const SqpResult sol =
         driver.solve(model, model.start_point(), scaled_seed(Vec::Zero(1), model.stale_price()));
 
     ASSERT_EQ(StartLevel::kSeeded, sol.counters.start_level_used);
@@ -1243,18 +1243,18 @@ TEST(B1Gate, TheReportedScaleIsRefusedEvenThoughTheSolveThenRunsOut) {
 // degradation exists and the complementarity conjunct is the only defence.
 TEST(B1Gate, TheScaledStalePriceIsRefusedAtWarmToo) {
     B1ScaledStalePrice model(1e6, 5e-7);
-    SqpDriver cold(probe_options(StartLevel::kCold));
-    const SqpSolution first = cold.solve(model, model.start_point());
+    SqpSolver cold(probe_options(StartLevel::kCold));
+    const SqpResult first = cold.solve(model, model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, first.status);
     ASSERT_TRUE(first.warm_start.valid);
     ASSERT_NE(0u, first.warm_start.structure_hash);
 
-    WarmStart poisoned = first.warm_start;
+    SqpWarmStart poisoned = first.warm_start;
     poisoned.x = Vec::Zero(1);
     poisoned.lambda_i = Vec::Constant(1, model.stale_price());
 
-    SqpDriver warm(probe_options(StartLevel::kWarm));
-    const SqpSolution sol = warm.solve(model, model.start_point(), poisoned);
+    SqpSolver warm(probe_options(StartLevel::kWarm));
+    const SqpResult sol = warm.solve(model, model.start_point(), poisoned);
     EXPECT_EQ(StartLevel::kWarm, sol.counters.start_level_used);
     EXPECT_GT(sol.counters.major_iters, 0) << "pre-W1: zero majors, f = 0";
     EXPECT_NEAR(model.f_star(), sol.f, 1e-3);
@@ -1273,9 +1273,9 @@ TEST(B1Gate, TheComplementarityGateBoundaryIsKktTolOnBothSides) {
         B1ScaledStalePrice model(scale, kEps);
         ASSERT_NEAR(inside ? 5e-7 : 2e-6, model.complementarity_at_seed(), 1e-15);
 
-        SqpDriver driver(probe_options(StartLevel::kWarm));
-        const SqpSolution sol = driver.solve(model, model.start_point(),
-                                             scaled_seed(Vec::Zero(1), model.stale_price()));
+        SqpSolver driver(probe_options(StartLevel::kWarm));
+        const SqpResult sol = driver.solve(model, model.start_point(),
+                                           scaled_seed(Vec::Zero(1), model.stale_price()));
         ASSERT_EQ(StartLevel::kSeeded, sol.counters.start_level_used);
         EXPECT_EQ(SolveStatus::kOptimal, sol.status);
         if (inside) {
@@ -1303,7 +1303,7 @@ TEST(B1Gate, TheComplementarityGateBoundaryIsKktTolOnBothSides) {
 // The Kungurtsev-Diehl full-step watchdog can then RESTORE the ingested
 // (x, lambda_e, lambda_i) wholesale -- and if it does not restore the FLAG with
 // them, the gate is disarmed on precisely the triple it exists to refuse, and
-// the convergence test one screen below certifies it. sqp_driver.h carries
+// the convergence test one screen below certifies it. sqp_solver.h carries
 // `fs_best_duals_ingested` for exactly this; this fixture is what makes that
 // carry a pinned property instead of an unexercised invariant.
 //
@@ -1341,7 +1341,7 @@ TEST(B1Gate, TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers) 
 
     SqpOptions opts = probe_options(StartLevel::kWarm);
     // THE FIXED TRUST REGION -- see the banner. Equal init/max is legal
-    // (SqpDriver validates `tr_max >= tr_init`) and is what makes the
+    // (SqpSolver validates `tr_max >= tr_init`) and is what makes the
     // post-refusal solve outlast kWarmFullStepWindow deterministically.
     opts.tr_init = kTr;
     opts.tr_max = kTr;
@@ -1349,17 +1349,17 @@ TEST(B1Gate, TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers) 
 
     // A hash-CARRYING object, so this ingests at kWarm -- the level at which
     // the full-step window is armed at all (a seeded object never arms it).
-    SqpDriver cold(opts);
-    const SqpSolution first = cold.solve(model, model.start_point());
+    SqpSolver cold(opts);
+    const SqpResult first = cold.solve(model, model.start_point());
     ASSERT_EQ(SolveStatus::kOptimal, first.status);
     ASSERT_NE(0u, first.warm_start.structure_hash);
 
-    WarmStart poisoned = first.warm_start;
+    SqpWarmStart poisoned = first.warm_start;
     poisoned.x = Vec::Zero(1);
     poisoned.lambda_i = Vec::Constant(1, model.stale_price());
 
-    SqpDriver warm(opts);
-    const SqpSolution sol = warm.solve(model, model.start_point(), poisoned);
+    SqpSolver warm(opts);
+    const SqpResult sol = warm.solve(model, model.start_point(), poisoned);
 
     ASSERT_EQ(StartLevel::kWarm, sol.counters.start_level_used);
     // THE MECHANISM, ASSERTED RATHER THAN ASSUMED: the watchdog really did
@@ -1393,7 +1393,7 @@ TEST(B1Gate, TheWatchdogRestoreCarriesTheComplementarityGateWithTheMultipliers) 
 // PHASE-7 TASK 5: THE kSsn ARMS.
 //
 // SqpOptions::qp_mode selects which kernel solves each subproblem
-// (sqp_driver.h's THE SEMISMOOTH-NEWTON TIER note). **NOTHING IN THIS FILE'S
+// (sqp_solver.h's THE SEMISMOOTH-NEWTON TIER note). **NOTHING IN THIS FILE'S
 // SUBJECT MATTER IS KERNEL-SPECIFIC** -- the B-1 geometric clear, the seeded
 // dual clamp and the W1 complementarity gate all run in solve_impl BEFORE the
 // first subproblem is built, and every one of them reads the model and the
@@ -1477,8 +1477,8 @@ TEST(B1Gate, AScaledStalePriceIsRefusedAtIngestUnderKSsn) {
     B1ScaledStalePrice model(1e6, 5e-7);
     ASSERT_DOUBLE_EQ(0.5, model.complementarity_at_seed());
 
-    SqpDriver driver(ssn_probe_options(StartLevel::kWarm));
-    const SqpSolution sol =
+    SqpSolver driver(ssn_probe_options(StartLevel::kWarm));
+    const SqpResult sol =
         driver.solve(model, model.start_point(), scaled_seed(Vec::Zero(1), model.stale_price()));
 
     ASSERT_EQ(StartLevel::kSeeded, sol.counters.start_level_used)
@@ -1521,7 +1521,7 @@ TEST(B1Gate, AScaledStalePriceIsRefusedAtIngestUnderKSsn) {
 // NOT by fb_tol. At ||lambda||inf = 1e6 that bound is 1.0 and the measured 0.63
 // sat inside it. The certificate was intact; it simply certified min(s, lambda),
 // which is a WEAKER quantity than the product the driver's convergence-test note
-// assumes. That note (sqp_driver.h's WHAT IS MEASURED BUT NOT GATED) declines to
+// assumes. That note (sqp_solver.h's WHAT IS MEASURED BUT NOT GATED) declines to
 // gate NLP complementarity on the grounds that the SUBPROBLEM's own
 // complementarity is an EXACT identity -- true of an active-set solve, false of
 // a residual-tolerance one.
@@ -1541,12 +1541,12 @@ TEST(B1Gate, AScaledStalePriceIsRefusedAtIngestUnderKSsn) {
 // =====================================================================
 TEST(B1Gate, KSsnMatchesTheWalksComplementarityOnceTheFaceIsRefined) {
     B1ScaledStalePrice model(1e6, 5e-7);
-    const WarmStart seed = scaled_seed(Vec::Zero(1), model.stale_price());
+    const SqpWarmStart seed = scaled_seed(Vec::Zero(1), model.stale_price());
 
-    SqpDriver walk_driver(probe_options(StartLevel::kWarm));
-    const SqpSolution walk = walk_driver.solve(model, model.start_point(), seed);
-    SqpDriver ssn_driver(ssn_probe_options(StartLevel::kWarm));
-    const SqpSolution ssn = ssn_driver.solve(model, model.start_point(), seed);
+    SqpSolver walk_driver(probe_options(StartLevel::kWarm));
+    const SqpResult walk = walk_driver.solve(model, model.start_point(), seed);
+    SqpSolver ssn_driver(ssn_probe_options(StartLevel::kWarm));
+    const SqpResult ssn = ssn_driver.solve(model, model.start_point(), seed);
 
     ASSERT_EQ(SolveStatus::kOptimal, walk.status);
     ASSERT_EQ(SolveStatus::kOptimal, ssn.status);

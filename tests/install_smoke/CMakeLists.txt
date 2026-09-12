@@ -23,23 +23,23 @@ find_package(hven REQUIRED)
 #
 # That is exactly the property W5 relies on: T4 MOVED the trace sink into a
 # public drivers/ header and split the evidence structs out of the engine
-# header, and T8 renames the four model-layer headers listed below. Both are
-# public-surface changes whose failure mode is "compiles in-tree, does not
-# compile for a consumer".
+# header, and T8.10 renamed the four model-layer headers listed below and both
+# engine headers. Both are public-surface changes whose failure mode is
+# "compiles in-tree, does not compile for a consumer".
 #
 # M6 W5 T8.9: include_nlp_solver.cpp went with the retired NLPSolver wrapper,
 # and the TWO ENGINE HEADERS took its place -- they are what a consumer reaches
-# for now, and T8.10 renames both.
+# for now.
 set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
     include_trace_writer.cpp
     include_trace.cpp
     include_ipqp_evidence.cpp
-    include_nlp_problem.cpp
-    include_nlp_aggregate.cpp
-    include_aggregate_declaration.cpp
-    include_nlp_model_aggregate.cpp
-    include_interior_point_solver.cpp
-    include_sqp_driver.cpp
+    include_nlp_triplet_model.cpp
+    include_nlp_assembly.cpp
+    include_assembly_declaration.cpp
+    include_nlp_model_assembly.cpp
+    include_ipm_solver.cpp
+    include_sqp_solver.cpp
     include_solve_status.cpp
     include_core_solver_status.cpp
     include_common_options.cpp

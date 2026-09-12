@@ -26,12 +26,12 @@
 // problems are in `kSoundWarmArms`.
 //
 // THE MECHANISM IN FOUR LINES, all of them citations rather than claims:
-//   1. sqp_driver.h line ~3126 seeds `lambda_e`/`lambda_i` FROM THE WARM START
+//   1. sqp_solver.h line ~3126 seeds `lambda_e`/`lambda_i` FROM THE WARM START
 //      when a warm ingest resolves -- i.e. from a solve of a DIFFERENT problem.
 //   2. The convergence test (line ~3549) is
 //      `kkt.stationarity <= kkt_tol && kkt.feasibility <= feas_tol`. NLP
 //      complementarity is measured but NOT gated.
-//   3. sqp_driver.h's CONVERGENCE TEST note justified (2) by
+//   3. sqp_solver.h's CONVERGENCE TEST note justified (2) by
 //      "|lambda_i(j) cI_j| = |lambda_i(j) (Ji p)(j)| = O(||lambda_i|| ||p||),
 //      which goes to zero with the step". THAT ARGUMENT PRESUPPOSES A
 //      SUBPROBLEM WAS SOLVED IN THIS SOLVE -- it is an identity about the
@@ -42,7 +42,7 @@
 //      the Lagrangian gradient at the old point, the solve exited kOptimal
 //      having done nothing.
 //
-// THE REPAIR (sqp_driver.h's THE INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY):
+// THE REPAIR (sqp_solver.h's THE INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY):
 // on a warm or hot ingest, any ingested `lambda_i(j)` whose row is not
 // GEOMETRICALLY ACTIVE at the ingested x (`cI_j(x) < -feas_tol`) is set to
 // zero before the first convergence test reads it -- the same distance test,
@@ -114,8 +114,8 @@
 #include <hven/core/ledger.h>
 #include <hven/detail/globalization/sqp/globalization.h>
 #include <hven/detail/warmstart/continuation.h>
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/nlp_model.h>
 #include <hven/qp/qp_types.h>
 
@@ -439,7 +439,7 @@ SqpOptions sweep_options(StartLevel level, bool full_step, bool enable_soc, Inde
     opts.feas_tol = 1e-6;
     opts.max_iter = max_iter;
     opts.adaptive_mu = false;
-    opts.start_level = level;
+    opts.common.start_level = level;
     opts.warm_full_step = full_step;
     opts.enable_soc = enable_soc;
     return opts;
@@ -479,7 +479,7 @@ std::vector<double> spec_grid(const HsSweepSpec &spec) {
 // chain is the thing under test.
 SweepCell run_warm_sweep(const HsSweepSpec &spec, bool full_step, bool enable_soc) {
     auto model = make_hs_sweep(spec.number);
-    SqpDriver driver(sweep_options(StartLevel::kWarm, full_step, enable_soc, spec.max_iter));
+    SqpSolver driver(sweep_options(StartLevel::kWarm, full_step, enable_soc, spec.max_iter));
     Ledger ledger;
     driver.attach_ledger(&ledger, "sweep");
     const auto t0 = std::chrono::steady_clock::now();
@@ -530,14 +530,14 @@ struct ChainPoint {
 std::vector<ChainPoint> run_warm_chain(const HsSweepSpec &spec) {
     auto model = make_hs_sweep(spec.number);
     std::vector<ChainPoint> out;
-    SqpSolution prev;
+    SqpResult prev;
     bool have_prev = false;
     for (double p = spec.p0; p <= spec.p1 + 1e-12; p += spec.dp) {
         model->set_parameters(Vec::Constant(1, p));
         const StartLevel level = have_prev ? StartLevel::kWarm : StartLevel::kCold;
-        SqpDriver driver(sweep_options(level, true, true, spec.max_iter));
-        const SqpSolution sol = have_prev ? driver.solve(*model, prev.x, prev.warm_start)
-                                          : driver.solve(*model, model->start_point());
+        SqpSolver driver(sweep_options(level, true, true, spec.max_iter));
+        const SqpResult sol = have_prev ? driver.solve(*model, prev.x, prev.warm_start)
+                                        : driver.solve(*model, model->start_point());
         ChainPoint pt;
         pt.p = p;
         pt.status = sol.status;
@@ -578,10 +578,10 @@ SweepCell run_cold_grid(const HsSweepSpec &spec, const std::vector<double> &grid
     bool all_optimal = true;
     const auto t0 = std::chrono::steady_clock::now();
     for (std::size_t i = 0; i < grid.size(); ++i) {
-        SqpDriver driver(sweep_options(StartLevel::kCold, full_step, enable_soc, spec.max_iter));
+        SqpSolver driver(sweep_options(StartLevel::kCold, full_step, enable_soc, spec.max_iter));
         driver.attach_ledger(&ledger, fmt::format("cold{}", i));
         model->set_parameters(Vec::Constant(1, grid[i]));
-        const SqpSolution sol = driver.solve(*model, model->start_point());
+        const SqpResult sol = driver.solve(*model, model->start_point());
         all_optimal = all_optimal && sol.status == SolveStatus::kOptimal;
         if (sol.status == SolveStatus::kOptimal) {
             const test_support::NlpKktResidual r = test_support::self_check_kkt(*model, sol, 1e-6);
@@ -1147,7 +1147,7 @@ void check_full_step_lever_on_the_sound_warm_arms() {
 // THE PHASE-3 PRIOR IS CONTRADICTED, and this is the section that does it.
 // docs/notes/2026-07-29-hs-battery-results.md carried forward a "~70 % of SOC
 // re-solves come back kInfeasible" figure from Phase-3 Task 7's own fixtures
-// (sqp_driver.h's own note puts it at 79 % of 19). ZERO of this corpus's
+// (sqp_solver.h's own note puts it at 79 % of 19). ZERO of this corpus's
 // attempts return kInfeasible: every one of them re-solves to kOptimal and is
 // then REJECTED BY THE FUNNEL on the corrected point.
 // ---------------------------------------------------------------------
@@ -1158,7 +1158,7 @@ void check_soc_outcome_partition() {
         applied += c.soc_applied;
         infeasible += c.soc_qp_infeasible;
         rejected += c.soc_rejected;
-        // sqp_types.h's own stated invariant on the partition, re-checked here
+        // sqp_solver_types.h's own stated invariant on the partition, re-checked here
         // per cell rather than only in aggregate.
         EXPECT_EQ(c.soc_steps, c.soc_applied + c.soc_qp_infeasible + c.soc_rejected);
     };
@@ -1279,7 +1279,7 @@ void check_soc_costs_what_it_costs() {
 // on SqpOptions::make_strategy reads them without touching the engine.
 //
 // TWO THINGS MAKE THE READING TRUSTWORTHY:
-//   (a) THE DECORATOR IS RUN ON THE COLD ARM ONLY. sqp_driver.h reaches for
+//   (a) THE DECORATOR IS RUN ON THE COLD ARM ONLY. sqp_solver.h reaches for
 //       `dynamic_cast<FunnelStrategy *>` in THREE places, and a decorator is
 //       not a FunnelStrategy, so each is silently skipped when one is
 //       installed:
@@ -1287,8 +1287,8 @@ void check_soc_costs_what_it_costs() {
 //         :3908  the full-step arming              } unreachable on a cold solve
 //         :5109  make_warm_start's funnel->width() read, which runs on EVERY
 //                exit INCLUDING COLD -- so a decorated cold solve emits a
-//                WarmStart whose funnel_width stays at the unset sentinel.
-//       (Line numbers as of commit d83a8ed; sqp_driver.h has grown before and
+//                SqpWarmStart whose funnel_width stays at the unset sentinel.
+//       (Line numbers as of commit d83a8ed; sqp_solver.h has grown before and
 //       will again -- find the three sites by `dynamic_cast<.*FunnelStrategy`
 //       if these have drifted.)
 //       An earlier version of this comment said "exactly two places" and
@@ -1304,13 +1304,13 @@ void check_soc_costs_what_it_costs() {
 //       (a), is what actually establishes inertness; (a) explains why.
 //
 // PAIRING AN ATTEMPT TO ITS CORRECTED JUDGE CALL uses pred_df: a SOC-corrected
-// judge() reuses the REJECTED trial's own pred_df unchanged (sqp_driver.h's
+// judge() reuses the REJECTED trial's own pred_df unchanged (sqp_solver.h's
 // SECOND-ORDER CORRECTION note, pinned exactly by
 // SqpDriverSoc.SocDefeatsMaratos), while a shrink-and-retry at the same
 // iterate solves a new QP against a different one.
 // ---------------------------------------------------------------------
 // THE THIRD NEAR-IDENTICAL RECORDING STRATEGY IN THE TEST TREE
-// (test_sqp_driver.cpp's RecordingStrategy, test_sqp_restoration.cpp's), and
+// (test_sqp_solver.cpp's RecordingStrategy, test_sqp_restoration.cpp's), and
 // the Task-7 review is right that it belongs in tests/sqp/support/ (M-6). It is
 // left here deliberately: hoisting it means editing two other test files, which
 // is a refactor rather than a fix and does not belong in this task's fix round.
@@ -1349,12 +1349,12 @@ void check_soc_trigger_ratios() {
             opts.make_strategy = [&log]() -> std::unique_ptr<GlobalizationStrategy> {
                 return std::make_unique<RecordingFunnel>(&log);
             };
-            SqpDriver decorated(opts);
-            const SqpSolution sd = decorated.solve(*model, model->start_point());
+            SqpSolver decorated(opts);
+            const SqpResult sd = decorated.solve(*model, model->start_point());
 
             // (b): the decorator is inert on a cold solve. Asserted, not argued.
-            SqpDriver plain(sweep_options(StartLevel::kCold, true, true, spec.max_iter));
-            const SqpSolution sp = plain.solve(*model, model->start_point());
+            SqpSolver plain(sweep_options(StartLevel::kCold, true, true, spec.max_iter));
+            const SqpResult sp = plain.solve(*model, model->start_point());
             ASSERT_EQ(sp.counters.major_iters, sd.counters.major_iters) << spec.name << " p=" << p;
             ASSERT_EQ(sp.counters.qp_minor_iters, sd.counters.qp_minor_iters)
                 << spec.name << " p=" << p;
@@ -1447,12 +1447,12 @@ TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
     opts.feas_tol = 1e-6;
     opts.max_iter = 60;
     opts.adaptive_mu = false;
-    opts.start_level = StartLevel::kWarm;
+    opts.common.start_level = StartLevel::kWarm;
 
     // --- solve at p = 0: the published HS10, solved from its own start point.
     model->set_parameters(Vec::Constant(1, 0.0));
-    SqpDriver d0(opts);
-    const SqpSolution s0 = d0.solve(*model, model->start_point());
+    SqpSolver d0(opts);
+    const SqpResult s0 = d0.solve(*model, model->start_point());
     ASSERT_EQ(SolveStatus::kOptimal, s0.status);
     EXPECT_NEAR(-1.0, s0.f, 1e-6);
     EXPECT_NEAR(1.0, s0.x(1), 1e-6);
@@ -1467,8 +1467,8 @@ TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
     EXPECT_GT(s0.lambda_i(0), 0.0);
 
     // --- the SAME model at p = 0.5, warm-started from that solve.
-    SqpDriver d1(opts);
-    const SqpSolution s1 = d1.solve(*model, s0.x, s0.warm_start);
+    SqpSolver d1(opts);
+    const SqpResult s1 = d1.solve(*model, s0.x, s0.warm_start);
 
     // The warm start WAS ingested -- this is not a silently-cold solve, so the
     // repair is being exercised rather than bypassed.
@@ -1485,13 +1485,13 @@ TEST(HsSweepRepair, WarmSolveOnAReleasedRowNoLongerCertifiesTheOldPoint) {
         << "... whose COMPLEMENTARITY is now at tolerance. Pre-repair this read 0.25: "
            "lambda_i = 0.5 priced against cI = -0.5, on a term the convergence test "
            "does not gate. The repair does not gate it either -- it makes the ingested "
-           "multipliers complementary BY CONSTRUCTION (sqp_driver.h's THE INGESTED "
+           "multipliers complementary BY CONSTRUCTION (sqp_solver.h's THE INGESTED "
            "MULTIPLIERS ARE MADE COMPLEMENTARY), which is what restores the "
            "stationarity/feasibility pair to a complete KKT test at that point.";
 
     // THE TRUTH, from a cold solve of the same problem: x*(0.5) = (0, sqrt(1.5)).
-    SqpDriver d2(sweep_options(StartLevel::kCold, true, true, 60));
-    const SqpSolution s2 = d2.solve(*model, model->start_point());
+    SqpSolver d2(sweep_options(StartLevel::kCold, true, true, 60));
+    const SqpResult s2 = d2.solve(*model, model->start_point());
     ASSERT_EQ(SolveStatus::kOptimal, s2.status);
     EXPECT_NEAR(-std::sqrt(1.5), s2.f, 1e-6);
     const test_support::NlpKktResidual rc = test_support::self_check_kkt(*model, s2, 1e-6);

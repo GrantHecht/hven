@@ -13,7 +13,7 @@
 //
 //   ARMS (5)             what varies is the START, nothing else
 //     cold-each-step     every parameter value solved FROM SCRATCH: a FRESH
-//                        SqpDriver (hence a fresh QpEngine, hence no retained
+//                        SqpSolver (hence a fresh QpEngine, hence no retained
 //                        K0 at all) and the model's own generic start_point(),
 //                        through the 2-arg solve() that has no warm object to
 //                        resolve. Run on the WARM arm's parameter grid. This is
@@ -100,8 +100,8 @@
 //       them redundantly.
 //   M5  the same task's FIX ROUND 1, in the opposite direction: the probe is
 //       re-enabled on the UNEVALUABLE start-point exit (which it must not
-//       cover -- see sqp_driver.h's THE UNEVALUABLE EXIT). Exactly one test
-//       fails, test_sqp_driver.cpp's
+//       cover -- see sqp_solver.h's THE UNEVALUABLE EXIT). Exactly one test
+//       fails, test_sqp_solver.cpp's
 //       UnevaluableStartPointEmitsAColdHandOffSoARetryIsHonoured, and nothing
 //       in THIS file moves -- that exit is unreachable in this corpus, which
 //       is why the scope error survived the battery and had to be caught by
@@ -274,8 +274,8 @@
 #include <hven/core/ledger.h>
 #include <hven/detail/warmstart/continuation.h>
 #include <hven/detail/warmstart/warm_start.h>
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 
 #include "support/parametric_families.h"
 #include "support/scale_problems.h"
@@ -472,7 +472,7 @@ SqpOptions battery_options(StartLevel level, bool full_step) {
     opts.feas_tol = 1e-8;
     opts.max_iter = 60;
     opts.adaptive_mu = false;
-    opts.start_level = level;
+    opts.common.start_level = level;
     opts.warm_full_step = full_step;
     return opts;
 }
@@ -492,7 +492,7 @@ CellStats run_sweep(Model &model, const Vec &p0, const Vec &p1, StartLevel level
     if (tune) {
         sopts = tune(sopts);
     }
-    SqpDriver driver(sopts);
+    SqpSolver driver(sopts);
     Ledger ledger;
     driver.attach_ledger(&ledger, "sweep");
     ContinuationOptions copts = base;
@@ -521,10 +521,10 @@ CellStats run_cold_grid(Model &model, const std::vector<Vec> &grid, bool full_st
     bool all_optimal = true;
     const auto t0 = std::chrono::steady_clock::now();
     for (std::size_t i = 0; i < grid.size(); ++i) {
-        SqpDriver driver(battery_options(StartLevel::kCold, full_step));
+        SqpSolver driver(battery_options(StartLevel::kCold, full_step));
         driver.attach_ledger(&ledger, fmt::format("cold{}", i));
         model.set_parameters(grid[i]);
-        const SqpSolution sol = driver.solve(model, model.start_point());
+        const SqpResult sol = driver.solve(model, model.start_point());
         all_optimal = all_optimal && sol.status == SolveStatus::kOptimal;
         ContinuationStep st;
         st.p = grid[i];
@@ -738,7 +738,7 @@ void check_ledger_agrees_with_the_driver() {
 // resolved kCold on 4 of its 5 solves and F3stress/warm+pred on 2 of 5,
 // because a step that converged at ZERO majors emitted a hand-off carrying
 // structure_hash == 0 and the next solve read that sentinel as a mismatch.
-// sqp_driver.h's make_warm_start now probes the model's structure on exactly
+// sqp_solver.h's make_warm_start now probes the model's structure on exactly
 // those exits (see TEST(WarmStartBattery, ZeroMajorStepKeepsTheWarmStartChain)
 // for the mechanism, isolated from any sweep), so EVERY arm now chains
 // perfectly and the predicted arm is checked by the same loop as the others
@@ -1173,9 +1173,10 @@ void check_full_step_is_neutral() {
             const CellStats &on = f.cell[0][a];
             EXPECT_GT(on.full_step_majors, 0) << f.name << " / " << arm_name(a)
                                               << ": full-step mode never engaged" << corpus_table();
-            EXPECT_LE(on.full_step_majors, on.majors) << "sqp_types.h: <= major_iters always";
+            EXPECT_LE(on.full_step_majors, on.majors)
+                << "sqp_solver_types.h: <= major_iters always";
         }
-        // A cold solve cannot arm it -- sqp_types.h's "IT CANNOT AFFECT a cold
+        // A cold solve cannot arm it -- sqp_solver_types.h's "IT CANNOT AFFECT a cold
         // solve" clause, which the cold arm gets to pin for free.
         EXPECT_EQ(f.cell[0][kArmCold].full_step_majors, 0) << f.name;
     }
@@ -1432,14 +1433,14 @@ TEST(WarmStartBattery, Corpus) {
 // than about a trajectory. It runs no part of the grid, so it is cheap enough
 // to keep as its own test.
 //
-// WHAT IT USED TO PIN (Task 13, the defect). sqp_driver.h's make_warm_start
+// WHAT IT USED TO PIN (Task 13, the defect). sqp_solver.h's make_warm_start
 // ended with
 //
 //     w.structure_hash = qp_built ? detail::structural_hash(qp) : 0;
 //
 // and `qp_built` is false on a solve that CONVERGED IMMEDIATELY (the
 // convergence test fires before the first subproblem is built, so
-// major_iters == 0 -- sqp_types.h). The WarmStart such a solve returned was
+// major_iters == 0 -- sqp_solver_types.h). The SqpWarmStart such a solve returned was
 // `valid` but carried structure_hash == 0, which the ingest rule reads as
 // warm_start.h's hash-0 sentinel (then documented as "never computed"; since
 // the repair, "no model was seen") and degrades to kCold -- so a
@@ -1458,18 +1459,18 @@ TEST(WarmStartBattery, Corpus) {
 // ---------------------------------------------------------------------
 TEST(WarmStartBattery, ZeroMajorStepKeepsTheWarmStartChain) {
     F1BoxQp model(0.5);
-    SqpDriver driver(battery_options(StartLevel::kWarm, true));
+    SqpSolver driver(battery_options(StartLevel::kWarm, true));
 
     // Solve 1: an ordinary cold solve. It builds a subproblem, so its
     // hand-off carries a real structure hash.
-    const SqpSolution s1 = driver.solve(model, model.start_point());
+    const SqpResult s1 = driver.solve(model, model.start_point());
     ASSERT_EQ(s1.status, SolveStatus::kOptimal);
     ASSERT_EQ(s1.counters.major_iters, 1) << "F1 is a QP: one subproblem is the whole problem";
     ASSERT_NE(s1.warm_start.structure_hash, 0u);
 
     // Solve 2: re-solve at the SAME p from that hand-off. It ingests warm and
     // converges before building anything.
-    const SqpSolution s2 = driver.solve(model, s1.warm_start.x, s1.warm_start);
+    const SqpResult s2 = driver.solve(model, s1.warm_start.x, s1.warm_start);
     ASSERT_EQ(s2.status, SolveStatus::kOptimal);
     ASSERT_EQ(s2.counters.start_level_used, StartLevel::kWarm);
     ASSERT_EQ(s2.counters.major_iters, 0) << "already at x*(p): the convergence test fires first";
@@ -1487,7 +1488,7 @@ TEST(WarmStartBattery, ZeroMajorStepKeepsTheWarmStartChain) {
     // point or the options changed, and now nothing about the hand-off does
     // either. (kWarm exactly, not merely >= kWarm: battery_options caps the
     // level there.)
-    const SqpSolution s3 = driver.solve(model, s2.warm_start.x, s2.warm_start);
+    const SqpResult s3 = driver.solve(model, s2.warm_start.x, s2.warm_start);
     EXPECT_EQ(s3.counters.start_level_used, StartLevel::kWarm)
         << "THE PIN: a zero-major solve's hand-off is accepted by the very next solve";
     EXPECT_EQ(s3.status, SolveStatus::kOptimal);
@@ -1988,7 +1989,7 @@ TEST(ScaleF7Slow, F7ProposalFailureEconomics) {
 // src/bindings/solvers/optimization_problem_bind.cpp at this task's HEAD).
 // `return_vars` returns the PRIMAL VECTOR AND NOTHING ELSE; the IPM binding
 // itself exposes settings and run info, never a multiplier vector. So there is
-// no way, today, to get a real IPM dual into a WarmStart from Python, and
+// no way, today, to get a real IPM dual into a SqpWarmStart from Python, and
 // the bridge's own `--dump-solution` format carries x alone.
 //
 // WHAT THIS CELL DOES INSTEAD, and why it is still the right measurement:
@@ -2029,8 +2030,8 @@ TEST(WarmStartBattery, CrossoverChainOnTheBridgeFamilyBeatsCold) {
     // ---- the reference: a converged solve, standing in for the point an IP
     // method would have driven to. ----
     F7CollocationChain ref_model = make();
-    SqpDriver ref_driver(battery_options(StartLevel::kCold, /*full_step=*/false));
-    const SqpSolution ref = ref_driver.solve(ref_model, ref_model.start_point());
+    SqpSolver ref_driver(battery_options(StartLevel::kCold, /*full_step=*/false));
+    const SqpResult ref = ref_driver.solve(ref_model, ref_model.start_point());
     ASSERT_EQ(ref.status, SolveStatus::kOptimal);
     ASSERT_EQ(ref_model.n(), 500) << "the bridge's sweep_n100 shape";
     ASSERT_GT(ref.lambda_i.maxCoeff(), 0.0) << "F7's path window is active at p = 0.9";
@@ -2121,7 +2122,7 @@ TEST(WarmStartBattery, CrossoverChainOnTheBridgeFamilyBeatsCold) {
         const Vec z_lower = Vec::Zero(nx);
         const Vec z_upper = Vec::Zero(nx);
 
-        const WarmStart crossover =
+        const SqpWarmStart crossover =
             from_interior_point(x_ip, ref.lambda_e, ref.lambda_i, slack_i, z_lower, z_upper,
                                 ref_model.lower(), ref_model.upper(), ip_opts);
         ASSERT_TRUE(crossover.valid);
@@ -2133,13 +2134,13 @@ TEST(WarmStartBattery, CrossoverChainOnTheBridgeFamilyBeatsCold) {
         // ---- ARM A (kCold): the same point, as a bare x0. This is exactly
         // what the chain could deliver through Phase 5. ----
         F7CollocationChain cold_model = make();
-        SqpDriver cold_driver(battery_options(StartLevel::kCold, /*full_step=*/false));
-        const SqpSolution cold = cold_driver.solve(cold_model, crossover.x);
+        SqpSolver cold_driver(battery_options(StartLevel::kCold, /*full_step=*/false));
+        const SqpResult cold = cold_driver.solve(cold_model, crossover.x);
 
         // ---- ARM B (kSeeded): the whole object. ----
         F7CollocationChain seeded_model = make();
-        SqpDriver seeded_driver(battery_options(StartLevel::kWarm, /*full_step=*/false));
-        const SqpSolution seeded = seeded_driver.solve(seeded_model, crossover.x, crossover);
+        SqpSolver seeded_driver(battery_options(StartLevel::kWarm, /*full_step=*/false));
+        const SqpResult seeded = seeded_driver.solve(seeded_model, crossover.x, crossover);
 
         table += fmt::format(
             "  {:8g}  cold     {:6}  {:6}  {:6}  {:6}\n"

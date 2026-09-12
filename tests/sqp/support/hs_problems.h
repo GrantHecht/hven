@@ -1960,13 +1960,13 @@ class Hs43Model : public NlpModel {
 // THE PUBLISHED START POINT IS BOUND-INFEASIBLE (x1 = 2 against x1 <= 1), and
 // it is used unchanged: the driver's subproblem box is l - x .. u - x, so the
 // first trial's p1 is pinned into [-2, -1] and the iterate is pulled inside
-// the box by construction (sqp_driver.h's feasibility note). That is worth
+// the box by construction (sqp_solver.h's feasibility note). That is worth
 // exercising rather than papering over.
 //
 // THE SOLUTION IS A PURE VERTEX -- all five bounds active, no general
 // constraints at all -- so the entire KKT residual is carried by the bound
 // multiplier z, which makes this the battery's sharpest test of the
-// model-implied z that SqpSolution reports.
+// model-implied z that SqpResult reports.
 //
 // vanderbei .../hs/hs045.mod starts instead at x = 0, which is a WORSE trap
 // than the published point: at the origin every partial derivative of a

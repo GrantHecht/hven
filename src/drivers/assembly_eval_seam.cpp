@@ -2,13 +2,13 @@
 // (see LICENSE).
 
 // The consumer-side binding's claim pass and its evaluation moments. The
-// contract text it implements against is model/nlp_aggregate.h; the moments it
-// reproduces are the free functions in drivers/sqp_driver.h, which this TU
+// contract text it implements against is model/nlp_assembly.h; the moments it
+// reproduces are the free functions in drivers/sqp_solver.h, which this TU
 // includes for NlpEval (see the seam header's NOT SELF-CONTAINED note).
 
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 
-#include "hven/detail/drivers/aggregate_eval_seam.h"
+#include "hven/detail/drivers/assembly_eval_seam.h"
 
 #include <algorithm>
 #include <array>
@@ -64,7 +64,7 @@ void require_locations_within(const int *locations, std::size_t count,
     for (std::size_t slot = 0; slot < count; ++slot) {
         if (locations[slot] >= destination_length) {
             throw std::invalid_argument(
-                fmt::format("AggregateEvalSeam: the {0}'s slot {1} names location {2}, but the "
+                fmt::format("AssemblyEvalSeam: the {0}'s slot {1} names location {2}, but the "
                             "destination it is bound to is {3} long",
                             table, slot, locations[slot], destination_length));
         }
@@ -109,13 +109,13 @@ DomainClaims read_claims(Eigen::Ref<const Eigen::VectorXi> stream_rows,
         const int col = stream_cols[slot];
         if (row < 0 || row >= matrix_rows || col < 0 || col >= matrix_cols) {
             throw std::invalid_argument(
-                fmt::format("AggregateEvalSeam: claim slot {0} names ({1}, {2}) in the {3} block, "
+                fmt::format("AssemblyEvalSeam: claim slot {0} names ({1}, {2}) in the {3} block, "
                             "which this aggregate declares as {4} x {5}",
                             slot, row, col, domain, matrix_rows, matrix_cols));
         }
         if (upper_triangle && row > col) {
             throw std::invalid_argument(
-                fmt::format("AggregateEvalSeam: claim slot {0} names ({1}, {2}) in the {3} block, "
+                fmt::format("AssemblyEvalSeam: claim slot {0} names ({1}, {2}) in the {3} block, "
                             "below the diagonal; the assembled Hessian is the upper triangle only",
                             slot, row, col, domain));
         }
@@ -144,7 +144,7 @@ DomainClaims read_claims(Eigen::Ref<const Eigen::VectorXi> stream_rows,
 /// A stream that names one coordinate twice within a domain is refused here,
 /// and that refusal is this consumer declaring what it supports -- not Level 2
 /// prohibiting anything. A claim stream is free to be non-injective on
-/// coordinates (see nlp_aggregate.h's CLAIM EXCLUSIVITY paragraph: a slot is
+/// coordinates (see nlp_assembly.h's CLAIM EXCLUSIVITY paragraph: a slot is
 /// not a coordinate), and resolving several slots onto one destination is the
 /// consumer's to choose. This one chose not to: it lays exactly one arena slot
 /// per stored pattern element and publishes a domain by copying that
@@ -186,7 +186,7 @@ void build_domain(const DomainClaims &claims, const ClaimBlock &block, int matri
 
     if (static_cast<int>(pattern.nonZeros()) != count) {
         throw std::invalid_argument(fmt::format(
-            "AggregateEvalSeam: the {0} block's {1} claims name only {2} distinct coordinates. "
+            "AssemblyEvalSeam: the {0} block's {1} claims name only {2} distinct coordinates. "
             "This seam supports injective claim streams: it lays one arena slot per stored "
             "pattern element and publishes the domain by copying that segment onto the pattern's "
             "value array, so a coordinate named twice has one offset for two claims. A "
@@ -203,7 +203,7 @@ void build_domain(const DomainClaims &claims, const ClaimBlock &block, int matri
             if (static_cast<int>(it.row()) != claims.rows_[claim] ||
                 static_cast<int>(it.col()) != claims.cols_[claim]) {
                 throw std::invalid_argument(fmt::format(
-                    "AggregateEvalSeam: the {0} block's sorted claim order does not reproduce its "
+                    "AssemblyEvalSeam: the {0} block's sorted claim order does not reproduce its "
                     "own pattern -- position {1} holds ({2}, {3}) but the sorted claim there is "
                     "({4}, {5})",
                     domain, position, it.row(), it.col(), claims.rows_[claim],
@@ -219,11 +219,11 @@ void build_domain(const DomainClaims &claims, const ClaimBlock &block, int matri
 
 } // namespace
 
-AggregateEvalSeam::AggregateEvalSeam(ClaimStreamSource &aggregate) : aggregate_(&aggregate) {
+AssemblyEvalSeam::AssemblyEvalSeam(ClaimStreamSource &aggregate) : aggregate_(&aggregate) {
     this->lay();
 }
 
-void AggregateEvalSeam::lay() {
+void AssemblyEvalSeam::lay() {
     // THE EPOCH IS READ FIRST, before a single structure is. The contract's
     // ordering guarantee makes the bump the last thing a re-lay does, so an
     // epoch read before the structures can only be STALE relative to them --
@@ -239,7 +239,7 @@ void AggregateEvalSeam::lay() {
     // relay_if_stale would never re-lay them again.
     const StructureEpoch epoch_read_before_structures = aggregate_->structure_epoch();
 
-    const AggregateDeclaration &declared = aggregate_->declaration();
+    const AssemblyDeclaration &declared = aggregate_->declaration();
 
     // THE INSTALLED W0.2 FACTORS ARE INDEXED BY ROW, and a re-lay that changes a
     // row count would leave every apply site reading past the end of a factor
@@ -253,7 +253,7 @@ void AggregateEvalSeam::lay() {
     if (scaling_.active && (scaling_.eq_rows.size() != declared.equality_rows_ ||
                             scaling_.ineq_rows.size() != declared.inequality_rows_)) {
         throw std::invalid_argument(fmt::format(
-            "AggregateEvalSeam: the aggregate re-laid to ({}, {}) constraint rows while a problem "
+            "AssemblyEvalSeam: the aggregate re-laid to ({}, {}) constraint rows while a problem "
             "scaling sized for ({}, {}) was installed; the factors are fixed for a solve and "
             "cannot describe rows that changed under them",
             declared.equality_rows_, declared.inequality_rows_, scaling_.eq_rows.size(),
@@ -291,20 +291,20 @@ void AggregateEvalSeam::lay() {
     // count is refused here rather than silently becoming a different number.
     if (stream_rows.size() > static_cast<Eigen::Index>(std::numeric_limits<int>::max())) {
         throw std::invalid_argument(
-            fmt::format("AggregateEvalSeam: the claim stream publishes {0} slots, more than this "
+            fmt::format("AssemblyEvalSeam: the claim stream publishes {0} slots, more than this "
                         "seam can address",
                         stream_rows.size()));
     }
     const int total_claims = static_cast<int>(stream_rows.size());
     if (stream_cols.size() > static_cast<Eigen::Index>(std::numeric_limits<int>::max())) {
         throw std::invalid_argument(
-            fmt::format("AggregateEvalSeam: the claim stream publishes {0} columns, more than "
+            fmt::format("AssemblyEvalSeam: the claim stream publishes {0} columns, more than "
                         "this seam can address",
                         stream_cols.size()));
     }
     if (static_cast<int>(stream_cols.size()) != total_claims) {
         throw std::invalid_argument(
-            fmt::format("AggregateEvalSeam: the claim stream publishes {0} rows and {1} columns",
+            fmt::format("AssemblyEvalSeam: the claim stream publishes {0} rows and {1} columns",
                         total_claims, stream_cols.size()));
     }
     // THE WHOLE BLOCK SCAN IS ARITHMETIC ON PROVIDER-SUPPLIED INTS, so it is
@@ -331,7 +331,7 @@ void AggregateEvalSeam::lay() {
     for (const auto &[domain, block] : declared_blocks) {
         if (block->start_ < 0 || block->count_ < 0) {
             throw std::invalid_argument(
-                fmt::format("AggregateEvalSeam: the {0} block reports start {1} and count {2}; "
+                fmt::format("AssemblyEvalSeam: the {0} block reports start {1} and count {2}; "
                             "neither may be negative",
                             domain, block->start_, block->count_));
         }
@@ -342,8 +342,8 @@ void AggregateEvalSeam::lay() {
                                  static_cast<std::int64_t>(inequality_jacobian_.count_);
     if (covered != static_cast<std::int64_t>(total_claims)) {
         throw std::invalid_argument(fmt::format(
-            "AggregateEvalSeam: the three claim blocks cover {0} of the stream's {1} slots",
-            covered, total_claims));
+            "AssemblyEvalSeam: the three claim blocks cover {0} of the stream's {1} slots", covered,
+            total_claims));
     }
 
     // WHAT THE THREE BLOCKS MUST BE, and what they need not be. The arena is one
@@ -372,7 +372,7 @@ void AggregateEvalSeam::lay() {
         // representable, while the sum need not be.
         if (block->start_ > total_claims - block->count_) {
             throw std::invalid_argument(fmt::format(
-                "AggregateEvalSeam: the {0} block names slots [{1}, {2}) of a "
+                "AssemblyEvalSeam: the {0} block names slots [{1}, {2}) of a "
                 "claim stream {3} slots long",
                 domain, block->start_, static_cast<std::int64_t>(block->start_) + block->count_,
                 total_claims));
@@ -412,7 +412,7 @@ void AggregateEvalSeam::lay() {
             const int current_end = current.second->start_ + current.second->count_;
             if (following.second->start_ < current_end) {
                 throw std::invalid_argument(fmt::format(
-                    "AggregateEvalSeam: the {0} block names slots [{1}, {2}) and the {3} block "
+                    "AssemblyEvalSeam: the {0} block names slots [{1}, {2}) and the {3} block "
                     "names [{4}, {5}); the three blocks must be pairwise disjoint",
                     current.first, current.second->start_, current_end, following.first,
                     following.second->start_, following.second->start_ + following.second->count_));
@@ -488,10 +488,10 @@ void AggregateEvalSeam::lay() {
     epoch_at_lay_ = epoch_read_before_structures;
 }
 
-void AggregateEvalSeam::require_bundle_matches_layout(const NlpEval &ev, const char *moment) const {
+void AssemblyEvalSeam::require_bundle_matches_layout(const NlpEval &ev, const char *moment) const {
     auto refuse = [&](const char *block, const std::string &held, const std::string &declared) {
         throw std::invalid_argument(
-            fmt::format("AggregateEvalSeam::{0}: the bundle's {1} is {2}, but these structures "
+            fmt::format("AssemblyEvalSeam::{0}: the bundle's {1} is {2}, but these structures "
                         "declare {3}. Row counts are frozen across a solve, so this bundle was "
                         "taken before a re-lay that changed one and must be re-taken",
                         moment, block, held, declared));
@@ -518,13 +518,13 @@ void AggregateEvalSeam::require_bundle_matches_layout(const NlpEval &ev, const c
     }
 }
 
-void AggregateEvalSeam::relay_if_stale() {
+void AssemblyEvalSeam::relay_if_stale() {
     if (aggregate_->structure_epoch() != epoch_at_lay_) {
         this->lay();
     }
 }
 
-KktScatterView AggregateEvalSeam::kkt_view() {
+KktScatterView AssemblyEvalSeam::kkt_view() {
     KktScatterView view;
     view.values_ = arena_.data();
     view.size_ = static_cast<int>(arena_.size());
@@ -532,7 +532,7 @@ KktScatterView AggregateEvalSeam::kkt_view() {
     return view;
 }
 
-RhsArenaView AggregateEvalSeam::gradient_view() {
+RhsArenaView AssemblyEvalSeam::gradient_view() {
     RhsArenaView view;
     view.values_ = gradient_arena_.data();
     view.size_ = static_cast<int>(gradient_arena_.size());
@@ -540,14 +540,14 @@ RhsArenaView AggregateEvalSeam::gradient_view() {
     return view;
 }
 
-void AggregateEvalSeam::seed_kkt_segment(const ClaimBlock &block) {
+void AssemblyEvalSeam::seed_kkt_segment(const ClaimBlock &block) {
     if (block.count_ > 0) {
         arena_.segment(block.start_, block.count_).setConstant(kArenaSeed);
     }
 }
 
-void AggregateEvalSeam::publish_matrix(const ClaimBlock &block, const SpMatRM &pattern,
-                                       SpMatRM &out) const {
+void AssemblyEvalSeam::publish_matrix(const ClaimBlock &block, const SpMatRM &pattern,
+                                      SpMatRM &out) const {
     out = pattern;
     if (block.count_ > 0) {
         Eigen::Map<Vec>(out.valuePtr(), block.count_) = arena_.segment(block.start_, block.count_);
@@ -568,7 +568,7 @@ void AggregateEvalSeam::publish_matrix(const ClaimBlock &block, const SpMatRM &p
 // done -- which is what the OFF-path bit-identity pin asserts.
 // ===========================================================================
 
-void AggregateEvalSeam::install_scaling(detail::ProblemScaling scaling) {
+void AssemblyEvalSeam::install_scaling(detail::ProblemScaling scaling) {
     if (scaling.active) {
         // Sized against THIS seam's laid row counts, because that is what every
         // apply site indexes against. A mismatch is a caller error and is
@@ -578,7 +578,7 @@ void AggregateEvalSeam::install_scaling(detail::ProblemScaling scaling) {
         if (scaling.eq_rows.size() != equality_rows_ ||
             scaling.ineq_rows.size() != inequality_rows_) {
             throw std::invalid_argument(fmt::format(
-                "AggregateEvalSeam::install_scaling: factor blocks are ({}, {}) but this seam is "
+                "AssemblyEvalSeam::install_scaling: factor blocks are ({}, {}) but this seam is "
                 "laid for ({}, {}) constraint rows",
                 scaling.eq_rows.size(), scaling.ineq_rows.size(), equality_rows_,
                 inequality_rows_));
@@ -587,7 +587,7 @@ void AggregateEvalSeam::install_scaling(detail::ProblemScaling scaling) {
     scaling_ = std::move(scaling);
 }
 
-void AggregateEvalSeam::scale_jacobian_rows(const Vec &factors, SpMatRM &jac) {
+void AssemblyEvalSeam::scale_jacobian_rows(const Vec &factors, SpMatRM &jac) {
     // ROW-MAJOR is what makes this one pass with no indirection: a row's stored
     // entries are contiguous in the outer index, so the factor is loaded once
     // per row rather than once per entry.
@@ -599,7 +599,7 @@ void AggregateEvalSeam::scale_jacobian_rows(const Vec &factors, SpMatRM &jac) {
     }
 }
 
-void AggregateEvalSeam::scale_values(NlpEval &ev) const {
+void AssemblyEvalSeam::scale_values(NlpEval &ev) const {
     if (!scaling_.active) {
         return;
     }
@@ -612,7 +612,7 @@ void AggregateEvalSeam::scale_values(NlpEval &ev) const {
     }
 }
 
-void AggregateEvalSeam::scale_derivatives(NlpEval &ev, bool include_gradient) const {
+void AssemblyEvalSeam::scale_derivatives(NlpEval &ev, bool include_gradient) const {
     if (!scaling_.active) {
         return;
     }
@@ -627,7 +627,7 @@ void AggregateEvalSeam::scale_derivatives(NlpEval &ev, bool include_gradient) co
     }
 }
 
-void AggregateEvalSeam::to_caller_scale(NlpEval &ev) const {
+void AssemblyEvalSeam::to_caller_scale(NlpEval &ev) const {
     if (!scaling_.active) {
         return;
     }
@@ -653,15 +653,15 @@ void AggregateEvalSeam::to_caller_scale(NlpEval &ev) const {
     }
 }
 
-void AggregateEvalSeam::assemble_hessian(const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
-                                         double obj_scale) {
+void AssemblyEvalSeam::assemble_hessian(const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
+                                        double obj_scale) {
     this->seed_kkt_segment(hessian_);
     RhsScatterView rhs;
     aggregate_->assemble(CandidatePoint{x, lambda_e, lambda_i, obj_scale},
                          kRequestLagrangianHessian, this->kkt_view(), rhs);
 }
 
-void AggregateEvalSeam::assemble_gradient_and_jacobians(const Vec &x) {
+void AssemblyEvalSeam::assemble_gradient_and_jacobians(const Vec &x) {
     this->seed_kkt_segment(equality_jacobian_);
     this->seed_kkt_segment(inequality_jacobian_);
     gradient_arena_.setConstant(gradient_arena_.size(), kArenaSeed);
@@ -676,7 +676,7 @@ void AggregateEvalSeam::assemble_gradient_and_jacobians(const Vec &x) {
                          kRequestGradientAndJacobians, this->kkt_view(), rhs);
 }
 
-void AggregateEvalSeam::assemble_jacobians(const Vec &x) {
+void AssemblyEvalSeam::assemble_jacobians(const Vec &x) {
     this->seed_kkt_segment(equality_jacobian_);
     this->seed_kkt_segment(inequality_jacobian_);
     const Vec no_multipliers;
@@ -685,13 +685,13 @@ void AggregateEvalSeam::assemble_jacobians(const Vec &x) {
                          kRequestConstraintJacobiansOnly, this->kkt_view(), rhs);
 }
 
-NlpEval AggregateEvalSeam::eval_nlp(const Vec &x, const Vec &, const Vec &) {
+NlpEval AssemblyEvalSeam::eval_nlp(const Vec &x, const Vec &, const Vec &) {
     this->relay_if_stale();
 
     NlpEval ev;
     ev.ce.resize(equality_rows_);
     ev.ci.resize(inequality_rows_);
-    // The values half. The candidate entry ASSIGNS (model/nlp_aggregate.h), so
+    // The values half. The candidate entry ASSIGNS (model/nlp_assembly.h), so
     // these three blocks need no seeding, and the point's multiplier blocks are
     // legally empty on a values path.
     const Vec no_multipliers;
@@ -721,7 +721,7 @@ NlpEval AggregateEvalSeam::eval_nlp(const Vec &x, const Vec &, const Vec &) {
     return ev;
 }
 
-NlpEval AggregateEvalSeam::eval_nlp_values(const Vec &x) {
+NlpEval AssemblyEvalSeam::eval_nlp_values(const Vec &x) {
     this->relay_if_stale();
 
     NlpEval ev;
@@ -745,7 +745,7 @@ NlpEval AggregateEvalSeam::eval_nlp_values(const Vec &x) {
     return ev;
 }
 
-void AggregateEvalSeam::refresh_derivatives(NlpEval &ev, const Vec &x) {
+void AssemblyEvalSeam::refresh_derivatives(NlpEval &ev, const Vec &x) {
     this->relay_if_stale();
     this->require_bundle_matches_layout(ev, "refresh_derivatives");
 
@@ -763,7 +763,7 @@ void AggregateEvalSeam::refresh_derivatives(NlpEval &ev, const Vec &x) {
     ev.all_finite = ev.all_finite && ev.grad.allFinite();
 }
 
-void AggregateEvalSeam::jacobians_only(NlpEval &ev, const Vec &x) {
+void AssemblyEvalSeam::jacobians_only(NlpEval &ev, const Vec &x) {
     this->relay_if_stale();
     this->require_bundle_matches_layout(ev, "jacobians_only");
 
@@ -779,8 +779,8 @@ void AggregateEvalSeam::jacobians_only(NlpEval &ev, const Vec &x) {
     this->scale_derivatives(ev, /*include_gradient=*/false);
 }
 
-QpProblem AggregateEvalSeam::build_subproblem(const NlpEval &ev, const Vec &x, const Vec &lambda_e,
-                                              const Vec &lambda_i, double obj_scale) {
+QpProblem AssemblyEvalSeam::build_subproblem(const NlpEval &ev, const Vec &x, const Vec &lambda_e,
+                                             const Vec &lambda_i, double obj_scale) {
     this->relay_if_stale();
     this->require_bundle_matches_layout(ev, "build_subproblem");
 

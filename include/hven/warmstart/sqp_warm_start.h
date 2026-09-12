@@ -5,7 +5,7 @@
 
 // sqp_warm_start.h -- SqpWarmStart, the SQP engine's OWN native warm-start
 // value object, and the public home of what was
-// `detail/warmstart/warm_start.h::WarmStart` up to M6 W5 T8.5.
+// `detail/warmstart/warm_start.h::SqpWarmStart` up to M6 W5 T8.5.
 //
 // TWO IDENTITIES, ONE PROTOCOL (design 2.4). The shared, cross-engine
 // currency is `warmstart/warm_start_data.h::WarmStartData` -- a declared-space
@@ -15,7 +15,7 @@
 // identity: the SQP's own native object, which is not a payload, carries no
 // declaration stamp, is never serialized, and reaches the engine only through
 // the LABELLED SQP-ONLY entry
-// `SqpResult SqpDriver::solve(NlpModelAggregate &, const Vec &x0,
+// `SqpResult SqpSolver::solve(NlpModelAssembly &, const Vec &x0,
 //                             const SqpWarmStart &, SolveBudget)`
 // (and its `NlpModel &` twin). It is the exact counterpart of the IPM-only
 // KKT hook: one engine-only extension per engine, labelled here and in the
@@ -30,14 +30,14 @@
 // resolves kWarm; a match plus a live hot handle resolves kHot subject to the
 // backend's own reuse checks.
 //
-// `WarmStart` remains a spelling of this type -- `detail/warmstart/
-// warm_start.h` keeps `using WarmStart = SqpWarmStart;` until T8.10 rewrites
+// `SqpWarmStart` remains a spelling of this type -- `detail/warmstart/
+// warm_start.h` keeps `using SqpWarmStart = SqpWarmStart;` until T8.10 rewrites
 // the call sites -- so every existing producer and consumer is unaffected.
 //
 // WHAT THE OBJECT IS (carried verbatim from its old home):
 //
-// SqpWarmStart is the value object EVERY SqpDriver::solve() call
-// emits (SqpSolution::warm_start, sqp_types.h) describing what a solve
+// SqpWarmStart is the value object EVERY SqpSolver::solve() call
+// emits (SqpResult::warm_start, sqp_solver_types.h) describing what a solve
 // learned that a SUBSEQUENT solve of a nearby problem could reuse: the
 // primal/dual point, which inequalities and bounds were active there, the
 // QP engine's own working set at exit, and the globalization/regularization
@@ -48,27 +48,27 @@
 // std::shared_ptr<const HotState>, opaque to this header on purpose --
 // HotState is only FORWARD-declared here and fully defined in qp_engine.h,
 // next to the engine-instance reuse machinery it is a frozen snapshot of.
-// WarmStart stays COPYABLE (a shared_ptr copies cheaply, sharing ownership),
+// SqpWarmStart stays COPYABLE (a shared_ptr copies cheaply, sharing ownership),
 // but it is no longer lifetime-free in the way the rest of this struct is:
 // `hot`, when non-null, keeps a sparse KKT factor (and its live backend
-// session) alive for as long as any copy of this WarmStart does.
+// session) alive for as long as any copy of this SqpWarmStart does.
 // SAME-PROCESS ONLY: nothing here serializes `hot`, and none of this
 // struct's own (de)serialization -- there is none -- is expected to grow
-// any. A default-constructed WarmStart (valid == false) leaves `hot` null,
+// any. A default-constructed SqpWarmStart (valid == false) leaves `hot` null,
 // exactly like every other field's "cold" default.
 //
 // SIGN CONVENTIONS: lambda_i >= 0 (cI(x) <= 0's own convention), and z
 // follows the stationarity identity
 //     grad f + Ae^T lambda_e + Ai^T lambda_i - z = 0,
 // z >= 0 at an active lower bound, z <= 0 at an active upper bound, 0 when
-// free -- see sqp_types.h's SqpSolution note for how the DRIVER's own z
+// free -- see sqp_solver_types.h's SqpResult note for how the DRIVER's own z
 // differs from the QP engine's (model-implied, never TR-zeroed).
 //
 // valid == false (the default-constructed state) means COLD: nothing in the
-// object should be trusted or fed back. Every SqpDriver::solve() call sets
+// object should be trusted or fed back. Every SqpSolver::solve() call sets
 // valid = true on EVERY exit path, INCLUDING A FAILED ONE -- a failed
 // solve's last-known point, multipliers and activity are still safe evidence
-// for a caller retrying nearby: a WarmStart must never carry a value a later
+// for a caller retrying nearby: a SqpWarmStart must never carry a value a later
 // solve cannot safely feed back, even when the solve that produced it did
 // not converge.
 //
@@ -78,12 +78,12 @@
 // warm object once the object resolves kWarm, a hand-off from that exit
 // would pin the next solve back onto the unevaluable point and silently
 // DISCARD the corrected `x0` a caller retried with. A cold object is the
-// only honest answer. The solve's own `SqpSolution::x`/`lambda_*` still
+// only honest answer. The solve's own `SqpResult::x`/`lambda_*` still
 // report where it stood, and this object's fields are still populated for
 // inspection -- what `valid` withholds is permission to FEED IT BACK.
 //
 // CONSEQUENCE: `predictor.h`'s predict() and `mesh_transfer.h`'s transfer()
-// both throw std::invalid_argument on `valid == false` -- a cold WarmStart
+// both throw std::invalid_argument on `valid == false` -- a cold SqpWarmStart
 // carries nothing that may be trusted or fed forward, and is not a
 // prediction base.
 //
@@ -96,27 +96,27 @@
 // to a row that has gone SLACK is contradicted by the new problem's own
 // geometry, and carrying it verbatim let a warm solve certify a non-KKT
 // point in zero majors; the clear makes the ingested triple satisfy
-// complementarity by construction (sqp_driver.h's THE INGESTED MULTIPLIERS
+// complementarity by construction (sqp_solver.h's THE INGESTED MULTIPLIERS
 // ARE MADE COMPLEMENTARY note carries the full argument).
 //
 // WHO NOTICES. A caller that hands back an object a SOLVE produced
 // generally does not: an active-set QP prices an inactive row at exactly
 // zero already, so the clear only bites when the ROW ITSELF moved. A caller
 // that ASSEMBLES an object -- `from_interior_point` below, or a hand-built
-// WarmStart -- does: interior-point duals are strictly positive on every
+// SqpWarmStart -- does: interior-point duals are strictly positive on every
 // row, so every row the destination model reports strictly slack will have
 // its price dropped, which on the crossover path is exactly the stale price
 // the clear exists to remove.
 //
 // THE SIGN PRECONDITION IS LOAD-BEARING AT INGEST. Read the SIGN CONVENTIONS
-// above as a PRECONDITION on anything fed to `SqpDriver::solve`'s 3-arg
+// above as a PRECONDITION on anything fed to `SqpSolver::solve`'s 3-arg
 // overload: the driver gates stationarity and feasibility and gets
 // complementarity by construction after the clear, but DUAL FEASIBILITY IS
 // GATED NOWHERE at kWarm/kHot -- `evaluate_kkt` folds a sign-consistency
 // residual in for BOUNDS only. A hand-assembled object carrying a NEGATIVE
 // `lambda_i(j)` is out of contract and undefended there.
 //
-// AT StartLevel::kSeeded IT IS GATED (sqp_driver.h's THE SEEDED DUAL CLAMP):
+// AT StartLevel::kSeeded IT IS GATED (sqp_solver.h's THE SEEDED DUAL CLAMP):
 // a negative price within `kSeededDualClampTol` of zero is CLAMPED to zero
 // (counted in `SqpCounters::seeded_clamped`); a larger one DEGRADES THE WHOLE
 // OBJECT to kCold. The clamp is deliberately NOT extended to kWarm/kHot --
@@ -130,7 +130,7 @@
 // `dual_tol` sign filter governs only working-set membership), so it is a
 // shipped route to a small wrong-sign ingest -- defended today by the
 // seeded clamp, which zeroes such values and counts them; and every
-// `SqpDriver` exit is non-negative, though not uniformly QP-priced -- a
+// `SqpSolver` exit is non-negative, though not uniformly QP-priced -- a
 // ZERO-MAJOR exit re-emits the ingested duals as cleared by the driver's own
 // ingest block, and a restoration exit carries the sub-solve's subgradient
 // selectors.
@@ -152,7 +152,7 @@ namespace hven::solvers {
 
 // Opaque hot-start handle; fully defined in qp_engine.h, right next to
 // QpEngine's own border-mode reuse state. Forward-declared here only so
-// WarmStart can hold a std::shared_ptr<const HotState> without this header
+// SqpWarmStart can hold a std::shared_ptr<const HotState> without this header
 // depending on qp_engine.h (or on Eigen's sparse types / MKL Pardiso, which
 // qp_engine.h ultimately pulls in) -- a shared_ptr to an incomplete type is
 // fine to store, copy and destroy; only CONSTRUCTING or DEREFERENCING one
@@ -166,7 +166,7 @@ struct SqpWarmStart {
     // Primal point, eq/ineq duals, bound duals. NOTE the one ingest-side
     // qualification on `lambda_i` -- a price on a row that is strictly slack
     // at the ingested `x` is CLEARED rather than used (this header's ingest
-    // note; sqp_driver.h's THE INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY).
+    // note; sqp_solver.h's THE INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY).
     // Emission is unaffected: what a solve writes here is still exactly the
     // duals it exited with.
     Vec x, lambda_e, lambda_i, z;
@@ -193,7 +193,7 @@ struct SqpWarmStart {
     // exactly the same information as ineq_active/bound_active above in the
     // form the hot-start seeding actually consumes
     // (WorkingSet::bound_state()/active_ineq()). Default-initialized to
-    // WorkingSet(0, 0) purely so WarmStart itself stays default-constructible
+    // WorkingSet(0, 0) purely so SqpWarmStart itself stays default-constructible
     // (WorkingSet has no default constructor); a populated object always
     // resizes it to the model's own (n, mi) first.
     WorkingSet qp_working_set = WorkingSet(0, 0);
@@ -206,7 +206,7 @@ struct SqpWarmStart {
     // builds no subproblem still emits a real hash, while its funnel width
     // may genuinely never have existed.
     double funnel_width = -1.0;
-    // The trust-region radius the solve exits at (sqp_driver.h's `delta`).
+    // The trust-region radius the solve exits at (sqp_solver.h's `delta`).
     // Unlike funnel_width this is always known once a solve has started, so
     // -1 here means only "never populated" (a default-constructed object).
     double tr_radius = -1.0;
@@ -224,14 +224,14 @@ struct SqpWarmStart {
     // discriminator: a cached factorization is only trusted when a new
     // solve's structure_hash matches the one it was built from.
     //
-    // 0 = NO MODEL WAS SEEN. sqp_driver.h's ingest treats it exactly like a
+    // 0 = NO MODEL WAS SEEN. sqp_solver.h's ingest treats it exactly like a
     // mismatch, never like a match -- so an object carrying it can never
     // reach kWarm or kHot; since StartLevel::kSeeded exists it may still
     // have its duals and activity hint ingested when dimensionally
     // consistent and finite (see StartLevel's note for what kSeeded takes
     // and refuses). Who can carry 0:
     //
-    //   - NO `valid` SqpDriver::solve() EXIT except one: a solve that
+    //   - NO `valid` SqpSolver::solve() EXIT except one: a solve that
     //     converges at its start point or runs out of budget at zero majors
     //     still has THE MODEL in hand, and make_warm_start probes the model
     //     at the exit point and hashes that pattern. The one exit that
@@ -251,11 +251,11 @@ struct SqpWarmStart {
     // and is not, and qp_engine.h's HotState/BorderState for the full
     // ownership argument. nullptr means exactly what it does everywhere else
     // in this project: no cached factorization is available to offer, which
-    // is always safe to feed forward (sqp_driver.h's level resolution
-    // degrades to kWarm silently). Populated on every SqpDriver::solve()
+    // is always safe to feed forward (sqp_solver.h's level resolution
+    // degrades to kWarm silently). Populated on every SqpSolver::solve()
     // exit from QpEngine::hot_state() -- non-null whenever that engine's own
     // last solve() call ended kOptimal under border-mode reuse, regardless
-    // of this WarmStart's own `valid`/overall-status story (the same
+    // of this SqpWarmStart's own `valid`/overall-status story (the same
     // "last-known-good evidence survives a failed solve" contract `valid`
     // documents above applies here too).
     std::shared_ptr<const HotState> hot;
@@ -287,7 +287,7 @@ struct SqpWarmStart {
     // implies a populated centre.
     //
     // HASH-GATED ON INGEST, like every other state field here:
-    // sqp_driver.h reads this block only at StartLevel::kWarm or above --
+    // sqp_solver.h reads this block only at StartLevel::kWarm or above --
     // the hash-confirmed-provenance level, the same gate `funnel_width`,
     // `tr_radius`, `primal_delta` and `dual_mu` sit behind. A `kSeeded`
     // object may not claim a proximal history: its provenance is
@@ -313,7 +313,7 @@ struct SqpWarmStart {
     bool has_prox_center = false;
 
     // false (default construction) == cold: see this header's own note.
-    // Every exit of SqpDriver::solve() sets this true EXCEPT ONE -- a solve
+    // Every exit of SqpSolver::solve() sets this true EXCEPT ONE -- a solve
     // that could not EVALUATE its own start point reports false, because
     // feeding that point back would override the corrected x0 a caller
     // retries with (EXACTLY ONE EXIT IS EXCLUDED, above).

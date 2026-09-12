@@ -21,7 +21,7 @@
 // WHERE THIS CODE CAME FROM. The interior-point renderings below are
 // `src/drivers/interior_point_solver_print.cpp`'s `print_banner`,
 // `print_stats`, `print_last_iterate`, `print_beginning`, `print_finished` and
-// `print_timing_summary`, plus `interior_point_solver.h`'s `print_header`,
+// `print_timing_summary`, plus `ipm_solver.h`'s `print_header`,
 // MOVED HERE VERBATIM -- the same format strings, the same field widths, the
 // same `fmt::text_style` objects, in the same order. Three mechanical changes
 // and no others:
@@ -53,7 +53,7 @@
 #include <fmt/format.h>
 
 #include <hven/detail/interior/iterate_info.h>
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 
 namespace hven::solvers {
 
@@ -342,7 +342,7 @@ void ConsoleTraceSink::on_ipm_restoration_exit_row(const IpmRestorationExitRowTr
 // exit block are `interior_point_solver_print.cpp`'s `print_beginning`,
 // `print_finished` and `print_exit_stats`; the analysis block is the two
 // `print_level < 2` blocks that bracketed the factorization in
-// `InteriorPointSolver::init_impl`; the nine messages are the nine `fmt::print`
+// `IpmSolver::init_impl`; the nine messages are the nine `fmt::print`
 // calls that stood at their sites. Same format strings, same widths, same
 // `fmt::text_style` objects, same order. The three mechanical changes are this
 // file's own three (`out_`, values off the event, no solver members).
@@ -561,7 +561,7 @@ void ConsoleTraceSink::on_sqp_solve_begin(const SqpSolveBeginTraceEvent &) {
 }
 
 void ConsoleTraceSink::on_sqp_major(const SqpMajorTraceEvent &event) {
-    // DEPTH-0 ROWS ONLY: `format_iteration_table` renders `SqpSolution::history`,
+    // DEPTH-0 ROWS ONLY: `format_iteration_table` renders `SqpResult::history`,
     // which holds top-level rows, and this sink is pinned against it.
     if (sqp_depth_ > 0 || fmt_.print_level != 0) {
         return;

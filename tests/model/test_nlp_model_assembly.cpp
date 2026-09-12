@@ -34,9 +34,9 @@
 #include <gtest/gtest.h>
 
 #include "hven/model/claim_space.h"
-#include "hven/model/nlp_aggregate.h"
+#include "hven/model/nlp_assembly.h"
 #include "hven/model/nlp_model.h"
-#include "hven/model/nlp_model_aggregate.h"
+#include "hven/model/nlp_model_assembly.h"
 #include "hven/model/structure_identity.h"
 
 #include "sqp/support/hs_problems.h"
@@ -49,7 +49,7 @@ HVEN_SUPPRESS_DEPRECATED_BEGIN
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
-using hven::solvers::AggregateCapability;
+using hven::solvers::AssemblyCapability;
 using hven::solvers::CandidateFirstOrder;
 using hven::solvers::CandidatePoint;
 using hven::solvers::CandidateValues;
@@ -71,7 +71,7 @@ using hven::solvers::kRequestObjectiveAndConstraints;
 using hven::solvers::kRequestObjectiveGradientAndConstraints;
 using hven::solvers::kRequestObjectiveOnly;
 using hven::solvers::NlpModel;
-using hven::solvers::NlpModelAggregate;
+using hven::solvers::NlpModelAssembly;
 using hven::solvers::RhsArenaView;
 using hven::solvers::RhsLocationTable;
 using hven::solvers::RhsScatterView;
@@ -355,7 +355,7 @@ enum class BridgeTableOrder { kPermuted, kIdentity };
 /// four arenas, and the scalar objective slot.
 class BridgeDestinations {
   public:
-    explicit BridgeDestinations(const NlpModelAggregate &aggregate,
+    explicit BridgeDestinations(const NlpModelAssembly &aggregate,
                                 BridgeTableOrder order = BridgeTableOrder::kPermuted) {
         const int claims = static_cast<int>(aggregate.kkt_claim_rows().size());
         kkt_locations_.resize(static_cast<std::size_t>(claims));
@@ -403,7 +403,7 @@ class BridgeDestinations {
     }
 
     /// The assembled KKT values placed back at the coordinates the claims name.
-    Eigen::MatrixXd dense_kkt(const NlpModelAggregate &aggregate) const {
+    Eigen::MatrixXd dense_kkt(const NlpModelAssembly &aggregate) const {
         const int dim = aggregate.kkt_dimension();
         Eigen::MatrixXd dense = Eigen::MatrixXd::Zero(dim, dim);
         const auto rows = aggregate.kkt_claim_rows();
@@ -461,7 +461,7 @@ std::shared_ptr<BridgeCountingModel> counting_model() {
 // ---------------------------------------------------------------------------
 
 TEST(NlpModelAggregateDeclaration, CarriesTheModelsDimensionsAndOnePartition) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     const auto &declared = aggregate.declaration();
 
     EXPECT_EQ(declared.primal_vars_, 2);
@@ -471,7 +471,7 @@ TEST(NlpModelAggregateDeclaration, CarriesTheModelsDimensionsAndOnePartition) {
 }
 
 TEST(NlpModelAggregateDeclaration, RecordsOneBoundRecordPerVariableVerbatim) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     const auto &records = aggregate.declaration().variable_bounds_;
 
     ASSERT_EQ(records.size(), 2u);
@@ -487,7 +487,7 @@ TEST(NlpModelAggregateDeclaration, CarriesNoEnginePieces) {
     // The piece lists hold the partitioned engine's own handles. One serial
     // bridge is not a collection of them, and the declaration says so rather
     // than inventing a piece to fill the list with.
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     EXPECT_TRUE(aggregate.declaration().objectives_.empty());
     EXPECT_TRUE(aggregate.declaration().equality_constraints_.empty());
     EXPECT_TRUE(aggregate.declaration().inequality_constraints_.empty());
@@ -497,14 +497,14 @@ TEST(NlpModelAggregateDeclaration, PassesTheContractsOwnValidation) {
     // A constrained bridge declares rows of both kinds and no pieces. The
     // boundary is universal: the piece-sum conjunct is vacuous with empty piece
     // lists, and every other check applies to this declaration as to any other.
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     EXPECT_GT(aggregate.declaration().equality_rows_, 0);
     EXPECT_GT(aggregate.declaration().inequality_rows_, 0);
     EXPECT_NO_THROW(aggregate.declaration().validate());
 }
 
 TEST(NlpModelAggregateDeclaration, RefusesANullModel) {
-    EXPECT_THROW({ NlpModelAggregate bridge(nullptr); }, std::invalid_argument);
+    EXPECT_THROW({ NlpModelAssembly bridge(nullptr); }, std::invalid_argument);
 }
 
 // ---------------------------------------------------------------------------
@@ -512,7 +512,7 @@ TEST(NlpModelAggregateDeclaration, RefusesANullModel) {
 // ---------------------------------------------------------------------------
 
 TEST(NlpModelAggregateClaims, SplitsTheModelsReturnsIntoThreeBlocks) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
 
     // Three Hessian entries, two per Jacobian row.
     EXPECT_EQ(aggregate.hessian_claims(), (ClaimBlock{0, 3}));
@@ -523,7 +523,7 @@ TEST(NlpModelAggregateClaims, SplitsTheModelsReturnsIntoThreeBlocks) {
 }
 
 TEST(NlpModelAggregateClaims, NamesTheUpperTriangleAndTheOffsetConstraintRows) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     const auto rows = aggregate.kkt_claim_rows();
     const auto cols = aggregate.kkt_claim_cols();
 
@@ -546,7 +546,7 @@ TEST(NlpModelAggregateClaims, NamesTheUpperTriangleAndTheOffsetConstraintRows) {
 }
 
 TEST(NlpModelAggregateClaims, ArenasAreClaimedWholeInRowOrder) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
 
     EXPECT_EQ(aggregate.objective_gradient_claim_rows().size(), 2);
     EXPECT_EQ(aggregate.constraint_adjoint_gradient_claim_rows().size(), 2);
@@ -557,8 +557,8 @@ TEST(NlpModelAggregateClaims, ArenasAreClaimedWholeInRowOrder) {
 }
 
 TEST(NlpModelAggregateClaims, LayoutIsDeterministicAcrossSeparateBridges) {
-    NlpModelAggregate first(counting_model());
-    NlpModelAggregate second(counting_model());
+    NlpModelAssembly first(counting_model());
+    NlpModelAssembly second(counting_model());
 
     EXPECT_TRUE(same_claim_stream(first.kkt_claim_rows(), second.kkt_claim_rows()));
     EXPECT_TRUE(same_claim_stream(first.kkt_claim_cols(), second.kkt_claim_cols()));
@@ -570,7 +570,7 @@ TEST(NlpModelAggregateClaims, LayoutIsDeterministicAcrossSeparateBridges) {
 // ---------------------------------------------------------------------------
 
 TEST(NlpModelAggregateKey, IsTheThreeConjunctsAtOnePartition) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     const auto key = aggregate.model_structure_key();
 
     EXPECT_EQ(key.partition_count_, 1);
@@ -591,8 +591,8 @@ TEST(NlpModelAggregateKey, DiffersFromAModelWithDifferentBoundStructure) {
         Vec free_upper_ = Vec::Constant(2, std::numeric_limits<double>::infinity());
     };
 
-    NlpModelAggregate bounded(counting_model());
-    NlpModelAggregate unbounded(std::make_shared<FreeBoundsModel>());
+    NlpModelAssembly bounded(counting_model());
+    NlpModelAssembly unbounded(std::make_shared<FreeBoundsModel>());
 
     EXPECT_EQ(bounded.model_structure_key().claim_digest_,
               unbounded.model_structure_key().claim_digest_);
@@ -602,12 +602,12 @@ TEST(NlpModelAggregateKey, DiffersFromAModelWithDifferentBoundStructure) {
 }
 
 TEST(NlpModelAggregateEpoch, TheFirstLayIsAStructuralEvent) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     EXPECT_EQ(aggregate.structure_epoch(), StructureEpoch(1));
 }
 
 TEST(NlpModelAggregateEpoch, ARenegotiationBumpsEvenAtTheCountAlreadyInForce) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     EXPECT_EQ(aggregate.negotiate_partition_count(1), 1);
     EXPECT_EQ(aggregate.structure_epoch(), StructureEpoch(2));
     EXPECT_EQ(aggregate.negotiate_partition_count(8), 1);
@@ -615,7 +615,7 @@ TEST(NlpModelAggregateEpoch, ARenegotiationBumpsEvenAtTheCountAlreadyInForce) {
 }
 
 TEST(NlpModelAggregateEpoch, EvaluationDoesNotBump) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
 
@@ -627,7 +627,7 @@ TEST(NlpModelAggregateEpoch, EvaluationDoesNotBump) {
 }
 
 TEST(NlpModelAggregateEpoch, ARefusedPartitionRequestNeitherLaysNorBumps) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     const StructureEpoch before = aggregate.structure_epoch();
     const auto key_before = aggregate.model_structure_key();
 
@@ -643,7 +643,7 @@ TEST(NlpModelAggregateEpoch, AFailedLayLeavesTheStructuresOnHandUntouched) {
     // so a lay that throws leaves the previous structures in place. Nothing was
     // re-laid, so there is nothing to restore and no epoch event to report.
     auto model = std::make_shared<BridgeRefusingModel>();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     const StructureEpoch before = aggregate.structure_epoch();
     const auto key_before = aggregate.model_structure_key();
     const Eigen::VectorXi claims_before = aggregate.kkt_claim_rows();
@@ -657,7 +657,7 @@ TEST(NlpModelAggregateEpoch, AFailedLayLeavesTheStructuresOnHandUntouched) {
 }
 
 TEST(NlpModelAggregatePartitions, CapsEveryPositiveRequestToOne) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     EXPECT_EQ(aggregate.negotiate_partition_count(1), 1);
     EXPECT_EQ(aggregate.negotiate_partition_count(2), 1);
     EXPECT_EQ(aggregate.negotiate_partition_count(64), 1);
@@ -666,7 +666,7 @@ TEST(NlpModelAggregatePartitions, CapsEveryPositiveRequestToOne) {
 }
 
 TEST(NlpModelAggregateThreads, ReportsOneAndRefusesANonPositiveRequest) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     EXPECT_EQ(aggregate.evaluation_threads(), 1);
     aggregate.set_evaluation_threads(4);
     EXPECT_EQ(aggregate.evaluation_threads(), 1);
@@ -678,20 +678,20 @@ TEST(NlpModelAggregateThreads, ReportsOneAndRefusesANonPositiveRequest) {
 // ---------------------------------------------------------------------------
 
 TEST(NlpModelAggregateCapabilities, DeclaresTheValuesFastPathAndNothingElse) {
-    NlpModelAggregate aggregate(counting_model());
-    EXPECT_TRUE(has_capability(aggregate.capabilities(), AggregateCapability::kValuesFastPath));
-    EXPECT_FALSE(has_capability(aggregate.capabilities(), AggregateCapability::kDirectScatter));
-    EXPECT_EQ(aggregate.capabilities(), AggregateCapability::kValuesFastPath);
+    NlpModelAssembly aggregate(counting_model());
+    EXPECT_TRUE(has_capability(aggregate.capabilities(), AssemblyCapability::kValuesFastPath));
+    EXPECT_FALSE(has_capability(aggregate.capabilities(), AssemblyCapability::kDirectScatter));
+    EXPECT_EQ(aggregate.capabilities(), AssemblyCapability::kValuesFastPath);
 }
 
 TEST(NlpModelAggregateCapabilities, BindsNoKktDestination) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     EXPECT_EQ(aggregate.bound_kkt_destination(), nullptr);
 }
 
 TEST(NlpModelAggregateValuesPath, ReachesEvalValuesAndNoDerivativeEvaluator) {
     auto model = counting_model();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     const BridgePoint point;
     double objective = 0.0;
     Vec equality(1);
@@ -708,7 +708,7 @@ TEST(NlpModelAggregateValuesPath, ReachesEvalValuesAndNoDerivativeEvaluator) {
 
 TEST(NlpModelAggregateValuesPath, TheProbeIsTheValuesPathPlusAHash) {
     auto model = counting_model();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     const BridgePoint point;
 
     model->reset_counts();
@@ -722,7 +722,7 @@ TEST(NlpModelAggregateValuesPath, TheProbeIsTheValuesPathPlusAHash) {
 }
 
 TEST(NlpModelAggregateValuesPath, ReportsTheModelsValuesScaledByThePointsScale) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     const BridgePoint point;
     double objective = 0.0;
     Vec equality(1);
@@ -737,7 +737,7 @@ TEST(NlpModelAggregateValuesPath, ReportsTheModelsValuesScaledByThePointsScale) 
 }
 
 TEST(NlpModelAggregateValuesPath, TwiceAtOnePointAssignsRatherThanDoubles) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     const BridgePoint point;
     double objective = 0.0;
     Vec equality(1);
@@ -754,7 +754,7 @@ TEST(NlpModelAggregateValuesPath, TwiceAtOnePointAssignsRatherThanDoubles) {
 }
 
 TEST(NlpModelAggregateFirstOrder, TwiceAtOnePointAssignsRatherThanDoubles) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     const BridgePoint point;
     double objective = 0.0;
     Vec equality(1);
@@ -774,7 +774,7 @@ TEST(NlpModelAggregateFirstOrder, TwiceAtOnePointAssignsRatherThanDoubles) {
 }
 
 TEST(NlpModelAggregateFirstOrder, ComposesTheAdjointGradientFromBothJacobians) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     const BridgePoint point;
     double objective = 0.0;
     Vec equality(1);
@@ -801,7 +801,7 @@ namespace {
 
 BridgeEvalCounts counts_for(EvalRequest request, bool full_multipliers, double scale = 1.0) {
     auto model = counting_model();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
 
@@ -890,7 +890,7 @@ TEST(NlpModelAggregateEvaluatorSets, FullKktRunsEveryEvaluatorExactlyOnce) {
 
 TEST(NlpModelAggregateEvaluatorSets, LagrangianHessianRunsEvalHessAloneAndNothingElse) {
     auto model = counting_model();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
 
@@ -906,7 +906,7 @@ TEST(NlpModelAggregateEvaluatorSets, LagrangianHessianRunsEvalHessAloneAndNothin
 
 TEST(NlpModelAggregateEvaluatorSets, GradientAndJacobiansRunsGradPlusBothJacobiansAndNoValues) {
     auto model = counting_model();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
 
@@ -925,7 +925,7 @@ TEST(NlpModelAggregateEvaluatorSets, GradientAndJacobiansRunsGradPlusBothJacobia
 
 TEST(NlpModelAggregateEvaluatorSets, ConstraintJacobiansOnlyRunsBothJacobiansAloneAndNoGradient) {
     auto model = counting_model();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
 
@@ -945,7 +945,7 @@ TEST(NlpModelAggregateEvaluatorSets, AConstantConstraintBlockStillReachesItsJaco
     // and the claim pass lays no claim for it. The row count is what decides
     // whether the callback runs, and it must: the request named a Jacobian.
     auto model = std::make_shared<BridgeConstantEqualityModel>();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     ASSERT_EQ(aggregate.equality_jacobian_claims().count_, 0)
         << "the fixture must claim nothing for its constant block";
     ASSERT_EQ(aggregate.declaration().equality_rows_, 1);
@@ -972,7 +972,7 @@ TEST(NlpModelAggregateEvaluatorSets, AConstantConstraintBlockStillReachesItsJaco
 
 TEST(NlpModelAggregateEvaluatorSets, TheConstraintOnlyKktAsksForTheHessianAtZeroObjectiveScale) {
     auto model = counting_model();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
 
@@ -986,7 +986,7 @@ TEST(NlpModelAggregateEvaluatorSets, TheConstraintOnlyKktAsksForTheHessianAtZero
 
 TEST(NlpModelAggregateEvaluatorSets, TheFullKktAsksForTheHessianAtThePointsObjectiveScale) {
     auto model = counting_model();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
 
@@ -1056,7 +1056,7 @@ Vec hand_composed_adjoint(const NlpModel &model, const Vec &x, const Vec &le, co
 /// is written once.
 void expect_full_kkt_matches_hand_composition(std::shared_ptr<NlpModel> model, const Vec &x,
                                               const Vec &le, const Vec &li, double scale) {
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     BridgeDestinations destinations(aggregate);
 
     aggregate.assemble(CandidatePoint{x, le, li, scale}, kRequestFullKkt, destinations.kkt_view(),
@@ -1130,7 +1130,7 @@ TEST(NlpModelAggregateEquivalence, ConstraintKktAssemblesTheAdjointHessianAlone)
     const Vec le = (Vec(1) << 0.5).finished();
     const Vec li = (Vec(1) << 1.25).finished();
 
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     BridgeDestinations destinations(aggregate);
     aggregate.assemble(CandidatePoint{x, le, li, 3.0}, kRequestConstraintKkt,
                        destinations.kkt_view(), destinations.rhs_view());
@@ -1147,7 +1147,7 @@ TEST(NlpModelAggregateEquivalence, ConstraintKktAssemblesTheAdjointHessianAlone)
 
 TEST(NlpModelAggregateEquivalence, ConstraintResidualsAndJacobianWritesNoHessianSlot) {
     auto model = counting_model();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
 
@@ -1170,7 +1170,7 @@ TEST(NlpModelAggregateEquivalence, ConstraintResidualsAndJacobianWritesNoHessian
 
 TEST(NlpModelAggregateEquivalence, LagrangianHessianAloneMatchesEvalHessComposedLagrangian) {
     auto model = counting_model();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
     const double scale = 2.0;
@@ -1208,7 +1208,7 @@ TEST(NlpModelAggregateEquivalence, LagrangianHessianAloneMatchesEvalHessComposed
 
 TEST(NlpModelAggregateEquivalence, GradientAndJacobiansFillsTheGradientArenaAndBothJacobianClaims) {
     auto model = counting_model();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
 
@@ -1241,7 +1241,7 @@ TEST(NlpModelAggregateEquivalence, GradientAndJacobiansFillsTheGradientArenaAndB
 TEST(NlpModelAggregateEquivalence,
      ConstraintJacobiansOnlyFillsTheJacobianClaimsAndLeavesTheGradientArenaUntouched) {
     auto model = counting_model();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
 
@@ -1264,7 +1264,7 @@ TEST(NlpModelAggregateEquivalence, ClaimsLandWhereTheTableSendsThemUnderEitherOr
     // two orders together separate "wrote through the table" from "wrote its own
     // slot index".
     auto model = counting_model();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     const BridgePoint point;
 
     BridgeDestinations identity(aggregate, BridgeTableOrder::kIdentity);
@@ -1287,7 +1287,7 @@ TEST(NlpModelAggregateEquivalence, ClaimsLandWhereTheTableSendsThemUnderEitherOr
 
 TEST(NlpModelAggregateEquivalence, AssembleAccumulatesRatherThanAssigns) {
     auto model = counting_model();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
 
@@ -1309,7 +1309,7 @@ TEST(NlpModelAggregateEquivalence, AssembleAccumulatesRatherThanAssigns) {
 // ---------------------------------------------------------------------------
 
 TEST(NlpModelAggregateBoundary, RefusesAGradientArenaSizedOtherThanTheLaidWidth) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
 
@@ -1321,7 +1321,7 @@ TEST(NlpModelAggregateBoundary, RefusesAGradientArenaSizedOtherThanTheLaidWidth)
 }
 
 TEST(NlpModelAggregateBoundary, RefusesAKktTableThatDoesNotCoverTheClaimStream) {
-    NlpModelAggregate aggregate(counting_model());
+    NlpModelAssembly aggregate(counting_model());
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
 
@@ -1339,7 +1339,7 @@ TEST(NlpModelAggregateBoundary, RefusesAKktTableThatDoesNotCoverTheClaimStream) 
 
 TEST(NlpModelAggregateBoundary, RefusesAModelWhoseSparsityPatternCollapses) {
     auto model = std::make_shared<BridgePatternDriftModel>();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     BridgeDestinations destinations(aggregate);
 
     // The claim pass ran at the model's start point, where the pattern is whole.
@@ -1413,7 +1413,7 @@ class BridgeStorageOrderModel : public BridgeCountingModel {
 
 TEST(NlpModelAggregateBoundary, RefusesAReturnWhosePatternMovesAtTheSameCount) {
     auto model = std::make_shared<BridgeSameCountDriftModel>();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
 
@@ -1437,7 +1437,7 @@ TEST(NlpModelAggregateBoundary, RefusesAReturnWhosePatternMovesAtTheSameCount) {
 
 TEST(NlpModelAggregateBoundary, RefusesAReturnThatPresentsItsElementsInAnotherOrder) {
     auto model = std::make_shared<BridgeStorageOrderModel>();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
 
@@ -1466,7 +1466,7 @@ namespace {
 /// a test can assert it names the callback and both dimensions.
 std::string bridge_construction_message(std::shared_ptr<NlpModel> model) {
     try {
-        NlpModelAggregate bridge(std::move(model));
+        NlpModelAssembly bridge(std::move(model));
     } catch (const std::invalid_argument &error) {
         return error.what();
     }
@@ -1532,7 +1532,7 @@ TEST(NlpModelAggregateBoundary, RefusesADimensionThatChangesAfterTheClaimPass) {
     };
 
     auto model = std::make_shared<LateWideJacobianModel>();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     BridgeDestinations destinations(aggregate);
     const BridgePoint point;
 
@@ -1552,7 +1552,7 @@ TEST(NlpModelAggregateBoundary, RefusesASparsityPatternThatGrowsAfterTheClaimPas
     // the start point; a later evaluation returns two, so the extra value has no
     // slot to land in and the count check says so.
     auto model = std::make_shared<BridgePatternGrowthModel>();
-    NlpModelAggregate aggregate(model);
+    NlpModelAssembly aggregate(model);
     ASSERT_EQ(aggregate.inequality_jacobian_claims().count_, 1)
         << "the fixture must claim one slot at the start point";
 
@@ -1583,7 +1583,7 @@ TEST(NlpModelAggregateBoundary, RefusesAHessianEntryBelowTheDiagonal) {
     };
 
     EXPECT_THROW(
-        { NlpModelAggregate bridge(std::make_shared<LowerTriangleHessianModel>()); },
+        { NlpModelAssembly bridge(std::make_shared<LowerTriangleHessianModel>()); },
         std::invalid_argument);
 }
 
@@ -1599,7 +1599,7 @@ TEST(NlpModelAggregateBoundary, RefusesADeclarationWhoseBoundsIntersectToNothing
     };
 
     EXPECT_THROW(
-        { NlpModelAggregate bridge(std::make_shared<InvertedBoundsModel>()); },
+        { NlpModelAssembly bridge(std::make_shared<InvertedBoundsModel>()); },
         std::invalid_argument);
 }
 

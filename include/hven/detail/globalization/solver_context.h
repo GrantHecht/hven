@@ -7,16 +7,16 @@
 #include <Eigen/Sparse>
 
 // SolverContext exposes the solver's IpmOptions by reference. The
-// interior_point_solver.h include below is deliberately one-directional:
-// interior_point_solver.h does not include back into this directory, which keeps
+// ipm_solver.h include below is deliberately one-directional:
+// ipm_solver.h does not include back into this directory, which keeps
 // every header below standalone-compilable without a circular-include trick.
-// (Before M6 W5 T8.3 the options were the nested InteriorPointSolver::Settings,
+// (Before M6 W5 T8.3 the options were the nested IpmSolver::Settings,
 // so the include was mandatory; the options are their own header now, but this
 // context still names the solver's other types.)
 #include "hven/detail/interior/bound_set.h"
 #include "hven/detail/interior/eval_error_log.h"
 #include "hven/detail/interior/kkt_factorization.h"
-#include "hven/drivers/interior_point_solver.h"
+#include "hven/drivers/ipm_solver.h"
 
 namespace hven::solvers {
 
@@ -27,16 +27,16 @@ namespace hven::solvers {
 // is exactly when every restoration branch that consults it is provably dead.
 class RestorationStrategy;
 
-/// @brief The sparse KKT factorization type, matching InteriorPointSolver's
+/// @brief The sparse KKT factorization type, matching IpmSolver's
 /// own member declaration. Components never choose or construct this type;
 /// they only drive solves/refactors through SolverContext::kkt_solver_, which
-/// InteriorPointSolver still owns.
+/// IpmSolver still owns.
 using KktSolverType = KktFactorization;
 
-/// @brief References-only view into the live InteriorPointSolver instance.
+/// @brief References-only view into the live IpmSolver instance.
 ///
 /// Owns nothing: every member is a reference or non-owning pointer into the
-/// live InteriorPointSolver, and a SolverContext must not outlive the solver it
+/// live IpmSolver, and a SolverContext must not outlive the solver it
 /// was built from. Most call sites construct one fresh (as a temporary) for
 /// the duration of a single call. One exception holds its copy as a private
 /// member instead of re-threading it through every call — that copy is rebuilt

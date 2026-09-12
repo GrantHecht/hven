@@ -34,18 +34,18 @@
 
 #include "hven/detail/interior/kkt_vector.h"
 #include "hven/detail/model/nlp_adapter.h"
-#include "hven/drivers/interior_point_solver.h"
-#include "hven/model/nlp_problem.h"
+#include "hven/drivers/ipm_solver.h"
+#include "hven/model/nlp_triplet_model.h"
 
 using hven::ConstEigenRef;
-using hven::solvers::NLPProblem;
+using hven::solvers::NlpTripletModel;
 
 // A small bound-bearing problem: minimize 0.5*|x|^2 subject to sum(x) == 3,
 // with a two-sided box on every variable. Bounds are what put the solver on the
 // path the defect corrupts -- the bound-fixed classification runs, the location
 // table is consulted for the solver's own coefficient block, and the scatter
 // reads it unchecked.
-struct EpochGateBoxedProblem : NLPProblem {
+struct EpochGateBoxedProblem : NlpTripletModel {
     static constexpr int kN = 4;
 
     int num_vars() const override { return kN; }
@@ -126,7 +126,7 @@ bool epoch_gate_no_location_unset(hven::solvers::NonLinearProgram &nlp) {
 // to happen anyway, and this is the sequence that proves it does.
 TEST(StructureEpochGating, APartitionRenegotiationBetweenSolvesForcesAFreshAnalysis) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -183,7 +183,7 @@ TEST(StructureEpochGating, APartitionRenegotiationBetweenSolvesForcesAFreshAnaly
 // bit for bit.
 TEST(StructureEpochGating, ASecondSolveAgainstUnmovedStructuresRunsNoFreshAnalysis) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -226,7 +226,7 @@ TEST(StructureEpochGating, ASecondSolveAgainstUnmovedStructuresRunsNoFreshAnalys
 // what show that the guard was skipped rather than merely believed skipped.
 TEST(StructureEpochGating, AWholeSolveRunsNoFullKktPatternHash) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -251,7 +251,7 @@ TEST(StructureEpochGating, AWholeSolveRunsNoFullKktPatternHash) {
 // closes that span by re-analyzing.
 TEST(StructureEpochGating, TheEpochStopsVouchingForThePatternAcrossARelay) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -285,7 +285,7 @@ TEST(StructureEpochGating, TheEpochStopsVouchingForThePatternAcrossARelay) {
 TEST(StructureEpochGating, ASolveThatHandsOutTheKktMatrixVerifiesThePatternThroughout) {
     const auto with_callback_program =
         hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::InteriorPointSolver with_callback;
+    hven::solvers::IpmSolver with_callback;
     hven::solvers::IpmResult with_callback_result;
     {
         auto o = with_callback.options();
@@ -315,7 +315,7 @@ TEST(StructureEpochGating, ASolveThatHandsOutTheKktMatrixVerifiesThePatternThrou
     // what makes the line the callback and not something the problem did.
     const auto without_callback_program =
         hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::InteriorPointSolver without_callback;
+    hven::solvers::IpmSolver without_callback;
     hven::solvers::IpmResult without_callback_result;
     {
         auto o = without_callback.options();
@@ -343,7 +343,7 @@ TEST(StructureEpochGating, ASolveThatHandsOutTheKktMatrixVerifiesThePatternThrou
 // installed, is the one that skips again.
 TEST(StructureEpochGating, TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCall) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -384,7 +384,7 @@ TEST(StructureEpochGating, TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCa
 // as it would have if the callback had been armed from the start.
 TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifiesFromThatHandOutOn) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -425,7 +425,7 @@ TEST(StructureEpochGating, AnEarlyCallbackArmedFromInsideTheLateCallbackVerifies
     // mere presence is not what forces verification.
     const auto late_only_program =
         hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::InteriorPointSolver late_only;
+    hven::solvers::IpmSolver late_only;
     hven::solvers::IpmResult late_only_result;
     {
         auto o = late_only.options();
@@ -463,7 +463,7 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
 
     const auto mutating_program =
         hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::InteriorPointSolver mutating;
+    hven::solvers::IpmSolver mutating;
     hven::solvers::IpmResult mutating_result;
     {
         auto o = mutating.options();
@@ -510,7 +510,7 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
 
     const auto control_program =
         hven::solvers::make_nlp_program(std::make_shared<EpochGateBoxedProblem>());
-    hven::solvers::InteriorPointSolver control;
+    hven::solvers::IpmSolver control;
     hven::solvers::IpmResult control_result;
     {
         auto o = control.options();
@@ -569,7 +569,7 @@ TEST(StructureEpochGating, AnEarlyCallbackThatScalesAStoredCoefficientMovesTheSt
 // before T2: PGX is folded into the Newton right-hand side six lines on, the
 // RHS constraint blocks ARE that side, and XSL is the iterate.
 static_assert(
-    std::is_same_v<hven::solvers::InteriorPointSolver::KktHook,
+    std::is_same_v<hven::solvers::IpmSolver::KktHook,
                    std::function<int(int, double, hven::ConstEigenRef<Eigen::VectorXd>, double,
                                      hven::ConstEigenRef<Eigen::VectorXd>,
                                      hven::ConstEigenRef<Eigen::VectorXd>,
@@ -605,7 +605,7 @@ static_assert(
 // row bound.)
 namespace {
 
-struct CallbackOracleProblem : NLPProblem {
+struct CallbackOracleProblem : NlpTripletModel {
     static constexpr int kN = 2;
     static constexpr double kInf = std::numeric_limits<double>::infinity();
     static constexpr double kRhs = 2.0;
@@ -680,7 +680,7 @@ TEST(EarlyCallbackViews, TheThreeVectorsAreTheModelsOwnNumbersAtThisIterationsEv
 
     auto problem = std::make_shared<CallbackOracleProblem>();
     const auto program = hven::solvers::make_nlp_program(problem);
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -741,7 +741,7 @@ TEST(EarlyCallbackViews, TheThreeVectorsAreTheModelsOwnNumbersAtThisIterationsEv
 TEST(EarlyCallbackViews, TheEarlyAndLateViewsOfOneIterationAreTheSameIterate) {
     auto problem = std::make_shared<CallbackOracleProblem>();
     const auto program = hven::solvers::make_nlp_program(problem);
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();

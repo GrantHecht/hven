@@ -11,7 +11,7 @@
 /// schedule, and the Wachter-Biegler inertia ladder.
 /// @see docs/notes/2026-09-header-prose-archive.md §ipqp_engine.h
 //
-// NOT a branch inside InteriorPointSolver and NOT a user of detail/globalization/:
+// NOT a branch inside IpmSolver and NOT a user of detail/globalization/:
 // fraction-to-boundary is the whole of globalization here. Declarations ONLY; the
 // iteration, ladder and equilibration are in the .cpp.
 //
@@ -33,7 +33,7 @@
 #include <hven/detail/qp/ipqp_evidence.h>
 #include <hven/detail/qp/ipqp_kkt_layout.h>
 #include <hven/detail/qp/qp_problem.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::solvers {
@@ -491,7 +491,7 @@ struct IpqpResult {
 class IpqpEngine {
   public:
     /// @param opts    The QP options this tier solves under.
-    /// @param threads The thread count in force -- SqpDriver passes
+    /// @param threads The thread count in force -- SqpSolver passes
     ///                SqpOptions::common.threads (M6 W5 T8.8). It configures
     ///                the ONE `KktFactorization` this tier holds. 0 (the
     ///                default, and what every pre-T8.8 construction site
@@ -549,7 +549,7 @@ class IpqpEngine {
     ///                  solve. `nullptr` IS COLD unconditionally -- this call never consumes
     ///                  `warm_carry()` on the caller's behalf.
     /// @param iopts     the tier's own settings (validated by
-    ///                  `validate_sqp_options`), re-checked here at the API boundary, because
+    ///                  `validate`), re-checked here at the API boundary, because
     ///                  this engine is reachable without a driver.
     /// @param overrides the walk's own per-solve override type
     ///                  (`qp_types.h`), unchanged. `tr_radius` is the ONE field this tier
@@ -641,7 +641,7 @@ enum class IpqpLadderOutcome {
 class IpqpEscapeLadder {
   public:
     /// @param iopts the tier's settings; only `ipqp_retire_after` is read (validated `> 0` by
-    ///              `validate_sqp_options`, re-checked here -- reachable without a driver).
+    ///              `validate`, re-checked here -- reachable without a driver).
     /// @throws std::invalid_argument if `ipqp_retire_after <= 0`.
     explicit IpqpEscapeLadder(const IpqpOptions &iopts);
 

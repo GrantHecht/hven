@@ -51,8 +51,8 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/qp/eqp_solve.h>
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/nlp_model.h>
 
 #include "support/hs_problems.h"
@@ -181,8 +181,8 @@ Outcome run_one(const Row &r, const Cell &c, const Regime &g) {
     opts.feas_tol = g.tol;
     opts.adaptive_mu = c.adaptive_mu;
     opts.qp.ws_algebra = c.algebra;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model);
 
     const double target = std::isnan(r.f_target) ? p.f_star : r.f_target;
     Outcome o;
@@ -293,7 +293,7 @@ void sweep(const Regime &g) {
 }
 
 // THE ILL-SCALED FIXTURE, ported verbatim (modulo naming) from
-// tests/test_sqp_driver.cpp's ScaledRowModel -- the fixture the two
+// tests/test_sqp_solver.cpp's ScaledRowModel -- the fixture the two
 // SqpDriverAdaptiveMu tests are built on, and the ONLY place in this project
 // where the fixed-mu accuracy ceiling has ever been demonstrated:
 //
@@ -474,8 +474,8 @@ void f7_ceiling_sweep(Index nodes, double p, double scale, double tol) {
         opts.qp.max_iter = 5000; // the wide window needs it (scale-study note S5)
         opts.adaptive_mu = c.adaptive_mu;
         opts.qp.ws_algebra = c.algebra;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model, model.start_point());
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model, model.start_point());
         const double err = (sol.x - x_star).norm() / x_star.norm();
         fmt::print("{:<44} {:>14} {:>12.4e} {:>5} {:>6} {:>8} {:>8}\n", c.name(),
                    status_name(sol.status), err, sol.counters.major_iters,
@@ -506,8 +506,8 @@ void scaled_row_sweep(double a, double lo, double tol) {
         opts.feas_tol = tol;
         opts.adaptive_mu = c.adaptive_mu;
         opts.qp.ws_algebra = c.algebra;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model, x0);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model, x0);
         const double err = (sol.x - x_star).norm() / x_star.norm();
         fmt::print("{:<44} {:>14} {:>12.4e} {:>5} {:>6} {:>8} {:>8}\n", c.name(),
                    status_name(sol.status), err, sol.counters.major_iters,
@@ -746,8 +746,8 @@ TEST(EqpRefinementAb, SecondCeilingFixtureReproducesTheAdaptiveMuRuling) {
         opts.qp.max_iter = 5000;
         opts.adaptive_mu = c.adaptive_mu;
         opts.qp.ws_algebra = c.algebra;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model, model.start_point());
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model, model.start_point());
         const Vec x_star = model.x_star();
         const double err = (sol.x - x_star).norm() / x_star.norm();
 

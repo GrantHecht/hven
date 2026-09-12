@@ -4,7 +4,7 @@
 #pragma once
 
 // warm_start.h -- the interior-point CROSSOVER (`from_interior_point`) and the
-// `WarmStart` spelling of the SQP's native warm-start object.
+// `SqpWarmStart` spelling of the SQP's native warm-start object.
 //
 // M6 W5 T8.5 PROMOTED THE STRUCT OUT OF `detail/`: it now lives, with its full
 // contract, in `warmstart/sqp_warm_start.h` as `SqpWarmStart` -- the labelled
@@ -30,20 +30,12 @@
 
 namespace hven::solvers {
 
-/// @brief The SQP engine's native warm-start object; see
-///        `warmstart/sqp_warm_start.h` for the type and its whole contract.
-///
-/// A SPELLING, not a second type: T8.5 moved the struct to its public home and
-/// left this name behind so nothing that already says `WarmStart` had to move
-/// with it. Removed by T8.10.
-using WarmStart = SqpWarmStart;
-
 // THE INTERIOR-POINT CROSSOVER -- `from_interior_point`.
 //
-// Builds a WarmStart from an INTERIOR-POINT-STYLE primal-dual iterate: the
+// Builds a SqpWarmStart from an INTERIOR-POINT-STYLE primal-dual iterate: the
 // Knitro crossover pattern (an IP method runs to near-KKT, then hands off to
 // an active-set method for the final polish). Unlike mesh_transfer.h's
-// MeshTransfer (which maps a WarmStart born from THIS driver's own solve onto
+// MeshTransfer (which maps a SqpWarmStart born from THIS driver's own solve onto
 // a different mesh), this function's INPUT never went through this driver at
 // all: there is no QpEngine working set, no funnel/trust-region history and,
 // critically, no MODEL this function could hash -- so `structure_hash` is
@@ -119,7 +111,7 @@ using WarmStart = SqpWarmStart;
 //     can be actively wrong rather than merely empty.
 //
 // A kFixed variable (lower(i) == upper(i)) is reported +1, the same
-// arbitrary-but-consistent choice WarmStart::bound_active's own note makes
+// arbitrary-but-consistent choice SqpWarmStart::bound_active's own note makes
 // for a solve-derived object.
 //
 // NO FUNNEL/TRUST-REGION/REGULARIZATION STATE: funnel_width, tr_radius,
@@ -143,7 +135,7 @@ using WarmStart = SqpWarmStart;
 //
 // The activity rule's safety factor `nu`, NOT an option: it is one decade of
 // margin over the larger of the two scales the rule compares against (the
-// same "an order above the producer's own tolerance" step sqp_driver.h's
+// same "an order above the producer's own tolerance" step sqp_solver.h's
 // kSeededDualClampTol derivation takes), fixed here rather than exposed
 // because a caller has no data with which to choose it that the rule has not
 // already read for itself. Its product with the default `activity_rel_tol`
@@ -208,7 +200,7 @@ inline double ip_activity_threshold(const Vec &dual, const Residual &residual, d
 
 } // namespace detail
 
-/// @brief Builds a WarmStart from an interior-point-style primal-dual point.
+/// @brief Builds a SqpWarmStart from an interior-point-style primal-dual point.
 ///
 /// See this header's own note immediately above for the sign convention
 /// `slack_i` must already be in (cI(x) VALUES, NOT an IP solver's own
@@ -223,9 +215,9 @@ inline double ip_activity_threshold(const Vec &dual, const Residual &residual, d
 /// solve; never inlined at its call sites). detail::ip_activity_threshold
 /// above STAYS HERE: it is a template on purpose, so this function can pass
 /// it an Eigen expression rather than materialize two n-sized temporaries.
-WarmStart from_interior_point(const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
-                              const Vec &slack_i, const Vec &z_lower, const Vec &z_upper,
-                              const Vec &lower, const Vec &upper,
-                              const IpCrossoverOptions &opts = {});
+SqpWarmStart from_interior_point(const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
+                                 const Vec &slack_i, const Vec &z_lower, const Vec &z_upper,
+                                 const Vec &lower, const Vec &upper,
+                                 const IpCrossoverOptions &opts = {});
 
 } // namespace hven::solvers

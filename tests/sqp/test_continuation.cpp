@@ -101,7 +101,7 @@
 // backend available in this session. The QP engine's factorization backend can
 // change which trial steps are accepted, hence how many majors a step costs,
 // hence -- through target_majors -- the dp schedule itself, so these are
-// backend-sensitive numbers in the same way tests/test_sqp_driver.cpp's
+// backend-sensitive numbers in the same way tests/test_sqp_solver.cpp's
 // suspect_escalations pins are. A first Accelerate run that lands on different
 // counts is a RE-MEASUREMENT, not automatically a defect; what is NOT
 // backend-sensitive, and must hold on any backend, is everything asserted
@@ -125,8 +125,8 @@
 #include <hven/detail/warmstart/continuation.h>
 #include <hven/detail/warmstart/predictor.h>
 #include <hven/detail/warmstart/warm_start.h>
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/nlp_model.h>
 
 #include "support/parametric_families.h"
@@ -152,7 +152,7 @@ SqpOptions sweep_options() {
 
 Vec p_vec(double p) { return Vec::Constant(1, p); }
 
-// WarmStart::bound_active's encoding read off a point GEOMETRICALLY -- the
+// SqpWarmStart::bound_active's encoding read off a point GEOMETRICALLY -- the
 // same helper tests/test_predictor.cpp uses, and the only notion of activity
 // that is determinate where a multiplier vanishes (F1's DEGENERACY note).
 std::vector<std::int8_t> geometric_bound_active(const NlpModel &model, const Vec &x, double tol) {
@@ -229,7 +229,7 @@ class DirectionRecordingF4 : public F4MovingConstraints {
 // outcomes, both at ZERO majors and neither depending on the QP engine:
 //
 //   - the COLD solve at p0 converges IMMEDIATELY (start_point() IS x*(p0), so
-//     the convergence test fires before any subproblem is built -- sqp_types.h:
+//     the convergence test fires before any subproblem is built -- sqp_solver_types.h:
 //     "a solve that converges immediately reports major_iters == 0");
 //   - every WARM step FAILS, because F2's path is curved and a first-order
 //     prediction across any usable dp lands O(||dp||^2) away, far outside the
@@ -294,7 +294,7 @@ TEST(Continuation, SweepF1CrossesActivationsWarm) {
     constexpr Index kTotalMajors = 5;
 
     F1BoxQp model(0.0);
-    SqpDriver driver(sweep_options());
+    SqpSolver driver(sweep_options());
     ContinuationOptions copts;
 
     const ContinuationResult res = run_continuation(model, p_vec(0.0), p_vec(1.0), driver, copts);
@@ -367,7 +367,7 @@ TEST(Continuation, AdaptiveDpGrowsAndShrinks) {
     constexpr Index kTotalMajors = 7;
 
     F2CircleNlp model(0.0);
-    SqpDriver driver(sweep_options());
+    SqpSolver driver(sweep_options());
     ContinuationOptions copts;
 
     const ContinuationResult res = run_continuation(model, p_vec(0.0), p_vec(1.0), driver, copts);
@@ -421,13 +421,13 @@ TEST(Continuation, PredictorOffCostsMore) {
     constexpr Index kMajorsWithout = 9;
 
     F2CircleNlp model_on(0.0);
-    SqpDriver driver_on(sweep_options());
+    SqpSolver driver_on(sweep_options());
     ContinuationOptions on;
     const ContinuationResult res_on =
         run_continuation(model_on, p_vec(0.0), p_vec(1.0), driver_on, on);
 
     F2CircleNlp model_off(0.0);
-    SqpDriver driver_off(sweep_options());
+    SqpSolver driver_off(sweep_options());
     ContinuationOptions off;
     off.use_predictor = false;
     const ContinuationResult res_off =
@@ -471,7 +471,7 @@ TEST(Continuation, TwoParameterSweepFollowsTheDirection) {
     const Vec dir = (p1 - p0) / (p1 - p0).norm();
 
     DirectionRecordingF4 model(p0(0), p0(1));
-    SqpDriver driver(sweep_options());
+    SqpSolver driver(sweep_options());
     ContinuationOptions copts;
 
     const ContinuationResult res = run_continuation(model, p0, p1, driver, copts);
@@ -531,7 +531,7 @@ TEST(Continuation, DegradedPredictionsAreCountedNotHidden) {
     // predict normally and some degrade -- a fixture where EVERY step degraded
     // could not tell "counted" from "always reported".
     ProbeRejectingWindowF1 model(0.0, /*lo=*/0.05, /*hi=*/0.75);
-    SqpDriver driver(sweep_options());
+    SqpSolver driver(sweep_options());
     ContinuationOptions copts;
 
     const ContinuationResult res = run_continuation(model, p_vec(0.0), p_vec(1.0), driver, copts);
@@ -596,7 +596,7 @@ TEST(Continuation, ShrinkRetriesFromTheLastGoodWarm) {
     tight.max_iter = 2;
 
     F2CircleNlp model(0.0);
-    SqpDriver driver(tight);
+    SqpSolver driver(tight);
     ContinuationOptions copts;
     copts.dp_init = 0.5;
     copts.dp_max = 0.5;
@@ -688,7 +688,7 @@ TEST(Continuation, BudgetExhaustionContinuesAtTheSameParameter) {
     budgeted.budget_mode = true;
 
     F2CircleNlp model(0.0);
-    SqpDriver driver(budgeted);
+    SqpSolver driver(budgeted);
     ContinuationOptions copts;
     copts.dp_init = 0.5;
     copts.dp_max = 0.5;
@@ -738,7 +738,7 @@ TEST(Continuation, BudgetExhaustionContinuesAtTheSameParameter) {
     SqpOptions plain = budgeted;
     plain.budget_mode = false;
     F2CircleNlp model_plain(0.0);
-    SqpDriver driver_plain(plain);
+    SqpSolver driver_plain(plain);
     const ContinuationResult plain_res =
         run_continuation(model_plain, p_vec(0.0), p_vec(1.0), driver_plain, copts);
     ASSERT_TRUE(plain_res.reached_p1) << trajectory(plain_res);
@@ -769,7 +769,7 @@ TEST(Continuation, NearEndpointFailureDoesNotRepeatTheSameProposal) {
     starved.max_iter = 0; // every warm step fails at zero majors; see SolvedStartF2
 
     SolvedStartF2 model(0.0);
-    SqpDriver driver(starved);
+    SqpSolver driver(starved);
     ContinuationOptions copts;
     copts.dp_init = 0.5;
     copts.dp_max = 0.5;
@@ -823,8 +823,8 @@ TEST(Continuation, NearEndpointFailureDoesNotRepeatTheSameProposal) {
     // level == kWarm. They used to report kCold, and the note here used to
     // explain why that was a property of the degenerate fixture rather than a
     // warm-ingest regression: a zero-budget solve builds no subproblem, so its
-    // WarmStart::structure_hash stayed at the "never computed" sentinel and the
-    // next solve's ingest could not match it. sqp_driver.h's make_warm_start
+    // SqpWarmStart::structure_hash stayed at the "never computed" sentinel and the
+    // next solve's ingest could not match it. sqp_solver.h's make_warm_start
     // now PROBES the model's structure on exactly that exit, so a solve that
     // spends no major still hands off a hash-valid object and the chain
     // survives. NOTHING ELSE IN THIS FIXTURE MOVED -- the same five proposals,
@@ -854,7 +854,7 @@ TEST(Continuation, BudgetContinuationCapDemotesToAShrink) {
     starved.budget_mode = true;
 
     SolvedStartF2 model(0.0);
-    SqpDriver driver(starved);
+    SqpSolver driver(starved);
     ContinuationOptions copts;
     copts.dp_init = 0.5;
     copts.dp_max = 0.5;
@@ -915,7 +915,7 @@ TEST(Continuation, BudgetContinuationCapDemotesToAShrink) {
 // solve IS the sweep") that no test executed.
 TEST(Continuation, ZeroLengthSweepIsJustTheColdSolve) {
     F1BoxQp model(0.3);
-    SqpDriver driver(sweep_options());
+    SqpSolver driver(sweep_options());
 
     const ContinuationResult res = run_continuation(model, p_vec(0.3), p_vec(0.3), driver);
 
@@ -955,7 +955,7 @@ TEST(Continuation, SubnormalSegmentIsRefusedRatherThanCalledZeroLength) {
     ASSERT_NE(kTiny, 0.0) << "and on p1 being a genuinely different point from p0";
 
     F1BoxQp model(0.0);
-    SqpDriver driver(sweep_options());
+    SqpSolver driver(sweep_options());
     // Not a silent reached_p1, and not a division by zero: a named refusal.
     EXPECT_THROW(run_continuation(model, p_vec(0.0), p_vec(kTiny), driver), std::invalid_argument);
 
@@ -965,7 +965,7 @@ TEST(Continuation, SubnormalSegmentIsRefusedRatherThanCalledZeroLength) {
     // side, and so a regression that made the equality test approximate again
     // would swallow the refusal above rather than fail only there.
     F1BoxQp same(0.0);
-    SqpDriver same_driver(sweep_options());
+    SqpSolver same_driver(sweep_options());
     const ContinuationResult zero = run_continuation(same, p_vec(0.0), p_vec(0.0), same_driver);
     EXPECT_TRUE(zero.reached_p1) << trajectory(zero);
     EXPECT_EQ(zero.steps.size(), 1u) << trajectory(zero);
@@ -975,7 +975,7 @@ TEST(Continuation, SubnormalSegmentIsRefusedRatherThanCalledZeroLength) {
     // same `norm()` it always was, so this sweep's trajectory is bit-identical
     // to its pre-S-5 form.
     F1BoxQp ordinary(0.3);
-    SqpDriver ordinary_driver(sweep_options());
+    SqpSolver ordinary_driver(sweep_options());
     const ContinuationResult ok =
         run_continuation(ordinary, p_vec(0.3), p_vec(0.5), ordinary_driver);
     EXPECT_TRUE(ok.reached_p1) << trajectory(ok);
@@ -993,7 +993,7 @@ TEST(Continuation, FailingInitialPointIsCountedAsAFailedAttempt) {
         SqpOptions starved = sweep_options();
         starved.max_iter = 0;
         F1BoxQp model(0.0);
-        SqpDriver driver(starved);
+        SqpSolver driver(starved);
 
         const ContinuationResult res = run_continuation(model, p_vec(0.0), p_vec(1.0), driver);
         ASSERT_EQ(res.steps.size(), 1u) << trajectory(res);
@@ -1017,7 +1017,7 @@ TEST(Continuation, FailingInitialPointIsCountedAsAFailedAttempt) {
         starved.max_iter = 0;
         starved.budget_mode = true;
         F2CircleNlp model(0.6);
-        SqpDriver driver(starved);
+        SqpSolver driver(starved);
 
         const ContinuationResult res = run_continuation(model, p_vec(0.6), p_vec(1.0), driver);
         ASSERT_EQ(res.steps.size(), 4u) << trajectory(res);
@@ -1032,7 +1032,7 @@ TEST(Continuation, FailingInitialPointIsCountedAsAFailedAttempt) {
     // fixture of exactly this shape.
     {
         F1BoxQp model(0.3);
-        SqpDriver driver(sweep_options());
+        SqpSolver driver(sweep_options());
         const ContinuationResult res = run_continuation(model, p_vec(0.3), p_vec(0.5), driver);
         ASSERT_TRUE(res.reached_p1) << trajectory(res);
         EXPECT_EQ(res.proposals_abandoned + res.proposals_full_cost, 0)
@@ -1053,7 +1053,7 @@ TEST(Continuation, ColdStepFollowsTheSameBudgetRule) {
     // -- repeatedly, since each continuation re-solves from a hand-off that has
     // not moved. The cap is what ends it.
     F2CircleNlp model(0.6);
-    SqpDriver driver(starved);
+    SqpSolver driver(starved);
 
     ContinuationResult res;
     ASSERT_NO_THROW(res = run_continuation(model, p_vec(0.6), p_vec(1.0), driver));
@@ -1080,7 +1080,7 @@ TEST(Continuation, ColdStepFollowsTheSameBudgetRule) {
     SqpOptions plain = starved;
     plain.budget_mode = false;
     F2CircleNlp model_plain(0.6);
-    SqpDriver driver_plain(plain);
+    SqpSolver driver_plain(plain);
     const ContinuationResult plain_res =
         run_continuation(model_plain, p_vec(0.6), p_vec(1.0), driver_plain);
     EXPECT_FALSE(plain_res.reached_p1);
@@ -1128,7 +1128,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         opts.feas_tol = 1e-8;
         opts.max_iter = 100;
         opts.adaptive_mu = false;
-        opts.start_level = StartLevel::kWarm;
+        opts.common.start_level = StartLevel::kWarm;
         opts.warm_full_step = true;
         // MARKED CORRECTION, PHASE-6 TASK 4 (M6). This line is NEW and it
         // restores, EXPLICITLY, the QP minor cap that was the library default
@@ -1163,7 +1163,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
 
     // ---- ARM A: the pre-task behaviour, probe_budget = 0 ------------------
     F7CollocationChain model_off(100, 3, 2, 0.3, 1.0);
-    SqpDriver driver_off(make_options());
+    SqpSolver driver_off(make_options());
     const ContinuationResult off = run_continuation(model_off, p_vec(0.3), p_vec(0.9), driver_off,
                                                     make_continuation_options(0));
 
@@ -1218,7 +1218,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
 
     // ---- ARM B: the default probe budget ---------------------------------
     F7CollocationChain model_on(100, 3, 2, 0.3, 1.0);
-    SqpDriver driver_on(make_options());
+    SqpSolver driver_on(make_options());
     const ContinuationResult on =
         run_continuation(model_on, p_vec(0.3), p_vec(0.9), driver_on, make_continuation_options(2));
 
@@ -1253,7 +1253,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     EXPECT_EQ(on.steps[1].counters.factorizations, 14) << trajectory(on);
 
     // ---- ARM C: the same budget under SqpOptions::budget_mode -------------
-    // THE TWO BUDGETS MUST NOT FIGHT (sqp_driver.h's PROBE BUDGET note, part
+    // THE TWO BUDGETS MUST NOT FIGHT (sqp_solver.h's PROBE BUDGET note, part
     // 4). Budgeted mode's own exhaustion status means "continue at the SAME
     // parameter value from this hand-off"; a probe-budget stop means the
     // opposite. So a probe stop keeps the ordinary kMaxIter status even with
@@ -1263,7 +1263,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     SqpOptions budgeted = make_options();
     budgeted.budget_mode = true;
     F7CollocationChain model_bm(100, 3, 2, 0.3, 1.0);
-    SqpDriver driver_bm(budgeted);
+    SqpSolver driver_bm(budgeted);
     const ContinuationResult bm =
         run_continuation(model_bm, p_vec(0.3), p_vec(0.9), driver_bm, make_continuation_options(2));
     ASSERT_TRUE(bm.reached_p1) << trajectory(bm);
@@ -1289,7 +1289,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     SqpOptions derived_cap = make_options();
     derived_cap.qp.max_iter = 0; // the sentinel -- the shipped default
     F7CollocationChain model_m6(100, 3, 2, 0.3, 1.0);
-    SqpDriver driver_m6(derived_cap);
+    SqpSolver driver_m6(derived_cap);
     const ContinuationResult m6 =
         run_continuation(model_m6, p_vec(0.3), p_vec(0.9), driver_m6, make_continuation_options(0));
     ASSERT_TRUE(m6.reached_p1) << trajectory(m6);
@@ -1342,7 +1342,7 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
     // what it means, instead of implicitly from a cap that was refusing
     // solvable subproblems. See docs/notes/2026-08-03-crash-basis.md Sec. 6.3.
     F7CollocationChain model_both(100, 3, 2, 0.3, 1.0);
-    SqpDriver driver_both(derived_cap);
+    SqpSolver driver_both(derived_cap);
     const ContinuationResult both = run_continuation(model_both, p_vec(0.3), p_vec(0.9),
                                                      driver_both, make_continuation_options(2));
     ASSERT_TRUE(both.reached_p1) << trajectory(both);
@@ -1413,14 +1413,14 @@ TEST(Continuation, HealthySweepIsBitIdenticalUnderTheProbeBudget) {
         opts.feas_tol = 1e-8;
         opts.max_iter = 100;
         opts.adaptive_mu = false;
-        opts.start_level = StartLevel::kWarm;
+        opts.common.start_level = StartLevel::kWarm;
         opts.warm_full_step = true;
         ContinuationOptions copts;
         copts.use_predictor = false;
         copts.dp_init = 0.2;
         copts.probe_budget = probe_budget;
         F7CollocationChain model(100, 3, 2, 0.3, 1.0);
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         return run_continuation(model, p_vec(0.3), p_vec(0.9), driver, copts);
     };
 
@@ -1475,7 +1475,7 @@ TEST(Continuation, GrowthSuspensionSkipsTheStepAfterAFailure) {
         opts.feas_tol = 1e-8;
         opts.max_iter = 100;
         opts.adaptive_mu = false;
-        opts.start_level = StartLevel::kWarm;
+        opts.common.start_level = StartLevel::kWarm;
         opts.warm_full_step = true;
         ContinuationOptions copts;
         copts.use_predictor = false;
@@ -1484,7 +1484,7 @@ TEST(Continuation, GrowthSuspensionSkipsTheStepAfterAFailure) {
         copts.probe_budget = 2;
         copts.suspend_growth_after_failure = suspend;
         F7CollocationChain model(100, 3, 2, 0.3, 1.0);
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         return run_continuation(model, p_vec(0.3), p_vec(0.9), driver, copts);
     };
 
@@ -1512,7 +1512,7 @@ TEST(Continuation, GrowthSuspensionSkipsTheStepAfterAFailure) {
 
 TEST(Continuation, RejectsMismatchedDimensions) {
     F1BoxQp model(0.0);
-    SqpDriver driver(sweep_options());
+    SqpSolver driver(sweep_options());
 
     // p0 and p1 of different sizes.
     EXPECT_THROW(run_continuation(model, p_vec(0.0), Vec::Zero(2), driver), std::invalid_argument);
@@ -1545,7 +1545,7 @@ TEST(Continuation, FailedRunReturnsRatherThanThrows) {
     starved.max_iter = 0;
 
     F1BoxQp model(0.0);
-    SqpDriver driver(starved);
+    SqpSolver driver(starved);
 
     ContinuationResult res;
     ASSERT_NO_THROW(res = run_continuation(model, p_vec(0.0), p_vec(1.0), driver));
@@ -1562,7 +1562,7 @@ TEST(Continuation, FailedRunReturnsRatherThanThrows) {
     SqpOptions one_major = sweep_options();
     one_major.max_iter = 1;
     F2CircleNlp model2(0.0);
-    SqpDriver driver2(one_major);
+    SqpSolver driver2(one_major);
     ContinuationOptions floored;
     floored.dp_init = 0.5;
     floored.dp_max = 0.5;

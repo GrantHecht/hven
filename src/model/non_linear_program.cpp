@@ -421,7 +421,7 @@ void hven::solvers::NonLinearProgram::make_nlp(int PV, int EQ, int IQ) {
     this->rebuild_structures();
 }
 
-void hven::solvers::NonLinearProgram::adopt_declaration(AggregateDeclaration declaration) {
+void hven::solvers::NonLinearProgram::adopt_declaration(AssemblyDeclaration declaration) {
     // FIRST, and before a single member of this problem is written. Every
     // refusal this entry can make is the declaration's own -- the dimensions,
     // the piece sums, the bounds, and the shape of the fixing-row tail this
@@ -994,7 +994,7 @@ void hven::solvers::NonLinearProgram::materialize_declaration_pieces() const {
         shared_row_overcount(this->declaration_.inequality_constraints_,
                              this->declaration_.inequality_rows_, "inequality");
 
-    // COPIES rather than views because an AggregateDeclaration is a value over
+    // COPIES rather than views because an AssemblyDeclaration is a value over
     // its pieces -- which is what makes a layout a pure function of the
     // declaration, and what lets a consumer MOVE one in.
     //
@@ -1614,7 +1614,7 @@ void hven::solvers::NonLinearProgram::finalize_data() {
 
 void hven::solvers::NonLinearProgram::analyze_sparsity(
     Eigen::SparseMatrix<double, Eigen::RowMajor> &KKTmat) {
-    // InteriorPointSolver requires that only the upper triangular part of a CSR
+    // IpmSolver requires that only the upper triangular part of a CSR
     // matrix be filled. get_mat_space calculates the non-zeros of the lower
     // triangular part, so this routine transposes the row-column indices when
     // making the triplet vector Eigen uses to build the compressed upper-
@@ -2656,7 +2656,7 @@ void hven::solvers::NonLinearProgram::assemble_impl(const CandidatePoint &point,
     } else {
         // request is legal (assemble() validated it) but not one of this
         // provider's eight shapes -- rows 9-11 are the SQP driver's, served by
-        // the NlpModelAggregate bridge, never by this engine. Refusing by name
+        // the NlpModelAssembly bridge, never by this engine. Refusing by name
         // is the point: a bare-else fallback here would silently run the
         // full-KKT pass for a shape that asked for far less, over-evaluating
         // exactly as the mapping table's per-provider support statement

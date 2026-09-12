@@ -664,7 +664,7 @@ constexpr std::uint64_t kFnvOffsetBasis = 14695981039346656037ULL;
 // not depend on host byte order or on SpMatRM::StorageIndex's width. No
 // consumer compares it against anything but another call of this same
 // function in the same process; 0 stays meaningful only as
-// WarmStart::structure_hash's "no claim made" sentinel.
+// SqpWarmStart::structure_hash's "no claim made" sentinel.
 inline std::uint64_t structural_hash(const QpProblem &qp) {
     return combined_pattern_hash(qp.H, qp.Ae, qp.Ai);
 }
@@ -766,7 +766,7 @@ struct EliminatedFace {
     }
 };
 
-// Hot-start level. The opaque handle behind warm_start.h's WarmStart::hot,
+// Hot-start level. The opaque handle behind warm_start.h's SqpWarmStart::hot,
 // forward-declared there and DEFINED here: a frozen copy of the
 // fingerprint/exit-state members QpEngine::run() tracks per instance, plus
 // shared ownership of the BorderState those fingerprints describe.
@@ -831,7 +831,7 @@ struct HotState {
 class QpEngine {
   public:
     // `threads` is the thread count in force for this engine's factor paths --
-    // SqpDriver passes SqpOptions::common.threads. Since M6 W5 T8.8 this engine
+    // SqpSolver passes SqpOptions::common.threads. Since M6 W5 T8.8 this engine
     // both CARRIES it (it is folded into the options fingerprint a hot handle is
     // keyed on -- qp_types.h's options_fingerprint) and APPLIES it: K0's factor
     // takes it here, and run()/refine_on_face()/
@@ -868,7 +868,7 @@ class QpEngine {
     void attach_ledger(Ledger *ledger, std::string label_prefix);
 
     // The per-solve record counter this engine has reached, and the way to hand
-    // it to a REPLACEMENT engine. Exists for exactly one caller: SqpDriver::
+    // it to a REPLACEMENT engine. Exists for exactly one caller: SqpSolver::
     // set_options(), whose transactional rebuild throws this engine away. The
     // labels are a per-driver sequence, not a per-engine one, so a rebuild that
     // let the counter restart would put a second `<prefix>_qp_0` in a ledger
@@ -897,7 +897,7 @@ class QpEngine {
                      const SolveOverrides &overrides) const;
 
     // Warm start with a per-solve override AND a hot handle
-    // (WarmStart::hot) from a PRIOR solve -- typically on a DIFFERENT
+    // (SqpWarmStart::hot) from a PRIOR solve -- typically on a DIFFERENT
     // QpEngine instance -- offered for THIS engine to adopt as its own
     // border-mode cache if it does not already have a valid one (see run()'s
     // ADOPT AN EXTERNAL HOT HANDLE step). `hot` may be null (falls back to
@@ -910,7 +910,7 @@ class QpEngine {
 
     // A shared, opaque snapshot of this engine's CURRENTLY valid border-mode
     // cache -- what warm_start.h's make_warm_start attaches to
-    // WarmStart::hot on every exit. Returns nullptr whenever border_valid_ is
+    // SqpWarmStart::hot on every exit. Returns nullptr whenever border_valid_ is
     // false: no solve() on this instance has yet ended kOptimal, or
     // ws_algebra == kRefactorize.
     //
@@ -959,7 +959,7 @@ class QpEngine {
   private:
     // R5's PIN TAKEN DIRECTLY: probe_inertia is private, and the test that
     // reads the face it leaves behind needs a name here. Declared only, defined
-    // in the test -- aggregate_eval_seam.h's convention, no shipped surface.
+    // in the test -- assembly_eval_seam.h's convention, no shipped surface.
     friend struct QpEngineTestAccess;
 
     /// @brief Resolve one call's SolveOverrides against `opts` into the
@@ -1550,7 +1550,7 @@ class QpEngine {
     // The thread count in force, and the options fingerprint derived from it and
     // from opts_ at construction. Both are FROZEN for this engine's lifetime --
     // opts_ is, so the hash over it is too, and a changed option means a new
-    // engine (SqpDriver::set_options rebuilds). Computed once here rather than
+    // engine (SqpSolver::set_options rebuilds). Computed once here rather than
     // per solve because run()'s adoption gate reads it on every call.
     int threads_ = 0;
     std::uint64_t options_hash_ = 0;

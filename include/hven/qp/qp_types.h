@@ -168,7 +168,7 @@ struct QpOptions {
 /// @brief A field-wise hash of the options a QpEngine was built under, plus the
 ///        thread count in force.
 ///
-/// WHY IT EXISTS. A hot handle (`WarmStart::hot`, detail/qp/qp_engine.h's
+/// WHY IT EXISTS. A hot handle (`SqpWarmStart::hot`, detail/qp/qp_engine.h's
 /// HotState) carries a factorized K0 across engines. The reuse conditions
 /// (a)-(e) fingerprint the PROBLEM (the structural and value hashes, the
 /// effective delta/mu, the working set) and the FACTOR OBJECT (its

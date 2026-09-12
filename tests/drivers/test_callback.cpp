@@ -52,16 +52,16 @@
 
 #include <hven/core/ledger.h>
 #include <hven/detail/model/nlp_adapter.h>
-#include <hven/drivers/interior_point_solver.h>
+#include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/ipm_solver_types.h>
 #include <hven/drivers/solve_result.h>
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/drivers/trace_writer.h>
 #include <hven/model/nlp_model.h>
-#include <hven/model/nlp_model_aggregate.h>
-#include <hven/model/nlp_problem.h>
+#include <hven/model/nlp_model_assembly.h>
 #include <hven/model/nlp_problem_model.h>
+#include <hven/model/nlp_triplet_model.h>
 
 #include "support/hs071_problem.h"
 
@@ -74,9 +74,9 @@ using hven::solvers::Ledger;
 using hven::solvers::NlpModel;
 using hven::solvers::NlpProblemModel;
 using hven::solvers::SolveStatus;
-using hven::solvers::SqpDriver;
 using hven::solvers::SqpOptions;
-using hven::solvers::SqpSolution;
+using hven::solvers::SqpResult;
+using hven::solvers::SqpSolver;
 using Vec = Eigen::VectorXd;
 using SpMatRM = Eigen::SparseMatrix<double, Eigen::RowMajor>;
 
@@ -147,7 +147,7 @@ SqpOptions quiet_sqp() {
     return o;
 }
 
-hven::solvers::IpmOptions quiet_ipm(const hven::solvers::InteriorPointSolver &solver) {
+hven::solvers::IpmOptions quiet_ipm(const hven::solvers::IpmSolver &solver) {
     hven::solvers::IpmOptions o = solver.options();
     o.common.print_level = 10;
     return o;
@@ -326,14 +326,14 @@ class NonFiniteStartModel : public NlpModel {
 
 // An SQP-side view of HS071, kept alive with its bridge.
 struct Hs071View {
-    std::shared_ptr<hven::solvers::NLPProblem> problem;
+    std::shared_ptr<hven::solvers::NlpTripletModel> problem;
     std::shared_ptr<NlpProblemModel> model;
-    std::shared_ptr<hven::solvers::NlpModelAggregate> bridge;
+    std::shared_ptr<hven::solvers::NlpModelAssembly> bridge;
 
     Hs071View()
         : problem(std::make_shared<hven_drivers_tests::Hs071Problem>()),
           model(std::make_shared<NlpProblemModel>(problem)),
-          bridge(std::make_shared<hven::solvers::NlpModelAggregate>(model)) {}
+          bridge(std::make_shared<hven::solvers::NlpModelAssembly>(model)) {}
 };
 
 // A FIXED-VARIABLE PROBLEM, for the MakeConstraint arm of the interior-point
@@ -348,7 +348,7 @@ struct Hs071View {
 // Shaped after tests/interior/test_ipm_solver_entry.cpp's FixedVarProblem, which the
 // treatment pins already use; copied rather than shared because that fixture is
 // a local of a .cpp in another suite.
-struct FixedVarProblem final : hven::solvers::NLPProblem {
+struct FixedVarProblem final : hven::solvers::NlpTripletModel {
     int num_vars() const override { return 2; }
     int num_cons() const override { return 0; }
     int num_jac_nonzeros() const override { return 0; }
@@ -397,14 +397,14 @@ bool bit_equal(const Vec &a, const Vec &b) {
 
 // A PROBLEM WHOSE OBJECTIVE RISES along the solve: min 0.5*|x|^2 subject to
 // sum(x) == 3 on a [-2, 2] box, started at the origin. f(x0) = 0 and
-// f(x*) = 1.125, so under BestCriteriaModes::OBJ the best-scoring iterate is an
+// f(x*) = 1.125, so under BestCriteriaModes::kObj the best-scoring iterate is an
 // EARLY one -- which is what a `return_best` substitution needs in order to
 // substitute anything at all.
 //
 // VERBATIM from tests/interior/test_ipm_solver_entry.cpp's
 // BestIterateRisingObjectiveProblem, copied for the reason the two SQP fixtures
 // above are: it is a local of a .cpp in another suite.
-struct RisingObjectiveProblem final : hven::solvers::NLPProblem {
+struct RisingObjectiveProblem final : hven::solvers::NlpTripletModel {
     static constexpr int kN = 4;
 
     int num_vars() const override { return kN; }
@@ -470,10 +470,10 @@ TEST(Callback, SqpEventRowsEqualHistoryInCallerUnits) {
     SqpOptions opts = quiet_sqp();
     opts.enable_scaling = true;
 
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     Recorder rec;
     driver.set_iteration_callback(rec.hook());
-    const SqpSolution sol = driver.solve(*view.bridge, hs071_start());
+    const SqpResult sol = driver.solve(*view.bridge, hs071_start());
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_TRUE(sol.scaling.active) << "fixture premise: the scaling must engage, or the "
@@ -562,10 +562,10 @@ TEST(Callback, SqpEventRowsEqualHistoryInCallerUnits) {
 // result reports -- one arithmetic, computed once, not two that happen to agree.
 TEST(Callback, SqpTerminalEventDiagnosticsAreTheResultsOwn) {
     Hs071View view;
-    SqpDriver driver(quiet_sqp());
+    SqpSolver driver(quiet_sqp());
     Recorder rec;
     driver.set_iteration_callback(rec.hook());
-    const SqpSolution sol = driver.solve(*view.bridge, hs071_start());
+    const SqpResult sol = driver.solve(*view.bridge, hs071_start());
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_FALSE(sol.scaling.active) << "this arm is the UNSCALED control";
@@ -597,13 +597,13 @@ TEST(Callback, SqpStopReturnsInterruptedAtTheCurrentPoint) {
         SqpOptions opts = quiet_sqp();
         opts.budget_mode = budget_mode;
 
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         std::vector<Seen> seen;
         driver.set_iteration_callback([&](const IterationEvent &e) {
             seen.push_back(copy_of(e));
             return e.iteration == kStopAtRow ? CallbackAction::kStop : CallbackAction::kContinue;
         });
-        const SqpSolution sol = driver.solve(*view.bridge, hs071_start());
+        const SqpResult sol = driver.solve(*view.bridge, hs071_start());
 
         // THE VERDICT. Under budget_mode too: an interrupt takes the ORDINARY
         // exit at the current point, never the budget-best substitution --
@@ -625,8 +625,8 @@ TEST(Callback, SqpStopReturnsInterruptedAtTheCurrentPoint) {
 
         // NON-VACUOUS: an uninterrupted solve of this problem takes strictly
         // more majors, so the stop really stopped something.
-        SqpDriver full(opts);
-        const SqpSolution ref = full.solve(*view.bridge, hs071_start());
+        SqpSolver full(opts);
+        const SqpResult ref = full.solve(*view.bridge, hs071_start());
         EXPECT_EQ(ref.status, SolveStatus::kOptimal);
         EXPECT_GT(ref.counters.major_iters, sol.counters.major_iters);
     }
@@ -638,17 +638,17 @@ TEST(Callback, SqpConvergedBeatsStop) {
 
     // The converged solve's terminal row index, taken first so the stop below
     // can be aimed at exactly that row and at no other.
-    SqpDriver pilot(opts);
-    const SqpSolution reference = pilot.solve(*view.bridge, hs071_start());
+    SqpSolver pilot(opts);
+    const SqpResult reference = pilot.solve(*view.bridge, hs071_start());
     ASSERT_EQ(reference.status, SolveStatus::kOptimal);
     ASSERT_GT(reference.history.size(), 1u);
     const Index terminal_row = static_cast<Index>(reference.history.size()) - 1;
 
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     driver.set_iteration_callback([&](const IterationEvent &e) {
         return e.iteration == terminal_row ? CallbackAction::kStop : CallbackAction::kContinue;
     });
-    const SqpSolution sol = driver.solve(*view.bridge, hs071_start());
+    const SqpResult sol = driver.solve(*view.bridge, hs071_start());
 
     // CONVERGED BEATS STOP: the row the callback stopped on is the row the
     // convergence test had already passed, and the verdict was settled before
@@ -667,13 +667,13 @@ TEST(Callback, SqpStopInsideRestorationLatchesAndReachesTheParent) {
     opts.max_iter = 60;
 
     // The reference solve: restoration runs, the solve resumes and converges.
-    SqpDriver reference_driver(opts);
-    const SqpSolution reference = reference_driver.solve(model);
+    SqpSolver reference_driver(opts);
+    const SqpResult reference = reference_driver.solve(model);
     ASSERT_EQ(reference.status, SolveStatus::kOptimal);
     ASSERT_GE(reference.counters.restoration_iters, 1)
         << "fixture premise: the solve must actually enter restoration";
 
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::vector<Seen> seen;
     bool stopped = false;
     std::size_t stop_index = 0;
@@ -686,7 +686,7 @@ TEST(Callback, SqpStopInsideRestorationLatchesAndReachesTheParent) {
         }
         return CallbackAction::kContinue;
     });
-    const SqpSolution sol = driver.solve(model);
+    const SqpResult sol = driver.solve(model);
 
     ASSERT_TRUE(stopped) << "no depth-1 event ever fired, so nothing inside restoration was seen";
 
@@ -722,15 +722,15 @@ TEST(Callback, SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict) {
     const SqpOptions opts = quiet_sqp();
 
     // The reference: restoration runs to a CERTIFICATE of local infeasibility.
-    SqpDriver reference_driver(opts);
-    const SqpSolution reference = reference_driver.solve(model);
+    SqpSolver reference_driver(opts);
+    const SqpResult reference = reference_driver.solve(model);
     ASSERT_EQ(reference.status, SolveStatus::kInfeasible);
     ASSERT_TRUE(reference.infeasibility_certified)
         << "fixture premise: the restoration phase must reach the certificate, or the pin "
            "below cannot show a stop withholding it";
     ASSERT_GE(reference.counters.restoration_iters, 2);
 
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     bool stopped = false;
     driver.set_iteration_callback([&](const IterationEvent &e) {
         if (!stopped && e.depth.value_or(0) == 1) {
@@ -739,7 +739,7 @@ TEST(Callback, SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict) {
         }
         return CallbackAction::kContinue;
     });
-    const SqpSolution sol = driver.solve(model);
+    const SqpResult sol = driver.solve(model);
     ASSERT_TRUE(stopped);
 
     // THE SUB-SOLVE'S OWN VERDICT REACHES THE PARENT. Its point is still
@@ -782,13 +782,13 @@ TEST(Callback, SqpStopInsideRestorationArrivesAsTheSubSolvesOwnVerdict) {
 // its restoration-requesting row -- and passed on every other.
 template <class Model>
 void expect_every_depth0_event_is_its_own_point(Model &model, const SqpOptions &opts) {
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::vector<Seen> seen;
     driver.set_iteration_callback([&](const IterationEvent &e) {
         seen.push_back(copy_of(e));
         return CallbackAction::kContinue;
     });
-    const SqpSolution sol = driver.solve(model);
+    const SqpResult sol = driver.solve(model);
     ASSERT_FALSE(sol.scaling.active) << "this pin is stated on an UNSCALED solve, where the "
                                         "row's f IS eval_f at the row's point";
 
@@ -849,8 +849,8 @@ TEST(Callback, ASolveWithNoCallbackSnapshotsNothing) {
     SqpOptions opts = quiet_sqp();
     opts.tr_init = 8.0;
     opts.max_iter = 60;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
     EXPECT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_GE(sol.counters.restoration_iters, 1);
 }
@@ -867,7 +867,7 @@ TEST(Callback, SqpStopOnANonConvergedCapTerminalRowIsANoOp) {
     Hs071View view;
     SqpOptions opts = quiet_sqp();
     opts.max_iter = 3; // well short of this fixture's convergence
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::vector<Seen> seen;
     driver.set_iteration_callback([&](const IterationEvent &e) {
         seen.push_back(copy_of(e));
@@ -875,7 +875,7 @@ TEST(Callback, SqpStopOnANonConvergedCapTerminalRowIsANoOp) {
         // itself makes terminal.
         return e.iteration == opts.max_iter ? CallbackAction::kStop : CallbackAction::kContinue;
     });
-    const SqpSolution sol = driver.solve(*view.bridge, hs071_start());
+    const SqpResult sol = driver.solve(*view.bridge, hs071_start());
 
     ASSERT_EQ(static_cast<Index>(seen.size()), static_cast<Index>(opts.max_iter) + 1)
         << "fixture premise: the cap really is what ends this solve, and the stop was aimed "
@@ -886,11 +886,11 @@ TEST(Callback, SqpStopOnANonConvergedCapTerminalRowIsANoOp) {
 
     // NON-VACUOUS: the same stop aimed one row EARLIER does interrupt, so the
     // no-op above is about WHICH row, not about the stop being ignored.
-    SqpDriver earlier(opts);
+    SqpSolver earlier(opts);
     earlier.set_iteration_callback([&](const IterationEvent &e) {
         return e.iteration == opts.max_iter - 1 ? CallbackAction::kStop : CallbackAction::kContinue;
     });
-    const SqpSolution interrupted = earlier.solve(*view.bridge, hs071_start());
+    const SqpResult interrupted = earlier.solve(*view.bridge, hs071_start());
     EXPECT_EQ(interrupted.status, SolveStatus::kInterrupted);
 }
 
@@ -907,13 +907,13 @@ TEST(Callback, SqpStopOnTheRestorationsConvergedRowInterruptsAndKeepsTheCertific
     const SqpOptions opts = quiet_sqp();
 
     // The reference, so the sub-solve's own terminal depth-1 row is known.
-    SqpDriver reference_driver(opts);
+    SqpSolver reference_driver(opts);
     std::vector<Seen> ref_seen;
     reference_driver.set_iteration_callback([&](const IterationEvent &e) {
         ref_seen.push_back(copy_of(e));
         return CallbackAction::kContinue;
     });
-    const SqpSolution reference = reference_driver.solve(model);
+    const SqpResult reference = reference_driver.solve(model);
     ASSERT_EQ(reference.status, SolveStatus::kInfeasible);
     ASSERT_TRUE(reference.infeasibility_certified)
         << "fixture premise: the restoration phase reaches its own kOptimal certificate";
@@ -928,7 +928,7 @@ TEST(Callback, SqpStopOnTheRestorationsConvergedRowInterruptsAndKeepsTheCertific
     }
     ASSERT_GE(last_depth1, 0);
 
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     bool stopped = false;
     driver.set_iteration_callback([&](const IterationEvent &e) {
         if (e.depth.value_or(0) == 1 && e.iteration == last_depth1) {
@@ -937,7 +937,7 @@ TEST(Callback, SqpStopOnTheRestorationsConvergedRowInterruptsAndKeepsTheCertific
         }
         return CallbackAction::kContinue;
     });
-    const SqpSolution sol = driver.solve(model);
+    const SqpResult sol = driver.solve(model);
     ASSERT_TRUE(stopped);
 
     // THE PARENT IS INTERRUPTED, on the restoration-return arm itself: the
@@ -966,7 +966,7 @@ TEST(Callback, ClearingTheCallbackFromInsideItIsSafe) {
     // ---- the SQP ----
     {
         Hs071View view;
-        SqpDriver driver(quiet_sqp());
+        SqpSolver driver(quiet_sqp());
         std::string witness(256, 'w');
         int calls = 0;
         driver.set_iteration_callback([&driver, witness, &calls](const IterationEvent &) mutable {
@@ -981,7 +981,7 @@ TEST(Callback, ClearingTheCallbackFromInsideItIsSafe) {
             EXPECT_EQ(witness[0], 'x');
             return CallbackAction::kContinue;
         });
-        const SqpSolution sol = driver.solve(*view.bridge, hs071_start());
+        const SqpResult sol = driver.solve(*view.bridge, hs071_start());
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
         // ONCE, AND THE CLEAR REALLY TOOK: the deferral is applied at the
         // statement after the invocation returns, so the second row fires
@@ -994,11 +994,11 @@ TEST(Callback, ClearingTheCallbackFromInsideItIsSafe) {
     {
         const auto program =
             hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        hven::solvers::InteriorPointSolver solver;
+        hven::solvers::IpmSolver solver;
         solver.set_options(quiet_ipm(solver));
         std::string witness(256, 'w');
         int calls = 0;
-        hven::solvers::InteriorPointSolver *ipm = &solver;
+        hven::solvers::IpmSolver *ipm = &solver;
         ipm->set_iteration_callback([ipm, witness, &calls](const IterationEvent &) mutable {
             ++calls;
             ipm->clear_iteration_callback();
@@ -1018,11 +1018,11 @@ TEST(Callback, ClearingTheCallbackFromInsideItIsSafe) {
     {
         const auto program =
             hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        hven::solvers::InteriorPointSolver solver;
+        hven::solvers::IpmSolver solver;
         solver.set_options(quiet_ipm(solver));
         std::string witness(256, 'w');
         int calls = 0;
-        hven::solvers::InteriorPointSolver *ipm = &solver;
+        hven::solvers::IpmSolver *ipm = &solver;
         ipm->set_kkt_hook(
             [ipm, witness, &calls](int, double, hven::ConstEigenRef<Vec>, double,
                                    hven::ConstEigenRef<Vec>, hven::ConstEigenRef<Vec>,
@@ -1061,7 +1061,7 @@ TEST(Callback, ADirectSetAfterAThrownDeferralSupersedesIt) {
     // ---- the SQP ----
     {
         Hs071View view;
-        SqpDriver driver(quiet_sqp());
+        SqpSolver driver(quiet_sqp());
         driver.set_iteration_callback([&driver](const IterationEvent &) -> CallbackAction {
             driver.clear_iteration_callback();
             throw std::runtime_error("callback bailed after parking a deferred clear");
@@ -1073,7 +1073,7 @@ TEST(Callback, ADirectSetAfterAThrownDeferralSupersedesIt) {
             ++fresh_calls;
             return CallbackAction::kContinue;
         });
-        const SqpSolution sol = driver.solve(*view.bridge, hs071_start());
+        const SqpResult sol = driver.solve(*view.bridge, hs071_start());
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_GT(fresh_calls, 0) << "the stale deferred clear replaced the new callback";
         EXPECT_EQ(static_cast<std::size_t>(fresh_calls), sol.history.size());
@@ -1082,7 +1082,7 @@ TEST(Callback, ADirectSetAfterAThrownDeferralSupersedesIt) {
     // ---- the SQP, THE OTHER DIRECTION: no direct call, so the deferral holds
     {
         Hs071View view;
-        SqpDriver driver(quiet_sqp());
+        SqpSolver driver(quiet_sqp());
         int calls = 0;
         driver.set_iteration_callback([&driver, &calls](const IterationEvent &) -> CallbackAction {
             ++calls;
@@ -1091,7 +1091,7 @@ TEST(Callback, ADirectSetAfterAThrownDeferralSupersedesIt) {
         });
         EXPECT_THROW(driver.solve(*view.bridge, hs071_start()), std::runtime_error);
         EXPECT_EQ(calls, 1);
-        const SqpSolution sol = driver.solve(*view.bridge, hs071_start());
+        const SqpResult sol = driver.solve(*view.bridge, hs071_start());
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_EQ(calls, 1) << "the deferred clear must still apply at the next entry";
     }
@@ -1100,9 +1100,9 @@ TEST(Callback, ADirectSetAfterAThrownDeferralSupersedesIt) {
     {
         const auto program =
             hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        hven::solvers::InteriorPointSolver solver;
+        hven::solvers::IpmSolver solver;
         solver.set_options(quiet_ipm(solver));
-        hven::solvers::InteriorPointSolver *ipm = &solver;
+        hven::solvers::IpmSolver *ipm = &solver;
         ipm->set_iteration_callback([ipm](const IterationEvent &) -> CallbackAction {
             ipm->clear_iteration_callback();
             throw std::runtime_error("bail");
@@ -1123,9 +1123,9 @@ TEST(Callback, ADirectSetAfterAThrownDeferralSupersedesIt) {
     {
         const auto program =
             hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        hven::solvers::InteriorPointSolver solver;
+        hven::solvers::IpmSolver solver;
         solver.set_options(quiet_ipm(solver));
-        hven::solvers::InteriorPointSolver *ipm = &solver;
+        hven::solvers::IpmSolver *ipm = &solver;
         int calls = 0;
         ipm->set_iteration_callback([ipm, &calls](const IterationEvent &) -> CallbackAction {
             ++calls;
@@ -1143,9 +1143,9 @@ TEST(Callback, ADirectSetAfterAThrownDeferralSupersedesIt) {
     {
         const auto program =
             hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        hven::solvers::InteriorPointSolver solver;
+        hven::solvers::IpmSolver solver;
         solver.set_options(quiet_ipm(solver));
-        hven::solvers::InteriorPointSolver *ipm = &solver;
+        hven::solvers::IpmSolver *ipm = &solver;
         ipm->set_kkt_hook([ipm](int, double, hven::ConstEigenRef<Vec>, double,
                                 hven::ConstEigenRef<Vec>, hven::ConstEigenRef<Vec>,
                                 Eigen::SparseMatrix<double, Eigen::RowMajor> &) -> int {
@@ -1168,9 +1168,9 @@ TEST(Callback, ADirectSetAfterAThrownDeferralSupersedesIt) {
     {
         const auto program =
             hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        hven::solvers::InteriorPointSolver solver;
+        hven::solvers::IpmSolver solver;
         solver.set_options(quiet_ipm(solver));
-        hven::solvers::InteriorPointSolver *ipm = &solver;
+        hven::solvers::IpmSolver *ipm = &solver;
         int calls = 0;
         ipm->set_kkt_hook([ipm, &calls](int, double, hven::ConstEigenRef<Vec>, double,
                                         hven::ConstEigenRef<Vec>, hven::ConstEigenRef<Vec>,
@@ -1189,13 +1189,13 @@ TEST(Callback, ADirectSetAfterAThrownDeferralSupersedesIt) {
 
 TEST(Callback, ZeroMajorExitFiresOnceOrNever) {
     NonFiniteStartModel model;
-    SqpDriver driver(quiet_sqp());
+    SqpSolver driver(quiet_sqp());
     std::vector<Seen> seen;
     driver.set_iteration_callback([&](const IterationEvent &e) {
         seen.push_back(copy_of(e));
         return CallbackAction::kContinue;
     });
-    const SqpSolution sol = driver.solve(model);
+    const SqpResult sol = driver.solve(model);
 
     // ONCE. The non-finite-start exit pushes exactly one history row and solves
     // no subproblem, and the callback fires for that row like any other -- the
@@ -1222,7 +1222,7 @@ TEST(Callback, ZeroMajorExitFiresOnceOrNever) {
 TEST(Callback, IpmContinuingEventObservesTheCommittedPoint) {
     const auto program =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     solver.set_options(quiet_ipm(solver));
 
     Recorder rec;
@@ -1285,7 +1285,7 @@ class IterCountingSink : public hven::solvers::TraceSink {
 TEST(Callback, IpmTerminalRowStillFires) {
     const auto program =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     solver.set_options(quiet_ipm(solver));
 
     IterCountingSink sink;
@@ -1306,7 +1306,7 @@ TEST(Callback, IpmTerminalRowStillFires) {
 TEST(Callback, IpmStopEndsThePhaseSequence) {
     const auto program =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         hven::solvers::IpmOptions o = quiet_ipm(solver);
         o.phases = {hven::solvers::IpmPhase::kSolve, hven::solvers::IpmPhase::kOptimize};
@@ -1342,7 +1342,7 @@ TEST(Callback, IpmStopEndsThePhaseSequence) {
     // was never factorized" a measurement rather than a description.
     const auto later_program =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-    hven::solvers::InteriorPointSolver later;
+    hven::solvers::IpmSolver later;
     {
         hven::solvers::IpmOptions o = quiet_ipm(later);
         o.phases = {hven::solvers::IpmPhase::kSolve, hven::solvers::IpmPhase::kOptimize};
@@ -1387,7 +1387,7 @@ TEST(Callback, IpmStopEndsThePhaseSequence) {
 // `z` and the `excluded` set the eliminated-coordinate rule builds are both
 // exercised there.
 namespace {
-void expect_terminal_event_is_the_ipm_result(hven::solvers::InteriorPointSolver &solver,
+void expect_terminal_event_is_the_ipm_result(hven::solvers::IpmSolver &solver,
                                              hven::solvers::NonLinearProgram &program,
                                              const Vec &x0,
                                              hven::solvers::IpmResult *out = nullptr) {
@@ -1420,14 +1420,14 @@ TEST(Callback, IpmTerminalEventDiagnosticsAreTheResultsOwn) {
         SCOPED_TRACE("HS071");
         const auto program =
             hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        hven::solvers::InteriorPointSolver solver;
+        hven::solvers::IpmSolver solver;
         solver.set_options(quiet_ipm(solver));
         expect_terminal_event_is_the_ipm_result(solver, *program, hs071_start());
     }
     {
         SCOPED_TRACE("the fixed-variable MakeConstraint arm");
         const auto program = hven::solvers::make_nlp_program(std::make_shared<FixedVarProblem>());
-        hven::solvers::InteriorPointSolver solver;
+        hven::solvers::IpmSolver solver;
         {
             hven::solvers::IpmOptions o = quiet_ipm(solver);
             o.fixed_variable_treatment = hven::solvers::FixedVariableTreatments::MakeConstraint;
@@ -1455,7 +1455,7 @@ TEST(Callback, IpmTerminalEventDiagnosticsAreTheResultsOwn) {
 TEST(Callback, IpmEventObjectiveIsNaNOnANonObjectiveBearingPhase) {
     const auto program =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     {
         hven::solvers::IpmOptions o = quiet_ipm(solver);
         o.phases = {hven::solvers::IpmPhase::kSolve, hven::solvers::IpmPhase::kOptimize};
@@ -1538,7 +1538,7 @@ TEST(Callback, IpmTerminalEventDescribesTheReturnedPointUnderReturnBest) {
 
     // THE SEARCH. `acc_*` loosened (with `max_acc_iters` at 1) is what makes
     // converge_check answer kAcceptable at the TOP of an iteration, which is
-    // the convergence-check early exit; `BestCriteriaModes::OBJ` on a fixture
+    // the convergence-check early exit; `BestCriteriaModes::kObj` on a fixture
     // whose objective RISES is what makes the best iterate an early one, so the
     // substitution has something to substitute.
     bool ran = false;
@@ -1548,11 +1548,11 @@ TEST(Callback, IpmTerminalEventDescribesTheReturnedPointUnderReturnBest) {
         }
         const auto with_program =
             hven::solvers::make_nlp_program(std::make_shared<RisingObjectiveProblem>());
-        hven::solvers::InteriorPointSolver with;
+        hven::solvers::IpmSolver with;
         const auto without_program =
             hven::solvers::make_nlp_program(std::make_shared<RisingObjectiveProblem>());
-        hven::solvers::InteriorPointSolver without;
-        for (hven::solvers::InteriorPointSolver *s : {&with, &without}) {
+        hven::solvers::IpmSolver without;
+        for (hven::solvers::IpmSolver *s : {&with, &without}) {
             hven::solvers::IpmOptions o = quiet_ipm(*s);
             o.max_acc_iters = 1;
             o.acc_kkt_tol = acc;
@@ -1564,7 +1564,7 @@ TEST(Callback, IpmTerminalEventDescribesTheReturnedPointUnderReturnBest) {
         {
             hven::solvers::IpmOptions o = with.options();
             o.return_best = true;
-            o.best_criteria = hven::solvers::InteriorPointSolver::BestCriteriaModes::OBJ;
+            o.best_criteria = hven::solvers::IpmSolver::BestCriteriaModes::kObj;
             with.set_options(std::move(o));
         }
 
@@ -1618,7 +1618,7 @@ TEST(Callback, ThrowingCallbackPropagatesAndTheSolverIsReusable) {
     {
         Hs071View view;
         Ledger ledger;
-        SqpDriver driver(quiet_sqp());
+        SqpSolver driver(quiet_sqp());
         driver.attach_ledger(&ledger, "cb");
 
         std::ostringstream os;
@@ -1664,9 +1664,9 @@ TEST(Callback, ThrowingCallbackPropagatesAndTheSolverIsReusable) {
         // length. Timing is excluded, and only timing: `wall_seconds` and
         // `solve_impl_seconds` are informational (CLAUDE.md section 7).
         driver.clear_iteration_callback();
-        const SqpSolution again = driver.solve(*view.bridge, hs071_start());
-        SqpDriver fresh(quiet_sqp());
-        const SqpSolution baseline = fresh.solve(*view.bridge, hs071_start());
+        const SqpResult again = driver.solve(*view.bridge, hs071_start());
+        SqpSolver fresh(quiet_sqp());
+        const SqpResult baseline = fresh.solve(*view.bridge, hs071_start());
         EXPECT_EQ(again.status, SolveStatus::kOptimal);
         EXPECT_EQ(again.status, baseline.status);
         EXPECT_TRUE(bit_equal(again.x, baseline.x));
@@ -1692,7 +1692,7 @@ TEST(Callback, ThrowingCallbackPropagatesAndTheSolverIsReusable) {
     {
         const auto program =
             hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        hven::solvers::InteriorPointSolver solver;
+        hven::solvers::IpmSolver solver;
         solver.set_options(quiet_ipm(solver));
 
         std::ostringstream os;
@@ -1730,7 +1730,7 @@ TEST(Callback, ThrowingCallbackPropagatesAndTheSolverIsReusable) {
 
         const auto fresh_program =
             hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        hven::solvers::InteriorPointSolver fresh;
+        hven::solvers::IpmSolver fresh;
         fresh.set_options(quiet_ipm(fresh));
         const hven::solvers::IpmResult baseline = fresh.solve(*fresh_program, hs071_start());
 
@@ -1768,13 +1768,13 @@ TEST(Callback, AReadOnlyCallbackChangesNothingOnEitherEngine) {
     // ---- the SQP ----
     {
         Hs071View view;
-        SqpDriver with(quiet_sqp());
+        SqpSolver with(quiet_sqp());
         Recorder rec;
         with.set_iteration_callback(rec.hook());
-        const SqpSolution attached = with.solve(*view.bridge, hs071_start());
+        const SqpResult attached = with.solve(*view.bridge, hs071_start());
 
-        SqpDriver without(quiet_sqp());
-        const SqpSolution absent = without.solve(*view.bridge, hs071_start());
+        SqpSolver without(quiet_sqp());
+        const SqpResult absent = without.solve(*view.bridge, hs071_start());
 
         EXPECT_EQ(attached.status, absent.status);
         EXPECT_TRUE(bit_equal(attached.x, absent.x));
@@ -1793,7 +1793,7 @@ TEST(Callback, AReadOnlyCallbackChangesNothingOnEitherEngine) {
     {
         const auto with_program =
             hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        hven::solvers::InteriorPointSolver with;
+        hven::solvers::IpmSolver with;
         with.set_options(quiet_ipm(with));
         Recorder rec;
         with.set_iteration_callback(rec.hook());
@@ -1801,7 +1801,7 @@ TEST(Callback, AReadOnlyCallbackChangesNothingOnEitherEngine) {
 
         const auto without_program =
             hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-        hven::solvers::InteriorPointSolver without;
+        hven::solvers::IpmSolver without;
         without.set_options(quiet_ipm(without));
         const hven::solvers::IpmResult absent = without.solve(*without_program, hs071_start());
 
@@ -1818,7 +1818,7 @@ TEST(Callback, AReadOnlyCallbackChangesNothingOnEitherEngine) {
 // clear_iteration_callback() really removes it, on both engines.
 TEST(Callback, ClearingTheCallbackStopsTheEvents) {
     Hs071View view;
-    SqpDriver driver(quiet_sqp());
+    SqpSolver driver(quiet_sqp());
     Recorder rec;
     driver.set_iteration_callback(rec.hook());
     (void)driver.solve(*view.bridge, hs071_start());
@@ -1831,7 +1831,7 @@ TEST(Callback, ClearingTheCallbackStopsTheEvents) {
 
     const auto program =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     solver.set_options(quiet_ipm(solver));
     Recorder ipm_rec;
     solver.set_iteration_callback(ipm_rec.hook());

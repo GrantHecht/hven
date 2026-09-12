@@ -4,7 +4,7 @@
 // The NlpModel bridge: its claim pass, its evaluation hooks, and the boundary
 // checks a bridge owes on a model implementation it did not write.
 
-#include "hven/model/nlp_model_aggregate.h"
+#include "hven/model/nlp_model_assembly.h"
 
 #include <limits>
 #include <stdexcept>
@@ -23,7 +23,7 @@ namespace {
 int to_declared_count(Index value, const char *what) {
     if (value < 0 || value > static_cast<Index>(std::numeric_limits<int>::max())) {
         throw std::invalid_argument(
-            fmt::format("NlpModelAggregate: the model reports {0} = {1}, which is not a count this "
+            fmt::format("NlpModelAssembly: the model reports {0} = {1}, which is not a count this "
                         "declaration can carry (0 to {2})",
                         what, value, std::numeric_limits<int>::max()));
     }
@@ -55,7 +55,7 @@ void require_upper_triangle(const SpMatRM &hessian) {
         for (SpMatRM::InnerIterator it(hessian, outer); it; ++it) {
             if (it.row() > it.col()) {
                 throw std::invalid_argument(fmt::format(
-                    "NlpModelAggregate: eval_hess stored an entry at (row {0}, column {1}), below "
+                    "NlpModelAssembly: eval_hess stored an entry at (row {0}, column {1}), below "
                     "the diagonal. nlp_model.h states the Hessian return as the upper triangle "
                     "only",
                     it.row(), it.col()));
@@ -122,7 +122,7 @@ void require_kkt_table(const KktScatterView &kkt, int claims) {
 void require_claimed_nonzeros(const SpMatRM &matrix, int claims, const char *what) {
     if (static_cast<int>(matrix.nonZeros()) != claims) {
         throw std::invalid_argument(fmt::format(
-            "NlpModelAggregate: the model returned {0} with {1} stored elements, but the claim "
+            "NlpModelAssembly: the model returned {0} with {1} stored elements, but the claim "
             "pass laid {2} slots for it. This model's sparsity pattern is not invariant, which "
             "nlp_model.h requires of every implementer",
             what, matrix.nonZeros(), claims));
@@ -144,7 +144,7 @@ void require_claimed_nonzeros(const SpMatRM &matrix, int claims, const char *wha
 void require_matrix_dimensions(const SpMatRM &matrix, int rows, int cols, const char *callback) {
     if (matrix.rows() != rows || matrix.cols() != cols) {
         throw std::invalid_argument(fmt::format(
-            "NlpModelAggregate: {0} returned a {1} x {2} matrix, but this model declares that "
+            "NlpModelAssembly: {0} returned a {1} x {2} matrix, but this model declares that "
             "block as {3} x {4}. Claims name the coordinates the returned matrix carries, so a "
             "dimension the model does not declare lays claims outside the assembled space",
             callback, matrix.rows(), matrix.cols(), rows, cols));
@@ -155,7 +155,7 @@ void require_matrix_dimensions(const SpMatRM &matrix, int rows, int cols, const 
 void require_block_size(Eigen::Index actual, int declared, const char *what) {
     if (actual != declared) {
         throw std::invalid_argument(
-            fmt::format("NlpModelAggregate: the model returned {0} with {1} rows, but it declares "
+            fmt::format("NlpModelAssembly: the model returned {0} with {1} rows, but it declares "
                         "{2} of them",
                         what, actual, declared));
     }
@@ -187,7 +187,7 @@ void scatter_matrix(const SpMatRM &matrix, const ClaimBlock &block, int row_offs
             if (static_cast<int>(it.row()) != claimed_row ||
                 static_cast<int>(it.col()) != claimed_col) {
                 throw std::invalid_argument(fmt::format(
-                    "NlpModelAggregate: {0} presented ({1}, {2}) at claim slot {3}, which was "
+                    "NlpModelAssembly: {0} presented ({1}, {2}) at claim slot {3}, which was "
                     "laid at ({4}, {5}). Stored elements are paired with claim slots in the order "
                     "the return presents them, so this value would be summed into a location laid "
                     "for another coordinate. Every evaluation must present the same stored "
@@ -221,10 +221,10 @@ void accumulate_adjoint(const SpMatRM &jacobian, const Vec &multipliers, Vec &ou
 
 } // namespace
 
-NlpModelAggregate::NlpModelAggregate(std::shared_ptr<const NlpModel> model)
+NlpModelAssembly::NlpModelAssembly(std::shared_ptr<const NlpModel> model)
     : model_(std::move(model)) {
     if (model_ == nullptr) {
-        throw std::invalid_argument("NlpModelAggregate: the model is null");
+        throw std::invalid_argument("NlpModelAssembly: the model is null");
     }
 
     primal_vars_ = to_declared_count(model_->n(), "n()");
@@ -232,7 +232,7 @@ NlpModelAggregate::NlpModelAggregate(std::shared_ptr<const NlpModel> model)
     inequality_rows_ = to_declared_count(model_->mi(), "mi()");
     if (primal_vars_ < 1) {
         throw std::invalid_argument(fmt::format(
-            "NlpModelAggregate: the model reports n() = {0}; an aggregate with no primal variables "
+            "NlpModelAssembly: the model reports n() = {0}; an aggregate with no primal variables "
             "is not a problem",
             primal_vars_));
     }
@@ -240,7 +240,7 @@ NlpModelAggregate::NlpModelAggregate(std::shared_ptr<const NlpModel> model)
     this->relay(1);
 }
 
-NlpModelAggregate::LaidStructures NlpModelAggregate::lay(int partition_count) const {
+NlpModelAssembly::LaidStructures NlpModelAssembly::lay(int partition_count) const {
     LaidStructures laid;
 
     laid.declaration_.primal_vars_ = primal_vars_;
@@ -360,7 +360,7 @@ NlpModelAggregate::LaidStructures NlpModelAggregate::lay(int partition_count) co
     return laid;
 }
 
-void NlpModelAggregate::relay(int partition_count) {
+void NlpModelAssembly::relay(int partition_count) {
     // Built whole, then committed. A lay that throws -- a model that refuses to
     // evaluate, a bound history that intersects to nothing -- leaves the
     // structures on hand exactly as they were, so nothing was re-laid and there
@@ -370,10 +370,10 @@ void NlpModelAggregate::relay(int partition_count) {
     this->bump_structure_epoch();
 }
 
-int NlpModelAggregate::negotiate_partition_count(int requested) {
+int NlpModelAssembly::negotiate_partition_count(int requested) {
     if (requested < 1) {
         throw std::invalid_argument(fmt::format(
-            "NlpModelAggregate: a partition count must be at least 1 (got {0})", requested));
+            "NlpModelAssembly: a partition count must be at least 1 (got {0})", requested));
     }
     // One serial piece is one partition's worth of work. The cap is reported
     // through the return value; the re-lay is unconditional because the contract
@@ -383,14 +383,14 @@ int NlpModelAggregate::negotiate_partition_count(int requested) {
     return adopted;
 }
 
-void NlpModelAggregate::set_evaluation_threads(int n) {
+void NlpModelAssembly::set_evaluation_threads(int n) {
     if (n < 1) {
         throw std::invalid_argument(fmt::format(
-            "NlpModelAggregate: an evaluation thread count must be at least 1 (got {0})", n));
+            "NlpModelAssembly: an evaluation thread count must be at least 1 (got {0})", n));
     }
 }
 
-const Vec &NlpModelAggregate::stage_point(const CandidatePoint &point, bool with_multipliers) {
+const Vec &NlpModelAssembly::stage_point(const CandidatePoint &point, bool with_multipliers) {
     x_scratch_ = point.x_;
     if (with_multipliers) {
         equality_multiplier_scratch_ = point.equality_multipliers_;
@@ -399,14 +399,14 @@ const Vec &NlpModelAggregate::stage_point(const CandidatePoint &point, bool with
     return x_scratch_;
 }
 
-void NlpModelAggregate::evaluate_values(const Vec &x, double &objective) {
+void NlpModelAssembly::evaluate_values(const Vec &x, double &objective) {
     model_->eval_values(x, objective, equality_residual_scratch_, inequality_residual_scratch_);
     require_block_size(equality_residual_scratch_.size(), equality_rows_, "eval_values' cE block");
     require_block_size(inequality_residual_scratch_.size(), inequality_rows_,
                        "eval_values' cI block");
 }
 
-void NlpModelAggregate::evaluate_constraint_values(const Vec &x) {
+void NlpModelAssembly::evaluate_constraint_values(const Vec &x) {
     // The same skip eval_values applies: a block the model declares no rows for
     // is not evaluated.
     if (equality_rows_ > 0) {
@@ -423,7 +423,7 @@ void NlpModelAggregate::evaluate_constraint_values(const Vec &x) {
     require_block_size(inequality_residual_scratch_.size(), inequality_rows_, "eval_ci");
 }
 
-void NlpModelAggregate::evaluate_jacobians(const Vec &x) {
+void NlpModelAssembly::evaluate_jacobians(const Vec &x) {
     // Gated on the declared row counts, never on the claim counts. A constraint
     // block that has rows but whose Jacobian is all structural zeros -- a
     // constant constraint -- claims nothing, and gating on claims would silently
@@ -449,7 +449,7 @@ void NlpModelAggregate::evaluate_jacobians(const Vec &x) {
     }
 }
 
-void NlpModelAggregate::compose_adjoint_gradient() {
+void NlpModelAssembly::compose_adjoint_gradient() {
     adjoint_scratch_.setZero(primal_vars_);
     if (equality_rows_ > 0) {
         accumulate_adjoint(equality_jacobian_scratch_, equality_multiplier_scratch_,
@@ -461,8 +461,8 @@ void NlpModelAggregate::compose_adjoint_gradient() {
     }
 }
 
-void NlpModelAggregate::assemble_impl(const CandidatePoint &point, EvalRequest request,
-                                      KktScatterView kkt, RhsScatterView rhs) {
+void NlpModelAssembly::assemble_impl(const CandidatePoint &point, EvalRequest request,
+                                     KktScatterView kkt, RhsScatterView rhs) {
     const bool want_objective = has_request(request, EvalRequest::kObjectiveValue);
     const bool want_gradient = has_request(request, EvalRequest::kObjectiveGradient);
     const bool want_constraints = has_request(request, EvalRequest::kConstraintValues);
@@ -570,8 +570,8 @@ void NlpModelAggregate::assemble_impl(const CandidatePoint &point, EvalRequest r
     }
 }
 
-void NlpModelAggregate::evaluate_candidate_values_impl(const CandidatePoint &point,
-                                                       CandidateValues out) {
+void NlpModelAssembly::evaluate_candidate_values_impl(const CandidatePoint &point,
+                                                      CandidateValues out) {
     double objective = 0.0;
     this->evaluate_values(this->stage_point(point, false), objective);
 
@@ -582,8 +582,8 @@ void NlpModelAggregate::evaluate_candidate_values_impl(const CandidatePoint &poi
     out.inequality_residuals_ = inequality_residual_scratch_;
 }
 
-void NlpModelAggregate::evaluate_candidate_first_order_impl(const CandidatePoint &point,
-                                                            CandidateFirstOrder out) {
+void NlpModelAssembly::evaluate_candidate_first_order_impl(const CandidatePoint &point,
+                                                           CandidateFirstOrder out) {
     const Vec &x = this->stage_point(point, true);
 
     double objective = 0.0;
@@ -601,7 +601,7 @@ void NlpModelAggregate::evaluate_candidate_first_order_impl(const CandidatePoint
     out.constraint_adjoint_gradient_ = adjoint_scratch_;
 }
 
-IdentityProbe NlpModelAggregate::probe_identity(ConstVecRef x) {
+IdentityProbe NlpModelAssembly::probe_identity(ConstVecRef x) {
     probe_equality_scratch_.setZero(equality_rows_);
     probe_inequality_scratch_.setZero(inequality_rows_);
 

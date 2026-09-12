@@ -21,7 +21,7 @@
 // defined in `src/core/enum_names.cpp`, so no `core/` object resolves a symbol
 // out of a `drivers/` one (an edge pointing up CLAUDE.md section 2's tier
 // order). What stays here points DOWNWARD and is not an inversion:
-// `StepVerdict` and `SqpSolution` are `drivers/` types, and
+// `StepVerdict` and `SqpResult` are `drivers/` types, and
 // `PredictorOutcome` is a `detail/warmstart/` one.
 
 #include <string>
@@ -31,7 +31,7 @@
 #include <hven/core/solver_status.h>
 #include <hven/core/start_level.h>
 #include <hven/detail/warmstart/predictor.h>
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 
 namespace hven::solvers {
 
@@ -117,7 +117,7 @@ std::string sqp_iteration_table_scaling_line(bool active, double obj, double row
     return "Scaling: off\n";
 }
 
-std::string format_iteration_table(const SqpSolution &sol) {
+std::string format_iteration_table(const SqpResult &sol) {
     std::string result = sqp_iteration_table_head();
     for (const SqpIterate &row : sol.history) {
         result += sqp_iteration_table_row(row);

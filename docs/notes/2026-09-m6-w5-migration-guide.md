@@ -39,11 +39,11 @@ Landed as `refactor(model): M6 W5 T1 (1/3)` (the fold) and `(2/3)` (the break).
    `hven/detail/interior/utils/get_core_count.h`.
 
    Measured at this head, all seven are still REACHABLE through the header, via
-   `hven/drivers/interior_point_solver.h` (each verified by a one-TU
+   `hven/drivers/ipm_solver.h` (each verified by a one-TU
    `-fsyntax-only` probe that includes `hven/model/nlp_solver.h` and nothing
    else). So nothing breaks today. What changed is the guarantee: they are no
    longer provided by this header's own include list, and a later window that
-   trims `interior_point_solver.h` will take them away without touching
+   trims `ipm_solver.h` will take them away without touching
    `nlp_solver.h`. **Do not rely on them transitively — a TU that uses any of
    them should include it itself.** `<stdexcept>` is the one that bites first:
    catching the `std::invalid_argument` these entry points throw is the normal
@@ -95,7 +95,7 @@ So the replacement must apply those defaults itself, explicitly. The base's
 constructor did exactly two things:
 
 ```cpp
-this->optimizer_ = std::make_shared<InteriorPointSolver>();
+this->optimizer_ = std::make_shared<IpmSolver>();
 this->init_partitions();   // num_partitions_ = default_num_partitions();
                            // optimizer_->set_qp_threads(
                            //     std::min(HVEN_DEFAULT_QP_THREADS,
@@ -148,11 +148,11 @@ written out so the fairness argument still holds:
 ```cpp
 #include <algorithm>
 #include "hven/detail/interior/utils/get_core_count.h"
-#include "hven/drivers/interior_point_solver.h"
+#include "hven/drivers/ipm_solver.h"
 #include "hven/model/nlp_solver.h" // NLPSolver::default_num_partitions()
 
 struct ConvEquivNativeDoor {
-    std::shared_ptr<hven::solvers::InteriorPointSolver> optimizer_;
+    std::shared_ptr<hven::solvers::IpmSolver> optimizer_;
     std::shared_ptr<hven::solvers::NonLinearProgram> nlp_;
     int num_partitions_ = 1;
 
@@ -166,7 +166,7 @@ struct ConvEquivNativeDoor {
         : model_(std::move(model)), name_(std::move(name)) {
         // EXACTLY what OptimizationProblemBase's constructor did, so this door
         // and NLPSolver still start from identical solver settings.
-        this->optimizer_ = std::make_shared<hven::solvers::InteriorPointSolver>();
+        this->optimizer_ = std::make_shared<hven::solvers::IpmSolver>();
         this->num_partitions_ = hven::solvers::NLPSolver::default_num_partitions();
         this->optimizer_->set_qp_threads(
             std::min(HVEN_DEFAULT_QP_THREADS, hven::utils::get_core_count()));
@@ -224,7 +224,7 @@ entry takes RHS const (DECLARED BREAK)`.
 
 ### What changed
 
-`InteriorPointSolver::EarlyCallBackType`'s three VECTOR arguments — XSL, PGX and
+`IpmSolver::EarlyCallBackType`'s three VECTOR arguments — XSL, PGX and
 RHS — are now `hven::ConstEigenRef<Eigen::VectorXd>`, i.e.
 `const Eigen::Ref<const Eigen::VectorXd> &`. The KKT matrix argument is
 unchanged and still mutable: writing new values into the entries the matrix
@@ -315,7 +315,7 @@ names it — the twin is a second non-template class precisely so that no
 `KKTVector` consumer's mangled name moves.
 
 Three private member signatures took the read-only view with it:
-`InteriorPointSolver::constraint_violation_l1`,
+`IpmSolver::constraint_violation_l1`,
 `enter_feasibility_restoration` and `dispatch_restoration_entry` (the last two
 now take `const Eigen::VectorXd &RHS`). They are private, so this is not a
 source break for any consumer; it is listed because a friend test harness that
@@ -366,7 +366,7 @@ IpqpTraceSink → TraceSink, evidence structs to detail/qp/ipqp_evidence.h
 |---|---|
 | the sink to derive from, and the event structs | `hven/drivers/trace.h` |
 | the JSON-lines writer (`JsonLinesTraceSink`) | `hven/drivers/trace_writer.h` — it includes `trace.h` for you |
-| `attach_trace` on `SqpDriver` / `InteriorPointSolver` / `IpqpEngine` | nothing new: `sqp_driver.h` includes the schema, and `interior_point_solver.h` forward-declares `class TraceSink;`, which is all a pointer argument needs |
+| `attach_trace` on `SqpSolver` / `IpmSolver` / `IpqpEngine` | nothing new: `sqp_solver.h` includes the schema, and `ipm_solver.h` forward-declares `class TraceSink;`, which is all a pointer argument needs |
 
 `JsonLinesTraceSink`'s own surface is untouched: same constructor, same
 `failed()`, `lines_written()`, `depth()` and `reset_nesting()`, same 14
@@ -387,8 +387,8 @@ no C++ names — and `docs/trace-schema-v0.md` is untouched.
      // ... the other seven pure virtuals; the six W4 defaults are optional
  };
 
--void attach(hven::solvers::SqpDriver &d, hven::solvers::IpqpTraceSink *s) {
-+void attach(hven::solvers::SqpDriver &d, hven::solvers::TraceSink *s) {
+-void attach(hven::solvers::SqpSolver &d, hven::solvers::IpqpTraceSink *s) {
++void attach(hven::solvers::SqpSolver &d, hven::solvers::TraceSink *s) {
      d.attach_trace(s);
  }
 ```
@@ -452,7 +452,7 @@ migrate library and bench calls to in-place (DECLARED BREAK)`.
    to `NlpModel`'s declaration — the shape a driver, a wrapper, or a generic
    helper taking `const NlpModel &` has.
 5. **hven's own library and bench calls migrated**: 47 call sites in 7 files
-   — `sqp_driver.cpp` 9, `nlp_model_aggregate.cpp` 10,
+   — `sqp_solver.cpp` 9, `nlp_model_assembly.cpp` 10,
    `soc_elastic_restoration.cpp` 5, `predictor.h` 8, `crossover_legs.h` 8,
    `snopt_f7_driver.h` 6, `corpus_cells.h` 1. Evaluation COUNT, guards,
    ordering, destination shape, compression and aliasing are unchanged at every
@@ -520,7 +520,7 @@ redeclares the method does not (see 4 above).
 | `test_conversion_equivalence.cpp` `:519, :522, :526` (3) | `out = this->eval_jac_e(x)` inside tycho's own `ConvEquivEqBoundNativeInPlace` | **SILENT** — the same mutual-default shape `nlp_model.h` brackets, and `this` is the derived type, which redeclares the method |
 | `test_conversion_equivalence.cpp` `:1068-1076` (5) | `const ConvEquivEqBoundNativeInPlace model;` — compares in-place results against by-value ones | **SILENT** — a concrete derived type. It is also a genuine oracle: bracket it if it ever starts warning, do not rewrite it to call one API twice |
 | `test_model_contract_pins.cpp` `:396-439` (7) | `NlpProblemModel model(…)`, `model.eval_hess(…)` inside `EXPECT_THROW`/`EXPECT_NO_THROW` | **SILENT** — concrete derived type. Contract pins on the by-value entry; bracket, do not migrate |
-| `psiopt/src/nlp_adapter.cpp:258` (1) | `problem_->eval_hess(…)` on **`NLPProblem`** | **OUT OF SCOPE** — a different interface, untouched by T3 |
+| `psiopt/src/nlp_adapter.cpp:258` (1) | `problem_->eval_hess(…)` on **`NlpTripletModel`** | **OUT OF SCOPE** — a different interface, untouched by T3 |
 
 `src/solvers/engines.cpp`'s five `eval_*` definitions are OVERRIDES and stay
 silent (overriding a deprecated virtual never warns). tycho's own models need no
@@ -540,7 +540,7 @@ find out what they were looking at.
 
 ### What was proposed
 
-M6 W5 T6 cut (d) moved six definitions out of `src/drivers/sqp_driver.cpp` into
+M6 W5 T6 cut (d) moved six definitions out of `src/drivers/sqp_solver.cpp` into
 a new `src/drivers/sqp_kernels.cpp`: `run_elastic_ladder`,
 `certified_feasibility_fallback` (both keeping the external linkage and the
 public-header declarations they already had), the three helpers that serve only
@@ -569,7 +569,7 @@ The experiment ran to its answer, and the answer was no on both halves:
 
 * `hven::solvers::run_elastic_ladder` and
   `hven::solvers::certified_feasibility_fallback` are where they always were,
-  declared in `hven/drivers/sqp_driver.h`, with the same signatures and the same
+  declared in `hven/drivers/sqp_solver.h`, with the same signatures and the same
   behaviour. They never moved as far as any released artifact is concerned.
 * **`hven::solvers::detail::trace_outcome_of` DOES NOT EXIST.** If you saw it in
   a symbol table taken from `f47da07`, it was internal, it was never public API,
@@ -607,7 +607,7 @@ commit, path and original line numbers, to
 **The ten are the set the M6 W5 plan designated,** not simply the ten largest.
 Nine are hven's largest headers by comment-line count at `1997159`; the tenth,
 `include/hven/detail/qp/ipqp_engine.h`, ranks eleventh. The actual tenth,
-`include/hven/model/nlp_aggregate.h`, was excluded because M6 W5 T8 renames it
+`include/hven/model/nlp_assembly.h`, was excluded because M6 W5 T8 renames it
 and a source stamp on a name about to change is the churn the stamp exists to
 avoid.
 
@@ -623,7 +623,7 @@ header.
 
 **One non-comment change rides the task:** thirteen dead `friend` declarations
 naming test harnesses and gtest classes that no longer exist were removed —
-twelve from `include/hven/drivers/interior_point_solver.h`, and the twin (plus
+twelve from `include/hven/drivers/ipm_solver.h`, and the twin (plus
 its forward declaration) from
 `include/hven/detail/globalization/feasibility_switch_recovery.h`. A friend
 declaration emits nothing.
@@ -662,7 +662,7 @@ engines will report; kStalled split from NOTCONVERGED by stop reason`.
 3. **The interior-point engine records WHY its loop ended.**
    `hven::solvers::IpmStopReason` — `kNone`, `kIterationCap`,
    `kRestorationLocallyInfeasible`, `kStageStalled` — is written per phase and
-   read back through `InteriorPointSolver::last_stop_reason()`. It is reset to
+   read back through `IpmSolver::last_stop_reason()`. It is reset to
    `kNone` at each phase start, so a multi-phase call reports the last phase that
    ran; `kNone` means that phase left by a door the verdict itself explains (see
    the fix-round-1 amendment below for the exact enumeration).
@@ -786,7 +786,7 @@ says; the baseline and every counter in the leg are untouched.
 ### What changed
 
 **The interior-point engine's settings are a value, and the setters are gone.**
-`InteriorPointSolver::Settings` is now `hven::solvers::IpmOptions`, in the new
+`IpmSolver::Settings` is now `hven::solvers::IpmOptions`, in the new
 public header `hven/drivers/ipm_solver_types.h`. Same 65 knobs, same declaration
 order, same defaults, **trailing underscores dropped**; two of them moved into
 the new `hven::solvers::CommonOptions` (`hven/drivers/common_options.h`), which
@@ -803,11 +803,11 @@ consulting it. Nothing behaves differently because of this task: the fields
 moved, their defaults did not, and every read site reads the same value it read
 before.
 
-**Removed from `InteriorPointSolver`:** the 58 declared `set_*()` methods
+**Removed from `IpmSolver`:** the 58 declared `set_*()` methods
 (including the six string-taking overloads), the four static `strto_*()`
 parsers, `apply_preset()`, `settings()` (both overloads) and the nested
 `Settings` struct itself. **Added:** `const IpmOptions &options() const noexcept`,
-`void set_options(IpmOptions)`, and `explicit InteriorPointSolver(IpmOptions = {})`.
+`void set_options(IpmOptions)`, and `explicit IpmSolver(IpmOptions = {})`.
 The `shared_ptr<NonLinearProgram>`-taking constructor is unchanged (it goes at
 T8.4).
 
@@ -815,8 +815,8 @@ T8.4).
 `LineSearchModes`, `AlgorithmModes`, `QPAlgModes`, `QPOrderingModes`,
 `BestCriteriaModes`, `QPPivotModes`, `PDStepStrategies` are now at namespace
 scope in `hven/drivers/ipm_solver_types.h`, so a caller can name an option's
-value without including the engine. `InteriorPointSolver` keeps a member alias
-for each, so **every `InteriorPointSolver::BarrierModes::LOQO` spelling in your
+value without including the engine. `IpmSolver` keeps a member alias
+for each, so **every `IpmSolver::BarrierModes::kLoqo` spelling in your
 tree still compiles and still names the same type.**
 
 **The presets are free functions returning a full value.**
@@ -837,7 +837,7 @@ at `run_phase_sequence()` entry.
 
 ```cpp
 // before
-hven::solvers::InteriorPointSolver solver;
+hven::solvers::IpmSolver solver;
 solver.set_max_iters(200);
 solver.set_print_level(10);
 solver.set_tols(1e-6, 1e-6, 1e-6, 1e-6);
@@ -848,7 +848,7 @@ auto o = hven::solvers::ipm_preset("filter_l1");   // start from the preset
 o.max_iters = 200;
 o.common.print_level = 10;
 o.kkt_tol = o.econ_tol = o.icon_tol = o.bar_tol = 1e-6;
-hven::solvers::InteriorPointSolver solver(o);      // or solver.set_options(std::move(o));
+hven::solvers::IpmSolver solver(o);      // or solver.set_options(std::move(o));
 ```
 
 Reading a setting: `solver.settings().max_iters_` becomes
@@ -913,8 +913,8 @@ The setter → field table, in the header's own order:
 | `set_accel_zero_tolerance(v)` | `o.accel_zero_tolerance = v (Accelerate builds)` |
 
 The four `strto_*()` parsers and the six string-taking setter overloads have no
-replacement: name the enumerator. `InteriorPointSolver::strto_BarrierMode("LOQO")`
-becomes `hven::solvers::BarrierModes::LOQO`.
+replacement: name the enumerator. `IpmSolver::strto_BarrierMode("LOQO")`
+becomes `hven::solvers::BarrierModes::kLoqo`.
 
 ### The rules `set_options()` adds
 
@@ -1012,18 +1012,21 @@ engine's own defaults — `threads = 0` ("leave the backend alone", which is wha
 this engine has always done) and `print_level = 3` (silent, which is what this
 engine has always been). **Neither is read in T8.3**: T8.7 gives this engine a
 console table at `print_level` and T8.8 makes a non-zero `threads` reach every
-factor path. `common.start_level` is carried beside `SqpOptions::start_level`,
-which is still the field the driver caps a warm start with, until T8.10 folds the
-two. `common` is last so that no existing field's offset moves.
+factor path. `common.start_level` was carried beside `SqpOptions::start_level`,
+which was the field the driver capped a warm start with **until T8.10 folded the
+two** (see that entry): `SqpOptions::start_level` no longer exists, and
+`common.start_level` is the ceiling both engines read. `common` is last so that
+no existing field's offset moves.
 
 `void validate(const SqpOptions &)` is the new name for the whole-value check;
-its body is `validate_sqp_options`'s plus the two `common` checks. **`validate_sqp_options`
-stays as a one-line forwarder** — every existing call site keeps compiling and
-keeps meaning the same thing. T8.10 removes the old name.
+its body is `validate_sqp_options`'s plus the two `common` checks. In T8.3
+`validate_sqp_options` **stayed as a one-line forwarder**, so every existing call
+site kept compiling and kept meaning the same thing; **T8.10 swept those call
+sites and removed the old name** (see that entry).
 `SqpOptions sqp_preset(std::string_view)` accepts `"default"` and refuses
 anything else, listing the valid names.
 
-`SqpDriver` gains `options()` and `set_options(SqpOptions)`, and its `engine_`
+`SqpSolver` gains `options()` and `set_options(SqpOptions)`, and its `engine_`
 member moves behind a `std::unique_ptr<QpEngine>` — **only** because
 `set_options()` has to replace it (a `QpEngine` owns a live backend session and
 declares no assignment). The pointer is never null between constructor and
@@ -1058,7 +1061,7 @@ its own ">= 10 kernel call sites" floor probe is what caught it.
 
 ### Hot-handle reuse is now keyed on the producing engine's options
 
-**What changed.** `HotState` (the opaque payload behind `WarmStart::hot`) gains
+**What changed.** `HotState` (the opaque payload behind `SqpWarmStart::hot`) gains
 one field, `std::uint64_t engine_options_hash`, and `QpEngine::run` adopts a
 handle only when that stamp equals the adopting engine's own. The stamp is
 `hven::solvers::options_fingerprint(const QpOptions &, int threads)` — a
@@ -1080,11 +1083,11 @@ what the hot handle is FOR — `run()` consults a handle only when its own borde
 cache is invalid, so a driver's own second solve is kHot through that cache and
 never looks at the handle at all. A fresh engine with the same options adopts a
 foreign handle exactly as it always did, and every existing kHot pin
-(`WarmStart.HotReusesFactorization`, `HotReuseIsNeverAnswerObservable`,
+(`SqpWarmStart.HotReusesFactorization`, `HotReuseIsNeverAnswerObservable`,
 `LedgerFactorizationsSavedTracksHotVsDegradedWarm`, the poisoned-handle control,
 `QpWarmStart.HotStateEmitsCommittedIdentityNotLive`) stands unchanged.
 
-**What you may notice.** After `SqpDriver::set_options()`:
+**What you may notice.** After `SqpSolver::set_options()`:
 
 | replacement | the old handle |
 |---|---|
@@ -1115,7 +1118,7 @@ fields plus the thread count moves it when flipped alone).
 
 ### One ABI consequence of moving the mode enums (source-compatible, MANGLING-breaking)
 
-The eight mode enums moved from `InteriorPointSolver`'s scope to `hven::solvers`,
+The eight mode enums moved from `IpmSolver`'s scope to `hven::solvers`,
 with member aliases left behind. **Every spelling in your source still compiles
 and still names the same type** — that is what the aliases are for. But an alias
 is not the enum's name: the compiler mangles the CANONICAL one, so any function
@@ -1125,14 +1128,14 @@ recovery interfaces are the bulk of them, e.g.
 
 ```
 hven::solvers::GlobalizationMechanism::run_acceptance_backtrack(
-    hven::solvers::InteriorPointSolver::LineSearchModes, …)   // before
+    hven::solvers::IpmSolver::LineSearchModes, …)   // before
 hven::solvers::GlobalizationMechanism::run_acceptance_backtrack(
     hven::solvers::LineSearchModes, …)                        // after
 ```
 
 **What this means for you: nothing, unless you link objects compiled against two
 different hven header sets.** That is already broken by this task for a separate
-reason (`InteriorPointSolver::Settings` no longer exists), and hven ships a
+reason (`IpmSolver::Settings` no longer exists), and hven ships a
 static library that consumers rebuild or re-install wholesale. It is recorded
 here because it is the one change in T8.3 that is invisible at compile time and
 visible at link time. Rebuild, do not mix.
@@ -1243,7 +1246,7 @@ worse short-circuits the rest. `validate()` refuses an EMPTY sequence.
 
 | before | after |
 |---|---|
-| `InteriorPointSolver(std::shared_ptr<NonLinearProgram>)` | REMOVED — construct over options, hand the program to `solve()` |
+| `IpmSolver(std::shared_ptr<NonLinearProgram>)` | REMOVED — construct over options, hand the program to `solve()` |
 | `set_nlp(np)` | REMOVED — `solve(model, x0)` |
 | `release()` | REMOVED — nothing is held to release |
 | `kkt_pattern_is_analyzed()` | `kkt_pattern_is_analyzed(const NonLinearProgram &model)` |
@@ -1360,7 +1363,7 @@ Messages are unchanged. (T8.5 replaces staging with an argument entirely.)
 
 Its five entries keep their names and now return `SolveStatus`. It gained
 `result()`, returning the last solve's whole `IpmResult` — a WRAPPER
-accommodation, not the engine's: `InteriorPointSolver::result()` is what made a
+accommodation, not the engine's: `IpmSolver::result()` is what made a
 finished solve readable from a solver that had gone on living, and this class's
 own entries return only a status. It is retired in T8.9 and this goes with it.
 `NlpSolveOutput::eq_lmults_` is the DECLARED block now (see the shape note
@@ -1368,9 +1371,10 @@ above), which is what `return_multipliers()` composes over anyway.
 
 ### The SQP engine: `SqpResult`, `SolveBudget`, and `SqpStatus` removed
 
-`SqpSolution` is now an alias for `SqpResult`, which derives from `SolveResult`.
-**The type name still works**; what moved is where some of its fields live and
-what three of them are called.
+`SqpSolution` became an alias for `SqpResult`, which derives from `SolveResult`.
+**In T8.4 the old type name still worked**; what moved is where some of its
+fields live and what three of them are called. **T8.10 removed the alias** (see
+that entry): `SqpResult` is the only spelling now.
 
 #### `hven::solvers::SqpStatus` is gone
 
@@ -1463,7 +1467,7 @@ the returned point exists (the non-finite-start exit), all four are NaN and
 
 #### tycho's break list
 
-`tycho/src/solvers/engines.cpp` reads ten fields off `SqpSolution`. Four move:
+`tycho/src/solvers/engines.cpp` reads ten fields off `SqpResult`. Four move:
 
 | tycho reads | after | same or changed meaning |
 |---|---|---|
@@ -1537,11 +1541,11 @@ exported ones exists, `stationarity` and `complementarity` are NaN while
 `feasibility_e`, `feasibility_i`, `ce` and `ci` — which read no price — stand.
 The engine's own `sqp_*` columns keep their pre-sweep disclosure; **the shared
 contract does not inherit it**, and the note that said it did is gone from
-`sqp_types.h`.
+`sqp_solver_types.h`.
 
 **4. `SolveBudget` on every public overload.** New:
-`SqpDriver::solve(const NlpModel &, const Vec &x0, SolveBudget)` and
-`SqpDriver::solve(NlpModelAggregate &, const Vec &x0, SolveBudget)`. The cold
+`SqpSolver::solve(const NlpModel &, const Vec &x0, SolveBudget)` and
+`SqpSolver::solve(NlpModelAssembly &, const Vec &x0, SolveBudget)`. The cold
 and bridge entries hardcoded `SolveBudget{}` before, which left a STAGED warm
 start with no budgeted door at all (the warm-start overloads refuse to run
 beside a staged value). On the interior-point side a large `max_iterations` is
@@ -1555,7 +1559,7 @@ also MOVED there from inside `run_phase_sequence` — a mis-sized `x0` is now
 refused before any transcription runs, with the same message.
 
 **6. The analysis-identity token is an owner id, not an address.**
-`InteriorPointSolver::kkt_pattern_is_analyzed` and the cross-call reuse path
+`IpmSolver::kkt_pattern_is_analyzed` and the cross-call reuse path
 compare a process-unique, never-reused id issued at each analysis and recorded
 on the program (`NonLinearProgram::analyzed_owner_id()`), instead of the
 captured KKT value-array address. A solver can die while the program it analysed
@@ -1577,7 +1581,7 @@ applies to, and there are TWO of them, with two different jobs.
 | | the SHARED PAYLOAD | the SQP's NATIVE object |
 |---|---|---|
 | type | `hven::solvers::WarmStartData` (`warmstart/warm_start_data.h`) | `hven::solvers::SqpWarmStart` (`warmstart/sqp_warm_start.h`, **new home**) |
-| entries | `IpmSolver`* and `SqpDriver`, model- and bridge-taking | `SqpDriver` only — **labelled SQP-only**, model- and bridge-taking |
+| entries | `IpmSolver`* and `SqpSolver`, model- and bridge-taking | `SqpSolver` only — **labelled SQP-only**, model- and bridge-taking |
 | carries a declaration stamp | YES | no |
 | serializable / crosses engines | YES | no (holds a process-local hot handle) |
 | highest level reachable | **per engine** — on the SQP `kSeeded` (it carries structure hash 0 by construction); on the interior-point engine the WHOLE payload applies at a `kWarm`/`kHot` ceiling (§5) | `kHot` |
@@ -1585,7 +1589,7 @@ applies to, and there are TWO of them, with two different jobs.
 | pattern mismatch | n/a on the SQP (always mismatched, hence THAT engine's kSeeded cap); the interior-point engine reads no structure hash from a payload | DEGRADES to `kSeeded` |
 | value defects | DEGRADE (clamp band, floor/cap), counted — **except a NON-FINITE core block, which REFUSES at the hand-over** | DEGRADE, counted, non-finite included (`kCold`) |
 
-\* the class is still spelled `InteriorPointSolver` until group 2's rename.
+\* the class is still spelled `IpmSolver` until group 2's rename.
 
 **Correction (fix1, 2026-09-09).** The first version of this table gave one
 "highest level reachable" for the payload column, `kSeeded`, and one "value
@@ -1597,9 +1601,9 @@ blocks is refused on both engines rather than graded down — only the NATIVE
 route degrades one.
 
 `SqpWarmStart` is the same struct `detail/warmstart/warm_start.h::WarmStart`
-always was, moved to a public header. **`WarmStart` still names it** — that
-header keeps `using WarmStart = SqpWarmStart;` until T8.10 — so no existing call
-site had to change. New code should say `SqpWarmStart`.
+always was, moved to a public header. **In T8.5 `WarmStart` still named it** —
+that header kept `using WarmStart = SqpWarmStart;` — so no existing call site had
+to change. **T8.10 removed that alias** (see that entry): say `SqpWarmStart`.
 
 ### 2. Staging → the argument form
 
@@ -1613,14 +1617,14 @@ site had to change. New code should say `SqpWarmStart`.
 | `ipm.set_initial_multipliers(eq, iq); ipm.solve(model, x0);` | `ipm.solve(model, x0, seed);` where `seed` is a `WarmStartData` with an EMPTY `primal_`, `eq_lmults_ = eq`, `iq_lmults_ = iq` and the program's `declaration_key(...)` as its stamp — see §4 |
 | `ipm.clear_initial_multipliers();` | *(delete the line)* |
 | `ipm.export_warm_start()` | `result.export_warm_start()` — a `std::optional<WarmStartData>` on the value `solve()` returned (`drivers/solve_result.h`), engaged whenever the capture succeeded |
-| `SqpDriver::export_warm_start()` | **unchanged** — the SQP driver keeps its own export entry this task |
+| `SqpSolver::export_warm_start()` | **unchanged** — the SQP driver keeps its own export entry this task |
 
 **tycho's two sites** (`engines.cpp:504` interior, `:611` SQP) become
 `engine.solve(bridge, x0, *warm)` / `driver.solve(model, x0, *warm)`. `:513`'s
 `engine.result()` was already deleted in T8.4; its staging call joins that flip.
 
 **`NLPSolver` keeps its surface.** The jet wrapper still honours
-`NLPProblem::starting_multipliers()`; internally it now builds the
+`NlpTripletModel::starting_multipliers()`; internally it now builds the
 multipliers-only seed and passes it as an argument. It is retired whole in T8.9.
 
 What actually moved inside it is `apply_starting_multipliers()`, which became
@@ -1635,7 +1639,7 @@ forwarding with `std::nullopt`. An existing caller of the two-argument entry
 compiles and behaves exactly as before — without it, T8.5 was an undeclared
 break of a public entry.
 
-**Removed with no replacement:** `SqpDriver`'s two-warm-sources refusal. A call
+**Removed with no replacement:** `SqpSolver`'s two-warm-sources refusal. A call
 names exactly one warm-start source — its own argument — so there is no second
 source to contradict, and the `std::invalid_argument` that named both is gone.
 
@@ -1725,10 +1729,10 @@ deliberately NOT unified** — three policies, three derivations:
 | `hven::solvers::kSeededMultInitMax` | `1e6` | interior-point: the magnitude ceiling on a seeded multiplier |
 | `hven::solvers::kSeededDualClampTol` | `1e-6` | SQP: the sign band inside which a slightly negative inequality price is a rounding artefact |
 
-Both old spellings still work. `kSeededDualClampTol` was already at this
+Both old spellings worked in T8.5. `kSeededDualClampTol` was already at this
 namespace scope and is simply defined elsewhere now;
-`InteriorPointSolver::kSeededIqMultFloor` and `::kSeededMultInitMax` are ALIASES
-of the namespace-scope constants until T8.10 drops them.
+`InteriorPointSolver::kSeededIqMultFloor` and `::kSeededMultInitMax` were ALIASES
+of the namespace-scope constants, and **T8.10 dropped them** (see that entry).
 
 ### 7. Overload resolution — spell the type
 
@@ -1773,8 +1777,8 @@ surface.
 | `ipm.disable_late_callback()` | `ipm.clear_iteration_callback()` | CLEARS rather than disarms |
 | `ipm.set_early_callback(f)` | `ipm.set_kkt_hook(f)` | **same signature, same semantics** |
 | `ipm.disable_early_callback()` | `ipm.clear_kkt_hook()` | now also clears the stored hook |
-| `InteriorPointSolver::EarlyCallBackType` | `InteriorPointSolver::KktHook` | same `std::function` type |
-| `InteriorPointSolver::LateCallBackType` | *(deleted)* | `hven::solvers::IterationCallback` |
+| `IpmSolver::EarlyCallBackType` | `IpmSolver::KktHook` | same `std::function` type |
+| `IpmSolver::LateCallBackType` | *(deleted)* | `hven::solvers::IterationCallback` |
 | *(nothing)* | `sqp.set_iteration_callback(f)` / `sqp.clear_iteration_callback()` | new on the SQP |
 
 `hven::solvers::IterateInfo` leaves the **callback** surface with
@@ -2003,7 +2007,7 @@ carries the same sentence.
 
 **The interior-point engine's NESTED restoration sub-solver receives no
 callback.** Under `RestorationModes::l1_nested` the feasibility subproblem is
-solved by a distinct `InteriorPointSolver`, which carries no callback of its
+solved by a distinct `IpmSolver`, which carries no callback of its
 own: its iterations fire nothing, and a `kStop` is honoured only once control is
 back in the outer loop. The SQP engine forwards into its restoration sub-solve;
 this one does not. Forwarding here is registered as a T8-close disposition item.
@@ -2081,7 +2085,7 @@ that RETURNS; a call that leaves by an exception writes nothing and consumes no
 label number. `attach_ledger` resets the counter, so labels are `"ipm_0"`,
 `"ipm_1"`, ….
 
-Three differences from `SqpDriver::attach_ledger`, each deliberate:
+Three differences from `SqpSolver::attach_ledger`, each deliberate:
 
 * **No `"_qp"` forwarding.** The SQP driver forwards the same ledger to its
   internal `QpEngine` under a `<prefix>_qp` label; this engine owns no
@@ -2111,7 +2115,7 @@ and is honestly 0 on a second solve of the same program, where the analysis is
 reused.
 
 *Correction (fix1).* The delta is taken over
-`InteriorPointSolver::lifetime_factorize_count()`, a new private accessor, and
+`IpmSolver::lifetime_factorize_count()`, a new private accessor, and
 **not** over `kkt_sol_.counters().factorize_count`. `SymmetricFactor::Counters` counts calls made
 through one ENGINE INSTANCE and starts again at zero when the analysis is
 replaced — which is what a solve of a DIFFERENT program on the same solver does
@@ -2142,7 +2146,7 @@ SQP table with `format_iteration_table`'s. `FanOutTraceSink` forwards every
 event to two sinks, first then second; either half may be null.
 
 `ipm_residual_color(value, target, acceptable)` is declared beside them: the
-five-band colouring that was `InteriorPointSolver::calculate_color`, now one
+five-band colouring that was `IpmSolver::calculate_color`, now one
 copy shared by the sink and the engine's remaining `print_exit_stats`.
 
 ### 3. Printing: what a caller sees change
@@ -2185,8 +2189,8 @@ is composed at solve entry and fixed for the solve, so a mid-solve change could
 not take effect in it. Between solves it is unchanged, and attach order relative
 to `set_options` is free.
 
-*Correction (fix1).* `SqpDriver::attach_trace` refused from the start;
-`InteriorPointSolver::attach_trace` did not, and that was a hole rather than a
+*Correction (fix1).* `SqpSolver::attach_trace` refused from the start;
+`IpmSolver::attach_trace` did not, and that was a hole rather than a
 difference. A call made from inside an iteration callback replaced the
 interior-point composition for the rest of the solve — the console fell silent
 mid-table — and a sink that detached itself from inside `on_ipm_iter` left the
@@ -2194,7 +2198,7 @@ restoration door's very next emit dereferencing a null. Both engines now refuse,
 and every interior-point emit site reads the sink pointer once per emit.
 
 **The restoration sub-driver is the one driver that never prints.** Every other
-`SqpDriver` builds its console at the tiers `common.print_level` names —
+`SqpSolver` builds its console at the tiers `common.print_level` names —
 including one constructed with restoration disabled, which is a different fact
 (fix1: the console's condition used to be that other fact).
 
@@ -2212,7 +2216,7 @@ reads it.
   that is the declared box's census, which equals the fixing-row count only
   under the MakeConstraint treatment.
 * `sqp.solve.end` gains FIVE: `scaling_active`, `obj_scale`, `row_scale_min`,
-  `row_scale_max`, `scaled_kkt_residual` — `SqpSolution::scaling`'s own values,
+  `row_scale_max`, `scaled_kkt_residual` — `SqpResult::scaling`'s own values,
   which the console's `Scaling:` trailer had no other source for.
 * **`ipm.restoration_exit_row` is NEW.** The restoration-locally-infeasible exit
   door marks the row it hands back, carrying `iter`, `phase`, `theta` and
@@ -2230,7 +2234,7 @@ HS line-count goldens are unchanged.
 
 | gone | replacement |
 |---|---|
-| `InteriorPointSolver::print_header()` (public, static) | `ConsoleTraceSink` writes the rule |
+| `IpmSolver::print_header()` (public, static) | `ConsoleTraceSink` writes the rule |
 | `print_banner()`, `print_stats()`, `print_last_iterate()`, `print_timing_summary()` (private) | `ConsoleTraceSink` |
 | `calculate_color()` (private, static) | `ipm_residual_color()` (free, public) |
 | `print_settings()` (private) | **nothing** — declared, defined, and called by nobody |
@@ -2245,14 +2249,14 @@ T8.7b**, which adds `on_ipm_phase_begin/end`, `on_ipm_kkt_analysis`,
 
 ### 5b. Not a caller-visible change, but worth knowing (fix1)
 
-* **`InteriorPointSolver::lifetime_factorize_count()`** — a new PRIVATE
+* **`IpmSolver::lifetime_factorize_count()`** — a new PRIVATE
   accessor, monotone across the engine replacement `set_qp_params()` performs.
   See §1's correction. `KktFactorization` is unchanged but for a comment.
-* **`SqpDriver`'s two constructors and its destructor are defined out of line**,
-  and `hven/drivers/sqp_driver.h` no longer includes
+* **`SqpSolver`'s two constructors and its destructor are defined out of line**,
+  and `hven/drivers/sqp_solver.h` no longer includes
   `hven/drivers/console_trace_sink.h` — it forward-declares both sink types, as
-  `hven/drivers/interior_point_solver.h` already did. A translation unit that
-  used to reach `ConsoleTraceSink` or `fmt/color.h` THROUGH `sqp_driver.h` must
+  `hven/drivers/ipm_solver.h` already did. A translation unit that
+  used to reach `ConsoleTraceSink` or `fmt/color.h` THROUGH `sqp_solver.h` must
   include `hven/drivers/console_trace_sink.h` itself. Nothing else moved: the
   class, its members and its behaviour are unchanged.
 
@@ -2281,7 +2285,7 @@ and a caller that overrides `TraceSink`'s virtuals.
 `src/drivers/interior_point_solver_print.cpp` is DELETED — the last three
 functions it held (`print_beginning`, `print_finished`, `print_exit_stats`) went
 with the events that carry them — and
-`grep -n 'fmt::print\|printf\|std::cout' src/drivers/interior_point_solver.cpp`
+`grep -n 'fmt::print\|printf\|std::cout' src/drivers/ipm_solver.cpp`
 is empty. `ConsoleTraceSink` writes the whole transcript, on every solve
 including the process's first. `src/CMakeLists.txt`'s expected source count goes
 **44 → 43**, the first time it has gone down.
@@ -2336,7 +2340,7 @@ phase.begin, iter…, phase.exit, phase.end`.
 
 ### 4. `IpmPhase` and `IpmPhaseReport` moved header
 
-Both are declared in `hven/detail/drivers/interior_point_solver_fwd.h` now
+Both are declared in `hven/detail/drivers/ipm_solver_fwd.h` now
 instead of `hven/drivers/ipm_solver_types.h`, which INCLUDES that header — so
 every existing spelling still compiles and nothing you wrote has to move. The
 reason is that `hven/drivers/trace.h` embeds the report and must be able to name
@@ -2345,8 +2349,8 @@ it without reaching Eigen, the model contract and the KKT factorization.
 ### 5. The six setters now defer while a solve is in flight
 
 `set_iteration_callback`, `clear_iteration_callback`, `set_kkt_hook` and
-`clear_kkt_hook` on `InteriorPointSolver`, and `set_iteration_callback` /
-`clear_iteration_callback` on `SqpDriver`, all park their value while a solve is
+`clear_kkt_hook` on `IpmSolver`, and `set_iteration_callback` /
+`clear_iteration_callback` on `SqpSolver`, all park their value while a solve is
 running. **Where it is applied depends on who called:**
 
 * from inside the **iteration callback or the KKT hook** — the statement after
@@ -2536,8 +2540,8 @@ functional gain, and is registered rather than done here.
 | `KktFactorization::session_num_threads()` | the live session, beside the existing `num_threads()`, which returns the stored option |
 | `DenseSymmetricFactor::num_threads()` / `set_num_threads(int)` | the dense border factor's own count, on the sparse surface's semantics |
 | `SchurComplement::num_threads()` | its dense factor's count, read through |
-| `SqpDriver::ssn_tier_num_threads()` | the SSN tier engine **this driver built**, or -1 when that tier has not been built yet |
-| `SqpDriver::ipqp_tier_num_threads()` | the IPQP tier engine **this driver built**, on the same terms |
+| `SqpSolver::ssn_tier_num_threads()` | the SSN tier engine **this driver built**, or -1 when that tier has not been built yet |
+| `SqpSolver::ipqp_tier_num_threads()` | the IPQP tier engine **this driver built**, on the same terms |
 
 The two driver-level readings arrived in the fix round (astra I2 (a)): without
 them the tiers were only ever read on engines a test constructed itself, which
@@ -2556,7 +2560,7 @@ fingerprint and that fingerprint folds `threads`.
 
 `options_fingerprint` has folded `threads` since T8.3, so a handle produced at
 one count is refused by an engine built at another
-(`WarmStart.AChangedThreadCountRefusesAHotHandle`). Before T8.8 that refusal was
+(`SqpWarmStart.AChangedThreadCountRefusesAHotHandle`). Before T8.8 that refusal was
 conservative bookkeeping; now the number describes a real property of the
 factorization. Adoption of a MATCHING handle takes the session's live count
 (`SymmetricFactor::adopt`), so an adopted factor carries the right count by
@@ -2585,7 +2589,7 @@ zero-filled anywhere in this task.
   and gains no in-process lever; the interior leg still sets
   `common.threads = 1` in process.
 * **Validation is not bypassed — and in the fix round it stopped being.** A
-  negative `common.threads` is refused by `validate_sqp_options` before any
+  negative `common.threads` is refused by `validate` before any
   engine is built, in both constructors and in `set_options()`. As T8.8 first
   landed that was true of `set_options()` only: both constructors built their
   `QpEngine` in the mem-initializer list and validated in the BODY, so the count
@@ -2621,7 +2625,7 @@ and MKL's own thread state before and after.
   separates its FACTORIZATION from the reused factor at that site, so that
   branch is not asserted.
 * The **restoration sub-driver's** engines. The sub-driver is a local inside
-  `SqpDriver::solve`, built from a private tag, and nothing carries its factors'
+  `SqpSolver::solve`, built from a private tag, and nothing carries its factors'
   counts out; what covers the count it runs at is that `SqpOptions ropts =
   opts_` copies `common` whole and none of the seven overrides names a `common`
   field. What IS pinned is end to end: a solve that ran a restoration phase
@@ -2650,7 +2654,7 @@ sequence a caller could already have written by hand.
 | the wrapper did | its replacement |
 |---|---|
 | lazy triplet-model transcription (`transcribe()`, `nlp_`, `model_`, `core_`, `do_transcription_`) | **`make_nlp_program(problem, num_partitions = 1)`** — `detail/model/nlp_adapter.h` — one call, returns the program |
-| starting-multiplier staging from `NLPProblem::starting_multipliers()` | **`NlpProblemModel::split_user_multipliers`** into a multipliers-only `WarmStartData`, handed to the payload overload of `solve()` (§4) |
+| starting-multiplier staging from `NlpTripletModel::starting_multipliers()` | **`NlpProblemModel::split_user_multipliers`** into a multipliers-only `WarmStartData`, handed to the payload overload of `solve()` (§4) |
 | `return_multipliers()` | **`NlpProblemModel::compose_user_multipliers(result.lambda_e, result.lambda_i)`** |
 | `return_x()` | **`IpmResult::x`** — bitwise the same vector (§5) |
 | `result()`, `last_result_` | the value `IpmResult` **`solve()` returns** |
@@ -2674,7 +2678,7 @@ const Eigen::VectorXd lam = solver.return_multipliers();
 
 // AFTER
 const auto program = hven::solvers::make_nlp_program(problem);
-hven::solvers::InteriorPointSolver solver;
+hven::solvers::IpmSolver solver;
 auto o = solver.options();
 o.max_iters = 200;
 o.phases = {hven::solvers::IpmPhase::kOptimize};   // the default; write it for another sequence
@@ -2728,7 +2732,7 @@ the old worker context had that the preset does not:
 
 ### 4. The problem's own multiplier seed, spelled out
 
-`NLPSolver::run()` consulted `NLPProblem::starting_multipliers()` on every solve
+`NLPSolver::run()` consulted `NlpTripletModel::starting_multipliers()` on every solve
 and, when it returned true, built a multipliers-only payload. A caller does that
 itself now, in six lines:
 
@@ -2800,7 +2804,7 @@ unconditionally). Two things to know before using it:
   thread. `N` therefore means N−1 empty partitions plus the whole problem
   evaluated serially. Only treatment-added rows (the `MakeConstraint` fixing
   rows, which are `RoundRobin`) ever populate the others. Genuine partitioned
-  evaluation over an `NLPProblem` needs a thread-safe adapter and is registered
+  evaluation over an `NlpTripletModel` needs a thread-safe adapter and is registered
   for the M7 `ClaimStreamSource` widening.
 * **The count is CLAMPED, not refused.** `make_nlp` caps it at
   `num_user_kkt_elems_ / kMinKktElementsPerPartition` (1000), so a small problem
@@ -2813,15 +2817,15 @@ unconditionally). Two things to know before using it:
 
 `tests/install_smoke/main.cpp` carries one `run_once<Solver, Model>` written
 against the shared shape and instantiated for BOTH engines —
-`InteriorPointSolver` over a `NonLinearProgram`, `SqpDriver` over the same
+`IpmSolver` over a `NonLinearProgram`, `SqpSolver` over the same
 problem's `NlpProblemModel` — exercising `options()`/`set_options`, the solve
 family with and without a payload, `set_iteration_callback`, `attach_trace`,
 `attach_ledger` and `export_warm_start()`. A shape that drifts apart on one
 engine fails to compile there, against an installed prefix.
-`include_nlp_solver.cpp` is replaced by `include_interior_point_solver.cpp` and
-`include_sqp_driver.cpp` (17 → 18 standalone-include TUs), and
+`include_nlp_solver.cpp` is replaced by `include_ipm_solver.cpp` and
+`include_sqp_solver.cpp` (17 → 18 standalone-include TUs), and
 `cmake/hvenConfig.cmake.in`'s installed-header sentinel moves from
-`hven/model/nlp_solver.h` to `hven/drivers/interior_point_solver.h`.
+`hven/model/nlp_solver.h` to `hven/drivers/ipm_solver.h`.
 
 ### 8. The two rows the interior baseline grew, and what they are
 
@@ -2862,7 +2866,7 @@ REPEATS (two captures byte-identical outside `wall_s`).
 
 What they do **NOT** prove: parallel model evaluation, or any speedup. No
 runtime claim rests on them (§5b). Genuine partitioned evaluation over an
-`NLPProblem` — per-partition cores, `ByApplication` with `thread_split` — is
+`NlpTripletModel` — per-partition cores, `ByApplication` with `thread_split` — is
 registered for the M7 `ClaimStreamSource` widening.
 
 ### 9. The declared assertion changes, per file
@@ -3011,7 +3015,7 @@ an attached iteration callback or an attached trace sink is UNMEASURED**: the
 bench harness has no callback lever — `bench_corpus.cpp` has none, and
 `ipm_corpus_leg.cpp`'s `HVEN_LEG_COUNT_CALLBACK` is an event counter, not an A/B
 pair — and the two library call sites that run only with something attached
-(`sqp_driver.cpp:4732`, `interior_point_solver.cpp:2358`) were executed zero
+(`sqp_solver.cpp:4732`, `ipm_solver.cpp:2358`) were executed zero
 times here. T8.6's callback and T8.7's sink therefore carry no runtime number;
 both gaps are registered for W6. Apple/Accelerate, Windows and the Intel pass-B
 events are **UNOBSERVED**.
@@ -3074,3 +3078,212 @@ veto and reclassifies nothing; the numbers stand as measured, with the R2' flags
 `docs/notes/data/2026-09-m6-w5-t8-runtime/PROVENANCE.txt` first, then
 `reading.md` — §0 is the revision record, §14 the single-row reading and §15 the
 ruling.
+---
+
+## T8.10 — the Scheme 1 rename sweep: the names are final
+
+**What changed: NAMES, and four aliases that stop existing. Nothing else.**
+Group 1 (T8.1–T8.9) moved every SHAPE under the old class names; this task is
+the mapped rename that follows it, in ONE commit. No behaviour moved, no field
+changed meaning, no record name in `docs/trace-schema-v0.md` moved. The U0
+replay is 27/75/0 on all three arms against the group-1 head, the interior leg
+is byte-identical to its committed baseline, the golden rig is unchanged, and
+P-SYM compares the two arms under a map GENERATED from the same manifest this
+entry is written from.
+
+**How it was done, because it matters for reading the diff.** Three manifests
+and an applier (`identifiers.tsv`, `paths.tsv`, `allowed_residuals.tsv`,
+`apply.py`), never a bare sed. Matching is EXACT, CASE-SENSITIVE and
+WORD-BOUNDARY, so a compound identifier is a DIFFERENT identifier and was left
+alone: `SqpDriverContract`, `InteriorPointSolverPresetFields`,
+`AggregateEvalSeamTestAccess`, `NlpModelAggregateBoundary` and the frozen
+corpus cell id `InteriorPointSolver_PolarLT_256seg` all still read the way they
+read before. A checker re-read the swept tree and found 0 unclassified
+survivals of an old name, and the inverse manifest reconstructs the group-1
+tree exactly.
+
+### 1. Types and functions
+
+| was | is | |
+|---|---|---|
+| `InteriorPointSolver` | `IpmSolver` |  |
+| `SqpDriver` | `SqpSolver` |  |
+| `SqpSolution` | `SqpResult` | the old name is GONE (alias removed — §3) |
+| `WarmStart` | `SqpWarmStart` | the old name is GONE (alias removed — §3) |
+| `validate_sqp_options` | `validate` | the old name is GONE (alias removed — §3) |
+| `HVEN_SQP_DRIVER_SOURCE` | `HVEN_SQP_SOLVER_SOURCE` |  |
+| `NLPProblem` | `NlpTripletModel` |  |
+| `NlpAggregate` | `NlpAssembly` |  |
+| `AggregateDeclaration` | `AssemblyDeclaration` |  |
+| `AggregatePiece` | `AssemblyPiece` |  |
+| `ConstraintAggregatePiece` | `ConstraintAssemblyPiece` |  |
+| `ObjectiveAggregatePiece` | `ObjectiveAssemblyPiece` |  |
+| `ObjectiveAggregateSurface` | `ObjectiveAssemblySurface` |  |
+| `AggregateCapability` | `AssemblyCapability` |  |
+| `NlpModelAggregate` | `NlpModelAssembly` |  |
+| `AggregateEvalSeam` | `AssemblyEvalSeam` |  |
+
+`NlpModel` STAYS. `NlpProblemModel` stays (it is the triplet-to-native
+adapter, not the triplet model). `WarmStartData` stays — it is the SHARED
+payload currency and was never the SQP's native object.
+
+**The interior-point engine's eight selector enums take `kPascalCase`
+enumerators** (CLAUDE.md §4). The member type aliases on the solver are
+unchanged, so `IpmSolver::BarrierModes::kLoqo` names what
+`InteriorPointSolver::BarrierModes::LOQO` named:
+
+| enum | was → is |
+|---|---|
+| `BarrierModes` | `PROBE`→`kProbe`, `LOQO`→`kLoqo` |
+| `LineSearchModes` | `AUGLANG`→`kAugLang`, `LANG`→`kLang`, `L1`→`kL1`, `NOLS`→`kNoLs` |
+| `AlgorithmModes` | `OPT`→`kOpt`, `OPTNO`→`kOptNo`, `SOE`→`kSoe`, `INIT`→`kInit` |
+| `QPAlgModes` | `Classic`→`kClassic`, `TwoLevel`→`kTwoLevel` |
+| `QPOrderingModes` | `MINDEG`→`kMinDeg`, `METIS`→`kMetis`, `PARMETIS`→`kParMetis` |
+| `BestCriteriaModes` | `ECONS`→`kEcons`, `ICONS`→`kIcons`, `KKT`→`kKkt`, `OBJ`→`kObj` |
+| `QPPivotModes` | `OneByOne`→`kOneByOne`, `TwoByTwo`→`kTwoByTwo`, `E4`→`kE4`, `E6`→`kE6`, `E8`→`kE8`, `E13`→`kE13` |
+| `PDStepStrategies` | `PrimSlackEq_Iq`→`kPrimSlackEqSplitIq`, `AllMinimum`→`kAllMinimum`, `PrimSlack_EqIq`→`kPrimSlackSplitEqIq`, `MaxEq`→`kMaxEq` |
+
+ONE of those is not a mechanical fold and is called out: `PDStepStrategies`'
+`PrimSlackEq_Iq` and `PrimSlack_EqIq` differ ONLY in where the underscore
+falls — it separates the variables that take the PRIMAL step from those that
+take the DUAL one — and a plain camel-case fold collides them both onto
+`kPrimSlackEqIq`. The separator is spelled `Split`:
+`kPrimSlackEqSplitIq` and `kPrimSlackSplitEqIq`. Same two strategies, same
+order, same underlying values.
+
+### 2. Headers and sources
+
+Every `#include` moves with its header. If you include hven's umbrella
+headers you are unaffected; if you name these paths, this is the whole list.
+
+| was | is |
+|---|---|
+| `include/hven/drivers/interior_point_solver.h` | `include/hven/drivers/ipm_solver.h` |
+| `include/hven/detail/drivers/interior_point_solver_fwd.h` | `include/hven/detail/drivers/ipm_solver_fwd.h` |
+| `include/hven/detail/drivers/interior_point_solver_presets.h` | `include/hven/detail/drivers/ipm_solver_presets.h` |
+| `src/drivers/interior_point_solver.cpp` | `src/drivers/ipm_solver.cpp` |
+| `src/drivers/interior_point_solver_globalization.cpp` | `src/drivers/ipm_solver_globalization.cpp` |
+| `tests/install_smoke/include_interior_point_solver.cpp` | `tests/install_smoke/include_ipm_solver.cpp` |
+| `tests/interior/test_interior_point_solver_presets.cpp` | `tests/interior/test_ipm_solver_presets.cpp` |
+| `include/hven/drivers/sqp_driver.h` | `include/hven/drivers/sqp_solver.h` |
+| `include/hven/drivers/sqp_types.h` | `include/hven/drivers/sqp_solver_types.h` |
+| `src/drivers/sqp_driver.cpp` | `src/drivers/sqp_solver.cpp` |
+| `tests/install_smoke/include_sqp_driver.cpp` | `tests/install_smoke/include_sqp_solver.cpp` |
+| `tests/sqp/test_sqp_driver.cpp` | `tests/sqp/test_sqp_solver.cpp` |
+| `include/hven/model/nlp_problem.h` | `include/hven/model/nlp_triplet_model.h` |
+| `tests/install_smoke/include_nlp_problem.cpp` | `tests/install_smoke/include_nlp_triplet_model.cpp` |
+| `include/hven/model/nlp_aggregate.h` | `include/hven/model/nlp_assembly.h` |
+| `tests/install_smoke/include_nlp_aggregate.cpp` | `tests/install_smoke/include_nlp_assembly.cpp` |
+| `tests/interior/test_nlp_aggregate_contract.cpp` | `tests/interior/test_nlp_assembly_contract.cpp` |
+| `include/hven/model/aggregate_declaration.h` | `include/hven/model/assembly_declaration.h` |
+| `src/model/aggregate_declaration.cpp` | `src/model/assembly_declaration.cpp` |
+| `tests/install_smoke/include_aggregate_declaration.cpp` | `tests/install_smoke/include_assembly_declaration.cpp` |
+| `include/hven/model/nlp_model_aggregate.h` | `include/hven/model/nlp_model_assembly.h` |
+| `src/model/nlp_model_aggregate.cpp` | `src/model/nlp_model_assembly.cpp` |
+| `tests/install_smoke/include_nlp_model_aggregate.cpp` | `tests/install_smoke/include_nlp_model_assembly.cpp` |
+| `tests/model/test_nlp_model_aggregate.cpp` | `tests/model/test_nlp_model_assembly.cpp` |
+| `include/hven/detail/drivers/aggregate_eval_seam.h` | `include/hven/detail/drivers/assembly_eval_seam.h` |
+| `src/drivers/aggregate_eval_seam.cpp` | `src/drivers/assembly_eval_seam.cpp` |
+| `tests/sqp/test_aggregate_eval_seam.cpp` | `tests/sqp/test_assembly_eval_seam.cpp` |
+
+`src/drivers/sqp_print.cpp` and `src/drivers/sqp_options.cpp` KEEP their
+names — they are the SQP engine's printing and options TUs, not the driver's.
+`_hven_expected_source_count` is unchanged at 42: a rename moves no count, and
+the install-smoke list still has its 18 standalone TUs, six of them renamed
+with their headers.
+
+**`include/hven/detail/warmstart/warm_start.h` is NOT deleted**, though the
+T8.5 entry above and the plan both said it would be. That premise was that the
+header would hold only the alias. It does not: below the alias it carries the
+live interior-point CROSSOVER — `from_interior_point`, `IpCrossoverOptions`,
+`kIpActivityFactor` — which the header's own note calls "this header's other
+half". Group 2 is mapped renames only and may not relocate functional code, so
+T8.10 removed the ALIAS and left the file and the crossover where they stand.
+
+### 3. The four alias removals — what you have to change
+
+Each of these was a spelling group 1 kept so its own task would not have to
+sweep the call sites. T8.10 is that sweep.
+
+1. **`SqpSolution` is gone; say `SqpResult`.** Same type since T8.4; the
+   `using SqpSolution = SqpResult;` line is removed.
+2. **`WarmStart` is gone; say `SqpWarmStart`.** Same struct since T8.5, which
+   moved it to `warmstart/sqp_warm_start.h`; the alias in
+   `detail/warmstart/warm_start.h` is removed. **The 51 gtest suites literally
+   named `WarmStart` were NOT renamed** — a suite name is a different
+   identifier from a type, and renaming it would rename 51 tests.
+3. **`validate_sqp_options(o)` is gone; say `validate(o)`.** Same check since
+   T8.3; the one-line forwarder is removed and the contract its doc carried
+   now sits on `validate(const SqpOptions &)`.
+4. **`InteriorPointSolver::kSeededIqMultFloor` and `::kSeededMultInitMax` are
+   gone; say `hven::solvers::kSeededIqMultFloor` / `::kSeededMultInitMax`**
+   (`warmstart/seeding.h`). Same values, same three-policies-not-unified
+   rule; only the class-scope aliases are dropped.
+
+**And the fifth thing the guide forward-pointed at: `SqpOptions::start_level`
+is folded into `common.start_level`.** The field is deleted from `SqpOptions`;
+`CommonOptions::start_level` — carried beside it and unread since T8.3 — is now
+the ceiling the SQP driver caps a warm start with, and carries the SQP's own
+contract in its doc. Both engines now read the same field.
+
+```cpp
+// before                                    // after
+SqpOptions o;                                SqpOptions o;
+o.start_level = StartLevel::kSeeded;         o.common.start_level = StartLevel::kSeeded;
+validate_sqp_options(o);                     validate(o);
+SqpSolution s = driver.solve(m, x0);         SqpResult s = solver.solve(m, x0);
+WarmStart w = s.warm_start;                  SqpWarmStart w = s.warm_start;
+```
+
+The default is unchanged (`StartLevel::kWarm`), the ceiling semantics are
+unchanged, and `SqpOptions`' remaining fields keep their declaration order.
+
+### 4. What KEPT an old name, and why (the residual policy)
+
+A residual here is a CLASSIFIED decision, never a leftover. The manifest lists
+every one; these are the classes of them.
+
+* **History is not rewritten.** `docs/notes/**` and `docs/superpowers/plans/**`
+  are preserved by path policy: a note states what was true when it was
+  written. The ONE live document under `docs/notes/` — this guide — IS swept.
+* **Frozen artifacts are pinned by their bytes.** `bench/baselines/**` and
+  `docs/notes/data/**` (including the ~85 MB T8.9r runtime directory, its
+  retained scripts and its experiment patches) were not read at all. CLAUDE.md
+  §1's second exception is exactly this: a provenance header records what
+  actually ran, and rewriting one would be a silent pin mutation. The interior
+  leg's own baseline names old identifiers in its `#` comment lines; the
+  comparator ignores comments and the data columns are the pin.
+* **Measurement records inside live files.** `src/CMakeLists.txt`'s PCH sweep
+  table and its copy in `docs/build.md` name TUs *as they were named when the
+  sweep ran* — the block says so in its own words — so those rows still read
+  `drivers/interior_point_solver.cpp`.
+* **The console banner's label stays `InteriorPointSolver`.**
+  `tests/drivers/console_sink_base_transcript.inc` is BASE's own capture of the
+  OLD printer, stamped "GENERATED ONCE, AT BASE, AND NEVER BY HAND", and its
+  whole purpose is that T8.7b's sink reproduces that printer byte for byte.
+  Renaming the label would move a pin that cannot be re-derived: BASE cannot
+  emit the new name, and re-capturing from the new sink would compare the sink
+  against itself. REGISTERED for a task that owns console output, which can
+  change this label together with the `hven Interior-Point Solver` masthead
+  beside it and re-capture both.
+* **Compound identifiers are different identifiers.** gtest suite names
+  (`SqpDriverContract` and its twenty siblings, `NlpAggregateEngineContract`,
+  `NlpModelAggregateBoundary`, `AggregateContract`, …), the preset table's own
+  `InteriorPointSolverPresetFields` / `kInteriorPointSolverPresets`, the test
+  double `FakeAggregate`, the bench adapter `ModelAsNlpProblem`, and the C++
+  sense of "aggregate" in `core/detail/aggregate_arity.h` and
+  `detail/interior/aggregate_views.h` all keep their names.
+
+### 5. What is pinned
+
+* U0 replay **27/75/0** on `walk`, `ssn` and `ipm`, group-1 head vs this head,
+  three passes, plus the committed t10b IPM baseline against both arms.
+* The interior leg **43 rows / 30 compared columns / 0 differences**, twice,
+  against the COMMITTED `bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv`,
+  which was not rewritten.
+* Both suites, both configs; the golden rig; the install smoke against a real
+  install prefix with the renamed TUs; the export contract.
+* P-SYM between the two arms with the object and symbol maps generated from
+  the manifests.
+* `docs/trace-schema-v0.md`'s record names are UNCHANGED. The `Ipqp*` event
+  prefixes stay (W5.T4's ruling); only prose in that document renames.

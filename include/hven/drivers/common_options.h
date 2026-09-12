@@ -74,8 +74,17 @@ struct CommonOptions {
 
     /// The ceiling on how much of an offered warm start a solve will trust.
     ///
-    /// The SQP engine reads its own `SqpOptions::start_level` today (which
-    /// this field replaces at T8.10). THE INTERIOR-POINT ENGINE READS THIS ONE,
+    /// THE SQP ENGINE READS THIS ONE from M6 W5 T8.10, which folded its own
+    /// `SqpOptions::start_level` into it: at kSeeded that driver ingests a
+    /// hash-less object's values but never a factorization, never the funnel
+    /// or trust-region state and never the Kungurtsev-Diehl window, EVEN when
+    /// the object would have earned kWarm, and it short-circuits the
+    /// structural-hash probe whose answer could only raise the level above the
+    /// ceiling; at kCold every 3-argument solve behaves exactly as the
+    /// 2-argument one does. Neither setting affects `solve(model, x0)`, which
+    /// is always cold by construction.
+    ///
+    /// THE INTERIOR-POINT ENGINE READS IT TOO,
     /// from M6 W5 T8.5, on its PAYLOAD route -- `solve(model, x0, warm,
     /// budget)` -- with four rungs (design 2.6):
     ///

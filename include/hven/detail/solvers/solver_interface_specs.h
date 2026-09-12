@@ -8,7 +8,7 @@
 
 // Defines the type erasure specs (SolverConstraintSpec, SolverObjectiveSpec)
 // and concrete type erasure (ConstraintInterface, ObjectiveInterface) that
-// enable vector functions to interface with InteriorPointSolver and NonLinearProgram.
+// enable vector functions to interface with IpmSolver and NonLinearProgram.
 
 #pragma once
 
@@ -108,7 +108,7 @@ template <class T>
 concept SolverObjectiveFunction = SolverConstraintFunction<T> && SolverObjectiveSurface<T>;
 
 /// @brief Type-erasure spec for a vector function usable as a constraint
-/// inside InteriorPointSolver: the pure-virtual Concept the stored model
+/// inside IpmSolver: the pure-virtual Concept the stored model
 /// implements.
 struct SolverConstraintSpec {
     struct Concept {
@@ -155,7 +155,7 @@ struct SolverConstraintSpec {
 };
 
 /// @brief Type-erasure spec for a scalar function usable as an objective
-/// inside InteriorPointSolver: the pure-virtual Concept the stored model
+/// inside IpmSolver: the pure-virtual Concept the stored model
 /// implements.
 struct SolverObjectiveSpec {
     struct Concept {

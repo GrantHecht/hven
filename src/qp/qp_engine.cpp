@@ -23,7 +23,7 @@
 //
 // The `detail::` free functions above QpEngine (the iteration cap, the inertia
 // verdict, the ride constants, the hot-start fingerprints) stay inline in the
-// header: tests, bench and src/drivers/sqp_driver.cpp call them directly, and
+// header: tests, bench and src/drivers/sqp_solver.cpp call them directly, and
 // this TU inlines them exactly as before.
 //
 // FP arithmetic crosses this TU boundary under ONE uniform flag regime on both
@@ -318,7 +318,7 @@ QpOptions QpEngine::resolve_effective_options(const QpOptions &opts,
 QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool warm,
                          const SolveOverrides &overrides,
                          const std::shared_ptr<const HotState> &hot) const {
-    // ADOPT AN EXTERNAL HOT HANDLE. `hot` (WarmStart::hot, opaque) is a
+    // ADOPT AN EXTERNAL HOT HANDLE. `hot` (SqpWarmStart::hot, opaque) is a
     // snapshot possibly produced by a DIFFERENT QpEngine instance's
     // hot_state(). Adopted ONLY when this engine's OWN instance-level
     // cache is not already trustworthy (border_valid_ false). Adoption

@@ -20,7 +20,7 @@
 // globalization therefore never has to fight.
 //
 //   (a) SqpOptions::warm_full_step -- the Kungurtsev-Diehl full-step-first
-//       rule (sqp_driver.h's FULL-STEP-FIRST WARM note). The battery returned
+//       rule (sqp_solver.h's FULL-STEP-FIRST WARM note). The battery returned
 //       a NULL result: the mode ENGAGED on 67-88 % of warm/hot majors and its
 //       watchdog NEVER fired, yet not one observed count moved when the lever
 //       was flipped. Default-true was neither supported nor undermined, and

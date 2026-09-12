@@ -9,11 +9,11 @@
 //   - the default (base-class) body is a no-op: a strategy that does not
 //     override it leaves the hven::solvers::IpmResult untouched;
 //   - a fake strategy's override IS invoked through the virtual dispatch, the
-//     same call shape run_phase_sequence() uses (see interior_point_solver.cpp);
+//     same call shape run_phase_sequence() uses (see ipm_solver.cpp);
 //   - the two real overrides (FunnelAcceptance, FilterAcceptance) report their
 //     documented fields (funnel_acceptance.h / filter_acceptance.h);
 //   - a default-constructed hven::solvers::IpmResult carries the three sentinel
-//     values (-1.0 / -1 / -1) documented on the fields in interior_point_solver.h.
+//     values (-1.0 / -1 / -1) documented on the fields in ipm_solver.h.
 //
 // UNITY RULE: anonymous namespace does not protect names against the unity
 // build — every helper/class here is prefixed Diag* to stay globally unique
@@ -25,7 +25,7 @@
 #include "hven/detail/globalization/acceptance_strategy.h"
 #include "hven/detail/globalization/filter_acceptance.h"
 #include "hven/detail/globalization/funnel_acceptance.h"
-#include "hven/drivers/interior_point_solver.h"
+#include "hven/drivers/ipm_solver.h"
 
 #include <gtest/gtest.h>
 
@@ -36,7 +36,7 @@ namespace {
 using hven::solvers::AcceptanceStrategy;
 using hven::solvers::FilterAcceptance;
 using hven::solvers::FunnelAcceptance;
-using hven::solvers::InteriorPointSolver;
+using hven::solvers::IpmSolver;
 using hven::solvers::kFunnelInfeasibilityFactor;
 using hven::solvers::ProgressMeasures;
 using TychoTest::pm;

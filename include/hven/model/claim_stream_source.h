@@ -4,7 +4,7 @@
 #pragma once
 
 // claim_stream_source.h — the claim-stream half of the provider surface: an
-// NlpAggregate that also publishes, per claim slot, the assembled coordinate
+// NlpAssembly that also publishes, per claim slot, the assembled coordinate
 // that slot names.
 //
 // COORDINATE CONVENTION. Claims are stated in the square assembled space the
@@ -17,7 +17,7 @@
 
 #include <Eigen/Core>
 
-#include "hven/model/nlp_aggregate.h"
+#include "hven/model/nlp_assembly.h"
 
 namespace hven::solvers {
 
@@ -29,7 +29,7 @@ struct ClaimBlock {
     friend bool operator==(const ClaimBlock &, const ClaimBlock &) = default;
 };
 
-/// @brief A provider that publishes its claim stream: an NlpAggregate a
+/// @brief A provider that publishes its claim stream: an NlpAssembly a
 ///        consumer can lay a destination for. Abstract, like the base.
 ///
 /// STREAM SHAPE. Claims are issued serially by the provider, in partition-index
@@ -78,7 +78,7 @@ struct ClaimBlock {
 /// cannot restate its stream for the layout it now holds refuses at the
 /// accessor rather than publishing a stream naming coordinates the layout does
 /// not have.
-class ClaimStreamSource : public NlpAggregate {
+class ClaimStreamSource : public NlpAssembly {
   public:
     /// @brief The epoch the views published here are valid under.
     ///

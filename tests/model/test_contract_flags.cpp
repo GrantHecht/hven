@@ -3,7 +3,7 @@
 
 // The three flag vocabularies of the contract surface, and the one place they
 // must not be confused: ClaimDomainSet names what is CLAIMED at layout time,
-// EvalRequest names what is EVALUATED per call, AggregateCapability names what
+// EvalRequest names what is EVALUATED per call, AssemblyCapability names what
 // a consumer may assume about cost.
 //
 // The EvalRequest block also carries the injective half of the mapping table's
@@ -21,9 +21,9 @@
 
 #include "hven/model/candidate_point.h"
 #include "hven/model/claim_space.h"
-#include "hven/model/nlp_aggregate.h"
+#include "hven/model/nlp_assembly.h"
 
-using hven::solvers::AggregateCapability;
+using hven::solvers::AssemblyCapability;
 using hven::solvers::ClaimDomain;
 using hven::solvers::ClaimDomainSet;
 using hven::solvers::EvalRequest;
@@ -94,50 +94,50 @@ TEST(KktStorageTest, AClaimSpaceResolvesStorageAtClaimTimeNotOnTheHotPath) {
 }
 
 // ---------------------------------------------------------------------------
-// AggregateCapability
+// AssemblyCapability
 // ---------------------------------------------------------------------------
 
 TEST(AggregateCapabilityTest, NoneCarriesNothing) {
-    EXPECT_FALSE(has_capability(AggregateCapability::kNone, AggregateCapability::kDirectScatter));
-    EXPECT_FALSE(has_capability(AggregateCapability::kNone, AggregateCapability::kValuesFastPath));
+    EXPECT_FALSE(has_capability(AssemblyCapability::kNone, AssemblyCapability::kDirectScatter));
+    EXPECT_FALSE(has_capability(AssemblyCapability::kNone, AssemblyCapability::kValuesFastPath));
 }
 
 TEST(AggregateCapabilityTest, ProbingForNothingIsVacuouslyTrue) {
-    EXPECT_TRUE(has_capability(AggregateCapability::kNone, AggregateCapability::kNone));
-    EXPECT_TRUE(has_capability(AggregateCapability::kDirectScatter, AggregateCapability::kNone));
+    EXPECT_TRUE(has_capability(AssemblyCapability::kNone, AssemblyCapability::kNone));
+    EXPECT_TRUE(has_capability(AssemblyCapability::kDirectScatter, AssemblyCapability::kNone));
 }
 
 TEST(AggregateCapabilityTest, HasCapabilityRequiresEveryProbedBit) {
-    const AggregateCapability both =
-        AggregateCapability::kDirectScatter | AggregateCapability::kValuesFastPath;
-    EXPECT_TRUE(has_capability(both, AggregateCapability::kDirectScatter));
-    EXPECT_TRUE(has_capability(both, AggregateCapability::kValuesFastPath));
+    const AssemblyCapability both =
+        AssemblyCapability::kDirectScatter | AssemblyCapability::kValuesFastPath;
+    EXPECT_TRUE(has_capability(both, AssemblyCapability::kDirectScatter));
+    EXPECT_TRUE(has_capability(both, AssemblyCapability::kValuesFastPath));
     EXPECT_TRUE(has_capability(both, both));
 
-    const AggregateCapability one = AggregateCapability::kValuesFastPath;
-    EXPECT_TRUE(has_capability(one, AggregateCapability::kValuesFastPath));
-    EXPECT_FALSE(has_capability(one, AggregateCapability::kDirectScatter));
+    const AssemblyCapability one = AssemblyCapability::kValuesFastPath;
+    EXPECT_TRUE(has_capability(one, AssemblyCapability::kValuesFastPath));
+    EXPECT_FALSE(has_capability(one, AssemblyCapability::kDirectScatter));
     EXPECT_FALSE(has_capability(one, both));
 }
 
 TEST(AggregateCapabilityTest, IntersectionKeepsTheCommonBits) {
-    const AggregateCapability both =
-        AggregateCapability::kDirectScatter | AggregateCapability::kValuesFastPath;
-    EXPECT_EQ(both & AggregateCapability::kDirectScatter, AggregateCapability::kDirectScatter);
-    EXPECT_EQ(AggregateCapability::kDirectScatter & AggregateCapability::kValuesFastPath,
-              AggregateCapability::kNone);
+    const AssemblyCapability both =
+        AssemblyCapability::kDirectScatter | AssemblyCapability::kValuesFastPath;
+    EXPECT_EQ(both & AssemblyCapability::kDirectScatter, AssemblyCapability::kDirectScatter);
+    EXPECT_EQ(AssemblyCapability::kDirectScatter & AssemblyCapability::kValuesFastPath,
+              AssemblyCapability::kNone);
 }
 
 TEST(AggregateCapabilityTest, InPlaceUnionAndMaskingBothCompile) {
-    AggregateCapability widened = AggregateCapability::kDirectScatter;
-    widened |= AggregateCapability::kValuesFastPath;
-    EXPECT_TRUE(has_capability(widened, AggregateCapability::kValuesFastPath));
+    AssemblyCapability widened = AssemblyCapability::kDirectScatter;
+    widened |= AssemblyCapability::kValuesFastPath;
+    EXPECT_TRUE(has_capability(widened, AssemblyCapability::kValuesFastPath));
 
     // Reducing a set to the weakest claim over several -- what a mixed provider
     // does over its pieces -- is in-place masking, so it must compile as one.
-    widened &= AggregateCapability::kValuesFastPath;
-    EXPECT_EQ(widened, AggregateCapability::kValuesFastPath);
-    EXPECT_FALSE(has_capability(widened, AggregateCapability::kDirectScatter));
+    widened &= AssemblyCapability::kValuesFastPath;
+    EXPECT_EQ(widened, AssemblyCapability::kValuesFastPath);
+    EXPECT_FALSE(has_capability(widened, AssemblyCapability::kDirectScatter));
 }
 
 // ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// tests/sqp/test_sqp_driver.cpp — the SQP driver: Task 4's skeleton and Task 6's
+// tests/sqp/test_sqp_solver.cpp — the SQP driver: Task 4's skeleton and Task 6's
 // trust-region major loop.
 //
 // Seven batteries:
@@ -116,8 +116,8 @@
 #include <hven/core/detail/aggregate_arity.h>
 #include <hven/core/ledger.h>
 #include <hven/detail/qp/qp_engine.h>
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 
 #include "support/hs_problems.h"
 #include "support/hs_sweeps.h"
@@ -151,7 +151,7 @@ namespace {
 // Records a solve's per-major residual/cost table onto the gtest XML, so a
 // failing run on another machine reports the trajectory that produced it
 // rather than only the assertion that tripped.
-void record_history(const SqpSolution &sol, const std::string &tag) {
+void record_history(const SqpResult &sol, const std::string &tag) {
     for (std::size_t k = 0; k < sol.history.size(); ++k) {
         const SqpIterate &h = sol.history[k];
         const char *verdict = "-";
@@ -183,7 +183,7 @@ void record_history(const SqpSolution &sol, const std::string &tag) {
 
 // Replays a driver solve's major sequence, solving EVERY subproblem twice --
 // once on a fresh engine with no seed, once on a persistent engine warm-
-// seeded exactly as SqpDriver seeds it (active set only, x zeroed). Reports
+// seeded exactly as SqpSolver seeds it (active set only, x zeroed). Reports
 // the cold and warm minor-iteration counts per major, plus the displacement
 // the warm path actually applied (which is what SqpIterate::step_norm is
 // checked against). The warm path is what drives the iterates forward, so
@@ -199,7 +199,7 @@ struct ColdWarmMinors {
     std::vector<double> warm_step_norm; // ||x_{k+1} - x_k||inf actually applied
 };
 
-std::vector<double> radii_of(const SqpSolution &sol) {
+std::vector<double> radii_of(const SqpResult &sol) {
     std::vector<double> radii;
     for (const SqpIterate &h : sol.history) {
         radii.push_back(h.tr_radius);
@@ -240,7 +240,7 @@ ColdWarmMinors replay_cold_vs_warm(const NlpModel &model, const SqpOptions &opts
         le = w.lambda_e;
         li = w.lambda_i;
         seed = std::move(w);
-        seed.x.setZero(); // exactly SqpDriver's seeding policy
+        seed.x.setZero(); // exactly SqpSolver's seeding policy
         have_seed = true;
     }
     return out;
@@ -483,7 +483,7 @@ TEST(SqpDriverContract, BuildSubproblemLinearizesEqualityConstraints) {
     EXPECT_NEAR(h(0, 0), 2.0 + 0.25 * -20.0, 1e-13);
 }
 
-// The stationarity measure documented in sqp_driver.h's CONVERGENCE TEST
+// The stationarity measure documented in sqp_solver.h's CONVERGENCE TEST
 // note. Three regimes, one per branch of the per-variable rule.
 TEST(SqpDriverContract, KktMeasureUsesTheReducedGradientAtActiveBounds) {
     constexpr double kBoundTol = 1e-6;
@@ -597,8 +597,8 @@ TEST(SqpDriverContract, ConvergedStartSolvesNoSubproblems) {
     Vec x_star(2);
     x_star << -0.5471975511965977, -1.547197551196598;
 
-    SqpDriver driver{SqpOptions{}};
-    const SqpSolution sol = driver.solve(*p.model, x_star);
+    SqpSolver driver{SqpOptions{}};
+    const SqpResult sol = driver.solve(*p.model, x_star);
 
     EXPECT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_EQ(sol.counters.major_iters, 0);
@@ -703,8 +703,8 @@ TEST(SqpDriverContract, NanIterateIsNeverAdoptedOrCertified) {
     SqpOptions opts;
     opts.tr_init = 1e3; // large enough that the first Newton step (100) is taken whole
     opts.max_iter = 10;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
     record_history(sol, "nan_model");
 
     EXPECT_NE(sol.status, SolveStatus::kOptimal)
@@ -729,7 +729,7 @@ TEST(SqpDriverContract, NanIterateIsNeverAdoptedOrCertified) {
     // measurement of the MODEL failing, decided before any subproblem exists.
     Vec x0_outside(1);
     x0_outside << 50.0;
-    const SqpSolution bad = driver.solve(model, x0_outside);
+    const SqpResult bad = driver.solve(model, x0_outside);
     EXPECT_EQ(bad.status, SolveStatus::kNumericalError);
     EXPECT_EQ(bad.counters.major_iters, 0);
     ASSERT_EQ(bad.history.size(), 1u);
@@ -751,14 +751,14 @@ TEST(SqpDriverContract, NanIterateIsNeverAdoptedOrCertified) {
 // exit above is retry from a corrected x0, and the hand-off that exit emits
 // must not sabotage that. It very nearly did: Task 0's first cut probed the
 // model's structure on EVERY exit that built no subproblem, this one
-// included, so its WarmStart came back `valid` with a matching hash. Fed
+// included, so its SqpWarmStart came back `valid` with a matching hash. Fed
 // back, it resolved kWarm -- and the 3-arg solve() takes its x FROM the warm
 // object on a kWarm resolution, so the corrected x0 was DISCARDED and the
 // retry re-ran at the very point the model could not evaluate, failing
 // identically. A recovery turned into a repeat.
 //
 // So that one exit now emits a COLD object (valid = false, hash 0) and is not
-// probed at all -- sqp_driver.h's make_warm_start, THE UNEVALUABLE EXIT.
+// probed at all -- sqp_solver.h's make_warm_start, THE UNEVALUABLE EXIT.
 // Pinned in the strongest available form: the retry is BIT-IDENTICAL to the
 // 2-arg cold solve from the same corrected x0, which is what "the caller's
 // own x0 was honoured" actually means. (The zero-major repair itself is
@@ -769,11 +769,11 @@ TEST(SqpDriverContract, UnevaluableStartPointEmitsAColdHandOffSoARetryIsHonoured
     SqpOptions opts;
     opts.tr_init = 1e3;
     opts.max_iter = 10;
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
 
     Vec x0_outside(1);
     x0_outside << 50.0;
-    const SqpSolution bad = driver.solve(model, x0_outside);
+    const SqpResult bad = driver.solve(model, x0_outside);
     ASSERT_EQ(bad.status, SolveStatus::kNumericalError);
     ASSERT_EQ(bad.counters.major_iters, 0) << "no subproblem was ever built";
 
@@ -790,10 +790,10 @@ TEST(SqpDriverContract, UnevaluableStartPointEmitsAColdHandOffSoARetryIsHonoured
     // THE RETRY, from a corrected x0 well inside the model's domain.
     Vec x0_good(1);
     x0_good << 1.0;
-    SqpDriver retry_driver(opts);
-    const SqpSolution retry = retry_driver.solve(model, x0_good, bad.warm_start);
-    SqpDriver cold_driver(opts);
-    const SqpSolution cold = cold_driver.solve(model, x0_good);
+    SqpSolver retry_driver(opts);
+    const SqpResult retry = retry_driver.solve(model, x0_good, bad.warm_start);
+    SqpSolver cold_driver(opts);
+    const SqpResult cold = cold_driver.solve(model, x0_good);
 
     EXPECT_EQ(retry.counters.start_level_used, StartLevel::kCold)
         << "THE PIN: the failed solve's hand-off must not be ingested";
@@ -805,7 +805,7 @@ TEST(SqpDriverContract, UnevaluableStartPointEmitsAColdHandOffSoARetryIsHonoured
     EXPECT_LT(std::abs(retry.x(0)), NanPastRadiusModel::kFiniteRadius);
 
     // BIT-FOR-BIT the same run as the 2-arg cold solve -- the same standard
-    // WarmStart.StaleWarmIsSafe holds a foreign object to, and asserted at
+    // SqpWarmStart.StaleWarmIsSafe holds a foreign object to, and asserted at
     // that strength rather than described at it (fix round 2: the first cut
     // of this test claimed bit-identity while comparing `f` at 4 ULP and one
     // counter). `f` is EXPECT_EQ, not EXPECT_DOUBLE_EQ: these are two runs of
@@ -839,7 +839,7 @@ TEST(SqpDriverContract, UnevaluableStartPointEmitsAColdHandOffSoARetryIsHonoured
 // the constructor's NaN tr_init), not a status.
 TEST(SqpDriverContract, NonFiniteStartPointIsRejected) {
     NanPastRadiusModel model;
-    SqpDriver driver{SqpOptions{}};
+    SqpSolver driver{SqpOptions{}};
 
     Vec nan_x0(1);
     nan_x0 << std::numeric_limits<double>::quiet_NaN();
@@ -856,7 +856,7 @@ TEST(SqpDriverContract, NonFiniteStartPointIsRejected) {
     EXPECT_NO_THROW(driver.solve(*p.model, good));
 }
 
-// REGRESSION, and the reason SqpDriver zeroes seed.x. qp_engine.h section 6
+// REGRESSION, and the reason SqpSolver zeroes seed.x. qp_engine.h section 6
 // centers the trust region on the SOLVE'S OWN start point, which on a warm
 // solve is clamp(seed.x, ...). Handing the previous STEP through as the seed
 // re-centers the box on p_prev, and the driver then takes steps of up to
@@ -900,8 +900,8 @@ TEST(SqpDriverContract, TrustRegionIsCenteredOnTheCurrentIterate) {
         SqpOptions opts;
         opts.tr_init = c.tr_init;
         opts.max_iter = 60;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(*p.model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(*p.model);
         record_history(sol, fmt::format("hs{}_tr{:g}", c.number, c.tr_init));
 
         ASSERT_FALSE(sol.history.empty());
@@ -935,8 +935,8 @@ TEST(SqpDriverContract, TrustRegionIsCenteredOnTheCurrentIterate) {
             SqpOptions opts;
             opts.tr_init = tr;
             opts.max_iter = 60;
-            SqpDriver driver(opts);
-            const SqpSolution sol = driver.solve(*p.model);
+            SqpSolver driver(opts);
+            const SqpResult sol = driver.solve(*p.model);
             for (const SqpIterate &h : sol.history) {
                 if (h.step_norm > h.tr_radius * (1.0 + 1e-9)) {
                     ++violations;
@@ -954,22 +954,22 @@ TEST(SqpDriverContract, RejectsUnusableOptionsAndStartPoints) {
     {
         SqpOptions o;
         o.kkt_tol = 0.0;
-        EXPECT_THROW(SqpDriver{o}, std::invalid_argument);
+        EXPECT_THROW(SqpSolver{o}, std::invalid_argument);
     }
     {
         SqpOptions o;
         o.feas_tol = -1.0;
-        EXPECT_THROW(SqpDriver{o}, std::invalid_argument);
+        EXPECT_THROW(SqpSolver{o}, std::invalid_argument);
     }
     {
         SqpOptions o;
         o.max_iter = -1;
-        EXPECT_THROW(SqpDriver{o}, std::invalid_argument);
+        EXPECT_THROW(SqpSolver{o}, std::invalid_argument);
     }
     {
         SqpOptions o;
         o.tr_init = -1.0;
-        EXPECT_THROW(SqpDriver{o}, std::invalid_argument);
+        EXPECT_THROW(SqpSolver{o}, std::invalid_argument);
     }
     {
         // tr_init == 0 pins every subproblem box to p = 0, so no iterate ever
@@ -977,12 +977,12 @@ TEST(SqpDriverContract, RejectsUnusableOptionsAndStartPoints) {
         // Rejected rather than left as a silent stall.
         SqpOptions o;
         o.tr_init = 0.0;
-        EXPECT_THROW(SqpDriver{o}, std::invalid_argument);
+        EXPECT_THROW(SqpSolver{o}, std::invalid_argument);
     }
     {
         SqpOptions o;
         o.tr_init = std::numeric_limits<double>::quiet_NaN();
-        EXPECT_THROW(SqpDriver{o}, std::invalid_argument);
+        EXPECT_THROW(SqpSolver{o}, std::invalid_argument);
     }
     {
         // +inf stays legal: it is SolveOverrides' sentinel for "no radius".
@@ -991,7 +991,7 @@ TEST(SqpDriverContract, RejectsUnusableOptionsAndStartPoints) {
         // manage and so has nothing to cap.
         SqpOptions o;
         o.tr_init = std::numeric_limits<double>::infinity();
-        EXPECT_NO_THROW(SqpDriver{o});
+        EXPECT_NO_THROW(SqpSolver{o});
     }
     {
         // tr_max IS READ from Task 6 on (it caps the growth rule), so a
@@ -1000,23 +1000,23 @@ TEST(SqpDriverContract, RejectsUnusableOptionsAndStartPoints) {
         SqpOptions o;
         o.tr_init = 2.0;
         o.tr_max = 1.0;
-        EXPECT_THROW(SqpDriver{o}, std::invalid_argument);
+        EXPECT_THROW(SqpSolver{o}, std::invalid_argument);
     }
     {
         SqpOptions o;
         o.tr_max = std::numeric_limits<double>::quiet_NaN();
-        EXPECT_THROW(SqpDriver{o}, std::invalid_argument);
+        EXPECT_THROW(SqpSolver{o}, std::invalid_argument);
     }
     {
         // Equality is legal: it just means "never grow".
         SqpOptions o;
         o.tr_init = 2.0;
         o.tr_max = 2.0;
-        EXPECT_NO_THROW(SqpDriver{o});
+        EXPECT_NO_THROW(SqpSolver{o});
     }
     {
         const HsProblem p = make_hs(5);
-        SqpDriver driver{SqpOptions{}};
+        SqpSolver driver{SqpOptions{}};
         EXPECT_THROW(driver.solve(*p.model, Vec::Zero(3)), std::invalid_argument);
     }
 }
@@ -1038,18 +1038,18 @@ TEST(SqpDriverContract, RejectsUnusableOptionsAndStartPoints) {
 // no longer one place. The driver's solve path evaluates through the Level 2
 // aggregate and does not call the free functions at all any more:
 //   (a) and (b) pin the FREE FUNCTIONS -- eval_nlp and eval_nlp_values, which
-//       remain in drivers/sqp_driver.h as a supported direct-use surface for
+//       remain in drivers/sqp_solver.h as a supported direct-use surface for
 //       tests and for callers measuring a single point. They are called
 //       directly here, never through solve(), so they pin exactly that
 //       retained surface and nothing about the loop.
 //   (c) is THE LIVE-PATH ARM. It goes through driver.solve(), and the box is
 //       the one mis-sized return that still reaches a driver-owned check
 //       there: require_declared_box, at the model-taking entries in
-//       src/drivers/sqp_driver.cpp, which runs before the model is wrapped in
+//       src/drivers/sqp_solver.cpp, which runs before the model is wrapped in
 //       a bridge so that this two-block message is the one that fires.
 //   (d) is the control for all of the above.
 // The solve path's rejection of the OTHER mis-sized returns has moved to the
-// bridge's own entries (src/model/nlp_model_aggregate.cpp), which name each
+// bridge's own entries (src/model/nlp_model_assembly.cpp), which name each
 // offending callback in their own messages -- the same contract as here, in a
 // different voice, and covered by that file's own suite rather than restated
 // through a solve() here.
@@ -1095,7 +1095,7 @@ TEST(SqpDriverContract, MisSizedCallbackReturnsAreRejectedByName) {
     for (const Which which : {Which::kLower, Which::kUpper}) {
         SCOPED_TRACE(which == Which::kLower ? "lower" : "upper");
         const MisSizingModel model(make_hs(5).model, which);
-        SqpDriver driver{SqpOptions{}};
+        SqpSolver driver{SqpOptions{}};
         const std::string msg =
             message_of_throw([&] { (void)driver.solve(model, model.start_point()); });
         EXPECT_NE(msg.find("model.lower()"), std::string::npos) << msg;
@@ -1108,7 +1108,7 @@ TEST(SqpDriverContract, MisSizedCallbackReturnsAreRejectedByName) {
     const MisSizingModel honest(make_hs(76).model, Which::kNone);
     EXPECT_NO_THROW((void)eval_nlp(honest, honest.start_point()));
     EXPECT_NO_THROW((void)eval_nlp_values(honest, honest.start_point()));
-    SqpDriver clean{SqpOptions{}};
+    SqpSolver clean{SqpOptions{}};
     EXPECT_NO_THROW((void)clean.solve(honest, honest.start_point()));
 }
 
@@ -1201,14 +1201,14 @@ TEST(SqpDriverContract, MisSizedUpgradeReturnsAreRejectedByName) {
 // identity below is not read as more universal than it is: a solve that
 // builds NO subproblem at all (converged at its start point, or a zero
 // budget) pays one eval_hess in make_warm_start's zero-major probe, with
-// steps_accepted == 0 (sqp_types.h's steps_accepted note). All three
+// steps_accepted == 0 (sqp_solver_types.h's steps_accepted note). All three
 // fixtures here converge through several majors, so none of them reaches it
 // and no count below moves.
 //
 // THE DRIVER'S BRIDGE LAY ADDS ONE EXTRA CLAIM PASS, WHICH IS WHY THE THREE
 // DERIVATIVE IDENTITIES CARRY AN EXPLICIT `+ 1` BELOW AND THE THREE VALUE ONES
 // DO NOT. The driver's solve path consumes the Level 2 aggregate
-// (detail/drivers/aggregate_eval_seam.h), and a model-taking solve() builds
+// (detail/drivers/assembly_eval_seam.h), and a model-taking solve() builds
 // one bridge over the caller's model for the duration of the call. Building
 // it is a CLAIM PASS: it walks eval_hess,
 // eval_jac_e and eval_jac_i once each at the model's start point, because the
@@ -1217,15 +1217,15 @@ TEST(SqpDriverContract, MisSizedUpgradeReturnsAreRejectedByName) {
 // to this test -- the DRIVER's own economy (one evaluation per trial, one
 // Hessian per accepted major) is exactly what it was, and every right-hand
 // side below is still the same driver counter it always was. A caller who
-// does not want to pay it per solve holds an NlpModelAggregate and uses
-// SqpDriver's aggregate-taking entry, which builds no bridge of its own.
+// does not want to pay it per solve holds an NlpModelAssembly and uses
+// SqpSolver's aggregate-taking entry, which builds no bridge of its own.
 TEST(SqpDriverContract, CallCountPerMajorIsBounded) {
     for (const int number : {6, 76, 5}) {
         CountingModel model(make_hs(number).model);
         SqpOptions opts;
         opts.max_iter = 40;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
         ASSERT_EQ(sol.status, SolveStatus::kOptimal) << "HS" << number;
 
         const Index rows = static_cast<Index>(sol.history.size());
@@ -1234,11 +1234,11 @@ TEST(SqpDriverContract, CallCountPerMajorIsBounded) {
         const std::string tag = fmt::format("HS{}", number);
 
         // THE BRIDGE LAY IS THE `lay` TERM BELOW, and it is a per-BRIDGE cost
-        // rather than a per-major one: constructing an NlpModelAggregate walks
+        // rather than a per-major one: constructing an NlpModelAssembly walks
         // the model's three derivative patterns ONCE, at the model's own start
         // point -- one eval_hess unconditionally, one eval_jac_e iff me() > 0,
         // one eval_jac_i iff mi() > 0 (the claim pass, stated in the
-        // constructor's own doc at include/hven/model/nlp_model_aggregate.h).
+        // constructor's own doc at include/hven/model/nlp_model_assembly.h).
         // Each fixture here makes exactly ONE solve(model, ...) call and enters
         // no restoration, so exactly ONE bridge is built over it and the term
         // is counted once. The VALUE half of the economy is untouched, which is
@@ -1279,7 +1279,7 @@ TEST(SqpDriverContract, CallCountPerMajorIsBounded) {
 // TASK 8 (the eval-economics carry): THE CEILING SHORT-CIRCUIT. A `warm`
 // object that is `valid`, carries a nonzero structure_hash, and is
 // dimensionally plausible against `model` would normally make solve_impl
-// build a probe subproblem to test that hash -- UNLESS opts_.start_level is
+// build a probe subproblem to test that hash -- UNLESS opts_.common.start_level is
 // StartLevel::kCold, in which case resolved_level is capped back to kCold a
 // few lines later NO MATTER WHAT the probe finds. Before this task the probe
 // ran anyway (docs/notes/2026-07-30-phase-4-close-carries.md: "one wasted
@@ -1292,22 +1292,22 @@ TEST(SqpDriverContract, CallCountPerMajorIsBounded) {
 // probe.
 TEST(SqpDriverContract, ColdCeilingSkipsTheWarmResolutionProbeEntirely) {
     const HsProblem seed_problem = make_hs(6);
-    SqpDriver seed_driver{SqpOptions{}};
-    const SqpSolution seeded = seed_driver.solve(*seed_problem.model);
+    SqpSolver seed_driver{SqpOptions{}};
+    const SqpResult seeded = seed_driver.solve(*seed_problem.model);
     ASSERT_EQ(seeded.status, SolveStatus::kOptimal);
     ASSERT_TRUE(seeded.warm_start.valid);
     ASSERT_NE(seeded.warm_start.structure_hash, 0u);
 
     CountingModel ceiling_model(make_hs(6).model);
     SqpOptions ceiling_opts;
-    ceiling_opts.start_level = StartLevel::kCold;
-    SqpDriver ceiling_driver(ceiling_opts);
-    const SqpSolution ceiling_sol =
+    ceiling_opts.common.start_level = StartLevel::kCold;
+    SqpSolver ceiling_driver(ceiling_opts);
+    const SqpResult ceiling_sol =
         ceiling_driver.solve(ceiling_model, ceiling_model.start_point(), seeded.warm_start);
 
     CountingModel plain_model(make_hs(6).model);
-    SqpDriver plain_driver{SqpOptions{}};
-    const SqpSolution plain_sol = plain_driver.solve(plain_model);
+    SqpSolver plain_driver{SqpOptions{}};
+    const SqpResult plain_sol = plain_driver.solve(plain_model);
 
     ASSERT_EQ(ceiling_sol.status, SolveStatus::kOptimal);
     ASSERT_EQ(ceiling_sol.counters.start_level_used, StartLevel::kCold);
@@ -1331,7 +1331,7 @@ TEST(SqpDriverContract, ColdCeilingSkipsTheWarmResolutionProbeEntirely) {
 // above (two solves forced to the SAME resolved_level, hence the same
 // trajectory, so any call-count difference is the probe alone), except this
 // `warm` is dimensionally plausible with a DELIBERATELY WRONG
-// structure_hash: the dimension check still passes (opts_.start_level
+// structure_hash: the dimension check still passes (opts_.common.start_level
 // defaults to kWarm, above kCold), so the probe still runs and pays its cost,
 // but the hash mismatch does not raise the level -- giving a bit-identical
 // trajectory to the CONTROL arm to compare against, with the probe's own
@@ -1346,32 +1346,32 @@ TEST(SqpDriverContract, ColdCeilingSkipsTheWarmResolutionProbeEntirely) {
 // (warm_start.h's StartLevel note), whose trajectory is NOT a cold one -- the
 // object's x, duals and activity hint are all ingested. The control is
 // therefore a second solve fed THE SAME OBJECT with the ceiling clamped to
-// kSeeded, which by sqp_driver.h's generalized ceiling short-circuit skips the
+// kSeeded, which by sqp_solver.h's generalized ceiling short-circuit skips the
 // probe entirely while resolving to the identical level. Same ingest, same
 // trajectory, one probe of difference -- a STRICTLY BETTER isolation than the
 // old one, because the two arms now share the warm object as well as the
 // level.
 TEST(SqpDriverContract, WarmResolutionProbeIsValuesOnlyNeverFetchesAGradient) {
     const HsProblem seed_problem = make_hs(6);
-    SqpDriver seed_driver{SqpOptions{}};
-    const SqpSolution seeded = seed_driver.solve(*seed_problem.model);
+    SqpSolver seed_driver{SqpOptions{}};
+    const SqpResult seeded = seed_driver.solve(*seed_problem.model);
     ASSERT_TRUE(seeded.warm_start.valid);
 
-    WarmStart mismatched = seeded.warm_start;
+    SqpWarmStart mismatched = seeded.warm_start;
     mismatched.structure_hash ^= 0xdeadbeefULL; // dimensionally fine, hash wrong
 
     CountingModel probed_model(make_hs(6).model);
-    SqpDriver probed_driver{SqpOptions{}}; // default start_level == kWarm
-    const SqpSolution probed_sol =
+    SqpSolver probed_driver{SqpOptions{}}; // default start_level == kWarm
+    const SqpResult probed_sol =
         probed_driver.solve(probed_model, probed_model.start_point(), mismatched);
 
     // THE CONTROL: same object, same resulting level, ceiling clamped so the
     // probe is never built.
     CountingModel plain_model(make_hs(6).model);
     SqpOptions plain_opts;
-    plain_opts.start_level = StartLevel::kSeeded;
-    SqpDriver plain_driver(plain_opts);
-    const SqpSolution plain_sol =
+    plain_opts.common.start_level = StartLevel::kSeeded;
+    SqpSolver plain_driver(plain_opts);
+    const SqpResult plain_sol =
         plain_driver.solve(plain_model, plain_model.start_point(), mismatched);
 
     ASSERT_EQ(probed_sol.status, SolveStatus::kOptimal);
@@ -1401,30 +1401,30 @@ TEST(SqpDriverContract, WarmResolutionProbeIsValuesOnlyNeverFetchesAGradient) {
 // StartLevel::kSeeded pays NO resolution probe even when the object it is fed
 // carries a PERFECTLY MATCHING hash -- the probe's only possible product is a
 // level the ceiling is about to discard, which is the identical argument the
-// kCold ceiling's short-circuit rests on (Task 8's own note in sqp_driver.h).
+// kCold ceiling's short-circuit rests on (Task 8's own note in sqp_solver.h).
 // Isolated against a kSeeded-capped solve fed a hash-BROKEN copy of the same
 // object: both resolve kSeeded and run the same trajectory, so an equal call
 // count is the probe having been skipped in both.
 TEST(SqpDriverContract, SeededCeilingSkipsTheWarmResolutionProbeEntirely) {
     const HsProblem seed_problem = make_hs(6);
-    SqpDriver seed_driver{SqpOptions{}};
-    const SqpSolution seeded = seed_driver.solve(*seed_problem.model);
+    SqpSolver seed_driver{SqpOptions{}};
+    const SqpResult seeded = seed_driver.solve(*seed_problem.model);
     ASSERT_TRUE(seeded.warm_start.valid);
     ASSERT_NE(seeded.warm_start.structure_hash, 0u);
 
     SqpOptions capped;
-    capped.start_level = StartLevel::kSeeded;
+    capped.common.start_level = StartLevel::kSeeded;
 
     CountingModel matching_model(make_hs(6).model);
-    SqpDriver matching_driver(capped);
-    const SqpSolution matching_sol =
+    SqpSolver matching_driver(capped);
+    const SqpResult matching_sol =
         matching_driver.solve(matching_model, matching_model.start_point(), seeded.warm_start);
 
-    WarmStart broken = seeded.warm_start;
+    SqpWarmStart broken = seeded.warm_start;
     broken.structure_hash ^= 0xdeadbeefULL;
     CountingModel broken_model(make_hs(6).model);
-    SqpDriver broken_driver(capped);
-    const SqpSolution broken_sol =
+    SqpSolver broken_driver(capped);
+    const SqpResult broken_sol =
         broken_driver.solve(broken_model, broken_model.start_point(), broken);
 
     ASSERT_EQ(matching_sol.counters.start_level_used, StartLevel::kSeeded)
@@ -1474,8 +1474,8 @@ TEST(SqpDriverEquality, QuadraticConvergenceOnHs7) {
     opts.tr_init = 10.0; // provably inactive here; see the assertion below
     opts.kkt_tol = 1e-8;
     opts.feas_tol = 1e-8;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*p.model, x0);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model, x0);
     record_history(sol, "hs7");
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
@@ -1546,8 +1546,8 @@ TEST(SqpDriverEquality, PublishedStartsAlsoConverge) {
       // first step and holding there. Task 4 measured 6 at a fixed radius.
         const HsProblem p = make_hs(6);
         SqpOptions opts;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(*p.model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(*p.model);
         record_history(sol, "hs6_pub");
 
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
@@ -1572,8 +1572,8 @@ TEST(SqpDriverEquality, PublishedStartsAlsoConverge) {
         opts.tr_init = 10.0;
         opts.kkt_tol = 1e-8;
         opts.feas_tol = 1e-8;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(*p.model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(*p.model);
         record_history(sol, "hs7_pub");
 
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
@@ -1592,13 +1592,13 @@ TEST(SqpDriverEquality, PublishedStartsAlsoConverge) {
         //   two trials with h_old = 48.1174, raw h_new = 7160.33 and
         //     353.856: the SOC re-solve ITSELF returns kInfeasible -- no
         //     corrected point is ever computed, no eval_nlp is paid for
-        //     either (sqp_driver.h's A FAILED SOC RE-SOLVE note).
+        //     either (sqp_solver.h's A FAILED SOC RE-SOLVE note).
         // All 3 attempts therefore fail to rescue anything, and the
         // trajectory is BIT-IDENTICAL to Task 6b's: same 12 majors, same
         // rejected_steps. soc_steps == 3 is the honest count of attempts
         // (mostly cheap failures, one full-but-wasted re-solve), not a
         // claim that SOC helped here -- it does not have to, on every
-        // fixture, to be worth its cost (see sqp_driver.h's cost-regime
+        // fixture, to be worth its cost (see sqp_solver.h's cost-regime
         // paragraph: this is the LARGE-residual regime, not the design one).
         EXPECT_EQ(sol.counters.soc_steps, 3);
     }
@@ -1616,8 +1616,8 @@ namespace {
 void expect_solves_to(int number, const Vec &x_star, double x_tol, double f_tol,
                       const SqpOptions &opts, Index major_budget, const std::string &tag) {
     const HsProblem p = make_hs(number);
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model);
     record_history(sol, tag);
     ::testing::Test::RecordProperty(fmt::format("{}_majors", tag),
                                     static_cast<int>(sol.counters.major_iters));
@@ -1703,8 +1703,8 @@ TEST(SqpDriverBounds, Hs3ReachesItsBoundConstrainedSolution) {
     // x*. TrustRegionIsCenteredOnTheCurrentIterate checks the complementary
     // half -- that a binding radius is never EXCEEDED.
     const HsProblem p = make_hs(3);
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model);
     const Index binding = std::count_if(sol.history.begin(), sol.history.end(),
                                         [](const SqpIterate &h) { return h.tr_binding; });
     EXPECT_GT(binding, 0) << "tr_binding was never set on a fixture whose radius provably binds";
@@ -1789,8 +1789,8 @@ TEST(SqpDriverWarmStart, WarmSeedingKeepsLateSubproblemsCheap) {
     SqpOptions opts;
     opts.max_iter = 60;
     opts.tr_max = opts.tr_init; // no growth: Task 4's fixed-radius trajectory
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model);
     record_history(sol, "hs3_warm");
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
@@ -1847,8 +1847,8 @@ TEST(SqpDriverWarmStart, WarmSeedingKeepsLateSubproblemsCheap) {
 TEST(SqpDriverWarmStart, WarmSeedingCarriesTheGeneralRowActiveSet) {
     const HsProblem p = make_hs(76);
     SqpOptions opts;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_GE(sol.counters.major_iters, 2);
     ASSERT_EQ(sol.counters.rejected_steps, 0) << "the replay below cannot follow a rejected step";
@@ -1897,8 +1897,8 @@ TEST(SqpDriverGlobalization, FunnelIsMonotoneInFOnHs1) {
     const HsProblem p = make_hs(1);
     SqpOptions opts;
     opts.max_iter = 60;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model);
     record_history(sol, "hs1_monotone");
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
@@ -1956,8 +1956,8 @@ TEST(SqpDriverGlobalization, FunnelKeepsIteratesInsideItsWidth) {
         const HsProblem p = make_hs(number);
         SqpOptions opts;
         opts.max_iter = 60;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(*p.model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(*p.model);
         record_history(sol, fmt::format("hs{}_funnel", number));
         ASSERT_EQ(sol.status, SolveStatus::kOptimal) << "HS" << number;
 
@@ -2021,8 +2021,8 @@ TEST(SqpDriverGlobalization, Hs5ConvergesFromATooLargeRadiusAfterShrinking) {
     SqpOptions opts;
     opts.tr_init = 2.0;
     opts.max_iter = 20;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model);
     record_history(sol, "hs5_cycle");
 
     EXPECT_EQ(sol.status, SolveStatus::kOptimal);
@@ -2109,8 +2109,8 @@ TEST(SqpDriverGlobalization, Hs7AtTheDefaultRadiusNowConvergesByGrowingIt) {
     SqpOptions opts; // tr_init = 1.0, the radius Task 4 could not survive here
     opts.kkt_tol = 1e-8;
     opts.feas_tol = 1e-8;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model);
     record_history(sol, "hs7_default_radius");
 
     EXPECT_EQ(sol.status, SolveStatus::kOptimal);
@@ -2203,7 +2203,7 @@ class InconsistentBoundedModel : public NlpModel {
 //     the kInfeasible that triggered the tier is recorded by elastic_applied.
 //   verdict was kReject (the no-step default), and is now kRestore -- the
 //     elastic tier's exhaustion signal, deliberately routed through the SAME
-//     interim exit the funnel's own kRestore uses (sqp_driver.h).
+//     interim exit the funnel's own kRestore uses (sqp_solver.h).
 // The sentence the old assertion carried -- "must NOT be confused with the
 // funnel's kRestore route, where qp_status is kOptimal" -- is therefore no
 // longer a distinction the history can draw with these two fields alone, and
@@ -2211,8 +2211,8 @@ class InconsistentBoundedModel : public NlpModel {
 TEST(SqpDriverGlobalization, SubproblemInfeasibilityEndsTheSolveThroughTheElasticTier) {
     InconsistentBoundedModel model;
     SqpOptions opts; // tr_init = 1.0
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
     record_history(sol, "inconsistent");
 
     EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
@@ -2249,8 +2249,8 @@ TEST(SqpDriverGlobalization, SubproblemInfeasibilityEndsTheSolveThroughTheElasti
     // The complementary shape, for contrast: a solve that stops AT an iterate
     // has exactly one such row and it is the last.
     const HsProblem q = make_hs(5);
-    SqpDriver ok_driver{SqpOptions{}};
-    const SqpSolution ok = ok_driver.solve(*q.model);
+    SqpSolver ok_driver{SqpOptions{}};
+    const SqpResult ok = ok_driver.solve(*q.model);
     ASSERT_EQ(ok.status, SolveStatus::kOptimal);
     EXPECT_EQ(ok.history.size(), static_cast<std::size_t>(ok.counters.major_iters) + 1u);
     EXPECT_EQ(std::count_if(ok.history.begin(), ok.history.end(),
@@ -2558,8 +2558,8 @@ TEST(SqpDriverTrustRegion, RejectionShrinksAndRetriesHotly) {
     StepLog log;
     record_steps_into(opts, &log);
 
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
     record_history(sol, "quartic");
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
@@ -2671,8 +2671,8 @@ TEST(SqpDriverTrustRegion, RadiusGrowsOnStrongSteps) {
         SqpOptions opts;
         opts.tr_init = 1.0;
         opts.max_iter = 60;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(*p.model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(*p.model);
         record_history(sol, "hs3_grow");
 
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
@@ -2696,8 +2696,8 @@ TEST(SqpDriverTrustRegion, RadiusGrowsOnStrongSteps) {
         opts.tr_init = 1.0;
         opts.tr_max = 2.0;
         opts.max_iter = 60;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(*p.model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(*p.model);
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         for (const SqpIterate &h : sol.history) {
             EXPECT_LE(h.tr_radius, opts.tr_max) << "trial " << h.trial;
@@ -2740,8 +2740,8 @@ TEST(SqpDriverTrustRegion, RejectionCountReachesTheRestorationGate) {
     StepLog log;
     record_steps_into(opts, &log);
 
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
     record_history(sol, "restore");
 
     // tau_0 = max(100, 1.25 * 0.5) = 100, from h(x_start) = 0.5.
@@ -2791,8 +2791,8 @@ TEST(SqpDriverTrustRegion, RejectionCountResetsWhenTheIterateMoves) {
     StepLog log;
     record_steps_into(opts, &log);
 
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_FALSE(log.ctx.empty());
 
@@ -2832,8 +2832,8 @@ TEST(SqpDriverTrustRegion, StrategyIsPluggable) {
     opts.make_strategy = []() -> std::unique_ptr<GlobalizationStrategy> {
         return std::make_unique<AcceptEverything>();
     };
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model);
 
     EXPECT_EQ(sol.status, SolveStatus::kMaxIter) << "Task 4's cycle, reproduced by an accept-all "
                                                     "strategy";
@@ -2846,7 +2846,7 @@ TEST(SqpDriverTrustRegion, StrategyIsPluggable) {
     // A factory that returns nullptr is a caller error, not a silent default.
     SqpOptions bad = opts;
     bad.make_strategy = []() -> std::unique_ptr<GlobalizationStrategy> { return nullptr; };
-    SqpDriver bad_driver(bad);
+    SqpSolver bad_driver(bad);
     EXPECT_THROW(bad_driver.solve(*p.model), std::invalid_argument);
 }
 
@@ -2854,7 +2854,7 @@ TEST(SqpDriverTrustRegion, StrategyIsPluggable) {
 // budget, which that test cannot pin because none of its fixtures rejects
 // anything. A rejected trial re-solves the SAME subproblem, so it costs:
 //   * ONE eval_nlp at the trial point (the price of looking before leaping --
-//     wasted, gradients and all, and documented as such in sqp_driver.h's
+//     wasted, gradients and all, and documented as such in sqp_solver.h's
 //     MODEL EVALUATION note), and
 //   * NO eval_hess at all.
 // The second is the load-bearing one: rebuilding the subproblem on a
@@ -2866,8 +2866,8 @@ TEST(SqpDriverTrustRegion, RejectedTrialsPayNoHessian) {
     SqpOptions opts;
     opts.tr_init = 2.0;
     opts.max_iter = 20;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_EQ(sol.counters.rejected_steps, 2);
@@ -2882,15 +2882,15 @@ TEST(SqpDriverTrustRegion, RejectedTrialsPayNoHessian) {
     // TASK 8: n_grad is NOT 4 any more. globalization.h's judge() (this
     // fixture's own two rejections) reads f/h only, so a rejected trial's
     // gradient is never fetched -- only the loop-top evaluation and the ONE
-    // accepted trial pay for it (sqp_driver.h's UPGRADE TO FULL sites), i.e.
+    // accepted trial pay for it (sqp_solver.h's UPGRADE TO FULL sites), i.e.
     // 1 + steps_accepted, not one per row.
     EXPECT_EQ(model.n_grad, 1 + sol.counters.steps_accepted);
     EXPECT_EQ(model.n_grad, 2);
     // ONE Hessian for three subproblem solves: the two retries re-solved it.
     // The + 1 is the bridge's claim pass, not a fourth subproblem: this
     // fixture makes ONE solve(model, ...) call, which builds ONE
-    // NlpModelAggregate over it, and laying one walks eval_hess once at the
-    // start point (include/hven/model/nlp_model_aggregate.h's constructor
+    // NlpModelAssembly over it, and laying one walks eval_hess once at the
+    // start point (include/hven/model/nlp_model_assembly.h's constructor
     // doc). FlatQuarticModel declares no rows of either kind, so no Jacobian
     // callback joins it. THE LOAD-BEARING HALF IS UNCHANGED: a rejection still
     // pays no Hessian, which is what `steps_accepted` on the right measures --
@@ -2927,8 +2927,8 @@ TEST(SqpDriverTrustRegion, RadiusHoldsWhenEitherGrowthConjunctFails) {
         opts.max_iter = 20;
         StepLog log;
         record_steps_into(opts, &log);
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model, x0);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model, x0);
         record_history(sol, "quartic_interior");
 
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
@@ -2963,8 +2963,8 @@ TEST(SqpDriverTrustRegion, RadiusHoldsWhenEitherGrowthConjunctFails) {
         opts.max_iter = 20;
         StepLog log;
         record_steps_into(opts, &log);
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
         record_history(sol, "quartic_weak");
 
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
@@ -3020,8 +3020,8 @@ TEST(SqpDriverTrustRegion, RejectedMultipliersAreDiscarded) {
     SqpOptions opts;
     opts.tr_init = 8.0;
     opts.max_iter = kRestoreMinRejections + 1;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
 
     // Five trials at ONE iterate (4 rejections, then the restoration signature).
     EXPECT_EQ(sol.status, SolveStatus::kMaxIter);
@@ -3340,8 +3340,8 @@ TEST(SqpDriverQpFailure, QpNumericalErrorShrinksInsteadOfAborting) {
         opts.tr_max = 100.0;
         opts.max_iter = 40;
         opts.qp.ws_algebra = algebra;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
 
         // THE FIX: the solve recovers rather than aborting.
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
@@ -3385,7 +3385,7 @@ TEST(SqpDriverQpFailure, QpNumericalErrorShrinksInsteadOfAborting) {
 // The model's first subproblem IS the engine-level stall fixture (see
 // SuspectStallModel), so this pins the whole path: engine spends a rung,
 // engine refuses, driver routes the failure as a rejected step, and the rung
-// arrives in SqpSolution::counters.
+// arrives in SqpResult::counters.
 TEST(SqpDriverQpFailure, SuspectEscalationsAggregateToTheDriver) {
     constexpr double kDelta = 1e-10;
     SuspectStallModel model(kDelta, /*x1_bound=*/1e12);
@@ -3398,8 +3398,8 @@ TEST(SqpDriverQpFailure, SuspectEscalationsAggregateToTheDriver) {
         opts.max_iter = 10;
         opts.qp.ws_algebra = algebra;
         opts.qp.primal_delta = kDelta;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
 
         // The engine refused the first subproblem, and it refused it through
         // the gate rather than through some other exit.
@@ -3420,8 +3420,8 @@ TEST(SqpDriverQpFailure, SuspectEscalationsAggregateToTheDriver) {
         SqpOptions tight = opts;
         tight.tr_init = 1.0;
         tight.tr_max = 1.0;
-        SqpDriver tight_driver(tight);
-        const SqpSolution tight_sol = tight_driver.solve(model);
+        SqpSolver tight_driver(tight);
+        const SqpResult tight_sol = tight_driver.solve(model);
 #ifdef USE_ACCELERATE_SPARSE
         // OBSERVED ON ACCELERATE (D9 re-measurement, merge bdf64da): 10
         // rungs, not 0 -- exactly one per subproblem solve (max_iter == 10).
@@ -3463,8 +3463,8 @@ TEST(SqpDriverQpFailure, RepeatedQpNumericalErrorStillPropagates) {
         opts.tr_max = 100.0;
         opts.max_iter = 40;
         opts.qp.ws_algebra = algebra;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
 
         EXPECT_EQ(sol.status, SolveStatus::kNumericalError);
         ASSERT_EQ(sol.history.size(), 2u);
@@ -3479,7 +3479,7 @@ TEST(SqpDriverQpFailure, RepeatedQpNumericalErrorStillPropagates) {
         // The exit is AT the start point -- nothing was ever accepted.
         EXPECT_EQ(sol.x.lpNorm<Eigen::Infinity>(), 0.0);
         // This is the qp_solved == true kNumericalError shape (see
-        // sqp_driver.h's SUBPROBLEM FAILURE ROUTING): the SUBPROBLEM failed, not the
+        // sqp_solver.h's SUBPROBLEM FAILURE ROUTING): the SUBPROBLEM failed, not the
         // iterate.
         EXPECT_TRUE(sol.history.back().qp_solved);
     }
@@ -3510,8 +3510,8 @@ TEST(SqpDriverQpFailure, QpMaxIterTakesTheSameShrinkRetryPath) {
         opts.max_iter = 60;
         opts.qp.max_iter = 3;
         opts.qp.ws_algebra = algebra;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(*hs.model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(*hs.model);
 
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_NEAR(sol.f, hs.f_star, 1e-9);
@@ -3541,8 +3541,8 @@ TEST(SqpDriverQpFailure, RepeatedQpMaxIterStillPropagates) {
     SqpOptions opts;
     opts.max_iter = 60;
     opts.qp.max_iter = 3;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*hs.model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*hs.model);
 
 // OBSERVED (results note D5): on Accelerate, HS76's subproblem at the halved
 // radius finishes INSIDE the 3-minor-iteration cap, so the first retry
@@ -3663,8 +3663,8 @@ TEST(SqpDriverQpFailure, RoutedFailuresCountTowardTheRestorationGate) {
         opts.max_iter = 60;
         opts.qp.max_iter = 2;
         opts.qp.ws_algebra = algebra;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(*hs.model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(*hs.model);
 
         ASSERT_EQ(sol.history.size(), 5u);
         // Trial 0 moved the iterate, so the rejection count restarts from it.
@@ -3730,7 +3730,7 @@ TEST(SqpDriverQpFailure, RoutedFailuresCountTowardTheRestorationGate) {
 // FIX ROUND 1, I1: build_soc_subproblem UNIT-TESTED DIRECTLY, away from any
 // engine or NLP model -- exactly the reason qp_failure_is_retryable is a
 // free function (Task 6b's own precedent). Before this test the inequality
-// branch (sqp_driver.h:1270-1279 as of commit 13bb229) was exercised by
+// branch (sqp_solver.h:1270-1279 as of commit 13bb229) was exercised by
 // ZERO tests: every SOC-firing fixture in this file has mi() == 0. Two
 // mutations survived as a result -- flipping bi_soc's sign, and deleting the
 // "only on ACTIVE rows" guard -- because nothing ever read soc_qp.bi. This
@@ -3810,7 +3810,7 @@ TEST(SqpDriverSoc, BuildSocSubproblemShiftsRhsOnActiveRowsOnly) {
 
     // ONLY be/bi are touched: H, g, Ae, Ai, lower, upper are the SAME
     // bytes -- this is what lets the re-solve reuse qp_engine.h's hot-start
-    // K0 (see sqp_driver.h's WARM START paragraph).
+    // K0 (see sqp_solver.h's WARM START paragraph).
     EXPECT_EQ(soc_qp.H.nonZeros(), qp.H.nonZeros());
     for (Index i = 0; i < 2; ++i) {
         EXPECT_DOUBLE_EQ(soc_qp.H.coeff(i, i), qp.H.coeff(i, i));
@@ -3975,8 +3975,8 @@ TEST(SqpDriverSoc, SocDefeatsMaratos) {
     opts_soc.enable_soc = true; // the default; stated for the reader
     StepLog log;
     record_steps_into(opts_soc, &log);
-    SqpDriver driver_soc(opts_soc);
-    const SqpSolution sol_soc = driver_soc.solve(model);
+    SqpSolver driver_soc(opts_soc);
+    const SqpResult sol_soc = driver_soc.solve(model);
     record_history(sol_soc, "maratos_soc_on");
 
     // Trial 0: closed-form exact values, asserted to the derivation above.
@@ -4022,7 +4022,7 @@ TEST(SqpDriverSoc, SocDefeatsMaratos) {
     EXPECT_NEAR(log.ctx[2].f_new, -0.9999851947563363, 1e-9);
 
     // FIX ROUND 1, M4: pred_df is NOT recomputed from the SOC step -- it is
-    // the ORIGINAL, REJECTED QP's pred_df, reused UNCHANGED (sqp_driver.h's
+    // the ORIGINAL, REJECTED QP's pred_df, reused UNCHANGED (sqp_solver.h's
     // SECOND-ORDER CORRECTION note). Pinned as an EXACT equality between the
     // two judge() calls' own StepContext, not merely inferred from the
     // outcome: recomputing it from qs_soc.x would give a DIFFERENT number
@@ -4042,9 +4042,9 @@ TEST(SqpDriverSoc, SocDefeatsMaratos) {
 
     // THE HOT-START OBSERVATION (mirrors
     // SqpDriverTrustRegion.RejectionShrinksAndRetriesHotly's own pin, for the
-    // SAME three conditions -- see sqp_driver.h's WARM START paragraph): the
+    // SAME three conditions -- see sqp_solver.h's WARM START paragraph): the
     // SOC re-solve's OWN factorization cost is recoverable as the difference
-    // between the aggregate and the per-row sum (sqp_types.h's own note on
+    // between the aggregate and the per-row sum (sqp_solver_types.h's own note on
     // why those can now differ), and it is asserted as the OBSERVED value
     // (0), not merely claimed in a comment.
     Index row_factorizations = 0;
@@ -4076,8 +4076,8 @@ TEST(SqpDriverSoc, SocDefeatsMaratos) {
     SqpOptions opts_off = opts_soc;
     opts_off.enable_soc = false;
     opts_off.make_strategy = nullptr; // fresh, unlogged strategy for this solve
-    SqpDriver driver_off(opts_off);
-    const SqpSolution sol_off = driver_off.solve(model);
+    SqpSolver driver_off(opts_off);
+    const SqpResult sol_off = driver_off.solve(model);
     record_history(sol_off, "maratos_soc_off");
 
     ASSERT_EQ(sol_off.status, SolveStatus::kOptimal);
@@ -4186,8 +4186,8 @@ TEST(SqpDriverSoc, SocIsNotAttemptedWhenViolationDecreased) {
     opts.enable_soc = true; // explicit: the point is that it still does not fire
     StepLog log;
     record_steps_into(opts, &log);
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
     record_history(sol, "quartic_linear_eq");
 
     ASSERT_GE(log.ctx.size(), 2u);
@@ -4232,8 +4232,8 @@ TEST(SqpDriverSoc, SocIsSkippedOnRoutedFailures) {
         opts.tr_max = 100.0;
         opts.max_iter = 40;
         opts.enable_soc = true;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
 
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         ASSERT_EQ(sol.history.size(), 4u);
@@ -4252,8 +4252,8 @@ TEST(SqpDriverSoc, SocIsSkippedOnRoutedFailures) {
         opts.max_iter = 60;
         opts.qp.max_iter = 3;
         opts.enable_soc = true;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(*hs.model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(*hs.model);
 
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         int capped_rows = 0;
@@ -4314,7 +4314,7 @@ namespace {
 // assertion) while leaving x0's OWN step untouched (no row of either
 // active constraint has a nonzero x0 entry). x0's quartic overshoot is an
 // OBJECTIVE nonlinearity, not a CONSTRAINT one, and SOC only ever repairs
-// the latter (see sqp_driver.h's SECOND-ORDER CORRECTION note) -- so the
+// the latter (see sqp_solver.h's SECOND-ORDER CORRECTION note) -- so the
 // corrected point's f is STILL worse than f_old by (approximately) the
 // same amount x0 alone would cost, and Armijo still fails. This is the
 // HONEST, EXPECTED outcome, not a defect: SOC's job here is to demonstrate
@@ -4385,8 +4385,8 @@ TEST(SqpDriverSoc, SocFiresOnACurvedActiveInequalityAndImprovesH) {
     opts.enable_soc = true;
     StepLog log;
     record_steps_into(opts, &log);
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
     record_history(sol, "curved_ineq_soc");
 
     // Trial 0's RAW step: the Maratos signature, from x1's curved row alone
@@ -4420,7 +4420,7 @@ TEST(SqpDriverSoc, SocFiresOnACurvedActiveInequalityAndImprovesH) {
 
 // FIX ROUND 1, M5: the multipliers a SOC ACCEPTANCE carries out are the
 // RE-SOLVE'S OWN (qs_soc.lambda_e/lambda_i), not the ORIGINAL (rejected)
-// solve's -- sqp_driver.h's ACCEPT vs REJECT paragraph says so; this pins
+// solve's -- sqp_solver.h's ACCEPT vs REJECT paragraph says so; this pins
 // it against a concrete number rather than leaving it asserted only by
 // construction.
 //
@@ -4441,8 +4441,8 @@ TEST(SqpDriverSoc, SocAcceptedMultipliersComeFromTheReSolve) {
     opts.kkt_tol = 5e-4;
     opts.feas_tol = 5e-4;
     opts.enable_soc = true;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_EQ(sol.counters.major_iters, 2);
@@ -4461,7 +4461,7 @@ TEST(SqpDriverSoc, SocAcceptedMultipliersComeFromTheReSolve) {
 // subproblem (an extra eval_hess), because none of that test's own three
 // fixtures ever fires SOC. This one does (soc_steps == 1, verified), and
 // n_hess == accepted holds here too: build_soc_subproblem never calls
-// eval_hess (sqp_driver.h's SECOND-ORDER CORRECTION note). n_f/n_ce gain
+// eval_hess (sqp_solver.h's SECOND-ORDER CORRECTION note). n_f/n_ce gain
 // exactly ONE extra call beyond `rows` -- the ONE SOC re-solve that reached
 // kOptimal paid one extra values-only fetch at the corrected point (MODEL
 // EVALUATION's TASK 7 ADDS ONE MORE paragraph) -- so the original
@@ -4475,7 +4475,7 @@ TEST(SqpDriverSoc, SocAcceptedMultipliersComeFromTheReSolve) {
 // trial's gradient/Jacobian is never fetched, whether or not SOC was
 // attempted from it -- only the loop-top evaluation and each ACCEPTED trial
 // (direct, or SOC-promoted, exactly this fixture's rescue) pay for one, via
-// sqp_driver.h's UPGRADE TO FULL sites. The SOC re-solve's "+1" values-only
+// sqp_solver.h's UPGRADE TO FULL sites. The SOC re-solve's "+1" values-only
 // fetch above IS one such trial here (the rescue's whole point is that it
 // gets PROMOTED), so it is already counted inside `accepted`, not on top of
 // it -- unlike n_f/n_ce, whose "+1" is unconditional (every values-only
@@ -4485,8 +4485,8 @@ TEST(SqpDriverSoc, SocRescuePaysNoExtraHessian) {
     SqpOptions opts;
     opts.kkt_tol = 1e-8;
     opts.feas_tol = 1e-8;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_EQ(sol.counters.soc_steps, 1);
@@ -4498,9 +4498,9 @@ TEST(SqpDriverSoc, SocRescuePaysNoExtraHessian) {
 
     // THE + 1 ON THE TWO DERIVATIVE COUNTS IS THE BRIDGE'S CLAIM PASS, and it
     // is emphatically NOT the thing this test guards. One solve(model, ...)
-    // call builds one NlpModelAggregate, and laying one walks eval_hess and --
+    // call builds one NlpModelAssembly, and laying one walks eval_hess and --
     // because MaratosModel declares equality rows -- eval_jac_e once each at
-    // the start point (include/hven/model/nlp_model_aggregate.h's constructor
+    // the start point (include/hven/model/nlp_model_assembly.h's constructor
     // doc). What is still being asserted is that SOC adds NOTHING on top: a
     // SOC path that rebuilt the subproblem would read accepted + 2 here.
     EXPECT_EQ(model.n_hess, accepted + 1) << "SOC must add NO extra Hessian evaluation";
@@ -4561,7 +4561,7 @@ TEST(SqpDriverSoc, SocSeedMustBeZeroedNotToRecenterTheWindow) {
     SolveOverrides overrides;
     overrides.tr_radius = 1.0;
 
-    // CORRECT: mirrors sqp_driver.h's `seed_soc = qs; seed_soc.x.setZero();`.
+    // CORRECT: mirrors sqp_solver.h's `seed_soc = qs; seed_soc.x.setZero();`.
     QpSolution seed_correct = far;
     seed_correct.x.setZero();
     const QpSolution correct = engine.solve(qp, seed_correct, overrides);
@@ -4588,15 +4588,15 @@ TEST(SqpDriverSoc, SocSeedMustBeZeroedNotToRecenterTheWindow) {
 // neither applied -- but could not say WHY the two attempts were not applied
 // (a failed re-solve vs. a corrected point the funnel still rejected),
 // because soc_steps counts attempts only. soc_applied/soc_qp_infeasible/
-// soc_rejected (sqp_types.h's SqpCounters) close that gap; this test pins the
+// soc_rejected (sqp_solver_types.h's SqpCounters) close that gap; this test pins the
 // battery's own HS77 observation (2 attempts, 0 applied) through the new
 // fields and checks the identity that must hold on every solve.
 TEST(SqpDriverSoc, SocOutcomeCountersPartitionAttemptsOnHs77) {
     const HsProblem p = make_hs(77);
     SqpOptions opts;
     opts.max_iter = 60; // matches the HS battery's border_table() entry for HS77
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model);
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_EQ(sol.counters.soc_steps, 2) << "the battery's own pinned attempt count";
@@ -4621,7 +4621,7 @@ TEST(SqpDriverSoc, SocOutcomeCountersPartitionAttemptsOnHs77) {
 //
 // A QP that returns kInfeasible no longer ends the solve. The SAME
 // subproblem is reformulated with penalized slacks on its violated
-// linearized rows and re-solved (sqp_driver.h's ELASTIC TIER note); the
+// linearized rows and re-solved (sqp_solver.h's ELASTIC TIER note); the
 // resulting step goes through the ordinary funnel judgment, and only an
 // EXHAUSTED elastic tier -- rho at its ceiling with the relaxation still
 // materially open and nothing to offer -- ends the solve, now through the
@@ -4703,7 +4703,7 @@ namespace {
 // and the elastic tier is the first mechanism to fire; f and cE2 are linear,
 // so the whole Lagrangian Hessian is 2*lambda_e(0)*I, which is IDENTICALLY
 // ZERO whenever the elastic relaxation leaves lambda_e cleared (see
-// sqp_driver.h's MULTIPLIERS ARE NOT CARRIED OUT OF AN OPEN RELAXATION) --
+// sqp_solver.h's MULTIPLIERS ARE NOT CARRIED OUT OF AN OPEN RELAXATION) --
 // the degenerate-LP mechanism docs/notes/2026-07-31-schur-cap-policy.md
 // section 4 derives and this task's STALL EARLY-EXIT note relies on.
 constexpr double kCircleLineInfBound = 1e20;
@@ -4952,7 +4952,7 @@ TEST(SqpDriverElastic, ElasticConstructionRelaxesOnlyViolatedRows) {
     // (max(-1, 0 - 0.5) .. min(1, 0 + 0.5)) -- which is the whole reason the
     // radius is folded in by hand instead of passed as
     // SolveOverrides::tr_radius (which would cap the slacks at Delta too, see
-    // sqp_driver.h's ELASTIC TIER note) -- and [0, violation_l1/sigma_j] on
+    // sqp_solver.h's ELASTIC TIER note) -- and [0, violation_l1/sigma_j] on
     // the slacks, i.e. an ACTUAL violation of at most violation_l1 each.
     EXPECT_DOUBLE_EQ(e.qp.lower(0), -0.5);
     EXPECT_DOUBLE_EQ(e.qp.upper(0), 0.5);
@@ -5081,8 +5081,8 @@ TEST(SqpDriverElastic, InconsistentLinearizationRecovers) {
         InconsistentLinearizationModel model;
         SqpOptions opts; // tr_init = 1.0
         opts.qp.ws_algebra = algebra;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
         record_history(sol, "inconsistent_linearization");
 
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
@@ -5114,7 +5114,7 @@ TEST(SqpDriverElastic, InconsistentLinearizationRecovers) {
 
         // THE RADIUS BIT IS RE-DERIVED, not lost. The elastic solve gets the
         // window as REAL bounds, so the engine reports tr_active all-false and
-        // elastic_project has to reconstruct it (sqp_driver.h). p0 = 1 sits on
+        // elastic_project has to reconstruct it (sqp_solver.h). p0 = 1 sits on
         // the TR-truncated bound min(5, 0 + 1) = 1, strictly inside the real
         // bound 5, so this row's radius WAS binding -- and because the step is
         // also strong (actual/pred = 3.25/3.25 = 1 >= 0.75), the growth rule
@@ -5200,7 +5200,7 @@ TEST(SqpDriverElastic, InconsistentLinearizationRecovers) {
 //            elastic solve = kNumericalError        6 escalations
 //     1e9    kInfeasible, as above                  kOptimal, as above
 //
-// THE FIX IS THE RESIDUAL SCALING of the slack columns (sqp_driver.h's
+// THE FIX IS THE RESIDUAL SCALING of the slack columns (sqp_solver.h's
 // FINITE, SCALED SLACKS note, and the THE COLUMNS ARE RESIDUAL-SCALED
 // paragraph on the construction test above): the column and its penalty entry
 // are multiplied by sigma_j = max(1, |r_j|), so the slack VARIABLE is the
@@ -5236,8 +5236,8 @@ TEST(SqpDriverElastic, ElasticSurvivesALargeConstraintScale) {
         InconsistentLinearizationModel model(1e8);
         SqpOptions opts; // tr_init = 1.0, primal_delta = 1e-8 -> runaway limit 1e7
         opts.qp.ws_algebra = algebra;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
         record_history(sol, "scaled_1e8");
 
         EXPECT_EQ(sol.status, SolveStatus::kOptimal)
@@ -5288,8 +5288,8 @@ TEST(SqpDriverElastic, ElasticIsIdleOnCleanProblems) {
     for (const Case &c : cases) {
         SCOPED_TRACE(fmt::format("HS{}", c.number));
         const HsProblem p = make_hs(c.number);
-        SqpDriver driver(c.opts);
-        const SqpSolution sol = driver.solve(*p.model);
+        SqpSolver driver(c.opts);
+        const SqpResult sol = driver.solve(*p.model);
         EXPECT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_EQ(sol.counters.elastic_activations, 0);
         EXPECT_EQ(sol.counters.elastic_escalations, 0);
@@ -5329,8 +5329,8 @@ TEST(SqpDriverElastic, RhoEscalationIsBoundedAndSignals) {
         InconsistentBoundedModel model;
         SqpOptions opts; // tr_init = 1.0
         opts.qp.ws_algebra = algebra;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
         record_history(sol, "rho_escalation");
 
         EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
@@ -5365,8 +5365,8 @@ TEST(SqpDriverElastic, RhoEscalationIsBoundedAndSignals) {
 // =========================================================================
 // Phase-5 TASK 10: SqpOptions::elastic_ladder_early_exit, an OPT-IN lever
 // (default false -- every test above runs unmodified and still spends the
-// full six-rung ladder). See sqp_types.h's own note on the option, and
-// sqp_driver.h's ELASTIC TIER note (THE STALL EARLY-EXIT paragraph), for why
+// full six-rung ladder). See sqp_solver_types.h's own note on the option, and
+// sqp_solver.h's ELASTIC TIER note (THE STALL EARLY-EXIT paragraph), for why
 // this defaults off rather than on: it is SAFE (escalation count drops,
 // certified outcome unchanged to noise) on a fixture whose relaxed slacks
 // are pinned at a REAL bound for the whole rho range, and NOT SAFE in
@@ -5382,7 +5382,7 @@ TEST(SqpDriverElastic, RhoEscalationIsBoundedAndSignals) {
 
 // THE SAFE CASE, PART 1: InconsistentLinearizationRecovers's own fixture
 // (fix round 2, N-3: synced to the corrected, tolerance-based reading --
-// see sqp_driver.h's STALL EARLY-EXIT note's WHAT THE EXIT ACTUALLY TESTS
+// see sqp_solver.h's STALL EARLY-EXIT note's WHAT THE EXIT ACTUALLY TESTS
 // paragraph). Its hand-derivation (this file's own comment on that test)
 // says the two antiparallel slack columns sit at the SAME corner "at every
 // scale", but the ENGINE's returned point is not exactly there and drifts a
@@ -5402,12 +5402,12 @@ TEST(SqpDriverElastic, EarlyExitCutsTheLadderOnABoundPinnedFixture) {
         SqpOptions opts; // tr_init = 1.0
         opts.qp.ws_algebra = algebra;
         opts.elastic_ladder_early_exit = true;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
 
         // THE MUTATION-KILL PIN: 1, not the off-lever reading of 6 -- rung 2
         // (rho = 1e3) reproduces rung 1 (rho = 1e2) and the ladder stops
-        // there. Deleting the early-exit check in sqp_driver.h's loop, or
+        // there. Deleting the early-exit check in sqp_solver.h's loop, or
         // wiring this option to be ignored, makes this read 6 and fail here.
         EXPECT_EQ(sol.counters.elastic_activations, 1);
         EXPECT_EQ(sol.counters.elastic_escalations, 1)
@@ -5421,7 +5421,7 @@ TEST(SqpDriverElastic, EarlyExitCutsTheLadderOnABoundPinnedFixture) {
         EXPECT_NEAR(sol.f, 0.0, 1e-12);
         ASSERT_EQ(sol.history.size(), 3u);
         EXPECT_EQ(sol.history[0].verdict, StepVerdict::kAcceptF);
-        // THE ONE THING THAT DOES MOVE (see sqp_types.h's own note): an
+        // THE ONE THING THAT DOES MOVE (see sqp_solver_types.h's own note): an
         // informational violation_l1 reading, by ~1e-13 -- MEASURED
         // 4.0012437807490642e-13 (border) / 2.0006218903745321e-13
         // (refactorize), because kElasticStallScale accepts rung 2 as "the
@@ -5451,8 +5451,8 @@ TEST(SqpDriverElastic, EarlyExitCutsBothActivationsOnASecondBoundPinnedFixture) 
         SqpOptions opts; // tr_init = 1.0
         opts.qp.ws_algebra = algebra;
         opts.elastic_ladder_early_exit = true;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
 
         EXPECT_EQ(sol.status, SolveStatus::kInfeasible);
         EXPECT_EQ(sol.counters.elastic_activations, 2);
@@ -5474,7 +5474,7 @@ TEST(SqpDriverElastic, EarlyExitCutsBothActivationsOnASecondBoundPinnedFixture) 
 // Lagrangian Hessian is IDENTICALLY ZERO (docs/notes/
 // 2026-07-31-schur-cap-policy.md section 4), so its subproblem is a genuine
 // LP over a FACE of alternative optima -- exactly the class
-// sqp_driver.h's STALL EARLY-EXIT note says the lever is not safe for. This
+// sqp_solver.h's STALL EARLY-EXIT note says the lever is not safe for. This
 // test is the evidence for that note's "still reaches a correct final
 // answer" claim: turning the lever on reshapes the TRAJECTORY (fewer majors
 // here, MEASURED, because the ladder's early stop hands the funnel a
@@ -5489,8 +5489,8 @@ TEST(SqpDriverElastic, EarlyExitOnADegenerateRelaxationStillCertifiesCorrectly) 
     SqpOptions opts_on = opts_off;
     opts_on.elastic_ladder_early_exit = true;
 
-    const SqpSolution off = SqpDriver(opts_off).solve(model);
-    const SqpSolution on = SqpDriver(opts_on).solve(model);
+    const SqpResult off = SqpSolver(opts_off).solve(model);
+    const SqpResult on = SqpSolver(opts_on).solve(model);
 
     EXPECT_EQ(off.status, SolveStatus::kInfeasible);
     EXPECT_EQ(on.status, SolveStatus::kInfeasible);
@@ -5512,7 +5512,7 @@ TEST(SqpDriverElastic, EarlyExitOnADegenerateRelaxationStillCertifiesCorrectly) 
     // early-exit run reaches restoration in far fewer majors, because it
     // stops trusting a rung the full ladder would still have escalated past.
     // This is the counter-example that keeps the lever off by default; see
-    // this test's own banner and sqp_types.h's note for the reading on
+    // this test's own banner and sqp_solver_types.h's note for the reading on
     // tests/sqp/support/hs_sweeps.h's HS15, which shows the same effect on an
     // unrelated published problem.
     EXPECT_LT(on.counters.major_iters, off.counters.major_iters);
@@ -5524,7 +5524,7 @@ TEST(SqpDriverElastic, EarlyExitOnADegenerateRelaxationStillCertifiesCorrectly) 
 
 // =========================================================================
 // SqpDriverAdaptiveMu -- Task 10: the KKT-residual-driven dual_mu schedule.
-// See sqp_driver.h's ADAPTIVE DUAL REGULARIZATION note for the mechanism;
+// See sqp_solver.h's ADAPTIVE DUAL REGULARIZATION note for the mechanism;
 // these tests pin the caller-visible contract.
 // =========================================================================
 
@@ -5658,8 +5658,8 @@ TEST(SqpDriverAdaptiveMu, AdaptiveMuRecoversTailAccuracy) {
         ScaledRowModel model(a, lo, x0);
         SqpOptions fixed_opts = opts;
         fixed_opts.adaptive_mu = false;
-        SqpDriver driver(fixed_opts);
-        const SqpSolution sol = driver.solve(model, x0);
+        SqpSolver driver(fixed_opts);
+        const SqpResult sol = driver.solve(model, x0);
 
         EXPECT_EQ(sol.status, SolveStatus::kMaxIter)
             << "the regularization footprint at the engine's fixed default mu never clears "
@@ -5682,8 +5682,8 @@ TEST(SqpDriverAdaptiveMu, AdaptiveMuRecoversTailAccuracy) {
     // --- (2) the schedule ENABLED: recovers accuracy the brief asks for ---
     {
         ScaledRowModel model(a, lo, x0);
-        SqpDriver driver(opts); // adaptive_mu defaults true
-        const SqpSolution sol = driver.solve(model, x0);
+        SqpSolver driver(opts); // adaptive_mu defaults true
+        const SqpResult sol = driver.solve(model, x0);
 
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         const double err = (sol.x - x_star).norm() / x_star.norm();
@@ -5741,8 +5741,8 @@ TEST(SqpDriverAdaptiveMu, MuScheduleIsQuantizedAndMonotone) {
         opts.tr_init = 10.0;
         opts.kkt_tol = 1e-8;
         opts.feas_tol = 1e-8;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(*p.model, x0);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(*p.model, x0);
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
 
         // NON-INCREASING (which subsumes "non-increasing after the first
@@ -5780,8 +5780,8 @@ TEST(SqpDriverAdaptiveMu, MuScheduleIsQuantizedAndMonotone) {
         opts.kkt_tol = 1e-10;
         opts.feas_tol = 1e-10;
         opts.max_iter = 40;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model, x0);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model, x0);
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
 
         // MEASURED (this machine): trials 0-9 all hold dual_mu at the
@@ -5851,8 +5851,8 @@ TEST(SqpDriverAdaptiveMu, ScheduleIsIdleWhenDisabled) {
     opts.kkt_tol = 1e-8;
     opts.feas_tol = 1e-8;
     opts.adaptive_mu = false;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*p.model, x0);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model, x0);
 
     // Byte-identical to QuadraticConvergenceOnHs7 (adaptive_mu defaults true
     // there but this fixture never needs mu to move at the default
@@ -5887,7 +5887,7 @@ TEST(SqpDriverAdaptiveMu, ScheduleIsIdleWhenDisabled) {
 // than about a new convergence claim.
 
 namespace {
-SqpSolution solve_hs7_diagnostics_fixture(SqpDriver &driver) {
+SqpResult solve_hs7_diagnostics_fixture(SqpSolver &driver) {
     const HsProblem p = make_hs(7);
     Vec x0(2);
     x0 << 0.5, 1.5;
@@ -5904,11 +5904,11 @@ SqpOptions hs7_diagnostics_opts() {
 } // namespace
 
 TEST(SqpDriverDiagnostics, HistoryRecordsTheFormalizedPerMajorContract) {
-    SqpDriver driver(hs7_diagnostics_opts());
-    const SqpSolution sol = solve_hs7_diagnostics_fixture(driver);
+    SqpSolver driver(hs7_diagnostics_opts());
+    const SqpResult sol = solve_hs7_diagnostics_fixture(driver);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
 
-    // THE LENGTH INVARIANT (sqp_types.h's SqpCounters note, now formalized by
+    // THE LENGTH INVARIANT (sqp_solver_types.h's SqpCounters note, now formalized by
     // this task): stopped AT an iterate, so history.size() == major_iters + 1,
     // and the last row's qp_solved is false.
     EXPECT_EQ(sol.history.size(), static_cast<std::size_t>(sol.counters.major_iters) + 1u);
@@ -5935,8 +5935,8 @@ TEST(SqpDriverDiagnostics, HistoryRecordsTheFormalizedPerMajorContract) {
 }
 
 TEST(SqpDriverDiagnostics, PrinterContainsPerIterationRowsAndFinalStatus) {
-    SqpDriver driver(hs7_diagnostics_opts());
-    const SqpSolution sol = solve_hs7_diagnostics_fixture(driver);
+    SqpSolver driver(hs7_diagnostics_opts());
+    const SqpResult sol = solve_hs7_diagnostics_fixture(driver);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
 
     const std::string table = format_iteration_table(sol);
@@ -5980,12 +5980,12 @@ TEST(SqpDriverDiagnostics, PrinterContainsPerIterationRowsAndFinalStatus) {
 }
 
 TEST(SqpDriverDiagnostics, LedgerRecordsOneSqpSolveRecordPerDriverSolveAndQpRecordsStillWork) {
-    SqpDriver driver(hs7_diagnostics_opts());
+    SqpSolver driver(hs7_diagnostics_opts());
 
     Ledger ledger;
     driver.attach_ledger(&ledger, "hs7");
 
-    const SqpSolution sol1 = solve_hs7_diagnostics_fixture(driver);
+    const SqpResult sol1 = solve_hs7_diagnostics_fixture(driver);
     ASSERT_EQ(sol1.status, SolveStatus::kOptimal);
 
     // Exactly one SqpSolveRecord for this one driver solve.
@@ -6010,7 +6010,7 @@ TEST(SqpDriverDiagnostics, LedgerRecordsOneSqpSolveRecordPerDriverSolveAndQpReco
 
     // A second solve() call on the SAME driver instance adds a SECOND
     // SqpSolveRecord -- "one per driver solve", not one total.
-    const SqpSolution sol2 = solve_hs7_diagnostics_fixture(driver);
+    const SqpResult sol2 = solve_hs7_diagnostics_fixture(driver);
     ASSERT_EQ(sol2.status, SolveStatus::kOptimal);
     ASSERT_EQ(ledger.sqp_records().size(), 2u);
     EXPECT_EQ(ledger.sqp_records()[1].label, "hs7_1");
@@ -6044,8 +6044,8 @@ TEST(SqpDriverEvalEconomics, RejectionHeavyHs40PoisonedFixtureCutsFullEvals) {
     SqpOptions opts;
     opts.max_iter = 80;
     opts.tr_init = 5.0;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     // THE FIXTURE MUST ACTUALLY REJECT, or this whole battery measures
@@ -6093,9 +6093,9 @@ TEST(SqpDriverEvalEconomics, RejectionHeavyHs40PoisonedFixtureCutsFullEvals) {
     // upgrade-to-full site, whether direct or SOC-promoted).
     //
     // THE ONE `+ 1` IS THE BRIDGE'S CLAIM PASS AND IT DOES NOT BLUNT THIS
-    // GUARD. One solve(model, ...) call builds one NlpModelAggregate, whose lay
+    // GUARD. One solve(model, ...) call builds one NlpModelAssembly, whose lay
     // walks eval_jac_e once at the start point because HS40 declares equality
-    // rows (include/hven/model/nlp_model_aggregate.h's constructor doc); it
+    // rows (include/hven/model/nlp_model_assembly.h's constructor doc); it
     // walks no VALUE callback, which is why n_grad, n_f and n_ce carry no such
     // term and why the split's saving is still read off the same numbers. The
     // margin the strict inequality below measures narrows from 6 to 5 and stays
@@ -6114,7 +6114,7 @@ TEST(SqpDriverEvalEconomics, RejectionHeavyHs40PoisonedFixtureCutsFullEvals) {
 
 // STEP 3 OF THE BRIEF, IN COMMENT FORM (the mutation itself was run by hand,
 // not left in the tree as dead code, then reverted): temporarily routing
-// solve_impl's rejected-trial evaluation (sqp_driver.h's `NlpEval ev_trial =
+// solve_impl's rejected-trial evaluation (sqp_solver.h's `NlpEval ev_trial =
 // eval_nlp_values(model, x_trial);`) back through the full `eval_nlp` --
 // i.e. reverting the ONE call to what it was pre-Task-8, with every
 // surrounding counter/upgrade statement left alone.
@@ -6154,7 +6154,7 @@ TEST(SqpDriverEvalEconomics, RejectionHeavyHs40PoisonedFixtureCutsFullEvals) {
 // `evals_full`/`evals_values` is paired with an independent
 // `CountingModel`-based cross-check (`n_grad`/`n_jac_e`/`n_f`/`n_ce`), rather
 // than trusting the driver's self-reported counters alone -- see
-// `SqpCounters::evals_full`'s own doc (sqp_types.h) for the general
+// `SqpCounters::evals_full`'s own doc (sqp_solver_types.h) for the general
 // statement of this caveat, added in the same fix round as this correction.
 // What dies is specifically the CLAIM this task exists to make -- that a
 // rejected trial no longer pays for a gradient it never uses -- confirmed
@@ -6169,8 +6169,8 @@ TEST(SqpDriverEvalEconomics, HsSweepPoisonedHs40MatchesTheBaseProblemAtPZero) {
     using hven::solvers::test_support::HsSweep;
     const auto &spec = hs_sweep_spec(40);
     HsSweep at_zero(spec.number, spec.tilt, spec.ce_shift, spec.ci_shift, /*p_init=*/0.0);
-    SqpDriver driver{SqpOptions{}};
-    const SqpSolution sol = driver.solve(at_zero);
+    SqpSolver driver{SqpOptions{}};
+    const SqpResult sol = driver.solve(at_zero);
     const HsProblem published = make_hs(40);
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_NEAR(sol.f, published.f_star, 1e-6);
@@ -6178,7 +6178,7 @@ TEST(SqpDriverEvalEconomics, HsSweepPoisonedHs40MatchesTheBaseProblemAtPZero) {
 
 // =============================================================================
 // PHASE-6 TASK 1 -- THE PROBE BUDGET, the driver seam continuation.h's retry
-// economics is built on (this file's counterpart to sqp_driver.h's own PROBE
+// economics is built on (this file's counterpart to sqp_solver.h's own PROBE
 // BUDGET note on the 4-argument solve()). Three properties, one test each,
 // because each one is separately load-bearing for the caller above:
 // inertness at 0, the stop itself, and convergence winning over the budget.
@@ -6196,10 +6196,10 @@ TEST(SqpDriverProbeBudget, ZeroBudgetIsBitIdenticalToNoBudget) {
     SqpOptions opts;
     opts.max_iter = 60;
 
-    SqpDriver plain(opts);
-    const SqpSolution a = plain.solve(*p.model, x0, WarmStart{});
-    SqpDriver budgeted(opts);
-    const SqpSolution b = budgeted.solve(*p.model, x0, WarmStart{}, SolveBudget{});
+    SqpSolver plain(opts);
+    const SqpResult a = plain.solve(*p.model, x0, SqpWarmStart{});
+    SqpSolver budgeted(opts);
+    const SqpResult b = budgeted.solve(*p.model, x0, SqpWarmStart{}, SolveBudget{});
 
     ASSERT_EQ(a.status, b.status);
     EXPECT_EQ(a.counters.major_iters, b.counters.major_iters);
@@ -6226,14 +6226,14 @@ TEST(SqpDriverProbeBudget, ExhaustedBudgetStopsAtAnIterateAndSaysSo) {
     SqpOptions opts;
     opts.max_iter = 60;
 
-    SqpDriver plain(opts);
-    const SqpSolution full = plain.solve(*p.model, x0);
+    SqpSolver plain(opts);
+    const SqpResult full = plain.solve(*p.model, x0);
     ASSERT_EQ(full.status, SolveStatus::kOptimal);
     ASSERT_GT(full.counters.major_iters, 3);
 
-    SqpDriver budgeted(opts);
-    const SqpSolution cut =
-        budgeted.solve(*p.model, x0, WarmStart{}, SolveBudget{/*minor_budget=*/1});
+    SqpSolver budgeted(opts);
+    const SqpResult cut =
+        budgeted.solve(*p.model, x0, SqpWarmStart{}, SolveBudget{/*minor_budget=*/1});
     EXPECT_EQ(cut.status, SolveStatus::kMaxIter)
         << "a probe-budget stop is an ordinary stopped-AT-an-iterate exit";
     EXPECT_EQ(cut.counters.probe_budget_stops, 1);
@@ -6246,7 +6246,7 @@ TEST(SqpDriverProbeBudget, ExhaustedBudgetStopsAtAnIterateAndSaysSo) {
     // otherwise be entitled to expect <= 1.
     EXPECT_GE(cut.counters.qp_minor_iters, 1);
     // The upper half, read off the history rather than pinned as an observed
-    // number: SqpIterate::qp_minor_iters (sqp_types.h) is the PER-MAJOR cost,
+    // number: SqpIterate::qp_minor_iters (sqp_solver_types.h) is the PER-MAJOR cost,
     // so the crossing major is the last row that solved a subproblem, and
     // every major before it summed to strictly less than the budget (that is
     // what "the budget had not yet been crossed" means).
@@ -6280,9 +6280,9 @@ TEST(SqpDriverProbeBudget, ConvergenceBeatsAnExhaustedBudget) {
     opts.kkt_tol = 1e-6;
     opts.feas_tol = 1e-6;
 
-    SqpDriver driver(opts);
-    const SqpSolution sol =
-        driver.solve(*p.model, x_star, WarmStart{}, SolveBudget{/*minor_budget=*/1});
+    SqpSolver driver(opts);
+    const SqpResult sol =
+        driver.solve(*p.model, x_star, SqpWarmStart{}, SolveBudget{/*minor_budget=*/1});
     EXPECT_EQ(sol.status, SolveStatus::kOptimal);
     EXPECT_EQ(sol.counters.probe_budget_stops, 0);
     EXPECT_NEAR(sol.f, p.f_star, 1e-9);
@@ -6417,13 +6417,13 @@ TEST(SqpDriverCrashBasis, SeedsTheWholeAnalyticActiveSetAtABoundaryStart) {
 
     SqpOptions cold;
     cold.max_iter = 30;
-    SqpDriver plain(cold);
-    const SqpSolution off = plain.solve(model);
+    SqpSolver plain(cold);
+    const SqpResult off = plain.solve(model);
 
     SqpOptions crash = cold;
     crash.crash_basis = true;
-    SqpDriver seeded(crash);
-    const SqpSolution on = seeded.solve(model);
+    SqpSolver seeded(crash);
+    const SqpResult on = seeded.solve(model);
 
     ASSERT_EQ(off.status, SolveStatus::kOptimal);
     ASSERT_EQ(on.status, SolveStatus::kOptimal);
@@ -6461,13 +6461,13 @@ TEST(SqpDriverCrashBasis, AnOverGenerousSeedCostsMoreThanNoSeed) {
 
     SqpOptions cold;
     cold.max_iter = 30;
-    SqpDriver plain(cold);
-    const SqpSolution off = plain.solve(model);
+    SqpSolver plain(cold);
+    const SqpResult off = plain.solve(model);
 
     SqpOptions crash = cold;
     crash.crash_basis = true;
-    SqpDriver seeded(crash);
-    const SqpSolution on = seeded.solve(model);
+    SqpSolver seeded(crash);
+    const SqpResult on = seeded.solve(model);
 
     ASSERT_EQ(off.status, SolveStatus::kOptimal);
     ASSERT_EQ(on.status, SolveStatus::kOptimal);
@@ -6495,17 +6495,17 @@ TEST(SqpDriverCrashBasis, IsInertOnAWarmIngest) {
     SqpOptions base;
     base.max_iter = 60;
 
-    SqpDriver first(base);
-    const SqpSolution seedrun = first.solve(*p.model);
+    SqpSolver first(base);
+    const SqpResult seedrun = first.solve(*p.model);
     ASSERT_TRUE(seedrun.warm_start.valid);
 
-    SqpDriver warm_off(base);
-    const SqpSolution off = warm_off.solve(*p.model, p.model->start_point(), seedrun.warm_start);
+    SqpSolver warm_off(base);
+    const SqpResult off = warm_off.solve(*p.model, p.model->start_point(), seedrun.warm_start);
 
     SqpOptions crash = base;
     crash.crash_basis = true;
-    SqpDriver warm_on(crash);
-    const SqpSolution on = warm_on.solve(*p.model, p.model->start_point(), seedrun.warm_start);
+    SqpSolver warm_on(crash);
+    const SqpResult on = warm_on.solve(*p.model, p.model->start_point(), seedrun.warm_start);
 
     ASSERT_NE(off.counters.start_level_used, StartLevel::kCold)
         << "the fixture must actually warm-resolve, or this asserts nothing";
@@ -6566,7 +6566,7 @@ TEST(SqpDriverCrashBasis, SeedBuilderReadsTheSubproblemsOwnGeometry) {
 
 // =========================================================================
 // PHASE-6 TASK 5 x TASK 4: THE CRASH BASIS'S INTERACTION WITH THE kSeeded
-// INGEST LEVEL -- the ruling sqp_driver.h records at its seed-building block.
+// INGEST LEVEL -- the ruling sqp_solver.h records at its seed-building block.
 //
 // THE QUESTION. Through Phase 5 the crash basis was armed on `!warm_ingest`,
 // i.e. "cold only", and that was unambiguous because every ingest built a
@@ -6601,7 +6601,7 @@ TEST(SqpDriverCrashBasis, SeededIngestWithNoActivityHintStillArmsTheCrashBasis) 
     // A hash-less, dimensionally compatible object at the same start point,
     // carrying duals but an ALL-FREE working set: an ingest with nothing to say
     // about activity.
-    WarmStart hintless;
+    SqpWarmStart hintless;
     hintless.x = model.start_point();
     hintless.lambda_e = Vec(0);
     hintless.lambda_i = Vec::Zero(kN);
@@ -6612,8 +6612,8 @@ TEST(SqpDriverCrashBasis, SeededIngestWithNoActivityHintStillArmsTheCrashBasis) 
     hintless.structure_hash = 0;
     hintless.valid = true;
 
-    SqpDriver seeded_driver(crash);
-    const SqpSolution seeded = seeded_driver.solve(model, model.start_point(), hintless);
+    SqpSolver seeded_driver(crash);
+    const SqpResult seeded = seeded_driver.solve(model, model.start_point(), hintless);
     ASSERT_EQ(seeded.counters.start_level_used, StartLevel::kSeeded);
     ASSERT_EQ(seeded.status, SolveStatus::kOptimal);
     EXPECT_EQ(seeded.counters.crash_seeded_rows, kN)
@@ -6623,13 +6623,13 @@ TEST(SqpDriverCrashBasis, SeededIngestWithNoActivityHintStillArmsTheCrashBasis) 
 
     // AND THE OTHER HALF: a seeded object that DOES pin rows suppresses it.
     // Same model, same lever; only the hint differs.
-    WarmStart hinted = hintless;
+    SqpWarmStart hinted = hintless;
     for (Index j = 0; j < kN; ++j) {
         hinted.ineq_active[static_cast<std::size_t>(j)] = 1;
         hinted.qp_working_set.add_ineq(j);
     }
-    SqpDriver hinted_driver(crash);
-    const SqpSolution with_hint = hinted_driver.solve(model, model.start_point(), hinted);
+    SqpSolver hinted_driver(crash);
+    const SqpResult with_hint = hinted_driver.solve(model, model.start_point(), hinted);
     ASSERT_EQ(with_hint.counters.start_level_used, StartLevel::kSeeded);
     ASSERT_EQ(with_hint.status, SolveStatus::kOptimal);
     EXPECT_EQ(with_hint.counters.crash_seeded_rows, 0);
@@ -6786,13 +6786,13 @@ TEST(SqpDriverSsnMode, EveryHsProblemTheWalkCertifiesIsCertifiedUnderKSsn) {
         auto walk_problem = make_hs(number);
         SqpOptions walk_opts;
         walk_opts.max_iter = 60;
-        SqpDriver walk_driver(walk_opts);
-        const SqpSolution walk = walk_driver.solve(*walk_problem.model);
+        SqpSolver walk_driver(walk_opts);
+        const SqpResult walk = walk_driver.solve(*walk_problem.model);
         ASSERT_EQ(walk.status, SolveStatus::kOptimal) << "battery premise";
 
         auto ssn_problem = make_hs(number);
-        SqpDriver ssn_driver(ssn_mode_options());
-        const SqpSolution ssn = ssn_driver.solve(*ssn_problem.model);
+        SqpSolver ssn_driver(ssn_mode_options());
+        const SqpResult ssn = ssn_driver.solve(*ssn_problem.model);
 
         // 1. THE CERTIFICATE.
         EXPECT_EQ(ssn.status, SolveStatus::kOptimal)
@@ -6844,7 +6844,7 @@ TEST(SqpDriverSsnMode, EveryHsProblemTheWalkCertifiesIsCertifiedUnderKSsn) {
         // THE FOUR WAYS THE WALK CAN RUN UNDER kSsn, and there are exactly
         // four: a hand-off, a second-order-correction re-solve, an elastic
         // rung, or the RESTORATION phase's own sub-solve. The last three are
-        // walk-only BY DESIGN (sqp_driver.h's WHAT IS NOT ROUTED THROUGH SSN),
+        // walk-only BY DESIGN (sqp_solver.h's WHAT IS NOT ROUTED THROUGH SSN),
         // which is why they belong in this disjunction -- HS77 is the corpus
         // row that needs the SOC one: 0 escapes, and still 4 walk minors, every
         // one of them an SOC re-solve.
@@ -6930,14 +6930,14 @@ TEST(SqpDriverSsnMode, TheSecondOrderCorrectionIsReachableUnderKSsnFromAnSsnSeed
     auto walk_problem = make_hs(77);
     SqpOptions walk_opts;
     walk_opts.max_iter = 60;
-    SqpDriver walk_driver(walk_opts);
-    const SqpSolution walk = walk_driver.solve(*walk_problem.model);
+    SqpSolver walk_driver(walk_opts);
+    const SqpResult walk = walk_driver.solve(*walk_problem.model);
     ASSERT_EQ(walk.status, SolveStatus::kOptimal);
     ASSERT_GT(walk.counters.soc_steps, 0) << "fixture premise: HS77 takes SOC re-solves";
 
     auto ssn_problem = make_hs(77);
-    SqpDriver ssn_driver(ssn_mode_options());
-    const SqpSolution ssn = ssn_driver.solve(*ssn_problem.model);
+    SqpSolver ssn_driver(ssn_mode_options());
+    const SqpResult ssn = ssn_driver.solve(*ssn_problem.model);
     ASSERT_EQ(ssn.status, SolveStatus::kOptimal);
 
     EXPECT_EQ(2, ssn.counters.soc_steps)
@@ -6964,13 +6964,13 @@ TEST(SqpDriverSsnMode, AnEscapedSubproblemLandsInTheWalkAndStillCertifies) {
     ASSERT_NEAR(model.f_saddle(), -0.109375, 1e-12);
 
     SqpOptions walk_opts;
-    SqpDriver walk_driver(walk_opts);
-    const SqpSolution walk = walk_driver.solve(model);
+    SqpSolver walk_driver(walk_opts);
+    const SqpResult walk = walk_driver.solve(model);
     ASSERT_EQ(walk.status, SolveStatus::kOptimal);
     ASSERT_NEAR(walk.f, model.f_star(), 1e-12);
 
-    SqpDriver ssn_driver(ssn_mode_options());
-    const SqpSolution ssn = ssn_driver.solve(model);
+    SqpSolver ssn_driver(ssn_mode_options());
+    const SqpResult ssn = ssn_driver.solve(model);
 
     // THE ESCAPE HAPPENED. Without it the kernel would have to certify at one
     // of the two roots of F, and the inertia gate is what stops it certifying
@@ -7005,17 +7005,17 @@ TEST(SqpDriverSsnMode, AnEscapedSubproblemLandsInTheWalkAndStillCertifies) {
 // route a suspicion to the elastic tier. It routes the ESCAPE to the walk; the
 // walk returns its own `QpStatus::kInfeasible` CERTIFICATE; and the elastic
 // tier fires on that, exactly as it always has. Same destination, better
-// authority -- see sqp_driver.h's THE ROUTING RULE, justification (3).
+// authority -- see sqp_solver.h's THE ROUTING RULE, justification (3).
 // =====================================================================
 TEST(SqpDriverElastic, InconsistentLinearizationRecoversUnderKSsn) {
     InconsistentLinearizationModel model;
     SqpOptions walk_opts;
-    SqpDriver walk_driver(walk_opts);
-    const SqpSolution walk = walk_driver.solve(model);
+    SqpSolver walk_driver(walk_opts);
+    const SqpResult walk = walk_driver.solve(model);
     ASSERT_EQ(walk.status, SolveStatus::kOptimal) << "fixture premise (the kWalk arm above)";
 
-    SqpDriver ssn_driver(ssn_mode_options());
-    const SqpSolution ssn = ssn_driver.solve(model);
+    SqpSolver ssn_driver(ssn_mode_options());
+    const SqpResult ssn = ssn_driver.solve(model);
 
     // THE SSN TIER ESCAPED on the infeasible subproblem and handed it over.
     EXPECT_EQ(ssn.counters.ssn.ssn_escapes, 1);
@@ -7044,7 +7044,7 @@ TEST(SqpDriverElastic, InconsistentLinearizationRecoversUnderKSsn) {
 // says a certifying exit's `tr_violation` is bounded by
 // `kSsnComplementarityFactor * fb_tol`. A gate no fixture can drive is either
 // dead code or an untested guard; making it a free predicate is what turns it
-// into neither. See sqp_driver.h's kSsnTrViolationFactor note.
+// into neither. See sqp_solver.h's kSsnTrViolationFactor note.
 // =====================================================================
 TEST(SqpDriverSsnMode, TheUsabilityGateRefusesEveryEscapeAndAnOutOfRegionCertificate) {
     const double fb_tol = 1e-6;
@@ -7100,7 +7100,7 @@ TEST(SqpDriverSsnMode, TheUsabilityGateRefusesEveryEscapeAndAnOutOfRegionCertifi
 // THE 1e-10 FINISH IS REACHABLE FROM A kSsn-CERTIFIED SUBPROBLEM EXACTLY AS
 // FROM A WALK-SOLVED ONE -- the phase's global constraint, asserted.
 //
-// THE MECHANISM, so the assertion is not a coincidence: SqpDriver::ssn_options
+// THE MECHANISM, so the assertion is not a coincidence: SqpSolver::ssn_options
 // derives the kernel's own `fb_tol` from `SqpOptions::kkt_tol` through
 // ssn_engine.h's `ssn_fb_tol_from_kkt_tol`, so tightening the driver's
 // tolerance tightens the subproblem kernel with it. A wiring that hard-coded
@@ -7122,8 +7122,8 @@ TEST(SqpDriverSsnMode, TheTightFinishIsReachedUnderKSsnExactlyAsUnderTheWalk) {
             opts.feas_tol = 1e-10;
             opts.max_iter = 60;
             opts.qp_mode = mode;
-            SqpDriver driver(opts);
-            const SqpSolution sol = driver.solve(*problem.model);
+            SqpSolver driver(opts);
+            const SqpResult sol = driver.solve(*problem.model);
 
             ASSERT_EQ(sol.status, SolveStatus::kOptimal)
                 << "the 1e-10 finish must be REACHABLE, not merely requested";
@@ -7143,9 +7143,9 @@ TEST(SqpDriverSsnMode, TheTightFinishIsReachedUnderKSsnExactlyAsUnderTheWalk) {
 //
 // Both halves are asserted on the SAME model with the SAME options object, so
 // the only difference between the two rows is the mode. `SqpIterate::mu` is
-// the schedule's own diagnostic (sqp_types.h) and reports the EFFECTIVE
+// the schedule's own diagnostic (sqp_solver_types.h) and reports the EFFECTIVE
 // dual_mu each trial was solved at, which is exactly the quantity the ruling
-// is about. See sqp_driver.h's WHY THE ADAPTIVE-mu SCHEDULE IS OFF UNDER kSsn.
+// is about. See sqp_solver.h's WHY THE ADAPTIVE-mu SCHEDULE IS OFF UNDER kSsn.
 // =====================================================================
 TEST(SqpDriverSsnMode, TheAdaptiveMuScheduleIsDisabledUnderKSsn) {
     using hven::solvers::test_support::make_hs;
@@ -7160,8 +7160,8 @@ TEST(SqpDriverSsnMode, TheAdaptiveMuScheduleIsDisabledUnderKSsn) {
     SqpOptions opts;
     opts.max_iter = 60;
     opts.adaptive_mu = true;
-    SqpDriver walk_driver(opts);
-    const SqpSolution walk = walk_driver.solve(*walk_problem.model);
+    SqpSolver walk_driver(opts);
+    const SqpResult walk = walk_driver.solve(*walk_problem.model);
     ASSERT_GT(walk.history.size(), 1u);
     bool walk_mu_ever_differs = false;
     for (const SqpIterate &row : walk.history) {
@@ -7175,8 +7175,8 @@ TEST(SqpDriverSsnMode, TheAdaptiveMuScheduleIsDisabledUnderKSsn) {
     auto ssn_problem = make_hs(26);
     SqpOptions ssn_opts = opts;
     ssn_opts.qp_mode = QpMode::kSsn;
-    SqpDriver ssn_driver(ssn_opts);
-    const SqpSolution ssn = ssn_driver.solve(*ssn_problem.model);
+    SqpSolver ssn_driver(ssn_opts);
+    const SqpResult ssn = ssn_driver.solve(*ssn_problem.model);
     ASSERT_EQ(ssn.status, SolveStatus::kOptimal);
     for (const SqpIterate &row : ssn.history) {
         if (row.qp_solved) {
@@ -7193,7 +7193,7 @@ TEST(SqpDriverSsnMode, TheAdaptiveMuScheduleIsDisabledUnderKSsn) {
 // **THE LEVER SHIPS OFF, AND THIS TEST IS WHY.** SqpOptions::ssn_prox_carry
 // carries a solve's proximal level into the FIRST SSN subproblem of the next
 // one. The mechanism works and this test proves it moves the counter it is
-// named for. The SWEEP behind the default (sqp_types.h's own note carries the
+// named for. The SWEEP behind the default (sqp_solver_types.h's own note carries the
 // full table) says it should not be on: `ssn_prox_updates` falls on 2 of 13
 // measured rows, RISES on 1, and is unchanged on 10, while `ssn_escapes` rises
 // on 8 of 13 -- i.e. its dominant measured effect is to damp the Newton step
@@ -7206,8 +7206,8 @@ TEST(SqpDriverSsnMode, TheAdaptiveMuScheduleIsDisabledUnderKSsn) {
 TEST(SqpDriverSsnMode, TheProximalCarryRoundTripsAndIsGatedOffByDefault) {
     // ONE SOLVE that exhausts the ladder, so there is something to carry.
     IndefiniteBoxModel first;
-    SqpDriver first_driver(ssn_mode_options());
-    const SqpSolution exporter = first_driver.solve(first);
+    SqpSolver first_driver(ssn_mode_options());
+    const SqpResult exporter = first_driver.solve(first);
     ASSERT_EQ(exporter.status, SolveStatus::kOptimal);
 
     // THE EXPORT SIDE IS UNCONDITIONAL -- it does not need the lever, so a
@@ -7232,8 +7232,8 @@ TEST(SqpDriverSsnMode, TheProximalCarryRoundTripsAndIsGatedOffByDefault) {
     // byte.
     IndefiniteBoxModel walk_model;
     SqpOptions walk_opts;
-    SqpDriver walk_driver(walk_opts);
-    const SqpSolution walk = walk_driver.solve(walk_model);
+    SqpSolver walk_driver(walk_opts);
+    const SqpResult walk = walk_driver.solve(walk_model);
     EXPECT_FALSE(walk.warm_start.has_prox_center);
     EXPECT_DOUBLE_EQ(walk.warm_start.prox_sigma, 0.0);
     EXPECT_EQ(walk.warm_start.prox_center_x.size(), 0);
@@ -7261,8 +7261,8 @@ TEST(SqpDriverSsnMode, TheProximalCarryLeverMovesTheLadderAndIsOffByDefault) {
     // the carry buys factorizations by doing less of the work Phase 7 exists to
     // move onto that tier.
     auto exporter_problem = make_hs(27);
-    SqpDriver exporter_driver(ssn_mode_options());
-    const SqpSolution exporter = exporter_driver.solve(*exporter_problem.model);
+    SqpSolver exporter_driver(ssn_mode_options());
+    const SqpResult exporter = exporter_driver.solve(*exporter_problem.model);
     ASSERT_EQ(exporter.status, SolveStatus::kOptimal);
     ASSERT_TRUE(exporter.warm_start.has_prox_center);
     ASSERT_DOUBLE_EQ(exporter.warm_start.prox_sigma, 1e6);
@@ -7272,7 +7272,7 @@ TEST(SqpDriverSsnMode, TheProximalCarryLeverMovesTheLadderAndIsOffByDefault) {
     // than converging at the point it was handed (a converged hand-off builds
     // no subproblem, so no ladder can arm and no lever can move).
     auto receiver_problem = make_hs(27);
-    WarmStart handoff = exporter.warm_start;
+    SqpWarmStart handoff = exporter.warm_start;
     handoff.x = receiver_problem.model->start_point();
 
     Index prox_updates[2];
@@ -7282,8 +7282,8 @@ TEST(SqpDriverSsnMode, TheProximalCarryLeverMovesTheLadderAndIsOffByDefault) {
         SCOPED_TRACE(lever == 0 ? "carry off (the shipped default)" : "carry on");
         SqpOptions opts = ssn_mode_options();
         opts.ssn_prox_carry = lever == 1;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(
             *receiver_problem.model, receiver_problem.model->start_point(), handoff, SolveBudget{});
         ASSERT_EQ(sol.counters.start_level_used, StartLevel::kWarm)
             << "the carry is hash-gated: it is only read at kWarm and above";
@@ -7313,8 +7313,8 @@ TEST(SqpDriverSsnMode, TheProximalCarryLeverMovesTheLadderAndIsOffByDefault) {
     // a solve that never touches the flag reproduces the carry-OFF row.
     SqpOptions shipped = ssn_mode_options();
     EXPECT_FALSE(shipped.ssn_prox_carry);
-    SqpDriver shipped_driver(shipped);
-    const SqpSolution shipped_sol = shipped_driver.solve(
+    SqpSolver shipped_driver(shipped);
+    const SqpResult shipped_sol = shipped_driver.solve(
         *receiver_problem.model, receiver_problem.model->start_point(), handoff, SolveBudget{});
     EXPECT_EQ(shipped_sol.counters.ssn.ssn_prox_updates, prox_updates[0]);
 }
@@ -7327,20 +7327,20 @@ TEST(SqpDriverSsnMode, TheProximalCarryHasACommittedCounterExample) {
     using hven::solvers::test_support::make_hs;
 
     auto exporter_problem = make_hs(15);
-    SqpDriver exporter_driver(ssn_mode_options());
-    const SqpSolution exporter = exporter_driver.solve(*exporter_problem.model);
+    SqpSolver exporter_driver(ssn_mode_options());
+    const SqpResult exporter = exporter_driver.solve(*exporter_problem.model);
     ASSERT_TRUE(exporter.warm_start.has_prox_center);
 
     auto receiver_problem = make_hs(15);
-    WarmStart handoff = exporter.warm_start;
+    SqpWarmStart handoff = exporter.warm_start;
     handoff.x = receiver_problem.model->start_point();
 
     Index prox_updates[2];
     for (int lever = 0; lever < 2; ++lever) {
         SqpOptions opts = ssn_mode_options();
         opts.ssn_prox_carry = lever == 1;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(
             *receiver_problem.model, receiver_problem.model->start_point(), handoff, SolveBudget{});
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         prox_updates[lever] = sol.counters.ssn.ssn_prox_updates;
@@ -7359,13 +7359,13 @@ TEST(SqpDriverSsnMode, TheLedgerCarriesTheSsnColumnsAndTheyAgreeWithTheCounters)
     Ledger ledger;
     IndefiniteBoxModel model;
 
-    SqpDriver walk_driver{SqpOptions{}};
+    SqpSolver walk_driver{SqpOptions{}};
     walk_driver.attach_ledger(&ledger, "walk");
-    const SqpSolution walk = walk_driver.solve(model);
+    const SqpResult walk = walk_driver.solve(model);
 
-    SqpDriver ssn_driver(ssn_mode_options());
+    SqpSolver ssn_driver(ssn_mode_options());
     ssn_driver.attach_ledger(&ledger, "ssn");
-    const SqpSolution ssn = ssn_driver.solve(model);
+    const SqpResult ssn = ssn_driver.solve(model);
 
     ASSERT_EQ(ledger.sqp_records().size(), 2u);
     const SqpSolveRecord &walk_rec = ledger.sqp_records()[0];
@@ -7455,8 +7455,8 @@ TEST(SqpDriverSsnMode, TheEscapeReasonCensusPartitionsTheEscapeCount) {
     // AnEscapedSubproblemLandsInTheWalkAndStillCertifies above.
     {
         IndefiniteBoxModel model;
-        SqpDriver driver(ssn_mode_options());
-        const SqpSolution sol = driver.solve(model);
+        SqpSolver driver(ssn_mode_options());
+        const SqpResult sol = driver.solve(model);
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         ASSERT_EQ(sol.counters.ssn.ssn_escapes, 1) << "the fixture's own premise";
         EXPECT_EQ(census_sum(sol.counters.ssn), sol.counters.ssn.ssn_escapes)
@@ -7474,8 +7474,8 @@ TEST(SqpDriverSsnMode, TheEscapeReasonCensusPartitionsTheEscapeCount) {
     // run would make every corpus row look like a hand-off.
     {
         const HsProblem hs = make_hs(1);
-        SqpDriver driver(ssn_mode_options());
-        const SqpSolution sol = driver.solve(*hs.model);
+        SqpSolver driver(ssn_mode_options());
+        const SqpResult sol = driver.solve(*hs.model);
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         ASSERT_EQ(sol.counters.ssn.ssn_escapes, 0) << "the fixture's own premise";
         EXPECT_EQ(census_sum(sol.counters.ssn), 0);
@@ -7542,8 +7542,8 @@ TEST(SqpDriverSsnMode, SsnWorkIsNeverFoldedIntoTheWalksMinorCurrency) {
     // HS14 certifies every subproblem under kSsn with no escape at all
     // (observed: 9 SSN iterations, 0 escapes, 0 backtracks).
     auto problem = make_hs(14);
-    SqpDriver driver(ssn_mode_options());
-    const SqpSolution sol = driver.solve(*problem.model);
+    SqpSolver driver(ssn_mode_options());
+    const SqpResult sol = driver.solve(*problem.model);
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_EQ(sol.counters.ssn.ssn_escapes, 0) << "fixture premise: the walk never runs here";
@@ -7578,11 +7578,11 @@ TEST(SqpDriverSsnMode, SsnWorkIsNeverFoldedIntoTheWalksMinorCurrency) {
 TEST(SqpDriverSsnMode, TheProximalExportDoesNotLeakFromOneSolveToTheNext) {
     using hven::solvers::test_support::make_hs;
 
-    SqpDriver driver(ssn_mode_options());
+    SqpSolver driver(ssn_mode_options());
 
     // SOLVE 1: exhausts the ladder, so there is something to leak.
     IndefiniteBoxModel armed;
-    const SqpSolution first = driver.solve(armed);
+    const SqpResult first = driver.solve(armed);
     ASSERT_EQ(first.status, SolveStatus::kOptimal);
     ASSERT_TRUE(first.warm_start.has_prox_center) << "fixture premise";
     ASSERT_DOUBLE_EQ(first.warm_start.prox_sigma, 1e6);
@@ -7591,7 +7591,7 @@ TEST(SqpDriverSsnMode, TheProximalExportDoesNotLeakFromOneSolveToTheNext) {
     // escape and no ladder at all, so a proximal level on ITS hand-off can only
     // have come from solve 1.
     auto benign = make_hs(14);
-    const SqpSolution second = driver.solve(*benign.model);
+    const SqpResult second = driver.solve(*benign.model);
     ASSERT_EQ(second.status, SolveStatus::kOptimal);
     ASSERT_EQ(second.counters.ssn.ssn_prox_updates, 0) << "fixture premise: HS14 arms nothing";
 
@@ -7624,13 +7624,13 @@ TEST(SqpDriverSsnMode, TheSsnBoundActivityReachesTheHandOff) {
     auto walk_problem = make_hs(30);
     SqpOptions walk_opts;
     walk_opts.max_iter = 60;
-    SqpDriver walk_driver(walk_opts);
-    const SqpSolution walk = walk_driver.solve(*walk_problem.model);
+    SqpSolver walk_driver(walk_opts);
+    const SqpResult walk = walk_driver.solve(*walk_problem.model);
     ASSERT_EQ(walk.status, SolveStatus::kOptimal);
 
     auto ssn_problem = make_hs(30);
-    SqpDriver ssn_driver(ssn_mode_options());
-    const SqpSolution ssn = ssn_driver.solve(*ssn_problem.model);
+    SqpSolver ssn_driver(ssn_mode_options());
+    const SqpResult ssn = ssn_driver.solve(*ssn_problem.model);
     ASSERT_EQ(ssn.status, SolveStatus::kOptimal);
     ASSERT_EQ(ssn.counters.ssn.ssn_escapes, 0)
         << "fixture premise: every subproblem is SSN-certified, so the activity below can only "
@@ -7649,9 +7649,8 @@ TEST(SqpDriverSsnMode, TheSsnBoundActivityReachesTheHandOff) {
     // same activity the other kernel identifies, not a second opinion.
     EXPECT_EQ(ssn.warm_start.bound_active, walk.warm_start.bound_active);
     // THE HAND-OFF IS ALSO USABLE: fed back, it ingests at kWarm and certifies.
-    SqpDriver chained(ssn_mode_options());
-    const SqpSolution again =
-        chained.solve(*ssn_problem.model, ssn.x, ssn.warm_start, SolveBudget{});
+    SqpSolver chained(ssn_mode_options());
+    const SqpResult again = chained.solve(*ssn_problem.model, ssn.x, ssn.warm_start, SolveBudget{});
     EXPECT_EQ(again.counters.start_level_used, StartLevel::kWarm);
     EXPECT_EQ(again.status, SolveStatus::kOptimal);
 }
@@ -7664,7 +7663,7 @@ TEST(SqpDriverSsnMode, TheSsnBoundActivityReachesTheHandOff) {
 // else, so a kSsn solve that entered restoration ran the semismooth kernel
 // through the whole phase -- on a wrapper model in (original + slack)
 // variables with a subgradient-selector objective that no fixture in this
-// repository has ever run that kernel against -- while `sqp_driver.h`'s own
+// repository has ever run that kernel against -- while `sqp_solver.h`'s own
 // WHAT IS NOT ROUTED THROUGH SSN note said, and still says, that the phase
 // stays on the walk UNCONDITIONALLY. Doc-versus-code, plus a telemetry hole:
 // `rs.counters.factorizations` was folded and `rs.counters.ssn` was not, so
@@ -7679,7 +7678,7 @@ TEST(SqpDriverSsnMode, TheSsnBoundActivityReachesTheHandOff) {
 // (The factorization pin also covers a SECOND fix-round repair found while
 // writing it: an ESCAPED SSN subproblem's own factorizations reached no
 // accumulation site at all, so `SqpCounters::factorizations` under-reported and
-// sqp_types.h's documented `ssn_iters <= factorizations` failed outright on
+// sqp_solver_types.h's documented `ssn_iters <= factorizations` failed outright on
 // this very fixture -- 131 against 128. They are charged now; see the
 // hand-off's own note.)
 // =====================================================================
@@ -7687,8 +7686,8 @@ TEST(SqpDriverSsnMode, RestorationStaysOnTheWalkUnderKSsn) {
     SecondOrderInfeasibleModel model;
     SqpOptions opts = ssn_mode_options(20);
     opts.tr_init = 8.0;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
 
     // FIXTURE PREMISE, asserted rather than assumed: the phase really runs.
     ASSERT_GE(sol.counters.restoration_iters, 1)
@@ -7707,7 +7706,7 @@ TEST(SqpDriverSsnMode, RestorationStaysOnTheWalkUnderKSsn) {
         << "OBSERVED. MKL, clang++, Release. Reads 6 with the mode leaked into restoration.";
     EXPECT_EQ(8, sol.counters.ssn.ssn_refine_refused) << "OBSERVED. MKL, clang++, Release.";
     EXPECT_LE(sol.counters.ssn.ssn_iters, sol.counters.factorizations)
-        << "sqp_types.h's own invariant, which the unfolded nested counters used to break";
+        << "sqp_solver_types.h's own invariant, which the unfolded nested counters used to break";
 }
 
 // =====================================================================
@@ -7731,8 +7730,8 @@ TEST(SqpDriverSsnMode, TheProbeBudgetChargesSsnWorkThatTheWalkCurrencyCannotSee)
     // (1) FIXTURE PREMISE: unbudgeted, HS1 under kSsn converges and spends no
     // walk minors at all.
     auto premise_problem = make_hs(1);
-    SqpDriver premise_driver(ssn_mode_options());
-    const SqpSolution premise = premise_driver.solve(*premise_problem.model);
+    SqpSolver premise_driver(ssn_mode_options());
+    const SqpResult premise = premise_driver.solve(*premise_problem.model);
     ASSERT_EQ(SolveStatus::kOptimal, premise.status);
     ASSERT_EQ(0, premise.counters.qp_minor_iters)
         << "fixture premise: every subproblem is SSN-certified, so the walk never runs";
@@ -7743,9 +7742,9 @@ TEST(SqpDriverSsnMode, TheProbeBudgetChargesSsnWorkThatTheWalkCurrencyCannotSee)
     // kOptimal with probe_budget_stops == 0, because the test quantity never
     // left 0.
     auto problem = make_hs(1);
-    SqpDriver driver(ssn_mode_options());
-    const SqpSolution sol = driver.solve(*problem.model, problem.model->start_point(), WarmStart{},
-                                         SolveBudget{/*minor_budget=*/20});
+    SqpSolver driver(ssn_mode_options());
+    const SqpResult sol = driver.solve(*problem.model, problem.model->start_point(), SqpWarmStart{},
+                                       SolveBudget{/*minor_budget=*/20});
 
     EXPECT_EQ(SolveStatus::kMaxIter, sol.status)
         << "THE PROBE BUDGET note's clause 4: a probe stop reports kMaxIter, not "
@@ -7767,9 +7766,9 @@ TEST(SqpDriverSsnMode, TheProbeBudgetChargesSsnWorkThatTheWalkCurrencyCannotSee)
     // factorizations were charged and the tier-3 refinement's were not (which
     // reads 3 majors / 19 factorizations).
     auto tight_problem = make_hs(1);
-    SqpDriver tight_driver(ssn_mode_options());
-    const SqpSolution tight =
-        tight_driver.solve(*tight_problem.model, tight_problem.model->start_point(), WarmStart{},
+    SqpSolver tight_driver(ssn_mode_options());
+    const SqpResult tight =
+        tight_driver.solve(*tight_problem.model, tight_problem.model->start_point(), SqpWarmStart{},
                            SolveBudget{/*minor_budget=*/10});
     EXPECT_EQ(1, tight.counters.probe_budget_stops);
     EXPECT_EQ(2, tight.counters.major_iters)
@@ -7785,10 +7784,9 @@ TEST(SqpDriverSsnMode, TheProbeBudgetChargesSsnWorkThatTheWalkCurrencyCannotSee)
     auto walk_problem = make_hs(1);
     SqpOptions walk_opts;
     walk_opts.max_iter = 60;
-    SqpDriver walk_driver(walk_opts);
-    const SqpSolution walk =
-        walk_driver.solve(*walk_problem.model, walk_problem.model->start_point(), WarmStart{},
-                          SolveBudget{/*minor_budget=*/20});
+    SqpSolver walk_driver(walk_opts);
+    const SqpResult walk = walk_driver.solve(*walk_problem.model, walk_problem.model->start_point(),
+                                             SqpWarmStart{}, SolveBudget{/*minor_budget=*/20});
     EXPECT_EQ(1, walk.counters.probe_budget_stops);
     EXPECT_EQ(21, walk.counters.qp_minor_iters)
         << "OBSERVED. MKL, clang++, Release. kWalk still spends its budget in minors and "
@@ -7803,7 +7801,7 @@ TEST(SqpDriverSsnMode, TheProbeBudgetChargesSsnWorkThatTheWalkCurrencyCannotSee)
 // the usability gate -- and the subproblem that sets the max sigma is typically
 // an EXHAUSTED LADDER, i.e. an ESCAPED solve, whose x ssn_engine.h measures at
 // 133x-160x the trust region and whose export certifies nothing. So the
-// WarmStart interface shipped, on every armed kSsn solve, a centre that was a
+// SqpWarmStart interface shipped, on every armed kSsn solve, a centre that was a
 // diverged point by construction, under a field documented as "the point it was
 // reached at". The centres are unread today (Task-4 deviation D5), which is
 // exactly why this had to be repaired before a reader starts trusting them.
@@ -7818,8 +7816,8 @@ TEST(SqpDriverSsnMode, TheCarriedProximalCentreIsNeverAnEscapedIterate) {
 
     // (a) THE ESCAPED CLIMB. The level carries; the centre does not.
     IndefiniteBoxModel escaped;
-    SqpDriver escaped_driver(ssn_mode_options());
-    const SqpSolution esc = escaped_driver.solve(escaped);
+    SqpSolver escaped_driver(ssn_mode_options());
+    const SqpResult esc = escaped_driver.solve(escaped);
     ASSERT_EQ(SolveStatus::kOptimal, esc.status);
     ASSERT_EQ(1, esc.counters.ssn.ssn_escapes) << "fixture premise: the ladder is exhausted";
     EXPECT_DOUBLE_EQ(1e6, esc.warm_start.prox_sigma)
@@ -7833,8 +7831,8 @@ TEST(SqpDriverSsnMode, TheCarriedProximalCentreIsNeverAnEscapedIterate) {
     // (b) THE CERTIFYING CLIMB. Both carry, and the centre is a point the
     // trust region could actually have contained.
     auto p = make_hs(7);
-    SqpDriver driver(ssn_mode_options());
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(ssn_mode_options());
+    const SqpResult sol = driver.solve(*p.model);
     ASSERT_EQ(SolveStatus::kOptimal, sol.status);
     ASSERT_TRUE(sol.warm_start.has_prox_center) << "fixture premise: HS7's ladder arms";
     EXPECT_EQ(p.model->n(), sol.warm_start.prox_center_x.size())
@@ -7856,8 +7854,8 @@ TEST(SqpDriverSsnMode, TheCarriedProximalCentreIsNeverAnEscapedIterate) {
     // certifies. Keying the centre off the solve-wide mark (rather than off its
     // own) would refuse that centre and ship nothing at all here.
     auto split = make_hs(33);
-    SqpDriver split_driver(ssn_mode_options());
-    const SqpSolution split_sol = split_driver.solve(*split.model);
+    SqpSolver split_driver(ssn_mode_options());
+    const SqpResult split_sol = split_driver.solve(*split.model);
     ASSERT_EQ(SolveStatus::kOptimal, split_sol.status);
     EXPECT_DOUBLE_EQ(1e6, split_sol.warm_start.prox_sigma) << "the LEVEL comes from the ladder";
     EXPECT_EQ(split.model->n(), split_sol.warm_start.prox_center_x.size())
@@ -7878,14 +7876,14 @@ TEST(SqpDriverSsnMode, TheCentresHighWaterMarkIsClearedBetweenSolves) {
 
     auto first_problem = make_hs(7);
     auto second_problem = make_hs(7);
-    SqpDriver driver(ssn_mode_options()); // ONE driver, two solves
+    SqpSolver driver(ssn_mode_options()); // ONE driver, two solves
 
-    const SqpSolution first = driver.solve(*first_problem.model);
+    const SqpResult first = driver.solve(*first_problem.model);
     ASSERT_EQ(SolveStatus::kOptimal, first.status);
     ASSERT_EQ(first_problem.model->n(), first.warm_start.prox_center_x.size())
         << "fixture premise: HS7's ladder arms on a subproblem that certifies";
 
-    const SqpSolution second = driver.solve(*second_problem.model);
+    const SqpResult second = driver.solve(*second_problem.model);
     ASSERT_EQ(SolveStatus::kOptimal, second.status);
     EXPECT_DOUBLE_EQ(first.warm_start.prox_sigma, second.warm_start.prox_sigma);
     EXPECT_EQ(first.warm_start.prox_center_x.size(), second.warm_start.prox_center_x.size())
@@ -7899,7 +7897,7 @@ TEST(SqpDriverSsnMode, TheCentresHighWaterMarkIsClearedBetweenSolves) {
 //
 // On a HAND-OFF the driver's `qs` becomes the WALK's solution, so the escaped
 // SSN attempt's own cost reaches no other accumulation path -- it was simply
-// LOST before fix round 1, which broke sqp_types.h's documented
+// LOST before fix round 1, which broke sqp_solver_types.h's documented
 // `ssn_iters <= factorizations` outright (131 against 128 on
 // RestorationStaysOnTheWalkUnderKSsn). The rule is stated once, in a free
 // function, so BOTH fields are assertable rather than only the one the
@@ -7964,8 +7962,8 @@ TEST(SqpDriverSsnMode, TheSsnFbToleranceTracksTheTighterOfTheDriversTwoTolerance
     SqpOptions opts = ssn_mode_options();
     opts.kkt_tol = 1e-10;
     opts.feas_tol = 1e-10;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model);
     EXPECT_EQ(SolveStatus::kOptimal, sol.status);
     const test_support::NlpKktResidual r = self_check_kkt(*p.model, sol, 1e-10);
     EXPECT_LT(r.stationarity, 1e-9);
@@ -8007,14 +8005,14 @@ TEST(SqpDriverSsnMode, CertifyFromFaceCostsExactlyOneFactorizationPerAcceptedRef
         SCOPED_TRACE(fmt::format("HS{}", number));
 
         auto base_problem = make_hs(number);
-        SqpDriver base_driver(ssn_mode_options());
-        const SqpSolution base = base_driver.solve(*base_problem.model);
+        SqpSolver base_driver(ssn_mode_options());
+        const SqpResult base = base_driver.solve(*base_problem.model);
 
         SqpOptions lever_opts = ssn_mode_options();
         lever_opts.ssn_certify_from_face = true;
         auto lever_problem = make_hs(number);
-        SqpDriver lever_driver(lever_opts);
-        const SqpSolution lever = lever_driver.solve(*lever_problem.model);
+        SqpSolver lever_driver(lever_opts);
+        const SqpResult lever = lever_driver.solve(*lever_problem.model);
 
         // 1. THE CERTIFICATE OUTCOME IS IDENTICAL.
         EXPECT_EQ(lever.status, base.status);
@@ -8067,14 +8065,14 @@ TEST(SqpDriverSsnMode, CertifyFromFaceIsInertAtTheWalkDefault) {
         auto a_problem = make_hs(number);
         SqpOptions a_opts;
         a_opts.max_iter = 60;
-        SqpDriver a_driver(a_opts);
-        const SqpSolution a = a_driver.solve(*a_problem.model);
+        SqpSolver a_driver(a_opts);
+        const SqpResult a = a_driver.solve(*a_problem.model);
 
         auto b_problem = make_hs(number);
         SqpOptions b_opts = a_opts;
         b_opts.ssn_certify_from_face = true;
-        SqpDriver b_driver(b_opts);
-        const SqpSolution b = b_driver.solve(*b_problem.model);
+        SqpSolver b_driver(b_opts);
+        const SqpResult b = b_driver.solve(*b_problem.model);
 
         EXPECT_EQ(b.status, a.status);
         EXPECT_DOUBLE_EQ(b.f, a.f);
@@ -8097,7 +8095,7 @@ TEST(SqpDriverSsnMode, CertifyFromFaceIsInertAtTheWalkDefault) {
 // not SqpCounters::factorizations, not `ssn_refine_factorizations`, not
 // `ssn_refine_refused`, and not the probe budget. One sparse factorization,
 // genuinely paid, invisible. It is the same vanishing-work class fix round 1
-// closed at the hand-off itself (see sqp_driver.h's note there), and the
+// closed at the hand-off itself (see sqp_solver.h's note there), and the
 // review found it unexercised: zero withdrawals over the 27-problem HS battery
 // and all 57 corpus cells, and none anywhere in this suite.
 //
@@ -8189,8 +8187,8 @@ TEST(SqpDriverSsnMode, ARefusedFaceRefinementIsChargedEvenWhenTheCertificateIsWi
     const SqpOptions base_opts = ssn_mode_options();
     NearSaddleIndefiniteModel model(base_opts.kkt_tol * (1.0 + 1e-6));
 
-    SqpDriver base_driver(base_opts);
-    const SqpSolution base = base_driver.solve(model);
+    SqpSolver base_driver(base_opts);
+    const SqpResult base = base_driver.solve(model);
 
     // THE FIXTURE'S OWN PREMISE, asserted rather than assumed. Without the
     // INDEFINITE escape there is no withdrawal to reach, and this test would
@@ -8209,8 +8207,8 @@ TEST(SqpDriverSsnMode, ARefusedFaceRefinementIsChargedEvenWhenTheCertificateIsWi
 
     SqpOptions lever_opts = base_opts;
     lever_opts.ssn_certify_from_face = true;
-    SqpDriver lever_driver(lever_opts);
-    const SqpSolution lever = lever_driver.solve(model);
+    SqpSolver lever_driver(lever_opts);
+    const SqpResult lever = lever_driver.solve(model);
 
     // 1. THE TRAJECTORY IS THE SAME TRAJECTORY. The withdrawal reproduces the
     // shipped verdict, so the subproblem hands off exactly as it did.
@@ -8246,7 +8244,7 @@ TEST(SqpDriverSsnMode, ARefusedFaceRefinementIsChargedEvenWhenTheCertificateIsWi
 // The RULE the fix is written as, pinned directly -- so a field the rare
 // dynamic above cannot move (eqp_refine_steps is identically 0 out of
 // refine_on_face today, see eqp_solve.h) is still falsifiable, and so the
-// probe-budget charge -- which no SqpSolution column exposes -- is asserted at
+// probe-budget charge -- which no SqpResult column exposes -- is asserted at
 // all.
 TEST(SqpDriverSsnMode, TheRefusedFaceRefinementChargeIsFiveFieldsAndNoMore) {
     QpSolution refined;
@@ -8279,11 +8277,11 @@ TEST(SqpDriverSsnMode, TheRefusedFaceRefinementChargeIsFiveFieldsAndNoMore) {
 //
 // The defect (tycho_sqp record, accepted-with-disclosure as D2): a certifying
 // SSN exit's inequality prices are not sign-constrained where they are
-// produced, so a NEGATIVE price reaches SqpSolution::lambda_i and
-// WarmStart::lambda_i -- and through the currency's `iq_lmults_` an
+// produced, so a NEGATIVE price reaches SqpResult::lambda_i and
+// SqpWarmStart::lambda_i -- and through the currency's `iq_lmults_` an
 // interior-point inequality seed, where the barrier's own floor absorbs it as
 // though it were near-zero noise. sweep_negative_face_prices clamps it at
-// SqpDriver::finish, this driver's single export boundary.
+// SqpSolver::finish, this driver's single export boundary.
 //
 // THE SEMANTICS ARE PINNED HERE, ON HAND-BUILT VECTORS, and the end-to-end
 // reproduction lives in tests/sqp/test_scale_smoke.cpp (the family that
@@ -8414,8 +8412,8 @@ TEST(SqpDriverSignSweep, ACorrectlySignedSolveSweepsNothingUnderEveryKernel) {
         SCOPED_TRACE(fmt::format("HS{}", number));
 
         auto ssn_problem = make_hs(number);
-        SqpDriver ssn_driver(ssn_mode_options());
-        const SqpSolution ssn = ssn_driver.solve(*ssn_problem.model);
+        SqpSolver ssn_driver(ssn_mode_options());
+        const SqpResult ssn = ssn_driver.solve(*ssn_problem.model);
         EXPECT_EQ(ssn.counters.ssn.ssn_sign_swept, 0)
             << "nothing on this battery prices negative, so nothing may be repaired";
         EXPECT_DOUBLE_EQ(ssn.counters.ssn.ssn_sign_sweep_max, 0.0);
@@ -8426,8 +8424,8 @@ TEST(SqpDriverSignSweep, ACorrectlySignedSolveSweepsNothingUnderEveryKernel) {
         auto walk_problem = make_hs(number);
         SqpOptions walk_opts;
         walk_opts.max_iter = 60;
-        SqpDriver walk_driver(walk_opts);
-        const SqpSolution walk = walk_driver.solve(*walk_problem.model);
+        SqpSolver walk_driver(walk_opts);
+        const SqpResult walk = walk_driver.solve(*walk_problem.model);
         EXPECT_EQ(walk.counters.ssn.ssn_sign_swept, 0)
             << "the sweep is unconditional in qp_mode but structurally inert on the walk arm: an "
                "active-set price is non-negative by the drop rule";
@@ -8437,8 +8435,8 @@ TEST(SqpDriverSignSweep, ACorrectlySignedSolveSweepsNothingUnderEveryKernel) {
         SqpOptions ipm_opts;
         ipm_opts.max_iter = 60;
         ipm_opts.qp_mode = QpMode::kIpm;
-        SqpDriver ipm_driver(ipm_opts);
-        const SqpSolution ipm = ipm_driver.solve(*ipm_problem.model);
+        SqpSolver ipm_driver(ipm_opts);
+        const SqpResult ipm = ipm_driver.solve(*ipm_problem.model);
         EXPECT_EQ(ipm.counters.ssn.ssn_sign_swept, 0)
             << "THE THIRD PRODUCER (R6, Amendment E): a kIpm solve's prices come from the tier's "
                "own face -- through refine_on_face's pricing, or verbatim on a refusal -- and "
@@ -8453,9 +8451,9 @@ TEST(SqpDriverSignSweep, ACorrectlySignedSolveSweepsNothingUnderEveryKernel) {
 
 // --- The outcome values a consumer's per-solve record needs ---
 //
-// Two additions to SqpSolution: the terminal KKT measurement (the four scalar
+// Two additions to SqpResult: the terminal KKT measurement (the four scalar
 // columns taken at the point the solve returns) and the solve's wall time.
-// Their contract is on the fields in sqp_types.h.
+// Their contract is on the fields in sqp_solver_types.h.
 //
 // The wall-time pins assert only that the field was written -- finite,
 // non-negative, and nonzero after a solve that ran majors. No value is
@@ -8463,8 +8461,8 @@ TEST(SqpDriverSignSweep, ACorrectlySignedSolveSweepsNothingUnderEveryKernel) {
 TEST(SqpDriverContract, TheSolutionCarriesTheTerminalKktMeasurementAndAWallTime) {
     const HsProblem p = make_hs(6);
     SqpOptions opts;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model);
 
     ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     ASSERT_GE(sol.counters.major_iters, 1);
@@ -8480,8 +8478,8 @@ TEST(SqpDriverContract, TheSolutionCarriesTheTerminalKktMeasurementAndAWallTime)
     EXPECT_TRUE(std::isfinite(sol.sqp_complementarity));
 
     // On this exit the returned point is the last iterate measured, so the two
-    // readings agree bit for bit. Not a general rule -- see SqpSolution's field
-    // note in sqp_types.h.
+    // readings agree bit for bit. Not a general rule -- see SqpResult's field
+    // note in sqp_solver_types.h.
     ASSERT_FALSE(sol.history.empty());
     const SqpIterate &last = sol.history.back();
     EXPECT_EQ(sol.sqp_stationarity, last.stationarity);
@@ -8504,11 +8502,11 @@ TEST(SqpDriverContract, TheTerminalKktMeasurementIsNaNAtAnUnevaluablePoint) {
     SqpOptions opts;
     opts.tr_init = 1e3;
     opts.max_iter = 10;
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
 
     Vec x0_outside(1);
     x0_outside << 50.0;
-    const SqpSolution bad = driver.solve(model, x0_outside);
+    const SqpResult bad = driver.solve(model, x0_outside);
 
     ASSERT_EQ(bad.status, SolveStatus::kNumericalError);
     EXPECT_TRUE(std::isnan(bad.sqp_stationarity)) << "read " << bad.sqp_stationarity;
@@ -8530,8 +8528,8 @@ TEST(SqpDriverContract, TheTerminalKktMeasurementOnACertifiedInfeasibleExitMeasu
     InfeasibleCircleLineModel model;
     SqpOptions opts;
     opts.max_iter = 200;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
 
     ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
     ASSERT_TRUE(sol.infeasibility_certified);
@@ -9038,7 +9036,7 @@ struct W2FallbackRun {
 };
 
 /// `engine_tr` is the ENGINE's own radius: finite, it caps the elastic slacks too and is how a
-/// rung A the engine DECLINES is provoked (sqp_driver.h's ELASTIC TIER note, "one configuration
+/// rung A the engine DECLINES is provoked (sqp_solver.h's ELASTIC TIER note, "one configuration
 /// is not covered"). `window` is the driver's own `min(delta, tr_radius)`.
 W2FallbackRun w2_run_fallback(const QpProblem &qp, const IpqpInfeasibilityEvidence &evidence,
                               double window = std::numeric_limits<double>::infinity(),
@@ -9369,7 +9367,7 @@ TEST(SqpDriverCertifiedFallback, P3TheEscapeBranchCONSUMESTheAttachedLadderRathe
     ASSERT_EQ(run.counters.elastic_activations, 1);
 
     // THE DRIVER'S TERNARY ITSELF is verified by reading, not exercised here: no fixture
-    // drives SqpDriver's escape branch onto an ATTACHED report (measured -- the ternary is
+    // drives SqpSolver's escape branch onto an ATTACHED report (measured -- the ternary is
     // reached only with an empty optional). Its driver-level pin is registered for T7.
     SqpOptions opts;
     QpEngine engine(opts.qp);
@@ -9383,7 +9381,7 @@ TEST(SqpDriverCertifiedFallback, P3TheEscapeBranchCONSUMESTheAttachedLadderRathe
 TEST(SqpDriverCertifiedFallback, P4ARefusedRungAReturnsTheColdWalkCounterForCounter) {
     // P4 = plan section 6's F-4, COUNTERS-identical rather than byte-identical (amendment C).
     // A finite ENGINE radius caps the elastic slacks too, so rung A comes back non-kOptimal on a
-    // problem the walk itself can still judge -- the uncovered class sqp_driver.h names.
+    // problem the walk itself can still judge -- the uncovered class sqp_solver.h names.
     const double engine_tr = 1.0e-3;
     const QpProblem qp = w2_box_blocked_qp(0.5);
     const IpqpResult ires = w2_escaped(qp);
@@ -9905,8 +9903,8 @@ TEST(SqpDriverCertifiedFallback, ARungAOwnedMajorIsAnElasticRowOnTheDriversOwnHi
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
     const HsProblem p = make_hs(11);
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model);
 
     ASSERT_EQ(sol.counters.ipqp.ipqp_to_walk, 2) << "the fixture must reach the fallback at all";
     EXPECT_EQ(sol.counters.elastic_activations, 2) << "one ladder per escape";
@@ -9968,10 +9966,10 @@ TEST(SqpDriverCertifiedFallback, TheDriverEmitsOneFallbackVerdictPerEscapeAndHS3
     opts.max_iter = 60;
     {
         const HsProblem p = make_hs(11);
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         Sink sink;
         driver.attach_trace(&sink);
-        const SqpSolution sol = driver.solve(*p.model);
+        const SqpResult sol = driver.solve(*p.model);
         ASSERT_EQ(sink.fallbacks.size(), 2u) << "one event per fallback entry";
         Index clamped = 0;
         for (const SqpFallbackVerdictTraceEvent &e : sink.fallbacks) {
@@ -9987,10 +9985,10 @@ TEST(SqpDriverCertifiedFallback, TheDriverEmitsOneFallbackVerdictPerEscapeAndHS3
     }
     {
         const HsProblem p = make_hs(38);
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         Sink sink;
         driver.attach_trace(&sink);
-        const SqpSolution sol = driver.solve(*p.model);
+        const SqpResult sol = driver.solve(*p.model);
         ASSERT_EQ(sol.counters.ipqp.ipqp_to_walk, 1);
         ASSERT_EQ(sink.fallbacks.size(), 1u);
         EXPECT_FALSE(sink.fallbacks[0].entered_rung_a);
@@ -10657,7 +10655,7 @@ Index w2t7_count(const std::vector<SqpFallbackVerdictTraceEvent> &fb, SqpFallbac
 } // namespace
 
 TEST(SqpDriverCertifiedFallback, T7TheEscapeBranchTernaryCONSUMESAnAttachedReportAtTheDriver) {
-    // T3'S REGISTERED GAP, CLOSED (Codex X-2). At T3 no fixture and no U0 cell drove SqpDriver's
+    // T3'S REGISTERED GAP, CLOSED (Codex X-2). At T3 no fixture and no U0 cell drove SqpSolver's
     // escape-branch ternary onto an ATTACHED report: instrumented over the 27 HS models at kIpm
     // plus the two inconsistent ones, it was reached nine times, always with an EMPTY optional.
     //
@@ -10668,10 +10666,10 @@ TEST(SqpDriverCertifiedFallback, T7TheEscapeBranchTernaryCONSUMESAnAttachedRepor
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
     W2T7ScaledInconsistentEqualitiesModel model(1.0e8, 1.0, 2.5);
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     W2T7FallbackSink sink;
     driver.attach_trace(&sink);
-    const SqpSolution sol = driver.solve(model);
+    const SqpResult sol = driver.solve(model);
 
     ASSERT_EQ(sink.fallbacks.size(), 3u) << "three fallback entries, the last one exhausted";
     EXPECT_EQ(w2t7_count(sink.fallbacks, SqpFallbackVerdict::kExhausted), 1);
@@ -10707,10 +10705,10 @@ TEST(SqpDriverCertifiedFallback, T7TheCeilingFlagsTRUEArmOnADriverRowIsThePriced
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
     const HsProblem p = make_hs(11);
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     W2T7FallbackSink sink;
     driver.attach_trace(&sink);
-    const SqpSolution sol = driver.solve(*p.model);
+    const SqpResult sol = driver.solve(*p.model);
 
     const double cap = kElasticRhoDualMuSafety / opts.qp.dual_mu;
     ASSERT_EQ(sink.fallbacks.size(), 2u);
@@ -10762,10 +10760,10 @@ TEST(SqpDriverCertifiedFallback, T7TheDisprovedSuspicionCalibrationOverTheHsCorp
     Index rung_b = 0;
     for (const int number : hven::solvers::test_support::hs_numbers()) {
         const HsProblem p = make_hs(number);
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         W2T7FallbackSink sink;
         driver.attach_trace(&sink);
-        const SqpSolution sol = driver.solve(*p.model);
+        const SqpResult sol = driver.solve(*p.model);
         entries += static_cast<Index>(sink.fallbacks.size());
         for (const SqpFallbackVerdictTraceEvent &e : sink.fallbacks) {
             fired += e.entered_rung_a ? 1 : 0;
@@ -10796,8 +10794,8 @@ TEST(SqpDriverCertifiedFallback, T7TheDisplacedPatternCostsONEAnalysisOnTheFollo
         SqpOptions truncated = opts;
         truncated.max_iter = k;
         const HsProblem p = make_hs(10);
-        SqpDriver driver(truncated);
-        const SqpSolution sol = driver.solve(*p.model);
+        SqpSolver driver(truncated);
+        const SqpResult sol = driver.solve(*p.model);
         ASSERT_EQ(sol.counters.major_iters, k) << "the prefix must be a prefix";
         per_major.push_back(sol.counters.symbolic_analyses - previous);
         previous = sol.counters.symbolic_analyses;
@@ -10814,8 +10812,8 @@ TEST(SqpDriverCertifiedFallback, T7TheDisplacedPatternCostsONEAnalysisOnTheFollo
     const HsProblem p = make_hs(10);
     SqpOptions full = opts;
     full.max_iter = 60;
-    SqpDriver driver(full);
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(full);
+    const SqpResult sol = driver.solve(*p.model);
     EXPECT_EQ(sol.counters.symbolic_analyses, 13);
     EXPECT_EQ(sol.counters.ipqp.ipqp_to_walk, 3) << "the three escapes the T3 review named";
 }
@@ -11049,15 +11047,15 @@ TEST(SqpDriverCertifiedFallback, T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnIt
     Index worst = 0;
     for (const int number : hven::solvers::test_support::hs_numbers()) {
         const HsProblem p = make_hs(number);
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(*p.model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(*p.model);
         EXPECT_EQ(sol.counters.verdict_refine_steps, 0) << "hs" << number;
         worst = std::max(worst, sol.counters.verdict_refine_steps);
     }
     {
         W2T7ScaledInconsistentEqualitiesModel model(1.0e8, 1.0, 2.5);
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
         EXPECT_EQ(sol.counters.verdict_refine_steps, 0) << "the exhaustion fixture pays nothing";
     }
     // THE RESTORATION-HEAVY HALF, mode by mode: the counter folds through the restoration
@@ -11069,16 +11067,16 @@ TEST(SqpDriverCertifiedFallback, T7TheVerdictRefineCostAtScaleIsFIFTEENStepsOnIt
         m.max_iter = 200;
         {
             W2T7BoxBlockedRowModel model(1.0e8, 5.0, 0.25);
-            SqpDriver driver(m);
-            const SqpSolution sol = driver.solve(model);
+            SqpSolver driver(m);
+            const SqpResult sol = driver.solve(model);
             EXPECT_EQ(sol.counters.verdict_refine_steps, 15) << "mode-independent, config-stable";
             EXPECT_EQ(sol.counters.restoration_iters, 1);
             worst = std::max(worst, sol.counters.verdict_refine_steps);
         }
         {
             InconsistentLinearizationModel model;
-            SqpDriver driver(m);
-            const SqpSolution sol = driver.solve(model);
+            SqpSolver driver(m);
+            const SqpResult sol = driver.solve(model);
             EXPECT_EQ(sol.counters.verdict_refine_steps, 0);
         }
     }
@@ -11099,10 +11097,10 @@ TEST(SqpDriverCertifiedFallback, T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneE
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
     W2T7BoxBlockedRowModel model(1.0e8, 5.0, 0.25);
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     W2T7FallbackSink sink;
     driver.attach_trace(&sink);
-    const SqpSolution sol = driver.solve(model);
+    const SqpResult sol = driver.solve(model);
 
     ASSERT_EQ(sink.fallbacks.size(), 2u);
     EXPECT_EQ(sink.fallbacks[0].verdict, SqpFallbackVerdict::kRungB) << "major 1 REFUSED";
@@ -11139,8 +11137,8 @@ TEST(SqpDriverCertifiedFallback, T7TheAttachedReportsRestorationOfferIsATROUNDIN
     opts.qp_mode = QpMode::kIpm;
     opts.max_iter = 60;
     W2T7ScaledInconsistentEqualitiesModel model(1.0e8, 1.0, 2.5);
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
 
     ASSERT_FALSE(sol.history.empty());
     const SqpIterate &requesting = sol.history.back();
@@ -11173,8 +11171,8 @@ TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeM
         opts.qp_mode = arm.mode;
         opts.max_iter = 60;
         W2T7ScaledInconsistentEqualitiesModel model(1.0e2, 2.0, 0.5);
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
         arm.counters = sol.counters;
         arm.status = sol.status;
         SCOPED_TRACE(arm.name);

@@ -5,10 +5,10 @@
 
 // tests/sqp/support/nlp_kkt_check.h — test-support only, NOT part of the public
 // library surface. The IN-TEST KKT SELF-CHECK: given a model and the
-// SqpSolution a driver returned for it, recompute the whole KKT quadruple
+// SqpResult a driver returned for it, recompute the whole KKT quadruple
 // FROM THE MODEL at the returned point.
 //
-// It deliberately does not call sqp_driver.h's evaluate_kkt. The point is to
+// It deliberately does not call sqp_solver.h's evaluate_kkt. The point is to
 // check the REPORTED quadruple (x, lambda_e, lambda_i, z) against
 // nlp_model.h's stationarity convention
 //
@@ -20,7 +20,7 @@
 // mismeasured its own residual cannot certify itself. It is the NLP analogue
 // of test_scale_smoke.cpp's self_check_kkt, which does the same for a QP.
 //
-// TASK 11 MOVED THIS OUT OF tests/test_sqp_driver.cpp, where it was a
+// TASK 11 MOVED THIS OUT OF tests/test_sqp_solver.cpp, where it was a
 // file-local helper, because the Hock-Schittkowski battery
 // (tests/test_hs_battery.cpp) needs the SAME check on 27 problems and a
 // second copy of it would be a second thing to keep correct. The code is
@@ -46,7 +46,7 @@
 
 #include <Eigen/Dense>
 
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/nlp_model.h>
 
 #include <hven/core/compiler.h>
@@ -65,7 +65,7 @@ struct NlpKktResidual {
 
 // bound_tol is the GEOMETRIC ACTIVITY TOLERANCE: a variable within it of a
 // bound is treated as sitting on that bound, matching SqpOptions::feas_tol's
-// double duty (see sqp_types.h). Callers pass opts.feas_tol.
+// double duty (see sqp_solver_types.h). Callers pass opts.feas_tol.
 //
 // NON-FINITE INPUT IS SCORED, NOT THROWN ON: if any quantity this check
 // consumes is non-finite -- the returned quadruple, the model's gradient or
@@ -93,7 +93,7 @@ inline NlpKktResidual nlp_kkt_unscorable() {
     return r;
 }
 
-inline NlpKktResidual self_check_kkt(const NlpModel &model, const SqpSolution &sol,
+inline NlpKktResidual self_check_kkt(const NlpModel &model, const SqpResult &sol,
                                      double bound_tol) {
     NlpKktResidual r;
     const Index n = model.n();

@@ -1048,7 +1048,7 @@ TEST(QpEngine, MaxIterBudgetIsReported) {
 // exit always re-prices after the last mutation; a kMaxIter exit does not,
 // so a bound the drop rule released on the final minor leaves its price
 // behind. Latent under kWalk (nothing reads QpSolution::z there -- see
-// sqp_driver.h), FATAL under kSsn (ssn_start_from_qp_seed copies the field
+// sqp_solver.h), FATAL under kSsn (ssn_start_from_qp_seed copies the field
 // into the next subproblem's seed, where the absent-bound test throws).
 //
 // THE FIXTURE IS THE MECHANISM, MINIMALLY. Both variables are seeded pinned

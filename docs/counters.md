@@ -65,8 +65,8 @@ correctness or to gate a test or benchmark.
 - **`qp/`** — documented as the component lands.
 - **`globalization/`** — documented as the component lands.
 - **`warmstart/`** — documented as the component lands.
-- **`drivers/`** — `InteriorPointSolver::kkt_analysis_count()`
-  (`include/hven/drivers/interior_point_solver.h`) is the one counter this
+- **`drivers/`** — `IpmSolver::kkt_analysis_count()`
+  (`include/hven/drivers/ipm_solver.h`) is the one counter this
   component exposes so far. +1 per KKT sparsity analysis this solver instance
   has laid, over the object's LIFETIME rather than per call: it moves once at
   `set_nlp()` and once more at any solve entry that finds the model's

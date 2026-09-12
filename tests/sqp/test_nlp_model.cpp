@@ -485,7 +485,7 @@ TEST(NlpModelEvalValues, DefaultMatchesEvalFCeCiOnEqualitiesOnly) {
 // so a caller reading NlpModel::eval_values on it must see the WRONG
 // (overridden) number, not silently fall back to calling eval_f/eval_ce/
 // eval_ci behind the interface. This is the mechanism the whole task rests
-// on: sqp_driver.h's three call sites call model.eval_values(...) through
+// on: sqp_solver.h's three call sites call model.eval_values(...) through
 // a `const NlpModel &`, so if virtual dispatch here were somehow bypassed
 // (a non-virtual eval_values, or a caller that memoized the base class's
 // answer) every override in the tree -- including F7's -- would be dead
@@ -509,7 +509,7 @@ TEST(NlpModelEvalValues, OverrideActuallyDispatches) {
 }
 
 // eval_values IS CALLABLE THROUGH A BASE-CLASS REFERENCE -- the exact shape
-// every sqp_driver.h call site uses (const NlpModel&, never the concrete
+// every sqp_solver.h call site uses (const NlpModel&, never the concrete
 // type) -- so a model whose override is only reachable through its own
 // concrete type would still be a silent no-op from the driver's point of
 // view. WrongValuesModel's DEFAULT-IMPL SIBLING check (base_'s own model,

@@ -45,7 +45,7 @@ struct WarmExtension {
 /// THE STAMP IS A DECLARATION-IDENTITY KEY: a canonical digest of the DECLARED
 /// problem -- its dimensions, with the fixed-variable treatment's own rows
 /// subtracted, and its declared bound STRUCTURE -- computed from the
-/// AggregateDeclaration both engines consume (model/structure_identity.h's
+/// AssemblyDeclaration both engines consume (model/structure_identity.h's
 /// declaration_key). It is therefore ENGINE-INDEPENDENT and
 /// TREATMENT-INDEPENDENT, which is what makes one value mean the same thing at
 /// both ends of a hand-off.

@@ -59,8 +59,8 @@ endif()
 ################################################################################
 
 target_sources(hven PRIVATE
-    model/aggregate_declaration.cpp
-    model/nlp_model_aggregate.cpp
+    model/assembly_declaration.cpp
+    model/nlp_model_assembly.cpp
     model/nlp_problem_model.cpp
 )
 
@@ -77,16 +77,16 @@ target_sources(hven PRIVATE
 )
 
 ################################################################################
-# Interior-point engine — the top-level InteriorPointSolver algorithm
-# (drivers/), the NLPProblem contract with its adapter and the
+# Interior-point engine — the top-level IpmSolver algorithm
+# (drivers/), the NlpTripletModel contract with its adapter and the
 # partitioned-evaluation NonLinearProgram engine (model/), and the barrier /
 # interior-point machinery under include/hven/detail/ (interior/ +
 # globalization/), split along those same seams.
 ################################################################################
 
 target_sources(hven PRIVATE
-    drivers/interior_point_solver.cpp
-    drivers/interior_point_solver_globalization.cpp
+    drivers/ipm_solver.cpp
+    drivers/ipm_solver_globalization.cpp
     drivers/ipm_options.cpp
     drivers/solver_init.cpp
     model/non_linear_program.cpp
@@ -131,10 +131,10 @@ target_include_directories(hven PRIVATE
 #     rewritten to `x <= 0.0` and stop rejecting NaN -- and a battery pins
 #     that premise by disassembling this TU.
 #
-#   - drivers/aggregate_eval_seam.cpp and drivers/sqp_driver.cpp: the driver's
-#     consumer-side seam and the major loop itself (SqpDriver::solve_impl plus
+#   - drivers/assembly_eval_seam.cpp and drivers/sqp_solver.cpp: the driver's
+#     consumer-side seam and the major loop itself (SqpSolver::solve_impl plus
 #     everything it orchestrates), together with the free functions
-#     drivers/sqp_driver.h declares alongside the class. That TU's banner
+#     drivers/sqp_solver.h declares alongside the class. That TU's banner
 #     carries the counter-identity bar any redraw of the boundary must clear,
 #     and the ruling under which the TR update functions travel with the loop
 #     while the TR policy constants stay in globalization. The object-file
@@ -146,7 +146,7 @@ target_include_directories(hven PRIVATE
 #     selects a TU for it on the same ground sqp_options.cpp stands on; it
 #     carries the same `!(x > 0.0)` NaN-rejection idiom and names that file's
 #     banner for the flag premise. The APPLYING of the factors is not here --
-#     it stays beside the values it multiplies, in drivers/aggregate_eval_seam.cpp.
+#     it stays beside the values it multiplies, in drivers/assembly_eval_seam.cpp.
 #
 #   - globalization/sqp/funnel.cpp: FunnelStrategy's acceptance state machine,
 #     the first carve whose arithmetic is re-associable under -ffast-math; its
@@ -156,7 +156,7 @@ target_include_directories(hven PRIVATE
 #     step-recovery tiers (second-order correction, elastic l1 exact-penalty
 #     tier, restoration phase's feasibility-model wrapper), because soc.h and
 #     restoration.h both declare themselves not self-contained (they need
-#     NlpEval, which only drivers/sqp_driver.h defines) and because the three
+#     NlpEval, which only drivers/sqp_solver.h defines) and because the three
 #     tiers are entered from one place in solve_impl.
 #
 #   - warmstart/warm_start.cpp and warmstart/continuation.cpp: the interior-
@@ -175,7 +175,7 @@ target_include_directories(hven PRIVATE
 #     as header siblings. The only boundary this carve introduces is
 #     engine-to-caller, crossed once per QP subproblem. The `detail::` free
 #     functions above QpEngine stay inline in the header: tests, bench and
-#     drivers/sqp_driver.cpp name them directly.
+#     drivers/sqp_solver.cpp name them directly.
 #
 #   - qp/ssn_engine.cpp: SsnEngine's safeguarded semismooth-Newton iteration --
 #     every member function of it except the constructor and the two trivial
@@ -197,15 +197,15 @@ target_include_directories(hven PRIVATE
 #     engine-to-caller -- solve(), finish_deferred_certification(),
 #     discard_deferred_certification() -- crossed at most twice per QP
 #     subproblem. The `detail::` free functions and constants above SsnEngine
-#     stay inline in the header: tests, bench, drivers/sqp_driver.cpp and
+#     stay inline in the header: tests, bench, drivers/sqp_solver.cpp and
 #     warmstart/warm_start.h name them directly.
 ################################################################################
 
 target_sources(hven PRIVATE
-    drivers/aggregate_eval_seam.cpp
+    drivers/assembly_eval_seam.cpp
     drivers/console_trace_sink.cpp
     drivers/problem_scaling.cpp
-    drivers/sqp_driver.cpp
+    drivers/sqp_solver.cpp
     drivers/sqp_options.cpp
     drivers/sqp_print.cpp
     drivers/trace.cpp
@@ -323,7 +323,7 @@ target_sources(hven PRIVATE
 # That file also carries the 2026-08-25 re-prove of bar 2 under the Release
 # flag set that added -falign-loops=32, which recompiles every object here.
 set(_hven_pch_sources
-    drivers/interior_point_solver.cpp
+    drivers/ipm_solver.cpp
     drivers/ipm_options.cpp
     model/non_linear_program.cpp
     model/nlp_adapter.cpp
@@ -357,24 +357,24 @@ endif()
 # number here forces that decision instead of letting the new TU inherit a
 # default nobody measured.
 #
-# 29 as of model/aggregate_declaration.cpp. That TU stays OUT of the opt-in
+# 29 as of model/assembly_declaration.cpp. That TU stays OUT of the opt-in
 # list: the list admits a source only on measured evidence (faster with the
 # PCH, and byte-identical object), and this one has neither measurement. Out is
 # the unmeasured default and costs nothing but its own compile time -- it is a
 # small TU that includes the two piece headers and fmt, not the shared block the
 # PCH prefixes.
 #
-# 30 as of model/nlp_model_aggregate.cpp, and it stays out on the same footing:
+# 30 as of model/nlp_model_assembly.cpp, and it stays out on the same footing:
 # no measurement exists for it, and out is the unmeasured default. It includes
 # the model contract, the model interface, Eigen sparse and fmt -- a different
 # header set from the one src/hven_pch.h prefixes, which is the property that
 # has failed bar 2 for every TU measured so far.
 #
-# 31 as of drivers/aggregate_eval_seam.cpp, the SQP driver's consumer-side
+# 31 as of drivers/assembly_eval_seam.cpp, the SQP driver's consumer-side
 # binding onto the provider contract. It stays OUT on the same footing as the
 # two above -- no measurement exists for it, and out is the unmeasured default
 # -- and on the stronger prior the SQP-side carves established: it includes
-# drivers/sqp_driver.h (for NlpEval) plus the model contract, which is a
+# drivers/sqp_solver.h (for NlpEval) plus the model contract, which is a
 # different header set in a different order from the one src/hven_pch.h
 # prefixes, and that property has failed bar 2 for all eight SQP-side TUs
 # measured so far.
@@ -476,7 +476,7 @@ endif()
 # 44 as of drivers/console_trace_sink.cpp (M6 W5 T8.7): both engines' console
 # tables, rendered from the trace stream. NOT a PCH source, on the same
 # unmeasured-default footing as the fifteen above -- it includes its own header
-# (drivers/trace.h, fmt/color.h, <cstdio>), drivers/sqp_driver.h,
+# (drivers/trace.h, fmt/color.h, <cstdio>), drivers/sqp_solver.h,
 # detail/interior/iterate_info.h and three standard headers, again a different
 # set in a different order from src/hven_pch.h's prefix.
 #
@@ -490,7 +490,7 @@ endif()
 # left as it ran, recording a measurement of a file that no longer exists.
 # THIS IS THE FIRST TIME THE COUNT HAS GONE DOWN, and it goes down because the
 # engine has no printing TU left at all: there is no fmt::print anywhere in
-# src/drivers/interior_point_solver.cpp.
+# src/drivers/ipm_solver.cpp.
 set(_hven_expected_source_count 42)
 
 # Everything below runs DEFERRED, at the end of the directory scope that

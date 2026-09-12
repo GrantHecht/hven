@@ -665,7 +665,7 @@ TEST(SsnEngineLocal, SeededZOnAnAbsentBoundThrows) {
 // =============================================================================
 //
 // The funnel driver solves EVERY subproblem under a per-solve TR override
-// (sqp_driver.h:5021, and SOC re-solves at :5397) and reads QpSolution's
+// (sqp_solver.h:5021, and SOC re-solves at :5397) and reads QpSolution's
 // tr_active back to adapt the radius (:5259). The kernel had no such input, and
 // the caller-side workaround -- folding [x0-D, x0+D] into lower/upper -- cannot
 // express the TR-pin/real-bound distinction, so the driver's grow/shrink logic
@@ -3057,7 +3057,7 @@ TEST(SsnEngineLocal, SafeguardCountersAreLive) {
     }
 }
 
-// SqpOptions::qp_mode and SqpCounters::ssn land in sqp_types.h ahead of the
+// SqpOptions::qp_mode and SqpCounters::ssn land in sqp_solver_types.h ahead of the
 // driver that will read them (Task 5). Until then the default must be the
 // walk and the aggregate must be zero -- this is the guard on the
 // byte-identity invariant the task carries.

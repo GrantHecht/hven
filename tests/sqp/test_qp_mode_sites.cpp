@@ -17,7 +17,7 @@
 //        call sites are the ones it names, and nothing in the type system says
 //        so.
 //
-//        The scan reads src/drivers/sqp_driver.cpp and requires every
+//        The scan reads src/drivers/sqp_solver.cpp and requires every
 //        `QpEngine::solve` / SSN `solve` / `refine_on_face` invocation to be
 //        covered by a nearby emit or by an explicit `// trace:` marker.
 //
@@ -38,13 +38,13 @@
 
 #include <gtest/gtest.h>
 
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/trace_writer.h>
 
 #include "support/hs_problems.h"
 
-#ifndef HVEN_SQP_DRIVER_SOURCE
-#error "HVEN_SQP_DRIVER_SOURCE must be defined by tests/sqp/CMakeLists.txt"
+#ifndef HVEN_SQP_SOLVER_SOURCE
+#error "HVEN_SQP_SOLVER_SOURCE must be defined by tests/sqp/CMakeLists.txt"
 #endif
 
 namespace hven::solvers {
@@ -106,11 +106,11 @@ SiteRun run_cell(int hs, QpMode mode) {
     opts.qp_mode = mode;
     opts.max_iter = 60;
     const HsProblem p = make_hs(hs);
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     std::ostringstream os;
     JsonLinesTraceSink json(os);
     driver.attach_trace(&json);
-    const SqpSolution sol = driver.solve(*p.model);
+    const SqpResult sol = driver.solve(*p.model);
 
     SiteRun r;
     r.sites = site_census(os.str());
@@ -269,7 +269,7 @@ TEST(QpModeSites, TheLadderRungCountIsTheClimbAndNotTheMajorCount) {
 //       window and covered both calls.
 //
 //       The new rule sees two EMITTING sites with ZERO emits between the first
-//       and the second, and fails naming the FIRST -- "sqp_driver.cpp:1169:
+//       and the second, and fails naming the FIRST -- "sqp_solver.cpp:1169:
 //       expected exactly 1 qp.mode emit ... found 0".
 //
 //   (b) AN EMPTY MARKER. Truncate one silent marker to
@@ -282,7 +282,7 @@ TEST(QpModeSites, TheLadderRungCountIsTheClimbAndNotTheMajorCount) {
 //       the truncated line is not a marker.
 //
 //       It fails TWICE: the malformed check names the line, and the pairing then
-//       reports its call site ("sqp_driver.cpp:4131: ... found 0") as uncovered.
+//       reports its call site ("sqp_solver.cpp:4131: ... found 0") as uncovered.
 //
 //   (c) A CALL SHARING A MARKER'S WINDOW (fix round 2, I-1). Plant
 //       `const QpSolution extra = engine_.solve(qp, ipqp_overrides);` ONE line
@@ -300,7 +300,7 @@ TEST(QpModeSites, TheLadderRungCountIsTheClimbAndNotTheMajorCount) {
 //       site below (the refine call), so the planted call is unclaimed and
 //       therefore EMITTING.
 //
-//       All three offsets now fail alike, with "sqp_driver.cpp:4133: expected
+//       All three offsets now fail alike, with "sqp_solver.cpp:4133: expected
 //       exactly 1 qp.mode emit ... found 0".
 //
 // WHAT IT DELIBERATELY DOES NOT DO. It does not parse C++. It reads LINES, skips
@@ -347,8 +347,8 @@ struct Marker {
 
 std::vector<std::string> read_driver_source() {
     std::vector<std::string> lines;
-    std::ifstream in{std::filesystem::path(HVEN_SQP_DRIVER_SOURCE)};
-    EXPECT_TRUE(in.good()) << "could not open " << HVEN_SQP_DRIVER_SOURCE;
+    std::ifstream in{std::filesystem::path(HVEN_SQP_SOLVER_SOURCE)};
+    EXPECT_TRUE(in.good()) << "could not open " << HVEN_SQP_SOLVER_SOURCE;
     std::string l;
     while (std::getline(in, l)) {
         lines.push_back(l);
@@ -391,7 +391,7 @@ bool is_call_line(const std::string &l) {
 }
 
 /// AN EMIT **CALL**, not the emit helper's own definition. Without this the
-/// count would treat `void SqpDriver::emit_trace_qp_mode(...) {` as an emit --
+/// count would treat `void SqpSolver::emit_trace_qp_mode(...) {` as an emit --
 /// proven by mutation before fix round 1, when a bare call planted beside that
 /// definition passed.
 bool is_emit_call(const std::string &l) {
@@ -537,8 +537,8 @@ TEST(QpModeSiteScan, TheScanActuallyReadsTheDriverAndFindsItsKernelCalls) {
     // THE VACUOUS-PASS GUARD, and it comes first for the reason
     // tests/core/test_core_layering.cpp's does: a wrong path, a renamed file or
     // a missing definition would make the rule below check nothing and pass.
-    ASSERT_TRUE(std::filesystem::is_regular_file(std::filesystem::path(HVEN_SQP_DRIVER_SOURCE)))
-        << "HVEN_SQP_DRIVER_SOURCE does not name a file: " << HVEN_SQP_DRIVER_SOURCE;
+    ASSERT_TRUE(std::filesystem::is_regular_file(std::filesystem::path(HVEN_SQP_SOLVER_SOURCE)))
+        << "HVEN_SQP_SOLVER_SOURCE does not name a file: " << HVEN_SQP_SOLVER_SOURCE;
 
     const std::vector<std::string> lines = read_driver_source();
     ASSERT_GT(lines.size(), 1000u) << "the driver TU is far shorter than it should be";
@@ -582,7 +582,7 @@ TEST(QpModeSiteScan, TheScanActuallyReadsTheDriverAndFindsItsKernelCalls) {
     // does not know.
     std::string listing;
     for (const Marker &m : markers) {
-        listing += "\n  sqp_driver.cpp:" + std::to_string(m.line) + "  " + m.reason;
+        listing += "\n  sqp_solver.cpp:" + std::to_string(m.line) + "  " + m.reason;
     }
     std::cout << "qp.mode SILENT CALL SITES (" << markers.size() << "):" << listing << "\n";
     // Every marker must CONSUME a call site, or it is decoration that has drifted
@@ -591,7 +591,7 @@ TEST(QpModeSiteScan, TheScanActuallyReadsTheDriverAndFindsItsKernelCalls) {
     const MarkerBinding binding = bind_markers(sites, markers);
     std::string orphan_report;
     for (const Marker &m : binding.orphans) {
-        orphan_report += "\n  sqp_driver.cpp:" + std::to_string(m.line) + "  " + m.reason;
+        orphan_report += "\n  sqp_solver.cpp:" + std::to_string(m.line) + "  " + m.reason;
     }
     EXPECT_TRUE(binding.orphans.empty())
         << "a silent marker must sit within " << kMarkerBefore
@@ -648,7 +648,7 @@ TEST(QpModeSiteScan, EveryKernelCallSitePairsWithItsOwnQpModeEmit) {
         if (found == 1) {
             continue;
         }
-        problems.push_back("sqp_driver.cpp:" + std::to_string(s.first) +
+        problems.push_back("sqp_solver.cpp:" + std::to_string(s.first) +
                            (s.last != s.first ? "-" + std::to_string(s.last) : "") +
                            ": expected exactly 1 qp.mode emit before the next EMITTING kernel "
                            "call, found " +

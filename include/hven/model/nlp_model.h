@@ -47,7 +47,7 @@
 // whose value happens to be 0.0 at some particular x must still be emitted,
 // as a structural zero (Eigen's setFromTriplets preserves explicit zeros).
 // The warm-start machinery keys its cached-factorization structural hash
-// (warm_start.h's WarmStart::structure_hash, over qp_engine.h's
+// (warm_start.h's SqpWarmStart::structure_hash, over qp_engine.h's
 // detail::structural_hash) on these patterns alone, so a pattern that shifts
 // with x or with the arguments silently forfeits hot starts or matches a hash
 // whose symbolic factorization no longer describes the matrix -- neither

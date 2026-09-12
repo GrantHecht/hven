@@ -94,7 +94,7 @@ constexpr double kAllocInf = std::numeric_limits<double>::infinity();
 /// n = 2, one equality row, one upper-bounded row and one lower-bounded row,
 /// so an assembly runs the objective piece and both constraint pieces and the
 /// inequality piece owns the Hessian.
-struct AllocTestProblem : hven::solvers::NLPProblem {
+struct AllocTestProblem : hven::solvers::NlpTripletModel {
     int num_vars() const override { return 2; }
     int num_cons() const override { return 3; }
     int num_jac_nonzeros() const override { return 6; }

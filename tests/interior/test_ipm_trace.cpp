@@ -49,11 +49,11 @@
 #include "../common_support/console_capture.h"
 #include "hven/core/ledger.h"
 #include "hven/drivers/console_trace_sink.h"
-#include "hven/drivers/interior_point_solver.h"
-#include "hven/drivers/sqp_driver.h"
+#include "hven/drivers/ipm_solver.h"
+#include "hven/drivers/sqp_solver.h"
 #include "hven/drivers/trace_writer.h"
 #include "hven/model/nlp_model.h"
-#include "hven/model/nlp_problem.h"
+#include "hven/model/nlp_triplet_model.h"
 #include "hven/model/non_linear_program.h"
 
 #include "declared_route.h" // NOLINT(build/include_subdir)
@@ -70,7 +70,7 @@ constexpr double kInfinity = std::numeric_limits<double>::infinity();
 /// @brief The canonical HS071 cell -- the same problem `test_ipm_solver_entry.cpp`
 /// pins the interior-point driver's optimum on, so the stream is taken over a
 /// trajectory that is already asserted elsewhere.
-struct Hs071Problem : NLPProblem {
+struct Hs071Problem : NlpTripletModel {
     int num_vars() const override { return 4; }
     int num_cons() const override { return 2; }
     int num_jac_nonzeros() const override { return 8; }
@@ -140,7 +140,7 @@ struct Hs071Problem : NLPProblem {
 /// HS071's, so a solver that has just solved HS071 must lay a fresh analysis to
 /// solve this one -- which is the situation M6 W5 T8.7 fix1's L3 pins the
 /// per-call factorization delta across.
-struct TwoVarProblem : NLPProblem {
+struct TwoVarProblem : NlpTripletModel {
     int num_vars() const override { return 2; }
     int num_cons() const override { return 1; }
     int num_jac_nonzeros() const override { return 2; }
@@ -204,7 +204,7 @@ struct TwoVarProblem : NLPProblem {
 /// probe: whether Pardiso reports a duplicated equality row as an inertia
 /// mismatch or as a perturbed pivot is the BACKEND's choice and would make the
 /// pin MKL-only.
-struct NonconvexProblem : NLPProblem {
+struct NonconvexProblem : NlpTripletModel {
     int num_vars() const override { return 2; }
     int num_cons() const override { return 1; }
     int num_jac_nonzeros() const override { return 2; }
@@ -261,7 +261,7 @@ Eigen::VectorXd nonconvex_start() {
 hven_interior_tests::IpmCase nonconvex_solver() {
     hven_interior_tests::IpmCase c{
         hven::solvers::make_nlp_program(std::make_shared<NonconvexProblem>()),
-        std::make_unique<hven::solvers::InteriorPointSolver>()};
+        std::make_unique<hven::solvers::IpmSolver>()};
     auto o = c.engine->options();
     o.common.print_level = 10;
     o.max_refac = 0;
@@ -281,7 +281,7 @@ Eigen::VectorXd hs071_start() {
     return x0;
 }
 
-/// @brief The SQP side of pin (v): the smallest model that makes `SqpDriver`
+/// @brief The SQP side of pin (v): the smallest model that makes `SqpSolver`
 /// write a `sqp.solve` pair -- min (x0-2)^2 + (x1+1)^2 s.t. x0 + x1 = 1,
 /// 0 <= x <= 4. Nothing about it is asserted except that its stream exists.
 class TinySqpModel : public NlpModel {
@@ -511,7 +511,7 @@ struct CallbackOracle {
 
 TEST(IpmTrace, IterCountEqualsTheReportedIterationsAndTheCallbackInvocations) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -537,7 +537,7 @@ TEST(IpmTrace, IterCountEqualsTheReportedIterationsAndTheCallbackInvocations) {
 
 TEST(IpmTrace, EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -598,7 +598,7 @@ TEST(IpmTrace, EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder) {
 
 TEST(IpmTrace, TheLastIterLineEqualsTheLastRecordTheCallbackSaw) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -626,7 +626,7 @@ TEST(IpmTrace, TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProxima
     // Rule 5, the FIRST of the record's two -1 conventions: "proximal mode off".
     // The classic path writes -1 on every iteration, which is not a shift of -1.
     const auto classic_program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver classic;
+    hven::solvers::IpmSolver classic;
     hven::solvers::IpmResult classic_result;
     {
         auto o = classic.options();
@@ -644,7 +644,7 @@ TEST(IpmTrace, TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProxima
     }
 
     const auto prox_program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver prox;
+    hven::solvers::IpmSolver prox;
     hven::solvers::IpmResult prox_result;
     {
         auto o = prox.options();
@@ -700,7 +700,7 @@ bool looks_like_the_early_exit_site(const std::string &line) {
 TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolveDoesNot) {
     const auto converged_program =
         hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver converged;
+    hven::solvers::IpmSolver converged;
     hven::solvers::IpmResult converged_result;
     {
         auto o = converged.options();
@@ -728,7 +728,7 @@ TEST(IpmTrace, AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolve
 
     const auto truncated_program =
         hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver truncated;
+    hven::solvers::IpmSolver truncated;
     hven::solvers::IpmResult truncated_result;
     {
         auto o = truncated.options();
@@ -759,7 +759,7 @@ TEST(IpmTrace, ThePerturbedPivotCountIsTheBackendsOwnAndNeverAFabricatedZero) {
     // BOTH ARMS ARE COMPILED FROM ONE SOURCE and the backend picks which runs,
     // so the macOS lane executes the Accelerate arm without an edit here.
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -805,7 +805,7 @@ TEST(IpmTrace, ThePerturbedPivotCountIsTheBackendsOwnAndNeverAFabricatedZero) {
 
 TEST(IpmTrace, SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -831,7 +831,7 @@ TEST(IpmTrace, SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine) {
 
 TEST(IpmTrace, SolveBeginCarriesHs071sDimensionsCensusAndSettings) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -868,7 +868,7 @@ TEST(IpmTrace, SolveBeginCarriesHs071sDimensionsCensusAndSettings) {
 
 TEST(IpmTrace, SolveOptimizeReportsTwoPhasesAndNumbersItsIterLinesByPhase) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -917,7 +917,7 @@ TEST(IpmTrace, SolveOptimizeReportsTwoPhasesAndNumbersItsIterLinesByPhase) {
 TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {
     const auto converged_program =
         hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver converged;
+    hven::solvers::IpmSolver converged;
     hven::solvers::IpmResult converged_result;
     {
         auto o = converged.options();
@@ -940,7 +940,7 @@ TEST(IpmTrace, SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits) {
 
     const auto truncated_program =
         hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver truncated;
+    hven::solvers::IpmSolver truncated;
     hven::solvers::IpmResult truncated_result;
     {
         auto o = truncated.options();
@@ -963,7 +963,7 @@ TEST(IpmTrace, ARefusedCallWritesNoLineAtAll) {
     // The `begin` emit sits AFTER every argument refusal, so a call that never
     // ran leaves no opening line dangling in the artifact.
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -987,7 +987,7 @@ TEST(IpmTrace, ARefusedCallWritesNoLineAtAll) {
 
 TEST(IpmTrace, AttachingASinkMovesNoResultField) {
     const auto bare_program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver bare;
+    hven::solvers::IpmSolver bare;
     hven::solvers::IpmResult bare_result;
     {
         auto o = bare.options();
@@ -1006,7 +1006,7 @@ TEST(IpmTrace, AttachingASinkMovesNoResultField) {
     const Eigen::VectorXd bare_x = bare_result.x;
 
     const auto traced_program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver traced;
+    hven::solvers::IpmSolver traced;
     hven::solvers::IpmResult traced_result;
     {
         auto o = traced.options();
@@ -1034,7 +1034,7 @@ TEST(IpmTrace, AttachingASinkMovesNoResultField) {
 
 TEST(IpmTrace, DetachingMidLifetimeStopsTheStreamAndChangesNothingElse) {
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -1065,16 +1065,16 @@ TEST(IpmTrace, SeqIsContiguousAcrossAnSqpSolveThenAnIpmSolveOnOneSinkAtDepthZero
 
     SqpOptions opts;
     opts.max_iter = 20;
-    SqpDriver driver(opts);
+    SqpSolver driver(opts);
     driver.attach_trace(&sink);
     TinySqpModel model;
-    const SqpSolution sqp_out = driver.solve(model, model.start_point());
+    const SqpResult sqp_out = driver.solve(model, model.start_point());
     ASSERT_GT(sink.lines_written(), 0);
     EXPECT_EQ(sqp_out.status, SolveStatus::kOptimal);
     const Index after_sqp = sink.lines_written();
 
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -1184,7 +1184,7 @@ std::string mask_wall_clock(const std::string &stream) {
 hven_interior_tests::IpmCase silent_hs071() {
     hven_interior_tests::IpmCase c{
         hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>()),
-        std::make_unique<hven::solvers::InteriorPointSolver>()};
+        std::make_unique<hven::solvers::IpmSolver>()};
     auto o = c.engine->options();
     o.common.print_level = 10;
     c.engine->set_options(std::move(o));
@@ -1467,7 +1467,7 @@ TEST(IpmTrace, SolveBeginCarriesTheEightFieldsTheConsoleTableNeeds) {
     // event: the four acceptable tolerances, the layout width, and the three
     // `print_stats` inputs.
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -1579,7 +1579,7 @@ TEST(IpmPhaseEvents, TheLineCountIsTheDeclaredArithmeticOnThreePhaseShapes) {
     // `.superpowers/w5-t8-7b-progress.md` §1b.
     auto run = [](int which) {
         const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-        hven::solvers::InteriorPointSolver solver;
+        hven::solvers::IpmSolver solver;
         hven::solvers::IpmResult result;
         {
             auto o = solver.options();
@@ -1667,7 +1667,7 @@ TEST(IpmPhaseEvents, TheOrderIsAnalysisThenTheBracketWithTheExitInsideIt) {
     // `init_impl` runs before the phase loop for the first phase and at the end
     // of the previous phase's body for every later one.
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -1732,7 +1732,7 @@ TEST(IpmPhaseEvents, TheExitEventEmbedsTheReportTheSolveReturns) {
     // everything except `phase_seconds`, which is wall-clock and never asserted
     // (CLAUDE.md §7).
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -1808,7 +1808,7 @@ TEST(IpmDeferral, AHookInstalledFromInsideAFactorTimeMessageReachesTheNEXTSolve)
     // branch and armed the hook mid-iteration; now it lands at the next solve's
     // entry, and THIS solve is bitwise the solve it would have been.
     struct HookInstallingSink final : TraceSink {
-        InteriorPointSolver *solver = nullptr;
+        IpmSolver *solver = nullptr;
         Index *hook_calls = nullptr;
         Index messages = 0;
         Index rows = 0;
@@ -1883,7 +1883,7 @@ TEST(IpmDeferral, TheSolveIsBitwiseUnchangedByASinkThatSetsAHookMidSolve) {
     // half is the shipped writer, unmodified, and the installing half is a
     // separate sink watching the same stream.
     struct Installer final : TraceSink {
-        InteriorPointSolver *solver = nullptr;
+        IpmSolver *solver = nullptr;
         bool arm = false;
         bool done = false;
         void on_ipm_message(const IpmMessageTraceEvent &e) override {
@@ -2157,7 +2157,7 @@ TEST(IpmDeferral, TheLastWriteWinsWhenASinkAndACallbackBothSetInOneSolve) {
     // AFTERWARDS, which is the order the rule is about; the `inertia_exhausted`
     // fixture exits after a single iteration and cannot express it.
     struct InstallingSink final : TraceSink {
-        InteriorPointSolver *solver = nullptr;
+        IpmSolver *solver = nullptr;
         Index *sink_installed_calls = nullptr;
         bool installed = false;
         void on_ipm_iter(const IpmIterTraceEvent &) override {
@@ -2182,7 +2182,7 @@ TEST(IpmDeferral, TheLastWriteWinsWhenASinkAndACallbackBothSetInOneSolve) {
     };
 
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -2236,7 +2236,7 @@ TEST(IpmConsole, PrintLevelZeroWritesTheTableAndTenWritesNothing) {
     std::string printed;
     {
         const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-        hven::solvers::InteriorPointSolver solver;
+        hven::solvers::IpmSolver solver;
         hven::solvers::IpmResult result;
         auto o = solver.options();
         o.common.print_level = 0;
@@ -2287,7 +2287,7 @@ TEST(IpmConsole, TheConsoleDoesNotDisplaceAUserSink) {
     }
     auto run = [](int print_level) {
         const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-        hven::solvers::InteriorPointSolver solver;
+        hven::solvers::IpmSolver solver;
         hven::solvers::IpmResult result;
         auto o = solver.options();
         o.common.print_level = print_level;
@@ -2367,7 +2367,7 @@ TEST(IpmConsole, AttachTraceDuringASolveIsRefusedAndTheConsoleRunsOnUnbroken) {
 
     auto printing_solve = [](bool attack) {
         const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-        hven::solvers::InteriorPointSolver solver;
+        hven::solvers::IpmSolver solver;
         hven::solvers::IpmResult result;
         auto o = solver.options();
         o.common.print_level = 0;
@@ -2407,7 +2407,7 @@ TEST(IpmConsole, AttachTraceDuringASolveIsRefusedAndTheConsoleRunsOnUnbroken) {
 
     // ... and it is legal again the moment the solve has returned.
     const auto after_program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver after;
+    hven::solvers::IpmSolver after;
     hven::solvers::IpmResult after_result;
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
@@ -2427,7 +2427,7 @@ TEST(IpmConsole, ASinkThatDetachesItselfInsideOnIpmIterThrowsRatherThanCrashing)
     // pinned is that the process leaves through an exception rather than a
     // signal.
     struct SelfDetachingSink final : TraceSink {
-        InteriorPointSolver *solver = nullptr;
+        IpmSolver *solver = nullptr;
         Index rows = 0;
         void on_ipm_iter(const IpmIterTraceEvent &) override {
             ++rows;
@@ -2445,7 +2445,7 @@ TEST(IpmConsole, ASinkThatDetachesItselfInsideOnIpmIterThrowsRatherThanCrashing)
         void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
     };
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-    hven::solvers::InteriorPointSolver solver;
+    hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
     {
         auto o = solver.options();
@@ -2463,7 +2463,7 @@ TEST(IpmConsole, TheWideLayoutIsTheSolversOwnOptionAndReachesItsConsole) {
     std::string printed;
     {
         const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
-        hven::solvers::InteriorPointSolver solver;
+        hven::solvers::IpmSolver solver;
         hven::solvers::IpmResult result;
         auto o = solver.options();
         o.common.print_level = 0;

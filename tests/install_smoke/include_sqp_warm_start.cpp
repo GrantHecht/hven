@@ -5,7 +5,7 @@
 // transitive includes, this TU does not compile. Why, and which W5 tasks depend
 // on it: this directory's CMakeLists.txt.
 
-// W5 T8.5 PROMOTED `WarmStart` out of `detail/` into `warmstart/` as
+// W5 T8.5 PROMOTED `SqpWarmStart` out of `detail/` into `warmstart/` as
 // `SqpWarmStart` -- the LABELLED SQP-ONLY native warm-start entry beside the
 // shared `WarmStartData` payload. That move makes a header that was internal
 // into a header a consumer includes, and it drags `detail/qp/working_set.h`
@@ -26,7 +26,7 @@ int standalone_include_sqp_warm_start() {
     hven::solvers::SqpWarmStart warm;
     const bool cold = !warm.valid && warm.structure_hash == 0 && warm.hot == nullptr;
     const bool working_set_is_reachable = warm.qp_working_set.n() == 0;
-    // The `WarmStart` alias is deliberately NOT checked here: it lives in
+    // The `SqpWarmStart` alias is deliberately NOT checked here: it lives in
     // `detail/warmstart/warm_start.h`, and including that would defeat the
     // point of this TU, which is that the PUBLIC header stands alone.
     return (cold && working_set_is_reachable) ? 1 : 0;

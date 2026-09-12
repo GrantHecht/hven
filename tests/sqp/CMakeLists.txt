@@ -23,7 +23,7 @@
 set(HVEN_SQP_TEST_SOURCES
     test_accelerate_probes.cpp
     test_activity_telemetry.cpp
-    test_aggregate_eval_seam.cpp
+    test_assembly_eval_seam.cpp
     test_b1_gate.cpp
     test_bench_dump.cpp
     test_border_ops.cpp
@@ -67,7 +67,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_scale_problems.cpp
     test_scale_smoke.cpp
     test_schur.cpp
-    test_sqp_driver.cpp
+    test_sqp_solver.cpp
     test_sqp_restoration.cpp
     test_sqp_warm_currency.cpp
     test_ssn_engine.cpp
@@ -110,7 +110,7 @@ target_include_directories(hven_sqp_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 # test asserts the file exists and contains the invocations it expects, so a
 # wrong path fails loudly rather than scanning nothing.
 target_compile_definitions(hven_sqp_tests
-    PRIVATE HVEN_SQP_DRIVER_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}/../../src/drivers/sqp_driver.cpp")
+    PRIVATE HVEN_SQP_SOLVER_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}/../../src/drivers/sqp_solver.cpp")
 
 # The committed walk baseline, so test_corpus_cells.cpp can re-score THE
 # ARTIFACT ITSELF through the offline --from-csv path and pin the verdict.

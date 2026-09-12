@@ -30,9 +30,9 @@
 #include <fmt/format.h>
 
 #include "hven/detail/model/nlp_adapter.h"
-#include "hven/drivers/interior_point_solver.h"
-#include "hven/model/nlp_problem.h"
+#include "hven/drivers/ipm_solver.h"
 #include "hven/model/nlp_problem_model.h"
+#include "hven/model/nlp_triplet_model.h"
 #include "hven/model/non_linear_program.h"
 #include "hven/model/structure_identity.h"
 #include "hven/warmstart/warm_start_data.h"
@@ -48,13 +48,13 @@ namespace hven_interior_tests {
 /// chosen by which entry point a caller reaches for.
 struct IpmCase {
     std::shared_ptr<hven::solvers::NonLinearProgram> program;
-    std::unique_ptr<hven::solvers::InteriorPointSolver> engine;
+    std::unique_ptr<hven::solvers::IpmSolver> engine;
 };
 
 /// @brief A declared problem, the model it converts to, and the program the
 ///        interior-point engine consumes.
 struct DeclaredRoute {
-    std::shared_ptr<hven::solvers::NLPProblem> problem;
+    std::shared_ptr<hven::solvers::NlpTripletModel> problem;
     std::shared_ptr<hven::solvers::NlpProblemModel> model;
     std::shared_ptr<hven::solvers::NonLinearProgram> program;
 };
@@ -64,7 +64,7 @@ struct DeclaredRoute {
 /// @param num_partitions Requested partition count; LAYOUT ONLY and clamped
 ///        (see make_nlp_program). Read the adopted count off
 ///        `route.program->num_partitions_`.
-inline DeclaredRoute transcribe(std::shared_ptr<hven::solvers::NLPProblem> problem,
+inline DeclaredRoute transcribe(std::shared_ptr<hven::solvers::NlpTripletModel> problem,
                                 int num_partitions = 1) {
     DeclaredRoute route;
     route.problem = std::move(problem);
@@ -104,7 +104,7 @@ starting_multiplier_seed(const DeclaredRoute &route) {
 
 /// @brief One solve through the route, applying the problem's own seed when it
 ///        asks for one -- the two lines NLPSolver::run() ran.
-inline hven::solvers::IpmResult solve_declared(hven::solvers::InteriorPointSolver &engine,
+inline hven::solvers::IpmResult solve_declared(hven::solvers::IpmSolver &engine,
                                                const DeclaredRoute &route,
                                                const Eigen::VectorXd &x0) {
     const std::optional<hven::solvers::WarmStartData> seed = starting_multiplier_seed(route);

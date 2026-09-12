@@ -284,11 +284,11 @@ struct SsnCounters {
     Index ssn_refine_neg_duals = 0;
 
     // The sign sweep repairs rather than instruments: it is the one pair here
-    // that reports a value this driver changed. It runs in `SqpDriver::finish`,
+    // that reports a value this driver changed. It runs in `SqpSolver::finish`,
     // the single export boundary, on the solution's and the warm start's
     // multipliers together, with no tolerance (the test is `< 0.0`).
     //
-    // `SqpSolution::kkt` is computed before the sweep, at the multipliers the
+    // `SqpResult::kkt` is computed before the sweep, at the multipliers the
     // solver reached, so on a solve with `ssn_sign_swept > 0` the reported
     // stationarity is optimistic by at most `ssn_sign_sweep_max * ||Ji||inf`
     // over the swept rows.
@@ -468,7 +468,7 @@ struct IpqpCounters {
     Index ipqp_factorizations = 0;
 
     /// Symbolic analyses paid. `1` per SQP solve under the section 4.1
-    /// cross-major hoisting rule while `AggregateEvalSeam::epoch()` stays
+    /// cross-major hoisting rule while `AssemblyEvalSeam::epoch()` stays
     /// unchanged. Excludes analyses paid
     /// by any other QP kernel (walk, SSN) in the same solve.
     Index ipqp_symbolic_analyses = 0;
@@ -942,7 +942,7 @@ static_assert(counters_offsets_increase(kOffsetsIpqpCounters, kIpqpCountersField
 /// So `history[counters.major_iters]` is in bounds on the first family and out of
 /// bounds on the second. Use history.back() and read qp_solved.
 ///
-/// ON A Terminal restoration exit, SqpSolution::x is NOT the point the last
+/// ON A Terminal restoration exit, SqpResult::x is NOT the point the last
 /// history row describes: the row is the iterate that RAISED the request, while
 /// x/f/lambda_* are the RESTORED point the phase ended at, which has no row of its
 /// own. The two coincide only when the phase never moved the iterate.

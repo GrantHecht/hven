@@ -18,8 +18,8 @@
 
 #include <hven/detail/qp/ipqp_engine.h>
 #include <hven/detail/qp/qp_engine.h>
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/drivers/trace.h>
 
 #include "../../bench/bench_cli.h"
@@ -97,8 +97,8 @@ RealizedFace solve_and_read_face(Index nodes, double p) {
     model.set_parameters(Vec::Constant(1, p));
     SqpOptions o;
     o.max_iter = 60;
-    SqpDriver driver(o);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(o);
+    const SqpResult sol = driver.solve(model);
     EXPECT_EQ(sol.status, SolveStatus::kOptimal) << "n=" << nodes << " p=" << p;
 
     RealizedFace out;
@@ -312,7 +312,7 @@ namespace {
 // back, and solves it WARM the way the driver enters it.
 constexpr const char *kA2Usage = "tests/sqp/test_ipqp_acceptance.cpp -- A2's dump round trip\n";
 
-/// The base-warm grade `sqp_driver.cpp`'s `build_ipqp_staged_seed` builds from
+/// The base-warm grade `sqp_solver.cpp`'s `build_ipqp_staged_seed` builds from
 /// a major's signed prices, here from the dumped ones.
 IpqpSeed base_warm_seed_from(const bench_cli::QpDumpV2 &d) {
     const Index n = d.qp.n(), me = d.qp.me(), mi = d.qp.mi();
@@ -345,8 +345,8 @@ TEST(IpqpAcceptanceA2, ARealMidSolveSubproblemRoundTripsTheDumpSeamAndAgreesWith
     model.set_parameters(Vec::Constant(1, kWideP));
     SqpOptions truncated;
     truncated.max_iter = kCompletedMajors;
-    SqpDriver driver(truncated);
-    const SqpSolution mid = driver.solve(model);
+    SqpSolver driver(truncated);
+    const SqpResult mid = driver.solve(model);
     ASSERT_NE(mid.status, SolveStatus::kOptimal) << "the point must be MID-solve, not the answer";
     ASSERT_TRUE(mid.x.allFinite());
 
@@ -585,7 +585,7 @@ IpqpCounters counters_through_major(NlpModel &model, Index majors) {
     if (majors <= 0) {
         return IpqpCounters{};
     }
-    SqpDriver driver(ipm_options(majors));
+    SqpSolver driver(ipm_options(majors));
     return driver.solve(model).counters.ipqp;
 }
 
@@ -607,9 +607,9 @@ TEST(IpqpAcceptanceA11, TheIndefiniteHsRowsSolveUnderKIpmAndCertifyHonestly) {
         SCOPED_TRACE(fmt::format("HS{} -- {}", row.number, row.why));
         const HsProblem p = make_hs(row.number);
         AcceptanceTraceSink sink;
-        SqpDriver driver(ipm_options());
+        SqpSolver driver(ipm_options());
         driver.attach_trace(&sink);
-        const SqpSolution sol = driver.solve(*p.model);
+        const SqpResult sol = driver.solve(*p.model);
         ASSERT_EQ(sol.status, SolveStatus::kOptimal);
         EXPECT_NEAR(sol.f, p.f_star, 1e-6 * std::max(1.0, std::abs(p.f_star)));
 
@@ -697,17 +697,17 @@ TEST(IpqpAcceptanceWarm, AWarmContinuationHopCostsFewerBarrierIterationsAndKills
 
     F7CollocationChain model(kNodes, /*states=*/3, /*controls=*/2, kWarmP0, /*radius=*/1.0);
     model.set_parameters(Vec::Constant(1, kWarmP0));
-    SqpDriver seed_driver(ipm_options());
-    const SqpSolution seed = seed_driver.solve(model, model.start_point());
+    SqpSolver seed_driver(ipm_options());
+    const SqpResult seed = seed_driver.solve(model, model.start_point());
     ASSERT_EQ(seed.status, SolveStatus::kOptimal);
 
     model.set_parameters(Vec::Constant(1, kWideP));
-    SqpDriver warm_driver(ipm_options());
-    const SqpSolution warm = warm_driver.solve(model, seed.warm_start.x, seed.warm_start);
+    SqpSolver warm_driver(ipm_options());
+    const SqpResult warm = warm_driver.solve(model, seed.warm_start.x, seed.warm_start);
     ASSERT_EQ(warm.status, SolveStatus::kOptimal);
 
-    SqpDriver cold_driver(ipm_options());
-    const SqpSolution cold = cold_driver.solve(model, model.start_point());
+    SqpSolver cold_driver(ipm_options());
+    const SqpResult cold = cold_driver.solve(model, model.start_point());
     ASSERT_EQ(cold.status, SolveStatus::kOptimal);
 
     const IpqpCounters &wc = warm.counters.ipqp;
@@ -740,8 +740,8 @@ TEST(IpqpAcceptanceCensus, AnArmedRunIsNeverMistakenForAStallAcrossTheHsBattery)
     std::string stall_detail;
     for (const int number : test_support::hs_numbers()) {
         const HsProblem p = make_hs(number);
-        SqpDriver driver(ipm_options());
-        const SqpSolution sol = driver.solve(*p.model);
+        SqpSolver driver(ipm_options());
+        const SqpResult sol = driver.solve(*p.model);
         const IpqpCounters &c = sol.counters.ipqp;
         stalls += c.ipqp_escape_stall;
         if (c.ipqp_escape_stall > 0) {
@@ -798,9 +798,9 @@ TEST(IpqpAcceptanceCensus, TheNaturalStallIsChargedToASubproblemThatNeverArmedTh
     // a stalled one beside an armed one.
     const HsProblem p = make_hs(kStallRow);
     AcceptanceTraceSink sink;
-    SqpDriver driver(ipm_options());
+    SqpSolver driver(ipm_options());
     driver.attach_trace(&sink);
-    const SqpSolution full = driver.solve(*p.model);
+    const SqpResult full = driver.solve(*p.model);
     ASSERT_GE(full.counters.ipqp.ipqp_escape_stall, 1) << "the natural stall must still fire";
 
     std::vector<Index> stall_majors;

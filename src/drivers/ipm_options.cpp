@@ -12,16 +12,16 @@
 // This file was src/drivers/interior_point_solver_settings.cpp until M6 W5
 // T8.3, when the options became a value: the ~50 validated set_*() methods, the
 // four strto_*() string-to-enum parsers and the six string-taking setter
-// overloads were DELETED, InteriorPointSolver::Settings::validate() became the
+// overloads were DELETED, IpmSolver::Settings::validate() became the
 // free function validate(const IpmOptions &), and apply_preset() -- which
 // mutated a solver's settings in place -- became ipm_preset(), which RETURNS a
 // full IpmOptions value. Nothing here touches a solve; the algorithm lives in
-// interior_point_solver.cpp, the iteration/exit reporting in
+// ipm_solver.cpp, the iteration/exit reporting in
 // interior_point_solver_print.cpp, and the globalization components in
-// interior_point_solver_globalization.cpp.
+// ipm_solver_globalization.cpp.
 // =============================================================================
 
-#include "hven/detail/drivers/interior_point_solver_presets.h"
+#include "hven/detail/drivers/ipm_solver_presets.h"
 #include "hven/drivers/ipm_solver_types.h"
 
 #include <fmt/format.h>
@@ -151,7 +151,7 @@ void hven::solvers::validate(const IpmOptions &o) {
     // and intentional -- it disables the ladder outright: an unperturbed
     // factorization that fails to reach correct inertia exhausts immediately
     // rather than attempting any correction, which forces the forced-rejection
-    // / recovery-chain / SINGULAR_KKT routing (see interior_point_solver.cpp's kkt_exhausted
+    // / recovery-chain / SINGULAR_KKT routing (see ipm_solver.cpp's kkt_exhausted
     // handling) on the very first wrong-inertia factorization. Unlike
     // o.max_iters/o.max_acc_iters (which must run at least once), o.max_refac's
     // loop is a `for (i = 0; i < o.max_refac; i++)` correction attempt over an
@@ -368,7 +368,7 @@ hven::solvers::IpmOptions hven::solvers::ipm_preset(std::string_view name) {
         valid_names += kInteriorPointSolverPresets[i].name_;
     }
     throw std::invalid_argument(fmt::format(
-        "Unrecognized InteriorPointSolver preset '{}'. Valid options are: {}", name, valid_names));
+        "Unrecognized IpmSolver preset '{}'. Valid options are: {}", name, valid_names));
 }
 
 hven::solvers::IpmOptions hven::solvers::ipm_worker_options(IpmOptions base) {

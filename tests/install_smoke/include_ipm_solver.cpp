@@ -5,10 +5,8 @@
 // transitive includes, this TU does not compile. Why, and which W5 tasks depend
 // on it: this directory's CMakeLists.txt.
 
-// W5 T8 renames this to nlp_model_assembly.h / NlpModelAssembly.
-
-#include "hven/model/nlp_model_aggregate.h"
+#include "hven/drivers/ipm_solver.h"
 
 namespace hven_install_smoke {
-int standalone_include_nlp_model_aggregate() { return 1; }
+int standalone_include_interior_point_solver() { return 1; }
 } // namespace hven_install_smoke

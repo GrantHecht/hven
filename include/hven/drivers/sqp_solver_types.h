@@ -3,12 +3,12 @@
 
 #pragma once
 
-// sqp_types.h — the plain data types the SQP driver produces and consumes:
+// sqp_solver_types.h — the plain data types the SQP driver produces and consumes:
 // status, options, counters, per-major history, solution. The driver itself
 // (the loop, the subproblem construction and the KKT measure) lives in
-// sqp_driver.h; nothing in this file does any work.
+// sqp_solver.h; nothing in this file does any work.
 //
-// This file is to sqp_driver.h what qp_types.h is to qp_engine.h.
+// This file is to sqp_solver.h what qp_types.h is to qp_engine.h.
 
 #include <functional>
 #include <limits>
@@ -46,13 +46,13 @@ enum class QpMode {
     /// mode ABOVE this line moves it and stops the build.
     ///
     /// It is a legal `QpMode` value that names no kernel, so
-    /// `validate_sqp_options` refuses it like any other out-of-range setting, and
+    /// `validate` refuses it like any other out-of-range setting, and
     /// the dispatch enumerates it in an arm that throws rather than omitting it.
     kQpModeCount,
 };
 
 // Declared HERE rather than in ssn_engine.h for the same reason QpMode is:
-// SqpOptions carries them and sqp_types.h is the header ssn_engine.h includes,
+// SqpOptions carries them and sqp_solver_types.h is the header ssn_engine.h includes,
 // not the other way round. Their SEMANTICS live at their SsnOptions fields, which
 // is also where each mechanism is derived; this file declares the alphabet and
 // the defaults, and every default below is the shipped iteration bit for bit.
@@ -100,7 +100,7 @@ enum class SsnInfeasibilityRule {
 /// @brief The kIpm tier's own settings.
 ///
 /// Declared HERE for the same reason QpMode and the three Ssn*Rule enums are:
-/// SqpOptions carries this struct as `ipqp`, and sqp_types.h is the header the
+/// SqpOptions carries this struct as `ipqp`, and sqp_solver_types.h is the header the
 /// engine includes. Forwarded onto the tier verbatim, and each field's mechanism
 /// is derived at the engine that consumes it.
 ///
@@ -142,7 +142,7 @@ struct IpqpOptions {
 
     /// The FLOOR of the `mu_0` clamp above, and the tier's own barrier-decay
     /// floor thereafter. Matches `Settings::min_mu_`'s own default
-    /// (`interior_point_solver.h:366`) so the two barrier engines agree on
+    /// (`ipm_solver.h:366`) so the two barrier engines agree on
     /// how low `mu` is ever allowed to go. Default 1e-12. Must be finite,
     /// > 0, and <= `ipqp_init_mu`.
     double ipqp_min_mu = 1e-12;
@@ -263,7 +263,7 @@ struct IpqpOptions {
 
     /// Cross-major symbolic reuse (spec 4.1) kill switch: while true, the
     /// tier hoists its analysis/verify work across majors whose
-    /// `AggregateEvalSeam::epoch()` is unchanged.
+    /// `AssemblyEvalSeam::epoch()` is unchanged.
     /// Default true; false forces a fresh symbolic pass every major.
     bool ipqp_hoist_symbolic = true;
 
@@ -288,7 +288,7 @@ struct IpqpOptions {
 // Changing either is a behaviour change on every warm solve: the warm-start
 // suite pins the majors of both a converging and a watchdog-restored run
 // against these exact values.
-// @see docs/notes/2026-09-header-prose-archive.md §sqp_types.h
+// @see docs/notes/2026-09-header-prose-archive.md §sqp_solver_types.h
 
 /// Watchdog threshold: consecutive majors with growing ||KKT||inf tolerated
 /// under the full-step mode before it restores the best iterate.
@@ -318,7 +318,7 @@ inline constexpr double kWeakActivityMargin = 1e-6;
 /// @brief Driver options for the whole SQP solve.
 ///
 /// TOLERANCES. kkt_tol gates the STATIONARITY measure and feas_tol the
-/// FEASIBILITY measure; both are defined at `SqpKkt` (sqp_driver.h). feas_tol
+/// FEASIBILITY measure; both are defined at `SqpKkt` (sqp_solver.h). feas_tol
 /// does double duty as the geometric BOUND-ACTIVITY tolerance of that measure, so
 /// there is no separate activity-tolerance knob.
 ///
@@ -348,11 +348,11 @@ inline constexpr double kWeakActivityMargin = 1e-6;
 ///
 /// `qp` is copied into the driver's single QpEngine at construction, so per-solve
 /// variation goes through SolveOverrides, never through this struct.
-/// @see docs/notes/2026-09-header-prose-archive.md §sqp_types.h
+/// @see docs/notes/2026-09-header-prose-archive.md §sqp_solver_types.h
 struct SqpOptions {
     /// Stationarity gate: CONVERGED requires stationarity <= kkt_tol (AND
     /// feasibility <= feas_tol). Default 1e-6. Must be > 0. See the
-    /// CONVERGENCE TEST note in sqp_driver.h for exactly what "stationarity"
+    /// CONVERGENCE TEST note in sqp_solver.h for exactly what "stationarity"
     /// measures.
     double kkt_tol = 1e-6;
 
@@ -395,7 +395,7 @@ struct SqpOptions {
     /// attempt before the radius shrinks (the Maratos-effect defense; this
     /// project's cheap edge over Uno, which omits SOC entirely). Default
     /// true. Set false to recover exact non-SOC behaviour. See the
-    /// SECOND-ORDER CORRECTION note above (and sqp_driver.h's, for the
+    /// SECOND-ORDER CORRECTION note above (and sqp_solver.h's, for the
     /// mechanism itself).
     bool enable_soc = true;
 
@@ -408,7 +408,7 @@ struct SqpOptions {
     bool adaptive_mu = true;
 
     /// Copied into the driver's single QpEngine at construction, so
-    /// per-solve variation must go through SolveOverrides (sqp_driver.h),
+    /// per-solve variation must go through SolveOverrides (sqp_solver.h),
     /// never through this struct -- see qp_types.h's PER-INSTANCE, CONST
     /// note on QpOptions::tr_radius for why. No default beyond QpOptions'
     /// own.
@@ -421,22 +421,6 @@ struct SqpOptions {
     /// FunnelStrategy, KLV's funnel and this project's default
     /// globalization. See the GLOBALIZATION STRATEGY note above.
     std::function<std::unique_ptr<GlobalizationStrategy>()> make_strategy;
-
-    /// A CEILING on the level the 3-argument solve() is allowed to resolve to,
-    /// independent of what `warm` itself would otherwise justify.
-    ///
-    /// At StartLevel::kSeeded a driver ingests a hash-less object's values but
-    /// never a factorization, never the funnel/TR state and never the
-    /// Kungurtsev-Diehl window, EVEN when the object would have earned kWarm; it
-    /// also short-circuits the structural-hash probe, whose answer could only
-    /// raise the level above the ceiling.
-    ///
-    /// Default StartLevel::kWarm: kHot is reachable but opt-in, since it hands
-    /// this instance's engine a factorization possibly built by a different
-    /// engine instance. Set it to kCold to force every 3-argument solve to behave
-    /// exactly as the 2-argument one does. Does NOT affect solve(model, x0),
-    /// which is always cold by construction.
-    StartLevel start_level = StartLevel::kWarm;
 
     /// The full-step-first warm rule: when on, a solve whose warm-start level
     /// resolved to kWarm or above -- never a cold one, and never the 2-argument
@@ -494,7 +478,7 @@ struct SqpOptions {
     /// many equally optimal ones, so turning it on there is a deliberate
     /// trajectory choice rather than a free cost cut. No cheap runtime test
     /// separates the two cases.
-    /// @see docs/notes/2026-09-header-prose-archive.md §sqp_types.h
+    /// @see docs/notes/2026-09-header-prose-archive.md §sqp_solver_types.h
     bool elastic_ladder_early_exit = false;
 
     /// The crash basis, OPT-IN: when on, a COLD solve seeds its FIRST QP
@@ -520,7 +504,7 @@ struct SqpOptions {
     /// solve whose resolved start level is kCold and only when no warm seed
     /// exists. No extra model evaluation: both predicates are read off the first
     /// subproblem itself, never from a fresh eval_ci call.
-    /// @see docs/notes/2026-09-header-prose-archive.md §sqp_types.h
+    /// @see docs/notes/2026-09-header-prose-archive.md §sqp_solver_types.h
     bool crash_basis = false;
 
     /// Which QP kernel the driver's subproblems go through. kWalk is the shipped
@@ -534,17 +518,17 @@ struct SqpOptions {
     /// `qp_mode != QpMode::kIpm` and read on every subproblem at kIpm -- see
     /// QpMode::kIpm and IpqpOptions' own doc comments. The one field the
     /// driver narrows rather than forwards is `ipqp_hoist_symbolic`; see
-    /// `SqpDriver::ipqp_options`.
+    /// `SqpSolver::ipqp_options`.
     IpqpOptions ipqp;
 
-    /// Read the proximal carry off an ingested WarmStart.
+    /// Read the proximal carry off an ingested SqpWarmStart.
     ///
     /// It gates one thing: whether the first SSN subproblem of a solve starts its
-    /// proximal ladder at `WarmStart::prox_sigma` instead of at 0. The emission
+    /// proximal ladder at `SqpWarmStart::prox_sigma` instead of at 0. The emission
     /// side is unconditional and this flag does not touch it, so a caller can
     /// read the carry without first turning it on. Inert in both directions under
     /// `qp_mode == QpMode::kWalk`. Default false.
-    /// @see docs/notes/2026-09-header-prose-archive.md §sqp_types.h
+    /// @see docs/notes/2026-09-header-prose-archive.md §sqp_solver_types.h
     bool ssn_prox_carry = false;
 
     /// Read the certifying exit'S Second-order evidence off the face-EQP
@@ -569,7 +553,7 @@ struct SqpOptions {
     bool ssn_certify_from_face = false;
 
     /// The three SSN rule levers. Forwarded verbatim onto the SsnOptions every
-    /// subproblem is solved with (sqp_driver.h's `ssn_options`), where each
+    /// subproblem is solved with (sqp_solver.h's `ssn_options`), where each
     /// one's mechanism is derived. All three are inert at
     /// `qp_mode == QpMode::kWalk`, and each defaults to the shipped
     /// iteration's own setting.
@@ -593,7 +577,7 @@ struct SqpOptions {
     ///
     /// What changes when IT IS ON, stated plainly because it is a contract
     /// difference and not only a performance one: the CONVERGENCE TEST gates on
-    /// the SCALED residuals, while `SqpSolution`'s four terminal KKT fields, its
+    /// the SCALED residuals, while `SqpResult`'s four terminal KKT fields, its
     /// `f`, its multiplier blocks and every history row report CALLER-scale
     /// values. Those two can differ, so a kOptimal solve may report a
     /// caller-scale `kkt_residual` above `kkt_tol`; `SqpScalingReport` carries
@@ -631,37 +615,16 @@ struct SqpOptions {
     /// threads anything runs on. The fields are here so both engines spell the
     /// same knob the same way, and so that fingerprint covers the count from the
     /// start. T8.7 gives this engine a console table at `print_level`, and T8.8
-    /// makes a non-zero `threads` reach every factor path. `common.start_level` is likewise
-    /// carried and unread: `SqpOptions::start_level` above is still the field
-    /// the driver caps a warm start with, until T8.10 folds the two.
+    /// makes a non-zero `threads` reach every factor path. M6 W5 T8.10 FOLDED
+    /// `SqpOptions::start_level` into `common.start_level`, which is now the
+    /// field this driver caps a warm start with -- a CEILING, never a floor.
     ///
     /// LAST, not first, so that adding it moves no existing field's offset.
     CommonOptions common;
 };
 
-/// @brief Validates a whole SqpOptions value.
-///
-/// The body of validate_sqp_options() below, plus the two CommonOptions checks
-/// (`common.threads` must be non-negative, `common.print_level` non-negative).
-/// M6 W5 T8.3 named it `validate` so both engines spell whole-value validation
-/// the same way; validate_sqp_options() stays as a one-line forwarder until
-/// T8.10 sweeps its ~60 call sites.
-///
-/// @param opts The options object to validate.
-/// @throws std::invalid_argument, on the same terms validate_sqp_options
-///         documents, plus a negative `common.threads` or `common.print_level`.
-void validate(const SqpOptions &opts);
-
-/// @brief Returns a full SqpOptions value for a named preset.
-///
-/// "default" is the only name until M8's labeled configs, and it returns a
-/// default-constructed value.
-///
-/// @param name A preset name.
-/// @throws std::invalid_argument, listing every valid name, if `name` is not one.
-SqpOptions sqp_preset(std::string_view name);
-
-/// @brief The boundary validation SqpDriver's constructor runs over SqpOptions.
+/// @brief The boundary validation SqpSolver's constructor runs over a whole
+///        SqpOptions value.
 ///
 /// Callers other than the driver may use it -- it is the cheapest way for a front
 /// end to reject an options object before building a solver around it -- but the
@@ -680,10 +643,18 @@ SqpOptions sqp_preset(std::string_view name);
 ///         non-positive or above either end of the range it floors, or an
 ///         ill-formed IpqpOptions field -- validated unconditionally, like the
 ///         scaling fields, since `qp_mode` is a value a caller may change later.
-///         `QpMode::kQpModeCount` names no kernel and is refused.
-/// M6 W5 T8.3: a one-line forwarder to `validate(const SqpOptions &)`, which is
-/// where the body lives now. T8.10 removes this name.
-void validate_sqp_options(const SqpOptions &opts);
+///         `QpMode::kQpModeCount` names no kernel and is refused -- plus a
+///         negative `common.threads` or `common.print_level`.
+void validate(const SqpOptions &opts);
+
+/// @brief Returns a full SqpOptions value for a named preset.
+///
+/// "default" is the only name until M8's labeled configs, and it returns a
+/// default-constructed value.
+///
+/// @param name A preset name.
+/// @throws std::invalid_argument, listing every valid name, if `name` is not one.
+SqpOptions sqp_preset(std::string_view name);
 
 /// @brief One row of the per-major history -- the record of ONE ITERATE and of
 ///        the subproblem solved from it, if any.
@@ -724,12 +695,12 @@ struct SqpIterate {
 
     /// @brief Objective at the iterate.
     double f = 0.0;
-    /// @brief Reduced/projected ||grad L||inf; see sqp_driver.h's CONVERGENCE TEST.
+    /// @brief Reduced/projected ||grad L||inf; see sqp_solver.h's CONVERGENCE TEST.
     double stationarity = 0.0;
     /// @brief max(||cE||inf, max(cI)+, bound violation).
     double feasibility = 0.0;
     /// max_j |lambda_i(j) * cI_j(x)|. RECORDED, NOT GATED -- see
-    /// sqp_driver.h's CONVERGENCE TEST note for the argument, and its THE
+    /// sqp_solver.h's CONVERGENCE TEST note for the argument, and its THE
     /// INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY note for how the ingested
     /// multipliers were made complementary BY CONSTRUCTION rather than by
     /// adding a third conjunct to the test.
@@ -738,7 +709,7 @@ struct SqpIterate {
     /// reads.
     double kkt_residual = 0.0;
     /// h(x) = ||cE(x)||_1 + sum_j max(0, cI_j(x)) at the iterate: the
-    /// GLOBALIZATION measure (sqp_driver.h's constraint_violation_l1), a
+    /// GLOBALIZATION measure (sqp_solver.h's constraint_violation_l1), a
     /// different quantity from `feasibility` above -- l1 vs inf-norm, and
     /// bounds excluded vs included. Recorded because it is what the funnel
     /// judges against, so the funnel's own guarantee (h stays inside a
@@ -751,7 +722,7 @@ struct SqpIterate {
     double tr_radius = 0.0;
     /// The SolveOverrides::dual_mu THIS subproblem was solved at (the MAIN
     /// trial's QP -- a subsequent SOC/elastic re-solve on the same row uses
-    /// its own separate override, per sqp_driver.h's ADAPTIVE DUAL
+    /// its own separate override, per sqp_solver.h's ADAPTIVE DUAL
     /// REGULARIZATION note, so it is not what this field describes there).
     /// Meaningful iff qp_solved; 0.0 on a stopped-AT-iterate row, like the
     /// other qp_* fields. Always opts.qp.dual_mu (the engine default) when
@@ -812,7 +783,7 @@ struct SqpIterate {
     /// False on every other row, including one where SOC was ATTEMPTED but
     /// its own corrected point was also rejected (that attempt is counted
     /// in SqpCounters::soc_steps, not recorded per-row -- see
-    /// sqp_driver.h's SECOND-ORDER CORRECTION note for why a failed attempt
+    /// sqp_solver.h's SECOND-ORDER CORRECTION note for why a failed attempt
     /// does not get a field of its own). Always false when
     /// SqpOptions::enable_soc is false.
     bool soc_applied = false;
@@ -839,7 +810,7 @@ struct SqpIterate {
     /// retry's override placement can never clamp.
     bool elastic_rho0_ceiling_hit = false;
     /// True iff THIS row's restoration request started the phase at a CANDIDATE point rather
-    /// than at the iterate -- the candidate's MEASURED violation was lower (sqp_driver.h's
+    /// than at the iterate -- the candidate's MEASURED violation was lower (sqp_solver.h's
     /// RESTORATION PHASE note). False on every other row, INCLUDING a degraded-to-x seed.
     bool restoration_seed_used = false;
     /// True iff the Full-step watchdog restored an earlier best-||KKT||inf
@@ -962,11 +933,11 @@ struct SqpScalingReport {
     double row_max = 1.0;
     double row_min = 1.0;
     /// THE SCALED RESIDUAL THE CONVERGENCE TEST ACTUALLY READ, at the returned
-    /// point -- the counterpart of SqpSolution::kkt_residual, which is on the
+    /// point -- the counterpart of SqpResult::kkt_residual, which is on the
     /// CALLER's scale. On an inactive solve the two are the same number by
     /// construction. On an active one their difference is exactly the gap
     /// SqpOptions::enable_scaling discloses, and reporting both is what makes it
-    /// computable. NaN whenever SqpSolution::kkt_residual is NaN, for the same
+    /// computable. NaN whenever SqpResult::kkt_residual is NaN, for the same
     /// reason: nothing was measured.
     double scaled_kkt_residual = std::numeric_limits<double>::quiet_NaN();
 };
@@ -1092,7 +1063,7 @@ struct SqpResult : SolveResult {
 
     /// The solve's exit state in warm_start.h's shape, for a LATER solve of a
     /// nearby problem to feed back in. Populated on EVERY exit of
-    /// SqpDriver::solve(), including a failed one, from the best-known iterate.
+    /// SqpSolver::solve(), including a failed one, from the best-known iterate.
     /// Populated is NOT the same as `valid`: one exit -- a start point the model
     /// could not evaluate -- fills these fields for inspection but reports
     /// valid == false, because feeding that point back would override the
@@ -1100,11 +1071,7 @@ struct SqpResult : SolveResult {
     ///
     /// The base's `export_warm_start()` carries the SHARED currency shape
     /// (WarmStartData) taken at the same exit; this is the engine-native one.
-    WarmStart warm_start;
+    SqpWarmStart warm_start;
 };
-
-/// The name this type had before M6 W5 T8.4, kept so the ~200 call sites that
-/// spell it do not all have to move in one task. Same type, not a conversion.
-using SqpSolution = SqpResult;
 
 } // namespace hven::solvers

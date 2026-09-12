@@ -38,7 +38,7 @@
 #include <hven/core/pattern_hash.h>
 #include <hven/detail/kkt/kkt_calls.h>
 #include <hven/detail/qp/qp_problem.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>
 
@@ -93,7 +93,7 @@ inline double ssn_fb(double a, double b) {
 // THE SAFEGUARD CONSTANTS.
 //
 // Every value below is an IMPLEMENTATION CHOICE, not a paper constant, and is
-// stated as such with its own argument -- the same standard sqp_types.h's
+// stated as such with its own argument -- the same standard sqp_solver_types.h's
 // kWarmResidualGrowthMax / kWarmFullStepWindow are held to.
 
 // ---- The uncertain band (the three-set partition's only tolerance) --------
@@ -705,7 +705,7 @@ struct SsnResult {
 class SsnEngine {
   public:
     /// @param opts    The QP options this tier solves under.
-    /// @param threads The thread count in force -- SqpDriver passes
+    /// @param threads The thread count in force -- SqpSolver passes
     ///                SqpOptions::common.threads (M6 W5 T8.8). It configures
     ///                THE ONE persistent factor this tier holds, at
     ///                construction; 0 (the default, and what every pre-T8.8

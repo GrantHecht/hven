@@ -5,10 +5,8 @@
 // transitive includes, this TU does not compile. Why, and which W5 tasks depend
 // on it: this directory's CMakeLists.txt.
 
-// W5 T8 renames this to assembly_declaration.h / AssemblyDeclaration.
-
-#include "hven/model/aggregate_declaration.h"
+#include "hven/model/nlp_model_assembly.h"
 
 namespace hven_install_smoke {
-int standalone_include_aggregate_declaration() { return 1; }
+int standalone_include_nlp_model_aggregate() { return 1; }
 } // namespace hven_install_smoke

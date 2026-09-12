@@ -52,8 +52,8 @@
 
 namespace hven::solvers {
 
-class InteriorPointSolver;
-class SqpDriver;
+class IpmSolver;
+class SqpSolver;
 
 /// @brief The work ceiling for one solve call, on both engines.
 ///
@@ -191,8 +191,8 @@ struct SolveResult {
     // Protected rather than public because a result is a REPORT: a consumer
     // reads the snapshot, and nothing outside the producing engine may install
     // one.
-    friend class InteriorPointSolver;
-    friend class SqpDriver;
+    friend class IpmSolver;
+    friend class SqpSolver;
 };
 
 /// @brief What a per-iteration callback asks the engine to do next.
