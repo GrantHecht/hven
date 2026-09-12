@@ -13,9 +13,12 @@ below in the parts that carry the finding. Nothing here is hand-transcribed.
 one solve at a time, `taskset -c 2`, `MKL_NUM_THREADS=1`, the box lock held for
 the whole batch, the driving shell pinned off the measurement core and its SMT
 sibling. **RE-AUDITED AT FIX2 UNDER R2'** (the pinned-core rule, foreign `nice`
-counted): **4 of these 5 wall batches are PROVEN and `wall-r1` is NOT** — 0.1290 %
-on the pinned core, **0.6706 %** on its SMT sibling, against the 0.5 % bar. The
-table below is a median of five rounds of which one is unproven; a median of five
+counted) **AND AGAIN AT FIX3 UNDER ITS EVIDENCE ACCOUNTING**: **`wall-r1` fails
+the FRACTION** — 0.1290 % on the pinned core, **0.6706 %** on its SMT sibling,
+against the 0.5 % bar — and **`wall-r2` and `wall-r4` are UNPROVEN-EVIDENCE**, a
+foreign `R` at a named snapshot with no re-snapshot after it, which leaves TWO of
+the five fully proven. The table below is a median of five rounds of which three
+are flagged; a median of five
 does not turn on one member, and the carrier's step is 36.5× the byte-identical
 control's, so the finding survives the loss of any single round — but it is not a
 five-clean-round median and is not offered as one. The governing table is

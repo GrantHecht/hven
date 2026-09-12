@@ -25,12 +25,16 @@ whose smallest edit moves the cost.
 discipline** — one solve at a time, `taskset -c 2`, `MKL_NUM_THREADS=1`, the box
 lock held for the whole batch, the driving shell pinned off the measurement core
 and its SMT sibling. **Twenty-five timed wall batches across five legs. RE-AUDITED AT FIX2 UNDER
-R2' — the pinned-core rule, with foreign `nice` time counted — and 21 OF THE 25
-ARE PROVEN.** The four that are not (`wall-r1`, `ywall-r2`, `ywall-r3`,
-`ywall-r5`) fail on the SMT SIBLING, never on the measurement core, at 0.5291 %
-to 0.8065 % against the 0.5 % bar; `../../../reading.md` §12 carries the flag
-where each feeds a number, and none was re-measured — the fix2 ruling flags
-rather than re-runs. Five of this leg's fourteen counter batches are unproven
+R2' — the pinned-core rule, with foreign `nice` time counted — AND AGAIN AT FIX3
+UNDER ITS EVIDENCE ACCOUNTING: 14 OF THE 25 ARE PROVEN.** Four fail the FRACTION
+(`wall-r1`, `ywall-r2`, `ywall-r3`, `ywall-r5`), every one on the SMT SIBLING and
+never on the measurement core, at 0.5291 % to 0.8065 % against the 0.5 % bar.
+Eight are UNPROVEN-EVIDENCE (`alloc-r4`, `alloc-r5`, `wallpf-r1`, `wall-r2`,
+`wall-r4`, `xwall-r2`, `ywall-r1`, `ywall-r5` — the last also fails the
+fraction): each saw a foreign process in state `R` at a named snapshot and no
+re-snapshot followed, which R2' requires and fix2 wrongly deferred.
+`../../../reading.md` §12 carries the flag where each feeds a number, and none
+was re-measured — the fix2 and fix3 rulings flag rather than re-run. Five of this leg's fourteen counter batches are unproven
 too (`mem-r1`, `mem-r6`, `perf`, `perfrec-r2`, `perfrec-r3`); they assert
 counters, deterministic per process at `MKL_NUM_THREADS=1`. The governing table
 is **`../../../logs/IDLE-PROOF.md`**. The five files below

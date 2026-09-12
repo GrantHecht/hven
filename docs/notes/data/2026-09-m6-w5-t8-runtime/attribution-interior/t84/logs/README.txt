@@ -43,11 +43,20 @@ Every batch this leg ran, as its script wrote it, unedited. The naming:
 
   SUPERSEDED AT FIX2 (2026-09-11). R2 was amended to R2' -- the pinned-core rule
   with a foreign task's `nice` time COUNTED -- and all twenty-five were
-  re-audited under it: TWENTY-ONE are PROVEN and four are not (wall-r1,
+  re-audited under it: TWENTY-ONE met the bar and four did not (wall-r1,
   ywall-r2, ywall-r3, ywall-r5), every one of them on the SMT SIBLING and none on
-  the measurement core. Five of this leg's fourteen counter batches are unproven
-  too. The governing table is ../../../logs/IDLE-PROOF.md; the five files above
-  are retained, unedited, each with a banner saying so.
+  the measurement core. Five of this leg's fourteen counter batches were unproven
+  too.
+
+  AND AGAIN AT FIX3 (2026-09-11). R2''s other terms -- a re-snapshot after a
+  foreign R, a snapshot between consecutive timed runs -- were audited too,
+  rather than deferred: FOURTEEN of the twenty-five wall batches are PROVEN, four
+  fail the FRACTION and eight are UNPROVEN-EVIDENCE (alloc-r4, alloc-r5,
+  wallpf-r1, wall-r2, wall-r4, xwall-r2, ywall-r1, ywall-r5), ywall-r5 failing
+  both. Every foreign pid of every batch, with every state observed for it, is
+  ../../../logs/idle-proof-pids-attrib3.md. The governing table is
+  ../../../logs/IDLE-PROOF.md; the five files above are retained, unedited, each
+  with a banner saying so.
 
 EVERY BATCH LOG CARRIES, IN THIS ORDER: the `pgrep -af 'cmake|ninja|ctest|hven_|
 codex|clang'` audit taken OUTSIDE the box lock by the caller, verbatim; the same

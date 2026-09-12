@@ -1,132 +1,143 @@
-# W5 T8.9r fix2 — R2' idle proof, every retained batch of every round
+# W5 T8.9r fix3 — R2' idle proof, every retained batch of every round
 
 **R2 IS AMENDED (settler, 2026-09-11).** R2's per-process bar — every foreign pid on the box under 0.5 % of the batch wall — was **unmeetable on this desktop and could not be reached by re-running**: the Wayland compositor alone accrues about 3 % of any window, on 16 logical CPUs, whatever the leg does. Fix1 reported that bar NOT met and took its verdict on a narrower test it had not been granted. astra's fix1 review is right that a disclosed substitution is not a satisfied ruling. **R2' replaces it, and every retained batch of every round is re-audited here under R2' — including the rounds that already published a verdict.**
 
 > **R2' — the PINNED-CORE rule.** Foreign TASK time on the measurement core (`cpu2`) **and** on its SMT sibling (`cpu10`), counted as `user + nice + steal + guest` from `/proc/stat` across the batch, must be under **0.5 %** of the batch's wall. Every foreign pid and state seen in any snapshot is listed, transients included. A foreign `R` is a pause and a **re-snapshot**. A batch that cannot be proven is re-run.
 
-**One tool, one version, everywhere.** `scripts/idle_proof.py` is now the attrib4 (nice-inclusive) version — `sha256 7c90914d55b5ee5c3dbcc53c146289484f8a0bede4a486ed41cc6ad9364c68aa` — and the two older copies it superseded (`scripts/idle_proof.py`, `attribution-interior/t84/scripts/idle_proof.py`, both `ca107629…`) were REPLACED by it, so the same code computes every table below. The earlier version took foreign task time from the `user` bucket alone on the argument that no foreign task on this box is niced; the retained logs falsify that (foreign `SN`/`RN` tasks are present), and a niced foreign task lands in `nice`, exactly where the measurement's own time lands. **Nothing was re-measured for this audit** — it is arithmetic on snapshots that were already on disk.
+**One tool, one version, everywhere.** `scripts/idle_proof.py` is the attrib4 (nice-inclusive) version with fix3's evidence accounting added — `sha256 3394879dbb519155fa985da793a43eedd825bfc1bc83b6636007e91795b33ab6`, byte-identical in all three places it sits (`scripts/`, `attribution-interior/t84/scripts/`, `attribution-interior/t84/redraw/scripts/`); it succeeds fix2's `7c90914d…`, which succeeded the two `ca107629…` copies. The same code computes every table below. The `ca107629…` version took foreign task time from the `user` bucket alone on the argument that no foreign task on this box is niced; the retained logs falsify that (foreign `SN`/`RN` tasks are present), and a niced foreign task lands in `nice`, exactly where the measurement's own time lands. Fix3 adds no arithmetic at all: it reads the second state source, counts pauses once, and reports what the logs do and do not contain. **Nothing was re-measured for this audit, at fix2 or at fix3** — it is arithmetic on snapshots that were already on disk, and every fraction below is byte-for-byte the fix2 figure.
 
-**What `R` means here.** The fix1/attrib recipe's `box_guard` paused on a foreign `R`, slept, printed `BOX_PAUSE_GIVEUP` and continued **without re-snapshotting** (`scripts/common.sh`). R2' requires the re-snapshot. The retained batches were taken under the older recipe, so an `R` observation there is DISCLOSED rather than discharged: the column below names every batch that saw one. It does not move a verdict, because any CPU such a task consumed on `cpu2` or `cpu10` is already inside the counted buckets — R2''s bar is on the resource, not on the state. R2''s re-snapshot term binds the NEXT measurement, not this audit.
+**WHAT `R` MEANS HERE, AND WHAT FIX3 CHANGED ABOUT IT (settler R13).** The fix1/attrib recipe's `box_guard` paused on a foreign `R`, slept, printed `BOX_PAUSE_GIVEUP` and continued **without re-snapshotting** (`scripts/common.sh`). R2' requires the re-snapshot. Fix2 disclosed that and then deferred the requirement to "the next measurement"; **the settler granted no such retrospective exemption, and fix3 withdraws it.** An `R` with no re-snapshot is now an EVIDENCE gap on that batch, reported as **UNPROVEN-EVIDENCE**, and the flag travels to every number the batch feeds. The fractions are untouched: what CPU such a task consumed on `cpu2` or `cpu10` is already inside the counted buckets, so the bar still says what it said. What the bar cannot say is that the box was watched the way R2' asks, and that is now recorded rather than argued.
+
+**The `R` column reads BOTH sources.** The leg scripts write `FOREIGN_TICK` (the single state character from `/proc/<pid>/stat`) and `FOREIGN_PS` (`ps`'s full string). Fix2 read only the first, so `4022442 Rsl` in `L4-leg1-ssn-r2.log` did not appear. Reading both raises the number of batches with an `R` observation to **10 / 10 / 11 / 3 / 5** across the five rounds.
+
+**A SECOND EVIDENCE GAP, WHICH `PROVENANCE.txt` (G2) ALREADY DISCLOSED AND WHICH IS NOW A FLAG.** Only leg 1's nine wall batches place a snapshot between every A/B alternation. Every other recipe — leg-1 perf, leg 2, the interior leg, the per-cell interior leg, attrib2's `diff-`, attrib3's `screen` — calls `box_guard` after its arm loop, so two timed runs follow each other with no foreign state observed across the switch. Those batches are **UNPROVEN-EVIDENCE** too. The `CPUSTAT`/`CPUTIME_SELF` bracket around every timed run is still present in all of them, and that bracket is what the FRACTION is taken on.
 
 ## The per-batch table — every retained batch, every round
 
 `core` and `sibling` are R2''s two fractions (`cpu2`, `cpu10`); `worst foreign` is R2-as-written's worst single foreign pid across the whole box, retained because the amendment does not delete the number it was taken on. `asserts` is what the batch's data is read as: **WALL** (R2' governs), **COUNT** (counters only — deterministic at `MKL_NUM_THREADS=1`, CLAUDE.md §7), **SCREEN** (a probe nothing cites), **SUPERSEDED** (retained, quoted nowhere).
 
-**A batch is UNPROVEN for one of two reasons, and they are different.** Either its measured fractions exceed R2''s bar — the number is there and it is too big — or the batch has **no timed-run bracket at all**: its recipe wrote `PS_SNAPSHOT` blocks but no `CPUSTAT`/`CPUTIME_SELF` pair around each run, so no pinned-core figure exists to test. Four of attrib4's batches are the second kind (`e3`, `pf-r1..r3` — the `perf record` and fault-count batches, which assert COUNTS). Both are reported as UNPROVEN, and the cell says which.
+**A batch is UNPROVEN in one of two DIFFERENT ways, and the cell says which.**
 
-| round | batch | asserts | core `cpu2` | sibling `cpu10` | worst foreign (box) | foreign pids | transients | states seen | `R` seen | pauses | **R2'** |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| fix1 | `leg1-ipm-r1` | WALL | 0.0428 % | 0.4284 % | 2.9418 % | 196 | 28 | `S` | none | 0 | PROVEN |
-| fix1 | `leg1-ipm-r2` | WALL | 0.0428 % | 0.2570 % | 2.8986 % | 198 | 29 | `S` | none | 0 | PROVEN |
-| fix1 | `leg1-ipm-r3` | WALL | 0.0429 % | 0.1717 % | 2.9130 % | 195 | 34 | `R,S` | 50122 | 2 | PROVEN |
-| fix1 | `leg1-ssn-r1` | WALL | 0.0279 % | 0.3904 % | 2.8335 % | 196 | 22 | `S` | none | 0 | PROVEN |
-| fix1 | `leg1-ssn-r2` | WALL | 0.0559 % | 0.1117 % | 2.7013 % | 196 | 22 | `S` | none | 0 | PROVEN |
-| fix1 | `leg1-ssn-r3` | WALL | 0.0559 % | 0.2236 % | 2.7317 % | 195 | 25 | `S` | none | 0 | PROVEN |
-| fix1 | `leg1-walk-r1` | WALL | 0.0000 % | 0.1718 % | 2.8304 % | 192 | 40 | `S` | none | 0 | PROVEN |
-| fix1 | `leg1-walk-r2` | WALL | 0.0000 % | 0.2057 % | 2.6108 % | 195 | 53 | `R,S` | 2722106 | 2 | PROVEN |
-| fix1 | `leg1-walk-r3` | WALL | 0.0000 % | 0.1307 % | 2.8228 % | 196 | 54 | `S` | none | 0 | PROVEN |
-| fix1 | `leg1perf-ipm` | COUNT | 0.7503 % | 0.2858 % | 2.9084 % | 201 | 32 | `S` | none | 0 | **UNPROVEN** |
-| fix1 | `leg1perf-ssn` | COUNT | 0.6160 % | 0.4107 % | 2.7613 % | 201 | 29 | `S` | none | 0 | **UNPROVEN** |
-| fix1 | `leg1perf-walk` | COUNT | 1.5957 % | 0.2660 % | 2.8846 % | 206 | 16 | `S` | none | 0 | **UNPROVEN** |
-| fix1 | `leg2-ipm-off-passA` | WALL | 0.0177 % | 0.0974 % | 2.6817 % | 195 | 61 | `S` | none | 0 | PROVEN |
-| fix1 | `leg2-ipm-off-passB` | WALL | 0.0221 % | 0.1063 % | 2.7506 % | 195 | 68 | `R,S` | 50122,50634 | 4 | PROVEN |
-| fix1 | `leg2-ipm-sink-passA` | WALL | 0.0265 % | 0.2520 % | 2.6565 % | 200 | 71 | `S` | none | 0 | PROVEN |
-| fix1 | `leg2-ipm-sink-passB` | WALL | 0.0264 % | 0.2152 % | 2.7786 % | 198 | 74 | `S` | none | 0 | PROVEN |
-| fix1 | `leg2-ssn-off-passA` | WALL | 0.0245 % | 0.2531 % | 2.7639 % | 198 | 74 | `S` | none | 0 | PROVEN |
-| fix1 | `leg2-ssn-off-passB` | WALL | 0.0217 % | 0.1304 % | 2.8074 % | 197 | 72 | `S` | none | 0 | PROVEN |
-| fix1 | `leg2-ssn-sink-passA` | WALL | 0.0218 % | 0.1417 % | 2.6622 % | 197 | 72 | `S` | none | 0 | PROVEN |
-| fix1 | `leg2-ssn-sink-passB` | WALL | 0.0217 % | 0.2254 % | 2.6614 % | 196 | 70 | `S` | none | 0 | PROVEN |
-| fix1 | `leg2-walk-off-passA` | WALL | 0.0363 % | 0.2901 % | 2.6259 % | 196 | 65 | `S` | none | 0 | PROVEN |
-| fix1 | `leg2-walk-off-passB` | WALL | 0.0290 % | 0.2829 % | 2.8549 % | 198 | 57 | `S` | none | 0 | PROVEN |
-| fix1 | `leg2-walk-sink-passA` | WALL | 0.0289 % | 0.2025 % | 2.7108 % | 195 | 60 | `S` | none | 0 | PROVEN |
-| fix1 | `leg2-walk-sink-passB` | WALL | 0.0362 % | 0.1593 % | 2.6927 % | 198 | 55 | `S` | none | 0 | PROVEN |
-| fix1 | `interior-perfA` | COUNT | 0.3745 % | 0.4659 % | 2.9065 % | 196 | 62 | `S` | none | 0 | PROVEN |
-| fix1 | `interior-perfB` | COUNT | 0.0457 % | 0.3019 % | 2.6969 % | 199 | 56 | `S` | none | 0 | PROVEN |
-| fix1 | `interior-wall` | WALL | 0.0552 % | 0.3034 % | 2.7983 % | 199 | 57 | `S` | none | 0 | PROVEN |
-| fix1 | `interior-cells-r1` | COUNT | 0.3080 % | 0.2536 % | 2.8498 % | 198 | 46 | `S` | none | 0 | PROVEN |
-| fix1 | `interior-cells-r2` | COUNT | 0.3604 % | 0.2703 % | 2.7448 % | 198 | 50 | `R,S` | 1097257 | 2 | PROVEN |
-| fix1 | `interior-cells-r3` | COUNT | 0.3613 % | 0.2891 % | 2.8940 % | 196 | 59 | `R,S` | 50122 | 2 | PROVEN |
-| attrib2 | `diff-r1` | COUNT | 0.6828 % | 0.2438 % | 3.1996 % | 197 | 58 | `S` | none | 0 | **UNPROVEN** |
-| attrib2 | `diff-r2` | COUNT | 0.1594 % | 0.2085 % | 3.1133 % | 197 | 57 | `S` | none | 0 | PROVEN |
-| attrib2 | `diff-r3` | COUNT | 0.4164 % | 0.4164 % | 3.1215 % | 194 | 64 | `S` | none | 0 | PROVEN |
-| attrib2 | `diff-r4` | COUNT | 0.1592 % | 0.3062 % | 2.8142 % | 197 | 60 | `S` | none | 0 | PROVEN |
-| attrib2 | `diff-r5` | COUNT | 0.1346 % | 0.4282 % | 2.8736 % | 194 | 61 | `R,S` | 116643 | 2 | PROVEN |
-| attrib2 | `perfA-r1` | COUNT | 0.1120 % | 0.2660 % | 2.8348 % | 197 | 53 | `S` | none | 0 | PROVEN |
-| attrib2 | `perfA-r2` | COUNT | 0.0984 % | 0.3232 % | 2.7806 % | 194 | 58 | `S` | none | 0 | PROVEN |
-| attrib2 | `perfA-r3` | COUNT | 0.0979 % | 0.3077 % | 2.7152 % | 197 | 50 | `S` | none | 0 | PROVEN |
-| attrib2 | `perfB-r1` | COUNT | 0.3837 % | 0.2302 % | 2.8145 % | 197 | 27 | `S` | none | 0 | PROVEN |
-| attrib2 | `perfB-r2` | COUNT | 0.0756 % | 0.7559 % | 2.8655 % | 197 | 36 | `R,S` | 2722314 | 2 | **UNPROVEN** |
-| attrib2 | `perfB-r3` | COUNT | 0.0389 % | 0.4673 % | 2.9909 % | 201 | 26 | `S` | none | 0 | PROVEN |
-| attrib2 | `wall-r1` | WALL | 0.0561 % | 0.3084 % | 2.8939 % | 197 | 52 | `S` | none | 0 | PROVEN |
-| attrib2 | `wall-r2` | WALL | 0.0565 % | 0.3251 % | 2.8943 % | 197 | 54 | `R,S` | 50122 | 2 | PROVEN |
-| attrib2 | `wall-r3` | WALL | 0.0837 % | 0.3208 % | 2.6858 % | 197 | 52 | `D,S` | none | 0 | PROVEN |
-| attrib2 | `wall-r4` | WALL | 0.0561 % | 0.3363 % | 2.9071 % | 197 | 55 | `R,S` | 2722314 | 2 | PROVEN |
-| attrib2 | `wall-r5` | WALL | 0.0837 % | 0.3348 % | 2.7404 % | 194 | 59 | `R,S` | 2722106 | 2 | PROVEN |
-| attrib3 | `alloc-r1` | WALL | 0.1174 % | 0.3131 % | 2.6148 % | 199 | 29 | `S` | none | 0 | PROVEN |
-| attrib3 | `alloc-r2` | WALL | 0.0765 % | 0.3442 % | 2.9402 % | 202 | 25 | `S` | none | 0 | PROVEN |
-| attrib3 | `alloc-r3` | WALL | 0.0775 % | 0.2326 % | 2.7397 % | 198 | 25 | `S` | none | 0 | PROVEN |
-| attrib3 | `alloc-r4` | WALL | 0.1201 % | 0.3203 % | 2.9340 % | 200 | 30 | `R,S` | 50122 | 2 | PROVEN |
-| attrib3 | `alloc-r5` | WALL | 0.0389 % | 0.4669 % | 2.9164 % | 200 | 28 | `S` | none | 0 | PROVEN |
-| attrib3 | `wallpf-r1` | WALL | 0.0000 % | 0.3897 % | 2.7027 % | 203 | 13 | `S` | none | 0 | PROVEN |
-| attrib3 | `wallpf-r2` | WALL | 0.0789 % | 0.0789 % | 2.8050 % | 199 | 21 | `S` | none | 0 | PROVEN |
-| attrib3 | `wallpf-r3` | WALL | 0.1543 % | 0.1543 % | 2.7491 % | 205 | 10 | `S` | none | 0 | PROVEN |
-| attrib3 | `wallpf-r4` | WALL | 0.1577 % | 0.3943 % | 2.8011 % | 202 | 15 | `S` | none | 0 | PROVEN |
-| attrib3 | `wallpf-r5` | WALL | 0.0777 % | 0.4662 % | 2.8276 % | 203 | 19 | `S` | none | 0 | PROVEN |
-| attrib3 | `mem-r1` | COUNT | 0.0512 % | 0.5123 % | 2.8585 % | 202 | 22 | `S` | none | 0 | **UNPROVEN** |
-| attrib3 | `mem-r2` | COUNT | 0.0498 % | 0.2990 % | 3.1432 % | 201 | 24 | `S` | none | 0 | PROVEN |
-| attrib3 | `mem-r3` | COUNT | 0.1563 % | 0.4169 % | 2.8999 % | 204 | 18 | `S` | none | 0 | PROVEN |
-| attrib3 | `mem-r4` | COUNT | 0.0509 % | 0.2547 % | 2.7956 % | 203 | 20 | `S` | none | 0 | PROVEN |
-| attrib3 | `mem-r5` | COUNT | 0.0997 % | 0.3988 % | 2.7878 % | 200 | 25 | `S` | none | 0 | PROVEN |
-| attrib3 | `mem-r6` | COUNT | 0.1036 % | 1.5018 % | 3.3551 % | 203 | 20 | `S` | none | 0 | **UNPROVEN** |
-| attrib3 | `perf` | COUNT | 0.6452 % | 1.3978 % | 3.2997 % | 206 | 12 | `S` | none | 0 | **UNPROVEN** |
-| attrib3 | `perfstat-r1` | COUNT | 0.0769 % | 0.4613 % | 2.7544 % | 199 | 35 | `S` | none | 0 | PROVEN |
-| attrib3 | `perfstat-r2` | COUNT | 0.1040 % | 0.4421 % | 2.8152 % | 199 | 33 | `S` | none | 0 | PROVEN |
-| attrib3 | `perfstat-r3` | COUNT | 0.1037 % | 0.3112 % | 2.8487 % | 200 | 35 | `R,S` | 1097257 | 2 | PROVEN |
-| attrib3 | `perfrec-r1` | COUNT | 0.0779 % | 0.3115 % | 2.7643 % | 207 | 10 | `S` | none | 0 | PROVEN |
-| attrib3 | `perfrec-r2` | COUNT | 0.0786 % | 0.7862 % | 2.7197 % | 203 | 16 | `S` | none | 0 | **UNPROVEN** |
-| attrib3 | `perfrec-r3` | COUNT | 0.0000 % | 0.6240 % | 2.7701 % | 207 | 10 | `S` | none | 0 | **UNPROVEN** |
-| attrib3 | `screen` | SCREEN | 0.1167 % | 0.1946 % | 2.6955 % | 199 | 27 | `S` | none | 0 | PROVEN |
-| attrib3 | `wall-r1` | WALL | 0.1290 % | 0.6706 % | 2.9350 % | 200 | 33 | `S` | none | 0 | **UNPROVEN** |
-| attrib3 | `wall-r2` | WALL | 0.0779 % | 0.1039 % | 2.7180 % | 199 | 32 | `S` | none | 0 | PROVEN |
-| attrib3 | `wall-r3` | WALL | 0.1037 % | 0.3888 % | 2.6651 % | 199 | 35 | `S` | none | 0 | PROVEN |
-| attrib3 | `wall-r4` | WALL | 0.0775 % | 0.4910 % | 2.9665 % | 199 | 37 | `R,S` | 50122 | 2 | PROVEN |
-| attrib3 | `wall-r5` | WALL | 0.2776 % | 0.3534 % | 2.7637 % | 200 | 34 | `S` | none | 0 | PROVEN |
-| attrib3 | `xwall-r1` | WALL | 0.1176 % | 0.2744 % | 2.8723 % | 199 | 28 | `S` | none | 0 | PROVEN |
-| attrib3 | `xwall-r2` | WALL | 0.1168 % | 0.2726 % | 2.8152 % | 200 | 27 | `R,S` | 4022442 | 2 | PROVEN |
-| attrib3 | `xwall-r3` | WALL | 0.1547 % | 0.3868 % | 2.9793 % | 199 | 27 | `S` | none | 0 | PROVEN |
-| attrib3 | `xwall-r4` | WALL | 0.0782 % | 0.2735 % | 2.8996 % | 200 | 25 | `S` | none | 0 | PROVEN |
-| attrib3 | `xwall-r5` | WALL | 0.1134 % | 0.1134 % | 2.7388 % | 199 | 28 | `S` | none | 0 | PROVEN |
-| attrib3 | `ywall-r1` | WALL | 0.1220 % | 0.4270 % | 2.6630 % | 197 | 35 | `S` | none | 0 | PROVEN |
-| attrib3 | `ywall-r2` | WALL | 0.0934 % | 0.5291 % | 2.7417 % | 198 | 38 | `S` | none | 0 | **UNPROVEN** |
-| attrib3 | `ywall-r3` | WALL | 0.0620 % | 0.8065 % | 2.7864 % | 200 | 29 | `S` | none | 0 | **UNPROVEN** |
-| attrib3 | `ywall-r4` | WALL | 0.0938 % | 0.1877 % | 2.7518 % | 199 | 32 | `S` | none | 0 | PROVEN |
-| attrib3 | `ywall-r5` | WALL | 0.1557 % | 0.5293 % | 2.9208 % | 199 | 34 | `R,S` | 2722314 | 2 | **UNPROVEN** |
-| attrib3-superseded | `xwall-r1` | SUPERSEDED | 0.0760 % | 0.2279 % | 2.8581 % | 199 | 29 | `S` | none | 0 | PROVEN |
-| attrib3-superseded | `xwall-r2` | SUPERSEDED | 0.0391 % | 0.4299 % | 2.9994 % | 197 | 33 | `R,S` | 50122 | 2 | PROVEN |
-| attrib3-superseded | `xwall-r3` | SUPERSEDED | 0.1163 % | 0.3101 % | 2.7446 % | 199 | 29 | `R,S` | 50122 | 2 | PROVEN |
-| attrib3-superseded | `xwall-r4` | SUPERSEDED | 0.0392 % | 0.3922 % | 2.7984 % | 200 | 26 | `S` | none | 0 | PROVEN |
-| attrib3-superseded | `xwall-r5` | SUPERSEDED | 1.1227 % | 0.2710 % | 3.0802 % | 199 | 28 | `R,S` | 50122 | 2 | **UNPROVEN** |
-| attrib4 | `e3` | COUNT | — (no timed run bracketed) | — (no timed run bracketed) | 2.6908 % | 195 | 34 | `S` | none | 0 | **UNPROVEN** |
-| attrib4 | `pf-r1` | COUNT | — (no timed run bracketed) | — (no timed run bracketed) | 2.8307 % | 198 | 28 | `S` | none | 0 | **UNPROVEN** |
-| attrib4 | `pf-r2` | COUNT | — (no timed run bracketed) | — (no timed run bracketed) | 2.7301 % | 198 | 27 | `R,S` | 50122 | 2 | **UNPROVEN** |
-| attrib4 | `pf-r3` | COUNT | — (no timed run bracketed) | — (no timed run bracketed) | 2.6998 % | 198 | 27 | `S` | none | 0 | **UNPROVEN** |
-| attrib4 | `wall-r1` | WALL | 0.0379 % | 0.4173 % | 3.1094 % | 196 | 40 | `R,S` | 50122 | 2 | PROVEN |
-| attrib4 | `wall-r2` | WALL | 0.0756 % | 0.3403 % | 2.7787 % | 198 | 32 | `S` | none | 0 | PROVEN |
-| attrib4 | `wall-r3` | WALL | 0.0748 % | 0.2619 % | 2.8155 % | 198 | 31 | `S` | none | 0 | PROVEN |
-| attrib4 | `wall-r4` | WALL | 0.0374 % | 0.4867 % | 2.7514 % | 199 | 30 | `S` | none | 0 | PROVEN |
-| attrib4 | `wall-r5` | WALL | 0.0377 % | 0.3390 % | 3.2082 % | 198 | 31 | `S` | none | 0 | PROVEN |
+* **UNPROVEN-FRACTION** — R2''s bar is measured and exceeded on `cpu2` or `cpu10`. The number is there and it is too big.
+* **UNPROVEN-EVIDENCE** — the bar is met, or cannot be computed, but the log does not contain what R2' asks for: a **re-snapshot** after a foreign `R`; a snapshot **between two consecutive timed runs**; or, for four of attrib4's batches (`e3`, `pf-r1..r3`), any **timed-run bracket at all** — `PS_SNAPSHOT` blocks but no `CPUSTAT`/`CPUTIME_SELF` pair, so no pinned-core figure exists to test.
+
+A batch can be both. The two columns therefore need not sum to the batch count.
+
+| round | batch | asserts | core `cpu2` | sibling `cpu10` | worst foreign (box) | foreign pids | transients | states seen | `R` seen | pauses | give-ups | evidence | **R2'** |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| fix1 | `leg1-ipm-r1` | WALL | 0.0428 % | 0.4284 % | 2.9418 % | 196 | 28 | `S,S+,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| fix1 | `leg1-ipm-r2` | WALL | 0.0428 % | 0.2570 % | 2.8986 % | 198 | 29 | `S,S+,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| fix1 | `leg1-ipm-r3` | WALL | 0.0429 % | 0.1717 % | 2.9130 % | 195 | 34 | `R,S,S+,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 50122 | 1 | 1 | `R` at `leg1-ipm-r3/open` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| fix1 | `leg1-ssn-r1` | WALL | 0.0279 % | 0.3904 % | 2.8335 % | 196 | 22 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| fix1 | `leg1-ssn-r2` | WALL | 0.0559 % | 0.1117 % | 2.7013 % | 196 | 22 | `Rsl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 4022442 | 0 | 0 | `R` at `leg1-ssn-r2/close` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| fix1 | `leg1-ssn-r3` | WALL | 0.0559 % | 0.2236 % | 2.7317 % | 195 | 25 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| fix1 | `leg1-walk-r1` | WALL | 0.0000 % | 0.1718 % | 2.8304 % | 192 | 40 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| fix1 | `leg1-walk-r2` | WALL | 0.0000 % | 0.2057 % | 2.6108 % | 195 | 53 | `R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 2722106 | 1 | 1 | `R` at `leg1-walk-r2/close` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| fix1 | `leg1-walk-r3` | WALL | 0.0000 % | 0.1307 % | 2.8228 % | 196 | 54 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| fix1 | `leg1perf-ipm` | COUNT | 0.7503 % | 0.2858 % | 2.9084 % | 201 | 32 | `RN,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 2522981 | 0 | 0 | `R` at `leg1perf-ipm/passB-r3` with NO re-snapshot; 30 alternation snapshot(s) missing | **UNPROVEN-FRACTION + UNPROVEN-EVIDENCE** |
+| fix1 | `leg1perf-ssn` | COUNT | 0.6160 % | 0.4107 % | 2.7613 % | 201 | 29 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | 30 alternation snapshot(s) missing | **UNPROVEN-FRACTION + UNPROVEN-EVIDENCE** |
+| fix1 | `leg1perf-walk` | COUNT | 1.5957 % | 0.2660 % | 2.8846 % | 206 | 16 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | 30 alternation snapshot(s) missing | **UNPROVEN-FRACTION + UNPROVEN-EVIDENCE** |
+| fix1 | `leg2-ipm-off-passA` | WALL | 0.0177 % | 0.0974 % | 2.6817 % | 195 | 61 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| fix1 | `leg2-ipm-off-passB` | WALL | 0.0221 % | 0.1063 % | 2.7506 % | 195 | 68 | `R,Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 3819500,50122,50634 | 2 | 2 | `R` at `leg2-ipm-off-passB/r1`,`leg2-ipm-off-passB/r2`,`leg2-ipm-off-passB/r3` with NO re-snapshot; 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| fix1 | `leg2-ipm-sink-passA` | WALL | 0.0265 % | 0.2520 % | 2.6565 % | 200 | 71 | `S,S+,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| fix1 | `leg2-ipm-sink-passB` | WALL | 0.0264 % | 0.2152 % | 2.7786 % | 198 | 74 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| fix1 | `leg2-ssn-off-passA` | WALL | 0.0245 % | 0.2531 % | 2.7639 % | 198 | 74 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| fix1 | `leg2-ssn-off-passB` | WALL | 0.0217 % | 0.1304 % | 2.8074 % | 197 | 72 | `Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 50122 | 0 | 0 | `R` at `leg2-ssn-off-passB/r1` with NO re-snapshot; 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| fix1 | `leg2-ssn-sink-passA` | WALL | 0.0218 % | 0.1417 % | 2.6622 % | 197 | 72 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| fix1 | `leg2-ssn-sink-passB` | WALL | 0.0217 % | 0.2254 % | 2.6614 % | 196 | 70 | `S,S+,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| fix1 | `leg2-walk-off-passA` | WALL | 0.0363 % | 0.2901 % | 2.6259 % | 196 | 65 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| fix1 | `leg2-walk-off-passB` | WALL | 0.0290 % | 0.2829 % | 2.8549 % | 198 | 57 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| fix1 | `leg2-walk-sink-passA` | WALL | 0.0289 % | 0.2025 % | 2.7108 % | 195 | 60 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| fix1 | `leg2-walk-sink-passB` | WALL | 0.0362 % | 0.1593 % | 2.6927 % | 198 | 55 | `Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 50122 | 0 | 0 | `R` at `leg2-walk-sink-passB/close` with NO re-snapshot; 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| fix1 | `interior-perfA` | COUNT | 0.3745 % | 0.4659 % | 2.9065 % | 196 | 62 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | 6 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| fix1 | `interior-perfB` | COUNT | 0.0457 % | 0.3019 % | 2.6969 % | 199 | 56 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | 6 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| fix1 | `interior-wall` | WALL | 0.0552 % | 0.3034 % | 2.7983 % | 199 | 57 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | 6 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| fix1 | `interior-cells-r1` | COUNT | 0.3080 % | 0.2536 % | 2.8498 % | 198 | 46 | `RNl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 4022478 | 0 | 0 | `R` at `interior-cells-r1/hs071_x1_fixed` with NO re-snapshot; 22 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| fix1 | `interior-cells-r2` | COUNT | 0.3604 % | 0.2703 % | 2.7448 % | 198 | 50 | `R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 1097257 | 1 | 1 | `R` at `interior-cells-r2/f7_n10000_bound_physics` with NO re-snapshot; 22 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| fix1 | `interior-cells-r3` | COUNT | 0.3613 % | 0.2891 % | 2.8940 % | 196 | 59 | `R,Rl+,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 1097257,50122 | 1 | 1 | `R` at `interior-cells-r3/f7_n1000_bound_neutral`,`interior-cells-r3/f7_n1000_bound_physics` with NO re-snapshot; 22 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| attrib2 | `diff-r1` | COUNT | 0.6828 % | 0.2438 % | 3.1996 % | 197 | 58 | `Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 50122 | 0 | 0 | `R` at `diff-r1/a05-after` with NO re-snapshot; 11 alternation snapshot(s) missing | **UNPROVEN-FRACTION + UNPROVEN-EVIDENCE** |
+| attrib2 | `diff-r2` | COUNT | 0.1594 % | 0.2085 % | 3.1133 % | 197 | 57 | `Rl+,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 1097257 | 0 | 0 | `R` at `diff-r2/a02-after` with NO re-snapshot; 11 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| attrib2 | `diff-r3` | COUNT | 0.4164 % | 0.4164 % | 3.1215 % | 194 | 64 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | 11 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| attrib2 | `diff-r4` | COUNT | 0.1592 % | 0.3062 % | 2.8142 % | 197 | 60 | `S,S+,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | 11 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| attrib2 | `diff-r5` | COUNT | 0.1346 % | 0.4282 % | 2.8736 % | 194 | 61 | `R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 116643 | 1 | 1 | `R` at `diff-r5/close` with NO re-snapshot; 11 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| attrib2 | `perfA-r1` | COUNT | 0.1120 % | 0.2660 % | 2.8348 % | 197 | 53 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib2 | `perfA-r2` | COUNT | 0.0984 % | 0.3232 % | 2.7806 % | 194 | 58 | `Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 50122 | 0 | 0 | `R` at `perfA-r2/open` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib2 | `perfA-r3` | COUNT | 0.0979 % | 0.3077 % | 2.7152 % | 197 | 50 | `Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 50122 | 0 | 0 | `R` at `perfA-r3/a04-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib2 | `perfB-r1` | COUNT | 0.3837 % | 0.2302 % | 2.8145 % | 197 | 27 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib2 | `perfB-r2` | COUNT | 0.0756 % | 0.7559 % | 2.8655 % | 197 | 36 | `R,RN,S,S+,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 2722314,2855082,2856614 | 1 | 1 | `R` at `perfB-r2/a04-after`,`perfB-r2/a01-after` with NO re-snapshot | **UNPROVEN-FRACTION + UNPROVEN-EVIDENCE** |
+| attrib2 | `perfB-r3` | COUNT | 0.0389 % | 0.4673 % | 2.9909 % | 201 | 26 | `S,S+,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib2 | `wall-r1` | WALL | 0.0561 % | 0.3084 % | 2.8939 % | 197 | 52 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib2 | `wall-r2` | WALL | 0.0565 % | 0.3251 % | 2.8943 % | 197 | 54 | `R,Rsl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 50122,50573 | 1 | 1 | `R` at `wall-r2/a05-after`,`wall-r2/a06-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib2 | `wall-r3` | WALL | 0.0837 % | 0.3208 % | 2.6858 % | 197 | 52 | `D,Ds,Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 50122 | 0 | 0 | `R` at `wall-r3/a06-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib2 | `wall-r4` | WALL | 0.0561 % | 0.3363 % | 2.9071 % | 197 | 55 | `R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 2722314 | 1 | 1 | `R` at `wall-r4/a08-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib2 | `wall-r5` | WALL | 0.0837 % | 0.3348 % | 2.7404 % | 194 | 59 | `R,Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 2722044,2722106 | 1 | 1 | `R` at `wall-r5/a04-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib3 | `alloc-r1` | WALL | 0.1174 % | 0.3131 % | 2.6148 % | 199 | 29 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `alloc-r2` | WALL | 0.0765 % | 0.3442 % | 2.9402 % | 202 | 25 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `alloc-r3` | WALL | 0.0775 % | 0.2326 % | 2.7397 % | 198 | 25 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `alloc-r4` | WALL | 0.1201 % | 0.3203 % | 2.9340 % | 200 | 30 | `R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 50122 | 1 | 1 | `R` at `alloc-r4/open` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib3 | `alloc-r5` | WALL | 0.0389 % | 0.4669 % | 2.9164 % | 200 | 28 | `RN,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 3064933 | 0 | 0 | `R` at `alloc-r5/b2-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib3 | `wallpf-r1` | WALL | 0.0000 % | 0.3897 % | 2.7027 % | 203 | 13 | `Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 2722314 | 0 | 0 | `R` at `wallpf-r1/h1-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib3 | `wallpf-r2` | WALL | 0.0789 % | 0.0789 % | 2.8050 % | 199 | 21 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `wallpf-r3` | WALL | 0.1543 % | 0.1543 % | 2.7491 % | 205 | 10 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `wallpf-r4` | WALL | 0.1577 % | 0.3943 % | 2.8011 % | 202 | 15 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `wallpf-r5` | WALL | 0.0777 % | 0.4662 % | 2.8276 % | 203 | 19 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `mem-r1` | COUNT | 0.0512 % | 0.5123 % | 2.8585 % | 202 | 22 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | **UNPROVEN-FRACTION** |
+| attrib3 | `mem-r2` | COUNT | 0.0498 % | 0.2990 % | 3.1432 % | 201 | 24 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `mem-r3` | COUNT | 0.1563 % | 0.4169 % | 2.8999 % | 204 | 18 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `mem-r4` | COUNT | 0.0509 % | 0.2547 % | 2.7956 % | 203 | 20 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `mem-r5` | COUNT | 0.0997 % | 0.3988 % | 2.7878 % | 200 | 25 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `mem-r6` | COUNT | 0.1036 % | 1.5018 % | 3.3551 % | 203 | 20 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | **UNPROVEN-FRACTION** |
+| attrib3 | `perf` | COUNT | 0.6452 % | 1.3978 % | 3.2997 % | 206 | 12 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | **UNPROVEN-FRACTION** |
+| attrib3 | `perfstat-r1` | COUNT | 0.0769 % | 0.4613 % | 2.7544 % | 199 | 35 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `perfstat-r2` | COUNT | 0.1040 % | 0.4421 % | 2.8152 % | 199 | 33 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `perfstat-r3` | COUNT | 0.1037 % | 0.3112 % | 2.8487 % | 200 | 35 | `R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 1097257 | 1 | 1 | `R` at `perfstat-r3/b06-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib3 | `perfrec-r1` | COUNT | 0.0779 % | 0.3115 % | 2.7643 % | 207 | 10 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `perfrec-r2` | COUNT | 0.0786 % | 0.7862 % | 2.7197 % | 203 | 16 | `Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 50122 | 0 | 0 | `R` at `perfrec-r2/open` with NO re-snapshot | **UNPROVEN-FRACTION + UNPROVEN-EVIDENCE** |
+| attrib3 | `perfrec-r3` | COUNT | 0.0000 % | 0.6240 % | 2.7701 % | 207 | 10 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | **UNPROVEN-FRACTION** |
+| attrib3 | `screen` | SCREEN | 0.1167 % | 0.1946 % | 2.6955 % | 199 | 27 | `R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 3019998 | 0 | 0 | `R` at `screen/open` with NO re-snapshot; 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| attrib3 | `wall-r1` | WALL | 0.1290 % | 0.6706 % | 2.9350 % | 200 | 33 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | **UNPROVEN-FRACTION** |
+| attrib3 | `wall-r2` | WALL | 0.0779 % | 0.1039 % | 2.7180 % | 199 | 32 | `Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 2722314 | 0 | 0 | `R` at `wall-r2/b03-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib3 | `wall-r3` | WALL | 0.1037 % | 0.3888 % | 2.6651 % | 199 | 35 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `wall-r4` | WALL | 0.0775 % | 0.4910 % | 2.9665 % | 199 | 37 | `R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 50122 | 1 | 1 | `R` at `wall-r4/b04-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib3 | `wall-r5` | WALL | 0.2776 % | 0.3534 % | 2.7637 % | 200 | 34 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `xwall-r1` | WALL | 0.1176 % | 0.2744 % | 2.8723 % | 199 | 28 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `xwall-r2` | WALL | 0.1168 % | 0.2726 % | 2.8152 % | 200 | 27 | `R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 4022442 | 1 | 1 | `R` at `xwall-r2/open` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib3 | `xwall-r3` | WALL | 0.1547 % | 0.3868 % | 2.9793 % | 199 | 27 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `xwall-r4` | WALL | 0.0782 % | 0.2735 % | 2.8996 % | 200 | 25 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `xwall-r5` | WALL | 0.1134 % | 0.1134 % | 2.7388 % | 199 | 28 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `ywall-r1` | WALL | 0.1220 % | 0.4270 % | 2.6630 % | 197 | 35 | `Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 2722314 | 0 | 0 | `R` at `ywall-r1/open` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib3 | `ywall-r2` | WALL | 0.0934 % | 0.5291 % | 2.7417 % | 198 | 38 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | **UNPROVEN-FRACTION** |
+| attrib3 | `ywall-r3` | WALL | 0.0620 % | 0.8065 % | 2.7864 % | 200 | 29 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | **UNPROVEN-FRACTION** |
+| attrib3 | `ywall-r4` | WALL | 0.0938 % | 0.1877 % | 2.7518 % | 199 | 32 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3 | `ywall-r5` | WALL | 0.1557 % | 0.5293 % | 2.9208 % | 199 | 34 | `R,Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 2722314,50122 | 1 | 1 | `R` at `ywall-r5/open`,`ywall-r5/f1-after` with NO re-snapshot | **UNPROVEN-FRACTION + UNPROVEN-EVIDENCE** |
+| attrib3-superseded | `xwall-r1` | SUPERSEDED | 0.0760 % | 0.2279 % | 2.8581 % | 199 | 29 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3-superseded | `xwall-r2` | SUPERSEDED | 0.0391 % | 0.4299 % | 2.9994 % | 197 | 33 | `R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 50122 | 1 | 1 | `R` at `xwall-r2/open` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib3-superseded | `xwall-r3` | SUPERSEDED | 0.1163 % | 0.3101 % | 2.7446 % | 199 | 29 | `R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 50122 | 1 | 1 | `R` at `xwall-r3/e2-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib3-superseded | `xwall-r4` | SUPERSEDED | 0.0392 % | 0.3922 % | 2.7984 % | 200 | 26 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib3-superseded | `xwall-r5` | SUPERSEDED | 1.1227 % | 0.2710 % | 3.0802 % | 199 | 28 | `R,Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 50122 | 1 | 1 | `R` at `xwall-r5/e3-after`,`xwall-r5/close` with NO re-snapshot | **UNPROVEN-FRACTION + UNPROVEN-EVIDENCE** |
+| attrib4 | `e3` | COUNT | — (no timed run bracketed) | — (no timed run bracketed) | 2.6908 % | 195 | 34 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | no timed-run bracket | **UNPROVEN-EVIDENCE** |
+| attrib4 | `pf-r1` | COUNT | — (no timed run bracketed) | — (no timed run bracketed) | 2.8307 % | 198 | 28 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | no timed-run bracket | **UNPROVEN-EVIDENCE** |
+| attrib4 | `pf-r2` | COUNT | — (no timed run bracketed) | — (no timed run bracketed) | 2.7301 % | 198 | 27 | `R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 50122 | 1 | 1 | `R` at `pf-r2/open` with NO re-snapshot; no timed-run bracket | **UNPROVEN-EVIDENCE** |
+| attrib4 | `pf-r3` | COUNT | — (no timed run bracketed) | — (no timed run bracketed) | 2.6998 % | 198 | 27 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | no timed-run bracket | **UNPROVEN-EVIDENCE** |
+| attrib4 | `wall-r1` | WALL | 0.0379 % | 0.4173 % | 3.1094 % | 196 | 40 | `R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 50122 | 1 | 1 | `R` at `wall-r1/a2-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib4 | `wall-r2` | WALL | 0.0756 % | 0.3403 % | 2.7787 % | 198 | 32 | `S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | none | 0 | 0 | complete | PROVEN |
+| attrib4 | `wall-r3` | WALL | 0.0748 % | 0.2619 % | 2.8155 % | 198 | 31 | `Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 2722314 | 0 | 0 | `R` at `wall-r3/open` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib4 | `wall-r4` | WALL | 0.0374 % | 0.4867 % | 2.7514 % | 199 | 30 | `Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 50122 | 0 | 0 | `R` at `wall-r4/a2-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| attrib4 | `wall-r5` | WALL | 0.0377 % | 0.3390 % | 3.2082 % | 198 | 31 | `Rl+,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+` | 1097257 | 0 | 0 | `R` at `wall-r5/a4-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
 
 ## The audit, per round
 
-| round | WALL batches | WALL proven | COUNT/other batches | COUNT/other proven |
-|---|---|---|---|---|
-| fix1 | 22 | **22** | 8 | 5 |
-| attrib2 | 5 | **5** | 11 | 9 |
-| attrib3 | 25 | **21** | 14 | 9 |
-| attrib3-superseded | 0 | **0** | 5 | 4 |
-| attrib4 | 5 | **5** | 4 | 0 |
+Proven = the fraction bar met AND the evidence complete. The two unproven columns overlap: a batch can fail both.
 
-### The WALL-asserting batches that R2' does NOT prove
+| round | WALL batches | WALL proven | WALL unproven-FRACTION | WALL unproven-EVIDENCE | COUNT/other batches | COUNT/other proven | per-pid appendix |
+|---|---:|---:|---:|---:|---:|---:|---|
+| fix1 | 22 | **6** | 0 | 16 | 8 | 0 | [`logs/idle-proof-pids-fix1.md`](idle-proof-pids-fix1.md) |
+| attrib2 | 5 | **1** | 0 | 4 | 11 | 3 | [`logs/idle-proof-pids-attrib2.md`](idle-proof-pids-attrib2.md) |
+| attrib3 | 25 | **14** | 4 | 8 | 14 | 7 | [`logs/idle-proof-pids-attrib3.md`](idle-proof-pids-attrib3.md) |
+| attrib3-superseded | 0 | **0** | 0 | 0 | 5 | 2 | [`logs/idle-proof-pids-attrib3-superseded.md`](idle-proof-pids-attrib3-superseded.md) |
+| attrib4 | 5 | **1** | 0 | 4 | 4 | 0 | [`logs/idle-proof-pids-attrib4.md`](idle-proof-pids-attrib4.md) |
+
+### The WALL-asserting batches whose FRACTION R2' does not meet
 
 | round | batch | core `cpu2` | sibling `cpu10` |
 |---|---|---|---|
@@ -135,12 +146,63 @@
 | attrib3 | `ywall-r3` | 0.0620 % | 0.8065 % |
 | attrib3 | `ywall-r5` | 0.1557 % | 0.5293 % |
 
-**These are FLAGGED, not re-measured** — the settler's fix2 ruling owes no re-measurement, and a flag that says which rounds a number rests on is worth more than a re-run taken to make a table read clean. Every one of them fails on the SMT SIBLING, not on the measurement core, and by 0.03 to 0.31 percentage points. The reading carries the flag at each place these batches feed a number.
+**These are FLAGGED, not re-measured** — the settler's ruling owes no re-measurement, and a flag that says which rounds a number rests on is worth more than a re-run taken to make a table read clean. Every one of them fails on the SMT SIBLING, not on the measurement core, and by 0.03 to 0.31 percentage points. The reading carries the flag at each place these batches feed a number.
+
+### The WALL-asserting batches whose EVIDENCE is short of R2' (fix3)
+
+| round | batch | what is missing |
+|---|---|---|
+| fix1 | `leg1-ipm-r3` | `R` at `leg1-ipm-r3/open` with NO re-snapshot |
+| fix1 | `leg1-ssn-r2` | `R` at `leg1-ssn-r2/close` with NO re-snapshot |
+| fix1 | `leg1-walk-r2` | `R` at `leg1-walk-r2/close` with NO re-snapshot |
+| fix1 | `leg2-ipm-off-passA` | 3 alternation snapshot(s) missing |
+| fix1 | `leg2-ipm-off-passB` | `R` at `leg2-ipm-off-passB/r1`,`leg2-ipm-off-passB/r2`,`leg2-ipm-off-passB/r3` with NO re-snapshot; 3 alternation snapshot(s) missing |
+| fix1 | `leg2-ipm-sink-passA` | 3 alternation snapshot(s) missing |
+| fix1 | `leg2-ipm-sink-passB` | 3 alternation snapshot(s) missing |
+| fix1 | `leg2-ssn-off-passA` | 3 alternation snapshot(s) missing |
+| fix1 | `leg2-ssn-off-passB` | `R` at `leg2-ssn-off-passB/r1` with NO re-snapshot; 3 alternation snapshot(s) missing |
+| fix1 | `leg2-ssn-sink-passA` | 3 alternation snapshot(s) missing |
+| fix1 | `leg2-ssn-sink-passB` | 3 alternation snapshot(s) missing |
+| fix1 | `leg2-walk-off-passA` | 3 alternation snapshot(s) missing |
+| fix1 | `leg2-walk-off-passB` | 3 alternation snapshot(s) missing |
+| fix1 | `leg2-walk-sink-passA` | 3 alternation snapshot(s) missing |
+| fix1 | `leg2-walk-sink-passB` | `R` at `leg2-walk-sink-passB/close` with NO re-snapshot; 3 alternation snapshot(s) missing |
+| fix1 | `interior-wall` | 6 alternation snapshot(s) missing |
+| attrib2 | `wall-r2` | `R` at `wall-r2/a05-after`,`wall-r2/a06-after` with NO re-snapshot |
+| attrib2 | `wall-r3` | `R` at `wall-r3/a06-after` with NO re-snapshot |
+| attrib2 | `wall-r4` | `R` at `wall-r4/a08-after` with NO re-snapshot |
+| attrib2 | `wall-r5` | `R` at `wall-r5/a04-after` with NO re-snapshot |
+| attrib3 | `alloc-r4` | `R` at `alloc-r4/open` with NO re-snapshot |
+| attrib3 | `alloc-r5` | `R` at `alloc-r5/b2-after` with NO re-snapshot |
+| attrib3 | `wallpf-r1` | `R` at `wallpf-r1/h1-after` with NO re-snapshot |
+| attrib3 | `wall-r2` | `R` at `wall-r2/b03-after` with NO re-snapshot |
+| attrib3 | `wall-r4` | `R` at `wall-r4/b04-after` with NO re-snapshot |
+| attrib3 | `xwall-r2` | `R` at `xwall-r2/open` with NO re-snapshot |
+| attrib3 | `ywall-r1` | `R` at `ywall-r1/open` with NO re-snapshot |
+| attrib3 | `ywall-r5` | `R` at `ywall-r5/open`,`ywall-r5/f1-after` with NO re-snapshot |
+| attrib4 | `wall-r1` | `R` at `wall-r1/a2-after` with NO re-snapshot |
+| attrib4 | `wall-r3` | `R` at `wall-r3/open` with NO re-snapshot |
+| attrib4 | `wall-r4` | `R` at `wall-r4/a2-after` with NO re-snapshot |
+| attrib4 | `wall-r5` | `R` at `wall-r5/a4-after` with NO re-snapshot |
+
+**These too are FLAGGED, not re-measured.** The gap is in the RECORD, not in the numbers: the fractions these batches report are the fractions they measured, and CLAUDE.md §7's own reason for the solo rule — that a busy neighbour can only cost the measurement time — means an unwatched moment biases a wall number in the SLOW direction, never the fast one. Where such a batch feeds a number, the reading says so.
 
 ### Rounds whose retained snapshots cannot support R2' at all
 
 * **round 1 (superseded)** (`logs/round1-superseded/L*.log`): Round 1's legs predate R2 entirely: their solo evidence is the `pgrep` audit astra's I1 refused, and they carry no `PS_SNAPSHOT` block. Every number they produced was SUPERSEDED by the fix1 re-measurement and is quoted nowhere in the reading. **R2' cannot be computed for them and is not claimed.**
 * **T8.9r-attrib5 (section 14)** (`attribution-interior/t84/single-row/logs/*.log`): The single-row leg's batch logs carry `PGREP_INLOCK`, `FOREGROUND_START`/`_END` and `ARGV_LEN` but no `PS_SNAPSHOT`/`CPUSTAT` bracket. **That leg asserts no wall clock** — section 14 says so in its own closing paragraph, and its elapsed figures are printed as informational under CLAUDE.md section 7 -- so R2' has nothing to govern there. Its instruction and branch counts are the asserted currency and are scheduling-invariant at `MKL_NUM_THREADS=1`. **R2' is NOT claimed for that leg, and its wall figures stay informational.**
+
+### Where every foreign pid is listed
+
+R2' asks for every foreign pid and state seen in any snapshot, LISTED. That is one file per round, written by `idle_proof.py --pids` from the same snapshots the fractions come from, ~200 pids per batch:
+
+* fix1 — [`logs/idle-proof-pids-fix1.md`](idle-proof-pids-fix1.md)
+* attrib2 — [`logs/idle-proof-pids-attrib2.md`](idle-proof-pids-attrib2.md)
+* attrib3 — [`logs/idle-proof-pids-attrib3.md`](idle-proof-pids-attrib3.md)
+* attrib3-superseded — [`logs/idle-proof-pids-attrib3-superseded.md`](idle-proof-pids-attrib3-superseded.md)
+* attrib4 — [`logs/idle-proof-pids-attrib4.md`](idle-proof-pids-attrib4.md)
+
+The five-busiest list in each appendix below is a summary of those files, not a substitute for them.
 
 ---
 
@@ -155,42 +217,44 @@ Each block below is the tool's own stdout for that round's logs, unedited. The t
 
 Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` blocks. A batch is PROVEN when the worst foreign CPU-time delta is under 0.5 %% of the window's wall AND no foreign process was seen in state `R`.
 
+**FIX ROUND 3 (settler R13).** `FOREIGN_PS` is read beside `FOREIGN_TICK`, so `ps` states such as `Rsl` are seen; pauses and give-ups are separate columns; every foreign pid and its observed states is listed per batch in the appendix file; and a batch whose EVIDENCE is short of R2' -- an `R` with no re-snapshot, or a missing alternation snapshot -- is UNPROVEN-EVIDENCE, reported apart from UNPROVEN-FRACTION. **No fraction, delta or bar-verdict moved.**
+
 ## Test 1 (R2, as written) -- foreign CPU time anywhere on the box, per batch
 
 **TRANSIENTS AND STATES ARE DISCLOSED (attrib4).** A pid present in one snapshot of a batch but not the other cannot have its CPU delta differenced; the column counts them rather than dropping them silently, and EVERY foreign state seen in any snapshot is listed, not only `R`.
 
-| log | batch | window wall (s) | snapshots | foreign pids | transients | worst foreign cputime delta (s) | worst fraction | states seen | `R` seen | pauses | R2-as-written |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| L4-leg1-ipm-r1.log | leg1-ipm-r1 | 48.27 | 4 | 196 | 28 | 1.420 (pid 50122) | **2.9418 %** | S | none | 0 | **NOT met** |
-| L4-leg1-ipm-r2.log | leg1-ipm-r2 | 48.30 | 4 | 198 | 29 | 1.400 (pid 50122) | **2.8986 %** | S | none | 0 | **NOT met** |
-| L4-leg1-ipm-r3.log | leg1-ipm-r3 | 53.21 | 4 | 195 | 34 | 1.550 (pid 50122) | **2.9130 %** | R,S | 50122 | 2 | **NOT met** |
-| L4-leg1-ssn-r1.log | leg1-ssn-r1 | 37.41 | 4 | 196 | 22 | 1.060 (pid 50122) | **2.8335 %** | S | none | 0 | **NOT met** |
-| L4-leg1-ssn-r2.log | leg1-ssn-r2 | 37.39 | 4 | 196 | 22 | 1.010 (pid 50122) | **2.7013 %** | S | none | 0 | **NOT met** |
-| L4-leg1-ssn-r3.log | leg1-ssn-r3 | 37.34 | 4 | 195 | 25 | 1.020 (pid 50122) | **2.7317 %** | S | none | 0 | **NOT met** |
-| L4-leg1-walk-r1.log | leg1-walk-r1 | 414.78 | 4 | 192 | 40 | 11.740 (pid 50122) | **2.8304 %** | S | none | 0 | **NOT met** |
-| L4-leg1-walk-r2.log | leg1-walk-r2 | 414.82 | 4 | 195 | 53 | 10.830 (pid 50122) | **2.6108 %** | R,S | 2722106 | 2 | **NOT met** |
-| L4-leg1-walk-r3.log | leg1-walk-r3 | 414.84 | 4 | 196 | 54 | 11.710 (pid 50122) | **2.8228 %** | S | none | 0 | **NOT met** |
-| L5-leg1perf-ipm.log | leg1perf-ipm | 32.32 | 8 | 201 | 32 | 0.940 (pid 50122) | **2.9084 %** | S | none | 0 | **NOT met** |
-| L5-leg1perf-ssn.log | leg1perf-ssn | 28.61 | 8 | 201 | 29 | 0.790 (pid 50122) | **2.7613 %** | S | none | 0 | **NOT met** |
-| L5-leg1perf-walk.log | leg1perf-walk | 15.60 | 8 | 206 | 16 | 0.450 (pid 50122) | **2.8846 %** | S | none | 0 | **NOT met** |
-| L6-leg2-ipm-off-passA.log | leg2-ipm-off-passA | 228.21 | 5 | 195 | 61 | 6.120 (pid 50122) | **2.6817 %** | S | none | 0 | **NOT met** |
-| L6-leg2-ipm-off-passB.log | leg2-ipm-off-passB | 238.13 | 5 | 195 | 68 | 6.550 (pid 50122) | **2.7506 %** | R,S | 50122,50634 | 4 | **NOT met** |
-| L6-leg2-ipm-sink-passA.log | leg2-ipm-sink-passA | 228.50 | 5 | 200 | 71 | 6.070 (pid 50122) | **2.6565 %** | S | none | 0 | **NOT met** |
-| L6-leg2-ipm-sink-passB.log | leg2-ipm-sink-passB | 229.97 | 5 | 198 | 74 | 6.390 (pid 50122) | **2.7786 %** | S | none | 0 | **NOT met** |
-| L6-leg2-ssn-off-passA.log | leg2-ssn-off-passA | 369.77 | 5 | 198 | 74 | 10.220 (pid 50122) | **2.7639 %** | S | none | 0 | **NOT met** |
-| L6-leg2-ssn-off-passB.log | leg2-ssn-off-passB | 370.45 | 5 | 197 | 72 | 10.400 (pid 50122) | **2.8074 %** | S | none | 0 | **NOT met** |
-| L6-leg2-ssn-sink-passA.log | leg2-ssn-sink-passA | 369.24 | 5 | 197 | 72 | 9.830 (pid 50122) | **2.6622 %** | S | none | 0 | **NOT met** |
-| L6-leg2-ssn-sink-passB.log | leg2-ssn-sink-passB | 370.48 | 5 | 196 | 70 | 9.860 (pid 50122) | **2.6614 %** | S | none | 0 | **NOT met** |
-| L6-leg2-walk-off-passA.log | leg2-walk-off-passA | 140.14 | 5 | 196 | 65 | 3.680 (pid 50122) | **2.6259 %** | S | none | 0 | **NOT met** |
-| L6-leg2-walk-off-passB.log | leg2-walk-off-passB | 140.11 | 5 | 198 | 57 | 4.000 (pid 50122) | **2.8549 %** | S | none | 0 | **NOT met** |
-| L6-leg2-walk-sink-passA.log | leg2-walk-sink-passA | 140.55 | 5 | 195 | 60 | 3.810 (pid 50122) | **2.7108 %** | S | none | 0 | **NOT met** |
-| L6-leg2-walk-sink-passB.log | leg2-walk-sink-passB | 140.38 | 5 | 198 | 55 | 3.780 (pid 50122) | **2.6927 %** | S | none | 0 | **NOT met** |
-| L7-interior-perfA.log | interior-perfA | 111.82 | 5 | 196 | 62 | 3.250 (pid 50122) | **2.9065 %** | S | none | 0 | **NOT met** |
-| L7-interior-perfB.log | interior-perfB | 111.61 | 5 | 199 | 56 | 3.010 (pid 50122) | **2.6969 %** | S | none | 0 | **NOT met** |
-| L7-interior-wall.log | interior-wall | 111.14 | 5 | 199 | 57 | 3.110 (pid 50122) | **2.7983 %** | S | none | 0 | **NOT met** |
-| L8-interior-cells-r1.log | interior-cells-r1 | 62.11 | 13 | 198 | 46 | 1.770 (pid 50122) | **2.8498 %** | S | none | 0 | **NOT met** |
-| L8-interior-cells-r2.log | interior-cells-r2 | 67.40 | 13 | 198 | 50 | 1.850 (pid 50122) | **2.7448 %** | R,S | 1097257 | 2 | **NOT met** |
-| L8-interior-cells-r3.log | interior-cells-r3 | 67.38 | 13 | 196 | 59 | 1.950 (pid 50122) | **2.8940 %** | R,S | 50122 | 2 | **NOT met** |
+| log | batch | window wall (s) | snapshots | foreign pids | transients | worst foreign cputime delta (s) | worst fraction | states seen | `R` seen | pauses | give-ups | re-snapshots | alternation gaps | R2-as-written |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| L4-leg1-ipm-r1.log | leg1-ipm-r1 | 48.27 | 4 | 196 | 28 | 1.420 (pid 50122) | **2.9418 %** | S,S+,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| L4-leg1-ipm-r2.log | leg1-ipm-r2 | 48.30 | 4 | 198 | 29 | 1.400 (pid 50122) | **2.8986 %** | S,S+,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| L4-leg1-ipm-r3.log | leg1-ipm-r3 | 53.21 | 4 | 195 | 34 | 1.550 (pid 50122) | **2.9130 %** | R,S,S+,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 50122 | 1 | 1 | 0 | 0 | **NOT met** |
+| L4-leg1-ssn-r1.log | leg1-ssn-r1 | 37.41 | 4 | 196 | 22 | 1.060 (pid 50122) | **2.8335 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| L4-leg1-ssn-r2.log | leg1-ssn-r2 | 37.39 | 4 | 196 | 22 | 1.010 (pid 50122) | **2.7013 %** | Rsl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 4022442 | 0 | 0 | 0 | 0 | **NOT met** |
+| L4-leg1-ssn-r3.log | leg1-ssn-r3 | 37.34 | 4 | 195 | 25 | 1.020 (pid 50122) | **2.7317 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| L4-leg1-walk-r1.log | leg1-walk-r1 | 414.78 | 4 | 192 | 40 | 11.740 (pid 50122) | **2.8304 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| L4-leg1-walk-r2.log | leg1-walk-r2 | 414.82 | 4 | 195 | 53 | 10.830 (pid 50122) | **2.6108 %** | R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 2722106 | 1 | 1 | 0 | 0 | **NOT met** |
+| L4-leg1-walk-r3.log | leg1-walk-r3 | 414.84 | 4 | 196 | 54 | 11.710 (pid 50122) | **2.8228 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| L5-leg1perf-ipm.log | leg1perf-ipm | 32.32 | 8 | 201 | 32 | 0.940 (pid 50122) | **2.9084 %** | RN,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 2522981 | 0 | 0 | 0 | 30 | **NOT met** |
+| L5-leg1perf-ssn.log | leg1perf-ssn | 28.61 | 8 | 201 | 29 | 0.790 (pid 50122) | **2.7613 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 30 | **NOT met** |
+| L5-leg1perf-walk.log | leg1perf-walk | 15.60 | 8 | 206 | 16 | 0.450 (pid 50122) | **2.8846 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 30 | **NOT met** |
+| L6-leg2-ipm-off-passA.log | leg2-ipm-off-passA | 228.21 | 5 | 195 | 61 | 6.120 (pid 50122) | **2.6817 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 3 | **NOT met** |
+| L6-leg2-ipm-off-passB.log | leg2-ipm-off-passB | 238.13 | 5 | 195 | 68 | 6.550 (pid 50122) | **2.7506 %** | R,Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 3819500,50122,50634 | 2 | 2 | 0 | 3 | **NOT met** |
+| L6-leg2-ipm-sink-passA.log | leg2-ipm-sink-passA | 228.50 | 5 | 200 | 71 | 6.070 (pid 50122) | **2.6565 %** | S,S+,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 3 | **NOT met** |
+| L6-leg2-ipm-sink-passB.log | leg2-ipm-sink-passB | 229.97 | 5 | 198 | 74 | 6.390 (pid 50122) | **2.7786 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 3 | **NOT met** |
+| L6-leg2-ssn-off-passA.log | leg2-ssn-off-passA | 369.77 | 5 | 198 | 74 | 10.220 (pid 50122) | **2.7639 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 3 | **NOT met** |
+| L6-leg2-ssn-off-passB.log | leg2-ssn-off-passB | 370.45 | 5 | 197 | 72 | 10.400 (pid 50122) | **2.8074 %** | Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 50122 | 0 | 0 | 0 | 3 | **NOT met** |
+| L6-leg2-ssn-sink-passA.log | leg2-ssn-sink-passA | 369.24 | 5 | 197 | 72 | 9.830 (pid 50122) | **2.6622 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 3 | **NOT met** |
+| L6-leg2-ssn-sink-passB.log | leg2-ssn-sink-passB | 370.48 | 5 | 196 | 70 | 9.860 (pid 50122) | **2.6614 %** | S,S+,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 3 | **NOT met** |
+| L6-leg2-walk-off-passA.log | leg2-walk-off-passA | 140.14 | 5 | 196 | 65 | 3.680 (pid 50122) | **2.6259 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 3 | **NOT met** |
+| L6-leg2-walk-off-passB.log | leg2-walk-off-passB | 140.11 | 5 | 198 | 57 | 4.000 (pid 50122) | **2.8549 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 3 | **NOT met** |
+| L6-leg2-walk-sink-passA.log | leg2-walk-sink-passA | 140.55 | 5 | 195 | 60 | 3.810 (pid 50122) | **2.7108 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 3 | **NOT met** |
+| L6-leg2-walk-sink-passB.log | leg2-walk-sink-passB | 140.38 | 5 | 198 | 55 | 3.780 (pid 50122) | **2.6927 %** | Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 50122 | 0 | 0 | 0 | 3 | **NOT met** |
+| L7-interior-perfA.log | interior-perfA | 111.82 | 5 | 196 | 62 | 3.250 (pid 50122) | **2.9065 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 6 | **NOT met** |
+| L7-interior-perfB.log | interior-perfB | 111.61 | 5 | 199 | 56 | 3.010 (pid 50122) | **2.6969 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 6 | **NOT met** |
+| L7-interior-wall.log | interior-wall | 111.14 | 5 | 199 | 57 | 3.110 (pid 50122) | **2.7983 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 6 | **NOT met** |
+| L8-interior-cells-r1.log | interior-cells-r1 | 62.11 | 13 | 198 | 46 | 1.770 (pid 50122) | **2.8498 %** | RNl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 4022478 | 0 | 0 | 0 | 22 | **NOT met** |
+| L8-interior-cells-r2.log | interior-cells-r2 | 67.40 | 13 | 198 | 50 | 1.850 (pid 50122) | **2.7448 %** | R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 1097257 | 1 | 1 | 0 | 22 | **NOT met** |
+| L8-interior-cells-r3.log | interior-cells-r3 | 67.38 | 13 | 196 | 59 | 1.950 (pid 50122) | **2.8940 %** | R,Rl+,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 1097257,50122 | 1 | 1 | 0 | 22 | **NOT met** |
 
 ## Test 2 -- the PINNED CORE, per timed run (the decisive one)
 
@@ -202,40 +266,44 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 
 **THE NICE-INCLUSIVE REPAIR (attrib4).** The two bold columns are the REPAIRED figure: `user + nice + steal + guest` on the core, with only the run's own `user` seconds subtracted on cpu2 and nothing subtracted on cpu10. The `user`-only columns beside them are the SUPERSEDED figure the earlier proof took its verdict on; they are printed so the two can be compared and are not what any verdict here rests on.
 
-| log | batch | runs | timed wall (s) | **cpu2 foreign TASK (s)** | **fraction** | **cpu10 TASK (s)** | **fraction** | cpu2 user-only (s) | cpu10 user-only (s) | cpu2 nice (s) | self user+sys (s) | cpu2 sys beyond self (s) | cpu2 irq+sirq (s) | verdict |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| L4-leg1-ipm-r1.log | leg1-ipm-r1 | 2 | 46.68 | **0.020** | **0.0428 %** | **0.200** | **0.4284 %** | 0.000 | 0.030 | 41.53 | 45.87 | 0.020 | 0.230 | PINNED-CLEAN |
-| L4-leg1-ipm-r2.log | leg1-ipm-r2 | 2 | 46.69 | **0.020** | **0.0428 %** | **0.120** | **0.2570 %** | 0.000 | 0.060 | 41.50 | 45.90 | 0.000 | 0.230 | PINNED-CLEAN |
-| L4-leg1-ipm-r3.log | leg1-ipm-r3 | 2 | 46.60 | **0.020** | **0.0429 %** | **0.080** | **0.1717 %** | 0.000 | 0.070 | 41.46 | 45.82 | 0.020 | 0.240 | PINNED-CLEAN |
-| L4-leg1-ssn-r1.log | leg1-ssn-r1 | 2 | 35.86 | **0.010** | **0.0279 %** | **0.140** | **0.3904 %** | 0.000 | 0.060 | 30.08 | 35.09 | 0.000 | 0.180 | PINNED-CLEAN |
-| L4-leg1-ssn-r2.log | leg1-ssn-r2 | 2 | 35.80 | **0.020** | **0.0559 %** | **0.040** | **0.1117 %** | 0.000 | 0.020 | 30.10 | 35.05 | 0.010 | 0.180 | PINNED-CLEAN |
-| L4-leg1-ssn-r3.log | leg1-ssn-r3 | 2 | 35.78 | **0.020** | **0.0559 %** | **0.080** | **0.2236 %** | 0.000 | 0.040 | 30.18 | 35.00 | 0.000 | 0.170 | PINNED-CLEAN |
-| L4-leg1-walk-r1.log | leg1-walk-r1 | 2 | 413.20 | **0.000** | **0.0000 %** | **0.710** | **0.1718 %** | 0.000 | 0.270 | 398.25 | 410.29 | 0.330 | 2.220 | PINNED-CLEAN |
-| L4-leg1-walk-r2.log | leg1-walk-r2 | 2 | 413.19 | **0.000** | **0.0000 %** | **0.850** | **0.2057 %** | 0.000 | 0.170 | 398.34 | 410.18 | 0.220 | 2.250 | PINNED-CLEAN |
-| L4-leg1-walk-r3.log | leg1-walk-r3 | 2 | 413.20 | **0.000** | **0.0000 %** | **0.540** | **0.1307 %** | 0.000 | 0.220 | 398.01 | 410.21 | 0.310 | 2.230 | PINNED-CLEAN |
-| L5-leg1perf-ipm.log | leg1perf-ipm | 36 | 27.99 | **0.210** | **0.7503 %** | **0.080** | **0.2858 %** | 0.000 | 0.070 | 24.52 | 27.60 | 0.160 | 0.150 | **UNPROVEN** |
-| L5-leg1perf-ssn.log | leg1perf-ssn | 36 | 24.35 | **0.150** | **0.6160 %** | **0.100** | **0.4107 %** | 0.000 | 0.060 | 20.05 | 23.92 | 0.170 | 0.120 | **UNPROVEN** |
-| L5-leg1perf-walk.log | leg1perf-walk | 36 | 11.28 | **0.180** | **1.5957 %** | **0.030** | **0.2660 %** | 0.000 | 0.020 | 9.02 | 10.97 | 0.160 | 0.060 | **UNPROVEN** |
-| L6-leg2-ipm-off-passA.log | leg2-ipm-off-passA | 6 | 225.98 | **0.040** | **0.0177 %** | **0.220** | **0.0974 %** | 0.000 | 0.080 | 223.62 | 224.42 | 0.040 | 1.490 | PINNED-CLEAN |
-| L6-leg2-ipm-off-passB.log | leg2-ipm-off-passB | 6 | 225.84 | **0.050** | **0.0221 %** | **0.240** | **0.1063 %** | 0.000 | 0.080 | 223.46 | 224.25 | 0.050 | 1.520 | PINNED-CLEAN |
-| L6-leg2-ipm-sink-passA.log | leg2-ipm-sink-passA | 6 | 226.19 | **0.060** | **0.0265 %** | **0.570** | **0.2520 %** | 0.000 | 0.340 | 223.81 | 224.57 | 0.040 | 1.530 | PINNED-CLEAN |
-| L6-leg2-ipm-sink-passB.log | leg2-ipm-sink-passB | 6 | 227.66 | **0.060** | **0.0264 %** | **0.490** | **0.2152 %** | 0.000 | 0.110 | 225.33 | 226.05 | 0.040 | 1.530 | PINNED-CLEAN |
-| L6-leg2-ssn-off-passA.log | leg2-ssn-off-passA | 6 | 367.49 | **0.090** | **0.0245 %** | **0.930** | **0.2531 %** | 0.000 | 0.380 | 363.23 | 364.88 | 0.050 | 2.480 | PINNED-CLEAN |
-| L6-leg2-ssn-off-passB.log | leg2-ssn-off-passB | 6 | 368.17 | **0.080** | **0.0217 %** | **0.480** | **0.1304 %** | 0.000 | 0.190 | 363.82 | 365.57 | 0.050 | 2.470 | PINNED-CLEAN |
-| L6-leg2-ssn-sink-passA.log | leg2-ssn-sink-passA | 6 | 366.97 | **0.080** | **0.0218 %** | **0.520** | **0.1417 %** | 0.000 | 0.210 | 362.68 | 364.40 | 0.050 | 2.470 | PINNED-CLEAN |
-| L6-leg2-ssn-sink-passB.log | leg2-ssn-sink-passB | 6 | 368.22 | **0.080** | **0.0217 %** | **0.830** | **0.2254 %** | 0.000 | 0.330 | 363.93 | 365.60 | 0.060 | 2.470 | PINNED-CLEAN |
-| L6-leg2-walk-off-passA.log | leg2-walk-off-passA | 6 | 137.88 | **0.050** | **0.0363 %** | **0.400** | **0.2901 %** | 0.010 | 0.220 | 136.74 | 136.96 | 0.020 | 0.860 | PINNED-CLEAN |
-| L6-leg2-walk-off-passB.log | leg2-walk-off-passB | 6 | 137.88 | **0.040** | **0.0290 %** | **0.390** | **0.2829 %** | 0.000 | 0.130 | 136.76 | 136.97 | 0.030 | 0.860 | PINNED-CLEAN |
-| L6-leg2-walk-sink-passA.log | leg2-walk-sink-passA | 6 | 138.30 | **0.040** | **0.0289 %** | **0.280** | **0.2025 %** | 0.000 | 0.180 | 136.95 | 137.38 | 0.030 | 0.870 | PINNED-CLEAN |
-| L6-leg2-walk-sink-passB.log | leg2-walk-sink-passB | 6 | 138.14 | **0.050** | **0.0362 %** | **0.220** | **0.1593 %** | 0.000 | 0.140 | 137.06 | 137.21 | 0.040 | 0.860 | PINNED-CLEAN |
-| L7-interior-perfA.log | interior-perfA | 9 | 109.47 | **0.410** | **0.3745 %** | **0.510** | **0.4659 %** | 0.440 | 0.280 | 97.73 | 108.03 | 0.510 | 0.520 | PINNED-CLEAN |
-| L7-interior-perfB.log | interior-perfB | 9 | 109.31 | **0.050** | **0.0457 %** | **0.330** | **0.3019 %** | 0.000 | 0.080 | 98.64 | 108.73 | 0.030 | 0.510 | PINNED-CLEAN |
-| L7-interior-wall.log | interior-wall | 9 | 108.77 | **0.060** | **0.0552 %** | **0.330** | **0.3034 %** | 0.000 | 0.150 | 98.37 | 108.21 | 0.040 | 0.480 | PINNED-CLEAN |
-| L8-interior-cells-r1.log | interior-cells-r1 | 33 | 55.20 | **0.170** | **0.3080 %** | **0.140** | **0.2536 %** | 0.000 | 0.100 | 50.23 | 54.74 | 0.110 | 0.230 | PINNED-CLEAN |
-| L8-interior-cells-r2.log | interior-cells-r2 | 33 | 55.49 | **0.200** | **0.3604 %** | **0.150** | **0.2703 %** | 0.000 | 0.080 | 50.58 | 54.99 | 0.130 | 0.240 | PINNED-CLEAN |
-| L8-interior-cells-r3.log | interior-cells-r3 | 33 | 55.35 | **0.200** | **0.3613 %** | **0.160** | **0.2891 %** | 0.000 | 0.080 | 50.49 | 54.89 | 0.150 | 0.250 | PINNED-CLEAN |
+**THE VERDICT HAS TWO PARTS (fix3).** The FRACTION part is R2''s bar and is unchanged. The EVIDENCE part asks whether the log contains what R2' requires: a re-snapshot after every foreign `R`, and a snapshot between consecutive timed runs. A batch is PINNED-CLEAN only when both hold; otherwise the cell names which part failed, and both can fail at once.
+
+| log | batch | runs | timed wall (s) | **cpu2 foreign TASK (s)** | **fraction** | **cpu10 TASK (s)** | **fraction** | cpu2 user-only (s) | cpu10 user-only (s) | cpu2 nice (s) | self user+sys (s) | cpu2 sys beyond self (s) | cpu2 irq+sirq (s) | evidence | verdict |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| L4-leg1-ipm-r1.log | leg1-ipm-r1 | 2 | 46.68 | **0.020** | **0.0428 %** | **0.200** | **0.4284 %** | 0.000 | 0.030 | 41.53 | 45.87 | 0.020 | 0.230 | complete | PINNED-CLEAN |
+| L4-leg1-ipm-r2.log | leg1-ipm-r2 | 2 | 46.69 | **0.020** | **0.0428 %** | **0.120** | **0.2570 %** | 0.000 | 0.060 | 41.50 | 45.90 | 0.000 | 0.230 | complete | PINNED-CLEAN |
+| L4-leg1-ipm-r3.log | leg1-ipm-r3 | 2 | 46.60 | **0.020** | **0.0429 %** | **0.080** | **0.1717 %** | 0.000 | 0.070 | 41.46 | 45.82 | 0.020 | 0.240 | `R` at `leg1-ipm-r3/open` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| L4-leg1-ssn-r1.log | leg1-ssn-r1 | 2 | 35.86 | **0.010** | **0.0279 %** | **0.140** | **0.3904 %** | 0.000 | 0.060 | 30.08 | 35.09 | 0.000 | 0.180 | complete | PINNED-CLEAN |
+| L4-leg1-ssn-r2.log | leg1-ssn-r2 | 2 | 35.80 | **0.020** | **0.0559 %** | **0.040** | **0.1117 %** | 0.000 | 0.020 | 30.10 | 35.05 | 0.010 | 0.180 | `R` at `leg1-ssn-r2/close` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| L4-leg1-ssn-r3.log | leg1-ssn-r3 | 2 | 35.78 | **0.020** | **0.0559 %** | **0.080** | **0.2236 %** | 0.000 | 0.040 | 30.18 | 35.00 | 0.000 | 0.170 | complete | PINNED-CLEAN |
+| L4-leg1-walk-r1.log | leg1-walk-r1 | 2 | 413.20 | **0.000** | **0.0000 %** | **0.710** | **0.1718 %** | 0.000 | 0.270 | 398.25 | 410.29 | 0.330 | 2.220 | complete | PINNED-CLEAN |
+| L4-leg1-walk-r2.log | leg1-walk-r2 | 2 | 413.19 | **0.000** | **0.0000 %** | **0.850** | **0.2057 %** | 0.000 | 0.170 | 398.34 | 410.18 | 0.220 | 2.250 | `R` at `leg1-walk-r2/close` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| L4-leg1-walk-r3.log | leg1-walk-r3 | 2 | 413.20 | **0.000** | **0.0000 %** | **0.540** | **0.1307 %** | 0.000 | 0.220 | 398.01 | 410.21 | 0.310 | 2.230 | complete | PINNED-CLEAN |
+| L5-leg1perf-ipm.log | leg1perf-ipm | 36 | 27.99 | **0.210** | **0.7503 %** | **0.080** | **0.2858 %** | 0.000 | 0.070 | 24.52 | 27.60 | 0.160 | 0.150 | `R` at `leg1perf-ipm/passB-r3` with NO re-snapshot; 30 alternation snapshot(s) missing | **UNPROVEN-FRACTION** + **UNPROVEN-EVIDENCE** |
+| L5-leg1perf-ssn.log | leg1perf-ssn | 36 | 24.35 | **0.150** | **0.6160 %** | **0.100** | **0.4107 %** | 0.000 | 0.060 | 20.05 | 23.92 | 0.170 | 0.120 | 30 alternation snapshot(s) missing | **UNPROVEN-FRACTION** + **UNPROVEN-EVIDENCE** |
+| L5-leg1perf-walk.log | leg1perf-walk | 36 | 11.28 | **0.180** | **1.5957 %** | **0.030** | **0.2660 %** | 0.000 | 0.020 | 9.02 | 10.97 | 0.160 | 0.060 | 30 alternation snapshot(s) missing | **UNPROVEN-FRACTION** + **UNPROVEN-EVIDENCE** |
+| L6-leg2-ipm-off-passA.log | leg2-ipm-off-passA | 6 | 225.98 | **0.040** | **0.0177 %** | **0.220** | **0.0974 %** | 0.000 | 0.080 | 223.62 | 224.42 | 0.040 | 1.490 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| L6-leg2-ipm-off-passB.log | leg2-ipm-off-passB | 6 | 225.84 | **0.050** | **0.0221 %** | **0.240** | **0.1063 %** | 0.000 | 0.080 | 223.46 | 224.25 | 0.050 | 1.520 | `R` at `leg2-ipm-off-passB/r1`,`leg2-ipm-off-passB/r2`,`leg2-ipm-off-passB/r3` with NO re-snapshot; 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| L6-leg2-ipm-sink-passA.log | leg2-ipm-sink-passA | 6 | 226.19 | **0.060** | **0.0265 %** | **0.570** | **0.2520 %** | 0.000 | 0.340 | 223.81 | 224.57 | 0.040 | 1.530 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| L6-leg2-ipm-sink-passB.log | leg2-ipm-sink-passB | 6 | 227.66 | **0.060** | **0.0264 %** | **0.490** | **0.2152 %** | 0.000 | 0.110 | 225.33 | 226.05 | 0.040 | 1.530 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| L6-leg2-ssn-off-passA.log | leg2-ssn-off-passA | 6 | 367.49 | **0.090** | **0.0245 %** | **0.930** | **0.2531 %** | 0.000 | 0.380 | 363.23 | 364.88 | 0.050 | 2.480 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| L6-leg2-ssn-off-passB.log | leg2-ssn-off-passB | 6 | 368.17 | **0.080** | **0.0217 %** | **0.480** | **0.1304 %** | 0.000 | 0.190 | 363.82 | 365.57 | 0.050 | 2.470 | `R` at `leg2-ssn-off-passB/r1` with NO re-snapshot; 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| L6-leg2-ssn-sink-passA.log | leg2-ssn-sink-passA | 6 | 366.97 | **0.080** | **0.0218 %** | **0.520** | **0.1417 %** | 0.000 | 0.210 | 362.68 | 364.40 | 0.050 | 2.470 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| L6-leg2-ssn-sink-passB.log | leg2-ssn-sink-passB | 6 | 368.22 | **0.080** | **0.0217 %** | **0.830** | **0.2254 %** | 0.000 | 0.330 | 363.93 | 365.60 | 0.060 | 2.470 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| L6-leg2-walk-off-passA.log | leg2-walk-off-passA | 6 | 137.88 | **0.050** | **0.0363 %** | **0.400** | **0.2901 %** | 0.010 | 0.220 | 136.74 | 136.96 | 0.020 | 0.860 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| L6-leg2-walk-off-passB.log | leg2-walk-off-passB | 6 | 137.88 | **0.040** | **0.0290 %** | **0.390** | **0.2829 %** | 0.000 | 0.130 | 136.76 | 136.97 | 0.030 | 0.860 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| L6-leg2-walk-sink-passA.log | leg2-walk-sink-passA | 6 | 138.30 | **0.040** | **0.0289 %** | **0.280** | **0.2025 %** | 0.000 | 0.180 | 136.95 | 137.38 | 0.030 | 0.870 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| L6-leg2-walk-sink-passB.log | leg2-walk-sink-passB | 6 | 138.14 | **0.050** | **0.0362 %** | **0.220** | **0.1593 %** | 0.000 | 0.140 | 137.06 | 137.21 | 0.040 | 0.860 | `R` at `leg2-walk-sink-passB/close` with NO re-snapshot; 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| L7-interior-perfA.log | interior-perfA | 9 | 109.47 | **0.410** | **0.3745 %** | **0.510** | **0.4659 %** | 0.440 | 0.280 | 97.73 | 108.03 | 0.510 | 0.520 | 6 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| L7-interior-perfB.log | interior-perfB | 9 | 109.31 | **0.050** | **0.0457 %** | **0.330** | **0.3019 %** | 0.000 | 0.080 | 98.64 | 108.73 | 0.030 | 0.510 | 6 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| L7-interior-wall.log | interior-wall | 9 | 108.77 | **0.060** | **0.0552 %** | **0.330** | **0.3034 %** | 0.000 | 0.150 | 98.37 | 108.21 | 0.040 | 0.480 | 6 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| L8-interior-cells-r1.log | interior-cells-r1 | 33 | 55.20 | **0.170** | **0.3080 %** | **0.140** | **0.2536 %** | 0.000 | 0.100 | 50.23 | 54.74 | 0.110 | 0.230 | `R` at `interior-cells-r1/hs071_x1_fixed` with NO re-snapshot; 22 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| L8-interior-cells-r2.log | interior-cells-r2 | 33 | 55.49 | **0.200** | **0.3604 %** | **0.150** | **0.2703 %** | 0.000 | 0.080 | 50.58 | 54.99 | 0.130 | 0.240 | `R` at `interior-cells-r2/f7_n10000_bound_physics` with NO re-snapshot; 22 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| L8-interior-cells-r3.log | interior-cells-r3 | 33 | 55.35 | **0.200** | **0.3613 %** | **0.160** | **0.2891 %** | 0.000 | 0.080 | 50.49 | 54.89 | 0.150 | 0.250 | `R` at `interior-cells-r3/f7_n1000_bound_neutral`,`interior-cells-r3/f7_n1000_bound_physics` with NO re-snapshot; 22 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
 
 ## The five busiest foreign processes per batch
+
+**Every foreign pid of every batch, with every state observed for it, is `logs/idle-proof-pids-fix1.md`** (settler R13). The five below are a summary of that file, not a substitute for it.
 
 - L4-leg1-ipm-r1.log / leg1-ipm-r1: TRANSIENT pids (present in some snapshot, not in both ends): 2491876,2491915,2491917,2491929,2491941,2491943,2491953,2491955,2491958,2491970,2492703,2492708,2492713,2492715,2492718,2492720,2492722,2493369,2493380,2493383,2493390,2493412,2493414,2493461,2493465,2493472,2493569,2493617
 - L4-leg1-ipm-r1.log / leg1-ipm-r1 (window 48.27 s): pid 50122 +1.42 s; pid 1097257 +0.54 s; pid 2721602 +0.28 s; pid 2722314 +0.20 s; pid 4022442 +0.13 s
@@ -270,8 +338,8 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 - L6-leg2-ipm-off-passB.log / leg2-ipm-off-passB: TRANSIENT pids (present in some snapshot, not in both ends): 2551470,2551478,2552156,2552209,2552234,2552258,2552260,2552264,2552266,2552269,2552271,2552273,2552275,2552278,2552280,2552281,2554276,2554336,2554338,2554340,2554353,2554355,2554358,2554360,2554363,2554380,2554384,2554385,2554395,2554397,2555079,2555118,2555166,2555168,2555179,2555184,2555185,2555187,2555189,2555191,2555193,2555194,2555196,2555198,2555204,2555207,2555988,2556003,2556018,2556020,2556043,2556044,2556047,2556050,2556053,2556054,2556056,2556060,2556061,2556064,2556066,2556068,2556070,2556072,2556082,2556085,2556098,2556207
 - L6-leg2-ipm-off-passB.log / leg2-ipm-off-passB (window 238.13 s): pid 50122 +6.55 s; pid 1097257 +2.02 s; pid 2721602 +1.16 s; pid 2722314 +0.88 s; pid 2721730 +0.67 s
 - L6-leg2-ipm-off-passB.log / leg2-ipm-off-passB: BOX_PAUSE 2026-09-11T16:15:24Z tag=leg2-ipm-off-passB/r1 try=1 -- a foreign process is in state R.
-- L6-leg2-ipm-off-passB.log / leg2-ipm-off-passB: BOX_PAUSE_GIVEUP 2026-09-11T16:15:29Z tag=leg2-ipm-off-passB/r1 -- still R after 1 pauses.
 - L6-leg2-ipm-off-passB.log / leg2-ipm-off-passB: BOX_PAUSE 2026-09-11T16:16:45Z tag=leg2-ipm-off-passB/r2 try=1 -- a foreign process is in state R.
+- L6-leg2-ipm-off-passB.log / leg2-ipm-off-passB: BOX_PAUSE_GIVEUP 2026-09-11T16:15:29Z tag=leg2-ipm-off-passB/r1 -- still R after 1 pauses.
 - L6-leg2-ipm-off-passB.log / leg2-ipm-off-passB: BOX_PAUSE_GIVEUP 2026-09-11T16:16:50Z tag=leg2-ipm-off-passB/r2 -- still R after 1 pauses.
 - L6-leg2-ipm-sink-passA.log / leg2-ipm-sink-passA: TRANSIENT pids (present in some snapshot, not in both ends): 2555988,2556018,2556020,2556047,2556050,2556053,2556056,2556060,2556066,2556068,2556070,2556072,2556082,2556085,2556098,2556207,2558190,2558299,2558386,2558394,2558490,2558537,2558543,2558545,2558547,2558553,2558556,2558558,2558567,2558569,2558571,2558576,2558579,2558596,2558598,2558600,2558602,2558604,2559389,2559408,2559430,2559432,2559435,2559437,2559440,2559444,2559446,2559447,2559451,2559453,2559455,2559457,2559458,2559464,2560194,2560271,2560275,2560277,2560281,2560285,2560287,2560289,2560293,2560295,2560298,2560301,2560318,2560345,2560346,2560348,2560350
 - L6-leg2-ipm-sink-passA.log / leg2-ipm-sink-passA (window 228.50 s): pid 50122 +6.07 s; pid 1097257 +2.00 s; pid 2721602 +1.18 s; pid 2722314 +1.05 s; pid 2722044 +0.64 s
@@ -309,6 +377,14 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 - L8-interior-cells-r3.log / interior-cells-r3 (window 67.38 s): pid 50122 +1.95 s; pid 1097257 +0.67 s; pid 2721602 +0.29 s; pid 2722314 +0.27 s; pid 4022442 +0.19 s
 - L8-interior-cells-r3.log / interior-cells-r3: BOX_PAUSE 2026-09-11T17:13:23Z tag=interior-cells-r3/f7_n1000_bound_neutral try=1 -- a foreign process is in state R.
 - L8-interior-cells-r3.log / interior-cells-r3: BOX_PAUSE_GIVEUP 2026-09-11T17:13:28Z tag=interior-cells-r3/f7_n1000_bound_neutral -- still R after 1 pauses.
+
+## The two kinds of UNPROVEN, counted (fix3)
+
+| batches | PINNED-CLEAN | UNPROVEN-FRACTION | UNPROVEN-EVIDENCE |
+|---:|---:|---:|---:|
+| 30 | 6 | 3 | 24 |
+
+A batch failing both is counted in both unproven columns, so the three need not sum to the first.
 ```
 
 ## T8.9r-attrib2 -- the eleven-arm interior leg (section 11)
@@ -318,28 +394,30 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 
 Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` blocks. A batch is PROVEN when the worst foreign CPU-time delta is under 0.5 %% of the window's wall AND no foreign process was seen in state `R`.
 
+**FIX ROUND 3 (settler R13).** `FOREIGN_PS` is read beside `FOREIGN_TICK`, so `ps` states such as `Rsl` are seen; pauses and give-ups are separate columns; every foreign pid and its observed states is listed per batch in the appendix file; and a batch whose EVIDENCE is short of R2' -- an `R` with no re-snapshot, or a missing alternation snapshot -- is UNPROVEN-EVIDENCE, reported apart from UNPROVEN-FRACTION. **No fraction, delta or bar-verdict moved.**
+
 ## Test 1 (R2, as written) -- foreign CPU time anywhere on the box, per batch
 
 **TRANSIENTS AND STATES ARE DISCLOSED (attrib4).** A pid present in one snapshot of a batch but not the other cannot have its CPU delta differenced; the column counts them rather than dropping them silently, and EVERY foreign state seen in any snapshot is listed, not only `R`.
 
-| log | batch | window wall (s) | snapshots | foreign pids | transients | worst foreign cputime delta (s) | worst fraction | states seen | `R` seen | pauses | R2-as-written |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| D1-diff-r1.log | diff-r1 | 88.76 | 13 | 197 | 58 | 2.840 (pid 50122) | **3.1996 %** | S | none | 0 | **NOT met** |
-| D2-diff-r2.log | diff-r2 | 88.33 | 13 | 197 | 57 | 2.750 (pid 50122) | **3.1133 %** | S | none | 0 | **NOT met** |
-| D3-diff-r3.log | diff-r3 | 88.42 | 13 | 194 | 64 | 2.760 (pid 50122) | **3.1215 %** | S | none | 0 | **NOT met** |
-| D4-diff-r4.log | diff-r4 | 88.48 | 13 | 197 | 60 | 2.490 (pid 50122) | **2.8142 %** | S | none | 0 | **NOT met** |
-| D5-diff-r5.log | diff-r5 | 88.39 | 13 | 194 | 61 | 2.540 (pid 50122) | **2.8736 %** | R,S | 116643 | 2 | **NOT met** |
-| PA1-perfA-r1.log | perfA-r1 | 77.96 | 13 | 197 | 53 | 2.210 (pid 50122) | **2.8348 %** | S | none | 0 | **NOT met** |
-| PA2-perfA-r2.log | perfA-r2 | 77.68 | 13 | 194 | 58 | 2.160 (pid 50122) | **2.7806 %** | S | none | 0 | **NOT met** |
-| PA3-perfA-r3.log | perfA-r3 | 78.08 | 13 | 197 | 50 | 2.120 (pid 50122) | **2.7152 %** | S | none | 0 | **NOT met** |
-| PB1-perfB-r1.log | perfB-r1 | 28.78 | 6 | 197 | 27 | 0.810 (pid 50122) | **2.8145 %** | S | none | 0 | **NOT met** |
-| PB2-perfB-r2.log | perfB-r2 | 34.20 | 6 | 197 | 36 | 0.980 (pid 50122) | **2.8655 %** | R,S | 2722314 | 2 | **NOT met** |
-| PB3-perfB-r3.log | perfB-r3 | 28.42 | 6 | 201 | 26 | 0.850 (pid 50122) | **2.9909 %** | S | none | 0 | **NOT met** |
-| W1-wall-r1.log | wall-r1 | 77.75 | 13 | 197 | 52 | 2.250 (pid 50122) | **2.8939 %** | S | none | 0 | **NOT met** |
-| W2-wall-r2.log | wall-r2 | 82.23 | 13 | 197 | 54 | 2.380 (pid 50122) | **2.8943 %** | R,S | 50122 | 2 | **NOT met** |
-| W3-wall-r3.log | wall-r3 | 78.19 | 13 | 197 | 52 | 2.100 (pid 50122) | **2.6858 %** | D,S | none | 0 | **NOT met** |
-| W4-wall-r4.log | wall-r4 | 82.90 | 13 | 197 | 55 | 2.410 (pid 50122) | **2.9071 %** | R,S | 2722314 | 2 | **NOT met** |
-| W5-wall-r5.log | wall-r5 | 83.20 | 13 | 194 | 59 | 2.280 (pid 50122) | **2.7404 %** | R,S | 2722106 | 2 | **NOT met** |
+| log | batch | window wall (s) | snapshots | foreign pids | transients | worst foreign cputime delta (s) | worst fraction | states seen | `R` seen | pauses | give-ups | re-snapshots | alternation gaps | R2-as-written |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| D1-diff-r1.log | diff-r1 | 88.76 | 13 | 197 | 58 | 2.840 (pid 50122) | **3.1996 %** | Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 50122 | 0 | 0 | 0 | 11 | **NOT met** |
+| D2-diff-r2.log | diff-r2 | 88.33 | 13 | 197 | 57 | 2.750 (pid 50122) | **3.1133 %** | Rl+,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 1097257 | 0 | 0 | 0 | 11 | **NOT met** |
+| D3-diff-r3.log | diff-r3 | 88.42 | 13 | 194 | 64 | 2.760 (pid 50122) | **3.1215 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 11 | **NOT met** |
+| D4-diff-r4.log | diff-r4 | 88.48 | 13 | 197 | 60 | 2.490 (pid 50122) | **2.8142 %** | S,S+,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 11 | **NOT met** |
+| D5-diff-r5.log | diff-r5 | 88.39 | 13 | 194 | 61 | 2.540 (pid 50122) | **2.8736 %** | R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 116643 | 1 | 1 | 0 | 11 | **NOT met** |
+| PA1-perfA-r1.log | perfA-r1 | 77.96 | 13 | 197 | 53 | 2.210 (pid 50122) | **2.8348 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| PA2-perfA-r2.log | perfA-r2 | 77.68 | 13 | 194 | 58 | 2.160 (pid 50122) | **2.7806 %** | Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 50122 | 0 | 0 | 0 | 0 | **NOT met** |
+| PA3-perfA-r3.log | perfA-r3 | 78.08 | 13 | 197 | 50 | 2.120 (pid 50122) | **2.7152 %** | Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 50122 | 0 | 0 | 0 | 0 | **NOT met** |
+| PB1-perfB-r1.log | perfB-r1 | 28.78 | 6 | 197 | 27 | 0.810 (pid 50122) | **2.8145 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| PB2-perfB-r2.log | perfB-r2 | 34.20 | 6 | 197 | 36 | 0.980 (pid 50122) | **2.8655 %** | R,RN,S,S+,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 2722314,2855082,2856614 | 1 | 1 | 0 | 0 | **NOT met** |
+| PB3-perfB-r3.log | perfB-r3 | 28.42 | 6 | 201 | 26 | 0.850 (pid 50122) | **2.9909 %** | S,S+,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| W1-wall-r1.log | wall-r1 | 77.75 | 13 | 197 | 52 | 2.250 (pid 50122) | **2.8939 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| W2-wall-r2.log | wall-r2 | 82.23 | 13 | 197 | 54 | 2.380 (pid 50122) | **2.8943 %** | R,Rsl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 50122,50573 | 1 | 1 | 0 | 0 | **NOT met** |
+| W3-wall-r3.log | wall-r3 | 78.19 | 13 | 197 | 52 | 2.100 (pid 50122) | **2.6858 %** | D,Ds,Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 50122 | 0 | 0 | 0 | 0 | **NOT met** |
+| W4-wall-r4.log | wall-r4 | 82.90 | 13 | 197 | 55 | 2.410 (pid 50122) | **2.9071 %** | R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 2722314 | 1 | 1 | 0 | 0 | **NOT met** |
+| W5-wall-r5.log | wall-r5 | 83.20 | 13 | 194 | 59 | 2.280 (pid 50122) | **2.7404 %** | R,Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 2722044,2722106 | 1 | 1 | 0 | 0 | **NOT met** |
 
 ## Test 2 -- the PINNED CORE, per timed run (the decisive one)
 
@@ -351,26 +429,30 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 
 **THE NICE-INCLUSIVE REPAIR (attrib4).** The two bold columns are the REPAIRED figure: `user + nice + steal + guest` on the core, with only the run's own `user` seconds subtracted on cpu2 and nothing subtracted on cpu10. The `user`-only columns beside them are the SUPERSEDED figure the earlier proof took its verdict on; they are printed so the two can be compared and are not what any verdict here rests on.
 
-| log | batch | runs | timed wall (s) | **cpu2 foreign TASK (s)** | **fraction** | **cpu10 TASK (s)** | **fraction** | cpu2 user-only (s) | cpu10 user-only (s) | cpu2 nice (s) | self user+sys (s) | cpu2 sys beyond self (s) | cpu2 irq+sirq (s) | verdict |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| D1-diff-r1.log | diff-r1 | 22 | 82.02 | **0.560** | **0.6828 %** | **0.200** | **0.2438 %** | 0.340 | 0.110 | 73.46 | 80.40 | 0.690 | 0.400 | **UNPROVEN** |
-| D2-diff-r2.log | diff-r2 | 22 | 81.55 | **0.130** | **0.1594 %** | **0.170** | **0.2085 %** | 0.000 | 0.090 | 74.08 | 80.97 | 0.070 | 0.390 | PINNED-CLEAN |
-| D3-diff-r3.log | diff-r3 | 22 | 81.65 | **0.340** | **0.4164 %** | **0.340** | **0.4164 %** | 0.150 | 0.230 | 73.80 | 80.67 | 0.260 | 0.370 | PINNED-CLEAN |
-| D4-diff-r4.log | diff-r4 | 22 | 81.65 | **0.130** | **0.1592 %** | **0.250** | **0.3062 %** | 0.000 | 0.120 | 74.28 | 81.10 | 0.080 | 0.380 | PINNED-CLEAN |
-| D5-diff-r5.log | diff-r5 | 22 | 81.73 | **0.110** | **0.1346 %** | **0.350** | **0.4282 %** | 0.000 | 0.190 | 74.17 | 81.13 | 0.110 | 0.360 | PINNED-CLEAN |
-| PA1-perfA-r1.log | perfA-r1 | 11 | 71.44 | **0.080** | **0.1120 %** | **0.190** | **0.2660 %** | 0.000 | 0.110 | 64.41 | 71.01 | 0.070 | 0.320 | PINNED-CLEAN |
-| PA2-perfA-r2.log | perfA-r2 | 11 | 71.16 | **0.070** | **0.0984 %** | **0.230** | **0.3232 %** | 0.000 | 0.050 | 64.25 | 70.75 | 0.060 | 0.330 | PINNED-CLEAN |
-| PA3-perfA-r3.log | perfA-r3 | 11 | 71.50 | **0.070** | **0.0979 %** | **0.220** | **0.3077 %** | 0.010 | 0.070 | 64.49 | 71.09 | 0.050 | 0.320 | PINNED-CLEAN |
-| PB1-perfB-r1.log | perfB-r1 | 4 | 26.06 | **0.100** | **0.3837 %** | **0.060** | **0.2302 %** | 0.060 | 0.010 | 23.46 | 25.76 | 0.090 | 0.120 | PINNED-CLEAN |
-| PB2-perfB-r2.log | perfB-r2 | 4 | 26.46 | **0.020** | **0.0756 %** | **0.200** | **0.7559 %** | 0.000 | 0.110 | 23.98 | 26.32 | 0.010 | 0.120 | **UNPROVEN** |
-| PB3-perfB-r3.log | perfB-r3 | 4 | 25.68 | **0.010** | **0.0389 %** | **0.120** | **0.4673 %** | 0.000 | 0.060 | 23.22 | 25.53 | 0.000 | 0.120 | PINNED-CLEAN |
-| W1-wall-r1.log | wall-r1 | 11 | 71.34 | **0.040** | **0.0561 %** | **0.220** | **0.3084 %** | 0.000 | 0.120 | 64.57 | 70.94 | 0.070 | 0.310 | PINNED-CLEAN |
-| W2-wall-r2.log | wall-r2 | 11 | 70.75 | **0.040** | **0.0565 %** | **0.230** | **0.3251 %** | 0.000 | 0.130 | 64.16 | 70.39 | 0.030 | 0.340 | PINNED-CLEAN |
-| W3-wall-r3.log | wall-r3 | 11 | 71.70 | **0.060** | **0.0837 %** | **0.230** | **0.3208 %** | 0.000 | 0.110 | 64.93 | 71.31 | 0.050 | 0.330 | PINNED-CLEAN |
-| W4-wall-r4.log | wall-r4 | 11 | 71.36 | **0.040** | **0.0561 %** | **0.240** | **0.3363 %** | 0.000 | 0.090 | 64.62 | 71.00 | 0.030 | 0.310 | PINNED-CLEAN |
-| W5-wall-r5.log | wall-r5 | 11 | 71.69 | **0.060** | **0.0837 %** | **0.240** | **0.3348 %** | 0.000 | 0.070 | 64.89 | 71.30 | 0.060 | 0.310 | PINNED-CLEAN |
+**THE VERDICT HAS TWO PARTS (fix3).** The FRACTION part is R2''s bar and is unchanged. The EVIDENCE part asks whether the log contains what R2' requires: a re-snapshot after every foreign `R`, and a snapshot between consecutive timed runs. A batch is PINNED-CLEAN only when both hold; otherwise the cell names which part failed, and both can fail at once.
+
+| log | batch | runs | timed wall (s) | **cpu2 foreign TASK (s)** | **fraction** | **cpu10 TASK (s)** | **fraction** | cpu2 user-only (s) | cpu10 user-only (s) | cpu2 nice (s) | self user+sys (s) | cpu2 sys beyond self (s) | cpu2 irq+sirq (s) | evidence | verdict |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| D1-diff-r1.log | diff-r1 | 22 | 82.02 | **0.560** | **0.6828 %** | **0.200** | **0.2438 %** | 0.340 | 0.110 | 73.46 | 80.40 | 0.690 | 0.400 | `R` at `diff-r1/a05-after` with NO re-snapshot; 11 alternation snapshot(s) missing | **UNPROVEN-FRACTION** + **UNPROVEN-EVIDENCE** |
+| D2-diff-r2.log | diff-r2 | 22 | 81.55 | **0.130** | **0.1594 %** | **0.170** | **0.2085 %** | 0.000 | 0.090 | 74.08 | 80.97 | 0.070 | 0.390 | `R` at `diff-r2/a02-after` with NO re-snapshot; 11 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| D3-diff-r3.log | diff-r3 | 22 | 81.65 | **0.340** | **0.4164 %** | **0.340** | **0.4164 %** | 0.150 | 0.230 | 73.80 | 80.67 | 0.260 | 0.370 | 11 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| D4-diff-r4.log | diff-r4 | 22 | 81.65 | **0.130** | **0.1592 %** | **0.250** | **0.3062 %** | 0.000 | 0.120 | 74.28 | 81.10 | 0.080 | 0.380 | 11 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| D5-diff-r5.log | diff-r5 | 22 | 81.73 | **0.110** | **0.1346 %** | **0.350** | **0.4282 %** | 0.000 | 0.190 | 74.17 | 81.13 | 0.110 | 0.360 | `R` at `diff-r5/close` with NO re-snapshot; 11 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| PA1-perfA-r1.log | perfA-r1 | 11 | 71.44 | **0.080** | **0.1120 %** | **0.190** | **0.2660 %** | 0.000 | 0.110 | 64.41 | 71.01 | 0.070 | 0.320 | complete | PINNED-CLEAN |
+| PA2-perfA-r2.log | perfA-r2 | 11 | 71.16 | **0.070** | **0.0984 %** | **0.230** | **0.3232 %** | 0.000 | 0.050 | 64.25 | 70.75 | 0.060 | 0.330 | `R` at `perfA-r2/open` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| PA3-perfA-r3.log | perfA-r3 | 11 | 71.50 | **0.070** | **0.0979 %** | **0.220** | **0.3077 %** | 0.010 | 0.070 | 64.49 | 71.09 | 0.050 | 0.320 | `R` at `perfA-r3/a04-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| PB1-perfB-r1.log | perfB-r1 | 4 | 26.06 | **0.100** | **0.3837 %** | **0.060** | **0.2302 %** | 0.060 | 0.010 | 23.46 | 25.76 | 0.090 | 0.120 | complete | PINNED-CLEAN |
+| PB2-perfB-r2.log | perfB-r2 | 4 | 26.46 | **0.020** | **0.0756 %** | **0.200** | **0.7559 %** | 0.000 | 0.110 | 23.98 | 26.32 | 0.010 | 0.120 | `R` at `perfB-r2/a04-after`,`perfB-r2/a01-after` with NO re-snapshot | **UNPROVEN-FRACTION** + **UNPROVEN-EVIDENCE** |
+| PB3-perfB-r3.log | perfB-r3 | 4 | 25.68 | **0.010** | **0.0389 %** | **0.120** | **0.4673 %** | 0.000 | 0.060 | 23.22 | 25.53 | 0.000 | 0.120 | complete | PINNED-CLEAN |
+| W1-wall-r1.log | wall-r1 | 11 | 71.34 | **0.040** | **0.0561 %** | **0.220** | **0.3084 %** | 0.000 | 0.120 | 64.57 | 70.94 | 0.070 | 0.310 | complete | PINNED-CLEAN |
+| W2-wall-r2.log | wall-r2 | 11 | 70.75 | **0.040** | **0.0565 %** | **0.230** | **0.3251 %** | 0.000 | 0.130 | 64.16 | 70.39 | 0.030 | 0.340 | `R` at `wall-r2/a05-after`,`wall-r2/a06-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| W3-wall-r3.log | wall-r3 | 11 | 71.70 | **0.060** | **0.0837 %** | **0.230** | **0.3208 %** | 0.000 | 0.110 | 64.93 | 71.31 | 0.050 | 0.330 | `R` at `wall-r3/a06-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| W4-wall-r4.log | wall-r4 | 11 | 71.36 | **0.040** | **0.0561 %** | **0.240** | **0.3363 %** | 0.000 | 0.090 | 64.62 | 71.00 | 0.030 | 0.310 | `R` at `wall-r4/a08-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| W5-wall-r5.log | wall-r5 | 11 | 71.69 | **0.060** | **0.0837 %** | **0.240** | **0.3348 %** | 0.000 | 0.070 | 64.89 | 71.30 | 0.060 | 0.310 | `R` at `wall-r5/a04-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
 
 ## The five busiest foreign processes per batch
+
+**Every foreign pid of every batch, with every state observed for it, is `logs/idle-proof-pids-attrib2.md`** (settler R13). The five below are a summary of that file, not a substitute for it.
 
 - D1-diff-r1.log / diff-r1: TRANSIENT pids (present in some snapshot, not in both ends): 2777755,2777817,2777819,2777823,2777825,2777828,2777837,2777846,2777850,2777852,2777854,2777856,2777858,2778542,2778544,2778545,2778558,2779219,2779222,2779224,2779237,2779460,2779913,2779921,2779923,2780104,2780594,2780597,2781269,2781271,2781272,2781274,2781276,2781948,2781950,2781956,2781965,2782644,2782647,2782649,2782662,2782826,2783322,2783328,2783497,2783999,2784001,2784003,2784405,2784676,2784678,2784680,2784690,2785368,2785370,2785372,2785374,2785392
 - D1-diff-r1.log / diff-r1 (window 88.76 s): pid 50122 +2.84 s; pid 1097257 +0.93 s; pid 2722314 +0.41 s; pid 2721602 +0.36 s; pid 4022442 +0.29 s
@@ -414,6 +496,14 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 - W5-wall-r5.log / wall-r5 (window 83.20 s): pid 50122 +2.28 s; pid 1097257 +0.87 s; pid 2721602 +0.54 s; pid 2722314 +0.36 s; pid 4022442 +0.24 s
 - W5-wall-r5.log / wall-r5: BOX_PAUSE 2026-09-11T17:55:35Z tag=wall-r5/a04-after try=1 -- a foreign process is in state R.
 - W5-wall-r5.log / wall-r5: BOX_PAUSE_GIVEUP 2026-09-11T17:55:40Z tag=wall-r5/a04-after -- still R after 1 pauses.
+
+## The two kinds of UNPROVEN, counted (fix3)
+
+| batches | PINNED-CLEAN | UNPROVEN-FRACTION | UNPROVEN-EVIDENCE |
+|---:|---:|---:|---:|
+| 16 | 4 | 2 | 12 |
+
+A batch failing both is counted in both unproven columns, so the three need not sum to the first.
 ```
 
 ## T8.9r-attrib3 -- inside T8.4 (section 12)
@@ -423,51 +513,53 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 
 Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` blocks. A batch is PROVEN when the worst foreign CPU-time delta is under 0.5 %% of the window's wall AND no foreign process was seen in state `R`.
 
+**FIX ROUND 3 (settler R13).** `FOREIGN_PS` is read beside `FOREIGN_TICK`, so `ps` states such as `Rsl` are seen; pauses and give-ups are separate columns; every foreign pid and its observed states is listed per batch in the appendix file; and a batch whose EVIDENCE is short of R2' -- an `R` with no re-snapshot, or a missing alternation snapshot -- is UNPROVEN-EVIDENCE, reported apart from UNPROVEN-FRACTION. **No fraction, delta or bar-verdict moved.**
+
 ## Test 1 (R2, as written) -- foreign CPU time anywhere on the box, per batch
 
 **TRANSIENTS AND STATES ARE DISCLOSED (attrib4).** A pid present in one snapshot of a batch but not the other cannot have its CPU delta differenced; the column counts them rather than dropping them silently, and EVERY foreign state seen in any snapshot is listed, not only `R`.
 
-| log | batch | window wall (s) | snapshots | foreign pids | transients | worst foreign cputime delta (s) | worst fraction | states seen | `R` seen | pauses | R2-as-written |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| A1-alloc-r1.log | alloc-r1 | 28.30 | 6 | 199 | 29 | 0.740 (pid 50122) | **2.6148 %** | S | none | 0 | **NOT met** |
-| A2-alloc-r2.log | alloc-r2 | 28.91 | 6 | 202 | 25 | 0.850 (pid 50122) | **2.9402 %** | S | none | 0 | **NOT met** |
-| A3-alloc-r3.log | alloc-r3 | 28.47 | 6 | 198 | 25 | 0.780 (pid 50122) | **2.7397 %** | S | none | 0 | **NOT met** |
-| A4-alloc-r4.log | alloc-r4 | 32.72 | 6 | 200 | 30 | 0.960 (pid 50122) | **2.9340 %** | R,S | 50122 | 2 | **NOT met** |
-| A5-alloc-r5.log | alloc-r5 | 28.46 | 6 | 200 | 28 | 0.830 (pid 50122) | **2.9164 %** | S | none | 0 | **NOT met** |
-| F1-wallpf-r1.log | wallpf-r1 | 14.43 | 4 | 203 | 13 | 0.390 (pid 50122) | **2.7027 %** | S | none | 0 | **NOT met** |
-| F2-wallpf-r2.log | wallpf-r2 | 14.26 | 4 | 199 | 21 | 0.400 (pid 50122) | **2.8050 %** | S | none | 0 | **NOT met** |
-| F3-wallpf-r3.log | wallpf-r3 | 14.55 | 4 | 205 | 10 | 0.400 (pid 50122) | **2.7491 %** | S | none | 0 | **NOT met** |
-| F4-wallpf-r4.log | wallpf-r4 | 14.28 | 4 | 202 | 15 | 0.400 (pid 50122) | **2.8011 %** | S | none | 0 | **NOT met** |
-| F5-wallpf-r5.log | wallpf-r5 | 14.50 | 4 | 203 | 19 | 0.410 (pid 50122) | **2.8276 %** | S | none | 0 | **NOT met** |
-| M1-mem-r1.log | mem-r1 | 21.69 | 5 | 202 | 22 | 0.620 (pid 50122) | **2.8585 %** | S | none | 0 | **NOT met** |
-| M2-mem-r2.log | mem-r2 | 22.27 | 5 | 201 | 24 | 0.700 (pid 50122) | **3.1432 %** | S | none | 0 | **NOT met** |
-| M3-mem-r3.log | mem-r3 | 21.38 | 5 | 204 | 18 | 0.620 (pid 50122) | **2.8999 %** | S | none | 0 | **NOT met** |
-| M4-mem-r4.log | mem-r4 | 21.82 | 5 | 203 | 20 | 0.610 (pid 50122) | **2.7956 %** | S | none | 0 | **NOT met** |
-| M5-mem-r5.log | mem-r5 | 22.24 | 5 | 200 | 25 | 0.620 (pid 50122) | **2.7878 %** | S | none | 0 | **NOT met** |
-| M6-mem-r6.log | mem-r6 | 21.46 | 5 | 203 | 20 | 0.720 (pid 50122) | **3.3551 %** | S | none | 0 | **NOT met** |
-| P1-perf.log | perf | 10.91 | 4 | 206 | 12 | 0.360 (pid 50122) | **3.2997 %** | S | none | 0 | **NOT met** |
-| P2-perfstat-r1.log | perfstat-r1 | 42.84 | 8 | 199 | 35 | 1.180 (pid 50122) | **2.7544 %** | S | none | 0 | **NOT met** |
-| P2-perfstat-r2.log | perfstat-r2 | 42.27 | 8 | 199 | 33 | 1.190 (pid 50122) | **2.8152 %** | S | none | 0 | **NOT met** |
-| P2-perfstat-r3.log | perfstat-r3 | 47.39 | 8 | 200 | 35 | 1.350 (pid 50122) | **2.8487 %** | R,S | 1097257 | 2 | **NOT met** |
-| P3-perfrec-r1.log | perfrec-r1 | 14.47 | 4 | 207 | 10 | 0.400 (pid 50122) | **2.7643 %** | S | none | 0 | **NOT met** |
-| P3-perfrec-r2.log | perfrec-r2 | 14.34 | 4 | 203 | 16 | 0.390 (pid 50122) | **2.7197 %** | S | none | 0 | **NOT met** |
-| P3-perfrec-r3.log | perfrec-r3 | 14.44 | 4 | 207 | 10 | 0.400 (pid 50122) | **2.7701 %** | S | none | 0 | **NOT met** |
-| S1-screen-malloc.log | screen | 26.34 | 2 | 199 | 27 | 0.710 (pid 50122) | **2.6955 %** | S | none | 0 | **NOT met** |
-| W1-wall-r1.log | wall-r1 | 42.59 | 8 | 200 | 33 | 1.250 (pid 50122) | **2.9350 %** | S | none | 0 | **NOT met** |
-| W2-wall-r2.log | wall-r2 | 42.31 | 8 | 199 | 32 | 1.150 (pid 50122) | **2.7180 %** | S | none | 0 | **NOT met** |
-| W3-wall-r3.log | wall-r3 | 42.40 | 8 | 199 | 35 | 1.130 (pid 50122) | **2.6651 %** | S | none | 0 | **NOT met** |
-| W4-wall-r4.log | wall-r4 | 47.53 | 8 | 199 | 37 | 1.410 (pid 50122) | **2.9665 %** | R,S | 50122 | 2 | **NOT met** |
-| W5-wall-r5.log | wall-r5 | 43.42 | 8 | 200 | 34 | 1.200 (pid 50122) | **2.7637 %** | S | none | 0 | **NOT met** |
-| X1-xwall-r1.log | xwall-r1 | 28.20 | 6 | 199 | 28 | 0.810 (pid 50122) | **2.8723 %** | S | none | 0 | **NOT met** |
-| X2-xwall-r2.log | xwall-r2 | 33.39 | 6 | 200 | 27 | 0.940 (pid 50122) | **2.8152 %** | R,S | 4022442 | 2 | **NOT met** |
-| X3-xwall-r3.log | xwall-r3 | 28.53 | 6 | 199 | 27 | 0.850 (pid 50122) | **2.9793 %** | S | none | 0 | **NOT met** |
-| X4-xwall-r4.log | xwall-r4 | 28.28 | 6 | 200 | 25 | 0.820 (pid 50122) | **2.8996 %** | S | none | 0 | **NOT met** |
-| X5-xwall-r5.log | xwall-r5 | 29.21 | 6 | 199 | 28 | 0.800 (pid 50122) | **2.7388 %** | S | none | 0 | **NOT met** |
-| Y1-ywall-r1.log | ywall-r1 | 36.05 | 7 | 197 | 35 | 0.960 (pid 50122) | **2.6630 %** | S | none | 0 | **NOT met** |
-| Y2-ywall-r2.log | ywall-r2 | 35.38 | 7 | 198 | 38 | 0.970 (pid 50122) | **2.7417 %** | S | none | 0 | **NOT met** |
-| Y3-ywall-r3.log | ywall-r3 | 35.53 | 7 | 200 | 29 | 0.990 (pid 50122) | **2.7864 %** | S | none | 0 | **NOT met** |
-| Y4-ywall-r4.log | ywall-r4 | 35.25 | 7 | 199 | 32 | 0.970 (pid 50122) | **2.7518 %** | S | none | 0 | **NOT met** |
-| Y5-ywall-r5.log | ywall-r5 | 40.40 | 7 | 199 | 34 | 1.180 (pid 50122) | **2.9208 %** | R,S | 2722314 | 2 | **NOT met** |
+| log | batch | window wall (s) | snapshots | foreign pids | transients | worst foreign cputime delta (s) | worst fraction | states seen | `R` seen | pauses | give-ups | re-snapshots | alternation gaps | R2-as-written |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| A1-alloc-r1.log | alloc-r1 | 28.30 | 6 | 199 | 29 | 0.740 (pid 50122) | **2.6148 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| A2-alloc-r2.log | alloc-r2 | 28.91 | 6 | 202 | 25 | 0.850 (pid 50122) | **2.9402 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| A3-alloc-r3.log | alloc-r3 | 28.47 | 6 | 198 | 25 | 0.780 (pid 50122) | **2.7397 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| A4-alloc-r4.log | alloc-r4 | 32.72 | 6 | 200 | 30 | 0.960 (pid 50122) | **2.9340 %** | R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 50122 | 1 | 1 | 0 | 0 | **NOT met** |
+| A5-alloc-r5.log | alloc-r5 | 28.46 | 6 | 200 | 28 | 0.830 (pid 50122) | **2.9164 %** | RN,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 3064933 | 0 | 0 | 0 | 0 | **NOT met** |
+| F1-wallpf-r1.log | wallpf-r1 | 14.43 | 4 | 203 | 13 | 0.390 (pid 50122) | **2.7027 %** | Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 2722314 | 0 | 0 | 0 | 0 | **NOT met** |
+| F2-wallpf-r2.log | wallpf-r2 | 14.26 | 4 | 199 | 21 | 0.400 (pid 50122) | **2.8050 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| F3-wallpf-r3.log | wallpf-r3 | 14.55 | 4 | 205 | 10 | 0.400 (pid 50122) | **2.7491 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| F4-wallpf-r4.log | wallpf-r4 | 14.28 | 4 | 202 | 15 | 0.400 (pid 50122) | **2.8011 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| F5-wallpf-r5.log | wallpf-r5 | 14.50 | 4 | 203 | 19 | 0.410 (pid 50122) | **2.8276 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| M1-mem-r1.log | mem-r1 | 21.69 | 5 | 202 | 22 | 0.620 (pid 50122) | **2.8585 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| M2-mem-r2.log | mem-r2 | 22.27 | 5 | 201 | 24 | 0.700 (pid 50122) | **3.1432 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| M3-mem-r3.log | mem-r3 | 21.38 | 5 | 204 | 18 | 0.620 (pid 50122) | **2.8999 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| M4-mem-r4.log | mem-r4 | 21.82 | 5 | 203 | 20 | 0.610 (pid 50122) | **2.7956 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| M5-mem-r5.log | mem-r5 | 22.24 | 5 | 200 | 25 | 0.620 (pid 50122) | **2.7878 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| M6-mem-r6.log | mem-r6 | 21.46 | 5 | 203 | 20 | 0.720 (pid 50122) | **3.3551 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| P1-perf.log | perf | 10.91 | 4 | 206 | 12 | 0.360 (pid 50122) | **3.2997 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| P2-perfstat-r1.log | perfstat-r1 | 42.84 | 8 | 199 | 35 | 1.180 (pid 50122) | **2.7544 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| P2-perfstat-r2.log | perfstat-r2 | 42.27 | 8 | 199 | 33 | 1.190 (pid 50122) | **2.8152 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| P2-perfstat-r3.log | perfstat-r3 | 47.39 | 8 | 200 | 35 | 1.350 (pid 50122) | **2.8487 %** | R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 1097257 | 1 | 1 | 0 | 0 | **NOT met** |
+| P3-perfrec-r1.log | perfrec-r1 | 14.47 | 4 | 207 | 10 | 0.400 (pid 50122) | **2.7643 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| P3-perfrec-r2.log | perfrec-r2 | 14.34 | 4 | 203 | 16 | 0.390 (pid 50122) | **2.7197 %** | Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 50122 | 0 | 0 | 0 | 0 | **NOT met** |
+| P3-perfrec-r3.log | perfrec-r3 | 14.44 | 4 | 207 | 10 | 0.400 (pid 50122) | **2.7701 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| S1-screen-malloc.log | screen | 26.34 | 2 | 199 | 27 | 0.710 (pid 50122) | **2.6955 %** | R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 3019998 | 0 | 0 | 0 | 3 | **NOT met** |
+| W1-wall-r1.log | wall-r1 | 42.59 | 8 | 200 | 33 | 1.250 (pid 50122) | **2.9350 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| W2-wall-r2.log | wall-r2 | 42.31 | 8 | 199 | 32 | 1.150 (pid 50122) | **2.7180 %** | Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 2722314 | 0 | 0 | 0 | 0 | **NOT met** |
+| W3-wall-r3.log | wall-r3 | 42.40 | 8 | 199 | 35 | 1.130 (pid 50122) | **2.6651 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| W4-wall-r4.log | wall-r4 | 47.53 | 8 | 199 | 37 | 1.410 (pid 50122) | **2.9665 %** | R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 50122 | 1 | 1 | 0 | 0 | **NOT met** |
+| W5-wall-r5.log | wall-r5 | 43.42 | 8 | 200 | 34 | 1.200 (pid 50122) | **2.7637 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| X1-xwall-r1.log | xwall-r1 | 28.20 | 6 | 199 | 28 | 0.810 (pid 50122) | **2.8723 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| X2-xwall-r2.log | xwall-r2 | 33.39 | 6 | 200 | 27 | 0.940 (pid 50122) | **2.8152 %** | R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 4022442 | 1 | 1 | 0 | 0 | **NOT met** |
+| X3-xwall-r3.log | xwall-r3 | 28.53 | 6 | 199 | 27 | 0.850 (pid 50122) | **2.9793 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| X4-xwall-r4.log | xwall-r4 | 28.28 | 6 | 200 | 25 | 0.820 (pid 50122) | **2.8996 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| X5-xwall-r5.log | xwall-r5 | 29.21 | 6 | 199 | 28 | 0.800 (pid 50122) | **2.7388 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| Y1-ywall-r1.log | ywall-r1 | 36.05 | 7 | 197 | 35 | 0.960 (pid 50122) | **2.6630 %** | Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 2722314 | 0 | 0 | 0 | 0 | **NOT met** |
+| Y2-ywall-r2.log | ywall-r2 | 35.38 | 7 | 198 | 38 | 0.970 (pid 50122) | **2.7417 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| Y3-ywall-r3.log | ywall-r3 | 35.53 | 7 | 200 | 29 | 0.990 (pid 50122) | **2.7864 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| Y4-ywall-r4.log | ywall-r4 | 35.25 | 7 | 199 | 32 | 0.970 (pid 50122) | **2.7518 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| Y5-ywall-r5.log | ywall-r5 | 40.40 | 7 | 199 | 34 | 1.180 (pid 50122) | **2.9208 %** | R,Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 2722314,50122 | 1 | 1 | 0 | 0 | **NOT met** |
 
 ## Test 2 -- the PINNED CORE, per timed run (the decisive one)
 
@@ -479,49 +571,53 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 
 **THE NICE-INCLUSIVE REPAIR (attrib4).** The two bold columns are the REPAIRED figure: `user + nice + steal + guest` on the core, with only the run's own `user` seconds subtracted on cpu2 and nothing subtracted on cpu10. The `user`-only columns beside them are the SUPERSEDED figure the earlier proof took its verdict on; they are printed so the two can be compared and are not what any verdict here rests on.
 
-| log | batch | runs | timed wall (s) | **cpu2 foreign TASK (s)** | **fraction** | **cpu10 TASK (s)** | **fraction** | cpu2 user-only (s) | cpu10 user-only (s) | cpu2 nice (s) | self user+sys (s) | cpu2 sys beyond self (s) | cpu2 irq+sirq (s) | verdict |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| A1-alloc-r1.log | alloc-r1 | 4 | 25.55 | **0.030** | **0.1174 %** | **0.080** | **0.3131 %** | 0.010 | 0.040 | 23.90 | 25.42 | 0.020 | 0.100 | PINNED-CLEAN |
-| A2-alloc-r2.log | alloc-r2 | 4 | 26.15 | **0.020** | **0.0765 %** | **0.090** | **0.3442 %** | 0.000 | 0.060 | 24.48 | 26.00 | 0.030 | 0.120 | PINNED-CLEAN |
-| A3-alloc-r3.log | alloc-r3 | 4 | 25.80 | **0.020** | **0.0775 %** | **0.060** | **0.2326 %** | 0.000 | 0.020 | 24.16 | 25.66 | 0.020 | 0.120 | PINNED-CLEAN |
-| A4-alloc-r4.log | alloc-r4 | 4 | 24.98 | **0.030** | **0.1201 %** | **0.080** | **0.3203 %** | 0.000 | 0.050 | 23.31 | 24.84 | 0.010 | 0.110 | PINNED-CLEAN |
-| A5-alloc-r5.log | alloc-r5 | 4 | 25.70 | **0.010** | **0.0389 %** | **0.120** | **0.4669 %** | 0.000 | 0.020 | 24.01 | 25.56 | 0.030 | 0.110 | PINNED-CLEAN |
-| F1-wallpf-r1.log | wallpf-r1 | 2 | 12.83 | **0.000** | **0.0000 %** | **0.050** | **0.3897 %** | 0.000 | 0.030 | 11.52 | 12.76 | 0.010 | 0.060 | PINNED-CLEAN |
-| F2-wallpf-r2.log | wallpf-r2 | 2 | 12.67 | **0.010** | **0.0789 %** | **0.010** | **0.0789 %** | 0.000 | 0.010 | 11.33 | 12.61 | 0.010 | 0.060 | PINNED-CLEAN |
-| F3-wallpf-r3.log | wallpf-r3 | 2 | 12.96 | **0.020** | **0.1543 %** | **0.020** | **0.1543 %** | 0.000 | 0.020 | 11.60 | 12.89 | 0.010 | 0.060 | PINNED-CLEAN |
-| F4-wallpf-r4.log | wallpf-r4 | 2 | 12.68 | **0.020** | **0.1577 %** | **0.050** | **0.3943 %** | 0.000 | 0.040 | 11.36 | 12.61 | 0.010 | 0.060 | PINNED-CLEAN |
-| F5-wallpf-r5.log | wallpf-r5 | 2 | 12.87 | **0.010** | **0.0777 %** | **0.060** | **0.4662 %** | 0.000 | 0.000 | 11.56 | 12.80 | 0.010 | 0.050 | PINNED-CLEAN |
-| M1-mem-r1.log | mem-r1 | 3 | 19.52 | **0.010** | **0.0512 %** | **0.100** | **0.5123 %** | 0.000 | 0.020 | 17.40 | 19.39 | 0.030 | 0.090 | **UNPROVEN** |
-| M2-mem-r2.log | mem-r2 | 3 | 20.07 | **0.010** | **0.0498 %** | **0.060** | **0.2990 %** | 0.000 | 0.020 | 17.92 | 19.96 | 0.000 | 0.090 | PINNED-CLEAN |
-| M3-mem-r3.log | mem-r3 | 3 | 19.19 | **0.030** | **0.1563 %** | **0.080** | **0.4169 %** | 0.010 | 0.030 | 17.06 | 19.08 | 0.020 | 0.100 | PINNED-CLEAN |
-| M4-mem-r4.log | mem-r4 | 3 | 19.63 | **0.010** | **0.0509 %** | **0.050** | **0.2547 %** | 0.000 | 0.020 | 17.57 | 19.52 | 0.020 | 0.090 | PINNED-CLEAN |
-| M5-mem-r5.log | mem-r5 | 3 | 20.06 | **0.020** | **0.0997 %** | **0.080** | **0.3988 %** | 0.000 | 0.030 | 17.99 | 19.94 | 0.010 | 0.080 | PINNED-CLEAN |
-| M6-mem-r6.log | mem-r6 | 3 | 19.31 | **0.020** | **0.1036 %** | **0.290** | **1.5018 %** | 0.000 | 0.260 | 17.12 | 19.18 | 0.020 | 0.100 | **UNPROVEN** |
-| P1-perf.log | perf | 2 | 9.30 | **0.060** | **0.6452 %** | **0.130** | **1.3978 %** | 0.010 | 0.120 | 8.38 | 9.12 | 0.040 | 0.070 | **UNPROVEN** |
-| P2-perfstat-r1.log | perfstat-r1 | 6 | 39.02 | **0.030** | **0.0769 %** | **0.180** | **0.4613 %** | 0.000 | 0.100 | 35.40 | 38.79 | 0.030 | 0.180 | PINNED-CLEAN |
-| P2-perfstat-r2.log | perfstat-r2 | 6 | 38.45 | **0.040** | **0.1040 %** | **0.170** | **0.4421 %** | 0.000 | 0.070 | 34.66 | 38.22 | 0.010 | 0.180 | PINNED-CLEAN |
-| P2-perfstat-r3.log | perfstat-r3 | 6 | 38.56 | **0.040** | **0.1037 %** | **0.120** | **0.3112 %** | 0.000 | 0.070 | 34.80 | 38.31 | 0.020 | 0.170 | PINNED-CLEAN |
-| P3-perfrec-r1.log | perfrec-r1 | 2 | 12.84 | **0.010** | **0.0779 %** | **0.040** | **0.3115 %** | 0.000 | 0.010 | 11.53 | 12.74 | 0.010 | 0.080 | PINNED-CLEAN |
-| P3-perfrec-r2.log | perfrec-r2 | 2 | 12.72 | **0.010** | **0.0786 %** | **0.100** | **0.7862 %** | 0.000 | 0.040 | 11.42 | 12.61 | 0.010 | 0.080 | **UNPROVEN** |
-| P3-perfrec-r3.log | perfrec-r3 | 2 | 12.82 | **0.000** | **0.0000 %** | **0.080** | **0.6240 %** | 0.000 | 0.050 | 11.53 | 12.73 | 0.000 | 0.070 | **UNPROVEN** |
-| S1-screen-malloc.log | screen | 4 | 25.70 | **0.030** | **0.1167 %** | **0.050** | **0.1946 %** | 0.000 | 0.030 | 24.05 | 25.53 | 0.030 | 0.120 | PINNED-CLEAN |
-| W1-wall-r1.log | wall-r1 | 6 | 38.77 | **0.050** | **0.1290 %** | **0.260** | **0.6706 %** | 0.000 | 0.120 | 34.86 | 38.53 | 0.040 | 0.180 | **UNPROVEN** |
-| W2-wall-r2.log | wall-r2 | 6 | 38.51 | **0.030** | **0.0779 %** | **0.040** | **0.1039 %** | 0.010 | 0.020 | 34.17 | 37.97 | 0.330 | 0.200 | PINNED-CLEAN |
-| W3-wall-r3.log | wall-r3 | 6 | 38.58 | **0.040** | **0.1037 %** | **0.150** | **0.3888 %** | 0.030 | 0.100 | 34.24 | 38.03 | 0.350 | 0.180 | PINNED-CLEAN |
-| W4-wall-r4.log | wall-r4 | 6 | 38.70 | **0.030** | **0.0775 %** | **0.190** | **0.4910 %** | 0.050 | 0.030 | 34.32 | 38.14 | 0.350 | 0.150 | PINNED-CLEAN |
-| W5-wall-r5.log | wall-r5 | 6 | 39.62 | **0.110** | **0.2776 %** | **0.140** | **0.3534 %** | 0.010 | 0.070 | 35.42 | 39.04 | 0.290 | 0.200 | PINNED-CLEAN |
-| X1-xwall-r1.log | xwall-r1 | 4 | 25.51 | **0.030** | **0.1176 %** | **0.070** | **0.2744 %** | 0.000 | 0.010 | 22.94 | 25.37 | 0.010 | 0.130 | PINNED-CLEAN |
-| X2-xwall-r2.log | xwall-r2 | 4 | 25.68 | **0.030** | **0.1168 %** | **0.070** | **0.2726 %** | 0.000 | 0.030 | 23.09 | 25.53 | 0.030 | 0.130 | PINNED-CLEAN |
-| X3-xwall-r3.log | xwall-r3 | 4 | 25.85 | **0.040** | **0.1547 %** | **0.100** | **0.3868 %** | 0.000 | 0.040 | 23.28 | 25.68 | 0.030 | 0.120 | PINNED-CLEAN |
-| X4-xwall-r4.log | xwall-r4 | 4 | 25.59 | **0.020** | **0.0782 %** | **0.070** | **0.2735 %** | 0.000 | 0.040 | 23.01 | 25.45 | 0.030 | 0.110 | PINNED-CLEAN |
-| X5-xwall-r5.log | xwall-r5 | 4 | 26.46 | **0.030** | **0.1134 %** | **0.030** | **0.1134 %** | 0.000 | 0.010 | 23.86 | 26.32 | 0.020 | 0.120 | PINNED-CLEAN |
-| Y1-ywall-r1.log | ywall-r1 | 5 | 32.79 | **0.040** | **0.1220 %** | **0.140** | **0.4270 %** | 0.000 | 0.050 | 29.53 | 32.59 | 0.020 | 0.160 | PINNED-CLEAN |
-| Y2-ywall-r2.log | ywall-r2 | 5 | 32.13 | **0.030** | **0.0934 %** | **0.170** | **0.5291 %** | 0.000 | 0.090 | 28.91 | 31.92 | 0.040 | 0.150 | **UNPROVEN** |
-| Y3-ywall-r3.log | ywall-r3 | 5 | 32.24 | **0.020** | **0.0620 %** | **0.260** | **0.8065 %** | 0.000 | 0.090 | 29.10 | 32.05 | 0.020 | 0.160 | **UNPROVEN** |
-| Y4-ywall-r4.log | ywall-r4 | 5 | 31.97 | **0.030** | **0.0938 %** | **0.060** | **0.1877 %** | 0.000 | 0.030 | 28.73 | 31.78 | 0.020 | 0.150 | PINNED-CLEAN |
-| Y5-ywall-r5.log | ywall-r5 | 5 | 32.12 | **0.050** | **0.1557 %** | **0.170** | **0.5293 %** | 0.000 | 0.070 | 28.97 | 31.93 | 0.020 | 0.130 | **UNPROVEN** |
+**THE VERDICT HAS TWO PARTS (fix3).** The FRACTION part is R2''s bar and is unchanged. The EVIDENCE part asks whether the log contains what R2' requires: a re-snapshot after every foreign `R`, and a snapshot between consecutive timed runs. A batch is PINNED-CLEAN only when both hold; otherwise the cell names which part failed, and both can fail at once.
+
+| log | batch | runs | timed wall (s) | **cpu2 foreign TASK (s)** | **fraction** | **cpu10 TASK (s)** | **fraction** | cpu2 user-only (s) | cpu10 user-only (s) | cpu2 nice (s) | self user+sys (s) | cpu2 sys beyond self (s) | cpu2 irq+sirq (s) | evidence | verdict |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| A1-alloc-r1.log | alloc-r1 | 4 | 25.55 | **0.030** | **0.1174 %** | **0.080** | **0.3131 %** | 0.010 | 0.040 | 23.90 | 25.42 | 0.020 | 0.100 | complete | PINNED-CLEAN |
+| A2-alloc-r2.log | alloc-r2 | 4 | 26.15 | **0.020** | **0.0765 %** | **0.090** | **0.3442 %** | 0.000 | 0.060 | 24.48 | 26.00 | 0.030 | 0.120 | complete | PINNED-CLEAN |
+| A3-alloc-r3.log | alloc-r3 | 4 | 25.80 | **0.020** | **0.0775 %** | **0.060** | **0.2326 %** | 0.000 | 0.020 | 24.16 | 25.66 | 0.020 | 0.120 | complete | PINNED-CLEAN |
+| A4-alloc-r4.log | alloc-r4 | 4 | 24.98 | **0.030** | **0.1201 %** | **0.080** | **0.3203 %** | 0.000 | 0.050 | 23.31 | 24.84 | 0.010 | 0.110 | `R` at `alloc-r4/open` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| A5-alloc-r5.log | alloc-r5 | 4 | 25.70 | **0.010** | **0.0389 %** | **0.120** | **0.4669 %** | 0.000 | 0.020 | 24.01 | 25.56 | 0.030 | 0.110 | `R` at `alloc-r5/b2-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| F1-wallpf-r1.log | wallpf-r1 | 2 | 12.83 | **0.000** | **0.0000 %** | **0.050** | **0.3897 %** | 0.000 | 0.030 | 11.52 | 12.76 | 0.010 | 0.060 | `R` at `wallpf-r1/h1-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| F2-wallpf-r2.log | wallpf-r2 | 2 | 12.67 | **0.010** | **0.0789 %** | **0.010** | **0.0789 %** | 0.000 | 0.010 | 11.33 | 12.61 | 0.010 | 0.060 | complete | PINNED-CLEAN |
+| F3-wallpf-r3.log | wallpf-r3 | 2 | 12.96 | **0.020** | **0.1543 %** | **0.020** | **0.1543 %** | 0.000 | 0.020 | 11.60 | 12.89 | 0.010 | 0.060 | complete | PINNED-CLEAN |
+| F4-wallpf-r4.log | wallpf-r4 | 2 | 12.68 | **0.020** | **0.1577 %** | **0.050** | **0.3943 %** | 0.000 | 0.040 | 11.36 | 12.61 | 0.010 | 0.060 | complete | PINNED-CLEAN |
+| F5-wallpf-r5.log | wallpf-r5 | 2 | 12.87 | **0.010** | **0.0777 %** | **0.060** | **0.4662 %** | 0.000 | 0.000 | 11.56 | 12.80 | 0.010 | 0.050 | complete | PINNED-CLEAN |
+| M1-mem-r1.log | mem-r1 | 3 | 19.52 | **0.010** | **0.0512 %** | **0.100** | **0.5123 %** | 0.000 | 0.020 | 17.40 | 19.39 | 0.030 | 0.090 | complete | **UNPROVEN-FRACTION** |
+| M2-mem-r2.log | mem-r2 | 3 | 20.07 | **0.010** | **0.0498 %** | **0.060** | **0.2990 %** | 0.000 | 0.020 | 17.92 | 19.96 | 0.000 | 0.090 | complete | PINNED-CLEAN |
+| M3-mem-r3.log | mem-r3 | 3 | 19.19 | **0.030** | **0.1563 %** | **0.080** | **0.4169 %** | 0.010 | 0.030 | 17.06 | 19.08 | 0.020 | 0.100 | complete | PINNED-CLEAN |
+| M4-mem-r4.log | mem-r4 | 3 | 19.63 | **0.010** | **0.0509 %** | **0.050** | **0.2547 %** | 0.000 | 0.020 | 17.57 | 19.52 | 0.020 | 0.090 | complete | PINNED-CLEAN |
+| M5-mem-r5.log | mem-r5 | 3 | 20.06 | **0.020** | **0.0997 %** | **0.080** | **0.3988 %** | 0.000 | 0.030 | 17.99 | 19.94 | 0.010 | 0.080 | complete | PINNED-CLEAN |
+| M6-mem-r6.log | mem-r6 | 3 | 19.31 | **0.020** | **0.1036 %** | **0.290** | **1.5018 %** | 0.000 | 0.260 | 17.12 | 19.18 | 0.020 | 0.100 | complete | **UNPROVEN-FRACTION** |
+| P1-perf.log | perf | 2 | 9.30 | **0.060** | **0.6452 %** | **0.130** | **1.3978 %** | 0.010 | 0.120 | 8.38 | 9.12 | 0.040 | 0.070 | complete | **UNPROVEN-FRACTION** |
+| P2-perfstat-r1.log | perfstat-r1 | 6 | 39.02 | **0.030** | **0.0769 %** | **0.180** | **0.4613 %** | 0.000 | 0.100 | 35.40 | 38.79 | 0.030 | 0.180 | complete | PINNED-CLEAN |
+| P2-perfstat-r2.log | perfstat-r2 | 6 | 38.45 | **0.040** | **0.1040 %** | **0.170** | **0.4421 %** | 0.000 | 0.070 | 34.66 | 38.22 | 0.010 | 0.180 | complete | PINNED-CLEAN |
+| P2-perfstat-r3.log | perfstat-r3 | 6 | 38.56 | **0.040** | **0.1037 %** | **0.120** | **0.3112 %** | 0.000 | 0.070 | 34.80 | 38.31 | 0.020 | 0.170 | `R` at `perfstat-r3/b06-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| P3-perfrec-r1.log | perfrec-r1 | 2 | 12.84 | **0.010** | **0.0779 %** | **0.040** | **0.3115 %** | 0.000 | 0.010 | 11.53 | 12.74 | 0.010 | 0.080 | complete | PINNED-CLEAN |
+| P3-perfrec-r2.log | perfrec-r2 | 2 | 12.72 | **0.010** | **0.0786 %** | **0.100** | **0.7862 %** | 0.000 | 0.040 | 11.42 | 12.61 | 0.010 | 0.080 | `R` at `perfrec-r2/open` with NO re-snapshot | **UNPROVEN-FRACTION** + **UNPROVEN-EVIDENCE** |
+| P3-perfrec-r3.log | perfrec-r3 | 2 | 12.82 | **0.000** | **0.0000 %** | **0.080** | **0.6240 %** | 0.000 | 0.050 | 11.53 | 12.73 | 0.000 | 0.070 | complete | **UNPROVEN-FRACTION** |
+| S1-screen-malloc.log | screen | 4 | 25.70 | **0.030** | **0.1167 %** | **0.050** | **0.1946 %** | 0.000 | 0.030 | 24.05 | 25.53 | 0.030 | 0.120 | `R` at `screen/open` with NO re-snapshot; 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
+| W1-wall-r1.log | wall-r1 | 6 | 38.77 | **0.050** | **0.1290 %** | **0.260** | **0.6706 %** | 0.000 | 0.120 | 34.86 | 38.53 | 0.040 | 0.180 | complete | **UNPROVEN-FRACTION** |
+| W2-wall-r2.log | wall-r2 | 6 | 38.51 | **0.030** | **0.0779 %** | **0.040** | **0.1039 %** | 0.010 | 0.020 | 34.17 | 37.97 | 0.330 | 0.200 | `R` at `wall-r2/b03-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| W3-wall-r3.log | wall-r3 | 6 | 38.58 | **0.040** | **0.1037 %** | **0.150** | **0.3888 %** | 0.030 | 0.100 | 34.24 | 38.03 | 0.350 | 0.180 | complete | PINNED-CLEAN |
+| W4-wall-r4.log | wall-r4 | 6 | 38.70 | **0.030** | **0.0775 %** | **0.190** | **0.4910 %** | 0.050 | 0.030 | 34.32 | 38.14 | 0.350 | 0.150 | `R` at `wall-r4/b04-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| W5-wall-r5.log | wall-r5 | 6 | 39.62 | **0.110** | **0.2776 %** | **0.140** | **0.3534 %** | 0.010 | 0.070 | 35.42 | 39.04 | 0.290 | 0.200 | complete | PINNED-CLEAN |
+| X1-xwall-r1.log | xwall-r1 | 4 | 25.51 | **0.030** | **0.1176 %** | **0.070** | **0.2744 %** | 0.000 | 0.010 | 22.94 | 25.37 | 0.010 | 0.130 | complete | PINNED-CLEAN |
+| X2-xwall-r2.log | xwall-r2 | 4 | 25.68 | **0.030** | **0.1168 %** | **0.070** | **0.2726 %** | 0.000 | 0.030 | 23.09 | 25.53 | 0.030 | 0.130 | `R` at `xwall-r2/open` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| X3-xwall-r3.log | xwall-r3 | 4 | 25.85 | **0.040** | **0.1547 %** | **0.100** | **0.3868 %** | 0.000 | 0.040 | 23.28 | 25.68 | 0.030 | 0.120 | complete | PINNED-CLEAN |
+| X4-xwall-r4.log | xwall-r4 | 4 | 25.59 | **0.020** | **0.0782 %** | **0.070** | **0.2735 %** | 0.000 | 0.040 | 23.01 | 25.45 | 0.030 | 0.110 | complete | PINNED-CLEAN |
+| X5-xwall-r5.log | xwall-r5 | 4 | 26.46 | **0.030** | **0.1134 %** | **0.030** | **0.1134 %** | 0.000 | 0.010 | 23.86 | 26.32 | 0.020 | 0.120 | complete | PINNED-CLEAN |
+| Y1-ywall-r1.log | ywall-r1 | 5 | 32.79 | **0.040** | **0.1220 %** | **0.140** | **0.4270 %** | 0.000 | 0.050 | 29.53 | 32.59 | 0.020 | 0.160 | `R` at `ywall-r1/open` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| Y2-ywall-r2.log | ywall-r2 | 5 | 32.13 | **0.030** | **0.0934 %** | **0.170** | **0.5291 %** | 0.000 | 0.090 | 28.91 | 31.92 | 0.040 | 0.150 | complete | **UNPROVEN-FRACTION** |
+| Y3-ywall-r3.log | ywall-r3 | 5 | 32.24 | **0.020** | **0.0620 %** | **0.260** | **0.8065 %** | 0.000 | 0.090 | 29.10 | 32.05 | 0.020 | 0.160 | complete | **UNPROVEN-FRACTION** |
+| Y4-ywall-r4.log | ywall-r4 | 5 | 31.97 | **0.030** | **0.0938 %** | **0.060** | **0.1877 %** | 0.000 | 0.030 | 28.73 | 31.78 | 0.020 | 0.150 | complete | PINNED-CLEAN |
+| Y5-ywall-r5.log | ywall-r5 | 5 | 32.12 | **0.050** | **0.1557 %** | **0.170** | **0.5293 %** | 0.000 | 0.070 | 28.97 | 31.93 | 0.020 | 0.130 | `R` at `ywall-r5/open`,`ywall-r5/f1-after` with NO re-snapshot | **UNPROVEN-FRACTION** + **UNPROVEN-EVIDENCE** |
 
 ## The five busiest foreign processes per batch
+
+**Every foreign pid of every batch, with every state observed for it, is `logs/idle-proof-pids-attrib3.md`** (settler R13). The five below are a summary of that file, not a substitute for it.
 
 - A1-alloc-r1.log / alloc-r1: TRANSIENT pids (present in some snapshot, not in both ends): 3043895,3045230,3045235,3045237,3045242,3045244,3045246,3045248,3045250,3045254,3045256,3045258,3045260,3045264,3045959,3045960,3045962,3045964,3045966,3046629,3046631,3046633,3046635,3047298,3047307,3047974,3047976,3047978,3047981
 - A1-alloc-r1.log / alloc-r1 (window 28.30 s): pid 50122 +0.74 s; pid 1097257 +0.32 s; pid 2721602 +0.26 s; pid 2722314 +0.14 s; pid 1861779 +0.09 s
@@ -611,6 +707,14 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 - Y5-ywall-r5.log / ywall-r5 (window 40.40 s): pid 50122 +1.18 s; pid 1097257 +0.47 s; pid 1861779 +0.42 s; pid 2721602 +0.34 s; pid 2722314 +0.19 s
 - Y5-ywall-r5.log / ywall-r5: BOX_PAUSE 2026-09-11T19:28:51Z tag=ywall-r5/f1-after try=1 -- a foreign process is in state R.
 - Y5-ywall-r5.log / ywall-r5: BOX_PAUSE_GIVEUP 2026-09-11T19:28:56Z tag=ywall-r5/f1-after -- still R after 1 pauses.
+
+## The two kinds of UNPROVEN, counted (fix3)
+
+| batches | PINNED-CLEAN | UNPROVEN-FRACTION | UNPROVEN-EVIDENCE |
+|---:|---:|---:|---:|
+| 39 | 21 | 9 | 11 |
+
+A batch failing both is counted in both unproven columns, so the three need not sum to the first.
 ```
 
 ## T8.9r-attrib3, the SUPERSEDED argv-lock round set (retained, quoted nowhere)
@@ -620,17 +724,19 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 
 Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` blocks. A batch is PROVEN when the worst foreign CPU-time delta is under 0.5 %% of the window's wall AND no foreign process was seen in state `R`.
 
+**FIX ROUND 3 (settler R13).** `FOREIGN_PS` is read beside `FOREIGN_TICK`, so `ps` states such as `Rsl` are seen; pauses and give-ups are separate columns; every foreign pid and its observed states is listed per batch in the appendix file; and a batch whose EVIDENCE is short of R2' -- an `R` with no re-snapshot, or a missing alternation snapshot -- is UNPROVEN-EVIDENCE, reported apart from UNPROVEN-FRACTION. **No fraction, delta or bar-verdict moved.**
+
 ## Test 1 (R2, as written) -- foreign CPU time anywhere on the box, per batch
 
 **TRANSIENTS AND STATES ARE DISCLOSED (attrib4).** A pid present in one snapshot of a batch but not the other cannot have its CPU delta differenced; the column counts them rather than dropping them silently, and EVERY foreign state seen in any snapshot is listed, not only `R`.
 
-| log | batch | window wall (s) | snapshots | foreign pids | transients | worst foreign cputime delta (s) | worst fraction | states seen | `R` seen | pauses | R2-as-written |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| X1-xwall-r1.log | xwall-r1 | 29.04 | 6 | 199 | 29 | 0.830 (pid 50122) | **2.8581 %** | S | none | 0 | **NOT met** |
-| X2-xwall-r2.log | xwall-r2 | 33.34 | 6 | 197 | 33 | 1.000 (pid 50122) | **2.9994 %** | R,S | 50122 | 2 | **NOT met** |
-| X3-xwall-r3.log | xwall-r3 | 33.52 | 6 | 199 | 29 | 0.920 (pid 50122) | **2.7446 %** | R,S | 50122 | 2 | **NOT met** |
-| X4-xwall-r4.log | xwall-r4 | 28.23 | 6 | 200 | 26 | 0.790 (pid 50122) | **2.7984 %** | S | none | 0 | **NOT met** |
-| X5-xwall-r5.log | xwall-r5 | 28.57 | 6 | 199 | 28 | 0.880 (pid 50122) | **3.0802 %** | R,S | 50122 | 2 | **NOT met** |
+| log | batch | window wall (s) | snapshots | foreign pids | transients | worst foreign cputime delta (s) | worst fraction | states seen | `R` seen | pauses | give-ups | re-snapshots | alternation gaps | R2-as-written |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| X1-xwall-r1.log | xwall-r1 | 29.04 | 6 | 199 | 29 | 0.830 (pid 50122) | **2.8581 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| X2-xwall-r2.log | xwall-r2 | 33.34 | 6 | 197 | 33 | 1.000 (pid 50122) | **2.9994 %** | R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 50122 | 1 | 1 | 0 | 0 | **NOT met** |
+| X3-xwall-r3.log | xwall-r3 | 33.52 | 6 | 199 | 29 | 0.920 (pid 50122) | **2.7446 %** | R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 50122 | 1 | 1 | 0 | 0 | **NOT met** |
+| X4-xwall-r4.log | xwall-r4 | 28.23 | 6 | 200 | 26 | 0.790 (pid 50122) | **2.7984 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| X5-xwall-r5.log | xwall-r5 | 28.57 | 6 | 199 | 28 | 0.880 (pid 50122) | **3.0802 %** | R,Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 50122 | 1 | 1 | 0 | 0 | **NOT met** |
 
 ## Test 2 -- the PINNED CORE, per timed run (the decisive one)
 
@@ -642,15 +748,19 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 
 **THE NICE-INCLUSIVE REPAIR (attrib4).** The two bold columns are the REPAIRED figure: `user + nice + steal + guest` on the core, with only the run's own `user` seconds subtracted on cpu2 and nothing subtracted on cpu10. The `user`-only columns beside them are the SUPERSEDED figure the earlier proof took its verdict on; they are printed so the two can be compared and are not what any verdict here rests on.
 
-| log | batch | runs | timed wall (s) | **cpu2 foreign TASK (s)** | **fraction** | **cpu10 TASK (s)** | **fraction** | cpu2 user-only (s) | cpu10 user-only (s) | cpu2 nice (s) | self user+sys (s) | cpu2 sys beyond self (s) | cpu2 irq+sirq (s) | verdict |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| X1-xwall-r1.log | xwall-r1 | 4 | 26.33 | **0.020** | **0.0760 %** | **0.060** | **0.2279 %** | 0.000 | 0.040 | 23.71 | 26.14 | 0.040 | 0.140 | PINNED-CLEAN |
-| X2-xwall-r2.log | xwall-r2 | 4 | 25.59 | **0.010** | **0.0391 %** | **0.110** | **0.4299 %** | 0.000 | 0.020 | 23.00 | 25.45 | 0.020 | 0.110 | PINNED-CLEAN |
-| X3-xwall-r3.log | xwall-r3 | 4 | 25.80 | **0.030** | **0.1163 %** | **0.080** | **0.3101 %** | 0.000 | 0.070 | 23.21 | 25.64 | 0.030 | 0.130 | PINNED-CLEAN |
-| X4-xwall-r4.log | xwall-r4 | 4 | 25.50 | **0.010** | **0.0392 %** | **0.100** | **0.3922 %** | 0.000 | 0.080 | 22.95 | 25.36 | 0.030 | 0.110 | PINNED-CLEAN |
-| X5-xwall-r5.log | xwall-r5 | 4 | 25.83 | **0.290** | **1.1227 %** | **0.070** | **0.2710 %** | 0.320 | 0.040 | 22.71 | 25.14 | 0.280 | 0.120 | **UNPROVEN** |
+**THE VERDICT HAS TWO PARTS (fix3).** The FRACTION part is R2''s bar and is unchanged. The EVIDENCE part asks whether the log contains what R2' requires: a re-snapshot after every foreign `R`, and a snapshot between consecutive timed runs. A batch is PINNED-CLEAN only when both hold; otherwise the cell names which part failed, and both can fail at once.
+
+| log | batch | runs | timed wall (s) | **cpu2 foreign TASK (s)** | **fraction** | **cpu10 TASK (s)** | **fraction** | cpu2 user-only (s) | cpu10 user-only (s) | cpu2 nice (s) | self user+sys (s) | cpu2 sys beyond self (s) | cpu2 irq+sirq (s) | evidence | verdict |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| X1-xwall-r1.log | xwall-r1 | 4 | 26.33 | **0.020** | **0.0760 %** | **0.060** | **0.2279 %** | 0.000 | 0.040 | 23.71 | 26.14 | 0.040 | 0.140 | complete | PINNED-CLEAN |
+| X2-xwall-r2.log | xwall-r2 | 4 | 25.59 | **0.010** | **0.0391 %** | **0.110** | **0.4299 %** | 0.000 | 0.020 | 23.00 | 25.45 | 0.020 | 0.110 | `R` at `xwall-r2/open` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| X3-xwall-r3.log | xwall-r3 | 4 | 25.80 | **0.030** | **0.1163 %** | **0.080** | **0.3101 %** | 0.000 | 0.070 | 23.21 | 25.64 | 0.030 | 0.130 | `R` at `xwall-r3/e2-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| X4-xwall-r4.log | xwall-r4 | 4 | 25.50 | **0.010** | **0.0392 %** | **0.100** | **0.3922 %** | 0.000 | 0.080 | 22.95 | 25.36 | 0.030 | 0.110 | complete | PINNED-CLEAN |
+| X5-xwall-r5.log | xwall-r5 | 4 | 25.83 | **0.290** | **1.1227 %** | **0.070** | **0.2710 %** | 0.320 | 0.040 | 22.71 | 25.14 | 0.280 | 0.120 | `R` at `xwall-r5/e3-after`,`xwall-r5/close` with NO re-snapshot | **UNPROVEN-FRACTION** + **UNPROVEN-EVIDENCE** |
 
 ## The five busiest foreign processes per batch
+
+**Every foreign pid of every batch, with every state observed for it, is `logs/idle-proof-pids-attrib3-superseded.md`** (settler R13). The five below are a summary of that file, not a substitute for it.
 
 - X1-xwall-r1.log / xwall-r1: TRANSIENT pids (present in some snapshot, not in both ends): 2919699,2919737,2919740,2919743,2919745,2919747,2919767,2919774,2919776,2919778,2919780,2919782,2919783,2920461,2920472,2920474,2920476,2921138,2921141,2921157,2921159,2921160,2921448,2921823,2921825,2922486,2922488,2922490,2922504
 - X1-xwall-r1.log / xwall-r1 (window 29.04 s): pid 50122 +0.83 s; pid 1097257 +0.34 s; pid 2721602 +0.26 s; pid 2722314 +0.11 s; pid 4022442 +0.09 s
@@ -668,6 +778,14 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 - X5-xwall-r5.log / xwall-r5 (window 28.57 s): pid 50122 +0.88 s; pid 2721602 +0.34 s; pid 1097257 +0.30 s; pid 2721730 +0.15 s; pid 2722314 +0.11 s
 - X5-xwall-r5.log / xwall-r5: BOX_PAUSE 2026-09-11T19:13:14Z tag=xwall-r5/close try=1 -- a foreign process is in state R.
 - X5-xwall-r5.log / xwall-r5: BOX_PAUSE_GIVEUP 2026-09-11T19:13:19Z tag=xwall-r5/close -- still R after 1 pauses.
+
+## The two kinds of UNPROVEN, counted (fix3)
+
+| batches | PINNED-CLEAN | UNPROVEN-FRACTION | UNPROVEN-EVIDENCE |
+|---:|---:|---:|---:|
+| 5 | 2 | 1 | 3 |
+
+A batch failing both is counted in both unproven columns, so the three need not sum to the first.
 ```
 
 ## T8.9r-attrib4 -- the redraw experiment (section 13)
@@ -677,21 +795,23 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 
 Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` blocks. A batch is PROVEN when the worst foreign CPU-time delta is under 0.5 %% of the window's wall AND no foreign process was seen in state `R`.
 
+**FIX ROUND 3 (settler R13).** `FOREIGN_PS` is read beside `FOREIGN_TICK`, so `ps` states such as `Rsl` are seen; pauses and give-ups are separate columns; every foreign pid and its observed states is listed per batch in the appendix file; and a batch whose EVIDENCE is short of R2' -- an `R` with no re-snapshot, or a missing alternation snapshot -- is UNPROVEN-EVIDENCE, reported apart from UNPROVEN-FRACTION. **No fraction, delta or bar-verdict moved.**
+
 ## Test 1 (R2, as written) -- foreign CPU time anywhere on the box, per batch
 
 **TRANSIENTS AND STATES ARE DISCLOSED (attrib4).** A pid present in one snapshot of a batch but not the other cannot have its CPU delta differenced; the column counts them rather than dropping them silently, and EVERY foreign state seen in any snapshot is listed, not only `R`.
 
-| log | batch | window wall (s) | snapshots | foreign pids | transients | worst foreign cputime delta (s) | worst fraction | states seen | `R` seen | pauses | R2-as-written |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| E3-perf.log | e3 | 72.47 | 2 | 195 | 34 | 1.950 (pid 50122) | **2.6908 %** | S | none | 0 | **NOT met** |
-| P1-pf-r1.log | pf-r1 | 56.17 | 2 | 198 | 28 | 1.590 (pid 50122) | **2.8307 %** | S | none | 0 | **NOT met** |
-| P2-pf-r2.log | pf-r2 | 61.17 | 2 | 198 | 27 | 1.670 (pid 50122) | **2.7301 %** | R,S | 50122 | 2 | **NOT met** |
-| P3-pf-r3.log | pf-r3 | 56.67 | 2 | 198 | 27 | 1.530 (pid 50122) | **2.6998 %** | S | none | 0 | **NOT met** |
-| W1-wall-r1.log | wall-r1 | 34.09 | 6 | 196 | 40 | 1.060 (pid 50122) | **3.1094 %** | R,S | 50122 | 2 | **NOT met** |
-| W2-wall-r2.log | wall-r2 | 29.15 | 6 | 198 | 32 | 0.810 (pid 50122) | **2.7787 %** | S | none | 0 | **NOT met** |
-| W3-wall-r3.log | wall-r3 | 29.48 | 6 | 198 | 31 | 0.830 (pid 50122) | **2.8155 %** | S | none | 0 | **NOT met** |
-| W4-wall-r4.log | wall-r4 | 29.44 | 6 | 199 | 30 | 0.810 (pid 50122) | **2.7514 %** | S | none | 0 | **NOT met** |
-| W5-wall-r5.log | wall-r5 | 29.30 | 6 | 198 | 31 | 0.940 (pid 50122) | **3.2082 %** | S | none | 0 | **NOT met** |
+| log | batch | window wall (s) | snapshots | foreign pids | transients | worst foreign cputime delta (s) | worst fraction | states seen | `R` seen | pauses | give-ups | re-snapshots | alternation gaps | R2-as-written |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| E3-perf.log | e3 | 72.47 | 2 | 195 | 34 | 1.950 (pid 50122) | **2.6908 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| P1-pf-r1.log | pf-r1 | 56.17 | 2 | 198 | 28 | 1.590 (pid 50122) | **2.8307 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| P2-pf-r2.log | pf-r2 | 61.17 | 2 | 198 | 27 | 1.670 (pid 50122) | **2.7301 %** | R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 50122 | 1 | 1 | 0 | 0 | **NOT met** |
+| P3-pf-r3.log | pf-r3 | 56.67 | 2 | 198 | 27 | 1.530 (pid 50122) | **2.6998 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| W1-wall-r1.log | wall-r1 | 34.09 | 6 | 196 | 40 | 1.060 (pid 50122) | **3.1094 %** | R,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 50122 | 1 | 1 | 0 | 0 | **NOT met** |
+| W2-wall-r2.log | wall-r2 | 29.15 | 6 | 198 | 32 | 0.810 (pid 50122) | **2.7787 %** | S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | none | 0 | 0 | 0 | 0 | **NOT met** |
+| W3-wall-r3.log | wall-r3 | 29.48 | 6 | 198 | 31 | 0.830 (pid 50122) | **2.8155 %** | Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 2722314 | 0 | 0 | 0 | 0 | **NOT met** |
+| W4-wall-r4.log | wall-r4 | 29.44 | 6 | 199 | 30 | 0.810 (pid 50122) | **2.7514 %** | Rl,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 50122 | 0 | 0 | 0 | 0 | **NOT met** |
+| W5-wall-r5.log | wall-r5 | 29.30 | 6 | 198 | 31 | 0.940 (pid 50122) | **3.2082 %** | Rl+,S,S<,S<Ls,S<Lsl,S<sl,SLl,SLsl,SN,SNl,SNl+,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl,Ssl+ | 1097257 | 0 | 0 | 0 | 0 | **NOT met** |
 
 ## Test 2 -- the PINNED CORE, per timed run (the decisive one)
 
@@ -703,19 +823,23 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 
 **THE NICE-INCLUSIVE REPAIR (attrib4).** The two bold columns are the REPAIRED figure: `user + nice + steal + guest` on the core, with only the run's own `user` seconds subtracted on cpu2 and nothing subtracted on cpu10. The `user`-only columns beside them are the SUPERSEDED figure the earlier proof took its verdict on; they are printed so the two can be compared and are not what any verdict here rests on.
 
-| log | batch | runs | timed wall (s) | **cpu2 foreign TASK (s)** | **fraction** | **cpu10 TASK (s)** | **fraction** | cpu2 user-only (s) | cpu10 user-only (s) | cpu2 nice (s) | self user+sys (s) | cpu2 sys beyond self (s) | cpu2 irq+sirq (s) | verdict |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| E3-perf.log | e3 | 0 | - | - | - | - | - | - | - | - | - | - | - | **UNPROVEN (no timed run bracketed)** |
-| P1-pf-r1.log | pf-r1 | 0 | - | - | - | - | - | - | - | - | - | - | - | **UNPROVEN (no timed run bracketed)** |
-| P2-pf-r2.log | pf-r2 | 0 | - | - | - | - | - | - | - | - | - | - | - | **UNPROVEN (no timed run bracketed)** |
-| P3-pf-r3.log | pf-r3 | 0 | - | - | - | - | - | - | - | - | - | - | - | **UNPROVEN (no timed run bracketed)** |
-| W1-wall-r1.log | wall-r1 | 4 | 26.36 | **0.010** | **0.0379 %** | **0.110** | **0.4173 %** | 0.000 | 0.020 | 23.75 | 26.21 | 0.020 | 0.130 | PINNED-CLEAN |
-| W2-wall-r2.log | wall-r2 | 4 | 26.45 | **0.020** | **0.0756 %** | **0.090** | **0.3403 %** | 0.000 | 0.050 | 23.82 | 26.30 | 0.030 | 0.130 | PINNED-CLEAN |
-| W3-wall-r3.log | wall-r3 | 4 | 26.73 | **0.020** | **0.0748 %** | **0.070** | **0.2619 %** | 0.000 | 0.040 | 24.11 | 26.61 | 0.000 | 0.130 | PINNED-CLEAN |
-| W4-wall-r4.log | wall-r4 | 4 | 26.71 | **0.010** | **0.0374 %** | **0.130** | **0.4867 %** | 0.000 | 0.090 | 24.06 | 26.57 | 0.020 | 0.120 | PINNED-CLEAN |
-| W5-wall-r5.log | wall-r5 | 4 | 26.55 | **0.010** | **0.0377 %** | **0.090** | **0.3390 %** | 0.000 | 0.030 | 23.88 | 26.39 | 0.020 | 0.110 | PINNED-CLEAN |
+**THE VERDICT HAS TWO PARTS (fix3).** The FRACTION part is R2''s bar and is unchanged. The EVIDENCE part asks whether the log contains what R2' requires: a re-snapshot after every foreign `R`, and a snapshot between consecutive timed runs. A batch is PINNED-CLEAN only when both hold; otherwise the cell names which part failed, and both can fail at once.
+
+| log | batch | runs | timed wall (s) | **cpu2 foreign TASK (s)** | **fraction** | **cpu10 TASK (s)** | **fraction** | cpu2 user-only (s) | cpu10 user-only (s) | cpu2 nice (s) | self user+sys (s) | cpu2 sys beyond self (s) | cpu2 irq+sirq (s) | evidence | verdict |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| E3-perf.log | e3 | 0 | - | - | - | - | - | - | - | - | - | - | - | no timed-run bracket | **UNPROVEN-EVIDENCE (no timed run bracketed)** |
+| P1-pf-r1.log | pf-r1 | 0 | - | - | - | - | - | - | - | - | - | - | - | no timed-run bracket | **UNPROVEN-EVIDENCE (no timed run bracketed)** |
+| P2-pf-r2.log | pf-r2 | 0 | - | - | - | - | - | - | - | - | - | - | - | `R` at `pf-r2/open` with NO re-snapshot; no timed-run bracket | **UNPROVEN-EVIDENCE (no timed run bracketed)** |
+| P3-pf-r3.log | pf-r3 | 0 | - | - | - | - | - | - | - | - | - | - | - | no timed-run bracket | **UNPROVEN-EVIDENCE (no timed run bracketed)** |
+| W1-wall-r1.log | wall-r1 | 4 | 26.36 | **0.010** | **0.0379 %** | **0.110** | **0.4173 %** | 0.000 | 0.020 | 23.75 | 26.21 | 0.020 | 0.130 | `R` at `wall-r1/a2-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| W2-wall-r2.log | wall-r2 | 4 | 26.45 | **0.020** | **0.0756 %** | **0.090** | **0.3403 %** | 0.000 | 0.050 | 23.82 | 26.30 | 0.030 | 0.130 | complete | PINNED-CLEAN |
+| W3-wall-r3.log | wall-r3 | 4 | 26.73 | **0.020** | **0.0748 %** | **0.070** | **0.2619 %** | 0.000 | 0.040 | 24.11 | 26.61 | 0.000 | 0.130 | `R` at `wall-r3/open` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| W4-wall-r4.log | wall-r4 | 4 | 26.71 | **0.010** | **0.0374 %** | **0.130** | **0.4867 %** | 0.000 | 0.090 | 24.06 | 26.57 | 0.020 | 0.120 | `R` at `wall-r4/a2-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
+| W5-wall-r5.log | wall-r5 | 4 | 26.55 | **0.010** | **0.0377 %** | **0.090** | **0.3390 %** | 0.000 | 0.030 | 23.88 | 26.39 | 0.020 | 0.110 | `R` at `wall-r5/a4-after` with NO re-snapshot | **UNPROVEN-EVIDENCE** |
 
 ## The five busiest foreign processes per batch
+
+**Every foreign pid of every batch, with every state observed for it, is `logs/idle-proof-pids-attrib4.md`** (settler R13). The five below are a summary of that file, not a substitute for it.
 
 - E3-perf.log / e3: TRANSIENT pids (present in some snapshot, not in both ends): 3116480,3116528,3116543,3121392,3121408,3121410,3121414,3121418,3121420,3121424,3121425,3121428,3121430,3121433,3121436,3121438,3121440,3122197,3122249,3122296,3122310,3122336,3122341,3122373,3122379,3122382,3122383,3122385,3122401,3122423,3122425,3122427,3122429,3122432
 - E3-perf.log / e3 (window 72.47 s): pid 50122 +1.95 s; pid 1097257 +0.71 s; pid 2722314 +0.45 s; pid 2721602 +0.30 s; pid 4022442 +0.23 s
@@ -739,4 +863,12 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 - W4-wall-r4.log / wall-r4 (window 29.44 s): pid 50122 +0.81 s; pid 1097257 +0.27 s; pid 2722314 +0.16 s; pid 4022442 +0.10 s; pid 3819500 +0.06 s
 - W5-wall-r5.log / wall-r5: TRANSIENT pids (present in some snapshot, not in both ends): 3098741,3100738,3100740,3101428,3101430,3101432,3102093,3102094,3102111,3102115,3102117,3102794,3102796,3104196,3104794,3104796,3104797,3104799,3105460,3105463,3105465,3105472,3106149,3106151,3106152,3106168,3106170,3106172,3106174,3106851,3106853
 - W5-wall-r5.log / wall-r5 (window 29.30 s): pid 50122 +0.94 s; pid 1097257 +0.32 s; pid 2721602 +0.26 s; pid 2722314 +0.12 s; pid 4022442 +0.10 s
+
+## The two kinds of UNPROVEN, counted (fix3)
+
+| batches | PINNED-CLEAN | UNPROVEN-FRACTION | UNPROVEN-EVIDENCE |
+|---:|---:|---:|---:|
+| 9 | 1 | 0 | 8 |
+
+A batch failing both is counted in both unproven columns, so the three need not sum to the first.
 ```

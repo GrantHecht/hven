@@ -25,11 +25,18 @@ rounds' values **interleave between the two arms**. This is **NOT WORK-MOVED**.
 It does not reach §11.1's LAYOUT-MOVED band either (identical within 1e-4), so no
 §11.1 label is claimed from it.
 
-**And a second finding the brief did not ask for, which bounds the first**: the
-+2.5 % step itself **does not appear in a single-row process at all**. Wall,
-cycles and calibration-excluded instructions are all flat between the arms here
-(informational wall: culprit/parent 0.995–1.009, control 0.999–1.002). Whatever
-carries the step needs the leg's own multi-row process to show up.
+**And a second finding the brief did not ask for — WITHDRAWN AND REPLACED AT FIX
+ROUND 3 (settler ruling R12; astra's fix2 review, item 4).** This paragraph said
+*"the +2.5 % step itself does not appear in a single-row process at all"*, on
+`perf.csv`'s WHOLE-PROCESS `elapsed_s` (0.995–1.009). **That is withdrawn.** Read
+on `wall_s` — the leg's own SOLVE BRACKET, and the column §5/§11/§12/§13 sum —
+the same retained rounds give **corpus 1.0110**, five of the eleven rows above
+1.01 and each of those slower in **all five paired rounds**, against a control of
+0.9999; passes B and C reproduce the corpus at 1.0108 and 1.0111. **The step is
+SMALLER in a single-row process (~1.1 %), not absent.** The whole process is
+nevertheless unchanged (+0.04 %), because the culprit's out-of-bracket time falls
+by 14.1 % as its bracket rises: a BOUNDARY MOVE, measured in §7 below and in
+`wall_bracket.out`. Cycles and calibration-excluded instructions remain flat.
 
 ---
 
@@ -95,10 +102,14 @@ deliberately and once per process:
 It is a **wall-timed busy-wait of about 0.95 s**. The leg proper pays it **once for
 43 rows** — its committed artifact shows the first row at 0.602 s and the next
 `n1000` rows at 0.033–0.042 s, and `hs071_x1_fixed` at 0.00018 s. **The single-row
-instrument pays it once per row.** So it is 17 % of an `n20000` process and **96 %
-of an `n1000` one**, and its instruction count is a measure of how fast that loop's
-own code runs — an alignment-sensitive property of MKL's binary — not of anything
-the solver does.
+instrument pays it once per row.** In the sampled profiles it is **16.7–27.2 % of
+an `n20000` process and 82.4–84.0 % of an `n1000` one** (`record_analyze.out`'s
+`cal %` column, per round; "17 %" and "96 %" were quoted here at first and were
+neither profile's reading — corrected at fix round 3). Its instruction count is a
+measure of how fast that loop's own code runs — an alignment-sensitive property
+of MKL's binary — not of anything the solver does. And because it is WALL-TIMED
+and of fixed duration, it enters both arms' `wall_s` equally: it DAMPS the wall
+ratios below rather than creating one.
 
 **This is also, finally, what §5 (iv) and §11 were calling "the first row's
 warm-up".** It has a name, a file and a line now.
@@ -142,12 +153,18 @@ On the two `n20000` rows the per-round values **interleave**: parent
 11.2879 / 11.3065 / 11.3066. **The culprit's solve executes the same instructions
 as the parent's, to within 0.3–0.6 %, in the marginally fewer direction.**
 
-`perf diff --sort symbol` (`perf-diff/`) says the same thing the other way: the
-only symbols that move by more than half a point are the two calibration symbols,
-which shrink; the largest gain by any named solver function is **+0.34 %**
-(`mkl_pds_lp64_blkslv_ll_undef_bk_real`), and MKL's Pardiso kernels, Eigen's
-assembly and hven's own functions all move by a tenth of a point either way. **No
-function got materially more expensive.**
+`perf diff --sort symbol` (`perf-diff/`) says the same thing the other way, **with
+its maximum corrected at fix round 3** (astra's fix2 review, item 4): the largest
+SHARE GAIN by any named solver symbol is **+0.51 percentage points** —
+`mkl_pds_lp64_blkl_ll_real.extracted` on the `MakeConstraint` row, where this
+paragraph first read +0.34 off the `MakeParameter` row — and the rest move by a
+few tenths of a point either way. **A share change is not a bound on that
+symbol's instruction increase** and is not read as one: it says the symbol takes
+a larger slice of a profile whose non-calibration total is flat, which is what
+the calibration shrinking does to every other slice. The byte-identical CONTROL
+pair moves shares by up to **0.95 points** on the same rows
+(`perf-diff/*-control-vs-parent.txt`), which is the scale to read this column
+against. **No function got materially more expensive.**
 
 ---
 
@@ -169,10 +186,14 @@ event, so it is reported and not leant on.
 
 Pass C, same rows:
 
-* `L1-dcache-load-misses` **+0.4 % to +0.9 %** at the culprit, control ±0.5 %.
+* `L1-dcache-load-misses` **+0.4 % to +1.09 %** at the culprit (the maximum is
+  1.0946 on `f7_n10000_bound_neutral/RelaxBounds`; "+0.9 %" was the second-largest
+  — corrected at fix round 3), control ±0.5 %.
 * `dTLB-load-misses` within ±1.3 %, control within ±1.8 % — **no verdict**.
-* `page-faults` **identical to five significant figures** on every row
-  (0.9949–1.0000), on a within-arm spread under 6 counts in 10 000. The single-row
+* `page-faults` **flat to within half a per mille on every row** — the scored
+  ratios span **0.995080–1.000041**, which is four figures and not the five this
+  line first claimed (corrected at fix round 3) — on a within-arm spread under 6
+  counts in 10 000. The single-row
   process's fault count is a per-process constant, and the culprit does not move
   it: §12's **+53 149 faults** and §13's **+41 627** are a property of the
   **43-row leg process**, not of one row.
@@ -201,12 +222,68 @@ smoothed.
 
 ---
 
-## 7. What this leg does NOT claim
+## 7. The solve bracket, and the boundary move (fix round 3)
 
-* **No wall claim.** The elapsed times in `classify.out` are informational
-  (CLAUDE.md §7) and are printed because they are the strongest evidence that
-  this instrument does not see the step at all. Nothing here is quoted as a
-  timing.
+`wall_bracket.py` / `wall_bracket.out`, from the 585 retained row CSVs and
+`perf.csv`. **Neither column here is asserted** (CLAUDE.md §7): this leg carries
+no R2' evidence at all, and both wall populations are informational.
+
+`wall_s` is the leg's own SOLVE BRACKET — `bench/ipm_corpus_leg.cpp:389-392`, the
+same three lines at both arms — and it is the column `reading.md` §5, §11, §12
+and §13 sum into their corpus figures. `elapsed_s` is the whole process.
+
+| pass A, medians of five | parent | culprit | control | **c/p** | x/p | c>p |
+|---|---:|---:|---:|---:|---:|---:|
+| `f7_n1000_bound_physics/MakeConstraint` | 0.957310 | 0.958355 | 0.957168 | 1.001093 | 0.999852 | 4/5 |
+| `f7_n1000_bound_physics/RelaxBounds` | 0.957358 | 0.958267 | 0.957144 | 1.000950 | 0.999777 | 3/5 |
+| `f7_n5000_bound_physics/MakeParameter` | 1.070456 | 1.076753 | 1.069078 | 1.005882 | 0.998712 | 4/5 |
+| `f7_n5000_bound_physics/MakeConstraint` | 0.919128 | 0.927189 | 0.918988 | 1.008770 | 0.999848 | **5/5** |
+| `f7_n5000_bound_physics/RelaxBounds` | 0.919426 | 0.921316 | 0.919348 | 1.002055 | 0.999915 | 4/5 |
+| `f7_n10000_bound_neutral/MakeParameter` | 1.245887 | 1.258229 | 1.245891 | 1.009906 | 1.000003 | **5/5** |
+| `f7_n10000_bound_neutral/MakeConstraint` | 0.878224 | 0.890860 | 0.878389 | **1.014388** | 1.000189 | **5/5** |
+| `f7_n10000_bound_neutral/RelaxBounds` | 0.870673 | 0.890178 | 0.873140 | **1.022402** | 1.002833 | **5/5** |
+| `f7_n20000_bound_neutral/MakeParameter` | 1.390526 | 1.418436 | 1.388294 | **1.020071** | 0.998394 | **5/5** |
+| `f7_n20000_bound_neutral/MakeConstraint` | 1.790536 | 1.814459 | 1.791744 | **1.013361** | 1.000674 | **5/5** |
+| `f7_n20000_bound_neutral/RelaxBounds` | 1.793515 | 1.819266 | 1.792350 | **1.014358** | 0.999351 | **5/5** |
+| **CORPUS** | **12.793039** | **12.933306** | **12.791534** | **1.010964** | **0.999882** | — |
+
+Passes B and C — independent round sets of the same eleven rows — give corpus
+**1.010819** and **1.011110**. The twelfth, unscored row reads 0.9987 / 1.0012 /
+0.9973 and is excluded by §11's positional rule as everywhere else.
+
+**AND THE TWO WINDOWS DISAGREE FOR A MEASURED REASON.** Their within-arm spreads
+are the same size, so this is not resolution. Over the eleven rows, in seconds:
+
+| totals, medians of five | process `elapsed_s` | bracket `wall_s` | outside the bracket |
+|---|---:|---:|---:|
+| parent `510a4bb` | 13.75595 | 12.79304 | 0.96132 |
+| culprit `9cebbbe` | 13.76119 | 12.93331 | 0.82593 |
+| control | 13.75220 | 12.79153 | 0.96098 |
+| **culprit / parent** | **1.000381** | **1.010964** | **0.859162** |
+| control / parent | 0.999727 | 0.999882 | 0.999644 |
+| culprit − parent (s) | **+0.0052** | **+0.1403** | **−0.1354** |
+
+The bracket gains 0.140 s, the time outside it loses 0.135 s, the whole process
+is unchanged, and the control moves none of the three. **That is a BOUNDARY
+MOVE** — and it is what `9cebbbe` describes: the model is *borrowed for the
+call*, so binding and keying it happen inside `solve()` rather than before it.
+The out-of-bracket term scales with n like a model build (0.012 s at n1000,
+0.176 s at n20000) and shrinks 10–15 % at every row. **Stated as measured and no
+further**: the compensation is near-exact but not proven exact, and nothing here
+says how much of the 43-row LEG process's +2.5 % is the same move — no leg batch
+recorded its per-row out-of-bracket time, so that question cannot be answered
+from any retained artifact. It is consistent with §4's instruction verdict rather
+than against it: a boundary move relocates work without adding any.
+
+---
+
+## 8. What this leg does NOT claim
+
+* **No wall claim.** Both wall populations — `classify.out`'s process elapsed and
+  §7's solve bracket — are informational (CLAUDE.md §7), and this leg carries no
+  R2' evidence at all. Nothing here is quoted as a timing. What §7 is offered
+  against is the sentence it replaces, which rested on the same unproven batches
+  and on the wider of the two windows.
 * **No disposition.** §11.1 and the owner have it.
 * **No claim that §11/§12/§13 are wrong.** They measured the leg's process; this
   measured a single-row one. What this adds is that the extra time is **not extra
@@ -218,7 +295,7 @@ smoothed.
 
 ---
 
-## 8. Files
+## 9. Files
 
 ```
 single-row/
@@ -231,6 +308,13 @@ single-row/
   record_analyze.py(.sha256)  the per-symbol analysis, calibration set aside
   record_analyze.out    its saved output -- THE VERDICT
   perf-diff/            perf diff --sort symbol, culprit-vs-parent and control-vs-parent
+  wall_bracket.py(.sha256)    the SOLVE-BRACKET reading (fix3), from raw/csv/ and perf.csv
+  wall_bracket.out            its saved output
+  perf-report/report/   the 27 sampled profiles' `perf report --stdio` text (fix3),
+                        which is what record_analyze.py now reads, so the calibration
+                        exclusion reproduces from this directory alone
+  perf-report/data/     the raw perf.data those reports came from, retained beside them,
+                        with the hs071 call-graph profile that names the two symbols
   raw/perf{A,B,C,S}/    every perf stat output, 585 files
   raw/csv/              every row the measured processes wrote, 585 files
   logs/                 every batch and build log: each carries its pgrep capture taken

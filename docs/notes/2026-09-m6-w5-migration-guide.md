@@ -2919,9 +2919,17 @@ round 1** after review found the round-1 solo evidence insufficient, and the sol
 rule itself **amended at fix round 2** to the one the recipe actually reserves:
 foreign task time on the pinned core AND its SMT sibling, under 0.5 % of the
 batch's wall, `user + nice + steal + guest`. Every retained batch of every round
-was re-audited under it — **every wall batch behind the table below is proven**;
-`logs/IDLE-PROOF.md` names the four batches of a later attribution leg that are
-not, and `reading.md` §12 carries their flag.
+was re-audited under it, and **at fix round 3 the audit was extended from the
+fraction to the EVIDENCE R2' asks for** — a re-snapshot after a foreign `R`, a
+snapshot between consecutive timed runs. **Of the artifact's 57 wall-asserting
+batches, 22 are PROVEN, 4 exceed the fraction and 32 lack that evidence.** No
+wall batch behind the table below exceeds the fraction; sixteen of the
+twenty-two lack the evidence — three leg-1 rounds for an unanswered `R`, and all
+twelve leg-2 batches plus the interior wall batch for missing alternation
+snapshots. `logs/IDLE-PROOF.md` has the per-batch table and
+`logs/idle-proof-pids-<round>.md` every foreign pid of every batch;
+`reading.md` §8.1 states what an evidence gap is and is not, and §§11–14 carry
+the flag wherever such a batch feeds a number.
 
 | leg | mode | corpus ratio | outside 0.99–1.01 | band | banded veto cells | instructions |
 |---|---|---|---|---|---|---|
@@ -2933,7 +2941,8 @@ not, and `reading.md` §12 carries their flag.
 | leg 2 | walk off / sink | 0.9931 / 0.9761 | 8/27, 24/27 | UNRESOLVED / MOVED | 0 / 0 | no verdict at 1e-4 |
 | **interior — `102f729` → head, 29 banded F7 rows, IN THE LEG PROCESS** | — | **1.0249** (10.1030 → 10.3545 s) | **29/29** | **MOVED**, carrier unidentified | **28** | no verdict from this leg |
 | interior — `b9848bf` → head, 31 banded F7 rows | — | 0.9948 (10.4830 → 10.4284 s) | 7/31 | UNRESOLVED | 1 | no verdict |
-| **interior — the CARRIER PAIR `510a4bb → 9cebbbe` in a SINGLE-ROW process** (11 rows, the `d5931e8` lever) | — | wall 0.995–1.009, **informational** | — | **FLAT** | — | **NOT WORK-MOVED**; cycles flat |
+| **interior — the CARRIER PAIR `510a4bb → 9cebbbe` in a SINGLE-ROW process** (11 rows, the `d5931e8` lever), read on the SOLVE BRACKET | — | **1.0110** (12.7930 → 12.9333 s), **informational** | 5/11 above 1.01 | — (no band claimed; no R2' evidence) | — | **NOT WORK-MOVED**; cycles flat |
+| the same eleven rows, read on the WHOLE PROCESS | — | **1.0004**, **informational** | 1/11 | — | — | same rows, same runs |
 
 **What is measured, bounded to exactly that.**
 
@@ -2964,10 +2973,16 @@ not, and `reading.md` §12 carries their flag.
   **did not identify its carrier**; the classification is **UNRESOLVED**, not
   LAYOUT-MOVED. Measured one row per process through the `d5931e8` lever, **the carrier
   pair itself** — `510a4bb → 9cebbbe`, which carries essentially the whole
-  leg-process step — is **FLAT**: instructions NOT WORK-MOVED, cycles flat, wall
-  0.995–1.009 (informational). **The step needs the leg's own multi-row process
-  to appear**, which is a constraint on any mechanism rather than a refutation of
-  the step.
+  leg-process step — has **flat instructions and a SMALLER wall step, not none**
+  (corrected at fix round 3): instructions NOT WORK-MOVED and cycles flat, and
+  wall **+1.10 %** on the SOLVE BRACKET — the same `wall_s` column the corpus
+  figures above sum — against a byte-identical control at −0.01 %, reproduced in
+  three independent passes. The WHOLE PROCESS is unchanged at +0.04 %, because
+  `9cebbbe` moves ~0.135 s per eleven rows from outside the timed bracket to
+  inside it. Both wall figures are informational. **So a single-row process shows
+  about 1.1 % of a 2.5 % leg-process step, at the same instruction count** —
+  a constraint on any mechanism rather than a refutation of the step, and the
+  reason §15 registers a many-solves-per-process leg for M7.
 * **Leg 2 is informational.** §11.3 (ii) reads its wall only as the paired A/B
   ratio, and this leg's own noise floor (0.2452 %) is twenty-four times the
   identity band, so it returns no instruction verdict either.
@@ -2986,9 +3001,12 @@ falls from 1.27 % to 0.30 % at worst.
 **What is NOT measured, said plainly.** **The interior leg's WHOLE-PROCESS
 instruction counts carry no verdict** — the arms' processes do not run the same
 rows (33 / 41 / 43) and the per-cell differencing instrument built to fix that is
-unsound and is refused rather than published. The single-row lever above is what
-answers A7 (ii) for that leg, and its answer is **NOT WORK-MOVED, without
-reaching the 1e-4 identity band either**. **The cost of
+unsound and is refused rather than published. The single-row lever above answers A7 (ii)
+**for the carrier pair `510a4bb → 9cebbbe` and for the two rows it profiled, and
+for nothing wider** (corrected at fix round 3): its answer there is **NOT
+WORK-MOVED, without reaching the 1e-4 identity band either**, from sampled
+profiles — three rounds per arm on two of the eleven rows, with a third reported
+and not scored. A7 (ii) remains UNSATISFIED for the interior leg as a whole. **The cost of
 an attached iteration callback or an attached trace sink is UNMEASURED**: the
 bench harness has no callback lever — `bench_corpus.cpp` has none, and
 `ipm_corpus_leg.cpp`'s `HVEN_LEG_COUNT_CALLBACK` is an event counter, not an A/B
@@ -2997,26 +3015,6 @@ pair — and the two library call sites that run only with something attached
 times here. T8.6's callback and T8.7's sink therefore carry no runtime number;
 both gaps are registered for W6. Apple/Accelerate, Windows and the Intel pass-B
 events are **UNOBSERVED**.
-
-**THE OWNER RULED: GROUP 1 IS KEPT (2026-09-11).** §11.1.1 sends demonstrated
-instructions UP — and a MOVED band with 28 reproducible slowdowns — to §11.5
-with the numbers, and states that there is no automatic KEEP; this is the owner
-exercising that discretion, on these grounds: **one solve per process is FLAT on
-both engines** (the SQP corpus leg in all three modes; the top-level IPM's
-carrier pair in a single-row process, wall 0.995–1.009, cycles flat,
-instructions not WORK-MOVED);
-the SQP leg's **+0.03…0.13 % of instructions is T8.4's declared per-call
-diagnostics**, the cost of the shared result core group 1 was for; and the
-top-level IPM's **+2.5…2.8 % exists only in the multi-row leg process**, is one
-commit's, and after six legs **its carrier is UNIDENTIFIED** — code placement
-refuted three ways, per-call storage lifetime, the fault count, glibc placement
-history and the evaluation pool each refuted in turn. **REGISTERED for M7** (the
-benchmark-suite milestone): a many-solves-per-process leg on both engines, with
-the single-row lever `d5931e8` and that artifact as its starting point, to
-identify the cross-row carrier — harness or library. The KEEP retires no veto and
-reclassifies nothing; the numbers stand as measured. Read
-`docs/notes/data/2026-09-m6-w5-t8-runtime/PROVENANCE.txt` first, then
-`reading.md` — §0 is the revision record and §15 is the ruling.
 
 | task | concern | what changed for a caller | the pin |
 |---|---|---|---|
@@ -3047,3 +3045,32 @@ during a solve is REFUSED rather than deferred.
 Nothing else moved. Everything outside that list is identity, and the U0 replay
 (0/75 on all three SQP arms), the interior leg's byte identity, the HS pins, the
 golden rig, the install smoke and the export contract are what say so.
+
+**THE OWNER RULED: GROUP 1 IS KEPT (2026-09-11), AND THE GROUNDS WERE RESTATED AT
+FIX ROUND 3.** §11.1.1 sends demonstrated instructions UP — and a MOVED band with
+28 reproducible slowdowns — to §11.5 with the numbers, and states that there is
+no automatic KEEP; this is the owner exercising that discretion, on these
+grounds: **one solve per process is FLAT ON THE SQP** (the corpus leg in all
+three modes); **on the top-level IPM it is not flat** — the carrier pair in a
+single-row process reads **+1.10 % on the solve bracket** (1.3–2.2 % on the large
+rows) against **+2.5…3.0 % in the leg process**, at flat instruction counts and
+an unchanged whole-process time; the SQP leg's **+0.03…0.13 % of instructions is
+T8.4's declared per-call diagnostics**, the cost of the shared result core group
+1 was for; and the top-level IPM's step is one commit's — `9cebbbe` — whose
+**carrier is UNIDENTIFIED after six legs**: code placement refuted three ways,
+per-call storage lifetime, the fault count, glibc placement history and the
+evaluation pool each refuted in turn. **REGISTERED for M7** (the benchmark-suite
+milestone): a many-solves-per-process leg on both engines, with the single-row
+lever `d5931e8` and that artifact as its starting point, to identify the carrier
+of the difference between the two process shapes.
+
+**The KEEP was given on the reading as it then stood, whose first ground was that
+the top-level IPM is FLAT in a single-row process. Fix round 3 withdrew that
+half** — read on the solve bracket rather than the whole process, the single-row
+leg does see a step — **and the settler has put the corrected reading back to the
+owner. The close ledger line records the owner's answer.** The KEEP retires no
+veto and reclassifies nothing; the numbers stand as measured, with the R2' flags
+§8.1 carries. Read
+`docs/notes/data/2026-09-m6-w5-t8-runtime/PROVENANCE.txt` first, then
+`reading.md` — §0 is the revision record, §14 the single-row reading and §15 the
+ruling.

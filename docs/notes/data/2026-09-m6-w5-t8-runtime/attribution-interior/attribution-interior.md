@@ -302,11 +302,23 @@ as proof**: §4 shows the control arm moves those same counters further.
 ## 7. The solo evidence, per batch
 
 **Sixteen timed batches, RE-AUDITED AT FIX2 UNDER R2' — the pinned-core rule with foreign `nice`
-time counted. FOURTEEN ARE PROVEN, and the two that are not are both COUNTER batches**: `diff-r1`
-at 0.6828 % on the pinned core and `perfB-r2` at 0.7559 % on its sibling (the second is astra's own
-worked example — 0.11 s user + 0.09 s nice on `cpu10`, which the superseded `user`-only accounting
-reported as 0.1120 % and passed). **The five WALL batches — the only ones asserting wall clock —
-are all PROVEN**, core 0.0561–0.0837 % and sibling 0.3084–0.3363 %. The governing table is
+time counted — AND AGAIN AT FIX3 UNDER ITS EVIDENCE ACCOUNTING (settler R13).**
+
+**On the FRACTION: fourteen of sixteen meet the bar, and the two that do not are both COUNTER
+batches** — `diff-r1` at 0.6828 % on the pinned core and `perfB-r2` at 0.7559 % on its sibling (the
+second is astra's own worked example — 0.11 s user + 0.09 s nice on `cpu10`, which the superseded
+`user`-only accounting reported as 0.1120 % and passed). **The five WALL batches all meet it**, core
+0.0561–0.0837 % and sibling 0.3084–0.3363 %.
+
+**On the EVIDENCE: four of the sixteen are PROVEN outright and twelve are UNPROVEN-EVIDENCE.** Of
+the five WALL batches only `wall-r1` is proven; `wall-r2`, `-r3`, `-r4` and `-r5` each saw a foreign
+process in state `R` at a named snapshot with no re-snapshot after it, which R2' requires and the
+recipe these batches ran under did not do. The five `diff-` batches are additionally missing
+ALTERNATION SNAPSHOTS (`box_guard` runs after the arm loop, not between arms). **The per-task table
+this directory publishes therefore rests on five rounds of which one is fully proven and four are
+flagged** — a median of five is not moved by one member, T8.4's step is six times the next task's,
+and an unwatched moment can only cost a measurement TIME, which pushes a step up rather than down.
+The flag is carried anyway. The governing table is
 `../logs/IDLE-PROOF.md`; this directory's `IDLE-PROOF.md` is the superseded `user`-only proof.
 
 * **The five WALL batches, which are the only ones that assert wall clock, read foreign

@@ -1,0 +1,145 @@
+W5 T8.9r fix3 -- the single-row SOLVE BRACKET (`wall_s`), medians of five rounds
+source: raw/csv/<batch>/<arm>/<row>-r<n>.csv -- the rows the measured processes wrote
+parent 510a4bb   culprit 9cebbbe   control = 510a4bb's executable at a second path
+INFORMATIONAL ONLY (CLAUDE.md section 7); this leg carries no R2' evidence.
+
+=== PASS A -- the instruction pass; the SAME processes perf.csv's elapsed_s comes from ===
+row                                             parent   culprit   control       c/p       x/p     c>p     x>p
+f7_n1000_bound_physics/MakeConstraint         0.957310  0.958355  0.957168  1.001093  0.999852     4/5     1/5
+f7_n1000_bound_physics/RelaxBounds            0.957358  0.958267  0.957144  1.000950  0.999777     3/5     1/5
+f7_n5000_bound_physics/MakeParameter          1.070456  1.076753  1.069078  1.005882  0.998712     4/5     2/5
+f7_n5000_bound_physics/MakeConstraint         0.919128  0.927189  0.918988  1.008770  0.999848     5/5     2/5
+f7_n5000_bound_physics/RelaxBounds            0.919426  0.921316  0.919348  1.002055  0.999915     4/5     3/5
+f7_n10000_bound_neutral/MakeParameter         1.245887  1.258229  1.245891  1.009906  1.000003     5/5     3/5
+f7_n10000_bound_neutral/MakeConstraint        0.878224  0.890860  0.878389  1.014388  1.000189     5/5     2/5
+f7_n10000_bound_neutral/RelaxBounds           0.870673  0.890178  0.873140  1.022402  1.002833     5/5     3/5
+f7_n20000_bound_neutral/MakeParameter         1.390526  1.418436  1.388294  1.020071  0.998394     5/5     2/5
+f7_n20000_bound_neutral/MakeConstraint        1.790536  1.814459  1.791744  1.013361  1.000674     5/5     2/5
+f7_n20000_bound_neutral/RelaxBounds           1.793515  1.819266  1.792350  1.014358  0.999351     5/5     1/5
+CORPUS (sum of the eleven medians)           12.793039 12.933306 12.791534  1.010964  0.999882
+f7_n1000_bound_physics/MakeParameter          0.841754  0.840635  0.839870  0.998671  0.997762     3/5   (12th, NOT SCORED)
+
+=== PASS B -- the Zen 3 front-end pass, an INDEPENDENT round set ===
+row                                             parent   culprit   control       c/p       x/p     c>p     x>p
+f7_n1000_bound_physics/MakeConstraint         0.956748  0.957679  0.957048  1.000972  1.000313     5/5     3/5
+f7_n1000_bound_physics/RelaxBounds            0.956557  0.958272  0.956931  1.001793  1.000391     5/5     3/5
+f7_n5000_bound_physics/MakeParameter          1.069526  1.072936  1.069208  1.003188  0.999703     3/5     1/5
+f7_n5000_bound_physics/MakeConstraint         0.919363  0.925393  0.919469  1.006559  1.000116     5/5     4/5
+f7_n5000_bound_physics/RelaxBounds            0.919428  0.926251  0.918904  1.007421  0.999430     4/5     3/5
+f7_n10000_bound_neutral/MakeParameter         1.246117  1.257761  1.246429  1.009344  1.000250     5/5     4/5
+f7_n10000_bound_neutral/MakeConstraint        0.877615  0.890929  0.878552  1.015170  1.001068     5/5     3/5
+f7_n10000_bound_neutral/RelaxBounds           0.877070  0.890882  0.873319  1.015748  0.995723     5/5     2/5
+f7_n20000_bound_neutral/MakeParameter         1.387079  1.414623  1.387036  1.019858  0.999969     5/5     2/5
+f7_n20000_bound_neutral/MakeConstraint        1.791273  1.818218  1.792439  1.015042  1.000651     5/5     4/5
+f7_n20000_bound_neutral/RelaxBounds           1.791705  1.817941  1.790055  1.014643  0.999079     5/5     1/5
+CORPUS (sum of the eleven medians)           12.792482 12.930885 12.789390  1.010819  0.999758
+f7_n1000_bound_physics/MakeParameter          0.840730  0.841747  0.838631  1.001210  0.997503     3/5   (12th, NOT SCORED)
+
+=== PASS C -- the memory pass, an INDEPENDENT round set ===
+row                                             parent   culprit   control       c/p       x/p     c>p     x>p
+f7_n1000_bound_physics/MakeConstraint         0.957031  0.958261  0.957038  1.001285  1.000007     5/5     2/5
+f7_n1000_bound_physics/RelaxBounds            0.957176  0.958562  0.957271  1.001447  1.000099     4/5     2/5
+f7_n5000_bound_physics/MakeParameter          1.069705  1.075097  1.062975  1.005040  0.993708     5/5     1/5
+f7_n5000_bound_physics/MakeConstraint         0.919111  0.925823  0.918966  1.007304  0.999843     5/5     1/5
+f7_n5000_bound_physics/RelaxBounds            0.915798  0.924446  0.918357  1.009443  1.002794     4/5     2/5
+f7_n10000_bound_neutral/MakeParameter         1.245638  1.258889  1.245128  1.010637  0.999590     5/5     2/5
+f7_n10000_bound_neutral/MakeConstraint        0.875969  0.887314  0.875484  1.012951  0.999447     5/5     1/5
+f7_n10000_bound_neutral/RelaxBounds           0.874806  0.889610  0.876273  1.016922  1.001677     5/5     2/5
+f7_n20000_bound_neutral/MakeParameter         1.385923  1.413248  1.386106  1.019716  1.000132     5/5     2/5
+f7_n20000_bound_neutral/MakeConstraint        1.790092  1.817045  1.787999  1.015056  0.998831     5/5     4/5
+f7_n20000_bound_neutral/RelaxBounds           1.788588  1.813530  1.788552  1.013945  0.999980     5/5     3/5
+CORPUS (sum of the eleven medians)           12.779838 12.921823 12.774150  1.011110  0.999555
+f7_n1000_bound_physics/MakeParameter          0.839085  0.836834  0.836146  0.997318  0.996497     1/5   (12th, NOT SCORED)
+
+=== PASS S -- the subtrahend process (hs071_x1_fixed, ~0.00018 s of solve) ===
+Its bracket is ~0.96 s: that is the calibration busy-wait, and it is INSIDE `wall_s`.
+row                                             parent   culprit   control       c/p       x/p
+hs071_x1_fixed/MakeParameter                  0.951296  0.958279  0.962990  1.007341  1.012293
+hs071_x1_fixed/MakeConstraint                 0.965786  0.965819  0.966033  1.000034  1.000256
+hs071_x1_fixed/RelaxBounds                    0.965963  0.966265  0.966201  1.000313  1.000247
+
+=== THE PER-ROUND PAIRS, pass A (culprit/parent, round by round) ===
+f7_n1000_bound_physics/MakeConstraint        c/p 0.99956 1.00138 1.00099 1.00104 1.00163
+                                             x/p 0.99820 0.99982 0.99943 0.99985 1.00184
+f7_n1000_bound_physics/RelaxBounds           c/p 1.00137 0.99481 0.99957 1.00095 1.00158
+                                             x/p 0.99967 0.99964 0.99950 0.99998 1.00003
+f7_n5000_bound_physics/MakeParameter         c/p 1.00595 1.00509 1.01284 1.00922 0.99970
+                                             x/p 0.98761 0.99296 1.00675 1.00780 0.99903
+f7_n5000_bound_physics/MakeConstraint        c/p 1.00818 1.00926 1.00572 1.00915 1.00801
+                                             x/p 0.99949 0.99901 1.00113 1.00043 0.99943
+f7_n5000_bound_physics/RelaxBounds           c/p 1.01348 1.01138 0.99684 1.00111 1.00688
+                                             x/p 1.00707 1.00922 1.00077 0.99178 0.99376
+f7_n10000_bound_neutral/MakeParameter        c/p 1.00547 1.00709 1.01641 1.00905 1.00791
+                                             x/p 1.00053 1.00105 1.00064 0.99891 0.99679
+f7_n10000_bound_neutral/MakeConstraint       c/p 1.01306 1.01982 1.00644 1.01383 1.01722
+                                             x/p 0.99782 0.99822 1.00014 0.99988 1.00530
+f7_n10000_bound_neutral/RelaxBounds          c/p 1.00366 1.01738 1.02240 1.02729 1.01794
+                                             x/p 0.99087 0.99300 1.00219 1.01377 1.01220
+f7_n20000_bound_neutral/MakeParameter        c/p 1.01754 1.02115 1.01901 1.02924 1.02852
+                                             x/p 0.99917 1.00011 1.00311 0.99712 0.99793
+f7_n20000_bound_neutral/MakeConstraint       c/p 1.01350 1.01106 1.01585 1.00545 1.00633
+                                             x/p 0.99857 0.99468 0.99807 1.00067 1.00115
+f7_n20000_bound_neutral/RelaxBounds          c/p 1.01438 1.02050 1.01378 1.01217 1.01436
+                                             x/p 0.99712 1.00559 0.99985 0.99847 0.99975
+
+=== WITHIN-ARM SPREAD, pass A: the bracket against the whole process ===
+(max-min)/median per arm, in percent, on the eleven scored rows. The BRACKET
+column is `wall_s` from raw/csv/A/; the PROCESS column is `elapsed_s` from
+perf.csv, pass A -- the same five rounds of the same processes. THE TWO WINDOWS ARE
+EQUALLY NOISY: neither population is quieter than the other, so the disagreement
+between their ratios is NOT a resolution difference. What it is, is the table below.
+row                                        BRACKET wall_s % PROCESS elapsed_s %
+                                           parent   culprit   parent   culprit
+f7_n1000_bound_physics/MakeConstraint      0.2454    0.0376   0.2034    0.0314
+f7_n1000_bound_physics/RelaxBounds         0.0808    0.6431   0.0676    0.9561
+f7_n5000_bound_physics/MakeParameter       1.0122    0.6045   1.1807    0.8153
+f7_n5000_bound_physics/MakeConstraint      0.1861    0.4777   0.1353    0.0666
+f7_n5000_bound_physics/RelaxBounds         0.9721    1.0079   1.2387    1.2236
+f7_n10000_bound_neutral/MakeParameter      0.3980    1.1191   0.4650    1.1014
+f7_n10000_bound_neutral/MakeConstraint     0.8272    1.3834   0.6486    1.1008
+f7_n10000_bound_neutral/RelaxBounds        1.5451    1.0397   1.6214    1.1525
+f7_n20000_bound_neutral/MakeParameter      0.3138    1.2146   0.3101    1.1678
+f7_n20000_bound_neutral/MakeConstraint     0.8526    1.1595   0.8138    1.1056
+f7_n20000_bound_neutral/RelaxBounds        0.6258    0.1939   0.4855    0.1990
+
+=== THE WHOLE-PROCESS ELAPSED, pass A, beside the bracket (both informational) ===
+row                                        proc c/p   proc x/p   brkt c/p   brkt x/p
+f7_n1000_bound_physics/MakeConstraint      0.999655   0.999764   1.001093   0.999852
+f7_n1000_bound_physics/RelaxBounds         0.999694   0.999814   1.000950   0.999777
+f7_n5000_bound_physics/MakeParameter       0.998816   0.999330   1.005882   0.998712
+f7_n5000_bound_physics/MakeConstraint      1.001932   0.999929   1.008770   0.999848
+f7_n5000_bound_physics/RelaxBounds         0.995118   0.999759   1.002055   0.999915
+f7_n10000_bound_neutral/MakeParameter      0.999220   0.999216   1.009906   1.000003
+f7_n10000_bound_neutral/MakeConstraint     1.000251   0.999662   1.014388   1.000189
+f7_n10000_bound_neutral/RelaxBounds        1.009427   1.001821   1.022402   1.002833
+f7_n20000_bound_neutral/MakeParameter      1.001880   0.999081   1.020071   0.998394
+f7_n20000_bound_neutral/MakeConstraint     0.998911   1.000099   1.013361   1.000674
+f7_n20000_bound_neutral/RelaxBounds        1.000522   0.999282   1.014358   0.999351
+CORPUS (sum of the eleven medians)         1.000381   0.999727   1.010964   0.999882
+
+=== AND WHY THEY DISAGREE: THE TIME OUTSIDE THE BRACKET, pass A ===
+outside = elapsed_s - wall_s, per round, per row: execve, the loader, the corpus
+harness, `ipm.transcribe()` (which runs immediately BEFORE the bracket opens --
+`bench/ipm_corpus_leg.cpp:387-391`, and those lines are byte-identical at the two
+arms), the CSV write and teardown. Medians of five, then summed over the eleven.
+row                                         p brkt    c brkt   p outsd   c outsd  brkt c/p outsd c/p
+f7_n1000_bound_physics/MakeConstraint      0.95731   0.95836   0.01193   0.01068  1.001093  0.894961
+f7_n1000_bound_physics/RelaxBounds         0.95736   0.95827   0.01192   0.01068  1.000950  0.895525
+f7_n5000_bound_physics/MakeParameter       1.07046   1.07675   0.04817   0.04055  1.005882  0.841782
+f7_n5000_bound_physics/MakeConstraint      0.91913   0.92719   0.04822   0.04205  1.008770  0.872093
+f7_n5000_bound_physics/RelaxBounds         0.91943   0.92132   0.04819   0.04180  1.002055  0.867331
+f7_n10000_bound_neutral/MakeParameter      1.24589   1.25823   0.08891   0.07618  1.009906  0.856903
+f7_n10000_bound_neutral/MakeConstraint     0.87822   0.89086   0.08913   0.07665  1.014388  0.859944
+f7_n10000_bound_neutral/RelaxBounds        0.87067   0.89018   0.08700   0.07528  1.022402  0.865280
+f7_n20000_bound_neutral/MakeParameter      1.39053   1.41844   0.17554   0.14994  1.020071  0.854148
+f7_n20000_bound_neutral/MakeConstraint     1.79054   1.81446   0.17637   0.15091  1.013361  0.855654
+f7_n20000_bound_neutral/RelaxBounds        1.79351   1.81927   0.17594   0.15122  1.014358  0.859483
+
+TOTAL over the eleven rows                 process   bracket   outside
+parent 510a4bb                            13.75595  12.79304   0.96132
+culprit 9cebbbe                           13.76119  12.93331   0.82593
+control                                   13.75220  12.79153   0.96098
+culprit / parent                          1.000381  1.010964  0.859162
+control / parent                          0.999727  0.999882  0.999644
+culprit - parent (seconds)                 +0.0052   +0.1403   -0.1354
+control - parent (seconds)                 -0.0038   -0.0015   -0.0003

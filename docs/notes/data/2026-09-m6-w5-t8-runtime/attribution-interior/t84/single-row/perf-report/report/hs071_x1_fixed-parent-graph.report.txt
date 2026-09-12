@@ -1,0 +1,50 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 390  of event 'cpu/cycles/Pu'
+# Event count (approx.): 1265883599
+#
+# Overhead  Symbol                             IPC   [IPC Coverage]
+# ........  .................................  ....................
+#
+    63.63%  [.] difftime                       -      -            
+            |          
+            |--62.84%--mkl_serv_get_clocks_frequency
+            |          ___pthread_once (inlined)
+            |          hven::solvers::ensure_solver_initialized()
+            |          
+             --0.79%--___pthread_once (inlined)
+                       hven::solvers::ensure_solver_initialized()
+
+    25.89%  [.] mkl_serv_get_clocks_frequency  -      -            
+            |
+            ---___pthread_once (inlined)
+               hven::solvers::ensure_solver_initialized()
+
+     5.03%  [.] difftime@plt                   -      -            
+            |
+            ---___pthread_once (inlined)
+               hven::solvers::ensure_solver_initialized()
+
+     4.77%  [.] __vdso_time                    -      -            
+            |
+            ---___pthread_once (inlined)
+               hven::solvers::ensure_solver_initialized()
+
+     0.26%  [.] mkl_pds_lp64_free_c_structure  -      -            
+     0.26%  [.] time@plt                       -      -            
+     0.10%  [k] 0xffffffff8a30b2fe             -      -            
+     0.05%  [.] _dl_relocate_object_no_relro   -      -            
+     0.00%  [k] 0xffffffff8a5bc892             -      -            
+     0.00%  [k] 0xffffffff8a5d1535             -      -            
+     0.00%  [k] 0xffffffff8a5b663c             -      -            
+     0.00%  [k] 0xffffffff8a5a2621             -      -            
+     0.00%  [k] 0xffffffff8a5daa5a             -      -            
+     0.00%  [k] 0xffffffff8b58ab74             -      -            
+
+
+#
+# (Tip: Show individual samples with: perf script)
+#

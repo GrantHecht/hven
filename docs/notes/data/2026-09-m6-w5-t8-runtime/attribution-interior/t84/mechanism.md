@@ -143,7 +143,9 @@ Nothing executed changes: all 19 CSV columns on all 19 rows are identical to the
 unpatched culprit's (361 cells, 0 mismatches, `experiments.out`).
 
 **The result.** Measured against the parent and the culprit in the **same five
-rounds**, arm order rotated, **all five batches PROVEN on the fix2 R2' re-audit**
+rounds**, arm order rotated. **All five batches meet R2''s FRACTION; on fix3's
+EVIDENCE accounting four are PROVEN and `xwall-r2` is UNPROVEN-EVIDENCE** — a
+foreign `R` at its `open` snapshot with no re-snapshot after it
 (`../../../logs/IDLE-PROOF.md`; `logs/IDLE-PROOF-X.md` is the superseded
 `user`-only proof):
 
@@ -191,9 +193,11 @@ the exact amount the culprit grew that object by** (the padded object measures
 295 058 against the culprit's 295 042); 4 096 and 16 384 bracket it.
 
 **The result**, five rounds, five arms in one batch set. **THREE OF THE FIVE
-BATCHES ARE NOT PROVEN under the fix2 R2' re-audit** — `ywall-r2`, `-r3` and
-`-r5` read 0.5291 %, 0.8065 % and 0.5293 % on the SMT sibling against a 0.5 %
-bar, the pinned core itself staying under 0.16 % throughout
+BATCHES FAIL R2''s FRACTION** — `ywall-r2`, `-r3` and `-r5` read 0.5291 %,
+0.8065 % and 0.5293 % on the SMT sibling against a 0.5 % bar, the pinned core
+itself staying under 0.16 % throughout — **and on fix3's EVIDENCE accounting
+`ywall-r1` and `ywall-r5` are UNPROVEN-EVIDENCE as well** (a foreign `R` with no
+re-snapshot), which leaves ONE of the five fully proven
 (`../../../logs/IDLE-PROOF.md`; `logs/IDLE-PROOF-Y.md` is the superseded
 `user`-only proof). **These are the weakest numbers in this file**, and they are
 used only for a NEGATIVE claim — that this box is not generically

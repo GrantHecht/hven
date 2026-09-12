@@ -629,3 +629,188 @@ FIX ROUND 2 -- 2026-09-11. AUDIT, COMPARATOR AND TEXT. NOTHING WAS MEASURED.
      row against the leg's own in process.
 
   APPLE / ACCELERATE: UNOBSERVED.  WINDOWS: UNOBSERVED. Unchanged by fix2.
+
+================================================================================
+FIX ROUND 3 -- 2026-09-11. AUDIT, COMPARATOR AND TEXT. NOTHING WAS MEASURED.
+================================================================================
+  This block amends the fix1 and fix2 blocks above. Nothing above it is
+  rewritten: the lines it corrects are quoted here with what is true instead,
+  because a provenance record that is edited in place stops being a record. No
+  number in this artifact was re-derived by fix round 3, and no library, test or
+  bench source was touched. It follows astra's fix2 review (FIX-ROUND, SIGNOFF
+  W5-T8-9R-FIX2-REVIEW-ASTRA) and the settler's rulings R12-R16.
+
+(H1) THE SINGLE-ROW LEG'S WALL WAS READ ON THE WRONG WINDOW (settler ruling R12;
+     astra's fix2 review item 4). Section 14, classification.md and the
+     attrib5 report concluded "the +2.5 % step does not appear in a single-row
+     process at all" from perf.csv's WHOLE-PROCESS elapsed_s (c/p 0.995-1.009).
+     THAT CONCLUSION IS WITHDRAWN, in every place it appears.
+
+     elapsed_s is the process: execve, the loader, the harness, transcribe(),
+     the CSV write, teardown. The window the leg REPORTS -- and the column
+     sections 5, 11, 12 and 13 sum into their corpus figures -- is wall_s, the
+     SOLVE BRACKET (bench/ipm_corpus_leg.cpp:389-392, byte-identical at the two
+     arms). Read there, from the 585 retained single-row CSVs:
+
+       pass A, medians of five, eleven scored rows
+         corpus  parent 12.793039  culprit 12.933306  control 12.791534
+                 c/p 1.010964      x/p 0.999882
+         five large rows c/p 1.0134-1.0224, each slower in ALL FIVE paired rounds
+         passes B and C reproduce the corpus at 1.010819 and 1.011110
+
+     SO THE STEP IS SMALLER IN A SINGLE-ROW PROCESS, NOT ABSENT: ~1.1 % of the
+     bracket against the leg process's 2.5-3.0 %, at flat instruction counts.
+
+     AND THE TWO WALL POPULATIONS ARE DECOMPOSED RATHER THAN ARGUED OVER. Over
+     the same eleven rows, medians of five, pass A (seconds):
+
+                          process elapsed   bracket wall_s   outside the bracket
+       parent  510a4bb        13.75595         12.79304            0.96132
+       culprit 9cebbbe        13.76119         12.93331            0.82593
+       control                13.75220         12.79153            0.96098
+       culprit/parent          1.000381         1.010964           0.859162
+       control/parent          0.999727         0.999882           0.999644
+
+     The culprit's bracket gains 0.1403 s and its out-of-bracket time loses
+     0.1354 s; the whole process is unchanged to +0.04 %; the control moves none
+     of the three. That is a BOUNDARY MOVE, consistent with 9cebbbe's own
+     description (the model is BORROWED FOR THE CALL, so binding and keying it
+     happen inside solve() instead of before it) and with the per-symbol
+     instruction finding (flat, marginally fewer). It is stated as measured and
+     no further: the compensation is near-exact, not proven exact, and whether
+     the LEG process's +2.5 % is the same move at 43 rows CANNOT BE ANSWERED
+     from any retained artifact -- no leg batch recorded its per-row
+     out-of-bracket time. That question is added to the M7 registration.
+
+     BOTH WALL POPULATIONS ARE INFORMATIONAL (CLAUDE.md section 7). The attrib5
+     leg carries NO R2' evidence at all, which is stated wherever either number
+     appears. The new analysis is
+     attribution-interior/t84/single-row/wall_bracket.py (+ .sha256, +
+     wall_bracket.out); it reads only the retained CSVs and perf.csv.
+
+(H2) THE R2' EVIDENCE ACCOUNTING (settler ruling R13; astra's fix2 review item
+     1). Fix2 took the R2' verdict on the FRACTION alone and deferred R2''s
+     other terms to "the next measurement" -- see the G2 line above ending
+     "R2''s re-snapshot term binds the next measurement." THE SETTLER GRANTED NO
+     SUCH RETROSPECTIVE EXEMPTION AND THAT LINE IS WITHDRAWN. Fix3 splits the
+     verdict:
+
+       UNPROVEN-FRACTION  R2''s bar measured and exceeded on cpu2 or cpu10.
+       UNPROVEN-EVIDENCE  the bar met (or uncomputable), but the log lacks a
+                          re-snapshot after a foreign R, or a snapshot between
+                          two consecutive timed runs, or any timed-run bracket.
+
+     Three accounting repairs, all in scripts/idle_proof.py, none of which moves
+     a number -- every fraction in logs/IDLE-PROOF.md is byte-for-byte the fix2
+     figure:
+       (a) FOREIGN_PS is read beside FOREIGN_TICK, so ps states such as "Rsl"
+           are seen. Batches with an R observation: 10 / 10 / 11 / 3 / 5 across
+           fix1 / attrib2 / attrib3 / attrib3-superseded / attrib4.
+       (b) pauses are counted ONCE, with BOX_PAUSE_GIVEUP in its own column:
+           6 / 5 / 5 / 3 / 2. Fix2's table doubled them.
+       (c) EVERY foreign pid of every batch, with every state observed for it,
+           is listed in logs/idle-proof-pids-<round>.md -- five files, ~200 pids
+           per batch. A count and a busiest-five is not the list R2' asks for.
+
+     THE RESULT, over 99 batches of five rounds:
+       57 WALL batches   22 PROVEN, 4 unproven-FRACTION, 32 unproven-EVIDENCE
+                         (ywall-r5 fails both, so the columns do not sum)
+       42 COUNT/other    12 PROVEN
+     Per round, WALL: fix1 22/6, attrib2 5/1, attrib3 25/14, attrib4 5/1.
+     No wall batch of the fix1 round fails the FRACTION; sixteen of its
+     twenty-two fail on the EVIDENCE -- three leg-1 wall batches for an
+     unanswered R, and all twelve leg-2 batches plus the interior wall batch for
+     the missing alternation snapshots the G2 line above already disclosed.
+     The tool is scripts/idle_proof.py, sha256 now
+     3394879dbb519155fa985da793a43eedd825bfc1bc83b6636007e91795b33ab6, byte-
+     identical in all three places it sits; the assembler is
+     scripts/idle_audit_fix3.py, the driver scripts/idle_audit_fix3.sh, the run
+     logs/F6-idle-audit-fix3.log. The fix2 assembler and driver are retained
+     unedited beside them.
+
+     2026-09-11, fix3: the G1 RESULT paragraph above says "Eleven counter-
+     asserting batches are also unproven". Under fix2's own numbers it was
+     FOURTEEN COUNT batches plus one SUPERSEDED, alongside four WALL. Under
+     fix3's evidence accounting the counter figure is 30 COUNT/other batches
+     unproven of 42. The fraction figures it quotes (0.6160-1.5957 % on cpu2)
+     are unchanged.
+
+(H3) THE COMPARATOR'S MANIFEST IS NOW BY IDENTITY (settler ruling R14; astra's
+     fix2 review item 3). G3 above says the expected populations are written
+     down, and they were -- except that leg 1's was written down as THE NUMBER
+     27. A number cannot tell a substitution from the real thing. Three holes
+     are closed:
+       (a) LEG1_CELLS is the 27 cell ids themselves, taken from the committed
+           t10b control's key list (bench/baselines/2026-09-02-t10b-ipm/
+           ipm_baseline.csv), and EVERY leg-1 raw CSV must carry exactly that
+           key set -- so a cell missing from ONE ROUND is a MANIFEST failure
+           naming the cell and the file, at exit 1, where fix2 reported it
+           downstream at exit 2;
+       (b) the interior arms are declared BY SHA with the provenance token that
+           identifies each (arm102/102f729/schema 19/arm-base;
+           armb98/b9848bf/schema 31/arm-interior-base;
+           head/e51a7e0/schema 31/arm-head), checked against every CSV of the
+           arm;
+       (c) the per-cell interior population is checked as (cell, arm, round)
+           over the DECLARED cells, so the absence of the whole
+           perf/interior_cells tree is a MANIFEST failure naming it, at exit 1.
+     Exit 1 is the manifest; exit 2 stays for usage and read errors only.
+
+     PROVED, logs/F5-manifest-proofs-fix3.log,
+     scripts/comparator_manifest_proofs_fix3.sh:
+       stub A  a leg-1 cell id SUBSTITUTED in all six files of a mode -> exit 1
+       stub B  a leg-1 cell removed from ONE ROUND only               -> exit 1
+       stub C  perf/interior_cells removed entirely                   -> exit 1
+       stub D  head-r*.csv copied over arm102-r*.csv                  -> exit 1
+       regressions  the four fix1/fix2 stubs still fire               -> exit 1
+       control      the untouched tree                                -> exit 0
+     AND THE CONTROL'S SECOND HALF: the fix2 tool and the fix3 tool produce
+     BYTE-IDENTICAL output on the complete tree (66 702 bytes both), and that
+     output is byte-identical to reading.md section 9's text, which is what lets
+     section 9 stand unrewritten. comparator.py's sha256 moves to
+     c4d2643f91d82b32af1d5f41b24b312fb69696225f1d7405ee67f7076ec00f2e.
+
+(H4) THE SAMPLED-PROFILE INPUTS ARE RETAINED (settler ruling R15; astra's fix2
+     review item 5). record_analyze.py shelled out to "perf report -i" against
+     .scratch/w5t89ra5/perfrec, so its calibration exclusion could not be
+     reproduced from the artifact. The 27 profiles' "perf report --no-children
+     --sort symbol --stdio" text outputs are now retained under
+     attribution-interior/t84/single-row/perf-report/report/<arm>/, and the raw
+     perf.data files (each under 300 KB) beside them under perf-report/data/,
+     with the hs071 call-graph profile that names the calibration symbols. The
+     script reads the retained text and its OUTPUT IS BYTE-IDENTICAL to the fix2
+     version's, so record_analyze.out stands unrewritten; its sha256 moves to
+     7f18d8aade507e01a563d8de05e888b41fb86e0560044b3a30e2149fbec95a0f.
+
+     2026-09-11, fix3: THE PER-SYMBOL MAXIMUM WAS WRONG. Section 14 and
+     classification.md said no named function's instruction share grew by more
+     than +0.34 %. The retained diff reads +0.51 PERCENTAGE POINTS for
+     mkl_pds_lp64_blkl_ll_real.extracted on the MakeConstraint row
+     (perf-diff/f7_n20000_bound_neutral-MakeConstraint-culprit-vs-parent.txt:3).
+     A SHARE CHANGE IS NOT A BOUND ON A SYMBOL'S INSTRUCTION INCREASE and is no
+     longer read as one; the byte-identical control pair moves shares by up to
+     0.95 points on the same rows, which is the scale it is read against.
+
+     2026-09-11, fix3: the calibration's size was quoted as "17 % of an n20000
+     process and 96 % of an n1000 one" in section 14 and classification.md, and
+     as 27 % / 96 % in record_analyze.py's docstring. The SAMPLED PROFILES read
+     16.7-27.2 % and 82.4-84.0 % (record_analyze.out's cal % column, per round).
+     The sampled instruction evidence is SCOPED: three rounds per arm on TWO
+     scored rows of the eleven, with a third row reported and not scored; no 1e-4
+     identity is established by it and none is claimed.
+
+(H5) TEXT CORRECTIONS CARRIED AT FIX3 (settler ruling R16; astra's fix2 review,
+     Minors). reading.md :1940's "only group-1 task" and :2010's "not refuted as
+     a description" are withdrawn with §11's LAYOUT-MOVED derivation; :1868's
+     "no other task carries more than about a tenth of a percent" is corrected
+     (T8.6 is +0.3299 % and T8.8 +0.3875 % of corpus step); the twelve common
+     interior counter columns are qualified consistently (status is RENAMED, not
+     identical); §8's stale "no disposition" and "no arm between those heads"
+     sentences are marked as the state at fix1; L1-D misses reach +1.0946 %, not
+     +0.9 %; page faults are flat to 0.995080-1.000041, which is four figures
+     and not five. The migration guide's "every wall batch is proven" sentence
+     is replaced by the counts, its A7 (ii) claim is scoped to the measured
+     carrier pair and its two profiled rows, and its KEEP paragraph moves to the
+     actual close of the section.
+
+  APPLE / ACCELERATE: UNOBSERVED.  WINDOWS: UNOBSERVED. Unchanged by fix3.

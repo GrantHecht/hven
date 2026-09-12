@@ -101,10 +101,49 @@ MANIFEST = []
 # So the expected population is WRITTEN DOWN here, in full, and checked against
 # what is on disk before anything is scored. Every member below is a member this
 # leg RAN; a missing one is a MANIFEST failure naming it, and exit 1.
+#
+# FIX ROUND 3 -- THE MANIFEST IS BY IDENTITY, NOT BY COUNT (settler ruling R14;
+# astra's fix2 review, item 3). The fix2 manifest declared leg 1's population as
+# THE NUMBER 27. A number cannot tell a substitution from the real thing:
+# renaming a required cell to an undeclared name consistently across all six
+# files kept the count at 27 and the tool exited 0, having scored a corpus
+# nobody declared. Three holes are closed here:
+#
+#   (a) LEG1_CELLS is the 27 cell ids themselves, taken from the committed
+#       t10b control's key list (`bench/baselines/2026-09-02-t10b-ipm/
+#       ipm_baseline.csv`, in that file's row order). Every leg-1 raw CSV must
+#       carry exactly that key set -- so a cell missing from ONE ROUND is a
+#       MANIFEST failure naming the cell and the file, not a downstream
+#       "did not carry every cell of the earlier runs" PROBLEM at exit 2.
+#   (b) the interior arms are declared BY SHA, with the retained provenance
+#       token that identifies each -- the schema width the arm's tree emits and
+#       the build directory its invocation line records. Substituting one arm's
+#       CSVs for another's is then a MANIFEST failure, not a silently different
+#       comparison.
+#   (c) the per-cell interior perf population is checked as (cell, arm, round)
+#       over the DECLARED cells, so the absence of the whole
+#       `perf/interior_cells` tree is a MANIFEST failure naming it -- at fix2
+#       that directory's absence skipped the check block entirely and surfaced
+#       as exit 2.
+#
+# Exit 1 is the manifest. Exit 2 is reserved for usage and read errors.
 # ---------------------------------------------------------------------------
 LEG1_MODES = ("ipm", "ssn", "walk")
 LEG1_ARMS = ("base", "head")
-LEG1_CELLS = 27                       # the U0 corpus, scored per mode
+# The U0 corpus, scored per mode: the 27 cell ids of the committed t10b control,
+# in that baseline's own row order.
+LEG1_CELLS = (
+    "f7_n1000_bound_neutral", "f7_n1000_bound_physics", "f7_n1000_bound_corrupted",
+    "f7_n1000_bound_activity", "f7_n1000_bound_warm",
+    "f7_n2000_bound_neutral", "f7_n2000_bound_physics", "f7_n2000_bound_corrupted",
+    "f7_n2000_bound_activity", "f7_n2000_bound_warm",
+    "f7_n5000_bound_neutral", "f7_n5000_bound_physics", "f7_n5000_bound_corrupted",
+    "f7_n5000_bound_activity", "f7_n5000_bound_warm",
+    "f7_n10000_bound_neutral", "f7_n10000_bound_physics", "f7_n10000_bound_corrupted",
+    "f7_n10000_bound_activity", "f7_n10000_bound_warm",
+    "f7_n20000_bound_neutral", "f7_n20000_bound_physics", "f7_n20000_bound_corrupted",
+    "f7_n20000_bound_activity", "f7_n20000_bound_warm",
+    "f7_n1000_path_warm", "f7_n800_path_warm")
 # Listed in the order the tables are EMITTED in (lexicographic, which is the
 # order round 1's `sorted(...)` discovery produced), so writing the population
 # down does not reorder a single line of the output.
@@ -114,6 +153,16 @@ LEG1_PERF_PASSES = ("passA", "passB")
 LEG2_COMBOS = (("ipm", "off"), ("ipm", "sink"), ("ssn", "off"), ("ssn", "sink"),
                ("walk", "off"), ("walk", "sink"))
 INTERIOR_ARMS = ("arm102", "armb98", "head")
+# R14: the arms BY SHA, each with the token its retained provenance carries.
+# `schema` is the column count the arm's own tree emits (19 at 102f729, 31 from
+# b9848bf on); `build` is the extraction directory the invocation line records.
+# Both are written by the measured binary into every CSV it produced, so a
+# substituted arm cannot satisfy its own row of this table.
+INTERIOR_ARM_IDENTITY = {
+    "arm102": dict(sha="102f729", schema="19", build="arm-base"),
+    "armb98": dict(sha="b9848bf", schema="31", build="arm-interior-base"),
+    "head":   dict(sha="e51a7e0", schema="31", build="arm-head"),
+}
 INTERIOR_CELLS = ("f7_n10000_bound_neutral", "f7_n10000_bound_physics",
                   "f7_n1000_bound_neutral", "f7_n1000_bound_physics",
                   "f7_n20000_bound_neutral", "f7_n20000_bound_physics",
@@ -429,6 +478,74 @@ def check_count(label, kind, expected, found):
     return True
 
 
+def check_keys(label, path, expected, key_col="cell_id"):
+    """R14: the KEY SET of one raw CSV, by identity, against the declared population.
+
+    A member missing from THIS file -- even when every other round has it -- is a
+    MANIFEST failure naming the file and the member, and so is a key the manifest
+    never declared. This is what makes a SUBSTITUTION detectable: a count cannot
+    tell a renamed cell from the cell it replaced.
+    """
+    if not os.path.exists(path):
+        manifest_fail("%s: %s is MISSING -- the explicit manifest is not satisfied"
+                      % (label, os.path.basename(path)))
+        return False
+    with open(path, newline="") as fh:
+        lines = [ln for ln in fh if not ln.startswith("#")]
+    got = [r.get(key_col) for r in csv.DictReader(lines)] if lines else []
+    missing = [m for m in expected if m not in got]
+    extra = [m for m in got if m not in expected]
+    if missing:
+        manifest_fail("%s / %s: rows %s are MISSING (expected %d, found %d) -- the explicit "
+                      "manifest is not satisfied"
+                      % (label, os.path.basename(path), ", ".join(missing), len(expected),
+                         len(got)))
+    if extra:
+        manifest_fail("%s / %s: rows %s are present but NOT in the declared manifest"
+                      % (label, os.path.basename(path), ", ".join(sorted(set(extra)))))
+    return not missing and not extra
+
+
+def check_arm_identity(label, paths, arm):
+    """R14: an interior arm identified by the provenance its own binary wrote.
+
+    Every CSV of the arm must carry the declared schema width and the declared
+    build directory in its invocation line. An arm's files standing in for
+    another arm's fails here rather than being scored as if they were the arm
+    the table names.
+    """
+    want = INTERIOR_ARM_IDENTITY.get(arm)
+    if want is None:
+        manifest_fail("%s: arm %s is not in the declared identity table" % (label, arm))
+        return False
+    ok = True
+    for path in paths:
+        schema = build = None
+        with open(path, errors="replace") as fh:
+            for line in fh:
+                if not line.startswith("#"):
+                    break
+                if line.startswith("# schema:"):
+                    schema = line.split(":", 1)[1].strip()
+                elif line.startswith("# invocation:"):
+                    for tok in line.split():
+                        for part in tok.split("/"):
+                            if part == want["build"]:
+                                build = part
+        if schema != want["schema"]:
+            manifest_fail("%s / arm %s (%s): %s declares schema %s, the manifest declares %s -- "
+                          "this file was not written by the arm the table names"
+                          % (label, arm, want["sha"], os.path.basename(path), schema,
+                             want["schema"]))
+            ok = False
+        if build is None:
+            manifest_fail("%s / arm %s (%s): %s carries no `%s` in its invocation line -- this "
+                          "file was not written by the arm the table names"
+                          % (label, arm, want["sha"], os.path.basename(path), want["build"]))
+            ok = False
+    return ok
+
+
 def first_row_rule(paths, label):
     """R3: the first row every process of this leg wrote. MANIFEST if they disagree."""
     firsts = {}
@@ -535,10 +652,17 @@ def main():
             check_rounds("leg 1 / %s" % mode, files, arm)
         b = arm_files(files, "base")
         h = arm_files(files, "head")
+        # R14: every raw CSV of this mode carries EXACTLY the 27 declared cell
+        # ids. A cell missing from one round, or a cell the manifest never
+        # declared standing in for one that is, fails HERE and names itself.
+        for path in b + h:
+            check_keys("leg 1 / %s" % mode, path, LEG1_CELLS)
         res = score(b, h, label="leg 1 / %s" % mode)
-        # R9: 27 cells, declared. A short corpus is a MANIFEST failure, not a
-        # quietly smaller table.
-        check_count("leg 1 / %s" % mode, "cells", LEG1_CELLS, len(res["cells"]))
+        # R9/R14: 27 cells, declared BY IDENTITY. A short corpus is a MANIFEST
+        # failure, not a quietly smaller table.
+        check_members("leg 1 / %s" % mode, "cells", LEG1_CELLS,
+                      [c["cell"] for c in res["cells"]])
+        check_count("leg 1 / %s" % mode, "cells", len(LEG1_CELLS), len(res["cells"]))
         emit(res, out)
         perf_files = runs(root, "perf", "leg1", mode, ext=".txt")
         cells = sorted(set(
@@ -670,6 +794,8 @@ def main():
                           if not os.path.basename(f).startswith("pass")}))
     for arm in INTERIOR_ARMS:
         check_rounds("interior", ifiles, arm)
+        # R14: and the arm is the arm it says it is.
+        check_arm_identity("interior", arm_files(ifiles, arm), arm)
     first_key = first_row_rule(ifiles, "the interior leg")
 
     interior_results = {}
@@ -726,12 +852,32 @@ def main():
               "and process start-up cancel, and what is left is that cell's own three rows.\n\n")
     cellroot = os.path.join(root, "perf", "interior_cells")
     base_key = "hs071_x1_fixed"
+    # R14: the ABSENCE OF THE WHOLE TREE IS A MANIFEST FAILURE NAMING IT. At
+    # fix2 this `if` simply skipped the block, so deleting the directory left
+    # the explicit member check at the bottom of it unreached and surfaced as a
+    # downstream exit 2. The per-(cell, arm, round) population is declared, so
+    # its container's absence is the manifest's business.
+    if not os.path.isdir(cellroot):
+        manifest_fail("interior_cells: the declared population's directory `perf/interior_cells` "
+                      "is MISSING -- %d cells x %d arms x %d rounds are declared and none of "
+                      "them is on disk" % (len(INTERIOR_CELLS), len(INTERIOR_ARMS), len(ROUNDS)))
+        for cell in INTERIOR_CELLS:
+            manifest_fail("interior_cells: cell `%s` is MISSING (its whole directory)" % cell)
     if os.path.isdir(cellroot):
         # R9: the eleven per-cell populations are DECLARED. Round 1's tool
         # listed the directory, so an omitted cell simply left the table.
         check_members("interior_cells", "cells", INTERIOR_CELLS,
                       sorted(d for d in os.listdir(cellroot)
                              if os.path.isdir(os.path.join(cellroot, d))))
+        # R14: and the population is (cell, arm, round), checked over the
+        # DECLARED cells rather than over whichever of them happen to be there.
+        for cell in INTERIOR_CELLS:
+            cdir = os.path.join(cellroot, cell)
+            if not os.path.isdir(cdir):
+                continue           # already named by check_members above
+            cf = runs(root, "perf", "interior_cells", cell, ext=".txt")
+            for arm in INTERIOR_ARMS:
+                check_rounds("interior_cells / %s" % cell, cf, arm, "passA-")
         commons = {}
         for arm in INTERIOR_ARMS:
             cf = runs(root, "perf", "interior_cells", base_key, ext=".txt")
