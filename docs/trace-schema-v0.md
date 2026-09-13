@@ -138,6 +138,27 @@ derived here. That census is REGISTERED for M7's model-contract work.
 | `status` | string `optimal\|max_iter\|infeasible\|numerical_error\|budget_exhausted` | `SqpStatus` |
 | `majors` | integer | `SqpCounters::major_iters` |
 | `counters` | object | the whole of `SqpCounters`, §5 |
+| `scaling_active` | bool | **M6 W5 T8.7.** `SqpResult::Scaling::active` — did the scaling layer run |
+| `obj_scale` | double | **M6 W5 T8.7.** `::obj`, the objective factor: multiply a caller-scale objective by it to reach the engine's, divide to come back. 1.0 when inactive |
+| `row_scale_min` | double | **M6 W5 T8.7.** `::row_min`, the smallest constraint-row factor over the equality and inequality blocks TOGETHER; 1.0 when the problem has no rows |
+| `row_scale_max` | double | **M6 W5 T8.7.** `::row_max`, the largest, same blocks; the two factors' RATIO is the row conditioning the layer removed |
+| `scaled_kkt_residual` | double | **M6 W5 T8.7.** `::scaled_kkt_residual` — the residual the convergence test actually read, the counterpart of `SqpResult::kkt_residual`, which is on the CALLER's scale. The same number on an inactive solve by construction; NaN whenever that one is, for the same reason (nothing was measured) |
+
+**THE FIVE SCALING KEYS ARE TRAILING AND FLAT (M6 W5 T8.7)** — after the
+`counters` object, not inside it, and in the wire order above, which is **not**
+`SqpResult::Scaling`'s own declaration order (`row_scale_min` is written first;
+`row_max` is declared first). They ride the END event because the factors are
+settled by the time the solve closes and because the console's `Scaling:`
+trailer has no other source: no event carried them before that task, so a
+console pinned against `format_iteration_table` could not have reproduced its
+last line. The emitter is `src/drivers/trace_writer.cpp:892–896`, filled at
+`src/drivers/sqp_solver.cpp:2487–2489` off the solution the caller is about to
+receive. The golden lines are `tests/sqp/test_trace_writer.cpp:2970`
+(`GoldenLineSqpSolveEndWithEveryCounterDistinct`, re-derivation comment at
+`:2932`) and `:3023` (`GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull`),
+whose default block — `active` false with all three factors at 1.0 — is the
+INACTIVE report's identity, so a reader never has to branch on `active` to use
+the numbers.
 
 Written on every NORMAL exit. **A solve that leaves by an exception writes its
 `begin` and no `end`** — the honest record of one. A caller that intends to keep
@@ -350,6 +371,23 @@ counters without also filtering on `entered_rung_a`.
 | `kkt_tol`, `econ_tol`, `icon_tol`, `bar_tol`, `init_mu`, `obj_scale` | double | settings captured for this call |
 | `inertia_mode` | string `classic\|proximal_regularization` | |
 | `restoration_mode` | string `off\|proximal_switch\|l1_nested` | |
+| `acc_kkt_tol`, `acc_econ_tol`, `acc_icon_tol`, `acc_bar_tol` | double | **M6 W5 T8.7.** the four ACCEPTABLE-level tolerances (`IpmOptions::acc_kkt_tol` and its three siblings), one per column of the convergence band above: the UPPER half of the row colouring's five-band scale, which reads a target and an acceptable level per column |
+| `wide_console` | bool | **M6 W5 T8.7.** the LAYOUT WIDTH (`IpmOptions::wide_console`). It stays an interior-point OPTION — the solver hands it to its own console — and travels here so that a sink which is not the solver's own renders the same table |
+| `kkt_dim` | integer | **M6 W5 T8.7.** the assembled KKT system's dimension (`IpmSolver::kkt_dim_`). This is the PRINTED copy §4.17's join-key `kkt_dim` points at |
+| `kkt_nnz` | integer | **M6 W5 T8.7.** nonzeros in the assembled KKT matrix. **Mind the spelling**: `ipm.kkt_analysis`'s nonzero key is `nnz`, not `kkt_nnz` (§4.17) |
+| `internal_fixed_rows` | integer | **M6 W5 T8.7.** the INTERNAL equality rows the MakeConstraint fixed-variable treatment has installed (`NonLinearProgram::internal_fixed_constraints()`) — one per fixed variable, at the tail of the equality row space; the "(d declared + f fixing)" split in `me` above. Zero under every other treatment and whenever nothing is fixed. **NOT `vars_fixed`**, which is the DECLARED BOX's census and equals this count only under MakeConstraint |
+
+**THE LAST EIGHT KEYS ARE TRAILING, AND WERE ADDED IN ONE STEP (M6 W5 T8.7)**,
+so this event's golden line moves ONCE. They are what the console's Problem
+Statistics block and its iteration table need and what nothing else carried:
+`n_reduced`, `me` and `mi` above are the rest of that statistics block. The four
+acceptable tolerances sit on this line rather than on `ipm.iter` for the reason
+the four convergence tolerances above do — they are the RUN's settings, fixed
+for the call, not a per-iteration measurement. The emitter is
+`src/drivers/trace_writer.cpp:983–990`, filled at
+`src/drivers/ipm_solver.cpp:5515–5522`; the golden line is
+`tests/sqp/test_trace_writer.cpp:3624` (`GoldenLineIpmSolveBegin`,
+re-derivation comment at `:3598`).
 
 ### 4.13 `ipm.solve.end`
 
@@ -563,8 +601,9 @@ order, which `static_assert`s hold equal to the struct's declaration order** (an
 aggregate-arity count plus an `offsetof`-monotone check, not a `sizeof`). The
 tables are therefore the authoritative field list and are not duplicated here.
 
-Shape: the 37 direct fields, then `"ssn": { 18 fields }`, then
-`"ipqp": { 39 fields }`.
+Shape: the 38 direct fields, then `"ssn": { 18 fields }`, then
+`"ipqp": { 39 fields }`. **The direct block was 37 until M6 W5 T8.5** appended
+`polish_ignored` (below); this section carried the old count until W5 T9 fix2.
 
 `start_level_used` is an enum, written `cold\|seeded\|warm\|hot` — the schema's
 lower-snake alphabet, not core's PascalCase display spelling.
@@ -578,6 +617,30 @@ sentinel; only the stream maps it:
 | `ipqp.ipqp_alpha_p_min` | `+inf` | no fraction-to-boundary step was ever taken |
 | `ipqp.ipqp_alpha_d_min` | `+inf` | the same, dual side |
 | `ipqp.ipqp_tier_retired_after` | `0` | the tier was never retired (it is a 1-based MAJOR index, max-folded, so 0 cannot be a reading) |
+
+**THE NEWEST DIRECT COUNTER (M6 W5 T8.5).** The tables are the field list and
+are not duplicated here, but this one entry arrived after the section was
+written and the section did not follow it:
+
+| counter | type | source | meaning |
+|---|---|---|---|
+| `polish_ignored` | integer | `SqpCounters::polish_ignored` | a warm-start PAYLOAD's polish extension was dropped rather than used: the seed resolved MULTIPLIERS-ONLY, so the extension — whose bound duals and inequality values are stated at the EXPORTER's point — was IGNORED and COUNTED, and the solve stands at `x0`. 0 or 1 in practice (one payload per solve); always 0 on the NATIVE `SqpWarmStart` route, 0 on a cold solve, and 0 on a full payload, whose extension IS consumed |
+
+It is **LAST in the table and last in the struct**, declared after both nested
+aggregates so that every field offset the struct already had is unmoved — so the
+counters object gains exactly one key, between `near_active_peak` and the `ssn`
+object, and nothing else moves. Its absence reading is simply 0: it carries no
+sentinel and is not in the `null` table above. The table entry is
+`include/hven/core/solver_counters.h:1369` (the field at `:1328`); the two
+golden lines re-derived for it are `tests/sqp/test_trace_writer.cpp:2950` and
+`:3003–3004` (the key straddles a string-literal break there), marked
+"RE-DERIVED AT M6 W5 T8.5" at `:2924` and `:2982`.
+
+**THE VALUE ON THE LINE IS THE DRIVER'S, ASSIGNED IMMEDIATELY BEFORE THE
+EMISSION** (`src/drivers/sqp_solver.cpp:2481`, T8.5 fix1). Before that fix the
+key read `0` on exactly the solves the returned result and the ledger both read
+`1`; `docs/notes/2026-09-m6-w5-migration-guide.md` `## T8.5` §5's correction
+gives the window, and a trace taken inside it is unreliable on this key alone.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 
@@ -685,9 +748,9 @@ non-additive is v1.
 | `qp.mode` | W4 T1 | T2 (the `walk` / `ssn` mode strings); **T5 (the trailing `site` key)** |
 | `sqp.major` | **W4 T5** | added T2; T2 fix1 (the lower-snake enum spellings its `qp_status` / `verdict` keys share with `sqp.solve.end`); T3 (six activity fields, §6) |
 | `sqp.solve.begin` | **W4 T5** | added T2; T2 fix1 (the lower-snake enum spellings its `qp_mode` / `ws_algebra` keys carry) |
-| `sqp.solve.end` | **W4 T5** | added T2; **T2 fix1** (the lower-snake enum spellings, `StartLevel` `cold\|seeded\|warm\|hot` included, over core's PascalCase display form; and the three absence sentinels serializing as `null` — §5); T3 (four folds, through the counters tables) |
+| `sqp.solve.end` | **W4 T5** | added T2; **T2 fix1** (the lower-snake enum spellings, `StartLevel` `cold\|seeded\|warm\|hot` included, over core's PascalCase display form; and the three absence sentinels serializing as `null` — §5); T3 (four folds, through the counters tables); **T8.5** (`polish_ignored`, appended LAST in the counters object — §5); **T8.7** (the five trailing scaling fields — §4.2). The last two move the SAME TWO golden lines, `GoldenLineSqpSolveEndWithEveryCounterDistinct` and `GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull` |
 | `ipm.iter` | **W4 T5** | added T4; T4 fix1 (`p_pivots` and `h_facs` null sentinels) |
-| `ipm.solve.begin` | **W4 T5** | added T4 |
+| `ipm.solve.begin` | **W4 T5** | added T4; **T8.7** (eight trailing keys, appended in ONE step so the line moves once — §4.12; `GoldenLineIpmSolveBegin`) |
 | `ipm.solve.end` | **W4 T5** | added T4; **T8.4** (the `SolveStatus` vocabulary in place of `ConvergenceFlags`', §4.13) |
 | `ipm.restoration_exit_row` | **W5 T8.7** | added T8.7; **its §4 entry and this row are T8.7b's** — the document did not follow the writer at T8.7 and does now |
 | `ipm.phase.begin` | **W5 T8.7b** | added T8.7b |
@@ -715,6 +778,19 @@ field on any event that predates it. That is ADDITIVE by this section's own
 words — "new events, new enum strings, new trailing fields — stay v0 until the
 schema has an external consumer" — so **`v` stays 0**. A bump would be wrong
 under the rule as written, and is not a judgement call.
+
+**M6 W5 T9 fix2 (2026-09-13): §8 and §4 completed for T8.5's and T8.7's declared
+re-derivations, which the document did not follow at the time.** Three
+re-derivations had moved golden lines without reaching this document: T8.5's
+`polish_ignored` inside `sqp.solve.end`'s counters object (§5, which also
+carried `37` where the direct block had been 38 since that task), T8.7's five
+trailing scaling fields on `sqp.solve.end` (§4.2) and T8.7's eight trailing keys
+on `ipm.solve.begin` (§4.12). The re-derivations themselves were declared where
+they happened — in the per-task entries and in the golden tests' own
+"RE-DERIVED AT M6 W5 T8.5 / T8.7" comments — so nothing was ever a SILENT break
+of a pinned value; what was missing was this record, on the same footing as
+`ipm.restoration_exit_row`'s row above. No key, type or order changes here: the
+writer is unchanged and the document now says what it already emitted.
 
 Each event's byte-exact golden line lives in `tests/sqp/test_trace_writer.cpp`,
 built from a hand-filled struct with distinct values per field. An
