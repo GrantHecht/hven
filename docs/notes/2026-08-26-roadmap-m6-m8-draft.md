@@ -139,6 +139,19 @@ scripts/, LTO exercised); the four tycho_sqp riders are each either
 closed or explicitly adjudicated non-gating in the brief; the usual
 close gate (replay, smoke, rig, suite) is green.
 
+> **AMENDMENT 2026-09-04 (owner ruling; applied at M6 W5 T9,
+> 2026-09-13).** The exit criterion "the API break is one declared
+> event with both trees consuming" is SUPERSEDED by: **the API break
+> is one declared event on hven, its migration guide published
+> (`docs/migration/2026-09-m6-api-break.md`), and tycho consuming on
+> its resume.** The owner ruled on 2026-09-04 that the break window
+> does not wait for tycho and that tycho may tweak the API when it
+> catches up. Nothing else in this list changes; in particular this
+> does NOT lift the separate rule (M6 brief §0) that M6 code stays
+> on the m6 branch until both trees close. Recorded at
+> `docs/notes/2026-09-m6-w5-plan.md:8`; the window's own record is
+> the ledger's `## W5 — the API break window` section.
+
 ## M7 — adaptivity and the first-order mode
 
 Internal ordering: the suite comes FIRST — the heuristics, the
