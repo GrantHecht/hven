@@ -1,0 +1,145 @@
+M6 W5 ACCEPTANCE EVIDENCE -- PROVENANCE (CLAUDE.md section 7)
+=============================================================
+Read this first: it governs every number in this directory.
+
+WHAT THIS DIRECTORY IS
+  The W5 close evidence run for the API break window: the U0 27-cell three-arm
+  replay across THE WHOLE WINDOW (the W4 close head against the W5 T8 close
+  head), the top-level interior-point leg against its committed baseline, both
+  suites in both configs with the golden rig inside them, the install smoke and
+  the export contract, and the per-task P-SYM record.  Produced by M6 W5 T9.
+
+  The window's own record is the migration guide
+  docs/notes/2026-09-m6-w5-migration-guide.md (per task) and the consolidated
+  consumer document docs/migration/2026-09-m6-api-break.md.  The ledger's
+  "## W5 -- the API break window" section carries every task's close line.
+
+COMMITS
+  Code head measured:    369e3146  "docs(m6): W5 T8 CLOSED -- group 2 ..."
+                         The last code commit under it is T8.10 fix1 110227e2;
+                         33314314, af6062eb and 369e3146 on top of it are DOCS,
+                         so the compiled tree that produced every number here is
+                         the T8.10 fix1 code head.  The corpus binary's
+                         configure-time stamp (`git describe --always --dirty
+                         --abbrev=12`) reads `369e3146db61` in the head replay
+                         CSVs, because the tree was configured at 369e3146
+                         before the legs ran; the stamp names the checked-out
+                         commit and is not edited to match prose.
+
+  Docs on top of it:     c2e327ff  the consolidated migration guide (T9 commit 1)
+                         0f52c751  the brief/roadmap amendments (T9 commit 2)
+                         then THIS directory (T9 commit 3).  All three are
+                         docs-only, so none of them changes the measured tree.
+
+  Replay BASE:           accbff0e  "docs(m6): ledger -- W4 T5 closed; W4 CLOSED
+                                    (telemetry + machine-trace schema v0) ..."
+  THE W5 BASE, VERIFIED, NOT ASSUMED.  The T9 dispatch named the W4 CLOSED
+  commit accbff0 with code head d4d78f9.  Both check out:
+    * the ledger's W4 CLOSED line (2026-09-05) names code head d4d78f9;
+    * `git diff d4d78f90 accbff0e -- src include tests bench cmake CMakeLists.txt
+      scripts` is EMPTY -- accbff0e adds only docs/notes/2026-08-m6-ledger.md and
+      docs/notes/2026-09-m6-w4-plan.md on top of d4d78f9, so the two are
+      CODE-IDENTICAL and either is the same measurement;
+    * the ledger's W5 T0 close line records that no library code changed at any
+      T0 commit either (`git diff d0c7aa0..d9243e6 -- src include` empty), so
+      the first W5 commit that could move a trajectory is T1's.
+  accbff0e is 168 commits behind HEAD.  It was built in a DETACHED git worktree
+  at .scratch/w5t9/base with its submodules initialised (eigen 5.0.1
+  bc3b3987, fmt 12.1.0 407c905e), from an EMPTY build directory, so its stamp is
+  CLEAN (`accbff0e60b0`) rather than a symlinked -dirty form.
+
+TOOLCHAIN AND HARDWARE
+  clang 22.1.8 (Fedora 22.1.8-4.fc44); CMake 4.3.0; Ninja 1.13.2; ccache
+  DISABLED in every leg (CCACHE_DISABLE=1 on both configures and both builds)
+  Intel oneAPI MKL 2026.1 (/opt/intel/oneapi/mkl/latest -> 2026.1)
+  AMD Ryzen 7 5800X3D (8 cores / 16 threads), Fedora 44, kernel 7.2.4-200.fc44
+  Build trees: .scratch/w5t9/build-{debug,release} (HEAD) and
+  .scratch/w5t9/build-base-release (the BASE arm), all THREE configured from
+  EMPTY directories in this task, uniform flag regime, -DCMAKE_CXX_COMPILER=
+  /usr/bin/clang++, -j 8.  The install smoke is the one exception and is
+  deliberate: scripts/check_install_smoke.sh pins no compiler, so the installed
+  consumer is read by the system default front end, as its own header explains.
+
+  APPLE / ACCELERATE and WINDOWS: UNOBSERVED.  Every number in this directory is
+  MKL-on-Linux.  No Apple or Windows value is inferred, interpolated or
+  zero-filled from it, and none is quoted anywhere here.  The W5 surfaces that
+  are backend-conditional and UNOBSERVED on Apple are named in the migration
+  guide (the SQP thread count, which the Accelerate sparse session stores and
+  applies to nothing; HVEN_SUPPRESS_DEPRECATED_*'s MSVC branch).
+
+THE SERIAL RULE, AS DECLARED (CLAUDE.md section 7)
+  Every leg ran SOLO -- one leg at a time, in the FOREGROUND, each held under the
+  box build lock (`flock /tmp/box-build.lock`), with `pgrep -af
+  'cmake|ninja|ctest|hven_|bench_corpus'` verified clean in a SEPARATE command
+  before the lock and AGAIN inside it.  Every retained log carries
+  PGREP_EMPTY / FOREGROUND_START / FOREGROUND_END inside the lock and the leg's
+  own LEG_RC and WRAPPER_EXIT.  The six replay runs and the two interior-leg
+  captures additionally ran pinned with `taskset -c 2` at MKL_NUM_THREADS=1 and
+  OMP_NUM_THREADS=1.  NO CO-RUN PROTOCOL WAS USED and none is declared: nothing
+  here was measured under contention.
+
+  The one >600 s test, Continuation.ProbeBudgetBoundsAFailingProposal, ran
+  DETACHED under nohup and ALONE on the lock, with its pids recorded
+  (.scratch/w5t9/logs/L1-pid.txt).
+
+  NO WALL-CLOCK NUMBER IN THIS DIRECTORY IS ASSERTED.  Counters, statuses and
+  test counts are the asserted currency; every `wall_s` column and every leg
+  duration is informational and is excluded from every comparison below (75 of
+  the corpus schema's 76 columns are compared on the replay; 30 of the interior
+  leg's 31 on the leg).  Because this artifact asserts NO wall-clock figure, no
+  per-core idle snapshot was taken and none is claimed -- the W5 window's one
+  wall-asserting measurement is T8.9r, whose own artifact
+  (docs/notes/data/2026-09-m6-w5-t8-runtime/) carries the pinned-core accounting
+  that reading requires.
+
+WHAT WAS COMPARED, AND THE RESULT
+  Comparator: docs/notes/data/2026-09-m6-w4-acceptance/probes/compare_replay.py
+    sha256 c9dc9a65260f49e44bf2fb03aa165041ef3872d46aba756fbdef6bebc229c624
+  Cells: docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt, unchanged
+    since W1, and both replay arms were driven from that one file.
+
+  base-walk vs head-walk .................... 27 cells x 75 columns, 0 diffs
+  base-ssn  vs head-ssn  .................... 27 cells x 75 columns, 0 diffs
+  base-ipm  vs head-ipm  .................... 27 cells x 75 columns, 0 diffs
+  committed t10b ipm baseline vs head-ipm ... 27 cells x 75 columns, 0 diffs
+  committed t10b ipm baseline vs base-ipm ... 27 cells x 75 columns, 0 diffs
+
+  The fifth line is the CONTROL: the BASE binary also reproduces the committed
+  t10b baseline (bench/baselines/2026-09-02-t10b-ipm/ipm_baseline.csv), so the
+  fourth is a statement about the tree rather than about this run's conditions.
+  Both arms report `# schema: 76` and the same
+  `# budget_table_hash: 0x357aee91dee27391`.
+
+  committed interior baseline vs capture 1 .. 43 cells x 30 columns, 0 diffs
+  committed interior baseline vs capture 2 .. 43 cells x 30 columns, 0 diffs
+  both captures BYTE-IDENTICAL to the baseline's 43 data rows outside `wall_s`.
+  The committed baseline bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv
+  was READ and NEVER REWRITTEN.  Its `#` comment lines still name pre-rename
+  identifiers; that is the frozen-artifact rule (CLAUDE.md section 1's second
+  exception), the comparator ignores comments, and the data columns are the pin.
+  The leg has no BASE arm because `--engine interior` did not exist at accbff0e:
+  it arrived with W5 T8.1.  Its statement is therefore identity against its own
+  committed baseline, which is what every T8 task asserted it against.
+
+  NO DEVIATION WAS OBSERVED in any column of any comparison, so no cell was
+  re-run as a candidate, and this artifact declares NO break on the corpus or on
+  the leg.
+
+WHAT THIS WINDOW DECLARED, AND WHERE IT IS RECORDED
+  W5 is an API BREAK window: fifteen behaviour changes, a rename sweep, four
+  alias removals and one struct-layout fold, every one declared in its own task
+  and indexed in docs/migration/2026-09-m6-api-break.md section 2.10 and
+  section 1.  What the replay above asserts is the other half of the claim:
+  across all of it, THE TRAJECTORY DID NOT MOVE.  27 cells x 75 counter and
+  status columns x three QP modes are bit-for-bit what the W4 close head
+  produced, 168 commits earlier.
+
+  ONE committed baseline was re-derived DURING the window, three times, each as
+  a declared event in its own task's ledger line: the top-level interior leg's
+  (at T8.2, T8.4 and T8.9, reaching its committed 43-row form).  It is that
+  committed form this artifact compares against, and T9 did not rewrite it.  The
+  76-column corpus CSV gained no column in W5 and moved no byte, which is why
+  the replay above reaches back to the W4 close head at all.
+
+  P-SYM was NOT re-run at T9; psym-record.md says why and records what each task
+  found, with the ledger line and the retained transcript for every one.
