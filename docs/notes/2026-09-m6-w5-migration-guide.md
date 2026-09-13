@@ -3107,9 +3107,12 @@ Group 1 (T8.1–T8.9) moved every SHAPE under the old class names; this task is
 the mapped rename that follows it, in ONE commit. No behaviour moved, no field
 changed meaning, no record name in `docs/trace-schema-v0.md` moved. The U0
 replay is 27/75/0 on all three arms against the group-1 head, the interior leg
-is byte-identical to its committed baseline, the golden rig is unchanged, and
-P-SYM compares the two arms under a map GENERATED from the same manifest this
-entry is written from.
+is **43 rows / 30 compared columns / 0 differences against its committed
+baseline, twice** — identical outside `wall_s`, which is the only column a
+re-run moves and which no gate asserts — the golden rig is unchanged, and P-SYM
+compares the arms under maps GENERATED from the same manifest this entry is
+written from. What P-SYM says, in three parts, is in §6 below: it is not one
+verdict and the entry does not pretend it is.
 
 **How it was done, because it matters for reading the diff.** Three manifests
 and an applier (`identifiers.tsv`, `paths.tsv`, `allowed_residuals.tsv`,
@@ -3213,12 +3216,22 @@ the install-smoke list still has its 18 standalone TUs, six of them renamed
 with their headers.
 
 **`include/hven/detail/warmstart/warm_start.h` is NOT deleted**, though the
-T8.5 entry above and the plan both said it would be. That premise was that the
-header would hold only the alias. It does not: below the alias it carries the
-live interior-point CROSSOVER — `from_interior_point`, `IpCrossoverOptions`,
-`kIpActivityFactor` — which the header's own note calls "this header's other
-half". Group 2 is mapped renames only and may not relocate functional code, so
-T8.10 removed the ALIAS and left the file and the crossover where they stand.
+T8.5 entry above, the plan and T8.10's own brief all said it would be. That
+premise was that the header would hold only the alias. It does not: below the
+alias it carries the live interior-point CROSSOVER — `from_interior_point`,
+`IpCrossoverOptions`, `kIpActivityFactor` — which the header's own note calls
+"this header's other half". Group 2 is mapped renames only and may not relocate
+functional code, so T8.10 removed the ALIAS and left the file and the crossover
+where they stand.
+
+> **Correction record (settler, 2026-09-13, T8.10 fix round 1).** The
+> implementer was right and the binding documents were wrong at source: the
+> deletion clause was carried from T8.5's plan entry, where the premise held,
+> into a brief whose review then read the omission as a countermanded
+> instruction. The header STAYS; `w5-t8-10-facts.md` §A and the T8 plan's T8.10
+> file list are corrected to say so and why. The process point is accepted with
+> it: a premise a group-2 task cannot satisfy without relocating code should
+> have been resolved BEFORE the task was dispatched, not discovered inside it.
 
 ### 3. The four alias removals — what you have to change
 
@@ -3303,7 +3316,41 @@ every one; these are the classes of them.
   which was not rewritten.
 * Both suites, both configs; the golden rig; the install smoke against a real
   install prefix with the renamed TUs; the export contract.
-* P-SYM between the two arms with the object and symbol maps generated from
-  the manifests.
+* P-SYM between the arms with the object and symbol maps generated from the
+  manifests — **as three stages, with three different answers**; §6 states each
+  one, because a single "P-SYM passed" line would be false here.
 * `docs/trace-schema-v0.md`'s record names are UNCHANGED. The `Ipqp*` event
   prefixes stay (W5.T4's ruling); only prose in that document renames.
+
+### 6. What this sweep did that a rename does not, said plainly
+
+Two things in T8.10 are not mapped renames, and both are declared rather than
+folded into a pass/fail line. (Settler ruling, 2026-09-13, T8.10 fix round 1.)
+
+**The field fold is a LAYOUT change, so it is not instruction-neutral — by
+construction.** `SqpOptions::start_level` sat in the middle of the struct;
+deleting it moves every field after it by 8 bytes and shrinks the struct. No
+proof technique can make that emit the same instructions, and none was
+attempted. What IS proven is that the fold is the ONLY thing in the sweep that
+moves an instruction, and the proof is a decomposition of the manifests into
+three stages, each applied to the group-1 head and compared against the stage
+before it:
+
+| stage | what it adds | the result |
+|---|---|---|
+| A | the identifier, enumerator and path renames alone | **instruction-CLEAN**, except where a renamed name lives inside a string literal: a shorter or longer name changes that string's length immediate and its `.rodata` offset. Every such pair is enumerated by object and symbol in the fix-round transcripts. |
+| B | the four alias removals, the field fold among them | **NOT instruction-neutral, and declared.** Every differing pair is in a symbol that builds, copies, validates or reads an `SqpOptions`, or is the two-instruction forwarder removal in `IpqpEngine::solve`. |
+| C | the whitespace reflow (below) | **every object byte-identical.** |
+
+**The sweep carried a whitespace-only reflow, of 57 files.** Three of the
+renames are LONGER than the names they replace (`WarmStart`→`SqpWarmStart`,
+`NLPProblem`→`NlpTripletModel`, `.start_level`→`.common.start_level`, and every
+enumerator's `k`), so lines that fitted inside `ColumnLimit 100` no longer did.
+This tree is not clang-format-clean at BASE — 1431 complaints over all tracked
+C++ files — so the gate could not be "clean"; it is **no NEW violations**,
+measured before and after through the path map: without the reflow 161 → 598
+and 56 files regressed; with it, 161 → 113 and none did. clang-format ran on the
+CHANGED LINE RANGES ONLY, the result is carried as a patch so the inverse test
+can reverse it exactly, and stage C above is the proof that it moved no
+instruction. **If you are diffing this commit, that is why 57 files show
+whitespace churn beside their renames.**
