@@ -1,4 +1,4 @@
-# W5 T8.9r — the group-1 runtime reading (v4, fix round 3)
+# W5 T8.9r — the group-1 runtime reading (v5, fix round 4)
 
 `102f729 → e51a7e0` (the three SQP arms **and now the interior leg's base arm**)
 and `b9848bf → e51a7e0` (the interior leg's 41-key arm), solo. Read
@@ -23,7 +23,50 @@ corrected reading has gone back to the owner.
 
 ## 0. Revision record
 
-### 0.0 What fix round 3 changed, and why
+### 0.0 What fix round 4 changed, and why
+
+This file is **v5**. Fix round 4 is a **TEXT AND ARTIFACT-WORDING** round: **no
+measurement was taken, no number was re-derived, and no library, test or bench
+source was touched.** It follows fable's fix3 review (`FIX-ROUND`, SIGNOFF
+`W5-T8-9R-FIX3-REVIEW-FABLE`: no Critical, four Important items and a table of
+Minors, with every figure in the artifact independently recomputed and
+reproduced) and the settler's fix4 dispatch, which takes all four.
+
+**AND IT IS A DECLARED EVIDENCE CORRECTION, WHICH IS WHY IT TOUCHES A FROZEN
+DIRECTORY.** `docs/notes/data/**` is frozen against the **T8.10 rename's residual
+policy** — a rename sweep does not rewrite a captured artifact's identifiers, and
+this round rewrites none: every name below is the one these files already carry.
+It is **not** frozen against an EVIDENCE CORRECTION DECLARED BY ROUND, which is
+what CLAUDE.md §7 requires of an intentional break of a pinned or reproduced
+value ("declared and re-derived explicitly — never silent"). Fix round 4 is such
+a correction: it withdraws sentences this artifact's own retained data
+contradicts, and it declares the one pin that moves.
+
+| section | what changed | why |
+|---|---|---|
+| `classification.md` §8, the migration guide's bullet header | **THE LAST "NO STEP" SENTENCES ARE WITHDRAWN.** `classification.md` §8 still read "the single-row process does not reproduce the step" — the finding §14, §1, §5 and `classification.md`'s own §1 and §7 withdrew at fix3 — and the guide's bullet header still read "BUT NOT IN A SINGLE-ROW PROCESS" over a corrected body. Both are the pre-fix3 reading and both are gone | fable's fix3 review, item 1; settler R12 |
+| §1, §2, §5 | **THE R2' EVIDENCE FLAG IS ON THE ROWS THEMSELVES**, not only in §8.1. One footnote per table names the three flagged leg-1 rounds, the twelve leg-2 batches and the interior wall batch, the single-row leg's absence of any R2' bracket, and the artifact-wide count (22 PROVEN / 4 fraction / 32 evidence, of 57) | fable's fix3 review, item 2; settler R13 |
+| §11, §12, `.superpowers/w5-t8-9r-attrib2-report.md` | **"only T8.4 exceeds 1.01 on any scored row" IS FALSE AND IS REPLACED.** §11's own table gives T8.7 **1.0111** on `f7_n10000_bound_neutral/MakeParameter`, and its "rows above 1.01, of 11" line scores T8.7 at 1. The true form, everywhere: **T8.4 exceeds 1.01 on all eleven scored rows**, and T8.7 exceeds it on one | fable's fix3 review, item 3; settler R16 |
+| §1, the guide's table | the whole-process row's **"1/11" → "0/11"**: `wall_bracket.out`'s own process column and `classify.out` put c/p at **0.995118–1.009427** on the eleven scored rows, so none is outside 0.99–1.01 (the BRACKET row's 5/11 above 1.01 is unaffected and unchanged) | fable's fix3 review, item 4 |
+| §14, `classification.md`, `PROVENANCE.txt`, `wall_bracket.py` | the Minors: the L1-D maximum is **c/p 1.01095 (+1.095 %) on `f7_n5000_bound_physics/MakeParameter`**, not a bare "1.0946" on `f7_n10000_bound_neutral/RelaxBounds` (which reads 1.00502); the control pair's **0.95-point** move is `difftime`, the calibration symbol the reading sets aside — the like-for-like control scale over NAMED SOLVER symbols is **0.77 points moved, +0.51 largest gain**; `ipm_corpus_leg.cpp:389–392` is the **SAME SPAN** at both arms but is **not byte-identical** (`:390` declares `ConvergenceFlags` at `510a4bb`, `SolveStatus` at `9cebbbe`); the out-of-bracket term shrinks **10.4–15.8 %**, not "10–15 %"; `wall_bracket.py`'s docstring claimed the bracket is "an order of magnitude" quieter, which its own output contradicts | fable's fix3 review, Minors |
+
+**ONE PIN MOVES, AND IT IS DECLARED.** `wall_bracket.py`'s docstring is corrected,
+so **`wall_bracket.py.sha256` is re-derived from the edited file**
+(`fa9ae47b999f7af7…` → `15094b833a348d59`). The docstring is **never printed** —
+the script does not read `__doc__` — so **`wall_bracket.out` is unchanged**, still
+byte-identical to what the tool emits from the retained CSVs, and no figure moves
+with it. **No other pin moves.** `comparator.py`, `classify.py`,
+`record_analyze.py` and `scripts/idle_proof.py` are untouched, and so are their
+hashes and saved outputs: the comparator's documentary `sha` field is addressed in
+`PROVENANCE.txt` (I6) rather than in code, because editing it would move
+`comparator.py.sha256` and invalidate `logs/F5-manifest-proofs-fix3.log`, and this
+round runs nothing.
+
+**What did NOT change: any number that was measured.** Fix4 re-derived nothing and
+re-ran nothing. Where it changes a figure quoted in prose, it is because the prose
+misread retained data; the retained data is unedited.
+
+### 0.1 What fix round 3 changed, and why
 
 This file is **v4**. Fix round 3 is, again, an **AUDIT, COMPARATOR AND TEXT**
 round: **no measurement was taken, no number was re-derived, and no library, test
@@ -46,7 +89,7 @@ and re-ran nothing. The one figure it computes that was not in the artifact
 before — the single-row solve bracket — is arithmetic on 585 retained CSVs that
 have not been touched since the day they were written.
 
-### 0.1 What fix round 2 changed, and why
+### 0.2 What fix round 2 changed, and why
 
 This file is **v3**. Fix round 2 is an **AUDIT, COMPARATOR AND TEXT** round:
 **no measurement was taken, no number was re-derived, and no library, test or
@@ -72,7 +115,7 @@ Where it changes a figure quoted in prose — the pause count, the leg-2
 over-1.4 % count, the calibration's pass count — it is because the prose
 miscounted retained data, and the retained data is unedited.
 
-### 0.2 What fix round 1 changed, and why
+### 0.3 What fix round 1 changed, and why
 
 This file was **v2** at fix1. It was rewritten in place on 2026-09-11 after
 astra's review (`FIX-ROUND`, SIGNOFF `W5-T8-9R-REVIEW-ASTRA`: nine Important
@@ -117,8 +160,23 @@ the increase can be attributed to.
 | leg 2 | walk off / sink | 0.9931 / 0.9761 | 8/27, 24/27 | **UNRESOLVED / MOVED** | 0 / 0 | no verdict at 1e-4 |
 | **interior, `102f729` → head** (29 F7 rows, R3-primary), IN THE LEG PROCESS | — | **1.0249** (10.1030 → 10.3545 s) | **29/29** | **MOVED**, carrier unidentified | **28** | no verdict — §5 |
 | **interior, the CARRIER PAIR `510a4bb → 9cebbbe` in a SINGLE-ROW process, read on the SOLVE BRACKET** (`wall_s`, the leg's own column; the `d5931e8` lever, 11 rows) | — | **1.0110** (12.7930 → 12.9333 s), **informational** | 5/11 above 1.01 | — (no band claimed; no R2' evidence) | — | **NOT WORK-MOVED**; instructions flat per symbol — §14 |
-| the same eleven rows, read on the WHOLE PROCESS (`elapsed_s`) | — | **1.0004**, **informational** | 1/11 | — | — | same rows, same runs — §14 |
+| the same eleven rows, read on the WHOLE PROCESS (`elapsed_s`) | — | **1.0004**, **informational** | **0/11** (c/p 0.9951–1.0094) | — | — | same rows, same runs — §14 |
 | **interior, `b9848bf` → head** (31 F7 rows, R3-primary) | — | **0.9948** (10.4830 → 10.4284 s) | 7/31 | **UNRESOLVED** | 1 | no verdict — §5 |
+
+**R2' EVIDENCE FLAG ON EVERY ROW OF THIS TABLE (settler R13; the per-batch
+record is §8.1 and `logs/IDLE-PROOF.md`).** Of this artifact's **57
+wall-asserting batches, 22 are PROVEN under R2', 4 exceed its fraction and 32
+lack the evidence it asks for.** For the rows above specifically: **no batch
+behind this table exceeds R2''s FRACTION**, and sixteen of the twenty-two are
+short on the EVIDENCE — each leg-1 mode's figure is a median of three rounds of
+which **one is UNPROVEN-EVIDENCE** (`leg1-ipm-r3`, `leg1-ssn-r2`,
+`leg1-walk-r2`: a foreign process seen in state `R` with no re-snapshot after
+it); **all twelve leg-2 batches and the interior leg's wall batch are
+UNPROVEN-EVIDENCE** (no snapshot between two consecutive timed runs); and the
+two single-row rows carry **no R2' evidence at all**, their batch logs having no
+`PS_SNAPSHOT`/`CPUSTAT` bracket to compute it from. §8.1 states what an evidence
+gap is and is not — a gap in the RECORD rather than in the number, and one that
+can only bias a wall figure SLOW.
 
 **Four things follow, and they are independent of one another.**
 
@@ -243,6 +301,15 @@ R1, fixed before the runs (`predeclaration-R1-R3.txt`): the classification is th
 banded count. **The wall side of the veto is clean on leg 1. The instruction side
 is not, and the interior leg's is not.**
 
+**R2' EVIDENCE FLAG ON LEG 1's WALL (settler R13; §8.1 and
+`logs/IDLE-PROOF.md`).** Every figure in this section is a median of three rounds
+per mode, and **one round per mode is UNPROVEN-EVIDENCE**: `leg1-ipm-r3`,
+`leg1-ssn-r2` and `leg1-walk-r2` each saw a foreign process in state `R` with no
+re-snapshot following it. The other six of the nine leg-1 wall batches are
+**PROVEN outright**, and **none of the nine exceeds R2''s FRACTION** — foreign
+task time 0.000–0.056 % on the pinned core and 0.111–0.428 % on its SMT sibling.
+So each mode's corpus figure rests on two clean rounds and one flagged one.
+
 ---
 
 ## 3. Leg 1 — pass A and pass B, and the instruction finding
@@ -359,6 +426,14 @@ from the null-sink arm, never averaged with it.
 The per-cell veto check on leg 2 (R1, banded): `ipm`/off and `ipm`/sink each
 carry **2** — `hs12` and `hs15`; the other four combinations carry none.
 
+**R2' EVIDENCE FLAG ON LEG 2 (settler R13; §8.1 and `logs/IDLE-PROOF.md`).**
+**All twelve leg-2 wall batches are UNPROVEN-EVIDENCE**: `leg2.sh:42` places its
+`box_guard` snapshot after the arm loop, so two timed runs follow each other with
+no foreign state observed across the switch. **None exceeds R2''s FRACTION**
+(0.018–0.036 % on the pinned core, 0.097–0.290 % on its sibling). Leg 2's wall is
+informational for a second and unrelated reason as well — §11.3 (ii) and this
+leg's own 0.2452 % noise floor.
+
 **And the calibration's exceedances are not hidden — THIS round's included.** N
 was adopted on the worst per-cell `median_se_pct` of the calibrating run (ipm
 0.354782 %, walk 0.419009 %, ssn 0.390189 %); later runs of the same cells at the
@@ -403,7 +478,20 @@ process, the difference being 0.135 s per eleven rows of work that `9cebbbe`
 moved from outside the bracket to inside it). A reader who takes either number
 without the other has the wrong picture: the leg process is 2.5 % slower and its
 carrier is unidentified; the same commit measured one row at a time is about
-1.1 % slower in the same window, at the same instruction count.
+1.1 % slower in the same window, at instruction counts **flat within the
+instrument** — per symbol, with the calibration set aside, c/p **0.995–0.997** on
+the two profiled rows, with no 1e-4 identity established and none claimed (§14).
+("At the same instruction count" is softened to that at fix round 4 — fable's
+fix3 review, Minors.)
+
+**R2' EVIDENCE FLAG ON THE INTERIOR LEG (settler R13; §8.1 and
+`logs/IDLE-PROOF.md`).** **The interior leg's wall batch is UNPROVEN-EVIDENCE**,
+for the same reason leg 2's are — `leg_interior.sh:63` places its snapshot after
+the arm loop — and it does **not** exceed R2''s FRACTION (0.0552 % on the pinned
+core, 0.3034 % on its sibling). **The single-row leg of §14 carries no R2'
+evidence at all**: its batch logs have no `PS_SNAPSHOT`/`CPUSTAT` bracket, so R2'
+cannot be computed for it and is not claimed. Both wall readings below, and both
+of §14's, are informational under CLAUDE.md §7.
 
 **(i) `102f729` → head, IN THE LEG PROCESS: MOVED, +2.49 %, 29 of 29 rows
 outside the band, 28 reproducible slowdowns.**
@@ -1996,8 +2084,13 @@ review, Minors): recomputed as corpus steps on the eleven scored rows, T8.4 is *
 other ten are +0.1790 (T8.1), −0.0504 (T8.2), +0.0299 (T8.3), −0.4335 (T8.5), **+0.3299 (T8.6)**,
 +0.1503 (T8.7), −0.0396 (T8.7b), **+0.3875 (T8.8)** and −0.4177 (T8.9) per cent. **Two of them are
 above a third of a per cent and two are below minus four tenths**; what is true is that no other
-task comes within a factor of six of T8.4, that their aggregate is ≈+0.13 %, and that only T8.4
-exceeds 1.01 on any scored row.
+task comes within a factor of six of T8.4, that their aggregate is ≈+0.13 %, and that **T8.4
+exceeds 1.01 on ALL ELEVEN scored rows**. **The form this sentence carried at fix round 3 — "only
+T8.4 exceeds 1.01 on any scored row" — is FALSE and is withdrawn at fix round 4** (fable's fix3
+review, item 3): it contradicts the table above — whose "rows above 1.01, of 11" line scores T8.7
+at **1** — and the first WITHDRAWN bullet under "THE LOCALISATION, BOUNDED", which already records
+**T8.7 at 1.0111** on `f7_n10000_bound_neutral/MakeParameter`. T8.7 is the only other
+exceedance in the table, on one row of eleven.
 
 **AND THE INSTRUCTION CURRENCY RETURNS NO VERDICT ON THIS LEG, IN EITHER PASS.** T8.4's pair is
 row-adding, which forbids one outright; and independently the floor of the whole-process count here,
@@ -2075,11 +2168,14 @@ the owner have it.** Apple/Accelerate and Windows: UNOBSERVED.
 
 ## 12. Inside T8.4 (T8.9r-attrib3, 2026-09-11)
 
-§11 charged the interior leg's **+2.49 %** to T8.4 — the only group-1 task whose
-per-row wall step exceeded 1.01 on any scored row, and it exceeded it on all eleven
-(**this is the "only task above 1.01" claim, which is what §11 actually measured; the
-stronger reading of it — that no other task carries a measurable share — is withdrawn
-at fix round 3, §11 above**) — and could go no further: its arms sat at task HEADS, and T8.4 is seven commits. A third
+§11 charged the interior leg's **+2.49 %** to T8.4 — the one group-1 task whose
+per-row wall step exceeded 1.01 on **all eleven** scored rows
+(**corrected at fix round 4, fable's fix3 review item 3: this sentence read "the only
+group-1 task whose per-row wall step exceeded 1.01 on ANY scored row", which §11's own
+table contradicts — T8.7 reads 1.0111 on `f7_n10000_bound_neutral/MakeParameter`. The
+all-eleven form is what §11 measured. The stronger reading — that no other task carries a
+measurable share — was already withdrawn at fix round 3, §11 above**) — and could go no
+further: its arms sat at task HEADS, and T8.4 is seven commits. A third
 leg, same box, same day, put an arm at **every T8.4 library commit** and measured the
 per-row wall at each: five rounds, arm order rotated per round, `--engine interior` on
 the same four dual-binding F7 cells × three treatments, solo, the R3 positional warm-up
@@ -2383,9 +2479,15 @@ tenths of a point either way. **A share change is not a bound on that symbol's
 instruction increase**, and it is not read as one: it says the symbol takes a
 larger slice of a profile whose non-calibration total is flat, which is what the
 calibration shrinking does to every other slice. The control pair — a
-byte-identical binary — moves shares by up to **0.95 points** on the same rows
-(`perf-diff/*-control-vs-parent.txt`), which is the scale this column is read
-against. **NOT WORK-MOVED.** §11.1's LAYOUT-MOVED band (identical within 1e-4) is
+byte-identical binary — moves a NAMED SOLVER symbol's share by up to **0.77
+points** (`mkl_pds_lp64_blkl_ll_real.extracted`, −0.77, on the `MakeConstraint`
+row) and gains at most **+0.51** (`mkl_pds_lp64_dsytf2_pardiso` on
+`MakeParameter`) — `perf-diff/*-control-vs-parent.txt` — and that is the
+like-for-like scale this column is read against. **The "0.95 points" this
+paragraph used to quote is `difftime`, the CALIBRATION symbol the per-symbol
+reading sets aside, and is corrected at fix round 4** (fable's fix3 review,
+Minors); the conclusion is unchanged, and stands on the consistent figure.
+**NOT WORK-MOVED.** §11.1's LAYOUT-MOVED band (identical within 1e-4) is
 not reached either, so no §11.1 label is claimed from this leg.
 
 **THE WHOLE-PROCESS COUNTS SAY THE SAME THING LOUDER, AND ARE NOT BANKED.**
@@ -2447,9 +2549,13 @@ at the culprit on every row (control 0.99–1.00) and `ic_fetch_stall.ic_stall_a
 instruction stream — a front-end signature on the whole-process scale, reported
 and not leant on, since it covers the calibration loop as much as the solve.
 Memory: `L1-dcache-load-misses` **+0.4 % to +1.09 %** (control ±0.5 %; the
-maximum is 1.0946 on `f7_n10000_bound_neutral/RelaxBounds`, and "+0.9 %" was the
-second-largest — astra's fix2 review, Minors), `dTLB-load-misses` inside its own
-control (**no verdict**), and **`page-faults` flat to within half a per mille on
+maximum is **c/p 1.01095, i.e. +1.095 %, on `f7_n5000_bound_physics/MakeParameter`**
+and "+0.9 %" was the second-largest, 1.00902 on
+`f7_n1000_bound_physics/RelaxBounds` — `classify.out`'s pass-C table. **Fix round 3
+wrote that maximum as a bare "1.0946", which is its PERCENT form and not a ratio,
+and attributed it to `f7_n10000_bound_neutral/RelaxBounds`, which reads 1.00502;
+both are corrected at fix round 4** — fable's fix3 review, Minors),
+`dTLB-load-misses` inside its own control (**no verdict**), and **`page-faults` flat to within half a per mille on
 every row** — the scored ratios span **0.995080–1.000041**, which is four figures
 and not the five this paragraph used to claim, on a within-arm spread under 6
 counts in 10 000 — so §12's **+53 149** and §13's **+41 627** extra faults are a
@@ -2464,7 +2570,15 @@ read *"the +2.5 % step does not appear in a single-row process at all"*, on
 SENTENCE IS WITHDRAWN.** `elapsed_s` is the PROCESS — `execve`, the loader, the
 harness, `ipm.transcribe()`, the CSV write, teardown — and it is not the window
 the leg reports. The window the leg reports is **`wall_s`, the SOLVE BRACKET**
-(`bench/ipm_corpus_leg.cpp:389–392`, byte-identical at the two arms), which is
+(`bench/ipm_corpus_leg.cpp:389–392` — **the SAME SPAN at both arms**: `t0` taken
+immediately before the call, `wall_s` immediately after, which is the whole of
+what the bracket argument needs. **Those four lines are NOT byte-identical, and
+fix round 3's claim that they were is corrected at fix round 4** — fable's fix3
+review, Minors: `:390` declares `const hven::ConvergenceFlags flag` at `510a4bb`
+and `const hven::solvers::SolveStatus flag` at `9cebbbe`, T8.2's rename and
+nothing else. `wall_bracket.out`'s own preamble at `:123` carries the superseded
+wording; it is the tool's SAVED OUTPUT and is not hand-edited, so the correction
+is carried here, in `classification.md` §7 and in `PROVENANCE.txt`), which is
 the same column §5, §11, §12 and §13 sum into their corpus figures. The
 measured processes wrote it into every one of the 585 retained rows, and read
 there the answer is different:
@@ -2514,7 +2628,9 @@ own commit message describes: the model is **borrowed for the call**, so binding
 it, keying its structure and whatever `set_nlp()` used to do at `transcribe()`
 time now happen INSIDE `solve()` instead of before it. The out-of-bracket term
 scales with n exactly as a model-build term would (0.012 s at n1000 to 0.176 s at
-n20000) and shrinks by 10–15 % at every row. **This is stated as measured and not
+n20000) and shrinks by **10.4–15.8 %** at every row — out-of-bracket c/p
+**0.8418–0.8955**, `wall_bracket.out`'s per-row table; "10–15 %" is corrected at
+fix round 4 (fable's fix3 review, Minors). **This is stated as measured and not
 further than that**: the compensation is near-exact but not proven exact, the
 residual (+0.005 s over eleven rows) sits inside the process population's own
 noise, and nothing here says how much of the LEG process's +2.5 % is the same
@@ -2567,15 +2683,26 @@ PENDING THE OWNER'S CONFIRMATION.** The owner's KEEP was given on the reading as
 it stood, whose first ground was that the top-level IPM is FLAT in a single-row
 process. §14 withdrew that at fix3: read on the SOLVE BRACKET rather than on the
 whole process, the single-row leg does see a step. The settler's ruling R12
-restates the grounds in these words, **VERBATIM**, and has put the corrected
-reading to the owner; the close ledger line records the owner's answer.
+restates the grounds in these words — verbatim as ruled, with the single
+instruction clause amended at fix round 4 and the amendment recorded under the
+quotation — and has put the corrected reading to the owner; the close ledger line
+records the owner's answer.
 
 > **one solve per process is FLAT on the SQP; on the top-level IPM commit
 > `9cebbbe` costs ~1.1 % corpus (1.3–2.2 % on large rows) in a single-row process
-> and ~2.5–3 % in the leg process, at identical instruction counts, carrier
+> and ~2.5–3 % in the leg process, at instruction counts flat within the
+> instrument, carrier
 > unidentified after six legs; the SQP's instructions are T8.4's declared
 > diagnostics; the owner's KEEP was given on the whole-process reading and the
 > settler has put the corrected reading to the owner.**
+
+**ONE CLAUSE OF THAT RESTATEMENT IS AMENDED BY THE SETTLER AT FIX ROUND 4**
+(fable's fix3 review, Minors). It read *"at identical instruction counts"*. The
+measurement is **flat within the instrument, not identical**: per symbol, with
+MKL's first-call calibration set aside inside each profile, the culprit runs the
+two profiled rows at c/p **0.99452** and **0.99696** against a control of 0.99863
+and 0.99980, and §14 says in terms that **no 1e-4 identity is established by them
+and none is claimed**. Nothing else in the restatement changed.
 
 **The grounds, in full:**
 

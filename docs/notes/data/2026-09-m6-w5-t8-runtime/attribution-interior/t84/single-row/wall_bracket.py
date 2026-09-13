@@ -10,11 +10,23 @@ that conclusion on, and the settler's ruling R12 withdraws the conclusion:
 
   * `elapsed_s` is the process, start to exit. It carries `execve`, the dynamic
     loader, the model build, the CSV write and teardown OUTSIDE the solve, and
-    its own within-arm spread on these rows is 0.2-1.2 % -- the size of the
+    its own within-arm spread on these rows is 0.03-1.62 % -- the size of the
     thing being looked for.
   * `wall_s` is the leg's OWN SOLVE BRACKET, written into the row by the same
-    harness the 43-row leg uses. It is the narrower window and the quieter one:
-    its within-arm spread is an order of magnitude smaller.
+    harness the 43-row leg uses. It is the NARROWER window -- but NOT the quieter
+    one: its within-arm spread is 0.04-1.55 %, which is the same size. The two
+    windows are EQUALLY NOISY, so their disagreement is not a resolution
+    difference; what it is, is the out-of-bracket table this tool prints.
+
+    (CORRECTED AT FIX ROUND 4, 2026-09-13 -- fable's fix3 review, Minors. These
+    two bullets read "0.2-1.2 %" and "an order of magnitude smaller", which this
+    tool's own WITHIN-ARM SPREAD table at wall_bracket.out:85-103 contradicts;
+    that table, and the "THE TWO WINDOWS ARE EQUALLY NOISY" line it carries, are
+    the measurement. COMMENT ONLY: this docstring is never printed -- nothing
+    reads __doc__ -- so wall_bracket.out is unchanged and still reproduces
+    byte-for-byte from the retained CSVs. wall_bracket.py.sha256 is re-derived
+    from this edit and the move is declared in reading.md section 0.0 and in
+    PROVENANCE.txt.)
 
 BOTH still contain MKL's `dsecnd()` first-call clock calibration -- it is called
 from inside `solve()` (`src/drivers/interior_point_solver.cpp:5535`), so it is

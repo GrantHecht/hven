@@ -814,3 +814,152 @@ FIX ROUND 3 -- 2026-09-11. AUDIT, COMPARATOR AND TEXT. NOTHING WAS MEASURED.
      actual close of the section.
 
   APPLE / ACCELERATE: UNOBSERVED.  WINDOWS: UNOBSERVED. Unchanged by fix3.
+
+================================================================================
+FIX ROUND 4 -- 2026-09-13. TEXT ONLY. NOTHING WAS MEASURED.
+================================================================================
+  This block amends the fix1, fix2 and fix3 blocks above. Nothing above it is
+  rewritten: the lines it corrects are quoted here with what is true instead,
+  because a provenance record that is edited in place stops being a record. No
+  number in this artifact was re-derived by fix round 4, no leg was re-run, and
+  no library, test or bench source was touched. It follows fable's fix3 review
+  (FIX-ROUND, SIGNOFF W5-T8-9R-FIX3-REVIEW-FABLE: NO CRITICAL, four Important
+  items and a table of Minors, with every figure in this artifact independently
+  recomputed and reproduced) and the settler's fix4 dispatch, which takes all
+  four.
+
+  WHY A FROZEN DIRECTORY IS TOUCHED. docs/notes/data/** is frozen against the
+  T8.10 RENAME's residual policy -- a rename sweep does not rewrite a captured
+  artifact's identifiers, and this round rewrites none. It is NOT frozen against
+  an EVIDENCE CORRECTION DECLARED BY ROUND, which is what CLAUDE.md section 7
+  requires of an intentional break of a pinned or reproduced value. Fix round 4
+  is such a correction, and this block is the declaration.
+
+(I1) THE LAST "NO STEP" SENTENCES ARE WITHDRAWN (fable's fix3 review item 1;
+     settler R12). H1 above withdrew "the +2.5 % step does not appear in a
+     single-row process at all" in every place it appears, and two places were
+     missed:
+       attribution-interior/t84/single-row/classification.md section 8 -- "the
+         single-row process does not reproduce the step", in the same file whose
+         sections 1 and 7 withdraw it;
+       docs/notes/2026-09-m6-w5-migration-guide.md -- the bullet header "AND THE
+         WORK IS IDENTICAL -- BUT NOT IN A SINGLE-ROW PROCESS", over a body that
+         fix3 had already corrected.
+     BOTH ARE WITHDRAWN. The reading that stands is H1's: the step is SMALLER in
+     a single-row process (~1.1 % of the solve bracket against the leg process's
+     2.5-3.0 %), not absent.
+
+(I2) THE R2' EVIDENCE FLAG IS NOW ON THE ROWS THEMSELVES (fable's fix3 review
+     item 2; settler R13). H2 above placed the UNPROVEN-FRACTION /
+     UNPROVEN-EVIDENCE accounting in reading.md section 8.1 and carried it into
+     sections 11-14, but sections 1, 2 and 5 -- which is where a reader meets
+     the leg-1, leg-2 and interior wall numbers -- carried no flag at all. One
+     footnote is now under each of those tables, naming:
+       the three UNPROVEN-EVIDENCE leg-1 rounds  leg1-ipm-r3, leg1-ssn-r2,
+                                                 leg1-walk-r2 (a foreign R with
+                                                 no re-snapshot);
+       all twelve leg-2 batches and the interior leg's wall batch (no snapshot
+                                                 between consecutive timed runs);
+       the single-row leg, for which R2' CANNOT BE COMPUTED at all;
+       and the artifact-wide count: of 57 wall-asserting batches, 22 PROVEN,
+       4 short on the fraction, 32 short on the evidence.
+     No batch behind sections 1, 2 or 5 exceeds R2''s FRACTION. The numbers are
+     unchanged; what changed is that the flag now travels with them.
+
+(I3) "ONLY T8.4 EXCEEDS 1.01 ON ANY SCORED ROW" IS FALSE AND IS REPLACED
+     (fable's fix3 review item 3; settler R16). H5's correction of the "only
+     group-1 task" sentence replaced one false form with another: reading.md
+     section 11's own table gives T8.7 = 1.0111 on
+     f7_n10000_bound_neutral/MakeParameter, and its "rows above 1.01, of 11"
+     line scores T8.7 at 1. THE TRUE FORM, carried now in reading.md sections 11
+     and 12 and in a dated line of .superpowers/w5-t8-9r-attrib2-report.md:
+     T8.4 EXCEEDS 1.01 ON ALL ELEVEN SCORED ROWS, and T8.7 exceeds it on one.
+     Nothing else in the localisation changes: T8.4 remains the dominant step by
+     a factor of six on corpus steps (+2.3684 % against +0.3875 % next).
+
+(I4) THE WHOLE-PROCESS ROW READ "1/11" AND IT IS 0/11 (fable's fix3 review item
+     4). reading.md section 1's table and the migration guide's copy of it gave
+     1 cell outside 0.99-1.01 for the single-row WHOLE-PROCESS population. The
+     eleven scored rows read c/p 0.995118-1.009427 (wall_bracket.out's process
+     column and classify.out), so the count is ZERO. The BRACKET row's "5/11
+     above 1.01" is unaffected and unchanged.
+
+(I5) THE MINORS CARRIED AT FIX4 (fable's fix3 review, Minors table).
+     (a) THE L1-D MAXIMUM WAS MISATTRIBUTED AND MIS-TYPED. reading.md and
+         classification.md read "the maximum is 1.0946 on
+         f7_n10000_bound_neutral/RelaxBounds". classify.out's pass-C table puts
+         the largest scored L1-dcache-load-misses ratio at c/p 1.01095, i.e.
+         +1.095 %, on f7_n5000_bound_physics/MakeParameter;
+         f7_n10000_bound_neutral/RelaxBounds reads 1.00502. "1.0946" was the
+         PERCENT form written as though it were a ratio. H5's own line above
+         ("L1-D misses reach +1.0946 %, not +0.9 %") states the figure
+         correctly as a percent and names no row; the row it belongs to is
+         f7_n5000_bound_physics/MakeParameter.
+     (b) THE CONTROL PAIR'S "0.95 POINTS" IS THE CALIBRATION SYMBOL. H4 above
+         and both readings quoted 0.95 points as the control's share-move scale.
+         That 0.95 is difftime -- MKL's dsecnd() calibration, the very symbol
+         the per-symbol reading sets aside -- in
+         perf-diff/f7_n20000_bound_neutral-MakeParameter-control-vs-parent.txt:1.
+         The LIKE-FOR-LIKE control scale over NAMED SOLVER symbols is |delta|
+         0.77 (mkl_pds_lp64_blkl_ll_real.extracted, MakeConstraint row) with a
+         largest GAIN of +0.51 (mkl_pds_lp64_dsytf2_pardiso, MakeParameter row).
+         The conclusion is unchanged and now rests on the consistent figure.
+     (c) ipm_corpus_leg.cpp:389-392 IS THE SAME SPAN, NOT BYTE-IDENTICAL. H1
+         above, reading.md section 14 and classification.md section 7 said the
+         four bracket lines are byte-identical at the two arms. They are not:
+         :390 declares "const hven::ConvergenceFlags flag" at 510a4bb and
+         "const hven::solvers::SolveStatus flag" at 9cebbbe -- T8.2's rename and
+         nothing else. What the bracket argument needs, and what IS true, is that
+         the SPAN is the same: t0 taken immediately before the call, wall_s
+         immediately after. wall_bracket.out:123 carries the superseded wording;
+         it is the tool's SAVED OUTPUT and is not hand-edited, so the correction
+         is carried in the three readings and here.
+     (d) THE OUT-OF-BRACKET TERM SHRINKS 10.4-15.8 %, not "10-15 %": the per-row
+         out-of-bracket c/p runs 0.8418-0.8955 in wall_bracket.out's own table.
+     (e) wall_bracket.py's DOCSTRING contradicted its own output. It said the
+         bracket's within-arm spread is "an order of magnitude smaller" than the
+         process's, and gave the process spread as 0.2-1.2 %. The tool's
+         WITHIN-ARM SPREAD table (wall_bracket.out:85-103) reads 0.04-1.55 % on
+         the bracket against 0.03-1.62 % on the process and prints "THE TWO
+         WINDOWS ARE EQUALLY NOISY". The docstring is corrected to the measured
+         figures. THIS IS THE ONE PIN THAT MOVES, AND IT IS DECLARED:
+           wall_bracket.py.sha256
+             fa9ae47b999f7af795e133d2dc24d6c2c1c547a586b4427a5818a0a889659432
+           ->
+             15094b833a348d59f01b5148a53be11c5e51a79676b9a683546b5816decad0f4
+         The docstring is NEVER PRINTED -- nothing reads __doc__ -- so
+         wall_bracket.out is UNCHANGED and still reproduces byte-for-byte from
+         the retained CSVs, and no figure moves with it.
+     (f) "AT IDENTICAL INSTRUCTION COUNTS" IS SOFTENED wherever it is said of
+         the top-level IPM step, to "at instruction counts flat within the
+         instrument": per symbol, calibration set aside, the culprit runs the
+         two profiled rows at c/p 0.99452 and 0.99696 against a control of
+         0.99863 and 0.99980. Section 14 says in terms that no 1e-4 identity is
+         established and none is claimed, so "identical" overstated it. The
+         settler amended that clause of the section 15 restatement at fix round
+         4; the amendment is recorded under the quotation there.
+
+(I6) THE INTERIOR ARMS' IDENTITY EVIDENCE, STATED PLAINLY (fable's fix3 review
+     section 3, Minor). H3(b) above declares the three interior arms "BY SHA",
+     and comparator.py's INTERIOR_ARM_IDENTITY table carries a `sha` field. THAT
+     FIELD IS DOCUMENTARY: nothing compares it to anything. What the comparator
+     actually checks per arm is the CSV's schema width and the build-directory
+     token in its recorded invocation line (arm-base / arm-interior-base /
+     arm-head), which is a real check -- fable's stub, head-r*.csv copied over
+     armb98-r*.csv, exits 1 on it -- but it is not a hash check, and a copy whose
+     header token was edited would pass.
+     AND THE CSVs CANNOT SUPPLY ONE. Every interior CSV's provenance line reads
+     "# binary: 335a6669adf1" at ALL THREE ARMS (raw/interior/arm102-r1.csv:2,
+     armb98-r1.csv:2, head-r1.csv:2). That token is the ENCLOSING REPOSITORY's
+     HEAD at capture time -- the T8.9-CLOSED docs commit -- not the measured
+     arm's commit, so three identical tokens are NOT three identical binaries and
+     must not be read as an arm identifier.
+     THE ARM IDENTITY EVIDENCE IS THE EXECUTABLES' SHA256, recorded at the head
+     of this file (lines 46-51): arm-base 489def04..., arm-head 41d2c72a...,
+     arm-interior-base 560914cd..., each with its libhven.a beside it, and
+     re-verified before use. comparator.py is NOT edited for this: changing a
+     comment or a field in it would move comparator.py.sha256 and invalidate
+     logs/F5-manifest-proofs-fix3.log, and fix round 4 runs nothing. The record
+     is here instead, which is where the dispatch put the choice.
+
+  APPLE / ACCELERATE: UNOBSERVED.  WINDOWS: UNOBSERVED. Unchanged by fix4.

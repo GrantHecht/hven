@@ -162,9 +162,14 @@ few tenths of a point either way. **A share change is not a bound on that
 symbol's instruction increase** and is not read as one: it says the symbol takes
 a larger slice of a profile whose non-calibration total is flat, which is what
 the calibration shrinking does to every other slice. The byte-identical CONTROL
-pair moves shares by up to **0.95 points** on the same rows
-(`perf-diff/*-control-vs-parent.txt`), which is the scale to read this column
-against. **No function got materially more expensive.**
+pair moves a NAMED SOLVER symbol's share by up to **0.77 points**
+(`mkl_pds_lp64_blkl_ll_real.extracted`, −0.77, on the `MakeConstraint` row) and
+gains at most **+0.51** (`mkl_pds_lp64_dsytf2_pardiso` on `MakeParameter`) —
+`perf-diff/*-control-vs-parent.txt` — which is the like-for-like scale to read
+this column against. **The "0.95 points" this paragraph used to quote is
+`difftime`, the CALIBRATION symbol set aside two paragraphs up; corrected at fix
+round 4** (fable's fix3 review, Minors). **No function got materially more
+expensive.**
 
 ---
 
@@ -187,8 +192,13 @@ event, so it is reported and not leant on.
 Pass C, same rows:
 
 * `L1-dcache-load-misses` **+0.4 % to +1.09 %** at the culprit (the maximum is
-  1.0946 on `f7_n10000_bound_neutral/RelaxBounds`; "+0.9 %" was the second-largest
-  — corrected at fix round 3), control ±0.5 %.
+  **c/p 1.01095, i.e. +1.095 %, on `f7_n5000_bound_physics/MakeParameter`**;
+  "+0.9 %" was the second-largest, 1.00902 on
+  `f7_n1000_bound_physics/RelaxBounds` — corrected at fix round 3. **Fix round 3
+  wrote that maximum as a bare "1.0946", which is its PERCENT form and not a
+  ratio, and attributed it to `f7_n10000_bound_neutral/RelaxBounds`, which reads
+  1.00502; both corrected at fix round 4** — fable's fix3 review, Minors),
+  control ±0.5 %.
 * `dTLB-load-misses` within ±1.3 %, control within ±1.8 % — **no verdict**.
 * `page-faults` **flat to within half a per mille on every row** — the scored
   ratios span **0.995080–1.000041**, which is four figures and not the five this
@@ -228,8 +238,14 @@ smoothed.
 `perf.csv`. **Neither column here is asserted** (CLAUDE.md §7): this leg carries
 no R2' evidence at all, and both wall populations are informational.
 
-`wall_s` is the leg's own SOLVE BRACKET — `bench/ipm_corpus_leg.cpp:389-392`, the
-same three lines at both arms — and it is the column `reading.md` §5, §11, §12
+`wall_s` is the leg's own SOLVE BRACKET — `bench/ipm_corpus_leg.cpp:389-392`
+(**the SAME SPAN at both arms, `t0` before the call and `wall_s` after it, which
+is what the bracket argument needs; the four lines are NOT byte-identical —
+`:390` declares `ConvergenceFlags` at `510a4bb` and `SolveStatus` at `9cebbbe`,
+T8.2's rename and nothing else. Corrected at fix round 4, fable's fix3 review,
+Minors; `wall_bracket.out:123` carries the superseded wording as the tool's saved
+output**) — the
+same SPAN at both arms — and it is the column `reading.md` §5, §11, §12
 and §13 sum into their corpus figures. `elapsed_s` is the whole process.
 
 | pass A, medians of five | parent | culprit | control | **c/p** | x/p | c>p |
@@ -268,7 +284,9 @@ is unchanged, and the control moves none of the three. **That is a BOUNDARY
 MOVE** — and it is what `9cebbbe` describes: the model is *borrowed for the
 call*, so binding and keying it happen inside `solve()` rather than before it.
 The out-of-bracket term scales with n like a model build (0.012 s at n1000,
-0.176 s at n20000) and shrinks 10–15 % at every row. **Stated as measured and no
+0.176 s at n20000) and shrinks **10.4–15.8 %** at every row (out-of-bracket c/p
+**0.8418–0.8955**, `wall_bracket.out`'s per-row table; "10–15 %" corrected at fix
+round 4). **Stated as measured and no
 further**: the compensation is near-exact but not proven exact, and nothing here
 says how much of the 43-row LEG process's +2.5 % is the same move — no leg batch
 recorded its per-row out-of-bracket time, so that question cannot be answered
@@ -287,8 +305,14 @@ than against it: a boundary move relocates work without adding any.
 * **No disposition.** §11.1 and the owner have it.
 * **No claim that §11/§12/§13 are wrong.** They measured the leg's process; this
   measured a single-row one. What this adds is that the extra time is **not extra
-  instructions**, and that the single-row process does not reproduce the step —
+  instructions**, and that the single-row process reproduces the step **smaller**
+  — about 1.1 % of the solve bracket against the leg process's 2.5–3.0 % (§7) —
   which is a constraint on any mechanism, not a refutation of the step.
+  **THE CLAUSE THAT STOOD HERE UNTIL FIX ROUND 4 — "the single-row process does
+  not reproduce the step" — IS WITHDRAWN** (2026-09-13; fable's fix3 review,
+  item 1; settler R12). It is the finding §1 and §7 of this file withdrew at fix
+  round 3, left standing in this list by oversight; it was read off the
+  WHOLE-PROCESS `elapsed_s` and the leg's own `wall_s` bracket contradicts it.
 * **No claim about a cell not measured here.** Four F7 cells, three treatments,
   one subtrahend cell.
 * **Apple/Accelerate and Windows: UNOBSERVED.**

@@ -2932,8 +2932,22 @@ twenty-two lack the evidence — three leg-1 rounds for an unanswered `R`, and a
 twelve leg-2 batches plus the interior wall batch for missing alternation
 snapshots. `logs/IDLE-PROOF.md` has the per-batch table and
 `logs/idle-proof-pids-<round>.md` every foreign pid of every batch;
-`reading.md` §8.1 states what an evidence gap is and is not, and §§11–14 carry
-the flag wherever such a batch feeds a number.
+`reading.md` §8.1 states what an evidence gap is and is not, and §§1, 2, 5 and
+11–14 carry the flag wherever such a batch feeds a number — a footnote under
+each of §1's, §2's and §5's own tables since **fix round 4** (fable's fix3
+review, item 2).
+
+**FIX ROUND 4 (2026-09-13) IS TEXT ONLY, AND IT IS A DECLARED EVIDENCE
+CORRECTION.** No leg was re-run, no number re-derived, no library, test or bench
+source touched. It withdraws the last two "no step" sentences (this section's
+bullet header below, and `classification.md` §8), puts the R2' evidence flag on
+`reading.md` §1/§2/§5's own rows, replaces "only T8.4 exceeds 1.01 on any scored
+row" with the form §11's table supports (T8.4 on **all eleven** scored rows;
+T8.7 reaches 1.0111 on one), corrects the whole-process row below from 1/11 to
+**0/11**, and carries fable's Minors. `reading.md` §0.0 is the record, and
+`PROVENANCE.txt`'s FIX ROUND 4 block the declaration — including the one pin
+that moves (`wall_bracket.py.sha256`, a docstring correction that leaves
+`wall_bracket.out` byte-identical).
 
 | leg | mode | corpus ratio | outside 0.99–1.01 | band | banded veto cells | instructions |
 |---|---|---|---|---|---|---|
@@ -2946,7 +2960,7 @@ the flag wherever such a batch feeds a number.
 | **interior — `102f729` → head, 29 banded F7 rows, IN THE LEG PROCESS** | — | **1.0249** (10.1030 → 10.3545 s) | **29/29** | **MOVED**, carrier unidentified | **28** | no verdict from this leg |
 | interior — `b9848bf` → head, 31 banded F7 rows | — | 0.9948 (10.4830 → 10.4284 s) | 7/31 | UNRESOLVED | 1 | no verdict |
 | **interior — the CARRIER PAIR `510a4bb → 9cebbbe` in a SINGLE-ROW process** (11 rows, the `d5931e8` lever), read on the SOLVE BRACKET | — | **1.0110** (12.7930 → 12.9333 s), **informational** | 5/11 above 1.01 | — (no band claimed; no R2' evidence) | — | **NOT WORK-MOVED**; cycles flat |
-| the same eleven rows, read on the WHOLE PROCESS | — | **1.0004**, **informational** | 1/11 | — | — | same rows, same runs |
+| the same eleven rows, read on the WHOLE PROCESS | — | **1.0004**, **informational** | **0/11** (c/p 0.9951–1.0094) | — | — | same rows, same runs |
 
 **What is measured, bounded to exactly that.**
 
@@ -2966,7 +2980,10 @@ the flag wherever such a batch feeds a number.
   it **WORK-MOVED and a veto trigger under §11.1.1** notwithstanding the FLAT
   timing.
 * **THE TOP-LEVEL IPM IS 2.5 % SLOWER IN THE LEG PROCESS, AND THE WORK IS
-  IDENTICAL — BUT NOT IN A SINGLE-ROW PROCESS, AND BOTH READINGS STAND.** The
+  IDENTICAL — A SINGLE-ROW PROCESS SEES THE STEP TOO, SMALLER, AND BOTH READINGS
+  STAND.** (That header read "BUT NOT IN A SINGLE-ROW PROCESS" until fix round 4,
+  where it is withdrawn as the last survivor of the pre-fix3 reading — the body
+  beneath it has been corrected since fix round 3.) The
   interior leg reaches back to `102f729` (round 1 wrongly said it could not), so
   group 1's effect on the top-level solver is measured. On the 29 banded F7 rows
   the corpus goes 10.1030 → 10.3545 s; **all 29 rows are outside 0.99–1.01 and 28
@@ -2984,7 +3001,9 @@ the flag wherever such a batch feeds a number.
   three independent passes. The WHOLE PROCESS is unchanged at +0.04 %, because
   `9cebbbe` moves ~0.135 s per eleven rows from outside the timed bracket to
   inside it. Both wall figures are informational. **So a single-row process shows
-  about 1.1 % of a 2.5 % leg-process step, at the same instruction count** —
+  about 1.1 % of a 2.5 % leg-process step, at instruction counts flat within the
+  instrument** (per symbol, calibration set aside, c/p 0.995–0.997 on the two
+  profiled rows; no 1e-4 identity is reached, and none is claimed) —
   a constraint on any mechanism rather than a refutation of the step, and the
   reason §15 registers a many-solves-per-process leg for M7.
 * **Leg 2 is informational.** §11.3 (ii) reads its wall only as the paired A/B
@@ -3057,7 +3076,8 @@ no automatic KEEP; this is the owner exercising that discretion, on these
 grounds: **one solve per process is FLAT ON THE SQP** (the corpus leg in all
 three modes); **on the top-level IPM it is not flat** — the carrier pair in a
 single-row process reads **+1.10 % on the solve bracket** (1.3–2.2 % on the large
-rows) against **+2.5…3.0 % in the leg process**, at flat instruction counts and
+rows) against **+2.5…3.0 % in the leg process**, at instruction counts flat
+within the instrument (c/p 0.995–0.997 per symbol, no 1e-4 identity) and
 an unchanged whole-process time; the SQP leg's **+0.03…0.13 % of instructions is
 T8.4's declared per-call diagnostics**, the cost of the shared result core group
 1 was for; and the top-level IPM's step is one commit's — `9cebbbe` — whose
