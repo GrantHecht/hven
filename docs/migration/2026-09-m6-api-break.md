@@ -344,12 +344,76 @@ hven::solvers::IpmSolver solver(o);      // or solver.set_options(std::move(o));
 
 Reading a setting: `solver.settings().max_iters_` becomes
 `solver.options().max_iters`. There is no mutable accessor — a field is changed
-by replacing the whole value. **The complete `set_*()` → field table, all 54
-rows, is in the per-task entry** (`## T8.3`, "The setter → field table, in the
-header's own order"); the mechanical rule is `set_foo(v)` → `o.foo = v`, with
-`set_print_level` and `set_qp_threads` going to `o.common.print_level` and
-`o.common.threads`, and the multi-argument setters expanding to one assignment
-per field.
+by replacing the whole value.
+
+**The complete `set_*()` → field table is below**, carried row for row from the
+per-task entry (`## T8.3`, "The setter → field table, in the header's own
+order"). The mechanical rule `set_foo(v)` → `o.foo = v` holds for the
+single-argument setters whose field keeps the setter's name; **every other row
+is in the table** — the two that move to `common`, the five multi-argument
+setters that expand to one assignment per field in the order shown, the mode
+setter whose field does not keep its name (`set_qp_ordering_mode` → `qp_ord`),
+the six mode setters that each stood for a typed call and a string overload, and
+the two Accelerate-only knobs. **52 rows**, covering the 58 removed methods
+named above: the six mode rows each carry both spellings.
+
+| removed setter | write instead |
+|---|---|
+| `set_max_iters(v)` | `o.max_iters = v` |
+| `set_max_acc_iters(v)` | `o.max_acc_iters = v` |
+| `set_max_ls_iters(v)` | `o.max_ls_iters = v` |
+| `set_all_max_iters(a, b)` | `o.max_iters = a; o.max_acc_iters = b` |
+| `set_max_soc(v)` | `o.max_soc = v` |
+| `set_ls_extended_iters(v)` | `o.ls_extended_iters = v` |
+| `set_max_feas_rest(v)` | `o.max_feas_rest = v` |
+| `set_kkt_tol(v)` | `o.kkt_tol = v` |
+| `set_bar_tol(v)` | `o.bar_tol = v` |
+| `set_econ_tol(v)` | `o.econ_tol = v` |
+| `set_icon_tol(v)` | `o.icon_tol = v` |
+| `set_tols(k, e, i, b)` | `o.kkt_tol = k; o.econ_tol = e; o.icon_tol = i; o.bar_tol = b` |
+| `set_acc_kkt_tol(v)` | `o.acc_kkt_tol = v` |
+| `set_acc_bar_tol(v)` | `o.acc_bar_tol = v` |
+| `set_acc_econ_tol(v)` | `o.acc_econ_tol = v` |
+| `set_acc_icon_tol(v)` | `o.acc_icon_tol = v` |
+| `set_acc_tols(k, e, i, b)` | `o.acc_kkt_tol = k; o.acc_econ_tol = e; o.acc_icon_tol = i; o.acc_bar_tol = b` |
+| `set_div_kkt_tol(v)` | `o.div_kkt_tol = v` |
+| `set_div_bar_tol(v)` | `o.div_bar_tol = v` |
+| `set_div_econ_tol(v)` | `o.div_econ_tol = v` |
+| `set_div_icon_tol(v)` | `o.div_icon_tol = v` |
+| `set_div_tols(k, e, i, b)` | `o.div_kkt_tol = k; o.div_econ_tol = e; o.div_icon_tol = i; o.div_bar_tol = b` |
+| `set_bound_fraction(v)` | `o.bound_fraction = v` |
+| `set_bound_push(v)` | `o.bound_push = v` |
+| `set_bound_interval_push(v)` | `o.bound_interval_push = v` |
+| `set_bound_relax_factor(v)` | `o.bound_relax_factor = v` |
+| `set_fixed_variable_treatment(v)` | `o.fixed_variable_treatment = v` |
+| `set_alpha_red(v)` | `o.alpha_red = v` |
+| `set_delta_h(v)` | `o.delta_h = v` |
+| `set_incr_h(v)` | `o.incr_h = v` |
+| `set_decr_h(v)` | `o.decr_h = v` |
+| `set_hpert_params(d, i, r)` | `o.delta_h = d; o.incr_h = i; o.decr_h = r` |
+| `set_print_level(v)` | `o.common.print_level = v` |
+| `set_init_mu(v)` | `o.init_mu = v` |
+| `set_min_mu(v)` | `o.min_mu = v` |
+| `set_max_mu(v)` | `o.max_mu = v` |
+| `set_neg_slack_reset(v)` | `o.neg_slack_reset = v` |
+| `set_qp_threads(v)` | `o.common.threads = v` |
+| `set_qp_pivot_perturb(v)` | `o.qp_pivot_perturb = v` |
+| `set_qp_matching(v)` | `o.qp_matching = v` |
+| `set_qp_scaling(v)` | `o.qp_scaling = v` |
+| `set_qp_ref_steps(v)` | `o.qp_ref_steps = v` |
+| `set_qp_par_solve(v)` | `o.qp_par_solve = v` |
+| `set_obj_scale(v)` | `o.obj_scale = v` |
+| `set_qp_ordering_mode(m) / (str)` | `o.qp_ord = m` |
+| `set_opt_bar_mode(m) / (str)` | `o.opt_bar_mode = m` |
+| `set_soe_bar_mode(m) / (str)` | `o.soe_bar_mode = m` |
+| `set_opt_ls_mode(m) / (str)` | `o.opt_ls_mode = m` |
+| `set_soe_ls_mode(m) / (str)` | `o.soe_ls_mode = m` |
+| `set_best_criteria(m) / (str)` | `o.best_criteria = m` |
+| `set_accel_pivot_tolerance(v)` | `o.accel_pivot_tolerance = v (Accelerate builds)` |
+| `set_accel_zero_tolerance(v)` | `o.accel_zero_tolerance = v (Accelerate builds)` |
+
+*The table above is verbatim from `## T8.3`; the `(str)` overloads it names have
+no replacement — see the mode-enum paragraph below.*
 
 **The presets are free functions returning a full value.**
 `IpmOptions ipm_preset(std::string_view)` applies its nine fields to a
@@ -1156,25 +1220,45 @@ what the split buys is that `drivers/trace.h` no longer includes the engine.
 `failed()`, `lines_written()`, `depth()` and `reset_nesting()`, same bytes on
 the wire.
 
-**What the STREAM gained** (all additive; no key moved, and no golden line that
-predates each addition moves by one byte): eight keys on `ipm.solve.begin`, five
-on `sqp.solve.end`, one key at the end of `sqp.solve.end`'s counters object
-(`polish_ignored`), the new `ipm.restoration_exit_row` line, and T8.7b's five
-new events (`ipm.phase.begin`/`.end`, `ipm.kkt_analysis`, `ipm.phase.exit`,
-`ipm.message`). The interior-point `status` field spells `SolveStatus` now
-(`converged` → `optimal`, `not_converged` → `max_iter` or `stalled`,
-`singular_kkt` → `numerical_error`).
+**What the STREAM gained, and what changed meaning.** `v` stays `0`:
+`docs/trace-schema-v0.md` §8 classes new events, new enum strings and new
+trailing fields as ADDITIVE, and says a frozen event's golden line "moves only
+by a DECLARED ADDITIVE TRAILING KEY, never otherwise". Two lists follow — the
+additive changes, which include declared re-derivations that DID move a golden
+line by a trailing key, and the changes a consumer must handle as a change of
+meaning. **That document is the document of record for both**; where it and a
+per-task entry disagree, it wins.
+
+**(a) Additive — new events, new keys, new enum strings.**
+
+| what the stream gained | declared in |
+|---|---|
+| `ipm.restoration_exit_row`, a NEW line: the restoration-locally-infeasible exit door marks the row it hands back, carrying `iter`, `phase`, `theta` and `threshold`. `TraceSink::on_ipm_restoration_exit_row` is non-pure with an empty default, so no existing sink is touched by its arrival; `ConsoleTraceSink` renders nothing for it. | `## T8.7` §4; schema §8 row `ipm.restoration_exit_row` (frozen since **W5 T8.7**) |
+| Five NEW events — `ipm.phase.begin`, `ipm.phase.end`, `ipm.kkt_analysis`, `ipm.phase.exit`, `ipm.message` — and three new enum vocabularies (`IpmPhase`, `IpmKktFactorStatus`, `IpmMessageKind`). `TraceSink` gains five virtuals, all non-pure with empty defaults; none of them moves a `depth`. | `## T8.7b` §2; schema §8 rows (frozen since **W5 T8.7b**) |
+| **EIGHT trailing keys on `ipm.solve.begin`**: `acc_kkt_tol`, `acc_econ_tol`, `acc_icon_tol`, `acc_bar_tol`, `wide_console`, `kkt_dim`, `kkt_nnz`, `internal_fixed_rows`. `internal_fixed_rows` is NOT `vars_fixed` — that is the declared box's census, which equals the fixing-row count only under the MakeConstraint treatment. **This is a declared additive re-derivation and it MOVES a golden line**: `JsonLinesTraceSink.GoldenLineIpmSolveBegin`, once, by the eight keys appended in one step. | `## T8.7` §4; `tests/sqp/test_trace_writer.cpp` `GoldenLineIpmSolveBegin` ("RE-DERIVED AT M6 W5 T8.7") |
+| **FIVE trailing keys on `sqp.solve.end`**: `scaling_active`, `obj_scale`, `row_scale_min`, `row_scale_max`, `scaled_kkt_residual` — `SqpResult::scaling`'s own values. **Declared additive re-derivation; it MOVES both `sqp.solve.end` golden lines**, `GoldenLineSqpSolveEndWithEveryCounterDistinct` and `GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull`. | `## T8.7` §4; `tests/sqp/test_trace_writer.cpp`, both tests ("RE-DERIVED AT M6 W5 T8.7") |
+| **ONE key at the end of `sqp.solve.end`'s counters object**, `polish_ignored`, between `near_active_peak` and `ssn` — `SqpCounters` gained it appended LAST, so no existing field offset moved. **Declared; it MOVES the same two golden lines.** | `## T8.5` ("Declared; the two golden lines in `tests/sqp/test_trace_writer.cpp` are re-derived") |
+
+No golden line that predates T8.7b moves by one byte at that task: it adds
+events and enum strings only (`## T8.7b` §2; the schema document's **"M6 W5
+T8.7b MOVES NO GOLDEN LINE AT ALL"**).
+
+**(b) Not additive — handle these as a change of MEANING.**
+
+| what a consumer must handle | declared in |
+|---|---|
+| The interior-point `status` field on `ipm.solve.end` spells `SolveStatus` now: `converged` → `optimal`, `not_converged` → `max_iter` or `stalled`, `singular_kkt` → `numerical_error`. This is an EXISTING value whose vocabulary changed, not a new one — a reader that switched on the old spellings stops matching. | `## T8.2` (the status map); `## T8.4`; schema §4.13 and §8's `ipm.solve.end` row, "**T8.4** (the `SolveStatus` vocabulary in place of `ConvergenceFlags`')" |
+| A consumer counting `ipm.iter` lines on a solve that ends `IpmStopReason::kRestorationLocallyInfeasible` sees **ONE MORE line than before** — that exit now emits the row it returns. It always kept the record it pushed (`IpmResult::iterations` counts it) and emitted no line for it, so the stream was one row short of the iterations the result reported. No CSV column, counter or golden moves, because no artifact traces that exit. | `## T8.6` §3 |
+| `ipm.phase.exit` **LOST its `selected_iter` key** (T8.7b fix1) — the only removal in the schema document's re-derivations column. It was withdrawn in the review round of the very task that added the record, before any tree outside this one had seen the event, so **it never shipped to an external consumer**; the freeze is not broken. It moves exactly one golden line, `JsonLinesTraceSink.GoldenLineIpmPhaseExit`, and no line that predates T8.7b. If you copied the event during the window, drop the key: the join to the selected row's `ipm.iter` line is (`phase`, `iter`), **a join and not an adjacency** — under `return_best` the selected row is an EARLIER row of the phase. | `## T8.7b` §8; schema §8 "T8.7b fix1's ONE REMOVAL, and why it is not a freeze break", and §4.18 |
 
 **Two counting rules that are easy to get wrong**: `ipm.kkt_analysis` is NOT one
 per phase (the identity is `1 + #{phases that ran, were not the last step, and
 did not break}`), and several `ipm.message` lines per iteration are normal. The
-whole-stream arithmetic is `lines = 2 + 3P + A + R + M + D`. A consumer counting
-`ipm.iter` lines on a solve that ends
-`IpmStopReason::kRestorationLocallyInfeasible` sees ONE MORE line than before —
-that exit now emits the row it returns.
+whole-stream arithmetic is `lines = 2 + 3P + A + R + M + D`.
 
-*Per-task entries: `## T4`, plus the schema deltas in `## T8.5`, `## T8.7` §4
-and `## T8.7b` §§2–3, §8. `docs/trace-schema-v0.md` is the document of record.*
+*Per-task entries: `## T4`, plus the schema deltas in `## T8.5`, `## T8.6` §3,
+`## T8.7` §4 and `## T8.7b` §§2–3, §8, and the status vocabulary in `## T8.2`
+and `## T8.4`. `docs/trace-schema-v0.md` is the document of record.*
 
 ---
 
