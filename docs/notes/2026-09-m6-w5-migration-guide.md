@@ -3102,7 +3102,11 @@ ruling.
 
 ## T8.10 — the Scheme 1 rename sweep: the names are final
 
-**What changed: NAMES, and four aliases that stop existing. Nothing else.**
+**What changed: NAMES, four aliases that stop existing, ONE field fold — which
+is a LAYOUT change and is declared as one — and a whitespace-only reflow.**
+(Corrected by the settler, 2026-09-13, T8.10 fix round 2: this line used to end
+"Nothing else", which §6 of this same entry contradicts. The fold and the reflow
+are named here so the headline and §6 say the same thing.)
 Group 1 (T8.1–T8.9) moved every SHAPE under the old class names; this task is
 the mapped rename that follows it, in ONE commit. No behaviour moved, no field
 changed meaning, no record name in `docs/trace-schema-v0.md` moved. The U0
@@ -3325,22 +3329,25 @@ every one; these are the classes of them.
 ### 6. What this sweep did that a rename does not, said plainly
 
 Two things in T8.10 are not mapped renames, and both are declared rather than
-folded into a pass/fail line. (Settler ruling, 2026-09-13, T8.10 fix round 1.)
+folded into a pass/fail line. (Settler ruling, 2026-09-13, T8.10 fix round 1;
+this section rewritten to the evidence at fix round 2, same date.)
 
 **The field fold is a LAYOUT change, so it is not instruction-neutral — by
 construction.** `SqpOptions::start_level` sat in the middle of the struct;
-deleting it moves every field after it by 8 bytes and shrinks the struct. No
+deleting it shrinks the struct by 8 bytes and moves every field after it. No
 proof technique can make that emit the same instructions, and none was
-attempted. What IS proven is that the fold is the ONLY thing in the sweep that
-moves an instruction, and the proof is a decomposition of the manifests into
-three stages, each applied to the group-1 head and compared against the stage
-before it:
+attempted. Two things in this sweep move an instruction and only two: **the
+fold, and a renamed name that lives inside a STRING LITERAL** — five symbols at
+stage A, and at stage B the string half of the three collapsing renames, which
+cannot be applied without their alias removals. The proof is a decomposition of
+the manifests into three stages, each applied to the group-1 head and compared
+against the stage before it:
 
 | stage | what it adds | the result |
 |---|---|---|
-| A | the identifier, enumerator and path renames alone | **instruction-CLEAN**, except where a renamed name lives inside a string literal: a shorter or longer name changes that string's length immediate and its `.rodata` offset. Every such pair is enumerated by object and symbol in the fix-round transcripts. |
-| B | the four alias removals, the field fold among them | **NOT instruction-neutral, and declared.** Every differing pair is in a symbol that builds, copies, validates or reads an `SqpOptions`, or is the two-instruction forwarder removal in `IpqpEngine::solve`. |
-| C | the whitespace reflow (below) | **every object byte-identical.** |
+| A | the identifier, enumerator and path renames alone | **instruction-CLEAN except in five symbols, in four objects, every one of them materializing a string literal whose length a rename changed**: `_GLOBAL__sub_I_test_assembly_eval_seam.cpp`, `_GLOBAL__sub_I_unity_0_cxx.cxx`, `_GLOBAL__sub_I_unity_1_cxx.cxx`, `NlpTripletModel::name()` (in `unity_1_cxx.cxx.o`) and `_GLOBAL__sub_I_test_nlp_model_assembly.cpp`. The surface of such a change is wider than a length immediate: a store width (`movw`→`movb`), a gained or lost `movabs`, the `.rodata` offset, and every displacement after it. All five are disassembled in `.superpowers/w5-t8-10-fix1-psym-transcripts.md`. |
+| B | the four alias removals, the field fold among them | **NOT instruction-neutral, and declared.** 42 objects, **563 differing symbols**. A census over EVERY one of them — `.superpowers/w5-t8-10-fix2-census.md`, which establishes `sizeof(SqpOptions)` = 384 → 376 and the field map by a stack-slot read before it classifies anything — attributes **535** to the fold's own mechanism (the field map; the frame the object sits in; the initializer stores; the deleted `validate_sqp_options` forwarder, which is the two-instruction delta in `IpqpEngine::solve`; and the alias names inside string literals) and leaves **28 UNATTRIBUTED**, whose remaining differences are register allocation, constant-pool index reassignment and moved branch targets. That is the honest count: it is not 0, and the census says why. |
+| C | the whitespace reflow (below) | **instruction-IDENTICAL. 122 of 132 objects byte-identical**; the other ten are TEST objects differing only in the `__LINE__` immediates gtest's `EXPECT_`/`ASSERT_` macros put into an object, which is P-SYM's own accepted noise class (a). Every library and bench object is byte-identical, and the tool's verdict is **PASS**. |
 
 **The sweep carried a whitespace-only reflow, of 57 files.** Three of the
 renames are LONGER than the names they replace (`WarmStart`→`SqpWarmStart`,
