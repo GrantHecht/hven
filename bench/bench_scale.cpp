@@ -18,14 +18,14 @@
 //          2-arg solve(). `--sweep N` is the LITERAL number of grid points,
 //          evenly spaced over the family's fixed [p0, p1] (linspace, N >= 1;
 //          N == 1 solves only at p1).
-//   hot    ONE SqpSolver, constructed with SqpOptions::start_level = kHot,
+//   hot    ONE SqpSolver, constructed with SqpOptions::common.start_level = kHot,
 //          walking the SAME evenly-spaced grid as `cold` but feeding each
 //          solve's own SqpWarmStart (primal/dual point AND the retained
 //          factorization handle) into the next -- "chained solves on one
 //          driver feeding warm+hot back". The first grid point is always a
 //          plain 2-arg (cold) solve, since there is nothing to warm from yet.
 //   warm   run_continuation (continuation.h) over [p0, p1] with
-//          SqpOptions::start_level = kWarm and ContinuationOptions::
+//          SqpOptions::common.start_level = kWarm and ContinuationOptions::
 //          use_predictor = false. Unlike `cold`/`hot`, the ACTUAL number of
 //          steps is continuation.h's own adaptive dp schedule, not `--sweep`
 //          literally -- `--sweep` only seeds ContinuationOptions::dp_init

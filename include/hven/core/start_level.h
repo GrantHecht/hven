@@ -75,7 +75,7 @@ namespace hven::solvers {
 /// - kHot additionally offers `hot` for the engine to reuse a cached
 ///   factorization keyed on that same `structure_hash`, gated the same way
 ///   kWarm always was: a caller opts in only by having received a `hot`
-///   handle from a prior solve; SqpOptions::start_level still CAPS the
+///   handle from a prior solve; SqpOptions::common.start_level still CAPS the
 ///   result, so a caller that never wants kHot pinned can clamp it there.
 enum class StartLevel { kCold, kSeeded, kWarm, kHot };
 

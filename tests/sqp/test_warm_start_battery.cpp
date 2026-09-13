@@ -18,7 +18,7 @@
 //                        through the 2-arg solve() that has no warm object to
 //                        resolve. Run on the WARM arm's parameter grid. This is
 //                        the baseline a user without any of Phase 4 pays.
-//     warm               run_continuation with SqpOptions::start_level = kWarm
+//     warm               run_continuation with SqpOptions::common.start_level = kWarm
 //                        and ContinuationOptions::use_predictor = false.
 //     warm+predictor     the same with use_predictor = true (Task 9).
 //     hot                the same with start_level = kHot (Task 4).

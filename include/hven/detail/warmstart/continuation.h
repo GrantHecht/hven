@@ -11,7 +11,7 @@
 // here is a new algorithm: it is a COMPOSITION LAYER over SqpWarmStart + the
 // 3-arg solve (the hand-off between consecutive parameter values), the `hot`
 // factorization handle (reachable only when the caller raises
-// SqpOptions::start_level to kHot; the predictor drops `hot` by contract, so
+// SqpOptions::common.start_level to kHot; the predictor drops `hot` by contract, so
 // a PREDICTED sweep is kWarm by construction), SqpOptions::warm_full_step
 // (which stops the funnel from re-globalizing a warm start from scratch, and
 // engages automatically on every step past the first here), SqpOptions::

@@ -3065,7 +3065,7 @@ void SqpSolver::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const Vec 
     //   valid, hash match, warm.hot == null  -> kWarm.
     //   valid, hash match, warm.hot != null  -> kHot, TENTATIVELY (see the
     //                                         note below this block).
-    //   SqpOptions::start_level then CAPS the result (that struct's own
+    //   SqpOptions::common.start_level then CAPS the result (CommonOptions'
     //   note) -- it can only push the level DOWN, never up.
     //
     // THE SEEDED LEVEL, in this function's own terms. `warm_ingest`
@@ -3195,7 +3195,7 @@ void SqpSolver::prepare_solve(SolveState &st, AssemblyEvalSeam &seam, const Vec 
             resolved_level = warm.hot != nullptr ? StartLevel::kHot : StartLevel::kWarm;
         }
     }
-    // A CEILING, never a floor (SqpOptions::start_level's own note).
+    // A CEILING, never a floor (SqpOptions::common.start_level's own note).
     if (static_cast<int>(opts_.common.start_level) < static_cast<int>(resolved_level)) {
         resolved_level = opts_.common.start_level;
     }

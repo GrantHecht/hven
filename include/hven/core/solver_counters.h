@@ -1126,7 +1126,7 @@ struct SqpCounters {
     /// Always kCold on the 2-argument solve(model, x0) overload. On the 3-argument
     /// overload: kCold when `warm.valid` is false, when `warm` is not dimensionally
     /// compatible, when any ingested vector is non-finite, when the seeded dual
-    /// clamp DEGRADED the object, or when SqpOptions::start_level caps it there.
+    /// clamp DEGRADED the object, or when SqpOptions::common.start_level caps it there.
     ///
     /// A HASH MISMATCH -- the `0` "no model was seen" sentinel included -- lands on
     /// kSeeded, which takes the object's values and refuses its

@@ -20,11 +20,12 @@
 //                              inequality price is a rounding artefact rather
 //                              than a corrupt object.
 //
-// COMPATIBILITY: the old spellings survive as aliases at their old homes --
-// `IpmSolver::kSeededIqMultFloor` / `::kSeededMultInitMax` (static
-// members) and `hven::solvers::kSeededDualClampTol` (which was already at this
-// namespace scope, and is simply defined here now). T8.10 rewrites the call
-// sites and drops the two member aliases.
+// COMPATIBILITY, AND ITS END: the two IPM values were also reachable as static
+// members of the solver class -- `InteriorPointSolver::kSeededIqMultFloor` and
+// `::kSeededMultInitMax` -- until M6 W5 T8.10 swept the call sites and DROPPED
+// those aliases. `hven::solvers::kSeededIqMultFloor` and `::kSeededMultInitMax`
+// are the only names for them now. `hven::solvers::kSeededDualClampTol` was
+// already at this namespace scope and is simply defined here.
 
 namespace hven::solvers {
 

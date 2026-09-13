@@ -30,9 +30,10 @@
 // resolves kWarm; a match plus a live hot handle resolves kHot subject to the
 // backend's own reuse checks.
 //
-// `SqpWarmStart` remains a spelling of this type -- `detail/warmstart/
-// warm_start.h` keeps `using SqpWarmStart = SqpWarmStart;` until T8.10 rewrites
-// the call sites -- so every existing producer and consumer is unaffected.
+// Until M6 W5 T8.10, `detail/warmstart/warm_start.h` kept the old spelling
+// `WarmStart` as an alias of this type, so the producers and consumers T8.5
+// did not touch went on compiling. T8.10 swept them: `SqpWarmStart` is the
+// only spelling now, and that header stays for its other half, the crossover.
 //
 // WHAT THE OBJECT IS (carried verbatim from its old home):
 //

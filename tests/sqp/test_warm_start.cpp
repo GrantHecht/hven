@@ -625,7 +625,7 @@ TEST(WarmStart, HotReusesFactorization) {
     // with the schedule off, every solve on this driver runs at the engine's
     // own fixed defaults.
     opts.adaptive_mu = false;
-    // kWarm is the CEILING's default (sqp_solver_types.h's SqpOptions::start_level);
+    // kWarm is the CEILING's default (common_options.h's CommonOptions::start_level);
     // kHot must be explicitly raised to, exactly like enable_soc/adaptive_mu.
     opts.common.start_level = StartLevel::kHot;
 

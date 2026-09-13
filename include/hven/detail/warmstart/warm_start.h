@@ -3,16 +3,20 @@
 
 #pragma once
 
-// warm_start.h -- the interior-point CROSSOVER (`from_interior_point`) and the
-// `SqpWarmStart` spelling of the SQP's native warm-start object.
+// warm_start.h -- the interior-point CROSSOVER (`from_interior_point`).
 //
-// M6 W5 T8.5 PROMOTED THE STRUCT OUT OF `detail/`: it now lives, with its full
-// contract, in `warmstart/sqp_warm_start.h` as `SqpWarmStart` -- the labelled
-// SQP-only native identity beside the shared `WarmStartData` payload (design
-// 2.4). This header keeps the old spelling as an alias so the ~70 existing
-// call sites are untouched by that move; T8.10 rewrites them and removes this
-// header. Everything below the alias is the crossover, which was always this
-// header's other half and stays here.
+// M6 W5 T8.5 PROMOTED THE SQP'S NATIVE WARM-START STRUCT OUT OF `detail/`: it
+// lives, with its full contract, in `warmstart/sqp_warm_start.h` as
+// `SqpWarmStart` -- the labelled SQP-only native identity beside the shared
+// `WarmStartData` payload (design 2.4). This header KEPT the old spelling
+// `WarmStart` as an alias so the ~70 call sites T8.5 did not touch went on
+// compiling; M6 W5 T8.10 swept those call sites and REMOVED the alias.
+//
+// THE HEADER ITSELF STAYS, though the T8.5 entry, the plan and the T8.10 brief
+// all said T8.10 would delete it. That premise was that nothing but the alias
+// would be left here. Everything below is the crossover -- always this header's
+// other half -- and group 2 is mapped renames only, so deleting the file would
+// have RELOCATED functional code. Settler ruling, 2026-09-13 (T8.10 fix 1).
 
 #include <algorithm>
 #include <cmath>

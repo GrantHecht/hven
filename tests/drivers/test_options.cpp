@@ -534,21 +534,22 @@ SqpOptions sqp_default() { return SqpOptions{}; }
 
 // The SQP engine's `common` defaults are the struct's own -- 0 threads (leave
 // the backend alone) and print_level 3 (silent) -- and neither is read in T8.3.
-// `SqpOptions::start_level` is still the field the driver caps a warm start
-// with; `common.start_level` is carried beside it until T8.10 folds the two.
+// M6 W5 T8.10 FOLDED the driver's own `start_level` field into
+// `common.start_level`, which is now the one field the driver caps a warm
+// start with; its default is unchanged at kWarm.
 TEST(Options, SqpCommonDefaultsAreTheStructsOwn) {
     const SqpOptions o;
     EXPECT_EQ(o.common.threads, 0);
     EXPECT_EQ(o.common.print_level, 3);
-    EXPECT_EQ(o.common.start_level, o.common.start_level);
+    EXPECT_EQ(o.common.start_level, hven::solvers::StartLevel::kWarm);
 }
 
 TEST(Options, SqpValidateRefusesTheCommonFieldsAndWhatItAlwaysRefused) {
     {
         SqpOptions o;
         o.max_iter = -1;
-        EXPECT_THROW(hven::solvers::validate(o), std::invalid_argument);
-        // The pre-T8.3 name is a forwarder onto the same body.
+        // The pre-T8.3 spelling was a one-line forwarder onto this same body;
+        // T8.10 removed it, so there is one name and one call to make.
         EXPECT_THROW(hven::solvers::validate(o), std::invalid_argument);
     }
     {
