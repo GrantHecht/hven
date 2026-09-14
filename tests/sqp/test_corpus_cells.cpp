@@ -934,14 +934,46 @@ std::vector<std::string> split_all(const std::string &s) {
 // common outcome; the gate engages only on the digits that provably vary.
 constexpr double kResidualRelativeGate = 1.0e-5;
 
-// The corpus schema's floating-point measure columns, by index:
+// The corpus schema's floating-point measure columns, by index. The schema is
+// 76 columns wide and bench/bench_corpus.cpp is its authority: write_header at
+// :879-899 names them and write_outcome's format string at :938-946 fixes each
+// one's TYPE. Twelve non-wall floats:
 //   12 kkt_residual
 //   15 kkt_stationarity   16 kkt_primal        17 kkt_dual_sign
 //   18 kkt_complementarity 19 dual_scale       20 x_scale
-// Column 13 (wall_s) is excluded by the caller for a different reason -- timing
-// noise, never a regression contract. Column 14 (kkt_verdict) is a string and
-// stays exact. Everything at 21 and above is an integer counter.
-bool is_residual_column(std::size_t i) { return i == 12 || (i >= 15 && i <= 20); }
+//   42 ipqp_rho_demanded_max    43 ipqp_rho_demanded_last
+//   55 ipqp_restart_shift_max
+//   72 ipqp_alpha_p_min         73 ipqp_alpha_d_min
+// Column 13 (wall_s) is a float too and is excluded by the caller for a
+// DIFFERENT reason -- timing noise, never a regression contract. That is the
+// whole float class: 13 of the 76. The seven STRINGS (0 cell_id, 1 family,
+// 3 window, 4 taxonomy, 6 status, 11 qp_fact_per_qp, 14 kkt_verdict) stay
+// exact, and so do the remaining 56 INTEGER COUNTERS.
+//
+// CORRECTED AT M6 W6 T6b (settler ruling R-GATE, W6 close), and DECLARED
+// because it relaxes a test rule. This comment used to end "Everything at 21
+// and above is an integer counter" and this predicate gated 12 and 15-20 only.
+// That was FALSE at source: `IpqpCounters` carries five `double` members that
+// write_outcome prints with `{:.9e}` -- include/hven/core/solver_counters.h:506
+// `ipqp_rho_demanded_max`, :516 `ipqp_rho_demanded_last`, :663
+// `ipqp_restart_shift_max`, :842 `ipqp_alpha_p_min`, :844 `ipqp_alpha_d_min`.
+// W6 T3's LTO replay then moved two of them on f7_n1000_path_warm --
+// ipqp_alpha_p_min by 1.76e-10 relative and ipqp_alpha_d_min by 2.11e-9 --
+// while every counter and every status stayed byte-identical
+// (docs/notes/data/2026-09-m6-w6-lto/, frozen). That is the address-sensitivity
+// argued above, on columns the gate did not reach.
+//
+// THE NAME IS KEPT deliberately. The RULE is unchanged -- byte equality first,
+// then kResidualRelativeGate relative, non-finite never waved through -- and it
+// is still the residual rule by derivation; only the SET it is applied to is
+// corrected to the schema's actual floats. Renaming it would churn ten call
+// sites in this file to say nothing new. (The python comparator's copy of this
+// predicate DID rename, to `is_float_measure_column`: there the name is
+// module-level API for a file whose docstring is read on its own, and it has a
+// single caller.)
+bool is_residual_column(std::size_t i) {
+    return i == 12 || (i >= 15 && i <= 20) || i == 42 || i == 43 || i == 55 || i == 72 || i == 73;
+}
 
 // True when the two spellings are byte-equal, or agree to within the gate.
 // A column that does not parse as a number is NOT quietly waved through: it
@@ -1165,9 +1197,17 @@ TEST(CorpusRunnerProcess, ScoreModelSurfaceWritesTheCensusArtifactAndLeavesTheMa
     // noise, never a regression contract per this file's own banner).
     //
     // Two gates, not one: counters, statuses and spellings are held to byte
-    // equality, the residual-class columns to a relative gate, because these two
-    // rows come from separate PROCESSES. See runner_test::kResidualRelativeGate
+    // equality, the FLOATING MEASURE columns to a relative gate, because these
+    // two rows come from separate PROCESSES. See runner_test::kResidualRelativeGate
     // above for the measurement that fixes the number.
+    //
+    // M6 W6 T6b widened `is_residual_column` from seven columns to twelve, so
+    // five columns that used to be byte-compared here -- 42, 43, 55, 72, 73, the
+    // schema's ipqp `{:.9e}` columns -- now take the relative gate instead. That
+    // is a RELAXATION of this pin on those five, and it is the right one: they
+    // are floats produced by address-sensitive kernels in two different
+    // processes, exactly like the seven that were already gated. Nothing else
+    // moves: every counter, every status and every string stays byte-exact here.
     const std::vector<std::string> rows_on = runner_test::data_rows(csv_on);
     const std::vector<std::string> rows_off = runner_test::data_rows(csv_off);
     ASSERT_EQ(rows_on.size(), 1u);
@@ -1246,18 +1286,38 @@ TEST(CorpusResidualGate, AcceptsEveryRecordedSpreadAndRefusesARealMove) {
     // waved through.
     EXPECT_FALSE(runner_test::residual_columns_agree("1.0e-9x", "1.0e-9"));
 
-    // The gated set is exactly the schema's floating-point measure columns.
+    // The gated set is exactly the schema's floating-point measure columns --
+    // ALL TWELVE of them since M6 W6 T6b, and this enumeration is what makes
+    // "exactly" a checked claim rather than a comment.
     EXPECT_TRUE(runner_test::is_residual_column(12)); // kkt_residual
     for (std::size_t i = 15; i <= 20; ++i) {
         // kkt_stationarity, kkt_primal, kkt_dual_sign, kkt_complementarity,
         // dual_scale, x_scale
         EXPECT_TRUE(runner_test::is_residual_column(i)) << "column " << i;
     }
+    // The five the comment above used to misclassify as integer counters: the
+    // `{:.9e}` ipqp columns, every one a `double` in IpqpCounters.
+    EXPECT_TRUE(runner_test::is_residual_column(42)); // ipqp_rho_demanded_max
+    EXPECT_TRUE(runner_test::is_residual_column(43)); // ipqp_rho_demanded_last
+    EXPECT_TRUE(runner_test::is_residual_column(55)); // ipqp_restart_shift_max
+    EXPECT_TRUE(runner_test::is_residual_column(72)); // ipqp_alpha_p_min
+    EXPECT_TRUE(runner_test::is_residual_column(73)); // ipqp_alpha_d_min
+    // ...and no more than those twelve, over the WHOLE 76-column schema, so a
+    // future widening has to come here to happen.
+    int gated = 0;
+    for (std::size_t i = 0; i < 76; ++i) {
+        gated += runner_test::is_residual_column(i) ? 1 : 0;
+    }
+    EXPECT_EQ(gated, 12) << "the gated set is the schema's twelve non-wall floats";
     // cell_id, status, factorizations, qp_minors, wall_s, kkt_verdict, and the
     // integer counter block are NOT gated -- they are held to byte equality.
+    // 44 and 56 are the integer counters that now sit BESIDE newly gated floats
+    // (ipqp_inertia_retries next to 43, ipqp_mu_adopted next to 55): the
+    // widening must not have carried its neighbours along with it.
     for (const std::size_t i :
          {std::size_t{0}, std::size_t{6}, std::size_t{7}, std::size_t{8}, std::size_t{13},
-          std::size_t{14}, std::size_t{21}, std::size_t{36}}) {
+          std::size_t{14}, std::size_t{21}, std::size_t{36}, std::size_t{44}, std::size_t{56},
+          std::size_t{74}, std::size_t{75}}) {
         EXPECT_FALSE(runner_test::is_residual_column(i)) << "column " << i;
     }
 }
