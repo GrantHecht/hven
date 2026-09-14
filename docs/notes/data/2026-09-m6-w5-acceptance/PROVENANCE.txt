@@ -31,6 +31,21 @@ COMMITS
                          then THIS directory (T9 commit 3).  All three are
                          docs-only, so none of them changes the measured tree.
 
+  [SUPERSEDED 2026-09-13 (T9 FIX ROUND 3, see the block at the end of this
+  file): "All three" UNDERCOUNTS.  The sentence above is kept as first written
+  and is not deleted; T9 landed FIVE docs commits on 369e3146, and this fix
+  round adds two more.  The full list (`git log 369e3146..HEAD`):
+      c2e327ff  the consolidated migration guide
+      0f52c751  the brief/roadmap amendments
+      bed80fb0  THIS directory
+      db0c9a2f  fix1 -- the guide's setter table carried in full, the trace
+                section's non-additive changes named
+      818e40d2  fix2 -- schema v0's sections 8 and 4 completed
+  plus fix round 3's two: the commit carrying THIS correction to the artifact,
+  and the migration-guide/plan commit that follows it.  EVERY ONE of them is
+  docs-only, so the statement that matters -- none of them changes the measured
+  tree -- is unchanged.]
+
   Replay BASE:           accbff0e  "docs(m6): ledger -- W4 T5 closed; W4 CLOSED
                                     (telemetry + machine-trace schema v0) ..."
   THE W5 BASE, VERIFIED, NOT ASSUMED.  The T9 dispatch named the W4 CLOSED
@@ -47,6 +62,13 @@ COMMITS
   at .scratch/w5t9/base with its submodules initialised (eigen 5.0.1
   bc3b3987, fmt 12.1.0 407c905e), from an EMPTY build directory, so its stamp is
   CLEAN (`accbff0e60b0`) rather than a symlinked -dirty form.
+
+  [ADDED 2026-09-13 (T9 FIX ROUND 3): the BASE arm was built TARGET-LIMITED --
+  `--target hven_sqp_corpus` -- rather than in full
+  (.scratch/w5t9/logs/02-build-base-release.log:1 records the invocation; the
+  T9 report declares it at .superpowers/w5-t9-report.md:237-239).  Nothing else
+  in that tree is used: the BASE arm exists only to produce the three replay
+  CSVs.  The HEAD arm was built IN FULL in both configs.]
 
 TOOLCHAIN AND HARDWARE
   clang 22.1.8 (Fedora 22.1.8-4.fc44); CMake 4.3.0; Ninja 1.13.2; ccache
@@ -137,9 +159,81 @@ WHAT THIS WINDOW DECLARED, AND WHERE IT IS RECORDED
   ONE committed baseline was re-derived DURING the window, three times, each as
   a declared event in its own task's ledger line: the top-level interior leg's
   (at T8.2, T8.4 and T8.9, reaching its committed 43-row form).  It is that
-  committed form this artifact compares against, and T9 did not rewrite it.  The
-  76-column corpus CSV gained no column in W5 and moved no byte, which is why
-  the replay above reaches back to the W4 close head at all.
+  committed form this artifact compares against, and T9 did not rewrite it.
+
+  [SUPERSEDED 2026-09-13 (T9 FIX ROUND 3, see the block at the end of this
+  file): the sentence above is kept as first written and is not deleted, but
+  its COUNT AND ITS TASK LIST ARE WRONG.  Read the corrected statement that
+  follows it.]
+
+  CORRECTED (2026-09-13, T9 fix round 3).  ONE committed baseline was re-derived
+  DURING the window -- the top-level interior leg's,
+  bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv -- and it was
+  rewritten SIX TIMES ACROSS FOUR TASKS, not three times.  `git log --` on that
+  path lists seven commits: the file's CREATION at T8.1 (149f29be; ledger
+  docs/notes/2026-08-m6-ledger.md:3675, the baseline "captured at BASE twice
+  with a re-configure before each"), and then, each rewrite declared in its own
+  task's ledger close line --
+
+    T8.2       2c445061   ledger :3731   "2c44506 the interior leg's
+                                          abnormal-exit rows and the baseline
+                                          RE-DERIVED"
+    T8.4       eb8f1573   ledger :3934   named among the task's commits
+                                          ("task 8ae1618 / 9cebbbe / 9ce9bb2 /
+                                          eb8f157 / f607c2c")
+    T8.4 fix1  3c8e43b7   ledger :3997-3998  "fix1 moved EXACTLY one cell (the
+                                          stalled row's `stationarity` 0 -> nan,
+                                          three captures both directions),
+                                          re-derived 39/30/0 twice"
+    T8.5       d60b49b9   ledger :4039 ("task f836d74 + d60b49b") and
+                                      :4071-4072  "39 old rows byte-identical
+                                          outside `wall_s`; 41/30/0 three
+                                          captures"
+    T8.5 fix1  8f956554   ledger :4039 ("fix1 8f95655") and :4104-4105, the
+                                          lane's re-check -- "the leg 41/30/0
+                                          twice against both files, the non-`#`
+                                          lines of the two baselines identical"
+    T8.9       222435c0   ledger :4337   "the interior baseline RE-DERIVED
+                                          41 -> 43 rows as a declared event"
+
+  EVERY ONE of the six was declared where it happened, in its own task's ledger
+  close line, so the SUBSTANCE of the original claim -- no silent re-derivation
+  of a pinned artifact, CLAUDE.md section 7 -- is unchanged.  What was wrong is
+  the count (three, for six) and the task list (three tasks, for four: T8.2,
+  T8.4 with its fix1, T8.5 with its fix1, T8.9).  It is the committed 43-row
+  form reached at T8.9 (ledger :4337) that this artifact compares against, and
+  T9 did not rewrite it.
+
+  The 76-column corpus CSV gained no column in W5 and moved no byte, which is
+  why the replay above reaches back to the W4 close head at all.
 
   P-SYM was NOT re-run at T9; psym-record.md says why and records what each task
   found, with the ledger line and the retained transcript for every one.
+
+T9 FIX ROUND 3 (2026-09-13) -- CORRECTIONS TO THIS FILE, DECLARED
+  This artifact was reviewed READ-ONLY at the W5 close
+  (.superpowers/w5-t9-review-fable.md, SIGNOFF W5-T9-REVIEW-FABLE).  The review
+  recomputed every comparison in "WHAT WAS COMPARED" from the retained CSVs with
+  the retained comparator and reproduced all seven of them.  It found ONE defect
+  in this file and two omissions; the settler ruled all three fixed here, as a
+  DATED evidence correction.  Each is marked in place above and no original
+  sentence was deleted.  THIS ROUND RAN NO LEG, NO BUILD AND NO SOLVER: not one
+  measured value, CSV byte or log line changed.
+
+  1. (the review's I1 -- a DEFECT) The re-derivation count under "WHAT THIS
+     WINDOW DECLARED": "three times" in three tasks is wrong; the interior
+     leg's baseline was rewritten SIX times across FOUR tasks, every rewrite
+     declared in its own ledger close line.  Corrected above, with the commit
+     and the ledger line for each of the six.
+  2. (the review's M1) "the three T9 commits" / "All three are docs-only": T9
+     landed FIVE commits and this round adds two.  The full list is given above,
+     and README.md carries the same correction.
+  3. (the review's M2) The BASE arm was built target-limited
+     (`--target hven_sqp_corpus`).  The T9 report declared it; this artifact,
+     which is what survives, now states it where the BASE build is described.
+
+  The route: docs/notes/data/** is frozen against the T8.10 rename sweep's
+  residual policy, NOT against an evidence correction declared by its own round
+  -- the T8.9r fix-4 precedent on the record at
+  docs/notes/2026-08-m6-ledger.md:4514-4515.  Nothing here is a re-measurement,
+  and no pinned value moved.

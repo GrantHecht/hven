@@ -8,6 +8,14 @@ comparator's pin, and it governs every number below. Every value here was
 measured in this task, except `psym-record.md`, which is explicitly a record of
 earlier tasks and says so.
 
+> **Corrected 2026-09-13 (T9 fix round 3).** "The three T9 commits" above
+> UNDERCOUNTS: T9 landed five docs commits on `369e3146`, and this fix round
+> adds two more. The sentence is kept as first written and is not deleted —
+> every one of those commits is docs-only, so the code head the numbers describe
+> is unchanged, which is what the sentence was asserting. `PROVENANCE.txt` lists
+> them all and records this correction, with the two others of this round, in
+> its dated block at the end.
+
 Everything is **MKL on Linux**. Apple/Accelerate and Windows are **UNOBSERVED**
 and nothing is inferred from this run for either.
 
