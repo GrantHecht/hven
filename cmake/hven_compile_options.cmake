@@ -36,7 +36,9 @@
 #                   apple-m1) and forces LTO; unset/FALSE selects -march=native.
 #   HVEN_LINK_TIME_OPT
 #                   TRUE enables IPO/LTO. Ignored when BUILD_HVEN_WHEEL forces
-#                   it on.
+#                   it on. FALSE/unset does NOT disable IPO -- it leaves
+#                   CMAKE_INTERPROCEDURAL_OPTIMIZATION exactly as the caller
+#                   left it (see the else() branch below, M5 F5).
 #   CLANG_MAX_INLINE_DEPTH
 #                   Value for Clang's -inline-threshold. Overwritten to 400 by
 #                   the wheel path; otherwise used as given.
@@ -165,6 +167,17 @@ if(NOT WIN32)
 endif()
 
 
+# HVEN_LINK_TIME_OPT's REACH, stated because a plain set() in a .cmake module
+# usually has none. This is a macro (line 47), not a function, so every set()
+# below executes in the CALLER's scope -- the scope of the root CMakeLists.txt
+# at the point it invokes hven_compile_options() (CMakeLists.txt:158), which is
+# ABOVE both add_subdirectory() calls. CMAKE_INTERPROCEDURAL_OPTIMIZATION is
+# read by add_library()/add_executable() to initialise each target's
+# INTERPROCEDURAL_OPTIMIZATION property, so setting it here DOES reach hven and
+# every target defined after this call. Verified, not assumed: with
+# HVEN_LINK_TIME_OPT=ON a Release configure puts -flto=thin on all 43 libhven.a
+# compile lines and on the link lines of its consumers
+# (docs/notes/data/2026-09-m6-w6-lto/reach.txt).
 if(HVEN_LINK_TIME_OPT)
   if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     if(WIN32)
@@ -187,7 +200,27 @@ if(HVEN_LINK_TIME_OPT)
   endif()
 
 else()
-  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)
+  # THIS BRANCH DELIBERATELY DOES NOTHING (M5 F5).
+  #
+  # It used to `set(CMAKE_INTERPROCEDURAL_OPTIMIZATION OFF)`. Because this is a
+  # macro, that set() landed in the caller's directory scope and SHADOWED the
+  # cache entry a consumer's own -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
+  # created: a project that turns IPO on for itself, includes hven, and leaves
+  # HVEN_LINK_TIME_OPT alone had its IPO silently switched off -- for its own
+  # targets too, since the variable is directory-scoped, not hven-scoped.
+  # Registered as F5 at the M5 close, docs/notes/2026-08-m5-ledger.md:559-562
+  # ("the same shadow class one level down"), and exercised at M6 W6 T3.
+  #
+  # Leaving the variable alone is the whole fix, and it changes nothing for the
+  # default caller: with HVEN_LINK_TIME_OPT OFF and nothing else set,
+  # CMAKE_INTERPROCEDURAL_OPTIMIZATION stays UNSET, which is CMake's own "no
+  # IPO". What moves is only the case where the caller had already said ON --
+  # hven now respects that answer instead of overwriting it. HVEN_LINK_TIME_OPT
+  # therefore turns IPO ON and never turns it OFF; a caller that wants it off
+  # says so itself.
+  #
+  # BUILD_HVEN_WHEEL's forcing above (line 122) is unaffected: it sets
+  # HVEN_LINK_TIME_OPT TRUE, so the wheel path takes the ON branch.
 endif()
 
 
