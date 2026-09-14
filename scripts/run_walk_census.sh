@@ -72,6 +72,10 @@
 #                        evidence the gate-A/gate-B records cite by content)
 #   --compare PATH       comparator script; the compare step runs only when this
 #                        is given (the comparator may live evidence-side)
+#                        (the comparator of record is scripts/census_compare.py,
+#                        in the repository since M6 W6; it is byte-exact on all
+#                        13 asserted columns by default, and its opt-in
+#                        --residual-gate REL is NOT passed by this script)
 #   --expect-cells N     baseline cell count to require (default 57)
 #   --t1-width N         tier-1 worker count (default 6)
 #   --t3-width N         tier-3 worker count (default 5)
