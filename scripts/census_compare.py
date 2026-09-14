@@ -19,6 +19,19 @@ columns -- byte-identical behaviour and byte-identical output to the form this
 file has always had, which is what every existing invocation (CI, the census
 protocols, the frozen evidence that cites this script by path) keeps.
 
+THE QUALIFICATION, PRECISELY (M6 W6 T1 fix1).  That identity is the SUPPORTED,
+VALID INVOCATION CONTRACT -- two positional CSV paths -- and not every possible
+argv.  Two flag-absent calls differ from the pre-flag file:
+  * an INVALID invocation (anything but exactly two positionals) prints the NEW
+    usage line, which names the flag, where the pre-flag file printed
+    `usage: census_compare.py BASELINE.csv FRESH.csv`; and
+  * an argument spelled exactly `--residual-gate` (or `--residual-gate=...`) is
+    now read as an OPTION, where the pre-flag file would have taken it as a
+    positional path.
+Neither is reachable from a valid two-path call -- which is why the default is
+still byte-exact for every invocation that has ever been made of this script --
+but it is said here rather than left for a reader to discover.
+
 With the flag, ONE column class relaxes: the residual class. The 13 asserted
 columns are cell_id .. kkt_residual, so within this comparator the gate reaches
 EXACTLY ONE COLUMN -- index 12, `kkt_residual`. The corpus schema's other

@@ -18,6 +18,19 @@ Without the flag this is EXACT STRING EQUALITY on every column but `wall_s` --
 byte-identical behaviour and byte-identical output to the artifact copy, which
 is what every existing acceptance protocol keeps.
 
+THE QUALIFICATION, PRECISELY (M6 W6 T1 fix1).  That identity is the SUPPORTED,
+VALID INVOCATION CONTRACT -- three positionals, A.csv B.csv LABEL -- and not
+every possible argv.  Two flag-absent calls differ from the artifact copy:
+  * an INVALID invocation (anything but exactly three positionals) prints the
+    usage line above, where the artifact copy raised an `IndexError` traceback
+    out of `sys.argv[1], sys.argv[2], sys.argv[3]`; and
+  * an argument spelled exactly `--residual-gate` (or `--residual-gate=...`) is
+    now read as an OPTION, where the artifact copy would have taken it as a
+    positional path or label.
+Neither is reachable from a valid three-positional call -- which is why the
+default is still byte-exact for every invocation the acceptance protocols make
+-- but it is said here rather than left for a reader to discover.
+
 With the flag, the residual-class columns relax.  The set is the corpus
 schema's, BY INDEX, and is the same set as
 tests/sqp/test_corpus_cells.cpp:944 (`is_residual_column`), carried here with
