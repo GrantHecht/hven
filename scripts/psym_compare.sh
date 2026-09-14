@@ -79,11 +79,12 @@
 # offending instruction pair.
 #
 # THE OBJECT SET is the one the phase-C plan names for P-SYM, plus the five
-# targets M6 W5 T0 added (see below): `libhven.a`, every `hven_sqp_tests`,
-# `hven_interior_tests`, `hven_model_tests` and `hven_tests` object, and the
-# objects of the bench binaries the asserted artifacts come from
-# (`hven_sqp_corpus`, `hven_sqp_bench`, `hven_sqp_ssn_safeguard_probe`,
-# `hven_sqp_f7_cold`, `hven_sqp_tau_bar_sweep_probe`, `hven_sqp_crossover`,
+# targets M6 W5 T0 added and the one M6 W6 T5 added (see below): `libhven.a`,
+# every `hven_sqp_tests`, `hven_interior_tests`, `hven_model_tests`,
+# `hven_tests` and `hven_drivers_tests` object, and the objects of the bench
+# binaries the asserted artifacts come from (`hven_sqp_corpus`,
+# `hven_sqp_bench`, `hven_sqp_ssn_safeguard_probe`, `hven_sqp_f7_cold`,
+# `hven_sqp_tau_bar_sweep_probe`, `hven_sqp_crossover`,
 # `hven_sqp_ipqp_e1_arm`). Debug objects are NOT part of P-SYM -- they differ
 # trivially, and Debug correctness is P-SUITE's job.
 #
@@ -119,6 +120,38 @@
 # that touches the QP engine, which is a gated artifact by any reading, and its
 # single object is the one thing a rename can move that `libhven.a` does not
 # cover.
+#
+# `hven_drivers_tests` joined in M6 W6 T5 (2026-09-14), and it is the one join
+# that corrects an OVERSIGHT rather than a judgement. The target did not exist
+# when W5 T0 drew the set: `tests/drivers/CMakeLists.txt` was created later in
+# the same window (b74f8850, T8.2) and the suite grew TU by TU through
+# T8.3-T8.8, so it was never weighed for the set and never named in the
+# exclusion list below either -- absent from both lists is the one state the
+# file's own convention does not allow. It is the only cover over the SHARED
+# driver surface both engines meet (the status vocabulary, the result core, the
+# shared diagnostics, the console sink, the threads field and the concurrency
+# pin), it links `hven::hven` and nothing engine-specific, and it is an ordinary
+# `tests/<dir>/CMakeFiles/<target>.dir` object set, so nothing about the
+# comparison changes -- only its coverage. `capture`'s own argument applies to
+# it unchanged: objects outside the instrument are objects nobody guards.
+#
+# A JOIN IS A TOOL VERSION BUMP, and this one is DECLARED as such rather than
+# slipped in. Adding the line below changes this file's sha256, which `capture`
+# stamps into every snapshot and `compare` refuses to mix (the two paragraphs
+# below). The version this widening superseded is
+#
+#     6ea1fb3420738af0c72cc1b27a111c273c2bf3cfa7d9479dd144828b996e5c80
+#
+# (this file's own new sha256 cannot be written into this file -- writing it
+# would change it -- so the pair old/new is recorded in the task's report and
+# its ledger line, and the runner prints the new one on every compare). NO
+# COMMITTED CAPTURE IS A PINNED VALUE: a capture pins the tool sha it RAN
+# under, which stays true of every snapshot already taken; what the bump costs
+# is that both arms of any FUTURE comparison must be captured by this version.
+# The widening was calibrated exactly as W5 T0's was -- a no-op rebuild pair at
+# one absolute build path (0 differences, with `hven_drivers_tests`'s objects in
+# the roll) and one deliberate one-symbol rename (exactly one mapped match under
+# a symbol map, every other object identical).
 #
 # Targets deliberately still OUTSIDE the set, so their absence is a stated
 # choice rather than an oversight: `hven_fault_injection_tests` and
@@ -1114,6 +1147,7 @@ PSYM_GROUPS=(
     "hven_interior_tests:tests/interior/CMakeFiles/hven_interior_tests.dir"
     "hven_model_tests:tests/model/CMakeFiles/hven_model_tests.dir"
     "hven_tests:tests/CMakeFiles/hven_tests.dir"
+    "hven_drivers_tests:tests/drivers/CMakeFiles/hven_drivers_tests.dir"
     "hven_sqp_corpus:bench/CMakeFiles/hven_sqp_corpus.dir"
     "hven_sqp_bench:bench/CMakeFiles/hven_sqp_bench.dir"
     "hven_sqp_ssn_safeguard_probe:bench/CMakeFiles/hven_sqp_ssn_safeguard_probe.dir"
