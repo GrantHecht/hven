@@ -127,7 +127,7 @@ pinned clang. `suites.txt` carries the full transcript.
   (CLAUDE.md §7). The window's one wall-asserting measurement is T8.9r, whose
   own artifact is `docs/notes/data/2026-09-m6-w5-t8-runtime/` — read its
   `PROVENANCE.txt` first, and read `docs/migration/2026-09-m6-api-break.md` §6
-  for the three-sentence version with the owner's KEEP.
+  for the rulings and the numbers with their pointers (the owner's two KEEPs, cut (d) abandoned).
 * **No Apple or Windows value.** UNOBSERVED, not estimated.
 * **No P-SYM run.** `psym-record.md` says why, and what stands instead.
 * **No statement about tycho.** The owner ruled on 2026-09-04 that the window
