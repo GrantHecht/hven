@@ -2528,7 +2528,7 @@ struct RetryCase {
 } // namespace
 
 // THE MULTI-ITERATION RETRY PIN (M6 W6 T2; registered at the W5 T8.7b fix1 lane
-// re-check, docs/notes/2026-08-m6-ledger.md:4261).
+// re-check, docs/notes/2026-08-m6-ledger.md:4263).
 //
 // `ARetryAfterAThrowingFactorTimeSinkIsBitwiseAFreshSolve` above pins the same
 // contract on a ONE-ITERATION fixture: `NonconvexProblem` with an empty ladder
@@ -2608,6 +2608,11 @@ TEST(IpmMessageSink, AMultiIterationRetryAfterAThrowingRowSinkIsBitwiseAFreshSol
     EXPECT_EQ(field(retry_analysis[0], "factor_flops"), "null");
     EXPECT_EQ(field(fresh_analysis[0], "docompute"), "true");
     EXPECT_NE(field(fresh_analysis[0], "factor_mem"), "null");
+    // The THIRD reuse key on the fresh side too, so all three keys the mask
+    // replaces are asserted on BOTH arms rather than two of three: a retry that
+    // silently reported the figures, or a fresh solve that silently reported
+    // none, would otherwise pass on this one.
+    EXPECT_NE(field(fresh_analysis[0], "factor_flops"), "null");
 }
 
 } // namespace

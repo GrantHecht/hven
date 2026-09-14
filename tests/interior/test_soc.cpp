@@ -216,26 +216,26 @@ TEST(SocRunLoop, AStagnatingViolationStopsBelowTheCap) {
 // point after the first rejected correction.
 struct SocTrialProblem : hven::solvers::NlpTripletModel {
     /// 1-based call index of eval_g that must throw; 0 disables the fault.
-    int throw_on_call = 0;
+    int throw_on_call_ = 0;
     /// When true the fault is a non-std::exception, taking the `catch (...)`
     /// arm rather than the `catch (const std::exception &)` one.
-    bool throw_unknown = false;
+    bool throw_unknown_ = false;
     /// Drops the inequality row, so the program has no slack block at all --
     /// the shape on which the correction's fraction-to-boundary guard is FALSE.
     /// Fixed before the program is built; every shape method reads it.
-    bool equality_only = false;
-    mutable int eval_g_calls = 0;
+    bool equality_only_ = false;
+    mutable int eval_g_calls_ = 0;
 
     int num_vars() const override { return 2; }
-    int num_cons() const override { return equality_only ? 1 : 2; }
-    int num_jac_nonzeros() const override { return equality_only ? 2 : 4; }
+    int num_cons() const override { return equality_only_ ? 1 : 2; }
+    int num_jac_nonzeros() const override { return equality_only_ ? 2 : 4; }
     int num_hess_nonzeros() const override { return 2; }
 
     void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
                 Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
         xl << -kSocInf, -kSocInf;
         xu << kSocInf, kSocInf;
-        if (equality_only) {
+        if (equality_only_) {
             gl << 1.0;
             gu << 1.0;
             return;
@@ -253,21 +253,21 @@ struct SocTrialProblem : hven::solvers::NlpTripletModel {
     }
     void eval_g(hven::ConstEigenRef<Eigen::VectorXd> x,
                 Eigen::Ref<Eigen::VectorXd> g) const override {
-        ++eval_g_calls;
-        if (throw_on_call != 0 && eval_g_calls == throw_on_call) {
-            if (throw_unknown) {
+        ++eval_g_calls_;
+        if (throw_on_call_ != 0 && eval_g_calls_ == throw_on_call_) {
+            if (throw_unknown_) {
                 throw 42; // NOLINT(hicpp-exception-baseclass) -- the `catch (...)` arm
             }
             throw std::runtime_error("SocTrialProblem: constraints refused at this point");
         }
         g[0] = x[0] + x[1];
-        if (!equality_only) {
+        if (!equality_only_) {
             g[1] = x[0] - x[1];
         }
     }
     void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
                        Eigen::Ref<Eigen::VectorXi> c) const override {
-        if (equality_only) {
+        if (equality_only_) {
             r << 0, 0;
             c << 0, 1;
             return;
@@ -282,7 +282,7 @@ struct SocTrialProblem : hven::solvers::NlpTripletModel {
     }
     void eval_jac(hven::ConstEigenRef<Eigen::VectorXd>,
                   Eigen::Ref<Eigen::VectorXd> v) const override {
-        if (equality_only) {
+        if (equality_only_) {
             v << 1.0, 1.0;
             return;
         }
@@ -389,22 +389,22 @@ class SocScriptedMechanism : public GlobalizationMechanism {
 // rhs_soc unchanged and the corrected direction is exactly -rhs_soc — which is
 // what lets the committed direction be asserted by value.
 struct SocDrive {
-    std::shared_ptr<SocTrialProblem> problem = std::make_shared<SocTrialProblem>();
-    std::shared_ptr<NonLinearProgram> program;
-    SpMatRM analyzed_pattern;
-    InertSolverContext inert;
-    hven::solvers::EvalErrorLog errors;
+    std::shared_ptr<SocTrialProblem> problem_ = std::make_shared<SocTrialProblem>();
+    std::shared_ptr<NonLinearProgram> program_;
+    SpMatRM analyzed_pattern_;
+    InertSolverContext inert_;
+    hven::solvers::EvalErrorLog errors_;
 
-    Eigen::VectorXd XSL, DXSL, XSL2, RHS, RHS2;
-    IterateInfo citer;
-    std::vector<IterateInfo> iters;
+    Eigen::VectorXd xsl_, dxsl_, xsl2_, rhs_, rhs2_;
+    IterateInfo citer_;
+    std::vector<IterateInfo> iters_;
 
-    double alpha = 1.0;
-    double alphap = kEntryAlphaP;
-    double alphad = kEntryAlphaD;
-    int soc_steps = 0;
-    int resolved_depth = kRecoveryDepthUnresolved;
-    int watchdog_activations = 0;
+    double alpha_ = 1.0;
+    double alphap_ = kEntryAlphaP;
+    double alphad_ = kEntryAlphaD;
+    int soc_steps_ = 0;
+    int resolved_depth_ = kRecoveryDepthUnresolved;
+    int watchdog_activations_ = 0;
 
     static constexpr double kEntryAlphaP = 0.9;
     static constexpr double kEntryAlphaD = 0.8;
@@ -419,46 +419,46 @@ struct SocDrive {
     ///                        and takes the slack reset's other branch.
     explicit SocDrive(int max_soc, bool equality_only = false, double primal0 = 0.5,
                       double primal1 = 0.5) {
-        problem->equality_only = equality_only;
-        program = hven::solvers::make_nlp_program(problem);
+        problem_->equality_only_ = equality_only;
+        program_ = hven::solvers::make_nlp_program(problem_);
 
         // The engine lays the KKT pattern before it evaluates; do the same so
         // the residual assemble below runs against an analysed program.
-        analyzed_pattern.resize(program->kkt_dim_, program->kkt_dim_);
-        program->analyze_sparsity(analyzed_pattern);
+        analyzed_pattern_.resize(program_->kkt_dim_, program_->kkt_dim_);
+        program_->analyze_sparsity(analyzed_pattern_);
 
-        inert.nlp_ = program.get();
-        inert.primal_vars_ = program->primal_vars_;
-        inert.slack_vars_ = program->slack_vars_;
-        inert.equal_cons_ = program->equal_cons_;
-        inert.inequal_cons_ = program->inequal_cons_;
-        inert.kkt_dim_ = program->kkt_dim_;
-        inert.eval_errors_ = &errors;
-        inert.opts_.max_soc = max_soc;
+        inert_.nlp_ = program_.get();
+        inert_.primal_vars_ = program_->primal_vars_;
+        inert_.slack_vars_ = program_->slack_vars_;
+        inert_.equal_cons_ = program_->equal_cons_;
+        inert_.inequal_cons_ = program_->inequal_cons_;
+        inert_.kkt_dim_ = program_->kkt_dim_;
+        inert_.eval_errors_ = &errors_;
+        inert_.opts_.max_soc = max_soc;
 
         // The correction's own factor: the identity at the KKT dimension, so
         // solve() is exact and the corrected direction is -rhs_soc.
         KktFactorization::Options factor_opts;
         factor_opts.kind = hven::linear::FactorKind::kLDLT;
         factor_opts.num_threads = 1;
-        inert.kkt_solver_.reconfigure(factor_opts);
-        inert.kkt_solver_.matrix() = soc_identity(program->kkt_dim_);
-        inert.kkt_solver_.compute();
+        inert_.kkt_solver_.reconfigure(factor_opts);
+        inert_.kkt_solver_.matrix() = soc_identity(program_->kkt_dim_);
+        inert_.kkt_solver_.compute();
 
-        const int n = program->kkt_dim_;
-        XSL = Eigen::VectorXd::Constant(n, 0.5);
-        XSL(0) = primal0;
-        XSL(1) = primal1;
-        DXSL = Eigen::VectorXd::Constant(n, 0.1);
-        XSL2 = Eigen::VectorXd::Zero(n);
-        RHS = Eigen::VectorXd::Constant(n, 0.2);
-        RHS2 = Eigen::VectorXd::Zero(n);
+        const int n = program_->kkt_dim_;
+        xsl_ = Eigen::VectorXd::Constant(n, 0.5);
+        xsl_(0) = primal0;
+        xsl_(1) = primal1;
+        dxsl_ = Eigen::VectorXd::Constant(n, 0.1);
+        xsl2_ = Eigen::VectorXd::Zero(n);
+        rhs_ = Eigen::VectorXd::Constant(n, 0.2);
+        rhs2_ = Eigen::VectorXd::Zero(n);
 
         // A first-trial rejection whose violation did not improve on the
         // current point's: the trigger's one firing case. RHS's constraint
         // block is the current measure (squared L2 on the classic path).
-        citer.first_rejection_iter_ = 0;
-        citer.theta_at_first_rejection_ = 10.0;
+        citer_.first_rejection_iter_ = 0;
+        citer_.theta_at_first_rejection_ = 10.0;
     }
 
     static SpMatRM soc_identity(int n) {
@@ -475,12 +475,12 @@ struct SocDrive {
 
     Action run(SocRecovery &soc, AcceptanceStrategy &acceptance,
                GlobalizationMechanism &mechanism) {
-        SolverContext ctx = inert.ctx();
-        return soc.on_step_rejected(citer, iters, ctx, acceptance, mechanism,
+        SolverContext ctx = inert_.ctx();
+        return soc.on_step_rejected(citer_, iters_, ctx, acceptance, mechanism,
                                     IpmSolver::LineSearchModes::kAugLang, /*obj_scale=*/1.0,
-                                    /*mu=*/1e-3, /*prim_obj=*/0.0, /*barr_obj=*/0.0, XSL, DXSL,
-                                    XSL2, RHS, RHS2, alpha, alphap, alphad, soc_steps,
-                                    resolved_depth, watchdog_activations);
+                                    /*mu=*/1e-3, /*prim_obj=*/0.0, /*barr_obj=*/0.0, xsl_, dxsl_,
+                                    xsl2_, rhs_, rhs2_, alpha_, alphap_, alphad_, soc_steps_,
+                                    resolved_depth_, watchdog_activations_);
     }
 };
 
@@ -493,25 +493,25 @@ TEST(SocRecovery, DisabledDeclinesWithoutEvaluatingAnything) {
     SocRecovery soc;
 
     EXPECT_EQ(drive.run(soc, acceptance, mechanism), Action::kAcceptAsIs);
-    EXPECT_EQ(drive.soc_steps, 0);
-    EXPECT_EQ(drive.problem->eval_g_calls, 0) << "no trial constraint evaluation may be spent";
+    EXPECT_EQ(drive.soc_steps_, 0);
+    EXPECT_EQ(drive.problem_->eval_g_calls_, 0) << "no trial constraint evaluation may be spent";
     EXPECT_EQ(mechanism.calls_, 0);
-    EXPECT_DOUBLE_EQ(drive.alphap, SocDrive::kEntryAlphaP);
-    EXPECT_DOUBLE_EQ(drive.alphad, SocDrive::kEntryAlphaD);
+    EXPECT_DOUBLE_EQ(drive.alphap_, SocDrive::kEntryAlphaP);
+    EXPECT_DOUBLE_EQ(drive.alphad_, SocDrive::kEntryAlphaD);
 }
 
 // The trigger's refusal, through the link: a rejection at a LATER rung is not
 // the case SOC corrects, so the link declines before the seed evaluation.
 TEST(SocRecovery, ATriggerRefusalCostsNoEvaluation) {
     SocDrive drive(kSocRecommendedMaxCorrections);
-    drive.citer.first_rejection_iter_ = 1; // not the first trial
+    drive.citer_.first_rejection_iter_ = 1; // not the first trial
     SocUnusedAcceptance acceptance;
     SocScriptedMechanism mechanism({});
     SocRecovery soc;
 
     EXPECT_EQ(drive.run(soc, acceptance, mechanism), Action::kAcceptAsIs);
-    EXPECT_EQ(drive.soc_steps, 0);
-    EXPECT_EQ(drive.problem->eval_g_calls, 0);
+    EXPECT_EQ(drive.soc_steps_, 0);
+    EXPECT_EQ(drive.problem_->eval_g_calls_, 0);
     EXPECT_EQ(mechanism.calls_, 0);
 }
 
@@ -521,56 +521,113 @@ TEST(SocRecovery, ATriggerRefusalCostsNoEvaluation) {
 // step that is about to be taken).
 TEST(SocRecovery, AnAcceptedCorrectionCommitsTheCorrectedStep) {
     SocDrive drive(kSocRecommendedMaxCorrections);
-    const Eigen::VectorXd rejected_dxsl = drive.DXSL;
+    const Eigen::VectorXd rejected_dxsl = drive.dxsl_;
     SocUnusedAcceptance acceptance;
     SocScriptedMechanism mechanism({{/*accepted=*/true, /*alpha_soc=*/0.6, /*theta=*/0.0}});
     SocRecovery soc;
 
     EXPECT_EQ(drive.run(soc, acceptance, mechanism), Action::kRetry);
 
-    EXPECT_EQ(drive.soc_steps, 1) << "one attempted correction == one back-substitution";
+    EXPECT_EQ(drive.soc_steps_, 1) << "one attempted correction == one back-substitution";
     EXPECT_EQ(mechanism.calls_, 1);
     EXPECT_EQ(mechanism.scalings_, 1) << "the corrected direction is fraction-to-boundary scaled";
 
     ASSERT_EQ(mechanism.recorded_dxsl_.size(), 1u);
     // The committed direction IS the corrected one the acceptance test saw,
     // not the rejected one it replaced.
-    ASSERT_EQ(drive.DXSL.size(), rejected_dxsl.size());
-    EXPECT_TRUE(drive.DXSL.isApprox(mechanism.recorded_dxsl_[0]));
-    EXPECT_FALSE(drive.DXSL.isApprox(rejected_dxsl));
-    EXPECT_DOUBLE_EQ(drive.alpha, 0.6);
+    ASSERT_EQ(drive.dxsl_.size(), rejected_dxsl.size());
+    EXPECT_TRUE(drive.dxsl_.isApprox(mechanism.recorded_dxsl_[0]));
+    EXPECT_FALSE(drive.dxsl_.isApprox(rejected_dxsl));
+    EXPECT_DOUBLE_EQ(drive.alpha_, 0.6);
 
-    EXPECT_TRUE(drive.citer.accepted_);
-    EXPECT_EQ(drive.citer.ls_iters_, SocScriptedMechanism::kAcceptedLsIters);
-    EXPECT_DOUBLE_EQ(drive.citer.merit_val_, SocScriptedMechanism::kAcceptedMerit);
+    EXPECT_TRUE(drive.citer_.accepted_);
+    EXPECT_EQ(drive.citer_.ls_iters_, SocScriptedMechanism::kAcceptedLsIters);
+    EXPECT_DOUBLE_EQ(drive.citer_.merit_val_, SocScriptedMechanism::kAcceptedMerit);
 
     // Kept, not restored: the accepted corrected step's own lengths.
-    EXPECT_DOUBLE_EQ(drive.alphap, SocScriptedMechanism::kScaledAlphaP);
-    EXPECT_DOUBLE_EQ(drive.alphad, SocScriptedMechanism::kScaledAlphaD);
+    EXPECT_DOUBLE_EQ(drive.alphap_, SocScriptedMechanism::kScaledAlphaP);
+    EXPECT_DOUBLE_EQ(drive.alphad_, SocScriptedMechanism::kScaledAlphaD);
 }
 
-// The corrected direction is the solve's own answer negated: on the identity
-// factor that is exactly -(RHS with its constraint block replaced by c_soc), so
-// the correction really did re-solve with a corrected right-hand side and left
-// the objective block alone.
+// THE CORRECTED RIGHT-HAND SIDE, BY VALUE. The corrected direction is the
+// solve's own answer negated, and on the identity factor that is exactly
+// -(RHS with its constraint block replaced by the seed c_soc). So the whole
+// corrected vector is predictable from this fixture's own inputs, and it is
+// asserted entry by entry rather than by "the tail moved": a wrong SIGN, a
+// swapped ROW ORDER or a wrong MAGNITUDE in c_soc all pass the weaker check.
+//
+// THE DERIVATION, from soc.h's §2.4 definition and SocRecovery's seed
+// (c_soc = c_k + c(x_k + alpha_0*d_k), alpha_0 = 1 on the already
+// fraction-to-boundary-scaled step):
+//
+//   trial point      xsl2 = XSL + 1.0*DXSL                (0.6 everywhere here)
+//   equality row 0   gl == gu == 1, so the residual is +1*(g0(x) - 1) with
+//                    g0 = x0 + x1                          [eq block, row 0]
+//   inequality row 1 gl = 0, gu = +inf -- a LOWER-bounded row, whose residual
+//                    convention is -1*(g1(x) - 0) with g1 = x0 - x1, then the
+//                    merit SLACK RESET: a non-negative residual has the trial
+//                    slack ADDED (the negative branch is the sibling test
+//                    below)                                [iq block, row 0]
+//   c_k              RHS.tail(ncons), the entry right-hand side's own block
+//   the objective block of the RHS is NOT touched by the correction
+//
+// The layout is [primals | slacks | eq | iq], so the two constraint entries are
+// the last two and their ORDER is eq-then-iq: asserting them separately is what
+// makes a transposed block fail.
 TEST(SocRecovery, TheCorrectedDirectionSolvesTheCorrectedRightHandSide) {
     SocDrive drive(kSocRecommendedMaxCorrections);
     SocUnusedAcceptance acceptance;
     SocScriptedMechanism mechanism({{true, 1.0, 0.0}});
     SocRecovery soc;
 
+    // The shape the derivation above is anchored on, asserted rather than
+    // assumed -- every index below is read off it.
+    ASSERT_EQ(drive.inert_.primal_vars_, 2);
+    ASSERT_EQ(drive.inert_.slack_vars_, 1);
+    ASSERT_EQ(drive.inert_.equal_cons_, 1);
+    ASSERT_EQ(drive.inert_.inequal_cons_, 1);
+    ASSERT_EQ(drive.inert_.kkt_dim_, 5);
+
+    // Snapshots: what the expectation is built from must be the values the link
+    // was HANDED, not whatever it might have left behind.
+    const Eigen::VectorXd entry_rhs = drive.rhs_;
+    const Eigen::VectorXd trial = drive.xsl_ + drive.dxsl_;
+
     ASSERT_EQ(drive.run(soc, acceptance, mechanism), Action::kRetry);
     ASSERT_EQ(mechanism.recorded_dxsl_.size(), 1u);
 
-    const int ncons = drive.inert.equal_cons_ + drive.inert.inequal_cons_;
-    const int head = drive.inert.kkt_dim_ - ncons;
+    const int ncons = drive.inert_.equal_cons_ + drive.inert_.inequal_cons_;
+    const int head = drive.inert_.kkt_dim_ - ncons;
+
+    // The trial constraint block, hand-computed at the trial point.
+    const double trial_slack = trial(drive.inert_.primal_vars_);
+    ASSERT_GT(trial_slack, drive.inert_.opts_.neg_slack_reset)
+        << "premise: the trial slack is above the reset floor, so it is added as it stands";
+    const double c_eq = (trial(0) + trial(1)) - 1.0;
+    const double c_iq_raw = -((trial(0) - trial(1)) - 0.0);
+    ASSERT_GE(c_iq_raw, 0.0)
+        << "premise: this fixture takes the ADD branch of the slack reset, not the zeroing one";
+    const double c_iq = c_iq_raw + trial_slack;
+
+    // c_soc = c_k + c(trial), and the corrected direction is the corrected RHS
+    // negated.
+    Eigen::VectorXd expected(drive.inert_.kkt_dim_);
+    expected.head(head) = -entry_rhs.head(head);
+    expected(head) = -(entry_rhs(head) + c_eq);
+    expected(head + 1) = -(entry_rhs(head + 1) + c_iq);
+
     const Eigen::VectorXd &corrected = mechanism.recorded_dxsl_[0];
-    // The objective block: untouched RHS, negated by the solve's sign convention.
-    EXPECT_TRUE(corrected.head(head).isApprox(-drive.RHS.head(head)));
-    // The constraint block: NOT the original RHS block — it carries c_soc.
-    EXPECT_FALSE(corrected.tail(ncons).isApprox(-drive.RHS.tail(ncons)));
+    ASSERT_EQ(corrected.size(), expected.size());
+    for (int i = 0; i < expected.size(); ++i) {
+        EXPECT_DOUBLE_EQ(corrected(i), expected(i)) << "corrected direction entry " << i;
+    }
+
+    // NON-VACUOUS, and the original claim kept: the constraint block really is
+    // NOT the entry RHS block, so the correction did re-solve with a corrected
+    // right-hand side rather than re-running the same one.
+    EXPECT_FALSE(corrected.tail(ncons).isApprox(-entry_rhs.tail(ncons)));
     EXPECT_TRUE(corrected.allFinite());
-    EXPECT_EQ(drive.problem->eval_g_calls, 1) << "the seed evaluation, and only it";
+    EXPECT_EQ(drive.problem_->eval_g_calls_, 1) << "the seed evaluation, and only it";
 }
 
 // Every correction rejected, each cutting the violation enough to earn another:
@@ -579,19 +636,19 @@ TEST(SocRecovery, TheCorrectedDirectionSolvesTheCorrectedRightHandSide) {
 // leaves no residue.
 TEST(SocRecovery, DeclinedCorrectionsRunToTheCapAndRestoreTheStepLengths) {
     SocDrive drive(/*max_soc=*/3);
-    const Eigen::VectorXd rejected_dxsl = drive.DXSL;
+    const Eigen::VectorXd rejected_dxsl = drive.dxsl_;
     SocUnusedAcceptance acceptance;
     SocScriptedMechanism mechanism({{false, 0.5, 5.0}, {false, 0.5, 2.0}, {false, 0.5, 1.0}});
     SocRecovery soc;
 
     EXPECT_EQ(drive.run(soc, acceptance, mechanism), Action::kAcceptAsIs);
 
-    EXPECT_EQ(drive.soc_steps, 3) << "the cap bounds the corrections attempted";
+    EXPECT_EQ(drive.soc_steps_, 3) << "the cap bounds the corrections attempted";
     EXPECT_EQ(mechanism.calls_, 3);
-    EXPECT_TRUE(drive.DXSL.isApprox(rejected_dxsl)) << "the rejected step is what is taken";
-    EXPECT_DOUBLE_EQ(drive.alpha, 1.0);
-    EXPECT_DOUBLE_EQ(drive.alphap, SocDrive::kEntryAlphaP);
-    EXPECT_DOUBLE_EQ(drive.alphad, SocDrive::kEntryAlphaD);
+    EXPECT_TRUE(drive.dxsl_.isApprox(rejected_dxsl)) << "the rejected step is what is taken";
+    EXPECT_DOUBLE_EQ(drive.alpha_, 1.0);
+    EXPECT_DOUBLE_EQ(drive.alphap_, SocDrive::kEntryAlphaP);
+    EXPECT_DOUBLE_EQ(drive.alphad_, SocDrive::kEntryAlphaD);
     // The seed and at least the first accumulation were really evaluated. Not
     // one per correction: on this fixture the corrected directions share a
     // primal block (the identity factor negates the RHS, whose objective block
@@ -599,7 +656,7 @@ TEST(SocRecovery, DeclinedCorrectionsRunToTheCapAndRestoreTheStepLengths) {
     // NlpProblemModel's per-iterate evaluation cache -- keyed on x, which its
     // header documents as sound because the callbacks are pure -- serves them
     // without calling the model again.
-    EXPECT_GE(drive.problem->eval_g_calls, 2);
+    EXPECT_GE(drive.problem_->eval_g_calls_, 2);
 }
 
 // A rejected correction whose violation did not fall far enough stops the loop
@@ -612,10 +669,10 @@ TEST(SocRecovery, AStagnatingCorrectionStopsBelowTheCap) {
     SocRecovery soc;
 
     EXPECT_EQ(drive.run(soc, acceptance, mechanism), Action::kAcceptAsIs);
-    EXPECT_EQ(drive.soc_steps, 1);
+    EXPECT_EQ(drive.soc_steps_, 1);
     EXPECT_EQ(mechanism.calls_, 1) << "the second correction must not have been attempted";
-    EXPECT_DOUBLE_EQ(drive.alphap, SocDrive::kEntryAlphaP);
-    EXPECT_DOUBLE_EQ(drive.alphad, SocDrive::kEntryAlphaD);
+    EXPECT_DOUBLE_EQ(drive.alphap_, SocDrive::kEntryAlphaP);
+    EXPECT_DOUBLE_EQ(drive.alphad_, SocDrive::kEntryAlphaD);
 }
 
 // A corrected trial the acceptance test rejected WITHOUT an infeasibility
@@ -628,10 +685,16 @@ TEST(SocRecovery, ARejectionWithoutAnInfeasibilityReadingStopsTheLoop) {
     SocRecovery soc;
 
     EXPECT_EQ(drive.run(soc, acceptance, mechanism), Action::kAcceptAsIs);
-    EXPECT_EQ(drive.soc_steps, 1);
+    EXPECT_EQ(drive.soc_steps_, 1);
     EXPECT_EQ(mechanism.calls_, 1);
     // No accumulation evaluation is spent on a reading-less rejection.
-    EXPECT_EQ(drive.problem->eval_g_calls, 1);
+    EXPECT_EQ(drive.problem_->eval_g_calls_, 1);
+    // And this decline exit restores the entry fraction-to-boundary lengths,
+    // exactly as the cap and stagnation declines do: the correction that wrote
+    // them was not committed, so nothing of it may be left behind. A bug
+    // confined to THIS exit would pass without these two.
+    EXPECT_DOUBLE_EQ(drive.alphap_, SocDrive::kEntryAlphaP);
+    EXPECT_DOUBLE_EQ(drive.alphad_, SocDrive::kEntryAlphaD);
 }
 
 // The four trial-evaluation fault arms. The SEED evaluation is eval_g call 1
@@ -643,25 +706,26 @@ TEST(SocRecovery, ARejectionWithoutAnInfeasibilityReadingStopsTheLoop) {
 void soc_expect_eval_fault(int throw_on_call, bool unknown, int expected_soc_steps,
                            int expected_mechanism_calls) {
     SocDrive drive(kSocRecommendedMaxCorrections);
-    drive.problem->throw_on_call = throw_on_call;
-    drive.problem->throw_unknown = unknown;
+    drive.problem_->throw_on_call_ = throw_on_call;
+    drive.problem_->throw_unknown_ = unknown;
     SocUnusedAcceptance acceptance;
     SocScriptedMechanism mechanism({{false, 0.5, 1.0}, {false, 0.5, 0.5}});
     SocRecovery soc;
 
     EXPECT_EQ(drive.run(soc, acceptance, mechanism), Action::kAcceptAsIs);
-    EXPECT_EQ(drive.soc_steps, expected_soc_steps);
+    EXPECT_EQ(drive.soc_steps_, expected_soc_steps);
     EXPECT_EQ(mechanism.calls_, expected_mechanism_calls);
-    EXPECT_EQ(drive.errors.count_, 1) << "exactly one evaluation failure was recorded";
+    EXPECT_EQ(drive.errors_.count_, 1) << "exactly one evaluation failure was recorded";
     if (unknown) {
-        EXPECT_EQ(drive.errors.last_message_,
+        EXPECT_EQ(drive.errors_.last_message_,
                   "unknown exception type (not derived from std::exception)");
     } else {
-        EXPECT_EQ(drive.errors.last_message_, "SocTrialProblem: constraints refused at this point");
+        EXPECT_EQ(drive.errors_.last_message_,
+                  "SocTrialProblem: constraints refused at this point");
     }
     // Either way the entry lengths come back: no correction was committed.
-    EXPECT_DOUBLE_EQ(drive.alphap, SocDrive::kEntryAlphaP);
-    EXPECT_DOUBLE_EQ(drive.alphad, SocDrive::kEntryAlphaD);
+    EXPECT_DOUBLE_EQ(drive.alphap_, SocDrive::kEntryAlphaP);
+    EXPECT_DOUBLE_EQ(drive.alphad_, SocDrive::kEntryAlphaD);
 }
 
 TEST(SocRecovery, AnUnevaluableSeedDeclinesAndLogsTheMessage) {
@@ -694,7 +758,7 @@ TEST(SocRecovery, ResetIsAStatelessNoOp) {
 
     soc.reset();
     EXPECT_EQ(drive.run(soc, acceptance, mechanism), Action::kRetry);
-    EXPECT_EQ(drive.soc_steps, 1);
+    EXPECT_EQ(drive.soc_steps_, 1);
 }
 
 // THE SLACK RESET'S OTHER BRANCH. `eval_trial_constraints` completes the trial
@@ -724,14 +788,14 @@ TEST(SocRecovery, ANegativeTrialResidualIsZeroedByTheSlackReset) {
     ASSERT_EQ(nonnegative.run(pos_soc, pos_acceptance, pos_mechanism), Action::kRetry);
     ASSERT_EQ(pos_mechanism.recorded_dxsl_.size(), 1u);
 
-    const int ic = negative.inert.inequal_cons_;
+    const int ic = negative.inert_.inequal_cons_;
     ASSERT_EQ(ic, 1);
     const double neg_entry = neg_mechanism.recorded_dxsl_[0].tail(ic)(0);
     const double pos_entry = pos_mechanism.recorded_dxsl_[0].tail(ic)(0);
 
     // Zeroed: c_soc's inequality entry is the RHS block alone, so the corrected
     // direction's is exactly its negation.
-    EXPECT_DOUBLE_EQ(neg_entry, -negative.RHS.tail(ic)(0));
+    EXPECT_DOUBLE_EQ(neg_entry, -negative.rhs_.tail(ic)(0));
     // And the other branch really is the other branch.
     EXPECT_NE(neg_entry, pos_entry);
 }
@@ -742,8 +806,8 @@ TEST(SocRecovery, ANegativeTrialResidualIsZeroedByTheSlackReset) {
 // positive. The correction itself still runs and still commits.
 TEST(SocRecovery, AnEqualityOnlyProblemSkipsTheFractionToBoundaryScaling) {
     SocDrive drive(kSocRecommendedMaxCorrections, /*equality_only=*/true);
-    ASSERT_EQ(drive.inert.inequal_cons_, 0) << "premise: this shape has no inequality rows";
-    ASSERT_EQ(drive.inert.slack_vars_, 0) << "premise: and therefore no slack block";
+    ASSERT_EQ(drive.inert_.inequal_cons_, 0) << "premise: this shape has no inequality rows";
+    ASSERT_EQ(drive.inert_.slack_vars_, 0) << "premise: and therefore no slack block";
 
     SocUnusedAcceptance acceptance;
     SocScriptedMechanism mechanism({{true, 0.6, 0.0}});
@@ -752,11 +816,11 @@ TEST(SocRecovery, AnEqualityOnlyProblemSkipsTheFractionToBoundaryScaling) {
     EXPECT_EQ(drive.run(soc, acceptance, mechanism), Action::kRetry);
     EXPECT_EQ(mechanism.calls_, 1) << "the corrected trial was still re-tested";
     EXPECT_EQ(mechanism.scalings_, 0) << "nothing to keep positive: no rescale may happen";
-    EXPECT_DOUBLE_EQ(drive.alpha, 0.6);
+    EXPECT_DOUBLE_EQ(drive.alpha_, 0.6);
     // The entry lengths are untouched, because the only thing that writes them
     // on this path is the scaling that did not run.
-    EXPECT_DOUBLE_EQ(drive.alphap, SocDrive::kEntryAlphaP);
-    EXPECT_DOUBLE_EQ(drive.alphad, SocDrive::kEntryAlphaD);
+    EXPECT_DOUBLE_EQ(drive.alphap_, SocDrive::kEntryAlphaP);
+    EXPECT_DOUBLE_EQ(drive.alphad_, SocDrive::kEntryAlphaD);
 }
 
 } // namespace

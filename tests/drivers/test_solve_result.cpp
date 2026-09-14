@@ -1088,16 +1088,16 @@ struct DeclaredArgs {
     Vec lambda_i = vec_of({0.25});
     Vec z = vec_of({0.0, 0.0});
     Vec grad = vec_of({1.0, 2.0});
-    SpMatRM Je = row_block({1.0, 1.0});
-    SpMatRM Ji = row_block({1.0, -1.0});
+    SpMatRM jac_eq = row_block({1.0, 1.0});
+    SpMatRM jac_ineq = row_block({1.0, -1.0});
     Vec ce = vec_of({0.0});
     Vec ci = vec_of({-1.0});
     Vec lower = vec_of({-kInf, -kInf});
     Vec upper = vec_of({kInf, kInf});
 
     DeclaredDiagnostics run() const {
-        return compute_declared_diagnostics(x, lambda_e, lambda_i, z, grad, Je, Ji, ce, ci, lower,
-                                            upper, {});
+        return compute_declared_diagnostics(x, lambda_e, lambda_i, z, grad, jac_eq, jac_ineq, ce,
+                                            ci, lower, upper, {});
     }
 };
 
@@ -1153,7 +1153,7 @@ TEST(DeclaredDiagnostics, RefusesEveryMalformedDeclaredBlock) {
     expect_refusal(
         [] {
             DeclaredArgs a;
-            a.Je = row_block({1.0, 1.0, 1.0});
+            a.jac_eq = row_block({1.0, 1.0, 1.0});
             return a.run();
         },
         "Je is 1x3", "an equality Jacobian wider than x");
@@ -1161,7 +1161,7 @@ TEST(DeclaredDiagnostics, RefusesEveryMalformedDeclaredBlock) {
     expect_refusal(
         [] {
             DeclaredArgs a;
-            a.Ji = row_block({1.0, 1.0, 1.0});
+            a.jac_ineq = row_block({1.0, 1.0, 1.0});
             return a.run();
         },
         "Ji is 1x3", "an inequality Jacobian wider than x");

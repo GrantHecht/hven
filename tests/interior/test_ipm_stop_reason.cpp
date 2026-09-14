@@ -1013,15 +1013,41 @@ TEST(IpmStopReason, AnUnevaluableStepAtAnUnacceptableIterateAbortsWithTheLatched
     }
 }
 
-// THE BYPASS'S MIDDLE BRANCH. With the acceptable tier pinched shut and
-// restoration AVAILABLE, the un-evaluable line search neither exits nor aborts:
-// it enters feasibility restoration, skipping the soft pre-stage whose trial is
-// the very step that could not be evaluated. The same fixture and the same
-// start as the two tests above; restoration is the only thing added.
-TEST(IpmStopReason, AnUnevaluableStepEntersRestorationWhenItCan) {
+// RESTORATION IS ENTERED THROUGH THE RECOVERY CHAIN, NOT THROUGH THE BYPASS.
+// With the acceptable tier pinched shut and restoration AVAILABLE, the
+// un-evaluable line search neither exits nor aborts: the solve enters
+// feasibility restoration and the iteration is attributed to the restoration
+// recovery bucket. The same fixture and the same start as the two tests above;
+// restoration is the only thing added.
+//
+// WHAT ACTUALLY RUNS, and it is NOT the bypass's middle branch (M6 W6 T2 fix
+// round 1 -- this test was named and commented for that branch, and the close
+// read's retained `llvm-cov show` dump proves the branch never executed:
+// ipm_solver.cpp:3834-3838 at count 0). The route is the chain's own:
+// FeasibilitySwitchRecovery wraps the whole chain whenever restoration_mode is
+// not off, and intercepts an UNRESOLVED ladder-exhausted kAcceptAsIs under
+// exactly the conditions the bypass's middle branch tests -- a strategy
+// configured, inactive, and entry_permitted. On this l1_nested fixture it
+// stamps resolved_depth = kRecoveryDepthRestoration and returns
+// kSoftFeasibilityStep; the soft pre-stage's own trial is the very step that
+// could not be evaluated, so try_soft_feasibility_step fails and alg_impl's
+// kSoftFeasibilityStep case escalates straight to dispatch_restoration_entry.
+// By the time any later iteration reaches the un-evaluable bypass, restoration
+// is ACTIVE and the middle branch's !is_active() guard is false.
+//
+// So the middle branch is unreachable from a fixture the chain diverts, which
+// every restoration-configured fixture in this tree is. The one route left to
+// it is a WATCHDOG-resolved kAcceptAsIs -- whose stamped resolved_depth makes
+// the switch link pass it through untouched -- landing in an iteration that
+// ALSO logged an evaluation failure, at an iterate outside the acceptable
+// tier. No fixture in the tree composes those, which is why the close artifact
+// carries it as CLASSIFIED rather than covered: see
+// docs/notes/data/2026-09-m6-w6-coverage-close/delta.txt, the
+// "ipm_solver.cpp:3828-3858 (the un-evaluable-step bypass)" entry.
+TEST(IpmStopReason, AnUnevaluableStepWithRestorationAvailableEntersItThroughTheRecoveryChain) {
     // max_iters = 2 is the fixture's own bound, not a tuning knob: the entry
     // happens on the first un-evaluable line search, and a LATER one on the same
-    // fixture finds restoration ALREADY ACTIVE and aborts (this branch recovers
+    // fixture finds restoration ALREADY ACTIVE and aborts (the chain recovers
     // once, and this problem never becomes evaluable). Two iterations is what it
     // takes to see the entry and stop on the cap rather than on the second
     // failure.
@@ -1036,10 +1062,11 @@ TEST(IpmStopReason, AnUnevaluableStepEntersRestorationWhenItCan) {
     ASSERT_NO_THROW(result = solver.engine->solve(*solver.program, x0));
 
     EXPECT_FALSE(result.last_eval_exception.empty())
-        << "no trial evaluation was refused, so the bypass never ran";
+        << "no trial evaluation was refused, so this path never ran";
     EXPECT_GT(result.last_feas_rest_entries, 0) << "restoration was not entered";
     // And the iteration is ATTRIBUTED to restoration in the recovery-depth
-    // histogram, which is the branch's own bookkeeping.
+    // histogram -- FeasibilitySwitchRecovery's own stamp, which is what marks
+    // the entry as the chain's rather than the bypass's.
     EXPECT_GT(result.recovery_depth_histogram[hven::solvers::kRecoveryDepthRestoration], 0);
 }
 
