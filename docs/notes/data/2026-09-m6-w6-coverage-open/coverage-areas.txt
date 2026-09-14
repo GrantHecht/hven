@@ -57,3 +57,12 @@ llvm-cov's own TOTAL row (includes MKL headers) files=  -  regions  90.37% (1144
    src/drivers/sqp_solver.cpp                           lines  94.42% (2843/3011)  regions  95.85%  functions  99.14%  branches  86.66%
    src/drivers/trace.cpp                                lines  75.00% (33/44)  regions  84.62%  functions 100.00%  branches  55.88%
    src/drivers/trace_writer.cpp                         lines  97.53% (712/730)  regions  95.34%  functions 100.00%  branches  90.10%
+
+FOOTNOTE -- T0 FIX ROUND 1 (2026-09-13): the exclusion-regex line quoted at the
+head of this file, "(none -- every registered cell ran)", is the run's own
+emitted status string and is left exactly as emitted. Read it as "no registered
+cell was EXCLUDED": it is about the ctest -E regex and nothing else. Two
+registered cells (EqpRefinementAb.FootprintRuleProbe, EqpRefinementAb.FullBattery)
+are DISABLED in the tree and did not run -- as the line above it already records
+(2542 executed of 2544, 2 disabled by design). No number in this file changed;
+see PROVENANCE.txt's T0 FIX ROUND 1 block.

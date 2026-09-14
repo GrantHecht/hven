@@ -27,6 +27,11 @@ Reported beside it, asserted of nothing (plan J.2 and A10):
 
 THE CAVEAT THAT BELONGS NEXT TO THE NUMBER
 ------------------------------------------
+[SUPERSEDED IN TWO PLACES -- the "floor" direction and the "five" count -- by
+CORRECTION 1 and CORRECTION 2 at the end of this file (T0 fix round 1,
+2026-09-13). The paragraph immediately below is the original as landed and is
+kept verbatim; read the corrections with it.]
+
 The library total is itself UNDER-READ, and by more than `src/drivers/` is.
 llvm-cov warned "952 functions have mismatched data" on this read, and
 `zero-headers.txt` demonstrates five separate header files reporting 0 % while
@@ -102,6 +107,8 @@ block at `ipm_solver_globalization.cpp:79-106`, the `catch (...)` arm at
 driver TU on the list. Everything else on the top-twenty is single-branch work in
 the two IPM TUs. And before any of it: the mismatched-data experiment named in
 README.md section 3, because five of the eight 0 % headers are not gaps at all.
+[SUPERSEDED -- T0 fix round 1 (2026-09-13): FOUR of the eight are the
+demonstrated under-read rows; see CORRECTION 2 at the end of this file.]
 
 CROSS-READ COMPARISON, LABELLED (the settler's note at dispatch)
 ---------------------------------------------------------------
@@ -116,3 +123,52 @@ per-file comparisons where the file exists in both, labelled as such:
     assembly_eval_seam.cpp 89.03 % vs  aggregate_eval_seam.cpp          89.03 %
 The library TOTAL moved 82.74 % -> 87.47 % on reads taken the same way nine
 days apart (2026-09-04 and 2026-09-13); that is a comparison of two informational numbers, not a claim.
+
+CORRECTIONS -- T0 FIX ROUND 1 (2026-09-13)
+==========================================
+The sol review of this artifact (FIX-ROUND, no Critical) found two defects in
+the caveat above; the settler accepted both (K1, K2). Nothing was re-measured:
+no build, no run, no new profile. Every figure below is recomputed from
+`coverage-summary.txt` in this same directory, and the original sentences are
+kept above, marked superseded.
+
+CORRECTION 1 -- THE DIRECTION OF THE CAVEAT: +1.17 IS A CEILING, NOT A FLOOR.
+  The original said "the +1.17 is, if anything, a floor". That is backwards.
+  Correcting an UNDER-READ raises the total it lands in. The effect lands on
+  HEADERS, and the `src/drivers/` row is fourteen `.cpp` TUs -- it contains no
+  header lines at all (`include/hven/drivers/` is a SEPARATE row, reported
+  beside it under A10, and is not part of the 8586/9687). So a read without the
+  effect moves the LIBRARY total UP and leaves `src/drivers/` where it is: the
+  +1.17 is an UPPER BOUND on the lead.
+
+  What that costs the finding, quantified on the DEMONSTRATED defect only.
+  The four demonstrated under-read headers miss, between them, 63 lines --
+  47 + 9 + 6 + 1, recomputed from `coverage-summary.txt`:
+      timer.h                    0/47   (coverage-summary.txt :45)
+      eval_error_log.h           0/9    (:34)
+      inertia_regularization.h   0/6    (:17)
+      ipm_solver_types.h         0/1    (:72)
+  Fill EVERY line of all four and the library total moves from
+  22259/25448 = 87.4686 % to 22322/25448 = 87.7161 %, i.e. 87.72 %, against
+  `src/drivers/` 8586/9687 = 88.6343 %. PARITY STILL HOLDS on the demonstrated
+  defect: the lead narrows, it does not invert.
+
+  The WIDER effect -- llvm-cov's "952 functions have mismatched data" across the
+  whole library -- is NOT quantified here, and this artifact makes NO directional
+  claim about it. What it claims is what it measured: parity is met on the read
+  as taken (plan J.1's same-read rule), with that residual uncertainty named.
+  This is the reason no number in this directory is a pin.
+
+CORRECTION 2 -- FOUR DEMONSTRATED UNDER-READ HEADERS, NOT FIVE.
+  The original paragraph said `zero-headers.txt` "demonstrates five separate
+  header files reporting 0 % while their functions execute"; the closing
+  paragraph said "five of the eight 0 % headers are not gaps at all". The
+  demonstrated count is FOUR: `timer.h`, `inertia_regularization.h`,
+  `eval_error_log.h`, `ipm_solver_types.h` -- each with a covered call site and
+  an execution count in README.md section 3 and in `zero-headers.txt`. The fifth
+  file that was being counted, `soc.h`, is the opposite case: it is GENUINELY
+  COLD, corroborated at its call site (`ipm_solver_globalization.cpp:1361` reads
+  0), and it is the one real T2 target on the list. The remaining three
+  (`math_functions.h` dead, `aggregate_arity.h` compile-time only,
+  `super_scalar_traits.h` Eigen-dispatch only) are judged in `zero-headers.txt`
+  and are not under-read rows either.

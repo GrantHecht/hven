@@ -22,6 +22,14 @@ library total   lines  87.47 %  (22259 / 25448)   127 files
                        +1.17 points, in src/drivers/'s favour
 ```
 
+> **CORRECTED (T0 fix round 1, 2026-09-13).** That +1.17 is an **upper bound**
+> on the lead, not a floor: the under-read this artifact demonstrates lands on
+> HEADERS, and the `src/drivers/` row is fourteen `.cpp` TUs with no header
+> lines in it. Filling every line of the four demonstrated under-read headers
+> (63 lines) would move the library total to 87.72 % against `src/drivers/`'s
+> 88.63 % — parity still holds on the demonstrated defect. See `parity.txt`'s
+> CORRECTION 1 and section 5 below.
+
 **Parity holds.** Under the settler's ruling (plan §0 J.1 — the directory row
 against the library row of the *same* fresh read), the mandate's "drivers
 coverage 67.8 % → parity with the library" is **met at HEAD**, and the window
@@ -51,6 +59,12 @@ re-derived at T2's close read.
 
 ## 3. The finding that matters most for T2: five of the eight 0 % headers are not gaps
 
+> **SUPERSEDED in the count (T0 fix round 1, 2026-09-13):** the heading's "five"
+> should read **four** — the four demonstrated under-read rows tabulated below.
+> The fifth file that was being counted, `soc.h`, is genuinely cold and is the
+> one real T2 target. Section 5 gives the correction in full; the original
+> heading and paragraphs are kept as landed.
+
 llvm-cov warned **"952 functions have mismatched data"** (M5 saw 736, W2 683).
 M5's diagnosis is on record — `docs/notes/2026-08-m5-ledger.md:616-617`, "the
 bounded, **understating** `HVEN_TESTING` double-compile effect, not a file-drop".
@@ -79,6 +93,14 @@ anywhere), one compile-time only (`aggregate_arity.h`), one Eigen-dispatch only
 like any other, is **not in the report at all** — six enums, a forward
 declaration and a POD emit no coverage records.
 
+> **SUPERSEDED in its premise (T0 fix round 1, 2026-09-13):** the paragraph
+> below calls `timer.h`, `soc.h` and `inertia_regularization.h` "the three
+> under-read headers". `soc.h` is **not** under-read — it is the genuinely cold
+> one. The PCH set is two under-read headers plus cold `soc.h`, and two of the
+> four under-read headers are **not** in the PCH at all, so the experiment tests
+> a PCH CONTRIBUTION and cannot by itself settle the whole mismatched-data
+> cause. Corrected in full in section 5; the experiment itself stands.
+
 **The experiment this suggests, named here for T2, not run here.** The three
 under-read headers with real library call sites (`timer.h`, `soc.h`,
 `inertia_regularization.h`) are exactly the three of the eight that are in the
@@ -98,3 +120,44 @@ changes are the exclusion-list block inside `scripts/run_coverage.sh` and this
 directory. `docs/ci.md` was left alone deliberately: it does not document the
 coverage lane at all (the string "coverage" does not occur in it), so the brief's
 conditional sentence about the tolerate switch had nothing to attach to.
+
+## 5. Corrections — T0 fix round 1 (2026-09-13)
+
+The sol review of this task (FIX-ROUND, no Critical) found two defects here and
+in `parity.txt`; the settler accepted both (K1, K2) and the three minors (K3).
+**Nothing was re-measured** — no build, no run, no new profile, and
+`coverage-summary.txt` is untouched. Every figure below is recomputed from that
+same table, and every original sentence is kept above, marked superseded.
+`PROVENANCE.txt`'s "T0 FIX ROUND 1" block lists every item across the directory.
+
+**1. The parity caveat pointed the wrong way (K1).** Correcting an under-read
+raises the total it lands in. The effect lands on headers; the `src/drivers/`
+directory row is fourteen `.cpp` TUs and contains no header lines (the
+`include/hven/drivers/` rows are reported separately, per A10). So a read
+without the effect raises the LIBRARY total and leaves `src/drivers/` where it
+is: **+1.17 is a ceiling on the lead, not a floor.** Quantified on the
+demonstrated defect only: the four under-read headers miss 63 lines between them
+(47 + 9 + 6 + 1, from `coverage-summary.txt` `:45`, `:34`, `:17`, `:72`); filling
+all 63 moves the library from 22259/25448 = 87.4686 % to 22322/25448 = 87.7161 %
+(87.72 %) against `src/drivers/`'s 8586/9687 = 88.6343 %. **Parity still holds**
+on that defect. The wider 952-function effect is **not** quantified and this
+artifact makes no directional claim about it: parity is met on the read as taken
+(plan J.1), with that residual uncertainty named — which is why nothing here is
+a pin.
+
+**2. Four demonstrated under-read headers, not five (K2).** They are `timer.h`,
+`inertia_regularization.h`, `eval_error_log.h` and `ipm_solver_types.h` — the
+four rows of section 3's table, each with a covered call site and a count.
+`soc.h` is the genuinely cold one.
+
+**3. The PCH correlation, restated exactly (K2).** `src/hven_pch.h` carries
+`timer.h` (`:59`), `inertia_regularization.h` (`:86`) and `soc.h` (`:89`) —
+**two** under-read headers plus the genuinely cold `soc.h` — while
+`eval_error_log.h` and `ipm_solver_types.h` are under-read and are **not** in the
+PCH (verified at source: `grep -n` over `src/hven_pch.h` returns those three
+includes and no other of the eight). The PCH is applied to the `hven` target
+alone (`src/CMakeLists.txt:332`) and to no test target, so the correlation is
+real and worth one build — but the one-tree PCH-off experiment named in section 3
+can test **the PCH contribution only**. It cannot by itself settle all four
+under-read rows, nor the whole mismatched-data cause. It remains a correlation,
+not a demonstrated cause, exactly as section 3 said.

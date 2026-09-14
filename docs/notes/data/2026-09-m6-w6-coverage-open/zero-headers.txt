@@ -10,6 +10,13 @@ EXECUTED by the suites and report 0 % anyway -- llvm-cov's "952 functions have
 mismatched data" warning, whose effect is an UNDER-report. For those five the
 honest judgement is "the report is wrong here", not "write a test". Each one
 below carries the covered call site and its execution count as the evidence.
+[SUPERSEDED IN THE COUNT -- T0 fix round 1 (2026-09-13): FOUR, not five, are
+demonstrably executed-and-under-read: items 1, 5, 7 and 8 below (timer.h,
+eval_error_log.h, inertia_regularization.h, ipm_solver_types.h). Item 2,
+soc.h, is the opposite case -- GENUINELY COLD, corroborated at its call site,
+and the one real T2 target here. The eight per-file judgements below are
+unchanged -- only this count was wrong. See the CORRECTION at the end of this
+file.]
 
   file                                                          lines   regions  functions
   -----------------------------------------------------------------------------------
@@ -127,3 +134,25 @@ W2 listed seven files at 0 %. Six are still here: `soc.h`, `timer.h`,
 TWO ARE NEW to this list: `include/hven/core/detail/aggregate_arity.h` (landed
 in M6 W4 T2(d); compile-time only) and `include/hven/drivers/ipm_solver_types.h`
 (0/1, `misc_time()`).
+
+CORRECTION -- T0 FIX ROUND 1 (2026-09-13)
+-----------------------------------------
+The sol review of this artifact (FIX-ROUND, no Critical; settler ruling K2)
+found the "five" above inconsistent with the file's own judgements, which name
+FOUR under-read rows and one genuinely cold one. Corrected count, from the
+judgements below, unchanged in substance:
+
+  UNDER-READ (executed, reported 0 %, NOT a T2 target) -- four:
+    (1) timer.h 0/47 · (5) eval_error_log.h 0/9 ·
+    (7) inertia_regularization.h 0/6 · (8) ipm_solver_types.h 0/1
+        -- 47 + 9 + 6 + 1 = 63 lines, recomputed from coverage-summary.txt
+           (:45, :34, :17, :72). Filling all 63 would move the library total to
+           22322/25448 = 87.7161 % (87.72 %); see parity.txt CORRECTION 1.
+  GENUINELY COLD (a real T2 target) -- one:
+    (2) soc.h 0/28, its call site at ipm_solver_globalization.cpp:1361 reading 0
+  NOT COVERAGE GAPS FOR OTHER REASONS -- three:
+    (3) math_functions.h dead · (4) aggregate_arity.h compile-time only ·
+    (6) super_scalar_traits.h Eigen-dispatch only
+
+Nothing was re-measured for this correction: no build, no run, no new profile,
+and coverage-summary.txt is untouched.

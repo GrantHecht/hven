@@ -17,6 +17,14 @@ WHAT THIS DIRECTORY IS
   re-derived and judged, and the one number T2 needs -- `src/drivers/` line
   coverage against the library's on THIS read (plan J.1).
 
+RUN DATE
+  2026-09-13 -- the configure, the instrumented build, all four suite legs, the
+  long cell's solo run and the report step were taken on this date, local time,
+  on the machine under TOOLCHAIN AND HARDWARE below. (Field added in T0 fix
+  round 1, 2026-09-13: the original file carried the date only beside the two
+  commit descriptions, which is the date of the COMMITS, not of the run. Both
+  are 2026-09-13 here; the field says which is which. No number changed.)
+
 COMMIT
   Tree measured (HEAD):  7da77b5d57efd977def3018a874e362cd8fb908b
                          "docs(m6): W6 plan v2 -- the Fable plan review's
@@ -117,7 +125,11 @@ THE "MISMATCHED DATA" WARNING, RE-COUNTED
   double-compile effect, not a file-drop" -- and the "understating" half of that
   sentence is confirmed here in a way M5 did not have to hand: five library
   headers report 0 % lines while their functions demonstrably execute (see
-  README.md section 3 and zero-headers.txt). The COUNT is re-derived; the CAUSE
+  README.md section 3 and zero-headers.txt).
+  [SUPERSEDED IN THE COUNT -- T0 fix round 1 (2026-09-13): FOUR library headers,
+  not five (timer.h, eval_error_log.h, inertia_regularization.h,
+  ipm_solver_types.h). The fifth, soc.h, is genuinely cold. See the T0 FIX
+  ROUND 1 block at the end of this file.] The COUNT is re-derived; the CAUSE
   is cited, and an experiment that would settle whether the double compile is
   the whole of it is named in README.md section 3 for T2.
 
@@ -132,3 +144,54 @@ WHAT IS IN THIS DIRECTORY
   The raw `llvm-cov show` dumps, the per-slice ctest logs, the leg transcripts
   with their PGREP_EMPTY / FOREGROUND_START / FOREGROUND_END markers, and the
   wrapper failure proofs are retained in .scratch/w6t0/ (git-ignored), not here.
+
+T0 FIX ROUND 1 (2026-09-13) -- WHAT WAS CORRECTED IN THIS DIRECTORY, AND WHAT WAS NOT
+====================================================================================
+The sol review of W6 T0 (FIX-ROUND, no Critical; SIGNOFF W6-T0-REVIEW-SOL) and
+the settler's rulings K1-K3 on it. NOTHING WAS RE-MEASURED: no configure, no
+build, no ctest, no profile, no llvm-cov invocation. `coverage-summary.txt` --
+llvm-cov's own table, verbatim -- is BYTE-UNTOUCHED, and every corrected figure
+below is recomputed from it. Original sentences are kept where they were and
+marked superseded; corrections are dated and additive.
+
+  1. parity.txt, the caveat (~:30, now under the SUPERSEDED marker): the
+     direction of the under-read caveat was inverted. +1.17 points is an UPPER
+     BOUND on `src/drivers/`'s lead, not a floor -- correcting an under-read
+     that lands on HEADERS raises the LIBRARY total, and the `src/drivers/`
+     directory row holds only `src/drivers/*.cpp`. Quantified on the
+     demonstrated defect: 47 + 9 + 6 + 1 = 63 missed lines in the four
+     under-read headers (coverage-summary.txt :45, :34, :17, :72); filling all
+     63 gives 22322/25448 = 87.7161 % -> 87.72 % library against 88.6343 %
+     drivers, so parity still holds. The wider 952-function effect is NOT
+     quantified and NO directional claim is made about it. (K1)
+  2. parity.txt (:37 of the original, and its closing paragraph): "five
+     separate header files" / "five of the eight" -> FOUR demonstrated
+     under-read headers. (K2)
+  3. README.md section 1: the +1.17 headline now carries the ceiling reading.
+     Section 3's heading count and the PCH paragraph's premise are marked
+     superseded, with the correction in a new section 5. (K1, K2)
+  4. README.md section 5, the PCH correlation restated exactly: src/hven_pch.h
+     carries timer.h (:59), inertia_regularization.h (:86) and soc.h (:89) --
+     TWO under-read headers plus the genuinely cold soc.h -- while
+     eval_error_log.h and ipm_solver_types.h are under-read and NOT in the PCH.
+     The one-tree PCH-off experiment can therefore test the PCH CONTRIBUTION
+     only; it cannot by itself settle all four under-read rows or the whole
+     mismatched-data cause. (K2)
+  5. zero-headers.txt, the preamble: "Five of these eight" -> four, with the
+     corrected roll-up appended at the end of that file. (K2)
+  6. PROVENANCE.txt: this block; the RUN DATE field added at the top (K3 d);
+     and the "five library headers" sentence in THE "MISMATCHED DATA" WARNING
+     section marked superseded (K2).
+  7. coverage-areas.txt: a dated footnote on the quoted exclusion-regex status
+     line -- it means "no registered cell was EXCLUDED"; two cells are DISABLED
+     in the tree and did not run. The quote itself is left as the run emitted
+     it. (K3 c)
+  8. Outside this directory, in the same fix round: scripts/run_coverage.sh's
+     comment block (comment text only -- the candidates are named as cells that
+     PASSED, not as "tolerated"; and the emitted status string's reading is
+     recorded above it), and docs/notes/2026-09-m6-w6-plan.md J.11's stale
+     claim that W4's PROVENANCE cites the comparator by content.
+
+WHAT DID NOT CHANGE: every measured number in this directory. The parity
+finding stands as plan J.1 defines it -- 88.63 % against 87.47 % on this one
+read -- with the caveat now pointing the right way.
