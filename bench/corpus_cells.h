@@ -1384,6 +1384,27 @@ struct EngineConfig {
     // recompile. Default-constructed = the shipped default, so `{}` is inert.
     IpqpOptions ipqp{};
 
+    // M6 W6 T6 -- THE ATTACHED-OBSERVER LEVERS. Neither is an SqpOptions
+    // field and neither changes what the solve computes: they decide whether
+    // the driver's two "runs only with something attached" paths execute at
+    // all -- the iteration callback's dispatch (SqpSolver::fire_iteration_event,
+    // src/drivers/sqp_solver.cpp:4565, whose early-out is :4570-4572) and the
+    // trace sink's emit sites (the `ipqp_trace_ != nullptr` guards). Both
+    // default to the SHIPPED shape, which is nothing attached.
+    //
+    // THE ATTACHED OBJECTS ARE THE RUNNER'S, NOT THIS HEADER'S. bench_corpus.cpp
+    // owns the cheapest possible forms of each -- a callback that counts and
+    // returns kContinue, a sink that counts per site -- because what is being
+    // measured is the DISPATCH, and a policy about what an observer should do
+    // has no place in the cell table.
+    //
+    // NOT FORWARDED BY VALUE ACROSS THE SUBPROCESS BOUNDARY: a pointer and a
+    // std::function cannot cross an execv. bench_corpus.cpp forwards the FLAGS
+    // and the child rebuilds both, which is the rule every other lever here
+    // already follows (run_cell_with_deadline's own note).
+    hven::solvers::TraceSink *trace = nullptr;
+    hven::solvers::IterationCallback iteration_callback{};
+
     // The model-surface census hook's opt-in flag.
     // UNLIKE every field above, this is NOT an SqpOptions/SsnOptions field --
     // it never reaches options_for_cell below -- because it selects whether
@@ -1411,6 +1432,28 @@ inline SqpOptions options_for_cell(const CorpusCell &cell, const EngineConfig &c
     opts.ssn_infeasibility_rule = cfg.ssn_infeasibility_rule;
     opts.ipqp = cfg.ipqp;
     return opts;
+}
+
+// M6 W6 T6. THE ONE PLACE THE ATTACHED-OBSERVER LEVERS REACH A DRIVER, called
+// immediately after every SqpSolver construction in run_cell_engine below.
+//
+// IT RUNS BEFORE THE TIMED WINDOW OPENS -- `timed_row` starts its clock after
+// notify_setup_complete, which is after this returns -- so the ATTACH itself is
+// charged to nobody's wall. What the arm measures is the per-iteration dispatch
+// the attachment turns on, which is inside the window by construction.
+//
+// AND IT ALSO COVERS THE SETUP HOP. kCorrupted and kFullWarm run a seed solve on
+// THE SAME driver before the designated one, so an attached arm pays the
+// dispatch there too. That is the honest reading of "what an attached observer
+// costs this process" and it is stated rather than avoided: the seed hop is not
+// in `wall_s`, but it IS in the process's instruction count.
+inline void attach_observers(SqpSolver &driver, const EngineConfig &cfg) {
+    if (cfg.trace != nullptr) {
+        driver.attach_trace(cfg.trace);
+    }
+    if (cfg.iteration_callback) {
+        driver.set_iteration_callback(cfg.iteration_callback);
+    }
 }
 
 // The central-path synthesis Task 0's tests/test_warm_start.cpp
@@ -1668,6 +1711,7 @@ inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg
     switch (cell.start) {
     case StartTaxonomy::kNeutralCold: {
         SqpSolver driver(opts);
+        attach_observers(driver, cfg);
         model.set_parameters(Vec::Constant(1, cell.p));
         const Vec x0 = model.start_point();
         return timed_row(
@@ -1676,6 +1720,7 @@ inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg
     }
     case StartTaxonomy::kPhysicsInformed: {
         SqpSolver driver(opts);
+        attach_observers(driver, cfg);
         model.set_parameters(Vec::Constant(1, cell.p));
         const Vec x0 = physics_informed_start(model, cell.p);
         return timed_row(
@@ -1684,6 +1729,7 @@ inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg
     }
     case StartTaxonomy::kCorrupted: {
         SqpSolver driver(opts);
+        attach_observers(driver, cfg);
         model.set_parameters(Vec::Constant(1, cell.p0));
         // The SETUP hop is budgeted too, not just the reported target solve
         // -- an unbounded setup step would hang the runner exactly as an
@@ -1704,6 +1750,7 @@ inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg
     }
     case StartTaxonomy::kActivityOnly: {
         SqpSolver driver(opts);
+        attach_observers(driver, cfg);
         model.set_parameters(Vec::Constant(1, cell.p));
         const double mu = crossover_mu_for_n(cell.n_nodes);
         const IpIterate it =
@@ -1718,6 +1765,7 @@ inline CorpusRow run_cell_engine(const CorpusCell &cell, const EngineConfig &cfg
     }
     case StartTaxonomy::kFullWarm: {
         SqpSolver driver(opts);
+        attach_observers(driver, cfg);
         model.set_parameters(Vec::Constant(1, cell.p0));
         const SqpResult seed = budgeted_solve(driver, model, model.start_point());
         model.set_parameters(Vec::Constant(1, cell.p));

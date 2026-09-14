@@ -190,6 +190,7 @@ using hven::solvers::TraceSink;
 constexpr const char *kUsage =
     "usage: hven_sqp_corpus --engine walk|ssn|ipm --cells all|<id1,id2,...> --csv <path> "
     "[--score-gates]\n"
+    "                       [--callback off|count] [--trace off|sink]\n"
     "       hven_sqp_corpus --hs --engine walk|ssn|ipm --csv <path> [--repeat N]\n"
     "                       [--hs-cells all|<n1,n2,...>] [--hs-trace off|sink]\n"
     "       hven_sqp_corpus --from-csv <path1[,path2,...]> [--csv <merged>] [--score-gates]\n"
@@ -358,6 +359,25 @@ constexpr const char *kUsage =
     "                    ev_* columns count qp.mode events PER SITE and are how\n"
     "                    a reader proves each site fired rather than assuming\n"
     "                    it.\n"
+    "  --callback MODE   CORPUS ARMS ONLY (walk|ssn|ipm). off (default) is the\n"
+    "                    shipped shape: no iteration callback is attached, so\n"
+    "                    SqpSolver::fire_iteration_event returns at its null\n"
+    "                    guard and no IterationEvent is ever built. count\n"
+    "                    attaches the CHEAPEST POSSIBLE callback -- one that\n"
+    "                    increments a counter and returns kContinue -- so what\n"
+    "                    the arm measures is the DISPATCH (one null check, one\n"
+    "                    indirect call, one event built per major), not a\n"
+    "                    callback's own work. The count goes to stderr, never\n"
+    "                    into the CSV: the schema does not move for an\n"
+    "                    instrument. Stamped in the provenance header.\n"
+    "  --trace MODE      CORPUS ARMS ONLY (walk|ssn|ipm). off (default) is the\n"
+    "                    shipped shape: no sink, so every `!= nullptr` emit\n"
+    "                    guard in the driver falls through. sink attaches the\n"
+    "                    same CountingTraceSink --hs-trace uses -- the cheapest\n"
+    "                    attached sink -- so the emit sites execute. Per-site\n"
+    "                    event counts go to stderr, not into the CSV. Stamped\n"
+    "                    in the provenance header. (--hs-trace is the HS\n"
+    "                    suite's own lever and is a different flag.)\n"
     "\n"
     "  --list            print every census cell's id/tags and exit 0; touches\n"
     "                    neither --engine/--cells/--csv nor the solver.\n"
@@ -521,6 +541,18 @@ struct Args {
     // as accepted and does nothing is how a measurement arm gets mislabelled.
     bool hs = false;
     std::optional<std::string> hs_cells;
+
+    // M6 W6 T6 -- THE ATTACHED-OBSERVER ARMS ON THE CORPUS LEG. Both default
+    // OFF, and off is the shipped shape: nothing attached, so neither the
+    // callback dispatch nor any sink emit site executes. They exist to measure
+    // what attaching the cheapest possible observer COSTS, at one HEAD -- the
+    // comparison is attached vs unattached, never a commit pair.
+    //
+    // THEY ARE NOT --hs-trace. That flag is the HS suite's, threaded into
+    // run_hs_cell alone; these two reach the 27/57-cell corpus path, whose
+    // cells the ledger records as attaching neither (M6 ledger :4455-4457).
+    bool corpus_callback = false;
+    bool corpus_trace_sink = false;
     // Repeats per HS cell, reduced to a MEDIAN. Calibrated at T6.d time by
     // raising N until the A-arm-alone per-cell `median_se_pct` is inside
     // +/-0.5 % -- NOT `spread_pct`, which is monotone in N and cannot converge.
@@ -652,6 +684,24 @@ Args parse_args(int argc, char **argv) {
             } else {
                 throw_usage(fmt::format("--hs-trace: '{}' is not one of off|sink", v));
             }
+        } else if (arg == "--callback") {
+            const std::string v = next_value(arg);
+            if (v == "off") {
+                a.corpus_callback = false;
+            } else if (v == "count") {
+                a.corpus_callback = true;
+            } else {
+                throw_usage(fmt::format("--callback: '{}' is not one of off|count", v));
+            }
+        } else if (arg == "--trace") {
+            const std::string v = next_value(arg);
+            if (v == "off") {
+                a.corpus_trace_sink = false;
+            } else if (v == "sink") {
+                a.corpus_trace_sink = true;
+            } else {
+                throw_usage(fmt::format("--trace: '{}' is not one of off|sink", v));
+            }
         } else if (arg == "--hs-warmup") {
             const int v = parse_int_field("--hs-warmup", next_value(arg));
             if (v < 0) {
@@ -741,9 +791,15 @@ constexpr int kIpqpColumns = 76;
 // setting every quoted wall depends on, and -- if any -- the hidden test
 // levers that were in force. Every line is a `#` comment, the same convention
 // bench_cli.h's solution dump uses, so an ordinary CSV reader skips them.
+// M6 W6 T6: `attached_callback` and `attached_sink` are passed as BOOLS rather
+// than read off `levers`, and deliberately. In the leg process the levers'
+// `iteration_callback` and `trace` are EMPTY even on an attached arm -- the
+// parent forks and never solves, and only the child builds the observers -- so
+// a header that read the levers would stamp `off` over an attached capture.
 void write_provenance(std::ostream &os, int argc, char **argv, const EngineLevers &levers,
                       bool forced_throw, const std::optional<double> &forced_setup,
-                      const std::optional<double> &forced_solve) {
+                      const std::optional<double> &forced_solve, bool attached_callback,
+                      bool attached_sink) {
     std::string invocation;
     for (int i = 0; i < argc; ++i) {
         invocation += (i == 0 ? "" : " ");
@@ -771,6 +827,14 @@ void write_provenance(std::ostream &os, int argc, char **argv, const EngineLever
     os << fmt::format("# MKL_NUM_THREADS: {}\n", mkl == nullptr ? "<unset>" : mkl);
     os << fmt::format("# host: {}\n", host[0] == '\0' ? "<unknown>" : host);
     os << fmt::format("# generated: {}\n", stamp[0] == '\0' ? "<unknown>" : stamp);
+    // ALWAYS WRITTEN, unlike the SSN levers below, and on the HS header's own
+    // precedent (`# trace: sink|off`): an arm that is UNATTACHED is one half of
+    // this leg's comparison, so its file has to say so in its own bytes rather
+    // than by the absence of a line. Both defaults are off.
+    os << fmt::format("# attached observers: callback={} trace={} (M6 W6 T6 -- off/off is the "
+                      "shipped shape: nothing is attached and the driver's callback dispatch and "
+                      "sink emit guards do not execute)\n",
+                      attached_callback ? "count" : "off", attached_sink ? "sink" : "off");
     if (levers.ssn_prox_carry) {
         os << "# lever: ssn_prox_carry=true (MEASUREMENT ARM -- the shipped default is false)\n";
     }
@@ -1497,7 +1561,8 @@ CorpusOutcome run_cell_with_deadline(const char *self_path, const CorpusCell &ce
                                      const std::string &engine, const EngineLevers &levers,
                                      bool force_child_throw, bool force_child_abort,
                                      std::optional<double> forced_setup_s,
-                                     std::optional<double> forced_solve_s) {
+                                     std::optional<double> forced_solve_s, bool attach_callback,
+                                     bool attach_sink) {
     const double band_s = wall_budget_for_cell(cell);
     const double setup_budget_s = forced_setup_s.value_or(band_s);
     const double solve_budget_s = forced_solve_s.value_or(band_s);
@@ -1550,6 +1615,18 @@ CorpusOutcome run_cell_with_deadline(const char *self_path, const CorpusCell &ce
         }
         if (levers.score_model_surface) {
             argv_own.emplace_back("--score-model-surface");
+        }
+        // M6 W6 T6. The two attached-observer levers cross the boundary as
+        // FLAGS, for the reason corpus_cells.h's EngineConfig states: a raw
+        // pointer and a std::function cannot survive an execv, so the child
+        // rebuilds both from its own argv.
+        if (attach_callback) {
+            argv_own.emplace_back("--callback");
+            argv_own.emplace_back("count");
+        }
+        if (attach_sink) {
+            argv_own.emplace_back("--trace");
+            argv_own.emplace_back("sink");
         }
         if (force_child_throw) {
             argv_own.emplace_back("--internal-force-child-throw");
@@ -1927,6 +2004,15 @@ class CountingTraceSink final : public TraceSink {
         fallback_verdict_ = 0;
         other_ = 0;
     }
+
+    /// M6 W6 T6. The events that reach NO named counter above -- the SQP
+    /// major/solve-begin/solve-end sites, the IPQP iteration site and the
+    /// fallback verdict. The corpus attached-observer arm needs them because a
+    /// walk-mode cell fires no `qp.mode` site at all, so every counter above
+    /// stays zero and the five of them together could not tell "the sink was
+    /// attached and never reached" from "the sink was attached and reached".
+    /// The HS leg's own report is unchanged: it reads the named counters.
+    long long unnamed_events() const { return ipqp_iter_ + fallback_verdict_ + other_; }
 
     long long dispatch = 0;
     long long soc_resolve = 0;
@@ -2527,11 +2613,15 @@ int main(int argc, char **argv) {
                     args.ssn_infeasibility_rule != SsnInfeasibilityRule::kSymptoms ||
                     args.score_model_surface || args.internal_force_setup_budget_s ||
                     args.internal_force_solve_budget_s || args.internal_force_child_throw ||
-                    args.internal_force_child_abort) {
+                    args.internal_force_child_abort || args.corpus_callback ||
+                    args.corpus_trace_sink) {
                     throw_usage("--internal-run-one --engine interior takes none of the SSN "
-                                "measurement levers, the model-surface hook or the hidden child "
-                                "levers: it runs the interior leg in process, drives no "
-                                "SqpSolver, has no parent polling a marker and no child to force");
+                                "measurement levers, the model-surface hook, the hidden child "
+                                "levers or the attached-observer arms: it runs the interior leg "
+                                "in process, drives no SqpSolver, has no parent polling a marker "
+                                "and no child to force. The interior leg's OWN callback lever is "
+                                "the HVEN_LEG_COUNT_CALLBACK environment variable "
+                                "(bench/ipm_corpus_leg.cpp), and it has no sink lever at all");
                 }
                 run_internal_interior_one(*args.internal_run_one, *args.treatment,
                                           *args.internal_out, argc, argv);
@@ -2544,8 +2634,48 @@ int main(int argc, char **argv) {
             levers.ssn_hint_rule = args.ssn_hint_rule;
             levers.ssn_infeasibility_rule = args.ssn_infeasibility_rule;
             levers.score_model_surface = args.score_model_surface;
+            // M6 W6 T6. THE ATTACHED OBSERVERS ARE BUILT HERE, in the process
+            // that actually solves -- the child of the leg, or a single-cell
+            // process a measurement arm runs directly. Both outlive
+            // run_internal_one by scope.
+            //
+            // THE CHEAPEST POSSIBLE FORMS, on purpose. The callback increments
+            // a long long and returns kContinue; the sink is the same
+            // CountingTraceSink the HS leg attaches. What is being measured is
+            // the dispatch the attachment turns on, so an observer that did
+            // real work would measure the observer instead.
+            CountingTraceSink corpus_sink;
+            long long callback_events = 0;
+            if (args.corpus_trace_sink) {
+                levers.trace = &corpus_sink;
+            }
+            if (args.corpus_callback) {
+                levers.iteration_callback =
+                    [&callback_events](const hven::solvers::IterationEvent &) {
+                        ++callback_events;
+                        return hven::solvers::CallbackAction::kContinue;
+                    };
+            }
             run_internal_one(*args.internal_run_one, *args.engine, *args.internal_out, levers,
                              args.internal_force_child_throw, args.internal_force_child_abort);
+            // TO STDERR, NEVER TO THE CSV: the schema does not move for an
+            // instrument (bench/ipm_corpus_leg.cpp's callback lever states the
+            // same rule). A leg's child writes its row to --internal-out and
+            // its stderr into the leg's transcript, so this lands where a
+            // reader of the transcript can see that the observer was reached.
+            if (args.corpus_callback) {
+                fmt::print(stderr, "ATTACHED-CALLBACK cell={} engine={} events={}\n",
+                           *args.internal_run_one, *args.engine, callback_events);
+            }
+            if (args.corpus_trace_sink) {
+                fmt::print(stderr,
+                           "ATTACHED-SINK cell={} engine={} qp_mode_dispatch={} soc_resolve={} "
+                           "elastic_rung={} fallback_rung_b={} ssn_warm_grade={} other={}\n",
+                           *args.internal_run_one, *args.engine, corpus_sink.dispatch,
+                           corpus_sink.soc_resolve, corpus_sink.elastic_rung,
+                           corpus_sink.fallback_rung_b, corpus_sink.ssn_warm_grade,
+                           corpus_sink.unnamed_events());
+            }
             return 0;
         }
 
@@ -2567,6 +2697,11 @@ int main(int argc, char **argv) {
                             "combined with --cells/--from-csv/--dump-qp/--dump-qp-out/"
                             "--score-gates/--score-model-surface/--score-model-surface-out, none "
                             "of which has a meaning over these cells");
+            }
+            if (args.corpus_callback || args.corpus_trace_sink) {
+                throw_usage("--callback and --trace are the CORPUS arms' attached-observer "
+                            "levers and reach run_cell_engine, which --hs does not call: the HS "
+                            "suite's own sink lever is --hs-trace, and it has no callback lever");
             }
             if (args.internal_run_one || args.internal_force_setup_budget_s ||
                 args.internal_force_solve_budget_s || args.internal_force_child_throw ||
@@ -2697,6 +2832,19 @@ int main(int argc, char **argv) {
                 throw_usage("--engine interior takes none of the hidden internal/test levers: it "
                             "runs in process and has no child to force and no deadline to "
                             "override");
+            }
+            // M6 W6 T6. REFUSED, NOT IGNORED, on this file's standing rule.
+            // This leg drives an IpmSolver, not an SqpSolver, and neither
+            // corpus lever reaches it. Its OWN callback lever is the
+            // HVEN_LEG_COUNT_CALLBACK environment variable
+            // (bench/ipm_corpus_leg.cpp:638-645); it has no sink lever, and
+            // adding one would be a change to that leg rather than to this
+            // flag surface.
+            if (args.corpus_callback || args.corpus_trace_sink) {
+                throw_usage("--callback and --trace are the SQP corpus arms' attached-observer "
+                            "levers and set fields run_cell_engine reads; this arm runs no "
+                            "SqpSolver. The interior leg's callback lever is the environment "
+                            "variable HVEN_LEG_COUNT_CALLBACK, and it has no sink lever");
             }
 
             const InteriorLevers levers;
@@ -2924,6 +3072,11 @@ int main(int argc, char **argv) {
             if (outcomes.empty()) {
                 throw_usage(fmt::format("--from-csv: '{}' yielded zero rows", *args.from_csv));
             }
+            if (args.corpus_callback || args.corpus_trace_sink) {
+                throw_usage("--callback and --trace are attached-observer arms on a LIVE corpus "
+                            "run; --from-csv reads rows another run already captured and solves "
+                            "nothing, so neither flag could change a byte of its output");
+            }
             outcomes = in_census_order(std::move(outcomes));
             if (args.csv) {
                 std::ofstream out(*args.csv);
@@ -2937,9 +3090,15 @@ int main(int argc, char **argv) {
                 merge_levers.ssn_sigma_rule = args.ssn_sigma_rule;
                 merge_levers.ssn_hint_rule = args.ssn_hint_rule;
                 merge_levers.ssn_infeasibility_rule = args.ssn_infeasibility_rule;
+                // FALSE/FALSE, and not `args.*`: a merge SOLVES NOTHING. The
+                // rows come from files captured under whatever arms produced
+                // them, and a merged header that claimed this invocation's
+                // flags would be the wrong record. The flags are refused on
+                // this path anyway (below), so the pair can only be off/off.
                 write_provenance(out, argc, argv, merge_levers, args.internal_force_child_throw,
                                  args.internal_force_setup_budget_s,
-                                 args.internal_force_solve_budget_s);
+                                 args.internal_force_solve_budget_s,
+                                 /*attached_callback=*/false, /*attached_sink=*/false);
                 write_header(out);
                 for (const CorpusOutcome &o : outcomes) {
                     write_outcome(out, o);
@@ -2985,9 +3144,15 @@ int main(int argc, char **argv) {
                 fmt::format("--csv: could not open '{}' for writing", *args.csv));
         }
         write_provenance(out, argc, argv, levers, args.internal_force_child_throw,
-                         args.internal_force_setup_budget_s, args.internal_force_solve_budget_s);
+                         args.internal_force_setup_budget_s, args.internal_force_solve_budget_s,
+                         args.corpus_callback, args.corpus_trace_sink);
         write_header(out);
         out.flush();
+
+        // THE ARM, ON THE LEG'S OWN CONSOLE LINE (M6 W6 T6), so a transcript
+        // says which population it captured without a reader opening the CSV.
+        fmt::print("attached observers: callback={} trace={}\n",
+                   args.corpus_callback ? "count" : "off", args.corpus_trace_sink ? "sink" : "off");
 
         std::vector<CorpusOutcome> outcomes;
         outcomes.reserve(cells.size());
@@ -2999,7 +3164,7 @@ int main(int argc, char **argv) {
             CorpusOutcome outcome = run_cell_with_deadline(
                 argv[0], *cell, *args.engine, levers, args.internal_force_child_throw,
                 args.internal_force_child_abort, args.internal_force_setup_budget_s,
-                args.internal_force_solve_budget_s);
+                args.internal_force_solve_budget_s, args.corpus_callback, args.corpus_trace_sink);
             if (outcome.engine_error) {
                 fmt::print("  -> ENGINE ERROR (scored as a non-answer, worst case): {}\n",
                            outcome.engine_error_what);
