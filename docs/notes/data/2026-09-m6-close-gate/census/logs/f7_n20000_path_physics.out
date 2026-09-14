@@ -1,0 +1,4 @@
+attached observers: callback=off trace=off
+running f7_n20000_path_physics (N=20000, path, physics, engine walk, wall budget 3600s per phase)...
+  -> dnf_budget at the 3600s deadline
+wrote 1 row(s) to /home/ghecht/Projects/hven/.scratch/m6-close/census/run/rows/f7_n20000_path_physics.csv.part

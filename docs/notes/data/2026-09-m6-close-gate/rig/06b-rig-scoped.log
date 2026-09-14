@@ -1,0 +1,39 @@
+LEG: bash -o pipefail -c bash /home/ghecht/Projects/hven/.scratch/m6-close/rig_leg.sh
+PGREP_SEPARATE 2026-09-14T17:09:25Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-14T17:09:25Z
+=== full ctest inventory (build-3seam) ===
+INVENTORY_RC=0
+Total Tests: 2628
+=== rig-scoped inventory (Arms/*, the rig's own tests, the controls) ===
+SCOPED_INVENTORY_RC=0  (worst 0)
+Total Tests: 84
+=== rig-scoped ctest run ===
+RIG_SCOPED_CTEST_RC=8  (captured, NOT folded: one designed failure is expected)
+
+The following tests did not run:
+	436 - Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/psiopt-old@mkl (Skipped)
+	446 - Arms/SqpTrace.T4_HandleOutlivesItsEmitter/psiopt-old@mkl (Skipped)
+	447 - Arms/SqpTrace.T4_HandleOutlivesItsEmitter/sqp-old@mkl (Skipped)
+	451 - Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/psiopt-old@mkl (Skipped)
+	452 - Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/sqp-old@mkl (Skipped)
+	502 - Arms/InteriorPointTrace.P6_RefinementStepEvidence/sqp-old@mkl (Skipped)
+
+The following tests FAILED:
+	497 - Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp-old@mkl (Failed)
+Errors while running CTest
+--- the failing tests, in full ---
+	497 - Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp-old@mkl (Failed)
+--- FailByDesignControl cells ---
+      Start 420: FailByDesignControl.SqpSeamStillZeroFillsItsPreFactorizationInertia
+      Start 421: FailByDesignControl.SqpSeamDeclaresTheInertiaSurfaceTheFailingTraceNeeds
+      Start 422: FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas
+ 1/84 Test #422: FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas ............................   Passed    0.00 sec
+ 2/84 Test #420: FailByDesignControl.SqpSeamStillZeroFillsItsPreFactorizationInertia ...............................   Passed    0.01 sec
+ 3/84 Test #421: FailByDesignControl.SqpSeamDeclaresTheInertiaSurfaceTheFailingTraceNeeds ..........................   Passed    0.01 sec
+RIG_SCOPED_CTEST_RC=8
+RIG_LEG_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T17:09:25Z
+WRAPPER_EXIT=0

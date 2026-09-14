@@ -1,0 +1,33 @@
+# M6 CLOSE GATE — install smoke (LTO OFF, the script's default arm)
+
+LEG: bash -o pipefail -c bash /home/ghecht/Projects/hven/.scratch/m6-close/smoke.sh
+PGREP_SEPARATE 2026-09-14T17:05:59Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-14T17:05:59Z
+=== install smoke (workdir /home/ghecht/Projects/hven/.scratch/m6-close/smokework; LTO OFF -- the script's default) ===
+[20/20] Linking CXX executable hven_install_smoke
+== running the smoke consumer
+install smoke: IpmSolver converged, objective = 17.0140174 (OK)
+install smoke: SqpSolver converged, objective = 17.0140173 (OK)
+install smoke: both solvers converged through one generic consumer; 18 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-configure.log
+standalone-include TUs named in the smoke log: 18
+front end resolved to: -- The CXX compiler identification is GNU 16.2.1
+SMOKE_RC=0  (worst 0)
+=== export contract (linux; align read from THIS build's configure log) ===
+align from configure log: 32
+hvenTargets.cmake: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/lib64/cmake/hven/hvenTargets.cmake
+== checking export contract: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32
+EXPORT_RC=0  (worst 0)
+SMOKE_EXPORT_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T17:06:46Z
+WRAPPER_EXIT=0

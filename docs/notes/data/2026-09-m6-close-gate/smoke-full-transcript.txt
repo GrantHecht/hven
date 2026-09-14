@@ -1,0 +1,1182 @@
+== hven install smoke: workdir /home/ghecht/Projects/hven/.scratch/m6-close/smokework
+== configuring hven (Release) into /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-build
+-- The CXX compiler identification is GNU 16.2.1
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Found MKL: /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_core.a;/opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- Configuring done (1.8s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-build
+== building hven
+[1/44] Building CXX object CMakeFiles/hven.dir/src/core/version.cpp.o
+[2/44] Building CXX object CMakeFiles/hven.dir/src/core/enum_names.cpp.o
+[3/44] Building CXX object CMakeFiles/hven.dir/src/core/ledger.cpp.o
+[4/44] Building CXX object CMakeFiles/hven.dir/src/core/pattern_hash.cpp.o
+[5/44] Building CXX object CMakeFiles/hven.dir/src/kkt/kkt_calls.cpp.o
+[6/44] Building CXX object CMakeFiles/hven.dir/src/linear/pardiso_session.cpp.o
+[7/44] Building CXX object CMakeFiles/hven.dir/src/linear/dense_symmetric_factor.cpp.o
+[8/44] Building CXX object CMakeFiles/hven.dir/src/linear/symmetric_factor_mkl.cpp.o
+[9/44] Building CXX object CMakeFiles/hven.dir/src/drivers/solver_init.cpp.o
+[10/44] Building CXX object CMakeFiles/hven.dir/cmake_pch.hxx.gch
+[11/44] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_status.cpp.o
+[12/44] Building CXX object CMakeFiles/hven.dir/src/drivers/solve_result.cpp.o
+[13/44] Building CXX object CMakeFiles/hven.dir/src/model/assembly_declaration.cpp.o
+In file included from /home/ghecht/Projects/hven/include/hven/detail/interior/indexing_data.h:41,
+                 from /home/ghecht/Projects/hven/include/hven/detail/interior/solver_function_base.h:26,
+                 from /home/ghecht/Projects/hven/include/hven/detail/interior/constraint_function.h:21,
+                 from /home/ghecht/Projects/hven/src/model/assembly_declaration.cpp:22:
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: warning: use of ‘std::hardware_destructive_interference_size’ [-Winterference-size]
+  339 |         std::hardware_destructive_interference_size;
+      |         ~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: its value can vary between compiler versions or with different ‘-mtune’ or ‘-mcpu’ flags
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: if this use is part of a public ABI, change it to instead use a constant variable you define
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: the default value for the current CPU tuning is 64 bytes
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: you can stabilize this value with ‘--param hardware_destructive_interference_size=64’, or disable this warning with ‘-Wno-interference-size’
+[14/44] Building CXX object CMakeFiles/hven.dir/src/model/nlp_model_assembly.cpp.o
+[15/44] Building CXX object CMakeFiles/hven.dir/src/model/nlp_problem_model.cpp.o
+[16/44] Building CXX object CMakeFiles/hven.dir/src/interior/utils/color_text.cpp.o
+[17/44] Building CXX object CMakeFiles/hven.dir/src/interior/kkt_factorization.cpp.o
+[18/44] Building CXX object CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+[19/44] Building CXX object CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+In file included from /home/ghecht/Projects/hven/src/interior/utils/thread_pool.cpp:4:
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: warning: use of ‘std::hardware_destructive_interference_size’ [-Winterference-size]
+  339 |         std::hardware_destructive_interference_size;
+      |         ~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: its value can vary between compiler versions or with different ‘-mtune’ or ‘-mcpu’ flags
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: if this use is part of a public ABI, change it to instead use a constant variable you define
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: the default value for the current CPU tuning is 64 bytes
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: you can stabilize this value with ‘--param hardware_destructive_interference_size=64’, or disable this warning with ‘-Wno-interference-size’
+[20/44] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o
+[21/44] Building CXX object CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+[22/44] Building CXX object CMakeFiles/hven.dir/src/drivers/problem_scaling.cpp.o
+[23/44] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+In file included from /home/ghecht/Projects/hven/include/hven/detail/interior/indexing_data.h:41,
+                 from /home/ghecht/Projects/hven/include/hven/detail/interior/solver_function_base.h:26,
+                 from /home/ghecht/Projects/hven/include/hven/detail/interior/constraint_function.h:21,
+                 from /home/ghecht/Projects/hven/include/hven/model/non_linear_program.h:34,
+                 from /home/ghecht/Projects/hven/include/hven/drivers/ipm_solver_types.h:51,
+                 from /home/ghecht/Projects/hven/include/hven/drivers/ipm_solver.h:37,
+                 from /home/ghecht/Projects/hven/include/hven/detail/globalization/acceptance_strategy.h:18,
+                 from /home/ghecht/Projects/hven/include/hven/detail/globalization/backtracking_line_search.h:12,
+                 from /home/ghecht/Projects/hven/src/drivers/ipm_solver_globalization.cpp:42:
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: warning: use of ‘std::hardware_destructive_interference_size’ [-Winterference-size]
+  339 |         std::hardware_destructive_interference_size;
+      |         ~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: its value can vary between compiler versions or with different ‘-mtune’ or ‘-mcpu’ flags
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: if this use is part of a public ABI, change it to instead use a constant variable you define
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: the default value for the current CPU tuning is 64 bytes
+/home/ghecht/Projects/hven/include/hven/detail/interior/utils/thread_pool.h:339:14: note: you can stabilize this value with ‘--param hardware_destructive_interference_size=64’, or disable this warning with ‘-Wno-interference-size’
+[24/44] Building CXX object CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+[25/44] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+[26/44] Building CXX object CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+[27/44] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+[28/44] Building CXX object CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o
+[29/44] Building CXX object CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+[30/44] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+[31/44] Building CXX object CMakeFiles/hven.dir/src/drivers/trace.cpp.o
+[32/44] Building CXX object CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+[33/44] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/funnel.cpp.o
+[34/44] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+[35/44] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_kkt_layout.cpp.o
+[36/44] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[37/44] Building CXX object CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+[38/44] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start.cpp.o
+[39/44] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+[40/44] Building CXX object CMakeFiles/hven.dir/src/warmstart/ipm_polish_extension.cpp.o
+[41/44] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o
+[42/44] Building CXX object CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+[43/44] Building CXX object CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+[44/44] Linking CXX static library libhven.a
+== installing hven into /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install
+-- Install configuration: "Release"
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/lib64/libhven.a
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/core
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/core/pattern_hash.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/core/types.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/core/version.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/core/detail
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/core/detail/aggregate_arity.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/core/compiler.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/core/ledger.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/core/solver_status.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/core/solver_counters.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/core/start_level.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/linear
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/linear/dense_symmetric_factor.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/linear/symmetric_factor.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/model
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/model/claim_space.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/model/candidate_point.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/model/nlp_model.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/model/nlp_problem_model.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/model/structure_identity.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/model/nlp_triplet_model.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/model/assembly_declaration.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/model/nlp_assembly.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/model/nlp_model_assembly.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/model/claim_stream_source.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/model/non_linear_program.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/kkt
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/interior
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/qp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/qp/qp_types.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/globalization
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/warmstart
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/warmstart/seeding.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/warmstart/sqp_warm_start.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/warmstart/warm_start_data.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/warmstart/ipm_polish_extension.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/drivers
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/drivers/solve_status.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/drivers/trace_writer.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/drivers/common_options.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/drivers/console_trace_sink.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/drivers/ipm_solver_types.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/drivers/solve_result.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/drivers/trace.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/drivers/ipm_solver.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/drivers/sqp_solver_types.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/drivers/sqp_solver.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/linear
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/linear/accelerate_session.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/linear/fault_injection.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/linear/lapacke_shim.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/linear/pardiso_session.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/linear/session_id.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/linear/thread_scope.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/drivers
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/drivers/solver_init.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/drivers/problem_scaling.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/drivers/ipm_solver_fwd.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/drivers/ipm_solver_presets.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/drivers/assembly_eval_seam.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/sqp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/sqp/elastic.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/sqp/restoration.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/sqp/soc.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/sqp/trust_region.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/sqp/globalization.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/feasibility_stall.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/funnel_acceptance.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/inertia_regularization.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/l1_restoration.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/progress_measures.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/proximal_restoration.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/switching_acceptance.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/filter_acceptance.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/classic_adaptive_governor.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/modern_merit.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/monitored_governor.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/noop_recovery.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/restoration.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/solver_context.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/acceptance_strategy.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/backtracking_line_search.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/barrier_governor.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/feasibility_switch_recovery.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/globalization_mechanism.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/merit_acceptance.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/recovery_chain.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/soc.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/globalization/watchdog.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/typedefs
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/typedefs/eigen_types.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/typedefs/super_scalar_traits.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/utils
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/utils/accelerate_threads.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/utils/flat_map.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/utils/function_return_type.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/utils/get_core_count.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/utils/math_functions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/utils/memory_management.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/utils/sizing_helpers.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/utils/std_extensions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/utils/timer.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/utils/tuple_iterator.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/utils/type_name.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/utils/type_storage.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/utils/thread_pool.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/barrier_math.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/eval_error_log.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/fixed_variable_row.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/indexing_data.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/parsed_io_flags.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/sizing_specs.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/solver_function_base.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/threading_flags.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/iterate_info.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/aggregate_views.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/bound_set.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/constraint_function.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/kkt_factorization.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/kkt_vector.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/interior/objective_function.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/model
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/model/nlp_adapter.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/model/claim_restatement.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/kkt
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/kkt/border_ops.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/kkt/bordered_eqp.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/kkt/kkt_assembly.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/kkt/kkt_calls.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/kkt/schur_complement.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/qp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/qp/eqp_solve.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/qp/qp_problem.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/qp/working_set.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/qp/ipqp_fault_injection.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/qp/ipqp_math.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/qp/ipqp_kkt_layout.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/qp/ipqp_evidence.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/qp/ipqp_engine.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/qp/qp_engine.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/qp/ssn_engine.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/solvers
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/solvers/solver_interface_specs.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/warmstart
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/warmstart/mesh_transfer.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/warmstart/predictor.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/warmstart/warm_start.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/detail/warmstart/continuation.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/hven/solver_interface_adapter.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/AccelerateSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/AccelerateSupport/AccelerateSupport.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/AccelerateSupport/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Cholesky
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Cholesky/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Cholesky/LDLT.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Cholesky/LLT.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Cholesky/LLT_LAPACKE.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/CholmodSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/CholmodSupport/CholmodSupport.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/CholmodSupport/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AVX
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AVX/Complex.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AVX/MathFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AVX/PacketMath.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AVX/Reductions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AVX/TypeCasting.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AVX512
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AVX512/Complex.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AVX512/GemmKernel.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AVX512/MathFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AVX512/MathFunctionsFP16.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AVX512/PacketMath.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AVX512/PacketMathFP16.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AVX512/Reductions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AVX512/TrsmKernel.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AVX512/TrsmUnrolls.inc
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AVX512/TypeCasting.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AVX512/TypeCastingFP16.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AltiVec
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AltiVec/Complex.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AltiVec/MathFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AltiVec/MatrixProduct.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AltiVec/MatrixProductCommon.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AltiVec/MatrixProductMMA.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AltiVec/MatrixProductMMAbfloat16.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AltiVec/MatrixVectorProduct.inc
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AltiVec/PacketMath.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/AltiVec/TypeCasting.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/Default
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/Default/BFloat16.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/Default/ConjHelper.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/Default/GenericPacketMathFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/Default/GenericPacketMathFunctionsFwd.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/Default/Half.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/Default/Settings.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/GPU
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/GPU/Complex.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/GPU/MathFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/GPU/PacketMath.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/GPU/Tuple.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/GPU/TypeCasting.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/HIP
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/HIP/hcc
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/HIP/hcc/math_constants.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/HVX
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/HVX/PacketMath.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/LSX
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/LSX/Complex.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/LSX/GeneralBlockPanelKernel.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/LSX/MathFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/LSX/PacketMath.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/LSX/TypeCasting.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/MSA
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/MSA/Complex.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/MSA/MathFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/MSA/PacketMath.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/NEON
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/NEON/Complex.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/NEON/GeneralBlockPanelKernel.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/NEON/MathFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/NEON/PacketMath.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/NEON/TypeCasting.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/NEON/UnaryFunctors.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/SSE
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/SSE/Complex.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/SSE/MathFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/SSE/PacketMath.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/SSE/Reductions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/SSE/TypeCasting.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/SVE
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/SVE/MathFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/SVE/PacketMath.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/SVE/TypeCasting.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/SYCL
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/SYCL/InteropHeaders.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/SYCL/MathFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/SYCL/PacketMath.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/SYCL/TypeCasting.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/ZVector
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/ZVector/Complex.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/ZVector/MathFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/arch/ZVector/PacketMath.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/functors
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/functors/AssignmentFunctors.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/functors/BinaryFunctors.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/functors/NullaryFunctors.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/functors/StlFunctors.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/functors/TernaryFunctors.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/functors/UnaryFunctors.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/GeneralBlockPanelKernel.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/GeneralMatrixMatrix.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/GeneralMatrixMatrixTriangular.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/GeneralMatrixMatrixTriangular_BLAS.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/GeneralMatrixMatrix_BLAS.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/GeneralMatrixVector.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/GeneralMatrixVector_BLAS.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/Parallelizer.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/SelfadjointMatrixMatrix.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/SelfadjointMatrixMatrix_BLAS.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/SelfadjointMatrixVector.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/SelfadjointMatrixVector_BLAS.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/SelfadjointProduct.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/SelfadjointRank2Update.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/TriangularMatrixMatrix.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/TriangularMatrixMatrix_BLAS.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/TriangularMatrixVector.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/TriangularMatrixVector_BLAS.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/TriangularSolverMatrix.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/TriangularSolverMatrix_BLAS.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/products/TriangularSolverVector.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/Assert.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/BlasUtil.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/ConfigureVectorization.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/Constants.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/DisableStupidWarnings.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/EmulateArray.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/ForwardDeclarations.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/GpuHipCudaDefines.inc
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/GpuHipCudaUndefines.inc
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/IndexedViewHelper.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/IntegralConstant.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/MKL_support.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/Macros.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/MaxSizeVector.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/Memory.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/Meta.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/MoreMeta.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/ReenableStupidWarnings.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/ReshapedHelper.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/Serializer.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/StaticAssert.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/SymbolicIndex.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/util/XprHelper.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/ArithmeticSequence.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Array.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/ArrayBase.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/ArrayWrapper.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Assign.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/AssignEvaluator.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Assign_MKL.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/BandMatrix.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Block.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/CommaInitializer.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/ConditionEstimator.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/CoreEvaluators.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/CoreIterators.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/CwiseBinaryOp.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/CwiseNullaryOp.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/CwiseTernaryOp.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/CwiseUnaryOp.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/CwiseUnaryView.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/DenseBase.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/DenseCoeffsBase.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/DenseStorage.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/DeviceWrapper.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Diagonal.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/DiagonalMatrix.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/DiagonalProduct.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Dot.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/EigenBase.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Fill.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/FindCoeff.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/ForceAlignedAccess.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Fuzzy.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/GeneralProduct.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/GenericPacketMath.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/GlobalFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/IO.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/IndexedView.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/InnerProduct.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Inverse.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Map.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/MapBase.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/MathFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/MathFunctionsImpl.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Matrix.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/MatrixBase.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/NestByValue.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/NoAlias.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/NumTraits.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/PartialReduxEvaluator.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/PermutationMatrix.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/PlainObjectBase.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Product.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/ProductEvaluators.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Random.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/RandomImpl.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/RealView.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Redux.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Ref.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Replicate.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Reshaped.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/ReturnByValue.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Reverse.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Select.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/SelfAdjointView.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/SelfCwiseBinaryOp.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/SkewSymmetricMatrix3.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Solve.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/SolveTriangular.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/SolverBase.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/StableNorm.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/StlIterators.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Stride.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Swap.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Transpose.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Transpositions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/TriangularMatrix.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/VectorBlock.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/VectorwiseOp.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Core/Visitor.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Eigenvalues
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Eigenvalues/ComplexEigenSolver.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Eigenvalues/ComplexSchur.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Eigenvalues/ComplexSchur_LAPACKE.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Eigenvalues/EigenSolver.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Eigenvalues/GeneralizedEigenSolver.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Eigenvalues/GeneralizedSelfAdjointEigenSolver.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Eigenvalues/HessenbergDecomposition.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Eigenvalues/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Eigenvalues/MatrixBaseEigenvalues.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Eigenvalues/RealQZ.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Eigenvalues/RealSchur.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Eigenvalues/RealSchur_LAPACKE.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Eigenvalues/SelfAdjointEigenSolver.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Eigenvalues/SelfAdjointEigenSolver_LAPACKE.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Eigenvalues/Tridiagonalization.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Geometry
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Geometry/arch
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Geometry/arch/Geometry_SIMD.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Geometry/AlignedBox.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Geometry/AngleAxis.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Geometry/EulerAngles.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Geometry/Homogeneous.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Geometry/Hyperplane.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Geometry/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Geometry/OrthoMethods.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Geometry/ParametrizedLine.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Geometry/Quaternion.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Geometry/Rotation2D.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Geometry/RotationBase.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Geometry/Scaling.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Geometry/Transform.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Geometry/Translation.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Geometry/Umeyama.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Householder
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Householder/BlockHouseholder.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Householder/Householder.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Householder/HouseholderSequence.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Householder/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/IterativeLinearSolvers
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/IterativeLinearSolvers/BasicPreconditioners.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/IterativeLinearSolvers/BiCGSTAB.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/IterativeLinearSolvers/ConjugateGradient.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/IterativeLinearSolvers/IncompleteCholesky.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/IterativeLinearSolvers/IncompleteLUT.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/IterativeLinearSolvers/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/IterativeLinearSolvers/IterativeSolverBase.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/IterativeLinearSolvers/LeastSquareConjugateGradient.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/IterativeLinearSolvers/SolveWithGuess.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Jacobi
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Jacobi/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/Jacobi/Jacobi.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/KLUSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/KLUSupport/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/KLUSupport/KLUSupport.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/LU
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/LU/arch
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/LU/arch/InverseSize4.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/LU/Determinant.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/LU/FullPivLU.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/LU/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/LU/InverseImpl.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/LU/PartialPivLU.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/LU/PartialPivLU_LAPACKE.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/MetisSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/MetisSupport/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/MetisSupport/MetisSupport.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/OrderingMethods
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/OrderingMethods/Amd.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/OrderingMethods/Eigen_Colamd.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/OrderingMethods/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/OrderingMethods/Ordering.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/PaStiXSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/PaStiXSupport/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/PaStiXSupport/PaStiXSupport.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/PardisoSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/PardisoSupport/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/PardisoSupport/PardisoSupport.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/QR
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/QR/ColPivHouseholderQR.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/QR/ColPivHouseholderQR_LAPACKE.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/QR/CompleteOrthogonalDecomposition.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/QR/FullPivHouseholderQR.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/QR/HouseholderQR.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/QR/HouseholderQR_LAPACKE.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/QR/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SPQRSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SPQRSupport/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SPQRSupport/SuiteSparseQRSupport.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SVD
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SVD/BDCSVD.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SVD/BDCSVD_LAPACKE.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SVD/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SVD/JacobiSVD.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SVD/JacobiSVD_LAPACKE.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SVD/SVDBase.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SVD/UpperBidiagonalization.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCholesky
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCholesky/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCholesky/SimplicialCholesky.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCholesky/SimplicialCholesky_impl.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/AmbiVector.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/CompressedStorage.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/ConservativeSparseSparseProduct.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseAssign.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseBlock.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseColEtree.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseCompressedBase.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseCwiseBinaryOp.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseCwiseUnaryOp.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseDenseProduct.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseDiagonalProduct.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseDot.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseFuzzy.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseMap.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseMatrix.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseMatrixBase.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparsePermutation.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseProduct.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseRedux.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseRef.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseSelfAdjointView.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseSolverBase.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseSparseProductWithPruning.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseTranspose.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseTriangularView.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseUtil.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseVector.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/SparseView.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseCore/TriangularSolver.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseLU
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseLU/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseLU/SparseLU.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseLU/SparseLUImpl.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseLU/SparseLU_Memory.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseLU/SparseLU_Structs.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseLU/SparseLU_SupernodalMatrix.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseLU/SparseLU_Utils.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseLU/SparseLU_column_bmod.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseLU/SparseLU_column_dfs.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseLU/SparseLU_copy_to_ucol.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseLU/SparseLU_heap_relax_snode.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseLU/SparseLU_kernel_bmod.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseLU/SparseLU_panel_bmod.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseLU/SparseLU_panel_dfs.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseLU/SparseLU_pivotL.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseLU/SparseLU_pruneL.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseLU/SparseLU_relax_snode.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseQR
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseQR/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SparseQR/SparseQR.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/StlSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/StlSupport/StdDeque.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/StlSupport/StdList.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/StlSupport/StdVector.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/StlSupport/details.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SuperLUSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SuperLUSupport/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/SuperLUSupport/SuperLUSupport.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/ThreadPool
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/ThreadPool/Barrier.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/ThreadPool/CoreThreadPoolDevice.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/ThreadPool/EventCount.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/ThreadPool/ForkJoin.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/ThreadPool/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/ThreadPool/NonBlockingThreadPool.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/ThreadPool/RunQueue.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/ThreadPool/ThreadCancel.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/ThreadPool/ThreadEnvironment.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/ThreadPool/ThreadLocal.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/ThreadPool/ThreadPoolInterface.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/ThreadPool/ThreadYield.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/UmfPackSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/UmfPackSupport/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/UmfPackSupport/UmfPackSupport.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/misc
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/misc/Image.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/misc/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/misc/Kernel.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/misc/RealSvd2x2.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/misc/blas.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/misc/lapacke.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/misc/lapacke_helpers.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/misc/lapacke_mangling.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/plugins
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/plugins/ArrayCwiseBinaryOps.inc
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/plugins/ArrayCwiseUnaryOps.inc
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/plugins/BlockMethods.inc
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/plugins/CommonCwiseBinaryOps.inc
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/plugins/CommonCwiseUnaryOps.inc
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/plugins/IndexedViewMethods.inc
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/plugins/InternalHeaderCheck.inc
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/plugins/MatrixCwiseBinaryOps.inc
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/plugins/MatrixCwiseUnaryOps.inc
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/src/plugins/ReshapedMethods.inc
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/AccelerateSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/Cholesky
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/CholmodSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/Core
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/Dense
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/Eigen
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/Eigenvalues
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/Geometry
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/Householder
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/IterativeLinearSolvers
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/Jacobi
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/KLUSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/LU
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/MetisSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/OrderingMethods
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/PaStiXSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/PardisoSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/QR
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/QtAlignedMalloc
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/SPQRSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/SVD
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/Sparse
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/SparseCholesky
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/SparseCore
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/SparseLU
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/SparseQR
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/StdDeque
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/StdList
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/StdVector
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/SuperLUSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/ThreadPool
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/UmfPackSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/Eigen/Version
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/CMakeLists.txt
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/Tensor
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/TensorSymmetry
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/ThreadPool
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/README.md
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/Tensor.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorArgMax.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorAssign.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorBase.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorBlock.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorBroadcasting.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorChipping.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorConcatenation.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorContraction.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorContractionBlocking.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorContractionCuda.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorContractionGpu.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorContractionMapper.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorContractionSycl.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorContractionThreadPool.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorConversion.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorConvolution.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorConvolutionSycl.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorCostModel.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorCustomOp.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorDevice.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorDeviceCuda.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorDeviceDefault.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorDeviceGpu.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorDeviceSycl.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorDeviceThreadPool.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorDimensionList.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorDimensions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorEvalTo.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorEvaluator.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorExecutor.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorExpr.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorFFT.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorFixedSize.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorForcedEval.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorForwardDeclarations.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorFunctors.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorGenerator.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorGlobalFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorIO.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorImagePatch.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorIndexList.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorInflation.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorInitializer.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorIntDiv.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorLayoutSwap.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorMacros.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorMap.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorMeta.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorMorphing.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorPadding.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorPatch.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorRandom.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorReduction.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorReductionGpu.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorReductionSycl.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorRef.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorReverse.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorRoll.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorScan.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorScanSycl.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorShuffling.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorStorage.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorStriding.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorTrace.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorTraits.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorUInt128.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/Tensor/TensorVolumePatch.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/TensorSymmetry
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/TensorSymmetry/DynamicSymmetry.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/TensorSymmetry/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/TensorSymmetry/StaticSymmetry.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/TensorSymmetry/Symmetry.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/TensorSymmetry/util
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/TensorSymmetry/util/TemplateGroupTheory.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/util
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/util/CXX11Meta.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CXX11/src/util/CXX11Workarounds.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/AutoDiff
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/AutoDiff/AutoDiffJacobian.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/AutoDiff/AutoDiffScalar.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/AutoDiff/AutoDiffVector.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/AutoDiff/CoherentPadOp.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/AutoDiff/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/BVH
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/BVH/BVAlgorithms.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/BVH/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/BVH/KdBVH.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/EulerAngles
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/EulerAngles/CMakeLists.txt
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/EulerAngles/EulerAngles.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/EulerAngles/EulerSystem.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/EulerAngles/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/FFT
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/FFT/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/FFT/duccfft_impl.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/FFT/fftw_impl.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/FFT/imklfft_impl.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/FFT/kissfft_impl.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/FFT/pocketfft_impl.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/KroneckerProduct
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/KroneckerProduct/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/KroneckerProduct/KroneckerTensorProduct.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/LevenbergMarquardt
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/LevenbergMarquardt/CopyrightMINPACK.txt
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/LevenbergMarquardt/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/LevenbergMarquardt/LMcovar.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/LevenbergMarquardt/LMonestep.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/LevenbergMarquardt/LMpar.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/LevenbergMarquardt/LMqrsolv.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/LevenbergMarquardt/LevenbergMarquardt.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/MatrixFunctions
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/MatrixFunctions/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/MatrixFunctions/MatrixExponential.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/MatrixFunctions/MatrixFunction.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/MatrixFunctions/MatrixLogarithm.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/MatrixFunctions/MatrixPower.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/MatrixFunctions/MatrixSquareRoot.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/MatrixFunctions/StemFunction.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/NonLinearOptimization
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/NonLinearOptimization/HybridNonLinearSolver.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/NonLinearOptimization/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/NonLinearOptimization/LevenbergMarquardt.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/NonLinearOptimization/chkder.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/NonLinearOptimization/covar.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/NonLinearOptimization/dogleg.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/NonLinearOptimization/fdjac1.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/NonLinearOptimization/lmpar.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/NonLinearOptimization/qrsolv.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/NonLinearOptimization/r1mpyq.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/NonLinearOptimization/r1updt.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/NonLinearOptimization/rwupdt.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/NumericalDiff
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/NumericalDiff/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/NumericalDiff/NumericalDiff.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/Polynomials
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/Polynomials/Companion.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/Polynomials/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/Polynomials/PolynomialSolver.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/Polynomials/PolynomialUtils.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SparseExtra
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SparseExtra/BlockSparseMatrix.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SparseExtra/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SparseExtra/MarketIO.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SparseExtra/MatrixMarketIterator.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SparseExtra/RandomSetter.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SparseExtra/SparseInverse.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/arch
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/arch/AVX
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/arch/AVX/BesselFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/arch/AVX/SpecialFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/arch/AVX512
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/arch/AVX512/BesselFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/arch/AVX512/SpecialFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/arch/GPU
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/arch/GPU/SpecialFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/arch/NEON
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/arch/NEON/BesselFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/arch/NEON/SpecialFunctions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/BesselFunctionsArrayAPI.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/BesselFunctionsBFloat16.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/BesselFunctionsFunctors.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/BesselFunctionsHalf.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/BesselFunctionsImpl.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/BesselFunctionsPacketMath.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/HipVectorCompatibility.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/SpecialFunctionsArrayAPI.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/SpecialFunctionsBFloat16.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/SpecialFunctionsFunctors.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/SpecialFunctionsHalf.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/SpecialFunctionsImpl.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/SpecialFunctions/SpecialFunctionsPacketMath.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/Splines
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/Splines/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/Splines/Spline.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/Splines/SplineFitting.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/Splines/SplineFwd.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/Eigenvalues
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/Eigenvalues/ArpackSelfAdjointEigenSolver.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/Eigenvalues/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/IterativeSolvers
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/IterativeSolvers/BiCGSTABL.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/IterativeSolvers/DGMRES.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/IterativeSolvers/GMRES.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/IterativeSolvers/IDRS.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/IterativeSolvers/IDRSTABL.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/IterativeSolvers/IncompleteLU.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/IterativeSolvers/InternalHeaderCheck.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/IterativeSolvers/MINRES.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/src/IterativeSolvers/Scaling.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/AdolcForward
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/AlignedVector3
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/ArpackSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/AutoDiff
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/BVH
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/CMakeLists.txt
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/EulerAngles
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/FFT
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/IterativeSolvers
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/KroneckerProduct
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/LevenbergMarquardt
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/MPRealSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/MatrixFunctions
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/NNLS
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/NonLinearOptimization
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/NumericalDiff
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/OpenGLSupport
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/Polynomials
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/SparseExtra
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/SpecialFunctions
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/Eigen/Splines
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/README.txt
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/SYCL.dox
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/eigendoxy_layout.xml.in
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/examples
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/examples/SYCL
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/examples/SYCL/CMakeLists.txt
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/examples/SYCL/CwiseMul.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/examples/BVH_Example.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/examples/CMakeLists.txt
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/examples/EulerAngles.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/examples/FFT.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/examples/MatrixExponential.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/examples/MatrixFunction.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/examples/MatrixLogarithm.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/examples/MatrixPower.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/examples/MatrixPower_optimal.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/examples/MatrixSine.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/examples/MatrixSinh.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/examples/MatrixSquareRoot.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/examples/PolynomialSolver1.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/examples/PolynomialUtils1.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/snippets
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/snippets/CMakeLists.txt
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/CMakeLists.txt
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/doc/Overview.dox
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/BVH.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/CMakeLists.txt
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/EulerAngles.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/FFT.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/FFTW.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/NNLS.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/NonLinearOptimization.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/NumericalDiff.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/alignedvector3.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/autodiff.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/autodiff_scalar.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/bessel_functions.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/bicgstabl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_argmax.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_argmax_gpu.cu
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_argmax_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_assign.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_block_access.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_block_eval.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_block_io.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_broadcast_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_broadcasting.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_builtins_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_cast_float16_gpu.cu
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_casts.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_chipping.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_chipping_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_comparisons.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_complex_cwise_ops_gpu.cu
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_complex_gpu.cu
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_concatenation.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_concatenation_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_const.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_contract_gpu.cu
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_contract_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_contraction.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_convolution.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_convolution_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_custom_index.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_custom_op.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_custom_op_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_device.cu
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_device_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_dimension.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_empty.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_executor.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_expr.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_fft.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_fixed_size.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_forced_eval.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_forced_eval_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_generator.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_generator_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_gpu.cu
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_ifft.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_image_op_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_image_patch.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_image_patch_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_index_list.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_inflation.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_inflation_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_intdiv.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_io.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_layout_swap.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_layout_swap_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_lvalue.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_map.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_math.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_math_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_mixed_indices.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_morphing.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_morphing_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_move.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_notification.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_of_bfloat16_gpu.cu
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_of_complex.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_of_const_values.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_of_float16_gpu.cu
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_of_float16_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_of_strings.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_padding.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_padding_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_patch.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_patch_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_random.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_random_gpu.cu
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_random_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_reduction.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_reduction_gpu.cu
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_reduction_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_ref.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_reverse.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_reverse_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_roll.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_roundings.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_scan.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_scan_gpu.cu
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_scan_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_shuffling.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_shuffling_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_simple.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_striding.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_striding_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_sugar.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_symmetry.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_thread_local.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_thread_pool.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_trace.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_uint128.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_volume_patch.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/cxx11_tensor_volume_patch_sycl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/dgmres.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/duccfft.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/fft_test_shared.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/forward_adolc.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/gmres.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/idrs.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/idrstabl.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/kronecker_product.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/levenberg_marquardt.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/matrix_exponential.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/matrix_function.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/matrix_functions.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/matrix_power.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/matrix_square_root.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/minres.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/mklfft.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/mpreal_support.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/openglsupport.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/pocketfft.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/polynomialsolver.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/polynomialutils.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/sparse_extra.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/special_functions.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/special_packetmath.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/test/splines.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/CMakeLists.txt
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/bench
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/unsupported/bench/bench_svd.cpp
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/fmt
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/fmt/args.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/fmt/base.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/fmt/chrono.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/fmt/color.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/fmt/compile.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/fmt/core.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/fmt/format-inl.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/fmt/format.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/fmt/os.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/fmt/ostream.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/fmt/printf.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/fmt/ranges.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/fmt/std.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/include/fmt/xchar.h
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/lib64/cmake/hven/FindMKL.cmake
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/lib64/cmake/hven/FindAccelerateSparse.cmake
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/lib64/cmake/hven/hvenTargets.cmake
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/lib64/cmake/hven/hvenTargets-release.cmake
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/lib64/cmake/hven/hvenConfig.cmake
+-- Installing: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/lib64/cmake/hven/hvenConfigVersion.cmake
+== configuring the smoke consumer against the installed package
+-- The CXX compiler identification is GNU 16.2.1
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Found MKL: /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_core.a;/opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Configuring done (0.3s)
+-- Generating done (0.0s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/smoke-build
+== building the smoke consumer
+[1/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_nlp_triplet_model.cpp.o
+[2/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipqp_evidence.cpp.o
+[3/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_assembly_declaration.cpp.o
+[4/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_solve_status.cpp.o
+[5/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_core_solver_status.cpp.o
+[6/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_nlp_assembly.cpp.o
+[7/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_trace.cpp.o
+[8/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_trace_writer.cpp.o
+[9/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_nlp_model_assembly.cpp.o
+[10/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_seeding.cpp.o
+[11/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_common_options.cpp.o
+[12/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_compiler.cpp.o
+[13/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_solve_result.cpp.o
+[14/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_sqp_warm_start.cpp.o
+[15/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_console_trace_sink.cpp.o
+[16/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_sqp_solver.cpp.o
+[17/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipm_solver.cpp.o
+[18/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipm_solver_types.cpp.o
+[19/20] Building CXX object CMakeFiles/hven_install_smoke.dir/main.cpp.o
+[20/20] Linking CXX executable hven_install_smoke
+== running the smoke consumer
+install smoke: IpmSolver converged, objective = 17.0140174 (OK)
+install smoke: SqpSolver converged, objective = 17.0140173 (OK)
+install smoke: both solvers converged through one generic consumer; 18 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-configure.log

@@ -1,0 +1,11 @@
+# hven_sqp_corpus provenance
+# binary: 15f97cae51ff
+# schema: 76
+# budget_table_hash: 0x357aee91dee27391
+# invocation: /home/ghecht/Projects/hven/.scratch/m6-close/build-release/bench/hven_sqp_corpus --engine walk --cells f7_n2000_bound_warm --csv /home/ghecht/Projects/hven/.scratch/m6-close/census/run/rows/f7_n2000_bound_warm.csv.part
+# MKL_NUM_THREADS: 1
+# host: fedora
+# generated: 2026-09-14T17:24:46Z
+# attached observers: callback=off trace=off (M6 W6 T6 -- off/off is the shipped shape: nothing is attached and the driver's callback dispatch and sink emit guards do not execute)
+cell_id,family,n_nodes,window,taxonomy,degenerate,status,factorizations,qp_minors,escapes,qp_subproblems,qp_fact_per_qp,kkt_residual,wall_s,kkt_verdict,kkt_stationarity,kkt_primal,kkt_dual_sign,kkt_complementarity,dual_scale,x_scale,neg_ineq_duals,ssn_iters,ssn_bulk_flips,ssn_backtracks,ssn_prox_updates,ssn_uncertain_peak,ssn_refinements,ssn_refine_refused,ssn_refine_facts,ssn_refine_neg_duals,esc_budget,esc_singular,esc_no_contraction,esc_infeasible_suspect,esc_indefinite,esc_gate_refused,ipqp_iters,ipqp_factorizations,ipqp_symbolic_analyses,ipqp_solves,ipqp_pattern_verifies,ipqp_rho_demanded_max,ipqp_rho_demanded_last,ipqp_inertia_retries,ipqp_iters_at_elevated_rho,ipqp_ladder_reclimbs,ipqp_pivot_reroute_primal,ipqp_pivot_reroute_dual_fallback,ipqp_iters_ladder_armed_no_advance,ipqp_final_inertia_read,ipqp_reg_decreases,ipqp_reg_increases,ipqp_prox_center_updates,ipqp_restart_repairs,ipqp_restart_shift_max,ipqp_mu_adopted,ipqp_warm_restart_abandoned,ipqp_declined_pinned,ipqp_tier_retired_after,ipqp_face_uncertain,ipqp_refine_accepted,ipqp_refine_refused,ipqp_to_refine,ipqp_to_ssn,ipqp_to_walk,ipqp_escapes,ipqp_escape_budget,ipqp_escape_stall,ipqp_escape_indefinite,ipqp_escape_numerical,ipqp_escape_infeasible_suspect,ipqp_alpha_p_min,ipqp_alpha_d_min,ipqp_read_kept_tight_sides,ipqp_read_barrier_noise_sides
+f7_n2000_bound_warm,F7,2000,bound,warm,0,Optimal,1,2,0,1,1,8.394924906e-15,0.056372127,ok,8.394924906e-15,5.419408507e-15,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0.000000000e+00,0.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0.000000000e+00,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,inf,inf,0,0

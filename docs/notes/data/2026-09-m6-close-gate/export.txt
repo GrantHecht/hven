@@ -1,0 +1,15 @@
+# M6 CLOSE GATE — export contract (linux; align from THIS build's configure log)
+
+=== export contract (linux; align read from THIS build's configure log) ===
+align from configure log: 32
+hvenTargets.cmake: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/lib64/cmake/hven/hvenTargets.cmake
+== checking export contract: /home/ghecht/Projects/hven/.scratch/m6-close/smokework/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32
+EXPORT_RC=0  (worst 0)
+
+# the configure-log line the align value was read from:
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags

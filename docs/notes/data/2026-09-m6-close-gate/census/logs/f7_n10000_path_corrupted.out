@@ -1,0 +1,4 @@
+attached observers: callback=off trace=off
+running f7_n10000_path_corrupted (N=10000, path, corrupted, engine walk, wall budget 3600s per phase)...
+  -> dnf_setup at the 3600s deadline
+wrote 1 row(s) to /home/ghecht/Projects/hven/.scratch/m6-close/census/run/rows/f7_n10000_path_corrupted.csv.part

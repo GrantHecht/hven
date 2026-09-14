@@ -1,0 +1,194 @@
+M6 CLOSE GATE -- PROVENANCE (CLAUDE.md section 7)
+=================================================
+Read this first: it governs every number in this directory.
+
+WHAT THIS DIRECTORY IS
+  The M6 close gate, run as one box-night on 2026-09-14 against a FROZEN head.
+  Eight legs: both suites in both configs (the golden rig's native arms inside
+  them), the >600 s Debug test alone, the install smoke and the export contract
+  against a fresh install prefix, the golden rig on ALL THREE SEAMS, the U0
+  27-cell three-arm replay with its control, and the FULL 57-cell walk census --
+  all 57 cells, the 13 the M5 close discharged INCLUDED.
+
+  The recipe is the M5 close gate's, reproduced: docs/notes/2026-08-m5-ledger.md
+  :628-660.  The brief is .superpowers/m6-close-gate-brief.md and the facts
+  gather it rests on is .superpowers/m6-close-facts.md section B.
+
+THE FROZEN HEAD
+  Frozen head:   15f97cae51ff463af3f8f8c51d8d93ac2e7295fe  (branch m6)
+                 "docs(m6): W6 CLOSED -- the quality floor: ..."
+  Code head:     d25a4a6c  -- 15f97cae and f2f735fd on top of it are DOCS-ONLY.
+                 VERIFIED IN THIS TASK, not assumed:
+                   git diff --stat d25a4a6c 15f97cae -- src include tests bench \
+                       cmake CMakeLists.txt scripts CMakePresets.json dep
+                 is EMPTY, and `git diff --name-only d25a4a6c 15f97cae` lists
+                 exactly three files, all under docs/notes/.  So the compiled
+                 tree every leg here measured is the d25a4a6c tree.
+
+  THE HEAD DID NOT MOVE DURING THE GATE (M5's standing rule, m5-ledger:638-641).
+  `git rev-parse HEAD` read 15f97cae51ff... before the first leg and again after
+  the last; `git status --short` was EMPTY at both points.  NO COMMIT LANDED
+  DURING THIS GATE and nothing under docs/notes/data/** was written by it: this
+  whole directory lived at .scratch/m6-close/evidence/ while the legs ran.
+
+  Submodules initialised and clean: dep/eigen bc3b3987 (5.0.1),
+  dep/fmt 407c905e (12.1.0) -- `git submodule status` shows neither a `+` nor a
+  `-` prefix.
+
+THE CORPUS BINARY'S STAMP -- AND ONE DEVIATION FROM THE BRIEF, DECLARED
+  The brief (.superpowers/m6-close-gate-brief.md:6) asks that "the corpus
+  binary's `git describe` stamp must read `d25a4a6cb3db` CLEAN".  IT READS
+  `15f97cae51ff`, and that is correct rather than a failure:
+
+    * the stamp is resolved at CONFIGURE time from `git describe --always
+      --dirty --abbrev=12` on the CHECKED-OUT commit (run_walk_census.sh:49-57);
+    * this gate configures from the FROZEN HEAD 15f97cae, as the brief's own
+      first ruling requires ("Every leg runs on that tree"), so the stamp names
+      15f97cae;
+    * `d25a4a6cb3db` is what the W6 T7 tree stamped, because T7 configured
+      before its two docs commits landed (facts section B(iv));
+    * the two stamps name the SAME COMPILED TREE, by the docs-only diff above.
+
+  The requirement that actually carries -- and the one this gate enforced
+  mechanically, in census_leg.sh, BEFORE the multi-hour sweep started -- is that
+  the stamp be CLEAN.  It is: no `-dirty` suffix, in either build tree.
+  A W5-precedent sentence says the same thing:
+  "the stamp names the checked-out commit and is not edited to match prose"
+  (docs/notes/data/2026-09-m6-w5-acceptance/PROVENANCE.txt:22-27).
+
+TOOLCHAIN AND HARDWARE
+  clang 22.1.8 (Fedora 22.1.8-4.fc44), as -DCMAKE_CXX_COMPILER=/usr/bin/clang++
+  CMake 4.3.0; Ninja 1.13.2; Python 3.13.12
+  ccache DISABLED in every configure and every build (CCACHE_DISABLE=1)
+  Intel oneAPI MKL 2026.1 (/opt/intel/oneapi/mkl/latest -> 2026.1)
+  AMD Ryzen 7 5800X3D (8 physical cores / 16 threads), 31 GiB RAM,
+  Fedora 44, kernel 7.2.4-200.fc44.x86_64
+  Run date: 2026-09-14 (UTC times in every retained log)
+
+  Build trees, ALL CONFIGURED FROM EMPTY DIRECTORIES IN THIS TASK, under the one
+  uniform flag regime (CLAUDE.md section 7; the linux-clang-{release,debug}
+  presets' variables passed directly, the trees kept under .scratch/ per the
+  no-repo-root-clutter rule):
+    .scratch/m6-close/build-release   Release, full build, -j 8
+    .scratch/m6-close/build-debug     Debug,   full build, -j 8
+    .scratch/m6-close/build-3seam     Release + both old-seam checkouts, -j 8
+    .scratch/m6-close/smokework       the install smoke's own tree and prefix
+  EIGEN_MAX_ALIGN_BYTES resolved to 32 in every configure (the configure logs
+  are retained; the export contract was checked against THIS build's value, read
+  from its own configure log rather than a literal).
+
+  The install smoke is the one deliberate exception to the pinned front end:
+  scripts/check_install_smoke.sh pins no compiler, so the installed consumer is
+  read by the system default front end.  Which one that resolved to is recorded
+  in smoke.txt.
+
+  APPLE / ACCELERATE and WINDOWS: UNOBSERVED.  Every number in this directory is
+  MKL-on-Linux.  No Apple or Windows value is inferred, interpolated or
+  zero-filled from it, and none is quoted anywhere here.
+
+THE BOX PROTOCOL, AS RUN (CLAUDE.md section 7 and section 8)
+  Every leg ran under the box build lock (`flock /tmp/box-build.lock`), with
+  `pgrep -af 'ninja|ctest|hven_'` verified clean in a SEPARATE command before the
+  lock and `pgrep -af 'cmake|ninja|ctest|hven_|bench_corpus'` AGAIN inside it.
+  Every retained log carries PGREP_SEPARATE / PGREP_EMPTY / FOREGROUND_START /
+  LEG_RC / FOREGROUND_END / WRAPPER_EXIT.  /tmp holds the lock and nothing else:
+  every tree, log and artifact of this gate is under .scratch/m6-close/.
+
+  AT THIS GATE'S START the separate pgrep matched exactly ONE line -- the
+  session's own pgrep Bash call, whose command line embeds the pattern.  No
+  foreign build, test or bench process ran at any point, and DECLARED_SKIP_PIDS
+  was EMPTY for every leg: nothing was excluded by pid, and nothing foreign was
+  ever signalled.
+
+  EVERY WRAPPER WAS PROVEN AGAINST A STUBBED FAILURE before any real leg ran
+  (suites/00-fold-proof.log, 12 wrappers, plus run_leg.sh's own
+  failure-propagation proof as its own leg because a nested run_leg.sh would
+  deadlock on the lock it already holds).  Each stub makes one inner command
+  fail while the wrapper's LATER commands succeed, so a wrapper that reported a
+  trailing tail/grep/echo's status would exit 0 and be caught.  All 13 propagated.
+
+  THE ONE PLACE A STATUS IS DELIBERATELY NOT FOLDED is the golden rig's ctest,
+  whose EXPECTED result is not all-green (docs/testing.md:1391-1404).  There the
+  wrapper captures and prints ctest's status and guards instead that ctest RAN
+  (a run whose log carries no "tests passed" summary line is a wrapper failure).
+  That substitution is itself in the fold proof.
+
+WALL-CLOCK
+  NOTHING IN THIS GATE ASSERTS WALL-CLOCK.  Counters, statuses and test counts
+  are the asserted currency; every duration recorded here is INFORMATIONAL
+  (CLAUDE.md section 7).  The census's T2 cells run SOLO because their OUTCOMES
+  are wall-dependent, not to produce a timing.
+
+THE CENSUS'S CO-RUN PROTOCOL, DECLARED (CLAUDE.md section 7)
+  scripts/run_walk_census.sh, parallel-tiered v1, at its defaults:
+    T1  remainder, 44 cells, 6-wide, one process per pinned PHYSICAL core
+    T2  wall-sensitive, 3 cells, SOLO (the machine otherwise idle)
+    T3  deep-DNF, 10 cells, 5-wide, each with its FULL per-phase budget
+  Tiers are assigned from the FROZEN baseline, not from this run's outcomes, so
+  the schedule was fixed before the first solve.  MKL_NUM_THREADS=1 in every
+  worker; every worker taskset-pinned to ONE logical CPU of a DISTINCT physical
+  core, SMT siblings never both used (topology: 8 physical cores, representatives
+  0,1,2,3,4,5,6,7).  Order T1 -> T2 -> T3, tier 2 starting only after every tier-1
+  worker was reaped.  wall_s is excluded from every comparison by the comparator
+  and is never quoted.  A deviating cell is a CANDIDATE, not a regression, until
+  re-run ALONE and still disagreeing.
+
+  Baseline: bench/baselines/2026-08-16-u0-corpus/walk_baseline.csv (the baseline
+  of record since the U0 flag-unification event), READ ONLY and never rewritten.
+  Comparator: scripts/census_compare.py, at its BYTE-EXACT default -- its opt-in
+  --residual-gate is NOT passed, which is the M5 gate's own bar (m5-ledger:630-635
+  read byte identity on all 44).
+
+  AS RUN.  One detached leg under flock /tmp/box-build.lock, 2026-09-14
+  17:17:13Z -> 23:04:47Z (5h47m34s, INFORMATIONAL only).  Tier windows:
+  T1 17:17:13Z -> 17:51:46Z; T2 17:51:46Z -> 20:26:21Z; T3 20:26:21Z ->
+  23:04:47Z.  pgrep was empty in its own separate call and again inside the lock;
+  the box was the census's alone throughout (load average equal to the live
+  tier's width at every observation: 1.00 through T2, 5.00-5.04 through T3) and
+  nothing foreign was ever seen, waited on, or signalled.  The stamp preflight
+  ran BEFORE the sweep and read `# binary: 15f97cae51ff`, `# schema: 76`,
+  `# budget_table_hash: 0x357aee91dee27391`, with no -dirty.  Result:
+  57 rows produced, 0 crashed cells (the runner's failed/ directory is empty),
+  `57 baseline cells, 57 fresh cells, 0 mismatches`, and serial_confirm_list.txt
+  carries no non-comment line -- no cell became a candidate, so no solo re-run
+  was owed.  Incidental: the frozen head's corpus binary hands a worker's row
+  between its own two processes through /tmp/hven_sqp_corpus_internal_<pid>_
+  <cell>.row and cleans up after itself (0 such files remained); no file of this
+  gate's own was written to /tmp except the lock.
+
+THE REPLAY'S PROTOCOL
+  SOLO, in the foreground of its own lock hold, pinned `taskset -c 2` at
+  MKL_NUM_THREADS=1 and OMP_NUM_THREADS=1 -- NO co-run protocol, and none is
+  declared.  Cells: docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt,
+  unchanged since W1.  Comparator: scripts/compare_replay.py at its BYTE-EXACT
+  default (no --residual-gate; the brief rules NO gate for this leg).
+
+  THE BASE ARM WAS NOT REBUILT.  It is the arm W5 T9 built and retained: a
+  detached worktree at .scratch/w5t9/base configured from EMPTY at the W4 close
+  accbff0e (code head d4d78f9), target-limited to hven_sqp_corpus, stamp
+  accbff0e60b0 CLEAN.  Its three CSVs survive in TWO places, and this gate
+  verified by sha256 that they are BYTE-IDENTICAL:
+      .scratch/w5t9/replay/base-{walk,ssn,ipm}.csv           (the retained copies)
+      docs/notes/data/2026-09-m6-w5-acceptance/replay/base-*.csv  (committed)
+    base-walk c057080401dc1369...  base-ssn 62003479e2d2bb12...
+    base-ipm  dc4b2e5be32094bc...
+  The COMMITTED copies are what the comparisons read, so the BASE side of every
+  line is a frozen, citable artifact rather than a scratch file.  Neither copy
+  was rewritten.
+
+THE RIG'S SEAMS AND THEIR PINS, VERIFIED READ-ONLY BEFORE THE LEG
+  HVEN_RIG_PSIOPT_SEAM=/home/ghecht/Projects/tycho
+    HEAD 48038a2f59243c2bbdc4017c6f70e5f3b56c3fea
+    consumed tree psiopt/include/tycho/detail/solvers/linear
+      = bfb7d30c5cc821069b7af3f9efa077f29474de5e = the pin
+      (tests/golden_rig/CMakeLists.txt:117-118), scoped `git status --porcelain`
+      EMPTY, pardiso_interface.h present
+  HVEN_RIG_SQP_SEAM=/home/ghecht/Projects/tycho_sqp
+    tag phase-7-close -> commit 4faa1df116da53c9dc68f36635c118f52d39d2b9 = the pin
+      (tests/golden_rig/CMakeLists.txt:52-53); tag object d3bc25315b19... as
+      recorded; `git diff --quiet phase-7-close -- include/tycho_sqp` rc=0;
+      kkt_system.h present.  The checkout sits on a later commit (91c4ec1c), which
+      the rig explicitly allows (CMakeLists.txt:405-408).
+  HVEN_RIG_ALLOW_UNPINNED_PSIOPT_SEAM was NOT set (it stays OFF).
+  BOTH CHECKOUTS ARE READ-ONLY INPUTS: nothing in them was modified, and neither
+  was built except by the rig's own configure of THIS repository.

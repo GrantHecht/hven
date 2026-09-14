@@ -1,0 +1,93 @@
+LEG: bash -o pipefail -c bash /home/ghecht/Projects/hven/.scratch/m6-close/fold_proof.sh
+PGREP_SEPARATE 2026-09-14T16:47:13Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-14T16:47:13Z
+=== 1. run_leg.sh: the nested-shell guard REFUSES a bash -c without pipefail ===
+FOLD OK   run_leg.sh(guard refusal) -> WRAPPER_RC=2 (non-zero, as required)
+LEG REFUSED: a nested shell without pipefail.
+LEG_RC=2 (refused before the lock; nothing ran)
+WRAPPER_EXIT=2
+
+=== 2. configure_one.sh (cmake stub fails; the trailing tail and grep SUCCEED) ===
+FOLD OK   configure_one.sh -> WRAPPER_RC=1 (non-zero, as required)
+CONFIGURE_RC=1
+CONFIGURE_WORST_RC=1
+
+=== 3. build_one.sh (cmake stub fails; the trailing grep SUCCEEDS) ===
+FOLD OK   build_one.sh -> WRAPPER_RC=1 (non-zero, as required)
+BUILD_RC=1
+BUILD_WORST_RC=1
+
+=== 4. suite.sh (ctest fails on a nonexistent build dir; the trailing
+       inventory line would otherwise be the status) ===
+FOLD OK   suite.sh -> WRAPPER_RC=1 (non-zero, as required)
+CTEST_RC=1  (worst 1)
+INVENTORY_RC=1  (worst 1)
+SUITE_WORST_RC=1
+
+=== 5. smoke.sh (the install smoke FAILS; the export contract PASSES after
+        it and must not mask it) ===
+FOLD OK   smoke.sh -> WRAPPER_RC=1 (non-zero, as required)
+SMOKE_RC=1  (worst 1)
+EXPORT_RC=0  (worst 1)
+SMOKE_EXPORT_WORST_RC=1
+
+=== 6. replay_arm.sh (the FIRST engine's run fails; the later engines and
+        the trailing summary would otherwise succeed) ===
+FOLD OK   replay_arm.sh -> WRAPPER_RC=5 (non-zero, as required)
+REPLAY LEG FAILED: foldproofarm walk
+REPLAY_ARM_WORST_RC=5
+
+=== 7. replay_cmp.sh (the comparator REFUSES every pair; the trailing stamp
+        grep SUCCEEDS) ===
+FOLD OK   replay_cmp.sh -> WRAPPER_RC=3 (non-zero, as required)
+  CMP_RC=3  (worst so far: 3)
+  CMP_RC=3  (worst so far: 3)
+  CMP_RC=3  (worst so far: 3)
+  CMP_RC=3  (worst so far: 3)
+  CMP_RC=3  (worst so far: 3)
+REPLAY_CMP_WORST_RC=3
+
+=== 8a. census_leg.sh (the corpus binary FAILS its stamp preflight; the
+         multi-hour sweep must never start) ===
+FOLD OK   census_leg.sh(preflight failure) -> WRAPPER_RC=2 (non-zero, as required)
+PREFLIGHT_RC=5
+FATAL: no binary stamp line in the preflight CSV -- the preflight did not observe a stamp.
+CENSUS_WORST_RC=2
+
+=== 8b. census_leg.sh (the preflight SUCCEEDS but the stamp reads -dirty --
+         the gate's provenance requirement, run_walk_census.sh:49-57) ===
+FOLD OK   census_leg.sh(-dirty stamp) -> WRAPPER_RC=2 (non-zero, as required)
+PREFLIGHT_RC=0
+FATAL: no binary stamp line in the preflight CSV -- the preflight did not observe a stamp.
+CENSUS_WORST_RC=2
+
+=== 9. census_serial_rerun.sh (the solve FAILS; the comparator step and the
+        trailing greps would otherwise succeed) ===
+FOLD OK   census_serial_rerun.sh -> WRAPPER_RC=5 (non-zero, as required)
+SOLO_RUN_RC=5  (worst 5)
+CENSUS_SERIAL_WORST_RC=5
+
+=== 10. rig_leg.sh (ctest fails AND prints no summary line -- the wrapper
+         does not fold ctest's status, so this is the guard that catches it) ===
+FOLD OK   rig_leg.sh -> WRAPPER_RC=12 (non-zero, as required)
+INVENTORY_RC=8
+SCOPED_INVENTORY_RC=8  (worst 8)
+RIG_SCOPED_CTEST_RC=8  (captured, NOT folded: one designed failure is expected)
+WRAPPER FAILURE: no ctest summary line -- the run did not happen; this is not a rig result.
+RIG_SCOPED_CTEST_RC=8
+RIG_LEG_WORST_RC=12
+
+=== 11. rig_full.sh (same shape) ===
+FOLD OK   rig_full.sh -> WRAPPER_RC=4 (non-zero, as required)
+RIG_FULL_CTEST_RC=8  (captured, NOT folded)
+WRAPPER FAILURE: no ctest summary line -- the run did not happen.
+RIG_FULL_CTEST_RC=8
+RIG_FULL_WORST_RC=4
+
+FOLD_PROOF_FAILURES=0
+FOLD_PROOF_WORST_RC=0  (every wrapper propagated its stubbed failure)
+LEG_RC=0
+FOREGROUND_END 2026-09-14T16:47:14Z
+WRAPPER_EXIT=0
