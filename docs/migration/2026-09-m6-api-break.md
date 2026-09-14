@@ -751,6 +751,15 @@ no-op**, whatever that row's verdict; precedence at that exit is
 `converged > interrupted > probe-exhausted > max_iter`, so **converged beats
 stop**. A stop ends the interior-point PHASE SEQUENCE, not only the phase.
 
+**One result field reads the stop, and it is the SQP's.**
+`SqpResult::infeasibility_certified` is that sub-solve's fact and is orthogonal
+to the parent's status: it stays **TRUE** when the restoration phase ran to its
+own `kOptimal` at an infeasible point even if the callback stopped on that
+phase's converged terminal row — a real proof is not withheld — and **FALSE**
+when the sub-solve was itself stopped before it got there, because a phase the
+caller interrupted has proved nothing about the model (per-task `## T8.6`,
+`:1983-1989`).
+
 **Setting or clearing from inside a callback is safe** — the change DEFERS to
 the statement after the invocation returns, so a callback may disarm itself and
 go on touching its own captures. **From anywhere else while a solve runs —
@@ -784,6 +793,12 @@ solver.solve(model, x0);
 for (const hven::solvers::IpmSolveRecord &r : ledger.ipm_records()) { /* ... */ }
 std::string table = ledger.ipm_summary_table();
 ```
+
+`IpmSolveRecord` carries `label`, `status`, `iterations`, `phases_run`,
+`total_time`, `factorizations`, `analyses`, `soc_steps_taken`,
+`watchdog_activations` and `wall_seconds` — there is no "before", the type
+arrives with this window — and `attach_ledger` resets the counter, so the labels
+are `"ipm_0"`, `"ipm_1"`, … (per-task `## T8.7`, `:2081-2086`).
 
 One record per public `solve()` that RETURNS; a call that leaves by an exception
 writes nothing and consumes no label number. Three deliberate differences from
@@ -827,6 +842,15 @@ writes the rule; the private `print_banner()`, `print_stats()`,
 `print_finished()`, `print_exit_stats()` and `calculate_color()`. There is no
 `fmt::print` left in the interior-point solve path; `ConsoleTraceSink` writes
 the whole transcript.
+
+**A sink that THROWS** may do so from inside a factorization (`on_ipm_message`
+is emitted from there). The solve's scope guards clear the in-flight flags and
+release the borrowed model, the solver stays usable and destructible, and
+**nothing invalidates the symbolic analysis — so a retry on an unchanged model
+refactorizes on the REUSED analysis** and is bitwise the solve a freshly
+constructed solver runs on the same model, with `kkt_analyses_this_call == 0`
+on the retry. Throwing is still not a supported way to stop a solve; the
+iteration callback's `kStop` is (per-task `## T8.7b`, `:2390-2409`).
 
 **Two consequences for a sink author.** `TraceSink` gained six non-pure
 virtuals with empty defaults — `on_ipm_restoration_exit_row` plus T8.7b's five
@@ -1165,6 +1189,14 @@ implicitly convertible FROM `KKTVector`. **`KKTVector` itself is unchanged**,
 and so is every signature that names it — the twin is a second non-template
 class precisely so that no `KKTVector` consumer's mangled name moves.
 
+**Three PRIVATE member signatures took the read-only view with it** —
+`IpmSolver::constraint_violation_l1`, `enter_feasibility_restoration` and
+`dispatch_restoration_entry`, the last two now taking `const Eigen::VectorXd &`
+where they took a mutable reference. They are private, so this is **not a source
+break for any consumer of the public API**; it is named here because a FRIEND
+TEST HARNESS that reaches them sees the change, and tycho keeps such harnesses
+for other members (per-task `## T2`, `:317-322`).
+
 *Per-task entry: `## T2`. (The setter's own rename — `set_early_callback` →
 `set_kkt_hook` — is §2.6.)*
 
@@ -1294,10 +1326,18 @@ removed, and a friend declaration emits nothing. *Per-task entry: `## T7`.*
 
 ## 6. The runtime declaration
 
-**Three sentences, then the numbers, each with its pointer.** The window's
-restructure and its interface unification were measured once each under
-CLAUDE.md §7's serial rule, and **the owner ruled KEEP on both.** On the SQP
-corpus leg the interface work is FLAT in all three modes, with the counters
+**The rulings first, then the numbers, each with its pointer.** The window's
+restructure and its interface unification were each measured once under
+CLAUDE.md §7's serial rule, and **what the owner ruled is two different
+things.** On the restructure, the ruling was **KEEP on its cut (a)** — the
+`prepare_solve` extraction — with the LAYOUT-MOVED amendment written into the
+ownership doc (`## T6.a`; ledger `docs/notes/2026-08-m6-ledger.md:3239`,
+`:3248-3249`); its cut (d), the kernels TU, was **ABANDONED** by the owner
+(ledger `:3464-3465`), and the whole-window restructure reading in the first
+row below needed **no ruling at all** — it came in inside the bar (ledger
+`:3536-3537`). On the interface unification (group 1), the ruling was **KEEP**,
+restated and confirmed on the corrected reading (ledger `:4473-4474`). On the
+SQP corpus leg the interface work is FLAT in all three modes, with the counters
 byte-identical between the arms; on the top-level interior-point leg it is not
 flat, and its carrier is unidentified after six legs. **Nothing here asks a
 consumer to do anything** — it is stated so that a consumer measuring hven
@@ -1305,7 +1345,7 @@ across this window knows what has already been measured, and how.
 
 | reading | figure | what it is |
 |---|---|---|
-| the driver restructure (T6), post-T3 → the revert head | ipm **1.0023**, ssn **1.0015**, walk **0.9993** | inside the ±0.5 % corpus bar in every mode, FLAT per cell, 0/27 outside 0.99–1.01; no owner ruling needed |
+| the driver restructure (T6), post-T3 → the revert head — ledger `:3536-3544`, NOT the per-task entry | ipm **1.0023**, ssn **1.0015**, walk **0.9993** | inside the ±0.5 % corpus bar in every mode, FLAT per cell, 0/27 outside 0.99–1.01; no owner ruling needed |
 | the interface unification (group 1), post-T7 → the group-1 head, SQP corpus leg | ipm **1.00062**, ssn **0.99924**, walk **1.00014** | **FLAT**; 0/27 cells outside 0.99–1.01 in every mode; counters byte-identical, 27 × 75 × 3 × 3 |
 | the same, instructions | **+0.03…0.13 %** | ONE quantity, attributed entirely to the shared declared diagnostics computed once per call — the cost of the shared result core (§2.3) |
 | the same, the top-level interior-point leg IN THE LEG PROCESS | **1.0249** | 29/29 banded rows outside the band, 28 slower in all three rounds — **MOVED**, carrier UNIDENTIFIED; one commit's, inside the result-core task |
@@ -1333,8 +1373,14 @@ pass-B events are UNOBSERVED.** Every wall-clock figure above is informational
 under CLAUDE.md §7; the asserted currency is counters.
 
 *Per-task entries: `## T6` "Why it was abandoned", `## T8 group 1` "T8.9r — the
-runtime reading", and `## T8.10` §6 for the fold. The T8.9r evidence artifact is
-`docs/notes/data/2026-09-m6-w5-t8-runtime/` — read its `PROVENANCE.txt` first.*
+runtime reading", and `## T8.10` §6 for the fold. **The first row's three
+figures are the ledger's, not the per-task entry's**: they come from the T6
+CLOSED line, `docs/notes/2026-08-m6-ledger.md:3536-3544` (the reading and its
+per-mode table), which the head paragraph's provenance rule permits as a source.
+`## T6` "Why it was abandoned" carries cut (d)'s numbers — 1.0098, 1.0121 — and
+those are a different reading; do not read one against the other. The T8.9r
+evidence artifact is `docs/notes/data/2026-09-m6-w5-t8-runtime/` — read its
+`PROVENANCE.txt` first.*
 
 ---
 
