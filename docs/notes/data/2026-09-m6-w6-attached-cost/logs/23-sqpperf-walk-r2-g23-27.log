@@ -1,0 +1,1292 @@
+LEG: .scratch/w6t6/sqp_perf.sh walk 2 23-27
+PGREP_SEPARATE 2026-09-14T11:53:26Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-14T11:53:26Z
+BATCH sqpperf-walk-r2-g23-27 mode=walk round=2 group=23-27
+cells: f7_n20000_bound_corrupted f7_n20000_bound_activity f7_n20000_bound_warm f7_n1000_path_warm f7_n800_path_warm 
+events: instructions:u,branches:u,cycles:u,branch-misses:u,L1-icache-load-misses:u
+pin: taskset -c 2 (SMT sibling 10 left idle), MKL_NUM_THREADS=OMP_NUM_THREADS=1
+BATCH_START sqpperf-walk-r2-g23-27 2026-09-14T11:53:26Z
+PS_SNAPSHOT sqpperf-walk-r2-g23-27/open 2026-09-14T11:53:26Z mono=81560.85 clk_tck=100
+FOREIGN_PS 631       1 Ss    0.0        1   81557 systemd-journal /usr/lib/systemd/systemd-journald
+FOREIGN_TICK 631 S 173
+FOREIGN_PS 658       1 Ss    0.0        0   81557 systemd-userdbd /usr/lib/systemd/systemd-userdbd
+FOREIGN_TICK 658 S 20
+FOREIGN_PS 669       1 Ss    0.0        1   81557 systemd-resolve /usr/lib/systemd/systemd-resolved
+FOREIGN_TICK 669 S 146
+FOREIGN_PS 672       1 Ss    0.0        0   81557 systemd-udevd   /usr/lib/systemd/systemd-udevd
+FOREIGN_TICK 672 S 29
+FOREIGN_PS 871       1 S<sl  0.0        0   81556 auditd          /usr/bin/auditd
+FOREIGN_TICK 871 S 7
+FOREIGN_PS 873     871 S<    0.0        0   81556 sedispatch      /usr/sbin/sedispatch
+FOREIGN_TICK 873 S 1
+FOREIGN_PS 903       1 Ss    0.0        0   81556 dbus-broker-lau /usr/bin/dbus-broker-launch --scope system --audit
+FOREIGN_TICK 903 S 4
+FOREIGN_PS 911     903 S     0.0        2   81556 dbus-broker     dbus-broker --log 10 --controller 9 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 536870912 --max-fds 4096 --max-matches 131072 --audit
+FOREIGN_TICK 911 S 250
+FOREIGN_PS 912       1 S<Ls  0.0        3   81556 earlyoom        /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+FOREIGN_TICK 912 S 300
+FOREIGN_PS 916       1 Ss    0.0        7   81556 avahi-daemon    avahi-daemon: running [fedora.local]
+FOREIGN_TICK 916 S 780
+FOREIGN_PS 917       1 Ss    0.0        0   81556 bluetoothd      /usr/libexec/bluetooth/bluetoothd
+FOREIGN_TICK 917 S 4
+FOREIGN_PS 923       1 Ssl   0.0        0   81556 firewalld       /usr/bin/python3 -sP /usr/bin/firewalld --nofork --nopid
+FOREIGN_TICK 923 S 30
+FOREIGN_PS 924       1 Ssl   0.0        9   81556 NetworkManager  /usr/bin/NetworkManager --no-daemon
+FOREIGN_TICK 924 S 942
+FOREIGN_PS 926       1 Ssl   0.0        2   81556 irqbalance      /usr/sbin/irqbalance
+FOREIGN_TICK 926 S 283
+FOREIGN_PS 927       1 Ss    0.0        0   81556 chronyd         /usr/sbin/chronyd -n -F 2
+FOREIGN_TICK 927 S 12
+FOREIGN_PS 931       1 Ssl   0.0        1   81556 polkitd         /usr/lib/polkit-1/polkitd --no-debug --log-level=notice
+FOREIGN_TICK 931 S 105
+FOREIGN_PS 935       1 SNsl  0.0        0   81556 rtkit-daemon    /usr/libexec/rtkit-daemon
+FOREIGN_TICK 935 S 32
+FOREIGN_PS 937       1 Ss    0.0        0   81556 smartd          /usr/bin/smartd -n -q never --capabilities=mail
+FOREIGN_TICK 937 S 4
+FOREIGN_PS 939       1 Ssl   0.0        0   81556 switcheroo-cont /usr/libexec/switcheroo-control
+FOREIGN_TICK 939 S 7
+FOREIGN_PS 943       1 Ssl   0.0        6   81556 udisksd         /usr/libexec/udisks2/udisksd
+FOREIGN_TICK 943 S 623
+FOREIGN_PS 944       1 Ssl   0.0        0   81556 upowerd         /usr/libexec/upowerd
+FOREIGN_TICK 944 S 15
+FOREIGN_PS 964       1 Ssl   0.0        0   81556 accounts-daemon /usr/libexec/accounts-daemon
+FOREIGN_TICK 964 S 17
+FOREIGN_PS 968       1 Ss    0.0        0   81556 systemd-logind  /usr/lib/systemd/systemd-logind
+FOREIGN_TICK 968 S 39
+FOREIGN_PS 971     916 S     0.0        0   81556 avahi-daemon    avahi-daemon: chroot helper
+FOREIGN_TICK 971 S 0
+FOREIGN_PS 989       1 SNs   0.0        0   81556 alsactl         /usr/sbin/alsactl -s -n 19 -c -E ALSA_CONFIG_PATH=/etc/alsa/alsactl.conf --initfile=/lib/alsa/init/00main rdaemon
+FOREIGN_TICK 989 S 1
+FOREIGN_PS 997       1 Ssl   0.0        0   81556 abrtd           /usr/sbin/abrtd -d -s
+FOREIGN_TICK 997 S 42
+FOREIGN_PS 1048       1 Ssl   0.0        0   81556 ModemManager    /usr/bin/ModemManager
+FOREIGN_TICK 1048 S 12
+FOREIGN_PS 1082       1 Ss    0.0        0   81556 abrt-dump-journ /usr/bin/abrt-dump-journal-core -D -T -f -e
+FOREIGN_TICK 1082 S 62
+FOREIGN_PS 1083       1 Ss    0.0        0   81556 abrt-dump-journ /usr/bin/abrt-dump-journal-oops -fxtD
+FOREIGN_TICK 1083 S 30
+FOREIGN_PS 1084       1 Ss    0.0        0   81556 abrt-dump-journ /usr/bin/abrt-dump-journal-xorg -fxtD
+FOREIGN_TICK 1084 S 27
+FOREIGN_PS 1264       1 Ss    0.0        2   81555 wpa_supplicant  /usr/sbin/wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -u -s
+FOREIGN_TICK 1264 S 287
+FOREIGN_PS 1283       1 Ss    0.0        0   81555 cupsd           /usr/bin/cupsd -l
+FOREIGN_TICK 1283 S 1
+FOREIGN_PS 1285       1 Ssl   0.0        0   81555 gssproxy        /usr/bin/gssproxy -i
+FOREIGN_TICK 1285 S 52
+FOREIGN_PS 1287       1 Ss    0.0        0   81555 sshd            sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+FOREIGN_TICK 1287 S 0
+FOREIGN_PS 1289       1 Ssl   0.0       25   81555 tailscaled      /usr/bin/tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/run/tailscale/tailscaled.sock --port=41641
+FOREIGN_TICK 1289 S 2578
+FOREIGN_PS 1291       1 Ssl   0.0        7   81555 tuned           /usr/bin/python3 -Es /usr/sbin/tuned -l -P
+FOREIGN_TICK 1291 S 722
+FOREIGN_PS 1302    1283 S     0.0        0   81555 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1302 S 0
+FOREIGN_PS 1303    1283 S     0.0        0   81555 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1303 S 0
+FOREIGN_PS 1369       1 Ssl   0.0        3   81555 tuned-ppd       /usr/bin/python3 -Es /usr/sbin/tuned-ppd -l
+FOREIGN_TICK 1369 S 367
+FOREIGN_PS 4117       1 Ssl   0.0        4   81550 rsyslogd        /usr/sbin/rsyslogd -n
+FOREIGN_TICK 4117 S 486
+FOREIGN_PS 4145       1 Ss    0.0        0   81550 atd             /usr/sbin/atd -f
+FOREIGN_TICK 4145 S 0
+FOREIGN_PS 4151       1 Ss    0.0        0   81550 crond           /usr/sbin/crond -n
+FOREIGN_TICK 4151 S 7
+FOREIGN_PS 13428       1 Ssl   0.0        0   81503 sddm            /usr/bin/sddm
+FOREIGN_TICK 13428 S 3
+FOREIGN_PS 13430   13428 S     0.0        0   81503 sddm-helper     /usr/libexec/sddm-helper --socket /tmp/sddm-auth-e1fdc633-7fe8-485e-a418-f65dc0bd5c95 --id 2 --start /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora --user sddm --display-server kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 --greeter
+FOREIGN_TICK 13430 S 0
+FOREIGN_PS 13431       1 Ssl   0.0        0   81503 uresourced      /usr/libexec/uresourced
+FOREIGN_TICK 13431 S 4
+FOREIGN_PS 13456       1 Ss    0.0        0   81503 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13456 S 23
+FOREIGN_PS 13458   13456 S     0.0        0   81503 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13458 S 0
+FOREIGN_PS 13478   13430 Ss+   0.0        0   81503 sddm-helper-sta /usr/libexec/sddm-helper-start-wayland kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13478 S 0
+FOREIGN_PS 13479   13456 Ss    0.0        0   81503 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13479 S 0
+FOREIGN_PS 13480   13478 Sl+   0.2      237   81503 kwin_wayland    /usr/bin/kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1
+FOREIGN_TICK 13480 S 23783
+FOREIGN_PS 13481   13479 S     0.0        0   81503 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13481 S 0
+FOREIGN_PS 13501   13478 Sl+   0.1      141   81502 sddm-greeter-qt /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13501 S 14126
+FOREIGN_PS 13521   13456 S<sl  0.0        1   81501 pipewire        /usr/bin/pipewire
+FOREIGN_TICK 13521 S 109
+FOREIGN_PS 13523   13456 S<sl  0.0        2   81501 wireplumber     /usr/bin/wireplumber
+FOREIGN_TICK 13523 S 213
+FOREIGN_PS 13525   13480 Sl+   0.0        0   81501 plasma-keyboard /usr/bin/plasma-keyboard
+FOREIGN_TICK 13525 S 63
+FOREIGN_PS 13755       1 Ss    0.0        0   78357 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13755 S 31
+FOREIGN_PS 13757   13755 S     0.0        0   78357 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13757 S 0
+FOREIGN_PS 13787   13755 Ss    0.0        0   78357 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13787 S 0
+FOREIGN_PS 13795   13787 S     0.0        0   78357 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13795 S 1
+FOREIGN_PS 83611       1 Ssl   0.0        0   53110 node-22         /usr/bin/node-22 /home/ghecht/.claude/plugins/cache/openai-codex/codex/1.0.6/scripts/app-server-broker.mjs serve --endpoint unix:/tmp/cxc-6eN2ye/broker.sock --cwd /home/ghecht/Projects/hven --pid-file /tmp/cxc-6eN2ye/broker.pid
+FOREIGN_TICK 83611 S 86
+FOREIGN_PS 83618   83611 Sl    0.1       56   53110 codex           codex app-server
+FOREIGN_TICK 83618 S 5618
+FOREIGN_PS 84052   83618 Sl    0.0        2   53102 codex-code-mode /home/ghecht/.codex/packages/standalone/releases/0.154.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+FOREIGN_TICK 84052 S 274
+FOREIGN_PS 280258   16979 Sl+   0.7      256   35969 clangd.main     clangd --background-index
+FOREIGN_TICK 280258 S 25601
+FOREIGN_PS 400249       1 S     0.0        0    8060 sleep           sleep 9655
+FOREIGN_TICK 400249 S 0
+FOREIGN_PS 514366   16979 Ss    0.0        0     266 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'until ! pgrep -f '"'"'sqp_perf.sh walk 1 3'"'"' > /dev/null 2>&1; do sleep 10; done; echo "walk r1 g3 finished"; tail -3 /home/ghecht/Projects/hven/.scratch/w6t6/logs/22-sqpperf-walk-r1-g3.log' < /dev/null && pwd -P >| /tmp/claude-620d-cwd
+FOREIGN_TICK 514366 S 1
+FOREIGN_PS 514378     658 S     0.0        0     234 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 514378 S 0
+FOREIGN_PS 514399     658 S     0.0        0     201 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 514399 S 0
+FOREIGN_PS 514400     658 S     0.0        0     201 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 514400 S 0
+FOREIGN_PS 514456   16979 Ss    0.0        0     131 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'while pgrep -f '"'"'sqp_perf.sh walk 1 3'"'"' > /dev/null 2>&1; do sleep 20; done; echo "WALK-R1-G3 DONE: $(tail -3 /home/ghecht/Projects/hven/.scratch/w6t6/logs/22-sqpperf-walk-r1-g3.log | tr '"'"'\n'"'"' '"'"' '"'"')"' < /dev/null && pwd -P >| /tmp/claude-b740-cwd
+FOREIGN_TICK 514456 S 0
+FOREIGN_PS 522006  514456 S     0.0        0      11 sleep           sleep 20
+FOREIGN_TICK 522006 S 0
+FOREIGN_PS 522558  514366 S     0.0        0       5 sleep           sleep 10
+FOREIGN_TICK 522558 S 0
+FOREIGN_PS 522793  522790 S     0.0        0       0 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval '.scratch/w6t6/run_leg.sh .scratch/w6t6/logs/23-sqpperf-walk-r2-g23-27.log .scratch/w6t6/sqp_perf.sh walk 2 23-27 2>&1 | grep -E "WRAPPER_EXIT" | tail -1' < /dev/null && pwd -P >| /tmp/claude-4f8d-cwd
+FOREIGN_TICK 522793 S 0
+FOREIGN_PS 522794  522790 S     0.0        0       0 tail            tail -1
+FOREIGN_TICK 522794 S 0
+FOREIGN_PS 522795  522793 S     0.0        0       0 2.1.270         ugrep -G --ignore-files --hidden -I --exclude-dir=.git --exclude-dir=.svn --exclude-dir=.hg --exclude-dir=.bzr --exclude-dir=.jj --exclude-dir=.sl -E WRAPPER_EXIT
+FOREIGN_TICK 522795 S 0
+PS_SNAPSHOT_END sqpperf-walk-r2-g23-27/open foreign_pids=74
+RUN  2026-09-14T11:53:27Z mode=walk round=2 cell=f7_n20000_bound_corrupted arm=a00 callback=off trace=off
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_corrupted-a00 pre 2026-09-14T11:53:27Z mono=81561.03
+CPUSTAT_LINE cpu  5435286 1104 393218 124482457 20734 176435 23462 0 0 0
+CPUSTAT_LINE cpu2 737424 59 46634 7365229 1348 5687 1384 0 0 0
+CPUSTAT_LINE cpu10 300775 33 20056 7832564 726 2632 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_corrupted-a00 post 2026-09-14T11:53:28Z mono=81562.38
+CPUSTAT_LINE cpu  5435401 1104 393238 124484470 20734 176438 23462 0 0 0
+CPUSTAT_LINE cpu2 737537 59 46653 7365230 1348 5688 1384 0 0 0
+CPUSTAT_LINE cpu10 300776 33 20056 7832699 726 2632 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n20000_bound_corrupted-a00 user=1.13 sys=0.19 real=1.33
+DONE 2026-09-14T11:53:28Z arm=a00 cell=f7_n20000_bound_corrupted rc_so_far=0
+RUN  2026-09-14T11:53:28Z mode=walk round=2 cell=f7_n20000_bound_corrupted arm=a10 callback=count trace=off
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_corrupted-a10 pre 2026-09-14T11:53:28Z mono=81562.38
+CPUSTAT_LINE cpu  5435401 1104 393239 124484480 20734 176438 23462 0 0 0
+CPUSTAT_LINE cpu2 737537 59 46653 7365231 1348 5688 1384 0 0 0
+CPUSTAT_LINE cpu10 300776 33 20056 7832699 726 2632 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_corrupted-a10 post 2026-09-14T11:53:29Z mono=81563.72
+CPUSTAT_LINE cpu  5435514 1104 393262 124486485 20734 176440 23463 0 0 0
+CPUSTAT_LINE cpu2 737648 59 46675 7365231 1348 5688 1384 0 0 0
+CPUSTAT_LINE cpu10 300776 33 20056 7832833 726 2632 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n20000_bound_corrupted-a10 user=1.11 sys=0.21 real=1.33
+DONE 2026-09-14T11:53:29Z arm=a10 cell=f7_n20000_bound_corrupted rc_so_far=0
+RUN  2026-09-14T11:53:29Z mode=walk round=2 cell=f7_n20000_bound_corrupted arm=a01 callback=off trace=sink
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_corrupted-a01 pre 2026-09-14T11:53:29Z mono=81563.73
+CPUSTAT_LINE cpu  5435514 1104 393262 124486496 20734 176440 23463 0 0 0
+CPUSTAT_LINE cpu2 737648 59 46675 7365232 1348 5688 1384 0 0 0
+CPUSTAT_LINE cpu10 300776 33 20056 7832834 726 2632 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_corrupted-a01 post 2026-09-14T11:53:31Z mono=81565.07
+CPUSTAT_LINE cpu  5435629 1104 393285 124488498 20734 176443 23464 0 0 0
+CPUSTAT_LINE cpu2 737761 59 46695 7365233 1348 5689 1384 0 0 0
+CPUSTAT_LINE cpu10 300776 33 20056 7832967 726 2632 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n20000_bound_corrupted-a01 user=1.12 sys=0.20 real=1.33
+DONE 2026-09-14T11:53:31Z arm=a01 cell=f7_n20000_bound_corrupted rc_so_far=0
+RUN  2026-09-14T11:53:31Z mode=walk round=2 cell=f7_n20000_bound_corrupted arm=a11 callback=count trace=sink
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_corrupted-a11 pre 2026-09-14T11:53:31Z mono=81565.08
+CPUSTAT_LINE cpu  5435630 1104 393285 124488508 20734 176443 23464 0 0 0
+CPUSTAT_LINE cpu2 737761 59 46695 7365233 1348 5689 1384 0 0 0
+CPUSTAT_LINE cpu10 300776 33 20056 7832968 726 2632 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_corrupted-a11 post 2026-09-14T11:53:32Z mono=81566.42
+CPUSTAT_LINE cpu  5435745 1104 393307 124490514 20734 176446 23465 0 0 0
+CPUSTAT_LINE cpu2 737875 59 46714 7365234 1348 5689 1384 0 0 0
+CPUSTAT_LINE cpu10 300776 33 20056 7833102 726 2632 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n20000_bound_corrupted-a11 user=1.13 sys=0.19 real=1.33
+DONE 2026-09-14T11:53:32Z arm=a11 cell=f7_n20000_bound_corrupted rc_so_far=0
+PS_SNAPSHOT sqpperf-walk-r2-g23-27/f7_n20000_bound_corrupted 2026-09-14T11:53:32Z mono=81566.42 clk_tck=100
+FOREIGN_PS 631       1 Ss    0.0        1   81563 systemd-journal /usr/lib/systemd/systemd-journald
+FOREIGN_TICK 631 S 173
+FOREIGN_PS 658       1 Ss    0.0        0   81562 systemd-userdbd /usr/lib/systemd/systemd-userdbd
+FOREIGN_TICK 658 S 20
+FOREIGN_PS 669       1 Ss    0.0        1   81562 systemd-resolve /usr/lib/systemd/systemd-resolved
+FOREIGN_TICK 669 S 146
+FOREIGN_PS 672       1 Ss    0.0        0   81562 systemd-udevd   /usr/lib/systemd/systemd-udevd
+FOREIGN_TICK 672 S 29
+FOREIGN_PS 871       1 S<sl  0.0        0   81561 auditd          /usr/bin/auditd
+FOREIGN_TICK 871 S 7
+FOREIGN_PS 873     871 S<    0.0        0   81561 sedispatch      /usr/sbin/sedispatch
+FOREIGN_TICK 873 S 1
+FOREIGN_PS 903       1 Ss    0.0        0   81561 dbus-broker-lau /usr/bin/dbus-broker-launch --scope system --audit
+FOREIGN_TICK 903 S 4
+FOREIGN_PS 911     903 S     0.0        2   81561 dbus-broker     dbus-broker --log 10 --controller 9 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 536870912 --max-fds 4096 --max-matches 131072 --audit
+FOREIGN_TICK 911 S 250
+FOREIGN_PS 912       1 S<Ls  0.0        3   81561 earlyoom        /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+FOREIGN_TICK 912 S 300
+FOREIGN_PS 916       1 Ss    0.0        7   81561 avahi-daemon    avahi-daemon: running [fedora.local]
+FOREIGN_TICK 916 S 781
+FOREIGN_PS 917       1 Ss    0.0        0   81561 bluetoothd      /usr/libexec/bluetooth/bluetoothd
+FOREIGN_TICK 917 S 4
+FOREIGN_PS 923       1 Ssl   0.0        0   81561 firewalld       /usr/bin/python3 -sP /usr/bin/firewalld --nofork --nopid
+FOREIGN_TICK 923 S 30
+FOREIGN_PS 924       1 Ssl   0.0        9   81561 NetworkManager  /usr/bin/NetworkManager --no-daemon
+FOREIGN_TICK 924 S 942
+FOREIGN_PS 926       1 Ssl   0.0        2   81561 irqbalance      /usr/sbin/irqbalance
+FOREIGN_TICK 926 S 283
+FOREIGN_PS 927       1 Ss    0.0        0   81561 chronyd         /usr/sbin/chronyd -n -F 2
+FOREIGN_TICK 927 S 12
+FOREIGN_PS 931       1 Ssl   0.0        1   81561 polkitd         /usr/lib/polkit-1/polkitd --no-debug --log-level=notice
+FOREIGN_TICK 931 S 105
+FOREIGN_PS 935       1 SNsl  0.0        0   81561 rtkit-daemon    /usr/libexec/rtkit-daemon
+FOREIGN_TICK 935 S 32
+FOREIGN_PS 937       1 Ss    0.0        0   81561 smartd          /usr/bin/smartd -n -q never --capabilities=mail
+FOREIGN_TICK 937 S 4
+FOREIGN_PS 939       1 Ssl   0.0        0   81561 switcheroo-cont /usr/libexec/switcheroo-control
+FOREIGN_TICK 939 S 7
+FOREIGN_PS 943       1 Ssl   0.0        6   81561 udisksd         /usr/libexec/udisks2/udisksd
+FOREIGN_TICK 943 S 623
+FOREIGN_PS 944       1 Ssl   0.0        0   81561 upowerd         /usr/libexec/upowerd
+FOREIGN_TICK 944 S 15
+FOREIGN_PS 964       1 Ssl   0.0        0   81561 accounts-daemon /usr/libexec/accounts-daemon
+FOREIGN_TICK 964 S 17
+FOREIGN_PS 968       1 Ss    0.0        0   81561 systemd-logind  /usr/lib/systemd/systemd-logind
+FOREIGN_TICK 968 S 39
+FOREIGN_PS 971     916 S     0.0        0   81561 avahi-daemon    avahi-daemon: chroot helper
+FOREIGN_TICK 971 S 0
+FOREIGN_PS 989       1 SNs   0.0        0   81561 alsactl         /usr/sbin/alsactl -s -n 19 -c -E ALSA_CONFIG_PATH=/etc/alsa/alsactl.conf --initfile=/lib/alsa/init/00main rdaemon
+FOREIGN_TICK 989 S 1
+FOREIGN_PS 997       1 Ssl   0.0        0   81561 abrtd           /usr/sbin/abrtd -d -s
+FOREIGN_TICK 997 S 42
+FOREIGN_PS 1048       1 Ssl   0.0        0   81561 ModemManager    /usr/bin/ModemManager
+FOREIGN_TICK 1048 S 12
+FOREIGN_PS 1082       1 Ss    0.0        0   81561 abrt-dump-journ /usr/bin/abrt-dump-journal-core -D -T -f -e
+FOREIGN_TICK 1082 S 62
+FOREIGN_PS 1083       1 Ss    0.0        0   81561 abrt-dump-journ /usr/bin/abrt-dump-journal-oops -fxtD
+FOREIGN_TICK 1083 S 30
+FOREIGN_PS 1084       1 Ss    0.0        0   81561 abrt-dump-journ /usr/bin/abrt-dump-journal-xorg -fxtD
+FOREIGN_TICK 1084 S 27
+FOREIGN_PS 1264       1 Ss    0.0        2   81561 wpa_supplicant  /usr/sbin/wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -u -s
+FOREIGN_TICK 1264 S 287
+FOREIGN_PS 1283       1 Ss    0.0        0   81561 cupsd           /usr/bin/cupsd -l
+FOREIGN_TICK 1283 S 1
+FOREIGN_PS 1285       1 Ssl   0.0        0   81561 gssproxy        /usr/bin/gssproxy -i
+FOREIGN_TICK 1285 S 52
+FOREIGN_PS 1287       1 Ss    0.0        0   81561 sshd            sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+FOREIGN_TICK 1287 S 0
+FOREIGN_PS 1289       1 Ssl   0.0       25   81561 tailscaled      /usr/bin/tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/run/tailscale/tailscaled.sock --port=41641
+FOREIGN_TICK 1289 S 2578
+FOREIGN_PS 1291       1 Ssl   0.0        7   81561 tuned           /usr/bin/python3 -Es /usr/sbin/tuned -l -P
+FOREIGN_TICK 1291 S 722
+FOREIGN_PS 1302    1283 S     0.0        0   81561 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1302 S 0
+FOREIGN_PS 1303    1283 S     0.0        0   81561 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1303 S 0
+FOREIGN_PS 1369       1 Ssl   0.0        3   81560 tuned-ppd       /usr/bin/python3 -Es /usr/sbin/tuned-ppd -l
+FOREIGN_TICK 1369 S 367
+FOREIGN_PS 4117       1 Ssl   0.0        4   81556 rsyslogd        /usr/sbin/rsyslogd -n
+FOREIGN_TICK 4117 S 486
+FOREIGN_PS 4145       1 Ss    0.0        0   81556 atd             /usr/sbin/atd -f
+FOREIGN_TICK 4145 S 0
+FOREIGN_PS 4151       1 Ss    0.0        0   81556 crond           /usr/sbin/crond -n
+FOREIGN_TICK 4151 S 7
+FOREIGN_PS 13428       1 Ssl   0.0        0   81509 sddm            /usr/bin/sddm
+FOREIGN_TICK 13428 S 3
+FOREIGN_PS 13430   13428 S     0.0        0   81509 sddm-helper     /usr/libexec/sddm-helper --socket /tmp/sddm-auth-e1fdc633-7fe8-485e-a418-f65dc0bd5c95 --id 2 --start /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora --user sddm --display-server kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 --greeter
+FOREIGN_TICK 13430 S 0
+FOREIGN_PS 13431       1 Ssl   0.0        0   81508 uresourced      /usr/libexec/uresourced
+FOREIGN_TICK 13431 S 4
+FOREIGN_PS 13456       1 Ss    0.0        0   81508 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13456 S 23
+FOREIGN_PS 13458   13456 S     0.0        0   81508 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13458 S 0
+FOREIGN_PS 13478   13430 Ss+   0.0        0   81508 sddm-helper-sta /usr/libexec/sddm-helper-start-wayland kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13478 S 0
+FOREIGN_PS 13479   13456 Ss    0.0        0   81508 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13479 S 0
+FOREIGN_PS 13480   13478 Sl+   0.2      237   81508 kwin_wayland    /usr/bin/kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1
+FOREIGN_TICK 13480 S 23785
+FOREIGN_PS 13481   13479 S     0.0        0   81508 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13481 S 0
+FOREIGN_PS 13501   13478 Sl+   0.1      141   81507 sddm-greeter-qt /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13501 S 14127
+FOREIGN_PS 13521   13456 S<sl  0.0        1   81507 pipewire        /usr/bin/pipewire
+FOREIGN_TICK 13521 S 109
+FOREIGN_PS 13523   13456 S<sl  0.0        2   81507 wireplumber     /usr/bin/wireplumber
+FOREIGN_TICK 13523 S 213
+FOREIGN_PS 13525   13480 Sl+   0.0        0   81507 plasma-keyboard /usr/bin/plasma-keyboard
+FOREIGN_TICK 13525 S 63
+FOREIGN_PS 13755       1 Ss    0.0        0   78363 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13755 S 31
+FOREIGN_PS 13757   13755 S     0.0        0   78363 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13757 S 0
+FOREIGN_PS 13787   13755 Ss    0.0        0   78363 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13787 S 0
+FOREIGN_PS 13795   13787 S     0.0        0   78363 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13795 S 1
+FOREIGN_PS 83611       1 Ssl   0.0        0   53116 node-22         /usr/bin/node-22 /home/ghecht/.claude/plugins/cache/openai-codex/codex/1.0.6/scripts/app-server-broker.mjs serve --endpoint unix:/tmp/cxc-6eN2ye/broker.sock --cwd /home/ghecht/Projects/hven --pid-file /tmp/cxc-6eN2ye/broker.pid
+FOREIGN_TICK 83611 S 86
+FOREIGN_PS 83618   83611 Sl    0.1       56   53116 codex           codex app-server
+FOREIGN_TICK 83618 S 5618
+FOREIGN_PS 84052   83618 Sl    0.0        2   53107 codex-code-mode /home/ghecht/.codex/packages/standalone/releases/0.154.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+FOREIGN_TICK 84052 S 274
+FOREIGN_PS 280258   16979 Sl+   0.7      256   35975 clangd.main     clangd --background-index
+FOREIGN_TICK 280258 S 25601
+FOREIGN_PS 400249       1 S     0.0        0    8066 sleep           sleep 9655
+FOREIGN_TICK 400249 S 0
+FOREIGN_PS 514366   16979 Ss    0.0        0     271 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'until ! pgrep -f '"'"'sqp_perf.sh walk 1 3'"'"' > /dev/null 2>&1; do sleep 10; done; echo "walk r1 g3 finished"; tail -3 /home/ghecht/Projects/hven/.scratch/w6t6/logs/22-sqpperf-walk-r1-g3.log' < /dev/null && pwd -P >| /tmp/claude-620d-cwd
+FOREIGN_TICK 514366 S 1
+FOREIGN_PS 514378     658 S     0.0        0     240 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 514378 S 0
+FOREIGN_PS 514399     658 S     0.0        0     207 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 514399 S 0
+FOREIGN_PS 514400     658 S     0.0        0     207 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 514400 S 0
+FOREIGN_PS 514456   16979 Ss    0.0        0     137 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'while pgrep -f '"'"'sqp_perf.sh walk 1 3'"'"' > /dev/null 2>&1; do sleep 20; done; echo "WALK-R1-G3 DONE: $(tail -3 /home/ghecht/Projects/hven/.scratch/w6t6/logs/22-sqpperf-walk-r1-g3.log | tr '"'"'\n'"'"' '"'"' '"'"')"' < /dev/null && pwd -P >| /tmp/claude-b740-cwd
+FOREIGN_TICK 514456 S 0
+FOREIGN_PS 522006  514456 S     0.0        0      17 sleep           sleep 20
+FOREIGN_TICK 522006 S 0
+FOREIGN_PS 522793  522790 S     0.0        0       5 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval '.scratch/w6t6/run_leg.sh .scratch/w6t6/logs/23-sqpperf-walk-r2-g23-27.log .scratch/w6t6/sqp_perf.sh walk 2 23-27 2>&1 | grep -E "WRAPPER_EXIT" | tail -1' < /dev/null && pwd -P >| /tmp/claude-4f8d-cwd
+FOREIGN_TICK 522793 S 0
+FOREIGN_PS 522794  522790 S     0.0        0       5 tail            tail -1
+FOREIGN_TICK 522794 S 0
+FOREIGN_PS 522795  522793 S     0.0        0       5 2.1.270         ugrep -G --ignore-files --hidden -I --exclude-dir=.git --exclude-dir=.svn --exclude-dir=.hg --exclude-dir=.bzr --exclude-dir=.jj --exclude-dir=.sl -E WRAPPER_EXIT
+FOREIGN_TICK 522795 S 0
+FOREIGN_PS 523134  514366 S     0.0        0       1 sleep           sleep 10
+FOREIGN_TICK 523134 S 0
+PS_SNAPSHOT_END sqpperf-walk-r2-g23-27/f7_n20000_bound_corrupted foreign_pids=74
+RUN  2026-09-14T11:53:32Z mode=walk round=2 cell=f7_n20000_bound_activity arm=a00 callback=off trace=off
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_activity-a00 pre 2026-09-14T11:53:32Z mono=81566.61
+CPUSTAT_LINE cpu  5435753 1104 393329 124490791 20734 176446 23465 0 0 0
+CPUSTAT_LINE cpu2 737875 59 46714 7365253 1348 5689 1384 0 0 0
+CPUSTAT_LINE cpu10 300776 33 20056 7833121 726 2632 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_activity-a00 post 2026-09-14T11:53:33Z mono=81567.33
+CPUSTAT_LINE cpu  5435812 1104 393343 124491863 20734 176448 23466 0 0 0
+CPUSTAT_LINE cpu2 737932 59 46728 7365254 1348 5690 1384 0 0 0
+CPUSTAT_LINE cpu10 300776 33 20056 7833192 726 2632 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n20000_bound_activity-a00 user=0.57 sys=0.13 real=0.71
+DONE 2026-09-14T11:53:33Z arm=a00 cell=f7_n20000_bound_activity rc_so_far=0
+RUN  2026-09-14T11:53:33Z mode=walk round=2 cell=f7_n20000_bound_activity arm=a10 callback=count trace=off
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_activity-a10 pre 2026-09-14T11:53:33Z mono=81567.33
+CPUSTAT_LINE cpu  5435812 1104 393343 124491873 20734 176448 23466 0 0 0
+CPUSTAT_LINE cpu2 737932 59 46728 7365255 1348 5690 1384 0 0 0
+CPUSTAT_LINE cpu10 300776 33 20056 7833193 726 2632 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_activity-a10 post 2026-09-14T11:53:34Z mono=81568.05
+CPUSTAT_LINE cpu  5435872 1104 393356 124492952 20734 176449 23466 0 0 0
+CPUSTAT_LINE cpu2 737991 59 46740 7365255 1348 5690 1384 0 0 0
+CPUSTAT_LINE cpu10 300776 33 20056 7833265 726 2632 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n20000_bound_activity-a10 user=0.59 sys=0.11 real=0.71
+DONE 2026-09-14T11:53:34Z arm=a10 cell=f7_n20000_bound_activity rc_so_far=0
+RUN  2026-09-14T11:53:34Z mode=walk round=2 cell=f7_n20000_bound_activity arm=a01 callback=off trace=sink
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_activity-a01 pre 2026-09-14T11:53:34Z mono=81568.06
+CPUSTAT_LINE cpu  5435872 1104 393356 124492962 20734 176449 23466 0 0 0
+CPUSTAT_LINE cpu2 737991 59 46740 7365256 1348 5690 1384 0 0 0
+CPUSTAT_LINE cpu10 300776 33 20056 7833266 726 2632 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_activity-a01 post 2026-09-14T11:53:34Z mono=81568.78
+CPUSTAT_LINE cpu  5435930 1104 393370 124494034 20734 176450 23467 0 0 0
+CPUSTAT_LINE cpu2 738049 59 46753 7365257 1348 5690 1384 0 0 0
+CPUSTAT_LINE cpu10 300776 33 20056 7833337 726 2632 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n20000_bound_activity-a01 user=0.57 sys=0.13 real=0.71
+DONE 2026-09-14T11:53:34Z arm=a01 cell=f7_n20000_bound_activity rc_so_far=0
+RUN  2026-09-14T11:53:34Z mode=walk round=2 cell=f7_n20000_bound_activity arm=a11 callback=count trace=sink
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_activity-a11 pre 2026-09-14T11:53:34Z mono=81568.78
+CPUSTAT_LINE cpu  5435931 1104 393371 124494043 20734 176450 23467 0 0 0
+CPUSTAT_LINE cpu2 738049 59 46753 7365257 1348 5690 1384 0 0 0
+CPUSTAT_LINE cpu10 300776 33 20056 7833338 726 2632 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_activity-a11 post 2026-09-14T11:53:35Z mono=81569.50
+CPUSTAT_LINE cpu  5435991 1104 393385 124495117 20735 176452 23467 0 0 0
+CPUSTAT_LINE cpu2 738107 59 46765 7365258 1348 5690 1384 0 0 0
+CPUSTAT_LINE cpu10 300777 33 20056 7833409 726 2632 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n20000_bound_activity-a11 user=0.58 sys=0.12 real=0.71
+DONE 2026-09-14T11:53:35Z arm=a11 cell=f7_n20000_bound_activity rc_so_far=0
+PS_SNAPSHOT sqpperf-walk-r2-g23-27/f7_n20000_bound_activity 2026-09-14T11:53:35Z mono=81569.51 clk_tck=100
+FOREIGN_PS 631       1 Ss    0.0        1   81566 systemd-journal /usr/lib/systemd/systemd-journald
+FOREIGN_TICK 631 S 173
+FOREIGN_PS 658       1 Ss    0.0        0   81566 systemd-userdbd /usr/lib/systemd/systemd-userdbd
+FOREIGN_TICK 658 S 20
+FOREIGN_PS 669       1 Ss    0.0        1   81565 systemd-resolve /usr/lib/systemd/systemd-resolved
+FOREIGN_TICK 669 S 146
+FOREIGN_PS 672       1 Ss    0.0        0   81565 systemd-udevd   /usr/lib/systemd/systemd-udevd
+FOREIGN_TICK 672 S 29
+FOREIGN_PS 871       1 S<sl  0.0        0   81564 auditd          /usr/bin/auditd
+FOREIGN_TICK 871 S 7
+FOREIGN_PS 873     871 S<    0.0        0   81564 sedispatch      /usr/sbin/sedispatch
+FOREIGN_TICK 873 S 1
+FOREIGN_PS 903       1 Ss    0.0        0   81564 dbus-broker-lau /usr/bin/dbus-broker-launch --scope system --audit
+FOREIGN_TICK 903 S 4
+FOREIGN_PS 911     903 S     0.0        2   81564 dbus-broker     dbus-broker --log 10 --controller 9 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 536870912 --max-fds 4096 --max-matches 131072 --audit
+FOREIGN_TICK 911 S 250
+FOREIGN_PS 912       1 S<Ls  0.0        3   81564 earlyoom        /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+FOREIGN_TICK 912 S 300
+FOREIGN_PS 916       1 Ss    0.0        7   81564 avahi-daemon    avahi-daemon: running [fedora.local]
+FOREIGN_TICK 916 S 781
+FOREIGN_PS 917       1 Ss    0.0        0   81564 bluetoothd      /usr/libexec/bluetooth/bluetoothd
+FOREIGN_TICK 917 S 4
+FOREIGN_PS 923       1 Ssl   0.0        0   81564 firewalld       /usr/bin/python3 -sP /usr/bin/firewalld --nofork --nopid
+FOREIGN_TICK 923 S 30
+FOREIGN_PS 924       1 Ssl   0.0        9   81564 NetworkManager  /usr/bin/NetworkManager --no-daemon
+FOREIGN_TICK 924 S 942
+FOREIGN_PS 926       1 Ssl   0.0        2   81564 irqbalance      /usr/sbin/irqbalance
+FOREIGN_TICK 926 S 283
+FOREIGN_PS 927       1 Ss    0.0        0   81564 chronyd         /usr/sbin/chronyd -n -F 2
+FOREIGN_TICK 927 S 12
+FOREIGN_PS 931       1 Ssl   0.0        1   81564 polkitd         /usr/lib/polkit-1/polkitd --no-debug --log-level=notice
+FOREIGN_TICK 931 S 105
+FOREIGN_PS 935       1 SNsl  0.0        0   81564 rtkit-daemon    /usr/libexec/rtkit-daemon
+FOREIGN_TICK 935 S 32
+FOREIGN_PS 937       1 Ss    0.0        0   81564 smartd          /usr/bin/smartd -n -q never --capabilities=mail
+FOREIGN_TICK 937 S 4
+FOREIGN_PS 939       1 Ssl   0.0        0   81564 switcheroo-cont /usr/libexec/switcheroo-control
+FOREIGN_TICK 939 S 7
+FOREIGN_PS 943       1 Ssl   0.0        6   81564 udisksd         /usr/libexec/udisks2/udisksd
+FOREIGN_TICK 943 S 623
+FOREIGN_PS 944       1 Ssl   0.0        0   81564 upowerd         /usr/libexec/upowerd
+FOREIGN_TICK 944 S 15
+FOREIGN_PS 964       1 Ssl   0.0        0   81564 accounts-daemon /usr/libexec/accounts-daemon
+FOREIGN_TICK 964 S 17
+FOREIGN_PS 968       1 Ss    0.0        0   81564 systemd-logind  /usr/lib/systemd/systemd-logind
+FOREIGN_TICK 968 S 39
+FOREIGN_PS 971     916 S     0.0        0   81564 avahi-daemon    avahi-daemon: chroot helper
+FOREIGN_TICK 971 S 0
+FOREIGN_PS 989       1 SNs   0.0        0   81564 alsactl         /usr/sbin/alsactl -s -n 19 -c -E ALSA_CONFIG_PATH=/etc/alsa/alsactl.conf --initfile=/lib/alsa/init/00main rdaemon
+FOREIGN_TICK 989 S 1
+FOREIGN_PS 997       1 Ssl   0.0        0   81564 abrtd           /usr/sbin/abrtd -d -s
+FOREIGN_TICK 997 S 42
+FOREIGN_PS 1048       1 Ssl   0.0        0   81564 ModemManager    /usr/bin/ModemManager
+FOREIGN_TICK 1048 S 12
+FOREIGN_PS 1082       1 Ss    0.0        0   81564 abrt-dump-journ /usr/bin/abrt-dump-journal-core -D -T -f -e
+FOREIGN_TICK 1082 S 62
+FOREIGN_PS 1083       1 Ss    0.0        0   81564 abrt-dump-journ /usr/bin/abrt-dump-journal-oops -fxtD
+FOREIGN_TICK 1083 S 30
+FOREIGN_PS 1084       1 Ss    0.0        0   81564 abrt-dump-journ /usr/bin/abrt-dump-journal-xorg -fxtD
+FOREIGN_TICK 1084 S 27
+FOREIGN_PS 1264       1 Ss    0.0        2   81564 wpa_supplicant  /usr/sbin/wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -u -s
+FOREIGN_TICK 1264 S 287
+FOREIGN_PS 1283       1 Ss    0.0        0   81564 cupsd           /usr/bin/cupsd -l
+FOREIGN_TICK 1283 S 1
+FOREIGN_PS 1285       1 Ssl   0.0        0   81564 gssproxy        /usr/bin/gssproxy -i
+FOREIGN_TICK 1285 S 52
+FOREIGN_PS 1287       1 Ss    0.0        0   81564 sshd            sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+FOREIGN_TICK 1287 S 0
+FOREIGN_PS 1289       1 Ssl   0.0       25   81564 tailscaled      /usr/bin/tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/run/tailscale/tailscaled.sock --port=41641
+FOREIGN_TICK 1289 S 2578
+FOREIGN_PS 1291       1 Ssl   0.0        7   81564 tuned           /usr/bin/python3 -Es /usr/sbin/tuned -l -P
+FOREIGN_TICK 1291 S 722
+FOREIGN_PS 1302    1283 S     0.0        0   81564 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1302 S 0
+FOREIGN_PS 1303    1283 S     0.0        0   81564 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1303 S 0
+FOREIGN_PS 1369       1 Ssl   0.0        3   81563 tuned-ppd       /usr/bin/python3 -Es /usr/sbin/tuned-ppd -l
+FOREIGN_TICK 1369 S 367
+FOREIGN_PS 4117       1 Ssl   0.0        4   81559 rsyslogd        /usr/sbin/rsyslogd -n
+FOREIGN_TICK 4117 S 486
+FOREIGN_PS 4145       1 Ss    0.0        0   81559 atd             /usr/sbin/atd -f
+FOREIGN_TICK 4145 S 0
+FOREIGN_PS 4151       1 Ss    0.0        0   81559 crond           /usr/sbin/crond -n
+FOREIGN_TICK 4151 S 7
+FOREIGN_PS 13428       1 Ssl   0.0        0   81512 sddm            /usr/bin/sddm
+FOREIGN_TICK 13428 S 3
+FOREIGN_PS 13430   13428 S     0.0        0   81512 sddm-helper     /usr/libexec/sddm-helper --socket /tmp/sddm-auth-e1fdc633-7fe8-485e-a418-f65dc0bd5c95 --id 2 --start /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora --user sddm --display-server kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 --greeter
+FOREIGN_TICK 13430 S 0
+FOREIGN_PS 13431       1 Ssl   0.0        0   81512 uresourced      /usr/libexec/uresourced
+FOREIGN_TICK 13431 S 4
+FOREIGN_PS 13456       1 Ss    0.0        0   81512 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13456 S 23
+FOREIGN_PS 13458   13456 S     0.0        0   81511 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13458 S 0
+FOREIGN_PS 13478   13430 Ss+   0.0        0   81511 sddm-helper-sta /usr/libexec/sddm-helper-start-wayland kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13478 S 0
+FOREIGN_PS 13479   13456 Ss    0.0        0   81511 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13479 S 0
+FOREIGN_PS 13480   13478 Sl+   0.2      237   81511 kwin_wayland    /usr/bin/kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1
+FOREIGN_TICK 13480 S 23785
+FOREIGN_PS 13481   13479 S     0.0        0   81511 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13481 S 0
+FOREIGN_PS 13501   13478 Sl+   0.1      141   81510 sddm-greeter-qt /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13501 S 14128
+FOREIGN_PS 13521   13456 S<sl  0.0        1   81510 pipewire        /usr/bin/pipewire
+FOREIGN_TICK 13521 S 109
+FOREIGN_PS 13523   13456 S<sl  0.0        2   81510 wireplumber     /usr/bin/wireplumber
+FOREIGN_TICK 13523 S 213
+FOREIGN_PS 13525   13480 Sl+   0.0        0   81510 plasma-keyboard /usr/bin/plasma-keyboard
+FOREIGN_TICK 13525 S 63
+FOREIGN_PS 13755       1 Ss    0.0        0   78366 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13755 S 31
+FOREIGN_PS 13757   13755 S     0.0        0   78366 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13757 S 0
+FOREIGN_PS 13787   13755 Ss    0.0        0   78366 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13787 S 0
+FOREIGN_PS 13795   13787 S     0.0        0   78366 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13795 S 1
+FOREIGN_PS 83611       1 Ssl   0.0        0   53119 node-22         /usr/bin/node-22 /home/ghecht/.claude/plugins/cache/openai-codex/codex/1.0.6/scripts/app-server-broker.mjs serve --endpoint unix:/tmp/cxc-6eN2ye/broker.sock --cwd /home/ghecht/Projects/hven --pid-file /tmp/cxc-6eN2ye/broker.pid
+FOREIGN_TICK 83611 S 86
+FOREIGN_PS 83618   83611 Sl    0.1       56   53119 codex           codex app-server
+FOREIGN_TICK 83618 S 5618
+FOREIGN_PS 84052   83618 Sl    0.0        2   53110 codex-code-mode /home/ghecht/.codex/packages/standalone/releases/0.154.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+FOREIGN_TICK 84052 S 274
+FOREIGN_PS 280258   16979 Sl+   0.7      256   35978 clangd.main     clangd --background-index
+FOREIGN_TICK 280258 S 25601
+FOREIGN_PS 400249       1 S     0.0        0    8069 sleep           sleep 9655
+FOREIGN_TICK 400249 S 0
+FOREIGN_PS 514366   16979 Ss    0.0        0     274 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'until ! pgrep -f '"'"'sqp_perf.sh walk 1 3'"'"' > /dev/null 2>&1; do sleep 10; done; echo "walk r1 g3 finished"; tail -3 /home/ghecht/Projects/hven/.scratch/w6t6/logs/22-sqpperf-walk-r1-g3.log' < /dev/null && pwd -P >| /tmp/claude-620d-cwd
+FOREIGN_TICK 514366 S 1
+FOREIGN_PS 514378     658 S     0.0        0     243 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 514378 S 0
+FOREIGN_PS 514399     658 S     0.0        0     210 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 514399 S 0
+FOREIGN_PS 514400     658 S     0.0        0     210 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 514400 S 0
+FOREIGN_PS 514456   16979 Ss    0.0        0     140 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'while pgrep -f '"'"'sqp_perf.sh walk 1 3'"'"' > /dev/null 2>&1; do sleep 20; done; echo "WALK-R1-G3 DONE: $(tail -3 /home/ghecht/Projects/hven/.scratch/w6t6/logs/22-sqpperf-walk-r1-g3.log | tr '"'"'\n'"'"' '"'"' '"'"')"' < /dev/null && pwd -P >| /tmp/claude-b740-cwd
+FOREIGN_TICK 514456 S 0
+FOREIGN_PS 522793  522790 S     0.0        0       8 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval '.scratch/w6t6/run_leg.sh .scratch/w6t6/logs/23-sqpperf-walk-r2-g23-27.log .scratch/w6t6/sqp_perf.sh walk 2 23-27 2>&1 | grep -E "WRAPPER_EXIT" | tail -1' < /dev/null && pwd -P >| /tmp/claude-4f8d-cwd
+FOREIGN_TICK 522793 S 0
+FOREIGN_PS 522794  522790 S     0.0        0       8 tail            tail -1
+FOREIGN_TICK 522794 S 0
+FOREIGN_PS 522795  522793 S     0.0        0       8 2.1.270         ugrep -G --ignore-files --hidden -I --exclude-dir=.git --exclude-dir=.svn --exclude-dir=.hg --exclude-dir=.bzr --exclude-dir=.jj --exclude-dir=.sl -E WRAPPER_EXIT
+FOREIGN_TICK 522795 S 0
+FOREIGN_PS 523134  514366 S     0.0        0       4 sleep           sleep 10
+FOREIGN_TICK 523134 S 0
+FOREIGN_PS 523414  514456 S     0.0        0       0 sleep           sleep 20
+FOREIGN_TICK 523414 S 0
+PS_SNAPSHOT_END sqpperf-walk-r2-g23-27/f7_n20000_bound_activity foreign_pids=74
+RUN  2026-09-14T11:53:35Z mode=walk round=2 cell=f7_n20000_bound_warm arm=a00 callback=off trace=off
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_warm-a00 pre 2026-09-14T11:53:35Z mono=81569.69
+CPUSTAT_LINE cpu  5435999 1104 393406 124495396 20735 176453 23468 0 0 0
+CPUSTAT_LINE cpu2 738107 59 46765 7365277 1348 5690 1384 0 0 0
+CPUSTAT_LINE cpu10 300777 33 20056 7833429 726 2632 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_warm-a00 post 2026-09-14T11:53:37Z mono=81571.04
+CPUSTAT_LINE cpu  5436125 1104 393428 124497395 20735 176455 23468 0 0 0
+CPUSTAT_LINE cpu2 738220 59 46786 7365278 1348 5691 1385 0 0 0
+CPUSTAT_LINE cpu10 300778 33 20056 7833562 726 2632 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n20000_bound_warm-a00 user=1.12 sys=0.20 real=1.33
+DONE 2026-09-14T11:53:37Z arm=a00 cell=f7_n20000_bound_warm rc_so_far=0
+RUN  2026-09-14T11:53:37Z mode=walk round=2 cell=f7_n20000_bound_warm arm=a10 callback=count trace=off
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_warm-a10 pre 2026-09-14T11:53:37Z mono=81571.04
+CPUSTAT_LINE cpu  5436125 1104 393429 124497404 20735 176455 23468 0 0 0
+CPUSTAT_LINE cpu2 738220 59 46786 7365279 1348 5691 1385 0 0 0
+CPUSTAT_LINE cpu10 300778 33 20056 7833563 726 2632 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_warm-a10 post 2026-09-14T11:53:38Z mono=81572.38
+CPUSTAT_LINE cpu  5436244 1104 393448 124499405 20735 176458 23469 0 0 0
+CPUSTAT_LINE cpu2 738333 59 46805 7365279 1348 5692 1385 0 0 0
+CPUSTAT_LINE cpu10 300778 33 20056 7833696 726 2632 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n20000_bound_warm-a10 user=1.13 sys=0.19 real=1.33
+DONE 2026-09-14T11:53:38Z arm=a10 cell=f7_n20000_bound_warm rc_so_far=0
+RUN  2026-09-14T11:53:38Z mode=walk round=2 cell=f7_n20000_bound_warm arm=a01 callback=off trace=sink
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_warm-a01 pre 2026-09-14T11:53:38Z mono=81572.39
+CPUSTAT_LINE cpu  5436244 1104 393449 124499415 20735 176458 23469 0 0 0
+CPUSTAT_LINE cpu2 738333 59 46805 7365280 1348 5692 1385 0 0 0
+CPUSTAT_LINE cpu10 300778 33 20056 7833697 726 2632 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_warm-a01 post 2026-09-14T11:53:39Z mono=81573.72
+CPUSTAT_LINE cpu  5436361 1104 393468 124501413 20735 176461 23470 0 0 0
+CPUSTAT_LINE cpu2 738447 59 46823 7365281 1348 5692 1385 0 0 0
+CPUSTAT_LINE cpu10 300778 33 20056 7833830 726 2632 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n20000_bound_warm-a01 user=1.13 sys=0.18 real=1.33
+DONE 2026-09-14T11:53:39Z arm=a01 cell=f7_n20000_bound_warm rc_so_far=0
+RUN  2026-09-14T11:53:39Z mode=walk round=2 cell=f7_n20000_bound_warm arm=a11 callback=count trace=sink
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_warm-a11 pre 2026-09-14T11:53:39Z mono=81573.73
+CPUSTAT_LINE cpu  5436361 1104 393469 124501424 20735 176461 23470 0 0 0
+CPUSTAT_LINE cpu2 738447 59 46823 7365281 1348 5692 1385 0 0 0
+CPUSTAT_LINE cpu10 300778 33 20056 7833831 726 2632 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n20000_bound_warm-a11 post 2026-09-14T11:53:41Z mono=81575.07
+CPUSTAT_LINE cpu  5436476 1104 393491 124503429 20735 176463 23471 0 0 0
+CPUSTAT_LINE cpu2 738559 59 46845 7365282 1348 5693 1385 0 0 0
+CPUSTAT_LINE cpu10 300778 33 20056 7833965 726 2632 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n20000_bound_warm-a11 user=1.11 sys=0.21 real=1.33
+DONE 2026-09-14T11:53:41Z arm=a11 cell=f7_n20000_bound_warm rc_so_far=0
+PS_SNAPSHOT sqpperf-walk-r2-g23-27/f7_n20000_bound_warm 2026-09-14T11:53:41Z mono=81575.08 clk_tck=100
+FOREIGN_PS 631       1 Ss    0.0        1   81571 systemd-journal /usr/lib/systemd/systemd-journald
+FOREIGN_TICK 631 S 173
+FOREIGN_PS 658       1 Ss    0.0        0   81571 systemd-userdbd /usr/lib/systemd/systemd-userdbd
+FOREIGN_TICK 658 S 20
+FOREIGN_PS 669       1 Ss    0.0        1   81571 systemd-resolve /usr/lib/systemd/systemd-resolved
+FOREIGN_TICK 669 S 146
+FOREIGN_PS 672       1 Ss    0.0        0   81571 systemd-udevd   /usr/lib/systemd/systemd-udevd
+FOREIGN_TICK 672 S 29
+FOREIGN_PS 871       1 S<sl  0.0        0   81570 auditd          /usr/bin/auditd
+FOREIGN_TICK 871 S 7
+FOREIGN_PS 873     871 S<    0.0        0   81570 sedispatch      /usr/sbin/sedispatch
+FOREIGN_TICK 873 S 1
+FOREIGN_PS 903       1 Ss    0.0        0   81570 dbus-broker-lau /usr/bin/dbus-broker-launch --scope system --audit
+FOREIGN_TICK 903 S 4
+FOREIGN_PS 911     903 S     0.0        2   81570 dbus-broker     dbus-broker --log 10 --controller 9 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 536870912 --max-fds 4096 --max-matches 131072 --audit
+FOREIGN_TICK 911 S 250
+FOREIGN_PS 912       1 S<Ls  0.0        3   81570 earlyoom        /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+FOREIGN_TICK 912 S 300
+FOREIGN_PS 916       1 Ss    0.0        7   81570 avahi-daemon    avahi-daemon: running [fedora.local]
+FOREIGN_TICK 916 S 781
+FOREIGN_PS 917       1 Ss    0.0        0   81570 bluetoothd      /usr/libexec/bluetooth/bluetoothd
+FOREIGN_TICK 917 S 4
+FOREIGN_PS 923       1 Ssl   0.0        0   81570 firewalld       /usr/bin/python3 -sP /usr/bin/firewalld --nofork --nopid
+FOREIGN_TICK 923 S 30
+FOREIGN_PS 924       1 Ssl   0.0        9   81570 NetworkManager  /usr/bin/NetworkManager --no-daemon
+FOREIGN_TICK 924 S 942
+FOREIGN_PS 926       1 Ssl   0.0        2   81570 irqbalance      /usr/sbin/irqbalance
+FOREIGN_TICK 926 S 283
+FOREIGN_PS 927       1 Ss    0.0        0   81570 chronyd         /usr/sbin/chronyd -n -F 2
+FOREIGN_TICK 927 S 12
+FOREIGN_PS 931       1 Ssl   0.0        1   81570 polkitd         /usr/lib/polkit-1/polkitd --no-debug --log-level=notice
+FOREIGN_TICK 931 S 105
+FOREIGN_PS 935       1 SNsl  0.0        0   81570 rtkit-daemon    /usr/libexec/rtkit-daemon
+FOREIGN_TICK 935 S 32
+FOREIGN_PS 937       1 Ss    0.0        0   81570 smartd          /usr/bin/smartd -n -q never --capabilities=mail
+FOREIGN_TICK 937 S 4
+FOREIGN_PS 939       1 Ssl   0.0        0   81570 switcheroo-cont /usr/libexec/switcheroo-control
+FOREIGN_TICK 939 S 7
+FOREIGN_PS 943       1 Ssl   0.0        6   81570 udisksd         /usr/libexec/udisks2/udisksd
+FOREIGN_TICK 943 S 623
+FOREIGN_PS 944       1 Ssl   0.0        0   81570 upowerd         /usr/libexec/upowerd
+FOREIGN_TICK 944 S 15
+FOREIGN_PS 964       1 Ssl   0.0        0   81570 accounts-daemon /usr/libexec/accounts-daemon
+FOREIGN_TICK 964 S 17
+FOREIGN_PS 968       1 Ss    0.0        0   81570 systemd-logind  /usr/lib/systemd/systemd-logind
+FOREIGN_TICK 968 S 39
+FOREIGN_PS 971     916 S     0.0        0   81570 avahi-daemon    avahi-daemon: chroot helper
+FOREIGN_TICK 971 S 0
+FOREIGN_PS 989       1 SNs   0.0        0   81570 alsactl         /usr/sbin/alsactl -s -n 19 -c -E ALSA_CONFIG_PATH=/etc/alsa/alsactl.conf --initfile=/lib/alsa/init/00main rdaemon
+FOREIGN_TICK 989 S 1
+FOREIGN_PS 997       1 Ssl   0.0        0   81570 abrtd           /usr/sbin/abrtd -d -s
+FOREIGN_TICK 997 S 42
+FOREIGN_PS 1048       1 Ssl   0.0        0   81570 ModemManager    /usr/bin/ModemManager
+FOREIGN_TICK 1048 S 12
+FOREIGN_PS 1082       1 Ss    0.0        0   81570 abrt-dump-journ /usr/bin/abrt-dump-journal-core -D -T -f -e
+FOREIGN_TICK 1082 S 62
+FOREIGN_PS 1083       1 Ss    0.0        0   81570 abrt-dump-journ /usr/bin/abrt-dump-journal-oops -fxtD
+FOREIGN_TICK 1083 S 30
+FOREIGN_PS 1084       1 Ss    0.0        0   81570 abrt-dump-journ /usr/bin/abrt-dump-journal-xorg -fxtD
+FOREIGN_TICK 1084 S 27
+FOREIGN_PS 1264       1 Ss    0.0        2   81569 wpa_supplicant  /usr/sbin/wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -u -s
+FOREIGN_TICK 1264 S 287
+FOREIGN_PS 1283       1 Ss    0.0        0   81569 cupsd           /usr/bin/cupsd -l
+FOREIGN_TICK 1283 S 1
+FOREIGN_PS 1285       1 Ssl   0.0        0   81569 gssproxy        /usr/bin/gssproxy -i
+FOREIGN_TICK 1285 S 52
+FOREIGN_PS 1287       1 Ss    0.0        0   81569 sshd            sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+FOREIGN_TICK 1287 S 0
+FOREIGN_PS 1289       1 Ssl   0.0       25   81569 tailscaled      /usr/bin/tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/run/tailscale/tailscaled.sock --port=41641
+FOREIGN_TICK 1289 S 2578
+FOREIGN_PS 1291       1 Ssl   0.0        7   81569 tuned           /usr/bin/python3 -Es /usr/sbin/tuned -l -P
+FOREIGN_TICK 1291 S 722
+FOREIGN_PS 1302    1283 S     0.0        0   81569 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1302 S 0
+FOREIGN_PS 1303    1283 S     0.0        0   81569 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1303 S 0
+FOREIGN_PS 1369       1 Ssl   0.0        3   81569 tuned-ppd       /usr/bin/python3 -Es /usr/sbin/tuned-ppd -l
+FOREIGN_TICK 1369 S 367
+FOREIGN_PS 4117       1 Ssl   0.0        4   81564 rsyslogd        /usr/sbin/rsyslogd -n
+FOREIGN_TICK 4117 S 486
+FOREIGN_PS 4145       1 Ss    0.0        0   81564 atd             /usr/sbin/atd -f
+FOREIGN_TICK 4145 S 0
+FOREIGN_PS 4151       1 Ss    0.0        0   81564 crond           /usr/sbin/crond -n
+FOREIGN_TICK 4151 S 7
+FOREIGN_PS 13428       1 Ssl   0.0        0   81517 sddm            /usr/bin/sddm
+FOREIGN_TICK 13428 S 3
+FOREIGN_PS 13430   13428 S     0.0        0   81517 sddm-helper     /usr/libexec/sddm-helper --socket /tmp/sddm-auth-e1fdc633-7fe8-485e-a418-f65dc0bd5c95 --id 2 --start /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora --user sddm --display-server kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 --greeter
+FOREIGN_TICK 13430 S 0
+FOREIGN_PS 13431       1 Ssl   0.0        0   81517 uresourced      /usr/libexec/uresourced
+FOREIGN_TICK 13431 S 4
+FOREIGN_PS 13456       1 Ss    0.0        0   81517 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13456 S 23
+FOREIGN_PS 13458   13456 S     0.0        0   81517 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13458 S 0
+FOREIGN_PS 13478   13430 Ss+   0.0        0   81517 sddm-helper-sta /usr/libexec/sddm-helper-start-wayland kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13478 S 0
+FOREIGN_PS 13479   13456 Ss    0.0        0   81517 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13479 S 0
+FOREIGN_PS 13480   13478 Sl+   0.2      237   81517 kwin_wayland    /usr/bin/kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1
+FOREIGN_TICK 13480 S 23787
+FOREIGN_PS 13481   13479 S     0.0        0   81517 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13481 S 0
+FOREIGN_PS 13501   13478 Sl+   0.1      141   81516 sddm-greeter-qt /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13501 S 14129
+FOREIGN_PS 13521   13456 S<sl  0.0        1   81515 pipewire        /usr/bin/pipewire
+FOREIGN_TICK 13521 S 109
+FOREIGN_PS 13523   13456 S<sl  0.0        2   81515 wireplumber     /usr/bin/wireplumber
+FOREIGN_TICK 13523 S 213
+FOREIGN_PS 13525   13480 Sl+   0.0        0   81515 plasma-keyboard /usr/bin/plasma-keyboard
+FOREIGN_TICK 13525 S 63
+FOREIGN_PS 13755       1 Ss    0.0        0   78371 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13755 S 31
+FOREIGN_PS 13757   13755 S     0.0        0   78371 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13757 S 0
+FOREIGN_PS 13787   13755 Ss    0.0        0   78371 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13787 S 0
+FOREIGN_PS 13795   13787 S     0.0        0   78371 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13795 S 1
+FOREIGN_PS 83611       1 Ssl   0.0        0   53125 node-22         /usr/bin/node-22 /home/ghecht/.claude/plugins/cache/openai-codex/codex/1.0.6/scripts/app-server-broker.mjs serve --endpoint unix:/tmp/cxc-6eN2ye/broker.sock --cwd /home/ghecht/Projects/hven --pid-file /tmp/cxc-6eN2ye/broker.pid
+FOREIGN_TICK 83611 S 86
+FOREIGN_PS 83618   83611 Sl    0.1       56   53124 codex           codex app-server
+FOREIGN_TICK 83618 S 5620
+FOREIGN_PS 84052   83618 Sl    0.0        2   53116 codex-code-mode /home/ghecht/.codex/packages/standalone/releases/0.154.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+FOREIGN_TICK 84052 S 274
+FOREIGN_PS 280258   16979 Sl+   0.7      256   35984 clangd.main     clangd --background-index
+FOREIGN_TICK 280258 S 25601
+FOREIGN_PS 400249       1 S     0.0        0    8075 sleep           sleep 9655
+FOREIGN_TICK 400249 S 0
+FOREIGN_PS 514366   16979 Ss    0.0        0     280 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'until ! pgrep -f '"'"'sqp_perf.sh walk 1 3'"'"' > /dev/null 2>&1; do sleep 10; done; echo "walk r1 g3 finished"; tail -3 /home/ghecht/Projects/hven/.scratch/w6t6/logs/22-sqpperf-walk-r1-g3.log' < /dev/null && pwd -P >| /tmp/claude-620d-cwd
+FOREIGN_TICK 514366 S 1
+FOREIGN_PS 514378     658 S     0.0        0     248 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 514378 S 0
+FOREIGN_PS 514399     658 S     0.0        0     215 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 514399 S 0
+FOREIGN_PS 514400     658 S     0.0        0     215 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 514400 S 0
+FOREIGN_PS 514456   16979 Ss    0.0        0     145 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'while pgrep -f '"'"'sqp_perf.sh walk 1 3'"'"' > /dev/null 2>&1; do sleep 20; done; echo "WALK-R1-G3 DONE: $(tail -3 /home/ghecht/Projects/hven/.scratch/w6t6/logs/22-sqpperf-walk-r1-g3.log | tr '"'"'\n'"'"' '"'"' '"'"')"' < /dev/null && pwd -P >| /tmp/claude-b740-cwd
+FOREIGN_TICK 514456 S 0
+FOREIGN_PS 522793  522790 S     0.0        0      14 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval '.scratch/w6t6/run_leg.sh .scratch/w6t6/logs/23-sqpperf-walk-r2-g23-27.log .scratch/w6t6/sqp_perf.sh walk 2 23-27 2>&1 | grep -E "WRAPPER_EXIT" | tail -1' < /dev/null && pwd -P >| /tmp/claude-4f8d-cwd
+FOREIGN_TICK 522793 S 0
+FOREIGN_PS 522794  522790 S     0.0        0      14 tail            tail -1
+FOREIGN_TICK 522794 S 0
+FOREIGN_PS 522795  522793 S     0.0        0      14 2.1.270         ugrep -G --ignore-files --hidden -I --exclude-dir=.git --exclude-dir=.svn --exclude-dir=.hg --exclude-dir=.bzr --exclude-dir=.jj --exclude-dir=.sl -E WRAPPER_EXIT
+FOREIGN_TICK 522795 S 0
+FOREIGN_PS 523134  514366 S     0.0        0       9 sleep           sleep 10
+FOREIGN_PS 523414  514456 S     0.0        0       5 sleep           sleep 20
+FOREIGN_TICK 523414 S 0
+PS_SNAPSHOT_END sqpperf-walk-r2-g23-27/f7_n20000_bound_warm foreign_pids=73
+RUN  2026-09-14T11:53:41Z mode=walk round=2 cell=f7_n1000_path_warm arm=a00 callback=off trace=off
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n1000_path_warm-a00 pre 2026-09-14T11:53:41Z mono=81575.26
+CPUSTAT_LINE cpu  5436485 1104 393513 124503701 20735 176464 23471 0 0 0
+CPUSTAT_LINE cpu2 738559 59 46845 7365301 1348 5693 1385 0 0 0
+CPUSTAT_LINE cpu10 300779 33 20058 7833982 726 2632 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n1000_path_warm-a00 post 2026-09-14T11:55:43Z mono=81697.57
+CPUSTAT_LINE cpu  5448526 1104 393880 124686792 20751 176697 23525 0 0 0
+CPUSTAT_LINE cpu2 750455 59 47126 7365302 1348 5741 1390 0 0 0
+CPUSTAT_LINE cpu10 300786 33 20059 7846204 726 2633 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n1000_path_warm-a00 user=118.95 sys=2.80 real=122.30
+DONE 2026-09-14T11:55:43Z arm=a00 cell=f7_n1000_path_warm rc_so_far=0
+RUN  2026-09-14T11:55:43Z mode=walk round=2 cell=f7_n1000_path_warm arm=a10 callback=count trace=off
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n1000_path_warm-a10 pre 2026-09-14T11:55:43Z mono=81697.58
+CPUSTAT_LINE cpu  5448526 1104 393880 124686802 20751 176697 23525 0 0 0
+CPUSTAT_LINE cpu2 750455 59 47126 7365302 1348 5741 1390 0 0 0
+CPUSTAT_LINE cpu10 300786 33 20059 7846204 726 2633 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n1000_path_warm-a10 post 2026-09-14T11:57:44Z mono=81818.48
+CPUSTAT_LINE cpu  5460530 1104 394124 124867747 20757 176928 23580 0 0 0
+CPUSTAT_LINE cpu2 762323 59 47296 7365303 1348 5788 1393 0 0 0
+CPUSTAT_LINE cpu10 300793 33 20061 7858286 726 2633 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n1000_path_warm-a10 user=118.66 sys=1.70 real=120.89
+DONE 2026-09-14T11:57:44Z arm=a10 cell=f7_n1000_path_warm rc_so_far=0
+RUN  2026-09-14T11:57:44Z mode=walk round=2 cell=f7_n1000_path_warm arm=a01 callback=off trace=sink
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n1000_path_warm-a01 pre 2026-09-14T11:57:44Z mono=81818.49
+CPUSTAT_LINE cpu  5460530 1104 394124 124867756 20757 176928 23580 0 0 0
+CPUSTAT_LINE cpu2 762323 59 47296 7365304 1348 5788 1393 0 0 0
+CPUSTAT_LINE cpu10 300793 33 20061 7858287 726 2633 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n1000_path_warm-a01 post 2026-09-14T11:59:46Z mono=81940.83
+CPUSTAT_LINE cpu  5472545 1104 394471 125050893 20760 177161 23634 0 0 0
+CPUSTAT_LINE cpu2 774225 59 47575 7365304 1348 5837 1398 0 0 0
+CPUSTAT_LINE cpu10 300795 33 20062 7870518 726 2634 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n1000_path_warm-a01 user=119.01 sys=2.78 real=122.34
+DONE 2026-09-14T11:59:46Z arm=a01 cell=f7_n1000_path_warm rc_so_far=0
+RUN  2026-09-14T11:59:46Z mode=walk round=2 cell=f7_n1000_path_warm arm=a11 callback=count trace=sink
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n1000_path_warm-a11 pre 2026-09-14T11:59:46Z mono=81940.84
+CPUSTAT_LINE cpu  5472546 1104 394471 125050904 20760 177162 23634 0 0 0
+CPUSTAT_LINE cpu2 774225 59 47575 7365305 1348 5837 1398 0 0 0
+CPUSTAT_LINE cpu10 300795 33 20062 7870518 726 2634 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n1000_path_warm-a11 post 2026-09-14T12:01:47Z mono=82061.75
+CPUSTAT_LINE cpu  5484530 1104 394720 125231901 20776 177392 23689 0 0 0
+CPUSTAT_LINE cpu2 786093 59 47747 7365305 1348 5884 1402 0 0 0
+CPUSTAT_LINE cpu10 300799 33 20063 7882603 726 2634 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n1000_path_warm-a11 user=118.66 sys=1.71 real=120.91
+DONE 2026-09-14T12:01:47Z arm=a11 cell=f7_n1000_path_warm rc_so_far=0
+PS_SNAPSHOT sqpperf-walk-r2-g23-27/f7_n1000_path_warm 2026-09-14T12:01:47Z mono=82061.76 clk_tck=100
+FOREIGN_PS 631       1 Ss    0.0        1   82058 systemd-journal /usr/lib/systemd/systemd-journald
+FOREIGN_TICK 631 S 173
+FOREIGN_PS 658       1 Ss    0.0        0   82058 systemd-userdbd /usr/lib/systemd/systemd-userdbd
+FOREIGN_TICK 658 S 20
+FOREIGN_PS 669       1 Ss    0.0        1   82058 systemd-resolve /usr/lib/systemd/systemd-resolved
+FOREIGN_TICK 669 S 147
+FOREIGN_PS 672       1 Ss    0.0        0   82058 systemd-udevd   /usr/lib/systemd/systemd-udevd
+FOREIGN_TICK 672 S 29
+FOREIGN_PS 871       1 S<sl  0.0        0   82057 auditd          /usr/bin/auditd
+FOREIGN_TICK 871 S 7
+FOREIGN_PS 873     871 S<    0.0        0   82057 sedispatch      /usr/sbin/sedispatch
+FOREIGN_TICK 873 S 1
+FOREIGN_PS 903       1 Ss    0.0        0   82057 dbus-broker-lau /usr/bin/dbus-broker-launch --scope system --audit
+FOREIGN_TICK 903 S 4
+FOREIGN_PS 911     903 S     0.0        2   82057 dbus-broker     dbus-broker --log 10 --controller 9 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 536870912 --max-fds 4096 --max-matches 131072 --audit
+FOREIGN_TICK 911 S 251
+FOREIGN_PS 912       1 S<Ls  0.0        3   82057 earlyoom        /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+FOREIGN_TICK 912 S 301
+FOREIGN_PS 916       1 Ss    0.0        7   82057 avahi-daemon    avahi-daemon: running [fedora.local]
+FOREIGN_TICK 916 S 783
+FOREIGN_PS 917       1 Ss    0.0        0   82057 bluetoothd      /usr/libexec/bluetooth/bluetoothd
+FOREIGN_TICK 917 S 4
+FOREIGN_PS 923       1 Ssl   0.0        0   82057 firewalld       /usr/bin/python3 -sP /usr/bin/firewalld --nofork --nopid
+FOREIGN_TICK 923 S 30
+FOREIGN_PS 924       1 Ssl   0.0        9   82057 NetworkManager  /usr/bin/NetworkManager --no-daemon
+FOREIGN_TICK 924 S 947
+FOREIGN_PS 926       1 Ssl   0.0        2   82057 irqbalance      /usr/sbin/irqbalance
+FOREIGN_TICK 926 S 284
+FOREIGN_PS 927       1 Ss    0.0        0   82057 chronyd         /usr/sbin/chronyd -n -F 2
+FOREIGN_TICK 927 S 12
+FOREIGN_PS 931       1 Ssl   0.0        1   82057 polkitd         /usr/lib/polkit-1/polkitd --no-debug --log-level=notice
+FOREIGN_TICK 931 S 105
+FOREIGN_PS 935       1 SNsl  0.0        0   82057 rtkit-daemon    /usr/libexec/rtkit-daemon
+FOREIGN_TICK 935 S 32
+FOREIGN_PS 937       1 Ss    0.0        0   82057 smartd          /usr/bin/smartd -n -q never --capabilities=mail
+FOREIGN_TICK 937 S 4
+FOREIGN_PS 939       1 Ssl   0.0        0   82057 switcheroo-cont /usr/libexec/switcheroo-control
+FOREIGN_TICK 939 S 7
+FOREIGN_PS 943       1 Ssl   0.0        6   82057 udisksd         /usr/libexec/udisks2/udisksd
+FOREIGN_TICK 943 S 627
+FOREIGN_PS 944       1 Ssl   0.0        0   82057 upowerd         /usr/libexec/upowerd
+FOREIGN_TICK 944 S 15
+FOREIGN_PS 964       1 Ssl   0.0        0   82057 accounts-daemon /usr/libexec/accounts-daemon
+FOREIGN_TICK 964 S 17
+FOREIGN_PS 968       1 Ss    0.0        0   82057 systemd-logind  /usr/lib/systemd/systemd-logind
+FOREIGN_TICK 968 S 39
+FOREIGN_PS 971     916 S     0.0        0   82057 avahi-daemon    avahi-daemon: chroot helper
+FOREIGN_TICK 971 S 0
+FOREIGN_PS 989       1 SNs   0.0        0   82057 alsactl         /usr/sbin/alsactl -s -n 19 -c -E ALSA_CONFIG_PATH=/etc/alsa/alsactl.conf --initfile=/lib/alsa/init/00main rdaemon
+FOREIGN_TICK 989 S 1
+FOREIGN_PS 997       1 Ssl   0.0        0   82057 abrtd           /usr/sbin/abrtd -d -s
+FOREIGN_TICK 997 S 42
+FOREIGN_PS 1048       1 Ssl   0.0        0   82057 ModemManager    /usr/bin/ModemManager
+FOREIGN_TICK 1048 S 12
+FOREIGN_PS 1082       1 Ss    0.0        0   82056 abrt-dump-journ /usr/bin/abrt-dump-journal-core -D -T -f -e
+FOREIGN_TICK 1082 S 62
+FOREIGN_PS 1083       1 Ss    0.0        0   82056 abrt-dump-journ /usr/bin/abrt-dump-journal-oops -fxtD
+FOREIGN_TICK 1083 S 30
+FOREIGN_PS 1084       1 Ss    0.0        0   82056 abrt-dump-journ /usr/bin/abrt-dump-journal-xorg -fxtD
+FOREIGN_TICK 1084 S 27
+FOREIGN_PS 1264       1 Ss    0.0        2   82056 wpa_supplicant  /usr/sbin/wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -u -s
+FOREIGN_TICK 1264 S 288
+FOREIGN_PS 1283       1 Ss    0.0        0   82056 cupsd           /usr/bin/cupsd -l
+FOREIGN_TICK 1283 S 1
+FOREIGN_PS 1285       1 Ssl   0.0        0   82056 gssproxy        /usr/bin/gssproxy -i
+FOREIGN_TICK 1285 S 52
+FOREIGN_PS 1287       1 Ss    0.0        0   82056 sshd            sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+FOREIGN_TICK 1287 S 0
+FOREIGN_PS 1289       1 Ssl   0.0       25   82056 tailscaled      /usr/bin/tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/run/tailscale/tailscaled.sock --port=41641
+FOREIGN_TICK 1289 S 2586
+FOREIGN_PS 1291       1 Ssl   0.0        7   82056 tuned           /usr/bin/python3 -Es /usr/sbin/tuned -l -P
+FOREIGN_TICK 1291 S 724
+FOREIGN_PS 1302    1283 S     0.0        0   82056 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1302 S 0
+FOREIGN_PS 1303    1283 S     0.0        0   82056 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1303 S 0
+FOREIGN_PS 1369       1 Ssl   0.0        3   82056 tuned-ppd       /usr/bin/python3 -Es /usr/sbin/tuned-ppd -l
+FOREIGN_TICK 1369 S 368
+FOREIGN_PS 4117       1 Ssl   0.0        4   82051 rsyslogd        /usr/sbin/rsyslogd -n
+FOREIGN_TICK 4117 S 487
+FOREIGN_PS 4145       1 Ss    0.0        0   82051 atd             /usr/sbin/atd -f
+FOREIGN_TICK 4145 S 0
+FOREIGN_PS 4151       1 Ss    0.0        0   82051 crond           /usr/sbin/crond -n
+FOREIGN_TICK 4151 S 7
+FOREIGN_PS 13428       1 Ssl   0.0        0   82004 sddm            /usr/bin/sddm
+FOREIGN_TICK 13428 S 3
+FOREIGN_PS 13430   13428 S     0.0        0   82004 sddm-helper     /usr/libexec/sddm-helper --socket /tmp/sddm-auth-e1fdc633-7fe8-485e-a418-f65dc0bd5c95 --id 2 --start /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora --user sddm --display-server kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 --greeter
+FOREIGN_TICK 13430 S 0
+FOREIGN_PS 13431       1 Ssl   0.0        0   82004 uresourced      /usr/libexec/uresourced
+FOREIGN_TICK 13431 S 4
+FOREIGN_PS 13456       1 Ss    0.0        0   82004 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13456 S 23
+FOREIGN_PS 13458   13456 S     0.0        0   82004 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13458 S 0
+FOREIGN_PS 13478   13430 Ss+   0.0        0   82003 sddm-helper-sta /usr/libexec/sddm-helper-start-wayland kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13478 S 0
+FOREIGN_PS 13479   13456 Ss    0.0        0   82003 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13479 S 0
+FOREIGN_PS 13480   13478 Sl+   0.2      238   82003 kwin_wayland    /usr/bin/kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1
+FOREIGN_TICK 13480 S 23858
+FOREIGN_PS 13481   13479 S     0.0        0   82003 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13481 S 0
+FOREIGN_PS 13501   13478 Sl+   0.1      141   82003 sddm-greeter-qt /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13501 S 14180
+FOREIGN_PS 13521   13456 S<sl  0.0        1   82002 pipewire        /usr/bin/pipewire
+FOREIGN_TICK 13521 S 111
+FOREIGN_PS 13523   13456 S<sl  0.0        2   82002 wireplumber     /usr/bin/wireplumber
+FOREIGN_TICK 13523 S 214
+FOREIGN_PS 13525   13480 Sl+   0.0        0   82002 plasma-keyboard /usr/bin/plasma-keyboard
+FOREIGN_TICK 13525 S 63
+FOREIGN_PS 13755       1 Ss    0.0        0   78858 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13755 S 31
+FOREIGN_PS 13757   13755 S     0.0        0   78858 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13757 S 0
+FOREIGN_PS 13787   13755 Ss    0.0        0   78858 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13787 S 0
+FOREIGN_PS 13795   13787 S     0.0        0   78858 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13795 S 1
+FOREIGN_PS 83611       1 Ssl   0.0        0   53611 node-22         /usr/bin/node-22 /home/ghecht/.claude/plugins/cache/openai-codex/codex/1.0.6/scripts/app-server-broker.mjs serve --endpoint unix:/tmp/cxc-6eN2ye/broker.sock --cwd /home/ghecht/Projects/hven --pid-file /tmp/cxc-6eN2ye/broker.pid
+FOREIGN_TICK 83611 S 86
+FOREIGN_PS 83618   83611 Sl    0.1       56   53611 codex           codex app-server
+FOREIGN_TICK 83618 S 5627
+FOREIGN_PS 84052   83618 Sl    0.0        2   53603 codex-code-mode /home/ghecht/.codex/packages/standalone/releases/0.154.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+FOREIGN_TICK 84052 S 274
+FOREIGN_PS 280258   16979 Sl+   0.7      256   36470 clangd.main     clangd --background-index
+FOREIGN_TICK 280258 S 25601
+FOREIGN_PS 400249       1 S     0.0        0    8561 sleep           sleep 9655
+FOREIGN_TICK 400249 S 0
+FOREIGN_PS 514366   16979 Ss    0.0        0     767 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'until ! pgrep -f '"'"'sqp_perf.sh walk 1 3'"'"' > /dev/null 2>&1; do sleep 10; done; echo "walk r1 g3 finished"; tail -3 /home/ghecht/Projects/hven/.scratch/w6t6/logs/22-sqpperf-walk-r1-g3.log' < /dev/null && pwd -P >| /tmp/claude-620d-cwd
+FOREIGN_TICK 514366 S 3
+FOREIGN_PS 514456   16979 Ss    0.0        0     632 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'while pgrep -f '"'"'sqp_perf.sh walk 1 3'"'"' > /dev/null 2>&1; do sleep 20; done; echo "WALK-R1-G3 DONE: $(tail -3 /home/ghecht/Projects/hven/.scratch/w6t6/logs/22-sqpperf-walk-r1-g3.log | tr '"'"'\n'"'"' '"'"' '"'"')"' < /dev/null && pwd -P >| /tmp/claude-b740-cwd
+FOREIGN_TICK 514456 S 1
+FOREIGN_PS 522793  522790 S     0.0        0     501 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval '.scratch/w6t6/run_leg.sh .scratch/w6t6/logs/23-sqpperf-walk-r2-g23-27.log .scratch/w6t6/sqp_perf.sh walk 2 23-27 2>&1 | grep -E "WRAPPER_EXIT" | tail -1' < /dev/null && pwd -P >| /tmp/claude-4f8d-cwd
+FOREIGN_TICK 522793 S 0
+FOREIGN_PS 522794  522790 S     0.0        0     501 tail            tail -1
+FOREIGN_TICK 522794 S 0
+FOREIGN_PS 522795  522793 S     0.0        0     501 2.1.270         ugrep -G --ignore-files --hidden -I --exclude-dir=.git --exclude-dir=.svn --exclude-dir=.hg --exclude-dir=.bzr --exclude-dir=.jj --exclude-dir=.sl -E WRAPPER_EXIT
+FOREIGN_TICK 522795 S 0
+FOREIGN_PS 524095     658 S     0.0        0     133 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 524095 S 0
+FOREIGN_PS 524119     658 S     0.0        0     100 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 524119 S 0
+FOREIGN_PS 524120     658 S     0.0        0     100 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 524120 S 0
+FOREIGN_PS 524173  514456 S     0.0        0      11 sleep           sleep 20
+FOREIGN_TICK 524173 S 0
+FOREIGN_PS 524175  514366 S     0.0        0       5 sleep           sleep 10
+FOREIGN_TICK 524175 S 0
+PS_SNAPSHOT_END sqpperf-walk-r2-g23-27/f7_n1000_path_warm foreign_pids=74
+RUN  2026-09-14T12:01:47Z mode=walk round=2 cell=f7_n800_path_warm arm=a00 callback=off trace=off
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n800_path_warm-a00 pre 2026-09-14T12:01:47Z mono=82061.95
+CPUSTAT_LINE cpu  5484538 1104 394742 125232178 20776 177393 23690 0 0 0
+CPUSTAT_LINE cpu2 786093 59 47747 7365325 1348 5884 1402 0 0 0
+CPUSTAT_LINE cpu10 300800 33 20064 7882623 726 2634 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n800_path_warm-a00 post 2026-09-14T12:03:03Z mono=82137.11
+CPUSTAT_LINE cpu  5491922 1104 394961 125344665 20782 177538 23724 0 0 0
+CPUSTAT_LINE cpu2 793399 59 47923 7365325 1348 5915 1405 0 0 0
+CPUSTAT_LINE cpu10 300809 33 20064 7890127 726 2635 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n800_path_warm-a00 user=73.05 sys=1.75 real=75.15
+DONE 2026-09-14T12:03:03Z arm=a00 cell=f7_n800_path_warm rc_so_far=0
+RUN  2026-09-14T12:03:03Z mode=walk round=2 cell=f7_n800_path_warm arm=a10 callback=count trace=off
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n800_path_warm-a10 pre 2026-09-14T12:03:03Z mono=82137.11
+CPUSTAT_LINE cpu  5491922 1104 394962 125344675 20782 177538 23724 0 0 0
+CPUSTAT_LINE cpu2 793399 59 47923 7365326 1348 5915 1405 0 0 0
+CPUSTAT_LINE cpu10 300809 33 20064 7890127 726 2635 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n800_path_warm-a10 post 2026-09-14T12:04:17Z mono=82211.70
+CPUSTAT_LINE cpu  5499530 1104 395172 125456047 20789 177687 23765 0 0 0
+CPUSTAT_LINE cpu2 800694 59 48052 7365327 1348 5945 1407 0 0 0
+CPUSTAT_LINE cpu10 300810 33 20065 7897584 726 2635 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n800_path_warm-a10 user=72.95 sys=1.29 real=74.58
+DONE 2026-09-14T12:04:17Z arm=a10 cell=f7_n800_path_warm rc_so_far=0
+RUN  2026-09-14T12:04:17Z mode=walk round=2 cell=f7_n800_path_warm arm=a01 callback=off trace=sink
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n800_path_warm-a01 pre 2026-09-14T12:04:17Z mono=82211.71
+CPUSTAT_LINE cpu  5499530 1104 395173 125456057 20789 177687 23765 0 0 0
+CPUSTAT_LINE cpu2 800694 59 48052 7365327 1348 5945 1407 0 0 0
+CPUSTAT_LINE cpu10 300810 33 20065 7897585 726 2635 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n800_path_warm-a01 post 2026-09-14T12:05:32Z mono=82286.93
+CPUSTAT_LINE cpu  5507233 1104 395452 125568316 20793 177843 23810 0 0 0
+CPUSTAT_LINE cpu2 808006 59 48229 7365328 1348 5976 1411 0 0 0
+CPUSTAT_LINE cpu10 300826 33 20071 7905087 726 2636 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n800_path_warm-a01 user=73.10 sys=1.76 real=75.21
+DONE 2026-09-14T12:05:32Z arm=a01 cell=f7_n800_path_warm rc_so_far=0
+RUN  2026-09-14T12:05:32Z mode=walk round=2 cell=f7_n800_path_warm arm=a11 callback=count trace=sink
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n800_path_warm-a11 pre 2026-09-14T12:05:32Z mono=82286.94
+CPUSTAT_LINE cpu  5507234 1104 395452 125568326 20793 177843 23810 0 0 0
+CPUSTAT_LINE cpu2 808006 59 48229 7365329 1348 5976 1411 0 0 0
+CPUSTAT_LINE cpu10 300826 33 20071 7905087 726 2636 862 0 0 0
+CPUSTAT sqpperf-walk-r2-g23-27/f7_n800_path_warm-a11 post 2026-09-14T12:06:47Z mono=82361.69
+CPUSTAT_LINE cpu  5514911 1104 395681 125679878 20799 177996 23854 0 0 0
+CPUSTAT_LINE cpu2 815314 59 48361 7365329 1348 6007 1414 0 0 0
+CPUSTAT_LINE cpu10 300838 33 20075 7912543 726 2639 862 0 0 0
+CPUTIME_SELF tag=sqpperf-walk-r2-g23-27/f7_n800_path_warm-a11 user=73.07 sys=1.32 real=74.74
+DONE 2026-09-14T12:06:47Z arm=a11 cell=f7_n800_path_warm rc_so_far=0
+PS_SNAPSHOT sqpperf-walk-r2-g23-27/f7_n800_path_warm 2026-09-14T12:06:47Z mono=82361.70 clk_tck=100
+FOREIGN_PS 631       1 Ss    0.0        1   82358 systemd-journal /usr/lib/systemd/systemd-journald
+FOREIGN_TICK 631 S 173
+FOREIGN_PS 658       1 Ss    0.0        0   82358 systemd-userdbd /usr/lib/systemd/systemd-userdbd
+FOREIGN_TICK 658 S 20
+FOREIGN_PS 669       1 Ss    0.0        1   82358 systemd-resolve /usr/lib/systemd/systemd-resolved
+FOREIGN_TICK 669 S 147
+FOREIGN_PS 672       1 Ss    0.0        0   82358 systemd-udevd   /usr/lib/systemd/systemd-udevd
+FOREIGN_TICK 672 S 29
+FOREIGN_PS 871       1 S<sl  0.0        0   82357 auditd          /usr/bin/auditd
+FOREIGN_TICK 871 S 7
+FOREIGN_PS 873     871 S<    0.0        0   82357 sedispatch      /usr/sbin/sedispatch
+FOREIGN_TICK 873 S 1
+FOREIGN_PS 903       1 Ss    0.0        0   82357 dbus-broker-lau /usr/bin/dbus-broker-launch --scope system --audit
+FOREIGN_TICK 903 S 4
+FOREIGN_PS 911     903 S     0.0        2   82357 dbus-broker     dbus-broker --log 10 --controller 9 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 536870912 --max-fds 4096 --max-matches 131072 --audit
+FOREIGN_TICK 911 S 252
+FOREIGN_PS 912       1 S<Ls  0.0        3   82357 earlyoom        /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+FOREIGN_TICK 912 S 302
+FOREIGN_PS 916       1 Ss    0.0        7   82357 avahi-daemon    avahi-daemon: running [fedora.local]
+FOREIGN_TICK 916 S 784
+FOREIGN_PS 917       1 Ss    0.0        0   82357 bluetoothd      /usr/libexec/bluetooth/bluetoothd
+FOREIGN_TICK 917 S 4
+FOREIGN_PS 923       1 Ssl   0.0        0   82357 firewalld       /usr/bin/python3 -sP /usr/bin/firewalld --nofork --nopid
+FOREIGN_TICK 923 S 30
+FOREIGN_PS 924       1 Ssl   0.0        9   82357 NetworkManager  /usr/bin/NetworkManager --no-daemon
+FOREIGN_TICK 924 S 950
+FOREIGN_PS 926       1 Ssl   0.0        2   82357 irqbalance      /usr/sbin/irqbalance
+FOREIGN_TICK 926 S 285
+FOREIGN_PS 927       1 Ss    0.0        0   82357 chronyd         /usr/sbin/chronyd -n -F 2
+FOREIGN_TICK 927 S 12
+FOREIGN_PS 931       1 Ssl   0.0        1   82357 polkitd         /usr/lib/polkit-1/polkitd --no-debug --log-level=notice
+FOREIGN_TICK 931 S 106
+FOREIGN_PS 935       1 SNsl  0.0        0   82357 rtkit-daemon    /usr/libexec/rtkit-daemon
+FOREIGN_TICK 935 S 33
+FOREIGN_PS 937       1 Ss    0.0        0   82357 smartd          /usr/bin/smartd -n -q never --capabilities=mail
+FOREIGN_TICK 937 S 4
+FOREIGN_PS 939       1 Ssl   0.0        0   82357 switcheroo-cont /usr/libexec/switcheroo-control
+FOREIGN_TICK 939 S 7
+FOREIGN_PS 943       1 Ssl   0.0        6   82357 udisksd         /usr/libexec/udisks2/udisksd
+FOREIGN_TICK 943 S 631
+FOREIGN_PS 944       1 Ssl   0.0        0   82357 upowerd         /usr/libexec/upowerd
+FOREIGN_TICK 944 S 15
+FOREIGN_PS 964       1 Ssl   0.0        0   82357 accounts-daemon /usr/libexec/accounts-daemon
+FOREIGN_TICK 964 S 17
+FOREIGN_PS 968       1 Ss    0.0        0   82357 systemd-logind  /usr/lib/systemd/systemd-logind
+FOREIGN_TICK 968 S 39
+FOREIGN_PS 971     916 S     0.0        0   82357 avahi-daemon    avahi-daemon: chroot helper
+FOREIGN_TICK 971 S 0
+FOREIGN_PS 989       1 SNs   0.0        0   82357 alsactl         /usr/sbin/alsactl -s -n 19 -c -E ALSA_CONFIG_PATH=/etc/alsa/alsactl.conf --initfile=/lib/alsa/init/00main rdaemon
+FOREIGN_TICK 989 S 1
+FOREIGN_PS 997       1 Ssl   0.0        0   82356 abrtd           /usr/sbin/abrtd -d -s
+FOREIGN_TICK 997 S 42
+FOREIGN_PS 1048       1 Ssl   0.0        0   82356 ModemManager    /usr/bin/ModemManager
+FOREIGN_TICK 1048 S 12
+FOREIGN_PS 1082       1 Ss    0.0        0   82356 abrt-dump-journ /usr/bin/abrt-dump-journal-core -D -T -f -e
+FOREIGN_TICK 1082 S 62
+FOREIGN_PS 1083       1 Ss    0.0        0   82356 abrt-dump-journ /usr/bin/abrt-dump-journal-oops -fxtD
+FOREIGN_TICK 1083 S 30
+FOREIGN_PS 1084       1 Ss    0.0        0   82356 abrt-dump-journ /usr/bin/abrt-dump-journal-xorg -fxtD
+FOREIGN_TICK 1084 S 27
+FOREIGN_PS 1264       1 Ss    0.0        2   82356 wpa_supplicant  /usr/sbin/wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -u -s
+FOREIGN_TICK 1264 S 289
+FOREIGN_PS 1283       1 Ss    0.0        0   82356 cupsd           /usr/bin/cupsd -l
+FOREIGN_TICK 1283 S 1
+FOREIGN_PS 1285       1 Ssl   0.0        0   82356 gssproxy        /usr/bin/gssproxy -i
+FOREIGN_TICK 1285 S 52
+FOREIGN_PS 1287       1 Ss    0.0        0   82356 sshd            sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+FOREIGN_TICK 1287 S 0
+FOREIGN_PS 1289       1 Ssl   0.0       25   82356 tailscaled      /usr/bin/tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/run/tailscale/tailscaled.sock --port=41641
+FOREIGN_TICK 1289 S 2591
+FOREIGN_PS 1291       1 Ssl   0.0        7   82356 tuned           /usr/bin/python3 -Es /usr/sbin/tuned -l -P
+FOREIGN_TICK 1291 S 726
+FOREIGN_PS 1302    1283 S     0.0        0   82356 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1302 S 0
+FOREIGN_PS 1303    1283 S     0.0        0   82356 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1303 S 0
+FOREIGN_PS 1369       1 Ssl   0.0        3   82356 tuned-ppd       /usr/bin/python3 -Es /usr/sbin/tuned-ppd -l
+FOREIGN_TICK 1369 S 369
+FOREIGN_PS 4117       1 Ssl   0.0        4   82351 rsyslogd        /usr/sbin/rsyslogd -n
+FOREIGN_TICK 4117 S 489
+FOREIGN_PS 4145       1 Ss    0.0        0   82351 atd             /usr/sbin/atd -f
+FOREIGN_TICK 4145 S 0
+FOREIGN_PS 4151       1 Ss    0.0        0   82351 crond           /usr/sbin/crond -n
+FOREIGN_TICK 4151 S 7
+FOREIGN_PS 13428       1 Ssl   0.0        0   82304 sddm            /usr/bin/sddm
+FOREIGN_TICK 13428 S 3
+FOREIGN_PS 13430   13428 S     0.0        0   82304 sddm-helper     /usr/libexec/sddm-helper --socket /tmp/sddm-auth-e1fdc633-7fe8-485e-a418-f65dc0bd5c95 --id 2 --start /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora --user sddm --display-server kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 --greeter
+FOREIGN_TICK 13430 S 0
+FOREIGN_PS 13431       1 Ssl   0.0        0   82304 uresourced      /usr/libexec/uresourced
+FOREIGN_TICK 13431 S 4
+FOREIGN_PS 13456       1 Ss    0.0        0   82304 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13456 S 23
+FOREIGN_PS 13458   13456 S     0.0        0   82304 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13458 S 0
+FOREIGN_PS 13478   13430 Ss+   0.0        0   82303 sddm-helper-sta /usr/libexec/sddm-helper-start-wayland kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13478 S 0
+FOREIGN_PS 13479   13456 Ss    0.0        0   82303 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13479 S 0
+FOREIGN_PS 13480   13478 Sl+   0.2      239   82303 kwin_wayland    /usr/bin/kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1
+FOREIGN_TICK 13480 S 23905
+FOREIGN_PS 13481   13479 S     0.0        0   82303 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13481 S 0
+FOREIGN_PS 13501   13478 Sl+   0.1      142   82303 sddm-greeter-qt /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13501 S 14214
+FOREIGN_PS 13521   13456 S<sl  0.0        1   82302 pipewire        /usr/bin/pipewire
+FOREIGN_TICK 13521 S 111
+FOREIGN_PS 13523   13456 S<sl  0.0        2   82302 wireplumber     /usr/bin/wireplumber
+FOREIGN_TICK 13523 S 215
+FOREIGN_PS 13525   13480 Sl+   0.0        0   82302 plasma-keyboard /usr/bin/plasma-keyboard
+FOREIGN_TICK 13525 S 63
+FOREIGN_PS 13755       1 Ss    0.0        0   79158 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13755 S 31
+FOREIGN_PS 13757   13755 S     0.0        0   79158 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13757 S 0
+FOREIGN_PS 13787   13755 Ss    0.0        0   79158 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13787 S 0
+FOREIGN_PS 13795   13787 S     0.0        0   79158 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13795 S 1
+FOREIGN_PS 83611       1 Ssl   0.0        0   53911 node-22         /usr/bin/node-22 /home/ghecht/.claude/plugins/cache/openai-codex/codex/1.0.6/scripts/app-server-broker.mjs serve --endpoint unix:/tmp/cxc-6eN2ye/broker.sock --cwd /home/ghecht/Projects/hven --pid-file /tmp/cxc-6eN2ye/broker.pid
+FOREIGN_TICK 83611 S 86
+FOREIGN_PS 83618   83611 Sl    0.1       56   53911 codex           codex app-server
+FOREIGN_TICK 83618 S 5632
+FOREIGN_PS 84052   83618 Sl    0.0        2   53903 codex-code-mode /home/ghecht/.codex/packages/standalone/releases/0.154.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+FOREIGN_TICK 84052 S 274
+FOREIGN_PS 280258   16979 Sl+   0.6      256   36770 clangd.main     clangd --background-index
+FOREIGN_TICK 280258 S 25601
+FOREIGN_PS 400249       1 S     0.0        0    8861 sleep           sleep 9655
+FOREIGN_TICK 400249 S 0
+FOREIGN_PS 514366   16979 Ss    0.0        0    1067 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'until ! pgrep -f '"'"'sqp_perf.sh walk 1 3'"'"' > /dev/null 2>&1; do sleep 10; done; echo "walk r1 g3 finished"; tail -3 /home/ghecht/Projects/hven/.scratch/w6t6/logs/22-sqpperf-walk-r1-g3.log' < /dev/null && pwd -P >| /tmp/claude-620d-cwd
+FOREIGN_TICK 514366 S 4
+FOREIGN_PS 514456   16979 Ss    0.0        0     932 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'while pgrep -f '"'"'sqp_perf.sh walk 1 3'"'"' > /dev/null 2>&1; do sleep 20; done; echo "WALK-R1-G3 DONE: $(tail -3 /home/ghecht/Projects/hven/.scratch/w6t6/logs/22-sqpperf-walk-r1-g3.log | tr '"'"'\n'"'"' '"'"' '"'"')"' < /dev/null && pwd -P >| /tmp/claude-b740-cwd
+FOREIGN_TICK 514456 S 1
+FOREIGN_PS 522793  522790 S     0.0        0     800 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval '.scratch/w6t6/run_leg.sh .scratch/w6t6/logs/23-sqpperf-walk-r2-g23-27.log .scratch/w6t6/sqp_perf.sh walk 2 23-27 2>&1 | grep -E "WRAPPER_EXIT" | tail -1' < /dev/null && pwd -P >| /tmp/claude-4f8d-cwd
+FOREIGN_TICK 522793 S 0
+FOREIGN_PS 522794  522790 S     0.0        0     800 tail            tail -1
+FOREIGN_TICK 522794 S 0
+FOREIGN_PS 522795  522793 S     0.0        0     800 2.1.270         ugrep -G --ignore-files --hidden -I --exclude-dir=.git --exclude-dir=.svn --exclude-dir=.hg --exclude-dir=.bzr --exclude-dir=.jj --exclude-dir=.sl -E WRAPPER_EXIT
+FOREIGN_TICK 522795 S 0
+FOREIGN_PS 524474   16979 Ss    0.0        0     193 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'while pgrep -f '"'"'sqp_perf.sh walk 2 23-27'"'"' > /dev/null 2>&1; do sleep 20; done; echo "WALK-R2-23-27 DONE: $(tail -3 /home/ghecht/Projects/hven/.scratch/w6t6/logs/23-sqpperf-walk-r2-g23-27.log | tr '"'"'\n'"'"' '"'"' '"'"')"' < /dev/null && pwd -P >| /tmp/claude-cc56-cwd
+FOREIGN_TICK 524474 S 0
+FOREIGN_PS 524599     658 S     0.0        0     132 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 524599 S 0
+FOREIGN_PS 524668     658 S     0.0        0      99 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 524668 S 0
+FOREIGN_PS 524669     658 S     0.0        0      99 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 524669 S 0
+FOREIGN_PS 524834  524474 S     0.0        0      13 sleep           sleep 20
+FOREIGN_TICK 524834 S 0
+FOREIGN_PS 524840  514456 S     0.0        0      11 sleep           sleep 20
+FOREIGN_TICK 524840 S 0
+FOREIGN_PS 524852  514366 S     0.0        0       4 sleep           sleep 10
+FOREIGN_TICK 524852 S 0
+PS_SNAPSHOT_END sqpperf-walk-r2-g23-27/f7_n800_path_warm foreign_pids=76
+PS_SNAPSHOT sqpperf-walk-r2-g23-27/close 2026-09-14T12:06:47Z mono=82361.89 clk_tck=100
+FOREIGN_PS 631       1 Ss    0.0        1   82358 systemd-journal /usr/lib/systemd/systemd-journald
+FOREIGN_TICK 631 S 173
+FOREIGN_PS 658       1 Ss    0.0        0   82358 systemd-userdbd /usr/lib/systemd/systemd-userdbd
+FOREIGN_TICK 658 S 20
+FOREIGN_PS 669       1 Ss    0.0        1   82358 systemd-resolve /usr/lib/systemd/systemd-resolved
+FOREIGN_TICK 669 S 147
+FOREIGN_PS 672       1 Ss    0.0        0   82358 systemd-udevd   /usr/lib/systemd/systemd-udevd
+FOREIGN_TICK 672 S 29
+FOREIGN_PS 871       1 S<sl  0.0        0   82357 auditd          /usr/bin/auditd
+FOREIGN_TICK 871 S 7
+FOREIGN_PS 873     871 S<    0.0        0   82357 sedispatch      /usr/sbin/sedispatch
+FOREIGN_TICK 873 S 1
+FOREIGN_PS 903       1 Ss    0.0        0   82357 dbus-broker-lau /usr/bin/dbus-broker-launch --scope system --audit
+FOREIGN_TICK 903 S 4
+FOREIGN_PS 911     903 S     0.0        2   82357 dbus-broker     dbus-broker --log 10 --controller 9 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 536870912 --max-fds 4096 --max-matches 131072 --audit
+FOREIGN_TICK 911 S 252
+FOREIGN_PS 912       1 S<Ls  0.0        3   82357 earlyoom        /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+FOREIGN_TICK 912 S 302
+FOREIGN_PS 916       1 Ss    0.0        7   82357 avahi-daemon    avahi-daemon: running [fedora.local]
+FOREIGN_TICK 916 S 784
+FOREIGN_PS 917       1 Ss    0.0        0   82357 bluetoothd      /usr/libexec/bluetooth/bluetoothd
+FOREIGN_TICK 917 S 4
+FOREIGN_PS 923       1 Ssl   0.0        0   82357 firewalld       /usr/bin/python3 -sP /usr/bin/firewalld --nofork --nopid
+FOREIGN_TICK 923 S 30
+FOREIGN_PS 924       1 Ssl   0.0        9   82357 NetworkManager  /usr/bin/NetworkManager --no-daemon
+FOREIGN_TICK 924 S 950
+FOREIGN_PS 926       1 Ssl   0.0        2   82357 irqbalance      /usr/sbin/irqbalance
+FOREIGN_TICK 926 S 285
+FOREIGN_PS 927       1 Ss    0.0        0   82357 chronyd         /usr/sbin/chronyd -n -F 2
+FOREIGN_TICK 927 S 12
+FOREIGN_PS 931       1 Ssl   0.0        1   82357 polkitd         /usr/lib/polkit-1/polkitd --no-debug --log-level=notice
+FOREIGN_TICK 931 S 106
+FOREIGN_PS 935       1 SNsl  0.0        0   82357 rtkit-daemon    /usr/libexec/rtkit-daemon
+FOREIGN_TICK 935 S 33
+FOREIGN_PS 937       1 Ss    0.0        0   82357 smartd          /usr/bin/smartd -n -q never --capabilities=mail
+FOREIGN_TICK 937 S 4
+FOREIGN_PS 939       1 Ssl   0.0        0   82357 switcheroo-cont /usr/libexec/switcheroo-control
+FOREIGN_TICK 939 S 7
+FOREIGN_PS 943       1 Ssl   0.0        6   82357 udisksd         /usr/libexec/udisks2/udisksd
+FOREIGN_TICK 943 S 631
+FOREIGN_PS 944       1 Ssl   0.0        0   82357 upowerd         /usr/libexec/upowerd
+FOREIGN_TICK 944 S 15
+FOREIGN_PS 964       1 Ssl   0.0        0   82357 accounts-daemon /usr/libexec/accounts-daemon
+FOREIGN_TICK 964 S 17
+FOREIGN_PS 968       1 Ss    0.0        0   82357 systemd-logind  /usr/lib/systemd/systemd-logind
+FOREIGN_TICK 968 S 39
+FOREIGN_PS 971     916 S     0.0        0   82357 avahi-daemon    avahi-daemon: chroot helper
+FOREIGN_TICK 971 S 0
+FOREIGN_PS 989       1 SNs   0.0        0   82357 alsactl         /usr/sbin/alsactl -s -n 19 -c -E ALSA_CONFIG_PATH=/etc/alsa/alsactl.conf --initfile=/lib/alsa/init/00main rdaemon
+FOREIGN_TICK 989 S 1
+FOREIGN_PS 997       1 Ssl   0.0        0   82357 abrtd           /usr/sbin/abrtd -d -s
+FOREIGN_TICK 997 S 42
+FOREIGN_PS 1048       1 Ssl   0.0        0   82357 ModemManager    /usr/bin/ModemManager
+FOREIGN_TICK 1048 S 12
+FOREIGN_PS 1082       1 Ss    0.0        0   82357 abrt-dump-journ /usr/bin/abrt-dump-journal-core -D -T -f -e
+FOREIGN_TICK 1082 S 62
+FOREIGN_PS 1083       1 Ss    0.0        0   82357 abrt-dump-journ /usr/bin/abrt-dump-journal-oops -fxtD
+FOREIGN_TICK 1083 S 30
+FOREIGN_PS 1084       1 Ss    0.0        0   82357 abrt-dump-journ /usr/bin/abrt-dump-journal-xorg -fxtD
+FOREIGN_TICK 1084 S 27
+FOREIGN_PS 1264       1 Ss    0.0        2   82356 wpa_supplicant  /usr/sbin/wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -u -s
+FOREIGN_TICK 1264 S 289
+FOREIGN_PS 1283       1 Ss    0.0        0   82356 cupsd           /usr/bin/cupsd -l
+FOREIGN_TICK 1283 S 1
+FOREIGN_PS 1285       1 Ssl   0.0        0   82356 gssproxy        /usr/bin/gssproxy -i
+FOREIGN_TICK 1285 S 52
+FOREIGN_PS 1287       1 Ss    0.0        0   82356 sshd            sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+FOREIGN_TICK 1287 S 0
+FOREIGN_PS 1289       1 Ssl   0.0       25   82356 tailscaled      /usr/bin/tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/run/tailscale/tailscaled.sock --port=41641
+FOREIGN_TICK 1289 S 2591
+FOREIGN_PS 1291       1 Ssl   0.0        7   82356 tuned           /usr/bin/python3 -Es /usr/sbin/tuned -l -P
+FOREIGN_TICK 1291 S 726
+FOREIGN_PS 1302    1283 S     0.0        0   82356 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1302 S 0
+FOREIGN_PS 1303    1283 S     0.0        0   82356 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1303 S 0
+FOREIGN_PS 1369       1 Ssl   0.0        3   82356 tuned-ppd       /usr/bin/python3 -Es /usr/sbin/tuned-ppd -l
+FOREIGN_TICK 1369 S 369
+FOREIGN_PS 4117       1 Ssl   0.0        4   82351 rsyslogd        /usr/sbin/rsyslogd -n
+FOREIGN_TICK 4117 S 489
+FOREIGN_PS 4145       1 Ss    0.0        0   82351 atd             /usr/sbin/atd -f
+FOREIGN_TICK 4145 S 0
+FOREIGN_PS 4151       1 Ss    0.0        0   82351 crond           /usr/sbin/crond -n
+FOREIGN_TICK 4151 S 7
+FOREIGN_PS 13428       1 Ssl   0.0        0   82304 sddm            /usr/bin/sddm
+FOREIGN_TICK 13428 S 3
+FOREIGN_PS 13430   13428 S     0.0        0   82304 sddm-helper     /usr/libexec/sddm-helper --socket /tmp/sddm-auth-e1fdc633-7fe8-485e-a418-f65dc0bd5c95 --id 2 --start /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora --user sddm --display-server kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 --greeter
+FOREIGN_TICK 13430 S 0
+FOREIGN_PS 13431       1 Ssl   0.0        0   82304 uresourced      /usr/libexec/uresourced
+FOREIGN_TICK 13431 S 4
+FOREIGN_PS 13456       1 Ss    0.0        0   82304 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13456 S 23
+FOREIGN_PS 13458   13456 S     0.0        0   82304 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13458 S 0
+FOREIGN_PS 13478   13430 Ss+   0.0        0   82304 sddm-helper-sta /usr/libexec/sddm-helper-start-wayland kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13478 S 0
+FOREIGN_PS 13479   13456 Ss    0.0        0   82304 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13479 S 0
+FOREIGN_PS 13480   13478 Sl+   0.2      239   82304 kwin_wayland    /usr/bin/kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1
+FOREIGN_TICK 13480 S 23905
+FOREIGN_PS 13481   13479 S     0.0        0   82304 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13481 S 0
+FOREIGN_PS 13501   13478 Sl+   0.1      142   82303 sddm-greeter-qt /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13501 S 14214
+FOREIGN_PS 13521   13456 S<sl  0.0        1   82302 pipewire        /usr/bin/pipewire
+FOREIGN_TICK 13521 S 111
+FOREIGN_PS 13523   13456 S<sl  0.0        2   82302 wireplumber     /usr/bin/wireplumber
+FOREIGN_TICK 13523 S 215
+FOREIGN_PS 13525   13480 Sl+   0.0        0   82302 plasma-keyboard /usr/bin/plasma-keyboard
+FOREIGN_TICK 13525 S 63
+FOREIGN_PS 13755       1 Ss    0.0        0   79158 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13755 S 31
+FOREIGN_PS 13757   13755 S     0.0        0   79158 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13757 S 0
+FOREIGN_PS 13787   13755 Ss    0.0        0   79158 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13787 S 0
+FOREIGN_PS 13795   13787 S     0.0        0   79158 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13795 S 1
+FOREIGN_PS 83611       1 Ssl   0.0        0   53911 node-22         /usr/bin/node-22 /home/ghecht/.claude/plugins/cache/openai-codex/codex/1.0.6/scripts/app-server-broker.mjs serve --endpoint unix:/tmp/cxc-6eN2ye/broker.sock --cwd /home/ghecht/Projects/hven --pid-file /tmp/cxc-6eN2ye/broker.pid
+FOREIGN_TICK 83611 S 86
+FOREIGN_PS 83618   83611 Sl    0.1       56   53911 codex           codex app-server
+FOREIGN_TICK 83618 S 5632
+FOREIGN_PS 84052   83618 Sl    0.0        2   53903 codex-code-mode /home/ghecht/.codex/packages/standalone/releases/0.154.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+FOREIGN_TICK 84052 S 274
+FOREIGN_PS 280258   16979 Sl+   0.6      256   36770 clangd.main     clangd --background-index
+FOREIGN_TICK 280258 S 25601
+FOREIGN_PS 400249       1 S     0.0        0    8861 sleep           sleep 9655
+FOREIGN_TICK 400249 S 0
+FOREIGN_PS 514366   16979 Ss    0.0        0    1067 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'until ! pgrep -f '"'"'sqp_perf.sh walk 1 3'"'"' > /dev/null 2>&1; do sleep 10; done; echo "walk r1 g3 finished"; tail -3 /home/ghecht/Projects/hven/.scratch/w6t6/logs/22-sqpperf-walk-r1-g3.log' < /dev/null && pwd -P >| /tmp/claude-620d-cwd
+FOREIGN_TICK 514366 S 4
+FOREIGN_PS 514456   16979 Ss    0.0        0     932 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'while pgrep -f '"'"'sqp_perf.sh walk 1 3'"'"' > /dev/null 2>&1; do sleep 20; done; echo "WALK-R1-G3 DONE: $(tail -3 /home/ghecht/Projects/hven/.scratch/w6t6/logs/22-sqpperf-walk-r1-g3.log | tr '"'"'\n'"'"' '"'"' '"'"')"' < /dev/null && pwd -P >| /tmp/claude-b740-cwd
+FOREIGN_TICK 514456 S 1
+FOREIGN_PS 522793  522790 S     0.0        0     801 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval '.scratch/w6t6/run_leg.sh .scratch/w6t6/logs/23-sqpperf-walk-r2-g23-27.log .scratch/w6t6/sqp_perf.sh walk 2 23-27 2>&1 | grep -E "WRAPPER_EXIT" | tail -1' < /dev/null && pwd -P >| /tmp/claude-4f8d-cwd
+FOREIGN_TICK 522793 S 0
+FOREIGN_PS 522794  522790 S     0.0        0     801 tail            tail -1
+FOREIGN_TICK 522794 S 0
+FOREIGN_PS 522795  522793 S     0.0        0     801 2.1.270         ugrep -G --ignore-files --hidden -I --exclude-dir=.git --exclude-dir=.svn --exclude-dir=.hg --exclude-dir=.bzr --exclude-dir=.jj --exclude-dir=.sl -E WRAPPER_EXIT
+FOREIGN_TICK 522795 S 0
+FOREIGN_PS 524474   16979 Ss    0.0        0     193 bash            /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1789327155142-mv806j.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='0c17d1d8-660f-4914-9feb-e49a88005c27' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/0c17d1d8-660f-4914-9feb-e49a88005c27.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'while pgrep -f '"'"'sqp_perf.sh walk 2 23-27'"'"' > /dev/null 2>&1; do sleep 20; done; echo "WALK-R2-23-27 DONE: $(tail -3 /home/ghecht/Projects/hven/.scratch/w6t6/logs/23-sqpperf-walk-r2-g23-27.log | tr '"'"'\n'"'"' '"'"' '"'"')"' < /dev/null && pwd -P >| /tmp/claude-cc56-cwd
+FOREIGN_TICK 524474 S 0
+FOREIGN_PS 524599     658 S     0.0        0     132 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 524599 S 0
+FOREIGN_PS 524668     658 S     0.0        0      99 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 524668 S 0
+FOREIGN_PS 524669     658 S     0.0        0      99 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 524669 S 0
+FOREIGN_PS 524834  524474 S     0.0        0      13 sleep           sleep 20
+FOREIGN_TICK 524834 S 0
+FOREIGN_PS 524840  514456 S     0.0        0      11 sleep           sleep 20
+FOREIGN_TICK 524840 S 0
+FOREIGN_PS 524852  514366 S     0.0        0       5 sleep           sleep 10
+FOREIGN_TICK 524852 S 0
+PS_SNAPSHOT_END sqpperf-walk-r2-g23-27/close foreign_pids=76
+BATCH_END sqpperf-walk-r2-g23-27 2026-09-14T12:06:48Z
+LEG_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T12:06:48Z
+WRAPPER_EXIT=0

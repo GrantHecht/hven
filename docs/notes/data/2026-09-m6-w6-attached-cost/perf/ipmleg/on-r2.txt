@@ -1,0 +1,17 @@
+# started on Mon Sep 14 07:25:15 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w6t6/build-release/bench/hven_sqp_corpus --engine interior --cells f7_n1000_bound_neutral,f7_n1000_bound_physics,f7_n1000_bound_corrupted,f7_n1000_bound_activity,f7_n1000_bound_warm,f7_n2000_bound_neutral,f7_n2000_bound_physics,f7_n2000_bound_corrupted,f7_n2000_bound_activity,f7_n2000_bound_warm,f7_n5000_bound_neutral,f7_n5000_bound_physics,f7_n5000_bound_corrupted,f7_n5000_bound_activity,f7_n5000_bound_warm,f7_n10000_bound_neutral,f7_n10000_bound_physics,f7_n10000_bound_corrupted,f7_n10000_bound_activity,f7_n10000_bound_warm,f7_n20000_bound_neutral,f7_n20000_bound_physics,f7_n20000_bound_corrupted,f7_n20000_bound_activity,f7_n20000_bound_warm,f7_n1000_path_warm,f7_n800_path_warm --csv /home/ghecht/Projects/hven/.scratch/w6t6/art/raw/ipmleg/perf-on-r2.csv':
+
+   107,092,063,922      instructions:u                                                        
+    15,938,722,991      branches:u                                                            
+    36,510,066,322      cycles:u                                                              
+        37,903,862      branch-misses:u                                                       
+        11,925,571      L1-icache-load-misses:u                                               
+
+      12.017181181 seconds time elapsed
+
+      10.909641000 seconds user
+       1.061908000 seconds sys
+
+

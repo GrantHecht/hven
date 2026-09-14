@@ -1,0 +1,931 @@
+LEG: .scratch/w6t6/hs_leg.sh perf 3
+PGREP_SEPARATE 2026-09-14T11:26:27Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-14T11:26:27Z
+BATCH hs-perf phase=perf rounds=3 repeat=200 warmup=1
+pin: taskset -c 2 (SMT sibling 10 left idle), MKL_NUM_THREADS=OMP_NUM_THREADS=1
+BATCH_START hs-perf 2026-09-14T11:26:27Z
+PS_SNAPSHOT hs-perf/open 2026-09-14T11:26:27Z mono=79941.83 clk_tck=100
+FOREIGN_PS 631       1 Ss    0.0        1   79938 systemd-journal /usr/lib/systemd/systemd-journald
+FOREIGN_TICK 631 S 171
+FOREIGN_PS 658       1 Ss    0.0        0   79938 systemd-userdbd /usr/lib/systemd/systemd-userdbd
+FOREIGN_TICK 658 S 19
+FOREIGN_PS 669       1 Ss    0.0        1   79938 systemd-resolve /usr/lib/systemd/systemd-resolved
+FOREIGN_TICK 669 S 145
+FOREIGN_PS 672       1 Ss    0.0        0   79938 systemd-udevd   /usr/lib/systemd/systemd-udevd
+FOREIGN_TICK 672 S 29
+FOREIGN_PS 871       1 S<sl  0.0        0   79937 auditd          /usr/bin/auditd
+FOREIGN_TICK 871 S 7
+FOREIGN_PS 873     871 S<    0.0        0   79937 sedispatch      /usr/sbin/sedispatch
+FOREIGN_TICK 873 S 1
+FOREIGN_PS 903       1 Ss    0.0        0   79937 dbus-broker-lau /usr/bin/dbus-broker-launch --scope system --audit
+FOREIGN_TICK 903 S 4
+FOREIGN_PS 911     903 S     0.0        2   79937 dbus-broker     dbus-broker --log 10 --controller 9 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 536870912 --max-fds 4096 --max-matches 131072 --audit
+FOREIGN_TICK 911 S 246
+FOREIGN_PS 912       1 S<Ls  0.0        2   79937 earlyoom        /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+FOREIGN_TICK 912 S 296
+FOREIGN_PS 916       1 Ss    0.0        7   79937 avahi-daemon    avahi-daemon: running [fedora.local]
+FOREIGN_TICK 916 S 777
+FOREIGN_PS 917       1 Ss    0.0        0   79937 bluetoothd      /usr/libexec/bluetooth/bluetoothd
+FOREIGN_TICK 917 S 4
+FOREIGN_PS 923       1 Ssl   0.0        0   79937 firewalld       /usr/bin/python3 -sP /usr/bin/firewalld --nofork --nopid
+FOREIGN_TICK 923 S 30
+FOREIGN_PS 924       1 Ssl   0.0        9   79937 NetworkManager  /usr/bin/NetworkManager --no-daemon
+FOREIGN_TICK 924 S 928
+FOREIGN_PS 926       1 Ssl   0.0        2   79937 irqbalance      /usr/sbin/irqbalance
+FOREIGN_TICK 926 S 277
+FOREIGN_PS 927       1 Ss    0.0        0   79937 chronyd         /usr/sbin/chronyd -n -F 2
+FOREIGN_TICK 927 S 11
+FOREIGN_PS 931       1 Ssl   0.0        1   79937 polkitd         /usr/lib/polkit-1/polkitd --no-debug --log-level=notice
+FOREIGN_TICK 931 S 104
+FOREIGN_PS 935       1 SNsl  0.0        0   79937 rtkit-daemon    /usr/libexec/rtkit-daemon
+FOREIGN_TICK 935 S 32
+FOREIGN_PS 937       1 Ss    0.0        0   79937 smartd          /usr/bin/smartd -n -q never --capabilities=mail
+FOREIGN_TICK 937 S 4
+FOREIGN_PS 939       1 Ssl   0.0        0   79937 switcheroo-cont /usr/libexec/switcheroo-control
+FOREIGN_TICK 939 S 7
+FOREIGN_PS 943       1 Ssl   0.0        6   79937 udisksd         /usr/libexec/udisks2/udisksd
+FOREIGN_TICK 943 S 615
+FOREIGN_PS 944       1 Ssl   0.0        0   79937 upowerd         /usr/libexec/upowerd
+FOREIGN_TICK 944 S 15
+FOREIGN_PS 964       1 Ssl   0.0        0   79937 accounts-daemon /usr/libexec/accounts-daemon
+FOREIGN_TICK 964 S 16
+FOREIGN_PS 968       1 Ss    0.0        0   79937 systemd-logind  /usr/lib/systemd/systemd-logind
+FOREIGN_TICK 968 S 39
+FOREIGN_PS 971     916 S     0.0        0   79937 avahi-daemon    avahi-daemon: chroot helper
+FOREIGN_TICK 971 S 0
+FOREIGN_PS 989       1 SNs   0.0        0   79937 alsactl         /usr/sbin/alsactl -s -n 19 -c -E ALSA_CONFIG_PATH=/etc/alsa/alsactl.conf --initfile=/lib/alsa/init/00main rdaemon
+FOREIGN_TICK 989 S 1
+FOREIGN_PS 997       1 Ssl   0.0        0   79937 abrtd           /usr/sbin/abrtd -d -s
+FOREIGN_TICK 997 S 42
+FOREIGN_PS 1048       1 Ssl   0.0        0   79937 ModemManager    /usr/bin/ModemManager
+FOREIGN_TICK 1048 S 12
+FOREIGN_PS 1082       1 Ss    0.0        0   79937 abrt-dump-journ /usr/bin/abrt-dump-journal-core -D -T -f -e
+FOREIGN_TICK 1082 S 62
+FOREIGN_PS 1083       1 Ss    0.0        0   79937 abrt-dump-journ /usr/bin/abrt-dump-journal-oops -fxtD
+FOREIGN_TICK 1083 S 29
+FOREIGN_PS 1084       1 Ss    0.0        0   79937 abrt-dump-journ /usr/bin/abrt-dump-journal-xorg -fxtD
+FOREIGN_TICK 1084 S 26
+FOREIGN_PS 1264       1 Ss    0.0        2   79936 wpa_supplicant  /usr/sbin/wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -u -s
+FOREIGN_TICK 1264 S 281
+FOREIGN_PS 1283       1 Ss    0.0        0   79936 cupsd           /usr/bin/cupsd -l
+FOREIGN_TICK 1283 S 1
+FOREIGN_PS 1285       1 Ssl   0.0        0   79936 gssproxy        /usr/bin/gssproxy -i
+FOREIGN_TICK 1285 S 51
+FOREIGN_PS 1287       1 Ss    0.0        0   79936 sshd            sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+FOREIGN_TICK 1287 S 0
+FOREIGN_PS 1289       1 Ssl   0.0       25   79936 tailscaled      /usr/bin/tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/run/tailscale/tailscaled.sock --port=41641
+FOREIGN_TICK 1289 S 2528
+FOREIGN_PS 1291       1 Ssl   0.0        7   79936 tuned           /usr/bin/python3 -Es /usr/sbin/tuned -l -P
+FOREIGN_TICK 1291 S 713
+FOREIGN_PS 1302    1283 S     0.0        0   79936 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1302 S 0
+FOREIGN_PS 1303    1283 S     0.0        0   79936 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1303 S 0
+FOREIGN_PS 1369       1 Ssl   0.0        3   79936 tuned-ppd       /usr/bin/python3 -Es /usr/sbin/tuned-ppd -l
+FOREIGN_TICK 1369 S 363
+FOREIGN_PS 4117       1 Ssl   0.0        4   79931 rsyslogd        /usr/sbin/rsyslogd -n
+FOREIGN_TICK 4117 S 480
+FOREIGN_PS 4145       1 Ss    0.0        0   79931 atd             /usr/sbin/atd -f
+FOREIGN_TICK 4145 S 0
+FOREIGN_PS 4151       1 Ss    0.0        0   79931 crond           /usr/sbin/crond -n
+FOREIGN_TICK 4151 S 7
+FOREIGN_PS 13428       1 Ssl   0.0        0   79884 sddm            /usr/bin/sddm
+FOREIGN_TICK 13428 S 3
+FOREIGN_PS 13430   13428 S     0.0        0   79884 sddm-helper     /usr/libexec/sddm-helper --socket /tmp/sddm-auth-e1fdc633-7fe8-485e-a418-f65dc0bd5c95 --id 2 --start /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora --user sddm --display-server kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 --greeter
+FOREIGN_TICK 13430 S 0
+FOREIGN_PS 13431       1 Ssl   0.0        0   79884 uresourced      /usr/libexec/uresourced
+FOREIGN_TICK 13431 S 4
+FOREIGN_PS 13456       1 Ss    0.0        0   79884 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13456 S 23
+FOREIGN_PS 13458   13456 S     0.0        0   79884 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13458 S 0
+FOREIGN_PS 13478   13430 Ss+   0.0        0   79884 sddm-helper-sta /usr/libexec/sddm-helper-start-wayland kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13478 S 0
+FOREIGN_PS 13479   13456 Ss    0.0        0   79884 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13479 S 0
+FOREIGN_PS 13480   13478 Sl+   0.2      235   79884 kwin_wayland    /usr/bin/kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1
+FOREIGN_TICK 13480 S 23515
+FOREIGN_PS 13481   13479 S     0.0        0   79884 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13481 S 0
+FOREIGN_PS 13501   13478 Sl+   0.1      139   79883 sddm-greeter-qt /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13501 S 13925
+FOREIGN_PS 13521   13456 S<sl  0.0        1   79882 pipewire        /usr/bin/pipewire
+FOREIGN_TICK 13521 S 109
+FOREIGN_PS 13523   13456 S<sl  0.0        2   79882 wireplumber     /usr/bin/wireplumber
+FOREIGN_TICK 13523 S 212
+FOREIGN_PS 13525   13480 Sl+   0.0        0   79882 plasma-keyboard /usr/bin/plasma-keyboard
+FOREIGN_TICK 13525 S 63
+FOREIGN_PS 13755       1 Ss    0.0        0   76738 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13755 S 31
+FOREIGN_PS 13757   13755 S     0.0        0   76738 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13757 S 0
+FOREIGN_PS 13787   13755 Ss    0.0        0   76738 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13787 S 0
+FOREIGN_PS 13795   13787 S     0.0        0   76738 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13795 S 1
+FOREIGN_PS 83611       1 Ssl   0.0        0   51491 node-22         /usr/bin/node-22 /home/ghecht/.claude/plugins/cache/openai-codex/codex/1.0.6/scripts/app-server-broker.mjs serve --endpoint unix:/tmp/cxc-6eN2ye/broker.sock --cwd /home/ghecht/Projects/hven --pid-file /tmp/cxc-6eN2ye/broker.pid
+FOREIGN_TICK 83611 S 86
+FOREIGN_PS 83618   83611 Sl    0.1       54   51491 codex           codex app-server
+FOREIGN_TICK 83618 S 5473
+FOREIGN_PS 84052   83618 Sl    0.0        2   51483 codex-code-mode /home/ghecht/.codex/packages/standalone/releases/0.154.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+FOREIGN_TICK 84052 S 274
+FOREIGN_PS 280258   16979 Sl+   0.7      256   34350 clangd.main     clangd --background-index
+FOREIGN_TICK 280258 S 25601
+FOREIGN_PS 400249       1 S     0.0        0    6441 sleep           sleep 9655
+FOREIGN_TICK 400249 S 0
+FOREIGN_PS 445221    1289 Ssl   0.0        0    1896 tailscaled      /usr/bin/tailscaled be-child ssh --login-shell=/usr/bin/fish --uid=1000 --gid=1000 --groups=1000,10 --local-user=ghecht --home-dir=/home/ghecht --remote-user=GrantHecht@github --remote-ip=100.115.165.53 --has-tty=true --tty-name=pts/0 --is-selinux-enforcing --force-v1-behavior --shell
+FOREIGN_TICK 445221 S 0
+FOREIGN_PS 445228  445221 S     0.0        0    1896 fish            /usr/bin/fish -l
+FOREIGN_TICK 445228 S 2
+FOREIGN_PS 445371  445228 S+    0.0        0    1891 tmux: client    tmux a
+FOREIGN_TICK 445371 S 0
+FOREIGN_PS 453855     658 S     0.0        0     120 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 453855 S 0
+FOREIGN_PS 454244     658 S     0.0        0      87 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 454244 S 0
+FOREIGN_PS 454245     658 S     0.0        0      87 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 454245 S 0
+FOREIGN_PS 456058  456055 S     0.0        0       0 tail            tail -5
+FOREIGN_TICK 456058 S 0
+PS_SNAPSHOT_END hs-perf/open foreign_pids=71
+RUN  2026-09-14T11:26:28Z phase=perf mode=walk arm=off round=1
+CPUSTAT hs-perf/walk-off-r1 pre 2026-09-14T11:26:28Z mono=79942.01
+CPUSTAT_LINE cpu  5289720 1104 376581 122056553 20562 172819 22460 0 0 0
+CPUSTAT_LINE cpu2 597485 59 37359 7353180 1348 5057 1311 0 0 0
+CPUSTAT_LINE cpu10 300520 33 19740 7671181 725 2505 859 0 0 0
+CPUSTAT hs-perf/walk-off-r1 post 2026-09-14T11:26:32Z mono=79946.69
+CPUSTAT_LINE cpu  5290185 1104 376588 122063564 20562 172829 22463 0 0 0
+CPUSTAT_LINE cpu2 597945 59 37364 7353181 1348 5060 1311 0 0 0
+CPUSTAT_LINE cpu10 300520 33 19741 7671647 725 2506 859 0 0 0
+CPUTIME_SELF tag=hs-perf/walk-off-r1 user=4.59 sys=0.04 real=4.67
+DONE 2026-09-14T11:26:32Z mode=walk arm=off round=1 rc_so_far=0
+RUN  2026-09-14T11:26:32Z phase=perf mode=walk arm=sink round=1
+CPUSTAT hs-perf/walk-sink-r1 pre 2026-09-14T11:26:32Z mono=79946.70
+CPUSTAT_LINE cpu  5290185 1104 376589 122063574 20562 172829 22463 0 0 0
+CPUSTAT_LINE cpu2 597945 59 37364 7353182 1348 5060 1311 0 0 0
+CPUSTAT_LINE cpu10 300520 33 19741 7671648 725 2506 859 0 0 0
+CPUSTAT hs-perf/walk-sink-r1 post 2026-09-14T11:26:37Z mono=79951.43
+CPUSTAT_LINE cpu  5290670 1104 376599 122070651 20562 172841 22465 0 0 0
+CPUSTAT_LINE cpu2 598411 59 37367 7353183 1348 5062 1311 0 0 0
+CPUSTAT_LINE cpu10 300524 33 19746 7672114 725 2508 859 0 0 0
+CPUTIME_SELF tag=hs-perf/walk-sink-r1 user=4.66 sys=0.03 real=4.72
+DONE 2026-09-14T11:26:37Z mode=walk arm=sink round=1 rc_so_far=0
+RUN  2026-09-14T11:26:37Z phase=perf mode=ssn arm=off round=1
+CPUSTAT hs-perf/ssn-off-r1 pre 2026-09-14T11:26:37Z mono=79951.44
+CPUSTAT_LINE cpu  5290671 1104 376599 122070661 20562 172841 22465 0 0 0
+CPUSTAT_LINE cpu2 598411 59 37367 7353183 1348 5062 1311 0 0 0
+CPUSTAT_LINE cpu10 300524 33 19746 7672115 725 2508 859 0 0 0
+CPUSTAT hs-perf/ssn-off-r1 post 2026-09-14T11:26:43Z mono=79957.65
+CPUSTAT_LINE cpu  5291298 1104 376615 122079968 20563 172857 22468 0 0 0
+CPUSTAT_LINE cpu2 599022 59 37374 7353184 1348 5066 1312 0 0 0
+CPUSTAT_LINE cpu10 300531 33 19752 7672729 725 2509 859 0 0 0
+CPUTIME_SELF tag=hs-perf/ssn-off-r1 user=6.11 sys=0.06 real=6.21
+DONE 2026-09-14T11:26:43Z mode=ssn arm=off round=1 rc_so_far=0
+RUN  2026-09-14T11:26:43Z phase=perf mode=ssn arm=sink round=1
+CPUSTAT hs-perf/ssn-sink-r1 pre 2026-09-14T11:26:43Z mono=79957.66
+CPUSTAT_LINE cpu  5291298 1104 376616 122079978 20563 172857 22468 0 0 0
+CPUSTAT_LINE cpu2 599022 59 37374 7353185 1348 5066 1312 0 0 0
+CPUSTAT_LINE cpu10 300531 33 19752 7672730 725 2509 859 0 0 0
+CPUSTAT hs-perf/ssn-sink-r1 post 2026-09-14T11:26:50Z mono=79963.98
+CPUSTAT_LINE cpu  5291928 1104 376632 122089443 20563 172872 22471 0 0 0
+CPUSTAT_LINE cpu2 599642 59 37381 7353185 1348 5070 1312 0 0 0
+CPUSTAT_LINE cpu10 300536 33 19760 7673353 725 2512 859 0 0 0
+CPUTIME_SELF tag=hs-perf/ssn-sink-r1 user=6.20 sys=0.07 real=6.31
+DONE 2026-09-14T11:26:50Z mode=ssn arm=sink round=1 rc_so_far=0
+RUN  2026-09-14T11:26:50Z phase=perf mode=ipm arm=off round=1
+CPUSTAT hs-perf/ipm-off-r1 pre 2026-09-14T11:26:50Z mono=79963.99
+CPUSTAT_LINE cpu  5291928 1104 376633 122089453 20563 172873 22471 0 0 0
+CPUSTAT_LINE cpu2 599642 59 37381 7353186 1348 5070 1312 0 0 0
+CPUSTAT_LINE cpu10 300536 33 19760 7673354 725 2512 859 0 0 0
+CPUSTAT hs-perf/ipm-off-r1 post 2026-09-14T11:26:57Z mono=79971.64
+CPUSTAT_LINE cpu  5292703 1104 376655 122100895 20563 172891 22475 0 0 0
+CPUSTAT_LINE cpu2 600391 59 37391 7353187 1348 5074 1312 0 0 0
+CPUSTAT_LINE cpu10 300540 33 19765 7674112 725 2513 859 0 0 0
+CPUTIME_SELF tag=hs-perf/ipm-off-r1 user=7.48 sys=0.10 real=7.64
+DONE 2026-09-14T11:26:57Z mode=ipm arm=off round=1 rc_so_far=0
+RUN  2026-09-14T11:26:57Z phase=perf mode=ipm arm=sink round=1
+CPUSTAT hs-perf/ipm-sink-r1 pre 2026-09-14T11:26:57Z mono=79971.64
+CPUSTAT_LINE cpu  5292703 1104 376655 122100905 20563 172891 22475 0 0 0
+CPUSTAT_LINE cpu2 600391 59 37391 7353187 1348 5074 1312 0 0 0
+CPUSTAT_LINE cpu10 300540 33 19765 7674113 725 2513 859 0 0 0
+CPUSTAT hs-perf/ipm-sink-r1 post 2026-09-14T11:27:05Z mono=79979.23
+CPUSTAT_LINE cpu  5293470 1104 376668 122112262 20565 172909 22479 0 0 0
+CPUSTAT_LINE cpu2 601143 59 37393 7353188 1348 5079 1312 0 0 0
+CPUSTAT_LINE cpu10 300547 33 19772 7674862 725 2515 859 0 0 0
+CPUTIME_SELF tag=hs-perf/ipm-sink-r1 user=7.51 sys=0.01 real=7.57
+DONE 2026-09-14T11:27:05Z mode=ipm arm=sink round=1 rc_so_far=0
+PS_SNAPSHOT hs-perf/r1 2026-09-14T11:27:05Z mono=79979.23 clk_tck=100
+FOREIGN_PS 631       1 Ss    0.0        1   79975 systemd-journal /usr/lib/systemd/systemd-journald
+FOREIGN_TICK 631 S 171
+FOREIGN_PS 658       1 Ss    0.0        0   79975 systemd-userdbd /usr/lib/systemd/systemd-userdbd
+FOREIGN_TICK 658 S 19
+FOREIGN_PS 669       1 Ss    0.0        1   79975 systemd-resolve /usr/lib/systemd/systemd-resolved
+FOREIGN_TICK 669 S 145
+FOREIGN_PS 672       1 Ss    0.0        0   79975 systemd-udevd   /usr/lib/systemd/systemd-udevd
+FOREIGN_TICK 672 S 29
+FOREIGN_PS 871       1 S<sl  0.0        0   79974 auditd          /usr/bin/auditd
+FOREIGN_TICK 871 S 7
+FOREIGN_PS 873     871 S<    0.0        0   79974 sedispatch      /usr/sbin/sedispatch
+FOREIGN_TICK 873 S 1
+FOREIGN_PS 903       1 Ss    0.0        0   79974 dbus-broker-lau /usr/bin/dbus-broker-launch --scope system --audit
+FOREIGN_TICK 903 S 4
+FOREIGN_PS 911     903 S     0.0        2   79974 dbus-broker     dbus-broker --log 10 --controller 9 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 536870912 --max-fds 4096 --max-matches 131072 --audit
+FOREIGN_TICK 911 S 246
+FOREIGN_PS 912       1 S<Ls  0.0        2   79974 earlyoom        /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+FOREIGN_TICK 912 S 296
+FOREIGN_PS 916       1 Ss    0.0        7   79974 avahi-daemon    avahi-daemon: running [fedora.local]
+FOREIGN_TICK 916 S 777
+FOREIGN_PS 917       1 Ss    0.0        0   79974 bluetoothd      /usr/libexec/bluetooth/bluetoothd
+FOREIGN_TICK 917 S 4
+FOREIGN_PS 923       1 Ssl   0.0        0   79974 firewalld       /usr/bin/python3 -sP /usr/bin/firewalld --nofork --nopid
+FOREIGN_TICK 923 S 30
+FOREIGN_PS 924       1 Ssl   0.0        9   79974 NetworkManager  /usr/bin/NetworkManager --no-daemon
+FOREIGN_TICK 924 S 928
+FOREIGN_PS 926       1 Ssl   0.0        2   79974 irqbalance      /usr/sbin/irqbalance
+FOREIGN_TICK 926 S 277
+FOREIGN_PS 927       1 Ss    0.0        0   79974 chronyd         /usr/sbin/chronyd -n -F 2
+FOREIGN_TICK 927 S 11
+FOREIGN_PS 931       1 Ssl   0.0        1   79974 polkitd         /usr/lib/polkit-1/polkitd --no-debug --log-level=notice
+FOREIGN_TICK 931 S 104
+FOREIGN_PS 935       1 SNsl  0.0        0   79974 rtkit-daemon    /usr/libexec/rtkit-daemon
+FOREIGN_TICK 935 S 32
+FOREIGN_PS 937       1 Ss    0.0        0   79974 smartd          /usr/bin/smartd -n -q never --capabilities=mail
+FOREIGN_TICK 937 S 4
+FOREIGN_PS 939       1 Ssl   0.0        0   79974 switcheroo-cont /usr/libexec/switcheroo-control
+FOREIGN_TICK 939 S 7
+FOREIGN_PS 943       1 Ssl   0.0        6   79974 udisksd         /usr/libexec/udisks2/udisksd
+FOREIGN_TICK 943 S 615
+FOREIGN_PS 944       1 Ssl   0.0        0   79974 upowerd         /usr/libexec/upowerd
+FOREIGN_TICK 944 S 15
+FOREIGN_PS 964       1 Ssl   0.0        0   79974 accounts-daemon /usr/libexec/accounts-daemon
+FOREIGN_TICK 964 S 16
+FOREIGN_PS 968       1 Ss    0.0        0   79974 systemd-logind  /usr/lib/systemd/systemd-logind
+FOREIGN_TICK 968 S 39
+FOREIGN_PS 971     916 S     0.0        0   79974 avahi-daemon    avahi-daemon: chroot helper
+FOREIGN_TICK 971 S 0
+FOREIGN_PS 989       1 SNs   0.0        0   79974 alsactl         /usr/sbin/alsactl -s -n 19 -c -E ALSA_CONFIG_PATH=/etc/alsa/alsactl.conf --initfile=/lib/alsa/init/00main rdaemon
+FOREIGN_TICK 989 S 1
+FOREIGN_PS 997       1 Ssl   0.0        0   79974 abrtd           /usr/sbin/abrtd -d -s
+FOREIGN_TICK 997 S 42
+FOREIGN_PS 1048       1 Ssl   0.0        0   79974 ModemManager    /usr/bin/ModemManager
+FOREIGN_TICK 1048 S 12
+FOREIGN_PS 1082       1 Ss    0.0        0   79974 abrt-dump-journ /usr/bin/abrt-dump-journal-core -D -T -f -e
+FOREIGN_TICK 1082 S 62
+FOREIGN_PS 1083       1 Ss    0.0        0   79974 abrt-dump-journ /usr/bin/abrt-dump-journal-oops -fxtD
+FOREIGN_TICK 1083 S 29
+FOREIGN_PS 1084       1 Ss    0.0        0   79974 abrt-dump-journ /usr/bin/abrt-dump-journal-xorg -fxtD
+FOREIGN_TICK 1084 S 26
+FOREIGN_PS 1264       1 Ss    0.0        2   79973 wpa_supplicant  /usr/sbin/wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -u -s
+FOREIGN_TICK 1264 S 281
+FOREIGN_PS 1283       1 Ss    0.0        0   79973 cupsd           /usr/bin/cupsd -l
+FOREIGN_TICK 1283 S 1
+FOREIGN_PS 1285       1 Ssl   0.0        0   79973 gssproxy        /usr/bin/gssproxy -i
+FOREIGN_TICK 1285 S 51
+FOREIGN_PS 1287       1 Ss    0.0        0   79973 sshd            sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+FOREIGN_TICK 1287 S 0
+FOREIGN_PS 1289       1 Ssl   0.0       25   79973 tailscaled      /usr/bin/tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/run/tailscale/tailscaled.sock --port=41641
+FOREIGN_TICK 1289 S 2530
+FOREIGN_PS 1291       1 Ssl   0.0        7   79973 tuned           /usr/bin/python3 -Es /usr/sbin/tuned -l -P
+FOREIGN_TICK 1291 S 713
+FOREIGN_PS 1302    1283 S     0.0        0   79973 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1302 S 0
+FOREIGN_PS 1303    1283 S     0.0        0   79973 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1303 S 0
+FOREIGN_PS 1369       1 Ssl   0.0        3   79973 tuned-ppd       /usr/bin/python3 -Es /usr/sbin/tuned-ppd -l
+FOREIGN_TICK 1369 S 363
+FOREIGN_PS 4117       1 Ssl   0.0        4   79969 rsyslogd        /usr/sbin/rsyslogd -n
+FOREIGN_TICK 4117 S 481
+FOREIGN_PS 4145       1 Ss    0.0        0   79969 atd             /usr/sbin/atd -f
+FOREIGN_TICK 4145 S 0
+FOREIGN_PS 4151       1 Ss    0.0        0   79969 crond           /usr/sbin/crond -n
+FOREIGN_TICK 4151 S 7
+FOREIGN_PS 13428       1 Ssl   0.0        0   79921 sddm            /usr/bin/sddm
+FOREIGN_TICK 13428 S 3
+FOREIGN_PS 13430   13428 S     0.0        0   79921 sddm-helper     /usr/libexec/sddm-helper --socket /tmp/sddm-auth-e1fdc633-7fe8-485e-a418-f65dc0bd5c95 --id 2 --start /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora --user sddm --display-server kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 --greeter
+FOREIGN_TICK 13430 S 0
+FOREIGN_PS 13431       1 Ssl   0.0        0   79921 uresourced      /usr/libexec/uresourced
+FOREIGN_TICK 13431 S 4
+FOREIGN_PS 13456       1 Ss    0.0        0   79921 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13456 S 23
+FOREIGN_PS 13458   13456 S     0.0        0   79921 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13458 S 0
+FOREIGN_PS 13478   13430 Ss+   0.0        0   79921 sddm-helper-sta /usr/libexec/sddm-helper-start-wayland kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13478 S 0
+FOREIGN_PS 13479   13456 Ss    0.0        0   79921 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13479 S 0
+FOREIGN_PS 13480   13478 Sl+   0.2      235   79921 kwin_wayland    /usr/bin/kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1
+FOREIGN_TICK 13480 S 23521
+FOREIGN_PS 13481   13479 S     0.0        0   79921 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13481 S 0
+FOREIGN_PS 13501   13478 Sl+   0.1      139   79920 sddm-greeter-qt /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13501 S 13930
+FOREIGN_PS 13521   13456 S<sl  0.0        1   79920 pipewire        /usr/bin/pipewire
+FOREIGN_TICK 13521 S 109
+FOREIGN_PS 13523   13456 S<sl  0.0        2   79920 wireplumber     /usr/bin/wireplumber
+FOREIGN_TICK 13523 S 212
+FOREIGN_PS 13525   13480 Sl+   0.0        0   79920 plasma-keyboard /usr/bin/plasma-keyboard
+FOREIGN_TICK 13525 S 63
+FOREIGN_PS 13755       1 Ss    0.0        0   76776 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13755 S 31
+FOREIGN_PS 13757   13755 S     0.0        0   76776 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13757 S 0
+FOREIGN_PS 13787   13755 Ss    0.0        0   76775 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13787 S 0
+FOREIGN_PS 13795   13787 S     0.0        0   76775 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13795 S 1
+FOREIGN_PS 83611       1 Ssl   0.0        0   51529 node-22         /usr/bin/node-22 /home/ghecht/.claude/plugins/cache/openai-codex/codex/1.0.6/scripts/app-server-broker.mjs serve --endpoint unix:/tmp/cxc-6eN2ye/broker.sock --cwd /home/ghecht/Projects/hven --pid-file /tmp/cxc-6eN2ye/broker.pid
+FOREIGN_TICK 83611 S 86
+FOREIGN_PS 83618   83611 Sl    0.1       54   51529 codex           codex app-server
+FOREIGN_TICK 83618 S 5473
+FOREIGN_PS 84052   83618 Sl    0.0        2   51520 codex-code-mode /home/ghecht/.codex/packages/standalone/releases/0.154.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+FOREIGN_TICK 84052 S 274
+FOREIGN_PS 280258   16979 Sl+   0.7      256   34388 clangd.main     clangd --background-index
+FOREIGN_TICK 280258 S 25601
+FOREIGN_PS 400249       1 S     0.0        0    6479 sleep           sleep 9655
+FOREIGN_TICK 400249 S 0
+FOREIGN_PS 445221    1289 Ssl   0.0        0    1933 tailscaled      /usr/bin/tailscaled be-child ssh --login-shell=/usr/bin/fish --uid=1000 --gid=1000 --groups=1000,10 --local-user=ghecht --home-dir=/home/ghecht --remote-user=GrantHecht@github --remote-ip=100.115.165.53 --has-tty=true --tty-name=pts/0 --is-selinux-enforcing --force-v1-behavior --shell
+FOREIGN_TICK 445221 S 0
+FOREIGN_PS 445228  445221 S     0.0        0    1933 fish            /usr/bin/fish -l
+FOREIGN_TICK 445228 S 2
+FOREIGN_PS 445371  445228 S+    0.0        0    1929 tmux: client    tmux a
+FOREIGN_TICK 445371 S 0
+FOREIGN_PS 453855     658 S     0.0        0     158 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 453855 S 0
+FOREIGN_PS 454244     658 S     0.0        0     125 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 454244 S 0
+FOREIGN_PS 454245     658 S     0.0        0     125 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 454245 S 0
+FOREIGN_PS 456058  456055 S     0.0        0      37 tail            tail -5
+FOREIGN_TICK 456058 S 0
+PS_SNAPSHOT_END hs-perf/r1 foreign_pids=71
+RUN  2026-09-14T11:27:05Z phase=perf mode=walk arm=off round=2
+CPUSTAT hs-perf/walk-off-r2 pre 2026-09-14T11:27:05Z mono=79979.41
+CPUSTAT_LINE cpu  5293476 1104 376689 122112529 20565 172910 22479 0 0 0
+CPUSTAT_LINE cpu2 601143 59 37393 7353206 1348 5079 1313 0 0 0
+CPUSTAT_LINE cpu10 300547 33 19772 7674880 725 2515 859 0 0 0
+CPUSTAT hs-perf/walk-off-r2 post 2026-09-14T11:27:10Z mono=79984.20
+CPUSTAT_LINE cpu  5293960 1104 376701 122119709 20565 172922 22482 0 0 0
+CPUSTAT_LINE cpu2 601614 59 37397 7353207 1348 5081 1313 0 0 0
+CPUSTAT_LINE cpu10 300553 33 19778 7675351 725 2517 859 0 0 0
+CPUTIME_SELF tag=hs-perf/walk-off-r2 user=4.71 sys=0.04 real=4.78
+DONE 2026-09-14T11:27:10Z mode=walk arm=off round=2 rc_so_far=0
+RUN  2026-09-14T11:27:10Z phase=perf mode=walk arm=sink round=2
+CPUSTAT hs-perf/walk-sink-r2 pre 2026-09-14T11:27:10Z mono=79984.21
+CPUSTAT_LINE cpu  5293960 1104 376701 122119719 20565 172922 22482 0 0 0
+CPUSTAT_LINE cpu2 601614 59 37397 7353208 1348 5081 1313 0 0 0
+CPUSTAT_LINE cpu10 300553 33 19778 7675351 725 2517 859 0 0 0
+CPUSTAT hs-perf/walk-sink-r2 post 2026-09-14T11:27:14Z mono=79988.96
+CPUSTAT_LINE cpu  5294435 1104 376714 122126832 20565 172934 22484 0 0 0
+CPUSTAT_LINE cpu2 602082 59 37401 7353208 1348 5084 1313 0 0 0
+CPUSTAT_LINE cpu10 300558 33 19784 7675818 725 2519 859 0 0 0
+CPUTIME_SELF tag=hs-perf/walk-sink-r2 user=4.67 sys=0.04 real=4.74
+DONE 2026-09-14T11:27:14Z mode=walk arm=sink round=2 rc_so_far=0
+RUN  2026-09-14T11:27:14Z phase=perf mode=ssn arm=off round=2
+CPUSTAT hs-perf/ssn-off-r2 pre 2026-09-14T11:27:14Z mono=79988.96
+CPUSTAT_LINE cpu  5294436 1104 376714 122126842 20565 172934 22484 0 0 0
+CPUSTAT_LINE cpu2 602082 59 37401 7353209 1348 5084 1313 0 0 0
+CPUSTAT_LINE cpu10 300558 33 19784 7675818 725 2519 859 0 0 0
+CPUSTAT hs-perf/ssn-off-r2 post 2026-09-14T11:27:21Z mono=79995.24
+CPUSTAT_LINE cpu  5295067 1104 376732 122136252 20566 172950 22487 0 0 0
+CPUSTAT_LINE cpu2 602699 59 37407 7353209 1348 5088 1313 0 0 0
+CPUSTAT_LINE cpu10 300566 33 19792 7676435 725 2522 859 0 0 0
+CPUTIME_SELF tag=hs-perf/ssn-off-r2 user=6.17 sys=0.06 real=6.27
+DONE 2026-09-14T11:27:21Z mode=ssn arm=off round=2 rc_so_far=0
+RUN  2026-09-14T11:27:21Z phase=perf mode=ssn arm=sink round=2
+CPUSTAT hs-perf/ssn-sink-r2 pre 2026-09-14T11:27:21Z mono=79995.25
+CPUSTAT_LINE cpu  5295067 1104 376733 122136262 20566 172950 22487 0 0 0
+CPUSTAT_LINE cpu2 602699 59 37407 7353210 1348 5088 1313 0 0 0
+CPUSTAT_LINE cpu10 300566 33 19792 7676435 725 2522 859 0 0 0
+CPUSTAT hs-perf/ssn-sink-r2 post 2026-09-14T11:27:27Z mono=80001.53
+CPUSTAT_LINE cpu  5295697 1104 376754 122145675 20566 172966 22491 0 0 0
+CPUSTAT_LINE cpu2 603316 59 37414 7353211 1348 5091 1313 0 0 0
+CPUSTAT_LINE cpu10 300573 33 19806 7677052 725 2525 859 0 0 0
+CPUTIME_SELF tag=hs-perf/ssn-sink-r2 user=6.16 sys=0.06 real=6.27
+DONE 2026-09-14T11:27:27Z mode=ssn arm=sink round=2 rc_so_far=0
+RUN  2026-09-14T11:27:27Z phase=perf mode=ipm arm=off round=2
+CPUSTAT hs-perf/ipm-off-r2 pre 2026-09-14T11:27:27Z mono=80001.54
+CPUSTAT_LINE cpu  5295697 1104 376755 122145684 20566 172966 22491 0 0 0
+CPUSTAT_LINE cpu2 603316 59 37414 7353211 1348 5091 1313 0 0 0
+CPUSTAT_LINE cpu10 300573 33 19806 7677052 725 2525 859 0 0 0
+CPUSTAT hs-perf/ipm-off-r2 post 2026-09-14T11:27:35Z mono=80009.28
+CPUSTAT_LINE cpu  5296474 1104 376777 122157284 20567 172985 22495 0 0 0
+CPUSTAT_LINE cpu2 604075 59 37424 7353212 1348 5096 1314 0 0 0
+CPUSTAT_LINE cpu10 300582 33 19814 7677815 725 2527 859 0 0 0
+CPUTIME_SELF tag=hs-perf/ipm-off-r2 user=7.59 sys=0.09 real=7.73
+DONE 2026-09-14T11:27:35Z mode=ipm arm=off round=2 rc_so_far=0
+RUN  2026-09-14T11:27:35Z phase=perf mode=ipm arm=sink round=2
+CPUSTAT hs-perf/ipm-sink-r2 pre 2026-09-14T11:27:35Z mono=80009.29
+CPUSTAT_LINE cpu  5296475 1104 376778 122157293 20567 172985 22495 0 0 0
+CPUSTAT_LINE cpu2 604075 59 37424 7353212 1348 5096 1314 0 0 0
+CPUSTAT_LINE cpu10 300582 33 19814 7677816 725 2527 859 0 0 0
+CPUSTAT hs-perf/ipm-sink-r2 post 2026-09-14T11:27:42Z mono=80016.90
+CPUSTAT_LINE cpu  5297246 1104 376792 122168687 20568 173004 22498 0 0 0
+CPUSTAT_LINE cpu2 604829 59 37425 7353213 1348 5100 1314 0 0 0
+CPUSTAT_LINE cpu10 300592 33 19824 7678562 725 2531 859 0 0 0
+CPUTIME_SELF tag=hs-perf/ipm-sink-r2 user=7.54 sys=0.01 real=7.60
+DONE 2026-09-14T11:27:42Z mode=ipm arm=sink round=2 rc_so_far=0
+PS_SNAPSHOT hs-perf/r2 2026-09-14T11:27:42Z mono=80016.90 clk_tck=100
+FOREIGN_PS 631       1 Ss    0.0        1   80013 systemd-journal /usr/lib/systemd/systemd-journald
+FOREIGN_TICK 631 S 171
+FOREIGN_PS 658       1 Ss    0.0        0   80013 systemd-userdbd /usr/lib/systemd/systemd-userdbd
+FOREIGN_TICK 658 S 19
+FOREIGN_PS 669       1 Ss    0.0        1   80013 systemd-resolve /usr/lib/systemd/systemd-resolved
+FOREIGN_TICK 669 S 145
+FOREIGN_PS 672       1 Ss    0.0        0   80013 systemd-udevd   /usr/lib/systemd/systemd-udevd
+FOREIGN_TICK 672 S 29
+FOREIGN_PS 871       1 S<sl  0.0        0   80012 auditd          /usr/bin/auditd
+FOREIGN_TICK 871 S 7
+FOREIGN_PS 873     871 S<    0.0        0   80012 sedispatch      /usr/sbin/sedispatch
+FOREIGN_TICK 873 S 1
+FOREIGN_PS 903       1 Ss    0.0        0   80012 dbus-broker-lau /usr/bin/dbus-broker-launch --scope system --audit
+FOREIGN_TICK 903 S 4
+FOREIGN_PS 911     903 S     0.0        2   80012 dbus-broker     dbus-broker --log 10 --controller 9 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 536870912 --max-fds 4096 --max-matches 131072 --audit
+FOREIGN_TICK 911 S 246
+FOREIGN_PS 912       1 S<Ls  0.0        2   80012 earlyoom        /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+FOREIGN_TICK 912 S 296
+FOREIGN_PS 916       1 Ss    0.0        7   80012 avahi-daemon    avahi-daemon: running [fedora.local]
+FOREIGN_TICK 916 S 777
+FOREIGN_PS 917       1 Ss    0.0        0   80012 bluetoothd      /usr/libexec/bluetooth/bluetoothd
+FOREIGN_TICK 917 S 4
+FOREIGN_PS 923       1 Ssl   0.0        0   80012 firewalld       /usr/bin/python3 -sP /usr/bin/firewalld --nofork --nopid
+FOREIGN_TICK 923 S 30
+FOREIGN_PS 924       1 Ssl   0.0        9   80012 NetworkManager  /usr/bin/NetworkManager --no-daemon
+FOREIGN_TICK 924 S 928
+FOREIGN_PS 926       1 Ssl   0.0        2   80012 irqbalance      /usr/sbin/irqbalance
+FOREIGN_TICK 926 S 278
+FOREIGN_PS 927       1 Ss    0.0        0   80012 chronyd         /usr/sbin/chronyd -n -F 2
+FOREIGN_TICK 927 S 11
+FOREIGN_PS 931       1 Ssl   0.0        1   80012 polkitd         /usr/lib/polkit-1/polkitd --no-debug --log-level=notice
+FOREIGN_TICK 931 S 104
+FOREIGN_PS 935       1 SNsl  0.0        0   80012 rtkit-daemon    /usr/libexec/rtkit-daemon
+FOREIGN_TICK 935 S 32
+FOREIGN_PS 937       1 Ss    0.0        0   80012 smartd          /usr/bin/smartd -n -q never --capabilities=mail
+FOREIGN_TICK 937 S 4
+FOREIGN_PS 939       1 Ssl   0.0        0   80012 switcheroo-cont /usr/libexec/switcheroo-control
+FOREIGN_TICK 939 S 7
+FOREIGN_PS 943       1 Ssl   0.0        6   80012 udisksd         /usr/libexec/udisks2/udisksd
+FOREIGN_TICK 943 S 615
+FOREIGN_PS 944       1 Ssl   0.0        0   80012 upowerd         /usr/libexec/upowerd
+FOREIGN_TICK 944 S 15
+FOREIGN_PS 964       1 Ssl   0.0        0   80012 accounts-daemon /usr/libexec/accounts-daemon
+FOREIGN_TICK 964 S 16
+FOREIGN_PS 968       1 Ss    0.0        0   80012 systemd-logind  /usr/lib/systemd/systemd-logind
+FOREIGN_TICK 968 S 39
+FOREIGN_PS 971     916 S     0.0        0   80012 avahi-daemon    avahi-daemon: chroot helper
+FOREIGN_TICK 971 S 0
+FOREIGN_PS 989       1 SNs   0.0        0   80012 alsactl         /usr/sbin/alsactl -s -n 19 -c -E ALSA_CONFIG_PATH=/etc/alsa/alsactl.conf --initfile=/lib/alsa/init/00main rdaemon
+FOREIGN_TICK 989 S 1
+FOREIGN_PS 997       1 Ssl   0.0        0   80012 abrtd           /usr/sbin/abrtd -d -s
+FOREIGN_TICK 997 S 42
+FOREIGN_PS 1048       1 Ssl   0.0        0   80012 ModemManager    /usr/bin/ModemManager
+FOREIGN_TICK 1048 S 12
+FOREIGN_PS 1082       1 Ss    0.0        0   80012 abrt-dump-journ /usr/bin/abrt-dump-journal-core -D -T -f -e
+FOREIGN_TICK 1082 S 62
+FOREIGN_PS 1083       1 Ss    0.0        0   80012 abrt-dump-journ /usr/bin/abrt-dump-journal-oops -fxtD
+FOREIGN_TICK 1083 S 29
+FOREIGN_PS 1084       1 Ss    0.0        0   80012 abrt-dump-journ /usr/bin/abrt-dump-journal-xorg -fxtD
+FOREIGN_TICK 1084 S 26
+FOREIGN_PS 1264       1 Ss    0.0        2   80011 wpa_supplicant  /usr/sbin/wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -u -s
+FOREIGN_TICK 1264 S 281
+FOREIGN_PS 1283       1 Ss    0.0        0   80011 cupsd           /usr/bin/cupsd -l
+FOREIGN_TICK 1283 S 1
+FOREIGN_PS 1285       1 Ssl   0.0        0   80011 gssproxy        /usr/bin/gssproxy -i
+FOREIGN_TICK 1285 S 51
+FOREIGN_PS 1287       1 Ss    0.0        0   80011 sshd            sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+FOREIGN_TICK 1287 S 0
+FOREIGN_PS 1289       1 Ssl   0.0       25   80011 tailscaled      /usr/bin/tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/run/tailscale/tailscaled.sock --port=41641
+FOREIGN_TICK 1289 S 2531
+FOREIGN_PS 1291       1 Ssl   0.0        7   80011 tuned           /usr/bin/python3 -Es /usr/sbin/tuned -l -P
+FOREIGN_TICK 1291 S 713
+FOREIGN_PS 1302    1283 S     0.0        0   80011 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1302 S 0
+FOREIGN_PS 1303    1283 S     0.0        0   80011 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1303 S 0
+FOREIGN_PS 1369       1 Ssl   0.0        3   80011 tuned-ppd       /usr/bin/python3 -Es /usr/sbin/tuned-ppd -l
+FOREIGN_TICK 1369 S 363
+FOREIGN_PS 4117       1 Ssl   0.0        4   80006 rsyslogd        /usr/sbin/rsyslogd -n
+FOREIGN_TICK 4117 S 481
+FOREIGN_PS 4145       1 Ss    0.0        0   80006 atd             /usr/sbin/atd -f
+FOREIGN_TICK 4145 S 0
+FOREIGN_PS 4151       1 Ss    0.0        0   80006 crond           /usr/sbin/crond -n
+FOREIGN_TICK 4151 S 7
+FOREIGN_PS 13428       1 Ssl   0.0        0   79959 sddm            /usr/bin/sddm
+FOREIGN_TICK 13428 S 3
+FOREIGN_PS 13430   13428 S     0.0        0   79959 sddm-helper     /usr/libexec/sddm-helper --socket /tmp/sddm-auth-e1fdc633-7fe8-485e-a418-f65dc0bd5c95 --id 2 --start /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora --user sddm --display-server kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 --greeter
+FOREIGN_TICK 13430 S 0
+FOREIGN_PS 13431       1 Ssl   0.0        0   79959 uresourced      /usr/libexec/uresourced
+FOREIGN_TICK 13431 S 4
+FOREIGN_PS 13456       1 Ss    0.0        0   79959 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13456 S 23
+FOREIGN_PS 13458   13456 S     0.0        0   79959 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13458 S 0
+FOREIGN_PS 13478   13430 Ss+   0.0        0   79959 sddm-helper-sta /usr/libexec/sddm-helper-start-wayland kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13478 S 0
+FOREIGN_PS 13479   13456 Ss    0.0        0   79959 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13479 S 0
+FOREIGN_PS 13480   13478 Sl+   0.2      235   79959 kwin_wayland    /usr/bin/kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1
+FOREIGN_TICK 13480 S 23526
+FOREIGN_PS 13481   13479 S     0.0        0   79959 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13481 S 0
+FOREIGN_PS 13501   13478 Sl+   0.1      139   79958 sddm-greeter-qt /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13501 S 13934
+FOREIGN_PS 13521   13456 S<sl  0.0        1   79957 pipewire        /usr/bin/pipewire
+FOREIGN_TICK 13521 S 109
+FOREIGN_PS 13523   13456 S<sl  0.0        2   79957 wireplumber     /usr/bin/wireplumber
+FOREIGN_TICK 13523 S 212
+FOREIGN_PS 13525   13480 Sl+   0.0        0   79957 plasma-keyboard /usr/bin/plasma-keyboard
+FOREIGN_TICK 13525 S 63
+FOREIGN_PS 13755       1 Ss    0.0        0   76813 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13755 S 31
+FOREIGN_PS 13757   13755 S     0.0        0   76813 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13757 S 0
+FOREIGN_PS 13787   13755 Ss    0.0        0   76813 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13787 S 0
+FOREIGN_PS 13795   13787 S     0.0        0   76813 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13795 S 1
+FOREIGN_PS 83611       1 Ssl   0.0        0   51566 node-22         /usr/bin/node-22 /home/ghecht/.claude/plugins/cache/openai-codex/codex/1.0.6/scripts/app-server-broker.mjs serve --endpoint unix:/tmp/cxc-6eN2ye/broker.sock --cwd /home/ghecht/Projects/hven --pid-file /tmp/cxc-6eN2ye/broker.pid
+FOREIGN_TICK 83611 S 86
+FOREIGN_PS 83618   83611 Sl    0.1       54   51566 codex           codex app-server
+FOREIGN_TICK 83618 S 5474
+FOREIGN_PS 84052   83618 Sl    0.0        2   51558 codex-code-mode /home/ghecht/.codex/packages/standalone/releases/0.154.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+FOREIGN_TICK 84052 S 274
+FOREIGN_PS 280258   16979 Sl+   0.7      256   34425 clangd.main     clangd --background-index
+FOREIGN_TICK 280258 S 25601
+FOREIGN_PS 400249       1 S     0.0        0    6516 sleep           sleep 9655
+FOREIGN_TICK 400249 S 0
+FOREIGN_PS 445221    1289 Ssl   0.0        0    1971 tailscaled      /usr/bin/tailscaled be-child ssh --login-shell=/usr/bin/fish --uid=1000 --gid=1000 --groups=1000,10 --local-user=ghecht --home-dir=/home/ghecht --remote-user=GrantHecht@github --remote-ip=100.115.165.53 --has-tty=true --tty-name=pts/0 --is-selinux-enforcing --force-v1-behavior --shell
+FOREIGN_TICK 445221 S 0
+FOREIGN_PS 445228  445221 S     0.0        0    1971 fish            /usr/bin/fish -l
+FOREIGN_TICK 445228 S 2
+FOREIGN_PS 445371  445228 S+    0.0        0    1967 tmux: client    tmux a
+FOREIGN_TICK 445371 S 0
+FOREIGN_PS 453855     658 S     0.0        0     196 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 453855 S 0
+FOREIGN_PS 454244     658 S     0.0        0     162 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 454244 S 0
+FOREIGN_PS 454245     658 S     0.0        0     162 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 454245 S 0
+FOREIGN_PS 456058  456055 S     0.0        0      75 tail            tail -5
+FOREIGN_TICK 456058 S 0
+PS_SNAPSHOT_END hs-perf/r2 foreign_pids=71
+RUN  2026-09-14T11:27:43Z phase=perf mode=walk arm=off round=3
+CPUSTAT hs-perf/walk-off-r3 pre 2026-09-14T11:27:43Z mono=80017.08
+CPUSTAT_LINE cpu  5297254 1104 376812 122168954 20568 173005 22499 0 0 0
+CPUSTAT_LINE cpu2 604829 59 37425 7353232 1348 5100 1314 0 0 0
+CPUSTAT_LINE cpu10 300592 33 19824 7678580 725 2531 859 0 0 0
+CPUSTAT hs-perf/walk-off-r3 post 2026-09-14T11:27:47Z mono=80021.85
+CPUSTAT_LINE cpu  5297732 1104 376824 122176080 20568 173017 22501 0 0 0
+CPUSTAT_LINE cpu2 605297 59 37431 7353232 1348 5103 1314 0 0 0
+CPUSTAT_LINE cpu10 300597 33 19828 7679050 725 2532 859 0 0 0
+CPUTIME_SELF tag=hs-perf/walk-off-r3 user=4.67 sys=0.05 real=4.76
+DONE 2026-09-14T11:27:47Z mode=walk arm=off round=3 rc_so_far=0
+RUN  2026-09-14T11:27:47Z phase=perf mode=walk arm=sink round=3
+CPUSTAT hs-perf/walk-sink-r3 pre 2026-09-14T11:27:47Z mono=80021.85
+CPUSTAT_LINE cpu  5297733 1104 376825 122176090 20568 173017 22501 0 0 0
+CPUSTAT_LINE cpu2 605297 59 37431 7353233 1348 5103 1314 0 0 0
+CPUSTAT_LINE cpu10 300597 33 19828 7679050 725 2532 859 0 0 0
+CPUSTAT hs-perf/walk-sink-r3 post 2026-09-14T11:27:52Z mono=80026.56
+CPUSTAT_LINE cpu  5298205 1104 376837 122183129 20568 173029 22503 0 0 0
+CPUSTAT_LINE cpu2 605760 59 37435 7353234 1348 5106 1314 0 0 0
+CPUSTAT_LINE cpu10 300601 33 19835 7679513 725 2534 859 0 0 0
+CPUTIME_SELF tag=hs-perf/walk-sink-r3 user=4.63 sys=0.03 real=4.70
+DONE 2026-09-14T11:27:52Z mode=walk arm=sink round=3 rc_so_far=0
+RUN  2026-09-14T11:27:52Z phase=perf mode=ssn arm=off round=3
+CPUSTAT hs-perf/ssn-off-r3 pre 2026-09-14T11:27:52Z mono=80026.57
+CPUSTAT_LINE cpu  5298205 1104 376838 122183139 20568 173029 22503 0 0 0
+CPUSTAT_LINE cpu2 605760 59 37435 7353234 1348 5106 1314 0 0 0
+CPUSTAT_LINE cpu10 300601 33 19835 7679513 725 2534 859 0 0 0
+CPUSTAT hs-perf/ssn-off-r3 post 2026-09-14T11:27:58Z mono=80032.90
+CPUSTAT_LINE cpu  5298858 1104 376865 122192582 20571 173045 22507 0 0 0
+CPUSTAT_LINE cpu2 606383 59 37440 7353235 1348 5109 1315 0 0 0
+CPUSTAT_LINE cpu10 300609 33 19845 7680133 725 2537 859 0 0 0
+CPUTIME_SELF tag=hs-perf/ssn-off-r3 user=6.23 sys=0.05 real=6.32
+DONE 2026-09-14T11:27:58Z mode=ssn arm=off round=3 rc_so_far=0
+RUN  2026-09-14T11:27:58Z phase=perf mode=ssn arm=sink round=3
+CPUSTAT hs-perf/ssn-sink-r3 pre 2026-09-14T11:27:58Z mono=80032.91
+CPUSTAT_LINE cpu  5298858 1104 376866 122192592 20571 173045 22507 0 0 0
+CPUSTAT_LINE cpu2 606383 59 37440 7353236 1348 5109 1315 0 0 0
+CPUSTAT_LINE cpu10 300609 33 19845 7680134 725 2537 859 0 0 0
+CPUSTAT hs-perf/ssn-sink-r3 post 2026-09-14T11:28:05Z mono=80039.20
+CPUSTAT_LINE cpu  5299489 1104 376886 122202000 20572 173061 22510 0 0 0
+CPUSTAT_LINE cpu2 607001 59 37447 7353236 1348 5113 1315 0 0 0
+CPUSTAT_LINE cpu10 300616 33 19854 7680753 725 2539 859 0 0 0
+CPUTIME_SELF tag=hs-perf/ssn-sink-r3 user=6.17 sys=0.06 real=6.28
+DONE 2026-09-14T11:28:05Z mode=ssn arm=sink round=3 rc_so_far=0
+RUN  2026-09-14T11:28:05Z phase=perf mode=ipm arm=off round=3
+CPUSTAT hs-perf/ipm-off-r3 pre 2026-09-14T11:28:05Z mono=80039.21
+CPUSTAT_LINE cpu  5299489 1104 376887 122202010 20572 173061 22510 0 0 0
+CPUSTAT_LINE cpu2 607001 59 37447 7353237 1348 5113 1315 0 0 0
+CPUSTAT_LINE cpu10 300616 33 19854 7680754 725 2539 859 0 0 0
+CPUSTAT hs-perf/ipm-off-r3 post 2026-09-14T11:28:12Z mono=80046.91
+CPUSTAT_LINE cpu  5300266 1104 376909 122213523 20573 173079 22514 0 0 0
+CPUSTAT_LINE cpu2 607757 59 37456 7353237 1348 5118 1315 0 0 0
+CPUSTAT_LINE cpu10 300625 33 19864 7681512 725 2542 859 0 0 0
+CPUTIME_SELF tag=hs-perf/ipm-off-r3 user=7.55 sys=0.09 real=7.69
+DONE 2026-09-14T11:28:12Z mode=ipm arm=off round=3 rc_so_far=0
+RUN  2026-09-14T11:28:12Z phase=perf mode=ipm arm=sink round=3
+CPUSTAT hs-perf/ipm-sink-r3 pre 2026-09-14T11:28:12Z mono=80046.92
+CPUSTAT_LINE cpu  5300266 1104 376910 122213533 20573 173079 22514 0 0 0
+CPUSTAT_LINE cpu2 607757 59 37456 7353238 1348 5118 1315 0 0 0
+CPUSTAT_LINE cpu10 300625 33 19864 7681512 725 2542 859 0 0 0
+CPUSTAT hs-perf/ipm-sink-r3 post 2026-09-14T11:28:20Z mono=80054.50
+CPUSTAT_LINE cpu  5301031 1104 376924 122224871 20575 173097 22518 0 0 0
+CPUSTAT_LINE cpu2 608508 59 37458 7353239 1348 5122 1316 0 0 0
+CPUSTAT_LINE cpu10 300629 33 19872 7682262 725 2544 859 0 0 0
+CPUTIME_SELF tag=hs-perf/ipm-sink-r3 user=7.51 sys=0.01 real=7.57
+DONE 2026-09-14T11:28:20Z mode=ipm arm=sink round=3 rc_so_far=0
+PS_SNAPSHOT hs-perf/r3 2026-09-14T11:28:20Z mono=80054.50 clk_tck=100
+FOREIGN_PS 631       1 Ss    0.0        1   80051 systemd-journal /usr/lib/systemd/systemd-journald
+FOREIGN_TICK 631 S 171
+FOREIGN_PS 658       1 Ss    0.0        0   80051 systemd-userdbd /usr/lib/systemd/systemd-userdbd
+FOREIGN_TICK 658 S 19
+FOREIGN_PS 669       1 Ss    0.0        1   80050 systemd-resolve /usr/lib/systemd/systemd-resolved
+FOREIGN_TICK 669 S 145
+FOREIGN_PS 672       1 Ss    0.0        0   80050 systemd-udevd   /usr/lib/systemd/systemd-udevd
+FOREIGN_TICK 672 S 29
+FOREIGN_PS 871       1 S<sl  0.0        0   80049 auditd          /usr/bin/auditd
+FOREIGN_TICK 871 S 7
+FOREIGN_PS 873     871 S<    0.0        0   80049 sedispatch      /usr/sbin/sedispatch
+FOREIGN_TICK 873 S 1
+FOREIGN_PS 903       1 Ss    0.0        0   80049 dbus-broker-lau /usr/bin/dbus-broker-launch --scope system --audit
+FOREIGN_TICK 903 S 4
+FOREIGN_PS 911     903 S     0.0        2   80049 dbus-broker     dbus-broker --log 10 --controller 9 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 536870912 --max-fds 4096 --max-matches 131072 --audit
+FOREIGN_TICK 911 S 246
+FOREIGN_PS 912       1 S<Ls  0.0        2   80049 earlyoom        /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+FOREIGN_TICK 912 S 296
+FOREIGN_PS 916       1 Ss    0.0        7   80049 avahi-daemon    avahi-daemon: running [fedora.local]
+FOREIGN_TICK 916 S 777
+FOREIGN_PS 917       1 Ss    0.0        0   80049 bluetoothd      /usr/libexec/bluetooth/bluetoothd
+FOREIGN_TICK 917 S 4
+FOREIGN_PS 923       1 Ssl   0.0        0   80049 firewalld       /usr/bin/python3 -sP /usr/bin/firewalld --nofork --nopid
+FOREIGN_TICK 923 S 30
+FOREIGN_PS 924       1 Ssl   0.0        9   80049 NetworkManager  /usr/bin/NetworkManager --no-daemon
+FOREIGN_TICK 924 S 929
+FOREIGN_PS 926       1 Ssl   0.0        2   80049 irqbalance      /usr/sbin/irqbalance
+FOREIGN_TICK 926 S 278
+FOREIGN_PS 927       1 Ss    0.0        0   80049 chronyd         /usr/sbin/chronyd -n -F 2
+FOREIGN_TICK 927 S 11
+FOREIGN_PS 931       1 Ssl   0.0        1   80049 polkitd         /usr/lib/polkit-1/polkitd --no-debug --log-level=notice
+FOREIGN_TICK 931 S 104
+FOREIGN_PS 935       1 SNsl  0.0        0   80049 rtkit-daemon    /usr/libexec/rtkit-daemon
+FOREIGN_TICK 935 S 32
+FOREIGN_PS 937       1 Ss    0.0        0   80049 smartd          /usr/bin/smartd -n -q never --capabilities=mail
+FOREIGN_TICK 937 S 4
+FOREIGN_PS 939       1 Ssl   0.0        0   80049 switcheroo-cont /usr/libexec/switcheroo-control
+FOREIGN_TICK 939 S 7
+FOREIGN_PS 943       1 Ssl   0.0        6   80049 udisksd         /usr/libexec/udisks2/udisksd
+FOREIGN_TICK 943 S 615
+FOREIGN_PS 944       1 Ssl   0.0        0   80049 upowerd         /usr/libexec/upowerd
+FOREIGN_TICK 944 S 15
+FOREIGN_PS 964       1 Ssl   0.0        0   80049 accounts-daemon /usr/libexec/accounts-daemon
+FOREIGN_TICK 964 S 16
+FOREIGN_PS 968       1 Ss    0.0        0   80049 systemd-logind  /usr/lib/systemd/systemd-logind
+FOREIGN_TICK 968 S 39
+FOREIGN_PS 971     916 S     0.0        0   80049 avahi-daemon    avahi-daemon: chroot helper
+FOREIGN_TICK 971 S 0
+FOREIGN_PS 989       1 SNs   0.0        0   80049 alsactl         /usr/sbin/alsactl -s -n 19 -c -E ALSA_CONFIG_PATH=/etc/alsa/alsactl.conf --initfile=/lib/alsa/init/00main rdaemon
+FOREIGN_TICK 989 S 1
+FOREIGN_PS 997       1 Ssl   0.0        0   80049 abrtd           /usr/sbin/abrtd -d -s
+FOREIGN_TICK 997 S 42
+FOREIGN_PS 1048       1 Ssl   0.0        0   80049 ModemManager    /usr/bin/ModemManager
+FOREIGN_TICK 1048 S 12
+FOREIGN_PS 1082       1 Ss    0.0        0   80049 abrt-dump-journ /usr/bin/abrt-dump-journal-core -D -T -f -e
+FOREIGN_TICK 1082 S 62
+FOREIGN_PS 1083       1 Ss    0.0        0   80049 abrt-dump-journ /usr/bin/abrt-dump-journal-oops -fxtD
+FOREIGN_TICK 1083 S 29
+FOREIGN_PS 1084       1 Ss    0.0        0   80049 abrt-dump-journ /usr/bin/abrt-dump-journal-xorg -fxtD
+FOREIGN_TICK 1084 S 26
+FOREIGN_PS 1264       1 Ss    0.0        2   80049 wpa_supplicant  /usr/sbin/wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -u -s
+FOREIGN_TICK 1264 S 282
+FOREIGN_PS 1283       1 Ss    0.0        0   80049 cupsd           /usr/bin/cupsd -l
+FOREIGN_TICK 1283 S 1
+FOREIGN_PS 1285       1 Ssl   0.0        0   80049 gssproxy        /usr/bin/gssproxy -i
+FOREIGN_TICK 1285 S 51
+FOREIGN_PS 1287       1 Ss    0.0        0   80049 sshd            sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+FOREIGN_TICK 1287 S 0
+FOREIGN_PS 1289       1 Ssl   0.0       25   80049 tailscaled      /usr/bin/tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/run/tailscale/tailscaled.sock --port=41641
+FOREIGN_TICK 1289 S 2531
+FOREIGN_PS 1291       1 Ssl   0.0        7   80049 tuned           /usr/bin/python3 -Es /usr/sbin/tuned -l -P
+FOREIGN_TICK 1291 S 714
+FOREIGN_PS 1302    1283 S     0.0        0   80049 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1302 S 0
+FOREIGN_PS 1303    1283 S     0.0        0   80049 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1303 S 0
+FOREIGN_PS 1369       1 Ssl   0.0        3   80048 tuned-ppd       /usr/bin/python3 -Es /usr/sbin/tuned-ppd -l
+FOREIGN_TICK 1369 S 363
+FOREIGN_PS 4117       1 Ssl   0.0        4   80044 rsyslogd        /usr/sbin/rsyslogd -n
+FOREIGN_TICK 4117 S 481
+FOREIGN_PS 4145       1 Ss    0.0        0   80044 atd             /usr/sbin/atd -f
+FOREIGN_TICK 4145 S 0
+FOREIGN_PS 4151       1 Ss    0.0        0   80044 crond           /usr/sbin/crond -n
+FOREIGN_TICK 4151 S 7
+FOREIGN_PS 13428       1 Ssl   0.0        0   79997 sddm            /usr/bin/sddm
+FOREIGN_TICK 13428 S 3
+FOREIGN_PS 13430   13428 S     0.0        0   79997 sddm-helper     /usr/libexec/sddm-helper --socket /tmp/sddm-auth-e1fdc633-7fe8-485e-a418-f65dc0bd5c95 --id 2 --start /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora --user sddm --display-server kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 --greeter
+FOREIGN_TICK 13430 S 0
+FOREIGN_PS 13431       1 Ssl   0.0        0   79997 uresourced      /usr/libexec/uresourced
+FOREIGN_TICK 13431 S 4
+FOREIGN_PS 13456       1 Ss    0.0        0   79997 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13456 S 23
+FOREIGN_PS 13458   13456 S     0.0        0   79996 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13458 S 0
+FOREIGN_PS 13478   13430 Ss+   0.0        0   79996 sddm-helper-sta /usr/libexec/sddm-helper-start-wayland kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13478 S 0
+FOREIGN_PS 13479   13456 Ss    0.0        0   79996 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13479 S 0
+FOREIGN_PS 13480   13478 Sl+   0.2      235   79996 kwin_wayland    /usr/bin/kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1
+FOREIGN_TICK 13480 S 23532
+FOREIGN_PS 13481   13479 S     0.0        0   79996 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13481 S 0
+FOREIGN_PS 13501   13478 Sl+   0.1      139   79995 sddm-greeter-qt /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13501 S 13937
+FOREIGN_PS 13521   13456 S<sl  0.0        1   79995 pipewire        /usr/bin/pipewire
+FOREIGN_TICK 13521 S 109
+FOREIGN_PS 13523   13456 S<sl  0.0        2   79995 wireplumber     /usr/bin/wireplumber
+FOREIGN_TICK 13523 S 212
+FOREIGN_PS 13525   13480 Sl+   0.0        0   79995 plasma-keyboard /usr/bin/plasma-keyboard
+FOREIGN_TICK 13525 S 63
+FOREIGN_PS 13755       1 Ss    0.0        0   76851 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13755 S 31
+FOREIGN_PS 13757   13755 S     0.0        0   76851 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13757 S 0
+FOREIGN_PS 13787   13755 Ss    0.0        0   76851 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13787 S 0
+FOREIGN_PS 13795   13787 S     0.0        0   76851 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13795 S 1
+FOREIGN_PS 83611       1 Ssl   0.0        0   51604 node-22         /usr/bin/node-22 /home/ghecht/.claude/plugins/cache/openai-codex/codex/1.0.6/scripts/app-server-broker.mjs serve --endpoint unix:/tmp/cxc-6eN2ye/broker.sock --cwd /home/ghecht/Projects/hven --pid-file /tmp/cxc-6eN2ye/broker.pid
+FOREIGN_TICK 83611 S 86
+FOREIGN_PS 83618   83611 Sl    0.1       54   51604 codex           codex app-server
+FOREIGN_TICK 83618 S 5475
+FOREIGN_PS 84052   83618 Sl    0.0        2   51595 codex-code-mode /home/ghecht/.codex/packages/standalone/releases/0.154.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+FOREIGN_TICK 84052 S 274
+FOREIGN_PS 280258   16979 Sl+   0.7      256   34463 clangd.main     clangd --background-index
+FOREIGN_TICK 280258 S 25601
+FOREIGN_PS 400249       1 S     0.0        0    6554 sleep           sleep 9655
+FOREIGN_TICK 400249 S 0
+FOREIGN_PS 445221    1289 Ssl   0.0        0    2008 tailscaled      /usr/bin/tailscaled be-child ssh --login-shell=/usr/bin/fish --uid=1000 --gid=1000 --groups=1000,10 --local-user=ghecht --home-dir=/home/ghecht --remote-user=GrantHecht@github --remote-ip=100.115.165.53 --has-tty=true --tty-name=pts/0 --is-selinux-enforcing --force-v1-behavior --shell
+FOREIGN_TICK 445221 S 0
+FOREIGN_PS 445228  445221 S     0.0        0    2008 fish            /usr/bin/fish -l
+FOREIGN_TICK 445228 S 2
+FOREIGN_PS 445371  445228 S+    0.0        0    2004 tmux: client    tmux a
+FOREIGN_TICK 445371 S 0
+FOREIGN_PS 453855     658 S     0.0        0     233 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 453855 S 0
+FOREIGN_PS 454244     658 S     0.0        0     200 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 454244 S 0
+FOREIGN_PS 454245     658 S     0.0        0     200 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 454245 S 0
+FOREIGN_PS 456058  456055 S     0.0        0     112 tail            tail -5
+FOREIGN_TICK 456058 S 0
+PS_SNAPSHOT_END hs-perf/r3 foreign_pids=71
+PS_SNAPSHOT hs-perf/close 2026-09-14T11:28:20Z mono=80054.68 clk_tck=100
+FOREIGN_PS 631       1 Ss    0.0        1   80051 systemd-journal /usr/lib/systemd/systemd-journald
+FOREIGN_TICK 631 S 171
+FOREIGN_PS 658       1 Ss    0.0        0   80051 systemd-userdbd /usr/lib/systemd/systemd-userdbd
+FOREIGN_TICK 658 S 19
+FOREIGN_PS 669       1 Ss    0.0        1   80051 systemd-resolve /usr/lib/systemd/systemd-resolved
+FOREIGN_TICK 669 S 145
+FOREIGN_PS 672       1 Ss    0.0        0   80051 systemd-udevd   /usr/lib/systemd/systemd-udevd
+FOREIGN_TICK 672 S 29
+FOREIGN_PS 871       1 S<sl  0.0        0   80050 auditd          /usr/bin/auditd
+FOREIGN_TICK 871 S 7
+FOREIGN_PS 873     871 S<    0.0        0   80050 sedispatch      /usr/sbin/sedispatch
+FOREIGN_TICK 873 S 1
+FOREIGN_PS 903       1 Ss    0.0        0   80050 dbus-broker-lau /usr/bin/dbus-broker-launch --scope system --audit
+FOREIGN_TICK 903 S 4
+FOREIGN_PS 911     903 S     0.0        2   80050 dbus-broker     dbus-broker --log 10 --controller 9 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 536870912 --max-fds 4096 --max-matches 131072 --audit
+FOREIGN_TICK 911 S 246
+FOREIGN_PS 912       1 S<Ls  0.0        2   80050 earlyoom        /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+FOREIGN_TICK 912 S 296
+FOREIGN_PS 916       1 Ss    0.0        7   80050 avahi-daemon    avahi-daemon: running [fedora.local]
+FOREIGN_TICK 916 S 777
+FOREIGN_PS 917       1 Ss    0.0        0   80050 bluetoothd      /usr/libexec/bluetooth/bluetoothd
+FOREIGN_TICK 917 S 4
+FOREIGN_PS 923       1 Ssl   0.0        0   80050 firewalld       /usr/bin/python3 -sP /usr/bin/firewalld --nofork --nopid
+FOREIGN_TICK 923 S 30
+FOREIGN_PS 924       1 Ssl   0.0        9   80050 NetworkManager  /usr/bin/NetworkManager --no-daemon
+FOREIGN_TICK 924 S 929
+FOREIGN_PS 926       1 Ssl   0.0        2   80050 irqbalance      /usr/sbin/irqbalance
+FOREIGN_TICK 926 S 278
+FOREIGN_PS 927       1 Ss    0.0        0   80050 chronyd         /usr/sbin/chronyd -n -F 2
+FOREIGN_TICK 927 S 11
+FOREIGN_PS 931       1 Ssl   0.0        1   80050 polkitd         /usr/lib/polkit-1/polkitd --no-debug --log-level=notice
+FOREIGN_TICK 931 S 104
+FOREIGN_PS 935       1 SNsl  0.0        0   80050 rtkit-daemon    /usr/libexec/rtkit-daemon
+FOREIGN_TICK 935 S 32
+FOREIGN_PS 937       1 Ss    0.0        0   80050 smartd          /usr/bin/smartd -n -q never --capabilities=mail
+FOREIGN_TICK 937 S 4
+FOREIGN_PS 939       1 Ssl   0.0        0   80050 switcheroo-cont /usr/libexec/switcheroo-control
+FOREIGN_TICK 939 S 7
+FOREIGN_PS 943       1 Ssl   0.0        6   80050 udisksd         /usr/libexec/udisks2/udisksd
+FOREIGN_TICK 943 S 615
+FOREIGN_PS 944       1 Ssl   0.0        0   80050 upowerd         /usr/libexec/upowerd
+FOREIGN_TICK 944 S 15
+FOREIGN_PS 964       1 Ssl   0.0        0   80050 accounts-daemon /usr/libexec/accounts-daemon
+FOREIGN_TICK 964 S 16
+FOREIGN_PS 968       1 Ss    0.0        0   80050 systemd-logind  /usr/lib/systemd/systemd-logind
+FOREIGN_TICK 968 S 39
+FOREIGN_PS 971     916 S     0.0        0   80050 avahi-daemon    avahi-daemon: chroot helper
+FOREIGN_TICK 971 S 0
+FOREIGN_PS 989       1 SNs   0.0        0   80049 alsactl         /usr/sbin/alsactl -s -n 19 -c -E ALSA_CONFIG_PATH=/etc/alsa/alsactl.conf --initfile=/lib/alsa/init/00main rdaemon
+FOREIGN_TICK 989 S 1
+FOREIGN_PS 997       1 Ssl   0.0        0   80049 abrtd           /usr/sbin/abrtd -d -s
+FOREIGN_TICK 997 S 42
+FOREIGN_PS 1048       1 Ssl   0.0        0   80049 ModemManager    /usr/bin/ModemManager
+FOREIGN_TICK 1048 S 12
+FOREIGN_PS 1082       1 Ss    0.0        0   80049 abrt-dump-journ /usr/bin/abrt-dump-journal-core -D -T -f -e
+FOREIGN_TICK 1082 S 62
+FOREIGN_PS 1083       1 Ss    0.0        0   80049 abrt-dump-journ /usr/bin/abrt-dump-journal-oops -fxtD
+FOREIGN_TICK 1083 S 29
+FOREIGN_PS 1084       1 Ss    0.0        0   80049 abrt-dump-journ /usr/bin/abrt-dump-journal-xorg -fxtD
+FOREIGN_TICK 1084 S 26
+FOREIGN_PS 1264       1 Ss    0.0        2   80049 wpa_supplicant  /usr/sbin/wpa_supplicant -c /etc/wpa_supplicant/wpa_supplicant.conf -u -s
+FOREIGN_TICK 1264 S 282
+FOREIGN_PS 1283       1 Ss    0.0        0   80049 cupsd           /usr/bin/cupsd -l
+FOREIGN_TICK 1283 S 1
+FOREIGN_PS 1285       1 Ssl   0.0        0   80049 gssproxy        /usr/bin/gssproxy -i
+FOREIGN_TICK 1285 S 51
+FOREIGN_PS 1287       1 Ss    0.0        0   80049 sshd            sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+FOREIGN_TICK 1287 S 0
+FOREIGN_PS 1289       1 Ssl   0.0       25   80049 tailscaled      /usr/bin/tailscaled --state=/var/lib/tailscale/tailscaled.state --socket=/run/tailscale/tailscaled.sock --port=41641
+FOREIGN_TICK 1289 S 2531
+FOREIGN_PS 1291       1 Ssl   0.0        7   80049 tuned           /usr/bin/python3 -Es /usr/sbin/tuned -l -P
+FOREIGN_TICK 1291 S 714
+FOREIGN_PS 1302    1283 S     0.0        0   80049 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1302 S 0
+FOREIGN_PS 1303    1283 S     0.0        0   80049 dbus            /usr/lib/cups/notifier/dbus dbus://
+FOREIGN_TICK 1303 S 0
+FOREIGN_PS 1369       1 Ssl   0.0        3   80049 tuned-ppd       /usr/bin/python3 -Es /usr/sbin/tuned-ppd -l
+FOREIGN_TICK 1369 S 363
+FOREIGN_PS 4117       1 Ssl   0.0        4   80044 rsyslogd        /usr/sbin/rsyslogd -n
+FOREIGN_TICK 4117 S 481
+FOREIGN_PS 4145       1 Ss    0.0        0   80044 atd             /usr/sbin/atd -f
+FOREIGN_TICK 4145 S 0
+FOREIGN_PS 4151       1 Ss    0.0        0   80044 crond           /usr/sbin/crond -n
+FOREIGN_TICK 4151 S 7
+FOREIGN_PS 13428       1 Ssl   0.0        0   79997 sddm            /usr/bin/sddm
+FOREIGN_TICK 13428 S 3
+FOREIGN_PS 13430   13428 S     0.0        0   79997 sddm-helper     /usr/libexec/sddm-helper --socket /tmp/sddm-auth-e1fdc633-7fe8-485e-a418-f65dc0bd5c95 --id 2 --start /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora --user sddm --display-server kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 --greeter
+FOREIGN_TICK 13430 S 0
+FOREIGN_PS 13431       1 Ssl   0.0        0   79997 uresourced      /usr/libexec/uresourced
+FOREIGN_TICK 13431 S 4
+FOREIGN_PS 13456       1 Ss    0.0        0   79997 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13456 S 23
+FOREIGN_PS 13458   13456 S     0.0        0   79997 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13458 S 0
+FOREIGN_PS 13478   13430 Ss+   0.0        0   79996 sddm-helper-sta /usr/libexec/sddm-helper-start-wayland kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1 /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13478 S 0
+FOREIGN_PS 13479   13456 Ss    0.0        0   79996 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13479 S 0
+FOREIGN_PS 13480   13478 Sl+   0.2      235   79996 kwin_wayland    /usr/bin/kwin_wayland --no-global-shortcuts --no-lockscreen --inputmethod plasma-keyboard --locale1
+FOREIGN_TICK 13480 S 23532
+FOREIGN_PS 13481   13479 S     0.0        0   79996 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13481 S 0
+FOREIGN_PS 13501   13478 Sl+   0.1      139   79996 sddm-greeter-qt /usr/bin/sddm-greeter-qt6 --socket /tmp/sddm--oykOTC --theme /usr/share/sddm/themes/01-breeze-fedora
+FOREIGN_TICK 13501 S 13937
+FOREIGN_PS 13521   13456 S<sl  0.0        1   79995 pipewire        /usr/bin/pipewire
+FOREIGN_TICK 13521 S 109
+FOREIGN_PS 13523   13456 S<sl  0.0        2   79995 wireplumber     /usr/bin/wireplumber
+FOREIGN_TICK 13523 S 212
+FOREIGN_PS 13525   13480 Sl+   0.0        0   79995 plasma-keyboard /usr/bin/plasma-keyboard
+FOREIGN_TICK 13525 S 63
+FOREIGN_PS 13755       1 Ss    0.0        0   76851 systemd         /usr/lib/systemd/systemd --user
+FOREIGN_TICK 13755 S 31
+FOREIGN_PS 13757   13755 S     0.0        0   76851 (sd-pam)        (sd-pam)
+FOREIGN_TICK 13757 S 0
+FOREIGN_PS 13787   13755 Ss    0.0        0   76851 dbus-broker-lau /usr/bin/dbus-broker-launch --scope user
+FOREIGN_TICK 13787 S 0
+FOREIGN_PS 13795   13787 S     0.0        0   76851 dbus-broker     dbus-broker --log 11 --controller 10 --machine-id 6d3e5d78adc4457194895690fb736776 --max-bytes 100000000000000 --max-fds 25000000000000 --max-matches 5000000000
+FOREIGN_TICK 13795 S 1
+FOREIGN_PS 83611       1 Ssl   0.0        0   51604 node-22         /usr/bin/node-22 /home/ghecht/.claude/plugins/cache/openai-codex/codex/1.0.6/scripts/app-server-broker.mjs serve --endpoint unix:/tmp/cxc-6eN2ye/broker.sock --cwd /home/ghecht/Projects/hven --pid-file /tmp/cxc-6eN2ye/broker.pid
+FOREIGN_TICK 83611 S 86
+FOREIGN_PS 83618   83611 Sl    0.1       54   51604 codex           codex app-server
+FOREIGN_TICK 83618 S 5475
+FOREIGN_PS 84052   83618 Sl    0.0        2   51596 codex-code-mode /home/ghecht/.codex/packages/standalone/releases/0.154.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+FOREIGN_TICK 84052 S 274
+FOREIGN_PS 280258   16979 Sl+   0.7      256   34463 clangd.main     clangd --background-index
+FOREIGN_TICK 280258 S 25601
+FOREIGN_PS 400249       1 S     0.0        0    6554 sleep           sleep 9655
+FOREIGN_TICK 400249 S 0
+FOREIGN_PS 445221    1289 Ssl   0.0        0    2008 tailscaled      /usr/bin/tailscaled be-child ssh --login-shell=/usr/bin/fish --uid=1000 --gid=1000 --groups=1000,10 --local-user=ghecht --home-dir=/home/ghecht --remote-user=GrantHecht@github --remote-ip=100.115.165.53 --has-tty=true --tty-name=pts/0 --is-selinux-enforcing --force-v1-behavior --shell
+FOREIGN_TICK 445221 S 0
+FOREIGN_PS 445228  445221 S     0.0        0    2008 fish            /usr/bin/fish -l
+FOREIGN_TICK 445228 S 2
+FOREIGN_PS 445371  445228 S+    0.0        0    2004 tmux: client    tmux a
+FOREIGN_TICK 445371 S 0
+FOREIGN_PS 453855     658 S     0.0        0     233 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 453855 S 0
+FOREIGN_PS 454244     658 S     0.0        0     200 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 454244 S 0
+FOREIGN_PS 454245     658 S     0.0        0     200 systemd-userwor systemd-userwork: waiting...
+FOREIGN_TICK 454245 S 0
+FOREIGN_PS 456058  456055 S     0.0        0     112 tail            tail -5
+FOREIGN_TICK 456058 S 0
+PS_SNAPSHOT_END hs-perf/close foreign_pids=71
+BATCH_END hs-perf 2026-09-14T11:28:20Z
+LEG_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T11:28:20Z
+WRAPPER_EXIT=0
