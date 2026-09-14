@@ -1063,3 +1063,206 @@ TEST(SolveBudget, TheSqpTakesABudgetOnEveryPublicOverload) {
     EXPECT_GT(free_run.wall_seconds, 0.0);
     EXPECT_GE(free_run.wall_seconds, free_run.solve_impl_seconds);
 }
+
+// ===========================================================================
+// (12) The boundary refusals, and the finiteness gate (M6 W6 T2).
+// ===========================================================================
+//
+// Every throw in solve_result.cpp is a SIZE check at the public boundary --
+// CLAUDE.md §4's rule that Eigen's own asserts, compiled out under NDEBUG, must
+// never be the only guard. The W6 T0 coverage read found all of them cold
+// (src/drivers/solve_result.cpp was the lowest-read driver TU, 66.67 % lines,
+// and 33 of its 33 missed lines are these checks plus the finiteness gate).
+//
+// Each case below is asserted on the MESSAGE as well as the type: five
+// different checks throw the same exception class, so a type-only assertion
+// would pass with the wrong one firing.
+
+namespace {
+
+/// A well-formed argument set: n = 2, one declared equality row, one declared
+/// inequality row, nothing at a bound. Each refusal test perturbs ONE piece.
+struct DeclaredArgs {
+    Vec x = vec_of({0.25, -0.5});
+    Vec lambda_e = vec_of({0.5});
+    Vec lambda_i = vec_of({0.25});
+    Vec z = vec_of({0.0, 0.0});
+    Vec grad = vec_of({1.0, 2.0});
+    SpMatRM Je = row_block({1.0, 1.0});
+    SpMatRM Ji = row_block({1.0, -1.0});
+    Vec ce = vec_of({0.0});
+    Vec ci = vec_of({-1.0});
+    Vec lower = vec_of({-kInf, -kInf});
+    Vec upper = vec_of({kInf, kInf});
+
+    DeclaredDiagnostics run() const {
+        return compute_declared_diagnostics(x, lambda_e, lambda_i, z, grad, Je, Ji, ce, ci, lower,
+                                            upper, {});
+    }
+};
+
+/// Runs `call` and requires it to throw std::invalid_argument whose message
+/// contains `fragment` -- the phrase that names the check that fired.
+template <class Fn> void expect_refusal(Fn &&call, const char *fragment, const char *what) {
+    try {
+        call();
+        ADD_FAILURE() << "expected a refusal: " << what;
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find(fragment), std::string::npos)
+            << what << " -- wrong check fired: " << e.what();
+    }
+}
+
+} // namespace
+
+// The premise: the unperturbed argument set is accepted and measures something.
+TEST(DeclaredDiagnostics, TheRefusalFixtureIsItselfWellFormed) {
+    const DeclaredDiagnostics d = DeclaredArgs{}.run();
+    EXPECT_FALSE(std::isnan(d.stationarity));
+    EXPECT_FALSE(std::isnan(d.feasibility_e));
+    EXPECT_FALSE(std::isnan(d.feasibility_i));
+    EXPECT_FALSE(std::isnan(d.complementarity));
+}
+
+// The five checks the (grad, Je, Ji) front door owns.
+TEST(DeclaredDiagnostics, RefusesEveryMalformedDeclaredBlock) {
+    expect_refusal(
+        [] {
+            DeclaredArgs a;
+            a.grad = vec_of({1.0, 2.0, 3.0});
+            return a.run();
+        },
+        "grad has 3", "a gradient wider than x");
+
+    expect_refusal(
+        [] {
+            DeclaredArgs a;
+            a.lambda_e = vec_of({0.5, 0.5});
+            return a.run();
+        },
+        "declared equality block is one width", "two equality prices for one row");
+
+    expect_refusal(
+        [] {
+            DeclaredArgs a;
+            a.lambda_i = vec_of({0.5, 0.5});
+            return a.run();
+        },
+        "declared inequality block is one width", "two inequality prices for one row");
+
+    expect_refusal(
+        [] {
+            DeclaredArgs a;
+            a.Je = row_block({1.0, 1.0, 1.0});
+            return a.run();
+        },
+        "Je is 1x3", "an equality Jacobian wider than x");
+
+    expect_refusal(
+        [] {
+            DeclaredArgs a;
+            a.Ji = row_block({1.0, 1.0, 1.0});
+            return a.run();
+        },
+        "Ji is 1x3", "an inequality Jacobian wider than x");
+}
+
+// The checks the grad_lag front door owns: the four n-wide blocks, and the
+// inequality pairing it re-checks because it is reachable without the overload
+// above.
+TEST(DeclaredDiagnostics, TheGradLagDoorChecksItsOwnBlockWidths) {
+    using hven::solvers::compute_declared_diagnostics_from_grad_lag;
+    const Vec x = vec_of({0.25, -0.5});
+    const Vec lambda_i = vec_of({0.25});
+    const Vec z = vec_of({0.0, 0.0});
+    const Vec grad_lag = vec_of({1.0, 2.0});
+    const Vec ce = vec_of({0.0});
+    const Vec ci = vec_of({-1.0});
+    const Vec lower = vec_of({-kInf, -kInf});
+    const Vec upper = vec_of({kInf, kInf});
+
+    // The premise: accepted as written.
+    EXPECT_NO_THROW((void)compute_declared_diagnostics_from_grad_lag(x, lambda_i, z, grad_lag, ce,
+                                                                     ci, lower, upper, {}));
+
+    const char *kWidth = "must too";
+    expect_refusal(
+        [&] {
+            return compute_declared_diagnostics_from_grad_lag(x, lambda_i, vec_of({0.0}), grad_lag,
+                                                              ce, ci, lower, upper, {});
+        },
+        kWidth, "a bound-price vector narrower than x");
+    expect_refusal(
+        [&] {
+            return compute_declared_diagnostics_from_grad_lag(x, lambda_i, z, vec_of({1.0}), ce, ci,
+                                                              lower, upper, {});
+        },
+        kWidth, "a Lagrangian gradient narrower than x");
+    expect_refusal(
+        [&] {
+            return compute_declared_diagnostics_from_grad_lag(x, lambda_i, z, grad_lag, ce, ci,
+                                                              vec_of({-kInf}), upper, {});
+        },
+        kWidth, "a lower-bound vector narrower than x");
+    expect_refusal(
+        [&] {
+            return compute_declared_diagnostics_from_grad_lag(x, lambda_i, z, grad_lag, ce, ci,
+                                                              lower, vec_of({kInf}), {});
+        },
+        kWidth, "an upper-bound vector narrower than x");
+    expect_refusal(
+        [&] {
+            return compute_declared_diagnostics_from_grad_lag(x, vec_of({0.25, 0.25}), z, grad_lag,
+                                                              ce, ci, lower, upper, {});
+        },
+        "declared inequality block is one width", "two inequality prices for one row");
+}
+
+// THE FINITENESS GATE. A single non-finite entry anywhere in the measured set
+// makes the whole reading UNMEASURED -- all four NaN -- rather than a
+// finite-looking inf-norm that measured nothing (std::max propagates a NaN
+// unpredictably, which is the reason the gate is inside the function and not
+// left to callers). Each of the six vectors it reads gets its own case.
+TEST(DeclaredDiagnostics, ANonFiniteEntryReportsUnmeasuredRatherThanANumber) {
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+
+    const auto unmeasured = [](const DeclaredDiagnostics &d, const char *what) {
+        EXPECT_TRUE(std::isnan(d.stationarity)) << what;
+        EXPECT_TRUE(std::isnan(d.feasibility_e)) << what;
+        EXPECT_TRUE(std::isnan(d.feasibility_i)) << what;
+        EXPECT_TRUE(std::isnan(d.complementarity)) << what;
+    };
+
+    {
+        DeclaredArgs a;
+        a.x = vec_of({nan, -0.5});
+        unmeasured(a.run(), "a non-finite primal");
+    }
+    {
+        DeclaredArgs a;
+        a.z = vec_of({0.0, kInf});
+        unmeasured(a.run(), "an infinite bound price");
+    }
+    {
+        DeclaredArgs a;
+        a.ce = vec_of({nan});
+        unmeasured(a.run(), "a non-finite equality residual");
+    }
+    {
+        DeclaredArgs a;
+        a.ci = vec_of({nan});
+        unmeasured(a.run(), "a non-finite inequality residual");
+    }
+    {
+        DeclaredArgs a;
+        a.lambda_i = vec_of({nan});
+        unmeasured(a.run(), "a non-finite inequality price");
+    }
+    {
+        // Through the gradient, which reaches the gate as the formed
+        // Lagrangian gradient rather than as its own argument.
+        DeclaredArgs a;
+        a.grad = vec_of({nan, 2.0});
+        unmeasured(a.run(), "a non-finite objective gradient");
+    }
+}

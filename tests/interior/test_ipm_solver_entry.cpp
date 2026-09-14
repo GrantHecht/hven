@@ -1912,3 +1912,124 @@ TEST(IpmSolverEntry, OneIterationShortOfConvergenceRecordsTheCap) {
     EXPECT_EQ(hven::solvers::resolve_ipm_phase_status(run.flag, run.reason),
               hven::solvers::SolveStatus::kMaxIter);
 }
+
+// ===========================================================================
+// The option-selected line-search and barrier oracles (M6 W6 T2).
+// ===========================================================================
+//
+// `opt_ls_mode` and `opt_bar_mode` are public options, and two of the values
+// each can take had no test in the tree at all: the W6 T0 coverage read found
+// `ClassicMeritAcceptance::ls_lang` and `ls_l1` cold as ONE 104-line run (the
+// largest uncovered region in src/drivers/ipm_solver_globalization.cpp), and
+// `ClassicAdaptiveGovernor::complementarity`, which only the PROBE (Mehrotra
+// predictor-corrector) barrier oracle reaches, cold as another.
+//
+// A test that merely selected each value and checked for a status would not say
+// the option is LIVE. Each case below therefore pins two things: the variant
+// solves HS071 to the SAME known optimum the default does -- it is a
+// globalization choice, not a different problem -- AND its iterate trajectory
+// DIFFERS from the default's, which is only true if the selected variant
+// actually drove the accepted steps.
+
+namespace ipm_option_variants {
+namespace {
+
+/// One solve of HS071, with the per-iteration trajectory the shared iteration
+/// callback reports. The callback moves no trajectory: both invocation sites
+/// discard its return value and hand it read-only views.
+struct VariantRun {
+    hven::solvers::SolveStatus status = hven::solvers::SolveStatus::kMaxIter;
+    Eigen::VectorXd x;
+    std::vector<double> objective_trace;
+    std::vector<double> mu_trace;
+};
+
+template <class Configure> VariantRun run_hs071(Configure &&configure) {
+    const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
+    hven::solvers::IpmSolver solver;
+    {
+        auto o = solver.options();
+        o.common.print_level = 10;
+        o.common.threads = 1;
+        configure(o);
+        solver.set_options(std::move(o));
+    }
+    VariantRun run;
+    solver.set_iteration_callback([&run](const hven::solvers::IterationEvent &ev) {
+        run.objective_trace.push_back(ev.f);
+        run.mu_trace.push_back(ev.mu.value_or(-1.0));
+        return hven::solvers::CallbackAction::kContinue;
+    });
+
+    Eigen::VectorXd x0(4);
+    x0 << 1.0, 5.0, 5.0, 1.0;
+    const hven::solvers::IpmResult result = solver.solve(*program, x0);
+    run.status = result.status;
+    run.x = result.x;
+    return run;
+}
+
+Eigen::VectorXd hs071_optimum() {
+    Eigen::VectorXd expect(4);
+    expect << 1.00000000, 4.74299963, 3.82114998, 1.37940829;
+    return expect;
+}
+
+void expect_reaches_the_known_optimum(const VariantRun &run, const char *what) {
+    EXPECT_EQ(run.status, hven::solvers::SolveStatus::kOptimal) << what;
+    ASSERT_EQ(run.x.size(), 4) << what;
+    EXPECT_LT((run.x - hs071_optimum()).lpNorm<Eigen::Infinity>(), 1e-5) << what;
+    EXPECT_FALSE(run.objective_trace.empty()) << what;
+}
+
+} // namespace
+} // namespace ipm_option_variants
+
+// LineSearchModes::kLang -- the Lagrangian merit variant (ls_lang). Selected by
+// opt_ls_mode, never by a default: the shipped default is kAugLang.
+TEST(IpmSolverEntry, TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory) {
+    using hven::solvers::LineSearchModes;
+    const auto base = ipm_option_variants::run_hs071([](hven::solvers::IpmOptions &) {});
+    const auto lang = ipm_option_variants::run_hs071(
+        [](hven::solvers::IpmOptions &o) { o.opt_ls_mode = LineSearchModes::kLang; });
+
+    ipm_option_variants::expect_reaches_the_known_optimum(base, "the default (kAugLang) arm");
+    ipm_option_variants::expect_reaches_the_known_optimum(lang, "the kLang arm");
+    EXPECT_NE(lang.objective_trace, base.objective_trace)
+        << "opt_ls_mode = kLang produced the default line search's trajectory, so the option "
+           "selected nothing";
+}
+
+// LineSearchModes::kL1 -- the l1 merit variant (ls_l1), the other half of the
+// same cold run.
+TEST(IpmSolverEntry, TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory) {
+    using hven::solvers::LineSearchModes;
+    const auto base = ipm_option_variants::run_hs071([](hven::solvers::IpmOptions &) {});
+    const auto l1 = ipm_option_variants::run_hs071(
+        [](hven::solvers::IpmOptions &o) { o.opt_ls_mode = LineSearchModes::kL1; });
+
+    ipm_option_variants::expect_reaches_the_known_optimum(l1, "the kL1 arm");
+    EXPECT_NE(l1.objective_trace, base.objective_trace)
+        << "opt_ls_mode = kL1 produced the default line search's trajectory, so the option "
+           "selected nothing";
+}
+
+// BarrierModes::kProbe -- the Mehrotra predictor-corrector oracle. It is the
+// ONLY caller of ClassicAdaptiveGovernor::mpc_mu, and mpc_mu is the only caller
+// of that governor's own complementarity(): a predictor KKT solve, the
+// fraction-to-boundary scaling of the predictor direction, and the ratio rule
+// over the predictor point's complementarity pairs.
+TEST(IpmSolverEntry, TheProbeBarrierOracleSolvesHs071OnItsOwnBarrierSchedule) {
+    using hven::solvers::BarrierModes;
+    const auto loqo = ipm_option_variants::run_hs071([](hven::solvers::IpmOptions &) {});
+    const auto probe = ipm_option_variants::run_hs071(
+        [](hven::solvers::IpmOptions &o) { o.opt_bar_mode = BarrierModes::kProbe; });
+
+    ipm_option_variants::expect_reaches_the_known_optimum(loqo, "the default (kLoqo) arm");
+    ipm_option_variants::expect_reaches_the_known_optimum(probe, "the kProbe arm");
+    // The two oracles compute mu by different rules, so the barrier schedule --
+    // not merely the iterate count -- has to differ.
+    EXPECT_NE(probe.mu_trace, loqo.mu_trace)
+        << "opt_bar_mode = kProbe produced the LOQO barrier schedule, so the option selected "
+           "nothing";
+}

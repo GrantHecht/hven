@@ -2478,5 +2478,137 @@ TEST(IpmConsole, TheWideLayoutIsTheSolversOwnOptionAndReachesItsConsole) {
     EXPECT_NE(printed.find("Merit Val"), std::string::npos);
 }
 
+namespace {
+
+/// A sink that THROWS once, from the Nth `ipm.iter` row it is handed — the
+/// multi-iteration twin of `ThrowingMessageSink`, which can only throw from a
+/// factor-time message and therefore only on the iteration that produces one.
+struct ThrowingRowSink final : TraceSink {
+    explicit ThrowingRowSink(Index throw_on_row) : throw_on_row_(throw_on_row) {}
+
+    bool threw = false;
+    Index rows = 0;
+
+    void on_ipm_iter(const IpmIterTraceEvent &) override {
+        ++rows;
+        if (threw || rows != throw_on_row_) {
+            return;
+        }
+        threw = true;
+        throw std::runtime_error("a sink that throws from an iteration row");
+    }
+    void on_ipqp_iter(const IpqpTraceIterEvent &) override {}
+    void on_ipqp_reg(const IpqpTraceRegEvent &) override {}
+    void on_ipqp_restart(const IpqpTraceRestartEvent &) override {}
+    void on_ipqp_route(const IpqpTraceRouteEvent &) override {}
+    void on_ipqp_certify(const IpqpTraceCertifyEvent &) override {}
+    void on_ipqp_escape(const IpqpTraceEscapeEvent &) override {}
+    void on_qp_mode(const QpModeTraceEvent &) override {}
+    void on_fallback_verdict(const SqpFallbackVerdictTraceEvent &) override {}
+
+  private:
+    Index throw_on_row_;
+};
+
+/// One HS071 engine and the program it solves, configured identically on both
+/// arms of the pin below.
+struct RetryCase {
+    std::shared_ptr<hven::solvers::NonLinearProgram> program =
+        hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
+    std::unique_ptr<hven::solvers::IpmSolver> engine = std::make_unique<hven::solvers::IpmSolver>();
+
+    RetryCase() {
+        auto o = engine->options();
+        o.common.print_level = 10;
+        o.common.threads = 1;
+        engine->set_options(std::move(o));
+    }
+};
+
+} // namespace
+
+// THE MULTI-ITERATION RETRY PIN (M6 W6 T2; registered at the W5 T8.7b fix1 lane
+// re-check, docs/notes/2026-08-m6-ledger.md:4261).
+//
+// `ARetryAfterAThrowingFactorTimeSinkIsBitwiseAFreshSolve` above pins the same
+// contract on a ONE-ITERATION fixture: `NonconvexProblem` with an empty ladder
+// reaches `inertia_exhausted` on iteration 0, which is the only reason that pin
+// can throw from a factor-time message at all. The lane's non-gating note was
+// that a one-iteration fixture leaves the interesting half untested — a solve
+// that has already ACCEPTED steps, moved its iterate, advanced mu and filled a
+// history when the throw lands. This is that fixture: HS071, a throw from the
+// third `ipm.iter` row, and the same pin.
+//
+// The contract is unchanged and so is its reasoning: nothing invalidates
+// `qp_analyzed_` or the structure stamps, so an unchanged-model retry takes
+// `claim_kkt_analysis()`'s REUSE branch, and the reuse is sound because the
+// symbolic analysis depends on the PATTERN alone while `init_impl` reassembles
+// every value before it factorizes. A retry therefore computes what a FRESH
+// solver computes, bit for bit, however many iterations the interrupted solve
+// had already taken.
+TEST(IpmMessageSink, AMultiIterationRetryAfterAThrowingRowSinkIsBitwiseAFreshSolve) {
+    // A throwaway solve first, for the reason the console pins state: the
+    // once-per-process initialization notice would otherwise land in whichever
+    // arm ran first and shift its `seq`.
+    {
+        RetryCase warm;
+        (void)warm.engine->solve(*warm.program, hs071_start());
+    }
+
+    // ARM ONE: the solve that dies on its third row, then the retry.
+    RetryCase reused;
+    ThrowingRowSink thrower(/*throw_on_row=*/3);
+    reused.engine->attach_trace(&thrower);
+    EXPECT_THROW((void)reused.engine->solve(*reused.program, hs071_start()), std::runtime_error);
+    ASSERT_TRUE(thrower.threw) << "premise: the sink threw from an iteration row";
+    ASSERT_EQ(thrower.rows, 3) << "premise: the throw landed on the third row, so the interrupted "
+                                  "solve had already accepted steps and moved its iterate";
+    reused.engine->attach_trace(nullptr);
+
+    std::ostringstream retry_os;
+    JsonLinesTraceSink retry_sink(retry_os);
+    reused.engine->attach_trace(&retry_sink);
+    const IpmResult retry_result = reused.engine->solve(*reused.program, hs071_start());
+    const IpmAnswer retry = answer_of(retry_result);
+    EXPECT_EQ(retry_result.kkt_analyses_this_call, 0)
+        << "the retry must take the REUSE branch -- the same fact the one-iteration pin states";
+
+    // ARM TWO: a solver that never saw the throw, on the same model.
+    RetryCase fresh;
+    std::ostringstream fresh_os;
+    JsonLinesTraceSink fresh_sink(fresh_os);
+    fresh.engine->attach_trace(&fresh_sink);
+    const IpmResult fresh_result = fresh.engine->solve(*fresh.program, hs071_start());
+    const IpmAnswer cold = answer_of(fresh_result);
+    EXPECT_GT(fresh_result.kkt_analyses_this_call, 0)
+        << "premise: the fresh arm really did pay the analysis the retry skipped";
+
+    // THE MULTI-ITERATION PREMISE, asserted rather than assumed: this fixture
+    // runs many iterations, so the interrupted solve was well past its first.
+    ASSERT_GT(fresh_result.iterations, 3)
+        << "premise: the fixture must take more iterations than the row the throw landed on";
+    EXPECT_EQ(retry_result.status, SolveStatus::kOptimal);
+
+    // THE PIN, as on the one-iteration fixture.
+    ASSERT_FALSE(retry_os.str().empty());
+    EXPECT_EQ(mask_analysis_reuse(mask_wall_clock(retry_os.str())),
+              mask_analysis_reuse(mask_wall_clock(fresh_os.str())))
+        << "the retry after a throwing row sink is not the solve a fresh solver runs";
+    expect_same_ipm_answer(retry, cold);
+
+    // THE ONE DIFFERENCE, asserted rather than masked away.
+    const std::vector<std::string> retry_analysis =
+        lines_of_event(retry_os.str(), "ipm.kkt_analysis");
+    const std::vector<std::string> fresh_analysis =
+        lines_of_event(fresh_os.str(), "ipm.kkt_analysis");
+    ASSERT_EQ(retry_analysis.size(), 1u);
+    ASSERT_EQ(fresh_analysis.size(), 1u);
+    EXPECT_EQ(field(retry_analysis[0], "docompute"), "false");
+    EXPECT_EQ(field(retry_analysis[0], "factor_mem"), "null");
+    EXPECT_EQ(field(retry_analysis[0], "factor_flops"), "null");
+    EXPECT_EQ(field(fresh_analysis[0], "docompute"), "true");
+    EXPECT_NE(field(fresh_analysis[0], "factor_mem"), "null");
+}
+
 } // namespace
 } // namespace hven::solvers

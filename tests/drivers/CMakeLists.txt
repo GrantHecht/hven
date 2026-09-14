@@ -20,6 +20,7 @@ set(HVEN_DRIVERS_TEST_SOURCES
     test_callback.cpp
     test_console_sink.cpp
     test_options.cpp
+    test_print_tables.cpp
     test_solve_status.cpp
     test_solve_result.cpp
     test_threads.cpp

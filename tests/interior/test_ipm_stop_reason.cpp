@@ -250,6 +250,123 @@ hven_interior_tests::IpmCase make_locally_infeasible_solver(int max_iters) {
     return c;
 }
 
+// The SAME lever set on the PROXIMAL restoration strategy (M6 W6 T2). The
+// engine's two restoration modes take two different arms of alg_impl's
+// post-subproblem classification, and only the nested l1 arm had a test: the W6
+// T0 coverage read found the proximal arm -- the 39-line
+// `ipm_solver.cpp:2884-2975` block that decides whether a converged/stalled
+// proximal subproblem is "near-feasible, resume the true objective" or "locally
+// infeasible" -- entirely cold, the third-largest uncovered region in
+// `src/drivers/`. One option value away from the arm above.
+hven_interior_tests::IpmCase make_proximal_locally_infeasible_solver(int max_iters) {
+    hven_interior_tests::IpmCase c = make_locally_infeasible_solver(max_iters);
+    auto o = c.engine->options();
+    o.restoration_mode = RestorationModes::proximal_switch;
+    c.engine->set_options(std::move(o));
+    return c;
+}
+
+// THE UN-EVALUABLE LINE SEARCH'S OWN FIXTURE (M6 W6 T2). Evaluates at the first
+// point it is ever asked about and REFUSES every other one, so the very first
+// line search cannot evaluate a single trial -- the same device
+// `WarmInfeasibleBoundedProblem` (test_ipm_warm_start.cpp) uses, kept local
+// here rather than shared, since the two files' fixtures differ in what happens
+// next. Nothing ever throws at a COMMITTED point: a rejected iteration commits
+// alpha = 0, so the iterate never leaves the anchor.
+struct AnchorOnlyProblem : NlpTripletModel {
+    mutable Eigen::VectorXd anchor_;
+
+    void require_anchor(hven::ConstEigenRef<Eigen::VectorXd> x) const {
+        if (this->anchor_.size() == 0) {
+            this->anchor_ = x;
+            return;
+        }
+        if (x != this->anchor_) {
+            throw std::runtime_error("AnchorOnlyProblem: this problem evaluates only at the "
+                                     "point it was first asked about");
+        }
+    }
+
+    int num_vars() const override { return 2; }
+    int num_cons() const override { return 2; }
+    int num_jac_nonzeros() const override { return 4; }
+    int num_hess_nonzeros() const override { return 2; }
+
+    void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
+                Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
+        xl << -1.0, -1.0;
+        xu << 1.0, 1.0;
+        gl << 5.0, -kStopReasonInf;
+        gu << 5.0, 10.0;
+    }
+    void eval_f(hven::ConstEigenRef<Eigen::VectorXd> x, double &f) const override {
+        this->require_anchor(x);
+        f = 0.5 * (x[0] * x[0] + x[1] * x[1]);
+    }
+    void eval_grad_f(hven::ConstEigenRef<Eigen::VectorXd> x,
+                     Eigen::Ref<Eigen::VectorXd> g) const override {
+        g[0] = x[0];
+        g[1] = x[1];
+    }
+    void eval_g(hven::ConstEigenRef<Eigen::VectorXd> x,
+                Eigen::Ref<Eigen::VectorXd> g) const override {
+        this->require_anchor(x);
+        g[0] = x[0] + x[1];
+        g[1] = x[0] - x[1];
+    }
+    void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
+                       Eigen::Ref<Eigen::VectorXi> c) const override {
+        r << 0, 0, 1, 1;
+        c << 0, 1, 0, 1;
+    }
+    void hess_structure(Eigen::Ref<Eigen::VectorXi> r,
+                        Eigen::Ref<Eigen::VectorXi> c) const override {
+        r << 0, 1;
+        c << 0, 1;
+    }
+    void eval_jac(hven::ConstEigenRef<Eigen::VectorXd>,
+                  Eigen::Ref<Eigen::VectorXd> v) const override {
+        v[0] = 1.0;
+        v[1] = 1.0;
+        v[2] = 1.0;
+        v[3] = -1.0;
+    }
+    void eval_hess(hven::ConstEigenRef<Eigen::VectorXd>, double obj_factor,
+                   hven::ConstEigenRef<Eigen::VectorXd>,
+                   Eigen::Ref<Eigen::VectorXd> v) const override {
+        v.setConstant(obj_factor);
+    }
+    std::string name() const override { return "AnchorOnlyProblem"; }
+};
+
+/// The un-evaluable-step fixture at ONE lever: whether the acceptable tier is
+/// wide enough to contain the committed iterate. Restoration stays OFF (the
+/// default), so the bypass's middle branch is out of the picture and the choice
+/// is exactly between "exit at the acceptable level" and "abort".
+hven_interior_tests::IpmCase make_anchor_only_solver(bool acceptable_tier_contains_the_iterate) {
+    hven_interior_tests::IpmCase c{
+        hven::solvers::make_nlp_program(std::make_shared<AnchorOnlyProblem>()),
+        std::make_unique<IpmSolver>()};
+    auto o = c.engine->options();
+    o.phases = {hven::solvers::IpmPhase::kOptimize};
+    o.common.print_level = 10;
+    o.common.threads = 1;
+    o.max_iters = 20;
+    // The acceptable tier is validated to sit between the convergence and the
+    // divergence tolerances (kkt_tol <= acc_kkt_tol <= div_kkt_tol, and so per
+    // family), so the two arms are the two ENDS of that legal range rather than
+    // arbitrary numbers: wide open at 1e10, well inside the 1e15 divergence
+    // thresholds; and pinched shut onto the convergence tolerances themselves,
+    // where the fixture's ~5 constraint violation cannot fit.
+    const double acc = acceptable_tier_contains_the_iterate ? 1.0e10 : 1.0e-6;
+    o.acc_kkt_tol = acc;
+    o.acc_econ_tol = acc;
+    o.acc_icon_tol = acc;
+    o.acc_bar_tol = acc;
+    c.engine->set_options(std::move(o));
+    return c;
+}
+
 // A sink that counts `ipm.iter` lines and nothing else (M6 W5 T8.6 fix1).
 class IterCountingSink : public hven::solvers::TraceSink {
   public:
@@ -746,5 +863,141 @@ TEST(IpmStopReason, OnlyResolutionEverProducesStalledOrInterrupted) {
                     << "a resolution-only status with no stop reason: " << e;
             }
         }
+    }
+}
+
+// ===========================================================================
+// The PROXIMAL restoration arm's own classification (M6 W6 T2).
+// ===========================================================================
+
+// The engine's two restoration modes take two DIFFERENT arms of alg_impl's
+// post-subproblem classification, and only the nested l1 arm had a test: the W6
+// T0 coverage read found the proximal arm -- the 39-line
+// `ipm_solver.cpp:2884-2975` block that decides whether a converged or stalled
+// proximal subproblem is near-feasible enough to leave restoration for, or a
+// local-infeasibility declaration -- entirely cold, the third-largest uncovered
+// region in `src/drivers/`.
+//
+// Both tests below assert what the arm DECIDED, not that it ran.
+
+// On the very fixture the l1 arm declares locally infeasible, the proximal arm
+// reaches the OTHER verdict: it enters restoration, its classification chooses
+// to LEAVE, and the phase runs on in optimality mode until the iteration cap.
+// The l1 control arm is run beside it on the same problem and the same start, so
+// the difference is the classification and nothing else.
+TEST(IpmStopReason, TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasibility) {
+    auto proximal = stop_reason_test::make_proximal_locally_infeasible_solver(40);
+    const hven::solvers::IpmResult prox_result =
+        proximal.engine->solve(*proximal.program, stop_reason_test::two_var_start(1.0, 1.0));
+
+    // NON-VACUOUS: the proximal strategy really was constructed and really did
+    // enter restoration, so the classification ran on a proximal subproblem.
+    ASSERT_GT(prox_result.last_feas_rest_entries, 0)
+        << "restoration was never entered, so the proximal classification never ran";
+    ASSERT_GE(prox_result.last_feas_rest_iters, 1);
+
+    // AND IT LEFT: the iterations spent in restoration are a small part of the
+    // phase, so the classification took a leave door rather than staying in
+    // mode until the budget ran out.
+    EXPECT_LT(prox_result.last_feas_rest_iters, prox_result.iterations)
+        << "the phase never left restoration, so no leave door was taken";
+    EXPECT_EQ(prox_result.status, hven::solvers::SolveStatus::kMaxIter);
+    EXPECT_EQ(proximal.engine->last_stop_reason(), hven::solvers::IpmStopReason::kIterationCap);
+
+    // THE CONTROL: the same problem, the same start, the l1 strategy -- a
+    // locally-infeasible declaration, which is the door the proximal arm did
+    // not take.
+    auto nested = stop_reason_test::make_locally_infeasible_solver(40);
+    const hven::solvers::IpmResult l1_result =
+        nested.engine->solve(*nested.program, stop_reason_test::two_var_start(1.0, 1.0));
+    EXPECT_EQ(l1_result.status, hven::solvers::SolveStatus::kStalled);
+    EXPECT_EQ(nested.engine->last_stop_reason(),
+              hven::solvers::IpmStopReason::kRestorationLocallyInfeasible);
+    EXPECT_NE(proximal.engine->last_stop_reason(), nested.engine->last_stop_reason())
+        << "the two restoration strategies reached the same door, so this fixture does not "
+           "separate their classifications";
+}
+
+// A SECOND ENTRY IS ONLY POSSIBLE AFTER A LEAVE (entry_permitted refuses while
+// the strategy is active), so an entry count above one is direct evidence that
+// the proximal classification's leave door fired and fired repeatedly -- here
+// until the per-phase entry budget is spent and the stage is declared stalled.
+TEST(IpmStopReason, TheProximalArmReEntersRestorationOnlyAfterLeavingIt) {
+    auto solver = stop_reason_test::make_stall_solver(600);
+    {
+        auto o = solver.engine->options();
+        o.restoration_mode = hven::solvers::RestorationModes::proximal_switch;
+        o.max_feas_rest = 5;
+        solver.engine->set_options(std::move(o));
+    }
+
+    const hven::solvers::IpmResult result =
+        solver.engine->solve(*solver.program, stop_reason_test::two_var_start(0.0, 0.0));
+
+    EXPECT_GE(result.last_feas_rest_entries, 2)
+        << "the proximal classification never chose to leave: a re-entry is the only way the "
+           "entry count can pass one";
+    EXPECT_GE(result.last_feas_rest_iters, result.last_feas_rest_entries)
+        << "every episode spends at least one iteration in mode";
+    EXPECT_EQ(result.status, hven::solvers::SolveStatus::kStalled);
+    EXPECT_EQ(solver.engine->last_stop_reason(), hven::solvers::IpmStopReason::kStageStalled);
+}
+
+// ===========================================================================
+// The un-evaluable-line-search bypass (M6 W6 T2).
+// ===========================================================================
+//
+// When no trial step can be evaluated at all, alg_impl does not turn a
+// transient evaluation excursion into a fatal error. Its first answer is: if
+// the CURRENT committed iterate already satisfies the acceptable tier, stop
+// here and report that level rather than aborting -- the failed step is
+// discarded (alpha = 0) and the iterate stays un-accepted. Only when the
+// iterate is NOT acceptable, and restoration cannot be entered, is the latched
+// evaluation error thrown wrapped in solver context.
+//
+// The W6 T0 coverage read found that first branch cold (`ipm_solver.cpp
+// :3828-3858`, the fourth-largest uncovered region in `src/drivers/`). The two
+// tests below are the SAME fixture at the SAME start, differing only in whether
+// the acceptable tier contains the committed iterate -- so what is asserted is
+// the branch's own decision and not the fixture's arithmetic.
+
+TEST(IpmStopReason, AnUnevaluableStepAtAnAcceptableIterateExitsAtTheAcceptableLevel) {
+    auto solver = stop_reason_test::make_anchor_only_solver(
+        /*acceptable_tier_contains_the_iterate=*/true);
+    Eigen::VectorXd x0(2);
+    x0 << 0.0, 0.0;
+    const hven::solvers::IpmResult result = solver.engine->solve(*solver.program, x0);
+
+    // THE EXIT: the acceptable level, not the iteration cap and not an abort.
+    EXPECT_EQ(result.status, hven::solvers::SolveStatus::kAcceptable);
+    // NON-VACUOUS: an evaluation really was refused and absorbed, which is what
+    // put the solve on this path at all.
+    EXPECT_FALSE(result.last_eval_exception.empty())
+        << "no trial evaluation was refused, so the bypass never ran";
+    // And it stopped THERE rather than burning the budget: the bypass exits the
+    // loop on the iteration the failure landed on.
+    EXPECT_LT(result.iterations, 20);
+}
+
+TEST(IpmStopReason, AnUnevaluableStepAtAnUnacceptableIterateAbortsWithTheLatchedError) {
+    auto solver = stop_reason_test::make_anchor_only_solver(
+        /*acceptable_tier_contains_the_iterate=*/false);
+    Eigen::VectorXd x0(2);
+    x0 << 0.0, 0.0;
+
+    // The SAME fixture, the SAME start: only the acceptable tier moved, and the
+    // bypass's first branch no longer holds. With restoration off, the third
+    // branch is all that is left -- and it throws the latched evaluation error
+    // wrapped in solver context rather than returning a verdict.
+    try {
+        (void)solver.engine->solve(*solver.program, x0);
+        ADD_FAILURE() << "an un-evaluable line search at an unacceptable iterate must abort";
+    } catch (const std::runtime_error &e) {
+        const std::string what = e.what();
+        EXPECT_NE(what.find("line search failed at iteration"), std::string::npos) << what;
+        // The latched message is folded in, which is the half that makes the
+        // abort diagnosable (CLAUDE.md §4: never a diagnostic the exception
+        // does not carry).
+        EXPECT_NE(what.find("AnchorOnlyProblem"), std::string::npos) << what;
     }
 }
