@@ -261,6 +261,66 @@ is superseded — `SAFER_FAST` now runs under every golden-rig trace at 1e-14
 relative tolerances on Linux, macOS, and Windows alike, this section's
 feature-detection evidence included; nothing left to decide.
 
+## Coverage lane (`linux-clang-coverage` job) — added M6 W6 T7, 2026-09-14
+
+`.github/workflows/ci.yml:30` carries a fourth job the three sections above do
+not describe: a **report-only** coverage lane (owner directive, 2026-08-25). It
+runs the suite under LLVM source-based coverage through
+`scripts/run_coverage.sh`, publishes the per-file table and the HTML as an
+artifact, and puts the totals row in the job summary. It has **no percentage
+gate** and is not meant to be a required check; its triggers are deliberately
+narrower than the gate lanes' (`main` pushes and manual dispatch only, not pull
+requests, until the instrumented-suite runtime on a hosted runner is observed).
+Everything it produces is an **instrument tree** reading: never a pin, never a
+baseline, never a timing.
+
+**The instrument-tree exclusion hook.** `scripts/run_coverage.sh` owns the whole
+configure/build/ctest/report path so CI and local runs cannot drift, and since
+M6 W6 T0 it also owns the disposition M5 registered for the three cells that
+failed under CI's first coverage run. The hook is a ctest `-E` regex inside the
+script (`COVERAGE_EXCLUDE_REGEX`, overridable in the environment for a one-off
+run) under a **two-condition rule**: a cell is named there only if (i) it is
+*observed* to fail under the instrument tree — the coverage flags change codegen,
+so a byte-strict float pin that holds under the uniform flag regime can fail here
+— **and** (ii) its paths are covered by other cells that pass. Condition (ii)
+matters because a failing gtest still writes its `.profraw`: tolerating a failure
+keeps that cell's coverage, while `-E` drops it. A cell that fails instrumented
+but covers paths nothing else reaches is therefore *tolerated*, not excluded.
+**The list ships EMPTY**, and that is the finding rather than an omission — all
+three M5 candidates ran and passed on the W6 T0 and T2 reads of this box. Every
+run prints the regex in force beside its ctest status, so a report read later
+cannot mistake an empty exclusion for a wide one.
+
+**`COVERAGE_TOLERATE_FAILURES=1`** stays as CI's escape hatch and is what the
+lane sets: the report still comes from whatever ran, and the failure signal is
+preserved separately in the job summary. It is no longer the *mechanism* for the
+M5 trio — the hook above is — but it remains the right answer for a foreign
+runner microarchitecture, which is where M5's observation was made.
+
+**A known reporting effect: the PCH under-read.** Library headers whose inline
+bodies are compiled inside a TU that consumes the precompiled header can report
+**0.00 % lines while their functions demonstrably execute**. The A/B is
+`docs/notes/data/2026-09-m6-w6-coverage-close/pch-experiment.txt`: with
+`CMAKE_DISABLE_PRECOMPILE_HEADERS=ON` all four such rows fill in, and the
+mismatched-function count over that object set falls (126 → 92) without reaching
+zero, so the PCH is a large part of this effect and not the whole of it. This is
+a defect in how an instrument tree *reports*, not in the shipped library, and it
+is **not** a reason to change the build: the PCH's membership list is
+evidence-gated on compile time and byte-identical objects
+(`scripts/check_pch_neutrality.sh`). Read a 0 % header row on this lane against
+that experiment before concluding the code is untested. A future read that wants
+those rows right can take the reduced PCH-off arm beside the main read, at the
+cost of one extra build.
+
+**Codecov is the owner's item.** The upload step no-ops until the
+`CODECOV_TOKEN` secret exists, and `codecov.yml` pins both status checks
+informational — the service displays coverage and never gates a merge. The one
+outstanding piece is **path mapping**: the M5 close recorded that the first
+upload succeeded and that "any dashboard oddity is a path-mapping config item"
+(`docs/notes/2026-08-m5-ledger.md:625-627`). That is a dashboard-side
+configuration owned by the repository owner, not a lane change, and W6 did not
+touch it.
+
 ## Build and test presets: what CI actually exercises
 
 `CMakePresets.json` ships `buildPresets` and `testPresets` for all four

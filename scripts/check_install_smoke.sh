@@ -31,6 +31,18 @@
 # below, which reaches both configures); whether to pin one here instead is
 # registered as an open question, not settled by this comment.
 #
+# WHAT THAT UNPINNED FRONT END NOW TURNS ON (M6 W6 T3, 2026-09-14). It is no
+# longer only a hygiene question. With HVEN_LINK_TIME_OPT=ON the members of the
+# installed libhven.a are LLVM bitcode, and a clang consumer that does not
+# enable LTO for itself cannot link them through ld.bfd, while both GCC arms
+# pass. This script's default front end here and in CI is GCC, so a green run
+# of it says nothing about that path: the clang arms have to be asked for, by
+# passing -DCMAKE_CXX_COMPILER=... as an argument to this script -- the
+# passthrough described just above, which already exists and was NOT added or
+# changed for this. The constraint, the four measured arms and the registered
+# remedy are in docs/build.md's "LTO installs" section and in
+# docs/notes/data/2026-09-m6-w6-lto/install-smoke.txt.
+#
 # Optional environment:
 #   HVEN_INSTALL_SMOKE_WORKDIR  Use this directory instead of a fresh
 #                                mktemp one, and do NOT delete it on exit.

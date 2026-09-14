@@ -172,3 +172,63 @@ loss of coverage in practice — the test suite compiles those same
 headers without the PCH — but it does mean a new warning introduced in
 one of those headers will surface from the tests rather than from the
 library build.
+
+## LTO installs (M6 W6 T3, 2026-09-14)
+
+`HVEN_LINK_TIME_OPT` is **OFF by default** and W6 did not move that default.
+The reason it is off is older than this section — "thin-LTO was measured to buy
+this library nothing (M4 Task 9's bench legs)", `CMakeLists.txt:79-80` — and M6
+W6 T3 did **not** re-measure it: that task asserted no wall-clock number at all
+and says nothing about whether an LTO build is faster or slower. What T3 did do
+is turn the option on once, end to end, and write down what turning it on does
+to an **install**. The evidence is `docs/notes/data/2026-09-m6-w6-lto/`
+(`README.md` sections 5 and 7 (b)-(d); `install-smoke.txt`, whose section (iii)
+tables the options below).
+
+**The constraint.** With `HVEN_LINK_TIME_OPT=ON`, CMake emits `-flto=thin` for
+this clang, and the members of the installed `libhven.a` are **LLVM IR
+bitcode** where an ordinary build's are ELF relocatables. On the reference box a
+**clang 22.1.8** consumer that does **not** enable LTO for itself then fails to
+link the installed package, because `clang++` drives `/usr/bin/ld.bfd`
+(GNU ld 2.46.1) with no LLVM plugin loaded and BFD ld cannot read a bitcode
+archive member:
+
+```
+/usr/bin/ld.bfd: .../libhven.a: error adding symbols: file format not recognized
+```
+
+Three of the four consumer configurations measured **pass**: GCC 16.2.1 with the
+consumer's own IPO off and on (GCC's LTO members are ELF files BFD ld reads
+directly), and clang with its own IPO on (which puts `-flto=thin` on the
+consumer's link line and gets an LTO-capable link). `check_export_contract.sh`
+passed on **all four** install prefixes, the failing one included — the library
+installs correctly; only that one consumer link fails. A clang consumer linking
+through `lld`, or through a `ld.bfd` that can load `LLVMgold.so`, was **not
+run** and nothing is claimed for it. Windows and Apple are **UNOBSERVED**.
+
+**Documented, not remedied.** W6 states the constraint and builds no fix, and
+the default posture is unchanged either way. The registered remedy candidate —
+for the next window that touches the exported target, and with tycho's consume
+input, since tycho is the consumer this would reach — is a **conditional
+link-only `-flto` usage requirement**: export `INTERFACE_LINK_OPTIONS` carrying
+`-flto` when, and only when, the library was built with IPO. That is inside the
+export contract as it is written: `scripts/check_export_contract.sh` forbids
+`INTERFACE_COMPILE_OPTIONS` (`:21-24`, enforced at `:113-121`) and asserts
+nothing about `INTERFACE_LINK_OPTIONS`, so no contract widening is needed —
+only a compile-side usage requirement would reopen it. `-ffat-lto-objects` is
+**rejected for now**: bigger archives and slower builds, with clang support
+unvalidated on this toolchain, bought for a configuration no consumer has asked
+for.
+
+**What the install smoke does and does not exercise here.**
+`scripts/check_install_smoke.sh` pins no compiler — both of its configures use
+whatever `c++` CMake's default search finds, which on this box and in CI is GCC,
+the front end whose arms pass. So the CI shape of that check does not exercise
+clang's LTO at all, and would stay green even if this constraint bit a clang
+consumer. A caller that needs a particular front end passes
+`-DCMAKE_CXX_COMPILER=...` as an argument to the script, which forwards every
+argument to both configures; that is how T3's two clang arms were taken. No CI
+matrix arm was added for LTO: it would duplicate a lane to guard a switch that
+is off, and it would go green at the GCC front end while the clang consume path
+stayed broken. If anything is added later, it is one smoke invocation with LTO
+on at the clang front end, **after** the remedy above is ruled on.
