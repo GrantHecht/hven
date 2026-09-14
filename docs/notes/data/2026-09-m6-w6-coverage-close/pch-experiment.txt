@@ -120,3 +120,31 @@ REPRODUCTION
 .scratch/w6t2/pch_experiment.sh (both arms, both reports) and
 .scratch/w6t2/pch_compare.py (this table), with the raw llvm-cov reports and
 the two configure/build logs retained beside them. Git-ignored, not committed.
+
+CORRECTION (2026-09-14 -- W6 T2 FIX ROUND 1, settler ruling N3(c) on the sol
+review's minors)
+---------------------------------------------------------------------------
+Everything above is kept exactly as published. The two statements below
+SUPERSEDE the lines they name; no measurement in this file changed, and no arm
+was re-run.
+
+1. THE ROW COUNT UNDER "EVERY OTHER LIBRARY ROW ...". That table holds
+   TWENTY-ONE rows, not twenty. The miscount was in the prose about the table
+   (the implementer report's section 4, "Twenty further library rows move the
+   same way"), never in the table itself, which is reproduced from
+   .scratch/w6t2/pch_compare.py's output unchanged. Re-counted at this
+   correction: 21.
+   (The other "twenty" in this artifact -- the TWENTY UNCOVERED REGIONS T0
+   named, in parity.txt, delta.txt, PROVENANCE.txt and README.md -- is a
+   different set and is correct.)
+
+2. THE PROVENANCE LABEL IN THIS FILE'S TITLE LINE. It reads "(plan J.9; T0
+   README section 3)". Plan docs/notes/2026-09-m6-w6-plan.md section 0, J.9
+   governs the INSTRUMENT-TREE EXCLUSION LIST's disposition (the ctest -E regex
+   inside scripts/run_coverage.sh, provisional at T0 and re-derived at this
+   close read); it says nothing about the precompiled header. This experiment's
+   provenance is T0's README section 3 -- the PCH correlation T0 observed and
+   named the cheap test for -- and W6 T2's own brief, item 6, which asked for
+   it. Read the title as "(T0 README section 3; W6 T2 brief item 6)". The brief
+   carries the same mislabel; it is corrected in the fix-round report, not
+   here.

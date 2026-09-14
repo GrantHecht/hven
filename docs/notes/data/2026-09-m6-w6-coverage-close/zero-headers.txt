@@ -72,3 +72,27 @@ AND THE ONE THE PLAN ASKED FOR BY NAME
 entirely (`grep ipm_solver_fwd coverage-summary.txt` returns nothing), for T0's
 reason: six scoped enums, a forward declaration and a POD emit no coverage
 records. A file with no executable paths cannot have uncovered ones.
+
+CORRECTION (2026-09-14 -- W6 T2 FIX ROUND 1, settler ruling N3(c) on the sol
+review's minors)
+---------------------------------------------------------------------------
+Kept as published; this SUPERSEDES one count in judgement 1 above (the
+`eval_error_log.h` paragraph).
+
+"T2 added seventeen cells that drive `EvalErrorLog::record()` and
+`record_unknown()` directly" -- SEVENTEEN was tests/interior/test_soc.cpp's own
+initial cell count, not the number of cells that drive those two functions. The
+cells that DIRECTLY assert them are FOUR: the trial-evaluation fault arms
+  SocRecovery.AnUnevaluableSeedDeclinesAndLogsTheMessage
+  SocRecovery.AnUnevaluableSeedOfUnknownTypeDeclinesAndLogsTheSentinel
+  SocRecovery.AnUnevaluableAccumulationPointEndsTheLoopAndLogsTheMessage
+  SocRecovery.AnUnevaluableAccumulationPointOfUnknownTypeLogsTheSentinel
+each of which asserts the recorded COUNT and the recorded MESSAGE (the standard
+message on two, the unknown-type sentence on the other two). Other cells in the
+suite reach the log incidentally; these four are the ones that assert what its
+functions produced.
+
+The JUDGEMENT the count was offered in support of is unchanged, and if anything
+sharper: four cells assert the values those two functions computed while this
+row still reads 0/9. A row that stays at zero while a test asserts the value its
+function computed is a report defect, not a coverage gap.

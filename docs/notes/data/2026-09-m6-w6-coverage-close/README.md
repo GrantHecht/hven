@@ -95,3 +95,31 @@ No library source: `git diff --stat 51a00906..HEAD -- src/ include/` is empty.
 The only non-test change in the window is one emitted string in
 `scripts/run_coverage.sh` (78c46593), and `PROVENANCE.txt` records both why it
 changed and why this read could not emit it.
+
+## 6. Corrections (2026-09-14, W6 T2 fix round 1)
+
+The sol review of this task (FIX-ROUND, no Critical) found two factual errors in
+this directory. Both are corrected by **dated notes appended to the files
+themselves** — the original text is kept and marked superseded, never rewritten,
+because these are published evidence files:
+
+- `pch-experiment.txt` — the "every other library row" table holds **21** rows,
+  not the twenty the implementer report called them; and this file's title line
+  labels the experiment "plan J.9", which governs the instrument-tree exclusion
+  list instead. The experiment's provenance is **T0's README section 3 and W6
+  T2's brief, item 6**.
+- `zero-headers.txt` — the cells that DIRECTLY assert `EvalErrorLog::record()` /
+  `record_unknown()` are the **four** trial-evaluation fault arms in
+  `tests/interior/test_soc.cpp`, not seventeen (seventeen was that file's own
+  initial cell count). The judgement is unchanged.
+
+No measurement moved, no arm was re-run, and `coverage-summary.txt` is untouched.
+
+One test named in `delta.txt`'s CLASSIFIED entry was **renamed** in the same fix
+round, so a reader following that entry finds it under its new name: the
+un-evaluable bypass's middle branch (`ipm_solver.cpp:3834-3838`, count 0) was
+claimed by `IpmStopReason.AnUnevaluableStepEntersRestorationWhenItCan`; it is now
+`IpmStopReason.AnUnevaluableStepWithRestorationAvailableEntersItThroughTheRecoveryChain`
+and says in its own comment that the branch is not reached, why (the recovery
+chain's own feasibility switch diverts first), and what the one remaining route
+to it would be. **The CLASSIFIED entry itself stands, unedited.**
