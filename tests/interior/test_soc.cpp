@@ -220,17 +220,26 @@ struct SocTrialProblem : hven::solvers::NlpTripletModel {
     /// When true the fault is a non-std::exception, taking the `catch (...)`
     /// arm rather than the `catch (const std::exception &)` one.
     bool throw_unknown = false;
+    /// Drops the inequality row, so the program has no slack block at all --
+    /// the shape on which the correction's fraction-to-boundary guard is FALSE.
+    /// Fixed before the program is built; every shape method reads it.
+    bool equality_only = false;
     mutable int eval_g_calls = 0;
 
     int num_vars() const override { return 2; }
-    int num_cons() const override { return 2; }
-    int num_jac_nonzeros() const override { return 4; }
+    int num_cons() const override { return equality_only ? 1 : 2; }
+    int num_jac_nonzeros() const override { return equality_only ? 2 : 4; }
     int num_hess_nonzeros() const override { return 2; }
 
     void bounds(Eigen::Ref<Eigen::VectorXd> xl, Eigen::Ref<Eigen::VectorXd> xu,
                 Eigen::Ref<Eigen::VectorXd> gl, Eigen::Ref<Eigen::VectorXd> gu) const override {
         xl << -kSocInf, -kSocInf;
         xu << kSocInf, kSocInf;
+        if (equality_only) {
+            gl << 1.0;
+            gu << 1.0;
+            return;
+        }
         gl << 1.0, 0.0; // row 0 is an equality (gl == gu), row 1 a >= row
         gu << 1.0, kSocInf;
     }
@@ -252,10 +261,17 @@ struct SocTrialProblem : hven::solvers::NlpTripletModel {
             throw std::runtime_error("SocTrialProblem: constraints refused at this point");
         }
         g[0] = x[0] + x[1];
-        g[1] = x[0] - x[1];
+        if (!equality_only) {
+            g[1] = x[0] - x[1];
+        }
     }
     void jac_structure(Eigen::Ref<Eigen::VectorXi> r,
                        Eigen::Ref<Eigen::VectorXi> c) const override {
+        if (equality_only) {
+            r << 0, 0;
+            c << 0, 1;
+            return;
+        }
         r << 0, 0, 1, 1;
         c << 0, 1, 0, 1;
     }
@@ -266,6 +282,10 @@ struct SocTrialProblem : hven::solvers::NlpTripletModel {
     }
     void eval_jac(hven::ConstEigenRef<Eigen::VectorXd>,
                   Eigen::Ref<Eigen::VectorXd> v) const override {
+        if (equality_only) {
+            v << 1.0, 1.0;
+            return;
+        }
         v << 1.0, 1.0, 1.0, -1.0;
     }
     void eval_hess(hven::ConstEigenRef<Eigen::VectorXd>, double obj_factor,
@@ -389,7 +409,17 @@ struct SocDrive {
     static constexpr double kEntryAlphaP = 0.9;
     static constexpr double kEntryAlphaD = 0.8;
 
-    explicit SocDrive(int max_soc) {
+    /// @param max_soc        the correction cap the options carry.
+    /// @param equality_only   drop the inequality row (no slack block), the
+    ///                        shape on which the correction skips the
+    ///                        fraction-to-boundary scaling entirely.
+    /// @param primal0/primal1 the current iterate's primal block. The default
+    ///                        (0.5, 0.5) leaves the trial inequality residual
+    ///                        non-negative; a separated pair makes it negative
+    ///                        and takes the slack reset's other branch.
+    explicit SocDrive(int max_soc, bool equality_only = false, double primal0 = 0.5,
+                      double primal1 = 0.5) {
+        problem->equality_only = equality_only;
         program = hven::solvers::make_nlp_program(problem);
 
         // The engine lays the KKT pattern before it evaluates; do the same so
@@ -417,6 +447,8 @@ struct SocDrive {
 
         const int n = program->kkt_dim_;
         XSL = Eigen::VectorXd::Constant(n, 0.5);
+        XSL(0) = primal0;
+        XSL(1) = primal1;
         DXSL = Eigen::VectorXd::Constant(n, 0.1);
         XSL2 = Eigen::VectorXd::Zero(n);
         RHS = Eigen::VectorXd::Constant(n, 0.2);
@@ -663,6 +695,68 @@ TEST(SocRecovery, ResetIsAStatelessNoOp) {
     soc.reset();
     EXPECT_EQ(drive.run(soc, acceptance, mechanism), Action::kRetry);
     EXPECT_EQ(drive.soc_steps, 1);
+}
+
+// THE SLACK RESET'S OTHER BRANCH. `eval_trial_constraints` completes the trial
+// constraint block with the same slack-reset convention the RHS assembly uses,
+// so the value it produces is directly comparable to RHS.all_cons(): a
+// non-negative trial inequality residual has the trial slack ADDED to it, while
+// a negative one is driven to EXACTLY ZERO (the slack takes its magnitude
+// instead). The two branches are distinguishable from outside because the
+// accumulated c_soc lands in the corrected right-hand side's constraint block,
+// and on the identity factor the corrected direction is that block negated.
+TEST(SocRecovery, ANegativeTrialResidualIsZeroedByTheSlackReset) {
+    // The current iterate's primals separated, so the inequality row is
+    // strictly satisfied at the trial point and its residual is negative.
+    SocDrive negative(kSocRecommendedMaxCorrections, /*equality_only=*/false,
+                      /*primal0=*/1.0, /*primal1=*/0.0);
+    SocUnusedAcceptance neg_acceptance;
+    SocScriptedMechanism neg_mechanism({{true, 1.0, 0.0}});
+    SocRecovery neg_soc;
+    ASSERT_EQ(negative.run(neg_soc, neg_acceptance, neg_mechanism), Action::kRetry);
+    ASSERT_EQ(neg_mechanism.recorded_dxsl_.size(), 1u);
+
+    // The default drive, whose trial residual is NOT negative, for contrast.
+    SocDrive nonnegative(kSocRecommendedMaxCorrections);
+    SocUnusedAcceptance pos_acceptance;
+    SocScriptedMechanism pos_mechanism({{true, 1.0, 0.0}});
+    SocRecovery pos_soc;
+    ASSERT_EQ(nonnegative.run(pos_soc, pos_acceptance, pos_mechanism), Action::kRetry);
+    ASSERT_EQ(pos_mechanism.recorded_dxsl_.size(), 1u);
+
+    const int ic = negative.inert.inequal_cons_;
+    ASSERT_EQ(ic, 1);
+    const double neg_entry = neg_mechanism.recorded_dxsl_[0].tail(ic)(0);
+    const double pos_entry = pos_mechanism.recorded_dxsl_[0].tail(ic)(0);
+
+    // Zeroed: c_soc's inequality entry is the RHS block alone, so the corrected
+    // direction's is exactly its negation.
+    EXPECT_DOUBLE_EQ(neg_entry, -negative.RHS.tail(ic)(0));
+    // And the other branch really is the other branch.
+    EXPECT_NE(neg_entry, pos_entry);
+}
+
+// NO SLACKS, NO BOUNDS, NO NESTED RESTORATION: the correction's
+// fraction-to-boundary guard is false in all three disjuncts, so the corrected
+// direction is re-tested WITHOUT being rescaled -- there is nothing to keep
+// positive. The correction itself still runs and still commits.
+TEST(SocRecovery, AnEqualityOnlyProblemSkipsTheFractionToBoundaryScaling) {
+    SocDrive drive(kSocRecommendedMaxCorrections, /*equality_only=*/true);
+    ASSERT_EQ(drive.inert.inequal_cons_, 0) << "premise: this shape has no inequality rows";
+    ASSERT_EQ(drive.inert.slack_vars_, 0) << "premise: and therefore no slack block";
+
+    SocUnusedAcceptance acceptance;
+    SocScriptedMechanism mechanism({{true, 0.6, 0.0}});
+    SocRecovery soc;
+
+    EXPECT_EQ(drive.run(soc, acceptance, mechanism), Action::kRetry);
+    EXPECT_EQ(mechanism.calls_, 1) << "the corrected trial was still re-tested";
+    EXPECT_EQ(mechanism.scalings_, 0) << "nothing to keep positive: no rescale may happen";
+    EXPECT_DOUBLE_EQ(drive.alpha, 0.6);
+    // The entry lengths are untouched, because the only thing that writes them
+    // on this path is the scaling that did not run.
+    EXPECT_DOUBLE_EQ(drive.alphap, SocDrive::kEntryAlphaP);
+    EXPECT_DOUBLE_EQ(drive.alphad, SocDrive::kEntryAlphaD);
 }
 
 } // namespace

@@ -17,6 +17,7 @@
 
 #include <Eigen/Core>
 
+#include <hven/detail/globalization/recovery_chain.h>
 #include <hven/drivers/ipm_solver.h>
 #include <hven/drivers/solve_result.h>
 #include <hven/drivers/solve_status.h>
@@ -339,11 +340,17 @@ struct AnchorOnlyProblem : NlpTripletModel {
     std::string name() const override { return "AnchorOnlyProblem"; }
 };
 
-/// The un-evaluable-step fixture at ONE lever: whether the acceptable tier is
-/// wide enough to contain the committed iterate. Restoration stays OFF (the
-/// default), so the bypass's middle branch is out of the picture and the choice
-/// is exactly between "exit at the acceptable level" and "abort".
-hven_interior_tests::IpmCase make_anchor_only_solver(bool acceptable_tier_contains_the_iterate) {
+/// The un-evaluable-step fixture. The FIRST lever is the one the two tests
+/// below turn: whether the acceptable tier is wide enough to contain the
+/// committed iterate. With restoration off (the default) that lever alone
+/// decides between "exit at the acceptable level" and "abort", because the
+/// bypass's middle branch cannot be taken; `restoration_on` turns it back on so
+/// that middle branch can be reached, and `ls` selects which classic merit
+/// variant absorbs the refused trials on the way there.
+hven_interior_tests::IpmCase make_anchor_only_solver(
+    bool acceptable_tier_contains_the_iterate, bool restoration_on = false,
+    hven::solvers::LineSearchModes ls = hven::solvers::LineSearchModes::kAugLang,
+    int max_iters = 20) {
     hven_interior_tests::IpmCase c{
         hven::solvers::make_nlp_program(std::make_shared<AnchorOnlyProblem>()),
         std::make_unique<IpmSolver>()};
@@ -351,7 +358,7 @@ hven_interior_tests::IpmCase make_anchor_only_solver(bool acceptable_tier_contai
     o.phases = {hven::solvers::IpmPhase::kOptimize};
     o.common.print_level = 10;
     o.common.threads = 1;
-    o.max_iters = 20;
+    o.max_iters = max_iters;
     // The acceptable tier is validated to sit between the convergence and the
     // divergence tolerances (kkt_tol <= acc_kkt_tol <= div_kkt_tol, and so per
     // family), so the two arms are the two ENDS of that legal range rather than
@@ -363,6 +370,10 @@ hven_interior_tests::IpmCase make_anchor_only_solver(bool acceptable_tier_contai
     o.acc_econ_tol = acc;
     o.acc_icon_tol = acc;
     o.acc_bar_tol = acc;
+    o.opt_ls_mode = ls;
+    if (restoration_on) {
+        o.restoration_mode = hven::solvers::RestorationModes::l1_nested;
+    }
     c.engine->set_options(std::move(o));
     return c;
 }
@@ -1000,4 +1011,64 @@ TEST(IpmStopReason, AnUnevaluableStepAtAnUnacceptableIterateAbortsWithTheLatched
         // does not carry).
         EXPECT_NE(what.find("AnchorOnlyProblem"), std::string::npos) << what;
     }
+}
+
+// THE BYPASS'S MIDDLE BRANCH. With the acceptable tier pinched shut and
+// restoration AVAILABLE, the un-evaluable line search neither exits nor aborts:
+// it enters feasibility restoration, skipping the soft pre-stage whose trial is
+// the very step that could not be evaluated. The same fixture and the same
+// start as the two tests above; restoration is the only thing added.
+TEST(IpmStopReason, AnUnevaluableStepEntersRestorationWhenItCan) {
+    // max_iters = 2 is the fixture's own bound, not a tuning knob: the entry
+    // happens on the first un-evaluable line search, and a LATER one on the same
+    // fixture finds restoration ALREADY ACTIVE and aborts (this branch recovers
+    // once, and this problem never becomes evaluable). Two iterations is what it
+    // takes to see the entry and stop on the cap rather than on the second
+    // failure.
+    auto solver = stop_reason_test::make_anchor_only_solver(
+        /*acceptable_tier_contains_the_iterate=*/false, /*restoration_on=*/true,
+        hven::solvers::LineSearchModes::kAugLang, /*max_iters=*/2);
+    Eigen::VectorXd x0(2);
+    x0 << 0.0, 0.0;
+
+    // It does not abort -- which is the whole difference from the arm above.
+    hven::solvers::IpmResult result;
+    ASSERT_NO_THROW(result = solver.engine->solve(*solver.program, x0));
+
+    EXPECT_FALSE(result.last_eval_exception.empty())
+        << "no trial evaluation was refused, so the bypass never ran";
+    EXPECT_GT(result.last_feas_rest_entries, 0) << "restoration was not entered";
+    // And the iteration is ATTRIBUTED to restoration in the recovery-depth
+    // histogram, which is the branch's own bookkeeping.
+    EXPECT_GT(result.recovery_depth_histogram[hven::solvers::kRecoveryDepthRestoration], 0);
+}
+
+// The classic merit variants' OWN un-evaluable-trial arms. `ls_lang` and
+// `ls_l1` each wrap their trial evaluation in the same two catch arms
+// `ls_auglang` has, and treat a refused trial as a merit rejection that
+// continues down the alpha ladder with the infeasibility signal left at its
+// sentinel. The W6 T0 read found both variants cold as one run; selecting each
+// on a model that refuses every trial reaches those arms, and the acceptable
+// tier is left WIDE so what is observed is the absorb-and-continue, not an
+// abort.
+void expect_variant_absorbs_unevaluable_trials(hven::solvers::LineSearchModes ls,
+                                               const char *what) {
+    auto solver = stop_reason_test::make_anchor_only_solver(
+        /*acceptable_tier_contains_the_iterate=*/true, /*restoration_on=*/false, ls);
+    Eigen::VectorXd x0(2);
+    x0 << 0.0, 0.0;
+    const hven::solvers::IpmResult result = solver.engine->solve(*solver.program, x0);
+
+    EXPECT_EQ(result.status, hven::solvers::SolveStatus::kAcceptable) << what;
+    EXPECT_FALSE(result.last_eval_exception.empty())
+        << what << ": no trial evaluation was refused, so the variant's catch arms never ran";
+    EXPECT_LT(result.iterations, 20) << what;
+}
+
+TEST(IpmStopReason, TheLagrangianMeritVariantAbsorbsUnevaluableTrials) {
+    expect_variant_absorbs_unevaluable_trials(hven::solvers::LineSearchModes::kLang, "kLang");
+}
+
+TEST(IpmStopReason, TheL1MeritVariantAbsorbsUnevaluableTrials) {
+    expect_variant_absorbs_unevaluable_trials(hven::solvers::LineSearchModes::kL1, "kL1");
 }
