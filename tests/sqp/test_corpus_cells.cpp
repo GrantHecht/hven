@@ -3854,20 +3854,79 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         // is exactly zero in both, because the repair is exact.
         //
         // So that cell takes the SAME 1e-5 relative gate the Release arm above
-        // uses, on the same argument; every other cell keeps the byte-compare.
-        // Widest gap here is 2.6e-6 relative (kkt_stationarity) -- inside the
-        // gate with room, and still orders below anything a lever could do.
+        // uses, on the same argument. Widest gap here is 2.6e-6 relative
+        // (kkt_stationarity) -- inside the gate with room, and still orders
+        // below anything a lever could do. (Until M6 W6 T1 every OTHER cell kept
+        // a byte-compare here; the block below says why they no longer do, and
+        // why this one's bound is still the bare relative form.)
         static const std::set<std::string> kR6RePinnedRows = {"f7_n1000_path_neutral"};
         const bool r6_repinned = kR6RePinnedRows.count(id) == 1;
+        // A DECLARED RELAXATION OF ONE DEBUG-ARM FLOAT PIN (M6 W6 T1, plan
+        // section 0 J.6). The byte-strict EXPECT_EQ that stood here is now the
+        // SAME 1e-5 relative gate the Release arm above uses, with the absolute
+        // floor of 1e-13 this file derives at :3547-3557. It is written down
+        // because a pin that moves silently is worse than one that moves.
+        //
+        // WHY. This cell failed twice under full-suite Debug with unpinned
+        // threading and passed in isolation each time, on a byte-for-byte
+        // residual compare -- observed 2026-08-30 at M6 W1 T2 and registered
+        // then (docs/notes/2026-08-m6-ledger.md:576-580) with "near-ulp gate or
+        // thread self-pin" as the remedy. The self-pin at :3643 cannot work:
+        // MKL reads its environment at first use in the PROCESS, and in a
+        // full-suite run another test has already initialised it, which is
+        // exactly the pass-in-isolation/fail-in-suite split observed. The gate
+        // is the remedy that works, and it is the one CLAUDE.md section 7 names:
+        // MKL's kernels are address-sensitive, so a residual can differ in its
+        // last digits "between two processes running identical code at
+        // MKL_NUM_THREADS=1, and cross-process agreement on them is asserted by
+        // a calibrated near-ulp gate rather than by byte equality -- counters
+        // and statuses remain exact". THIS COMPARE IS CROSS-PROCESS: the
+        // artifact rows on the right were written by the corpus binary in a
+        // different process, so the clause applies to it directly.
+        //
+        // WHAT DOES NOT MOVE. Every integer counter, the status, the per-QP
+        // shape and kkt_verdict above stay BYTE-STRICT on both arms: no
+        // floating-point arithmetic produces them, so a single-bit move in one
+        // is a real regression. Byte equality is still checked FIRST here and is
+        // still the common outcome; the gate engages only on the digits that
+        // provably vary. Same rule, same constants, as scripts/census_compare.py
+        // and scripts/compare_replay.py apply under --residual-gate.
+        //
+        // THE R6 ROW KEEPS THE BARE RELATIVE BOUND, deliberately: its widest gap
+        // is 2.6e-6 RELATIVE and its smallest column (complementarity, 1.27e-13)
+        // clears the relative test by three orders, so the floor would only
+        // loosen a pin that does not need it. The floor is for the cells whose
+        // residuals sit BELOW it, where a purely relative test measures noise
+        // against noise -- f7_n1000_bound_neutral's kkt_residual is 6.3e-14, so
+        // the floor, not the 1e-5, is the operative bound on that column and the
+        // relaxation there is larger than "1e-5" alone suggests. That is the
+        // same trade this file already took at :3547-3557 and is stated here so
+        // the next reader does not have to re-derive it.
+        constexpr double kDebugResidualAbsFloor = 1e-13;
         const auto debug_close = [&](double observed, const std::string &artifact,
                                      const char *what) {
             const std::string live = fmt::format("{:.9e}", observed);
-            if (!r6_repinned) {
-                EXPECT_EQ(live, artifact) << what << " on cell " << id;
-                return;
+            if (live == artifact) {
+                return; // byte-equal: the common outcome, checked first
             }
             const double want = std::stod(artifact);
+            // Non-finite never passes the numeric path below: inf against a
+            // finite value gives |inf - x| = inf and scale = inf, so the
+            // relative test would read inf <= inf and SUCCEED. An infinite or
+            // NaN residual is the loudest regression this column can report.
+            if (!std::isfinite(observed) || !std::isfinite(want)) {
+                ADD_FAILURE() << what << " on cell " << id
+                              << ": a non-finite residual never passes the gate -- Debug " << live
+                              << ", artifact " << artifact;
+                return;
+            }
             const double scale = std::max(std::abs(want), std::abs(observed));
+            if (!r6_repinned) {
+                EXPECT_LE(std::abs(observed - want), std::max(1e-5 * scale, kDebugResidualAbsFloor))
+                    << what << " on cell " << id << ": Debug " << live << ", artifact " << artifact
+                    << " -- outside the 1e-5 relative gate (absolute floor 1e-13)";
+                return;
+            }
             EXPECT_LE(std::abs(observed - want), 1e-5 * scale)
                 << what << " on cell " << id << ": Debug " << live << ", Release-derived artifact "
                 << artifact;
