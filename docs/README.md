@@ -4,6 +4,7 @@ measurement records carry provenance banners.
 | Page | What it is |
 | --- | --- |
 | [testing.md](testing.md) | The test-seam convention, the fault-injection seam, and the golden-numerics rig — how to run it, how its tables work, what its audit proves |
+| [concurrency.md](concurrency.md) | The concurrency contract: thread-safe solves and no parallel-solve facility — what N instances on N threads may assume, what they may not share, and the process-global exceptions as audited |
 | [ci.md](ci.md) | The three CI lanes, and the route from the macOS lane to a real Accelerate observation |
 | [build.md](build.md) | The precompiled header — what it covers, the byte-identity rule for joining it — and the ccache settings it needs |
 | [counters.md](counters.md) | The operation counters and what each one means |

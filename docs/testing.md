@@ -151,6 +151,80 @@ for those two entries relies on — and records, without asserting, `iparm[18]`'
 
 The `notices/eigen-mpl2.txt` entry for that file records this modification too.
 
+### A third deviation, CONSIDERED AND DECLINED (2026-09-14, M6 W6 T4)
+
+**There are still two.** The `FactorSession` throw seam registered at M6 W5 T8.8
+(`docs/notes/2026-08-m6-ledger.md:4301-4307`, `:4329-4331`) was considered at W6
+and **declined** by the window's settler (`docs/notes/2026-09-m6-w6-plan.md` §0
+J.4). This note records the decision, its reasoning and what measures the
+property instead, so the registration is retired with evidence rather than
+forgotten.
+
+*What it would have been.* A `#ifdef HVEN_TESTING` point able to force a throw
+from **inside** `MklThreadScope`'s lifetime, so that the scope's restore-on-
+unwind could be observed through a real backend call. The ledger's name for the
+site, "`FactorSession::call`", matches no member; the site is
+`FactorSession::run_phase`, `src/linear/pardiso_session.cpp:132-134`, where the
+scope is constructed on the line before `::pardiso` — which is to say, **inside
+the MPL-derived session file**.
+
+*Why it was declined.* Three reasons, in order of weight.
+
+1. The standing argument at "What it deliberately does NOT cover" below already
+   settles it: that line is covered from the outside, and reaching in would buy a
+   deviation for a line the boundary already watches. Nothing about the tree has
+   changed to reopen that.
+2. The "How to use it for a new fault path" checklist's own first step refuses
+   the improvisation: a failure reachable only from inside a session is a
+   **raise-it** case, not a this-convention-applies case.
+3. It is not needed for the property. Since M6 W5 T8.8 the class itself lives in
+   the Apache-2.0 header `include/hven/detail/linear/thread_scope.h` and is
+   directly constructible, so the destructor's behaviour on an unwind can be
+   measured **at the class**, with no session, no seam and no derived file
+   touched at all.
+
+*What measures it instead.*
+`ThreadScope.TheCallersOverrideIsRestoredWhenAThrowUnwindsTheScope` in
+`tests/linear/test_fault_injection.cpp`: a throw raised inside a live
+`MklThreadScope` and caught outside it, with MKL's thread state read **before**
+(the caller's own override), **inside** (the count the scope applied) and
+**after** (the caller's override, back), through both readings MKL offers —
+`mkl_get_max_threads()` and the setter's own return value. A sibling,
+`AnUnengagedScopeWritesNothingWhenAThrowUnwindsIt`, covers the count-0 case, so a
+destructor that wrote unconditionally would not pass for want of a distinguishing
+arm. Mutation-checked: a destructor changed to restore on a normal exit but
+**not** on an unwind (`engaged_ && std::uncaught_exceptions() == 0`) fails
+exactly that one test while the other three `ThreadScope` tests keep passing —
+which is the gap, in one line.
+
+*What is NOT claimed by it.* It does not prove that a throw ORIGINATING inside
+`FactorSession::run_phase` unwinds correctly, because no such throw exists:
+`::pardiso` is a C entry point and no statement sits between the scope's
+construction and the call. That half remains true by construction, as the block
+comment above those tests says in as many words.
+
+### One target or two
+
+The sentence under "The shape" below says `HVEN_TESTING` is defined "target-wide,
+on exactly one CMake target". **That is stale, and has been since the IPQP tier
+seam landed: there are TWO** (recorded 2026-09-14, M6 W6 T4; plan §0 J.4, A15).
+`tests/CMakeLists.txt:244-246` says so in its own words — "EXACTLY TWO TARGETS IN
+THIS TREE DEFINE HVEN_TESTING — this one and hven_ipqp_seam_tests below" — and
+the two definition sites are `tests/CMakeLists.txt:248`
+(`hven_fault_injection_tests`) and `:329` (`hven_ipqp_seam_tests`).
+
+Nothing about the convention moves with the count. Both are standalone
+executables, both recompile the sources they instrument a second time, and
+**neither links `hven::hven`** — which is the property that matters, because it
+is what keeps the production library and every ordinary test binary untouched by
+the macro. Read the paragraph below as "on exactly two CMake targets", with
+`hven_ipqp_seam_tests`'s own section further down for what the second one
+instruments and why it needs no deviation.
+
+Two targets is also not two more *deviations*: the sanctioned-deviation count
+above is two, both in `pardiso_session.cpp`, and `hven_ipqp_seam_tests`'s hook
+sits in an Apache-2.0 file this repository wrote.
+
 ## The shape
 
 `hven/detail/linear/fault_injection.h` declares, for each backend, a small
