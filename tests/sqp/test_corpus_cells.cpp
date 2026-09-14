@@ -3818,6 +3818,22 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         constexpr double kHostRelTol = 1e-5;
         const auto close = [&](double observed, const char *derived, const char *what) {
             const double want = std::stod(derived);
+            // A NON-FINITE VALUE NEVER REACHES THE ARITHMETIC BELOW (M6 W6 T1
+            // fix1). With `observed` infinite and `want` finite, |observed -
+            // want| is inf and scale is inf, so the relative test would read
+            // inf <= inf and PASS -- the loudest regression this column can
+            // report, waved through. The Debug arm's gate refuses it at the
+            // #else below and both comparators refuse it under
+            // --residual-gate; this arm now says the same thing. The 1e-13
+            // floor is deliberately NOT added here: see the #else arm's note
+            // on the declared asymmetry.
+            if (!std::isfinite(observed) || !std::isfinite(want)) {
+                ADD_FAILURE() << what << " on cell " << id
+                              << ": a non-finite residual never passes the gate -- observed "
+                              << fmt::format("{:.9e}", observed) << ", derivation machine "
+                              << derived;
+                return;
+            }
             const double scale = std::max(std::abs(want), std::abs(observed));
             EXPECT_LE(std::abs(observed - want), kHostRelTol * scale)
                 << what << " on cell " << id << ": observed " << fmt::format("{:.9e}", observed)
@@ -3853,19 +3869,31 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         // ~3.22e-07 and differs only in the 6th significant digit. dual_sign
         // is exactly zero in both, because the repair is exact.
         //
-        // So that cell takes the SAME 1e-5 relative gate the Release arm above
-        // uses, on the same argument. Widest gap here is 2.6e-6 relative
+        // So that cell takes the SAME 1e-5 relative FACTOR the Release arm
+        // above uses, on the same argument. Widest gap here is 2.6e-6 relative
         // (kkt_stationarity) -- inside the gate with room, and still orders
-        // below anything a lever could do. (Until M6 W6 T1 every OTHER cell kept
-        // a byte-compare here; the block below says why they no longer do, and
-        // why this one's bound is still the bare relative form.)
+        // below anything a lever could do. (This test iterates exactly TWO ids,
+        // at :3655. Until M6 W6 T1 the OTHER one -- f7_n1000_bound_neutral --
+        // kept a byte-compare here; the block below says why that ONE ROW no
+        // longer does, and why this one's bound is still the bare relative
+        // form.)
         static const std::set<std::string> kR6RePinnedRows = {"f7_n1000_path_neutral"};
         const bool r6_repinned = kR6RePinnedRows.count(id) == 1;
         // A DECLARED RELAXATION OF ONE DEBUG-ARM FLOAT PIN (M6 W6 T1, plan
-        // section 0 J.6). The byte-strict EXPECT_EQ that stood here is now the
-        // SAME 1e-5 relative gate the Release arm above uses, with the absolute
-        // floor of 1e-13 this file derives at :3547-3557. It is written down
-        // because a pin that moves silently is worse than one that moves.
+        // section 0 J.6) -- ONE ROW, f7_n1000_bound_neutral, of the two ids this
+        // test iterates (:3655). The byte-strict EXPECT_EQ that stood here is
+        // now the Release arm's 1e-5 relative FACTOR plus the absolute floor of
+        // 1e-13 this file derives at :3547-3557. It is written down because a
+        // pin that moves silently is worse than one that moves.
+        //
+        // IT IS NOT LITERALLY "THE SAME GATE" THE RELEASE ARM APPLIES, and the
+        // asymmetry is DECLARED rather than glossed (M6 W6 T1 fix1). The
+        // Release arm's `close` above is FLOORLESS -- a bare
+        // kHostRelTol * scale -- while this arm carries the 1e-13 absolute
+        // floor; both arms refuse a non-finite value. So DEBUG IS THE LOOSER
+        // ARM, and nothing here can hide a Release regression: Release still
+        // pins its own five residuals against its own re-derivation with no
+        // floor at all, on every lane that ships a Release build.
         //
         // WHY. This cell failed twice under full-suite Debug with unpinned
         // threading and passed in isolation each time, on a byte-for-byte
@@ -3884,18 +3912,24 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         // artifact rows on the right were written by the corpus binary in a
         // different process, so the clause applies to it directly.
         //
-        // WHAT DOES NOT MOVE. Every integer counter, the status, the per-QP
-        // shape and kkt_verdict above stay BYTE-STRICT on both arms: no
-        // floating-point arithmetic produces them, so a single-bit move in one
-        // is a real regression. Byte equality is still checked FIRST here and is
-        // still the common outcome; the gate engages only on the digits that
-        // provably vary. Same rule, same constants, as scripts/census_compare.py
-        // and scripts/compare_replay.py apply under --residual-gate.
+        // WHAT DOES NOT MOVE. Every integer counter (:3683-3702), the status
+        // (:3678) and the per-QP shape (:3705-3709) stay BYTE-STRICT on both
+        // arms: no floating-point arithmetic produces them, so a single-bit move
+        // in one is a real regression. (This test compares NO kkt_verdict
+        // column -- an earlier draft of this comment said it stayed byte-strict
+        // here, which was false; the verdict comparison lives in
+        // CorpusTask6bRepair at :3568-3575. M6 W6 T1 fix1.) Byte equality is
+        // still checked FIRST here and is still the common outcome; the gate
+        // engages only on the digits that provably vary. Same rule, same
+        // constants, as scripts/census_compare.py and
+        // scripts/compare_replay.py apply under --residual-gate.
         //
         // THE R6 ROW KEEPS THE BARE RELATIVE BOUND, deliberately: its widest gap
-        // is 2.6e-6 RELATIVE and its smallest column (complementarity, 1.27e-13)
-        // clears the relative test by three orders, so the floor would only
-        // loosen a pin that does not need it. The floor is for the cells whose
+        // is 2.6e-6 RELATIVE, and on its smallest column (complementarity,
+        // 1.27e-13) the pair differs by 3.77e-20 against a relative bound of
+        // 1.27e-18 -- about 34x of head-room, NOT the "three orders" an earlier
+        // draft of this comment claimed (M6 W6 T1 fix1). Adding the floor there
+        // would only loosen a pin that does not need it. It is for the rows whose
         // residuals sit BELOW it, where a purely relative test measures noise
         // against noise -- f7_n1000_bound_neutral's kkt_residual is 6.3e-14, so
         // the floor, not the 1e-5, is the operative bound on that column and the
