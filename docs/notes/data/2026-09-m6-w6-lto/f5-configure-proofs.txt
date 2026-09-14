@@ -3,7 +3,8 @@ M6 W6 T3 -- M5's F5, REPRODUCED AND THEN FIXED, BY CONFIGURE
 F5 was registered at the M5 close (docs/notes/2026-08-m5-ledger.md:559-563; the shadow-class clause at :559-561, the never-exercised clause at :561-563) as
 "the same shadow class one level down (CMAKE_INTERPROCEDURAL_OPTIMIZATION
 plain-set in hven_compile_options.cmake)".  The W6 plan's A1 restated it
-correctly: hven_compile_options is a MACRO (cmake/hven_compile_options.cmake:47),
+correctly: hven_compile_options is a MACRO (cmake/hven_compile_options.cmake:47 at
+c34fd570; :49 at HEAD -- see the CORRECTION at the end of this file),
 so its set()s DO reach the targets -- the defect is the else() forcing OFF over a
 CALLER's own cache entry, not a set that goes nowhere.
 
@@ -106,3 +107,15 @@ THE ONE COMPILE LINE, BEFORE AND AFTER, FOR THE SAME OBJECT
 
 --- post-caller-ipo ---
 -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -flto=thin -fPIC -Wabsolute-value -pthread -mllvm -inline-threshold=225 -O3 -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 -march=native -mtune=native -ffast-math -fno-finite-math-only -fopenmp=libiomp5 -Xclang -fno-pch-timestamp -o CMakeFiles/hven.dir/src/core/version.cpp.o -c /home/ghecht/Projects/hven/src/core/version.cpp
+
+CORRECTION -- 2026-09-14, W6 T3 FIX ROUND 1
+===========================================
+Settler ruling P2 (e) on the sol review of T3: the macro cite in the header
+paragraph read as a bare ":47", which is current-looking and is NOT true at
+HEAD.  It is qualified above rather than renumbered silently.  :47 is the macro
+line AT c34fd570, the tree the two BEFORE configures ran in; commit dee112b3's
+own three-line addition to that file's header docblock moved it to :49, and the
+fix round's comment-only commit dc1318da deliberately keeps the docblock's line
+count, so :49 stays true at HEAD.  Nothing else in this file moves: all four
+configures, their arguments, their readings and the two compile lines quoted at
+the end are exactly as they were run.

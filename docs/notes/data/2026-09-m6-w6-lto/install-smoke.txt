@@ -60,6 +60,9 @@ WHY, AND WHY GCC DIFFERS
   is not a general property of "IPO on".
 
 THE REMEDY, REGISTERED AND NOT BUILT HERE
+  [SUPERSEDED 2026-09-14, W6 T3 fix round 1 -- see CORRECTIONS at the end of
+  this file, which narrows the observed failure, corrects what the export
+  contract actually forbids, and states four options with their costs.]
   This is not a one-line patch, because the obvious fix collides with a rule the
   tree asserts. An LTO build would have to export a usage requirement -- an
   INTERFACE_COMPILE_OPTIONS / INTERFACE_LINK_OPTIONS carrying -flto -- so a
@@ -338,3 +341,60 @@ ARM_clang-ipo-on_EXPORT_RC=0  (worst 0)
 EXPORT_ALL_WORST_RC=0
 LEG_RC=0
 FOREGROUND_END 2026-09-14T07:47:52Z
+
+CORRECTIONS -- 2026-09-14, W6 T3 FIX ROUND 1
+============================================
+Settler ruling P3 on the sol review of T3 (FIX-ROUND, no Critical).  THE REMEDY
+BLOCK ABOVE IS SUPERSEDED and kept in place; this block replaces it.  No arm was
+re-run; no result in this file moves.
+
+  (i) WHAT WAS OBSERVED, NARROWED TO ITSELF.  The failing arm is ONE PATH, not
+      "every non-LTO consumer": clang 22.1.8 built the library with -flto=thin,
+      the consumer did NOT enable LTO, and the link ran through /usr/bin/ld.bfd
+      (GNU ld 2.46.1) with no LLVM gold/LTO plugin loaded -- that link cannot
+      read a bitcode archive member.  The GCC 16.2.1 arms pass with the
+      consumer's IPO off because GCC's LTO members are ELF objects.  What a
+      clang consumer linking through lld, or through a ld.bfd with LLVMgold.so
+      available, would do was NOT RUN here and is not claimed either way.
+      Windows and Apple: UNOBSERVED.
+
+ (ii) THE EXPORT-CONTRACT COLLISION WAS OVERSTATED.  scripts/check_export_
+      contract.sh forbids INTERFACE_COMPILE_OPTIONS -- the documented rule at
+      :21-24, the enforcement at :113-121, a grep of the generated
+      hvenTargets*.cmake for that ONE property name.  It asserts NOTHING about
+      INTERFACE_LINK_OPTIONS: `grep -n 'INTERFACE_'` over that script finds only
+      INTERFACE_COMPILE_DEFINITIONS, INTERFACE_COMPILE_OPTIONS and
+      INTERFACE_INCLUDE_DIRECTORIES.  So a LINK-ONLY -flto usage requirement is
+      INSIDE the contract as written and needs no widening of it; only a
+      COMPILE-side usage requirement would reopen it.  Candidate (2) above
+      therefore overstates its own cost.
+
+(iii) THE OPTIONS, EACH WITH ITS COST.  For the settler's W6-close ruling.  None
+      is chosen here and T3 built none of them.
+
+      (1) DOCUMENT THE CONSTRAINT.  State, where installs are documented, that
+          an LTO-built libhven.a is consumable only by an LTO-capable link.
+          COST: nothing changes; the sharp edge stays for whoever turns the knob
+          on and installs.
+
+      (2) A CONDITIONAL LINK-ONLY USAGE REQUIREMENT.  Export
+          INTERFACE_LINK_OPTIONS carrying -flto when, and only when, the library
+          was built with IPO.  COST: inside the export contract as written, per
+          (ii), so no contract change -- but a real export-surface change, it
+          needs its own smoke arm, and it puts -flto on a consumer's LINK line
+          without touching how the consumer compiles.
+
+      (3) FAT LTO OBJECTS (-ffat-lto-objects).  Archive members carrying both
+          bitcode and ordinary object code, so a plain non-LTO link reads them.
+          COST: larger archives and slower builds, and CLANG/TOOLCHAIN SUPPORT
+          MUST BE VALIDATED FIRST -- this task did not run it, so nothing here
+          says it works on this toolchain.
+
+      (4) REFUSE OR WARN AT CONFIGURE on an install of an IPO-enabled hven.
+          COST: this is a POLICY, not a consumption remedy -- it makes the sharp
+          edge loud instead of silent; it does not make the install consumable,
+          and it does not replace considering (3).
+
+      Nothing about the DEFAULT posture changes under any of them:
+      HVEN_LINK_TIME_OPT is OFF, and the CI install smoke (GCC front end) passes
+      either way.

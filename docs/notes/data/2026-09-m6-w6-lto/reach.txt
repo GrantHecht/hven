@@ -13,6 +13,12 @@ Both at commit dee112b3, same uniform regime, each from its OWN EMPTY directory.
 CMakeFiles/hven.dir/ -- the 43 objects archived into libhven.a, including the
 target's precompiled header.  The flavour CMake's IPO emits for this clang is
 -flto=thin (stated, as the brief asked, rather than assumed).
+  [SUPERSEDED 2026-09-14, W6 T3 fix round 1.  The sentence above -- and the
+  table row "libhven.a objects" below -- call all 43 entries "objects archived
+  into libhven.a".  Wrong noun: 43 is the count of the hven TARGET'S COMPILE
+  ENTRIES, 42 .o plus one cmake_pch.hxx.pch, and a PCH is never archived.
+  `ar t` on either arm's libhven.a reports 42 members.  See CORRECTIONS at the
+  end of this file.  The reach CONCLUSION does not move.]
 
 Produced by .scratch/w6t3/reach.sh under the box lock; log
 .scratch/w6t3/logs/06b-reach.log.  (An earlier run, 06-reach.log, failed on the
@@ -130,3 +136,34 @@ NINJA_COMMANDS_off_hven_sqp_corpus_RC=0  (worst 0)
 REACH_WORST_RC=0
 LEG_RC=0
 FOREGROUND_END 2026-09-14T07:31:02Z
+
+CORRECTIONS -- 2026-09-14, W6 T3 FIX ROUND 1
+============================================
+Settler ruling P1 on the sol review of T3 (FIX-ROUND, no Critical).  The
+original text above is KEPT and marked superseded in place; this block is what
+supersedes it.  NOTHING WAS RE-RUN: these are the same numbers, read with the
+right noun.
+
+  1. "43 ARCHIVED OBJECTS" IS WRONG.  Read from the SAME retained trees this
+     file describes:
+       ar t .scratch/w6t3/build-lto/libhven.a | wc -l   ->  42
+       ar t .scratch/w6t3/build-off/libhven.a | wc -l   ->  42
+     and the compile database, split by the output's extension:
+       CMakeFiles/hven.dir/ entries  43  =  42 *.o  +  1 cmake_pch.hxx.pch
+     The correct sentence is: 43 HVEN-TARGET COMPILE ENTRIES INCLUDING ONE PCH;
+     42 ARCHIVED OBJECTS, ALL 42 CARRYING -flto=thin on the lto arm and none on
+     the off arm.
+
+  2. THE TABLE ROWS, READ CORRECTLY.  "libhven.a objects  43  43" and the
+     "... carrying -flto  43  0" row beneath it are the hven target's COMPILE
+     ENTRIES (43), not the archive's members (42).  The rows that were already
+     about the archive itself -- "libhven.a first three members" and
+     "libhven.a size" -- are unaffected.  The listing under "libhven.a objects
+     WITHOUT -flto" on the off arm shows the same split at source: 43 paths,
+     the first of which is cmake_pch.hxx.pch and the other 42 are .o files.
+
+  3. THE REACH CONCLUSION IS UNCHANGED, and it is what it always was: under
+     HVEN_LINK_TIME_OPT=ON every hven-target compile line carries -flto=thin,
+     both named consumers' link lines carry it, and every archive member is
+     LLVM IR bitcode; under the default, none does and every member is an ELF
+     relocatable.

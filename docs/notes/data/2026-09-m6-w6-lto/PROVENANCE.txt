@@ -149,6 +149,9 @@ WHAT THIS DIRECTORY DOES NOT CLAIM
     re-measured here and is neither confirmed nor contradicted by this run.
 
 CITE CORRECTIONS AND ONE DEFECT IN THE FIX COMMIT, DECLARED
+  [Items 1 and 3 below are AMENDED by the FIX ROUND 1 block at the end of this
+  file: item 1's attribution is off, and item 3's defect is now FIXED.  Both are
+  kept as written.]
   Verified at source in this task; recorded here rather than silently applied.
 
   1. docs/notes/2026-08-m5-ledger.md -- F5's registration runs :559-563, not
@@ -183,3 +186,115 @@ ONE BYTE-LEVEL NOTE ON THE TRANSCRIPTS IN THIS DIRECTORY
   under docs/notes/data/ carries any, which is the convention followed here.  No
   other character was changed, nothing was reordered and nothing was elided.  The
   raw bytes are the retained logs under .scratch/w6t3/logs/.
+
+FIX ROUND 1 -- 2026-09-14 (settler rulings P1-P4 on the sol review of T3)
+=========================================================================
+The sol review of T3 (FIX-ROUND, no Critical, SIGNOFF W6-T3-REVIEW-SOL) found
+four defects IN THE RECORD and none in what was measured.  NOTHING WAS RE-RUN
+and no number in this directory moves.  Every original sentence is kept and
+marked superseded where it stands; the corrections live in this block, in
+README.md section 7, in reach.txt's CORRECTIONS block, in install-smoke.txt's
+CORRECTIONS block and in f5-configure-proofs.txt's CORRECTION.
+
+  THE ROUND'S TWO COMMITS
+    dc1318da  build(cmake): M6 W6 T3 fix1 -- the docblock's self-cites, scope
+              sentence and M5 cite corrected (comments only; the generated
+              compile lines unchanged, proven).  cmake/hven_compile_options.cmake
+              ONLY, and only `#` lines: `git diff -U0` on that commit shows no
+              non-comment line.
+    (this)    evidence(w6): M6 W6 T3 fix1 -- this directory's corrections and
+              the plan's cite.  The second and last commit of the round.
+
+  THE COMMENT-ONLY COMMIT IS PROVEN NOT TO MOVE A COMPILE LINE.
+    Two further configures, each into its OWN EMPTY directory under the same
+    uniform regime this directory was produced under, at dc1318da:
+      .scratch/w6t3/fix1-lto   -DHVEN_LINK_TIME_OPT=ON   (entries 188, with
+                               -flto 188; hven-target entries 43, with -flto 43)
+      .scratch/w6t3/fix1-off   nothing set               (entries 188, with
+                               -flto 0;   hven-target entries 43, with -flto 0)
+    Nothing was built.  Log .scratch/w6t3/logs/20-fix1-probe.log -- solo, in the
+    foreground, under `flock /tmp/box-build.lock`, `pgrep` in a SEPARATE command
+    before the lock and again inside it (both PGREP_EMPTY; no process was
+    declared or excluded this round), with FOREGROUND_START/END, LEG_RC=0 and
+    WRAPPER_EXIT=0, exactly as every T3 leg.
+    Each generated compile_commands.json was compared with `cmp` against T3's
+    OWN RETAINED database from the same arm (build-lto, build-off), after
+    normalising exactly two things, BOTH DECLARED and neither a compile flag:
+      - the build directory's absolute path (the fix-round directories have new
+        names, so T3's retained trees are untouched);
+      - the two git-commit STAMP macros CMake bakes into the golden-rig and
+        corpus TUs -- -DHVEN_RIG_COMMIT and -DHVEN_SQP_CORPUS_GIT_DESCRIBE --
+        which carry `git rev-parse` output and therefore MUST differ between
+        dee112b3 and dc1318da by construction.  18 occurrences per database,
+        and before this normalisation they were THE ONLY textual difference
+        found in either arm (18 differing lines out of 1130, every one of them
+        identical once the stamp is masked).
+    Both `cmp` runs then return 0:
+      lto arm  sha256 001fd333a86cb34b060eedf2a9f7b9e2ce2cb9f670263371dad32e21fba209e2
+      off arm  sha256 55f10fbbad58b9727d8a8ca4dfc31502825cf5843d650100da4db1952cd3db7a
+    (one sha256 per arm: the T3 database and the fix-round database normalise to
+    the same bytes.)  A comment-only commit moved no compile line, as claimed.
+
+  WHAT THE ROUND CORRECTED, AND WHERE
+    P1  reach.txt and README.md called 43 compile entries "archived objects".
+        `ar t` reports 42 members on both arms; the 43rd entry is the target's
+        PCH, which is not archived.  -> reach.txt CORRECTIONS, README.md 7 (a).
+        The reach conclusion is unchanged.
+    P2  cmake/hven_compile_options.cmake's comments, in dc1318da: the two
+        self-cites now name the thing instead of a line number, the docblock no
+        longer claims the macro "sets none" of its prerequisites (the wheel path
+        sets two), the false "a plain set() in a .cmake module usually has no
+        reach" is replaced by what is true (include() introduces no variable
+        scope, so the set() lands in the including directory's scope -- which is
+        why the old else() reached the targets), and the M5 cite is :559-563.
+        In this directory: f5-configure-proofs.txt's bare ":47" is now qualified
+        by the commit it is true at.
+    P3  install-smoke.txt's remedy block and README.md section 5 overstated both
+        the observed failure and the export contract.  -> install-smoke.txt
+        CORRECTIONS (i)-(iii), README.md 7 (b)-(d).  Four options are stated
+        with their costs; NONE is chosen, and none was built.
+    P4  the citation attributions and the schema comments -- items 4 and 5 here.
+
+  4. AMENDS ITEM 1 OF THE BLOCK ABOVE (which is kept as written).  Item 1 says
+     the :559-562 truncation is given by "the W6 plan (section 0 J.3, section 1
+     W6.T3), the T3 brief and .superpowers/w6-facts.md section C.1".  Verified
+     again at source: ONLY PLAN SECTION 0 J.3 cites the ledger
+     (docs/notes/2026-09-m6-w6-plan.md:9); SECTION 1 W6.T3 (:27) cites no ledger
+     span at all.  The brief (:7) and the facts (section C.1, and again at its
+     :948 and :1093) do carry :559-562, as item 1 says.  The registration itself
+     is docs/notes/2026-08-m5-ledger.md:559-563 and does not move.
+
+  5. AMENDS ITEM 3 OF THE BLOCK ABOVE: the declared defect is FIXED, in
+     dc1318da, and not by renumbering.  A line cite inside the file it lives in
+     goes stale the moment anything above it moves -- as that one did, inside
+     the very commit that wrote it -- so both self-cites now name what they
+     point at ("the macro's definition above", "the BUILD_HVEN_WHEEL branch").
+     dc1318da deliberately leaves the header docblock's LINE COUNT unchanged, so
+     the macro stays at :49 and f5-configure-proofs.txt's "(:49 at HEAD)" stays
+     true.
+
+  6. REGISTERED, NOT CHANGED BY THIS ROUND: BOTH WRONG SCHEMA COMMENTS AND THE
+     TWELVE-COLUMN GATE SET.  The "WHAT WAS COMPARED" block above names
+     scripts/compare_replay.py:43-45 only.  The SAME false sentence is in the
+     suite, and the comparator's docstring says it carries it FROM there:
+       scripts/compare_replay.py:43-45      "Everything at 21 and above is an
+         integer counter and stays exact: no floating-point arithmetic produces
+         them, so a single-bit move in one is a real regression."
+       tests/sqp/test_corpus_cells.cpp:943  "Everything at 21 and above is an
+         integer counter."  -- the last line of the schema comment :937-943,
+         directly above is_residual_column at :944.
+     FIVE columns at index >= 21 hold floating-point values:
+       42  ipqp_rho_demanded_max
+       43  ipqp_rho_demanded_last
+       55  ipqp_restart_shift_max
+       72  ipqp_alpha_p_min
+       73  ipqp_alpha_d_min
+     THE REGISTERED FOLLOW-UP is the TWELVE-COLUMN FLOATING-MEASURE SET
+       {12, 15, 16, 17, 18, 19, 20, 42, 43, 55, 72, 73}
+     (zero-based; wall_s at 13 stays excluded as timing, kkt_verdict at 14 stays
+     a string), the concept renamed in BOTH comments from "residual columns" to
+     "floating measure columns", and EXACT treatment kept for every integer and
+     string field.  A SCRIPT CHANGE AND A TEST CHANGE BELONG TO A DECLARED
+     ROUND: this round changed neither, the comparator's sha256 above is
+     unmoved, and the gate set that produced every number in this directory is
+     the one the comparator shipped with.
