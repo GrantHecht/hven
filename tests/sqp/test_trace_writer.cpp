@@ -2916,8 +2916,8 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveBegin) {
 }
 
 TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWithEveryCounterDistinct) {
-    // THE 94 COUNTERS IN TABLE ORDER, each carrying its own number, so a
-    // reorder, a duplicate or a dropped entry moves these bytes.
+    // THE 95 COUNTERS IN TABLE ORDER -- 38 direct + 18 ssn + 39 ipqp, as the
+    // arity asserts read back -- so a reorder or a drop moves these bytes.
     //
     // Declared re-derivable while v0 is open (plan section 2 rule 6).
     //
