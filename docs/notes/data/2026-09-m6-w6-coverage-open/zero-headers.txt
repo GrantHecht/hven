@@ -1,0 +1,129 @@
+M6 W6 T0 -- EVERY LIBRARY FILE AT 0.00 % LINES ON THIS READ, WITH A JUDGEMENT
+=============================================================================
+Re-derived from this read's own report (plan J.8: "five" is an M5-era count that
+no surviving artifact substantiates; the W2 artifact listed seven). This read
+lists EIGHT. The judgement column is what W6 T2 needs: EXECUTABLE PATHS (a
+target) or NOT (with the reason). Lines are the asserted metric.
+
+READ SECTION 3 OF README.md FIRST. Five of these eight are demonstrably
+EXECUTED by the suites and report 0 % anyway -- llvm-cov's "952 functions have
+mismatched data" warning, whose effect is an UNDER-report. For those five the
+honest judgement is "the report is wrong here", not "write a test". Each one
+below carries the covered call site and its execution count as the evidence.
+
+  file                                                          lines   regions  functions
+  -----------------------------------------------------------------------------------
+  include/hven/detail/interior/utils/timer.h                     0/47     0/26      0/5
+  include/hven/detail/globalization/soc.h                        0/28     0/21      0/4
+  include/hven/detail/interior/utils/math_functions.h            0/25     0/2       0/2
+  include/hven/core/detail/aggregate_arity.h                     0/10     0/2       0/2
+  include/hven/detail/interior/eval_error_log.h                  0/9      0/3       0/3
+  include/hven/detail/interior/typedefs/super_scalar_traits.h    0/9      0/3       0/3
+  include/hven/detail/globalization/inertia_regularization.h     0/6      0/2       0/2
+  include/hven/drivers/ipm_solver_types.h                        0/1      0/1       0/1
+
+THE JUDGEMENTS, one file at a time
+----------------------------------
+
+1. include/hven/detail/interior/utils/timer.h  (0/47 lines)
+   EXECUTABLE PATHS -- BUT NOT A T2 TARGET: THE REPORT IS UNDER-READING IT.
+   `hven::utils::Timer` is constructed and started 177 times from a COVERED
+   line: `src/drivers/solver_init.cpp:22-23` reads 177 executions on both
+   `hven::utils::Timer t;` and `t.start();`. The class has one definition in the
+   tree (`class Timer` at `:31`, namespace `hven::utils` at `:25`), so those 177
+   constructions are of this file's constructor. The merged profile contains no
+   record named `hven::utils::Timer::*` at all, while the linked binary defines
+   those symbols (`nm -C` on `hven_interior_tests`: `Timer::Timer(bool)`,
+   `::start()`, `::stop()`, `::count<>()` all present, weak). A test that "covers
+   Timer" would therefore prove nothing that solver_init.cpp does not already
+   exercise. See README.md section 3.
+
+2. include/hven/detail/globalization/soc.h  (0/28 lines)
+   EXECUTABLE PATHS -- A REAL T2 TARGET, and the one 0 % header whose coldness
+   is corroborated at its call site. `soc_should_trigger` (`:49`) is called at
+   `src/drivers/ipm_solver_globalization.cpp:1361`, and THAT LINE READS 0 on this
+   read; the whole `SocRecovery` block around it (`:1295-1476`, 99 consecutive
+   uncovered lines) is the second-largest uncovered region in `src/drivers/`.
+   So the second-order-correction path is genuinely never entered by the suites.
+   T2 item: a cell that drives an IPM step into SOC. The file's own inline
+   helpers (`soc_should_trigger`, `soc_should_continue`, the `apply` template,
+   `SocRecovery`'s inline members) come with that cell for free.
+
+3. include/hven/detail/interior/utils/math_functions.h  (0/25 lines)
+   EXECUTABLE PATHS, BUT NOT A TEST TARGET: DEAD CODE. `factorial(int)` (`:21`)
+   and `factorial_div(int,int)` (`:38`) have NO call site anywhere in this
+   repository -- `grep -rn factorial` over `include/`, `src/`, `tests/`, `bench/`
+   returns only these definitions (the other hits are inside vendored Eigen and
+   are unrelated identifiers). The header is included by `sizing_specs.h`,
+   `indexing_data.h` and `solver_interface_specs.h`, none of which calls either
+   function. REGISTERED FOR T2 AS A DELETION CANDIDATE, not a coverage gap:
+   writing a test for an uncalled utility buys a green number, not a checked
+   path. If it stays, it stays as a deliberate keep with a reason.
+
+4. include/hven/core/detail/aggregate_arity.h  (0/10 lines)
+   NOT A TARGET -- COMPILE-TIME ONLY. `aggregate_initializable_with` (`:56`),
+   `aggregate_arity<T, N>()` (`:73`) and `kAggregateArity` (`:83`) are constexpr
+   and are named only in `static_assert`s and constant initializers beside the
+   counter field tables (`include/hven/core/solver_counters.h:15`,
+   `src/drivers/trace_writer.cpp:28`, `tests/sqp/test_trace_writer.cpp:41`,
+   `tests/sqp/test_sqp_solver.cpp:116`). Every one of those evaluations happens
+   in the compiler; the runtime never enters the function bodies clang emitted
+   coverage records for. The static_asserts already fail the BUILD if the
+   arithmetic is wrong, which is a stronger check than a test would be.
+
+5. include/hven/detail/interior/eval_error_log.h  (0/9 lines)
+   EXECUTABLE PATHS -- BUT UNDER-READ, like (1). `EvalErrorLog::reset()` is
+   called at `src/drivers/ipm_solver.cpp:5214`, a line that reads 331
+   executions; `EvalErrorLog::record()` at `:1798` reads 2. Only
+   `record_unknown()` (`:1801`, the `catch (...)` arm) is genuinely cold, and
+   its cost is one line. T2 may want the unknown-exception arm; it does not want
+   a test for `reset()`.
+
+6. include/hven/detail/interior/typedefs/super_scalar_traits.h  (0/9 lines)
+   EXECUTABLE PATHS, LOW VALUE, NOT A PARITY ITEM. The three records are Eigen
+   dispatch helpers for `Array<double, W, 1>` used as a scalar -- `conj`, `real`,
+   `imag`, `abs`, `abs2` (`:110-139`) and the `equal_strict` lane runners (`:142-199`) --
+   reached only when an Eigen expression is evaluated ON the super-scalar type.
+   The type is live (`hven::DefaultSuperScalar` backs `BumpAllocator`'s
+   `SuperScalarStack`, `src/interior/utils/memory_management.cpp:13-14`), but the
+   suites evaluate no Eigen expression over it. A test here would exercise
+   Eigen's dispatch, not hven's logic. Registered, not scheduled.
+
+7. include/hven/detail/globalization/inertia_regularization.h  (0/6 lines)
+   EXECUTABLE PATHS -- BUT UNDER-READ, like (1) and (5), and the clearest case
+   of the three. `dual_regularization(mu)` (`:61`) is called at
+   `src/drivers/ipm_solver.cpp:3423`, a line that reads 3.12k executions;
+   `prox_reg_decay(applied_total, opts_.decr_h)` (`:72`) at `:3454`, reading 9.
+   Six lines of header reporting 0 % while one of their two functions runs three
+   thousand times is the under-report in its plainest form. NOT a T2 target.
+
+8. include/hven/drivers/ipm_solver_types.h  (0/1 line)
+   EXECUTABLE PATH -- UNDER-READ. The single record is `IpmResult::misc_time()`
+   (`:526`), called at `src/drivers/ipm_solver.cpp:6070` on a line that reads 54
+   executions. One line; nothing to do.
+
+AND THE ONE THE PLAN ASKED FOR BY NAME
+--------------------------------------
+`include/hven/detail/drivers/ipm_solver_fwd.h` (A11: judge it like any other,
+and it is NOT a forward header -- 166 lines of enums and `IpmPhaseReport`).
+IT IS NOT ON THIS LIST, and not because it is at 0 %: IT IS ABSENT FROM THE
+REPORT ENTIRELY. `grep ipm_solver_fwd` over `coverage-summary.txt` returns
+nothing; the only `include/hven/detail/drivers/` row is `assembly_eval_seam.h`,
+at 100 %. No translation unit emits a coverage record for it, because it
+contains no executable code: six scoped enums (`:46`, `:57`, `:70`, `:96`,
+`:116`, `:131`), a forward declaration of `IpmSolver` (`:32`), and a POD
+(`IpmPhaseReport`) whose members are default-initialized in place. Its W2-era
+predecessor `interior_point_solver_fwd.h` DID appear, at 0 % of 3 lines; those
+three lines went with the file's old contents. JUDGEMENT: NOT a target, and not
+a gap -- a file with no executable paths cannot have uncovered ones.
+
+WHAT MOVED SINCE THE W2 LIST (docs/notes/data/2026-09-m6-w2-acceptance/)
+-----------------------------------------------------------------------
+W2 listed seven files at 0 %. Six are still here: `soc.h`, `timer.h`,
+`math_functions.h`, `eval_error_log.h`, `super_scalar_traits.h`,
+`inertia_regularization.h`. The seventh,
+`include/hven/detail/drivers/interior_point_solver_fwd.h`, was renamed to
+`ipm_solver_fwd.h` at 96c39592 (W5 T8.10) and no longer appears at all (above).
+TWO ARE NEW to this list: `include/hven/core/detail/aggregate_arity.h` (landed
+in M6 W4 T2(d); compile-time only) and `include/hven/drivers/ipm_solver_types.h`
+(0/1, `misc_time()`).
