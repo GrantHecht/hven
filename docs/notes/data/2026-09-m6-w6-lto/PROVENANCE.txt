@@ -1,0 +1,185 @@
+M6 W6 T3 -- LTO EXERCISED ONCE: PROVENANCE (CLAUDE.md section 7)
+================================================================
+Read this first: it governs every number in this directory.
+
+WHAT THIS DIRECTORY IS
+  The one exercise of HVEN_LINK_TIME_OPT the M6 roadmap's quality floor asks for
+  ("LTO-on build exercised once"), taken as plan docs/notes/2026-09-m6-w6-plan.md
+  section 0 J.3 (as amended by A1, A2, A12, A14) and section 1 W6.T3 define it:
+  M5's F5 reproduced and fixed first, then ONE Release configure with
+  HVEN_LINK_TIME_OPT=ON with a proof that the flag reached the code, the full
+  Release suite under it, the U0 27-cell three-engine replay against a named
+  LTO-OFF arm through the near-ulp gate with the observed spread recorded, and
+  install smoke under LTO as a pre-declared finding.  Produced by M6 W6 T3.
+
+  It is NOT a performance claim.  No wall-clock figure is asserted anywhere in
+  this directory, nothing here is a timing baseline, and no instruction
+  comparison was run (J.3 excludes both, and excludes Debug-under-LTO).
+
+COMMITS
+  Measured tree:   dee112b3  "build(cmake): M6 W6 T3 -- the IPO else-branch no
+                              longer forces OFF over a caller's cache entry
+                              (M5 F5); HVEN_LINK_TIME_OPT's reach stated"
+                   That commit is T3's ONLY code change and it changes one CMake
+                   module; both replay arms' corpus binaries are stamped
+                   `dee112b3975a`, which the CSV headers in replay/ carry.
+  Task start:      c34fd570  "evidence(w6): M6 W6 T2 -- the coverage close read
+                              ..."  -- the W6 T2 close.  The two BEFORE-the-fix
+                   configures in f5-configure-proofs.txt were taken at c34fd570;
+                   everything else in this directory is at dee112b3.
+  This directory:  the second and last T3 commit.
+
+TOOLCHAIN AND HARDWARE
+  clang 22.1.8 (Fedora 22.1.8-4.fc44); LLD 22.1.8; llvm-ar (LLVM 22.1.8)
+  CMake 4.3.0; Ninja 1.13.2; Python 3.13.12
+  ccache DISABLED in every configure and every build (CCACHE_DISABLE=1)
+  Intel oneAPI MKL 2026.1 (/opt/intel/oneapi/mkl/latest -> 2026.1)
+  AMD Ryzen 7 5800X3D (8 cores / 16 threads), Fedora 44, kernel 7.2.4-200.fc44
+  Run date: 2026-09-14 (UTC), one sitting, 07:23Z - 07:48Z.
+
+  THE INSTALL SMOKE IS THE ONE EXCEPTION and it is deliberate, as it was at W5:
+  scripts/check_install_smoke.sh pins no compiler, so its default front end is
+  this box's system c++ -- GCC 16.2.1 20260819 (Red Hat 16.2.1-2), with GNU ld
+  2.46.1-1.fc44.  Two of its four arms were therefore additionally run with
+  /usr/bin/clang++ forwarded to both configures.  install-smoke.txt says which is
+  which on every line.
+
+  BOTH BUILD ARMS were configured from EMPTY directories at absolute paths, under
+  one uniform flag regime spelled as CMakePresets.json's linux-clang-release
+  preset spells it (Ninja, Release, HVEN_FP_MODE=SAFER_FAST,
+  CMAKE_EXPORT_COMPILE_COMMANDS=TRUE, CMAKE_CXX_COMPILER=/usr/bin/clang++); the
+  preset itself could not be used because its binaryDir is fixed at
+  ${sourceDir}/build.  The arms differ in exactly one argument:
+
+    .scratch/w6t3/build-lto   ... -DHVEN_LINK_TIME_OPT=ON
+    .scratch/w6t3/build-off   ... (nothing; the option's OFF default)
+
+  APPLE / ACCELERATE and WINDOWS: UNOBSERVED.  Every value here is MKL-on-Linux.
+  No Apple or Windows value is inferred, interpolated or zero-filled from it, and
+  none is quoted anywhere in this directory.  The clang-cl LTO branch of
+  cmake/hven_compile_options.cmake (-flto=full / -flto=thin with
+  /opt:lldltojobs) was NOT exercised and is UNOBSERVED.
+
+THE PROTOCOL, AS DECLARED (CLAUDE.md section 7 and section 8)
+  Every leg -- each configure, each build, each suite, each replay arm, each
+  comparison, each install-smoke arm, the export contract -- ran SOLO, one at a
+  time, IN THE FOREGROUND, held under the box build lock (`flock
+  /tmp/box-build.lock`), with `pgrep -af 'cmake|ninja|ctest|hven_|bench_corpus'`
+  verified in a SEPARATE command before the lock and AGAIN inside it.  Every
+  retained log (.scratch/w6t3/logs/) carries PGREP_EMPTY / FOREGROUND_START /
+  FOREGROUND_END inside the lock plus its own LEG_RC and WRAPPER_EXIT.  Every
+  wrapper was first proven against a STUBBED failure inside the lock
+  (00-fold-proof.log: eight wrappers, every WRAPPER_RC non-zero).
+
+  ONE PROCESS WAS DECLARED AND EXCLUDED BY EXACT PID for the legs up to and
+  including the LTO replay arm: pid 353157, the idle launcher shell of the
+  READ-ONLY sol reviewer reading the W6 T2 commits, whose embedded review prompt
+  contains the strings "ctest" and "hven_" and so matches a whole-command-line
+  pgrep without being a build or a test (state S, running nothing, touching no
+  tree).  It is named in each such log beside the verdict.  It exited before the
+  LTO-OFF replay arm and the later logs show a plain PGREP_EMPTY.
+
+  The six replay runs ran pinned with `taskset -c 2` at MKL_NUM_THREADS=1 and
+  OMP_NUM_THREADS=1.  NO CO-RUN PROTOCOL WAS USED and none is declared: nothing
+  here was measured under contention.  Builds ran at -j 8; ctest at -j 4 (the box
+  protocol's ceiling).  Because NOTHING here asserts wall-clock, none of that
+  parallelism touches a quotable number.
+
+WHAT WAS COMPARED, AND THE RESULT
+  Comparator: scripts/compare_replay.py
+    sha256 82f5a5768714d1bf641be4024a209c30afc69fd44c098e68f8bdf397647c78bc
+    This is the FIRST DECLARED USE of its `--residual-gate` flag, which landed at
+    W6 T1.  Its artifact ancestor
+    docs/notes/data/2026-09-m6-w4-acceptance/probes/compare_replay.py
+    (sha256 c9dc9a65260f49e44bf2fb03aa165041ef3872d46aba756fbdef6bebc229c624) was
+    NOT touched, NOT moved and NOT re-run here.
+  Cells: docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt
+    sha256 cbbc287f8230a11728c253cdcf614978b41644731ceb22a1ca514c2f5537f0b2,
+    unchanged since W1; both arms were driven from that one file.
+  Committed baseline read (never rewritten):
+    bench/baselines/2026-09-02-t10b-ipm/ipm_baseline.csv
+    sha256 aa1c017a1d8553704192c71bfc8689781d8ef6e6ff0c09d421cc058e9a367253
+
+  Each pair was compared TWICE -- PLAIN (exact on all 75 non-wall columns) and
+  GATED (`--residual-gate 1e-5`):
+
+                                              PLAIN diffs   GATED diffs / within
+    LTO-OFF walk vs LTO-ON walk .............     76           0 / 76
+    LTO-OFF ssn  vs LTO-ON ssn  .............     77           0 / 77
+    LTO-OFF ipm  vs LTO-ON ipm  .............     76           2 / 74
+    committed t10b ipm baseline vs LTO-ON ipm     76           2 / 74
+    committed t10b ipm baseline vs LTO-OFF ipm     0           0 / 0    <- THE CONTROL
+                                                                27 cells x 75
+                                                                columns each
+
+  THE CONTROL IS WHAT MAKES THE REST A STATEMENT ABOUT LTO.  The LTO-OFF arm
+  reproduces the committed t10b baseline EXACTLY, on all 75 columns of all 27
+  cells, so every difference in the other four lines is attributable to the one
+  -D that separates the arms and not to this run's conditions.
+
+  THE STOP RULE, AND WHY IT DID NOT FIRE.  T3 carried an instruction to stop the
+  artifact if a COUNTER or a STATUS column differed between the arms.  NONE DID:
+  all 56 integer counter columns and all 7 string columns (status, kkt_verdict
+  and the descriptive fields) are byte-identical in every cell on all three
+  engines.  spread.txt computes that check from the DATA, column class included,
+  and prints it as an explicit STOP TEST line per engine.
+
+  THE TWO GATED DIFFERENCES ARE NEITHER COUNTERS NOR RESIDUALS.  They are
+  `ipqp_alpha_p_min` (schema index 72) and `ipqp_alpha_d_min` (73) in the single
+  cell f7_n1000_path_warm -- floating-point step-length minima that the gate's
+  residual column set does not cover, moving by 1.756e-10 and 2.112e-09 relative.
+  The comparator's docstring (scripts/compare_replay.py:43-45) asserts that every
+  column at index >= 21 is an integer counter; that sentence is WRONG for this
+  schema -- five such columns hold floats -- and it is the sentence a reader would
+  use to misread these two as counter regressions.  Recorded in spread.txt and in
+  README.md section 4; the comparator itself was NOT changed by this task.
+
+  NO CELL WAS RE-RUN AS A CANDIDATE, because nothing here was measured under
+  contention and no deviation of the class CLAUDE.md section 7 asks to re-run
+  solo was observed.
+
+WHAT THIS DIRECTORY DOES NOT CLAIM
+  * No wall-clock number is asserted.  Every duration in every transcript here is
+    informational.  This artifact says NOTHING about whether LTO is faster.
+  * No Apple, Accelerate or Windows value.  UNOBSERVED, not estimated.
+  * No instruction comparison, no P-SYM run, no Debug-under-LTO build (J.3).
+  * No claim that HVEN_LINK_TIME_OPT should be turned on.  Its OFF default does
+    not move, and the reason it is OFF -- "thin-LTO was measured to buy this
+    library nothing (M4 Task 9's bench legs)", CMakeLists.txt:79-80 -- was not
+    re-measured here and is neither confirmed nor contradicted by this run.
+
+CITE CORRECTIONS AND ONE DEFECT IN THE FIX COMMIT, DECLARED
+  Verified at source in this task; recorded here rather than silently applied.
+
+  1. docs/notes/2026-08-m5-ledger.md -- F5's registration runs :559-563, not
+     :559-562 as the W6 plan (section 0 J.3, section 1 W6.T3), the T3 brief and
+     .superpowers/w6-facts.md section C.1 all give it: :559-561 is the
+     shadow-class clause and :561-563 the "LTO-on build never exercised by any
+     suite (reachable now -- a candidate CI matrix arm if the knob ever
+     matters)" clause.  The shorter span is a truncation, not a wrong start.
+     Facts section C.2 cites that second clause as :562-564, which IS off by one
+     at both ends -- :564 is F9's .sweep-ctest.log item, a different entry.
+
+  2. .superpowers/w6-facts.md section C.1 cites CMakeLists.txt:78-80 for "The
+     DEFAULT DOES NOT MOVE: OFF ...".  At source :78 is a bare `#`; the sentence
+     is :79-80.
+
+  3. A DEFECT IN THIS TASK'S OWN FIX COMMIT (dee112b3), which cannot be amended
+     under the task's no-rewrite rule and is therefore declared here.  The two
+     comment blocks that commit adds to cmake/hven_compile_options.cmake refer to
+     "line 47" (the macro) and "line 122" (BUILD_HVEN_WHEEL's forcing).  Those
+     were the correct numbers at c34fd570 and are stale in the committed file BY
+     THAT SAME COMMIT: its own three-line addition to the header docblock pushed
+     both down by two, to :49 and :124.  Nothing about the behaviour, the
+     configure proofs or any number in this directory depends on them; the
+     correction is a two-character edit registered for a fix round.
+
+ONE BYTE-LEVEL NOTE ON THE TRANSCRIPTS IN THIS DIRECTORY
+  The transcripts quoted in reach.txt, suite-lto.txt, install-smoke.txt,
+  f5-configure-proofs.txt and replay/comparisons.txt are verbatim except that
+  TRAILING WHITESPACE HAS BEEN STRIPPED from each line and trailing blank lines
+  from each file -- cmake and ninja emit a few (e.g. "MKL_TBB_LIBRARY = " and
+  ninja's "FAILED: [code=1] hven_install_smoke "), and no committed artifact
+  under docs/notes/data/ carries any, which is the convention followed here.  No
+  other character was changed, nothing was reordered and nothing was elided.  The
+  raw bytes are the retained logs under .scratch/w6t3/logs/.

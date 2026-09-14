@@ -1,0 +1,108 @@
+M6 W6 T3 -- M5's F5, REPRODUCED AND THEN FIXED, BY CONFIGURE
+=============================================================
+F5 was registered at the M5 close (docs/notes/2026-08-m5-ledger.md:559-563; the shadow-class clause at :559-561, the never-exercised clause at :561-563) as
+"the same shadow class one level down (CMAKE_INTERPROCEDURAL_OPTIMIZATION
+plain-set in hven_compile_options.cmake)".  The W6 plan's A1 restated it
+correctly: hven_compile_options is a MACRO (cmake/hven_compile_options.cmake:47),
+so its set()s DO reach the targets -- the defect is the else() forcing OFF over a
+CALLER's own cache entry, not a set that goes nowhere.
+
+FOUR CONFIGURES, TWO BEFORE THE FIX AND TWO AFTER, each into its OWN EMPTY
+directory under the uniform flag regime (Ninja, Release, SAFER_FAST,
+/usr/bin/clang++, CMAKE_EXPORT_COMPILE_COMMANDS=TRUE -- the linux-clang-release
+preset's cache variables, which that preset's fixed binaryDir prevents using
+directly).  Nothing is built; the compile database is what is read.
+
+  configure                                    tree            libhven.a objects
+                                                               carrying -flto
+  ---------------------------------------------------------------------------
+  nothing set                       BEFORE   c34fd570 + probe   0 / 43
+  HVEN_LINK_TIME_OPT=OFF
+    + the caller's own IPO=ON       BEFORE   c34fd570 + probe   0 / 43   <-- THE DEFECT
+  nothing set                       AFTER    dee112b3           0 / 43   <-- retained
+  HVEN_LINK_TIME_OPT=OFF
+    + the caller's own IPO=ON       AFTER    dee112b3          43 / 43   <-- fixed
+                                                               (-flto=thin)
+
+The second row is the bug as a consumer meets it: the cache entry reads
+CMAKE_INTERPROCEDURAL_OPTIMIZATION:UNINITIALIZED=ON in BOTH the before and after
+trees -- the caller's answer is recorded either way -- and before the fix not one
+compile line carried -flto.  The third row is what the fix must NOT move, and
+does not: a caller who sets nothing still gets no IPO.
+
+The BEFORE pair ran at c34fd570 (the W6 T2 close, the tree this task started
+from); the AFTER pair at dee112b3 (the T3 fix).  Logs:
+.scratch/w6t3/logs/01-probe-pre-fix.log and 02-probe-post-fix.log.
+
+BEFORE THE FIX (HEAD = c34fd570)
+================================
+FOREGROUND_START 2026-09-14T07:24:15Z
+CONFIGURE_pre-nothing-set_RC=0  (worst 0)
+-- Configuring done (2.5s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/w6t3/probe/pre-nothing-set
+--- what the cache and the compile database say ---
+ARGS: -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=TRUE -DHVEN_FP_MODE=SAFER_FAST -DCMAKE_CXX_COMPILER=/usr/bin/clang++
+HVEN_LINK_TIME_OPT:BOOL=OFF
+COMPILE_DB: entries=188 with-flto=0 ; libhven.a objects=43 with-flto=0
+SAMPLE LIB OBJECT: /home/ghecht/Projects/hven/.scratch/w6t3/probe/pre-nothing-set/CMakeFiles/hven.dir/cmake_pch.hxx.pch
+CONFIGURE_WORST_RC=0
+PROBE_NOTHING_RC=0  (worst 0)
+
+CONFIGURE_pre-caller-ipo_RC=0  (worst 0)
+-- Configuring done (2.5s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/w6t3/probe/pre-caller-ipo
+--- what the cache and the compile database say ---
+ARGS: -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=TRUE -DHVEN_FP_MODE=SAFER_FAST -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DHVEN_LINK_TIME_OPT=OFF -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
+CMAKE_INTERPROCEDURAL_OPTIMIZATION:UNINITIALIZED=ON
+HVEN_LINK_TIME_OPT:BOOL=OFF
+COMPILE_DB: entries=188 with-flto=0 ; libhven.a objects=43 with-flto=0
+SAMPLE LIB OBJECT: /home/ghecht/Projects/hven/.scratch/w6t3/probe/pre-caller-ipo/CMakeFiles/hven.dir/cmake_pch.hxx.pch
+CONFIGURE_WORST_RC=0
+PROBE_CALLER_IPO_RC=0  (worst 0)
+PROBE_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T07:24:20Z
+
+AFTER THE FIX (HEAD = dee112b3)
+===============================
+FOREGROUND_START 2026-09-14T07:25:09Z
+CONFIGURE_post-nothing-set_RC=0  (worst 0)
+-- Configuring done (2.5s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/w6t3/probe/post-nothing-set
+--- what the cache and the compile database say ---
+ARGS: -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=TRUE -DHVEN_FP_MODE=SAFER_FAST -DCMAKE_CXX_COMPILER=/usr/bin/clang++
+HVEN_LINK_TIME_OPT:BOOL=OFF
+COMPILE_DB: entries=188 with-flto=0 ; libhven.a objects=43 with-flto=0
+SAMPLE LIB OBJECT: /home/ghecht/Projects/hven/.scratch/w6t3/probe/post-nothing-set/CMakeFiles/hven.dir/cmake_pch.hxx.pch
+CONFIGURE_WORST_RC=0
+PROBE_NOTHING_RC=0  (worst 0)
+
+CONFIGURE_post-caller-ipo_RC=0  (worst 0)
+-- Configuring done (2.5s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/w6t3/probe/post-caller-ipo
+--- what the cache and the compile database say ---
+ARGS: -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=TRUE -DHVEN_FP_MODE=SAFER_FAST -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DHVEN_LINK_TIME_OPT=OFF -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
+CMAKE_INTERPROCEDURAL_OPTIMIZATION:UNINITIALIZED=ON
+HVEN_LINK_TIME_OPT:BOOL=OFF
+COMPILE_DB: entries=188 with-flto=188 ; libhven.a objects=43 with-flto=43
+SAMPLE LIB OBJECT: /home/ghecht/Projects/hven/.scratch/w6t3/probe/post-caller-ipo/CMakeFiles/hven.dir/cmake_pch.hxx.pch
+CONFIGURE_WORST_RC=0
+PROBE_CALLER_IPO_RC=0  (worst 0)
+PROBE_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T07:25:14Z
+
+THE ONE COMPILE LINE, BEFORE AND AFTER, FOR THE SAME OBJECT
+===========================================================
+(src/core/version.cpp.o from the 'caller's own IPO=ON' configure of each tree;
+ the only difference is the -flto=thin the fix stops discarding.)
+
+--- pre-caller-ipo ---
+-DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -fPIC -Wabsolute-value -pthread -mllvm -inline-threshold=225 -O3 -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 -march=native -mtune=native -ffast-math -fno-finite-math-only -fopenmp=libiomp5 -Xclang -fno-pch-timestamp -o CMakeFiles/hven.dir/src/core/version.cpp.o -c /home/ghecht/Projects/hven/src/core/version.cpp
+
+--- post-caller-ipo ---
+-DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -flto=thin -fPIC -Wabsolute-value -pthread -mllvm -inline-threshold=225 -O3 -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 -march=native -mtune=native -ffast-math -fno-finite-math-only -fopenmp=libiomp5 -Xclang -fno-pch-timestamp -o CMakeFiles/hven.dir/src/core/version.cpp.o -c /home/ghecht/Projects/hven/src/core/version.cpp

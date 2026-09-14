@@ -1,0 +1,65 @@
+M6 W6 T3 -- THE RELEASE SUITE UNDER LTO, AND THE LTO-OFF CONTROL
+================================================================
+One Release suite per arm, each run alone on the box under the build lock, at
+ctest -j4 (the box protocol's ceiling).  NO WALL-CLOCK IS ASSERTED ANYWHERE IN
+THIS TASK: the durations ctest prints are informational (CLAUDE.md section 7).
+Debug is NOT built under LTO -- plan section 0 J.3 excludes it.
+
+  arm        ctest result            inventory (ctest -N)
+  lto        2587 / 2587 passed, 0 failed      2589
+  off        2587 / 2587 passed, 0 failed      2589
+
+The two numbers differ by the three cells that do not run in either arm, the same
+three in both: FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuild
+Has (Skipped by design) and EqpRefinementAb.{FootprintRuleProbe,FullBattery}
+(Disabled in the tree).
+
+A NOTE ON THE EXPECTED COUNT.  The T3 brief expected "2542/2542 ... the inventory
+2544".  Those are the W5 close numbers (docs/notes/data/2026-09-m6-w5-acceptance/
+README.md:92-95) and they are stale at this HEAD: W6 T0-T2 added tests, and the
+W6 T2 close read the same 2587 / 2589 on a non-LTO Release tree
+(.scratch/w6t2/logs/36-suite-release-r2.log).  The suite under LTO therefore
+matches the suite without it EXACTLY, which is the statement the gate wanted.
+
+The long cell Continuation.ProbeBudgetBoundsAFailingProposal is inside both runs:
+it is the >600 s cell in DEBUG only, and Debug is out of scope here.
+
+Logs: .scratch/w6t3/logs/07-suite-lto.log and 08-suite-off.log.
+
+================ ARM: lto ================
+FOREGROUND_START 2026-09-14T07:31:12Z
+=== ctest (lto full) ===
+CTEST_RC=0  (worst 0)
+
+The following tests did not run:
+	418 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1589 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1590 - EqpRefinementAb.FullBattery (Disabled)
+=== ctest -N inventory (lto) -- AFTER the run, and unable to mask it ===
+INVENTORY_RC=0  (worst 0)
+Total Tests: 2589
+SUITE_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T07:32:20Z
+
+--- the ctest result line, from .scratch/w6t3/logs/ctest-lto-full.out ---
+100% tests passed, 0 tests failed out of 2587
+
+================ ARM: off ================
+FOREGROUND_START 2026-09-14T07:32:33Z
+=== ctest (off full) ===
+CTEST_RC=0  (worst 0)
+
+The following tests did not run:
+	418 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1589 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1590 - EqpRefinementAb.FullBattery (Disabled)
+=== ctest -N inventory (off) -- AFTER the run, and unable to mask it ===
+INVENTORY_RC=0  (worst 0)
+Total Tests: 2589
+SUITE_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T07:33:41Z
+
+--- the ctest result line, from .scratch/w6t3/logs/ctest-off-full.out ---
+100% tests passed, 0 tests failed out of 2587
