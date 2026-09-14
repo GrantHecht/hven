@@ -22,7 +22,7 @@
 # were changed by this move.
 #
 # Prerequisites the caller must set before invoking (all read from caller
-# scope; the macro sets none of them itself):
+# scope; the wheel path below sets two of them itself, noted per entry):
 #
 #   HVEN_FP_MODE    STRICT | SAFER_FAST | FAST. Selects FP_FLAGS. An unset or
 #                   unrecognized value silently yields no FP flags, so callers
@@ -167,16 +167,20 @@ if(NOT WIN32)
 endif()
 
 
-# HVEN_LINK_TIME_OPT's REACH, stated because a plain set() in a .cmake module
-# usually has none. This is a macro (line 47), not a function, so every set()
-# below executes in the CALLER's scope -- the scope of the root CMakeLists.txt
-# at the point it invokes hven_compile_options() (CMakeLists.txt:158), which is
-# ABOVE both add_subdirectory() calls. CMAKE_INTERPROCEDURAL_OPTIMIZATION is
+# HVEN_LINK_TIME_OPT's REACH, stated because a set() in an included .cmake
+# module is easy to misread as reaching nothing. include() introduces NO
+# variable scope of its own, and this is a macro (see the macro's definition
+# above), not a function, so every set() below executes in the CALLER's scope
+# -- the scope of the root CMakeLists.txt at the point it invokes
+# hven_compile_options() (CMakeLists.txt:158), which is ABOVE both
+# add_subdirectory() calls. That reach is exactly why the old else() below
+# could switch a caller's own IPO off. CMAKE_INTERPROCEDURAL_OPTIMIZATION is
 # read by add_library()/add_executable() to initialise each target's
 # INTERPROCEDURAL_OPTIMIZATION property, so setting it here DOES reach hven and
 # every target defined after this call. Verified, not assumed: with
-# HVEN_LINK_TIME_OPT=ON a Release configure puts -flto=thin on all 43 libhven.a
-# compile lines and on the link lines of its consumers
+# HVEN_LINK_TIME_OPT=ON a Release configure puts -flto=thin on all 43 of the
+# hven target's compile entries -- the 42 objects archived into libhven.a plus
+# the target's PCH -- and on the link lines of its consumers
 # (docs/notes/data/2026-09-m6-w6-lto/reach.txt).
 if(HVEN_LINK_TIME_OPT)
   if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
@@ -208,7 +212,7 @@ else()
   # created: a project that turns IPO on for itself, includes hven, and leaves
   # HVEN_LINK_TIME_OPT alone had its IPO silently switched off -- for its own
   # targets too, since the variable is directory-scoped, not hven-scoped.
-  # Registered as F5 at the M5 close, docs/notes/2026-08-m5-ledger.md:559-562
+  # Registered as F5 at the M5 close, docs/notes/2026-08-m5-ledger.md:559-563
   # ("the same shadow class one level down"), and exercised at M6 W6 T3.
   #
   # Leaving the variable alone is the whole fix, and it changes nothing for the
@@ -219,7 +223,7 @@ else()
   # therefore turns IPO ON and never turns it OFF; a caller that wants it off
   # says so itself.
   #
-  # BUILD_HVEN_WHEEL's forcing above (line 122) is unaffected: it sets
+  # The BUILD_HVEN_WHEEL branch's forcing above is unaffected: it sets
   # HVEN_LINK_TIME_OPT TRUE, so the wheel path takes the ON branch.
 endif()
 
