@@ -6,6 +6,28 @@ what this leg does **not** measure. Every table below is regenerated from `raw/`
 and `perf/` by `python3 comparator.py --root . --out -`; the tool's own output is
 reproduced verbatim in `comparator.out`. **Nothing here is hand-transcribed.**
 
+> **FIX ROUND 1 — 2026-09-14 (the sol review of T6, every item accepted by the
+> settler).** Six corrections are folded into this file, each marked `(fix1)`
+> where it lands, and no measured number moved:
+> **(1)** the counter check's population was 52 comparisons / 1468
+> cell-comparisons because `comparator.py` derived it from the files it found
+> and never visited the second interior batch; the comparator now walks an EXACT
+> MANIFEST, a missing file is a refusal, and the captured population is **55 /
+> 1597 / 0 differences** (§5).
+> **(2)** the SQP carrier was attributed to `IterationEvent` construction; at
+> source `SqpSolver::fire_iteration_event` computes nothing and the event
+> borrows views, so the O(n) attached-only work is the guarded snapshot /
+> mapping / declared-diagnostics preparation (§4). The numbers, the O(n)
+> reading, the event-density explanation and the M7 disposition are unchanged.
+> **(3)** the idle proof omitted `14-ipmleg2-perf.log`: it is regenerated over
+> all **34** batches, and the three wall batches that fail R2' are marked
+> **NON-QUOTABLE** where their numbers appear (§7).
+> **(4)** the ~96 % path-cell share is WALK-ONLY (§2).
+> **(5)** the HS level structure is MEASURED; its cause is INFERRED (§6).
+> **(6)** two wordings: the batch-2 warm-up is untimed, not unrecorded, and the
+> batch-1 identity check pairs SAME-ROUND files (§3).
+> Nothing under `raw/` or `perf/` was touched by any of it.
+
 **This is a MEASUREMENT and a FINDING, not a gate.** T6 compares one HEAD with
 itself, so there is no commit to keep or revert and §11.1's veto machinery — a
 commit-pair rule — does not apply. What the band does here is tell a reader
@@ -32,8 +54,10 @@ whether an attached observer costs more than the project's own ±0.5 % bar.
 | HS leg | ssn | `sink` | 1.00002 median-of-three; **1.000014 level-matched (+0.001 %)** | — | — | — | **below the floor — CONFIRMED** |
 | HS leg | ipm | `sink` | 1.00288 median-of-three; **1.001294 level-matched (+0.129 %)** | — | — | — | **below the floor — CONFIRMED** |
 
-**Counter check across every attached/unattached pair: 0 differences.** 52
-comparisons, 1468 cell-comparisons, every asserted column byte-identical,
+**Counter check across every attached/unattached pair: 0 differences.** **55
+comparisons, 1597 cell-comparisons** (fix1 — the round-1 figure, 52 / 1468, was
+the population the comparator happened to find rather than the one it owed; the
+three `raw/ipmleg2` pairs are now in it), every asserted column byte-identical,
 `--residual-gate` never needed and never used (§5).
 
 Five things follow, and they are independent of one another.
@@ -53,8 +77,11 @@ CALLBACK-DISPATCH class — one null check and one indirect call per iteration �
 and asks whether the reading is consistent with it. **It is not.** Normalised by
 the observer's own event count the delta is 1.8–4.0 **million** instructions per
 event; normalised again by problem size it is a few hundred instructions per
-node per event, and it does not fall. The cost is the `IterationEvent` the
-driver **builds after the guard**, and it is O(n) (§4).
+node per event, and it does not fall. The cost is the **attached-only payload
+preparation** each engine does behind its callback guard — the iterate snapshot,
+the engine→caller mapping and the declared diagnostics — and it is O(n) (§4).
+*(fix1: round 1 named `IterationEvent` construction. At source the SQP's event
+computes nothing and borrows views; the correction is §4's.)*
 
 **(d) SO THE TWO LEGS DIFFER BY EVENT DENSITY, not by engine quality.** A U0
 corpus cell takes **two** major iterations however large it is, so it pays two
@@ -87,11 +114,17 @@ the **median of the three rounds**, per cell per arm; the corpus row is the
 
 ### Why the corpus column and the per-cell column are an order of magnitude apart
 
-Two cells — `f7_n1000_path_warm` (1.079e12 instructions) and `f7_n800_path_warm`
-(6.66e11) — carry about **96 %** of the U0 set's instructions between them
-(against 1.82e12 for all 27 in walk mode), and they take the same two major
+**In walk mode** (fix1 — this explanation is WALK-ONLY; round 1 wrote it
+unscoped) two cells — `f7_n1000_path_warm` (1.079e12 instructions) and
+`f7_n800_path_warm` (6.66e11) — carry **95.9551 %** of the U0 set's instructions
+between them (against 1.82e12 for all 27), and they take the same two major
 iterations as every other cell. Their attached ratio is therefore ~1.00004 and
 they pull the sum-of-medians corpus figure onto themselves.
+
+**The same two cells carry only 6.8034 % in ssn and 8.7003 % in ipm**, which is
+why the corpus and per-cell columns sit close together in those two modes and an
+order of magnitude apart in walk. The gap is a property of the cell set *in a
+given mode*, never of the observer.
 
 **Both columns are reported and both are inside the band.** The corpus column is
 the one the FLAT definition names. The per-cell median is the one that says what
@@ -153,12 +186,15 @@ Per-round instruction counts, the alternation:
 **BATCH 1's ROUND-1 UNATTACHED PROCESS IS AN OUTLIER AND IS SAID SO RATHER THAN
 DROPPED.** It reads +2.1 % over its own rounds 2 and 3 — higher than any
 attached round — while **all six processes of that batch wrote byte-identical
-rows** (`scripts/compare_replay.py`, 43 cells × 30 columns, 0 differences, every
-pair against `perf-off-r3.csv`). It is a first-process effect, the class the
+rows** (`scripts/compare_replay.py`, 43 cells × 30 columns, 0 differences, each
+round's `off` against **that same round's** `on` — fix1: round 1 wrote "every
+pair against `perf-off-r3.csv`", which is not what the comparator does). It is a first-process effect, the class the
 ownership doc §11.3 already names, and the median of three discards it. Batch 2
 exists because a reading should not rest on a median discarding an outlier:
-one untimed, unrecorded process runs ahead of it so no round is the batch's
-first. **Neither batch is discarded and both are stated.**
+one **untimed warm-up** process runs ahead of it so no round is the batch's
+first. It is untimed, not unrecorded (fix1): its CSV and stdout are retained
+(`raw/ipmleg2/warmup.csv`, `warmup.stdout`) and only its perf counters are
+excluded, because it ran outside `BATCH_START` (`scripts/ipm_leg2.sh:22`). **Neither batch is discarded and both are stated.**
 
 Batch 2 is the cleaner instrument and it is the larger number: each arm is
 internally stable to **0.27 %** (off, worst round against the median) and
@@ -171,10 +207,13 @@ callback has always cost this engine, and this leg is the first time anything
 measured it. **Registered for M7.**
 
 The wall beside it, informational (§7): interior corpus wall
-**10.7182 s → 11.0872 s, ratio 1.03443**. It is larger than the instruction
-ratio and is not read as a contradiction — a wall figure at this scale carries
-the whole process, including the per-row setup the leg's `wall_s` column does
-not bracket.
+**10.7182 s → 11.0872 s, ratio 1.03443** — **NON-QUOTABLE (fix1)**: its batch
+`ipmleg-wall` is UNPROVEN-EVIDENCE under R2' (one alternation snapshot missing),
+so the figure may not be quoted or compared, and the verdict above rests on
+instructions alone. Read only on this page, it is larger than the instruction
+ratio and is not a contradiction — a wall figure at this scale carries the whole
+process, including the per-row setup the leg's `wall_s` column does not
+bracket.
 
 ### The declared omission
 
@@ -211,18 +250,42 @@ delta is **millions** of instructions; per event per collocation node it is a fe
 hundred, and it stays there across a 20× range of problem sizes. That is an
 O(n) cost paid once per attached event.
 
-**What is O(n) per event is the `IterationEvent` itself.** Both engines build a
-full event — KKT views and mapped declared diagnostics — **after** the null
-guard, not before it: `src/drivers/ipm_solver.cpp:2240–2243` says outright that
-the views are locals of the frame, the invoke is at `:2402`, and the SQP's is at
-`src/drivers/sqp_solver.cpp:4618`. Nothing is built on the unattached path,
-which is why `a00` pays literally nothing and why the guard is the right design.
+**What is O(n) per event is the ATTACHED-ONLY PAYLOAD PREPARATION each engine
+does behind its callback guard** — and it is not, on the SQP side, the
+construction of the event aggregate. *(fix1. Round 1 attributed the whole cost
+to "the `IterationEvent` the driver builds after the guard". That is right for
+the interior engine and wrong for the SQP one, and the sol review of T6 caught
+it. The measured numbers, the O(n) reading, the event-density explanation and
+the M7 disposition are unaffected — only the name of the carrier changes.)*
+
+* **The interior engine.** `IpmSolver::fire_iteration_event` returns at its null
+  guard (`src/drivers/ipm_solver.cpp:2248`) and everything after it is
+  attached-only: the KKT views, the expansion of the reduced primal space to the
+  caller's `n`, the mapping out of engine units, the declared diagnostics and
+  the event aggregate, with the invoke at `:2402`. The header says outright that
+  the views are locals of that frame.
+* **The SQP engine.** `SqpSolver::fire_iteration_event` **computes nothing** —
+  the comment at `src/drivers/sqp_solver.cpp:4562` says so in those words, and
+  its `IterationEvent` holds **borrowed views**, not deep copies
+  (`include/hven/drivers/solve_result.h:228`). The O(n) work sits EARLIER, in
+  `measure_iterate`, behind its own `if (iteration_callback_)` guard at
+  `src/drivers/sqp_solver.cpp:4695`: the iterate snapshot (`event_x`,
+  `event_lambda_e`, `event_lambda_i`, `event_z`), the engine→caller scaling map
+  applied to it, and the declared diagnostics prepared beside it. Its own
+  comment states the design: *"Copied only when a callback is installed, so a
+  solve without one pays nothing at all."*
+
+Nothing is prepared on the unattached path in either engine, which is why `a00`
+pays literally nothing and why the guard is the right design. The measurement
+cannot separate the copies from the diagnostics — it sees their sum — and does
+not claim to.
 
 **So the CALLBACK-DISPATCH class is real and is in there, and this leg cannot
 see it.** A null check and an indirect call are tens of instructions against a
 per-event cost of millions — three to five orders of magnitude below the
-instrument. What an attached callback costs on these problems is **the event**,
-and it scales with the problem, not with the iteration count alone.
+instrument. What an attached callback costs on these problems is **the payload
+prepared for it**, and that scales with the problem, not with the iteration
+count alone.
 
 **The sink is 9–60× cheaper per event than the callback**, and the ratio tracks
 what each event carries: a `TraceSink` event is a small POD, an `IterationEvent`
@@ -249,9 +312,22 @@ remaining column exactly.
 |---|---|---|---|
 | SQP corpus wall CSVs | 9 | 27 cells × 75 columns, 3 modes × 3 attached arms | **0** |
 | SQP single-cell perf CSVs | 27 | 27 cells × 75 columns, 3 modes × 3 rounds × 3 arms | **0** |
-| interior leg | 4 | 43 rows × 30 columns, 1 wall + 3 perf rounds | **0** |
+| interior leg, batch 1 | 4 | 43 rows × 30 columns, 1 wall + 3 perf rounds | **0** |
+| **interior leg, batch 2** (fix1) | **3** | 43 rows × 30 columns, 3 perf rounds | **0** |
 | HS leg | 12 | 27 cells × 17 columns, 3 modes × (1 wall + 3 perf rounds) | **0** |
-| **total** | **52** | **1468 cell-comparisons** | **0** |
+| **total** | **55** | **1597 cell-comparisons** | **0** |
+
+**THE POPULATION IS NOW AN EXACT MANIFEST, AND THAT IS THE FIX (fix1).** Round 1
+reported 52 / 1468 and called it "every pair". It was not: `comparator.py`
+derived the population from the `a00` files it FOUND and skipped any pair whose
+files were absent, so the three `raw/ipmleg2` pairs — the second interior batch,
+the one that CONFIRMS the finding — were never visited, and a deleted or
+mistyped file would have shrunk the claim silently. `expected_manifest()` now
+LISTS every comparison this leg owes, with the 27 cell ids spelled out; a
+missing file is a REFUSAL, the comparator exits non-zero, and the run checks its
+own totals against the 55 / 1597 the manifest demands. Falsified by renaming one
+file (`raw/ipmleg2/perf-on-r2.csv`) in a scratch copy: 54 / 1554, one named
+MANIFEST REFUSAL, exit 2.
 
 The residual gate was never needed. Residuals came back byte-equal across
 processes here — the same code, the same thread count, the same machine — so
@@ -306,18 +382,25 @@ digit. (The interior leg's own pairing **disagrees**, 1.0148 vs 0.9939 and
 because the arm difference is real and larger than the level structure. The
 comparator prints the disagreement and declines to read it.)
 
-**VERDICT: the registration is CONFIRMED, and now has a mechanism.** The
-"0.22 % instrument floor" is a per-process bimodal level structure that no arm
-changes — address layout, allocator state and page placement, the same
-per-process constant §11.3(ii) identified on this leg at T6.d. The sink's own
+**VERDICT: the registration is CONFIRMED, and the level structure is MEASURED.**
+The "0.22 % instrument floor" is a per-process bimodal level structure that no
+arm changes. **The structure is measured; its CAUSE is INFERRED** (fix1): the
+two levels, their separation and the fact that both arms visit both are read
+directly off the retained per-round counts above, but address layout, allocator
+state and page placement are the *candidate* mechanisms — the same per-process
+constant §11.3(ii) identified on this leg at T6.d — and this leg measured none
+of them separately. The level matching itself is a descriptive, post-hoc
+estimator over three samples per arm; what makes it credible is that the two
+independent pairings agree to 3e-7–2e-6, not that the cause is known. The sink's own
 cost sits at **+0.005 % (walk), +0.001 % (ssn), +0.129 % (ipm)**, below that
 floor in all three modes. **The reading does not move.** What moves is the
 confidence: the earlier "MOVED FASTER in five of six" was the floor, not the
 sink, and the sink never made anything faster.
 
-The HS wall beside it, informational: walk 1.00673, ssn 1.00413, ipm 0.98838 —
-still scattered on both sides of 1, still below its own floor, still not a
-number to read.
+The HS wall beside it, informational and **NON-QUOTABLE (fix1** — its batch
+`hs-wall` is UNPROVEN-EVIDENCE under R2', five alternation snapshots missing**)**:
+walk 1.00673, ssn 1.00413, ipm 0.98838 — still scattered on both sides of 1,
+still below its own floor, still not a number to read.
 
 ---
 
@@ -329,33 +412,85 @@ one arm per batch. The corpus figure is the sum of the per-cell `wall_s` column
 — the leg's own solve bracket — exactly as T8.9r's leg 1 read it. **Nothing in
 this leg asserts a wall; the asserted instrument is instructions.**
 
-| leg | mode | a00 / off | a10 | a01 | a11 |
-|---|---|---|---|---|---|
-| SQP corpus (27 cells) | walk | 6.0120 s | 1.00063 | 1.00181 | 1.00592 |
-| SQP corpus | ssn | 11.1258 s | 0.99547 | 0.99829 | 0.99968 |
-| SQP corpus | ipm | 14.8402 s | 1.00026 | 1.00002 | 1.00211 |
-| interior leg (43 rows) | — | 10.7182 s | **1.03443** (`on`) | — | — |
-| HS leg (sum of per-cell medians) | walk | 0.022592 s | 1.00673 (`sink`) | — | — |
-| HS leg | ssn | 0.030076 s | 1.00413 (`sink`) | — | — |
-| HS leg | ipm | 0.037075 s | 0.98838 (`sink`) | — | — |
+| leg | mode | a00 / off | a10 | a01 | a11 | idle gate |
+|---|---|---|---|---|---|---|
+| SQP corpus (27 cells) | walk | 6.0120 s | 1.00063 | 1.00181 | 1.00592 | PINNED-CLEAN |
+| SQP corpus | ssn | 11.1258 s † | 0.99547 | 0.99829 | 0.99968 | **† NON-QUOTABLE** |
+| SQP corpus | ipm | 14.8402 s | 1.00026 | 1.00002 | 1.00211 | PINNED-CLEAN |
+| interior leg (43 rows) | — | 10.7182 s † | **1.03443** † (`on`) | — | — | **† NON-QUOTABLE** |
+| HS leg (sum of per-cell medians) | walk | 0.022592 s † | 1.00673 † (`sink`) | — | — | **† NON-QUOTABLE** |
+| HS leg | ssn | 0.030076 s † | 1.00413 † (`sink`) | — | — | **† NON-QUOTABLE** |
+| HS leg | ipm | 0.037075 s † | 0.98838 † (`sink`) | — | — | **† NON-QUOTABLE** |
+
+**† NON-QUOTABLE (fix1).** Three of this leg's fourteen wall batches do not meet
+R2' (`docs/notes/data/2026-09-m6-w5-t8-runtime/PROVENANCE.txt:520–540`), so
+**every wall number taken from them is marked NON-QUOTABLE and is not a
+measurement**: it may not be quoted, carried into a comparison, or cited as
+evidence for anything.
+
+| batch | what fails R2' | the numbers it carries |
+|---|---|---|
+| `sqpwall-ssn-a00` | **UNPROVEN-FRACTION** — cpu10 0.7242 % (0.13 s of foreign task time across a 17.95 s window), over the 0.5 % bar on the SMT sibling; cpu2 0.0557 % is inside | the ssn corpus wall 11.1258 s and therefore all three ssn wall RATIOS |
+| `ipmleg-wall` | **UNPROVEN-EVIDENCE** — 1 alternation snapshot missing (both fractions inside: cpu2 0.0000 %, cpu10 0.1265 %) | the interior wall 10.7182 s and the 1.03443 ratio |
+| `hs-wall` | **UNPROVEN-EVIDENCE** — 5 alternation snapshots missing (cpu2 0.1096 %, cpu10 0.0548 %) | all three HS wall figures and ratios |
+
+**They are marked, not re-run.** R2' as written says "a batch that cannot be
+proven is re-run"
+(`docs/notes/data/2026-09-m6-w5-t8-runtime/PROVENANCE.txt:533–538`). The settler
+ruled at this fix round that marking them NON-QUOTABLE discharges it here, on
+the brief's own terms: *nothing in this leg asserts a wall*, the asserted
+instrument is instructions, and a number WITHDRAWN FROM QUOTATION cannot carry
+an unproven idle condition into anything. A batch whose number is quoted must be
+re-run; these numbers are not quoted.
+The eleven remaining SQP wall batches are PINNED-CLEAN and their numbers stand
+as informational. Re-taking any of the three is an M7 option and costs about
+five minutes of solo box time, if a later task ever wants to quote one.
 
 The SQP corpus walls scatter on both sides of 1 at the 0.1–0.6 % level, which is
 what a one-reading-per-arm wall on a 6–15 s corpus gives; they neither confirm
 nor contradict the instruction reading and are not read as doing either. The
-interior leg's **+3.4 %** is the one wall figure that is larger than its own
-noise and it agrees in direction and order with that leg's instruction finding.
+interior leg's **+3.4 %** is the one wall figure larger than its own noise and it
+agrees in direction and order with that leg's instruction finding — **but it
+comes from a NON-QUOTABLE batch (†)**, so it is an observation on this page and
+nothing more. The finding it agrees with rests on instructions, which are
+scheduling-invariant and carry no such caveat.
 
-**The idle proof for these fourteen batches** (`IDLE-PROOF.md`, per-pid appendix
-in `IDLE-PIDS.txt`): of the twelve SQP wall batches, **eleven are PINNED-CLEAN**
-— worst foreign task time among them 0.0558 % on cpu2 and 0.1672 % on cpu10 —
-and one, `sqpwall-ssn-a00`, is UNPROVEN-FRACTION on the **sibling alone**
-(cpu2 0.0557 %, cpu10 0.7242 %). It is the **unattached** arm; sibling
-contention can only make an arm look slower, so it biases the ssn ratios toward
-the attached arms and away from the finding, and every ssn ratio is below 1
-anyway. The interior and HS wall batches are inside the fraction bar on both
-cores and are UNPROVEN-EVIDENCE on snapshot cadence. PROVENANCE.txt states all of
-it, including the instruction batches' own evidence gaps and why none of them
-reaches a scheduling-invariant instruction count.
+**The idle proof** (`IDLE-PROOF.md`, per-pid appendix in `IDLE-PIDS.txt`) covers
+**34 batches** — fix1: round 1's proof was generated before the second interior
+batch existed and omitted `logs/14-ipmleg2-perf.log`, so it counted 33. The
+regenerated proof is the same tool, unedited (sha256 `3394879d…`), over all 34
+retained batch logs:
+
+| class | batches | worst cpu2 / cpu10 fraction | verdicts |
+|---|---:|---|---|
+| wall batches (the only wall-quoting ones) | 14 | 0.1096 % / 0.7242 % | **11 PINNED-CLEAN**; the 3 marked † above are not |
+| instruction batches, long (≥ 70 s timed wall) | 12 | 0.8110 % / 0.9747 % | all 12 UNPROVEN-EVIDENCE (snapshot cadence); 7 of them also UNPROVEN-FRACTION (0.59–0.81 % cpu2 on the nine-cell-group batches, 0.97 % cpu10 on `hs-perf`); the other 5 read 0.020–0.042 % on cpu2 |
+| instruction batches, short (walk groups, 2.8–10.8 s) | 8 | 6.4748 % / 0.4634 % | all 8 UNPROVEN-EVIDENCE and UNPROVEN-FRACTION (0.73–6.47 % cpu2) — a resolution artefact, below |
+| **total** | **34** | — | 11 PINNED-CLEAN, 16 UNPROVEN-FRACTION, 22 UNPROVEN-EVIDENCE (a batch can be both) |
+
+`14-ipmleg2-perf.log` itself: 6 timed runs, 71.44 s, cpu2 **0.0420 %**, cpu10
+**0.0700 %**, 3 alternation snapshots missing — UNPROVEN-EVIDENCE, both
+fractions comfortably inside the bar. It asserts no wall.
+
+**The short groups' 5–6.5 % is a MEASUREMENT-RESOLUTION artefact and the
+arithmetic is now complete (fix1).** Round 1 wrote "one 10 ms tick is 0.36 % of
+a 2.8 s batch", which is true and does not by itself explain a 5–6 % reading:
+0.15–0.18 s is fifteen to eighteen ticks, not one. The mechanism is CUMULATIVE
+ROUNDING. Each of the batch's **36** timed runs has its own user time read from
+`/usr/bin/time`'s `%U` (`scripts/common.sh:171`), which prints CENTISECONDS, and
+the tool subtracts the sum of those 36 rounded values from a `/proc/stat` delta
+that was not rounded the same way. Up to 0.01 s of rounding per process across
+36 processes is up to 0.36 s of apparent foreign time; the observed residual is
+0.15–0.18 s, inside that. **The batches stay UNPROVEN-FRACTION** — the
+explanation is not a proof, and the record keeps the verdict the tool gave. The
+same arithmetic sizes the long batches' own residuals: a 27-cell group runs 108
+timed processes, up to 1.08 s of accumulated centisecond rounding, and the
+`sqpperf-*-gall` batches read 0.59–0.81 % of a 73–94 s window — 0.43–0.59 s,
+inside it. The long walk groups, which run 16–36 processes across 800 s, read
+0.020–0.032 %: the same absolute rounding spread over a window 80–290× longer.
+
+PROVENANCE.txt states the rest, including the instruction batches' own evidence
+gaps and why none of them reaches a scheduling-invariant instruction count.
 
 ---
 
@@ -378,7 +513,9 @@ reaches a scheduling-invariant instruction count.
    recorded, no action.
 2. **The top-level interior-point leg is MOVED at +1.46 %/+1.71 %** — outside
    the ±0.5 % bar. **Registered for M7**, with the carrier already identified:
-   the per-event `IterationEvent` construction, O(n), built after the guard.
+   the per-event attached-only payload preparation (snapshot, engine→caller
+   mapping, declared diagnostics), O(n), done behind the callback guard — §4,
+   as corrected in fix1.
    The obvious shape of a remedy — building the event lazily, or letting a
    callback declare which views it wants — is an M7 design question and this
    task deliberately proposes none and tunes nothing.

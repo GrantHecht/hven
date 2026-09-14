@@ -310,6 +310,80 @@ States are the UNION of `/proc/<pid>/stat`'s single character (`FOREIGN_TICK`) a
 | 454245 | `S` | 0.00 | both ends | `systemd-userwor` |
 | 457451 | `S` | 0.00 | both ends | `tail` |
 
+## `14-ipmleg2-perf.log` / `ipmleg2-perf`  (5 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.01 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.01 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.01 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.01 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.01 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.01 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.10 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.12 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.03 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 542754 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 542762 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 542763 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 544116 | `S` | 0.00 | both ends | `bash` |
+| 544117 | `S` | 0.00 | both ends | `tail` |
+| 544118 | `S` | 0.00 | both ends | `2.1.270` |
+
 ## `20-sqpperf-ipm-r1.log` / `sqpperf-ipm-r1-gall`  (29 snapshots)
 
 | pid | states seen | delta (s) | presence | command |

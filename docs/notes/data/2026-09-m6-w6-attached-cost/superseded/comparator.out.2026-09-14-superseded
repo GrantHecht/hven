@@ -199,7 +199,7 @@ LEVEL-MATCHED PAIRING (lowest-with-lowest, highest-with-highest): **1.014825** a
 
 ### The top-level interior-point leg -- callback off vs on (batch 2, behind an untimed warm-up)
 
-The same leg, the same lever, the same binary, three more rounds -- with ONE UNTIMED WARM-UP process ahead of them so no round is the batch's first process. The warm-up is untimed, not unrecorded: its CSV and its stdout are retained (`raw/ipmleg2/warmup.csv`, `warmup.stdout`) and only its perf counters are excluded, since it ran outside BATCH_START (`scripts/ipm_leg2.sh:22`). Each arm is now internally stable to 0.27 % (off) and 0.04 % (on), and the gap between the arms is an order of magnitude larger than either.
+The same leg, the same lever, the same binary, three more rounds -- with ONE UNTIMED, UNRECORDED process ahead of them so no round is the batch's first process. Each arm is now internally stable to 0.27 % (off) and 0.04 % (on), and the gap between the arms is an order of magnitude larger than either.
 
 | event | off (median) | on (median) | ratio |
 |---|---|---|---|
@@ -285,8 +285,6 @@ The delta is normalised two ways: per ATTACHED EVENT (the count the instrument i
 
 `scripts/compare_replay.py A B LABEL` is EXACT STRING EQUALITY on every column but `wall_s`, which is what this check wants: every counter, every status and every residual byte-identical between the attached and the unattached arm. Run without `--residual-gate` first; where that passes there is nothing for the gate to relax.
 
-THE POPULATION IS AN EXACT MANIFEST (fix1), not whatever `raw/` happens to hold: `expected_manifest()` lists every comparison this leg owes -- the 27 cell ids spelled out -- and a MISSING FILE IS A REFUSAL that exits non-zero. Round 1 derived the population from the files it found and never visited the three `raw/ipmleg2` pairs (the second interior batch), so it reported 52 comparisons over 1468 rows where the captured population is **55 over 1597**.
-
 ```
 === sqp corpus wall / walk / a00 vs a10 === cells compared: 27  columns compared: 75  differences: 0
 === sqp corpus wall / walk / a00 vs a01 === cells compared: 27  columns compared: 75  differences: 0
@@ -328,9 +326,6 @@ THE POPULATION IS AN EXACT MANIFEST (fix1), not whatever `raw/` happens to hold:
 === interior leg / perf / r1 / off vs on === cells compared: 43  columns compared: 30  differences: 0
 === interior leg / perf / r2 / off vs on === cells compared: 43  columns compared: 30  differences: 0
 === interior leg / perf / r3 / off vs on === cells compared: 43  columns compared: 30  differences: 0
-=== interior leg batch 2 / perf / r1 / off vs on === cells compared: 43  columns compared: 30  differences: 0
-=== interior leg batch 2 / perf / r2 / off vs on === cells compared: 43  columns compared: 30  differences: 0
-=== interior leg batch 2 / perf / r3 / off vs on === cells compared: 43  columns compared: 30  differences: 0
 === HS leg / wall / walk / r1 / off vs sink === cells compared: 27  columns compared: 17  differences: 0
 === HS leg / wall / ssn / r1 / off vs sink === cells compared: 27  columns compared: 17  differences: 0
 === HS leg / wall / ipm / r1 / off vs sink === cells compared: 27  columns compared: 17  differences: 0
@@ -345,14 +340,7 @@ THE POPULATION IS AN EXACT MANIFEST (fix1), not whatever `raw/` happens to hold:
 === HS leg / perf / ipm / r3 / off vs sink === cells compared: 27  columns compared: 17  differences: 0
 ```
 
-| | manifest demands | this run | |
-|---|---:|---:|---|
-| comparisons | 55 | 55 | OK |
-| cell-comparisons (rows) | 1597 | 1597 | OK |
-| differences | 0 | 0 | OK |
-| missing files | 0 | 0 | OK |
-
-**RESULT: every pair the manifest demands was compared and every one is byte-identical on every asserted column (55 comparisons, 1597 cell-comparisons, 0 differences).**
+**RESULT: every pair byte-identical on every asserted column.**
 
 ## The wall readings, beside the instructions (INFORMATIONAL)
 
@@ -395,6 +383,6 @@ CLAUDE.md section 7: serial, solo, one solve at a time, `MKL_NUM_THREADS=1`, pin
 | SQP corpus | ipm | `a01` | **1.00022** (+0.0219 %) | 1.00024 (+0.0237 %) | 1.00031 (+0.0310 %) | 0/27 | **FLAT** |
 | SQP corpus | ipm | `a11` | **1.00096** (+0.0957 %) | 1.00103 (+0.1030 %) | 1.00151 (+0.1511 %) | 0/27 | **FLAT** |
 
-**THE CORPUS COLUMN AND THE PER-CELL COLUMNS ARE AN ORDER OF MAGNITUDE APART, AND THAT IS A FACT ABOUT THE CELL SET, NOT ABOUT THE OBSERVER.** IN WALK MODE (fix1 -- this explanation is WALK-ONLY, and the sentence round 1 wrote was unscoped) two cells -- `f7_n1000_path_warm` and `f7_n800_path_warm` -- carry 95.9551 % of the U0 set's instructions between them (1.08e12 and 6.66e11 against 1.82e12 for all 27) and both take the same TWO major iterations as every other cell, so their attached ratio is ~1.00004 and they pull the SUM-of-medians corpus figure onto themselves. THE SAME TWO CELLS CARRY ONLY 6.8034 % IN ssn AND 8.7003 % IN ipm, where the corpus and per-cell columns are correspondingly close together. The per-cell median is the figure to read for what an attached observer costs a typical cell; the corpus figure is the one the FLAT definition names, and both are inside the band in all three modes.
+**THE CORPUS COLUMN AND THE PER-CELL COLUMNS ARE AN ORDER OF MAGNITUDE APART, AND THAT IS A FACT ABOUT THE CELL SET, NOT ABOUT THE OBSERVER.** Two cells -- `f7_n1000_path_warm` and `f7_n800_path_warm` -- carry ~96 % of the U0 set's instructions between them (1.08e12 and 6.66e11 against 1.82e12 for all 27 in walk mode) and both take the same TWO major iterations as every other cell, so their attached ratio is ~1.00004 and they pull the SUM-of-medians corpus figure onto themselves. The per-cell median is the figure to read for what an attached observer costs a typical cell; the corpus figure is the one the FLAT definition names, and both are inside the band.
 
 Counter check: **PASS -- byte-identical**.

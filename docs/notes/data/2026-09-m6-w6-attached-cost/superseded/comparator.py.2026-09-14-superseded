@@ -13,10 +13,8 @@ WHAT IT READS
                                                   instruction leg)
   raw/sqpperf/<mode>/r<round>/<arm>-<cell>.csv    that run's single corpus row
   raw/sqpwall/<mode>/<arm>.csv                    the 27-cell wall leg's CSV
-  perf/ipmleg/<arm>-r<round>.txt                  the interior leg, batch 1
+  perf/ipmleg/<arm>-r<round>.txt                  the interior leg
   raw/ipmleg/{perf,wall}-<arm>-r<round>.csv
-  perf/ipmleg2/<arm>-r<round>.txt                 the interior leg, batch 2
-  raw/ipmleg2/perf-<arm>-r<round>.csv             (behind an untimed warm-up)
   perf/hs/<mode>-<arm>-r<round>.txt               the HS leg
   raw/hs/{perf,wall}-<mode>-<arm>-r<round>.csv
 
@@ -43,28 +41,13 @@ every pair must be byte-identical.  It is run by `scripts/compare_replay.py`
 (the committed comparator) on the corpus CSVs and, for the HS schema which that
 tool does not know, by the column walk in `hs_identity()` below, which names the
 observation columns it excludes and why.
-
-FIX1 (the sol review of T6, Important 2): THE COUNTER CHECK WALKS AN EXACT
-MANIFEST, NOT THE FILESYSTEM.  Round 1 derived the population from the `a00`
-files it FOUND and skipped every pair whose files were absent, so "every pair"
-was a claim about what happened to be on disk: the three `raw/ipmleg2` pairs --
-the second interior batch, the one that CONFIRMS the finding -- were never
-visited, and a deleted or mistyped file would have shrunk the population
-silently instead of failing.  `expected_manifest()` below LISTS every comparison
-this leg owes (arm x round x leg x cell, the 27 cell ids spelled out), a missing
-file is a REFUSAL that exits non-zero, and the totals -- comparisons,
-cell-comparisons, differences -- are printed and checked against what the
-manifest demanded.  Expected: 55 comparisons, 1597 cell-comparisons, 0
-differences.
 """
 import csv
 import os
 import re
-import shutil
 import statistics
 import subprocess
 import sys
-import tempfile
 
 ARMS = ["a00", "a10", "a01", "a11"]
 ARM_LABEL = {
@@ -75,31 +58,6 @@ ARM_LABEL = {
 }
 MODES = ["walk", "ssn", "ipm"]
 ROUNDS = [1, 2, 3]
-# THE U0 27-CELL SET, SPELLED OUT (fix1).  The manifest is exact: these are the
-# cells every SQP arm of every round must have written, and a cell missing from
-# `raw/` is a refusal rather than a smaller population.  `cells_from()` still
-# reads the directory for the RATIO tables, where a missing cell shows up as a
-# missing row; the counter check -- the one that can STOP the leg -- does not
-# ask the directory anything.
-CELLS = [
-    "f7_n1000_bound_activity", "f7_n1000_bound_corrupted", "f7_n1000_bound_neutral",
-    "f7_n1000_bound_physics", "f7_n1000_bound_warm", "f7_n1000_path_warm",
-    "f7_n2000_bound_activity", "f7_n2000_bound_corrupted", "f7_n2000_bound_neutral",
-    "f7_n2000_bound_physics", "f7_n2000_bound_warm",
-    "f7_n5000_bound_activity", "f7_n5000_bound_corrupted", "f7_n5000_bound_neutral",
-    "f7_n5000_bound_physics", "f7_n5000_bound_warm",
-    "f7_n10000_bound_activity", "f7_n10000_bound_corrupted", "f7_n10000_bound_neutral",
-    "f7_n10000_bound_physics", "f7_n10000_bound_warm",
-    "f7_n20000_bound_activity", "f7_n20000_bound_corrupted", "f7_n20000_bound_neutral",
-    "f7_n20000_bound_physics", "f7_n20000_bound_warm",
-    "f7_n800_path_warm",
-]
-# What the manifest below must come to, written down so the count itself is
-# falsifiable: 9 SQP wall + 27 SQP single-cell perf + 4 interior batch 1
-# (wall r1 + perf r1-r3) + 3 interior batch 2 + 12 HS = 55 comparisons, over
-# 9*27 + 27*27 + 4*43 + 3*43 + 12*27 = 1597 rows.
-EXPECTED_COMPARISONS = 55
-EXPECTED_CELL_COMPARISONS = 1597
 EVENTS = ["instructions:u", "branches:u", "cycles:u", "branch-misses:u",
           "L1-icache-load-misses:u"]
 # The HS schema's OBSERVATION columns: wall (timing, never a regression
@@ -435,172 +393,83 @@ def hs_identity(a, b, label):
     return (1 if diffs else 0), line
 
 
-COUNTS = re.compile(r"cells compared: (\d+)\s+columns compared: (\d+)\s+differences: (\d+)")
-
-
-def expected_manifest():
-    """EVERY comparison this leg owes, listed -- never discovered on disk.
-
-    fix1.  Each entry names its two sides by PATH (a side may be a list of
-    per-cell files that are concatenated under the wall leg's header before the
-    comparison, which is how the single-cell runs are read).  A path that does
-    not exist is a REFUSAL: the comparison is not silently dropped, the run
-    exits non-zero, and the totals cannot quietly shrink.
-    """
-    m = []
-    # (1) the 27-cell wall CSVs, three modes x three attached arms
-    for mode in MODES:
-        for arm in ARMS[1:]:
-            m.append({"kind": "replay", "mode": mode,
-                      "label": "sqp corpus wall / %s / a00 vs %s" % (mode, arm),
-                      "a": ["raw/sqpwall/%s/a00.csv" % mode],
-                      "b": ["raw/sqpwall/%s/%s.csv" % (mode, arm)],
-                      "merge": False, "rows": len(CELLS)})
-    # (2) the single-cell perf CSVs, three modes x three rounds x three arms
-    for mode in MODES:
-        for r in ROUNDS:
-            for arm in ARMS[1:]:
-                m.append({"kind": "replay", "mode": mode,
-                          "label": "sqp single-cell perf / %s / r%d / a00 vs %s" % (mode, r, arm),
-                          "a": ["raw/sqpperf/%s/r%d/a00-%s.csv" % (mode, r, c) for c in CELLS],
-                          "b": ["raw/sqpperf/%s/r%d/%s-%s.csv" % (mode, r, arm, c) for c in CELLS],
-                          "merge": True, "tag": "%s-r%d-%s" % (mode, r, arm),
-                          "rows": len(CELLS)})
-    # (3) the interior leg, batch 1: the wall round and three perf rounds
-    m.append({"kind": "replay", "mode": None,
-              "label": "interior leg / wall / r1 / off vs on",
-              "a": ["raw/ipmleg/wall-off-r1.csv"], "b": ["raw/ipmleg/wall-on-r1.csv"],
-              "merge": False, "rows": 43})
-    for r in ROUNDS:
-        m.append({"kind": "replay", "mode": None,
-                  "label": "interior leg / perf / r%d / off vs on" % r,
-                  "a": ["raw/ipmleg/perf-off-r%d.csv" % r],
-                  "b": ["raw/ipmleg/perf-on-r%d.csv" % r],
-                  "merge": False, "rows": 43})
-    # (4) THE THREE PAIRS ROUND 1 NEVER VISITED -- the interior leg's batch 2,
-    #     the batch taken behind an untimed warm-up, the one that CONFIRMS the
-    #     finding.  Its rows are as much the STOP condition's evidence as batch
-    #     1's; omitting them made "every pair" false as an automated claim.
-    for r in ROUNDS:
-        m.append({"kind": "replay", "mode": None,
-                  "label": "interior leg batch 2 / perf / r%d / off vs on" % r,
-                  "a": ["raw/ipmleg2/perf-off-r%d.csv" % r],
-                  "b": ["raw/ipmleg2/perf-on-r%d.csv" % r],
-                  "merge": False, "rows": 43})
-    # (5) the HS leg: one wall round and three perf rounds, three modes
-    for mode in MODES:
-        m.append({"kind": "hs", "mode": mode,
-                  "label": "HS leg / wall / %s / r1 / off vs sink" % mode,
-                  "a": ["raw/hs/wall-%s-off-r1.csv" % mode],
-                  "b": ["raw/hs/wall-%s-sink-r1.csv" % mode],
-                  "merge": False, "rows": 27})
-    for mode in MODES:
-        for r in ROUNDS:
-            m.append({"kind": "hs", "mode": mode,
-                      "label": "HS leg / perf / %s / r%d / off vs sink" % (mode, r),
-                      "a": ["raw/hs/perf-%s-off-r%d.csv" % (mode, r)],
-                      "b": ["raw/hs/perf-%s-sink-r%d.csv" % (mode, r)],
-                      "merge": False, "rows": 27})
-    return m
-
-
-def merge_side(root, mode, paths, dest):
-    """The single-cell runs write ONE bare row each (--internal-out has no header
-    of its own); concatenate them under the wall leg's column header so
-    compare_replay.py can read them.  Every path is required by the manifest and
-    has already been checked to exist."""
-    hdr = None
-    for line in open(os.path.join(root, "raw", "sqpwall", mode, "a00.csv")):
-        if not line.startswith("#"):
-            hdr = line
-            break
-    with open(dest, "w") as f:
-        f.write(hdr)
-        for p in paths:
-            f.write(open(os.path.join(root, p)).read())
-    return dest
-
-
 def counter_section(root, out, repo):
     out.write("\n## The counter check -- an attached observer must change no trajectory\n\n")
     out.write("`scripts/compare_replay.py A B LABEL` is EXACT STRING EQUALITY on every "
               "column but `wall_s`, which is what this check wants: every counter, every "
               "status and every residual byte-identical between the attached and the "
               "unattached arm. Run without `--residual-gate` first; where that passes there "
-              "is nothing for the gate to relax.\n\n")
-    out.write("THE POPULATION IS AN EXACT MANIFEST (fix1), not whatever `raw/` happens to "
-              "hold: `expected_manifest()` lists every comparison this leg owes -- the 27 "
-              "cell ids spelled out -- and a MISSING FILE IS A REFUSAL that exits non-zero. "
-              "Round 1 derived the population from the files it found and never visited the "
-              "three `raw/ipmleg2` pairs (the second interior batch), so it reported 52 "
-              "comparisons over 1468 rows where the captured population is **55 over "
-              "1597**.\n\n```\n")
+              "is nothing for the gate to relax.\n\n```\n")
     worst = 0
-    comparisons = 0
-    cells_total = 0
-    diffs_total = 0
-    missing_total = 0
-    tmp = tempfile.mkdtemp(prefix="w6t6-merged-")
-    for item in expected_manifest():
-        need = item["a"] + item["b"]
-        missing = [q for q in need if not os.path.exists(os.path.join(root, q))]
-        if missing:
-            missing_total += len(missing)
-            worst = max(worst, 2)
-            out.write("=== %s === MANIFEST REFUSAL: %d of %d required file(s) missing: %s\n"
-                      % (item["label"], len(missing), len(need), ", ".join(missing[:4])))
+    # the 27-cell wall CSVs
+    for mode in MODES:
+        base = os.path.join(root, "raw", "sqpwall", mode, "a00.csv")
+        if not os.path.exists(base):
             continue
-        if item["merge"]:
-            # INTO A TEMPORARY DIRECTORY, never into `raw/` (fix1): the merged
-            # file is a reading convenience, and raw/ holds only bytes a
-            # measured process wrote.
-            a = merge_side(root, item["mode"], item["a"],
-                           os.path.join(tmp, "a00-%s.csv" % item["tag"]))
-            b = merge_side(root, item["mode"], item["b"],
-                           os.path.join(tmp, "%s.csv" % item["tag"]))
-        else:
-            a = os.path.join(root, item["a"][0])
-            b = os.path.join(root, item["b"][0])
-        if item["kind"] == "replay":
-            rc, txt = compare_replay(a, b, item["label"], repo)
-        else:
-            rc, txt = hs_identity(a, b, item["label"])
-        worst = max(worst, rc)
-        out.write(txt + "\n")
-        comparisons += 1
-        mm = COUNTS.search(txt)
-        if not mm:
-            out.write("    (UNPARSEABLE RESULT LINE -- counted as a failure)\n")
-            worst = max(worst, 2)
+        for arm in ARMS[1:]:
+            other = os.path.join(root, "raw", "sqpwall", mode, "%s.csv" % arm)
+            if not os.path.exists(other):
+                continue
+            rc, txt = compare_replay(base, other, "sqp corpus wall / %s / a00 vs %s"
+                                     % (mode, arm), repo)
+            worst = max(worst, rc)
+            out.write(txt + "\n")
+    # the single-cell perf CSVs, concatenated per arm per round
+    for mode in MODES:
+        cells = cells_from(root, mode)
+        if not cells:
             continue
-        got_rows, _, got_diffs = (int(x) for x in mm.groups())
-        cells_total += got_rows
-        diffs_total += got_diffs
-        if got_rows != item["rows"]:
-            out.write("    ROW-COUNT REFUSAL: the manifest demands %d rows, the comparison "
-                      "read %d\n" % (item["rows"], got_rows))
-            worst = max(worst, 2)
+        for r in ROUNDS:
+            d = os.path.join(root, "raw", "sqpperf", mode, "r%d" % r)
+            # The single-cell runs each write ONE bare row (--internal-out has no
+            # header of its own), so the arm's 27 rows are concatenated under the
+            # wall leg's column header to make a file compare_replay.py can read.
+            merged = {a: os.path.join(d, "_merged-%s.csv" % a) for a in ARMS}
+            hdr = None
+            for line in open(os.path.join(root, "raw", "sqpwall", mode, "a00.csv")):
+                if not line.startswith("#"):
+                    hdr = line
+                    break
+            for arm in ARMS:
+                with open(merged[arm], "w") as f:
+                    f.write(hdr)
+                    for cell in cells:
+                        p = os.path.join(d, "%s-%s.csv" % (arm, cell))
+                        if os.path.exists(p):
+                            f.write(open(p).read())
+            for arm in ARMS[1:]:
+                rc, txt = compare_replay(merged["a00"], merged[arm],
+                                         "sqp single-cell perf / %s / r%d / a00 vs %s"
+                                         % (mode, r, arm), repo)
+                worst = max(worst, rc)
+                out.write(txt + "\n")
+    # the interior leg
+    for phase, rs in (("wall", [1]), ("perf", ROUNDS)):
+        for r in rs:
+            a = os.path.join(root, "raw", "ipmleg", "%s-off-r%d.csv" % (phase, r))
+            b = os.path.join(root, "raw", "ipmleg", "%s-on-r%d.csv" % (phase, r))
+            if not (os.path.exists(a) and os.path.exists(b)):
+                continue
+            rc, txt = compare_replay(a, b, "interior leg / %s / r%d / off vs on" % (phase, r),
+                                     repo)
+            worst = max(worst, rc)
+            out.write(txt + "\n")
+    # the HS leg
+    for phase, rs in (("wall", [1]), ("perf", ROUNDS)):
+        for mode in MODES:
+            for r in rs:
+                a = os.path.join(root, "raw", "hs", "%s-%s-off-r%d.csv" % (phase, mode, r))
+                b = os.path.join(root, "raw", "hs", "%s-%s-sink-r%d.csv" % (phase, mode, r))
+                if not (os.path.exists(a) and os.path.exists(b)):
+                    continue
+                rc, txt = hs_identity(a, b, "HS leg / %s / %s / r%d / off vs sink"
+                                      % (phase, mode, r))
+                worst = max(worst, rc)
+                out.write(txt + "\n")
     out.write("```\n\n")
-    out.write("| | manifest demands | this run | |\n|---|---:|---:|---|\n")
-    out.write("| comparisons | %d | %d | %s |\n"
-              % (EXPECTED_COMPARISONS, comparisons,
-                 "OK" if comparisons == EXPECTED_COMPARISONS else "**REFUSED**"))
-    out.write("| cell-comparisons (rows) | %d | %d | %s |\n"
-              % (EXPECTED_CELL_COMPARISONS, cells_total,
-                 "OK" if cells_total == EXPECTED_CELL_COMPARISONS else "**REFUSED**"))
-    out.write("| differences | 0 | %d | %s |\n"
-              % (diffs_total, "OK" if diffs_total == 0 else "**THE STOP CONDITION**"))
-    out.write("| missing files | 0 | %d | %s |\n\n"
-              % (missing_total, "OK" if missing_total == 0 else "**REFUSED**"))
-    shutil.rmtree(tmp, ignore_errors=True)
-    if comparisons != EXPECTED_COMPARISONS or cells_total != EXPECTED_CELL_COMPARISONS:
-        worst = max(worst, 2)
-    out.write("**RESULT: %s.**\n"
-              % ("every pair the manifest demands was compared and every one is "
-                 "byte-identical on every asserted column (%d comparisons, %d "
-                 "cell-comparisons, 0 differences)" % (comparisons, cells_total)
-                 if worst == 0 else
-                 "THE MANIFEST WAS NOT SATISFIED, or a pair differs -- see the listing above"))
+    out.write("**RESULT: %s.**\n" % ("every pair byte-identical on every asserted column"
+                                     if worst == 0 else
+                                     "AT LEAST ONE PAIR DIFFERS -- see the listing above"))
     return worst
 
 
@@ -699,13 +568,10 @@ def main():
         "behind an untimed warm-up)",
         "ipmleg2", ["off", "on"], lambda a, r: "%s-r%d.txt" % (a, r),
         "The same leg, the same lever, the same binary, three more rounds -- with "
-        "ONE UNTIMED WARM-UP process ahead of them so no round is the batch's "
-        "first process. The warm-up is untimed, not unrecorded: its CSV and its "
-        "stdout are retained (`raw/ipmleg2/warmup.csv`, `warmup.stdout`) and only "
-        "its perf counters are excluded, since it ran outside BATCH_START "
-        "(`scripts/ipm_leg2.sh:22`). Each arm is now internally stable to 0.27 % "
-        "(off) and 0.04 % (on), and the gap between the arms is an order of "
-        "magnitude larger than either.")
+        "ONE UNTIMED, UNRECORDED process ahead of them so no round is the batch's "
+        "first process. Each arm is now internally stable to 0.27 % (off) and "
+        "0.04 % (on), and the gap between the arms is an order of magnitude larger "
+        "than either.")
     for mode in MODES:
         two_arm_table(
             root, out, "The HS leg / %s -- trace off vs sink (the re-read)" % mode,
@@ -728,30 +594,19 @@ def main():
                      no, nc, verdict))
     out.write("\n**THE CORPUS COLUMN AND THE PER-CELL COLUMNS ARE AN ORDER OF MAGNITUDE "
               "APART, AND THAT IS A FACT ABOUT THE CELL SET, NOT ABOUT THE OBSERVER.** "
-              "IN WALK MODE (fix1 -- this explanation is WALK-ONLY, and the sentence "
-              "round 1 wrote was unscoped) two cells -- `f7_n1000_path_warm` and "
-              "`f7_n800_path_warm` -- carry 95.9551 % of the U0 set's instructions between "
-              "them (1.08e12 and 6.66e11 against 1.82e12 for all 27) and both take the "
-              "same TWO major iterations as every other cell, so their attached ratio is "
-              "~1.00004 and they pull the SUM-of-medians corpus figure onto themselves. "
-              "THE SAME TWO CELLS CARRY ONLY 6.8034 % IN ssn AND 8.7003 % IN ipm, where the "
-              "corpus and per-cell columns are correspondingly close together. The "
-              "per-cell median is the figure to read for what an attached observer costs "
-              "a typical cell; the corpus figure is the one the FLAT definition names, "
-              "and both are inside the band in all three modes.\n")
+              "Two cells -- `f7_n1000_path_warm` and `f7_n800_path_warm` -- carry ~96 % "
+              "of the U0 set's instructions between them (1.08e12 and 6.66e11 against "
+              "1.82e12 for all 27 in walk mode) and both take the same TWO major "
+              "iterations as every other cell, so their attached ratio is ~1.00004 and "
+              "they pull the SUM-of-medians corpus figure onto themselves. The per-cell "
+              "median is the figure to read for what an attached observer costs a "
+              "typical cell; the corpus figure is the one the FLAT definition names, and "
+              "both are inside the band.\n")
     out.write("\nCounter check: **%s**.\n" % ("PASS -- byte-identical" if worst == 0
                                               else "FAIL"))
     if out is not sys.stdout:
         out.close()
-    # THE TOOL'S EXIT STATUS IS THE COUNTER CHECK'S (fix1).  Round 1 returned 0
-    # whatever the check found, so a refusal -- a missing file, a short
-    # population, a differing column -- was a SENTENCE IN A FILE and not
-    # something a wrapper could fold.  It is now the process's status: 0 only
-    # when the manifest was satisfied in full and every pair was identical.
-    if worst:
-        sys.stderr.write("comparator.py: THE COUNTER CHECK DID NOT PASS (worst rc %d) -- "
-                         "see the counter section of the output\n" % worst)
-    return worst
+    return 0
 
 
 if __name__ == "__main__":

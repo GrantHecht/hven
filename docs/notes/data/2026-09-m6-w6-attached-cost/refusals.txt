@@ -1,4 +1,20 @@
-W6 T6 — the two levers' REFUSAL PATHS, exercised against the committed binary.
+W6 T6 — the two levers' REFUSAL PATHS, exercised against a committed binary.
+
+REGENERATED AT FIX ROUND 1, 2026-09-14, against the binary commit 1 of that
+round builds (sha256 3f65a57b…, .scratch/w6t6/build-release-fix1, Release,
+uniform flags) — NOT against the binary this artifact's measurements were taken
+with (sha256 0ef932a8…, logs/05-binary-hashes.txt).  The two differ by exactly
+this fix: ARGUMENT VALIDATION.  The measured arms are unchanged by it and were
+not retaken; PROVENANCE.txt's F1 block states that in full.  The superseded
+round-1 transcript is kept byte-identical at
+superseded/refusals.txt.2026-09-14-superseded.
+
+WHAT CHANGED.  Round 1 refused the levers on every route that cannot honour
+them -- but tested their TRUTHINESS, and parsing had already reduced `off` to
+the same false an absent flag leaves.  So `--callback off` and `--trace off`
+were SILENTLY ACCEPTED on those four routes while `count`/`sink` one word later
+were refused: an accepted no-op, which is exactly what this file asserts is
+forbidden.  Both flags are now refused BY NAME, whatever value they carry.
 
 Every path that cannot honour --callback/--trace refuses it BY NAME with the
 reason, on this file's standing rule: a flag that reads as accepted and does
@@ -7,49 +23,82 @@ line.  The runner's own throw_usage() appends the whole usage block to every
 message; only the first line of each -- the reason -- is reproduced here, with
 the exit status beside it.
 
+16 cases ran, 16 passed.  A case PASSES only when the binary exits NON-ZERO with
+the named reason (sections A-C) or exits ZERO with the expected stamp (section
+D); the checking wrapper is proven against a stub that accepts everything and
+against one that refuses for the wrong reason
+(.scratch/w6t6/logs/40-fix1-fold-proof.log).  The run itself:
+.scratch/w6t6/logs/42-fix1-refusals.log.
+
+--------------------------------------------------------------------------------
+A. THE FOUR NEW CASES -- an explicit OFF on a route that owns no such lever.
+--------------------------------------------------------------------------------
+
+$ hven_sqp_corpus --hs --engine walk --csv /dev/null --callback off
+    hven_sqp_corpus: error: --callback and --trace are the CORPUS arms' attached-observer levers and reach run_cell_engine, which --hs does not call: the HS suite's own sink lever is --hs-trace, and it has no callback lever. Both are refused BY NAME: an explicit `off` is refused too, since this route has no such lever to turn off
+    exit=1
+$ hven_sqp_corpus --engine interior --cells f7_n1000_bound_neutral --csv /dev/null --trace off
+    hven_sqp_corpus: error: --callback and --trace are the SQP corpus arms' attached-observer levers and set fields run_cell_engine reads; this arm runs no SqpSolver. The interior leg's callback lever is the environment variable HVEN_LEG_COUNT_CALLBACK, and it has no sink lever. Both are refused BY NAME: an explicit `off` is refused too, since this route has no such lever to turn off
+    exit=1
+$ hven_sqp_corpus --internal-run-one f7_n1000_bound_neutral --engine interior --treatment MakeParameter --internal-out /dev/null --callback off
+    hven_sqp_corpus: error: --internal-run-one --engine interior takes none of the SSN measurement levers, the model-surface hook, the hidden child levers or the attached-observer arms: it runs the interior leg in process, drives no SqpSolver, has no parent polling a marker and no child to force. The interior leg's OWN callback lever is the HVEN_LEG_COUNT_CALLBACK environment variable (bench/ipm_corpus_leg.cpp), and it has no sink lever at all. Both are refused BY NAME: an explicit `off` is refused too, since this route has no such lever to turn off
+    exit=1
+$ hven_sqp_corpus --from-csv /home/ghecht/Projects/hven/docs/notes/data/2026-09-m6-w5-t8-runtime/raw/leg1/ipm/base-r1.csv --csv /dev/null --trace off
+    hven_sqp_corpus: error: --callback and --trace are attached-observer arms on a LIVE corpus run; --from-csv reads rows another run already captured and solves nothing, so neither flag could change a byte of its output. Both are refused BY NAME: an explicit `off` is refused too, since this route attaches nothing either way
+    exit=1
+
+--------------------------------------------------------------------------------
+B. THE SAME FOUR ROUTES, the COMPLEMENTARY flag spelled off -- so the contract
+   is shown to be about the FLAG NAME on the ROUTE, not about one spelling.
+--------------------------------------------------------------------------------
+
+$ hven_sqp_corpus --hs --engine walk --csv /dev/null --trace off
+    hven_sqp_corpus: error: --callback and --trace are the CORPUS arms' attached-observer levers and reach run_cell_engine, which --hs does not call: the HS suite's own sink lever is --hs-trace, and it has no callback lever. Both are refused BY NAME: an explicit `off` is refused too, since this route has no such lever to turn off
+    exit=1
+$ hven_sqp_corpus --engine interior --cells f7_n1000_bound_neutral --csv /dev/null --callback off
+    hven_sqp_corpus: error: --callback and --trace are the SQP corpus arms' attached-observer levers and set fields run_cell_engine reads; this arm runs no SqpSolver. The interior leg's callback lever is the environment variable HVEN_LEG_COUNT_CALLBACK, and it has no sink lever. Both are refused BY NAME: an explicit `off` is refused too, since this route has no such lever to turn off
+    exit=1
+$ hven_sqp_corpus --internal-run-one f7_n1000_bound_neutral --engine interior --treatment MakeParameter --internal-out /dev/null --trace off
+    hven_sqp_corpus: error: --internal-run-one --engine interior takes none of the SSN measurement levers, the model-surface hook, the hidden child levers or the attached-observer arms: it runs the interior leg in process, drives no SqpSolver, has no parent polling a marker and no child to force. The interior leg's OWN callback lever is the HVEN_LEG_COUNT_CALLBACK environment variable (bench/ipm_corpus_leg.cpp), and it has no sink lever at all. Both are refused BY NAME: an explicit `off` is refused too, since this route has no such lever to turn off
+    exit=1
+$ hven_sqp_corpus --from-csv /home/ghecht/Projects/hven/docs/notes/data/2026-09-m6-w5-t8-runtime/raw/leg1/ipm/base-r1.csv --csv /dev/null --callback off
+    hven_sqp_corpus: error: --callback and --trace are attached-observer arms on a LIVE corpus run; --from-csv reads rows another run already captured and solves nothing, so neither flag could change a byte of its output. Both are refused BY NAME: an explicit `off` is refused too, since this route attaches nothing either way
+    exit=1
+
+--------------------------------------------------------------------------------
+C. THE SIX CASES ROUND 1'S TRANSCRIPT ALREADY CARRIED (count/sink on the four
+   routes, and an unknown spelling on each parser), re-run against the
+   fix-round binary and unchanged in outcome.
+--------------------------------------------------------------------------------
+
 $ hven_sqp_corpus --hs --engine walk --csv /dev/null --callback count
-    hven_sqp_corpus: error: --callback and --trace are the CORPUS arms' attached-observer levers and reach run_cell_engine, which --hs does not call: the HS suite's own sink lever is --hs-trace, and it has no callback lever
-    
-    usage: hven_sqp_corpus --engine walk|ssn|ipm --cells all|<id1,id2,...> --csv <path> [--score-gates]
-                           [--callback off|count] [--trace off|sink]
+    hven_sqp_corpus: error: --callback and --trace are the CORPUS arms' attached-observer levers and reach run_cell_engine, which --hs does not call: the HS suite's own sink lever is --hs-trace, and it has no callback lever. Both are refused BY NAME: an explicit `off` is refused too, since this route has no such lever to turn off
     exit=1
-
 $ hven_sqp_corpus --engine interior --cells f7_n1000_bound_neutral --csv /dev/null --trace sink
-    hven_sqp_corpus: error: --callback and --trace are the SQP corpus arms' attached-observer levers and set fields run_cell_engine reads; this arm runs no SqpSolver. The interior leg's callback lever is the environment variable HVEN_LEG_COUNT_CALLBACK, and it has no sink lever
-    
-    usage: hven_sqp_corpus --engine walk|ssn|ipm --cells all|<id1,id2,...> --csv <path> [--score-gates]
-                           [--callback off|count] [--trace off|sink]
+    hven_sqp_corpus: error: --callback and --trace are the SQP corpus arms' attached-observer levers and set fields run_cell_engine reads; this arm runs no SqpSolver. The interior leg's callback lever is the environment variable HVEN_LEG_COUNT_CALLBACK, and it has no sink lever. Both are refused BY NAME: an explicit `off` is refused too, since this route has no such lever to turn off
     exit=1
-
 $ hven_sqp_corpus --internal-run-one f7_n1000_bound_neutral --engine interior --treatment MakeParameter --internal-out /dev/null --callback count
-    hven_sqp_corpus: error: --internal-run-one --engine interior takes none of the SSN measurement levers, the model-surface hook, the hidden child levers or the attached-observer arms: it runs the interior leg in process, drives no SqpSolver, has no parent polling a marker and no child to force. The interior leg's OWN callback lever is the HVEN_LEG_COUNT_CALLBACK environment variable (bench/ipm_corpus_leg.cpp), and it has no sink lever at all
-    
-    usage: hven_sqp_corpus --engine walk|ssn|ipm --cells all|<id1,id2,...> --csv <path> [--score-gates]
-                           [--callback off|count] [--trace off|sink]
+    hven_sqp_corpus: error: --internal-run-one --engine interior takes none of the SSN measurement levers, the model-surface hook, the hidden child levers or the attached-observer arms: it runs the interior leg in process, drives no SqpSolver, has no parent polling a marker and no child to force. The interior leg's OWN callback lever is the HVEN_LEG_COUNT_CALLBACK environment variable (bench/ipm_corpus_leg.cpp), and it has no sink lever at all. Both are refused BY NAME: an explicit `off` is refused too, since this route has no such lever to turn off
     exit=1
-
-$ hven_sqp_corpus --from-csv docs/notes/data/2026-09-m6-w5-t8-runtime/raw/leg1/ipm/base-r1.csv --csv /dev/null --trace sink
-    hven_sqp_corpus: error: --callback and --trace are attached-observer arms on a LIVE corpus run; --from-csv reads rows another run already captured and solves nothing, so neither flag could change a byte of its output
-    
-    usage: hven_sqp_corpus --engine walk|ssn|ipm --cells all|<id1,id2,...> --csv <path> [--score-gates]
-                           [--callback off|count] [--trace off|sink]
+$ hven_sqp_corpus --from-csv /home/ghecht/Projects/hven/docs/notes/data/2026-09-m6-w5-t8-runtime/raw/leg1/ipm/base-r1.csv --csv /dev/null --trace sink
+    hven_sqp_corpus: error: --callback and --trace are attached-observer arms on a LIVE corpus run; --from-csv reads rows another run already captured and solves nothing, so neither flag could change a byte of its output. Both are refused BY NAME: an explicit `off` is refused too, since this route attaches nothing either way
     exit=1
-
 $ hven_sqp_corpus --engine walk --cells f7_n1000_bound_neutral --csv /dev/null --callback bogus
     hven_sqp_corpus: error: --callback: 'bogus' is not one of off|count
-    
-    usage: hven_sqp_corpus --engine walk|ssn|ipm --cells all|<id1,id2,...> --csv <path> [--score-gates]
-                           [--callback off|count] [--trace off|sink]
     exit=1
-
 $ hven_sqp_corpus --engine walk --cells f7_n1000_bound_neutral --csv /dev/null --trace bogus
     hven_sqp_corpus: error: --trace: 'bogus' is not one of off|sink
-    
-    usage: hven_sqp_corpus --engine walk|ssn|ipm --cells all|<id1,id2,...> --csv <path> [--score-gates]
-                           [--callback off|count] [--trace off|sink]
     exit=1
 
-AND THE ACCEPTED SPELLINGS, on the corpus arms, are stamped into the CSV:
-# attached observers: callback=count trace=sink (M6 W6 T6 -- off/off is the shipped shape: nothing is attached and the driver's callback dispatch and sink emit guards do not execute)
-attached observers: callback=count trace=sink
-# attached observers: callback=off trace=off (M6 W6 T6 -- off/off is the shipped shape: nothing is attached and the driver's callback dispatch and sink emit guards do not execute)
+--------------------------------------------------------------------------------
+D. AND THE ACCEPTED SPELLINGS, on a corpus arm, still stamped into the CSV.
+   `off/off` is the shipped shape and is written into the header in its own
+   bytes, exactly as the unattached arms of this leg recorded it.
+--------------------------------------------------------------------------------
+
+$ hven_sqp_corpus --engine walk --cells f7_n1000_bound_neutral --csv /home/ghecht/Projects/hven/.scratch/w6t6/fix1-accept-on.csv --callback count --trace sink
+    exit=0
+    # attached observers: callback=count trace=sink (M6 W6 T6 -- off/off is the shipped shape: nothing is attached and the driver's callback dispatch and sink emit guards do not execute)
+$ hven_sqp_corpus --engine walk --cells f7_n1000_bound_neutral --csv /home/ghecht/Projects/hven/.scratch/w6t6/fix1-accept-off.csv --callback off --trace off
+    exit=0
+    # attached observers: callback=off trace=off (M6 W6 T6 -- off/off is the shipped shape: nothing is attached and the driver's callback dispatch and sink emit guards do not execute)

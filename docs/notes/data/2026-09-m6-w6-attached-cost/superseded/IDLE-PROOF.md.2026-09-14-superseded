@@ -14,7 +14,6 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 | 11-ipmleg-wall.log | ipmleg-wall | 24.10 | 3 | 71 | 0 | 0.040 (pid 13480) | **0.1660 %** | S,S+,S<,S<Ls,S<sl,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl | none | 0 | 0 | 0 | 1 | met |
 | 12-hs-perf.log | hs-perf | 112.85 | 5 | 71 | 0 | 0.170 (pid 13480) | **0.1506 %** | S,S+,S<,S<Ls,S<sl,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl | none | 0 | 0 | 0 | 15 | met |
 | 13-hs-wall.log | hs-wall | 36.98 | 3 | 71 | 0 | 0.060 (pid 13480) | **0.1622 %** | S,S+,S<,S<Ls,S<sl,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl | none | 0 | 0 | 0 | 5 | met |
-| 14-ipmleg2-perf.log | ipmleg2-perf | 72.25 | 5 | 69 | 0 | 0.120 (pid 13501) | **0.1661 %** | S,S<,S<Ls,S<sl,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl | none | 0 | 0 | 0 | 3 | met |
 | 20-sqpperf-ipm-r1.log | sqpperf-ipm-r1-gall | 101.00 | 29 | 70 | 6 | 0.180 (pid 13480) | **0.1782 %** | S,S+,S<,S<Ls,S<sl,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl | none | 0 | 0 | 0 | 81 | **NOT met** |
 | 20-sqpperf-ipm-r2.log | sqpperf-ipm-r2-gall | 101.37 | 29 | 73 | 0 | 0.200 (pid 13480) | **0.1973 %** | S,S+,S<,S<Ls,S<sl,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl | none | 0 | 0 | 0 | 81 | met |
 | 20-sqpperf-ipm-r3.log | sqpperf-ipm-r3-gall | 101.31 | 29 | 73 | 0 | 0.180 (pid 13480) | **0.1777 %** | S,S+,S<,S<Ls,S<sl,SNs,SNsl,Sl,Sl+,Ss,Ss+,Ssl | none | 0 | 0 | 0 | 81 | met |
@@ -63,7 +62,6 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 | 11-ipmleg-wall.log | ipmleg-wall | 2 | 23.71 | **0.000** | **0.0000 %** | **0.030** | **0.1265 %** | 21.510 | 0.030 | 0.00 | 23.61 | 0.010 | 0.080 | 1 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
 | 12-hs-perf.log | hs-perf | 18 | 111.83 | **0.080** | **0.0715 %** | **1.090** | **0.9747 %** | 110.230 | 1.090 | 0.00 | 111.05 | 0.090 | 0.690 | 15 alternation snapshot(s) missing | **UNPROVEN-FRACTION** + **UNPROVEN-EVIDENCE** |
 | 13-hs-wall.log | hs-wall | 6 | 36.51 | **0.040** | **0.1096 %** | **0.020** | **0.0548 %** | 36.060 | 0.020 | 0.00 | 36.25 | 0.020 | 0.220 | 5 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
-| 14-ipmleg2-perf.log | ipmleg2-perf | 6 | 71.44 | **0.030** | **0.0420 %** | **0.050** | **0.0700 %** | 64.840 | 0.050 | 0.00 | 71.15 | 0.030 | 0.240 | 3 alternation snapshot(s) missing | **UNPROVEN-EVIDENCE** |
 | 20-sqpperf-ipm-r1.log | sqpperf-ipm-r1-gall | 108 | 94.15 | **0.600** | **0.6373 %** | **0.150** | **0.1593 %** | 83.820 | 0.150 | 0.00 | 92.98 | 0.460 | 0.410 | 81 alternation snapshot(s) missing | **UNPROVEN-FRACTION** + **UNPROVEN-EVIDENCE** |
 | 20-sqpperf-ipm-r2.log | sqpperf-ipm-r2-gall | 108 | 94.48 | **0.570** | **0.6033 %** | **0.180** | **0.1905 %** | 84.330 | 0.180 | 0.00 | 93.36 | 0.430 | 0.420 | 81 alternation snapshot(s) missing | **UNPROVEN-FRACTION** + **UNPROVEN-EVIDENCE** |
 | 20-sqpperf-ipm-r3.log | sqpperf-ipm-r3-gall | 108 | 94.49 | **0.560** | **0.5927 %** | **0.130** | **0.1376 %** | 84.170 | 0.130 | 0.00 | 93.32 | 0.450 | 0.420 | 81 alternation snapshot(s) missing | **UNPROVEN-FRACTION** + **UNPROVEN-EVIDENCE** |
@@ -96,14 +94,11 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 
 ## The five busiest foreign processes per batch
 
-**Every foreign pid of every batch, with every state observed for it, is `IDLE-PIDS.txt`** (settler R13). The five below are a summary of that file, not a substitute for it.
-
 - 10-ipmleg-perf.log / ipmleg-perf: TRANSIENT pids (present in some snapshot, not in both ends): 448796,448797,454244,454245
 - 10-ipmleg-perf.log / ipmleg-perf (window 72.73 s): pid 13480 +0.14 s; pid 13501 +0.10 s; pid 83618 +0.02 s; pid 1289 +0.02 s; pid 669 +0.01 s
 - 11-ipmleg-wall.log / ipmleg-wall (window 24.10 s): pid 13501 +0.04 s; pid 13480 +0.04 s; pid 924 +0.01 s; pid 83618 +0.01 s; pid 1289 +0.01 s
 - 12-hs-perf.log / hs-perf (window 112.85 s): pid 13480 +0.17 s; pid 13501 +0.12 s; pid 1289 +0.03 s; pid 83618 +0.02 s; pid 926 +0.01 s
 - 13-hs-wall.log / hs-wall (window 36.98 s): pid 13480 +0.06 s; pid 13501 +0.04 s; pid 83618 +0.02 s; pid 911 +0.01 s; pid 1289 +0.01 s
-- 14-ipmleg2-perf.log / ipmleg2-perf (window 72.25 s): pid 13501 +0.12 s; pid 13480 +0.10 s; pid 83618 +0.03 s; pid 924 +0.01 s; pid 912 +0.01 s
 - 20-sqpperf-ipm-r1.log / sqpperf-ipm-r1-gall: TRANSIENT pids (present in some snapshot, not in both ends): 453855,454244,454245,462148,464071,464072
 - 20-sqpperf-ipm-r1.log / sqpperf-ipm-r1-gall (window 101.00 s): pid 13480 +0.18 s; pid 83618 +0.16 s; pid 13501 +0.16 s; pid 1289 +0.03 s; pid 924 +0.01 s
 - 20-sqpperf-ipm-r2.log / sqpperf-ipm-r2-gall (window 101.37 s): pid 13480 +0.20 s; pid 13501 +0.16 s; pid 83618 +0.15 s; pid 1289 +0.03 s; pid 926 +0.01 s
@@ -152,6 +147,6 @@ Foreign CPU time across each batch's window, from the batch's own `PS_SNAPSHOT` 
 
 | batches | PINNED-CLEAN | UNPROVEN-FRACTION | UNPROVEN-EVIDENCE |
 |---:|---:|---:|---:|
-| 34 | 11 | 16 | 22 |
+| 33 | 11 | 16 | 21 |
 
 A batch failing both is counted in both unproven columns, so the three need not sum to the first.

@@ -4,7 +4,7 @@ PGREP_EMPTY
 PGREP_EMPTY (inside the lock)
 FOREGROUND_START 2026-09-14T12:07:54Z
 BATCH sqpperf-walk-r3-g23-27 mode=walk round=3 group=23-27
-cells: f7_n20000_bound_corrupted f7_n20000_bound_activity f7_n20000_bound_warm f7_n1000_path_warm f7_n800_path_warm 
+cells: f7_n20000_bound_corrupted f7_n20000_bound_activity f7_n20000_bound_warm f7_n1000_path_warm f7_n800_path_warm
 events: instructions:u,branches:u,cycles:u,branch-misses:u,L1-icache-load-misses:u
 pin: taskset -c 2 (SMT sibling 10 left idle), MKL_NUM_THREADS=OMP_NUM_THREADS=1
 BATCH_START sqpperf-walk-r3-g23-27 2026-09-14T12:07:54Z

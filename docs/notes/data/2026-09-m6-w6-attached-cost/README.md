@@ -4,6 +4,15 @@ What an ATTACHED observer costs, measured at one HEAD (`b0a7ffaa`) against
 itself. Attached vs unattached, one binary, the arms differing only by a lever.
 Not a commit pair; nothing here to keep or revert.
 
+**FIX ROUND 1, 2026-09-14** (the sol review of T6): `PROVENANCE.txt`'s trailing
+`FIX ROUND 1` block is the amendment record — the STOP comparator now walks an
+exact manifest (**55 comparisons / 1597 cell-comparisons / 0 differences**, was
+52 / 1468), the idle proof covers all **34** batches and three wall batches are
+marked **NON-QUOTABLE**, the SQP carrier is re-attributed, the measured binary's
+hash evidence is committed, and the whitespace exemption is declared by path
+pattern. No measured number moved and nothing under `raw/` or `perf/` was
+touched. Superseded copies of what changed are in `superseded/`.
+
 It discharges the registration at `docs/notes/2026-08-m6-ledger.md:4455–4457`
 ("their attached cost is UNMEASURED, registered for W6") under plan
 `docs/notes/2026-09-m6-w6-plan.md` §0 J.5 as amended (A5) and §1 W6.T6.
@@ -25,9 +34,12 @@ It discharges the registration at `docs/notes/2026-08-m6-ledger.md:4455–4457`
 * **The top-level interior-point leg is MOVED** — instructions **+1.46 %** and
   **+1.71 %** across two independent batches. Outside the ±0.5 % bar.
   **Registered for M7.**
-* **The carrier is not the dispatch** — it is the per-event `IterationEvent`,
-  built after the guard, O(n): a few hundred instructions per node per event.
-* **Counters byte-identical in all 52 comparisons** — an attached observer
+* **The carrier is not the dispatch** — it is the per-event **attached-only
+  payload preparation** behind each engine's callback guard (the iterate
+  snapshot, the engine→caller mapping, the declared diagnostics), O(n): a few
+  hundred instructions per node per event. (fix1 — round 1 said
+  `IterationEvent` construction; `reading.md` §4 has the corrected attribution.)
+* **Counters byte-identical in all 55 comparisons** — an attached observer
   changed no trajectory.
 
 ## What is here
@@ -37,7 +49,9 @@ It discharges the registration at `docs/notes/2026-08-m6-ledger.md:4455–4457`
 | `PROVENANCE.txt` | the §7 stamp, and the protocol in full |
 | `reading.md` | the reading: tables, verdicts, the HS re-read, the disposition |
 | `comparator.py`, `.sha256` | regenerates every table: `python3 comparator.py --root . --out -` |
-| `comparator.out` | that tool's output at capture |
+| `comparator.out` | that tool's output, regenerated at fix1 |
+| `superseded/` | byte-identical copies of the four files fix1 replaced, with their sha256s recorded in `PROVENANCE.txt`; **never edited** |
+| `logs/05-binary-hashes.txt` | the measured binary's pre- and post-format sha256 (both `0ef932a8…`), and the fix-round binary's, which is a different one |
 | `idle_proof.py`, `.sha256` | a **byte-identical** copy of T8.9r's own tool (`docs/notes/data/2026-09-m6-w5-t8-runtime/scripts/idle_proof.py`), unedited |
 | `IDLE-PROOF.md`, `IDLE-PIDS.txt` | its output over this leg's retained batch logs |
 | `raw/sqpwall/<mode>/<arm>.csv` | the 27-cell SQP corpus leg, one arm per file — the **wall** reading and the counter byte-identity population |
@@ -69,9 +83,18 @@ leg `off`/`sink` (the `--hs-trace` lever).
 ## Regenerating
 
 ```
-python3 comparator.py --root . --out -
-python3 idle_proof.py --pids /tmp/pids.txt logs/1*.log logs/2*.log logs/3*.log -
+python3 comparator.py --root . --out comparator.out     # exits non-zero on any
+                                                        # manifest refusal
+python3 idle_proof.py --pids IDLE-PIDS.txt --pids-link IDLE-PIDS.txt \
+        logs/1*.log logs/2*.log logs/3*.log IDLE-PROOF.md
 ```
+
+Both were re-run at fix1 and their outputs here are those runs'. The comparator
+now enforces an EXACT MANIFEST: every comparison the leg owes is listed in the
+script, a missing file is a refusal, and the run checks its own totals (55 /
+1597) — falsified by renaming one file in a scratch copy, which gives 54 / 1554,
+a named `MANIFEST REFUSAL` and exit 2. `idle_proof.py` exits 1 whenever any
+batch is UNPROVEN, which on this leg it always does (see `reading.md` §7).
 
 The counter check shells out to `scripts/compare_replay.py` in the repo; set
 `HVEN_REPO` if the checkout is not at `/home/ghecht/Projects/hven`.

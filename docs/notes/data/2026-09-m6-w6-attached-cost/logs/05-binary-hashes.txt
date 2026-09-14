@@ -1,0 +1,35 @@
+W6 T6 fix1 (2026-09-14) — THE MEASURED BINARY'S IDENTITY, COMMITTED.
+
+PROVENANCE.txt claims the measured binary IS the committed source's binary:
+clang-format ran over bench/bench_corpus.cpp AFTER the capture (three
+line-wrapping changes, no token moved), the target was rebuilt from the
+formatted source into the SAME empty tree, and the executable came back
+byte-identical.  logs/04-rebuild-after-format.log records the rebuild but
+carries no hash, and the pre-format record lived only in this task's scratch
+directory — so the claim was not self-contained in the artifact.  Both sides
+are here now.  (The sol review of T6 found this; the settler ruled it be
+committed.)
+
+  BEFORE the format, as recorded during the run
+  (.scratch/w6t6/binary-before-format.sha256, verbatim):
+
+0ef932a854ac7f9feb40a967ad912369258b7f452b643fa24833a80ba75f5b47  .scratch/w6t6/build-release/bench/hven_sqp_corpus
+
+  AFTER the format and the rebuild (logs/04-rebuild-after-format.log), the same
+  path, re-read at fix1 time, 2026-09-14:
+
+0ef932a854ac7f9feb40a967ad912369258b7f452b643fa24833a80ba75f5b47  .scratch/w6t6/build-release/bench/hven_sqp_corpus
+
+  IDENTICAL: 0ef932a854ac7f9feb40a967ad912369258b7f452b643fa24833a80ba75f5b47
+  That hash is what every number in this directory was produced by.
+
+NOT THE MEASURED BINARY, AND NAMED SO IT CANNOT BE CONFUSED FOR ONE: the fix
+round's own Release build, from the source commit 1 of this round lands, in a
+separate empty tree (.scratch/w6t6/build-release-fix1) under the same uniform
+flags, hashes to
+
+  3f65a57b31760ce7f8a0a6a9c969a81f948570e266ce7ee63d1952d74bc0c0b2
+
+It differs because the fix changes argument validation (see PROVENANCE's F1),
+and it measured nothing in this directory.  It is the binary the regenerated
+refusals.txt was exercised against.
