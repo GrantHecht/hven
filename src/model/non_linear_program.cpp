@@ -174,6 +174,14 @@ void hven::solvers::detail::restate_claim_stream(const RawClaimLayout &raw,
     out.slots_ = slots;
     out.gradient_ = gradient;
     out.partitions_ = partitions;
+    // THE DECLARATION WIDTHS THIS STREAM IS STATED IN, stamped here because
+    // here is the only place that holds both the arena and the layout it is cut
+    // from. They are published beside the stream (M6 W6 T5): a consumer that has
+    // just seen a re-lay REFUSED holds a retained stream under an unmoved epoch
+    // while the program's own dimension accessors already report the new
+    // declaration, and without these there is nothing to tell the two apart.
+    out.dimensions_ = ClaimStreamDimensions{raw.primal_vars_, raw.slack_vars_, raw.equality_rows_,
+                                            raw.inequality_rows_};
     out.hessian_ = ClaimBlock{0, counts.hessian_};
     out.equality_jacobian_ = ClaimBlock{counts.hessian_, counts.equality_jacobian_};
     out.inequality_jacobian_ =
@@ -766,6 +774,16 @@ void hven::solvers::NonLinearProgram::require_claim_stream() const {
         "nothing left to restate them into the declared space from. Re-lay from a declaration, or "
         "read the claim stream at a layout that eliminates nothing",
         this->primal_vars_ - this->reduced_primal_vars_count_, this->primal_vars_));
+}
+
+hven::solvers::ClaimStreamDimensions
+hven::solvers::NonLinearProgram::claim_stream_dimensions() const {
+    // THROUGH THE SAME GUARD AS THE VIEWS, and for the same reason: widths for a
+    // stream that is not published would be a statement about nothing. The
+    // arena's own accessor answers an empty arena with zeros; this one refuses
+    // by name, as every other claim accessor here does.
+    this->require_claim_stream();
+    return this->claim_arena_.claim_stream_dimensions();
 }
 
 Eigen::Ref<const Eigen::VectorXi> hven::solvers::NonLinearProgram::kkt_claim_rows() const {

@@ -108,6 +108,18 @@ class ClaimArena {
     int gradient_slots() const { return gradient_; }
     int partitions() const { return partitions_; }
 
+    /// @brief The DECLARATION dimensions this stream was restated against,
+    ///        stamped at the build from the RawClaimLayout it was cut from.
+    ///
+    /// Valid exactly where the views below are, through the same empty guard: an
+    /// empty arena answers with zeros, as it answers with an empty view. The
+    /// stamp travels with the storage through swap(), so the one call that
+    /// COMMITS a rebuilt stream commits its widths with it and a refusal before
+    /// that call leaves both untouched.
+    ClaimStreamDimensions claim_stream_dimensions() const {
+        return empty() ? ClaimStreamDimensions{} : dimensions_;
+    }
+
     // EVERY VIEW BELOW GOES THROUGH THE EMPTY GUARD, and the offset tables are why
     // it is not decoration: a default-constructed or dropped arena has
     // `partitions_ == 0`, so an unguarded offsets view would be a length-ONE
@@ -141,6 +153,7 @@ class ClaimArena {
         std::swap(slots_, other.slots_);
         std::swap(gradient_, other.gradient_);
         std::swap(partitions_, other.partitions_);
+        std::swap(dimensions_, other.dimensions_);
         std::swap(hessian_, other.hessian_);
         std::swap(equality_jacobian_, other.equality_jacobian_);
         std::swap(inequality_jacobian_, other.inequality_jacobian_);
@@ -172,6 +185,7 @@ class ClaimArena {
     int slots_ = 0;
     int gradient_ = 0;
     int partitions_ = 0;
+    ClaimStreamDimensions dimensions_;
     ClaimBlock hessian_;
     ClaimBlock equality_jacobian_;
     ClaimBlock inequality_jacobian_;

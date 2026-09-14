@@ -23,6 +23,7 @@
 #include <mutex>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -39,11 +40,13 @@
 #include "support/claim_corpus.h"
 
 using hven::model_tests::build_corpus;
+using hven::model_tests::corpus_constraint;
 using hven::model_tests::CorpusCase;
 using hven::model_tests::CorpusConstraintPiece;
 using hven::model_tests::reference_restatement;
 using hven::solvers::AssemblyDeclaration;
 using hven::solvers::ClaimBlock;
+using hven::solvers::ClaimStreamDimensions;
 using hven::solvers::FixedVariableTreatments;
 using hven::solvers::NonLinearProgram;
 using hven::solvers::StructureEpoch;
@@ -482,6 +485,78 @@ TEST(ClaimStreamState, ARelayThatThrowsLeavesThePreviouslyPublishedViewsStanding
     EXPECT_EQ(nlp->claim_stream_epoch(), claim_before);
     EXPECT_EQ(copy_of(nlp->kkt_claim_rows()), rows_before);
     EXPECT_EQ(nlp->hessian_claims(), hessian_before);
+}
+
+// ---------------------------------------------------------------------------
+// The declaration dimensions the published stream was built against
+// ---------------------------------------------------------------------------
+
+TEST(ClaimStreamState, ThePublishedDimensionsAreTheOnesTheStreamWasBuiltAgainst) {
+    // THE CASE THE STAMP EXISTS FOR (M6 W6 T5), in three steps. A re-lay
+    // captures its new dimensions BEFORE it restates the claim stream, so a
+    // re-lay the restatement REFUSES leaves the program reporting the NEW
+    // declaration's widths while the retained stream still names coordinates in
+    // the OLD one -- and a consumer sizing a destination from the program's own
+    // fields and scattering through the published claims would be mixing two
+    // declarations. The published dimensions are what tells them apart.
+    CorpusCase fixture = state_case();
+    fixture.fixed_variables_.clear();
+    auto nlp = build_corpus(fixture);
+
+    // ONE. A laid stream publishes the declaration it was built against.
+    const ClaimStreamDimensions built = nlp->claim_stream_dimensions();
+    EXPECT_EQ(built, (ClaimStreamDimensions{nlp->primal_vars_, nlp->slack_vars_, nlp->equal_cons_,
+                                            nlp->inequal_cons_}));
+    EXPECT_GT(built.primal_vars, 0);
+
+    const StructureEpoch claim_before = nlp->claim_stream_epoch();
+    const Eigen::VectorXi rows_before = copy_of(nlp->kkt_claim_rows());
+
+    // TWO. A DIMENSION-CHANGING re-lay the restatement refuses. The piece swap
+    // is the same one the retention test above uses -- the raw lay succeeds and
+    // the restatement then refuses, because the counts it was sized from do not
+    // describe the slots the piece handed out -- and the three extra primal
+    // variables are what makes the refused declaration a DIFFERENT one.
+    const int applications = fixture.applications_;
+    Eigen::MatrixXi v_index(2, applications);
+    Eigen::MatrixXi c_index(1, applications);
+    for (int appl = 0; appl < applications; appl++) {
+        v_index(0, appl) = 2 * appl;
+        v_index(1, appl) = 2 * appl + 1;
+        c_index(0, appl) = appl;
+    }
+    nlp->equality_constraints_[0] = hven::solvers::ConstraintFunction(
+        hven::solvers::ConstraintInterface(NonAdditivePiece{}), v_index, c_index);
+
+    const int wider = nlp->primal_vars_ + 3;
+    EXPECT_THROW(nlp->make_nlp(wider, nlp->user_equal_cons_, nlp->inequal_cons_),
+                 std::invalid_argument);
+
+    // The program's own field already describes the declaration that failed --
+    // that is the hazard, asserted rather than assumed -- while the epoch did
+    // not move and the stream that is still published is the OLD one. The
+    // dimensions describe the RETAINED arena, not the attempted declaration.
+    EXPECT_EQ(nlp->primal_vars_, wider);
+    EXPECT_EQ(nlp->claim_stream_epoch(), claim_before);
+    EXPECT_EQ(copy_of(nlp->kkt_claim_rows()), rows_before);
+    EXPECT_EQ(nlp->claim_stream_dimensions(), built);
+    EXPECT_NE(nlp->claim_stream_dimensions().primal_vars, nlp->primal_vars_);
+
+    // THREE. An ACCEPTED dimension-changing re-lay moves both. The corpus's own
+    // equality piece 0 is rebuilt exactly as build_corpus made it, so the
+    // restatement succeeds and the wider declaration is the one it is stated in.
+    auto restored = corpus_constraint(fixture, 2 * fixture.applications_, 0,
+                                      fixture.constraint_hessians_, "corpus_equality", 0);
+    restored.set_thread_mode(fixture.equality_mode_);
+    nlp->equality_constraints_[0] = std::move(restored);
+    nlp->make_nlp(wider, nlp->user_equal_cons_, nlp->inequal_cons_);
+
+    EXPECT_NE(nlp->claim_stream_epoch(), claim_before);
+    EXPECT_NE(nlp->claim_stream_dimensions(), built);
+    EXPECT_EQ(nlp->claim_stream_dimensions().primal_vars, wider);
+    EXPECT_EQ(nlp->claim_stream_dimensions(),
+              (ClaimStreamDimensions{nlp->primal_vars_, nlp->slack_vars_, nlp->equal_cons_,
+                                     nlp->inequal_cons_}));
 }
 
 // ---------------------------------------------------------------------------

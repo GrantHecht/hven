@@ -13,7 +13,13 @@
 // i <= j, the upper triangle; an equality Jacobian claim names (n + r, c); an
 // inequality Jacobian claim names (n + me + r, c). Objective-gradient claims
 // name a row of the primal block alone. The three dimensions come from the
-// declaration, so this interface adds no accessor for them.
+// declaration, so this interface adds no accessor for them -- but a provider
+// that RETAINS a published stream across a re-lay can hold a stream stated in
+// dimensions its declaration no longer reports, and such a provider publishes
+// the widths it was built against itself (M6 W6 T5; NonLinearProgram::
+// claim_stream_dimensions(), returning the ClaimStreamDimensions below). No
+// virtual is added here: a provider that rebuilds its stream at every lay has
+// nothing to say that its declaration does not already say.
 
 #include <Eigen/Core>
 
@@ -27,6 +33,25 @@ struct ClaimBlock {
     int count_ = 0;
 
     friend bool operator==(const ClaimBlock &, const ClaimBlock &) = default;
+};
+
+/// @brief The DECLARATION dimensions a published claim stream is stated in.
+///
+/// The square assembled space the coordinate convention above describes:
+/// `primal_vars + equality_rows + inequality_rows` on a side, with `slack_vars`
+/// carried because the declaration has a slack block that the claim convention
+/// drops. These are the widths the stream was RESTATED AGAINST, not necessarily
+/// the widths the provider's declaration reports now -- see the accessor that
+/// publishes them.
+///
+/// An aggregate, so its members are bare (CLAUDE.md section 4).
+struct ClaimStreamDimensions {
+    int primal_vars = 0;
+    int slack_vars = 0;
+    int equality_rows = 0;
+    int inequality_rows = 0;
+
+    friend bool operator==(const ClaimStreamDimensions &, const ClaimStreamDimensions &) = default;
 };
 
 /// @brief A provider that publishes its claim stream: an NlpAssembly a

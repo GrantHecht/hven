@@ -1394,3 +1394,66 @@ evidence artifact is `docs/notes/data/2026-09-m6-w5-t8-runtime/` — read its
 | the W5 acceptance evidence | `docs/notes/data/2026-09-m6-w5-acceptance/` |
 | the T8 runtime protocol's own artifact | `docs/notes/data/2026-09-m6-w5-t8-runtime/` |
 | the prose lifted out of the headers at T7 | `docs/notes/2026-09-header-prose-archive.md` |
+
+---
+
+## Addendum (M6 W6 T5, 2026-09-14): `claim_stream_dimensions()`
+
+**Not part of the W5 break.** This is the one API change W6 makes, it is
+purely ADDITIVE, and nothing above it moves: no existing accessor, view,
+layout, refusal or epoch changes its meaning, and no virtual joins
+`ClaimStreamSource`. A consumer that ignores this section keeps compiling and
+keeps behaving exactly as it did. It is recorded here, at the end of the
+document a consumer already reads, because the caveat it retires is one a
+consumer shipped.
+
+**What it is.**
+
+```cpp
+// include/hven/model/claim_stream_source.h
+struct ClaimStreamDimensions {
+    int primal_vars = 0;
+    int slack_vars = 0;
+    int equality_rows = 0;
+    int inequality_rows = 0;
+};
+
+// include/hven/model/non_linear_program.h
+ClaimStreamDimensions NonLinearProgram::claim_stream_dimensions() const;
+```
+
+The DECLARATION widths the currently published claim stream was restated
+against — stamped into the claim arena at the build, from the same laid layout
+the stream itself is cut from, and committed by the same single swap that
+commits the stream.
+
+**When it is valid.** Under `claim_stream_epoch()`, exactly like the published
+views, and it refuses by name (`std::invalid_argument`) in exactly the states
+they refuse in — an unlaid problem, a first lay whose restatement was refused,
+and a reduced-and-restructured layout whose stream was dropped.
+
+**The caveat it retires.** A re-lay captures its new dimensions BEFORE it
+restates the claim stream. So a re-lay that the restatement REFUSES leaves the
+program reporting the new declaration's widths — `primal_vars_`, `equal_cons_`,
+`inequal_cons_` — while the previously published stream is still published,
+under an UNMOVED claim-stream epoch, naming coordinates in the OLD declaration.
+A consumer that sizes an assembled destination from hven's current fields and
+scatters through the published claims is then mixing two declarations, and
+until now there was nothing in the API to tell them apart: a consumer exposing
+its own `kkt_dimension()` as `n + me + mi` had to ship that hazard as a
+documented caveat. Size from the published dimensions instead and the hazard is
+gone — and a disagreement between the two is itself the signal that the last
+re-lay did not complete:
+
+```cpp
+const auto dims = nlp.claim_stream_dimensions();   // the stream's own widths
+const int kkt_dimension = dims.primal_vars + dims.equality_rows + dims.inequality_rows;
+```
+
+An elimination-only re-lay — the case the retained stream exists for — leaves
+these unmoved, because the declared widths the stream is stated in did not move
+either. An accepted re-lay at new widths moves the epoch and these together.
+
+*Per-task record: `docs/notes/2026-09-m6-w6-plan.md` §1 W6.T5 and §0 J.10; the
+pin is `ClaimStreamState.ThePublishedDimensionsAreTheOnesTheStreamWasBuiltAgainst`
+in `tests/model/test_claim_stream_state.cpp`.*

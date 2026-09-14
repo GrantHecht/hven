@@ -1112,6 +1112,28 @@ struct NonLinearProgram : public NlpAssembly {
     /// able to hear it. The accessors below are the ones that refuse.
     StructureEpoch claim_stream_epoch() const { return this->claim_stream_epoch_.current(); }
 
+    /// @brief The DECLARATION dimensions the published stream was built
+    ///        against, which are NOT always the ones this program reports now.
+    /// @throws std::invalid_argument if no claim stream is published -- see
+    ///         require_claim_stream().
+    ///
+    /// Valid under claim_stream_epoch(), exactly like the views below, and that
+    /// is the whole of its use. A re-lay captures its new dimensions BEFORE it
+    /// restates the claim stream, so a re-lay the restatement REFUSES leaves
+    /// this program reporting the new declaration's widths while the retained
+    /// stream -- still published, under an unmoved claim-stream epoch -- names
+    /// coordinates in the OLD one. A consumer sizing an assembled destination
+    /// from this program's own primal_vars_/equal_cons_/inequal_cons_ and
+    /// scattering through the published claims would
+    /// then be mixing two declarations; sized from these, it is not, and a
+    /// disagreement between the two is the signal that the last re-lay failed.
+    ///
+    /// ADDITIVE (M6 W6 T5): no accessor, view, layout or epoch above or below
+    /// changes, and an elimination-only re-lay -- which retains the stream by
+    /// design -- leaves these unmoved, because the declared widths it is stated
+    /// in did not move either.
+    ClaimStreamDimensions claim_stream_dimensions() const;
+
     /// @brief Claim slot to assembled KKT row, in claim order.
     /// @throws std::invalid_argument if no claim stream is published -- see
     ///         require_claim_stream().
