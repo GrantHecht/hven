@@ -4,7 +4,7 @@ hven provides **thread-safe solves**. It does not provide a parallel-solve
 facility, and it will not grow one: handing N problems to N worker threads and
 collecting the results is orchestration, and orchestration belongs to the
 consumer. That is the owner's ruling of 2026-09-11
-(`docs/notes/2026-08-m6-ledger.md:4419-4432`), which also deleted
+(`docs/notes/2026-08-m6-ledger.md:4421-4431`), which also deleted
 `detail/interior/jet.h` — the header that used to carry a map of that shape —
 and registered this page and its one pin as the W6 item that states the terms.
 `jet.h` stays deleted.
@@ -118,6 +118,14 @@ made per instance by any option.** Two instances that both fan out are
 dispatching into one pool. A consumer running N workers should either set the
 evaluation width once, before the workers start, or arrange for its programs not
 to fan out at all.
+
+**That recipe is UNPINNED (W6 T4 close, 2026-09-14).** N instances each fanning out
+into the one process-global pool — the shape tycho's Jet map runs — rests on the
+pool's own design statement (per-dispatch latches make concurrent dispatches from
+separate threads inherently safe; `thread_pool.h`, the "Per-dispatch latches"
+paragraph) and is NOT exercised by the pin on this page, which asserts the pool is
+never reached. A pin running two partitioned programs from two threads against
+their serial runs is REGISTERED (W7/M7); until it lands, the recipe is design text.
 
 Not to fan out is the easy case and it is the common one:
 `make_nlp_program(problem)` defaults to **one partition**
@@ -261,6 +269,9 @@ On Apple this class is a no-op and stores nothing anywhere —
   subject; it is outside the N×1 contract this page states, and the pin does not
   cover it. Running N instances at `threads = k > 1` oversubscribes the machine
   and the results above are not claimed for it.
+- **N instances fanning out into the shared evaluation pool.** Exception 1's recipe
+  for that shape is design text, not measurement — the pin never reaches the pool.
+  Registered above; not promised here.
 - **Bit-identity as a portable guarantee.** What is asserted is exact counters
   and statuses plus gated measures. Literal byte equality held on the reference
   box and is recorded on every run; it is a finding, not a promise.
