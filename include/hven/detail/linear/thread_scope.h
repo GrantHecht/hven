@@ -21,11 +21,11 @@
 // two LAPACK calls, and one implementation of "apply for this call, put back
 // what was there" is better than two.
 //
-// WHAT IT IS NOT. It is NOT the only thread-local scope in the tree --
-// `detail/interior/jet.h`'s `MklLocalPinGuard` is a second one on the
-// interior-point side, with a different job (it pins a Jet worker's count for
-// the duration of a JOB, not a call). The two are deliberately not merged:
-// unifying them would move interior-point objects for no functional gain.
+// WHAT IT IS NOT. It is not a process-wide setting: the override it applies is
+// THREAD-LOCAL, which is what lets N solver instances on N threads run without
+// seeing each other's count -- `docs/concurrency.md` is that contract. This
+// comment used to name a second such scope, `jet.h`'s `MklLocalPinGuard`; that
+// header was DELETED with the owner's jet ruling (2026-09-11) and is gone.
 
 #if !defined(HVEN_USE_ACCELERATE_LAPACK)
 #include <mkl_service.h>
@@ -49,13 +49,13 @@ namespace hven::linear::detail {
 //
 // RESTORATION ON AN EXCEPTIONAL EXIT IS RAII, i.e. by construction. The
 // backend calls this brackets are C entry points and cannot throw, and no
-// statement sits between a scope's construction and the call it guards -- so
-// there is no seam in this tree that can force a throw INSIDE the scope, and
-// the property is ARGUED rather than measured. A `FactorSession::call` throw
-// seam is registered for W6 if it is ever to be measured. See
-// `tests/linear/test_fault_injection.cpp`'s `ThreadScope` tests, which pin what
-// IS observable: the count a backend call was issued under, and the caller's
-// own override intact afterward.
+// statement sits between a scope's construction and the call it guards -- so no
+// SOLVE in this tree can force a throw INSIDE the scope. The destructor's
+// restore on an unwind is measured anyway, AT THIS CLASS, since M6 W6 T4:
+// `tests/linear/test_fault_injection.cpp`'s
+// `ThreadScope.TheCallersOverrideIsRestoredWhenAThrowUnwindsTheScope` throws
+// inside a scope and catches outside it. The session throw seam once registered
+// for that job was declined and RETIRED -- `docs/testing.md`'s dated W6 note.
 //
 // ON APPLE THIS IS A NO-OP -- UNOBSERVED. Accelerate exposes no thread-local
 // equivalent that is restorable, and the process-wide
