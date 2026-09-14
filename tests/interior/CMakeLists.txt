@@ -35,6 +35,7 @@ set(HVEN_INTERIOR_TEST_SOURCES
     test_objective_scale_reporting.cpp
     test_proximal_restoration.cpp
     test_recovery_dispatch_gate.cpp
+    test_soc.cpp
     test_solver_interface_adapter.cpp
     test_structure_epoch_gating.cpp
     test_switching_acceptance.cpp

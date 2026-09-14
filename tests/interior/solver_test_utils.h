@@ -58,6 +58,12 @@ struct InertSolverContext {
     KktSolverType kkt_solver_;
     Eigen::VectorXd scratch_;
     Eigen::VectorXd primals_scratch_;
+    /// Non-owning, null by default -- the inert case. A test whose component
+    /// actually EVALUATES the model (the second-order correction's trial
+    /// constraint evaluation is the one today, test_soc.cpp) points this at a
+    /// NonLinearProgram it owns itself and keeps that program alive for as long
+    /// as the SolverContext is used, exactly like every other member here.
+    NonLinearProgram *nlp_ = nullptr;
     int primal_vars_ = 0;
     int slack_vars_ = 0;
     int equal_cons_ = 0;
@@ -69,7 +75,7 @@ struct InertSolverContext {
     SolverContext ctx() {
         // clang-format off
         return SolverContext{
-            nullptr,      kkt_solver_,           opts_,
+            nlp_,         kkt_solver_,           opts_,
             primal_vars_, slack_vars_,           equal_cons_, inequal_cons_, kkt_dim_,
             scratch_,     primals_scratch_,      restoration_, eval_errors_,
         };
