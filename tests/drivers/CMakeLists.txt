@@ -18,6 +18,13 @@
 
 set(HVEN_DRIVERS_TEST_SOURCES
     test_callback.cpp
+    # The concurrency contract's one pin (M6 W6 T4): N solver instances on N
+    # std::threads at common.threads = 1 against the same solves run serially.
+    # It lives here rather than in either engine's suite because the claim is
+    # about BOTH engines and about the shared common.threads field, and because
+    # this target is the one that links hven::hven and nothing engine-specific.
+    # Threads::Threads reaches it through hven::hven's own interface.
+    test_concurrency.cpp
     test_console_sink.cpp
     test_options.cpp
     test_print_tables.cpp
