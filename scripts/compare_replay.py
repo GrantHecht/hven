@@ -12,8 +12,15 @@ section 7, and section 1's second exception).  This copy carries ONE addition,
 
 usage: compare_replay.py [--residual-gate REL] A.csv B.csv LABEL
 
-THE OPT-IN RESIDUAL GATE (`--residual-gate <rel>`)
---------------------------------------------------
+THE OPT-IN FLOATING-MEASURE GATE (`--residual-gate <rel>`)
+----------------------------------------------------------
+The FLAG keeps its W6 T1 spelling, `--residual-gate`, though W6 T6b widened what
+it covers from the residual class to every non-wall float: the flag is part of
+an invocation contract that frozen evidence cites by name
+(docs/notes/data/2026-09-m6-w6-lto/replay/comparisons.txt), and renaming it
+would break a reader's ability to re-run what that artifact records.  The
+concept's INTERNAL name did move -- see `is_float_measure_column` below.
+
 Without the flag this is EXACT STRING EQUALITY on every column but `wall_s` --
 byte-identical behaviour and byte-identical output to the artifact copy, which
 is what every existing acceptance protocol keeps.
@@ -31,18 +38,38 @@ Neither is reachable from a valid three-positional call -- which is why the
 default is still byte-exact for every invocation the acceptance protocols make
 -- but it is said here rather than left for a reader to discover.
 
-With the flag, the residual-class columns relax.  The set is the corpus
+With the flag, the FLOATING MEASURE columns relax.  The set is the corpus
 schema's, BY INDEX, and is the same set as
-tests/sqp/test_corpus_cells.cpp:944 (`is_residual_column`), carried here with
-its schema comment (:937-943):
+tests/sqp/test_corpus_cells.cpp:944 (`is_residual_column`, which keeps its name
+there because the RULE is unchanged), carried here with its schema comment:
     12 kkt_residual
     15 kkt_stationarity   16 kkt_primal        17 kkt_dual_sign
     18 kkt_complementarity 19 dual_scale       20 x_scale
-Column 13 (wall_s) is excluded for a different reason -- timing noise, never a
-regression contract (CLAUDE.md section 7).  Column 14 (kkt_verdict) is a string
-and stays exact.  Everything at 21 and above is an integer counter and stays
-exact: no floating-point arithmetic produces them, so a single-bit move in one
-is a real regression.
+    42 ipqp_rho_demanded_max    43 ipqp_rho_demanded_last
+    55 ipqp_restart_shift_max
+    72 ipqp_alpha_p_min         73 ipqp_alpha_d_min
+Column 13 (wall_s) is a float too and is excluded for a DIFFERENT reason --
+timing noise, never a regression contract (CLAUDE.md section 7).  That is the
+whole float class: 13 of the schema's 76 columns, twelve of them gated here.
+The seven STRINGS -- 0 cell_id, 1 family, 3 window, 4 taxonomy, 6 status,
+11 qp_fact_per_qp, 14 kkt_verdict -- stay exact, and so do the remaining 56
+INTEGER COUNTERS: no floating-point arithmetic produces them, so a single-bit
+move in one is a real regression.
+
+CORRECTED HERE AT M6 W6 T6b (settler ruling R-GATE, W6 close), and the
+correction is the point of the task.  This comment used to end "Everything at 21
+and above is an integer counter", and the gated set was 12 and 15-20 only.  That
+was FALSE at source: `bench/bench_corpus.cpp`'s `write_outcome` prints five
+columns at or above 21 with `{:.9e}` (the header at :879-899, the format at
+:938-946), and each is a `double` member of `IpqpCounters`
+(include/hven/core/solver_counters.h:506 `ipqp_rho_demanded_max`, :516
+`ipqp_rho_demanded_last`, :663 `ipqp_restart_shift_max`, :842
+`ipqp_alpha_p_min`, :844 `ipqp_alpha_d_min`).  W6 T3's LTO replay then moved two
+of them -- `ipqp_alpha_p_min` by 1.76e-10 relative and `ipqp_alpha_d_min` by
+2.11e-9 -- on `f7_n1000_path_warm`, while every counter and every status stayed
+byte-identical: exactly the address-sensitivity this gate exists for, on columns
+the gate did not reach (docs/notes/data/2026-09-m6-w6-lto/, frozen).  The set is
+now the schema's actual non-wall floats and nothing else.
 
 The rule is the suite's, not a new one: byte equality FIRST, and only if that
 fails, agreement to within `<rel>` RELATIVE with an ABSOLUTE FLOOR of 1e-13 --
@@ -66,12 +93,22 @@ only when the flag is given, counting gated COLUMNS.
 """
 import csv, sys
 
-# tests/sqp/test_corpus_cells.cpp:944 and :3558.
-RESIDUAL_COLUMNS = frozenset([12, 15, 16, 17, 18, 19, 20])
+# tests/sqp/test_corpus_cells.cpp:944 and :3558.  RENAMED at M6 W6 T6b from
+# `RESIDUAL_COLUMNS` / `is_residual_column`: the set is no longer only the
+# residual class, so the name would mislead.  A plain rename, NO alias -- nothing
+# outside this file calls either (the whole repository was grepped; the only
+# callers are `main` below and the suite's own C++ predicate of the same shape).
+FLOAT_MEASURE_COLUMNS = frozenset([12, 15, 16, 17, 18, 19, 20, 42, 43, 55, 72, 73])
+# The floor keeps its name and its value: it is the RESIDUAL-derived floor
+# (test_corpus_cells.cpp:3547-3557 argues it from residual norms formed by
+# cancellation from O(1) data), and the RULE it belongs to is unchanged by T6b.
+# Only the SET the rule is applied to widened.  On the five columns added at T6b
+# the relative arm is the live one anyway: their values are O(1e-7) to O(1), so
+# `rel * scale` exceeds the floor by orders.
 RESIDUAL_ABS_FLOOR = 1e-13
 
-def is_residual_column(i):
-    return i in RESIDUAL_COLUMNS
+def is_float_measure_column(i):
+    return i in FLOAT_MEASURE_COLUMNS
 
 def residual_columns_agree(a, b, rel):
     """Byte-equal, or agreeing to within the gate.  See the module docstring."""
@@ -115,7 +152,7 @@ def main(a, b, label, rel=None):
     cols = [c for c in ha if c != "wall_s"]
     # The gate is keyed by SCHEMA INDEX, then resolved to the column names this
     # comparator joins on, so it follows the schema rather than a name list.
-    gated = {ha[i] for i in range(len(ha)) if is_residual_column(i)} if rel is not None else set()
+    gated = {ha[i] for i in range(len(ha)) if is_float_measure_column(i)} if rel is not None else set()
     keys = sorted(set(ra) & set(rb))
     missing = sorted(set(ra) ^ set(rb))
     diffs = []
