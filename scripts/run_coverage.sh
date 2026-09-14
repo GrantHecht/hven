@@ -121,18 +121,19 @@ if [[ "${1:-}" != "--report-only" ]]; then
     # Both halves of what the run was: its status, and what it was allowed to
     # skip. A report read later cannot tell an empty exclusion from a wide one
     # unless the run says so here.
-    # READ THE DEFAULT STRING BELOW AS "no registered cell was EXCLUDED" (noted
-    # in T0 fix round 1, 2026-09-13). It is about the -E regex and nothing else:
-    # a cell DISABLED in the tree (ctest prints "Not Run (Disabled)") does not
-    # run either, and the W6 T0 read had two -- EqpRefinementAb.FootprintRuleProbe
-    # and EqpRefinementAb.FullBattery -- so "every registered cell ran" is not
-    # literally true of such a run. That string is emitted evidence, not comment
-    # text, so this docs-class fix round leaves its bytes alone rather than
-    # changing what the script writes; correcting the string itself is a
-    # behaviour change and belongs to whoever next touches this block.
+    # THE DEFAULT STRING BELOW SAYS WHAT IS TRUE: "no registered cell was
+    # EXCLUDED". It is about the -E regex and nothing else -- a cell DISABLED in
+    # the tree (ctest prints "Not Run (Disabled)") does not run either, and the
+    # W6 T0 read had two, EqpRefinementAb.FootprintRuleProbe and
+    # EqpRefinementAb.FullBattery, so the string this used to emit ("every
+    # registered cell ran") was not literally true of such a run. T0 fix round 1
+    # (2026-09-13) was comment-only and could not change emitted evidence, so it
+    # recorded the correct reading here and left the bytes; W6 T2 makes the
+    # string itself say it. Artifacts taken before this change quote the old
+    # wording verbatim and are not rewritten (CLAUDE.md section 7).
     {
         echo "ctest exit status: $CTEST_STATUS"
-        echo "instrument-tree exclusion regex: ${COVERAGE_EXCLUDE_REGEX:-(none -- every registered cell ran)}"
+        echo "instrument-tree exclusion regex: ${COVERAGE_EXCLUDE_REGEX:-(none -- no registered cell was excluded)}"
     } > "$BUILD/ctest-status.txt"
 fi
 
