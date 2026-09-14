@@ -1396,6 +1396,18 @@ expected result is:
     Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp-old@mkl
 ```
 
+> **Dated note (2026-09-14, the M6 close gate).** The totals in this checklist
+> — `155` here, and the `51 + 16 + 1 = 68` Mac arithmetic below — are STALE:
+> the rig-scoped Linux count at the M6 close head (`15f97cae`) is **84**
+> (five arms × 16 `Arms/*` cases, plus 3 `FailByDesignControl` and 1
+> `GoldenRigAudit`; the no-seam tree's same scope is 50), moved by the W5 T8
+> restructure and the W6 test additions since this was written. The SUBSTANCE
+> reproduces exactly at that head: not all-green, exactly one failure, that
+> entry (`P5`/`sqp-old@mkl`), all three Linux controls green
+> (`docs/notes/data/2026-09-m6-close-gate/rig/`). The Mac arithmetic is
+> UNOBSERVED and is re-derived on the same footing when an Apple arm exists —
+> not re-stated here from inference.
+
 One failure, that exact entry, with all three `FailByDesignControl.*` tests
 green — ON LINUX. Independently re-verified against a real three-seam Linux
 build while writing this correction

@@ -53,7 +53,12 @@
 # it writes.  A stamp carrying `-dirty` does not name a real commit and fails the
 # gate's provenance requirement.  Check before starting a multi-hour sweep:
 #
-#     "$BIN" --from-csv <any committed baseline> --csv /dev/null   # header only
+#     "$BIN" --from-csv <any committed baseline> --csv <scratch>.csv
+#     grep "^# binary:" <scratch>.csv                          # the header
+#
+# (The binary writes its provenance header INTO the CSV, not to stdout, so
+# `--csv /dev/null` discards exactly the lines the check reads and prints only
+# "merged N row(s) into /dev/null"; found at the M6 close gate, 2026-09-14.)
 #
 # Resumability: a cell whose row file already exists is skipped, so a crash or a
 # kill resumes rather than restarting the sweep.
