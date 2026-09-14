@@ -1,0 +1,98 @@
+M6 W6 T2 -- PARITY, RESTATED ON THE CLOSE READ, AND THE TWENTY REGIONS' STATUS
+==============================================================================
+Parity, as the settler ruled it (plan J.1): `src/drivers/`'s LINE coverage
+against the WHOLE-LIBRARY line coverage OF THE SAME FRESH READ -- llvm-cov's own
+directory rows, nothing older, and nothing across reads.
+
+THE NUMBER
+----------
+    src/drivers/            lines  93.17 %   (9025 / 9687)    14 files
+    library total           lines  89.31 %   (22729 / 25449)  127 files
+    ---------------------------------------------------------------------
+    gap                            +3.85 points, IN `src/drivers/`'s FAVOUR
+
+PARITY HOLDS, and it is wider than it was. T0 measured +1.17 on the same
+definition (88.63 % against 87.47 %); T2's tests move `src/drivers/` by +4.53
+points and the library total by +1.84, so the lead goes to +3.85.
+
+THE CAVEAT THAT BELONGS NEXT TO THE NUMBER (T0's, corrected direction, restated)
+-------------------------------------------------------------------------------
+The library total is still UNDER-READ, and by more than `src/drivers/` is.
+llvm-cov warned "952 functions have mismatched data" on this read too. That
+effect lands on HEADERS (inline definitions), and the `src/drivers/` row is
+fourteen `.cpp` TUs with no header lines in it at all -- the
+`include/hven/drivers/` rows are reported separately, per A10. Correcting an
+under-read RAISES the total it lands in, so:
+
+    +3.85 is an UPPER BOUND on the lead, not a floor.
+
+Quantified on the demonstrated defect, as T0 quantified its own: the four
+under-read headers still miss 63 lines between them (47 + 9 + 6 + 1). Filling
+every one moves the library total from 22729/25449 = 89.3120 % to
+22792/25449 = 89.5595 % (89.56 %) against `src/drivers/`'s 9025/9687 =
+93.1661 %. PARITY STILL HOLDS on the demonstrated defect; the lead narrows from
+3.85 to 3.61 points and does not invert.
+
+The WIDER 952-function effect is NOT quantified here and no directional claim is
+made about it -- except that `pch-experiment.txt` now measures a large part of
+its CAUSE, and every part it measures points the same way (rows that read 0
+under the shipped configuration have lines that ran). This is the reason no
+number in this directory is a pin.
+
+THE DRIVER FILES, BY LINES (close read)
+---------------------------------------
+    85.35 %   src/drivers/ipm_options.cpp              (29 of 198 lines missed)
+    89.03 %   src/drivers/assembly_eval_seam.cpp       (52 of 474)
+    89.29 %   src/drivers/ipm_solver.cpp               (301 of 2811)
+    94.42 %   src/drivers/sqp_solver.cpp               (168 of 3011)
+    94.48 %   src/drivers/ipm_solver_globalization.cpp (85 of 1539)
+    97.53 %   src/drivers/trace_writer.cpp             (18 of 730)
+    97.87 %   src/drivers/console_trace_sink.cpp       (9 of 422)
+   100.00 %   problem_scaling.cpp · solve_result.cpp · solve_status.cpp ·
+             solver_init.cpp · sqp_options.cpp · sqp_print.cpp · trace.cpp
+
+Three files T0 listed below the library total are now at 100 %
+(`solve_result.cpp` 66.67 -> 100, `trace.cpp` 75 -> 100, `sqp_print.cpp` 82.86
+-> 100), and the two IPM TUs that held two thirds of every uncovered line in
+`src/drivers/` now hold 386 of 662. `ipm_options.cpp` is the lowest-read driver
+TU now; nothing in this task's brief named it and nothing here was done to it.
+
+THE TWENTY REGIONS T0 NAMED, WITH A STATUS APIECE
+-------------------------------------------------
+Counted the same way T0 counted them -- executable lines at count 0 inside the
+exact line range T0 published -- on this read's own `llvm-cov show` dump.
+
+  T0 REGION                                            T0 lines  still 0  status
+  ipm_solver_globalization.cpp:237-379                     104       18   PARTLY COVERED
+  ipm_solver_globalization.cpp:1295-1476                    99        3   PARTLY COVERED
+  ipm_solver.cpp:2884-2975                                  39       15   PARTLY COVERED
+  ipm_solver.cpp:3828-3858                                  25        6   PARTLY COVERED
+  ipm_solver_globalization.cpp:1232-1266                    23        0   COVERED
+  ipm_solver_globalization.cpp:79-106                       15        0   COVERED
+  ipm_solver_globalization.cpp:1077-1110                    14        0   COVERED
+  ipm_solver.cpp:1381-1392                                  12        3   PARTLY COVERED
+  ipm_solver.cpp:1625-1635                                  11       11   REMAINING
+  ipm_solver.cpp:1637-1647                                  11       11   REMAINING
+  ipm_solver_globalization.cpp:137-150                      11        0   COVERED
+  ipm_solver_globalization.cpp:893-903                      11       11   REMAINING
+  sqp_print.cpp:38-48                                       11        0   COVERED
+  ipm_solver.cpp:1945-1954                                  10       10   REMAINING
+  ipm_solver_globalization.cpp:1194-1206                     9        0   COVERED
+  ipm_solver.cpp:2829-2845                                   8        8   REMAINING
+  sqp_solver.cpp:879-886                                     8        8   REMAINING
+  sqp_solver.cpp:3844-3851                                   8        8   REMAINING
+  sqp_solver.cpp:5518-5533                                   8        8   REMAINING
+  assembly_eval_seam.cpp:205-211                             7        7   REMAINING
+  ------------------------------------------------------------------------------
+  TOTAL                                                    444      127
+
+  SIX COVERED outright, FIVE partly, NINE untouched. The nine untouched are the
+  ones T0 itself called "single-branch work in the two IPM TUs" and named no
+  item for; this task's brief scoped five items and they are the five above the
+  line plus `sqp_print.cpp`. Every PARTLY COVERED region's remainder is named
+  and classified in `delta.txt`.
+
+  The shape of what is left has changed more than the totals say: T0's biggest
+  uncovered run in `src/drivers/` was 104 lines; the biggest on this read is 15
+  (`ipm_solver.cpp:2899-2940`, the proximal arm's locally-infeasible
+  declaration).

@@ -1,0 +1,176 @@
+M6 W6 T2 COVERAGE CLOSE READ -- PROVENANCE (CLAUDE.md section 7)
+================================================================
+Read this first: it governs every number in this directory.
+
+INSTRUMENT TREE ONLY -- NO NUMBER HERE IS A PIN, A BASELINE OR A TIMING.
+  The coverage preset compiles with -fprofile-instr-generate -fcoverage-mapping
+  on top of Debug. Coverage flags change codegen, so nothing measured in this
+  tree is comparable to the uniform flag regime this repository asserts its
+  numbers under (CMakePresets.json, the linux-clang-coverage description;
+  scripts/run_coverage.sh's own header). Coverage percentages are reported.
+  Nothing here is asserted, gated, pinned, or quotable as a timing.
+
+WHAT THIS DIRECTORY IS
+  The SECOND coverage read W6 T2 owes the window (plan
+  docs/notes/2026-09-m6-w6-plan.md section 1, W6.T2): the same protocol as the
+  T0 OPEN read (docs/notes/data/2026-09-m6-w6-coverage-open/), taken after T2's
+  tests landed, so the delta is attributable to those tests and to nothing else.
+  Parity is RESTATED on it (parity.txt), the instrument-tree exclusion list is
+  RE-DERIVED on it (plan J.9), the twenty uncovered regions T0 named are given a
+  status apiece, and the PCH-off experiment T0 designed is run and reported
+  separately (pch-experiment.txt) as an EXPERIMENT, not as part of the read.
+
+RUN DATE
+  2026-09-14 -- the configure, the instrumented build, all three suite slices,
+  the long cell's solo run, the report step and the PCH experiment were taken on
+  this date, local time, on the machine under TOOLCHAIN AND HARDWARE below.
+
+COMMIT
+  Tree measured (HEAD):  4e31bd16 "test(interior): M6 W6 T2 -- the branches the
+                         first close read still showed cold inside the regions
+                         T0 named"   2026-09-14
+  Base of the task:      51a00906 (the W6 T1 CLOSED ledger commit), which is
+                         also the commit T0's own artifact's delta is measured
+                         FROM by way of 7da77b5d.
+  Every commit from 51a00906 to 4e31bd16 is a TEST commit except one, and that
+  one changes a single emitted string in scripts/run_coverage.sh:
+      78c46593  the exclusion status line says what is true
+      8b4359e7  the second-order correction covered
+      87b378fe  the named IPM globalization and restoration branches, the
+                result/trace/print tables, the multi-iteration retry pin
+      4e31bd16  the branches the first close read still showed cold
+  NO LIBRARY SOURCE CHANGED (`git diff --stat 51a00906..HEAD -- src/ include/`
+  is empty). That is what makes the delta in delta.txt attributable.
+  Working tree: CLEAN at the read (`git status --short` empty).
+
+TOOLCHAIN AND HARDWARE
+  clang 22.1.8 (Fedora 22.1.8-4.fc44), pinned for C as well as C++ by the preset
+  llvm-cov 22.1.8, llvm-profdata 22.1.8 (LLVM 22.1.8)
+  CMake 4.3.0; Ninja 1.13.2; bash 5.3.9
+  Intel oneAPI MKL 2026.1 (/opt/intel/oneapi/mkl/latest -> mkl/2026.1)
+  AMD Ryzen 7 5800X3D (8 physical cores / 16 threads), Fedora 44,
+  kernel 7.2.4-200.fc44.x86_64
+  Preset: linux-clang-coverage (CMakePresets.json) -- Debug base,
+  HVEN_FP_MODE=SAFER_FAST, the instrumentation flags on both languages and on
+  the exe linker. Build directory build-coverage/ (git-ignored, .gitignore:1),
+  WIPED and configured fresh for this read.
+  No extra CMAKE_ARGS: the CI lane's -DHVEN_SIMD_ARCH=x86-64-v3 was NOT passed
+  (a local read, as T0's was; a comparison against a CI read would have to
+  account for that).
+
+  APPLE / ACCELERATE: UNOBSERVED. Every number here is MKL-on-Linux. No Apple or
+  Windows value is inferred, interpolated or zero-filled from it, and none is
+  quoted anywhere in this directory.
+
+HOW IT WAS RUN (and where it departs from `scripts/run_coverage.sh`)
+  The script owns the path; this read ran the script's own steps as separate
+  legs, because the box protocol caps a single foreground call and the whole
+  suite does not fit in one. THE SAME TWO DEPARTURES T0 DECLARED, plus a third
+  T0 had but did not name:
+    1. configure  `cmake --preset linux-clang-coverage`
+    2. build      `cmake --build build-coverage -j 8` in three target slices
+                  (hven; the four test targets; the rest)
+    3. suite      three `ctest` slices, `-I` index ranges, `-j 4`, each with
+                  LLVM_PROFILE_FILE="$PWD/build-coverage/profiles/hven-%p.profraw"
+                  -- the script's own spelling -- so every test process writes
+                  its own raw profile into one directory
+    4. the one long cell ALONE (below)
+    5. report     `scripts/run_coverage.sh --report-only`, the script's own
+                  documented mode: llvm-profdata merge + the three llvm-cov
+                  invocations over ctest's own binary registry
+  DEPARTURE 1: the suite ran in slices rather than as one ctest invocation. The
+  union of the slices is the whole registry MINUS the one long cell, which ran
+  alone; reconciled BY COUNT here: 2589 registered, 900 + 898 + 788 = 2586 in
+  the slices, 1 alone, 2 disabled in the tree = 2589.
+  DEPARTURE 2: `ctest -j 4`, not serial. Nothing here asserts wall-clock, so
+  CLAUDE.md section 7's serial rule is not engaged; and no cell failed, so no
+  "deviation observed under a co-run" arose to re-run alone. MKL_NUM_THREADS=1
+  and OMP_NUM_THREADS=1 in every slice.
+  DEPARTURE 3, NAMED HERE FOR THE FIRST TIME: a sliced protocol never enters the
+  branch of `scripts/run_coverage.sh` that writes `build-coverage/ctest-status.txt`
+  (that block is inside `if [[ "${1:-}" != "--report-only" ]]`, :133-138), so
+  THIS READ DID NOT PRODUCE THAT FILE and does not cite it. The ctest status
+  above is read off the three retained slice logs and the long cell's log. T0's
+  PROVENANCE cites `build-coverage/ctest-status.txt` for its own exit status
+  (that file, :97) although its run had the same gap -- its substance is right
+  and visible in its own slice logs; only the citation is not. Recorded here
+  rather than applied: that artifact is frozen.
+
+THE SUITE, UNDER INSTRUMENTATION
+  registered ....... 2589 cells   (2544 at T0; T2 adds 45)
+  executed ......... 2587   (0 failed)
+  disabled ......... 2      EqpRefinementAb.FootprintRuleProbe,
+                            EqpRefinementAb.FullBattery -- ctest reports
+                            "Not Run (Disabled)"; they are disabled in the tree,
+                            not by anything this read did
+  skipped by design  1      FailByDesignControl.ControlsArePresentForWhichever-
+                            OldSeamsThisBuildHas (counted as passing by ctest)
+  every slice's ctest exit status: 0
+  The long cell: Continuation.ProbeBudgetBoundsAFailingProposal ran ALONE,
+  detached under nohup, holding the box lock, 671.76 s, 1/1 passed (T0: 675.72 s).
+
+THE EXCLUSION LIST IN FORCE ON THIS READ: NONE -- RE-DERIVED, NOT INHERITED.
+  Plan J.9 required this list to be re-derived at T2's close read, because T1's
+  1e-5 residual gate might have changed whether the Corpus cell can pass
+  instrumented. The finding is that it is still EMPTY, and for a STRONGER reason
+  than at T0: all three of the M5 candidate cells --
+      B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair
+      CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers
+      SsnEngineLocal.WeaklyActiveRowFinishesUncertain
+  ran in this read and PASSED, and so did every other cell (0 failures across
+  all three slices and the solo cell). Condition (i) of the two the script
+  requires -- OBSERVED to fail under the instrument tree -- is met by no cell, so
+  no cell may be named, and excluding a passing cell would drop real coverage to
+  buy nothing. The Corpus cell now passes with T1's gate in place at its Debug
+  arm, which is the outcome J.9 anticipated; the gate is the remedy and the list
+  stays empty. `COVERAGE_TOLERATE_FAILURES` is unchanged -- the CI escape hatch.
+  The regex is therefore empty for this read whether read from the script or
+  not, and the profiles behind every number here come from a run in which
+  nothing was excluded.
+
+  THE STATUS STRING THE SCRIPT NOW EMITS. W6 T2's first commit (78c46593)
+  changed it from "(none -- every registered cell ran)" to "(none -- no
+  registered cell was excluded)", because a run with cells DISABLED in the tree
+  -- this one has two -- does not run every registered cell. Since departure 3
+  means this read does not write that file, the corrected string was
+  demonstrated by a separate ONE-CELL control invocation of the script's full
+  path after this read's artifact had been copied out, which emitted:
+      ctest exit status: 0
+      instrument-tree exclusion regex: (none -- no registered cell was excluded)
+  That control run is NOT this read: it ran one cell, and this directory's
+  `coverage-summary.txt` was already byte-frozen before it
+  (sha256 69b3f24cb7bbd5ccf42760013b5903e8903197024c0e8eb61ca7d931f0cbc6ce,
+  verified identical after).
+
+THE "MISMATCHED DATA" WARNING, RE-COUNTED, AND ITS CAUSE MEASURED
+  llvm-cov warned "952 functions have mismatched data" on this read.
+    M5's first CI coverage run .... 736   (ledger :457-458)
+    W2 T8's read .................. 683
+    W6 T0's read .................. 952
+    THIS read ..................... 952   -- unchanged
+  The count did not move, which is itself informative: T2 added 45 test cells
+  and no library source, and this effect does not track how much is tested.
+  What DID move is the understanding of its cause. `pch-experiment.txt` in this
+  directory measures a controlled A/B -- the library's precompiled header on and
+  off, same reduced object set, one variable -- and finds that ALL FOUR of T0's
+  demonstrated under-read headers fill in with the PCH off, while the
+  mismatched-function count over that object set falls from 126 to 92. So the
+  precompiled header is a large part of the cause and not all of it; M5's
+  HVEN_TESTING double-compile diagnosis (ledger :616-617) still accounts for a
+  remainder, which this experiment neither confirms nor refutes.
+
+WHAT IS IN THIS DIRECTORY
+  PROVENANCE.txt ........ this file
+  README.md ............. the index, and the findings in prose
+  coverage-summary.txt .. `llvm-cov report`'s per-file table, VERBATIM
+  coverage-areas.txt .... the per-directory rows, all four metrics, lines asserted
+  zero-headers.txt ...... every 0 % file, with a judgement
+  parity.txt ............ parity restated, and the twenty regions' status
+  delta.txt ............. T0 -> close, per driver file, and what each partly
+                          covered region still needs
+  pch-experiment.txt .... the PCH-off experiment (an experiment, not the read)
+
+  The raw `llvm-cov show` dumps, the per-slice ctest logs, the leg transcripts
+  with their PGREP_EMPTY / FOREGROUND_START / FOREGROUND_END markers, the
+  wrapper failure proofs and the PCH arms' own reports are retained in
+  .scratch/w6t2/ (git-ignored), not here.

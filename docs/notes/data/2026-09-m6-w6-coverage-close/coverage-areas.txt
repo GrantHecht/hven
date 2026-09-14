@@ -1,0 +1,60 @@
+M6 W6 T2 coverage CLOSE read -- LLVM source-based coverage, INSTRUMENT TREE (Debug + -fprofile-instr-generate
+-fcoverage-mapping, the linux-clang-coverage preset), Linux/clang 22.1.8 + Intel MKL 2026.1, at 4e31bd16.
+INFORMATIONAL: coverage flags change codegen, so NOTHING here is a pin, a baseline or a timing.
+Apple/Accelerate: UNOBSERVED -- this read is MKL/Linux only and no Apple number is inferred from it.
+ctest under the instrument tree: 2589 registered cells, 2587 executed, 0 failed, 2 disabled in the tree;
+every slice exited 0. Instrument-tree exclusion regex in force: NONE (re-derived at this read; see
+PROVENANCE.txt). The one >600 s cell ran ALONE (671.76 s, passed).
+llvm-cov warned "952 functions have mismatched data" -- the same count T0 saw. Some rows below, the 0 %
+ones especially, are UNDERSTATED by that effect; pch-experiment.txt measures where most of it comes from.
+
+LINES is the asserted metric (plan J.2); regions, functions and branches are reported beside it and
+asserted of nothing. Every percentage is recomputed from the (covered/total) counts printed with it.
+
+src/drivers/                                   files= 14  regions  93.11% (4432/4760)  functions  99.00% (494/499)  lines  93.17% (9025/9687)  branches  84.25% (3108/3689)
+include/hven/drivers/  (reported, not asserted) files=  6  regions  89.71% (61/68)  functions  79.17% (19/24)  lines  84.04% (79/94)  branches  70.45% (31/44)
+include/hven/detail/drivers/  (reported)       files=  1  regions 100.00% (8/8)  functions 100.00% (8/8)  lines 100.00% (8/8)  branches        -
+src/linear/                                    files=  3  regions  85.32% (372/436)  functions  97.01% (65/67)  lines  80.23% (694/865)  branches  73.16% (259/354)
+src/qp/                                        files=  4  regions  95.71% (2631/2749)  functions  99.43% (175/176)  lines  96.04% (5121/5332)  branches  89.98% (1948/2165)
+src/warmstart/                                 files=  4  regions  97.13% (271/279)  functions 100.00% (36/36)  lines  95.13% (605/636)  branches  92.15% (176/191)
+
+include/hven/detail/** by subdirectory:
+  include/hven/detail/drivers/                 files=  1  regions 100.00% (8/8)  functions 100.00% (8/8)  lines 100.00% (8/8)  branches        -
+  include/hven/detail/globalization/           files= 21  regions  86.09% (198/230)  functions  82.50% (132/160)  lines  61.67% (288/467)  branches  89.09% (49/55)
+  include/hven/detail/interior/                files= 17  regions  66.54% (362/544)  functions  68.09% (128/188)  lines  52.25% (546/1045)  branches  59.73% (135/226)
+  include/hven/detail/kkt/                     files=  5  regions  96.64% (259/268)  functions 100.00% (29/29)  lines  92.84% (454/489)  branches  90.10% (173/192)
+  include/hven/detail/linear/                  files=  4  regions 100.00% (27/27)  functions 100.00% (20/20)  lines 100.00% (65/65)  branches 100.00% (4/4)
+  include/hven/detail/model/                   files=  2  regions  82.14% (138/168)  functions  67.21% (41/61)  lines  78.89% (213/270)  branches  79.76% (67/84)
+  include/hven/detail/qp/                      files=  8  regions  97.06% (396/408)  functions  98.67% (74/75)  lines  94.60% (543/574)  branches  91.54% (249/272)
+  include/hven/detail/solvers/                 files=  1  regions  44.12% (30/68)  functions  38.71% (24/62)  lines  46.34% (95/205)  branches        -
+  include/hven/detail/warmstart/               files=  3  regions  96.76% (329/340)  functions 100.00% (21/21)  lines  96.59% (708/733)  branches  90.44% (246/272)
+
+the remaining library groups (reported for completeness):
+  include/hven/core/                           files=  5  regions  92.45% (49/53)  functions  84.00% (21/25)  lines  75.70% (81/107)  branches 100.00% (18/18)
+  include/hven/linear/                         files=  1  regions 100.00% (2/2)  functions 100.00% (2/2)  lines 100.00% (6/6)  branches        -
+  include/hven/model/                          files= 11  regions  81.30% (326/401)  functions  69.04% (136/197)  lines  66.25% (536/809)  branches  86.47% (147/170)
+  include/hven/warmstart/                      files=  2  regions 100.00% (21/21)  functions 100.00% (3/3)  lines 100.00% (3/3)  branches 100.00% (12/12)
+  src/core/                                    files=  4  regions  91.46% (75/82)  functions 100.00% (12/12)  lines  93.03% (187/201)  branches  93.33% (112/120)
+  src/globalization/                           files=  2  regions  96.95% (254/262)  functions  96.15% (25/26)  lines  97.00% (356/367)  branches  94.25% (164/174)
+  src/interior/                                files=  3  regions  89.47% (68/76)  functions  91.30% (21/23)  lines  89.30% (192/215)  branches  83.33% (25/30)
+  src/kkt/                                     files=  1  regions  93.75% (15/16)  functions 100.00% (5/5)  lines  86.67% (26/30)  branches  87.50% (7/8)
+  src/model/                                   files=  5  regions  94.49% (1320/1397)  functions  98.97% (192/194)  lines  89.42% (2898/3241)  branches  86.45% (925/1070)
+
+LIBRARY TOTAL (src/ + include/hven/)           files=127  regions  91.95% (11644/12663)  functions  87.98% (1683/1913)  lines  89.31% (22729/25449)  branches  85.85% (7855/9150)
+llvm-cov's own TOTAL row (includes MKL headers) files=  -  regions  91.95% (11644/12663)  functions  87.98% (1683/1913)  lines  89.31% (22729/25449)  branches  85.85% (7855/9150)
+
+--- per file, src/drivers/ (lines asserted) ---
+   src/drivers/assembly_eval_seam.cpp                   lines  89.03% (422/474)  regions  93.14%  functions 100.00%  branches  82.47%
+   src/drivers/console_trace_sink.cpp                   lines  97.87% (413/422)  regions  97.88%  functions 100.00%  branches  93.94%
+   src/drivers/ipm_options.cpp                          lines  85.35% (169/198)  regions  87.50%  functions 100.00%  branches  81.90%
+   src/drivers/ipm_solver.cpp                           lines  89.29% (2510/2811)  regions  88.94%  functions  97.06%  branches  77.79%
+   src/drivers/ipm_solver_globalization.cpp             lines  94.48% (1454/1539)  regions  91.17%  functions  99.11%  branches  83.41%
+   src/drivers/problem_scaling.cpp                      lines 100.00% (69/69)  regions  97.56%  functions 100.00%  branches  95.83%
+   src/drivers/solve_result.cpp                         lines 100.00% (99/99)  regions 100.00%  functions 100.00%  branches  92.19%
+   src/drivers/solve_status.cpp                         lines 100.00% (17/17)  regions 100.00%  functions 100.00%  branches 100.00%
+   src/drivers/solver_init.cpp                          lines 100.00% (21/21)  regions 100.00%  functions 100.00%  branches      -
+   src/drivers/sqp_options.cpp                          lines 100.00% (182/182)  regions 100.00%  functions 100.00%  branches  97.73%
+   src/drivers/sqp_print.cpp                            lines 100.00% (70/70)  regions 100.00%  functions 100.00%  branches 100.00%
+   src/drivers/sqp_solver.cpp                           lines  94.42% (2843/3011)  regions  95.85%  functions  99.14%  branches  86.66%
+   src/drivers/trace.cpp                                lines 100.00% (44/44)  regions 100.00%  functions 100.00%  branches  97.06%
+   src/drivers/trace_writer.cpp                         lines  97.53% (712/730)  regions  95.34%  functions 100.00%  branches  90.10%
