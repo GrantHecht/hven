@@ -52,12 +52,16 @@ LLVM_COV=${LLVM_COV:-llvm-cov}
 # Condition (ii) is not a formality. A FAILING gtest still writes its .profraw,
 # so COVERAGE_TOLERATE_FAILURES keeps a failing cell's coverage while -E DROPS
 # it. A cell that fails instrumented but covers paths nothing else reaches is
-# therefore TOLERATED, not excluded -- and is named here as such, so the next
-# reader knows the difference was considered.
+# therefore TOLERATED, not excluded, so the next reader knows the difference was
+# considered. TOLERATED is the state a FAILING-but-unique cell takes; it is NOT
+# the state of the three CANDIDATES named below, which PASSED instrumented on
+# the W6 T0 read and are therefore neither excluded nor tolerated -- they are
+# cells that passed. (Wording corrected in T0 fix round 1, 2026-09-13; the two
+# conditions, the empty list and every behaviour below are unchanged.)
 #
-# THE LIST IS EMPTY, and that is the finding, not an omission. The three cells
-# M5 saw fail (ledger :447-449; CI run 32924315809, a GitHub ubuntu-latest
-# runner) --
+# THE LIST IS EMPTY, and that is the finding, not an omission. The three
+# CANDIDATES -- the cells M5 saw fail (ledger :447-449; CI run 32924315809, a
+# GitHub ubuntu-latest runner) --
 #     B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair
 #     CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers
 #     SsnEngineLocal.WeaklyActiveRowFinishesUncertain
@@ -117,6 +121,15 @@ if [[ "${1:-}" != "--report-only" ]]; then
     # Both halves of what the run was: its status, and what it was allowed to
     # skip. A report read later cannot tell an empty exclusion from a wide one
     # unless the run says so here.
+    # READ THE DEFAULT STRING BELOW AS "no registered cell was EXCLUDED" (noted
+    # in T0 fix round 1, 2026-09-13). It is about the -E regex and nothing else:
+    # a cell DISABLED in the tree (ctest prints "Not Run (Disabled)") does not
+    # run either, and the W6 T0 read had two -- EqpRefinementAb.FootprintRuleProbe
+    # and EqpRefinementAb.FullBattery -- so "every registered cell ran" is not
+    # literally true of such a run. That string is emitted evidence, not comment
+    # text, so this docs-class fix round leaves its bytes alone rather than
+    # changing what the script writes; correcting the string itself is a
+    # behaviour change and belongs to whoever next touches this block.
     {
         echo "ctest exit status: $CTEST_STATUS"
         echo "instrument-tree exclusion regex: ${COVERAGE_EXCLUDE_REGEX:-(none -- every registered cell ran)}"
