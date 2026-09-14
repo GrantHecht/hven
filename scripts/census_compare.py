@@ -38,21 +38,26 @@ EXACTLY ONE COLUMN -- index 12, `kkt_residual`. The corpus schema's other
 residual-class columns (15 kkt_stationarity, 16 kkt_primal, 17 kkt_dual_sign,
 18 kkt_complementarity, 19 dual_scale, 20 x_scale) lie beyond the 13 and are
 not compared here at all; scripts/compare_replay.py, which compares the whole
-schema, gates all seven.
+76-column schema, gates ALL TWELVE of its floating measure columns -- those
+seven plus 42, 43, 55, 72, 73 (M6 W6 T6b widened it; this sentence said "all
+seven" until M6 W6 T6 fix1).
 
 The rule is the suite's, not a new one: byte equality FIRST, and only if that
 fails, agreement to within `<rel>` RELATIVE with an ABSOLUTE FLOOR of 1e-13 --
 
     |a - b| <= max(rel * max(|a|, |b|), 1e-13)
 
--- which is `tests/sqp/test_corpus_cells.cpp:949-980` (the relative half, with
-its derivation of 1e-5 at :908-935) together with the floor at :3558-3563 (its
-derivation at :3547-3557: these are residual norms formed by cancellation from
+-- which is `tests/sqp/test_corpus_cells.cpp:981-1012` (the relative half, with
+its derivation of 1e-5 at :908-935) together with the floor at :3618-3623 (its
+derivation at :3607-3617: these are residual norms formed by cancellation from
 O(1) data, so their absolute accuracy is a few ulps of 1.0 no matter how small
 the norm is, and a purely relative test below ~1e-15 measures noise against
 noise).  Non-numeric and non-finite spellings NEVER pass the gate: they fall
 back to the byte comparison, so an `inf` or a `nan` is reported, not waved
-through (the suite's own reasoning, :966-975).
+through (the suite's own reasoning, :998-1006).  (Those line numbers moved by
++60 at M6 W6 T6b, whose second commit inserted 60 lines of schema comment above
+them, and are repaired here at M6 W6 T6 fix1; :908-935 sits above the insertion
+and did not move.)
 
 WHY THE GATE EXISTS: CLAUDE.md section 7 -- MKL's kernels are address-sensitive,
 so a residual can differ in its last digits between two processes running
@@ -80,19 +85,32 @@ import sys
 
 ASSERTED = 13  # cell_id .. kkt_residual; wall_s (14th) excluded
 
-# The corpus schema's floating-point measure columns, by index -- the same set
-# as tests/sqp/test_corpus_cells.cpp:944 (`is_residual_column`), carried here
-# with its schema comment (:937-943):
+# The corpus schema's floating-point measure columns, by index -- a SUBSET of
+# tests/sqp/test_corpus_cells.cpp:974 (`is_residual_column`), carried here with
+# its schema comment (:937-973).  The cite was :944/:937-943 until M6 W6 T6b
+# moved the predicate down by 60 lines; repaired at M6 W6 T6 fix1:
 #   12 kkt_residual
 #   15 kkt_stationarity   16 kkt_primal        17 kkt_dual_sign
 #   18 kkt_complementarity 19 dual_scale       20 x_scale
 # Column 13 (wall_s) is excluded for a different reason -- timing noise, never a
 # regression contract.  Column 14 (kkt_verdict) is a string and stays exact.
-# Everything at 21 and above is an integer counter.  Of these, only 12 is inside
-# this comparator's 13 asserted columns.
+# Of these seven, only 12 is inside this comparator's 13 asserted columns.
+#
+# THIS COMMENT USED TO END "Everything at 21 and above is an integer counter".
+# That is FALSE at source and was corrected in the suite and in
+# scripts/compare_replay.py at M6 W6 T6b, and here at M6 W6 T6 fix1: five
+# columns at or above 21 are `double` members of `IpqpCounters` printed with
+# `{:.9e}` -- 42 ipqp_rho_demanded_max, 43 ipqp_rho_demanded_last,
+# 55 ipqp_restart_shift_max, 72 ipqp_alpha_p_min, 73 ipqp_alpha_d_min
+# (include/hven/core/solver_counters.h:506, :516, :663, :842, :849).  THE SET
+# BELOW DOES NOT CHANGE and this comparator's gate is unchanged by the
+# correction: all five lie beyond its 13 asserted columns, which end at 12
+# kkt_residual, so there is nothing here for them to relax.  The remaining
+# fields are integer-typed; "fields" rather than "counters", since `n_nodes` is
+# input metadata and column 50 is categorical.
 RESIDUAL_COLUMNS = frozenset([12, 15, 16, 17, 18, 19, 20])
 
-# tests/sqp/test_corpus_cells.cpp:3558.
+# tests/sqp/test_corpus_cells.cpp:3618 (was :3558 before T6b's insertion).
 RESIDUAL_ABS_FLOOR = 1e-13
 
 
@@ -103,8 +121,8 @@ def is_residual_column(i):
 def residual_columns_agree(a, b, rel):
     """True when two spellings are byte-equal or agree to within the gate.
 
-    Mirrors tests/sqp/test_corpus_cells.cpp:949-980 with the absolute floor of
-    :3558-3563.  A column that does not parse as a finite number is NOT quietly
+    Mirrors tests/sqp/test_corpus_cells.cpp:981-1012 with the absolute floor of
+    :3618-3623.  A column that does not parse as a finite number is NOT quietly
     waved through: it falls back to the byte comparison the caller reports.
     """
     if a == b:

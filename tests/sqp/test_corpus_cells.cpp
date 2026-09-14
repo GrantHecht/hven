@@ -934,43 +934,43 @@ std::vector<std::string> split_all(const std::string &s) {
 // common outcome; the gate engages only on the digits that provably vary.
 constexpr double kResidualRelativeGate = 1.0e-5;
 
-// The corpus schema's floating-point measure columns, by index. The schema is
-// 76 columns wide and bench/bench_corpus.cpp is its authority: write_header at
-// :879-899 names them and write_outcome's format string at :938-946 fixes each
-// one's TYPE. Twelve non-wall floats:
-//   12 kkt_residual
-//   15 kkt_stationarity   16 kkt_primal        17 kkt_dual_sign
-//   18 kkt_complementarity 19 dual_scale       20 x_scale
-//   42 ipqp_rho_demanded_max    43 ipqp_rho_demanded_last
-//   55 ipqp_restart_shift_max
-//   72 ipqp_alpha_p_min         73 ipqp_alpha_d_min
-// Column 13 (wall_s) is a float too and is excluded by the caller for a
-// DIFFERENT reason -- timing noise, never a regression contract. That is the
-// whole float class: 13 of the 76. The seven STRINGS (0 cell_id, 1 family,
-// 3 window, 4 taxonomy, 6 status, 11 qp_fact_per_qp, 14 kkt_verdict) stay
-// exact, and so do the remaining 56 INTEGER COUNTERS.
+// The corpus schema's floating-point measure columns, by index. The schema is 76 columns wide
+// and bench/bench_corpus.cpp is its authority: write_header at :879-899 names them; each
+// column's TYPE is fixed by write_outcome's format string at :938-946 TOGETHER WITH its
+// argument's own type (fix1 -- the format string alone was credited before). Twelve non-wall
+// floats:
+//  12 kkt_residual
+//  15 kkt_stationarity   16 kkt_primal        17 kkt_dual_sign
+//  18 kkt_complementarity 19 dual_scale       20 x_scale
+//  42 ipqp_rho_demanded_max    43 ipqp_rho_demanded_last
+//  55 ipqp_restart_shift_max
+//  72 ipqp_alpha_p_min         73 ipqp_alpha_d_min
+// Column 13 (wall_s) is a float too and is excluded by the caller for a DIFFERENT reason --
+// timing noise, never a regression contract. That is the whole float class: 13 of the 76. The
+// seven STRINGS (0 cell_id, 1 family, 3 window, 4 taxonomy, 6 status, 11 qp_fact_per_qp, 14
+// kkt_verdict) stay exact, and so do the remaining 56 INTEGER FIELDS -- fields, not "counters"
+// (fix1): most are counters, but `n_nodes` is input metadata and column 50 is categorical
+// (`ipqp_final_inertia_read`, solver_counters.h:378). COLUMNS 42 AND 43 READ ZERO IN EVERY
+// COMMITTED CSV (T6b's pinned scan: 80 files, 2160 rows), so the enumeration falsifier SEEDS
+// both sides to 1e-4 to make the relative arm live -- a staged value, never an observed reading.
 //
-// CORRECTED AT M6 W6 T6b (settler ruling R-GATE, W6 close), and DECLARED
-// because it relaxes a test rule. This comment used to end "Everything at 21
-// and above is an integer counter" and this predicate gated 12 and 15-20 only.
-// That was FALSE at source: `IpqpCounters` carries five `double` members that
-// write_outcome prints with `{:.9e}` -- include/hven/core/solver_counters.h:506
-// `ipqp_rho_demanded_max`, :516 `ipqp_rho_demanded_last`, :663
-// `ipqp_restart_shift_max`, :842 `ipqp_alpha_p_min`, :844 `ipqp_alpha_d_min`.
-// W6 T3's LTO replay then moved two of them on f7_n1000_path_warm --
-// ipqp_alpha_p_min by 1.76e-10 relative and ipqp_alpha_d_min by 2.11e-9 --
-// while every counter and every status stayed byte-identical
-// (docs/notes/data/2026-09-m6-w6-lto/, frozen). That is the address-sensitivity
+// CORRECTED AT M6 W6 T6b (settler ruling R-GATE, W6 close), and DECLARED because it relaxes a
+// test rule. This comment used to end "Everything at 21 and above is an integer counter" and
+// this predicate gated 12 and 15-20 only. That was FALSE at source: `IpqpCounters` carries five
+// `double` members that write_outcome prints with `{:.9e}` --
+// include/hven/core/solver_counters.h:506 `ipqp_rho_demanded_max`, :516
+// `ipqp_rho_demanded_last`, :663 `ipqp_restart_shift_max`, :842 `ipqp_alpha_p_min`, :849
+// `ipqp_alpha_d_min` (:849 is the declaration; fix1 corrects :844, its doc comment's first
+// line). W6 T3's LTO replay then moved two of them on f7_n1000_path_warm -- ipqp_alpha_p_min by
+// 1.76e-10 relative and ipqp_alpha_d_min by 2.11e-9 -- while every counter and every status
+// stayed byte-identical (docs/notes/data/2026-09-m6-w6-lto/, frozen): the address-sensitivity
 // argued above, on columns the gate did not reach.
 //
-// THE NAME IS KEPT deliberately. The RULE is unchanged -- byte equality first,
-// then kResidualRelativeGate relative, non-finite never waved through -- and it
-// is still the residual rule by derivation; only the SET it is applied to is
-// corrected to the schema's actual floats. Renaming it would churn ten call
-// sites in this file to say nothing new. (The python comparator's copy of this
-// predicate DID rename, to `is_float_measure_column`: there the name is
-// module-level API for a file whose docstring is read on its own, and it has a
-// single caller.)
+// THE NAME IS KEPT: the RULE is unchanged -- byte equality first, then
+// kResidualRelativeGate relative, non-finite never waved through -- and only the SET
+// moves. Renaming would churn ten call sites here to say nothing new. (The python copy DID
+// rename, to `is_float_measure_column`: module-level API in a file whose docstring is read
+// on its own, and it has a single caller.)
 bool is_residual_column(std::size_t i) {
     return i == 12 || (i >= 15 && i <= 20) || i == 42 || i == 43 || i == 55 || i == 72 || i == 73;
 }
@@ -3933,7 +3933,7 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         // above uses, on the same argument. Widest gap here is 2.6e-6 relative
         // (kkt_stationarity) -- inside the gate with room, and still orders
         // below anything a lever could do. (This test iterates exactly TWO ids,
-        // at :3655. Until M6 W6 T1 the OTHER one -- f7_n1000_bound_neutral --
+        // at :3715. Until M6 W6 T1 the OTHER one -- f7_n1000_bound_neutral --
         // kept a byte-compare here; the block below says why that ONE ROW no
         // longer does, and why this one's bound is still the bare relative
         // form.)
@@ -3941,9 +3941,9 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         const bool r6_repinned = kR6RePinnedRows.count(id) == 1;
         // A DECLARED RELAXATION OF ONE DEBUG-ARM FLOAT PIN (M6 W6 T1, plan
         // section 0 J.6) -- ONE ROW, f7_n1000_bound_neutral, of the two ids this
-        // test iterates (:3655). The byte-strict EXPECT_EQ that stood here is
+        // test iterates (:3715). The byte-strict EXPECT_EQ that stood here is
         // now the Release arm's 1e-5 relative FACTOR plus the absolute floor of
-        // 1e-13 this file derives at :3547-3557. It is written down because a
+        // 1e-13 this file derives at :3607-3617. It is written down because a
         // pin that moves silently is worse than one that moves.
         //
         // IT IS NOT LITERALLY "THE SAME GATE" THE RELEASE ARM APPLIES, and the
@@ -3959,7 +3959,7 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         // threading and passed in isolation each time, on a byte-for-byte
         // residual compare -- observed 2026-08-30 at M6 W1 T2 and registered
         // then (docs/notes/2026-08-m6-ledger.md:576-580) with "near-ulp gate or
-        // thread self-pin" as the remedy. The self-pin at :3643 cannot work:
+        // thread self-pin" as the remedy. The self-pin at :3703 cannot work:
         // MKL reads its environment at first use in the PROCESS, and in a
         // full-suite run another test has already initialised it, which is
         // exactly the pass-in-isolation/fail-in-suite split observed. The gate
@@ -3972,13 +3972,13 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         // artifact rows on the right were written by the corpus binary in a
         // different process, so the clause applies to it directly.
         //
-        // WHAT DOES NOT MOVE. Every integer counter (:3683-3702), the status
-        // (:3678) and the per-QP shape (:3705-3709) stay BYTE-STRICT on both
+        // WHAT DOES NOT MOVE. Every integer counter (:3743-3762), the status
+        // (:3738) and the per-QP shape (:3765-3769) stay BYTE-STRICT on both
         // arms: no floating-point arithmetic produces them, so a single-bit move
         // in one is a real regression. (This test compares NO kkt_verdict
         // column -- an earlier draft of this comment said it stayed byte-strict
         // here, which was false; the verdict comparison lives in
-        // CorpusTask6bRepair at :3568-3575. M6 W6 T1 fix1.) Byte equality is
+        // CorpusTask6bRepair at :3628-3635. M6 W6 T1 fix1.) Byte equality is
         // still checked FIRST here and is still the common outcome; the gate
         // engages only on the digits that provably vary. Same rule, same
         // constants, as scripts/census_compare.py and
@@ -3994,7 +3994,7 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         // against noise -- f7_n1000_bound_neutral's kkt_residual is 6.3e-14, so
         // the floor, not the 1e-5, is the operative bound on that column and the
         // relaxation there is larger than "1e-5" alone suggests. That is the
-        // same trade this file already took at :3547-3557 and is stated here so
+        // same trade this file already took at :3607-3617 and is stated here so
         // the next reader does not have to re-derive it.
         constexpr double kDebugResidualAbsFloor = 1e-13;
         const auto debug_close = [&](double observed, const std::string &artifact,
