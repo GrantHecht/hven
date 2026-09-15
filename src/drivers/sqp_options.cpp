@@ -65,6 +65,7 @@
 #include <cmath>
 #include <ostream>
 #include <stdexcept>
+#include <string>
 #include <string_view>
 
 #include <fmt/format.h>
@@ -332,14 +333,27 @@ SqpOptions sqp_preset(std::string_view name) {
 
 namespace {
 
-void kv_int(std::ostream &os, const char *name, long long v) { os << name << " = " << v << '\n'; }
+// CANONICAL BYTES, NOT THE CALLER'S FORMATTING (M7 W0 T5 fix round 1, sol
+// Important 1): every line is rendered whole by fmt and handed to the stream by
+// `write()`, an UNFORMATTED output function, so the caller's flags, precision,
+// width, fill and imbued locale reach no byte of the output. The reasoning is
+// recorded in full in src/drivers/ipm_options.cpp.
+void emit(std::ostream &os, const std::string &line) {
+    os.write(line.data(), static_cast<std::streamsize>(line.size()));
+}
+
+void kv_int(std::ostream &os, const char *name, long long v) {
+    emit(os, fmt::format("{} = {}\n", name, v));
+}
 void kv_bool(std::ostream &os, const char *name, bool v) {
-    os << name << " = " << (v ? "true" : "false") << '\n';
+    emit(os, fmt::format("{} = {}\n", name, v ? "true" : "false"));
 }
 void kv_dbl(std::ostream &os, const char *name, double v) {
-    os << name << " = " << fmt::format("{:.17g}", v) << '\n';
+    emit(os, fmt::format("{} = {:.17g}\n", name, v));
 }
-void kv_str(std::ostream &os, const char *name, const char *v) { os << name << " = " << v << '\n'; }
+void kv_str(std::ostream &os, const char *name, const char *v) {
+    emit(os, fmt::format("{} = {}\n", name, v));
+}
 
 // ENUMERATOR NAMES, not display strings -- see src/drivers/ipm_options.cpp.
 const char *enum_name(QpMode v) {

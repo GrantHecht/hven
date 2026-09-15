@@ -727,6 +727,16 @@ IpmOptions ipm_preset(std::string_view name);
 /// validate; `validate(o)` is a separate call and a dump of a rejected value is
 /// still a faithful dump.
 ///
+/// THE CALLER'S STREAM STATE REACHES NO BYTE OF THE OUTPUT (M7 W0 T5 fix round
+/// 1). Every line is rendered whole and written through an UNFORMATTED stream
+/// write, so `std::hex`, `showpos`, `uppercase`, `scientific`, a set
+/// `precision`, a non-zero `width` with its `fill`, and an imbued locale whose
+/// numpunct groups digits all leave the dump unchanged -- which is what makes
+/// the first sentence true for a caller that shares one stream between its
+/// report and its options record. The stream's own flags are not modified
+/// either: nothing here sets, saves or restores one, and an unformatted write
+/// does not even consume a pending `width()`.
+///
 /// @param o The options to write.
 /// @param os The stream, borrowed: this call neither flushes nor closes it.
 void dump_options(const IpmOptions &o, std::ostream &os);

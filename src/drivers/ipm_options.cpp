@@ -401,14 +401,45 @@ hven::solvers::IpmOptions hven::solvers::ipm_worker_options(IpmOptions base) {
 
 namespace {
 
-void kv_int(std::ostream &os, const char *name, long long v) { os << name << " = " << v << '\n'; }
+// CANONICAL BYTES, NOT THE CALLER'S FORMATTING (M7 W0 T5 fix round 1, sol
+// Important 1). The declaration promises that the same value dumps the same
+// bytes in any process. Composing a line with `os << name << " = " << v` breaks
+// that promise the moment the caller hands over a stream it has configured:
+// `std::hex` turns `max_iters = 500` into `max_iters = 1f4`, `showpos` and
+// `uppercase` and `scientific` each rewrite a field, a non-zero `width()` pads
+// the first insertion with the caller's `fill()`, and a stream imbued with a
+// locale whose numpunct groups digits inserts separators into every integer.
+// None of that is hypothetical for a harness that records a run into a stream
+// it also writes its own report through.
+//
+// So NOTHING HERE GOES THROUGH A FORMATTED INSERTION. Each line is rendered
+// whole by fmt and handed to the stream by `write()`, an UNFORMATTED output
+// function: it consults neither the flags, nor the precision, nor the width and
+// fill, nor the imbued locale. fmt's own rendering is locale-independent by
+// specification -- a locale is consulted only for the `L` specifier, which
+// nothing below uses -- so the bytes are the classic locale's for every caller,
+// and this TU is compiled with FMT_USE_LOCALE=0 besides.
+//
+// The width is the one that leaves a visible trace: an unformatted write does
+// not CONSUME `width()`, where a formatted insertion would reset it to 0. The
+// regression test reads that back, so "we did not use `operator<<`" is checked
+// rather than promised.
+void emit(std::ostream &os, const std::string &line) {
+    os.write(line.data(), static_cast<std::streamsize>(line.size()));
+}
+
+void kv_int(std::ostream &os, const char *name, long long v) {
+    emit(os, fmt::format("{} = {}\n", name, v));
+}
 void kv_bool(std::ostream &os, const char *name, bool v) {
-    os << name << " = " << (v ? "true" : "false") << '\n';
+    emit(os, fmt::format("{} = {}\n", name, v ? "true" : "false"));
 }
 void kv_dbl(std::ostream &os, const char *name, double v) {
-    os << name << " = " << fmt::format("{:.17g}", v) << '\n';
+    emit(os, fmt::format("{} = {:.17g}\n", name, v));
 }
-void kv_str(std::ostream &os, const char *name, const char *v) { os << name << " = " << v << '\n'; }
+void kv_str(std::ostream &os, const char *name, const char *v) {
+    emit(os, fmt::format("{} = {}\n", name, v));
+}
 
 // ENUMERATOR NAMES, not display strings. to_string(StartLevel)
 // (src/core/enum_names.cpp) spells "Warm"; a recorded run has to say `kWarm`,

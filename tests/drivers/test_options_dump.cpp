@@ -27,6 +27,9 @@
 // was written; a diff that moves one moves the other in the same commit.
 
 #include <cstddef>
+#include <iomanip>
+#include <ios>
+#include <locale>
 #include <sstream>
 #include <string>
 
@@ -246,6 +249,77 @@ TEST(OptionsDump, NoTrailingWhitespace) {
             start = end + 1;
         }
     }
+}
+
+// ---------------------------------------------------------------------------
+// THE POISONED STREAM (M7 W0 T5 fix round 1, sol Important 1).
+//
+// The declaration promises "the same value dumps the same bytes in any
+// process". A printer built out of `os << name << " = " << v` does not keep
+// that promise: every one of the settings below rewrites at least one field of
+// the output, and a harness that records its options into the same stream it
+// writes its own report through is exactly the caller that has them set.
+//
+// THE LOCALE IS BUILT HERE RATHER THAN NAMED. `std::locale("en_US.UTF-8")` is
+// not guaranteed to exist on a build machine -- the C++ standard requires only
+// the classic and "C" locales -- so testing against an installed locale would
+// pass vacuously wherever it is missing. A `std::numpunct` facet with a
+// thousands separator and a grouping rule is portable, is a genuinely
+// non-classic locale, and makes the failure it guards against concrete: under
+// it, a formatted `500` reads `5,00`.
+// ---------------------------------------------------------------------------
+class GroupingPunct : public std::numpunct<char> {
+  protected:
+    char do_thousands_sep() const override { return ','; }
+    std::string do_grouping() const override { return "\2"; }
+};
+
+// Every knob a caller can leave set on a stream that this dump then writes to.
+void poison(std::ostream &os) {
+    os.imbue(std::locale(std::locale::classic(), new GroupingPunct));
+    os << std::hex << std::showbase << std::showpos << std::uppercase << std::scientific
+       << std::boolalpha;
+    os << std::setprecision(3);
+    os.width(40);
+    os.fill('*');
+}
+
+TEST(OptionsDump, APoisonedStreamProducesTheSameBytes) {
+    // Non-vacuous first: prove the settings DO move ordinary formatted output,
+    // so a green assertion below is the dump's doing and not a no-op `poison`.
+    {
+        std::ostringstream probe;
+        poison(probe);
+        probe << 500;
+        EXPECT_NE(probe.str(), "500") << "the poison did nothing; this test would prove nothing";
+    }
+
+    {
+        std::ostringstream os;
+        poison(os);
+        hven::solvers::dump_options(IpmOptions{}, os);
+        EXPECT_EQ(os.str(), dump_to_string(IpmOptions{}));
+        EXPECT_EQ(os.width(), 40) << "an unformatted write does not consume width(); a formatted "
+                                     "insertion would have reset it to 0";
+    }
+    {
+        std::ostringstream os;
+        poison(os);
+        hven::solvers::dump_options(SqpOptions{}, os);
+        EXPECT_EQ(os.str(), dump_to_string(SqpOptions{}));
+        EXPECT_EQ(os.width(), 40);
+    }
+}
+
+// The dump APPENDS: it does not clear, reposition or reformat what a caller has
+// already written, and a second dump follows the first exactly.
+TEST(OptionsDump, WritesIntoAStreamTheCallerIsAlreadyUsing) {
+    std::ostringstream os;
+    os << "prologue\n";
+    hven::solvers::dump_options(SqpOptions{}, os);
+    os << "epilogue\n";
+    const std::string expected = "prologue\n" + dump_to_string(SqpOptions{}) + "epilogue\n";
+    EXPECT_EQ(os.str(), expected);
 }
 
 // A non-default value reaches the dump: the printer reads the value it was
