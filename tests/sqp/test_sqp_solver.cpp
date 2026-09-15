@@ -11216,4 +11216,83 @@ TEST(SqpDriverCertifiedFallback, T7F1TheSameInconsistentLinearizationInAllThreeM
         << "at least one original-pattern walk solve saved per major -- F-1's expectation";
 }
 
+// =====================================================================
+// M7 W0 T3 -- THE SAME INCONSISTENT LINEARIZATION WITH THE RUNG ON THE TIER.
+//
+// The fixture above, unchanged, run again with `elastic_rung_engine = kTier`:
+// the elastic ladder's rungs go to the interior-point kernel instead of the
+// walk. THE VERDICT CLASS MUST NOT MOVE -- which engine solves a rung is a COST
+// decision, and the certificate is synthesized by the DRIVER from the ladder's
+// slack l1 either way (the tier never produces kInfeasible; spec section 6.3).
+//
+// WHAT IT ALSO RECORDS, and this is a FINDING rather than a pin: on this
+// two-variable fixture the tier DECLINES its rungs and rung B -- the cold walk,
+// W1's own refusal path -- answers instead. Measured in the M7 W0 T3 artifact:
+// every one of those declines is the tier's section 6.3 infeasible-suspect
+// escape firing on an elastic QP that is FEASIBLE BY CONSTRUCTION, i.e. a false
+// positive of exactly the kind the design page's section (iii) predicted. The
+// four-arm entry partition absorbs it and the answer survives; what does not
+// survive here is the INFEASIBILITY CERTIFICATE, and that asymmetry is recorded
+// below rather than asserted away.
+// =====================================================================
+TEST(SqpDriverCertifiedFallback, T3TheTierSolvedRungReachesTheSameVerdictOnTheSameLinearization) {
+    auto run = [](ElasticRungEngine rung) {
+        SqpOptions opts;
+        opts.qp_mode = QpMode::kIpm;
+        opts.elastic_rung_engine = rung;
+        opts.max_iter = 60;
+        W2T7ScaledInconsistentEqualitiesModel model(1.0e2, 2.0, 0.5);
+        SqpSolver driver(opts);
+        return driver.solve(model);
+    };
+    const SqpResult walk_rung = run(ElasticRungEngine::kWalk);
+    const SqpResult tier_rung = run(ElasticRungEngine::kTier);
+    const SqpCounters &w = walk_rung.counters;
+    const SqpCounters &e = tier_rung.counters;
+
+    // -- THE VERDICT CLASS, WHICH IS THE POINT --
+    EXPECT_EQ(walk_rung.status, SolveStatus::kInfeasible);
+    EXPECT_EQ(tier_rung.status, SolveStatus::kInfeasible)
+        << "the same answer on the same model, whichever kernel solved rung A";
+
+    // -- THE ROUTE STILL REACHES THE FALLBACK, on its own arm's terms. NOT compared field for
+    //    field against the walk arm: a different rung solution is a different step, so the two
+    //    arms take different trajectories and their absolute counts are not each other's.
+    EXPECT_GE(e.elastic_from_ipqp_escape, 1) << "kIpm still escapes into the certified fallback";
+    EXPECT_GE(e.elastic_activations, 1) << "and a ladder still answers";
+    EXPECT_EQ(e.ipqp_suspicion_disproved, 0)
+        << "P7's territory, unmoved: no relaxation SHUT here, on either engine";
+    EXPECT_EQ(w.ipqp_suspicion_disproved, 0);
+
+    // -- A9 IS PRESERVED, NOT RE-STATED, and this is the assertion that says so. The pin holds
+    //    PER ARM: the elastic pattern never reaches the PRIMARY tier's engine, so that engine's
+    //    layout is never relaid and no second analysis is charged to its census.
+    EXPECT_EQ(w.ipqp.ipqp_symbolic_analyses + w.ipqp.ipqp_pattern_verifies, w.major_iters)
+        << "exactly one of {analyze, verify} per primary tier entry -- A9, on the walk arm";
+    EXPECT_EQ(e.ipqp.ipqp_symbolic_analyses + e.ipqp.ipqp_pattern_verifies, e.major_iters)
+        << "AND THE SAME ON THE TIER ARM, which is what the DEDICATED IpqpEngine instance buys: "
+           "a shared instance would relay the layout on entry to a rung and relay it back on the "
+           "next major, charging two analyses per activation to this very census";
+    EXPECT_EQ(e.ipqp.ipqp_symbolic_analyses, 1) << "one analysis for the whole solve, still";
+
+    // -- AND THE ELASTIC ENGINE'S OWN COST IS CHARGED SOMEWHERE HONEST --
+    EXPECT_GT(e.symbolic_analyses, 0)
+        << "the elastic engine's analyses land in the ENGINE-AGNOSTIC total, where every "
+           "kernel's are counted, rather than in the primary tier's census";
+    EXPECT_GT(e.factorizations, 0);
+    EXPECT_GT(e.qp_minor_iters, 0)
+        << "THE PROBE BUDGET STILL READS SOMETHING: a tier rung credits `qp_minor_iters` with "
+           "its interior-point iteration count, so a budget that trips on minors is not blinded "
+           "by the toggle (the defect the kSsn arm's fix round F-D closed for that kernel)";
+
+    // -- THE FINDING, RECORDED. Not an assertion on the certificate: it is what this fixture
+    //    happens to produce, and the artifact is where the claim about it is made.
+    RecordProperty("walk_certified", walk_rung.infeasibility_certified ? 1 : 0);
+    RecordProperty("tier_certified", tier_rung.infeasibility_certified ? 1 : 0);
+    RecordProperty("tier_rung_b_entries", static_cast<int>(e.ipqp_fallback_rung_b));
+    RecordProperty("walk_rung_b_entries", static_cast<int>(w.ipqp_fallback_rung_b));
+    RecordProperty("walk_factorizations", static_cast<int>(w.factorizations));
+    RecordProperty("tier_factorizations", static_cast<int>(e.factorizations));
+}
+
 HVEN_SUPPRESS_DEPRECATED_END

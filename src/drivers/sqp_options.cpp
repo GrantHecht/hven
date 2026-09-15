@@ -275,6 +275,15 @@ void validate(const SqpOptions &opts) {
             "kernel -- it exists so a fourth QpMode cannot be added without an arm in the QP "
             "kernel dispatch. Use kWalk, kSsn or kIpm");
     }
+    // THE ELASTIC RUNG'S ENGINE (M7 W0 T3), on the same terms and for the same
+    // reason: the count sentinel is a legal `ElasticRungEngine` value naming no
+    // engine, and the ladder's dispatch enumerates the two that do.
+    if (opts.elastic_rung_engine == ElasticRungEngine::kElasticRungEngineCount) {
+        throw std::invalid_argument(
+            "SqpSolver: elastic_rung_engine == ElasticRungEngine::kElasticRungEngineCount is the "
+            "enumerator-count sentinel, not an engine -- it exists so a third engine cannot be "
+            "added without an arm in the elastic ladder's rung dispatch. Use kWalk or kTier");
+    }
     // TASK 1's TEMPORARY kIpm REFUSAL WAS HERE, AND IS GONE (M6 W1 task 6).
     // The routing chain it was waiting on now dispatches the mode
     // (sqp_solver.cpp's THE QP KERNEL DISPATCH), so the mode is reachable and
@@ -371,6 +380,19 @@ const char *enum_name(QpMode v) {
     }
     return "unknown";
 }
+const char *enum_name(ElasticRungEngine v) {
+    switch (v) {
+    case ElasticRungEngine::kWalk:
+        return "kWalk";
+    case ElasticRungEngine::kTier:
+        return "kTier";
+    case ElasticRungEngine::kElasticRungEngineCount:
+        // NOT an engine; validate() refuses it. Named rather than "unknown",
+        // exactly as kQpModeCount is.
+        return "kElasticRungEngineCount";
+    }
+    return "unknown";
+}
 const char *enum_name(SsnSigmaRule v) {
     switch (v) {
     case SsnSigmaRule::kLadder:
@@ -450,6 +472,7 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_bool(os, "elastic_ladder_early_exit", o.elastic_ladder_early_exit);
     kv_bool(os, "crash_basis", o.crash_basis);
     kv_str(os, "qp_mode", enum_name(o.qp_mode));
+    kv_str(os, "elastic_rung_engine", enum_name(o.elastic_rung_engine));
     kv_int(os, "ipqp.ipqp_max_iter", static_cast<long long>(o.ipqp.ipqp_max_iter));
     kv_int(os, "ipqp.ipqp_hard_iter_cap", static_cast<long long>(o.ipqp.ipqp_hard_iter_cap));
     kv_int(os, "ipqp.ipqp_max_factorizations",

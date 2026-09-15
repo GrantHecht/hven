@@ -69,7 +69,7 @@ constexpr std::size_t kIpmOptionsFields = 65;
 #else
 constexpr std::size_t kIpmOptionsFields = 63;
 #endif
-constexpr std::size_t kSqpOptionsFields = 25;
+constexpr std::size_t kSqpOptionsFields = 26;
 constexpr std::size_t kIpqpOptionsFields = 22;
 constexpr std::size_t kQpOptionsFields = 9;
 constexpr std::size_t kCommonOptionsFields = 3;
@@ -109,8 +109,9 @@ static_assert(sizeof(IpmOptions) == 376, "IpmOptions' layout moved on Linux x86-
                                          "was added, axis 1 above has already told you so; if "
                                          "only a TYPE changed, this is the only axis that "
                                          "noticed. Check the dump, then re-observe this value.");
-static_assert(sizeof(SqpOptions) == 376, "SqpOptions' layout moved on Linux x86-64 -- see the "
-                                         "IpmOptions note directly above.");
+static_assert(sizeof(SqpOptions) == 384, "SqpOptions' layout moved on Linux x86-64 -- see the "
+                                         "IpmOptions note directly above. 376 -> 384 at M7 W0 T3, "
+                                         "which added the `elastic_rung_engine` enum.");
 static_assert(sizeof(IpqpOptions) == 152, "IpqpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(QpOptions) == 72, "QpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(CommonOptions) == 12, "CommonOptions' layout moved on Linux x86-64.");
@@ -122,15 +123,16 @@ static_assert(sizeof(CommonOptions) == 12, "CommonOptions' layout moved on Linux
 // IpmOptions: 62 own lines (the 63 fields less `common`, which is nested) plus
 // CommonOptions' 3 = 65 -- and 67 on an Accelerate build, where the two
 // `accel_*` fields exist and the dump prints them.
-// SqpOptions: 22 own lines (the 25 fields less `qp`, `ipqp` and `common`) plus
-// QpOptions' 9, IpqpOptions' 22 and CommonOptions' 3 = 56.
+// SqpOptions: 23 own lines (the 26 fields less `qp`, `ipqp` and `common`) plus
+// QpOptions' 9, IpqpOptions' 22 and CommonOptions' 3 = 57. (22 own lines and 56
+// before M7 W0 T3 added `elastic_rung_engine`.)
 // ---------------------------------------------------------------------------
 #ifdef USE_ACCELERATE_SPARSE
 constexpr int kIpmDumpLines = 67;
 #else
 constexpr int kIpmDumpLines = 65;
 #endif
-constexpr int kSqpDumpLines = 56;
+constexpr int kSqpDumpLines = 57;
 
 int count_lines(const std::string &text) {
     int n = 0;
@@ -187,6 +189,7 @@ TEST(OptionsDump, SqpDumpsTheCommonDefaults) {
 TEST(OptionsDump, EnumsPrintEnumeratorNames) {
     const std::string sqp = dump_to_string(SqpOptions{});
     EXPECT_TRUE(has_line(sqp, "qp_mode = kWalk")) << sqp;
+    EXPECT_TRUE(has_line(sqp, "elastic_rung_engine = kWalk")) << sqp;
     EXPECT_TRUE(has_line(sqp, "common.start_level = kWarm")) << sqp;
     EXPECT_TRUE(has_line(sqp, "qp.ws_algebra = kSchurBorder")) << sqp;
 

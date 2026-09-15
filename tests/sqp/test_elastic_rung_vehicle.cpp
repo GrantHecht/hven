@@ -23,8 +23,10 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <limits>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <fmt/format.h>
@@ -96,12 +98,17 @@ std::vector<Index> sizes_for_this_process() {
 // CLAUDE.md section 8's "no unbounded cells" outright.
 constexpr int kMaxIter = 1;
 
-SqpOptions vehicle_options() {
+SqpOptions vehicle_options(ElasticRungEngine rung = ElasticRungEngine::kWalk) {
     SqpOptions o;
     o.qp_mode = QpMode::kIpm;
+    o.elastic_rung_engine = rung;
     o.max_iter = kMaxIter;
     o.common.threads = 1;
     return o;
+}
+
+const char *engine_name(ElasticRungEngine e) {
+    return e == ElasticRungEngine::kWalk ? "walk" : "tier";
 }
 
 /// One `qp.mode` line, kept whole: the ladder emits one per rung.
@@ -135,19 +142,34 @@ struct RungReading {
     Index rungs = 0;            ///< `qp.mode` lines at the kElasticRung site.
     Index rung_minors = 0;      ///< their `iters`, summed -- the ladder's own minors.
     Index rung_max_minors = 0;  ///< the most expensive single rung.
-    Index rung_not_optimal = 0; ///< rungs whose outcome was not kOptimal (a DNF rung).
+    Index rung_not_optimal = 0; ///< rungs whose outcome was not kOptimal (a declined rung).
+    Index tier_rungs = 0;       ///< of `rungs`, how many the interior-point kernel ran.
     Index rung_facts = -1;      ///< ladder factorizations, or -1 when unattributed.
+    /// `SqpCounters::factorizations` less the primary tier's and every walk-engine
+    /// solve's -- the ELASTIC TIER's own, and 0 on the walk arm by construction.
+    Index residual_facts = 0;
     bool facts_attributed = false;
 };
 
-/// The ledger's QP-level `SolveRecord`s are one per WALK-ENGINE solve; the
-/// `qp.mode` stream also carries the TIER's own lines (mode `kIpqp`), which
-/// have no engine record. Aligning the walk-mode SUBSEQUENCE against the
-/// ledger therefore gives a 1:1 correspondence -- CHECKED, not assumed: if the
-/// two disagree on minor iterations anywhere, or on length, the factorization
-/// attribution is dropped and reported as unattributed rather than reported
-/// wrong.
-RungReading read_rungs(const RungSink &sink, const Ledger &ledger) {
+/// THE TWO ATTRIBUTIONS, one per engine, both self-checking.
+///
+/// WALK RUNGS: the ledger's QP-level `SolveRecord`s are one per WALK-ENGINE solve, while the
+/// `qp.mode` stream also carries lines for solves that are not the walk's. Aligning the
+/// walk-mode SUBSEQUENCE against the ledger gives a 1:1 correspondence -- CHECKED per index
+/// (each record's `minor_iters` must equal its line's `iters`), never assumed.
+///
+/// TIER RUNGS: the elastic engine is the driver's own and emits no ledger record, so its
+/// factorizations are read by DIFFERENCE --
+///
+///     residual = SqpCounters::factorizations
+///              - IpqpCounters::ipqp_factorizations   (the PRIMARY tier's)
+///              - every ledger record's               (every walk-engine solve's)
+///
+/// -- which leaves exactly the elastic tier's. The identity is VALIDATED on the walk arm,
+/// where the elastic tier never runs and the residual must therefore be 0; a non-zero residual
+/// there means some factorization reaches `SqpCounters` by a path this subtraction does not
+/// know about, and the tier arm's number is reported unattributed rather than reported wrong.
+RungReading read_rungs(const RungSink &sink, const Ledger &ledger, const SqpCounters &counters) {
     RungReading r;
     const std::vector<SolveRecord> &recs = ledger.records();
     std::vector<std::size_t> walk;
@@ -166,9 +188,14 @@ RungReading read_rungs(const RungSink &sink, const Ledger &ledger) {
             }
         }
     }
-    Index facts = 0;
-    for (std::size_t j = 0; j < walk.size(); ++j) {
-        const ModeLine &m = sink.modes[walk[j]];
+    Index ledger_facts = 0;
+    for (const SolveRecord &rec : recs) {
+        ledger_facts += rec.counters.factorizations;
+    }
+    // Every rung, whichever kernel ran it: the SITE is what makes a line a rung.
+    Index walk_rung_facts = 0;
+    for (std::size_t k = 0; k < sink.modes.size(); ++k) {
+        const ModeLine &m = sink.modes[k];
         if (m.site != QpModeSite::kElasticRung) {
             continue;
         }
@@ -176,12 +203,18 @@ RungReading read_rungs(const RungSink &sink, const Ledger &ledger) {
         r.rung_minors += m.iters;
         r.rung_max_minors = std::max(r.rung_max_minors, m.iters);
         r.rung_not_optimal += m.outcome == IpqpTraceOutcome::kOptimal ? 0 : 1;
-        if (consistent) {
-            facts += recs[j].counters.factorizations;
+        r.tier_rungs += m.mode == IpqpTraceQpMode::kIpqp ? 1 : 0;
+    }
+    if (consistent) {
+        for (std::size_t j = 0; j < walk.size(); ++j) {
+            if (sink.modes[walk[j]].site == QpModeSite::kElasticRung) {
+                walk_rung_facts += recs[j].counters.factorizations;
+            }
         }
     }
-    r.facts_attributed = consistent;
-    r.rung_facts = consistent ? facts : -1;
+    r.residual_facts = counters.factorizations - counters.ipqp.ipqp_factorizations - ledger_facts;
+    r.facts_attributed = consistent && r.residual_facts >= 0;
+    r.rung_facts = r.facts_attributed ? walk_rung_facts + r.residual_facts : -1;
     return r;
 }
 
@@ -227,6 +260,62 @@ TEST(M7T3ElasticRungVehicle, TheAddedPairIsContradictoryAtEveryPoint) {
 }
 
 // =====================================================================
+// HAZARD 2's PIN (M7 W0 T3 design section viii): THE TIER RUNG IS IMMUNE TO
+// `QpOptions::tr_radius`.
+//
+// THE HAZARD. The walk ignores a trust-region override at this call site -- the
+// window is already folded into the elastic box, and the ladder passes a DEFAULT
+// `SolveOverrides` precisely so the slack columns are not capped a second time.
+// The tier does not ignore it: `ipqp_effective_tr_radius` resolves the `+inf`
+// sentinel to the engine's OWN `opts.tr_radius`, and `make_ipqp_box` then windows
+// every one of the `n + ns` columns around `clamp(0, l, u)` -- slacks included.
+// The relaxation's feasible-by-construction witness has scaled slack at most 1,
+// so a window below that cuts the witness off and the rung solves a DIFFERENT,
+// possibly infeasible problem.
+//
+// THE FIX is that the driver builds its elastic tier engine from a `QpOptions`
+// copy carrying `tr_radius = +inf`, whatever the caller set.
+//
+// THE PIN. `opts.qp.tr_radius` is set to the driver's own `tr_init`, which leaves
+// the ELASTIC BOX identical -- the driver folds `min(delta, qp.tr_radius)` into it
+// and `delta` starts at `tr_init`, so the min is unchanged at the first major --
+// while an UNFIXED tier engine would additionally clamp every slack at `tr_init`.
+// Identical ladder counters therefore mean the radius never reached the rung.
+// Without the fix this test fails: the tier sees a windowed elastic QP.
+// =====================================================================
+TEST(M7T3ElasticRungVehicle, TheTierRungIsImmuneToTheDriversTrustRegionRadius) {
+    auto run = [](double qp_tr_radius) {
+        F7InconsistentChain model(100);
+        SqpOptions o = vehicle_options(ElasticRungEngine::kTier);
+        o.qp.tr_radius = qp_tr_radius;
+        SqpSolver driver(o);
+        RungSink sink;
+        Ledger ledger;
+        driver.attach_trace(&sink);
+        driver.attach_ledger(&ledger, "m7t3hz2");
+        const SqpResult sol = driver.solve(model);
+        return std::make_pair(read_rungs(sink, ledger, sol.counters), sol.counters);
+    };
+    const SqpOptions probe;
+    const auto unwindowed = run(std::numeric_limits<double>::infinity());
+    const auto windowed = run(probe.tr_init);
+
+    ASSERT_GE(unwindowed.first.rungs, 1) << "fixture premise: the ladder ran";
+    ASSERT_EQ(unwindowed.first.tier_rungs, unwindowed.first.rungs)
+        << "fixture premise: the tier ran every rung";
+
+    EXPECT_EQ(windowed.first.rungs, unwindowed.first.rungs)
+        << "THE PIN: the driver's own trust-region radius must not reach the elastic rung. A "
+           "tier engine built from the caller's QpOptions verbatim would window all n + ns "
+           "columns at tr_init and change this climb";
+    EXPECT_EQ(windowed.first.rung_minors, unwindowed.first.rung_minors);
+    EXPECT_EQ(windowed.first.rung_facts, unwindowed.first.rung_facts);
+    EXPECT_EQ(windowed.first.rung_not_optimal, unwindowed.first.rung_not_optimal);
+    EXPECT_EQ(windowed.second.elastic_escalations, unwindowed.second.elastic_escalations);
+    EXPECT_EQ(windowed.second.ipqp_fallback_rung_b, unwindowed.second.ipqp_fallback_rung_b);
+}
+
+// =====================================================================
 // THE PIN AND THE MEASUREMENT, IN ONE TEST (step 2a items 1-3).
 //
 // ONE TEST RATHER THAN TWO, deliberately: the pin and the cost reading
@@ -244,56 +333,85 @@ TEST(M7T3ElasticRungVehicle, TheAddedPairIsContradictoryAtEveryPoint) {
 // pinned cost here would be a pin on the walk's active-set iteration
 // count at four sizes, which is not a contract.
 // =====================================================================
-TEST(M7T3ElasticRungVehicle, TheConstructedCellFiresTheElasticRungAndPricesTheWalksRungA) {
-    std::fputs("# M7 W0 T3 step 2a -- the WALK's cost on rung A (counters asserted, wall "
+TEST(M7T3ElasticRungVehicle, TheConstructedCellFiresTheElasticRungAndPricesBothEngines) {
+    std::fputs("# M7 W0 T3 -- rung A's cost, BOTH engines (counters asserted, wall "
                "informational)\n",
                stdout);
-    std::fputs("N,n,me,mi,status,majors,entries,rungs,rung_minors,rung_max_minors,rung_dnf,"
-               "rung_facts,facts_attributed,solve_minors,solve_facts,escalations,ceiling_hits,"
-               "floor_retries,tier_iters,tier_facts,wall_s\n",
+    std::fputs("engine,N,n,me,mi,status,certified,majors,entries,rungs,rung_minors,"
+               "rung_max_minors,rung_dnf,rung_facts,facts_attributed,solve_minors,solve_facts,"
+               "escalations,ceiling_hits,floor_retries,rung_b,disproved,tier_iters,tier_facts,"
+               "analyses,wall_s\n",
                stdout);
-    for (Index nodes : sizes_for_this_process()) {
-        SCOPED_TRACE(fmt::format("N = {}", nodes));
-        F7InconsistentChain model(nodes);
-        SqpSolver driver(vehicle_options());
-        RungSink sink;
-        Ledger ledger;
-        driver.attach_trace(&sink);
-        driver.attach_ledger(&ledger, "m7t3");
+    // `HVEN_M7T3_ENGINE` narrows the sweep to one toggle state, for the same and only reason
+    // `HVEN_M7T3_SIZES` narrows the sizes: `perf stat` counts a PROCESS, so isolating one
+    // cell's instruction count means running one cell per process. Neither can widen the
+    // sweep and neither changes an assertion.
+    const char *only = std::getenv("HVEN_M7T3_ENGINE");
+    for (ElasticRungEngine rung : {ElasticRungEngine::kWalk, ElasticRungEngine::kTier}) {
+        if (only != nullptr && *only != '\0' && std::string(only) != engine_name(rung)) {
+            continue;
+        }
+        for (Index nodes : sizes_for_this_process()) {
+            SCOPED_TRACE(fmt::format("{} N = {}", engine_name(rung), nodes));
+            F7InconsistentChain model(nodes);
+            SqpSolver driver(vehicle_options(rung));
+            RungSink sink;
+            Ledger ledger;
+            driver.attach_trace(&sink);
+            driver.attach_ledger(&ledger, "m7t3");
 
-        const auto t0 = std::chrono::steady_clock::now();
-        const SqpResult sol = driver.solve(model);
-        const double wall =
-            std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+            const auto t0 = std::chrono::steady_clock::now();
+            const SqpResult sol = driver.solve(model);
+            const double wall =
+                std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
 
-        const RungReading r = read_rungs(sink, ledger);
+            const RungReading r = read_rungs(sink, ledger, sol.counters);
 
-        // -- THE PIN --
-        EXPECT_GE(sol.counters.elastic_from_ipqp_escape, 1)
-            << "THE VEHICLE'S REASON FOR EXISTING: the contradictory equality pair must make the "
-               "LINEARIZED subproblem inconsistent, the tier must suspect it (section 6.3), and "
-               "the major must route to the certified fallback whose rung A is the ladder. Zero "
-               "here means the cell no longer fires and every number below is about nothing";
-        EXPECT_GT(sol.counters.ipqp.ipqp_escape_infeasible_suspect, 0)
-            << "and it is the INFEASIBLE-SUSPECT escape that got there, not another escape class";
-        EXPECT_GE(sol.counters.elastic_activations, sol.counters.elastic_from_ipqp_escape)
-            << "every fallback-route activation is an activation";
-        ASSERT_GE(r.rungs, 1) << "fixture premise: the ladder emitted its own qp.mode lines";
-        EXPECT_EQ(r.rungs, sol.counters.elastic_activations + sol.counters.elastic_escalations)
-            << "one qp.mode line per rung, which is what makes the printed cost the LADDER's";
+            // -- THE PIN --
+            EXPECT_GE(sol.counters.elastic_from_ipqp_escape, 1)
+                << "THE VEHICLE'S REASON FOR EXISTING: the contradictory equality pair must make "
+                   "the "
+                   "LINEARIZED subproblem inconsistent, the tier must suspect it (section 6.3), "
+                   "and "
+                   "the major must route to the certified fallback whose rung A is the ladder. "
+                   "Zero "
+                   "here means the cell no longer fires and every number below is about nothing";
+            EXPECT_GT(sol.counters.ipqp.ipqp_escape_infeasible_suspect, 0)
+                << "and it is the INFEASIBLE-SUSPECT escape that got there, not another escape "
+                   "class";
+            EXPECT_GE(sol.counters.elastic_activations, sol.counters.elastic_from_ipqp_escape)
+                << "every fallback-route activation is an activation";
+            ASSERT_GE(r.rungs, 1) << "fixture premise: the ladder emitted its own qp.mode lines";
+            EXPECT_EQ(r.tier_rungs, rung == ElasticRungEngine::kTier ? r.rungs : 0)
+                << "the toggle decides WHICH kernel runs every rung, and the qp.mode line names it";
+            if (rung == ElasticRungEngine::kWalk) {
+                EXPECT_EQ(r.residual_facts, 0)
+                    << "THE ATTRIBUTION IDENTITY, validated where its answer is known: with no "
+                       "elastic tier running, every factorization in SqpCounters is either the "
+                       "primary tier's or a ledgered walk solve's. A non-zero residual here means "
+                       "the tier arm's attribution is measuring something else too";
+            }
+            EXPECT_EQ(r.rungs, sol.counters.elastic_activations + sol.counters.elastic_escalations)
+                << "one qp.mode line per rung, which is what makes the printed cost the LADDER's";
 
-        std::fputs(
-            fmt::format("{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{:.6f}\n",
-                        nodes, model.n(), model.me(), model.mi(), to_string(sol.status),
-                        sol.counters.major_iters, sol.counters.elastic_from_ipqp_escape, r.rungs,
-                        r.rung_minors, r.rung_max_minors, r.rung_not_optimal, r.rung_facts,
-                        r.facts_attributed ? 1 : 0, sol.counters.qp_minor_iters,
-                        sol.counters.factorizations, sol.counters.elastic_escalations,
-                        sol.counters.elastic_rho0_ceiling_hits, sol.counters.elastic_floor_retries,
-                        sol.counters.ipqp.ipqp_iters, sol.counters.ipqp.ipqp_factorizations, wall)
-                .c_str(),
-            stdout);
-        std::fflush(stdout);
+            std::fputs(
+                fmt::format(
+                    "{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},{},"
+                    "{:.6f}\n",
+                    engine_name(rung), nodes, model.n(), model.me(), model.mi(),
+                    to_string(sol.status), sol.infeasibility_certified ? 1 : 0,
+                    sol.counters.major_iters, sol.counters.elastic_from_ipqp_escape, r.rungs,
+                    r.rung_minors, r.rung_max_minors, r.rung_not_optimal, r.rung_facts,
+                    r.facts_attributed ? 1 : 0, sol.counters.qp_minor_iters,
+                    sol.counters.factorizations, sol.counters.elastic_escalations,
+                    sol.counters.elastic_rho0_ceiling_hits, sol.counters.elastic_floor_retries,
+                    sol.counters.ipqp_fallback_rung_b, sol.counters.ipqp_suspicion_disproved,
+                    sol.counters.ipqp.ipqp_iters, sol.counters.ipqp.ipqp_factorizations,
+                    sol.counters.symbolic_analyses, wall)
+                    .c_str(),
+                stdout);
+            std::fflush(stdout);
+        }
     }
 }
 

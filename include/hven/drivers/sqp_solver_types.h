@@ -316,6 +316,15 @@ inline constexpr Index kWarmFullStepWindow = 5;
 /// any lambda and so never flags a small multiplier on an active row.
 inline constexpr double kWeakActivityMargin = 1e-6;
 
+/// @brief Which QP kernel solves the elastic ladder's rungs (M7 W0 T3).
+///
+/// `kWalk` is the shipped active-set ladder, hot-chained rung to rung; `kTier`
+/// solves each rung with the interior-point kernel on a DEDICATED engine
+/// instance. The trailing enumerator is the COUNT SENTINEL, on
+/// `QpMode::kQpModeCount`'s discipline: it is not an engine, and `SqpSolver`'s
+/// validation refuses it.
+enum class ElasticRungEngine { kWalk, kTier, kElasticRungEngineCount };
+
 /// @brief Driver options for the whole SQP solve.
 ///
 /// TOLERANCES. kkt_tol gates the STATIONARITY measure and feas_tol the
@@ -513,6 +522,27 @@ struct SqpOptions {
     /// semismooth-Newton kernel (ssn_engine.h); kIpm selects the interior-point
     /// tier (detail/qp/ipqp_engine.h) -- see QpMode::kIpm's own doc comment above.
     QpMode qp_mode = QpMode::kWalk;
+
+    /// WHICH ENGINE SOLVES THE ELASTIC RUNG (M7 W0 T3).
+    ///
+    /// Rung A -- the elastic ladder -- runs on the WALK by default, which is
+    /// where M6 W2 left it and why (that plan's section 3: the walk hot-chains
+    /// rung to rung, and a tier-solved rung costs a second symbolic analysis).
+    /// `kTier` hands each rung to the interior-point kernel instead, on a
+    /// DEDICATED `IpqpEngine` instance, so the primary tier's
+    /// one-analysis-per-solve hoist (pin A9) is untouched.
+    ///
+    /// MODE-INDEPENDENT, deliberately: the ladder is reachable from the walk
+    /// route's own kInfeasible consumer in EVERY mode, not only from the kIpm
+    /// arm's certified fallback, so gating this on `qp_mode` would make one
+    /// field mean different things in different modes.
+    ///
+    /// DEFAULT kWalk, and that default is a measurement result rather than a
+    /// placeholder: M7 W0 T3 measured both states on a CONSTRUCTED family, and
+    /// a win there is not the win on the suite's TRAIN split that the M7 exit
+    /// criterion asks for. W2 re-reads the default on TRAIN.
+    /// @see docs/notes/2026-09-m7-w0-t3-design.md
+    ElasticRungEngine elastic_rung_engine = ElasticRungEngine::kWalk;
 
     /// The kIpm tier's own settings, forwarded verbatim onto the tier exactly
     /// as the SSN levers below are forwarded onto SsnOptions. Inert at

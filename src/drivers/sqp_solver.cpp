@@ -1077,12 +1077,75 @@ void emit_qp_mode_line(TraceSink *sink, IpqpTraceQpMode mode, IpqpTraceOutcome o
     sink->on_qp_mode(mev);
 }
 
+// THE TIER-SOLVED RUNG (M7 W0 T3). One elastic rung, solved by the interior-point kernel
+// instead of the walk, and mapped back into the `QpSolution` shape the ladder reads.
+//
+// THE STATUS IS DERIVED, NEVER FORCED. `ipqp_result_to_qp_solution` sets kOptimal
+// unconditionally -- correct at its own two call sites, which have already judged the exit
+// usable, and a SILENT FALSE CERTIFICATE here: the ladder breaks on `status != kOptimal`
+// and its exhaustion verdict reads the same field, so a forced kOptimal would turn every
+// tier escape into "this rung solved". The judgement is `ipqp_exit_is_a_usable_step`, the
+// same predicate the kIpm dispatch uses, and an unusable exit reports kMaxIter -- NOT
+// kInfeasible, which this kernel may never produce (spec section 6.3: the barrier tier
+// yields a signature, never a certificate).
+//
+// THE COUNTERS ARE CHARGED WHERE A WALK RUNG'S ARE, and that is what preserves A9. The
+// `IpqpCounters` group (`SqpCounters::ipqp`) is the PRIMARY tier's census -- the escape
+// classification, the retirement tally, the routing partition, and A9's own
+// `analyses + verifies == major_iters`. Folding a second engine's work into it would
+// corrupt every one of those readings. So the rung's cost travels in the returned
+// `QpCounters` instead, which `run_elastic_ladder` folds into the ENGINE-AGNOSTIC totals
+// `SqpCounters::{qp_minor_iters, factorizations, symbolic_analyses}` exactly as it folds a
+// walk rung's. A9 is preserved rather than re-stated: `ipqp_symbolic_analyses` still counts
+// only primary-tier entries, and the elastic analysis is counted in
+// `SqpCounters::symbolic_analyses`, where every kernel's analyses are counted.
+//
+// `minor_iters` CARRIES `ipqp_iters`, so the probe budget -- which trips on
+// `qp_minor_iters` -- still reads something honest: one unit per subproblem-solver
+// iteration, the same scale the walk's minors are on. It is a DIFFERENT iteration (an
+// interior-point step, not an active-set exchange), and the budget's question is "is this
+// probe spending iterations without converging?", which both answer.
+QpSolution solve_elastic_rung_on_tier(IpqpEngine &tier, const ElasticQp &elastic,
+                                      const SqpOptions &opts, bool chain_from_carry) {
+    // THE OVERRIDE IS LEFT AT ITS SENTINEL AND THE ENGINE CARRIES `tr_radius = +inf`
+    // (see SqpSolver::elastic_ipqp_engine): together those make the tier's window INERT
+    // for this rung, which is the walk rung's own contract at this call site.
+    const SolveOverrides elastic_overrides;
+    // THE RUNG-TO-RUNG CHAIN, the tier's analogue of the walk's working-set chain: only
+    // `g` moves between rungs, so the engine's own carry is exactly the right restart.
+    // The FIRST rung is cold -- `nullptr` IS cold unconditionally (ipqp_engine.h).
+    const IpqpSeed *seed = chain_from_carry ? tier.warm_carry() : nullptr;
+    // `run_elastic_ladder` emits the rung's own line at site `elastic_rung` immediately after
+    // this returns, naming `kIpqp` when this function ran the rung and `kWalk` when the walk
+    // did -- so the stream carries exactly one line per rung either way, and a second emit here
+    // would double-count a tier-solved ladder's rungs against the counters that price it
+    // (`elastic_activations + elastic_escalations`).
+    // trace: qp.mode silent -- the ladder emits this rung's line itself, naming this kernel
+    const IpqpResult ires = tier.solve(elastic.qp, seed, opts.ipqp, elastic_overrides);
+
+    QpSolution qs;
+    qs.status = ipqp_exit_is_a_usable_step(ires, opts.qp, opts.ipqp) ? QpStatus::kOptimal
+                                                                     : QpStatus::kMaxIter;
+    qs.x = ires.x;
+    qs.lambda_e = ires.lambda_e;
+    qs.lambda_i = ires.lambda_i;
+    qs.z = ires.z;
+    qs.bound_state = ires.bound_state;
+    qs.ineq_active = ires.ineq_active;
+    qs.tr_active = ires.tr_active;
+    qs.counters.minor_iters = ires.counters.ipqp_iters;
+    qs.counters.factorizations = ires.counters.ipqp_factorizations;
+    qs.counters.symbolic_analyses = ires.counters.ipqp_symbolic_analyses;
+    return qs;
+}
+
 } // namespace
 
 ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
                                        const ElasticSeedSource &seed, double window,
                                        const SqpOptions &opts, SqpCounters &out,
-                                       std::optional<double> rho_0_override, TraceSink *sink) {
+                                       std::optional<double> rho_0_override, TraceSink *sink,
+                                       IpqpEngine *tier) {
     // VALIDATED AT THE BOUNDARY (CLAUDE.md section 4): a negative or NaN window crosses the
     // elastic box silently -- `build_elastic_subproblem` clamps lo/up against it with no check.
     if (!(window >= 0.0)) {
@@ -1126,11 +1189,19 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
     bool has_prev_rung = false;
     double rho = rho_0;
     for (;;) {
-        // DEFAULT OVERRIDES: the +inf tr_radius sentinel, because
+        // WHICH ENGINE SOLVES THIS RUNG (M7 W0 T3). `tier` is non-null iff the
+        // caller resolved `SqpOptions::elastic_rung_engine` to kTier; a caller
+        // that passes nothing gets the walk, which is this function's whole
+        // history and every existing test's expectation, byte for byte.
+        //
+        // DEFAULT OVERRIDES on the walk arm: the +inf tr_radius sentinel, because
         // the radius is already in the box above -- passing it
-        // here would cap the SLACKS at Delta too.
+        // here would cap the SLACKS at Delta too. (The tier arm needs the same
+        // thing and cannot get it from the sentinel, which it resolves to its own
+        // radius; its engine is constructed with `tr_radius = +inf` instead.)
         const SolveOverrides elastic_overrides;
-        qs_e = engine.solve(elastic.qp, seed_elastic, elastic_overrides);
+        qs_e = tier != nullptr ? solve_elastic_rung_on_tier(*tier, elastic, opts, has_prev_rung)
+                               : engine.solve(elastic.qp, seed_elastic, elastic_overrides);
         out.qp_minor_iters += qs_e.counters.minor_iters;
         out.factorizations += qs_e.counters.factorizations;
         out.eqp_refine_steps += qs_e.counters.eqp_refine_steps;
@@ -1142,8 +1213,9 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
         // BEFORE the four breaks below, so a climb stopping here still reports.
         //
         // The count over a solve is `elastic_activations + elastic_escalations`.
-        emit_qp_mode_line(sink, IpqpTraceQpMode::kWalk, trace_outcome_of(qs_e.status),
-                          QpModeSite::kElasticRung, qs_e.counters.minor_iters);
+        emit_qp_mode_line(sink, tier != nullptr ? IpqpTraceQpMode::kIpqp : IpqpTraceQpMode::kWalk,
+                          trace_outcome_of(qs_e.status), QpModeSite::kElasticRung,
+                          qs_e.counters.minor_iters);
         if (qs_e.status != QpStatus::kOptimal) {
             break;
         }
@@ -1186,6 +1258,10 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
         // the ladder) against 1 with the chain. seed.x is zeroed
         // for the standing reason (see WARM SEEDING): it is the
         // engine's window CENTER.
+        // THE WALK'S CHAIN. The tier's own chain is its `warm_carry()`, taken
+        // inside `solve_elastic_rung_on_tier` from the second rung on, so these
+        // two lines are the walk arm's and are simply inert on the tier arm --
+        // `seed_elastic` is not read there.
         seed_elastic = qs_e;
         seed_elastic.x.setZero();
     }
@@ -1239,7 +1315,8 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
                                           const SolveOverrides &overrides, const SqpOptions &opts,
                                           double window, SqpCounters &out, SqpIterate &row,
                                           std::optional<ElasticLadderReport> &fallback_report,
-                                          SqpFallbackVerdictTraceEvent &verdict, TraceSink *sink) {
+                                          SqpFallbackVerdictTraceEvent &verdict, TraceSink *sink,
+                                          IpqpEngine *tier) {
     // VALIDATED AT THE BOUNDARY, on the same terms as the ladder's own (CLAUDE.md section 4).
     // P6's "no evidence CONTENT throws" is untouched: this is the window, not the block.
     if (!(window >= 0.0)) {
@@ -1274,8 +1351,8 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
     // the counter is named for activations, so the first attempt is charged here and the retry
     // below charges its own -- `elastic_activations == walk-route + elastic_from_ipqp_escape`.
     ++out.elastic_from_ipqp_escape;
-    ElasticLadderReport report =
-        run_elastic_ladder(engine, qp, elastic_seed_source, window, opts, out, std::nullopt, sink);
+    ElasticLadderReport report = run_elastic_ladder(engine, qp, elastic_seed_source, window, opts,
+                                                    out, std::nullopt, sink, tier);
     // THE ENTRY'S CLAMP, kept across the retry below: an OVERRIDE placement reads UNCLAMPED, and
     // a clamp the engine then declined is the most interesting row this telemetry has.
     const bool entry_ceiling_hit = report.rho0_ceiling_hit;
@@ -1287,7 +1364,7 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
         ++out.elastic_from_ipqp_escape;
         verdict.floor_retry = true;
         report = run_elastic_ladder(engine, qp, elastic_seed_source, window, opts, out,
-                                    kElasticRhoInit, sink);
+                                    kElasticRhoInit, sink, tier);
     }
     // ONE BOOL ACROSS THE RETRY, so the row, the event and `elastic_rho0_ceiling_hits` all read
     // THIS ENTRY's placement rather than the surviving ladder's.
@@ -1619,6 +1696,7 @@ void SqpSolver::set_options(SqpOptions o) {
     // first-use construction.
     ssn_engine_.reset();
     ipqp_engine_.reset();
+    elastic_ipqp_engine_.reset();
     // NOEXCEPT BY CONSTRUCTION, which is why it is safe here AFTER the engine
     // swap rather than fused with it (lane review M1): SqpOptions is an
     // aggregate of scalars, enums, QpOptions and std::function/std::vector
@@ -3965,10 +4043,10 @@ void SqpSolver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Assembly
         // The window is the elastic branch's own (see its note below): the radius THIS
         // solve was given, which is what rung A folds into its box.
         SqpFallbackVerdictTraceEvent fallback_verdict;
-        qs = certified_feasibility_fallback(*engine_, qp, ev, have_seed ? &seed : nullptr,
-                                            ires.infeasibility_evidence, overrides, opts_,
-                                            std::min(delta, opts_.qp.tr_radius), out.counters,
-                                            mj.row, fallback_report, fallback_verdict, ipqp_trace_);
+        qs = certified_feasibility_fallback(
+            *engine_, qp, ev, have_seed ? &seed : nullptr, ires.infeasibility_evidence, overrides,
+            opts_, std::min(delta, opts_.qp.tr_radius), out.counters, mj.row, fallback_report,
+            fallback_verdict, ipqp_trace_, elastic_rung_tier());
         emit_trace_fallback_verdict(fallback_verdict);
         emit_ipqp_route_and_mode(IpqpTraceRouteTo::kWalk, IpqpTraceOutcome::kEscaped);
     }
@@ -4197,6 +4275,18 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // post-escaped-factorization-accumulation figures, matching the
     // test's pins).
     ropts.qp_mode = QpMode::kWalk;
+    // AND THE ELASTIC RUNG'S ENGINE WITH IT (M7 W0 T3, 2026-09-15). The line above keeps the
+    // SUBPROBLEM kernel off the sub-solve; this one keeps the RUNG's off it, by the same
+    // argument and on the same wrapper model. `ropts = opts_` above copies the whole options
+    // value, and the sub-driver's own walk route reaches the elastic ladder through its
+    // kInfeasible consumer -- so without this line a parent at kTier would put the
+    // interior-point kernel on restoration's elastic rungs, which is exactly the "simple
+    // machinery only, unconditionally" rule the note above enforces for the kernel.
+    //
+    // NO PINNED NUMBER MOVES: at the shipped default both sides are kWalk, so this line is
+    // inert there. `SqpDriverSsnMode.RestorationStaysOnTheWalkUnderKSsn` pins the line ABOVE
+    // and is untouched by this one.
+    ropts.elastic_rung_engine = ElasticRungEngine::kWalk;
     // THE RADIUS IS CARRIED, BUT NOT BELOW THE RESTART VALUE.
     // Carrying it is the right default -- it is what the driver
     // currently trusts the model over. But when the request came
@@ -5500,10 +5590,10 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         // CONSUMED, NEVER RE-RUN: `++elastic_activations` lives inside the ladder, so a
         // second run on the fallback's own report would double-charge the activation.
         const ElasticLadderReport report =
-            mj.fallback_report
-                ? std::move(*mj.fallback_report)
-                : run_elastic_ladder(*engine_, st.qp, elastic_seed_source, window, opts_,
-                                     st.out.counters, std::nullopt, ipqp_trace_);
+            mj.fallback_report ? std::move(*mj.fallback_report)
+                               : run_elastic_ladder(*engine_, st.qp, elastic_seed_source, window,
+                                                    opts_, st.out.counters, std::nullopt,
+                                                    ipqp_trace_, elastic_rung_tier());
         rho0_ceiling_hit = report.rho0_ceiling_hit;
 
         if (!report.usable) {
@@ -6179,6 +6269,52 @@ IpqpEngine &SqpSolver::ipqp_engine() {
         ipqp_engine_->attach_trace(ipqp_trace_);
     }
     return *ipqp_engine_;
+}
+
+IpqpEngine &SqpSolver::elastic_ipqp_engine() {
+    if (elastic_ipqp_engine_ == nullptr) {
+        // HAZARD 2's FIX, AND THE ONLY PLACE IT CAN LIVE (M7 W0 T3 design section viii). The
+        // tier reads a trust-region radius where the walk ignores one: `ipqp_effective_tr_radius`
+        // resolves the `+inf` SolveOverrides sentinel to THIS field, and `make_ipqp_box` then
+        // windows every column around `clamp(0, l, u)` -- slack columns included. The driver has
+        // already folded this major's radius into the elastic box (the ladder's caller), so a
+        // second window would cap the slacks a second time and can cut off the relaxation's
+        // feasible-by-construction witness, whose scaled slack is at most 1. `+inf` disables the
+        // window EXACTLY (IpqpBox's own contract: `lo_eff == lower` bit for bit, no arithmetic),
+        // which is precisely the walk rung's default-override behaviour.
+        //
+        // Every OTHER field is `opts_.qp` verbatim, so this tier reads the same tolerance pair
+        // and the same regularization pair as the walk, the SSN tier and the primary IPQP tier.
+        QpOptions elastic_qp = opts_.qp;
+        elastic_qp.tr_radius = std::numeric_limits<double>::infinity();
+        elastic_ipqp_engine_ = std::make_unique<IpqpEngine>(elastic_qp, opts_.common.threads);
+        // NO TRACE ATTACHMENT, deliberately. The elastic rungs announce themselves through the
+        // ladder's own `qp.mode` line (site `elastic_rung`, mode `ipqp` under this toggle);
+        // attaching the sink here would additionally interleave this engine's per-iteration
+        // `ipqp.*` events with the PRIMARY tier's under the same schema, and the schema's
+        // `solve` id is per-instance -- two engines would emit colliding ids into one stream.
+    }
+    return *elastic_ipqp_engine_;
+}
+
+IpqpEngine *SqpSolver::elastic_rung_tier() {
+    // THE ONE PLACE THE TOGGLE IS READ, so both ladder call sites -- the kIpm arm's certified
+    // fallback and the walk route's own kInfeasible consumer -- resolve it identically. At the
+    // shipped default this returns nullptr WITHOUT constructing anything, which is what makes
+    // `kWalk` byte-for-byte the pre-T3 driver: no second backend session, no second engine.
+    switch (opts_.elastic_rung_engine) {
+    case ElasticRungEngine::kWalk:
+        return nullptr;
+    case ElasticRungEngine::kTier:
+        return &elastic_ipqp_engine();
+    case ElasticRungEngine::kElasticRungEngineCount:
+        break;
+    }
+    // UNREACHABLE: `validated()` refuses the count sentinel at construction and at
+    // `set_options`, so this is the dispatch's own defence-in-depth, not a routing outcome.
+    throw std::invalid_argument(
+        "SqpSolver: elastic_rung_engine is the enumerator-count sentinel at the elastic rung's "
+        "dispatch -- SqpOptions validation should have refused it at construction");
 }
 
 IpqpOptions SqpSolver::ipqp_options(bool structure_epoch_moved) const {

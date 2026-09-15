@@ -512,11 +512,20 @@ struct ElasticSeedSource {
 /// @return The ladder's report.
 /// @throws std::invalid_argument if `window` is negative or NaN, or if an
 ///         override is NaN or non-positive (+inf is legal and clamps).
+/// @param tier   Non-null hands EVERY rung to the interior-point kernel instead
+///               of @p engine (M7 W0 T3's `SqpOptions::elastic_rung_engine ==
+///               kTier`), with that engine's own `warm_carry()` as the
+///               rung-to-rung chain and its status derived from
+///               `ipqp_exit_is_a_usable_step`. NULL -- the default -- is the
+///               walk, unchanged in every respect. The engine passed here must
+///               carry `tr_radius = +inf` in its own QpOptions: the tier
+///               resolves the override sentinel to that field and would
+///               otherwise window the slack columns a second time.
 ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
                                        const ElasticSeedSource &seed, double window,
                                        const SqpOptions &opts, SqpCounters &out,
                                        std::optional<double> rho_0_override = std::nullopt,
-                                       TraceSink *sink = nullptr);
+                                       TraceSink *sink = nullptr, IpqpEngine *tier = nullptr);
 
 /// @brief The escape branch's single entry: a bounded two-rung ladder. Rung A is
 ///        the elastic QP at the evidence's own rho_0; rung B is a cold walk,
@@ -542,6 +551,9 @@ ElasticLadderReport run_elastic_ladder(QpEngine &engine, const QpProblem &qp,
 /// @param sink      Optional trace sink; non-null makes rung B's cold walk write
 ///                  a `qp.mode` line at site `fallback_rung_b` at both of its
 ///                  return sites, and is forwarded into rung A's ladder.
+/// @param tier      Forwarded to rung A's ladder; see `run_elastic_ladder`.
+///                  RUNG B IS THE WALK WHATEVER THIS IS: it is the engine's
+///                  refusal path, and W1's body is what carries that refusal.
 /// @return Rung A's step in the original variables, or rung B's walk solution
 ///         unchanged.
 /// @throws std::invalid_argument if `window` is negative or NaN.
@@ -552,7 +564,7 @@ QpSolution certified_feasibility_fallback(QpEngine &engine, const QpProblem &qp,
                                           double window, SqpCounters &out, SqpIterate &row,
                                           std::optional<ElasticLadderReport> &fallback_report,
                                           SqpFallbackVerdictTraceEvent &verdict,
-                                          TraceSink *sink = nullptr);
+                                          TraceSink *sink = nullptr, IpqpEngine *tier = nullptr);
 
 // --- Adaptive dual regularization -------------------------------------------
 //
@@ -1536,6 +1548,37 @@ class SqpSolver {
     // the SSN tier were constructed with, so all three kernels read one
     // tolerance pair and one regularization pair.
     IpqpEngine &ipqp_engine();
+    // THE ELASTIC RUNG'S OWN TIER ENGINE (M7 W0 T3), constructed on first use and
+    // only under `elastic_rung_engine == kTier`. A SECOND INSTANCE, not
+    // `ipqp_engine()`, and the two reasons are the whole design:
+    //
+    // (1) A9. The elastic problem's pattern differs from the primary's in
+    //     dimension (`n + ns` columns), so sharing one instance would relay the
+    //     layout on entry to a rung AND relay it back on the next major's
+    //     primary solve -- two symbolic analyses per activation, and the pin's
+    //     "exactly one of {analyze, verify} per tier entry" broken by
+    //     construction. On its own instance the elastic analysis is the elastic
+    //     engine's, and the primary tier's hoist is untouched.
+    // (2) The cross-major carry. `IpqpEngine`'s `carry_` is committed at the end
+    //     of every solve that produced a finite iterate, so an elastic solve on
+    //     the shared instance would overwrite the primary's carry at the wrong
+    //     dimension, and the dispatch's size check would then drop it cold.
+    //
+    // ITS `QpOptions` CARRY `tr_radius = +inf`, deliberately and not as a
+    // default: the tier RESOLVES the `+inf` SolveOverrides sentinel to its own
+    // `opts.tr_radius` and then windows EVERY column, slacks included -- which
+    // the walk rung is immune to by construction (it passes a default override
+    // precisely so the slacks are not capped) and a tier rung is not. The
+    // driver has already folded this major's radius into the elastic box, so a
+    // second window here would cap the slack columns a second time and could
+    // cut off the relaxation's feasible-by-construction witness point.
+    IpqpEngine &elastic_ipqp_engine();
+
+    // The toggle, resolved: `nullptr` at kWalk (and nothing constructed), the
+    // elastic tier engine at kTier. Both of the ladder's call sites go through
+    // this, so one reading of `elastic_rung_engine` serves the kIpm arm's
+    // certified fallback and the walk route's own kInfeasible consumer alike.
+    IpqpEngine *elastic_rung_tier();
 
     // The IpqpOptions ONE subproblem is solved under: forwarded, not derived,
     // with one exception. `ipqp_hoist_symbolic` is forced false for one entry
@@ -1647,6 +1690,11 @@ class SqpSolver {
     // same two reasons: a live backend session per driver, and one symbolic
     // analysis per solve.
     std::unique_ptr<IpqpEngine> ipqp_engine_;
+    // The elastic ladder's own tier engine (M7 W0 T3); see
+    // `elastic_ipqp_engine()` for why it is a second instance and why its
+    // QpOptions carry an infinite trust-region radius. Null unless a rung has
+    // actually been solved by the tier.
+    std::unique_ptr<IpqpEngine> elastic_ipqp_engine_;
 
     // --- The console composition (M6 W5 T8.7) ---
     //
