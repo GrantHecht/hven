@@ -1,0 +1,88 @@
+M6 W5 T9 -- THE SUITES, THE LONG TEST, THE SMOKE AND THE EXPORT CONTRACT
+========================================================================
+Every leg below ran at HEAD 369e3146 (the W5 T8 CLOSED commit), in the
+FOREGROUND, under `flock /tmp/box-build.lock`, with `pgrep` verified clean in a
+SEPARATE command before the lock and again INSIDE it.  Every retained log
+carries PGREP_EMPTY / FOREGROUND_START / FOREGROUND_END inside the lock and the
+leg's own LEG_RC and WRAPPER_EXIT.  Build directories were EMPTY at the start of
+the round.  Logs: .scratch/w5t9/logs/ (git-ignored, retained on disk).
+
+NO WALL-CLOCK NUMBER IN THIS DIRECTORY IS ASSERTED.  Counters, statuses and test
+counts are the asserted currency; the durations below are informational
+(CLAUDE.md section 7).
+
+THE SUITES
+----------
+  Debug   (long test excluded)   2541 / 2541 PASSED, 0 failed    338 s   log 05-suite-debug.log
+  Debug   the long test ALONE       1 / 1    PASSED              671.87 s  log L1-long-test-debug.log
+  Release (whole suite)          2542 / 2542 PASSED, 0 failed     55 s   log 06-suite-release.log
+  `ctest -N` inventory, BOTH configs .............. 2544 / 2544
+
+  The one Debug test over the harness's 600 s cap,
+  `Continuation.ProbeBudgetBoundsAFailingProposal`, ran DETACHED under nohup and
+  ALONE on the lock; its launch pid is recorded in .scratch/w5t9/logs/L1-pid.txt
+  (launcher 111341, ctest 111400, hven_sqp_tests 111401).  It is the only test
+  the Debug suite leg excludes, and 2541 + 1 = 2542 = the Release count.
+
+  The inventory is 2544 and the run is 2542 because three tests do not run in
+  either config, identically in both:
+      418  FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas  (Skipped)
+           EqpRefinementAb.FootprintRuleProbe                                       (Disabled)
+           EqpRefinementAb.FullBattery                                              (Disabled)
+  (the two Disabled tests are #1543/#1544 in the Debug listing and #1544/#1545 in
+  the Release one -- the Debug leg's `-E` exclusion shifts the index by one; the
+  SET is identical in both configs.)
+  These are the same three the T8.10 gate reported, at the same counts.
+
+  THE GOLDEN RIG RUNS INSIDE THE SUITES.  48 `Arms/SqpTrace` and
+  `Arms/InteriorPointTrace` parameterized arms plus `GoldenRigAudit.StaticScanSelfTest`
+  and the `FailByDesignControl` skip are registered tests and ran with the rest.
+  `tests/golden_rig/expected*` is BYTE-UNCHANGED since the W5 BASE -- in fact the
+  WHOLE `tests/golden_rig/` directory is:
+
+      $ git diff --stat accbff0e HEAD -- tests/golden_rig/
+      (no output)
+
+THE INSTALL SMOKE AND THE EXPORT CONTRACT          log 13-smoke-export.log
+-----------------------------------------
+  scripts/check_install_smoke.sh ..... PASSED, SMOKE_RC=0
+      18 standalone-include TUs compiled and linked against a fresh install prefix
+      install smoke: IpmSolver converged, objective = 17.0140174 (OK)
+      install smoke: SqpSolver converged, objective = 17.0140173 (OK)
+      both solvers through ONE generic consumer (`run_once<Solver, Model>`)
+  scripts/check_export_contract.sh ... PASSED, EXPORT_RC=0
+      hvenTargets.cmake read from <prefix>/lib64/cmake/hven/
+      platform macro set OK for linux
+      EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+      INTERFACE_COMPILE_OPTIONS OK: absent
+      INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+
+  NO TREE UNDER /tmp: HVEN_INSTALL_SMOKE_WORKDIR was
+  .scratch/w5t9/smokework.  The only /tmp path this round used at all is the box
+  lock file itself.
+
+THE WRAPPER FOLD PROOFS                 logs 00-fold-proof.log, 00b-fold-proof-nested.log
+-----------------------
+  Every wrapper this round used was proven against a STUBBED failure before the
+  round ran, each stub failing exactly one inner command while the wrapper's
+  LATER commands SUCCEED -- so a wrapper that reported the last command's status
+  would have exited 0 and been caught.  All eleven propagated:
+
+    run_leg.sh          guard refusal (a nested shell without pipefail)  -> exit 2
+    run_leg.sh          a failing leg                                    -> exit 7
+    run_leg.sh          pipefail through a nested pipeline               -> exit 1
+    configure.sh        cmake fails                                      -> exit 1
+    build_only.sh       cmake fails                                      -> exit 1
+    suite.sh            ctest FAILS, `ctest -N` inventory PASSES         -> exit 1
+    long_test.sh        ctest fails, through run_leg.sh                  -> exit 1
+    replay_arm.sh       the pinned run fails                             -> exit 1
+    replay_cmp.sh       comparison 1 FAILS, 2-5 PASS, trailing grep runs -> exit 1
+    leg_capture.sh      the pinned run fails                             -> exit 1
+    leg_compare.sh      comparison 1 FAILS, the later one PASSES         -> exit 1
+    smoke.sh            the smoke FAILS, the export contract PASSES      -> exit 1
+
+  The three run_leg.sh proofs and long_test.sh's ran OUTSIDE another leg, because
+  each acquires the box lock in its own right and a nested acquisition from
+  inside a leg that already holds it self-deadlocks.  That was observed once at
+  T9, the deadlocked processes were this task's own and were killed, and the
+  proof was restructured rather than skipped.  It is declared here.

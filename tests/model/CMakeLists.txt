@@ -25,11 +25,13 @@
 set(HVEN_MODEL_TEST_SOURCES
     support/fake_aggregate.cpp
     test_aggregate_contract.cpp
+    test_claim_stream_restatement.cpp
+    test_claim_stream_state.cpp
     test_contract_flags.cpp
     test_identity_probe.cpp
     test_model_structure_key.cpp
     test_model_surface_kkt.cpp
-    test_nlp_model_aggregate.cpp
+    test_nlp_model_assembly.cpp
     test_structure_epoch.cpp
 )
 

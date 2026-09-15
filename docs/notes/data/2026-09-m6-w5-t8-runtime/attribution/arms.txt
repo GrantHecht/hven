@@ -1,0 +1,67 @@
+M6 W5 T8.9r-attrib -- THE ELEVEN ARMS
+=====================================
+One arm per group-1 code head, in order, each a `git archive` extraction built
+from an EMPTY build directory at ONE absolute path, Release, CCACHE_DISABLE=1,
+the T8.9r artifact's own build recipe (scripts/build_arms.sh) verbatim:
+
+  cmake -S <arm> -B <build> -G Ninja -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/bin/clang
+        -DHVEN_BUILD_TESTS=OFF -DHVEN_BUILD_BENCH=ON -DHVEN_A4_GATE=OFF
+  cmake --build <build> --target hven_sqp_corpus -j 8
+
+  extraction  /home/ghecht/Projects/hven/.scratch/w5t89ra/arm     (same path, every arm)
+  build       /home/ghecht/Projects/hven/.scratch/w5t89ra/build   (emptied before every arm)
+
+Submodules, checked against each arm's own tree rather than assumed -- all
+eleven name the SAME two commits the T8.9r artifact names:
+  dep/eigen bc3b39870ecb690a623a3f49149a358b95c5781d
+  dep/fmt   407c905e45ad75fc29bf0f9bb7c5c2fd3475976f
+
+Each sha is the code head its ledger close line names (docs/notes/2026-08-m6-ledger.md,
+the "W5 T8.x ... CLOSED" lines); all eleven are ancestors of m6 in this order.
+None was corrected.
+
+THE CORPUS BINARY'S HASH IS NOT COMPARABLE WITH THE ARTIFACT'S, THE LIBRARY'S IS.
+`hven_sqp_corpus` embeds the build tree's absolute paths, and this leg builds at
+.scratch/w5t89ra/build where the artifact built at .scratch/w5t89r/<arm>/build, so
+the executable hashes differ by construction. `libhven.a` does not, and all three
+libraries the artifact retained reproduce here BYTE-IDENTICALLY:
+  arm 01 (102f729) 735eea1d9d51ef93...  == PROVENANCE.txt arm-base
+  arm 10 (b9848bf) d236166ec9dbf84a...  == PROVENANCE.txt arm-interior-base
+  arm 11 (e51a7e0) 60bfe03f79078eb8...  == PROVENANCE.txt arm-head
+That is this leg's build-recipe calibration, and it is exact.
+
+arm  task    sha       hven_sqp_corpus sha256                                            libhven.a sha256
+a01  base    102f729   49516fe9cdfb0f3cdd89716b09cfb7c6564765eaf76056f963b04176b68b7277  735eea1d9d51ef93ba2e512611475f758c2b60729f29bec0dda9e75fda9a8f7f
+a02  T8.1    b3915ff   27370ccbcdc5d006fa5ac626b336ac00addb0199c3ffdbfaab200cfdcd17ce43  735eea1d9d51ef93ba2e512611475f758c2b60729f29bec0dda9e75fda9a8f7f
+a03  T8.2    b43580f   82cdd32ea48da3b4da41db24fadec94b3e23fe00b4b63caf3e3c60ddb90449c1  bb3e10fe105ba1b715a83f07d4f5032f3177c4372132ec0bd0c13d100a50cdd2
+a04  T8.3    510a4bb   a16499d7f6dddf60d9cd43693b31771455d18ca4c446ee013337671a2593baff  6f0dc91e24328b7cc39770cd2f21647db64ec657e371e6109aa61412e5f26148
+a05  T8.4    3c8e43b   6847a5e22dece4f855c5a761708ac06de8ed458c2bd5897b3a341af1995f3b68  85c59ffc0a86b7786602a94e8ec3710ad2a315f6cc86701d6915a7460fb1d14c
+a06  T8.5    8f95655   43c35e689278bdd2be35e49d638d771a7009c61f388a6294d4fc07757f696968  6eed49ce9fce18509e16c7a418e112f3cf4208b31461054b0784efb544c5d26e
+a07  T8.6    8cbaa39   faa45d655860856035f92e0878fe7b73ab270b7dfa64682f80038e7cd1cfca82  7027ddee09fe00b712411bf418fa5a19ff87f995b4dcf4644c6824e975252df1
+a08  T8.7    56042be   015fd62b3b7e5b29c626854739f4d1ba75e57cc17f7d39433eb48d96faf28b7c  fb7374c45334dfb9bf0da3a51dc62914334dbf8cd09ff8a8ea98d0ab356c7630
+a09  T8.7b   ddac2cf   48e6f0b3e6bc56f7de22eb9b38a4a51e3ec0fdedaa4e8419bdc586a7530372a4  112c6b518ec942079f216b6d81855f155a610005fc83430a88badd932b502195
+a10  T8.8    b9848bf   cccb17c2dad189b3f0dce61fdf980992f28821439e3b2e4afb2e45a24a105631  d236166ec9dbf84a395f220049ed7215e5e418850ca82a211312afd32a47b3fe
+a11  T8.9    e51a7e0   d26e3806f2b94ddc57f1b2b8ef50b4605eb87339aab6e777c3f60a24180a9d26  60bfe03f79078eb8ab51fd099a7253f91e232714a008a52be0a40e49403fa30a
+
+T8.1's libhven.a is BYTE-IDENTICAL to the base's (735eea1d...): T8.1 touched only
+bench/ and tests/, exactly as its ledger close line says. It is therefore a
+control arm -- any movement it shows on a cell is that cell's floor, not work.
+
+MEASUREMENT PIN, identical on all eleven arms:
+  env MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 taskset -c 2 \
+      perf stat -e instructions:u,branches:u,cycles:u,branch-misses:u,L1-icache-load-misses:u \
+        -o <raw/perf/aNN/<mode>-<cell>-rN.txt> -- \
+      <build>/bench/hven_sqp_corpus --internal-run-one <cell> --engine <mode> \
+        --internal-out <.../art/csv/aNN_argv_pad_12/<mode>-<cell>-rN.csv>
+  three cells x three modes x FIVE rounds (the brief's three is the minimum).
+  The event set is the artifact's leg-1 pass A, unchanged; its pass B is not
+  re-run -- this leg asserts instructions and branches only.
+  The child's argv is 243 bytes on every arm and the environment 4374 bytes with
+  one md5 on every arm; see the layout note in attribution.md section 2.
+
+TOOLCHAIN AND HARDWARE: as PROVENANCE.txt -- same box, same day, clang 22.1.8,
+CMake 4.3.0, Ninja 1.13.2, MKL 2026.1, AMD Ryzen 7 5800X3D (Zen 3), Fedora 44,
+kernel 7.1.9-200.fc44.x86_64, perf_event_paranoid = 2, cpu2 pinned with its SMT
+sibling cpu10 idle.
+APPLE / ACCELERATE: UNOBSERVED.  WINDOWS: UNOBSERVED.

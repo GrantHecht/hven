@@ -45,6 +45,12 @@
 #include "hven/detail/linear/pardiso_session.h"
 
 #include "hven/detail/linear/fault_injection.h"
+// MklThreadScope, LIFTED OUT OF THIS FILE in M6 W5 T8.8. It was hven's own
+// code, named in no upstream module and in no line of this file's
+// derived-material list in notices/eigen-mpl2.txt, and moving it makes this
+// file's diff against its upstream SMALLER. The dense border factor brackets
+// its own LAPACK calls with the same scope. Nothing else about this file moved.
+#include "hven/detail/linear/thread_scope.h"
 
 #include <algorithm>
 #include <stdexcept>
@@ -56,46 +62,6 @@
 namespace hven::linear::detail {
 
 namespace {
-
-// Applies a per-instance thread count for the duration of one backend call.
-//
-// mkl_set_num_threads_local sets a THREAD-LOCAL override: an hven instance
-// configured for two threads must not reach out and change the thread count of
-// every other MKL user in the process.
-//
-// SAVE AND RESTORE, not restore-to-zero. The setter RETURNS the override that
-// was in force on this thread (0 when there was none, meaning "follow MKL's
-// global setting"), and that returned value is what the destructor puts back.
-// Restoring a hardcoded 0 instead would silently lose a caller's own
-// pre-existing local override -- surfacing far away, as somebody else's solve
-// running at the wrong width. Undoing exactly what was done is the contract
-// this scope exists to keep.
-class MklThreadScope {
-  public:
-    explicit MklThreadScope(int num_threads) : engaged_(num_threads > 0) {
-        if (engaged_) {
-            previous_ = mkl_set_num_threads_local(num_threads);
-        }
-    }
-
-    ~MklThreadScope() {
-        if (engaged_) {
-            mkl_set_num_threads_local(previous_);
-        }
-    }
-
-    MklThreadScope(const MklThreadScope &) = delete;
-    MklThreadScope &operator=(const MklThreadScope &) = delete;
-
-  private:
-    bool engaged_;
-
-    // The thread-local override in force before this scope engaged. Only
-    // meaningful while engaged_ is true; 0 is both the "there was none"
-    // answer MKL reports and the value that restores global control, so the
-    // unengaged case needs no separate sentinel.
-    int previous_ = 0;
-};
 
 // A one-line gloss for the Pardiso error codes hven can plausibly hit, so a
 // thrown message says something a reader can act on without the manual open.

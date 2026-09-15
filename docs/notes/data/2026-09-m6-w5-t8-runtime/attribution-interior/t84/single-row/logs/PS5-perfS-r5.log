@@ -1,0 +1,29 @@
+PGREP_SEPARATE 2026-09-11T21:52:47Z -- taken OUTSIDE the lock by the caller; build/solve processes:
+PGREP_EMPTY_BUILD
+--- inside the lock from here ---
+PGREP_INLOCK 2026-09-11T21:52:47Z
+PGREP_EMPTY_BUILD
+FOREGROUND_START 2026-09-11T21:52:47Z perf pass=S round=5
+events: instructions:u,branches:u,cycles:u,branch-misses:u,L1-icache-load-misses:u
+ENV_FOOTPRINT bytes=4374 md5=d2966e3d3cc4d732024d2b5df2d17169 pwd=/home/ghecht/Projects/hven shlvl=5
+ARM_ORDER pass=S round=5: 9cebbbe control 510a4bb
+ARGV_LEN arm=9cebbbe row=hs071_x1_fixed/MakeParameter 260
+RUN  2026-09-11T21:52:47Z perfS arm=9cebbbe row=hs071_x1_fixed/MakeParameter round=5
+ARGV_LEN arm=9cebbbe row=hs071_x1_fixed/MakeConstraint 262
+RUN  2026-09-11T21:52:48Z perfS arm=9cebbbe row=hs071_x1_fixed/MakeConstraint round=5
+ARGV_LEN arm=9cebbbe row=hs071_x1_fixed/RelaxBounds 256
+RUN  2026-09-11T21:52:49Z perfS arm=9cebbbe row=hs071_x1_fixed/RelaxBounds round=5
+ARGV_LEN arm=control row=hs071_x1_fixed/MakeParameter 260
+RUN  2026-09-11T21:52:50Z perfS arm=control row=hs071_x1_fixed/MakeParameter round=5
+ARGV_LEN arm=control row=hs071_x1_fixed/MakeConstraint 262
+RUN  2026-09-11T21:52:51Z perfS arm=control row=hs071_x1_fixed/MakeConstraint round=5
+ARGV_LEN arm=control row=hs071_x1_fixed/RelaxBounds 256
+RUN  2026-09-11T21:52:52Z perfS arm=control row=hs071_x1_fixed/RelaxBounds round=5
+ARGV_LEN arm=510a4bb row=hs071_x1_fixed/MakeParameter 260
+RUN  2026-09-11T21:52:53Z perfS arm=510a4bb row=hs071_x1_fixed/MakeParameter round=5
+ARGV_LEN arm=510a4bb row=hs071_x1_fixed/MakeConstraint 262
+RUN  2026-09-11T21:52:54Z perfS arm=510a4bb row=hs071_x1_fixed/MakeConstraint round=5
+ARGV_LEN arm=510a4bb row=hs071_x1_fixed/RelaxBounds 256
+RUN  2026-09-11T21:52:55Z perfS arm=510a4bb row=hs071_x1_fixed/RelaxBounds round=5
+FOREGROUND_END 2026-09-11T21:52:56Z perf pass=S round=5
+WRAPPER_EXIT=0

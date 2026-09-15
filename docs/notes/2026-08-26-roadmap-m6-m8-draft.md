@@ -139,6 +139,19 @@ scripts/, LTO exercised); the four tycho_sqp riders are each either
 closed or explicitly adjudicated non-gating in the brief; the usual
 close gate (replay, smoke, rig, suite) is green.
 
+> **AMENDMENT 2026-09-04 (owner ruling; applied at M6 W5 T9,
+> 2026-09-13).** The exit criterion "the API break is one declared
+> event with both trees consuming" is SUPERSEDED by: **the API break
+> is one declared event on hven, its migration guide published
+> (`docs/migration/2026-09-m6-api-break.md`), and tycho consuming on
+> its resume.** The owner ruled on 2026-09-04 that the break window
+> does not wait for tycho and that tycho may tweak the API when it
+> catches up. Nothing else in this list changes; in particular this
+> does NOT lift the separate rule (M6 brief §0) that M6 code stays
+> on the m6 branch until both trees close. Recorded at
+> `docs/notes/2026-09-m6-w5-plan.md:8`; the window's own record is
+> the ledger's `## W5 — the API break window` section.
+
 ## M7 — adaptivity and the first-order mode
 
 Internal ordering: the suite comes FIRST — the heuristics, the
@@ -318,3 +331,85 @@ M6–M8:
 4. Benchmark suite: SIBLING HARNESS REPO, PRIVATE for now — problem
    sets, local SNOPT/IPOPT lanes, and published-result tables stay
    out of Apache-2.0 hven; hven stays consumable-clean.
+
+## Amendment (2026-08-31, owner-approved; tycho-sqp lane reviewed): first-order mode moves to M9
+
+Ruling (Grant, direct, after settler proposal and tycho-sqp review): the
+first-order (Hessian-approximation) mode leaves M7 and becomes its own
+milestone, split into a reading/design gate and an implementation:
+
+- **M7 = adaptivity heuristics + benchmark suite v1.** First-order mode
+  REMOVED. Two constraints carried so M9 does not have to reopen M7's work:
+  (1) *Don't foreclose* — no heuristic reads the model Hessian outside the
+  provider path; nothing assumes H's sparsity is fixed by the model; the KKT
+  consumer takes H from an engine-owned "current Hessian" handle of which the
+  provider-laid arena is ONE source, and heuristics/telemetry read the handle,
+  never the arena. (2) *Cost model* — any heuristic pricing factorizations
+  against evaluations carries curvature acquisition as its own cost line and
+  never reads `eval_hess` (zero under a first-order mode); telemetry keyed on
+  the bridge-lay `+1 eval_hess` identity is tagged exact-Hessian-specific;
+  every curvature-reading heuristic (ladder counters, rho demanded, the item-4
+  read, SSN certification tiers) is labelled with the curvature source it
+  assumes — no decision, a label. Benchmark suite v1 carries a
+  `hessian_provenance` column (exact / family-tag / none) from its first
+  schema.
+- **M8 = tuning + labelled configs + SNOPT/IPOPT/Knitro comparison + trace
+  upgrade**, with the comparison EXPLICITLY scoped "second derivatives
+  available" (SNOPT cannot accept a Hessian, so the like-for-like claim is not
+  attempted in M8). The accuracy-matching rule is defined ONCE here under the
+  owner's standing ruling (natural tolerance is the bar, matched accuracy is
+  context) so M9b inherits it; the calibration grid's absent cell (no external
+  solver on a non-F7 problem) is filled in M8, and M8's comparison set is chosen
+  so M9b's like-for-like set is a SUBSET of it.
+- **M9a = first-order literature review + design + owner ruling** on the
+  approximation family and on what "beat SNOPT" concretely means and on which
+  set — reusing the ratified two-clause band (coverage within fixed budgets +
+  speed at K) as its template, with the clause-(b) vacuity lesson written in.
+- **M9b = first-order implementation + the like-for-like SNOPT pass.**
+
+Rationale: first-order mode is the least de-risked roadmap item; M8 must
+measure the exact-Hessian engines in isolation (one variable, not two); M8's
+results tell M9a where hven loses to SNOPT so the design is targeted; the
+M9a/M9b gate is the precondition-experiment pattern M6 used. Two settler
+proposals were RETRACTED under owner challenge and confirmed retracted by the
+tycho-sqp lane: a Hessian-provider seam reserved in M7 (a seam now would guess
+M9a's answer; the tagged-extension currency already carries quasi-Newton
+history; per-mode tuning is M8's labelled-config mechanism) and an M7 scoping
+read (M9a covers it). tycho-side: no timeline pressure — tycho's design premise
+is cheap exact Hessians through the partitioned engine; first-order is external
+positioning.
+
+
+---
+
+## M7 items registered at M6 W1 close (2026-09-01)
+
+Accumulated from W1's task closes (arguments in the M6 ledger and the W1 spec
+§12); listed here so M7's planning window starts from the full set:
+
+- **Stopping-mu vs bound geometry** (C1's accuracy/stopping coupling; the
+  gate-8 Sigma ~ 250 fixture and T10's `e1_f7_n20000_af30_m1e-6` — an
+  active-set margin equal to the tier's contracted accuracy floor — are its
+  two motivating cases).
+- **`ipqp_converge_slack` as an adaptivity lever** (measured price of slack 1:
+  +47 iterations over 29 cells; the 1e2 hand-off to tier 3 is the ruled
+  composition).
+- **Complementarity-derived `mu_0`** after the starting heuristic
+  (Mehrotra/PIQP style), with the fixed measured default as fallback;
+  per-family defaults (HS prefers 1e-3, everything else 1e-2 — T10's sweep).
+- **Sticky trial** (NOT ADOPTED in W1: freeze class); **IC constants
+  measurement**; **barrier endgame at the guard**; **`kIpqpLadderSkipAfter`**
+  (T9 lever).
+- **Tier-solved elastic rung** (owner: robustness over architectural purity —
+  deferred, not declined).
+- **Restoration seed generalization** beyond `clamp(x + p_elastic, box)`.
+- **Dropped warm carry on a disproval** (T7/T9: carry DECLINED at 0-26%
+  measured saving with the /3-descent hazard; revisit only with new evidence).
+- **Structured per-piece convexification** (needs a second seam view —
+  sized as such, spec §2.2).
+- **A certification fixture class that survives barrier-default moves**
+  (T10's gate-8 lesson: fixtures constructed from `Sigma = 2 mu_stop / s^2`,
+  not tuned to where the barrier happens to stop).
+- **A real tier envelope population**: cells the walk finds hard at
+  `nx = 1e5` (the current corpus has none — T10's A13 substitute measures a
+  one-factorization-walk population).

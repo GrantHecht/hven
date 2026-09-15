@@ -27,16 +27,24 @@
 
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
+#include <fmt/format.h>
 #include <gtest/gtest.h>
 
-#include <hven/model/nlp_model_aggregate.h>
+#include <hven/detail/model/nlp_adapter.h>
+#include <hven/drivers/ipm_solver.h>
+#include <hven/model/nlp_model_assembly.h>
 #include <hven/model/nlp_problem_model.h>
-#include <hven/model/nlp_solver.h>
+#include <hven/model/non_linear_program.h>
 #include <hven/model/structure_identity.h>
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/warm_start_data.h>
 
 #include "../../bench/crossover_legs.h"
+
+#include "hven/core/compiler.h"
+
+// by-value oracle of the in-place hot path; migration is a separate task
+HVEN_SUPPRESS_DEPRECATED_BEGIN
 
 namespace {
 
@@ -45,13 +53,12 @@ using hven::SpMatRM;
 using hven::Vec;
 using hven::solvers::declaration_key;
 using hven::solvers::NlpModel;
-using hven::solvers::NlpModelAggregate;
+using hven::solvers::NlpModelAssembly;
 using hven::solvers::NlpProblemModel;
-using hven::solvers::NLPSolver;
-using hven::solvers::SqpDriver;
+using hven::solvers::SolveStatus;
 using hven::solvers::SqpOptions;
-using hven::solvers::SqpSolution;
-using hven::solvers::SqpStatus;
+using hven::solvers::SqpResult;
+using hven::solvers::SqpSolver;
 using hven::solvers::StartLevel;
 using hven::solvers::WarmStartData;
 using hven::solvers::corpus::CorpusCell;
@@ -94,7 +101,7 @@ void expect_sparse_near(const SpMatRM &a, const SpMatRM &b, const std::string &w
 // --- The adapter states the same problem ---
 
 // The round trip, through the path the SQP leg actually takes: declared as an
-// NLPProblem, read straight back as a native model. A wrong sign in the
+// NlpTripletModel, read straight back as a native model. A wrong sign in the
 // row-kind mapping shows up here as a cI block off by more than a tolerance.
 TEST(CrossoverAdapter, StatesTheSameProblemAsTheModelItWraps) {
     const auto model = crossover_model();
@@ -117,9 +124,9 @@ TEST(CrossoverAdapter, StatesTheSameProblemAsTheModelItWraps) {
     expect_sparse_near(converted.eval_jac_i(x), model->eval_jac_i(x), "inequality Jacobian");
 
     // The Hessian is the one piece the adapter transposes on the way out (the
-    // model returns the upper triangle, NLPProblem the lower), so it is checked
+    // model returns the upper triangle, NlpTripletModel the lower), so it is checked
     // at multipliers that are neither zero nor all equal -- a wrong head/tail
-    // cut of NLPProblem's single lambda block would survive either.
+    // cut of NlpTripletModel's single lambda block would survive either.
     Vec lambda_e(model->me());
     for (Index i = 0; i < lambda_e.size(); ++i) {
         lambda_e(i) = 0.5 + 0.1 * static_cast<double>(i % 7);
@@ -140,7 +147,7 @@ TEST(CrossoverAdapter, StatesTheSameProblemAsTheModelItWraps) {
 namespace {
 
 // A model whose Jacobian pattern depends on the iterate: the second column of
-// row 0 exists only where x(0) is positive. NLPProblem's structures are queried
+// row 0 exists only where x(0) is positive. NlpTripletModel's structures are queried
 // once, so such a model cannot be stated as one and the adapter must say so by
 // name rather than write the entry into whatever slot comes next.
 class CrossoverMovingPatternModel final : public NlpModel {
@@ -222,14 +229,13 @@ TEST(CrossoverLegs, BothEnginesKeyOneDeclarationTheSameWay) {
     const auto model = crossover_model();
     const auto declared = std::make_shared<ModelAsNlpProblem>(model, "crossover_gate");
 
-    NLPSolver ipm(declared);
-    ipm.optimizer_->set_print_level(10);
-    ipm.transcribe();
+    const auto ipm_program = hven::solvers::make_nlp_program(declared);
 
     const auto converted = std::make_shared<NlpProblemModel>(declared);
-    NlpModelAggregate bridge(converted);
+    NlpModelAssembly bridge(converted);
 
-    EXPECT_TRUE(declaration_key(ipm.nlp_->declaration()) == declaration_key(bridge.declaration()))
+    EXPECT_TRUE(declaration_key(ipm_program->declaration()) ==
+                declaration_key(bridge.declaration()))
         << "one declared problem must key the same on both engines -- the dual-bind path is "
            "exactly this fact, and the W5 artifact is meaningless without it";
 }
@@ -243,11 +249,19 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
     const auto converted = std::make_shared<NlpProblemModel>(declared);
     const Vec x0 = model->start_point();
 
-    NLPSolver ipm(declared);
-    ipm.optimizer_->set_print_level(10);
-    ipm.transcribe();
-    ASSERT_EQ(ipm.optimize(x0), hven::ConvergenceFlags::CONVERGED);
-    const WarmStartData exported = ipm.optimizer_->export_warm_start();
+    const auto ipm_program = hven::solvers::make_nlp_program(declared);
+    hven::solvers::IpmSolver ipm;
+    {
+        auto o = ipm.options();
+        o.common.print_level = 10;
+        ipm.set_options(std::move(o));
+    }
+    const hven::solvers::IpmResult ipm_result = ipm.solve(*ipm_program, x0);
+    ASSERT_EQ(ipm_result.status, hven::solvers::SolveStatus::kOptimal);
+    // THE EXPORT, OFF THE RESULT (M6 W5 T8.5).
+    const auto snapshot = ipm_result.export_warm_start();
+    ASSERT_TRUE(snapshot.has_value());
+    const WarmStartData exported = *snapshot;
 
     ASSERT_EQ(exported.primal_.size(), model->n());
     ASSERT_EQ(exported.eq_lmults_.size(), model->me());
@@ -261,30 +275,29 @@ TEST(CrossoverLegs, TheExportStagesIntoBothWarmLegs) {
     opts.feas_tol = 1e-8;
     opts.adaptive_mu = false;
 
-    const auto solve_with = [&](const WarmStartData *staged) {
-        NlpModelAggregate bridge(converted);
-        SqpDriver driver{opts};
-        if (staged != nullptr) {
-            driver.stage_warm_start(*staged);
-        }
-        return driver.solve(bridge, x0);
+    // THE ARGUMENT FORM (M6 W5 T8.5): `stage(p); solve(b, x0)` is
+    // `solve(b, x0, p)`, and the cold arm is simply the overload without one.
+    const auto solve_with = [&](const WarmStartData *payload) {
+        NlpModelAssembly bridge(converted);
+        SqpSolver driver{opts};
+        return payload != nullptr ? driver.solve(bridge, x0, *payload) : driver.solve(bridge, x0);
     };
 
-    const SqpSolution cold = solve_with(nullptr);
-    ASSERT_EQ(cold.status, SqpStatus::kOptimal);
+    const SqpResult cold = solve_with(nullptr);
+    ASSERT_EQ(cold.status, SolveStatus::kOptimal);
     EXPECT_EQ(cold.counters.start_level_used, StartLevel::kCold);
 
     WarmStartData core = exported;
     core.extensions_.clear();
-    const SqpSolution warm_core = solve_with(&core);
-    const SqpSolution warm_polish = solve_with(&exported);
+    const SqpResult warm_core = solve_with(&core);
+    const SqpResult warm_polish = solve_with(&exported);
 
-    // Both warm routes were actually ingested: a staged value that was refused
-    // or ignored comes back kCold, leaving the margins below cold against cold.
+    // Both warm routes were actually ingested: a payload that was refused or
+    // ignored comes back kCold, leaving the margins below cold against cold.
     EXPECT_EQ(warm_core.counters.start_level_used, StartLevel::kSeeded);
     EXPECT_EQ(warm_polish.counters.start_level_used, StartLevel::kSeeded);
-    EXPECT_EQ(warm_core.status, SqpStatus::kOptimal);
-    EXPECT_EQ(warm_polish.status, SqpStatus::kOptimal);
+    EXPECT_EQ(warm_core.status, SolveStatus::kOptimal);
+    EXPECT_EQ(warm_polish.status, SolveStatus::kOptimal);
 
     // Margin form: the hand-off is judged by the work it saves. Neither warm leg
     // may cost more majors than cold here, and the polish route -- which infers
@@ -371,19 +384,19 @@ TEST(CrossoverLegs, AKilledCellsAggregateRowReportsEachLegsOwnOutcome) {
     legs.mi = 5000;
 
     legs.a.ran = true;
-    legs.a.flag = hven::ConvergenceFlags::CONVERGED;
+    legs.a.flag = hven::solvers::SolveStatus::kOptimal;
     legs.a.iters = 17;
     legs.a.export_has_polish = true;
     legs.legs_cd_identical = false;
 
     legs.c.ran = true;
-    legs.c.status = SqpStatus::kOptimal;
+    legs.c.status = SolveStatus::kOptimal;
     legs.c.major_iters = 1;
     legs.c.qp_minor_iters = 4435;
     legs.c.factorizations = 35;
 
     legs.d.ran = true;
-    legs.d.status = SqpStatus::kOptimal;
+    legs.d.status = SolveStatus::kOptimal;
     legs.d.major_iters = 1;
     legs.d.qp_minor_iters = 2;
     legs.d.factorizations = 1;
@@ -393,8 +406,10 @@ TEST(CrossoverLegs, AKilledCellsAggregateRowReportsEachLegsOwnOutcome) {
 
     const std::string row = hven::solvers::crossover::margins_row(legs);
 
-    // The legs that RAN say what they did.
-    EXPECT_NE(row.find("CONVERGED"), std::string::npos)
+    // The legs that RAN say what they did. The interior-point flag's spelling
+    // moved in M6 W5 T8.4 (`CONVERGED` -> `optimal`), declared: with
+    // ConvergenceFlags gone the leg reports SolveStatus's display names.
+    EXPECT_NE(row.find("optimal"), std::string::npos)
         << "the interior-point leg converged and the aggregate must say so: " << row;
     EXPECT_NE(row.find("Optimal"), std::string::npos)
         << "both warm legs solved and the aggregate must say so: " << row;
@@ -403,6 +418,8 @@ TEST(CrossoverLegs, AKilledCellsAggregateRowReportsEachLegsOwnOutcome) {
     // default-constructed one in particular.
     EXPECT_EQ(row.find("NumericalError"), std::string::npos)
         << "a leg that never ran must not report the default status: " << row;
+    EXPECT_EQ(row.find("numerical_error"), std::string::npos)
+        << "nor under the interior-point column's new spelling: " << row;
 
     // Field by field, because "contains Optimal" would also pass on a row that
     // put it in the wrong column. Schema: cell_id,n_nodes,window,taxonomy,n,
@@ -437,7 +454,7 @@ TEST(CrossoverLegs, AKilledCellsAggregateRowReportsEachLegsOwnOutcome) {
     for (std::size_t i = 11; i <= 16; ++i) {
         EXPECT_EQ(f[i], "absent") << "margin column " << i << " needs a cold baseline";
     }
-    EXPECT_EQ(f[17], "CONVERGED") << "ipm_flag: that leg DID run";
+    EXPECT_EQ(f[17], "optimal") << "ipm_flag: that leg DID run";
     EXPECT_EQ(f[18], "1") << "export_has_polish";
 }
 
@@ -479,4 +496,80 @@ TEST(CrossoverLegs, MarginsAreColdMinusWarmAndAbsentWhenUndefined) {
     const hven::solvers::crossover::SqpLegRow never;
     EXPECT_FALSE(margin_against_cold(cold, never).defined);
     EXPECT_FALSE(margin_against_cold(never, warm).defined);
+}
+
+HVEN_SUPPRESS_DEPRECATED_END
+
+// ===========================================================================
+// M6 W5 T8.9 -- PARTITIONS THROUGH THE ADAPTER, ON A FIXTURE BIG ENOUGH TO
+// ADOPT TWO OF THEM
+// ===========================================================================
+//
+// `make_nlp_program(problem, N)` lays N partitions, and the count is CLAMPED at
+// `num_user_kkt_elems_ / kMinKktElementsPerPartition` (1000) rather than
+// refused -- so a small problem silently adopts fewer, and HS071 (about a dozen
+// elements) adopts 1 whatever is asked. This is the one fixture in the tree big
+// enough for N = 2 to be ADOPTED, which is why the pin lives here beside the
+// F7 chain rather than in the interior suite.
+//
+// WHAT N MEANS HERE, AND WHAT IT DOES NOT. All three adapter pieces are
+// ThreadingFlags::MainThread (the shared stateful NLPAdapterCore), and
+// analyze_partitioning forces every MainThread function into the LAST
+// partition, run inline on the calling thread. So two partitions over an
+// NlpTripletModel is ONE empty partition plus the whole problem evaluated serially:
+// LAYOUT, not parallel evaluation. Genuine partitioned evaluation over an
+// NlpTripletModel needs per-partition cores and is registered for the M7
+// ClaimStreamSource widening.
+//
+// The pin is therefore: the ADOPTED count is what was asked for, and the solve
+// is the SAME SOLVE -- same status, same iteration count, objective to 1e-12
+// relative -- with bitwise identity REPORTED rather than assumed.
+TEST(CrossoverAdapter, TwoLaidPartitionsSolveTheSameProblemAsOne) {
+    // Big enough to clear 2 * kMinKktElementsPerPartition; small enough for
+    // ctest. The premise below refuses the test rather than passing vacuously
+    // if that ever stops being true.
+    const auto model = std::make_shared<F7CollocationChain>(/*nodes=*/100, /*states=*/3,
+                                                            /*controls=*/2, kCrossoverP,
+                                                            /*radius=*/1.0);
+    const auto declared = std::make_shared<ModelAsNlpProblem>(model, "partition_gate");
+    const Vec x0 = model->start_point();
+
+    const auto one = hven::solvers::make_nlp_program(declared, 1);
+    const auto two = hven::solvers::make_nlp_program(declared, 2);
+    fmt::print(stderr, "T89-PARTS user_kkt_elems={} adopted(1)={} adopted(2)={} pool={}\n",
+               two->num_user_kkt_elems_, one->num_partitions_, two->num_partitions_,
+               hven::utils::get_num_threads());
+    ASSERT_GE(two->num_user_kkt_elems_, 2 * hven::solvers::kMinKktElementsPerPartition)
+        << "fixture premise: the clamp would otherwise make the two-partition arm a "
+           "one-partition arm under a two-partition name";
+    EXPECT_EQ(one->num_partitions_, 1);
+    EXPECT_EQ(two->num_partitions_, 2) << "the ADOPTED count, read off the program";
+    EXPECT_EQ(two->declaration().partition_count_, two->num_partitions_);
+
+    const auto solve_it = [&](hven::solvers::NonLinearProgram &program) {
+        hven::solvers::IpmSolver ipm;
+        auto o = ipm.options();
+        o.common.print_level = 10;
+        o.common.threads = 1;
+        ipm.set_options(std::move(o));
+        return ipm.solve(program, x0);
+    };
+    const hven::solvers::IpmResult r1 = solve_it(*one);
+    const hven::solvers::IpmResult r2 = solve_it(*two);
+
+    ASSERT_EQ(r1.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(r2.status, r1.status);
+    EXPECT_EQ(r2.iterations, r1.iterations);
+    EXPECT_NEAR(r2.f, r1.f, 1e-12 * std::max(1.0, std::abs(r1.f)));
+
+    // BITWISE IDENTITY, REPORTED. The evaluation is serial at either count and
+    // nothing reorders, so identity is the expectation; a failure here would be
+    // a finding about the partitioned assembly's slot order (and therefore
+    // about the order the backend is handed its input), not a reason to have
+    // declined the comparison. The tolerance pin above still holds either way.
+    const bool bitwise = r2.f == r1.f && r2.kkt_inf == r1.kkt_inf && r2.econ_inf == r1.econ_inf &&
+                         r2.icon_inf == r1.icon_inf && r2.barr_inf == r1.barr_inf;
+    fmt::print(stderr, "T89-PARTS bitwise_identity={}\n", bitwise ? "YES" : "NO");
+    EXPECT_TRUE(bitwise) << "reported, not merely asserted: kkt " << r1.kkt_inf << " vs "
+                         << r2.kkt_inf << ", f " << r1.f << " vs " << r2.f;
 }

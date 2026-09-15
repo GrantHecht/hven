@@ -1,0 +1,488 @@
+# leg: layout leg
+# date: 2026-08-28T11:51:04-04:00   host: Linux 7.1.9-200.fc44.x86_64
+# probe source: /home/ghecht/Projects/hven/docs/notes/data/m4-ipm-wall-leg/layout_time.cpp  sha256=24ac7dde84c942ddb4cde0a0d4ce72a228c474a51e0a98a423965ed63047ed44
+# binary base: /home/ghecht/Projects/hven/docs/notes/data/m4-ipm-wall-leg/layout_base  sha256=b08e7e091ce3dbb2ff0863eafdd63e40a0c84545dfbae6ef0579278de0675ef4  mtime=2026-08-28T11:50:36-04:00
+# binary head: /home/ghecht/Projects/hven/docs/notes/data/m4-ipm-wall-leg/layout_head  sha256=73d80bd1d34f956d4addfc78947fa23f1df0730186b028f665ca9f37ebace301  mtime=2026-08-28T11:50:30-04:00
+# reps=5 inner=15  loadavg=2.85 3.55 7.74
+=== arm: serial
+rep1 base construct n=64 reps=15 median_s=0.000019 min_s=0.000018 key=13705983202458411805 claims=1408
+rep1 base transcribe n=64 reps=15 median_s=0.000013 min_s=0.000013 key=13705983202458411805 claims=1408
+rep1 base transcribe+key n=64 reps=15 median_s=0.000021 min_s=0.000021 key=13705983202458411805 claims=1408
+rep1 base transcribe+decl n=64 reps=15 median_s=0.000014 min_s=0.000013 pieces=5 claims=1408
+rep1 base analyze n=64 reps=15 median_s=0.000020 min_s=0.000019 key=13705983202458411805 claims=1408
+rep1 base clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep1 base solve n=64 reps=15 median_s=0.001116 min_s=0.001105 obj=2.6116646135036052e-12 iters=10 flag=0
+rep1 base solve1 n=64 reps=15 median_s=0.000987 min_s=0.000981 obj=2.6116646135036052e-12 iters=10 flag=0
+rep1 base construct n=256 reps=15 median_s=0.000068 min_s=0.000067 key=1033593541037988765 claims=5632
+rep1 base transcribe n=256 reps=15 median_s=0.000055 min_s=0.000054 key=1033593541037988765 claims=5632
+rep1 base transcribe+key n=256 reps=15 median_s=0.000086 min_s=0.000084 key=1033593541037988765 claims=5632
+rep1 base transcribe+decl n=256 reps=15 median_s=0.000057 min_s=0.000056 pieces=5 claims=5632
+rep1 base analyze n=256 reps=15 median_s=0.000147 min_s=0.000144 key=1033593541037988765 claims=5632
+rep1 base clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep1 base solve n=256 reps=15 median_s=1.132679 min_s=1.065129 obj=2.9174222491810309e-14 iters=14 flag=0
+rep1 base solve1 n=256 reps=15 median_s=0.005062 min_s=0.005039 obj=2.917519665545426e-14 iters=14 flag=0
+rep1 base construct n=1024 reps=15 median_s=0.000244 min_s=0.000244 key=3803498179268908311 claims=22528
+rep1 base transcribe n=1024 reps=15 median_s=0.000194 min_s=0.000192 key=3803498179268908311 claims=22528
+rep1 base transcribe+key n=1024 reps=15 median_s=0.000315 min_s=0.000313 key=3803498179268908311 claims=22528
+rep1 base transcribe+decl n=1024 reps=15 median_s=0.000199 min_s=0.000196 pieces=5 claims=22528
+rep1 base analyze n=1024 reps=15 median_s=0.000390 min_s=0.000369 key=3803498179268908311 claims=22528
+rep1 base clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep1 base solve n=1024 reps=15 median_s=1.593598 min_s=1.552122 obj=5.3964882771140432e-11 iters=17 flag=0
+rep1 base solve1 n=1024 reps=15 median_s=0.025737 min_s=0.025581 obj=5.3947172532226082e-11 iters=17 flag=0
+rep1 head construct n=64 reps=15 median_s=0.000023 min_s=0.000023 key=13705983202458411805 claims=1408
+rep1 head transcribe n=64 reps=15 median_s=0.000018 min_s=0.000018 key=13705983202458411805 claims=1408
+rep1 head transcribe+key n=64 reps=15 median_s=0.000026 min_s=0.000025 key=13705983202458411805 claims=1408
+rep1 head transcribe+decl n=64 reps=15 median_s=0.000018 min_s=0.000018 pieces=5 claims=1408
+rep1 head analyze n=64 reps=15 median_s=0.000020 min_s=0.000020 key=13705983202458411805 claims=1408
+rep1 head clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep1 head solve n=64 reps=15 median_s=0.001108 min_s=0.001097 obj=2.6116646135036052e-12 iters=10 flag=0
+rep1 head solve1 n=64 reps=15 median_s=0.000980 min_s=0.000973 obj=2.6116646135036052e-12 iters=10 flag=0
+rep1 head construct n=256 reps=15 median_s=0.000092 min_s=0.000089 key=1033593541037988765 claims=5632
+rep1 head transcribe n=256 reps=15 median_s=0.000075 min_s=0.000073 key=1033593541037988765 claims=5632
+rep1 head transcribe+key n=256 reps=15 median_s=0.000105 min_s=0.000104 key=1033593541037988765 claims=5632
+rep1 head transcribe+decl n=256 reps=15 median_s=0.000076 min_s=0.000075 pieces=5 claims=5632
+rep1 head analyze n=256 reps=15 median_s=0.000148 min_s=0.000145 key=1033593541037988765 claims=5632
+rep1 head clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep1 head solve n=256 reps=15 median_s=1.081335 min_s=1.028023 obj=2.9174222491810309e-14 iters=14 flag=0
+rep1 head solve1 n=256 reps=15 median_s=0.005036 min_s=0.005020 obj=2.917519665545426e-14 iters=14 flag=0
+rep1 head construct n=1024 reps=15 median_s=0.000416 min_s=0.000406 key=3803498179268908311 claims=22528
+rep1 head transcribe n=1024 reps=15 median_s=0.000271 min_s=0.000268 key=3803498179268908311 claims=22528
+rep1 head transcribe+key n=1024 reps=15 median_s=0.000400 min_s=0.000391 key=3803498179268908311 claims=22528
+rep1 head transcribe+decl n=1024 reps=15 median_s=0.000276 min_s=0.000272 pieces=5 claims=22528
+rep1 head analyze n=1024 reps=15 median_s=0.000387 min_s=0.000372 key=3803498179268908311 claims=22528
+rep1 head clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep1 head solve n=1024 reps=15 median_s=1.621090 min_s=1.550693 obj=5.3961066487318053e-11 iters=17 flag=0
+rep1 head solve1 n=1024 reps=15 median_s=0.025594 min_s=0.025434 obj=5.3947172532226082e-11 iters=17 flag=0
+rep2 base construct n=64 reps=15 median_s=0.000019 min_s=0.000018 key=13705983202458411805 claims=1408
+rep2 base transcribe n=64 reps=15 median_s=0.000013 min_s=0.000013 key=13705983202458411805 claims=1408
+rep2 base transcribe+key n=64 reps=15 median_s=0.000021 min_s=0.000021 key=13705983202458411805 claims=1408
+rep2 base transcribe+decl n=64 reps=15 median_s=0.000014 min_s=0.000014 pieces=5 claims=1408
+rep2 base analyze n=64 reps=15 median_s=0.000020 min_s=0.000020 key=13705983202458411805 claims=1408
+rep2 base clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep2 base solve n=64 reps=15 median_s=0.001120 min_s=0.001105 obj=2.6116646135036052e-12 iters=10 flag=0
+rep2 base solve1 n=64 reps=15 median_s=0.000988 min_s=0.000982 obj=2.6116646135036052e-12 iters=10 flag=0
+rep2 base construct n=256 reps=15 median_s=0.000068 min_s=0.000067 key=1033593541037988765 claims=5632
+rep2 base transcribe n=256 reps=15 median_s=0.000056 min_s=0.000055 key=1033593541037988765 claims=5632
+rep2 base transcribe+key n=256 reps=15 median_s=0.000086 min_s=0.000085 key=1033593541037988765 claims=5632
+rep2 base transcribe+decl n=256 reps=15 median_s=0.000057 min_s=0.000056 pieces=5 claims=5632
+rep2 base analyze n=256 reps=15 median_s=0.000147 min_s=0.000144 key=1033593541037988765 claims=5632
+rep2 base clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep2 base solve n=256 reps=15 median_s=1.039819 min_s=0.927176 obj=2.9177939268796326e-14 iters=14 flag=0
+rep2 base solve1 n=256 reps=15 median_s=0.005031 min_s=0.005019 obj=2.917519665545426e-14 iters=14 flag=0
+rep2 base construct n=1024 reps=15 median_s=0.000245 min_s=0.000243 key=3803498179268908311 claims=22528
+rep2 base transcribe n=1024 reps=15 median_s=0.000192 min_s=0.000191 key=3803498179268908311 claims=22528
+rep2 base transcribe+key n=1024 reps=15 median_s=0.000314 min_s=0.000312 key=3803498179268908311 claims=22528
+rep2 base transcribe+decl n=1024 reps=15 median_s=0.000197 min_s=0.000196 pieces=5 claims=22528
+rep2 base analyze n=1024 reps=15 median_s=0.000380 min_s=0.000365 key=3803498179268908311 claims=22528
+rep2 base clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep2 base solve n=1024 reps=15 median_s=1.625285 min_s=1.572119 obj=5.3964836125390235e-11 iters=17 flag=0
+rep2 base solve1 n=1024 reps=15 median_s=0.025711 min_s=0.025489 obj=5.3947172532226082e-11 iters=17 flag=0
+rep2 head construct n=64 reps=15 median_s=0.000023 min_s=0.000022 key=13705983202458411805 claims=1408
+rep2 head transcribe n=64 reps=15 median_s=0.000018 min_s=0.000018 key=13705983202458411805 claims=1408
+rep2 head transcribe+key n=64 reps=15 median_s=0.000025 min_s=0.000025 key=13705983202458411805 claims=1408
+rep2 head transcribe+decl n=64 reps=15 median_s=0.000018 min_s=0.000018 pieces=5 claims=1408
+rep2 head analyze n=64 reps=15 median_s=0.000020 min_s=0.000020 key=13705983202458411805 claims=1408
+rep2 head clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep2 head solve n=64 reps=15 median_s=0.001120 min_s=0.001104 obj=2.6116646135036052e-12 iters=10 flag=0
+rep2 head solve1 n=64 reps=15 median_s=0.000989 min_s=0.000983 obj=2.6116646135036052e-12 iters=10 flag=0
+rep2 head construct n=256 reps=15 median_s=0.000087 min_s=0.000086 key=1033593541037988765 claims=5632
+rep2 head transcribe n=256 reps=15 median_s=0.000074 min_s=0.000073 key=1033593541037988765 claims=5632
+rep2 head transcribe+key n=256 reps=15 median_s=0.000104 min_s=0.000104 key=1033593541037988765 claims=5632
+rep2 head transcribe+decl n=256 reps=15 median_s=0.000076 min_s=0.000075 pieces=5 claims=5632
+rep2 head analyze n=256 reps=15 median_s=0.000147 min_s=0.000144 key=1033593541037988765 claims=5632
+rep2 head clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep2 head solve n=256 reps=15 median_s=1.053095 min_s=0.974506 obj=2.9181874617255473e-14 iters=14 flag=0
+rep2 head solve1 n=256 reps=15 median_s=0.005049 min_s=0.005027 obj=2.917519665545426e-14 iters=14 flag=0
+rep2 head construct n=1024 reps=15 median_s=0.000405 min_s=0.000392 key=3803498179268908311 claims=22528
+rep2 head transcribe n=1024 reps=15 median_s=0.000274 min_s=0.000268 key=3803498179268908311 claims=22528
+rep2 head transcribe+key n=1024 reps=15 median_s=0.000393 min_s=0.000388 key=3803498179268908311 claims=22528
+rep2 head transcribe+decl n=1024 reps=15 median_s=0.000278 min_s=0.000273 pieces=5 claims=22528
+rep2 head analyze n=1024 reps=15 median_s=0.000401 min_s=0.000393 key=3803498179268908311 claims=22528
+rep2 head clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep2 head solve n=1024 reps=15 median_s=1.612971 min_s=1.586910 obj=5.3964722055286993e-11 iters=17 flag=0
+rep2 head solve1 n=1024 reps=15 median_s=0.025654 min_s=0.025454 obj=5.3947172532226082e-11 iters=17 flag=0
+rep3 base construct n=64 reps=15 median_s=0.000018 min_s=0.000018 key=13705983202458411805 claims=1408
+rep3 base transcribe n=64 reps=15 median_s=0.000013 min_s=0.000013 key=13705983202458411805 claims=1408
+rep3 base transcribe+key n=64 reps=15 median_s=0.000021 min_s=0.000021 key=13705983202458411805 claims=1408
+rep3 base transcribe+decl n=64 reps=15 median_s=0.000014 min_s=0.000013 pieces=5 claims=1408
+rep3 base analyze n=64 reps=15 median_s=0.000020 min_s=0.000020 key=13705983202458411805 claims=1408
+rep3 base clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep3 base solve n=64 reps=15 median_s=0.001112 min_s=0.001103 obj=2.6116646135036052e-12 iters=10 flag=0
+rep3 base solve1 n=64 reps=15 median_s=0.000988 min_s=0.000980 obj=2.6116646135036052e-12 iters=10 flag=0
+rep3 base construct n=256 reps=15 median_s=0.000068 min_s=0.000067 key=1033593541037988765 claims=5632
+rep3 base transcribe n=256 reps=15 median_s=0.000055 min_s=0.000055 key=1033593541037988765 claims=5632
+rep3 base transcribe+key n=256 reps=15 median_s=0.000085 min_s=0.000085 key=1033593541037988765 claims=5632
+rep3 base transcribe+decl n=256 reps=15 median_s=0.000056 min_s=0.000056 pieces=5 claims=5632
+rep3 base analyze n=256 reps=15 median_s=0.000147 min_s=0.000145 key=1033593541037988765 claims=5632
+rep3 base clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep3 base solve n=256 reps=15 median_s=1.080679 min_s=1.031805 obj=2.917022215791525e-14 iters=14 flag=0
+rep3 base solve1 n=256 reps=15 median_s=0.005101 min_s=0.005079 obj=2.917519665545426e-14 iters=14 flag=0
+rep3 base construct n=1024 reps=15 median_s=0.000246 min_s=0.000243 key=3803498179268908311 claims=22528
+rep3 base transcribe n=1024 reps=15 median_s=0.000195 min_s=0.000192 key=3803498179268908311 claims=22528
+rep3 base transcribe+key n=1024 reps=15 median_s=0.000317 min_s=0.000314 key=3803498179268908311 claims=22528
+rep3 base transcribe+decl n=1024 reps=15 median_s=0.000197 min_s=0.000196 pieces=5 claims=22528
+rep3 base analyze n=1024 reps=15 median_s=0.000386 min_s=0.000378 key=3803498179268908311 claims=22528
+rep3 base clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep3 base solve n=1024 reps=15 median_s=1.675094 min_s=1.596192 obj=5.3964916137521809e-11 iters=17 flag=0
+rep3 base solve1 n=1024 reps=15 median_s=0.025769 min_s=0.025631 obj=5.3947172532226082e-11 iters=17 flag=0
+rep3 head construct n=64 reps=15 median_s=0.000022 min_s=0.000022 key=13705983202458411805 claims=1408
+rep3 head transcribe n=64 reps=15 median_s=0.000018 min_s=0.000017 key=13705983202458411805 claims=1408
+rep3 head transcribe+key n=64 reps=15 median_s=0.000025 min_s=0.000025 key=13705983202458411805 claims=1408
+rep3 head transcribe+decl n=64 reps=15 median_s=0.000018 min_s=0.000018 pieces=5 claims=1408
+rep3 head analyze n=64 reps=15 median_s=0.000020 min_s=0.000019 key=13705983202458411805 claims=1408
+rep3 head clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep3 head solve n=64 reps=15 median_s=0.001127 min_s=0.001102 obj=2.6116646135036052e-12 iters=10 flag=0
+rep3 head solve1 n=64 reps=15 median_s=0.000984 min_s=0.000979 obj=2.6116646135036052e-12 iters=10 flag=0
+rep3 head construct n=256 reps=15 median_s=0.000086 min_s=0.000085 key=1033593541037988765 claims=5632
+rep3 head transcribe n=256 reps=15 median_s=0.000074 min_s=0.000074 key=1033593541037988765 claims=5632
+rep3 head transcribe+key n=256 reps=15 median_s=0.000105 min_s=0.000104 key=1033593541037988765 claims=5632
+rep3 head transcribe+decl n=256 reps=15 median_s=0.000076 min_s=0.000075 pieces=5 claims=5632
+rep3 head analyze n=256 reps=15 median_s=0.000147 min_s=0.000143 key=1033593541037988765 claims=5632
+rep3 head clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep3 head solve n=256 reps=15 median_s=1.065531 min_s=1.003212 obj=2.9174222181865338e-14 iters=14 flag=0
+rep3 head solve1 n=256 reps=15 median_s=0.005058 min_s=0.005023 obj=2.917519665545426e-14 iters=14 flag=0
+rep3 head construct n=1024 reps=15 median_s=0.000323 min_s=0.000318 key=3803498179268908311 claims=22528
+rep3 head transcribe n=1024 reps=15 median_s=0.000270 min_s=0.000268 key=3803498179268908311 claims=22528
+rep3 head transcribe+key n=1024 reps=15 median_s=0.000393 min_s=0.000387 key=3803498179268908311 claims=22528
+rep3 head transcribe+decl n=1024 reps=15 median_s=0.000276 min_s=0.000271 pieces=5 claims=22528
+rep3 head analyze n=1024 reps=15 median_s=0.000391 min_s=0.000374 key=3803498179268908311 claims=22528
+rep3 head clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep3 head solve n=1024 reps=15 median_s=1.660587 min_s=1.622609 obj=5.3967247279134634e-11 iters=17 flag=0
+rep3 head solve1 n=1024 reps=15 median_s=0.025691 min_s=0.025526 obj=5.3947172532226082e-11 iters=17 flag=0
+rep4 base construct n=64 reps=15 median_s=0.000018 min_s=0.000018 key=13705983202458411805 claims=1408
+rep4 base transcribe n=64 reps=15 median_s=0.000013 min_s=0.000013 key=13705983202458411805 claims=1408
+rep4 base transcribe+key n=64 reps=15 median_s=0.000021 min_s=0.000021 key=13705983202458411805 claims=1408
+rep4 base transcribe+decl n=64 reps=15 median_s=0.000014 min_s=0.000014 pieces=5 claims=1408
+rep4 base analyze n=64 reps=15 median_s=0.000020 min_s=0.000019 key=13705983202458411805 claims=1408
+rep4 base clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep4 base solve n=64 reps=15 median_s=0.001115 min_s=0.001103 obj=2.6116646135036052e-12 iters=10 flag=0
+rep4 base solve1 n=64 reps=15 median_s=0.000985 min_s=0.000980 obj=2.6116646135036052e-12 iters=10 flag=0
+rep4 base construct n=256 reps=15 median_s=0.000068 min_s=0.000067 key=1033593541037988765 claims=5632
+rep4 base transcribe n=256 reps=15 median_s=0.000055 min_s=0.000055 key=1033593541037988765 claims=5632
+rep4 base transcribe+key n=256 reps=15 median_s=0.000086 min_s=0.000085 key=1033593541037988765 claims=5632
+rep4 base transcribe+decl n=256 reps=15 median_s=0.000057 min_s=0.000056 pieces=5 claims=5632
+rep4 base analyze n=256 reps=15 median_s=0.000146 min_s=0.000144 key=1033593541037988765 claims=5632
+rep4 base clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep4 base solve n=256 reps=15 median_s=1.023416 min_s=0.963687 obj=2.9181874617255473e-14 iters=14 flag=0
+rep4 base solve1 n=256 reps=15 median_s=0.005076 min_s=0.005029 obj=2.917519665545426e-14 iters=14 flag=0
+rep4 base construct n=1024 reps=15 median_s=0.000248 min_s=0.000244 key=3803498179268908311 claims=22528
+rep4 base transcribe n=1024 reps=15 median_s=0.000195 min_s=0.000194 key=3803498179268908311 claims=22528
+rep4 base transcribe+key n=1024 reps=15 median_s=0.000316 min_s=0.000313 key=3803498179268908311 claims=22528
+rep4 base transcribe+decl n=1024 reps=15 median_s=0.000200 min_s=0.000196 pieces=5 claims=22528
+rep4 base analyze n=1024 reps=15 median_s=0.000389 min_s=0.000375 key=3803498179268908311 claims=22528
+rep4 base clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep4 base solve n=1024 reps=15 median_s=1.648731 min_s=1.545209 obj=5.3964882310733216e-11 iters=17 flag=0
+rep4 base solve1 n=1024 reps=15 median_s=0.025722 min_s=0.025564 obj=5.3947172532226082e-11 iters=17 flag=0
+rep4 head construct n=64 reps=15 median_s=0.000022 min_s=0.000022 key=13705983202458411805 claims=1408
+rep4 head transcribe n=64 reps=15 median_s=0.000018 min_s=0.000018 key=13705983202458411805 claims=1408
+rep4 head transcribe+key n=64 reps=15 median_s=0.000025 min_s=0.000025 key=13705983202458411805 claims=1408
+rep4 head transcribe+decl n=64 reps=15 median_s=0.000018 min_s=0.000018 pieces=5 claims=1408
+rep4 head analyze n=64 reps=15 median_s=0.000020 min_s=0.000019 key=13705983202458411805 claims=1408
+rep4 head clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep4 head solve n=64 reps=15 median_s=0.001113 min_s=0.001108 obj=2.6116646135036052e-12 iters=10 flag=0
+rep4 head solve1 n=64 reps=15 median_s=0.000984 min_s=0.000979 obj=2.6116646135036052e-12 iters=10 flag=0
+rep4 head construct n=256 reps=15 median_s=0.000087 min_s=0.000085 key=1033593541037988765 claims=5632
+rep4 head transcribe n=256 reps=15 median_s=0.000075 min_s=0.000074 key=1033593541037988765 claims=5632
+rep4 head transcribe+key n=256 reps=15 median_s=0.000105 min_s=0.000104 key=1033593541037988765 claims=5632
+rep4 head transcribe+decl n=256 reps=15 median_s=0.000077 min_s=0.000076 pieces=5 claims=5632
+rep4 head analyze n=256 reps=15 median_s=0.000149 min_s=0.000145 key=1033593541037988765 claims=5632
+rep4 head clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep4 head solve n=256 reps=15 median_s=1.125707 min_s=1.046704 obj=2.9181874617255473e-14 iters=14 flag=0
+rep4 head solve1 n=256 reps=15 median_s=0.005069 min_s=0.005056 obj=2.917519665545426e-14 iters=14 flag=0
+rep4 head construct n=1024 reps=15 median_s=0.000405 min_s=0.000393 key=3803498179268908311 claims=22528
+rep4 head transcribe n=1024 reps=15 median_s=0.000274 min_s=0.000268 key=3803498179268908311 claims=22528
+rep4 head transcribe+key n=1024 reps=15 median_s=0.000395 min_s=0.000389 key=3803498179268908311 claims=22528
+rep4 head transcribe+decl n=1024 reps=15 median_s=0.000277 min_s=0.000273 pieces=5 claims=22528
+rep4 head analyze n=1024 reps=15 median_s=0.000388 min_s=0.000385 key=3803498179268908311 claims=22528
+rep4 head clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep4 head solve n=1024 reps=15 median_s=1.695705 min_s=1.607861 obj=5.3964661578924908e-11 iters=17 flag=0
+rep4 head solve1 n=1024 reps=15 median_s=0.025626 min_s=0.025517 obj=5.3947172532226082e-11 iters=17 flag=0
+rep5 base construct n=64 reps=15 median_s=0.000018 min_s=0.000018 key=13705983202458411805 claims=1408
+rep5 base transcribe n=64 reps=15 median_s=0.000013 min_s=0.000013 key=13705983202458411805 claims=1408
+rep5 base transcribe+key n=64 reps=15 median_s=0.000021 min_s=0.000020 key=13705983202458411805 claims=1408
+rep5 base transcribe+decl n=64 reps=15 median_s=0.000014 min_s=0.000013 pieces=5 claims=1408
+rep5 base analyze n=64 reps=15 median_s=0.000020 min_s=0.000020 key=13705983202458411805 claims=1408
+rep5 base clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep5 base solve n=64 reps=15 median_s=0.001112 min_s=0.001104 obj=2.6116646135036052e-12 iters=10 flag=0
+rep5 base solve1 n=64 reps=15 median_s=0.000987 min_s=0.000981 obj=2.6116646135036052e-12 iters=10 flag=0
+rep5 base construct n=256 reps=15 median_s=0.000068 min_s=0.000067 key=1033593541037988765 claims=5632
+rep5 base transcribe n=256 reps=15 median_s=0.000058 min_s=0.000057 key=1033593541037988765 claims=5632
+rep5 base transcribe+key n=256 reps=15 median_s=0.000088 min_s=0.000087 key=1033593541037988765 claims=5632
+rep5 base transcribe+decl n=256 reps=15 median_s=0.000060 min_s=0.000059 pieces=5 claims=5632
+rep5 base analyze n=256 reps=15 median_s=0.000147 min_s=0.000144 key=1033593541037988765 claims=5632
+rep5 base clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep5 base solve n=256 reps=15 median_s=1.143235 min_s=1.064533 obj=2.9174222491810309e-14 iters=14 flag=0
+rep5 base solve1 n=256 reps=15 median_s=0.005082 min_s=0.005048 obj=2.917519665545426e-14 iters=14 flag=0
+rep5 base construct n=1024 reps=15 median_s=0.000247 min_s=0.000245 key=3803498179268908311 claims=22528
+rep5 base transcribe n=1024 reps=15 median_s=0.000215 min_s=0.000207 key=3803498179268908311 claims=22528
+rep5 base transcribe+key n=1024 reps=15 median_s=0.000338 min_s=0.000326 key=3803498179268908311 claims=22528
+rep5 base transcribe+decl n=1024 reps=15 median_s=0.000218 min_s=0.000211 pieces=5 claims=22528
+rep5 base analyze n=1024 reps=15 median_s=0.000390 min_s=0.000370 key=3803498179268908311 claims=22528
+rep5 base clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep5 base solve n=1024 reps=15 median_s=1.653545 min_s=1.575686 obj=5.3964872951979686e-11 iters=17 flag=0
+rep5 base solve1 n=1024 reps=15 median_s=0.025647 min_s=0.025530 obj=5.3947172532226082e-11 iters=17 flag=0
+rep5 head construct n=64 reps=15 median_s=0.000022 min_s=0.000022 key=13705983202458411805 claims=1408
+rep5 head transcribe n=64 reps=15 median_s=0.000018 min_s=0.000018 key=13705983202458411805 claims=1408
+rep5 head transcribe+key n=64 reps=15 median_s=0.000026 min_s=0.000025 key=13705983202458411805 claims=1408
+rep5 head transcribe+decl n=64 reps=15 median_s=0.000019 min_s=0.000018 pieces=5 claims=1408
+rep5 head analyze n=64 reps=15 median_s=0.000021 min_s=0.000020 key=13705983202458411805 claims=1408
+rep5 head clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep5 head solve n=64 reps=15 median_s=0.001113 min_s=0.001100 obj=2.6116646135036052e-12 iters=10 flag=0
+rep5 head solve1 n=64 reps=15 median_s=0.000987 min_s=0.000979 obj=2.6116646135036052e-12 iters=10 flag=0
+rep5 head construct n=256 reps=15 median_s=0.000087 min_s=0.000085 key=1033593541037988765 claims=5632
+rep5 head transcribe n=256 reps=15 median_s=0.000074 min_s=0.000073 key=1033593541037988765 claims=5632
+rep5 head transcribe+key n=256 reps=15 median_s=0.000104 min_s=0.000103 key=1033593541037988765 claims=5632
+rep5 head transcribe+decl n=256 reps=15 median_s=0.000076 min_s=0.000075 pieces=5 claims=5632
+rep5 head analyze n=256 reps=15 median_s=0.000150 min_s=0.000144 key=1033593541037988765 claims=5632
+rep5 head clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep5 head solve n=256 reps=15 median_s=1.106767 min_s=1.036292 obj=2.9174222491810309e-14 iters=14 flag=0
+rep5 head solve1 n=256 reps=15 median_s=0.005034 min_s=0.005012 obj=2.917519665545426e-14 iters=14 flag=0
+rep5 head construct n=1024 reps=15 median_s=0.000404 min_s=0.000394 key=3803498179268908311 claims=22528
+rep5 head transcribe n=1024 reps=15 median_s=0.000270 min_s=0.000267 key=3803498179268908311 claims=22528
+rep5 head transcribe+key n=1024 reps=15 median_s=0.000394 min_s=0.000387 key=3803498179268908311 claims=22528
+rep5 head transcribe+decl n=1024 reps=15 median_s=0.000275 min_s=0.000270 pieces=5 claims=22528
+rep5 head analyze n=1024 reps=15 median_s=0.000386 min_s=0.000364 key=3803498179268908311 claims=22528
+rep5 head clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep5 head solve n=1024 reps=15 median_s=1.658193 min_s=1.625861 obj=5.3963661567672419e-11 iters=17 flag=0
+rep5 head solve1 n=1024 reps=15 median_s=0.025658 min_s=0.025504 obj=5.3947172532226082e-11 iters=17 flag=0
+=== arm: threaded
+rep1 base construct n=64 reps=15 median_s=0.000021 min_s=0.000021 key=13705983202458411805 claims=1408
+rep1 base transcribe n=64 reps=15 median_s=0.000013 min_s=0.000013 key=13705983202458411805 claims=1408
+rep1 base transcribe+key n=64 reps=15 median_s=0.000021 min_s=0.000021 key=13705983202458411805 claims=1408
+rep1 base transcribe+decl n=64 reps=15 median_s=0.000014 min_s=0.000013 pieces=5 claims=1408
+rep1 base analyze n=64 reps=15 median_s=0.000020 min_s=0.000020 key=13705983202458411805 claims=1408
+rep1 base clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep1 base solve n=64 reps=15 median_s=0.001002 min_s=0.000986 obj=2.6116646135036052e-12 iters=10 flag=0
+rep1 base solve1 n=64 reps=15 median_s=0.000991 min_s=0.000979 obj=2.6116646135036052e-12 iters=10 flag=0
+rep1 base construct n=256 reps=15 median_s=0.000081 min_s=0.000079 key=1033593541037988765 claims=5632
+rep1 base transcribe n=256 reps=15 median_s=0.000055 min_s=0.000055 key=1033593541037988765 claims=5632
+rep1 base transcribe+key n=256 reps=15 median_s=0.000086 min_s=0.000085 key=1033593541037988765 claims=5632
+rep1 base transcribe+decl n=256 reps=15 median_s=0.000056 min_s=0.000056 pieces=5 claims=5632
+rep1 base analyze n=256 reps=15 median_s=0.000094 min_s=0.000091 key=1033593541037988765 claims=5632
+rep1 base clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep1 base solve n=256 reps=15 median_s=0.003925 min_s=0.003696 obj=2.9175850053397765e-14 iters=14 flag=0
+rep1 base solve1 n=256 reps=15 median_s=0.005019 min_s=0.004997 obj=2.917519665545426e-14 iters=14 flag=0
+rep1 base construct n=1024 reps=15 median_s=0.000305 min_s=0.000292 key=3803498179268908311 claims=22528
+rep1 base transcribe n=1024 reps=15 median_s=0.000194 min_s=0.000192 key=3803498179268908311 claims=22528
+rep1 base transcribe+key n=1024 reps=15 median_s=0.000315 min_s=0.000314 key=3803498179268908311 claims=22528
+rep1 base transcribe+decl n=1024 reps=15 median_s=0.000198 min_s=0.000196 pieces=5 claims=22528
+rep1 base analyze n=1024 reps=15 median_s=0.000319 min_s=0.000311 key=3803498179268908311 claims=22528
+rep1 base clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep1 base solve n=1024 reps=15 median_s=0.014368 min_s=0.014053 obj=5.3964235853786743e-11 iters=17 flag=0
+rep1 base solve1 n=1024 reps=15 median_s=0.025764 min_s=0.025609 obj=5.3947172532226082e-11 iters=17 flag=0
+rep1 head construct n=64 reps=15 median_s=0.000022 min_s=0.000022 key=13705983202458411805 claims=1408
+rep1 head transcribe n=64 reps=15 median_s=0.000018 min_s=0.000017 key=13705983202458411805 claims=1408
+rep1 head transcribe+key n=64 reps=15 median_s=0.000025 min_s=0.000025 key=13705983202458411805 claims=1408
+rep1 head transcribe+decl n=64 reps=15 median_s=0.000018 min_s=0.000018 pieces=5 claims=1408
+rep1 head analyze n=64 reps=15 median_s=0.000021 min_s=0.000020 key=13705983202458411805 claims=1408
+rep1 head clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep1 head solve n=64 reps=15 median_s=0.000990 min_s=0.000976 obj=2.6116646135036052e-12 iters=10 flag=0
+rep1 head solve1 n=64 reps=15 median_s=0.000983 min_s=0.000972 obj=2.6116646135036052e-12 iters=10 flag=0
+rep1 head construct n=256 reps=15 median_s=0.000087 min_s=0.000086 key=1033593541037988765 claims=5632
+rep1 head transcribe n=256 reps=15 median_s=0.000075 min_s=0.000074 key=1033593541037988765 claims=5632
+rep1 head transcribe+key n=256 reps=15 median_s=0.000104 min_s=0.000104 key=1033593541037988765 claims=5632
+rep1 head transcribe+decl n=256 reps=15 median_s=0.000076 min_s=0.000075 pieces=5 claims=5632
+rep1 head analyze n=256 reps=15 median_s=0.000102 min_s=0.000098 key=1033593541037988765 claims=5632
+rep1 head clone n=256 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=5632
+rep1 head solve n=256 reps=15 median_s=0.005232 min_s=0.005209 obj=2.9178474832603866e-14 iters=14 flag=0
+rep1 head solve1 n=256 reps=15 median_s=0.008496 min_s=0.008488 obj=2.917519665545426e-14 iters=14 flag=0
+rep1 head construct n=1024 reps=15 median_s=0.000498 min_s=0.000493 key=3803498179268908311 claims=22528
+rep1 head transcribe n=1024 reps=15 median_s=0.000403 min_s=0.000401 key=3803498179268908311 claims=22528
+rep1 head transcribe+key n=1024 reps=15 median_s=0.000535 min_s=0.000530 key=3803498179268908311 claims=22528
+rep1 head transcribe+decl n=1024 reps=15 median_s=0.000408 min_s=0.000406 pieces=5 claims=22528
+rep1 head analyze n=1024 reps=15 median_s=0.000343 min_s=0.000340 key=3803498179268908311 claims=22528
+rep1 head clone n=1024 reps=15 median_s=0.000002 min_s=0.000002 pieces=5 claims=22528
+rep1 head solve n=1024 reps=15 median_s=0.017863 min_s=0.017228 obj=5.3964416066723661e-11 iters=17 flag=0
+rep1 head solve1 n=1024 reps=15 median_s=0.025493 min_s=0.025415 obj=5.3947172532226082e-11 iters=17 flag=0
+rep2 base construct n=64 reps=15 median_s=0.000018 min_s=0.000018 key=13705983202458411805 claims=1408
+rep2 base transcribe n=64 reps=15 median_s=0.000013 min_s=0.000013 key=13705983202458411805 claims=1408
+rep2 base transcribe+key n=64 reps=15 median_s=0.000021 min_s=0.000021 key=13705983202458411805 claims=1408
+rep2 base transcribe+decl n=64 reps=15 median_s=0.000014 min_s=0.000013 pieces=5 claims=1408
+rep2 base analyze n=64 reps=15 median_s=0.000020 min_s=0.000020 key=13705983202458411805 claims=1408
+rep2 base clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep2 base solve n=64 reps=15 median_s=0.001487 min_s=0.000983 obj=2.6116646135036052e-12 iters=10 flag=0
+rep2 base solve1 n=64 reps=15 median_s=0.001002 min_s=0.000989 obj=2.6116646135036052e-12 iters=10 flag=0
+rep2 base construct n=256 reps=15 median_s=0.000069 min_s=0.000069 key=1033593541037988765 claims=5632
+rep2 base transcribe n=256 reps=15 median_s=0.000055 min_s=0.000054 key=1033593541037988765 claims=5632
+rep2 base transcribe+key n=256 reps=15 median_s=0.000086 min_s=0.000085 key=1033593541037988765 claims=5632
+rep2 base transcribe+decl n=256 reps=15 median_s=0.000057 min_s=0.000056 pieces=5 claims=5632
+rep2 base analyze n=256 reps=15 median_s=0.000095 min_s=0.000092 key=1033593541037988765 claims=5632
+rep2 base clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep2 base solve n=256 reps=15 median_s=0.003866 min_s=0.003759 obj=2.917717838544169e-14 iters=14 flag=0
+rep2 base solve1 n=256 reps=15 median_s=0.005008 min_s=0.004991 obj=2.917519665545426e-14 iters=14 flag=0
+rep2 base construct n=1024 reps=15 median_s=0.000251 min_s=0.000249 key=3803498179268908311 claims=22528
+rep2 base transcribe n=1024 reps=15 median_s=0.000193 min_s=0.000192 key=3803498179268908311 claims=22528
+rep2 base transcribe+key n=1024 reps=15 median_s=0.000314 min_s=0.000313 key=3803498179268908311 claims=22528
+rep2 base transcribe+decl n=1024 reps=15 median_s=0.000198 min_s=0.000196 pieces=5 claims=22528
+rep2 base analyze n=1024 reps=15 median_s=0.000318 min_s=0.000311 key=3803498179268908311 claims=22528
+rep2 base clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep2 base solve n=1024 reps=15 median_s=0.014427 min_s=0.013883 obj=5.3964260039967794e-11 iters=17 flag=0
+rep2 base solve1 n=1024 reps=15 median_s=0.025570 min_s=0.025480 obj=5.3947172532226082e-11 iters=17 flag=0
+rep2 head construct n=64 reps=15 median_s=0.000022 min_s=0.000022 key=13705983202458411805 claims=1408
+rep2 head transcribe n=64 reps=15 median_s=0.000018 min_s=0.000017 key=13705983202458411805 claims=1408
+rep2 head transcribe+key n=64 reps=15 median_s=0.000025 min_s=0.000025 key=13705983202458411805 claims=1408
+rep2 head transcribe+decl n=64 reps=15 median_s=0.000018 min_s=0.000018 pieces=5 claims=1408
+rep2 head analyze n=64 reps=15 median_s=0.000020 min_s=0.000018 key=13705983202458411805 claims=1408
+rep2 head clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep2 head solve n=64 reps=15 median_s=0.001485 min_s=0.000987 obj=2.6116646135036052e-12 iters=10 flag=0
+rep2 head solve1 n=64 reps=15 median_s=0.000984 min_s=0.000980 obj=2.6116646135036052e-12 iters=10 flag=0
+rep2 head construct n=256 reps=15 median_s=0.000087 min_s=0.000086 key=1033593541037988765 claims=5632
+rep2 head transcribe n=256 reps=15 median_s=0.000074 min_s=0.000073 key=1033593541037988765 claims=5632
+rep2 head transcribe+key n=256 reps=15 median_s=0.000104 min_s=0.000103 key=1033593541037988765 claims=5632
+rep2 head transcribe+decl n=256 reps=15 median_s=0.000075 min_s=0.000074 pieces=5 claims=5632
+rep2 head analyze n=256 reps=15 median_s=0.000099 min_s=0.000093 key=1033593541037988765 claims=5632
+rep2 head clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep2 head solve n=256 reps=15 median_s=0.003895 min_s=0.003762 obj=2.9170563158296322e-14 iters=14 flag=0
+rep2 head solve1 n=256 reps=15 median_s=0.004995 min_s=0.004975 obj=2.917519665545426e-14 iters=14 flag=0
+rep2 head construct n=1024 reps=15 median_s=0.000324 min_s=0.000318 key=3803498179268908311 claims=22528
+rep2 head transcribe n=1024 reps=15 median_s=0.000268 min_s=0.000265 key=3803498179268908311 claims=22528
+rep2 head transcribe+key n=1024 reps=15 median_s=0.000392 min_s=0.000387 key=3803498179268908311 claims=22528
+rep2 head transcribe+decl n=1024 reps=15 median_s=0.000273 min_s=0.000270 pieces=5 claims=22528
+rep2 head analyze n=1024 reps=15 median_s=0.000320 min_s=0.000311 key=3803498179268908311 claims=22528
+rep2 head clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep2 head solve n=1024 reps=15 median_s=0.014346 min_s=0.014095 obj=5.3963622441940588e-11 iters=17 flag=0
+rep2 head solve1 n=1024 reps=15 median_s=0.025419 min_s=0.025379 obj=5.3947172532226082e-11 iters=17 flag=0
+rep3 base construct n=64 reps=15 median_s=0.000018 min_s=0.000017 key=13705983202458411805 claims=1408
+rep3 base transcribe n=64 reps=15 median_s=0.000013 min_s=0.000013 key=13705983202458411805 claims=1408
+rep3 base transcribe+key n=64 reps=15 median_s=0.000021 min_s=0.000020 key=13705983202458411805 claims=1408
+rep3 base transcribe+decl n=64 reps=15 median_s=0.000013 min_s=0.000013 pieces=5 claims=1408
+rep3 base analyze n=64 reps=15 median_s=0.000020 min_s=0.000020 key=13705983202458411805 claims=1408
+rep3 base clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep3 base solve n=64 reps=15 median_s=0.001028 min_s=0.000988 obj=2.6116646135036052e-12 iters=10 flag=0
+rep3 base solve1 n=64 reps=15 median_s=0.000988 min_s=0.000983 obj=2.6116646135036052e-12 iters=10 flag=0
+rep3 base construct n=256 reps=15 median_s=0.000068 min_s=0.000067 key=1033593541037988765 claims=5632
+rep3 base transcribe n=256 reps=15 median_s=0.000055 min_s=0.000054 key=1033593541037988765 claims=5632
+rep3 base transcribe+key n=256 reps=15 median_s=0.000085 min_s=0.000084 key=1033593541037988765 claims=5632
+rep3 base transcribe+decl n=256 reps=15 median_s=0.000056 min_s=0.000055 pieces=5 claims=5632
+rep3 base analyze n=256 reps=15 median_s=0.000100 min_s=0.000093 key=1033593541037988765 claims=5632
+rep3 base clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep3 base solve n=256 reps=15 median_s=0.003899 min_s=0.003843 obj=2.9175363191538284e-14 iters=14 flag=0
+rep3 base solve1 n=256 reps=15 median_s=0.005006 min_s=0.004991 obj=2.917519665545426e-14 iters=14 flag=0
+rep3 base construct n=1024 reps=15 median_s=0.000246 min_s=0.000244 key=3803498179268908311 claims=22528
+rep3 base transcribe n=1024 reps=15 median_s=0.000193 min_s=0.000192 key=3803498179268908311 claims=22528
+rep3 base transcribe+key n=1024 reps=15 median_s=0.000314 min_s=0.000312 key=3803498179268908311 claims=22528
+rep3 base transcribe+decl n=1024 reps=15 median_s=0.000197 min_s=0.000195 pieces=5 claims=22528
+rep3 base analyze n=1024 reps=15 median_s=0.000317 min_s=0.000308 key=3803498179268908311 claims=22528
+rep3 base clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep3 base solve n=1024 reps=15 median_s=0.014525 min_s=0.014280 obj=5.3963320379120596e-11 iters=17 flag=0
+rep3 base solve1 n=1024 reps=15 median_s=0.025617 min_s=0.025502 obj=5.3947172532226082e-11 iters=17 flag=0
+rep3 head construct n=64 reps=15 median_s=0.000023 min_s=0.000023 key=13705983202458411805 claims=1408
+rep3 head transcribe n=64 reps=15 median_s=0.000018 min_s=0.000018 key=13705983202458411805 claims=1408
+rep3 head transcribe+key n=64 reps=15 median_s=0.000026 min_s=0.000025 key=13705983202458411805 claims=1408
+rep3 head transcribe+decl n=64 reps=15 median_s=0.000018 min_s=0.000018 pieces=5 claims=1408
+rep3 head analyze n=64 reps=15 median_s=0.000020 min_s=0.000020 key=13705983202458411805 claims=1408
+rep3 head clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep3 head solve n=64 reps=15 median_s=0.001480 min_s=0.001471 obj=2.6116646135036052e-12 iters=10 flag=0
+rep3 head solve1 n=64 reps=15 median_s=0.001013 min_s=0.000987 obj=2.6116646135036052e-12 iters=10 flag=0
+rep3 head construct n=256 reps=15 median_s=0.000091 min_s=0.000088 key=1033593541037988765 claims=5632
+rep3 head transcribe n=256 reps=15 median_s=0.000074 min_s=0.000073 key=1033593541037988765 claims=5632
+rep3 head transcribe+key n=256 reps=15 median_s=0.000104 min_s=0.000103 key=1033593541037988765 claims=5632
+rep3 head transcribe+decl n=256 reps=15 median_s=0.000075 min_s=0.000074 pieces=5 claims=5632
+rep3 head analyze n=256 reps=15 median_s=0.000099 min_s=0.000093 key=1033593541037988765 claims=5632
+rep3 head clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep3 head solve n=256 reps=15 median_s=0.003995 min_s=0.003890 obj=2.9177177689958187e-14 iters=14 flag=0
+rep3 head solve1 n=256 reps=15 median_s=0.005004 min_s=0.004980 obj=2.917519665545426e-14 iters=14 flag=0
+rep3 head construct n=1024 reps=15 median_s=0.000344 min_s=0.000332 key=3803498179268908311 claims=22528
+rep3 head transcribe n=1024 reps=15 median_s=0.000269 min_s=0.000266 key=3803498179268908311 claims=22528
+rep3 head transcribe+key n=1024 reps=15 median_s=0.000390 min_s=0.000387 key=3803498179268908311 claims=22528
+rep3 head transcribe+decl n=1024 reps=15 median_s=0.000275 min_s=0.000272 pieces=5 claims=22528
+rep3 head analyze n=1024 reps=15 median_s=0.000316 min_s=0.000311 key=3803498179268908311 claims=22528
+rep3 head clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep3 head solve n=1024 reps=15 median_s=0.014237 min_s=0.014163 obj=5.3963798346707566e-11 iters=17 flag=0
+rep3 head solve1 n=1024 reps=15 median_s=0.025518 min_s=0.025453 obj=5.3947172532226082e-11 iters=17 flag=0
+rep4 base construct n=64 reps=15 median_s=0.000018 min_s=0.000018 key=13705983202458411805 claims=1408
+rep4 base transcribe n=64 reps=15 median_s=0.000013 min_s=0.000013 key=13705983202458411805 claims=1408
+rep4 base transcribe+key n=64 reps=15 median_s=0.000021 min_s=0.000021 key=13705983202458411805 claims=1408
+rep4 base transcribe+decl n=64 reps=15 median_s=0.000014 min_s=0.000013 pieces=5 claims=1408
+rep4 base analyze n=64 reps=15 median_s=0.000020 min_s=0.000019 key=13705983202458411805 claims=1408
+rep4 base clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep4 base solve n=64 reps=15 median_s=0.001010 min_s=0.000990 obj=2.6116646135036052e-12 iters=10 flag=0
+rep4 base solve1 n=64 reps=15 median_s=0.000993 min_s=0.000977 obj=2.6116646135036052e-12 iters=10 flag=0
+rep4 base construct n=256 reps=15 median_s=0.000068 min_s=0.000067 key=1033593541037988765 claims=5632
+rep4 base transcribe n=256 reps=15 median_s=0.000055 min_s=0.000055 key=1033593541037988765 claims=5632
+rep4 base transcribe+key n=256 reps=15 median_s=0.000086 min_s=0.000085 key=1033593541037988765 claims=5632
+rep4 base transcribe+decl n=256 reps=15 median_s=0.000057 min_s=0.000055 pieces=5 claims=5632
+rep4 base analyze n=256 reps=15 median_s=0.000094 min_s=0.000092 key=1033593541037988765 claims=5632
+rep4 base clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep4 base solve n=256 reps=15 median_s=0.003868 min_s=0.003812 obj=2.9182244945965295e-14 iters=14 flag=0
+rep4 base solve1 n=256 reps=15 median_s=0.005024 min_s=0.005002 obj=2.917519665545426e-14 iters=14 flag=0
+rep4 base construct n=1024 reps=15 median_s=0.000245 min_s=0.000243 key=3803498179268908311 claims=22528
+rep4 base transcribe n=1024 reps=15 median_s=0.000192 min_s=0.000190 key=3803498179268908311 claims=22528
+rep4 base transcribe+key n=1024 reps=15 median_s=0.000315 min_s=0.000312 key=3803498179268908311 claims=22528
+rep4 base transcribe+decl n=1024 reps=15 median_s=0.000196 min_s=0.000195 pieces=5 claims=22528
+rep4 base analyze n=1024 reps=15 median_s=0.000314 min_s=0.000307 key=3803498179268908311 claims=22528
+rep4 base clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep4 base solve n=1024 reps=15 median_s=0.014573 min_s=0.014148 obj=5.3963344595967202e-11 iters=17 flag=0
+rep4 base solve1 n=1024 reps=15 median_s=0.025631 min_s=0.025560 obj=5.3947172532226082e-11 iters=17 flag=0
+rep4 head construct n=64 reps=15 median_s=0.000022 min_s=0.000022 key=13705983202458411805 claims=1408
+rep4 head transcribe n=64 reps=15 median_s=0.000018 min_s=0.000017 key=13705983202458411805 claims=1408
+rep4 head transcribe+key n=64 reps=15 median_s=0.000025 min_s=0.000025 key=13705983202458411805 claims=1408
+rep4 head transcribe+decl n=64 reps=15 median_s=0.000018 min_s=0.000018 pieces=5 claims=1408
+rep4 head analyze n=64 reps=15 median_s=0.000020 min_s=0.000020 key=13705983202458411805 claims=1408
+rep4 head clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep4 head solve n=64 reps=15 median_s=0.001001 min_s=0.000984 obj=2.6116646135036052e-12 iters=10 flag=0
+rep4 head solve1 n=64 reps=15 median_s=0.000981 min_s=0.000975 obj=2.6116646135036052e-12 iters=10 flag=0
+rep4 head construct n=256 reps=15 median_s=0.000086 min_s=0.000084 key=1033593541037988765 claims=5632
+rep4 head transcribe n=256 reps=15 median_s=0.000074 min_s=0.000073 key=1033593541037988765 claims=5632
+rep4 head transcribe+key n=256 reps=15 median_s=0.000103 min_s=0.000103 key=1033593541037988765 claims=5632
+rep4 head transcribe+decl n=256 reps=15 median_s=0.000075 min_s=0.000074 pieces=5 claims=5632
+rep4 head analyze n=256 reps=15 median_s=0.000095 min_s=0.000093 key=1033593541037988765 claims=5632
+rep4 head clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep4 head solve n=256 reps=15 median_s=0.003884 min_s=0.003840 obj=2.9177747971119471e-14 iters=14 flag=0
+rep4 head solve1 n=256 reps=15 median_s=0.004998 min_s=0.004978 obj=2.917519665545426e-14 iters=14 flag=0
+rep4 head construct n=1024 reps=15 median_s=0.000323 min_s=0.000319 key=3803498179268908311 claims=22528
+rep4 head transcribe n=1024 reps=15 median_s=0.000273 min_s=0.000266 key=3803498179268908311 claims=22528
+rep4 head transcribe+key n=1024 reps=15 median_s=0.000393 min_s=0.000388 key=3803498179268908311 claims=22528
+rep4 head transcribe+decl n=1024 reps=15 median_s=0.000275 min_s=0.000269 pieces=5 claims=22528
+rep4 head analyze n=1024 reps=15 median_s=0.000317 min_s=0.000301 key=3803498179268908311 claims=22528
+rep4 head clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep4 head solve n=1024 reps=15 median_s=0.014227 min_s=0.014129 obj=5.3963257267132912e-11 iters=17 flag=0
+rep4 head solve1 n=1024 reps=15 median_s=0.025485 min_s=0.025403 obj=5.3947172532226082e-11 iters=17 flag=0
+rep5 base construct n=64 reps=15 median_s=0.000018 min_s=0.000018 key=13705983202458411805 claims=1408
+rep5 base transcribe n=64 reps=15 median_s=0.000013 min_s=0.000013 key=13705983202458411805 claims=1408
+rep5 base transcribe+key n=64 reps=15 median_s=0.000021 min_s=0.000021 key=13705983202458411805 claims=1408
+rep5 base transcribe+decl n=64 reps=15 median_s=0.000014 min_s=0.000013 pieces=5 claims=1408
+rep5 base analyze n=64 reps=15 median_s=0.000020 min_s=0.000020 key=13705983202458411805 claims=1408
+rep5 base clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep5 base solve n=64 reps=15 median_s=0.000994 min_s=0.000983 obj=2.6116646135036052e-12 iters=10 flag=0
+rep5 base solve1 n=64 reps=15 median_s=0.000981 min_s=0.000967 obj=2.6116646135036052e-12 iters=10 flag=0
+rep5 base construct n=256 reps=15 median_s=0.000067 min_s=0.000067 key=1033593541037988765 claims=5632
+rep5 base transcribe n=256 reps=15 median_s=0.000055 min_s=0.000054 key=1033593541037988765 claims=5632
+rep5 base transcribe+key n=256 reps=15 median_s=0.000085 min_s=0.000084 key=1033593541037988765 claims=5632
+rep5 base transcribe+decl n=256 reps=15 median_s=0.000056 min_s=0.000055 pieces=5 claims=5632
+rep5 base analyze n=256 reps=15 median_s=0.000095 min_s=0.000092 key=1033593541037988765 claims=5632
+rep5 base clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep5 base solve n=256 reps=15 median_s=0.003864 min_s=0.003714 obj=2.9175840064556457e-14 iters=14 flag=0
+rep5 base solve1 n=256 reps=15 median_s=0.005015 min_s=0.004993 obj=2.917519665545426e-14 iters=14 flag=0
+rep5 base construct n=1024 reps=15 median_s=0.000247 min_s=0.000245 key=3803498179268908311 claims=22528
+rep5 base transcribe n=1024 reps=15 median_s=0.000195 min_s=0.000194 key=3803498179268908311 claims=22528
+rep5 base transcribe+key n=1024 reps=15 median_s=0.000316 min_s=0.000313 key=3803498179268908311 claims=22528
+rep5 base transcribe+decl n=1024 reps=15 median_s=0.000197 min_s=0.000196 pieces=5 claims=22528
+rep5 base analyze n=1024 reps=15 median_s=0.000322 min_s=0.000311 key=3803498179268908311 claims=22528
+rep5 base clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep5 base solve n=1024 reps=15 median_s=0.014388 min_s=0.013814 obj=5.3963476482931671e-11 iters=17 flag=0
+rep5 base solve1 n=1024 reps=15 median_s=0.025624 min_s=0.025583 obj=5.3947172532226082e-11 iters=17 flag=0
+rep5 head construct n=64 reps=15 median_s=0.000023 min_s=0.000022 key=13705983202458411805 claims=1408
+rep5 head transcribe n=64 reps=15 median_s=0.000018 min_s=0.000018 key=13705983202458411805 claims=1408
+rep5 head transcribe+key n=64 reps=15 median_s=0.000025 min_s=0.000025 key=13705983202458411805 claims=1408
+rep5 head transcribe+decl n=64 reps=15 median_s=0.000018 min_s=0.000018 pieces=5 claims=1408
+rep5 head analyze n=64 reps=15 median_s=0.000020 min_s=0.000019 key=13705983202458411805 claims=1408
+rep5 head clone n=64 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=1408
+rep5 head solve n=64 reps=15 median_s=0.000984 min_s=0.000974 obj=2.6116646135036052e-12 iters=10 flag=0
+rep5 head solve1 n=64 reps=15 median_s=0.000983 min_s=0.000974 obj=2.6116646135036052e-12 iters=10 flag=0
+rep5 head construct n=256 reps=15 median_s=0.000088 min_s=0.000087 key=1033593541037988765 claims=5632
+rep5 head transcribe n=256 reps=15 median_s=0.000076 min_s=0.000075 key=1033593541037988765 claims=5632
+rep5 head transcribe+key n=256 reps=15 median_s=0.000106 min_s=0.000105 key=1033593541037988765 claims=5632
+rep5 head transcribe+decl n=256 reps=15 median_s=0.000077 min_s=0.000076 pieces=5 claims=5632
+rep5 head analyze n=256 reps=15 median_s=0.000098 min_s=0.000094 key=1033593541037988765 claims=5632
+rep5 head clone n=256 reps=15 median_s=0.000000 min_s=0.000000 pieces=5 claims=5632
+rep5 head solve n=256 reps=15 median_s=0.003851 min_s=0.003724 obj=2.9176973822390666e-14 iters=14 flag=0
+rep5 head solve1 n=256 reps=15 median_s=0.004982 min_s=0.004969 obj=2.917519665545426e-14 iters=14 flag=0
+rep5 head construct n=1024 reps=15 median_s=0.000332 min_s=0.000327 key=3803498179268908311 claims=22528
+rep5 head transcribe n=1024 reps=15 median_s=0.000273 min_s=0.000270 key=3803498179268908311 claims=22528
+rep5 head transcribe+key n=1024 reps=15 median_s=0.000397 min_s=0.000390 key=3803498179268908311 claims=22528
+rep5 head transcribe+decl n=1024 reps=15 median_s=0.000286 min_s=0.000273 pieces=5 claims=22528
+rep5 head analyze n=1024 reps=15 median_s=0.000320 min_s=0.000312 key=3803498179268908311 claims=22528
+rep5 head clone n=1024 reps=15 median_s=0.000001 min_s=0.000001 pieces=5 claims=22528
+rep5 head solve n=1024 reps=15 median_s=0.014759 min_s=0.014187 obj=5.3963477269051917e-11 iters=17 flag=0
+rep5 head solve1 n=1024 reps=15 median_s=0.025757 min_s=0.025649 obj=5.3947172532226082e-11 iters=17 flag=0

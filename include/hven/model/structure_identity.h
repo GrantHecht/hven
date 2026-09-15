@@ -19,9 +19,19 @@
 // never be compared against one another or substituted for one another:
 //
 //   * ModelStructureKey answers "may I reuse this factorization?". It is taken
-//     over the claim stream a provider handed out, in claim order, plus the
-//     adopted partition count, so it moves when the LAYOUT moves. It is
-//     therefore ENGINE-SPECIFIC and TREATMENT-SPECIFIC.
+//     over the provider's laid claim slots in EMISSION order, plus the adopted
+//     partition count, so it moves when the LAYOUT moves. It is therefore
+//     ENGINE-SPECIFIC and TREATMENT-SPECIFIC.
+//
+//     EMISSION order, said that way deliberately: it is the order the pieces
+//     were handed their slots in as the layout was laid, which for a partitioned
+//     provider is partition-major and within a partition piece-major. A provider
+//     may ALSO publish its claims restated into some other order -- a
+//     domain-contiguous claim stream, say -- and that restatement is a different
+//     sequence over the same slots. This digest is taken over the laid slots, in
+//     the order they were laid, and over nothing else. The VALUE is unchanged by
+//     this sentence; what changes is that the sentence still says which order it
+//     means once a second one exists.
 //
 //   * DeclarationKey answers "does this value describe the problem I am about
 //     to solve?", and is what the warm-start currency stamps with. It is taken
@@ -31,7 +41,7 @@
 //
 // DeclarationKey covers less than "the declared problem" suggests; what it
 // deliberately excludes is listed at declaration_identity_digest in
-// src/model/aggregate_declaration.cpp.
+// src/model/assembly_declaration.cpp.
 
 #include <atomic>
 #include <cstddef>
@@ -44,7 +54,7 @@
 #include <fmt/format.h>
 
 #include "hven/core/pattern_hash.h"
-#include "hven/model/aggregate_declaration.h"
+#include "hven/model/assembly_declaration.h"
 
 namespace hven::solvers {
 
@@ -55,7 +65,7 @@ namespace hven::solvers {
 /// Each conjunct has one public builder and no other way in:
 /// `claim_digest_` is computed by claim_stream_digest, `bound_digest_` by
 /// materialized_bound_digest, and `partition_count_` is the count
-/// NlpAggregate::negotiate_partition_count actually adopted. Filling a field
+/// NlpAssembly::negotiate_partition_count actually adopted. Filling a field
 /// from anything else is how a key stops answering the question it exists for.
 ///
 /// `partition_count_` is deliberately explicit though the claim stream is
@@ -127,12 +137,12 @@ constexpr void feed_dimensions(Fnv1a &hash, int primal_vars, int equality_rows,
     hash.feed_index(inequality_rows);
 }
 
-/// @brief Feeds THE WHOLE CLAIM STREAM into a running accumulator, in claim
+/// @brief Feeds THE WHOLE CLAIM STREAM into a running accumulator, in EMISSION
 ///        order, after the dimension preamble: claim i is the pair
 ///        (rows[i], cols[i]), and the pairs are fed interleaved.
 /// @param hash   The accumulator, already carrying the dimension preamble.
-/// @param rows   The claim rows, in claim order.
-/// @param cols   The claim columns, in claim order.
+/// @param rows   The claim rows, in emission order.
+/// @param cols   The claim columns, in emission order.
 /// @param count  How many claims the stream carries.
 ///
 /// The digest hashes the DECLARED (row, column) claim stream rather than the
@@ -163,7 +173,7 @@ constexpr void feed_claims(Fnv1a &hash, const int *rows, const int *cols,
 ///
 /// A NaN bound is not finite by these comparisons and hashes as an unbounded
 /// side. It is rejected at the declaration's own boundary
-/// (AggregateDeclaration::validate) rather than given a meaning here.
+/// (AssemblyDeclaration::validate) rather than given a meaning here.
 constexpr void feed_variable_bound(Fnv1a &hash, const VariableBound &bound) noexcept {
     constexpr double kInf = std::numeric_limits<double>::infinity();
     std::int64_t structure = 0;
@@ -184,13 +194,17 @@ constexpr void feed_variable_bound(Fnv1a &hash, const VariableBound &bound) noex
 
 /// @brief THE claim-structure conjunct of a declaration's structural key, and
 ///        the only public way to compute one: the dimension preamble, then the
-///        claim stream in claim order. The claims are taken as the two index
-///        arrays a claim arena already holds.
+///        provider's laid claim slots in EMISSION order. The claims are taken as
+///        the two index arrays a claim arena already holds.
+///
+/// EMISSION order, not any restated order a provider may also publish -- see the
+/// ModelStructureKey banner at the top of this header for why the distinction
+/// has to be spelled out. Feeding a restatement here would key a layout twice.
 ///
 /// @throws std::invalid_argument if the two arrays disagree in length: a claim
 ///         is a (row, column) pair, and a stream missing half of one is not a
 ///         stream.
-inline std::uint64_t claim_stream_digest(const AggregateDeclaration &declaration,
+inline std::uint64_t claim_stream_digest(const AssemblyDeclaration &declaration,
                                          Eigen::Ref<const Eigen::VectorXi> claim_rows,
                                          Eigen::Ref<const Eigen::VectorXi> claim_cols) {
     if (claim_rows.size() != claim_cols.size()) {
@@ -216,7 +230,7 @@ inline std::uint64_t claim_stream_digest(const AggregateDeclaration &declaration
 ///         an out-of-range index, a NaN bound, an empty intersection -- so a
 ///         key can never be taken over a bound set that does not describe a
 ///         problem.
-inline std::uint64_t materialized_bound_digest(const AggregateDeclaration &declaration) {
+inline std::uint64_t materialized_bound_digest(const AssemblyDeclaration &declaration) {
     Fnv1a hash;
     for (const VariableBound &bound : declaration.materialize_variable_bounds()) {
         detail::feed_variable_bound(hash, bound);
@@ -235,7 +249,7 @@ inline std::uint64_t materialized_bound_digest(const AggregateDeclaration &decla
 ///
 /// The claim stream, the partition count and thread modes, and the per-piece
 /// row structure are deliberately NOT fed; the exclusions and the argument for
-/// each are stated at the definition, in src/model/aggregate_declaration.cpp.
+/// each are stated at the definition, in src/model/assembly_declaration.cpp.
 /// A caller must therefore read this digest as "the same declared SHAPE and
 /// BOX", never as "the same functions": two declarations agreeing on dimensions
 /// and on bound structure key the same even if their constraint functions
@@ -247,7 +261,7 @@ inline std::uint64_t materialized_bound_digest(const AggregateDeclaration &decla
 ///         `equality_rows_` -- a fixing-row count that is not a legal split of
 ///         the equality row space is one this function cannot read, and
 ///         guessing at the split would key two different problems the same.
-std::uint64_t declaration_identity_digest(const AggregateDeclaration &declaration);
+std::uint64_t declaration_identity_digest(const AssemblyDeclaration &declaration);
 
 /// @brief The whole DeclarationKey of a declared problem: both conjuncts,
 ///        through their own builders.
@@ -259,7 +273,7 @@ std::uint64_t declaration_identity_digest(const AggregateDeclaration &declaratio
 ///         materialize_variable_bounds' out-of-range index, NaN bound or empty
 ///         intersection -- so a key can never be taken over a declaration that
 ///         does not describe a problem.
-DeclarationKey declaration_key(const AggregateDeclaration &declaration);
+DeclarationKey declaration_key(const AssemblyDeclaration &declaration);
 
 /// @brief How many times the structures behind an aggregate have been laid.
 ///

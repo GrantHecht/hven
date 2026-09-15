@@ -1016,7 +1016,7 @@ TEST(QpEngineTr, ShrinkRadiusRetryWithALiveRealBoundPinChainsAndReuses) {
 // about x -- so a seeded pin at a bound FAR from the intended center silently
 // re-centered the whole trust region on that bound, and the returned step
 // violated the radius the caller asked for. Zeroing seed.x (the SQP driver's
-// TR-centering discipline, sqp_driver.h's WARM SEEDING note) does NOT prevent
+// TR-centering discipline, sqp_solver.h's WARM SEEDING note) does NOT prevent
 // it: the zero is overwritten by the pin before the window is ever computed.
 //
 // THE REPRO, hand-derived. H = I, g = (-100, -100), real box [0, 6]^2: the

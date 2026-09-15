@@ -219,7 +219,7 @@ jobs:
       # nothing the compiler emits; that was measured once when it landed,
       # and without this step it would decay silently -- reordering
       # src/hven_pch.h's include list, or letting clang-format alphabetize
-      # the include block of src/drivers/interior_point_solver.cpp, breaks
+      # the include block of src/drivers/ipm_solver.cpp, breaks
       # the property without breaking the build. See docs/build.md.
       #
       # Linux only. The full two-build comparison is the expensive half, and

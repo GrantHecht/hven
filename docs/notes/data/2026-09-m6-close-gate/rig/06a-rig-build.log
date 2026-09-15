@@ -1,0 +1,29 @@
+LEG: bash -o pipefail -c bash /home/ghecht/Projects/hven/.scratch/m6-close/rig_build.sh
+PGREP_SEPARATE 2026-09-14T17:07:05Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-14T17:07:05Z
+########## configure build-3seam (both seams) ##########
+CONFIGURE_RC=0
+-- Configuring done (2.5s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/m6-close/build-3seam
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+CONFIGURE_WORST_RC=0
+worst after configure: 0
+--- the rig's own configure-time seam verdicts ---
+-- golden rig: interior-point old-seam arm pinned to consumed tree bfb7d30c5cc821069b7af3f9efa077f29474de5e (psiopt/include/tycho/detail/solvers/linear), matched at HEAD 48038a2f59243c2bbdc4017c6f70e5f3b56c3fea, consumed linear/ tree clean
+-- golden rig: interior-point old-seam arm enabled (/home/ghecht/Projects/tycho)
+-- golden rig: SQP old-seam arm pinned to phase-7-close (4faa1df116da53c9dc68f36635c118f52d39d2b9), tree state verified
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/m6-close/build-3seam
+########## build build-3seam (full, -j 8) ##########
+BUILD_RC=0
+[201/202] Building CXX object bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+[202/202] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+error:/FAILED lines in the build log: 0
+BUILD_WORST_RC=0
+worst after build: 0
+RIG_BUILD_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T17:09:16Z
+WRAPPER_EXIT=0

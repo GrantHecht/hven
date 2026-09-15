@@ -7,7 +7,7 @@
 // (see LICENSE).
 
 // This file defines the default composite non-linear program class
-// for interfacing with InteriorPointSolver. This class is responsible for combining many different
+// for interfacing with IpmSolver. This class is responsible for combining many different
 // dense or sparse objective or constraints into a single optimization problem and
 // manages all memory allocation, sparsity pattern computation, work partitioning, and function
 // evaluation.
@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -35,32 +36,28 @@
 #include "hven/detail/interior/objective_function.h"
 #include "hven/detail/interior/typedefs/eigen_types.h"
 #include "hven/detail/interior/utils/thread_pool.h"
-#include "hven/model/nlp_aggregate.h"
+#include "hven/detail/model/claim_restatement.h"
+#include "hven/model/claim_stream_source.h"
+#include "hven/model/nlp_assembly.h"
 
 namespace hven::solvers {
 
-/// How a primal variable whose declared lower and upper bounds are equal is
-/// handed to the solver. All three are implemented, and all three reach the same
-/// solution on a well-posed problem; they differ in the size of the system the
-/// solver factorizes and in how exactly the variable sits at its value.
+/// @brief How a primal variable whose declared lower and upper bounds are equal
+///        is handed to the solver.
 ///
-/// MakeParameter (the default) removes the variable from the optimization
-/// entirely: it is pinned at its bound value for every evaluation and the Newton
-/// system the solver factorizes is the system of the REMAINING variables, one
-/// row and column narrower per fixed variable. Its value in the returned
-/// solution is exact.
+/// All three are implemented and all three reach the same solution on a
+/// well-posed problem; they differ in the size of the system the solver
+/// factorizes and in how exactly the variable sits at its value.
 ///
-/// MakeConstraint keeps the variable free and adds one internal equality row
-/// x_i - c = 0 per fixed variable, appended AFTER every row the transcription
-/// declared, so the solved system is one row and one column WIDER per fixed
-/// variable than MakeParameter's and every user row keeps its own index. The
-/// variable reaches its value to equality-constraint tolerance rather than
-/// exactly.
-///
-/// RelaxBounds keeps the variable as an ordinary two-sided bounded variable with
-/// its bounds pushed apart by the relax factor, so it is held near its value by
-/// the barrier, within the relaxation, and the system is the same size as the
-/// declared problem's.
+/// MakeParameter (the default) removes the variable from the optimization: it is
+/// pinned at its bound value for every evaluation and the factorized system is
+/// one row and column NARROWER per fixed variable, with its value exact in the
+/// returned solution. MakeConstraint keeps it free and appends one internal
+/// equality row per fixed variable AFTER every declared row, so the system is
+/// WIDER and every user row keeps its index, and the variable reaches its value
+/// to equality-constraint tolerance. RelaxBounds keeps it two-sided with its
+/// bounds pushed apart by the relax factor, held near its value by the barrier,
+/// and the system is the declared problem's size.
 enum class FixedVariableTreatments { MakeParameter, MakeConstraint, RelaxBounds };
 
 /// Human-readable name for a treatment, for diagnostics and error messages.
@@ -95,52 +92,43 @@ inline constexpr int kMinKktElementsPerPartition = 1000;
 
 /// @brief The partitioned evaluation engine, and a Level 2 provider.
 ///
-/// assemble() reaches the same per-shape passes the eval_ entry points do,
-/// call for call, over the same machinery; the only step moved out to the
-/// consumer is the one the mapping table transfers (the solver-coefficient
-/// scatter, which assemble deliberately does not do and the eval_ entries
-/// still do).
+/// assemble() reaches the same per-shape passes the eval_ entry points do, call
+/// for call, over the same machinery; the only step moved out to the consumer is
+/// the solver-coefficient scatter the mapping table transfers.
 ///
-/// THE FILL PATH, both halves, because the capability declaration turns on
-/// the difference:
+/// The fill path has two halves, and the capability declaration turns on the
+/// difference:
 ///
 ///   * The KKT fill is DIRECT. Each piece writes the consumer's value array in
-///     place, at offsets its claim recorded (kkt_locations_), under the
-///     canonical-column lock protocol. There is no provider-owned matrix and no
-///     copy: this is the per-minor cost center and it is not paying for one.
+///     place, at offsets its claim recorded, under the canonical-column lock
+///     protocol. There is no provider-owned matrix and no copy.
 ///   * The RIGHT-HAND-SIDE fill goes through a provider-owned intermediate --
-///     each piece accumulates into its own claim slots in rhs_coeffs_, and
-///     fill_pgx/fill_agx/fill_fxe/fill_fxi then fold those slots into the
-///     consumer's vectors through rhs_coeff_rows_.
+///     each piece accumulates into its own claim slots, and the fill_* entries
+///     fold those slots into the consumer's vectors.
 ///
-/// THAT INTERMEDIATE IS REQUIRED, not merely tolerated, and the reason is
-/// determinism rather than convenience. Several pieces claim rows of one
-/// gradient, so an in-place scatter would have to lock per row, and the order
-/// in which contending threads won those locks would decide the order the
-/// floating-point additions happened in -- making the assembled right-hand
-/// side depend on scheduling, and therefore on the evaluation-thread count.
-/// Claim slots are contention-free by construction (one piece owns each), and
-/// the fold that follows walks them in claim order, so the accumulation order
-/// is a property of the layout alone: the same problem produces bit-identical
-/// right-hand sides at any thread count. This library's pins rest on that
-/// stability, and ON THE DETERMINISTIC PATH -- the default, and the path
-/// every pin and measurement runs on -- it outranks the no-copy property:
-/// removing the intermediate there would be a regression, not an
-/// optimization. Accumulation-VALUE determinism is a property of this path,
-/// not a library absolute: a future user-selectable max-performance fill may
-/// relax it, exactly as threaded MKL already does, behind an explicit mode
-/// choice -- never silently, and never as this path's default. What stays hard
-/// everywhere, on every path and for every provider, is LAYOUT determinism:
-/// claim order, structural keys, and location tables are untouched by that
-/// option; keys, byte-stable pins, and warm-start identity rest on them, and
-/// only the floating-point summation order is ever mode-dependent.
-struct NonLinearProgram : public NlpAggregate {
+/// That intermediate is what makes the fill deterministic: the fold walks
+/// contention-free claim slots in claim order, so the same problem produces
+/// bit-identical right-hand sides at any evaluation-thread count.
+///
+/// Accumulation-value determinism is a property of this path, not a library
+/// absolute. Layout determinism -- claim order, structural keys and location
+/// tables -- holds on every path.
+struct NonLinearProgram : public NlpAssembly {
     using VectorXi = Eigen::VectorXi;
     using VectorXd = Eigen::VectorXd;
     using MatrixXi = Eigen::MatrixXi;
 
     int num_partitions_ = 1;
 
+    // The three master piece lists are public, and writing one is a structural
+    // mutation: everything derived from them describes the lists as laid, so a
+    // write here is declared by re-laying -- make_nlp(), or adopting a
+    // declaration that carries the new pieces. Reading the declaration or the
+    // structural key without one is refused by name, and the published claim
+    // stream is rebuilt at the next lay whenever a piece is not one this layout
+    // laid. Neither guard can see a master entry assigned from another laid
+    // piece of the same problem.
+    ///
     /// Objective functions that will be partitioned across work partitions
     /// (part_obj_).
     std::vector<ObjectiveFunction> objectives_;
@@ -294,7 +282,7 @@ struct NonLinearProgram : public NlpAggregate {
     ///         fixing row names other than exactly one constraint row; or if
     ///         one names an equality row outside the [declared equality rows
     ///         less the fixing-row count, declared equality rows) band.
-    void adopt_declaration(AggregateDeclaration declaration);
+    void adopt_declaration(AssemblyDeclaration declaration);
 
     /// One staged variable-bound declaration, as handed to set_variable_bound.
     /// Recorded verbatim (no merging at declaration time) so that repeated
@@ -363,32 +351,27 @@ struct NonLinearProgram : public NlpAggregate {
 
     // Bound-fixed variable treatment
     //
-    // A variable declared with lower == upper carries no degree of freedom.
-    // Under the MakeParameter treatment it is ELIMINATED: it does not appear in
-    // the solver's variable space at all, and the KKT system the solver
-    // factorizes is the system of the remaining variables -- narrower by exactly
-    // one row and column per eliminated variable. The elimination splits each
-    // function's index map by role: the INPUT map is left alone -- a function
-    // still reads exactly the variables it was declared over, out of a
-    // full-space buffer built from the reduced iterate plus the pinned values --
-    // and only the OUTPUT map is rewritten, at configuration time, from the
-    // pristine input map: retained variables renumbered into the reduced space,
-    // eliminated ones marked -1, and the KKT/RHS location tables, sparsity
-    // pattern, clash marks and solver-coefficient ranges rebuilt over it.
+    // A variable declared with lower == upper carries no degree of freedom. Under
+    // MakeParameter it is ELIMINATED: it does not appear in the solver's variable
+    // space, and the factorized system is narrower by one row and column per
+    // eliminated variable. The elimination splits each function's index map by
+    // role -- the INPUT map is left alone, so a function still reads exactly the
+    // variables it was declared over out of a full-space buffer, and only the
+    // OUTPUT map is rewritten at configuration time from the pristine input map:
+    // retained variables renumbered into the reduced space, eliminated ones
+    // marked -1, and the location tables, sparsity pattern, clash marks and
+    // solver-coefficient ranges rebuilt over it.
     //
     // Element CLAIMS stay exactly as they were -- same count, same contiguous
-    // per-application ranges -- because the scatters walk their claims in
-    // lockstep with the function's own loop bounds; a -1 element keeps its claim
-    // and simply names no matrix entry.
+    // per-application ranges -- because the scatters walk their claims in lockstep
+    // with the function's own loop bounds; a -1 element keeps its claim and names
+    // no matrix entry.
     //
-    // Identity fast path. With no fixed variables nothing is rewritten at all:
-    // no output map is installed and no expansion buffer is built. The other two
-    // treatments take that path throughout -- neither eliminates anything -- and
-    // differ only in what classification records: MakeConstraint records no
-    // bound for the variable (it goes to the solver free) and appends one
-    // internal equality row per fixed variable (re-laying the layout over the
-    // widened row space), RelaxBounds records an ordinary relaxed bound pair
-    // (changing nothing structural).
+    // Identity fast path. With no fixed variables nothing is rewritten at all.
+    // The other two treatments take that path throughout and differ only in what
+    // classification records: MakeConstraint records no bound for the variable
+    // and appends one internal equality row per fixed variable; RelaxBounds
+    // records an ordinary relaxed bound pair, changing nothing structural.
 
     /// @brief Classifies every primal variable against the materialized
     ///        x_lower_/x_upper_ (free / lower-only / upper-only / two-sided /
@@ -412,7 +395,7 @@ struct NonLinearProgram : public NlpAggregate {
     ///
     /// @return true iff this call rebuilt the KKT/RHS structures, in which case
     ///         the caller must re-read the dimensions and recompute the sparsity
-    ///         pattern (InteriorPointSolver does both at its solve entry). false
+    ///         pattern (IpmSolver does both at its solve entry). false
     ///         means nothing changed.
     ///
     /// @throws std::invalid_argument for an unrecognized treatment, for a
@@ -510,7 +493,7 @@ struct NonLinearProgram : public NlpAggregate {
     // Private because they describe what the last CONFIGURATION was told, which
     // may predate the caller's own solve. The treatment a SOLVE actually ran
     // under is reported per call as
-    // InteriorPointSolver::SolveResult::fixed_variable_treatment_.
+    // IpmSolver::SolveResult::fixed_variable_treatment_.
 
     /// Selected treatment, as last configured.
     FixedVariableTreatments variable_treatment_ = FixedVariableTreatments::MakeParameter;
@@ -766,7 +749,7 @@ struct NonLinearProgram : public NlpAggregate {
     // the dual shift (−δ_c) here as part of the base matrix, after the KKT
     // assembly and before the first factorization; the classic (default) mode
     // calls it on demand, at most once per phase, when a factorization reports
-    // the singularity signal (see InteriorPointSolver::factor_impl). Until either happens
+    // the singularity signal (see IpmSolver::factor_impl). Until either happens
     // these slots hold 0.0.
     void perturb_kkt_c_diags(double pert, Eigen::SparseMatrix<double, Eigen::RowMajor> &mat) {
         int eofs = this->e_pivot_data_start_ + this->num_user_kkt_elems_;
@@ -964,7 +947,7 @@ struct NonLinearProgram : public NlpAggregate {
     /// Not reentrant against itself: the first read after a lay writes the
     /// stored state, so two threads reading a freshly laid declaration
     /// concurrently race. The contract forbids overlapping operations on one
-    /// aggregate (see the threading sentence on NlpAggregate), so this asks for
+    /// aggregate (see the threading sentence on NlpAssembly), so this asks for
     /// nothing new -- one thread drives the provider, and its fan-out is
     /// internal.
     ///
@@ -989,7 +972,7 @@ struct NonLinearProgram : public NlpAggregate {
     ///         evaluation path below can evaluate a row no piece names. Only a
     ///         hand-laid layout can reach this; adopt_declaration() refuses
     ///         rows-without-pieces before a lay is ever attempted.
-    const AggregateDeclaration &declaration() const override {
+    const AssemblyDeclaration &declaration() const override {
         this->require_master_lists_unmoved();
         this->materialize_declaration_bounds();
         this->materialize_declaration_pieces();
@@ -1056,9 +1039,7 @@ struct NonLinearProgram : public NlpAggregate {
     /// the whole provider, so the right-hand-side fill path holding an
     /// intermediate (by design -- see the determinism argument at the top of
     /// this class) settles it for all of them.
-    AggregateCapability capabilities() const override {
-        return AggregateCapability::kValuesFastPath;
-    }
+    AssemblyCapability capabilities() const override { return AssemblyCapability::kValuesFastPath; }
 
     /// The KKT value array this provider's location tables are bound to.
     ///
@@ -1071,8 +1052,24 @@ struct NonLinearProgram : public NlpAggregate {
     /// A CAPTURED VALUE. This returns the address recorded at analysis time and
     /// touches no matrix to produce it; re-reading valuePtr() from the analysed
     /// matrix would make the check vacuous against a resize and unsafe against
-    /// destruction (see validate_bound_destination in model/nlp_aggregate.h).
+    /// destruction (see validate_bound_destination in model/nlp_assembly.h).
     const double *bound_kkt_destination() const override { return this->analyzed_kkt_values_; }
+
+    /// @brief The process-unique id of the solver whose analysis this
+    ///        program's location tables were last laid for; 0 when none.
+    ///
+    /// A LIFETIME-SAFE IDENTITY TOKEN (M6 W5 T8.4 fix1). Compared, never
+    /// dereferenced, and cleared by every re-lay beside
+    /// @ref bound_kkt_destination's own capture. An ADDRESS cannot answer "did
+    /// THAT solver lay this" once the solver is gone -- a later one may be
+    /// allocated at the same place and its buffer on the same allocation --
+    /// while an id that is never reused can.
+    std::uint64_t analyzed_owner_id() const noexcept { return this->analyzed_owner_id_; }
+
+    /// @brief Records the id of the solver that just laid this program's
+    ///        location tables. Called by that solver, at the analysis.
+    /// @param id The solver's process-unique, never-reused id.
+    void set_analyzed_owner_id(std::uint64_t id) noexcept { this->analyzed_owner_id_ = id; }
 
     IdentityProbe probe_identity(ConstVecRef x) override;
 
@@ -1084,6 +1081,109 @@ struct NonLinearProgram : public NlpAggregate {
     const RhsLocationTable &constraint_adjoint_gradient_table() const { return this->agx_table_; }
     const RhsLocationTable &equality_residual_table() const { return this->econ_table_; }
     const RhsLocationTable &inequality_residual_table() const { return this->icon_table_; }
+
+    // =======================================================================
+    // The published claim stream -- the same laid slots the arrays above carry,
+    // restated into the claim convention a claim-stream consumer reads.
+    //
+    // The raw arrays are laid partition-major, in the square space the solver
+    // factorizes, with Hessian pairs in the walk order the piece claimed them in.
+    // The claim-stream contract states its claims in the declaration's square
+    // space -- no slack block, Hessian upper triangle -- and wants one contiguous
+    // run per domain. The layout builds those once at the lay and publishes views.
+    //
+    // The views are valid under claim_stream_epoch(), which is not the structure
+    // epoch. Nothing here owns storage; every accessor is a view into one arena.
+    //
+    // This is a surface beside the raw one, not over it: nothing here renumbers a
+    // raw slot, moves the emission order, or is fed to claim_digest().
+    // =======================================================================
+
+    /// @brief The epoch these published claims are valid under.
+    ///
+    /// Moves when the published stream is REBUILT, and when it is DROPPED
+    /// because the layout on hand can no longer be described in declaration
+    /// space. It does NOT move on a re-lay that leaves the declared claim
+    /// structure standing -- an elimination-only re-lay, which is exactly the
+    /// case a consumer's held view is meant to survive.
+    ///
+    /// Never throws: an epoch read is how a consumer learns that what it holds
+    /// has been superseded, and a reader that has just been told so has to be
+    /// able to hear it. The accessors below are the ones that refuse.
+    StructureEpoch claim_stream_epoch() const { return this->claim_stream_epoch_.current(); }
+
+    /// @brief The DECLARATION dimensions the published stream was built
+    ///        against, which are NOT always the ones this program reports now.
+    /// @throws std::invalid_argument if no claim stream is published -- see
+    ///         require_claim_stream().
+    ///
+    /// Valid under claim_stream_epoch(), exactly like the views below, and that
+    /// is the whole of its use. A re-lay captures its new dimensions BEFORE it
+    /// restates the claim stream, so a re-lay the restatement REFUSES leaves
+    /// this program reporting the new declaration's widths while the retained
+    /// stream -- still published, under an unmoved claim-stream epoch -- names
+    /// coordinates in the OLD one. A consumer sizing an assembled destination
+    /// from this program's own primal_vars_/equal_cons_/inequal_cons_ and
+    /// scattering through the published claims would
+    /// then be mixing two declarations; sized from these, it is not, and a
+    /// disagreement between the two is the signal that the last re-lay failed.
+    ///
+    /// ADDITIVE (M6 W6 T5): no accessor, view, layout or epoch above or below
+    /// changes, and an elimination-only re-lay -- which retains the stream by
+    /// design -- leaves these unmoved, because the declared widths it is stated
+    /// in did not move either.
+    ClaimStreamDimensions claim_stream_dimensions() const;
+
+    /// @brief Claim slot to assembled KKT row, in claim order.
+    /// @throws std::invalid_argument if no claim stream is published -- see
+    ///         require_claim_stream().
+    Eigen::Ref<const Eigen::VectorXi> kkt_claim_rows() const;
+
+    /// @brief Claim slot to assembled KKT column, in claim order.
+    /// @throws std::invalid_argument as kkt_claim_rows().
+    Eigen::Ref<const Eigen::VectorXi> kkt_claim_cols() const;
+
+    /// @brief Claim slot to row of the objective-gradient arena, in claim
+    ///        order, in DECLARATION space.
+    /// @throws std::invalid_argument as kkt_claim_rows().
+    ///
+    /// Retained rather than aliased onto rhs_coeff_rows_: at an unreduced lay
+    /// the two agree element for element, but the point of the retention is the
+    /// lay that does NOT -- an eliminated variable's gradient row is emitted as
+    /// -1, and a declaration-space consumer needs the row the declaration named.
+    Eigen::Ref<const Eigen::VectorXi> objective_gradient_claim_rows() const;
+
+    /// @brief The claim slots the Lagrangian Hessian scatters through.
+    /// @throws std::invalid_argument as kkt_claim_rows().
+    ClaimBlock hessian_claims() const;
+
+    /// @brief The claim slots the equality Jacobian scatters through.
+    /// @throws std::invalid_argument as kkt_claim_rows().
+    ClaimBlock equality_jacobian_claims() const;
+
+    /// @brief The claim slots the inequality Jacobian scatters through.
+    /// @throws std::invalid_argument as kkt_claim_rows().
+    ClaimBlock inequality_jacobian_claims() const;
+
+    /// @brief Where each partition's run sits inside the Hessian domain's own
+    ///        claim block: entries [p] .. [p + 1], relative to that block's
+    ///        start_, num_partitions + 1 long.
+    /// @throws std::invalid_argument as kkt_claim_rows().
+    ///
+    /// This is the whole per-slot partition attribution, losslessly: each
+    /// domain's run is partition-major by construction, so a table of run
+    /// boundaries says everything a per-slot partition array would, in
+    /// O(partitions) rather than O(slots). An empty partition gives equal
+    /// adjacent entries.
+    Eigen::Ref<const Eigen::VectorXi> hessian_claim_partition_offsets() const;
+
+    /// @brief The same table for the equality Jacobian domain.
+    /// @throws std::invalid_argument as kkt_claim_rows().
+    Eigen::Ref<const Eigen::VectorXi> equality_jacobian_claim_partition_offsets() const;
+
+    /// @brief The same table for the inequality Jacobian domain.
+    /// @throws std::invalid_argument as kkt_claim_rows().
+    Eigen::Ref<const Eigen::VectorXi> inequality_jacobian_claim_partition_offsets() const;
 
   protected:
     // WHAT THIS PROVIDER'S FIRST-ORDER CANDIDATE SURFACE DOES AND DOES NOT
@@ -1110,7 +1210,7 @@ struct NonLinearProgram : public NlpAggregate {
     // THE CONSUMER-SIDE RULE that makes both facts harmless: a correct scorer
     // EXCLUDES declared-fixed coordinates -- those whose materialized bound
     // record has lower == upper -- from stationarity scoring, per
-    // evaluate_candidate_first_order in model/nlp_aggregate.h. A scorer that
+    // evaluate_candidate_first_order in model/nlp_assembly.h. A scorer that
     // does so never reads either row and is insensitive to which treatment is
     // configured.
 
@@ -1191,6 +1291,11 @@ struct NonLinearProgram : public NlpAggregate {
     /// compared, never dereferenced, and never re-derived. Cleared by every
     /// re-lay. See bound_kkt_destination().
     const double *analyzed_kkt_values_ = nullptr;
+
+    /// The OWNER of that analysis: the process-unique id of the solver that
+    /// laid the location tables. 0 when no solver has. See
+    /// analyzed_owner_id().
+    std::uint64_t analyzed_owner_id_ = 0;
 
     /// The matrix object analyze_sparsity last walked, kept for one purpose:
     /// the piece surface takes a matrix reference, so a KKT-bearing assemble
@@ -1347,9 +1452,13 @@ struct NonLinearProgram : public NlpAggregate {
 
     /// @brief The claim-structure conjunct of the structural key, digested on
     ///        first read after a lay and then held.
-    /// @return The digest of the claim stream as the pieces handed it out.
+    /// @return The digest of the claim slots as the pieces handed them out.
     ///
-    /// Taken over the two index arrays in claim order, UN-CANONICALIZED.
+    /// Taken over the two RAW index arrays in EMISSION order,
+    /// UN-CANONICALIZED, and over nothing else. The restated, domain-contiguous
+    /// claim stream this layout also publishes is NEVER hashed here: it is a
+    /// second sequence over the same slots, and digesting it would key one
+    /// layout twice.
     /// analyze_sparsity derives the canonical endpoint ordering it needs per
     /// element as it goes and leaves these arrays alone, which is what keeps
     /// the stream readable for as long as the layout stands -- and therefore
@@ -1365,8 +1474,131 @@ struct NonLinearProgram : public NlpAggregate {
     /// structures were LAID WITH and never the staging state as it stands now.
     std::uint64_t bound_digest() const;
 
+    // =======================================================================
+    // THE CLAIM STREAM'S OWN STATE, and the one question it turns on: does the
+    // published stream still describe the layout on hand?
+    //
+    // NOT A DIRTY FLAG SET AT MUTATION SITES. No such set is complete here:
+    // make_nlp() may be re-run at new dimensions, adopt_declaration() with
+    // fixing rows lays TWICE, and configure_variable_treatment() discards and
+    // installs internal rows on paths that also eliminate. Any list of "the
+    // places that invalidate" would be a list someone later adds a path beside.
+    //
+    // INSTEAD, A STAMP the built stream carries and rebuild_structures COMPARES
+    // -- computed after the raw rebuild, when the counts it names are the counts
+    // just laid. Equal means the stream still describes this layout and is
+    // RETAINED, whatever route got here; unequal means it does not.
+    // =======================================================================
+
+    /// @brief What a published claim stream was last built against.
+    ///
+    /// Four numbers, and the first is the load-bearing one: two declarations can
+    /// agree on every dimension and every claim COUNT and still lay different
+    /// SPARSITY, and only a generation counter bumped where the master piece
+    /// lists are replaced separates them. A dimension digest would not: it
+    /// hashes dimensions alone, so an equal-count piece swap collides on it and
+    /// the stream would go quietly stale.
+    struct ClaimStamp {
+        std::uint64_t declaration_generation_ = 0;
+        int user_kkt_elems_ = 0;
+        int pgx_elems_ = 0;
+        int partitions_ = 0;
+
+        friend bool operator==(const ClaimStamp &, const ClaimStamp &) = default;
+    };
+
+    /// Why nothing is published, for the one accessor that has to say so. Three
+    /// states rather than two, because "never laid" and "the lay that would have
+    /// published one was refused" are different facts about the same problem and
+    /// only one of them is about elimination.
+    enum class ClaimStreamAbsence { kNeverLaid, kRestatementRefused, kReducedAndRestructured };
+
+    /// The stamp as the layout stands NOW -- read after the raw rebuild, where
+    /// count_elems() and get_mat_space() have already set the counts it names.
+    ClaimStamp current_claim_stamp() const;
+
+    /// Whether any master piece is one this layout did not lay -- a piece a
+    /// caller wrote into one of the three public lists since the last lay. Sizes
+    /// cannot see that (require_master_lists_unmoved() catches a piece added or
+    /// dropped, never one written over), and a stream built against the pieces
+    /// that WERE laid does not describe one that was not. O(pieces).
+    bool master_lists_hold_an_unlaid_piece() const;
+
+    /// Retains, rebuilds, or drops the published stream, per the stamp compare.
+    /// Called from rebuild_structures() and nowhere else.
+    void maintain_claim_stream();
+
+    /// Restates the laid slots into the SPARE arena and COMMITS it by swapping
+    /// spare and live. Nothing is written to the live arena at any point, so a
+    /// throw part-way leaves the previously published views valid under the
+    /// epoch they were read at -- which is the whole of the exception-safety
+    /// term. The swap is also the recycle: what was live becomes the next
+    /// rebuild's spare, so a rebuild at an unchanged claim width allocates
+    /// nothing.
+    void restate_claim_stream();
+
+    /// Releases the published stream and bumps its epoch. Reached where the
+    /// layout on hand cannot be restated into declaration space at all: a
+    /// REDUCED layout whose stamp has moved, where a rebuild would have to name
+    /// coordinates the reduced system does not have. The accessors then refuse,
+    /// which is the honest answer -- and the epoch bump is what stops a consumer
+    /// polling only the epoch from holding a view of a layout that is gone.
+    void drop_claim_stream();
+
+    /// @throws std::invalid_argument naming which case applies, when no claim
+    ///         stream is published: never laid, the first lay's restatement
+    ///         refused, or dropped by the paragraph above. Three reasons, and
+    ///         the middle one exists because a message about elimination is a
+    ///         confident lie on a layout that eliminates nothing.
+    void require_claim_stream() const;
+
+    /// Bumped wherever the master piece lists are REPLACED, which is four sites
+    /// and not two: make_nlp(), adopt_declaration(), and the
+    /// splice_fixed_variable_rows / discard_fixed_variable_rows pair that a
+    /// fixed-variable treatment installs and drops its internal rows through.
+    /// rebuild_structures() bumps it as well whenever it finds a master piece
+    /// this layout did not lay -- the public-member route, which none of the
+    /// four covers. Any future path that replaces or reorders the master pieces
+    /// must bump it, or a stream built against the old pieces is retained over
+    /// the new ones.
+    std::uint64_t declaration_generation_ = 0;
+
+    /// The published stream and the stamp it was built against.
+    /// `claim_stream_valid_` records the DECISION and the arena records the
+    /// STORAGE; the accessor guard reads both, because a state where they
+    /// disagree is not one to serve views out of.
+    ///
+    /// TWO BUFFERS, LIVE AND SPARE. A rebuild writes the spare and swaps, so the
+    /// buffer that was live becomes the next rebuild's spare instead of being
+    /// freed -- which makes a re-lay at the same claim structure allocate
+    /// NOTHING, and makes a refusal part-way through leave the live one
+    /// untouched. At 22528 claims the arena is 196 KB, past glibc's mmap
+    /// threshold, so the allocation this avoids is an mmap/munmap pair and the
+    /// page faults behind it, not a free-list pop.
+    detail::ClaimArena claim_arena_;
+    detail::ClaimArena claim_arena_spare_;
+    ClaimStamp claim_built_against_{};
+    bool claim_stream_valid_ = false;
+    ClaimStreamAbsence claim_absence_ = ClaimStreamAbsence::kNeverLaid;
+    StructureEpochCounter claim_stream_epoch_;
+
+    /// The intra-partition raw-slot cursor marks get_mat_space() records as it
+    /// lays: 3 * num_partitions_ + 1 entries, delimiting each partition's
+    /// objective / equality / inequality segments. Written at every lay because
+    /// writing them costs a handful of integer stores and deciding at the lay
+    /// whether a restatement will want them does not.
+    VectorXi claim_segment_marks_;
+
+    /// The per-domain split of num_user_kkt_elems_, from the same count_elems()
+    /// pass that produces it: num_kkt_elements is additive in its two flags at
+    /// every implementer, so the split costs no new traversal. It is the
+    /// restatement's SIZING input and also what its own classification is
+    /// checked against, so a piece that breaks that additivity is caught rather
+    /// than trusted.
+    detail::ClaimDomainCounts claim_domain_counts_{};
+
     /// The declaration as of the last lay -- see declaration().
-    mutable AggregateDeclaration declaration_;
+    mutable AssemblyDeclaration declaration_;
 
     /// What the last lay left owing. Each is set by invalidate_laid_state() and
     /// cleared by the one read that discharges it; all four start FALSE, so an

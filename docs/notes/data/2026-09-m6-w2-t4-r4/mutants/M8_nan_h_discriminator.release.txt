@@ -1,0 +1,5 @@
+[  FAILED  ] SqpDriverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused (22 ms)
+[==========] 50 tests from 5 test suites ran. (2348 ms total)
+[  PASSED  ] 49 tests.
+[  FAILED  ] 1 test, listed below:
+[  FAILED  ] SqpDriverRestorationSeed.ANonFiniteEvaluationAtTheCandidateIsRefused

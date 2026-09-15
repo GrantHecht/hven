@@ -5,7 +5,7 @@
 
 // ipm_polish_extension.h — the "hven.ipm.polish.v1" warm-start extension: the
 // interior-point state a hand-off carries beyond the currency's core, its byte
-// contract, and the one bridge that turns it into an SQP WarmStart.
+// contract, and the one bridge that turns it into an SQP SqpWarmStart.
 //
 // The tag is the version. A different payload shape travels under a different
 // tag ("...v2"), never these bytes rearranged, and there is no version field
@@ -39,9 +39,10 @@ inline constexpr std::string_view kIpmPolishTag = "hven.ipm.polish.v1";
 /// on the two price blocks is part of the contract, not a convention: both
 /// engines' staging refuses a negative entry, naming this tag.
 struct IpmPolishData {
-    /// Barrier parameter at exit, on the caller's objective scale (so
-    /// mu_ ~ z * distance holds against the blocks below). Neither consumer in
-    /// this library reads it.
+    /// Barrier parameter at exit, on the caller's objective scale. The
+    /// crossover and the NLP engine refuse it; the SQP driver's IPQP tier
+    /// adopts it as initial STATE only, through spec 5.3's clamp.
+    /// `.superpowers/w1-t7-report.md` FIX ROUND 2.
     double mu_ = 0.0;
     /// n, >= 0: prices lower(i) <= x(i). 0 where that side is not finite, where
     /// a fixed-variable treatment eliminated the variable, or where the side is
@@ -96,7 +97,7 @@ IpmPolishData deserialize_ipm_polish(std::span<const std::byte> bytes);
 /// @throws std::invalid_argument if the value carries the tag MORE THAN ONCE.
 const WarmExtension *find_ipm_polish(const WarmStartData &data);
 
-/// @brief Builds an SQP `WarmStart` from a warm-start value carrying the
+/// @brief Builds an SQP `SqpWarmStart` from a warm-start value carrying the
 ///        polish extension -- the interior-point crossover, entered from the
 ///        currency.
 ///
@@ -127,8 +128,8 @@ const WarmExtension *find_ipm_polish(const WarmStartData &data);
 ///         digests), if the payload is malformed (the decode's own
 ///         offset-naming refusal), if the extension's block widths disagree
 ///         with the core's, or if `lower`/`upper` are not at the core's own n.
-WarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, const Vec &upper,
-                            const DeclarationKey &structure_key,
-                            const IpCrossoverOptions &opts = {});
+SqpWarmStart to_sqp_warm_start(const WarmStartData &data, const Vec &lower, const Vec &upper,
+                               const DeclarationKey &structure_key,
+                               const IpCrossoverOptions &opts = {});
 
 } // namespace hven::solvers

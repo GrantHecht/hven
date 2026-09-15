@@ -1,0 +1,42 @@
+W5 T8.9r-attrib3 -- ARM BINARY IDENTITY, verified 2026-09-11T18:57:03Z
+
+510a4bb exe 70f36ffe92a8c223c27058bc68fea5e7a962cdc7265b2bf854d68724d2a83e91
+510a4bb lib 6f0dc91e24328b7cc39770cd2f21647db64ec657e371e6109aa61412e5f26148
+8ae1618 exe 70f36ffe92a8c223c27058bc68fea5e7a962cdc7265b2bf854d68724d2a83e91
+8ae1618 lib e11cb6611991700b0efe75198d4661903c5fc2fad0dcca737276c376f4b40995
+9cebbbe exe f17d704613f3fef6cebe12c1c0f4d6b2ca8ba5c029adf2b5cc5144ebd634f84a
+9cebbbe lib 25027b509a02e0a5917875f271efab4bc11d79a1075f0f5b1110e5da3c4232cd
+9ce9bb2 exe 4ac0fd9e7bf9b6a06dee0ae6e40ea9d97386c46d63c7bf23abd3422db8d3ee73
+9ce9bb2 lib bafbdcf39e341288f98ec9b69f1e2e9842b8411bbd9663771b0af43a109ad5a0
+5124aa1 exe 7fc12cf07f84f074de6966c3a402672c7360ba42a66dcc10c08f9d6edcde8568
+5124aa1 lib 85c59ffc0a86b7786602a94e8ec3710ad2a315f6cc86701d6915a7460fb1d14c
+3c8e43b exe 7fc12cf07f84f074de6966c3a402672c7360ba42a66dcc10c08f9d6edcde8568
+3c8e43b lib 85c59ffc0a86b7786602a94e8ec3710ad2a315f6cc86701d6915a7460fb1d14c
+
+cmp 510a4bb/hven_sqp_corpus 8ae1618/hven_sqp_corpus:
+  IDENTICAL (cmp exit 0)
+cmp 5124aa1/hven_sqp_corpus 3c8e43b/hven_sqp_corpus:
+  IDENTICAL (cmp exit 0)
+
+archive members, 510a4bb -> 8ae1618 (42 -> 43):
+12a13
+> solve_result.cpp.o
+
+CALIBRATION against ../attribution/arms.txt (libhven.a, which embeds no path):
+  510a4bb expected 6f0dc91e24328b7cc39770cd2f21647db64ec657e371e6109aa61412e5f26148
+  510a4bb measured 6f0dc91e24328b7cc39770cd2f21647db64ec657e371e6109aa61412e5f26148
+  3c8e43b expected 85c59ffc0a86b7786602a94e8ec3710ad2a315f6cc86701d6915a7460fb1d14c
+  3c8e43b measured 85c59ffc0a86b7786602a94e8ec3710ad2a315f6cc86701d6915a7460fb1d14c
+
+The corpus EXECUTABLE cannot reproduce arms.txt's hash by construction. The delta
+against the earlier leg's retained a04 binary is exactly this many bytes:
+41
+  - 20 bytes: the GNU build-id note (readelf -n: 6750e047f357... vs b3b27ecd5a1d...)
+  - 12 bytes: the SOURCE TREE'S OWN HEAD stamp the corpus binary embeds in its HS-suite
+              provenance header -- 8cf6bc8aaa1a here, b18ff8108149 at the earlier leg
+  -  9 bytes: three RIP displacements inside MKL's own mkl_serv_print_verbose_header,
+              selecting a different (identical) instance of the merged one-byte string
+              literal "a"; .text and .rodata are at the same address and the same size
+              in both binaries (readelf -S).
+So the build recipe is calibrated EXACTLY on the quantity that can be calibrated, and the
+executable's 41-byte difference is provenance, not code.

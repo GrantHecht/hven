@@ -1,0 +1,158 @@
+# M6 W1 T10 -- IPQP acceptance arm (A4 / Q4 / A8 / A13 / A14)
+# PROVENANCE STAMP. hven-native: this artifact was produced in this
+# repository by this repository's own binaries. Nothing here is inherited
+# from an origin-era CSV, so CLAUDE.md section 1's frozen-header exception
+# does not apply and is not invoked.
+
+date (UTC)          : 2026-09-01
+repository          : hven, branch m6
+producer            : bench/ipqp_e1_arm.cpp -> hven_sqp_ipqp_e1_arm
+                      bench/ipqp_e1_arm.h  (the arm; gated by
+                      tests/sqp/test_ipqp_acceptance.cpp IpqpAcceptanceA4.*)
+commit stamped in   : each CSV's own "# git describe:" line -- read the
+                      COMMIT STAMPS note below before quoting one
+host                : fedora
+os                  : Fedora release 44 (Forty Four)
+kernel              : Linux 7.1.9-200.fc44.x86_64 x86_64
+cpu model           : AMD Ryzen 7 5800X3D 8-Core Processor
+cpu topology        : 8 physical cores, 16 threads (SMT sibling of core 2 is core 10)
+toolchain           : clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+linear algebra      : Intel MKL, /opt/intel/oneapi/mkl/latest
+build               : -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/clang++
+                      -DHVEN_BUILD_BENCH=ON, the uniform flag regime
+                      (CLAUDE.md section 7); no per-target flag exception.
+
+# DECLARED PROTOCOL
+#
+# SERIAL, SOLO. Every run below was executed one at a time, alone on the
+# machine, `taskset -c 2`, MKL_NUM_THREADS=1 OMP_NUM_THREADS=1. No cell ever
+# co-ran with another and no cell co-ran with a build. `pgrep` was checked
+# for other solver/build processes before each wall-asserting leg.
+#
+# WALL. `wall_s` in the sweep CSVs is INFORMATIONAL and is never quoted as a
+# measurement (CLAUDE.md section 7). The only wall-ASSERTING leg is the
+# envelope leg, which was run under the serial rule above and says so in its
+# own header.
+#
+# BUDGETS. Every mode is bounded by the tier's own caps; no unbounded cell was
+# run. CORRECTION (fix round 1, 2026-09-01): the round-1 wording claimed "each
+# CSV's header records the cap in force". That was FALSE for q4-mu-sweep.csv
+# and both envelope CSVs, whose producers wrote no option lines at all. The
+# producer now stamps ipqp_init_mu, ipqp_converge_slack, ipqp_hard_iter_cap,
+# ipqp_max_iter and ipqp_max_factorizations into EVERY mode's header, beside
+# the shipped values, so a lever run is distinguishable from a default run
+# without leaving the file. The three round-1 CSVs listed above are NOT
+# rewritten -- their bytes are the measurement -- and the budgets they ran
+# under are stated in README.md section 3.
+#
+# PIQP. NEVER run, linked, or read as source. Its committed CSVs under
+# docs/notes/data/2026-08-m6-e1-acquisition/ are the oracle this arm is
+# compared against, and only as data (CLAUDE.md section 6).
+#
+# APPLE / ACCELERATE. No Mac hardware ran any leg here. Every Accelerate-side
+# number is UNOBSERVED and is recorded as such in README.md; none is
+# zero-filled or interpolated (CLAUDE.md section 6).
+
+# COMMIT STAMPS -- what the "# git describe:" lines actually mean
+#
+# The two regeneration certificates were regenerated in fix round 1 from a
+# COMMITTED tree and carry a clean commit; envelope-a13-substitute-five-cells.csv
+# likewise. The remaining six CSVs -- the A4 gate and its repeat, both
+# counterfactuals, q4-mu-sweep.csv and the two single-cell envelope legs -- are
+# the round-1 measurements and stamp "a142a1380890-dirty": BASE a142a13 plus the
+# then-uncommitted arm.
+#
+# CORRECTION (fix round 2, 2026-09-01): both claims above were wrong. Before
+# this round regen-certificate-fpcontract-off.csv still stamped
+# "61b59fc4e976-dirty" -- fixed below, item B -- so "both certificates ...
+# carry a clean commit" was false until this round, not true from fix round 1.
+# envelope-a13-substitute-five-cells.csv carries no "# git describe:" line of
+# its own at all; it does not "likewise" carry a clean commit. Its own header
+# now cites its actual source instead. And the list above names seven CSVs,
+# not six -- "the remaining six" was a miscount, corrected here and at its two
+# further occurrences below.
+#
+# WHAT I CAN ATTEST, precisely, and no more. The arm was written and extended
+# DURING the measurement window: `--hard-cap` and `--converge-slack` were added
+# before the four A4/counterfactual runs, the mu-sweep loop was restructured to
+# build each cell once before q4-mu-sweep.csv was produced, and `--p` was added
+# before the envelope legs. Each addition was additive -- a new flag or a new
+# loop order -- and none altered the solve path an already-produced CSV had
+# exercised, but the seven CSVs were NOT all written by one binary. After the
+# last measurement the only edit before commit 7378325 was `clang-format -i`
+# (whitespace and line breaks; no token changed).
+# WHAT I CANNOT ATTEST: the intermediate working trees are gone, so the above
+# is my record of the sequence, not a reproducible diff, and no committed tree
+# state corresponds to those seven files' bytes. Stated here rather than left
+# silent; the fix is scheduled below, not assumed away.
+#
+# THE FIX IS SCHEDULED, NOT ASSUMED. T10b regenerates the gate from a committed
+# tree; from fix round 1 onward every CSV this arm writes is produced from a
+# clean checkout and stamps a real commit. The `a4_gate` ctest entry
+# (bench/CMakeLists.txt) is the vehicle: it re-runs the gate on demand and
+# exits nonzero on a RED criterion, so the numbers are re-derivable rather than
+# only recorded.
+#
+# The fix-round-1 five-cell A13 substitute is a RE-MEASUREMENT, on its own solo
+# occasion, of the numbers round 1 quoted from the replay without committing
+# their rows: walk 3.165 s / tier 8.499 s (round 1: 3.174 / 8.512). The two
+# occasions agree to 0.4 %, which is the reproducibility this leg claims and no
+# more.
+#
+# CORRECTION (fix round 2, 2026-09-01): "on its own solo occasion" overstated
+# it -- the file carried no commit stamp of its own to back that, unlike every
+# other CSV here. envelope-a13-substitute-five-cells.csv's own header (added
+# this round) instead names its actual source: the replay's corpus-runner
+# CSVs at binary stamp 73783258a030, i.e. derived, not an independently
+# stamped fresh measurement. Rows are unchanged.
+
+# AMENDMENT (T10b, 2026-09-01). Two new CSVs join this directory --
+# a4-gate-mu1e-2.csv and a4-gate-mu1e-2-repeat.csv -- produced by the SAME
+# producer named above, extended with six end-to-end columns, at the measured
+# `ipqp_init_mu = 1e-2` this task adopts. Same machine, same toolchain, same
+# build description; both legs SOLO under the declared protocol above.
+#
+# THE FIX SCHEDULED ABOVE IS NOT ACHIEVABLE AS WORDED, and saying so is the
+# correction. "T10b regenerates the gate from a committed tree ... and stamps a
+# real commit" cannot hold for an artifact committed WITH the code that
+# produced it: the stamp is taken at write time, before the commit exists.
+# Both new CSVs therefore stamp "0798af1600ec-dirty" -- BASE 0798af1 plus
+# T10b's own then-uncommitted change -- exactly as the round-1 measurements do.
+# What replaces the promise is a REPRODUCTION check: the gate re-run from the
+# committed T10b head, solo, against these bytes, recorded in
+# `.superpowers/w1-t10b-report.md`. The `a4_gate` ctest entry remains the
+# vehicle, and it now exits 0 (README section 9.3).
+#
+# APPLE / ACCELERATE, unchanged: no Mac hardware ran any T10b leg either.
+# Every Accelerate-side number stays UNOBSERVED; none is zero-filled.
+
+# CORRECTION (T10b fix round 1, 2026-09-01). The T10b amendment above is wrong
+# in two places, and neither is edited out -- this record is append-only.
+#
+# 1. THE STAMP. The amendment asserts both new CSVs stamp "0798af1600ec-dirty".
+#    They did not: their "# git describe:" line read "0798af1600ec", with no
+#    "-dirty", because HVEN_SQP_CORPUS_GIT_DESCRIBE (bench/CMakeLists.txt) is
+#    resolved at CMake CONFIGURE time -- the build tree had been configured
+#    while the tree was still clean at BASE, and rebuilding after the edit did
+#    not re-resolve it. The artifact therefore named a commit that could not
+#    have produced it.
+#
+# 2. THE "NOT ACHIEVABLE AS WORDED" CLAIM. It is achievable, in two commits.
+#    This round lands the code first and re-emits the artifacts from the
+#    resulting clean tree. Both a4-gate CSVs and
+#    bench/baselines/2026-09-02-t10b-ipm/ipm_baseline.csv now stamp
+#    "64136af53153" -- a commit a reader can check out and re-run -- and each
+#    reproduces round 1's rows exactly: 1885 asserted values per gate CSV and
+#    2025 for the baseline, 0 differences, wall_s excluded as informational and
+#    the only column that moved. Rows are otherwise unchanged.
+#
+# Same machine, same toolchain, same solo protocol as the amendment above:
+# taskset -c 2, MKL_NUM_THREADS=1 OMP_NUM_THREADS=1, one process at a time; the
+# SMT sibling (cpu10) measured 0.31% busy across the regeneration window.
+#
+# PROCEDURAL NOTE so the trap is not walked into again: RE-CONFIGURE the build
+# tree (cmake -S . -B <tree>) before producing any measurement CSV, or the
+# stamp it carries is whatever the tree was at configure time.
+#
+# APPLE / ACCELERATE, unchanged: no Mac hardware ran any leg of this round
+# either. Every Accelerate-side number stays UNOBSERVED; none is zero-filled.

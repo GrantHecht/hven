@@ -8,7 +8,7 @@
 // PLACEMENT (fix round 1). This lives here, as a normal CMake target linked
 // against `hven::hven` and BUILT IN BOTH CONFIGURATIONS, rather than in
 // `prototypes/` (that directory's own carve-out is Python/NumPy/SciPy only --
-// CLAUDE.md -- and this has to drive the real `SqpDriver` engine to be a
+// CLAUDE.md -- and this has to drive the real `SqpSolver` engine to be a
 // reproduction rather than a re-implementation) or as a loose file under
 // `docs/notes/`. `hven_sqp_f7_cold`'s own banner (this directory's
 // CMakeLists.txt) states the reason exactly: "BUILT in both configurations...
@@ -56,7 +56,7 @@
 //
 // The `-I /tmp/tau_bar_patch` ahead of `-I include` is what makes `#include
 // <hven/detail/globalization/sqp/globalization.h>` resolve to the patched copy
-// while every OTHER header (sqp_driver.h, qp_types.h, ...) still resolves to the
+// while every OTHER header (sqp_solver.h, qp_types.h, ...) still resolves to the
 // real `include/hven/detail/globalization/sqp/`, unmodified -- this file does
 // not, and cannot, change anything the shipped library ships; only the SWEEP
 // invocation above (never `cmake --build`) touches a patched header, and only
@@ -71,7 +71,7 @@
 // `build/libhven.a` JOINS THE COMMAND LINE TOO (fix round 1). The SQP tree is
 // NOT header-only today -- T3 carved sqp_options.cpp and src/linear has its
 // own TUs -- so linking only funnel.cpp still leaves undefined references
-// (validate_sqp_options, SymmetricFactor, ...) that have nothing to do with
+// (validate, SymmetricFactor, ...) that have nothing to do with
 // this probe; the archive is now required to resolve those. It does NOT
 // reintroduce the shipped-constant trap: a linker satisfies a symbol from an
 // explicit object file before it ever opens an archive member, so `reset()`
@@ -89,7 +89,7 @@
 
 #include <cstdio>
 
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 
 #include "support/hs_sweeps.h"
 
@@ -106,7 +106,7 @@ SqpOptions cold_options(Index max_iter) {
     opts.feas_tol = 1e-6;
     opts.max_iter = max_iter;
     opts.adaptive_mu = false;
-    opts.start_level = StartLevel::kCold;
+    opts.common.start_level = StartLevel::kCold;
     opts.warm_full_step = false;
     opts.enable_soc = false;
     return opts;
@@ -132,10 +132,10 @@ int main() {
         bool all_optimal = true;
         double f_last = 0.0;
         for (double p : grid) {
-            SqpDriver driver(cold_options(spec.max_iter));
+            SqpSolver driver(cold_options(spec.max_iter));
             model->set_parameters(Vec::Constant(1, p));
-            const SqpSolution sol = driver.solve(*model, model->start_point());
-            all_optimal = all_optimal && sol.status == SqpStatus::kOptimal;
+            const SqpResult sol = driver.solve(*model, model->start_point());
+            all_optimal = all_optimal && sol.status == SolveStatus::kOptimal;
             majors += sol.counters.major_iters;
             minors += sol.counters.qp_minor_iters;
             fact += sol.counters.factorizations;

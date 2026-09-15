@@ -57,13 +57,18 @@
 #include <gtest/gtest.h>
 
 #include <hven/core/ledger.h>
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/nlp_model.h>
 
 #include "support/derivative_check.h"
 #include "support/nlp_kkt_check.h"
 #include "support/scale_problems.h"
+
+#include "hven/core/compiler.h"
+
+// by-value oracle of the in-place hot path; migration is a separate task
+HVEN_SUPPRESS_DEPRECATED_BEGIN
 
 namespace hven::solvers {
 namespace {
@@ -206,7 +211,7 @@ SqpOptions tight_options() {
 }
 
 // Which constraints hold with equality at `x`, in AnalyticActiveSet's (and
-// therefore WarmStart's) encoding. Mirrors the helper of the same name in
+// therefore SqpWarmStart's) encoding. Mirrors the helper of the same name in
 // tests/test_parametric_families.cpp, which is file-local there.
 AnalyticActiveSet geometric_active_set(const NlpModel &model, const Vec &x, double tol) {
     AnalyticActiveSet a;
@@ -399,10 +404,10 @@ void check_path_at(F7CollocationChain &model, double p) {
     SCOPED_TRACE(::testing::Message() << "N = " << model.node_count() << ", p = " << p);
     model.set_parameters(Vec::Constant(1, p));
     const SqpOptions opts = tight_options();
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
 
-    ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
     const double f_star = model.f_star(p);
     EXPECT_LE(std::abs(sol.f - f_star), kFRelTol * std::max(1.0, std::abs(f_star)))
         << fmt::format("f = {:.17g} vs f_star = {:.17g}", sol.f, f_star);
@@ -569,7 +574,7 @@ TEST(ScaleF7, AnalyticPathMatchesColdSolveAtHundredNodes) {
 
 // The Task-3 walk counters this test reads, summed over every QP subproblem of
 // one solve (five from the original round, six from its fix round).
-// SqpCounters carries none of them (sqp_types.h), so an attached Ledger is the
+// SqpCounters carries none of them (sqp_solver_types.h), so an attached Ledger is the
 // only route -- the same route tests/test_scale_smoke.cpp uses for
 // schur_updates.
 struct WalkCounts {
@@ -612,11 +617,11 @@ void check_wide_window_walk(Index nodes, double p, const WalkCounts &want) {
     F7CollocationChain model(nodes, 3, 2);
     model.set_parameters(Vec::Constant(1, p));
 
-    SqpDriver driver(tight_options());
+    SqpSolver driver(tight_options());
     Ledger ledger;
     driver.attach_ledger(&ledger, "walk");
-    const SqpSolution sol = driver.solve(model);
-    ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+    const SqpResult sol = driver.solve(model);
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
 
     const WalkCounts got = walk_counts(ledger);
     const auto trace = [&] {
@@ -1252,17 +1257,17 @@ TEST(ScaleF7Slow, CrashBasisIsInertOnAWideWindowColdSolve) {
     };
 
     F7CollocationChain model_off(100, 3, 2, p, 1.0);
-    SqpDriver driver_off(make_options());
-    const SqpSolution off = driver_off.solve(model_off, model_off.start_point());
+    SqpSolver driver_off(make_options());
+    const SqpResult off = driver_off.solve(model_off, model_off.start_point());
 
     SqpOptions on_opts = make_options();
     on_opts.crash_basis = true;
     F7CollocationChain model_on(100, 3, 2, p, 1.0);
-    SqpDriver driver_on(on_opts);
-    const SqpSolution on = driver_on.solve(model_on, model_on.start_point());
+    SqpSolver driver_on(on_opts);
+    const SqpResult on = driver_on.solve(model_on, model_on.start_point());
 
-    ASSERT_EQ(off.status, SqpStatus::kOptimal);
-    ASSERT_EQ(on.status, SqpStatus::kOptimal);
+    ASSERT_EQ(off.status, SolveStatus::kOptimal);
+    ASSERT_EQ(on.status, SolveStatus::kOptimal);
 
     // (a) THE LEVER FINDS NOTHING TO SEED -- the property a widened threshold
     // would break, and the reason the crash basis cannot help this family.
@@ -1271,7 +1276,7 @@ TEST(ScaleF7Slow, CrashBasisIsInertOnAWideWindowColdSolve) {
     EXPECT_EQ(on.counters.crash_seeded_rows, 0)
         << "F7's start point leaves every path row slack by 0.455 = 4.55e8 * feas_tol; "
            "a seed here means the activity threshold has been widened past the driver's own "
-           "definition of geometric activity (sqp_types.h's SqpOptions::crash_basis)";
+           "definition of geometric activity (sqp_solver_types.h's SqpOptions::crash_basis)";
     EXPECT_EQ(on.counters.crash_seeded_bounds, 0);
 
     // (b) AND THEREFORE NOTHING MOVES. Belt and braces: a seed that fired
@@ -1318,9 +1323,9 @@ TEST(ScaleF7Slow, TheSizeDerivedCapRecoversASolveTheOldFixedDefaultLost) {
     // qp.max_iter deliberately LEFT AT THE LIBRARY DEFAULT -- the sentinel.
     ASSERT_LE(opts.qp.max_iter, 0) << "the shipped default must BE the sentinel";
 
-    SqpDriver derived(opts);
-    const SqpSolution good = derived.solve(model, model.start_point());
-    EXPECT_EQ(good.status, SqpStatus::kOptimal);
+    SqpSolver derived(opts);
+    const SqpResult good = derived.solve(model, model.start_point());
+    EXPECT_EQ(good.status, SolveStatus::kOptimal);
     EXPECT_LT((good.x - model.x_star(p)).lpNorm<Eigen::Infinity>(), 1e-8);
     // OBSERVED: 4 majors / 635 minors, against a derived cap of
     // max(500, 5 * (250 + 50 + 100)) = 2000.
@@ -1332,11 +1337,13 @@ TEST(ScaleF7Slow, TheSizeDerivedCapRecoversASolveTheOldFixedDefaultLost) {
     // docs/notes/2026-07-30-scale-study-cold.md Sec. 5 recorded.
     SqpOptions old_default = opts;
     old_default.qp.max_iter = 500;
-    SqpDriver fixed(old_default);
-    const SqpSolution bad = fixed.solve(model, model.start_point());
-    EXPECT_NE(bad.status, SqpStatus::kOptimal);
+    SqpSolver fixed(old_default);
+    const SqpResult bad = fixed.solve(model, model.start_point());
+    EXPECT_NE(bad.status, SolveStatus::kOptimal);
     EXPECT_GT((bad.x - model.x_star(p)).lpNorm<Eigen::Infinity>(), 1e-3);
 }
 
 } // namespace
 } // namespace hven::solvers
+
+HVEN_SUPPRESS_DEPRECATED_END

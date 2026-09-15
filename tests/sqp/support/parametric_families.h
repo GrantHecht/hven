@@ -102,7 +102,7 @@
 namespace hven::solvers::test_support {
 
 // The analytic active set at a parameter value, in exactly warm_start.h's
-// encoding so a test can compare it against a solve's WarmStart field for
+// encoding so a test can compare it against a solve's SqpWarmStart field for
 // field. ACTIVE HERE MEANS GEOMETRICALLY ACTIVE -- the constraint holds with
 // equality at x*(p) -- which is well defined even where the multiplier
 // vanishes; see F1's DEGENERACY note for the one place in this header where

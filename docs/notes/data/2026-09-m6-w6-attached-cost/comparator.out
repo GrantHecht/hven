@@ -1,0 +1,400 @@
+# W6 T6 comparator output
+
+Regenerate: `python3 comparator.py --root . --out -`
+
+Arms: `a00` = callback=off  trace=off   (unattached -- the shipped shape); `a10` = callback=count trace=off   (attached callback); `a01` = callback=off  trace=sink  (attached sink); `a11` = callback=count trace=sink  (both).
+
+## The SQP corpus leg (the U0 27-cell set, one process per cell)
+
+### SQP corpus / walk -- instructions, attached vs unattached
+
+Per cell: the median of three rounds, per arm; the ratio is that arm's median over `a00`'s. The corpus row is the SUM of per-cell medians.
+
+| cell | a00 instructions (median) | a10 ratio | a01 ratio | a11 ratio |
+|---|---|---|---|---|
+| `f7_n10000_bound_activity` | 2762005187 | 1.00238 | 1.00054 | 1.00293 |
+| `f7_n10000_bound_corrupted` | 5472600678 | 1.00199 | 1.00055 | 1.00253 |
+| `f7_n10000_bound_neutral` | 2742119309 | 1.00240 | 1.00055 | 1.00295 |
+| `f7_n10000_bound_physics` | 2750526040 | 1.00239 | 1.00055 | 1.00294 |
+| `f7_n10000_bound_warm` | 5467031963 | 1.00199 | 1.00055 | 1.00254 |
+| `f7_n1000_bound_activity` | 263062924 | 1.00253 | 1.00059 | 1.00311 |
+| `f7_n1000_bound_corrupted` | 516348230 | 1.00215 | 1.00059 | 1.00273 |
+| `f7_n1000_bound_neutral` | 261056273 | 1.00227 | 1.00057 | 1.00286 |
+| `f7_n1000_bound_physics` | 261902968 | 1.00226 | 1.00057 | 1.00285 |
+| `f7_n1000_bound_warm` | 515711314 | 1.00244 | 1.00060 | 1.00303 |
+| `f7_n1000_path_warm` | 1079365614907 | 1.00004 | 1.00000 | 1.00004 |
+| `f7_n20000_bound_activity` | 5686238201 | 1.00204 | 1.00053 | 1.00257 |
+| `f7_n20000_bound_corrupted` | 11274535380 | 1.00220 | 1.00053 | 1.00273 |
+| `f7_n20000_bound_neutral` | 5646531527 | 1.00206 | 1.00053 | 1.00259 |
+| `f7_n20000_bound_physics` | 5663308963 | 1.00205 | 1.00053 | 1.00258 |
+| `f7_n20000_bound_warm` | 11264947206 | 1.00193 | 1.00053 | 1.00246 |
+| `f7_n2000_bound_activity` | 534754724 | 1.00219 | 1.00058 | 1.00277 |
+| `f7_n2000_bound_corrupted` | 1054813343 | 1.00236 | 1.00058 | 1.00294 |
+| `f7_n2000_bound_neutral` | 530786554 | 1.00192 | 1.00056 | 1.00249 |
+| `f7_n2000_bound_physics` | 532456785 | 1.00191 | 1.00057 | 1.00248 |
+| `f7_n2000_bound_warm` | 1053706318 | 1.00223 | 1.00057 | 1.00280 |
+| `f7_n5000_bound_activity` | 1345018480 | 1.00216 | 1.00056 | 1.00273 |
+| `f7_n5000_bound_corrupted` | 2661283242 | 1.00219 | 1.00057 | 1.00276 |
+| `f7_n5000_bound_neutral` | 1335072391 | 1.00219 | 1.00057 | 1.00275 |
+| `f7_n5000_bound_physics` | 1339290596 | 1.00218 | 1.00057 | 1.00274 |
+| `f7_n5000_bound_warm` | 2658874856 | 1.00219 | 1.00057 | 1.00276 |
+| `f7_n800_path_warm` | 666451235863 | 1.00008 | 1.00000 | 1.00008 |
+| **corpus (sum of medians)** | **1819410834222** | **1.00014** | **1.00002** | **1.00016** |
+
+* **walk / a10 -- FLAT.** corpus 1.00014 (+0.0137 %); PER CELL median 1.00219 (+0.2187 %), min 1.00004 (`f7_n1000_path_warm`), max 1.00253 (`f7_n1000_bound_activity`); cells outside 0.99-1.01: **0/27**. Largest per-cell moves: `f7_n1000_bound_activity` 1.00253 (+0.2533 %), `f7_n1000_bound_warm` 1.00244 (+0.2444 %), `f7_n10000_bound_neutral` 1.00240 (+0.2396 %).
+* **walk / a01 -- FLAT.** corpus 1.00002 (+0.0025 %); PER CELL median 1.00056 (+0.0561 %), min 1.00000 (`f7_n1000_path_warm`), max 1.00060 (`f7_n1000_bound_warm`); cells outside 0.99-1.01: **0/27**. Largest per-cell moves: `f7_n1000_bound_warm` 1.00060 (+0.0600 %), `f7_n1000_bound_activity` 1.00059 (+0.0588 %), `f7_n1000_bound_corrupted` 1.00059 (+0.0586 %).
+* **walk / a11 -- FLAT.** corpus 1.00016 (+0.0158 %); PER CELL median 1.00274 (+0.2743 %), min 1.00004 (`f7_n1000_path_warm`), max 1.00311 (`f7_n1000_bound_activity`); cells outside 0.99-1.01: **0/27**. Largest per-cell moves: `f7_n1000_bound_activity` 1.00311 (+0.3112 %), `f7_n1000_bound_warm` 1.00303 (+0.3032 %), `f7_n10000_bound_neutral` 1.00295 (+0.2947 %).
+
+The rest of the instrument, at the corpus level (medians summed):
+
+| event | a00 | a10 | a01 | a11 | a10/a00 | a01/a00 | a11/a00 |
+|---|---|---|---|---|---|---|---|
+| `instructions:u` | 1819410834222 | 1819659315874 | 1819455718937 | 1819697453157 | 1.00014 | 1.00002 | 1.00016 |
+| `branches:u` | 272202423141 | 272243860821 | 272210507411 | 272249895282 | 1.00015 | 1.00003 | 1.00017 |
+| `cycles:u` | 670492455898 | 669468638908 | 670405580347 | 669939182757 | 0.99847 | 0.99987 | 0.99917 |
+| `branch-misses:u` | 4046164842 | 4030347148 | 4041812285 | 4032074745 | 0.99609 | 0.99892 | 0.99652 |
+| `L1-icache-load-misses:u` | 215391169 | 215870471 | 215310136 | 215800794 | 1.00223 | 0.99962 | 1.00190 |
+
+Process wall of the single-cell perf runs, summed over the cells (median of three rounds each) -- INFORMATIONAL, and taken under `perf stat`:
+
+| arm | summed process wall (s) | ratio |
+|---|---|---|
+| `a00` | 206.1386 | -- |
+| `a10` | 204.1978 | 0.99059 |
+| `a01` | 206.1074 | 0.99985 |
+| `a11` | 204.3204 | 0.99118 |
+
+### SQP corpus / ssn -- instructions, attached vs unattached
+
+Per cell: the median of three rounds, per arm; the ratio is that arm's median over `a00`'s. The corpus row is the SUM of per-cell medians.
+
+| cell | a00 instructions (median) | a10 ratio | a01 ratio | a11 ratio |
+|---|---|---|---|---|
+| `f7_n10000_bound_activity` | 5567317511 | 1.00135 | 1.00027 | 1.00162 |
+| `f7_n10000_bound_corrupted` | 8535395642 | 1.00127 | 1.00035 | 1.00162 |
+| `f7_n10000_bound_neutral` | 5546903865 | 1.00151 | 1.00027 | 1.00178 |
+| `f7_n10000_bound_physics` | 5555002109 | 1.00151 | 1.00027 | 1.00178 |
+| `f7_n10000_bound_warm` | 8529105839 | 1.00136 | 1.00035 | 1.00171 |
+| `f7_n1000_bound_activity` | 490256544 | 1.00159 | 1.00031 | 1.00191 |
+| `f7_n1000_bound_corrupted` | 766031164 | 1.00177 | 1.00040 | 1.00216 |
+| `f7_n1000_bound_neutral` | 488238877 | 1.00156 | 1.00031 | 1.00186 |
+| `f7_n1000_bound_physics` | 489045445 | 1.00156 | 1.00032 | 1.00186 |
+| `f7_n1000_bound_warm` | 765468775 | 1.00167 | 1.00040 | 1.00207 |
+| `f7_n1000_path_warm` | 5596340870 | 1.00045 | 1.00005 | 1.00051 |
+| `f7_n20000_bound_activity` | 11717975469 | 1.00129 | 1.00026 | 1.00155 |
+| `f7_n20000_bound_corrupted` | 17830523268 | 1.00142 | 1.00034 | 1.00175 |
+| `f7_n20000_bound_neutral` | 11680910897 | 1.00082 | 1.00026 | 1.00107 |
+| `f7_n20000_bound_physics` | 11697069561 | 1.00081 | 1.00026 | 1.00107 |
+| `f7_n20000_bound_warm` | 17821487814 | 1.00110 | 1.00034 | 1.00144 |
+| `f7_n2000_bound_activity` | 1030690567 | 1.00149 | 1.00030 | 1.00178 |
+| `f7_n2000_bound_corrupted` | 1597728907 | 1.00134 | 1.00038 | 1.00172 |
+| `f7_n2000_bound_neutral` | 1027128584 | 1.00080 | 1.00030 | 1.00109 |
+| `f7_n2000_bound_physics` | 1028746476 | 1.00079 | 1.00030 | 1.00108 |
+| `f7_n2000_bound_warm` | 1596620101 | 1.00133 | 1.00038 | 1.00171 |
+| `f7_n5000_bound_activity` | 2639961435 | 1.00125 | 1.00029 | 1.00153 |
+| `f7_n5000_bound_corrupted` | 4079292223 | 1.00143 | 1.00037 | 1.00180 |
+| `f7_n5000_bound_neutral` | 2630154769 | 1.00111 | 1.00029 | 1.00139 |
+| `f7_n5000_bound_physics` | 2634202939 | 1.00111 | 1.00029 | 1.00139 |
+| `f7_n5000_bound_warm` | 4076504827 | 1.00143 | 1.00037 | 1.00180 |
+| `f7_n800_path_warm` | 3880745724 | 1.00048 | 1.00006 | 1.00054 |
+| **corpus (sum of medians)** | **139298850202** | **1.00117** | **1.00029** | **1.00146** |
+
+* **ssn / a10 -- FLAT.** corpus 1.00117 (+0.1173 %); PER CELL median 1.00134 (+0.1342 %), min 1.00045 (`f7_n1000_path_warm`), max 1.00177 (`f7_n1000_bound_corrupted`); cells outside 0.99-1.01: **0/27**. Largest per-cell moves: `f7_n1000_bound_corrupted` 1.00177 (+0.1767 %), `f7_n1000_bound_warm` 1.00167 (+0.1671 %), `f7_n1000_bound_activity` 1.00159 (+0.1594 %).
+* **ssn / a01 -- FLAT.** corpus 1.00029 (+0.0291 %); PER CELL median 1.00030 (+0.0300 %), min 1.00005 (`f7_n1000_path_warm`), max 1.00040 (`f7_n1000_bound_warm`); cells outside 0.99-1.01: **0/27**. Largest per-cell moves: `f7_n1000_bound_warm` 1.00040 (+0.0404 %), `f7_n1000_bound_corrupted` 1.00040 (+0.0403 %), `f7_n2000_bound_warm` 1.00038 (+0.0378 %).
+* **ssn / a11 -- FLAT.** corpus 1.00146 (+0.1463 %); PER CELL median 1.00171 (+0.1712 %), min 1.00051 (`f7_n1000_path_warm`), max 1.00216 (`f7_n1000_bound_corrupted`); cells outside 0.99-1.01: **0/27**. Largest per-cell moves: `f7_n1000_bound_corrupted` 1.00216 (+0.2155 %), `f7_n1000_bound_warm` 1.00207 (+0.2068 %), `f7_n1000_bound_activity` 1.00191 (+0.1906 %).
+
+The rest of the instrument, at the corpus level (medians summed):
+
+| event | a00 | a10 | a01 | a11 | a10/a00 | a01/a00 | a11/a00 |
+|---|---|---|---|---|---|---|---|
+| `instructions:u` | 139298850202 | 139462193921 | 139339418003 | 139502697018 | 1.00117 | 1.00029 | 1.00146 |
+| `branches:u` | 21677990903 | 21700101994 | 21684762906 | 21706853598 | 1.00102 | 1.00031 | 1.00133 |
+| `cycles:u` | 50152336792 | 50160927176 | 50133504874 | 50210384971 | 1.00017 | 0.99962 | 1.00116 |
+| `branch-misses:u` | 116371600 | 116003014 | 116095298 | 116357130 | 0.99683 | 0.99763 | 0.99988 |
+| `L1-icache-load-misses:u` | 16092668 | 16064133 | 16092741 | 16058198 | 0.99823 | 1.00000 | 0.99786 |
+
+Process wall of the single-cell perf runs, summed over the cells (median of three rounds each) -- INFORMATIONAL, and taken under `perf stat`:
+
+| arm | summed process wall (s) | ratio |
+|---|---|---|
+| `a00` | 17.6813 | -- |
+| `a10` | 17.6791 | 0.99988 |
+| `a01` | 17.6628 | 0.99895 |
+| `a11` | 17.6985 | 1.00098 |
+
+### SQP corpus / ipm -- instructions, attached vs unattached
+
+Per cell: the median of three rounds, per arm; the ratio is that arm's median over `a00`'s. The corpus row is the SUM of per-cell medians.
+
+| cell | a00 instructions (median) | a10 ratio | a01 ratio | a11 ratio |
+|---|---|---|---|---|
+| `f7_n10000_bound_activity` | 6042614320 | 1.00068 | 1.00028 | 1.00097 |
+| `f7_n10000_bound_corrupted` | 15586228833 | 1.00071 | 1.00022 | 1.00093 |
+| `f7_n10000_bound_neutral` | 7822981570 | 1.00072 | 1.00022 | 1.00094 |
+| `f7_n10000_bound_physics` | 6030390474 | 1.00093 | 1.00029 | 1.00122 |
+| `f7_n10000_bound_warm` | 15580868052 | 1.00074 | 1.00022 | 1.00096 |
+| `f7_n1000_bound_activity` | 571509948 | 1.00119 | 1.00031 | 1.00151 |
+| `f7_n1000_bound_corrupted` | 1441817904 | 1.00082 | 1.00024 | 1.00106 |
+| `f7_n1000_bound_neutral` | 748882178 | 1.00079 | 1.00023 | 1.00103 |
+| `f7_n1000_bound_physics` | 570343473 | 1.00104 | 1.00031 | 1.00135 |
+| `f7_n1000_bound_warm` | 1441252521 | 1.00082 | 1.00024 | 1.00106 |
+| `f7_n1000_path_warm` | 10003382445 | 1.00024 | 1.00005 | 1.00029 |
+| `f7_n20000_bound_activity` | 12393263535 | 1.00078 | 1.00028 | 1.00106 |
+| `f7_n20000_bound_corrupted` | 31818177472 | 1.00068 | 1.00022 | 1.00090 |
+| `f7_n20000_bound_neutral` | 15964533233 | 1.00085 | 1.00022 | 1.00106 |
+| `f7_n20000_bound_physics` | 12368495592 | 1.00109 | 1.00028 | 1.00137 |
+| `f7_n20000_bound_warm` | 31807417070 | 1.00072 | 1.00022 | 1.00093 |
+| `f7_n2000_bound_activity` | 1166158849 | 1.00117 | 1.00030 | 1.00147 |
+| `f7_n2000_bound_corrupted` | 2936113492 | 1.00097 | 1.00024 | 1.00120 |
+| `f7_n2000_bound_neutral` | 1521819635 | 1.00077 | 1.00023 | 1.00100 |
+| `f7_n2000_bound_physics` | 1164206411 | 1.00100 | 1.00030 | 1.00130 |
+| `f7_n2000_bound_warm` | 2935492708 | 1.00075 | 1.00024 | 1.00098 |
+| `f7_n5000_bound_activity` | 2945805836 | 1.00115 | 1.00029 | 1.00144 |
+| `f7_n5000_bound_corrupted` | 7638704311 | 1.00076 | 1.00023 | 1.00099 |
+| `f7_n5000_bound_neutral` | 3835996471 | 1.00075 | 1.00022 | 1.00098 |
+| `f7_n5000_bound_physics` | 2940565397 | 1.00098 | 1.00029 | 1.00128 |
+| `f7_n5000_bound_warm` | 7408785289 | 1.00078 | 1.00023 | 1.00101 |
+| `f7_n800_path_warm` | 8548623806 | 1.00021 | 1.00004 | 1.00025 |
+| **corpus (sum of medians)** | **213234430825** | **1.00074** | **1.00022** | **1.00096** |
+
+* **ipm / a10 -- FLAT.** corpus 1.00074 (+0.0737 %); PER CELL median 1.00078 (+0.0784 %), min 1.00021 (`f7_n800_path_warm`), max 1.00119 (`f7_n1000_bound_activity`); cells outside 0.99-1.01: **0/27**. Largest per-cell moves: `f7_n1000_bound_activity` 1.00119 (+0.1193 %), `f7_n2000_bound_activity` 1.00117 (+0.1171 %), `f7_n5000_bound_activity` 1.00115 (+0.1151 %).
+* **ipm / a01 -- FLAT.** corpus 1.00022 (+0.0219 %); PER CELL median 1.00024 (+0.0237 %), min 1.00004 (`f7_n800_path_warm`), max 1.00031 (`f7_n1000_bound_physics`); cells outside 0.99-1.01: **0/27**. Largest per-cell moves: `f7_n1000_bound_physics` 1.00031 (+0.0310 %), `f7_n1000_bound_activity` 1.00031 (+0.0310 %), `f7_n2000_bound_activity` 1.00030 (+0.0303 %).
+* **ipm / a11 -- FLAT.** corpus 1.00096 (+0.0957 %); PER CELL median 1.00103 (+0.1030 %), min 1.00025 (`f7_n800_path_warm`), max 1.00151 (`f7_n1000_bound_activity`); cells outside 0.99-1.01: **0/27**. Largest per-cell moves: `f7_n1000_bound_activity` 1.00151 (+0.1511 %), `f7_n2000_bound_activity` 1.00147 (+0.1471 %), `f7_n5000_bound_activity` 1.00144 (+0.1443 %).
+
+The rest of the instrument, at the corpus level (medians summed):
+
+| event | a00 | a10 | a01 | a11 | a10/a00 | a01/a00 | a11/a00 |
+|---|---|---|---|---|---|---|---|
+| `instructions:u` | 213234430825 | 213391683268 | 213281170647 | 213438405480 | 1.00074 | 1.00022 | 1.00096 |
+| `branches:u` | 32249652537 | 32269525460 | 32256784372 | 32276653686 | 1.00062 | 1.00022 | 1.00084 |
+| `cycles:u` | 69311187283 | 69414096090 | 69429659270 | 69460754504 | 1.00148 | 1.00171 | 1.00216 |
+| `branch-misses:u` | 120311615 | 120724029 | 121031778 | 120886310 | 1.00343 | 1.00599 | 1.00478 |
+| `L1-icache-load-misses:u` | 50451184 | 50600960 | 50562041 | 50477541 | 1.00297 | 1.00220 | 1.00052 |
+
+Process wall of the single-cell perf runs, summed over the cells (median of three rounds each) -- INFORMATIONAL, and taken under `perf stat`:
+
+| arm | summed process wall (s) | ratio |
+|---|---|---|
+| `a00` | 23.0348 | -- |
+| `a10` | 23.0596 | 1.00108 |
+| `a01` | 23.0595 | 1.00107 |
+| `a11` | 23.0786 | 1.00190 |
+
+### The top-level interior-point leg -- callback off vs on (batch 1)
+
+The whole 43-row leg in ONE process (it forks nothing). The lever is `HVEN_LEG_COUNT_CALLBACK`, which installs a counting `set_iteration_callback` on every row's measured solver (`bench/ipm_corpus_leg.cpp:638-645`). THIS LEG HAS NO SINK LEVER and this task added none. **Round 1's UNATTACHED process is a first-process outlier** -- +2.1 % over its own rounds 2 and 3, while all six processes wrote byte-identical rows -- so batch 2 below re-takes it behind an untimed warm-up. Neither batch is discarded.
+
+| event | off (median) | on (median) | ratio |
+|---|---|---|---|
+| `instructions:u` | 105546970655 | 107086721167 | 1.01459 |
+| `branches:u` | 15591256158 | 15937171106 | 1.02219 |
+| `cycles:u` | 35545863311 | 36506047432 | 1.02701 |
+| `branch-misses:u` | 38088299 | 38246695 | 1.00416 |
+| `L1-icache-load-misses:u` | 11910095 | 12036312 | 1.01060 |
+| process wall (s), informational | 11.7330 | 12.0174 | 1.02423 |
+
+Per-round instruction counts (the alternation): off [107749090682, 105477426901, 105546970655]; on [107041161266, 107092063922, 107086721167]
+
+LEVEL-MATCHED PAIRING (lowest-with-lowest, highest-with-highest): **1.014825** and **0.993902** -- the two DISAGREE, so the arms do not share levels and this pairing is not read
+
+### The top-level interior-point leg -- callback off vs on (batch 2, behind an untimed warm-up)
+
+The same leg, the same lever, the same binary, three more rounds -- with ONE UNTIMED WARM-UP process ahead of them so no round is the batch's first process. The warm-up is untimed, not unrecorded: its CSV and its stdout are retained (`raw/ipmleg2/warmup.csv`, `warmup.stdout`) and only its perf counters are excluded, since it ran outside BATCH_START (`scripts/ipm_leg2.sh:22`). Each arm is now internally stable to 0.27 % (off) and 0.04 % (on), and the gap between the arms is an order of magnitude larger than either.
+
+| event | off (median) | on (median) | ratio |
+|---|---|---|---|
+| `instructions:u` | 105597462389 | 107401501131 | 1.01708 |
+| `branches:u` | 15605129473 | 16028559013 | 1.02713 |
+| `cycles:u` | 35534368273 | 36784304270 | 1.03518 |
+| `branch-misses:u` | 37967928 | 38122051 | 1.00406 |
+| `L1-icache-load-misses:u` | 12017135 | 12080202 | 1.00525 |
+| process wall (s), informational | 11.6626 | 12.1010 | 1.03759 |
+
+Per-round instruction counts (the alternation): off [105810880755, 105525560216, 105597462389]; on [107393006382, 107401501131, 107432526326]
+
+LEVEL-MATCHED PAIRING (lowest-with-lowest, highest-with-highest): **1.017697** and **1.015326** -- the two DISAGREE, so the arms do not share levels and this pairing is not read
+
+### The HS leg / walk -- trace off vs sink (the re-read)
+
+27 HS cells, `--repeat 200 --hs-warmup 1`, in one process. The lever is `--hs-trace`, unchanged since T6.d. The registration recorded this arm's WALL at 0.975-0.993, below the leg's own 0.22 % instrument floor; this is the same arm read on INSTRUCTIONS.
+
+| event | off (median) | sink (median) | ratio |
+|---|---|---|---|
+| `instructions:u` | 33762321046 | 33691054816 | 0.99789 |
+| `branches:u` | 6160347278 | 6138310852 | 0.99642 |
+| `cycles:u` | 15726481052 | 15654574311 | 0.99543 |
+| `branch-misses:u` | 38416965 | 37346172 | 0.97213 |
+| `L1-icache-load-misses:u` | 89578810 | 89948769 | 1.00413 |
+| process wall (s), informational | 4.7369 | 4.7038 | 0.99300 |
+
+Per-round instruction counts (the alternation): off [33689414335, 33762321046, 33762326000]; sink [33763952681, 33691003049, 33691054816]
+
+LEVEL-MATCHED PAIRING (lowest-with-lowest, highest-with-highest): **1.000047** and **1.000048** -- the two agree to 1.0e-06, so the arms share their levels and the pairing resolves the arm below the per-process spread
+
+### The HS leg / ssn -- trace off vs sink (the re-read)
+
+27 HS cells, `--repeat 200 --hs-warmup 1`, in one process. The lever is `--hs-trace`, unchanged since T6.d. The registration recorded this arm's WALL at 0.975-0.993, below the leg's own 0.22 % instrument floor; this is the same arm read on INSTRUCTIONS.
+
+| event | off (median) | sink (median) | ratio |
+|---|---|---|---|
+| `instructions:u` | 42209083906 | 42209799511 | 1.00002 |
+| `branches:u` | 7632683319 | 7632409287 | 0.99996 |
+| `cycles:u` | 20803978494 | 20763174429 | 0.99804 |
+| `branch-misses:u` | 66878627 | 67732502 | 1.01277 |
+| `L1-icache-load-misses:u` | 95972279 | 95943565 | 0.99970 |
+| process wall (s), informational | 6.2539 | 6.2613 | 1.00117 |
+
+Per-round instruction counts (the alternation): off [42209077421, 42209083906, 42274063209]; sink [42274589948, 42209685256, 42209799511]
+
+LEVEL-MATCHED PAIRING (lowest-with-lowest, highest-with-highest): **1.000014** and **1.000012** -- the two agree to 1.9e-06, so the arms share their levels and the pairing resolves the arm below the per-process spread
+
+### The HS leg / ipm -- trace off vs sink (the re-read)
+
+27 HS cells, `--repeat 200 --hs-warmup 1`, in one process. The lever is `--hs-trace`, unchanged since T6.d. The registration recorded this arm's WALL at 0.975-0.993, below the leg's own 0.22 % instrument floor; this is the same arm read on INSTRUCTIONS.
+
+| event | off (median) | sink (median) | ratio |
+|---|---|---|---|
+| `instructions:u` | 49572356936 | 49715282633 | 1.00288 |
+| `branches:u` | 9066445088 | 9098794432 | 1.00357 |
+| `cycles:u` | 25412515121 | 25283585715 | 0.99493 |
+| `branch-misses:u` | 81952183 | 79129363 | 0.96556 |
+| `L1-icache-load-misses:u` | 140494175 | 141233227 | 1.00526 |
+| process wall (s), informational | 7.6747 | 7.5535 | 0.98421 |
+
+Per-round instruction counts (the alternation): off [49572356936, 49651061290, 49572334090]; sink [49715282633, 49636501334, 49715346124]
+
+LEVEL-MATCHED PAIRING (lowest-with-lowest, highest-with-highest): **1.001294** and **1.001295** -- the two agree to 3.2e-07, so the arms share their levels and the pairing resolves the arm below the per-process spread
+
+## What the attached cost actually is
+
+The delta is normalised two ways: per ATTACHED EVENT (the count the instrument itself prints to stderr) and per event per collocation NODE. An O(1) dispatch would give a small constant in the first column and a falling number in the second.
+
+| leg | mode | arm | instruction delta | events | instr / event | instr / (event x node) |
+|---|---|---|---|---|---|---|
+| SQP corpus | walk | `a10` (callback) | 2.485e+08 | 86 | 2.889e+06 | 454.8 |
+| SQP corpus | walk | `a01` (sink) | 4.488e+07 | 211 | 2.127e+05 | 32.9 |
+| SQP corpus | ssn | `a10` (callback) | 1.633e+08 | 86 | 1.899e+06 | 298.9 |
+| SQP corpus | ssn | `a01` (sink) | 4.057e+07 | 211 | 1.923e+05 | 29.8 |
+| SQP corpus | ipm | `a10` (callback) | 1.573e+08 | 86 | 1.829e+06 | 287.8 |
+| SQP corpus | ipm | `a01` (sink) | 4.674e+07 | 1189 | 3.931e+04 | 7.2 |
+| interior leg (batch 2) | -- | `on` (callback) | 1.804e+09 | 452 | 3.991e+06 | 1129.9 |
+
+**The dispatch is not the carrier.** Per event the delta is MILLIONS of instructions, and per event per node it is a few hundred -- an O(n) cost paid once per attached event, not an O(1) null check and indirect call. That is the `IterationEvent` the driver builds AFTER the guard: `src/drivers/ipm_solver.cpp:2240-2243` and `:2402`, `src/drivers/sqp_solver.cpp:4618`. The CALLBACK-DISPATCH class the brief names is real and is in there, but it is three to four orders of magnitude below what this leg can see; what an attached callback costs on these problems is the EVENT, and it scales with the problem.
+
+## The counter check -- an attached observer must change no trajectory
+
+`scripts/compare_replay.py A B LABEL` is EXACT STRING EQUALITY on every column but `wall_s`, which is what this check wants: every counter, every status and every residual byte-identical between the attached and the unattached arm. Run without `--residual-gate` first; where that passes there is nothing for the gate to relax.
+
+THE POPULATION IS AN EXACT MANIFEST (fix1), not whatever `raw/` happens to hold: `expected_manifest()` lists every comparison this leg owes -- the 27 cell ids spelled out -- and a MISSING FILE IS A REFUSAL that exits non-zero. Round 1 derived the population from the files it found and never visited the three `raw/ipmleg2` pairs (the second interior batch), so it reported 52 comparisons over 1468 rows where the captured population is **55 over 1597**.
+
+```
+=== sqp corpus wall / walk / a00 vs a10 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp corpus wall / walk / a00 vs a01 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp corpus wall / walk / a00 vs a11 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp corpus wall / ssn / a00 vs a10 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp corpus wall / ssn / a00 vs a01 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp corpus wall / ssn / a00 vs a11 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp corpus wall / ipm / a00 vs a10 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp corpus wall / ipm / a00 vs a01 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp corpus wall / ipm / a00 vs a11 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / walk / r1 / a00 vs a10 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / walk / r1 / a00 vs a01 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / walk / r1 / a00 vs a11 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / walk / r2 / a00 vs a10 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / walk / r2 / a00 vs a01 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / walk / r2 / a00 vs a11 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / walk / r3 / a00 vs a10 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / walk / r3 / a00 vs a01 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / walk / r3 / a00 vs a11 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / ssn / r1 / a00 vs a10 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / ssn / r1 / a00 vs a01 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / ssn / r1 / a00 vs a11 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / ssn / r2 / a00 vs a10 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / ssn / r2 / a00 vs a01 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / ssn / r2 / a00 vs a11 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / ssn / r3 / a00 vs a10 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / ssn / r3 / a00 vs a01 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / ssn / r3 / a00 vs a11 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / ipm / r1 / a00 vs a10 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / ipm / r1 / a00 vs a01 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / ipm / r1 / a00 vs a11 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / ipm / r2 / a00 vs a10 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / ipm / r2 / a00 vs a01 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / ipm / r2 / a00 vs a11 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / ipm / r3 / a00 vs a10 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / ipm / r3 / a00 vs a01 === cells compared: 27  columns compared: 75  differences: 0
+=== sqp single-cell perf / ipm / r3 / a00 vs a11 === cells compared: 27  columns compared: 75  differences: 0
+=== interior leg / wall / r1 / off vs on === cells compared: 43  columns compared: 30  differences: 0
+=== interior leg / perf / r1 / off vs on === cells compared: 43  columns compared: 30  differences: 0
+=== interior leg / perf / r2 / off vs on === cells compared: 43  columns compared: 30  differences: 0
+=== interior leg / perf / r3 / off vs on === cells compared: 43  columns compared: 30  differences: 0
+=== interior leg batch 2 / perf / r1 / off vs on === cells compared: 43  columns compared: 30  differences: 0
+=== interior leg batch 2 / perf / r2 / off vs on === cells compared: 43  columns compared: 30  differences: 0
+=== interior leg batch 2 / perf / r3 / off vs on === cells compared: 43  columns compared: 30  differences: 0
+=== HS leg / wall / walk / r1 / off vs sink === cells compared: 27  columns compared: 17  differences: 0
+=== HS leg / wall / ssn / r1 / off vs sink === cells compared: 27  columns compared: 17  differences: 0
+=== HS leg / wall / ipm / r1 / off vs sink === cells compared: 27  columns compared: 17  differences: 0
+=== HS leg / perf / walk / r1 / off vs sink === cells compared: 27  columns compared: 17  differences: 0
+=== HS leg / perf / walk / r2 / off vs sink === cells compared: 27  columns compared: 17  differences: 0
+=== HS leg / perf / walk / r3 / off vs sink === cells compared: 27  columns compared: 17  differences: 0
+=== HS leg / perf / ssn / r1 / off vs sink === cells compared: 27  columns compared: 17  differences: 0
+=== HS leg / perf / ssn / r2 / off vs sink === cells compared: 27  columns compared: 17  differences: 0
+=== HS leg / perf / ssn / r3 / off vs sink === cells compared: 27  columns compared: 17  differences: 0
+=== HS leg / perf / ipm / r1 / off vs sink === cells compared: 27  columns compared: 17  differences: 0
+=== HS leg / perf / ipm / r2 / off vs sink === cells compared: 27  columns compared: 17  differences: 0
+=== HS leg / perf / ipm / r3 / off vs sink === cells compared: 27  columns compared: 17  differences: 0
+```
+
+| | manifest demands | this run | |
+|---|---:|---:|---|
+| comparisons | 55 | 55 | OK |
+| cell-comparisons (rows) | 1597 | 1597 | OK |
+| differences | 0 | 0 | OK |
+| missing files | 0 | 0 | OK |
+
+**RESULT: every pair the manifest demands was compared and every one is byte-identical on every asserted column (55 comparisons, 1597 cell-comparisons, 0 differences).**
+
+## The wall readings, beside the instructions (INFORMATIONAL)
+
+CLAUDE.md section 7: serial, solo, one solve at a time, `MKL_NUM_THREADS=1`, pinned to cpu2 with its SMT sibling cpu10 left idle. The corpus figure is the SUM of the per-cell `wall_s` column -- the leg's own solve bracket -- exactly as T8.9r's leg 1 read it.
+
+| leg | mode | arm | corpus wall (s) | ratio vs unattached |
+|---|---|---|---|---|
+| SQP corpus (27 cells) | walk | `a00` | 6.0120 | -- |
+| SQP corpus (27 cells) | walk | `a10` | 6.0158 | 1.00063 |
+| SQP corpus (27 cells) | walk | `a01` | 6.0229 | 1.00181 |
+| SQP corpus (27 cells) | walk | `a11` | 6.0476 | 1.00592 |
+| SQP corpus (27 cells) | ssn | `a00` | 11.1258 | -- |
+| SQP corpus (27 cells) | ssn | `a10` | 11.0753 | 0.99547 |
+| SQP corpus (27 cells) | ssn | `a01` | 11.1067 | 0.99829 |
+| SQP corpus (27 cells) | ssn | `a11` | 11.1222 | 0.99968 |
+| SQP corpus (27 cells) | ipm | `a00` | 14.8402 | -- |
+| SQP corpus (27 cells) | ipm | `a10` | 14.8440 | 1.00026 |
+| SQP corpus (27 cells) | ipm | `a01` | 14.8405 | 1.00002 |
+| SQP corpus (27 cells) | ipm | `a11` | 14.8715 | 1.00211 |
+| interior leg (43 rows) | -- | `off` | 10.7182 | -- |
+| interior leg (43 rows) | -- | `on` | 11.0872 | 1.03443 |
+| HS leg (27 cells, sum of per-cell medians) | walk | `off` | 0.022592 | -- |
+| HS leg (27 cells, sum of per-cell medians) | walk | `sink` | 0.022744 | 1.00673 |
+| HS leg (27 cells, sum of per-cell medians) | ssn | `off` | 0.030076 | -- |
+| HS leg (27 cells, sum of per-cell medians) | ssn | `sink` | 0.030201 | 1.00413 |
+| HS leg (27 cells, sum of per-cell medians) | ipm | `off` | 0.037075 | -- |
+| HS leg (27 cells, sum of per-cell medians) | ipm | `sink` | 0.036644 | 0.98838 |
+
+## The short version
+
+| leg | mode | arm | corpus instruction ratio | per-cell median | per-cell max | cells outside 0.99-1.01 | band |
+|---|---|---|---|---|---|---|---|
+| SQP corpus | walk | `a10` | **1.00014** (+0.0137 %) | 1.00219 (+0.2187 %) | 1.00253 (+0.2533 %) | 0/27 | **FLAT** |
+| SQP corpus | walk | `a01` | **1.00002** (+0.0025 %) | 1.00056 (+0.0561 %) | 1.00060 (+0.0600 %) | 0/27 | **FLAT** |
+| SQP corpus | walk | `a11` | **1.00016** (+0.0158 %) | 1.00274 (+0.2743 %) | 1.00311 (+0.3112 %) | 0/27 | **FLAT** |
+| SQP corpus | ssn | `a10` | **1.00117** (+0.1173 %) | 1.00134 (+0.1342 %) | 1.00177 (+0.1767 %) | 0/27 | **FLAT** |
+| SQP corpus | ssn | `a01` | **1.00029** (+0.0291 %) | 1.00030 (+0.0300 %) | 1.00040 (+0.0404 %) | 0/27 | **FLAT** |
+| SQP corpus | ssn | `a11` | **1.00146** (+0.1463 %) | 1.00171 (+0.1712 %) | 1.00216 (+0.2155 %) | 0/27 | **FLAT** |
+| SQP corpus | ipm | `a10` | **1.00074** (+0.0737 %) | 1.00078 (+0.0784 %) | 1.00119 (+0.1193 %) | 0/27 | **FLAT** |
+| SQP corpus | ipm | `a01` | **1.00022** (+0.0219 %) | 1.00024 (+0.0237 %) | 1.00031 (+0.0310 %) | 0/27 | **FLAT** |
+| SQP corpus | ipm | `a11` | **1.00096** (+0.0957 %) | 1.00103 (+0.1030 %) | 1.00151 (+0.1511 %) | 0/27 | **FLAT** |
+
+**THE CORPUS COLUMN AND THE PER-CELL COLUMNS ARE AN ORDER OF MAGNITUDE APART, AND THAT IS A FACT ABOUT THE CELL SET, NOT ABOUT THE OBSERVER.** IN WALK MODE (fix1 -- this explanation is WALK-ONLY, and the sentence round 1 wrote was unscoped) two cells -- `f7_n1000_path_warm` and `f7_n800_path_warm` -- carry 95.9551 % of the U0 set's instructions between them (1.08e12 and 6.66e11 against 1.82e12 for all 27) and both take the same TWO major iterations as every other cell, so their attached ratio is ~1.00004 and they pull the SUM-of-medians corpus figure onto themselves. THE SAME TWO CELLS CARRY ONLY 6.8034 % IN ssn AND 8.7003 % IN ipm, where the corpus and per-cell columns are correspondingly close together. The per-cell median is the figure to read for what an attached observer costs a typical cell; the corpus figure is the one the FLAT definition names, and both are inside the band in all three modes.
+
+Counter check: **PASS -- byte-identical**.

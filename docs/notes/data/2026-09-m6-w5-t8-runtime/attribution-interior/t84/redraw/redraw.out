@@ -1,0 +1,34 @@
+R3 -- the excluded first row, per arm: {'a1': 'f7_n1000_bound_physics/MakeParameter', 'a2': 'f7_n1000_bound_physics/MakeParameter', 'a3': 'f7_n1000_bound_physics/MakeParameter', 'a4': 'f7_n1000_bound_physics/MakeParameter'}
+SCORED ROWS 11: ['f7_n1000_bound_physics/MakeConstraint', 'f7_n1000_bound_physics/RelaxBounds', 'f7_n5000_bound_physics/MakeParameter', 'f7_n5000_bound_physics/MakeConstraint', 'f7_n5000_bound_physics/RelaxBounds', 'f7_n10000_bound_neutral/MakeParameter', 'f7_n10000_bound_neutral/MakeConstraint', 'f7_n10000_bound_neutral/RelaxBounds', 'f7_n20000_bound_neutral/MakeParameter', 'f7_n20000_bound_neutral/MakeConstraint', 'f7_n20000_bound_neutral/RelaxBounds']
+
+## The four-arm per-row wall table (median of five rounds, seconds)
+
+| row | base 102f729 | head e51a7e0 | E1 | E2 | head/base | E1/base | E2/base | E1 recovery | E2 recovery |
+|---|---|---|---|---|---|---|---|---|---|
+| `f7_n1000_bound_physics/MakeConstraint` | 0.031989 | 0.032536 | 0.032676 | 0.032593 | 1.0171 | 1.0215 | 1.0189 | -25.6 % | -10.5 % |
+| `f7_n1000_bound_physics/RelaxBounds` | 0.031971 | 0.032436 | 0.032631 | 0.032569 | 1.0146 | 1.0206 | 1.0187 | -41.7 % | -28.5 % |
+| `f7_n5000_bound_physics/MakeParameter` | 0.179004 | 0.185896 | 0.186005 | 0.186340 | 1.0385 | 1.0391 | 1.0410 | -1.6 % | -6.4 % |
+| `f7_n5000_bound_physics/MakeConstraint` | 0.174289 | 0.180803 | 0.180941 | 0.179688 | 1.0374 | 1.0382 | 1.0310 | -2.1 % | +17.1 % |
+| `f7_n5000_bound_physics/RelaxBounds` | 0.173521 | 0.180013 | 0.177631 | 0.177711 | 1.0374 | 1.0237 | 1.0241 | +36.7 % | +35.5 % |
+| `f7_n10000_bound_neutral/MakeParameter` | 0.539287 | 0.554721 | 0.554696 | 0.554164 | 1.0286 | 1.0286 | 1.0276 | +0.2 % | +3.6 % |
+| `f7_n10000_bound_neutral/MakeConstraint` | 0.523104 | 0.538628 | 0.538507 | 0.537214 | 1.0297 | 1.0294 | 1.0270 | +0.8 % | +9.1 % |
+| `f7_n10000_bound_neutral/RelaxBounds` | 0.523523 | 0.533464 | 0.541195 | 0.538622 | 1.0190 | 1.0338 | 1.0288 | -77.8 % | -51.9 % |
+| `f7_n20000_bound_neutral/MakeParameter` | 1.127292 | 1.157333 | 1.160374 | 1.157245 | 1.0266 | 1.0293 | 1.0266 | -10.1 % | +0.3 % |
+| `f7_n20000_bound_neutral/MakeConstraint` | 1.093735 | 1.125526 | 1.126744 | 1.113727 | 1.0291 | 1.0302 | 1.0183 | -3.8 % | +37.1 % |
+| `f7_n20000_bound_neutral/RelaxBounds` | 1.092237 | 1.112104 | 1.125686 | 1.117176 | 1.0182 | 1.0306 | 1.0228 | -68.4 % | -25.5 % |
+| **scored corpus (11 rows)** | **5.489952** | **5.633460** | **5.657087** | **5.627050** | **1.0261** | **1.0304** | **1.0250** | **-16.5 %** | **+4.5 %** |
+| **median per-row recovery** | | | | | | | | **-3.8 %** | **+0.3 %** |
+
+CORPUS STEP head/base = 1.026140 (+2.614 %)
+E1 CORPUS RECOVERY -16.46 %   median per-row -3.83 %
+E2 CORPUS RECOVERY +4.47 %   median per-row +0.29 %
+E3 TRIGGER: best corpus recovery +4.47 % -- E3 RUNS (under 80 %)
+
+## Per-round spread, for the record (min..max of the five, seconds)
+
+| arm | scored corpus min | max | spread |
+|---|---|---|---|
+| a1 base 102f729 | 5.480564 | 5.497692 | 0.3125 % |
+| a2 head e51a7e0 | 5.626756 | 5.649129 | 0.3976 % |
+| a3 E1 | 5.650304 | 5.665712 | 0.2727 % |
+| a4 E2 | 5.617700 | 5.641660 | 0.4265 % |

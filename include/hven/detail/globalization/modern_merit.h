@@ -6,7 +6,7 @@
 #include <limits>
 #include <stdexcept>
 
-#include "hven/detail/drivers/interior_point_solver_fwd.h"
+#include "hven/detail/drivers/ipm_solver_fwd.h"
 #include "hven/detail/globalization/acceptance_strategy.h"
 #include "hven/detail/globalization/progress_measures.h"
 

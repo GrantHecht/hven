@@ -55,7 +55,7 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/globalization/sqp/globalization.h>
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 
 using namespace hven::solvers;
 using hven::Index;
@@ -729,7 +729,7 @@ TEST(FunnelResume, RebasesByEqThirteenAndNotByEqNine) {
 TEST(FunnelResume, WideningIsOnlyPossibleAboveTheCurrentWidth) {
     // The transcription is unconditional (Eq. (13) is not a clamped rule), so
     // the monotonicity of the resume comes from the CALLER's exit condition
-    // h_restored <= tau -- which sqp_driver.h's h < feas_tol supplies with room
+    // h_restored <= tau -- which sqp_solver.h's h < feas_tol supplies with room
     // to spare. Pinned in both directions so the dependency is explicit rather
     // than assumed.
     {
@@ -803,7 +803,7 @@ TEST(FunnelInvariant, VerdictDoesNotDependOnTrActive) {
 // A non-finite trial is rejected rather than silently compared: every
 // comparison against NaN is false, so an unguarded implementation would fall
 // through Eq. (8) and Eq. (10) into the h-type branch and could ACCEPT it
-// (this is sqp_driver.h's NON-FINITE ITERATES discipline, applied here).
+// (this is sqp_solver.h's NON-FINITE ITERATES discipline, applied here).
 TEST(FunnelInvariant, NonFiniteTrialIsRejected) {
     const double nan = std::numeric_limits<double>::quiet_NaN();
     const double inf = std::numeric_limits<double>::infinity();
@@ -899,7 +899,7 @@ TEST(FunnelFullStep, ArmingBeforeResetThrows) {
 }
 
 // =============================================================================
-// FunnelMeasure — h(x) as the funnel consumes it (sqp_driver.h).
+// FunnelMeasure — h(x) as the funnel consumes it (sqp_solver.h).
 // =============================================================================
 
 // KLV Sec. 2.4.1 defines h(x) = ‖c(x)‖₁ for an NCO whose only inequalities are

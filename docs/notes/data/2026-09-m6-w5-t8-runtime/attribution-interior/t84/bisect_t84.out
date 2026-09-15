@@ -1,0 +1,106 @@
+====================================================================================================
+1. THE SIX ARMS
+====================================================================================================
+
+  arm  commit    sha       rows   exe sha256 (first 16)   lib sha256 (first 16)
+  b01   T8.3      510a4bb    19   70f36ffe92a8c223       6f0dc91e24328b7c
+  b02   8ae1618   8ae1618    19   70f36ffe92a8c223       e11cb6611991700b
+  b03   9cebbbe   9cebbbe    19   f17d704613f3fef6       25027b509a02e0a5
+  b04   9ce9bb2   9ce9bb2    19   4ac0fd9e7bf9b6a0       bafbdcf39e341288
+  b05   fix1      5124aa1    21   7fc12cf07f84f074       85c59ffc0a86b778
+  b06   T8.4      3c8e43b    21   7fc12cf07f84f074       85c59ffc0a86b778
+
+====================================================================================================
+2. THE PER-ROW WALL STEP PER COMMIT -- median of five rounds, arm order rotated per round
+====================================================================================================
+
+THIS ASSERTS WALL CLOCK (CLAUDE.md section 7). Solo, taskset -c 2, MKL_NUM_THREADS=1,
+one solve at a time under the box lock, the fix1 R2 pinned-core discipline; IDLE-PROOF.md.
+
+R3 -- THE FIRST ROW EVERY PROCESS WRITES IS EXCLUDED BY POSITION (predeclaration.txt,
+hashed at 18:50:35 UTC, before the first wall batch's FOREGROUND_START at 18:51:1x UTC).
+It is the SAME row at every arm: f7_n1000_bound_physics/MakeParameter.
+
+  row                                          8ae1618   9cebbbe   9ce9bb2      fix1      T8.4    cumul
+  -----------------------------------------------------------------------------------------------------
+  f7_n1000_bound_physics/MakeParameter          1.5489    1.0306    0.5342    0.8828    1.3225   0.9955   EXCL
+  f7_n1000_bound_physics/MakeConstraint         0.9980    1.0200    1.0043    0.9959    1.0012   1.0194
+  f7_n1000_bound_physics/RelaxBounds            1.0000    1.0238    1.0050    0.9924    1.0008   1.0219
+  f7_n5000_bound_physics/MakeParameter          0.9995    1.0410    1.0056    0.9945    1.0005   1.0411
+  f7_n5000_bound_physics/MakeConstraint         0.9992    1.0328    1.0002    1.0074    1.0015   1.0414
+  f7_n5000_bound_physics/RelaxBounds            0.9995    1.0330    1.0019    1.0038    1.0015   1.0399
+  f7_n10000_bound_neutral/MakeParameter         0.9980    1.0413    1.0060    0.9950    1.0000   1.0403
+  f7_n10000_bound_neutral/MakeConstraint        1.0013    1.0305    1.0009    0.9982    1.0003   1.0312
+  f7_n10000_bound_neutral/RelaxBounds           1.0007    1.0281    1.0028    0.9878    1.0040   1.0232
+  f7_n20000_bound_neutral/MakeParameter         0.9991    1.0287    1.0028    0.9974    1.0011   1.0290
+  f7_n20000_bound_neutral/MakeConstraint        0.9998    1.0332    1.0001    0.9872    1.0009   1.0208
+  f7_n20000_bound_neutral/RelaxBounds           0.9994    1.0324    1.0019    0.9906    1.0007   1.0246
+
+  Scored rows: 11 (the twelve base F7 rows less the R3 warm-up).
+  Per-commit worst/best/median step over the scored rows:
+    8ae1618  min 0.9980  max 1.0013  median 0.9995  rows above 1.01:  0/11  below 0.99:  0/11
+    9cebbbe  min 1.0200  max 1.0413  median 1.0324  rows above 1.01: 11/11  below 0.99:  0/11
+    9ce9bb2  min 1.0001  max 1.0060  median 1.0028  rows above 1.01:  0/11  below 0.99:  0/11
+    fix1     min 0.9872  max 1.0074  median 0.9950  rows above 1.01:  0/11  below 0.99:  2/11
+    T8.4     min 1.0000  max 1.0040  median 1.0009  rows above 1.01:  0/11  below 0.99:  0/11
+
+  Round-to-round spread of each arm's own scored-row total (max/min - 1):
+    b01 T8.3      0.0082   5.4926  5.5311  5.5322  5.5302  5.5377
+    b02 8ae1618   0.0139   5.4778  5.5288  5.5314  5.5539  5.5263
+    b03 9cebbbe   0.0063   5.6839  5.6993  5.7194  5.6966  5.7187
+    b04 9ce9bb2   0.0086   5.6961  5.7120  5.7453  5.7227  5.7313
+    b05 fix1      0.0137   5.6457  5.7232  5.6834  5.6867  5.6815
+    b06 T8.4      0.0081   5.6607  5.6903  5.6904  5.7067  5.6855
+
+====================================================================================================
+3. THE CUMULATIVE CHECK
+====================================================================================================
+
+  Corpus over the eleven scored rows, b01 -> b06 (510a4bb -> 3c8e43b): 1.0283
+  reading.md section 11's T8.4 column, median share row:               +1.03 of a 1.0250 cumulative
+  reading.md section 11's T8.4 per-row steps ran 1.0147 to 1.0425; this leg's b01 -> b06
+  per-row cumulative runs 1.0194 to 1.0414.
+
+====================================================================================================
+4. THE LOCALISATION -- each commit's share of the cumulative, in log space
+====================================================================================================
+
+  row                                          8ae1618   9cebbbe   9ce9bb2      fix1      T8.4
+  f7_n1000_bound_physics/MakeConstraint          -0.10      1.03      0.22     -0.21      0.06
+  f7_n1000_bound_physics/RelaxBounds              0.00      1.08      0.23     -0.35      0.04
+  f7_n5000_bound_physics/MakeParameter           -0.01      1.00      0.14     -0.14      0.01
+  f7_n5000_bound_physics/MakeConstraint          -0.02      0.80      0.01      0.18      0.04
+  f7_n5000_bound_physics/RelaxBounds             -0.01      0.83      0.05      0.10      0.04
+  f7_n10000_bound_neutral/MakeParameter          -0.05      1.02      0.15     -0.13      0.00
+  f7_n10000_bound_neutral/MakeConstraint          0.04      0.98      0.03     -0.06      0.01
+  f7_n10000_bound_neutral/RelaxBounds             0.03      1.21      0.12     -0.54      0.18
+  f7_n20000_bound_neutral/MakeParameter          -0.03      0.99      0.10     -0.09      0.04
+  f7_n20000_bound_neutral/MakeConstraint         -0.01      1.58      0.01     -0.62      0.04
+  f7_n20000_bound_neutral/RelaxBounds            -0.03      1.31      0.08     -0.39      0.03
+
+  Per commit, over the eleven scored rows:
+    8ae1618  median share  -0.01   rows at or above 0.80:  0/11
+    9cebbbe  median share  +1.02   rows at or above 0.80: 10/11
+    9ce9bb2  median share  +0.10   rows at or above 0.80:  0/11
+    fix1     median share  -0.14   rows at or above 0.80:  0/11
+    T8.4     median share  +0.04   rows at or above 0.80:  0/11
+
+  CARRIER (the pre-declared rule: largest median share, and >= 0.80 to be called the
+  carrier of at least 80 % of the step): 9cebbbe, median share +1.02 -- CARRIER
+
+====================================================================================================
+5. THE TWO ZERO CONTROLS
+====================================================================================================
+
+  b01 -> b02 (510a4bb -> 8ae1618) and b05 -> b06 (5124aa1 -> 3c8e43b) each produced a
+  BYTE-IDENTICAL hven_sqp_corpus (raw/bin/*.sha256, and the cmp in logs/B3-identity.log).
+  Their true step is EXACTLY ZERO on every row, so whatever they read is this
+  instrument's floor and can be nothing else.
+
+    8ae1618  min 0.9980  max 1.0013  median 0.9995  |ln| median 0.00075
+    T8.4     min 1.0000  max 1.0040  median 1.0009  |ln| median 0.00087
+
+  And the floor to compare the carrier against, stated as a ratio:
+    worst zero-control median |ln step| 0.00087 ; 9cebbbe's 0.03189 ; ratio 36.5x
+
+APPLE / ACCELERATE: UNOBSERVED.   WINDOWS: UNOBSERVED.

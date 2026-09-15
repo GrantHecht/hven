@@ -66,7 +66,14 @@ endif()
 # drift). bench_corpus.cpp is CLI glue only. NOT ctest-registered: its
 # baseline sweep touches N = 20000 cells that run for minutes to hours. Its
 # correctness gate is tests/sqp/test_corpus_cells.cpp.
-add_executable(hven_sqp_corpus bench_corpus.cpp)
+# ipm_corpus_leg.cpp is the ONE non-glue TU here: the top-level interior-point
+# replay leg (--engine interior). A .cpp rather than a header because it is
+# ordinary non-template code with two consumers, and both COMPILE IT: this
+# binary, and hven_sqp_tests (tests/sqp/CMakeLists.txt lists it explicitly).
+# Until M6 W5 T8.9r it had one -- every interior gate read the committed
+# artifact rather than the leg -- and the single-row mode's pin is the first
+# assertion that has to call the leg's own functions to make its point.
+add_executable(hven_sqp_corpus bench_corpus.cpp ipm_corpus_leg.cpp)
 target_link_libraries(hven_sqp_corpus PRIVATE hven::hven)
 target_compile_options(hven_sqp_corpus PRIVATE ${COMPILE_FLAGS})
 target_include_directories(hven_sqp_corpus PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
@@ -77,6 +84,10 @@ target_include_directories(hven_sqp_corpus PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/
 # degrades to the literal string "unknown" rather than failing the configure.
 # `--dirty` is deliberately included: a baseline produced from an uncommitted
 # tree must say so.
+#
+# THE TRAP THIS CARRIES, and it bit once (T10b fix round 1): a tree configured
+# while clean and REBUILT after an edit emits the stale, clean stamp. Re-configure
+# before producing a measurement CSV -- the acceptance dir's PROVENANCE.txt.
 execute_process(
     COMMAND git describe --always --dirty --abbrev=12
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -135,3 +146,58 @@ target_include_directories(hven_sqp_crossover PRIVATE "${CMAKE_CURRENT_SOURCE_DI
 # reason: every CSV this runner writes says which binary produced its rows.
 target_compile_definitions(hven_sqp_crossover PRIVATE
     HVEN_SQP_CROSSOVER_GIT_DESCRIBE="${HVEN_SQP_CORPUS_GIT_DESCRIBE}")
+
+# hven_sqp_ipqp_e1_arm — M6 W1 T10's acceptance arm: the IPQP tier over E1's
+# 29 constructed cells (A4), the Q4 `ipqp_init_mu` sweep and the A13/A14 wall
+# legs. The arm lives in bench/ipqp_e1_arm.h (a header, for the same reason
+# corpus_cells.h is one: tests/sqp/test_ipqp_acceptance.cpp gates exactly this
+# implementation rather than a bench-only copy). Its `--gate` mode IS
+# ctest-registered, below, under a label the default run excludes; the sweep
+# modes are not (one A4 pass at nx = 1e5 runs for tens of minutes).
+add_executable(hven_sqp_ipqp_e1_arm ipqp_e1_arm.cpp)
+target_link_libraries(hven_sqp_ipqp_e1_arm PRIVATE hven::hven)
+target_compile_options(hven_sqp_ipqp_e1_arm PRIVATE ${COMPILE_FLAGS})
+target_include_directories(hven_sqp_ipqp_e1_arm PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../tests/sqp")
+target_compile_definitions(hven_sqp_ipqp_e1_arm PRIVATE
+    HVEN_SQP_E1_ARM_GIT_DESCRIBE="${HVEN_SQP_CORPUS_GIT_DESCRIBE}")
+
+# HVEN_BENCH_E1_GENERATOR_ARITHMETIC — the arm's MATCHED-ARITHMETIC build, and
+# the ONLY documented producer of regen-certificate-fpcontract-off.csv.
+#
+# E1's generator was compiled at plain `-O3 -DNDEBUG -std=c++20`
+# (docs/notes/data/2026-08-m6-e1-acquisition/generator/build_e1.sh): baseline
+# ISA, no fast-math, no FMA contraction. This repository's uniform regime
+# (CLAUDE.md §7) adds `-march=native -ffast-math`, and all three differences
+# matter — contraction moves the constructed `g` and the verifier's
+# cancellation residual, while the ISA and reassociation flags move Eigen's
+# SimplicialLDLT and hence `licq_d_min`. Turning ALL of them off for THIS
+# TARGET ONLY reproduces the artifact's recorded digits exactly (225/225);
+# `-ffp-contract=off` alone leaves 14 `licq_d_min` cells differing, measured.
+#
+# Default OFF: the shipped arm is never built this way and the uniform regime
+# is not weakened. Never set it for a measurement CSV other than the
+# certificate — see docs/notes/data/2026-08-m6-w1-acceptance/README.md §1.
+option(HVEN_BENCH_E1_GENERATOR_ARITHMETIC
+       "Build hven_sqp_ipqp_e1_arm at E1's generator arithmetic (regeneration certificate only)"
+       OFF)
+if(HVEN_BENCH_E1_GENERATOR_ARITHMETIC)
+    target_compile_options(hven_sqp_ipqp_e1_arm PRIVATE -ffp-contract=off -fno-fast-math)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
+        target_compile_options(hven_sqp_ipqp_e1_arm PRIVATE -march=x86-64 -mtune=generic)
+    endif()
+endif()
+
+# The A4 gate, EXECUTABLE, but registered only under -DHVEN_A4_GATE=ON
+# (default OFF): it re-solves all 29 cells at both sizes, which CI's bare
+# `ctest --timeout 300` (.github/workflows/ci.yml:199) has no budget for.
+# T10b: it now EXITS 0 -- E1 criteria 1/2/4 hold at the measured
+# `ipqp_init_mu` but for the one named cell, which the arm reports by name.
+# See README.md section 2 and its dated T10b block for the verdict.
+option(HVEN_A4_GATE "Register the A4Gate ctest entry (green but for one named cell)" OFF)
+if(HVEN_A4_GATE)
+    add_test(NAME A4Gate.TheTaxonomyAtBothSizesUnderTheMeasuredDefault
+             COMMAND hven_sqp_ipqp_e1_arm --gate --out
+                     "${CMAKE_CURRENT_BINARY_DIR}/a4-gate-run.csv")
+    set_tests_properties(A4Gate.TheTaxonomyAtBothSizesUnderTheMeasuredDefault PROPERTIES
+        LABELS "a4_gate" TIMEOUT 5400 RUN_SERIAL TRUE)
+endif()

@@ -1,0 +1,150 @@
+M6 W6 T2 -- THE PCH-OFF EXPERIMENT (plan J.9; T0 README section 3)
+==================================================================
+AN EXPERIMENT, NOT PART OF THE READ. Every number in this file comes from two
+SMALL instrumented trees built for this question alone. They are comparable to
+EACH OTHER and to nothing else -- not to the close read in this directory, not
+to T0's. Nothing here is a pin, a baseline or a timing. Apple/Accelerate:
+UNOBSERVED.
+
+THE QUESTION T0 NAMED
+---------------------
+T0 found four library headers reporting 0.00 % lines while their functions
+demonstrably execute, and observed that TWO of them (timer.h,
+inertia_regularization.h) are named in src/hven_pch.h while TWO
+(eval_error_log.h, ipm_solver_types.h) are not. It called that a CORRELATION,
+not a cause, and named the cheap test: one coverage tree with the precompiled
+header off, re-read the same way.
+
+THE ARMS, AND THE ONE VARIABLE
+------------------------------
+Two trees under .scratch/w6t2/ (git-ignored), configured with the
+linux-clang-coverage preset's OWN cache variables spelled out -- Debug,
+clang 22.1.8 for C and C++, HVEN_FP_MODE=SAFER_FAST,
+"-fprofile-instr-generate -fcoverage-mapping" on both languages and
+"-fprofile-instr-generate" on the exe linker. The preset itself pins its
+binaryDir to build-coverage/, which the close read owns, so the variables are
+passed directly instead; that is the ONLY departure from the preset and it
+changes no flag.
+
+The arms differ in exactly one cache entry:
+    ARM 1  (PCH ON)   the shipped configuration
+    ARM 2  (PCH OFF)  -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON
+CMake's own switch, honoured since 3.16. NO source, CMake or preset change was
+made for this experiment, and none is needed: src/CMakeLists.txt's deferred
+opt-out loop only sets and reads SKIP_PRECOMPILE_HEADERS source properties,
+which configure identically either way.
+
+PROOF OF REACH, both directions, from each arm's own compile_commands.json:
+    ARM 1   "-include-pch" occurrences: 4   (the four opt-in sources)
+    ARM 2   "-include-pch" occurrences: 0
+
+A REDUCED OBJECT SET, DECLARED. Each arm builds and runs `hven_interior_tests`
+and `hven_drivers_tests` only -- the two binaries whose cells reach every row
+under examination -- rather than the whole suite. Both arms run the same two
+binaries over the same cells, which is what makes them an A/B.
+
+THE RESULT
+----------
+THE FIVE ROWS T0 NAMED (four under-read + the one genuinely cold)
+  include/hven/detail/interior/utils/timer.h                     PCH-ON   0.00% (0/47)   PCH-OFF  70.21% (33/47)   MOVED   [IN the PCH (:59)]
+  include/hven/detail/globalization/inertia_regularization.h     PCH-ON   0.00% (0/6)   PCH-OFF 100.00% (6/6)   MOVED   [IN the PCH (:86)]
+  include/hven/detail/globalization/soc.h                        PCH-ON 100.00% (29/29)   PCH-OFF 100.00% (29/29)   unchanged   [IN the PCH (:89)]
+  include/hven/detail/interior/eval_error_log.h                  PCH-ON   0.00% (0/9)   PCH-OFF 100.00% (9/9)   MOVED   [NOT in the PCH]
+  include/hven/drivers/ipm_solver_types.h                        PCH-ON   0.00% (0/1)   PCH-OFF 100.00% (1/1)   MOVED   [NOT in the PCH]
+
+EVERY OTHER LIBRARY ROW WHOSE COVERED-LINE COUNT DIFFERS BETWEEN THE ARMS
+  include/hven/core/pattern_hash.h                               PCH-ON  78.38% (58/74)   PCH-OFF  87.84% (65/74)   MOVED
+  include/hven/detail/globalization/backtracking_line_search.h   PCH-ON 100.00% (4/4)   PCH-OFF 100.00% (5/5)   MOVED
+  include/hven/detail/globalization/feasibility_stall.h          PCH-ON      absent   PCH-OFF 100.00% (15/15)   MOVED
+  include/hven/detail/globalization/feasibility_switch_recovery.h PCH-ON  61.54% (8/13)   PCH-OFF  84.62% (11/13)   MOVED
+  include/hven/detail/globalization/noop_recovery.h              PCH-ON      absent   PCH-OFF 100.00% (6/6)   MOVED
+  include/hven/detail/interior/barrier_math.h                    PCH-ON   7.58% (10/132)   PCH-OFF  97.73% (129/132)   MOVED
+  include/hven/detail/interior/bound_set.h                       PCH-ON  11.11% (1/9)   PCH-OFF 100.00% (9/9)   MOVED
+  include/hven/detail/interior/constraint_function.h             PCH-ON   0.00% (0/35)   PCH-OFF  62.86% (22/35)   MOVED
+  include/hven/detail/interior/fixed_variable_row.h              PCH-ON   0.00% (0/97)   PCH-OFF  62.50% (55/88)   MOVED
+  include/hven/detail/interior/indexing_data.h                   PCH-ON   0.77% (1/130)   PCH-OFF  61.48% (75/122)   MOVED
+  include/hven/detail/interior/kkt_factorization.h               PCH-ON  83.33% (10/12)   PCH-OFF  91.67% (11/12)   MOVED
+  include/hven/detail/interior/objective_function.h              PCH-ON   0.00% (0/27)   PCH-OFF  51.85% (14/27)   MOVED
+  include/hven/detail/interior/solver_function_base.h            PCH-ON  11.11% (3/27)   PCH-OFF  58.33% (28/48)   MOVED
+  include/hven/detail/interior/utils/thread_pool.h               PCH-ON  54.57% (179/328)   PCH-OFF  68.05% (279/410)   MOVED
+  include/hven/detail/interior/utils/type_storage.h              PCH-ON  45.74% (43/94)   PCH-OFF  65.75% (48/73)   MOVED
+  include/hven/detail/model/claim_restatement.h                  PCH-ON   0.00% (0/40)   PCH-OFF  25.00% (10/40)   MOVED
+  include/hven/detail/solvers/solver_interface_specs.h           PCH-ON  35.47% (72/203)   PCH-OFF  78.05% (160/205)   MOVED
+  include/hven/drivers/ipm_solver.h                              PCH-ON  84.21% (48/57)   PCH-OFF 100.00% (57/57)   MOVED
+  include/hven/model/candidate_point.h                           PCH-ON  47.45% (65/137)   PCH-OFF  58.39% (80/137)   MOVED
+  include/hven/model/claim_space.h                               PCH-ON  16.35% (17/104)   PCH-OFF  44.23% (46/104)   MOVED
+  include/hven/model/non_linear_program.h                        PCH-ON  23.67% (71/300)   PCH-OFF  79.42% (247/311)   MOVED
+
+PCH-ON   library lines  70.35% (17683/25136)   files at 0.00 % lines: 14
+PCH-OFF  library lines  73.36% (18514/25236)   files at 0.00 % lines: 6
+
+WHAT IT SETTLES, AND WHAT IT DOES NOT
+-------------------------------------
+1. THE PRECOMPILED HEADER IS A LARGE PART OF THE CAUSE. All four of T0's
+   under-read rows fill in when it is off, and the mismatched-function count
+   over this object set falls from 126 to 92. The count does NOT fall to zero,
+   so the PCH is not the whole of it -- M5's diagnosis (the bounded,
+   understating HVEN_TESTING double-compile effect,
+   docs/notes/2026-08-m5-ledger.md:616-617) still accounts for a remainder, and
+   this experiment neither confirms nor refutes that part.
+
+2. IT CORRECTS T0's FRAMING OF ITS OWN CORRELATION. T0 (README section 5, item
+   3) restated the correlation as "two under-read headers are IN the PCH and
+   two are NOT, so the experiment can test the PCH contribution only and cannot
+   settle all four rows". It settles all four. The effect does not follow
+   "listed in src/hven_pch.h"; it follows "this header's inline body is
+   compiled inside a TU that CONSUMES the PCH" -- and all four are, because
+   src/drivers/ipm_solver.cpp is one of the four opt-in sources and includes
+   eval_error_log.h and ipm_solver_types.h. T0's caution was right about the
+   inference being unproven and wrong about which way it would go.
+
+3. IT IS NOT A REASON TO CHANGE THE BUILD. The PCH's membership list is
+   evidence-gated on compile time AND byte-identical objects
+   (src/CMakeLists.txt's own rules, scripts/check_pch_neutrality.sh), and this
+   is a REPORTING defect in an instrument tree, not a defect in the shipped
+   library. What it buys is knowing which rows to stop chasing: a future
+   coverage read that wants those rows read correctly can take the reduced
+   PCH-off arm alongside the main read, at the cost of one extra build.
+
+4. IT SAYS NOTHING ABOUT THE CLOSE READ'S NUMBERS. Those were taken with the
+   shipped configuration, PCH on, exactly as T0's were -- which is what makes
+   the delta in delta.txt attributable to the tests and to nothing else.
+
+5. soc.h IS AT 100 % IN BOTH ARMS. The one header T0 judged genuinely cold is
+   covered with the PCH on and with it off, which is the control this table
+   needed: the experiment moves rows that were misreported, and does not move a
+   row that was honestly read.
+
+REPRODUCTION
+------------
+.scratch/w6t2/pch_experiment.sh (both arms, both reports) and
+.scratch/w6t2/pch_compare.py (this table), with the raw llvm-cov reports and
+the two configure/build logs retained beside them. Git-ignored, not committed.
+
+CORRECTION (2026-09-14 -- W6 T2 FIX ROUND 1, settler ruling N3(c) on the sol
+review's minors)
+---------------------------------------------------------------------------
+Everything above is kept exactly as published. The two statements below
+SUPERSEDE the lines they name; no measurement in this file changed, and no arm
+was re-run.
+
+1. THE ROW COUNT UNDER "EVERY OTHER LIBRARY ROW ...". That table holds
+   TWENTY-ONE rows, not twenty. The miscount was in the prose about the table
+   (the implementer report's section 4, "Twenty further library rows move the
+   same way"), never in the table itself, which is reproduced from
+   .scratch/w6t2/pch_compare.py's output unchanged. Re-counted at this
+   correction: 21.
+   (The other "twenty" in this artifact -- the TWENTY UNCOVERED REGIONS T0
+   named, in parity.txt, delta.txt, PROVENANCE.txt and README.md -- is a
+   different set and is correct.)
+
+2. THE PROVENANCE LABEL IN THIS FILE'S TITLE LINE. It reads "(plan J.9; T0
+   README section 3)". Plan docs/notes/2026-09-m6-w6-plan.md section 0, J.9
+   governs the INSTRUMENT-TREE EXCLUSION LIST's disposition (the ctest -E regex
+   inside scripts/run_coverage.sh, provisional at T0 and re-derived at this
+   close read); it says nothing about the precompiled header. This experiment's
+   provenance is T0's README section 3 -- the PCH correlation T0 observed and
+   named the cheap test for -- and W6 T2's own brief, item 6, which asked for
+   it. Read the title as "(T0 README section 3; W6 T2 brief item 6)". The brief
+   carries the same mislabel; it is corrected in the fix-round report, not
+   here.

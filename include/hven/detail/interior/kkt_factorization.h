@@ -86,8 +86,18 @@ class KktFactorization {
     /// to.
     void set_num_threads(int num_threads);
 
-    /// The thread count the factor is currently configured with.
+    /// The thread count the factor is currently configured with -- the STORED
+    /// option, which reconfigure() and set_num_threads() both keep in step.
     int num_threads() const { return opts_.num_threads; }
+
+    /// The LIVE backend session's own count, read through
+    /// SymmetricFactor::num_threads() (M6 W5 T8.8). Distinct from
+    /// num_threads() above, which answers "what is this object configured
+    /// with"; this one answers "what will the next backend call apply", which
+    /// is what a boundary observation of the factor wants. The two agree
+    /// whenever set_num_threads() is the only thing that has moved the count,
+    /// which is the case for every hven caller.
+    int session_num_threads() const noexcept { return factor_.num_threads(); }
 
     /// Drop the factorization, the symbolic analysis and the assembly buffer.
     void release();
@@ -121,6 +131,17 @@ class KktFactorization {
 
     /// @brief The linear engine's call counters, including the pattern-guard
     ///        count that makes a skipped verification observable.
+    ///
+    /// PER ENGINE INSTANCE, which is `SymmetricFactor::Counters`' own stated
+    /// contract: `reconfigure()` and `release()` REPLACE the engine, and the
+    /// replacement starts at zero because it did no earlier work. A consumer
+    /// that needs a number monotone across those events must accumulate one
+    /// ITSELF, at the site that calls `reconfigure()` -- see
+    /// `IpmSolver::set_qp_params()` and the ledger's `factorizations`
+    /// (M6 W5 T8.7 fix1). Deliberately not a member here: this class is
+    /// embedded in `IpqpEngine`, so a field added to it moves every QP kernel
+    /// object's member offsets, and this round's P-SYM gate is that those
+    /// objects are byte-identical.
     const Counters &counters() const { return factor_.counters(); }
 
     /// Solve against the current factorization. `x` must already be sized.
@@ -137,6 +158,31 @@ class KktFactorization {
     /// Pivots the backend perturbed to get through the factorization, or 0 on
     /// a backend that keeps no such counter.
     int ppivs() const { return perturbed_pivots_; }
+
+    /// @brief The last factorization's inertia evidence, exactly as the linear
+    ///        layer reported it.
+    ///
+    /// ADDITIVE to the three cached ints above, which are unchanged and remain
+    /// the NLP engine's only inertia input: this accessor exists for a consumer
+    /// that must distinguish what the projection above deliberately collapses.
+    /// The projection is faithful to the pre-linear-layer shapes on purpose
+    /// (see the file banner) and therefore lossy in three ways -- `state` is
+    /// dropped, so a kQueryFailed or kUnavailable factorization is
+    /// indistinguishable from an observed one; `n_zero` and `zero_is_derived`
+    /// are dropped entirely; and an ABSENT perturbed-pivot count reads as the
+    /// integer 0, which on a backend that does count pivots means "none were
+    /// perturbed". A consumer that gates on evidence QUALITY rather than on the
+    /// counts alone needs all four back, and reads them here.
+    ///
+    /// Stored verbatim on every path that observes a FactorizeOutcome:
+    /// successful and failed numeric factorizations alike, and the
+    /// default-constructed outcome compute() records for a backend symbolic
+    /// failure (state kUnavailable, counts -1, no pivot count). Cleared to a
+    /// default-constructed InertiaEvidence by reconfigure() and release(),
+    /// alongside the cached ints. Before any factorization it therefore reads
+    /// `state == kUnavailable` -- "nothing has been observed" -- rather than a
+    /// plausible-looking zero.
+    const hven::linear::InertiaEvidence &inertia_evidence() const { return inertia_; }
 
     /// Reporting-only status of the last factorization. No control flow in the
     /// engine turns on it; it is surfaced in the exit statistics.
@@ -166,6 +212,10 @@ class KktFactorization {
     int n_pos_ = 0;
     int n_neg_ = 0;
     int perturbed_pivots_ = 0;
+    // The unprojected evidence behind the three ints above. Kept beside them
+    // rather than replacing them: the projection is what the NLP engine reads
+    // and it does not move.
+    hven::linear::InertiaEvidence inertia_{};
     Eigen::ComputationInfo info_ = Eigen::Success;
     int factor_mem_ = 0;
     int factor_flops_ = 0;

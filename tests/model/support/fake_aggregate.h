@@ -1,7 +1,7 @@
 // Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
 // (see LICENSE).
 
-// A minimal NlpAggregate implementation, written against the Level 2 contract
+// A minimal NlpAssembly implementation, written against the Level 2 contract
 // surface alone. It exists so the contract's own semantics -- the structure
 // epoch's ordering guarantee, the failure-restore rule, and the request
 // masking rule -- can be pinned WITHOUT the partitioned evaluation engine.
@@ -23,14 +23,14 @@
 #include <fmt/format.h>
 
 #include "hven/core/types.h"
-#include "hven/model/nlp_aggregate.h"
+#include "hven/model/nlp_assembly.h"
 
 namespace hven::model_tests {
 
 using hven::ConstVecRef;
 using hven::Vec;
-using hven::solvers::AggregateCapability;
-using hven::solvers::AggregateDeclaration;
+using hven::solvers::AssemblyCapability;
+using hven::solvers::AssemblyDeclaration;
 using hven::solvers::CandidateFirstOrder;
 using hven::solvers::CandidatePoint;
 using hven::solvers::CandidateValues;
@@ -38,7 +38,7 @@ using hven::solvers::EvalRequest;
 using hven::solvers::IdentityProbe;
 using hven::solvers::KktScatterView;
 using hven::solvers::ModelStructureKey;
-using hven::solvers::NlpAggregate;
+using hven::solvers::NlpAssembly;
 using hven::solvers::RhsScatterView;
 using hven::solvers::StructureEpoch;
 
@@ -49,7 +49,7 @@ inline constexpr double kFillMarker = 7.5;
 /// The sentinel a test pre-fills destination storage with.
 inline constexpr double kUntouchedSentinel = -101.25;
 
-class FakeAggregate final : public NlpAggregate {
+class FakeAggregate final : public NlpAssembly {
   public:
     static constexpr int kPrimalVars = 4;
     static constexpr int kEqualityRows = 2;
@@ -72,7 +72,7 @@ class FakeAggregate final : public NlpAggregate {
         this->relay_structures();
     }
 
-    const AggregateDeclaration &declaration() const override { return declaration_; }
+    const AssemblyDeclaration &declaration() const override { return declaration_; }
 
     int negotiate_partition_count(int requested) override {
         // Refused, not corrected: capping is this method's job and is reported
@@ -96,7 +96,7 @@ class FakeAggregate final : public NlpAggregate {
     void set_evaluation_threads(int n) override { threads_ = n; }
 
     ModelStructureKey model_structure_key() const override { return key_; }
-    AggregateCapability capabilities() const override { return capabilities_; }
+    AssemblyCapability capabilities() const override { return capabilities_; }
 
     /// Routed through the public values entry, so it inherits that entry's
     /// validation instead of repeating it -- which is what "a probe is a values
@@ -135,7 +135,7 @@ class FakeAggregate final : public NlpAggregate {
         this->relay_structures();
     }
 
-    void set_capabilities(AggregateCapability capabilities) { capabilities_ = capabilities; }
+    void set_capabilities(AssemblyCapability capabilities) { capabilities_ = capabilities; }
 
     /// Binds this fake's location tables to a destination, the way a provider
     /// that computes its offsets against one particular value array does.
@@ -184,9 +184,9 @@ class FakeAggregate final : public NlpAggregate {
     /// reads them, so this is a member rather than a temporary at the call site.
     Vec empty_multipliers_;
 
-    AggregateDeclaration declaration_;
+    AssemblyDeclaration declaration_;
     ModelStructureKey key_;
-    AggregateCapability capabilities_ = AggregateCapability::kNone;
+    AssemblyCapability capabilities_ = AssemblyCapability::kNone;
     const double *bound_destination_ = nullptr;
     int adopted_partitions_ = 1;
     int threads_ = 1;

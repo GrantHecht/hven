@@ -694,72 +694,38 @@ class SymmetricFactor {
 
     // --- configuration ---
 
-    // Repoint this engine's thread count, effective from the NEXT backend
-    // call. Nothing else moves: the backend session, the analyzed pattern,
-    // the symbolic analysis and the current numerics all survive, so this
-    // costs no re-analysis and no refactorization.
+    // Repoint this engine's thread count, effective from the next backend call.
+    // The backend session, the analyzed pattern, the symbolic analysis and the
+    // current numerics all survive: no re-analysis, no refactorization.
     //
-    // That is a statement about where the count lives, not a convenience:
-    // the thread count is applied AT CALL SCOPE (see Options::num_threads),
-    // so it was never part of the symbolic factorization in the first place.
-    // Every other option IS baked into the session the analysis lives in and
-    // therefore has no setter -- changing one means building a new engine.
-    //
-    // Throws std::invalid_argument for a negative count, the same rule the
-    // constructor applies to Options::num_threads; the engine is left
+    // Throws std::invalid_argument for a negative count, and leaves the engine
     // untouched when it throws.
     //
-    // SHARED SESSIONS. The count belongs to the backend session, which this
-    // engine may be co-owning with handles emitted by share() and with
-    // engines built by adopt(). A change here therefore governs every
-    // co-owner's subsequent calls on that session, which is the same
-    // one-session-between-them rule the class's THREAD SAFETY and SHARING
-    // notes already state; it also means a later share()/adopt() round trip
-    // reports the CURRENT count rather than the one the session was analyzed
-    // with. Before the first analyze() there is no session yet, and the value
-    // set here is what the next analyze() builds one with.
+    // The count belongs to the backend session, which this engine may co-own
+    // with handles from share() and engines from adopt(): a change here governs
+    // every co-owner's subsequent calls on that session, and a later round trip
+    // reports the current count. Before the first analyze() there is no session,
+    // and the value set here is what the next analyze() builds one with.
     //
-    // NOT INTERNALLY SYNCHRONIZED, exactly like a solve. This writes state
-    // the session reads on every backend call, so a caller must serialize it
-    // against any call in flight on that session -- including one issued by a
-    // different co-owner on another thread. It is the class's THREAD SAFETY
-    // rule extended to the one mutation that crosses co-owners: solves across
-    // co-owners are the caller's to serialize, and so is this.
+    // Not internally synchronized, exactly like a solve: a caller must serialize
+    // it against any call in flight on that session, including one issued by a
+    // different co-owner on another thread.
     //
-    // BEST-EFFORT-ABSENT ON ACCELERATE, exactly as Options::num_threads
-    // itself is: that backend exposes no per-instance thread control, so the
-    // value is stored (keeping the Options round trip honest) and applied to
-    // nothing. The call is accepted and validated there rather than
-    // rejected -- a plain thread count is a request a backend may honestly
-    // not be able to honor, unlike Options::cnr_threads, whose reproducibility
-    // GUARANTEE that backend refuses outright rather than silently drop.
+    // Best-effort-absent on Accelerate, exactly as Options::num_threads is: the
+    // value is stored, keeping the Options round trip honest, and applied to
+    // nothing.
     void set_num_threads(int num_threads);
 
-    // The thread count that governs THIS ENGINE'S NEXT BACKEND CALL.
+    // The thread count that governs this engine's next backend call.
     //
-    // Once there is a session, that is the SESSION's current count, read
-    // through on every query rather than snapshotted -- because the session is
-    // where a backend call reads it from, and because the session may be
-    // co-owned (see set_num_threads()' SHARED SESSIONS note). A
-    // set_num_threads() on any ONE co-owner moves the count for all of them,
-    // and each of them reports the moved value here; a snapshot of this
-    // engine's own Options would have kept reporting the count this engine
-    // last agreed to, which is not the count its next solve will run at.
+    // Once there is a session, that is the session's current count, read through
+    // on every query rather than snapshotted: a set_num_threads() on any one
+    // co-owner moves the count for all of them.
     //
-    // Before the first analyze() there is no session yet, so this reports what
-    // the constructor was given as moved by set_num_threads() -- which is
-    // exactly what the next analyze() will build a session with.
-    //
-    // A LATER analyze() ON THIS ENGINE therefore RESETS what this reports, and
-    // deliberately so: analyze() forks a fresh session from this engine's OWN
-    // Options (a co-owner's count was never this engine's to inherit past the
-    // session it was set on), so from that point the read-through and the
-    // snapshot agree again on this engine's own value.
-    //
-    // The only Option with a reader, for the same reason it is the only one
-    // with a setter: it is the only one that can change after construction,
-    // so it is the only one a caller cannot already know from the Options it
-    // passed in.
+    // Before the first analyze() there is no session, so this reports what the
+    // constructor was given as moved by set_num_threads(). A later analyze()
+    // resets what this reports: it forks a fresh session from this engine's own
+    // Options.
     int num_threads() const noexcept;
 
     // --- lifecycle ---

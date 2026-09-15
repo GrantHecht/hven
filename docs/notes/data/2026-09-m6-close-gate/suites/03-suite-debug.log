@@ -1,0 +1,20 @@
+LEG: bash -o pipefail -c bash /home/ghecht/Projects/hven/.scratch/m6-close/suite.sh debug /home/ghecht/Projects/hven/.scratch/m6-close/build-debug -E "^Continuation\.ProbeBudgetBoundsAFailingProposal\$"
+PGREP_SEPARATE 2026-09-14T16:48:49Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-14T16:48:49Z
+=== ctest (debug) ===
+CTEST_RC=0  (worst 0)
+Total Test time (real) = 340.81 sec
+
+The following tests did not run:
+	420 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1592 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1593 - EqpRefinementAb.FullBattery (Disabled)
+=== ctest -N inventory (debug) -- AFTER the run, and unable to mask it ===
+INVENTORY_RC=0  (worst 0)
+Total Tests: 2593
+SUITE_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T16:54:30Z
+WRAPPER_EXIT=0

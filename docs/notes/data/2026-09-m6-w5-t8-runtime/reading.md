@@ -1,0 +1,2755 @@
+# W5 T8.9r — the group-1 runtime reading (v5, fix round 4)
+
+`102f729 → e51a7e0` (the three SQP arms **and now the interior leg's base arm**)
+and `b9848bf → e51a7e0` (the interior leg's 41-key arm), solo. Read
+`PROVENANCE.txt` first — the arms, the hashes, the hardware, the solo protocol,
+and what this leg does **not** measure — and then §0 below, which is the record
+of what fix round 1 changed.
+
+Every table is regenerated from `raw/` and `perf/` by
+`python3 comparator.py --root . --out -`; the tool's own output is reproduced
+verbatim at §9. Nothing here is hand-transcribed.
+
+**This was a measurement, and §15 is now the disposition.** §11.1.1 puts the
+disposition with the settler and the owner; the owner ruled on 2026-09-11 and
+**§15 records it: group 1 is KEPT**, with the cross-row carrier registered for
+M7. Everything in §1–§14 is the measurement, unchanged in its numbers by that
+ruling. **Fix round 3 changed no number either — but it did change one READING,
+and the reading it changed is one of the grounds the KEEP was given on.** §15
+says so, states the settler's corrected grounds verbatim, and records that the
+corrected reading has gone back to the owner.
+
+---
+
+## 0. Revision record
+
+### 0.0 What fix round 4 changed, and why
+
+This file is **v5**. Fix round 4 is a **TEXT AND ARTIFACT-WORDING** round: **no
+measurement was taken, no number was re-derived, and no library, test or bench
+source was touched.** It follows fable's fix3 review (`FIX-ROUND`, SIGNOFF
+`W5-T8-9R-FIX3-REVIEW-FABLE`: no Critical, four Important items and a table of
+Minors, with every figure in the artifact independently recomputed and
+reproduced) and the settler's fix4 dispatch, which takes all four.
+
+**AND IT IS A DECLARED EVIDENCE CORRECTION, WHICH IS WHY IT TOUCHES A FROZEN
+DIRECTORY.** `docs/notes/data/**` is frozen against the **T8.10 rename's residual
+policy** — a rename sweep does not rewrite a captured artifact's identifiers, and
+this round rewrites none: every name below is the one these files already carry.
+It is **not** frozen against an EVIDENCE CORRECTION DECLARED BY ROUND, which is
+what CLAUDE.md §7 requires of an intentional break of a pinned or reproduced
+value ("declared and re-derived explicitly — never silent"). Fix round 4 is such
+a correction: it withdraws sentences this artifact's own retained data
+contradicts, and it declares the one pin that moves.
+
+| section | what changed | why |
+|---|---|---|
+| `classification.md` §8, the migration guide's bullet header | **THE LAST "NO STEP" SENTENCES ARE WITHDRAWN.** `classification.md` §8 still read "the single-row process does not reproduce the step" — the finding §14, §1, §5 and `classification.md`'s own §1 and §7 withdrew at fix3 — and the guide's bullet header still read "BUT NOT IN A SINGLE-ROW PROCESS" over a corrected body. Both are the pre-fix3 reading and both are gone | fable's fix3 review, item 1; settler R12 |
+| §1, §2, §5 | **THE R2' EVIDENCE FLAG IS ON THE ROWS THEMSELVES**, not only in §8.1. One footnote per table names the three flagged leg-1 rounds, the twelve leg-2 batches and the interior wall batch, the single-row leg's absence of any R2' bracket, and the artifact-wide count (22 PROVEN / 4 fraction / 32 evidence, of 57) | fable's fix3 review, item 2; settler R13 |
+| §11, §12, `.superpowers/w5-t8-9r-attrib2-report.md` | **"only T8.4 exceeds 1.01 on any scored row" IS FALSE AND IS REPLACED.** §11's own table gives T8.7 **1.0111** on `f7_n10000_bound_neutral/MakeParameter`, and its "rows above 1.01, of 11" line scores T8.7 at 1. The true form, everywhere: **T8.4 exceeds 1.01 on all eleven scored rows**, and T8.7 exceeds it on one | fable's fix3 review, item 3; settler R16 |
+| §1, the guide's table | the whole-process row's **"1/11" → "0/11"**: `wall_bracket.out`'s own process column and `classify.out` put c/p at **0.995118–1.009427** on the eleven scored rows, so none is outside 0.99–1.01 (the BRACKET row's 5/11 above 1.01 is unaffected and unchanged) | fable's fix3 review, item 4 |
+| §14, `classification.md`, `PROVENANCE.txt`, `wall_bracket.py` | the Minors: the L1-D maximum is **c/p 1.01095 (+1.095 %) on `f7_n5000_bound_physics/MakeParameter`**, not a bare "1.0946" on `f7_n10000_bound_neutral/RelaxBounds` (which reads 1.00502); the control pair's **0.95-point** move is `difftime`, the calibration symbol the reading sets aside — the like-for-like control scale over NAMED SOLVER symbols is **0.77 points moved, +0.51 largest gain**; `ipm_corpus_leg.cpp:389–392` is the **SAME SPAN** at both arms but is **not byte-identical** (`:390` declares `ConvergenceFlags` at `510a4bb`, `SolveStatus` at `9cebbbe`); the out-of-bracket term shrinks **10.4–15.8 %**, not "10–15 %"; `wall_bracket.py`'s docstring claimed the bracket is "an order of magnitude" quieter, which its own output contradicts | fable's fix3 review, Minors |
+
+**ONE PIN MOVES, AND IT IS DECLARED.** `wall_bracket.py`'s docstring is corrected,
+so **`wall_bracket.py.sha256` is re-derived from the edited file**
+(`fa9ae47b999f7af7…` → `15094b833a348d59`). The docstring is **never printed** —
+the script does not read `__doc__` — so **`wall_bracket.out` is unchanged**, still
+byte-identical to what the tool emits from the retained CSVs, and no figure moves
+with it. **No other pin moves.** `comparator.py`, `classify.py`,
+`record_analyze.py` and `scripts/idle_proof.py` are untouched, and so are their
+hashes and saved outputs: the comparator's documentary `sha` field is addressed in
+`PROVENANCE.txt` (I6) rather than in code, because editing it would move
+`comparator.py.sha256` and invalidate `logs/F5-manifest-proofs-fix3.log`, and this
+round runs nothing.
+
+**What did NOT change: any number that was measured.** Fix4 re-derived nothing and
+re-ran nothing. Where it changes a figure quoted in prose, it is because the prose
+misread retained data; the retained data is unedited.
+
+### 0.1 What fix round 3 changed, and why
+
+This file is **v4**. Fix round 3 is, again, an **AUDIT, COMPARATOR AND TEXT**
+round: **no measurement was taken, no number was re-derived, and no library, test
+or bench source was touched.** It follows astra's fix2 review (`FIX-ROUND`,
+SIGNOFF `W5-T8-9R-FIX2-REVIEW-ASTRA`: five numbered fixes and a table of Minors,
+no Critical) and the settler's rulings R12–R16.
+
+| section | what changed | why |
+|---|---|---|
+| §14, §1, §5, §15 | **THE SINGLE-ROW LEG'S WALL IS RE-READ ON THE SOLVE BRACKET.** "The +2.5 % step does not appear in a single-row process at all" came from `perf.csv`'s WHOLE-PROCESS `elapsed_s`; read on `wall_s` — the leg's own bracket and the column §5/§11/§12/§13 sum — the same retained rounds give corpus **1.0110**, five of eleven rows above 1.01, each slower in all five paired rounds, control 0.9999. **The sentence is withdrawn everywhere it appears.** Both populations now print side by side, both informational, with the measured reason they differ: `9cebbbe` moves ~0.135 s per eleven rows from outside the bracket to inside it, at an unchanged whole-process time | astra fix2 item 4; settler R12 |
+| §15 | the KEEP's grounds are **RESTATED by the settler, PENDING THE OWNER'S CONFIRMATION** — the owner ruled on the whole-process reading, and §14 has withdrawn it | settler R12 |
+| §8.1, §11, §12, §13, `logs/IDLE-PROOF.md` | **R2' NOW HAS TWO VERDICTS**: UNPROVEN-FRACTION (the bar exceeded) and UNPROVEN-EVIDENCE (the bar met, the record short — an `R` with no re-snapshot, a missing alternation snapshot, no bracket at all). Fix2's "R2''s re-snapshot term binds the NEXT measurement" is **withdrawn**: no retrospective exemption was granted. **57 wall batches: 22 PROVEN, 4 fraction, 32 evidence.** Flags propagate to every section whose numbers they feed | astra fix2 item 1; settler R13 |
+| `scripts/idle_proof.py`, `logs/idle-proof-pids-*.md` | the tool reads **`FOREIGN_PS` beside `FOREIGN_TICK`** (so `ps` states like `Rsl` are seen: 10/10/11/3/5 batches with an `R`), counts **pauses once** (6/5/5/3/2, give-ups in their own column), and writes **every foreign pid of every batch with every state observed for it** to a per-round appendix. **Every fraction it prints is byte-for-byte the fix2 figure** | astra fix2 item 1; settler R13 |
+| `comparator.py` | **THE MANIFEST IS BY IDENTITY.** Leg 1's 27 cells are declared by ID (the committed t10b control's key list) and checked per FILE, so a substituted key or a cell missing from one round is exit 1 naming it; the interior arms are declared by SHA with the provenance token that identifies each; `perf/interior_cells`' absence is a manifest failure. Four new stubs + the four fix2 regressions + the control, `logs/F5-manifest-proofs-fix3.log`. **Its output on the complete tree is still BYTE-IDENTICAL to §9** | astra fix2 item 3; settler R14 |
+| §14, `record_analyze.py`, `perf-report/` | the **sampled-profile inputs are retained inside the artifact** (27 `perf report` text outputs + the raw `perf.data`), and the script reads them from there — its output is byte-identical. The **per-symbol maximum is corrected to +0.51 points** (`mkl_pds_lp64_blkl_ll_real.extracted`) and stated as a SHARE change, not a bound on a symbol's instruction increase; the sampled evidence is scoped to the two profiled rows; the calibration's size is corrected to the profiles' own 16.7–27.2 % / 82.4–84.0 % | astra fix2 items 4, 5; settler R15 |
+| §5, §8, §11, §12, §14, the guide | the remaining contradictions and Minors: §12's "only group-1 task" and "not refuted as a description"; §11's "no other task carries more than a tenth of a percent" (T8.6 +0.33 %, T8.8 +0.39 %); the twelve-common-columns wording; §8's stale "no disposition" / "no arm between" items marked as the fix1 state; L1-D +1.09 %; page faults 0.995080–1.000041; `PROVENANCE.txt`'s stale unproven-batch count; the guide's "every wall batch proven" sentence, its A7 (ii) scope and the placement of its KEEP paragraph | astra fix2 item 2 and Minors; settler R16 |
+
+**What did NOT change: any number that was measured.** Fix3 re-derived nothing
+and re-ran nothing. The one figure it computes that was not in the artifact
+before — the single-row solve bracket — is arithmetic on 585 retained CSVs that
+have not been touched since the day they were written.
+
+### 0.2 What fix round 2 changed, and why
+
+This file is **v3**. Fix round 2 is an **AUDIT, COMPARATOR AND TEXT** round:
+**no measurement was taken, no number was re-derived, and no library, test or
+bench source was touched.** It follows astra's fix1 review (`FIX-ROUND`, SIGNOFF
+`W5-T8-9R-FIX1-REVIEW-ASTRA`), the settler's rulings R2', R8–R11, and the
+owner's ruling of 2026-09-11.
+
+| section | what changed | why |
+|---|---|---|
+| §8.1 | **REWRITTEN.** R2 is AMENDED to **R2'**, the pinned-core rule; **99 batches across five rounds are re-audited** under it with ONE `idle_proof.py` (the attrib4 nice-inclusive version, now byte-identical in all three places); the per-batch table is `logs/IDLE-PROOF.md` | astra fix1 item 1; settler R2' |
+| §8.1, §12, §13, §14 | the batches R2' does **not** prove are FLAGGED where they feed a number — three leg-1 `perf` batches here, four of §12's twenty-five wall batches, §13's four bracket-less COUNT batches, and §14's leg, for which R2' cannot be computed at all | settler R2' |
+| §1, §5 | **the interior leg is stated BOTH ways** — MOVED +2.5 % with an unidentified carrier in the leg process, FLAT and NOT WORK-MOVED in a single-row process — and neither replaces the other (**the "FLAT in a single-row process" half is corrected at fix3, §0.0**) | astra fix1 item 7; settler R8 |
+| §6 | "every task's step is inside ±2e-5 except T8.4's" was **false**: seven other steps are outside it. The settled attribution of WORK is distinguished from the measured net step | astra fix1 item 5; settler R8 |
+| §10 | the calibration is re-stated against **v2 §3's** counts (16 of 18 inside 2e-5) with the superseded round-1 result beside it; `attribute.py`'s hardcode corrected, its tables untouched | astra fix1 item 5; settler R9 |
+| §11 | the "only task above 1.01", "all of it is T8.4" and "different day" sentences corrected; the **LAYOUT-MOVED derivation WITHDRAWN** — the classification is UNRESOLVED; the code-placement mechanism marked as §12 refuted it | astra fix1 item 7; settler R8 |
+| §5, §8 | leg 2: **THREE** combinations exceed 1.4 %, not four (`ipm`/sink is 1.39 %) | astra fix1 item 8 |
+| §8 | the `jet.h` condition is now actually stated here, as §0 claimed | astra fix1 item 8 |
+| §15 | **NEW: the owner's ruling — group 1 is KEPT**, with the cross-row carrier registered for M7 | owner, 2026-09-11 |
+| `comparator.py` | the expected cells, combinations, arms and rounds are an **EXPLICIT MANIFEST**; a missing whole population is exit 1 naming it. Proved by three stubs and a control, `logs/F3-manifest-proofs.log`. **Its output on the complete tree is BYTE-IDENTICAL to the pre-manifest tool's**, which is what lets §9 stand unrewritten | astra fix1 item 4; settler R9 |
+
+**What did NOT change: any number that was measured.** Fix2 re-derived nothing.
+Where it changes a figure quoted in prose — the pause count, the leg-2
+over-1.4 % count, the calibration's pass count — it is because the prose
+miscounted retained data, and the retained data is unedited.
+
+### 0.3 What fix round 1 changed, and why
+
+This file was **v2** at fix1. It was rewritten in place on 2026-09-11 after
+astra's review (`FIX-ROUND`, SIGNOFF `W5-T8-9R-REVIEW-ASTRA`: nine Important
+items and a set of Minors) and the settler's seven rulings R1–R7. **Every wall
+number in v2 comes from a re-measurement taken after those rulings were
+fixed**; v1's raw captures are retained, unedited, under
+`raw/round1-superseded/` with a README saying why, and its logs under
+`logs/round1-superseded/`.
+
+| section | what changed | why |
+|---|---|---|
+| §1 | every number re-measured; the interior leg is now three arms | astra I1, I2; R2, R4 |
+| §1, §2, §5 | the veto is classified on the BANDED reading, and the rule was fixed before the runs (`predeclaration-R1-R3.txt`, `logs/F0-predeclaration.log`) | astra I5 (e); R1 |
+| §2 | "leg 1 — the only wall-clock leg" now names the banded interior F7 leg too | Minor |
+| §4 | leg 2's floor is the MAXIMUM per-(mode, trace) same-arm disagreement, not a median across combinations | astra I5 (b) |
+| §5 | the interior leg's first-row exclusion is POSITIONAL and pre-declared, both corpus figures print, and the primary is the one WITHOUT the warm-up row | astra I5 (a); R3 |
+| §5 | the interior leg gains its 102f729 arm — the leg EXISTS there, 33 rows, 19 columns — so the top-level IPM across group 1 IS measured | astra I2; R4 |
+| §5 | the per-cell interior instruction verdict (I4), differenced against the unconditional row set so it is like-for-like across arms | astra I4 |
+| §5 | the HS movement is quoted against the reported 1.71–2.18 %, not "inside 1.4 %" | Minor |
+| §6 | REWRITTEN: the `--dump-qp` probe is superseded; §10's eleven-arm attribution says what the increase is, and the source says where it runs | astra I8; R5 |
+| §7 | "T7 was comment-only" replaced by the library-hash argument; "+327 lines" → "327 changed lines" | Minor |
+| §8 | the attached-callback and attached-sink costs are stated UNMEASURED; the `jet.h` condition is stated as settled here, not only in PROVENANCE | R7; astra §5 |
+| §8.1 | NEW: the solo proof, by CPU time on the pinned core | astra I1; R2 |
+| §10 | unchanged at fix1, as landed at `e096f7f` (its calibration paragraph is corrected at fix2 — see §0.1) | — |
+
+**What did NOT change: the shape of the finding.** Leg 1's wall is FLAT and its
+instructions are UP. The veto trigger fired in v1 and it fires in v2. What the
+fix round changed is whether those numbers are entitled to be quoted, and what
+the increase can be attributed to.
+
+---
+
+## 1. The short version
+
+| leg | mode | corpus ratio | cells outside 0.99–1.01 | band | banded veto cells | instruction verdict |
+|---|---|---|---|---|---|---|
+| **leg 1** (U0, 27 cells, wall) | ipm | **1.00062** (14.8524 → 14.8617 s) | **0/27** | **FLAT** | 0 | **instructions UP +0.032…+0.046 %** |
+| leg 1 | ssn | **0.99924** (11.0994 → 11.0909 s) | **0/27** | **FLAT** | 0 | **instructions UP +0.065…+0.087 %** |
+| leg 1 | walk | **1.00014** (6.0245 → 6.0253 s) | **0/27** | **FLAT** | 0 | **instructions UP +0.092…+0.132 %** |
+| **leg 2** (27 HS, `--repeat`) | ipm off / sink | 0.9913 / 0.9861 | 21/27, 26/27 | **MOVED (faster)** | 2 / 2 | no verdict at 1e-4 — §4 |
+| leg 2 | ssn off / sink | 0.9822 / 0.9754 | 17/27, 23/27 | **MOVED (faster)** | 0 / 0 | no verdict at 1e-4 |
+| leg 2 | walk off / sink | 0.9931 / 0.9761 | 8/27, 24/27 | **UNRESOLVED / MOVED** | 0 / 0 | no verdict at 1e-4 |
+| **interior, `102f729` → head** (29 F7 rows, R3-primary), IN THE LEG PROCESS | — | **1.0249** (10.1030 → 10.3545 s) | **29/29** | **MOVED**, carrier unidentified | **28** | no verdict — §5 |
+| **interior, the CARRIER PAIR `510a4bb → 9cebbbe` in a SINGLE-ROW process, read on the SOLVE BRACKET** (`wall_s`, the leg's own column; the `d5931e8` lever, 11 rows) | — | **1.0110** (12.7930 → 12.9333 s), **informational** | 5/11 above 1.01 | — (no band claimed; no R2' evidence) | — | **NOT WORK-MOVED**; instructions flat per symbol — §14 |
+| the same eleven rows, read on the WHOLE PROCESS (`elapsed_s`) | — | **1.0004**, **informational** | **0/11** (c/p 0.9951–1.0094) | — | — | same rows, same runs — §14 |
+| **interior, `b9848bf` → head** (31 F7 rows, R3-primary) | — | **0.9948** (10.4830 → 10.4284 s) | 7/31 | **UNRESOLVED** | 1 | no verdict — §5 |
+
+**R2' EVIDENCE FLAG ON EVERY ROW OF THIS TABLE (settler R13; the per-batch
+record is §8.1 and `logs/IDLE-PROOF.md`).** Of this artifact's **57
+wall-asserting batches, 22 are PROVEN under R2', 4 exceed its fraction and 32
+lack the evidence it asks for.** For the rows above specifically: **no batch
+behind this table exceeds R2''s FRACTION**, and sixteen of the twenty-two are
+short on the EVIDENCE — each leg-1 mode's figure is a median of three rounds of
+which **one is UNPROVEN-EVIDENCE** (`leg1-ipm-r3`, `leg1-ssn-r2`,
+`leg1-walk-r2`: a foreign process seen in state `R` with no re-snapshot after
+it); **all twelve leg-2 batches and the interior leg's wall batch are
+UNPROVEN-EVIDENCE** (no snapshot between two consecutive timed runs); and the
+two single-row rows carry **no R2' evidence at all**, their batch logs having no
+`PS_SNAPSHOT`/`CPUSTAT` bracket to compute it from. §8.1 states what an evidence
+gap is and is not — a gap in the RECORD rather than in the number, and one that
+can only bias a wall figure SLOW.
+
+**Four things follow, and they are independent of one another.**
+
+**(a) THE SQP CORPUS LEG'S WALL IS FLAT IN ALL THREE MODES.** 0/27 cells outside
+0.99–1.01 in every mode, every corpus figure inside ±0.08 %, an order of
+magnitude inside the ±0.5 % bar, and **zero banded veto cells** (R1). The strict
+same-sign counts — 3, 3, 2 of 27 — are what a fair coin gives (~3.4 expected);
+they are reported, and they are not the trigger.
+
+**(b) AND INSTRUCTIONS ARE UP ANYWAY — WORK-MOVED, THE VETO.** On every one of
+the nine leg-1 perf cells the head arm executes more instructions than the base,
+by 0.03 % (ipm) to 0.13 % (walk) — 3× to 13× outside §11.1's 1e-4 identity band,
+and 32× to 132× outside this leg's own measured noise floor (§4). §11.1.1's
+OVERLAP 1 is explicit that a FLAT timing does not excuse this: *"does
+demonstrated added work trigger the veto even when the timing meets FLAT?
+ANSWER: YES. There is NO automatic KEEP."* **The veto trigger has fired.** §6
+charges the whole of it to T8.4's per-call declared diagnostics and shows, from
+the call chain, that they run inside the timed window.
+
+**(c) THE TOP-LEVEL IPM READS TWO WAYS, AND BOTH ARE STATED (settler ruling R8).
+NEITHER REPLACES THE OTHER.**
+
+**(c)(i) IN THE LEG PROCESS: MOVED, +2.5 %, and the carrier is UNIDENTIFIED.**
+The interior leg exists at `102f729` (astra I2; round 1 said it did not, and that
+was false), so group 1's effect on the top-level solver is measured rather than
+declared unmeasurable. On the 29 banded F7 rows the corpus goes
+**10.1030 → 10.3545 s, ratio 1.0249**; **every one of the 29 rows is outside
+0.99–1.01** and **28 of them are slower in all three alternating rounds** — the
+banded reading R1 fixes, on 28 cells, not one. And the work is the same: across
+33 common rows × 12 common counter columns × 3 rounds the **only** column that
+differs is `status`, and it differs because T8.2 renamed the vocabulary
+(`CONVERGED` → `optimal`). Same iterations, same factorizations, same solves,
+same analyses, same residuals to the last printed digit — 2.5 % more wall.
+**The regression is NOT in T8.9**: `b9848bf` → head is −0.52 % (UNRESOLVED,
+1 banded veto cell), so it sits inside T8.1–T8.8. Four more legs then narrowed it
+to one commit (§11, §12) and **failed to identify its carrier** — code placement
+refuted three ways, per-call storage lifetime refuted, the fault count refuted,
+the evaluation pool refuted. §11's classification is **UNRESOLVED**, not
+LAYOUT-MOVED; §11's own derivation to the contrary is withdrawn at fix2.
+
+**(c)(ii) IN A SINGLE-ROW PROCESS: SMALLER, NOT ABSENT — corrected at fix round 3
+(settler ruling R12).** The lever `d5931e8` (a bench/test addition; both configs'
+`libhven.a` byte-identical across it) runs exactly ONE base row of the leg in
+process, which is what makes a like-for-like instruction count of this leg
+possible at all. **What was measured through it is the CARRIER PAIR — `510a4bb`
+(parent) → `9cebbbe` (the commit §12 charges the step to), plus a byte-identical
+control** — not the whole group-1 span; §12 puts essentially all of the
+leg-process step in that one pair (its median row step is 1.0324 against a
+cumulative of 1.0283), so it is the pair the question turns on. Measured that
+way, on §11's eleven rows:
+
+* **instructions NOT WORK-MOVED.** Per symbol, with MKL's first-call clock
+  calibration set aside inside each profile, the culprit and the parent run the
+  same n20000 row to within 0.3–0.6 % in the marginally FEWER direction. The
+  largest share gain by any named solver symbol is +0.51 points, against a
+  byte-identical control that moves shares by up to 0.95. These are SAMPLED
+  estimates on TWO of the eleven rows.
+* **cycles flat** (0.996–1.008 against a control of 0.998–1.003).
+* **wall, read on the SOLVE BRACKET — `wall_s`, the same column §5/§11/§12/§13
+  sum — reads corpus 1.0110, five of eleven rows above 1.01, each of those
+  slower in all five paired rounds**, against a control of 0.9999, and passes B
+  and C reproduce the corpus at 1.0108 and 1.0111. **Wall read on the WHOLE
+  PROCESS reads 1.0004** — and the difference between the two is measured, not
+  guessed: the culprit's out-of-bracket time falls by 14.1 % (0.961 → 0.826 s
+  across the eleven rows) as its bracket rises by 0.140 s. Both wall figures are
+  informational under CLAUDE.md §7; that leg carries no R2' evidence.
+
+**Fix rounds 1 and 2 said this leg showed "no step at all", on the whole-process
+figure alone. That is withdrawn.** The step IS in a single-row process, at about
+1.1 % of the bracket rather than the leg process's 2.5 %; what the leg process
+adds, and whether it adds work or only moves a boundary at 43 rows instead of
+one, is the question §15 registers for M7. §14 has all of it.
+
+**(d) THE INTERIOR LEG'S WHOLE-PROCESS INSTRUCTION VERDICT REMAINS UNAVAILABLE,
+AND THE REASON IS MEASURED RATHER THAN ASSERTED.** I4's per-cell `perf stat` ran
+— 11 cells × 3 arms × 3 rounds — and the differencing instrument built to make it
+like-for-like is **unsound**: it produces negative differenced counts (§5). The
+numbers are retained as data and no verdict is issued from them. **The question
+itself was later answered, by a lever rather than an instrument** — `d5931e8`'s
+single-row process, §14, where the floor falls from §11's +1.27 % to 0.30 % at
+worst and the verdict on the carrier pair is NOT WORK-MOVED.
+
+---
+
+## 2. Leg 1 — the wall, in the T6 close reading's shape
+
+Recipe: the U0 27-cell corpus, `--engine walk|ssn|ipm`, 3× alternating A/B, solo,
+`taskset -c 2` with the driving shell pinned off that core and its SMT sibling,
+`MKL_NUM_THREADS=OMP_NUM_THREADS=1`, the lock held for each whole round-batch.
+Per-cell median of the three runs; corpus = the sum of the per-cell medians.
+
+| mode | corpus | per-cell envelope | outside 0.99–1.01 | slowest cell | fastest cell |
+|---|---|---|---|---|---|
+| ipm | **1.00062** (14.8524 → 14.8617 s) | 0.9929–1.0083 | **0/27** | `f7_n1000_bound_activity` 1.0083 | `f7_n1000_bound_neutral` 0.9929 |
+| ssn | **0.99924** (11.0994 → 11.0909 s) | 0.9906–1.0057 | **0/27** | `f7_n10000_bound_warm` 1.0057 | `f7_n2000_bound_corrupted` 0.9906 |
+| walk | **1.00014** (6.0245 → 6.0253 s) | 0.9932–1.0043 | **0/27** | `f7_n5000_bound_corrupted` 1.0043 | `f7_n1000_bound_physics` 0.9932 |
+
+**NO CELL IS OUTSIDE 0.99–1.01 IN ANY MODE.** The full per-cell tables, with the
+three paired per-round ratios beside every median, are in §9.
+
+**AND THE COUNTERS ARE BYTE-IDENTICAL.** The comparator recomputes it from
+`raw/`, so the reading does not take it on trust from another task's replay:
+**27 cells × 75 columns × 3 rounds × 3 modes, `wall_s` excluded, ZERO
+differences** — same factorizations, same QP minors, same escapes, same KKT
+residuals to the last printed digit. That is what makes (b) a statement about
+how the work is executed rather than about how much of it there is.
+
+**Leg 1 is not the only banded leg.** The interior F7 rows carry the band too,
+under the same leg-1 rules (§5); what leg 1 is, per §11.3, is the leg whose
+cells are seconds-scale and whose ABSOLUTE wall is therefore quotable. §11.3 (ii)
+reads leg 2's wall only as the paired A/B ratio.
+
+### The veto check on leg 1 (R1)
+
+| mode | banded: outside 0.99–1.01 AND slower in all three | strict, informational |
+|---|---|---|
+| ipm | **0** | 3 — `f7_n1000_bound_activity`, `f7_n10000_bound_warm`, `f7_n20000_bound_warm` |
+| ssn | **0** | 3 — `f7_n5000_bound_corrupted`, `f7_n10000_bound_warm`, `f7_n800_path_warm` |
+| walk | **0** | 2 — `f7_n2000_bound_corrupted`, `f7_n5000_bound_corrupted` |
+
+R1, fixed before the runs (`predeclaration-R1-R3.txt`): the classification is the
+banded count. **The wall side of the veto is clean on leg 1. The instruction side
+is not, and the interior leg's is not.**
+
+**R2' EVIDENCE FLAG ON LEG 1's WALL (settler R13; §8.1 and
+`logs/IDLE-PROOF.md`).** Every figure in this section is a median of three rounds
+per mode, and **one round per mode is UNPROVEN-EVIDENCE**: `leg1-ipm-r3`,
+`leg1-ssn-r2` and `leg1-walk-r2` each saw a foreign process in state `R` with no
+re-snapshot following it. The other six of the nine leg-1 wall batches are
+**PROVEN outright**, and **none of the nine exceeds R2''s FRACTION** — foreign
+task time 0.000–0.056 % on the pinned core and 0.111–0.428 % on its SMT sibling.
+So each mode's corpus figure rests on two clean rounds and one flagged one.
+
+---
+
+## 3. Leg 1 — pass A and pass B, and the instruction finding
+
+| mode | cell | instructions | branches | cycles | L1-icache misses | verdict |
+|---|---|---|---|---|---|---|
+| ipm | n1000 | **1.00046** | 1.00050 | 0.99689 | 0.754 | WORK-MOVED |
+| ipm | n5000 | **1.00032** | 1.00018 | 0.99823 | 0.785 | WORK-MOVED |
+| ipm | n20000 | **1.00043** | 1.00046 | 1.00011 | 0.781 | WORK-MOVED |
+| ssn | n1000 | **1.00087** | 1.00111 | 0.99967 | 0.732 | WORK-MOVED |
+| ssn | n5000 | **1.00065** | 1.00068 | 1.00009 | 0.698 | WORK-MOVED |
+| ssn | n20000 | **1.00071** | 1.00091 | 1.00149 | 0.685 | WORK-MOVED |
+| walk | n1000 | **1.00132** | 1.00144 | 0.99906 | 0.899 | WORK-MOVED |
+| walk | n5000 | **1.00127** | 1.00140 | 0.99864 | 0.917 | WORK-MOVED |
+| walk | n20000 | **1.00092** | 1.00065 | 0.99728 | 0.912 | WORK-MOVED |
+
+Branches move with instructions, by the same fraction, in every cell — so this is
+executed work, not a mis-attributed counter. Cycles stay inside ±0.32 % and
+L1-icache misses fall by 8–31 %: the extra instructions are cheap ones the front
+end absorbs, which is why the wall does not see them. **That explains why the
+timing is FLAT. It is not a defence against the veto, which §11.1 states on
+instructions.** Pass B changes no classification; the full tables are in §9.
+
+### The absolute deltas — the increase SCALES with the problem
+
+| mode | cell | base instructions | head instructions | delta | ratio |
+|---|---|---|---|---|---|
+| ipm | n1000 | 749 122 644 | 749 466 678 | +344 034 | 1.00046 |
+| ipm | n5000 | 3 834 878 023 | 3 836 104 607 | +1 226 584 | 1.00032 |
+| ipm | n20000 | 15 958 318 794 | 15 965 123 025 | +6 804 231 | 1.00043 |
+| ssn | n1000 | 488 479 834 | 488 903 314 | +423 480 | 1.00087 |
+| ssn | n5000 | 2 629 037 411 | 2 630 743 395 | +1 705 984 | 1.00065 |
+| ssn | n20000 | 11 674 701 748 | 11 683 014 698 | +8 312 950 | 1.00071 |
+| walk | n1000 | 261 301 248 | 261 644 867 | +343 619 | 1.00132 |
+| walk | n5000 | 1 333 971 634 | 1 335 665 712 | +1 694 078 | 1.00127 |
+| walk | n20000 | 5 640 392 312 | 5 645 600 279 | +5 207 967 | 1.00092 |
+
+The delta is not a constant per process: it grows roughly twentyfold as the
+problem does. Whatever it is, it is charged per unit of work, not once at
+startup. §6 says what it is.
+
+---
+
+## 4. The instrument's own floor — and which legs may speak about instructions
+
+`instructions` and `cycles` appear in BOTH passes precisely so the two can be
+tied to each other (§11.2). That tie is also a control: **when the same arm's two
+passes of the SAME binary disagree by more than 1e-4, the identity band sits
+below that population's noise floor and no instruction verdict at 1e-4 is
+available from it.**
+
+| population | worst same-arm pass A / pass B disagreement | verdict at 1e-4? |
+|---|---|---|
+| **leg 1** (nine cells, both arms, scored per cell) | **0.0010 %** | **YES** |
+| leg 2 (six mode × trace combinations, the MAXIMUM) | **0.2452 %** | **NO** |
+| interior, whole process | **0.2030 %** | **NO** |
+
+**THE LEG-2 FLOOR IS THE MAXIMUM PER-(mode, trace) DISAGREEMENT, NOT A MEDIAN
+ACROSS COMBINATIONS** (astra I5 (b)). Round 1 printed 0.0793 % by taking medians
+across different modes, traces and repeat counts — an average of instruments
+measuring different workloads, which is not a noise floor of anything. The
+per-combination figures are `ipm/off` 0.158309 %, `ipm/sink` 0.158621 %,
+`ssn/off` 0.153612 %, `ssn/sink` 0.152999 %, `walk/off` 0.011700 %, `walk/sink`
+**0.245198 %**; the floor is the last of these. **`walk/off`'s 0.0117 % is not
+promoted on its own** — the HS population is bimodal per process (T6.d finding
+F1), and one combination landing in the same cluster on both passes is a
+coincidence of clustering, not a sound instrument.
+
+Leg 1's instrument reproduces to 1e-5 — ten times finer than the band it is
+asked about — and the head-vs-base signal is 32× to 132× larger than that floor.
+**Leg 1's instruction finding is real.** Leg 2's and the interior leg's
+whole-process counts are inside their own noise; the comparator labels them
+`NO VERDICT AT 1e-4` and prints the ratio it would otherwise have classified.
+**The gate now applies to pass B as well as pass A** (astra I5 (c)): a population
+that cannot carry a verdict on one pass cannot carry one on the other, and the
+interior leg's whole-process counts carry none on either pass for a second and
+stronger reason — the arms' processes do not run the same rows.
+
+---
+
+## 5. Leg 2 and the interior leg — what they do and do not say
+
+### Leg 2 (the 27 HS problems)
+
+All six mode × trace combinations moved in the **FASTER** direction, from
+−0.69 % (`walk`/off) to −2.46 % (`ssn`/sink), with 8–26 of 27 cells outside
+0.99–1.01. Five read MOVED; `walk`/off reads UNRESOLVED.
+
+Two caveats, both written down before this leg ran:
+
+* §11.3 (ii) records that three runs of the SAME binary disagree by up to
+  **1.4 %** at the walk corpus level on this leg, because at 0.3–3 ms the
+  between-run variation is a per-process constant — address layout, allocator
+  state, page placement — that `--repeat` cannot average away at any N.
+  **THREE of the six combinations moved by MORE than that 1.4 %** (`ssn`/off
+  1.78 %, `ssn`/sink 2.46 %, `walk`/sink 2.39 %), and a fourth sits just under
+  it (`ipm`/sink **1.39 %**) — fix1 counted that one as over and it is not
+  (astra's fix1 review, item 8). So the movement is not simply inside the
+  declared limit and round 1's sentences saying it was are withdrawn. What the limit does establish is that **leg 2's
+  absolute wall figure cannot resolve the 0.5 % effect the veto turns on**, and
+  §11.3 (ii) reads its wall only as the paired A/B ratio, never as a magnitude.
+* What is *not* inside that caveat is the SIGN. All six moved the same way.
+  Six same-direction readings is more than one instrument's noise, and it is
+  recorded as such: on the HS scale the head is plausibly genuinely faster. It
+  is not quoted as a magnitude, and the disposition of a FASTER MOVED band is
+  §11.1.1's ("by the current wording, this includes the faster side").
+
+Leg 2's verdict was to rest on instructions and branches (§11.3 (ii)). It cannot:
+§4 shows this leg's own noise floor is **0.2452 %**, twenty-four times the band.
+**So leg 2 returns no verdict in either currency.** Both mapper call sites were
+exercised — the `trace=sink` arm carries a real sink and is reported separately
+from the null-sink arm, never averaged with it.
+
+The per-cell veto check on leg 2 (R1, banded): `ipm`/off and `ipm`/sink each
+carry **2** — `hs12` and `hs15`; the other four combinations carry none.
+
+**R2' EVIDENCE FLAG ON LEG 2 (settler R13; §8.1 and `logs/IDLE-PROOF.md`).**
+**All twelve leg-2 wall batches are UNPROVEN-EVIDENCE**: `leg2.sh:42` places its
+`box_guard` snapshot after the arm loop, so two timed runs follow each other with
+no foreign state observed across the switch. **None exceeds R2''s FRACTION**
+(0.018–0.036 % on the pinned core, 0.097–0.290 % on its sibling). Leg 2's wall is
+informational for a second and unrelated reason as well — §11.3 (ii) and this
+leg's own 0.2452 % noise floor.
+
+**And the calibration's exceedances are not hidden — THIS round's included.** N
+was adopted on the worst per-cell `median_se_pct` of the calibrating run (ipm
+0.354782 %, walk 0.419009 %, ssn 0.390189 %); later runs of the same cells at the
+same N do exceed 0.5 %. Round 1 saw 1.027244 % and 1.739174 % on individual HS
+rows; **the fix1 round's own wall captures carry three** — `ipm`/sink head-r2
+HS79 **1.030663 %**, `ssn`/off head-r2 HS25 **0.808699 %**, `walk`/off head-r2
+HS30 **0.618392 %** — and eight more in its pass-B captures.
+`calibration/README.md` lists every one (fix1 said this section listed them and
+it did not — astra's fix1 review, item 8). The between-process bimodality is what
+makes this leg's absolute wall unusable, which is the claim that rests on
+measured evidence; **whether a larger N would reduce a WITHIN-process dispersion
+was never tested here**, and fix1's flat "N cannot be raised to fix it" is
+narrowed to that.
+
+### The interior leg — THREE arms (R4)
+
+**Round 1's premise was false and is withdrawn.** It said "the interior leg DOES
+NOT EXIST at 102f729". It does: `git merge-base --is-ancestor 149f29b 102f729`
+returns 0, the base arm's extraction carries the `--engine interior` dispatch,
+and run at fix1 it writes **33 rows in the 19-column schema**. The leg therefore
+has three arms, and the one that matters most is the one round 1 declared
+impossible.
+
+| arm | commit | rows | schema | what it measures |
+|---|---|---|---|---|
+| `arm102` | `102f729` | 33 | 19 columns | **the top-level IPM across the WHOLE of group 1** |
+| `armb98` | `b9848bf` | 41 | 31 columns | T8.9's harness rewrite alone (round 1's only arm) |
+| `head` | `e51a7e0` | 43 | 31 columns | — |
+
+**AND THE LEG READS TWO WAYS. BOTH ARE STATED HERE (settler ruling R8), AND
+NEITHER REPLACES THE OTHER.** (i) and (ii) below are the LEG PROCESS — 33/41/43
+rows in one process, which is the shape the harness ships and the shape the
+baseline pins. §14's is a SINGLE-ROW process, one base row per process, reached
+through the `d5931e8` lever; it is the only shape in which an instruction count
+of this leg is like-for-like across arms. What it measures is **the CARRIER PAIR**
+— `510a4bb` → `9cebbbe`, the commit §12 charges the leg-process step to, whose
+own median row step is 1.0324 against a cumulative of 1.0283 — and **in that
+shape the step is SMALLER, not absent** (corrected at fix round 3, settler ruling
+R12): instructions NOT WORK-MOVED, cycles flat, and wall **+1.10 % on the same
+`wall_s` bracket this section sums** (informational; +0.04 % on the whole
+process, the difference being 0.135 s per eleven rows of work that `9cebbbe`
+moved from outside the bracket to inside it). A reader who takes either number
+without the other has the wrong picture: the leg process is 2.5 % slower and its
+carrier is unidentified; the same commit measured one row at a time is about
+1.1 % slower in the same window, at instruction counts **flat within the
+instrument** — per symbol, with the calibration set aside, c/p **0.995–0.997** on
+the two profiled rows, with no 1e-4 identity established and none claimed (§14).
+("At the same instruction count" is softened to that at fix round 4 — fable's
+fix3 review, Minors.)
+
+**R2' EVIDENCE FLAG ON THE INTERIOR LEG (settler R13; §8.1 and
+`logs/IDLE-PROOF.md`).** **The interior leg's wall batch is UNPROVEN-EVIDENCE**,
+for the same reason leg 2's are — `leg_interior.sh:63` places its snapshot after
+the arm loop — and it does **not** exceed R2''s FRACTION (0.0552 % on the pinned
+core, 0.3034 % on its sibling). **The single-row leg of §14 carries no R2'
+evidence at all**: its batch logs have no `PS_SNAPSHOT`/`CPUSTAT` bracket, so R2'
+cannot be computed for it and is not claimed. Both wall readings below, and both
+of §14's, are informational under CLAUDE.md §7.
+
+**(i) `102f729` → head, IN THE LEG PROCESS: MOVED, +2.49 %, 29 of 29 rows
+outside the band, 28 reproducible slowdowns.**
+
+corpus **10.1030 → 10.3545 s, ratio 1.0249**, on the 29 F7 rows the R3 rule
+leaves banded. Per-row ratios run 1.0112 to 1.0500; the only row inside
+0.99–1.01 is none of them. Twenty-eight are slower in all three alternating
+rounds — the banded reading R1 fixes. This is not one cell and it is not noise:
+it is the whole population moving one way by 2–5 %.
+
+**AND THE WORK IS IDENTICAL.** Across **33 common rows × 12 common counter
+columns × 3 rounds** the only column that differs is `status`, and it differs
+because T8.2 replaced `ConvergenceFlags` with `SolveStatus`: every one of the 33
+reads `CONVERGED` at `102f729` and `optimal` at the head. `iter_num`, `obj_val`,
+`kkt_inf`, `barr_inf`, `econ_inf`, `icon_inf`, `factorizations`, `solves`,
+`analyses`, `soc_steps` and `watchdog_activations` are **identical**. Same
+iterations, same factorizations, same residuals — 2.5 % more wall.
+
+**And the timed span is the same span.** At `102f729` the leg's clock brackets
+`ipm.optimize(x0)` with `transcribe()` above it
+(`arm-base/bench/ipm_corpus_leg.cpp:160–164`); at the head it brackets
+`ipm.solve(program, x0)` with the transcription above it
+(`bench/ipm_corpus_leg.cpp:652–655`). Each arm runs its own harness source
+(A7 (i)) and both executables' sha256 are in `PROVENANCE.txt`.
+
+**(ii) `b9848bf` → head: UNRESOLVED, −0.52 %, 7 of 31 rows outside, 1 banded veto
+cell** (`f7_n1000_bound_physics/RelaxBounds`, 1.0237). **So the regression is not
+T8.9's.** It sits in T8.1–T8.8, and THIS LEG does not resolve further than that:
+it has no arm between them. **§11 and §12 later do** — eleven group-1 arms and
+then every T8.4 commit — and put the step at `9cebbbe`; the sentence stands as
+what this leg alone can say.
+
+**(iii) R3 — the first row, excluded by the pre-declared rule.**
+`f7_n1000_bound_neutral/MakeParameter` is the first row every `--engine interior`
+process writes and is excluded from the band **by position**, decided before the
+round's first sample existed (`predeclaration-R1-R3.txt`, hashed in
+`logs/F0-predeclaration.log` at 15:22:25 UTC, before the first
+`FOREGROUND_START` at 15:33:07 UTC). Both corpus figures print:
+
+| arm | PRIMARY (without the warm-up row) | with it |
+|---|---|---|
+| `102f729` → head | **1.0249** (+2.490 %), 29 rows, 29 outside, **MOVED** | 0.9759 (−2.409 %), 30 rows, 30 outside, MOVED |
+| `b9848bf` → head | **0.9948** (−0.520 %), 31 rows, 7 outside, **UNRESOLVED** | 0.9743 (−2.566 %), 32 rows, 8 outside, MOVED |
+
+The excluded row's own three paired ratios are 0.8306 / 0.4847 / 0.4792 against
+`102f729` and 0.6999 / 0.6771 / 0.7021 against `b9848bf`; the `102f729` arm's own
+three runs of it span **1.656×**. It is the process's warm-up and it dominates
+whichever way it is counted — which is exactly why the rule was fixed in advance
+rather than after looking.
+
+**(iv) NO INSTRUCTION VERDICT, and at fix1 the reason is measured.**
+
+The whole-process counts carry none: the arms' processes do not run the same
+rows (33 / 41 / 43), and `perf stat` counts the process. Both passes are
+suppressed (astra I5 (c)).
+
+I4's per-cell measurement ran — **11 cells × 3 arms × 3 rounds**, each its own
+`--engine interior --cells <id>` process, pass A, R2 discipline. The dispatch's
+premise that this is like-for-like because the `parts2` rows belong to
+`f7_n1000_bound_neutral` only is **FALSE, verified**: the two `parts2` rows run
+in EVERY head process whichever cell is requested (6 / 14 / 16 rows for
+`--cells f7_n1000_bound_physics` at the three arms). The instrument built to fix
+that — difference each cell process against a `--cells hs071_x1_fixed` process,
+which is exactly the unconditional set — is **unsound, and the comparator says so
+and refuses the verdict**: nine of the differenced quantities come out NEGATIVE,
+a cell process with fewer instructions than the row set it contains. The cause is
+that the unconditional set is the process's FIRST solve when run alone and pays
+MKL's first call and the allocator's first growth, which inside a cell process a
+large F7 solve has already paid. The deeper cause is worse: the head's 13-row
+unconditional set costs FEWER instructions (5 164 860 443) than `b9848bf`'s
+11-row set (5 425 387 936), so the term being subtracted is not the same quantity
+across the arms.
+
+**A7 (ii)'s per-row instructions-only reading for the interior leg is NOT
+AVAILABLE from this harness AS IT STOOD, by either route.** The measurements are
+retained in `raw/interior_cells/` and `perf/interior_cells/` as data. **§14 later
+closed this gap with a harness lever rather than an instrument**: `d5931e8` adds
+`--internal-run-one <cell> --engine interior`, a single BASE ROW per process, no
+library source changed and both configs' `libhven.a` byte-identical across it.
+Measured through it the floor falls from §11's +1.27 % to **0.30 % at worst**,
+and the verdict it returns is **NOT WORK-MOVED** — §14. The registration that
+remains for M7 is the many-solves-per-process leg §15 names, not this one. `hs071_x1_fixed` and the two `infeas2` rows are a
+special case of the same thing — they ARE the unconditional set, so there is
+nothing to difference them against.
+
+---
+## 6. Attribution — where leg 1's extra instructions are, and whether they are inside the solve
+
+**This section was rewritten at fix1.** Round 1 answered the question with a
+`--dump-qp` probe and concluded that "the entire increase is inside the solve".
+astra's I8 is right that the probe cannot carry that: it does not execute the
+post-solve KKT gate, the result processing, or the same neutral-path driver
+construction, so what it bounds is narrower than what was claimed from it. The
+probe's captures are retained under `raw/round1-superseded/perf/attribution/`
+and are cited nowhere in this reading. Settler ruling R5 replaces it with two
+things that do carry the question: §10's eleven-arm attribution for WHAT the
+increase is, and the SOURCE for WHERE it runs.
+
+**What it is: T8.4's per-call declared diagnostics, and nothing else.** §10
+re-measured §3's nine cells at eleven arms — the base and every group-1 code
+head in order. **T8.4's step IS the added work on all nine cells** — the eleven
+arms' steps sum to the end-to-end delta to better than 1e-9, and T8.4's is the
+only step whose branch/instruction fingerprint reads as executed work (1.05–1.11,
+against a layout cluster's 2.32–2.48). **What is NOT true, and fix1 wrote it, is
+that every other step is inside ±2e-5: SEVEN are outside it** — T8.3 on five
+cells and T8.1 and T8.9 on `walk`/n1000, spanning −2.69e-4 to +1.57e-4 (astra's
+fix1 review, item 5). They are not work: every one reads at the layout-cluster
+value of the fingerprint, and one is a control — T8.1's `libhven.a` is
+byte-identical to the base's, so its +2.0e-5 can be nothing but that cell's
+floor. **The settled ATTRIBUTION of added work and the measured NET instruction
+step are two different statements; ±2e-5 is this leg's floor, not a claim that
+every step lands inside it.** It is **one fixed `O(n)` cost per call** — ≈+341 K
+instructions at n = 1000, ≈1.688 M at n = 5000, ≈6.73 M at n = 20000, linear in
+`n` to better than 2 % and the same on all three QP tiers to better than 0.5 %.
+§3's "+0.03 %…+0.13 %" is that one quantity divided by three different solve
+totals, largest as a fraction on `walk` because `walk` is the cheapest solve.
+
+**Where it runs — read off the source, not inferred from a probe.** The
+mechanism T8.4's design §2.3 and §2.7 (7) declare is the shared declared
+diagnostics computed once per call over the declared NLP
+(`compute_declared_diagnostics` / `compute_declared_diagnostics_from_grad_lag`)
+plus the declared-space vectors the new `SolveResult` carries by value. Both
+engines' call sites, and both harnesses' clocks:
+
+| what | where | inside the timed bracket? |
+|---|---|---|
+| the SQP's timed bracket | `bench/corpus_cells.h:1647–1649` — `t0`, `solve_target()`, `t1`; `record_kkt_check` is at `:1651`, AFTER `t1` | — |
+| SQP, per major | `src/drivers/sqp_driver.cpp:5123` `st.mb.diag = stash_declared_diagnostics(...)`, in `SqpDriver::run_major` (`:4642`), reached from `solve_impl_body` (`:5786`) from `SqpDriver::solve` (`:2463`) | **YES** |
+| SQP, restoration | `src/drivers/sqp_driver.cpp:4485`, same call chain | **YES** |
+| SQP, every exit | `src/drivers/sqp_driver.cpp:5920, 5958, 5991, 6014` in `solve_impl_body` | **YES** |
+| SQP, the caller-scale four | `src/drivers/sqp_driver.cpp:6418` `compute_declared_diagnostics(...)` in `SqpDriver::finish` (`:6264`), called from `solve_impl_body`'s returns at `:5911, 5935, 5951, 5969, 6001` | **YES** |
+| SQP, the callback's per-event four | `src/drivers/sqp_driver.cpp:4732`, inside `run_major`'s **callback-attached** branch (`:4736`'s `else if` is the no-callback arm, and `:4738` says a solve with no callback copies nothing) | inside the bracket, but **NOT EXECUTED** by these legs — no callback is attached |
+| the interior leg's timed bracket | `bench/ipm_corpus_leg.cpp:652–655` — `t0`, `ipm.solve(...)`, `wall_s`; the transcription runs above, before `t0` | — |
+| IPM, per solve | `src/drivers/interior_point_solver.cpp:6039` `declared_diagnostics_from_reduced_grad_lag(...)` in `run_phase_sequence` (`:5041`), called from `InteriorPointSolver::solve` (`:6104`, `:6158`) | **YES** |
+| IPM, the callback's | `src/drivers/interior_point_solver.cpp:2358`, inside `fire_iteration_event` (`:2249`) | inside the bracket, but **NOT EXECUTED** — the leg attaches no callback (`HVEN_LEG_COUNT_CALLBACK` is unset, `bench/ipm_corpus_leg.cpp:638`) |
+
+So the answer is **yes, it executes inside `wall_s`'s bracket**, on both engines,
+by the call chain rather than by inference; and the one site that would NOT run
+in these legs is the callback-attached one, which is exactly the cost this
+artifact does not measure (§8, R7).
+
+Combined with the byte-identical counters of §2 — same factorizations, same
+minors, same iterations — the finding is: **the head arm performs the same
+solve, in the same number of steps, executing one extra `O(n)` diagnostic
+quantity per call inside the timed window, and the front end absorbs it so the
+wall does not move.** Whether that is a cost worth paying is §11.1.1's question
+and the owner's.
+
+## 7. The composed cumulative chain
+
+§11.1's cumulative bar does not compose itself: two in-band readings can compose
+out of band, so the arithmetic is stated. There is no third arm and none is
+implied — this is multiplication of two measured ratios.
+
+| mode | T6 close 50f616a → 1997159 | T8.9r 102f729 → e51a7e0 | composed | inside ±0.5 %? |
+|---|---|---|---|---|
+| ipm | 1.0023 | 1.000625 | **1.00293** (+0.293 %) | **yes** |
+| ssn | 1.0015 | 0.999236 | **1.00074** (+0.074 %) | **yes** |
+| walk | 0.9993 | 1.000137 | **0.99944** (−0.056 %) | **yes** |
+
+**And the chain has no unmeasured code gap.** T7 sits between `1997159` and
+`102f729`. The argument is not that T7 was comment-only — it was not; it moved a
+dead-friend token and T8.1 landed interleaved with it. The argument is the
+LIBRARY HASH: `arm-base`'s `libhven.a` sha256 begins `735eea1d9d51ef93`, the
+sha16 the T6 close record gives for the post-(d) revert arm's library. **The
+library at `102f729` IS the library at the T6 close head**, so the two measured
+spans meet end to end whatever happened to comments in between.
+
+**The composed chain is an SQP-corpus chain.** The interior leg's `102f729` arm
+is NOT in it: it measures the top-level IPM, which the T6 close did not measure,
+so there is nothing to compose it with. Its +2.49 % stands on its own and is
+reported as its own finding (§1 (c)).
+
+---
+## 8. What this reading claims, and what it does not
+
+**Claims, with the numbers above:**
+
+* Leg 1 is FLAT in all three modes, 0/27 cells outside 0.99–1.01, on
+  re-measurement under R2''s pinned-core solo proof — which all nine of its
+  wall batches meet (§8.1).
+* Leg 1's counters are byte-identical between the arms across 75 columns, 27
+  cells, three rounds, three modes.
+* Leg 1's instructions are UP, reproducibly and far above that leg's measured
+  noise floor. **This is WORK-MOVED under §11.1 and the veto trigger has
+  fired.** §10 charges the whole of it to T8.4's per-call declared diagnostics,
+  and §6 shows by call chain that they run inside the timed bracket.
+* **The top-level IPM is 2.49 % slower at the group-1 head than at `102f729` on
+  the 29 banded F7 rows, with 29 of 29 rows outside 0.99–1.01 and 28 slower in
+  all three rounds, while every common counter column is identical.** That band
+  is MOVED and those 28 cells are reproducible slowdowns on R1's banded
+  reading. It is not in T8.9: `b9848bf` → head reads −0.52 %.
+* The interior leg has a base arm at `102f729` as well as at `b9848bf`, so the
+  top-level IPM's runtime across the WHOLE of group 1 is measured on the 33
+  base rows — the limitation round 1 declared was false (R4).
+* Leg 2 moved in the FASTER direction in all six combinations. THREE of the six
+  moved by more than §11.3 (ii)'s 1.4 % same-binary limit (and a fourth,
+  `ipm`/sink at 1.39 %, sits just under), so the magnitude is NOT inside that
+  limit — but the limit is still what says the magnitude cannot
+  be resolved, so it is not quoted as a measurement either way.
+
+**Does not claim:** — **this list is the state at FIX ROUND 1, and three of its
+items have since been overtaken. They are left standing, with what overtook them
+named, because a list of what a reading would not claim is worth more as a record
+than as a live index** (astra's fix2 review, Minors).
+
+* Any disposition. §11.1.1 sends "demonstrated instructions UP" to the owner
+  with the numbers; §11.5 owns the outcome. This directory stops at the numbers.
+  **— OVERTAKEN: the owner ruled on 2026-09-11 and §15 records it. §1–§14 are
+  still the measurement and still stop there.**
+* **THE COST OF AN ATTACHED CALLBACK OR AN ATTACHED TRACE SINK ON THE INTERIOR
+  LEG. UNMEASURED (settler ruling R7.)** A7 (iii) named a callback lever for
+  the interior leg; the harness has none. `bench/bench_corpus.cpp` carries
+  `--repeat`, `--internal-run-one` and `--internal-out`, and no callback option;
+  `bench/ipm_corpus_leg.cpp:638` installs a counting callback only when
+  `HVEN_LEG_COUNT_CALLBACK` is set in the environment, and that lever counts
+  events — it is not an A/B pair and was not used here. T8.6's callback and
+  T8.7's sink therefore have NO measured attached-cost number in this artifact,
+  and one is not inferred from the detached numbers: §6's table shows two call
+  sites (`sqp_driver.cpp:4732`, `interior_point_solver.cpp:2358`) that run ONLY
+  with something attached and that these legs execute zero times. The settler
+  has REGISTERED the measurement for W6. No harness lever was added for it here
+  — adding one would be a bench source change, which this leg may not make.
+* Any wall reading from leg 2 as a magnitude, and **any instruction verdict for
+  the interior leg at all** — neither from its whole-process counts (unmatched
+  row sets) nor from I4's per-cell measurement, whose differencing instrument is
+  unsound and is refused by the comparator rather than published (§5 (iv)).
+  A7 (ii) is UNSATISFIED for the interior leg and the gap is registered for W6.
+  **— PARTLY OVERTAKEN: §14's single-row lever answers A7 (ii) FOR THE CARRIER
+  PAIR `510a4bb → 9cebbbe` AND FOR THE TWO ROWS IT PROFILED, and for nothing
+  wider. The whole-process verdict named here is still unavailable.**
+* **Any cause for the +2.49 %.** It is located to T8.1–T8.8 and no further; this
+  artifact has no arm between those heads and no instruction evidence that could
+  attribute it. Attributing it is the obvious next measurement and it is the
+  settler's and the owner's to commission. **— OVERTAKEN: §11 later put an arm
+  at every group-1 head and §12 at every T8.4 commit, so the artifact DOES have
+  arms between those heads and the step is located to `9cebbbe`. Its CARRIER is
+  still unidentified, which is the sentence that survives.**
+* Any Apple/Accelerate or Windows value, and any Intel pass-B value. All
+  **UNOBSERVED**.
+
+**And one condition this reading was dispatched under is DISCHARGED, stated here
+rather than only in `PROVENANCE.txt`** (astra's round-1 review §5; fix1 claimed
+§8 carried this and it did not — astra's fix1 review, item 8). `PROVENANCE.txt`'s
+"one code change may still land in group 1" paragraph was written against an open
+owner decision on restoring `detail/interior/jet.h`. **That decision is settled:
+`jet.h` stays deleted** — hven provides thread-safe solves, not a parallel-solve
+facility — by the settler's ruling `30e62ec`, which is DOCS-ONLY and landed
+inside this leg's window (declared in `PROVENANCE.txt`). So no code change lands,
+**`e51a7e0` remains the group-1 code head**, and this reading is the reading of
+that head rather than of a head that might still move.
+* **That the box was solo in R2's original per-process sense.** It was not, and
+  no run on this machine can be: a Wayland compositor, a browser and this
+  agent's own daemon are resident and accrue CPU continuously. **R2 was AMENDED
+  to R2' for exactly that reason**, and what IS proved, per batch, is that
+  foreign task time on the PINNED CORE and on its SMT sibling stayed under
+  0.5 % of the batch's wall — `logs/IDLE-PROOF.md` and §8.1, where the four
+  batches of other rounds that fail even that are named. It is a bound on
+  contention, not an absence of it.
+
+* **Any wall reading from leg 1's three `perf` batches.** They are the only
+  batches of THIS round R2' does not prove (§8.1), they assert counters, and
+  no elapsed time is read from them anywhere in this reading.
+
+---
+
+### 8.1 The solo proof — R2', the pinned-core rule, re-audited at fix2
+
+**Round 1's solo proof was `pgrep`, and astra's I1 refused it.** A command name
+cannot say whether a process ran; the checks were taken before rounds rather
+than between alternations; and `box_pgrep` printed matches and continued — it
+implemented no pause. Worse, the audit was incomplete on its own terms: the
+pattern `cmake|ninja|ctest|hven_|codex|clang` matches neither `kwin_wayland`
+nor `firefox` nor this agent's own daemon, and all three were running the whole
+time. Settler ruling R2 replaced it.
+
+**And fix1's answer to R2 was not compliance either.** R2 as written asked for
+a PER-PROCESS bar — every foreign pid on the box under 0.5 % of the batch's
+wall, with no `R` state seen. Fix1 measured that bar, reported it **NOT met on
+every batch**, and then took its verdict on a second and narrower test it had
+not been granted. astra's fix1 review is right that a disclosed substitution is
+not a satisfied ruling.
+
+**So the SETTLER AMENDED THE RULE (2026-09-11), rather than pretend the old one
+passed.** R2's per-process bar was **unmeetable on this box and unreachable by
+re-running**: a Wayland compositor, a browser and this agent's own daemon are
+resident, accrue CPU continuously across 16 logical CPUs, and put ~3 % of any
+window on the board whatever the leg does. What the recipe actually reserves is
+a core.
+
+> **R2' — THE PINNED-CORE RULE.** Foreign TASK time on the measurement core
+> (`cpu2`) **and** on its SMT sibling (`cpu10`), counted as
+> `user + nice + steal + guest` from `/proc/stat` across the batch, must be
+> under **0.5 %** of the batch's wall. Every foreign pid and state seen in any
+> snapshot is listed, transients included. A foreign `R` is a pause and a
+> **re-snapshot**. A batch that cannot be proven is re-run.
+
+**EVERY RETAINED BATCH OF EVERY ROUND IS RE-AUDITED UNDER R2' — 99 of them,
+including the rounds that had already published a verdict.** One tool computes
+all of it: `scripts/idle_proof.py`, the attrib4 NICE-INCLUSIVE version with fix3's
+EVIDENCE ACCOUNTING added (`3394879d…`), byte-identical in all three places it
+sits. Nothing was re-measured, at fix2 or at fix3; this is arithmetic on
+snapshots that were already on disk, and **every fraction below is byte-for-byte
+the figure fix2 published**. The per-batch table, every state seen, the
+transients, the pauses and the give-ups are `logs/IDLE-PROOF.md`; **every foreign
+pid of every batch, with every state observed for it, is
+`logs/idle-proof-pids-<round>.md`** (five files, ~200 pids per batch); the runs
+are `logs/F4-idle-audit-fix2.log` and `logs/F6-idle-audit-fix3.log`.
+
+**FIX ROUND 3 SPLITS "UNPROVEN" IN TWO, AND WITHDRAWS FIX2'S EXEMPTION (settler
+ruling R13; astra's fix2 review, item 1).** Fix2 took the R2' verdict on the
+FRACTION alone and deferred R2''s other terms — the re-snapshot after a foreign
+`R`, the state list, the alternation snapshots — to "the next measurement". **The
+settler granted no such retrospective exemption.** So:
+
+> **UNPROVEN-FRACTION** — R2''s bar is measured and exceeded on `cpu2` or
+> `cpu10`. **UNPROVEN-EVIDENCE** — the bar is met, or cannot be computed, but the
+> log does not contain what R2' asks for: a re-snapshot after a foreign `R`; a
+> snapshot between two consecutive timed runs; or any timed-run bracket at all.
+
+Two accounting repairs come with it. **The `R` column now reads both snapshot
+sources** — `FOREIGN_TICK`'s single `/proc` character AND `FOREIGN_PS`'s full
+`ps` string, so `4022442 Rsl` in `L4-leg1-ssn-r2.log` is seen; that raises the
+batches with an `R` observation to **10 / 10 / 11 / 3 / 5** across the five
+rounds. **And pauses are counted once**: **6 / 5 / 5 / 3 / 2**, with the
+accompanying `BOX_PAUSE_GIVEUP` lines in their own column instead of doubling
+the total.
+
+| round | wall-asserting batches | **PROVEN under R2'** | unproven-FRACTION | unproven-EVIDENCE | counter/other batches | proven |
+|---|---:|---:|---:|---:|---:|---:|
+| fix1 (this reading's own legs) | 22 | **6** | 0 | 16 | 8 | 0 |
+| attrib2 (§11) | 5 | **1** | 0 | 4 | 11 | 3 |
+| attrib3 (§12) | 25 | **14** | 4 | 8 | 14 | 7 |
+| attrib3, the superseded argv round set | 0 | — | — | — | 5 | 2 |
+| attrib4 (§13) | 5 | **1** | 0 | 4 | 4 | 0 |
+
+(A batch can fail both ways — `ywall-r5` does — so the columns need not sum.
+**57 wall batches: 22 PROVEN, 4 short on the fraction, 32 short on the
+evidence.**)
+
+**THE RESULT FOR THIS READING, RESTATED.** **No wall batch of the fix1 round
+fails R2''s FRACTION** — the nine leg-1 wall batches read 0.000–0.056 % of
+foreign task time on the pinned core and 0.111–0.428 % on the sibling, the
+twelve leg-2 batches 0.018–0.036 % and 0.097–0.290 %, the interior wall batch
+0.0552 % and 0.3034 %. **Sixteen of the twenty-two fail on the EVIDENCE**, and
+the two reasons are different in kind:
+
+* **Three leg-1 wall batches** — `leg1-ipm-r3`, `leg1-ssn-r2`, `leg1-walk-r2` —
+  saw a foreign process in state `R` and no re-snapshot followed. The other six
+  are PROVEN outright. §1's and §2's leg-1 wall numbers are medians of three
+  rounds per mode, so **each mode's figure rests on two clean rounds and one
+  flagged one**.
+* **All twelve leg-2 batches and the interior wall batch** are missing
+  ALTERNATION SNAPSHOTS. `PROVENANCE.txt` (G2) already disclosed this and fix3
+  makes it a flag: only leg 1's nine wall batches place a `box_guard` snapshot
+  between every A/B alternation; `leg2.sh:42` and `leg_interior.sh:63` place it
+  after the arm loop, so two timed runs follow each other with no foreign state
+  observed across the switch. The `CPUSTAT`/`CPUTIME_SELF` bracket around EVERY
+  timed run is present in all of them, and that bracket is what the fraction is
+  taken on. **§1's and §5's leg-2 and interior wall numbers carry this flag**,
+  and §5 already reads leg 2 as informational for an unrelated reason (§11.3
+  (ii), its own noise floor).
+
+**What an evidence gap is and is not.** It is a gap in the RECORD, not in the
+number: the fractions these batches report are the fractions they measured, over
+the whole batch window, and an unwatched moment inside that window is already
+inside the counted buckets. CLAUDE.md §7's own reason for the solo rule is that
+a busy neighbour costs the measurement TIME — so an unwatched moment biases a
+wall number SLOW, never fast, which is the direction that would weaken the FLAT
+findings rather than manufacture them. **None of that makes the evidence
+complete, and the flag is carried wherever the number goes.**
+
+**AND THREE COUNTER BATCHES OF THIS ROUND ALSO FAIL THE FRACTION.**
+`leg1perf-ipm`, `-ssn` and `-walk` read **0.7503 %, 0.6160 % and 1.5957 %** of
+foreign task time on the pinned core. They are leg 1's pass-A/pass-B `perf`
+batches — the instruction measurement of §3 and §4. **What that forbids is
+reading their ELAPSED time as a measurement, and §3 reads none**: it reads
+`instructions:u`, `branches:u`, `cycles:u` and the miss counters, which
+CLAUDE.md §7 makes deterministic per process at `MKL_NUM_THREADS=1` and
+scheduling-invariant — a busy neighbour cannot change how many instructions a
+process retires. The finding they carry is a **32× to 132×** signal against a
+**0.0010 %** same-binary floor, and that floor was measured on the same batches
+under the same conditions. **They are flagged, not re-run** — the fix2 and fix3
+rulings owe no re-measurement — and §12's fraction flags are the other four. All
+eight of this round's counter batches carry an EVIDENCE flag too, for the
+alternation reason above.
+
+**What "solo" is and is not a claim about.** `irq`/`softirq` are reported
+separately and are not counted as foreign: they are the kernel servicing the
+machine on that core — timer ticks, the measured process's own page-fault path
+— not another runnable thing, and they are present in every measurement this
+protocol has taken, T6's included. `system` beyond the run's own `sys` is
+kernel-side work done FOR the measurement (process creation, PMU programming,
+CSV writeback) and scales with the number of processes a batch launches rather
+than with its wall.
+
+**The accounting repairs astra's reviews required are in the tool that computed
+this table.** From the fix1 review (item 7): foreign task time counts **`nice`**
+— foreign `SN`/`RN` tasks are present in the retained logs, and reading `user`
+alone made them invisible — and **transients are counted and named** rather than
+dropped. From the fix2 review (item 1): **both state sources are read**, **pauses
+are counted once**, and **every foreign pid is listed with its states**, per
+batch, in `logs/idle-proof-pids-<round>.md` — a count and a busiest-five is not
+the list R2' asks for.
+
+**And the driving shell is pinned OFF `cpu2` and `cpu10`** (`taskset -cp` with
+mask `0,1,3-9,11-15` on the leg script's own pid). Round 1 pinned the solve and
+left the harness — the shell, `ps`, `awk`, `perf`'s setup, the timestamps —
+free to land on the measurement core, so "cpu2 ran nothing but the solve" was
+not true even of the leg's own scaffold.
+
+**THE `R` TERM — DISCLOSED AT FIX2, A FLAG AT FIX3.** R2' requires a pause and a
+**re-snapshot** when a foreign process is seen in state `R`. The recipe these
+batches ran under paused, slept 5 s, printed `BOX_PAUSE_GIVEUP` and continued
+**without re-snapshotting** (`scripts/common.sh:102`, whose `tries >= 1` test at
+`:113` leaves the loop after the first sleep, so the promise its own `:111` line
+prints is not kept; astra's fix1 review found it). Nothing was ever signalled.
+**Six pauses** were taken in this round, across five batches — the tool now
+counts `BOX_PAUSE` and `BOX_PAUSE_GIVEUP` in separate columns, where fix2's table
+added them and read twelve. **Reading both snapshot sources, TEN of this round's
+thirty batches saw an `R` at some point**, not the five the pause count implies:
+`box_guard` only looks at the moment it runs, and `FOREIGN_PS`'s full state
+string carries `R` states — `Rsl`, `Rl` — that fix2's `FOREIGN_TICK`-only reading
+did not see at all. **It moves no FRACTION** — any CPU such a task consumed on
+`cpu2` or `cpu10` is already inside the buckets R2' counts, because R2''s bar is
+on the resource and not on the state. **It does move the EVIDENCE verdict**:
+fix2 wrote that R2''s re-snapshot term "binds the next measurement, not this
+audit", and the settler withdrew that at fix3. Every batch with an unanswered
+`R` is UNPROVEN-EVIDENCE, and `logs/IDLE-PROOF.md` names each one with the
+snapshot tag it was seen at.
+
+**FIVE BATCHES WERE RE-RUN, as R2 required, and the re-runs are the retained
+data.** On the first pass `leg1-walk-r2` failed on the SMT sibling,
+`interior-perfB` and `interior-cells-r1/r2/r3` on `cpu2`. All five were re-run
+under the same recipe; `interior-cells-r1` and `-r2` needed a second re-run.
+**Nothing was ever signalled.** The superseded first-pass logs are not retained
+separately — each re-run overwrote its batch's log, raw and perf files, which is
+what "the batch is re-run" means.
+
+**Test 1's numbers, reported because R2 asked for them.** The worst FRACTION any
+batch window shows is **2.9418 %** — 1.420 s of pid 50122, `kwin_wayland`, the
+desktop compositor, across `leg1-ipm-r1`'s 48.27 s. The largest ABSOLUTE foreign
+delta is a different cell: **11.740 s**, the same process across `leg1-walk-r1`'s
+414.78 s, which is 2.8304 % (astra's fix1 review, item 8 — fix1 quoted 1.420 s as
+though it were both). **Six pauses** were taken across five batches at which
+`box_guard` saw a foreign process in state `R`; fix1 said twelve by counting each
+`BOX_PAUSE` and its `BOX_PAUSE_GIVEUP` line separately, and fix2's table repeated
+that double count — fix3's columns are separate and the pause totals per round
+are **6 / 5 / 5 / 3 / 2**. Ten batches of this round saw an `R` in some snapshot,
+which is the larger number and the one the evidence verdict keys on. None of it
+landed on the pinned core. **Those numbers are retained, not deleted: the amendment changes
+which test carries the verdict, not what the superseded test measured.**
+
+
+---
+
+## 9. The comparator's output, verbatim
+
+Everything above is derived from what follows; what follows is derived from
+`raw/` and `perf/` and nothing else. Regenerate with
+`python3 comparator.py --root . --out -` (sha256 in `comparator.py.sha256`).
+
+# W5 T8.9r comparator output (fix round 1)
+
+Regenerate: `python3 comparator.py --root . --out -`
+
+R1 (the banded veto reading) and R3 (the interior first-row rule) are PRE-DECLARED in this file's docstring and in `PROVENANCE.txt`; `logs/F0-predeclaration.log` records that they were fixed before the first timed run of this round.
+
+## Leg 1 -- the U0 27-cell corpus (102f729 -> e51a7e0)
+
+### leg 1 / ipm
+
+corpus base 14.8524 s -> head 14.8617 s, **ratio 1.0006** (+0.062 %); cells compared 27; outside 0.99-1.01: **0**; band **FLAT**
+
+veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 0 **; strict, informational, 3 ['f7_n10000_bound_warm', 'f7_n1000_bound_activity', 'f7_n20000_bound_warm']
+
+| cell | base median (s) | head median (s) | ratio | paired per round |
+|---|---|---|---|---|
+| `f7_n10000_bound_activity` | 0.677230 | 0.676187 | 0.9985 | 0.9983 1.0066 0.9955 |
+| `f7_n10000_bound_corrupted` | 0.771408 | 0.772228 | 1.0011 | 0.9988 1.0045 1.0000 |
+| `f7_n10000_bound_neutral` | 0.830061 | 0.829918 | 0.9998 | 0.9996 1.0031 0.9973 |
+| `f7_n10000_bound_physics` | 0.677521 | 0.677520 | 1.0000 | 0.9969 1.0016 0.9992 |
+| `f7_n10000_bound_warm` | 0.770478 | 0.774307 | 1.0050 | 1.0050 1.0062 1.0002 |
+| `f7_n1000_bound_activity` | 0.064256 | 0.064791 | 1.0083 | 1.0002 1.0083 1.0134 |
+| `f7_n1000_bound_corrupted` | 0.069044 | 0.068792 | 0.9964 | 0.9720 0.9984 0.9965 |
+| `f7_n1000_bound_neutral` | 0.081621 | 0.081043 | 0.9929 | 0.9916 1.0018 0.9929 |
+| `f7_n1000_bound_physics` | 0.065360 | 0.065137 | 0.9966 | 1.0043 0.9965 0.9984 |
+| `f7_n1000_bound_warm` | 0.068570 | 0.068559 | 0.9998 | 0.9993 1.0013 0.9850 |
+| `f7_n1000_path_warm` | 0.267771 | 0.267955 | 1.0007 | 1.0007 0.9978 1.0031 |
+| `f7_n20000_bound_activity` | 1.413533 | 1.413451 | 0.9999 | 1.0017 0.9983 1.0019 |
+| `f7_n20000_bound_corrupted` | 1.615827 | 1.615828 | 1.0000 | 0.9983 1.0028 0.9992 |
+| `f7_n20000_bound_neutral` | 1.732945 | 1.730225 | 0.9984 | 1.0016 1.0026 0.9976 |
+| `f7_n20000_bound_physics` | 1.411426 | 1.411360 | 1.0000 | 0.9998 1.0053 0.9995 |
+| `f7_n20000_bound_warm` | 1.616200 | 1.627830 | 1.0072 | 1.0158 1.0048 1.0036 |
+| `f7_n2000_bound_activity` | 0.131101 | 0.131126 | 1.0002 | 0.9926 1.0067 1.0002 |
+| `f7_n2000_bound_corrupted` | 0.140191 | 0.140143 | 0.9997 | 0.9985 1.0006 0.9958 |
+| `f7_n2000_bound_neutral` | 0.162214 | 0.162061 | 0.9991 | 0.9996 1.0005 0.9944 |
+| `f7_n2000_bound_physics` | 0.131132 | 0.130920 | 0.9984 | 0.9970 0.9968 1.0001 |
+| `f7_n2000_bound_warm` | 0.139883 | 0.140017 | 1.0010 | 1.0014 1.0035 0.9961 |
+| `f7_n5000_bound_activity` | 0.329362 | 0.328655 | 0.9979 | 0.9793 0.9979 0.9977 |
+| `f7_n5000_bound_corrupted` | 0.374401 | 0.373296 | 0.9970 | 0.9975 1.0033 0.9970 |
+| `f7_n5000_bound_neutral` | 0.405251 | 0.404813 | 0.9989 | 1.0133 0.9986 1.0001 |
+| `f7_n5000_bound_physics` | 0.328671 | 0.329233 | 1.0017 | 0.9970 1.0065 0.9997 |
+| `f7_n5000_bound_warm` | 0.354655 | 0.353749 | 0.9974 | 0.9917 1.0015 0.9974 |
+| `f7_n800_path_warm` | 0.222303 | 0.222544 | 1.0011 | 1.0051 1.0011 0.9993 |
+
+pass A, cell `f7_n1000_bound_neutral`: WORK-MOVED (instructions UP) -- THE VETO
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `L1-icache-load-misses:u` | 75899 | 57250 | 0.75429 |
+| `branch-misses:u` | 550079 | 534476 | 0.97163 |
+| `branches:u` | 112844047 | 112899985 | 1.00050 |
+| `cycles:u` | 242141477 | 241387885 | 0.99689 |
+| `instructions:u` | 749122644 | 749466678 | 1.00046 |
+
+pass B (Zen 3 front end), cell `f7_n1000_bound_neutral`: WORK-MOVED (instructions UP) -- THE VETO
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `cycles:u` | 242612286 | 241660217 | 0.99608 |
+| `de_dis_uop_queue_empty_di0:u` | 9323027 | 8996860 | 0.96501 |
+| `ic_fetch_stall.ic_stall_any:u` | 102715497 | 101794224 | 0.99103 |
+| `instructions:u` | 749117947 | 749470766 | 1.00047 |
+| `op_cache_hit_miss.op_cache_hit:u` | 106768207 | 107498631 | 1.00684 |
+| `op_cache_hit_miss.op_cache_miss:u` | 11366723 | 10959509 | 0.96417 |
+base arm: front-end-bound (dq-empty/cycles) = 0.0384; op-cache miss share = 0.0962
+head arm: front-end-bound (dq-empty/cycles) = 0.0372; op-cache miss share = 0.0925
+
+pass A, cell `f7_n20000_bound_neutral`: WORK-MOVED (instructions UP) -- THE VETO
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `L1-icache-load-misses:u` | 1179259 | 920622 | 0.78068 |
+| `branch-misses:u` | 8379334 | 8275128 | 0.98756 |
+| `branches:u` | 2405655225 | 2406773117 | 1.00046 |
+| `cycles:u` | 5255497812 | 5256059911 | 1.00011 |
+| `instructions:u` | 15958318794 | 15965123025 | 1.00043 |
+
+pass B (Zen 3 front end), cell `f7_n20000_bound_neutral`: WORK-MOVED (instructions UP) -- THE VETO
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `cycles:u` | 5257571745 | 5260249587 | 1.00051 |
+| `de_dis_uop_queue_empty_di0:u` | 133691979 | 142374460 | 1.06494 |
+| `ic_fetch_stall.ic_stall_any:u` | 2384335094 | 2379952264 | 0.99816 |
+| `instructions:u` | 15958323295 | 15965123049 | 1.00043 |
+| `op_cache_hit_miss.op_cache_hit:u` | 2260499982 | 2278973325 | 1.00817 |
+| `op_cache_hit_miss.op_cache_miss:u` | 214636205 | 206778704 | 0.96339 |
+base arm: front-end-bound (dq-empty/cycles) = 0.0254; op-cache miss share = 0.0867
+head arm: front-end-bound (dq-empty/cycles) = 0.0271; op-cache miss share = 0.0832
+
+pass A, cell `f7_n5000_bound_neutral`: WORK-MOVED (instructions UP) -- THE VETO
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `L1-icache-load-misses:u` | 327141 | 256748 | 0.78482 |
+| `branch-misses:u` | 2099246 | 2067730 | 0.98499 |
+| `branches:u` | 577331394 | 577434976 | 1.00018 |
+| `cycles:u` | 1223077363 | 1220909564 | 0.99823 |
+| `instructions:u` | 3834878023 | 3836104607 | 1.00032 |
+
+pass B (Zen 3 front end), cell `f7_n5000_bound_neutral`: WORK-MOVED (instructions UP) -- THE VETO
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `cycles:u` | 1222272900 | 1222312233 | 1.00003 |
+| `de_dis_uop_queue_empty_di0:u` | 34015060 | 34811428 | 1.02341 |
+| `ic_fetch_stall.ic_stall_any:u` | 528537913 | 528177460 | 0.99932 |
+| `instructions:u` | 3834879144 | 3836109110 | 1.00032 |
+| `op_cache_hit_miss.op_cache_hit:u` | 540722088 | 544736901 | 1.00742 |
+| `op_cache_hit_miss.op_cache_miss:u` | 54366704 | 52281224 | 0.96164 |
+base arm: front-end-bound (dq-empty/cycles) = 0.0278; op-cache miss share = 0.0914
+head arm: front-end-bound (dq-empty/cycles) = 0.0285; op-cache miss share = 0.0876
+
+### leg 1 / ssn
+
+corpus base 11.0994 s -> head 11.0909 s, **ratio 0.9992** (-0.076 %); cells compared 27; outside 0.99-1.01: **0**; band **FLAT**
+
+veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 0 **; strict, informational, 3 ['f7_n10000_bound_warm', 'f7_n5000_bound_corrupted', 'f7_n800_path_warm']
+
+| cell | base median (s) | head median (s) | ratio | paired per round |
+|---|---|---|---|---|
+| `f7_n10000_bound_activity` | 0.705763 | 0.703535 | 0.9968 | 0.9961 1.0007 0.9925 |
+| `f7_n10000_bound_corrupted` | 0.325487 | 0.325534 | 1.0001 | 1.0001 1.0038 0.9947 |
+| `f7_n10000_bound_neutral` | 0.704532 | 0.702506 | 0.9971 | 0.9988 0.9988 0.9916 |
+| `f7_n10000_bound_physics` | 0.703953 | 0.705143 | 1.0017 | 1.0017 1.0080 0.9939 |
+| `f7_n10000_bound_warm` | 0.324798 | 0.326639 | 1.0057 | 1.0078 1.0031 1.0074 |
+| `f7_n1000_bound_activity` | 0.062441 | 0.062003 | 0.9930 | 0.9982 0.9902 0.9934 |
+| `f7_n1000_bound_corrupted` | 0.029270 | 0.029228 | 0.9985 | 1.0039 0.9985 0.9989 |
+| `f7_n1000_bound_neutral` | 0.063094 | 0.062849 | 0.9961 | 0.9961 1.0031 0.9940 |
+| `f7_n1000_bound_physics` | 0.061987 | 0.061873 | 0.9982 | 0.9991 0.9977 0.9996 |
+| `f7_n1000_bound_warm` | 0.029193 | 0.029141 | 0.9982 | 0.9993 0.9986 0.9982 |
+| `f7_n1000_path_warm` | 0.223949 | 0.224730 | 1.0035 | 1.0049 1.0062 0.9954 |
+| `f7_n20000_bound_activity` | 1.503629 | 1.503849 | 1.0001 | 1.0008 0.9984 0.9946 |
+| `f7_n20000_bound_corrupted` | 0.700199 | 0.700346 | 1.0002 | 1.0020 0.9980 0.9993 |
+| `f7_n20000_bound_neutral` | 1.505732 | 1.499431 | 0.9958 | 0.9935 0.9993 0.9907 |
+| `f7_n20000_bound_physics` | 1.503766 | 1.501787 | 0.9987 | 0.9996 1.0004 0.9940 |
+| `f7_n20000_bound_warm` | 0.697853 | 0.700526 | 1.0038 | 1.0034 1.0049 0.9989 |
+| `f7_n2000_bound_activity` | 0.128600 | 0.128170 | 0.9967 | 0.9981 1.0001 0.9935 |
+| `f7_n2000_bound_corrupted` | 0.061395 | 0.060815 | 0.9906 | 0.9887 0.9888 0.9992 |
+| `f7_n2000_bound_neutral` | 0.128338 | 0.128895 | 1.0043 | 0.9990 1.0046 1.0044 |
+| `f7_n2000_bound_physics` | 0.127758 | 0.127858 | 1.0008 | 0.9967 1.0001 1.0017 |
+| `f7_n2000_bound_warm` | 0.060778 | 0.060639 | 0.9977 | 0.9934 1.0023 0.9974 |
+| `f7_n5000_bound_activity` | 0.332731 | 0.332356 | 0.9989 | 0.9907 0.9997 1.0007 |
+| `f7_n5000_bound_corrupted` | 0.154192 | 0.154359 | 1.0011 | 1.0001 1.0058 1.0004 |
+| `f7_n5000_bound_neutral` | 0.332164 | 0.332452 | 1.0009 | 0.9973 1.0021 1.0003 |
+| `f7_n5000_bound_physics` | 0.333819 | 0.331983 | 0.9945 | 0.9976 0.9931 0.9961 |
+| `f7_n5000_bound_warm` | 0.152963 | 0.153016 | 1.0003 | 1.0049 1.0002 0.9987 |
+| `f7_n800_path_warm` | 0.141006 | 0.141248 | 1.0017 | 1.0178 1.0019 1.0007 |
+
+pass A, cell `f7_n1000_bound_neutral`: WORK-MOVED (instructions UP) -- THE VETO
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `L1-icache-load-misses:u` | 39579 | 28987 | 0.73238 |
+| `branch-misses:u` | 607020 | 583985 | 0.96205 |
+| `branches:u` | 77311604 | 77397043 | 1.00111 |
+| `cycles:u` | 178782706 | 178724532 | 0.99967 |
+| `instructions:u` | 488479834 | 488903314 | 1.00087 |
+
+pass B (Zen 3 front end), cell `f7_n1000_bound_neutral`: WORK-MOVED (instructions UP) -- THE VETO
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `cycles:u` | 178500126 | 178687695 | 1.00105 |
+| `de_dis_uop_queue_empty_di0:u` | 7569270 | 7629983 | 1.00802 |
+| `ic_fetch_stall.ic_stall_any:u` | 82681845 | 82617021 | 0.99922 |
+| `instructions:u` | 488480134 | 488897489 | 1.00085 |
+| `op_cache_hit_miss.op_cache_hit:u` | 77325528 | 77563339 | 1.00308 |
+| `op_cache_hit_miss.op_cache_miss:u` | 3905666 | 3941209 | 1.00910 |
+base arm: front-end-bound (dq-empty/cycles) = 0.0424; op-cache miss share = 0.0481
+head arm: front-end-bound (dq-empty/cycles) = 0.0427; op-cache miss share = 0.0484
+
+pass A, cell `f7_n20000_bound_neutral`: WORK-MOVED (instructions UP) -- THE VETO
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `L1-icache-load-misses:u` | 831467 | 569664 | 0.68513 |
+| `branch-misses:u` | 9681184 | 9491530 | 0.98041 |
+| `branches:u` | 1834993085 | 1836666840 | 1.00091 |
+| `cycles:u` | 4314645666 | 4321063387 | 1.00149 |
+| `instructions:u` | 11674701748 | 11683014698 | 1.00071 |
+
+pass B (Zen 3 front end), cell `f7_n20000_bound_neutral`: WORK-MOVED (instructions UP) -- THE VETO
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `cycles:u` | 4314978504 | 4315722027 | 1.00017 |
+| `de_dis_uop_queue_empty_di0:u` | 117455290 | 116684949 | 0.99344 |
+| `ic_fetch_stall.ic_stall_any:u` | 2154952574 | 2155950280 | 1.00046 |
+| `instructions:u` | 11674701519 | 11683019527 | 1.00071 |
+| `op_cache_hit_miss.op_cache_hit:u` | 1806264726 | 1817000100 | 1.00594 |
+| `op_cache_hit_miss.op_cache_miss:u` | 71960562 | 72526458 | 1.00786 |
+base arm: front-end-bound (dq-empty/cycles) = 0.0272; op-cache miss share = 0.0383
+head arm: front-end-bound (dq-empty/cycles) = 0.0270; op-cache miss share = 0.0384
+
+pass A, cell `f7_n5000_bound_neutral`: WORK-MOVED (instructions UP) -- THE VETO
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `L1-icache-load-misses:u` | 200932 | 140252 | 0.69801 |
+| `branch-misses:u` | 2324121 | 2264303 | 0.97426 |
+| `branches:u` | 413931437 | 414211747 | 1.00068 |
+| `cycles:u` | 948803168 | 948888055 | 1.00009 |
+| `instructions:u` | 2629037411 | 2630743395 | 1.00065 |
+
+pass B (Zen 3 front end), cell `f7_n5000_bound_neutral`: WORK-MOVED (instructions UP) -- THE VETO
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `cycles:u` | 948856177 | 950979841 | 1.00224 |
+| `de_dis_uop_queue_empty_di0:u` | 29354648 | 29270454 | 0.99713 |
+| `ic_fetch_stall.ic_stall_any:u` | 456769769 | 457420678 | 1.00143 |
+| `instructions:u` | 2629037407 | 2630738428 | 1.00065 |
+| `op_cache_hit_miss.op_cache_hit:u` | 408320126 | 409250376 | 1.00228 |
+| `op_cache_hit_miss.op_cache_miss:u` | 18038321 | 18169420 | 1.00727 |
+base arm: front-end-bound (dq-empty/cycles) = 0.0309; op-cache miss share = 0.0423
+head arm: front-end-bound (dq-empty/cycles) = 0.0308; op-cache miss share = 0.0425
+
+### leg 1 / walk
+
+corpus base 6.0245 s -> head 6.0253 s, **ratio 1.0001** (+0.014 %); cells compared 27; outside 0.99-1.01: **0**; band **FLAT**
+
+veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 0 **; strict, informational, 2 ['f7_n2000_bound_corrupted', 'f7_n5000_bound_corrupted']
+
+| cell | base median (s) | head median (s) | ratio | paired per round |
+|---|---|---|---|---|
+| `f7_n10000_bound_activity` | 0.312034 | 0.311617 | 0.9987 | 0.9969 0.9959 1.0017 |
+| `f7_n10000_bound_corrupted` | 0.294470 | 0.293819 | 0.9978 | 0.9968 1.0034 0.9997 |
+| `f7_n10000_bound_neutral` | 0.311176 | 0.311744 | 1.0018 | 1.0044 1.0037 0.9929 |
+| `f7_n10000_bound_physics` | 0.311945 | 0.310772 | 0.9962 | 0.9975 1.0022 0.9949 |
+| `f7_n10000_bound_warm` | 0.294087 | 0.294042 | 0.9998 | 1.0008 1.0061 0.9991 |
+| `f7_n1000_bound_activity` | 0.030893 | 0.030848 | 0.9985 | 1.0001 1.0032 0.9964 |
+| `f7_n1000_bound_corrupted` | 0.027439 | 0.027431 | 0.9997 | 1.0065 1.0022 0.9982 |
+| `f7_n1000_bound_neutral` | 0.031489 | 0.031433 | 0.9982 | 1.0022 0.9986 0.9952 |
+| `f7_n1000_bound_physics` | 0.030945 | 0.030735 | 0.9932 | 0.8877 0.9985 0.9932 |
+| `f7_n1000_bound_warm` | 0.027057 | 0.027060 | 1.0001 | 0.9988 1.0066 1.0001 |
+| `f7_n1000_path_warm` | 0.105107 | 0.104948 | 0.9985 | 1.0001 1.0055 0.9971 |
+| `f7_n20000_bound_activity` | 0.646089 | 0.646297 | 1.0003 | 1.0033 1.0004 0.9978 |
+| `f7_n20000_bound_corrupted` | 0.612187 | 0.613787 | 1.0026 | 1.0054 0.9961 1.0033 |
+| `f7_n20000_bound_neutral` | 0.646449 | 0.645325 | 0.9983 | 0.9990 0.9983 1.0025 |
+| `f7_n20000_bound_physics` | 0.645156 | 0.645778 | 1.0010 | 1.0019 1.0188 0.9965 |
+| `f7_n20000_bound_warm` | 0.610274 | 0.611516 | 1.0020 | 1.0020 0.9956 1.0048 |
+| `f7_n2000_bound_activity` | 0.061224 | 0.061165 | 0.9990 | 0.9990 0.9990 1.0008 |
+| `f7_n2000_bound_corrupted` | 0.056251 | 0.056387 | 1.0024 | 1.0038 1.0003 1.0025 |
+| `f7_n2000_bound_neutral` | 0.061453 | 0.061361 | 0.9985 | 0.9962 1.0100 0.9949 |
+| `f7_n2000_bound_physics` | 0.061136 | 0.061221 | 1.0014 | 0.9962 1.0014 0.9992 |
+| `f7_n2000_bound_warm` | 0.055789 | 0.055703 | 0.9985 | 0.9995 0.9980 0.9822 |
+| `f7_n5000_bound_activity` | 0.151819 | 0.151669 | 0.9990 | 0.9948 0.9942 1.0008 |
+| `f7_n5000_bound_corrupted` | 0.141917 | 0.142532 | 1.0043 | 1.0029 1.0079 1.0017 |
+| `f7_n5000_bound_neutral` | 0.151678 | 0.151525 | 0.9990 | 0.9953 1.0028 1.0016 |
+| `f7_n5000_bound_physics` | 0.151460 | 0.151248 | 0.9986 | 0.9938 1.0017 1.0008 |
+| `f7_n5000_bound_warm` | 0.141337 | 0.141653 | 1.0022 | 0.9964 1.0025 1.0104 |
+| `f7_n800_path_warm` | 0.053672 | 0.053733 | 1.0011 | 1.0014 0.9996 1.0032 |
+
+pass A, cell `f7_n1000_bound_neutral`: WORK-MOVED (instructions UP) -- THE VETO
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `L1-icache-load-misses:u` | 16955 | 15245 | 0.89914 |
+| `branch-misses:u` | 305697 | 301806 | 0.98727 |
+| `branches:u` | 39749528 | 39806863 | 1.00144 |
+| `cycles:u` | 87656503 | 87574543 | 0.99906 |
+| `instructions:u` | 261301248 | 261644867 | 1.00132 |
+
+pass B (Zen 3 front end), cell `f7_n1000_bound_neutral`: WORK-MOVED (instructions UP) -- THE VETO
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `cycles:u` | 87631284 | 87469356 | 0.99815 |
+| `de_dis_uop_queue_empty_di0:u` | 3923503 | 3776283 | 0.96248 |
+| `ic_fetch_stall.ic_stall_any:u` | 39688179 | 39251115 | 0.98899 |
+| `instructions:u` | 261301243 | 261644860 | 1.00132 |
+| `op_cache_hit_miss.op_cache_hit:u` | 40153582 | 40303819 | 1.00374 |
+| `op_cache_hit_miss.op_cache_miss:u` | 1494939 | 1559596 | 1.04325 |
+base arm: front-end-bound (dq-empty/cycles) = 0.0448; op-cache miss share = 0.0359
+head arm: front-end-bound (dq-empty/cycles) = 0.0432; op-cache miss share = 0.0373
+
+pass A, cell `f7_n20000_bound_neutral`: WORK-MOVED (instructions UP) -- THE VETO
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `L1-icache-load-misses:u` | 222987 | 203254 | 0.91151 |
+| `branch-misses:u` | 4962619 | 4876724 | 0.98269 |
+| `branches:u` | 857541749 | 858097331 | 1.00065 |
+| `cycles:u` | 1873162320 | 1868074830 | 0.99728 |
+| `instructions:u` | 5640392312 | 5645600279 | 1.00092 |
+
+pass B (Zen 3 front end), cell `f7_n20000_bound_neutral`: WORK-MOVED (instructions UP) -- THE VETO
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `cycles:u` | 1867238209 | 1869998248 | 1.00148 |
+| `de_dis_uop_queue_empty_di0:u` | 45794954 | 47113501 | 1.02879 |
+| `ic_fetch_stall.ic_stall_any:u` | 874466656 | 871689036 | 0.99682 |
+| `instructions:u` | 5640391548 | 5645594599 | 1.00092 |
+| `op_cache_hit_miss.op_cache_hit:u` | 861378988 | 860712144 | 0.99923 |
+| `op_cache_hit_miss.op_cache_miss:u` | 24073297 | 25667297 | 1.06621 |
+base arm: front-end-bound (dq-empty/cycles) = 0.0245; op-cache miss share = 0.0272
+head arm: front-end-bound (dq-empty/cycles) = 0.0252; op-cache miss share = 0.0290
+
+pass A, cell `f7_n5000_bound_neutral`: WORK-MOVED (instructions UP) -- THE VETO
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `L1-icache-load-misses:u` | 59010 | 54108 | 0.91693 |
+| `branch-misses:u` | 1240004 | 1236478 | 0.99716 |
+| `branches:u` | 202368147 | 202650607 | 1.00140 |
+| `cycles:u` | 436537834 | 435943427 | 0.99864 |
+| `instructions:u` | 1333971634 | 1335665712 | 1.00127 |
+
+pass B (Zen 3 front end), cell `f7_n5000_bound_neutral`: WORK-MOVED (instructions UP) -- THE VETO
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `cycles:u` | 436975923 | 437233221 | 1.00059 |
+| `de_dis_uop_queue_empty_di0:u` | 12475113 | 12518659 | 1.00349 |
+| `ic_fetch_stall.ic_stall_any:u` | 200285406 | 199530996 | 0.99623 |
+| `instructions:u` | 1333977267 | 1335664954 | 1.00127 |
+| `op_cache_hit_miss.op_cache_hit:u` | 203645279 | 203634364 | 0.99995 |
+| `op_cache_hit_miss.op_cache_miss:u` | 6107760 | 6643089 | 1.08765 |
+base arm: front-end-bound (dq-empty/cycles) = 0.0285; op-cache miss share = 0.0291
+head arm: front-end-bound (dq-empty/cycles) = 0.0286; op-cache miss share = 0.0316
+
+## Leg 2 -- the 27 Hock-Schittkowski problems, --repeat N
+
+**Leg 2's noise floor (I5 (b)).** The same binary measured twice, per (mode, trace) population; the floor this leg is gated on is the MAXIMUM, not a median across combinations:
+
+| mode / trace | worst same-arm passA/passB disagreement |
+|---|---|
+| ipm / off | 0.158309 % |
+| ipm / sink | 0.158621 % |
+| ssn / off | 0.153612 % |
+| ssn / sink | 0.152999 % |
+| walk / off | 0.011700 % |
+| walk / sink | 0.245198 % |
+
+**Leg 2 floor = 0.245198 %** (the maximum above); the 1e-4 identity band is 0.01 %.
+
+### leg 2 / ipm / trace=off
+
+corpus base 0.0373 s -> head 0.0370 s, **ratio 0.9913** (-0.870 %); cells compared 27; outside 0.99-1.01: **21**; band **MOVED**
+
+veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 2 ['12', '15']**; strict, informational, 2 ['12', '15']
+
+| cell | base median (s) | head median (s) | ratio | paired per round |
+|---|---|---|---|---|
+| `1` | 0.002333 | 0.002291 | 0.9823 | 0.9846 0.9794 0.9917 |
+| `10` | 0.004632 | 0.004574 | 0.9875 | 0.9875 0.9748 0.9953 |
+| `11` | 0.001221 | 0.001192 | 0.9761 | 0.9761 0.9674 0.9874 |
+| `12` | 0.000761 | 0.000855 | 1.1227 | 1.1171 1.1212 1.1360 |
+| `14` | 0.000571 | 0.000560 | 0.9810 | 0.9810 0.9663 0.9944 |
+| `15` | 0.003108 | 0.003259 | 1.0484 | 1.0465 1.0446 1.0591 |
+| `22` | 0.000749 | 0.000709 | 0.9461 | 0.9561 0.9378 0.9504 |
+| `24` | 0.000589 | 0.000574 | 0.9753 | 0.9753 0.9723 0.9817 |
+| `25` | 0.000027 | 0.000027 | 1.0049 | 1.0169 0.9981 1.0072 |
+| `26` | 0.001704 | 0.001679 | 0.9850 | 0.9824 0.9850 0.9978 |
+| `27` | 0.001909 | 0.001877 | 0.9830 | 0.9830 0.9749 0.9944 |
+| `28` | 0.000465 | 0.000456 | 0.9800 | 0.9798 0.9740 0.9935 |
+| `3` | 0.000600 | 0.000593 | 0.9875 | 0.9953 0.9780 0.9841 |
+| `30` | 0.001253 | 0.001223 | 0.9759 | 0.9723 0.9749 0.9931 |
+| `33` | 0.001906 | 0.001888 | 0.9909 | 0.9899 0.9875 0.9996 |
+| `35` | 0.000155 | 0.000153 | 0.9847 | 0.9860 0.9769 0.9915 |
+| `38` | 0.006246 | 0.006093 | 0.9755 | 0.9754 0.9717 0.9880 |
+| `39` | 0.001204 | 0.001183 | 0.9829 | 0.9754 0.9781 0.9968 |
+| `40` | 0.000491 | 0.000483 | 0.9852 | 0.9852 0.9713 0.9948 |
+| `43` | 0.001358 | 0.001348 | 0.9923 | 0.9934 0.9787 0.9980 |
+| `45` | 0.001123 | 0.001120 | 0.9975 | 0.9975 0.9827 1.0064 |
+| `5` | 0.000372 | 0.000366 | 0.9829 | 0.9925 0.9684 0.9829 |
+| `6` | 0.000934 | 0.000929 | 0.9952 | 0.9998 0.9853 0.9923 |
+| `7` | 0.001090 | 0.001082 | 0.9924 | 0.9989 0.9835 0.9930 |
+| `76` | 0.000534 | 0.000525 | 0.9843 | 0.9850 0.9723 0.9851 |
+| `77` | 0.001468 | 0.001448 | 0.9862 | 0.9862 0.9776 0.9953 |
+| `79` | 0.000511 | 0.000503 | 0.9843 | 0.9843 0.9811 0.9933 |
+
+perf: NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: INSTRUCTIONS DOWN outside the identity band -- owner classification (11.1.1))
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `L1-icache-load-misses:u` | 706931911 | 782015933 | 1.10621 |
+| `branch-misses:u` | 370149731 | 339002053 | 0.91585 |
+| `branches:u` | 45235419965 | 45172633903 | 0.99861 |
+| `cycles:u` | 126374530385 | 124594126388 | 0.98591 |
+| `instructions:u` | 247046537687 | 246930307513 | 0.99953 |
+
+pass B: NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO)
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `cycles:u` | 126519520602 | 124554439614 | 0.98447 |
+| `de_dis_uop_queue_empty_di0:u` | 28872319439 | 27983936699 | 0.96923 |
+| `ic_fetch_stall.ic_stall_any:u` | 53420840273 | 52254460970 | 0.97817 |
+| `instructions:u` | 247046392527 | 247321839491 | 1.00111 |
+| `op_cache_hit_miss.op_cache_hit:u` | 22502591067 | 22713690477 | 1.00938 |
+| `op_cache_hit_miss.op_cache_miss:u` | 24647576724 | 24171839346 | 0.98070 |
+
+### leg 2 / ipm / trace=sink
+
+corpus base 0.0374 s -> head 0.0369 s, **ratio 0.9861** (-1.393 %); cells compared 27; outside 0.99-1.01: **26**; band **MOVED**
+
+veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 2 ['12', '15']**; strict, informational, 2 ['12', '15']
+
+| cell | base median (s) | head median (s) | ratio | paired per round |
+|---|---|---|---|---|
+| `1` | 0.002353 | 0.002299 | 0.9769 | 0.9736 0.9879 0.9880 |
+| `10` | 0.004646 | 0.004549 | 0.9792 | 0.9733 0.9836 0.9867 |
+| `11` | 0.001219 | 0.001187 | 0.9733 | 0.9615 0.9733 0.9845 |
+| `12` | 0.000760 | 0.000857 | 1.1273 | 1.1180 1.1273 1.1421 |
+| `14` | 0.000572 | 0.000557 | 0.9735 | 0.9698 0.9735 0.9830 |
+| `15` | 0.003123 | 0.003257 | 1.0430 | 1.0345 1.0489 1.0521 |
+| `22` | 0.000748 | 0.000705 | 0.9427 | 0.9342 0.9494 0.9493 |
+| `24` | 0.000593 | 0.000573 | 0.9663 | 0.9639 0.9755 0.9706 |
+| `25` | 0.000027 | 0.000027 | 1.0090 | 1.0087 0.9778 1.0090 |
+| `26` | 0.001714 | 0.001682 | 0.9812 | 0.9751 0.9881 0.9874 |
+| `27` | 0.001898 | 0.001863 | 0.9819 | 0.9745 0.9831 0.9893 |
+| `28` | 0.000464 | 0.000456 | 0.9836 | 0.9691 0.9879 0.9875 |
+| `3` | 0.000597 | 0.000590 | 0.9887 | 0.9744 0.9931 0.9976 |
+| `30` | 0.001254 | 0.001221 | 0.9733 | 0.9729 0.9759 0.9777 |
+| `33` | 0.001925 | 0.001882 | 0.9776 | 0.9713 0.9969 0.9873 |
+| `35` | 0.000155 | 0.000153 | 0.9863 | 0.9716 0.9863 0.9995 |
+| `38` | 0.006252 | 0.006076 | 0.9718 | 0.9669 0.9778 0.9787 |
+| `39` | 0.001208 | 0.001181 | 0.9775 | 0.9768 0.9791 0.9784 |
+| `40` | 0.000494 | 0.000482 | 0.9760 | 0.9760 0.9871 0.9745 |
+| `43` | 0.001363 | 0.001339 | 0.9820 | 0.9788 0.9885 0.9848 |
+| `45` | 0.001128 | 0.001117 | 0.9899 | 0.9893 1.0003 0.9944 |
+| `5` | 0.000371 | 0.000363 | 0.9804 | 0.9673 0.9832 0.9938 |
+| `6` | 0.000935 | 0.000924 | 0.9877 | 0.9789 0.9932 0.9980 |
+| `7` | 0.001090 | 0.001077 | 0.9882 | 0.9763 0.9914 0.9985 |
+| `76` | 0.000531 | 0.000521 | 0.9797 | 0.9797 0.9798 0.9834 |
+| `77` | 0.001480 | 0.001451 | 0.9805 | 0.9768 0.9920 0.9809 |
+| `79` | 0.000513 | 0.000504 | 0.9826 | 0.9784 0.9869 0.9761 |
+
+perf: NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO)
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `L1-icache-load-misses:u` | 703605738 | 780630703 | 1.10947 |
+| `branch-misses:u` | 360494078 | 347003965 | 0.96258 |
+| `branches:u` | 45134863694 | 45191303920 | 1.00125 |
+| `cycles:u` | 126782297518 | 124551438056 | 0.98240 |
+| `instructions:u` | 246877716760 | 247153434708 | 1.00112 |
+
+pass B: NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO)
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `cycles:u` | 127446368910 | 124970460402 | 0.98057 |
+| `de_dis_uop_queue_empty_di0:u` | 29370166374 | 28159364785 | 0.95877 |
+| `ic_fetch_stall.ic_stall_any:u` | 53952935716 | 52269843210 | 0.96880 |
+| `instructions:u` | 247269938321 | 247545370414 | 1.00111 |
+| `op_cache_hit_miss.op_cache_hit:u` | 22572642605 | 22771514828 | 1.00881 |
+| `op_cache_hit_miss.op_cache_miss:u` | 24812379430 | 24295223149 | 0.97916 |
+
+### leg 2 / ssn / trace=off
+
+corpus base 0.0304 s -> head 0.0299 s, **ratio 0.9822** (-1.779 %); cells compared 27; outside 0.99-1.01: **17**; band **MOVED**
+
+veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 0 **; strict, informational, 1 ['25']
+
+| cell | base median (s) | head median (s) | ratio | paired per round |
+|---|---|---|---|---|
+| `1` | 0.001682 | 0.001645 | 0.9781 | 0.9883 0.9728 0.9700 |
+| `10` | 0.006559 | 0.006487 | 0.9890 | 0.9984 0.9847 0.9868 |
+| `11` | 0.002029 | 0.001883 | 0.9281 | 0.9364 0.9257 0.9264 |
+| `12` | 0.000410 | 0.000401 | 0.9792 | 0.9866 0.9794 0.9770 |
+| `14` | 0.000359 | 0.000353 | 0.9815 | 0.9856 0.9772 0.9815 |
+| `15` | 0.001188 | 0.001155 | 0.9719 | 0.9764 0.9671 0.9709 |
+| `22` | 0.000521 | 0.000494 | 0.9487 | 0.9558 0.9480 0.9455 |
+| `24` | 0.000649 | 0.000619 | 0.9541 | 0.9603 0.9509 0.9530 |
+| `25` | 0.000027 | 0.000027 | 1.0098 | 1.0083 1.0098 1.0153 |
+| `26` | 0.001118 | 0.001093 | 0.9782 | 0.9989 0.9743 0.9739 |
+| `27` | 0.001524 | 0.001498 | 0.9827 | 0.9959 0.9817 0.9827 |
+| `28` | 0.000272 | 0.000270 | 0.9920 | 1.0039 0.9884 0.9920 |
+| `3` | 0.000321 | 0.000314 | 0.9781 | 0.9991 0.9708 0.9781 |
+| `30` | 0.000701 | 0.000688 | 0.9821 | 0.9895 0.9718 0.9767 |
+| `33` | 0.000533 | 0.000530 | 0.9943 | 1.0035 0.9896 0.9870 |
+| `35` | 0.000132 | 0.000131 | 0.9920 | 0.9936 0.9995 0.9904 |
+| `38` | 0.005144 | 0.005083 | 0.9882 | 0.9983 0.9841 0.9843 |
+| `39` | 0.001123 | 0.001116 | 0.9940 | 1.0026 0.9926 0.9869 |
+| `40` | 0.000318 | 0.000313 | 0.9846 | 0.9907 0.9849 0.9747 |
+| `43` | 0.000892 | 0.000886 | 0.9930 | 1.0064 0.9920 0.9916 |
+| `45` | 0.000783 | 0.000776 | 0.9913 | 1.0032 0.9885 0.9913 |
+| `5` | 0.000297 | 0.000292 | 0.9810 | 1.0064 0.9790 0.9691 |
+| `6` | 0.001061 | 0.001062 | 1.0013 | 1.0037 0.9900 0.9928 |
+| `7` | 0.001106 | 0.001107 | 1.0010 | 1.0046 0.9911 0.9941 |
+| `76` | 0.000277 | 0.000274 | 0.9897 | 1.0072 0.9834 0.9897 |
+| `77` | 0.001034 | 0.001026 | 0.9925 | 0.9974 0.9887 0.9895 |
+| `79` | 0.000339 | 0.000333 | 0.9835 | 0.9928 0.9849 0.9774 |
+
+perf: NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO)
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `L1-icache-load-misses:u` | 922815428 | 1101187291 | 1.19329 |
+| `branch-misses:u` | 599184260 | 560992513 | 0.93626 |
+| `branches:u` | 76148743517 | 76407743396 | 1.00340 |
+| `cycles:u` | 205540080362 | 202457868212 | 0.98500 |
+| `instructions:u` | 420655887578 | 421876944130 | 1.00290 |
+
+pass B: NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO)
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `cycles:u` | 205765487168 | 202653983726 | 0.98488 |
+| `de_dis_uop_queue_empty_di0:u` | 44883629951 | 43723151368 | 0.97414 |
+| `ic_fetch_stall.ic_stall_any:u` | 85649199597 | 84108151052 | 0.98201 |
+| `instructions:u` | 420010698648 | 421876775857 | 1.00444 |
+| `op_cache_hit_miss.op_cache_hit:u` | 42185453495 | 42405759159 | 1.00522 |
+| `op_cache_hit_miss.op_cache_miss:u` | 37536777444 | 36820163002 | 0.98091 |
+
+### leg 2 / ssn / trace=sink
+
+corpus base 0.0305 s -> head 0.0297 s, **ratio 0.9754** (-2.456 %); cells compared 27; outside 0.99-1.01: **23**; band **MOVED**
+
+veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 0 **; strict, informational, 1 ['25']
+
+| cell | base median (s) | head median (s) | ratio | paired per round |
+|---|---|---|---|---|
+| `1` | 0.001689 | 0.001641 | 0.9716 | 0.9716 0.9773 0.9651 |
+| `10` | 0.006572 | 0.006445 | 0.9807 | 0.9807 0.9929 0.9788 |
+| `11` | 0.002036 | 0.001874 | 0.9209 | 0.9197 0.9316 0.9209 |
+| `12` | 0.000412 | 0.000401 | 0.9727 | 0.9742 0.9781 0.9727 |
+| `14` | 0.000360 | 0.000352 | 0.9777 | 0.9698 0.9905 0.9741 |
+| `15` | 0.001190 | 0.001148 | 0.9653 | 0.9642 0.9738 0.9637 |
+| `22` | 0.000521 | 0.000493 | 0.9467 | 0.9467 0.9532 0.9422 |
+| `24` | 0.000649 | 0.000616 | 0.9494 | 0.9494 0.9561 0.9450 |
+| `25` | 0.000027 | 0.000027 | 1.0098 | 1.0079 1.0139 1.0101 |
+| `26` | 0.001118 | 0.001089 | 0.9739 | 0.9739 0.9861 0.9650 |
+| `27` | 0.001522 | 0.001489 | 0.9785 | 0.9785 0.9898 0.9713 |
+| `28` | 0.000273 | 0.000269 | 0.9827 | 0.9798 0.9912 0.9838 |
+| `3` | 0.000322 | 0.000315 | 0.9772 | 0.9733 0.9838 0.9659 |
+| `30` | 0.000704 | 0.000680 | 0.9652 | 0.9632 0.9773 0.9652 |
+| `33` | 0.000536 | 0.000528 | 0.9863 | 0.9861 0.9974 0.9855 |
+| `35` | 0.000132 | 0.000131 | 0.9930 | 0.9940 0.9953 0.9913 |
+| `38` | 0.005151 | 0.005059 | 0.9821 | 0.9821 0.9906 0.9786 |
+| `39` | 0.001128 | 0.001115 | 0.9885 | 0.9850 0.9924 0.9871 |
+| `40` | 0.000320 | 0.000313 | 0.9756 | 0.9756 0.9764 0.9671 |
+| `43` | 0.000896 | 0.000884 | 0.9868 | 0.9845 0.9977 0.9868 |
+| `45` | 0.000783 | 0.000773 | 0.9877 | 0.9871 0.9979 0.9856 |
+| `5` | 0.000301 | 0.000294 | 0.9792 | 0.9690 0.9923 0.9720 |
+| `6` | 0.001067 | 0.001058 | 0.9916 | 0.9860 1.0011 0.9916 |
+| `7` | 0.001113 | 0.001106 | 0.9941 | 0.9865 1.0049 0.9941 |
+| `76` | 0.000277 | 0.000274 | 0.9873 | 0.9695 0.9962 0.9873 |
+| `77` | 0.001039 | 0.001020 | 0.9826 | 0.9826 0.9918 0.9785 |
+| `79` | 0.000340 | 0.000333 | 0.9787 | 0.9684 0.9793 0.9852 |
+
+perf: NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO)
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `L1-icache-load-misses:u` | 928492530 | 1096761915 | 1.18123 |
+| `branch-misses:u` | 607137601 | 544161270 | 0.89627 |
+| `branches:u` | 75957517855 | 76216538730 | 1.00341 |
+| `cycles:u` | 205988582717 | 201470242317 | 0.97807 |
+| `instructions:u` | 420047893460 | 421269399170 | 1.00291 |
+
+pass B: NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO)
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `cycles:u` | 205336581312 | 203106248583 | 0.98914 |
+| `de_dis_uop_queue_empty_di0:u` | 44625309894 | 43426878308 | 0.97314 |
+| `ic_fetch_stall.ic_stall_any:u` | 85341290499 | 84135900786 | 0.98588 |
+| `instructions:u` | 420048270761 | 421914926774 | 1.00444 |
+| `op_cache_hit_miss.op_cache_hit:u` | 41851822100 | 42343074274 | 1.01174 |
+| `op_cache_hit_miss.op_cache_miss:u` | 37537386556 | 36912684622 | 0.98336 |
+
+### leg 2 / walk / trace=off
+
+corpus base 0.0227 s -> head 0.0226 s, **ratio 0.9931** (-0.686 %); cells compared 27; outside 0.99-1.01: **8**; band **UNRESOLVED**
+
+veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 0 **; strict, informational, 1 ['35']
+
+| cell | base median (s) | head median (s) | ratio | paired per round |
+|---|---|---|---|---|
+| `1` | 0.001280 | 0.001268 | 0.9904 | 0.9872 0.9878 0.9904 |
+| `10` | 0.005478 | 0.005451 | 0.9951 | 0.9956 0.9862 0.9972 |
+| `11` | 0.001347 | 0.001344 | 0.9982 | 0.9988 0.9893 0.9991 |
+| `12` | 0.000404 | 0.000391 | 0.9683 | 0.9581 0.9683 0.9812 |
+| `14` | 0.000256 | 0.000251 | 0.9830 | 0.9840 0.9769 0.9830 |
+| `15` | 0.001003 | 0.001001 | 0.9975 | 0.9967 0.9912 1.0018 |
+| `22` | 0.000253 | 0.000253 | 1.0018 | 1.0031 0.9951 1.0018 |
+| `24` | 0.000440 | 0.000432 | 0.9818 | 0.9820 0.9673 0.9859 |
+| `25` | 0.000027 | 0.000027 | 1.0094 | 1.0102 1.0102 0.9609 |
+| `26` | 0.000897 | 0.000882 | 0.9839 | 0.9894 0.9850 0.9750 |
+| `27` | 0.001336 | 0.001319 | 0.9872 | 0.9943 0.9778 0.9872 |
+| `28` | 0.000226 | 0.000222 | 0.9835 | 0.9898 0.9866 0.9830 |
+| `3` | 0.000222 | 0.000220 | 0.9913 | 0.9862 0.9849 0.9913 |
+| `30` | 0.000636 | 0.000633 | 0.9946 | 0.9941 0.9895 0.9964 |
+| `33` | 0.000673 | 0.000670 | 0.9956 | 0.9959 0.9889 0.9981 |
+| `35` | 0.000091 | 0.000091 | 1.0029 | 1.0088 1.0004 1.0058 |
+| `38` | 0.003327 | 0.003303 | 0.9929 | 1.0001 0.9871 0.9910 |
+| `39` | 0.000684 | 0.000682 | 0.9971 | 0.9994 0.9912 0.9972 |
+| `40` | 0.000234 | 0.000230 | 0.9841 | 0.9963 0.9945 0.9821 |
+| `43` | 0.000648 | 0.000647 | 0.9985 | 1.0008 0.9910 1.0015 |
+| `45` | 0.000521 | 0.000518 | 0.9956 | 0.9957 0.9863 0.9984 |
+| `5` | 0.000184 | 0.000182 | 0.9893 | 0.9850 0.9861 0.9893 |
+| `6` | 0.000586 | 0.000582 | 0.9937 | 0.9897 0.9907 0.9937 |
+| `7` | 0.000740 | 0.000738 | 0.9966 | 0.9875 0.9934 0.9966 |
+| `76` | 0.000275 | 0.000276 | 1.0018 | 0.9974 0.9976 1.0047 |
+| `77` | 0.000718 | 0.000716 | 0.9970 | 1.0082 0.9928 0.9970 |
+| `79` | 0.000241 | 0.000240 | 0.9941 | 1.0076 0.9950 0.9891 |
+
+perf: NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO)
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `L1-icache-load-misses:u` | 403329363 | 486946254 | 1.20732 |
+| `branch-misses:u` | 162768671 | 159489667 | 0.97985 |
+| `branches:u` | 30523461684 | 30660459958 | 1.00449 |
+| `cycles:u` | 77002998708 | 76501798696 | 0.99349 |
+| `instructions:u` | 167530241085 | 168052397121 | 1.00312 |
+
+pass B: NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO)
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `cycles:u` | 77073978997 | 76569890856 | 0.99346 |
+| `de_dis_uop_queue_empty_di0:u` | 15135511702 | 14988272872 | 0.99027 |
+| `ic_fetch_stall.ic_stall_any:u` | 30029850548 | 29933347169 | 0.99679 |
+| `instructions:u` | 167530258399 | 168072062225 | 1.00323 |
+| `op_cache_hit_miss.op_cache_hit:u` | 15194069095 | 15203742488 | 1.00064 |
+| `op_cache_hit_miss.op_cache_miss:u` | 15861529604 | 15815861768 | 0.99712 |
+
+### leg 2 / walk / trace=sink
+
+corpus base 0.0230 s -> head 0.0225 s, **ratio 0.9761** (-2.390 %); cells compared 27; outside 0.99-1.01: **24**; band **MOVED**
+
+veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 0 **; strict, informational, 1 ['25']
+
+| cell | base median (s) | head median (s) | ratio | paired per round |
+|---|---|---|---|---|
+| `1` | 0.001287 | 0.001265 | 0.9828 | 0.9914 0.9853 0.9828 |
+| `10` | 0.005507 | 0.005423 | 0.9847 | 0.9910 0.9889 0.9847 |
+| `11` | 0.001408 | 0.001339 | 0.9510 | 0.9519 0.9578 0.9508 |
+| `12` | 0.000414 | 0.000386 | 0.9329 | 0.9419 0.9407 0.9287 |
+| `14` | 0.000257 | 0.000251 | 0.9763 | 0.9781 0.9830 0.9660 |
+| `15` | 0.001051 | 0.000995 | 0.9468 | 0.9503 0.9555 0.9447 |
+| `22` | 0.000271 | 0.000252 | 0.9305 | 0.9326 0.9351 0.9290 |
+| `24` | 0.000468 | 0.000430 | 0.9205 | 0.9247 0.9287 0.9202 |
+| `25` | 0.000027 | 0.000027 | 1.0079 | 1.0086 1.0048 1.0079 |
+| `26` | 0.000902 | 0.000879 | 0.9752 | 0.9845 0.9813 0.9698 |
+| `27` | 0.001343 | 0.001313 | 0.9775 | 0.9876 0.9813 0.9757 |
+| `28` | 0.000225 | 0.000221 | 0.9824 | 0.9816 0.9858 0.9760 |
+| `3` | 0.000223 | 0.000219 | 0.9829 | 0.9913 0.9835 0.9829 |
+| `30` | 0.000642 | 0.000631 | 0.9831 | 0.9883 0.9866 0.9769 |
+| `33` | 0.000679 | 0.000666 | 0.9807 | 0.9799 0.9848 0.9796 |
+| `35` | 0.000092 | 0.000091 | 0.9961 | 1.0025 1.0012 0.9941 |
+| `38` | 0.003355 | 0.003281 | 0.9780 | 0.9904 0.9835 0.9777 |
+| `39` | 0.000690 | 0.000678 | 0.9838 | 0.9896 0.9916 0.9819 |
+| `40` | 0.000234 | 0.000231 | 0.9863 | 0.9863 0.9937 0.9770 |
+| `43` | 0.000652 | 0.000644 | 0.9876 | 0.9904 0.9921 0.9836 |
+| `45` | 0.000524 | 0.000515 | 0.9833 | 0.9872 0.9880 0.9818 |
+| `5` | 0.000186 | 0.000182 | 0.9834 | 0.9894 0.9849 0.9834 |
+| `6` | 0.000589 | 0.000580 | 0.9853 | 0.9793 0.9849 0.9853 |
+| `7` | 0.000747 | 0.000734 | 0.9826 | 0.9848 0.9834 0.9826 |
+| `76` | 0.000278 | 0.000275 | 0.9894 | 0.9873 0.9957 0.9817 |
+| `77` | 0.000726 | 0.000716 | 0.9862 | 0.9930 0.9906 0.9856 |
+| `79` | 0.000242 | 0.000240 | 0.9944 | 1.0017 0.9944 0.9857 |
+
+perf: NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: INSTRUCTIONS DOWN outside the identity band -- owner classification (11.1.1))
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `L1-icache-load-misses:u` | 396750813 | 488495698 | 1.23124 |
+| `branch-misses:u` | 169834496 | 154520800 | 0.90983 |
+| `branches:u` | 30626755840 | 30552625280 | 0.99758 |
+| `cycles:u` | 77763742587 | 76210875045 | 0.98003 |
+| `instructions:u` | 167866546913 | 167708110355 | 0.99906 |
+
+pass B: NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO)
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `cycles:u` | 77525262209 | 76618960979 | 0.98831 |
+| `de_dis_uop_queue_empty_di0:u` | 15332536263 | 15265289251 | 0.99561 |
+| `ic_fetch_stall.ic_stall_any:u` | 30302911635 | 30192552517 | 0.99636 |
+| `instructions:u` | 167927025244 | 168120338106 | 1.00115 |
+| `op_cache_hit_miss.op_cache_hit:u` | 15216478894 | 15156242366 | 0.99604 |
+| `op_cache_hit_miss.op_cache_miss:u` | 15903428754 | 15778168758 | 0.99212 |
+
+## The interior leg -- THREE arms
+
+The leg exists at 102f729 (astra I2: `149f29b` is an ancestor of `102f729`), with 33 rows and the 19-column schema. It therefore gets a base arm at the SQP legs' own base for those 33 keys, and keeps b9848bf as the 41-key arm. What is measured at 102f729 -> e51a7e0 IS the top-level IPM's runtime across the whole of group 1 on those 33 rows.
+
+### interior / 102f729 -> e51a7e0 (33 base keys) / F7 rows (banded, leg-1 rules)
+
+Keys only in the HEAD arm (head-only, informational, no band): `f7_n1000_bound_neutral/MakeConstraint/parts2`, `f7_n1000_bound_neutral/MakeParameter/cap1`, `f7_n1000_bound_neutral/MakeParameter/parts2`, `f7_n1000_bound_neutral/MakeParameter/solve_optimize`, `hs071_x1_fixed/MakeParameter/cap1`, `hs071_x1_fixed/MakeParameter/solve_optimize`, `hs071_x1_fixed/MakeParameter/warm_multiplier_seed`, `hs071_x1_fixed/MakeParameter/warm_payload`, `infeas2_spike/MakeParameter/stalled`, `infeas2_stationary/MakeParameter/resto_infeasible`
+
+corpus base 11.1107 s -> head 10.8430 s, **ratio 0.9759** (-2.409 %); cells compared 30; outside 0.99-1.01: **30**; band **MOVED**
+
+veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 28 ['f7_n10000_bound_neutral/MakeConstraint', 'f7_n10000_bound_neutral/MakeParameter', 'f7_n10000_bound_physics/MakeConstraint', 'f7_n10000_bound_physics/MakeParameter', 'f7_n10000_bound_physics/RelaxBounds', 'f7_n1000_bound_neutral/MakeConstraint', 'f7_n1000_bound_neutral/RelaxBounds', 'f7_n1000_bound_physics/MakeConstraint', 'f7_n1000_bound_physics/MakeParameter', 'f7_n1000_bound_physics/RelaxBounds', 'f7_n20000_bound_neutral/MakeConstraint', 'f7_n20000_bound_neutral/MakeParameter', 'f7_n20000_bound_neutral/RelaxBounds', 'f7_n20000_bound_physics/MakeConstraint', 'f7_n20000_bound_physics/MakeParameter', 'f7_n20000_bound_physics/RelaxBounds', 'f7_n2000_bound_neutral/MakeConstraint', 'f7_n2000_bound_neutral/MakeParameter', 'f7_n2000_bound_neutral/RelaxBounds', 'f7_n2000_bound_physics/MakeConstraint', 'f7_n2000_bound_physics/MakeParameter', 'f7_n2000_bound_physics/RelaxBounds', 'f7_n5000_bound_neutral/MakeConstraint', 'f7_n5000_bound_neutral/MakeParameter', 'f7_n5000_bound_neutral/RelaxBounds', 'f7_n5000_bound_physics/MakeConstraint', 'f7_n5000_bound_physics/MakeParameter', 'f7_n5000_bound_physics/RelaxBounds']**; strict, informational, 28 ['f7_n10000_bound_neutral/MakeConstraint', 'f7_n10000_bound_neutral/MakeParameter', 'f7_n10000_bound_physics/MakeConstraint', 'f7_n10000_bound_physics/MakeParameter', 'f7_n10000_bound_physics/RelaxBounds', 'f7_n1000_bound_neutral/MakeConstraint', 'f7_n1000_bound_neutral/RelaxBounds', 'f7_n1000_bound_physics/MakeConstraint', 'f7_n1000_bound_physics/MakeParameter', 'f7_n1000_bound_physics/RelaxBounds', 'f7_n20000_bound_neutral/MakeConstraint', 'f7_n20000_bound_neutral/MakeParameter', 'f7_n20000_bound_neutral/RelaxBounds', 'f7_n20000_bound_physics/MakeConstraint', 'f7_n20000_bound_physics/MakeParameter', 'f7_n20000_bound_physics/RelaxBounds', 'f7_n2000_bound_neutral/MakeConstraint', 'f7_n2000_bound_neutral/MakeParameter', 'f7_n2000_bound_neutral/RelaxBounds', 'f7_n2000_bound_physics/MakeConstraint', 'f7_n2000_bound_physics/MakeParameter', 'f7_n2000_bound_physics/RelaxBounds', 'f7_n5000_bound_neutral/MakeConstraint', 'f7_n5000_bound_neutral/MakeParameter', 'f7_n5000_bound_neutral/RelaxBounds', 'f7_n5000_bound_physics/MakeConstraint', 'f7_n5000_bound_physics/MakeParameter', 'f7_n5000_bound_physics/RelaxBounds']
+
+| cell | base median (s) | head median (s) | ratio | paired per round |
+|---|---|---|---|---|
+| `f7_n10000_bound_neutral/MakeConstraint` | 0.522490 | 0.535106 | 1.0241 | 1.0255 1.0247 1.0159 |
+| `f7_n10000_bound_neutral/MakeParameter` | 0.534967 | 0.557573 | 1.0423 | 1.0616 1.0327 1.0423 |
+| `f7_n10000_bound_neutral/RelaxBounds` | 0.524365 | 0.533073 | 1.0166 | 1.0379 1.0182 0.9874 |
+| `f7_n10000_bound_physics/MakeConstraint` | 0.359548 | 0.369068 | 1.0265 | 1.0160 1.0287 1.0277 |
+| `f7_n10000_bound_physics/MakeParameter` | 0.358677 | 0.366945 | 1.0231 | 1.0282 1.0151 1.0246 |
+| `f7_n10000_bound_physics/RelaxBounds` | 0.357815 | 0.367796 | 1.0279 | 1.0275 1.0351 1.0270 |
+| `f7_n1000_bound_neutral/MakeConstraint` | 0.040156 | 0.041063 | 1.0226 | 1.0215 1.0226 1.0251 |
+| `f7_n1000_bound_neutral/MakeParameter` | 1.007717 | 0.488490 | 0.4847 | 0.8306 0.4847 0.4792 |
+| `f7_n1000_bound_neutral/RelaxBounds` | 0.040066 | 0.040763 | 1.0174 | 1.0106 1.0176 1.0191 |
+| `f7_n1000_bound_physics/MakeConstraint` | 0.031875 | 0.032625 | 1.0235 | 1.0245 1.0219 1.0246 |
+| `f7_n1000_bound_physics/MakeParameter` | 0.031876 | 0.032621 | 1.0234 | 1.0250 1.0210 1.0252 |
+| `f7_n1000_bound_physics/RelaxBounds` | 0.031824 | 0.033414 | 1.0500 | 1.0587 1.0447 1.0507 |
+| `f7_n20000_bound_neutral/MakeConstraint` | 1.096184 | 1.115335 | 1.0175 | 1.0198 1.0231 1.0167 |
+| `f7_n20000_bound_neutral/MakeParameter` | 1.128355 | 1.157094 | 1.0255 | 1.0300 1.0258 1.0236 |
+| `f7_n20000_bound_neutral/RelaxBounds` | 1.093752 | 1.117852 | 1.0220 | 1.0210 1.0220 1.0302 |
+| `f7_n20000_bound_physics/MakeConstraint` | 0.745633 | 0.766034 | 1.0274 | 1.0253 1.0274 1.0267 |
+| `f7_n20000_bound_physics/MakeParameter` | 0.747248 | 0.765812 | 1.0248 | 1.0224 1.0262 1.0248 |
+| `f7_n20000_bound_physics/RelaxBounds` | 0.747737 | 0.766940 | 1.0257 | 1.0186 1.0257 1.0294 |
+| `f7_n2000_bound_neutral/MakeConstraint` | 0.091204 | 0.093714 | 1.0275 | 1.0307 1.0238 1.0277 |
+| `f7_n2000_bound_neutral/MakeParameter` | 0.093843 | 0.096196 | 1.0251 | 1.0278 1.0251 1.0265 |
+| `f7_n2000_bound_neutral/RelaxBounds` | 0.091964 | 0.092995 | 1.0112 | 1.0096 1.0112 1.0108 |
+| `f7_n2000_bound_physics/MakeConstraint` | 0.067141 | 0.069159 | 1.0301 | 1.0127 1.0301 1.0356 |
+| `f7_n2000_bound_physics/MakeParameter` | 0.066866 | 0.069341 | 1.0370 | 1.0393 1.0378 1.0317 |
+| `f7_n2000_bound_physics/RelaxBounds` | 0.066777 | 0.069182 | 1.0360 | 1.0368 1.0342 1.0339 |
+| `f7_n5000_bound_neutral/MakeConstraint` | 0.234757 | 0.241432 | 1.0284 | 1.0264 1.0239 1.0291 |
+| `f7_n5000_bound_neutral/MakeParameter` | 0.240784 | 0.247101 | 1.0262 | 1.0266 1.0255 1.0256 |
+| `f7_n5000_bound_neutral/RelaxBounds` | 0.235503 | 0.242212 | 1.0285 | 1.0261 1.0318 1.0297 |
+| `f7_n5000_bound_physics/MakeConstraint` | 0.173193 | 0.177075 | 1.0224 | 1.0236 1.0225 1.0223 |
+| `f7_n5000_bound_physics/MakeParameter` | 0.173816 | 0.180025 | 1.0357 | 1.0363 1.0357 1.0354 |
+| `f7_n5000_bound_physics/RelaxBounds` | 0.174583 | 0.176998 | 1.0138 | 1.0171 1.0132 1.0158 |
+
+#### R3 -- the process's FIRST row, excluded from the band by the pre-declared rule: `f7_n1000_bound_neutral/MakeParameter`
+
+base runs 0.611087, 1.007717, 1.011716; head runs 0.507581, 0.488490, 0.484845; paired ratios 0.8306 0.4847 0.4792; median ratio **0.4847**. The base arm's own three runs span 1.656x.
+
+corpus WITHOUT it (**PRIMARY**, 29 rows): base 10.1030 -> head 10.3545, ratio **1.0249** (+2.490 %); outside 0.99-1.01: **29**; band **MOVED**
+
+corpus WITH it (30 rows, reported for completeness): base 11.1107 -> head 10.8430, ratio **0.9759** (-2.409 %); outside 0.99-1.01: **30**; band **MOVED**
+
+
+**The millisecond-scale rows of this arm -- NO BAND (A7 (ii)).**
+
+| row | base median (s) | head median (s) | ratio | paired per round |
+|---|---|---|---|---|
+| `hs071_x1_fixed/MakeConstraint` | 0.000137 | 0.000132 | 0.9652 | 0.9652 0.9837 0.9962 |
+| `hs071_x1_fixed/MakeParameter` | 0.000179 | 0.000185 | 1.0302 | 1.0302 1.0554 1.0503 |
+| `hs071_x1_fixed/RelaxBounds` | 0.000134 | 0.000138 | 1.0280 | 1.0358 1.0316 0.9381 |
+
+**Counter identity across the two schemas (R4).** 33 common rows x 12 common counter columns x 3 rounds, `wall_s` excluded: `status` (33 rows)
+
+
+### interior / b9848bf -> e51a7e0 (41 keys) / F7 rows (banded, leg-1 rules)
+
+Keys only in the HEAD arm (head-only, informational, no band): `f7_n1000_bound_neutral/MakeConstraint/parts2`, `f7_n1000_bound_neutral/MakeParameter/parts2`
+
+corpus base 11.2045 s -> head 10.9169 s, **ratio 0.9743** (-2.566 %); cells compared 32; outside 0.99-1.01: **8**; band **MOVED**
+
+veto check (R1: the CLASSIFICATION is the BANDED count; the strict count is informational) -- cells slower in ALL alternating rounds: **banded (also outside 0.99-1.01) 1 ['f7_n1000_bound_physics/RelaxBounds']**; strict, informational, 2 ['f7_n1000_bound_physics/RelaxBounds', 'f7_n2000_bound_neutral/MakeConstraint']
+
+| cell | base median (s) | head median (s) | ratio | paired per round |
+|---|---|---|---|---|
+| `f7_n10000_bound_neutral/MakeConstraint` | 0.539716 | 0.535106 | 0.9915 | 0.9910 0.9915 0.9866 |
+| `f7_n10000_bound_neutral/MakeParameter` | 0.557155 | 0.557573 | 1.0007 | 1.0156 0.9879 1.0011 |
+| `f7_n10000_bound_neutral/RelaxBounds` | 0.541245 | 0.533073 | 0.9849 | 1.0103 0.9836 0.9835 |
+| `f7_n10000_bound_physics/MakeConstraint` | 0.373892 | 0.369068 | 0.9871 | 0.9858 0.9889 0.9871 |
+| `f7_n10000_bound_physics/MakeParameter` | 0.372381 | 0.366945 | 0.9854 | 0.9847 0.9850 0.9869 |
+| `f7_n10000_bound_physics/RelaxBounds` | 0.372182 | 0.367796 | 0.9882 | 0.9783 0.9962 0.9882 |
+| `f7_n1000_bound_neutral/MakeConstraint` | 0.041090 | 0.041063 | 0.9993 | 0.9964 1.0000 1.0014 |
+| `f7_n1000_bound_neutral/MakeParameter` | 0.721486 | 0.488490 | 0.6771 | 0.6999 0.6771 0.7021 |
+| `f7_n1000_bound_neutral/MakeParameter/cap1` | 0.016816 | 0.016709 | 0.9937 | 0.9976 0.9876 0.9937 |
+| `f7_n1000_bound_neutral/MakeParameter/solve_optimize` | 0.057414 | 0.057184 | 0.9960 | 0.9966 0.9943 0.9975 |
+| `f7_n1000_bound_neutral/RelaxBounds` | 0.040878 | 0.040763 | 0.9972 | 0.9938 1.0006 0.9972 |
+| `f7_n1000_bound_physics/MakeConstraint` | 0.032589 | 0.032625 | 1.0011 | 0.9965 0.9995 1.0015 |
+| `f7_n1000_bound_physics/MakeParameter` | 0.032823 | 0.032621 | 0.9938 | 0.9954 0.9978 0.9918 |
+| `f7_n1000_bound_physics/RelaxBounds` | 0.032642 | 0.033414 | 1.0237 | 1.0304 1.0201 1.0237 |
+| `f7_n20000_bound_neutral/MakeConstraint` | 1.125829 | 1.115335 | 0.9907 | 0.9941 0.9907 0.9888 |
+| `f7_n20000_bound_neutral/MakeParameter` | 1.162700 | 1.157094 | 0.9952 | 0.9971 0.9947 0.9947 |
+| `f7_n20000_bound_neutral/RelaxBounds` | 1.113962 | 1.117852 | 1.0035 | 1.0000 1.0046 1.0047 |
+| `f7_n20000_bound_physics/MakeConstraint` | 0.765394 | 0.766034 | 1.0008 | 0.9980 0.9883 1.0010 |
+| `f7_n20000_bound_physics/MakeParameter` | 0.768054 | 0.765812 | 0.9971 | 1.0023 0.9966 0.9945 |
+| `f7_n20000_bound_physics/RelaxBounds` | 0.771872 | 0.766940 | 0.9936 | 0.9902 0.9917 0.9963 |
+| `f7_n2000_bound_neutral/MakeConstraint` | 0.093543 | 0.093714 | 1.0018 | 1.0042 1.0012 1.0019 |
+| `f7_n2000_bound_neutral/MakeParameter` | 0.097103 | 0.096196 | 0.9907 | 0.9944 0.9896 0.9930 |
+| `f7_n2000_bound_neutral/RelaxBounds` | 0.094696 | 0.092995 | 0.9820 | 0.9825 0.9722 0.9817 |
+| `f7_n2000_bound_physics/MakeConstraint` | 0.069430 | 0.069159 | 0.9961 | 0.9949 0.9961 0.9959 |
+| `f7_n2000_bound_physics/MakeParameter` | 0.069743 | 0.069341 | 0.9942 | 0.9964 0.9950 0.9931 |
+| `f7_n2000_bound_physics/RelaxBounds` | 0.068940 | 0.069182 | 1.0035 | 1.0035 1.0047 0.9987 |
+| `f7_n5000_bound_neutral/MakeConstraint` | 0.242183 | 0.241432 | 0.9969 | 0.9913 1.0015 0.9969 |
+| `f7_n5000_bound_neutral/MakeParameter` | 0.247908 | 0.247101 | 0.9967 | 0.9971 0.9969 0.9899 |
+| `f7_n5000_bound_neutral/RelaxBounds` | 0.243510 | 0.242212 | 0.9947 | 0.9943 0.9840 0.9947 |
+| `f7_n5000_bound_physics/MakeConstraint` | 0.178808 | 0.177075 | 0.9903 | 0.9903 0.9899 0.9906 |
+| `f7_n5000_bound_physics/MakeParameter` | 0.179528 | 0.180025 | 1.0028 | 1.0026 1.0028 0.9995 |
+| `f7_n5000_bound_physics/RelaxBounds` | 0.178967 | 0.176998 | 0.9890 | 0.9890 0.9846 0.9932 |
+
+#### R3 -- the process's FIRST row, excluded from the band by the pre-declared rule: `f7_n1000_bound_neutral/MakeParameter`
+
+base runs 0.725169, 0.721486, 0.690592; head runs 0.507581, 0.488490, 0.484845; paired ratios 0.6999 0.6771 0.7021; median ratio **0.6771**. The base arm's own three runs span 1.050x.
+
+corpus WITHOUT it (**PRIMARY**, 31 rows): base 10.4830 -> head 10.4284, ratio **0.9948** (-0.520 %); outside 0.99-1.01: **7**; band **UNRESOLVED**
+
+corpus WITH it (32 rows, reported for completeness): base 11.2045 -> head 10.9169, ratio **0.9743** (-2.566 %); outside 0.99-1.01: **8**; band **MOVED**
+
+
+**The millisecond-scale rows of this arm -- NO BAND (A7 (ii)).**
+
+| row | base median (s) | head median (s) | ratio | paired per round |
+|---|---|---|---|---|
+| `hs071_x1_fixed/MakeConstraint` | 0.000132 | 0.000132 | 1.0014 | 1.0014 0.9998 1.0164 |
+| `hs071_x1_fixed/MakeParameter` | 0.000185 | 0.000185 | 0.9977 | 1.0142 1.0320 0.9369 |
+| `hs071_x1_fixed/MakeParameter/cap1` | 0.000080 | 0.000081 | 1.0123 | 1.1210 1.0123 0.9961 |
+| `hs071_x1_fixed/MakeParameter/solve_optimize` | 0.000189 | 0.000193 | 1.0225 | 1.0336 1.0268 0.9714 |
+| `hs071_x1_fixed/MakeParameter/warm_multiplier_seed` | 0.000114 | 0.000114 | 0.9990 | 1.0422 1.0136 0.9869 |
+| `hs071_x1_fixed/MakeParameter/warm_payload` | 0.000088 | 0.000081 | 0.9185 | 0.9143 1.0149 0.9573 |
+| `hs071_x1_fixed/RelaxBounds` | 0.000135 | 0.000138 | 1.0224 | 1.0301 1.0262 0.9289 |
+| `infeas2_spike/MakeParameter/stalled` | 0.000596 | 0.000615 | 1.0316 | 1.0396 1.0301 1.0223 |
+| `infeas2_stationary/MakeParameter/resto_infeasible` | 0.000192 | 0.000188 | 0.9795 | 0.9820 1.0358 0.9653 |
+
+### The interior leg's WHOLE-PROCESS instruction counts -- NO VERDICT
+
+
+passA, 102f729 -> e51a7e0: NO VERDICT -- the two arms' processes do not run the same rows (102f729 -> e51a7e0), so `perf stat`, which counts the PROCESS, is not like-for-like (the ratios below are reported, not classified)
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `L1-icache-load-misses:u` | 10185550 | 6015374 | 0.59058 |
+| `branch-misses:u` | 36760235 | 37061251 | 1.00819 |
+| `branches:u` | 15929087394 | 15721887456 | 0.98699 |
+| `cycles:u` | 36828992412 | 36072082494 | 0.97945 |
+| `instructions:u` | 105689362822 | 105996243990 | 1.00290 |
+
+passB, 102f729 -> e51a7e0: NO VERDICT -- the two arms' processes do not run the same rows (102f729 -> e51a7e0), so `perf stat`, which counts the PROCESS, is not like-for-like (the ratios below are reported, not classified)
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `cycles:u` | 36936430426 | 36164674051 | 0.97911 |
+| `de_dis_uop_queue_empty_di0:u` | 1789657392 | 1343823176 | 0.75088 |
+| `ic_fetch_stall.ic_stall_any:u` | 17409837844 | 17312844443 | 0.99443 |
+| `instructions:u` | 105865732752 | 106092471488 | 1.00214 |
+| `op_cache_hit_miss.op_cache_hit:u` | 14769236256 | 14313506412 | 0.96914 |
+| `op_cache_hit_miss.op_cache_miss:u` | 1552461298 | 1593890078 | 1.02669 |
+
+passA, b9848bf -> e51a7e0: NO VERDICT -- the two arms' processes do not run the same rows (b9848bf -> e51a7e0), so `perf stat`, which counts the PROCESS, is not like-for-like (the ratios below are reported, not classified)
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `L1-icache-load-misses:u` | 12776335 | 6015374 | 0.47082 |
+| `branch-misses:u` | 36416305 | 37061251 | 1.01771 |
+| `branches:u` | 15957343428 | 15721887456 | 0.98524 |
+| `cycles:u` | 36615624316 | 36072082494 | 0.98516 |
+| `instructions:u` | 106370985568 | 105996243990 | 0.99648 |
+
+passB, b9848bf -> e51a7e0: NO VERDICT -- the two arms' processes do not run the same rows (b9848bf -> e51a7e0), so `perf stat`, which counts the PROCESS, is not like-for-like (the ratios below are reported, not classified)
+
+| event | base median | head median | ratio |
+|---|---|---|---|
+| `cycles:u` | 36719626956 | 36164674051 | 0.98489 |
+| `de_dis_uop_queue_empty_di0:u` | 1502449495 | 1343823176 | 0.89442 |
+| `ic_fetch_stall.ic_stall_any:u` | 17169050194 | 17312844443 | 1.00838 |
+| `instructions:u` | 106587667943 | 106092471488 | 0.99535 |
+| `op_cache_hit_miss.op_cache_hit:u` | 14664356373 | 14313506412 | 0.97607 |
+| `op_cache_hit_miss.op_cache_miss:u` | 1603958582 | 1593890078 | 0.99372 |
+
+### I4 -- the per-cell interior instruction measurement, LIKE-FOR-LIKE
+
+Every `--engine interior` process also runs an UNCONDITIONAL row set (the `hs071_x1_fixed` treatments, the `cap1`/`solve_optimize`/warm variants, the two `infeas2` rows) whichever cell is requested, and at the head TWO MORE (`parts2`) that no flag suppresses -- so a bare per-cell process is NOT like-for-like across arms. The instrument that is: run the cell, run `--cells hs071_x1_fixed` (which adds no cell of its own and is exactly that unconditional set), and DIFFERENCE the two on the same arm. The unconditional set -- the head's `parts2` rows included -- and process start-up cancel, and what is left is that cell's own three rows.
+
+The unconditional set alone (`--cells hs071_x1_fixed`), median of three:
+
+| arm | rows | instructions | branches |
+|---|---|---|---|
+| arm102 | 3 | 2396707545 | 695033409 |
+| armb98 | 11 | 5425387936 | 1450674362 |
+| head | 13 | 5164860443 | 1246968246 |
+
+The per-cell processes, whole-process `instructions:u`, median of three:
+
+| cell | arm102 | armb98 | head |
+|---|---|---|---|
+| `f7_n10000_bound_neutral` | 18729936114 | 18049040224 | 18415106833 |
+| `f7_n10000_bound_physics` | 12920831007 | 15044287895 | 15028802834 |
+| `f7_n1000_bound_neutral` | 2240101602 | 6034014962 | 5924741034 |
+| `f7_n1000_bound_physics` | 1470747580 | 5884510318 | 5753928824 |
+| `f7_n20000_bound_neutral` | 36587967071 | 35149038449 | 35451423466 |
+| `f7_n20000_bound_physics` | 24462415422 | 24544535955 | 24837051477 |
+| `f7_n2000_bound_neutral` | 3377461414 | 6785385185 | 6858584637 |
+| `f7_n2000_bound_physics` | 5905195162 | 6363825334 | 6341417673 |
+| `f7_n5000_bound_neutral` | 11406289801 | 8983674785 | 9374751905 |
+| `f7_n5000_bound_physics` | 7201618092 | 7868321267 | 8108470486 |
+
+| cell | arm | instructions (differenced) | branches (differenced) | ratio vs head |
+|---|---|---|---|---|
+| `f7_n10000_bound_neutral` | arm102 | +16333228569 | +2362755633 | 0.81124 |
+| `f7_n10000_bound_neutral` | armb98 | +12623652288 | +1279949432 | 1.04964 |
+| `f7_n10000_bound_physics` | arm102 | +10524123462 | +1509516403 | 0.93727 |
+| `f7_n10000_bound_physics` | armb98 | +9618899959 | +1240889898 | 1.02548 |
+| `f7_n1000_bound_neutral` | arm102 | -156605943 | -232754219 | -4.85218 |
+| `f7_n1000_bound_neutral` | armb98 | +608627026 | -11133352 | 1.24852 |
+| `f7_n1000_bound_physics` | arm102 | -925959965 | -414575678 | -0.63617 |
+| `f7_n1000_bound_physics` | armb98 | +459122382 | -12997665 | 1.28303 |
+| `f7_n20000_bound_neutral` | arm102 | +34191259526 | +5120287570 | 0.88580 |
+| `f7_n20000_bound_neutral` | armb98 | +29723650513 | +3810323908 | 1.01894 |
+| `f7_n20000_bound_physics` | arm102 | +22065707877 | +3267084981 | 0.89153 |
+| `f7_n20000_bound_physics` | armb98 | +19119148019 | +2398742486 | 1.02893 |
+| `f7_n2000_bound_neutral` | arm102 | +980753869 | -137119323 | 1.72696 |
+| `f7_n2000_bound_neutral` | armb98 | +1359997249 | -28051699 | 1.24539 |
+| `f7_n2000_bound_physics` | arm102 | +3508487617 | +722282290 | 0.33535 |
+| `f7_n2000_bound_physics` | armb98 | +938437398 | -24894815 | 1.25374 |
+| `f7_n5000_bound_neutral` | arm102 | +9009582256 | +1543365637 | 0.46727 |
+| `f7_n5000_bound_neutral` | armb98 | +3558286849 | -41916990 | 1.18312 |
+| `f7_n5000_bound_physics` | arm102 | +4804910547 | +634345540 | 0.61263 |
+| `f7_n5000_bound_physics` | armb98 | +2442933331 | -54034203 | 1.20495 |
+
+**THE DIFFERENCING IS UNSOUND AND CARRIES NO VERDICT.** 9 of the differenced quantities are NEGATIVE -- a cell process with fewer instructions or branches than the unconditional row set it contains, which cannot happen if the set cost the same in both processes. It does not: run alone it is the process's first solve and pays MKL's first call, the allocator's first growth and the working set's page faults, which inside a cell process a large F7 solve has already paid. The offending entries are `f7_n1000_bound_neutral/arm102`, `f7_n1000_bound_neutral/armb98`, `f7_n1000_bound_physics/arm102`, `f7_n1000_bound_physics/armb98`, `f7_n2000_bound_neutral/arm102`, `f7_n2000_bound_neutral/armb98`, `f7_n2000_bound_physics/armb98`, `f7_n5000_bound_neutral/armb98`, `f7_n5000_bound_physics/armb98`. **No per-cell interior instruction verdict is issued.**
+
+AND THE UNCONDITIONAL SETS ARE NOT COMPARABLE EITHER, which is the deeper reason: the head's 13-row set costs FEWER instructions (5164860443) than b9848bf's 11-row set (5425387936), so even the term being subtracted is not the same quantity across the arms. **A7 (ii)'s per-row instructions-only reading for the interior leg is NOT AVAILABLE from this harness**, by either route; the gap is REGISTERED for W6 with the rest of A7, and the numbers above are retained as data, not as a verdict.
+
+**`hs071_x1_fixed` and the two `infeas2` rows carry NO like-for-like instruction verdict** and none is printed: they ARE the unconditional set, so there is nothing to difference them against, and the set itself differs between the arms by the two head-only `parts2` rows. Registered as a harness gap, not resolved here.
+
+## Counter identity, leg 1 (recomputed from raw/)
+
+| mode | cells | columns compared | rounds | differing columns |
+|---|---|---|---|---|
+| ipm | 27 | 75 | 3 | **NONE -- byte-identical** |
+| ssn | 27 | 75 | 3 | **NONE -- byte-identical** |
+| walk | 27 | 75 | 3 | **NONE -- byte-identical** |
+
+## Instrument checks
+
+The same arm, measured twice -- pass A against pass B. A population whose own two passes disagree by more than 1e-4 cannot carry a 1e-4 instruction verdict.
+
+| population | arm | pass A instructions | pass B instructions | A/B |
+|---|---|---|---|---|
+| leg 1 / ipm / f7_n1000_bound_neutral | base | 749122644 | 749117947 | 1.00001 |
+| leg 1 / ipm / f7_n1000_bound_neutral | head | 749466678 | 749470766 | 0.99999 |
+| leg 1 / ipm / f7_n20000_bound_neutral | base | 15958318794 | 15958323295 | 1.00000 |
+| leg 1 / ipm / f7_n20000_bound_neutral | head | 15965123025 | 15965123049 | 1.00000 |
+| leg 1 / ipm / f7_n5000_bound_neutral | base | 3834878023 | 3834879144 | 1.00000 |
+| leg 1 / ipm / f7_n5000_bound_neutral | head | 3836104607 | 3836109110 | 1.00000 |
+| leg 1 / ssn / f7_n1000_bound_neutral | base | 488479834 | 488480134 | 1.00000 |
+| leg 1 / ssn / f7_n1000_bound_neutral | head | 488903314 | 488897489 | 1.00001 |
+| leg 1 / ssn / f7_n20000_bound_neutral | base | 11674701748 | 11674701519 | 1.00000 |
+| leg 1 / ssn / f7_n20000_bound_neutral | head | 11683014698 | 11683019527 | 1.00000 |
+| leg 1 / ssn / f7_n5000_bound_neutral | base | 2629037411 | 2629037407 | 1.00000 |
+| leg 1 / ssn / f7_n5000_bound_neutral | head | 2630743395 | 2630738428 | 1.00000 |
+| leg 1 / walk / f7_n1000_bound_neutral | base | 261301248 | 261301243 | 1.00000 |
+| leg 1 / walk / f7_n1000_bound_neutral | head | 261644867 | 261644860 | 1.00000 |
+| leg 1 / walk / f7_n20000_bound_neutral | base | 5640392312 | 5640391548 | 1.00000 |
+| leg 1 / walk / f7_n20000_bound_neutral | head | 5645600279 | 5645594599 | 1.00000 |
+| leg 1 / walk / f7_n5000_bound_neutral | base | 1333971634 | 1333977267 | 1.00000 |
+| leg 1 / walk / f7_n5000_bound_neutral | head | 1335665712 | 1335664954 | 1.00000 |
+| leg 2 / ipm / off | base | 247046537687 | 247046392527 | 1.00000 |
+| leg 2 / ipm / off | head | 246930307513 | 247321839491 | 0.99842 |
+| leg 2 / ipm / sink | base | 246877716760 | 247269938321 | 0.99841 |
+| leg 2 / ipm / sink | head | 247153434708 | 247545370414 | 0.99842 |
+| leg 2 / ssn / off | base | 420655887578 | 420010698648 | 1.00154 |
+| leg 2 / ssn / off | head | 421876944130 | 421876775857 | 1.00000 |
+| leg 2 / ssn / sink | base | 420047893460 | 420048270761 | 1.00000 |
+| leg 2 / ssn / sink | head | 421269399170 | 421914926774 | 0.99847 |
+| leg 2 / walk / off | base | 167530241085 | 167530258399 | 1.00000 |
+| leg 2 / walk / off | head | 168052397121 | 168072062225 | 0.99988 |
+| leg 2 / walk / sink | base | 167866546913 | 167927025244 | 0.99964 |
+| leg 2 / walk / sink | head | 167708110355 | 168120338106 | 0.99755 |
+| interior (whole process) | arm102 | 105689362822 | 105865732752 | 0.99833 |
+| interior (whole process) | armb98 | 106370985568 | 106587667943 | 0.99797 |
+| interior (whole process) | head | 105996243990 | 106092471488 | 0.99909 |
+
+## Summary
+
+Bands are R1-classified: the veto column is the BANDED count.
+
+| leg | corpus ratio | cells outside 0.99-1.01 | band | banded veto cells | perf verdict |
+|---|---|---|---|---|---|
+| interior/102f729 | 1.0249 | 29/29 | MOVED | 28 | n/a |
+| interior/b9848bf | 0.9948 | 7/31 | UNRESOLVED | 1 | n/a |
+| leg1/ipm | 1.0006 | 0/27 | FLAT | 0 | WORK-MOVED (instructions UP) -- THE VETO |
+| leg1/ssn | 0.9992 | 0/27 | FLAT | 0 | WORK-MOVED (instructions UP) -- THE VETO |
+| leg1/walk | 1.0001 | 0/27 | FLAT | 0 | WORK-MOVED (instructions UP) -- THE VETO |
+| leg2/ipm/off | 0.9913 | 21/27 | MOVED | 2 | NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: INSTRUCTIONS DOWN outside the identity band -- owner classification (11.1.1)) |
+| leg2/ipm/sink | 0.9861 | 26/27 | MOVED | 2 | NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO) |
+| leg2/ssn/off | 0.9822 | 17/27 | MOVED | 0 | NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO) |
+| leg2/ssn/sink | 0.9754 | 23/27 | MOVED | 0 | NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO) |
+| leg2/walk/off | 0.9931 | 8/27 | UNRESOLVED | 0 | NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: WORK-MOVED (instructions UP) -- THE VETO) |
+| leg2/walk/sink | 0.9761 | 24/27 | MOVED | 0 | NO VERDICT AT 1e-4 -- this population's own two passes of the SAME binary disagree by 0.2452 %, above the identity band; the ratio below is reported, not classified (original label: INSTRUCTIONS DOWN outside the identity band -- owner classification (11.1.1)) |
+
+## 10. Attribution per task (T8.9r-attrib, 2026-09-11)
+
+A later leg, on the same box and the same day, re-measured §3's nine cells at **eleven arms** — the
+base and every group-1 code head in order — so §3's increase could be charged to the task that added
+it, which is what §11.1.1 sends to the owner. It is in `attribution/`
+(`attribution.md`, `arms.txt`, `table.csv`, `attribute.py` + its sha256, and every perf output, leg
+log and script under `raw/`). **This addendum asserts no wall-clock number and none was taken**;
+`cycles` there is informational, as here.
+
+**All of §3's increase is T8.4, and T8.4 declared it.** Per-task instruction steps as a fraction of
+the base arm; **bold** = outside the ±2e-5 band the eleven-arm leg reads at.
+
+| task (code head) | ipm n1000/n5000/n20000 | ssn n1000/n5000/n20000 | walk n1000/n5000/n20000 |
+|---|---|---|---|
+| T8.1 `b3915ff` | +0.000000 / +0.000000 / +0.000000 | +0.000001 / +0.000000 / −0.000000 | **+0.000020** / −0.000000 / +0.000000 |
+| T8.2 `b43580f` | +0.000000 / +0.000001 / +0.000000 | −0.000000 / +0.000000 / +0.000000 | −0.000019 / −0.000004 / −0.000000 |
+| T8.3 `510a4bb` | +0.000001 / **−0.000125** / −0.000000 | **+0.000157** / +0.000000 / **+0.000130** | **+0.000024** / +0.000005 / **−0.000269** |
+| **T8.4 `3c8e43b`** | **+0.000457 / +0.000442 / +0.000422** | **+0.000700 / +0.000641 / +0.000576** | **+0.001305 / +0.001264 / +0.001192** |
+| T8.5 `8f95655` | +0.000002 / −0.000000 / +0.000000 | +0.000002 / +0.000000 / +0.000000 | +0.000002 / −0.000004 / +0.000000 |
+| T8.6 `8cbaa39` | +0.000001 / +0.000000 / −0.000000 | −0.000009 / +0.000000 / −0.000000 | +0.000006 / +0.000005 / +0.000000 |
+| T8.7 `56042be` | −0.000007 / −0.000001 / −0.000000 | +0.000011 / −0.000000 / +0.000000 | −0.000004 / −0.000000 / −0.000000 |
+| T8.7b `ddac2cf` | −0.000004 / +0.000000 / −0.000000 | +0.000000 / +0.000000 / −0.000000 | +0.000003 / +0.000000 / −0.000000 |
+| T8.8 `b9848bf` | +0.000014 / +0.000006 / +0.000004 | +0.000007 / +0.000007 / +0.000006 | −0.000003 / +0.000001 / −0.000000 |
+| T8.9 `e51a7e0` | +0.000000 / +0.000000 / −0.000000 | +0.000001 / +0.000000 / +0.000000 | **−0.000021** / −0.000000 / +0.000000 |
+| **cumulative** | **+0.000465 / +0.000323 / +0.000426** | **+0.000867 / +0.000649 / +0.000713** | **+0.001314 / +0.001265 / +0.000923** |
+
+The steps sum to the end-to-end delta on every cell (residual < 1e-9), and the cumulative row
+reproduces §3's ratios: 1.00046 / 1.00032 / 1.00043, 1.00087 / 1.00065 / 1.00071, 1.00131 / 1.00127 /
+1.00092.
+
+**The T8.4 step is one fixed `O(n)` cost per call, the same on all three QP tiers** — +342 533
+(ipm), +341 797 (ssn), +340 870 (walk) instructions at n = 1000, ≈1.688 M at n = 5000, ≈6.73 M at
+n = 20000; linear in `n` to better than 2 %, mode-independent to better than 0.5 %. **That is why §3's
+fraction differs by mode**: one number divided by three different totals, largest as a fraction on
+walk because walk is the cheapest solve. §3's "+0.03 %…+0.13 %" is one quantity, not nine. The
+mechanism is the one T8.4's design §2.3 and §2.7 item (7) and its ledger close line declare — the
+shared declared diagnostics computed once per call over the declared NLP
+(`compute_declared_diagnostics`) and the declared-space vectors the new `SolveResult` carries by
+value. It executes per call and is linear in the declared dimension, which is the shape measured.
+
+**UNDECLARED list: EMPTY.** No task added an instruction step that leg can resolve which its design
+or ledger close line does not declare. Two riders, both stated there in full:
+
+* The non-T8.4 movements outside the band — T8.3 on four cells, and three ±2e-5 flags on walk/n1000
+  — are **code-layout cluster transitions, not work**, identified by a branch-density fingerprint the
+  leg measures rather than assumes: a layout cluster moves branches by ≈2.4× the instruction
+  fraction, executed work by ≈1.1×. Every T8.4 step reads 1.05–1.11; every other step outside the
+  band reads 2.32–2.48; nothing lands between. One of them is a control — T8.1's `libhven.a` is
+  byte-identical to the base's, so its +2.0e-5 on walk/n1000 is that cell's floor and can be nothing
+  else.
+* **§4's floor is a WITHIN-layout floor, and this reading's leg 1 is unaffected by that.**
+  `instructions:u` on these cells is bimodal in the byte footprint of the measured process's argv and
+  environment: `attribution/raw/logs/A12-layout-probe.log` moves one binary between clusters ~1.2e-4
+  apart on one cell by changing nothing but the length of an output path. Leg 1's two arms were
+  length-matched by construction (`arm-base`/`arm-head`, `A-base-`/`A-head-`), so both sat in one
+  cluster and the term cancelled — §3 stands. What the probe adds is the controlling variable, and
+  the refinement that branch proportionality alone does not separate work from a layout cluster (a
+  cluster moves branches too); it is the *value* of the ratio that does, and §3's cells sit at the
+  work value.
+
+**Calibration, declared in both forms — AND AGAINST THE RIGHT READING, corrected at fix2 (settler
+ruling R9; astra's fix1 review, item 5).** All three of the `libhven.a` that `PROVENANCE.txt` retains rebuild
+BYTE-IDENTICALLY under that leg's recipe (`735eea1d…`, `d236166e…`, `60bfe03f…`). The calibration
+itself was taken against **round 1's** counts while `attribute.py` printed "reading.md section 3" —
+and round 1's captures were superseded by the fix1 re-measurement, so it was calibrating against a
+reading this artifact no longer publishes. `attribute.py` now carries **v2 §3's** counts, and both
+results are recorded because changing the reference changes them:
+
+| reference | ratio form (the quantity attributed) | absolute form |
+|---|---|---|
+| **`reading.md` v2 §3 (current)** | worst deviation **5.48e-06** | **16 of 18** inside 2e-5; worst **3.26e-05**; the two outside are `walk`/n1000, base −3.13e-05 and head −3.26e-05 |
+| round 1 (superseded) | worst deviation 1.87e-06 | 12 of 18 inside 2e-5; worst 4.16e-05; **six** outside, all on n1000 cells, all positive |
+
+Fix1's sentence here said "13 of 18 and not on 5", which was wrong on its own reference as well as
+being taken against the superseded one. On either reference the deviations are confined to the three
+smallest cells and move base and head together, which is why the ratio form stays four to ten times
+finer than this leg's own 2e-5 floor: it is the residual of the process-layout term above. **The
+attribution tables, the steps and the closure check are untouched by this correction** — the
+calibration block is the only part of `attribute.py`'s output that moved. Apple/Accelerate and Windows: UNOBSERVED, as everywhere here.
+
+---
+## 11. The interior leg's movement per task (T8.9r-attrib2, 2026-09-11)
+
+§5's interior leg said the top-level IPM got **2.49 % slower across the whole of group 1**, on 29 of
+29 banded rows, with **eleven of the twelve common counter columns identical and the twelfth,
+`status`, differing only because T8.2 RENAMED the vocabulary** (`CONVERGED` -> `optimal`; §5 and §9
+both say so, and "the twelve common columns are identical" as a bare phrase is corrected here at fix
+round 3 — astra's fix2 review, Minors) — and could not say which task
+did it, having no arm between `102f729` and `b9848bf`. A later leg, same box, same day, put an arm at
+**every one of the eleven group-1 heads** and measured the per-row **wall** at each: five rounds, arm
+order rotated per round, `--engine interior` on four dual-binding F7 cells × three treatments. It is
+in `attribution-interior/` (`attribution-interior.md`, `arms.txt`, `wall.csv`, `perf.csv`,
+`attribute_interior.py` + its sha256 and saved output, `IDLE-PROOF.md`, and every CSV, perf output,
+batch log and script under `raw/`). It built nothing: the eleven arm binaries are `attribution/`'s,
+re-verified by sha256 before use, 11/11 and 11/11.
+
+**T8.4 IS THE DOMINANT STEP, AND NOTHING ELSE IS CLOSE — bounded to exactly that (corrected at fix2;
+astra's fix1 review, item 7).** Per-row wall step, median of five rounds; **bold** = above 1.01. The first row every process writes is excluded by the pre-declared positional rule, and the cell
+order was chosen so that row is the SAME row at every arm (`f7_n1000_bound_physics/MakeParameter`);
+eleven rows are scored.
+
+| row | T8.1 | T8.2 | T8.3 | **T8.4** | T8.5 | T8.6 | T8.7 | T8.7b | T8.8 | T8.9 | cumul |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `f7_n1000_bound_physics/MakeConstraint` | 1.0079 | 0.9937 | 0.9967 | **1.0331** | 0.9938 | 0.9990 | 1.0020 | 1.0002 | 1.0027 | 0.9913 | 1.0199 |
+| `f7_n1000_bound_physics/RelaxBounds` | 1.0066 | 0.9972 | 0.9979 | **1.0255** | 0.9932 | 1.0038 | 1.0009 | 1.0001 | 1.0043 | 0.9920 | 1.0214 |
+| `f7_n5000_bound_physics/MakeParameter` | 1.0028 | 0.9982 | 0.9994 | **1.0425** | 0.9963 | 1.0041 | 0.9963 | 1.0003 | 1.0041 | 0.9957 | 1.0394 |
+| `f7_n5000_bound_physics/MakeConstraint` | 1.0024 | 0.9996 | 0.9985 | **1.0329** | 0.9976 | 1.0041 | 0.9966 | 0.9997 | 1.0033 | 1.0058 | 1.0406 |
+| `f7_n5000_bound_physics/RelaxBounds` | 1.0045 | 0.9972 | 0.9992 | **1.0343** | 0.9923 | 1.0072 | 1.0007 | 0.9976 | 1.0041 | 1.0031 | 1.0403 |
+| `f7_n10000_bound_neutral/MakeParameter` | 1.0008 | 0.9972 | 1.0007 | **1.0147** | 1.0076 | 0.9925 | **1.0111** | 0.9868 | 1.0025 | 1.0085 | 1.0222 |
+| `f7_n10000_bound_neutral/MakeConstraint` | 1.0037 | 0.9987 | 0.9999 | **1.0301** | 0.9917 | 1.0068 | 0.9917 | 0.9976 | 1.0034 | 1.0057 | 1.0292 |
+| `f7_n10000_bound_neutral/RelaxBounds` | 1.0000 | 0.9997 | 1.0000 | **1.0300** | 0.9845 | 1.0053 | 0.9993 | 1.0024 | 1.0040 | 0.9934 | 1.0181 |
+| `f7_n20000_bound_neutral/MakeParameter` | 1.0031 | 0.9993 | 1.0015 | **1.0255** | 0.9964 | 1.0037 | 1.0019 | 0.9975 | 1.0038 | 0.9939 | 1.0266 |
+| `f7_n20000_bound_neutral/MakeConstraint` | 1.0011 | 0.9998 | 1.0020 | **1.0178** | 0.9941 | 1.0078 | 0.9991 | 1.0049 | 1.0043 | 0.9972 | 1.0282 |
+| `f7_n20000_bound_neutral/RelaxBounds` | 1.0005 | 1.0017 | 0.9983 | **1.0194** | 0.9982 | 1.0004 | 1.0063 | 1.0027 | 1.0044 | 0.9843 | 1.0160 |
+| **rows above 1.01, of 11** | 0 | 0 | 0 | **11** | 0 | 0 | 1 | 0 | 0 | 0 | — |
+| **median share of the cumulative** | +0.07 | −0.05 | −0.02 | **+1.03** | −0.20 | +0.14 | +0.02 | +0.00 | +0.14 | −0.11 | — |
+| **whole-process instruction step** | *+0.0127 (FLOOR)* | +0.0040 ‡ | +0.0020 | *+0.0101* ‡ | −0.0049 ‡ | +0.0030 | −0.0031 | +0.0003 | +0.0022 | +0.0128 ‡ | — |
+
+‡ = ROW-ADDING pair; **no instruction verdict** (T8.2, T8.4, T8.5 and T8.9 each add rows, so the two
+arms' processes do not run the same work). The six unmarked columns are like-for-like, verified from
+each arm's row count (15/15/19/19/21/23/23/23/23/23/25).
+
+**THE CUMULATIVE, AND WHAT IT DOES AND DOES NOT REPRODUCE:** 1.0250 over the eleven scored rows
+against §5's **1.0249** — from a different round set of the SAME day (fix1's timed logs end 17:16:56
+UTC and this leg's begin after them; fix1 said "a different day" and that was wrong — astra's fix1
+review, item 8) and a different cell set. **It is not a LIKE-POPULATION reproduction and is not
+offered as one**: §5's 1.0249 is its full 29-row population, and §5's own ratio over THESE eleven
+rows is **1.0238**, so the agreement to four digits is between two different populations that happen
+to land together. The per-row columns of the two legs differ by up to
+2.9 points — five medians here against three there, a per-process layout term in both — and that is
+reported rather than smoothed; what reproduces is the corpus ratio and the shape.
+
+**THE LOCALISATION, BOUNDED.** T8.4 is the **dominant** step: it exceeds 1.01 on **all eleven**
+scored rows, rising 1.47–4.25 % with a median of 3.00 %, its median share of the cumulative is
+**+1.03**, and it is at or above 0.80 on 9 of 11 rows while every other task reaches 0.80 on none.
+**Three fix1 sentences went further than that and are WITHDRAWN** (astra's fix1 review, item 7):
+
+* *"the only task exceeding 1.01 on any scored row"* — **false**: **T8.7 reads 1.0111** on
+  `f7_n10000_bound_neutral/MakeParameter`, in the table above.
+* *"all of the +2.49 % is T8.4"* — **not what this leg measures**. On the corpus of the eleven scored
+  rows T8.4's own step is **1.0236838** and the remaining ten tasks' aggregate factor is
+  **≈1.0013197** — small, but **POSITIVE**, not the "net slightly negative" a median of per-row log
+  shares suggested. A median share cannot carry a statement about the aggregate.
+* the cumulative as a like-population reproduction of §5 — see the paragraph above.
+
+**What stands is the dominant-step finding**: one task carries the great majority of a +2.5 % step
+that four independent round sets measure. **The sentence that used to follow — "no other task
+carries more than about a tenth of a percent of it" — is corrected at fix round 3** (astra's fix2
+review, Minors): recomputed as corpus steps on the eleven scored rows, T8.4 is **+2.3684 %** and the
+other ten are +0.1790 (T8.1), −0.0504 (T8.2), +0.0299 (T8.3), −0.4335 (T8.5), **+0.3299 (T8.6)**,
++0.1503 (T8.7), −0.0396 (T8.7b), **+0.3875 (T8.8)** and −0.4177 (T8.9) per cent. **Two of them are
+above a third of a per cent and two are below minus four tenths**; what is true is that no other
+task comes within a factor of six of T8.4, that their aggregate is ≈+0.13 %, and that **T8.4
+exceeds 1.01 on ALL ELEVEN scored rows**. **The form this sentence carried at fix round 3 — "only
+T8.4 exceeds 1.01 on any scored row" — is FALSE and is withdrawn at fix round 4** (fable's fix3
+review, item 3): it contradicts the table above — whose "rows above 1.01, of 11" line scores T8.7
+at **1** — and the first WITHDRAWN bullet under "THE LOCALISATION, BOUNDED", which already records
+**T8.7 at 1.0111** on `f7_n10000_bound_neutral/MakeParameter`. T8.7 is the only other
+exceedance in the table, on one row of eleven.
+
+**AND THE INSTRUCTION CURRENCY RETURNS NO VERDICT ON THIS LEG, IN EITHER PASS.** T8.4's pair is
+row-adding, which forbids one outright; and independently the floor of the whole-process count here,
+read off the control arm whose `libhven.a` is **byte-identical** to the base's, is **+1.27 %** —
+larger than every like-for-like step measured and larger than T8.4's own +1.01 %. Pass B is worse
+still: the control pair moves further than the pair under test on five of the six Zen 3 front-end
+events and further on IPC. The floor is far above the SQP legs' 2e-5 because the whole-process
+count is dominated by the warm-up row the wall reading excludes and `perf stat` cannot. **+1.27 % is
+about 635 times** the SQP legs' 2e-5, not the "hundred times" fix1 wrote (astra's fix1 review,
+item 8). A single-row interior process would fix it and **is not reachable without a source change** —
+`--internal-run-one` rejects `interior` (`bench/corpus_cells.h:1843`) — so §5 (iv)'s W6 registration
+stands, with this floor measurement added to it.
+
+**AN ESTIMATE WAS OFFERED IN PLACE OF A VERDICT, AND AT FIX2 IT IS WITHDRAWN (astra's fix1 review,
+item 7).** The estimate: T8.4's whole-process instruction step (**0.576 e9**) is accounted for, to
+**2.3e-4 of the process**, by the two rows T8.4 *added* (**0.563 e9**, obtained by multiplying those
+rows' round-1 WALL by the whole process's instructions divided by the summed row wall); a WORK
+increase on the nineteen shared rows matching T8.4's median wall step of +3.00 % would need about
+**1.716 e9**. **The arithmetic is retained because it is retained evidence; the CONCLUSION drawn
+from it is not, and three things are wrong with it:**
+
+* **It never measures the added rows' instructions.** It multiplies their wall by an AGGREGATE
+  instruction rate, and whole-process instructions include work outside any row's timing bracket.
+  The 3.3 % spread of those aggregate rates does not bound an individual row's rate.
+* **2.3e-4 is the CENTRAL residual fraction, not an upper bound** — fix1 quoted "+0.008 to
+  +0.026 e9" as the extreme-rate spread and then read 2.3e-4 as though it were the worst case. It
+  already exceeds §11.1's 1e-4 identity tolerance on its own.
+* **No branch identity and no cycle/miss accounting was established**, which §11.1's LAYOUT-MOVED
+  band requires in addition to the instruction identity; and a 3 % wall increase does not imply 3 %
+  more instructions in the first place.
+
+**SO THE CLASSIFICATION IS UNRESOLVED, NOT LAYOUT-MOVED.** Under
+`docs/notes/2026-09-m6-w5-t6-ownership.md` §11.1 a non-FLAT result that is neither identity-banded
+nor instructions-up **stays UNRESOLVED pending re-measurement**, and that is what this leg leaves.
+What IS measured and stands: the nineteen shared rows take 2–4 % more wall, and §5 established that
+their twelve counter columns are identical end to end. §14 later measured the instruction question
+directly, on a single-row process, and found **NOT WORK-MOVED without reaching the identity band
+either** — which is the same UNRESOLVED, arrived at with an instrument instead of a derivation.
+
+**AND THE "CODE PLACEMENT" MECHANISM BELOW IS ALSO WITHDRAWN — §12 REFUTED IT IN BOTH HALVES.** It
+is left standing here as the reading fix1 published, with §12's refutation named: the archive
+member `8ae1618` inserts is unreferenced and the linked executable is byte-identical across it, and
+inserting 4 096 / 9 712 / 16 384 bytes of unreachable `.text` at the parent reproduces only
+0.3–6.4 % of the step. T8.4's own new per-call work,
+`compute_declared_diagnostics`, is called **once per solve** at
+`src/drivers/interior_point_solver.cpp:2215`; §10's leg measured that same commit's cost at ≈342 500
+instructions at n = 1000, linear in the declared dimension, so ≈6.7 M at n = 20000 against the
+≈10.6 e9 an `f7_n20000` row executes — **0.06 % of a row whose wall moved 2.0 %**. What moves
+addresses is the rest of the same commit: it rewrote `src/drivers/interior_point_solver.cpp` (1101
+lines — the TU carrying the IPM iteration loop) and **inserted a new translation unit**,
+`drivers/solve_result.cpp`, at `src/CMakeLists.txt:76`, taking the library's source count 42 → 43.
+A new object in the archive and a rewritten hot TU relocate everything that follows them.
+
+**This addendum ASSERTS WALL CLOCK, and its sixteen batches are RE-AUDITED UNDER R2' (fix2, and
+again under fix3's EVIDENCE accounting).** `logs/IDLE-PROOF.md` carries the per-batch table. **All
+five WALL batches meet R2''s FRACTION** — foreign task time on the pinned core 0.0561–0.0837 % and
+on its SMT sibling 0.3084–0.3363 %, both under the 0.5 % bar on the NICE-INCLUSIVE accounting —
+**but only `wall-r1` is PROVEN outright. `wall-r2`, `-r3`, `-r4` and `-r5` are UNPROVEN-EVIDENCE**
+(settler R13): each saw a foreign process in state `R` at a named snapshot and no re-snapshot
+followed, which is a term of R2' that fix2 deferred and fix3 does not. **So the per-task table above
+rests on five rounds of which one is fully proven and four are flagged.** A median of five is not
+moved by any one member, T8.4's step is 6× the next task's, and an unwatched moment can only cost a
+measurement time — which pushes a step UP, not down — so the finding survives the flag; the flag is
+carried anyway. **Two of the
+eleven COUNT batches are NOT proven** and are flagged rather than re-run: `diff-r1` at **0.6828 %**
+on the core and `perfB-r2` at **0.7559 %** on the sibling — the second is astra's own worked example
+(0.11 s user + 0.09 s nice on `cpu10`, which the superseded `user`-only accounting reported as
+0.1120 % and passed). Both assert COUNTERS, which CLAUDE.md §7 makes deterministic per process at
+`MKL_NUM_THREADS=1`; an unproven window forbids reading their ELAPSED times as a measurement, and
+this addendum reads none from them. Five batches were re-run after failing their window and the
+re-runs are the retained data; nothing was ever signalled. **No disposition is offered — §11.1 and
+the owner have it.** Apple/Accelerate and Windows: UNOBSERVED.
+
+---
+
+## 12. Inside T8.4 (T8.9r-attrib3, 2026-09-11)
+
+§11 charged the interior leg's **+2.49 %** to T8.4 — the one group-1 task whose
+per-row wall step exceeded 1.01 on **all eleven** scored rows
+(**corrected at fix round 4, fable's fix3 review item 3: this sentence read "the only
+group-1 task whose per-row wall step exceeded 1.01 on ANY scored row", which §11's own
+table contradicts — T8.7 reads 1.0111 on `f7_n10000_bound_neutral/MakeParameter`. The
+all-eleven form is what §11 measured. The stronger reading — that no other task carries a
+measurable share — was already withdrawn at fix round 3, §11 above**) — and could go no
+further: its arms sat at task HEADS, and T8.4 is seven commits. A third
+leg, same box, same day, put an arm at **every T8.4 library commit** and measured the
+per-row wall at each: five rounds, arm order rotated per round, `--engine interior` on
+the same four dual-binding F7 cells × three treatments, solo, the R3 positional warm-up
+row excluded by a rule hashed before the first sample existed. It is in
+`attribution-interior/t84/` (`arms.txt`, `steps.md`, `mechanism.md`, `layout.txt`,
+`predeclaration.txt`, `wall.csv`, `experiments.csv`, `mechanism-tables.txt`, the three
+analysis tools with their sha256s and saved output, three idle proofs, five experiment
+patches, and every CSV, perf output, batch log and script under `raw/`, `perf/`,
+`logs/` and `scripts/`). It built its own eleven arms; both end arms' `libhven.a`
+reproduce `attribution/arms.txt` **byte for byte**.
+
+**IT IS `9cebbbe`** — *IpmResult; `solve(model, x0, budget)` with phases; the model
+borrowed per call; the five entries, the mutable accessors and `ConvergenceFlags`
+removed*. Per-row wall step, median of five rounds, over the eleven scored rows:
+
+| | 8ae1618 | **9cebbbe** | 9ce9bb2 | fix1 5124aa1 | 3c8e43b | cumul |
+|---|---|---|---|---|---|---|
+| median step | 0.9995 | **1.0324** | 1.0028 | 0.9950 | 1.0009 | **1.0283** |
+| rows above 1.01, of 11 | 0 | **11** | 0 | 0 | 0 | — |
+| median share of the cumulative | −0.01 | **+1.02** | +0.10 | −0.14 | +0.04 | — |
+
+The cumulative **1.0283** reproduces §11's 1.0250 and §5's 1.0249 from a third round
+set. **Two of the five steps are EXACTLY ZERO by construction** — `510a4bb → 8ae1618`
+and `5124aa1 → 3c8e43b` each produced a **byte-identical `hven_sqp_corpus`** — and they
+read 0.9995 and 1.0009, median |ln step| 0.00075 and 0.00087, against the carrier's
+0.03189: **36.5× the floor**, on a control stronger than §11's (a byte-identical
+binary, not merely a byte-identical library).
+
+**AND THE MECHANISM §11 NAMED IS REFUTED IN BOTH HALVES.** §11 read the movement as code
+placement — "a new object in the archive and a rewritten hot TU relocate everything that
+follows them". (a) `8ae1618` is the commit that adds `drivers/solve_result.cpp` to
+`src/CMakeLists.txt` and takes the source count 42 → 43; `ar t` shows the new member
+inserted at position 13 of 43, and **the linked executable is byte-identical** — nothing
+references it there, and a linker does not pull an unreferenced archive member in.
+(b) Inserting 4 096, 9 712 or 16 384 bytes of unreachable `.text` at the head of
+`src/drivers/interior_point_solver.cpp` at the parent — 9 712 being exactly the amount
+the culprit grew that object by — moves the scored-row corpus by **+0.05 %, +0.19 % and
++0.01 %**, reproducing 1.5 %, 6.4 % and 0.3 % of the step. This box is not generically
+placement-sensitive at this scale, and two later commits that rewrote the same files
+(`9ce9bb2`, 280 lines of `sqp_driver.cpp`; fix1, 302 lines of the IPM's own TU) cost
++0.28 % and **−0.50 %**.
+
+**THE MECHANISM, AS FAR AS IT IS PROVEN.** `9cebbbe`'s hot loop is a rename almost line
+for line — 31 of 70 diff hunks survive filtering the commit's rename set, and none of
+the survivors is inside the iteration; `eval_nlp` compiles to the byte. What the commit
+does change is the result core's **lifetime**: where the parent handed the result out by
+reference and kept its buffers across calls
+(`include/hven/drivers/interior_point_solver.h:511`, `:360`), the culprit
+default-constructs it at every entry and moves it out at every exit
+(`src/drivers/interior_point_solver.cpp:4263` and `:5060`), so every buffer it owns is
+freed and re-allocated inside each solve. The measured consequence is **+53 149 minor
+page faults per process, +17.2 %, against a control-pair floor of 1 count in 308 106**
+— the tightest instrument in this artifact — with **+0.090 s of kernel time** beside it,
+counted in the wall leg's own condition with no `perf` attached. Telling glibc to stop
+returning large blocks to the kernel, applied **identically to both arms**, removes
+**99.7 % of the extra faults and 32.8 % of the step** (+2.999 % → +2.006 %).
+
+**THAT IS A THIRD OF IT, AND THE REST IS NOT EXPLAINED.** Four experiments were run, each
+a scratch build of a patched `git archive` extraction, each leaving all nineteen CSV
+columns on all nineteen rows bit-identical to its unpatched base: restoring the culprit's
+hot members to the parent's exact byte offsets recovers **16.8 %**; moving the parent's to
+the culprit's reproduces **4.4 %**; the three code shifts reproduce **0.3–6.4 %**; the
+allocator intervention removes **32.8 %**. The remainder sits in user time, spread across
+MKL's own Pardiso kernels (66 % of the profile, unchanged source) and Eigen's assembly in
+**unchanged proportion** — no function got slower relative to the others, and the
+whole-process instruction and cycle counters return no verdict because the
+byte-identical control pair moves them **+1.02 %** and **+1.81 %** where the pair under
+test moves them −0.13 % and +0.71 %. **§11's LAYOUT-MOVED derivation is WITHDRAWN — the sentence that stood here at fix2,
+"not refuted as a description", is withdrawn with it at fix round 3** (astra's fix2
+review, item 2). §11.1's LAYOUT-MOVED label requires instructions AND branches identical
+within 1e-4, and this leg establishes no such identity: its whole-process counters return
+no verdict at all, because the byte-identical control pair moves them **+1.02 %** and
+**+1.81 %** where the pair under test moves them −0.13 % and +0.71 %. What IS true and
+stands is narrower and is stated as itself: the work is identical on the counter columns
+§5 compared, the cost is not in any named function, and a named per-call mechanism now
+carries a third of it. **The classification is UNRESOLVED.** **No committed source
+changed; the experiment patches are evidence, not a fix.**
+
+**This addendum ASSERTS WALL CLOCK, and its batches are RE-AUDITED UNDER R2' (fix2, and again under
+fix3's EVIDENCE accounting) — with ELEVEN of the twenty-five wall batches NOT PROVEN.**
+`logs/IDLE-PROOF.md` carries the per-batch table. **14 of 25 are PROVEN; FOUR fail R2''s FRACTION
+and EIGHT are UNPROVEN-EVIDENCE** (`ywall-r5` fails both). The four fraction failures fail on the
+SMT SIBLING, never on the measurement core, and every one of them by less than a third of a
+percentage point over the bar:
+
+| batch | what it feeds | core `cpu2` | sibling `cpu10` |
+|---|---|---|---|
+| `wall-r1` | round 1 of the five behind **the carrier table above** | 0.1290 % | **0.6706 %** |
+| `ywall-r2`, `ywall-r3`, `ywall-r5` | three of the five rounds behind **experiment 3's +0.05 / +0.19 / +0.01 %** | 0.062–0.156 % | **0.5291 / 0.8065 / 0.5293 %** |
+
+**And the eight evidence failures are `alloc-r4`, `alloc-r5`, `wallpf-r1`, `wall-r2`, `wall-r4`,
+`xwall-r2`, `ywall-r1` and `ywall-r5`** — every one of them for an `R` observed at a named snapshot
+with no re-snapshot after it, the term fix2 deferred and fix3 does not. `logs/IDLE-PROOF.md` names
+the snapshot in each case.
+
+**So two numbers in this section carry a fraction flag, and the evidence flag reaches further.**
+The carrier table's medians are medians of five rounds of which one is unproven on the fraction and
+one more on the evidence — a median of five is not moved by one member, and the carrier's
+step (median |ln| 0.03189) is 36.5× the control's, so the finding survives the loss of any single
+round; it is nonetheless not a five-clean-round median and is not quoted as one. Experiment 3's
+three code-shift figures rest on five rounds of which THREE are unproven, and **they are the weakest
+numbers in this section** — they are used only to say that the box is *not* generically
+placement-sensitive at this scale, a negative claim that a contended sibling could only push the
+wrong way for. Five of the fourteen COUNT batches (`mem-r1`, `mem-r6`, `perf`, `perfrec-r2`,
+`perfrec-r3`) are also unproven; they assert counters, which are deterministic per process at
+`MKL_NUM_THREADS=1`, and no elapsed time is read from them. **Nothing here is re-measured — the fix2
+ruling flags rather than re-runs.** Nine batches failed their window on a first pass and were re-run;
+the re-runs are the retained data, and one further experiment round set was discarded and re-run for
+breaking the argv lock by one byte — it is retained, unedited, with its README. Nothing was ever
+signalled. **No disposition is offered — §11.1 and the owner have it.** Apple/Accelerate and
+Windows: UNOBSERVED.
+
+---
+
+## 13. The redraw experiment (T8.9r-attrib4, 2026-09-11)
+
+§12 charged a third of `9cebbbe`'s step to the result core's per-call
+allocate/free churn — measured through an allocator intervention that removed
+**99.7 %** of the extra minor page faults and **32.8 %** of the step — and left
+two thirds unexplained. A fourth leg asks the direct follow-up: **does making
+that per-call storage PERSISTENT in SOURCE recover it?** Two candidate fixes,
+each a scratch build of a `git archive` extraction of `e51a7e0` with one patch,
+measured against `102f729` and `e51a7e0` in the same five solo rounds on the
+same four dual-binding F7 cells, the R3 positional warm-up row excluded by a
+rule hashed before the first sample existed. It is in
+`attribution-interior/t84/redraw/` (`README.md`, `steps.md`, `mechanism.md`,
+`predeclaration.txt`, the two patches, `wall.csv`, `faults.csv`, both analysis
+tools' saved output, the corrected idle proof, and every CSV, perf output, batch
+log and script under `raw/`, `perf/`, `logs/` and `scripts/`).
+
+**E1** — `result_` reset FIELD BY FIELD at entry instead of reconstructed
+(`reset_for_call()` on `SolveResult` and `IpmResult`), and COPIED out at exit
+instead of moved, so the member keeps its buffers
+(`src/drivers/interior_point_solver.cpp:5075` and `:6086`).
+**E2** — E1 plus `alg_impl`'s `iters` history hoisted to a member, cleared
+rather than rebuilt per phase (`:2580`).
+
+**THE STEP REPRODUCES AND NEITHER EXPERIMENT RECOVERS IT.** Per-row wall, median
+of five rounds, eleven scored rows:
+
+| | base `102f729` | head `e51a7e0` | E1 | E2 |
+|---|---|---|---|---|
+| scored corpus (s) | 5.489952 | 5.633460 | 5.657087 | 5.627050 |
+| ratio to base | 1.0000 | **1.0261** | 1.0304 | 1.0250 |
+| **corpus recovery** | — | — | **−16.5 %** | **+4.5 %** |
+| median per-row recovery | — | — | −3.8 % | +0.3 % |
+
+The head/base step of **1.0261 (+2.614 %)** is a fourth independent round set
+agreeing with §5's 1.0249, §11's 1.0250 and §12's 1.0283. E2's corpus sits
+0.114 % below the head's and E1's 0.419 % above it, against a per-arm
+round-to-round corpus spread of **0.27–0.43 %** — so **E2's +4.5 % is inside the
+spread and E1 is a REGRESSION**, and neither is reported as a recovery anyone
+should act on.
+
+**THE CORRECTNESS GATE PASSED ON BOTH, on a larger population than asked for**:
+the whole `--engine interior --cells all` leg, **85 rows × 30 columns = 2 550
+cells, 0 mismatches** against `e51a7e0` at each patched arm, `wall_s` the only
+exempt column. `hven_tests` was not built at any arm (`-DHVEN_BUILD_TESTS=OFF`),
+so no unit suite is claimed. The recipe calibration passed: an unpatched
+`e51a7e0` put through this leg's recipe reproduced `attribution/arms.txt`'s
+`libhven.a` **byte for byte**.
+
+**AND THE FAULT INSTRUMENT IS THE RESULT.** Minor faults per process, no perf
+attached, three rounds, within-arm spread 3 counts in 300 000:
+
+| arm | minor faults | vs base | vs head |
+|---|---|---|---|
+| base `102f729` | 299 658 | — | −41 627 |
+| head `e51a7e0` | 341 285 | **+41 627 (+13.89 %)** | — |
+| E1 | 364 428 | +64 770 | **+23 143** |
+| E2 | 317 430 | +17 772 | **−23 855 (57.3 % of the excess removed)** |
+
+**A SOURCE CHANGE THAT REMOVES 57.3 % OF THE HEAD'S EXCESS FAULTS BUYS 4.5 % OF
+THE WALL STEP**, where §12's allocator intervention removed 99.7 % and bought
+32.8 %. **The fault COUNT is therefore not what carries the step**, and most of
+that 32.8 % belongs to something the intervention did besides removing faults —
+§12 already recorded that the same intervention made BOTH arms 6–7 % faster.
+§12's closing sentence, that its mechanism reading "is the reading of the
+evidence, not a pinned measurement", is the sentence this bounds.
+
+**E3 RAN, on the pre-declared trigger, and found no obvious site.**
+`perf record -e page-faults -g --call-graph dwarf` on one large cell at three
+arms: **the fault-site distribution is the same at all three**, largest share
+delta +0.96 points, so the head's extra faults are the SAME sites faulting more
+rather than any new allocation; and the largest single site is **MKL Pardiso's
+own `mkl_serv_calloc` + `memset` inside the symbolic analysis**, reached through
+`init_impl` → `KktFactorization::compute` → `SymmetricFactor::analyze`, code
+`9cebbbe` did not touch. The one permitted further experiment was NOT taken.
+`dTLB`/`L1-D` return **no verdict**: `dTLB-store-misses` and `dTLB-stores` read
+`<not supported>` on this PMU and are reported absent rather than zero-filled,
+and the whole-process `instructions`/`cycles` deltas (−1.08 %, −4.17 % head→E2)
+sit against the byte-identical control floor §12 measured (+1.02 %, +1.81 %)
+beside a wall that moved −0.11 %.
+
+**ONE BOUNDING FACT, established by reading before the arms were built and
+reported here because it limits what any persistence experiment can reach**:
+the benchmark **constructs a fresh `InteriorPointSolver` for every measured
+row** (`bench/ipm_corpus_leg.cpp:620`–`:622`, one `solve()` at `:654`), at every
+arm including the base. So `result_` and `iters` are default at the entry of the
+only call each solver takes, and a CROSS-CALL persistence mechanism has nothing
+to persist into; E2's effect is per-PHASE, which is the only persistence this
+harness can express. Whatever carries the step is reached inside one solve on a
+freshly-built solver, under the same condition at both arms.
+
+**NO COMMITTED SOURCE CHANGED; E1 AND E2 ARE THE REDRAW CANDIDATES**, applied
+only to scratch extractions and built there. E1 should not be adopted — it is
+slower on both instruments.
+
+**This addendum ASSERTS WALL CLOCK, under the fix1 R2 discipline of §8.1 with
+the NICE-INCLUSIVE accounting correction astra's fix1-review item 7 required**:
+foreign task time counts `user + nice + steal + guest` on the pinned core AND
+its SMT sibling, with only the run's own user time subtracted and only on
+`cpu2`; transients and every foreign state are disclosed. **Five timed wall
+batches. ALL FIVE meet R2''s FRACTION** — worst foreign task time on the pinned
+core is 0.020 s (0.0756 %) and on the sibling 0.130 s (0.4867 %) — **but on
+fix3's EVIDENCE accounting only `wall-r2` is PROVEN outright: `wall-r1`, `-r3`,
+`-r4` and `-r5` are UNPROVEN-EVIDENCE**, each for a foreign `R` seen at a named
+snapshot with no re-snapshot after it (settler R13). **So the redraw tables below
+rest on five rounds of which one is fully proven and four are flagged**, on the
+same terms §11's and §12's flags carry: the fractions are met, the record is
+short, and an unwatched moment can only cost a measurement time. **This leg's four COUNT batches — `e3` and `pf-r1..r3`, the
+`perf record` and the fault-count rounds — bracket no timed run at all**
+(they write `PS_SNAPSHOT` blocks but no `CPUSTAT`/`CPUTIME_SELF` pair), so R2'
+cannot be computed for them and they are marked UNPROVEN in
+`logs/IDLE-PROOF.md`. **The fault table below is therefore a COUNT reading
+without a pinned-core proof of its window**; minor faults per process are a
+deterministic per-process quantity that a busy sibling does not change, and its
+within-arm spread of 3 counts in 300 000 is the evidence that it did not. **Round 2 was re-run twice, and the correction is what caught the
+second failure** — 0.110 s of foreign `nice` on the sibling that the superseded
+`user`-only accounting would have reported as 0.114 % and passed. Nothing was
+ever signalled. **No disposition is offered — §11.1 and the owner have it.**
+Apple/Accelerate and Windows: UNOBSERVED.
+
+---
+
+## 14. The single-row instruction verdict (T8.9r-attrib5, 2026-09-11)
+
+§5 (iv) and §11 both stopped at the same wall: **the interior leg returns no
+instruction verdict**, because a `--engine interior` process writes 33 / 41 / 43
+rows depending on the arm and `perf stat` counts the process, and because the
+count is dominated by the first row's warm-up — the row the wall reading excludes
+by a pre-declared positional rule and a counter cannot. §11 measured that floor at
+**+1.27 %** on a byte-identical control pair, larger than every like-for-like step
+it measured, and said a single-row interior process would fix it and "is not
+reachable without a source change".
+
+**The lever is commit `d5931e8`; no library source changed.** It adds
+`--internal-run-one <cell> --engine interior --treatment T --internal-out <path>`,
+which runs EXACTLY ONE BASE ROW of the leg in process — no variant row, no other
+cell, no fork — and writes it under the leg's own header. Bench and test source
+only: both configs' `libhven.a` are byte-identical across it, the public leg
+reproduces the committed 43-row baseline **43 cells / 30 columns / 0 differences**
+twice and byte-identically outside `wall_s`, and
+`CorpusCells.TheSingleRowInteriorModeProducesTheLegsOwnRow` pins the mode's row
+against the leg's own for `hs071_x1_fixed/MakeParameter` in process.
+
+A fifth leg then measured **510a4bb (parent), 9cebbbe (culprit) and a
+byte-identical control** — the parent's executable copied to a second path —
+through it: five rounds, arm order rotated, argv length-matched, `taskset -c 2`,
+`MKL_NUM_THREADS=1`, solo under the lock, on §11's four dual-binding F7 cells ×
+three treatments, in four passes (A: instructions/branches/cycles/branch-misses/
+L1-icache; B: the Zen 3 front-end set; C: L1-D/LLC/dTLB/page-faults; S: a
+subtrahend process). Both arms' `libhven.a` reproduce `attribution/arms.txt`'s and
+`t84/arms.txt`'s **byte for byte** — the STOP condition passed. It is in
+`attribution-interior/t84/single-row/`: `arms.txt`, `adapted-lever.patch`,
+`classification.md`, `perf.csv` (3 510 records), `classify.py`/`.out`,
+`record_analyze.py`/`.out`, **`wall_bracket.py`/`.out` (fix3 — the solve-bracket
+reading below)**, `perf-diff/`, **`perf-report/report/` and `perf-report/data/`
+(fix3 — the 27 sampled profiles' `perf report` text outputs and the raw
+`perf.data` beside them, so the calibration exclusion reproduces from the
+artifact alone)**, and every perf output, row CSV, batch log and script under
+`raw/`, `logs/` and `scripts/`.
+
+**THE LEVER WORKED: the floor fell from §11's +1.27 % to 0.30 % at worst and
+0.05 % typically**, four to twenty-five times tighter, measured on a
+byte-identical *binary* rather than a byte-identical library.
+
+**AND THE ANSWER IS NO — ON TWO SCORED ROWS, WHICH IS WHERE THE SAMPLED EVIDENCE
+REACHES.** With MKL's first-call clock calibration set aside inside each sampled
+profile, the culprit and the parent execute the same n20000 row to within
+**0.3–0.6 %**, in the marginally FEWER direction, against a control pair
+separated by 0.02–0.14 %, and the three rounds' values **interleave between the
+arms**. These are **SAMPLED estimates** — `perf record -e instructions:u -c
+2000000`, three rounds per arm — on the **two rows of the eleven** where the
+row's own work is the majority of the profile; the third profiled row
+(`f7_n1000_bound_physics/MakeConstraint`) is 82–84 % calibration and is reported
+and NOT scored, and the remaining eight rows are not profiled at all. **No 1e-4
+identity is established by them and none is claimed:**
+
+| row (per-symbol, calibration set aside) | parent e9 | culprit e9 | control e9 | c/p | x/p |
+|---|---|---|---|---|---|
+| `f7_n20000_bound_neutral/MakeParameter` | 11.3220 | 11.2600 | 11.3065 | **0.99452** | 0.99863 |
+| `f7_n20000_bound_neutral/MakeConstraint` | 11.2270 | 11.1928 | 11.2247 | **0.99696** | 0.99980 |
+
+`perf diff --sort symbol` agrees from the other side, **with its maximum
+corrected at fix round 3** (astra's fix2 review, item 4): the largest SHARE
+GAIN by any named solver symbol between culprit and parent is **+0.51 percentage
+points** — `mkl_pds_lp64_blkl_ll_real.extracted` on the `MakeConstraint` row, not
+the +0.34 this paragraph used to quote — and everything else moves by a few
+tenths of a point either way. **A share change is not a bound on that symbol's
+instruction increase**, and it is not read as one: it says the symbol takes a
+larger slice of a profile whose non-calibration total is flat, which is what the
+calibration shrinking does to every other slice. The control pair — a
+byte-identical binary — moves a NAMED SOLVER symbol's share by up to **0.77
+points** (`mkl_pds_lp64_blkl_ll_real.extracted`, −0.77, on the `MakeConstraint`
+row) and gains at most **+0.51** (`mkl_pds_lp64_dsytf2_pardiso` on
+`MakeParameter`) — `perf-diff/*-control-vs-parent.txt` — and that is the
+like-for-like scale this column is read against. **The "0.95 points" this
+paragraph used to quote is `difftime`, the CALIBRATION symbol the per-symbol
+reading sets aside, and is corrected at fix round 4** (fable's fix3 review,
+Minors); the conclusion is unchanged, and stands on the consistent figure.
+**NOT WORK-MOVED.** §11.1's LAYOUT-MOVED band (identical within 1e-4) is
+not reached either, so no §11.1 label is claimed from this leg.
+
+**THE WHOLE-PROCESS COUNTS SAY THE SAME THING LOUDER, AND ARE NOT BANKED.**
+Instructions are DOWN at the culprit on **eleven of eleven** scored rows, by 1.4 %
+to 14.4 %, five to forty-eight times the floor, with cycles flat (0.996–1.008
+against a control of 0.998–1.003). Read at face value that is an emphatic "not
+WORK-MOVED". It is not read at face value, because most of each number is not the
+row:
+
+| row | parent e9 | culprit e9 | control e9 | c/p | x/p |
+|---|---|---|---|---|---|
+| `f7_n1000_bound_physics/MakeConstraint` | 4.7528 | 4.0673 | 4.7498 | **0.85576** | 0.99935 |
+| `f7_n1000_bound_physics/RelaxBounds` | 4.7543 | 4.0686 | 4.7517 | **0.85577** | 0.99946 |
+| `f7_n5000_bound_physics/MakeParameter` | 6.0329 | 5.3862 | 6.0367 | **0.89280** | 1.00062 |
+| `f7_n5000_bound_physics/MakeConstraint` | 5.3205 | 4.7795 | 5.3221 | **0.89831** | 1.00030 |
+| `f7_n5000_bound_physics/RelaxBounds` | 5.3226 | 4.7593 | 5.3245 | **0.89418** | 1.00036 |
+| `f7_n10000_bound_neutral/MakeParameter` | 8.7929 | 8.2743 | 8.7938 | **0.94103** | 1.00011 |
+| `f7_n10000_bound_neutral/MakeConstraint` | 7.0281 | 6.7903 | 7.0341 | **0.96617** | 1.00086 |
+| `f7_n10000_bound_neutral/RelaxBounds` | 6.9885 | 6.7899 | 7.0095 | **0.97159** | 1.00301 |
+| `f7_n20000_bound_neutral/MakeParameter` | 12.2102 | 12.0365 | 12.2109 | **0.98577** | 1.00006 |
+| `f7_n20000_bound_neutral/MakeConstraint` | 14.1421 | 13.6474 | 14.1397 | **0.96502** | 0.99983 |
+| `f7_n20000_bound_neutral/RelaxBounds` | 14.1426 | 13.6620 | 14.1426 | **0.96602** | 1.00000 |
+
+**"THE FIRST ROW'S WARM-UP" NOW HAS A NAME, A FILE AND A LINE.** `perf record -g`
+on a single-row `hs071_x1_fixed` process — four variables, dense, **0.00018 s** of
+solve inside a warm leg — puts **89.5 %** of that whole process in `difftime`
+(63.6 %) and `mkl_serv_get_clocks_frequency` (25.9 %), both reached through
+`pthread_once` from **`hven::solvers::ensure_solver_initialized()`**: MKL's
+`dsecnd()` first-call clock calibration, called deliberately and once per process
+at **`src/drivers/solver_init.cpp:27`**, through
+**`src/drivers/interior_point_solver.cpp:798`** from the call site at **`:5535`**.
+It is a **wall-timed busy-wait of about 0.95 s**. The leg proper pays it ONCE for
+43 rows — its committed artifact reads 0.602 s on the first row, 0.033–0.042 s on
+the next `n1000` rows and 0.00018 s on `hs071_x1_fixed` — and **the single-row
+instrument pays it once per row**. In the sampled profiles it is **16.7–27.2 % of
+an `n20000` process and 82.4–84.0 % of an `n1000` one** (`record_analyze.out`'s
+`cal %` column, per round; earlier drafts of this paragraph and of
+`record_analyze.py`'s docstring quoted "17 %" and "96 %", which were neither
+profile's reading and are corrected at fix round 3). Its instruction count
+measures how fast that loop's own code runs, not any work the solver does — and
+because it is WALL-TIMED and of fixed duration, it enters both arms' `wall_s`
+equally and DAMPS every wall ratio in the table below rather than creating one.
+
+**THE OBVIOUS REPAIR IS REFUSED, ON MEASURED GROUNDS.** Subtracting a single-row
+`hs071_x1_fixed` process (pass S: 4.612 / 3.899 / 4.614 e9, the control
+reproducing the parent to 0.05 %) would invert the table to **+2.3 % to +24.3 %** —
+WORK-MOVED. That difference is not taken, because the term is not constant: pass
+S's own five rounds spread **29.9 %** at the parent, the sampled profiles put the
+calibration at 2.9 e9 inside an `n20000` process at the same arm whose `hs071`
+process reads 4.6 e9, and one sample read 0.9 e9 where its siblings read 4.2. A
+term that moves by 5× is not a term to subtract. §5 (iv) refused a differencing
+instrument for a related reason; this leg refuses this one on its own evidence,
+and the per-symbol measurement above — which sets the calibration aside INSIDE
+each profile and assumes nothing about its size — stands in its place.
+
+**PASS B AND PASS C.** Front end: `de_dis_uop_queue_empty_di0` **UP 13.9–26.0 %**
+at the culprit on every row (control 0.99–1.00) and `ic_fetch_stall.ic_stall_any`
+**UP 2.5–8.0 %**, with both op-cache counters DOWN in step with the shorter
+instruction stream — a front-end signature on the whole-process scale, reported
+and not leant on, since it covers the calibration loop as much as the solve.
+Memory: `L1-dcache-load-misses` **+0.4 % to +1.09 %** (control ±0.5 %; the
+maximum is **c/p 1.01095, i.e. +1.095 %, on `f7_n5000_bound_physics/MakeParameter`**
+and "+0.9 %" was the second-largest, 1.00902 on
+`f7_n1000_bound_physics/RelaxBounds` — `classify.out`'s pass-C table. **Fix round 3
+wrote that maximum as a bare "1.0946", which is its PERCENT form and not a ratio,
+and attributed it to `f7_n10000_bound_neutral/RelaxBounds`, which reads 1.00502;
+both are corrected at fix round 4** — fable's fix3 review, Minors),
+`dTLB-load-misses` inside its own control (**no verdict**), and **`page-faults` flat to within half a per mille on
+every row** — the scored ratios span **0.995080–1.000041**, which is four figures
+and not the five this paragraph used to claim, on a within-arm spread under 6
+counts in 10 000 — so §12's **+53 149** and §13's **+41 627** extra faults are a
+property of the **43-row leg process**, not of one row.
+`LLC-load-misses` reads `<not supported>` on this PMU and is reported **ABSENT**,
+never zero-filled.
+
+**AND THE SECOND FINDING — CORRECTED AT FIX ROUND 3, AND IT NOW POINTS THE OTHER
+WAY (settler ruling R12; astra's fix2 review, item 4).** This paragraph used to
+read *"the +2.5 % step does not appear in a single-row process at all"*, on
+`perf.csv`'s whole-process `elapsed_s` (culprit/parent **0.995–1.009**). **THAT
+SENTENCE IS WITHDRAWN.** `elapsed_s` is the PROCESS — `execve`, the loader, the
+harness, `ipm.transcribe()`, the CSV write, teardown — and it is not the window
+the leg reports. The window the leg reports is **`wall_s`, the SOLVE BRACKET**
+(`bench/ipm_corpus_leg.cpp:389–392` — **the SAME SPAN at both arms**: `t0` taken
+immediately before the call, `wall_s` immediately after, which is the whole of
+what the bracket argument needs. **Those four lines are NOT byte-identical, and
+fix round 3's claim that they were is corrected at fix round 4** — fable's fix3
+review, Minors: `:390` declares `const hven::ConvergenceFlags flag` at `510a4bb`
+and `const hven::solvers::SolveStatus flag` at `9cebbbe`, T8.2's rename and
+nothing else. `wall_bracket.out`'s own preamble at `:123` carries the superseded
+wording; it is the tool's SAVED OUTPUT and is not hand-edited, so the correction
+is carried here, in `classification.md` §7 and in `PROVENANCE.txt`), which is
+the same column §5, §11, §12 and §13 sum into their corpus figures. The
+measured processes wrote it into every one of the 585 retained rows, and read
+there the answer is different:
+
+| single-row `wall_s`, pass A, medians of five | parent | culprit | control | **c/p** | x/p | c>p |
+|---|---:|---:|---:|---:|---:|---:|
+| `f7_n1000_bound_physics/MakeConstraint` | 0.957310 | 0.958355 | 0.957168 | 1.001093 | 0.999852 | 4/5 |
+| `f7_n1000_bound_physics/RelaxBounds` | 0.957358 | 0.958267 | 0.957144 | 1.000950 | 0.999777 | 3/5 |
+| `f7_n5000_bound_physics/MakeParameter` | 1.070456 | 1.076753 | 1.069078 | 1.005882 | 0.998712 | 4/5 |
+| `f7_n5000_bound_physics/MakeConstraint` | 0.919128 | 0.927189 | 0.918988 | 1.008770 | 0.999848 | **5/5** |
+| `f7_n5000_bound_physics/RelaxBounds` | 0.919426 | 0.921316 | 0.919348 | 1.002055 | 0.999915 | 4/5 |
+| `f7_n10000_bound_neutral/MakeParameter` | 1.245887 | 1.258229 | 1.245891 | 1.009906 | 1.000003 | **5/5** |
+| `f7_n10000_bound_neutral/MakeConstraint` | 0.878224 | 0.890860 | 0.878389 | **1.014388** | 1.000189 | **5/5** |
+| `f7_n10000_bound_neutral/RelaxBounds` | 0.870673 | 0.890178 | 0.873140 | **1.022402** | 1.002833 | **5/5** |
+| `f7_n20000_bound_neutral/MakeParameter` | 1.390526 | 1.418436 | 1.388294 | **1.020071** | 0.998394 | **5/5** |
+| `f7_n20000_bound_neutral/MakeConstraint` | 1.790536 | 1.814459 | 1.791744 | **1.013361** | 1.000674 | **5/5** |
+| `f7_n20000_bound_neutral/RelaxBounds` | 1.793515 | 1.819266 | 1.792350 | **1.014358** | 0.999351 | **5/5** |
+| **CORPUS (sum of the eleven medians)** | **12.793039** | **12.933306** | **12.791534** | **1.010964** | **0.999882** | — |
+
+**So the step is NOT absent from a single-row process. It is there, smaller: the
+solve bracket is +1.10 % on the corpus and +1.3 % to +2.2 % on the five large
+rows, against a control of −0.01 %, where the leg process reads +2.5…3.0 %.**
+Each of those five rows is slower in **all five paired rounds**, and passes B and
+C — two INDEPENDENT round sets of the same eleven rows — reproduce the corpus
+figure at **1.010819** and **1.011110** (`wall_bracket.out`). The twelfth,
+unscored row reads 0.9987 / 1.0012 / 0.9973 across the three passes and is
+excluded by §11's positional rule as everywhere else.
+
+**BOTH WALL POPULATIONS ARE PRINTED TOGETHER, AND BOTH ARE INFORMATIONAL.** They
+are not a resolution difference — the within-arm spread of the bracket and of the
+process elapsed are the same size, row by row (`wall_bracket.out`'s spread
+table). They differ because of what lies between them:
+
+| eleven-row totals, pass A, medians of five (s) | process `elapsed_s` | bracket `wall_s` | outside the bracket |
+|---|---:|---:|---:|
+| parent `510a4bb` | 13.75595 | 12.79304 | 0.96132 |
+| culprit `9cebbbe` | 13.76119 | 12.93331 | 0.82593 |
+| control | 13.75220 | 12.79153 | 0.96098 |
+| **culprit / parent** | **1.000381** | **1.010964** | **0.859162** |
+| control / parent | 0.999727 | 0.999882 | 0.999644 |
+| culprit − parent (s) | **+0.0052** | **+0.1403** | **−0.1354** |
+
+**THE CULPRIT'S BRACKET GAINS 0.140 s AND ITS OUT-OF-BRACKET TIME LOSES 0.135 s,
+AND THE WHOLE PROCESS IS UNCHANGED TO +0.04 %.** The control moves none of the
+three (0.9996–0.9999). That is a **BOUNDARY MOVE**, and it is what `9cebbbe`'s
+own commit message describes: the model is **borrowed for the call**, so binding
+it, keying its structure and whatever `set_nlp()` used to do at `transcribe()`
+time now happen INSIDE `solve()` instead of before it. The out-of-bracket term
+scales with n exactly as a model-build term would (0.012 s at n1000 to 0.176 s at
+n20000) and shrinks by **10.4–15.8 %** at every row — out-of-bracket c/p
+**0.8418–0.8955**, `wall_bracket.out`'s per-row table; "10–15 %" is corrected at
+fix round 4 (fable's fix3 review, Minors). **This is stated as measured and not
+further than that**: the compensation is near-exact but not proven exact, the
+residual (+0.005 s over eleven rows) sits inside the process population's own
+noise, and nothing here says how much of the LEG process's +2.5 % is the same
+move — the leg's per-row out-of-bracket time is not in any retained artifact, and
+measuring it is part of what §15 registers for M7.
+
+**It is consistent with the instruction finding rather than against it.** The
+per-symbol verdict above says the culprit's process executes the same
+instructions as the parent's, marginally fewer; a boundary move relocates work
+without adding any, and that is what both instruments read.
+
+**THE TWELFTH ROW.** §11 scored eleven rows — four cells × three treatments minus
+`f7_n1000_bound_physics/MakeParameter`, excluded by its pre-declared positional
+rule. This leg runs all twelve (no row is any other row's warm-up here) and
+reports the twelfth without folding it in, because it is the one row whose counts
+are unstable: 0.914 / 4.203 / 4.199 / 3.835 / 4.188 e9 at the parent, a 79 %
+spread, where every other row spreads under 1.7 %. The cause is the calibration
+and it is positional — the **first process of each batch** pays a cheaper one, the
+arm order rotates with the round, and that first process is always this row at
+whichever arm leads. Noise in one unscored row, on a different arm each round;
+disclosed rather than smoothed.
+
+This addendum **asserts no wall clock**: instruction and branch counts are the
+asserted currency, cycles are informational, and **both** wall populations above
+— the process elapsed and the solve bracket — are printed as INFORMATIONAL under
+CLAUDE.md §7. **Its batch logs carry the `pgrep` audit, the lock and the
+`FOREGROUND_START`/`_END` brackets but no `PS_SNAPSHOT`/`CPUSTAT` blocks, so R2'
+CANNOT BE COMPUTED for this leg and is NOT CLAIMED** (`logs/IDLE-PROOF.md`
+records that). That is exactly why the +1.10 % corpus figure is not offered as a
+measurement of anything: it is reproducible across three independent passes and
+it is unproven-solo, and both of those are said here. What it is offered against
+is the sentence it replaces — "the step does not appear in a single-row process
+at all" — which the same unproven batches were used to support, and which the
+narrower window contradicts. No experiment was run — the brief's one permitted experiment was provisioned
+for a WORK-MOVED finding, and this is its opposite. **No disposition is offered —
+§11.1 and the owner have it.** Apple/Accelerate and Windows: UNOBSERVED.
+
+---
+
+## 15. Disposition (owner ruling, 2026-09-11)
+
+**GROUP 1 IS KEPT.** The owner ruled after reading this artifact. §11.1.1 sends
+"demonstrated instructions UP" to §11.5 with the numbers and states that there is
+**no automatic KEEP**; this is the owner exercising that discretion explicitly,
+not the taxonomy deciding it. The reading above stops at the measurement, as it
+says it does; this section records what was decided on it.
+
+**THE GROUNDS ARE RESTATED AT FIX ROUND 3, AND THE RESTATEMENT IS THE SETTLER'S,
+PENDING THE OWNER'S CONFIRMATION.** The owner's KEEP was given on the reading as
+it stood, whose first ground was that the top-level IPM is FLAT in a single-row
+process. §14 withdrew that at fix3: read on the SOLVE BRACKET rather than on the
+whole process, the single-row leg does see a step. The settler's ruling R12
+restates the grounds in these words — verbatim as ruled, with the single
+instruction clause amended at fix round 4 and the amendment recorded under the
+quotation — and has put the corrected reading to the owner; the close ledger line
+records the owner's answer.
+
+> **one solve per process is FLAT on the SQP; on the top-level IPM commit
+> `9cebbbe` costs ~1.1 % corpus (1.3–2.2 % on large rows) in a single-row process
+> and ~2.5–3 % in the leg process, at instruction counts flat within the
+> instrument, carrier
+> unidentified after six legs; the SQP's instructions are T8.4's declared
+> diagnostics; the owner's KEEP was given on the whole-process reading and the
+> settler has put the corrected reading to the owner.**
+
+**ONE CLAUSE OF THAT RESTATEMENT IS AMENDED BY THE SETTLER AT FIX ROUND 4**
+(fable's fix3 review, Minors). It read *"at identical instruction counts"*. The
+measurement is **flat within the instrument, not identical**: per symbol, with
+MKL's first-call calibration set aside inside each profile, the culprit runs the
+two profiled rows at c/p **0.99452** and **0.99696** against a control of 0.99863
+and 0.99980, and §14 says in terms that **no 1e-4 identity is established by them
+and none is claimed**. Nothing else in the restatement changed.
+
+**The grounds, in full:**
+
+* **One solve per process is FLAT ON THE SQP, and NOT flat on the top-level
+  IPM.** The SQP corpus leg is FLAT in all three modes — 0 of 27 cells outside
+  0.99–1.01, corpus ratios inside ±0.08 %, zero banded veto cells (§1, §2). The
+  top-level IPM measured in a SINGLE-ROW process on the carrier pair
+  `510a4bb → 9cebbbe` is **not** flat: its **solve bracket** reads **+1.10 %** on
+  the eleven-row corpus and **+1.3…2.2 %** on the five large rows against a
+  control of −0.01 %, reproduced in three independent passes, while its
+  instructions are flat (per symbol, calibration set aside, c/p 0.995–0.997) and
+  its WHOLE PROCESS is unchanged to +0.04 % — the bracket's gain and the
+  out-of-bracket loss cancel to 0.005 s in 13.76 (§14). Both figures are
+  INFORMATIONAL: that leg carries no R2' evidence at all.
+* **The SQP leg's +0.03…0.13 % of instructions is T8.4's declared per-call
+  diagnostics** — one fixed `O(n)` quantity per call, mode-independent, charged
+  to the task whose design and ledger close line declare it, executing inside the
+  timed bracket on both engines by call chain (§6, §10). It is the cost of the
+  shared result core that group 1 was for.
+* **The top-level IPM's +2.5…2.8 % is the LEG PROCESS's figure; a single-row
+  process shows about 1.1 % of the same bracket.** It is `9cebbbe`'s (§12), and
+  after six legs **its carrier is UNIDENTIFIED**:
+  code placement refuted three ways (the unreferenced archive member and the
+  byte-identical executable; three padding sizes reproducing 0.3–6.4 %; two later
+  commits rewriting the same files for +0.28 % and −0.50 %), per-call storage
+  lifetime refuted (§13's E1 and E2), the fault count refuted (57.3 % of the
+  excess faults removed buys 4.5 % of the step), glibc placement history and the
+  evaluation pool refuted. §11's LAYOUT-MOVED derivation is withdrawn at fix2 and
+  the classification is **UNRESOLVED**.
+
+**REGISTERED FOR M7 (the benchmark-suite milestone): a many-solves-per-process
+leg on both engines**, with the single-row lever `d5931e8` and this artifact as
+its starting point, to identify the carrier of the difference between the two
+process shapes — harness or library. That is the measurement this artifact could
+not make and the one that would settle it: everything here is either one solve
+per process (bracket +1.1 %) or the leg's own 43-row process (+2.5 %), and
+nothing between. **The specific question fix3 adds to that registration**: the
+single-row leg shows `9cebbbe` moving ~0.135 s of per-row work from OUTSIDE the
+timed bracket to INSIDE it, at an unchanged whole-process time; whether the leg
+process's +2.5 % is the same move at 43 rows, or something else, cannot be
+answered from any retained artifact, because no leg batch recorded its per-row
+out-of-bracket time (§14).
+
+**What this KEEP does not do.** It does not retire the veto, reclassify anything,
+or convert an UNRESOLVED band into a FLAT one. The numbers stand exactly as
+measured, with the flags §8.1, §12, §13 and §14 carry — and after fix3 those
+flags are wider than they were when the ruling was given: 22 of the artifact's
+57 wall-asserting batches are PROVEN under R2', 4 fail its fraction and 32 lack
+the evidence it asks for (§8.1). It is a disposition on a measurement,
+which is what §11.5 reserves to the owner.

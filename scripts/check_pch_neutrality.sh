@@ -11,7 +11,7 @@
 # That property held when the PCH was introduced, but a property proven once
 # and enforced nowhere decays silently: reordering the include list in
 # hven_pch.h, reformatting the include block of
-# src/drivers/interior_point_solver.cpp (clang-format would alphabetize both),
+# src/drivers/ipm_solver.cpp (clang-format would alphabetize both),
 # or adding a TU to the opt-in list without measuring it all break it without
 # breaking the build. This script re-proves it on demand and in CI.
 #
@@ -361,7 +361,7 @@ if [ "${differing}" -ne 0 ]; then
     echo "compiler emits. Something broke that. The usual causes, in order of"
     echo "likelihood:"
     echo "  * the include ORDER in src/hven_pch.h no longer matches the include block"
-    echo "    of src/drivers/interior_point_solver.cpp (clang-format alphabetizes both"
+    echo "    of src/drivers/ipm_solver.cpp (clang-format alphabetizes both"
     echo "    unless the // clang-format off guards are intact);"
     echo "  * a TU was added to _hven_pch_sources without measuring it -- some TUs"
     echo "    compile faster with the PCH but emit a differently-ordered object;"

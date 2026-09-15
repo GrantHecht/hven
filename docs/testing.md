@@ -151,6 +151,80 @@ for those two entries relies on — and records, without asserting, `iparm[18]`'
 
 The `notices/eigen-mpl2.txt` entry for that file records this modification too.
 
+### A third deviation, CONSIDERED AND DECLINED (2026-09-14, M6 W6 T4)
+
+**There are still two.** The `FactorSession` throw seam registered at M6 W5 T8.8
+(`docs/notes/2026-08-m6-ledger.md:4301-4307`, `:4329-4331`) was considered at W6
+and **declined** by the window's settler (`docs/notes/2026-09-m6-w6-plan.md` §0
+J.4). This note records the decision, its reasoning and what measures the
+property instead, so the registration is retired with evidence rather than
+forgotten.
+
+*What it would have been.* A `#ifdef HVEN_TESTING` point able to force a throw
+from **inside** `MklThreadScope`'s lifetime, so that the scope's restore-on-
+unwind could be observed through a real backend call. The ledger's name for the
+site, "`FactorSession::call`", matches no member; the site is
+`FactorSession::run_phase`, `src/linear/pardiso_session.cpp:132-134`, where the
+scope is constructed on the line before `::pardiso` — which is to say, **inside
+the MPL-derived session file**.
+
+*Why it was declined.* Three reasons, in order of weight.
+
+1. The standing argument at "What it deliberately does NOT cover" below already
+   settles it: that line is covered from the outside, and reaching in would buy a
+   deviation for a line the boundary already watches. Nothing about the tree has
+   changed to reopen that.
+2. The "How to use it for a new fault path" checklist's own first step refuses
+   the improvisation: a failure reachable only from inside a session is a
+   **raise-it** case, not a this-convention-applies case.
+3. It is not needed for the property. Since M6 W5 T8.8 the class itself lives in
+   the Apache-2.0 header `include/hven/detail/linear/thread_scope.h` and is
+   directly constructible, so the destructor's behaviour on an unwind can be
+   measured **at the class**, with no session, no seam and no derived file
+   touched at all.
+
+*What measures it instead.*
+`ThreadScope.TheCallersOverrideIsRestoredWhenAThrowUnwindsTheScope` in
+`tests/linear/test_fault_injection.cpp`: a throw raised inside a live
+`MklThreadScope` and caught outside it, with MKL's thread state read **before**
+(the caller's own override), **inside** (the count the scope applied) and
+**after** (the caller's override, back), through both readings MKL offers —
+`mkl_get_max_threads()` and the setter's own return value. A sibling,
+`AnUnengagedScopeWritesNothingWhenAThrowUnwindsIt`, covers the count-0 case, so a
+destructor that wrote unconditionally would not pass for want of a distinguishing
+arm. Mutation-checked: a destructor changed to restore on a normal exit but
+**not** on an unwind (`engaged_ && std::uncaught_exceptions() == 0`) fails
+exactly that one test while the other three `ThreadScope` tests keep passing —
+which is the gap, in one line.
+
+*What is NOT claimed by it.* It does not prove that a throw ORIGINATING inside
+`FactorSession::run_phase` unwinds correctly, because no such throw exists:
+`::pardiso` is a C entry point and no statement sits between the scope's
+construction and the call. That half remains true by construction, as the block
+comment above those tests says in as many words.
+
+### One target or two
+
+The sentence under "The shape" below says `HVEN_TESTING` is defined "target-wide,
+on exactly one CMake target". **That is stale, and has been since the IPQP tier
+seam landed: there are TWO** (recorded 2026-09-14, M6 W6 T4; plan §0 J.4, A15).
+`tests/CMakeLists.txt:244-246` says so in its own words — "EXACTLY TWO TARGETS IN
+THIS TREE DEFINE HVEN_TESTING — this one and hven_ipqp_seam_tests below" — and
+the two definition sites are `tests/CMakeLists.txt:248`
+(`hven_fault_injection_tests`) and `:329` (`hven_ipqp_seam_tests`).
+
+Nothing about the convention moves with the count. Both are standalone
+executables, both recompile the sources they instrument a second time, and
+**neither links `hven::hven`** — which is the property that matters, because it
+is what keeps the production library and every ordinary test binary untouched by
+the macro. Read the paragraph below as "on exactly two CMake targets", with
+`hven_ipqp_seam_tests`'s own section further down for what the second one
+instruments and why it needs no deviation.
+
+Two targets is also not two more *deviations*: the sanctioned-deviation count
+above is two, both in `pardiso_session.cpp`, and `hven_ipqp_seam_tests`'s hook
+sits in an Apache-2.0 file this repository wrote.
+
 ## The shape
 
 `hven/detail/linear/fault_injection.h` declares, for each backend, a small
@@ -371,8 +445,10 @@ without it the first half would rest on inspection.
 
 What it deliberately does NOT cover, and why that is acceptable: the final
 link, from the session's stored count to `mkl_set_num_threads_local`, is one
-unconditional line inside the MPL-derived session file (`MklThreadScope` in
-`FactorSession::run_phase`). Reaching in there would be a deviation bought
+unconditional line inside the MPL-derived session file (a `MklThreadScope`
+constructed in `FactorSession::run_phase`; since M6 W5 T8.8 the CLASS itself
+lives in the Apache-2.0 header `include/hven/detail/linear/thread_scope.h`, and
+only its use site is in that file). Reaching in there would be a deviation bought
 for a line that is already covered from the outside by
 `test_symmetric_factor.cpp`'s
 `APerInstanceThreadCountRestoresTheCallersOwnThreadLocalOverride`, which
@@ -381,12 +457,16 @@ boundary carries everything else, so the boundary is where it stays.
 
 ## How to use it for a new fault path
 
-1. Confirm the fault path lives in an adapter file (Apache-2.0), not a
-   session file (MPL-2.0). If the failure can only be reached from inside
-   the session, this convention does not apply as-is — raise it rather than
+1. Confirm the fault path lives in an Apache-2.0 file this repository wrote —
+   an adapter file, or a layer above it such as the IPQP tier — and not a
+   session file (MPL-2.0). If the failure can only be reached from inside the
+   session, this convention does not apply as-is — raise it rather than
    improvising a session-side hook.
 2. Add a small `static inline`-member struct to `fault_injection.h`, guarded
-   by `#ifdef HVEN_TESTING`, following the two existing ones' shape.
+   by `#ifdef HVEN_TESTING`, following the two existing ones' shape — or, if
+   the consumer lives above the linear layer, to that layer's own seam header
+   on the same terms (`hven/detail/qp/ipqp_fault_injection.h` is the worked
+   example; do not put a consumer's injector into a lower layer's header).
 3. Wrap the ONE call site with the same `#ifdef HVEN_TESTING` / `active`
    check pattern shown above. Keep the branch as small as the two existing
    ones — a local variable substitution, not a re-implementation of the
@@ -401,6 +481,149 @@ boundary carries everything else, so the boundary is where it stays.
    a real call is faithful only where the skipped call's absence is
    indistinguishable from a real failure on every observable being asserted
    — work that out per fault path, do not assume it transfers.
+
+## A second seam, one layer up: the IPQP tier's inertia read
+
+`hven/detail/qp/ipqp_fault_injection.h` is the same convention applied above
+the linear layer, and it is the first use of it outside `linear/`. It declares
+four `static inline` structs under `hven::solvers::detail::testing`, entirely
+guarded by `#ifdef HVEN_TESTING`:
+
+- `IpqpInertiaEvidenceInjector` — `active`, `on_iteration_reads`,
+  `on_final_read`, `skip_first`, `max_injections`, `evidence`, `injections`.
+  Substitutes the `hven::linear::InertiaEvidence` the interior-point QP tier
+  *reads* for a factorization that really ran. The factorization itself is
+  untouched: the backend session, the factor and `KktFactorization::info()` are
+  all exactly what the real call produced. `skip_first` and `max_injections`
+  together make an injection WINDOW (M6 W1 T4b fix round 1): a fault injected
+  forever can only ever be observed at a terminal state, so a window is what
+  lets a fixture pin what the tier does AFTER the reading comes good again —
+  which quantity a recovery step was built from, how many factorizations a
+  bounded re-route spends before it gives up.
+- `IpqpInertiaReadObserver` — `active`, `reads`, `final_reads`, `last`,
+  `last_final`, `last_injected`. NOT an injector; a read-only observer, the
+  `PardisoIparmObserver` arrangement one layer up.
+- `IpqpFirstIterateObserver` (M6 W1 T9) — `active`, `captures`, and a verbatim
+  copy of the first iterate's `x/s/ye/yi/zl/zu` plus its `mu`. NOT an injector.
+  `IpqpResult` publishes only the FINAL iterate, so T7's staged-split ingest
+  proof could compare two stagings only through a zero-repair invariant; with
+  the first iterate in hand the pin is bitwise. FAITHFUL without qualification:
+  it copies state the solve really holds and changes nothing.
+- `IpqpStepObserver` (M6 W1 T9) — `active`, `steps`, `min_step_inf`,
+  `res_at_min_step`, `met_target_at_min_step`, `last_step_inf`, `last_res`.
+  NOT an injector. Gate 9's per-step form (T4b C8/I6). WHAT IT MEASURES (fix
+  round 1, Codex 1): the EXECUTED iterate update — `max` over the primal blocks
+  scaled by the step's own `alpha_p` and the dual blocks scaled by `alpha_d`,
+  exactly the quantity `w.x += alpha_p * w.dx` and its five siblings apply —
+  beside the regularized residual at the iterate the step was taken from, and
+  the WHOLE stopping rule's verdict there (§5.5's warm-trust guard included).
+  The raw Newton direction would not establish the fixed-point property at all:
+  a collapsing `alpha` with a large `d` is a vanishing update that a
+  direction-norm pin passes. Measured on the six fixtures, min `||alpha d||inf`
+  runs 2.5e-07..2.6e-05 against a `1e-12` floor. WHAT IT DOES AND DOES NOT
+  CATCH, measured: a build with the step scaled by `1e-16` fails the pin on all
+  six fixtures, while the mechanism-4 mutation T4b ran (`build_rhs(rho_sched +
+  rho_dem, …)`) does NOT — re-measured under the executed-step form, its
+  smallest update on those six is 4.9e-07, so that freeze shows as a budget
+  escape with ordinary-sized steps, not as a vanishing one. The pin covers the
+  vanishing-step class only, and `IpqpStepObserver`'s own doc comment says so.
+
+Both T9 observers hang off their own `#ifdef HVEN_TESTING` call sites in
+`src/qp/ipqp_engine.cpp` rather than riding `evidence_for_read`: they observe
+different facts at different points in the iteration, and guarding the call
+site as well as the body is what keeps the production build free of even an
+empty call.
+
+**Why a second header rather than a row in `fault_injection.h`.** That file is
+the LINEAR LAYER's seam — everything in it lives in
+`hven::linear::detail::testing` and is consumed by the two backend adapter TUs.
+This one is consumed by `src/qp/ipqp_engine.cpp` and is about the tier's own
+reading of an already-computed factorization, not about a backend call. A
+`hven::solvers` injector inside a `hven::linear` header would make the linear
+layer's seam header depend on a consumer above it. The CONVENTION is the shared
+thing, and it is followed exactly.
+
+**It needs no deviation, and adds no `notices/` entry.** The hook is ONE
+function (`evidence_for_read`) in `src/qp/ipqp_engine.cpp` — an Apache-2.0 file
+this repository wrote — at the single line where the tier reads
+`KktFactorization::inertia_evidence()`. No session file is touched and nothing
+MPL-derived is involved, so the two sanctioned inside-the-session-file
+deviations listed above are still the only two. Every reading the tier acts on
+(the inertia gate's, the Wächter–Biegler ladder's, and the §2.2 item 4
+certification read's) passes through that one function, which is what makes one
+hook sufficient; the `final_read` argument separates the two KINDS of read
+because §2.2 gives them different policies.
+
+**Why it is needed.** M6 W1 task 4 could pin neither terminal inertia state the
+IPQP specification's evidence-failure policy is written for:
+
+- a terminal **PERTURBED**-pivot report — MKL's static pivot perturbation fires
+  on matrices the ladder's own `delta` growth resolves before any terminal
+  reading, so no legal subproblem reaches the ladder's ceiling still perturbed;
+- an `InertiaEvidence::State` other than `kObserved` — no MKL path declines to
+  report inertia at all, and the `kUnavailable` case the specification names is
+  an **Accelerate** path. Under CLAUDE.md §6's never-fabricate rule that arm
+  stays UNOBSERVED until real Mac hardware runs it; what the seam pins is the
+  POLICY the tier applies when it is told that state, which is a different and
+  checkable claim.
+
+Without the seam, §2.2's evidence-failure policy — a step at a conservative
+`rho` floor plus a whole-solve certificate downgrade — is code no fixture can
+reach.
+
+**What it is deliberately NOT able to do.** It cannot fake a FAILED
+factorization. That state is read off `KktFactorization::info()`, which this
+injector does not touch, and faking it here would produce a scenario no backend
+can present: a successful factor whose status says otherwise. The
+failed-factorization path keeps its own seam one layer down
+(`FactorizeFaultInjector`), and the tier's classification reads the two apart
+(`InertiaRead::kFactorFailed` vs `kUnreadable`) precisely because §2.2 gives
+them different remedies.
+
+**Faithfulness is per scenario, not per injector, and the two halves differ.**
+The convention's rule ("state explicitly what scenario the injection is and is
+NOT faithful for") applies here as it does one layer down:
+
+- **`kQueryFailed` / `kUnavailable` are faithful end to end.** The scenario IS
+  "a real factor whose inertia could not be reported", so leaving the factor
+  untouched and changing only what the query returns reproduces it exactly.
+- **An OBSERVED reading with different counts, or carrying a perturbed-pivot
+  report, on a factor that is really convex and really unperturbed, is NOT a
+  backend end-to-end witness.** That evidence is deliberately inconsistent with
+  the factor the tier holds, which no backend would produce. Those fixtures are
+  POLICY AND CLASSIFICATION witnesses — they pin what the tier does with a
+  reading of that shape (its class, its census bucket, its effect on the
+  certificate) — and they say nothing about whether a backend correlates
+  evidence with factors correctly. Whether MKL ever reports a terminal
+  perturbed reading at all remains, as recorded above, unreachable from any
+  legal fixture.
+
+**The target**: `hven_ipqp_seam_tests` (`tests/CMakeLists.txt`), a standalone
+executable on exactly the same terms as `hven_fault_injection_tests` — it
+recompiles the tier's own sources plus the transitive closure they need
+(`ipqp_engine.cpp`, `ipqp_kkt_layout.cpp`, `kkt_factorization.cpp`,
+`sqp_options.cpp`, `ledger.cpp`, `pattern_hash.cpp`, `enum_names.cpp`, and the
+platform's session + adapter TUs) with `HVEN_TESTING` defined target-wide, and
+does **not** link `hven::hven`. Its tests live in `tests/sqp/test_ipqp_seams.cpp`
+and it is registered with `gtest_discover_tests` like every other ctest
+executable.
+
+**Cost to the production build: measured zero.** `src/qp/ipqp_engine.cpp` was
+compiled twice from the same path with the project's own Release command — once
+as shipped, once with the `#include` and the `#ifdef HVEN_TESTING` block
+textually removed — and the two objects are **byte-identical** (388864 bytes,
+`cmp` clean, re-verified 2026-09-01 after M6 W1 T8 fix round 2 changed this TU
+again (R1 completion: `evidence_for_read`'s result now also feeds the
+`ipqp.iter` trace, an unconditional call outside the `#ifdef` block, so the
+byte count moved but the seam's own claim did not); clang 22.1.8, the
+project's own Release command for this TU, compiled twice from the same path
+so no embedded source path can differ. The recorded size moves with the TU --
+343336 bytes at the T5 measurement, 346344 at T4b round 1, 346696 at T4b's
+subsequent rounds through M6 W1 T8 fix round 1 -- and what the check asserts
+is the CMP, not the number).
+`nm -C libhven.a` reports no `IpqpInertia*` symbol. The production library and
+`hven_sqp_tests` are therefore exactly what they would be if this seam did not
+exist.
 
 ## Alternatives considered and rejected
 
@@ -1172,6 +1395,18 @@ expected result is:
 99% tests passed, 1 tests failed out of 155
     Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp-old@mkl
 ```
+
+> **Dated note (2026-09-14, the M6 close gate).** The totals in this checklist
+> — `155` here, and the `51 + 16 + 1 = 68` Mac arithmetic below — are STALE:
+> the rig-scoped Linux count at the M6 close head (`15f97cae`) is **84**
+> (five arms × 16 `Arms/*` cases, plus 3 `FailByDesignControl` and 1
+> `GoldenRigAudit`; the no-seam tree's same scope is 50), moved by the W5 T8
+> restructure and the W6 test additions since this was written. The SUBSTANCE
+> reproduces exactly at that head: not all-green, exactly one failure, that
+> entry (`P5`/`sqp-old@mkl`), all three Linux controls green
+> (`docs/notes/data/2026-09-m6-close-gate/rig/`). The Mac arithmetic is
+> UNOBSERVED and is re-derived on the same footing when an Apple arm exists —
+> not re-stated here from inference.
 
 One failure, that exact entry, with all three `FailByDesignControl.*` tests
 green — ON LINUX. Independently re-verified against a real three-seam Linux

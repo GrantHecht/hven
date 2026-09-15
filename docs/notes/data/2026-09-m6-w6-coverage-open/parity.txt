@@ -1,0 +1,174 @@
+M6 W6 T0 -- THE PARITY NUMBER, AND THE NAMED GAPS T2 WORKS
+==========================================================
+Parity, as the settler ruled it (plan J.1): `src/drivers/`'s LINE coverage
+against the WHOLE-LIBRARY line coverage OF THE SAME FRESH READ -- llvm-cov's own
+directory rows, nothing older. Not the M5-era 79.2, not the W2-era 82.74.
+
+THE NUMBER
+----------
+    src/drivers/            lines  88.63 %   (8586 / 9687)     14 files
+    library total           lines  87.47 %   (22259 / 25448)  127 files
+    ---------------------------------------------------------------------
+    gap                            +1.17 points, IN `src/drivers/`'s FAVOUR
+
+PARITY HOLDS. The mandate's item ("drivers coverage 67.8 % -> parity with the
+library") is MET at 7da77b5d, and it is met by an artifact rather than by work:
+the 6648 lines of `hven_drivers_tests` that W5 T8 wrote did not exist at the W2
+read, and they are the reason. Under plan J.1's own terms the item is discharged
+here, and T2 works only the 0 % headers (`zero-headers.txt`) and the named gaps
+below.
+
+Reported beside it, asserted of nothing (plan J.2 and A10):
+    src/drivers/            regions 89.39 %  functions 96.19 %  branches 80.78 %
+    library total           regions 90.37 %  functions 86.92 %  branches 84.33 %
+    include/hven/drivers/   lines   84.04 % (79/94)   -- the header half of the
+                            shared-driver surface, REPORTED, not asserted (A10)
+    include/hven/detail/drivers/  lines 100.00 % (8/8)
+
+THE CAVEAT THAT BELONGS NEXT TO THE NUMBER
+------------------------------------------
+[SUPERSEDED IN TWO PLACES -- the "floor" direction and the "five" count -- by
+CORRECTION 1 and CORRECTION 2 at the end of this file (T0 fix round 1,
+2026-09-13). The paragraph immediately below is the original as landed and is
+kept verbatim; read the corrections with it.]
+
+The library total is itself UNDER-READ, and by more than `src/drivers/` is.
+llvm-cov warned "952 functions have mismatched data" on this read, and
+`zero-headers.txt` demonstrates five separate header files reporting 0 % while
+their functions execute hundreds or thousands of times. That effect lands on
+HEADERS (inline definitions), and headers are a larger share of the library
+total than of `src/drivers/` -- which is fourteen `.cpp` TUs. So the +1.17 is, if
+anything, a floor: a read without the effect would move the library total up and
+`src/drivers/` up by less. The parity finding survives the caveat in DIRECTION,
+and the caveat is the reason no number here is a pin. See README.md section 3.
+
+THE DRIVER FILES BELOW THE LIBRARY TOTAL (the candidates, by lines)
+------------------------------------------------------------------
+    66.67 %   src/drivers/solve_result.cpp             (33 of 99 lines missed)
+    73.68 %   src/drivers/ipm_solver_globalization.cpp (405 of 1539)
+    75.00 %   src/drivers/trace.cpp                    (11 of 44)
+    82.86 %   src/drivers/sqp_print.cpp                (12 of 70)
+    85.35 %   src/drivers/ipm_options.cpp              (29 of 198)
+    87.05 %   src/drivers/ipm_solver.cpp               (364 of 2811)
+  -- at or above the library total, for completeness --
+    89.03 %   src/drivers/assembly_eval_seam.cpp       (52 of 474)
+    94.42 %   src/drivers/sqp_solver.cpp               (168 of 3011)
+    97.53 %   src/drivers/trace_writer.cpp             (18 of 730)
+    97.87 %   src/drivers/console_trace_sink.cpp       (9 of 422)
+   100.00 %   problem_scaling.cpp · solve_status.cpp · solver_init.cpp ·
+             sqp_options.cpp
+
+Two thirds of every uncovered line in `src/drivers/` (769 of 1101) is in the two
+IPM TUs, `ipm_solver_globalization.cpp` and `ipm_solver.cpp`. That is where T2's
+work is, if T2 wants lines.
+
+THE TWENTY BIGGEST UNCOVERED REGIONS IN `src/drivers/`
+------------------------------------------------------
+From `llvm-cov show` (text) over the fourteen driver TUs, as runs of consecutive
+executable lines at count 0. Non-executable lines inside a run (comments, blank
+lines) neither break it nor count toward its length.
+
+  104 lines  ipm_solver_globalization.cpp:237-379    ClassicMeritAcceptance::ls_lang
+                                                     -- the augmented-Lagrangian
+                                                     line-search variant, never entered
+   99 lines  ipm_solver_globalization.cpp:1295-1476  SocRecovery::eval_trial_constraints
+                                                     and on_step_rejected -- the whole
+                                                     second-order correction; see
+                                                     zero-headers.txt item 2
+   39 lines  ipm_solver.cpp:2884-2975                the restoration/proximal-subproblem
+                                                     stall-classification branch
+   25 lines  ipm_solver.cpp:3828-3858                the "acceptable iterate" early exit
+   23 lines  ipm_solver_globalization.cpp:1232-1266  BarrierGovernor::update_barrier_monotone
+   15 lines  ipm_solver_globalization.cpp:79-106     note_eval_error / note_eval_error_unknown
+                                                     and neighbours -- the eval-error
+                                                     reporting seam
+   14 lines  ipm_solver_globalization.cpp:1077-1110  ClassicAdaptiveGovernor::complementarity
+   12 lines  ipm_solver.cpp:1381-1392
+   11 lines  ipm_solver.cpp:1625-1635
+   11 lines  ipm_solver.cpp:1637-1647
+   11 lines  ipm_solver_globalization.cpp:137-150
+   11 lines  ipm_solver_globalization.cpp:893-903
+   11 lines  sqp_print.cpp:38-48                     to_string(PredictorOutcome) arms
+   10 lines  ipm_solver.cpp:1945-1954
+    9 lines  ipm_solver_globalization.cpp:1194-1206
+    8 lines  ipm_solver.cpp:2829-2845
+    8 lines  sqp_solver.cpp:879-886
+    8 lines  sqp_solver.cpp:3844-3851
+    8 lines  sqp_solver.cpp:5518-5533
+    7 lines  assembly_eval_seam.cpp:205-211
+
+WHAT THIS SAYS FOR T2, IN ONE PARAGRAPH
+---------------------------------------
+Parity is not the work. The work is three named things: the SOC path (99 lines
+plus `soc.h`), the `ls_lang` line-search variant (104 lines), and the error /
+refusal seams that the plan already wanted first -- the eval-error reporting
+block at `ipm_solver_globalization.cpp:79-106`, the `catch (...)` arm at
+`ipm_solver.cpp:1801`, and `solve_result.cpp`'s 33 missed lines, the lowest-read
+driver TU on the list. Everything else on the top-twenty is single-branch work in
+the two IPM TUs. And before any of it: the mismatched-data experiment named in
+README.md section 3, because five of the eight 0 % headers are not gaps at all.
+[SUPERSEDED -- T0 fix round 1 (2026-09-13): FOUR of the eight are the
+demonstrated under-read rows; see CORRECTION 2 at the end of this file.]
+
+CROSS-READ COMPARISON, LABELLED (the settler's note at dispatch)
+---------------------------------------------------------------
+The W2 T8 read (`docs/notes/data/2026-09-m6-w2-acceptance/`) measured a
+`src/drivers/` of TEN TUs with ZERO of `hven_drivers_tests` in the object set,
+and two of its rows (`interior_point_solver_print.cpp`, 15.72 %; and
+`interior_point_solver_settings.cpp`, 39.88 %) are respectively DELETED (3306ad75)
+and REWRITTEN as `ipm_options.cpp` (2e485d1f). The directory rows are therefore
+NOT comparable across the two reads and no comparison of them is made here. Two
+per-file comparisons where the file exists in both, labelled as such:
+    sqp_solver.cpp        94.42 %  vs  sqp_driver.cpp (its old name)   94.54 %
+    assembly_eval_seam.cpp 89.03 % vs  aggregate_eval_seam.cpp          89.03 %
+The library TOTAL moved 82.74 % -> 87.47 % on reads taken the same way nine
+days apart (2026-09-04 and 2026-09-13); that is a comparison of two informational numbers, not a claim.
+
+CORRECTIONS -- T0 FIX ROUND 1 (2026-09-13)
+==========================================
+The sol review of this artifact (FIX-ROUND, no Critical) found two defects in
+the caveat above; the settler accepted both (K1, K2). Nothing was re-measured:
+no build, no run, no new profile. Every figure below is recomputed from
+`coverage-summary.txt` in this same directory, and the original sentences are
+kept above, marked superseded.
+
+CORRECTION 1 -- THE DIRECTION OF THE CAVEAT: +1.17 IS A CEILING, NOT A FLOOR.
+  The original said "the +1.17 is, if anything, a floor". That is backwards.
+  Correcting an UNDER-READ raises the total it lands in. The effect lands on
+  HEADERS, and the `src/drivers/` row is fourteen `.cpp` TUs -- it contains no
+  header lines at all (`include/hven/drivers/` is a SEPARATE row, reported
+  beside it under A10, and is not part of the 8586/9687). So a read without the
+  effect moves the LIBRARY total UP and leaves `src/drivers/` where it is: the
+  +1.17 is an UPPER BOUND on the lead.
+
+  What that costs the finding, quantified on the DEMONSTRATED defect only.
+  The four demonstrated under-read headers miss, between them, 63 lines --
+  47 + 9 + 6 + 1, recomputed from `coverage-summary.txt`:
+      timer.h                    0/47   (coverage-summary.txt :45)
+      eval_error_log.h           0/9    (:34)
+      inertia_regularization.h   0/6    (:17)
+      ipm_solver_types.h         0/1    (:72)
+  Fill EVERY line of all four and the library total moves from
+  22259/25448 = 87.4686 % to 22322/25448 = 87.7161 %, i.e. 87.72 %, against
+  `src/drivers/` 8586/9687 = 88.6343 %. PARITY STILL HOLDS on the demonstrated
+  defect: the lead narrows, it does not invert.
+
+  The WIDER effect -- llvm-cov's "952 functions have mismatched data" across the
+  whole library -- is NOT quantified here, and this artifact makes NO directional
+  claim about it. What it claims is what it measured: parity is met on the read
+  as taken (plan J.1's same-read rule), with that residual uncertainty named.
+  This is the reason no number in this directory is a pin.
+
+CORRECTION 2 -- FOUR DEMONSTRATED UNDER-READ HEADERS, NOT FIVE.
+  The original paragraph said `zero-headers.txt` "demonstrates five separate
+  header files reporting 0 % while their functions execute"; the closing
+  paragraph said "five of the eight 0 % headers are not gaps at all". The
+  demonstrated count is FOUR: `timer.h`, `inertia_regularization.h`,
+  `eval_error_log.h`, `ipm_solver_types.h` -- each with a covered call site and
+  an execution count in README.md section 3 and in `zero-headers.txt`. The fifth
+  file that was being counted, `soc.h`, is the opposite case: it is GENUINELY
+  COLD, corroborated at its call site (`ipm_solver_globalization.cpp:1361` reads
+  0), and it is the one real T2 target on the list. The remaining three
+  (`math_functions.h` dead, `aggregate_arity.h` compile-time only,
+  `super_scalar_traits.h` Eigen-dispatch only) are judged in `zero-headers.txt`
+  and are not under-read rows either.

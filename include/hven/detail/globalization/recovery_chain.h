@@ -11,8 +11,8 @@
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/iterate_info.h"
-// InteriorPointSolver::LineSearchModes (forwarded to the acceptance re-test during a
-// second-order correction) requires the complete InteriorPointSolver class; pulled in
+// IpmSolver::LineSearchModes (forwarded to the acceptance re-test during a
+// second-order correction) requires the complete IpmSolver class; pulled in
 // transitively via the two globalization headers above. See solver_context.h's
 // one-directional include-discipline note.
 
@@ -26,7 +26,7 @@ namespace hven::solvers {
 // solver also overwrites it directly in two feasibility-restoration branches
 // (the elastic re-centering fallback and the un-evaluable-fallback entry, the
 // latter so the histogram attributes that iteration to restoration rather than
-// to whatever depth the chain resolved). Backs the SolveResult recovery-depth
+// to whatever depth the chain resolved). Backs the IpmResult recovery-depth
 // histogram.
 inline constexpr int kRecoveryDepthSoc = 0;
 inline constexpr int kRecoveryDepthExtended = 1;
@@ -90,14 +90,15 @@ class RecoveryChain {
     /// watchdog_activations are diagnostic accumulators; resolved_depth is an
     /// out-parameter seeded to kRecoveryDepthUnresolved by the caller (see
     /// the depth constants above for who writes it).
-    virtual Action
-    on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters, SolverContext &ctx,
-                     AcceptanceStrategy &acceptance, GlobalizationMechanism &mechanism,
-                     InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu,
-                     double prim_obj, double barr_obj, Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
-                     Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
-                     double &alpha, double &alphap, double &alphad, int &soc_steps,
-                     int &resolved_depth, int &watchdog_activations) = 0;
+    virtual Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
+                                    SolverContext &ctx, AcceptanceStrategy &acceptance,
+                                    GlobalizationMechanism &mechanism,
+                                    IpmSolver::LineSearchModes lsmode, double obj_scale, double mu,
+                                    double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+                                    Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
+                                    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
+                                    double &alphap, double &alphad, int &soc_steps,
+                                    int &resolved_depth, int &watchdog_activations) = 0;
 
     /// @brief Called once per genuinely ACCEPTED iteration — i.e. the rejection
     /// hook was skipped because should_dispatch_recovery was false.

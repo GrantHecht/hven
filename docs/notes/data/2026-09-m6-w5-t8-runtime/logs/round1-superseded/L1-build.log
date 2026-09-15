@@ -1,0 +1,145 @@
+PGREP_SEPARATE 2026-09-11T12:08:23Z
+PGREP_SEPARATE 2026-09-11T12:08:23Z
+964 /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+583887 /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1788721371363-g77al2.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'until [ -f /home/ghecht/Projects/hven/.superpowers/w5-t6-d-abandon-report.md ] && grep -q "SIGNOFF" /home/ghecht/Projects/hven/.superpowers/w5-t6-d-abandon-report.md; do sleep 30; done; echo REPORT_LANDED' < /dev/null && pwd -P >| /tmp/claude-e390-cwd
+583906 /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1788721371363-g77al2.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'until [ -f /home/ghecht/Projects/hven/.superpowers/w5-t6-d-abandon-review-tycho.md ] && grep -q "SIGNOFF W5-T6-D-ABANDON-REVIEW-TYCHO" /home/ghecht/Projects/hven/.superpowers/w5-t6-d-abandon-review-tycho.md; do sleep 60; done; echo LANE_REVIEW_LANDED' < /dev/null && pwd -P >| /tmp/claude-d82b-cwd
+1101947 clangd --background-index
+1312467 /usr/bin/node-22 /home/ghecht/.claude/plugins/cache/openai-codex/codex/1.0.6/scripts/app-server-broker.mjs serve --endpoint unix:/tmp/cxc-qsNh2L/broker.sock --cwd /home/ghecht/Projects/tycho/dep/hven --pid-file /tmp/cxc-qsNh2L/broker.pid
+1312476 codex app-server
+1312934 /home/ghecht/.codex/packages/standalone/releases/0.147.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+1861772 /usr/bin/node-22 /home/ghecht/.claude/plugins/cache/openai-codex/codex/1.0.6/scripts/app-server-broker.mjs serve --endpoint unix:/tmp/cxc-x0GnHo/broker.sock --cwd /home/ghecht/Projects/hven --pid-file /tmp/cxc-x0GnHo/broker.pid
+1861779 codex app-server
+1862197 /home/ghecht/.codex/packages/standalone/releases/0.153.3-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+2444390 /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1788721371363-g77al2.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'set -o pipefail R=/home/ghecht/Projects/hven/.scratch/w5t89r { echo "PGREP_SEPARATE $(date -u +%Y-%m-%dT%H:%M:%SZ)"; pgrep -af '"'"'cmake|ninja|ctest|hven_|codex|clang'"'"' || echo PGREP_EMPTY; } > $R/logs/L1-pgrep-separate.txt wc -l $R/logs/L1-pgrep-separate.txt flock /tmp/box-build.lock $R/build_arms.sh; echo "BUILD_WRAPPER_EXIT=$?"' < /dev/null && pwd -P >| /tmp/claude-7fbf-cwd
+4162368 clangd --background-index
+--- inside lock ---
+PGREP_INLOCK 2026-09-11T12:08:23Z
+964 /usr/bin/earlyoom -m 12,5 -s 100,100 -r 3600 --avoid ^(sshd|tailscaled|systemd|systemd-journal|dbus-broker)$ --prefer ^(ld|ld[.]lld|lld|ld[.]gold|lto1|cc1plus|cc1|clang|clang[+][+])$
+583887 /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1788721371363-g77al2.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'until [ -f /home/ghecht/Projects/hven/.superpowers/w5-t6-d-abandon-report.md ] && grep -q "SIGNOFF" /home/ghecht/Projects/hven/.superpowers/w5-t6-d-abandon-report.md; do sleep 30; done; echo REPORT_LANDED' < /dev/null && pwd -P >| /tmp/claude-e390-cwd
+583906 /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1788721371363-g77al2.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'until [ -f /home/ghecht/Projects/hven/.superpowers/w5-t6-d-abandon-review-tycho.md ] && grep -q "SIGNOFF W5-T6-D-ABANDON-REVIEW-TYCHO" /home/ghecht/Projects/hven/.superpowers/w5-t6-d-abandon-review-tycho.md; do sleep 60; done; echo LANE_REVIEW_LANDED' < /dev/null && pwd -P >| /tmp/claude-d82b-cwd
+1101947 clangd --background-index
+1312467 /usr/bin/node-22 /home/ghecht/.claude/plugins/cache/openai-codex/codex/1.0.6/scripts/app-server-broker.mjs serve --endpoint unix:/tmp/cxc-qsNh2L/broker.sock --cwd /home/ghecht/Projects/tycho/dep/hven --pid-file /tmp/cxc-qsNh2L/broker.pid
+1312476 codex app-server
+1312934 /home/ghecht/.codex/packages/standalone/releases/0.147.0-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+1861772 /usr/bin/node-22 /home/ghecht/.claude/plugins/cache/openai-codex/codex/1.0.6/scripts/app-server-broker.mjs serve --endpoint unix:/tmp/cxc-x0GnHo/broker.sock --cwd /home/ghecht/Projects/hven --pid-file /tmp/cxc-x0GnHo/broker.pid
+1861779 codex app-server
+1862197 /home/ghecht/.codex/packages/standalone/releases/0.153.3-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+2444390 /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1788721371363-g77al2.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'set -o pipefail R=/home/ghecht/Projects/hven/.scratch/w5t89r { echo "PGREP_SEPARATE $(date -u +%Y-%m-%dT%H:%M:%SZ)"; pgrep -af '"'"'cmake|ninja|ctest|hven_|codex|clang'"'"' || echo PGREP_EMPTY; } > $R/logs/L1-pgrep-separate.txt wc -l $R/logs/L1-pgrep-separate.txt flock /tmp/box-build.lock $R/build_arms.sh; echo "BUILD_WRAPPER_EXIT=$?"' < /dev/null && pwd -P >| /tmp/claude-7fbf-cwd
+4162368 clangd --background-index
+FOREGROUND_START 2026-09-11T12:08:24Z
+=== configure arm-base 2026-09-11T12:08:24Z ===
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Found MKL: /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_core.a;/opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- Configuring done (1.8s)
+-- Generating done (0.0s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    CMAKE_C_COMPILER
+
+
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/w5t89r/arm-base/build
+=== build arm-base 2026-09-11T12:08:25Z ===
+[32/46] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+[33/46] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_driver.cpp.o
+[34/46] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[35/46] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_kkt_layout.cpp.o
+[36/46] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start.cpp.o
+[37/46] Building CXX object CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+[38/46] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+[39/46] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o
+[40/46] Building CXX object CMakeFiles/hven.dir/src/warmstart/ipm_polish_extension.cpp.o
+[41/46] Building CXX object CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+[42/46] Building CXX object CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+[43/46] Linking CXX static library libhven.a
+[44/46] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+[45/46] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[46/46] Linking CXX executable bench/hven_sqp_corpus
+=== done arm-base rc_so_far=0 2026-09-11T12:08:54Z ===
+=== configure arm-head 2026-09-11T12:08:54Z ===
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Found MKL: /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_core.a;/opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- Configuring done (1.8s)
+-- Generating done (0.0s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    CMAKE_C_COMPILER
+
+
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/w5t89r/arm-head/build
+=== build arm-head 2026-09-11T12:08:56Z ===
+ 4487 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[36/47] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start.cpp.o
+[37/47] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[38/47] Building CXX object CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+[39/47] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+[40/47] Building CXX object CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+[41/47] Building CXX object CMakeFiles/hven.dir/src/warmstart/ipm_polish_extension.cpp.o
+[42/47] Building CXX object CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+[43/47] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o
+[44/47] Linking CXX static library libhven.a
+[45/47] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+[46/47] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[47/47] Linking CXX executable bench/hven_sqp_corpus
+=== done arm-head rc_so_far=0 2026-09-11T12:09:26Z ===
+=== configure arm-interior-base 2026-09-11T12:09:26Z ===
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Found MKL: /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_core.a;/opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- Configuring done (1.8s)
+-- Generating done (0.0s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    CMAKE_C_COMPILER
+
+
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/w5t89r/arm-interior-base/build
+=== build arm-interior-base 2026-09-11T12:09:28Z ===
+ 4487 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[37/48] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start.cpp.o
+[38/48] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[39/48] Building CXX object CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+[40/48] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+[41/48] Building CXX object CMakeFiles/hven.dir/src/warmstart/ipm_polish_extension.cpp.o
+[42/48] Building CXX object CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o
+[43/48] Building CXX object CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+[44/48] Building CXX object CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+[45/48] Linking CXX static library libhven.a
+[46/48] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+[47/48] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[48/48] Linking CXX executable bench/hven_sqp_corpus
+=== done arm-interior-base rc_so_far=0 2026-09-11T12:09:59Z ===
+FOREGROUND_END 2026-09-11T12:09:59Z
+WRAPPER_EXIT=0

@@ -1,0 +1,15 @@
+LEG: env MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 ctest --test-dir /home/ghecht/Projects/hven/.scratch/m6-close/build-debug -R ^Continuation\.ProbeBudgetBoundsAFailingProposal$ --output-on-failure
+PGREP_SEPARATE 2026-09-14T16:54:41Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-14T16:54:41Z
+Test project /home/ghecht/Projects/hven/.scratch/m6-close/build-debug
+    Start 1458: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1458: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  669.28 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 669.33 sec
+LEG_RC=0
+FOREGROUND_END 2026-09-14T17:05:51Z
+WRAPPER_EXIT=0

@@ -17,7 +17,7 @@
 #pragma once
 
 #include "hven/detail/globalization/solver_context.h"
-#include "hven/detail/interior/jet.h"
+#include "hven/drivers/ipm_solver_types.h"
 
 namespace TychoTest {
 
@@ -31,7 +31,7 @@ using namespace hven::solvers;
 // SolverContext (solver_context.h) is references-only, so nothing can hand
 // one back by value on its own -- every referenced object must outlive every
 // read through the context. InertSolverContext instead OWNS the storage
-// (Settings, KKT solver, scratch vector, dimension ints) as members and
+// (IpmOptions, KKT solver, scratch vector, dimension ints) as members and
 // ctx() returns a SolverContext borrowing from THIS object.
 //
 // CRITICAL LIFETIME RULE: keep the InertSolverContext instance alive (a
@@ -41,7 +41,7 @@ using namespace hven::solvers;
 // every reference ctx() handed out into them) with it. The correct pattern
 // is:
 //   TychoTest::InertSolverContext inert;
-//   inert.settings_.econ_tol_ = 1e-6;   // mutate before calling ctx()
+//   inert.opts_.econ_tol = 1e-6;        // mutate before calling ctx()
 //   SomeComponent c(inert.ctx());       // `inert` outlives `c`'s use of it
 //
 // Dimensions default to zero (nlp_ stays null, restoration_/eval_errors_
@@ -54,10 +54,16 @@ using namespace hven::solvers;
 ///////////////////////////////////////////////////////////////////////////////
 
 struct InertSolverContext {
-    InteriorPointSolver::Settings settings_;
+    IpmOptions opts_;
     KktSolverType kkt_solver_;
     Eigen::VectorXd scratch_;
     Eigen::VectorXd primals_scratch_;
+    /// Non-owning, null by default -- the inert case. A test whose component
+    /// actually EVALUATES the model (the second-order correction's trial
+    /// constraint evaluation is the one today, test_soc.cpp) points this at a
+    /// NonLinearProgram it owns itself and keeps that program alive for as long
+    /// as the SolverContext is used, exactly like every other member here.
+    NonLinearProgram *nlp_ = nullptr;
     int primal_vars_ = 0;
     int slack_vars_ = 0;
     int equal_cons_ = 0;
@@ -69,7 +75,7 @@ struct InertSolverContext {
     SolverContext ctx() {
         // clang-format off
         return SolverContext{
-            nullptr,      kkt_solver_,           settings_,
+            nlp_,         kkt_solver_,           opts_,
             primal_vars_, slack_vars_,           equal_cons_, inequal_cons_, kkt_dim_,
             scratch_,     primals_scratch_,      restoration_, eval_errors_,
         };

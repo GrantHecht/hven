@@ -1,0 +1,126 @@
+M6 W6 T3 -- THE CALIBRATION READING: HOW FAR APART THE TWO ARMS ACTUALLY ARE
+============================================================================
+Plan docs/notes/2026-09-m6-w6-plan.md section 0 J.3 / A12 asked for the OBSERVED
+residual spread to be recorded beside the gate's verdict, because a "0
+differences, N within gate" line says the gate held but not how much room it
+had.  This is that reading.  A = LTO-OFF, B = LTO-ON, both at commit dee112b3.
+
+  PART 1  every column that moved, its class, how many cells moved, and the
+          largest RELATIVE move on the gate's own scale.  Column class is read
+          from the DATA, not from the index -- see the note below.
+  PART 2  which HALF of the gate admits each moved residual cell: the 1e-5
+          RELATIVE arm, or the 1e-13 ABSOLUTE FLOOR.
+
+NOTE, AND A CORRECTION TO THE COMPARATOR'S OWN DOCSTRING.
+scripts/compare_replay.py:43-45 says "Everything at 21 and above is an integer
+counter and stays exact: no floating-point arithmetic produces them".  That is
+FALSE for this schema: FIVE columns at index >= 21 hold floating-point values --
+42 ipqp_rho_demanded_max, 43 ipqp_rho_demanded_last, 55 ipqp_restart_shift_max,
+72 ipqp_alpha_p_min, 73 ipqp_alpha_d_min.  The tool's BEHAVIOUR is unaffected
+(it compares them exactly either way, which is what the gate's set excludes them
+from); what is wrong is the sentence a reader uses to decide whether an
+out-of-gate difference is a counter regression.  It is not a counter regression
+here: see PART 1's STOP TEST line, which is computed from the data.
+
+Produced by .scratch/w6t3/spread.py and .scratch/w6t3/floor_reading.py, read-only
+over the six committed CSVs in replay/.  No solver ran to produce this file.
+
+PART 1 -- WHAT MOVED
+====================
+
+################ walk : A = LTO-OFF, B = LTO-ON ################
+cells joined: 27   columns in schema: 76   columns compared: 75 (wall_s excluded)
+column classes, read from the data: INTEGER=56  RESIDUAL=7  FLOAT=5  STRING=7
+  the FLOAT columns (index >= 21 and NOT integers, which compare_replay.py:43-45 says do not exist): 42 ipqp_rho_demanded_max, 43 ipqp_rho_demanded_last, 55 ipqp_restart_shift_max, 72 ipqp_alpha_p_min, 73 ipqp_alpha_d_min
+columns that moved in at least one cell: 4
+cells that moved in at least one column: 27/27
+  col 12 kkt_residual             RESIDUAL cells moved 26/27  max relative 7.070e-05  (its absolute difference is under the 1e-13 floor)
+        worst cell f7_n1000_bound_activity: A=1.168049964e-16  B=1.167967378e-16
+  col 15 kkt_stationarity         RESIDUAL cells moved 26/27  max relative 7.070e-05  (its absolute difference is under the 1e-13 floor)
+        worst cell f7_n1000_bound_activity: A=1.168049964e-16  B=1.167967378e-16
+  col 16 kkt_primal               RESIDUAL cells moved 22/27  max relative 3.166e-02  (its absolute difference is under the 1e-13 floor)
+        worst cell f7_n10000_bound_activity: A=1.151644575e-16  B=1.189293199e-16
+  col 18 kkt_complementarity      RESIDUAL cells moved  2/27  max relative 3.753e-06  (its absolute difference is under the 1e-13 floor)
+        worst cell f7_n800_path_warm: A=1.295715293e-15  B=1.295710430e-15
+STOP TEST -- INTEGER (counter) or STRING (status/verdict) columns that moved: NONE
+FLOAT columns outside the gate's set that moved: NONE
+
+################ ssn : A = LTO-OFF, B = LTO-ON ################
+cells joined: 27   columns in schema: 76   columns compared: 75 (wall_s excluded)
+column classes, read from the data: INTEGER=56  RESIDUAL=7  FLOAT=5  STRING=7
+  the FLOAT columns (index >= 21 and NOT integers, which compare_replay.py:43-45 says do not exist): 42 ipqp_rho_demanded_max, 43 ipqp_rho_demanded_last, 55 ipqp_restart_shift_max, 72 ipqp_alpha_p_min, 73 ipqp_alpha_d_min
+columns that moved in at least one cell: 4
+cells that moved in at least one column: 27/27
+  col 12 kkt_residual             RESIDUAL cells moved 26/27  max relative 7.070e-05  (its absolute difference is under the 1e-13 floor)
+        worst cell f7_n1000_bound_activity: A=1.168049964e-16  B=1.167967378e-16
+  col 15 kkt_stationarity         RESIDUAL cells moved 26/27  max relative 7.070e-05  (its absolute difference is under the 1e-13 floor)
+        worst cell f7_n1000_bound_activity: A=1.168049964e-16  B=1.167967378e-16
+  col 16 kkt_primal               RESIDUAL cells moved 23/27  max relative 3.166e-02  (its absolute difference is under the 1e-13 floor)
+        worst cell f7_n10000_bound_activity: A=1.151644575e-16  B=1.189293199e-16
+  col 18 kkt_complementarity      RESIDUAL cells moved  2/27  max relative 3.681e-07  (its absolute difference is under the 1e-13 floor)
+        worst cell f7_n800_path_warm: A=1.241564460e-14  B=1.241564917e-14
+STOP TEST -- INTEGER (counter) or STRING (status/verdict) columns that moved: NONE
+FLOAT columns outside the gate's set that moved: NONE
+
+################ ipm : A = LTO-OFF, B = LTO-ON ################
+cells joined: 27   columns in schema: 76   columns compared: 75 (wall_s excluded)
+column classes, read from the data: INTEGER=56  RESIDUAL=7  FLOAT=5  STRING=7
+  the FLOAT columns (index >= 21 and NOT integers, which compare_replay.py:43-45 says do not exist): 42 ipqp_rho_demanded_max, 43 ipqp_rho_demanded_last, 55 ipqp_restart_shift_max, 72 ipqp_alpha_p_min, 73 ipqp_alpha_d_min
+columns that moved in at least one cell: 6
+cells that moved in at least one column: 27/27
+  col 12 kkt_residual             RESIDUAL cells moved 25/27  max relative 7.070e-05  (its absolute difference is under the 1e-13 floor)
+        worst cell f7_n1000_bound_activity: A=1.168049964e-16  B=1.167967378e-16
+  col 15 kkt_stationarity         RESIDUAL cells moved 26/27  max relative 7.070e-05  (its absolute difference is under the 1e-13 floor)
+        worst cell f7_n1000_bound_activity: A=1.168049964e-16  B=1.167967378e-16
+  col 16 kkt_primal               RESIDUAL cells moved 21/27  max relative 3.166e-02  (its absolute difference is under the 1e-13 floor)
+        worst cell f7_n10000_bound_activity: A=1.151644575e-16  B=1.189293199e-16
+  col 18 kkt_complementarity      RESIDUAL cells moved  2/27  max relative 3.159e-06  (its absolute difference is under the 1e-13 floor)
+        worst cell f7_n800_path_warm: A=1.296276061e-15  B=1.296280156e-15
+  col 72 ipqp_alpha_p_min         FLOAT    cells moved  1/27  max relative 1.756e-10
+        worst cell f7_n1000_path_warm: A=5.694989945e-01  B=5.694989944e-01
+  col 73 ipqp_alpha_d_min         FLOAT    cells moved  1/27  max relative 2.112e-09
+        worst cell f7_n1000_path_warm: A=1.420688233e-03  B=1.420688236e-03
+STOP TEST -- INTEGER (counter) or STRING (status/verdict) columns that moved: NONE
+FLOAT columns outside the gate's set that moved: ipqp_alpha_p_min (max rel 1.756e-10), ipqp_alpha_d_min (max rel 2.112e-09)
+
+
+PART 2 -- WHICH HALF OF THE GATE DID THE WORK
+=============================================
+
+off-walk.csv vs lto-walk.csv  (rel=1e-05, floor=1e-13)
+  moved residual CELL-COLUMNS: 76
+    admitted by BOTH arms .............. 55
+    admitted by the RELATIVE arm only .. 0
+    admitted by the ABSOLUTE FLOOR only  21   <- would FAIL a floorless 1e-5 gate
+    admitted by NEITHER (a real diff) .. 0
+    worst floor-only relative move: 3.166e-02  f7_n10000_bound_activity kkt_primal A=1.151644575e-16 B=1.189293199e-16 (|a-b|=3.765e-18)
+off-ssn.csv vs lto-ssn.csv  (rel=1e-05, floor=1e-13)
+  moved residual CELL-COLUMNS: 77
+    admitted by BOTH arms .............. 55
+    admitted by the RELATIVE arm only .. 1
+    admitted by the ABSOLUTE FLOOR only  21   <- would FAIL a floorless 1e-5 gate
+    admitted by NEITHER (a real diff) .. 0
+    worst floor-only relative move: 3.166e-02  f7_n10000_bound_activity kkt_primal A=1.151644575e-16 B=1.189293199e-16 (|a-b|=3.765e-18)
+off-ipm.csv vs lto-ipm.csv  (rel=1e-05, floor=1e-13)
+  moved residual CELL-COLUMNS: 74
+    admitted by BOTH arms .............. 52
+    admitted by the RELATIVE arm only .. 1
+    admitted by the ABSOLUTE FLOOR only  21   <- would FAIL a floorless 1e-5 gate
+    admitted by NEITHER (a real diff) .. 0
+    worst floor-only relative move: 3.166e-02  f7_n10000_bound_activity kkt_primal A=1.151644575e-16 B=1.189293199e-16 (|a-b|=3.765e-18)
+
+
+THE READING, IN ONE PARAGRAPH
+  LTO moves the residual columns in essentially every cell -- 76 / 77 / 74
+  residual cell-columns across walk / ssn / ipm -- and moves NOTHING ELSE except
+  two step-length floats in one cell.  No integer counter and no status or
+  verdict string differs anywhere, on any engine.  The moves are small in
+  ABSOLUTE terms (the largest floor-only difference is 3.765e-18) but NOT always
+  small relatively: 21 residual cell-columns per engine sit outside the 1e-5
+  RELATIVE tolerance and are admitted only by the 1e-13 absolute floor, the worst
+  of them a 3.166e-02 relative move on `kkt_primal` between 1.151644575e-16 and
+  1.189293199e-16.  That is the calibration fact worth keeping: at the 1e-16
+  scale these residuals live at, the FLOOR is the gate, not the tolerance -- so
+  the 1e-5 figure is not what is holding this comparison together, and a future
+  reader must not infer from "within gate" that LTO perturbs residuals by less
+  than 1e-5 relative.  It does not.

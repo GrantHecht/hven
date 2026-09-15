@@ -24,11 +24,18 @@
 
 #include <cstddef>
 #include <fstream>
+#include <istream>
 #include <ostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
+#include <tuple>
+#include <vector>
 
 #include <fmt/format.h>
+
+#include <hven/core/types.h>
+#include <hven/detail/qp/qp_problem.h>
 
 namespace hven::solvers::bench_cli {
 
@@ -120,6 +127,240 @@ inline void write_solution_dump(std::ostream &os, const std::string &family, lon
     for (std::size_t i = 0; i < nx; ++i) {
         os << fmt::format("{:.17g}\n", x[i]);
     }
+}
+
+// M6 W1 T9 FIX ROUND 1 -- THE MID-SOLVE QP DUMP, format version 2, a DECLARED
+// versioned extension: v1 (`PIQP_QP_DUMP 1`, bench_corpus.cpp) dumps only a
+// cell's FIRST QP and --dump-solution above carries no matrix at all.
+
+// v2 = v1's body plus `major` and the major's DUAL state, so a reader can
+// re-solve the dumped subproblem WARM as the driver entered it. v1's writer is
+// untouched: its reader is an out-of-tree tool pinned to that byte format.
+
+// Round-tripped by tests/sqp/test_bench_dump.cpp; `.superpowers/w1-t9-report.md`.
+
+/// One dumped subproblem. The three dual blocks are the SQP major's state at
+/// the point the subproblem was built, empty when the producer had none.
+struct QpDumpV2 {
+    std::string family;
+    std::string status;
+    long long n_flag = 0;
+    long long major = 0;
+    double p = 0.0;
+    hven::solvers::QpProblem qp;
+    hven::Vec lambda_e, lambda_i, z;
+};
+
+namespace detail {
+
+inline void dump_sparse_block(std::ostream &os, const char *tag,
+                              const Eigen::SparseMatrix<double, Eigen::RowMajor> &a) {
+    std::size_t nnz = 0;
+    for (int k = 0; k < a.outerSize(); ++k) {
+        for (Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(a, k); it; ++it) {
+            ++nnz;
+        }
+    }
+    os << fmt::format("{}_NNZ {}\n", tag, nnz);
+    for (int k = 0; k < a.outerSize(); ++k) {
+        for (Eigen::SparseMatrix<double, Eigen::RowMajor>::InnerIterator it(a, k); it; ++it) {
+            os << fmt::format("{} {} {:.17g}\n", it.row(), it.col(), it.value());
+        }
+    }
+}
+
+inline void dump_vec_block(std::ostream &os, const char *tag, const hven::Vec &v) {
+    os << fmt::format("{}_VEC {}\n", tag, v.size());
+    for (hven::Index i = 0; i < v.size(); ++i) {
+        os << fmt::format("{:.17g}\n", v(i));
+    }
+}
+
+} // namespace detail
+
+/// Write `d` in format version 2, `{:.17g}` throughout for the same reason
+/// the solution dump uses it: round-trip exact for binary64.
+inline void write_qp_dump_v2(std::ostream &os, const QpDumpV2 &d) {
+    os << "HVEN_QP_DUMP 2\n";
+    os << fmt::format("# family: {}  major: {}\n", d.family, d.major);
+    os << fmt::format("family {}\n", d.family);
+    os << fmt::format("status {}\n", d.status);
+    os << fmt::format("n_flag {}\n", d.n_flag);
+    os << fmt::format("major {}\n", d.major);
+    os << fmt::format("p {:.17g}\n", d.p);
+    os << fmt::format("n {}\n", d.qp.n());
+    os << fmt::format("me {}\n", d.qp.me());
+    os << fmt::format("mi {}\n", d.qp.mi());
+    detail::dump_sparse_block(os, "H", d.qp.H);
+    detail::dump_vec_block(os, "G", d.qp.g);
+    detail::dump_sparse_block(os, "AE", d.qp.Ae);
+    detail::dump_vec_block(os, "BE", d.qp.be);
+    detail::dump_sparse_block(os, "AI", d.qp.Ai);
+    detail::dump_vec_block(os, "BI", d.qp.bi);
+    detail::dump_vec_block(os, "LOWER", d.qp.lower);
+    detail::dump_vec_block(os, "UPPER", d.qp.upper);
+    detail::dump_vec_block(os, "LAMBDA_E", d.lambda_e);
+    detail::dump_vec_block(os, "LAMBDA_I", d.lambda_i);
+    detail::dump_vec_block(os, "Z", d.z);
+    os << "END\n";
+}
+
+namespace detail {
+
+// Every read below throws rather than defaulting: a dump that does not say
+// what it claims to say must never be scored, and a truncated write is
+// exactly what the trailing `END` exists to catch.
+[[noreturn]] inline void throw_dump(const std::string &detail) {
+    throw std::invalid_argument(fmt::format("read_qp_dump_v2: {}", detail));
+}
+
+inline std::string next_token_line(std::istream &is, const std::string &what) {
+    std::string line;
+    while (std::getline(is, line)) {
+        if (!line.empty() && line[0] == '#') {
+            continue;
+        }
+        return line;
+    }
+    throw_dump(fmt::format("unexpected end of file, expected {}", what));
+}
+
+inline std::string tagged_string(std::istream &is, const std::string &tag) {
+    const std::string line = next_token_line(is, tag);
+    if (line.rfind(tag + " ", 0) != 0) {
+        throw_dump(fmt::format("expected '{} <value>', found '{}'", tag, line));
+    }
+    return line.substr(tag.size() + 1);
+}
+
+inline long long tagged_count(std::istream &is, const std::string &tag) {
+    const std::string value = tagged_string(is, tag);
+    std::size_t pos = 0;
+    long long parsed = -1;
+    try {
+        parsed = std::stoll(value, &pos);
+    } catch (const std::exception &) {
+        throw_dump(fmt::format("'{}' is not a count for {}", value, tag));
+    }
+    if (pos != value.size() || parsed < 0) {
+        throw_dump(fmt::format("'{}' is not a non-negative count for {}", value, tag));
+    }
+    return parsed;
+}
+
+inline double parse_dump_double(const std::string &value, const std::string &what) {
+    try {
+        std::size_t pos = 0;
+        const double parsed = std::stod(value, &pos);
+        if (pos != value.size()) {
+            throw std::invalid_argument("trailing characters");
+        }
+        return parsed;
+    } catch (const std::exception &) {
+        throw_dump(fmt::format("'{}' is not a number ({})", value, what));
+    }
+}
+
+// A COORDINATE IS AN INDEX, not a number: `std::stod` would read "0.5" as 0.5
+// and the old truncation turned that into row 0. Digits only -- no sign, no
+// fraction, no exponent -- and the whole token must be consumed.
+inline long long parse_dump_index(const std::string &value, const std::string &what) {
+    if (value.empty() || value.find_first_not_of("0123456789") != std::string::npos) {
+        throw_dump(fmt::format("'{}' is not a non-negative index ({})", value, what));
+    }
+    try {
+        return std::stoll(value);
+    } catch (const std::exception &) {
+        throw_dump(fmt::format("'{}' is out of range for an index ({})", value, what));
+    }
+}
+
+inline hven::Vec read_vec_block(std::istream &is, const std::string &tag) {
+    const long long m = tagged_count(is, tag + "_VEC");
+    hven::Vec v(static_cast<hven::Index>(m));
+    for (long long i = 0; i < m; ++i) {
+        v(static_cast<hven::Index>(i)) = parse_dump_double(next_token_line(is, tag), tag);
+    }
+    return v;
+}
+
+inline void read_sparse_block(std::istream &is, const std::string &tag, hven::Index rows,
+                              hven::Index cols, Eigen::SparseMatrix<double, Eigen::RowMajor> &out) {
+    const long long nnz = tagged_count(is, tag + "_NNZ");
+    std::vector<Eigen::Triplet<double>> trips;
+    trips.reserve(static_cast<std::size_t>(nnz));
+    for (long long k = 0; k < nnz; ++k) {
+        const std::string line = next_token_line(is, tag);
+        std::istringstream ls(line);
+        std::string rs, cs, vs, extra;
+        if (!(ls >> rs >> cs >> vs)) {
+            throw_dump(fmt::format("expected '<row> <col> <value>' in {}, found '{}'", tag, line));
+        }
+        if (ls >> extra) {
+            throw_dump(
+                fmt::format("{} triplet '{}' carries a trailing token '{}'", tag, line, extra));
+        }
+        const long long r = parse_dump_index(rs, tag + " row");
+        const long long c = parse_dump_index(cs, tag + " col");
+        if (r >= rows || c >= cols) {
+            throw_dump(fmt::format("{} triplet ({}, {}) is outside {}x{}", tag, r, c, rows, cols));
+        }
+        trips.emplace_back(static_cast<int>(r), static_cast<int>(c), parse_dump_double(vs, tag));
+    }
+    out.resize(rows, cols);
+    out.setFromTriplets(trips.begin(), trips.end());
+    out.makeCompressed();
+}
+
+} // namespace detail
+
+/// Read a version-2 dump, throwing `std::invalid_argument` on a wrong banner, a
+/// count that disagrees with the lines after it, a non-integer or out-of-range
+/// coordinate, a trailing triplet token, a bad block width, or a missing `END`.
+inline QpDumpV2 read_qp_dump_v2(std::istream &is) {
+    QpDumpV2 d;
+    const std::string banner = detail::next_token_line(is, "the version banner");
+    if (banner != "HVEN_QP_DUMP 2") {
+        detail::throw_dump(fmt::format("expected banner 'HVEN_QP_DUMP 2', found '{}'", banner));
+    }
+    d.family = detail::tagged_string(is, "family");
+    d.status = detail::tagged_string(is, "status");
+    d.n_flag = detail::tagged_count(is, "n_flag");
+    d.major = detail::tagged_count(is, "major");
+    d.p = detail::parse_dump_double(detail::tagged_string(is, "p"), "p");
+    const auto n = static_cast<hven::Index>(detail::tagged_count(is, "n"));
+    const auto me = static_cast<hven::Index>(detail::tagged_count(is, "me"));
+    const auto mi = static_cast<hven::Index>(detail::tagged_count(is, "mi"));
+    detail::read_sparse_block(is, "H", n, n, d.qp.H);
+    d.qp.g = detail::read_vec_block(is, "G");
+    detail::read_sparse_block(is, "AE", me, n, d.qp.Ae);
+    d.qp.be = detail::read_vec_block(is, "BE");
+    detail::read_sparse_block(is, "AI", mi, n, d.qp.Ai);
+    d.qp.bi = detail::read_vec_block(is, "BI");
+    d.qp.lower = detail::read_vec_block(is, "LOWER");
+    d.qp.upper = detail::read_vec_block(is, "UPPER");
+    d.lambda_e = detail::read_vec_block(is, "LAMBDA_E");
+    d.lambda_i = detail::read_vec_block(is, "LAMBDA_I");
+    d.z = detail::read_vec_block(is, "Z");
+    const std::string end = detail::next_token_line(is, "END");
+    if (end != "END") {
+        detail::throw_dump(fmt::format("expected 'END', found '{}' -- the dump is truncated", end));
+    }
+    if (d.qp.g.size() != n) {
+        detail::throw_dump(
+            fmt::format("G_VEC carries {} entries, expected n = {}", d.qp.g.size(), n));
+    }
+    // The three dual blocks are v2's own addition, so `QpProblem::validate`
+    // below says nothing about them; their widths are checked here.
+    for (const auto &[tag, got, want] :
+         {std::tuple{"LAMBDA_E_VEC", d.lambda_e.size(), me},
+          std::tuple{"LAMBDA_I_VEC", d.lambda_i.size(), mi}, std::tuple{"Z_VEC", d.z.size(), n}}) {
+        if (got != want) {
+            detail::throw_dump(fmt::format("{} carries {} entries, expected {}", tag, got, want));
+        }
+    }
+    d.qp.validate();
+    return d;
 }
 
 } // namespace hven::solvers::bench_cli

@@ -12,6 +12,14 @@
 #include "hven/core/types.h"
 #include "hven/linear/dense_symmetric_factor.h"
 
+// MKL's own thread state, for the call-scoped-thread-count pin at the bottom of
+// this file. On Apple the dense path's LAPACK is Accelerate's, which exposes no
+// restorable thread-local equivalent -- that pin is UNOBSERVED there and does
+// not compile.
+#ifndef HVEN_USE_ACCELERATE_LAPACK
+#include <mkl_service.h>
+#endif
+
 namespace {
 
 using hven::Index;
@@ -322,3 +330,73 @@ TEST(DenseSymmetricFactor, RefactorizeWithDifferentDimLeavesNoStaleState) {
     Mat X_old_dim(2, 2);
     EXPECT_THROW({ f.solve(RHS_old_dim, X_old_dim); }, std::invalid_argument);
 }
+
+// --- The call-scoped thread count (M6 W5 T8.8) -------------------------
+
+// The dense border factor gained the sparse surface's thread contract in
+// M6 W5 T8.8's second commit -- before it, its two LAPACK calls sat inside no
+// scope at all and ran at whatever MKL's process default was.
+//
+// The default and the validation rule are backend-neutral and pinned here.
+TEST(DenseSymmetricFactor, ThreadCountDefaultsToTheBackendDefaultAndRefusesNegatives) {
+    DenseSymmetricFactor f;
+    EXPECT_EQ(f.num_threads(), 0) << "0 = leave the backend's own default alone";
+
+    f.set_num_threads(2);
+    EXPECT_EQ(f.num_threads(), 2);
+
+    EXPECT_THROW(f.set_num_threads(-1), std::invalid_argument);
+    EXPECT_EQ(f.num_threads(), 2) << "a rejected count leaves the factor exactly as it was";
+
+    // Moving the count invalidates nothing: a cached factorization stays
+    // usable, because LAPACK reads the count at call scope.
+    Mat A(2, 2);
+    A << 2, -1, -1, 2;
+    f.factorize(A);
+    ASSERT_TRUE(f.factorized());
+    f.set_num_threads(1);
+    EXPECT_TRUE(f.factorized());
+    Mat X(2, 1);
+    Mat B(2, 1);
+    B << 1.0, 1.0;
+    f.solve(B, X);
+    EXPECT_NEAR(X(0, 0), 1.0, kTightRelTol);
+    EXPECT_NEAR(X(1, 0), 1.0, kTightRelTol);
+}
+
+#ifndef HVEN_USE_ACCELERATE_LAPACK
+// The other half of the call-scoped promise, at the DENSE level -- the shape
+// `SymmetricFactor.APerInstanceThreadCountRestoresTheCallersOwnThreadLocalOverride`
+// pins for the sparse surface, and the shape the thread-scope pins in
+// tests/linear/test_fault_injection.cpp use: a caller's own thread-local
+// override survives both LAPACK calls. The override (3) is distinct from both
+// the backend default (0) and the count asked for (2), so an implementation
+// that restored a hardcoded 0 fails this instead of passing it.
+//
+// On Accelerate the count is STORED and applied to nothing -- UNOBSERVED --
+// so this half does not compile there rather than being weakened to pass.
+TEST(DenseSymmetricFactor, ACallScopedThreadCountRestoresTheCallersOwnOverride) {
+    constexpr int kCallerOverride = 3;
+    constexpr int kHvenThreads = 2;
+
+    const int entry = mkl_set_num_threads_local(kCallerOverride);
+
+    DenseSymmetricFactor f;
+    f.set_num_threads(kHvenThreads);
+    Mat A(2, 2);
+    A << 2, -1, -1, 2;
+    f.factorize(A); // dsytrf, bracketed
+    ASSERT_TRUE(f.factorized());
+    EXPECT_EQ(mkl_get_max_threads(), kCallerOverride) << "after dsytrf";
+
+    Mat X(2, 1);
+    Mat B(2, 1);
+    B << 1.0, 1.0;
+    f.solve(B, X); // dsytrs, bracketed
+    EXPECT_EQ(mkl_get_max_threads(), kCallerOverride) << "after dsytrs";
+    EXPECT_EQ(mkl_set_num_threads_local(0), kCallerOverride)
+        << "read the other way MKL exposes it: the setter returns what it replaced";
+
+    mkl_set_num_threads_local(entry);
+}
+#endif

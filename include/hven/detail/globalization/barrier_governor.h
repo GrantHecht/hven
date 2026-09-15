@@ -7,10 +7,10 @@
 
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/iterate_info.h"
-// InteriorPointSolver::BarrierModes requires the complete InteriorPointSolver class; see
+// IpmSolver::BarrierModes requires the complete IpmSolver class; see
 // acceptance_strategy.h's include note for why this is a plain,
-// non-circular include (interior_point_solver.h does not include this directory back).
-#include "hven/drivers/interior_point_solver.h"
+// non-circular include (ipm_solver.h does not include this directory back).
+#include "hven/drivers/ipm_solver.h"
 
 namespace hven::solvers {
 
@@ -49,7 +49,7 @@ class BarrierGovernor {
     ///   iteration (once per iteration, before factorization — NOT recomputed here).
     /// @param mu_in Unused by the free-mode oracles themselves (they compute an
     ///   entirely new mu from avgcomp/mincomp, then clamp against
-    ///   ctx.settings_.min_mu_/max_mu_); the load-bearing consumer is
+    ///   ctx.opts_.min_mu/max_mu_); the load-bearing consumer is
     ///   update_barrier_monotone(), which seeds and gates off it directly.
     /// @param XSL Read by LOQO's mu rule and by the common tail (barrier
     ///   objective/dual-gradient at the resulting mu); raw blocks viewed via
@@ -66,12 +66,11 @@ class BarrierGovernor {
     ///   Free-mode oracles never set it, so the caller's reset branch stays
     ///   dead and the default path remains bit-identical.
     /// @return The new (already-clamped) mu.
-    virtual double update_barrier(InteriorPointSolver::BarrierModes barmode, double mu_in,
-                                  double avgcomp, double mincomp, Eigen::VectorXd &XSL,
-                                  Eigen::VectorXd &RHS, Eigen::VectorXd &DXSL,
-                                  Eigen::VectorXd &Temp, GlobalizationMechanism &mechanism,
-                                  SolverContext &ctx, double &barr_obj, const IterateInfo &current,
-                                  bool &mu_event) = 0;
+    virtual double update_barrier(IpmSolver::BarrierModes barmode, double mu_in, double avgcomp,
+                                  double mincomp, Eigen::VectorXd &XSL, Eigen::VectorXd &RHS,
+                                  Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
+                                  GlobalizationMechanism &mechanism, SolverContext &ctx,
+                                  double &barr_obj, const IterateInfo &current, bool &mu_event) = 0;
 
     /// @brief Barrier update while a nested l1 feasibility-restoration phase is
     /// active, for governors WITHOUT their own monotone safeguard. Shared,
@@ -129,9 +128,7 @@ class BarrierGovernor {
     /// Same write-only contract and last-phase-wins semantics as
     /// AcceptanceStrategy::append_diagnostics; the no-op default keeps the
     /// classic path bit-identical.
-    virtual void append_diagnostics(InteriorPointSolver::SolveResult &result) const {
-        (void)result;
-    }
+    virtual void append_diagnostics(IpmResult &result) const { (void)result; }
 };
 
 } // namespace hven::solvers

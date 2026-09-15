@@ -27,7 +27,6 @@
 #include <deque>
 #include <fstream>
 #include <map>
-#include <optional>
 #include <set>
 #include <sstream>
 #include <stdexcept>
@@ -39,6 +38,7 @@
 #include <gtest/gtest.h>
 
 #include "../../bench/corpus_cells.h"
+#include "../../bench/ipm_corpus_leg.h"
 
 #ifndef HVEN_SQP_CORPUS_BINARY
 #error "HVEN_SQP_CORPUS_BINARY must be defined by bench/CMakeLists.txt (see its own comment)"
@@ -48,6 +48,12 @@
 #endif
 #ifndef HVEN_SQP_SSN_BATTERY_CSV
 #error "HVEN_SQP_SSN_BATTERY_CSV must be defined by tests/CMakeLists.txt"
+#endif
+#ifndef HVEN_SQP_IPM_BASELINE_CSV
+#error "HVEN_SQP_IPM_BASELINE_CSV must be defined by tests/sqp/CMakeLists.txt"
+#endif
+#ifndef HVEN_SQP_INTERIOR_BASELINE_CSV
+#error "HVEN_SQP_INTERIOR_BASELINE_CSV must be defined by tests/sqp/CMakeLists.txt"
 #endif
 #ifndef HVEN_SQP_WALK_RESWEPT_CSV
 #error "HVEN_SQP_WALK_RESWEPT_CSV must be defined by tests/CMakeLists.txt"
@@ -276,7 +282,7 @@ TEST(CorpusCellsRunner, ModelSurfaceCensusHookAgreesWithRecordedResidualsWhenOn)
     detail::EngineConfig levers;
     levers.score_model_surface = true;
     const CorpusRow row = run_cell(cell, "walk", {}, levers);
-    ASSERT_EQ(row.status, hven::solvers::SqpStatus::kOptimal);
+    ASSERT_EQ(row.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_GE(row.ms_stationarity, 0.0);
     EXPECT_GE(row.ms_complementarity, 0.0);
     EXPECT_GE(row.ms_primal, 0.0);
@@ -370,7 +376,7 @@ TEST(CorpusCellsRunner, AnEscapeIsReportedFromTheDriversOwnCounterAndDragsTheWal
     const CorpusRow ssn = run_cell(cell, "ssn");
     EXPECT_EQ(ssn.escapes, 1) << "one subproblem handed off to the walk";
     EXPECT_GT(ssn.qp_minors, 0) << "and the walk really re-solved it";
-    EXPECT_EQ(ssn.status, hven::solvers::SqpStatus::kOptimal);
+    EXPECT_EQ(ssn.status, hven::solvers::SolveStatus::kOptimal);
     // PHASE-7 TASK 6b (docket D6): and the row now carries WHY, not just how
     // many. The census partitions `escapes` exactly -- the property
     // bench_corpus.cpp's reader enforces on every artifact row it scores.
@@ -395,7 +401,7 @@ TEST(CorpusCellsRunner, TheKktCheckRecordsTheRowsOwnScaleDenominators) {
     // regime the relative rule exists for.
     hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
     model.set_parameters(hven::Vec::Constant(1, 0.85));
-    hven::solvers::SqpSolution sol;
+    hven::solvers::SqpResult sol;
     sol.x = hven::Vec::Constant(model.n(), 3.0);
     sol.lambda_e = hven::Vec::Zero(model.me());
     sol.lambda_i = hven::Vec::Zero(model.mi());
@@ -422,7 +428,7 @@ TEST(CorpusCellsRunner, EveryRowCarriesAModelLevelKktCheckUnderBothEngines) {
     for (const char *engine : {"walk", "ssn"}) {
         SCOPED_TRACE(engine);
         const CorpusRow row = run_cell(tiny_cell(StartTaxonomy::kNeutralCold), engine);
-        ASSERT_EQ(row.status, hven::solvers::SqpStatus::kOptimal);
+        ASSERT_EQ(row.status, hven::solvers::SolveStatus::kOptimal);
         EXPECT_GE(row.kkt_stationarity, 0.0);
         EXPECT_GE(row.kkt_primal, 0.0);
         EXPECT_GE(row.kkt_dual_sign, 0.0);
@@ -453,7 +459,7 @@ TEST(CorpusCellsRunner, BothKernelsAgreeOnTheANSWEREvenWhereTheyDisagreeOnTheCOS
 
 TEST(CorpusCellsRunner, WalkEngineIsDeterministic) {
     // ALL FIVE taxonomies, not just kNeutralCold -- each one's producer takes
-    // a different route to a WarmStart (or none at all), and each route is a
+    // a different route to a SqpWarmStart (or none at all), and each route is a
     // place an accidental coupling to wall-clock/address/allocator state
     // could sneak in without the others catching it (this is precisely what
     // caught a hand-injected mutation in kCorrupted's displacement during
@@ -498,7 +504,7 @@ TEST(CorpusCellsRunner, PerQpFactorizationsMatchTheIterateHistoryExactly) {
     // caught.
     hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
     model.set_parameters(hven::Vec::Constant(1, 0.85));
-    hven::solvers::SqpDriver driver(
+    hven::solvers::SqpSolver driver(
         detail::options_for_cell(tiny_cell(StartTaxonomy::kNeutralCold)));
     const auto sol = detail::budgeted_solve(driver, model, model.start_point());
 
@@ -558,7 +564,7 @@ TEST(CorpusCellsRunner, ActivityOnlyStartsOffTheOptimumAndCarriesAnExactActivity
     const detail::IpIterate it =
         detail::f7_ip_iterate(model, 0.85, detail::crossover_mu_for_n(12), x0);
     EXPECT_EQ(it.x, x0) << "the iterate carries the physics-informed primal, not x*";
-    const hven::solvers::WarmStart crossover = hven::solvers::from_interior_point(
+    const hven::solvers::SqpWarmStart crossover = hven::solvers::from_interior_point(
         it.x, it.lambda_e, it.lambda_i, it.slack_i, it.z_lower, it.z_upper, model.lower(),
         model.upper(), hven::solvers::IpCrossoverOptions{});
 
@@ -571,7 +577,7 @@ TEST(CorpusCellsRunner, ActivityOnlyStartsOffTheOptimumAndCarriesAnExactActivity
 
     const CorpusRow row =
         run_cell(tiny_cell(StartTaxonomy::kActivityOnly, /*use_p0=*/false), "walk");
-    EXPECT_EQ(row.status, hven::solvers::SqpStatus::kOptimal);
+    EXPECT_EQ(row.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_FALSE(row.qp_factorizations.empty())
         << "a crossover cell must build at least one QP -- measuring nothing is the defect this "
            "test exists against";
@@ -586,8 +592,8 @@ TEST(CorpusCellsRunner, ActivityOnlyResolvesInFarLessWorkThanItsMatchedPhysicsCo
         run_cell(tiny_cell(StartTaxonomy::kActivityOnly, /*use_p0=*/false), "walk");
     const CorpusRow control =
         run_cell(tiny_cell(StartTaxonomy::kPhysicsInformed, /*use_p0=*/false), "walk");
-    EXPECT_EQ(hinted.status, hven::solvers::SqpStatus::kOptimal);
-    EXPECT_EQ(control.status, hven::solvers::SqpStatus::kOptimal);
+    EXPECT_EQ(hinted.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(control.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_LE(hinted.qp_minors, control.qp_minors)
         << "hinted=" << hinted.qp_minors << " control=" << control.qp_minors;
 }
@@ -602,8 +608,8 @@ TEST(CorpusCellsRunner, FullWarmProducerBeatsNeutralColdOnMinors) {
     const CorpusRow warm = run_cell(tiny_cell(StartTaxonomy::kFullWarm), "walk");
     const CorpusRow cold =
         run_cell(tiny_cell(StartTaxonomy::kNeutralCold, /*use_p0=*/false), "walk");
-    EXPECT_EQ(warm.status, hven::solvers::SqpStatus::kOptimal);
-    EXPECT_EQ(cold.status, hven::solvers::SqpStatus::kOptimal);
+    EXPECT_EQ(warm.status, hven::solvers::SolveStatus::kOptimal);
+    EXPECT_EQ(cold.status, hven::solvers::SolveStatus::kOptimal);
     EXPECT_LE(warm.qp_minors, cold.qp_minors)
         << "warm=" << warm.qp_minors << " cold=" << cold.qp_minors;
 }
@@ -615,15 +621,15 @@ TEST(CorpusCellsRunner, CorruptedProducerStillResolvesWarmAndConverges) {
     // corpus row is how much EXTRA work it costs, which this test does not
     // need to pin (that is what the baseline CSV is for).
     const CorpusRow row = run_cell(tiny_cell(StartTaxonomy::kCorrupted), "walk");
-    EXPECT_EQ(row.status, hven::solvers::SqpStatus::kOptimal);
+    EXPECT_EQ(row.status, hven::solvers::SolveStatus::kOptimal);
 }
 
 TEST(CorpusCellsRunner, KktResidualSentinelOnEmptyHistory) {
-    // A default-constructed SqpSolution has an empty history (no subproblem
+    // A default-constructed SqpResult has an empty history (no subproblem
     // was ever built) -- the -1.0 sentinel this file's own last_kkt_residual
     // documents, tested directly rather than by hunting for a real F7 cell
     // that happens to converge at major_iters == 0.
-    hven::solvers::SqpSolution sol;
+    hven::solvers::SqpResult sol;
     ASSERT_TRUE(sol.history.empty());
     EXPECT_DOUBLE_EQ(hven::solvers::corpus::detail::last_kkt_residual(sol), -1.0);
 }
@@ -635,7 +641,7 @@ TEST(CorpusCellsRunner, KktResidualSentinelOnEmptyHistory) {
 
 TEST(CorpusCellsRunner, FirstQpForCellMatchesBuildSubproblemOnNeutralCold) {
     // kNeutralCold's designated hop starts at (x0, 0, 0) -- exactly what
-    // SqpDriver::solve's own first iteration would build. Compared against a
+    // SqpSolver::solve's own first iteration would build. Compared against a
     // build_subproblem call made directly here, with the model built the same
     // way detail::make_model does, so a mutation that (say) fed the wrong x or
     // nonzero initial multipliers is caught.
@@ -668,9 +674,9 @@ TEST(CorpusCellsRunner, FirstQpForCellUsesTheWarmHandoffsOwnDualsOnFullWarm) {
     const CorpusCell cell = tiny_cell(StartTaxonomy::kFullWarm);
     hven::solvers::corpus::F7CollocationChain model(cell.n_nodes, 3, 2, cell.p0, 1.0);
     model.set_parameters(hven::Vec::Constant(1, cell.p0));
-    hven::solvers::SqpDriver driver(detail::options_for_cell(cell));
+    hven::solvers::SqpSolver driver(detail::options_for_cell(cell));
     const auto seed = detail::budgeted_solve(driver, model, model.start_point());
-    ASSERT_EQ(seed.status, hven::solvers::SqpStatus::kOptimal);
+    ASSERT_EQ(seed.status, hven::solvers::SolveStatus::kOptimal);
 
     model.set_parameters(hven::Vec::Constant(1, cell.p));
     const hven::solvers::QpProblem expected = hven::solvers::build_subproblem(
@@ -813,10 +819,11 @@ TEST(CorpusCellsRunner, BudgetedSolveMatchesAnExplicitDriverCallAtTheSameBudget)
     opts.kkt_tol = 1e-8;
     opts.feas_tol = 1e-8;
 
-    hven::solvers::SqpDriver driver_a(opts);
-    const auto direct = driver_a.solve(model, model.start_point(), hven::solvers::WarmStart{},
-                                       hven::solvers::corpus::detail::kMinorBudget);
-    hven::solvers::SqpDriver driver_b(opts);
+    hven::solvers::SqpSolver driver_a(opts);
+    const auto direct =
+        driver_a.solve(model, model.start_point(), hven::solvers::SqpWarmStart{},
+                       hven::solvers::SolveBudget{hven::solvers::corpus::detail::kMinorBudget});
+    hven::solvers::SqpSolver driver_b(opts);
     const auto via_helper =
         hven::solvers::corpus::detail::budgeted_solve(driver_b, model, model.start_point());
 
@@ -828,8 +835,8 @@ TEST(CorpusCellsRunner, BudgetedSolveMatchesAnExplicitDriverCallAtTheSameBudget)
 
 TEST(CorpusCellsRunner, BudgetedSolveTruncatesIntoADnfRowRatherThanHanging) {
     // A tiny EXPLICIT budget (1 minor) on a fixture that genuinely needs more
-    // must stop at SqpStatus::kMaxIter with probe_budget_stops == 1 --
-    // sqp_types.h's own documented contract -- rather than run to completion
+    // must stop at SolveStatus::kMaxIter with probe_budget_stops == 1 --
+    // sqp_solver_types.h's own documented contract -- rather than run to completion
     // or hang.
     hven::solvers::corpus::F7CollocationChain model(12, 3, 2, 0.85, 1.0);
     model.set_parameters(hven::Vec::Constant(1, 0.85));
@@ -837,12 +844,12 @@ TEST(CorpusCellsRunner, BudgetedSolveTruncatesIntoADnfRowRatherThanHanging) {
     opts.kkt_tol = 1e-8;
     opts.feas_tol = 1e-8;
     opts.max_iter = 10;
-    hven::solvers::SqpDriver driver(opts);
+    hven::solvers::SqpSolver driver(opts);
 
     const auto sol = hven::solvers::corpus::detail::budgeted_solve(
-        driver, model, model.start_point(), hven::solvers::WarmStart{}, /*budget=*/1);
+        driver, model, model.start_point(), hven::solvers::SqpWarmStart{}, /*budget=*/1);
 
-    EXPECT_EQ(sol.status, hven::solvers::SqpStatus::kMaxIter);
+    EXPECT_EQ(sol.status, hven::solvers::SolveStatus::kMaxIter);
     EXPECT_EQ(sol.counters.probe_budget_stops, 1);
     EXPECT_GE(sol.counters.qp_minor_iters, 1)
         << "the budget was crossed, not skipped -- some real work was still done";
@@ -927,14 +934,46 @@ std::vector<std::string> split_all(const std::string &s) {
 // common outcome; the gate engages only on the digits that provably vary.
 constexpr double kResidualRelativeGate = 1.0e-5;
 
-// The corpus schema's floating-point measure columns, by index:
-//   12 kkt_residual
-//   15 kkt_stationarity   16 kkt_primal        17 kkt_dual_sign
-//   18 kkt_complementarity 19 dual_scale       20 x_scale
-// Column 13 (wall_s) is excluded by the caller for a different reason -- timing
-// noise, never a regression contract. Column 14 (kkt_verdict) is a string and
-// stays exact. Everything at 21 and above is an integer counter.
-bool is_residual_column(std::size_t i) { return i == 12 || (i >= 15 && i <= 20); }
+// The corpus schema's floating-point measure columns, by index. The schema is 76 columns wide
+// and bench/bench_corpus.cpp is its authority: write_header at :879-899 names them; each
+// column's TYPE is fixed by write_outcome's format string at :938-946 TOGETHER WITH its
+// argument's own type (fix1 -- the format string alone was credited before). Twelve non-wall
+// floats:
+//  12 kkt_residual
+//  15 kkt_stationarity   16 kkt_primal        17 kkt_dual_sign
+//  18 kkt_complementarity 19 dual_scale       20 x_scale
+//  42 ipqp_rho_demanded_max    43 ipqp_rho_demanded_last
+//  55 ipqp_restart_shift_max
+//  72 ipqp_alpha_p_min         73 ipqp_alpha_d_min
+// Column 13 (wall_s) is a float too and is excluded by the caller for a DIFFERENT reason --
+// timing noise, never a regression contract. That is the whole float class: 13 of the 76. The
+// seven STRINGS (0 cell_id, 1 family, 3 window, 4 taxonomy, 6 status, 11 qp_fact_per_qp, 14
+// kkt_verdict) stay exact, and so do the remaining 56 INTEGER FIELDS -- fields, not "counters"
+// (fix1): most are counters, but `n_nodes` is input metadata and column 50 is categorical
+// (`ipqp_final_inertia_read`, solver_counters.h:378). COLUMNS 42 AND 43 READ ZERO IN EVERY
+// COMMITTED CSV (T6b's pinned scan: 80 files, 2160 rows), so the enumeration falsifier SEEDS
+// both sides to 1e-4 to make the relative arm live -- a staged value, never an observed reading.
+//
+// CORRECTED AT M6 W6 T6b (settler ruling R-GATE, W6 close), and DECLARED because it relaxes a
+// test rule. This comment used to end "Everything at 21 and above is an integer counter" and
+// this predicate gated 12 and 15-20 only. That was FALSE at source: `IpqpCounters` carries five
+// `double` members that write_outcome prints with `{:.9e}` --
+// include/hven/core/solver_counters.h:506 `ipqp_rho_demanded_max`, :516
+// `ipqp_rho_demanded_last`, :663 `ipqp_restart_shift_max`, :842 `ipqp_alpha_p_min`, :849
+// `ipqp_alpha_d_min` (:849 is the declaration; fix1 corrects :844, its doc comment's first
+// line). W6 T3's LTO replay then moved two of them on f7_n1000_path_warm -- ipqp_alpha_p_min by
+// 1.76e-10 relative and ipqp_alpha_d_min by 2.11e-9 -- while every counter and every status
+// stayed byte-identical (docs/notes/data/2026-09-m6-w6-lto/, frozen): the address-sensitivity
+// argued above, on columns the gate did not reach.
+//
+// THE NAME IS KEPT: the RULE is unchanged -- byte equality first, then
+// kResidualRelativeGate relative, non-finite never waved through -- and only the SET
+// moves. Renaming would churn ten call sites here to say nothing new. (The python copy DID
+// rename, to `is_float_measure_column`: module-level API in a file whose docstring is read
+// on its own, and it has a single caller.)
+bool is_residual_column(std::size_t i) {
+    return i == 12 || (i >= 15 && i <= 20) || i == 42 || i == 43 || i == 55 || i == 72 || i == 73;
+}
 
 // True when the two spellings are byte-equal, or agree to within the gate.
 // A column that does not parse as a number is NOT quietly waved through: it
@@ -1023,9 +1062,9 @@ TEST(CorpusRunnerProcess, WallDeadlineEmitsADnfBudgetRowWhenTheSOLVEPhaseIsForce
     const std::vector<std::string> rows = runner_test::data_rows(csv);
     ASSERT_EQ(rows.size(), 1u);
     const std::vector<std::string> cols = runner_test::split_all(rows[0]);
-    // 14 Task-1 columns + Task 6's 17 + Phase-7 Task 6b's 6 (the escape-reason
-    // census). A SCHEMA-GENERATION pin, moved deliberately with the schema.
-    ASSERT_EQ(cols.size(), 37u) << rows[0];
+    // 14 Task-1 columns + Task 6's 17 + Task 6b's 6 + M6 W1 T9's 39 IPQP
+    // counters. A SCHEMA-GENERATION pin, moved deliberately with the schema.
+    ASSERT_EQ(cols.size(), 76u) << rows[0];
     EXPECT_EQ(cols[0], "f7_n20000_bound_neutral");
     EXPECT_EQ(cols[6], "dnf_budget") << rows[0];
     for (const std::size_t i : {7u, 8u, 9u, 10u}) {
@@ -1054,9 +1093,9 @@ TEST(CorpusRunnerProcess, WallDeadlineEmitsADnfSetupRowWhenTheSETUPPhaseIsForced
     const std::vector<std::string> rows = runner_test::data_rows(csv);
     ASSERT_EQ(rows.size(), 1u);
     const std::vector<std::string> cols = runner_test::split_all(rows[0]);
-    // 14 Task-1 columns + Task 6's 17 + Phase-7 Task 6b's 6 (the escape-reason
-    // census). A SCHEMA-GENERATION pin, moved deliberately with the schema.
-    ASSERT_EQ(cols.size(), 37u) << rows[0];
+    // 14 Task-1 columns + Task 6's 17 + Task 6b's 6 + M6 W1 T9's 39 IPQP
+    // counters. A SCHEMA-GENERATION pin, moved deliberately with the schema.
+    ASSERT_EQ(cols.size(), 76u) << rows[0];
     EXPECT_EQ(cols[6], "dnf_setup") << rows[0];
     std::remove(csv.c_str());
 }
@@ -1072,9 +1111,9 @@ TEST(CorpusRunnerProcess, WallDeadlineDoesNotFireAtTheRealBudgetOnAFastCell) {
     const std::vector<std::string> rows = runner_test::data_rows(csv);
     ASSERT_EQ(rows.size(), 1u);
     const std::vector<std::string> cols = runner_test::split_all(rows[0]);
-    // 14 Task-1 columns + Task 6's 17 + Phase-7 Task 6b's 6 (the escape-reason
-    // census). A SCHEMA-GENERATION pin, moved deliberately with the schema.
-    ASSERT_EQ(cols.size(), 37u) << rows[0];
+    // 14 Task-1 columns + Task 6's 17 + Task 6b's 6 + M6 W1 T9's 39 IPQP
+    // counters. A SCHEMA-GENERATION pin, moved deliberately with the schema.
+    ASSERT_EQ(cols.size(), 76u) << rows[0];
     EXPECT_EQ(cols[6], "Optimal") << rows[0];
     EXPECT_NE(cols[7], "-1") << "a real solve must report a real factorization count: " << rows[0];
     EXPECT_NE(cols[10], "0") << "and at least one QP subproblem: " << rows[0];
@@ -1158,9 +1197,17 @@ TEST(CorpusRunnerProcess, ScoreModelSurfaceWritesTheCensusArtifactAndLeavesTheMa
     // noise, never a regression contract per this file's own banner).
     //
     // Two gates, not one: counters, statuses and spellings are held to byte
-    // equality, the residual-class columns to a relative gate, because these two
-    // rows come from separate PROCESSES. See runner_test::kResidualRelativeGate
+    // equality, the FLOATING MEASURE columns to a relative gate, because these
+    // two rows come from separate PROCESSES. See runner_test::kResidualRelativeGate
     // above for the measurement that fixes the number.
+    //
+    // M6 W6 T6b widened `is_residual_column` from seven columns to twelve, so
+    // five columns that used to be byte-compared here -- 42, 43, 55, 72, 73, the
+    // schema's ipqp `{:.9e}` columns -- now take the relative gate instead. That
+    // is a RELAXATION of this pin on those five, and it is the right one: they
+    // are floats produced by address-sensitive kernels in two different
+    // processes, exactly like the seven that were already gated. Nothing else
+    // moves: every counter, every status and every string stays byte-exact here.
     const std::vector<std::string> rows_on = runner_test::data_rows(csv_on);
     const std::vector<std::string> rows_off = runner_test::data_rows(csv_off);
     ASSERT_EQ(rows_on.size(), 1u);
@@ -1168,7 +1215,7 @@ TEST(CorpusRunnerProcess, ScoreModelSurfaceWritesTheCensusArtifactAndLeavesTheMa
     const std::vector<std::string> cols_on = runner_test::split_all(rows_on[0]);
     const std::vector<std::string> cols_off = runner_test::split_all(rows_off[0]);
     ASSERT_EQ(cols_on.size(), cols_off.size());
-    ASSERT_EQ(cols_on.size(), 37u) << rows_on[0];
+    ASSERT_EQ(cols_on.size(), 76u) << rows_on[0];
     for (std::size_t i = 0; i < cols_on.size(); ++i) {
         if (i == 13) {
             continue; // wall_s
@@ -1239,18 +1286,38 @@ TEST(CorpusResidualGate, AcceptsEveryRecordedSpreadAndRefusesARealMove) {
     // waved through.
     EXPECT_FALSE(runner_test::residual_columns_agree("1.0e-9x", "1.0e-9"));
 
-    // The gated set is exactly the schema's floating-point measure columns.
+    // The gated set is exactly the schema's floating-point measure columns --
+    // ALL TWELVE of them since M6 W6 T6b, and this enumeration is what makes
+    // "exactly" a checked claim rather than a comment.
     EXPECT_TRUE(runner_test::is_residual_column(12)); // kkt_residual
     for (std::size_t i = 15; i <= 20; ++i) {
         // kkt_stationarity, kkt_primal, kkt_dual_sign, kkt_complementarity,
         // dual_scale, x_scale
         EXPECT_TRUE(runner_test::is_residual_column(i)) << "column " << i;
     }
+    // The five the comment above used to misclassify as integer counters: the
+    // `{:.9e}` ipqp columns, every one a `double` in IpqpCounters.
+    EXPECT_TRUE(runner_test::is_residual_column(42)); // ipqp_rho_demanded_max
+    EXPECT_TRUE(runner_test::is_residual_column(43)); // ipqp_rho_demanded_last
+    EXPECT_TRUE(runner_test::is_residual_column(55)); // ipqp_restart_shift_max
+    EXPECT_TRUE(runner_test::is_residual_column(72)); // ipqp_alpha_p_min
+    EXPECT_TRUE(runner_test::is_residual_column(73)); // ipqp_alpha_d_min
+    // ...and no more than those twelve, over the WHOLE 76-column schema, so a
+    // future widening has to come here to happen.
+    int gated = 0;
+    for (std::size_t i = 0; i < 76; ++i) {
+        gated += runner_test::is_residual_column(i) ? 1 : 0;
+    }
+    EXPECT_EQ(gated, 12) << "the gated set is the schema's twelve non-wall floats";
     // cell_id, status, factorizations, qp_minors, wall_s, kkt_verdict, and the
     // integer counter block are NOT gated -- they are held to byte equality.
+    // 44 and 56 are the integer counters that now sit BESIDE newly gated floats
+    // (ipqp_inertia_retries next to 43, ipqp_mu_adopted next to 55): the
+    // widening must not have carried its neighbours along with it.
     for (const std::size_t i :
          {std::size_t{0}, std::size_t{6}, std::size_t{7}, std::size_t{8}, std::size_t{13},
-          std::size_t{14}, std::size_t{21}, std::size_t{36}}) {
+          std::size_t{14}, std::size_t{21}, std::size_t{36}, std::size_t{44}, std::size_t{56},
+          std::size_t{74}, std::size_t{75}}) {
         EXPECT_FALSE(runner_test::is_residual_column(i)) << "column " << i;
     }
 }
@@ -1383,13 +1450,32 @@ TEST(CorpusRunnerProcess, FromCsvAcceptsBothSchemasAndCallsAnAbsentCensusAbsent)
     const std::vector<std::string> rows = runner_test::data_rows(merged);
     ASSERT_EQ(rows.size(), 1u);
     const std::vector<std::string> col = runner_test::split_all(rows[0]);
-    ASSERT_EQ(col.size(), 37u) << "the merge writes the CURRENT schema";
-    for (std::size_t i = 31; i < 37; ++i) {
-        EXPECT_EQ(col[i], "-1") << "column " << i
-                                << ": an unmeasured census is ABSENT, never a measured zero";
+    ASSERT_EQ(col.size(), 76u) << "the merge writes the CURRENT schema";
+    // Compared as a VALUE: the IPQP tail's five double columns print the same
+    // absent -1 in scientific form, and "-1.000000000e+00" is the same
+    // statement as "-1".
+    for (std::size_t i = 31; i < 76; ++i) {
+        EXPECT_DOUBLE_EQ(std::stod(col[i]), -1.0)
+            << "column " << i << ": an unmeasured census is ABSENT, never a measured zero";
     }
     std::remove(old_schema.c_str());
     std::remove(merged.c_str());
+}
+
+TEST(CorpusRunnerProcess, FromCsvRefusesAWidthThatIsNoKnownSchema) {
+    // M6 W1 T9 FIX ROUND 1 (Codex 2). A `>=`-style generation test read any
+    // width in [38, 75] as schema 37 and DISCARDED its partial IPQP tail,
+    // re-emitting all 39 counters as absent. Exact widths only, or refuse.
+    const std::string partial = runner_test::temp_path("corpus_partial_tail.csv");
+    {
+        std::ofstream out(partial);
+        out << "f7_n1000_path_warm,F7,1000,path,warm,0,Optimal,3,12,0,2,1;2,1.0e-10,0.1,"
+               "ok,1e-10,1e-10,0.0,1e-10,1.0,1.0,0,0,0,0,0,0,0,0,0,0,"
+               "0,0,0,0,0,0,7\n";
+    }
+    EXPECT_NE(runner_test::run_binary(fmt::format("--from-csv {} --score-gates", partial)), 0)
+        << "38 fields is neither schema 37 nor schema 76 and must not be scored";
+    std::remove(partial.c_str());
 }
 
 TEST(CorpusRunnerProcess, FromCsvRejectsACensusThatDoesNotPartitionTheEscapeCount) {
@@ -1941,7 +2027,7 @@ CorpusOutcome finished(const CorpusCell *cell, std::vector<int> per_qp, int esca
     CorpusOutcome o;
     o.cell = cell;
     o.row.cell_id = cell->id;
-    o.row.status = hven::solvers::SqpStatus::kOptimal;
+    o.row.status = hven::solvers::SolveStatus::kOptimal;
     o.row.escapes = escapes;
     o.row.qp_factorizations = std::move(per_qp);
     for (const int f : o.row.qp_factorizations) {
@@ -2167,7 +2253,7 @@ namespace kkt_gate_test {
 
 CorpusRow row_with(double stat, double primal, double sign, double comp, double dual_scale = 1.0,
                    double x_scale = 1.0,
-                   hven::solvers::SqpStatus status = hven::solvers::SqpStatus::kOptimal) {
+                   hven::solvers::SolveStatus status = hven::solvers::SolveStatus::kOptimal) {
     CorpusRow r{};
     r.cell_id = "fixture";
     r.status = status;
@@ -2278,16 +2364,16 @@ TEST(CorpusKktGate, OnlyRowsThatCLAIMOptimalAreJudged) {
     // W1. An honest failure exit claims nothing about the point it returns;
     // re-checking it would manufacture wrong answers out of honest errors.
     using namespace kkt_gate_test;
-    for (const hven::solvers::SqpStatus st :
-         {hven::solvers::SqpStatus::kMaxIter, hven::solvers::SqpStatus::kNumericalError,
-          hven::solvers::SqpStatus::kInfeasible, hven::solvers::SqpStatus::kBudgetExhausted}) {
+    for (const hven::solvers::SolveStatus st :
+         {hven::solvers::SolveStatus::kMaxIter, hven::solvers::SolveStatus::kNumericalError,
+          hven::solvers::SolveStatus::kInfeasible, hven::solvers::SolveStatus::kBudgetExhausted}) {
         EXPECT_EQ(kkt_gate_verdict(row_with(1e3, 1e3, 1e3, 1e3, 1.0, 1.0, st)),
                   KktVerdict::kUnchecked);
     }
     // And a row with NO recorded check (a Task-1-era 14-column artifact) is
     // unchecked, never wrong: absence of evidence is not evidence.
     CorpusRow bare{};
-    bare.status = hven::solvers::SqpStatus::kOptimal;
+    bare.status = hven::solvers::SolveStatus::kOptimal;
     EXPECT_EQ(kkt_gate_verdict(bare), KktVerdict::kUnchecked);
 }
 
@@ -2299,7 +2385,7 @@ TEST(CorpusGatePopulation, AWrongAnswerRowIsChargedTheWorstCaseExactlyAsADnfIs) 
     const CorpusCell *c =
         make_cell(5000, ConstraintFamily::kPathInterface, StartTaxonomy::kFullWarm);
     CorpusOutcome good = finished(c, {1, 1, 1});
-    good.row.status = hven::solvers::SqpStatus::kOptimal;
+    good.row.status = hven::solvers::SolveStatus::kOptimal;
     good.row.kkt_stationarity = 1e-10;
     good.row.kkt_primal = 1e-10;
     good.row.kkt_dual_sign = 0.0;
@@ -2382,6 +2468,770 @@ TEST(CorpusGatePopulation, G1G2ReportBothKCorruptedReadingsFromTheSameRows) {
 // Task 6 will use pins BOTH the artifact and the evaluator against drift, and
 // costs milliseconds because nothing is re-solved.
 // =============================================================================
+
+TEST(CorpusBaseline, TheCommittedIpmBaselinePinsTheTwoWarmRestartAcceptanceRows) {
+    // M6 W1 T9 FIX ROUND 1 (review I2 / Codex 3). T7 measured the two
+    // path_warm cells' kIpm cost and registered T9 as the owner of the pin;
+    // this is the pin, read off the committed schema-76 artifact itself.
+    // T10b RE-DERIVES both rows at the measured `ipqp_init_mu` (60/62 and
+    // 46/48 at the 0.1 placeholder) and re-points the define at its own dated
+    // baseline dir. `.superpowers/w1-t10b-report.md`.
+    const std::string log = runner_test::temp_path("corpus_ipm_baseline_score.log");
+    ASSERT_EQ(runner_test::run_binary(
+                  fmt::format("--from-csv {} --score-gates", HVEN_SQP_IPM_BASELINE_CSV), log),
+              0)
+        << "the committed kIpm baseline must re-score offline through the same reader";
+    std::remove(log.c_str());
+
+    const std::vector<std::string> rows = runner_test::data_rows(HVEN_SQP_IPM_BASELINE_CSV);
+    ASSERT_EQ(rows.size(), 27u) << "the 27-cell U0 replay set";
+    std::map<std::string, std::vector<std::string>> by_cell;
+    for (const std::string &row : rows) {
+        std::vector<std::string> col = runner_test::split_all(row);
+        ASSERT_EQ(col.size(), 76u) << row;
+        by_cell[col[0]] = std::move(col);
+    }
+
+    // Column 37 is `ipqp_iters` and 38 `ipqp_factorizations` (0-based): the
+    // 39-column IPQP tail starts right after `esc_gate_refused` at 36.
+    struct Pin {
+        const char *cell;
+        const char *iters;
+        const char *facts;
+    };
+    for (const Pin &pin :
+         {Pin{"f7_n800_path_warm", "37", "39"}, Pin{"f7_n1000_path_warm", "31", "33"}}) {
+        SCOPED_TRACE(pin.cell);
+        const auto it = by_cell.find(pin.cell);
+        ASSERT_NE(it, by_cell.end());
+        EXPECT_EQ(it->second[6], "Optimal");
+        EXPECT_EQ(it->second[37], pin.iters) << "barrier iterations";
+        EXPECT_EQ(it->second[38], pin.facts) << "factorizations";
+        EXPECT_EQ(it->second[57], "0") << "ipqp_warm_restart_abandoned: no warm kill";
+        EXPECT_EQ(it->second[66], "0") << "ipqp_escapes";
+    }
+}
+
+// =============================================================================
+// THE TOP-LEVEL INTERIOR-POINT LEG's BASELINE, READ OFFLINE (M6 W5 T8.1; the
+// abnormal-exit rows and the stop_reason column joined at T8.2). Its own reader:
+// the corpus's --from-csv path is bound to the 14/31/37/76 widths and refuses
+// this leg's 20-column schema by width.
+// =============================================================================
+
+namespace interior_test {
+
+// Column 0 is `<cell_id>/<fixed_treatment>` (the replay comparator keys on it
+// and keeps only the last of a repeated key), so the plain cell is its prefix.
+struct Artifact {
+    std::vector<std::map<std::string, std::string>> rows;
+    /// One line per record the reader could not read; never skipped silently.
+    std::vector<std::string> problems;
+};
+
+Artifact read_interior_csv(const std::string &path) {
+    const std::vector<std::string> lines = runner_test::read_lines(path);
+    std::vector<std::string> header;
+    Artifact art;
+    std::size_t line_no = 0;
+    for (const std::string &line : lines) {
+        ++line_no;
+        if (line.empty() || line[0] == '#') {
+            continue;
+        }
+        std::vector<std::string> col = runner_test::split_all(line);
+        if (header.empty()) {
+            header = std::move(col);
+            if (header.size() != 31u) {
+                art.problems.push_back(fmt::format("line {}: header has {} columns, expected 31",
+                                                   line_no, header.size()));
+            }
+            continue;
+        }
+        if (col.size() != header.size()) {
+            // A short or long record is a MALFORMED artifact, not a row to skip:
+            // a truncated capture would otherwise read as a smaller valid one.
+            art.problems.push_back(
+                fmt::format("line {}: {} fields, expected {}", line_no, col.size(), header.size()));
+            continue;
+        }
+        std::map<std::string, std::string> row;
+        for (std::size_t i = 0; i < header.size(); ++i) {
+            row[header[i]] = col[i];
+        }
+        art.rows.push_back(std::move(row));
+    }
+    return art;
+}
+
+// The key is <cell>/<treatment> on a base row and <cell>/<treatment>/<variant>
+// on an abnormal-exit row, so the cell is the FIRST segment, not everything
+// before the last slash.
+std::string cell_of(const std::map<std::string, std::string> &row) {
+    const std::string key = row.at("cell_id");
+    const std::size_t slash = key.find('/');
+    return slash == std::string::npos ? key : key.substr(0, slash);
+}
+
+// The variant segment, or empty on a base row.
+std::string variant_of(const std::map<std::string, std::string> &row) {
+    const std::string key = row.at("cell_id");
+    const std::size_t first = key.find('/');
+    if (first == std::string::npos) {
+        return {};
+    }
+    const std::size_t second = key.find('/', first + 1);
+    return second == std::string::npos ? std::string() : key.substr(second + 1);
+}
+
+// The eleven cells the leg runs: the ten U0 cells an NlpTripletModel can state, plus
+// the fixed-variable cell no F7 cell provides.
+const std::vector<std::string> &expected_interior_cells() {
+    static const std::vector<std::string> kCells{
+        "f7_n1000_bound_neutral",  "f7_n1000_bound_physics",  "f7_n2000_bound_neutral",
+        "f7_n2000_bound_physics",  "f7_n5000_bound_neutral",  "f7_n5000_bound_physics",
+        "f7_n10000_bound_neutral", "f7_n10000_bound_physics", "f7_n20000_bound_neutral",
+        "f7_n20000_bound_physics", "hs071_x1_fixed"};
+    return kCells;
+}
+
+// The four abnormal-exit rows (M6 W5 T8.2): the key, the verdict and the stop
+// reason each one exists to pin. MakeParameter only -- an exit is not a
+// treatment question.
+struct ExpectedExitRow {
+    const char *key;
+    const char *status;
+    const char *stop_reason;
+};
+
+// M6 W5 T8.4: the STATUS SPELLINGS moved with hven::ConvergenceFlags, which is
+// gone. `CONVERGED` reads `optimal` and `NOTCONVERGED` reads `max_iter` -- or
+// `stalled` at the two exits the old vocabulary could not tell apart at all,
+// which is why `stop_reason` is what separates the last two rows below and is
+// LOAD-BEARING in this artifact rather than merely informative.
+//
+// The list also gains the two MULTI-PHASE rows T8.4 added: {kSolve, kOptimize}
+// on one F7 cell and on HS071, whose point is the per-phase account, not an
+// exit.
+const std::vector<ExpectedExitRow> &expected_interior_exit_rows() {
+    static const std::vector<ExpectedExitRow> kRows{
+        {"f7_n1000_bound_neutral/MakeParameter/cap1", "max_iter", "iteration_cap"},
+        {"hs071_x1_fixed/MakeParameter/cap1", "max_iter", "iteration_cap"},
+        {"infeas2_spike/MakeParameter/stalled", "stalled", "stage_stalled"},
+        {"infeas2_stationary/MakeParameter/resto_infeasible", "stalled",
+         "restoration_locally_infeasible"},
+        {"f7_n1000_bound_neutral/MakeParameter/solve_optimize", "optimal", "none"},
+        {"hs071_x1_fixed/MakeParameter/solve_optimize", "optimal", "none"},
+        // THE TWO WARM ROWS (M6 W5 T8.5): the same fixed-variable cell,
+        // re-solved from the same x0 through the PAYLOAD entry after a
+        // converged producing solve on a separate solver.
+        {"hs071_x1_fixed/MakeParameter/warm_payload", "optimal", "none"},
+        {"hs071_x1_fixed/MakeParameter/warm_multiplier_seed", "optimal", "none"},
+        // THE TWO PARTITIONED ROWS (M6 W5 T8.9): one F7 cell laid over TWO
+        // partitions, under two treatments -- the only variant that is not
+        // MakeParameter-only, because a partitioning question is not an exit
+        // question and the treatment is the only thing that can put work in a
+        // partition the adapter does not occupy. Both are LAYOUT rows (the
+        // artifact's header says why), and both must land exactly where their
+        // one-partition rows did.
+        {"f7_n1000_bound_neutral/MakeConstraint/parts2", "optimal", "none"},
+        {"f7_n1000_bound_neutral/MakeParameter/parts2", "optimal", "none"}};
+    return kRows;
+}
+
+// The 43 keys, in the order the leg writes them: eleven cells x three
+// treatments, then the four abnormal-exit rows, the two multi-phase ones, the
+// two warm-start ones (M6 W5 T8.5) and the two partitioned ones (M6 W5 T8.9).
+// Listed rather than derived, so a leg that stopped writing a cell fails this
+// rather than agreeing with itself.
+const std::vector<std::string> &expected_interior_keys() {
+    static const std::vector<std::string> kKeys = [] {
+        std::vector<std::string> keys;
+        for (const std::string &cell : expected_interior_cells()) {
+            for (const char *treatment : {"MakeParameter", "MakeConstraint", "RelaxBounds"}) {
+                keys.push_back(cell + "/" + treatment);
+            }
+        }
+        for (const ExpectedExitRow &r : expected_interior_exit_rows()) {
+            keys.push_back(r.key);
+        }
+        return keys;
+    }();
+    return kKeys;
+}
+
+// The expected exit row for a key, or null when the key names a base row.
+const ExpectedExitRow *expected_exit_row(const std::string &key) {
+    for (const ExpectedExitRow &r : expected_interior_exit_rows()) {
+        if (key == r.key) {
+            return &r;
+        }
+    }
+    return nullptr;
+}
+
+// Everything wrong with an artifact, one line each; empty means it is the shape
+// the leg writes. Returned rather than asserted so the negative probes below can
+// assert that a broken artifact IS rejected.
+std::vector<std::string> interior_artifact_violations(const Artifact &art) {
+    std::vector<std::string> out = art.problems;
+
+    std::map<std::string, int> seen;
+    for (const auto &r : art.rows) {
+        const auto key = r.find("cell_id");
+        if (key == r.end()) {
+            out.push_back("a row carries no cell_id column");
+            continue;
+        }
+        ++seen[key->second];
+    }
+    for (const std::string &expected : expected_interior_keys()) {
+        const auto it = seen.find(expected);
+        if (it == seen.end()) {
+            out.push_back(fmt::format("missing row key '{}'", expected));
+        } else if (it->second != 1) {
+            out.push_back(fmt::format("row key '{}' appears {} times", expected, it->second));
+        }
+    }
+    for (const auto &[key, count] : seen) {
+        const auto &keys = expected_interior_keys();
+        if (std::find(keys.begin(), keys.end(), key) == keys.end()) {
+            out.push_back(fmt::format("unexpected row key '{}' ({} time(s))", key, count));
+        }
+    }
+
+    std::map<std::string, double> hs071_obj;
+    for (const auto &r : art.rows) {
+        const std::string key = r.count("cell_id") != 0 ? r.at("cell_id") : std::string("<none>");
+        const std::string treatment =
+            r.count("fixed_treatment") != 0 ? r.at("fixed_treatment") : std::string("<none>");
+        // The leg writes hven::solvers::SolveStatus' own spellings
+        // (crossover_legs.h::flag_string), not the SolveStatus names.
+        const std::string status = r.count("status") != 0 ? r.at("status") : std::string("<none>");
+        const std::string reason =
+            r.count("stop_reason") != 0 ? r.at("stop_reason") : std::string("<none>");
+        const std::string variant = r.count("cell_id") != 0 ? variant_of(r) : std::string();
+        const ExpectedExitRow *exit_row =
+            r.count("cell_id") != 0 ? expected_exit_row(key) : nullptr;
+        if (exit_row != nullptr) {
+            // An abnormal-exit row pins one verdict and one stop reason; that
+            // pairing is what the row exists for.
+            if (status != exit_row->status) {
+                out.push_back(
+                    fmt::format("{}: status '{}', expected '{}'", key, status, exit_row->status));
+            }
+            if (reason != exit_row->stop_reason) {
+                out.push_back(fmt::format("{}: stop_reason '{}', expected '{}'", key, reason,
+                                          exit_row->stop_reason));
+            }
+        } else {
+            if (status != "optimal" && status != "acceptable") {
+                out.push_back(fmt::format("{}: status '{}'", key, status));
+            }
+            if (reason != "none") {
+                out.push_back(fmt::format("{}: stop_reason '{}', expected 'none'", key, reason));
+            }
+        }
+        if (treatment != "MakeParameter" && treatment != "MakeConstraint" &&
+            treatment != "RelaxBounds") {
+            out.push_back(fmt::format("{}: fixed_treatment '{}'", key, treatment));
+        }
+        const std::string rebuilt = variant.empty() ? cell_of(r) + "/" + treatment
+                                                    : cell_of(r) + "/" + treatment + "/" + variant;
+        if (key != rebuilt) {
+            out.push_back(fmt::format("{}: key is not <cell>/<treatment>[/<variant>]", key));
+        }
+        if (cell_of(r) == "hs071_x1_fixed" && variant.empty()) {
+            if (status != "optimal") {
+                out.push_back(fmt::format("{}: the fixed-variable cell must converge", key));
+            }
+            try {
+                hs071_obj[treatment] = std::stod(r.at("obj_val"));
+            } catch (const std::exception &) {
+                out.push_back(fmt::format("{}: obj_val is not a number", key));
+            }
+        }
+    }
+
+    // The fixed-variable cell is the one the leg exists for: the three
+    // treatments solve the same problem and must reach the same objective.
+    if (hs071_obj.size() != 3u) {
+        out.push_back(
+            fmt::format("hs071_x1_fixed has {} treatment row(s), expected 3", hs071_obj.size()));
+    } else {
+        const double reference = hs071_obj.at("MakeParameter");
+        if (!(std::abs(reference) > 0.0)) {
+            out.push_back("hs071_x1_fixed/MakeParameter has a zero objective");
+        } else {
+            for (const auto &[treatment, value] : hs071_obj) {
+                if (std::abs(value - reference) / std::abs(reference) >= 1e-6) {
+                    out.push_back(fmt::format(
+                        "hs071_x1_fixed/{} reached a different objective than MakeParameter",
+                        treatment));
+                }
+            }
+        }
+    }
+    return out;
+}
+
+std::string join_violations(const std::vector<std::string> &v) {
+    std::string out;
+    for (const std::string &line : v) {
+        out += "\n  " + line;
+    }
+    return out;
+}
+
+// Writes `path` with the committed artifact's header and provenance and the
+// given data rows, so a probe can state exactly the artifact it is testing.
+void write_probe_artifact(const std::string &path, const std::vector<std::string> &data_rows) {
+    const std::vector<std::string> src =
+        runner_test::read_lines(std::string(HVEN_SQP_INTERIOR_BASELINE_CSV));
+    std::ofstream out(path);
+    ASSERT_TRUE(out.is_open()) << path;
+    for (const std::string &line : src) {
+        out << line << "\n";
+        if (!line.empty() && line.rfind("cell_id,", 0) == 0) {
+            break;
+        }
+    }
+    for (const std::string &row : data_rows) {
+        out << row << "\n";
+    }
+    out.close();
+    ASSERT_FALSE(out.fail()) << path;
+}
+
+// The committed artifact's data rows, in file order.
+std::vector<std::string> committed_data_rows() {
+    return runner_test::data_rows(std::string(HVEN_SQP_INTERIOR_BASELINE_CSV));
+}
+
+} // namespace interior_test
+
+TEST(CorpusCells, InteriorBaselineRescoresOffline) {
+    const std::string csv = std::string(HVEN_SQP_INTERIOR_BASELINE_CSV);
+    const interior_test::Artifact art = interior_test::read_interior_csv(csv);
+    ASSERT_EQ(art.rows.size(), 43u) << "eleven cells x three fixed-variable treatments, plus four "
+                                       "abnormal-exit rows, two multi-phase rows, two warm-start "
+                                       "rows and two partitioned rows";
+    const std::vector<std::string> violations = interior_test::interior_artifact_violations(art);
+    EXPECT_TRUE(violations.empty()) << interior_test::join_violations(violations);
+}
+
+// THE TWO WARM ROWS' CLAIMS, ASSERTED (M6 W5 T8.5).
+//
+// The leg is not linked by any test target, so its rows would otherwise be
+// evidence nobody checks. They are checked HERE, off the committed artifact, in
+// the terms the artifact's own header states -- and the two rows are read
+// DIFFERENTLY, because that is what was measured:
+//
+//   warm_payload  by `iter_num`, STRICTLY BELOW the base row's. Restarting the
+//                 converged point is worth iterations, and the column shows it.
+//
+//   warm_multiplier_seed  by its TERMINAL RESIDUALS. On this cell the
+//                 multipliers alone buy no iterations -- its `iter_num` equals
+//                 the base row's exactly -- so what shows the seed reached the
+//                 solve at all is that kkt_inf differs from the base row's by
+//                 more than a near-ulp margin. What that difference establishes
+//                 is that THE TRAJECTORY CHANGED, not that it improved:
+//                 econ_inf and icon_inf move from exact zeros to 2.1e-10, which
+//                 is a different path to the same optimum, not a better one.
+//                 Asserting an iteration improvement there would be asserting
+//                 something false.
+//
+// THE BRIEF'S A6 ASKED FOR MORE THAN THAT (M6 W5 T8.5 fix round 1) --
+// `iter_num(payload) < iter_num(seed) < iter_num(base)`, with the seed row
+// strictly between the other two. The measurement is 3 / 9 / 9. The criterion
+// was written before the rows existed; the measurement is the fact, and the
+// inequality is asserted NOWHERE -- not here, not in the leg, not in the
+// artifact's header.
+//
+// THE SEED ROW'S DIRECT OBSERVABLE IS THE APPLIED RUNG, and it is pinned in the
+// leg itself rather than here, because it is not a CSV column: the leg refuses
+// to emit either warm row unless `IpmResult::payload_ignored` and
+// `polish_ignored` say the rung the variant asked for was the rung reached
+// (`bench/ipm_corpus_leg.cpp`, `require`-style check after the measured solve).
+// The residual comparison below is the numeric witness beside it.
+//
+// Both rows must still CONVERGE and land on the same objective: a warm start
+// that changed the answer would be a defect whatever it did to the counters.
+TEST(CorpusCells, TheWarmRowsShowThePayloadAndTheSeedReachedTheSolve) {
+    const interior_test::Artifact art =
+        interior_test::read_interior_csv(std::string(HVEN_SQP_INTERIOR_BASELINE_CSV));
+    ASSERT_TRUE(art.problems.empty()) << interior_test::join_violations(art.problems);
+
+    const auto field = [&art](const std::string &key, const std::string &column) {
+        for (const auto &row : art.rows) {
+            const auto id = row.find("cell_id");
+            if (id != row.end() && id->second == key) {
+                const auto it = row.find(column);
+                EXPECT_NE(it, row.end()) << column << " on " << key;
+                return it == row.end() ? std::string() : it->second;
+            }
+        }
+        ADD_FAILURE() << "no row keyed '" << key << "'";
+        return std::string();
+    };
+
+    const std::string base = "hs071_x1_fixed/MakeParameter";
+    const std::string payload = base + "/warm_payload";
+    const std::string seed = base + "/warm_multiplier_seed";
+
+    // All three converge, and to the same objective.
+    for (const std::string &key : {base, payload, seed}) {
+        EXPECT_EQ(field(key, "status"), "optimal") << key;
+        EXPECT_NEAR(std::stod(field(key, "obj_val")), 17.0140173, 1e-6) << key;
+    }
+
+    const int base_iters = std::stoi(field(base, "iter_num"));
+    const int payload_iters = std::stoi(field(payload, "iter_num"));
+    const int seed_iters = std::stoi(field(seed, "iter_num"));
+
+    // THE PAYLOAD ROW: strictly fewer iterations. Strict, not `<=`: a payload
+    // that restarted the converged point and still took as long as a cold solve
+    // would mean nothing was applied, and that is exactly what this must catch.
+    EXPECT_LT(payload_iters, base_iters)
+        << "the whole payload restarts the converged point; if it costs as much as a cold "
+           "solve it was not applied";
+
+    // THE SEED ROW: NO IMPROVEMENT CLAIM. What is asserted is that the seed
+    // did not COST iterations (`<=`, which on this cell holds as equality), and
+    // that its terminal residual is not the base row's -- which is what shows
+    // the multipliers were installed and the trajectory CHANGED.
+    EXPECT_LE(seed_iters, base_iters);
+    const double base_kkt = std::stod(field(base, "kkt_inf"));
+    const double seed_kkt = std::stod(field(seed, "kkt_inf"));
+    EXPECT_NE(base_kkt, seed_kkt)
+        << "the multipliers-only seed reached the solve, so the terminal residual is not the "
+           "cold solve's -- a CHANGED trajectory, which is all this comparison claims";
+    // AND THE DIFFERENCE IS REAL, not arithmetic noise: an order of magnitude,
+    // stated as a ratio so the pin does not encode either value.
+    EXPECT_GT(std::abs(base_kkt - seed_kkt), 0.5 * std::max(base_kkt, seed_kkt))
+        << "base " << base_kkt << " vs seed " << seed_kkt;
+
+    // And the payload row's own residual is finite and converged -- the row is
+    // a real solve, not a short-circuit.
+    EXPECT_LT(std::stod(field(payload, "kkt_inf")), 1e-7);
+}
+
+// THE FIXED-COORDINATE RULE, LIVE (M6 W5 T8.4, design §2.3).
+//
+// THE TWO PARTITIONED ROWS' COMPARISON, ASSERTED (M6 W5 T8.9).
+//
+// The leg is linked by no test target, so its rows would otherwise be evidence
+// nobody checks. `make_nlp_program(problem, 2)` lays TWO partitions over the
+// same F7 cell the one-partition rows run, and what that means here is LAYOUT
+// and not parallelism: all three adapter pieces are MainThread, so the whole
+// problem sits in the last partition and runs inline on the calling thread.
+// The evaluation is therefore the same evaluation at either count.
+//
+// SO THE COMPARISON IS PINNED RATHER THAN DECLINED. `status` and `iter_num`
+// must be EQUAL to the one-partition row's and `obj_val` equal to 1e-12
+// relative; BITWISE identity across every measured column is the EXPECTATION
+// and is checked here too. A failure of the bitwise half would be a finding
+// about the partitioned assembly's slot order -- and therefore about the order
+// the backend is handed its input -- not a reason to have asserted nothing.
+TEST(CorpusCells, TheTwoPartitionRowsMatchTheirOnePartitionRows) {
+    const interior_test::Artifact art =
+        interior_test::read_interior_csv(std::string(HVEN_SQP_INTERIOR_BASELINE_CSV));
+    ASSERT_TRUE(art.problems.empty()) << interior_test::join_violations(art.problems);
+
+    const auto row_of = [&art](const std::string &key) {
+        for (const auto &row : art.rows) {
+            const auto id = row.find("cell_id");
+            if (id != row.end() && id->second == key) {
+                return row;
+            }
+        }
+        ADD_FAILURE() << "missing row " << key;
+        return std::map<std::string, std::string>{};
+    };
+
+    for (const char *treatment : {"MakeConstraint", "MakeParameter"}) {
+        SCOPED_TRACE(treatment);
+        const std::string base = std::string("f7_n1000_bound_neutral/") + treatment;
+        const auto one = row_of(base);
+        const auto two = row_of(base + "/parts2");
+        ASSERT_FALSE(one.empty());
+        ASSERT_FALSE(two.empty());
+
+        ASSERT_NE(one.find("status"), one.end());
+        EXPECT_EQ(two.at("status"), one.at("status"));
+        EXPECT_EQ(two.at("iter_num"), one.at("iter_num"));
+        const double f1 = std::stod(one.at("obj_val"));
+        const double f2 = std::stod(two.at("obj_val"));
+        EXPECT_NEAR(f2, f1, 1e-12 * std::max(1.0, std::abs(f1)));
+
+        // BITWISE, over every column but the row key, the treatment tag and
+        // `wall_s` -- the artifact stores its numbers as text, so equal text is
+        // equal bits.
+        for (const auto &entry : one) {
+            if (entry.first == "cell_id" || entry.first == "fixed_treatment" ||
+                entry.first == "wall_s") {
+                continue;
+            }
+            const auto it = two.find(entry.first);
+            ASSERT_NE(it, two.end()) << entry.first;
+            EXPECT_EQ(it->second, entry.second)
+                << "column " << entry.first << " moved between one and two laid partitions";
+        }
+    }
+}
+
+// hs071_x1_fixed is the same declared problem under three fixed-variable
+// treatments, and the treatments do genuinely different things to the fixed
+// coordinate: MakeParameter ELIMINATES it (no row at all, so its stationarity
+// coordinate is EXCLUDED from the inf-norm), MakeConstraint KEEPS it with an
+// internal fixing row whose multiplier becomes the bound price as
+// `z = -lambda_fix`, and RelaxBounds keeps it as a two-sided variable with its
+// bounds pushed apart.
+//
+// The whole point of defining the four diagnostics over the DECLARED problem is
+// that all three describe the same solution afterwards. This is the cheapest
+// live proof of it, and the only one taken on a real solve rather than on
+// hand-written quantities: three rows of a committed artifact, agreeing.
+//
+// THE TOLERANCE IS ABSOLUTE and stated: every one of the twelve values is a
+// residual at a converged point, so what is being asserted is that all three
+// treatments land at the same KKT point to within the engine's own convergence
+// tolerances -- not that three different arithmetic paths produce identical
+// bits, which they do not and are not asked to. RelaxBounds is the one that
+// needs the room: it converges at a point a few nanometres OUTSIDE the declared
+// box (that is what relaxing the bounds means), so its feasibility_i and
+// complementarity are the largest of the three.
+TEST(CorpusCells, TheThreeTreatmentsAgreeOnTheDeclaredDiagnostics) {
+    const interior_test::Artifact art =
+        interior_test::read_interior_csv(std::string(HVEN_SQP_INTERIOR_BASELINE_CSV));
+    ASSERT_TRUE(art.problems.empty()) << interior_test::join_violations(art.problems);
+
+    constexpr double kAgree = 1e-7;
+    const std::vector<std::string> columns{"stationarity", "feasibility_e", "feasibility_i",
+                                           "complementarity"};
+    std::map<std::string, std::map<std::string, double>> by_treatment;
+    for (const auto &row : art.rows) {
+        const auto key = row.find("cell_id");
+        ASSERT_NE(key, row.end());
+        // The three BASE rows only: the `/cap1` and `/solve_optimize` variants
+        // of the same cell are different solves and are not part of this claim.
+        for (const char *treatment : {"MakeParameter", "MakeConstraint", "RelaxBounds"}) {
+            if (key->second == std::string("hs071_x1_fixed/") + treatment) {
+                for (const std::string &c : columns) {
+                    const auto it = row.find(c);
+                    ASSERT_NE(it, row.end()) << c;
+                    by_treatment[treatment][c] = std::stod(it->second);
+                }
+            }
+        }
+    }
+    ASSERT_EQ(by_treatment.size(), 3u) << "the fixed-variable cell must carry all three treatments";
+
+    for (const std::string &c : columns) {
+        const double a = by_treatment.at("MakeParameter").at(c);
+        const double b = by_treatment.at("MakeConstraint").at(c);
+        const double r = by_treatment.at("RelaxBounds").at(c);
+        EXPECT_LT(std::abs(a - b), kAgree)
+            << c << ": MakeParameter " << a << " vs MakeConstraint " << b
+            << " -- the declared-space definition is what makes an ELIMINATED coordinate and a "
+               "coordinate held by an internal fixing row report the same residual";
+        EXPECT_LT(std::abs(a - r), kAgree)
+            << c << ": MakeParameter " << a << " vs RelaxBounds " << r;
+        // And each is a converged residual in its own right, so the agreement
+        // above is agreement at the solution rather than agreement on garbage.
+        EXPECT_LT(std::abs(a), kAgree) << c << " (MakeParameter)";
+        EXPECT_LT(std::abs(b), kAgree) << c << " (MakeConstraint)";
+        EXPECT_LT(std::abs(r), kAgree) << c << " (RelaxBounds)";
+    }
+}
+
+// THE MULTI-PHASE ROWS' PACKED ACCOUNT (M6 W5 T8.4). What the two
+// `/solve_optimize` rows exist to show: a {kSolve, kOptimize} call reports each
+// phase separately, both RAN (the second phase of that sequence is
+// unconditional -- only a kSolve AFTER a kOptimize is conditional), and the
+// per-phase counts sum to the row's own iteration count.
+TEST(CorpusCells, TheMultiPhaseRowsCarryAPerPhaseAccountThatSums) {
+    const interior_test::Artifact art =
+        interior_test::read_interior_csv(std::string(HVEN_SQP_INTERIOR_BASELINE_CSV));
+    ASSERT_TRUE(art.problems.empty()) << interior_test::join_violations(art.problems);
+
+    int seen = 0;
+    for (const auto &row : art.rows) {
+        const auto key = row.find("cell_id");
+        ASSERT_NE(key, row.end());
+        if (key->second.find("/solve_optimize") == std::string::npos) {
+            // Every OTHER row names one phase and ran it.
+            EXPECT_EQ(row.at("phase_count"), "1") << key->second;
+            EXPECT_EQ(row.at("phases_ran"), "1") << key->second;
+            continue;
+        }
+        ++seen;
+        EXPECT_EQ(row.at("phase_count"), "2") << key->second;
+        EXPECT_EQ(row.at("phases_ran"), "2") << key->second;
+
+        const std::string packed = row.at("phases");
+        const std::size_t bar = packed.find('|');
+        ASSERT_NE(bar, std::string::npos) << packed;
+        const std::string first = packed.substr(0, bar);
+        const std::string second = packed.substr(bar + 1);
+        EXPECT_EQ(first.rfind("kSolve:", 0), 0u) << packed;
+        EXPECT_EQ(second.rfind("kOptimize:", 0), 0u) << packed;
+
+        // `<name>:<status>:<iterations>` -- the counts sum to iter_num.
+        const auto iters_of = [](const std::string &field) {
+            const std::size_t last = field.rfind(':');
+            return std::stoi(field.substr(last + 1));
+        };
+        EXPECT_EQ(iters_of(first) + iters_of(second), std::stoi(row.at("iter_num"))) << packed;
+        // Both phases converged on these cells, and the row reports the LAST
+        // ran phase's status.
+        EXPECT_NE(first.find(":optimal:"), std::string::npos) << packed;
+        EXPECT_NE(second.find(":optimal:"), std::string::npos) << packed;
+        EXPECT_EQ(row.at("status"), "optimal") << key->second;
+    }
+    EXPECT_EQ(seen, 2) << "one F7 cell and HS071";
+}
+
+// The two probes below are NEGATIVE: they state a broken artifact and require
+// the check above to reject it. Without them the check can only report that a
+// well-formed artifact is well-formed.
+
+TEST(CorpusCells, InteriorArtifactCheckRejectsAnIncompleteArtifact) {
+    // The three fixed-variable rows alone: every F7 cell silently absent.
+    std::vector<std::string> rows;
+    for (const std::string &row : interior_test::committed_data_rows()) {
+        // The three BASE rows: none of the four variants of the same cell
+        // (M6 W5 T8.4 added /solve_optimize; T8.5 added the two warm ones).
+        if (row.rfind("hs071_x1_fixed/", 0) == 0 && row.find("/cap1,") == std::string::npos &&
+            row.find("/solve_optimize,") == std::string::npos &&
+            row.find("/warm_payload,") == std::string::npos &&
+            row.find("/warm_multiplier_seed,") == std::string::npos) {
+            rows.push_back(row);
+        }
+    }
+    ASSERT_EQ(rows.size(), 3u);
+    const std::string path = runner_test::temp_path("interior_probe_incomplete.csv");
+    interior_test::write_probe_artifact(path, rows);
+
+    const std::vector<std::string> violations =
+        interior_test::interior_artifact_violations(interior_test::read_interior_csv(path));
+    // 36 -> 38 at M6 W5 T8.5 and 38 -> 40 at M6 W5 T8.9: two more expected keys
+    // to be missing each time.
+    EXPECT_EQ(violations.size(), 40u) << interior_test::join_violations(violations);
+    EXPECT_NE(interior_test::join_violations(violations)
+                  .find("missing row key 'f7_n1000_bound_neutral/MakeParameter'"),
+              std::string::npos);
+    std::remove(path.c_str());
+}
+
+TEST(CorpusCells, InteriorArtifactCheckRejectsDuplicateAndMalformedRows) {
+    // (a) a repeated key -- the shape the replay comparator would silently
+    //     collapse to one row.
+    std::vector<std::string> rows = interior_test::committed_data_rows();
+    ASSERT_EQ(rows.size(), 43u);
+    rows.push_back(rows.front());
+    const std::string dup = runner_test::temp_path("interior_probe_duplicate.csv");
+    interior_test::write_probe_artifact(dup, rows);
+    const std::vector<std::string> dup_violations =
+        interior_test::interior_artifact_violations(interior_test::read_interior_csv(dup));
+    ASSERT_FALSE(dup_violations.empty());
+    EXPECT_NE(interior_test::join_violations(dup_violations).find("appears 2 times"),
+              std::string::npos)
+        << interior_test::join_violations(dup_violations);
+    std::remove(dup.c_str());
+
+    // (b) a truncated record -- read as a malformed artifact, never skipped.
+    std::vector<std::string> truncated = interior_test::committed_data_rows();
+    truncated.back() = "hs071_x1_fixed/MakeParameter/solve_optimize,HS071,4,none";
+    const std::string bad = runner_test::temp_path("interior_probe_malformed.csv");
+    interior_test::write_probe_artifact(bad, truncated);
+    const std::vector<std::string> bad_violations =
+        interior_test::interior_artifact_violations(interior_test::read_interior_csv(bad));
+    ASSERT_FALSE(bad_violations.empty());
+    EXPECT_NE(interior_test::join_violations(bad_violations).find("4 fields, expected 31"),
+              std::string::npos)
+        << interior_test::join_violations(bad_violations);
+    std::remove(bad.c_str());
+}
+
+// M6 W5 T8.9r: THE SINGLE-ROW INTERIOR MODE writes the leg's own row.
+//
+// `--internal-run-one <cell> --engine interior --treatment T --internal-out
+// <path>` exists to put ONE interior row's work, and nothing else, inside one
+// process's counters: the leg proper writes 43 rows per process, so a
+// whole-process instruction count of it is neither like-for-like across arms
+// that write different row sets nor free of the first row's warm-up
+// (docs/notes/data/2026-09-m6-w5-t8-runtime/reading.md §5 (iv) and §11).
+//
+// An instrument is only worth what its agreement with the thing it stands in
+// for is worth, and THAT is what this pins: the mode's routing
+// (`run_interior_single_row`) and the leg's own row builder produce the SAME
+// ROW for the same key. IN PROCESS, both of them -- bench/ipm_corpus_leg.cpp is
+// compiled into this binary (tests/sqp/CMakeLists.txt) precisely so this
+// comparison needs no fork, no artifact and no second box. The CLI plumbing
+// around it (the flag, the refusals, the provenance header) is glue in
+// bench_corpus.cpp's main(); what could silently produce a WRONG NUMBER is the
+// routing, and the routing is here.
+//
+// hs071_x1_fixed is the cell: it is the one the leg runs unconditionally, it is
+// four variables dense and converges in single-digit iterations, and it is
+// therefore the only cell in the leg this every-commit suite can afford to
+// solve twice.
+//
+// THE FLOATING-POINT MEASURE COLUMNS GO THROUGH runner_test's residual gate
+// rather than byte equality, for the reason that gate's own derivation gives:
+// MKL's kernels are address-sensitive, and two solves are two sets of
+// addresses even inside one process. Byte equality is still the expected
+// outcome and the gate checks it first; everything that is not a float --
+// the key, the identity columns, the status, the stop reason, every counter,
+// the per-phase account and the four declared widths -- is held EXACT, because
+// no floating-point arithmetic produces it. `wall_s` is excluded outright: it
+// is informational (CLAUDE.md §7) and the leg's own comparator excludes it too.
+TEST(CorpusCells, TheSingleRowInteriorModeProducesTheLegsOwnRow) {
+    namespace corpus = hven::solvers::corpus;
+    using hven::solvers::FixedVariableTreatments;
+
+    const corpus::InteriorLevers levers;
+    const corpus::InteriorRow routed = corpus::run_interior_single_row(
+        corpus::kHs071FixedCellId, FixedVariableTreatments::MakeParameter, levers);
+    const corpus::InteriorRow leg = corpus::run_interior_hs071(
+        FixedVariableTreatments::MakeParameter, levers, corpus::interior_base_variant());
+
+    const std::vector<std::string> a = runner_test::split_all(corpus::interior_csv_row(routed));
+    const std::vector<std::string> b = runner_test::split_all(corpus::interior_csv_row(leg));
+    ASSERT_EQ(a.size(), 31u) << corpus::interior_csv_row(routed);
+    ASSERT_EQ(b.size(), 31u) << corpus::interior_csv_row(leg);
+    EXPECT_EQ(a[0], "hs071_x1_fixed/MakeParameter")
+        << "the single-row mode's key carries no variant segment: it runs the BASE variant";
+
+    // obj_val, kkt_inf, barr_inf, econ_inf, icon_inf (7-11) and the four shared
+    // declared diagnostics (26-29), by the schema interior_csv_header() writes.
+    const auto is_measure = [](std::size_t i) {
+        return (i >= 7 && i <= 11) || (i >= 26 && i <= 29);
+    };
+    for (std::size_t i = 0; i + 1 < a.size(); ++i) { // the last column is wall_s
+        if (is_measure(i)) {
+            EXPECT_TRUE(runner_test::residual_columns_agree(a[i], b[i]))
+                << "column " << i << " differs by more than " << runner_test::kResidualRelativeGate
+                << " relative: single-row=" << a[i] << " leg=" << b[i];
+        } else {
+            EXPECT_EQ(a[i], b[i]) << "column " << i
+                                  << " is not a floating-point measure and must "
+                                     "be identical";
+        }
+    }
+
+    // THE TWO WAYS THE ROUTING CAN BE ASKED FOR A ROW THAT DOES NOT EXIST, both
+    // refused before any solve: an id the corpus does not carry, and a cell the
+    // leg cannot state as an NlpTripletModel. Neither costs a solve, which is why
+    // they ride along here rather than in a test of their own.
+    EXPECT_THROW((void)corpus::run_interior_single_row(
+                     "not_a_cell_id", FixedVariableTreatments::MakeParameter, levers),
+                 std::invalid_argument);
+    EXPECT_THROW((void)corpus::run_interior_single_row(
+                     "f7_n1000_bound_warm", FixedVariableTreatments::MakeParameter, levers),
+                 std::invalid_argument);
+}
 
 TEST(CorpusBaseline, TheCommittedWalkBaselineScoresToItsDocumentedVerdict) {
     const std::string log = runner_test::temp_path("corpus_baseline_score.log");
@@ -2643,11 +3493,45 @@ TEST(CorpusTask6bRepair, TheWalkArmIsCounterIdenticalAcrossTheD0Repair) {
 }
 
 TEST(CorpusTask6bRepair, TheKSsnArmMovesTheFourCrashingCellsAndNothingElse) {
-    // Claim (2). The four cells are named rather than derived, because the
-    // point is that the SET is what was predicted -- a fifth cell moving
-    // would be a finding, and this test is what would report it.
+    // Claim (2). TWO EVENTS now separate these two frozen artifacts, and this
+    // test names BOTH rather than collapsing them into one "moved" bit:
+    //
+    //   D0 REPAIR (2026-08-08) -- the reason this test exists. Four cells
+    //     stopped crashing; they may differ in ANY column.
+    //   R6 SIGN SWEEP (2026-08-27, owner-ruled honest re-pin; see the APPENDED
+    //     provenance note in ssn_resweep.csv). Fourteen cells had their
+    //     negative exported face prices repaired. The re-pin landed in the
+    //     POST artifact ONLY: the gate battery is the PRE-repair record, its
+    //     D0 cells are engine_error, and no current binary can re-derive that
+    //     state -- so its bytes stay the pin and are NOT touched.
+    //
+    // Both sets are NAMED rather than derived, because in each case the SET is
+    // the claim: a fifth D0 cell, a fifteenth R6 cell, an R6 cell moving a
+    // COUNTER, or any other cell moving at all would each fail here. This is
+    // strictly stronger than the single "is it a D0 cell" bit it replaces --
+    // every moved cell is now accounted for by name AND by column.
     const std::set<std::string> d0 = {"f7_n2000_path_neutral", "f7_n5000_path_neutral",
                                       "f7_n5000_path_corrupted", "f7_n5000_path_warm"};
+    const std::set<std::string> r6 = {
+        "f7_n1000_path_neutral",        "f7_n1000_path_physics",       "f7_n1000_path_corrupted",
+        "f7_n1000_path_activity",       "f7_n1000_path_warm",          "f7_n2000_path_physics",
+        "f7_n2000_path_activity",       "f7_n2000_path_warm",          "f7_n20000_path_activity",
+        "f7_n800_path_neutral",         "f7_n800_path_physics",        "f7_n800_path_corrupted",
+        "f7_n750_path_neutral_control", "f7_n825_path_neutral_control"};
+    // Schema-37 column indices, 0-based, for the columns R6 is allowed to
+    // move. Everything outside this set stays BYTE-STRICT on an R6 cell.
+    constexpr std::size_t kColKktResidual = 12;
+    constexpr std::size_t kColWallS = 13;
+    constexpr std::size_t kColKktVerdict = 14;
+    constexpr std::size_t kColKktStationarity = 15;
+    constexpr std::size_t kColKktPrimal = 16;
+    constexpr std::size_t kColKktDualSign = 17;
+    constexpr std::size_t kColKktComplementarity = 18;
+    constexpr std::size_t kColNegIneqDuals = 21;
+    const std::set<std::size_t> r6_columns = {
+        kColKktResidual, kColKktVerdict,         kColKktStationarity, kColKktPrimal,
+        kColKktDualSign, kColKktComplementarity, kColNegIneqDuals};
+
     const auto shipped = runner_test::data_rows(HVEN_SQP_SSN_BATTERY_CSV);
     const auto post = runner_test::data_rows(HVEN_SQP_TASK6B_SSN_CSV);
     ASSERT_EQ(shipped.size(), 57u);
@@ -2657,30 +3541,102 @@ TEST(CorpusTask6bRepair, TheKSsnArmMovesTheFourCrashingCellsAndNothingElse) {
         std::vector<std::string> col = runner_test::split_all(r);
         by_id[col[0]] = col;
     }
-    int moved_cells = 0;
+    int d0_moved = 0;
+    int r6_moved = 0;
     for (const std::string &r : shipped) {
         const std::vector<std::string> b = runner_test::split_all(r);
         const auto it = by_id.find(b[0]);
         ASSERT_NE(it, by_id.end()) << b[0];
+        const std::vector<std::string> &p = it->second;
+        const std::string &id = b[0];
+        const bool is_d0 = d0.count(id) == 1;
+        const bool is_r6 = r6.count(id) == 1;
+        ASSERT_FALSE(is_d0 && is_r6) << id << ": the two events must not claim the same cell";
+
         bool moved = false;
         // Every SHIPPED column (0..30, minus wall_s): the schema-37 tail is
         // new and has no counterpart to compare against.
         for (std::size_t k = 0; k < 31; ++k) {
-            if (k == 13) {
-                continue; // wall_s
+            if (k == kColWallS) {
+                continue;
             }
-            if (b[k] != it->second[k]) {
-                moved = true;
-                EXPECT_TRUE(d0.count(b[0]) == 1)
-                    << "cell " << b[0] << " column " << k << " moved (" << b[k] << " -> "
-                    << it->second[k] << ") and it is NOT one of the four D0 cells";
+            if (b[k] == p[k]) {
+                continue;
             }
+            moved = true;
+            if (is_d0) {
+                continue; // (1) the D0 repair may move any column
+            }
+            if (is_r6) {
+                // (2) an R6 cell may move ONLY inside the R6 column set. A
+                // counter, a status or a per-QP shape moving here would mean
+                // the sweep reached the iteration, which it must not.
+                EXPECT_TRUE(r6_columns.count(k) == 1)
+                    << "R6 cell " << id << " moved column " << k << " (" << b[k] << " -> " << p[k]
+                    << "), which is OUTSIDE the R6 column set -- the sign sweep runs at the "
+                       "export boundary and must not move a counter, status or shape";
+                continue;
+            }
+            // (3) nobody else moves at all.
+            ADD_FAILURE() << "cell " << id << " column " << k << " moved (" << b[k] << " -> "
+                          << p[k]
+                          << ") and it belongs to NEITHER the four D0 cells nor the "
+                             "fourteen R6 cells";
         }
         if (moved) {
-            ++moved_cells;
+            if (is_d0) {
+                ++d0_moved;
+            } else if (is_r6) {
+                ++r6_moved;
+            }
+        }
+        if (!is_r6) {
+            continue;
+        }
+        // AND WHY EACH R6 CELL MOVED, stated as the repair's own contract
+        // rather than as "something changed here".
+        EXPECT_GT(std::stoi(b[kColNegIneqDuals]), 0)
+            << id << " is claimed as an R6 cell, so it must have carried negative prices BEFORE";
+        EXPECT_EQ(p[kColNegIneqDuals], "0") << id << ": no negative price may escape after R6";
+        EXPECT_EQ(p[kColKktDualSign], "0.000000000e+00")
+            << id << ": the dual-sign residual is exactly zero once the prices are repaired";
+        EXPECT_GT(std::stod(p[kColKktStationarity]), std::stod(b[kColKktStationarity]))
+            << id
+            << ": clamping a price the stationarity condition was using COSTS "
+               "stationarity -- see solver_counters.h's R6 note";
+        // The other three residual-class columns only drift in their last
+        // digits. The bound is this file's usual 1e-5 RELATIVE test WITH AN
+        // ABSOLUTE FLOOR, and the floor is not padding: these are residual
+        // norms formed by cancellation from O(1) data, so their absolute
+        // accuracy is a few ulps of 1.0 (~1e-15) no matter how small the norm
+        // itself is -- f7_n800_path_physics' complementarity sits at 2.6e-15,
+        // where a purely relative test measures noise against noise (it reads
+        // 6.0e-05 for an absolute move of 1.6e-19). Worst observed drift over
+        // these 3 columns x 14 cells is 4.5e-15, so 1e-13 leaves 22x head-room
+        // while staying SIX ORDERS below the smallest genuine R6 movement
+        // (kkt_stationarity, ~1e-7). A real change cannot hide under it.
+        constexpr double kResidualAbsFloor = 1e-13;
+        for (const std::size_t k : {kColKktResidual, kColKktPrimal, kColKktComplementarity}) {
+            const double was = std::stod(b[k]);
+            const double now = std::stod(p[k]);
+            const double scale = std::max(std::abs(was), std::abs(now));
+            EXPECT_LE(std::abs(now - was), std::max(1e-5 * scale, kResidualAbsFloor))
+                << id << " column " << k
+                << ": R6 must not move this column beyond last-digit drift (" << b[k] << " -> "
+                << p[k] << ")";
+        }
+        if (b[kColKktVerdict] != p[kColKktVerdict]) {
+            // The single verdict flip the re-pin declared. Its repaired
+            // stationarity clears the gate's relative bound, so the verdict
+            // now tells the truth about a marginal solve.
+            EXPECT_EQ(id, "f7_n20000_path_activity")
+                << "only one cell's verdict may move across R6";
+            EXPECT_EQ(b[kColKktVerdict], "ok");
+            EXPECT_EQ(p[kColKktVerdict], "wrong");
         }
     }
-    EXPECT_EQ(moved_cells, 4) << "exactly the four D0 cells move";
+    EXPECT_EQ(d0_moved, 4) << "exactly the four D0 cells move for the repair";
+    EXPECT_EQ(r6_moved, 14) << "exactly the fourteen R6 cells move for the sign sweep";
 
     // AND THE DIRECTION OF THE MOVE: every one of the four stops throwing.
     for (const std::string &cid : d0) {
@@ -2779,7 +3735,7 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         // into the default path and turned an Optimal cell into a
         // NumericalError one would have passed every assertion below. It costs
         // nothing to compare: the runner already prints it into column 6.
-        EXPECT_EQ(std::string(to_string(row.status)), w[6]);
+        EXPECT_EQ(std::string(hven::solvers::corpus::legacy_status_string(row.status)), w[6]);
         // The INTEGER columns, by name and by index into the schema-37 header,
         // compared exactly. The float columns (12, 15-20) are compared through
         // their own printed form below, because that is the form the artifact
@@ -2865,8 +3821,21 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
             {"f7_n1000_bound_neutral",
              {"6.295832335e-14", "6.295832335e-14", "1.937883159e-14", "0.000000000e+00",
               "0.000000000e+00"}},
+            // R6 RE-PIN (M6 W0.3, 2026-08-27, hven m6 commit 2d82b13, owner
+            // ruling). This cell is one of the 14 the sign sweep repairs, so
+            // two of its five residuals moved and are re-derived here from an
+            // actual run of the fixed binary: `dual_sign` is now EXACTLY zero
+            // because no negative price escapes the export any more, and
+            // `stationarity` is the value at those DUAL-FEASIBLE multipliers
+            // (1.045096220e-10 -> 3.220916799e-07 -- the clamp's own cost, see
+            // solver_counters.h's R6 note). kkt_residual, primal and
+            // complementarity are UNCHANGED. The full 14-row delta and the
+            // declaration live in the appended provenance note in
+            // ssn_resweep.csv. NOTHING BELOW IS RELAXED: the same 1e-5
+            // relative gate applies to these five, and every integer column
+            // above stays byte-strict.
             {"f7_n1000_path_neutral",
-             {"3.053665099e-10", "1.045096220e-10", "3.053665099e-10", "4.555244335e-07",
+             {"3.053665099e-10", "3.220916799e-07", "3.053665099e-10", "0.000000000e+00",
               "1.271441541e-13"}},
         };
         // U0 FOLLOW-UP (2026-08-16, the SAME event, after its first CI push):
@@ -2909,6 +3878,22 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         constexpr double kHostRelTol = 1e-5;
         const auto close = [&](double observed, const char *derived, const char *what) {
             const double want = std::stod(derived);
+            // A NON-FINITE VALUE NEVER REACHES THE ARITHMETIC BELOW (M6 W6 T1
+            // fix1). With `observed` infinite and `want` finite, |observed -
+            // want| is inf and scale is inf, so the relative test would read
+            // inf <= inf and PASS -- the loudest regression this column can
+            // report, waved through. The Debug arm's gate refuses it at the
+            // #else below and both comparators refuse it under
+            // --residual-gate; this arm now says the same thing. The 1e-13
+            // floor is deliberately NOT added here: see the #else arm's note
+            // on the declared asymmetry.
+            if (!std::isfinite(observed) || !std::isfinite(want)) {
+                ADD_FAILURE() << what << " on cell " << id
+                              << ": a non-finite residual never passes the gate -- observed "
+                              << fmt::format("{:.9e}", observed) << ", derivation machine "
+                              << derived;
+                return;
+            }
             const double scale = std::max(std::abs(want), std::abs(observed));
             EXPECT_LE(std::abs(observed - want), kHostRelTol * scale)
                 << what << " on cell " << id << ": observed " << fmt::format("{:.9e}", observed)
@@ -2921,11 +3906,130 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         close(row.kkt_complementarity, exp9.complementarity, "kkt_complementarity");
 #else
         (void)residuals;
-        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_residual), w[12]);
-        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_stationarity), w[15]);
-        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_primal), w[16]);
-        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_dual_sign), w[17]);
-        EXPECT_EQ(fmt::format("{:.9e}", row.kkt_complementarity), w[18]);
+        // THE DEBUG ARM STAYS BYTE-STRICT AGAINST THE ARTIFACT: Debug
+        // arithmetic did not move at U0 and still reproduces the artifact's
+        // bytes exactly -- f7_n1000_bound_neutral matches 5 of 5, measured
+        // 2026-08-27.
+        //
+        // ONE EXCEPTION, AND IT IS THE R6 RE-PIN'S OWN (M6 W0.3). A cell whose
+        // artifact row was RE-DERIVED under Release cannot be byte-compared
+        // here any more: the bytes on the left are Debug's, the bytes on the
+        // right are now Release's. Measured on f7_n1000_path_neutral, Debug
+        // live against the re-pinned artifact:
+        //     kkt_residual         3.053662878e-10 vs 3.053665099e-10
+        //     kkt_stationarity     3.220925019e-07 vs 3.220916799e-07
+        //     kkt_primal           3.053662878e-10 vs 3.053665099e-10
+        //     kkt_dual_sign        0.000000000e+00 vs 0.000000000e+00 (exact)
+        //     kkt_complementarity  1.271441918e-13 vs 1.271441541e-13
+        // -- 4 of 5 differ, and the SHAPE of the difference is the argument.
+        // Three of them are Debug still reproducing the PRE-re-pin bytes
+        // EXACTLY, so the fork is Release's own last-digit drift and not a
+        // Debug change. The fourth, kkt_stationarity, is R6's repair itself:
+        // the sweep is not config-dependent, so Debug reaches the same
+        // ~3.22e-07 and differs only in the 6th significant digit. dual_sign
+        // is exactly zero in both, because the repair is exact.
+        //
+        // So that cell takes the SAME 1e-5 relative FACTOR the Release arm
+        // above uses, on the same argument. Widest gap here is 2.6e-6 relative
+        // (kkt_stationarity) -- inside the gate with room, and still orders
+        // below anything a lever could do. (This test iterates exactly TWO ids,
+        // at :3715. Until M6 W6 T1 the OTHER one -- f7_n1000_bound_neutral --
+        // kept a byte-compare here; the block below says why that ONE ROW no
+        // longer does, and why this one's bound is still the bare relative
+        // form.)
+        static const std::set<std::string> kR6RePinnedRows = {"f7_n1000_path_neutral"};
+        const bool r6_repinned = kR6RePinnedRows.count(id) == 1;
+        // A DECLARED RELAXATION OF ONE DEBUG-ARM FLOAT PIN (M6 W6 T1, plan
+        // section 0 J.6) -- ONE ROW, f7_n1000_bound_neutral, of the two ids this
+        // test iterates (:3715). The byte-strict EXPECT_EQ that stood here is
+        // now the Release arm's 1e-5 relative FACTOR plus the absolute floor of
+        // 1e-13 this file derives at :3607-3617. It is written down because a
+        // pin that moves silently is worse than one that moves.
+        //
+        // IT IS NOT LITERALLY "THE SAME GATE" THE RELEASE ARM APPLIES, and the
+        // asymmetry is DECLARED rather than glossed (M6 W6 T1 fix1). The
+        // Release arm's `close` above is FLOORLESS -- a bare
+        // kHostRelTol * scale -- while this arm carries the 1e-13 absolute
+        // floor; both arms refuse a non-finite value. So DEBUG IS THE LOOSER
+        // ARM, and nothing here can hide a Release regression: Release still
+        // pins its own five residuals against its own re-derivation with no
+        // floor at all, on every lane that ships a Release build.
+        //
+        // WHY. This cell failed twice under full-suite Debug with unpinned
+        // threading and passed in isolation each time, on a byte-for-byte
+        // residual compare -- observed 2026-08-30 at M6 W1 T2 and registered
+        // then (docs/notes/2026-08-m6-ledger.md:576-580) with "near-ulp gate or
+        // thread self-pin" as the remedy. The self-pin at :3703 cannot work:
+        // MKL reads its environment at first use in the PROCESS, and in a
+        // full-suite run another test has already initialised it, which is
+        // exactly the pass-in-isolation/fail-in-suite split observed. The gate
+        // is the remedy that works, and it is the one CLAUDE.md section 7 names:
+        // MKL's kernels are address-sensitive, so a residual can differ in its
+        // last digits "between two processes running identical code at
+        // MKL_NUM_THREADS=1, and cross-process agreement on them is asserted by
+        // a calibrated near-ulp gate rather than by byte equality -- counters
+        // and statuses remain exact". THIS COMPARE IS CROSS-PROCESS: the
+        // artifact rows on the right were written by the corpus binary in a
+        // different process, so the clause applies to it directly.
+        //
+        // WHAT DOES NOT MOVE. Every integer counter (:3743-3762), the status
+        // (:3738) and the per-QP shape (:3765-3769) stay BYTE-STRICT on both
+        // arms: no floating-point arithmetic produces them, so a single-bit move
+        // in one is a real regression. (This test compares NO kkt_verdict
+        // column -- an earlier draft of this comment said it stayed byte-strict
+        // here, which was false; the verdict comparison lives in
+        // CorpusTask6bRepair at :3628-3635. M6 W6 T1 fix1.) Byte equality is
+        // still checked FIRST here and is still the common outcome; the gate
+        // engages only on the digits that provably vary. Same rule, same
+        // constants, as scripts/census_compare.py and
+        // scripts/compare_replay.py apply under --residual-gate.
+        //
+        // THE R6 ROW KEEPS THE BARE RELATIVE BOUND, deliberately: its widest gap
+        // is 2.6e-6 RELATIVE, and on its smallest column (complementarity,
+        // 1.27e-13) the pair differs by 3.77e-20 against a relative bound of
+        // 1.27e-18 -- about 34x of head-room, NOT the "three orders" an earlier
+        // draft of this comment claimed (M6 W6 T1 fix1). Adding the floor there
+        // would only loosen a pin that does not need it. It is for the rows whose
+        // residuals sit BELOW it, where a purely relative test measures noise
+        // against noise -- f7_n1000_bound_neutral's kkt_residual is 6.3e-14, so
+        // the floor, not the 1e-5, is the operative bound on that column and the
+        // relaxation there is larger than "1e-5" alone suggests. That is the
+        // same trade this file already took at :3607-3617 and is stated here so
+        // the next reader does not have to re-derive it.
+        constexpr double kDebugResidualAbsFloor = 1e-13;
+        const auto debug_close = [&](double observed, const std::string &artifact,
+                                     const char *what) {
+            const std::string live = fmt::format("{:.9e}", observed);
+            if (live == artifact) {
+                return; // byte-equal: the common outcome, checked first
+            }
+            const double want = std::stod(artifact);
+            // Non-finite never passes the numeric path below: inf against a
+            // finite value gives |inf - x| = inf and scale = inf, so the
+            // relative test would read inf <= inf and SUCCEED. An infinite or
+            // NaN residual is the loudest regression this column can report.
+            if (!std::isfinite(observed) || !std::isfinite(want)) {
+                ADD_FAILURE() << what << " on cell " << id
+                              << ": a non-finite residual never passes the gate -- Debug " << live
+                              << ", artifact " << artifact;
+                return;
+            }
+            const double scale = std::max(std::abs(want), std::abs(observed));
+            if (!r6_repinned) {
+                EXPECT_LE(std::abs(observed - want), std::max(1e-5 * scale, kDebugResidualAbsFloor))
+                    << what << " on cell " << id << ": Debug " << live << ", artifact " << artifact
+                    << " -- outside the 1e-5 relative gate (absolute floor 1e-13)";
+                return;
+            }
+            EXPECT_LE(std::abs(observed - want), 1e-5 * scale)
+                << what << " on cell " << id << ": Debug " << live << ", Release-derived artifact "
+                << artifact;
+        };
+        debug_close(row.kkt_residual, w[12], "kkt_residual");
+        debug_close(row.kkt_stationarity, w[15], "kkt_stationarity");
+        debug_close(row.kkt_primal, w[16], "kkt_primal");
+        debug_close(row.kkt_dual_sign, w[17], "kkt_dual_sign");
+        debug_close(row.kkt_complementarity, w[18], "kkt_complementarity");
 #endif
     }
 }

@@ -22,7 +22,8 @@
 # want of one.
 set(HVEN_SQP_TEST_SOURCES
     test_accelerate_probes.cpp
-    test_aggregate_eval_seam.cpp
+    test_activity_telemetry.cpp
+    test_assembly_eval_seam.cpp
     test_b1_gate.cpp
     test_bench_dump.cpp
     test_border_ops.cpp
@@ -35,28 +36,42 @@ set(HVEN_SQP_TEST_SOURCES
     test_funnel.cpp
     test_hs_battery.cpp
     test_hs_sweeps.cpp
+    test_ipqp_acceptance.cpp
+    test_ipqp_certification.cpp
+    test_ipqp_counters.cpp
+    test_ipqp_dispatch.cpp
+    test_ipqp_engine.cpp
+    test_ipqp_kkt_layout.cpp
+    test_ipqp_math.cpp
+    test_ipqp_options.cpp
+    test_ipqp_trace.cpp
+    test_ipqp_warm_restart.cpp
     test_kkt_assembly.cpp
     test_kkt_calls.cpp
     test_kkt_inertia_probe.cpp
     test_kkt_partial_solve.cpp
     test_ledger.cpp
     test_mesh_transfer.cpp
+    test_nlp_kkt_check.cpp
     test_nlp_model.cpp
     test_parametric_families.cpp
     test_predictor.cpp
+    test_problem_scaling.cpp
     test_qp_engine.cpp
     test_qp_engine_border.cpp
     test_qp_engine_indefinite.cpp
     test_qp_engine_tr.cpp
+    test_qp_mode_sites.cpp
     test_qp_warm_start.cpp
     test_scaffold.cpp
     test_scale_problems.cpp
     test_scale_smoke.cpp
     test_schur.cpp
-    test_sqp_driver.cpp
+    test_sqp_solver.cpp
     test_sqp_restoration.cpp
     test_sqp_warm_currency.cpp
     test_ssn_engine.cpp
+    test_trace_writer.cpp
     test_types.cpp
     test_warm_start.cpp
     test_warm_start_battery.cpp
@@ -66,6 +81,17 @@ add_executable(hven_sqp_tests ${HVEN_SQP_TEST_SOURCES})
 target_link_libraries(hven_sqp_tests PRIVATE hven::hven GTest::gtest_main)
 target_compile_options(hven_sqp_tests PRIVATE ${COMPILE_FLAGS})
 
+# M6 W5 T8.9r: bench/ipm_corpus_leg.cpp is COMPILED INTO this binary, on the
+# same reasoning corpus_cells.h is quote-included into test_corpus_cells.cpp —
+# one implementation shared by the measurement binary and the assertion that
+# guards it, never a second copy. Until T8.9r every interior gate here read the
+# committed ARTIFACT, so the leg needed no link; the single-row mode's pin is a
+# statement about two of the leg's OWN FUNCTIONS agreeing (the routing and the
+# row builder), which only an in-process call can make. It is listed apart from
+# HVEN_SQP_TEST_SOURCES above because that list is this directory's own files,
+# in sorted order, and a path out of the tree has no place in it.
+target_sources(hven_sqp_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../../bench/ipm_corpus_leg.cpp")
+
 # test_corpus_cells.cpp includes "../../bench/corpus_cells.h" by relative path
 # (one implementation shared by the measurement binary and the assertion that
 # guards it, never a second copy) — a quoted include resolves relative to the
@@ -74,6 +100,17 @@ target_compile_options(hven_sqp_tests PRIVATE ${COMPILE_FLAGS})
 # directory (bench/), which has no support/ subdirectory — so this target
 # needs tests/sqp/ itself on the include path, and ONLY that.
 target_include_directories(hven_sqp_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+
+# The driver TU test_qp_mode_sites.cpp SCANS (M6 W4 T5). It reads the source
+# text -- it does not parse C++ -- and requires every kernel invocation in it to
+# be covered by a nearby `qp.mode` emit or to carry an explicit `// trace:`
+# marker, so the schema's per-site list cannot go stale as the driver grows call
+# sites. Rooted at THIS directory for the same reason HVEN_CORE_INCLUDE_DIR is,
+# and absolute so the test does not depend on ctest's working directory; the
+# test asserts the file exists and contains the invocations it expects, so a
+# wrong path fails loudly rather than scanning nothing.
+target_compile_definitions(hven_sqp_tests
+    PRIVATE HVEN_SQP_SOLVER_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}/../../src/drivers/sqp_solver.cpp")
 
 # The committed walk baseline, so test_corpus_cells.cpp can re-score THE
 # ARTIFACT ITSELF through the offline --from-csv path and pin the verdict.
@@ -108,6 +145,22 @@ target_compile_definitions(hven_sqp_tests PRIVATE
     HVEN_SQP_TASK6B_SSN_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-08-09-task6b-resweep/ssn_resweep.csv"
     HVEN_SQP_TASK6B_WALK_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-08-09-task6b-resweep-walk/walk_resweep.csv")
 
+# M6 W1 T9 fix round 1: the DECLARED schema-76 kIpm baseline over the 27-cell
+# U0 replay set — the artifact the two path_warm acceptance rows are pinned in,
+# and the one the replay's ipm arm compares all 76 columns against.
+# T10b RE-POINTS IT at the measured `ipqp_init_mu`'s own dated dir; the T9 one
+# stays on disk, unrewritten, as the 0.1 placeholder's record.
+target_compile_definitions(hven_sqp_tests PRIVATE
+    HVEN_SQP_IPM_BASELINE_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-09-02-t10b-ipm/ipm_baseline.csv")
+
+# M6 W5 T8.1: the TOP-LEVEL interior-point leg's baseline (--engine interior,
+# 19 columns, one row per cell per fixed-variable treatment). Pinned here for
+# the reason every baseline above is: the artifact and the gate that reads it
+# hold each other in place. The corpus's own --from-csv reader cannot read this
+# schema, so the gate reads the file directly.
+target_compile_definitions(hven_sqp_tests PRIVATE
+    HVEN_SQP_INTERIOR_BASELINE_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv")
+
 # The SNOPT bridge's referee gate, added to the test binary ONLY when the
 # root-level SNOPT detection succeeded (see the block above the tests
 # subdirectory in the root CMakeLists.txt for why the detection lives there).
@@ -138,6 +191,16 @@ endif()
 # phase gate. See the banners in test_scale_problems.cpp, test_scale_smoke.cpp
 # and test_warm_start_battery.cpp for each member's measured cost and why a
 # per-commit-excluded assertion is one nobody watches by default.
+# The A4 record test reads the COMMITTED gate CSV rather than re-running the
+# 40-minute sweep, so it needs the artifact's path at compile time (the same
+# device HVEN_SQP_CORPUS_BINARY uses for the corpus subprocess tests).
+# T10b adds the SECOND record: the same 29 cells at the measured `ipqp_init_mu`.
+# The shipped-defaults CSV above is NOT regenerated -- it is the placeholder's
+# record and a pin is never rewritten (CLAUDE.md section 7).
+target_compile_definitions(hven_sqp_tests PRIVATE
+    HVEN_A4_GATE_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../docs/notes/data/2026-08-m6-w1-acceptance/a4-gate-shipped-defaults.csv"
+    HVEN_A4_GATE_MU1E2_CSV="${CMAKE_CURRENT_SOURCE_DIR}/../../docs/notes/data/2026-08-m6-w1-acceptance/a4-gate-mu1e-2.csv")
+
 gtest_discover_tests(hven_sqp_tests
     TEST_FILTER "-ScaleF7Slow.*"
     DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})

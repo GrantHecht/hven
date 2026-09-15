@@ -1,0 +1,25 @@
+LEG: bash -o pipefail -c bash /home/ghecht/Projects/hven/.scratch/m6-close/rig_full.sh
+PGREP_SEPARATE 2026-09-14T17:10:25Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-14T17:10:25Z
+RIG_FULL_CTEST_RC=8  (captured, NOT folded)
+	436 - Arms/SqpTrace.T2b_PartialSolvePredicateUnderPerturbation/psiopt-old@mkl (Skipped)
+	446 - Arms/SqpTrace.T4_HandleOutlivesItsEmitter/psiopt-old@mkl (Skipped)
+	447 - Arms/SqpTrace.T4_HandleOutlivesItsEmitter/sqp-old@mkl (Skipped)
+	451 - Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/psiopt-old@mkl (Skipped)
+	452 - Arms/SqpTrace.T4b_AdoptRefusesStaleNumerics/sqp-old@mkl (Skipped)
+	502 - Arms/InteriorPointTrace.P6_RefinementStepEvidence/sqp-old@mkl (Skipped)
+	1628 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1629 - EqpRefinementAb.FullBattery (Disabled)
+
+The following tests FAILED:
+	497 - Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp-old@mkl (Failed)
+Errors while running CTest
+--- the failing tests, in full ---
+	497 - Arms/InteriorPointTrace.P5_InertiaBeforeFactorizationIsAnExplicitState/sqp-old@mkl (Failed)
+RIG_FULL_CTEST_RC=8
+RIG_FULL_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T17:11:33Z
+WRAPPER_EXIT=0

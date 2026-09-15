@@ -1,0 +1,16 @@
+# started on Fri Sep 11 15:33:04 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89ra3/bin/9cebbbe/hven_sqp_corpus --engine interior --cells f7_n1000_bound_physics,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n20000_bound_neutral --csv /home/ghecht/Projects/hven/.scratch/w5t89ra3/art/scsv/s-default-g3.csv':
+
+           301,083      page-faults:u                                                         
+           301,083      minor-faults:u                                                        
+    21,382,086,506      cycles:u                                                              
+    59,226,509,305      instructions:u                                                        
+
+       7.033731600 seconds time elapsed
+
+       6.432296000 seconds user
+       0.566336000 seconds sys
+
+

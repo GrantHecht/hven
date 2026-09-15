@@ -10,9 +10,10 @@
 
 namespace hven::solvers {
 
-WarmStart from_interior_point(const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
-                              const Vec &slack_i, const Vec &z_lower, const Vec &z_upper,
-                              const Vec &lower, const Vec &upper, const IpCrossoverOptions &opts) {
+SqpWarmStart from_interior_point(const Vec &x, const Vec &lambda_e, const Vec &lambda_i,
+                                 const Vec &slack_i, const Vec &z_lower, const Vec &z_upper,
+                                 const Vec &lower, const Vec &upper,
+                                 const IpCrossoverOptions &opts) {
     const Index n = x.size();
     const Index mi = lambda_i.size();
     if (slack_i.size() != mi) {
@@ -40,7 +41,7 @@ WarmStart from_interior_point(const Vec &x, const Vec &lambda_e, const Vec &lamb
             "from_interior_point: upper has size {}, expected {} (x's own size)", upper.size(), n));
     }
 
-    WarmStart out;
+    SqpWarmStart out;
     out.x = x;
     out.lambda_e = lambda_e;
     out.lambda_i = lambda_i;
@@ -82,7 +83,7 @@ WarmStart from_interior_point(const Vec &x, const Vec &lambda_e, const Vec &lamb
     for (Index i = 0; i < n; ++i) {
         if (lower(i) == upper(i)) {
             // kFixed: sits at both bounds at once, not sign-constrained --
-            // the same arbitrary-but-consistent +1 WarmStart::bound_active's
+            // the same arbitrary-but-consistent +1 SqpWarmStart::bound_active's
             // own note picks for a solve-derived object.
             out.bound_active[static_cast<std::size_t>(i)] = 1;
             states[static_cast<std::size_t>(i)] = BoundState::kFixed;
@@ -114,7 +115,7 @@ WarmStart from_interior_point(const Vec &x, const Vec &lambda_e, const Vec &lamb
     out.dual_mu = -1.0;
     // BY DESIGN: there is no model here to hash in the first place, so the
     // hash is UNKNOWN rather than merely uncomputed. See
-    // WarmStart::structure_hash.
+    // SqpWarmStart::structure_hash.
     out.structure_hash = 0;
     out.hot = nullptr; // never hot: no factorization exists to offer.
     out.valid = true;

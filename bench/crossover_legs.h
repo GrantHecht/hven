@@ -22,8 +22,8 @@
 // per cell. Wall is recorded and is INFORMATIONAL ONLY -- never a margin,
 // never a claim.
 //
-// Both engines reach the cell through the ONE declared NLPProblem -- the
-// interior-point engine via NLPSolver's own transcription, the SQP engine via
+// Both engines reach the cell through the ONE declared NlpTripletModel -- the
+// interior-point engine via make_nlp_program's transcription, the SQP engine via
 // NlpProblemModel -- so both key the same DeclarationKey and an export stages
 // across with no conversion and no re-stamp. The corpus's cells are NlpModels
 // (F7CollocationChain), so the declaration is ModelAsNlpProblem below; neither
@@ -48,6 +48,7 @@
 #include <functional>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -60,14 +61,14 @@
 #include <hven/core/solver_counters.h>
 #include <hven/core/solver_status.h>
 #include <hven/core/start_level.h>
-#include <hven/drivers/interior_point_solver.h>
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/detail/model/nlp_adapter.h>
+#include <hven/drivers/ipm_solver.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/nlp_model.h>
-#include <hven/model/nlp_model_aggregate.h>
-#include <hven/model/nlp_problem.h>
+#include <hven/model/nlp_model_assembly.h>
 #include <hven/model/nlp_problem_model.h>
-#include <hven/model/nlp_solver.h>
+#include <hven/model/nlp_triplet_model.h>
 #include <hven/model/structure_identity.h>
 #include <hven/warmstart/ipm_polish_extension.h>
 #include <hven/warmstart/warm_start_data.h>
@@ -82,10 +83,10 @@ using hven::solvers::corpus::CorpusCell;
 using hven::solvers::corpus::StartTaxonomy;
 
 // =============================================================================
-// ModelAsNlpProblem — an NlpModel, stated the way NLPProblem states a problem
+// ModelAsNlpProblem — an NlpModel, stated the way NlpTripletModel states a problem
 // =============================================================================
 
-/// @brief One NlpModel declared as an NLPProblem, so that both engines can be
+/// @brief One NlpModel declared as an NlpTripletModel, so that both engines can be
 ///        bound to it.
 ///
 /// ROW LAYOUT. The declared rows are the equalities first, in the model's own
@@ -95,26 +96,26 @@ using hven::solvers::corpus::StartTaxonomy;
 ///   row me + j     in [0, mi)        gl = -inf, gu = 0  -> cI_j(x) <= 0
 ///
 /// Reading the declaration back through NlpProblemModel reproduces the ORIGINAL
-/// model's cE and cI, in the original order, with no sign flip, so NLPProblem's
+/// model's cE and cI, in the original order, with no sign flip, so NlpTripletModel's
 /// lambda over [cE; cI] splits into the model's (lambda_e, lambda_i) by a
 /// head/tail cut and nothing else.
 ///
-/// STRUCTURE. NLPProblem queries the two sparsity patterns once and they must
+/// STRUCTURE. NlpTripletModel queries the two sparsity patterns once and they must
 /// not move afterwards, but an NlpModel decides its pattern per point. The
 /// declared structure is therefore the UNION of the patterns at two points: the
-/// model's own start point, and the point NLPSolver's transcription evaluates
+/// model's own start point, and the point make_nlp_program's transcription evaluates
 /// at (the origin projected onto the declared box). Every later evaluation is
 /// merged into the declared slots, and a nonzero arriving at a slot the union
 /// did not declare is REFUSED by name: a model whose pattern depends on the
-/// iterate cannot be stated as an NLPProblem.
+/// iterate cannot be stated as an NlpTripletModel.
 ///
 /// HESSIAN TRIANGLE. NlpModel returns the UPPER triangle (row <= col);
-/// NLPProblem declares the LOWER one (row >= col). Same symmetric matrix, so
+/// NlpTripletModel declares the LOWER one (row >= col). Same symmetric matrix, so
 /// the conversion is an index transpose on the declared structure and nothing
 /// at all on the values.
-class ModelAsNlpProblem final : public NLPProblem {
+class ModelAsNlpProblem final : public NlpTripletModel {
   public:
-    /// @brief Declares @p model as an NLPProblem.
+    /// @brief Declares @p model as an NlpTripletModel.
     /// @param model The model to state; retained.
     /// @param name  Diagnostic name, reported by name().
     /// @throws std::invalid_argument if @p model is null.
@@ -152,15 +153,23 @@ class ModelAsNlpProblem final : public NLPProblem {
 
     void eval_grad_f(ConstEigenRef<Eigen::VectorXd> x,
                      Eigen::Ref<Eigen::VectorXd> grad) const override {
-        grad = model_->eval_grad(x);
+        // The destination is an Eigen::Ref, which the in-place form cannot take;
+        // the local is the same one temporary the by-value call already made.
+        Vec g;
+        model_->eval_grad_in_place(x, g);
+        grad = g;
     }
 
     void eval_g(ConstEigenRef<Eigen::VectorXd> x, Eigen::Ref<Eigen::VectorXd> g) const override {
         if (me_ > 0) {
-            g.head(me_) = model_->eval_ce(x);
+            Vec ce;
+            model_->eval_ce_in_place(x, ce);
+            g.head(me_) = ce;
         }
         if (mi_ > 0) {
-            g.tail(mi_) = model_->eval_ci(x);
+            Vec ci;
+            model_->eval_ci_in_place(x, ci);
+            g.tail(mi_) = ci;
         }
     }
 
@@ -188,7 +197,8 @@ class ModelAsNlpProblem final : public NLPProblem {
         // g = [cE; cI], so lambda splits into the model's pair by a head/tail cut.
         const Vec lambda_e = me_ > 0 ? Vec(lambda.head(me_)) : Vec(0);
         const Vec lambda_i = mi_ > 0 ? Vec(lambda.tail(mi_)) : Vec(0);
-        const SpRM upper = model_->eval_hess(Vec(x), obj_factor, lambda_e, lambda_i);
+        SpRM upper;
+        model_->eval_hess_in_place(Vec(x), obj_factor, lambda_e, lambda_i, upper);
         merge_into_slots(hess_pattern_, upper, "Hessian", vals);
     }
 
@@ -201,7 +211,7 @@ class ModelAsNlpProblem final : public NLPProblem {
   private:
     using SpRM = Eigen::SparseMatrix<double, Eigen::RowMajor>;
 
-    // The point NLPSolver's transcription evaluates at: the origin projected
+    // The point make_nlp_program's transcription evaluates at: the origin projected
     // onto the declared box. The pattern union has to cover it -- that call
     // happens before any solve iterate exists, and its pattern is what the
     // solver keeps.
@@ -216,8 +226,16 @@ class ModelAsNlpProblem final : public NLPProblem {
     }
 
     SpRM stacked_jacobian(const Vec &x) const {
-        const SpRM je = me_ > 0 ? model_->eval_jac_e(x) : SpRM(0, n_);
-        const SpRM ji = mi_ > 0 ? model_->eval_jac_i(x) : SpRM(0, n_);
+        // A block with no rows is not evaluated, and its destination carries the
+        // empty shape explicitly -- as the by-value ternary's else arm did.
+        SpRM je(0, n_);
+        if (me_ > 0) {
+            model_->eval_jac_e_in_place(x, je);
+        }
+        SpRM ji(0, n_);
+        if (mi_ > 0) {
+            model_->eval_jac_i_in_place(x, ji);
+        }
         std::vector<Eigen::Triplet<double>> t;
         t.reserve(static_cast<std::size_t>(je.nonZeros() + ji.nonZeros()));
         for (Index r = 0; r < je.outerSize(); ++r) {
@@ -287,7 +305,7 @@ class ModelAsNlpProblem final : public NLPProblem {
                         "(row {}, col {}) is not in the structure declared at setup. The "
                         "declared structure is the union of the patterns at the model's start "
                         "point and at the projected origin; a model whose pattern depends on "
-                        "the iterate cannot be stated as an NLPProblem, whose structures are "
+                        "the iterate cannot be stated as an NlpTripletModel, whose structures are "
                         "queried once and must not change.",
                         what, r, v_inner[vk]));
                 }
@@ -321,8 +339,11 @@ class ModelAsNlpProblem final : public NLPProblem {
         // contribution at once.
         const Vec ones_e = Vec::Ones(me_);
         const Vec ones_i = Vec::Ones(mi_);
-        hess_pattern_ = pattern_union(model_->eval_hess(x_start, 1.0, ones_e, ones_i),
-                                      model_->eval_hess(x_origin, 1.0, ones_e, ones_i));
+        SpRM hess_start;
+        model_->eval_hess_in_place(x_start, 1.0, ones_e, ones_i, hess_start);
+        SpRM hess_origin;
+        model_->eval_hess_in_place(x_origin, 1.0, ones_e, ones_i, hess_origin);
+        hess_pattern_ = pattern_union(hess_start, hess_origin);
         hess_rows_.resize(hess_pattern_.nonZeros());
         hess_cols_.resize(hess_pattern_.nonZeros());
         {
@@ -330,7 +351,7 @@ class ModelAsNlpProblem final : public NLPProblem {
             for (Index r = 0; r < hess_pattern_.outerSize(); ++r) {
                 for (SpRM::InnerIterator it(hess_pattern_, r); it; ++it, ++slot) {
                     // Upper (row, col) declared as lower (col, row): same
-                    // symmetric entry, the triangle NLPProblem asks for.
+                    // symmetric entry, the triangle NlpTripletModel asks for.
                     hess_rows_(slot) = static_cast<int>(it.col());
                     hess_cols_(slot) = static_cast<int>(it.row());
                 }
@@ -357,10 +378,10 @@ inline std::string dual_bind_refusal(const CorpusCell &cell) {
     case StartTaxonomy::kPhysicsInformed:
         return {};
     case StartTaxonomy::kCorrupted:
-        return "start is a damaged SQP WarmStart from a prior solve at p0; the interior-point "
+        return "start is a damaged SQP SqpWarmStart from a prior solve at p0; the interior-point "
                "engine accepts no such value, so leg (a) cannot run from this cell's own start";
     case StartTaxonomy::kFullWarm:
-        return "start is an SQP WarmStart carried from a prior solve at p0 (hot handle and "
+        return "start is an SQP SqpWarmStart carried from a prior solve at p0 (hot handle and "
                "activity encoding, no interior-point counterpart), so leg (a) cannot run from "
                "this cell's own start";
     case StartTaxonomy::kActivityOnly:
@@ -394,7 +415,7 @@ struct IpmLegRow {
     /// False until this leg actually finished; a leg that never ran reports
     /// `absent`, never a default value -- see margins_row.
     bool ran = false;
-    hven::ConvergenceFlags flag = hven::ConvergenceFlags::NOTCONVERGED;
+    hven::solvers::SolveStatus flag = hven::solvers::SolveStatus::kMaxIter;
     int iters = -1;
     Index analyses = -1;
     Index factorizations = -1;
@@ -413,7 +434,7 @@ struct IpmLegRow {
 struct SqpLegRow {
     /// False until this leg actually finished; see IpmLegRow::ran.
     bool ran = false;
-    SqpStatus status = SqpStatus::kNumericalError;
+    SolveStatus status = SolveStatus::kNumericalError;
     StartLevel start_level = StartLevel::kCold;
     Index major_iters = -1;
     Index qp_minor_iters = -1;
@@ -474,7 +495,7 @@ inline Vec start_point_for(const CorpusCell &cell, const test_support::F7Colloca
     }
 }
 
-inline SqpLegRow record_sqp(const SqpSolution &sol, double wall_s) {
+inline SqpLegRow record_sqp(const SqpResult &sol, double wall_s) {
     SqpLegRow row;
     row.ran = true;
     row.status = sol.status;
@@ -487,32 +508,42 @@ inline SqpLegRow record_sqp(const SqpSolution &sol, double wall_s) {
     row.seeded_clamped = sol.counters.seeded_clamped;
     row.f = sol.f;
     row.kkt_residual = sol.kkt_residual;
-    row.stationarity = sol.stationarity;
-    row.feasibility = sol.feasibility;
-    row.complementarity = sol.complementarity;
+    // The engine's OWN measurements, renamed in M6 W5 T8.4 when the result
+    // base grew shared ones of the first and last names with a different
+    // definition (declared space, caller units). This artifact's columns are
+    // the engine's, so they follow the sqp_* names.
+    row.stationarity = sol.sqp_stationarity;
+    row.feasibility = sol.sqp_feasibility;
+    row.complementarity = sol.sqp_complementarity;
     row.wall_s = wall_s;
     return row;
 }
 
 /// One SQP leg: a fresh driver, a fresh bridge over the SAME declared problem,
-/// the same x0, and whatever `stage` chooses to stage before the solve.
+/// the same x0, and -- on the two warm legs -- a warm-start PAYLOAD handed to
+/// the solve as an argument.
 ///
-/// The TWO-argument entry on all three legs. The four-argument overload's
-/// explicit `WarmStart` is refused against a staged value, so the
-/// minor-iteration budget it carries is unavailable to legs (c) and (d), and
-/// taking it on leg (b) alone would leave the cold leg the only bounded one.
-/// All three legs are therefore bounded by the SAME thing: the options object's
-/// SqpOptions::max_iter and SqpOptions::qp.max_iter caps, which
-/// corpus_cells.h's options_for_cell sets, with the runner's wall deadline as
-/// the outer guard.
-template <typename StageFn>
-SqpLegRow run_sqp_leg(const std::shared_ptr<NlpProblemModel> &model, const Vec &x0,
-                      const SqpOptions &opts, StageFn &&stage) {
-    NlpModelAggregate bridge(model);
-    SqpDriver driver{opts};
-    stage(driver, bridge);
+/// M6 W5 T8.5 TURNED THE STAGING CALL INTO AN ARGUMENT. The three legs used to
+/// call `driver.stage_warm_start(p)` and then the two-argument `solve`; they
+/// now call `solve(bridge, x0, p)` (and the cold leg the two-argument form).
+/// Same checks, same order, same resolved level -- kSeeded on both warm legs,
+/// a payload carrying `structure_hash == 0` by construction.
+///
+/// STILL NO BUDGET ARGUMENT, and now for a simpler reason than before: the
+/// four-argument entry used to be REFUSED beside a staged value, which is what
+/// kept legs (c) and (d) off it; with staging gone every leg could take a
+/// budget, and none does, because all three must be bounded by the SAME thing
+/// -- the options object's SqpOptions::max_iter and SqpOptions::qp.max_iter
+/// caps, which corpus_cells.h's options_for_cell sets, with the runner's wall
+/// deadline as the outer guard. Budgeting one leg and not the others would
+/// make the margins incomparable.
+inline SqpLegRow run_sqp_leg(const std::shared_ptr<NlpProblemModel> &model, const Vec &x0,
+                             const SqpOptions &opts, const WarmStartData *payload) {
+    NlpModelAssembly bridge(model);
+    SqpSolver driver{opts};
     const auto t0 = std::chrono::steady_clock::now();
-    const SqpSolution sol = driver.solve(bridge, x0);
+    const SqpResult sol =
+        payload != nullptr ? driver.solve(bridge, x0, *payload) : driver.solve(bridge, x0);
     return record_sqp(sol, seconds_since(t0));
 }
 
@@ -568,28 +599,44 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
     // --- leg (a): the interior-point baseline, and the exporter ---
     WarmStartData exported;
     {
-        NLPSolver ipm(declared);
-        ipm.optimizer_->set_print_level(opts.ipm_print_level);
-        ipm.optimizer_->set_max_iters(opts.ipm_max_iters);
-        ipm.optimizer_->set_tols(corpus::detail::kKktTol, corpus::detail::kFeasTol,
-                                 corpus::detail::kFeasTol, corpus::detail::kKktTol);
-        ipm.transcribe();
+        // THE ENGINE, CONSTRUCTED DIRECTLY (M6 W5 T8.9): the transcription is
+        // the one-call make_nlp_program, the phase sequence is a field, and the
+        // program is an argument of the solve. The TIMED WINDOW is unchanged --
+        // it brackets the solve only, and the transcription runs above `t0`.
+        const auto ipm_program = hven::solvers::make_nlp_program(declared);
+        hven::solvers::IpmSolver ipm;
+        hven::solvers::IpmOptions ipm_opts = ipm.options();
+        ipm_opts.common.print_level = opts.ipm_print_level;
+        ipm_opts.max_iters = opts.ipm_max_iters;
+        ipm_opts.kkt_tol = corpus::detail::kKktTol;
+        ipm_opts.econ_tol = corpus::detail::kFeasTol;
+        ipm_opts.icon_tol = corpus::detail::kFeasTol;
+        ipm_opts.bar_tol = corpus::detail::kKktTol;
+        ipm.set_options(std::move(ipm_opts));
         const auto t0 = std::chrono::steady_clock::now();
-        legs.a.flag = ipm.optimize(x0);
+        const hven::solvers::IpmResult result = ipm.solve(*ipm_program, x0);
         legs.a.wall_s = detail::seconds_since(t0);
 
-        const auto &result = ipm.optimizer_->result();
-        legs.a.iters = result.iter_num_;
-        legs.a.f = result.obj_val_;
-        legs.a.kkt_inf = result.kkt_inf_;
-        legs.a.econ_inf = result.econ_inf_;
-        legs.a.icon_inf = result.icon_inf_;
-        legs.a.barr_inf = result.barr_inf_;
-        legs.a.analyses = ipm.optimizer_->kkt_analysis_count();
-        legs.a.factorizations = ipm.optimizer_->kkt_factor_counters().factorize_count;
-        legs.a.solves = ipm.optimizer_->kkt_factor_counters().solve_count;
+        legs.a.flag = result.status;
+        legs.a.iters = result.iterations;
+        legs.a.f = result.f;
+        legs.a.kkt_inf = result.kkt_inf;
+        legs.a.econ_inf = result.econ_inf;
+        legs.a.icon_inf = result.icon_inf;
+        legs.a.barr_inf = result.barr_inf;
+        legs.a.analyses = result.kkt_analyses_total;
+        legs.a.factorizations = result.kkt_factor_counters.factorize_count;
+        legs.a.solves = result.kkt_factor_counters.solve_count;
 
-        exported = ipm.optimizer_->export_warm_start();
+        // THE RESULT'S OWN SNAPSHOT (M6 W5 T8.5): the solver-side
+        // export_warm_start() is gone, and the capture it served now travels on
+        // the returned value as an optional. It is engaged on every completed
+        // solve whose capture passed its internal-consistency checks; a
+        // disengaged one leaves `exported` default-constructed, which the two
+        // warm legs then hand over and which is refused for its stamp -- loud,
+        // where the old shape would have thrown at the export instead.
+        const std::optional<WarmStartData> snapshot = result.export_warm_start();
+        exported = snapshot.value_or(WarmStartData{});
         legs.a.export_has_polish = find_ipm_polish(exported) != nullptr;
         legs.a.ran = true;
     }
@@ -604,9 +651,7 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
     const SqpOptions sqp_opts = corpus::detail::options_for_cell(cell);
 
     // --- leg (d): SQP warm, with polish -- CONSTANT COST, so it runs first ---
-    legs.d = detail::run_sqp_leg(
-        model, x0, sqp_opts,
-        [&exported](SqpDriver &driver, NlpModelAggregate &) { driver.stage_warm_start(exported); });
+    legs.d = detail::run_sqp_leg(model, x0, sqp_opts, &exported);
     emit(LegStage::kWarmPolish);
 
     // --- leg (c): SQP warm, core only ---
@@ -615,14 +660,12 @@ inline CellLegs run_cell_legs(const CorpusCell &cell, const LegOptions &opts = {
     {
         WarmStartData core = exported;
         core.extensions_.clear();
-        legs.c = detail::run_sqp_leg(
-            model, x0, sqp_opts,
-            [&core](SqpDriver &driver, NlpModelAggregate &) { driver.stage_warm_start(core); });
+        legs.c = detail::run_sqp_leg(model, x0, sqp_opts, &core);
     }
     emit(LegStage::kWarmCore);
 
     // --- leg (b): SQP cold, last -- see the execution-order note above ---
-    legs.b = detail::run_sqp_leg(model, x0, sqp_opts, [](SqpDriver &, NlpModelAggregate &) {});
+    legs.b = detail::run_sqp_leg(model, x0, sqp_opts, nullptr);
     emit(LegStage::kCold);
     emit(LegStage::kMargins);
 
@@ -669,21 +712,23 @@ inline std::string cell_prefix(const CorpusCell &cell) {
                        corpus::to_string(cell.start));
 }
 
-/// @brief The interior-point convergence flag as text.
-inline const char *flag_string(hven::ConvergenceFlags flag) {
-    switch (flag) {
-    case hven::ConvergenceFlags::CONVERGED:
-        return "CONVERGED";
-    case hven::ConvergenceFlags::ACCEPTABLE:
-        return "ACCEPTABLE";
-    case hven::ConvergenceFlags::NOTCONVERGED:
-        return "NOTCONVERGED";
-    case hven::ConvergenceFlags::DIVERGING:
-        return "DIVERGING";
-    case hven::ConvergenceFlags::SINGULAR_KKT:
-        return "SINGULAR_KKT";
-    }
-    return "UNKNOWN";
+/// @brief The interior-point solve status as text.
+///
+/// THE SPELLINGS MOVED IN M6 W5 T8.4, and the move is DECLARED: with
+/// ConvergenceFlags gone the leg reports SolveStatus, whose display names are
+/// `optimal` / `acceptable` / `max_iter` / `stalled` / `diverging` /
+/// `numerical_error` where this used to write `CONVERGED` / `ACCEPTABLE` /
+/// `NOTCONVERGED` / `DIVERGING` / `SINGULAR_KKT`. The interior leg's baseline is
+/// RE-DERIVED for it in the same task.
+///
+/// One consequence worth naming in the artifact: the old vocabulary could not
+/// tell the engine's two abnormal non-cap exits apart -- both read
+/// `NOTCONVERGED` -- and the new one folds them into `stalled` together with
+/// nothing else. So `stop_reason` (the column T8.2 added) is what separates the
+/// stage-stall row from the locally-infeasible-restoration row, and it is
+/// LOAD-BEARING in this artifact rather than merely informative.
+inline const char *flag_string(hven::solvers::SolveStatus flag) {
+    return hven::solvers::to_string(flag);
 }
 
 /// The token every column of this artifact uses for a value that was never
@@ -693,7 +738,10 @@ inline constexpr const char *kAbsent = "absent";
 
 /// @brief A leg's own status, or `absent` when that leg never ran.
 inline std::string leg_status(const SqpLegRow &row) {
-    return row.ran ? std::string(hven::solvers::to_string(row.status)) : std::string(kAbsent);
+    // The CAPITALISED vocabulary this artifact's baselines are pinned to; see
+    // corpus::legacy_status_string (M6 W5 T8.4).
+    return row.ran ? std::string(hven::solvers::corpus::legacy_status_string(row.status))
+                   : std::string(kAbsent);
 }
 
 /// @brief The interior-point leg's own flag, or `absent` when it never ran.

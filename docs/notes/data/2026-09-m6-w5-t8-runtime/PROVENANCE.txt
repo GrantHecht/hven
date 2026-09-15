@@ -1,0 +1,965 @@
+M6 W5 T8.9r -- THE GROUP-1 RUNTIME PROTOCOL: PROVENANCE (CLAUDE.md section 7)
+=============================================================================
+Read this first: it governs every number in this directory.
+
+  *** THIS FILE HAS A FIX-ROUND-1 BLOCK AT THE END (2026-09-11). Read it: it
+  *** records which of the statements below were WRONG, what replaced them,
+  *** and the two rules (R1, R3) that were fixed BEFORE the round's
+  *** re-measurement -- see predeclaration-R1-R3.txt and
+  *** logs/F0-predeclaration.log.
+
+WHAT THIS DIRECTORY IS
+  The ONE solo runtime measurement of W5 T8's group 1 (T8.1-T8.9). Group 1
+  asserts no runtime number anywhere else: every pin in it is a COUNTER pin,
+  and the migration guide's group-1 section says so. This is where the runtime
+  question is answered, on the recipe and the bands of
+  docs/notes/2026-09-m6-w5-t6-ownership.md section 11 (bands 11.1, the
+  disposition table 11.1.1, LAYOUT-vs-WORK 11.2, the two legs 11.3), with the
+  T6 close reading (docs/notes/2026-08-m6-ledger.md) as the table's shape.
+
+  IT IS A MEASUREMENT, NOT A DISPOSITION. Where a band reads MOVED or
+  UNRESOLVED, or where a veto trigger fires, this directory reports it with its
+  numbers and stops. Section 11.5 and the owner decide what follows.
+
+THE ARMS, AND WHAT EACH ONE IS
+  THREE arms, each a "git archive" extraction built from an EMPTY build
+  directory at ONE absolute path, Release, the same flags, CCACHE_DISABLE=1.
+
+  arm-base            102f729  the post-T7 head -- the SQP legs' A arm
+  arm-head            e51a7e0  the group-1 head (T8.9 fix1) -- the B arm
+  arm-interior-base   b9848bf  the T8.8 code head -- the interior leg's A arm
+
+  DOCS-ONLY COMMITS SIT ON TOP OF THE MEASURED HEAD. The task's BASE is
+  335a666 (the T8.9 CLOSE ledger commit); its code head is e51a7e0. The diff
+  335a666..e51a7e0 touches three files, all under docs/notes/ -- so the
+  compiled tree that produced every number here IS e51a7e0, and 335a666's tree
+  differs from it in no compiled object.
+
+  EXECUTABLE AND LIBRARY HASHES, RETAINED. The corpus binary's "# binary:"
+  provenance stamp reads "git describe" at CONFIGURE time from the source
+  tree; a "git archive" extraction has no .git, so all three arms stamp
+  "unknown" and the stamp cannot tell them apart. (This is T8.8's deviation 8
+  in a cleaner form: there, both arms stamped the WORKING TREE's sha, which
+  was worse -- it named a commit neither arm was.) The hashes below are what
+  identifies an arm.
+
+    arm-base            hven_sqp_corpus  sha256 489def040105b8c98427b8cbc83d9ab1a0c05037c620938b6706ff36d794c84f
+    arm-base            libhven.a        sha256 735eea1d9d51ef93ba2e512611475f758c2b60729f29bec0dda9e75fda9a8f7f
+    arm-head            hven_sqp_corpus  sha256 41d2c72a290e52ce04afdff3138a1858ad08a745807e01e3ccb59406b7abdb86
+    arm-head            libhven.a        sha256 60bfe03f79078eb8ab51fd099a7253f91e232714a008a52be0a40e49403fa30a
+    arm-interior-base   hven_sqp_corpus  sha256 560914cd873dda31a684c1e4673ea109ee2baeb40d7b0963d63d1f5ad0d47243
+    arm-interior-base   libhven.a        sha256 d236166ec9dbf84a395f220049ed7215e5e418850ca82a211312afd32a47b3fe
+
+  AND THE BASE ARM TIES THIS LEG TO T6's. arm-base's libhven.a sha256 begins
+  735eea1d9d51ef93 -- the sha16 the T6 close record gives for the post-(d)
+  revert arm's library (ledger, T6 close line). T7 was comment-only, so the
+  library at 102f729 is the library at the T6 close head 1997159, and the
+  composed chain 50f616a -> 1997159 -> 102f729 -> e51a7e0 has NO unmeasured
+  code gap. It also means this leg's build recipe reproduces T6's flag regime,
+  which is what makes the two readings composable at all.
+
+THE BUILD RECIPE, IDENTICAL ON ALL THREE ARMS
+  cmake -S <arm> -B <arm>/build -G Ninja
+        -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_CXX_COMPILER=/usr/bin/clang++
+        -DCMAKE_C_COMPILER=/usr/bin/clang
+        -DHVEN_BUILD_TESTS=OFF -DHVEN_BUILD_BENCH=ON -DHVEN_A4_GATE=OFF
+  cmake --build <arm>/build --target hven_sqp_corpus -j 8
+
+  HVEN_FP_MODE is left at its default, SAFER_FAST -- the same value T6's arms
+  passed explicitly. HVEN_BUILD_TESTS=OFF is the ONE recipe difference from
+  T6's arms; it changes no compile flag on the library or on bench (the
+  uniform regime is set at the top level), and it removes a gtest FetchContent
+  that would need the network in a scratch tree. The libhven.a hash agreeing
+  with T6's is the evidence that it changed nothing that matters here.
+
+  Submodules: "git archive" carries no submodule content, so dep/eigen
+  (bc3b39870ecb690a623a3f49149a358b95c5781d) and dep/fmt
+  (407c905e45ad75fc29bf0f9bb7c5c2fd3475976f) were extracted from the
+  superproject's own checkouts at those commits. All three arms name the SAME
+  two commits -- checked against each arm's tree, not assumed.
+
+TOOLCHAIN AND HARDWARE
+  clang 22.1.8 (Fedora 22.1.8-4.fc44); CMake 4.3.0; Ninja 1.13.2; ccache
+  DISABLED for every configure and every build.
+  Intel oneAPI MKL 2026.1 (INTEL_MKL_VERSION 20260100),
+  /opt/intel/oneapi/mkl/latest.
+  AMD Ryzen 7 5800X3D, 8 cores / 16 threads, Zen 3, 96 MiB L3 (3D V-Cache),
+  1 NUMA node; Fedora 44, kernel 7.1.9-200.fc44.x86_64.
+  cpufreq governor "powersave" on every core, min 1755355 kHz, max 3401000
+  kHz, boost enabled; observed current frequency ~3.37 GHz on cpu2 and on its
+  sibling during the window. SMT is ON; the pinned core's thread siblings are
+  2,10, and cpu10 was left idle for the whole window.
+  perf 7.1.9-200.fc44.x86_64, perf_event_paranoid = 2 -- user-space ":u"
+  events only, which is exactly what section 11.2's two event sets ask for.
+  transparent_hugepage: always [madvise] never.
+
+  APPLE / ACCELERATE: UNOBSERVED. Every number in this directory is
+  MKL-on-Linux. No Apple value is inferred, interpolated or zero-filled from
+  it, and none is quoted anywhere here.
+  WINDOWS: UNOBSERVED, for the same reason.
+  INTEL pass-B events (topdown-fe-bound, idq.dsb_uops / idq.mite_uops):
+  UNOBSERVED -- no leg has run on such a machine. The pass-B set recorded here
+  is the Zen 3 one section 11.2 fixes for this box, and it is exactly six
+  events because a seventh multiplexes on Zen 3's six programmable counters.
+
+THE SOLO RULE, AS DECLARED (CLAUDE.md section 7)
+  This leg ASSERTS wall clock, so it ran ALONE. Every timed leg:
+    * one solve at a time, one process;
+    * "taskset -c 2", with the SMT sibling cpu10 left idle;
+    * MKL_NUM_THREADS=1 and OMP_NUM_THREADS=1 in every process;
+    * held under "flock /tmp/box-build.lock" for the WHOLE alternating
+      sequence -- the lock is never released between the A and the B arm of a
+      round, nor between rounds;
+    * "pgrep -af 'cmake|ninja|ctest|hven_|codex|clang'" run SEPARATELY before
+      the lock was taken, again INSIDE the lock, and again between every
+      alternation. Every one of those captures is in the leg's log, verbatim,
+      with its UTC timestamp.
+  NO CO-RUN PROTOCOL WAS USED and none is declared: nothing here was measured
+  under contention. Every wall number here is therefore quotable; no number
+  from any co-run appears anywhere in this directory.
+
+  WHAT THE pgrep CAPTURES CONTAIN, so a reader is not misled by a non-empty
+  list. They are never empty, and none of what they show is load:
+    * the driving shell itself -- the agent's own "bash -c" wrapper, which
+      matches "codex" on its exported environment variables, not on any
+      running Codex work;
+    * "earlyoom", whose own command line lists "clang" among the processes it
+      would PREFER to kill -- a daemon, not a compile;
+    * two bash "sleep"-loop waiters left from earlier sessions, idle;
+    * "clangd --background-index" language servers, idle;
+    * the Codex app-server / broker, idle.
+  Nothing that BUILDS or SOLVES appeared at any check. No foreign process was
+  signalled or killed at any point, and none needed to be.
+
+  THE SOLO WINDOW, from the logs rather than from memory. 2026-09-11 UTC; every
+  span is a FOREGROUND_START / FOREGROUND_END pair in the named log:
+    12:08:24-12:09:59  the three arm builds          logs/L1-build.log
+    12:11:34-12:11:35  the schema smoke              logs/L1b-smoke.log
+    12:12:11            the fold proof, both ways     logs/L2-fold-proof-*.log
+    12:13:07-12:28:00  calibration + timing survey   logs/L3-calibration.log
+    12:28:34-12:53:27  leg 1, the wall, three modes  logs/L4-leg1-*.log
+    12:54:12-12:55:22  leg 1, pass A and pass B      logs/L5-leg1perf-*.log
+    12:56:41-13:54:01  leg 2, six mode x trace       logs/L6-leg2-*.log
+    14:02:04-14:05:40  the interior leg              logs/L7-interior.log
+    14:06:07-14:06:08  the attribution probe         logs/L7b-attrib-probe.log
+  Announced in .superpowers/w5-t8-9r-progress.md before it opened, and closed
+  there. The gaps between spans are this agent's own analysis turns, with the
+  box idle and the lock released.
+
+  THE pgrep AUDIT, over every capture in every log. The DISTINCT process
+  signatures seen across the whole window are exactly seven, and every one is
+  on the idle list above:
+    /bin/bash -c ...                     (this agent's own shells, and two
+                                          sleep-loop waiters from earlier
+                                          sessions)
+    clangd --background-index
+    codex app-server
+    .../bin/codex-code-mode-host         (two versions)
+    /usr/bin/node-22 .../app-server-broker.mjs
+    /usr/bin/earlyoom -m ...
+  NOTHING THAT BUILDS OR SOLVES APPEARED AT ANY CHECK, in any leg, at any
+  alternation.
+
+  ONE COMMIT BY ANOTHER AGENT LANDED INSIDE THE WINDOW, and it is declared
+  here rather than left for a reader to find: 30e62ec, the settler's jet.h
+  ruling, at 13:42 UTC -- during the leg-2 ssn/sink span. It is DOCS-ONLY
+  (docs/notes/2026-08-m6-ledger.md and docs/notes/2026-09-m6-w5-t8-design.md,
+  13 lines); it compiled nothing and solved nothing, the pgrep audit above
+  covers that span, and no measurement here is affected.
+
+  AND THAT RULING ANSWERS THE PENDING QUESTION BELOW. The "one code change may
+  still land in group 1" paragraph was written against an open owner decision
+  on restoring detail/interior/jet.h. The ruling is that **jet.h stays
+  deleted** -- hven provides thread-safe solves, not a parallel-solve facility
+  -- so NO code change lands, e51a7e0 remains the group-1 code head, and the
+  conditional in that paragraph is discharged rather than merely survivable.
+  The paragraph is left as written: it is what this leg was dispatched under,
+  and the reading stands either way.
+
+THE LEGS, AND WHAT EACH ONE MEASURES
+  LEG 1 -- the U0 27-cell corpus (docs/notes/data/2026-08-m6-w1-acceptance/
+  u0-replay-cells.txt line 3), "--engine walk|ssn|ipm", 3x alternating
+  A/B/A/B/A/B; per-cell MEDIAN of the three runs per arm; corpus = the SUM of
+  the per-cell medians, never a mean of ratios. This is the WALL-CLOCK leg:
+  its cells are seconds-scale and its "wall_s" column brackets the SOLVE alone
+  (bench/corpus_cells.h, "timed_row" -- the KKT gate sits deliberately outside
+  that window).
+  Pass A and pass B ran on THREE designated cells per mode --
+  f7_n1000_bound_neutral, f7_n5000_bound_neutral, f7_n20000_bound_neutral --
+  each as ONE process through "--internal-run-one", so the counts are that
+  cell's own setup and solve and not the fork/exec parent's. T6 measured one
+  perf cell per mode; this is three per mode, spanning a 20x size range.
+
+  LEG 2 -- the 27 Hock-Schittkowski problems (tests/sqp/support/hs_problems.h)
+  driven through the SQP solver by "--hs --repeat N", in BOTH trace variants
+  ("--hs-trace off" and "--hs-trace sink"), kept separately identifiable as
+  11.3 requires rather than averaged together. N is the calibrated count; see
+  calibration.csv.
+
+  THE INTERIOR LEG -- "--engine interior", b9848bf -> e51a7e0. Runs in
+  process, with no fork, so a perf capture counts exactly the leg.
+
+THE INTERIOR LEG'S BASE ARM, AND WHY IT IS b9848bf
+  The interior leg DOES NOT EXIST at 102f729: T8.1 created it and T8.9 rewrote
+  it. So it has no arm at the SQP legs' base, and the honest base is the FIRST
+  head at which the leg exists with the same row keys -- the T8.9 close's
+  predecessor b9848bf (the T8.8 code head), whose leg carries 41 rows. The
+  head's leg carries 43: the two "parts2" rows are new at T8.9, have no base,
+  and are reported head-only, informational, with NO band. The 41 row keys are
+  the join.
+
+  WHAT THAT ARM MEASURES is therefore T8.9's harness rewrite (wrapper ->
+  direct construction) and nothing else. Three terms of T6 section 11 do not
+  transfer to it, and the T8.9 brief's A7 said so before any number was taken:
+   (i)   the "identical harness SOURCE" term cannot hold -- the head harness
+         does not compile against the base library. EACH ARM RUNS ITS OWN
+         HARNESS SOURCE, and both executables' sha256 are retained above. What
+         saves the comparison is that "wall_s" brackets the SOLVE only
+         (transcription precedes t0); the route equivalence rests on T8.9's
+         41-row identity pin, not on this leg.
+   (ii)  "--repeat" is HS-only (bench/bench_corpus.cpp). The HS071 and
+         infeasible rows are millisecond-scale and carry NO wall band; they
+         are listed with their ratios and nothing is claimed from them. The F7
+         rows are seconds-scale and carry the band under leg-1 rules.
+   (iii) the warm rows time the measured solve only, and the callback lever is
+         interior-only.
+
+  THE HARNESS-PER-ARM QUESTION FOR THE THREE SQP ARMS, ANSWERED SEPARATELY.
+  bench/bench_corpus.cpp DID change between 102f729 and e51a7e0 (+327 lines),
+  but every hunk is outside the timed window: the file banner, the includes,
+  the using-declarations, the usage text, "write_outcome" and "parse_status"
+  (both post-solve CSV code), the HsRow status type, and the interior leg's
+  own dispatch. The timed window is bench/corpus_cells.h "timed_row", which
+  brackets "solve_target()" alone; inside it the only change is that the
+  fourth argument of "driver.solve" became a SolveBudget aggregate -- which is
+  the library API under measurement, not a change of measurement method.
+
+WHAT THIS LEG DOES NOT MEASURE, SAID PLAINLY
+  THE TOP-LEVEL IPM's RUNTIME ACROSS T8.1-T8.8 HAS NO BASE ARM AND IS NOT
+  MEASURED HERE. The interior leg reaches back only to b9848bf. The "ipm" arm
+  of leg 1 is the SQP corpus's interior-point QP tier, NOT the top-level
+  interior-point solver. What covers T8.1-T8.8 on the top-level IPM is T8.1's
+  coverage rule and the identity replays, for CORRECTNESS; its RUNTIME is what
+  the M7 benchmark suite will measure.
+
+  AND ONE CODE CHANGE MAY STILL LAND IN GROUP 1 AFTER THIS LEG: the owner's
+  pending decision on restoring detail/interior/jet.h as a standalone facility
+  (a header plus a test TU; nothing in bench/ includes it and no src/ object
+  would change). If it lands, its runtime neutrality is proven by P-SYM byte
+  identity of libhven.a and both corpus executables against e51a7e0 -- NOT by
+  re-running this leg. This reading stands for the group-1 head whichever way
+  that decision goes.
+
+WHAT IS IN HERE
+  PROVENANCE.txt         this file
+  predeclaration-R1-R3.txt  R1 and R3, fixed BEFORE the fix-round runs
+  calibration/           the leg-2 --repeat calibration and the timing survey:
+                         calibration.csv, the 15 per-cell CSVs, the 8 survey
+                         CSVs, and a README (astra I3)
+  comparator.py          reproduces every table in reading.md from raw/ and
+                         perf/ alone -- the FIX-ROUND version
+  comparator.py.sha256   its hash
+  comparator-round1-superseded.py  the round-1 comparator, retained with its
+                         own sha256; it reads raw/round1-superseded/
+  reading.md             the reading: the tables, the bands, the LAYOUT/WORK
+                         classification, the veto check, the composed chain,
+                         and what is NOT claimed
+  raw/                   EVERY run's CSV, not medians only
+  perf/                  EVERY "perf stat" capture, raw
+  logs/                  every leg's log: the alternating order with UTC
+                         timestamps, the lock, and the pgrep captures
+  scripts/               the leg wrappers themselves, as they ran -- common.sh
+                         (the worst-fold, sourced by every leg AND by the fold
+                         proof, so the proof exercises the same code), the arm
+                         build, the calibration, the four legs and the
+                         attribution probe
+  provenance-facts.txt   the raw lscpu / cpufreq / kernel / MKL capture the
+                         hardware section above is written from
+  provenance-facts-fix1.txt  the fix-round capture: all 16 CPUs' frequency
+                         state, the core reservation, the /tmp declaration and
+                         the re-verified arm hashes
+  logs/IDLE-PROOF.md     R2's per-batch solo proof, computed by
+                         scripts/idle_proof.py from the batch logs
+  logs/F0-predeclaration.log   R1 and R3 hashed, with the time
+  logs/F1-comparator-proofs.log  the four comparator defects, each proved fixed
+  logs/F2-runall-fold-*.log      run_all.sh's fold, both ways
+  raw/round1-superseded/ round 1's raw and perf, with a README saying why
+  logs/round1-superseded/  round 1's logs
+
+  REPRODUCE:  cd <this directory> && python3 comparator.py --root . --out -
+  The comparator exits non-zero if any input is missing or unparseable, and
+  every leg wrapper worst-folds that status into its own exit. The fold was
+  PROVED both ways before any timed run: logs/L2-fold-proof-fail.log ends
+  WRAPPER_EXIT=3 from a stubbed failing comparator with SUCCEEDING steps after
+  it, and logs/L2-fold-proof-pass.log ends WRAPPER_EXIT=0 on the control.
+
+
+=============================================================================
+FIX ROUND 1 -- 2026-09-11 (astra FIX-ROUND SIGNOFF W5-T8-9R-REVIEW-ASTRA;
+settler rulings R1-R7). Appended, never overwriting what is above: what is
+above is what the round-1 leg was run and written under, and the corrections
+are dated rather than silent (CLAUDE.md section 7).
+=============================================================================
+
+(F1) THE TWO RULES FIXED BEFORE THE RE-MEASUREMENT, VERBATIM IN
+     predeclaration-R1-R3.txt (sha256 281ca5a87718581cc0522c0b2d22b563da4b81e53c90eb86bb4d2b0b955feb92)
+     and implemented in comparator.py's docstring in the same words:
+
+  R1  A CELL IS A REPRODUCIBLE SLOWDOWN -- 11.1's veto trigger -- WHEN ITS
+      MEDIAN RATIO IS OUTSIDE 0.99-1.01 AND IT IS SLOWER IN ALL THREE ROUNDS.
+      Same-sign movement INSIDE the band is what FLAT means; a fair coin gives
+      ~3.4 same-sign cells of 27, and round 1 observed 4/3/7. The comparator
+      prints BOTH counts, classifies on the BANDED one, and says so; the
+      strict count is informational.
+
+  R3  THE FIRST ROW EACH "--engine interior" PROCESS WRITES IS THAT PROCESS'S
+      WARM-UP (MKL's first call, the allocator's first growth, the page faults
+      for the working set) AND IS EXCLUDED FROM THE BAND BY POSITION -- not by
+      name, not after looking at its value. It is reported separately with its
+      three paired ratios, and the corpus figure is printed BOTH ways: WITHOUT
+      it (PRIMARY) and WITH it. If the arms or rounds disagree about which row
+      came first, the comparator exits non-zero rather than choosing.
+
+     logs/F0-predeclaration.log records both files' sha256 with the UTC time at
+     which they were fixed. EVERY timed log of this round carries a LATER
+     FOREGROUND_START, which is what makes "the rule preceded the runs" a
+     checkable fact rather than a claim.
+
+(F2) THE SOLO PROOF, REPLACED (astra I1, settler ruling R2). Round 1 proved
+     solo-ness with "pgrep -af 'cmake|ninja|ctest|hven_|codex|clang'", and the
+     paragraph above ("WHAT THE pgrep CAPTURES CONTAIN ... none of what they
+     show is load") argued from command NAMES. That argument does not hold, and
+     the audit it rests on was also INCOMPLETE: the pattern matches neither
+     kwin_wayland nor firefox nor this agent's own daemon, and all three were
+     running. THE FOLLOWING IS THE FIX-ROUND PROOF, and it supersedes it.
+
+     TEST 1, R2 AS WRITTEN -- every foreign process on the box (everything but
+     this agent's own process tree and the kernel threads) is snapshotted with
+     "ps -eo pid,ppid,stat,pcpu,cputimes,etimes,comm,args" at the start and the
+     end of every timed BATCH and between every A/B alternation, with each
+     pid's utime+stime in CLOCK TICKS from /proc/<pid>/stat beside it (ps
+     reports whole seconds; 0.5 % of a 200 s window is 1 s, below that column's
+     resolution). R2's bar is: every foreign pid under 0.5 % of the window's
+     wall, and no "R" state in any snapshot.
+
+     THIS BAR IS NOT MET ON THIS BOX AND CANNOT BE, and that is reported rather
+     than worked around. The box is a desktop: kwin_wayland, firefox and the
+     agent's own daemon are resident and accrue CPU continuously across 16
+     logical CPUs. The per-batch numbers are in logs/IDLE-PROOF.md, and the
+     worst of them is quoted in the report. Every occurrence PAUSED the batch
+     and was RECORDED (BOX_PAUSE lines); NOTHING WAS EVER SIGNALLED.
+
+     TEST 2, THE PINNED CORE -- and this is the one the recipe actually turns
+     on. /proc/stat accounts every jiffy per LOGICAL CPU, so around EACH TIMED
+     RUN (not around the batch, so none of this agent's analysis falls inside
+     it) the leg reads cpu2's and cpu10's counters and the run's own user+sys
+     from /usr/bin/time:
+
+         foreign TASK time on cpu2 = cpu2's (user+nice+system+steal+guest)
+                                     MINUS the run's own user+sys
+         SMT contention            = cpu10's (user+nice+system+steal+guest)
+                                     (cpu10 is cpu2's thread sibling)
+
+     "irq" and "softirq" are reported SEPARATELY and are not counted as foreign:
+     they are the kernel servicing the machine on that core -- timer ticks, the
+     page-fault path of the measured process itself -- they are not another
+     runnable thing, and they are present in every measurement this protocol
+     has taken, T6's included.
+
+     AND THE DRIVING SHELL IS PINNED OFF cpu2 AND cpu10 (taskset -cp on the leg
+     script's own pid, mask 0,1,3-9,11-15). Round 1 pinned the solve and left
+     the harness -- the shell, ps, awk, perf's setup -- free to land on the
+     measurement core.
+
+(F3) THE INTERIOR LEG'S BASE ARM: THE PREMISE ABOVE IS FALSE (astra I2,
+     settler ruling R4). The section "THE INTERIOR LEG'S BASE ARM, AND WHY IT
+     IS b9848bf" opens "The interior leg DOES NOT EXIST at 102f729". IT DOES.
+     "git merge-base --is-ancestor 149f29b 102f729" returns 0, and the base
+     arm's own extraction carries the "--engine interior" dispatch; RUN at fix1
+     it writes 33 rows in the 19-column schema. The same false premise is in
+     reading.md (round 1's line 215), the round-1 report (line 184) and the
+     T8.9r brief (line 9, the settler's own text -- listed here, not edited).
+
+     THE CORRECTED STATEMENT. The interior leg has THREE arms at fix1:
+       arm102  102f729  33 rows, 19 columns -- the SQP legs' own base
+       armb98  b9848bf  41 rows, 31 columns -- round 1's base, kept
+       head    e51a7e0  43 rows, 31 columns
+     The 33 keys join arm102 to the head, so THE TOP-LEVEL IPM'S RUNTIME ACROSS
+     THE WHOLE OF GROUP 1 IS MEASURED on those rows, and the twelve counter
+     columns common to the two schemas (status, iter_num, obj_val, kkt_inf,
+     barr_inf, econ_inf, icon_inf, factorizations, solves, analyses, soc_steps,
+     watchdog_activations) are compared row by row and round by round. What
+     armb98 adds is the 8 further rows T8.1-T8.8 created; the two "parts2" rows
+     remain head-only and carry no band.
+
+     SO THE "WHAT THIS LEG DOES NOT MEASURE" PARAGRAPH ABOVE IS WITHDRAWN IN
+     PART: the top-level IPM's runtime across T8.1-T8.8 IS measured here, on
+     the 33 base rows, at 102f729 -> e51a7e0. What remains unmeasured is the
+     runtime of the 8 rows that did not exist at 102f729 before b9848bf, and
+     any workload outside those 33 rows -- the M7 benchmark suite's job.
+
+(F4) THE ATTRIBUTION (astra I8, settler ruling R5). reading.md's section 6 no
+     longer argues from the "--dump-qp" probe. The probe does not run the
+     post-solve KKT gate, the result processing or the neutral-path driver
+     construction, so it cannot bound what round 1 claimed from it; its
+     captures are retained under raw/round1-superseded/perf/attribution/ and
+     are cited nowhere. Section 6 now cites section 10's ELEVEN-ARM attribution
+     for WHAT the increase is (all of it is T8.4's per-call declared
+     diagnostics, one O(n) quantity, mode-independent) and reads the SOURCE for
+     where it runs (the call chains and both harnesses' clock brackets, cited
+     file:line). "Five orders of magnitude" and "the entire increase is inside
+     the solve" are gone.
+
+(F5) A7 (iii)'s CALLBACK LEVER DOES NOT EXIST IN THE HARNESS (settler ruling
+     R7). "bench/bench_corpus.cpp" has no callback option -- its flags are
+     --cells --csv --dump-qp --dump-qp-out --engine --from-csv --help --hs
+     --hs-cells --hs-trace --hs-warmup --list --repeat --score-gates
+     --score-model-surface --ssn-* and the --internal-* levers.
+     "bench/ipm_corpus_leg.cpp:638" installs a COUNTING callback when
+     HVEN_LEG_COUNT_CALLBACK is set in the environment; that is an instrument,
+     not an A/B pair, and it was not used. THE ATTACHED-CALLBACK AND
+     ATTACHED-SINK COSTS OF T8.6 AND T8.7 ARE UNMEASURED BY THIS ARTIFACT and
+     none is inferred from the detached numbers. REGISTERED for W6 by the
+     settler. No lever was added: that would be a bench source change, which
+     this leg may not make.
+
+(F6) THE BINARY STAMP (Minor M1). The paragraph above says all three arms stamp
+     "unknown". They do not: every provenance-bearing raw CSV of this artifact
+     stamps "# binary: 335a6669adf1". The stamp reads "git describe" from the
+     SUPERPROJECT at configure time, and a "git archive" extraction sitting
+     inside the repository's own .scratch/ tree picks the repository up -- so
+     all three arms stamp the SAME sha16 (the T8.9 close ledger commit), which
+     names a commit that is none of them. That is the T8.8 deviation-8 failure
+     mode exactly, not a cleaner form of it. THE SHA256 HASHES ABOVE REMAIN THE
+     ARM IDENTIFIERS and are unaffected; they were re-verified at fix1 against
+     the three executables on disk and match.
+
+(F7) THE FREQUENCY EVIDENCE (Minor M2). provenance-facts.txt's "governor /
+     frequency state (all cores)" block carried cpu0, cpu2 and cpu10 only, and
+     the sibling's idleness was asserted. provenance-facts-fix1.txt carries all
+     16 logical CPUs, and cpu10's idleness is now MEASURED per timed run --
+     logs/IDLE-PROOF.md's "TASK time on cpu10" column -- rather than asserted.
+
+(F8) THE /tmp EXEMPTION, DECLARED ONCE (astra I7, settler ruling R2). Two things
+     of this leg's touch /tmp and nothing else does:
+       /tmp/box-build.lock                     the box lock itself
+       /tmp/hven_sqp_corpus_internal_*         the corpus harness's own
+                                               row/marker files, written by
+                                               bench/bench_corpus.cpp, not by
+                                               anything this leg wrote
+     Both are EXEMPT from the dispatch's no-/tmp term, which is about this
+     leg's scratch. Everything else -- the arms, the staging tree, the snapshot
+     buffers, the proof trees -- is under .scratch/w5t89r/.
+
+(F9) WHAT THE FIX ROUND RE-RAN, AND WHAT IT DID NOT.
+     RE-RUN, all of it under R2: leg 1's wall (3 modes x 3 round-batches), leg
+     1's pass A and pass B (3 batches), leg 2 (6 mode x trace x 2 passes = 12
+     batches), the interior leg (3 arms x wall/perfA/perfB = 3 batches) and I4's
+     per-cell interior perf (3 round-batches). THIRTY timed batches, every one
+     PINNED-CLEAN, logs/IDLE-PROOF.md.
+
+     NOT RE-RUN: the leg-2 --repeat CALIBRATION. It asserts no wall number of
+     its own -- what it produces is N, a property of the A arm's dispersion,
+     identical across arms by construction -- and astra's I1 lists only the
+     wall-ASSERTING legs. The three adopted counts (ipm 1000, walk 1000, ssn
+     2000) are carried forward unchanged and the round-1 calibration transcript
+     is retained at logs/round1-superseded/L3-calibration.log. Its 15 per-cell
+     CSVs and 8 survey CSVs are now IN the artifact, at calibration/ (astra I3).
+
+     NOT REBUILT: the three arms. They are the same extractions round 1 built,
+     at the same absolute paths, and their executables' sha256 were re-verified
+     against this file at fix1 (provenance-facts-fix1.txt) and match.
+
+(F10) THE BATCHING, AND THE ONE SHAPE OF THE RUN THAT IS NOT AS run_all.sh
+     WOULD DO IT. The timed legs together run about ninety minutes, longer than
+     this session's per-command cap, so each BATCH was invoked separately --
+     the same script, the same arguments, the same "flock /tmp/box-build.lock",
+     the same log -- rather than through one scripts/run_all.sh invocation. A
+     batch is one complete alternating sequence held under the lock, which is
+     what 11.3 requires; nothing was split MID-sequence. run_all.sh's fold and
+     its comparator integration are proved separately: logs/F2-runall-fold-fail.log
+     ends WRAPPER_EXIT=3 on a stubbed comparator failure and
+     logs/F2-runall-fold-pass.log ends 0 on the control (astra I6).
+
+     AND THE OUTER COMMAND PATTERN IS FIXED (astra I6): every retained launch
+     is "...; rc=$?; echo \"WRAPPER_EXIT=$rc\"; exit $rc", not the round-1
+     "echo \"...WRAPPER_EXIT=$?\"" whose shell status was the echo's.
+
+(F11) THE COMPARATOR'S FOUR DEFECTS, EACH PROVED FIXED (astra I5). The proofs
+     are logs/F1-comparator-proofs.log, run by scripts/comparator_proofs.sh,
+     each a stubbed failing input beside the passing control:
+       (a) the interior first-row rule is POSITIONAL -- a stub that reorders one
+           run's rows so a different row comes first makes the comparator exit 1
+           rather than choose; both corpus figures print, primary = WITHOUT.
+       (b) leg 2's floor is the MAXIMUM per-(mode, trace) same-arm disagreement
+           (0.245198 %), not a median across combinations (round 1's 0.0793 %);
+           a stub that halves one combination's pass-B counts moves the printed
+           floor to 100.000118 %, which a median could not do.
+       (c) pass B carries NO verdict wherever pass A carries none; a stub that
+           makes leg 2's two passes agree opens the gate and a verdict appears,
+           which is what proves the gate is live.
+       (d) the three-round manifest is ENFORCED: a stub with round 3 removed
+           exits 1 and names the missing round. MANIFEST takes precedence over
+           every other problem, so the status names the cause.
+       (e) R1's two counts both print and the BANDED one classifies.
+     comparator.py exits 0 on the artifact; its sha256 is in comparator.py.sha256.
+
+(F12) THE ARTIFACT'S SIZE, DECLARED. The retained batch logs are about 13 MB,
+     because R2's proof is a full "ps" snapshot of every foreign process at
+     every batch boundary and every alternation -- roughly 200 processes, twice
+     per snapshot, ~400 snapshots. They are retained in full and unedited: the
+     distilled proof is logs/IDLE-PROOF.md and these are what it is computed
+     from. Round 1's raw and perf move under raw/round1-superseded/ (with a
+     README) and its logs under logs/round1-superseded/; nothing is deleted.
+
+================================================================================
+FIX ROUND 2 -- 2026-09-11. AUDIT, COMPARATOR AND TEXT. NOTHING WAS MEASURED.
+================================================================================
+  This block amends the fix1 block above. Nothing above it is rewritten: the
+  lines it corrects are quoted here with what is true instead, because a
+  provenance record that is edited in place stops being a record. No number in
+  this artifact was re-derived by fix round 2, and no library, test or bench
+  source was touched.
+
+(G1) R2 IS AMENDED TO R2' (settler, 2026-09-11; astra's fix1 review item 1).
+     The fix1 block's TEST 1 is R2 as written, and the block says plainly that
+     its bar "IS NOT MET ON THIS BOX AND CANNOT BE". Fix1 then took its verdict
+     on TEST 2, which it had not been granted. A disclosed substitution is not a
+     satisfied ruling. The settler has amended the RULE:
+
+       R2' -- foreign TASK time on the measurement core (cpu2) AND on its SMT
+       sibling (cpu10), counted as user+nice+steal+guest from /proc/stat across
+       the batch, must be under 0.5 % of the batch's wall; every foreign pid and
+       state seen in any snapshot is listed, transients included; a foreign "R"
+       is a pause and a RE-SNAPSHOT; a batch that cannot be proven is re-run.
+
+     EVERY RETAINED BATCH OF EVERY ROUND -- 99 of them across five rounds -- is
+     re-audited under R2' from the snapshots already on disk, by ONE tool:
+     scripts/idle_proof.py, now the attrib4 NICE-INCLUSIVE version
+     (7c90914d55b5ee5c3dbcc53c146289484f8a0bede4a486ed41cc6ad9364c68aa), which
+     REPLACED the two older ca107629... copies so that one version computes
+     everything. The per-batch table is logs/IDLE-PROOF.md; the run is
+     logs/F4-idle-audit-fix2.log; the assembler is scripts/idle_audit_fix2.py
+     and the driver scripts/idle_audit_fix2.sh.
+
+     RESULT: 53 of the 57 wall-asserting batches are PROVEN. The four that are
+     not are all in the attrib3 round (t84/), all fail on the SMT SIBLING rather
+     than the measurement core, and all are FLAGGED in reading.md section 12
+     rather than re-measured -- the fix2 ruling owes no re-measurement. Eleven
+     counter-asserting batches are also unproven, including leg 1's three perf
+     batches (0.6160-1.5957 % on cpu2); they assert counters, which CLAUDE.md
+     section 7 makes deterministic per process at MKL_NUM_THREADS=1, and no
+     elapsed time is read from any of them.
+
+(G2) TWO SENTENCES OF THE FIX1 BLOCK ARE FALSE AND ARE CORRECTED HERE
+     (astra's fix1 review item 8). Dated lines, not edits.
+
+     2026-09-11, fix2: the TEST 1 paragraph (F2) says snapshots are taken "at
+     the start and the end of every timed BATCH and between every A/B
+     alternation". TRUE OF LEG 1's NINE WALL BATCHES ONLY. The other scripts
+     place box_guard AFTER their arm loops -- scripts/leg1_perf.sh:40,
+     leg2.sh:42, leg_interior.sh:63, leg_interior_cells.sh:59 -- so leg-1 perf,
+     leg 2, the interior leg and the per-cell interior leg carry opening and
+     closing snapshots and NOT one between every alternation. The CPUSTAT /
+     CPUTIME_SELF bracket around EVERY TIMED RUN is present in all of them, and
+     that bracket is what R2' takes its verdict on.
+
+     2026-09-11, fix2: the same paragraph says "Every occurrence PAUSED the
+     batch and was RECORDED". The recipe paused ONCE, slept 5 s, printed
+     BOX_PAUSE_GIVEUP and continued WITHOUT RE-SNAPSHOTTING (scripts/common.sh's
+     box_guard at :102 -- its "if [ $tries -ge 1 ]" at :113 breaks out of the
+     loop after the first sleep, so the printed promise at :111 to "re-snapshot"
+     is not kept). Nothing was ever signalled, and
+     every pause and giveup is in the logs. R2' requires the re-snapshot; the
+     retained batches predate that term, so an "R" observation in them is
+     DISCLOSED in logs/IDLE-PROOF.md rather than discharged. R2''s re-snapshot
+     term binds the next measurement.
+
+     2026-09-11, fix2: (F6) calls 335a6669adf1 a "sha16". It is TWELVE hex
+     digits, which is what "git describe" abbreviates to here; the stamp and the
+     finding are unchanged, the word was wrong.
+
+(G3) THE COMPARATOR'S MANIFEST IS NOW EXPLICIT (settler ruling R9; astra's fix1
+     review item 4). (F11)(d) above says "the three-round manifest is ENFORCED",
+     and it was -- INSIDE whatever populations the tool discovered on disk.
+     Omitting a whole leg-1 perf cell, or the whole leg2/ipm/off combination,
+     produced a smaller discovered population and exit 0. comparator.py now
+     WRITES DOWN the expected populations (3 leg-1 modes x 27 cells x 3 rounds x
+     2 arms; 3 leg-1 perf cells x 3 modes x 2 passes x 3 rounds x 2 arms; the 6
+     leg-2 combinations; the interior leg's 3 arms x 3 rounds, both passes; the
+     11 per-cell interior populations) and a missing member is a MANIFEST
+     failure naming it, exit 1.
+
+     PROVED, logs/F3-manifest-proofs.log, scripts/comparator_manifest_proofs.sh:
+       stub 1  perf/leg1/ipm/*f7_n5000_bound_neutral* removed       -> exit 1
+       stub 2  raw+perf/leg2/ipm/off removed                        -> exit 1
+       stub 3  perf/interior_cells/f7_n2000_bound_physics removed   -> exit 1
+       regression  raw/leg1/ipm/head-r3.csv removed (the fix1 check) -> exit 1
+       control     the untouched tree                               -> exit 0
+     AND THE CONTROL'S SECOND HALF: the pre-manifest tool and the manifest tool
+     produce BYTE-IDENTICAL output on the complete tree (66 702 bytes both),
+     which is what lets reading.md section 9 stand unrewritten. comparator.py's
+     sha256 moves to 3688351794cc8be543a64044fd884b08e904ff3643fcd2f192971049f1eaaadb.
+
+(G4) attribution/attribute.py CALIBRATED AGAINST THE WRONG READING (settler
+     ruling R9; astra's fix1 review item 5). Its ARTIFACT table hardcoded ROUND
+     1's nine count pairs while its output line said "reading.md section 3" --
+     and round 1's captures were superseded. The hardcode is now reading.md v2
+     section 3's counts; its sha256 moves to
+     e4162f3b69b407e2596bd5a9cb2c62510d5a58bd5ec4c2fec2cdeee3e36e8406. Against
+     v2: 16 of 18 inside 2e-5, worst 3.26e-05, ratio form worst 5.48e-06.
+     Against round 1: 12 of 18, worst 4.16e-05, ratio form worst 1.87e-06 --
+     NOT the "13 of 18 and 5 outside" the fix1 text claimed on its own
+     reference. The steps, the tables and the closure check are unchanged.
+
+(G5) THE OWNER RULED: GROUP 1 IS KEPT (Grant, 2026-09-11). reading.md section 15
+     records the ruling and its grounds, and the migration guide's "T8 group 1"
+     section closes with it. A many-solves-per-process leg on both engines is
+     REGISTERED FOR M7 to identify the cross-row carrier, with the single-row
+     lever d5931e8 and this artifact as its starting point.
+
+(G6) THE ONE NEW PIN OF THE ATTRIB5 LEG, restated because the guide names it:
+     d5931e8 adds "--internal-run-one <cell> --engine interior --treatment T
+     --internal-out <path>" to the bench harness plus one test. BENCH AND TEST
+     SOURCE ONLY -- both configs' libhven.a are byte-identical across it, the
+     public leg reproduces the committed 43-row baseline (43 cells / 30 columns
+     / 0 differences, twice, byte-identically outside wall_s), and
+     CorpusCells.TheSingleRowInteriorModeProducesTheLegsOwnRow pins the mode's
+     row against the leg's own in process.
+
+  APPLE / ACCELERATE: UNOBSERVED.  WINDOWS: UNOBSERVED. Unchanged by fix2.
+
+================================================================================
+FIX ROUND 3 -- 2026-09-11. AUDIT, COMPARATOR AND TEXT. NOTHING WAS MEASURED.
+================================================================================
+  This block amends the fix1 and fix2 blocks above. Nothing above it is
+  rewritten: the lines it corrects are quoted here with what is true instead,
+  because a provenance record that is edited in place stops being a record. No
+  number in this artifact was re-derived by fix round 3, and no library, test or
+  bench source was touched. It follows astra's fix2 review (FIX-ROUND, SIGNOFF
+  W5-T8-9R-FIX2-REVIEW-ASTRA) and the settler's rulings R12-R16.
+
+(H1) THE SINGLE-ROW LEG'S WALL WAS READ ON THE WRONG WINDOW (settler ruling R12;
+     astra's fix2 review item 4). Section 14, classification.md and the
+     attrib5 report concluded "the +2.5 % step does not appear in a single-row
+     process at all" from perf.csv's WHOLE-PROCESS elapsed_s (c/p 0.995-1.009).
+     THAT CONCLUSION IS WITHDRAWN, in every place it appears.
+
+     elapsed_s is the process: execve, the loader, the harness, transcribe(),
+     the CSV write, teardown. The window the leg REPORTS -- and the column
+     sections 5, 11, 12 and 13 sum into their corpus figures -- is wall_s, the
+     SOLVE BRACKET (bench/ipm_corpus_leg.cpp:389-392, byte-identical at the two
+     arms). Read there, from the 585 retained single-row CSVs:
+
+       pass A, medians of five, eleven scored rows
+         corpus  parent 12.793039  culprit 12.933306  control 12.791534
+                 c/p 1.010964      x/p 0.999882
+         five large rows c/p 1.0134-1.0224, each slower in ALL FIVE paired rounds
+         passes B and C reproduce the corpus at 1.010819 and 1.011110
+
+     SO THE STEP IS SMALLER IN A SINGLE-ROW PROCESS, NOT ABSENT: ~1.1 % of the
+     bracket against the leg process's 2.5-3.0 %, at flat instruction counts.
+
+     AND THE TWO WALL POPULATIONS ARE DECOMPOSED RATHER THAN ARGUED OVER. Over
+     the same eleven rows, medians of five, pass A (seconds):
+
+                          process elapsed   bracket wall_s   outside the bracket
+       parent  510a4bb        13.75595         12.79304            0.96132
+       culprit 9cebbbe        13.76119         12.93331            0.82593
+       control                13.75220         12.79153            0.96098
+       culprit/parent          1.000381         1.010964           0.859162
+       control/parent          0.999727         0.999882           0.999644
+
+     The culprit's bracket gains 0.1403 s and its out-of-bracket time loses
+     0.1354 s; the whole process is unchanged to +0.04 %; the control moves none
+     of the three. That is a BOUNDARY MOVE, consistent with 9cebbbe's own
+     description (the model is BORROWED FOR THE CALL, so binding and keying it
+     happen inside solve() instead of before it) and with the per-symbol
+     instruction finding (flat, marginally fewer). It is stated as measured and
+     no further: the compensation is near-exact, not proven exact, and whether
+     the LEG process's +2.5 % is the same move at 43 rows CANNOT BE ANSWERED
+     from any retained artifact -- no leg batch recorded its per-row
+     out-of-bracket time. That question is added to the M7 registration.
+
+     BOTH WALL POPULATIONS ARE INFORMATIONAL (CLAUDE.md section 7). The attrib5
+     leg carries NO R2' evidence at all, which is stated wherever either number
+     appears. The new analysis is
+     attribution-interior/t84/single-row/wall_bracket.py (+ .sha256, +
+     wall_bracket.out); it reads only the retained CSVs and perf.csv.
+
+(H2) THE R2' EVIDENCE ACCOUNTING (settler ruling R13; astra's fix2 review item
+     1). Fix2 took the R2' verdict on the FRACTION alone and deferred R2''s
+     other terms to "the next measurement" -- see the G2 line above ending
+     "R2''s re-snapshot term binds the next measurement." THE SETTLER GRANTED NO
+     SUCH RETROSPECTIVE EXEMPTION AND THAT LINE IS WITHDRAWN. Fix3 splits the
+     verdict:
+
+       UNPROVEN-FRACTION  R2''s bar measured and exceeded on cpu2 or cpu10.
+       UNPROVEN-EVIDENCE  the bar met (or uncomputable), but the log lacks a
+                          re-snapshot after a foreign R, or a snapshot between
+                          two consecutive timed runs, or any timed-run bracket.
+
+     Three accounting repairs, all in scripts/idle_proof.py, none of which moves
+     a number -- every fraction in logs/IDLE-PROOF.md is byte-for-byte the fix2
+     figure:
+       (a) FOREIGN_PS is read beside FOREIGN_TICK, so ps states such as "Rsl"
+           are seen. Batches with an R observation: 10 / 10 / 11 / 3 / 5 across
+           fix1 / attrib2 / attrib3 / attrib3-superseded / attrib4.
+       (b) pauses are counted ONCE, with BOX_PAUSE_GIVEUP in its own column:
+           6 / 5 / 5 / 3 / 2. Fix2's table doubled them.
+       (c) EVERY foreign pid of every batch, with every state observed for it,
+           is listed in logs/idle-proof-pids-<round>.md -- five files, ~200 pids
+           per batch. A count and a busiest-five is not the list R2' asks for.
+
+     THE RESULT, over 99 batches of five rounds:
+       57 WALL batches   22 PROVEN, 4 unproven-FRACTION, 32 unproven-EVIDENCE
+                         (ywall-r5 fails both, so the columns do not sum)
+       42 COUNT/other    12 PROVEN
+     Per round, WALL: fix1 22/6, attrib2 5/1, attrib3 25/14, attrib4 5/1.
+     No wall batch of the fix1 round fails the FRACTION; sixteen of its
+     twenty-two fail on the EVIDENCE -- three leg-1 wall batches for an
+     unanswered R, and all twelve leg-2 batches plus the interior wall batch for
+     the missing alternation snapshots the G2 line above already disclosed.
+     The tool is scripts/idle_proof.py, sha256 now
+     3394879dbb519155fa985da793a43eedd825bfc1bc83b6636007e91795b33ab6, byte-
+     identical in all three places it sits; the assembler is
+     scripts/idle_audit_fix3.py, the driver scripts/idle_audit_fix3.sh, the run
+     logs/F6-idle-audit-fix3.log. The fix2 assembler and driver are retained
+     unedited beside them.
+
+     2026-09-11, fix3: the G1 RESULT paragraph above says "Eleven counter-
+     asserting batches are also unproven". Under fix2's own numbers it was
+     FOURTEEN COUNT batches plus one SUPERSEDED, alongside four WALL. Under
+     fix3's evidence accounting the counter figure is 30 COUNT/other batches
+     unproven of 42. The fraction figures it quotes (0.6160-1.5957 % on cpu2)
+     are unchanged.
+
+(H3) THE COMPARATOR'S MANIFEST IS NOW BY IDENTITY (settler ruling R14; astra's
+     fix2 review item 3). G3 above says the expected populations are written
+     down, and they were -- except that leg 1's was written down as THE NUMBER
+     27. A number cannot tell a substitution from the real thing. Three holes
+     are closed:
+       (a) LEG1_CELLS is the 27 cell ids themselves, taken from the committed
+           t10b control's key list (bench/baselines/2026-09-02-t10b-ipm/
+           ipm_baseline.csv), and EVERY leg-1 raw CSV must carry exactly that
+           key set -- so a cell missing from ONE ROUND is a MANIFEST failure
+           naming the cell and the file, at exit 1, where fix2 reported it
+           downstream at exit 2;
+       (b) the interior arms are declared BY SHA with the provenance token that
+           identifies each (arm102/102f729/schema 19/arm-base;
+           armb98/b9848bf/schema 31/arm-interior-base;
+           head/e51a7e0/schema 31/arm-head), checked against every CSV of the
+           arm;
+       (c) the per-cell interior population is checked as (cell, arm, round)
+           over the DECLARED cells, so the absence of the whole
+           perf/interior_cells tree is a MANIFEST failure naming it, at exit 1.
+     Exit 1 is the manifest; exit 2 stays for usage and read errors only.
+
+     PROVED, logs/F5-manifest-proofs-fix3.log,
+     scripts/comparator_manifest_proofs_fix3.sh:
+       stub A  a leg-1 cell id SUBSTITUTED in all six files of a mode -> exit 1
+       stub B  a leg-1 cell removed from ONE ROUND only               -> exit 1
+       stub C  perf/interior_cells removed entirely                   -> exit 1
+       stub D  head-r*.csv copied over arm102-r*.csv                  -> exit 1
+       regressions  the four fix1/fix2 stubs still fire               -> exit 1
+       control      the untouched tree                                -> exit 0
+     AND THE CONTROL'S SECOND HALF: the fix2 tool and the fix3 tool produce
+     BYTE-IDENTICAL output on the complete tree (66 702 bytes both), and that
+     output is byte-identical to reading.md section 9's text, which is what lets
+     section 9 stand unrewritten. comparator.py's sha256 moves to
+     c4d2643f91d82b32af1d5f41b24b312fb69696225f1d7405ee67f7076ec00f2e.
+
+(H4) THE SAMPLED-PROFILE INPUTS ARE RETAINED (settler ruling R15; astra's fix2
+     review item 5). record_analyze.py shelled out to "perf report -i" against
+     .scratch/w5t89ra5/perfrec, so its calibration exclusion could not be
+     reproduced from the artifact. The 27 profiles' "perf report --no-children
+     --sort symbol --stdio" text outputs are now retained under
+     attribution-interior/t84/single-row/perf-report/report/<arm>/, and the raw
+     perf.data files (each under 300 KB) beside them under perf-report/data/,
+     with the hs071 call-graph profile that names the calibration symbols. The
+     script reads the retained text and its OUTPUT IS BYTE-IDENTICAL to the fix2
+     version's, so record_analyze.out stands unrewritten; its sha256 moves to
+     7f18d8aade507e01a563d8de05e888b41fb86e0560044b3a30e2149fbec95a0f.
+
+     2026-09-11, fix3: THE PER-SYMBOL MAXIMUM WAS WRONG. Section 14 and
+     classification.md said no named function's instruction share grew by more
+     than +0.34 %. The retained diff reads +0.51 PERCENTAGE POINTS for
+     mkl_pds_lp64_blkl_ll_real.extracted on the MakeConstraint row
+     (perf-diff/f7_n20000_bound_neutral-MakeConstraint-culprit-vs-parent.txt:3).
+     A SHARE CHANGE IS NOT A BOUND ON A SYMBOL'S INSTRUCTION INCREASE and is no
+     longer read as one; the byte-identical control pair moves shares by up to
+     0.95 points on the same rows, which is the scale it is read against.
+
+     2026-09-11, fix3: the calibration's size was quoted as "17 % of an n20000
+     process and 96 % of an n1000 one" in section 14 and classification.md, and
+     as 27 % / 96 % in record_analyze.py's docstring. The SAMPLED PROFILES read
+     16.7-27.2 % and 82.4-84.0 % (record_analyze.out's cal % column, per round).
+     The sampled instruction evidence is SCOPED: three rounds per arm on TWO
+     scored rows of the eleven, with a third row reported and not scored; no 1e-4
+     identity is established by it and none is claimed.
+
+(H5) TEXT CORRECTIONS CARRIED AT FIX3 (settler ruling R16; astra's fix2 review,
+     Minors). reading.md :1940's "only group-1 task" and :2010's "not refuted as
+     a description" are withdrawn with §11's LAYOUT-MOVED derivation; :1868's
+     "no other task carries more than about a tenth of a percent" is corrected
+     (T8.6 is +0.3299 % and T8.8 +0.3875 % of corpus step); the twelve common
+     interior counter columns are qualified consistently (status is RENAMED, not
+     identical); §8's stale "no disposition" and "no arm between those heads"
+     sentences are marked as the state at fix1; L1-D misses reach +1.0946 %, not
+     +0.9 %; page faults are flat to 0.995080-1.000041, which is four figures
+     and not five. The migration guide's "every wall batch is proven" sentence
+     is replaced by the counts, its A7 (ii) claim is scoped to the measured
+     carrier pair and its two profiled rows, and its KEEP paragraph moves to the
+     actual close of the section.
+
+  APPLE / ACCELERATE: UNOBSERVED.  WINDOWS: UNOBSERVED. Unchanged by fix3.
+
+================================================================================
+FIX ROUND 4 -- 2026-09-13. TEXT ONLY. NOTHING WAS MEASURED.
+================================================================================
+  This block amends the fix1, fix2 and fix3 blocks above. Nothing above it is
+  rewritten: the lines it corrects are quoted here with what is true instead,
+  because a provenance record that is edited in place stops being a record. No
+  number in this artifact was re-derived by fix round 4, no leg was re-run, and
+  no library, test or bench source was touched. It follows fable's fix3 review
+  (FIX-ROUND, SIGNOFF W5-T8-9R-FIX3-REVIEW-FABLE: NO CRITICAL, four Important
+  items and a table of Minors, with every figure in this artifact independently
+  recomputed and reproduced) and the settler's fix4 dispatch, which takes all
+  four.
+
+  WHY A FROZEN DIRECTORY IS TOUCHED. docs/notes/data/** is frozen against the
+  T8.10 RENAME's residual policy -- a rename sweep does not rewrite a captured
+  artifact's identifiers, and this round rewrites none. It is NOT frozen against
+  an EVIDENCE CORRECTION DECLARED BY ROUND, which is what CLAUDE.md section 7
+  requires of an intentional break of a pinned or reproduced value. Fix round 4
+  is such a correction, and this block is the declaration.
+
+(I1) THE LAST "NO STEP" SENTENCES ARE WITHDRAWN (fable's fix3 review item 1;
+     settler R12). H1 above withdrew "the +2.5 % step does not appear in a
+     single-row process at all" in every place it appears, and two places were
+     missed:
+       attribution-interior/t84/single-row/classification.md section 8 -- "the
+         single-row process does not reproduce the step", in the same file whose
+         sections 1 and 7 withdraw it;
+       docs/notes/2026-09-m6-w5-migration-guide.md -- the bullet header "AND THE
+         WORK IS IDENTICAL -- BUT NOT IN A SINGLE-ROW PROCESS", over a body that
+         fix3 had already corrected.
+     BOTH ARE WITHDRAWN. The reading that stands is H1's: the step is SMALLER in
+     a single-row process (~1.1 % of the solve bracket against the leg process's
+     2.5-3.0 %), not absent.
+
+(I2) THE R2' EVIDENCE FLAG IS NOW ON THE ROWS THEMSELVES (fable's fix3 review
+     item 2; settler R13). H2 above placed the UNPROVEN-FRACTION /
+     UNPROVEN-EVIDENCE accounting in reading.md section 8.1 and carried it into
+     sections 11-14, but sections 1, 2 and 5 -- which is where a reader meets
+     the leg-1, leg-2 and interior wall numbers -- carried no flag at all. One
+     footnote is now under each of those tables, naming:
+       the three UNPROVEN-EVIDENCE leg-1 rounds  leg1-ipm-r3, leg1-ssn-r2,
+                                                 leg1-walk-r2 (a foreign R with
+                                                 no re-snapshot);
+       all twelve leg-2 batches and the interior leg's wall batch (no snapshot
+                                                 between consecutive timed runs);
+       the single-row leg, for which R2' CANNOT BE COMPUTED at all;
+       and the artifact-wide count: of 57 wall-asserting batches, 22 PROVEN,
+       4 short on the fraction, 32 short on the evidence.
+     No batch behind sections 1, 2 or 5 exceeds R2''s FRACTION. The numbers are
+     unchanged; what changed is that the flag now travels with them.
+
+(I3) "ONLY T8.4 EXCEEDS 1.01 ON ANY SCORED ROW" IS FALSE AND IS REPLACED
+     (fable's fix3 review item 3; settler R16). H5's correction of the "only
+     group-1 task" sentence replaced one false form with another: reading.md
+     section 11's own table gives T8.7 = 1.0111 on
+     f7_n10000_bound_neutral/MakeParameter, and its "rows above 1.01, of 11"
+     line scores T8.7 at 1. THE TRUE FORM, carried now in reading.md sections 11
+     and 12 and in a dated line of .superpowers/w5-t8-9r-attrib2-report.md:
+     T8.4 EXCEEDS 1.01 ON ALL ELEVEN SCORED ROWS, and T8.7 exceeds it on one.
+     Nothing else in the localisation changes: T8.4 remains the dominant step by
+     a factor of six on corpus steps (+2.3684 % against +0.3875 % next).
+
+(I4) THE WHOLE-PROCESS ROW READ "1/11" AND IT IS 0/11 (fable's fix3 review item
+     4). reading.md section 1's table and the migration guide's copy of it gave
+     1 cell outside 0.99-1.01 for the single-row WHOLE-PROCESS population. The
+     eleven scored rows read c/p 0.995118-1.009427 (wall_bracket.out's process
+     column and classify.out), so the count is ZERO. The BRACKET row's "5/11
+     above 1.01" is unaffected and unchanged.
+
+(I5) THE MINORS CARRIED AT FIX4 (fable's fix3 review, Minors table).
+     (a) THE L1-D MAXIMUM WAS MISATTRIBUTED AND MIS-TYPED. reading.md and
+         classification.md read "the maximum is 1.0946 on
+         f7_n10000_bound_neutral/RelaxBounds". classify.out's pass-C table puts
+         the largest scored L1-dcache-load-misses ratio at c/p 1.01095, i.e.
+         +1.095 %, on f7_n5000_bound_physics/MakeParameter;
+         f7_n10000_bound_neutral/RelaxBounds reads 1.00502. "1.0946" was the
+         PERCENT form written as though it were a ratio. H5's own line above
+         ("L1-D misses reach +1.0946 %, not +0.9 %") states the figure
+         correctly as a percent and names no row; the row it belongs to is
+         f7_n5000_bound_physics/MakeParameter.
+     (b) THE CONTROL PAIR'S "0.95 POINTS" IS THE CALIBRATION SYMBOL. H4 above
+         and both readings quoted 0.95 points as the control's share-move scale.
+         That 0.95 is difftime -- MKL's dsecnd() calibration, the very symbol
+         the per-symbol reading sets aside -- in
+         perf-diff/f7_n20000_bound_neutral-MakeParameter-control-vs-parent.txt:1.
+         The LIKE-FOR-LIKE control scale over NAMED SOLVER symbols is |delta|
+         0.77 (mkl_pds_lp64_blkl_ll_real.extracted, MakeConstraint row) with a
+         largest GAIN of +0.51 (mkl_pds_lp64_dsytf2_pardiso, MakeParameter row).
+         The conclusion is unchanged and now rests on the consistent figure.
+     (c) ipm_corpus_leg.cpp:389-392 IS THE SAME SPAN, NOT BYTE-IDENTICAL. H1
+         above, reading.md section 14 and classification.md section 7 said the
+         four bracket lines are byte-identical at the two arms. They are not:
+         :390 declares "const hven::ConvergenceFlags flag" at 510a4bb and
+         "const hven::solvers::SolveStatus flag" at 9cebbbe -- T8.2's rename and
+         nothing else. What the bracket argument needs, and what IS true, is that
+         the SPAN is the same: t0 taken immediately before the call, wall_s
+         immediately after. wall_bracket.out:123 carries the superseded wording;
+         it is the tool's SAVED OUTPUT and is not hand-edited, so the correction
+         is carried in the three readings and here.
+     (d) THE OUT-OF-BRACKET TERM SHRINKS 10.4-15.8 %, not "10-15 %": the per-row
+         out-of-bracket c/p runs 0.8418-0.8955 in wall_bracket.out's own table.
+     (e) wall_bracket.py's DOCSTRING contradicted its own output. It said the
+         bracket's within-arm spread is "an order of magnitude smaller" than the
+         process's, and gave the process spread as 0.2-1.2 %. The tool's
+         WITHIN-ARM SPREAD table (wall_bracket.out:85-103) reads 0.04-1.55 % on
+         the bracket against 0.03-1.62 % on the process and prints "THE TWO
+         WINDOWS ARE EQUALLY NOISY". The docstring is corrected to the measured
+         figures. THIS IS THE ONE PIN THAT MOVES, AND IT IS DECLARED:
+           wall_bracket.py.sha256
+             fa9ae47b999f7af795e133d2dc24d6c2c1c547a586b4427a5818a0a889659432
+           ->
+             15094b833a348d59f01b5148a53be11c5e51a79676b9a683546b5816decad0f4
+         The docstring is NEVER PRINTED -- nothing reads __doc__ -- so
+         wall_bracket.out is UNCHANGED and still reproduces byte-for-byte from
+         the retained CSVs, and no figure moves with it.
+     (f) "AT IDENTICAL INSTRUCTION COUNTS" IS SOFTENED wherever it is said of
+         the top-level IPM step, to "at instruction counts flat within the
+         instrument": per symbol, calibration set aside, the culprit runs the
+         two profiled rows at c/p 0.99452 and 0.99696 against a control of
+         0.99863 and 0.99980. Section 14 says in terms that no 1e-4 identity is
+         established and none is claimed, so "identical" overstated it. The
+         settler amended that clause of the section 15 restatement at fix round
+         4; the amendment is recorded under the quotation there.
+
+(I6) THE INTERIOR ARMS' IDENTITY EVIDENCE, STATED PLAINLY (fable's fix3 review
+     section 3, Minor). H3(b) above declares the three interior arms "BY SHA",
+     and comparator.py's INTERIOR_ARM_IDENTITY table carries a `sha` field. THAT
+     FIELD IS DOCUMENTARY: nothing compares it to anything. What the comparator
+     actually checks per arm is the CSV's schema width and the build-directory
+     token in its recorded invocation line (arm-base / arm-interior-base /
+     arm-head), which is a real check -- fable's stub, head-r*.csv copied over
+     armb98-r*.csv, exits 1 on it -- but it is not a hash check, and a copy whose
+     header token was edited would pass.
+     AND THE CSVs CANNOT SUPPLY ONE. Every interior CSV's provenance line reads
+     "# binary: 335a6669adf1" at ALL THREE ARMS (raw/interior/arm102-r1.csv:2,
+     armb98-r1.csv:2, head-r1.csv:2). That token is the ENCLOSING REPOSITORY's
+     HEAD at capture time -- the T8.9-CLOSED docs commit -- not the measured
+     arm's commit, so three identical tokens are NOT three identical binaries and
+     must not be read as an arm identifier.
+     THE ARM IDENTITY EVIDENCE IS THE EXECUTABLES' SHA256, recorded at the head
+     of this file (lines 46-51): arm-base 489def04..., arm-head 41d2c72a...,
+     arm-interior-base 560914cd..., each with its libhven.a beside it, and
+     re-verified before use. comparator.py is NOT edited for this: changing a
+     comment or a field in it would move comparator.py.sha256 and invalidate
+     logs/F5-manifest-proofs-fix3.log, and fix round 4 runs nothing. The record
+     is here instead, which is where the dispatch put the choice.
+
+  APPLE / ACCELERATE: UNOBSERVED.  WINDOWS: UNOBSERVED. Unchanged by fix4.

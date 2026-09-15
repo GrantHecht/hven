@@ -14,7 +14,7 @@
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/iterate_info.h"
 #include "hven/detail/interior/kkt_vector.h"
-#include "hven/drivers/interior_point_solver.h"
+#include "hven/drivers/ipm_solver.h"
 
 namespace hven::solvers {
 
@@ -32,7 +32,7 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
 
     /// Fused fraction-to-boundary scaling + acceptance backtrack — see
     /// GlobalizationMechanism::compute_step for why the two halves are fused.
-    double compute_step(InteriorPointSolver::LineSearchModes lsmode, double obj_scale, double mu,
+    double compute_step(IpmSolver::LineSearchModes lsmode, double obj_scale, double mu,
                         double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
                         Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
                         Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance, double &alphap,
@@ -55,12 +55,12 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
     /// so the dispatch lives in one place. On the classic path this forwards to
     /// acceptance.classic_line_search; on the generic path it runs
     /// generic_line_search.
-    double run_acceptance_backtrack(InteriorPointSolver::LineSearchModes lsmode, double obj_scale,
-                                    double mu, double prim_obj, double barr_obj,
-                                    Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL,
-                                    Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-                                    Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance,
-                                    IterateInfo &Citer, const std::vector<IterateInfo> &iters,
+    double run_acceptance_backtrack(IpmSolver::LineSearchModes lsmode, double obj_scale, double mu,
+                                    double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+                                    Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
+                                    Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2,
+                                    AcceptanceStrategy &acceptance, IterateInfo &Citer,
+                                    const std::vector<IterateInfo> &iters,
                                     SolverContext &ctx) override;
 
   private:
@@ -88,8 +88,8 @@ class BacktrackingLineSearch : public GlobalizationMechanism {
     /// built from the trial point. Stores the same accepted_ /
     /// first-rejection signals as the classic path so the recovery chain
     /// composes.
-    double generic_line_search(InteriorPointSolver::LineSearchModes lsmode, double obj_scale,
-                               double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+    double generic_line_search(IpmSolver::LineSearchModes lsmode, double obj_scale, double mu,
+                               double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
                                Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
                                Eigen::VectorXd &RHS2, AcceptanceStrategy &acceptance,
                                IterateInfo &Citer, SolverContext &ctx);

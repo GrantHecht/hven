@@ -6,27 +6,98 @@
 # MKL_NUM_THREADS: 1
 # host: fedora
 # generated: 2026-08-08T01:23:12Z
+#
+# --- APPENDED 2026-08-27: R6 HONEST RE-PIN (hven M6 W0.3) --------------------
+# NOTHING ABOVE THIS LINE WAS ALTERED. The header above is the original
+# provenance of the 2026-08-08 derivation and stays the record of how the
+# pre-R6 values were produced (CLAUDE.md section 1: provenance headers are
+# append-only; section 7: an intentional break is declared, never silent).
+#
+# WHY THIS FILE MOVED. hven m6 commit 2d82b13 ("fix(sqp): R6 -- sweep negative
+# face prices at the export boundary") clamps every strictly negative EXPORTED
+# inequality price to 0 at SqpDriver::finish. This artifact WAS the D2
+# disclosure of record -- it scores to exactly 14 rows / 2,212 negative
+# multipliers / max 3.507477058e-06 -- so the fix necessarily moves it.
+# OWNER-RULED an HONEST RE-PIN (2026-08-27, direct) rather than a narrowed
+# comparison.
+#
+# WHAT MOVED, EXACTLY -- 14 ROWS, and on every one of them:
+#     neg_ineq_duals -> 0 and kkt_dual_sign -> 0.000000000e+00
+#     kkt_stationarity rises to its value at DUAL-FEASIBLE multipliers
+#     kkt_residual / kkt_primal / kkt_complementarity move in last digits only
+# NO counter moved and NO status moved on any row: the sweep runs at the
+# export boundary and does not touch the iteration.
+#
+# ONE VERDICT FLIP: f7_n20000_path_activity kkt_verdict ok -> wrong. Its
+# repaired stationarity (2.480155774e-06) exceeds the KKT gate's relative
+# bound. The verdict now tells the truth about a marginal solve; the previous
+# `ok` was purchased with 2,135 negative multipliers, and the gate note in
+# bench/corpus_cells.h had pre-registered (dual_sign_would_fail) that all 14
+# of these rows would fail a gate including dual feasibility. Thirteen of the
+# fourteen now pass at repaired multipliers; this one does not.
+#
+# THE PRE-R6 VALUES ARE NOT LOST: they are the immediately preceding git blob
+# of this file (hven, branch m6, the parent of the re-pin commit).
+#
+# HOW THE 14 ROWS WERE RE-DERIVED (CLAUDE.md section 7). ONE run of
+#     hven_sqp_corpus --engine ssn --cells <45 ids> --csv <out> --score-gates
+# built from hven m6 at 2d82b13, Release, the uniform clang regime
+# (clang 22.1.8, Fedora 44, Linux 7.1.9), this box. Values are from that run,
+# not transcribed from any earlier measurement.
+#   SOLO -- alone on the machine, one cell at a time (the runner walks its
+#   cells sequentially, one subprocess per cell).
+#   MKL_NUM_THREADS=1 and OMP_NUM_THREADS=1 exported in every process.
+#   NOT a co-run, so section 7's tiering and width terms do not apply.
+#   NOT core-pinned -- no taskset, no numactl, SMT siblings not idled. Stated
+#   because it is a DISCLOSURE, not a term that was met.
+# rederived.binary: 2d82b1300b56
+# rederived.schema: 37
+# rederived.budget_table_hash: 0x357aee91dee27391
+# rederived.generated: 2026-08-27T20:35:58Z
+#
+# THE OTHER 43 ROWS ARE CARRIED OVER UNCHANGED, and that is licensed by
+# evidence rather than by assumption. The same run re-derived 31 of them as
+# CONTROLS -- every remaining row whose committed wall_s made it affordable --
+# and on all 31: ZERO movement in any counter, status or per-QP shape column.
+# Their RESIDUAL-class columns do differ in their last digits, and that is NOT
+# R6: the 2026-08-08 values came from a different binary on a different
+# codebase, and section 7 exempts residual-class columns from byte-determinism
+# (MKL's kernels are address-sensitive). The largest such drift was 1.8e-01
+# RELATIVE, on f7_n20000_bound_activity's kkt_primal -- a quantity of magnitude
+# 1.1e-16, i.e. eps-level noise, where a relative figure is meaningless. That
+# PRE-EXISTING drift is exactly why this file's in-tree consumer compares
+# residuals through a 1e-5 relative gate and integer columns byte-strict.
+# Carrying these 43 rows over verbatim therefore preserves the status quo ante
+# exactly and changes only what R6 actually moved.
+# The 12 rows not re-run are the wall-deadline cells (committed wall_s 3600 s
+# each); none of them carries a negative price, so the sweep cannot fire on
+# them.
+#
+# wall_s ON THE 14 RE-DERIVED ROWS IS THIS RUN'S OWN and is INFORMATIONAL
+# ONLY (section 7). It is not comparable with the 2026-08-08 values beside it
+# and is never quoted as a timing.
+# ----------------------------------------------------------------------------
 cell_id,family,n_nodes,window,taxonomy,degenerate,status,factorizations,qp_minors,escapes,qp_subproblems,qp_fact_per_qp,kkt_residual,wall_s,kkt_verdict,kkt_stationarity,kkt_primal,kkt_dual_sign,kkt_complementarity,dual_scale,x_scale,neg_ineq_duals,ssn_iters,ssn_bulk_flips,ssn_backtracks,ssn_prox_updates,ssn_uncertain_peak,ssn_refinements,ssn_refine_refused,ssn_refine_facts,ssn_refine_neg_duals,esc_budget,esc_singular,esc_no_contraction,esc_infeasible_suspect,esc_indefinite,esc_gate_refused
 f7_n1000_bound_neutral,F7,1000,bound,neutral,0,Optimal,3,0,0,1,3,6.295816157e-14,0.067179674,ok,6.295816157e-14,1.937490966e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0
 f7_n1000_bound_physics,F7,1000,bound,physics,0,Optimal,3,0,0,1,3,1.167130933e-16,0.068660850,ok,1.167130933e-16,1.046255096e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0
 f7_n1000_bound_corrupted,F7,1000,bound,corrupted,0,Optimal,3,0,0,1,3,9.157896609e-15,0.030813967,ok,9.157896609e-15,2.738477847e-15,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0
 f7_n1000_bound_activity,F7,1000,bound,activity,0,Optimal,3,0,0,1,3,1.167130933e-16,0.069282727,ok,1.167130933e-16,1.046255096e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0
 f7_n1000_bound_warm,F7,1000,bound,warm,0,Optimal,3,0,0,1,3,4.198645758e-15,0.030515398,ok,4.198645758e-15,2.737176805e-15,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0
-f7_n1000_path_neutral,F7,1000,path,neutral,0,Optimal,33,0,0,4,3;15;11;4,3.053662878e-10,0.311659593,ok,1.045096222e-10,3.053662878e-10,4.555255959e-07,1.271441918e-13,1.000000000e+00,1.000000000e+00,3,25,14,26,1,0,3,1,4,10,0,0,0,0,0,0
-f7_n1000_path_physics,F7,1000,path,physics,0,Optimal,36,621,1,2,4;7,4.063982696e-10,9.691296122,ok,4.063982696e-10,2.917959208e-10,3.697875239e-07,2.255606852e-16,1.000000000e+00,1.000000000e+00,3,30,17,67,1,0,1,0,1,3,1,0,0,0,0,0
-f7_n1000_path_corrupted,F7,1000,path,corrupted,0,Optimal,30,0,0,3,15;11;4,3.938122051e-10,0.255510481,ok,9.251887667e-12,3.938122051e-10,5.624899319e-07,4.519047001e-16,1.000000000e+00,1.000000000e+00,2,24,19,5,1,0,3,0,3,4,0,0,0,0,0,0
-f7_n1000_path_activity,F7,1000,path,activity,0,Optimal,35,546,1,2,3;7,5.818926794e-09,7.930056280,ok,5.818926794e-09,3.041160657e-10,3.698190425e-07,2.277717758e-14,1.000000000e+00,1.000000000e+00,3,28,9,144,2,0,1,0,1,3,1,0,0,0,0,0
-f7_n1000_path_warm,F7,1000,path,warm,0,Optimal,31,0,0,2,16;15,3.737114461e-10,0.249853531,ok,3.737114461e-10,3.392465198e-10,7.144736501e-07,2.152407174e-15,1.000000000e+00,1.000000000e+00,20,27,13,57,2,0,2,0,2,20,0,0,0,0,0,0
+f7_n1000_path_neutral,F7,1000,path,neutral,0,Optimal,33,0,0,4,3;15;11;4,3.053665099e-10,0.290673648,ok,3.220916799e-07,3.053665099e-10,0.000000000e+00,1.271441541e-13,1.000000000e+00,1.000000000e+00,0,25,14,26,1,0,3,1,4,10,0,0,0,0,0,0
+f7_n1000_path_physics,F7,1000,path,physics,0,Optimal,36,621,1,2,4;7,4.063981643e-10,8.459043850,ok,2.614810602e-07,2.917948105e-10,0.000000000e+00,2.255607482e-16,1.000000000e+00,1.000000000e+00,0,30,17,67,1,0,1,0,1,3,1,0,0,0,0,0
+f7_n1000_path_corrupted,F7,1000,path,corrupted,0,Optimal,30,0,0,3,15;11;4,3.938125381e-10,0.219837768,ok,3.977456414e-07,3.938125381e-10,0.000000000e+00,4.519045966e-16,1.000000000e+00,1.000000000e+00,0,24,19,5,1,0,3,0,3,4,0,0,0,0,0,0
+f7_n1000_path_activity,F7,1000,path,activity,0,Optimal,35,546,1,2,3;7,5.818931316e-09,6.817829055,ok,2.615018019e-07,3.041171759e-10,0.000000000e+00,2.277723501e-14,1.000000000e+00,1.000000000e+00,0,28,9,144,2,0,1,0,1,3,1,0,0,0,0,0
+f7_n1000_path_warm,F7,1000,path,warm,0,Optimal,31,0,0,2,16;15,3.737114082e-10,0.223270031,ok,5.051869825e-07,3.392465198e-10,0.000000000e+00,2.152414444e-15,1.000000000e+00,1.000000000e+00,0,27,13,57,2,0,2,0,2,20,0,0,0,0,0,0
 f7_n2000_bound_neutral,F7,2000,bound,neutral,0,Optimal,3,0,0,1,3,1.259764085e-13,0.135260196,ok,1.259764085e-13,3.876413079e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0
 f7_n2000_bound_physics,F7,2000,bound,physics,0,Optimal,3,0,0,1,3,2.168086708e-16,0.139222002,ok,2.168086708e-16,1.105344115e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0
 f7_n2000_bound_corrupted,F7,2000,bound,corrupted,0,Optimal,3,0,0,1,3,1.834299600e-14,0.061199815,ok,1.834299600e-14,5.433153927e-15,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0
 f7_n2000_bound_activity,F7,2000,bound,activity,0,Optimal,3,0,0,1,3,2.168086708e-16,0.139302032,ok,2.168086708e-16,1.105344115e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0
 f7_n2000_bound_warm,F7,2000,bound,warm,0,Optimal,3,0,0,1,3,8.394888483e-15,0.063217007,ok,8.394888483e-15,5.413313027e-15,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0
 f7_n2000_path_neutral,F7,2000,path,neutral,1,NumericalError,39792,40002,2,3,3;19871;19872,3.889087297e-01,851.812370636,unchecked,5.085072728e-04,3.889087297e-01,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,46,43,107,2,0,1,0,1,0,1,0,0,1,0,0
-f7_n2000_path_physics,F7,2000,path,physics,1,Optimal,53,1394,1,2,8;20,2.290379102e-10,45.776992304,ok,2.290379102e-10,7.332123797e-11,2.438548420e-07,1.099746547e-16,1.000000000e+00,1.000000000e+00,3,43,26,134,2,0,1,0,1,3,1,0,0,0,0,0
+f7_n2000_path_physics,F7,2000,path,physics,1,Optimal,53,1394,1,2,8;20,2.290378527e-10,36.631783028,ok,1.724288108e-07,7.332101593e-11,0.000000000e+00,1.099746898e-16,1.000000000e+00,1.000000000e+00,0,43,26,134,2,0,1,0,1,3,1,0,0,0,0,0
 f7_n2000_path_corrupted,F7,2000,path,corrupted,1,Optimal,43,0,0,3,17;21;5,1.046638332e-10,0.717418989,ok,5.994494614e-12,1.046638332e-10,0.000000000e+00,1.486838311e-16,1.000000000e+00,1.000000000e+00,0,37,27,50,2,0,3,0,3,0,0,0,0,0,0,0
-f7_n2000_path_activity,F7,2000,path,activity,1,Optimal,55,1503,1,2,7;23,3.049783511e-09,44.124245338,ok,3.049783511e-09,8.860623346e-11,2.460938785e-07,1.062284890e-14,1.000000000e+00,1.000000000e+00,5,46,21,146,2,0,1,0,1,5,1,0,0,0,0,0
-f7_n2000_path_warm,F7,2000,path,warm,1,Optimal,16,0,0,2,5;11,3.931679927e-10,0.289222308,ok,3.931679927e-10,5.470401909e-11,2.310851461e-07,1.146448088e-15,1.000000000e+00,1.000000000e+00,30,12,9,10,0,0,2,0,2,36,0,0,0,0,0,0
+f7_n2000_path_activity,F7,2000,path,activity,1,Optimal,55,1503,1,2,7;23,3.049783718e-09,34.588551158,ok,1.740135870e-07,8.860723266e-11,0.000000000e+00,1.062284527e-14,1.000000000e+00,1.000000000e+00,0,46,21,146,2,0,1,0,1,5,1,0,0,0,0,0
+f7_n2000_path_warm,F7,2000,path,warm,1,Optimal,16,0,0,2,5;11,3.931679933e-10,0.247567874,ok,1.633966987e-07,5.470435216e-11,0.000000000e+00,1.146445735e-15,1.000000000e+00,1.000000000e+00,0,12,9,10,0,0,2,0,2,36,0,0,0,0,0,0
 f7_n5000_bound_neutral,F7,5000,bound,neutral,0,Optimal,3,0,0,1,3,3.150169372e-13,0.340559665,ok,3.150169372e-13,9.692247005e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0
 f7_n5000_bound_physics,F7,5000,bound,physics,0,Optimal,3,0,0,1,3,5.167993121e-16,0.351880658,ok,5.167993121e-16,1.124182128e-16,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0
 f7_n5000_bound_corrupted,F7,5000,bound,corrupted,0,Optimal,3,0,0,1,3,4.592201604e-14,0.165069486,ok,4.592201604e-14,1.352677735e-14,0.000000000e+00,0.000000000e+00,1.000000000e+00,1.000000000e+00,0,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0
@@ -55,12 +126,12 @@ f7_n20000_bound_warm,F7,20000,bound,warm,0,Optimal,3,0,0,1,3,8.390643321e-14,0.7
 f7_n20000_path_neutral,F7,20000,path,neutral,0,dnf_budget,-1,-1,-1,-1,,-1.0,3600.000000000,unchecked,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 f7_n20000_path_physics,F7,20000,path,physics,0,dnf_budget,-1,-1,-1,-1,,-1.0,3600.000000000,unchecked,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
 f7_n20000_path_corrupted,F7,20000,path,corrupted,0,dnf_setup,-1,-1,-1,-1,,-1.0,3600.000000000,unchecked,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
-f7_n20000_path_activity,F7,20000,path,activity,0,Optimal,19,0,0,2,15;4,1.241342883e-09,4.583203301,ok,1.241342883e-09,1.326482257e-10,3.507477058e-06,2.229897097e-15,1.000000000e+00,1.000000000e+00,2135,15,11,15,1,0,2,0,2,2135,0,0,0,0,0,0
+f7_n20000_path_activity,F7,20000,path,activity,0,Optimal,19,0,0,2,15;4,1.241343505e-09,4.244456591,wrong,2.480155774e-06,1.326481147e-10,0.000000000e+00,2.229889289e-15,1.000000000e+00,1.000000000e+00,0,15,11,15,1,0,2,0,2,2135,0,0,0,0,0,0
 f7_n20000_path_warm,F7,20000,path,warm,0,dnf_setup,-1,-1,-1,-1,,-1.0,3600.000000000,unchecked,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
-f7_n800_path_neutral,F7,800,path,neutral,1,Optimal,43,0,0,4,3;27;9;4,5.792566427e-10,0.336609492,ok,9.548392832e-11,5.792566427e-10,7.587901540e-07,1.598111085e-13,1.000000000e+00,1.000000000e+00,2,35,14,102,1,0,3,1,4,2,0,0,0,0,0,0
-f7_n800_path_physics,F7,800,path,physics,1,Optimal,38,479,1,2,5;8,9.288310871e-10,5.720711703,ok,9.288310871e-10,5.935207881e-10,1.073922761e-06,2.600688313e-15,1.000000000e+00,1.000000000e+00,1,31,21,53,1,0,1,0,1,1,1,0,0,0,0,0
-f7_n800_path_corrupted,F7,800,path,corrupted,1,Optimal,28,0,0,3,13;11;4,5.679290371e-10,0.189640998,ok,8.548770524e-12,5.679290371e-10,5.861227797e-07,2.543874779e-16,1.000000000e+00,1.000000000e+00,1,22,17,9,0,0,3,0,3,3,0,0,0,0,0,0
+f7_n800_path_neutral,F7,800,path,neutral,1,Optimal,43,0,0,4,3;27;9;4,5.792575308e-10,0.284840308,ok,5.365519931e-07,5.792575308e-10,0.000000000e+00,1.598111976e-13,1.000000000e+00,1.000000000e+00,0,35,14,102,1,0,3,1,4,2,0,0,0,0,0,0
+f7_n800_path_physics,F7,800,path,physics,1,Optimal,38,479,1,2,5;8,9.288310865e-10,4.999154470,ok,7.602732908e-07,5.935203440e-10,0.000000000e+00,2.600531809e-15,1.000000000e+00,1.000000000e+00,0,31,21,53,1,0,1,0,1,1,1,0,0,0,0,0
+f7_n800_path_corrupted,F7,800,path,corrupted,1,Optimal,28,0,0,3,13;11;4,5.679295922e-10,0.162334080,ok,4.144515767e-07,5.679295922e-10,0.000000000e+00,2.543872601e-16,1.000000000e+00,1.000000000e+00,0,22,17,9,0,0,3,0,3,3,0,0,0,0,0,0
 f7_n800_path_activity,F7,800,path,activity,1,Optimal,39,383,1,3,2;8;4,1.108432346e-09,4.152843601,ok,1.213245850e-14,1.108432346e-09,0.000000000e+00,2.147459050e-15,1.000000000e+00,1.000000000e+00,0,31,15,177,2,0,2,0,2,1,1,0,0,0,0,0
 f7_n800_path_warm,F7,800,path,warm,1,Optimal,24,0,0,2,11;13,5.017598337e-09,0.156232357,ok,1.759597699e-09,5.017598337e-09,0.000000000e+00,1.241565370e-14,1.000000000e+00,1.000000000e+00,0,20,12,21,0,0,0,2,2,0,0,0,0,0,0,0
-f7_n750_path_neutral_control,F7,750,path,neutral,0,Optimal,38,0,0,4,3;23;8;4,7.142519909e-10,0.279982720,ok,9.449972693e-11,7.142519909e-10,8.236715074e-07,1.709130126e-13,1.000000000e+00,1.000000000e+00,3,30,14,57,1,0,3,1,4,6,0,0,0,0,0,0
-f7_n825_path_neutral_control,F7,825,path,neutral,0,Optimal,42,0,0,4,3;24;11;4,5.181985951e-10,0.332628997,ok,1.066598750e-10,5.181985951e-10,4.713567642e-07,1.541353449e-13,1.000000000e+00,1.000000000e+00,1,32,16,100,3,0,3,1,4,4,0,0,0,0,0,0
+f7_n750_path_neutral_control,F7,750,path,neutral,0,Optimal,38,0,0,4,3;23;8;4,7.142518799e-10,0.242017473,ok,5.824243093e-07,7.142518799e-10,0.000000000e+00,1.709131764e-13,1.000000000e+00,1.000000000e+00,0,30,14,57,1,0,3,1,4,6,0,0,0,0,0,0
+f7_n825_path_neutral_control,F7,825,path,neutral,0,Optimal,42,0,0,4,3;24;11;4,5.181989282e-10,0.289807533,ok,3.332994874e-07,5.181989282e-10,0.000000000e+00,1.541354917e-13,1.000000000e+00,1.000000000e+00,0,32,16,100,3,0,3,1,4,4,0,0,0,0,0,0

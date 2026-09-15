@@ -1,0 +1,20 @@
+# started on Fri Sep 11 15:34:28 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89ra3/bin/510a4bb/hven_sqp_corpus --engine interior --cells f7_n1000_bound_physics,f7_n5000_bound_physics,f7_n10000_bound_neutral,f7_n20000_bound_neutral --csv /home/ghecht/Projects/hven/.scratch/w5t89ra3/art/mcsv/m-g1-r5.csv':
+
+    18,747,907,203      cycles:u                                                              
+    56,253,984,628      instructions:u                                                        
+           308,104      page-faults:u                                                         
+           308,104      minor-faults:u                                                        
+         5,720,433      dTLB-load-misses:u                                                    
+   <not supported>      dTLB-store-misses:u                                                   
+   <not supported>      LLC-load-misses:u                                                     
+   <not supported>      LLC-store-misses:u                                                    
+
+       6.261510631 seconds time elapsed
+
+       5.607372000 seconds user
+       0.624987000 seconds sys
+
+

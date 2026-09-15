@@ -14,7 +14,7 @@
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/iterate_info.h"
 #include "hven/detail/interior/kkt_vector.h"
-#include "hven/drivers/interior_point_solver.h"
+#include "hven/drivers/ipm_solver.h"
 
 namespace hven::solvers {
 
@@ -53,8 +53,8 @@ class ClassicMeritAcceptance : public AcceptanceStrategy {
     void reset() override {}
 
     /// Classic fused entry point: the dispatcher over the three merit variants.
-    double classic_line_search(InteriorPointSolver::LineSearchModes lsmode, double obj_scale,
-                               double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
+    double classic_line_search(IpmSolver::LineSearchModes lsmode, double obj_scale, double mu,
+                               double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
                                Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
                                Eigen::VectorXd &RHS2, IterateInfo &Citer,
                                const std::vector<IterateInfo> &iters) override;

@@ -116,6 +116,15 @@ constexpr Index kMaxBorderRefineSteps = 10;
 // regularization-footprint test is what normally ends the loop.
 constexpr double kBorderRefineRelFloor = 1e-14;
 
+// Budget for the VERDICT-SITE face refinement (qp_engine.h's section 5), in
+// the same class as kMaxBorderRefineSteps and counted the same way -- TOTAL
+// steps kept. It lives beside that constant because it is the same kind of
+// bound on the same kind of loop, not because the two loops share a rule:
+// this one has no mandatory step (its starting point is a solve the walk has
+// already refined once) and it is entered only at a would-be-kInfeasible dead
+// end, so every step it takes is one the verdict asked for.
+constexpr Index kMaxVerdictRefineSteps = 10;
+
 } // namespace detail
 
 struct EqpResult {

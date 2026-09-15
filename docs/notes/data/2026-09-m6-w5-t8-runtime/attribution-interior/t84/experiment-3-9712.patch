@@ -1,0 +1,20 @@
+--- a/src/drivers/interior_point_solver.cpp
++++ b/src/drivers/interior_point_solver.cpp
+@@ -70,6 +70,17 @@
+ // public header only forward-declares IpmPolishData -- see its note there.
+ #include "hven/warmstart/ipm_polish_extension.h"
+ 
++// W5 T8.9r-attrib3 experiment 3: 9712 bytes of .text inserted at the head of this
++// translation unit, so every function defined below it -- and every object linked
++// after it -- moves. NOTHING IS EXECUTED: the block is unreachable padding. It is
++// a probe of CODE PLACEMENT, not a change of behaviour.
++__asm__(".pushsection .text\n"
++        ".p2align 4\n"
++        "hven_t89ra3_code_pad_9712:\n"
++        ".fill 9712, 1, 0x90\n"
++        ".popsection\n");
++
++
+ // clang-format on
+ 
+ namespace {

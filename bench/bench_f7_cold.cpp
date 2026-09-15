@@ -33,7 +33,7 @@
 //       whole reason F7 exists, and it is reported here.
 //
 // Both programs read the same F7CollocationChain from
-// tests/sqp/support/scale_problems.h and the same SqpDriver, so where their
+// tests/sqp/support/scale_problems.h and the same SqpSolver, so where their
 // configurations coincide their counters agree; the note records one such
 // cross-check (N = 150, both tolerance settings, identical 1276 minors and
 // 853/4 factorizations).
@@ -48,7 +48,7 @@
 //
 // EVERYTHING ELSE IS THE LIBRARY DEFAULT — including adaptive_mu = true,
 // warm_full_step, tr_init, and the whole funnel/SOC/elastic configuration.
-// The solve is always COLD: the 2-arg SqpDriver::solve() from
+// The solve is always COLD: the 2-arg SqpSolver::solve() from
 // model.start_point(), one solve per invocation, no warm start anywhere.
 //
 // USAGE
@@ -97,7 +97,7 @@
 //              here is what makes a row self-describing.
 //     schur=   summed QpCounters::schur_updates over every QP subproblem of
 //              this solve. SqpCounters has NO schur_updates field (see
-//              sqp_types.h), so this is read from a Ledger attached to the
+//              sqp_solver_types.h), so this is read from a Ledger attached to the
 //              driver -- the same route tests/test_scale_smoke.cpp uses -- by
 //              summing the QP-level SolveRecords. Identically 0 under
 //              ws_algebra = refactorize, where no border stack exists.
@@ -108,7 +108,7 @@
 // subproblem and does not touch the solve's trajectory.
 //
 // OUTPUT-FORMAT NOTE FOR ANYONE HOLDING OLD LOGS: this program prints
-// `status=Optimal` (SqpStatus's own to_string). The uncommitted scratch
+// `status=Optimal` (SolveStatus's own to_string). The uncommitted scratch
 // version that produced the study's raw logs before this file was committed
 // printed the ENUMERATOR VALUE instead -- `status=0` for kOptimal, `status=3`
 // for kNumericalError. Every other field is byte-identical, and the counters
@@ -156,8 +156,8 @@
 #include <fmt/format.h>
 
 #include <hven/core/ledger.h>
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/qp/qp_types.h>
 
 #include "bench_cli.h"
@@ -167,9 +167,9 @@
 namespace {
 
 using hven::Index;
-using hven::solvers::SqpDriver;
 using hven::solvers::SqpOptions;
-using hven::solvers::SqpSolution;
+using hven::solvers::SqpResult;
+using hven::solvers::SqpSolver;
 using hven::solvers::WorkingSetLinearAlgebra;
 using hven::solvers::test_support::F7CollocationChain;
 using hven::solvers::test_support::peak_rss_mib;
@@ -279,11 +279,11 @@ int main(int argc, char **argv) {
         F7CollocationChain model(static_cast<Index>(nodes), 3, 2, p, 1.0);
         const double f_star = model.f_star(p);
 
-        SqpDriver driver(opts);
+        SqpSolver driver(opts);
         hven::solvers::Ledger ledger;
         driver.attach_ledger(&ledger, "f7_cold");
         const auto t0 = std::chrono::steady_clock::now();
-        const SqpSolution sol = driver.solve(model, model.start_point());
+        const SqpResult sol = driver.solve(model, model.start_point());
         const auto t1 = std::chrono::steady_clock::now();
 
         const double x_err = (sol.x - model.x_star(p)).lpNorm<Eigen::Infinity>();
@@ -291,7 +291,7 @@ int main(int argc, char **argv) {
 
         // PHASE-6 TASK 3 added ws_adds/ws_drops/shift_adds/degenerate_steps
         // to this sum for the same reason schur_updates was already summed
-        // here: SqpCounters (sqp_types.h) carries no field for any of them,
+        // here: SqpCounters (sqp_solver_types.h) carries no field for any of them,
         // so the only route to a whole-solve figure is the attached Ledger's
         // per-QP SolveRecords. Nothing else about this program changed, and
         // all eleven are OBSERVATION ONLY (see QpCounters' own note) -- every

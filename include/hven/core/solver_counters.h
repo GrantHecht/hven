@@ -4,43 +4,29 @@
 #pragma once
 
 // The solver counter contract's types: QpCounters (one QP engine solve),
-// SsnCounters (the semismooth-Newton kernel's own work) and SqpCounters (one
-// whole SQP driver solve, which aggregates both).
+// SsnCounters (the semismooth-Newton kernel's own work), IpqpCounters (the
+// IP-PMM interior-point tier's own work) and SqpCounters (one whole SQP driver
+// solve, which aggregates all three).
 
+#include <cstddef>
+#include <limits>
+#include <type_traits>
+
+#include <hven/core/detail/aggregate_arity.h>
 #include <hven/core/start_level.h>
 
 namespace hven::solvers {
 
-/// QP solver performance counters.
+/// @brief QP solver performance counters.
 ///
-/// THE TWO REFINEMENT COUNTERS COUNT DIFFERENT THINGS ON PURPOSE, because the
-/// two paths have different mandatory baselines and the interesting quantity
-/// on each is "steps that would not have been taken before":
-///
-/// - border_refine_steps: TOTAL refinement steps KEPT by every
-///   solve_bordered_eqp call in this solve, INCLUDING the mandatory first one
-///   -- the same accounting detail::kMaxBorderRefineSteps uses ("total,
-///   including the mandatory first"). A solve that goes through the border
-///   path at all therefore reports at least one step per bordered EQP solve,
-///   and the excess over that baseline is what the path's iterated refinement
-///   loop buys.
-/// - eqp_refine_steps: EXTRA refinement steps kept by every solve_eqp call in
-///   this solve, BEYOND the single unconditional step solve_eqp takes. IT IS
-///   IDENTICALLY ZERO, and is kept as an instrumented invariant rather than
-///   as a live measurement: the flag-gated iterated loop it counted
-///   (QpOptions::eqp_refine) was DELETED once both shipped backends measured
-///   it inert -- 0 steps across 27 HS problems x 2 tolerance regimes x 2
-///   algebra modes plus 13 adversarial probes, on MKL and on Accelerate
-///   independently, with a structural identity (r_k = diag(reg)*c) explaining
-///   why a path whose first solve is a genuine regularized solve cannot fire
-///   the shared stopping rule. A nonzero reading here would mean solve_eqp
-///   grew a second refinement step, which is a change, not a measurement --
-///   which is exactly why the counter and its assertions stayed behind when
-///   the loop went.
-///
-/// "KEPT" is the operative word in both: a candidate step rejected by the
-/// strict-decrease acceptance rule is discarded and NOT counted, so these
-/// count steps that moved the answer, not solves attempted.
+/// The two EQP refinement counters below count different things: border_refine_steps
+/// is the TOTAL steps kept by every solve_bordered_eqp call, the mandatory first
+/// included; eqp_refine_steps is the EXTRA steps kept by every solve_eqp call
+/// beyond its single unconditional one, and is identically 0 -- the loop it
+/// counted was deleted as measured-inert, and the counter stays as that
+/// invariant. "KEPT" is operative in both: a candidate step the strict-decrease
+/// rule rejects is discarded and NOT counted.
+/// @see docs/notes/2026-09-header-prose-archive.md §solver_counters.h
 struct QpCounters {
     Index factorizations = 0;
     Index schur_updates = 0;
@@ -48,7 +34,25 @@ struct QpCounters {
     Index eqp_refine_steps = 0;
     Index border_refine_steps = 0;
 
-    /// Rungs of the SUSPECT-STALL ESCALATION LADDER this solve spent (see
+    /// Refinement steps kept by the verdict-site face refinement (qp_engine.h
+    /// section 5) across this solve -- a third, disjoint quantity, deliberately
+    /// not folded into the two fields above.
+    ///
+    /// COUNTS: steps KEPT, in their sense -- a candidate the strict-decrease
+    /// safeguard rejects, and a refinement whose result the engine then declines
+    /// to adopt, contribute nothing.
+    ///
+    /// EXCLUDES: every refinement step taken inside an EQP solve, and every dead
+    /// end whose classification was going to be kOptimal anyway. Nothing is
+    /// excluded by algebra: both paths refine at a would-be-kInfeasible dead end,
+    /// and which twin runs is decided by the candidate's provenance rather than
+    /// by QpOptions::ws_algebra.
+    ///
+    /// At most detail::kMaxVerdictRefineSteps steps are bought per dead end; a
+    /// whole-solve figure is only as large as the fixture's dead ends make it.
+    Index verdict_refine_steps = 0;
+
+    /// Rungs of the suspect-stall escalation ladder this solve spent (see
     /// qp_engine.h's section 4b). Each rung multiplies the effective
     /// primal_delta by detail::kSuspectDeltaFactor after a would-be-kOptimal
     /// exit off a kSuspect factorization failed the free-block stationarity
@@ -59,101 +63,49 @@ struct QpCounters {
     Index suspect_escalations = 0;
 
     /// True iff qp_engine.h's border-mode reuse gate (`reuse_eligible` in
-    /// QpEngine::run(), conditions (a)-(e)) judged the persisted K0/border
-    /// cache trustworthy for THIS solve() call -- i.e. whether the engine
-    /// actually skipped rebuilding K0 on the strength of its OWN or an
-    /// ADOPTED hot-start handle's history, not merely whether
-    /// `factorizations` happens to read 0. THE TWO ARE NOT THE SAME CLAIM:
-    /// `factorizations == 0` can also arise from a reduced system with
-    /// nothing to factorize at all (every variable pinned, no equalities, no
-    /// working rows -- the elimination path's empty-system short-circuit,
-    /// reachable from border mode too) or from a solve that never reached the
-    /// loop (a crossed-bounds box, reported kInfeasible), NEITHER of which
-    /// says anything about the reuse cache. This field is the direct signal a
-    /// caller should read instead of inferring reuse from the factorization
-    /// count. Always false under QpOptions::ws_algebra == kRefactorize, where
-    /// the border-mode cache does not exist.
+    /// QpEngine::run(), conditions (a)-(e)) judged the persisted K0/border cache
+    /// trustworthy for THIS solve() call -- whether the engine actually skipped
+    /// rebuilding K0, not merely whether `factorizations` reads 0. The two are
+    /// different claims: `factorizations == 0` also arises from a reduced system
+    /// with nothing to factorize and from a solve that never reached the loop.
+    /// Always false under QpOptions::ws_algebra == kRefactorize, where the
+    /// border-mode cache does not exist.
     bool k0_reused = false;
 
-    /// Number of backend SYMBOLIC-ANALYSIS calls this solve() call actually
-    /// paid for -- i.e. the number of times qp_engine.h's rebuild_k0() found
-    /// the analysis decision `needed` before calling `factorize_checked()`
-    /// (which skips the analysis whenever the sparsity pattern is unchanged
-    /// from the last analyzed matrix -- kkt_calls.h; handing that decision in
-    /// rather than letting it be retaken changes when the pattern is hashed
-    /// and nothing else). Counted here, at the call site, rather than inside
-    /// the factor, so this stays a QP-engine-level observable like every
-    /// other QpCounters field and touches no MKL-adjacent code.
+    /// Number of backend SYMBOLIC-ANALYSIS calls this solve() call paid for --
+    /// the number of times qp_engine.h's rebuild_k0() found the analysis decision
+    /// `needed` before calling `factorize_checked()`. Counted at the call site
+    /// rather than inside the factor, so it stays a QP-engine-level observable.
     ///
-    /// THE REGRESSION THIS EXISTS TO CATCH: detaching onto a FRESH
-    /// BorderState (a fresh KktFactor, with no cached pattern) on every
-    /// value-changing major of an ordinary, NEVER-SHARED solve paid a full
-    /// re-analysis per major -- measured at 48 on HS38's own 48-major solve,
-    /// vs 1 for a solve whose sole-owner rebuilds reuse the SAME KktFactor's
-    /// cached pattern. A never-shared solve should show this at 1 (or 0, if
-    /// the pattern never needed rebuilding at all) regardless of how many
-    /// `factorizations` it pays; a solve whose fixture legitimately forces
-    /// detaches (the sharing/identity-mismatch tests) is expected to show
-    /// more.
+    /// A never-shared solve should read 1 (or 0, if the pattern never needed
+    /// rebuilding) regardless of how many `factorizations` it pays; a fixture
+    /// that legitimately forces detaches reads more.
     Index symbolic_analyses = 0;
 
     // ---------------------------------------------------------------------
-    // THE WORKING-SET WALK COUNTERS (eleven in total: the five immediately
-    // below and the six after them).
+    // The working-set walk counters (eleven: the five below and the six after).
     //
-    // PURELY OBSERVATIONAL. None of the ELEVEN walk counters is read by any
-    // decision in qp_engine.h; they are written and never consulted, so the
-    // walk's trajectory is bit-for-bit what it was before they existed
-    // (verified: `hven_sqp_bench --self-check` byte-exact and the full suite
-    // green in both build configurations at the commit that added them).
+    // PURELY OBSERVATIONAL. None of the eleven is read by any decision in
+    // qp_engine.h, so the walk's trajectory is what it was before they existed.
     //
-    // WHY THEY EXIST: every pre-existing field above counts LINEAR-ALGEBRA
-    // events (factorizations, Schur updates, symbolic analyses, refinement
-    // steps), while the candidate mechanisms behind a wide-window minor stall
-    // -- a degenerate stall, an add/drop churn cycle, homotopy thrash, or a
-    // genuinely long monotone identification walk -- are statements about the
-    // COMBINATORIAL walk, which nothing observed. `minor_iters` alone cannot
-    // tell a solve that spent 510165 minors cycling from one that spent them
-    // making progress. These five close exactly that gap and nothing wider;
-    // the six below close a second one -- these five cannot tell an
-    // inequality ROW from a variable BOUND.
-    //
-    // THE ARITHMETIC A READER SHOULD DO WITH THEM. For a solve that ends at
-    // a working set of W members having started from a seed of S:
+    // The arithmetic a reader should do with them, for a solve ending at a
+    // working set of W members having started from a seed of S:
     //
     //     ws_adds - ws_drops + shift_adds  ==  W - S   (net identity)
     //
-    // so `ws_drops` is the CHURN: a monotone identification walk that never
-    // backtracks has ws_drops == 0 and ws_adds ~ W - S, while a walk that
-    // pays k re-discoveries of the same rows has ws_adds ~ (W - S) + k and
-    // ws_drops ~ k. The ratio ws_drops / minor_iters is therefore the direct
-    // churn fraction, and degenerate_steps / minor_iters the direct
-    // degeneracy fraction; the two are independent and a stall can be either,
-    // both, or neither (in which case the walk is simply long).
+    // so ws_drops is the CHURN; ws_drops / minor_iters is the churn fraction and
+    // degenerate_steps / minor_iters the degeneracy fraction, and the two are
+    // independent.
     //
-    // **THE IDENTITY HOLDS ON THE CONVEX PATH, AND HAS EXACTLY ONE NAMED
-    // EXCEPTION**: qp_engine.h's TEMPORARY-VERTEX START REPAIR (section 4b,
-    // `repair_temporary_vertex` -> `pin_at_best_bound`) writes
-    // `ws.bound_state()` DIRECTLY -- it pins variables onto bounds, and its
-    // release pass unpins them -- WITHOUT touching QpCounters and without
-    // marking the variable in the seen-set. So on any solve that ran the
-    // repair:
-    //   - the net identity above is off by the number of pins the repair left
-    //     standing (S, the seed, is effectively enlarged by them);
-    //   - `ws_adds_bound`/`ws_drops_bound` do not include the repair's pins or
-    //     its releases;
-    //   - `distinct_bound_added` does not count a variable whose ONLY
-    //     admission was a repair pin, so the bound-repeat ratio below is
-    //     computed over a set that excludes that route.
-    // The repair runs only at `iter == 0` and only on a subproblem whose
-    // inertia probe returned kWrong -- i.e. an INDEFINITE start vertex -- so
-    // every convex corpus reports these fields exactly, which is why the
-    // omission never shows up in a measurement. It is documented rather than
-    // plumbed deliberately: the counters exist to describe the COMBINATORIAL
-    // WALK, and the repair is a pre-walk vertex construction, not a step of
-    // it -- adding it to `ws_adds` would make the churn fraction read a
-    // start-point property as walk churn. A reading that needs the repair's
-    // pins must say so and count them separately.
+    // The identity holds on the convex path, with one named exception:
+    // qp_engine.h's temporary-vertex start repair writes `ws.bound_state()`
+    // directly, without touching QpCounters and without marking the variable in
+    // the seen-set. On a solve that ran it, the net identity is off by the pins
+    // the repair left standing, `ws_adds_bound`/`ws_drops_bound` exclude its pins
+    // and releases, and `distinct_bound_added` does not count a variable whose
+    // only admission was a repair pin. The repair runs only at `iter == 0` on an
+    // indefinite start vertex, so every convex corpus reports these exactly.
+    // @see docs/notes/2026-09-header-prose-archive.md §solver_counters.h
 
     /// BLOCKING-CONSTRAINT ADDITIONS: one per minor iteration whose ratio
     /// test named a blocker that then joined the working set, counting an
@@ -183,47 +135,25 @@ struct QpCounters {
     Index shift_adds = 0;
 
     /// DEGENERATE PIVOTS: minor iterations that added a blocking constraint
-    /// while moving the iterate by no more than the loop's own step
-    /// tolerance (alpha * ||p||inf <= feas_tol * max(1, ||x||inf) -- the
-    /// SAME threshold the loop's KKT-point test uses one line earlier, so
-    /// the two are consistent by construction rather than by a new
-    /// tolerance). The textbook degeneracy signal: the working set grew but
-    /// the objective could not have improved. qp_engine.h implements NO
-    /// anti-cycling rule (no Bland, no Harris, no EXPAND, no perturbation)
-    /// and says so; this field is the first observation of whether that
-    /// omission ever costs anything on a real corpus.
+    /// while moving the iterate by no more than the loop's own step tolerance
+    /// (alpha * ||p||inf <= feas_tol * max(1, ||x||inf) -- the same threshold the
+    /// loop's KKT-point test uses, so the two are consistent by construction).
+    /// qp_engine.h implements no anti-cycling rule and this field changes no
+    /// decision.
     Index degenerate_steps = 0;
 
-    /// The LONGEST CONSECUTIVE run of degenerate steps in this solve, where
-    /// "consecutive" means back-to-back minor iterations. **A RUN IS BROKEN
-    /// BY A MINOR ON WHICH THE ITERATE MOVED, AND BY NOTHING ELSE**: an
-    /// ordinary non-degenerate step, a taken RIDE, and a START REPAIR each
-    /// reset it (that is exactly where qp_engine.h resets it), while a DROP
-    /// iteration and a ZERO-MULTIPLIER PROBE do NOT -- both snap x onto an
-    /// EQP point already within step_tol of where it was, so the iterate did
-    /// not move and a run that spans them is still one stall. **SO A LARGE
-    /// VALUE HERE IS "the longest stretch on which the iterate did not
-    /// move", NOT "an unbroken run of back-to-back degenerate ADDS"**, and
-    /// any reading of a measured figure has to say which of the two it
-    /// means (`degenerate_steps` above is unaffected: it counts the
-    /// degenerate adds themselves and no run logic enters it.) This is the
-    /// field that tells the two degeneracy pictures apart, and they call for
-    /// different remedies: degenerate steps SPRINKLED through a healthy walk
-    /// are the ordinary cost of a vertex with more active constraints than
-    /// dimensions and want nothing done about them, while a long unbroken
-    /// run is an iterate that has STOPPED MOVING while the working set keeps
-    /// changing -- the cycling class, and the only class an anti-cycling
-    /// rule (Bland/Harris/EXPAND) would address. Reported rather than acted
-    /// on: qp_engine.h implements no anti-cycling rule and this field
-    /// changes no decision.
+    /// The longest consecutive run of degenerate steps in this solve. A run is
+    /// broken by a minor on which the iterate moved, and by nothing else: an
+    /// ordinary non-degenerate step, a taken ride and a start repair each reset
+    /// it, while a drop iteration and a zero-multiplier probe do not. A large
+    /// value therefore reads as "the longest stretch on which the iterate did
+    /// not move". `degenerate_steps` above is unaffected by the run logic.
     Index degenerate_run_max = 0;
 
-    // THE SIX FIELDS THAT MAKE THE ABOVE TRACEABLE RATHER THAN INFERRED:
-    // ws_adds and ws_drops MERGE inequality rows with variable bounds and
-    // carry no constraint IDENTITY, so "the walk RE-DISCOVERS its rows"
-    // cannot be concluded from ws_adds >> |W*| alone -- a walk touching many
-    // DISTINCT bounds once each fits the same numbers. These six settle it
-    // by direct measurement.
+    // The six fields that make the above traceable rather than inferred:
+    // ws_adds and ws_drops merge inequality rows with variable bounds and carry
+    // no constraint identity, so re-discovery cannot be concluded from ws_adds
+    // alone. These six settle it by direct measurement.
 
     /// Of `ws_adds`, how many were VARIABLE-BOUND pins (BlockKind::kBound).
     /// The inequality-row half is ws_adds - ws_adds_bound. `shift_adds`
@@ -234,17 +164,14 @@ struct QpCounters {
     /// inequality row, on both drop routes.
     Index ws_drops_bound = 0;
 
-    /// How many DISTINCT inequality rows this solve ever put into the
-    /// working set, by ANY route (blocking add, ride, or homotopy
-    /// admission). The mean number of times a touched row was admitted is
+    /// How many DISTINCT inequality rows this solve ever put into the working
+    /// set, by any route. The mean number of times a touched row was admitted is
     ///
     ///     (ws_adds - ws_adds_bound + shift_adds) / distinct_ineq_added
     ///
-    /// **THAT RATIO IS ADMISSION MULTIPLICITY, WHICH COUNTS EACH
-    /// CONSTRAINT'S FIRST ADMISSION** -- so the number of RE-admissions is
-    /// the ratio MINUS ONE, and a reading must say which of the two it
-    /// quotes. A value near 1 means "touched once, never repeated"; a value
-    /// well above 1 means re-discovery, per constraint class separately.
+    /// which is ADMISSION MULTIPLICITY and counts each constraint's first
+    /// admission, so RE-admissions are that ratio minus one; a reading must say
+    /// which of the two it quotes.
     Index distinct_ineq_added = 0;
 
     /// How many DISTINCT variables this solve ever put into the working
@@ -272,49 +199,29 @@ struct QpCounters {
     Index ratio_ties = 0;
 };
 
-/// Work counters for the semismooth-Newton kernel. One instance lives inside
-/// SsnResult (ssn_engine.h) describing ONE QP solve; a second lives inside
-/// SqpCounters below, aggregated over every subproblem of a whole SQP solve,
-/// exactly as qp_minor_iters/factorizations aggregate the walk's QpCounters.
+/// @brief Work counters for the semismooth-Newton kernel.
 ///
-/// PURELY OBSERVATIONAL, like the eleven walk counters above: nothing in
-/// ssn_engine.h reads any of these back to make a decision, so writing them
-/// cannot move a trajectory.
-///
-/// THREE OF THE SIX CORE FIELDS BELONG TO THE SAFEGUARDED ITERATION ALONE:
-/// ssn_backtracks, ssn_prox_updates and ssn_uncertain_peak move only under
-/// SsnSafeguards::kFull -- the production iteration with line search,
-/// proximal ladder and uncertain set (ssn_engine.h's SCOPE banner) -- and are
-/// structurally 0 under kBare, the bare local method (full undamped Newton
-/// steps).
+/// One instance lives inside SsnResult (ssn_engine.h) describing ONE QP solve; a
+/// second lives inside SqpCounters below, aggregated over every subproblem of a
+/// whole SQP solve. Purely observational: nothing in ssn_engine.h reads any of
+/// them back. `ssn_backtracks`, `ssn_prox_updates` and `ssn_uncertain_peak`
+/// belong to the safeguarded iteration alone and are structurally 0 under
+/// SsnSafeguards::kBare.
 struct SsnCounters {
     /// Newton steps TAKEN. The convergence test runs BEFORE each step, so a
-    /// start point already inside fb_tol reports 0 here.
+    /// start point already inside fb_tol reports 0.
     ///
-    /// **IT DOES NOT EQUAL THE FACTORIZATION COUNT.** The invariant is
-    ///
-    ///     ssn_iters <= factorizations,
-    ///
-    /// for two reasons, both in ssn_engine.h: an ATTEMPT can pay its
-    /// factorization and then take no step (a rejected line search, a wrong
-    /// inertia), and under SsnSafeguards::kFull a CERTIFYING exit pays one
-    /// more for the second-order verification read at the point it certifies
-    /// (ssn_engine.h section 7b). Under kBare equality holds exactly,
-    /// provided nothing intervened. Anything downstream that divides one by
-    /// the other, or that reads either as the other, must say which it
-    /// means.
+    /// It does NOT equal the factorization count: `ssn_iters <= factorizations`,
+    /// because an attempt can pay its factorization and take no step, and under
+    /// SsnSafeguards::kFull a certifying exit pays one more for the second-order
+    /// verification. Under kBare equality holds. Anything that divides one by the
+    /// other must say which it means.
     Index ssn_iters = 0;
 
-    /// Newton steps whose IMPLIED ACTIVE SET differed from the preceding
-    /// step's -- one per such step, not one per constraint that moved. The
-    /// implied set is the partition the generalized Jacobian itself selects
-    /// (row k active iff its FB pair has lambda_k > s_k, equivalently iff
-    /// alpha_k > beta_k -- see ssn_engine.h), and on the FIRST step it is
-    /// the caller's activity hint when one was supplied. This is the counter
-    /// that distinguishes the two failure pictures the walk could not tell
-    /// apart: a large value against a small iteration count is a set that
-    /// keeps changing wholesale (the thrash class), while zero flips after
-    /// the first step is the identification the kernel exists to buy.
+    /// Newton steps whose implied active set differed from the preceding step's
+    /// -- one per such step, not one per constraint that moved. The implied set
+    /// is the partition the generalized Jacobian selects, and on the first step
+    /// it is the caller's activity hint when one was supplied.
     Index ssn_bulk_flips = 0;
 
     /// Line-search backtracks (kFull). Structurally 0 under kBare, which
@@ -335,32 +242,17 @@ struct SsnCounters {
     /// kBare, which has no uncertain set at all.
     Index ssn_uncertain_peak = 0;
 
-    // THE TIER-3 STABLE-FACE REFINEMENT, both polarities.
-    //
-    // Certifying SSN exits whose identified face was re-solved EXACTLY
-    // (QpEngine::refine_on_face) and whose refined point the driver then used
-    // as the step, and certifying exits where that solve was REFUSED (the face
-    // was not of full rank, its KKT system failed the inertia gate, or the
-    // refined point left the subproblem's own box / trust region / inactive
-    // rows). Their SUM is the number of certifying SSN exits this solve made
-    // -- WHEN SqpOptions::ssn_certify_from_face is off (the shipped default,
-    // unconditionally true on every corpus cell run to date). Under that
-    // opt-in lever the face solve is hoisted ahead of the usability gate, and
-    // sqp_driver.h's charge_refused_face_refinement can increment
-    // `ssn_refine_refused` on the one path where the exit is REFUSED and then
-    // WITHDRAWN into an escape rather than a certificate -- so the sum is an
-    // upper bound on certifying exits under that lever, not an identity.
-    // Unreachable on every shipped corpus (0 withdrawals); see that
-    // function's own comment for the dynamic.
+    // The tier-3 STABLE-FACE refinement, both polarities: certifying SSN exits
+    // whose identified face was re-solved exactly and whose refined point the
+    // driver used as the step, and certifying exits where that solve was refused.
+    // Their SUM is the number of certifying SSN exits this solve made WHEN
+    // SqpOptions::ssn_certify_from_face is off (the shipped default); under that
+    // lever it is an upper bound instead.
     //
     // A REFUSAL IS NOT AN ERROR: the caller keeps the certificate the SSN tier
-    // already gave it, exactly as it did before this tier existed. What a
-    // refusal DOES mean is that this subproblem's complementarity is back to
-    // the `fb_tol * ||lambda||inf` bound rather than the walk-exact identity --
-    // see sqp_driver.h's WHAT IS MEASURED BUT NOT GATED note, which states the
-    // per-mode guarantee. Each refinement costs ONE factorization, folded into
-    // `SqpCounters::factorizations` like every other, so `ssn_refinements <=
-    // factorizations` holds alongside `ssn_iters <= factorizations`.
+    // already gave it. What it means is that the subproblem's complementarity is
+    // back to the `fb_tol * ||lambda||inf` bound. Each refinement costs one
+    // factorization, folded into `SqpCounters::factorizations`.
 
     /// Exact face re-solves whose refined point was used as the step; see
     /// the tier-3 note above for the sum's meaning under both lever states.
@@ -370,35 +262,17 @@ struct SsnCounters {
     /// note above. Driver-scale only (no SsnResult ever writes it).
     Index ssn_refine_refused = 0;
 
-    // INSTRUMENT ONLY, both of them, and both driver-scale like the pair
-    // above (no SsnResult ever writes either; the engine does not know the
-    // refinement exists). They exist because neither measurement below is
-    // answerable by arithmetic on the pair above -- doing so would be WRONG
-    // rather than merely coarse.
+    // INSTRUMENT ONLY, both driver-scale (no SsnResult writes either), and
+    // neither is answerable by arithmetic on the pair above.
     //
-    // `ssn_refine_factorizations` -- the factorizations
-    // QpEngine::refine_on_face ITSELF paid, summed over every attempt,
-    // accepted or refused. It is NOT `ssn_refinements +
-    // ssn_refine_refused`: refine_on_face short-circuits an EMPTY face and
-    // fails its rank pre-screen BEFORE any factorization, so a refusal can
-    // cost 0 (its own contract says both screens precede the solve). "The
-    // refinement's share of total factorizations at corpus scale" is this
-    // field over SqpCounters::factorizations -- a ratio of two measured
-    // quantities rather than a count standing in for a cost.
+    // `ssn_refine_factorizations` -- the factorizations refine_on_face ITSELF
+    // paid, over every attempt, accepted or refused. NOT `ssn_refinements +
+    // ssn_refine_refused`: refine_on_face short-circuits an empty face and fails
+    // its rank pre-screen before any factorization, so a refusal can cost 0.
     //
-    // `ssn_refine_neg_duals` -- STRICTLY NEGATIVE inequality multipliers
-    // ADOPTED from an ACCEPTED refinement, summed over rows and over
-    // refinements (a refinement adopting three negative prices contributes
-    // 3). Before the tier-3 refinement a certifying SSN exit guaranteed
-    // lambda >= -O(fb_tol) by the FB row structure; after it the adopted
-    // multipliers are `price(...)`'s output on the caller's face, UNBOUNDED
-    // IN SIGN -- with no driver-side analogue of the walk's drop rule to
-    // re-gate them. This is the sign half of measuring dual sign on the
-    // scale corpus explicitly rather than inferring it from HS (the
-    // magnitude half is the corpus row's own model-level KKT `dual_sign`).
-    // NO TOLERANCE: the test is `< 0.0`, because a sign is a sign, and a
-    // threshold here would be a new tuning constant on an observational
-    // field.
+    // `ssn_refine_neg_duals` -- STRICTLY NEGATIVE inequality multipliers ADOPTED
+    // from an ACCEPTED refinement, summed over rows and refinements. NO
+    // TOLERANCE: the test is `< 0.0`.
 
     /// Factorizations refine_on_face itself paid, accepted or refused; see
     /// the instrument-only note above for why it is not the pair sum.
@@ -409,59 +283,50 @@ struct SsnCounters {
     /// instrument-only note above.
     Index ssn_refine_neg_duals = 0;
 
-    // THE ESCAPE-REASON CENSUS. OBSERVATIONAL, like every field above.
+    // The sign sweep repairs rather than instruments: it is the one pair here
+    // that reports a value this driver changed. It runs in `SqpSolver::finish`,
+    // the single export boundary, on the solution's and the warm start's
+    // multipliers together, with no tolerance (the test is `< 0.0`).
     //
-    // WHY: bare `ssn_escapes` counts hand-offs and says nothing about WHY,
-    // which left the false-`kInfeasible` rate under combined extreme scaling
-    // and the infeasible-trust-region-fixture mislabel untestable on anything
-    // but hand-built fixtures -- both are statements about the DISTRIBUTION of
-    // escape reasons.
+    // `SqpResult::kkt` is computed before the sweep, at the multipliers the
+    // solver reached, so on a solve with `ssn_sign_swept > 0` the reported
+    // stationarity is optimistic by at most `ssn_sign_sweep_max * ||Ji||inf`
+    // over the swept rows.
     //
-    // A COUNT PER REASON, not a "last reason": an SQP solve escapes on many
-    // subproblems and a single label would lose every one but one.
+    // Structurally zero under kWalk, where an active-set price is non-negative
+    // by the walk's own drop rule, and hence across a restoration fold, whose
+    // sub-solve is walk-only. The driver-scale values span the solve and its
+    // restoration sub-solve.
+    // @see docs/notes/2026-09-header-prose-archive.md §solver_counters.h
+
+    /// Strictly negative inequality prices clamped to 0 at export, summed
+    /// over rows and over solves; NO TOLERANCE (`< 0.0`).
+    Index ssn_sign_swept = 0;
+
+    /// The largest magnitude clamped by that sweep (0.0 when nothing was
+    /// swept). A PEAK, folded with `max` like `ssn_uncertain_peak` and unlike
+    /// every summed field beside it -- it is the bound on how far the reported
+    /// stationarity can be optimistic (see the R6 note above), which a sum
+    /// would destroy.
+    double ssn_sign_sweep_max = 0.0;
+
+    // The escape-reason census. Observational, a count per reason rather than a
+    // last-reason label. The six PARTITION `ssn_escapes` exactly, and that is an
+    // asserted invariant. Five map one-to-one onto the non-`kNone` values of
+    // `SsnEscape` (ssn_engine.h); the sixth has no `SsnEscape` value:
     //
-    // THE SIX PARTITION `ssn_escapes` EXACTLY, and that is an asserted
-    // invariant rather than a convention -- see
-    // SqpDriverSsnMode.TheEscapeReasonCensusPartitionsTheEscapeCount. Five map
-    // one-to-one onto the non-`kNone` values of `SsnEscape` (ssn_engine.h);
-    // the sixth has no `SsnEscape` value at all and is the reason this census
-    // could not be a bare enum histogram:
+    //   `ssn_escape_gate_refused` -- the DRIVER's own refusal, where a subproblem
+    //   whose kernel reported `escape_reason == kNone` had its exit declined by
+    //   `ssn_exit_is_a_usable_step` and went to the walk like an escaped one.
+    //   Driver-scale only, and STRUCTURALLY ZERO on the shipped path: the gate's
+    //   bound is derived from the kernel's own `|phi| <= fb_tol`, so no
+    //   certifying exit reaches it. A zero here is not "the gate never refused".
     //
-    //   `ssn_escape_gate_refused` -- the DRIVER's own refusal. A subproblem
-    //   whose kernel reported `escape_reason == kNone` but whose exit
-    //   sqp_driver.h's `ssn_exit_is_a_usable_step` declined (a certifying
-    //   exit that left the trust region by more than the derived bound) went
-    //   to the walk exactly like an escaped one did, and `ssn_escapes`
-    //   already counts it at the driver scale. DRIVER-SCALE ONLY: no
-    //   SsnResult ever carries a nonzero one, exactly like
-    //   `ssn_refinements`/`ssn_refine_refused` above.
-    //
-    //   **AND IT IS STRUCTURALLY ZERO ON THE SHIPPED PATH, WHICH IS NOT THE
-    //   SAME AS UNUSED.** It is written at the branch sqp_driver.h's
-    //   `kSsnTrViolationFactor` note calls "PROVABLY INERT ON THE CERTIFYING
-    //   PATH": the gate's bound is derived from the kernel's own
-    //   `|phi| <= fb_tol`, so no certifying exit ssn_engine.h can produce
-    //   reaches it, and no NLP fixture can drive it. A reader must NOT read
-    //   a zero here as "measured, and the gate never refused" on a corpus
-    //   where nothing could have refused. The bucket exists for the same
-    //   reason the `ssn_escapes` increment beside it does: it is the one
-    //   place a non-escape hand-off is counted, and if that derivation ever
-    //   moves, the census must not silently stop partitioning.
-    //
-    // The other five are written by the ENGINE, beside its own `ssn_escapes`
-    // increment, so a bare-kernel probe (bench/ssn_safeguard_probe.cpp) reads
-    // the same census the driver aggregates.
-    //
-    // NO IN-MEMORY ABSENT SENTINEL: bench_corpus.cpp's `--from-csv` reader
-    // stamps `-1` on these six fields for a pre-schema-37 artifact that
-    // never measured them, but that ABSENT convention exists ONLY at the CSV
-    // boundary -- these are plain `Index`, not an optional/sentinel type, so
-    // a `-1`-stamped SsnCounters that reached accumulate_ssn_counters
-    // (sqp_driver.h) would silently SUM to -6 rather than signal
-    // "unmeasured". Not a live path today (the scorer never accumulates the
-    // census fields, and a `--from-csv` merge re-emits `-1` verbatim rather
-    // than summing it), but a future caller that folds a CSV-sourced
-    // SsnCounters into a running total must re-check for the sentinel first.
+    // NO IN-Memory absent sentinel: the CSV boundary stamps `-1` on these six for
+    // an artifact that never measured them, but these are plain `Index`, so a
+    // `-1`-stamped SsnCounters folded into a running total would sum rather than
+    // signal "unmeasured". A caller that folds a CSV-sourced SsnCounters must
+    // check for the sentinel first.
     Index ssn_escape_budget = 0;
     Index ssn_escape_singular = 0;
     Index ssn_escape_no_contraction = 0;
@@ -470,189 +335,677 @@ struct SsnCounters {
     Index ssn_escape_gate_refused = 0;
 };
 
-/// Aggregate work counters for a whole solve.
+// ===========================================================================
+// The field tables -- one X-macro per aggregate
+// ===========================================================================
+// The trace's `sqp.solve.end` counters object is GENERATED from these, in table
+// order, so the JSON's key order is the declaration order and a field added to a
+// struct without a table entry does not silently vanish from the stream.
+//
+// EACH TABLE IS PINNED TO ITS STRUCT by an aggregate-arity static_assert: the
+// largest N for which the struct is brace-initializable with N arguments. Not
+// sizeof, which is padding-dependent.
+//
+// TO ADD A COUNTER: declare it in the struct, add its `X(name)` here IN THE SAME
+// POSITION, and the assert passes again.
+
+#define HVEN_SSN_COUNTERS_FIELDS(X)                                                                \
+    X(ssn_iters, counter_never_absent)                                                             \
+    X(ssn_bulk_flips, counter_never_absent)                                                        \
+    X(ssn_backtracks, counter_never_absent)                                                        \
+    X(ssn_prox_updates, counter_never_absent)                                                      \
+    X(ssn_escapes, counter_never_absent)                                                           \
+    X(ssn_uncertain_peak, counter_never_absent)                                                    \
+    X(ssn_refinements, counter_never_absent)                                                       \
+    X(ssn_refine_refused, counter_never_absent)                                                    \
+    X(ssn_refine_factorizations, counter_never_absent)                                             \
+    X(ssn_refine_neg_duals, counter_never_absent)                                                  \
+    X(ssn_sign_swept, counter_never_absent)                                                        \
+    X(ssn_sign_sweep_max, counter_never_absent)                                                    \
+    X(ssn_escape_budget, counter_never_absent)                                                     \
+    X(ssn_escape_singular, counter_never_absent)                                                   \
+    X(ssn_escape_no_contraction, counter_never_absent)                                             \
+    X(ssn_escape_infeasible_suspect, counter_never_absent)                                         \
+    X(ssn_escape_indefinite, counter_never_absent)                                                 \
+    X(ssn_escape_gate_refused, counter_never_absent)
+
+// --- the tables' second column: ABSENCE ----------------------------------
+// Absence is `null`, never a value, and that needs a per-FIELD answer: a
+// counter's own doc says whether a reading is a value or a sentinel. These
+// predicates are that answer, carried IN the table so the serializer has no
+// special cases. Three fields are absent-capable: `ipqp_alpha_p_min` and
+// `ipqp_alpha_d_min` at `+infinity`, and `ipqp_tier_retired_after` at `0`.
+// `ipqp_final_inertia_read`'s `3` is NOT one -- it is a categorical outcome the
+// census depends on.
+inline bool counter_never_absent(Index) { return false; }
+inline bool counter_never_absent(double) { return false; }
+inline bool counter_never_absent(StartLevel) { return false; }
+
+/// `+infinity` as "never measured" (`ipqp_alpha_p_min`, `ipqp_alpha_d_min`).
+inline bool counter_absent_at_pos_inf(double v) {
+    return v == std::numeric_limits<double>::infinity();
+}
+
+/// `0` as "no such major" (`ipqp_tier_retired_after`, recorded 1-based).
+inline bool counter_absent_at_zero(Index v) { return v == 0; }
+
+/// Turns one table entry into `+1`, so each table's own entry count is the
+/// table itself rather than a hand-kept number beside it.
+#define HVEN_COUNTERS_COUNT_ONE(f, absent) +1
+
+/// @brief Are the offsets strictly increasing across a table's entries?
 ///
-/// major_iters counts SUBPROBLEMS SOLVED -- not iterates evaluated, and not
-/// steps ACCEPTED: a subproblem that fails is counted, because the work was
-/// spent. A solve that converges immediately reports major_iters == 0 and a
-/// one-entry history. A SOC RE-SOLVE IS NOT ONE OF THESE SUBPROBLEMS: it is
-/// tied to the TRIAL that triggered it (one per rejected trial, at most), not
-/// counted as its own major, and its cost is folded into
-/// qp_minor_iters/factorizations instead (see soc_steps below and
-/// sqp_driver.h's SECOND-ORDER CORRECTION note).
+/// The count assert cannot see a reorder: a field inserted mid-struct whose
+/// `X()` entry is appended at the tail keeps the count right and silently emits
+/// a JSON key order that is no longer declaration order.
 ///
-/// THE HISTORY LENGTH THEREFORE DEPENDS ON WHERE THE SOLVE STOPPED, and a
-/// consumer indexing into it must branch on that (see SqpIterate):
-/// - stopped AT an iterate (kOptimal, kMaxIter, and the non-finite-iterate
-///   kNumericalError): history.size() == major_iters + 1, and the last row
-///   has qp_solved == false;
-/// - stopped ON a subproblem (kNumericalError propagated from the QP, or any
-///   of the THREE kRestore routes of sqp_driver.h -- the funnel's signature,
-///   the elastic tier's exhaustion and the radius floor):
-///   history.size() == major_iters, every row has qp_solved == true, and the
-///   last row carries the FAILING qp_status -- except on the kRestore
-///   routes, where the last solve itself succeeded (the funnel's and the
-///   floor's routes) or the ELASTIC re-solve did (the elastic-tier route)
-///   and it is `verdict` that carries the reason.
-/// So `history[counters.major_iters]` is in bounds on the first family and
-/// OUT OF BOUNDS on the second. Use history.back() and read qp_solved, never
-/// index arithmetic on major_iters.
+/// @param offsets The table's member offsets, in table order.
+/// @param count   How many entries `offsets` holds.
+/// @return True iff every offset exceeds the one before it.
+constexpr bool counters_offsets_increase(const std::size_t *offsets, std::size_t count) {
+    for (std::size_t i = 1; i < count; ++i) {
+        if (!(offsets[i] > offsets[i - 1])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+/// @brief `HVEN_SSN_COUNTERS_FIELDS`' entry count.
+inline constexpr std::size_t kSsnCountersFieldCount =
+    0 HVEN_SSN_COUNTERS_FIELDS(HVEN_COUNTERS_COUNT_ONE);
+static_assert(::hven::detail::kAggregateArity<SsnCounters> == kSsnCountersFieldCount,
+              "SsnCounters and HVEN_SSN_COUNTERS_FIELDS disagree: give the new field an X() entry "
+              "in its declaration position (and the trace's golden line moves with it).");
+
+/// The SsnCounters table's field offsets, in table order. `offsetof` is only
+/// portable on a standard-layout type, so that is asserted first.
+static_assert(std::is_standard_layout_v<SsnCounters>,
+              "SsnCounters must stay standard-layout for the "
+              "offsetof order check below to be portable.");
+inline constexpr std::size_t kOffsetsSsnCounters[] = {
+#define HVEN_COUNTERS_OFFSET_ONE(f, absent) offsetof(SsnCounters, f),
+    HVEN_SSN_COUNTERS_FIELDS(HVEN_COUNTERS_OFFSET_ONE)
+#undef HVEN_COUNTERS_OFFSET_ONE
+};
+static_assert(counters_offsets_increase(kOffsetsSsnCounters, kSsnCountersFieldCount),
+              "SsnCounters and HVEN_SSN_COUNTERS_FIELDS disagree about ORDER: an entry is out of "
+              "declaration position. The JSON key order is the table's, so this must be the "
+              "struct's.");
+
+/// @brief Work counters for the IP-PMM interior-point tier.
 ///
-/// ON A TERMINAL RESTORATION EXIT, SqpSolution::x IS NOT THE POINT THE LAST
-/// HISTORY ROW DESCRIBES, and a consumer that plots one against the other
-/// must know it. The last row is the iterate that RAISED the request -- its
-/// f, h and residuals are that point's -- while x/f/lambda_* are the RESTORED
-/// point the phase ended at, which has no row of its own because the phase
-/// produces none. Measured on the certified circle/line exit: the last row
-/// reports f = 2 at (1,1), and the solution reports f = 1.414 at
-/// (0.707, 0.707). (The two coincide only when the phase never moved the
-/// iterate -- e.g. the once-per-solve cap, which returns without running.)
+/// One instance describes ONE tier subproblem solve, exactly as
+/// QpCounters/SsnCounters do; a second lives inside SqpCounters as `ipqp`,
+/// aggregated over every subproblem by `accumulate_ipqp_counters`.
+///
+/// FOLD RULE, stated once here and restated at each exception's own field: every
+/// `Index` field SUMS across subproblems, with four exceptions. Two per-subproblem
+/// STATUS fields are OVERWRITTEN (the `SqpCounters::start_level_used` convention
+/// for a categorical rather than additive reading): `ipqp_rho_demanded_last` and
+/// `ipqp_final_inertia_read`. One `double` PEAK pair is max-folded
+/// (`ipqp_rho_demanded_max`, `ipqp_restart_shift_max`) and one min-folded
+/// (`ipqp_alpha_p_min`, `ipqp_alpha_d_min`). And one `Index` MARKER is max-folded:
+/// `ipqp_tier_retired_after`, a once-per-solve major index rather than a count.
+///
+/// DNF SENTINEL: a sweep row for a subproblem that did not finish records its
+/// double-valued fields as `1e6`. That is a convention of the sweep/CSV boundary,
+/// not logic this struct implements; a live solve's counters never carry it.
+struct IpqpCounters {
+    /// IPQP iterations taken: one predictor+corrector pair each (spec
+    /// section 3.1's Mehrotra predictor-corrector: one factorization, an
+    /// affine solve, a corrector solve). Excludes a predictor attempt that
+    /// fails before its corrector runs -- section 3.1 does not address the
+    /// partial case, and the natural boundary is a completed pair only
+    /// (T4 confirms).
+    Index ipqp_iters = 0;
+
+    /// Numeric factorizations paid. `>= ipqp_iters`, exceeding it by
+    /// regularization-ladder rungs plus the section 2.2 required final
+    /// unregularized inertia read. Excludes the tier-3 `refine_on_face`
+    /// hand-off's own factorization, which lands in
+    /// `SqpCounters::factorizations` like every other QP-engine refinement.
+    Index ipqp_factorizations = 0;
+
+    /// Symbolic analyses paid. `1` per SQP solve under the section 4.1
+    /// cross-major hoisting rule while `AssemblyEvalSeam::epoch()` stays
+    /// unchanged. Excludes analyses paid
+    /// by any other QP kernel (walk, SSN) in the same solve.
+    Index ipqp_symbolic_analyses = 0;
+
+    /// Backend triangular solves: EXACTLY 2 per completed iteration (predictor
+    /// RHS, corrector RHS, both against that iteration's one numeric
+    /// factorization). Regularization-ladder rungs and the final inertia read add
+    /// FACTORIZATIONS but no solves, so `ipqp_solves == 2 * ipqp_iters` on a
+    /// solve that completed every iteration it started, and the gap against
+    /// `2 * ipqp_factorizations` is the ladder-plus-certification cost. Excludes
+    /// triangular solves paid by any other QP kernel or by the tier-3 hand-off.
+    Index ipqp_solves = 0;
+
+    /// Backend pattern-verify calls (mirrors
+    /// `SymmetricFactor::Counters::pattern_verify_count`).
+    ///
+    /// THE CONTRACT IS "exactly one of {1 verify, 1 analyze} per tier entry", not
+    /// "exactly 1 verify": an entry that RE-ENTERS on an already laid pattern pays
+    /// the one-time O(nnz) verify and 0 analyses, while the entry that LAYS the
+    /// pattern pays 1 analysis and 0 verifies. `IpqpOptions::ipqp_hoist_symbolic
+    /// == false` forces every entry into the second state. Either way every later
+    /// factorization in the entry runs `kAssumeAnalyzed` and moves neither count.
+    /// Excludes pattern-verify calls paid by any other QP kernel.
+    Index ipqp_pattern_verifies = 0;
+
+    /// The inertia-demanded modification `rho_dem`'s High-water mark across every
+    /// ladder rung this subproblem paid. Max-folded across subproblems, so the
+    /// SqpCounters-scale reading is the largest modification any subproblem was
+    /// forced to. Excludes `delta`, which carries no high-water field, and the
+    /// schedule `rho_sched`, which is not a modification.
+    ///
+    /// A high-water mark is NOT the level the solve ended at: the ladder retries a
+    /// smaller shift at every iteration, so a solve routinely settles below its own
+    /// peak. Structurally `0.0` on a convex subproblem, where the ladder never arms.
+    double ipqp_rho_demanded_max = 0.0;
+
+    /// The inertia-demanded modification at the LAST ladder rung this subproblem
+    /// paid -- the shift the last successful modified factorization ran at, or, on
+    /// an exhausted ladder, the ceiling rung the tier was refused at. An iteration
+    /// that succeeded on the unmodified system pays no rung and leaves this
+    /// untouched. OVERWRITTEN rather than summed or folded: it is a per-solve
+    /// categorical reading, and summing many subproblems' "last rho" would report
+    /// a quantity with no meaning. Excludes `delta`'s own last value, which carries
+    /// no field.
+    double ipqp_rho_demanded_last = 0.0;
+
+    /// Factorizations REJECTED on wrong OR evidence-invalid inertia (the section
+    /// 2.2 gate), which the gate refuses alike: a WRONG reading (observed,
+    /// disagreed with the required signature) and a PERTURBED one (observed, but
+    /// describing a matrix the backend perturbed rather than the one assembled)
+    /// both cost a factorization the tier could not use. The ladder's last,
+    /// ceiling-terminated factorization counts too. Excludes the required final
+    /// read, whose outcome is `ipqp_final_inertia_read`, even when that read comes
+    /// back wrong.
+    Index ipqp_inertia_retries = 0;
+
+    /// Iterations whose step was TAKEN with a nonzero inertia-demanded
+    /// modification in force (`rho_dem > 0`), measured AFTER that iteration's
+    /// ladder settles, so the iteration in which the ladder first demands a
+    /// modification is counted. Excludes iterations whose step ran on the
+    /// unmodified system, which is every iteration of every convex subproblem.
+    Index ipqp_iters_at_elevated_rho = 0;
+
+    /// LADDER RECLIMBS: iterations on which a `rho_dem_last / kIpqpLadderDown`
+    /// value was REJECTED on a wrong inertia and the ladder had to re-escalate
+    /// past it. One per iteration, never per rung -- the quantity is "how often
+    /// did the memory's guess come back too small", not how far the climb went.
+    /// Both routes to that value are charged: as an iteration's first trial once
+    /// `kIpqpLadderSkipAfter` consecutive iterations have needed a modification,
+    /// and as the rung that answers a refused zero-trial before then.
+    ///
+    /// AN EXPECTED COST, NOT A FAULT: the ladder deliberately re-tries a smaller
+    /// shift than the one that last worked, so near the threshold the accepted
+    /// values cycle with a reclimb every second iteration or so. Read it against
+    /// `ipqp_reg_increases` and `ipqp_reg_decreases`.
+    ///
+    /// Structurally 0 on a convex subproblem. Excludes the FIRST climb of a solve
+    /// (no memory to have guessed with), an iteration whose value was accepted,
+    /// every inertia-demanded increase as such, and a PERTURBED-DRIVEN escalation
+    /// -- which is not a statement about curvature and is visible instead through
+    /// `ipqp_pivot_reroute_primal`.
+    Index ipqp_ladder_reclimbs = 0;
+
+    /// Ladder rungs taken because a PERTURBED-PIVOT report arrived while the
+    /// primal ladder was ARMED, i.e. answered by escalating `rho_dem` rather than
+    /// `delta`. Counts RUNGS, not iterations: the question is how much
+    /// factorization budget the re-route spends.
+    ///
+    /// The re-route exists because the modification is a uniform shift of the
+    /// Ruiz-scaled system, whose dominant diagonal Ruiz normalizes to almost
+    /// exactly -1 while `rho_dem = 1` is an early rung -- so a rung can ANNIHILATE
+    /// a scaled pivot, and that singularity is PRIMAL.
+    ///
+    /// Structurally 0 on any solve whose ladder never arms, and on any backend
+    /// that never reports a perturbed pivot. Excludes a perturbed report received
+    /// at `rho_dem == 0` (the ordinary dual route, counted nowhere), the rungs the
+    /// fallback then takes, and every wrong-inertia rung.
+    Index ipqp_pivot_reroute_primal = 0;
+
+    /// Times the bounded primal re-route above GAVE UP and fell back to escalating
+    /// `delta` -- `kIpqpPivotReroutePrimalMax` consecutive primal escalations
+    /// failed to clear the perturbation report. Counts FALLBACK EVENTS, one per
+    /// exhausted run, not the dual rungs that follow.
+    ///
+    /// The bound is an approximation of pivot provenance, and this field measures
+    /// its accuracy: `hven::linear::InertiaEvidence` carries pivot counts and no
+    /// pivot locations, so two consecutive failed primal escalations stands in for
+    /// asking which block was perturbed. A high ratio of fallbacks to primal
+    /// re-routes says the heuristic is guessing wrong often enough to replace.
+    ///
+    /// Structurally 0 wherever `ipqp_pivot_reroute_primal` is 0.
+    Index ipqp_pivot_reroute_dual_fallback = 0;
+
+    /// Iterations that ARMED the ladder (`rho_dem > 0` at the settled reading,
+    /// step taken) and on which the section 3.2 gate did NOT advance -- the direct
+    /// instrument for the negative-curvature walk, whose residual is not monotone:
+    /// along a direction where `H + rho_sched I + Sigma` still has negative
+    /// curvature the residual grows, so the contraction gate is silent for the
+    /// whole walk and then advances in one step when the curvature turns.
+    ///
+    /// Structurally 0 on a convex subproblem. Excludes an armed iteration on which
+    /// the gate did advance, an unarmed iteration either way, and any iteration
+    /// whose step was not taken.
+    Index ipqp_iters_ladder_armed_no_advance = 0;
+
+    /// Outcome of the REQUIRED final unregularized inertia read on a certifying
+    /// exit. A per-solve categorical reading: OVERWRITTEN by
+    /// `accumulate_ipqp_counters`, the `SqpCounters::start_level_used` convention,
+    /// not an additive quantity. The values map onto the escape census exactly:
+    ///
+    ///   `0` the reading was taken and AGREED: the certificate stands, no escape.
+    ///   `1` the reading was taken and DISAGREED -- at the final certification
+    ///       factorization, or with the ladder at `ipqp_reg_max` and the reading
+    ///       still wrong: a saddle-suspect downgrade, `ipqp_escape_indefinite`.
+    ///   `2` UNREADABLE: the read was ATTEMPTED and no usable evidence came back,
+    ///       including a perturbed-pivot report, which is not evidence about the
+    ///       assembled matrix and so not a disagreement either --
+    ///       `ipqp_escape_numerical`.
+    ///   `3` NOT PERFORMED: no factorization was taken for the read, because
+    ///       `IpqpOptions::ipqp_require_final_inertia` is false or because
+    ///       `ipqp_max_factorizations` refused it. Always a downgrade and never its
+    ///       own escape -- `kNone` on the option-off path, `kBudget` on the
+    ///       cap-refused one. Kept distinct from `2` so the census cannot confuse a
+    ///       read that never ran with one that ran and failed.
+    ///
+    /// Structurally `0` on a subproblem that never reached a certifying exit, since
+    /// the read is paid only there. Excludes every inertia read paid mid-ladder,
+    /// which is `ipqp_inertia_retries`.
+    ///
+    /// `0` Says this read agreed, which is not by itself that the certificate
+    /// stands: the evidence-failure policy downgrades a certificate for the whole
+    /// solve when any earlier factorization could not report usable evidence, so
+    /// `0` can pair with `certificate_downgraded == true`. The certificate is read
+    /// off `certificate_downgraded`, never off this field alone.
+    Index ipqp_final_inertia_read = 0;
+
+    /// `(rho, delta)` schedule GATED decreases actually applied: +1 per gated
+    /// advance that moved EITHER `rho` or `delta`. Never more than 1 per advance,
+    /// so it is bounded by `ipqp_prox_center_updates`, and
+    ///
+    ///     ipqp_prox_center_updates == ipqp_reg_decreases
+    ///                                 + (advances that moved nothing)
+    ///
+    /// where the remaining class is a decrease refused by the ABSOLUTE
+    /// `ipqp_reg_floor`. The inertia ladder contributes to neither side: it moves
+    /// `rho_dem`, which the schedule never sees.
+    Index ipqp_reg_decreases = 0;
+
+    /// `(rho, delta)` schedule inertia-demanded increases. Excludes the
+    /// initial `rho_0`/`delta_0` assignment at subproblem start (section
+    /// 3.2), which is not an increase.
+    Index ipqp_reg_increases = 0;
+
+    /// Proximal-estimate (`zeta`/`lambda_est`) advances. Excludes the
+    /// initial `zeta_0 = x_0`, `lambda_est_0 = y_0` assignment (section
+    /// 3.2), which is not an advance.
+    Index ipqp_prox_center_updates = 0;
+
+    /// Warm restarts (section 5.2) whose repair moved at least one
+    /// component of the ingested seed (a strict-positivity clamp or the
+    /// two-scalar shift). Excludes a warm restart whose seed needed no
+    /// repair at all.
+    Index ipqp_restart_repairs = 0;
+
+    /// The LARGEST repair shift (section 5.2's `(delta_p, delta_d)`) applied
+    /// to any component of any warm restart's seed; `0.0` when no restart
+    /// was ever repaired. MAX-FOLDED across subproblems in
+    /// `accumulate_ipqp_counters` (model: `ssn_sign_sweep_max`) -- the
+    /// honest-magnitude field, not a sum, exactly like that field. Excludes
+    /// a cold-started subproblem, which pays no repair and never touches
+    /// this field.
+    double ipqp_restart_shift_max = 0.0;
+
+    /// `1` iff the payload `mu` raised `mu_0` off the measured floor (the clamp
+    /// `mu_0 = clamp(max(mu_meas, kappa*mu_payload), min, init)`, with the payload
+    /// term binding), else `0`. A per-subproblem flag SUMMED like a count, the
+    /// `SqpCounters::n_seeded` convention. Excludes a cold-started subproblem,
+    /// which has no payload `mu` and is structurally `0`. A statement about the
+    /// CLAMP, not the trajectory: an adoption that binds can still leave the solve
+    /// bit-identical.
+    Index ipqp_mu_adopted = 0;
+
+    /// `1` iff the section 5.5 warm-kill fired on this subproblem (a warm
+    /// restart overran its clamped budget and was restarted cold exactly
+    /// once), else `0`. Excludes a cold-started subproblem (structurally
+    /// `0`, no warm restart to abandon) and a warm restart that stayed
+    /// inside its budget.
+    Index ipqp_warm_restart_abandoned = 0;
+
+    /// Subproblems the section 2.3/4b domain gate declined pre-solve because
+    /// the effective box (`IpqpBounds`) contained a zero-width pair.
+    /// A decline is not an escape: the tier never
+    /// ran, so this never counts toward `ipqp_escapes` or the K=3
+    /// retirement threshold, and the walk solves the declined subproblem
+    /// exactly. Excludes every subproblem the tier actually entered,
+    /// however it then concluded.
+    Index ipqp_declined_pinned = 0;
+
+    /// The major at which K = 3 consecutive escapes retired the tier for the
+    /// remainder of this solve; `0` if the tier was never retired.
+    ///
+    /// A MARKER, NOT A COUNT: retirement fires at most once per solve, and "any
+    /// success resets the count" resets only the consecutive-escape tally toward a
+    /// future retirement. FOLDED BY MAX, the peak fields' discipline:
+    /// order-independent, `0` is the fold identity, and summing two nonzero
+    /// readings would report an impossible major.
+    ///
+    /// Driver-scale only: no per-subproblem read ever carries it nonzero, since
+    /// retiring the tier is bookkeeping ACROSS subproblems. Max-folded anyway, for
+    /// the one real call site (a restoration sub-solve's totals folding onto an
+    /// already-populated running total). Excludes every major before retirement
+    /// fired, and a solve whose tier was declined-pinned throughout without ever
+    /// accumulating three consecutive genuine escapes.
+    Index ipqp_tier_retired_after = 0;
+
+    /// Rows/bounds the section 2.3 ratio rule left UNCERTAIN (neither
+    /// classification test satisfied), rather than asserted either way.
+    /// ACCUMULATED ON EVERY EXIT, including escapes: the classifier runs on
+    /// the returned point whatever the outcome was, so this is the population
+    /// the RULE left uncertain, and the population `refine_on_face` was
+    /// actually handed is the subset that reached it (the routing's rows 2a-2c
+    /// -- an escaped subproblem's face is never handed on). Excludes
+    /// rows/bounds the ratio rule classified definitively active or inactive.
+    Index ipqp_face_uncertain = 0;
+
+    /// Tier-3 `refine_on_face` hand-offs ACCEPTED as the step. EVERY usable
+    /// tier exit is handed on (section 2.3 item 3 -- tier 3 owns the last two
+    /// decades, whether or not the ratio rule left anything uncertain), so
+    /// this excludes only a subproblem that never produced a usable exit: a
+    /// decline, a retired-tier major, or a genuine escape. A refusal is
+    /// `ipqp_refine_refused` instead.
+    Index ipqp_refine_accepted = 0;
+
+    /// Tier-3 `refine_on_face` hand-offs REFUSED (empty/rank-deficient face,
+    /// a failed inertia gate, or the refined point leaving the box/TR/
+    /// inactive rows) -- the certificate the tier already had stands; see
+    /// `SsnCounters::ssn_refine_refused` for the identical convention on the
+    /// SSN tier. Excludes an acceptance, which is `ipqp_refine_accepted`
+    /// instead, and a subproblem that never reached tier-3.
+    Index ipqp_refine_refused = 0;
+
+    /// Subproblems the routing chain handed to the tier-3 `refine_on_face`
+    /// step (section 2.3 item 3) -- the FIRST destination of every usable tier
+    /// exit, which is exactly `ipqp_refine_accepted + ipqp_refine_refused`.
+    ///
+    /// It exists to close the routing partition. Without it the group has no
+    /// term for the refinement destination, so "every consulted subproblem
+    /// went somewhere" cannot be stated as arithmetic -- and two rows falsify
+    /// the two-term version: a converged `kBudget` exit whose section 2.2 item
+    /// 4 read the factorization budget refused is counted in
+    /// `ipqp_escape_budget` and routed HERE, not to the walk. Excludes a
+    /// declined or retired-major subproblem (the tier produced no exit to
+    /// refine) and a genuine escape (`ipqp_to_walk`, or `ipqp_to_ssn` for the
+    /// saddle-suspect one).
+    Index ipqp_to_refine = 0;
+
+    /// Subproblems handed to the SSN warm-grade path -- section 2.3 item 4's
+    /// TWO feeders, so this is exactly `ipqp_refine_refused +
+    /// ipqp_escape_indefinite`: a `refine_on_face` refusal, and a
+    /// saddle-suspect (`IpqpEscape::kIndefinite`) exit, which goes to SSN
+    /// directly without a refinement attempt. Excludes a `refine_on_face`
+    /// acceptance (`ipqp_refine_accepted`), which is the step and reaches no
+    /// further routing step.
+    Index ipqp_to_ssn = 0;
+
+    /// Routing outcomes handed to the walk: a genuine tier escape, which goes COLD
+    /// with the iterate discarded, or a declined-pinned subproblem re-routed
+    /// pre-solve, which goes to the ORDINARY seeded walk because the tier never
+    /// ran. Excludes a hand-off to SSN or to the refinement, a SADDLE-SUSPECT
+    /// escape (which goes to SSN), and the converged `kBudget` exit that is counted
+    /// in the escape census and routed to the refinement -- so
+    /// `ipqp_escapes - ipqp_to_walk` is not a meaningful quantity on its own.
+    ///
+    /// The closed statement is over first destinations, and it is not the raw
+    /// three-term sum:
+    ///
+    ///     ipqp_to_refine + ipqp_escape_indefinite
+    ///                    + (ipqp_to_walk - ipqp_declined_pinned)
+    ///         == the subproblems the tier was CONSULTED on
+    ///
+    /// `ipqp_to_ssn` cannot stand in it -- a refinement refusal reaches SSN as a
+    /// SECOND destination and is already in `ipqp_to_refine` -- and
+    /// `ipqp_declined_pinned` is subtracted because a decline is counted here
+    /// without the tier having run. `tests/sqp/support/ipqp_test_support.h`'s
+    /// `assert_ipqp_routing_partition` asserts exactly this.
+    Index ipqp_to_walk = 0;
+
+    /// Subproblems the tier ESCAPED (any of the five reasons below), summed
+    /// across the whole solve. Excludes declined-pinned subproblems -- see
+    /// `ipqp_declined_pinned` above, which the tier never entered.
+    Index ipqp_escapes = 0;
+
+    // The five-way escape census. The five MUST SUM TO `ipqp_escapes`: each
+    // subproblem escape increments exactly one of the five and `ipqp_escapes`
+    // together. Each field states its own count and what it excludes -- always
+    // "the other four", stated once here rather than five times.
+    //
+    // `ipqp_escape_stall` is escape-COUNT only: its three conjunct values travel
+    // in the stall escape's own evidence block, never as counters here.
+
+    /// Escapes via the section 6.1 hard iteration cap, `IpqpEscape::kBudget`
+    /// -- of LAST RESORT (section 6.1: the stall test below should fire
+    /// first on anything genuinely stuck). Excludes an escape whose stall
+    /// test fired first, which is `ipqp_escape_stall` instead (section 6.1
+    /// states budget is of last resort precisely so stall pre-empts it),
+    /// and excludes the section 5.5 warm-kill budget -- a warm restart's
+    /// own budget, not the tier's iteration cap, and tracked separately as
+    /// `ipqp_warm_restart_abandoned`, which is not an escape at all.
+    Index ipqp_escape_budget = 0;
+
+    /// Escapes via the section 6.2 early-stall test (the `mu`/residual/
+    /// min-alpha window, all three conjuncts required). Excludes the
+    /// DROPPED `ipqp_stall_reason_mu/_residual/_alpha` sub-counters (note
+    /// b) -- the three conjunct values travel in the stall escape's own
+    /// evidence block instead, never as counters here.
+    Index ipqp_escape_stall = 0;
+
+    /// Escapes via `IpqpEscape::kIndefinite`: an inertia reading was READ (an
+    /// evidence state was observed) and DISAGREED with the required signature --
+    /// at the final certification factorization on an otherwise-converged point,
+    /// or with the ladder at `ipqp_reg_max` and the reading still wrong. This is
+    /// `ipqp_final_inertia_read == 1`, a saddle-suspect downgrade that routes to
+    /// the SSN warm grade. Excludes an inertia-gate failure mid-ladder
+    /// (`ipqp_inertia_retries`, which retries rather than escaping) and an
+    /// UNREADABLE reading, which is `ipqp_escape_numerical`.
+    Index ipqp_escape_indefinite = 0;
+
+    /// Escapes that stop the tier for a non-convergence reason other than budget,
+    /// stall or infeasible-suspect: a factorization failure, an UNREADABLE inertia
+    /// reading (`ipqp_final_inertia_read == 2`), or a non-finite
+    /// iterate/residual/step. The complement of `ipqp_escape_indefinite` within
+    /// "the reading was inertia-related": indefinite means a reading was taken and
+    /// disagreed, numerical means no reading could be taken at all or the failure
+    /// was not an inertia reading. Excludes an indefinite-certificate escape.
+    Index ipqp_escape_numerical = 0;
+
+    /// Escapes via `IpqpEscape::kInfeasibleSuspect` (section 6.3's
+    /// two-conjunct test: primal residual flat on a positive floor AND
+    /// `||(y, z)||` growth over the window), carried with its own evidence
+    /// block (`IpqpResult::infeasibility_evidence`). Excludes a
+    /// certificate: the tier never returns `QpStatus::kInfeasible` (section
+    /// 6.3) -- only this escape signature.
+    Index ipqp_escape_infeasible_suspect = 0;
+
+    /// The smallest PRIMAL fraction-to-boundary step taken, across every iteration
+    /// of every subproblem. MIN-FOLDED across subproblems. Defaults to
+    /// `+infinity`, NOT `0.0`: valid steps lie in `(0, 1]`, so a `0.0` default
+    /// would be indistinguishable from an observed step and `std::min` would never
+    /// move off it. `+infinity` reads as "no step observed yet". Excludes a
+    /// declined-pinned subproblem, which the tier never enters.
+    double ipqp_alpha_p_min = std::numeric_limits<double>::infinity();
+
+    /// The DUAL-side counterpart of `ipqp_alpha_p_min`: same fold and same
+    /// `+infinity` default, for the same reason. Excludes a declined-pinned
+    /// subproblem (`ipqp_declined_pinned`), which the tier never enters and
+    /// so never takes a fraction-to-boundary step -- the same exclusion
+    /// `ipqp_alpha_p_min` states for itself.
+    double ipqp_alpha_d_min = std::numeric_limits<double>::infinity();
+
+    /// KEPT bound sides in the final read's disclosure band. Additive fold. A
+    /// 0/0 corpus reading is expected on near-equality-constrained first QPs;
+    /// the field is meaningful on activity-taxonomy and path-bound cells.
+    Index ipqp_read_kept_tight_sides = 0;
+
+    /// Band-counted sides `ipqp_classify_barrier_noise` (ipqp_math.h) classifies
+    /// `kSuspect`; `0` on the band-only fallback. Additive fold, and the same
+    /// corpus caveat as `ipqp_read_kept_tight_sides` above.
+    Index ipqp_read_barrier_noise_sides = 0;
+};
+
+#define HVEN_IPQP_COUNTERS_FIELDS(X)                                                               \
+    X(ipqp_iters, counter_never_absent)                                                            \
+    X(ipqp_factorizations, counter_never_absent)                                                   \
+    X(ipqp_symbolic_analyses, counter_never_absent)                                                \
+    X(ipqp_solves, counter_never_absent)                                                           \
+    X(ipqp_pattern_verifies, counter_never_absent)                                                 \
+    X(ipqp_rho_demanded_max, counter_never_absent)                                                 \
+    X(ipqp_rho_demanded_last, counter_never_absent)                                                \
+    X(ipqp_inertia_retries, counter_never_absent)                                                  \
+    X(ipqp_iters_at_elevated_rho, counter_never_absent)                                            \
+    X(ipqp_ladder_reclimbs, counter_never_absent)                                                  \
+    X(ipqp_pivot_reroute_primal, counter_never_absent)                                             \
+    X(ipqp_pivot_reroute_dual_fallback, counter_never_absent)                                      \
+    X(ipqp_iters_ladder_armed_no_advance, counter_never_absent)                                    \
+    X(ipqp_final_inertia_read, counter_never_absent)                                               \
+    X(ipqp_reg_decreases, counter_never_absent)                                                    \
+    X(ipqp_reg_increases, counter_never_absent)                                                    \
+    X(ipqp_prox_center_updates, counter_never_absent)                                              \
+    X(ipqp_restart_repairs, counter_never_absent)                                                  \
+    X(ipqp_restart_shift_max, counter_never_absent)                                                \
+    X(ipqp_mu_adopted, counter_never_absent)                                                       \
+    X(ipqp_warm_restart_abandoned, counter_never_absent)                                           \
+    X(ipqp_declined_pinned, counter_never_absent)                                                  \
+    X(ipqp_tier_retired_after, counter_absent_at_zero)                                             \
+    X(ipqp_face_uncertain, counter_never_absent)                                                   \
+    X(ipqp_refine_accepted, counter_never_absent)                                                  \
+    X(ipqp_refine_refused, counter_never_absent)                                                   \
+    X(ipqp_to_refine, counter_never_absent)                                                        \
+    X(ipqp_to_ssn, counter_never_absent)                                                           \
+    X(ipqp_to_walk, counter_never_absent)                                                          \
+    X(ipqp_escapes, counter_never_absent)                                                          \
+    X(ipqp_escape_budget, counter_never_absent)                                                    \
+    X(ipqp_escape_stall, counter_never_absent)                                                     \
+    X(ipqp_escape_indefinite, counter_never_absent)                                                \
+    X(ipqp_escape_numerical, counter_never_absent)                                                 \
+    X(ipqp_escape_infeasible_suspect, counter_never_absent)                                        \
+    X(ipqp_alpha_p_min, counter_absent_at_pos_inf)                                                 \
+    X(ipqp_alpha_d_min, counter_absent_at_pos_inf)                                                 \
+    X(ipqp_read_kept_tight_sides, counter_never_absent)                                            \
+    X(ipqp_read_barrier_noise_sides, counter_never_absent)
+
+/// @brief `HVEN_IPQP_COUNTERS_FIELDS`' entry count.
+inline constexpr std::size_t kIpqpCountersFieldCount =
+    0 HVEN_IPQP_COUNTERS_FIELDS(HVEN_COUNTERS_COUNT_ONE);
+static_assert(::hven::detail::kAggregateArity<IpqpCounters> == kIpqpCountersFieldCount,
+              "IpqpCounters and HVEN_IPQP_COUNTERS_FIELDS disagree: give the new field an X() "
+              "entry in its declaration position (and the trace's golden line moves with it).");
+
+/// The IpqpCounters table's field offsets, in table order. `offsetof` is only
+/// portable on a standard-layout type, so that is asserted first.
+static_assert(std::is_standard_layout_v<IpqpCounters>,
+              "IpqpCounters must stay standard-layout for the "
+              "offsetof order check below to be portable.");
+inline constexpr std::size_t kOffsetsIpqpCounters[] = {
+#define HVEN_COUNTERS_OFFSET_ONE(f, absent) offsetof(IpqpCounters, f),
+    HVEN_IPQP_COUNTERS_FIELDS(HVEN_COUNTERS_OFFSET_ONE)
+#undef HVEN_COUNTERS_OFFSET_ONE
+};
+static_assert(counters_offsets_increase(kOffsetsIpqpCounters, kIpqpCountersFieldCount),
+              "IpqpCounters and HVEN_IPQP_COUNTERS_FIELDS disagree about ORDER: an entry is out of "
+              "declaration position. The JSON key order is the table's, so this must be the "
+              "struct's.");
+
+/// @brief Aggregate work counters for a whole solve.
+///
+/// major_iters counts SUBPROBLEMS SOLVED -- not iterates evaluated, and not steps
+/// accepted: a subproblem that fails is counted, because the work was spent. A
+/// solve that converges immediately reports 0 and a one-entry history. A SOC
+/// re-solve is not one of these subproblems: it is tied to the trial that
+/// triggered it and its cost is folded into qp_minor_iters/factorizations.
+///
+/// The history length depends on where the solve stopped, and a consumer indexing
+/// into it must branch on that:
+/// - stopped AT an iterate (kOptimal, kMaxIter, the non-finite-iterate
+///   kNumericalError): history.size() == major_iters + 1, the last row has
+///   qp_solved == false;
+/// - stopped ON a subproblem (a QP-propagated kNumericalError, or any of the three
+///   kRestore routes): history.size() == major_iters, every row has qp_solved ==
+///   true, and the last row carries the failing qp_status -- except on the
+///   kRestore routes, where `verdict` carries the reason.
+/// So `history[counters.major_iters]` is in bounds on the first family and out of
+/// bounds on the second. Use history.back() and read qp_solved.
+///
+/// ON A Terminal restoration exit, SqpResult::x is NOT the point the last
+/// history row describes: the row is the iterate that RAISED the request, while
+/// x/f/lambda_* are the RESTORED point the phase ended at, which has no row of its
+/// own. The two coincide only when the phase never moved the iterate.
 ///
 /// qp_minor_iters and factorizations are plain SUMS of the corresponding
-/// QpCounters fields over every subproblem solved, so they carry that
-/// header's semantics unchanged (qp_engine.h's COUNTER SEMANTICS note:
-/// minor_iters is one per QP major iteration; factorizations is not bounded
-/// by one per QP iteration in border mode). schur_updates is deliberately
-/// NOT aggregated -- the per-major values are in the history if a caller
-/// wants them.
+/// QpCounters fields over every subproblem solved, carrying that header's
+/// semantics unchanged; schur_updates is deliberately NOT aggregated. Both sums
+/// can EXCEED sum(history[k].qp_*): a SOC re-solve's cost is folded in here but
+/// deliberately not into the triggering row, whose qp_* fields stay the ORIGINAL
+/// solve's, so the difference is exactly the SOC re-solve's own cost.
 ///
-/// FROM SOC ON THESE TWO SUMS CAN EXCEED sum(history[k].qp_* OVER k). A
-/// second-order correction (see sqp_driver.h's SECOND-ORDER CORRECTION note)
-/// re-solves the SAME iterate's subproblem with a shifted rhs, and that
-/// re-solve's minor_iters/factorizations are folded in HERE -- work was spent
-/// -- but deliberately NOT into the triggering row's qp_minor_iters/
-/// qp_factorizations, which stay exactly what the ORIGINAL (rejected) QP
-/// solve cost, preserving every existing reader's assumption that a row's
-/// qp_* fields describe ONE QpSolution. The SOC re-solve's own cost is
-/// therefore recoverable as the difference: counters.qp_minor_iters -
-/// sum(history[k].qp_minor_iters) (likewise factorizations), which is
-/// exactly how the SOC hot-start tests measure it.
+/// rejected_steps counts the majors spent shrinking the radius at an iterate that
+/// did not move: a strategy-rejected trial, and a subproblem that failed but
+/// returned a usable iterate. Tell them apart by the row's qp_status.
+/// steps_accepted counts the complementary case -- trials the strategy accepted,
+/// which is the number of times the iterate moved on the caller's own problem, and,
+/// with one exception, the number of eval_hess calls the optimality phase makes.
 ///
-/// rejected_steps counts the majors spent SHRINKING THE RADIUS at an iterate
-/// that did not move. Two things produce one, and they are counted together
-/// because the loop treats them identically: a trial point the globalization
-/// strategy REJECTED (StepVerdict::kReject), and a SUBPROBLEM THAT FAILED but
-/// returned a usable iterate (sqp_driver.h's SUBPROBLEM FAILURE ROUTING),
-/// where there was no trial point to judge at all. Tell them apart by the
-/// row's qp_status: kOptimal on the first, kNumericalError/kMaxIter on the
-/// second. steps_accepted counts the complementary case: trials the strategy
-/// ACCEPTED (kAcceptF or kAcceptH), which is exactly the number of times the
-/// iterate moved on the CALLER'S OWN problem, and -- WITH ONE EXCEPTION --
-/// the number of eval_hess calls the OPTIMALITY phase makes (the Hessian is
-/// evaluated once per iterate that builds a subproblem, never per trial --
-/// see sqp_driver.h).
+/// THE EXCEPTION: a solve that exits without ever building a subproblem pays ONE
+/// eval_hess in make_warm_start, so the exact optimality-phase count is
+/// steps_accepted + [major_iters == 0]. It is also not the number of eval_hess
+/// calls the solve makes on the MODEL: a restoration major costs one too, so a
+/// consumer budgeting Hessian evaluations should use
+/// steps_accepted + restoration_iters + 1 as the unconditional upper bound.
 ///
-/// THE EXCEPTION: a solve that exits WITHOUT EVER BUILDING A SUBPROBLEM --
-/// converged at its own start point, or a zero budget, both of which report
-/// steps_accepted == 0 AND major_iters == 0 -- pays ONE eval_hess anyway, in
-/// sqp_driver.h's make_warm_start, to hash the model's sparsity for the
-/// hand-off it emits (that function's THE ZERO-MAJOR PROBE note). So the
-/// exact optimality-phase count is steps_accepted + [major_iters == 0], and
-/// the extra call is bounded by one per solve, on precisely the solves that
-/// would otherwise have evaluated no Hessian at all. A solve whose start
-/// point the model could not evaluate pays nothing extra (it is not probed).
-///
-/// IT IS ALSO NOT THE NUMBER OF eval_hess CALLS THE SOLVE MAKES ON THE
-/// MODEL, and the difference is the restoration phase: RestorationModel's own
-/// eval_hess FORWARDS to the wrapped model's (with obj_scale = 0), so every
-/// restoration major costs one eval_hess on the caller's model too. The exact
-/// count is steps_accepted + (the accepted steps of the restoration
-/// sub-solve), and only the first term is reported -- the second is inside
-/// restoration_iters, which counts that sub-solve's majors rather than its
-/// acceptances. A consumer budgeting Hessian evaluations should treat
-/// steps_accepted + restoration_iters + 1 as the upper bound -- the trailing
-/// +1 is the zero-major probe above, which cannot fire on the same solve as
-/// any accepted step but is included so the bound holds unconditionally.
-///
-/// BOTH ACCEPT/REJECT COUNTERS ARE COUNTED EXPLICITLY BECAUSE THE OBVIOUS
-/// IDENTITY IS FALSE. steps_accepted == major_iters - rejected_steps holds
-/// only on a solve that stopped AT an iterate; a solve that stopped ON a
-/// subproblem spent a major that was neither accepted nor rejected -- the QP
-/// failed (kInfeasible, or a kNumericalError/kMaxIter that had already used
-/// its one retry), so there was no trial point to judge -- and EVERY kRestore
-/// row spends one that was judged but is neither. In general
+/// BOTH ACCEPT/Reject counters are counted explicitly because the obvious identity
+/// IS FALSE. In general
 ///     major_iters = steps_accepted + rejected_steps + (kRestore rows),
-/// where the last term counts BOTH the terminal request (0 or 1) AND every
-/// request the phase RESUMED from, since a resumed restoration leaves its
-/// requesting row behind and the solve carries on (measured gap of 2 on the
-/// runaway-valley fixture: one resumed request plus one capped one). A
-/// consumer wanting "how many Hessians did this cost" must read
-/// steps_accepted (plus the paragraphs above), not the subtraction.
+/// where the last term counts both the terminal request and every request the
+/// phase RESUMED from.
 ///
-/// soc_steps counts SECOND-ORDER CORRECTION ATTEMPTS: once per qualifying
-/// kReject trial (h_new > h_old, opts.enable_soc), regardless of whether the
-/// attempt succeeded -- a failed SOC re-solve, or one whose corrected point
-/// the funnel also rejected, still counts, because the work was spent. See
-/// sqp_driver.h's SECOND-ORDER CORRECTION note. It is 0 in every solve with
-/// enable_soc == false.
-///
-/// soc_applied/soc_qp_infeasible/soc_rejected BREAK soc_steps' one number
-/// DOWN BY OUTCOME -- soc_steps counts attempts only, with no record of which
-/// way an attempt ended, and battery adjudication needs that record. They are
-/// EXACTLY the three mutually-exclusive outcomes sqp_driver.h's
-/// SECOND-ORDER CORRECTION path can reach, so the identity
+/// soc_steps counts Second-order correction attempts -- once per qualifying
+/// kReject trial, whatever the outcome -- and soc_applied/soc_qp_infeasible/
+/// soc_rejected break that number down by outcome, so
 ///     soc_steps == soc_applied + soc_qp_infeasible + soc_rejected
-/// holds on every solve:
-/// - soc_applied: the re-solve returned kOptimal AND the strategy accepted
-///   the corrected point (kAcceptF/kAcceptH) -- the attempt paid off. Same
-///   event SqpIterate::soc_applied flags per-row; this is the solve-wide sum.
-/// - soc_qp_infeasible: the re-solve itself did not return kOptimal (in
-///   practice almost always kInfeasible -- the rhs shift scales with the very
-///   violation that triggered SOC, so a large h_new is what "most often"
-///   means in the SECOND-ORDER CORRECTION note's A FAILED SOC RE-SOLVE table)
-///   -- there was no corrected point to judge at all.
-/// - soc_rejected: the re-solve returned kOptimal but the strategy did NOT
-///   accept the corrected point (a kReject, or a kRestore that was not
-///   promoted) -- a corrected point existed and was still turned down.
-/// All three, like soc_steps itself, are folded in from a restoration
-/// sub-solve exactly as soc_steps is (the work was spent on that sub-solve's
-/// own SOC attempts too), so the identity holds on the aggregate counters of
-/// a solve that restored, not only on one that did not.
+/// on every solve: applied when the re-solve reached kOptimal and the strategy
+/// accepted the corrected point, qp_infeasible when the re-solve itself did not
+/// reach kOptimal, rejected when it did and the strategy still turned the point
+/// down. All four fold in from a restoration sub-solve.
 ///
-/// elastic_activations counts SUBPROBLEMS REFORMULATED ELASTICALLY: once per
-/// trial whose QP returned kInfeasible, whatever the reformulation then
-/// produced (a step, or the elastic tier's own exhaustion signal). It is
-/// therefore also an exact count of the kInfeasible subproblems this solve
-/// met, since EVERY one of them is reformulated -- see sqp_driver.h's ELASTIC
-/// TIER note.
+/// elastic_activations counts subproblems reformulated elastically -- once per
+/// trial whose QP returned kInfeasible -- so it is also an exact count of the
+/// kInfeasible subproblems the WALK route met. The certified fallback reformulates
+/// on the interior-point tier's evidence instead, with no kInfeasible QP in front
+/// of it, and `elastic_from_ipqp_escape` counts those, so the two split this total.
 ///
-/// elastic_escalations counts rho ESCALATIONS (x10 re-solves of the SAME
-/// elastic subproblem), summed over every activation -- NOT the number of
-/// elastic solves, which is elastic_activations + elastic_escalations. It is
-/// bounded by 6 per activation (kElasticRhoInit = 1e2 to kElasticRhoMax =
-/// 1e8) at SqpOptions::elastic_ladder_early_exit's default (false, i.e. the
-/// ladder always spends every rung). With the early exit opted in, that bound
-/// is an UPPER bound only: an activation whose ladder stalls (a rung's
-/// solution repeats the previous one) reads FEWER than 6 -- see that option's
-/// own note in this file for why it defaults off (a real trajectory-shaping
-/// effect was measured, not merely a cost cut). Their qp_minor_iters/
-/// factorizations are folded into the aggregate sums above, exactly as a SOC
-/// re-solve's are, and for the same reason.
+/// elastic_escalations counts rho ESCALATIONS of the SAME elastic subproblem,
+/// summed over activations -- not the number of elastic solves, which is
+/// elastic_activations + elastic_escalations. Bounded by 6 per activation, or
+/// fewer when evidence places the first rung higher, and an UPPER bound only once
+/// SqpOptions::elastic_ladder_early_exit is opted in. Their
+/// qp_minor_iters/factorizations fold into the aggregate sums.
 ///
-/// restoration_iters counts MAJOR ITERATIONS SPENT INSIDE THE RESTORATION
-/// PHASE -- i.e. subproblems solved on the FEASIBILITY problem, not on the
-/// NLP's own linearization. It is exactly the sub-solve's own major_iters,
-/// summed over every restoration entered (at most one per solve today; see
-/// sqp_driver.h's RESTORATION PHASE note for the cap and why it exists).
-/// Zero on every solve that never raised a restoration request, which is
-/// every clean solve.
+/// restoration_iters counts major iterations spent inside the restoration phase --
+/// subproblems solved on the feasibility problem. These majors are NOT in
+/// major_iters and have no history rows; the two counters partition the QP solves
+/// a driver spends on models, and they share the max_iter budget. The sub-solve's
+/// qp_minor_iters and factorizations ARE folded into this struct's aggregates.
 ///
-/// THESE MAJORS ARE NOT IN major_iters AND HAVE NO HISTORY ROWS. The two
-/// counters partition the QP solves a driver spends on models: major_iters
-/// counts the ones built from the NLP at an outer iterate, restoration_iters
-/// the ones built from the feasibility wrapper. They share the max_iter
-/// budget (see SqpOptions). The restoration sub-solve's own qp_minor_iters
-/// and factorizations ARE folded into this struct's aggregates, exactly as a
-/// SOC re-solve's and an elastic rung's are and for the same reason -- the
-/// work was spent -- so those two sums cover the whole solve including
-/// restoration, while soc_steps/elastic_* likewise absorb whatever the
-/// sub-solve did.
-///
-/// A NONZERO VALUE DOES NOT IMPLY A FAILED SOLVE. Restoration is a recovery
-/// mechanism first: a solve that restores and then converges reports kOptimal
-/// with restoration_iters > 0, and that is the outcome the phase exists to
-/// produce. It is the pairing with SqpStatus::kInfeasible that says the
-/// restoration phase reached its OTHER conclusion.
+/// A nonzero restoration_iters does not imply a failed solve: a solve that
+/// restores and then converges reports kOptimal with restoration_iters > 0. It is
+/// the pairing with SolveStatus::kInfeasible that says otherwise.
+/// @see docs/notes/2026-09-header-prose-archive.md §solver_counters.h
 struct SqpCounters {
     Index major_iters = 0;
     Index qp_minor_iters = 0;
@@ -667,340 +1020,383 @@ struct SqpCounters {
     Index elastic_escalations = 0;
     Index restoration_iters = 0;
 
+    // The certified fallback'S PARTITION. The counters below are written by
+    // `certified_feasibility_fallback`, the one judge and the only site that
+    // writes any of them, and partition its ENTRIES:
+    //
+    //     ipqp_suspicion_disproved + <relaxed> + <exhausted> + ipqp_fallback_rung_b
+    //         == the fallback entries whose evidence block FIRED
+    //         == elastic_from_ipqp_escape - elastic_floor_retries
+    //
+    // where <relaxed> and <exhausted> carry no counter of their own and are read
+    // off the returned `qp_status`. An entry whose block never fired charges none
+    // of them: it is a single cold walk, outside the partition by construction.
+
+    /// Elastic ACTIVATIONS this solve owes to the certified fallback rather than
+    /// to a walk `kInfeasible`: every ladder the fallback ran, an entry's first
+    /// attempt and its floor retry alike. Both routes increment
+    /// `elastic_activations`, so
+    ///
+    ///     elastic_activations == <walk-route activations> + elastic_from_ipqp_escape
+    ///
+    /// and the walk-route count is that difference. Excludes every activation the
+    /// driver's own elastic branch raised on a walk `kInfeasible`, and an entry
+    /// whose block never fired. It counts ACTIVATIONS, not entries.
+    Index elastic_from_ipqp_escape = 0;
+
+    /// Fallback entries whose rung A came back with CLOSED slacks -- the suspicion was FALSE and
+    /// the elastic answer IS the unrelaxed subproblem's (the l1 exact-penalty property). The one
+    /// number that says whether spec section 6.3's two-conjunct detector is calibrated:
+    /// `ipqp.ipqp_escape_infeasible_suspect` counts the SUSPICION, this counts its FATE.
+    ///
+    /// EXCLUDES the other three arms of the partition above -- in particular a rung B that
+    /// disproves the suspicion on its own (its walk solves the original QP and returns
+    /// kOptimal), which this counter cannot see and `ipqp_fallback_rung_b` counts instead.
+    Index ipqp_suspicion_disproved = 0;
+
+    /// Fallback entries that fell through to RUNG B, the cold walk: rung A was DECLINED by the
+    /// engine (a non-kOptimal ladder exit), and -- when the placement was above the floor -- so
+    /// was its one retry there. The refusal path's own frequency, and the fourth arm of the
+    /// partition above.
+    ///
+    /// EXCLUDES an entry whose evidence never FIRED (rung B runs, but rung A was never entered,
+    /// so the entry is outside the partition) and the other three arms.
+    Index ipqp_fallback_rung_b = 0;
+
+    /// Ladders entered at a CLAMPED first rung -- `ElasticLadderReport::
+    /// rho0_ceiling_hit` summed over every activation, on both routes into
+    /// `run_elastic_ladder`. A clamp means the evidence priced the violation above
+    /// what the placement rule allows: the escalation headroom cap
+    /// `kElasticRhoMax / kElasticRhoFactor`, or the dual-regularization safety cap
+    /// `kElasticRhoDualMuSafety / dual_mu`. Excludes the ordinary placements, and
+    /// is identically 0 on the no-evidence route, which is placed at the floor.
+    Index elastic_rho0_ceiling_hits = 0;
+
+    /// Rung-A RETRIES AT THE FLOOR: entries where a DECLINED rung A placed above
+    /// `kElasticRhoInit` was re-run once at the floor before rung B was considered. Each retry
+    /// is a second, real activation and is counted in `elastic_activations` and in
+    /// `elastic_from_ipqp_escape` too -- the extra cost the rule is worth reporting -- while the
+    /// ENTRY partition above counts the RETRY's own outcome, never the declined attempt as well.
+    ///
+    /// EXCLUDES a decline already AT the floor (there is nothing to retry) and every rung A the
+    /// engine did not decline. Bounded by 1 per fallback entry.
+    Index elastic_floor_retries = 0;
+
     /// EQP refinement work, summed over every QP solve this driver spent --
-    /// subproblems, SOC re-solves, elastic rungs and the restoration
-    /// sub-solve alike, exactly like qp_minor_iters/factorizations above.
-    /// The two fields carry QpCounters' meanings unchanged:
-    /// border_refine_steps is TOTAL steps including each bordered solve's
-    /// mandatory first, eqp_refine_steps is EXTRA steps beyond solve_eqp's
-    /// mandatory first and so is identically 0 -- the flag-gated loop it
-    /// once counted was deleted as measured-inert on both shipped backends
-    /// (see QpCounters' note above). They exist so the refinement A/B could
-    /// price refinement per solve rather than per subproblem, and the zero
-    /// one stays as that A/B's standing invariant.
+    /// subproblems, SOC re-solves, elastic rungs and the restoration sub-solve
+    /// alike, exactly like qp_minor_iters/factorizations. The two fields carry
+    /// QpCounters' meanings unchanged, including that eqp_refine_steps is
+    /// identically 0.
     Index eqp_refine_steps = 0;
     Index border_refine_steps = 0;
 
-    /// Rungs of the QP engine's SUSPECT-STALL ESCALATION LADDER
-    /// (qp_engine.h's section 4b), summed over every QP solve this driver
-    /// spent -- same aggregation set as the two refinement counters above,
-    /// and named identically to QpCounters::suspect_escalations so the
-    /// per-solve and per-driver readings are the same quantity at two
-    /// scales.
+    /// Verdict-site face refinement steps kept, summed over the same set of QP
+    /// solves as the two fields above; QpCounters::verdict_refine_steps
+    /// carries the meaning unchanged, COUNTS and EXCLUDES included.
+    Index verdict_refine_steps = 0;
+
+    /// Rungs of the QP engine's Suspect-stall escalation ladder (qp_engine.h
+    /// section 4b), summed over the same set of QP solves as the refinement
+    /// counters above and named identically to QpCounters::suspect_escalations.
     ///
-    /// ZERO IS THE EXPECTED READING and a nonzero one is a finding, not a
-    /// statistic: a rung is spent only when a would-be-kOptimal QP exit off
-    /// a SUSPECT factorization failed the free-block stationarity check,
-    /// i.e. when the subproblem's linear algebra produced a point that is
-    /// not a KKT point of anything. Nonzero-but-solved means the engine
-    /// escalated its way out and the answer stands; a QP that came back
-    /// kNumericalError with detail::kMaxSuspectEscalations rungs spent
-    /// exhausted the ladder, and THAT PAIRING IS THE EXHAUSTION DIAGNOSTIC
-    /// -- it is the only place the driver's caller can see why the
-    /// subproblem was refused, which is why this rolls up rather than dying
-    /// at the QP boundary.
+    /// Zero is the expected reading and a nonzero one is a finding, not a
+    /// statistic: a rung is spent only when a would-be-kOptimal exit off a suspect
+    /// factorization failed the free-block stationarity check. Nonzero-but-solved
+    /// means the engine escalated its way out; a kNumericalError paired with
+    /// detail::kMaxSuspectEscalations rungs is the exhaustion diagnostic, and it is
+    /// the only place the driver's caller can see why the subproblem was refused.
     Index suspect_escalations = 0;
 
-    /// Pardiso phase-11 (symbolic analysis) calls PAID THROUGH THE
-    /// BORDER/REBUILD PATH (qp_engine.h's rebuild_k0(), same scope as
-    /// QpCounters::symbolic_analyses), summed over every QP solve this
-    /// driver spent -- same aggregation set as the two refinement counters
-    /// and suspect_escalations above, named identically to
-    /// QpCounters::symbolic_analyses (see that field's note for what it
-    /// counts and why). THIS IS NOT A COUNT OF EVERY PHASE-11 CALL THIS
-    /// SOLVE PAID ACROSS EVERY CODE PATH: the elimination path constructs
-    /// its own per-solve KktFactor and pays its own symbolic analyses
-    /// through it, which this field does not see and so under-reports on a
-    /// solve that uses that path (measured: HS39 reads 1 here against 2
-    /// real analyze() calls). A driver whose every major keeps a single,
-    /// unshared BorderState (the ordinary case) should see this stay small
-    /// (1, or 0 on an immediate-convergence solve) across the WHOLE solve
-    /// regardless of how many `factorizations` were paid, since
-    /// rebuild_k0() reuses one KktFactor's cached sparsity pattern across
-    /// same-pattern rebuilds; a large value on an otherwise-ordinary solve
-    /// is the regression signal this counter exists to catch (detaching
-    /// onto a fresh KktFactor on every value-changing major, discarding
-    /// that cache).
+    /// Pardiso phase-11 (symbolic analysis) calls paid through the border/rebuild
+    /// PATH, summed over the same set of QP solves as the counters above and named
+    /// identically to QpCounters::symbolic_analyses.
+    ///
+    /// Not a count of every phase-11 call this solve paid: the elimination path
+    /// constructs its own per-solve KktFactor and pays its own analyses through it,
+    /// which this field does not see and so under-reports on a solve that uses it.
+    /// An ordinary driver keeping a single unshared BorderState should see this
+    /// stay small (1, or 0 on an immediate-convergence solve) across the whole
+    /// solve regardless of how many factorizations were paid; a large value on an
+    /// otherwise-ordinary solve is the regression signal it exists to catch.
     Index symbolic_analyses = 0;
 
-    /// The RESOLVED warm-start level this solve actually used -- NOT the
-    /// level a caller merely requested by populating `warm`
-    /// (sqp_driver.h's WARM-START INGEST note has the resolution rule).
-    /// Always kCold on the 2-arg solve(model, x0) overload (there is no
-    /// `warm` object to resolve there). On the 3-arg overload:
-    /// kCold when `warm.valid` is false, when `warm` is not dimensionally
-    /// compatible with this model, when any ingested vector is non-finite,
-    /// when the seeded `lambda_i >= 0` clamp DEGRADED the object
-    /// (sqp_driver.h's THE SEEDED DUAL CLAMP), or when
-    /// SqpOptions::start_level caps it there.
+    /// The RESOLVED warm-start level this solve actually used -- not the level a
+    /// caller merely requested by populating `warm`.
     ///
-    /// A HASH MISMATCH -- the hash == 0 "no model was seen" sentinel a
-    /// mesh-transferred or crossover object carries included -- lands on
-    /// **kSeeded**, which takes the object's values (x, duals, activity
-    /// hint) and refuses its provenance-dependent state (see
-    /// core/start_level.h's StartLevel note for the exact list). kSeeded is
-    /// also what a `start_level` ceiling of kSeeded produces from an object
-    /// that would otherwise have earned kWarm/kHot. Then: kWarm when a
-    /// structural match was confirmed and the ceiling allows it, but either
-    /// `warm.hot` was null or the FIRST subproblem's own solve did not
-    /// actually reuse the cache; kHot exactly when a structural match was
-    /// confirmed, the ceiling allows it, `warm.hot` was non-null, AND that
-    /// first subproblem's own QpCounters::k0_reused reads true -- i.e. this
-    /// field records what WAS OBSERVED TO HAPPEN, not what was merely
-    /// offered: QpEngine's own reuse-eligibility conditions (a)-(e)
-    /// (qp_engine.h -- (e) is the shared object's own generation counter,
-    /// on top of the four fingerprint conditions (a)-(d)) are the sole gate
-    /// on whether an offered hot handle is actually usable, and a mismatch
-    /// there degrades this field to kWarm silently rather than lying about
-    /// which level ran. Reading `k0_reused` -- rather than inferring reuse
-    /// from `qp_factorizations == 0` -- is deliberate: that count can read
-    /// zero for reasons unrelated to reuse (an empty reduced system, or a
-    /// crossed-bounds exit before the loop ever runs), which `k0_reused`
-    /// does not confuse with a genuine cache hit (see
-    /// QpCounters::k0_reused's note above).
+    /// Always kCold on the 2-argument solve(model, x0) overload. On the 3-argument
+    /// overload: kCold when `warm.valid` is false, when `warm` is not dimensionally
+    /// compatible, when any ingested vector is non-finite, when the seeded dual
+    /// clamp DEGRADED the object, or when SqpOptions::common.start_level caps it there.
+    ///
+    /// A HASH MISMATCH -- the `0` "no model was seen" sentinel included -- lands on
+    /// kSeeded, which takes the object's values and refuses its
+    /// provenance-dependent state; a `start_level` ceiling of kSeeded produces the
+    /// same from an object that would otherwise have earned more. Then kWarm when a
+    /// structural match was confirmed and the ceiling allows it but either
+    /// `warm.hot` was null or the first subproblem did not actually reuse the
+    /// cache; kHot exactly when the match was confirmed, the ceiling allows it,
+    /// `warm.hot` was non-null AND that subproblem's own QpCounters::k0_reused
+    /// reads true. This field records what WAS OBSERVED to happen, not what was
+    /// offered, and reading `k0_reused` rather than inferring reuse from a zero
+    /// factorization count is deliberate.
     StartLevel start_level_used = StartLevel::kCold;
 
     /// Majors solved while globalization.h's FULL-STEP MODE was armed
-    /// (SqpOptions::warm_full_step). It counts the same events major_iters
-    /// does -- SUBPROBLEMS SOLVED, so a routed QP failure taken under the
-    /// mode counts exactly as an accepted unit step does -- and is
-    /// therefore always <= major_iters, with 0 on every cold solve, every
-    /// solve with the lever off, and every solve whose `warm` did not
-    /// resolve.
-    ///
-    /// IT IS NOT A COUNT OF UNIT STEPS TAKEN. A trial the mode declined to
-    /// accept (only one thing does that: a NON-FINITE trial point, which
-    /// FunnelStrategy::judge still rejects under the mode) is counted here
-    /// too, for the same reason major_iters counts it -- the QP was solved.
+    /// (SqpOptions::warm_full_step). It counts the same events major_iters does --
+    /// subproblems solved -- so it is always <= major_iters, and 0 on every cold
+    /// solve, every solve with the lever off and every solve whose `warm` did not
+    /// resolve. It is not a count of UNIT STEPS taken: a trial the mode declined to
+    /// accept (only a non-finite trial point does that) is counted here too.
     Index full_step_majors = 0;
 
-    /// WATCHDOG RESTORES: how many times the driver ended the full-step
-    /// mode by restoring the best iterate it had seen under it (by
-    /// ||KKT||inf) and handing the solve back to funnel globalization
-    /// there. Bounded by 1 today -- the mode is entered ONCE PER SOLVE, at
-    /// the first measurable iterate, and nothing re-enters it -- so the
-    /// useful reading is BINARY: 0 means the mode either never engaged or
-    /// ran all the way to the convergence test (the outcome it exists to
-    /// produce), 1 means it was cut short by divergence or a stall.
-    ///
-    /// A RESTORE IS COUNTED EVEN WHEN IT MOVES NOTHING. On the stall exit
-    /// the best iterate can BE the current one (e.g. a subproblem that kept
-    /// failing at an iterate that never moved), and the restore is then a
-    /// no-op on x -- but the EVENT, the mode giving up, is what this
-    /// counts, and that happened either way.
+    /// WATCHDOG RESTORES: how many times the driver ended the full-step mode by
+    /// restoring the best iterate it had seen under it (by ||KKT||inf) and handing
+    /// the solve back to funnel globalization. Bounded by 1 today -- the mode is
+    /// entered once per solve -- so the useful reading is BINARY: 0 means the mode
+    /// never engaged or ran to the convergence test, 1 means it was cut short.
+    /// A restore is counted even when it moves nothing: the EVENT is what this
+    /// counts.
     Index watchdog_restores = 0;
 
-    // EVAL ECONOMICS: evals_full is a query that fetched derivatives
-    // (grad/Je/Ji, whether or not it also read values first); evals_values
-    // is a query that fetched f/cE/cI ONLY and never got upgraded. A
-    // NlpModel query costs one of two things: a FULL eval_nlp (f, grad, cE,
-    // Je, cI, Ji -- sqp_driver.h's NlpEval) or a VALUES-only eval_nlp_values
-    // (f, cE, cI, via NlpModel::eval_values, no derivatives). These two
-    // counters partition every model query this solve made between the two
-    // -- evals_full + evals_values is the total number of times x (or a
-    // probe point) was evaluated against the model at all, ACROSS THE WHOLE
-    // SOLVE, folded in from a restoration sub-solve exactly as
-    // qp_minor_iters/factorizations are (sqp_driver.h's RESTORATION PHASE
-    // fold), since that work is genuinely spent evaluating the model, not a
-    // property of the wrapper's own variables.
+    // EVAL ECONOMICS. evals_full is a query that fetched derivatives (whether or
+    // not it also read values first); evals_values is a query that fetched f/cE/cI
+    // only and never got upgraded. The two partition every model query this solve
+    // made, folded in from a restoration sub-solve like the work counters.
     //
-    // evals_full COUNTS: the first iterate's evaluation, every ACCEPTED
-    // trial (direct or via a promoted SOC correction -- exactly one full
-    // eval per acceptance, whichever point it lands on), and a restoration
-    // exit's re-evaluation of the main model at the point restoration
-    // reached (when that point is finite). evals_values COUNTS: every
-    // REJECTED trial's evaluation (including one that went through SOC and
-    // was still not promoted), the warm-resolution probe's f/cE/cI fetch
-    // (sqp_driver.h's WARM-START INGEST note), and nothing else today.
+    // evals_full COUNTS: the first iterate's evaluation, every ACCEPTED trial
+    // (direct or via a promoted SOC correction, exactly one per acceptance), a
+    // restoration exit's re-evaluation of the main model at a finite restored
+    // point, and the restoration seed's guard query at the exhausted-ladder site,
+    // charged whether the guard passes or fails. evals_values COUNTS: every
+    // REJECTED trial's evaluation, and the warm-resolution probe's f/cE/cI fetch.
+    // One exception: a rejected trial that restoration UPGRADED at the request site
+    // moves to evals_full and out of evals_values, so the partition stays exact.
     //
-    // BOTH ARE ZERO ON A SOLVE THAT NEVER MEASURED THE MODEL AT ALL -- there
-    // is no such solve today (every solve_impl call evaluates at least the
-    // entry point) -- and evals_values is IDENTICALLY ZERO on a solve that
-    // never rejected a trial and never ran the warm-resolution probe (e.g.
-    // every 2-arg solve() call, and a 3-arg call whose `warm` failed the
-    // ceiling short-circuit or the dimension check before ever touching the
-    // model). A caller comparing before/after on a rejection-heavy fixture
-    // reads evals_full here as the AFTER count and (evals_full +
-    // evals_values) as the BEFORE count that same fixture would have paid
-    // before values-only queries existed, when every one of these queries
-    // was a full eval_nlp.
+    // evals_values is identically zero on a solve that never rejected a trial and
+    // never ran the warm-resolution probe.
     //
-    // WHAT THESE COUNT, AND WHAT THEY DO NOT: both fields are incremented
-    // from the driver's own control-flow DECISION at each call site -- was
-    // this trial's fate an upgrade to full, or not -- never from observing
-    // which NlpModel method actually executed. Today the two always agree,
-    // because every increment site sits immediately next to the real call it
-    // describes (eval_nlp_values/upgrade_to_full/eval_nlp -- sqp_driver.h),
-    // so reading the decision is equivalent to observing the dispatch. But a
-    // future edit that changes which function a call site invokes WITHOUT
-    // also updating that site's counter increment would silently
-    // desynchronize the two: these fields are not a self-verifying trace and
-    // must not be read as one (a hand-run mutation confirmed it: reverting
-    // sqp_driver.h's rejected-trial call site to a full eval_nlp while
-    // leaving the counter logic untouched left both fields UNCHANGED on
-    // every fixture; the regression was caught only by an independent
-    // model-call-count cross-check -- a CountingModel decorator counting
-    // eval_grad/eval_jac_e/eval_jac_i directly; tests/sqp/test_sqp_driver.cpp's
-    // SqpDriverEvalEconomics battery pairs exactly this kind of cross-check
-    // with every assertion made against these two fields). A results note or
-    // benchmark claim built on them should keep doing the same --
-    // corroborate against an independent call count on at least one fixture
-    // -- rather than treating these counters as sufficient regression
-    // coverage by themselves.
+    // What they do not count: both are incremented from the driver's own
+    // control-flow DECISION at each call site, never from observing which NlpModel
+    // method executed. Today the two agree, because every increment sits next to
+    // the call it describes -- but an edit that changes which function a site
+    // invokes without updating the increment would desynchronize them silently.
+    // These fields are not a self-verifying trace: a claim built on them should be
+    // corroborated against an independent model-call count on at least one fixture.
     Index evals_full = 0;
     Index evals_values = 0;
 
-    /// Did THIS solve stop because the caller's own MINOR-ITERATION BUDGET
-    /// ran out? 0 or 1 -- never more, because the budget test is an EXIT:
-    /// the first time it fires the solve returns. A flag with a counter's
-    /// type, kept as an Index so it SUMS over a ledger exactly like every
-    /// other field here (a sweep's total is then "how many of my solves I
-    /// cut short", the quantity continuation.h aggregates into
-    /// ContinuationResult::proposals_abandoned).
+    /// Did THIS solve stop because the caller's own Minor-iteration budget ran out?
+    /// 0 or 1 -- never more, because the budget test is an exit. A flag kept as an
+    /// Index so it SUMS over a ledger.
     ///
-    /// WHAT IT COUNTS: the 4-argument solve(model, x0, warm, minor_budget)
-    /// overload was given a POSITIVE budget, this solve reached the top of a
-    /// major having already spent >= that many qp_minor_iters, and it was
-    /// NOT converged there -- so it returned SqpStatus::kMaxIter at that
-    /// iterate instead of building another subproblem. See sqp_driver.h's
-    /// PROBE BUDGET note for the full contract (checked BETWEEN majors, so
-    /// the minors actually spent are >= the budget and bounded by budget +
-    /// whatever the crossing major cost, not by the budget itself).
+    /// WHAT IT COUNTS: the 4-argument solve() overload was given a positive budget,
+    /// this solve reached the top of a major having already spent at least that
+    /// many qp_minor_iters, and it was not converged there, so it returned
+    /// SolveStatus::kMaxIter at that iterate. The test runs BETWEEN majors, so the
+    /// minors actually spent are >= the budget.
     ///
-    /// WHAT IT DOES NOT COUNT, each a real, reachable case a reader must not
-    /// confuse with an abandonment:
-    /// - an ordinary max_iter exhaustion (also kMaxIter, this field 0);
-    /// - a kBudgetExhausted exit under SqpOptions::budget_mode, which is a
-    ///   DIFFERENT budget with a different contract (best-iterate hand-off,
-    ///   "continue at the same p") -- a probe-budget stop never reports that
-    ///   status even when budget_mode is on;
-    /// - a solve that spent more than the budget and CONVERGED anyway. The
-    ///   convergence test wins at every pass, so an over-budget solve that
-    ///   is a KKT point is reported kOptimal with this field 0 and its
-    ///   answer is kept. Abandonment can only ever cost work that was about
-    ///   to be spent, never an answer that was already found.
-    /// A solve given no budget (the default, and every 2-/3-argument solve()
-    /// call) leaves this identically 0, which makes the whole mechanism
-    /// inert -- byte-identically so -- wherever it is not armed.
+    /// What it does NOT count: an ordinary max_iter exhaustion (also kMaxIter, this
+    /// field 0); a kBudgetExhausted exit under SqpOptions::budget_mode, a different
+    /// budget with a different contract; and a solve that spent more than the
+    /// budget and CONVERGED anyway, which is reported kOptimal with this field 0.
+    /// A solve given no budget leaves this identically 0.
     Index probe_budget_stops = 0;
 
-    /// How many inequality ROWS and variable BOUNDS
-    /// SqpOptions::crash_basis seeded into the FIRST QP subproblem's working
-    /// set on this solve. Identically 0 with the lever off, on every
-    /// warm/hot ingest (the seed is cold-only by construction), and on a
-    /// solve that never builds a subproblem at all.
+    /// How many inequality ROWS and variable BOUNDS SqpOptions::crash_basis seeded
+    /// into the FIRST QP subproblem's working set on this solve. Identically 0 with
+    /// the lever off, on every warm or hot ingest (the seed is cold-only), and on a
+    /// solve that never builds a subproblem.
     ///
-    /// COUNTED SEPARATELY BECAUSE THE TWO HALVES HAVE DIFFERENT CEILINGS,
-    /// and folding them would hide the one that matters: a wide-window
-    /// walk's variable-bound events measure ~29% of all working-set events
-    /// at a 1.00x-1.08x per-bound REPEAT rate (pinned once, released once,
-    /// never revisited), against 2.7x-4.1x per inequality row -- so a row
-    /// seeded well can remove churn while a bound seeded well can only ever
-    /// remove a one-shot transit. A reader pricing this lever must be able
-    /// to tell which half moved.
+    /// COUNTED SEPARATELY because the two halves have different ceilings and
+    /// folding them would hide the one that matters: a row seeded well can remove
+    /// churn, while a bound seeded well can only remove a one-shot transit.
     ///
-    /// SEEDS OFFERED, NOT SEEDS HONOURED. qp_engine.h's
-    /// ingest_seed_working_set applies its own WINDOW-CONSISTENCY RULE and
-    /// silently drops any seeded bound that falls outside the first
-    /// subproblem's trust-region window; a dropped hint is still counted
-    /// here. The two agree whenever the radius does not cut the seeded bound
-    /// off, but the field's claim is about what the DRIVER proposed.
+    /// SEEDS OFFERED, Not seeds honoured: qp_engine.h's window-consistency rule may
+    /// silently drop a seeded bound outside the first trust-region window, and a
+    /// dropped hint is still counted here.
     ///
-    /// FOLDED FROM A RESTORATION SUB-SOLVE, exactly like evals_full/
-    /// evals_values and the work counters above. That sub-solve inherits
-    /// this lever and is cold by construction, so a solve that entered
-    /// restoration with the lever on can report contributions from TWO
-    /// first-subproblems, not one -- and the feasibility wrapper's slack
-    /// columns start ON their own lower bound of 0, so the second
-    /// contribution is typically large. Read a nonzero value as "seeds this
-    /// solve proposed", never as "seeds the caller's own x0 supplied".
+    /// FOLDED FROM A Restoration sub-solve, which inherits the lever and is cold by
+    /// construction, so a solve that restored can report contributions from TWO
+    /// first subproblems. Read a nonzero value as "seeds this solve proposed",
+    /// never as "seeds the caller's own x0 supplied".
     Index crash_seeded_rows = 0;
     Index crash_seeded_bounds = 0;
 
-    /// 1 iff THIS solve's warm-start resolution landed on
-    /// StartLevel::kSeeded, else 0 -- a flag with a counter's type, kept as
-    /// an Index so it SUMS over a ledger (a sweep's total is then "how many
-    /// of my solves ingested values without provenance", the quantity a
-    /// crossover or mesh-refinement loop reports on). Not redundant with
-    /// `start_level_used`, which answers the same question for ONE solve and
-    /// cannot be summed, nor with ledger.h's `level_histogram()`, which
-    /// answers it for a whole ledger but requires one to be attached; this
-    /// field rides on the SqpSolution every caller already has. Identically
-    /// 0 on the 2-arg solve() overload, on every kCold/kWarm/kHot
-    /// resolution, and on a seeded object that DEGRADED (see below).
+    /// 1 iff THIS solve's warm-start resolution landed on StartLevel::kSeeded, else
+    /// 0 -- a flag kept as an Index so it SUMS over a ledger. Not redundant with
+    /// `start_level_used`, which answers the same question for one solve and cannot
+    /// be summed. Identically 0 on the 2-argument solve() overload, on every
+    /// kCold/kWarm/kHot resolution, and on a seeded object that degraded.
     Index n_seeded = 0;
 
-    /// How many `lambda_i` entries the seeded `lambda_i >= 0` enforcement
-    /// ZEROED on this solve -- sqp_driver.h's THE SEEDED DUAL CLAMP.
-    /// Bounded by model.mi(). Identically 0 at every other level, because
-    /// the clamp is scoped to kSeeded (that note says why), and identically
-    /// 0 on a well-formed seed, which is the ordinary case: a nonzero
-    /// reading means the producer handed over at least one negative price
-    /// on a row the destination model reports GEOMETRICALLY ACTIVE. Rows
-    /// that are strictly SLACK never reach the clamp -- THE INGESTED
-    /// MULTIPLIERS ARE MADE COMPLEMENTARY clear has already zeroed them,
-    /// and it runs FIRST by contract -- so this counts only the sign
-    /// violations that survived a geometric explanation.
+    /// How many `lambda_i` entries the seeded `lambda_i >= 0` enforcement ZEROED on
+    /// this solve. Bounded by model.mi(). Identically 0 at every other level, since
+    /// the clamp is scoped to kSeeded, and 0 on a well-formed seed: a nonzero
+    /// reading means the producer handed over at least one negative price on a row
+    /// the destination model reports GEOMETRICALLY ACTIVE. Strictly slack rows
+    /// never reach the clamp -- the geometric complementarity clear has already
+    /// zeroed them, and it runs first by contract.
     ///
-    /// WHAT NEITHER FIELD COUNTS, stated because it is the one event a
-    /// reader will look for here: a seeded object DEGRADED TO kCold by a
-    /// beyond-the-band negative price is not counted by either. It need not
-    /// be: a 3-argument solve() whose `warm` is valid, dimensionally
-    /// compatible and finite can report `start_level_used == kCold` only
-    /// through that degradation or through SqpOptions::start_level's own
-    /// ceiling -- both readable directly. A degraded solve reports n_seeded
-    /// == 0 and seeded_clamped == 0 because it ingested nothing at all,
-    /// which is the truthful reading of a refusal.
+    /// Neither this field nor `n_seeded` counts a seeded object DEGRADED to kCold
+    /// by a beyond-the-band negative price: such a solve ingested nothing at all,
+    /// and reports both as 0.
     Index seeded_clamped = 0;
 
-    /// How many inequality ROWS the INGESTED activity hint proposed active
-    /// on this solve -- the size of the working set a kSeeded object handed
-    /// the first subproblem, and on the crossover route exactly what
-    /// `from_interior_point` inferred.
+    /// How many inequality ROWS the INGESTED activity hint proposed active on this
+    /// solve -- the size of the working set a kSeeded object handed the first
+    /// subproblem, and on the crossover route exactly what `from_interior_point`
+    /// inferred.
     ///
-    /// WRITE-ONLY. Nothing in the driver, the engine or the globalization
-    /// reads it or branches on it; it exists so a corpus row can TAG a
-    /// crossover cell with the quality of the hint it was given, the one
-    /// thing separating an "activity-only" start from a cold one and
-    /// otherwise invisible in the counters (a hint that was correct and a
-    /// hint that was empty produce the same `n_seeded == 1`).
+    /// WRITE-ONLY: nothing in the driver, the engine or the globalization reads it.
+    /// It exists so a corpus row can tag a crossover cell with the quality of the
+    /// hint it was given, which is otherwise invisible in the counters.
     ///
-    /// SCOPED TO kSeeded, and identically 0 at kCold/kWarm/kHot. Not a
-    /// statement that a kWarm object carries no hint -- it always does --
-    /// but that at kWarm the hint's provenance is confirmed, so its size
-    /// answers no question a reader has; kSeeded is the only level whose
-    /// hint arrived without provenance. A seeded object DEGRADED to kCold
-    /// reports 0, for the same reason `n_seeded` does: it ingested nothing
-    /// at all.
+    /// SCOPED TO kSeeded, and identically 0 at kCold/kWarm/kHot -- not because a
+    /// kWarm object carries no hint, but because at kWarm the hint's provenance is
+    /// confirmed and its size answers no question. Named for its motivating
+    /// producer, not scoped to it: a mesh transfer or a hand-built object resolving
+    /// kSeeded is counted identically.
     ///
-    /// NAMED FOR ITS MOTIVATING PRODUCER, NOT SCOPED TO IT: a mesh transfer
-    /// (mesh_transfer.h) or a hand-built object resolving kSeeded is
-    /// counted identically; `from_interior_point` is simply the producer
-    /// the counter was added for and the one whose inference rule the count
-    /// grades.
-    ///
-    /// ROWS ONLY -- the bound half of the hint is deliberately not folded
-    /// in, on crash_seeded_rows/crash_seeded_bounds' argument above (the
-    /// halves have different ceilings and folding hides the one that
-    /// matters). No consumer needs the bound count yet; adding it later is
-    /// additive.
-    ///
-    /// SEEDS OFFERED, NOT SEEDS HONOURED, exactly like the crash-basis
-    /// pair: qp_engine.h's WINDOW-CONSISTENCY RULE may drop any part of the
-    /// hint that does not fit the first trust-region window, and a dropped
-    /// row is still counted here.
+    /// ROWS ONLY -- the bound half is deliberately not folded in, on the
+    /// crash_seeded_rows/bounds argument. SEEDS OFFERED, Not seeds honoured, exactly
+    /// like that pair.
     Index ip_activity_inferred = 0;
+
+    /// Sum of `SqpIterate::active_set_delta` over this solve's REPORTING majors --
+    /// the total working-set churn the QP sequence went through, counting the first
+    /// major's census against the empty set. Instrumentation only.
+    ///
+    /// Not folded from the restoration sub-solve, on the `steps_accepted` argument
+    /// rather than the `qp_minor_iters` one: an active-set delta is a statement
+    /// about which constraints of THIS problem were in the working set, and the
+    /// sub-solve's QP lives in the feasibility wrapper's own variables and rows.
+    Index active_set_delta_total = 0;
+    /// The largest `SqpIterate::active_set_delta` any single major of this
+    /// solve reported. A PEAK, folded with `max` like `ssn_uncertain_peak`, and
+    /// not folded from the restoration sub-solve for the reason above.
+    Index active_set_delta_peak = 0;
+    /// The largest `SqpIterate::weak_active_rows` any single major reported --
+    /// how close to a degenerate (non-strictly-complementary) active set this
+    /// solve's QP sequence ever got. A PEAK; see `kWeakActivityMargin`.
+    Index weak_active_peak = 0;
+    /// The largest `SqpIterate::near_active_rows` any single major reported --
+    /// how many rows were sitting on the boundary WITHOUT being in the working
+    /// set. A PEAK; see `kWeakActivityMargin`.
+    Index near_active_peak = 0;
 
     /// The semismooth-Newton kernel's work, summed over every subproblem of
     /// this solve -- the same aggregation set qp_minor_iters and
     /// factorizations above use, and empty for the same reason they would
     /// be if no subproblem were solved.
     ///
-    /// **ZERO ON EVERY SOLVE RUN AT THE SHIPPED DEFAULT**
+    /// **Zero on every solve run at the shipped default**
     /// (`SqpOptions::qp_mode == QpMode::kWalk`): no SSN subproblem is
     /// solved there, so nothing writes here. Populated when the solve runs
     /// `QpMode::kSsn`.
     SsnCounters ssn;
+
+    /// The IP-PMM interior-point tier's work, folded over every subproblem of this
+    /// solve by `accumulate_ipqp_counters` -- the `ssn` field's own aggregation,
+    /// for the third QP kernel. See `IpqpCounters` for the fold rule.
+    ///
+    /// Zero on every solve run at the shipped default (`SqpOptions::qp_mode ==
+    /// QpMode::kWalk`): no IPQP subproblem is solved there, structurally rather than
+    /// by arithmetic -- the dispatch's kWalk arm constructs no `IpqpEngine`. At
+    /// `QpMode::kIpm` every field is written from a real solve. Two routing fields
+    /// are DRIVER-SCALE and have no per-subproblem contribution at all
+    /// (`ipqp_tier_retired_after`, `ipqp_declined_pinned`).
+    IpqpCounters ipqp;
+
+    /// @brief How many times this solve IGNORED a warm-start payload's
+    ///        `"hven.ipm.polish.v1"` extension because the payload was the
+    ///        MULTIPLIERS-ONLY form (M6 W5 T8.5).
+    ///
+    /// The seed form carries an EMPTY `primal_`, so the solve starts at the
+    /// caller's `x0`. The polish extension's bound duals and inequality values
+    /// are stated at the EXPORTER's point, which is not `x0`; feeding them into
+    /// the crossover's activity rule would attribute activity nothing measured
+    /// at the point this solve actually stands on. They are therefore dropped,
+    /// and dropped LOUDLY: this counter is how a caller who attached an
+    /// extension and expected it to be used finds out it was not.
+    ///
+    /// 0 or 1 in practice -- one payload per solve. Always 0 on the NATIVE
+    /// route (a `SqpWarmStart` carries no extensions), 0 on a cold solve, and 0
+    /// on a full payload, whose extension IS consumed.
+    ///
+    /// DECLARED LAST, after the two nested aggregates, so that every field
+    /// offset this struct already had is unmoved.
+    Index polish_ignored = 0;
 };
+
+#define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
+    X(major_iters, counter_never_absent)                                                           \
+    X(qp_minor_iters, counter_never_absent)                                                        \
+    X(factorizations, counter_never_absent)                                                        \
+    X(steps_accepted, counter_never_absent)                                                        \
+    X(rejected_steps, counter_never_absent)                                                        \
+    X(soc_steps, counter_never_absent)                                                             \
+    X(soc_applied, counter_never_absent)                                                           \
+    X(soc_qp_infeasible, counter_never_absent)                                                     \
+    X(soc_rejected, counter_never_absent)                                                          \
+    X(elastic_activations, counter_never_absent)                                                   \
+    X(elastic_escalations, counter_never_absent)                                                   \
+    X(restoration_iters, counter_never_absent)                                                     \
+    X(elastic_from_ipqp_escape, counter_never_absent)                                              \
+    X(ipqp_suspicion_disproved, counter_never_absent)                                              \
+    X(ipqp_fallback_rung_b, counter_never_absent)                                                  \
+    X(elastic_rho0_ceiling_hits, counter_never_absent)                                             \
+    X(elastic_floor_retries, counter_never_absent)                                                 \
+    X(eqp_refine_steps, counter_never_absent)                                                      \
+    X(border_refine_steps, counter_never_absent)                                                   \
+    X(verdict_refine_steps, counter_never_absent)                                                  \
+    X(suspect_escalations, counter_never_absent)                                                   \
+    X(symbolic_analyses, counter_never_absent)                                                     \
+    X(start_level_used, counter_never_absent)                                                      \
+    X(full_step_majors, counter_never_absent)                                                      \
+    X(watchdog_restores, counter_never_absent)                                                     \
+    X(evals_full, counter_never_absent)                                                            \
+    X(evals_values, counter_never_absent)                                                          \
+    X(probe_budget_stops, counter_never_absent)                                                    \
+    X(crash_seeded_rows, counter_never_absent)                                                     \
+    X(crash_seeded_bounds, counter_never_absent)                                                   \
+    X(n_seeded, counter_never_absent)                                                              \
+    X(seeded_clamped, counter_never_absent)                                                        \
+    X(ip_activity_inferred, counter_never_absent)                                                  \
+    X(active_set_delta_total, counter_never_absent)                                                \
+    X(active_set_delta_peak, counter_never_absent)                                                 \
+    X(weak_active_peak, counter_never_absent)                                                      \
+    X(near_active_peak, counter_never_absent)                                                      \
+    X(polish_ignored, counter_never_absent)
+
+/// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
+inline constexpr std::size_t kSqpCountersFieldCount =
+    0 HVEN_SQP_COUNTERS_FIELDS(HVEN_COUNTERS_COUNT_ONE);
+#undef HVEN_COUNTERS_COUNT_ONE
+
+// PLUS TWO: `ssn` and `ipqp` are nested aggregates, each counted as ONE
+// initializer by the arity trick and serialized through its own table above, so
+// the table holds the 38 direct fields and the struct takes 40 initializers.
+// (37 -> 38 at M6 W5 T8.5, which appended `polish_ignored` after both nested
+// aggregates -- last in declaration order, so the table order below is still
+// the struct's and every pre-existing offset is unmoved.)
+static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
+              "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
+              "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "
+              "table of its own and raise the + 2 here.");
+
+/// The SqpCounters table's field offsets, in table order. `offsetof` is only
+/// portable on a standard-layout type, so that is asserted first.
+static_assert(std::is_standard_layout_v<SqpCounters>,
+              "SqpCounters must stay standard-layout for the "
+              "offsetof order check below to be portable.");
+inline constexpr std::size_t kOffsetsSqpCounters[] = {
+#define HVEN_COUNTERS_OFFSET_ONE(f, absent) offsetof(SqpCounters, f),
+    HVEN_SQP_COUNTERS_FIELDS(HVEN_COUNTERS_OFFSET_ONE)
+#undef HVEN_COUNTERS_OFFSET_ONE
+};
+static_assert(counters_offsets_increase(kOffsetsSqpCounters, kSqpCountersFieldCount),
+              "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree about ORDER: an entry is out of "
+              "declaration position. The JSON key order is the table's, so this must be the "
+              "struct's.");
 
 } // namespace hven::solvers

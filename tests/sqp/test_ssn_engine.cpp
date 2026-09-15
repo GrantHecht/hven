@@ -665,7 +665,7 @@ TEST(SsnEngineLocal, SeededZOnAnAbsentBoundThrows) {
 // =============================================================================
 //
 // The funnel driver solves EVERY subproblem under a per-solve TR override
-// (sqp_driver.h:5021, and SOC re-solves at :5397) and reads QpSolution's
+// (sqp_solver.h:5021, and SOC re-solves at :5397) and reads QpSolution's
 // tr_active back to adapt the radius (:5259). The kernel had no such input, and
 // the caller-side workaround -- folding [x0-D, x0+D] into lower/upper -- cannot
 // express the TR-pin/real-bound distinction, so the driver's grow/shrink logic
@@ -703,6 +703,174 @@ QpProblem tr_probe_qp() {
 }
 
 } // namespace
+
+// =====================================================================
+// M6 W1 TASK 6 FIX ROUND 2 -- `SsnStart::box_center`.
+//
+// A caller that has already solved this subproblem in ITS OWN window and wants
+// SSN to continue from the point it reached has to say two different things:
+// START HERE, and USE THAT WINDOW. The interior-point tier is that caller
+// (spec 2.3 item 4's warm grade), and the window both kernels and
+// `QpEngine::refine_on_face` must agree on is the clamp-centred one -- never
+// the iterate. These pin the separation from both sides.
+// =====================================================================
+
+TEST(SsnEngineLocal, TheBoxCentreIsHonouredAndIsNotTheStartPoint) {
+    const QpProblem qp = tr_probe_qp();
+    SolveOverrides ov;
+    ov.tr_radius = 1.0;
+
+    // START AT (0, 3), WINDOW CENTRED AT THE ORIGIN. The objective pulls
+    // variable 1 upward without limit, so the answer is whatever the window
+    // permits -- and the two spellings permit different things: centred on the
+    // ORIGIN it is 1.0, centred on the START it would be 4.0. That gap is what
+    // makes this a pin rather than a restatement.
+    SsnEngine engine(default_opts());
+    SsnStart start;
+    start.x = (Vec(2) << 0.0, 3.0).finished();
+    start.box_center = Vec::Zero(2);
+    SsnOptions sopts;
+    SsnResult res;
+    engine.solve(qp, start, sopts, ov, &res);
+
+    ASSERT_EQ(res.status, QpStatus::kOptimal);
+    EXPECT_NEAR(res.x(1), 1.0, 1e-6)
+        << "the window is [centre - Delta, centre + Delta] = [-1, 1], so the trust-region face is "
+           "at 1.0 -- the START point does not move it";
+    EXPECT_NEAR(res.x(0), 0.5, 1e-6) << "and the real bound still binds, as it always did";
+    ASSERT_EQ(static_cast<Index>(res.tr_active.size()), 2);
+    EXPECT_TRUE(res.tr_active[1]);
+
+    // THE MUTATION PARTNER, spelled out rather than described: the SAME start
+    // with the centre DISENGAGED falls back to the historical rule and lands
+    // 3.0 away, at the start-centred face. A build that ignored `box_center`
+    // would produce this answer for the call above.
+    SsnEngine centreless(default_opts());
+    SsnStart at_start = start;
+    at_start.box_center.reset();
+    SsnResult from_start;
+    centreless.solve(qp, at_start, sopts, ov, &from_start);
+    ASSERT_EQ(from_start.status, QpStatus::kOptimal);
+    EXPECT_NEAR(from_start.x(1), 4.0, 1e-6)
+        << "centred on the start point, which is exactly what the field exists to override";
+}
+
+TEST(SsnEngineLocal, ADisengagedBoxCentreIsBitIdenticalToTheCentreAtTheStartPoint) {
+    // THE COMPATIBILITY CLAIM, MADE EXECUTABLE. Every existing caller leaves
+    // the field disengaged, so the addition must be a no-op for them -- and
+    // "no-op" is stronger than "same answer": the same counters, the same
+    // residual, the same iterate, bit for bit.
+    const QpProblem qp = tr_probe_qp();
+    SolveOverrides ov;
+    ov.tr_radius = 1.0;
+    SsnOptions sopts;
+
+    SsnEngine a(default_opts());
+    SsnStart disengaged;
+    disengaged.x = Vec::Zero(2);
+    SsnResult without;
+    a.solve(qp, disengaged, sopts, ov, &without);
+
+    SsnEngine b(default_opts());
+    SsnStart explicit_centre = disengaged;
+    explicit_centre.box_center = Vec::Zero(2); // == start.x, the fall-back
+    SsnResult with;
+    b.solve(qp, explicit_centre, sopts, ov, &with);
+
+    EXPECT_EQ(with.status, without.status);
+    EXPECT_EQ(with.iters, without.iters);
+    EXPECT_EQ(with.factorizations, without.factorizations);
+    EXPECT_EQ(with.escape_reason, without.escape_reason);
+    EXPECT_DOUBLE_EQ(with.fb_residual, without.fb_residual);
+    ASSERT_EQ(with.x.size(), without.x.size());
+    EXPECT_EQ(with.x, without.x) << "bit-identical, not merely close";
+    EXPECT_EQ(with.z, without.z);
+    EXPECT_EQ(with.tr_active, without.tr_active);
+    EXPECT_EQ(with.bound_state, without.bound_state);
+}
+
+TEST(SsnEngineLocal, AnEngagedBoxCentreIsSizeCheckedAndMustBeFinite) {
+    const QpProblem qp = tr_probe_qp();
+    SolveOverrides ov;
+    SsnOptions sopts;
+    SsnResult res;
+    SsnEngine engine(default_opts());
+
+    // ENGAGED-BUT-EMPTY is the likeliest spelling of the mistake, and it is
+    // refused rather than read as "absent": this field does not share the
+    // struct's empty-means-absent convention, because for a CENTRE the origin
+    // is a legitimate value.
+    SsnStart empty_centre;
+    empty_centre.x = Vec::Zero(2);
+    empty_centre.box_center = Vec();
+    EXPECT_THROW(engine.solve(qp, empty_centre, sopts, ov, &res), std::invalid_argument);
+
+    SsnStart wrong_size;
+    wrong_size.x = Vec::Zero(2);
+    wrong_size.box_center = Vec::Zero(3);
+    EXPECT_THROW(engine.solve(qp, wrong_size, sopts, ov, &res), std::invalid_argument);
+
+    SsnStart nan_centre;
+    nan_centre.x = Vec::Zero(2);
+    nan_centre.box_center = Vec::Constant(2, std::numeric_limits<double>::quiet_NaN());
+    EXPECT_THROW(engine.solve(qp, nan_centre, sopts, ov, &res), std::invalid_argument);
+
+    // And the disengaged default is accepted, so the three refusals above are
+    // about the value rather than about the field existing.
+    SsnStart fine;
+    fine.x = Vec::Zero(2);
+    EXPECT_NO_THROW(engine.solve(qp, fine, sopts, ov, &res));
+}
+
+TEST(SsnEngineLocal, TheStartPointIsTheFirstIterate) {
+    // (a) OF THE FIX-ROUND-2 PINS. `SsnStart::x` IS where the solve begins --
+    // the property the kIpm warm grade now relies on to carry the tier's
+    // acquisition across from the interior-point tier.
+    //
+    // OBSERVED AT ZERO ITERATIONS, which is the only unambiguous reading: an
+    // UNCONSTRAINED strictly convex QP whose optimum is (3, -2), started
+    // exactly there with zero multipliers, has an identically zero FB residual
+    // -- so a solve that begins at `start.x` stops immediately and returns it
+    // UNCHANGED, while the same solve from the origin has to walk there.
+    QpProblem qp;
+    qp.H =
+        Eigen::MatrixXd::Identity(2, 2).triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    qp.g = (Vec(2) << -3.0, 2.0).finished(); // minimizer of 1/2||x||^2 + g'x is -g
+    qp.Ae.resize(0, 2);
+    qp.be = Vec(0);
+    qp.Ai.resize(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Constant(2, -100.0);
+    qp.upper = Vec::Constant(2, 100.0);
+
+    SolveOverrides ov; // +inf radius: no trust region, so no window in the way
+    SsnOptions sopts;
+
+    SsnEngine warm(default_opts());
+    SsnStart at_the_answer;
+    at_the_answer.x = (Vec(2) << 3.0, -2.0).finished();
+    SsnResult from_answer;
+    warm.solve(qp, at_the_answer, sopts, ov, &from_answer);
+
+    ASSERT_EQ(from_answer.status, QpStatus::kOptimal);
+    EXPECT_EQ(from_answer.iters, 0)
+        << "the residual at the start point is already zero, so the solve takes no step";
+    EXPECT_EQ(from_answer.x, at_the_answer.x)
+        << "and returns the start point BIT-IDENTICALLY -- it is the first iterate, not a hint";
+
+    // NON-VACUITY: the same solve from the origin does take steps, so the zero
+    // above is the start point's doing rather than the problem's.
+    SsnEngine cold(default_opts());
+    SsnStart origin;
+    SsnResult from_origin;
+    cold.solve(qp, origin, sopts, ov, &from_origin);
+    ASSERT_EQ(from_origin.status, QpStatus::kOptimal);
+    EXPECT_GT(from_origin.iters, 0);
+    // At the kernel's own `fb_tol`, not at machine precision: the cold solve
+    // stops on its residual, which is the whole reason starting AT the answer
+    // is worth anything.
+    EXPECT_NEAR(from_origin.x(0), 3.0, 1e-6) << "and lands on the same answer";
+}
 
 TEST(SsnEngineLocal, TrustRegionPinsAreSeparatedFromRealBounds) {
     const QpProblem qp = tr_probe_qp();
@@ -1976,10 +2144,12 @@ TEST(SsnEngineLocal, ChrCyclingBareCyclesAndSafeguardedConverges) {
 // otherwise present as fact. That is the failure this leg of the CHR partition
 // exists to prevent, and it is measurable on this fixture in both directions:
 //
-//   * the export must carry the row as UNCERTAIN, and
-//   * bare mode -- which has no third set -- gets the coin flip WRONG from at
-//     least one start (the second cell below), reporting the row ACTIVE where
-//     the walk reports it inactive, with a multiplier of 7e-28.
+//   * the export must never carry the row as inactive AND certain -- the
+//     third set exists so that a coin flip is not exported as fact, and the
+//     uncertain peak shows it fires on this solve; and
+//   * bare mode -- which has no third set -- reads the tie the other way from
+//     at least one start (the second cell below), reporting the row ACTIVE
+//     where the walk reports it inactive, with a multiplier of 7e-28.
 //
 // It is also the honest place to record what the uncertain set does NOT buy:
 // it moves no iteration count anywhere in this file, and the sweep in
@@ -1987,21 +2157,47 @@ TEST(SsnEngineLocal, ChrCyclingBareCyclesAndSafeguardedConverges) {
 // changes an outcome. Its demonstrated value is the export.
 //
 // "No oscillation counter growth" is the brief's third clause and is asserted
-// as ssn_bulk_flips staying at the single flip the trajectory legitimately has.
+// as a BAND on ssn_bulk_flips -- see the assertion for the band and its
+// grounds.
 //
-// BACKEND SCOPE (M3 gate B,
-// docs/notes/2026-08-14-accelerate-divergence-register.md entry M3-4, RULED by
-// the gate-B execution review (2026-08-15), Verdict 2). Every sentence above
-// with a DIRECTION in it -- which way the coin lands, which mode gets it
-// "wrong", the single flip -- is an MKL Pardiso reading. On Apple Accelerate
-// each of those lands the other way, which is exactly what a fixture built on
-// a tie should be expected to do across two different factorizations, and is
-// why the assertions below are split: the properties that hold whichever way
-// the coin lands are asserted on both backends (Verdict 2 item 1), and the
-// directions themselves are now pinned per backend -- MKL's arm unchanged,
-// Accelerate's arm carrying its own observed coin directions, end state, and
-// flip count (Verdict 2 item 2). Read the two arms below for what is held and
-// why.
+// EVERY SENTENCE ABOVE WITH A DIRECTION IN IT -- which way the coin lands,
+// which mode gets it "wrong", the single flip, AND WHETHER THE TWO MODES
+// DISAGREE -- IS AN OBSERVATION, NOT AN ASSERTION. Nothing below asserts one;
+// the second cell RECORDS its readings instead. What is asserted is what holds
+// whichever way either coin lands: the tie is SEEN (ssn_uncertain_peak == 1),
+// the safeguarded engine never exports row 1 as inactive-and-certain (from
+// EITHER start), bare mode's uncertain flag is structurally false, and at
+// least one bulk flip happened.
+//
+// WHY NO DIRECTION IS PINNED (M6 W0.4). This fixture used to carry per-backend
+// direction pins -- MKL's ineq_active[1]/ineq_uncertain[1] and
+// ssn_bulk_flips == 1, Accelerate's mirrored arm with ssn_bulk_flips == 4 --
+// ruled in by the gate-B execution review (2026-08-15), Verdict 2 item 2, on
+// the strength of ten stable CI runs per backend. They are RETIRED. They rested
+// on the coin being stable WITHIN a backend, and it is not: on 2026-08-26 a
+// main-push CI run failed exactly these assertions and a rerun of the SAME
+// COMMIT passed, the coin landing the other way within MKL. That is the flake
+// class docs/notes/2026-08-15-linux-runner-divergence-register.md L-1 has
+// tracked since 2026-08-14, whose own mechanism note already named an exact pin
+// on a tie-decided counter as the plausible root cause. A pin a rerun of
+// identical source can break is not evidence about the library, and M3-4's own
+// finding -- at c* = 0 the row IS at its boundary, so the twin readings are
+// both correct readings -- is precisely why there is no direction there to pin.
+// The bare-vs-full CONTRAST went with them, on harder evidence still: the L-1
+// register's occurrence-3 failure table records
+// `bool(bare.ineq_active[1]) != bool(full.ineq_active[1])` failing with actual
+// "true vs true" -- under the flipped reading BOTH modes report the row active,
+// and both then land (active, certain), which is a legitimate reading of the
+// tie on each side. There is no portable contrast to assert, so the second cell
+// records its two readings rather than comparing them.
+//
+// The DIVERGENCE ITSELF stays documented (that is what M3-4 records); only the
+// assertions on it are gone.
+//
+// The register's re-open trigger is unchanged (Verdict 2 item 4): a crossover
+// measurement attributing hint-quality loss to tie misclassification, first
+// remedy to evaluate being margin-based uncertain membership. That would give
+// this fixture a real property to pin; a coin direction never was one.
 TEST(SsnEngineLocal, WeaklyActiveRowFinishesUncertain) {
     const QpProblem qp = weakly_active_qp();
     const QpSolution walk = walk_solution(qp);
@@ -2020,67 +2216,46 @@ TEST(SsnEngineLocal, WeaklyActiveRowFinishesUncertain) {
         // Row 0 is strictly active and row 1 is the weakly active one.
         EXPECT_TRUE(res.ineq_active[0]);
         EXPECT_FALSE(res.ineq_uncertain[0]);
-        // THE PORTABLE HALF, asserted on every backend: the tie IS SEEN. The
-        // peak says the third set held a row at some point in this solve, and
-        // the safeguarded engine never ends with row 1 dropped as a FACT --
-        // inactive and certain at once is the one reading that throws away a
-        // constraint the fixture put exactly on the boundary.
+        // THE TIE IS SEEN: the peak says the third set held a row at some
+        // point in this solve. True on both backends, and on whichever side
+        // of the coin either lands.
         EXPECT_EQ(res.counters.ssn_uncertain_peak, 1);
+        // THE ONE READING OF THE TIE THAT IS WRONG, and the whole of what is
+        // asserted about row 1's end state: the safeguarded engine never ends
+        // with the row dropped as a FACT. Inactive and certain at once throws
+        // away a constraint the fixture put exactly on the boundary;
+        // active, or uncertain, are both honest readings of c* = 0 and either
+        // is accepted here.
         EXPECT_TRUE(res.ineq_active[1] || res.ineq_uncertain[1])
             << "the tie was returned inactive AND certain -- a weakly active row "
                "presented as fact";
-#ifdef USE_ACCELERATE_SPARSE
-        // M3-4 (docs/notes/2026-08-14-accelerate-divergence-register.md),
-        // RULED per the gate-B execution review (2026-08-15), Verdict 2, item
-        // 2: PIN the Accelerate arm -- coin directions, end-state, and flip
-        // count -- as per-backend-arm assertions, lifting the UNOBSERVED
-        // holds. The ten-run stability across all suite-carrying CI runs
-        // (most recently
-        // https://github.com/GrantHecht/hven/actions/runs/31824897327) meets
-        // the register's own committability bar for counters (the two-run
-        // byte bar is a float rule).
-        //
-        // On Apple Accelerate every coin in this fixture lands the OTHER way:
-        // row 1 comes back ACTIVE and NOT uncertain here, where MKL Pardiso
-        // returns it inactive and uncertain. `ssn_uncertain_peak == 1` above
-        // holds on BOTH backends, so the third set does fire on Accelerate;
-        // the row simply leaves it before the solve ends -- a defensible
-        // reading of the tie (Verdict 2: "at c* = 0 the row IS at its
-        // boundary; the twin readings are both correct readings"), not a
-        // dropped constraint, because the portable never-inactive-and-certain
-        // property above already excludes the dangerous export.
-        // `ssn_bulk_flips` reads 4 against MKL's 1: three extra flips
-        // confined to this deliberately degenerate tie fixture, stable across
-        // ten runs, is backend tie resolution rather than under-damping --
-        // the HS battery's near-identical minor counts (M3-1: 861/858 on
-        // Accelerate vs. 862/859 on MKL) are the systemic evidence that
-        // settles that question, not this fixture. No algorithmic change is
-        // warranted absent the ruling's named re-open trigger (Verdict 2 item
-        // 4): M5 crossover measurement attributing hint-quality loss to tie
-        // misclassification on Apple, first remedy to evaluate being
-        // margin-based uncertain membership.
-        EXPECT_TRUE(res.ineq_active[1]);
-        EXPECT_FALSE(res.ineq_uncertain[1]);
-        EXPECT_EQ(res.counters.ssn_bulk_flips, 4);
-#else
-        EXPECT_FALSE(res.ineq_active[1]);
-        EXPECT_TRUE(res.ineq_uncertain[1]);
-        // No oscillation: the trajectory's one legitimate flip, and no more.
-        EXPECT_EQ(res.counters.ssn_bulk_flips, 1);
-#endif
+        // A LOWER BOUND ONLY: the trajectory does flip at least once. The exact
+        // counts this cell has produced -- 1 (MKL nominal), 3 (MKL, the
+        // 2026-08-26 within-lane flip), 4 (Accelerate) -- are tie resolution,
+        // not algorithm, and are not asserted. NO CEILING, because one cannot
+        // fire: ssn_bulk_flips grows by at most one per pass and the first pass
+        // cannot flip, so `iters == 7` asserted above already bounds it at 6.
+        // `iters == 7` IS the under-damping guard here -- an engine that
+        // oscillated on this cell would spend passes it does not have, the way
+        // the cycling fixture in this file does at its budget -- and a flip
+        // ceiling would only restate it, less directly and on a tie-decided
+        // counter.
+        EXPECT_GE(res.counters.ssn_bulk_flips, 1);
     }
 
     // The coin flip, caught: from x0 = (6, -5) bare mode reports the weakly
     // active row ACTIVE and the safeguarded engine reports it inactive AND
     // uncertain. Both are "correct" readings of a tie; only one of them says so.
     //
-    // ON ACCELERATE BOTH COINS LAND THE OTHER WAY (M3-4, RULED per the gate-B
-    // execution review (2026-08-15), Verdict 2): bare reads the row inactive
-    // and the safeguarded engine reads it active. The CONTRAST -- the two
-    // modes disagreeing about a row that is exactly on the boundary --
-    // survives the swap and is what this cell actually demonstrates, so that
-    // is what is asserted on both backends; the individual readings are now
-    // pinned per backend, MKL's arm unchanged.
+    // ON ACCELERATE BOTH COINS LAND THE OTHER WAY (M3-4): bare reads the row
+    // inactive and the safeguarded engine reads it active. The contrast
+    // survives THAT swap -- but it does not survive the within-lane flip, which
+    // is the failure mode this fixture actually suffers: the L-1 register's
+    // occurrence-3 table records this very comparison failing "true vs true".
+    // So NOTHING about the two readings is asserted here. They are RECORDED
+    // (RecordProperty, visible in the ctest XML) so the cell still reports what
+    // it saw, and only the two properties that hold on either side of either
+    // coin are checked.
     {
         SsnStart start;
         start.x = Vec(2);
@@ -2096,26 +2271,21 @@ TEST(SsnEngineLocal, WeaklyActiveRowFinishesUncertain) {
         full_engine.solve(qp, start, SsnOptions{}, &full);
         EXPECT_EQ(full.status, QpStatus::kOptimal);
 
-        EXPECT_NE(bool(bare.ineq_active[1]), bool(full.ineq_active[1]))
-            << "the point of this start is that the two modes read the tie "
-               "differently; bare.ineq_active[1] = "
-            << bool(bare.ineq_active[1]);
-#ifdef USE_ACCELERATE_SPARSE
-        // M3-4, PINNED per the gate-B execution review (2026-08-15), Verdict 2,
-        // item 2: this cell's coin directions, stable across all ten
-        // suite-carrying CI runs. Both readings flip relative to MKL; bare's
-        // uncertain flag does not move because bare mode has no third set to
-        // report uncertain in on either backend.
-        EXPECT_FALSE(bare.ineq_active[1]);
+        // RECORDED, NOT ASSERTED -- see this cell's note. Whether the two modes
+        // read the tie differently is itself a coin, and the L-1 register has
+        // it landing both ways within one lane.
+        RecordProperty("bare_ineq_active_1", bare.ineq_active[1] ? 1 : 0);
+        RecordProperty("full_ineq_active_1", full.ineq_active[1] ? 1 : 0);
+        RecordProperty("full_ineq_uncertain_1", full.ineq_uncertain[1] ? 1 : 0);
+        RecordProperty("full_ssn_bulk_flips", static_cast<int>(full.counters.ssn_bulk_flips));
+        // The safeguarded engine owes the same never-inactive-and-certain
+        // property from this start as from the cold one.
+        EXPECT_TRUE(full.ineq_active[1] || full.ineq_uncertain[1])
+            << "the tie was returned inactive AND certain by the safeguarded engine";
+        // Bare mode's uncertain flag is STRUCTURALLY false on both backends and
+        // on either side of the coin -- bare mode has no third set to report a
+        // row uncertain in -- so this one is a property, not a direction.
         EXPECT_FALSE(bare.ineq_uncertain[1]);
-        EXPECT_TRUE(full.ineq_active[1]);
-        EXPECT_FALSE(full.ineq_uncertain[1]);
-#else
-        EXPECT_TRUE(bare.ineq_active[1]); // the tie, decided by rounding
-        EXPECT_FALSE(bare.ineq_uncertain[1]);
-        EXPECT_FALSE(full.ineq_active[1]); // agrees with the walk
-        EXPECT_TRUE(full.ineq_uncertain[1]);
-#endif
     }
 }
 
@@ -2887,7 +3057,7 @@ TEST(SsnEngineLocal, SafeguardCountersAreLive) {
     }
 }
 
-// SqpOptions::qp_mode and SqpCounters::ssn land in sqp_types.h ahead of the
+// SqpOptions::qp_mode and SqpCounters::ssn land in sqp_solver_types.h ahead of the
 // driver that will read them (Task 5). Until then the default must be the
 // walk and the aggregate must be zero -- this is the guard on the
 // byte-identity invariant the task carries.

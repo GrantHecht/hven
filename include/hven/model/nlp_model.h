@@ -47,7 +47,7 @@
 // whose value happens to be 0.0 at some particular x must still be emitted,
 // as a structural zero (Eigen's setFromTriplets preserves explicit zeros).
 // The warm-start machinery keys its cached-factorization structural hash
-// (warm_start.h's WarmStart::structure_hash, over qp_engine.h's
+// (warm_start.h's SqpWarmStart::structure_hash, over qp_engine.h's
 // detail::structural_hash) on these patterns alone, so a pattern that shifts
 // with x or with the arguments silently forfeits hot starts or matches a hash
 // whose symbolic factorization no longer describes the matrix -- neither
@@ -56,6 +56,7 @@
 
 #include <Eigen/SparseCore>
 
+#include <hven/core/compiler.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::solvers {
@@ -79,10 +80,16 @@ class NlpModel {
     /// @brief Objective value at x.
     virtual double eval_f(const Vec &x) const = 0;
     /// @brief Objective gradient at x, size n().
+    [[deprecated(
+        "use eval_grad_in_place; deprecated in M6 W5; removal is a separate declared break")]]
     virtual Vec eval_grad(const Vec &x) const = 0;
     /// @brief Equality residuals at x, size me().
+    [[deprecated(
+        "use eval_ce_in_place; deprecated in M6 W5; removal is a separate declared break")]]
     virtual Vec eval_ce(const Vec &x) const = 0;
     /// @brief Inequality residuals at x, size mi().
+    [[deprecated(
+        "use eval_ci_in_place; deprecated in M6 W5; removal is a separate declared break")]]
     virtual Vec eval_ci(const Vec &x) const = 0;
 
     // The matrix returns below must be compressed: one contiguous value array
@@ -95,12 +102,18 @@ class NlpModel {
 
     /// @brief Exact Lagrangian Hessian at x, upper triangle only (see this
     ///        header's EXACT LAGRANGIAN HESSIAN note).
+    [[deprecated(
+        "use eval_hess_in_place; deprecated in M6 W5; removal is a separate declared break")]]
     virtual SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
                               const Vec &lambda_i) const = 0;
 
     /// @brief Equality Jacobian at x, me() by n().
+    [[deprecated(
+        "use eval_jac_e_in_place; deprecated in M6 W5; removal is a separate declared break")]]
     virtual Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const = 0;
     /// @brief Inequality Jacobian at x, mi() by n().
+    [[deprecated(
+        "use eval_jac_i_in_place; deprecated in M6 W5; removal is a separate declared break")]]
     virtual Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &x) const = 0;
 
     // The in-place forms of the six evaluations above, under the same opt-in
@@ -112,6 +125,11 @@ class NlpModel {
     // what the by-value counterpart would have returned -- for the two matrix
     // forms, COMPRESSED per the note above. Callers own the destination and
     // may reuse it across calls.
+
+    // THE DEFAULTS BELOW CALL THE DEPRECATED BY-VALUE FORMS BY DESIGN: the
+    // mutual-default contract above is what lets an existing model keep
+    // working unmodified, so the delegation is the feature, not a leftover.
+    HVEN_SUPPRESS_DEPRECATED_BEGIN
 
     /// @brief eval_grad into caller-owned storage.
     /// @param x The iterate.
@@ -165,6 +183,8 @@ class NlpModel {
         out = this->eval_hess(x, obj_scale, lambda_e, lambda_i);
     }
 
+    HVEN_SUPPRESS_DEPRECATED_END
+
     /// @brief Variable lower bounds, size n(). Unboundedness on a side is
     ///        written -inf / +inf; every finite value is a real bound, however
     ///        large -- nothing in this layer treats a finite magnitude as a
@@ -196,8 +216,11 @@ class NlpModel {
     /// than taking the default.
     virtual void eval_values(const Vec &x, double &f, Vec &cE, Vec &cI) const {
         f = eval_f(x);
+        // Same design delegation as the in-place defaults above.
+        HVEN_SUPPRESS_DEPRECATED_BEGIN
         cE = me() > 0 ? eval_ce(x) : Vec(0);
         cI = mi() > 0 ? eval_ci(x) : Vec(0);
+        HVEN_SUPPRESS_DEPRECATED_END
     }
 };
 

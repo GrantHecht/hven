@@ -53,31 +53,46 @@
 // WHAT THE `band` MODE CAN AND CANNOT DO. `uncertain_tol` is a RUNTIME option,
 // so the tau sweep and the tau null result are ordinary invocations. The band's
 // two INTERNALS -- the hysteresis ratio detail::kSsnUncertainLeaveRatio and the
-// symmetry of the damped element -- are `inline constexpr` / straight-line code
-// in ssn_engine.h, so comparing the shipped classification against a variant of
-// either is a PATCHED-HEADER RECOMPILE outside this build, exactly as
-// bench/tau_bar_sweep_probe.cpp documents for kFunnelTauBar. `band` prints the
-// per-tau aggregate that such a diff is taken on. EXACT INVOCATION for the
-// no-hysteresis variant (the alpha-only-damping variant is the same recipe with
-// the other sed):
+// symmetry of the damped element -- are an `inline constexpr` in
+// include/hven/detail/qp/ssn_engine.h and straight-line code in
+// src/qp/ssn_engine.cpp, so comparing the shipped classification against a
+// variant of either is a PATCHED-SOURCE RECOMPILE outside this build, exactly
+// as bench/tau_bar_sweep_probe.cpp documents for kFunnelTauBar. `band` prints
+// the per-tau aggregate that such a diff is taken on.
+//
+// **THE ENGINE IS NO LONGER HEADER-ONLY** -- M6 W0.1b carved SsnEngine's member
+// definitions into src/qp/ssn_engine.cpp -- so a patched build takes BOTH
+// files (the header copy carries the constants, the .cpp copy the
+// straight-line code) AND links the built library after them. EXACT INVOCATION
+// for the no-hysteresis variant (the alpha-only-damping variant is the same
+// recipe with the other sed):
 //
 //   rm -rf /tmp/ssn_patch && mkdir -p /tmp/ssn_patch/hven/detail/qp
 //   cp include/hven/detail/qp/ssn_engine.h /tmp/ssn_patch/hven/detail/qp/
-//   F=/tmp/ssn_patch/hven/detail/qp/ssn_engine.h
-//   # no hysteresis: the leave gate becomes the enter gate
-//   sed -i 's/was_uncertain ? tau \* detail::kSsnUncertainLeaveRatio : tau/tau/' "$F"
+//   cp src/qp/ssn_engine.cpp /tmp/ssn_patch/ssn_engine.cpp
+//   C=/tmp/ssn_patch/ssn_engine.cpp
+//   # no hysteresis: the leave gate becomes the enter gate (select_branch)
+//   sed -i 's/was_uncertain ? tau \* detail::kSsnUncertainLeaveRatio : tau/tau/' "$C"
 //   # (alpha-only damping instead -- a sed on the beta assignment alone would
 //   #  also hit the rho-floor branch, which is a DIFFERENT element selection,
 //   #  so this variant is patched by matching the whole uncertain block:)
-//   # python3 -c "p='$F';s=open(p).read();open(p,'w').write(s.replace(
-//   #   'kUncertain) {\n            alpha[k] = detail::kSsnDegenerateFbDeriv;\n'
-//   #   '            beta[k] = detail::kSsnDegenerateFbDeriv;',
-//   #   'kUncertain) {\n            alpha[k] = detail::kSsnDegenerateFbDeriv;'))"
-//   clang++ -DFMT_HEADER_ONLY -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 \
+//   # python3 -c "p='$C';s=open(p).read();open(p,'w').write(s.replace(
+//   #   'kUncertain) {\n        alpha[k] = detail::kSsnDegenerateFbDeriv;\n'
+//   #   '        beta[k] = detail::kSsnDegenerateFbDeriv;',
+//   #   'kUncertain) {\n        alpha[k] = detail::kSsnDegenerateFbDeriv;'))"
+//   clang++ \
+//     -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO \
+//     -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 \
+//     -DHVEN_DEFAULT_ARENA_SIZE=256 -DHVEN_DEFAULT_QP_THREADS=8 \
+//     -DHVEN_VERSION_STRING='"0.1.0"' -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 \
+//     -fPIC -pthread -mllvm -inline-threshold=225 -fomit-frame-pointer \
+//     -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 \
+//     -march=native -mtune=native -ffast-math -fno-finite-math-only \
 //     -I /tmp/ssn_patch -I include -I tests/sqp \
 //     -isystem dep/eigen -isystem dep/fmt/include \
 //     -isystem /opt/intel/oneapi/mkl/latest/include \
-//     bench/ssn_safeguard_probe.cpp -o /tmp/ssn_probe \
+//     bench/ssn_safeguard_probe.cpp "$C" build-m5-release/libhven.a \
+//     -o /tmp/ssn_probe \
 //     -Wl,--start-group /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a \
 //     /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a \
 //     /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a -Wl,--end-group \
@@ -85,21 +100,52 @@
 //   MKL_NUM_THREADS=1 LD_LIBRARY_PATH=/opt/intel/oneapi/compiler/latest/lib \
 //     /tmp/ssn_probe band 60794
 //
+// THE LIBRARY IS LINKED, AND IT IS LINKED *AFTER* THE PATCHED `$C`. The probe
+// needs SymmetricFactor, detail::analysis_decision/factorize_checked/solve_vec
+// and QpEngine from the library, so the archive is not optional -- without it
+// the link fails on exactly those symbols. The archive's own
+// `ssn_engine.cpp.o` is never extracted, because by the time the linker
+// reaches the archive the patched object has already defined every SsnEngine
+// symbol and no undefined one remains to pull it in (confirmed on a linker
+// map: zero references to `libhven.a(ssn_engine.cpp.o)`). So the patched
+// engine is the only one in the binary.
+//
+// **THE FLAG BLOCK IS LOAD-BEARING, NOT CEREMONY**, and it is CLAUDE.md §7's
+// one-uniform-flag-regime rule applied to a build that links library objects.
+// Two separate failures follow from trimming it: the Eigen/HVEN `-D`s are ABI
+// (`EIGEN_MAX_ALIGN_BYTES` changes object layout, so a mismatched probe
+// SEGFAULTS against the archive), and the numerics flags (`-ffast-math`,
+// `-march=native`, the inline threshold) change results, so a probe built
+// without them prints different digests from the shipped binary and its A/B is
+// measuring the flags rather than the patch.
+//
+// THE RECIPE HAS ITS OWN SELF-TEST: build it once with the copies UNPATCHED.
+// That binary reproduces the in-tree `hven_sqp_ssn_safeguard_probe`'s output
+// digest for digest (verified at `band`, seed 20260807: tau=0.1/0.3
+// fdd87c975aaf7204, tau=0.9 70986492b9bbb335). If the unpatched control does
+// not match, the build is wrong and no A/B taken from it means anything.
+//
 // The `-I /tmp/ssn_patch` ahead of `-I include` resolves ONLY ssn_engine.h to
-// the patched copy; nothing in the repository is modified, and no CMake option
-// here can build a patched engine.
+// the patched header; nothing in the repository is modified, and no CMake
+// option here can build a patched engine.
 //
 // THE SAME RECOMPILE SERVES TWO MORE ARMS (added in review fix round 2):
 //
 //   * `ablate`'s projection-OFF column -- sed
-//     's/^        if (project) {/        if (false) {/' on the patched copy,
-//     which is unique in ssn_engine.h; and
+//     's/^    if (project) {/    if (false) {/' on the patched .cpp copy,
+//     where it is unique (SsnEngine::trial_point); and
 //   * `census`'s PRE-FIX arm -- instead of a sed, seed the patched copy from
 //     the pre-fix engine itself (the archived sandbox's commit f20dcfe, its
 //     copy of ssn_engine.h -- see section 12.2 below), and add
 //     -DHVEN_SQP_PROBE_PREFIX_ENGINE so this file's escape-name switch omits
 //     the one enumerator fix round 1 introduced. That define exists for this
-//     arm alone; no CMake target sets it.
+//     arm alone; no CMake target sets it. **THAT SEED IS A HEADER-ONLY
+//     ENGINE**, so that arm passes no `$C` -- but it still needs the library
+//     on the command line, for the same non-SsnEngine symbols as above. Its
+//     inline definitions leave no undefined SsnEngine symbol either, so
+//     `libhven.a(ssn_engine.cpp.o)` is not extracted there and the archive
+//     cannot override the pre-fix engine (verified the same way, on a
+//     header-only stand-in).
 
 #include <cmath>
 #include <cstdio>

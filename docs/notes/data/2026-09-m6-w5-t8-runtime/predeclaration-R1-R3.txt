@@ -1,0 +1,42 @@
+W5 T8.9r FIX ROUND 1 -- THE TWO RULES FIXED BEFORE THE RE-MEASUREMENT
+=====================================================================
+Settler rulings R1 and R3, 2026-09-11, in answer to astra's I5 (a) and (e).
+This file exists so that "the rule preceded the runs" is a checkable fact and
+not a claim: logs/F0-predeclaration.log records this file's sha256 and
+comparator.py's, with the UTC time at which both were fixed, and every timed
+log of the round carries a LATER FOREGROUND_START. The rules are implemented in
+comparator.py (its module docstring states them in the same words) and are
+quoted in PROVENANCE.txt's fix1 block.
+
+R1 -- THE VETO'S "REPRODUCIBLE SLOWDOWN" IS THE BANDED READING.
+  docs/notes/2026-09-m6-w5-t6-ownership.md 11.1 says "a reproducible slowdown --
+  three solo runs, same sign -- on ANY cell of ANY mode on EITHER leg is a veto
+  trigger, regardless of the corpus total". That sentence admits a strict
+  reading (any cell slower in all three paired rounds, however small) and a
+  banded one (a cell OUTSIDE 0.99-1.01, slower in all three). The strict
+  reading fires on sampling alone: with 27 cells and a fair coin per round,
+  ~3.4 cells are same-sign by chance, and round 1 observed 4 / 3 / 7.
+  SAME-SIGN MOVEMENT INSIDE THE BAND IS WHAT "FLAT" MEANS.
+
+  A CELL IS A REPRODUCIBLE SLOWDOWN WHEN ITS MEDIAN RATIO IS OUTSIDE 0.99-1.01
+  AND IT IS SLOWER IN ALL THREE ROUNDS.
+
+  The comparator prints BOTH counts, classifies on the banded one, and says so
+  on the line it prints. The strict count is reported as informational. The
+  ruling is recorded on the ledger at the group-1 close.
+
+R3 -- THE INTERIOR LEG'S FIRST-ROW RULE, PRE-DECLARED BY POSITION.
+  The interior leg runs in ONE process and writes its rows in order. THE FIRST
+  ROW EACH `--engine interior` PROCESS WRITES IS THAT PROCESS'S WARM-UP -- MKL's
+  first call, the allocator's first growth, the page faults for the whole
+  working set -- AND IS EXCLUDED FROM THE BAND. It is reported separately with
+  its own three paired ratios, and the corpus figure is printed BOTH WAYS:
+  WITHOUT it (PRIMARY, by this rule) and WITH it.
+
+  The exclusion keys on the row's POSITION in the raw CSV, not on its name and
+  not on its value. Round 1 excluded a row BY NAME AFTER observing that it was
+  unstable, which astra's I5 (a) is right to refuse; this rule is decided
+  before the round's first sample exists and applies to whatever row the
+  process happens to write first. If the arms or the rounds disagree about
+  which row came first, that is a MANIFEST failure and the comparator exits
+  non-zero rather than choosing.

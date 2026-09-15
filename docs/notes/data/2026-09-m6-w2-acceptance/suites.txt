@@ -1,0 +1,17 @@
+########## ctest --test-dir build-w02/debug -j4 -LE a4_gate -E ProbeBudgetBoundsAFailingProposal ##########
+100% tests passed, 0 tests failed out of 2251
+Total Test time (real) = 357.69 sec
+########## ctest --test-dir build-w02/debug -R Continuation.ProbeBudgetBoundsAFailingProposal ##########
+100% tests passed, 0 tests failed out of 1
+Total Test time (real) = 673.71 sec
+########## ctest --test-dir build-w02/release -j4 -LE a4_gate -E ProbeBudgetBoundsAFailingProposal ##########
+100% tests passed, 0 tests failed out of 2251
+Total Test time (real) =  45.69 sec
+########## ctest --test-dir build-w02/release -R Continuation.ProbeBudgetBoundsAFailingProposal ##########
+100% tests passed, 0 tests failed out of 1
+Total Test time (real) =  12.87 sec
+2249/2253 Test #1348: EqpRefinementAb.FootprintRuleProbe .............................................................................***Not Run (Disabled)   0.00 sec
+2250/2253 Test #1349: EqpRefinementAb.FullBattery ....................................................................................***Not Run (Disabled)   0.00 sec
+2252/2253 Test  #414: FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas .........................................***Skipped   0.00 sec
+	414 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+The following tests did not run:

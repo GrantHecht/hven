@@ -6,7 +6,7 @@
 // bench/model_surface_kkt.h — the model-surface scorer
 // (docs/notes/2026-08-21-m4-task5-design.md). An ENGINE-INDEPENDENT KKT
 // residual scorer, computed ONLY off
-// NlpAggregate::evaluate_candidate_first_order and AggregateDeclaration's own
+// NlpAssembly::evaluate_candidate_first_order and AssemblyDeclaration's own
 // bound record -- no engine, no driver, no QP, no linear-algebra backend
 // anywhere in the picture.
 //
@@ -53,7 +53,7 @@
 // same split and does not compute it.
 //
 // ONE DELIBERATE DIVERGENCE FROM self_check_kkt, OWED TO THIS SURFACE'S OWN
-// CONTRACT: model/nlp_aggregate.h's evaluate_candidate_first_order documents
+// CONTRACT: model/nlp_assembly.h's evaluate_candidate_first_order documents
 // what "A SCORER OWES" over this surface -- a declared-fixed variable
 // (materialized lower == upper) carries no degree of freedom, so its
 // stationarity row is not a stationarity condition and must be EXCLUDED from
@@ -78,9 +78,9 @@
 #include <fmt/format.h>
 
 #include "hven/core/types.h"
-#include "hven/model/aggregate_declaration.h"
+#include "hven/model/assembly_declaration.h"
 #include "hven/model/candidate_point.h"
-#include "hven/model/nlp_aggregate.h"
+#include "hven/model/nlp_assembly.h"
 
 namespace hven::solvers {
 
@@ -101,7 +101,7 @@ struct ModelSurfaceKktResiduals {
 /// Scores (x, lambda_e, lambda_i, z) against `aggregate`'s declared problem,
 /// using ONLY evaluate_candidate_first_order's output and declaration() bounds
 /// -- no engine state, no provider internals, and no knowledge of which
-/// treatment a provider was configured with (nlp_aggregate.h's own claim about
+/// treatment a provider was configured with (nlp_assembly.h's own claim about
 /// this surface).
 ///
 /// z is the model-implied bound multiplier, full length n, in the seam
@@ -136,12 +136,12 @@ struct ModelSurfaceKktResiduals {
 /// @throws std::invalid_argument if x/lambda_e/lambda_i/z are not sized to the
 ///         declaration (x and z at n; lambda_e at me; lambda_i at mi) --
 ///         x/lambda_e/lambda_i are checked by evaluate_candidate_first_order's
-///         own entry (model/nlp_aggregate.h), z is checked here since it is not
+///         own entry (model/nlp_assembly.h), z is checked here since it is not
 ///         part of that contract's own vocabulary.
-inline ModelSurfaceKktResiduals model_surface_kkt_residuals(NlpAggregate &aggregate, const Vec &x,
+inline ModelSurfaceKktResiduals model_surface_kkt_residuals(NlpAssembly &aggregate, const Vec &x,
                                                             const Vec &lambda_e,
                                                             const Vec &lambda_i, const Vec &z) {
-    const AggregateDeclaration &declared = aggregate.declaration();
+    const AssemblyDeclaration &declared = aggregate.declaration();
     const Eigen::Index n = declared.primal_vars_;
     const Eigen::Index me = declared.equality_rows_;
     const Eigen::Index mi = declared.inequality_rows_;
@@ -171,7 +171,7 @@ inline ModelSurfaceKktResiduals model_surface_kkt_residuals(NlpAggregate &aggreg
     aggregate.evaluate_candidate_first_order(point, first_order);
 
     // The declared-fixed exclusion set, computable from declaration data alone
-    // (nlp_aggregate.h's own "WHAT A SCORER OWES" note).
+    // (nlp_assembly.h's own "WHAT A SCORER OWES" note).
     const std::vector<VariableBound> bounds = declared.materialize_variable_bounds();
 
     ModelSurfaceKktResiduals out;

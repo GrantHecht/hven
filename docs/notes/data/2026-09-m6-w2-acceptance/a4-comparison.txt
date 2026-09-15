@@ -1,0 +1,1 @@
+=== committed a4 gate CSV (W1 acceptance, mu=1e-2) vs T8 re-run === cells compared: 29  columns compared: 65  differences: 0

@@ -28,6 +28,71 @@ OUT="$BUILD/coverage"
 LLVM_PROFDATA=${LLVM_PROFDATA:-llvm-profdata}
 LLVM_COV=${LLVM_COV:-llvm-cov}
 
+# ---------------------------------------------------------------------------
+# THE INSTRUMENT-TREE EXCLUSION LIST (taken at M6 W6 T0, 2026-09-13)
+#
+# The disposition the M5 ledger registered and left open --
+# docs/notes/2026-08-m5-ledger.md:440-461: three cells failed under the first
+# CI coverage run, "REGISTERED to characterize (likely disposition: a small
+# instrument-tree exclusion list or pin-relaxation ... decided at the next
+# window, NEVER by silently editing the pins)". It is taken here, in this
+# script, where an exclusion costs coverage and nothing else: no pin, no test
+# and no engine source is touched by anything below.
+#
+# WHAT IT IS FOR. A byte-strict float pin that holds under the uniform flag
+# regime can fail in this tree: the coverage flags change codegen (the preset's
+# own description says so, CMakePresets.json's linux-clang-coverage entry), and
+# a last-digit move on a bit-exact compare is the L-1 divergence family. Such a
+# cell can be dropped from THIS run, by name, with its reason written down.
+#
+# TWO CONDITIONS, BOTH REQUIRED, before a cell is named in the regex below:
+#   (i)  it is OBSERVED to fail under the instrument tree for that reason --
+#        not merely suspected of being able to; and
+#   (ii) the paths it covers are covered by other cells that pass here.
+# Condition (ii) is not a formality. A FAILING gtest still writes its .profraw,
+# so COVERAGE_TOLERATE_FAILURES keeps a failing cell's coverage while -E DROPS
+# it. A cell that fails instrumented but covers paths nothing else reaches is
+# therefore TOLERATED, not excluded, so the next reader knows the difference was
+# considered. TOLERATED is the state a FAILING-but-unique cell takes; it is NOT
+# the state of the three CANDIDATES named below, which PASSED instrumented on
+# the W6 T0 read and are therefore neither excluded nor tolerated -- they are
+# cells that passed. (Wording corrected in T0 fix round 1, 2026-09-13; the two
+# conditions, the empty list and every behaviour below are unchanged.)
+#
+# THE LIST IS EMPTY, and that is the finding, not an omission. The three
+# CANDIDATES -- the cells M5 saw fail (ledger :447-449; CI run 32924315809, a
+# GitHub ubuntu-latest runner) --
+#     B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcrossTheRepair
+#     CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers
+#     SsnEngineLocal.WeaklyActiveRowFinishesUncertain
+# -- all three survive W5's renames under those exact names, all three RAN in
+# the W6 T0 instrumented read at 7da77b5d, and all three PASSED; so did every
+# other cell (2544 registered, 2542 executed, 0 failed, 2 disabled in the tree;
+# ctest exit 0), as at the W2 read
+# (docs/notes/data/2026-09-m6-w2-acceptance/coverage-areas.txt:4). None of them
+# meets condition (i) on this hardware, so none is excluded: excluding a cell
+# that passes would drop real coverage and buy nothing. M5's observation was on
+# a foreign runner microarch and the ledger says exactly that, so the remedy for
+# that machine stays what it already is -- COVERAGE_TOLERATE_FAILURES=1 in the
+# CI lane, which keeps both the report and the failure signal.
+# Two of the three have their own history, worth having beside the names:
+#   * SsnEngineLocal.WeaklyActiveRowFinishesUncertain was made flake-immune by
+#     construction in M6 W0.4 (docs/notes/2026-08-m6-ledger.md:164-176) -- its
+#     per-backend exact pins are retired, so the L-1 route into it is gone.
+#   * CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByTheFourLevers
+#     still has a byte-strict Debug-arm compare (tests/sqp/test_corpus_cells.cpp
+#     :3866) where the Release arm already uses a 1e-5 residual gate (:3818).
+#     If it ever does fail here, that gate -- W6 T1's item -- is the remedy, not
+#     this list: the fix belongs at the compare, where it is visible to every
+#     tree, rather than in a coverage-only exclusion.
+#
+# PROVISIONAL: re-derived at W6 T2's close read. To exclude a cell, add its
+# exact ctest name to the regex and write its two conditions above it.
+# COVERAGE_EXCLUDE_REGEX in the environment overrides this default for a
+# one-off run; it does not replace the record above.
+# ---------------------------------------------------------------------------
+COVERAGE_EXCLUDE_REGEX=${COVERAGE_EXCLUDE_REGEX:-}
+
 if [[ "${1:-}" != "--report-only" ]]; then
     # CMAKE_ARGS: extra configure flags (CI pins HVEN_SIMD_ARCH here).
     cmake --preset linux-clang-coverage ${CMAKE_ARGS:-}
@@ -40,14 +105,36 @@ if [[ "${1:-}" != "--report-only" ]]; then
     # the failure signal separately, not an aborted report. The ctest exit
     # status is preserved in the summary either way.
     CTEST_STATUS=0
+    EXCLUDE_ARGS=()
+    if [[ -n "$COVERAGE_EXCLUDE_REGEX" ]]; then
+        EXCLUDE_ARGS=(-E "$COVERAGE_EXCLUDE_REGEX")
+        echo "instrument-tree exclusion in force: -E '$COVERAGE_EXCLUDE_REGEX'" >&2
+    fi
     LLVM_PROFILE_FILE="$PWD/$PROFDIR/hven-%p.profraw" \
-        ctest --test-dir "$BUILD" --output-on-failure ${CTEST_ARGS:-} \
+        ctest --test-dir "$BUILD" --output-on-failure \
+        "${EXCLUDE_ARGS[@]}" ${CTEST_ARGS:-} \
         || CTEST_STATUS=$?
     if [[ $CTEST_STATUS -ne 0 && "${COVERAGE_TOLERATE_FAILURES:-0}" != "1" ]]; then
         echo "ctest exited $CTEST_STATUS (set COVERAGE_TOLERATE_FAILURES=1 to report anyway)"
         exit "$CTEST_STATUS"
     fi
-    echo "ctest exit status: $CTEST_STATUS" > "$BUILD/ctest-status.txt"
+    # Both halves of what the run was: its status, and what it was allowed to
+    # skip. A report read later cannot tell an empty exclusion from a wide one
+    # unless the run says so here.
+    # THE DEFAULT STRING BELOW SAYS WHAT IS TRUE: "no registered cell was
+    # EXCLUDED". It is about the -E regex and nothing else -- a cell DISABLED in
+    # the tree (ctest prints "Not Run (Disabled)") does not run either, and the
+    # W6 T0 read had two, EqpRefinementAb.FootprintRuleProbe and
+    # EqpRefinementAb.FullBattery, so the string this used to emit ("every
+    # registered cell ran") was not literally true of such a run. T0 fix round 1
+    # (2026-09-13) was comment-only and could not change emitted evidence, so it
+    # recorded the correct reading here and left the bytes; W6 T2 makes the
+    # string itself say it. Artifacts taken before this change quote the old
+    # wording verbatim and are not rewritten (CLAUDE.md section 7).
+    {
+        echo "ctest exit status: $CTEST_STATUS"
+        echo "instrument-tree exclusion regex: ${COVERAGE_EXCLUDE_REGEX:-(none -- no registered cell was excluded)}"
+    } > "$BUILD/ctest-status.txt"
 fi
 
 mkdir -p "$OUT"

@@ -1,0 +1,17 @@
+# started on Mon Sep 14 07:38:29 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w6t6/build-release/bench/hven_sqp_corpus --internal-run-one f7_n2000_bound_physics --engine walk --internal-out /home/ghecht/Projects/hven/.scratch/w6t6/art/raw/sqpperf/walk/r1/a01-f7_n2000_bound_physics.csv --callback off --trace sink':
+
+       532,760,854      instructions:u                                                        
+        80,810,159      branches:u                                                            
+       174,835,739      cycles:u                                                              
+           556,524      branch-misses:u                                                       
+            44,400      L1-icache-load-misses:u                                               
+
+       0.066345744 seconds time elapsed
+
+       0.054234000 seconds user
+       0.011792000 seconds sys
+
+

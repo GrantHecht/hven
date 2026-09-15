@@ -1,0 +1,17 @@
+# started on Fri Sep 11 10:06:08 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89r/arm-base/build/bench/hven_sqp_corpus --dump-qp f7_n1000_bound_neutral --dump-qp-out /home/ghecht/Projects/hven/.scratch/w5t89r/scratch-dumps/base-f7_n1000_bound_neutral.txt':
+
+        81,388,477      instructions:u                                                        
+        14,499,822      branches:u                                                            
+        23,614,708      cycles:u                                                              
+            50,635      branch-misses:u                                                       
+             2,601      L1-icache-load-misses:u                                               
+
+       0.009886223 seconds time elapsed
+
+       0.007232000 seconds user
+       0.004136000 seconds sys
+
+

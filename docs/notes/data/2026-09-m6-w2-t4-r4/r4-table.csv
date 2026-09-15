@@ -1,0 +1,107 @@
+# hven M6 W2 T4 fix round 1 -- the R4 gate, measured BOTH ways at the fix head.
+# commit: a14ad96539ceee42331a0e0c72586f2239e46ada (the code head measured; evidence docs commit ed617c8)
+# stamp corrected at ledger close: the original stamp named a dangling pre-amend docs commit whose code tree is a14ad96's
+# toolchain: clang version 22.1.8 (Fedora 22.1.8-4.fc44); CMake Debug and Release, one uniform flag regime
+# hardware: x86_64, Linux 7.1.9-200.fc44.x86_64
+# backend: Intel MKL Pardiso, MKL_NUM_THREADS=1 OMP_NUM_THREADS=1, one process at a time
+# date: 2026-09-02
+# switch: r4-switch.patch in this directory (applied for measurement only, NOT in the tree).
+#   HVEN_T4_OFF=1 suppresses every candidate at every request site (the OFF arm);
+#   unset is the shipped behaviour (the ON arm). The patch also prints, per request,
+#   the site and h(entry)/h(candidate) on BOTH scales.
+# columns: h_* are the CALLER-scale violations the guard compares; h_*_engine are the
+#   engine-scale ones the old (pre-fix) guard compared. status: 0 kOptimal, 1 kMaxIter,
+#   2 kInfeasible, 3 kNumericalError. A cell with no request has site '-'.
+# VERDICT: no cell is WORSE with the candidate ON. status, certified,
+#   restoration_iters, factorizations and major_iters are IDENTICAL between the arms on
+#   all 84 fixture x config x mode cells. Two columns move, both as designed: the eval
+#   accounting (+1 evals_full at a guarded elastic site, +1/-1 on a taken trial) and
+#   qp_minor_iters, which moves on SOME taken cells because the restoration sub-solve
+#   starts from a different point on the SAME active-set path (see the fix-round report's
+#   F14 answer: the sub-solve spends the same 5 majors and 5 factorizations from either
+#   start and reaches the same restored point; only the minors along the path move).
+fixture,config,mode,site,h_entry,h_candidate,h_entry_engine,h_candidate_engine,decision,status_on,certified_on,restoration_iters_on,factorizations_on,major_iters_on,evals_full_on,evals_values_on,qp_minor_iters_on,status_off,certified_off,restoration_iters_off,factorizations_off,major_iters_off,evals_full_off,evals_values_off,qp_minor_iters_off
+box_blocked_eq,debug,ipm,none,4,nan,4,nan,none,2,1,1,84,2,5,0,33,2,1,1,84,2,5,0,33
+box_blocked_eq,debug,ssn,none,4,nan,4,nan,none,2,1,1,13,2,5,0,41,2,1,1,13,2,5,0,41
+box_blocked_eq,debug,walk,none,4,nan,4,nan,none,2,1,1,5,2,5,0,41,2,1,1,5,2,5,0,41
+box_blocked_eq,release,ipm,none,4,nan,4,nan,none,2,1,1,84,2,5,0,33,2,1,1,84,2,5,0,33
+box_blocked_eq,release,ssn,none,4,nan,4,nan,none,2,1,1,13,2,5,0,41,2,1,1,13,2,5,0,41
+box_blocked_eq,release,walk,none,4,nan,4,nan,none,2,1,1,5,2,5,0,41,2,1,1,5,2,5,0,41
+circle_ineq,debug,ipm,-,nan,nan,nan,nan,-,0,0,0,61,13,14,2,43,0,0,0,61,13,14,2,43
+circle_ineq,debug,ssn,-,nan,nan,nan,nan,-,0,0,0,68,13,14,1,4,0,0,0,68,13,14,1,4
+circle_ineq,debug,walk,-,nan,nan,nan,nan,-,0,0,0,22,13,14,2,43,0,0,0,22,13,14,2,43
+circle_ineq,release,ipm,-,nan,nan,nan,nan,-,0,0,0,61,13,14,2,43,0,0,0,61,13,14,2,43
+circle_ineq,release,ssn,-,nan,nan,nan,nan,-,0,0,0,68,13,14,1,4,0,0,0,68,13,14,1,4
+circle_ineq,release,walk,-,nan,nan,nan,nan,-,0,0,0,22,13,14,2,43,0,0,0,22,13,14,2,43
+circle_line_asym,debug,ipm,trial,1.0014331960134732,1.0014331957806426,1.0014331960134732,1.0014331957806426,TAKEN,2,1,5,1914,61,28,41,1685,2,1,5,1914,61,27,42,1685
+circle_line_asym,debug,ssn,trial,1.0014331960134732,1.0014331957806426,1.0014331960134732,1.0014331957806426,TAKEN,2,1,5,2144,61,28,41,1736,2,1,5,2144,61,27,42,1736
+circle_line_asym,debug,walk,trial,1.0014331960134732,1.0014331957806426,1.0014331960134732,1.0014331957806426,TAKEN,2,1,5,1600,61,28,41,1748,2,1,5,1600,61,27,42,1748
+circle_line_asym,release,ipm,elastic,1.0014331960134786,1.0014323791942215,1.0014331960134786,1.0014323791942215,TAKEN,2,1,5,1355,46,28,26,1281,2,1,5,1355,46,27,26,1279
+circle_line_asym,release,ssn,elastic,1.0014331960134786,1.0014323791942215,1.0014331960134786,1.0014323791942215,TAKEN,2,1,5,1481,46,28,26,1317,2,1,5,1481,46,27,26,1315
+circle_line_asym,release,walk,elastic,1.0014331960134786,1.0014323791942215,1.0014331960134786,1.0014323791942215,TAKEN,2,1,5,1011,46,28,26,1329,2,1,5,1011,46,27,26,1327
+circle_line_asym_scaled,debug,ipm,elastic,1.000454010293832,1.0004530911617171,1.000454010293832,1.0004530911617171,TAKEN,2,1,5,1720,49,32,27,1205,2,1,5,1720,49,31,27,1205
+circle_line_asym_scaled,debug,ssn,elastic,1.000454010293832,1.0004530911617171,1.000454010293832,1.0004530911617171,TAKEN,2,1,5,1815,49,32,27,1230,2,1,5,1815,49,31,27,1230
+circle_line_asym_scaled,debug,walk,elastic,1.000454010293832,1.0004530911617171,1.000454010293832,1.0004530911617171,TAKEN,2,1,5,933,49,32,27,1254,2,1,5,933,49,31,27,1254
+circle_line_asym_scaled,release,ipm,elastic,1.0004540102938306,1.0004530911617155,1.0004540102938306,1.0004530911617155,TAKEN,2,1,5,1697,49,32,27,1201,2,1,5,1697,49,31,27,1203
+circle_line_asym_scaled,release,ssn,elastic,1.0004540102938306,1.0004530911617155,1.0004540102938306,1.0004530911617155,TAKEN,2,1,5,1809,49,32,27,1226,2,1,5,1809,49,31,27,1228
+circle_line_asym_scaled,release,walk,elastic,1.0004540102938306,1.0004530911617155,1.0004540102938306,1.0004530911617155,TAKEN,2,1,5,929,49,32,27,1250,2,1,5,929,49,31,27,1252
+circle_line_border,debug,ipm,elastic,0.99999999999999201,1.4804276112078136,0.99999999999999201,1.4804276112078136,refused,2,1,4,253,3,10,0,76,2,1,4,253,3,9,0,76
+circle_line_border,debug,ssn,elastic,0.99999999999999201,1.4804276112078136,0.99999999999999201,1.4804276112078136,refused,2,1,4,60,3,10,0,78,2,1,4,60,3,9,0,78
+circle_line_border,debug,walk,elastic,0.99999999999999201,1.4804276112078136,0.99999999999999201,1.4804276112078136,refused,2,1,4,26,3,10,0,78,2,1,4,26,3,9,0,78
+circle_line_border,release,ipm,elastic,0.99999999999999467,2.9999999999999898,0.99999999999999467,2.9999999999999898,refused,2,1,4,236,3,10,0,77,2,1,4,236,3,9,0,77
+circle_line_border,release,ssn,elastic,0.99999999999999467,2.9999999999999898,0.99999999999999467,2.9999999999999898,refused,2,1,4,62,3,10,0,77,2,1,4,62,3,9,0,77
+circle_line_border,release,walk,elastic,0.99999999999999467,2.9999999999999898,0.99999999999999467,2.9999999999999898,refused,2,1,4,26,3,10,0,77,2,1,4,26,3,9,0,77
+circle_line_refac,debug,ipm,trial,1.0000616698573632,1.0000616696245326,1.0000616698573632,1.0000616696245326,TAKEN,2,1,5,1831,60,27,41,1698,2,1,5,1831,60,26,42,1698
+circle_line_refac,debug,ssn,trial,1.0000616698573632,1.0000616696245326,1.0000616698573632,1.0000616696245326,TAKEN,2,1,5,2712,60,27,41,1699,2,1,5,2712,60,26,42,1699
+circle_line_refac,debug,walk,trial,1.0000616698573632,1.0000616696245326,1.0000616698573632,1.0000616696245326,TAKEN,2,1,5,1711,60,27,41,1711,2,1,5,1711,60,26,42,1711
+circle_line_refac,release,ipm,trial,1.0000616698573632,1.0000616696245326,1.0000616698573632,1.0000616696245326,TAKEN,2,1,5,1795,59,27,40,1672,2,1,5,1795,59,26,41,1672
+circle_line_refac,release,ssn,trial,1.0000616698573632,1.0000616696245326,1.0000616698573632,1.0000616696245326,TAKEN,2,1,5,2679,59,27,40,1671,2,1,5,2679,59,26,41,1671
+circle_line_refac,release,walk,trial,1.0000616698573632,1.0000616696245326,1.0000616698573632,1.0000616696245326,TAKEN,2,1,5,1683,59,27,40,1683,2,1,5,1683,59,26,41,1683
+floor_1e-2,debug,ipm,trial,1.0005391573548159,1.0000012603997142,1.0005391573548159,1.0000012603997142,TAKEN,2,1,5,986,32,27,13,733,2,1,5,986,32,26,14,731
+floor_1e-2,debug,ssn,trial,1.0000381990573226,1.0002533365103283,1.0000381990573226,1.0002533365103283,refused,2,1,5,987,33,27,14,860,2,1,5,987,33,27,14,860
+floor_1e-2,debug,walk,trial,1.0000381990573226,1.0002533365103283,1.0000381990573226,1.0002533365103283,refused,2,1,5,650,33,27,14,875,2,1,5,650,33,27,14,875
+floor_1e-2,release,ipm,trial,1.0005391573548159,1.0000012603997104,1.0005391573548159,1.0000012603997104,TAKEN,2,1,5,969,31,27,12,729,2,1,5,969,31,26,13,729
+floor_1e-2,release,ssn,trial,1.0005391392316576,1.0000012595236032,1.0005391392316576,1.0000012595236032,TAKEN,2,1,5,860,31,27,12,750,2,1,5,860,31,26,13,748
+floor_1e-2,release,walk,trial,1.0005391392316576,1.0000012595236032,1.0005391392316576,1.0000012595236032,TAKEN,2,1,5,554,31,27,12,769,2,1,5,554,31,26,13,767
+floor_1e-5,debug,ipm,trial,1.0005391573548159,1.0005381556933235,1.0005391573548159,1.0005381556933235,TAKEN,2,1,5,1266,42,27,23,1071,2,1,5,1266,42,26,24,1071
+floor_1e-5,debug,ssn,trial,1.0000381990573226,1.0000379327809932,1.0000381990573226,1.0000379327809932,TAKEN,2,1,5,1517,43,28,23,1200,2,1,5,1517,43,27,24,1200
+floor_1e-5,debug,walk,trial,1.0000381990573226,1.0000379327809932,1.0000381990573226,1.0000379327809932,TAKEN,2,1,5,930,43,28,23,1215,2,1,5,930,43,27,24,1215
+floor_1e-5,release,ipm,trial,1.0005391573548159,1.0005381556933213,1.0005391573548159,1.0005381556933213,TAKEN,2,1,5,1249,41,27,22,1071,2,1,5,1249,41,26,23,1069
+floor_1e-5,release,ssn,trial,1.0005391392316576,1.0005381375870073,1.0005391392316576,1.0005381375870073,TAKEN,2,1,5,1190,41,27,22,1088,2,1,5,1190,41,26,23,1088
+floor_1e-5,release,walk,trial,1.0005391392316576,1.0005381375870073,1.0005391392316576,1.0005381375870073,TAKEN,2,1,5,834,41,27,22,1107,2,1,5,834,41,26,23,1107
+hs10,debug,ipm,-,nan,nan,nan,nan,-,0,0,0,71,14,15,0,177,0,0,0,71,14,15,0,177
+hs10,debug,ssn,-,nan,nan,nan,nan,-,0,0,0,206,14,15,0,200,0,0,0,206,14,15,0,200
+hs10,debug,walk,-,nan,nan,nan,nan,-,0,0,0,64,14,15,0,218,0,0,0,64,14,15,0,218
+hs10,release,ipm,-,nan,nan,nan,nan,-,0,0,0,71,14,15,0,177,0,0,0,71,14,15,0,177
+hs10,release,ssn,-,nan,nan,nan,nan,-,0,0,0,206,14,15,0,200,0,0,0,206,14,15,0,200
+hs10,release,walk,-,nan,nan,nan,nan,-,0,0,0,64,14,15,0,218,0,0,0,64,14,15,0,218
+hs11,debug,ipm,-,nan,nan,nan,nan,-,0,0,0,81,7,8,0,14,0,0,0,81,7,8,0,14
+hs11,debug,ssn,-,nan,nan,nan,nan,-,0,0,0,76,7,8,0,47,0,0,0,76,7,8,0,47
+hs11,debug,walk,-,nan,nan,nan,nan,-,0,0,0,9,7,8,0,55,0,0,0,9,7,8,0,55
+hs11,release,ipm,-,nan,nan,nan,nan,-,0,0,0,81,7,8,0,14,0,0,0,81,7,8,0,14
+hs11,release,ssn,-,nan,nan,nan,nan,-,0,0,0,76,7,8,0,47,0,0,0,76,7,8,0,47
+hs11,release,walk,-,nan,nan,nan,nan,-,0,0,0,9,7,8,0,55,0,0,0,9,7,8,0,55
+hs15,debug,ipm,-,nan,nan,nan,nan,-,0,0,0,242,9,9,1,32,0,0,0,242,9,9,1,32
+hs15,debug,ssn,-,nan,nan,nan,nan,-,0,0,0,44,7,8,0,21,0,0,0,44,7,8,0,21
+hs15,debug,walk,-,nan,nan,nan,nan,-,0,0,0,8,7,8,0,37,0,0,0,8,7,8,0,37
+hs15,release,ipm,-,nan,nan,nan,nan,-,0,0,0,242,9,9,1,32,0,0,0,242,9,9,1,32
+hs15,release,ssn,-,nan,nan,nan,nan,-,0,0,0,44,7,8,0,21,0,0,0,44,7,8,0,21
+hs15,release,walk,-,nan,nan,nan,nan,-,0,0,0,8,7,8,0,37,0,0,0,8,7,8,0,37
+row_spread_scaled,debug,ipm,elastic,50000,49999.999999992513,500,500.00000000006105,TAKEN,2,1,1,28,2,8,0,26,2,1,1,28,2,7,0,28
+row_spread_scaled,debug,ssn,elastic,50000,49999.999999992513,500,500.00000000006105,TAKEN,2,1,1,17,2,8,0,55,2,1,1,17,2,7,0,57
+row_spread_scaled,debug,walk,elastic,50000,49999.999999992513,500,500.00000000006105,TAKEN,2,1,1,5,2,8,0,55,2,1,1,5,2,7,0,57
+row_spread_scaled,release,ipm,elastic,50000,49999.999999992513,500,500.00000000006105,TAKEN,2,1,1,28,2,8,0,26,2,1,1,28,2,7,0,28
+row_spread_scaled,release,ssn,elastic,50000,49999.999999992513,500,500.00000000006105,TAKEN,2,1,1,17,2,8,0,55,2,1,1,17,2,7,0,57
+row_spread_scaled,release,walk,elastic,50000,49999.999999992513,500,500.00000000006105,TAKEN,2,1,1,5,2,8,0,55,2,1,1,5,2,7,0,57
+runaway_valley,debug,ipm,trial,0.5,250.0000289186473,0.5,250.0000289186473,refused,2,0,1,286,18,10,12,112,2,0,1,286,18,10,12,112
+runaway_valley,debug,ssn,trial,0.5,250.0000289186473,0.5,250.0000289186473,refused,2,0,1,234,18,10,12,141,2,0,1,234,18,10,12,141
+runaway_valley,debug,walk,trial,0.5,250,0.5,250,refused,2,0,1,58,18,10,12,176,2,0,1,58,18,10,12,176
+runaway_valley,release,ipm,trial,0.5,250.0000289186473,0.5,250.0000289186473,refused,2,0,1,286,18,10,12,112,2,0,1,286,18,10,12,112
+runaway_valley,release,ssn,trial,0.5,250.0000289186473,0.5,250.0000289186473,refused,2,0,1,234,18,10,12,141,2,0,1,234,18,10,12,141
+runaway_valley,release,walk,trial,0.5,250,0.5,250,refused,2,0,1,58,18,10,12,176,2,0,1,58,18,10,12,176
+stalled_valley,debug,ipm,trial,0.5,250.0000289186473,0.5,250.0000289186473,refused,0,0,1,146,18,15,7,21,0,0,1,146,18,15,7,21
+stalled_valley,debug,ssn,trial,0.5,250.0000289186473,0.5,250.0000289186473,refused,0,0,1,103,18,15,7,21,0,0,1,103,18,15,7,21
+stalled_valley,debug,walk,trial,0.5,250,0.5,250,refused,0,0,1,33,18,15,7,64,0,0,1,33,18,15,7,64
+stalled_valley,release,ipm,trial,0.5,250.0000289186473,0.5,250.0000289186473,refused,0,0,1,146,18,15,7,21,0,0,1,146,18,15,7,21
+stalled_valley,release,ssn,trial,0.5,250.0000289186473,0.5,250.0000289186473,refused,0,0,1,103,18,15,7,21,0,0,1,103,18,15,7,21
+stalled_valley,release,walk,trial,0.5,250,0.5,250,refused,0,0,1,33,18,15,7,64,0,0,1,33,18,15,7,64

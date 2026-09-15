@@ -7,7 +7,7 @@
 // contract: the candidate point's primal block and the scatter views its
 // evaluations fill.
 //
-// Written once here because two consumers build them: InteriorPointSolver's own
+// Written once here because two consumers build them: IpmSolver's own
 // evaluation dispatch and the globalization components, which evaluate trial
 // points through the same aggregate. Both slice the same compound
 // [primals | slacks | eq | iq] layout and address the same published claim

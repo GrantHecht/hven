@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <limits>
 #include <type_traits>
 
@@ -67,7 +68,21 @@ enum class BoundState {
 /// trajectories (visible as a status difference only under a too-small
 /// budget). Read the equivalence claim as "the same optimal VALUE, and the
 /// same point wherever that point is unique". Every cross-mode battery solves
-/// a strictly convex H and is unaffected.
+/// a strictly convex H and is unaffected. The claim is scoped to those
+/// batteries: outside them, at `dual_mu` above the driver's own schedule, the
+/// two modes can DISAGREE on a verdict (M6 W2 T6b pins one such cell as a
+/// pre-existing walk-trajectory residue). The accuracy half of that caveat is
+/// RETIRED as of M6 W2 T7 (fix round 1): at a would-be-kInfeasible dead end
+/// reached by EITHER PATH the closed face is refined, against the same row-unit
+/// target and under the same closed-or-nothing rule, so neither mode can
+/// out-refine the other there — including the border-mode iterations a fallback
+/// or the latch serves from the elimination path, which the first cut of that
+/// change left refining neither way. WHAT IS NOT SYMMETRIC IS THE COST: the
+/// border twin re-forms its system through the Schur complement it already
+/// holds, while the eliminated twin reuses the incumbent factorization only
+/// while the working set has not moved since the candidate solve, and buys a
+/// factorization plus a symbolic analysis when it has (qp_engine.h section 5,
+/// and both refine_*_for_verdict declarations).
 enum class WorkingSetLinearAlgebra {
     kRefactorize,
     kSchurBorder,
@@ -149,6 +164,44 @@ struct QpOptions {
     /// meaning only +inf has).
     double tr_radius = std::numeric_limits<double>::infinity();
 };
+
+/// @brief A field-wise hash of the options a QpEngine was built under, plus the
+///        thread count in force.
+///
+/// WHY IT EXISTS. A hot handle (`SqpWarmStart::hot`, detail/qp/qp_engine.h's
+/// HotState) carries a factorized K0 across engines. The reuse conditions
+/// (a)-(e) fingerprint the PROBLEM (the structural and value hashes, the
+/// effective delta/mu, the working set) and the FACTOR OBJECT (its
+/// (session_id, epoch) pair and its usable inertia) -- and nothing among them
+/// fingerprints the ENGINE OPTIONS the K0 was built under. An engine with a
+/// different `schur_cap`, a different `ws_algebra` or a different pivot
+/// regularization would adopt a matching handle and reuse a factorization built
+/// for other settings. This value closes that gap: `hot_state()` stamps it and
+/// `run()` adopts only a handle whose stamp equals the adopting engine's own.
+///
+/// EVERY FIELD OF QpOptions IS COVERED -- all nine (primal_delta, dual_mu,
+/// feas_tol, opt_tol, max_iter, schur_cap, schur_cond_max, ws_algebra,
+/// tr_radius) -- because a field left out is a hole of exactly the kind above.
+/// Add a field to QpOptions and you add it here; the field-coverage test in
+/// tests/drivers/test_options.cpp flips each one alone and requires the hash to
+/// move.
+///
+/// PADDING-SAFE: a field-wise mix, never a byte hash over the struct, so
+/// padding bytes cannot make two equal values hash differently.
+///
+/// DOUBLES ARE HASHED BY THEIR BIT PATTERN, so +0.0 and -0.0 hash differently
+/// and a NaN hashes as whatever NaN it is. That is the conservative direction
+/// for a REUSE gate: a spurious mismatch costs a factorization, a spurious match
+/// would reuse the wrong one.
+///
+/// @param opts    The engine's stored options.
+/// @param threads The thread count in force for the engine's factor paths.
+///                Hashed from M6 W5 T8.3 although this engine CARRIES rather
+///                than APPLIES the count until T8.8, so the meaning of a pin
+///                written against it does not change when T8.8 lands.
+/// @return The fingerprint. Never meaningful across processes: it is compared
+///         only between engines in one process, exactly like HotState itself.
+std::uint64_t options_fingerprint(const QpOptions &opts, int threads);
 
 /// @brief Per-solve overrides for the three QpOptions fields a driver needs to
 /// vary call-to-call on ONE QpEngine instance: the trust-region radius

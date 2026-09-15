@@ -34,6 +34,10 @@ struct IterateInfo {
     double alpha_t_ = 1.0;
 
     double h_pert_ = 0;
+    /// Inertia-ladder steps this iteration's factorization took; 0 when none
+    /// were needed. SENTINEL -1: the Newton direction came back non-finite, so
+    /// no ladder ran and no count exists (alg_impl's !GoodStep branch). Not a
+    /// step count of -1.
     int h_facs_ = 0;
 
     /// Running total of every inertia-perturbation delta applied to the KKT
@@ -46,9 +50,22 @@ struct IterateInfo {
     // -1 on the classic path). Both >= 0 when active; negative means "mode
     // off". Not printed (the iteration table formats an explicit field list).
     double prox_reg_primal_ = -1.0; ///< Persistent primal base shift rho_k on the Hessian diagonal.
-    double prox_reg_dual_ = -1.0;   ///< Barrier-scaled dual shift delta_c on the constraint-row diagonals (0 when suppressed inside a nested l1 restoration phase).
+    double prox_reg_dual_ =
+        -1.0; ///< Barrier-scaled dual shift delta_c on the constraint-row diagonals (0 when
+              ///< suppressed inside a nested l1 restoration phase).
 
     int p_pivots_ = 0;
+    /// Was p_pivots_ an OBSERVATION, or the projection's substitute?
+    ///
+    /// KktFactorization::ppivs() projects an absent backend count to the
+    /// integer 0 (`.value_or(0)`, kkt_factorization.cpp), and Apple Accelerate
+    /// reports no perturbed-pivot count at all -- so a 0 there is a substituted
+    /// value, not a measurement (CLAUDE.md section 6). fill_iter_info sets this
+    /// from the factorization's own optional beside the projected int; it stays
+    /// false on a record that was never factorized (the converge-check exit's).
+    /// The projected int is unchanged and every existing consumer reads it as
+    /// before.
+    bool p_pivots_observed_ = false;
     double max_e_mult_ = 0;
     double max_i_mult_ = 0;
     double merit_val_ = 0.0;
@@ -69,9 +86,12 @@ struct IterateInfo {
     // or the LANG variant ran); a real infeasibility is always >= 0, so treat
     // any negative value as "skip theta-based logic", not as a feasible
     // reading.
-    bool accepted_ = false;                  ///< Did the merit test accept a step this line search (false if every backtrack was rejected).
-    int first_rejection_iter_ = -1;          ///< Backtracking index of the first rejected trial (-1 if accepted with no rejection).
-    double theta_at_first_rejection_ = -1.0; ///< Constraint infeasibility at that first rejected trial; see the norm-convention callout above.
+    bool accepted_ = false; ///< Did the merit test accept a step this line search (false if every
+                            ///< backtrack was rejected).
+    int first_rejection_iter_ =
+        -1; ///< Backtracking index of the first rejected trial (-1 if accepted with no rejection).
+    double theta_at_first_rejection_ = -1.0; ///< Constraint infeasibility at that first rejected
+                                             ///< trial; see the norm-convention callout above.
 
     /// Trial-point evaluations that threw during this iteration's acceptance
     /// attempts (line-search rungs, SOC/extended-backtrack trials,

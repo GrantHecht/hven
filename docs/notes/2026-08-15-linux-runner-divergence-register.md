@@ -73,6 +73,42 @@ for a lane-silicon-specific flake; whether the fixture should pin a range
 or a stable invariant instead belongs to the post-M3 task, not to an M3
 change.
 
+**DISPOSITION (2026-08-27, M6 W0.4) — the tie fixture's exact pins are
+RETIRED.** Occurrence 10's mechanism note asked whether the fixture should
+pin a range or a stable invariant instead; a further occurrence settled it.
+On **2026-08-26** a main-push CI run failed exactly this fixture's direction
+assertions and a **rerun of the same commit passed** — the coin landing the
+other way **within MKL**, on one lane, which is what the per-backend pins had
+assumed could not happen. (Reported into the M6 register by the SQP lane; the
+run id was not carried with the report, so this is recorded as a disposition
+rather than as a numbered occurrence in the table above.)
+`SsnEngineLocal.WeaklyActiveRowFinishesUncertain` now asserts only what holds
+whichever way either coin lands: the tie is seen (`ssn_uncertain_peak == 1`),
+the safeguarded engine never exports the weakly active row as
+inactive-AND-certain (from **either** start), bare mode's uncertain flag is
+false (structural — bare has no third set), and `ssn_bulk_flips >= 1`. No
+ceiling on the flip count: it grows by at most one per pass and the first pass
+cannot flip, so the retained `iters == 7` already bounds it at 6, and `iters`
+is what an under-damping regression actually trips.
+
+**The bare-vs-full CONTRAST is retired too**, on this register's own evidence:
+occurrence 3's failure table above records
+`bool(bare.ineq_active[1]) != bool(full.ineq_active[1])` failing with actual
+"`true` vs `true`" — under the flipped reading BOTH modes report the row active,
+and both then land (active, certain), a legitimate reading of the tie on each
+side. There is no portable contrast to assert, so the second cell now RECORDS
+its readings (`RecordProperty`, visible in the ctest XML) instead of comparing
+them. Both `USE_ACCELERATE_SPARSE` arms are gone from that test;
+**M3-4's backend divergence stays documented there — only the assertions on it
+are removed**, and the register's re-open trigger (Verdict 2 item 4) is
+untouched.
+
+This removes **all three** of the assertion sites this class kept landing on for
+its last surviving member (`:1993` the flip count, `:2023` the contrast,
+`:2040`/`:2041` the end-state directions, in occurrence 3's numbering). It does
+not close L-1, and says nothing about whether the underlying lane sensitivity
+persists — that is now simply unobservable through this fixture.
+
 Occurrence 4 (2026-08-15): same four tests, same assertion sites as
 occurrence 3's table below; green on rerun; the commit's P-SYM was 60/60
 byte-identical, so the exoneration basis holds at its strongest. Per-cell

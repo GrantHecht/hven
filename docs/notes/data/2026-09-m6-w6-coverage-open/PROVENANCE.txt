@@ -1,0 +1,197 @@
+M6 W6 T0 COVERAGE READ -- PROVENANCE (CLAUDE.md section 7)
+==========================================================
+Read this first: it governs every number in this directory.
+
+INSTRUMENT TREE ONLY -- NO NUMBER HERE IS A PIN, A BASELINE OR A TIMING.
+  The coverage preset compiles with -fprofile-instr-generate -fcoverage-mapping
+  on top of Debug. Coverage flags change codegen, so nothing measured in this
+  tree is comparable to the uniform flag regime this repository asserts its
+  numbers under (CMakePresets.json, the linux-clang-coverage description;
+  scripts/run_coverage.sh's own header). Coverage percentages are reported.
+  Nothing here is asserted, gated, pinned, or quotable as a timing.
+
+WHAT THIS DIRECTORY IS
+  The fresh coverage read W6 T0 owes the window (plan docs/notes/2026-09-m6-w6-plan.md
+  section 1, W6.T0): the whole suite run once under instrumentation at HEAD, the
+  library's per-file table verbatim, the per-directory rows, the 0 % header list
+  re-derived and judged, and the one number T2 needs -- `src/drivers/` line
+  coverage against the library's on THIS read (plan J.1).
+
+RUN DATE
+  2026-09-13 -- the configure, the instrumented build, all four suite legs, the
+  long cell's solo run and the report step were taken on this date, local time,
+  on the machine under TOOLCHAIN AND HARDWARE below. (Field added in T0 fix
+  round 1, 2026-09-13: the original file carried the date only beside the two
+  commit descriptions, which is the date of the COMMITS, not of the run. Both
+  are 2026-09-13 here; the field says which is which. No number changed.)
+
+COMMIT
+  Tree measured (HEAD):  7da77b5d57efd977def3018a874e362cd8fb908b
+                         "docs(m6): W6 plan v2 -- the Fable plan review's
+                          A1-A16 folded ..."   2026-09-13
+                         This is the W6 plan's own code head: the plan file is
+                         what 7da77b5d changes.
+  Code head it contains: 110227e2555b72fa7888c66bdf09e56f7f407da9
+                         "fix(rename): M6 W5 T8.10 fix1 -- the checker's base,
+                          the ten stale start_level mentions, ..."  2026-09-13
+  Every commit from 110227e2 to 7da77b5d is DOCS-ONLY -- `git diff --name-only
+  110227e2..HEAD` lists 24 files, all under docs/ -- so the compiled tree at
+  7da77b5d IS the code head 110227e2.
+  Working tree: CLEAN at the read (`git status --short` empty; the only later
+  change is T0's own edit to scripts/run_coverage.sh, which this read did not
+  use -- see THE EXCLUSION LIST below).
+
+TOOLCHAIN AND HARDWARE
+  clang 22.1.8 (Fedora 22.1.8-4.fc44), pinned for C as well as C++ by the preset
+  llvm-cov 22.1.8, llvm-profdata 22.1.8 (LLVM 22.1.8, optimized build)
+  CMake 4.3.0; Ninja 1.13.2; bash 5.3.9
+  Intel oneAPI MKL 2026.1 (/opt/intel/oneapi/mkl/latest -> mkl/2026.1)
+  AMD Ryzen 7 5800X3D (8 physical cores / 16 threads), Fedora 44,
+  kernel 7.2.4-200.fc44.x86_64
+  Preset: linux-clang-coverage (CMakePresets.json) -- Debug base,
+  HVEN_FP_MODE=SAFER_FAST, CMAKE_CXX_FLAGS/-C_FLAGS
+  "-fprofile-instr-generate -fcoverage-mapping",
+  CMAKE_EXE_LINKER_FLAGS "-fprofile-instr-generate". Build directory
+  build-coverage/ (git-ignored: .gitignore:1, `build*/`), WIPED and configured
+  fresh for this read so no object or profile from the W2-era tree survives.
+  No extra CMAKE_ARGS: the CI lane's -DHVEN_SIMD_ARCH=x86-64-v3 was NOT passed
+  (this is a local read; the CI lane pins it, and a comparison of this read
+  against a CI one would have to account for that).
+
+  APPLE / ACCELERATE: UNOBSERVED. Every number here is MKL-on-Linux. No Apple or
+  Windows value is inferred, interpolated or zero-filled from it, and none is
+  quoted anywhere in this directory.
+
+HOW IT WAS RUN (and the two places it departs from `scripts/run_coverage.sh`)
+  The script owns the path; this read ran the script's own steps as separate
+  legs, because the box protocol caps a single foreground call and the whole
+  suite does not fit in one:
+    1. configure  `cmake --preset linux-clang-coverage`
+    2. build      `cmake --build build-coverage -j 8` in three target slices
+                  (hven; the four test targets; the rest)
+    3. suite      four `ctest` slices, `-I` index ranges, `-j 4`, each with
+                  LLVM_PROFILE_FILE="$PWD/build-coverage/profiles/hven-%p.profraw"
+                  -- the script's own spelling (:108) -- so every test process
+                  writes its own raw profile into one directory
+    4. the one long cell ALONE (below)
+    5. report     `scripts/run_coverage.sh --report-only`, the script's own
+                  documented mode: llvm-profdata merge + the three llvm-cov
+                  invocations over ctest's own binary registry
+  DEPARTURE 1: the suite ran in slices rather than as one ctest invocation. The
+  union of the four slices is the whole registry -- reconciled BY NAME, not by
+  index (`-E`/`-I` renumber ctest's output): 2544 registered names, 2544 seen.
+  DEPARTURE 2: `ctest -j 4`, not serial. Nothing here asserts wall-clock, so
+  CLAUDE.md section 7's serial rule is not engaged; and no cell failed, so no
+  "deviation observed under a co-run" arose to re-run alone. MKL_NUM_THREADS=1
+  and OMP_NUM_THREADS=1 in every slice.
+
+THE SUITE, UNDER INSTRUMENTATION
+  registered ....... 2544 cells
+  executed ......... 2542   (0 failed)
+  disabled ......... 2      EqpRefinementAb.FootprintRuleProbe,
+                            EqpRefinementAb.FullBattery -- ctest reports
+                            "Not Run (Disabled)"; they are disabled in the tree,
+                            not by anything this read did
+  skipped by design  1      FailByDesignControl.ControlsArePresentForWhichever-
+                            OldSeamsThisBuildHas (counted as passing by ctest)
+  ctest exit status  0      (build-coverage/ctest-status.txt)
+  The long cell: Continuation.ProbeBudgetBoundsAFailingProposal ran ALONE,
+  detached under nohup, holding the box lock, 675.72 s, 1/1 passed. It is the
+  known >600 s Debug cell; under instrumentation it stayed well inside the
+  two-hour budget the brief set, so it is RUN, not NOT RUN.
+
+THE EXCLUSION LIST IN FORCE ON THIS READ: NONE.
+  `instrument-tree exclusion regex: (none -- every registered cell ran)`.
+  W6 T0 also TAKES the instrument-tree disposition the M5 ledger left open
+  (docs/notes/2026-08-m5-ledger.md:440-461) by putting the mechanism inside
+  scripts/run_coverage.sh as a ctest `-E` regex with its two conditions written
+  above it -- and by leaving that regex EMPTY, because the three cells M5 saw
+  fail on a GitHub runner (B1Gate.EqualityOnlyWarmSolvesAreBitIdenticalAcross-
+  TheRepair; CorpusTask6bPhaseB.TheShippedKSsnConfigurationIsUnmovedByThe-
+  FourLevers; SsnEngineLocal.WeaklyActiveRowFinishesUncertain) all exist under
+  those exact names at HEAD, all three RAN in this read, and all three PASSED.
+  The regex was therefore empty for this read whether it was read from the
+  script or not: the profiles behind every number here come from a run in which
+  nothing was excluded. The list is PROVISIONAL and is re-derived at T2's close
+  read. COVERAGE_TOLERATE_FAILURES stays what it was -- the CI escape hatch.
+
+THE "MISMATCHED DATA" WARNING, RE-COUNTED
+  llvm-cov warned "952 functions have mismatched data" on this read.
+    M5's first CI coverage run .... 736   (ledger :457-458)
+    W2 T8's read .................. 683   (that artifact's README :251)
+    THIS read ..................... 952
+  M5's diagnosis is on record at docs/notes/2026-08-m5-ledger.md:616-617 -- "the
+  mismatched-data warning is the bounded, understating HVEN_TESTING
+  double-compile effect, not a file-drop" -- and the "understating" half of that
+  sentence is confirmed here in a way M5 did not have to hand: five library
+  headers report 0 % lines while their functions demonstrably execute (see
+  README.md section 3 and zero-headers.txt).
+  [SUPERSEDED IN THE COUNT -- T0 fix round 1 (2026-09-13): FOUR library headers,
+  not five (timer.h, eval_error_log.h, inertia_regularization.h,
+  ipm_solver_types.h). The fifth, soc.h, is genuinely cold. See the T0 FIX
+  ROUND 1 block at the end of this file.] The COUNT is re-derived; the CAUSE
+  is cited, and an experiment that would settle whether the double compile is
+  the whole of it is named in README.md section 3 for T2.
+
+WHAT IS IN THIS DIRECTORY
+  PROVENANCE.txt ........ this file
+  README.md ............. the index, and the findings in prose
+  coverage-summary.txt .. `llvm-cov report`'s per-file table, VERBATIM
+  coverage-areas.txt .... the per-directory rows, all four metrics, lines asserted
+  zero-headers.txt ...... every 0 % file, with a judgement and its evidence
+  parity.txt ............ the parity number, the caveat, the named gaps
+
+  The raw `llvm-cov show` dumps, the per-slice ctest logs, the leg transcripts
+  with their PGREP_EMPTY / FOREGROUND_START / FOREGROUND_END markers, and the
+  wrapper failure proofs are retained in .scratch/w6t0/ (git-ignored), not here.
+
+T0 FIX ROUND 1 (2026-09-13) -- WHAT WAS CORRECTED IN THIS DIRECTORY, AND WHAT WAS NOT
+====================================================================================
+The sol review of W6 T0 (FIX-ROUND, no Critical; SIGNOFF W6-T0-REVIEW-SOL) and
+the settler's rulings K1-K3 on it. NOTHING WAS RE-MEASURED: no configure, no
+build, no ctest, no profile, no llvm-cov invocation. `coverage-summary.txt` --
+llvm-cov's own table, verbatim -- is BYTE-UNTOUCHED, and every corrected figure
+below is recomputed from it. Original sentences are kept where they were and
+marked superseded; corrections are dated and additive.
+
+  1. parity.txt, the caveat (~:30, now under the SUPERSEDED marker): the
+     direction of the under-read caveat was inverted. +1.17 points is an UPPER
+     BOUND on `src/drivers/`'s lead, not a floor -- correcting an under-read
+     that lands on HEADERS raises the LIBRARY total, and the `src/drivers/`
+     directory row holds only `src/drivers/*.cpp`. Quantified on the
+     demonstrated defect: 47 + 9 + 6 + 1 = 63 missed lines in the four
+     under-read headers (coverage-summary.txt :45, :34, :17, :72); filling all
+     63 gives 22322/25448 = 87.7161 % -> 87.72 % library against 88.6343 %
+     drivers, so parity still holds. The wider 952-function effect is NOT
+     quantified and NO directional claim is made about it. (K1)
+  2. parity.txt (:37 of the original, and its closing paragraph): "five
+     separate header files" / "five of the eight" -> FOUR demonstrated
+     under-read headers. (K2)
+  3. README.md section 1: the +1.17 headline now carries the ceiling reading.
+     Section 3's heading count and the PCH paragraph's premise are marked
+     superseded, with the correction in a new section 5. (K1, K2)
+  4. README.md section 5, the PCH correlation restated exactly: src/hven_pch.h
+     carries timer.h (:59), inertia_regularization.h (:86) and soc.h (:89) --
+     TWO under-read headers plus the genuinely cold soc.h -- while
+     eval_error_log.h and ipm_solver_types.h are under-read and NOT in the PCH.
+     The one-tree PCH-off experiment can therefore test the PCH CONTRIBUTION
+     only; it cannot by itself settle all four under-read rows or the whole
+     mismatched-data cause. (K2)
+  5. zero-headers.txt, the preamble: "Five of these eight" -> four, with the
+     corrected roll-up appended at the end of that file. (K2)
+  6. PROVENANCE.txt: this block; the RUN DATE field added at the top (K3 d);
+     and the "five library headers" sentence in THE "MISMATCHED DATA" WARNING
+     section marked superseded (K2).
+  7. coverage-areas.txt: a dated footnote on the quoted exclusion-regex status
+     line -- it means "no registered cell was EXCLUDED"; two cells are DISABLED
+     in the tree and did not run. The quote itself is left as the run emitted
+     it. (K3 c)
+  8. Outside this directory, in the same fix round: scripts/run_coverage.sh's
+     comment block (comment text only -- the candidates are named as cells that
+     PASSED, not as "tolerated"; and the emitted status string's reading is
+     recorded above it), and docs/notes/2026-09-m6-w6-plan.md J.11's stale
+     claim that W4's PROVENANCE cites the comparator by content.
+
+WHAT DID NOT CHANGE: every measured number in this directory. The parity
+finding stands as plan J.1 defines it -- 88.63 % against 87.47 % on this one
+read -- with the caveat now pointing the right way.

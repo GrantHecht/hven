@@ -53,7 +53,12 @@
 # it writes.  A stamp carrying `-dirty` does not name a real commit and fails the
 # gate's provenance requirement.  Check before starting a multi-hour sweep:
 #
-#     "$BIN" --from-csv <any committed baseline> --csv /dev/null   # header only
+#     "$BIN" --from-csv <any committed baseline> --csv <scratch>.csv
+#     grep "^# binary:" <scratch>.csv                          # the header
+#
+# (The binary writes its provenance header INTO the CSV, not to stdout, so
+# `--csv /dev/null` discards exactly the lines the check reads and prints only
+# "merged N row(s) into /dev/null"; found at the M6 close gate, 2026-09-14.)
 #
 # Resumability: a cell whose row file already exists is skipped, so a crash or a
 # kill resumes rather than restarting the sweep.
@@ -72,6 +77,10 @@
 #                        evidence the gate-A/gate-B records cite by content)
 #   --compare PATH       comparator script; the compare step runs only when this
 #                        is given (the comparator may live evidence-side)
+#                        (the comparator of record is scripts/census_compare.py,
+#                        in the repository since M6 W6; it is byte-exact on all
+#                        13 asserted columns by default, and its opt-in
+#                        --residual-gate REL is NOT passed by this script)
 #   --expect-cells N     baseline cell count to require (default 57)
 #   --t1-width N         tier-1 worker count (default 6)
 #   --t3-width N         tier-3 worker count (default 5)

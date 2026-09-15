@@ -1,0 +1,15 @@
+# artifact: hven IPQP E1 acceptance arm (M6 W1 T10, spec section 8 A4/Q4/A13/A14)
+# producer: bench/ipqp_e1_arm.cpp (hven_sqp_ipqp_e1_arm)
+# git describe: a142a1380890-dirty
+# mode: envelope
+# date (UTC): 2026-09-01T14:23:01Z
+# MKL_NUM_THREADS: 1
+# OMP_NUM_THREADS: 1
+# cell recipe: docs/notes/data/2026-08-m6-e1-acquisition/generator/e1_generate.cpp
+# PIQP: NEVER run, linked or read as source here; its committed CSVs are the
+#       oracle this arm is compared against (CLAUDE.md section 6).
+# WALL-ASSERTING leg: run SOLO, serialized, one solve at a time.
+# The engine column is the only difference between the two rows.
+engine,nodes,n,p,status,majors,wall_s,qp_iters,ipqp_iters,ipqp_factorizations
+walk,20000,100000,4.500000e-01,optimal,1,6.455299e-01,2,0,0
+ipm,20000,100000,4.500000e-01,optimal,1,1.746699e+00,0,11,12

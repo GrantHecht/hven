@@ -1,0 +1,2662 @@
+# Every foreign pid of every batch, with every state observed for it
+
+Settler ruling R13 (W5 T8.9r fix round 3): R2' asks for every foreign pid and state seen in any snapshot, listed -- not a count and a busiest-five. This is that list, written by `scripts/idle_proof.py` from the same snapshots the fractions are computed from.
+
+States are the UNION of `/proc/<pid>/stat`'s single character (`FOREIGN_TICK`) and `ps`'s full string (`FOREIGN_PS`). A pid marked **transient** was present in some snapshot of the batch but not in both ends, so it has no CPU delta. `delta` is ticks/clk across the batch window for pids present at both ends.
+
+## `10-ipmleg-perf.log` / `ipmleg-perf`  (5 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.01 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.00 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.02 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.01 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.01 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.14 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.10 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.01 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.02 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 445221 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 445228 | `S` | 0.00 | both ends | `fish` |
+| 445371 | `S,S+` | 0.00 | both ends | `tmux:` |
+| 448796 | `S` | - | **transient** | `systemd-userwor` |
+| 448797 | `S` | - | **transient** | `systemd-userwor` |
+| 453855 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 453929 | `S` | 0.00 | both ends | `tail` |
+| 454244 | `S` | - | **transient** | `systemd-userwor` |
+| 454245 | `S` | - | **transient** | `systemd-userwor` |
+
+## `11-ipmleg-wall.log` / `ipmleg-wall`  (3 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.01 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.01 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.04 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.04 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.01 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 445221 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 445228 | `S` | 0.00 | both ends | `fish` |
+| 445371 | `S,S+` | 0.00 | both ends | `tmux:` |
+| 453855 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 454244 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 454245 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 455270 | `S` | 0.00 | both ends | `tail` |
+
+## `12-hs-perf.log` / `hs-perf`  (5 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.01 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.01 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.01 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.03 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.01 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.01 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.17 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.12 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.02 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 445221 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 445228 | `S` | 0.00 | both ends | `fish` |
+| 445371 | `S,S+` | 0.00 | both ends | `tmux:` |
+| 453855 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 454244 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 454245 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 456058 | `S` | 0.00 | both ends | `tail` |
+
+## `13-hs-wall.log` / `hs-wall`  (3 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.01 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.00 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.01 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.01 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.06 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.04 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.02 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 445221 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 445228 | `S` | 0.00 | both ends | `fish` |
+| 445371 | `S,S+` | 0.00 | both ends | `tmux:` |
+| 453855 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 454244 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 454245 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 457451 | `S` | 0.00 | both ends | `tail` |
+
+## `14-ipmleg2-perf.log` / `ipmleg2-perf`  (5 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.01 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.01 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.01 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.01 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.01 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.01 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.10 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.12 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.03 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 542754 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 542762 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 542763 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 544116 | `S` | 0.00 | both ends | `bash` |
+| 544117 | `S` | 0.00 | both ends | `tail` |
+| 544118 | `S` | 0.00 | both ends | `2.1.270` |
+
+## `20-sqpperf-ipm-r1.log` / `sqpperf-ipm-r1-gall`  (29 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.01 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.01 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.03 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.01 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.01 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.18 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.16 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.16 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 445221 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 445228 | `S` | 0.00 | both ends | `fish` |
+| 445371 | `S,S+` | 0.00 | both ends | `tmux:` |
+| 453855 | `S` | - | **transient** | `systemd-userwor` |
+| 454244 | `S` | - | **transient** | `systemd-userwor` |
+| 454245 | `S` | - | **transient** | `systemd-userwor` |
+| 458255 | `S` | 0.00 | both ends | `bash` |
+| 458256 | `S` | 0.00 | both ends | `tail` |
+| 458257 | `S` | 0.00 | both ends | `2.1.270` |
+| 462148 | `S` | - | **transient** | `systemd-userwor` |
+| 464071 | `S` | - | **transient** | `systemd-userwor` |
+| 464072 | `S` | - | **transient** | `systemd-userwor` |
+
+## `20-sqpperf-ipm-r2.log` / `sqpperf-ipm-r2-gall`  (29 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.01 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.01 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.01 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.03 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.01 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.20 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.16 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.15 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 445221 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 445228 | `S` | 0.00 | both ends | `fish` |
+| 445371 | `S,S+` | 0.00 | both ends | `tmux:` |
+| 462148 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 464071 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 464072 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 466180 | `S` | 0.00 | both ends | `bash` |
+| 466181 | `S` | 0.00 | both ends | `tail` |
+| 466182 | `S` | 0.00 | both ends | `2.1.270` |
+
+## `20-sqpperf-ipm-r3.log` / `sqpperf-ipm-r3-gall`  (29 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.01 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.01 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.01 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.00 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.04 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.04 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.01 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.01 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.18 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.14 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.18 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 445221 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 445228 | `S` | 0.00 | both ends | `fish` |
+| 445371 | `S,S+` | 0.00 | both ends | `tmux:` |
+| 462148 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 464071 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 464072 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 474100 | `S` | 0.00 | both ends | `bash` |
+| 474101 | `S` | 0.00 | both ends | `tail` |
+| 474102 | `S` | 0.00 | both ends | `2.1.270` |
+
+## `21-sqpperf-ssn-r1.log` / `sqpperf-ssn-r1-gall`  (29 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.02 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.01 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.01 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.01 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.01 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.03 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `Rl+,S,Sl+` | 0.14 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.12 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.15 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 445221 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 445228 | `S` | 0.00 | both ends | `fish` |
+| 445371 | `S,S+` | 0.00 | both ends | `tmux:` |
+| 462148 | `S` | - | **transient** | `systemd-userwor` |
+| 464071 | `S` | - | **transient** | `systemd-userwor` |
+| 464072 | `S` | - | **transient** | `systemd-userwor` |
+| 482037 | `S` | 0.00 | both ends | `bash` |
+| 482038 | `S` | 0.00 | both ends | `tail` |
+| 482039 | `S` | 0.00 | both ends | `2.1.270` |
+| 485097 | `S` | - | **transient** | `systemd-userwor` |
+| 487851 | `S` | - | **transient** | `systemd-userwor` |
+| 487852 | `S` | - | **transient** | `systemd-userwor` |
+
+## `21-sqpperf-ssn-r2.log` / `sqpperf-ssn-r2-gall`  (29 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.00 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.01 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.02 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.01 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.01 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.15 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.13 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.16 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 445221 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 445228 | `S` | 0.00 | both ends | `fish` |
+| 445371 | `S,S+` | 0.00 | both ends | `tmux:` |
+| 485097 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 487851 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 487852 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 489958 | `S` | 0.00 | both ends | `bash` |
+| 489959 | `S` | 0.00 | both ends | `tail` |
+| 489960 | `S` | 0.00 | both ends | `2.1.270` |
+
+## `21-sqpperf-ssn-r3.log` / `sqpperf-ssn-r3-gall`  (29 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.01 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.01 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.01 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.03 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.01 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.01 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.16 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.12 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.18 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 445221 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 445228 | `S` | 0.00 | both ends | `fish` |
+| 445371 | `S,S+` | 0.00 | both ends | `tmux:` |
+| 485097 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 487851 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 487852 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 497884 | `S` | 0.00 | both ends | `bash` |
+| 497885 | `S` | 0.00 | both ends | `tail` |
+| 497886 | `S` | 0.00 | both ends | `2.1.270` |
+
+## `22-sqpperf-walk-r1-g1.log` / `sqpperf-walk-r1-g1`  (11 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.00 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.02 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.01 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.06 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 445221 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 445228 | `S` | 0.00 | both ends | `fish` |
+| 445371 | `S,S+` | 0.00 | both ends | `tmux:` |
+| 485097 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 487851 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 487852 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 505819 | `S` | 0.00 | both ends | `bash` |
+| 505820 | `S` | 0.00 | both ends | `tail` |
+| 505821 | `S` | 0.00 | both ends | `2.1.270` |
+
+## `22-sqpperf-walk-r1-g2.log` / `sqpperf-walk-r1-g2`  (11 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.00 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.01 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.02 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.02 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.05 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 445221 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 445228 | `S` | 0.00 | both ends | `fish` |
+| 445371 | `S,S+` | 0.00 | both ends | `tmux:` |
+| 485097 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 487851 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 487852 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 508809 | `S` | 0.00 | both ends | `bash` |
+| 508810 | `S` | 0.00 | both ends | `tail` |
+| 508811 | `S` | 0.00 | both ends | `2.1.270` |
+
+## `22-sqpperf-walk-r1-g3.log` / `sqpperf-walk-r1-g3`  (11 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.01 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.01 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.01 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.02 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.02 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.01 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.08 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.03 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.01 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.04 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.03 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.22 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.03 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.02 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.02 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 1.21 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.84 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.01 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.14 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 445221 | `S,Ssl` | - | **transient** | `tailscaled` |
+| 445228 | `S` | - | **transient** | `fish` |
+| 445371 | `S,S+` | - | **transient** | `tmux:` |
+| 485097 | `S` | - | **transient** | `systemd-userwor` |
+| 487851 | `S` | - | **transient** | `systemd-userwor` |
+| 487852 | `S` | - | **transient** | `systemd-userwor` |
+| 511806 | `S` | 0.00 | both ends | `bash` |
+| 511807 | `S` | 0.00 | both ends | `tail` |
+| 511808 | `S` | 0.00 | both ends | `2.1.270` |
+| 514080 | `S` | - | **transient** | `systemd-userwor` |
+| 514083 | `S` | - | **transient** | `systemd-userwor` |
+| 514084 | `S` | - | **transient** | `systemd-userwor` |
+| 514366 | `S,Ss` | - | **transient** | `bash` |
+| 514378 | `S` | - | **transient** | `systemd-userwor` |
+| 514399 | `S` | - | **transient** | `systemd-userwor` |
+| 514400 | `S` | - | **transient** | `systemd-userwor` |
+| 514456 | `S,Ss` | - | **transient** | `bash` |
+| 514565 | `S` | - | **transient** | `sleep` |
+| 514599 | `S` | - | **transient** | `sleep` |
+
+## `23-sqpperf-walk-r2-g1.log` / `sqpperf-walk-r2-g1`  (11 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.00 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.01 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.01 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.01 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.05 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 514366 | `S,Ss` | 0.00 | both ends | `bash` |
+| 514378 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 514399 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 514400 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 514456 | `S,Ss` | 0.00 | both ends | `bash` |
+| 515076 | `S` | 0.00 | both ends | `sleep` |
+| 515087 | `S` | 0.00 | both ends | `sleep` |
+| 515091 | `S` | 0.00 | both ends | `bash` |
+| 515092 | `S` | 0.00 | both ends | `tail` |
+| 515093 | `S` | 0.00 | both ends | `2.1.270` |
+
+## `23-sqpperf-walk-r2-g19-22.log` / `sqpperf-walk-r2-g19-22`  (6 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.00 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.01 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.03 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.02 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 514366 | `S,Ss` | 0.00 | both ends | `bash` |
+| 514378 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 514399 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 514400 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 514456 | `S,Ss` | 0.00 | both ends | `bash` |
+| 519327 | `S` | - | **transient** | `sleep` |
+| 520464 | `S` | - | **transient** | `sleep` |
+| 521145 | `S` | 0.00 | both ends | `bash` |
+| 521146 | `S` | 0.00 | both ends | `tail` |
+| 521147 | `S` | 0.00 | both ends | `2.1.270` |
+| 521462 | `S` | - | **transient** | `sleep` |
+| 522006 | `S` | - | **transient** | `sleep` |
+| 522558 | `S` | - | **transient** | `sleep` |
+
+## `23-sqpperf-walk-r2-g2.log` / `sqpperf-walk-r2-g2`  (11 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.00 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.03 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.02 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.05 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 514366 | `S,Ss` | 0.00 | both ends | `bash` |
+| 514378 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 514399 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 514400 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 514456 | `S,Ss` | 0.00 | both ends | `bash` |
+| 515076 | `S` | - | **transient** | `sleep` |
+| 515087 | `S` | - | **transient** | `sleep` |
+| 518115 | `S` | 0.00 | both ends | `bash` |
+| 518116 | `S` | 0.00 | both ends | `tail` |
+| 518117 | `S` | 0.00 | both ends | `2.1.270` |
+| 518420 | `S` | - | **transient** | `sleep` |
+| 519327 | `S` | - | **transient** | `sleep` |
+| 520464 | `S` | - | **transient** | `sleep` |
+
+## `23-sqpperf-walk-r2-g23-27.log` / `sqpperf-walk-r2-g23-27`  (7 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.01 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.02 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.02 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.04 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.08 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.02 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.01 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.01 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.08 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.02 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.13 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.04 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.02 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.03 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 1.22 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.88 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.02 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.02 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.14 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 514366 | `S,Ss` | 0.03 | both ends | `bash` |
+| 514378 | `S` | - | **transient** | `systemd-userwor` |
+| 514399 | `S` | - | **transient** | `systemd-userwor` |
+| 514400 | `S` | - | **transient** | `systemd-userwor` |
+| 514456 | `S,Ss` | 0.01 | both ends | `bash` |
+| 522006 | `S` | - | **transient** | `sleep` |
+| 522558 | `S` | - | **transient** | `sleep` |
+| 522793 | `S` | 0.00 | both ends | `bash` |
+| 522794 | `S` | 0.00 | both ends | `tail` |
+| 522795 | `S` | 0.00 | both ends | `2.1.270` |
+| 523134 | `S` | - | **transient** | `sleep` |
+| 523414 | `S` | - | **transient** | `sleep` |
+| 524095 | `S` | - | **transient** | `systemd-userwor` |
+| 524119 | `S` | - | **transient** | `systemd-userwor` |
+| 524120 | `S` | - | **transient** | `systemd-userwor` |
+| 524173 | `S` | - | **transient** | `sleep` |
+| 524175 | `S` | - | **transient** | `sleep` |
+| 524474 | `S,Ss` | - | **transient** | `bash` |
+| 524599 | `S` | - | **transient** | `systemd-userwor` |
+| 524668 | `S` | - | **transient** | `systemd-userwor` |
+| 524669 | `S` | - | **transient** | `systemd-userwor` |
+| 524834 | `S` | - | **transient** | `sleep` |
+| 524840 | `S` | - | **transient** | `sleep` |
+| 524852 | `S` | - | **transient** | `sleep` |
+
+## `24-sqpperf-walk-r3-g1.log` / `sqpperf-walk-r3-g1`  (11 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.00 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.02 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.01 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.04 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 514366 | `S,Ss` | 0.00 | both ends | `bash` |
+| 514456 | `S,Ss` | 0.00 | both ends | `bash` |
+| 524474 | `S,Ss` | 0.00 | both ends | `bash` |
+| 524599 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 524668 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 524669 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 525346 | `S` | 0.00 | both ends | `sleep` |
+| 525348 | `S` | 0.00 | both ends | `sleep` |
+| 525350 | `S` | 0.00 | both ends | `sleep` |
+| 525367 | `S` | 0.00 | both ends | `bash` |
+| 525368 | `S` | 0.00 | both ends | `tail` |
+| 525369 | `S` | 0.00 | both ends | `2.1.270` |
+
+## `24-sqpperf-walk-r3-g19-22.log` / `sqpperf-walk-r3-g19-22`  (6 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.01 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.01 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.02 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.03 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.03 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 524599 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 524668 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 524669 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 531578 | `S` | 0.00 | both ends | `bash` |
+| 531579 | `S` | 0.00 | both ends | `tail` |
+| 531580 | `S` | 0.00 | both ends | `2.1.270` |
+
+## `24-sqpperf-walk-r3-g2.log` / `sqpperf-walk-r3-g2`  (11 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.00 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.01 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.02 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.05 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | 0.00 | both ends | `sleep` |
+| 514366 | `S,Ss` | 0.00 | both ends | `bash` |
+| 514456 | `S,Ss` | 0.00 | both ends | `bash` |
+| 524474 | `S,Ss` | 0.00 | both ends | `bash` |
+| 524599 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 524668 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 524669 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 525346 | `S` | - | **transient** | `sleep` |
+| 525348 | `S` | - | **transient** | `sleep` |
+| 525350 | `S` | 0.00 | both ends | `sleep` |
+| 528456 | `S` | 0.00 | both ends | `bash` |
+| 528457 | `S` | 0.00 | both ends | `tail` |
+| 528458 | `S` | 0.00 | both ends | `2.1.270` |
+| 528803 | `S` | - | **transient** | `sleep` |
+| 531033 | `S` | - | **transient** | `sleep` |
+| 531059 | `S` | - | **transient** | `sleep` |
+
+## `24-sqpperf-walk-r3-g23-27.log` / `sqpperf-walk-r3-g23-27`  (7 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.02 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.01 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.02 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.01 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.03 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.08 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.03 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.01 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.04 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.01 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.03 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.01 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.14 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.05 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.02 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.03 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 1.25 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.94 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.01 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 14620 | `S,Ss` | 0.12 | both ends | `tmux:` |
+| 14621 | `S,Ss` | 0.00 | both ends | `fish` |
+| 16979 | `R,S,Sl+` | 46.72 | both ends | `claude` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.14 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 400249 | `S` | - | **transient** | `sleep` |
+| 524599 | `S` | - | **transient** | `systemd-userwor` |
+| 524668 | `S` | - | **transient** | `systemd-userwor` |
+| 524669 | `S` | - | **transient** | `systemd-userwor` |
+| 533443 | `S,Ss` | - | **transient** | `bash` |
+| 533445 | `S` | - | **transient** | `sleep` |
+| 534021 | `S` | - | **transient** | `sleep` |
+| 534870 | `S` | - | **transient** | `systemd-userwor` |
+| 534917 | `S` | - | **transient** | `systemd-userwor` |
+| 534918 | `S` | - | **transient** | `systemd-userwor` |
+| 535003 | `S` | - | **transient** | `sleep` |
+| 535548 | `S` | - | **transient** | `systemd-userwor` |
+| 535605 | `S` | - | **transient** | `systemd-userwor` |
+| 535606 | `S` | - | **transient** | `systemd-userwor` |
+| 535691 | `S` | - | **transient** | `sleep` |
+
+## `30-sqpwall-ipm-a00.log` / `sqpwall-ipm-a00`  (2 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.00 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.01 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.04 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.03 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.01 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 535548 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 535605 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 535606 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 536174 | `S` | 0.00 | both ends | `bash` |
+| 536175 | `S` | 0.00 | both ends | `tail` |
+| 536176 | `S` | 0.00 | both ends | `2.1.270` |
+
+## `30-sqpwall-ipm-a01.log` / `sqpwall-ipm-a01`  (2 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.00 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.01 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.05 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.04 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.00 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 535548 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 535605 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 535606 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 537241 | `S` | 0.00 | both ends | `bash` |
+| 537242 | `S` | 0.00 | both ends | `tail` |
+| 537243 | `S` | 0.00 | both ends | `2.1.270` |
+
+## `30-sqpwall-ipm-a10.log` / `sqpwall-ipm-a10`  (2 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.01 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.00 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.01 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.05 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.04 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.01 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 535548 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 535605 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 535606 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 536708 | `S` | 0.00 | both ends | `bash` |
+| 536709 | `S` | 0.00 | both ends | `tail` |
+| 536710 | `S` | 0.00 | both ends | `2.1.270` |
+
+## `30-sqpwall-ipm-a11.log` / `sqpwall-ipm-a11`  (2 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.01 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.02 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.04 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.03 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.02 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 535548 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 535605 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 535606 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 537775 | `S` | 0.00 | both ends | `bash` |
+| 537776 | `S` | 0.00 | both ends | `tail` |
+| 537777 | `S` | 0.00 | both ends | `2.1.270` |
+
+## `30-sqpwall-ssn-a00.log` / `sqpwall-ssn-a00`  (2 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.01 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.01 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.04 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.03 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.02 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 535548 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 535605 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 535606 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 538321 | `S` | 0.00 | both ends | `bash` |
+| 538322 | `S` | 0.00 | both ends | `tail` |
+| 538323 | `S` | 0.00 | both ends | `2.1.270` |
+
+## `30-sqpwall-ssn-a01.log` / `sqpwall-ssn-a01`  (2 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.00 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.01 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.04 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.02 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.00 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 535548 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 535605 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 535606 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 539387 | `S` | 0.00 | both ends | `bash` |
+| 539388 | `S` | 0.00 | both ends | `tail` |
+| 539389 | `S` | 0.00 | both ends | `2.1.270` |
+
+## `30-sqpwall-ssn-a10.log` / `sqpwall-ssn-a10`  (2 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.00 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.03 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.04 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.01 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 535548 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 535605 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 535606 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 538854 | `S` | 0.00 | both ends | `bash` |
+| 538855 | `S` | 0.00 | both ends | `tail` |
+| 538856 | `S` | 0.00 | both ends | `2.1.270` |
+
+## `30-sqpwall-ssn-a11.log` / `sqpwall-ssn-a11`  (2 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.01 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.00 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.05 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.00 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.03 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.03 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.01 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 535548 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 535605 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 535606 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 539919 | `S` | 0.00 | both ends | `bash` |
+| 539920 | `S` | 0.00 | both ends | `tail` |
+| 539921 | `S` | 0.00 | both ends | `2.1.270` |
+
+## `30-sqpwall-walk-a00.log` / `sqpwall-walk-a00`  (2 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.01 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.01 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.01 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.00 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.01 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.03 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.01 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.01 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.33 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.24 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.03 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 535548 | `S` | - | **transient** | `systemd-userwor` |
+| 535605 | `S` | - | **transient** | `systemd-userwor` |
+| 535606 | `S` | - | **transient** | `systemd-userwor` |
+| 540461 | `S` | 0.00 | both ends | `bash` |
+| 540462 | `S` | 0.00 | both ends | `tail` |
+| 540463 | `S` | 0.00 | both ends | `2.1.270` |
+| 540762 | `S` | - | **transient** | `systemd-userwor` |
+| 540769 | `S` | - | **transient** | `systemd-userwor` |
+| 540770 | `S` | - | **transient** | `systemd-userwor` |
+
+## `30-sqpwall-walk-a01.log` / `sqpwall-walk-a01`  (2 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.01 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.01 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.01 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.01 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.05 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.01 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.03 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.01 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.33 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.22 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.01 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.01 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.03 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 541326 | `S` | - | **transient** | `systemd-userwor` |
+| 541328 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 541329 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 541568 | `S` | 0.00 | both ends | `bash` |
+| 541569 | `S` | 0.00 | both ends | `tail` |
+| 541570 | `S` | 0.00 | both ends | `2.1.270` |
+| 541896 | `S` | - | **transient** | `systemd-userwor` |
+
+## `30-sqpwall-walk-a10.log` / `sqpwall-walk-a10`  (2 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.00 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.00 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.00 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.01 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.04 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.01 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.01 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.03 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.01 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.01 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.00 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.31 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.22 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.01 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 540762 | `S` | - | **transient** | `systemd-userwor` |
+| 540769 | `S` | - | **transient** | `systemd-userwor` |
+| 540770 | `S` | - | **transient** | `systemd-userwor` |
+| 541016 | `S` | 0.00 | both ends | `bash` |
+| 541017 | `S` | 0.00 | both ends | `tail` |
+| 541018 | `S` | 0.00 | both ends | `2.1.270` |
+| 541326 | `S` | - | **transient** | `systemd-userwor` |
+| 541328 | `S` | - | **transient** | `systemd-userwor` |
+| 541329 | `S` | - | **transient** | `systemd-userwor` |
+
+## `30-sqpwall-walk-a11.log` / `sqpwall-walk-a11`  (2 snapshots)
+
+| pid | states seen | delta (s) | presence | command |
+|---|---|---|---|---|
+| 631 | `S,Ss` | 0.00 | both ends | `systemd-journal` |
+| 658 | `S,Ss` | 0.00 | both ends | `systemd-userdbd` |
+| 669 | `S,Ss` | 0.01 | both ends | `systemd-resolve` |
+| 672 | `S,Ss` | 0.00 | both ends | `systemd-udevd` |
+| 871 | `S,S<sl` | 0.00 | both ends | `auditd` |
+| 873 | `S,S<` | 0.00 | both ends | `sedispatch` |
+| 903 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 911 | `S` | 0.01 | both ends | `dbus-broker` |
+| 912 | `S,S<Ls` | 0.01 | both ends | `earlyoom` |
+| 916 | `S,Ss` | 0.00 | both ends | `avahi-daemon` |
+| 917 | `S,Ss` | 0.00 | both ends | `bluetoothd` |
+| 923 | `S,Ssl` | 0.00 | both ends | `firewalld` |
+| 924 | `S,Ssl` | 0.02 | both ends | `NetworkManager` |
+| 926 | `S,Ssl` | 0.01 | both ends | `irqbalance` |
+| 927 | `S,Ss` | 0.00 | both ends | `chronyd` |
+| 931 | `S,Ssl` | 0.00 | both ends | `polkitd` |
+| 935 | `S,SNsl` | 0.00 | both ends | `rtkit-daemon` |
+| 937 | `S,Ss` | 0.00 | both ends | `smartd` |
+| 939 | `S,Ssl` | 0.00 | both ends | `switcheroo-cont` |
+| 943 | `S,Ssl` | 0.00 | both ends | `udisksd` |
+| 944 | `S,Ssl` | 0.00 | both ends | `upowerd` |
+| 964 | `S,Ssl` | 0.00 | both ends | `accounts-daemon` |
+| 968 | `S,Ss` | 0.00 | both ends | `systemd-logind` |
+| 971 | `S` | 0.00 | both ends | `avahi-daemon` |
+| 989 | `S,SNs` | 0.00 | both ends | `alsactl` |
+| 997 | `S,Ssl` | 0.00 | both ends | `abrtd` |
+| 1048 | `S,Ssl` | 0.00 | both ends | `ModemManager` |
+| 1082 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1083 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1084 | `S,Ss` | 0.00 | both ends | `abrt-dump-journ` |
+| 1264 | `S,Ss` | 0.00 | both ends | `wpa_supplicant` |
+| 1283 | `S,Ss` | 0.00 | both ends | `cupsd` |
+| 1285 | `S,Ssl` | 0.00 | both ends | `gssproxy` |
+| 1287 | `S,Ss` | 0.00 | both ends | `sshd` |
+| 1289 | `S,Ssl` | 0.03 | both ends | `tailscaled` |
+| 1291 | `S,Ssl` | 0.00 | both ends | `tuned` |
+| 1302 | `S` | 0.00 | both ends | `dbus` |
+| 1303 | `S` | 0.00 | both ends | `dbus` |
+| 1369 | `S,Ssl` | 0.00 | both ends | `tuned-ppd` |
+| 4117 | `S,Ssl` | 0.01 | both ends | `rsyslogd` |
+| 4145 | `S,Ss` | 0.00 | both ends | `atd` |
+| 4151 | `S,Ss` | 0.00 | both ends | `crond` |
+| 13428 | `S,Ssl` | 0.00 | both ends | `sddm` |
+| 13430 | `S` | 0.00 | both ends | `sddm-helper` |
+| 13431 | `S,Ssl` | 0.00 | both ends | `uresourced` |
+| 13456 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13458 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13478 | `S,Ss+` | 0.00 | both ends | `sddm-helper-sta` |
+| 13479 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13480 | `S,Sl+` | 0.31 | both ends | `kwin_wayland` |
+| 13481 | `S` | 0.00 | both ends | `dbus-broker` |
+| 13501 | `S,Sl+` | 0.22 | both ends | `sddm-greeter-qt` |
+| 13521 | `S,S<sl` | 0.00 | both ends | `pipewire` |
+| 13523 | `S,S<sl` | 0.00 | both ends | `wireplumber` |
+| 13525 | `S,Sl+` | 0.00 | both ends | `plasma-keyboard` |
+| 13755 | `S,Ss` | 0.00 | both ends | `systemd` |
+| 13757 | `S` | 0.00 | both ends | `(sd-pam)` |
+| 13787 | `S,Ss` | 0.00 | both ends | `dbus-broker-lau` |
+| 13795 | `S` | 0.00 | both ends | `dbus-broker` |
+| 83611 | `S,Ssl` | 0.00 | both ends | `node-22` |
+| 83618 | `S,Sl` | 0.02 | both ends | `codex` |
+| 84052 | `S,Sl` | 0.00 | both ends | `codex-code-mode` |
+| 280258 | `S,Sl+` | 0.00 | both ends | `clangd.main` |
+| 541328 | `S` | - | **transient** | `systemd-userwor` |
+| 541329 | `S` | - | **transient** | `systemd-userwor` |
+| 541896 | `S` | 0.00 | both ends | `systemd-userwor` |
+| 542126 | `S` | 0.00 | both ends | `bash` |
+| 542127 | `S` | 0.00 | both ends | `tail` |
+| 542128 | `S` | 0.00 | both ends | `2.1.270` |
+| 542434 | `S` | - | **transient** | `systemd-userwor` |
+| 542435 | `S` | - | **transient** | `systemd-userwor` |

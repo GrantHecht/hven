@@ -1,0 +1,16 @@
+# M6 W5 T9 -- the interior leg at HEAD 369e3146 vs the COMMITTED baseline
+#   bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv (READ, never rewritten)
+# Produced by .scratch/w5t9/leg_compare.sh under the box lock; log 12-interior-leg-compare.log
+#
+FOREGROUND_START 2026-09-13T23:03:21Z
+COMPARATOR: /home/ghecht/Projects/hven/docs/notes/data/2026-09-m6-w4-acceptance/probes/compare_replay.py
+=== committed T8-IPM baseline vs T9 capture 1 === cells compared: 43  columns compared: 30  differences: 0
+  CMP_RC=0  (worst so far: 0)
+=== committed T8-IPM baseline vs T9 capture 2 === cells compared: 43  columns compared: 30  differences: 0
+  CMP_RC=0  (worst so far: 0)
+--- BYTE comparison of the data rows outside wall_s, per capture ---
+capture1: BYTE-IDENTICAL outside wall_s (43 rows)
+capture2: BYTE-IDENTICAL outside wall_s (43 rows)
+LEG_COMPARE_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-13T23:03:21Z

@@ -1,0 +1,36 @@
+W5 T8.9r-attrib3 -- THE SCORING RULES, FIXED BEFORE THE FIRST TIMED SAMPLE EXISTS
+=================================================================================
+Written at the UTC stamp logged beside its sha256 in logs/B0-predeclaration.log,
+which is BEFORE the first FOREGROUND_START of the first wall batch (logs/W*).
+
+R3 (inherited verbatim from T8.9r fix1 ruling R3, as attribution-interior applied
+it).  THE FIRST ROW EVERY `--engine interior` PROCESS WRITES IS EXCLUDED FROM EVERY
+SCORE, BY POSITION.  The cell order in the pin was chosen so that row is the SAME
+row at every arm -- `f7_n1000_bound_physics/MakeParameter` -- which the untimed
+smoke (logs/B2-smoke.log) verified at all six arms before any timed sample existed.
+It is the process's warm-up: it pays MKL's first call, the allocator's first growth
+and the first page-in, and at the earlier legs its own three runs of it spanned
+1.66x.  Its steps ARE printed, marked EXCL, so a reader can see why.
+
+THE SCORED SET.  The ELEVEN rows that remain of the twelve base F7 rows after R3.
+They occupy row positions 2..12 at ALL SIX ARMS (smoke, verified): the two rows the
+T8.4 bench commit eb8f157 adds (`.../solve_optimize`) are written at positions 20
+and 21, AFTER every scored row, so no scored row runs in a different position in
+its process at any arm.  The seven unconditional rows (13..19) are in every process
+at every arm and are not scored.
+
+THE STATISTIC.  Per row, per arm: the MEDIAN of five rounds of `wall_s`.  The step
+into an arm is that arm's median over its parent's median.  The cumulative is
+b06's median over b01's.  A step is called MOVED on a row when it is outside
+0.99-1.01, the band leg 1 and the interior leg both use.
+
+THE CULPRIT RULE, FIXED NOW.  The commit that carries the step is the one whose
+median share of the cumulative, in log space (ln step / ln cumulative), is the
+largest, AND the leg calls a commit the carrier of "at least 80 %" only if that
+median share is >= 0.80.  If two commits split it, both are named with their
+shares and no single carrier is declared.
+
+ROUND STRUCTURE.  Five rounds; one round = one batch under the box lock; the arm
+order is ROTATED by (round-1) mod 6 so no arm keeps a fixed position in a batch.
+
+APPLE / ACCELERATE: UNOBSERVED.   WINDOWS: UNOBSERVED.

@@ -12,7 +12,7 @@
 // with kKappaResto = 0.9 and econ_tol_ standing in (single-tolerance
 // adaptation) for Ipopt's Min(tol, constr_viol_tol). ClassicMeritAcceptance
 // reads econ_tol_ through its SolverContext, so these tests build a minimal
-// all-zero-dimension context (only settings_.econ_tol_ is read by this method)
+// all-zero-dimension context (only opts_.econ_tol is read by this method)
 // via TychoTest::InertSolverContext.
 //
 // Every boundary is hand-computed in the comments.
@@ -24,6 +24,9 @@
 #include "hven/detail/globalization/merit_acceptance.h"
 
 #include <gtest/gtest.h>
+
+#include <stdexcept>
+#include <string>
 
 namespace {
 
@@ -40,7 +43,7 @@ using TychoTest::pm;
 //   • θ_trial = 0.5 (below): ≤ 0.9 ⇒ EXIT.
 TEST(ClassicMeritRestoration, RelativeFloorBoundary) {
     InertSolverContext inert;
-    inert.settings_.econ_tol_ = 1.0e-6;
+    inert.opts_.econ_tol = 1.0e-6;
     ClassicMeritAcceptance a(inert.ctx());
 
     const ProgressMeasures ref = pm(1.0);
@@ -58,7 +61,7 @@ TEST(ClassicMeritRestoration, RelativeFloorBoundary) {
 //   • θ_trial = 2e-6 > 1e-6 ⇒ NO (above the tolerance floor).
 TEST(ClassicMeritRestoration, ToleranceFloorWaivesRelativeWhenRefTiny) {
     InertSolverContext inert;
-    inert.settings_.econ_tol_ = 1.0e-6;
+    inert.opts_.econ_tol = 1.0e-6;
     ClassicMeritAcceptance a(inert.ctx());
 
     const ProgressMeasures ref = pm(1.0e-9);
@@ -72,11 +75,46 @@ TEST(ClassicMeritRestoration, ToleranceFloorWaivesRelativeWhenRefTiny) {
 // 2e-6 ≤ 1e-5 ⇒ EXIT.
 TEST(ClassicMeritRestoration, FloorTracksSettingsEconTol) {
     InertSolverContext inert;
-    inert.settings_.econ_tol_ = 1.0e-5;
+    inert.opts_.econ_tol = 1.0e-5;
     ClassicMeritAcceptance a(inert.ctx());
 
     const ProgressMeasures ref = pm(1.0e-9);
     EXPECT_TRUE(a.is_infeasibility_sufficiently_reduced(ref, pm(2.0e-6)));
+}
+
+// THE GENERIC SURFACE REFUSES RATHER THAN FABRICATING AN ANSWER (M6 W6 T2).
+//
+// `is_iterate_acceptable` is the generic AcceptanceStrategy question, and on the
+// classic merit path acceptance is FUSED inside classic_line_search -- there is
+// no separate verdict to give. The classic strategy therefore throws rather
+// than returning a plausible bool, and the throw carries the reason and the
+// names of the strategies that do implement it. The W6 T0 coverage read found
+// the whole body cold (it is most of the 15-line region
+// `ipm_solver_globalization.cpp:79-106`); nothing in the tree asked the
+// question, which is the point -- but "nobody calls it" and "it refuses when
+// called" are different claims, and only the second is a contract.
+TEST(ClassicMeritRestoration, TheGenericAcceptanceQuestionIsRefusedNotAnswered) {
+    InertSolverContext inert;
+    ClassicMeritAcceptance a(inert.ctx());
+
+    const ProgressMeasures current = pm(1.0);
+    const ProgressMeasures trial = pm(0.5);
+    const ProgressMeasures predicted = pm(0.25);
+
+    try {
+        (void)a.is_iterate_acceptable(current, trial, predicted, /*objective_multiplier=*/1.0,
+                                      /*step_length=*/1.0);
+        ADD_FAILURE() << "the classic merit strategy must refuse the generic question";
+    } catch (const std::logic_error &e) {
+        const std::string what = e.what();
+        EXPECT_NE(what.find("is_iterate_acceptable"), std::string::npos) << what;
+        EXPECT_NE(what.find("classic_line_search"), std::string::npos) << what;
+    }
+
+    // And the OTHER generic member is not refused: it has a real body on this
+    // path and is driven by the restoration exit test above, so a blanket
+    // "generic members throw" reading of the class would be wrong.
+    EXPECT_NO_THROW((void)a.is_infeasibility_sufficiently_reduced(current, trial));
 }
 
 } // namespace

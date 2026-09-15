@@ -2,7 +2,7 @@
 // (see LICENSE).
 
 ///////////////////////////////////////////////////////////////////////////////
-// Unit test for the recovery-dispatch gate (InteriorPointSolver globalization).
+// Unit test for the recovery-dispatch gate (IpmSolver globalization).
 //
 // The merit line search records its accept/reject verdict on the per-iteration
 // IterateInfo (accepted_), and alg_impl drives the RecoveryChain hook only when
@@ -21,7 +21,7 @@
 
 #include "solver_test_utils.h"
 
-#include "hven/detail/drivers/interior_point_solver_fwd.h"
+#include "hven/detail/drivers/ipm_solver_fwd.h"
 #include "hven/detail/globalization/acceptance_strategy.h"
 #include "hven/detail/globalization/classic_adaptive_governor.h"
 #include "hven/detail/globalization/filter_acceptance.h"
@@ -47,7 +47,8 @@ using hven::solvers::BarrierGovernors;
 using hven::solvers::FilterAcceptance;
 using hven::solvers::FunnelAcceptance;
 using hven::solvers::GlobalizationMechanism;
-using hven::solvers::InteriorPointSolver;
+using hven::solvers::IpmOptions;
+using hven::solvers::IpmSolver;
 using hven::solvers::IterateInfo;
 using hven::solvers::kRecoveryDepthUnresolved;
 using hven::solvers::MonitoredBarrierGovernor;
@@ -76,7 +77,7 @@ class GateStubAcceptance : public AcceptanceStrategy {
     }
     void reset() override {}
 
-    double classic_line_search(InteriorPointSolver::LineSearchModes, double, double, double, double,
+    double classic_line_search(IpmSolver::LineSearchModes, double, double, double, double,
                                Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
                                Eigen::VectorXd &, Eigen::VectorXd &, IterateInfo &Citer,
                                const std::vector<IterateInfo> &) override {
@@ -96,7 +97,7 @@ class GateRecordingRecovery : public RecoveryChain {
   public:
     Action on_step_rejected(IterateInfo &, const std::vector<IterateInfo> &, SolverContext &,
                             AcceptanceStrategy &, GlobalizationMechanism &,
-                            InteriorPointSolver::LineSearchModes, double, double, double, double,
+                            IpmSolver::LineSearchModes, double, double, double, double,
                             Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
                             Eigen::VectorXd &, Eigen::VectorXd &, double &, double &, double &,
                             int &, int &, int &) override {
@@ -112,7 +113,7 @@ class GateRecordingRecovery : public RecoveryChain {
 // never reached; present only to satisfy the on_step_rejected signature.
 class GateUnusedMechanism : public GlobalizationMechanism {
   public:
-    double compute_step(InteriorPointSolver::LineSearchModes, double, double, double, double,
+    double compute_step(IpmSolver::LineSearchModes, double, double, double, double,
                         Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &, Eigen::VectorXd &,
                         Eigen::VectorXd &, AcceptanceStrategy &, double &, double &, IterateInfo &,
                         const std::vector<IterateInfo> &, SolverContext &) override {
@@ -140,9 +141,9 @@ void drive_gate(bool good_step, IterateInfo &citer, RecoveryChain &recovery,
         int resolved_depth = kRecoveryDepthUnresolved;
         int watchdog_activations = 0;
         recovery.on_step_rejected(citer, iters, ctx, acceptance, mechanism,
-                                  InteriorPointSolver::LineSearchModes::AUGLANG, 1.0, 1e-3, 0.0,
-                                  0.0, v, v, v, v, v, alpha, alphap, alphad, soc_steps,
-                                  resolved_depth, watchdog_activations);
+                                  IpmSolver::LineSearchModes::kAugLang, 1.0, 1e-3, 0.0, 0.0, v, v,
+                                  v, v, v, alpha, alphap, alphad, soc_steps, resolved_depth,
+                                  watchdog_activations);
     }
 }
 
@@ -172,8 +173,8 @@ TEST(RecoveryDispatchGate, StubAcceptanceDrivesHook) {
         GateRecordingRecovery recovery;
         GateStubAcceptance acceptance(/*accept=*/false);
         IterateInfo citer;
-        acceptance.classic_line_search(InteriorPointSolver::LineSearchModes::AUGLANG, 1.0, 1e-3,
-                                       0.0, 0.0, v, v, v, v, v, citer, iters);
+        acceptance.classic_line_search(IpmSolver::LineSearchModes::kAugLang, 1.0, 1e-3, 0.0, 0.0, v,
+                                       v, v, v, v, citer, iters);
         EXPECT_FALSE(citer.accepted_);
         drive_gate(/*good_step=*/true, citer, recovery, acceptance, iters, ctx);
         EXPECT_EQ(recovery.calls_, 1);
@@ -184,8 +185,8 @@ TEST(RecoveryDispatchGate, StubAcceptanceDrivesHook) {
         GateRecordingRecovery recovery;
         GateStubAcceptance acceptance(/*accept=*/true);
         IterateInfo citer;
-        acceptance.classic_line_search(InteriorPointSolver::LineSearchModes::AUGLANG, 1.0, 1e-3,
-                                       0.0, 0.0, v, v, v, v, v, citer, iters);
+        acceptance.classic_line_search(IpmSolver::LineSearchModes::kAugLang, 1.0, 1e-3, 0.0, 0.0, v,
+                                       v, v, v, v, citer, iters);
         EXPECT_TRUE(citer.accepted_);
         drive_gate(/*good_step=*/true, citer, recovery, acceptance, iters, ctx);
         EXPECT_EQ(recovery.calls_, 0);
@@ -207,41 +208,41 @@ TEST(RecoveryDispatchGate, StubAcceptanceDrivesHook) {
 // Settings::validate() no longer rejects the SOC / extended-backtracking knobs
 // in combination with a generic-path acceptance strategy: those links re-drive
 // the acceptance backtrack through the mechanism, which dispatches to the
-// generic AcceptanceStrategy surface (see the guard's removal in interior_point_solver.cpp and
+// generic AcceptanceStrategy surface (see the guard's removal in ipm_solver.cpp and
 // GlobalizationMechanism::run_acceptance_backtrack). Exercise both generic
 // strategies against both knobs, paired with the monotone-barrier opt-in
 // funnel/filter separately require (so the OTHER, still-live guard does not
 // mask the result).
 TEST(RecoveryDispatchGate, ValidateAcceptsFunnelWithMaxSoc) {
-    InteriorPointSolver::Settings settings;
-    settings.acceptance_strategy_ = AcceptanceStrategies::funnel;
-    settings.barrier_governor_ = BarrierGovernors::monitored;
-    settings.max_soc_ = 1;
-    EXPECT_NO_THROW(settings.validate());
+    IpmOptions settings;
+    settings.acceptance_strategy = AcceptanceStrategies::funnel;
+    settings.barrier_governor = BarrierGovernors::monitored;
+    settings.max_soc = 1;
+    EXPECT_NO_THROW(hven::solvers::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsFunnelWithLsExtendedIters) {
-    InteriorPointSolver::Settings settings;
-    settings.acceptance_strategy_ = AcceptanceStrategies::funnel;
-    settings.barrier_governor_ = BarrierGovernors::monitored;
-    settings.ls_extended_iters_ = 1;
-    EXPECT_NO_THROW(settings.validate());
+    IpmOptions settings;
+    settings.acceptance_strategy = AcceptanceStrategies::funnel;
+    settings.barrier_governor = BarrierGovernors::monitored;
+    settings.ls_extended_iters = 1;
+    EXPECT_NO_THROW(hven::solvers::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsFilterWithMaxSoc) {
-    InteriorPointSolver::Settings settings;
-    settings.acceptance_strategy_ = AcceptanceStrategies::filter;
-    settings.barrier_governor_ = BarrierGovernors::monitored;
-    settings.max_soc_ = 1;
-    EXPECT_NO_THROW(settings.validate());
+    IpmOptions settings;
+    settings.acceptance_strategy = AcceptanceStrategies::filter;
+    settings.barrier_governor = BarrierGovernors::monitored;
+    settings.max_soc = 1;
+    EXPECT_NO_THROW(hven::solvers::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsFilterWithLsExtendedIters) {
-    InteriorPointSolver::Settings settings;
-    settings.acceptance_strategy_ = AcceptanceStrategies::filter;
-    settings.barrier_governor_ = BarrierGovernors::monitored;
-    settings.ls_extended_iters_ = 1;
-    EXPECT_NO_THROW(settings.validate());
+    IpmOptions settings;
+    settings.acceptance_strategy = AcceptanceStrategies::filter;
+    settings.barrier_governor = BarrierGovernors::monitored;
+    settings.ls_extended_iters = 1;
+    EXPECT_NO_THROW(hven::solvers::validate(settings));
 }
 
 // Settings::validate()'s feasibility-restoration budget guard: max_feas_rest_
@@ -249,157 +250,157 @@ TEST(RecoveryDispatchGate, ValidateAcceptsFilterWithLsExtendedIters) {
 // restoration mode itself composes with every acceptance strategy and governor
 // — validate() adds no new combination restrictions for it.
 TEST(RecoveryDispatchGate, ValidateRejectsNegativeMaxFeasRest) {
-    InteriorPointSolver::Settings settings;
-    settings.max_feas_rest_ = -1;
-    EXPECT_THROW(settings.validate(), std::invalid_argument);
+    IpmOptions settings;
+    settings.max_feas_rest = -1;
+    EXPECT_THROW(hven::solvers::validate(settings), std::invalid_argument);
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsZeroMaxFeasRest) {
-    InteriorPointSolver::Settings settings;
-    settings.max_feas_rest_ = 0;
-    EXPECT_NO_THROW(settings.validate());
+    IpmOptions settings;
+    settings.max_feas_rest = 0;
+    EXPECT_NO_THROW(hven::solvers::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsRestorationWithClassicMerit) {
-    InteriorPointSolver::Settings settings;
-    settings.restoration_mode_ = hven::solvers::RestorationModes::proximal_switch;
-    settings.acceptance_strategy_ = AcceptanceStrategies::classic_merit;
-    EXPECT_NO_THROW(settings.validate());
+    IpmOptions settings;
+    settings.restoration_mode = hven::solvers::RestorationModes::proximal_switch;
+    settings.acceptance_strategy = AcceptanceStrategies::classic_merit;
+    EXPECT_NO_THROW(hven::solvers::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsRestorationWithFilterMonitored) {
-    InteriorPointSolver::Settings settings;
-    settings.restoration_mode_ = hven::solvers::RestorationModes::proximal_switch;
-    settings.acceptance_strategy_ = AcceptanceStrategies::filter;
-    settings.barrier_governor_ = BarrierGovernors::monitored;
-    EXPECT_NO_THROW(settings.validate());
+    IpmOptions settings;
+    settings.restoration_mode = hven::solvers::RestorationModes::proximal_switch;
+    settings.acceptance_strategy = AcceptanceStrategies::filter;
+    settings.barrier_governor = BarrierGovernors::monitored;
+    EXPECT_NO_THROW(hven::solvers::validate(settings));
 }
 
 // classic_merit is unaffected by the widened guard: max_soc_/ls_extended_iters_
 // combine with it exactly as before.
 TEST(RecoveryDispatchGate, ValidateAcceptsClassicMeritWithMaxSoc) {
-    InteriorPointSolver::Settings settings;
-    settings.acceptance_strategy_ = AcceptanceStrategies::classic_merit;
-    settings.max_soc_ = 1;
-    settings.ls_extended_iters_ = 1;
-    EXPECT_NO_THROW(settings.validate());
+    IpmOptions settings;
+    settings.acceptance_strategy = AcceptanceStrategies::classic_merit;
+    settings.max_soc = 1;
+    settings.ls_extended_iters = 1;
+    EXPECT_NO_THROW(hven::solvers::validate(settings));
 }
 
 // merit composes with the recovery knobs too (no monotone opt-in needed — only
 // funnel/filter carry that separate requirement).
 TEST(RecoveryDispatchGate, ValidateAcceptsMeritWithMaxSoc) {
-    InteriorPointSolver::Settings settings;
-    settings.acceptance_strategy_ = AcceptanceStrategies::merit;
-    settings.max_soc_ = 1;
-    settings.ls_extended_iters_ = 1;
-    EXPECT_NO_THROW(settings.validate());
+    IpmOptions settings;
+    settings.acceptance_strategy = AcceptanceStrategies::merit;
+    settings.max_soc = 1;
+    settings.ls_extended_iters = 1;
+    EXPECT_NO_THROW(hven::solvers::validate(settings));
 }
 
 // Every recovery link (SOC, extended backtracking, watchdog) combines freely
 // with every acceptance strategy, including the two non-classic strategies.
 TEST(RecoveryDispatchGate, ValidateAcceptsFunnelWithWatchdog) {
-    InteriorPointSolver::Settings settings;
-    settings.acceptance_strategy_ = AcceptanceStrategies::funnel;
-    settings.barrier_governor_ = BarrierGovernors::monitored;
-    settings.watchdog_ = true;
-    EXPECT_NO_THROW(settings.validate());
+    IpmOptions settings;
+    settings.acceptance_strategy = AcceptanceStrategies::funnel;
+    settings.barrier_governor = BarrierGovernors::monitored;
+    settings.watchdog = true;
+    EXPECT_NO_THROW(hven::solvers::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsFilterWithWatchdog) {
-    InteriorPointSolver::Settings settings;
-    settings.acceptance_strategy_ = AcceptanceStrategies::filter;
-    settings.never_monotone_ = true;
-    settings.watchdog_ = true;
-    EXPECT_NO_THROW(settings.validate());
+    IpmOptions settings;
+    settings.acceptance_strategy = AcceptanceStrategies::filter;
+    settings.never_monotone = true;
+    settings.watchdog = true;
+    EXPECT_NO_THROW(hven::solvers::validate(settings));
 }
 
 // Settings::validate()'s barrier_governor/never_monotone truth table (see the
-// guard's comment in interior_point_solver.cpp): funnel/filter with barrier_governor=
+// guard's comment in ipm_solver.cpp): funnel/filter with barrier_governor=
 // classic_adaptive (the default) and never_monotone=false rejects; either
 // opt-in (barrier_governor=monitored, or never_monotone=true) accepts; the two
 // opt-ins together are a direct contradiction and reject; classic_merit/merit
 // are unaffected in every combination.
 
 TEST(RecoveryDispatchGate, ValidateRejectsFunnelWithClassicAdaptiveGovernor) {
-    InteriorPointSolver::Settings settings;
-    settings.acceptance_strategy_ = AcceptanceStrategies::funnel;
-    settings.barrier_governor_ = BarrierGovernors::classic_adaptive;
-    settings.never_monotone_ = false;
-    EXPECT_THROW(settings.validate(), std::invalid_argument);
+    IpmOptions settings;
+    settings.acceptance_strategy = AcceptanceStrategies::funnel;
+    settings.barrier_governor = BarrierGovernors::classic_adaptive;
+    settings.never_monotone = false;
+    EXPECT_THROW(hven::solvers::validate(settings), std::invalid_argument);
 }
 
 TEST(RecoveryDispatchGate, ValidateRejectsFilterWithClassicAdaptiveGovernor) {
-    InteriorPointSolver::Settings settings;
-    settings.acceptance_strategy_ = AcceptanceStrategies::filter;
-    settings.barrier_governor_ = BarrierGovernors::classic_adaptive;
-    settings.never_monotone_ = false;
-    EXPECT_THROW(settings.validate(), std::invalid_argument);
+    IpmOptions settings;
+    settings.acceptance_strategy = AcceptanceStrategies::filter;
+    settings.barrier_governor = BarrierGovernors::classic_adaptive;
+    settings.never_monotone = false;
+    EXPECT_THROW(hven::solvers::validate(settings), std::invalid_argument);
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsFunnelWithMonitoredGovernor) {
-    InteriorPointSolver::Settings settings;
-    settings.acceptance_strategy_ = AcceptanceStrategies::funnel;
-    settings.barrier_governor_ = BarrierGovernors::monitored;
-    EXPECT_NO_THROW(settings.validate());
+    IpmOptions settings;
+    settings.acceptance_strategy = AcceptanceStrategies::funnel;
+    settings.barrier_governor = BarrierGovernors::monitored;
+    EXPECT_NO_THROW(hven::solvers::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsFilterWithMonitoredGovernor) {
-    InteriorPointSolver::Settings settings;
-    settings.acceptance_strategy_ = AcceptanceStrategies::filter;
-    settings.barrier_governor_ = BarrierGovernors::monitored;
-    EXPECT_NO_THROW(settings.validate());
+    IpmOptions settings;
+    settings.acceptance_strategy = AcceptanceStrategies::filter;
+    settings.barrier_governor = BarrierGovernors::monitored;
+    EXPECT_NO_THROW(hven::solvers::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsFunnelWithNeverMonotone) {
-    InteriorPointSolver::Settings settings;
-    settings.acceptance_strategy_ = AcceptanceStrategies::funnel;
-    settings.barrier_governor_ = BarrierGovernors::classic_adaptive;
-    settings.never_monotone_ = true;
-    EXPECT_NO_THROW(settings.validate());
+    IpmOptions settings;
+    settings.acceptance_strategy = AcceptanceStrategies::funnel;
+    settings.barrier_governor = BarrierGovernors::classic_adaptive;
+    settings.never_monotone = true;
+    EXPECT_NO_THROW(hven::solvers::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsFilterWithNeverMonotone) {
-    InteriorPointSolver::Settings settings;
-    settings.acceptance_strategy_ = AcceptanceStrategies::filter;
-    settings.barrier_governor_ = BarrierGovernors::classic_adaptive;
-    settings.never_monotone_ = true;
-    EXPECT_NO_THROW(settings.validate());
+    IpmOptions settings;
+    settings.acceptance_strategy = AcceptanceStrategies::filter;
+    settings.barrier_governor = BarrierGovernors::classic_adaptive;
+    settings.never_monotone = true;
+    EXPECT_NO_THROW(hven::solvers::validate(settings));
 }
 
 TEST(RecoveryDispatchGate, ValidateRejectsNeverMonotoneWithMonitoredGovernor) {
-    InteriorPointSolver::Settings settings;
-    settings.acceptance_strategy_ = AcceptanceStrategies::classic_merit;
-    settings.barrier_governor_ = BarrierGovernors::monitored;
-    settings.never_monotone_ = true;
-    EXPECT_THROW(settings.validate(), std::invalid_argument);
+    IpmOptions settings;
+    settings.acceptance_strategy = AcceptanceStrategies::classic_merit;
+    settings.barrier_governor = BarrierGovernors::monitored;
+    settings.never_monotone = true;
+    EXPECT_THROW(hven::solvers::validate(settings), std::invalid_argument);
 }
 
 TEST(RecoveryDispatchGate, ValidateAcceptsClassicMeritWithClassicAdaptiveGovernor) {
-    InteriorPointSolver::Settings settings;
-    settings.acceptance_strategy_ = AcceptanceStrategies::classic_merit;
-    settings.barrier_governor_ = BarrierGovernors::classic_adaptive;
-    settings.never_monotone_ = false;
-    EXPECT_NO_THROW(settings.validate());
+    IpmOptions settings;
+    settings.acceptance_strategy = AcceptanceStrategies::classic_merit;
+    settings.barrier_governor = BarrierGovernors::classic_adaptive;
+    settings.never_monotone = false;
+    EXPECT_NO_THROW(hven::solvers::validate(settings));
 }
 
 // merit is a generic-path strategy like funnel/filter but is explicitly
 // unaffected by the monotone-safeguard guard -- only funnel/filter are gated.
 TEST(RecoveryDispatchGate, ValidateAcceptsMeritWithClassicAdaptiveGovernor) {
-    InteriorPointSolver::Settings settings;
-    settings.acceptance_strategy_ = AcceptanceStrategies::merit;
-    settings.barrier_governor_ = BarrierGovernors::classic_adaptive;
-    settings.never_monotone_ = false;
-    EXPECT_NO_THROW(settings.validate());
+    IpmOptions settings;
+    settings.acceptance_strategy = AcceptanceStrategies::merit;
+    settings.barrier_governor = BarrierGovernors::classic_adaptive;
+    settings.never_monotone = false;
+    EXPECT_NO_THROW(hven::solvers::validate(settings));
 }
 
 // classic_merit + monitored is allowed opt-in (bit-identity is about the
 // DEFAULT governor selection, not about excluding classic_merit from pairing
 // with the monitored governor).
 TEST(RecoveryDispatchGate, ValidateAcceptsClassicMeritWithMonitoredGovernor) {
-    InteriorPointSolver::Settings settings;
-    settings.acceptance_strategy_ = AcceptanceStrategies::classic_merit;
-    settings.barrier_governor_ = BarrierGovernors::monitored;
-    EXPECT_NO_THROW(settings.validate());
+    IpmOptions settings;
+    settings.acceptance_strategy = AcceptanceStrategies::classic_merit;
+    settings.barrier_governor = BarrierGovernors::monitored;
+    EXPECT_NO_THROW(hven::solvers::validate(settings));
 }
 
 } // namespace
@@ -409,17 +410,29 @@ TEST(RecoveryDispatchGate, ValidateAcceptsClassicMeritWithMonitoredGovernor) {
 // like the modern merit family (see test_merit_rules.cpp's DrivesGenericPath).
 //
 // Test access: these two cases call the private
-// InteriorPointSolver::rebuild_globalization_components() and read the private
-// acceptance_ member directly, so they are declared as friends in interior_point_solver.h
-// (narrowly, by their gtest-generated class names) rather than InteriorPointSolver
+// IpmSolver::rebuild_globalization_components() and read the private
+// acceptance_ member directly, so they are declared as friends in ipm_solver.h
+// (narrowly, by their gtest-generated class names) rather than IpmSolver
 // exposing a public rebuild hook for this alone. gtest TEST() macros expand
 // to a class at the enclosing scope, and a friend declaration cannot name a
 // class inside an anonymous namespace from a production header, so these two
 // cases live at global scope instead of inside the anonymous namespace above.
 
 TEST(RecoveryDispatchGate, FunnelSelectionConstructsFunnelAcceptance) {
-    hven::solvers::InteriorPointSolver solver;
-    solver.settings().acceptance_strategy_ = hven::solvers::AcceptanceStrategies::funnel;
+    hven::solvers::IpmSolver solver;
+    {
+        auto o = solver.options();
+        o.acceptance_strategy = hven::solvers::AcceptanceStrategies::funnel;
+        // The monotone-barrier opt-in that validate() requires alongside
+        // funnel/filter. Written here because set_options() checks the WHOLE
+        // value -- before M6 W5 T8.3 this test wrote the strategy straight into
+        // the mutable settings() reference, which no per-field setter and no
+        // whole-struct check ever saw. never_monotone rather than a governor
+        // change, so the only dispatch input that moves is the acceptance one
+        // this test is about.
+        o.never_monotone = true;
+        solver.set_options(std::move(o));
+    }
     solver.rebuild_globalization_components();
     hven::solvers::AcceptanceStrategy *acceptance = solver.acceptance_.get();
     ASSERT_NE(dynamic_cast<hven::solvers::FunnelAcceptance *>(acceptance), nullptr);
@@ -427,26 +440,42 @@ TEST(RecoveryDispatchGate, FunnelSelectionConstructsFunnelAcceptance) {
 }
 
 TEST(RecoveryDispatchGate, FilterSelectionConstructsFilterAcceptance) {
-    hven::solvers::InteriorPointSolver solver;
-    solver.settings().acceptance_strategy_ = hven::solvers::AcceptanceStrategies::filter;
+    hven::solvers::IpmSolver solver;
+    {
+        auto o = solver.options();
+        o.acceptance_strategy = hven::solvers::AcceptanceStrategies::filter;
+        // The monotone-barrier opt-in that validate() requires alongside
+        // funnel/filter. Written here because set_options() checks the WHOLE
+        // value -- before M6 W5 T8.3 this test wrote the strategy straight into
+        // the mutable settings() reference, which no per-field setter and no
+        // whole-struct check ever saw. never_monotone rather than a governor
+        // change, so the only dispatch input that moves is the acceptance one
+        // this test is about.
+        o.never_monotone = true;
+        solver.set_options(std::move(o));
+    }
     solver.rebuild_globalization_components();
     hven::solvers::AcceptanceStrategy *acceptance = solver.acceptance_.get();
     ASSERT_NE(dynamic_cast<hven::solvers::FilterAcceptance *>(acceptance), nullptr);
     EXPECT_FALSE(acceptance->drives_classic_path());
 }
 
-// Settings::barrier_governor_ = monitored must construct MonitoredBarrierGovernor
+// IpmOptions::barrier_governor = monitored must construct MonitoredBarrierGovernor
 // (the default, classic_adaptive, constructs ClassicAdaptiveGovernor -- covered
 // implicitly by every other test in this file, which never touches
-// barrier_governor_ and still solves/validates against the classic governor).
+// barrier_governor and still solves/validates against the classic governor).
 //
 // Test access: same pattern as the funnel/filter construction tests above --
 // calls the private rebuild_globalization_components() and reads the private
-// governor_ member, so it is declared as a friend in interior_point_solver.h and lives at
+// governor_ member, so it is declared as a friend in ipm_solver.h and lives at
 // global scope (see the comment above for why).
 TEST(RecoveryDispatchGate, MonitoredSelectionConstructsMonitoredGovernor) {
-    hven::solvers::InteriorPointSolver solver;
-    solver.settings().barrier_governor_ = hven::solvers::BarrierGovernors::monitored;
+    hven::solvers::IpmSolver solver;
+    {
+        auto o = solver.options();
+        o.barrier_governor = hven::solvers::BarrierGovernors::monitored;
+        solver.set_options(std::move(o));
+    }
     solver.rebuild_globalization_components();
     hven::solvers::BarrierGovernor *governor = solver.governor_.get();
     ASSERT_NE(dynamic_cast<hven::solvers::MonitoredBarrierGovernor *>(governor), nullptr);
@@ -482,9 +511,13 @@ TEST(RecoveryDispatchGate, MeritPenaltyRuleSelectionReachesTheStrategy) {
     };
 
     {
-        hven::solvers::InteriorPointSolver solver;
-        solver.settings().acceptance_strategy_ = hven::solvers::AcceptanceStrategies::merit;
-        solver.settings().merit_penalty_rule_ = MeritPenaltyRules::flexible;
+        hven::solvers::IpmSolver solver;
+        {
+            auto o = solver.options();
+            o.acceptance_strategy = hven::solvers::AcceptanceStrategies::merit;
+            o.merit_penalty_rule = MeritPenaltyRules::flexible;
+            solver.set_options(std::move(o));
+        }
         solver.rebuild_globalization_components();
         auto *merit = dynamic_cast<ModernMeritAcceptance *>(solver.acceptance_.get());
         ASSERT_NE(merit, nullptr);
@@ -494,10 +527,18 @@ TEST(RecoveryDispatchGate, MeritPenaltyRuleSelectionReachesTheStrategy) {
     }
 
     {
-        hven::solvers::InteriorPointSolver solver;
-        solver.settings().acceptance_strategy_ = hven::solvers::AcceptanceStrategies::merit;
+        hven::solvers::IpmSolver solver;
+        {
+            auto o = solver.options();
+            o.acceptance_strategy = hven::solvers::AcceptanceStrategies::merit;
+            solver.set_options(std::move(o));
+        }
         // wmno is the default; set it explicitly so the contrast is stated.
-        solver.settings().merit_penalty_rule_ = MeritPenaltyRules::wmno;
+        {
+            auto o = solver.options();
+            o.merit_penalty_rule = MeritPenaltyRules::wmno;
+            solver.set_options(std::move(o));
+        }
         solver.rebuild_globalization_components();
         auto *merit = dynamic_cast<ModernMeritAcceptance *>(solver.acceptance_.get());
         ASSERT_NE(merit, nullptr);

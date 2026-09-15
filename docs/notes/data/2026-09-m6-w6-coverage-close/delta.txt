@@ -1,0 +1,111 @@
+M6 W6 T2 -- THE DELTA, T0's OPEN READ -> THIS CLOSE READ
+========================================================
+Both sides are `llvm-cov report` tables taken the same way, at the same preset,
+on the same machine, a day apart:
+  OPEN   docs/notes/data/2026-09-m6-w6-coverage-open/coverage-summary.txt  (7da77b5d)
+  CLOSE  coverage-summary.txt in this directory                            (4e31bd16)
+Between them lie exactly four commits, all of them tests (78c46593, 8b4359e7,
+87b378fe, 4e31bd16); NO library source changed, and the one non-test change is
+one emitted string in scripts/run_coverage.sh. LINES only: regions, functions
+and branches are not deltaed, because they are asserted on neither side.
+
+PER-FILE LINE DELTA -- src/drivers/ (T0 open read -> W6 T2 close read)
+  file                                            open %    close %   delta   covered
+  assembly_eval_seam.cpp                           89.03    89.03    +0.00   422->422 of 474->474
+  console_trace_sink.cpp                           97.87    97.87    +0.00   413->413 of 422->422
+  ipm_options.cpp                                  85.35    85.35    +0.00   169->169 of 198->198
+  ipm_solver.cpp                                   87.05    89.29    +2.24   2447->2510 of 2811->2811
+  ipm_solver_globalization.cpp                     73.68    94.48   +20.79   1134->1454 of 1539->1539
+  problem_scaling.cpp                             100.00   100.00    +0.00   69->69 of 69->69
+  solve_result.cpp                                 66.67   100.00   +33.33   66->99 of 99->99
+  solve_status.cpp                                100.00   100.00    +0.00   17->17 of 17->17
+  solver_init.cpp                                 100.00   100.00    +0.00   21->21 of 21->21
+  sqp_options.cpp                                 100.00   100.00    +0.00   182->182 of 182->182
+  sqp_print.cpp                                    82.86   100.00   +17.14   58->70 of 70->70
+  sqp_solver.cpp                                   94.42    94.42    +0.00   2843->2843 of 3011->3011
+  trace.cpp                                        75.00   100.00   +25.00   33->44 of 44->44
+  trace_writer.cpp                                 97.53    97.53    +0.00   712->712 of 730->730
+
+src/drivers/                 lines   88.63% (8586/9687)  ->    93.17% (9025/9687)   delta +4.53
+include/hven/drivers/        lines   84.04% (79/94)  ->    84.04% (79/94)   delta +0.00
+LIBRARY TOTAL                lines   87.47% (22259/25448)  ->    89.31% (22729/25449)   delta +1.84
+
+ZERO-LINE FILES, open -> close
+  include/hven/core/detail/aggregate_arity.h                            0.00% ->    0.00%   (0/10 -> 0/10)
+  include/hven/detail/globalization/inertia_regularization.h            0.00% ->    0.00%   (0/6 -> 0/6)
+  include/hven/detail/globalization/soc.h                               0.00% ->  100.00%   (0/28 -> 29/29)
+  include/hven/detail/interior/eval_error_log.h                         0.00% ->    0.00%   (0/9 -> 0/9)
+  include/hven/detail/interior/typedefs/super_scalar_traits.h           0.00% ->    0.00%   (0/9 -> 0/9)
+  include/hven/detail/interior/utils/math_functions.h                   0.00% ->    0.00%   (0/25 -> 0/25)
+  include/hven/detail/interior/utils/timer.h                            0.00% ->    0.00%   (0/47 -> 0/47)
+  include/hven/drivers/ipm_solver_types.h                               0.00% ->    0.00%   (0/1 -> 0/1)
+
+THE LIBRARY TOTAL MOVED UP TOO, AND BY LESS THAN `src/drivers/` DID
+-------------------------------------------------------------------
++1.84 points against +4.53. The brief asked for this to be said if the library
+moved up more than the drivers did; it did not. The library's own rise is almost
+entirely the same tests seen from the other side -- `src/drivers/` is 9687 of
+the library's 25449 lines -- plus soc.h's 29 header lines, which land in
+`include/hven/detail/globalization/` rather than in either row above.
+
+ONE DENOMINATOR MOVED: the library's line total is 25449 here against 25448 at
+T0, and `include/hven/detail/globalization/soc.h` is 29 lines here against 28
+there. That is not a source edit (soc.h is untouched by this task): the
+correction loop `soc_run_loop` is a TEMPLATE, and at T0 it had no call site
+anywhere in the object set, so no instantiation and one fewer coverage record.
+Giving it a caller gave it a line.
+
+THE FIVE PARTLY-COVERED REGIONS: WHAT IS LEFT, AND WHAT IT WOULD TAKE
+---------------------------------------------------------------------
+Each remainder read off this read's own `llvm-cov show` dump, at this HEAD.
+
+  ipm_solver_globalization.cpp:237-379  (ls_lang + ls_l1)      18 lines left
+    :253-255 and :344-346 -- each variant's `catch (...)` arm. The fixture that
+    reaches the sibling `catch (const std::exception &)` arms throws a
+    std::runtime_error; a model throwing a NON-std type under opt_ls_mode
+    kLang/kL1 reaches these. REACHABLE, no seam. Registered.
+    :279-283 and :291-297 -- the restoration trial seams inside ls_lang (the
+    proximal/nested objective substitution and the elastic residual shift).
+    Reachable by composing opt_ls_mode = kLang with an ACTIVE restoration
+    phase, which no fixture in the tree does today. REACHABLE, no seam.
+    Registered.
+
+  ipm_solver_globalization.cpp:1295-1476  (SocRecovery)          3 lines left
+    :1322-1323 -- the trial-slack clamp, taken only when a trial slack is below
+    `neg_slack_reset` (1e-12 by default). REACHABLE, no seam: a drive whose
+    slack block starts below the floor.
+    :1405 -- the non-finite corrected-direction guard. It needs the KKT SOLVE to
+    return a non-finite direction, which a scripted mechanism cannot fake (the
+    solve is the real factor's). REACHABLE only with a deliberately degenerate
+    factorization; the one SOC branch that wants numerics rather than a script.
+    Registered.
+
+  ipm_solver.cpp:2884-2975  (the proximal arm's classification)  15 lines left
+    :2899, :2912-2916, :2926-2930, :2937-2940 -- the LOCALLY-INFEASIBLE
+    declaration down the proximal arm, and its teardown. T2 covers the arm's
+    LEAVE doors on two fixtures; this is the other verdict. On the
+    locally-infeasible fixture the proximal strategy LEAVES restoration rather
+    than declaring, which is the finding the test pins -- so reaching this one
+    needs a problem whose proximal subproblem CONVERGES at a still-infeasible
+    point. REACHABLE, no seam, but it wants a new problem class. Registered.
+
+  ipm_solver.cpp:3828-3858  (the un-evaluable-step bypass)        6 lines left
+    :3834-3838 -- the bypass's MIDDLE branch, feasibility-restoration entry.
+    T2 covers the first branch (exit at the acceptable level) and the third
+    (abort with the latched error). The middle one is NOT covered, and the
+    reason is worth recording: on the anchor-refusing fixture restoration is
+    already entered by the recovery chain's own feasibility switch before the
+    bypass is reached, so the bypass finds it ACTIVE and falls to the third
+    branch. Reaching the middle branch needs a fixture whose FIRST un-evaluable
+    trial arrives at an iterate the recovery chain does not already divert.
+    REACHABLE, no seam. Registered.
+    (:3843 is the `} else {` of the same if-chain and goes with it.)
+
+  ipm_solver.cpp:1381-1392                                        3 lines left
+    :1382-1384. Not an item of this brief; carried in the twenty-region table
+    only. REMAINING.
+
+NOTHING HERE NEEDS A SEAM. No item in this task was classified
+unreachable-without-a-seam, and no `HVEN_TESTING` point was added anywhere
+(plan J.4); the `KktFactor` construction observer stays DEFERRED to M7 (J.10,
+A7) and was not added.

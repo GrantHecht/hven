@@ -1,0 +1,20 @@
+# hven_sqp_corpus provenance -- ENGINE interior (top-level interior-point driver)
+# binary: 335a6669adf1
+# schema: 19
+# invocation: /home/ghecht/Projects/hven/.scratch/w5t89r/arm-base/build/bench/hven_sqp_corpus --engine interior --cells f7_n1000_bound_neutral --csv /home/ghecht/Projects/hven/.scratch/w5t89r/art2/raw/interior_cells/f7_n1000_bound_neutral/arm102-r3.csv
+# MKL_NUM_THREADS: 1
+# OMP_NUM_THREADS: 1
+# host: fedora
+# generated: 2026-09-11T17:13:20Z
+# levers: max_iters=200 print_level=10 partitions=1 qp_threads=1
+# levers: kkt_tol=1.000000000e-08 econ_tol=1.000000000e-08 icon_tol=1.000000000e-08 barr_tol=1.000000000e-08
+# levers: bound_relax_factor=1.000000000e-08
+# treatments: MakeParameter,MakeConstraint,RelaxBounds -- one row each, per cell
+# key: column 0 is <cell_id>/<fixed_treatment>, unique per row
+cell_id,family,n_nodes,window,taxonomy,status,iter_num,obj_val,kkt_inf,barr_inf,econ_inf,icon_inf,factorizations,solves,analyses,soc_steps,watchdog_activations,fixed_treatment,wall_s
+f7_n1000_bound_neutral/MakeParameter,F7,1000,bound,neutral,CONVERGED,7,-4.075173558e-01,4.165961184e-09,6.604566508e-10,1.123981747e-16,0.000000000e+00,7,7,1,0,0,MakeParameter,0.271384768
+f7_n1000_bound_neutral/MakeConstraint,F7,1000,bound,neutral,CONVERGED,7,-4.075173558e-01,4.165961184e-09,6.604566508e-10,1.123981747e-16,0.000000000e+00,7,7,1,0,0,MakeConstraint,0.040969520
+f7_n1000_bound_neutral/RelaxBounds,F7,1000,bound,neutral,CONVERGED,7,-4.075173558e-01,4.165961184e-09,6.604566508e-10,1.123981747e-16,0.000000000e+00,7,7,1,0,0,RelaxBounds,0.040401464
+hs071_x1_fixed/MakeParameter,hs,4,none,fixed_variable,CONVERGED,9,1.701401729e+01,1.463526456e-09,1.744133762e-10,0.000000000e+00,0.000000000e+00,9,9,2,0,0,MakeParameter,0.000127279
+hs071_x1_fixed/MakeConstraint,hs,4,none,fixed_variable,CONVERGED,9,1.701401729e+01,2.096454566e-09,1.744133762e-10,0.000000000e+00,0.000000000e+00,9,9,2,0,0,MakeConstraint,0.000141849
+hs071_x1_fixed/RelaxBounds,hs,4,none,fixed_variable,CONVERGED,11,1.701401728e+01,3.969047313e-15,3.943132698e-09,0.000000000e+00,0.000000000e+00,11,11,1,0,0,RelaxBounds,0.000131699

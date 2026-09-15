@@ -31,6 +31,14 @@
 // this file, so scoped the same way the rest of the MKL half is.
 #if !defined(__APPLE__)
 #include "hven/detail/linear/pardiso_session.h"
+// The call-scoped thread count's own class, constructed DIRECTLY by the
+// restore-on-unwind test below (M6 W6 T4). It is an ordinary Apache-2.0 header
+// and needs no seam; it is included here rather than in a file of its own so
+// the measurement sits beside the two ThreadScope tests it completes.
+#include "hven/detail/linear/thread_scope.h"
+// MKL's own thread state: the only way to read what a call-scoped thread count
+// left behind. Same platform scope as the rest of the MKL half.
+#include <mkl_service.h>
 #endif
 
 namespace {
@@ -798,6 +806,235 @@ TEST(ThreadCountObservation, ANewCountLandsInTheConfigTheNextSolveReadsWithoutRe
         << "the new count must reach the very next backend call, with no rebuild in between";
     EXPECT_EQ(factor.counters().analyze_count, 1)
         << "and must reach it without costing a symbolic analysis";
+}
+
+// ---------------------------------------------------------------------------
+// The call-scoped thread count: applied for the call, undone after it
+// ---------------------------------------------------------------------------
+//
+// WHAT THE DESIGN ASKED FOR AND WHY IT IS NOT WHAT IS WRITTEN HERE (M6 W5
+// T8.8). Design section 2.6 asks for the setting observed "before, during and
+// after, INCLUDING A THROWING SOLVE". The before/during/after half is pinned
+// below. The throwing half is not reachable THROUGH A SOLVE with the seams that
+// exist, and pretending otherwise would be a vacuous pass -- so it was ARGUED
+// here, in as many words, and a `FactorSession::call` throw seam was REGISTERED
+// for W6 so a later task could measure it:
+//
+//   * `MklThreadScope` is a stack local constructed IMMEDIATELY before the one
+//     `::pardiso` call in `FactorSession::run_phase`, with no statement
+//     between its construction and that call that can throw.
+//   * `::pardiso` is a C entry point and cannot throw.
+//   * The scope's destructor restores the override it replaced on ANY exit.
+//
+//   The first two bullets still hold as written: nothing in a SOLVE can throw
+//   inside the scope, which is why no test here drives one that does.
+//
+// THE THIRD BULLET IS MEASURED NOW, AND THE SEAM REGISTRATION IS RETIRED WITH
+// THIS AS ITS EVIDENCE (M6 W6 T4, plan §0 J.4). The claim the seam would have
+// bought is a property of `MklThreadScope`, not of `FactorSession`: the
+// destructor puts back what the constructor took, on an exceptional exit as on
+// a normal one. Since M6 W5 T8.8 that class lives in the Apache-2.0 header
+// `include/hven/detail/linear/thread_scope.h` and is directly constructible, so
+// the property can be measured AT THE CLASS -- throw inside a scope, catch
+// outside it, read MKL's own thread state before, inside and after -- with no
+// seam into the MPL-derived session file at all. That is
+// `ThreadScope.TheCallersOverrideIsRestoredWhenAThrowUnwindsTheScope` below.
+// It does not claim to be a solve: what it measures is the destructor, which is
+// the whole of what the registered seam would have reached. The declined
+// deviation and its reasoning are recorded in `docs/testing.md`'s dated W6 note
+// under its deviation list.
+//
+// AND NEITHER INJECTOR CAN REACH INSIDE THE SCOPE. `AnalyzeFaultInjector`
+// throws BEFORE `session->analyze(A)` and `FactorizeFaultInjector` substitutes
+// a backend code INSTEAD OF calling `session_->factorize(A)` -- in both cases
+// `::pardiso` is never reached and the scope is never constructed. The second
+// test below arms the injector anyway, because what it pins IS worth pinning:
+// the caller's own count survives an injected failure. That is a different
+// claim from restoration from inside a backend call, and it is written as the
+// different claim it is.
+//
+// SAVE AND RESTORE, NOT RESTORE-TO-ZERO. The caller's override (3) is distinct
+// from both the backend default (0) and the count hven asks for (2), so an
+// implementation that restored a hardcoded 0 fails these assertions instead of
+// passing them.
+TEST(ThreadScope, TheConfiguredCountReachesTheCallAndTheCallersOverrideIsBackAfterIt) {
+    constexpr int kCallerOverride = 3;
+    constexpr int kHvenThreads = 2;
+
+    const int entry = mkl_set_num_threads_local(kCallerOverride);
+
+    // THE "BEFORE", asserted rather than assumed (M6 W5 T8.8 fix1, astra's
+    // Minor on this pin): both readings MKL offers say the caller's own
+    // override is what is in force going in, so the "after" readings below are
+    // a RESTORATION and not a coincidence.
+    ASSERT_EQ(mkl_get_max_threads(), kCallerOverride);
+    ASSERT_EQ(mkl_set_num_threads_local(kCallerOverride), kCallerOverride)
+        << "the setter returns what it replaced -- reading the same fact the other way";
+
+    SymmetricFactor::Options opts;
+    opts.num_threads = kHvenThreads;
+    SymmetricFactor factor{opts};
+    const SpMatRM A = upper_csr(spd3());
+    factor.analyze(A);
+
+    ASSERT_EQ(factor.factorize(A).status, FactorizeOutcome::Status::kOk);
+
+    // THE "DURING": the count the backend call was issued under, read at the
+    // one place a boundary observation can reach it. The observation sits at
+    // the SOLVE phases' shared entry (symmetric_factor_mkl.cpp), which is why
+    // it is a solve and not the factorize above that is measured -- the thread
+    // scope is the same one either way: FactorSession::run_phase constructs it
+    // from this same config field for every phase.
+    const Vec b = Vec::Ones(A.rows());
+    Vec x(A.rows());
+    ThreadCountObserver::reset();
+    factor.solve(b, x);
+    ASSERT_TRUE(ThreadCountObserver::recorded);
+    EXPECT_EQ(ThreadCountObserver::last_config_num_threads, kHvenThreads)
+        << "the factor's own count is what the backend call was issued under";
+
+    // THE "AFTER", both readings MKL offers.
+    EXPECT_EQ(mkl_get_max_threads(), kCallerOverride);
+    EXPECT_EQ(mkl_set_num_threads_local(0), kCallerOverride)
+        << "the setter returns the override it replaced -- hven put back exactly what it took";
+
+    mkl_set_num_threads_local(entry);
+}
+
+// The same AFTER observations with the factorize injector ARMED -- and only the
+// AFTER ones (M6 W5 T8.8 fix1, astra's Minor / the lane's 3.4). There is no
+// "during" reading in this arm and there CANNOT be one: `FactorizeFaultInjector`
+// substitutes a backend code INSTEAD OF calling `session_->factorize(A)`, so the
+// session call never happens, `ThreadCountObserver` records nothing, and the
+// thread scope is never constructed. Read the name literally: the injected
+// failure happens OUTSIDE the thread scope, so what this proves is that a
+// failing factorize leaves the caller's thread setting alone -- NOT that the
+// scope unwinds correctly from inside a backend call, which the block comment
+// above argues by construction and which no seam in this tree can currently
+// force.
+TEST(ThreadScope, TheCallersOverrideSurvivesAnInjectedFactorizationFailureOutsideTheScope) {
+    constexpr int kCallerOverride = 3;
+    constexpr int kHvenThreads = 2;
+
+    const int entry = mkl_set_num_threads_local(kCallerOverride);
+
+    // THE "BEFORE", asserted here too.
+    ASSERT_EQ(mkl_get_max_threads(), kCallerOverride);
+    ASSERT_EQ(mkl_set_num_threads_local(kCallerOverride), kCallerOverride);
+
+    SymmetricFactor::Options opts;
+    opts.num_threads = kHvenThreads;
+    SymmetricFactor factor{opts};
+    const SpMatRM A = upper_csr(spd3());
+    factor.analyze(A);
+
+    {
+        const FactorizeFaultGuard guard(-4); // "zero pivot" -- a real Pardiso code
+        const FactorizeOutcome outcome = factor.factorize(A);
+        EXPECT_NE(outcome.status, FactorizeOutcome::Status::kOk)
+            << "PREMISE: the injected failure actually took the failure path";
+    }
+
+    EXPECT_EQ(mkl_get_max_threads(), kCallerOverride);
+    EXPECT_EQ(mkl_set_num_threads_local(0), kCallerOverride);
+
+    mkl_set_num_threads_local(entry);
+}
+
+// RESTORATION ON AN EXCEPTIONAL EXIT, MEASURED (M6 W6 T4; plan §0 J.4, A4).
+// This is the third bullet of the block comment above, turned from an argument
+// into a reading -- and the evidence on which the registered
+// `FactorSession::call` throw seam is RETIRED rather than built.
+//
+// WHAT IS MEASURED AND WHAT IS NOT. `MklThreadScope` is constructed HERE, not
+// reached through a factorize or a solve, so no session is involved and no
+// deviation into the MPL-derived session file is taken. What that costs is
+// stated plainly: this does not prove that a throw ORIGINATING INSIDE
+// `FactorSession::run_phase` unwinds correctly, because no such throw exists --
+// `::pardiso` is a C entry point and nothing sits between the scope's
+// construction and the call (the bullets above, still true). What it proves is
+// the only part a seam could have added: the DESTRUCTOR puts the caller's
+// override back when the stack unwinds through it. The scope's use site in
+// `run_phase` is one unconditional construction of this same class, so the
+// property measured here is the property that site relies on.
+//
+// THE THREE READINGS, taken through the two accessors MKL offers -- the same
+// pair the two tests above use. `mkl_get_max_threads()` reports the
+// thread-local override in force, and `mkl_set_num_threads_local(v)` RETURNS
+// the override it replaced. There is no MKL query for "the thread-local
+// override" by name; these two readings are what the scope's own setter makes
+// observable, and the AFTER pair is taken both ways for that reason.
+//
+// SAVE AND RESTORE, NOT RESTORE-TO-ZERO, on this path too: the caller's
+// override (3) differs from both the backend default (0) and the count the
+// scope applies (2), so a destructor that restored a hardcoded 0 would fail the
+// AFTER assertions rather than pass them.
+TEST(ThreadScope, TheCallersOverrideIsRestoredWhenAThrowUnwindsTheScope) {
+    constexpr int kCallerOverride = 3;
+    constexpr int kScopeThreads = 2;
+
+    const int entry = mkl_set_num_threads_local(kCallerOverride);
+
+    // THE "BEFORE", asserted rather than assumed, both ways.
+    ASSERT_EQ(mkl_get_max_threads(), kCallerOverride);
+    ASSERT_EQ(mkl_set_num_threads_local(kCallerOverride), kCallerOverride)
+        << "the setter returns what it replaced -- reading the same fact the other way";
+
+    // THE "INSIDE": the reading taken at the moment the exception is thrown,
+    // captured before the stack unwinds so the destructor cannot have run yet.
+    int inside = -1;
+    bool caught = false;
+    try {
+        const hven::linear::detail::MklThreadScope threads(kScopeThreads);
+        inside = mkl_get_max_threads();
+        throw std::runtime_error("M6 W6 T4: a forced throw INSIDE MklThreadScope");
+    } catch (const std::runtime_error &) {
+        caught = true;
+    }
+
+    ASSERT_TRUE(caught) << "PREMISE: the throw happened and was caught OUTSIDE the scope, so the "
+                           "destructor ran during an unwind and not on a normal exit";
+    EXPECT_EQ(inside, kScopeThreads)
+        << "PREMISE: the scope had actually engaged when the throw was raised -- without this the "
+           "AFTER readings below would pass for want of anything to restore";
+
+    // THE "AFTER", both readings MKL offers.
+    EXPECT_EQ(mkl_get_max_threads(), kCallerOverride)
+        << "the unwind put the caller's own override back";
+    EXPECT_EQ(mkl_set_num_threads_local(0), kCallerOverride)
+        << "the setter returns the override it replaced -- the scope put back exactly what it took";
+
+    mkl_set_num_threads_local(entry);
+}
+
+// The same property with NOTHING to restore: an unengaged scope (count 0 means
+// "leave the backend's own default alone") must not write anything on the way
+// out either. Without this arm a destructor that unconditionally restored
+// `previous_` would still pass the test above, because `previous_` and the
+// caller's override coincide there whenever the scope engaged.
+TEST(ThreadScope, AnUnengagedScopeWritesNothingWhenAThrowUnwindsIt) {
+    constexpr int kCallerOverride = 3;
+
+    const int entry = mkl_set_num_threads_local(kCallerOverride);
+    ASSERT_EQ(mkl_get_max_threads(), kCallerOverride);
+
+    int inside = -1;
+    bool caught = false;
+    try {
+        const hven::linear::detail::MklThreadScope threads(0);
+        inside = mkl_get_max_threads();
+        throw std::runtime_error("M6 W6 T4: a forced throw inside an UNENGAGED MklThreadScope");
+    } catch (const std::runtime_error &) {
+        caught = true;
+    }
+
+    ASSERT_TRUE(caught);
+    EXPECT_EQ(inside, kCallerOverride) << "an unengaged scope changes nothing on the way IN";
+    EXPECT_EQ(mkl_get_max_threads(), kCallerOverride)
+        << "and nothing on the way out, an unwind included";
+    EXPECT_EQ(mkl_set_num_threads_local(0), kCallerOverride);
+
+    mkl_set_num_threads_local(entry);
 }
 
 #endif // !defined(__APPLE__)

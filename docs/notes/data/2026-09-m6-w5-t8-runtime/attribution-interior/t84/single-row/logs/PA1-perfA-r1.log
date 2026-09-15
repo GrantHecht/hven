@@ -1,0 +1,83 @@
+PGREP_SEPARATE 2026-09-11T21:33:58Z -- taken OUTSIDE the lock by the caller; build/solve processes:
+3170709 /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1788721371363-g77al2.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'cat > /home/ghecht/Projects/hven/.scratch/w5t89ra5/run_perf.sh <<'"'"'EOF'"'"' #!/bin/bash # Driver: pgrep OUTSIDE the lock, then the perf batch UNDER the lock. set -o pipefail R=/home/ghecht/Projects/hven/.scratch/w5t89ra5 PASS=$1 ROUND=$2 pgrep -af '"'"'cmake|ninja|ctest|hven_|codex|clang'"'"' > $R/logs/perf$PASS-r$ROUND.pgrep 2>/dev/null || echo PGREP_EMPTY > $R/logs/perf$PASS-r$ROUND.pgrep flock /tmp/box-build.lock bash $R/leg_perf.sh $PASS $ROUND rc=$?; echo "WRAPPER_EXIT=$rc"; exit $rc EOF chmod +x /home/ghecht/Projects/hven/.scratch/w5t89ra5/run_perf.sh # one probe round first, to time it and to confirm the events resolve timeout 1800 bash /home/ghecht/Projects/hven/.scratch/w5t89ra5/run_perf.sh A 1 > /home/ghecht/Projects/hven/.scratch/w5t89ra5/logs/probe.out 2>&1; echo "RC=$?" grep -a -E '"'"'ARM_ORDER|ROW CHECK|WRAPPER_EXIT|FOREGROUND'"'"' .scratch/w5t89ra5/logs/PA1-perfA-r1.log | grep -av '"'"'/bin/bash'"'"' echo "--- one perf file ---"; cat .scratch/w5t89ra5/art/perfA/510a4bb/f7_n1000_bound_physics-MakeParameter-r1.txt' && pwd -P >| /tmp/claude-3bbe-cwd
+--- inside the lock from here ---
+PGREP_INLOCK 2026-09-11T21:33:58Z
+3170709 /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1788721371363-g77al2.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'cat > /home/ghecht/Projects/hven/.scratch/w5t89ra5/run_perf.sh <<'"'"'EOF'"'"' #!/bin/bash # Driver: pgrep OUTSIDE the lock, then the perf batch UNDER the lock. set -o pipefail R=/home/ghecht/Projects/hven/.scratch/w5t89ra5 PASS=$1 ROUND=$2 pgrep -af '"'"'cmake|ninja|ctest|hven_|codex|clang'"'"' > $R/logs/perf$PASS-r$ROUND.pgrep 2>/dev/null || echo PGREP_EMPTY > $R/logs/perf$PASS-r$ROUND.pgrep flock /tmp/box-build.lock bash $R/leg_perf.sh $PASS $ROUND rc=$?; echo "WRAPPER_EXIT=$rc"; exit $rc EOF chmod +x /home/ghecht/Projects/hven/.scratch/w5t89ra5/run_perf.sh # one probe round first, to time it and to confirm the events resolve timeout 1800 bash /home/ghecht/Projects/hven/.scratch/w5t89ra5/run_perf.sh A 1 > /home/ghecht/Projects/hven/.scratch/w5t89ra5/logs/probe.out 2>&1; echo "RC=$?" grep -a -E '"'"'ARM_ORDER|ROW CHECK|WRAPPER_EXIT|FOREGROUND'"'"' .scratch/w5t89ra5/logs/PA1-perfA-r1.log | grep -av '"'"'/bin/bash'"'"' echo "--- one perf file ---"; cat .scratch/w5t89ra5/art/perfA/510a4bb/f7_n1000_bound_physics-MakeParameter-r1.txt' && pwd -P >| /tmp/claude-3bbe-cwd
+FOREGROUND_START 2026-09-11T21:33:58Z perf pass=A round=1
+events: instructions:u,branches:u,cycles:u,branch-misses:u,L1-icache-load-misses:u
+ENV_FOOTPRINT bytes=4374 md5=d2966e3d3cc4d732024d2b5df2d17169 pwd=/home/ghecht/Projects/hven shlvl=5
+ARM_ORDER pass=A round=1: 510a4bb 9cebbbe control
+ARGV_LEN arm=510a4bb row=f7_n1000_bound_physics/MakeParameter 276
+RUN  2026-09-11T21:33:58Z perfA arm=510a4bb row=f7_n1000_bound_physics/MakeParameter round=1
+ARGV_LEN arm=510a4bb row=f7_n1000_bound_physics/MakeConstraint 278
+RUN  2026-09-11T21:33:59Z perfA arm=510a4bb row=f7_n1000_bound_physics/MakeConstraint round=1
+ARGV_LEN arm=510a4bb row=f7_n1000_bound_physics/RelaxBounds 272
+RUN  2026-09-11T21:34:00Z perfA arm=510a4bb row=f7_n1000_bound_physics/RelaxBounds round=1
+ARGV_LEN arm=510a4bb row=f7_n5000_bound_physics/MakeParameter 276
+RUN  2026-09-11T21:34:01Z perfA arm=510a4bb row=f7_n5000_bound_physics/MakeParameter round=1
+ARGV_LEN arm=510a4bb row=f7_n5000_bound_physics/MakeConstraint 278
+RUN  2026-09-11T21:34:02Z perfA arm=510a4bb row=f7_n5000_bound_physics/MakeConstraint round=1
+ARGV_LEN arm=510a4bb row=f7_n5000_bound_physics/RelaxBounds 272
+RUN  2026-09-11T21:34:03Z perfA arm=510a4bb row=f7_n5000_bound_physics/RelaxBounds round=1
+ARGV_LEN arm=510a4bb row=f7_n10000_bound_neutral/MakeParameter 278
+RUN  2026-09-11T21:34:04Z perfA arm=510a4bb row=f7_n10000_bound_neutral/MakeParameter round=1
+ARGV_LEN arm=510a4bb row=f7_n10000_bound_neutral/MakeConstraint 280
+RUN  2026-09-11T21:34:05Z perfA arm=510a4bb row=f7_n10000_bound_neutral/MakeConstraint round=1
+ARGV_LEN arm=510a4bb row=f7_n10000_bound_neutral/RelaxBounds 274
+RUN  2026-09-11T21:34:06Z perfA arm=510a4bb row=f7_n10000_bound_neutral/RelaxBounds round=1
+ARGV_LEN arm=510a4bb row=f7_n20000_bound_neutral/MakeParameter 278
+RUN  2026-09-11T21:34:07Z perfA arm=510a4bb row=f7_n20000_bound_neutral/MakeParameter round=1
+ARGV_LEN arm=510a4bb row=f7_n20000_bound_neutral/MakeConstraint 280
+RUN  2026-09-11T21:34:09Z perfA arm=510a4bb row=f7_n20000_bound_neutral/MakeConstraint round=1
+ARGV_LEN arm=510a4bb row=f7_n20000_bound_neutral/RelaxBounds 274
+RUN  2026-09-11T21:34:11Z perfA arm=510a4bb row=f7_n20000_bound_neutral/RelaxBounds round=1
+ARGV_LEN arm=9cebbbe row=f7_n1000_bound_physics/MakeParameter 276
+RUN  2026-09-11T21:34:13Z perfA arm=9cebbbe row=f7_n1000_bound_physics/MakeParameter round=1
+ARGV_LEN arm=9cebbbe row=f7_n1000_bound_physics/MakeConstraint 278
+RUN  2026-09-11T21:34:14Z perfA arm=9cebbbe row=f7_n1000_bound_physics/MakeConstraint round=1
+ARGV_LEN arm=9cebbbe row=f7_n1000_bound_physics/RelaxBounds 272
+RUN  2026-09-11T21:34:15Z perfA arm=9cebbbe row=f7_n1000_bound_physics/RelaxBounds round=1
+ARGV_LEN arm=9cebbbe row=f7_n5000_bound_physics/MakeParameter 276
+RUN  2026-09-11T21:34:16Z perfA arm=9cebbbe row=f7_n5000_bound_physics/MakeParameter round=1
+ARGV_LEN arm=9cebbbe row=f7_n5000_bound_physics/MakeConstraint 278
+RUN  2026-09-11T21:34:17Z perfA arm=9cebbbe row=f7_n5000_bound_physics/MakeConstraint round=1
+ARGV_LEN arm=9cebbbe row=f7_n5000_bound_physics/RelaxBounds 272
+RUN  2026-09-11T21:34:18Z perfA arm=9cebbbe row=f7_n5000_bound_physics/RelaxBounds round=1
+ARGV_LEN arm=9cebbbe row=f7_n10000_bound_neutral/MakeParameter 278
+RUN  2026-09-11T21:34:19Z perfA arm=9cebbbe row=f7_n10000_bound_neutral/MakeParameter round=1
+ARGV_LEN arm=9cebbbe row=f7_n10000_bound_neutral/MakeConstraint 280
+RUN  2026-09-11T21:34:20Z perfA arm=9cebbbe row=f7_n10000_bound_neutral/MakeConstraint round=1
+ARGV_LEN arm=9cebbbe row=f7_n10000_bound_neutral/RelaxBounds 274
+RUN  2026-09-11T21:34:21Z perfA arm=9cebbbe row=f7_n10000_bound_neutral/RelaxBounds round=1
+ARGV_LEN arm=9cebbbe row=f7_n20000_bound_neutral/MakeParameter 278
+RUN  2026-09-11T21:34:22Z perfA arm=9cebbbe row=f7_n20000_bound_neutral/MakeParameter round=1
+ARGV_LEN arm=9cebbbe row=f7_n20000_bound_neutral/MakeConstraint 280
+RUN  2026-09-11T21:34:24Z perfA arm=9cebbbe row=f7_n20000_bound_neutral/MakeConstraint round=1
+ARGV_LEN arm=9cebbbe row=f7_n20000_bound_neutral/RelaxBounds 274
+RUN  2026-09-11T21:34:26Z perfA arm=9cebbbe row=f7_n20000_bound_neutral/RelaxBounds round=1
+ARGV_LEN arm=control row=f7_n1000_bound_physics/MakeParameter 276
+RUN  2026-09-11T21:34:28Z perfA arm=control row=f7_n1000_bound_physics/MakeParameter round=1
+ARGV_LEN arm=control row=f7_n1000_bound_physics/MakeConstraint 278
+RUN  2026-09-11T21:34:29Z perfA arm=control row=f7_n1000_bound_physics/MakeConstraint round=1
+ARGV_LEN arm=control row=f7_n1000_bound_physics/RelaxBounds 272
+RUN  2026-09-11T21:34:30Z perfA arm=control row=f7_n1000_bound_physics/RelaxBounds round=1
+ARGV_LEN arm=control row=f7_n5000_bound_physics/MakeParameter 276
+RUN  2026-09-11T21:34:31Z perfA arm=control row=f7_n5000_bound_physics/MakeParameter round=1
+ARGV_LEN arm=control row=f7_n5000_bound_physics/MakeConstraint 278
+RUN  2026-09-11T21:34:32Z perfA arm=control row=f7_n5000_bound_physics/MakeConstraint round=1
+ARGV_LEN arm=control row=f7_n5000_bound_physics/RelaxBounds 272
+RUN  2026-09-11T21:34:33Z perfA arm=control row=f7_n5000_bound_physics/RelaxBounds round=1
+ARGV_LEN arm=control row=f7_n10000_bound_neutral/MakeParameter 278
+RUN  2026-09-11T21:34:34Z perfA arm=control row=f7_n10000_bound_neutral/MakeParameter round=1
+ARGV_LEN arm=control row=f7_n10000_bound_neutral/MakeConstraint 280
+RUN  2026-09-11T21:34:35Z perfA arm=control row=f7_n10000_bound_neutral/MakeConstraint round=1
+ARGV_LEN arm=control row=f7_n10000_bound_neutral/RelaxBounds 274
+RUN  2026-09-11T21:34:36Z perfA arm=control row=f7_n10000_bound_neutral/RelaxBounds round=1
+ARGV_LEN arm=control row=f7_n20000_bound_neutral/MakeParameter 278
+RUN  2026-09-11T21:34:37Z perfA arm=control row=f7_n20000_bound_neutral/MakeParameter round=1
+ARGV_LEN arm=control row=f7_n20000_bound_neutral/MakeConstraint 280
+RUN  2026-09-11T21:34:39Z perfA arm=control row=f7_n20000_bound_neutral/MakeConstraint round=1
+ARGV_LEN arm=control row=f7_n20000_bound_neutral/RelaxBounds 274
+RUN  2026-09-11T21:34:41Z perfA arm=control row=f7_n20000_bound_neutral/RelaxBounds round=1
+FOREGROUND_END 2026-09-11T21:34:43Z perf pass=A round=1
+WRAPPER_EXIT=0

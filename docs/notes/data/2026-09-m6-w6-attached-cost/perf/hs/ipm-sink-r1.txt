@@ -1,0 +1,17 @@
+# started on Mon Sep 14 07:26:57 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w6t6/build-release/bench/hven_sqp_corpus --hs --engine ipm --csv /home/ghecht/Projects/hven/.scratch/w6t6/art/raw/hs/perf-ipm-sink-r1.csv --hs-trace sink --repeat 200 --hs-warmup 1':
+
+    49,715,282,633      instructions:u                                                        
+     9,098,794,432      branches:u                                                            
+    25,281,928,361      cycles:u                                                              
+        79,129,363      branch-misses:u                                                       
+       141,601,035      L1-icache-load-misses:u                                               
+
+       7.553149263 seconds time elapsed
+
+       7.503895000 seconds user
+       0.002981000 seconds sys
+
+

@@ -1,0 +1,18 @@
+# started on Fri Sep 11 12:00:23 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89r/arm-head/build/bench/hven_sqp_corpus --internal-run-one f7_n20000_bound_neutral --engine ssn --internal-out /home/ghecht/Projects/hven/.scratch/w5t89r/art2/raw/leg1perf/ssn/B-head-f7_n20000_bound_neutral-r2.csv':
+
+    11,683,019,527      instructions:u                                                        
+     4,315,771,719      cycles:u                                                              
+       117,094,490      de_dis_uop_queue_empty_di0:u                                          
+        72,526,458      op_cache_hit_miss.op_cache_miss:u                                      
+     1,818,899,760      op_cache_hit_miss.op_cache_hit:u                                      
+     2,150,751,140      ic_fetch_stall.ic_stall_any:u                                         
+
+       1.547630214 seconds time elapsed
+
+       1.301348000 seconds user
+       0.238711000 seconds sys
+
+

@@ -1,0 +1,98 @@
+M6 W6 T2 -- EVERY LIBRARY FILE AT 0.00 % LINES ON THE CLOSE READ, WITH A JUDGEMENT
+==================================================================================
+Re-derived from this read's own report, against T0's list
+(docs/notes/data/2026-09-m6-w6-coverage-open/zero-headers.txt, as corrected by
+its own T0 fix round 1 block). T0 listed EIGHT. This read lists SEVEN.
+
+WHAT MOVED: `include/hven/detail/globalization/soc.h`, the ONE file T0 judged
+GENUINELY COLD -- corroborated at its call site, which also read 0 -- is now at
+100.00 % (29/29 lines; the line count moved 28 -> 29 because the correction
+loop's template body now has a call site and is instantiated). It was the one
+real T2 target on that list and it is closed. Every OTHER row is unchanged, and
+each one is unchanged FOR THE REASON T0 GAVE.
+
+  file                                                          lines   regions  functions
+  -----------------------------------------------------------------------------------
+  include/hven/detail/interior/utils/timer.h                     0/47     0/26      0/5
+  include/hven/detail/interior/utils/math_functions.h            0/25     0/2       0/2
+  include/hven/core/detail/aggregate_arity.h                     0/10     0/2       0/2
+  include/hven/detail/interior/eval_error_log.h                  0/9      0/3       0/3
+  include/hven/detail/interior/typedefs/super_scalar_traits.h    0/9      0/3       0/3
+  include/hven/detail/globalization/inertia_regularization.h     0/6      0/2       0/2
+  include/hven/drivers/ipm_solver_types.h                        0/1      0/1       0/1
+
+THE JUDGEMENTS, and what this read adds to them
+-----------------------------------------------
+
+1. timer.h (0/47) · 4. eval_error_log.h (0/9) ·
+6. inertia_regularization.h (0/6) · 7. ipm_solver_types.h (0/1)
+   UNDER-READ, NOT UNTESTED -- T0's judgement, and this read CORROBORATES it
+   with a second, independent piece of evidence T0 did not have.
+
+   `eval_error_log.h` is the sharp case. T2 added seventeen cells that drive
+   `EvalErrorLog::record()` and `record_unknown()` directly (tests/interior/
+   test_soc.cpp's four fault arms assert the recorded COUNT and the recorded
+   MESSAGE, so the functions demonstrably ran and demonstrably returned the
+   right values), and this row STILL reads 0/9. A row that stays at zero while
+   a test asserts the value its function computed is not a coverage gap; it is
+   a report defect. Writing more tests against these four rows would buy a
+   number and nothing else -- exactly what T0 said.
+
+   `pch-experiment.txt` in this directory then shows WHERE most of the defect
+   comes from: with the library's precompiled header off, ALL FOUR of these
+   rows fill in (timer.h 0/47 -> 33/47, inertia_regularization.h 0/6 -> 6/6,
+   eval_error_log.h 0/9 -> 9/9, ipm_solver_types.h 0/1 -> 1/1) and the
+   mismatched-function count drops. That measurement also corrects the
+   framing T0 used: the effect does NOT follow "is this header listed in
+   src/hven_pch.h" -- two of the four are not listed -- it follows "is this
+   header's inline body compiled inside a TU that consumes the PCH", which all
+   four are (ipm_solver.cpp is one of the four PCH sources and includes them).
+
+2. math_functions.h (0/25)
+   DEAD, NOT A COVERAGE GAP -- unchanged. `factorial(int)` and
+   `factorial_div(int,int)` still have no call site in this repository
+   (re-grepped at this HEAD over include/, src/, tests/, bench/: only the two
+   definitions). T2 did NOT delete it: the header is included by three detail
+   headers, so removing it is an API-surface change and belongs to a break
+   window, which is where T0 registered it.
+
+3. aggregate_arity.h (0/10)
+   COMPILE-TIME ONLY -- unchanged. constexpr, named only in static_asserts and
+   constant initialisers; the runtime never enters the bodies clang emitted
+   records for, and the static_asserts already fail the BUILD.
+
+5. super_scalar_traits.h (0/9)
+   EIGEN-DISPATCH ONLY, LOW VALUE -- unchanged, and still registered rather
+   than scheduled. A test here would exercise Eigen's dispatch on the
+   super-scalar type, not hven's logic.
+
+AND THE ONE THE PLAN ASKED FOR BY NAME
+--------------------------------------
+`include/hven/detail/drivers/ipm_solver_fwd.h` is STILL ABSENT from the report
+entirely (`grep ipm_solver_fwd coverage-summary.txt` returns nothing), for T0's
+reason: six scoped enums, a forward declaration and a POD emit no coverage
+records. A file with no executable paths cannot have uncovered ones.
+
+CORRECTION (2026-09-14 -- W6 T2 FIX ROUND 1, settler ruling N3(c) on the sol
+review's minors)
+---------------------------------------------------------------------------
+Kept as published; this SUPERSEDES one count in judgement 1 above (the
+`eval_error_log.h` paragraph).
+
+"T2 added seventeen cells that drive `EvalErrorLog::record()` and
+`record_unknown()` directly" -- SEVENTEEN was tests/interior/test_soc.cpp's own
+initial cell count, not the number of cells that drive those two functions. The
+cells that DIRECTLY assert them are FOUR: the trial-evaluation fault arms
+  SocRecovery.AnUnevaluableSeedDeclinesAndLogsTheMessage
+  SocRecovery.AnUnevaluableSeedOfUnknownTypeDeclinesAndLogsTheSentinel
+  SocRecovery.AnUnevaluableAccumulationPointEndsTheLoopAndLogsTheMessage
+  SocRecovery.AnUnevaluableAccumulationPointOfUnknownTypeLogsTheSentinel
+each of which asserts the recorded COUNT and the recorded MESSAGE (the standard
+message on two, the unknown-type sentence on the other two). Other cells in the
+suite reach the log incidentally; these four are the ones that assert what its
+functions produced.
+
+The JUDGEMENT the count was offered in support of is unchanged, and if anything
+sharper: four cells assert the values those two functions computed while this
+row still reads 0/9. A row that stays at zero while a test asserts the value its
+function computed is a report defect, not a coverage gap.

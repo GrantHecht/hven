@@ -9,6 +9,15 @@
 
 #include "hven/detail/model/nlp_adapter.h"
 #include "hven/model/nlp_problem_model.h"
+// The adapter above only FORWARD-DECLARES NonLinearProgram, and this file
+// dereferences one (the previous unity batch happened to supply the definition
+// from a neighbouring TU; M6 W4 T4 re-batched the suite and exposed it).
+#include "hven/model/non_linear_program.h"
+
+#include "hven/core/compiler.h"
+
+// by-value oracle of the in-place hot path; migration is a separate task
+HVEN_SUPPRESS_DEPRECATED_BEGIN
 
 // UNITY-BUILD NOTE: this suite is compiled with UNITY_BUILD ON, so an anonymous
 // namespace does not isolate these helpers from the other test TUs merged into
@@ -21,16 +30,16 @@ constexpr double kNpmInf = std::numeric_limits<double>::infinity();
 using hven::ConstEigenRef;
 using hven::solvers::NLPAdapterCore;
 using hven::solvers::NLPCoordinate;
-using hven::solvers::NLPProblem;
 using hven::solvers::NlpProblemModel;
 using hven::solvers::NLPRowKind;
+using hven::solvers::NlpTripletModel;
 
 namespace {
 
 /// n = 2, one constraint row of every kind, and one Jacobian slot per row in
 /// column 0 whose value is the row index plus one. g_r(x) = (r + 1) * x0, so
 /// every residual and every Jacobian entry below is a hand-checkable number.
-struct NpmKindsProblem : NLPProblem {
+struct NpmKindsProblem : NlpTripletModel {
     mutable int n_eval_g_ = 0, n_eval_jac_ = 0;
 
     int num_vars() const override { return 2; }
@@ -81,7 +90,7 @@ struct NpmKindsProblem : NLPProblem {
 
 /// Unconstrained, n = 2, and a declared Hessian structure that is genuinely
 /// lower-triangular and carries a duplicate slot.
-struct NpmHessProblem : NLPProblem {
+struct NpmHessProblem : NlpTripletModel {
     int num_vars() const override { return 2; }
     int num_cons() const override { return 0; }
     int num_jac_nonzeros() const override { return 0; }
@@ -115,7 +124,7 @@ struct NpmHessProblem : NLPProblem {
 /// Bounds chosen to separate "unbounded" from "a large finite bound": variable
 /// 0 is bounded at +/-1e20, variable 1 is genuinely free, row 0 is an equality
 /// at 1e20 and row 1 is a range between -1e20 and 1e20.
-struct NpmLargeBoundProblem : NLPProblem {
+struct NpmLargeBoundProblem : NlpTripletModel {
     Eigen::VectorXd xl_{{-1e20, -kNpmInf}}, xu_{{1e20, kNpmInf}};
 
     int num_vars() const override { return 2; }
@@ -1064,3 +1073,5 @@ TEST(NlpAdapterHostTest, AnEmptyMultiplierBlockIsNotReadAsAllZeroAtTheHessianOwn
     longer_i << -0.5, 8.0;
     EXPECT_NO_THROW(core.eval_hessian_values(x, 1.0, longer_e, longer_i));
 }
+
+HVEN_SUPPRESS_DEPRECATED_END

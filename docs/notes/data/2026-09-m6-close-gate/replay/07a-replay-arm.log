@@ -1,0 +1,12 @@
+LEG: bash -o pipefail -c bash /home/ghecht/Projects/hven/.scratch/m6-close/replay_arm.sh head
+PGREP_SEPARATE 2026-09-14T17:12:14Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-14T17:12:14Z
+ran head-walk rc=0  (worst 0)
+ran head-ssn rc=0  (worst 0)
+ran head-ipm rc=0  (worst 0)
+REPLAY_ARM_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T17:16:23Z
+WRAPPER_EXIT=0

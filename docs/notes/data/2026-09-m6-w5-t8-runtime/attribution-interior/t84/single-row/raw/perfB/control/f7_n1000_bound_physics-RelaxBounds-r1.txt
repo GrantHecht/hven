@@ -1,0 +1,18 @@
+# started on Fri Sep 11 17:39:30 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89ra5/bin/control/hven_sqp_corpus --internal-run-one f7_n1000_bound_physics --engine interior --treatment RelaxBounds --internal-out /home/ghecht/Projects/hven/.scratch/w5t89ra5/art/B/control/f7_n1000_bound_physics-RelaxBounds-r1.csv':
+
+     4,755,063,735      instructions:u                                                        
+     3,215,676,904      cycles:u                                                              
+       650,581,257      de_dis_uop_queue_empty_di0:u                                          
+         5,665,663      op_cache_hit_miss.op_cache_miss:u                                      
+     1,327,562,300      op_cache_hit_miss.op_cache_hit:u                                      
+     1,587,455,483      ic_fetch_stall.ic_stall_any:u                                         
+
+       0.969473531 seconds time elapsed
+
+       0.955426000 seconds user
+       0.010901000 seconds sys
+
+

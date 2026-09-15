@@ -38,7 +38,7 @@
 namespace {
 
 using hven::solvers::ElasticSlackInit;
-using hven::solvers::InteriorPointSolver;
+using hven::solvers::IpmSolver;
 using hven::solvers::kBoundMultResetThreshold;
 using hven::solvers::kNearFeasibleGuardFactor;
 using hven::solvers::kRestoPenaltyParameter;
@@ -638,12 +638,12 @@ TEST(L1RestoRecenter, ResetClearsRecenterCount) {
 
 TEST(L1RestoEntryPermitted, NearFeasibleGuardBoundary) {
     InertSolverContext inert;
-    inert.settings_.econ_tol_ = 1e-6;
-    inert.settings_.max_feas_rest_ = 2;
+    inert.opts_.econ_tol = 1e-6;
+    inert.opts_.max_feas_rest = 2;
     const SolverContext ctx = inert.ctx();
 
     NestedL1Restoration r;
-    const double threshold = kNearFeasibleGuardFactor * inert.settings_.econ_tol_; // 1e-7
+    const double threshold = kNearFeasibleGuardFactor * inert.opts_.econ_tol; // 1e-7
     EXPECT_FALSE(r.entry_permitted(threshold, ctx));       // "<=" refuses at boundary
     EXPECT_FALSE(r.entry_permitted(threshold * 0.5, ctx)); // below -> refused
     EXPECT_TRUE(r.entry_permitted(threshold * 2.0, ctx));  // above -> permitted
@@ -652,8 +652,8 @@ TEST(L1RestoEntryPermitted, NearFeasibleGuardBoundary) {
 
 TEST(L1RestoEntryPermitted, BudgetExhaustionCountsNestedEntries) {
     InertSolverContext inert;
-    inert.settings_.econ_tol_ = 1e-6;
-    inert.settings_.max_feas_rest_ = 2;
+    inert.opts_.econ_tol = 1e-6;
+    inert.opts_.max_feas_rest = 2;
     const SolverContext ctx = inert.ctx();
 
     NestedL1Restoration r;
@@ -676,8 +676,8 @@ TEST(L1RestoEntryPermitted, BudgetExhaustionCountsNestedEntries) {
 
 TEST(L1RestoEntryPermitted, ZeroBudgetAlwaysRefuses) {
     InertSolverContext inert;
-    inert.settings_.econ_tol_ = 1e-6;
-    inert.settings_.max_feas_rest_ = 0;
+    inert.opts_.econ_tol = 1e-6;
+    inert.opts_.max_feas_rest = 0;
     const SolverContext ctx = inert.ctx();
 
     NestedL1Restoration r;
@@ -762,10 +762,10 @@ TEST(L1RestoReset, ClearsAllElasticState) {
 
 TEST(L1RestoDiagnostics, NeverEnteredReportsZeroZero) {
     NestedL1Restoration r;
-    InteriorPointSolver::SolveResult result;
+    hven::solvers::IpmResult result;
     r.append_diagnostics(result);
-    EXPECT_EQ(result.last_feas_rest_entries_, 0);
-    EXPECT_EQ(result.last_feas_rest_iters_, 0);
+    EXPECT_EQ(result.last_feas_rest_entries, 0);
+    EXPECT_EQ(result.last_feas_rest_iters, 0);
 }
 
 TEST(L1RestoDiagnostics, ReportsEntriesAndIterationsInMode) {
@@ -785,10 +785,10 @@ TEST(L1RestoDiagnostics, ReportsEntriesAndIterationsInMode) {
     r.enter_nested(ref, xr, eq, empty, 0.2);
     r.note_iteration();
 
-    InteriorPointSolver::SolveResult result;
+    hven::solvers::IpmResult result;
     r.append_diagnostics(result);
-    EXPECT_EQ(result.last_feas_rest_entries_, 2);
-    EXPECT_EQ(result.last_feas_rest_iters_, 4);
+    EXPECT_EQ(result.last_feas_rest_entries, 2);
+    EXPECT_EQ(result.last_feas_rest_iters, 4);
 }
 
 // Reference the reset-threshold constant so the header's declaration is

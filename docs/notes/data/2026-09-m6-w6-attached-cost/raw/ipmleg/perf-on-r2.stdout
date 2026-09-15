@@ -1,0 +1,147 @@
+callback-events row=f7_n1000_bound_neutral/MakeParameter events=7 iter_num=7
+callback-events row=f7_n1000_bound_neutral/MakeConstraint events=7 iter_num=7
+refused (not dual-bindable): f7_n1000_bound_corrupted -- start is a damaged SQP SqpWarmStart from a prior solve at p0; the interior-point engine accepts no such value, so leg (a) cannot run from this cell's own start
+refused (not dual-bindable): f7_n1000_bound_activity -- start is a SYNTHESIZED interior-point iterate pushed through from_interior_point; superseded here by legs (c)/(d), which measure the same hand-off with a real interior-point export
+refused (not dual-bindable): f7_n1000_bound_warm -- start is an SQP SqpWarmStart carried from a prior solve at p0 (hot handle and activity encoding, no interior-point counterpart), so leg (a) cannot run from this cell's own start
+refused (not dual-bindable): f7_n2000_bound_corrupted -- start is a damaged SQP SqpWarmStart from a prior solve at p0; the interior-point engine accepts no such value, so leg (a) cannot run from this cell's own start
+refused (not dual-bindable): f7_n2000_bound_activity -- start is a SYNTHESIZED interior-point iterate pushed through from_interior_point; superseded here by legs (c)/(d), which measure the same hand-off with a real interior-point export
+refused (not dual-bindable): f7_n2000_bound_warm -- start is an SQP SqpWarmStart carried from a prior solve at p0 (hot handle and activity encoding, no interior-point counterpart), so leg (a) cannot run from this cell's own start
+refused (not dual-bindable): f7_n5000_bound_corrupted -- start is a damaged SQP SqpWarmStart from a prior solve at p0; the interior-point engine accepts no such value, so leg (a) cannot run from this cell's own start
+refused (not dual-bindable): f7_n5000_bound_activity -- start is a SYNTHESIZED interior-point iterate pushed through from_interior_point; superseded here by legs (c)/(d), which measure the same hand-off with a real interior-point export
+refused (not dual-bindable): f7_n5000_bound_warm -- start is an SQP SqpWarmStart carried from a prior solve at p0 (hot handle and activity encoding, no interior-point counterpart), so leg (a) cannot run from this cell's own start
+refused (not dual-bindable): f7_n10000_bound_corrupted -- start is a damaged SQP SqpWarmStart from a prior solve at p0; the interior-point engine accepts no such value, so leg (a) cannot run from this cell's own start
+refused (not dual-bindable): f7_n10000_bound_activity -- start is a SYNTHESIZED interior-point iterate pushed through from_interior_point; superseded here by legs (c)/(d), which measure the same hand-off with a real interior-point export
+refused (not dual-bindable): f7_n10000_bound_warm -- start is an SQP SqpWarmStart carried from a prior solve at p0 (hot handle and activity encoding, no interior-point counterpart), so leg (a) cannot run from this cell's own start
+refused (not dual-bindable): f7_n20000_bound_corrupted -- start is a damaged SQP SqpWarmStart from a prior solve at p0; the interior-point engine accepts no such value, so leg (a) cannot run from this cell's own start
+refused (not dual-bindable): f7_n20000_bound_activity -- start is a SYNTHESIZED interior-point iterate pushed through from_interior_point; superseded here by legs (c)/(d), which measure the same hand-off with a real interior-point export
+refused (not dual-bindable): f7_n20000_bound_warm -- start is an SQP SqpWarmStart carried from a prior solve at p0 (hot handle and activity encoding, no interior-point counterpart), so leg (a) cannot run from this cell's own start
+refused (not dual-bindable): f7_n1000_path_warm -- start is an SQP SqpWarmStart carried from a prior solve at p0 (hot handle and activity encoding, no interior-point counterpart), so leg (a) cannot run from this cell's own start
+refused (not dual-bindable): f7_n800_path_warm -- start is an SQP SqpWarmStart carried from a prior solve at p0 (hot handle and activity encoding, no interior-point counterpart), so leg (a) cannot run from this cell's own start
+running f7_n1000_bound_neutral (N=1000, treatment MakeParameter)...
+  -> optimal in 7 iterations (kkt_inf 4.166e-09)
+running f7_n1000_bound_neutral (N=1000, treatment MakeConstraint)...
+  -> optimal in 7 iterationcallback-events row=f7_n1000_bound_neutral/RelaxBounds events=7 iter_num=7
+callback-events row=f7_n1000_bound_physics/MakeParameter events=5 iter_num=5
+callback-events row=f7_n1000_bound_physics/MakeConstraint events=5 iter_num=5
+callback-events row=f7_n1000_bound_physics/RelaxBounds events=5 iter_num=5
+callback-events row=f7_n2000_bound_neutral/MakeParameter events=8 iter_num=8
+callback-events row=f7_n2000_bound_neutral/MakeConstraint events=8 iter_num=8
+callback-events row=f7_n2000_bound_neutral/RelaxBounds events=8 iter_num=8
+callback-events row=f7_n2000_bound_physics/MakeParameter events=5 iter_num=5
+callback-events row=f7_n2000_bound_physics/MakeConstraint events=5 iter_num=5
+callback-events row=f7_n2000_bound_physics/RelaxBounds events=5 iter_num=5
+callback-events row=f7_n5000_bound_neutral/MakeParameter events=8 iter_num=8
+callback-events row=f7_n5000_bound_neutral/MakeConstraint events=8 iter_num=8
+callback-events row=f7_n5000_bound_neutral/RelaxBounds events=8 iter_num=8
+callback-events row=f7_n5000_bound_physics/MakeParameter events=5 iter_num=5
+callback-events row=f7_n5000_bound_physics/MakeConstraint events=5 iter_num=5
+callback-events row=f7_n5000_bound_physics/RelaxBounds events=5 iter_num=5
+callback-events row=f7_n10000_bound_neutral/MakeParameter events=9 iter_num=9
+callback-events row=f7_n10000_bound_neutral/MakeConstraint events=9 iter_num=9
+callback-events row=f7_n10000_bound_neutral/RelaxBounds events=9 iter_num=9
+callback-events row=f7_n10000_bound_physics/MakeParameter events=5 iter_num=5
+callback-events row=f7_n10000_bound_physics/MakeConstraint events=5 iter_num=5
+callback-events row=f7_n10000_bound_physics/RelaxBounds events=5 iter_num=5
+callback-events row=f7_n20000_bound_neutral/MakeParameter events=9 iter_num=9
+callback-events row=f7_n20000_bound_neutral/MakeConstraint events=9 iter_num=9
+callback-events row=f7_n20000_bound_neutral/RelaxBounds events=9 iter_num=9
+callback-events row=f7_n20000_bound_physics/MakeParameter events=5 iter_num=5
+callback-events row=f7_n20000_bound_physics/MakeConstraint events=5 iter_num=5
+callback-events row=f7_n20000_bound_physics/RelaxBounds events=5 iter_num=5
+callback-events row=hs071_x1_fixed/MakeParameter events=9 iter_num=9
+callback-events row=hs071_x1_fixed/MakeConstraint events=9 iter_num=9
+callback-events row=hs071_x1_fixed/RelaxBounds events=11 iter_num=11
+callback-events row=f7_n1000_bound_neutral/MakeParameter/cap1 events=1 iter_num=1
+callback-events row=hs071_x1_fixed/MakeParameter/cap1 events=1 iter_num=1
+callback-events row=infeas2_spike/MakeParameter/stalled events=141 iter_num=141
+callback-events row=infeas2_stationary/MakeParameter/resto_infeasible events=25 iter_num=25
+s (kkt_inf 4.166e-09)
+running f7_n1000_bound_neutral (N=1000, treatment RelaxBounds)...
+  -> optimal in 7 iterations (kkt_inf 4.166e-09)
+running f7_n1000_bound_physics (N=1000, treatment MakeParameter)...
+  -> optimal in 5 iterations (kkt_inf 2.381e-10)
+running f7_n1000_bound_physics (N=1000, treatment MakeConstraint)...
+  -> optimal in 5 iterations (kkt_inf 2.381e-10)
+running f7_n1000_bound_physics (N=1000, treatment RelaxBounds)...
+  -> optimal in 5 iterations (kkt_inf 2.381e-10)
+running f7_n2000_bound_neutral (N=2000, treatment MakeParameter)...
+  -> optimal in 8 iterations (kkt_inf 2.634e-10)
+running f7_n2000_bound_neutral (N=2000, treatment MakeConstraint)...
+  -> optimal in 8 iterations (kkt_inf 2.634e-10)
+running f7_n2000_bound_neutral (N=2000, treatment RelaxBounds)...
+  -> optimal in 8 iterations (kkt_inf 2.634e-10)
+running f7_n2000_bound_physics (N=2000, treatment MakeParameter)...
+  -> optimal in 5 iterations (kkt_inf 2.434e-10)
+running f7_n2000_bound_physics (N=2000, treatment MakeConstraint)...
+  -> optimal in 5 iterations (kkt_inf 2.434e-10)
+running f7_n2000_bound_physics (N=2000, treatment RelaxBounds)...
+  -> optimal in 5 iterations (kkt_inf 2.434e-10)
+running f7_n5000_bound_neutral (N=5000, treatment MakeParameter)...
+  -> optimal in 8 iterations (kkt_inf 6.438e-09)
+running f7_n5000_bound_neutral (N=5000, treatment MakeConstraint)...
+  -> optimal in 8 iterations (kkt_inf 6.438e-09)
+running f7_n5000_bound_neutral (N=5000, treatment RelaxBounds)...
+  -> optimal in 8 iterations (kkt_inf 6.438e-09)
+running f7_n5000_bound_physics (N=5000, treatment MakeParameter)...
+  -> optimal in 5 iterations (kkt_inf 2.466e-10)
+running f7_n5000_bound_physics (N=5000, treatment MakeConstraint)...
+  -> optimal in 5 iterations (kkt_inf 2.466e-10)
+running f7_n5000_bound_physics (N=5000, treatment RelaxBounds)...
+  -> optimal in 5 iterations (kkt_inf 2.466e-10)
+running f7_n10000_bound_neutral (N=10000, treatment MakeParameter)...
+  -> optimal in 9 iterations (kkt_inf 4.384e-10)
+running f7_n10000_bound_neutral (N=10000, treatment MakeConstraint)...
+  -> optimal in 9 iterations (kkt_inf 4.384e-10)
+running f7_n10000_bound_neutral (N=10000, treatment RelaxBounds)...
+  -> optimal in 9 iterations (kkt_inf 4.384e-10)
+running f7_n10000_bound_physics (N=10000, treatment MakeParameter)...
+  -> optimal in 5 iterations (kkt_inf 2.479e-10)
+running f7_n10000_bound_physics (N=10000, treatment MakeConstraint)...
+  -> optimal in 5 iterations (kkt_inf 2.479e-10)
+running f7_n10000_bound_physics (N=10000, treatment RelaxBounds)...
+  -> optimal in 5 iterations (kkt_inf 2.479e-10)
+running f7_n20000_bound_neutral (N=20000, treatment MakeParameter)...
+  -> optimal in 9 iterations (kkt_inf 5.552e-10)
+running f7_n20000_bound_neutral (N=20000, treatment MakeConstraint)...
+  -> optimal in 9 iterations (kkt_inf 5.552e-10)
+running f7_n20000_bound_neutral (N=20000, treatment RelaxBounds)...
+  -> optimal in 9 iterations (kkt_inf 5.552e-10)
+running f7_n20000_bound_physics (N=20000, treatment MakeParameter)...
+  -> optimal in 5 iterations (kkt_inf 2.481e-10)
+running f7_n20000_bound_physics (N=20000, treatment MakeConstraint)...
+  -> optimal in 5 iterations (kkt_inf 2.481e-10)
+running f7_n20000_bound_physics (N=20000, treatment RelaxBounds)...
+  -> optimal in 5 iterations (kkt_inf 2.481e-10)
+running hs071_x1_fixed (treatment MakeParameter)...
+  -> optimal in 9 iterations (kkt_inf 1.464e-09)
+running hs071_x1_fixed (treatment MakeConstraint)...
+  -> optimal in 9 iterations (kkt_inf 2.096e-09)
+running hs071_x1_fixed (treatment RelaxBounds)...
+  -> optimal in 11 iterations (kkt_inf 3.969e-15)
+running f7_n1000_bound_neutral (treatment MakeParameter, variant cap1)...
+  -> max_iter in 1 iterations, stop reason iteration_cap
+running hs071_x1_fixed (treatment MakeParameter, variant cap1)...
+  -> max_iter in 1 iterations, stop reason iteration_cap
+running infeas2_spike (treatment MakeParameter, variant stalled)...
+  -> stalled in 141 iterations, stop reason stage_stalled
+running infeas2_stationary (treatment MakeParameter, variant resto_infeasible)...
+  -> stalled in 25 icallback-events row=f7_n1000_bound_neutral/MakeParameter/solve_optimize events=12 iter_num=12
+callback-events row=hs071_x1_fixed/MakeParameter/solve_optimize events=19 iter_num=19
+callback-events row=hs071_x1_fixed/MakeParameter/warm_payload events=3 iter_num=3
+callback-events row=hs071_x1_fixed/MakeParameter/warm_multiplier_seed events=9 iter_num=9
+callback-events row=f7_n1000_bound_neutral/MakeConstraint/parts2 events=7 iter_num=7
+callback-events row=f7_n1000_bound_neutral/MakeParameter/parts2 events=7 iter_num=7
+terations, stop reason restoration_locally_infeasible
+running f7_n1000_bound_neutral (treatment MakeParameter, variant solve_optimize)...
+  -> optimal in 12 iterations, stop reason none
+running hs071_x1_fixed (treatment MakeParameter, variant solve_optimize)...
+  -> optimal in 19 iterations, stop reason none
+running hs071_x1_fixed (treatment MakeParameter, variant warm_payload)...
+  -> optimal in 3 iterations, stop reason none
+running hs071_x1_fixed (treatment MakeParameter, variant warm_multiplier_seed)...
+  -> optimal in 9 iterations, stop reason none
+running f7_n1000_bound_neutral (treatment MakeConstraint, variant parts2)...
+  -> optimal in 7 iterations, stop reason none
+running f7_n1000_bound_neutral (treatment MakeParameter, variant parts2)...
+  -> optimal in 7 iterations, stop reason none
+wrote 43 row(s) to /home/ghecht/Projects/hven/.scratch/w6t6/art/raw/ipmleg/perf-on-r2.csv (17 cell(s) refused)

@@ -5,7 +5,7 @@
 
 // restoration.h -- the restoration phase's l1 feasibility-problem model
 // wrapper. The RESTORATION PHASE note ("the header note"), build_subproblem,
-// and qp_failure_is_retryable live in drivers/sqp_driver.h; the elastic tier
+// and qp_failure_is_retryable live in drivers/sqp_solver.h; the elastic tier
 // compared against is detail/globalization/sqp/elastic.h's. Every member
 // function of RestorationModel declared here is defined in
 // src/globalization/sqp/soc_elastic_restoration.cpp (with soc.h's and
@@ -13,9 +13,9 @@
 // `n()` is the class's KEY FUNCTION, so the vtable/typeinfo are emitted in that
 // TU alone rather than weakly in every TU touching the class.
 //
-// NOT SELF-CONTAINED BY DESIGN: `NlpEval` is defined in drivers/sqp_driver.h,
+// NOT SELF-CONTAINED BY DESIGN: `NlpEval` is defined in drivers/sqp_solver.h,
 // which includes this header after NlpEval's definition and before the driver
-// class, so no header cycle exists (this header never includes sqp_driver.h).
+// class, so no header cycle exists (this header never includes sqp_solver.h).
 // Any other includer must have NlpEval complete first.
 
 #include <algorithm>
@@ -34,7 +34,7 @@ namespace hven::solvers {
 
 /// The fraction of tr_init the trust region restarts at when the main loop
 /// resumes from restoration: one order of magnitude is the conservative reading
-/// of "start again", and the growth rule earns it back (see sqp_driver.h's
+/// of "start again", and the growth rule earns it back (see sqp_solver.h's
 /// WHAT RESUMING DOES).
 inline constexpr double kRestoreRadiusFactor = 0.1;
 
@@ -55,7 +55,7 @@ inline constexpr double kRestorationSlackBound = 1e20;
 /// in y = (x, sp, sm, si), with n + 2*me + mi variables and the SAME me and mi
 /// (the slacks add COLUMNS, never rows — the same shape choice as the elastic
 /// tier). Minimizing this minimizes h(x) = ||cE(x)||_1 +
-/// sum_j max(0, cI_j(x)) EXACTLY (sqp_driver.h's EXACTNESS paragraph is the
+/// sum_j max(0, cI_j(x)) EXACTLY (sqp_solver.h's EXACTNESS paragraph is the
 /// argument this class is built to satisfy).
 ///
 /// THE SIGMA SCALING: sigmaE_i = max(1, ||grad cE_i(x_entry)||inf), sigmaI_j

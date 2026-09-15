@@ -1,0 +1,10 @@
+--- a/include/hven/drivers/interior_point_solver.h
++++ b/include/hven/drivers/interior_point_solver.h
+@@ -807,6 +807,7 @@
+     IpmOptions opts_;
+     SolveResult result_;
+     EvalErrorLog eval_error_log_;
++    char hven_t89ra3_layout_pad_[320]; // W5 T8.9r-attrib3 experiment 2
+     std::shared_ptr<NonLinearProgram> nlp_;
+ 
+     // Classic merit line-search acceptance, held through the AcceptanceStrategy

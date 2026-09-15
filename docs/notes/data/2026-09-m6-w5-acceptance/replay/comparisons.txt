@@ -1,0 +1,34 @@
+# M6 W5 T9 -- the U0 27-cell three-arm replay, the WHOLE WINDOW
+#   BASE = accbff0e (the W4 CLOSED commit; code head d4d78f9, code-identical)
+#   HEAD = 369e3146 (W5 T8 CLOSED; the code head this artifact describes)
+# The BASE arm was built in a detached worktree at .scratch/w5t9/base with its
+# submodules initialised, from an EMPTY build directory, so its configure-time
+# `git describe` stamp is CLEAN (`accbff0e60b0`) rather than a symlinked -dirty form.
+# Comparator: docs/notes/data/2026-09-m6-w4-acceptance/probes/compare_replay.py
+#   sha256 c9dc9a65260f49e44bf2fb03aa165041ef3872d46aba756fbdef6bebc229c624
+# 75 of the corpus schema's 76 columns are compared; `wall_s` is informational
+# (CLAUDE.md section 7) and the comparator excludes it by name.
+# Produced by .scratch/w5t9/replay_cmp.sh under the box lock; log 09-replay-compare.log
+#
+FOREGROUND_START 2026-09-13T23:02:35Z
+COMPARATOR: /home/ghecht/Projects/hven/docs/notes/data/2026-09-m6-w4-acceptance/probes/compare_replay.py
+=== W5 BASE accbff0e-walk vs HEAD 369e3146-walk === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0  (worst so far: 0)
+=== W5 BASE accbff0e-ssn vs HEAD 369e3146-ssn === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0  (worst so far: 0)
+=== W5 BASE accbff0e-ipm vs HEAD 369e3146-ipm === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0  (worst so far: 0)
+=== committed t10b ipm baseline vs HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0  (worst so far: 0)
+=== committed t10b ipm baseline vs BASE-ipm (the CONTROL) === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0  (worst so far: 0)
+--- stamps and schema ---
+# binary: accbff0e60b0
+# schema: 76
+# budget_table_hash: 0x357aee91dee27391
+# binary: 369e3146db61
+# schema: 76
+# budget_table_hash: 0x357aee91dee27391
+REPLAY_CMP_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-13T23:02:35Z

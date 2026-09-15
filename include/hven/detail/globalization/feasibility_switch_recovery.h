@@ -10,9 +10,6 @@
 
 #include "hven/detail/globalization/recovery_chain.h"
 
-// Test fixture (declared for the friend grant below).
-class NestedLifecycleHarness;
-
 namespace hven::solvers {
 
 /// Soft feasibility pre-stage constant: a soft step is accepted while its trial
@@ -93,12 +90,11 @@ class FeasibilitySwitchRecovery : public RecoveryChain {
 
     Action on_step_rejected(IterateInfo &Citer, const std::vector<IterateInfo> &iters,
                             SolverContext &ctx, AcceptanceStrategy &acceptance,
-                            GlobalizationMechanism &mechanism,
-                            InteriorPointSolver::LineSearchModes lsmode, double obj_scale,
-                            double mu, double prim_obj, double barr_obj, Eigen::VectorXd &XSL,
-                            Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2, Eigen::VectorXd &RHS,
-                            Eigen::VectorXd &RHS2, double &alpha, double &alphap, double &alphad,
-                            int &soc_steps, int &resolved_depth,
+                            GlobalizationMechanism &mechanism, IpmSolver::LineSearchModes lsmode,
+                            double obj_scale, double mu, double prim_obj, double barr_obj,
+                            Eigen::VectorXd &XSL, Eigen::VectorXd &DXSL, Eigen::VectorXd &XSL2,
+                            Eigen::VectorXd &RHS, Eigen::VectorXd &RHS2, double &alpha,
+                            double &alphap, double &alphad, int &soc_steps, int &resolved_depth,
                             int &watchdog_activations) override;
 
     /// A genuinely accepted regular step means the ordinary optimality-phase
@@ -117,8 +113,6 @@ class FeasibilitySwitchRecovery : public RecoveryChain {
     }
 
   private:
-    friend class ::NestedLifecycleHarness;
-
     std::unique_ptr<RecoveryChain> inner_;
 
     /// Successive soft pre-stage iterations taken (nested restoration only).

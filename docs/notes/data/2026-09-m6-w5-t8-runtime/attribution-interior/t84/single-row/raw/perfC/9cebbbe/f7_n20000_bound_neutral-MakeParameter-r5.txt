@@ -1,0 +1,16 @@
+# started on Fri Sep 11 17:48:44 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89ra5/bin/9cebbbe/hven_sqp_corpus --internal-run-one f7_n20000_bound_neutral --engine interior --treatment MakeParameter --internal-out /home/ghecht/Projects/hven/.scratch/w5t89ra5/art/C/9cebbbe/f7_n20000_bound_neutral-MakeParameter-r5.csv':
+
+       150,747,716      L1-dcache-load-misses:u                                               
+   <not supported>      LLC-load-misses:u                                                     
+         1,289,069      dTLB-load-misses:u                                                    
+           101,325      page-faults:u                                                         
+
+       1.566063671 seconds time elapsed
+
+       1.349104000 seconds user
+       0.209889000 seconds sys
+
+

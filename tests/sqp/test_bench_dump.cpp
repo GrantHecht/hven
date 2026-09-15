@@ -54,11 +54,16 @@
 
 #include <gtest/gtest.h>
 
+#include <hven/core/types.h>
+
 #include "../../bench/bench_cli.h"
 
 namespace {
 
 using hven::solvers::bench_cli::open_output_or_throw;
+using hven::solvers::bench_cli::QpDumpV2;
+using hven::solvers::bench_cli::read_qp_dump_v2;
+using hven::solvers::bench_cli::write_qp_dump_v2;
 using hven::solvers::bench_cli::write_solution_dump;
 
 constexpr const char *kUsage = "usage: hven_sqp_bench --family F3|F7 ... [THE USAGE TEXT]\n";
@@ -193,4 +198,166 @@ TEST(BenchDump, BodyIsOneComponentPerLineAndRoundTripsExactly) {
         // SOLVERS, not by this file's precision.
         EXPECT_EQ(got[i], x[i]) << "component " << i;
     }
+}
+
+// M6 W1 T9 FIX ROUND 1: the version-2 MID-SOLVE QP dump. The format is a
+// contract, so a round trip is asserted bit for bit and every malformation is
+// a throw, not a default -- the same discipline as the solution dump above.
+
+namespace {
+
+hven::Vec vec(std::initializer_list<double> v) {
+    hven::Vec out(static_cast<hven::Index>(v.size()));
+    hven::Index i = 0;
+    for (const double x : v) {
+        out(i++) = x;
+    }
+    return out;
+}
+
+Eigen::SparseMatrix<double, Eigen::RowMajor>
+sparse(hven::Index rows, hven::Index cols, std::initializer_list<Eigen::Triplet<double>> trips) {
+    Eigen::SparseMatrix<double, Eigen::RowMajor> a(rows, cols);
+    a.setFromTriplets(trips.begin(), trips.end());
+    a.makeCompressed();
+    return a;
+}
+
+/// A tiny but STRUCTURALLY COMPLETE dump: every block non-empty, H upper
+/// triangle only, values chosen so a 15- or 16-digit print would lose bits.
+QpDumpV2 sample_dump() {
+    QpDumpV2 d;
+    d.family = "F7";
+    d.status = "MidSolve";
+    d.n_flag = 40;
+    d.major = 3;
+    d.p = 0.85;
+    d.qp.H = sparse(2, 2, {{0, 0, 2.0}, {0, 1, std::nextafter(0.1, 1.0)}, {1, 1, 3.0}});
+    d.qp.g = vec({1.0 / 3.0, -1.0e-300});
+    d.qp.Ae = sparse(1, 2, {{0, 1, 4.5e300}});
+    d.qp.be = vec({0.25});
+    d.qp.Ai = sparse(1, 2, {{0, 0, -1.0}});
+    d.qp.bi = vec({std::nextafter(1.0 / 3.0, 1.0)});
+    d.qp.lower = vec({-1.0, -2.0});
+    d.qp.upper = vec({1.0, 2.0});
+    d.lambda_e = vec({0.5});
+    d.lambda_i = vec({0.75});
+    d.z = vec({-0.125, 0.0625});
+    return d;
+}
+
+std::string dumped_text(const QpDumpV2 &d) {
+    std::ostringstream os;
+    write_qp_dump_v2(os, d);
+    return os.str();
+}
+
+// `EXPECT_THROW` alone would accept an unrelated throw -- QpProblem::validate
+// runs on the same path -- so each refusal below names the message it wants.
+void expect_refused(const std::string &text, const std::string &wanted) {
+    std::istringstream in(text);
+    try {
+        (void)read_qp_dump_v2(in);
+        FAIL() << "read_qp_dump_v2 accepted a malformed dump; wanted: " << wanted;
+    } catch (const std::invalid_argument &e) {
+        EXPECT_NE(std::string(e.what()).find(wanted), std::string::npos) << e.what();
+    }
+}
+
+void expect_vec_bitwise(const hven::Vec &a, const hven::Vec &b, const char *what) {
+    ASSERT_EQ(a.size(), b.size()) << what;
+    for (hven::Index i = 0; i < a.size(); ++i) {
+        EXPECT_EQ(a(i), b(i)) << what << " component " << i;
+    }
+}
+
+} // namespace
+
+TEST(BenchQpDumpV2, EveryBlockRoundTripsBitExactly) {
+    const QpDumpV2 d = sample_dump();
+    std::istringstream in(dumped_text(d));
+    const QpDumpV2 got = read_qp_dump_v2(in);
+
+    EXPECT_EQ(got.family, d.family);
+    EXPECT_EQ(got.status, d.status);
+    EXPECT_EQ(got.n_flag, d.n_flag);
+    EXPECT_EQ(got.major, d.major);
+    EXPECT_EQ(got.p, d.p);
+    ASSERT_EQ(got.qp.n(), d.qp.n());
+    ASSERT_EQ(got.qp.me(), d.qp.me());
+    ASSERT_EQ(got.qp.mi(), d.qp.mi());
+    EXPECT_EQ((got.qp.H.toDense() - d.qp.H.toDense()).cwiseAbs().maxCoeff(), 0.0);
+    EXPECT_EQ((got.qp.Ae.toDense() - d.qp.Ae.toDense()).cwiseAbs().maxCoeff(), 0.0);
+    EXPECT_EQ((got.qp.Ai.toDense() - d.qp.Ai.toDense()).cwiseAbs().maxCoeff(), 0.0);
+    expect_vec_bitwise(got.qp.g, d.qp.g, "g");
+    expect_vec_bitwise(got.qp.be, d.qp.be, "be");
+    expect_vec_bitwise(got.qp.bi, d.qp.bi, "bi");
+    expect_vec_bitwise(got.qp.lower, d.qp.lower, "lower");
+    expect_vec_bitwise(got.qp.upper, d.qp.upper, "upper");
+    // THE DUAL STATE is what version 2 adds over version 1 -- it is what lets
+    // a consumer re-solve the dumped subproblem WARM.
+    expect_vec_bitwise(got.lambda_e, d.lambda_e, "lambda_e");
+    expect_vec_bitwise(got.lambda_i, d.lambda_i, "lambda_i");
+    expect_vec_bitwise(got.z, d.z, "z");
+}
+
+TEST(BenchQpDumpV2, ATruncatedDumpIsRefusedRatherThanReadAsValid) {
+    // The `END` line's whole purpose: an interrupted write must be detectable.
+    const std::string text = dumped_text(sample_dump());
+    const std::string cut = text.substr(0, text.size() - std::string("END\n").size());
+    std::istringstream in(cut);
+    EXPECT_THROW(read_qp_dump_v2(in), std::invalid_argument);
+}
+
+TEST(BenchQpDumpV2, AWrongVersionBannerIsRefused) {
+    std::string text = dumped_text(sample_dump());
+    text.replace(0, std::string("HVEN_QP_DUMP 2").size(), "PIQP_QP_DUMP 1");
+    std::istringstream in(text);
+    EXPECT_THROW(read_qp_dump_v2(in), std::invalid_argument);
+}
+
+TEST(BenchQpDumpV2, ACountThatDisagreesWithItsBlockIsRefused) {
+    // A dropped line under an honest count is the failure mode a `>=`-style
+    // reader would silently absorb; here it must throw.
+    std::string text = dumped_text(sample_dump());
+    const std::size_t at = text.find("G_VEC 2\n");
+    ASSERT_NE(at, std::string::npos) << text;
+    text.replace(at, std::string("G_VEC 2\n").size(), "G_VEC 3\n");
+    std::istringstream in(text);
+    EXPECT_THROW(read_qp_dump_v2(in), std::invalid_argument);
+}
+
+TEST(BenchQpDumpV2, AFractionalCoordinateIsRefusedRatherThanTruncated) {
+    // A coordinate is an INDEX: `std::stod` read "0.5" as 0.5 and the old
+    // truncation silently made it row 0 (fix round 2, Codex).
+    std::string text = dumped_text(sample_dump());
+    const std::size_t at = text.find("AI_NNZ 1\n0 0 -1");
+    ASSERT_NE(at, std::string::npos) << text;
+    text.replace(at, std::string("AI_NNZ 1\n0 0 -1").size(), "AI_NNZ 1\n0.5 0 -1");
+    expect_refused(text, "'0.5' is not a non-negative index (AI row)");
+}
+
+TEST(BenchQpDumpV2, ATrailingTripletTokenIsRefused) {
+    std::string text = dumped_text(sample_dump());
+    const std::size_t at = text.find("AI_NNZ 1\n0 0 -1");
+    ASSERT_NE(at, std::string::npos) << text;
+    text.replace(at, std::string("AI_NNZ 1\n0 0 -1").size(), "AI_NNZ 1\n0 0 -1 9");
+    expect_refused(text, "trailing token '9'");
+}
+
+TEST(BenchQpDumpV2, ADualBlockWidthThatContradictsTheHeaderIsRefused) {
+    // QpProblem::validate covers the QP alone, so v2's own three dual blocks
+    // are checked by the reader or by nothing.
+    QpDumpV2 d = sample_dump();
+    d.lambda_i = vec({0.75, 0.25}); // mi is 1
+    expect_refused(dumped_text(d), "LAMBDA_I_VEC carries 2 entries, expected 1");
+}
+
+TEST(BenchQpDumpV2, AnOutOfRangeTripletIsRefused) {
+    std::string text = dumped_text(sample_dump());
+    const std::size_t at = text.find("AI_NNZ 1\n0 0 -1");
+    ASSERT_NE(at, std::string::npos) << text;
+    text.replace(at, std::string("AI_NNZ 1\n0 0 -1").size(), "AI_NNZ 1\n7 0 -1");
+    std::istringstream in(text);
+    EXPECT_THROW(read_qp_dump_v2(in), std::invalid_argument);
 }

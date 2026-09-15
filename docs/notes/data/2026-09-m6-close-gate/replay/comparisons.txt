@@ -1,0 +1,21 @@
+COMPARATOR: /home/ghecht/Projects/hven/scripts/compare_replay.py
+COMPARATOR sha256: 4f64af2cae391f868bb7ca8e92ca90cbe2f608b77f4d51fa2903bdfd8ae3183d
+BASE dir  : /home/ghecht/Projects/hven/docs/notes/data/2026-09-m6-w5-acceptance/replay
+=== W4 CLOSE BASE accbff0e-walk vs M6 CLOSE GATE HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0  (worst so far: 0)
+=== W4 CLOSE BASE accbff0e-ssn vs M6 CLOSE GATE HEAD-ssn === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0  (worst so far: 0)
+=== W4 CLOSE BASE accbff0e-ipm vs M6 CLOSE GATE HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0  (worst so far: 0)
+=== committed t10b ipm baseline vs CLOSE HEAD-ipm (the CONTROL) === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0  (worst so far: 0)
+=== committed t10b ipm baseline vs BASE-ipm (the CONTROL, as W5 T9 ran it) === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0  (worst so far: 0)
+--- stamps and schema ---
+# binary: accbff0e60b0
+# schema: 76
+# budget_table_hash: 0x357aee91dee27391
+# binary: 15f97cae51ff
+# schema: 76
+# budget_table_hash: 0x357aee91dee27391
+REPLAY_CMP_WORST_RC=0

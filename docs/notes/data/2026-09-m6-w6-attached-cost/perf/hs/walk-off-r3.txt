@@ -1,0 +1,17 @@
+# started on Mon Sep 14 07:27:43 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w6t6/build-release/bench/hven_sqp_corpus --hs --engine walk --csv /home/ghecht/Projects/hven/.scratch/w6t6/art/raw/hs/perf-walk-off-r3.csv --hs-trace off --repeat 200 --hs-warmup 1':
+
+    33,762,326,000      instructions:u                                                        
+     6,160,347,278      branches:u                                                            
+    15,726,481,052      cycles:u                                                              
+        38,416,965      branch-misses:u                                                       
+        89,503,122      L1-icache-load-misses:u                                               
+
+       4.736910552 seconds time elapsed
+
+       4.666701000 seconds user
+       0.037745000 seconds sys
+
+

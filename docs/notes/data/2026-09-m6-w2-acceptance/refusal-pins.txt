@@ -1,0 +1,23 @@
+########## refusal pins, debug ##########
+1/7 Test #2051: SqpDriverCertifiedFallback.P4ARefusedRungAReturnsTheColdWalkCounterForCounter ..........   Passed    0.02 sec
+2/7 Test #2052: SqpDriverCertifiedFallback.P4bTheCeilingDeclineIsGONEUnderThePlacementBound ............   Passed    0.01 sec
+3/7 Test #2054: SqpDriverCertifiedFallback.P4OnAPrimedEngineCostsTheAnalysisRungADisplaces .............   Passed    0.02 sec
+4/7 Test #2055: SqpDriverCertifiedFallback.T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations ...   Passed    0.02 sec
+5/7 Test #2056: SqpDriverCertifiedFallback.P5AnUnfiredEvidenceBlockNeverEntersRungAAtAll ...............   Passed    0.02 sec
+6/7 Test #2061: SqpDriverCertifiedFallback.ADeclinedRungAAboveTheFloorIsRETRIEDThereExactlyOnce ........   Passed    0.02 sec
+7/7 Test #2071: SqpDriverCertifiedFallback.T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder ...   Passed    0.02 sec
+100% tests passed, 0 tests failed out of 7
+Total Test time (real) =   0.17 sec
+rc=0
+########## refusal pins, release ##########
+1/7 Test #2051: SqpDriverCertifiedFallback.P4ARefusedRungAReturnsTheColdWalkCounterForCounter ..........   Passed    0.01 sec
+2/7 Test #2052: SqpDriverCertifiedFallback.P4bTheCeilingDeclineIsGONEUnderThePlacementBound ............   Passed    0.01 sec
+3/7 Test #2054: SqpDriverCertifiedFallback.P4OnAPrimedEngineCostsTheAnalysisRungADisplaces .............   Passed    0.01 sec
+4/7 Test #2055: SqpDriverCertifiedFallback.T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations ...   Passed    0.01 sec
+5/7 Test #2056: SqpDriverCertifiedFallback.P5AnUnfiredEvidenceBlockNeverEntersRungAAtAll ...............   Passed    0.01 sec
+6/7 Test #2061: SqpDriverCertifiedFallback.ADeclinedRungAAboveTheFloorIsRETRIEDThereExactlyOnce ........   Passed    0.01 sec
+7/7 Test #2071: SqpDriverCertifiedFallback.T7TheT3ARouteIsREACHABLEAtTheDriverAndCostsOneExtraLadder ...   Passed    0.01 sec
+100% tests passed, 0 tests failed out of 7
+Total Test time (real) =   0.11 sec
+rc=0
+=== LEG5 DONE ===

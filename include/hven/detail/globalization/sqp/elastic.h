@@ -5,11 +5,11 @@
 
 // elastic.h -- the elastic (l1 exact-penalty) tier's subproblem construction.
 // The ELASTIC TIER, WARM SEEDING and REPORTED BOUND MULTIPLIER notes cited
-// below live in drivers/sqp_driver.h, which includes this file at the point
+// below live in drivers/sqp_solver.h, which includes this file at the point
 // the construction stood; kZeroStepScale lives in
 // detail/globalization/sqp/trust_region.h. Rule of thumb: any "this file"/
 // "this header" reference that does not resolve here resolves in
-// drivers/sqp_driver.h. The bodies of ElasticQp's two member functions and of
+// drivers/sqp_solver.h. The bodies of ElasticQp's two member functions and of
 // build_elastic_subproblem / elastic_seed / elastic_project are in
 // src/globalization/sqp/soc_elastic_restoration.cpp (with soc.h's and
 // restoration.h's). ONE definition stays inline HERE: set_elastic_penalty --
@@ -29,9 +29,9 @@
 
 namespace hven::solvers {
 
-// The penalty ladder: rho starts at kElasticRhoInit and is multiplied by
-// kElasticRhoFactor until the relaxation closes or rho reaches kElasticRhoMax
-// -- six escalations at these values, so at most SEVEN solves per activation.
+// The penalty ladder: rho STARTS at kElasticRhoInit, or -- when infeasibility evidence prices the
+// violation higher -- at that norm CAPPED at kElasticRhoMax, and is multiplied by kElasticRhoFactor
+// until the relaxation closes or rho reaches it: six escalations from the floor, SEVEN solves.
 //
 // WHY A LADDER AT ALL, and why these endpoints. The elastic subproblem is an
 // l1 EXACT PENALTY reformulation, and the exact-penalty threshold is the
@@ -47,6 +47,28 @@ namespace hven::solvers {
 inline constexpr double kElasticRhoInit = 1e2;
 inline constexpr double kElasticRhoMax = 1e8;
 inline constexpr double kElasticRhoFactor = 10.0;
+
+/// THE PLACEMENT SAFETY MARGIN (W2 T5): an evidence-placed first rung is additionally capped at
+/// `kElasticRhoDualMuSafety / QpOptions::dual_mu`, SUBJECT TO the `kElasticRhoInit` floor, which
+/// outranks it. The walk's `worst_structural_violation` reads a FALSE kInfeasible off a feasible
+/// elastic copy once `dual_mu * rho` grows -- measured 6.5e-8 ok at rho 1e6 against 6.5e-7 INF at
+/// rho 1e7, both at dual_mu 1e-8, so the misfire threshold is ~1e-1 in the product and ~1e-2 is
+/// the safe side. At the shipped dual_mu = 1e-8 the cap is 1e6.
+///
+/// IT IS A MARGIN ON THE FIRST RUNG, not the fix and not a property of the ladder: the rungs
+/// above escalate to `kElasticRhoMax` regardless, and at `dual_mu >= 1e-4` the cap sits below
+/// the floor, so the floor wins and no achievable placement keeps the product under the margin
+/// at all. The measured law above is a BASE-era reading of border mode, where the misfire lived;
+/// `ws_algebra == kRefactorize` read this family kOptimal at every cell of the same grid.
+///
+/// W2 T6b covers it at the verdict site (qp_engine.h section 5's VERDICT-SITE FACE REFINEMENT) —
+/// in border mode then, and in BOTH algebras since W2 T7 — and the margin remains what it always
+/// was: a cheap first-rung placement that keeps the walk away from the residue rather than
+/// removing it. Measured after T6b, border
+/// mode: 25 of the 30 `dual_mu` x rho cells of this family CLOSE under the refinement, product 1
+/// included; the 5 at `dual_mu >= 1e-4` with rho >= 1e6 read kOptimal on a corner point whose row
+/// is off by 15 -- the pre-existing high-rung residue, pinned as such, not covered.
+inline constexpr double kElasticRhoDualMuSafety = 1e-2;
 
 /// The stall early-exit tolerance: two consecutive rungs' augmented solutions
 /// count as THE SAME rung, not merely close, when they differ by less than this

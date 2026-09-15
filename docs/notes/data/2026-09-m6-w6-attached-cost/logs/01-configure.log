@@ -1,0 +1,13 @@
+LEG: .scratch/w6t6/configure.sh
+PGREP_SEPARATE 2026-09-14T11:14:47Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-14T11:14:47Z
+CONFIGURE_RC=0
+-- Configuring done (2.5s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/w6t6/build-release
+CONFIGURE_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T11:14:50Z
+WRAPPER_EXIT=0

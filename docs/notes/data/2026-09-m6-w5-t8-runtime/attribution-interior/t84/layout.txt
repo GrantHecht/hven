@@ -1,0 +1,50 @@
+W5 T8.9r-attrib3 -- THE SOLVER OBJECT'S LAYOUT, AND WHAT THE TWO EXPERIMENT PATCHES DO TO IT
+==========================================================================================
+Regenerated at any time by, for each arm's `git archive` extraction <S>:
+
+  clang++ -std=c++20 -O0 -DNDEBUG -DUSE_MKL_SPARSE -DHVEN_DEFAULT_QP_THREADS=1 \
+      -I<S>/include -I<S>/dep/eigen -I<S>/dep/fmt/include \
+      -I/opt/intel/oneapi/mkl/latest/include -Xclang -fdump-record-layouts \
+      -c scripts/probe.cpp -o /dev/null
+
+and for sizeof alone by compiling and running scripts/probe.cpp / scripts/probe2.cpp.
+The full dumps are ~1 MB each of Eigen template layouts and are NOT retained; the
+InteriorPointSolver rows below are cut from them verbatim.
+
+  arm / variant            sizeof(InteriorPointSolver)   sizeof(the result_ member type)
+  510a4bb  (T8.3)                              2056                               336
+  8ae1618  (T8.4 commit 1)                     2056                               336
+  9cebbbe  (T8.4 commit 2, THE CULPRIT)        2440                               640
+  9ce9bb2  (T8.4 commit 3)                     2440                                 -
+  5124aa1  (T8.4 fix1)                         2472                                 -
+  3c8e43b  (T8.4 head)                         2472                                 -
+  9cebbbe + experiment-1.patch                 2760                               640
+  8ae1618 + experiment-2.patch                 2376                               336
+
+THE OFFSETS THE TWO PATCHES WERE SIZED TO HIT (top-level members, from the dumps):
+
+  member                what it is                           8ae1618 (parent)  9cebbbe (culprit)    culprit + exp-1     parent + exp-2
+  ------------------------------------------------------------------------------------------------------------------------------------
+  result_               the result core                                   616                640               2120                616
+  nlp_                  the borrowed model                                992               1320               1000               1312
+  acceptance_           the first globalization pointer                  1008               1328               1008               1328
+  primal_vars_          a hot dimension scalar                           1056               1376               1056               1376
+  kkt_dim_              a hot dimension scalar                           1072               1392               1072               1392
+  stli_scratch_         the first hot scratch vector                     1080               1400               1080               1400
+  best_xsl_scratch_     a hot scratch vector                             1112               1432               1112               1432
+  bounds_               the bound set                                    1360               1680               1360               1680
+  bound_duals_          the bound dual state                             1368               1688               1368               1688
+
+READ THE TWO RIGHT-HAND COLUMNS AGAINST THE TWO LEFT ONES. experiment-1 puts every
+member from `acceptance_` down back at the PARENT's byte offset, exactly; experiment-2
+puts every one of them at the CULPRIT's, exactly. That is what the two patches were
+sized for, and it is why their wall results are a test of this hypothesis and not of
+some nearby one. `nlp_` is the one member that cannot match to the byte: it is a
+16-byte shared_ptr at the parent and an 8-byte raw pointer at the culprit, which is a
+T8.4 change of type, not of placement.
+
+Every shift above is a whole number of 64-byte cache lines (320 = 5 lines), so no
+member changes its position WITHIN its line and no two members change their distance
+apart. That is a fact about the hypothesis, recorded here because it bears on how much
+a reader should have expected from it in the first place.
+

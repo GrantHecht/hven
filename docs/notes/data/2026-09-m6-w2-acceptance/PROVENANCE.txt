@@ -1,0 +1,80 @@
+M6 W2 ACCEPTANCE EVIDENCE -- PROVENANCE (CLAUDE.md section 7)
+=============================================================
+Read this first: it governs every number in this directory.
+
+WHAT THIS DIRECTORY IS
+  The W2 close evidence run: the full suites in both configs, the A4 gate, the
+  U0 27-cell three-arm replay against the W2 window's own BASE, the kIpm
+  counter leg of the new fallback family, the refusal pins by name, and an
+  informational coverage read. Produced by M6 W2 T8; nothing in src/ or
+  include/ moved in T8, so every number here describes the tree that T7 closed.
+
+COMMIT
+  Tree measured (HEAD):  4877bec876ad67780d11dee1d063bba031dfc46f
+                         "docs(m6): ledger -- W2 T7 closed ..."  2026-09-04
+  Code head it contains: 10a3dac5787f2a0fe7bbc15e98854c392d1ef94a
+  4877bec is DOCS-ONLY on top of 10a3dac (one file:
+  docs/notes/2026-08-m6-ledger.md), so the compiled tree at 4877bec IS the code
+  head 10a3dac. The bench binaries' configure-time stamp
+  (`git describe --always --dirty --abbrev=12`) therefore reads `4877bec876ad`
+  and NOT `10a3dac...`: the brief named the code head, the stamp names the
+  checked-out commit, and the stamp is not edited to match prose. Both trees
+  were configured CLEAN -- no `-dirty` suffix anywhere in this directory.
+
+  Replay BASE:           0dda3dbcd027fd4b3ca0aa4f6e295ae28dad91c7
+                         "docs(m6): ledger -- W1 T10b closed ...; W1 CLOSED"
+  Verified as the W2 window's base: `git rev-parse b1eb623^` == 0dda3db, where
+  b1eb623 is T1's first commit on main. Built in a detached git worktree with
+  its submodules initialised, so its stamp is CLEAN (`0dda3dbcd027`) rather
+  than the symlinked `-dirty` form earlier tasks used.
+
+TOOLCHAIN AND HARDWARE
+  clang 22.1.8 (Fedora 22.1.8-4.fc44); CMake 4.3.0; Ninja; ccache
+  Intel oneAPI MKL 2026.1 (/opt/intel/oneapi/mkl/latest -> mkl/2026.1)
+  AMD Ryzen 7 5800X3D (8 cores / 16 threads), Fedora 44, kernel 7.1.9-200.fc44
+  Build trees: build-w02/debug, build-w02/release (uniform flag regime;
+  HVEN_BUILD_TESTS=ON, HVEN_BUILD_BENCH=ON, HVEN_A4_GATE=OFF), both FRESHLY
+  reconfigured before anything here was measured (the configure-time
+  git-describe trap: a tree rebuilt without reconfiguring emits a stale stamp).
+
+  APPLE / ACCELERATE: UNOBSERVED. Every number in this directory is
+  MKL-on-Linux. No Apple value is inferred, interpolated or zero-filled from
+  it, and none is quoted anywhere here.
+
+THE SERIAL RULE, AS DECLARED (CLAUDE.md section 7)
+  Every measurement leg ran SOLO -- one process alone on the machine, one leg
+  at a time, each leg held under the box build lock (`flock /tmp/box-build.lock`)
+  with `pgrep` verified clean before it started. Measurement legs (the six
+  replay legs, the A4 gate, the two kIpm counter legs, the U0 reachability
+  probe) additionally ran pinned with `taskset -c 2` at MKL_NUM_THREADS=1 and
+  OMP_NUM_THREADS=1. The SMT sibling of the pinned core (cpu10) was left idle
+  and measured from /proc/stat across each window:
+
+      six-leg U0 replay window ......................  0.1251 % busy
+      replay window including the A4 gate ...........  0.1150 % busy
+      U0 reachability probe window ..................  0.0379 % busy
+
+  NO WALL-CLOCK NUMBER IN THIS DIRECTORY IS ASSERTED. Counters, statuses and
+  residual columns are the asserted currency; every `wall_s` column and every
+  suite/leg duration is informational and is excluded from every comparison
+  below (75 of the corpus schema's 76 columns are compared; 65 of the A4
+  arm's 66).
+
+  Coverage ran in its OWN instrument tree (build-coverage, the
+  linux-clang-coverage preset) serially under the same lock. Coverage flags
+  change codegen: nothing from that tree is a pin, a baseline or a timing.
+
+WHAT WAS COMPARED, AND THE RESULT
+  base-walk vs head-walk .................... 27 cells x 75 columns, 0 diffs
+  base-ssn  vs head-ssn  .................... 27 cells x 75 columns, 0 diffs
+  base-ipm  vs head-ipm  .................... 27 cells x 75 columns, 0 diffs
+  committed t10b ipm baseline vs head-ipm ... 27 cells x 75 columns, 0 diffs
+  committed t10b ipm baseline vs base-ipm ... 27 cells x 75 columns, 0 diffs
+  committed A4 gate CSV vs T8 re-run ........ 29 cells x 65 columns, 0 diffs
+
+  No deviation was observed, so no cell was re-run as a candidate and no
+  DECLARED BREAK is claimed by T8. W2 landed four declared breaks (T4's
+  restoration seed, T5's placement bound, T6b's border verdict-site refinement,
+  T7's provenance-keyed dispatch and its eliminated twin) and the WINDOW as a
+  whole spends none of them on the U0 27 -- see README.md section 3 for the
+  per-class reason, measured rather than assumed.

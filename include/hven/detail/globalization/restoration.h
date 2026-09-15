@@ -9,10 +9,10 @@
 
 #include "hven/detail/globalization/progress_measures.h"
 #include "hven/detail/globalization/solver_context.h"
-// InteriorPointSolver::SolveResult requires the complete InteriorPointSolver class; see
+// IpmResult lives in drivers/ipm_solver_types.h; see
 // acceptance_strategy.h's include note for why this is a plain, non-circular
-// include (interior_point_solver.h does not include this directory back).
-#include "hven/drivers/interior_point_solver.h"
+// include (ipm_solver.h does not include this directory back).
+#include "hven/drivers/ipm_solver.h"
 
 namespace hven::solvers {
 
@@ -82,12 +82,12 @@ class RestorationStrategy {
     /// endgame (constraints at their floor while the barrier residual still
     /// grinds down) from a genuine stall.
     bool near_feasible(double constraint_violation, const SolverContext &ctx) const {
-        return constraint_violation <= kNearFeasibleGuardFactor * ctx.settings_.econ_tol_;
+        return constraint_violation <= kNearFeasibleGuardFactor * ctx.opts_.econ_tol;
     }
 
     /// @brief Entry-permission test: may the solver enter restoration right now?
     /// False refuses entry — either the point is already near-feasible or this
-    /// phase's restoration budget (ctx.settings_.max_feas_rest_) is exhausted.
+    /// phase's restoration budget (ctx.opts_.max_feas_rest) is exhausted.
     /// Virtual with a shared default body: both shipped strategies use exactly
     /// this guard + budget test and do not override it; test doubles override
     /// it directly for controllability.
@@ -95,7 +95,7 @@ class RestorationStrategy {
         if (near_feasible(constraint_violation, ctx)) {
             return false;
         }
-        if (entries_ >= ctx.settings_.max_feas_rest_) {
+        if (entries_ >= ctx.opts_.max_feas_rest) {
             return false;
         }
         return true;
@@ -113,10 +113,10 @@ class RestorationStrategy {
     /// components' hooks. Non-virtual: both shipped strategies report the
     /// identical counter pair. When restoration_mode_ == off no strategy is
     /// constructed, so this is never reached on that path and the
-    /// corresponding SolveResult fields keep their -1 sentinel.
-    void append_diagnostics(InteriorPointSolver::SolveResult &result) const {
-        result.last_feas_rest_entries_ = entries_;
-        result.last_feas_rest_iters_ = iterations_in_mode_;
+    /// corresponding IpmResult fields keep their -1 sentinel.
+    void append_diagnostics(IpmResult &result) const {
+        result.last_feas_rest_entries = entries_;
+        result.last_feas_rest_iters = iterations_in_mode_;
     }
 
     // -------------------------------------------------------------------------

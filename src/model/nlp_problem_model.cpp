@@ -128,7 +128,7 @@ NLPRowClassification NLPRowClassification::classify(ConstEigenRef<Eigen::VectorX
     return rc;
 }
 
-NlpProblemModel::NlpProblemModel(std::shared_ptr<NLPProblem> problem)
+NlpProblemModel::NlpProblemModel(std::shared_ptr<NlpTripletModel> problem)
     : problem_(std::move(problem)) {
     if (!problem_) {
         throw std::invalid_argument("NlpProblemModel: the problem pointer is null");

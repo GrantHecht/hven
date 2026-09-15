@@ -14,10 +14,34 @@
 # configure log) via scripts/check_export_contract.sh, which is why the two
 # CI-only knobs below exist: a plain local run needs neither.
 #
-# Requires: system clang++ (NOT a conda-toolchain compiler -- conda's
+# Requires: a system C++ toolchain (NOT a conda-toolchain compiler -- conda's
 # libstdc++ rpath is not what this project's presets link against), Intel
 # MKL on Linux (MKLROOT/ONEAPI_ROOT, or the FindMKL.cmake fallback paths)
 # or Apple Accelerate on macOS.
+#
+# NEITHER configure below pins CMAKE_CXX_COMPILER: the library and the smoke
+# consumer are both built by whatever `c++` CMake's default search finds, so on
+# a machine whose default is GCC this whole check runs under GCC, not under the
+# clang the project's presets select. For the CONSUMER that is deliberate, and
+# it is what the standalone-include TUs added in M6 W5 T0 are for: someone who
+# consumes an installed hven package compiles with their own toolchain, so the
+# installed headers should be read by the system default front end rather than
+# by a pinned one. A caller that needs a specific compiler passes
+# -DCMAKE_CXX_COMPILER=... as an argument to this script (see EXTRA_CMAKE_ARGS
+# below, which reaches both configures); whether to pin one here instead is
+# registered as an open question, not settled by this comment.
+#
+# WHAT THAT UNPINNED FRONT END NOW TURNS ON (M6 W6 T3, 2026-09-14). It is no
+# longer only a hygiene question. With HVEN_LINK_TIME_OPT=ON the members of the
+# installed libhven.a are LLVM bitcode, and a clang consumer that does not
+# enable LTO for itself cannot link them through ld.bfd, while both GCC arms
+# pass. This script's default front end here and in CI is GCC, so a green run
+# of it says nothing about that path: the clang arms have to be asked for, by
+# passing -DCMAKE_CXX_COMPILER=... as an argument to this script -- the
+# passthrough described just above, which already exists and was NOT added or
+# changed for this. The constraint, the four measured arms and the registered
+# remedy are in docs/build.md's "LTO installs" section and in
+# docs/notes/data/2026-09-m6-w6-lto/install-smoke.txt.
 #
 # Optional environment:
 #   HVEN_INSTALL_SMOKE_WORKDIR  Use this directory instead of a fresh

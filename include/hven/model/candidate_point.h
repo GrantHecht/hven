@@ -51,7 +51,7 @@ struct CandidatePoint {
 /// ASSIGNED by the evaluation, never accumulated into, and indexed by DECLARED
 /// global identities. Both rules -- and why the first is deliberately the
 /// opposite of what assemble does to an arena -- are stated at
-/// evaluate_candidate_values in model/nlp_aggregate.h.
+/// evaluate_candidate_values in model/nlp_assembly.h.
 struct CandidateValues {
     double &objective_;
     Eigen::Ref<Vec> equality_residuals_;
@@ -263,7 +263,7 @@ constexpr bool has_request(EvalRequest request, EvalRequest probe) noexcept {
 //
 // PER-PROVIDER SUPPORT (a distinct fact from legality): the partitioned
 // engine SERVES rows 1-8 and REFUSES rows 9-11 by name at its assemble hook;
-// the NlpModelAggregate bridge serves ALL named rows (its dispatch is
+// the NlpModelAssembly bridge serves ALL named rows (its dispatch is
 // per-flag). A provider handed a legal-but-unsupported shape refuses it
 // rather than serving a superset: with std::invalid_argument, naming the
 // shape.

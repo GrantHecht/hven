@@ -1,0 +1,400 @@
+M6 W6 T3 -- INSTALL SMOKE UNDER LTO: A PRE-DECLARED FINDING, NOT A GATE
+========================================================================
+Plan docs/notes/2026-09-m6-w6-plan.md section 0 J.3 / A2 declared this a FINDING
+before it was run, on the premise that "an LTO libhven.a is bitcode; a non-LTO
+find_package consumer may not link it -- try the consumer both ways, register the
+remedy".  THE PREMISE IS CORRECT AND ONE ARM FAILS.  Nothing here gates T3, and
+no library change was made in response: the remedy is REGISTERED below.
+
+HOW THE ARMS WERE BUILT
+  scripts/check_install_smoke.sh forwards every extra argument to BOTH configures
+  -- hven's own and the smoke consumer's (its header, :44-53) -- so an arm's
+  extra -D list is what BOTH sides were configured with.  The workdir was pinned
+  under .scratch/w6t3/smoke/<arm>/ via HVEN_INSTALL_SMOKE_WORKDIR rather than the
+  script's mktemp -d /tmp default, so the trees survive for the export-contract
+  check and for this record.
+
+  The script deliberately pins NO compiler (its header, :22-32): the installed
+  consumer is read by the SYSTEM DEFAULT front end.  On this box that is
+  GCC 16.2.1, not the clang 22.1.8 the project's presets select -- so the CI
+  shape of this check does not exercise clang's LTO at all.  Both were therefore
+  run: two arms at the default front end (the shape CI runs), and two with
+  -DCMAKE_CXX_COMPILER=/usr/bin/clang++ forwarded to both configures (the shape
+  the rest of this task's exercise is in).  "Consumer IPO on/off" is the second
+  axis the brief asked for, spelled -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON.
+
+THE RESULT
+
+  arm             front end   hven LTO path       consumer IPO   result
+  gcc-ipo-off     GCC 16.2.1  GNU: IPO + -flto=1  off            PASSED
+  gcc-ipo-on      GCC 16.2.1  GNU: IPO + -flto=1  ON             PASSED
+  clang-ipo-off   clang 22.1  clang: -flto=thin   off            FAILED
+  clang-ipo-on    clang 22.1  clang: -flto=thin   ON             PASSED
+
+  The export contract (scripts/check_export_contract.sh, driven exactly as
+  .github/workflows/ci.yml:266-282 drives it, with the align value read from each
+  arm's OWN configure log) PASSED on ALL FOUR install prefixes, the failing arm
+  included -- its library built and installed fine; only the consumer's link
+  failed.  align: exported=32 computed=32 on every arm.
+
+THE FAILURE, VERBATIM (arm clang-ipo-off, .scratch/w6t3/logs/smoke-clang-ipo-off.out)
+
+    /usr/bin/ld.bfd: /home/ghecht/Projects/hven/.scratch/w6t3/smoke/clang-ipo-off/hven-install/lib64/libhven.a: error adding symbols: file format not recognized
+    clang++: error: linker command failed with exit code 1 (use -v to see invocation)
+    ninja: build stopped: subcommand failed.
+
+WHY, AND WHY GCC DIFFERS
+  Under clang thin-LTO the members of libhven.a are LLVM IR bitcode, not ELF
+  objects -- reach.txt reads them as "LLVM IR bitcode" against the LTO-OFF arm's
+  "ELF 64-bit LSB relocatable".  The consumer's link in the failing arm carries no
+  -flto, so clang++ drives the default /usr/bin/ld.bfd with no LLVM plugin loaded,
+  and BFD ld cannot read a bitcode member at all.  Adding the consumer's own IPO
+  (arm clang-ipo-on) puts -flto=thin on the link line, clang then arranges an
+  LTO-capable link, and it succeeds.
+  GCC's arms both pass because GCC's LTO objects are ELF files carrying extra
+  .gnu.lto_* sections: BFD ld reads them as ordinary objects and its linker plugin
+  picks the LTO path up transparently.  Arm gcc-ipo-off's own log shows that
+  happening at the CONSUMER's link without the consumer asking for it --
+  "lto-wrapper: warning: using serial compilation of 23 LTRANS jobs".
+  So the failure is specific to CLANG-BUILT LTO archives consumed without LTO; it
+  is not a general property of "IPO on".
+
+THE REMEDY, REGISTERED AND NOT BUILT HERE
+  [SUPERSEDED 2026-09-14, W6 T3 fix round 1 -- see CORRECTIONS at the end of
+  this file, which narrows the observed failure, corrects what the export
+  contract actually forbids, and states four options with their costs.]
+  This is not a one-line patch, because the obvious fix collides with a rule the
+  tree asserts. An LTO build would have to export a usage requirement -- an
+  INTERFACE_COMPILE_OPTIONS / INTERFACE_LINK_OPTIONS carrying -flto -- so a
+  consumer's link inherits it. But scripts/check_export_contract.sh:21-24 asserts
+  that hven exports NO INTERFACE_COMPILE_OPTIONS AT ALL, deliberately (the root
+  CMakeLists.txt's "Codegen flags ... are NOT re-exported here" comment), and CI
+  runs that assertion on all three lanes. The candidates, for the settler:
+    (1) DOCUMENT THE CONSTRAINT and change nothing: an LTO-built hven install is
+        consumable only by an LTO-capable link, and HVEN_LINK_TIME_OPT is OFF by
+        default and measured to buy this library nothing. Cheapest; leaves a
+        sharp edge for anyone who turns it on and installs.
+    (2) EXPORT A CONDITIONAL USAGE REQUIREMENT only when the library was built
+        with IPO, and widen the export-contract assertion to admit exactly that
+        one case. Correct, but it reopens a contract three CI lanes assert.
+    (3) REFUSE THE COMBINATION at configure time: make an install of an
+        IPO-enabled hven either an error or a loud warning. Fails fast instead of
+        failing at a stranger's link.
+  Nothing about the default posture changes under any of them: HVEN_LINK_TIME_OPT
+  is OFF, and the CI install smoke (GCC front end) passes either way.
+
+APPLE / ACCELERATE and WINDOWS: UNOBSERVED. Every line here is MKL-on-Linux.
+
+THE FOUR TRANSCRIPTS (each leg's markers, status and tail)
+==========================================================
+
+================ gcc-consumer-ipo-off ================
+FOREGROUND_START 2026-09-14T07:44:45Z
+ARM: gcc-ipo-off
+ARGS FORWARDED TO BOTH CONFIGURES: -DHVEN_LINK_TIME_OPT=ON
+SMOKE_RC=0
+--- the last 40 lines, verbatim ---
+-- Found MKL: /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_core.a;/opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Configuring done (0.3s)
+-- Generating done (0.0s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    HVEN_LINK_TIME_OPT
+
+
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/w6t3/smoke/gcc-ipo-off/smoke-build
+== building the smoke consumer
+[1/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_nlp_triplet_model.cpp.o
+[2/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipqp_evidence.cpp.o
+[3/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_assembly_declaration.cpp.o
+[4/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_solve_status.cpp.o
+[5/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_core_solver_status.cpp.o
+[6/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_nlp_assembly.cpp.o
+[7/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_trace_writer.cpp.o
+[8/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_trace.cpp.o
+[9/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_nlp_model_assembly.cpp.o
+[10/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_seeding.cpp.o
+[11/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_common_options.cpp.o
+[12/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_compiler.cpp.o
+[13/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_solve_result.cpp.o
+[14/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_sqp_warm_start.cpp.o
+[15/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_console_trace_sink.cpp.o
+[16/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_sqp_solver.cpp.o
+[17/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipm_solver.cpp.o
+[18/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipm_solver_types.cpp.o
+[19/20] Building CXX object CMakeFiles/hven_install_smoke.dir/main.cpp.o
+[20/20] Linking CXX executable hven_install_smoke
+lto-wrapper: warning: using serial compilation of 23 LTRANS jobs
+lto-wrapper: note: see the ‘-flto’ option documentation for more information
+== running the smoke consumer
+install smoke: IpmSolver converged, objective = 17.0140174 (OK)
+install smoke: SqpSolver converged, objective = 17.0140173 (OK)
+install smoke: both solvers converged through one generic consumer; 18 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.scratch/w6t3/smoke/gcc-ipo-off/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.scratch/w6t3/smoke/gcc-ipo-off/hven-configure.log
+SMOKE_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T07:45:44Z
+
+================ gcc-consumer-ipo-on ================
+FOREGROUND_START 2026-09-14T07:45:54Z
+ARM: gcc-ipo-on
+ARGS FORWARDED TO BOTH CONFIGURES: -DHVEN_LINK_TIME_OPT=ON -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
+SMOKE_RC=0
+--- the last 40 lines, verbatim ---
+-- MKL_TBB_LIBRARY =
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Found MKL: /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_core.a;/opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Configuring done (0.3s)
+-- Generating done (0.0s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    HVEN_LINK_TIME_OPT
+
+
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/w6t3/smoke/gcc-ipo-on/smoke-build
+== building the smoke consumer
+[1/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_nlp_triplet_model.cpp.o
+[2/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipqp_evidence.cpp.o
+[3/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_assembly_declaration.cpp.o
+[4/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_solve_status.cpp.o
+[5/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_core_solver_status.cpp.o
+[6/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_nlp_assembly.cpp.o
+[7/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_trace_writer.cpp.o
+[8/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_trace.cpp.o
+[9/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_nlp_model_assembly.cpp.o
+[10/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_seeding.cpp.o
+[11/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_common_options.cpp.o
+[12/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_compiler.cpp.o
+[13/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_solve_result.cpp.o
+[14/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_sqp_warm_start.cpp.o
+[15/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_console_trace_sink.cpp.o
+[16/20] Building CXX object CMakeFiles/hven_install_smoke.dir/main.cpp.o
+[17/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_sqp_solver.cpp.o
+[18/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipm_solver.cpp.o
+[19/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipm_solver_types.cpp.o
+[20/20] Linking CXX executable hven_install_smoke
+== running the smoke consumer
+install smoke: IpmSolver converged, objective = 17.0140174 (OK)
+install smoke: SqpSolver converged, objective = 17.0140173 (OK)
+install smoke: both solvers converged through one generic consumer; 18 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.scratch/w6t3/smoke/gcc-ipo-on/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.scratch/w6t3/smoke/gcc-ipo-on/hven-configure.log
+SMOKE_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T07:46:25Z
+
+================ clang-consumer-ipo-off ================
+FOREGROUND_START 2026-09-14T07:46:33Z
+ARM: clang-ipo-off
+ARGS FORWARDED TO BOTH CONFIGURES: -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DHVEN_LINK_TIME_OPT=ON
+SMOKE_RC=1
+--- the last 40 lines, verbatim ---
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY =
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Found MKL: /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_core.a;/opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Configuring done (0.4s)
+-- Generating done (0.0s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    HVEN_LINK_TIME_OPT
+
+
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/w6t3/smoke/clang-ipo-off/smoke-build
+== building the smoke consumer
+[1/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_nlp_triplet_model.cpp.o
+[2/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipqp_evidence.cpp.o
+[3/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_assembly_declaration.cpp.o
+[4/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_solve_status.cpp.o
+[5/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_core_solver_status.cpp.o
+[6/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_nlp_assembly.cpp.o
+[7/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_trace_writer.cpp.o
+[8/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_trace.cpp.o
+[9/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_nlp_model_assembly.cpp.o
+[10/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_seeding.cpp.o
+[11/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_common_options.cpp.o
+[12/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_compiler.cpp.o
+[13/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_solve_result.cpp.o
+[14/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_sqp_warm_start.cpp.o
+[15/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_console_trace_sink.cpp.o
+[16/20] Building CXX object CMakeFiles/hven_install_smoke.dir/main.cpp.o
+[17/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipm_solver_types.cpp.o
+[18/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_sqp_solver.cpp.o
+[19/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipm_solver.cpp.o
+[20/20] Linking CXX executable hven_install_smoke
+FAILED: [code=1] hven_install_smoke
+: && /usr/bin/clang++ -DMKL_LP64 -m64 -O3 -DNDEBUG -Xlinker --dependency-file=CMakeFiles/hven_install_smoke.dir/link.d CMakeFiles/hven_install_smoke.dir/main.cpp.o CMakeFiles/hven_install_smoke.dir/include_trace_writer.cpp.o CMakeFiles/hven_install_smoke.dir/include_trace.cpp.o CMakeFiles/hven_install_smoke.dir/include_ipqp_evidence.cpp.o CMakeFiles/hven_install_smoke.dir/include_nlp_triplet_model.cpp.o CMakeFiles/hven_install_smoke.dir/include_nlp_assembly.cpp.o CMakeFiles/hven_install_smoke.dir/include_assembly_declaration.cpp.o CMakeFiles/hven_install_smoke.dir/include_nlp_model_assembly.cpp.o CMakeFiles/hven_install_smoke.dir/include_ipm_solver.cpp.o CMakeFiles/hven_install_smoke.dir/include_sqp_solver.cpp.o CMakeFiles/hven_install_smoke.dir/include_solve_status.cpp.o CMakeFiles/hven_install_smoke.dir/include_core_solver_status.cpp.o CMakeFiles/hven_install_smoke.dir/include_common_options.cpp.o CMakeFiles/hven_install_smoke.dir/include_ipm_solver_types.cpp.o CMakeFiles/hven_install_smoke.dir/include_solve_result.cpp.o CMakeFiles/hven_install_smoke.dir/include_sqp_warm_start.cpp.o CMakeFiles/hven_install_smoke.dir/include_seeding.cpp.o CMakeFiles/hven_install_smoke.dir/include_console_trace_sink.cpp.o CMakeFiles/hven_install_smoke.dir/include_compiler.cpp.o -o hven_install_smoke  -Wl,-rpath,/opt/intel/oneapi/mkl/latest/lib:/opt/intel/oneapi/compiler/latest/lib  /home/ghecht/Projects/hven/.scratch/w6t3/smoke/clang-ipo-off/hven-install/lib64/libhven.a  -Wl,--start-group  /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a  /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a  /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a  /opt/intel/oneapi/compiler/latest/lib/libiomp5.so  -Wl,--end-group  -ldl  -lm && :
+/usr/bin/ld.bfd: /home/ghecht/Projects/hven/.scratch/w6t3/smoke/clang-ipo-off/hven-install/lib64/libhven.a: error adding symbols: file format not recognized
+clang++: error: linker command failed with exit code 1 (use -v to see invocation)
+ninja: build stopped: subcommand failed.
+SMOKE_WORST_RC=1
+LEG_RC=1
+FOREGROUND_END 2026-09-14T07:46:56Z
+
+================ clang-consumer-ipo-on ================
+FOREGROUND_START 2026-09-14T07:47:09Z
+ARM: clang-ipo-on
+ARGS FORWARDED TO BOTH CONFIGURES: -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DHVEN_LINK_TIME_OPT=ON -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON
+SMOKE_RC=0
+--- the last 40 lines, verbatim ---
+-- MKL_TBB_LIBRARY =
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Found MKL: /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a;/opt/intel/oneapi/mkl/latest/lib/libmkl_core.a;/opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- Configuring done (0.4s)
+-- Generating done (0.0s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    HVEN_LINK_TIME_OPT
+
+
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/w6t3/smoke/clang-ipo-on/smoke-build
+== building the smoke consumer
+[1/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_nlp_triplet_model.cpp.o
+[2/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipqp_evidence.cpp.o
+[3/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_assembly_declaration.cpp.o
+[4/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_solve_status.cpp.o
+[5/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_core_solver_status.cpp.o
+[6/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_nlp_assembly.cpp.o
+[7/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_trace_writer.cpp.o
+[8/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_trace.cpp.o
+[9/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_nlp_model_assembly.cpp.o
+[10/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_seeding.cpp.o
+[11/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_common_options.cpp.o
+[12/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_compiler.cpp.o
+[13/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_solve_result.cpp.o
+[14/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_sqp_warm_start.cpp.o
+[15/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_console_trace_sink.cpp.o
+[16/20] Building CXX object CMakeFiles/hven_install_smoke.dir/main.cpp.o
+[17/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipm_solver_types.cpp.o
+[18/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_ipm_solver.cpp.o
+[19/20] Building CXX object CMakeFiles/hven_install_smoke.dir/include_sqp_solver.cpp.o
+[20/20] Linking CXX executable hven_install_smoke
+== running the smoke consumer
+install smoke: IpmSolver converged, objective = 17.0140174 (OK)
+install smoke: SqpSolver converged, objective = 17.0140173 (OK)
+install smoke: both solvers converged through one generic consumer; 18 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.scratch/w6t3/smoke/clang-ipo-on/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.scratch/w6t3/smoke/clang-ipo-on/hven-configure.log
+SMOKE_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T07:47:38Z
+
+================ THE EXPORT CONTRACT ON ALL FOUR INSTALLS ================
+FOREGROUND_START 2026-09-14T07:47:52Z
+================ gcc-ipo-off ================
+targets file: /home/ghecht/Projects/hven/.scratch/w6t3/smoke/gcc-ipo-off/hven-install/lib64/cmake/hven/hvenTargets.cmake
+align computed by THIS build's own probe: 32
+== checking export contract: /home/ghecht/Projects/hven/.scratch/w6t3/smoke/gcc-ipo-off/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32
+EXPORT_CONTRACT_RC=0  (worst 0)
+EXPORT_WORST_RC=0
+ARM_gcc-ipo-off_EXPORT_RC=0  (worst 0)
+================ gcc-ipo-on ================
+targets file: /home/ghecht/Projects/hven/.scratch/w6t3/smoke/gcc-ipo-on/hven-install/lib64/cmake/hven/hvenTargets.cmake
+align computed by THIS build's own probe: 32
+== checking export contract: /home/ghecht/Projects/hven/.scratch/w6t3/smoke/gcc-ipo-on/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32
+EXPORT_CONTRACT_RC=0  (worst 0)
+EXPORT_WORST_RC=0
+ARM_gcc-ipo-on_EXPORT_RC=0  (worst 0)
+================ clang-ipo-off ================
+targets file: /home/ghecht/Projects/hven/.scratch/w6t3/smoke/clang-ipo-off/hven-install/lib64/cmake/hven/hvenTargets.cmake
+align computed by THIS build's own probe: 32
+== checking export contract: /home/ghecht/Projects/hven/.scratch/w6t3/smoke/clang-ipo-off/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32
+EXPORT_CONTRACT_RC=0  (worst 0)
+EXPORT_WORST_RC=0
+ARM_clang-ipo-off_EXPORT_RC=0  (worst 0)
+================ clang-ipo-on ================
+targets file: /home/ghecht/Projects/hven/.scratch/w6t3/smoke/clang-ipo-on/hven-install/lib64/cmake/hven/hvenTargets.cmake
+align computed by THIS build's own probe: 32
+== checking export contract: /home/ghecht/Projects/hven/.scratch/w6t3/smoke/clang-ipo-on/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32
+EXPORT_CONTRACT_RC=0  (worst 0)
+EXPORT_WORST_RC=0
+ARM_clang-ipo-on_EXPORT_RC=0  (worst 0)
+EXPORT_ALL_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T07:47:52Z
+
+CORRECTIONS -- 2026-09-14, W6 T3 FIX ROUND 1
+============================================
+Settler ruling P3 on the sol review of T3 (FIX-ROUND, no Critical).  THE REMEDY
+BLOCK ABOVE IS SUPERSEDED and kept in place; this block replaces it.  No arm was
+re-run; no result in this file moves.
+
+  (i) WHAT WAS OBSERVED, NARROWED TO ITSELF.  The failing arm is ONE PATH, not
+      "every non-LTO consumer": clang 22.1.8 built the library with -flto=thin,
+      the consumer did NOT enable LTO, and the link ran through /usr/bin/ld.bfd
+      (GNU ld 2.46.1) with no LLVM gold/LTO plugin loaded -- that link cannot
+      read a bitcode archive member.  The GCC 16.2.1 arms pass with the
+      consumer's IPO off because GCC's LTO members are ELF objects.  What a
+      clang consumer linking through lld, or through a ld.bfd with LLVMgold.so
+      available, would do was NOT RUN here and is not claimed either way.
+      Windows and Apple: UNOBSERVED.
+
+ (ii) THE EXPORT-CONTRACT COLLISION WAS OVERSTATED.  scripts/check_export_
+      contract.sh forbids INTERFACE_COMPILE_OPTIONS -- the documented rule at
+      :21-24, the enforcement at :113-121, a grep of the generated
+      hvenTargets*.cmake for that ONE property name.  It asserts NOTHING about
+      INTERFACE_LINK_OPTIONS: `grep -n 'INTERFACE_'` over that script finds only
+      INTERFACE_COMPILE_DEFINITIONS, INTERFACE_COMPILE_OPTIONS and
+      INTERFACE_INCLUDE_DIRECTORIES.  So a LINK-ONLY -flto usage requirement is
+      INSIDE the contract as written and needs no widening of it; only a
+      COMPILE-side usage requirement would reopen it.  Candidate (2) above
+      therefore overstates its own cost.
+
+(iii) THE OPTIONS, EACH WITH ITS COST.  For the settler's W6-close ruling.  None
+      is chosen here and T3 built none of them.
+
+      (1) DOCUMENT THE CONSTRAINT.  State, where installs are documented, that
+          an LTO-built libhven.a is consumable only by an LTO-capable link.
+          COST: nothing changes; the sharp edge stays for whoever turns the knob
+          on and installs.
+
+      (2) A CONDITIONAL LINK-ONLY USAGE REQUIREMENT.  Export
+          INTERFACE_LINK_OPTIONS carrying -flto when, and only when, the library
+          was built with IPO.  COST: inside the export contract as written, per
+          (ii), so no contract change -- but a real export-surface change, it
+          needs its own smoke arm, and it puts -flto on a consumer's LINK line
+          without touching how the consumer compiles.
+
+      (3) FAT LTO OBJECTS (-ffat-lto-objects).  Archive members carrying both
+          bitcode and ordinary object code, so a plain non-LTO link reads them.
+          COST: larger archives and slower builds, and CLANG/TOOLCHAIN SUPPORT
+          MUST BE VALIDATED FIRST -- this task did not run it, so nothing here
+          says it works on this toolchain.
+
+      (4) REFUSE OR WARN AT CONFIGURE on an install of an IPO-enabled hven.
+          COST: this is a POLICY, not a consumption remedy -- it makes the sharp
+          edge loud instead of silent; it does not make the install consumable,
+          and it does not replace considering (3).
+
+      Nothing about the DEFAULT posture changes under any of them:
+      HVEN_LINK_TIME_OPT is OFF, and the CI install smoke (GCC front end) passes
+      either way.

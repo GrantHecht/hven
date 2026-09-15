@@ -1,0 +1,169 @@
+M6 W6 T3 -- PROOF THAT LTO ACTUALLY REACHED THE CODE
+=====================================================
+The cache saying CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON proves nothing: M5's F5
+was precisely a case where the cache said one thing and the compile lines said
+another.  What follows is read off the COMPILE LINES and the LINK LINES of both
+arms, plus what the archive actually holds.
+
+  the lto arm  .scratch/w6t3/build-lto  -DHVEN_LINK_TIME_OPT=ON
+  the off arm  .scratch/w6t3/build-off  (the default; the named LTO-OFF arm)
+
+Both at commit dee112b3, same uniform regime, each from its OWN EMPTY directory.
+"libhven.a objects" are the compile_commands.json entries whose output sits under
+CMakeFiles/hven.dir/ -- the 43 objects archived into libhven.a, including the
+target's precompiled header.  The flavour CMake's IPO emits for this clang is
+-flto=thin (stated, as the brief asked, rather than assumed).
+  [SUPERSEDED 2026-09-14, W6 T3 fix round 1.  The sentence above -- and the
+  table row "libhven.a objects" below -- call all 43 entries "objects archived
+  into libhven.a".  Wrong noun: 43 is the count of the hven TARGET'S COMPILE
+  ENTRIES, 42 .o plus one cmake_pch.hxx.pch, and a PCH is never archived.
+  `ar t` on either arm's libhven.a reports 42 members.  See CORRECTIONS at the
+  end of this file.  The reach CONCLUSION does not move.]
+
+Produced by .scratch/w6t3/reach.sh under the box lock; log
+.scratch/w6t3/logs/06b-reach.log.  (An earlier run, 06-reach.log, failed on the
+wrapper's own wrong archive path -- $B/src/libhven.a for $B/libhven.a -- and is
+retained beside it; every compile- and link-line count in it is identical.)
+
+THE RESULT IN ONE TABLE
+                                         lto arm        off arm
+  HVEN_LINK_TIME_OPT                     ON             OFF
+  compile_commands.json entries          188            188
+    ... carrying -flto                   188            0
+  libhven.a objects                      43             43
+    ... carrying -flto                   43             0
+  libhven.a objects WITHOUT -flto        none           all 43
+  LTO flavour seen                       -flto=thin     (none)
+  hven_sqp_tests link line has -flto     yes            no
+  hven_sqp_corpus link line has -flto    yes            no
+  libhven.a first three members          LLVM IR        ELF relocatable
+                                         bitcode
+  libhven.a size                         11326686 B     10382398 B
+
+The archive row is the one that matters for the install-smoke finding: under
+clang thin-LTO the members of libhven.a are LLVM IR bitcode, not ELF objects.
+See install-smoke.txt.
+
+THE FULL TRANSCRIPT
+===================
+
+FOREGROUND_START 2026-09-14T07:31:01Z
+================ ARM: lto  (/home/ghecht/Projects/hven/.scratch/w6t3/build-lto) ================
+HVEN_LINK_TIME_OPT:BOOL=ON
+-- compile database --
+compile_commands entries: 188   with -flto: 188
+libhven.a objects (CMakeFiles/hven.dir/): 43   with -flto: 43
+LTO flavour(s) seen: ['-flto=thin']
+-- libhven.a objects WITHOUT -flto (must be empty on the lto arm) --
+SAMPLE LIB OBJECT: /home/ghecht/Projects/hven/.scratch/w6t3/build-lto/CMakeFiles/hven.dir/cmake_pch.hxx.pch
+SAMPLE LIB COMMAND: /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_DEFAULT_ARENA_SIZE=256 -DHVEN_DEFAULT_QP_THREADS=8 -DHVEN_VERSION_STRING=\"0.1.0\" -I/home/ghecht/Projects/hven/include -I/opt/intel/oneapi/mkl/latest/include -I/home/ghecht/Projects/hven/src/interior/utils -isystem /home/ghecht/Projects/hven/dep/eigen -isystem /home/ghecht/Projects/hven/dep/fmt/include  -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -flto=thin -fPIC -Wabsolute-value -pthread -mllvm -inline-threshold=225 -O3 -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 -march=native -mtune=native -ffast-math -fno-finite-math-only -fopenmp=libiomp5 -Xclang -fno-pch-timestamp -Winvalid-pch -fpch-instantiate-templates -Xclang -emit-pch -Xclang -include -Xclang /home/ghecht/Projects/hven/.scratch/w6t3/build-lto/CMakeFiles/hven.dir/cmake_pch.hxx -x c++-header -o CMakeFiles/hven.dir/cmake_pch.hxx.pch -c /home/ghecht/Projects/hven/.scratch/w6t3/build-lto/CMakeFiles/hven.dir/cmake_pch.hxx.cxx
+-- link lines (ninja -t commands), the last command of each target --
+NINJA_COMMANDS_lto_hven_sqp_tests_RC=0  (worst 0)
+  hven_sqp_tests link line has -flto: 1
+  LINK: : && /usr/bin/clang++ -DMKL_LP64 -m64 -O3 -DNDEBUG -flto=thin -Xlinker --dependency-file=tests/sqp/CMakeFiles/hven_sqp_tests.dir/link.d tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_accelerate_probes.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_activity_telemetry.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_assembly_eval_seam.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_b1_gate.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_bench_dump.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_border_ops.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_continuation.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_dense_oracle.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_refine_ab.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_
+NINJA_COMMANDS_lto_hven_sqp_corpus_RC=0  (worst 0)
+  hven_sqp_corpus link line has -flto: 1
+  LINK: : && /usr/bin/clang++ -DMKL_LP64 -m64 -O3 -DNDEBUG -flto=thin -Xlinker --dependency-file=bench/CMakeFiles/hven_sqp_corpus.dir/link.d bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o -o bench/hven_sqp_corpus  -Wl,-rpath,/opt/intel/oneapi/mkl/latest/lib:/opt/intel/oneapi/compiler/latest/lib  libhven.a  -Wl,--start-group  /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a  /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a  /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a  /opt/intel/oneapi/compiler/latest/lib/libiomp5.so  -Wl,--end-group  -ldl  -lm && :
+-- what the archive holds --
+  /home/ghecht/Projects/hven/.scratch/w6t3/build-lto/libhven.a: 11326686 bytes
+  member version.cpp.o -> LLVM IR bitcode
+  member pattern_hash.cpp.o -> LLVM IR bitcode
+  member ledger.cpp.o -> LLVM IR bitcode
+================ ARM: off  (/home/ghecht/Projects/hven/.scratch/w6t3/build-off) ================
+HVEN_LINK_TIME_OPT:BOOL=OFF
+-- compile database --
+compile_commands entries: 188   with -flto: 0
+libhven.a objects (CMakeFiles/hven.dir/): 43   with -flto: 0
+LTO flavour(s) seen: []
+-- libhven.a objects WITHOUT -flto (must be empty on the lto arm) --
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/cmake_pch.hxx.pch
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/core/version.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/core/pattern_hash.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/core/ledger.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/core/enum_names.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/linear/dense_symmetric_factor.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/kkt/kkt_calls.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/linear/pardiso_session.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/linear/symmetric_factor_mkl.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/model/assembly_declaration.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/model/nlp_model_assembly.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/model/nlp_problem_model.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/drivers/solve_status.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/drivers/solve_result.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/drivers/solver_init.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/interior/kkt_factorization.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/interior/utils/color_text.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/interior/utils/get_core_count.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/interior/utils/memory_management.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/interior/utils/thread_pool.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/drivers/problem_scaling.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/drivers/trace.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/globalization/sqp/funnel.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/qp/ipqp_kkt_layout.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/warmstart/warm_start.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/warmstart/ipm_polish_extension.cpp.o
+    /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/src/warmstart/warm_start_data.cpp.o
+SAMPLE LIB OBJECT: /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/cmake_pch.hxx.pch
+SAMPLE LIB COMMAND: /usr/bin/clang++ -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_DEFAULT_ARENA_SIZE=256 -DHVEN_DEFAULT_QP_THREADS=8 -DHVEN_VERSION_STRING=\"0.1.0\" -I/home/ghecht/Projects/hven/include -I/opt/intel/oneapi/mkl/latest/include -I/home/ghecht/Projects/hven/src/interior/utils -isystem /home/ghecht/Projects/hven/dep/eigen -isystem /home/ghecht/Projects/hven/dep/fmt/include  -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -fPIC -Wabsolute-value -pthread -mllvm -inline-threshold=225 -O3 -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 -march=native -mtune=native -ffast-math -fno-finite-math-only -fopenmp=libiomp5 -Xclang -fno-pch-timestamp -Winvalid-pch -fpch-instantiate-templates -Xclang -emit-pch -Xclang -include -Xclang /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/cmake_pch.hxx -x c++-header -o CMakeFiles/hven.dir/cmake_pch.hxx.pch -c /home/ghecht/Projects/hven/.scratch/w6t3/build-off/CMakeFiles/hven.dir/cmake_pch.hxx.cxx
+-- link lines (ninja -t commands), the last command of each target --
+NINJA_COMMANDS_off_hven_sqp_tests_RC=0  (worst 0)
+  hven_sqp_tests link line has -flto: 0
+  LINK: : && /usr/bin/clang++ -DMKL_LP64 -m64 -O3 -DNDEBUG -Xlinker --dependency-file=tests/sqp/CMakeFiles/hven_sqp_tests.dir/link.d tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_accelerate_probes.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_activity_telemetry.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_assembly_eval_seam.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_b1_gate.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_bench_dump.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_border_ops.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_continuation.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_dense_oracle.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_refine_ab.cpp.o tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_solve.cpp.o
+NINJA_COMMANDS_off_hven_sqp_corpus_RC=0  (worst 0)
+  hven_sqp_corpus link line has -flto: 0
+  LINK: : && /usr/bin/clang++ -DMKL_LP64 -m64 -O3 -DNDEBUG -Xlinker --dependency-file=bench/CMakeFiles/hven_sqp_corpus.dir/link.d bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o -o bench/hven_sqp_corpus  -Wl,-rpath,/opt/intel/oneapi/mkl/latest/lib:/opt/intel/oneapi/compiler/latest/lib  libhven.a  -Wl,--start-group  /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a  /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a  /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a  /opt/intel/oneapi/compiler/latest/lib/libiomp5.so  -Wl,--end-group  -ldl  -lm && :
+-- what the archive holds --
+  /home/ghecht/Projects/hven/.scratch/w6t3/build-off/libhven.a: 10382398 bytes
+  member version.cpp.o -> ELF 64-bit LSB relocatable, x86-64, version 1 (SYSV), not stripped
+  member pattern_hash.cpp.o -> ELF 64-bit LSB relocatable, x86-64, version 1 (SYSV), not stripped
+  member ledger.cpp.o -> ELF 64-bit LSB relocatable, x86-64, version 1 (SYSV), not stripped
+REACH_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T07:31:02Z
+
+CORRECTIONS -- 2026-09-14, W6 T3 FIX ROUND 1
+============================================
+Settler ruling P1 on the sol review of T3 (FIX-ROUND, no Critical).  The
+original text above is KEPT and marked superseded in place; this block is what
+supersedes it.  NOTHING WAS RE-RUN: these are the same numbers, read with the
+right noun.
+
+  1. "43 ARCHIVED OBJECTS" IS WRONG.  Read from the SAME retained trees this
+     file describes:
+       ar t .scratch/w6t3/build-lto/libhven.a | wc -l   ->  42
+       ar t .scratch/w6t3/build-off/libhven.a | wc -l   ->  42
+     and the compile database, split by the output's extension:
+       CMakeFiles/hven.dir/ entries  43  =  42 *.o  +  1 cmake_pch.hxx.pch
+     The correct sentence is: 43 HVEN-TARGET COMPILE ENTRIES INCLUDING ONE PCH;
+     42 ARCHIVED OBJECTS, ALL 42 CARRYING -flto=thin on the lto arm and none on
+     the off arm.
+
+  2. THE TABLE ROWS, READ CORRECTLY.  "libhven.a objects  43  43" and the
+     "... carrying -flto  43  0" row beneath it are the hven target's COMPILE
+     ENTRIES (43), not the archive's members (42).  The rows that were already
+     about the archive itself -- "libhven.a first three members" and
+     "libhven.a size" -- are unaffected.  The listing under "libhven.a objects
+     WITHOUT -flto" on the off arm shows the same split at source: 43 paths,
+     the first of which is cmake_pch.hxx.pch and the other 42 are .o files.
+
+  3. THE REACH CONCLUSION IS UNCHANGED, and it is what it always was: under
+     HVEN_LINK_TIME_OPT=ON every hven-target compile line carries -flto=thin,
+     both named consumers' link lines carry it, and every archive member is
+     LLVM IR bitcode; under the default, none does and every member is an ELF
+     relocatable.

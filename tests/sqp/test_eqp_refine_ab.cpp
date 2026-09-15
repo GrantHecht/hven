@@ -51,12 +51,17 @@
 #include <gtest/gtest.h>
 
 #include <hven/detail/qp/eqp_solve.h>
-#include <hven/drivers/sqp_driver.h>
-#include <hven/drivers/sqp_types.h>
+#include <hven/drivers/sqp_solver.h>
+#include <hven/drivers/sqp_solver_types.h>
 #include <hven/model/nlp_model.h>
 
 #include "support/hs_problems.h"
 #include "support/scale_problems.h"
+
+#include "hven/core/compiler.h"
+
+// by-value oracle of the in-place hot path; migration is a separate task
+HVEN_SUPPRESS_DEPRECATED_BEGIN
 
 using namespace hven::solvers;
 using hven::Index;
@@ -132,17 +137,17 @@ const std::vector<Row> &battery() {
     return kRows;
 }
 
-const char *status_name(SqpStatus s) {
+const char *status_name(SolveStatus s) {
     switch (s) {
-    case SqpStatus::kOptimal:
+    case SolveStatus::kOptimal:
         return "kOptimal";
-    case SqpStatus::kMaxIter:
+    case SolveStatus::kMaxIter:
         return "kMaxIter";
-    case SqpStatus::kInfeasible:
+    case SolveStatus::kInfeasible:
         return "kInfeasible";
-    case SqpStatus::kNumericalError:
+    case SolveStatus::kNumericalError:
         return "kNumericalError";
-    case SqpStatus::kBudgetExhausted:
+    case SolveStatus::kBudgetExhausted:
         return "kBudgetExhausted";
     }
     return "?";
@@ -150,7 +155,7 @@ const char *status_name(SqpStatus s) {
 
 // What one problem produced in one cell.
 struct Outcome {
-    SqpStatus status = SqpStatus::kOptimal;
+    SolveStatus status = SolveStatus::kOptimal;
     double f_err = 0.0; // |f - target| / max(1, |target|), the battery's own measure
     Index majors = 0, minors = 0, factorizations = 0;
     Index eqp_refine_steps = 0, border_refine_steps = 0;
@@ -176,8 +181,8 @@ Outcome run_one(const Row &r, const Cell &c, const Regime &g) {
     opts.feas_tol = g.tol;
     opts.adaptive_mu = c.adaptive_mu;
     opts.qp.ws_algebra = c.algebra;
-    SqpDriver driver(opts);
-    const SqpSolution sol = driver.solve(*p.model);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model);
 
     const double target = std::isnan(r.f_target) ? p.f_star : r.f_target;
     Outcome o;
@@ -218,7 +223,7 @@ void sweep(const Regime &g) {
     // Statuses of cell 0 (the shipped defaults are mu=on/border, which is NOT
     // cell 0 -- cell 0 is mu=off/border -- so the divergence column below is
     // against the SHIPPED cell, found by name).
-    std::vector<std::vector<SqpStatus>> statuses(cs.size());
+    std::vector<std::vector<SolveStatus>> statuses(cs.size());
 
     for (std::size_t ci = 0; ci < cs.size(); ++ci) {
         const Cell &c = cs[ci];
@@ -226,7 +231,7 @@ void sweep(const Regime &g) {
             const Outcome o = run_one(r, c, g);
             statuses[ci].push_back(o.status);
             Agg &a = aggs[ci];
-            if (o.status == SqpStatus::kOptimal) {
+            if (o.status == SolveStatus::kOptimal) {
                 ++a.optimal;
             } else {
                 a.non_optimal.push_back(fmt::format("HS{}:{}", r.number, status_name(o.status)));
@@ -244,7 +249,7 @@ void sweep(const Regime &g) {
             fmt::print("{:<44} {:>4} {:>12.3e} {:>6} {:>7} {:>6} {:>8} {:>8}{}\n", c.name(),
                        r.number, o.f_err, o.majors, o.minors, o.factorizations, o.eqp_refine_steps,
                        o.border_refine_steps,
-                       o.status == SqpStatus::kOptimal
+                       o.status == SolveStatus::kOptimal
                            ? ""
                            : fmt::format("  <-- {}", status_name(o.status)));
         }
@@ -288,7 +293,7 @@ void sweep(const Regime &g) {
 }
 
 // THE ILL-SCALED FIXTURE, ported verbatim (modulo naming) from
-// tests/test_sqp_driver.cpp's ScaledRowModel -- the fixture the two
+// tests/test_sqp_solver.cpp's ScaledRowModel -- the fixture the two
 // SqpDriverAdaptiveMu tests are built on, and the ONLY place in this project
 // where the fixed-mu accuracy ceiling has ever been demonstrated:
 //
@@ -469,8 +474,8 @@ void f7_ceiling_sweep(Index nodes, double p, double scale, double tol) {
         opts.qp.max_iter = 5000; // the wide window needs it (scale-study note S5)
         opts.adaptive_mu = c.adaptive_mu;
         opts.qp.ws_algebra = c.algebra;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model, model.start_point());
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model, model.start_point());
         const double err = (sol.x - x_star).norm() / x_star.norm();
         fmt::print("{:<44} {:>14} {:>12.4e} {:>5} {:>6} {:>8} {:>8}\n", c.name(),
                    status_name(sol.status), err, sol.counters.major_iters,
@@ -501,8 +506,8 @@ void scaled_row_sweep(double a, double lo, double tol) {
         opts.feas_tol = tol;
         opts.adaptive_mu = c.adaptive_mu;
         opts.qp.ws_algebra = c.algebra;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model, x0);
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model, x0);
         const double err = (sol.x - x_star).norm() / x_star.norm();
         fmt::print("{:<44} {:>14} {:>12.4e} {:>5} {:>6} {:>8} {:>8}\n", c.name(),
                    status_name(sol.status), err, sol.counters.major_iters,
@@ -741,18 +746,18 @@ TEST(EqpRefinementAb, SecondCeilingFixtureReproducesTheAdaptiveMuRuling) {
         opts.qp.max_iter = 5000;
         opts.adaptive_mu = c.adaptive_mu;
         opts.qp.ws_algebra = c.algebra;
-        SqpDriver driver(opts);
-        const SqpSolution sol = driver.solve(model, model.start_point());
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model, model.start_point());
         const Vec x_star = model.x_star();
         const double err = (sol.x - x_star).norm() / x_star.norm();
 
         EXPECT_EQ(sol.counters.eqp_refine_steps, 0)
             << "solve_eqp must still take exactly its one mandatory step";
         if (c.adaptive_mu) {
-            EXPECT_EQ(sol.status, SqpStatus::kOptimal);
+            EXPECT_EQ(sol.status, SolveStatus::kOptimal);
             EXPECT_LT(err, 1e-10) << "observed 5.9218e-12";
         } else {
-            EXPECT_EQ(sol.status, SqpStatus::kMaxIter)
+            EXPECT_EQ(sol.status, SolveStatus::kMaxIter)
                 << "the fixed-mu ceiling must still block certification";
             EXPECT_GT(err, 1e-8) << "observed 4.4062e-06 -- the ceiling itself";
         }
@@ -767,7 +772,7 @@ TEST(EqpRefinementAb, EveryCellSolvesTheBorderReproProblem) {
         SCOPED_TRACE(c.name());
         const Outcome o = run_one(Row{26, 60, std::numeric_limits<double>::quiet_NaN()}, c,
                                   Regime{"shipped", 1e-6});
-        EXPECT_EQ(o.status, SqpStatus::kOptimal);
+        EXPECT_EQ(o.status, SolveStatus::kOptimal);
         EXPECT_LT(o.f_err, 1e-6);
         EXPECT_EQ(o.eqp_refine_steps, 0);
         if (c.algebra == WorkingSetLinearAlgebra::kRefactorize) {
@@ -777,3 +782,5 @@ TEST(EqpRefinementAb, EveryCellSolvesTheBorderReproProblem) {
         }
     }
 }
+
+HVEN_SUPPRESS_DEPRECATED_END

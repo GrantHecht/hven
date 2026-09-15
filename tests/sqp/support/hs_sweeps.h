@@ -20,14 +20,17 @@
 // globalization therefore never has to fight.
 //
 //   (a) SqpOptions::warm_full_step -- the Kungurtsev-Diehl full-step-first
-//       rule (sqp_driver.h's FULL-STEP-FIRST WARM note). The battery returned
+//       rule (sqp_solver.h's FULL-STEP-FIRST WARM note). The battery returned
 //       a NULL result: the mode ENGAGED on 67-88 % of warm/hot majors and its
 //       watchdog NEVER fired, yet not one observed count moved when the lever
 //       was flipped. Default-true was neither supported nor undermined, and
 //       the human ruling was to keep it and re-adjudicate on a corpus that can
 //       discriminate.
 //   (b) kappa_soc -- the never-adopted magnitude gate on the SECOND-ORDER
-//       CORRECTION attempt (sqp_driver.h's A NAMED CANDIDATE FOR TASK 11).
+//       CORRECTION attempt: gate the attempt itself, not just its success, on
+//       `h_raw <= kappa_soc * h_old`. Never adopted, and not adopted for the
+//       reason this header exists: no shipped corpus produces enough SOC
+//       attempts to show a gate would change any outcome.
 //       Phase 3's HS battery saw SOC attempted TWICE in 27 problems; the
 //       Phase-4 parametric corpus never reaches SOC AT ALL, so the outcome
 //       counters Phase-4 Task 1 added (SqpCounters::soc_applied /
@@ -147,6 +150,11 @@
 #include <hven/qp/qp_types.h>
 
 #include "hs_problems.h"
+
+#include "hven/core/compiler.h"
+
+// by-value oracle of the in-place hot path; migration is a separate task
+HVEN_SUPPRESS_DEPRECATED_BEGIN
 
 namespace hven::solvers::test_support {
 
@@ -346,3 +354,5 @@ inline std::unique_ptr<HsSweep> make_hs_sweep(int number) {
 }
 
 } // namespace hven::solvers::test_support
+
+HVEN_SUPPRESS_DEPRECATED_END

@@ -19,11 +19,11 @@
 #include <gtest/gtest.h>
 
 #include "hven/core/pattern_hash.h"
-#include "hven/model/aggregate_declaration.h"
+#include "hven/model/assembly_declaration.h"
 #include "hven/model/structure_identity.h"
 
 using hven::Fnv1a;
-using hven::solvers::AggregateDeclaration;
+using hven::solvers::AssemblyDeclaration;
 using hven::solvers::claim_stream_digest;
 using hven::solvers::materialized_bound_digest;
 using hven::solvers::ModelStructureKey;
@@ -52,8 +52,8 @@ std::uint64_t digest_of(const VariableBound &bound) {
 }
 
 /// A declaration at the given dimensions, with no bounds.
-AggregateDeclaration sized(int primal_vars, int equality_rows, int inequality_rows) {
-    AggregateDeclaration declaration;
+AssemblyDeclaration sized(int primal_vars, int equality_rows, int inequality_rows) {
+    AssemblyDeclaration declaration;
     declaration.primal_vars_ = primal_vars;
     declaration.equality_rows_ = equality_rows;
     declaration.inequality_rows_ = inequality_rows;
@@ -79,8 +79,8 @@ struct ClaimStream {
 
 /// A declaration over `primal_vars` variables carrying the given bound records
 /// in declaration order.
-AggregateDeclaration bounded(int primal_vars, std::initializer_list<VariableBound> records) {
-    AggregateDeclaration declaration;
+AssemblyDeclaration bounded(int primal_vars, std::initializer_list<VariableBound> records) {
+    AssemblyDeclaration declaration;
     declaration.primal_vars_ = primal_vars;
     declaration.variable_bounds_.assign(records.begin(), records.end());
     return declaration;
@@ -132,7 +132,7 @@ TEST(ModelStructureKeyTest, TheFoldedDigestIsNotAnyOneConjunct) {
 }
 
 TEST(ClaimStreamDigest, OrderIsSignificant) {
-    const AggregateDeclaration declaration = sized(4, 2, 3);
+    const AssemblyDeclaration declaration = sized(4, 2, 3);
     const ClaimStream forward({{0, 1}, {2, 3}});
     const ClaimStream reversed({{2, 3}, {0, 1}});
     EXPECT_NE(claim_stream_digest(declaration, forward.rows_, forward.cols_),
@@ -140,7 +140,7 @@ TEST(ClaimStreamDigest, OrderIsSignificant) {
 }
 
 TEST(ClaimStreamDigest, DistinctClaimsHashDistinctly) {
-    const AggregateDeclaration declaration = sized(6, 2, 3);
+    const AssemblyDeclaration declaration = sized(6, 2, 3);
     const ClaimStream a({{4, 5}});
     const ClaimStream b({{5, 4}});
     EXPECT_NE(claim_stream_digest(declaration, a.rows_, a.cols_),
@@ -148,7 +148,7 @@ TEST(ClaimStreamDigest, DistinctClaimsHashDistinctly) {
 }
 
 TEST(ClaimStreamDigest, TheSameStreamHashesEqual) {
-    const AggregateDeclaration declaration = sized(16, 2, 3);
+    const AssemblyDeclaration declaration = sized(16, 2, 3);
     const ClaimStream stream({{0, 0}, {1, 0}, {2, 1}, {3, 1}});
     EXPECT_EQ(claim_stream_digest(declaration, stream.rows_, stream.cols_),
               claim_stream_digest(declaration, stream.rows_, stream.cols_));

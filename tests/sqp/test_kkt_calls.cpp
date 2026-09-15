@@ -36,11 +36,18 @@ SpMatRM make_kkt3_different_pattern() {
 
 } // namespace
 
+// M6 W5 T8.8 MOVED THIS PIN, and the move is DECLARED: before that task
+// `sqp_kkt_options()` took no argument and hard-coded `num_threads = 0`, so the
+// pin read "the SQP exposes no per-instance thread control". It now reads "the
+// DEFAULT is still 0, and a count handed in is the count that comes out" -- the
+// default-argument form keeps every pre-T8.8 caller's configuration bit for bit,
+// which is what makes the U0 replay at threads = 0 an identity by construction.
+// Every OTHER field is asserted here exactly as it was.
 TEST(SqpKktOptions, MatchesTheApprovedKktConfiguration) {
     const hven::linear::SymmetricFactor::Options o = sqp_kkt_options();
 
     EXPECT_EQ(o.kind, hven::linear::FactorKind::kLDLT);
-    EXPECT_EQ(o.num_threads, 0);
+    EXPECT_EQ(o.num_threads, 0) << "the default argument is the pre-T8.8 hard-coded value";
     EXPECT_FALSE(o.pivot_perturb_exp.has_value());
     EXPECT_FALSE(o.max_refinement_iters.has_value());
     EXPECT_EQ(o.ordering, hven::linear::SymmetricFactor::Options::Ordering::kBackendDefault);
@@ -55,6 +62,52 @@ TEST(SqpKktOptions, MatchesTheApprovedKktConfiguration) {
     EXPECT_EQ(o.cnr_threads, 0);
     EXPECT_FALSE(o.collect_factor_mflops);
     EXPECT_FALSE(o.accelerate_zero_tolerance.has_value());
+}
+
+// The other half of the moved pin (M6 W5 T8.8): the count handed in is the
+// count that comes out, and nothing else in the configuration moves with it.
+// `sqp_kkt_options` is the SOLE options factory for `detail::KktFactor`, so
+// this plus `KktFactor`'s own constructor below is the whole plumbing the
+// walk/SSN tier's temporaries depend on -- they die inside a call and no
+// boundary observation can read their count, so CONSTRUCTION-RULE coverage
+// (this pin, plus the report's `grep -n 'KktFactor \w*;' src/ include/`, which
+// finds no library site that default-constructs one) is what covers them. An
+// HVEN_TESTING construction observer in qp_engine.cpp is REGISTERED for W6 if
+// the temporaries are ever to be OBSERVED rather than argued.
+TEST(SqpKktOptions, TheThreadCountHandedInIsTheOneThatComesOut) {
+    const hven::linear::SymmetricFactor::Options two = sqp_kkt_options(2);
+    EXPECT_EQ(two.num_threads, 2);
+
+    const hven::linear::SymmetricFactor::Options zero = sqp_kkt_options(0);
+    EXPECT_EQ(zero.num_threads, 0);
+
+    // Nothing but the thread count moves: the two option sets differ in one
+    // field, checked on the ones the SQP deliberately pins above.
+    EXPECT_EQ(two.kind, zero.kind);
+    EXPECT_EQ(two.ordering, zero.ordering);
+    EXPECT_EQ(two.pivot_strategy, zero.pivot_strategy);
+    EXPECT_EQ(two.factorization_algorithm, zero.factorization_algorithm);
+    EXPECT_EQ(two.solve_parallelism, zero.solve_parallelism);
+    EXPECT_EQ(two.cnr_threads, zero.cnr_threads);
+    EXPECT_EQ(two.pivot_perturb_exp.has_value(), zero.pivot_perturb_exp.has_value());
+    EXPECT_EQ(two.max_refinement_iters.has_value(), zero.max_refinement_iters.has_value());
+}
+
+// The KktFactor constructor is the single point every walk/SSN-tier factor is
+// built through, so this is the plumbing pin for all six library construction
+// sites at once (the K0 border, the walk's per-solve local, the EQP-refine
+// temporary, the verdict-refine fallback, the SSN tier's persistent factor and
+// the parametric predictor's one factorization).
+//
+// It reads the LIVE factor (`SymmetricFactor::num_threads()` reads through to
+// the backend session), not the options struct that configured it.
+TEST(KktFactor, IsConstructedAtTheThreadCountItIsGiven) {
+    const detail::KktFactor two(2);
+    EXPECT_EQ(two.factor.num_threads(), 2);
+
+    const detail::KktFactor defaulted;
+    EXPECT_EQ(defaulted.factor.num_threads(), 0)
+        << "the default argument is the backend default -- the pre-T8.8 behaviour bit for bit";
 }
 
 TEST(KktFactor, FreshAnalyzeFactorizeAndSolve) {
@@ -154,4 +207,42 @@ TEST(KktFactor, NeedsAnalysisPreservesCallSiteCounting) {
     EXPECT_EQ(symbolic_analyses, 2);
     EXPECT_EQ(k.factor.counters().analyze_count, symbolic_analyses);
     EXPECT_EQ(k.factor.counters().factorize_count, 3);
+}
+
+// M6 W2 T7, and the measurement that says NO decline exists on the eliminated
+// twin's MISS branch: what an EXACTLY SINGULAR KKT (`dual_mu = 0`, a working
+// row dependent on the face, zero (2,2)) does under sqp_kkt_options().
+//
+// Red here = qp_engine.h's twin declaration is owed a re-read.
+TEST(SqpKktOptions, ARankDeficientKktIsPerturbedRatherThanFailedOnThisBackend) {
+    // K = [[I, A^T], [A, 0]] with A = [[1, 0], [1, 0]]: rank 1, so K is exactly
+    // singular. Upper triangle only, with the structural diagonal the backend
+    // requires in every row.
+    SpMatRM K(4, 4);
+    K.insert(0, 0) = 1.0;
+    K.insert(0, 2) = 1.0;
+    K.insert(0, 3) = 1.0;
+    K.insert(1, 1) = 1.0;
+    K.insert(2, 2) = 0.0;
+    K.insert(3, 3) = 0.0;
+    K.makeCompressed();
+
+    KktFactor k;
+#if defined(__APPLE__)
+    // ABSENT EVIDENCE IS REPORTED ABSENT (CLAUDE.md section 6), never as a
+    // green no-op: this has not been run on real Mac hardware.
+    (void)k;
+    GTEST_SKIP() << "UNOBSERVED on Accelerate: whether it perturbs an exactly singular KKT or "
+                    "reports the singularity as an error has not been observed on real Mac "
+                    "hardware (CLAUDE.md section 6).";
+#else
+    // MKL Pardiso's default static pivoting perturbs the tiny pivots and
+    // returns success, so factorize_checked does NOT throw -- which is why the
+    // twin has no decline to reach and a throw there is a real fault (fix 3).
+    ASSERT_NO_THROW(factorize_checked(k, K));
+    const hven::linear::InertiaEvidence ev = k.factor.inertia();
+    EXPECT_EQ(ev.state, hven::linear::InertiaEvidence::State::kObserved);
+    EXPECT_EQ(ev.n_zero, 0);
+    EXPECT_GT(ev.perturbed_pivots.value_or(0), 0);
+#endif
 }

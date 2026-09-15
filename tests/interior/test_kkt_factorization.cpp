@@ -18,7 +18,9 @@
 #include <Eigen/Core>
 
 #include "hven/detail/interior/kkt_factorization.h"
-#include "hven/model/nlp_solver.h"
+#include "hven/detail/model/nlp_adapter.h"
+#include "hven/drivers/ipm_solver.h"
+#include "hven/model/nlp_triplet_model.h"
 
 namespace {
 
@@ -209,6 +211,97 @@ TEST(KktFactorizationTest, ChangingTheThreadCountKeepsTheAnalysisToo) {
 }
 
 // ---------------------------------------------------------------------------
+// The unprojected inertia evidence (M6 W1 T3.a).
+//
+// The three cached ints above are a deliberately LOSSY projection of what the
+// linear layer reports -- faithful to the shapes the engine had before the
+// linear layer existed, which is the point. inertia_evidence() hands back the
+// evidence itself, for a consumer that has to tell an observed inertia from an
+// unobserved one and a counted zero from an absent count. Every pin below is
+// stated against the SAME factorization the cached ints describe, so the two
+// cannot silently drift apart.
+// ---------------------------------------------------------------------------
+
+TEST(KktFactorizationTest, InertiaEvidenceIsUnavailableBeforeAnyFactorization) {
+    KktFactorization kkt(mkl_like_options());
+    kkt.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());
+
+    // Not a zeroed evidence block that would read as an OBSERVED empty
+    // inertia: nothing has been observed, and the accessor says so.
+    const hven::linear::InertiaEvidence &ev = kkt.inertia_evidence();
+    EXPECT_EQ(ev.state, hven::linear::InertiaEvidence::State::kUnavailable);
+    EXPECT_LT(ev.n_pos, 0);
+    EXPECT_LT(ev.n_neg, 0);
+    EXPECT_LT(ev.n_zero, 0);
+    EXPECT_FALSE(ev.perturbed_pivots.has_value());
+}
+
+TEST(KktFactorizationTest, InertiaEvidenceAgreesWithTheCachedIntsAfterASuccessfulFactorization) {
+    KktFactorization kkt(mkl_like_options());
+    kkt.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());
+    kkt.compute();
+
+    const hven::linear::InertiaEvidence &ev = kkt.inertia_evidence();
+    ASSERT_EQ(ev.state, hven::linear::InertiaEvidence::State::kObserved);
+    EXPECT_EQ(ev.n_pos, kkt.peigs());
+    EXPECT_EQ(ev.n_neg, kkt.neigs());
+    // The three counts partition the dimension, whichever backend produced
+    // them -- derived on one, reported natively on the other.
+    EXPECT_EQ(ev.n_pos + ev.n_neg + ev.n_zero, kkt.matrix().rows());
+
+#if defined(USE_ACCELERATE_SPARSE)
+    // Accelerate reports all three counts natively and keeps no
+    // perturbed-pivot counter at all.
+    EXPECT_FALSE(ev.zero_is_derived);
+    EXPECT_FALSE(ev.perturbed_pivots.has_value());
+#else
+    // MKL Pardiso reports the positive and negative counts and nothing else,
+    // so the zero class is inferred rather than measured -- and it does count
+    // perturbed pivots, so the count is present and is exactly what ppivs()
+    // projects.
+    EXPECT_TRUE(ev.zero_is_derived);
+    ASSERT_TRUE(ev.perturbed_pivots.has_value());
+    EXPECT_EQ(*ev.perturbed_pivots, kkt.ppivs());
+#endif
+}
+
+// Non-vacuity for the pin above: the evidence TRACKS the last factorization
+// rather than being written once. Same object, same pattern, an inertia moved
+// by a value change -- both the projection and the evidence move with it.
+TEST(KktFactorizationTest, InertiaEvidenceFollowsTheLastFactorization) {
+    KktFactorization kkt(mkl_like_options());
+    kkt.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());
+    kkt.compute();
+    ASSERT_EQ(kkt.inertia_evidence().n_pos, 1);
+    ASSERT_EQ(kkt.inertia_evidence().n_neg, 1);
+
+    kkt.matrix().coeffRef(1, 1) = 5.0;
+    kkt.refactorize();
+
+    EXPECT_EQ(kkt.inertia_evidence().n_pos, 2);
+    EXPECT_EQ(kkt.inertia_evidence().n_neg, 0);
+    EXPECT_EQ(kkt.inertia_evidence().n_pos, kkt.peigs());
+    EXPECT_EQ(kkt.inertia_evidence().n_neg, kkt.neigs());
+}
+
+TEST(KktFactorizationTest, ReleaseAndReconfigureClearTheInertiaEvidence) {
+    KktFactorization kkt(mkl_like_options());
+    kkt.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());
+    kkt.compute();
+    ASSERT_EQ(kkt.inertia_evidence().state, hven::linear::InertiaEvidence::State::kObserved);
+
+    kkt.release();
+    EXPECT_EQ(kkt.inertia_evidence().state, hven::linear::InertiaEvidence::State::kUnavailable);
+
+    kkt.matrix() = kkt_upper_from_triplets(2, indefinite_2x2());
+    kkt.compute();
+    ASSERT_EQ(kkt.inertia_evidence().state, hven::linear::InertiaEvidence::State::kObserved);
+
+    kkt.reconfigure(mkl_like_options());
+    EXPECT_EQ(kkt.inertia_evidence().state, hven::linear::InertiaEvidence::State::kUnavailable);
+}
+
+// ---------------------------------------------------------------------------
 // Settings the sparse linear surface cannot carry.
 //
 // Each of these had a real effect through the backend interface the engine
@@ -220,7 +313,7 @@ TEST(KktFactorizationTest, ChangingTheThreadCountKeepsTheAnalysisToo) {
 
 // A one-variable unconstrained problem, only ever transcribed -- these tests
 // reject at configuration time and never reach a solve.
-struct KktConfigRejectProblem : hven::solvers::NLPProblem {
+struct KktConfigRejectProblem : hven::solvers::NlpTripletModel {
     int num_vars() const override { return 1; }
     int num_cons() const override { return 0; }
     int num_jac_nonzeros() const override { return 0; }
@@ -261,15 +354,25 @@ struct KktConfigRejectProblem : hven::solvers::NLPProblem {
 // left behind -- so the second solve below (the one that matters) runs
 // against that analysis at the new width rather than paying to rebuild it.
 TEST(KktFactorizationTest, AThreadCountChangedAfterTranscriptionStillSolves) {
-    hven::solvers::NLPSolver solver(std::make_shared<KktConfigRejectProblem>());
-    solver.optimizer_->set_print_level(10);
+    const auto program =
+        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    hven::solvers::IpmSolver solver;
+    {
+        auto o = solver.options();
+        o.common.print_level = 10;
+        solver.set_options(std::move(o));
+    }
     Eigen::VectorXd x0(1);
     x0 << 3.0;
 
-    ASSERT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    ASSERT_EQ(solver.solve(*program, x0).status, hven::solvers::SolveStatus::kOptimal);
 
-    solver.optimizer_->settings().qp_threads_ = solver.optimizer_->settings().qp_threads_ + 1;
-    EXPECT_EQ(solver.optimize(x0), hven::ConvergenceFlags::CONVERGED);
+    {
+        auto o = solver.options();
+        o.common.threads = solver.options().common.threads + 1;
+        solver.set_options(std::move(o));
+    }
+    EXPECT_EQ(solver.solve(*program, x0).status, hven::solvers::SolveStatus::kOptimal);
 }
 
 #if defined(USE_ACCELERATE_SPARSE)
@@ -278,35 +381,70 @@ TEST(KktFactorizationTest, AThreadCountChangedAfterTranscriptionStillSolves) {
 // performs no refinement, where the engine's previous interface ran its own
 // loop. A nonzero cap would be inert.
 TEST(KktFactorizationTest, AccelerateRejectsANonzeroRefinementCap) {
-    hven::solvers::NLPSolver solver(std::make_shared<KktConfigRejectProblem>());
-    solver.optimizer_->settings().qp_ref_steps_ = 2;
-    EXPECT_THROW(solver.optimizer_->set_nlp(solver.nlp_), std::invalid_argument);
+    const auto program =
+        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    hven::solvers::IpmSolver solver;
+    {
+        auto o = solver.options();
+        o.qp_ref_steps = 2;
+        solver.set_options(std::move(o));
+    }
+    // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
+    // from an attach step, so the refusal surfaces there. The problem has one
+    // free variable, so the guess is a 1-vector.
+    EXPECT_THROW(solver.solve(*program, Eigen::VectorXd::Zero(1)), std::invalid_argument);
 }
 
 // The pivot tolerance is fixed at the value the engine has always requested.
 TEST(KktFactorizationTest, AccelerateRejectsANonDefaultPivotTolerance) {
-    hven::solvers::NLPSolver solver(std::make_shared<KktConfigRejectProblem>());
-    solver.optimizer_->settings().accel_pivot_tolerance_ = 0.05;
-    EXPECT_THROW(solver.optimizer_->set_nlp(solver.nlp_), std::invalid_argument);
+    const auto program =
+        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    hven::solvers::IpmSolver solver;
+    {
+        auto o = solver.options();
+        o.accel_pivot_tolerance = 0.05;
+        solver.set_options(std::move(o));
+    }
+    // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
+    // from an attach step, so the refusal surfaces there. The problem has one
+    // free variable, so the guess is a 1-vector.
+    EXPECT_THROW(solver.solve(*program, Eigen::VectorXd::Zero(1)), std::invalid_argument);
 }
 
 #else
 
 // The surface calls the backend silently and exposes no message-level control.
 TEST(KktFactorizationTest, MklRejectsBackendMessageOutput) {
-    hven::solvers::NLPSolver solver(std::make_shared<KktConfigRejectProblem>());
-    solver.optimizer_->settings().qp_print_ = true;
-    EXPECT_THROW(solver.optimizer_->set_nlp(solver.nlp_), std::invalid_argument);
+    const auto program =
+        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    hven::solvers::IpmSolver solver;
+    {
+        auto o = solver.options();
+        o.qp_print = true;
+        solver.set_options(std::move(o));
+    }
+    // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
+    // from an attach step, so the refusal surfaces there. The problem has one
+    // free variable, so the guess is a 1-vector.
+    EXPECT_THROW(solver.solve(*program, Eigen::VectorXd::Zero(1)), std::invalid_argument);
 }
 
 // Only the backend's own documented pivoting-strategy codes are expressible;
 // the undocumented ones this enum also carries are not passed through as raw
 // integers.
 TEST(KktFactorizationTest, MklRejectsAnUndocumentedPivotingStrategyCode) {
-    hven::solvers::NLPSolver solver(std::make_shared<KktConfigRejectProblem>());
-    solver.optimizer_->settings().qp_pivot_strategy_ =
-        hven::solvers::InteriorPointSolver::QPPivotModes::E13;
-    EXPECT_THROW(solver.optimizer_->set_nlp(solver.nlp_), std::invalid_argument);
+    const auto program =
+        hven::solvers::make_nlp_program(std::make_shared<KktConfigRejectProblem>());
+    hven::solvers::IpmSolver solver;
+    {
+        auto o = solver.options();
+        o.qp_pivot_strategy = hven::solvers::IpmSolver::QPPivotModes::kE13;
+        solver.set_options(std::move(o));
+    }
+    // M6 W5 T8.4: set_qp_params() runs from the SOLVE that transcribes, not
+    // from an attach step, so the refusal surfaces there. The problem has one
+    // free variable, so the guess is a 1-vector.
+    EXPECT_THROW(solver.solve(*program, Eigen::VectorXd::Zero(1)), std::invalid_argument);
 }
 
 #endif

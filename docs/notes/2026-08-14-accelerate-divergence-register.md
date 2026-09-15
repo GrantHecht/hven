@@ -214,6 +214,40 @@ function of the geometry rather than the coin." Until that trigger fires, no
 algorithmic change is warranted — changing a tie-resolution rule to force
 cross-backend agreement would be tuning the algorithm to the test.
 
+**LATER DISPOSITION (2026-08-27, M6 W0.4) — append-only; nothing above is
+altered.** Verdict 2 item 2's per-backend pins are **RETIRED**, and so is the
+bare-vs-full contrast this entry names above as a both-backends property.
+
+Grounds, which are new evidence rather than a re-reading of the ruling: the
+per-backend arms rested on the coin being stable *within* a backend, and it is
+not. On **2026-08-26** a main-push Linux CI run failed exactly these assertions
+and a rerun of the **same commit** passed — the coin landing the other way
+within MKL. The sibling register
+`docs/notes/2026-08-15-linux-runner-divergence-register.md` (L-1) had by then
+recorded eleven occurrences of that flake class, five on this fixture alone, and
+its occurrence-3 failure table records the CONTRAST failing as well, with actual
+"`true` vs `true`": under the flipped reading both modes report row 1 active and
+both land (active, certain). That is a legitimate reading of the tie on each
+side — by this entry's own reasoning above — so there is no portable contrast to
+assert either.
+
+What the fixture asserts now, on both backends and whichever way either coin
+lands: `ssn_uncertain_peak == 1`; `ineq_active[1] || ineq_uncertain[1]` from
+**both** starts (the never-inactive-and-certain property this entry identifies
+as the portable guarantee — unchanged, and now stated in both cells);
+`!bare.ineq_uncertain[1]` (structural — bare mode has no third set); and
+`ssn_bulk_flips >= 1`. The second cell's two readings are RECORDED
+(`RecordProperty`) rather than compared. Both `USE_ACCELERATE_SPARSE` arms are
+deleted from the test.
+
+**This entry's findings are not disturbed.** The Accelerate divergence itself
+stays documented here and in the fixture; the flips-are-tie-resolution reading
+and the M3-1 battery evidence for it stand; and the named re-open trigger
+(margin-based uncertain membership) is untouched — if it fires, the fixture
+gains a real geometric property to pin, which a coin direction never was. Only
+the *assertions on the coin* are gone. Commits: `463e62a` (the arms) and the
+W0.4 fix-round commit (the contrast).
+
 ### M3-5 — HS77's objective encoding moves one ulp under the unified flags
 
 `tests/sqp/test_b1_gate.cpp`,

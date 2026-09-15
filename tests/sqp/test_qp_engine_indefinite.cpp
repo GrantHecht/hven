@@ -39,11 +39,26 @@
 #include <hven/detail/qp/qp_engine.h>
 
 #include "support/dense_oracle.h"
+#include "support/indefinite_fixtures.h"
 
 using namespace hven::solvers;
 using hven::Index;
 using hven::SpMatRM;
 using hven::Vec;
+
+namespace hven::solvers {
+// M6 W2 T7 fix 3 (Y-5). The named friend of QpEngine, DEFINED here so R5's
+// first pin can be read off `probe_inertia` itself instead of only off its
+// consequence in the counters. Nothing else in this file may use it.
+struct QpEngineTestAccess {
+    static detail::InertiaVerdict probe(const QpEngine &eng, const QpProblem &qp,
+                                        const WorkingSet &ws, detail::KktFactor &kkt,
+                                        EliminatedFace &face, BorderState &border,
+                                        QpCounters &counters, const QpOptions &opts) {
+        return eng.probe_inertia(qp, ws, kkt, face, border, counters, opts);
+    }
+};
+} // namespace hven::solvers
 
 namespace {
 
@@ -1818,123 +1833,15 @@ QpProblem negative_diagonal_box_qp() {
     return qp;
 }
 
-// INDEFINITE WITH AN EQUALITY ROW:
-//   min 1/2(x0^2 - x1^2 - 2 x2^2) + 0.5 x0 - 0.5 x2
-//   s.t. x0 + x1 + x2 = 1,  x in [-2, 2]^3.
-//
-// On the equality's null space (spanned by (1,-1,0) and (1,0,-1)) the form is
-// 2 b c - c^2 in the coordinates d = (-(b+c), b, c) -- indefinite -- so no
-// local minimizer can leave two directions free, and by the same arithmetic no
-// SINGLE free direction survives either except the flat one, which turns out
-// not to be attained. Two variables must therefore be pinned, and of the four
-// (x1, x2) corner pairs only two put x0 = 1 - x1 - x2 back inside the box:
-//
-//   x = (1, -2,  2)  objective -6   (x1 at lower, x2 at upper), lambda_e = -1.5
-//   x = (1,  2, -2)  objective -4   (x1 at upper, x2 at lower), lambda_e = -1.5
-//
-// Every (x0, x1) and (x0, x2) pinned pair that stays in the box fails its
-// multiplier signs (e.g. (-2, 2, 1) needs z1 = 0.5 at an UPPER bound), and so
-// does every single-pin and no-pin candidate. Set: exactly those two.
-QpProblem indefinite_equality_qp() {
-    QpProblem qp;
-    Eigen::MatrixXd Hd = Eigen::MatrixXd::Zero(3, 3);
-    Hd(0, 0) = 1.0;
-    Hd(1, 1) = -1.0;
-    Hd(2, 2) = -2.0;
-    qp.H = Hd.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
-    qp.g = Vec(3);
-    qp.g << 0.5, 0.0, -0.5;
-    Eigen::MatrixXd Aed(1, 3);
-    Aed << 1, 1, 1;
-    qp.Ae = Aed.sparseView();
-    qp.be = Vec::Constant(1, 1.0);
-    qp.Ai.resize(0, 3);
-    qp.bi = Vec(0);
-    qp.lower = Vec::Constant(3, -2.0);
-    qp.upper = Vec::Constant(3, 2.0);
-    return qp;
-}
-
-// INDEFINITE WITH AN EQUALITY *AND* AN ACTIVE GENERAL ROW:
-//   min x0*x1 + 1/2 x2^2 - x2
-//   s.t. x0 + x2 = 0.5,  x0 + x1 <= -1,  x in [-2, 2]^3.
-//
-// H = [[0,1,0],[1,0,0],[0,0,1]] has eigenvalues (-1, 1, 1): the x0*x1 term is
-// the canonical saddle. The general row is ACTIVE at BOTH minimizers, which is
-// what this fixture is for.
-//
-//   x = (-1.5, 0.5,  2)   objective -0.75   x2 at UPPER, row 0 active
-//        grad = (0.5, -1.5, 1); x1 free gives lambda_i = 1.5 >= 0, then
-//        lambda_e = -2 and z2 = 1 + lambda_e = -1 <= 0 at an upper bound.
-//   x = ( 1,  -2, -0.5)   objective -1.375  x1 at LOWER, row 0 active
-//        grad = (-2, 1, -1.5); x2 free gives lambda_e = 1.5, then
-//        lambda_i = 0.5 >= 0 and z1 = 1 + lambda_i = 1.5 >= 0 at a lower bound.
-//
-// Both have three independent active gradients in R^3, so their null spaces are
-// trivial; both also have STRICT complementarity, so the critical cone really
-// is {0} and each is a strict local minimizer. Set: exactly those two.
-QpProblem indefinite_equality_and_row_qp() {
-    QpProblem qp;
-    Eigen::MatrixXd Hd = Eigen::MatrixXd::Zero(3, 3);
-    Hd(0, 1) = 1.0;
-    Hd(2, 2) = 1.0;
-    qp.H = Hd.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
-    qp.g = Vec(3);
-    qp.g << 0.0, 0.0, -1.0;
-    Eigen::MatrixXd Aed(1, 3);
-    Aed << 1, 0, 1;
-    qp.Ae = Aed.sparseView();
-    qp.be = Vec::Constant(1, 0.5);
-    Eigen::MatrixXd Aid(1, 3);
-    Aid << 1, 1, 0;
-    qp.Ai = Aid.sparseView();
-    qp.bi = Vec::Constant(1, -1.0);
-    qp.lower = Vec::Constant(3, -2.0);
-    qp.upper = Vec::Constant(3, 2.0);
-    return qp;
-}
-
-// TWO NEGATIVE EIGENVALUES plus an active general row:
-//   min 1/2(-2 x0^2 + 2 x0 x1 - 2 x1^2 + x2^2) + 0.3 x0 - 0.2 x1 + 0.1 x2
-//   s.t. -x0 + x1 <= 1,  x in [-2, 2]^3.
-//
-// H = [[-2,1,0],[1,-2,0],[0,0,1]] has eigenvalues (-3, -1, 1) -- TWO negative,
-// unlike every other fixture in this file. x2 decouples (1/2 x2^2 + 0.1 x2,
-// minimized at the interior point x2 = -0.1 everywhere), and the (x0, x1) block
-// is concave, so every local minimizer is a VERTEX of the feasible pentagon
-// {x0, x1 in [-2,2], x1 - x0 <= 1}. That pentagon has five vertices, and the
-// enumeration finds all five correctly signed (a vertex of a concave problem is
-// a local minimizer only when its multipliers work out, so this is a property
-// of these numbers, not of concavity). The row is active at two of them:
-//
-//   (-2, -1, -0.1) obj -3.405   x0 at lower, ROW ACTIVE (lambda_i = 0.2)
-//   ( 1,  2, -0.1) obj -3.105   x1 at upper, ROW ACTIVE (lambda_i = 0.3)
-//   (-2, -2, -0.1) obj -4.205   both at lower, row slack
-//   ( 2, -2, -0.1) obj -11.005  the global minimum, row slack
-//   ( 2,  2, -0.1) obj -3.805   both at upper, row slack
-//
-// MEASURED (not asserted -- the battery deliberately requires only that the
-// answer be SOME local minimizer): the engine walks to (-2, -1, -0.1) in both
-// modes, a LOCAL and NOT global minimizer with the general row active. That is
-// precisely the outcome this battery exists to accept and that
-// solve_dense_oracle would reject, which is why the fixture is here.
-QpProblem two_negative_eigenvalue_row_qp() {
-    QpProblem qp;
-    Eigen::MatrixXd Hd(3, 3);
-    Hd << -2, 1, 0, 1, -2, 0, 0, 0, 1;
-    qp.H = Hd.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
-    qp.g = Vec(3);
-    qp.g << 0.3, -0.2, 0.1;
-    qp.Ae.resize(0, 3);
-    qp.be = Vec(0);
-    Eigen::MatrixXd Aid(1, 3);
-    Aid << -1, 1, 0;
-    qp.Ai = Aid.sparseView();
-    qp.bi = Vec::Constant(1, 1.0);
-    qp.lower = Vec::Constant(3, -2.0);
-    qp.upper = Vec::Constant(3, 2.0);
-    return qp;
-}
+// THE THREE ROW-CARRYING INDEFINITE FIXTURES THAT USED TO BE DEFINED HERE NOW
+// LIVE IN support/indefinite_fixtures.h -- ONE implementation, shared with the
+// IPQP tier's A11 cell (tests/sqp/test_ipqp_certification.cpp), not a second
+// copy that could drift. Their full derivations moved with them. Pulled back
+// into this file's own namespace so every call site below reads exactly as it
+// did.
+using test_support::indefinite_equality_and_row_qp;
+using test_support::indefinite_equality_qp;
+using test_support::two_negative_eigenvalue_row_qp;
 
 // Worst primal violation of `x` against the FULL problem.
 double primal_violation(const QpProblem &qp, const Vec &x) {
@@ -2663,8 +2570,205 @@ TEST(QpEngineIndefinite, PostProbeRestartIsOneShotPerSolve) {
         EXPECT_EQ(sol.lambda_i.lpNorm<Eigen::Infinity>(), 0.0);
 
         // ... and that iterate is finite and inside the box, which is exactly
-        // what sqp_driver.h's qp_failure_is_retryable tests.
+        // what sqp_solver.h's qp_failure_is_retryable tests.
         EXPECT_TRUE(sol.x.allFinite());
         EXPECT_LE(sol.x.lpNorm<Eigen::Infinity>(), 2.0 + 1e-12);
+    }
+}
+
+// M6 W2 T7 fix 2. The verdict-site face key follows the FACTOR, not only the
+// working set: `probe_inertia` re-factorizes the loop's `kkt` for a
+// HYPOTHETICAL set, so a key that recorded only the set could still "hold".
+//
+// FIX-3 CORRECTION: this fixture is the WHOLE falsifier for that conjunct.
+// Threading the key through the probe already closes every stale cell the tree
+// walks -- no walk cell needs the epoch, which is a structural guarantee.
+TEST(QpEngineIndefinite, T7Fix2TheFaceKeyIsInvalidatedByAnyRefactorizationOfKkt) {
+    SpMatRM K(3, 3);
+    K.insert(0, 0) = 2.0;
+    K.insert(0, 2) = 1.0;
+    K.insert(1, 1) = 3.0;
+    K.insert(1, 2) = 1.0;
+    K.insert(2, 2) = 0.0;
+    K.makeCompressed();
+
+    detail::KktFactor kkt;
+    WorkingSet ws(/*n=*/2, /*mi=*/1);
+    detail::factorize_checked(kkt, K);
+    EliminatedFace face;
+    face.capture(ws, kkt);
+
+    // The captured state: same set, same factorization.
+    EXPECT_TRUE(face.holds(ws, kkt));
+
+    // THE Z-1 CASE, and the one a set-only key got wrong: the working set is
+    // untouched, but `kkt` has been re-factorized underneath the key. The
+    // epoch the FACTOR advances inside its own factorize is what catches it.
+    detail::factorize_checked(kkt, K);
+    EXPECT_FALSE(face.holds(ws, kkt));
+
+    // Re-capturing after that re-factorization arms it again -- which is what
+    // `probe_inertia` now does, on the PROBED set rather than the pre-probe one.
+    face.capture(ws, kkt);
+    EXPECT_TRUE(face.holds(ws, kkt));
+
+    // The other half of the signature still bites on its own.
+    ws.bound_state()[0] = BoundState::kAtLower;
+    EXPECT_FALSE(face.holds(ws, kkt));
+    ws.bound_state()[0] = BoundState::kFree;
+    EXPECT_TRUE(face.holds(ws, kkt));
+
+    ws.add_ineq(0);
+    EXPECT_FALSE(face.holds(ws, kkt));
+}
+
+// M6 W2 T7 fix 3 (Y-5). R5's first pin, read DIRECTLY off `probe_inertia`
+// rather than off its counter consequence: the key it leaves behind is either
+// captured on the PROBED set or disarmed, and never on the pre-probe one.
+TEST(QpEngineIndefinite, T7Fix3ProbeInertiaLeavesTheKeyOnTheProbedSetOrDisarmed) {
+    const QpProblem qp = saddle_box_qp();
+
+    for (const auto algebra :
+         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        QpOptions opts;
+        opts.ws_algebra = algebra;
+        const QpEngine eng{opts};
+
+        WorkingSet pre(qp.n(), qp.mi());
+        detail::KktFactor kkt;
+        EliminatedFace face;
+        BorderState border;
+        QpCounters counters;
+
+        // The loop's own candidate, on the LIVE set: the elimination path arms
+        // the key here, the border path leaves it disarmed.
+        (void)QpEngineTestAccess::probe(eng, qp, pre, kkt, face, border, counters, opts);
+        const EliminatedFace armed_on_pre = face;
+
+        // ... and now the HYPOTHETICAL one the repair would try.
+        WorkingSet probed(qp.n(), qp.mi());
+        probed.bound_state()[0] = BoundState::kAtLower;
+        (void)QpEngineTestAccess::probe(eng, qp, probed, kkt, face, border, counters, opts);
+
+        if (algebra == WorkingSetLinearAlgebra::kRefactorize) {
+            EXPECT_FALSE(armed_on_pre.holds(pre, kkt))
+                << "the pre-probe key still claims a factorization the probe overwrote";
+            EXPECT_TRUE(face.factorized);
+            EXPECT_TRUE(face.holds(probed, kkt));
+            EXPECT_FALSE(face.holds(pre, kkt));
+            // The captured half is the factor's own live identity, not a stamp.
+            EXPECT_EQ(face.session_id, kkt.factor.session_id());
+            EXPECT_EQ(face.epoch, kkt.factor.epoch());
+        } else {
+            // eqp_candidate disarms on entry and the border path never
+            // re-arms, so the verdict site cannot reuse anything here.
+            EXPECT_FALSE(armed_on_pre.factorized);
+            EXPECT_FALSE(face.factorized);
+            EXPECT_FALSE(face.holds(pre, kkt));
+            EXPECT_FALSE(face.holds(probed, kkt));
+        }
+    }
+}
+
+// The FAILED iteration-0 start repair, with a structural dead end in the same
+// iteration -- the path the throwaway probe key left armed on the last PROBED
+// factorization. BASE 99aedaf read kInfeasible here; 48d9fb4 threw.
+TEST(QpEngineIndefinite, T7Fix2AFailedStartRepairDoesNotRefineThroughTheProbedFactorization) {
+    QpProblem qp;
+    Eigen::MatrixXd Hd = Eigen::MatrixXd::Zero(2, 2);
+    Hd(0, 0) = -1.0;
+    Hd(1, 1) = -1.0;
+    qp.H = Hd.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    qp.g = Vec::Zero(2);
+
+    // Ae has RANK 1 and inconsistent right-hand sides, so the verdict site sees
+    // a structural violation on a face the walk cannot leave; x1 is unbounded
+    // below in H, so the iteration-0 repair runs, probes, and FAILS.
+    Eigen::MatrixXd Aed(2, 2);
+    Aed << 1.0, 0.0, 1.0, 0.0;
+    qp.Ae = Aed.sparseView();
+    qp.be = Vec(2);
+    qp.be << 0.0, 1.0;
+    qp.Ai.resize(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = Vec(2);
+    qp.lower << -1.0, -1e20;
+    qp.upper = Vec(2);
+    qp.upper << 1.0, 1e20;
+
+    for (const auto algebra :
+         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        QpOptions opts;
+        opts.ws_algebra = algebra;
+        QpEngine eng{opts};
+
+        const QpSolution cold = eng.solve(qp);
+        EXPECT_EQ(cold.status, QpStatus::kInfeasible);
+
+        // The WARM re-solve is the cell: at BASE it returned this status, and
+        // the stale-key defect turned it into a throw out of the public API.
+        QpSolution warm;
+        ASSERT_NO_THROW(warm = eng.solve(qp, cold));
+        EXPECT_EQ(warm.status, QpStatus::kInfeasible);
+        EXPECT_NEAR(warm.x(0), 0.5, 1e-9);
+        EXPECT_EQ(warm.x(1), 0.0);
+        EXPECT_EQ(warm.counters.verdict_refine_steps, 0);
+
+        // THE PRICE OF THE MISS (fix 1's rider 4): under kRefactorize the probes
+        // move the epoch, so the twin buys its own factorization and analysis
+        // instead of reusing a factorization of a differently-SIZED system.
+        //
+        // The 3 is candidate + ONE probe + the twin's miss, and the middle term
+        // is this fixture's: x1 is unbounded below in H and x0 is the only
+        // pinnable candidate, so the repair probes exactly once.
+        if (algebra == WorkingSetLinearAlgebra::kRefactorize) {
+            EXPECT_EQ(warm.counters.factorizations, 3);
+            EXPECT_EQ(warm.counters.symbolic_analyses, 1);
+        } else {
+            EXPECT_EQ(warm.counters.factorizations, 1);
+            EXPECT_EQ(warm.counters.symbolic_analyses, 0);
+        }
+    }
+}
+
+// `dual_mu = 0` is legal (qp_types.h: 0 means no dual regularization), and with
+// a rank-deficient Ae every K the walk and the twin factorize is EXACTLY
+// singular. Nothing escapes solve() -- see the fix-2 report on why not.
+TEST(QpEngineIndefinite, T7Fix2DualMuZeroOnARankDeficientFaceDoesNotEscapeSolve) {
+    QpProblem qp;
+    Eigen::MatrixXd Hd = Eigen::MatrixXd::Zero(2, 2);
+    Hd(0, 0) = -1.0;
+    Hd(1, 1) = -1.0;
+    qp.H = Hd.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    qp.g = Vec::Zero(2);
+    Eigen::MatrixXd Aed(2, 2);
+    Aed << 1.0, 0.0, 1.0, 0.0;
+    qp.Ae = Aed.sparseView();
+    qp.be = Vec(2);
+    qp.be << 0.0, 1.0;
+    qp.Ai.resize(0, 2);
+    qp.bi = Vec(0);
+    qp.lower = Vec(2);
+    qp.lower << -1.0, -1e20;
+    qp.upper = Vec(2);
+    qp.upper << 1.0, 1e20;
+
+    for (const auto algebra :
+         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+        SCOPED_TRACE(algebra == WorkingSetLinearAlgebra::kSchurBorder ? "border" : "refactorize");
+        QpOptions opts;
+        opts.ws_algebra = algebra;
+        opts.dual_mu = 0.0;
+        QpEngine eng{opts};
+
+        QpSolution cold;
+        ASSERT_NO_THROW(cold = eng.solve(qp));
+        EXPECT_EQ(cold.status, QpStatus::kInfeasible);
+        QpSolution warm;
+        ASSERT_NO_THROW(warm = eng.solve(qp, cold));
+        EXPECT_EQ(warm.status, QpStatus::kInfeasible);
+        EXPECT_TRUE(warm.x.allFinite());
     }
 }

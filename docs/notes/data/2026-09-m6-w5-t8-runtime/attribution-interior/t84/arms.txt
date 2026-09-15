@@ -1,0 +1,141 @@
+M6 W5 T8.9r-attrib3 -- THE SIX INTRA-T8.4 ARMS, THE TWO EXPERIMENT ARMS, AND
+THEIR VERIFICATION
+============================================================================
+
+THIS LEG BUILT ITS OWN ARMS. `../attribution/arms.txt`'s eleven binaries put an
+arm at every group-1 task HEAD; the step this leg is chasing is INSIDE one of
+those tasks, so none of those binaries is at any of the commits below except the
+two ends. Eleven builds, each a `git archive` extraction at ONE absolute path
+from an EMPTY build directory, by the T8.9r artifact's own recipe
+(`../../scripts/build_arms.sh`) verbatim:
+
+  cmake -S <arm> -B <build> -G Ninja -DCMAKE_BUILD_TYPE=Release
+        -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_C_COMPILER=/usr/bin/clang
+        -DHVEN_BUILD_TESTS=OFF -DHVEN_BUILD_BENCH=ON -DHVEN_A4_GATE=OFF
+  cmake --build <build> --target hven_sqp_corpus -j 8
+  CCACHE_DISABLE=1 on both, in the environment of both.
+
+  extraction  /home/ghecht/Projects/hven/.scratch/w5t89ra3/arm     (same path, every arm)
+  build       /home/ghecht/Projects/hven/.scratch/w5t89ra3/build   (emptied before every arm)
+
+Submodules, checked against the repository's own pinned checkouts at every arm
+and printed in the build log -- the SAME two commits `../attribution/arms.txt`
+names:
+  dep/eigen bc3b39870ecb690a623a3f49149a358b95c5781d
+  dep/fmt   407c905e45ad75fc29bf0f9bb7c5c2fd3475976f
+
+THE SIX BISECT ARMS. T8.4's commits in order, as its ledger close line names them
+(docs/notes/2026-08-m6-ledger.md, `W5 T8.4 ... CLOSED`), from the T8.3 head:
+
+arm  commit   sha       what it is
+b01  T8.3     510a4bb   the BASE of T8.4 (T8.3's code head)
+b02  T8.4 #1  8ae1618   SolveResult/SolveBudget/the shared declared diagnostics.
+                        A PURE ADDITION: one new header, one new TU, src/
+                        CMakeLists.txt 42 -> 43 sources. It does not touch
+                        src/drivers/interior_point_solver.cpp at all.
+b03  T8.4 #2  9cebbbe   IpmResult; `solve(model, x0, budget)` with phases; the
+                        model BORROWED PER CALL; the five phase-named entries,
+                        the mutable accessors and ConvergenceFlags removed.
+b04  T8.4 #3  9ce9bb2   the SQP side (SqpResult, SolveBudget on the SQP
+                        overloads, the old SQP status enum removed).
+b05  T8.4 fix1 5124aa1  IPM evaluation provenance, the clock at the public
+                        boundary, the lifetime-safe analysis owner id, pins.
+b06  T8.4 head 3c8e43b  the fix1 bench baseline re-derivation == a05 of
+                        ../attribution/arms.txt.
+
+THE TWO BENCH/TEST-ONLY COMMITS ARE NOT SEPARATE ARMS, and the reason is that an
+arm is a BUILD. eb8f157 (the interior leg's phase-sequence rows and columns) and
+f607c2c (one test fix) change no library source, so an arm at either would carry
+a libhven.a byte-identical to its parent's and could only re-measure this
+instrument's floor -- which this leg measures twice over anyway, on two pairs
+whose whole EXECUTABLE is byte-identical (below). Both are ANCESTORS of b05, so
+their bench-side work IS present from b05 on: the b04 -> b05 step carries the
+harness change as well as fix1, and steps.md says so where it reports it.
+
+THE MEASURED BINARIES
+arm  sha       hven_sqp_corpus sha256                                            libhven.a sha256
+b01  510a4bb   70f36ffe92a8c223c27058bc68fea5e7a962cdc7265b2bf854d68724d2a83e91  6f0dc91e24328b7cc39770cd2f21647db64ec657e371e6109aa61412e5f26148
+b02  8ae1618   70f36ffe92a8c223c27058bc68fea5e7a962cdc7265b2bf854d68724d2a83e91  e11cb6611991700b0efe75198d4661903c5fc2fad0dcca737276c376f4b40995
+b03  9cebbbe   f17d704613f3fef6cebe12c1c0f4d6b2ca8ba5c029adf2b5cc5144ebd634f84a  25027b509a02e0a5917875f271efab4bc11d79a1075f0f5b1110e5da3c4232cd
+b04  9ce9bb2   4ac0fd9e7bf9b6a06dee0ae6e40ea9d97386c46d63c7bf23abd3422db8d3ee73  bafbdcf39e341288f98ec9b69f1e2e9842b8411bbd9663771b0af43a109ad5a0
+b05  5124aa1   7fc12cf07f84f074de6966c3a402672c7360ba42a66dcc10c08f9d6edcde8568  85c59ffc0a86b7786602a94e8ec3710ad2a315f6cc86701d6915a7460fb1d14c
+b06  3c8e43b   7fc12cf07f84f074de6966c3a402672c7360ba42a66dcc10c08f9d6edcde8568  85c59ffc0a86b7786602a94e8ec3710ad2a315f6cc86701d6915a7460fb1d14c
+
+TWO OF THE FIVE STEPS ARE EXACTLY ZERO, AND THIS LEG LEANS ON BOTH.
+  b01 -> b02 and b05 -> b06 each produced a BYTE-IDENTICAL hven_sqp_corpus
+  (`cmp` exit 0, logs/B3-identity.log). Their true step is zero on every row in
+  every currency, so whatever they read is this instrument's floor and can be
+  nothing else. That is a stronger control than ../attribution/arms.txt's T8.1
+  arm, whose libhven.a was identical but whose executable was not.
+
+  AND b01 -> b02 IS A RESULT, NOT ONLY A CONTROL. 8ae1618 ADDS an object to the
+  archive -- `ar t` shows solve_result.cpp.o inserted as member 13 of 43 -- and
+  the linked executable does not change by one byte, because at that commit
+  nothing references it and the linker does not pull an unreferenced archive
+  member in. reading.md section 11's "a new object in the archive ... relocates
+  everything that follows" is refuted for this archive at this commit, measured.
+
+THE BUILD-RECIPE CALIBRATION IS EXACT, ON THE QUANTITY THAT CAN BE CALIBRATED.
+`libhven.a` embeds no build path, and both end arms reproduce
+../attribution/arms.txt BYTE FOR BYTE:
+    510a4bb  expected 6f0dc91e2432...  measured 6f0dc91e2432...   MATCH
+    3c8e43b  expected 85c59ffc0a86...  measured 85c59ffc0a86...   MATCH
+`hven_sqp_corpus` CANNOT reproduce that file's hash by construction, and the
+reason is measured rather than asserted: against the earlier leg's retained a04
+binary this leg's 510a4bb executable differs in exactly 41 BYTES --
+  20 bytes  the GNU build-id note (6750e047f357... against b3b27ecd5a1d...),
+  12 bytes  the SOURCE TREE'S OWN HEAD stamp the corpus binary prints in its
+            provenance header (8cf6bc8aaa1a here, b18ff8108149 at that leg),
+   9 bytes  three RIP displacements inside MKL's own mkl_serv_print_verbose_
+            header, selecting a different (identical) instance of the merged
+            one-byte string literal "a";
+with .text and .rodata at the same address and the same size in both
+(logs/B3-identity.log carries the readelf and cmp output). The difference is
+provenance, not code.
+
+THE EXPERIMENT ARMS (Step B). Each is a `git archive` extraction of its base
+commit with ONE patch applied, built by the same recipe at the same path:
+  x1      9cebbbe + experiment-1.patch      d67f732855dabb97d58268f16196286348ae040e77a360e43ef873cbdf185ed3
+  x2      8ae1618 + experiment-2.patch      12a219623e075e698f794c1ec4acb019e99d071c01c9051a453393fbc1eab2ae
+  p4096   8ae1618 + experiment-3-4096.patch  7fa38e168f9bf63f6bbdb05e7ec3a9c2d9d9bd9a38af134970f062b992520f1b
+  p9712   8ae1618 + experiment-3-9712.patch  e31ed5d709a1c31b9f6b0962ed5d03f9799d57fb62366752609ef623759b9207
+  p16384  8ae1618 + experiment-3-16384.patch 93803449e7875c803daebe02eef6d6492ccd13bab460c710e626ac584b0fcbd2
+NONE OF THESE PATCHES IS A PROPOSED FIX AND NONE IS COMMITTED. They are probes.
+Every one of them leaves all nineteen CSV columns on all nineteen rows
+BIT-IDENTICAL to its unpatched base (experiments.out; 361 cells checked per
+pair, 0 mismatches), which is the check that they changed nothing executed.
+
+THE MEASUREMENT PIN, identical on every arm:
+
+  WALL (asserts wall clock -- CLAUDE.md section 7; fix1 R2 discipline):
+    env MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 taskset -c 2 \
+        <bin> --engine interior \
+              --cells f7_n1000_bound_physics,f7_n5000_bound_physics,\
+f7_n10000_bound_neutral,f7_n20000_bound_neutral \
+              --csv <.../w-bNN-rN.csv>
+    FIVE rounds, one batch per round, arm order ROTATED by (round-1).
+
+  THE ARGV LOCK. attribution.md section 6 records that instructions:u on these
+  cells is bimodal in the measured child's argv+environ byte footprint. Every
+  path component that varies between arms is FIXED WIDTH -- seven characters for
+  every binary directory, patched arms included (`x1_____`, `p16384_`), two
+  digits for the arm number, one for the round -- so the child's argv is 264
+  BYTES AT EVERY ARM, and every batch log prints it (`ARGV_LEN`) rather than
+  asserting it. The first experiment round set broke that lock by ONE BYTE and
+  was RE-RUN; it is retained, unedited, under raw/round1-superseded-argv/ with
+  its own README.
+
+  CELL ORDER IS PART OF THE PIN, and it is what the R3 positional rule stands
+  on. `--engine interior` writes its base rows in the order the cells were
+  REQUESTED, three treatments per cell, MakeParameter first, so
+  `f7_n1000_bound_physics/MakeParameter` is the FIRST row every process writes
+  AT EVERY ARM. Verified before any timed sample existed, on all six arms, by
+  the untimed smoke in logs/B2-smoke.log. The two rows the bench commit eb8f157
+  adds are written at positions 20 and 21, AFTER every scored row, so no scored
+  row runs in a different position in its process at any arm.
+
+TOOLCHAIN AND HARDWARE: as ../../PROVENANCE.txt -- same box, clang 22.1.8,
+CMake 4.3.0, Ninja 1.13.2, MKL 2026.1, AMD Ryzen 7 5800X3D (Zen 3), Fedora 44,
+kernel 7.1.9-200.fc44.x86_64, perf_event_paranoid = 2, cpu2 pinned with its SMT
+sibling cpu10 idle and the driving shell pinned OFF both.
+APPLE / ACCELERATE: UNOBSERVED.  WINDOWS: UNOBSERVED.

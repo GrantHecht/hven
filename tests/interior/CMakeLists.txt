@@ -19,21 +19,23 @@ set(HVEN_INTERIOR_TEST_SOURCES
     test_classic_merit_restoration.cpp
     test_filter_acceptance.cpp
     test_funnel_acceptance.cpp
-    test_interior_point_solver_presets.cpp
+    test_ipm_solver_presets.cpp
+    test_ipm_solver_entry.cpp
+    test_ipm_stop_reason.cpp
+    test_ipm_trace.cpp
     test_ipm_warm_start.cpp
-    test_jet_mkl_guard.cpp
     test_kkt_factorization.cpp
     test_l1_restoration.cpp
     test_merit_rules.cpp
     test_monitored_governor.cpp
     test_nlp_adapter.cpp
-    test_nlp_aggregate_contract.cpp
+    test_nlp_assembly_contract.cpp
     test_nlp_multiplier_seeding.cpp
     test_nlp_problem_model.cpp
-    test_nlp_solver.cpp
     test_objective_scale_reporting.cpp
     test_proximal_restoration.cpp
     test_recovery_dispatch_gate.cpp
+    test_soc.cpp
     test_solver_interface_adapter.cpp
     test_structure_epoch_gating.cpp
     test_switching_acceptance.cpp
@@ -160,6 +162,63 @@ foreach(_probe ${_hven_adapter_probes})
     # RESOURCE_LOCK shared across all probes in this file makes ctest run
     # them one at a time relative to each other, regardless of -j; they stay
     # free to run concurrently with unrelated (non-nested-build) tests.
+    set_tests_properties(hven_compile_fail_${_probe} PROPERTIES
+        RESOURCE_LOCK hven_compile_fail_nested_build)
+endforeach()
+
+################################################################################
+# DEPRECATION PROBES (M6 W5 T3).
+#
+# The six by-value NlpModel evaluations carry [[deprecated]]. That attribute is
+# the whole migration notice, and a warning nobody looks at is not a pin -- so
+# each one gets a probe TU that calls it under -Werror=deprecated-declarations
+# and must fail to build. The flag is per-target: the shared COMPILE_FLAGS must
+# not carry it, because the tree still calls the by-value forms on purpose in
+# nlp_model.h's own defaults and in every test that keeps a by-value oracle.
+#
+# Each probe TU also calls the IN-PLACE replacement, so the forbidden pattern
+# below ("<name>_in_place' is deprecated") makes "the replacement is not itself
+# deprecated" a tested claim rather than an assumption, and EXPECT_SINGLE_ERROR
+# makes "the by-value call is the ONLY error" one too -- which is also how the
+# scoped suppression inside nlp_model.h's defaults is proven to work: those
+# bodies call the deprecated forms in the same TU and must stay silent.
+################################################################################
+set(_hven_deprecation_probes
+    deprecated_eval_grad
+    deprecated_eval_ce
+    deprecated_eval_ci
+    deprecated_eval_hess
+    deprecated_eval_jac_e
+    deprecated_eval_jac_i
+)
+set(_hven_probe_regex_deprecated_eval_grad  "'eval_grad' is deprecated")
+set(_hven_probe_regex_deprecated_eval_ce    "'eval_ce' is deprecated")
+set(_hven_probe_regex_deprecated_eval_ci    "'eval_ci' is deprecated")
+set(_hven_probe_regex_deprecated_eval_hess  "'eval_hess' is deprecated")
+set(_hven_probe_regex_deprecated_eval_jac_e "'eval_jac_e' is deprecated")
+set(_hven_probe_regex_deprecated_eval_jac_i "'eval_jac_i' is deprecated")
+set(_hven_probe_forbid_deprecated_eval_grad  "eval_grad_in_place' is deprecated")
+set(_hven_probe_forbid_deprecated_eval_ce    "eval_ce_in_place' is deprecated")
+set(_hven_probe_forbid_deprecated_eval_ci    "eval_ci_in_place' is deprecated")
+set(_hven_probe_forbid_deprecated_eval_hess  "eval_hess_in_place' is deprecated")
+set(_hven_probe_forbid_deprecated_eval_jac_e "eval_jac_e_in_place' is deprecated")
+set(_hven_probe_forbid_deprecated_eval_jac_i "eval_jac_i_in_place' is deprecated")
+
+foreach(_probe ${_hven_deprecation_probes})
+    add_library(hven_compile_fail_${_probe} OBJECT EXCLUDE_FROM_ALL
+        compile_fail/${_probe}.cpp)
+    target_link_libraries(hven_compile_fail_${_probe} PRIVATE hven::hven)
+    target_compile_options(hven_compile_fail_${_probe} PRIVATE
+        ${COMPILE_FLAGS} -Werror=deprecated-declarations)
+    add_test(NAME hven_compile_fail_${_probe}
+        COMMAND ${CMAKE_COMMAND}
+            -DBINARY_DIR=${CMAKE_BINARY_DIR}
+            -DTARGET=hven_compile_fail_${_probe}
+            -DCONFIG=$<CONFIG>
+            "-DEXPECTED_REGEX=${_hven_probe_regex_${_probe}}"
+            "-DFORBIDDEN_REGEX=${_hven_probe_forbid_${_probe}}"
+            -DEXPECT_SINGLE_ERROR=ON
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/compile_fail/run_build_must_fail.cmake)
     set_tests_properties(hven_compile_fail_${_probe} PROPERTIES
         RESOURCE_LOCK hven_compile_fail_nested_build)
 endforeach()

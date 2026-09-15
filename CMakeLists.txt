@@ -257,7 +257,7 @@ if(WIN32)
     # defined anywhere before this fix): include/hven/detail/interior/
     # utils/thread_pool.h itself does `#elif defined(_WIN32) #include
     # <windows.h>` (its Windows thread-naming/affinity path), and that
-    # header is pulled in transitively by non_linear_program.h -> interior_point_solver.h
+    # header is pulled in transitively by non_linear_program.h -> ipm_solver.h
     # -> every driver TU, so windows.h's own `max`/`min` function-like
     # macros are live for the rest of each such translation unit --
     # exactly the classic collision with the `std::max`/`std::min` calls
@@ -367,8 +367,8 @@ target_compile_definitions(hven PUBLIC
 # the consumer's own compiler already supplies correctly):
 #
 #   - USE_ACCELERATE_SPARSE gates two double members and two setter
-#     declarations directly on InteriorPointSolver's settings struct
-#     (include/hven/drivers/interior_point_solver.h) -- a real ABI-layout hazard on Apple.
+#     declarations directly on IpmSolver's settings struct
+#     (include/hven/drivers/ipm_solver.h) -- a real ABI-layout hazard on Apple.
 #   - NOMINMAX / WIN32_LEAN_AND_MEAN / _DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR
 #     are needed for include/hven/detail/interior/utils/thread_pool.h to
 #     even COMPILE on Windows (it is reached from the public
@@ -478,12 +478,14 @@ target_compile_definitions(hven PRIVATE HVEN_VERSION_STRING="${PROJECT_VERSION}"
 
 # The engine's two build-supplied sizing knobs.
 #
-# HVEN_DEFAULT_QP_THREADS is PUBLIC because two PUBLIC headers read it
-# directly -- include/hven/drivers/interior_point_solver.h (the qp_threads_ default member
-# initializer) and include/hven/drivers/optimization_problem_base.h -- so a
-# consumer that includes them without the definition would fail on an
-# undefined identifier inside a header it did not write. Carried as a usage
-# requirement, linking hven::hven is all a consumer has to do.
+# HVEN_DEFAULT_QP_THREADS is PUBLIC because a PUBLIC header reads it directly
+# -- include/hven/drivers/ipm_solver.h, in the qp_threads_ default
+# member initializer -- so a consumer that includes it without the definition
+# would fail on an undefined identifier inside a header it did not write.
+# (M6 W5 T1: it was two headers until the folded init_partitions moved out of
+# the public model/nlp_solver.h into src/model/nlp_solver.cpp; M6 W5 T8.9
+# retired both.) Carried as a usage requirement, linking hven::hven is all a
+# consumer has to do.
 #
 # HVEN_DEFAULT_ARENA_SIZE is PRIVATE: the only reader is
 # src/interior/utils/memory_management.cpp, an hven source, and nothing in

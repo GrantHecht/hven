@@ -18,7 +18,7 @@
 //
 // WHAT IS IN IT, AND WHY THE ORDER MATTERS
 //
-// The list below is the include block of drivers/interior_point_solver.cpp,
+// The list below is the include block of drivers/ipm_solver.cpp,
 // verbatim and in its original order. That is deliberate and load-bearing:
 // prefixing a TU with a *differently ordered* header set changes the order in
 // which templates are instantiated, which changes the order functions are
@@ -41,12 +41,12 @@
 // Include sorting is disabled for this block on purpose: clang-format's
 // default is to alphabetize, which would silently cost the byte-identity
 // property described above -- the order below matches
-// drivers/interior_point_solver.cpp (dependency order, not alphabetical).
+// drivers/ipm_solver.cpp (dependency order, not alphabetical).
 // Note that clang-format would also reorder that .cpp's own include block,
 // so if it is ever reformatted, this list has to be brought back into step
 // with it and the byte-identity check re-run.
 
-#include "hven/drivers/interior_point_solver.h"
+#include "hven/drivers/ipm_solver.h"
 
 #include <algorithm>
 #include <cassert>
@@ -65,10 +65,10 @@
 #endif
 
 // Globalization component interfaces, dependency-ordered. Included here
-// (rather than from interior_point_solver.h) so the TU that builds
-// InteriorPointSolver exercises them on every build without
-// interior_point_solver.h having to include a directory of headers that
-// themselves need the complete InteriorPointSolver class (a circular-include
+// (rather than from ipm_solver.h) so the TU that builds
+// IpmSolver exercises them on every build without
+// ipm_solver.h having to include a directory of headers that
+// themselves need the complete IpmSolver class (a circular-include
 // arrangement that is fragile for the "middle" headers below -- see the
 // include-discipline note in solver_context.h).
 #include "hven/detail/globalization/progress_measures.h"

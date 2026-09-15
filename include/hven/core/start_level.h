@@ -16,7 +16,7 @@ namespace hven::solvers {
 
 /// How much of a previous solve's state a caller intends to feed into the
 /// next one. THE ORDER IS LOAD-BEARING AND THE ENUM IS COMPARED BY IT:
-/// sqp_driver.h's ceiling test compares `static_cast<int>` and tests read the
+/// sqp_solver.h's ceiling test compares `static_cast<int>` and tests read the
 /// enumerators directly (`EXPECT_GE(step.level, kWarm)`-style), so inserting
 /// a new level means placing it between its neighbours, not appending.
 ///
@@ -56,11 +56,11 @@ namespace hven::solvers {
 ///       the full-step-first rule presumes local convergence of a warm start
 ///       ON THE SAME PROBLEM; a seeded object makes no such claim.
 ///   AND ONE THING NO OTHER LEVEL HAS: `lambda_i >= 0` IS ENFORCED AT INGEST
-///   (sqp_driver.h's THE SEEDED DUAL CLAMP). Every other route into the
+///   (sqp_solver.h's THE SEEDED DUAL CLAMP). Every other route into the
 ///   ingest is hash-gated and the producers that clear a hash gate are
 ///   non-negative by construction; kSeeded admits objects a FOREIGN solver
 ///   or a caller's own hand assembled -- the input class warm_start.h's SIGN
-///   CONVENTIONS paragraph states as a PRECONDITION and sqp_driver.h's THE
+///   CONVENTIONS paragraph states as a PRECONDITION and sqp_solver.h's THE
 ///   INGESTED MULTIPLIERS ARE MADE COMPLEMENTARY note itemizes as ungated.
 ///   At the seeded level a small negative price is CLAMPED to zero and
 ///   counted; a large one degrades the whole object to kCold.
@@ -75,7 +75,7 @@ namespace hven::solvers {
 /// - kHot additionally offers `hot` for the engine to reuse a cached
 ///   factorization keyed on that same `structure_hash`, gated the same way
 ///   kWarm always was: a caller opts in only by having received a `hot`
-///   handle from a prior solve; SqpOptions::start_level still CAPS the
+///   handle from a prior solve; SqpOptions::common.start_level still CAPS the
 ///   result, so a caller that never wants kHot pinned can clamp it there.
 enum class StartLevel { kCold, kSeeded, kWarm, kHot };
 

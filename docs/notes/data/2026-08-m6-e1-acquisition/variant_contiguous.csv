@@ -1,0 +1,89 @@
+# artifact/variant_contiguous.csv
+#
+# FOLLOW-ON VARIANT, NOT PART OF THE PRE-REGISTERED TAXONOMY. Added after the
+# 20-cell sweep in artifact/e1_cells.csv had already run, at the settler's
+# request, to address the scattered-vs-contiguous activity-layout concern the
+# implementer raised. Same construction, same budgets, same counting rules,
+# same driver binary; the ONLY difference from a taxonomy cell is that the
+# active set is one contiguous block of rows instead of a uniform random
+# subset. Schema is identical to e1_cells.csv so the two are directly
+# comparable; the block offsets are in variant_contiguous_layout.csv.
+#
+# E1 barrier active-set acquisition experiment -- PROVENANCE STAMP
+# 
+# date (UTC)                 : 2026-08-27T02:13:54Z
+# host                       : fedora
+# os                         : Fedora release 44 (Forty Four)
+# kernel                     : Linux 7.1.9-200.fc44.x86_64 x86_64
+# cpu model                  : AMD Ryzen 7 5800X3D 8-Core Processor
+# cpu topology               : 8 physical cores, 2 threads/core
+# toolchain                  : clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+#                              target x86_64-redhat-linux-gnu
+# compile flags (both tools) : -O3 -DNDEBUG -std=c++20 -DFMT_HEADER_ONLY
+#                              driver adds -DPIQP_WITH_TEMPLATE_INSTANTIATION
+# 
+# ORACLE
+# piqp version               : v0.6.3 (pinned by the archived build_piqp.sh; see its banner)
+# piqp source commit         : 8279ed73a42ddc55e3a8be561dfab7be9b3146b8
+# piqp source tag            : v0.6.3
+# piqp install prefix        : /home/ghecht/Software/piqp  (EXTERNAL -- never vendored into any repository)
+# piqp libpiqp.so sha256     : 37f54cf5480a196eedf6d1810bf015392bb1a986487af5924260649d8238471b
+# piqp OpenMP                : BUILD_WITH_OPENMP defaults OFF and was never enabled;
+#                              ldd on the driver links no libgomp, no BLAS, no MKL:
+#                                	linux-vdso.so.1 (0x00007f7e34b14000)
+#                                	libpiqp.so => /home/ghecht/Software/piqp/lib64/libpiqp.so (0x00007f7e34a64000)
+#                                	libstdc++.so.6 => /lib64/libstdc++.so.6 (0x00007f7e34600000)
+#                                	libm.so.6 => /lib64/libm.so.6 (0x00007f7e34931000)
+#                                	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007f7e34904000)
+#                                	libc.so.6 => /lib64/libc.so.6 (0x00007f7e34407000)
+#                                	/lib64/ld-linux-x86-64.so.2 (0x00007f7e34b16000)
+# 
+# BRIDGE ORIGIN
+# archive path               : /home/ghecht/Projects/tycho_sqp/prototypes/piqp_bridge/
+# archive git commit         : 91c4ec1c5049efa5eb2489425b489212de40fe71
+# archive git describe       : phase-7-close-27-g91c4ec1
+# archive working tree       : CLEAN
+# copied, never edited in place. The workspace's driver (piqp_e1_driver.cpp)
+# is DERIVED from that archive's piqp_f7_driver.cpp; the generator
+# (e1_generate.cpp) and the dump container (e1_dump.h) are new.
+# piqp_f7_driver.cpp sha256  : 1f7e7efa8bebf8383c76547854bf8dc53cbf7b96647b2073a3ef663e4b3a16c0
+# scale_problems.h sha256    : 8b2fd69b2392f236f00bffe1eab65419f62493f4881f8abce3fa228f93f169d2
+# 
+# PROTOCOL
+# protocol note              : /home/ghecht/Projects/hven/docs/notes/2026-08-26-e1-acquisition-experiment.md
+# protocol note sha256       : f00dca6ce07374b38a936907de3e59db4fdbcdbd9db2a596f2691c993b127728
+# hven HEAD when read        : 08045fc7780bc6dfcb90aa9dd19b22704f7c3930
+# 
+# MEASUREMENT TERMS (declared)
+# threads                    : MKL_NUM_THREADS=1, OMP_NUM_THREADS=1 exported for every
+#                              cell. Neither is read by PIQP; the ldd evidence above is
+#                              what carries the single-thread claim.
+# scheduling                 : SEQUENTIAL, one process at a time; no cell co-ran with
+#                              another. The box was not otherwise serialized, which is
+#                              admissible only because NO WALL-CLOCK CLAIM IS MADE from
+#                              this artifact: wall_info_s is informational.
+# per-cell budget            : 120 s hard timeout on the whole run invocation
+#                              (timeout -k 5 120), dump parse included. A timeout is a
+#                              recorded outcome (status=timeout, counters -1).
+# retry policy               : one retry on cell GENERATION failure only. A solve that
+#                              fails is recorded as it failed and never retried.
+# solver tolerance           : eps_abs = 1e-10, eps_rel = 0, duality-gap check OFF,
+#                              max_iter = 200 (the archived driver's own operating
+#                              point; max_iter deliberately generous so the '< 40
+#                              iterations' question is read off info.iter after the
+#                              solve, not enforced as a budget).
+# start                      : NEUTRAL COLD on every cell. PIQP has no primal/dual/slack
+#                              seeding surface at all (solve() takes no arguments), so
+#                              every row here runs its own from-scratch barrier
+#                              initialization -- cold is not a choice, it is the only
+#                              thing the oracle can do.
+id,n,me,mi,kind,active_fraction,margin_class,status,iters,factorizations,factor_retires_final,active_set_size_true,active_set_size_found,active_set_size_found_dual,active_true_recovered,active_false_positive,active_missed,res_primal,res_dual,res_complementarity,x_err_inf,min_box_slack,max_ci,max_abs_z_u,wall_info_s,setup_info_s,threads
+e1blk_f7_n20000_af01_m1e-2,100000,60000,20000,constructed,0.01,0.01,solved,12,13,0,200,200,200,200,0,0,3.5528524566785791e-13,5.3205606325670939e-11,9.9530422301525333e-12,6.6921345009407496e-06,0.60000129188756723,8.9261931179862586e-14,1.4990133333664388,0.205495987,0.089031109,1
+e1blk_f7_n20000_af01_m1e-4,100000,60000,20000,constructed,0.01,0.0001,solved,15,16,0,200,200,312,200,0,0,1.6420198534206065e-13,2.8822860764776692e-11,1.9032028618699936e-11,0.00031279353505025975,0.59972495055308883,9.9781294338185944e-15,1.4849228615071652,0.249312415,0.089090788,1
+e1blk_f7_n20000_af01_m1e-6,100000,60000,20000,constructed,0.01,1e-06,solved,17,18,0,200,200,1391,200,0,0,1.2256862191861728e-13,2.0919460608226359e-11,1.3772048112174767e-11,0.00089511471491621197,0.59964495272219276,-7.3441253078954105e-14,1.4712306885747735,0.279179884,0.089747624,1
+e1blk_f7_n20000_af10_m1e-2,100000,60000,20000,constructed,0.1,0.01,solved,13,14,0,2000,2000,2000,2000,0,0,1.0097478408965799e-13,1.8937445073174414e-12,1.4861806849924083e-13,1.6827393690688197e-06,0.60000032118342783,4.0634162701280729e-14,1.5019696320527638,0.219989144,0.088891889,1
+e1blk_f7_n20000_af10_m1e-4,100000,60000,20000,constructed,0.1,0.0001,solved,15,16,0,2000,2000,2074,2000,0,0,2.2104540420286867e-13,5.1306315858777568e-11,2.4028994342031824e-11,0.00031343437303382737,0.59987107462276201,1.3627987627273797e-14,1.5055016228780715,0.25017935,0.089170848,1
+e1blk_f7_n20000_af10_m1e-6,100000,60000,20000,constructed,0.1,1e-06,solved,18,19,0,2000,2000,2056,2000,0,0,5.3179682879544998e-14,1.9837687048607222e-11,8.0623879431169433e-13,0.0001709036586249324,0.60000883013926942,1.7708057242771247e-14,1.5000132601189369,0.296256737,0.088944128,1
+e1blk_f7_n20000_af30_m1e-2,100000,60000,20000,constructed,0.3,0.01,solved,12,13,0,6000,6000,6000,6000,0,0,4.0401015866109447e-13,8.5289322557099932e-11,4.3668356804464697e-12,9.6193825826484947e-06,0.60000939416071031,1.2681522498780851e-13,1.5156021637371759,0.210741521,0.089701605,1
+e1blk_f7_n20000_af30_m1e-4,100000,60000,20000,constructed,0.3,0.0001,solved,15,16,0,6000,6000,6012,6000,0,0,1.1413092693146609e-13,3.13817860586596e-11,1.5429200808320312e-11,0.00022005409609809901,0.59992206281534488,2.6159630017730251e-14,1.5126766232661357,0.252546168,0.089308357,1
+e1blk_f7_n20000_af30_m1e-6,100000,60000,20000,constructed,0.3,1e-06,solved,17,18,0,6000,6000,6595,6000,0,0,2.0461410343841635e-13,4.1045222776148194e-11,1.0803995466995419e-11,0.00080240527640734749,0.5995391455828919,1.8603174556375279e-14,1.5108200388867172,0.280277888,0.089273127,1

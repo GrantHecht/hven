@@ -42,9 +42,9 @@ using hven::solvers::from_interior_point;
 using hven::solvers::IpmPolishData;
 using hven::solvers::kIpmPolishTag;
 using hven::solvers::serialize_ipm_polish;
+using hven::solvers::SqpWarmStart;
 using hven::solvers::to_sqp_warm_start;
 using hven::solvers::WarmExtension;
-using hven::solvers::WarmStart;
 using hven::solvers::WarmStartData;
 
 namespace {
@@ -162,7 +162,7 @@ WarmStartData bridgeable_value() {
 Eigen::VectorXd bridge_lower() { return vector_of({0.0, -10.0}); }
 Eigen::VectorXd bridge_upper() { return vector_of({10.0, 3.0}); }
 
-void expect_same_warm_start(const WarmStart &actual, const WarmStart &expected) {
+void expect_same_warm_start(const SqpWarmStart &actual, const SqpWarmStart &expected) {
     ASSERT_EQ(actual.x.size(), expected.x.size());
     for (Eigen::Index i = 0; i < expected.x.size(); ++i) {
         EXPECT_EQ(actual.x[i], expected.x[i]) << "x[" << i << "]";
@@ -351,9 +351,9 @@ TEST(IpmPolishBridge, MatchesFromInteriorPointHandedTheSameBlocks) {
     const WarmStartData data = bridgeable_value();
     const IpmPolishData polish = deserialize_ipm_polish(find_ipm_polish(data)->payload_);
 
-    const WarmStart bridged =
+    const SqpWarmStart bridged =
         to_sqp_warm_start(data, bridge_lower(), bridge_upper(), data.structure_key_);
-    const WarmStart direct =
+    const SqpWarmStart direct =
         from_interior_point(data.primal_, data.eq_lmults_, data.iq_lmults_, polish.iq_values_,
                             polish.z_lower_, polish.z_upper_, bridge_lower(), bridge_upper());
 
@@ -369,7 +369,7 @@ TEST(IpmPolishBridge, ForwardsTheCrossoverOptions) {
     // A dual_tol above every price in the fixture leaves every row and every
     // bound side FREE -- a verdict only the forwarded options can produce.
     strict.dual_tol = 1.0e3;
-    const WarmStart bridged =
+    const SqpWarmStart bridged =
         to_sqp_warm_start(data, bridge_lower(), bridge_upper(), data.structure_key_, strict);
     EXPECT_TRUE(bridged.qp_working_set.active_ineq().empty());
     for (const std::int8_t state : bridged.bound_active) {

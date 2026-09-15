@@ -1,0 +1,35 @@
+# hven M6 W4 T5 -- v0 trace evidence. PROVENANCE (CLAUDE.md section 7).
+# produced-by: docs/notes/data/2026-09-m6-w4-acceptance/probes/trace-exemplar-probe.cpp
+# invocation: MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 taskset -c 2 <probe> \
+#             docs/notes/data/2026-09-m6-w4-acceptance <this header>
+# binary-sha256-16: a08e926c6339edc1
+# code-head: 1df1ae8  (branch m6; window BASE fb46802). The probe is committed in
+#            the DOCS commit that carries this file, so it cannot name its own
+#            commit; the code head is what the numbers depend on. See PROVENANCE.txt.
+# toolchain: clang 22.1.8 (Fedora 22.1.8-4.fc44); Release flags, uniform regime (CLAUDE.md section 7)
+# backend: Intel oneAPI MKL 2026.1; MKL_NUM_THREADS=1 OMP_NUM_THREADS=1
+# machine: AMD Ryzen 7 5800X3D, Fedora 44, kernel 7.1.9-200.fc44; pinned taskset -c 2, run SOLO
+# date-utc: 2026-09-05T06:27:47Z
+# APPLE / ACCELERATE: UNOBSERVED. Every value below is MKL-on-Linux and none is inferred.
+#
+# THE `qp.mode` PER-SITE COUNT IDENTITIES, RECOMPUTED FROM telemetry-census-cells.csv
+# over all 81 cells of the HS battery x three QP modes. Reproduce with (NR>16 skips
+# this file's own 15 '#' lines plus the CSV header row):
+#
+#   awk -F, 'NR>16{ if($12 != $14+$15) print "elastic_rung", $0;
+#                   if($10 != $16)     print "ssn_warm_grade", $0;
+#                   if($13 != $18)     print "soc_resolve", $0 }
+#            END{print "checked", NR-16, "cells"}' telemetry-census-cells.csv
+#
+cells checked ......................... 81
+identity failures ..................... 0
+
+per-site qp.mode line totals, and the counters they are checked against:
+  dispatch ..........................  725   bounded by majors, not equal -- see README section 3
+  ssn_warm_grade ....................   13   == ipqp_to_ssn                      13
+  fallback_rung_b ...................    3   == unfired entries + ipqp_fallback_rung_b (0)
+  elastic_rung ......................  246   == elastic_activations 37 + elastic_escalations 209
+  soc_resolve .......................    6   == soc_steps                        6
+
+restoration_iters over the battery ...... 0
+depth-1 lines over the battery .......... 0

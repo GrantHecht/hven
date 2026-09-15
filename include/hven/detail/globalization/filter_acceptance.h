@@ -175,9 +175,9 @@ class FilterAcceptance final : public SwitchingAcceptance {
     int successive_filter_rejections() const { return successive_filter_rejections_; }
     int filter_resets() const { return n_filter_resets_; }
 
-    /// Reports filter_size() into SolveResult::last_filter_size_ and the
-    /// per-phase reset total into SolveResult::last_filter_resets_.
-    void append_diagnostics(InteriorPointSolver::SolveResult &result) const override;
+    /// Reports filter_size() into IpmResult::last_filter_size_ and the
+    /// per-phase reset total into IpmResult::last_filter_resets_.
+    void append_diagnostics(IpmResult &result) const override;
 
     /// Restoration-exit test: relative theta-reduction floor AND acceptable to
     /// the preserved (stashed) optimality filter AND acceptable w.r.t. the
@@ -263,7 +263,7 @@ class FilterAcceptance final : public SwitchingAcceptance {
     /// drift apart. The seam seeds it from the live setting every solve;
     /// standalone/unit-test construction bypassing that seam observes the
     /// default.
-    double restoration_constraint_tol_ = InteriorPointSolver::Settings{}.econ_tol_;
+    double restoration_constraint_tol_ = IpmOptions{}.econ_tol;
 };
 
 } // namespace hven::solvers

@@ -1,0 +1,29 @@
+M6 W2 T8 coverage read -- LLVM source-based coverage, INSTRUMENT TREE (Debug + -fprofile-instr-generate),
+Linux/clang 22.1.8 + Intel MKL 2026.1. INFORMATIONAL: coverage flags change codegen, nothing here is a pin.
+Apple/Accelerate: UNOBSERVED -- this read is MKL/Linux only and no Apple number is inferred from it.
+ctest under the instrument tree: exit status 0, 2254 registered tests.
+
+src/drivers/  (whole directory)          files= 10  regions  77.84% (2912/3741)  functions  79.85% (329/412)  lines  77.94% (6093/7818)  branches  70.48% (2046/2903)
+  of which src/drivers/sqp*.cpp          files=  3  regions  95.31% (1280/1343)  functions  97.75% (87/89)  lines  94.46% (2594/2746)  branches  86.26% (992/1150)
+  of which src/drivers/interior_point_solver* files=  4  regions  65.09% (1400/2151)  functions  71.78% (206/287)  lines  66.26% (2987/4508)  branches  57.46% (905/1575)
+src/qp/                                  files=  5  regions  94.87% (2627/2769)  functions  99.42% (171/172)  lines  94.38% (5040/5340)  branches  87.97% (1924/2187)
+globalization headers (detail/globalization/) files= 21  regions  74.67% (171/229)  functions  76.73% (122/159)  lines  54.89% (258/470)  branches  69.09% (38/55)
+qp headers (detail/qp/)                  files=  8  regions  96.99% (387/399)  functions  98.57% (69/70)  lines  94.54% (537/568)  branches  91.54% (249/272)
+TOTAL (all library sources)              files=122  regions  85.93% (9951/11581)  functions  80.54% (1457/1809)  lines  82.74% (19558/23638)  branches  80.27% (6659/8296)
+
+--- per file, src/drivers and src/qp ---
+   drivers/aggregate_eval_seam.cpp                      lines   89.03% (422/474)  regions   93.14%  functions  100.00%
+   drivers/interior_point_solver.cpp                    lines   72.53% (1632/2250)  regions   71.19%  functions   87.10%
+   drivers/interior_point_solver_globalization.cpp      lines   72.88% (1126/1545)  regions   69.18%  functions   87.50%
+   drivers/interior_point_solver_print.cpp              lines   15.72% (36/229)  regions   17.28%  functions   16.67%
+   drivers/interior_point_solver_settings.cpp           lines   39.88% (193/484)  regions   45.36%  functions   35.71%
+   drivers/problem_scaling.cpp                          lines  100.00% (69/69)  regions   97.56%  functions  100.00%
+   drivers/solver_init.cpp                              lines  100.00% (21/21)  regions  100.00%  functions  100.00%
+   drivers/sqp_driver.cpp                               lines   94.54% (2388/2526)  regions   95.39%  functions   98.82%
+   drivers/sqp_options.cpp                              lines  100.00% (163/163)  regions  100.00%  functions  100.00%
+   drivers/sqp_print.cpp                                lines   75.44% (43/57)  regions   68.18%  functions   66.67%
+   qp/ipqp_engine.cpp                                   lines   93.73% (2436/2599)  regions   92.52%  functions   98.63%
+   qp/ipqp_kkt_layout.cpp                               lines   92.23% (190/206)  regions   97.76%  functions  100.00%
+   qp/ipqp_trace.cpp                                    lines  100.00% (1/1)  regions  100.00%  functions  100.00%
+   qp/qp_engine.cpp                                     lines   97.07% (1393/1435)  regions   96.78%  functions  100.00%
+   qp/ssn_engine.cpp                                    lines   92.81% (1020/1099)  regions   95.41%  functions  100.00%

@@ -7,7 +7,7 @@
 
 #include <hven/core/ledger.h>
 #include <hven/detail/qp/qp_engine.h>
-#include <hven/drivers/sqp_driver.h>
+#include <hven/drivers/sqp_solver.h>
 
 #include "support/parametric_families.h"
 
@@ -141,19 +141,19 @@ TEST(Ledger, ExceptionDoesNotAdvanceCounter) {
 
 // PHASE-5 TASK 2. SqpSolveRecord::wall_seconds is populated on a driver
 // solve() call -- std::chrono::steady_clock timed around solve_impl alone
-// (sqp_driver.h). This asserts only that it is POPULATED (> 0 on a solve
+// (sqp_solver.h). This asserts only that it is POPULATED (> 0 on a solve
 // that did real work), never a magnitude: ledger.h's own note on the field
 // states it is informational, machine-dependent and never asserted on a
 // specific value by any test, and this one is no exception.
 TEST(Ledger, DriverSolveRecordsWallSeconds) {
     test_support::F1BoxQp model(0.5);
-    SqpDriver driver{SqpOptions{}};
+    SqpSolver driver{SqpOptions{}};
 
     Ledger ledger;
     driver.attach_ledger(&ledger, "wall");
 
-    const SqpSolution sol = driver.solve(model, model.start_point());
-    ASSERT_EQ(sol.status, SqpStatus::kOptimal);
+    const SqpResult sol = driver.solve(model, model.start_point());
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
 
     ASSERT_EQ(ledger.sqp_records().size(), 1u);
     EXPECT_GT(ledger.sqp_records()[0].wall_seconds, 0.0);
@@ -161,8 +161,8 @@ TEST(Ledger, DriverSolveRecordsWallSeconds) {
     // A second solve on the same driver gets its OWN wall_seconds, not the
     // first's carried forward -- the two need not be equal, but both must be
     // populated (still no magnitude asserted on either).
-    const SqpSolution sol2 = driver.solve(model, model.start_point());
-    ASSERT_EQ(sol2.status, SqpStatus::kOptimal);
+    const SqpResult sol2 = driver.solve(model, model.start_point());
+    ASSERT_EQ(sol2.status, SolveStatus::kOptimal);
     ASSERT_EQ(ledger.sqp_records().size(), 2u);
     EXPECT_GT(ledger.sqp_records()[1].wall_seconds, 0.0);
 }

@@ -1,0 +1,9 @@
+LEG: bash -o pipefail -c echo "a pipeline whose FIRST stage fails, second succeeds"; false | cat
+PGREP_SEPARATE 2026-09-14T11:24:30Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-14T11:24:30Z
+a pipeline whose FIRST stage fails, second succeeds
+LEG_RC=1
+FOREGROUND_END 2026-09-14T11:24:30Z
+WRAPPER_EXIT=1

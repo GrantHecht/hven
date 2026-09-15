@@ -1,0 +1,42 @@
+ARM 02 sha=9cebbbe
+PGREP_SEPARATE 2026-09-11T21:32:28Z -- taken OUTSIDE the lock; build/solve processes:
+3170353 /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1788721371363-g77al2.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'pgrep -af '"'"'cmake|ninja|ctest|hven_|codex|clang'"'"' > .scratch/w5t89ra5/logs/A02-pgrep-separate.txt 2>/dev/null timeout 3000 flock /tmp/box-build.lock bash .scratch/w5t89ra5/build_arm.sh 02 9cebbbe 25027b509a02e0a5917875f271efab4bc11d79a1075f0f5b1110e5da3c4232cd > .scratch/w5t89ra5/logs/A02-driver.out 2>&1; echo "RC=$?"; grep -a -E '"'"'ADAPTED|LIBHVEN|libhven.a  (expected|measured)|corpus$|WRAPPER_EXIT'"'"' .scratch/w5t89ra5/logs/A02-build-9cebbbe.log | grep -av '"'"'/bin/bash'"'"'' < /dev/null && pwd -P >| /tmp/claude-4bd7-cwd
+--- inside lock ---
+PGREP_INLOCK 2026-09-11T21:32:28Z
+3170353 /bin/bash -c source /home/ghecht/.claude/shell-snapshots/snapshot-bash-1788721371363-g77al2.sh 2>/dev/null || true && export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' export CODEX_COMPANION_SESSION_ID='f981c383-687a-4916-ade6-a6c9a5a3317b' export CODEX_COMPANION_TRANSCRIPT_PATH='/home/ghecht/.claude/projects/-home-ghecht-Projects-hven/f981c383-687a-4916-ade6-a6c9a5a3317b.jsonl' export CLAUDE_PLUGIN_DATA='/home/ghecht/.claude/plugins/data/codex-openai-codex' : && shopt -u extglob 2>/dev/null || true && { \builtin unalias -- 'unsetenv'; \builtin unset -f -- 'unsetenv'; } >/dev/null 2>&1 || true && eval 'pgrep -af '"'"'cmake|ninja|ctest|hven_|codex|clang'"'"' > .scratch/w5t89ra5/logs/A02-pgrep-separate.txt 2>/dev/null timeout 3000 flock /tmp/box-build.lock bash .scratch/w5t89ra5/build_arm.sh 02 9cebbbe 25027b509a02e0a5917875f271efab4bc11d79a1075f0f5b1110e5da3c4232cd > .scratch/w5t89ra5/logs/A02-driver.out 2>&1; echo "RC=$?"; grep -a -E '"'"'ADAPTED|LIBHVEN|libhven.a  (expected|measured)|corpus$|WRAPPER_EXIT'"'"' .scratch/w5t89ra5/logs/A02-build-9cebbbe.log | grep -av '"'"'/bin/bash'"'"'' < /dev/null && pwd -P >| /tmp/claude-4bd7-cwd
+FOREGROUND_START 2026-09-11T21:32:28Z arm=02 sha=9cebbbe
+ENV_FOOTPRINT bytes=4374 md5=962ce19d607da742774368ca345fab61 pwd=/home/ghecht/Projects/hven shlvl=4
+=== extract 2026-09-11T21:32:28Z ===
+arm eigen gitlink: bc3b39870ecb690a623a3f49149a358b95c5781d  expected bc3b39870ecb690a623a3f49149a358b95c5781d
+arm fmt   gitlink: 407c905e45ad75fc29bf0f9bb7c5c2fd3475976f    expected 407c905e45ad75fc29bf0f9bb7c5c2fd3475976f
+extracted: 3161 files
+=== apply the adapted lever 2026-09-11T21:32:29Z ===
+adapted: /home/ghecht/Projects/hven/.scratch/w5t89ra5/arm
+adapted diff vs this arm's own extraction (must equal adapted-p.patch):
+arm eigen gitlink: bc3b39870ecb690a623a3f49149a358b95c5781d  expected bc3b39870ecb690a623a3f49149a358b95c5781d
+arm fmt   gitlink: 407c905e45ad75fc29bf0f9bb7c5c2fd3475976f    expected 407c905e45ad75fc29bf0f9bb7c5c2fd3475976f
+extracted: 3161 files
+ADAPTED PATCH IDENTICAL to adapted-p.patch (216 lines)
+=== configure 2026-09-11T21:32:29Z ===
+-- Generating done (0.0s)
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    CMAKE_C_COMPILER
+
+
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/w5t89ra5/build-arm
+=== build 2026-09-11T21:32:31Z ===
+[43/48] Building CXX object CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+[44/48] Building CXX object CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o
+[45/48] Linking CXX static library libhven.a
+[46/48] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+[47/48] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[48/48] Linking CXX executable bench/hven_sqp_corpus
+=== hashes 2026-09-11T21:33:01Z ===
+libhven.a  expected 25027b509a02e0a5917875f271efab4bc11d79a1075f0f5b1110e5da3c4232cd
+libhven.a  measured 25027b509a02e0a5917875f271efab4bc11d79a1075f0f5b1110e5da3c4232cd
+LIBHVEN MATCH -- the lever touches no library code
+7c706df86bfe0f2ec0dd9137bdf023f11e309ac11d04aa663971833ed9cfb031  /home/ghecht/Projects/hven/.scratch/w5t89ra5/build-arm/bench/hven_sqp_corpus
+FOREGROUND_END 2026-09-11T21:33:01Z arm=02
+WRAPPER_EXIT=0

@@ -92,8 +92,9 @@ if(NOT TARGET hven::hven)
         "The installation may be corrupted.")
 endif()
 
-# Validate critical installed headers are present.
-if(NOT EXISTS "${_hven_include_dir}/hven/model/nlp_solver.h")
+# Validate critical installed headers are present. The sentinel is an ENGINE
+# header (M6 W5 T8.9 retired model/nlp_solver.h, which used to be this check).
+if(NOT EXISTS "${_hven_include_dir}/hven/drivers/ipm_solver.h")
     message(FATAL_ERROR
         "hven: public headers not found at "
         "${_hven_include_dir}/hven/. "

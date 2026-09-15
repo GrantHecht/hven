@@ -1,0 +1,17 @@
+# started on Fri Sep 11 17:36:50 2026
+
+
+ Performance counter stats for '/home/ghecht/Projects/hven/.scratch/w5t89ra5/bin/control/hven_sqp_corpus --internal-run-one f7_n20000_bound_neutral --engine interior --treatment RelaxBounds --internal-out /home/ghecht/Projects/hven/.scratch/w5t89ra5/art/A/control/f7_n20000_bound_neutral-RelaxBounds-r3.csv':
+
+    14,142,636,263      instructions:u                                                        
+     2,503,561,854      branches:u                                                            
+     5,926,046,702      cycles:u                                                              
+         3,445,514      branch-misses:u                                                       
+           858,225      L1-icache-load-misses:u                                               
+
+       1.968040394 seconds time elapsed
+
+       1.766653000 seconds user
+       0.193034000 seconds sys
+
+

@@ -1,0 +1,14 @@
+LEG: .scratch/w6t6/build_only.sh --target hven_sqp_corpus
+PGREP_SEPARATE 2026-09-14T11:14:57Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-14T11:14:57Z
+BUILD_RC=0
+[45/47] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+[46/47] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[47/47] Linking CXX executable bench/hven_sqp_corpus
+error:/FAILED lines in the build log: 0
+BUILD_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T11:15:28Z
+WRAPPER_EXIT=0

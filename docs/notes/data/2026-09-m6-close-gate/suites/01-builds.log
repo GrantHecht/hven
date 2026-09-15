@@ -1,0 +1,45 @@
+LEG: bash -o pipefail -c bash /home/ghecht/Projects/hven/.scratch/m6-close/builds.sh
+PGREP_SEPARATE 2026-09-14T16:42:34Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-14T16:42:34Z
+
+########## configure Release -> /home/ghecht/Projects/hven/.scratch/m6-close/build-release ##########
+CONFIGURE_RC=0
+-- Configuring done (2.5s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/m6-close/build-release
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+CONFIGURE_WORST_RC=0
+worst after configure-release: 0
+
+########## build Release (full, -j 8) ##########
+BUILD_RC=0
+[199/200] Building CXX object bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+[200/200] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+error:/FAILED lines in the build log: 0
+BUILD_WORST_RC=0
+worst after build-release: 0
+
+########## configure Debug -> /home/ghecht/Projects/hven/.scratch/m6-close/build-debug ##########
+CONFIGURE_RC=0
+-- Configuring done (2.6s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/.scratch/m6-close/build-debug
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+CONFIGURE_WORST_RC=0
+worst after configure-debug: 0
+
+########## build Debug (full, -j 8) ##########
+BUILD_RC=0
+[199/200] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+[200/200] Linking CXX executable tests/sqp/hven_sqp_tests
+error:/FAILED lines in the build log: 0
+BUILD_WORST_RC=0
+worst after build-debug: 0
+
+########## the corpus binary's stamp (both trees) ##########
+BUILDS_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T16:46:09Z
+WRAPPER_EXIT=0

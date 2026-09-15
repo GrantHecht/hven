@@ -1,0 +1,72 @@
+M6 W4 T5 -- the test suites, both configs, split (Debug first).
+
+CORRECTION, 2026-09-05 (W4 T5 fix round 2, on the close review's I-2). This file
+is a PINNED artifact and is corrected by this dated note, never silently
+(CLAUDE.md section 7). TWO things moved, neither of them a measurement:
+
+  (1) THE SECOND NAME in the +5 list below read
+      `QpModeSiteScan.EveryKernelCallSiteEmitsAQpModeLineOrSaysWhyItDoesNot`.
+      Fix round 1 (a98cfc5) RENAMED that test to
+      `QpModeSiteScan.EveryKernelCallSitePairsWithItsOwnQpModeEmit` when its rule
+      changed from a distance window to count-matched pairing. The count did not
+      move -- 2350 -> 2355 either way, no test added or removed -- but a reader
+      running `ctest -R` on the old name got zero tests. The list below now
+      carries the name `ctest -N` prints at HEAD.
+
+  (2) THE ARITHMETIC now separates REGISTERED from RUN. The T4 ledger's 2348 is a
+      RUN count (2350 registered minus the two Disabled EqpRefinementAb cells),
+      not a registered count, so the two figures never disagreed. The T5 report's
+      concern 1 guessed the SNOPT bridge gate as the cause and was wrong: that
+      file registers exactly 4 tests, all-or-nothing.
+
+  No leg was re-run for this correction and no result below changed.
+
+Every leg under the box build lock, MKL_NUM_THREADS=1 OMP_NUM_THREADS=1.
+Wall figures are INFORMATIONAL (CLAUDE.md section 7) and are not quoted as
+measurements: the split legs ran at ctest -j4.
+
+TREE: 6d40940 (docs(trace): schema v0), code head 1df1ae8. The legs below were
+re-run unchanged at 1df1ae8's two comment-only successors (a98cfc5, and fix round
+2's own commit), whose driver objects are byte-identical to 1df1ae8's.
+BASE for the counts: fb46802, built in a detached worktree at .scratch/w4t5-base.
+
+  config    leg                                                      result
+  --------  -------------------------------------------------------  ---------------------------
+  Debug     ctest -j4 -LE a4_gate -E ProbeBudgetBoundsAFailingProposal  100% passed, 0 of 2352
+  Debug     ctest -R Continuation.ProbeBudgetBoundsAFailingProposal     100% passed, 0 of 1
+  Release   ctest -j4 -LE a4_gate -E ProbeBudgetBoundsAFailingProposal  100% passed, 0 of 2352
+  Release   ctest -R Continuation.ProbeBudgetBoundsAFailingProposal     100% passed, 0 of 1
+
+REGISTERED TESTS (ctest -N):
+  BASE fb46802 .... 2350 registered / 2348 run
+  HEAD ............ 2355 registered / 2353 run     (+5 either way)
+
+The RUN figure is registered minus the two Disabled EqpRefinementAb cells. The
+T4 ledger's 2348 is a run count; quoting a registered count against it is the
+comparison that looks like a discrepancy and is not one.
+
+The five are named rather than netted out, and NO test was removed -- the two
+`ctest -N` name lists differ by exactly these five lines:
+
+  JsonLinesTraceSink.GoldenLineQpModeAtANonDispatchSite
+  QpModeSiteScan.EveryKernelCallSitePairsWithItsOwnQpModeEmit
+  QpModeSiteScan.TheScanActuallyReadsTheDriverAndFindsItsKernelCalls
+  QpModeSites.EveryKernelInvocationIsAccountedForBySite
+  QpModeSites.TheLadderRungCountIsTheClimbAndNotTheMajorCount
+
+THE ARITHMETIC, stated rather than netted out:
+  2355 registered
+  -  1  Continuation.ProbeBudgetBoundsAFailingProposal, excluded from the split
+        leg by -E and run SOLO as its own leg above
+  -  2  EqpRefinementAb.FootprintRuleProbe and EqpRefinementAb.FullBattery,
+        which are DISABLED (the A/B probe battery)
+  = 2352 in the split leg, in both configs.
+
+Two of those 2352 report SKIPPED rather than passing, in both configs, and are
+named rather than hidden:
+  FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas
+        -- no OLD-SEAM adapter in this build
+  JetMklGuard.RestoresThreadDefaultOnExit
+
+`-LE a4_gate` selects nothing away: HVEN_A4_GATE=OFF, so that label registers
+zero tests in these trees.

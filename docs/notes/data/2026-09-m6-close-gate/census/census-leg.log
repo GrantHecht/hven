@@ -1,0 +1,36 @@
+LEG: bash -o pipefail -c bash /home/ghecht/Projects/hven/.scratch/m6-close/census_leg.sh
+PGREP_SEPARATE 2026-09-14T17:17:13Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-14T17:17:13Z
+=== stamp preflight (the runner's header, :49-57) ===
+PREFLIGHT_RC=0
+# binary: 15f97cae51ff
+# schema: 76
+# budget_table_hash: 0x357aee91dee27391
+=== the sweep ===
+CENSUS_RUN_RC=0  (worst 0)
+  T3   f7_n10000_path_neutral           dnf_budget     3600.000
+  T3   f7_n10000_path_warm              dnf_setup      3600.000
+  T3   f7_n20000_path_activity          dnf_budget     3600.000
+  T3   f7_n20000_path_corrupted         dnf_setup      3600.000
+  T3   f7_n20000_path_neutral           dnf_budget     3600.000
+  T3   f7_n20000_path_physics           dnf_budget     3600.000
+  T3   f7_n20000_path_warm              dnf_setup      3600.000
+  T3   f7_n5000_path_corrupted          dnf_budget     3600.000
+--- tier 1: 44 cells, 6 worker(s), started 17:17:13Z ---
+--- tier 1: complete 17:51:46Z ---
+--- tier 2: 3 cells, 1 worker(s), started 17:51:46Z ---
+--- tier 2: complete 20:26:21Z ---
+--- tier 3: 10 cells, 5 worker(s), started 20:26:21Z ---
+--- tier 3: complete 23:04:47Z ---
+merging 57 row files
+merge+score exit: 0
+compare exit: 0
+57 baseline cells, 57 fresh cells, 0 mismatches
+serial-confirm list: 0 cell(s) -> /home/ghecht/Projects/hven/.scratch/m6-close/census/run/serial_confirm_list.txt
+=== census done (merge_rc=0 compare_rc=0 rows=57/57) ===
+CENSUS_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-14T23:04:47Z
+WRAPPER_EXIT=0

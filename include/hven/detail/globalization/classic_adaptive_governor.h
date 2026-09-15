@@ -12,7 +12,7 @@
 #include "hven/detail/globalization/globalization_mechanism.h"
 #include "hven/detail/globalization/solver_context.h"
 #include "hven/detail/interior/kkt_vector.h"
-#include "hven/drivers/interior_point_solver.h"
+#include "hven/drivers/ipm_solver.h"
 
 namespace hven::solvers {
 
@@ -49,7 +49,7 @@ class ClassicAdaptiveGovernor : public BarrierGovernor {
     /// Free-mode only: current is ignored and mu_event is never written (no
     /// monotone mode), so the caller's mu-event reset branch stays dead on the
     /// classic path.
-    double update_barrier(InteriorPointSolver::BarrierModes barmode, double mu_in, double avgcomp,
+    double update_barrier(IpmSolver::BarrierModes barmode, double mu_in, double avgcomp,
                           double mincomp, Eigen::VectorXd &XSL, Eigen::VectorXd &RHS,
                           Eigen::VectorXd &DXSL, Eigen::VectorXd &Temp,
                           GlobalizationMechanism &mechanism, SolverContext &ctx, double &barr_obj,

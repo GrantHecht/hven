@@ -1,0 +1,5 @@
+=== base-walk vs head-walk === cells compared: 27  columns compared: 75  differences: 0
+=== base-ssn vs head-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== base-ipm vs head-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== committed t10b ipm baseline vs head-ipm === cells compared: 27  columns compared: 75  differences: 0
+=== committed t10b ipm baseline vs base-ipm === cells compared: 27  columns compared: 75  differences: 0
