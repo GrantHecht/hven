@@ -36,6 +36,7 @@
 // at construction, at set_options() and again at run_phase_sequence() entry.
 
 #include <array>
+#include <iosfwd>
 #include <limits>
 #include <string>
 #include <string_view>
@@ -697,6 +698,38 @@ void validate(const IpmOptions &o);
 /// @throws std::invalid_argument, listing every valid name, if `name` is not in
 ///         the table.
 IpmOptions ipm_preset(std::string_view name);
+
+/// @brief Writes EVERY field of @p o to @p os, one `name = value` line each, in
+///        DECLARATION order.
+///
+/// What it is for: a run that records the options it used. hven has no options
+/// registry, no name->field map and no reflection (M7 W0 T5(b) is deliberately
+/// not the start of one) -- this is a hand-written printer pinned against the
+/// struct by tests/drivers/test_options_dump.cpp, which fails to compile if a
+/// field is added without a line here.
+///
+/// THE FORMAT, fixed so a diff of two dumps is a diff of two configurations:
+///  * one line per field, `name = value`, `\n`-terminated, no trailing space,
+///    no blank lines, no header and no footer;
+///  * DECLARATION order, which is the order the header reads in;
+///  * a nested struct is flattened with its member name as the prefix, so
+///    `common.threads`, and the nested block sits where the member is declared;
+///  * an enum prints its ENUMERATOR NAME (`kLoqo`, not `1`), so a renumbering
+///    cannot silently rewrite a recorded run;
+///  * a double prints at `{:.17g}` -- the trace schema's round-trip rule
+///    (docs/trace-schema-v0.md), so the text reads back as the same double;
+///  * a bool prints `true` / `false`;
+///  * `phases` -- the one sequence-valued field -- prints as `[kOptimize,
+///    kSolve]`, its enumerator names in order inside brackets, on ONE line.
+///
+/// DETERMINISTIC AND SIDE-EFFECT-FREE: the same value dumps the same bytes in
+/// any process, and nothing here reads or writes solver state. It does not
+/// validate; `validate(o)` is a separate call and a dump of a rejected value is
+/// still a faithful dump.
+///
+/// @param o The options to write.
+/// @param os The stream, borrowed: this call neither flushes nor closes it.
+void dump_options(const IpmOptions &o, std::ostream &os);
 
 /// @brief Returns @p base prepared for a JET-WORKER context: one backend
 ///        thread, silent printing.

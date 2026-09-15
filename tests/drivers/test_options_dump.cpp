@@ -1,0 +1,265 @@
+// Copyright 2026-present Grant R. Hecht. Licensed under the Apache License, Version 2.0
+// (see LICENSE).
+
+// M7 W0 T5(b): THE DRIFT PIN for dump_options().
+//
+// The dump is hand-written -- hven has no options registry, no name->field map
+// and no reflection -- so nothing in the language stops a field being added to
+// IpmOptions or SqpOptions without a line in the printer. This TU is what does,
+// on three independent axes, because no single one of them catches everything:
+//
+//   1. DECLARED FIELD COUNT, at compile time. kAggregateArity<T> is the number
+//      of initializers T{...} accepts, which for these aggregates is the field
+//      count (a nested aggregate counts as ONE -- core/detail/aggregate_arity.h
+//      states the rule and its three unsupported shapes). This is the sharp
+//      instrument: it moves for an added field and for nothing else.
+//   2. sizeof, at compile time. Weaker than (1) -- a field that lands in
+//      existing padding does not move it -- but it is the axis that notices a
+//      TYPE change (an int widened to a long long) that leaves the count alone.
+//      PLATFORM-DEPENDENT BY CONSTRUCTION, so gated to Linux x86-64; on any
+//      other target the asserts simply do not run, and (1) and (3) still do.
+//   3. DUMPED LINE COUNT, at run time. The one axis that reads the printer
+//      itself: (1) and (2) both pass if a field is added AND given a line, and
+//      both pass if a field is added and the line is put in twice. This does
+//      not.
+//
+// The count beside each struct below is what that struct carried when this file
+// was written; a diff that moves one moves the other in the same commit.
+
+#include <cstddef>
+#include <sstream>
+#include <string>
+
+#include <gtest/gtest.h>
+
+#include <hven/core/detail/aggregate_arity.h>
+#include <hven/drivers/common_options.h>
+#include <hven/drivers/ipm_solver_types.h>
+#include <hven/drivers/sqp_solver_types.h>
+#include <hven/qp/qp_types.h>
+
+namespace {
+
+using hven::solvers::CommonOptions;
+using hven::solvers::IpmOptions;
+using hven::solvers::IpqpOptions;
+using hven::solvers::QpOptions;
+using hven::solvers::SqpOptions;
+
+// ---------------------------------------------------------------------------
+// Axis 1: the declared field counts, pinned at compile time.
+//
+// IpmOptions' 63 on Linux/Windows are 61 scalars/enums, plus `common` (ONE
+// initializer, the nested CommonOptions) and `phases` (the one sequence).
+// SqpOptions' 25 count `qp`, `ipqp` and `common` as one each.
+//
+// IPMOPTIONS' FIELD COUNT IS PLATFORM-DEPENDENT and this is not a rounding
+// detail: `accel_pivot_tolerance` and `accel_zero_tolerance` are declared
+// inside `#ifdef USE_ACCELERATE_SPARSE` (drivers/ipm_solver_types.h), so the
+// struct HAS TWO MORE FIELDS on an Accelerate build than on an MKL one, and the
+// dump prints two more lines there under the same guard. Both counts are stated
+// here rather than one being asserted everywhere, because either single value
+// would be false on the other platform.
+// ---------------------------------------------------------------------------
+#ifdef USE_ACCELERATE_SPARSE
+constexpr std::size_t kIpmOptionsFields = 65;
+#else
+constexpr std::size_t kIpmOptionsFields = 63;
+#endif
+constexpr std::size_t kSqpOptionsFields = 25;
+constexpr std::size_t kIpqpOptionsFields = 22;
+constexpr std::size_t kQpOptionsFields = 9;
+constexpr std::size_t kCommonOptionsFields = 3;
+
+static_assert(::hven::detail::kAggregateArity<IpmOptions> == kIpmOptionsFields,
+              "IpmOptions gained or lost a field. Give it a line in "
+              "dump_options(const IpmOptions&, std::ostream&) "
+              "(src/drivers/ipm_options.cpp), in its declaration position, then move "
+              "kIpmOptionsFields and kIpmDumpLines here together.");
+static_assert(::hven::detail::kAggregateArity<SqpOptions> == kSqpOptionsFields,
+              "SqpOptions gained or lost a field. Give it a line in "
+              "dump_options(const SqpOptions&, std::ostream&) "
+              "(src/drivers/sqp_options.cpp), in its declaration position, then move "
+              "kSqpOptionsFields and kSqpDumpLines here together.");
+static_assert(::hven::detail::kAggregateArity<IpqpOptions> == kIpqpOptionsFields,
+              "IpqpOptions gained or lost a field: it is flattened under the `ipqp.` "
+              "prefix by dump_options(const SqpOptions&, std::ostream&).");
+static_assert(::hven::detail::kAggregateArity<QpOptions> == kQpOptionsFields,
+              "QpOptions gained or lost a field: it is flattened under the `qp.` "
+              "prefix by dump_options(const SqpOptions&, std::ostream&).");
+static_assert(::hven::detail::kAggregateArity<CommonOptions> == kCommonOptionsFields,
+              "CommonOptions gained or lost a field: BOTH dumps flatten it under the "
+              "`common.` prefix, so both printers need the new line.");
+
+// ---------------------------------------------------------------------------
+// Axis 2: sizeof, on the one platform these values were observed on.
+//
+// LINUX x86-64, clang, the project's own flag regime -- the configuration
+// CLAUDE.md documents and all of hven's pins are taken under. These numbers are
+// layout, not contract: a different ABI, a different alignment or a different
+// standard-library std::function/std::vector will legitimately produce others,
+// which is why the asserts are gated rather than written as a portable claim.
+// Apple and Windows values are UNOBSERVED and are deliberately not guessed.
+// ---------------------------------------------------------------------------
+#if defined(__linux__) && defined(__x86_64__)
+static_assert(sizeof(IpmOptions) == 376, "IpmOptions' layout moved on Linux x86-64. If a field "
+                                         "was added, axis 1 above has already told you so; if "
+                                         "only a TYPE changed, this is the only axis that "
+                                         "noticed. Check the dump, then re-observe this value.");
+static_assert(sizeof(SqpOptions) == 376, "SqpOptions' layout moved on Linux x86-64 -- see the "
+                                         "IpmOptions note directly above.");
+static_assert(sizeof(IpqpOptions) == 152, "IpqpOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(QpOptions) == 72, "QpOptions' layout moved on Linux x86-64.");
+static_assert(sizeof(CommonOptions) == 12, "CommonOptions' layout moved on Linux x86-64.");
+#endif
+
+// ---------------------------------------------------------------------------
+// Axis 3: the dumped line count, read off the printer.
+//
+// IpmOptions: 62 own lines (the 63 fields less `common`, which is nested) plus
+// CommonOptions' 3 = 65 -- and 67 on an Accelerate build, where the two
+// `accel_*` fields exist and the dump prints them.
+// SqpOptions: 22 own lines (the 25 fields less `qp`, `ipqp` and `common`) plus
+// QpOptions' 9, IpqpOptions' 22 and CommonOptions' 3 = 56.
+// ---------------------------------------------------------------------------
+#ifdef USE_ACCELERATE_SPARSE
+constexpr int kIpmDumpLines = 67;
+#else
+constexpr int kIpmDumpLines = 65;
+#endif
+constexpr int kSqpDumpLines = 56;
+
+int count_lines(const std::string &text) {
+    int n = 0;
+    for (const char c : text) {
+        if (c == '\n') {
+            ++n;
+        }
+    }
+    return n;
+}
+
+std::string dump_to_string(const IpmOptions &o) {
+    std::ostringstream os;
+    hven::solvers::dump_options(o, os);
+    return os.str();
+}
+
+std::string dump_to_string(const SqpOptions &o) {
+    std::ostringstream os;
+    hven::solvers::dump_options(o, os);
+    return os.str();
+}
+
+// Whole-line search, so `common.threads = 0` cannot be satisfied by a prefix of
+// some other field's line.
+bool has_line(const std::string &text, const std::string &line) {
+    const std::string needle = line + "\n";
+    if (text.compare(0, needle.size(), needle) == 0) {
+        return true;
+    }
+    return text.find("\n" + needle) != std::string::npos;
+}
+
+TEST(OptionsDump, IpmDumpsOneLinePerField) {
+    EXPECT_EQ(count_lines(dump_to_string(IpmOptions{})), kIpmDumpLines);
+}
+
+TEST(OptionsDump, SqpDumpsOneLinePerField) {
+    EXPECT_EQ(count_lines(dump_to_string(SqpOptions{})), kSqpDumpLines);
+}
+
+// The two fields whose defaults differ between the engines, which is what makes
+// them worth reading back: CommonOptions' own defaults are 0 / 3, IpmOptions
+// overrides them to HVEN_DEFAULT_QP_THREADS / 0, and the brief pins the SHARED
+// struct's values -- so this is the SqpOptions dump.
+TEST(OptionsDump, SqpDumpsTheCommonDefaults) {
+    const std::string text = dump_to_string(SqpOptions{});
+    EXPECT_TRUE(has_line(text, "common.threads = 0")) << text;
+    EXPECT_TRUE(has_line(text, "common.print_level = 3")) << text;
+}
+
+// An enum prints its ENUMERATOR NAME, never its integer and never the display
+// string to_string() spells -- `kWarm`, not `3` and not `Warm`.
+TEST(OptionsDump, EnumsPrintEnumeratorNames) {
+    const std::string sqp = dump_to_string(SqpOptions{});
+    EXPECT_TRUE(has_line(sqp, "qp_mode = kWalk")) << sqp;
+    EXPECT_TRUE(has_line(sqp, "common.start_level = kWarm")) << sqp;
+    EXPECT_TRUE(has_line(sqp, "qp.ws_algebra = kSchurBorder")) << sqp;
+
+    const std::string ipm = dump_to_string(IpmOptions{});
+    EXPECT_TRUE(has_line(ipm, "soe_mode = kSoe")) << ipm;
+    EXPECT_TRUE(has_line(ipm, "opt_bar_mode = kLoqo")) << ipm;
+    EXPECT_TRUE(has_line(ipm, "restoration_mode = off")) << ipm;
+    EXPECT_TRUE(has_line(ipm, "phases = [kOptimize]")) << ipm;
+}
+
+// Declaration order, doubles at {:.17g}, bools as words: the head of the IPM
+// dump verbatim, which is the cheapest way to pin the format itself.
+TEST(OptionsDump, IpmDumpHeadIsVerbatim) {
+    const std::string text = dump_to_string(IpmOptions{});
+    EXPECT_EQ(text.substr(0, std::string("max_iters = 500\n"
+                                         "max_ls_iters = 2\n"
+                                         "max_acc_iters = 50\n"
+                                         "max_refac = 15\n"
+                                         "max_soc = 0\n"
+                                         "ls_extended_iters = 0\n"
+                                         "watchdog = false\n"
+                                         "max_feas_rest = 2\n"
+                                         "kkt_tol = 9.9999999999999995e-07\n")
+                                 .size()),
+              "max_iters = 500\n"
+              "max_ls_iters = 2\n"
+              "max_acc_iters = 50\n"
+              "max_refac = 15\n"
+              "max_soc = 0\n"
+              "ls_extended_iters = 0\n"
+              "watchdog = false\n"
+              "max_feas_rest = 2\n"
+              "kkt_tol = 9.9999999999999995e-07\n")
+        << text;
+}
+
+// Deterministic and side-effect-free: dumping the same value twice, and
+// dumping it after a solve-unrelated copy, produces identical bytes.
+TEST(OptionsDump, IsDeterministic) {
+    const IpmOptions o;
+    EXPECT_EQ(dump_to_string(o), dump_to_string(o));
+    const IpmOptions copy = o;
+    EXPECT_EQ(dump_to_string(o), dump_to_string(copy));
+}
+
+// No trailing whitespace on any line, and every line ends in one.
+TEST(OptionsDump, NoTrailingWhitespace) {
+    for (const std::string &text : {dump_to_string(IpmOptions{}), dump_to_string(SqpOptions{})}) {
+        ASSERT_FALSE(text.empty());
+        EXPECT_EQ(text.back(), '\n') << text;
+        std::size_t start = 0;
+        while (start < text.size()) {
+            const std::size_t end = text.find('\n', start);
+            ASSERT_NE(end, std::string::npos) << text;
+            const std::string line = text.substr(start, end - start);
+            EXPECT_FALSE(line.empty()) << text;
+            EXPECT_NE(line.back(), ' ') << line;
+            EXPECT_NE(line.back(), '\t') << line;
+            EXPECT_NE(line.find(" = "), std::string::npos) << line;
+            start = end + 1;
+        }
+    }
+}
+
+// A non-default value reaches the dump: the printer reads the value it was
+// handed, not a default-constructed one.
+TEST(OptionsDump, ReadsTheValueItWasGiven) {
+    IpmOptions o;
+    o.common.threads = 7;
+    o.restoration_mode = hven::solvers::RestorationModes::l1_nested;
+    o.phases = {hven::solvers::IpmPhase::kSolve, hven::solvers::IpmPhase::kOptimize};
+    const std::string text = dump_to_string(o);
+    EXPECT_TRUE(has_line(text, "common.threads = 7")) << text;
+    EXPECT_TRUE(has_line(text, "restoration_mode = l1_nested")) << text;
+    EXPECT_TRUE(has_line(text, "phases = [kSolve, kOptimize]")) << text;
+    EXPECT_EQ(count_lines(text), kIpmDumpLines);
+}
+
+} // namespace

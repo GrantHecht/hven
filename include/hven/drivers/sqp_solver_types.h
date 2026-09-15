@@ -11,6 +11,7 @@
 // This file is to sqp_solver.h what qp_types.h is to qp_engine.h.
 
 #include <functional>
+#include <iosfwd>
 #include <limits>
 #include <memory>
 #include <string_view>
@@ -655,6 +656,26 @@ void validate(const SqpOptions &opts);
 /// @param name A preset name.
 /// @throws std::invalid_argument, listing every valid name, if `name` is not one.
 SqpOptions sqp_preset(std::string_view name);
+
+/// @brief Writes EVERY field of @p o to @p os, one `name = value` line each, in
+///        DECLARATION order.
+///
+/// The SQP engine's half of M7 W0 T5(b); the format is stated once, in full, at
+/// `dump_options(const IpmOptions &, std::ostream &)`
+/// (drivers/ipm_solver_types.h), and this overload obeys it exactly. Both are
+/// pinned against their structs by tests/drivers/test_options_dump.cpp.
+///
+/// The three nested blocks print under their member names -- `qp.`, `ipqp.`,
+/// `common.` -- each where the member is declared.
+///
+/// `make_strategy` IS A CALLABLE, AND ITS ADDRESS IS NOT A CONFIGURATION: it
+/// prints `set` or `unset`, which is the whole of what the field means to a
+/// solve (an empty std::function selects the default FunnelStrategy). Printing
+/// a target address would make two identical configurations dump differently.
+///
+/// @param o The options to write.
+/// @param os The stream, borrowed: this call neither flushes nor closes it.
+void dump_options(const SqpOptions &o, std::ostream &os);
 
 /// @brief One row of the per-major history -- the record of ONE ITERATE and of
 ///        the subproblem solved from it, if any.

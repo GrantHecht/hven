@@ -27,6 +27,8 @@
 #include <fmt/format.h>
 
 #include <cmath>
+#include <cstddef>
+#include <ostream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -379,4 +381,314 @@ hven::solvers::IpmOptions hven::solvers::ipm_worker_options(IpmOptions base) {
     base.common.threads = 1;
     base.common.print_level = 10;
     return base;
+}
+
+// =============================================================================
+// M7 W0 T5(b): the options dump.
+//
+// A hand-written printer, one line per field, pinned against IpmOptions by
+// tests/drivers/test_options_dump.cpp. The contract -- order, prefixes,
+// enumerator names, {:.17g} doubles -- is documented once at the declaration in
+// drivers/ipm_solver_types.h and is not restated here.
+//
+// The four kv_* helpers and the enum_name() overloads are FILE-LOCAL and are
+// deliberately duplicated in src/drivers/sqp_options.cpp rather than promoted
+// to a shared header: the dump is the only consumer either engine has for an
+// enumerator-name table, and a public enum-to-string surface is a bigger
+// commitment than this task takes. If a third consumer appears, promote them
+// then.
+// =============================================================================
+
+namespace {
+
+void kv_int(std::ostream &os, const char *name, long long v) { os << name << " = " << v << '\n'; }
+void kv_bool(std::ostream &os, const char *name, bool v) {
+    os << name << " = " << (v ? "true" : "false") << '\n';
+}
+void kv_dbl(std::ostream &os, const char *name, double v) {
+    os << name << " = " << fmt::format("{:.17g}", v) << '\n';
+}
+void kv_str(std::ostream &os, const char *name, const char *v) { os << name << " = " << v << '\n'; }
+
+// ENUMERATOR NAMES, not display strings. to_string(StartLevel)
+// (src/core/enum_names.cpp) spells "Warm"; a recorded run has to say `kWarm`,
+// the token a reader can paste back into source. Each switch is exhaustive with
+// no default, so a new enumerator warns here; the trailing return covers a
+// value that is in range for no enumerator at all.
+const char *enum_name(hven::solvers::AlgorithmModes v) {
+    using hven::solvers::AlgorithmModes;
+    switch (v) {
+    case AlgorithmModes::kOpt:
+        return "kOpt";
+    case AlgorithmModes::kOptNo:
+        return "kOptNo";
+    case AlgorithmModes::kSoe:
+        return "kSoe";
+    case AlgorithmModes::kInit:
+        return "kInit";
+    }
+    return "unknown";
+}
+const char *enum_name(hven::solvers::BarrierModes v) {
+    using hven::solvers::BarrierModes;
+    switch (v) {
+    case BarrierModes::kProbe:
+        return "kProbe";
+    case BarrierModes::kLoqo:
+        return "kLoqo";
+    }
+    return "unknown";
+}
+const char *enum_name(hven::solvers::LineSearchModes v) {
+    using hven::solvers::LineSearchModes;
+    switch (v) {
+    case LineSearchModes::kAugLang:
+        return "kAugLang";
+    case LineSearchModes::kLang:
+        return "kLang";
+    case LineSearchModes::kL1:
+        return "kL1";
+    case LineSearchModes::kNoLs:
+        return "kNoLs";
+    }
+    return "unknown";
+}
+const char *enum_name(hven::solvers::PDStepStrategies v) {
+    using hven::solvers::PDStepStrategies;
+    switch (v) {
+    case PDStepStrategies::kPrimSlackEqSplitIq:
+        return "kPrimSlackEqSplitIq";
+    case PDStepStrategies::kAllMinimum:
+        return "kAllMinimum";
+    case PDStepStrategies::kPrimSlackSplitEqIq:
+        return "kPrimSlackSplitEqIq";
+    case PDStepStrategies::kMaxEq:
+        return "kMaxEq";
+    }
+    return "unknown";
+}
+// acceptance_strategy_name() above already spells these four as their
+// enumerators, for validate()'s message; the dump reuses that table rather than
+// keeping a second one that could drift from it.
+const char *enum_name(hven::solvers::AcceptanceStrategies v) { return acceptance_strategy_name(v); }
+const char *enum_name(hven::solvers::MeritPenaltyRules v) {
+    using hven::solvers::MeritPenaltyRules;
+    switch (v) {
+    case MeritPenaltyRules::wmno:
+        return "wmno";
+    case MeritPenaltyRules::flexible:
+        return "flexible";
+    }
+    return "unknown";
+}
+const char *enum_name(hven::solvers::BarrierGovernors v) {
+    using hven::solvers::BarrierGovernors;
+    switch (v) {
+    case BarrierGovernors::classic_adaptive:
+        return "classic_adaptive";
+    case BarrierGovernors::monitored:
+        return "monitored";
+    }
+    return "unknown";
+}
+const char *enum_name(hven::solvers::RestorationModes v) {
+    using hven::solvers::RestorationModes;
+    switch (v) {
+    case RestorationModes::off:
+        return "off";
+    case RestorationModes::proximal_switch:
+        return "proximal_switch";
+    case RestorationModes::l1_nested:
+        return "l1_nested";
+    }
+    return "unknown";
+}
+const char *enum_name(hven::solvers::FixedVariableTreatments v) {
+    using hven::solvers::FixedVariableTreatments;
+    switch (v) {
+    case FixedVariableTreatments::MakeParameter:
+        return "MakeParameter";
+    case FixedVariableTreatments::MakeConstraint:
+        return "MakeConstraint";
+    case FixedVariableTreatments::RelaxBounds:
+        return "RelaxBounds";
+    }
+    return "unknown";
+}
+const char *enum_name(hven::solvers::InertiaModes v) {
+    using hven::solvers::InertiaModes;
+    switch (v) {
+    case InertiaModes::classic:
+        return "classic";
+    case InertiaModes::proximal_regularization:
+        return "proximal_regularization";
+    }
+    return "unknown";
+}
+const char *enum_name(hven::solvers::QPAlgModes v) {
+    using hven::solvers::QPAlgModes;
+    switch (v) {
+    case QPAlgModes::kClassic:
+        return "kClassic";
+    case QPAlgModes::kTwoLevel:
+        return "kTwoLevel";
+    }
+    return "unknown";
+}
+const char *enum_name(hven::solvers::QPOrderingModes v) {
+    using hven::solvers::QPOrderingModes;
+    switch (v) {
+    case QPOrderingModes::kMinDeg:
+        return "kMinDeg";
+    case QPOrderingModes::kMetis:
+        return "kMetis";
+    case QPOrderingModes::kParMetis:
+        return "kParMetis";
+    }
+    return "unknown";
+}
+const char *enum_name(hven::solvers::QPPivotModes v) {
+    using hven::solvers::QPPivotModes;
+    switch (v) {
+    case QPPivotModes::kOneByOne:
+        return "kOneByOne";
+    case QPPivotModes::kTwoByTwo:
+        return "kTwoByTwo";
+    case QPPivotModes::kE4:
+        return "kE4";
+    case QPPivotModes::kE6:
+        return "kE6";
+    case QPPivotModes::kE8:
+        return "kE8";
+    case QPPivotModes::kE13:
+        return "kE13";
+    }
+    return "unknown";
+}
+const char *enum_name(hven::solvers::BestCriteriaModes v) {
+    using hven::solvers::BestCriteriaModes;
+    switch (v) {
+    case BestCriteriaModes::kEcons:
+        return "kEcons";
+    case BestCriteriaModes::kIcons:
+        return "kIcons";
+    case BestCriteriaModes::kKkt:
+        return "kKkt";
+    case BestCriteriaModes::kObj:
+        return "kObj";
+    }
+    return "unknown";
+}
+const char *enum_name(hven::solvers::StartLevel v) {
+    using hven::solvers::StartLevel;
+    switch (v) {
+    case StartLevel::kCold:
+        return "kCold";
+    case StartLevel::kSeeded:
+        return "kSeeded";
+    case StartLevel::kWarm:
+        return "kWarm";
+    case StartLevel::kHot:
+        return "kHot";
+    }
+    return "unknown";
+}
+const char *enum_name(hven::solvers::IpmPhase v) {
+    using hven::solvers::IpmPhase;
+    switch (v) {
+    case IpmPhase::kOptimize:
+        return "kOptimize";
+    case IpmPhase::kSolve:
+        return "kSolve";
+    }
+    return "unknown";
+}
+
+} // namespace
+
+void hven::solvers::dump_options(const IpmOptions &o, std::ostream &os) {
+    kv_int(os, "max_iters", o.max_iters);
+    kv_int(os, "max_ls_iters", o.max_ls_iters);
+    kv_int(os, "max_acc_iters", o.max_acc_iters);
+    kv_int(os, "max_refac", o.max_refac);
+    kv_int(os, "max_soc", o.max_soc);
+    kv_int(os, "ls_extended_iters", o.ls_extended_iters);
+    kv_bool(os, "watchdog", o.watchdog);
+    kv_int(os, "max_feas_rest", o.max_feas_rest);
+    kv_dbl(os, "kkt_tol", o.kkt_tol);
+    kv_dbl(os, "econ_tol", o.econ_tol);
+    kv_dbl(os, "icon_tol", o.icon_tol);
+    kv_dbl(os, "bar_tol", o.bar_tol);
+    kv_dbl(os, "acc_kkt_tol", o.acc_kkt_tol);
+    kv_dbl(os, "acc_econ_tol", o.acc_econ_tol);
+    kv_dbl(os, "acc_icon_tol", o.acc_icon_tol);
+    kv_dbl(os, "acc_bar_tol", o.acc_bar_tol);
+    kv_dbl(os, "div_kkt_tol", o.div_kkt_tol);
+    kv_dbl(os, "div_econ_tol", o.div_econ_tol);
+    kv_dbl(os, "div_icon_tol", o.div_icon_tol);
+    kv_dbl(os, "div_bar_tol", o.div_bar_tol);
+    kv_str(os, "soe_mode", enum_name(o.soe_mode));
+    kv_str(os, "opt_bar_mode", enum_name(o.opt_bar_mode));
+    kv_str(os, "soe_bar_mode", enum_name(o.soe_bar_mode));
+    kv_str(os, "opt_ls_mode", enum_name(o.opt_ls_mode));
+    kv_str(os, "soe_ls_mode", enum_name(o.soe_ls_mode));
+    kv_str(os, "pd_step_strategy", enum_name(o.pd_step_strategy));
+    kv_str(os, "acceptance_strategy", enum_name(o.acceptance_strategy));
+    kv_str(os, "merit_penalty_rule", enum_name(o.merit_penalty_rule));
+    kv_str(os, "barrier_governor", enum_name(o.barrier_governor));
+    kv_bool(os, "never_monotone", o.never_monotone);
+    kv_str(os, "restoration_mode", enum_name(o.restoration_mode));
+    kv_dbl(os, "init_mu", o.init_mu);
+    kv_dbl(os, "max_mu", o.max_mu);
+    kv_dbl(os, "min_mu", o.min_mu);
+    kv_dbl(os, "bound_fraction", o.bound_fraction);
+    kv_dbl(os, "bound_push", o.bound_push);
+    kv_dbl(os, "bound_interval_push", o.bound_interval_push);
+    kv_dbl(os, "neg_slack_reset", o.neg_slack_reset);
+    kv_dbl(os, "alpha_red", o.alpha_red);
+    kv_str(os, "fixed_variable_treatment", enum_name(o.fixed_variable_treatment));
+    kv_dbl(os, "bound_relax_factor", o.bound_relax_factor);
+    kv_dbl(os, "delta_h", o.delta_h);
+    kv_dbl(os, "incr_h", o.incr_h);
+    kv_dbl(os, "decr_h", o.decr_h);
+    kv_str(os, "inertia_mode", enum_name(o.inertia_mode));
+    kv_str(os, "qp_alg", enum_name(o.qp_alg));
+    kv_str(os, "qp_ord", enum_name(o.qp_ord));
+    kv_str(os, "qp_pivot_strategy", enum_name(o.qp_pivot_strategy));
+    kv_int(os, "qp_matching", o.qp_matching);
+    kv_int(os, "qp_scaling", o.qp_scaling);
+    kv_int(os, "qp_pivot_perturb", o.qp_pivot_perturb);
+    kv_int(os, "qp_ref_steps", o.qp_ref_steps);
+    kv_int(os, "qp_par_solve", o.qp_par_solve);
+    kv_bool(os, "qp_print", o.qp_print);
+#ifdef USE_ACCELERATE_SPARSE
+    // THE TWO APPLE-ONLY FIELDS. IpmOptions declares them under this same guard
+    // (drivers/ipm_solver_types.h), so on Linux and Windows they do not exist
+    // and the dump is two lines shorter. The pin in
+    // tests/drivers/test_options_dump.cpp carries both counts for that reason.
+    kv_dbl(os, "accel_pivot_tolerance", o.accel_pivot_tolerance);
+    kv_dbl(os, "accel_zero_tolerance", o.accel_zero_tolerance);
+#endif
+    kv_dbl(os, "obj_scale", o.obj_scale);
+    kv_bool(os, "wide_console", o.wide_console);
+    kv_bool(os, "cnr_mode", o.cnr_mode);
+    kv_bool(os, "fast_factor_alg", o.fast_factor_alg);
+    kv_bool(os, "force_qp_analysis", o.force_qp_analysis);
+    kv_bool(os, "return_best", o.return_best);
+    kv_str(os, "best_criteria", enum_name(o.best_criteria));
+    kv_int(os, "common.threads", o.common.threads);
+    kv_int(os, "common.print_level", o.common.print_level);
+    kv_str(os, "common.start_level", enum_name(o.common.start_level));
+    // The one sequence-valued field: bracketed, comma-separated, one line. An
+    // EMPTY sequence -- which validate() refuses -- still dumps, as `[]`: a dump
+    // is a faithful record of the value it was handed, not a second validator.
+    std::string seq = "[";
+    for (std::size_t i = 0; i < o.phases.size(); ++i) {
+        if (i != 0) {
+            seq += ", ";
+        }
+        seq += enum_name(o.phases[i]);
+    }
+    seq += ']';
+    kv_str(os, "phases", seq.c_str());
 }

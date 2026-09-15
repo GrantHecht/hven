@@ -63,6 +63,7 @@
 // this file carries no FP-reassociation risk at all.
 
 #include <cmath>
+#include <ostream>
 #include <stdexcept>
 #include <string_view>
 
@@ -309,6 +310,166 @@ SqpOptions sqp_preset(std::string_view name) {
     }
     throw std::invalid_argument(
         fmt::format("Unrecognized SqpSolver preset '{}'. Valid options are: default", name));
+}
+
+// =============================================================================
+// M7 W0 T5(b): the options dump.
+//
+// A hand-written printer, one line per field, pinned against SqpOptions (and
+// the three nested structs) by tests/drivers/test_options_dump.cpp. The
+// contract -- order, prefixes, enumerator names, {:.17g} doubles -- is
+// documented once at dump_options(const IpmOptions &, std::ostream &) in
+// drivers/ipm_solver_types.h and is not restated here.
+//
+// NOTHING BELOW WEAKENS THIS FILE'S FP PREMISE. The dump performs no
+// floating-point operation either: every double it touches is handed to
+// fmt::format for rendering, exactly as the rejection messages above do.
+//
+// The kv_* helpers and the enum_name() overloads are FILE-LOCAL and are
+// deliberately duplicated from src/drivers/ipm_options.cpp; the reasoning is
+// recorded there.
+// =============================================================================
+
+namespace {
+
+void kv_int(std::ostream &os, const char *name, long long v) { os << name << " = " << v << '\n'; }
+void kv_bool(std::ostream &os, const char *name, bool v) {
+    os << name << " = " << (v ? "true" : "false") << '\n';
+}
+void kv_dbl(std::ostream &os, const char *name, double v) {
+    os << name << " = " << fmt::format("{:.17g}", v) << '\n';
+}
+void kv_str(std::ostream &os, const char *name, const char *v) { os << name << " = " << v << '\n'; }
+
+// ENUMERATOR NAMES, not display strings -- see src/drivers/ipm_options.cpp.
+const char *enum_name(QpMode v) {
+    switch (v) {
+    case QpMode::kWalk:
+        return "kWalk";
+    case QpMode::kSsn:
+        return "kSsn";
+    case QpMode::kIpm:
+        return "kIpm";
+    case QpMode::kQpModeCount:
+        // NOT a mode; validate() refuses it. It is nonetheless a legal QpMode
+        // value, so the dump names it rather than reporting "unknown".
+        return "kQpModeCount";
+    }
+    return "unknown";
+}
+const char *enum_name(SsnSigmaRule v) {
+    switch (v) {
+    case SsnSigmaRule::kLadder:
+        return "kLadder";
+    case SsnSigmaRule::kResidualArmed:
+        return "kResidualArmed";
+    case SsnSigmaRule::kResidualAlways:
+        return "kResidualAlways";
+    }
+    return "unknown";
+}
+const char *enum_name(SsnHintRule v) {
+    switch (v) {
+    case SsnHintRule::kIterationZeroFree:
+        return "kIterationZeroFree";
+    case SsnHintRule::kWatchdog:
+        return "kWatchdog";
+    }
+    return "unknown";
+}
+const char *enum_name(SsnInfeasibilityRule v) {
+    switch (v) {
+    case SsnInfeasibilityRule::kSymptoms:
+        return "kSymptoms";
+    case SsnInfeasibilityRule::kFarkasGated:
+        return "kFarkasGated";
+    }
+    return "unknown";
+}
+const char *enum_name(WorkingSetLinearAlgebra v) {
+    switch (v) {
+    case WorkingSetLinearAlgebra::kRefactorize:
+        return "kRefactorize";
+    case WorkingSetLinearAlgebra::kSchurBorder:
+        return "kSchurBorder";
+    }
+    return "unknown";
+}
+const char *enum_name(StartLevel v) {
+    switch (v) {
+    case StartLevel::kCold:
+        return "kCold";
+    case StartLevel::kSeeded:
+        return "kSeeded";
+    case StartLevel::kWarm:
+        return "kWarm";
+    case StartLevel::kHot:
+        return "kHot";
+    }
+    return "unknown";
+}
+
+} // namespace
+
+void dump_options(const SqpOptions &o, std::ostream &os) {
+    kv_dbl(os, "kkt_tol", o.kkt_tol);
+    kv_dbl(os, "feas_tol", o.feas_tol);
+    kv_int(os, "max_iter", static_cast<long long>(o.max_iter));
+    kv_dbl(os, "tr_init", o.tr_init);
+    kv_dbl(os, "tr_max", o.tr_max);
+    kv_dbl(os, "tr_min", o.tr_min);
+    kv_bool(os, "enable_soc", o.enable_soc);
+    kv_bool(os, "adaptive_mu", o.adaptive_mu);
+    kv_dbl(os, "qp.primal_delta", o.qp.primal_delta);
+    kv_dbl(os, "qp.dual_mu", o.qp.dual_mu);
+    kv_dbl(os, "qp.feas_tol", o.qp.feas_tol);
+    kv_dbl(os, "qp.opt_tol", o.qp.opt_tol);
+    kv_int(os, "qp.max_iter", static_cast<long long>(o.qp.max_iter));
+    kv_int(os, "qp.schur_cap", static_cast<long long>(o.qp.schur_cap));
+    kv_dbl(os, "qp.schur_cond_max", o.qp.schur_cond_max);
+    kv_str(os, "qp.ws_algebra", enum_name(o.qp.ws_algebra));
+    kv_dbl(os, "qp.tr_radius", o.qp.tr_radius);
+    // A CALLABLE, not a configuration: see the declaration's note.
+    kv_str(os, "make_strategy", o.make_strategy ? "set" : "unset");
+    kv_bool(os, "warm_full_step", o.warm_full_step);
+    kv_bool(os, "budget_mode", o.budget_mode);
+    kv_bool(os, "elastic_ladder_early_exit", o.elastic_ladder_early_exit);
+    kv_bool(os, "crash_basis", o.crash_basis);
+    kv_str(os, "qp_mode", enum_name(o.qp_mode));
+    kv_int(os, "ipqp.ipqp_max_iter", static_cast<long long>(o.ipqp.ipqp_max_iter));
+    kv_int(os, "ipqp.ipqp_hard_iter_cap", static_cast<long long>(o.ipqp.ipqp_hard_iter_cap));
+    kv_int(os, "ipqp.ipqp_max_factorizations",
+           static_cast<long long>(o.ipqp.ipqp_max_factorizations));
+    kv_dbl(os, "ipqp.ipqp_init_mu", o.ipqp.ipqp_init_mu);
+    kv_dbl(os, "ipqp.ipqp_min_mu", o.ipqp.ipqp_min_mu);
+    kv_dbl(os, "ipqp.ipqp_rho_init", o.ipqp.ipqp_rho_init);
+    kv_dbl(os, "ipqp.ipqp_delta_init", o.ipqp.ipqp_delta_init);
+    kv_dbl(os, "ipqp.ipqp_reg_floor", o.ipqp.ipqp_reg_floor);
+    kv_dbl(os, "ipqp.ipqp_reg_max", o.ipqp.ipqp_reg_max);
+    kv_dbl(os, "ipqp.ipqp_reg_decrease", o.ipqp.ipqp_reg_decrease);
+    kv_dbl(os, "ipqp.ipqp_tau", o.ipqp.ipqp_tau);
+    kv_dbl(os, "ipqp.ipqp_face_kappa", o.ipqp.ipqp_face_kappa);
+    kv_dbl(os, "ipqp.ipqp_converge_slack", o.ipqp.ipqp_converge_slack);
+    kv_bool(os, "ipqp.ipqp_ruiz", o.ipqp.ipqp_ruiz);
+    kv_bool(os, "ipqp.ipqp_warm_repair", o.ipqp.ipqp_warm_repair);
+    kv_int(os, "ipqp.ipqp_warm_iter_budget", static_cast<long long>(o.ipqp.ipqp_warm_iter_budget));
+    kv_dbl(os, "ipqp.ipqp_mu_adopt_factor", o.ipqp.ipqp_mu_adopt_factor);
+    kv_int(os, "ipqp.ipqp_stall_window", static_cast<long long>(o.ipqp.ipqp_stall_window));
+    kv_int(os, "ipqp.ipqp_retire_after", static_cast<long long>(o.ipqp.ipqp_retire_after));
+    kv_bool(os, "ipqp.ipqp_farkas_gate", o.ipqp.ipqp_farkas_gate);
+    kv_bool(os, "ipqp.ipqp_hoist_symbolic", o.ipqp.ipqp_hoist_symbolic);
+    kv_bool(os, "ipqp.ipqp_require_final_inertia", o.ipqp.ipqp_require_final_inertia);
+    kv_bool(os, "ssn_prox_carry", o.ssn_prox_carry);
+    kv_bool(os, "ssn_certify_from_face", o.ssn_certify_from_face);
+    kv_str(os, "ssn_sigma_rule", enum_name(o.ssn_sigma_rule));
+    kv_str(os, "ssn_hint_rule", enum_name(o.ssn_hint_rule));
+    kv_str(os, "ssn_infeasibility_rule", enum_name(o.ssn_infeasibility_rule));
+    kv_bool(os, "enable_scaling", o.enable_scaling);
+    kv_dbl(os, "scaling_max_gradient", o.scaling_max_gradient);
+    kv_dbl(os, "scaling_factor_limit", o.scaling_factor_limit);
+    kv_int(os, "common.threads", o.common.threads);
+    kv_int(os, "common.print_level", o.common.print_level);
+    kv_str(os, "common.start_level", enum_name(o.common.start_level));
 }
 
 } // namespace hven::solvers

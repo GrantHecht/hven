@@ -27,6 +27,12 @@ set(HVEN_DRIVERS_TEST_SOURCES
     test_concurrency.cpp
     test_console_sink.cpp
     test_options.cpp
+    # M7 W0 T5(b): the options dump and its drift pin -- three axes (declared
+    # field count, sizeof, dumped line count) against IpmOptions, SqpOptions and
+    # the three nested option structs. Here rather than in either engine's suite
+    # because the claim is about BOTH engines' printers and the shared
+    # CommonOptions block they each flatten.
+    test_options_dump.cpp
     test_print_tables.cpp
     test_solve_status.cpp
     test_solve_result.cpp
