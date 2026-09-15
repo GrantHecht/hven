@@ -4,7 +4,7 @@
 // tests/drivers/test_concurrency.cpp -- THE CONCURRENCY CONTRACT'S TWO PINS
 // (M6 W6 T4, and the shared-pool fan-out pin added at M7 W0 T1).
 //
-// The owner's ruling of 2026-09-11 (docs/notes/2026-08-m6-ledger.md:4419-4432,
+// The owner's ruling of 2026-09-11 (docs/notes/2026-08-m6-ledger.md:4421-4431,
 // the jet ruling) is that hven provides THREAD-SAFE SOLVES and no
 // parallel-solve facility, and it registered exactly one pin for W6: N solver
 // instances on N threads at `threads = 1` produce results bit-identical to the
@@ -90,12 +90,15 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <atomic>
 #include <bit>
 #include <cmath>
 #include <cstdint>
+#include <exception>
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
@@ -285,6 +288,46 @@ CellReading run_cell(int index) {
         return run_ipm_cell("hs071@a", hven_drivers_tests::hs071_start());
     default:
         return run_ipm_cell("hs071@b", hs071_second_start());
+    }
+}
+
+// Run `body(i)` for every i in [0, n) on its own std::thread, JOIN THEM ALL,
+// and only then rethrow, on the joining thread, whatever the first failing
+// worker threw (M7 W0 T1, the W6 T4 review's fourth minor).
+//
+// WHY THIS AND NOT A BARE LAMBDA. An exception that escapes a std::thread's
+// entry function calls std::terminate, so a solve that threw on a worker used
+// to take the whole hven_drivers_tests process down -- every other test in the
+// binary reported as lost, with no indication of which cell threw. Caught per
+// worker into a std::exception_ptr and rethrown here, the same throw fails THIS
+// test and nothing else. Concurrency.AWorkerThatThrowsFailsOnlyItsOwnTest is the
+// negative check that the mechanism works.
+//
+// THE JOIN COMES FIRST, unconditionally, and that ordering is the whole point:
+// rethrowing before joining would leave joinable threads whose destructors call
+// std::terminate -- the failure mode this helper exists to remove.
+template <typename F> void run_on_threads(int n, F &&body) {
+    std::vector<std::exception_ptr> failures(static_cast<std::size_t>(n));
+    {
+        std::vector<std::thread> workers;
+        workers.reserve(static_cast<std::size_t>(n));
+        for (int i = 0; i < n; ++i) {
+            workers.emplace_back([i, &failures, &body]() {
+                try {
+                    body(i);
+                } catch (...) {
+                    failures[static_cast<std::size_t>(i)] = std::current_exception();
+                }
+            });
+        }
+        for (std::thread &w : workers) {
+            w.join();
+        }
+    }
+    for (const std::exception_ptr &failure : failures) {
+        if (failure) {
+            std::rethrow_exception(failure);
+        }
     }
 }
 
@@ -647,16 +690,7 @@ TEST(Concurrency, NInstancesOnNThreadsMatchSerial) {
     // (2) THE CONCURRENT RUN: N instances on N std::threads, one cell each.
     // ---------------------------------------------------------------------
     std::vector<CellReading> concurrent(kCellCount);
-    {
-        std::vector<std::thread> workers;
-        workers.reserve(kCellCount);
-        for (int i = 0; i < kCellCount; ++i) {
-            workers.emplace_back([i, &concurrent]() { concurrent[i] = run_cell(i); });
-        }
-        for (std::thread &w : workers) {
-            w.join();
-        }
-    }
+    run_on_threads(kCellCount, [&concurrent](int i) { concurrent[i] = run_cell(i); });
 
     EXPECT_EQ(hven::utils::get_num_threads(), pool_width_before)
         << "no solve, serial or concurrent, may move the process-global evaluation-pool width";
@@ -681,10 +715,15 @@ TEST(Concurrency, NInstancesOnNThreadsMatchSerial) {
     }
 
     // The four cells must be four DIFFERENT solves, or the pin would be one
-    // solve run four times and its breadth would be imaginary. The labels are
-    // distinct by construction; the two SQP cells are two different problems,
-    // which their objectives say, and the two interior-point cells are one
-    // problem from two different starts, which their iteration counts say.
+    // solve run four times and its breadth would be imaginary. TWO THINGS ARE
+    // ASSERTED AND THE COMMENT SAYS ONLY THOSE TWO (M7 W0 T1, the W6 T4 review's
+    // third minor: this paragraph used to claim the two interior-point cells are
+    // told apart by their iteration counts, which nothing here tests). The
+    // labels are distinct, below; and the two SQP cells are two different
+    // problems, which their objectives say. The two interior-point cells are one
+    // problem from two different starts -- that is true BY CONSTRUCTION at
+    // run_cell, where the two branches pass different x0 vectors, and it is not
+    // asserted here.
     for (int i = 0; i < kCellCount; ++i) {
         for (int j = i + 1; j < kCellCount; ++j) {
             EXPECT_NE(serial[i].cell, serial[j].cell) << "the four cells must be four cells";
@@ -791,19 +830,10 @@ TEST(Concurrency, TwoPartitionedProgramsOnTwoThreadsMatchSerial) {
     //     into the SAME process-global pool at the same time.
     // ---------------------------------------------------------------------
     std::vector<CellReading> concurrent(cells.size());
-    {
-        std::vector<std::thread> workers;
-        workers.reserve(cells.size());
-        for (int i = 0; i < cell_count; ++i) {
-            workers.emplace_back([i, &cells, &concurrent]() {
-                concurrent[static_cast<std::size_t>(i)] =
-                    run_fanout_cell(cells[static_cast<std::size_t>(i)]);
-            });
-        }
-        for (std::thread &w : workers) {
-            w.join();
-        }
-    }
+    run_on_threads(cell_count, [&cells, &concurrent](int i) {
+        concurrent[static_cast<std::size_t>(i)] =
+            run_fanout_cell(cells[static_cast<std::size_t>(i)]);
+    });
 
     EXPECT_EQ(hven::utils::get_num_threads(), pool_width_before)
         << "no solve, serial or concurrent, may move the process-global evaluation-pool width";
@@ -836,4 +866,28 @@ TEST(Concurrency, TwoPartitionedProgramsOnTwoThreadsMatchSerial) {
     }
     EXPECT_GT(std::abs(f_a - f_b), 1.0)
         << "the two fan-out cells must be two different problems, not one twice";
+}
+
+// THE NEGATIVE CHECK for run_on_threads (M7 W0 T1). It is an assertion about
+// the harness the two pins above run on, not a fifth cell: a worker that throws
+// must fail its own test and nothing else, which is only visible if the throw
+// arrives on the joining thread. A test that actually terminated the process
+// could not report anything, so this is the shape the check has to take.
+TEST(Concurrency, AWorkerThatThrowsFailsOnlyItsOwnTest) {
+    std::atomic<int> entered{0};
+    EXPECT_THROW(run_on_threads(3,
+                                [&entered](int i) {
+                                    entered.fetch_add(1);
+                                    if (i == 1) {
+                                        throw std::runtime_error(
+                                            "deliberate: a solve that throws on a worker thread");
+                                    }
+                                }),
+                 std::runtime_error)
+        << "a worker's exception must arrive on the JOINING thread";
+
+    // Every worker still ran and was joined: the rethrow happens after the join
+    // loop, never in place of it.
+    EXPECT_EQ(entered.load(), 3)
+        << "all three workers must have run and been joined before the rethrow";
 }
