@@ -98,3 +98,16 @@ only-after symbol is the Eigen constructor above.
 It classifies the objects of ONE pair. It is not a statement about the fix-round
 change, which moves `sqp_solver.o` again — that pair is reported in the task
 report, not here.
+
+## Classifier limitation, recorded (M7 W0 T2 fix1 re-check, 2026-09-15)
+
+The fix-pair transcript (8d08a3a8 vs 231a279f, in the task report) shows
+`fire_iteration_event` and both `run_major` symbols as OTHER 1 / 1 / 17 lines
+while the report says "0 differing lines". Both are true of different things:
+the residual lines are objdump ANNOTATION artefacts — the same `_Unwind_Resume`
+relocation annotated with the next symbol's name, and constant +0xc0 branch
+shifts inside a `{lambda()#1}` symbol whose name this classifier's parser
+truncates — not instruction differences. `classify.py` does not normalise
+either case; a reader of its OTHER column must check them by hand, as the
+re-check did. Recorded here rather than fixed in the tool: the tool's sha256 is
+stamped into every capture and a change would be a declared version bump.

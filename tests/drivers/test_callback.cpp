@@ -1956,11 +1956,19 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
 // without extending the list fails to compile rather than silently escaping
 // the comparison.
 //
-// THE ONLY EXCLUSIONS ARE WALL READINGS, and they are named: SolveResult's
+// THE EXCLUSIONS, EVERY ONE NAMED (M7 W0 T2 fix1 re-check: an earlier draft of
+// this comment said "only wall readings", which was false). (1) Wall readings,
+// informational and never asserted (CLAUDE.md section 7): SolveResult's
 // `wall_seconds`, SqpResult's `solve_impl_seconds`, IpmResult's six `*_time`
-// fields and IpmPhaseReport's `phase_seconds`. Every one is informational and
-// never asserted (CLAUDE.md section 7), and two runs of one solve cannot agree
-// on any of them.
+// fields and IpmPhaseReport's `phase_seconds`. (2) NOT compared and carrying
+// no sizeof pin here: eight non-wall `SqpIterate` columns beyond the
+// trajectory-relevant set the history comparator enumerates,
+// `IpmResult::eval_error_log`, `SqpResult::scaling`, `SqpResult::warm_start`
+// and `SolveResult::export_snapshot_` -- structured payloads whose
+// mask-invariance is implied by the counters, status, final iterate and
+// diagnostics being identical, not asserted field by field. A comparator over
+// them is the next test round's if a mask-dependent path into any of them is
+// ever found.
 // ---------------------------------------------------------------------------
 #define HVEN_T2_EXPECT_BITS(field)                                                                 \
     EXPECT_EQ(std::bit_cast<std::uint64_t>(a.field), std::bit_cast<std::uint64_t>(b.field))        \
