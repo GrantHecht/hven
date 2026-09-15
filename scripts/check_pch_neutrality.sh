@@ -49,9 +49,12 @@
 #                                   For inspecting the two build trees after a
 #                                   failure.
 #   HVEN_PCH_EXPECTED_TU_COUNT    Number of compile commands expected to
-#                                   consume the PCH (default 6). Must be kept
-#                                   in step with _hven_pch_sources in
-#                                   src/CMakeLists.txt.
+#                                   consume the PCH. NORMALLY UNSET: the
+#                                   default is DERIVED from _hven_pch_sources
+#                                   in src/CMakeLists.txt (below), which is the
+#                                   list the build actually applies, so the two
+#                                   cannot drift apart. Set it only to assert a
+#                                   count deliberately different from that list.
 #
 # Optional arguments:
 #   Any arguments given are forwarded as extra -D cache-variable overrides to
@@ -63,7 +66,33 @@ set -euo pipefail
 
 HVEN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 JOBS="${HVEN_PCH_NEUTRALITY_JOBS:-2}"
-EXPECTED_TU_COUNT="${HVEN_PCH_EXPECTED_TU_COUNT:-6}"
+
+# THE EXPECTED COUNT IS READ OFF _hven_pch_sources, NOT WRITTEN DOWN TWICE
+# (M7 W0 T5(f), 2026-09-14). It used to be a literal 6 here, and the literal
+# went stale the moment the list shrank: M6 W5 T8.7b (3306ad75) removed
+# drivers/interior_point_solver_print.cpp when that TU was retired with the
+# engine's last fmt::print, and M6 W5 T8.9 (fbdebefe) removed
+# model/nlp_solver.cpp with the NLPSolver wrapper -- 6 -> 5 -> 4. Neither
+# removal measured anything, because there was nothing left to measure: both
+# FILES were deleted, and every TU still on the list is one whose byte-identity
+# was measured when it joined. Neither touched this script, so the Linux lane
+# failed the engagement assertion ("4 translation units consume the PCH ...
+# expected 6") from M6's merge onward, AFTER a green suite.
+#
+# Deriving it closes that class of drift for good: the list is the single
+# source, and adding or removing a TU moves both halves in one edit.
+_pch_sources_count="$(sed -n '/^set(_hven_pch_sources$/,/^)$/p' \
+    "${HVEN_ROOT}/src/CMakeLists.txt" | grep -c '^    [A-Za-z]' || true)"
+if [ "${_pch_sources_count}" -lt 1 ]; then
+    echo "FAIL: could not read _hven_pch_sources out of ${HVEN_ROOT}/src/CMakeLists.txt."
+    echo "      This script derives the expected PCH consumer count from that list, so a"
+    echo "      derivation that finds nothing must stop rather than fall back to a literal"
+    echo "      -- a wrong count is exactly the failure this replaced. Fix the derivation"
+    echo "      (the list is 'set(_hven_pch_sources' ... ')' with one four-space-indented"
+    echo "      source per line), or pass HVEN_PCH_EXPECTED_TU_COUNT deliberately."
+    exit 1
+fi
+EXPECTED_TU_COUNT="${HVEN_PCH_EXPECTED_TU_COUNT:-${_pch_sources_count}}"
 
 # Counts hven-target compile commands that consume the PCH, in an existing
 # build directory. Shared by the full check below and by --engagement-only.
@@ -102,8 +131,10 @@ assert_engagement() {
         echo "FAIL: ${n} translation units consume the PCH in ${build_dir}, expected ${EXPECTED_TU_COUNT}."
         echo "      Too few means the PCH quietly stopped applying on this platform -- a"
         echo "      build-time regression no test would catch. Too many means it spread to"
-        echo "      TUs whose byte-identity was never measured. Reconcile _hven_pch_sources"
-        echo "      in src/CMakeLists.txt with HVEN_PCH_EXPECTED_TU_COUNT before continuing."
+        echo "      TUs whose byte-identity was never measured. The expectation is DERIVED"
+        echo "      from _hven_pch_sources in src/CMakeLists.txt, so a mismatch here is the"
+        echo "      build disagreeing with that list -- not the list disagreeing with a"
+        echo "      literal. Look at what the build applied before editing either."
         exit 1
     fi
     echo "PASS: PCH engaged on ${n} translation units in ${build_dir} (expected ${EXPECTED_TU_COUNT})."
@@ -139,6 +170,9 @@ EXTRA_CMAKE_ARGS=("$@")
 # hold for GCC: measured on GCC 16.1.1, three of the six opted-in TUs
 # (interior_point_solver_settings.cpp, non_linear_program.cpp,
 # nlp_adapter.cpp) emit a different object with the PCH than without it.
+# (That reading is left as it ran, with the list as it then stood: the list is
+# four TUs now and the first of those three names is today's ipm_options.cpp.
+# Re-measuring GCC would change the arithmetic, not the conclusion.)
 #
 # So a bare `cmake` here, which on many Linux distributions resolves c++ to
 # GCC, would fail this check for a reason that is real but entirely outside
@@ -187,6 +221,7 @@ echo "== hven PCH neutrality check"
 echo "   source:    ${HVEN_ROOT}"
 echo "   scratch:   ${WORK_DIR}"
 echo "   jobs:      ${JOBS}"
+echo "   PCH TUs:   ${EXPECTED_TU_COUNT} (from _hven_pch_sources in src/CMakeLists.txt)"
 # Length expansion ${#arr[@]} never trips `set -u` on an empty array, in any
 # bash version -- only element expansion "${arr[@]}" does (bash < 4.4), which
 # is why the expansions below carry the ${arr[@]+...} guard and this one does
@@ -367,8 +402,8 @@ if [ "${differing}" -ne 0 ]; then
     echo "    compile faster with the PCH but emit a differently-ordered object;"
     echo "  * a header in the shared set started emitting something order-dependent;"
 echo "  * or this run used a toolchain the property was never established for."
-echo "    Byte-identity holds for clang, not for GCC -- under GCC three of the"
-echo "    six opted-in TUs legitimately differ. Check the compiler printed at the"
+echo "    Byte-identity holds for clang, not for GCC -- under GCC several of the"
+echo "    opted-in TUs legitimately differ. Check the compiler printed at the"
 echo "    top of this run before treating the result as a regression."
     echo
     echo "Do not relax this check to make it pass. Either restore the property or"
