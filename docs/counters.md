@@ -20,58 +20,75 @@ correctness or to gate a test or benchmark.
   comment and in the commit that makes the change. It is never a silent
   side effect of an unrelated change.
 
+## The inventory
+
+Four counter GROUPS live in `include/hven/core/solver_counters.h`, plus one in
+the linear layer. Each is an aggregate of `Index` fields (and one `bool`), and
+**the per-field documentation lives in the header, at the field** — the rules
+above require it there, and repeating it here would give a reader two places to
+believe. This table says only what exists, where, and how many.
+
+| group | header, line range | fields | produced by |
+|---|---|---|---|
+| `QpCounters` | `core/solver_counters.h:30-200` | 20 | the walk (active-set) QP tier, `qp/` |
+| `SsnCounters` | `core/solver_counters.h:210-336` | 18 | the SSN QP tier, `qp/` |
+| `IpqpCounters` | `core/solver_counters.h:454-860` | 39 | the IPQP QP tier, `qp/` |
+| `SqpCounters` | `core/solver_counters.h:1009-1329` | 38 direct, plus the nested `ssn` and `ipqp` | the SQP driver, `drivers/` |
+| `SymmetricFactor::Counters` | `linear/symmetric_factor.h:646-682` | 5 | every sparse symmetric factor, `linear/` |
+
+115 fields across the four `core/` groups; `SqpCounters`' 38 do not include the
+two nested groups' 57, which it carries whole.
+
+THREE OF THESE ARE PINNED AGAINST A MACRO TABLE, not merely declared:
+`SsnCounters`, `IpqpCounters` and `SqpCounters` each carry an `X()` list used to
+serialize them, and an aggregate-arity `static_assert` beside it fails to
+compile if a field is added without an entry in its declaration position
+(`core/detail/aggregate_arity.h`; the asserts are at `solver_counters.h:417`,
+`:906` and `:1382`, with the offset-order asserts beside them). A field added to
+one of those three therefore cannot silently miss the trace.
+
 ## Per-component status
 
-- **`core/`** — no counters yet; the shared type aliases and `pattern_hash`
-  seeded here carry none.
-- **`linear/`** — `SymmetricFactor::Counters`
-  (`include/hven/linear/symmetric_factor.h`) carries five counters. All are
-  per engine instance. The four BACKEND-CALL counters below — everything but
-  `pattern_verify_count` — count calls that reached the backend and returned:
-  a call rejected by validation (wrong pattern hash, size mismatch, wrong
+- **`core/`** — declares all four groups above, in `solver_counters.h`. It
+  produces none of them itself: the type aliases and `pattern_hash` seeded here
+  carry no counter, and `Ledger` (`core/ledger.h:33`, `:64`) STORES a
+  `QpCounters` and a `SqpCounters` per record rather than incrementing either.
+- **`linear/`** — produces `SymmetricFactor::Counters`, per engine instance.
+  Four of the five count BACKEND CALLS that reached the backend and returned: a
+  call rejected by validation (wrong pattern hash, size mismatch, wrong
   lifecycle order) throws and increments nothing, and neither does one that
-  fails inside the backend and throws.
-  - `analyze_count` — +1 per completed symbolic analysis. `factorize()` never
-    increments it, which is what makes "the symbolic was reused" checkable
-    rather than merely claimed. Adopting a shared factorization starts a
-    fresh instance at 0 and does not increment: no analysis was performed.
-  - `factorize_count` — +1 per numeric factorization the backend completed,
-    whether it succeeded or reported an error. It counts work done, not work
-    that worked; what committed is tracked by the epoch, not by this counter.
-  - `solve_count` — +1 per full solve call, single- or multi-RHS, regardless
-    of how many right-hand sides that call carried. A multi-RHS solve with
-    zero columns does no backend work and does not increment.
-  - `partial_solve_count` — +1 per phase-split (forward / diagonal /
-    backward) solve. Counted separately from `solve_count` on purpose:
-    composing three partial solves is not one full solve, and the traces
-    that assert on these need to tell them apart.
-
-  - `pattern_verify_count` — +1 per `factorize()` call that actually RAN the
-    pattern guard: recomputed the matrix's pattern hash and compared it
-    against the analyzed key. The one counter here that does not count a
-    backend call, and the one that counts a call the validation then
-    REJECTED — the rejection throws, and `factorize_count` does not move, but
-    the guard did run. It exists so that "the guard was skipped" is checkable
-    the way `analyze_count` makes "the symbolic was reused" checkable: a run
-    of factorizations under `PatternCheck::kAssumeAnalyzed` advances
-    `factorize_count` and leaves this one standing, and under
-    `PatternCheck::kVerify` the two move together.
-
+  fails inside the backend and throws. The fifth, `pattern_verify_count`, counts
+  the guard runs rather than a backend call, including the runs that then
+  REJECTED. Each field's exact increment semantics are at the field.
   `DenseSymmetricFactor` exposes no counters; one gets added when a consumer
   reads it.
-- **`model/`** — documented as the component lands.
-- **`kkt/`** — documented as the component lands.
-- **`interior/`** — documented as the component lands.
-- **`qp/`** — documented as the component lands.
-- **`globalization/`** — documented as the component lands.
-- **`warmstart/`** — documented as the component lands.
-- **`drivers/`** — `IpmSolver::kkt_analysis_count()`
-  (`include/hven/drivers/ipm_solver.h`) is the one counter this
-  component exposes so far. +1 per KKT sparsity analysis this solver instance
-  has laid, over the object's LIFETIME rather than per call: it moves once at
-  `set_nlp()` and once more at any solve entry that finds the model's
-  structure epoch moved since the last analysis, and `release()` returns it to
-  zero along with the analysis it counts. Deliberately not a `SolveResult`
-  field — that struct is reset per call, and "did a second solve against
-  unchanged structures analyze again?" is a cross-call question. The rest of
-  the component's diagnostics are documented as they land.
+- **`model/`** — produces none.
+- **`kkt/`** — produces none of its own. The interior-point engine's KKT factor
+  re-exports the linear layer's group unchanged: `KktFactorization::Counters` is
+  an ALIAS for `SymmetricFactor::Counters`
+  (`detail/interior/kkt_factorization.h:32`), not a fifth group.
+- **`interior/`** — produces none of its own.
+- **`qp/`** — produces `QpCounters`, `SsnCounters` and `IpqpCounters`, one tier
+  each. A tier's counters reach a caller through the SQP driver's aggregate:
+  `SqpCounters::ssn` and `SqpCounters::ipqp` carry the latter two whole, and
+  `QpCounters` reaches a `Ledger` record per QP subproblem solve.
+- **`globalization/`** — produces none.
+- **`warmstart/`** — produces none.
+- **`drivers/`** — produces `SqpCounters`, the aggregate for a whole SQP solve,
+  reachable as `SqpResult::counters` (`drivers/sqp_solver_types.h:991`) and on
+  every `Ledger` driver record.
+
+  THE INTERIOR-POINT ENGINE HAS NO AGGREGATE COUNTER STRUCT. Its countable
+  quantities are loose fields on `IpmResult`. The KKT-analysis count this
+  section used to name as `IpmSolver::kkt_analysis_count()` is among them: that
+  ACCESSOR WAS RETIRED at M6 W5 T8.4 (`drivers/ipm_solver.h:344` records the
+  retirement) and the quantity is now two snapshot fields on the returned
+  result, `IpmResult::kkt_analyses_total` and `::kkt_analyses_this_call`
+  (`drivers/ipm_solver_types.h:655`, `:657`), beside
+  `IpmResult::kkt_factor_counters` (`:660`), which is the linear layer's group
+  as of that solve. `kkt_analyses_total` is the LIFETIME count for the producing
+  solver -- it moves once when the structure is first laid and once more at any
+  solve entry that finds the model's structure epoch moved -- and
+  `kkt_analyses_this_call` is how much of that happened in the call being
+  reported. Snapshots rather than accessors, so they describe the solve that
+  produced them and cannot go stale behind a caller's back.
