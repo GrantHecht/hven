@@ -78,7 +78,7 @@ two are not the same claim:
 - **Counters and statuses: EXACT.** No floating-point arithmetic produces them,
   so a single-bit move in one is a real regression and is refused.
 - **Floating-point measures: the 1e-5 relative gate with a 1e-13 absolute
-  floor**, the rule `tests/sqp/test_corpus_cells.cpp:908-944` states and `:3558`
+  floor**, the rule `tests/sqp/test_corpus_cells.cpp:908-944` states and `:3618`
   floors. MKL's kernels are address-sensitive — the property CNR mode exists for
   — and a heap touched by four threads hands the same solve different addresses,
   so a measure may differ in its last digits with no counter moving. CLAUDE.md §7
@@ -168,7 +168,8 @@ capped down further on small problems
 `kMinKktElementsPerPartition` = 1000 KKT elements per partition), and
 `parallel_sequence` runs **inline** whenever `nparts <= 1`
 (`include/hven/detail/interior/utils/thread_pool.h:698-707`) — so at one
-partition the pool is never dispatched to and never even constructed. The pin's
+partition the pool is never dispatched to (and, before the fan-out pin runs in the
+same process, not yet constructed — a test-order fact, not a promise). The pin's
 interior-point cells stay clear of this exception exactly that way, and they
 assert it rather than assume it: the adopted partition count is read off the
 program (`num_partitions_`) and asserted to be 1, and the process-global width is

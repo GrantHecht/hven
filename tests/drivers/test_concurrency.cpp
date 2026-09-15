@@ -36,7 +36,9 @@
 // cells avoid it BY CONSTRUCTION rather than by arrangement: `make_nlp_program`
 // defaults to one partition, and `parallel_sequence`
 // (include/hven/detail/interior/utils/thread_pool.h) runs inline whenever
-// `nparts <= 1`, so the pool is never dispatched to and never even constructed.
+// `nparts <= 1`, so the pool is never dispatched to by these cells (and, when
+// they run first in the process, not yet constructed -- a test-order fact, not
+// a guarantee: the fan-out pin below constructs it).
 // That premise is ASSERTED below (the adopted partition count, and the pool
 // width unmoved across the whole test) rather than assumed.
 //
@@ -79,7 +81,7 @@
 //
 //   STEP TWO -- ASSERT. Counters and statuses EXACT; the floating-point
 //   measures through the 1e-5 relative gate with the 1e-13 absolute floor. That
-//   is the rule tests/sqp/test_corpus_cells.cpp:908-944 states and :3558 floors,
+//   is the rule tests/sqp/test_corpus_cells.cpp:908-944 states and :3618 floors,
 //   and the reason it applies here is §7's own: MKL's kernels are
 //   address-sensitive, and two runs of the same solve at different addresses --
 //   which is exactly what a heap touched by four threads produces -- may differ
@@ -121,7 +123,7 @@
 namespace {
 
 // The residual-class gate and its absolute floor, carried verbatim from
-// tests/sqp/test_corpus_cells.cpp:935 and :3558 rather than re-derived: the
+// tests/sqp/test_corpus_cells.cpp:935 and :3618 rather than re-derived: the
 // same measures, the same reason, so the same numbers.
 constexpr double kResidualRelativeGate = 1.0e-5;
 constexpr double kResidualAbsFloor = 1.0e-13;
@@ -254,7 +256,8 @@ CellReading run_ipm_cell(const std::string &label, const Eigen::VectorXd &x0) {
 
     // ONE PARTITION, the default: THE PREMISE THAT KEEPS THIS CELL CLEAR OF THE
     // EVALUATION POOL. parallel_sequence runs inline whenever nparts <= 1, so
-    // the process-global pool is never dispatched to and never constructed.
+    // the process-global pool is never dispatched to by these cells (constructed
+    // or not is a test-order fact; see the header).
     const auto program =
         hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
     const hven::solvers::IpmResult r = solver.solve(*program, x0);

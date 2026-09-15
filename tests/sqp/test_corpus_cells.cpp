@@ -3987,9 +3987,10 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         // bounds on ONE row, f7_n1000_bound_neutral's, whose Release residuals
         // are 6.30e-14, 6.30e-14, 1.94e-14, 0 and 0, so their bounds went from
         // 6.30e-19, 6.30e-19, 1.94e-19, 0 and 0 to 1e-13. It hid nothing: every
-        // one of those five compares BYTE-EXACT against its derivation-machine
-        // value -- |observed - want| is 0 on all five, before and after -- and
-        // the R6 row's ten bounds did not move at all. Every integer counter,
+        // one of those five agrees with its derivation-machine value to the
+        // artifact's ten printed digits (|observed - want| <= ~5e-24, five orders
+        // inside even the OLD bounds), before and after -- and the R6 row's ten
+        // bounds did not move at all. Every integer counter,
         // the status and the per-QP shape stay byte-strict on both arms.
         //
         // WHY. This cell failed twice under full-suite Debug with unpinned
