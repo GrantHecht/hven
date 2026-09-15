@@ -1868,14 +1868,13 @@ using hven::solvers::IterationPayload;
 
 /// Every field of an event that a mask may take away, plus the scalars a mask
 /// may not: `Seen` already carries both, so a mask comparison is a comparison
-/// of two `Seen` vectors.
+/// of two `Seen` vectors -- AND the whole result, kept so the comparison can be
+/// over COMPLETE counter and trajectory state rather than a chosen few fields
+/// (M7 W0 T2 fix1, the sol review's second Important).
 struct MaskRun {
     std::vector<Seen> seen;
-    SolveStatus status = SolveStatus::kNumericalError;
-    Index iterations = 0;
-    Vec x;
-    Vec z;
-    long long factorizations = 0;
+    std::optional<hven::solvers::IpmResult> ipm;
+    std::optional<SqpResult> sqp;
 };
 
 MaskRun ipm_run_under(std::optional<IterationPayload> mask) {
@@ -1889,14 +1888,9 @@ MaskRun ipm_run_under(std::optional<IterationPayload> mask) {
     } else {
         solver.set_iteration_callback(rec.hook());
     }
-    const hven::solvers::IpmResult r = solver.solve(*program, hs071_start());
     MaskRun out;
+    out.ipm = solver.solve(*program, hs071_start());
     out.seen = std::move(rec.seen);
-    out.status = r.status;
-    out.iterations = r.iterations;
-    out.x = r.x;
-    out.z = r.z;
-    out.factorizations = static_cast<long long>(r.kkt_factor_counters.factorize_count);
     return out;
 }
 
@@ -1909,14 +1903,9 @@ MaskRun sqp_run_under(std::optional<IterationPayload> mask) {
     } else {
         driver.set_iteration_callback(rec.hook());
     }
-    const SqpResult r = driver.solve(*view.bridge, hs071_start());
     MaskRun out;
+    out.sqp = driver.solve(*view.bridge, hs071_start());
     out.seen = std::move(rec.seen);
-    out.status = r.status;
-    out.iterations = static_cast<Index>(r.history.size());
-    out.x = r.x;
-    out.z = r.z;
-    out.factorizations = static_cast<long long>(r.counters.factorizations);
     return out;
 }
 
@@ -1955,14 +1944,284 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     }
 }
 
-/// The trajectory, bitwise, plus the counters and the status: whatever the mask
-/// is, the SOLVE is the same solve.
-void expect_same_solve(const MaskRun &a, const MaskRun &b) {
+// ---------------------------------------------------------------------------
+// WHATEVER THE MASK IS, THE SOLVE IS THE SAME SOLVE -- ASSERTED OVER COMPLETE
+// STATE (M7 W0 T2 fix1, the sol review's second Important).
+//
+// Round 1 compared the status, the row count, the final `x` and `z`, and ONE
+// factorization counter, which is not the brief's "counters, statuses and the
+// trajectory identical across masks". These two comparators enumerate EVERY
+// counter field of each engine's result and every trajectory-relevant field,
+// and each carries a `sizeof` drift pin beside its list so that adding a field
+// without extending the list fails to compile rather than silently escaping
+// the comparison.
+//
+// THE ONLY EXCLUSIONS ARE WALL READINGS, and they are named: SolveResult's
+// `wall_seconds`, SqpResult's `solve_impl_seconds`, IpmResult's six `*_time`
+// fields and IpmPhaseReport's `phase_seconds`. Every one is informational and
+// never asserted (CLAUDE.md section 7), and two runs of one solve cannot agree
+// on any of them.
+// ---------------------------------------------------------------------------
+#define HVEN_T2_EXPECT_BITS(field)                                                                 \
+    EXPECT_EQ(std::bit_cast<std::uint64_t>(a.field), std::bit_cast<std::uint64_t>(b.field))        \
+        << #field
+
+// The 38 fields of SqpCounters, in declaration order.
+#define HVEN_T2_SQP_COUNTER_FIELDS(X)                                                              \
+    X(major_iters)                                                                                 \
+    X(qp_minor_iters)                                                                              \
+    X(factorizations)                                                                              \
+    X(steps_accepted)                                                                              \
+    X(rejected_steps)                                                                              \
+    X(soc_steps)                                                                                   \
+    X(soc_applied)                                                                                 \
+    X(soc_qp_infeasible)                                                                           \
+    X(soc_rejected)                                                                                \
+    X(elastic_activations)                                                                         \
+    X(elastic_escalations)                                                                         \
+    X(restoration_iters)                                                                           \
+    X(elastic_from_ipqp_escape)                                                                    \
+    X(ipqp_suspicion_disproved)                                                                    \
+    X(ipqp_fallback_rung_b)                                                                        \
+    X(elastic_rho0_ceiling_hits)                                                                   \
+    X(elastic_floor_retries)                                                                       \
+    X(eqp_refine_steps)                                                                            \
+    X(border_refine_steps)                                                                         \
+    X(verdict_refine_steps)                                                                        \
+    X(suspect_escalations)                                                                         \
+    X(symbolic_analyses)                                                                           \
+    X(start_level_used)                                                                            \
+    X(full_step_majors)                                                                            \
+    X(watchdog_restores)                                                                           \
+    X(evals_full)                                                                                  \
+    X(evals_values)                                                                                \
+    X(probe_budget_stops)                                                                          \
+    X(crash_seeded_rows)                                                                           \
+    X(crash_seeded_bounds)                                                                         \
+    X(n_seeded)                                                                                    \
+    X(seeded_clamped)                                                                              \
+    X(ip_activity_inferred)                                                                        \
+    X(active_set_delta_total)                                                                      \
+    X(active_set_delta_peak)                                                                       \
+    X(weak_active_peak)                                                                            \
+    X(near_active_peak)                                                                            \
+    X(polish_ignored)
+
+// The 18 fields of SsnCounters and the 39 of IpqpCounters, the two nested
+// groups SqpCounters carries.
+#define HVEN_T2_SSN_COUNTER_FIELDS(X)                                                              \
+    X(ssn_iters)                                                                                   \
+    X(ssn_bulk_flips)                                                                              \
+    X(ssn_backtracks)                                                                              \
+    X(ssn_prox_updates)                                                                            \
+    X(ssn_escapes)                                                                                 \
+    X(ssn_uncertain_peak)                                                                          \
+    X(ssn_refinements)                                                                             \
+    X(ssn_refine_refused)                                                                          \
+    X(ssn_refine_factorizations)                                                                   \
+    X(ssn_refine_neg_duals)                                                                        \
+    X(ssn_sign_swept)                                                                              \
+    X(ssn_sign_sweep_max)                                                                          \
+    X(ssn_escape_budget)                                                                           \
+    X(ssn_escape_singular)                                                                         \
+    X(ssn_escape_no_contraction)                                                                   \
+    X(ssn_escape_infeasible_suspect)                                                               \
+    X(ssn_escape_indefinite)                                                                       \
+    X(ssn_escape_gate_refused)
+
+#define HVEN_T2_IPQP_COUNTER_FIELDS(X)                                                             \
+    X(ipqp_iters)                                                                                  \
+    X(ipqp_factorizations)                                                                         \
+    X(ipqp_symbolic_analyses)                                                                      \
+    X(ipqp_solves)                                                                                 \
+    X(ipqp_pattern_verifies)                                                                       \
+    X(ipqp_rho_demanded_max)                                                                       \
+    X(ipqp_rho_demanded_last)                                                                      \
+    X(ipqp_inertia_retries)                                                                        \
+    X(ipqp_iters_at_elevated_rho)                                                                  \
+    X(ipqp_ladder_reclimbs)                                                                        \
+    X(ipqp_pivot_reroute_primal)                                                                   \
+    X(ipqp_pivot_reroute_dual_fallback)                                                            \
+    X(ipqp_iters_ladder_armed_no_advance)                                                          \
+    X(ipqp_final_inertia_read)                                                                     \
+    X(ipqp_reg_decreases)                                                                          \
+    X(ipqp_reg_increases)                                                                          \
+    X(ipqp_prox_center_updates)                                                                    \
+    X(ipqp_restart_repairs)                                                                        \
+    X(ipqp_restart_shift_max)                                                                      \
+    X(ipqp_mu_adopted)                                                                             \
+    X(ipqp_warm_restart_abandoned)                                                                 \
+    X(ipqp_declined_pinned)                                                                        \
+    X(ipqp_tier_retired_after)                                                                     \
+    X(ipqp_face_uncertain)                                                                         \
+    X(ipqp_refine_accepted)                                                                        \
+    X(ipqp_refine_refused)                                                                         \
+    X(ipqp_to_refine)                                                                              \
+    X(ipqp_to_ssn)                                                                                 \
+    X(ipqp_to_walk)                                                                                \
+    X(ipqp_escapes)                                                                                \
+    X(ipqp_escape_budget)                                                                          \
+    X(ipqp_escape_stall)                                                                           \
+    X(ipqp_escape_indefinite)                                                                      \
+    X(ipqp_escape_numerical)                                                                       \
+    X(ipqp_escape_infeasible_suspect)                                                              \
+    X(ipqp_alpha_p_min)                                                                            \
+    X(ipqp_alpha_d_min)                                                                            \
+    X(ipqp_read_kept_tight_sides)                                                                  \
+    X(ipqp_read_barrier_noise_sides)
+
+void expect_same_counters(const hven::solvers::SqpCounters &a,
+                          const hven::solvers::SqpCounters &b) {
+    // The drift pin: Linux x86-64 clang. A new counter field moves this and the
+    // list above must grow with it.
+#if defined(__linux__) && defined(__x86_64__)
+    static_assert(sizeof(hven::solvers::SqpCounters) == 760,
+                  "SqpCounters gained or lost a field -- extend "
+                  "HVEN_T2_SQP_COUNTER_FIELDS so the mask comparison still "
+                  "covers every counter");
+    static_assert(sizeof(hven::solvers::SsnCounters) == 144,
+                  "SsnCounters moved -- extend HVEN_T2_SSN_COUNTER_FIELDS");
+    static_assert(sizeof(hven::solvers::IpqpCounters) == 312,
+                  "IpqpCounters moved -- extend HVEN_T2_IPQP_COUNTER_FIELDS");
+#endif
+#define X(field) EXPECT_EQ(a.field, b.field) << #field;
+    HVEN_T2_SQP_COUNTER_FIELDS(X)
+#undef X
+    // The two NESTED groups SqpCounters carries; a mask that moved an SSN or
+    // IPQP counter would be a mask that changed a subproblem solve.
+#define X(field) EXPECT_EQ(a.ssn.field, b.ssn.field) << "ssn." #field;
+    HVEN_T2_SSN_COUNTER_FIELDS(X)
+#undef X
+#define X(field) EXPECT_EQ(a.ipqp.field, b.ipqp.field) << "ipqp." #field;
+    HVEN_T2_IPQP_COUNTER_FIELDS(X)
+#undef X
+}
+
+/// Every SolveResult field but `wall_seconds`, bitwise where it is a double.
+void expect_same_result_core(const hven::solvers::SolveResult &a,
+                             const hven::solvers::SolveResult &b) {
     EXPECT_EQ(a.status, b.status);
     EXPECT_EQ(a.iterations, b.iterations);
-    EXPECT_TRUE(bit_equal(a.x, b.x));
-    EXPECT_TRUE(bit_equal(a.z, b.z));
-    EXPECT_EQ(a.factorizations, b.factorizations);
+    EXPECT_TRUE(bit_equal(a.x, b.x)) << "x";
+    EXPECT_TRUE(bit_equal(a.lambda_e, b.lambda_e)) << "lambda_e";
+    EXPECT_TRUE(bit_equal(a.lambda_i, b.lambda_i)) << "lambda_i";
+    EXPECT_TRUE(bit_equal(a.z, b.z)) << "z";
+    EXPECT_TRUE(bit_equal(a.ce, b.ce)) << "ce";
+    EXPECT_TRUE(bit_equal(a.ci, b.ci)) << "ci";
+    HVEN_T2_EXPECT_BITS(f);
+    HVEN_T2_EXPECT_BITS(stationarity);
+    HVEN_T2_EXPECT_BITS(feasibility_e);
+    HVEN_T2_EXPECT_BITS(feasibility_i);
+    HVEN_T2_EXPECT_BITS(complementarity);
+}
+
+void expect_same_sqp_solve(const SqpResult &a, const SqpResult &b) {
+    expect_same_result_core(a, b);
+    expect_same_counters(a.counters, b.counters);
+    HVEN_T2_EXPECT_BITS(sqp_stationarity);
+    HVEN_T2_EXPECT_BITS(sqp_feasibility);
+    HVEN_T2_EXPECT_BITS(sqp_complementarity);
+    HVEN_T2_EXPECT_BITS(kkt_residual);
+    EXPECT_EQ(a.infeasibility_certified, b.infeasibility_certified);
+    // THE WHOLE TRAJECTORY, ROW BY ROW -- not only its length. Every column of
+    // SqpIterate that a mask could conceivably reach is a scalar this engine
+    // measured at the row, and `measure_iterate` is exactly where the mask
+    // acts, so the history is the strongest statement available that it acts
+    // on the snapshot and on nothing else.
+    ASSERT_EQ(a.history.size(), b.history.size()) << "history length";
+    for (std::size_t k = 0; k < a.history.size(); ++k) {
+        SCOPED_TRACE("history row " + std::to_string(k));
+        const hven::solvers::SqpIterate &ra = a.history[k];
+        const hven::solvers::SqpIterate &rb = b.history[k];
+        EXPECT_EQ(ra.trial, rb.trial);
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(ra.f), std::bit_cast<std::uint64_t>(rb.f));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(ra.stationarity),
+                  std::bit_cast<std::uint64_t>(rb.stationarity));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(ra.feasibility),
+                  std::bit_cast<std::uint64_t>(rb.feasibility));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(ra.complementarity),
+                  std::bit_cast<std::uint64_t>(rb.complementarity));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(ra.kkt_residual),
+                  std::bit_cast<std::uint64_t>(rb.kkt_residual));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(ra.violation_l1),
+                  std::bit_cast<std::uint64_t>(rb.violation_l1));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(ra.tr_radius),
+                  std::bit_cast<std::uint64_t>(rb.tr_radius));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(ra.step_norm),
+                  std::bit_cast<std::uint64_t>(rb.step_norm));
+        EXPECT_EQ(ra.qp_solved, rb.qp_solved);
+        EXPECT_EQ(ra.qp_status, rb.qp_status);
+        EXPECT_EQ(ra.qp_minor_iters, rb.qp_minor_iters);
+        EXPECT_EQ(ra.qp_factorizations, rb.qp_factorizations);
+        EXPECT_EQ(ra.tr_binding, rb.tr_binding);
+        EXPECT_EQ(ra.verdict, rb.verdict);
+        EXPECT_EQ(ra.soc_applied, rb.soc_applied);
+        EXPECT_EQ(ra.elastic_applied, rb.elastic_applied);
+        EXPECT_EQ(ra.watchdog_restored, rb.watchdog_restored);
+        EXPECT_EQ(ra.active_set_delta, rb.active_set_delta);
+        EXPECT_EQ(ra.active_rows, rb.active_rows);
+    }
+}
+
+void expect_same_ipm_solve(const hven::solvers::IpmResult &a, const hven::solvers::IpmResult &b) {
+    expect_same_result_core(a, b);
+    // IpmResult's own fields, in declaration order, EXCEPT the six `*_time`
+    // wall readings (total_/pre_/func_/kkt_/print_/solver_init_) which are
+    // informational and never asserted.
+    EXPECT_EQ(a.payload_ignored, b.payload_ignored);
+    EXPECT_EQ(a.polish_ignored, b.polish_ignored);
+    EXPECT_EQ(a.fixed_variable_treatment, b.fixed_variable_treatment);
+    EXPECT_TRUE(bit_equal(a.internal_fixed_ce, b.internal_fixed_ce)) << "internal_fixed_ce";
+    EXPECT_TRUE(bit_equal(a.internal_fixed_lambda_e, b.internal_fixed_lambda_e))
+        << "internal_fixed_lambda_e";
+    HVEN_T2_EXPECT_BITS(kkt_inf);
+    HVEN_T2_EXPECT_BITS(barr_inf);
+    HVEN_T2_EXPECT_BITS(econ_inf);
+    HVEN_T2_EXPECT_BITS(icon_inf);
+    EXPECT_EQ(a.factor_mem, b.factor_mem);
+    EXPECT_EQ(a.factor_flops, b.factor_flops);
+    EXPECT_EQ(a.soc_steps_taken, b.soc_steps_taken);
+    EXPECT_EQ(a.watchdog_activations, b.watchdog_activations);
+    HVEN_T2_EXPECT_BITS(last_funnel_width);
+    EXPECT_EQ(a.last_filter_size, b.last_filter_size);
+    EXPECT_EQ(a.last_filter_resets, b.last_filter_resets);
+    EXPECT_EQ(a.last_monotone_switches, b.last_monotone_switches);
+    EXPECT_EQ(a.last_monotone_iters, b.last_monotone_iters);
+    EXPECT_EQ(a.last_feas_rest_entries, b.last_feas_rest_entries);
+    EXPECT_EQ(a.last_feas_rest_iters, b.last_feas_rest_iters);
+    HVEN_T2_EXPECT_BITS(last_prox_reg_primal);
+    HVEN_T2_EXPECT_BITS(last_prox_reg_dual);
+    EXPECT_EQ(a.last_eval_exception, b.last_eval_exception);
+    EXPECT_EQ(a.last_kkt_info, b.last_kkt_info);
+    EXPECT_EQ(a.kkt_analyses_total, b.kkt_analyses_total);
+    EXPECT_EQ(a.kkt_analyses_this_call, b.kkt_analyses_this_call);
+    EXPECT_EQ(a.kkt_factor_counters.analyze_count, b.kkt_factor_counters.analyze_count);
+    EXPECT_EQ(a.kkt_factor_counters.factorize_count, b.kkt_factor_counters.factorize_count);
+    EXPECT_EQ(a.kkt_factor_counters.solve_count, b.kkt_factor_counters.solve_count);
+    EXPECT_EQ(a.kkt_factor_counters.partial_solve_count, b.kkt_factor_counters.partial_solve_count);
+    EXPECT_EQ(a.kkt_factor_counters.pattern_verify_count,
+              b.kkt_factor_counters.pattern_verify_count);
+    // The phase trajectory, row by row, minus `phase_seconds`.
+    ASSERT_EQ(a.phases.size(), b.phases.size()) << "phase count";
+    for (std::size_t k = 0; k < a.phases.size(); ++k) {
+        SCOPED_TRACE("phase " + std::to_string(k));
+        EXPECT_EQ(a.phases[k].phase, b.phases[k].phase);
+        EXPECT_EQ(a.phases[k].status, b.phases[k].status);
+        EXPECT_EQ(a.phases[k].iterations, b.phases[k].iterations);
+        EXPECT_EQ(a.phases[k].stop_reason, b.phases[k].stop_reason);
+        EXPECT_EQ(a.phases[k].ran, b.phases[k].ran);
+    }
+}
+
+void expect_same_solve(const MaskRun &a, const MaskRun &b) {
+    ASSERT_EQ(a.ipm.has_value(), b.ipm.has_value());
+    ASSERT_EQ(a.sqp.has_value(), b.sqp.has_value());
+    if (a.ipm.has_value()) {
+        expect_same_ipm_solve(*a.ipm, *b.ipm);
+    }
+    if (a.sqp.has_value()) {
+        expect_same_sqp_solve(*a.sqp, *b.sqp);
+    }
 }
 
 // HS071's declared shape, which every full-payload event must carry: n = 4
@@ -2208,4 +2467,187 @@ TEST(CallbackPayload, ANarrowingSetFromInsideTheCallbackEmptiesTheLaterEvents) {
         SCOPED_TRACE("event " + std::to_string(k));
         EXPECT_EQ(widths[k], 0) << "the narrowed mask leaves no stale snapshot standing";
     }
+}
+
+// ===========================================================================
+// THE MASK AT DEPTH 1 (M7 W0 T2 fix1, the sol review's first Important).
+//
+// `enter_restoration` hands the sub-driver ONE copy of the parent's mask. A
+// consumer that changes the mask from inside a DEPTH-1 event would otherwise
+// go on being handed the old payload for the rest of the phase, while the new
+// CALLABLE took effect immediately (the forwarder dispatches through the
+// parent) -- so the engine would advertise one next-event rule and honour it
+// only at depth 0.
+//
+// The fixture is InfeasibleCircleLineModel, whose restoration phase runs to a
+// CERTIFICATE rather than resuming -- chosen over StalledValleyModel because a
+// next-event rule needs at least TWO depth-1 events to be observable at all,
+// and the resuming fixture's restoration phase converges on the row after the
+// one it entered on (this file's own note at
+// `SqpStopInsideRestorationLatchesAndReachesTheParent` (c)). Its own pin
+// already asserts `restoration_iters >= 2`, and both tests below re-assert the
+// premise rather than assuming it.
+// ===========================================================================
+namespace {
+
+/// One depth-1 event's widths, enough to say what payload it carried.
+struct DepthOneWidth {
+    Index depth = 0;
+    Eigen::Index x_size = 0;
+    bool diagnostics_finite = false;
+};
+
+std::vector<DepthOneWidth> depth_one_widths(const std::vector<DepthOneWidth> &all) {
+    std::vector<DepthOneWidth> out;
+    for (const DepthOneWidth &w : all) {
+        if (w.depth == 1) {
+            out.push_back(w);
+        }
+    }
+    return out;
+}
+
+} // namespace
+
+// WIDENING at depth 1: the solve starts at kScalars, the FIRST depth-1 event
+// widens to kAll, and every depth-1 event after it carries the vectors.
+TEST(CallbackPayload, AMaskWidenedFromInsideARestorationEventReachesTheSubDriver) {
+    InfeasibleCircleLineModel model;
+    SqpSolver driver(quiet_sqp());
+    std::vector<DepthOneWidth> seen;
+    bool widened = false;
+
+    hven::solvers::IterationCallback cb = [&](const IterationEvent &e) {
+        seen.push_back({e.depth.value_or(0), e.x.size(),
+                        std::isfinite(e.stationarity) && std::isfinite(e.feasibility_e)});
+        if (!widened && e.depth.value_or(0) == 1) {
+            widened = true;
+            // From INSIDE a depth-1 event. The park goes through the PARENT's
+            // in-flight guard (the forwarder runs inside it), and the parent's
+            // apply point must push the new mask into the RUNNING sub-driver.
+            driver.set_iteration_callback(
+                [&](const IterationEvent &later) {
+                    seen.push_back(
+                        {later.depth.value_or(0), later.x.size(),
+                         std::isfinite(later.stationarity) && std::isfinite(later.feasibility_e)});
+                    return CallbackAction::kContinue;
+                },
+                IterationPayload::kAll);
+        }
+        return CallbackAction::kContinue;
+    };
+    driver.set_iteration_callback(cb, IterationPayload::kScalars);
+    (void)driver.solve(model);
+
+    const std::vector<DepthOneWidth> d1 = depth_one_widths(seen);
+    ASSERT_GE(d1.size(), 2u) << "fixture premise: at least two depth-1 events, or a next-event "
+                                "rule is not observable at depth 1 at all";
+    EXPECT_EQ(d1.front().x_size, 0) << "the event the widening was made FROM keeps the old mask";
+    EXPECT_FALSE(d1.front().diagnostics_finite);
+    // A DEPTH-1 EVENT IS IN THE SUB-PROBLEM'S SPACE, not the caller's -- the
+    // feasibility problem carries its own elastic variables, so `x.size()` is
+    // wider than `model.n()` there (IterationEvent's own `depth` note). What is
+    // asserted is therefore NON-EMPTY and CONSTANT across the later events,
+    // which is what "the payload was prepared" means at depth 1.
+    for (std::size_t k = 1; k < d1.size(); ++k) {
+        SCOPED_TRACE("depth-1 event " + std::to_string(k));
+        EXPECT_GT(d1[k].x_size, 0)
+            << "the sub-driver prepared the OLD mask's payload -- the widening did not reach it";
+        EXPECT_EQ(d1[k].x_size, d1[1].x_size);
+        EXPECT_TRUE(d1[k].diagnostics_finite);
+    }
+}
+
+// NARROWING at depth 1, the other direction: the solve starts at kAll and the
+// first depth-1 event narrows to kScalars.
+TEST(CallbackPayload, AMaskNarrowedFromInsideARestorationEventReachesTheSubDriver) {
+    InfeasibleCircleLineModel model;
+    SqpSolver driver(quiet_sqp());
+    std::vector<DepthOneWidth> seen;
+    bool narrowed = false;
+
+    hven::solvers::IterationCallback cb = [&](const IterationEvent &e) {
+        seen.push_back({e.depth.value_or(0), e.x.size(),
+                        std::isfinite(e.stationarity) && std::isfinite(e.feasibility_e)});
+        if (!narrowed && e.depth.value_or(0) == 1) {
+            narrowed = true;
+            driver.set_iteration_callback(
+                [&](const IterationEvent &later) {
+                    seen.push_back(
+                        {later.depth.value_or(0), later.x.size(),
+                         std::isfinite(later.stationarity) && std::isfinite(later.feasibility_e)});
+                    return CallbackAction::kContinue;
+                },
+                IterationPayload::kScalars);
+        }
+        return CallbackAction::kContinue;
+    };
+    driver.set_iteration_callback(cb);
+    (void)driver.solve(model);
+
+    const std::vector<DepthOneWidth> d1 = depth_one_widths(seen);
+    ASSERT_GE(d1.size(), 2u);
+    EXPECT_GT(d1.front().x_size, 0) << "the event the narrowing was made FROM keeps kAll";
+    for (std::size_t k = 1; k < d1.size(); ++k) {
+        SCOPED_TRACE("depth-1 event " + std::to_string(k));
+        EXPECT_EQ(d1[k].x_size, 0)
+            << "the sub-driver kept preparing the WIDE payload after the narrowing";
+        EXPECT_FALSE(d1[k].diagnostics_finite);
+    }
+}
+
+// AN EMPTY CALLABLE NORMALISES THE MASK TO kAll on both engines. An empty
+// std::function is a clear, and a clear resets the mask, so the two-argument
+// overload may not leave a narrow mask standing beside one.
+TEST(CallbackPayload, AnEmptyCallableNormalisesTheMaskToAll) {
+    {
+        hven::solvers::IpmSolver solver;
+        EXPECT_EQ(solver.iteration_payload(), IterationPayload::kAll) << "the default";
+        Recorder rec;
+        solver.set_iteration_callback(rec.hook(), IterationPayload::kScalars);
+        EXPECT_EQ(solver.iteration_payload(), IterationPayload::kScalars);
+        solver.set_iteration_callback(hven::solvers::IterationCallback{},
+                                      IterationPayload::kDiagnostics);
+        EXPECT_EQ(solver.iteration_payload(), IterationPayload::kAll)
+            << "an empty callable is a clear, and a clear resets the mask";
+        // And the clear really happened: no events on the next solve.
+        const auto program =
+            hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        solver.set_options(quiet_ipm(solver));
+        (void)solver.solve(*program, hs071_start());
+        EXPECT_TRUE(rec.seen.empty());
+    }
+    {
+        SqpSolver driver(quiet_sqp());
+        EXPECT_EQ(driver.iteration_payload(), IterationPayload::kAll);
+        Recorder rec;
+        driver.set_iteration_callback(rec.hook(), IterationPayload::kVectors);
+        EXPECT_EQ(driver.iteration_payload(), IterationPayload::kVectors);
+        driver.set_iteration_callback(hven::solvers::IterationCallback{},
+                                      IterationPayload::kScalars);
+        EXPECT_EQ(driver.iteration_payload(), IterationPayload::kAll);
+        Hs071View view;
+        (void)driver.solve(*view.bridge, hs071_start());
+        EXPECT_TRUE(rec.seen.empty());
+    }
+}
+
+// And clear_iteration_callback() agrees with it, read through the same
+// observation point.
+TEST(CallbackPayload, TheObservationPointReadsTheActiveMask) {
+    hven::solvers::IpmSolver solver;
+    Recorder rec;
+    solver.set_iteration_callback(rec.hook(), IterationPayload::kVectors);
+    EXPECT_EQ(solver.iteration_payload(), IterationPayload::kVectors);
+    solver.clear_iteration_callback();
+    EXPECT_EQ(solver.iteration_payload(), IterationPayload::kAll);
+    solver.set_iteration_callback(rec.hook());
+    EXPECT_EQ(solver.iteration_payload(), IterationPayload::kAll)
+        << "the one-argument overload means kAll";
+
+    SqpSolver driver(quiet_sqp());
+    driver.set_iteration_callback(rec.hook(), IterationPayload::kDiagnostics);
+    EXPECT_EQ(driver.iteration_payload(), IterationPayload::kDiagnostics);
+    driver.clear_iteration_callback();
+    EXPECT_EQ(driver.iteration_payload(), IterationPayload::kAll);
 }

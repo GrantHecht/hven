@@ -825,14 +825,30 @@ class SqpSolver {
     /// as a depth-0 one. Set from INSIDE the callback it takes effect at the
     /// NEXT event, exactly as a replacement callable does.
     ///
+    /// AND THAT RULE HOLDS AT DEPTH 1 TOO (M7 W0 T2 fix1). A mask changed from
+    /// inside a RESTORATION event reaches the sub-driver that is running: the
+    /// apply point pushes it down the active sub-driver chain, so the next
+    /// depth-1 event is prepared under the new mask, widening or narrowing.
+    /// An empty callable passed here is a clear, and like a clear it resets
+    /// the mask to kAll whatever this argument says.
+    ///
     /// @param cb      The callback. An empty std::function is the same as
     ///                clearing (and, like clearing, resets the mask).
     /// @param payload What this callback reads. IterationPayload::kAll is the
     ///                shape every consumer had before this overload existed.
     void set_iteration_callback(IterationCallback cb, IterationPayload payload) {
+        // AN EMPTY CALLABLE NORMALISES THE MASK TO kAll (M7 W0 T2 fix1, the
+        // sol review's fourth Minor). An empty std::function IS a clear, and a
+        // clear resets the mask -- so storing a narrow mask beside one would
+        // leave this driver in a state its own contract says cannot exist.
+        // Normalised rather than refused: a caller that always routes through
+        // this overload with a stored mask may legitimately pass an empty
+        // callable to disarm, and a throw there would punish the idiom the
+        // one-argument form already allows.
+        const IterationPayload effective = cb ? payload : IterationPayload::kAll;
         if (callback_in_flight_ || solve_in_flight_) {
             pending_callback_ = std::move(cb);
-            pending_payload_ = payload;
+            pending_payload_ = effective;
             // WHICH SAFE POINT APPLIES IT (M6 W5 T8.7b, the lane's Q5, taken on
             // both engines). From inside the callback: the statement after that
             // invocation returns -- T8.6's contract, unchanged. From anywhere
@@ -865,8 +881,19 @@ class SqpSolver {
         pending_callback_.reset();
         pending_callback_at_entry_ = false;
         iteration_callback_ = std::move(cb);
-        iteration_payload_ = payload;
+        iteration_payload_ = effective;
     }
+
+    /// @brief The payload mask the installed callback declared, or
+    ///        IterationPayload::kAll when none is installed.
+    ///
+    /// AN OBSERVATION POINT (M7 W0 T2 fix1), on ssn_tier_num_threads()'s own
+    /// footing: read-only, and it exists so a consumer -- and the suite -- can
+    /// see what this driver was told to prepare. It reads the ACTIVE mask, so
+    /// a value parked from inside a callback is not visible here until the
+    /// safe point applies it, which is the same next-event rule the setters
+    /// document.
+    IterationPayload iteration_payload() const noexcept { return iteration_payload_; }
     /// @brief Removes the per-iteration callback, and resets the payload mask.
     ///
     /// Deferred to the safe point when called from INSIDE the callback; see
@@ -1755,6 +1782,18 @@ class SqpSolver {
     // every safe point, so a deferred attach cannot land with the previous
     // consumer's mask (M7 W0 T2).
     IterationPayload pending_payload_ = IterationPayload::kAll;
+    // THE RESTORATION SUB-DRIVER CURRENTLY SOLVING, or null (M7 W0 T2 fix1).
+    // NON-OWNING and valid for exactly the duration of that sub-solve: it is
+    // set immediately before `sub.solve(...)` in enter_restoration and cleared
+    // by a scope guard on every exit, a throw included. It exists for one
+    // purpose -- so the apply point can push a mask a depth-1 callback changed
+    // down to the driver that will prepare the next depth-1 event.
+    SqpSolver *restoration_sub_ = nullptr;
+    // Hands `iteration_payload_` to the active restoration sub-driver and to
+    // whatever sub-driver IT has active, to any depth. Called from the one
+    // apply point; see its definition for why this is an assignment and not a
+    // park.
+    void push_payload_to_restoration_sub();
     // WHICH SAFE POINT the parked value belongs to (M6 W5 T8.7b). False: the
     // statement after the running callback returns. True: the next solve's
     // entry, which is where a value parked by a SINK method is applied.

@@ -579,15 +579,27 @@ class IpmSolver {
     /// by clear_iteration_callback() -- so a re-attach through the
     /// one-argument overload is kAll again. Set from INSIDE the callback it
     /// takes effect at the NEXT event, exactly as a replacement callable does.
+    /// An empty callable passed here is a clear, and like a clear it resets
+    /// the mask to kAll whatever @p payload says -- normalised at the setter
+    /// rather than merely documented (M7 W0 T2 fix1).
     ///
     /// @param cb      The callback. An empty std::function is the same as
     ///                clearing (and, like clearing, resets the mask).
     /// @param payload What this callback reads. IterationPayload::kAll is the
     ///                shape every consumer had before this overload existed.
     void set_iteration_callback(IterationCallback cb, IterationPayload payload) {
+        // AN EMPTY CALLABLE NORMALISES THE MASK TO kAll (M7 W0 T2 fix1, the
+        // sol review's fourth Minor). An empty std::function IS a clear, and a
+        // clear resets the mask -- so storing a narrow mask beside one would
+        // leave this engine in a state its own contract says cannot exist.
+        // Normalised rather than refused: a caller that always routes through
+        // this overload with a stored mask may legitimately pass an empty
+        // callable to disarm, and a throw there would punish the idiom the
+        // one-argument form already allows.
+        const IterationPayload effective = cb ? payload : IterationPayload::kAll;
         if (this->callback_in_flight_ || this->solve_in_flight_) {
             this->pending_callback_ = std::move(cb);
-            this->pending_payload_ = payload;
+            this->pending_payload_ = effective;
             // WHICH SAFE POINT APPLIES IT (M6 W5 T8.7b, the lane's Q5).
             //
             // FROM INSIDE A CALLER-SUPPLIED INVOCATION -- the iteration
@@ -626,8 +638,18 @@ class IpmSolver {
         this->pending_callback_.reset();
         this->pending_callback_at_entry_ = false;
         this->iteration_callback_ = std::move(cb);
-        this->iteration_payload_ = payload;
+        this->iteration_payload_ = effective;
     }
+
+    /// @brief The payload mask the installed callback declared, or
+    ///        IterationPayload::kAll when none is installed.
+    ///
+    /// AN OBSERVATION POINT (M7 W0 T2 fix1): read-only, and it exists so a
+    /// consumer -- and the suite -- can see what this engine was told to
+    /// prepare. It reads the ACTIVE mask, so a value parked from inside a
+    /// callback is not visible here until the safe point applies it, which is
+    /// the same next-event rule the setters document.
+    IterationPayload iteration_payload() const noexcept { return this->iteration_payload_; }
     /// @brief Removes the per-iteration callback, and resets the payload mask.
     ///
     /// Deferred to the safe point when called from INSIDE the callback; see

@@ -4244,6 +4244,21 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // consumer this driver has, so it must prepare exactly what that consumer
     // declared. Forwarding the callable alone would make a scalars-only
     // consumer pay the full payload on every restoration major.
+    //
+    // AND IT KEEPS TRAVELLING (M7 W0 T2 fix1, the sol review's first Important).
+    // The argument below is ONE COPY, taken at entry, and a mask the consumer
+    // CHANGES from inside a depth-1 callback would otherwise never reach the
+    // sub-driver: the sub would go on preparing the old payload and handing it
+    // to the new callable, which contradicts the next-event rule both setters
+    // advertise. `restoration_sub_` below makes the parent's apply point push
+    // the new mask down, so a widening or a narrowing made at depth 1 takes
+    // effect at the NEXT depth-1 event, exactly as it does at depth 0.
+    //
+    // THE CALLABLE NEEDS NO SUCH PUSH, and that is why only the mask is
+    // pushed: the forwarder dispatches through THIS driver's
+    // `invoke_iteration_callback`, which reads `iteration_callback_` at the
+    // moment of the call, so a replacement callable is already live at the
+    // next depth-1 event.
     if (iteration_callback_) {
         sub.set_iteration_callback(
             [this, &st](const IterationEvent &e) {
@@ -4263,6 +4278,17 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
             },
             iteration_payload_);
     }
+    // THE ACTIVE SUB-DRIVER, PUBLISHED FOR EXACTLY THE DURATION OF ITS SOLVE
+    // (M7 W0 T2 fix1). Non-owning, and cleared by the guard's destructor on
+    // every exit including a throw out of the sub-solve -- a callback that
+    // throws out of a depth-1 event unwinds through here, and a dangling
+    // pointer to a destroyed sub-driver would be read by the next apply point.
+    struct ActiveSubGuard {
+        SqpSolver *parent;
+        ~ActiveSubGuard() { parent->restoration_sub_ = nullptr; }
+    };
+    restoration_sub_ = &sub;
+    const ActiveSubGuard active_sub_guard{this};
     const SqpResult rs = sub.solve(feasibility, feasibility.start_point());
 
     // EVERY WORK counter the sub-solve moved is folded in: the
@@ -4651,6 +4677,33 @@ void SqpSolver::apply_pending_iteration_callback(bool at_solve_entry) {
     pending_callback_.reset();
     pending_payload_ = IterationPayload::kAll;
     pending_callback_at_entry_ = false;
+    // AND IT LANDS ON AN ACTIVE RESTORATION SUB-DRIVER TOO (M7 W0 T2 fix1).
+    // This is the apply point a depth-1 setter call reaches: the forwarder
+    // runs inside the sub-driver's own invocation, the parent parks, and the
+    // park is applied here, one statement after the parent's invocation
+    // returns. Without this push the sub-driver would keep the mask it was
+    // handed at `enter_restoration` for the rest of the phase.
+    push_payload_to_restoration_sub();
+}
+
+// ---------------------------------------------------------------------------
+// THE MASK, DOWN THE RESTORATION CHAIN (M7 W0 T2 fix1).
+//
+// A DIRECT ASSIGNMENT AND NOT A PARK, deliberately. What is written is a plain
+// enum, not the std::function the in-flight guard exists to protect, so there
+// is nothing to destroy underneath a running callable -- and the sub-driver
+// reads it at its NEXT `measure_iterate`, which is the next depth-1 event. The
+// row being pushed when this runs was measured before the event fired, so this
+// cannot retroactively change an event the consumer has already seen.
+//
+// RECURSIVE, so a nested restoration composes: each driver hands the mask to
+// whatever sub-driver it currently has active, and a chain of any depth ends
+// at the first null.
+// ---------------------------------------------------------------------------
+void SqpSolver::push_payload_to_restoration_sub() {
+    for (SqpSolver *sub = restoration_sub_; sub != nullptr; sub = sub->restoration_sub_) {
+        sub->iteration_payload_ = iteration_payload_;
+    }
 }
 
 SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, AssemblyEvalSeam &seam,
