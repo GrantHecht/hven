@@ -558,9 +558,15 @@ class IpmSolver {
     /// it is the measured cost of attaching anything to this engine:
     /// +1.46 %/+1.71 % instructions over the whole top-level interior-point
     /// corpus leg with the cheapest possible callback attached
-    /// (`docs/notes/data/2026-09-m6-w6-attached-cost/reading.md` section 3-4;
-    /// re-measured under the mask in
-    /// `docs/notes/data/2026-09-m7-w0-t2-callback-payload/`).
+    /// (`docs/notes/data/2026-09-m6-w6-attached-cost/reading.md` section 3-4).
+    ///
+    /// AND WHAT THE MASK BUYS, RE-MEASURED ON THAT SAME LEG (M7 W0 T2,
+    /// `docs/notes/data/2026-09-m7-w0-t2-callback-payload/reading.md`): the
+    /// full payload costs +1.376 %/+1.401 % and kScalars costs
+    /// +0.588 %/+0.618 %, so declaring kScalars removes 56-57 % of what
+    /// attaching costs this engine. It does not remove all of it: what is left
+    /// does not scale with the problem, is not the payload, and is registered
+    /// with its number rather than fixed here (that reading's section 5).
     ///
     /// WHO THE MASK IS FOR. A benchmark harness that wants per-iteration
     /// COUNTS -- how many majors, at what objective, at what wall -- attaches

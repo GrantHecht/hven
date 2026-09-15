@@ -224,6 +224,16 @@ enum class CallbackAction {
 /// corpus reads FLAT). So the CONSUMER DECLARES what it reads, and an engine
 /// prepares nothing else.
 ///
+/// WHAT IT BOUGHT, MEASURED (M7 W0 T2,
+/// `docs/notes/data/2026-09-m7-w0-t2-callback-payload/`). On the top-level
+/// interior-point corpus leg a cheap callback at @ref kAll costs
+/// +1.376 %/+1.401 % instructions; the same callback at @ref kScalars costs
+/// +0.588 %/+0.618 %. The mask removes 56-57 % of the attached cost, and what
+/// it removes is the O(n) part: the saving rises 10.2x for a 13.5x rise in
+/// problem width. It does NOT reach zero -- what is left does not scale with
+/// the problem and is registered, not fixed, by that task. On the SQP engine
+/// both arms are FLAT, as they were before the mask existed.
+///
 /// The ONE-ARGUMENT set_iteration_callback() means @ref kAll on both engines,
 /// so nothing a caller wrote before this type existed changes.
 enum class IterationPayload : unsigned {

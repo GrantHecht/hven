@@ -807,7 +807,12 @@ class SqpSolver {
     /// (`docs/notes/data/2026-09-m6-w6-attached-cost/reading.md` section 2) --
     /// the events are per MAJOR and there are few of them -- so the mask is
     /// carried here for ONE SURFACE across both engines rather than because
-    /// this engine needed it. The interior-point engine is where it pays.
+    /// this engine needed it. The interior-point engine is where it pays --
+    /// and the M7 W0 T2 re-measurement confirms both halves: the SQP corpus is
+    /// FLAT in both arms (whole-corpus ratios 1.00013 at kAll and 1.00000 at
+    /// kScalars, 0 of 27 cells outside 0.99-1.01), while the same mask takes
+    /// 56-57 % off the interior engine's attached cost
+    /// (`docs/notes/data/2026-09-m7-w0-t2-callback-payload/reading.md`).
     ///
     /// WHO THE MASK IS FOR. A benchmark harness that wants per-iteration
     /// COUNTS attaches with kScalars; a consumer that CAPTURES THE TRAJECTORY
