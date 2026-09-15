@@ -147,10 +147,10 @@ assert_engagement() {
         echo "FAIL: ${n} translation units consume the PCH in ${build_dir}, expected ${EXPECTED_TU_COUNT}."
         echo "      Too few means the PCH quietly stopped applying on this platform -- a"
         echo "      build-time regression no test would catch. Too many means it spread to"
-        echo "      TUs whose byte-identity was never measured. The expectation is DERIVED"
-        echo "      from _hven_pch_sources in src/CMakeLists.txt, so a mismatch here is the"
-        echo "      build disagreeing with that list -- not the list disagreeing with a"
-        echo "      literal. Look at what the build applied before editing either."
+        echo "      TUs whose byte-identity was never measured. The expectation was"
+        echo "      ${EXPECTED_TU_COUNT_SOURCE}, so a mismatch here is the build"
+        echo "      disagreeing with that source -- look at what the build applied"
+        echo "      before editing either."
         exit 1
     fi
     echo "PASS: PCH engaged on ${n} translation units in ${build_dir} (expected ${EXPECTED_TU_COUNT})."

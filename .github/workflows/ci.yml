@@ -213,9 +213,9 @@ jobs:
       # the PCH) and requires every object and libhven.a to come out
       # byte-identical, plus asserts the PCH is actually engaged on exactly the
       # translation units it is opted in for -- the count is DERIVED from
-      # _hven_pch_sources in src/CMakeLists.txt by the script itself (four
-      # entries at M7 W0 T5), never restated here, so this comment cannot go
-      # stale against that list the way its "six" predecessor did.
+      # _hven_pch_sources in src/CMakeLists.txt by the script itself and never
+      # restated here, so this comment cannot go stale against that list the
+      # way its literal-count predecessor did (M7 W0 T5).
       #
       # This is the enforcement half of the PCH's licence to exist. The PCH
       # sits over engine headers and is permitted only because it changes
