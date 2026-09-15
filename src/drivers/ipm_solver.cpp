@@ -2242,13 +2242,22 @@ hven::solvers::IpmSolver::declared_diagnostics_from_reduced_grad_lag(
 // frame and the storage dies with it.
 //
 // AND SINCE M7 W0 T2 ONLY WHAT THE CONSUMER DECLARED IS PREPARED. Everything
-// this function does below the null guard is attached-only and O(n) per event,
-// which W6 T6 measured at +1.46 %/+1.71 % instructions over the whole
-// top-level interior-point leg with the cheapest possible callback attached
-// (`docs/notes/data/2026-09-m6-w6-attached-cost/reading.md` sections 3-4). The
-// payload mask the callback was attached with is read once, here, and a
+// this function does below the null guard is attached-only and O(n) per event.
+// The payload mask the callback was attached with is read once, here, and a
 // kScalars consumer runs none of it: empty views, NaN diagnostics, and the
-// scalars the event always carried. See IpmSolver::set_iteration_callback.
+// scalars the event always carried.
+//
+// WHAT THAT IS WORTH, AND WHAT IT IS NOT. Declaring kScalars removes 57 % of
+// the measured cost of attaching a cheap callback to this engine
+// (`docs/notes/data/2026-09-m7-w0-t2-callback-payload/reading.md`), and the
+// part it removes is measured to scale with the problem, which is the shape
+// the work in this function has. THE REST IS NOT REMOVED AND IS NOT
+// UNDERSTOOD: about +0.6 % of the whole corpus leg survives kScalars, does not
+// scale with the problem, and is not accounted for by the O(1) work left on
+// this path. It is registered with its number; that reading's section 5 names
+// one unproved candidate OUTSIDE this function and says what the leg could not
+// separate. This comment claims nothing more.
+// See IpmSolver::set_iteration_callback.
 // ---------------------------------------------------------------------------
 void hven::solvers::IpmSolver::fire_iteration_event(const IterateInfo &iter,
                                                     const Eigen::VectorXd &XSL,
@@ -2260,9 +2269,12 @@ void hven::solvers::IpmSolver::fire_iteration_event(const IterateInfo &iter,
     // WHAT THIS CONSUMER DECLARED IT READS (M7 W0 T2). Everything below the
     // guard is ATTACHED-ONLY preparation and it is O(n) per event -- the
     // scatter, the three unit maps, the folded bound price, the two constraint
-    // blocks and the declared-diagnostics pass -- which is the whole measured
-    // cost of attaching an observer to this engine (W6 T6's +1.46 %/+1.71 %).
-    // So it is prepared only when the mask asks for it.
+    // blocks and the declared-diagnostics pass -- which is the LARGER PART of
+    // the measured cost of attaching an observer to this engine, and the part
+    // that scales with the problem. It is not the whole of it: see this
+    // function's header note for the residual that survives kScalars and is
+    // registered rather than explained. So it is prepared only when the mask
+    // asks for it.
     //
     // THE VECTORS AND THE DIAGNOSTICS SHARE ONE BLOCK because the diagnostics
     // are computed FROM the declared vectors: a kDiagnostics-only mask still

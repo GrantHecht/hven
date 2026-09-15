@@ -546,31 +546,41 @@ class IpmSolver {
     /// of IterationEvent parts this consumer will actually read, and the
     /// engine prepares nothing else.
     ///
-    /// WHAT A SCALARS-ONLY CONSUMER GETS, AND WHAT IT SAVES. Under
-    /// IterationPayload::kScalars the event carries `iteration`, `phase`, `f`,
-    /// `step_norm`, `mu` and `elapsed_seconds`; `x`, `lambda_e`, `lambda_i`
-    /// and `z` are EMPTY views, and the four diagnostics are NaN -- which here
-    /// means NOT REQUESTED rather than not measurable. The engine then skips
-    /// the whole attached-only preparation this function's body is: the
-    /// scatter of the reduced primal space to declared width, the price
-    /// blocks' unit map, the folded bound price, the two constraint blocks and
-    /// the declared-diagnostics pass. That preparation is O(n) PER EVENT and
-    /// it is the measured cost of attaching anything to this engine:
-    /// +1.46 %/+1.71 % instructions over the whole top-level interior-point
-    /// corpus leg with the cheapest possible callback attached
-    /// (`docs/notes/data/2026-09-m6-w6-attached-cost/reading.md` section 3-4).
+    /// WHAT A SCALARS-ONLY CONSUMER GETS. Under IterationPayload::kScalars the
+    /// event carries `iteration`, `phase`, `f`, `step_norm`, `mu` and
+    /// `elapsed_seconds`; `x`, `lambda_e`, `lambda_i` and `z` are EMPTY views,
+    /// and the four diagnostics are NaN -- which here means NOT REQUESTED
+    /// rather than not measurable. The engine then skips the attached-only
+    /// preparation this function's body is: the scatter of the reduced primal
+    /// space to declared width, the price blocks' unit map, the folded bound
+    /// price, the two constraint blocks and the declared-diagnostics pass,
+    /// which is O(n) PER EVENT.
     ///
-    /// AND WHAT THE MASK BUYS, RE-MEASURED ON THAT SAME LEG (M7 W0 T2,
-    /// `docs/notes/data/2026-09-m7-w0-t2-callback-payload/reading.md`): the
-    /// full payload costs +1.376 %/+1.401 % and kScalars costs
-    /// +0.588 %/+0.618 %, so declaring kScalars removes 56-57 % of what
-    /// attaching costs this engine. It does not remove all of it: what is left
-    /// does not scale with the problem, is not the payload, and is registered
-    /// with its number rather than fixed here (that reading's section 5).
+    /// WHAT THAT SAVES, AND WHAT IT DOES NOT (M7 W0 T2,
+    /// `docs/notes/data/2026-09-m7-w0-t2-callback-payload/reading.md`; the cost
+    /// it was built against is W6 T6's, sections 3-4 of
+    /// `docs/notes/data/2026-09-m6-w6-attached-cost/reading.md`, +1.46 %/
+    /// +1.71 %). On the same leg, a cheap callback at kAll costs
+    /// +1.376 %/+1.401 % instructions and at kScalars costs +0.588 %/+0.618 %.
+    ///
+    ///   REMOVED: 57 % of it -- the vector/diagnostic work above, measured to
+    ///   scale with the problem (the saving rises 10.2x for a 13.5x rise in
+    ///   width), which is the shape that work has.
+    ///
+    ///   NOT REMOVED: a residual of about +0.6 %, WHICH IS NOT UNDERSTOOD and
+    ///   is registered rather than explained. It does not scale with the
+    ///   problem, so no wider mask reaches it; it is not the attach or the
+    ///   per-event dispatch (an attached trace sink on the same leg costs
+    ///   +0.04 %); and the O(1) work left on this path cannot account for its
+    ///   size. That reading's section 5 names ONE UNPROVED CANDIDATE -- the
+    ///   attached-only O(n) `step_norm` computation this engine does outside
+    ///   this function, which the mask cannot reach because `step_norm` is a
+    ///   field kScalars promises -- and states plainly what the leg could not
+    ///   separate. Do not read that candidate as the explanation.
     ///
     /// WHO THE MASK IS FOR. A benchmark harness that wants per-iteration
     /// COUNTS -- how many majors, at what objective, at what wall -- attaches
-    /// with kScalars and pays nothing for the vectors it never reads. A
+    /// with kScalars and stops paying for the vectors it never reads. A
     /// consumer that CAPTURES THE TRAJECTORY keeps kAll, which is what the
     /// one-argument overload installs, and pays what it always paid.
     ///

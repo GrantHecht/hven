@@ -213,26 +213,34 @@ enum class CallbackAction {
 
 /// @brief What an attached iteration callback asks its engine to PREPARE.
 ///
-/// A BIT MASK, declared at attachment (M7 W0 T2). The scalars of an
-/// IterationEvent cost a copy; the four vector views and the four declared
-/// diagnostics cost O(n) of engine work PER EVENT -- an expansion out of the
-/// engine's own space, a units map, and one pass over every declared
-/// coordinate and constraint row -- and that work is the whole measured cost of
-/// attaching an observer (`docs/notes/data/2026-09-m6-w6-attached-cost/`,
-/// reading.md section 4: the interior-point leg reads +1.46 %/+1.71 %
-/// instructions with the cheapest possible callback attached, and the SQP
-/// corpus reads FLAT). So the CONSUMER DECLARES what it reads, and an engine
-/// prepares nothing else.
+/// A BIT MASK, declared at attachment (M7 W0 T2). The four vector views and the
+/// four declared diagnostics cost O(n) of engine work PER EVENT -- an expansion
+/// out of the engine's own space, a units map, and one pass over every declared
+/// coordinate and constraint row -- prepared whether or not the consumer reads
+/// them. So the CONSUMER DECLARES what it reads, and an engine prepares nothing
+/// else.
 ///
-/// WHAT IT BOUGHT, MEASURED (M7 W0 T2,
-/// `docs/notes/data/2026-09-m7-w0-t2-callback-payload/`). On the top-level
-/// interior-point corpus leg a cheap callback at @ref kAll costs
-/// +1.376 %/+1.401 % instructions; the same callback at @ref kScalars costs
-/// +0.588 %/+0.618 %. The mask removes 56-57 % of the attached cost, and what
-/// it removes is the O(n) part: the saving rises 10.2x for a 13.5x rise in
-/// problem width. It does NOT reach zero -- what is left does not scale with
-/// the problem and is registered, not fixed, by that task. On the SQP engine
-/// both arms are FLAT, as they were before the mask existed.
+/// WHAT IT REMOVES, AND WHAT IT DOES NOT (M7 W0 T2,
+/// `docs/notes/data/2026-09-m7-w0-t2-callback-payload/`; the cost it was built
+/// against is W6 T6's, `docs/notes/data/2026-09-m6-w6-attached-cost/`). On the
+/// top-level interior-point corpus leg, a cheap callback at @ref kAll costs
+/// +1.376 %/+1.401 % instructions and the same callback at @ref kScalars costs
+/// +0.588 %/+0.618 %.
+///
+///   REMOVED -- 57 % of the attached cost, and it is the vector/diagnostic
+///   work this mask names: measured to scale with the problem (the saving
+///   rises 10.2x for a 13.5x rise in problem width), which is the shape that
+///   work has.
+///
+///   NOT REMOVED -- a residual of about +0.6 %, WHICH IS NOT UNDERSTOOD. It
+///   does not scale with the problem, so no wider mask reaches it; it is not
+///   the attach or the per-event dispatch (an attached trace sink on the same
+///   leg costs +0.04 %); and the O(1) work left on the kScalars path cannot
+///   account for its size. It is REGISTERED with its number, not explained.
+///   That reading's section 5 names one UNPROVED candidate and says plainly
+///   what the leg could not separate.
+///
+/// On the SQP engine both arms are FLAT, as they were before the mask existed.
 ///
 /// The ONE-ARGUMENT set_iteration_callback() means @ref kAll on both engines,
 /// so nothing a caller wrote before this type existed changes.
