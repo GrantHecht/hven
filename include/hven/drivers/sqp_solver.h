@@ -782,8 +782,52 @@ class SqpSolver {
     ///
     /// @param cb The callback. An empty std::function is the same as clearing.
     void set_iteration_callback(IterationCallback cb) {
+        set_iteration_callback(std::move(cb), IterationPayload::kAll);
+    }
+
+    /// @brief Installs the per-iteration callback and DECLARES what it reads.
+    ///
+    /// Everything the one-argument overload documents holds here unchanged --
+    /// one event per history row, the caller's units, the depth stamping and
+    /// the restoration forwarding, what kStop does, the in-flight deferral,
+    /// the throw contract. This overload adds ONE thing: @p payload, the mask
+    /// of IterationEvent parts this consumer will actually read, and the
+    /// driver prepares nothing else.
+    ///
+    /// WHAT A SCALARS-ONLY CONSUMER GETS, AND WHAT IT SAVES. Under
+    /// IterationPayload::kScalars the event carries `iteration`, `depth`, `f`,
+    /// `step_norm`, `radius` and `elapsed_seconds`; `x`, `lambda_e`,
+    /// `lambda_i` and `z` are EMPTY views, and the four diagnostics are NaN --
+    /// which here means NOT REQUESTED rather than not measurable. The driver
+    /// then skips the measurement snapshot this engine takes behind its
+    /// callback guard: the iterate and its three price blocks copied out, the
+    /// engine->caller scaling map applied to them, and the declared-diagnostics
+    /// pass beside them. On THIS engine that preparation measured FLAT over
+    /// the 27-cell SQP corpus in all three modes
+    /// (`docs/notes/data/2026-09-m6-w6-attached-cost/reading.md` section 2) --
+    /// the events are per MAJOR and there are few of them -- so the mask is
+    /// carried here for ONE SURFACE across both engines rather than because
+    /// this engine needed it. The interior-point engine is where it pays.
+    ///
+    /// WHO THE MASK IS FOR. A benchmark harness that wants per-iteration
+    /// COUNTS attaches with kScalars; a consumer that CAPTURES THE TRAJECTORY
+    /// keeps kAll, which is what the one-argument overload installs.
+    ///
+    /// THE MASK RIDES THE CALLABLE: stored beside it, parked through the same
+    /// in-flight guard, applied at the same safe point, reset to kAll by
+    /// clear_iteration_callback(), and FORWARDED into a restoration sub-solve
+    /// with the forwarder itself, so a depth-1 event carries the same payload
+    /// as a depth-0 one. Set from INSIDE the callback it takes effect at the
+    /// NEXT event, exactly as a replacement callable does.
+    ///
+    /// @param cb      The callback. An empty std::function is the same as
+    ///                clearing (and, like clearing, resets the mask).
+    /// @param payload What this callback reads. IterationPayload::kAll is the
+    ///                shape every consumer had before this overload existed.
+    void set_iteration_callback(IterationCallback cb, IterationPayload payload) {
         if (callback_in_flight_ || solve_in_flight_) {
             pending_callback_ = std::move(cb);
+            pending_payload_ = payload;
             // WHICH SAFE POINT APPLIES IT (M6 W5 T8.7b, the lane's Q5, taken on
             // both engines). From inside the callback: the statement after that
             // invocation returns -- T8.6's contract, unchanged. From anywhere
@@ -816,15 +860,21 @@ class SqpSolver {
         pending_callback_.reset();
         pending_callback_at_entry_ = false;
         iteration_callback_ = std::move(cb);
+        iteration_payload_ = payload;
     }
-    /// @brief Removes the per-iteration callback.
+    /// @brief Removes the per-iteration callback, and resets the payload mask.
     ///
     /// Deferred to the safe point when called from INSIDE the callback; see
     /// set_iteration_callback(), whose ONE deferral slot this shares -- last
     /// write wins.
+    ///
+    /// THE MASK GOES BACK TO IterationPayload::kAll, so a later attach through
+    /// the one-argument overload delivers the full payload and no narrowing
+    /// survives a clear (M7 W0 T2).
     void clear_iteration_callback() {
         if (callback_in_flight_ || solve_in_flight_) {
             pending_callback_ = IterationCallback{};
+            pending_payload_ = IterationPayload::kAll;
             pending_callback_at_entry_ = !callback_in_flight_;
             return;
         }
@@ -832,6 +882,7 @@ class SqpSolver {
         pending_callback_.reset();
         pending_callback_at_entry_ = false;
         iteration_callback_ = nullptr;
+        iteration_payload_ = IterationPayload::kAll;
     }
 
     /// @brief Returns the options this driver runs under.
@@ -1676,6 +1727,14 @@ class SqpSolver {
     // depth and latches a stop on THIS driver.
     IterationCallback iteration_callback_;
 
+    // WHAT THAT CALLBACK DECLARED IT READS (M7 W0 T2), and the only thing
+    // `measure_iterate`'s snapshot prepares beyond the row's own scalars. kAll
+    // is what the one-argument set_iteration_callback() installs and what a
+    // clear resets to, so a driver with no callback carries no narrowing into
+    // the next attach. FORWARDED into the restoration sub-driver beside the
+    // forwarder itself (see enter_restoration).
+    IterationPayload iteration_payload_ = IterationPayload::kAll;
+
     // THE IN-FLIGHT GUARD AND THE DEFERRED CHANGE (M6 W5 T8.6 fix1, the SQP
     // lane's M1). `callback_in_flight_` is true for exactly the duration of one
     // invocation of `iteration_callback_`; a set_/clear_iteration_callback()
@@ -1686,6 +1745,11 @@ class SqpSolver {
     // replacement; disengaged is "nothing pending".
     bool callback_in_flight_ = false;
     std::optional<IterationCallback> pending_callback_;
+    // The mask parked beside `pending_callback_`, and engaged exactly when it
+    // is: the two are written together at every setter and applied together at
+    // every safe point, so a deferred attach cannot land with the previous
+    // consumer's mask (M7 W0 T2).
+    IterationPayload pending_payload_ = IterationPayload::kAll;
     // WHICH SAFE POINT the parked value belongs to (M6 W5 T8.7b). False: the
     // statement after the running callback returns. True: the next solve's
     // entry, which is where a value parked by a SINK method is applied.

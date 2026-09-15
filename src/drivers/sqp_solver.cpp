@@ -4238,22 +4238,30 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     //     that phase comes back kResumed (the loop's next major reads the
     //     latch at its exit conjunction) or kExited (the sub-solve's own
     //     kInterrupted arrives in the switch below).
+    //
+    // AND THE PAYLOAD MASK TRAVELS WITH IT (M7 W0 T2), as the second argument
+    // below: the sub-driver prepares a depth-1 event's payload for the SAME
+    // consumer this driver has, so it must prepare exactly what that consumer
+    // declared. Forwarding the callable alone would make a scalars-only
+    // consumer pay the full payload on every restoration major.
     if (iteration_callback_) {
-        sub.set_iteration_callback([this, &st](const IterationEvent &e) {
-            IterationEvent nested = e;
-            nested.depth = e.depth.value_or(0) + 1;
-            nested.elapsed_seconds =
-                std::chrono::duration<double>(std::chrono::steady_clock::now() - this->entry_time_)
-                    .count();
-            // THROUGH THE GUARDED ENTRY (M6 W5 T8.6 fix1), so that a
-            // callback clearing itself from inside a DEPTH-1 event is deferred
-            // exactly as it is at depth 0.
-            const CallbackAction action = this->invoke_iteration_callback(nested);
-            if (action == CallbackAction::kStop) {
-                st.interrupted = true;
-            }
-            return action;
-        });
+        sub.set_iteration_callback(
+            [this, &st](const IterationEvent &e) {
+                IterationEvent nested = e;
+                nested.depth = e.depth.value_or(0) + 1;
+                nested.elapsed_seconds = std::chrono::duration<double>(
+                                             std::chrono::steady_clock::now() - this->entry_time_)
+                                             .count();
+                // THROUGH THE GUARDED ENTRY (M6 W5 T8.6 fix1), so that a
+                // callback clearing itself from inside a DEPTH-1 event is deferred
+                // exactly as it is at depth 0.
+                const CallbackAction action = this->invoke_iteration_callback(nested);
+                if (action == CallbackAction::kStop) {
+                    st.interrupted = true;
+                }
+                return action;
+            },
+            iteration_payload_);
     }
     const SqpResult rs = sub.solve(feasibility, feasibility.start_point());
 
@@ -4636,7 +4644,12 @@ void SqpSolver::apply_pending_iteration_callback(bool at_solve_entry) {
         return;
     }
     iteration_callback_ = std::move(*pending_callback_);
+    // THE MASK LANDS WITH THE CALLABLE (M7 W0 T2). The two are parked at the
+    // same statement in every setter, so applying one without the other would
+    // hand the new consumer the previous one's payload.
+    iteration_payload_ = pending_payload_;
     pending_callback_.reset();
+    pending_payload_ = IterationPayload::kAll;
     pending_callback_at_entry_ = false;
 }
 
@@ -4692,7 +4705,38 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         // Copied only when a callback is installed, so a solve without one pays
         // nothing at all. Re-taken with the rest of the row when the watchdog
         // restores an earlier iterate, which is why it lives in this lambda.
+        //
+        // AND SINCE M7 W0 T2, ONLY WHAT THE CONSUMER DECLARED. The payload mask
+        // the callback was attached with selects the two halves of this
+        // snapshot independently. The diagnostics are computed FROM the mapped
+        // snapshot, so a kDiagnostics-only mask still takes it and then EMPTIES
+        // the four members; a kScalars mask takes none of it.
+        const bool want_vectors =
+            iteration_callback_ && payload_requests(iteration_payload_, IterationPayload::kVectors);
+        const bool want_diagnostics =
+            iteration_callback_ &&
+            payload_requests(iteration_payload_, IterationPayload::kDiagnostics);
+        // The four snapshot members, emptied. A mask NARROWED from inside a
+        // callback takes effect at the next event, so a stale snapshot taken
+        // under a wider mask must not survive into one taken under this.
+        auto drop_snapshot = [&mj] {
+            if (mj.event_x.size() != 0 || mj.event_lambda_e.size() != 0 ||
+                mj.event_lambda_i.size() != 0 || mj.event_z.size() != 0) {
+                mj.event_x.resize(0);
+                mj.event_lambda_e.resize(0);
+                mj.event_lambda_i.resize(0);
+                mj.event_z.resize(0);
+            }
+        };
         if (iteration_callback_) {
+            // Left at DeclaredDiagnostics' NaN default unless the mask asks for
+            // them AND something was measured here -- the non-finite-start row
+            // is the second case, and a zero would read as a converged
+            // residual. Under a mask that omits them the same NaN means NOT
+            // REQUESTED (drivers/solve_result.h's IterationPayload).
+            mj.event_diag = DeclaredDiagnostics{};
+        }
+        if (want_vectors || want_diagnostics) {
             const detail::ProblemScaling &sc = st.solve_scaling;
             const bool scaled = sc.active;
             mj.event_x = st.x;
@@ -4711,12 +4755,8 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
                 mj.event_z /= sc.obj;
             }
             // THE FOUR SHARED DIAGNOSTICS, by the one definition, from the
-            // measurement this row was taken from. Left at DeclaredDiagnostics'
-            // NaN default when nothing was measured here -- the
-            // non-finite-start row is the case, and a zero would read as a
-            // converged residual.
-            mj.event_diag = DeclaredDiagnostics{};
-            if (mj.kkt.finite) {
+            // measurement this row was taken from.
+            if (want_diagnostics && mj.kkt.finite) {
                 Vec grad_lag_c = mj.kkt.grad_lag;
                 Vec ce_c = st.ev.ce;
                 Vec ci_c = st.ev.ci;
@@ -4733,6 +4773,14 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
                     mj.event_x, mj.event_lambda_i, mj.event_z, grad_lag_c, ce_c, ci_c, seam.lower(),
                     seam.upper(), {});
             }
+            if (!want_vectors) {
+                drop_snapshot();
+            }
+        } else if (iteration_callback_) {
+            // A SCALARS-ONLY CONSUMER. Nothing is snapshotted; the only work
+            // here is the size check that keeps a wider mask's snapshot from
+            // surviving a narrowing.
+            drop_snapshot();
         } else if (mj.event_x.size() != 0 || mj.event_lambda_e.size() != 0 ||
                    mj.event_lambda_i.size() != 0 || mj.event_z.size() != 0) {
             // AND A SOLVE WITH NO CALLBACK COPIES NOTHING (M6 W5 T8.6 fix1),

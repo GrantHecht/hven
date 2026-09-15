@@ -211,7 +211,61 @@ enum class CallbackAction {
     kStop = 1,
 };
 
+/// @brief What an attached iteration callback asks its engine to PREPARE.
+///
+/// A BIT MASK, declared at attachment (M7 W0 T2). The scalars of an
+/// IterationEvent cost a copy; the four vector views and the four declared
+/// diagnostics cost O(n) of engine work PER EVENT -- an expansion out of the
+/// engine's own space, a units map, and one pass over every declared
+/// coordinate and constraint row -- and that work is the whole measured cost of
+/// attaching an observer (`docs/notes/data/2026-09-m6-w6-attached-cost/`,
+/// reading.md section 4: the interior-point leg reads +1.46 %/+1.71 %
+/// instructions with the cheapest possible callback attached, and the SQP
+/// corpus reads FLAT). So the CONSUMER DECLARES what it reads, and an engine
+/// prepares nothing else.
+///
+/// The ONE-ARGUMENT set_iteration_callback() means @ref kAll on both engines,
+/// so nothing a caller wrote before this type existed changes.
+enum class IterationPayload : unsigned {
+    /// The fields that cost only a copy, and that EVERY mask delivers:
+    /// `iteration`, `phase`/`depth`, `f`, `step_norm`, `radius`/`mu` and
+    /// `elapsed_seconds`. As a mask on its own it asks for nothing else.
+    kScalars = 0,
+    /// The four vector views -- `x`, `lambda_e`, `lambda_i`, `z`. Without this
+    /// bit all four arrive EMPTY (size 0).
+    kVectors = 1,
+    /// The four declared diagnostics -- `stationarity`, `feasibility_e`,
+    /// `feasibility_i`, `complementarity`. Without this bit all four arrive
+    /// NaN, which under this header's own rule reads as NOT MEASURED; under a
+    /// mask that omits them it means NOT REQUESTED, which is the same absence.
+    kDiagnostics = 2,
+    /// Everything: the shape every consumer got before the mask existed.
+    kAll = kVectors | kDiagnostics,
+};
+
+/// @brief The union of two payload selections.
+constexpr IterationPayload operator|(IterationPayload a, IterationPayload b) noexcept {
+    return static_cast<IterationPayload>(static_cast<unsigned>(a) | static_cast<unsigned>(b));
+}
+
+/// @brief True when @p mask asks for every bit of @p part.
+///
+/// `payload_requests(m, IterationPayload::kScalars)` is true for every mask:
+/// the scalars are not a bit and are always delivered.
+constexpr bool payload_requests(IterationPayload mask, IterationPayload part) noexcept {
+    return (static_cast<unsigned>(mask) & static_cast<unsigned>(part)) ==
+           static_cast<unsigned>(part);
+}
+
 /// @brief One iteration, as both engines report it to a caller's callback.
+///
+/// WHAT ARRIVES DEPENDS ON THE PAYLOAD MASK the callback was attached with
+/// (@ref IterationPayload, M7 W0 T2). Under the default @ref
+/// IterationPayload::kAll -- which is what the one-argument
+/// set_iteration_callback() installs -- every field below is prepared, as it
+/// always was. Under a narrower mask the four vector views arrive EMPTY and/or
+/// the four diagnostics arrive NaN, and the engine does not do the work that
+/// would have filled them. The scalars are delivered under every mask.
 ///
 /// AT `depth` 0 -- which is every interior-point event and every top-level SQP
 /// major -- EVERY field is in DECLARED space and CALLER units, exactly as

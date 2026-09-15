@@ -2240,6 +2240,15 @@ hven::solvers::IpmSolver::declared_diagnostics_from_reduced_grad_lag(
 // THE VIEWS ARE LOCALS OF THIS FUNCTION, which is the whole of
 // IterationEvent's "valid for the call only": the callback runs inside this
 // frame and the storage dies with it.
+//
+// AND SINCE M7 W0 T2 ONLY WHAT THE CONSUMER DECLARED IS PREPARED. Everything
+// this function does below the null guard is attached-only and O(n) per event,
+// which W6 T6 measured at +1.46 %/+1.71 % instructions over the whole
+// top-level interior-point leg with the cheapest possible callback attached
+// (`docs/notes/data/2026-09-m6-w6-attached-cost/reading.md` sections 3-4). The
+// payload mask the callback was attached with is read once, here, and a
+// kScalars consumer runs none of it: empty views, NaN diagnostics, and the
+// scalars the event always carried. See IpmSolver::set_iteration_callback.
 // ---------------------------------------------------------------------------
 void hven::solvers::IpmSolver::fire_iteration_event(const IterateInfo &iter,
                                                     const Eigen::VectorXd &XSL,
@@ -2248,113 +2257,150 @@ void hven::solvers::IpmSolver::fire_iteration_event(const IterateInfo &iter,
     if (!this->iteration_callback_) {
         return;
     }
-    ConstKKTVector v_xsl = this->kkt_view(XSL);
-    ConstKKTVector v_rhs = this->kkt_view(RHS);
+    // WHAT THIS CONSUMER DECLARED IT READS (M7 W0 T2). Everything below the
+    // guard is ATTACHED-ONLY preparation and it is O(n) per event -- the
+    // scatter, the three unit maps, the folded bound price, the two constraint
+    // blocks and the declared-diagnostics pass -- which is the whole measured
+    // cost of attaching an observer to this engine (W6 T6's +1.46 %/+1.71 %).
+    // So it is prepared only when the mask asks for it.
+    //
+    // THE VECTORS AND THE DIAGNOSTICS SHARE ONE BLOCK because the diagnostics
+    // are computed FROM the declared vectors: a kDiagnostics-only mask still
+    // runs the expansion, and hands out empty views at the end. A kScalars
+    // mask runs none of it.
+    const bool want_vectors =
+        payload_requests(this->iteration_payload_, IterationPayload::kVectors);
+    const bool want_diagnostics =
+        payload_requests(this->iteration_payload_, IterationPayload::kDiagnostics);
+    const bool want_declared = want_vectors || want_diagnostics;
 
     const double scale = this->solve_obj_scale_;
-    const Eigen::Index n = this->full_primal_vars_;
-    const Eigen::Index user_eq = this->nlp_->user_equal_cons_;
-    const Eigen::Index fixing_rows = static_cast<Eigen::Index>(this->equal_cons_) - user_eq;
-    const auto &fixed_idx = this->nlp_->fixed_variable_indices();
-    const bool have_fixing_rows = fixing_rows > 0 && fixed_idx.size() == fixing_rows;
+    const double nan = std::numeric_limits<double>::quiet_NaN();
 
-    // (1) The primals, scattered to declared width. A positive objective scale
-    //     does not move a point, so nothing is divided out here.
-    Eigen::VectorXd x_declared;
-    if (this->nlp_->is_reduced()) {
-        x_declared.resize(n);
-        this->nlp_->scatter_full_x(Eigen::VectorXd(v_xsl.primals()), x_declared);
-    } else {
-        x_declared = v_xsl.primals();
-    }
-
-    // (2) The equality prices, with the treatment's own rows taken off the tail
-    //     and held for the bound price and the gradient below.
-    Eigen::VectorXd lambda_e_declared;
-    Eigen::VectorXd fixed_lambda;
-    if (this->equal_cons_ > 0) {
-        const Eigen::VectorXd all_e = v_xsl.eq_lmults();
-        if (have_fixing_rows) {
-            fixed_lambda = all_e.tail(fixing_rows) / scale;
-        }
-        lambda_e_declared = all_e.head(user_eq) / scale;
-    }
-    Eigen::VectorXd lambda_i_declared;
-    if (this->inequal_cons_ > 0) {
-        lambda_i_declared = Eigen::VectorXd(v_xsl.iq_lmults()) / scale;
-    }
-
-    // (3) The bound price, folded from the two per-side multipliers with the
-    //     signs the stationarity convention forces, scattered to declared
-    //     width, and given the fixing row's own price where a MakeConstraint
-    //     coordinate has one.
-    Eigen::VectorXd z_declared = Eigen::VectorXd::Zero(n);
-    if (this->bounds_) {
-        Eigen::VectorXd z_reduced = Eigen::VectorXd::Zero(this->primal_vars_);
-        const int nl = static_cast<int>(this->bounds_->lower_idx_.size());
-        const int nu = static_cast<int>(this->bounds_->upper_idx_.size());
-        for (int k = 0; k < nl; k++)
-            z_reduced[this->bounds_->lower_idx_[k]] += this->bound_duals_.z_lower_[k];
-        for (int k = 0; k < nu; k++)
-            z_reduced[this->bounds_->upper_idx_[k]] -= this->bound_duals_.z_upper_[k];
-        z_reduced /= scale;
-        if (this->nlp_->is_reduced()) {
-            const auto &r2f = this->nlp_->reduced_to_full();
-            if (r2f.size() == z_reduced.size()) {
-                for (Eigen::Index k = 0; k < z_reduced.size(); ++k) {
-                    z_declared[r2f[k]] = z_reduced[k];
-                }
-            }
-        } else if (z_reduced.size() == n) {
-            z_declared = z_reduced;
-        }
-    }
-    if (have_fixing_rows) {
-        for (Eigen::Index k = 0; k < fixing_rows; ++k) {
-            z_declared[fixed_idx[k]] = -fixed_lambda[k];
-        }
-    }
-
-    // (4) The two constraint blocks, declared rows only.
-    Eigen::VectorXd ce_declared;
-    Eigen::VectorXd ci_declared;
-    if (this->equal_cons_ > 0) {
-        ce_declared = Eigen::VectorXd(v_rhs.eq_cons()).head(user_eq);
-    }
-    if (this->inequal_cons_ > 0) {
-        ci_declared = v_rhs.iq_cons() - v_xsl.slacks();
-    }
-
-    // (5) THE PROVENANCE GATE, the result's own (T8.4 fix1). The evaluation
-    //     this event reads is the one THIS iteration took at the top of the
-    //     loop, so `cur_eval_prov_` describes it exactly.
+    // THE PROVENANCE GATE, the result's own (T8.4 fix1). The evaluation this
+    // event reads is the one THIS iteration took at the top of the loop, so
+    // `cur_eval_prov_` describes it exactly. O(1), and it gates the objective
+    // -- a SCALAR, delivered under every mask -- so it is read above the
+    // payload block rather than inside it.
     const ExitEvalProvenance &prov = this->cur_eval_prov_;
     const bool restoration_contaminated =
         prov.restoration_active ||
         (this->restoration_ != nullptr && this->restoration_->is_active());
-    if (restoration_contaminated) {
-        // The rows this right-hand side carries are the restoration
-        // subproblem's condensed residuals, not the declared ones. Emptied
-        // rather than copied -- an empty block reads as unmeasured, a copied
-        // one would read as a feasible point.
-        ce_declared.resize(0);
-        ci_declared.resize(0);
+
+    Eigen::VectorXd x_declared;
+    Eigen::VectorXd lambda_e_declared;
+    Eigen::VectorXd lambda_i_declared;
+    Eigen::VectorXd z_declared;
+    DeclaredDiagnostics diag;
+    if (want_declared) {
+        ConstKKTVector v_xsl = this->kkt_view(XSL);
+        ConstKKTVector v_rhs = this->kkt_view(RHS);
+
+        const Eigen::Index n = this->full_primal_vars_;
+        const Eigen::Index user_eq = this->nlp_->user_equal_cons_;
+        const Eigen::Index fixing_rows = static_cast<Eigen::Index>(this->equal_cons_) - user_eq;
+        const auto &fixed_idx = this->nlp_->fixed_variable_indices();
+        const bool have_fixing_rows = fixing_rows > 0 && fixed_idx.size() == fixing_rows;
+
+        // (1) The primals, scattered to declared width. A positive objective
+        //     scale does not move a point, so nothing is divided out here.
+        if (this->nlp_->is_reduced()) {
+            x_declared.resize(n);
+            this->nlp_->scatter_full_x(Eigen::VectorXd(v_xsl.primals()), x_declared);
+        } else {
+            x_declared = v_xsl.primals();
+        }
+
+        // (2) The equality prices, with the treatment's own rows taken off the
+        //     tail and held for the bound price and the gradient below.
+        Eigen::VectorXd fixed_lambda;
+        if (this->equal_cons_ > 0) {
+            const Eigen::VectorXd all_e = v_xsl.eq_lmults();
+            if (have_fixing_rows) {
+                fixed_lambda = all_e.tail(fixing_rows) / scale;
+            }
+            lambda_e_declared = all_e.head(user_eq) / scale;
+        }
+        if (this->inequal_cons_ > 0) {
+            lambda_i_declared = Eigen::VectorXd(v_xsl.iq_lmults()) / scale;
+        }
+
+        // (3) The bound price, folded from the two per-side multipliers with
+        //     the signs the stationarity convention forces, scattered to
+        //     declared width, and given the fixing row's own price where a
+        //     MakeConstraint coordinate has one.
+        z_declared = Eigen::VectorXd::Zero(n);
+        if (this->bounds_) {
+            Eigen::VectorXd z_reduced = Eigen::VectorXd::Zero(this->primal_vars_);
+            const int nl = static_cast<int>(this->bounds_->lower_idx_.size());
+            const int nu = static_cast<int>(this->bounds_->upper_idx_.size());
+            for (int k = 0; k < nl; k++)
+                z_reduced[this->bounds_->lower_idx_[k]] += this->bound_duals_.z_lower_[k];
+            for (int k = 0; k < nu; k++)
+                z_reduced[this->bounds_->upper_idx_[k]] -= this->bound_duals_.z_upper_[k];
+            z_reduced /= scale;
+            if (this->nlp_->is_reduced()) {
+                const auto &r2f = this->nlp_->reduced_to_full();
+                if (r2f.size() == z_reduced.size()) {
+                    for (Eigen::Index k = 0; k < z_reduced.size(); ++k) {
+                        z_declared[r2f[k]] = z_reduced[k];
+                    }
+                }
+            } else if (z_reduced.size() == n) {
+                z_declared = z_reduced;
+            }
+        }
+        if (have_fixing_rows) {
+            for (Eigen::Index k = 0; k < fixing_rows; ++k) {
+                z_declared[fixed_idx[k]] = -fixed_lambda[k];
+            }
+        }
+
+        if (want_diagnostics) {
+            // (4) The two constraint blocks, declared rows only. They feed the
+            //     diagnostics and NOTHING ELSE -- they are not fields of the
+            //     event -- so they are prepared only when the diagnostics are.
+            Eigen::VectorXd ce_declared;
+            Eigen::VectorXd ci_declared;
+            if (this->equal_cons_ > 0) {
+                ce_declared = Eigen::VectorXd(v_rhs.eq_cons()).head(user_eq);
+            }
+            if (this->inequal_cons_ > 0) {
+                ci_declared = v_rhs.iq_cons() - v_xsl.slacks();
+            }
+            if (restoration_contaminated) {
+                // The rows this right-hand side carries are the restoration
+                // subproblem's condensed residuals, not the declared ones.
+                // Emptied rather than copied -- an empty block reads as
+                // unmeasured, a copied one would read as a feasible point.
+                ce_declared.resize(0);
+                ci_declared.resize(0);
+            }
+            const bool measured = prov.has_eval && !restoration_contaminated &&
+                                  v_rhs.prim_grad().size() == this->primal_vars_;
+            if (measured) {
+                // THE RESULT'S OWN CONVERSION, CALLED AND NOT COPIED (M6 W5
+                // T8.6 fix1). Clause (a) -- a feasibility phase measures every
+                // declared quantity except the objective gradient, so
+                // stationarity ALONE is unmeasured there -- is applied inside
+                // it, exactly as the result applies it.
+                diag = this->declared_diagnostics_from_reduced_grad_lag(
+                    x_declared, lambda_i_declared, z_declared, Eigen::VectorXd(v_rhs.prim_grad()),
+                    have_fixing_rows ? fixed_lambda : Eigen::VectorXd(), ce_declared, ci_declared,
+                    scale, prov.objective_bearing);
+            }
+        }
     }
 
-    const double nan = std::numeric_limits<double>::quiet_NaN();
-    DeclaredDiagnostics diag;
-    const bool measured = prov.has_eval && !restoration_contaminated &&
-                          v_rhs.prim_grad().size() == this->primal_vars_;
-    if (measured) {
-        // THE RESULT'S OWN CONVERSION, CALLED AND NOT COPIED (M6 W5 T8.6 fix1).
-        // Clause (a) -- a feasibility phase measures every declared quantity
-        // except the objective gradient, so stationarity ALONE is unmeasured
-        // there -- is applied inside it, exactly as the result applies it.
-        diag = this->declared_diagnostics_from_reduced_grad_lag(
-            x_declared, lambda_i_declared, z_declared, Eigen::VectorXd(v_rhs.prim_grad()),
-            have_fixing_rows ? fixed_lambda : Eigen::VectorXd(), ce_declared, ci_declared, scale,
-            prov.objective_bearing);
-    }
+    // THE FOUR VIEWS, or four empty ones. `no_vector` is an empty
+    // Eigen::VectorXd that allocates nothing, so a kScalars event binds its
+    // views to size-0 storage and the caller reads `x.size() == 0` -- the
+    // documented "not requested" shape.
+    const Eigen::VectorXd no_vector;
+    const Eigen::VectorXd &event_x = want_vectors ? x_declared : no_vector;
+    const Eigen::VectorXd &event_lambda_e = want_vectors ? lambda_e_declared : no_vector;
+    const Eigen::VectorXd &event_lambda_i = want_vectors ? lambda_i_declared : no_vector;
+    const Eigen::VectorXd &event_z = want_vectors ? z_declared : no_vector;
 
     // THE OBJECTIVE, UNDER THE RESULT'S OWN PROVENANCE RULE (M6 W5 T8.6 fix1,
     // astra item 1). `iter.prim_obj_` is NOT the caller's objective at this
@@ -2382,10 +2428,10 @@ void hven::solvers::IpmSolver::fire_iteration_event(const IterateInfo &iter,
         .step_norm = step_norm,
         .radius = std::nullopt,
         .mu = mu / scale,
-        .x = x_declared,
-        .lambda_e = lambda_e_declared,
-        .lambda_i = lambda_i_declared,
-        .z = z_declared,
+        .x = event_x,
+        .lambda_e = event_lambda_e,
+        .lambda_i = event_lambda_i,
+        .z = event_z,
         .elapsed_seconds =
             std::chrono::duration<double>(std::chrono::steady_clock::now() - this->entry_time_)
                 .count(),
@@ -2427,7 +2473,12 @@ void hven::solvers::IpmSolver::apply_pending_iteration_callback(bool at_solve_en
         return;
     }
     this->iteration_callback_ = std::move(*this->pending_callback_);
+    // THE MASK LANDS WITH THE CALLABLE (M7 W0 T2). The two are parked at the
+    // same statement in every setter, so applying one without the other would
+    // hand the new consumer the previous one's payload.
+    this->iteration_payload_ = this->pending_payload_;
     this->pending_callback_.reset();
+    this->pending_payload_ = IterationPayload::kAll;
     this->pending_callback_at_entry_ = false;
 }
 

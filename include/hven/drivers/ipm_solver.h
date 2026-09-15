@@ -535,8 +535,53 @@ class IpmSolver {
     ///
     /// @param cb The callback. An empty std::function is the same as clearing.
     void set_iteration_callback(IterationCallback cb) {
+        this->set_iteration_callback(std::move(cb), IterationPayload::kAll);
+    }
+
+    /// @brief Installs the per-iteration callback and DECLARES what it reads.
+    ///
+    /// Everything the one-argument overload documents holds here unchanged --
+    /// the placement of the event, what kStop does, the in-flight deferral,
+    /// the throw contract. This overload adds ONE thing: @p payload, the mask
+    /// of IterationEvent parts this consumer will actually read, and the
+    /// engine prepares nothing else.
+    ///
+    /// WHAT A SCALARS-ONLY CONSUMER GETS, AND WHAT IT SAVES. Under
+    /// IterationPayload::kScalars the event carries `iteration`, `phase`, `f`,
+    /// `step_norm`, `mu` and `elapsed_seconds`; `x`, `lambda_e`, `lambda_i`
+    /// and `z` are EMPTY views, and the four diagnostics are NaN -- which here
+    /// means NOT REQUESTED rather than not measurable. The engine then skips
+    /// the whole attached-only preparation this function's body is: the
+    /// scatter of the reduced primal space to declared width, the price
+    /// blocks' unit map, the folded bound price, the two constraint blocks and
+    /// the declared-diagnostics pass. That preparation is O(n) PER EVENT and
+    /// it is the measured cost of attaching anything to this engine:
+    /// +1.46 %/+1.71 % instructions over the whole top-level interior-point
+    /// corpus leg with the cheapest possible callback attached
+    /// (`docs/notes/data/2026-09-m6-w6-attached-cost/reading.md` section 3-4;
+    /// re-measured under the mask in
+    /// `docs/notes/data/2026-09-m7-w0-t2-callback-payload/`).
+    ///
+    /// WHO THE MASK IS FOR. A benchmark harness that wants per-iteration
+    /// COUNTS -- how many majors, at what objective, at what wall -- attaches
+    /// with kScalars and pays nothing for the vectors it never reads. A
+    /// consumer that CAPTURES THE TRAJECTORY keeps kAll, which is what the
+    /// one-argument overload installs, and pays what it always paid.
+    ///
+    /// THE MASK RIDES THE CALLABLE. It is stored beside it, parked through the
+    /// same in-flight guard, applied at the same safe point, and reset to kAll
+    /// by clear_iteration_callback() -- so a re-attach through the
+    /// one-argument overload is kAll again. Set from INSIDE the callback it
+    /// takes effect at the NEXT event, exactly as a replacement callable does.
+    ///
+    /// @param cb      The callback. An empty std::function is the same as
+    ///                clearing (and, like clearing, resets the mask).
+    /// @param payload What this callback reads. IterationPayload::kAll is the
+    ///                shape every consumer had before this overload existed.
+    void set_iteration_callback(IterationCallback cb, IterationPayload payload) {
         if (this->callback_in_flight_ || this->solve_in_flight_) {
             this->pending_callback_ = std::move(cb);
+            this->pending_payload_ = payload;
             // WHICH SAFE POINT APPLIES IT (M6 W5 T8.7b, the lane's Q5).
             //
             // FROM INSIDE A CALLER-SUPPLIED INVOCATION -- the iteration
@@ -575,15 +620,21 @@ class IpmSolver {
         this->pending_callback_.reset();
         this->pending_callback_at_entry_ = false;
         this->iteration_callback_ = std::move(cb);
+        this->iteration_payload_ = payload;
     }
-    /// @brief Removes the per-iteration callback.
+    /// @brief Removes the per-iteration callback, and resets the payload mask.
     ///
     /// Deferred to the safe point when called from INSIDE the callback; see
     /// set_iteration_callback(), whose ONE SLOT this shares -- a park made here
     /// overwrites one made there in the same solve, and the last write wins.
+    ///
+    /// THE MASK GOES BACK TO IterationPayload::kAll, so a later attach through
+    /// the one-argument overload delivers the full payload and no narrowing
+    /// survives a clear (M7 W0 T2).
     void clear_iteration_callback() {
         if (this->callback_in_flight_ || this->solve_in_flight_) {
             this->pending_callback_ = IterationCallback{};
+            this->pending_payload_ = IterationPayload::kAll;
             this->pending_callback_at_entry_ =
                 !(this->callback_in_flight_ || this->kkt_hook_in_flight_);
             return;
@@ -592,6 +643,7 @@ class IpmSolver {
         this->pending_callback_.reset();
         this->pending_callback_at_entry_ = false;
         this->iteration_callback_ = nullptr;
+        this->iteration_payload_ = IterationPayload::kAll;
     }
 
     // --- The interior-point-only KKT hook (M6 W5 T8.6; W5 T2 semantics) ---
@@ -1229,6 +1281,17 @@ class IpmSolver {
     /// an installed std::function is armed and an empty one is not, which is
     /// the whole of clear_iteration_callback().
     IterationCallback iteration_callback_;
+    /// WHAT THAT CALLBACK DECLARED IT READS (M7 W0 T2), and the only thing
+    /// fire_iteration_event prepares beyond the scalars. kAll is what the
+    /// one-argument set_iteration_callback() installs and what a clear resets
+    /// to, so an engine with no callback carries no narrowing into the next
+    /// attach.
+    IterationPayload iteration_payload_ = IterationPayload::kAll;
+    /// The mask parked beside `pending_callback_`, and engaged exactly when it
+    /// is: the two are written together at every setter and applied together
+    /// at every safe point, so a deferred attach cannot land with the previous
+    /// consumer's mask.
+    IterationPayload pending_payload_ = IterationPayload::kAll;
 
     /// When this solve's public entry was taken, for IterationEvent::
     /// elapsed_seconds. Written by every public solve() overload at the same

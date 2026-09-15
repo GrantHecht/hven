@@ -1842,3 +1842,370 @@ TEST(Callback, ClearingTheCallbackStopsTheEvents) {
     (void)solver.solve(*program, hs071_start());
     EXPECT_EQ(ipm_rec.seen.size(), ipm_first);
 }
+
+// ===========================================================================
+// THE PAYLOAD MASK (M7 W0 T2). `IterationPayload` lets a consumer DECLARE what
+// its callback reads, and the engine prepares nothing else.
+//
+// WHY IT EXISTS: the attached-only payload each engine prepares behind its
+// callback guard is O(n) PER EVENT, and W6 T6 measured it at +1.46 %/+1.71 %
+// instructions over the whole top-level interior-point corpus leg with the
+// cheapest possible callback attached
+// (docs/notes/data/2026-09-m6-w6-attached-cost/reading.md sections 3-4). The
+// mask is ADDITIVE: the one-argument set_iteration_callback() means kAll, so
+// every consumer written before it keeps the shape it had, which the first two
+// tests below hold both engines to.
+//
+// WHAT "EMPTY" AND "NaN" MEAN HERE. Under a mask that omits kVectors the four
+// views arrive at SIZE 0 -- not a zero vector, which would read as a measured
+// point at the origin. Under a mask that omits kDiagnostics the four
+// diagnostics arrive NaN, which is drivers/solve_result.h's own "unmeasured is
+// NaN, never zero" rule carrying one more meaning: NOT REQUESTED.
+// ===========================================================================
+namespace {
+
+using hven::solvers::IterationPayload;
+
+/// Every field of an event that a mask may take away, plus the scalars a mask
+/// may not: `Seen` already carries both, so a mask comparison is a comparison
+/// of two `Seen` vectors.
+struct MaskRun {
+    std::vector<Seen> seen;
+    SolveStatus status = SolveStatus::kNumericalError;
+    Index iterations = 0;
+    Vec x;
+    Vec z;
+    long long factorizations = 0;
+};
+
+MaskRun ipm_run_under(std::optional<IterationPayload> mask) {
+    const auto program =
+        hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+    hven::solvers::IpmSolver solver;
+    solver.set_options(quiet_ipm(solver));
+    Recorder rec;
+    if (mask.has_value()) {
+        solver.set_iteration_callback(rec.hook(), *mask);
+    } else {
+        solver.set_iteration_callback(rec.hook());
+    }
+    const hven::solvers::IpmResult r = solver.solve(*program, hs071_start());
+    MaskRun out;
+    out.seen = std::move(rec.seen);
+    out.status = r.status;
+    out.iterations = r.iterations;
+    out.x = r.x;
+    out.z = r.z;
+    out.factorizations = static_cast<long long>(r.kkt_factor_counters.factorize_count);
+    return out;
+}
+
+MaskRun sqp_run_under(std::optional<IterationPayload> mask) {
+    Hs071View view;
+    SqpSolver driver(quiet_sqp());
+    Recorder rec;
+    if (mask.has_value()) {
+        driver.set_iteration_callback(rec.hook(), *mask);
+    } else {
+        driver.set_iteration_callback(rec.hook());
+    }
+    const SqpResult r = driver.solve(*view.bridge, hs071_start());
+    MaskRun out;
+    out.seen = std::move(rec.seen);
+    out.status = r.status;
+    out.iterations = static_cast<Index>(r.history.size());
+    out.x = r.x;
+    out.z = r.z;
+    out.factorizations = static_cast<long long>(r.counters.factorizations);
+    return out;
+}
+
+bool all_nan(const Seen &s) {
+    return std::isnan(s.stationarity) && std::isnan(s.feasibility_e) &&
+           std::isnan(s.feasibility_i) && std::isnan(s.complementarity);
+}
+
+bool all_views_empty(const Seen &s) {
+    return s.x.size() == 0 && s.lambda_e.size() == 0 && s.lambda_i.size() == 0 && s.z.size() == 0;
+}
+
+/// The SCALARS, compared BITWISE. `elapsed_seconds` is excluded and only it:
+/// it is a wall reading, informational and never asserted (CLAUDE.md
+/// section 7), and two runs of the same solve cannot agree on it.
+void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b) {
+    ASSERT_EQ(a.size(), b.size()) << "the mask moved the EVENT COUNT, which it may not";
+    for (std::size_t k = 0; k < a.size(); ++k) {
+        SCOPED_TRACE("event " + std::to_string(k));
+        EXPECT_EQ(a[k].iteration, b[k].iteration);
+        EXPECT_EQ(a[k].phase, b[k].phase);
+        EXPECT_EQ(a[k].depth, b[k].depth);
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(a[k].f), std::bit_cast<std::uint64_t>(b[k].f));
+        EXPECT_EQ(std::bit_cast<std::uint64_t>(a[k].step_norm),
+                  std::bit_cast<std::uint64_t>(b[k].step_norm));
+        ASSERT_EQ(a[k].radius.has_value(), b[k].radius.has_value());
+        if (a[k].radius.has_value()) {
+            EXPECT_EQ(std::bit_cast<std::uint64_t>(*a[k].radius),
+                      std::bit_cast<std::uint64_t>(*b[k].radius));
+        }
+        ASSERT_EQ(a[k].mu.has_value(), b[k].mu.has_value());
+        if (a[k].mu.has_value()) {
+            EXPECT_EQ(std::bit_cast<std::uint64_t>(*a[k].mu),
+                      std::bit_cast<std::uint64_t>(*b[k].mu));
+        }
+    }
+}
+
+/// The trajectory, bitwise, plus the counters and the status: whatever the mask
+/// is, the SOLVE is the same solve.
+void expect_same_solve(const MaskRun &a, const MaskRun &b) {
+    EXPECT_EQ(a.status, b.status);
+    EXPECT_EQ(a.iterations, b.iterations);
+    EXPECT_TRUE(bit_equal(a.x, b.x));
+    EXPECT_TRUE(bit_equal(a.z, b.z));
+    EXPECT_EQ(a.factorizations, b.factorizations);
+}
+
+// HS071's declared shape, which every full-payload event must carry: n = 4
+// variables, ONE equality row (the sum of squares) and ONE inequality row (the
+// product), so the four views are 4 / 1 / 1 / 4.
+constexpr Eigen::Index kHs071N = 4;
+constexpr Eigen::Index kHs071Me = 1;
+constexpr Eigen::Index kHs071Mi = 1;
+
+void expect_full_views(const Seen &s) {
+    EXPECT_EQ(s.x.size(), kHs071N);
+    EXPECT_EQ(s.lambda_e.size(), kHs071Me);
+    EXPECT_EQ(s.lambda_i.size(), kHs071Mi);
+    EXPECT_EQ(s.z.size(), kHs071N);
+}
+
+} // namespace
+
+// The ONE-ARGUMENT overload is kAll, on both engines: the full payload, exactly
+// as it arrived before the mask existed. This is the additivity claim.
+TEST(CallbackPayload, TheOneArgumentOverloadStillDeliversEverything) {
+    for (const bool interior : {false, true}) {
+        SCOPED_TRACE(interior ? "interior-point" : "SQP");
+        const MaskRun implicit =
+            interior ? ipm_run_under(std::nullopt) : sqp_run_under(std::nullopt);
+        const MaskRun explicit_all = interior ? ipm_run_under(IterationPayload::kAll)
+                                              : sqp_run_under(IterationPayload::kAll);
+        ASSERT_GT(implicit.seen.size(), 2u) << "non-vacuous: the solve really iterates";
+        for (const Seen &s : implicit.seen) {
+            expect_full_views(s);
+        }
+        // A MEASURED iterate has finite diagnostics. The terminal event is one
+        // on both engines -- every in-loop exit measures the point it returns.
+        const Seen &last = implicit.seen.back();
+        EXPECT_TRUE(std::isfinite(last.stationarity));
+        EXPECT_TRUE(std::isfinite(last.feasibility_e));
+        EXPECT_TRUE(std::isfinite(last.feasibility_i));
+        EXPECT_TRUE(std::isfinite(last.complementarity));
+        // And the explicit kAll is the same run, event for event.
+        expect_same_scalars(implicit.seen, explicit_all.seen);
+        expect_same_solve(implicit, explicit_all);
+    }
+}
+
+// kScalars: empty views, NaN diagnostics, and the SCALARS bit-identical to the
+// full-payload run's -- event for event. This is the remedy's contract.
+TEST(CallbackPayload, ScalarsDeliversTheScalarsAndNothingElse) {
+    for (const bool interior : {false, true}) {
+        SCOPED_TRACE(interior ? "interior-point" : "SQP");
+        const MaskRun full = interior ? ipm_run_under(std::nullopt) : sqp_run_under(std::nullopt);
+        const MaskRun scalars = interior ? ipm_run_under(IterationPayload::kScalars)
+                                         : sqp_run_under(IterationPayload::kScalars);
+        ASSERT_GT(scalars.seen.size(), 2u);
+        for (const Seen &s : scalars.seen) {
+            EXPECT_TRUE(all_views_empty(s)) << "a kScalars event carries SIZE-0 views";
+            EXPECT_TRUE(all_nan(s)) << "and NaN diagnostics -- not requested, not zero";
+        }
+        expect_same_scalars(full.seen, scalars.seen);
+        expect_same_solve(full, scalars);
+    }
+}
+
+// kVectors alone: the four views, NaN diagnostics.
+TEST(CallbackPayload, VectorsAloneDeliversTheViewsAndNaNDiagnostics) {
+    for (const bool interior : {false, true}) {
+        SCOPED_TRACE(interior ? "interior-point" : "SQP");
+        const MaskRun full = interior ? ipm_run_under(std::nullopt) : sqp_run_under(std::nullopt);
+        const MaskRun vectors = interior ? ipm_run_under(IterationPayload::kVectors)
+                                         : sqp_run_under(IterationPayload::kVectors);
+        ASSERT_GT(vectors.seen.size(), 2u);
+        for (const Seen &s : vectors.seen) {
+            expect_full_views(s);
+            EXPECT_TRUE(all_nan(s));
+        }
+        // THE VIEWS ARE THE SAME VIEWS, bitwise: narrowing the mask changes
+        // what is prepared, never what a prepared field holds.
+        ASSERT_EQ(full.seen.size(), vectors.seen.size());
+        for (std::size_t k = 0; k < full.seen.size(); ++k) {
+            SCOPED_TRACE("event " + std::to_string(k));
+            EXPECT_TRUE(bit_equal(full.seen[k].x, vectors.seen[k].x));
+            EXPECT_TRUE(bit_equal(full.seen[k].lambda_e, vectors.seen[k].lambda_e));
+            EXPECT_TRUE(bit_equal(full.seen[k].lambda_i, vectors.seen[k].lambda_i));
+            EXPECT_TRUE(bit_equal(full.seen[k].z, vectors.seen[k].z));
+        }
+        expect_same_scalars(full.seen, vectors.seen);
+        expect_same_solve(full, vectors);
+    }
+}
+
+// kDiagnostics alone: the reverse -- empty views, and the diagnostics the full
+// payload reports, bitwise. The expansion still runs (the diagnostics are
+// computed FROM it); only the views are withheld.
+TEST(CallbackPayload, DiagnosticsAloneDeliversTheDiagnosticsAndEmptyViews) {
+    for (const bool interior : {false, true}) {
+        SCOPED_TRACE(interior ? "interior-point" : "SQP");
+        const MaskRun full = interior ? ipm_run_under(std::nullopt) : sqp_run_under(std::nullopt);
+        const MaskRun diag = interior ? ipm_run_under(IterationPayload::kDiagnostics)
+                                      : sqp_run_under(IterationPayload::kDiagnostics);
+        ASSERT_GT(diag.seen.size(), 2u);
+        ASSERT_EQ(full.seen.size(), diag.seen.size());
+        for (std::size_t k = 0; k < diag.seen.size(); ++k) {
+            SCOPED_TRACE("event " + std::to_string(k));
+            EXPECT_TRUE(all_views_empty(diag.seen[k]));
+            EXPECT_EQ(std::bit_cast<std::uint64_t>(full.seen[k].stationarity),
+                      std::bit_cast<std::uint64_t>(diag.seen[k].stationarity));
+            EXPECT_EQ(std::bit_cast<std::uint64_t>(full.seen[k].feasibility_e),
+                      std::bit_cast<std::uint64_t>(diag.seen[k].feasibility_e));
+            EXPECT_EQ(std::bit_cast<std::uint64_t>(full.seen[k].feasibility_i),
+                      std::bit_cast<std::uint64_t>(diag.seen[k].feasibility_i));
+            EXPECT_EQ(std::bit_cast<std::uint64_t>(full.seen[k].complementarity),
+                      std::bit_cast<std::uint64_t>(diag.seen[k].complementarity));
+        }
+        expect_same_scalars(full.seen, diag.seen);
+        expect_same_solve(full, diag);
+    }
+}
+
+// clear_iteration_callback() RESETS THE MASK: a re-attach through the
+// one-argument overload is kAll again, so a narrowing cannot outlive the
+// consumer that asked for it.
+TEST(CallbackPayload, ClearingResetsTheMask) {
+    {
+        const auto program =
+            hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::solvers::IpmSolver solver;
+        solver.set_options(quiet_ipm(solver));
+        Recorder narrow;
+        solver.set_iteration_callback(narrow.hook(), IterationPayload::kScalars);
+        (void)solver.solve(*program, hs071_start());
+        ASSERT_GT(narrow.seen.size(), 0u);
+        EXPECT_TRUE(all_views_empty(narrow.seen.back()));
+
+        solver.clear_iteration_callback();
+        Recorder wide;
+        solver.set_iteration_callback(wide.hook());
+        (void)solver.solve(*program, hs071_start());
+        ASSERT_GT(wide.seen.size(), 0u);
+        expect_full_views(wide.seen.back());
+    }
+    {
+        Hs071View view;
+        SqpSolver driver(quiet_sqp());
+        Recorder narrow;
+        driver.set_iteration_callback(narrow.hook(), IterationPayload::kScalars);
+        (void)driver.solve(*view.bridge, hs071_start());
+        ASSERT_GT(narrow.seen.size(), 0u);
+        EXPECT_TRUE(all_views_empty(narrow.seen.back()));
+
+        driver.clear_iteration_callback();
+        Recorder wide;
+        driver.set_iteration_callback(wide.hook());
+        (void)driver.solve(*view.bridge, hs071_start());
+        ASSERT_GT(wide.seen.size(), 0u);
+        expect_full_views(wide.seen.back());
+    }
+}
+
+// A MASK SET FROM INSIDE THE CALLBACK IS PARKED AND TAKES EFFECT AT THE NEXT
+// EVENT -- the T8.6 fix1 in-flight guard, which the mask rides. The event the
+// widening call was made from still carries the OLD mask's payload; the one
+// after it carries the new mask's.
+TEST(CallbackPayload, AMaskSetFromInsideTheCallbackTakesEffectAtTheNextEvent) {
+    {
+        const auto program =
+            hven::solvers::make_nlp_program(std::make_shared<hven_drivers_tests::Hs071Problem>());
+        hven::solvers::IpmSolver solver;
+        solver.set_options(quiet_ipm(solver));
+        std::vector<Eigen::Index> widths;
+        hven::solvers::IterationCallback widen = [&](const IterationEvent &e) {
+            widths.push_back(e.x.size());
+            if (widths.size() == 1) {
+                // From INSIDE: parked, applied the statement after this
+                // invocation returns, so event 0 is still scalars-only.
+                solver.set_iteration_callback(
+                    [&](const IterationEvent &later) {
+                        widths.push_back(later.x.size());
+                        return CallbackAction::kContinue;
+                    },
+                    IterationPayload::kAll);
+            }
+            return CallbackAction::kContinue;
+        };
+        solver.set_iteration_callback(widen, IterationPayload::kScalars);
+        (void)solver.solve(*program, hs071_start());
+        ASSERT_GT(widths.size(), 2u);
+        EXPECT_EQ(widths[0], 0) << "the event the call was made from keeps the OLD mask";
+        for (std::size_t k = 1; k < widths.size(); ++k) {
+            SCOPED_TRACE("event " + std::to_string(k));
+            EXPECT_EQ(widths[k], kHs071N) << "and every later event carries the new one";
+        }
+    }
+    {
+        Hs071View view;
+        SqpSolver driver(quiet_sqp());
+        std::vector<Eigen::Index> widths;
+        hven::solvers::IterationCallback widen = [&](const IterationEvent &e) {
+            widths.push_back(e.x.size());
+            if (widths.size() == 1) {
+                driver.set_iteration_callback(
+                    [&](const IterationEvent &later) {
+                        widths.push_back(later.x.size());
+                        return CallbackAction::kContinue;
+                    },
+                    IterationPayload::kAll);
+            }
+            return CallbackAction::kContinue;
+        };
+        driver.set_iteration_callback(widen, IterationPayload::kScalars);
+        (void)driver.solve(*view.bridge, hs071_start());
+        ASSERT_GT(widths.size(), 2u);
+        EXPECT_EQ(widths[0], 0);
+        for (std::size_t k = 1; k < widths.size(); ++k) {
+            SCOPED_TRACE("event " + std::to_string(k));
+            EXPECT_EQ(widths[k], kHs071N);
+        }
+    }
+}
+
+// AND THE NARROWING DIRECTION, which is the one a stale snapshot could survive:
+// a solve that starts at kAll and narrows to kScalars from inside the callback
+// must not keep handing out the wider mask's vectors.
+TEST(CallbackPayload, ANarrowingSetFromInsideTheCallbackEmptiesTheLaterEvents) {
+    Hs071View view;
+    SqpSolver driver(quiet_sqp());
+    std::vector<Eigen::Index> widths;
+    hven::solvers::IterationCallback narrow = [&](const IterationEvent &e) {
+        widths.push_back(e.x.size());
+        if (widths.size() == 1) {
+            driver.set_iteration_callback(
+                [&](const IterationEvent &later) {
+                    widths.push_back(later.x.size());
+                    return CallbackAction::kContinue;
+                },
+                IterationPayload::kScalars);
+        }
+        return CallbackAction::kContinue;
+    };
+    driver.set_iteration_callback(narrow);
+    (void)driver.solve(*view.bridge, hs071_start());
+    ASSERT_GT(widths.size(), 2u);
+    EXPECT_EQ(widths[0], kHs071N);
+    for (std::size_t k = 1; k < widths.size(); ++k) {
+        SCOPED_TRACE("event " + std::to_string(k));
+        EXPECT_EQ(widths[k], 0) << "the narrowed mask leaves no stale snapshot standing";
+    }
+}
