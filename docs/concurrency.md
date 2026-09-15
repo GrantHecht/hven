@@ -6,7 +6,8 @@ collecting the results is orchestration, and orchestration belongs to the
 consumer. That is the owner's ruling of 2026-09-11
 (`docs/notes/2026-08-m6-ledger.md:4421-4431`), which also deleted
 `detail/interior/jet.h` — the header that used to carry a map of that shape —
-and registered this page and its one pin as the W6 item that states the terms.
+and registered this page and its one pin as the W6 item that states the terms (a
+SECOND pin, for the fan-out shape exception 1 describes, landed at M7 W0 T1).
 `jet.h` stays deleted.
 
 This page is the contract. Everything on it is verified against the tree, and
@@ -119,19 +120,51 @@ dispatching into one pool. A consumer running N workers should either set the
 evaluation width once, before the workers start, or arrange for its programs not
 to fan out at all.
 
-**That recipe is UNPINNED (W6 T4 close, 2026-09-14).** N instances each fanning out
-into the one process-global pool — the shape tycho's Jet map runs — rests on the
-pool's own design statement (per-dispatch latches make concurrent dispatches from
-separate threads inherently safe; `thread_pool.h`, the "Per-dispatch latches"
-paragraph) and is NOT exercised by the pin on this page, which asserts the pool is
-never reached. A pin running two partitioned programs from two threads against
-their serial runs is REGISTERED (W7/M7); until it lands, the recipe is design text.
+**That recipe is PINNED (M7 W0 T1, 2026-09-14).** N instances each fanning out
+into the one process-global pool — the shape tycho's Jet map runs — no longer
+rests on the pool's own design statement alone (per-dispatch latches make
+concurrent dispatches from separate threads inherently safe; `thread_pool.h`, the
+"Per-dispatch latches" paragraph). The pin is
+`Concurrency.TwoPartitionedProgramsOnTwoThreadsMatchSerial`
+(`tests/drivers/test_concurrency.cpp`), beside the N×1 pin above and running the
+same two steps over the same helpers: it builds TWO different programs through
+the public `make_nlp_program(problem, num_partitions)` at counts the layout
+ACTUALLY ADOPTS — 2 partitions over 3000 user KKT elements and 3 over 4200,
+asserted rather than assumed, because the count is clamped rather than refused
+(`src/model/non_linear_program.cpp:415-426`) — solves them once serially on the
+calling thread and once with each program on its own `std::thread`, and compares
+the two readings on this page's terms. It asserts the pool width unmoved across
+the whole test and never sets it; on a box whose width is 1 there is no fan-out
+and the cell SKIPS rather than passing.
+
+**What it found.** On the reference box (Linux, AMD Ryzen 7 5800X3D, clang
+22.1.8, MKL) all 32 counter/status columns and all 2418 measure columns were
+BYTE-EQUAL between the concurrent run and the serial one, on five consecutive
+runs in Release and five in Debug — ten of ten, worst relative move 0. Same
+standing as the N×1 finding above: byte equality is the observed outcome, the
+gate is what is asserted.
+
+**What the pin does NOT reach, so that nobody reads more into it.** Partitions
+through this adapter are LAYOUT ONLY, as `make_nlp_program`'s own doc comment
+says: all three pieces are `ThreadingFlags::MainThread`, and
+`analyze_partitioning` forces every MainThread function into the LAST partition,
+which `parallel_sequence` runs inline on the calling thread. So the user's
+callbacks still evaluate on the dispatching thread. What genuinely goes
+concurrent is the DISPATCH — two threads enqueueing into one pool's
+work-stealing queues, each waiting on its own per-dispatch latch, pool workers
+running the other partitions' bodies and writing into each program's own scratch
+— together with the `parallel_blocks` passes over the KKT triplet fill, which
+`num_partitions_` sizes as well. That is precisely the claim the design
+statement makes and precisely what was unmeasured. Genuine partitioned
+EVALUATION over an `NlpTripletModel` needs a thread-safe adapter and is
+registered for M7.
 
 Not to fan out is the easy case and it is the common one:
 `make_nlp_program(problem)` defaults to **one partition**
-(`include/hven/detail/model/nlp_adapter.h:605-606`, `:629-630`), the count is
+(`include/hven/model/make_nlp_program.h:57`, `:81` — the declarations moved to
+that public header at M7 W0 T5 and the cite here moved with them), the count is
 capped down further on small problems
-(`src/model/non_linear_program.cpp:415-418`, threshold
+(`src/model/non_linear_program.cpp:423-425`, threshold
 `kMinKktElementsPerPartition` = 1000 KKT elements per partition), and
 `parallel_sequence` runs **inline** whenever `nparts <= 1`
 (`include/hven/detail/interior/utils/thread_pool.h:698-707`) — so at one
@@ -269,9 +302,15 @@ On Apple this class is a no-op and stores nothing anywhere —
   subject; it is outside the N×1 contract this page states, and the pin does not
   cover it. Running N instances at `threads = k > 1` oversubscribes the machine
   and the results above are not claimed for it.
-- **N instances fanning out into the shared evaluation pool.** Exception 1's recipe
-  for that shape is design text, not measurement — the pin never reaches the pool.
-  Registered above; not promised here.
+- **Anything about the shared evaluation pool beyond the dispatch itself.**
+  Exception 1's recipe for N instances fanning out into the one pool is pinned as
+  of M7 W0 T1, and what that pin measured is the concurrent DISPATCH: through
+  this adapter the user's callbacks still run on the dispatching thread, so
+  concurrent evaluation of user code on pool workers is NOT what was measured and
+  is not promised here. Nor is the pool's behaviour while `set_num_threads` is
+  resizing it: the dispatch helpers refuse that race rather than surviving it
+  (`parallel_sequence`/`parallel_blocks` throw on `pool_configuring()`), which is
+  a diagnosis, not a guarantee. Set the width once, before the workers start.
 - **Bit-identity as a portable guarantee.** What is asserted is exact counters
   and statuses plus gated measures. Literal byte equality held on the reference
   box and is recorded on every run; it is a finding, not a promise.
