@@ -31,6 +31,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_corpus_cells.cpp
     test_crossover_legs.cpp
     test_dense_oracle.cpp
+    test_elastic_rung_vehicle.cpp
     test_eqp_refine_ab.cpp
     test_eqp_solve.cpp
     test_funnel.cpp
