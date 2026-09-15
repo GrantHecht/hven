@@ -39,11 +39,12 @@ M7 as **D24**, and that leg's **missing sink arm**, T6's declared omission.
   `a-sink`, 538 events, **+0.043 %/+0.039 %**: FLAT.
 * **Counters byte-identical in all 35 comparisons** (46 620 cell-comparisons,
   0 differences). A declared payload changed no trajectory.
-* **AMENDMENT 1** (`reading.md` §8, `PROVENANCE.txt`'s trailing block): the
-  UNATTACHED path, measured as a commit pair, reads **−2.05 %** at HEAD with
-  the trajectory byte-identical — a build-layout effect, not work, and a
-  caution that **cross-binary** instruction comparisons on this leg carry a
-  ~2 % floor. Every verdict here is a **within-binary** comparison.
+* **AMENDMENT 1** (`reading.md` §8, recast at fix round 1): the UNATTACHED
+  path, measured as a commit pair, reads **−2.05 %** at HEAD with the
+  trajectory byte-identical. It is **ONE OBSERVED CROSS-BUILD CONFOUND**, not a
+  proven floor and not a proven mechanism — ancillary to the P-SYM gate, which
+  `psym/` answers statically. Every verdict here is a **within-binary**
+  comparison and is untouched by it.
 
 ## What is here
 
@@ -64,6 +65,8 @@ M7 as **D24**, and that leg's **missing sink arm**, T6's declared omission.
 | `perf/…` | one `perf stat` file per run, laid out to match `raw/` |
 | `logs/` | every batch's retained log: the two pgreps, the lock markers, the snapshots, the per-run CPU brackets, the fold proof, the manifest falsification |
 | `scripts/` | every leg script and wrapper as run, including the fold proof |
+| `psym/` | **fix round 1**: the P-SYM classification completed — every differing symbol of both library objects, by one mechanical rule, `alg_impl` and the interior only-after symbol included |
+| `superseded/` | byte-identical copies of the two files fix round 1 rewrote, with their sha256s recorded in `PROVENANCE.txt`; **never edited** |
 | `discarded/` | the SQP walk group 23–27's FIRST attempt, killed mid-window by the harness; retained unedited, read by nothing (`PROVENANCE.txt`) |
 
 The arms are `a00` = nothing attached (the shipped shape, and the denominator of
@@ -82,8 +85,9 @@ python3 idle_proof.py --pids IDLE-PIDS.txt --pids-link IDLE-PIDS.txt \
 
 The comparator enforces an EXACT MANIFEST: every comparison the leg owes is
 listed in the script, a missing file is a refusal, and the run checks its own
-totals (35 / 46 620). Falsified by removing two files in a scratch copy, which
-gives two named `MANIFEST REFUSAL`s and exit 2
+totals (35 / 46 620 — 32 payload/lever identity comparisons plus amendment 1's
+three cross-binary ones). Falsified by removing two files in a scratch copy,
+which gives two named `MANIFEST REFUSAL`s and exit 2
 (`logs/43-manifest-falsification.txt`, taken against the pre-amendment
 32-comparison tool and deliberately not regenerated — it is the record of
 that run and the refusal mechanism it exercises is unchanged). `idle_proof.py` exits 1 whenever any
@@ -95,7 +99,10 @@ The counter check shells out to `scripts/compare_replay.py` in the repo; set
 ## Not measured
 
 The SQP corpus in `ssn` or `ipm` mode (the walk-mode check is what the brief
-scopes here); the HS leg; anything on Apple or Windows (**UNOBSERVED**); any
-commit pair; an observer that does real work; and the residual's split between
-its candidates, which needs an instrument this task deliberately does not build
-(`reading.md` §5).
+scopes here); the HS leg; anything on Apple or Windows (**UNOBSERVED**); an
+observer that does real work; the MECHANISM behind amendment 1's cross-build
+reading, and whether a second pair would read the same (it is one observation,
+§8); and the residual's split between its candidates, which needs an instrument
+this task deliberately does not build (`reading.md` §5). **Amendment 1 is the
+one commit pair here**, and it is unattached-vs-unattached: no ATTACHED arm is
+compared across binaries anywhere in this directory.

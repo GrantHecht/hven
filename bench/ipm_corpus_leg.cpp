@@ -669,6 +669,13 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
     // OFF BY DEFAULT AND FREE WHEN OFF: an unset variable installs nothing, so
     // the baseline capture is the same code path it always was.
     const bool count_events = std::getenv("HVEN_LEG_COUNT_CALLBACK") != nullptr;
+    // READ UNCONDITIONALLY, so the SPELLING is validated whether or not a
+    // callback is installed (M7 W0 T2 fix1, the sol review's second Minor).
+    // Round 1 called this from inside the `if` below, so a typo was silently
+    // ignored when HVEN_LEG_COUNT_CALLBACK was absent while the comment on the
+    // parser claimed otherwise. A mislabelled measurement arm is the one
+    // failure this lever must not have, and the claim now matches the code.
+    const hven::solvers::IterationPayload leg_payload = leg_callback_payload();
     long long events_seen = 0;
     if (count_events) {
         ipm.set_iteration_callback(
@@ -676,7 +683,7 @@ InteriorRow run_interior_problem(const std::shared_ptr<NlpTripletModel> &problem
                 ++events_seen;
                 return hven::solvers::CallbackAction::kContinue;
             },
-            leg_callback_payload());
+            leg_payload);
     }
 
     // M7 W0 T2 -- THE SINK ARM THIS LEG DID NOT HAVE. W6 T6 could measure the

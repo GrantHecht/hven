@@ -365,3 +365,140 @@ manifest and two generated files.
      `README.md`'s tables gain the new `raw/unattached/` row and one result
      line and are otherwise unchanged.  No measured number in this directory
      was recomputed, and nothing under `discarded/` was touched.
+
+================================================================================
+AMENDMENT 2 — 2026-09-15 (M7 W0 T2 FIX ROUND 1, the sol review).  This block
+AMENDS everything above it and nothing above it is rewritten: a provenance
+record edited in place stops being a record (the T8.9r fix2 / W6 T6 fix1
+precedent, and this directory's own AMENDMENT 1).
+
+NO MEASUREMENT WAS RETAKEN AND NO MEASURED NUMBER MOVED.  Nothing under `raw/`
+or `perf/` was touched.  What this round adds is a CLASSIFICATION of bytes that
+were already retained, and what it changes is PROSE that claimed more than the
+bytes support.
+
+(B1) THE P-SYM CLASSIFICATION IS COMPLETED, in `psym/`.  The retained transcript
+     `logs/72f-psym.out` names which symbols differ; for the ones it reports as
+     STRUCTURAL it does not say what differs, and round 1's report left
+     `IpmSolver::alg_impl` unclassified and named the interior object's
+     only-after symbol WRONGLY.  `psym/classify.py` re-reads the SAME two object
+     pairs the transcript was taken over and classifies every differing symbol
+     by one mechanical rule (see `psym/README.md`).
+
+       RESULT: `ipm_solver.cpp.o` 163 byte-identical / 78 layout-only / 3
+       differing / 1 only-after; `sqp_solver.cpp.o` 246 / 47 / 6 / 1 only-before
+       / 2 only-after.  EVERY differing symbol is a function this task edited or
+       a constructor that now initialises the new members.
+
+       `alg_impl` is LAYOUT ONLY: 7502 non-pad instructions on BOTH sides, one
+       alignment-pad line fewer, 1091 branch targets shifted by a constant -16,
+       39 member displacements at exactly +8.  Not one instruction was added or
+       removed.
+
+       THE DISPLACEMENT CONSTANT IS NOT ONE VALUE ACROSS THE TWO OBJECTS: +8 on
+       the interior object, +4 on the SQP one, where one of the two new
+       four-byte enums landed in existing padding.  Round 1's blanket "+8" was
+       right for the first and wrong for the second.
+
+       THE INTERIOR OBJECT'S ONLY-AFTER SYMBOL is Eigen's VectorXd copy
+       constructor, emitted weak/COMDAT out-of-line, with exactly one call site
+       in the object and that inside `fire_iteration_event` (verified by
+       relocation).  It is NOT the two-argument setter, which round 1's report
+       said; the setter pair is the SQP object's only-before/only-after pair.
+
+(B2) AMENDMENT 1 IS RECAST, NOT WITHDRAWN.  Its numbers stand exactly as
+     measured.  What is withdrawn is the INTERPRETATION: round 1 called the
+     -2.05 % cross-build reading a "~2 % floor" on this leg and called its
+     mechanism "build layout, not work".  One pair establishes ONE OBSERVED
+     CONFOUND of that order, not a symmetric floor; and a byte-identical
+     trajectory establishes equal observable RESULTS, not equal retired work.
+     `reading.md` section 8 is rewritten to say exactly that, and to say plainly
+     that the leg is ANCILLARY to the P-SYM gate (which asked for a static
+     classification, now in `psym/`) and that no within-binary verdict depends
+     on it.
+
+(B3) FOUR WORDINGS RECONCILED.
+     * THE WARM-UPS ARE RECORDED.  Round 1 wrote "untimed, unrecorded" -- the
+       exact wording W6 T6 fix1 had already corrected to "untimed, not
+       unrecorded" -- while every batch's warm-up CSV and stdout are retained
+       under `raw/`.  `reading.md` now says untimed, NOT unrecorded, at all
+       three places.  THE LEG SCRIPTS UNDER `scripts/` ARE NOT EDITED: they are
+       the scripts AS RUN, their echo lines said "unrecorded", and rewriting a
+       script to match a corrected reading would make it stop being the record
+       of what ran.
+     * THE TOTALS.  `reading.md` sections 1 and 6 still read 32 / 42 750 after
+       AMENDMENT 1 moved the live manifest to 35 / 46 620.  Both now read
+       35 / 46 620, and both say which 32 are payload/lever identity
+       comparisons and which 3 are amendment 1's cross-binary ones.
+     * "ANY COMMIT PAIR" under `README.md`'s "Not measured" was true before
+       amendment 1 and false after it.  It now says that amendment 1 IS the one
+       commit pair here and that it is unattached-vs-unattached.
+     * THE LEVER'S VALIDATION CLAIM MATCHED THE COMMENT AND NOT THE CODE.
+       `bench/ipm_corpus_leg.cpp` read `HVEN_LEG_CALLBACK_PAYLOAD` from inside
+       `if (count_events)`, so an invalid spelling was silently ignored when
+       HVEN_LEG_COUNT_CALLBACK was absent, while the parser's own comment and
+       this directory's prose said it was validated whenever set.  THE CODE IS
+       FIXED, not the sentence -- a mislabelled measurement arm is the one
+       failure that lever must not have.
+
+       THAT FIX POST-DATES EVERY BYTE IN THIS DIRECTORY, AND THAT IS THE POINT
+       (W6 T6 fix1's F1, same shape).  It hoists one read; it touches no value,
+       no attachment, no stamp and no timed code.  Proven at the binary rather
+       than argued: the fix-round binary re-runs the 43-row leg and its `a00`
+       rows are IDENTICAL to this directory's captured `a00`
+       (`scripts/compare_replay.py`, 43 cells x 30 columns, 0 differences), and
+       a00 against each of the three lever arms is 0 differences again.  A
+       REBUILD AT THE FIX COMMIT IS A DIFFERENT BINARY AND IS NOT THE MEASURED
+       ONE; the measured one stays pinned by sha256
+       c0ef069cab83e8f11cb804821dd7a0156e54b256beddb5be4e2cb6534f9b03ef.
+
+(B4) SUPERSEDED COPIES.  The two files this round rewrote are kept
+     byte-identical, unedited, under `superseded/`:
+       reading.md.2026-09-15-superseded
+         sha256 14c370c2d3e41f9ce789b1e90017de4d4228e86a29adb351b994d4a8a3bd1a25
+       README.md.2026-09-15-superseded
+         sha256 03c4c893ac5e2d0867b94c1cd30c8dbd10a8afa19708010c6b7d3fd7c85e1a53
+
+(B5) WHAT IS NOT AMENDED.  `comparator.py`, `comparator.out` and every figure
+     they produce; the idle proof; `logs/`; `discarded/`; AMENDMENT 1's raw and
+     perf trees.  The manifest still demands 35 comparisons and the run still
+     reports 35 / 46 620 / 0.
+
+(B6) THE SESSION-LIMIT BOUNDARY, AND WHICH ARMS RAN ON WHICH BINARY.  Round 1
+     disclosed that the first attempt at SQP walk cells 23-27 was "killed by the
+     harness" but did not name the boundary it was: THIS TASK'S SESSION HIT ITS
+     LIMIT DURING THAT BATCH (2026-09-15 04:44Z, the 27th cell's third arm) and
+     resumed afterwards.  The full accounting, which the resume instruction
+     required and round 1 left implicit:
+
+     BEFORE THE BOUNDARY, captured and REUSED unchanged after it:
+       * the three interior perf batches, all four arms x three rounds each
+         (`raw/ipmleg`, `raw/ipmleg2`, `raw/ipmleg3`) -- 36 timed runs;
+       * the interior wall batch, all four arms, one round (`raw/ipmlegwall`);
+       * SQP walk cells 1-22, all three arms each (logs 30-, 31-, 32-)
+         -- 66 timed runs.
+
+     AFTER THE BOUNDARY, RE-RUN FROM SCRATCH:
+       * SQP walk cells 23-27, all three arms each, as three complete batches
+         (logs 33-, 34-, 35-) -- 45 timed runs.  The killed attempt's files are
+         retained UNEDITED under `discarded/` and are read by nothing.
+
+     TAKEN AFTER THE BOUNDARY, NEW:
+       * the attribution leg, both populations (logs 50-, 51-);
+       * `raw/sqpperf/walk/schema-header.csv`, one untimed run (log 41-);
+       * the comparator, the idle proof and every gate;
+       * AMENDMENT 1's unattached pair (logs 75-, 76-).
+
+     NO ROUND MIXES BINARIES, and the CSVs say so in their own bytes: every one
+     of the 65 header-carrying CSVs outside `raw/unattached/` stamps
+     `# binary: 1133570ff51b`, which is the measurement binary
+     (sha256 c0ef069c...), and the 81 single-cell SQP rows carry no header of
+     their own but were produced by the batches those logs record, all on that
+     same binary.  AMENDMENT 1 IS THE DELIBERATE EXCEPTION -- it is a pair of
+     binaries by construction -- and its seven CSVs stamp
+     `d8ed6b286e7a-dirty` (3) and `b8db4b988305-dirty` (4, the fourth being its
+     warm-up).  The `-dirty` is the worktrees' symlinked `dep/eigen` and
+     `dep/fmt` standing in for the gitlinks, declared in AMENDMENT 1: the
+     submodules are pinned at the SAME sha at both commits, so the symlink
+     changes no compiled byte and the stamp is reporting the substitution, not
+     an edited source tree.

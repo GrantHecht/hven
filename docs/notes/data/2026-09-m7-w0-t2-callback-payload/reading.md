@@ -33,8 +33,11 @@ measure.
 6. **The SQP corpus stays FLAT with the mask.** Walk mode, one round, 27 cells:
    `a-all` corpus ratio **1.00013**, `a-scalars` **1.00000**, 0 of 27 cells
    outside 0.99–1.01 in either arm. **FLAT / FLAT**, as expected.
-7. **Counters byte-identical in all 32 comparisons** (42 750 cell-comparisons,
+7. **Counters byte-identical in all 35 comparisons** (46 620 cell-comparisons,
    0 differences). A declared payload changed no trajectory, on either engine.
+   32 of the 35 are payload/lever identity comparisons; the three amendment 1
+   added are unattached cross-binary comparisons and are a different question
+   (§8).
 
 ---
 
@@ -64,8 +67,9 @@ batch 1's two *attached* arms also read high against batches 2 and 3
 (`a-sink` +0.81 % there against +0.04 % in both later batches), which is a
 whole-BATCH effect rather than one outlier round: batch 1 is the first use of a
 freshly linked binary off a cold page cache. Batches 2 and 3 each ran behind
-their own untimed warm-up and **agree with each other on every arm to within
-0.03 percentage points**, which is what the verdicts below rest on. All three
+their own untimed warm-up — untimed, NOT unrecorded; every batch's warm-up CSV
+and stdout are retained under `raw/` — and **agree with each other on every arm
+to within 0.03 percentage points**, which is what the verdicts below rest on. All three
 batches are in `raw/` and `perf/`.
 
 Per-round instructions, the alternation (batch 2 / batch 3):
@@ -168,7 +172,8 @@ interior events on a leg whose per-row problems are larger.
 `a-scalars` did not land FLAT, so what remains has to be sized and, as far as
 the evidence allows, named. The attribution leg (`raw/attrib/`, `perf/attrib/`)
 runs the leg over its SMALLEST and LARGEST cell populations, three arms, three
-alternated rounds each, behind its own warm-up.
+alternated rounds each, behind its own untimed warm-up (untimed, not
+unrecorded: `raw/attrib/*/warmup.csv` and `.stdout` are retained).
 
 | population | rows | events | mean `x` per event | a00 | a-all | a-scalars |
 |---|---|---|---|---|---|---|
@@ -251,10 +256,14 @@ byte for byte.
 |---|---|---|---|
 | interior, 3 batches × 3 rounds × 3 attached arms | 27 | 43 × 30 | **0** |
 | interior wall, 1 round × 3 attached arms | 3 | 43 × 30 | **0** |
+| unattached pair (amendment 1), 3 rounds | 3 | 43 × 30 | **0** |
 | SQP walk, 27 cells merged, 2 attached arms | 2 | 27 × 75 | **0** |
-| **total** | **32** | — | **0** |
+| **total** | **35** | — | **0** |
 
-42 750 cell-comparisons, 0 differences, the gate never relaxed. The manifest is
+46 620 cell-comparisons, 0 differences, the gate never relaxed. **32 of the 35
+are payload/lever identity comparisons** — an attached arm against its
+unattached arm on one binary; the three amendment 1 added compare two BINARIES
+with nothing attached and answer §8's question instead. The manifest is
 EXACT and its refusal path is falsified rather than asserted: removing two files
 in a scratch copy gives two named `MANIFEST REFUSAL`s, totals 30 / 38 700, and
 exit 2 (`logs/43-manifest-falsification.txt`).
@@ -290,16 +299,22 @@ registered with the residual's number.**
 
 ---
 
-## 8. AMENDMENT 1 — the unattached path, as a commit pair
+## 8. AMENDMENT 1 — one observed cross-build confound
 
-**Added after §1–§7 were written, by the P-SYM gate.** That gate asks whether
-the UNATTACHED path's instruction stream moved between the task's start commit
-(`d8ed6b28`) and its HEAD (`b8db4b98`). P-SYM answers it per symbol; this
-answers it at runtime, which is the reading that matters.
+**Added after §1–§7 were written, and RECAST at fix round 1 (2026-09-15) after
+the sol review: what follows is ONE OBSERVATION, not a proven floor.** The
+superseded text of this section is kept byte-identical in
+`superseded/reading.md.2026-09-15-superseded`; the numbers below did not move.
+
+It is ancillary. The P-SYM gate asked for a STATIC classification of the
+differing symbols, which `psym/` now carries in full; this leg is an extra
+runtime reading taken beside it, and **no within-binary verdict in §2, §4 or §5
+depends on it in any way.**
 
 Two binaries, built in **equal-length sibling worktrees** so `__FILE__` is the
 same length in both arms, over the same 43-row leg with **nothing attached**,
-three alternated rounds behind one untimed warm-up
+three alternated rounds behind one untimed warm-up — untimed, NOT unrecorded:
+its CSV and stdout are retained beside the arms
 (`raw/unattached/`, `perf/unattached/`, `logs/75-unattached-pair.log`):
 
 | arm | rounds (instructions) | median | own spread |
@@ -307,49 +322,57 @@ three alternated rounds behind one untimed warm-up
 | `old` (`d8ed6b28`) | 108 317 513 145 / 108 368 080 501 / 108 368 694 049 | 108 368 080 501 | 0.047 % |
 | `new` (`b8db4b98`) | 106 216 125 723 / 106 138 822 532 / 106 146 440 748 | 106 146 440 748 | 0.073 % |
 
-**ratio new/old = 0.97950 — the unattached path retires 2.05 % FEWER
-instructions at HEAD.**
+**ratio new/old = 0.97950 — the unattached path retires 2.05 % fewer
+instructions at HEAD, with the observable output identical.**
 
-**IT IS NOT A SPEED-UP, AND IT IS NOT WORK.** Three things say so together:
+### What is established, and what is not
 
-1. **Nothing in the diff can reach the unattached path.** P-SYM
-   (`logs/72f-psym.out`) classifies every library-object difference: the only
-   two differing objects are `ipm_solver.cpp.o` and `sqp_solver.cpp.o`, and
-   within them every differing symbol is either an EDITED function
-   (`fire_iteration_event`, `apply_pending_iteration_callback`,
-   `set_iteration_callback`, `enter_restoration`, `invoke_iteration_callback`),
-   a CONSTRUCTOR that now initialises two more members, or a
-   **member-displacement shift** — `mov %rax,0x950(%r14)` → `mov
-   %rax,0x958(%r14)`, same mnemonic, same operands, same length, every offset
-   past `iteration_callback_` moved by exactly **+8 bytes**. That is the
-   M6 W5 T1 displacement class, not new code.
-2. **The trajectory is byte-identical across the pair.**
+**ESTABLISHED.**
+
+1. **The trajectory is byte-identical across the pair.**
    `scripts/compare_replay.py`, 43 cells × 30 columns, all three rounds:
    **0 differences** (`logs/76-unattached-pair-counters.log`, and the three
-   comparisons in `comparator.out`'s §3). The same solve, the same counters,
-   the same residuals — so the two binaries do the same WORK.
-3. **The magnitude is the same class §5 already had to name.** These two
-   binaries were also built at different absolute levels from the measurement
-   binary (108.4e9 and 106.1e9 here against 104.5e9 for the arm binary in §2),
-   which is a ~2–4 % build-to-build spread on a leg whose arms, WITHIN one
-   binary, agree to 0.02–0.17 %.
+   comparisons in `comparator.out`'s §3). The two binaries produce the same
+   solve, the same counters, the same residuals.
+2. **No differing library symbol outside the edited functions carries new
+   work.** `psym/` classifies every one of them: the only differing objects are
+   `ipm_solver.cpp.o` and `sqp_solver.cpp.o`; within them every differing symbol
+   is a function this task EDITED or a constructor that now initialises the new
+   members, and everything else that moved is a pad count, a constant
+   branch-target shift, a constant member-displacement shift (+8 on the interior
+   object, **+4** on the SQP one) or a compiler-local label renumbering.
+   `IpmSolver::alg_impl` — the symbol P-SYM reported STRUCTURAL and the first
+   report left out — is **7502 non-pad instructions on both sides**, classified
+   there in full.
+3. **The two constructors DO gain member initialisation**, and every
+   construction of either solver runs them. That is real added work on an
+   unattached solve; it is a handful of instructions per construction, and the
+   leg constructs 43 solvers.
 
-**THE CONSEQUENCE FOR THIS ARTIFACT, STATED PLAINLY.** Every verdict in §2, §4
-and §5 is a **within-binary** comparison — one build, one binary, arms that
-differ only by a lever — and is unaffected. **Cross-binary instruction
-comparisons on this leg carry a layout component of the order of 2 %**, which
-is why §2 declines to read anything into this leg's absolute counts differing
-from W6 T6's, and why §5 attributes part of the `a-scalars` residual to
-process-level layout rather than to per-event work. A future reader comparing
-two BUILDS on this leg should treat ±2 % as the floor until that component is
-instrumented.
+**NOT ESTABLISHED, and previously overclaimed.**
 
-**P-SYM's own verdict on the library objects, for the record.** 142 objects
-across all groups: 46 byte-identical, 76 differing within the accepted noise
-class, 19 with unclassified differences. **Of the library (`hven`) group,
-exactly two objects differ — `ipm_solver.cpp.o` and `sqp_solver.cpp.o` — which
-is what the brief predicted**, and their per-symbol breakdown is 226 identical /
-1 noise-only / 17 differing / 1 only-after (interior) and 292 identical / 7
-differing / 1 only-before / 2 only-after (SQP). The only-before/only-after pair
-on each side is the one-argument `set_iteration_callback` becoming the
-two-argument one.
+* **This is ONE PAIR, so it is one OBSERVED confound of that order — not a
+  symmetric "±2 % floor".** The earlier text of this section said floor; that
+  was an extrapolation from a single measurement and is withdrawn. What a
+  second pair would read is unknown, and this leg did not take one.
+* **A byte-identical trajectory proves equal observable RESULTS, not equal
+  retired instruction work.** It rules out a different solve; it does not by
+  itself rule out different work producing the same answer.
+* **The mechanism is not established.** "Build layout" is the natural reading —
+  nothing on the unattached path changed semantically, and the classification
+  above finds no new logic there — but this leg did not instrument the
+  mechanism and does not claim it.
+
+### What it is good for
+
+**One thing, and it is worth having: a CROSS-BUILD instruction total on this
+leg moved by 2 % while the observable output stayed identical.** So a future
+reader who compares two BUILDS on this leg should not treat a difference of that
+order as evidence about code on the executed path without establishing the
+mechanism. It is a caution drawn from one observation, and it is the reason §5
+declines to attribute the `a-scalars` residual to a per-event cause on the
+strength of cross-population arithmetic alone.
+
+**Every verdict in §2, §4 and §5 is a WITHIN-BINARY comparison** — one build,
+one binary, arms that differ only by a lever, rounds agreeing to 0.02–0.17 % —
+and is untouched by any of this.
