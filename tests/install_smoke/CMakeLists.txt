@@ -30,11 +30,17 @@ find_package(hven REQUIRED)
 # M6 W5 T8.9: include_nlp_solver.cpp went with the retired NLPSolver wrapper,
 # and the TWO ENGINE HEADERS took its place -- they are what a consumer reaches
 # for now.
+#
+# M7 W0 T5(a): include_make_nlp_program.cpp joins them, 18 -> 19. The
+# transcription entry moved out of detail/model/nlp_adapter.h into the public
+# header hven/model/make_nlp_program.h, and a public header that does not carry
+# its own includes is exactly what this list exists to catch.
 set(HVEN_INSTALL_SMOKE_STANDALONE_INCLUDES
     include_trace_writer.cpp
     include_trace.cpp
     include_ipqp_evidence.cpp
     include_nlp_triplet_model.cpp
+    include_make_nlp_program.cpp
     include_nlp_assembly.cpp
     include_assembly_declaration.cpp
     include_nlp_model_assembly.cpp

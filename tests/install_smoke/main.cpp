@@ -31,12 +31,12 @@
 
 #include "hven/core/ledger.h"
 #include "hven/core/solver_status.h"
-#include "hven/detail/model/nlp_adapter.h"
 #include "hven/drivers/ipm_solver.h"
 #include "hven/drivers/solve_result.h"
 #include "hven/drivers/solve_status.h"
 #include "hven/drivers/sqp_solver.h"
 #include "hven/drivers/trace_writer.h"
+#include "hven/model/make_nlp_program.h"
 #include "hven/model/nlp_problem_model.h"
 #include "hven/model/nlp_triplet_model.h"
 #include "hven/model/non_linear_program.h"
@@ -199,7 +199,8 @@ bool run_once(Solver &solver, Model &model, const Eigen::VectorXd &x0, const cha
 // The standalone-include TUs (M6 W5 T0; nlp_solver joined at T1 fix1,
 // ipqp_evidence at T4, compiler at T3, solve_status at T8.2, common_options and
 // ipm_solver_types at T8.3, console_trace_sink at T8.7; at T8.9 nlp_solver went
-// with the retired wrapper and the TWO ENGINE HEADERS took its place, 17 -> 18).
+// with the retired wrapper and the TWO ENGINE HEADERS took its place, 17 -> 18;
+// make_nlp_program at M7 W0 T5(a), 18 -> 19).
 // Each proves COMPILE-TIME self-containment only: none odr-uses anything its
 // header declares, so the link proves the objects link, nothing about exports.
 namespace hven_install_smoke {
@@ -207,6 +208,7 @@ int standalone_include_trace_writer();
 int standalone_include_trace();
 int standalone_include_ipqp_evidence();
 int standalone_include_nlp_problem();
+int standalone_include_make_nlp_program();
 int standalone_include_nlp_aggregate();
 int standalone_include_aggregate_declaration();
 int standalone_include_nlp_model_aggregate();
@@ -228,6 +230,7 @@ int main() {
                                hven_install_smoke::standalone_include_trace() +
                                hven_install_smoke::standalone_include_ipqp_evidence() +
                                hven_install_smoke::standalone_include_nlp_problem() +
+                               hven_install_smoke::standalone_include_make_nlp_program() +
                                hven_install_smoke::standalone_include_nlp_aggregate() +
                                hven_install_smoke::standalone_include_aggregate_declaration() +
                                hven_install_smoke::standalone_include_nlp_model_aggregate() +
@@ -242,8 +245,8 @@ int main() {
                                hven_install_smoke::standalone_include_seeding() +
                                hven_install_smoke::standalone_include_console_trace_sink() +
                                hven_install_smoke::standalone_include_compiler();
-    if (standalone_tus != 18) {
-        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 18\n",
+    if (standalone_tus != 19) {
+        std::fprintf(stderr, "install smoke: %d standalone-include TUs linked, expected 19\n",
                      standalone_tus);
         return 1;
     }
