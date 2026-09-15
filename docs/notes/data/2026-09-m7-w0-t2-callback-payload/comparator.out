@@ -75,6 +75,12 @@ M7 W0 T2 -- THE PAYLOAD-MASK RE-MEASUREMENT, EVERY FIGURE
     a-scalars    per-cell median ratio 1.00000  min 0.99973  max 1.00014  cells outside 0.99-1.01: 0/27
                  whole-corpus ratio    1.00000  (-0.000 %)  ->  FLAT
 
+2b. THE UNATTACHED PATH, AS A COMMIT PAIR (amendment 1)
+------------------------------------------------------------------------------
+    old   rounds [108,317,513,145, 108,368,080,501, 108,368,694,049]  median 108,368,080,501  spread 0.047 %
+    new   rounds [106,216,125,723, 106,138,822,532, 106,146,440,748]  median 106,146,440,748  spread 0.073 %
+    ratio new/old = 0.97950 (-2.050 %) -- see reading.md section 8
+
 3. THE COUNTER CHECK -- an attached observer changed no trajectory
 ------------------------------------------------------------------------------
 === interior ipmleg / perf / r1 / a00 vs a-all === cells compared: 43  columns compared: 30  differences: 0
@@ -107,10 +113,13 @@ M7 W0 T2 -- THE PAYLOAD-MASK RE-MEASUREMENT, EVERY FIGURE
 === interior wall / r1 / a00 vs a-all === cells compared: 43  columns compared: 30  differences: 0
 === interior wall / r1 / a00 vs a-scalars === cells compared: 43  columns compared: 30  differences: 0
 === interior wall / r1 / a00 vs a-sink === cells compared: 43  columns compared: 30  differences: 0
+=== unattached pair / r1 / d8ed6b28 vs b8db4b98 === cells compared: 43  columns compared: 30  differences: 0
+=== unattached pair / r2 / d8ed6b28 vs b8db4b98 === cells compared: 43  columns compared: 30  differences: 0
+=== unattached pair / r3 / d8ed6b28 vs b8db4b98 === cells compared: 43  columns compared: 30  differences: 0
 === sqp corpus walk / r1 (27 cells merged) / a00 vs a-all === cells compared: 27  columns compared: 75  differences: 0
 === sqp corpus walk / r1 (27 cells merged) / a00 vs a-scalars === cells compared: 27  columns compared: 75  differences: 0
 
 ------------------------------------------------------------------------------
-COMPARISONS: 32 (manifest demands 32)
-CELL-COMPARISONS: 42750
+COMPARISONS: 35 (manifest demands 35)
+CELL-COMPARISONS: 46620
 DIFFERENCES: 0

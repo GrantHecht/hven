@@ -1,0 +1,20 @@
+LEG: bash -o pipefail -c 
+cd /home/ghecht/Projects/hven
+w=0
+for r in 1 2 3; do
+  python3 scripts/compare_replay.py .scratch/m7t2/art/raw/unattached/old-r$r.csv .scratch/m7t2/art/raw/unattached/new-r$r.csv "unattached pair / r$r / d8ed6b28 vs b8db4b98"
+  rc=$?; [ $rc -gt $w ] && w=$rc
+done
+echo "UNATTACHED_PAIR_CMP_WORST_RC=$w"
+exit $w
+PGREP_SEPARATE 2026-09-15T07:23:13Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-15T07:23:14Z
+=== unattached pair / r1 / d8ed6b28 vs b8db4b98 === cells compared: 43  columns compared: 30  differences: 0
+=== unattached pair / r2 / d8ed6b28 vs b8db4b98 === cells compared: 43  columns compared: 30  differences: 0
+=== unattached pair / r3 / d8ed6b28 vs b8db4b98 === cells compared: 43  columns compared: 30  differences: 0
+UNATTACHED_PAIR_CMP_WORST_RC=0
+LEG_RC=0
+FOREGROUND_END 2026-09-15T07:23:14Z
+WRAPPER_EXIT=0

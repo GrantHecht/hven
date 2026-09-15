@@ -182,6 +182,36 @@ def main():
                   f"{'FLAT' if abs(corpus-1) <= 0.005 and out_of_band == 0 else 'MOVED'}")
         print()
 
+    # ---------------- the unattached commit pair (amendment 1) ----------------
+    print("2b. THE UNATTACHED PATH, AS A COMMIT PAIR (amendment 1)")
+    print("-" * 78)
+    up = {}
+    for arm in ("old", "new"):
+        rounds = []
+        for r in ROUNDS:
+            pth = root / "perf/unattached" / f"{arm}-r{r}.txt"
+            c = perf_counts(pth)
+            if c is None:
+                REFUSALS.append(f"unattached {arm} r{r}: MANIFEST REFUSAL -- missing {pth}")
+                continue
+            rounds.append(c)
+        if len(rounds) == len(ROUNDS):
+            up[arm] = rounds
+    if set(up) == {"old", "new"}:
+        base = median([c["instructions"] for c in up["old"]])
+        for arm in ("old", "new"):
+            xs = [c["instructions"] for c in up[arm]]
+            m = median(xs)
+            joined = ", ".join(f"{x:,}" for x in xs)
+            print(f"    {arm:<5} rounds [{joined}]  median {m:,}"
+                  f"  spread {100.0 * (max(xs) - min(xs)) / m:.3f} %")
+        nm = median([c["instructions"] for c in up["new"]])
+        print(f"    ratio new/old = {nm / base:.5f} ({100 * (nm / base - 1):+.3f} %)"
+              f" -- see reading.md section 8")
+    else:
+        print("    INCOMPLETE -- refused")
+    print()
+
     # ---------------- the counter check ----------------
     print("3. THE COUNTER CHECK -- an attached observer changed no trajectory")
     print("-" * 78)
@@ -195,6 +225,13 @@ def main():
     for arm in ARMS[1:]:
         b = root / "raw/ipmlegwall" / f"wall-{arm}-r1.csv"
         compare_replay(repo, a, b, f"interior wall / r1 / a00 vs {arm}")
+    # AMENDMENT 1: the unattached commit pair. Nothing is attached in either
+    # arm; what differs is the BINARY, so this asks whether the unattached
+    # path's trajectory moved between d8ed6b28 and b8db4b98.
+    for r in ROUNDS:
+        a = root / "raw/unattached" / f"old-r{r}.csv"
+        b = root / "raw/unattached" / f"new-r{r}.csv"
+        compare_replay(repo, a, b, f"unattached pair / r{r} / d8ed6b28 vs b8db4b98")
     # THE SINGLE-CELL RUNS WRITE ONE BARE ROW EACH -- `--internal-out` carries no
     # header of its own -- so the 27 rows of an arm are concatenated under the
     # corpus leg's OWN header before the comparison, which is exactly how W6 T6
@@ -229,7 +266,7 @@ def main():
                 compare_replay(repo, sides["a00"], sides[arm],
                                f"sqp corpus walk / r1 (27 cells merged) / a00 vs {arm}")
 
-    expected = len(IPM_BATCHES) * len(ROUNDS) * 3 + 3 + 2
+    expected = len(IPM_BATCHES) * len(ROUNDS) * 3 + 3 + len(ROUNDS) + 2
     print()
     print("-" * 78)
     print(f"COMPARISONS: {COMPARISONS} (manifest demands {expected})")

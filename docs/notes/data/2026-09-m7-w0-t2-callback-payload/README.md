@@ -37,8 +37,13 @@ M7 as **D24**, and that leg's **missing sink arm**, T6's declared omission.
   `reading.md` §5 names the one candidate it can and says what it cannot split.
 * **T6's declared omission is closed and the interior sink is FREE** —
   `a-sink`, 538 events, **+0.043 %/+0.039 %**: FLAT.
-* **Counters byte-identical in all 32 comparisons** (42 750 cell-comparisons,
+* **Counters byte-identical in all 35 comparisons** (46 620 cell-comparisons,
   0 differences). A declared payload changed no trajectory.
+* **AMENDMENT 1** (`reading.md` §8, `PROVENANCE.txt`'s trailing block): the
+  UNATTACHED path, measured as a commit pair, reads **−2.05 %** at HEAD with
+  the trajectory byte-identical — a build-layout effect, not work, and a
+  caution that **cross-binary** instruction comparisons on this leg carry a
+  ~2 % floor. Every verdict here is a **within-binary** comparison.
 
 ## What is here
 
@@ -53,6 +58,7 @@ M7 as **D24**, and that leg's **missing sink arm**, T6's declared omission.
 | `raw/ipmleg/`, `raw/ipmleg2/`, `raw/ipmleg3/` | the interior leg, three complete batches, four arms × three rounds |
 | `raw/ipmlegwall/` | the interior leg's one wall batch (informational, and **NON-QUOTABLE** — see `reading.md` §2) |
 | `raw/attrib/{small,large}/` | the attribution leg: the same four-arm question on the leg's smallest and largest cell populations |
+| `raw/unattached/` | **amendment 1**: the same leg with nothing attached, run from the START commit's binary and from HEAD's — the P-SYM gate's runtime half |
 | `raw/sqpperf/walk/r1/` | the SQP corpus walk-mode check, 27 single-cell processes × three arms |
 | `raw/sqpperf/walk/schema-header.csv` | one untimed public-leg run of the same binary, used for its header line alone (the single-cell runs write bare rows) |
 | `perf/…` | one `perf stat` file per run, laid out to match `raw/` |
@@ -76,9 +82,11 @@ python3 idle_proof.py --pids IDLE-PIDS.txt --pids-link IDLE-PIDS.txt \
 
 The comparator enforces an EXACT MANIFEST: every comparison the leg owes is
 listed in the script, a missing file is a refusal, and the run checks its own
-totals (32 / 42 750). Falsified by removing two files in a scratch copy, which
-gives 30 / 38 700, two named `MANIFEST REFUSAL`s and exit 2
-(`logs/43-manifest-falsification.txt`). `idle_proof.py` exits 1 whenever any
+totals (35 / 46 620). Falsified by removing two files in a scratch copy, which
+gives two named `MANIFEST REFUSAL`s and exit 2
+(`logs/43-manifest-falsification.txt`, taken against the pre-amendment
+32-comparison tool and deliberately not regenerated — it is the record of
+that run and the refusal mechanism it exercises is unchanged). `idle_proof.py` exits 1 whenever any
 batch is UNPROVEN, which on this leg it always does — see `PROVENANCE.txt`.
 
 The counter check shells out to `scripts/compare_replay.py` in the repo; set

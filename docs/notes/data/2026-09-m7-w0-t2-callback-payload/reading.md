@@ -287,3 +287,69 @@ registered with the residual's number.**
    `HVEN_LEG_CALLBACK_PAYLOAD` and the corpus's `--callback count-scalars` —
    so the next reader can re-take any of this without writing an instrument
    first, which is the same thing T6's disposition item 5 left behind.
+
+---
+
+## 8. AMENDMENT 1 — the unattached path, as a commit pair
+
+**Added after §1–§7 were written, by the P-SYM gate.** That gate asks whether
+the UNATTACHED path's instruction stream moved between the task's start commit
+(`d8ed6b28`) and its HEAD (`b8db4b98`). P-SYM answers it per symbol; this
+answers it at runtime, which is the reading that matters.
+
+Two binaries, built in **equal-length sibling worktrees** so `__FILE__` is the
+same length in both arms, over the same 43-row leg with **nothing attached**,
+three alternated rounds behind one untimed warm-up
+(`raw/unattached/`, `perf/unattached/`, `logs/75-unattached-pair.log`):
+
+| arm | rounds (instructions) | median | own spread |
+|---|---|---|---|
+| `old` (`d8ed6b28`) | 108 317 513 145 / 108 368 080 501 / 108 368 694 049 | 108 368 080 501 | 0.047 % |
+| `new` (`b8db4b98`) | 106 216 125 723 / 106 138 822 532 / 106 146 440 748 | 106 146 440 748 | 0.073 % |
+
+**ratio new/old = 0.97950 — the unattached path retires 2.05 % FEWER
+instructions at HEAD.**
+
+**IT IS NOT A SPEED-UP, AND IT IS NOT WORK.** Three things say so together:
+
+1. **Nothing in the diff can reach the unattached path.** P-SYM
+   (`logs/72f-psym.out`) classifies every library-object difference: the only
+   two differing objects are `ipm_solver.cpp.o` and `sqp_solver.cpp.o`, and
+   within them every differing symbol is either an EDITED function
+   (`fire_iteration_event`, `apply_pending_iteration_callback`,
+   `set_iteration_callback`, `enter_restoration`, `invoke_iteration_callback`),
+   a CONSTRUCTOR that now initialises two more members, or a
+   **member-displacement shift** — `mov %rax,0x950(%r14)` → `mov
+   %rax,0x958(%r14)`, same mnemonic, same operands, same length, every offset
+   past `iteration_callback_` moved by exactly **+8 bytes**. That is the
+   M6 W5 T1 displacement class, not new code.
+2. **The trajectory is byte-identical across the pair.**
+   `scripts/compare_replay.py`, 43 cells × 30 columns, all three rounds:
+   **0 differences** (`logs/76-unattached-pair-counters.log`, and the three
+   comparisons in `comparator.out`'s §3). The same solve, the same counters,
+   the same residuals — so the two binaries do the same WORK.
+3. **The magnitude is the same class §5 already had to name.** These two
+   binaries were also built at different absolute levels from the measurement
+   binary (108.4e9 and 106.1e9 here against 104.5e9 for the arm binary in §2),
+   which is a ~2–4 % build-to-build spread on a leg whose arms, WITHIN one
+   binary, agree to 0.02–0.17 %.
+
+**THE CONSEQUENCE FOR THIS ARTIFACT, STATED PLAINLY.** Every verdict in §2, §4
+and §5 is a **within-binary** comparison — one build, one binary, arms that
+differ only by a lever — and is unaffected. **Cross-binary instruction
+comparisons on this leg carry a layout component of the order of 2 %**, which
+is why §2 declines to read anything into this leg's absolute counts differing
+from W6 T6's, and why §5 attributes part of the `a-scalars` residual to
+process-level layout rather than to per-event work. A future reader comparing
+two BUILDS on this leg should treat ±2 % as the floor until that component is
+instrumented.
+
+**P-SYM's own verdict on the library objects, for the record.** 142 objects
+across all groups: 46 byte-identical, 76 differing within the accepted noise
+class, 19 with unclassified differences. **Of the library (`hven`) group,
+exactly two objects differ — `ipm_solver.cpp.o` and `sqp_solver.cpp.o` — which
+is what the brief predicted**, and their per-symbol breakdown is 226 identical /
+1 noise-only / 17 differing / 1 only-after (interior) and 292 identical / 7
+differing / 1 only-before / 2 only-after (SQP). The only-before/only-after pair
+on each side is the one-argument `set_iteration_callback` becoming the
+two-argument one.

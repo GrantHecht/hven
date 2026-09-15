@@ -310,3 +310,58 @@ WHAT THIS LEG DOES NOT MEASURE
     can be written, on purpose: what is measured is what ATTACHING costs.
   * the residual's SPLIT between its named candidates.  §5 of `reading.md` says
     what the leg can and cannot separate, and registers what is left.
+
+================================================================================
+AMENDMENT 1 — 2026-09-15 (the P-SYM gate).  This block AMENDS everything above
+it and nothing above it is rewritten: a provenance record edited in place stops
+being a record (the T8.9r fix2 / W6 T6 fix1 precedent).
+
+NOTHING UNDER raw/ipmleg*, raw/ipmlegwall/, raw/sqpperf/, raw/attrib/ OR THE
+MATCHING perf/ TREES WAS TOUCHED, and no number in sections 1-7 of `reading.md`
+moved.  What this block adds is a LEG, and what it changes is the comparator's
+manifest and two generated files.
+
+(A1) A FIFTH ARM PAIR: THE UNATTACHED PATH AS A COMMIT PAIR.  The task's P-SYM
+     gate asks whether the UNATTACHED path's instruction stream moved between
+     d8ed6b28 (the task's start) and b8db4b98 (its HEAD).  `raw/unattached/`
+     and `perf/unattached/` answer it at runtime: the same 43-row leg with
+     NOTHING attached, run from each commit's own binary, three rounds
+     alternated within a round behind one untimed warm-up, under the same
+     serial terms as every other batch (pinned cpu2, sibling cpu10 idle,
+     MKL_NUM_THREADS=1, inside the lock, PGREP_EMPTY both times).
+
+     THE TWO BINARIES ARE NOT THE MEASUREMENT BINARY, and that is declared.
+     They are built in two git worktrees under `.scratch/m7t2/` whose paths are
+     DELIBERATELY THE SAME LENGTH (`psym-old-tree`, `psym-new-tree`), so
+     `__FILE__` is the same length in both arms and the comparison cannot be
+     perturbed by a string-constant shift.  Their vendored submodules are
+     symlinks to the main checkout's, which is sound because `dep/eigen` and
+     `dep/fmt` are pinned at the SAME sha at both commits (eigen bc3b3987,
+     fmt 407c905e, checked).  Configure flags are identical to the measurement
+     tree's.  Logs: 72d-, 72e- (the builds), 72f- (the P-SYM capture and
+     compare), 75- (the leg), 76- (its counter check).
+
+     THE RESULT: ratio new/old = 0.97950 — the unattached path retires 2.05 %
+     FEWER instructions at HEAD — with every column of every round BYTE-
+     IDENTICAL across the pair.  `reading.md` section 8 reads it: it is a
+     BUILD-LAYOUT effect, not work, and it is a caution about cross-binary
+     instruction comparisons on this leg.  Every verdict in sections 2, 4 and 5
+     is a WITHIN-BINARY comparison and is unaffected.
+
+(A2) THE MANIFEST GREW BY THREE COMPARISONS AND THE TOTALS MOVED.
+     `comparator.py` now lists the three unattached-pair comparisons, so the
+     exact manifest demands 35 comparisons rather than 32.
+
+       THE RESULT: 35 comparisons, 46 620 cell-comparisons, 0 DIFFERENCES.
+
+     `comparator.out` and `comparator.py.sha256` are regenerated against the
+     new tool (sha256 2ee9702afc645d0de3472e22bc7a12d160ea76639a17209a69eda0cc
+     91d59d68).  The falsification transcript in
+     logs/43-manifest-falsification.txt was taken against the 32-comparison
+     tool and is NOT regenerated: it is the record of that run, and the refusal
+     mechanism it exercises is unchanged.
+
+(A3) WHAT IS NOT AMENDED.  Sections 1-7 of `reading.md` stand as written; the
+     `README.md`'s tables gain the new `raw/unattached/` row and one result
+     line and are otherwise unchanged.  No measured number in this directory
+     was recomputed, and nothing under `discarded/` was touched.
