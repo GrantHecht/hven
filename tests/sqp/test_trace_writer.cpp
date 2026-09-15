@@ -1700,6 +1700,105 @@ TEST(JsonLinesTraceSink, AnArmedExceptionMaskPropagatesOutOfTheSolveByDesign) {
 }
 
 // ===========================================================================
+// M7 W0 T5(c) -- flush(), and the destructor's guarded flush
+// ===========================================================================
+
+/// @brief A `streambuf` that COUNTS syncs and can be made to refuse them.
+///
+/// `sync()` is what `std::ostream::flush()` reaches through `pubsync()`, so the
+/// counter is a direct reading of "how many times was this stream flushed", and
+/// `fail_sync` is the only way to make a flush -- as opposed to a write -- fail.
+/// Writes always succeed here, which keeps the two failure paths apart.
+class CountingSyncBuf : public std::streambuf {
+  public:
+    int syncs = 0;
+    bool fail_sync = false;
+    std::string taken;
+
+  protected:
+    int sync() override {
+        ++syncs;
+        return fail_sync ? -1 : 0;
+    }
+    std::streamsize xsputn(const char *s, std::streamsize n) override {
+        taken.append(s, static_cast<std::size_t>(n));
+        return n;
+    }
+    int_type overflow(int_type c) override {
+        if (!traits_type::eq_int_type(c, traits_type::eof())) {
+            taken.push_back(static_cast<char>(c));
+        }
+        return traits_type::not_eof(c);
+    }
+};
+
+TEST(JsonLinesTraceSink, FlushSyncsOnceAndDestructionSyncsOnceMore) {
+    CountingSyncBuf buf;
+    std::ostream out(&buf);
+    std::string after_flush;
+    {
+        JsonLinesTraceSink sink(out);
+        sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+        EXPECT_EQ(buf.syncs, 0) << "the sink does not flush per line";
+        sink.flush();
+        EXPECT_EQ(buf.syncs, 1);
+        EXPECT_FALSE(sink.failed());
+        EXPECT_EQ(sink.lines_written(), 1) << "a flush writes no line and moves no seq";
+        after_flush = buf.taken;
+    }
+    EXPECT_EQ(buf.syncs, 2) << "destruction flushes once more";
+    EXPECT_EQ(buf.taken, after_flush) << "flushing changes no byte of the artifact";
+    EXPECT_EQ(count_lines(buf.taken), 1);
+}
+
+TEST(JsonLinesTraceSink, UnderTheDefaultMaskAFailingFlushSetsFailedAndDoesNotThrow) {
+    CountingSyncBuf buf;
+    buf.fail_sync = true;
+    std::ostream out(&buf);
+    JsonLinesTraceSink sink(out);
+    sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+    EXPECT_FALSE(sink.failed()) << "the WRITE succeeded; only the flush will fail";
+    EXPECT_NO_THROW(sink.flush());
+    EXPECT_TRUE(sink.failed()) << "a flush failure reads exactly like a write failure";
+}
+
+TEST(JsonLinesTraceSink, UnderAnArmedMaskFlushThrows) {
+    // THE FIRST HALF of the armed contract: flush() is an emitting call like any
+    // `on_*`, and a caller who armed a mask is told.
+    CountingSyncBuf buf;
+    buf.fail_sync = true;
+    std::ostream out(&buf);
+    out.exceptions(std::ios::badbit);
+    JsonLinesTraceSink sink(out);
+    sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+    EXPECT_THROW(sink.flush(), std::ios_base::failure);
+    EXPECT_EQ(buf.syncs, 1);
+    // The sink is destroyed at the end of this test. Its flush finds the stream
+    // ALREADY bad, so `std::ostream::flush`'s sentry refuses before reaching
+    // `pubsync` and nothing is thrown to swallow -- which is why the destructor
+    // is exercised against a stream that is still good in the test below.
+}
+
+TEST(JsonLinesTraceSink, UnderAnArmedMaskAFailingFlushATDESTRUCTIONIsSwallowed) {
+    // THE REASON THE DESTRUCTOR'S FLUSH IS GUARDED, proven rather than asserted:
+    // the stream is GOOD when the sink goes out of scope and the flush fails
+    // there for the first time, so the destructor really does face a live
+    // `std::ios_base::failure`. Unguarded, that would propagate out of a
+    // destructor; here it is dropped and this test simply returns.
+    CountingSyncBuf buf;
+    std::ostream out(&buf);
+    out.exceptions(std::ios::badbit);
+    {
+        JsonLinesTraceSink sink(out);
+        sink.on_ipqp_certify(IpqpTraceCertifyEvent{});
+        ASSERT_TRUE(out.good()) << "non-vacuous: the write itself succeeded";
+        buf.fail_sync = true;
+    }
+    EXPECT_EQ(buf.syncs, 1) << "destruction did reach the stream";
+    EXPECT_TRUE(out.bad()) << "and the failure it swallowed is still visible on the stream";
+}
+
+// ===========================================================================
 // R6 -- the null-sink comparison on the arm where the sink actually writes
 // ===========================================================================
 

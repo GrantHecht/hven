@@ -36,8 +36,10 @@ namespace hven::solvers {
 /// @brief Writes one JSON object per line to a caller-owned `std::ostream`.
 ///
 /// THE STREAM IS BORROWED, NOT OWNED: it must outlive the sink, and the sink
-/// neither opens, closes nor flushes it -- not even at destruction, so a caller
-/// reading the file before the `ofstream` is closed sees a short artifact.
+/// neither opens nor closes it. It DOES flush it, on request (`flush()`) and
+/// once more at destruction (M7 W0 T5(c)) -- so a caller reading the file after
+/// the sink is gone sees every line the sink wrote, even if its own `ofstream`
+/// is still open. Flushing changes no byte of the artifact's content.
 ///
 /// EXCEPTIONS -- TWO CASES, and the instrumentation invariant holds only in the
 /// first. Under the DEFAULT exception mask the sink never throws and can never
@@ -60,6 +62,16 @@ namespace hven::solvers {
 class JsonLinesTraceSink final : public TraceSink {
   public:
     explicit JsonLinesTraceSink(std::ostream &out);
+
+    /// @brief Flushes the borrowed stream, and SWALLOWS a failure doing so.
+    ///
+    /// A destructor cannot report anything: throwing from one during stack
+    /// unwinding terminates the process, and the armed-exception contract above
+    /// means `flush()` genuinely can throw. So the destructor's flush is wrapped
+    /// in `catch (...) {}` and a caller who needs to SEE a flush failure calls
+    /// `flush()` itself, before the sink goes out of scope. This is the one
+    /// place in the class where a failure is dropped, and it is dropped because
+    /// there is no one left to hand it to.
     ~JsonLinesTraceSink() override;
 
     JsonLinesTraceSink(const JsonLinesTraceSink &) = delete;
@@ -128,6 +140,23 @@ class JsonLinesTraceSink final : public TraceSink {
     /// `seq` IS NOT RESET: the artifact's line numbering is the artifact's, and
     /// renumbering it would hide the lines the abandoned solve did write.
     void reset_nesting();
+
+    /// @brief Pushes the borrowed stream's buffered bytes out to its sink.
+    ///
+    /// The sink writes whole lines and never flushes per line -- a trace of a
+    /// long solve would pay for it on every event. This is how a caller that
+    /// wants the artifact readable NOW (a live tail, a crash-resistant run, a
+    /// hand-off to another process) asks for it, without closing a stream it
+    /// still owns.
+    ///
+    /// CONTENT IS UNTOUCHED: `seq_`, `depth_` and `failed_`'s meaning are what
+    /// they were, and no line is written, rewritten or renumbered here.
+    ///
+    /// EXCEPTIONS: exactly the `on_*` contract above. Under the default mask
+    /// this never throws and records the failure in `failed()`; under a mask the
+    /// caller ARMED, `std::ios_base::failure` propagates out of this call --
+    /// by design, since the caller asked to be told.
+    void flush();
 
   private:
     /// @brief Nested-solve entry: the restoration sub-solve's own events then

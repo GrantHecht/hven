@@ -653,7 +653,28 @@ static_assert(::hven::detail::kAggregateArity<IpmPhaseReport> == 6,
 
 JsonLinesTraceSink::JsonLinesTraceSink(std::ostream &out) : out_(out) {}
 
-JsonLinesTraceSink::~JsonLinesTraceSink() = default;
+// M7 W0 T5(c): the destructor flushes, under the only guard a destructor can
+// carry. `flush()` propagates under an armed mask (the class contract), and a
+// destructor that let that escape would terminate the process during unwinding,
+// so the failure is swallowed HERE and nowhere else -- a caller who needs to see
+// it calls flush() while it can still be reported.
+JsonLinesTraceSink::~JsonLinesTraceSink() {
+    try {
+        flush();
+    } catch (...) { // NOLINT(bugprone-empty-catch) -- see above; nothing to report to.
+    }
+}
+
+// A STREAM OPERATION ONLY: no line is written and `seq_`/`depth_` do not move.
+// The failure reading mirrors write_line() exactly -- the stream's own state,
+// read after the operation and sticky -- so `failed()` means the same thing
+// whether the failure happened on a write or on a flush.
+void JsonLinesTraceSink::flush() {
+    out_.flush();
+    if (!out_) {
+        failed_ = true;
+    }
+}
 
 void JsonLinesTraceSink::push_depth() { ++depth_; }
 
