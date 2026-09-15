@@ -251,6 +251,19 @@ jobs:
       # the script returns so the next step can inspect the installed
       # hvenTargets.cmake and the hven configure log; a plain local run of
       # the script (no env var set) still self-cleans as before.
+      # TWO ARMS FROM M7 W0 T5(d). The first is the default front end (GCC on
+      # this runner, unpinned on purpose -- a consumer compiles with its own
+      # toolchain); the second passes -DCMAKE_CXX_COMPILER=clang++ through the
+      # script's existing passthrough. One run proves one front end, and after
+      # M6 W6 T3's LTO-archive finding that is load-bearing rather than
+      # hygienic: with HVEN_LINK_TIME_OPT=ON the installed archive's members are
+      # bitcode and the two front ends do not behave alike. LTO is OFF here, as
+      # it is in every lane -- the bitcode constraint is docs/build.md's "LTO
+      # installs" section and is not exercised by either arm.
+      #
+      # SEPARATE WORKDIRS: the export-contract step below inspects the DEFAULT
+      # arm's install tree and configure log, so the clang arm must not
+      # configure over them.
       - name: Run hven install smoke (configure/build/install/consume)
         id: install_smoke
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
@@ -258,6 +271,13 @@ jobs:
           HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke
           HVEN_INSTALL_SMOKE_JOBS: "6"
         run: ./scripts/check_install_smoke.sh
+
+      - name: Run hven install smoke, clang front end (Linux)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        env:
+          HVEN_INSTALL_SMOKE_WORKDIR: ${{ runner.temp }}/hven-install-smoke-clang
+          HVEN_INSTALL_SMOKE_JOBS: "6"
+        run: ./scripts/check_install_smoke.sh -DCMAKE_CXX_COMPILER=clang++
 
       # Gated on the smoke step specifically, not `!cancelled()` alone, same
       # reason as the macOS lane: this step inspects the install tree the
