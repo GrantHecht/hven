@@ -1,0 +1,59 @@
+M7 W0 T3 — THE TIER-SOLVED ELASTIC RUNG vs THE WALK, ON A CONSTRUCTED F7 FAMILY
+================================================================================
+CLAUDE.md §7 provenance stamp for every number in this directory.
+
+WHAT THIS LEG IS
+--------------------------------------------------------------------------------
+ONE HEAD measured against ITSELF: two ARMS of the same binary differing only by
+`SqpOptions::elastic_rung_engine` (kWalk, the shipped default, and kTier). It is
+not a commit pair. The question it answers is the owner's, registered at M6 W2
+Q-O2 and carried into M7 as M7-1 / D11: does the elastic ladder's rung A cost
+grow with problem size on the WALK, and does an interior-point rung fix that?
+
+THE CELL, AND WHY IT HAD TO BE BUILT
+--------------------------------------------------------------------------------
+No natural F7 population in hven fires the elastic rung at all — 0 of 1200 cells
+in the M6 W2 T7 reachability sweep, 0 of 27 in the M6 close-gate replay, all
+three arms. The cells that DO fire are three HS problems (embargoed by M7's
+TRAIN rule until W1 H2) and four constructed W2 fixtures, the largest n = 2.
+So the vehicle is constructed: `F7InconsistentChain`
+(tests/sqp/support/elastic_rung_vehicle.h) = F7CollocationChain(N, 3 states,
+2 controls) plus ONE scaled contradictory equality pair (s = 1e2, b = 1) over
+the last node's control block. Identical, constant Jacobian rows; residuals
+differing by 2sb at every point; so the LINEARIZED subproblem is inconsistent at
+every iterate by construction and the tier's §6.3 detector suspects it.
+
+THE TREE
+--------------------------------------------------------------------------------
+repo             /home/ghecht/Projects/hven, branch m7
+base commit      60256f50 (the step-2a close) plus this task's uncommitted
+                 working tree at measurement time; the code landed as the
+                 `feat(sqp)` commit named in the report.
+config           Release (build/), clang/LLVM via the repo toolchain, MKL
+                 (sequential), uniform flag regime (CLAUDE.md §7).
+
+THE MACHINE AND THE PROTOCOL
+--------------------------------------------------------------------------------
+host             Linux 7.2.4-200.fc44.x86_64, x86-64
+threads          MKL_NUM_THREADS=1, OMP_NUM_THREADS=1, SqpOptions.common.threads=1
+pinning          taskset -c 2 — ONE pinned core
+concurrency      SOLO. Every leg ran alone under flock /tmp/box-build.lock.
+                 This is NOT a co-run: §7's serial rule is honoured in full, so
+                 the wall numbers here are quotable as wall numbers.
+date             2026-09-15
+
+WHAT IS ASSERTED AND WHAT IS NOT
+--------------------------------------------------------------------------------
+ASSERTED: counters. Every counter column in raw/both-states-3reps.log is
+  byte-identical across THREE replicates, and identical between Debug and
+  Release on the two sizes Debug sweeps (raw/step2a-debug.log).
+INFORMATIONAL: wall_s, and the instruction counts in perf/. They are reported
+  because they are the reader's intuition for the counter ratios; no claim in
+  reading.md rests on them alone.
+
+THE BUDGET
+--------------------------------------------------------------------------------
+max_iter = 1. ONE major per cell = one tier escape, one fallback entry, one
+ladder, from the same start point at every size — bounded (CLAUDE.md §8) and
+like-for-like across sizes. An unbounded run does not finish N = 100 in 540 s
+and would price the SOLVE rather than the RUNG.
