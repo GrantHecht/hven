@@ -3793,6 +3793,25 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
             fmt::format("{:.9e}", row.kkt_residual), fmt::format("{:.9e}", row.kkt_stationarity),
             fmt::format("{:.9e}", row.kkt_primal), fmt::format("{:.9e}", row.kkt_dual_sign),
             fmt::format("{:.9e}", row.kkt_complementarity));
+#ifndef USE_ACCELERATE_SPARSE
+        // THE GATE'S TWO TERMS, HOISTED SO BOTH ASSERTING ARMS READ THE SAME
+        // ONES (M7 W0 T1). Until then the floor lived in the Debug arm only and
+        // the file declared the resulting asymmetry; it is now one gate, and one
+        // gate is one place. (Not visible on the Accelerate arm, which asserts
+        // nothing here -- see the M3-3 paragraph above -- and would only carry
+        // two unused locals.)
+        //
+        // THE FLOOR. These are residual norms formed by cancellation from O(1)
+        // data, so their absolute accuracy is a few ulps of 1.0 (~1e-15) however
+        // small the norm itself is. Below the floor a purely relative test
+        // measures noise against noise. 1e-13 is this file's own derivation at
+        // :3607-3617 and scripts/census_compare.py:46-48's constant.
+        constexpr double kResidualAbsFloor = 1e-13;
+        // THE ONE ROW THE FLOOR IS NOT APPLIED TO, on either arm -- see THE R6
+        // ROW paragraph in the #else arm below for why.
+        static const std::set<std::string> kR6RePinnedRows = {"f7_n1000_path_neutral"};
+        const bool r6_repinned = kR6RePinnedRows.count(id) == 1;
+#endif
 #ifdef USE_ACCELERATE_SPARSE
         ::testing::Test::RecordProperty(fmt::format("task6b_residuals_observed_{}", id), residuals);
         ::testing::Test::RecordProperty(
@@ -3884,9 +3903,7 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
             // inf <= inf and PASS -- the loudest regression this column can
             // report, waved through. The Debug arm's gate refuses it at the
             // #else below and both comparators refuse it under
-            // --residual-gate; this arm now says the same thing. The 1e-13
-            // floor is deliberately NOT added here: see the #else arm's note
-            // on the declared asymmetry.
+            // --residual-gate; this arm says the same thing.
             if (!std::isfinite(observed) || !std::isfinite(want)) {
                 ADD_FAILURE() << what << " on cell " << id
                               << ": a non-finite residual never passes the gate -- observed "
@@ -3894,8 +3911,17 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
                               << derived;
                 return;
             }
+            // THE SAME BOUND THE DEBUG ARM SELECTS, row for row (M7 W0 T1):
+            // the relative factor with the absolute floor everywhere except the
+            // R6 re-pinned row, which keeps the bare relative form on BOTH arms.
+            // Byte equality is not tested first here, as it is in the #else
+            // arm, because it does not need to be: this arm compares doubles,
+            // and a byte-equal pair has |observed - want| == 0, which clears
+            // every bound below unconditionally.
             const double scale = std::max(std::abs(want), std::abs(observed));
-            EXPECT_LE(std::abs(observed - want), kHostRelTol * scale)
+            const double bound = r6_repinned ? kHostRelTol * scale
+                                             : std::max(kHostRelTol * scale, kResidualAbsFloor);
+            EXPECT_LE(std::abs(observed - want), bound)
                 << what << " on cell " << id << ": observed " << fmt::format("{:.9e}", observed)
                 << ", derivation machine " << derived;
         };
@@ -3936,9 +3962,8 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         // at :3715. Until M6 W6 T1 the OTHER one -- f7_n1000_bound_neutral --
         // kept a byte-compare here; the block below says why that ONE ROW no
         // longer does, and why this one's bound is still the bare relative
-        // form.)
-        static const std::set<std::string> kR6RePinnedRows = {"f7_n1000_path_neutral"};
-        const bool r6_repinned = kR6RePinnedRows.count(id) == 1;
+        // form.) `kR6RePinnedRows` and `r6_repinned` are declared once, above
+        // the arm split (M7 W0 T1), because BOTH arms now read them.
         // A DECLARED RELAXATION OF ONE DEBUG-ARM FLOAT PIN (M6 W6 T1, plan
         // section 0 J.6) -- ONE ROW, f7_n1000_bound_neutral, of the two ids this
         // test iterates (:3715). The byte-strict EXPECT_EQ that stood here is
@@ -3946,14 +3971,26 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         // 1e-13 this file derives at :3607-3617. It is written down because a
         // pin that moves silently is worse than one that moves.
         //
-        // IT IS NOT LITERALLY "THE SAME GATE" THE RELEASE ARM APPLIES, and the
-        // asymmetry is DECLARED rather than glossed (M6 W6 T1 fix1). The
-        // Release arm's `close` above is FLOORLESS -- a bare
-        // kHostRelTol * scale -- while this arm carries the 1e-13 absolute
-        // floor; both arms refuse a non-finite value. So DEBUG IS THE LOOSER
-        // ARM, and nothing here can hide a Release regression: Release still
-        // pins its own five residuals against its own re-derivation with no
-        // floor at all, on every lane that ships a Release build.
+        // IT IS LITERALLY THE SAME GATE THE RELEASE ARM APPLIES (M7 W0 T1,
+        // D49). The asymmetry this paragraph used to declare -- a FLOORLESS
+        // Release arm against a floored Debug one, "DEBUG IS THE LOOSER ARM" --
+        // is RETIRED: the Release arm above now selects its bound by this same
+        // rule, row for row, off the same two hoisted terms. The two arms differ
+        // only in what they compare AGAINST (the frozen artifact here, the U0
+        // re-derivation there), which is the config split at :3816-3822 and not
+        // a gate difference. That single rule is the suite's since M6 W6 T6b --
+        // byte equality first, then 1e-5 relative with the 1e-13 absolute floor,
+        // non-finite refused -- and is what scripts/census_compare.py:46-48,
+        // scripts/compare_replay.py and tests/drivers/test_concurrency.cpp state.
+        //
+        // WHAT THE MOVE ACTUALLY LOOSENED, measured rather than argued: five
+        // bounds on ONE row, f7_n1000_bound_neutral's, whose Release residuals
+        // are 6.30e-14, 6.30e-14, 1.94e-14, 0 and 0, so their bounds went from
+        // 6.30e-19, 6.30e-19, 1.94e-19, 0 and 0 to 1e-13. It hid nothing: every
+        // one of those five compares BYTE-EXACT against its derivation-machine
+        // value -- |observed - want| is 0 on all five, before and after -- and
+        // the R6 row's ten bounds did not move at all. Every integer counter,
+        // the status and the per-QP shape stay byte-strict on both arms.
         //
         // WHY. This cell failed twice under full-suite Debug with unpinned
         // threading and passed in isolation each time, on a byte-for-byte
@@ -3996,7 +4033,6 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
         // relaxation there is larger than "1e-5" alone suggests. That is the
         // same trade this file already took at :3607-3617 and is stated here so
         // the next reader does not have to re-derive it.
-        constexpr double kDebugResidualAbsFloor = 1e-13;
         const auto debug_close = [&](double observed, const std::string &artifact,
                                      const char *what) {
             const std::string live = fmt::format("{:.9e}", observed);
@@ -4016,7 +4052,7 @@ TEST(CorpusTask6bPhaseB, TheShippedKSsnConfigurationIsUnmovedByTheFourLevers) {
             }
             const double scale = std::max(std::abs(want), std::abs(observed));
             if (!r6_repinned) {
-                EXPECT_LE(std::abs(observed - want), std::max(1e-5 * scale, kDebugResidualAbsFloor))
+                EXPECT_LE(std::abs(observed - want), std::max(1e-5 * scale, kResidualAbsFloor))
                     << what << " on cell " << id << ": Debug " << live << ", artifact " << artifact
                     << " -- outside the 1e-5 relative gate (absolute floor 1e-13)";
                 return;
