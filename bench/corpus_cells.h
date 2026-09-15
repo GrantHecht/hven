@@ -1404,6 +1404,12 @@ struct EngineConfig {
     // already follows (run_cell_with_deadline's own note).
     hven::solvers::TraceSink *trace = nullptr;
     hven::solvers::IterationCallback iteration_callback{};
+    // M7 W0 T2. WHAT THAT CALLBACK DECLARES IT READS. kAll is the arm W6 T6
+    // measured (and the one-argument attach's own meaning); kScalars is the
+    // payload-mask arm, which asks the driver to prepare no snapshot at all.
+    // Read only when `iteration_callback` is set, and forwarded across the
+    // subprocess boundary as a FLAG VALUE like every other lever here.
+    hven::solvers::IterationPayload iteration_payload = hven::solvers::IterationPayload::kAll;
 
     // The model-surface census hook's opt-in flag.
     // UNLIKE every field above, this is NOT an SqpOptions/SsnOptions field --
@@ -1452,7 +1458,7 @@ inline void attach_observers(SqpSolver &driver, const EngineConfig &cfg) {
         driver.attach_trace(cfg.trace);
     }
     if (cfg.iteration_callback) {
-        driver.set_iteration_callback(cfg.iteration_callback);
+        driver.set_iteration_callback(cfg.iteration_callback, cfg.iteration_payload);
     }
 }
 
