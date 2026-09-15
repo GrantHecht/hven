@@ -54,7 +54,10 @@
 #                                   in src/CMakeLists.txt (below), which is the
 #                                   list the build actually applies, so the two
 #                                   cannot drift apart. Set it only to assert a
-#                                   count deliberately different from that list.
+#                                   count deliberately different from that list;
+#                                   it is read BEFORE the derivation, skips it
+#                                   entirely, and the run banner then says the
+#                                   count was overridden rather than derived.
 #
 # Optional arguments:
 #   Any arguments given are forwarded as extra -D cache-variable overrides to
@@ -81,18 +84,31 @@ JOBS="${HVEN_PCH_NEUTRALITY_JOBS:-2}"
 #
 # Deriving it closes that class of drift for good: the list is the single
 # source, and adding or removing a TU moves both halves in one edit.
-_pch_sources_count="$(sed -n '/^set(_hven_pch_sources$/,/^)$/p' \
-    "${HVEN_ROOT}/src/CMakeLists.txt" | grep -c '^    [A-Za-z]' || true)"
-if [ "${_pch_sources_count}" -lt 1 ]; then
-    echo "FAIL: could not read _hven_pch_sources out of ${HVEN_ROOT}/src/CMakeLists.txt."
-    echo "      This script derives the expected PCH consumer count from that list, so a"
-    echo "      derivation that finds nothing must stop rather than fall back to a literal"
-    echo "      -- a wrong count is exactly the failure this replaced. Fix the derivation"
-    echo "      (the list is 'set(_hven_pch_sources' ... ')' with one four-space-indented"
-    echo "      source per line), or pass HVEN_PCH_EXPECTED_TU_COUNT deliberately."
-    exit 1
+# AN EXPLICIT OVERRIDE IS CONSULTED FIRST, AND THE LIST IS THEN NOT PARSED AT
+# ALL (M7 W0 T5 fix round 1). Until fix1 the parse ran first and its failure
+# message offered an override the script had already exited before reaching --
+# a promise it could not keep -- and the banner below announced "from
+# _hven_pch_sources" even when an override had supplied the number. Both are
+# fixed by deciding the source once, here, and carrying it.
+if [ -n "${HVEN_PCH_EXPECTED_TU_COUNT:-}" ]; then
+    EXPECTED_TU_COUNT="${HVEN_PCH_EXPECTED_TU_COUNT}"
+    EXPECTED_TU_COUNT_SOURCE="overridden by HVEN_PCH_EXPECTED_TU_COUNT"
+else
+    _pch_sources_count="$(sed -n '/^set(_hven_pch_sources$/,/^)$/p' \
+        "${HVEN_ROOT}/src/CMakeLists.txt" | grep -c '^    [A-Za-z]' || true)"
+    if [ "${_pch_sources_count}" -lt 1 ]; then
+        echo "FAIL: could not read _hven_pch_sources out of ${HVEN_ROOT}/src/CMakeLists.txt."
+        echo "      This script derives the expected PCH consumer count from that list, so a"
+        echo "      derivation that finds nothing must stop rather than fall back to a literal"
+        echo "      -- a wrong count is exactly the failure this replaced. Fix the derivation"
+        echo "      (the list is 'set(_hven_pch_sources' ... ')' with one four-space-indented"
+        echo "      source per line), or set HVEN_PCH_EXPECTED_TU_COUNT deliberately, which"
+        echo "      is read ABOVE this parse and skips it."
+        exit 1
+    fi
+    EXPECTED_TU_COUNT="${_pch_sources_count}"
+    EXPECTED_TU_COUNT_SOURCE="from _hven_pch_sources in src/CMakeLists.txt"
 fi
-EXPECTED_TU_COUNT="${HVEN_PCH_EXPECTED_TU_COUNT:-${_pch_sources_count}}"
 
 # Counts hven-target compile commands that consume the PCH, in an existing
 # build directory. Shared by the full check below and by --engagement-only.
@@ -221,7 +237,7 @@ echo "== hven PCH neutrality check"
 echo "   source:    ${HVEN_ROOT}"
 echo "   scratch:   ${WORK_DIR}"
 echo "   jobs:      ${JOBS}"
-echo "   PCH TUs:   ${EXPECTED_TU_COUNT} (from _hven_pch_sources in src/CMakeLists.txt)"
+echo "   PCH TUs:   ${EXPECTED_TU_COUNT} (${EXPECTED_TU_COUNT_SOURCE})"
 # Length expansion ${#arr[@]} never trips `set -u` on an empty array, in any
 # bash version -- only element expansion "${arr[@]}" does (bash < 4.4), which
 # is why the expansions below carry the ${arr[@]+...} guard and this one does
