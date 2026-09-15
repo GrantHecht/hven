@@ -1,0 +1,41 @@
+LEG: .scratch/m7t2/fold_proof.sh
+PGREP_SEPARATE 2026-09-15T04:21:52Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-15T04:21:53Z
+=== 1. common.sh's fold: timed_run on a FAILING command, then a SUCCEEDING one ===
+  LEG_RC at entry = 0
+  after a succeeding run:  LEG_RC=0
+CPUSTAT foldproof/fail pre 2026-09-15T04:21:53Z mono=140867.06
+CPUSTAT_LINE cpu  16301268 1449 927503 207821510 32410 322988 49345 0 0 0
+CPUSTAT_LINE cpu2 2201350 69 108611 11762395 1994 12863 2662 0 0 0
+CPUSTAT_LINE cpu10 664881 49 46702 13327620 1065 48214 1167 0 0 0
+CPUSTAT foldproof/fail post 2026-09-15T04:21:53Z mono=140867.07
+CPUSTAT_LINE cpu  16301268 1449 927504 207821518 32410 322988 49345 0 0 0
+CPUSTAT_LINE cpu2 2201350 69 108611 11762395 1994 12863 2662 0 0 0
+CPUSTAT_LINE cpu10 664881 49 46702 13327621 1065 48214 1167 0 0 0
+Command exited with non-zero status 4
+CPUTIME_SELF tag=foldproof/fail user=0.00 sys=0.00 real=0.00
+  after a FAILING timed_run: LEG_RC=4
+  after a LATER succeeding run: LEG_RC=4 (must stay 4)
+FOLD OK   common.sh timed_run/fold -> RC=4 (non-zero, as required)
+=== 2. ipm_leg.sh with a failing binary (its last statements are echoes) ===
+FOLD OK   ipm_leg.sh -> RC=4 (non-zero, as required)
+  last line: LEG_WORST_RC=4
+=== 3. sqp_perf.sh with a failing binary (its DONE line runs after) ===
+FOLD OK   sqp_perf.sh -> RC=4 (non-zero, as required)
+  last line: LEG_WORST_RC=4
+=== 4. build_only.sh with a failing cmake (its last command is a grep that SUCCEEDS) ===
+FOLD OK   build_only.sh -> RC=1 (non-zero, as required)
+  last line: BUILD_WORST_RC=1
+=== 5. configure.sh with a failing cmake (its last command is a tail that SUCCEEDS) ===
+CONFIGURE_RC=1
+FOLD OK   configure.sh shape -> RC=1 (non-zero, as required)
+=== 6. the comparator wrapper: a python3 that fails, with a succeeding step after ===
+STUB python3: deliberate comparator failure
+FOLD OK   common.sh fold around the comparator -> RC=1 (non-zero, as required)
+FOLD_PROOF_FAILURES=0
+ALL WRAPPERS CARRY A FAILING STATUS OUT.
+LEG_RC=0
+FOREGROUND_END 2026-09-15T04:21:54Z
+WRAPPER_EXIT=0

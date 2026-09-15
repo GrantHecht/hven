@@ -1,0 +1,312 @@
+M7 W0 T2 — THE INTERIOR ATTACHED-CALLBACK COST UNDER THE PAYLOAD MASK
+================================================================================
+CLAUDE.md §7 provenance stamp for every number in this directory.
+
+WHAT THIS LEG IS, AND WHAT IT IS NOT
+--------------------------------------------------------------------------------
+It is ONE HEAD measured against ITSELF: four ARMS of the same binary, differing
+only by a lever, on the leg M6 W6 T6 called MOVED.  It is NOT a commit pair and
+there is nothing here to keep or revert.  It is the RE-MEASUREMENT of T6's
+finding after the remedy T6's disposition called "the obvious shape of one" —
+a payload mask a consumer declares at attachment (M7 W0 T2 commit 1).
+
+Every number is a FINDING, reported against the ±0.5 % corpus bar T6 reported
+against (the ownership doc §11.1 band, quoted below).  The measurement decides
+the disposition; nothing here was tuned to reach a verdict.
+
+The registration it re-reads: `docs/notes/2026-08-m6-ledger.md` D24, and the
+disposition at `docs/notes/data/2026-09-m6-w6-attached-cost/reading.md` §9
+items 2 and 3 — the top-level interior-point leg MOVED at +1.46 %/+1.71 %
+instructions with the cheapest possible callback attached, and that leg's SINK
+arm was a DECLARED OMISSION (it had no lever).  Both are answered here.
+
+THE TREE
+--------------------------------------------------------------------------------
+repo             /home/ghecht/Projects/hven
+branch           m7
+HEAD at capture  1133570ff51b45d1a0e9c5b9cebb2d76e0c4cd48
+                 ("bench(ipm-leg): M7 W0 T2 — the interior leg's trace-sink and
+                  callback-payload levers …")
+working tree     CLEAN.  Unlike T6 — whose levers had to be captured dirty,
+                 because they were the instrument and had not landed yet — this
+                 task's instruments (the payload mask, commit 1; the leg's two
+                 levers and the corpus's `count-scalars` arm, commit 2) were
+                 COMMITTED BEFORE THE CAPTURE.  Every CSV's own header carries
+                 `# binary: 1133570ff51b`, with no `-dirty`, which is that fact
+                 stamped by the binary itself.
+
+THE BINARY — ONE BUILD, ONE PATH, EVERY ARM
+--------------------------------------------------------------------------------
+build dir        /home/ghecht/Projects/hven/.scratch/m7t2/build-release
+                 EMPTY at configure (`rm -rf` then `cmake -S … -B …`), one
+                 absolute path, used by every arm of every leg.
+configure        cmake -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=TRUE
+                        -DHVEN_FP_MODE=SAFER_FAST
+                        -DCMAKE_CXX_COMPILER=/usr/bin/clang++
+                        -DCMAKE_BUILD_TYPE=Release
+                 (the uniform flag regime, spelled as CMakePresets.json's
+                 linux-clang-release preset spells it; the preset itself cannot
+                 be used because its binaryDir is fixed under ${sourceDir})
+build            CCACHE_DISABLE=1 cmake --build … -j 8 --target hven_sqp_corpus
+target           hven_sqp_corpus  (= bench/bench_corpus.cpp + bench/ipm_corpus_leg.cpp,
+                 bench/CMakeLists.txt — ONE binary carries the SQP corpus arms
+                 and the top-level interior-point leg)
+effective flags  -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -fPIE -Wabsolute-value
+                 -pthread -mllvm -inline-threshold=225 -O3 -fomit-frame-pointer
+                 -fno-stack-protector -fno-asynchronous-unwind-tables
+                 -falign-loops=32 -march=native -mtune=native -ffast-math
+                 -fno-finite-math-only -fopenmp=libiomp5
+                 (read from the build's own compile_commands.json, not from the
+                 configuration)
+binary sha256    c0ef069cab83e8f11cb804821dd7a0156e54b256beddb5be4e2cb6534f9b03ef
+                 (logs/15-binary-hash.txt).  A reader reproducing these numbers
+                 builds the source AT 1133570f with the flags above.
+logs             logs/12-configure.log, logs/13-build.log
+
+`logs/11-build.out` inside the SCRATCH tree is NOT retained here: the fold proof
+(logs/14-fold-proof.log) deliberately re-runs `build_only.sh` against a stubbed
+failing `cmake`, which overwrites that file.  The retained build record is
+logs/13-build.log, the wrapper log of the real build, written before the proof
+ran.  The binary's hash above is the measured binary's and is what pins it.
+
+TOOLCHAIN AND HARDWARE
+--------------------------------------------------------------------------------
+compiler         clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+cmake            4.3.0          ninja 1.13.2          perf 7.2.4-200.fc44
+MKL              /opt/intel/oneapi/mkl/latest -> /opt/intel/oneapi/mkl/2026.1
+kernel           Linux 7.2.4-200.fc44.x86_64 x86_64
+host             fedora
+CPU              AMD Ryzen 7 5800X3D 8-Core Processor, 16 logical / 8 physical
+                 SMT on; cpu2's thread sibling is cpu10
+                 (/sys/devices/system/cpu/cpu2/topology/thread_siblings_list = 2,10)
+memory           31 GiB
+governor         powersave, frequency boost ENABLED (cpufreq/boost = 1)
+run date (UTC)   2026-09-15, 04:21Z – 06:30Z
+perf_event_paranoid = 2, which is why every event is counted `:u` (user space).
+
+APPLE / WINDOWS: UNOBSERVED.  Nothing in this directory was taken on Mac or
+Windows hardware and no value here is interpolated to them (CLAUDE.md §6).
+
+THE SERIAL / SOLO TERMS (CLAUDE.md §7)
+--------------------------------------------------------------------------------
+Every run of every leg, wall-asserting or not:
+
+  * ONE SOLVE AT A TIME, alone on the box.  A `pgrep -af
+    'cmake|ninja|ctest|hven_|bench_corpus'` is taken in a SEPARATE command
+    before the lock and AGAIN inside it; both land verbatim in the batch's
+    retained log as PGREP_EMPTY / PGREP_NONEMPTY.  EVERY BATCH OF THIS LEG
+    RECORDED PGREP_EMPTY ON BOTH.  No process was declared-skipped.
+  * A SECOND LANE SHARES THIS BOX.  A private benchmark-harness lane
+    (~/Projects/hven-bench, M7 W1) ran cells during this task's window.  It was
+    never signalled and never waited on beyond the lock: the in-lock pgrep is
+    the record, and it is EMPTY for every batch here.  One of its cells was
+    observed running BETWEEN batches (after the first interior batch closed at
+    04:24:50Z and before the second opened at 04:26:16Z); the next batch was
+    started only after a separate pgrep read clean.
+  * `flock /tmp/box-build.lock` held across the whole batch, with
+    FOREGROUND_START / FOREGROUND_END written INSIDE the lock.
+  * MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 in every measured process.
+  * `taskset -c 2` on the measured process; its SMT sibling cpu10 is left idle
+    and is MEASURED, not assumed.  The driving shell is pinned OFF both
+    (HARNESS_MASK = 0,1,3,4,5,6,7,8,9,11,12,13,14,15).
+  * `set -o pipefail` in every leg script, and every wrapper worst-folds: the
+    leg's exit status is the WORST status any step returned and a later success
+    never clears it.  Proven against stubbed failures INSIDE the lock —
+    logs/14-fold-proof.log, six wrappers, every one non-zero.
+  * Nothing of this leg is written under /tmp except the box lock — with the
+    one declared exception that is the shipped runner's and not this task's:
+    the SQP corpus leg's fork/exec deadline writes a per-cell row marker under
+    /tmp and removes it.  The single-cell `--internal-run-one` runs used here
+    write their `.setup` marker beside `--internal-out` instead; those markers
+    are transient and are not retained in `raw/`.
+
+WHAT ASSERTS WALL AND WHAT DOES NOT
+--------------------------------------------------------------------------------
+NOTHING here asserts wall-clock.  The reading is INSTRUCTIONS (`perf stat`,
+scheduling-invariant at MKL_NUM_THREADS=1), reported against the band; the wall
+is carried beside it and is informational.  The one wall batch
+(`ipmlegwall-wall`) is UNPROVEN-EVIDENCE under R2' and every figure taken from
+it is marked **NON-QUOTABLE** in `reading.md`, on W6 T6 fix1's own precedent.
+
+THE INSTRUMENT
+--------------------------------------------------------------------------------
+perf stat -e instructions:u,branches:u,cycles:u,branch-misses:u,L1-icache-load-misses:u
+— the ownership doc's pass A (`docs/notes/2026-09-m6-w5-t6-ownership.md` §11.1
+and §11.4), unchanged, and byte-identical to the event set W6 T6 used.  Three
+rounds per batch; the arms are ALTERNATED WITHIN a round.
+
+THE BAND (ownership doc §11.1, quoted)
+--------------------------------------------------------------------------------
+  FLAT  — per-cell median ratio in 0.99–1.01 AND whole-corpus within ±0.5 %.
+Anything else is reported as MOVED with its number.  §11.1's veto machinery is a
+COMMIT-PAIR rule and does not apply: this leg has no pair.
+
+THE ARMS AND THE LEVERS
+--------------------------------------------------------------------------------
+Top-level interior-point leg (`--engine interior`, bench/ipm_corpus_leg.cpp),
+43 rows, the whole leg in ONE process — it forks nothing:
+
+  a00        nothing attached — THE SHIPPED SHAPE, so
+             IpmSolver::fire_iteration_event returns at its null guard
+             (src/drivers/ipm_solver.cpp:2248) and every `trace_ != nullptr`
+             emit guard falls through.  THE DENOMINATOR of every ratio.
+  a-all      HVEN_LEG_COUNT_CALLBACK=1 — T6's own arm: the cheapest possible
+             callback (increment a long long, return kContinue) attached with
+             the ONE-ARGUMENT overload, which means IterationPayload::kAll.
+  a-scalars  + HVEN_LEG_CALLBACK_PAYLOAD=scalars — THE REMEDY.  The SAME
+             callback, attached with IterationPayload::kScalars, so the engine
+             prepares no vectors and no diagnostics for it.
+  a-sink     HVEN_LEG_TRACE_SINK=1 — the sink alone: the corpus's own
+             CountingTraceSink (bench/counting_trace_sink.h), attached to the
+             row's measured solver.  THIS ARM DID NOT EXIST BEFORE THIS TASK
+             and is T6's declared omission, closed.
+
+Both leg levers default OFF and are free when off; their counts go to STDERR
+and never into the CSV, and the leg's CSV is byte-identical under every
+setting (the identity proof is in §3 of `reading.md` and in
+logs/07-leg-lever-identity.log).
+
+SQP corpus leg (`--engine walk`), three arms, on the corpus's own `--callback`
+lever, whose third value this task added:
+
+  a00        --callback off
+  a-all      --callback count            (T6's `a10`)
+  a-scalars  --callback count-scalars    (the same callback at kScalars)
+
+Every arm is STAMPED into the CSV's provenance header
+(`# attached observers: callback=… trace=…`) and printed on the leg's console.
+
+THE CELL SET
+--------------------------------------------------------------------------------
+The U0 27-cell replay set, verbatim from
+`docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt:3` — the same set
+T8.9r's leg 1, W6 T6 and this leg use.  The interior leg expands it to its own
+43 rows (the cells it can bind, times the three fixed-variable treatments, plus
+its four fixed extra rows).
+
+THE TWO POPULATIONS, AND WHY THERE ARE TWO
+--------------------------------------------------------------------------------
+(1) THE INTERIOR READING is the whole leg in ONE process per arm per round.
+(2) THE SQP READING runs each cell as ONE PROCESS (`--internal-run-one`), which
+    is T8.9r's and W6 T6's perf shape: the public SQP leg forks and execs a
+    child per cell, so a `perf stat` over it would count 27 forks, 27 execs and
+    a parent poll loop beside the solve.  The three arms run BACK TO BACK ON
+    EACH CELL, so an attached and an unattached reading of one cell are
+    adjacent in time.  ONE ROUND, which is what the brief asks for on this side
+    (the SQP corpus was FLAT at T6 and the question here is only whether the
+    mask makes it worse).
+
+THREE INTERIOR BATCHES, AND WHY
+--------------------------------------------------------------------------------
+BATCH 1's ROUND-1 UNATTACHED PROCESS READ +3.5 % over its own rounds 2 and 3
+— the same first-process class the ownership doc §11.3 names and W6 T6's batch 1
+hit, and the median of three discards it.  Batch 1 ALSO reads its two attached
+arms high relative to batches 2 and 3 (a-sink +0.81 % against +0.043 %/+0.039 %),
+which is a whole-BATCH effect and not a single outlier round: batch 1 is the
+first use of a freshly linked binary off a cold page cache.  Rather than discard
+it or rest a verdict on a median that discards an outlier, TWO MORE COMPLETE
+BATCHES were taken (`ipmleg2`, `ipmleg3`), each behind its own untimed,
+unrecorded warm-up process.  Batches 2 and 3 agree with each other on every arm
+to within 0.03 percentage points.  NOTHING IS DISCARDED: all three are in
+`raw/` and `perf/`, `reading.md` states all three, and the verdict rests on the
+two that agree.
+
+A DISCARDED BATCH, DECLARED
+--------------------------------------------------------------------------------
+`discarded/` holds the SQP walk group 23–27's FIRST attempt, which was KILLED
+BY THE HARNESS at 04:44Z — an external interruption inside the timed window,
+during the 27th cell's third arm — leaving that cell's three-arm alternation
+incomplete and the batch without its BATCH_END and closing snapshot.  Its files
+are retained UNEDITED so the record is visible, and NOTHING in `reading.md`
+reads them: cells 23–27 were re-taken from scratch as three complete batches
+(logs/33-, 34-, 35-), which is what the reading uses.
+
+THE IDLE PROOF (T8.9r's R2', verbatim tool)
+--------------------------------------------------------------------------------
+`idle_proof.py` here is a BYTE-IDENTICAL copy of
+`docs/notes/data/2026-09-m6-w6-attached-cost/idle_proof.py` (sha256
+3394879dbb519155fa985da793a43eedd825bfc1bc83b6636007e91795b33ab6, that
+artifact's own recorded hash — nothing of it was edited).  Its output over this
+leg's twelve retained batch logs is `IDLE-PROOF.md`, with the per-batch
+foreign-pid appendix in `IDLE-PIDS.txt`.
+
+  Test 1 (foreign CPU anywhere on the box) is NOT met on this box and cannot be
+  — a Wayland compositor, a browser and this agent's own daemon accrue CPU
+  continuously across 16 logical CPUs.  Same finding, same reason, as T8.9r and
+  W6 T6.
+
+  Test 2 — THE PINNED CORE — is the decisive one.  THE FOUR INTERIOR BATCHES,
+  which carry the finding, read cpu2 foreign task time of 0.0559–0.0626 % and
+  cpu10 of 0.0209–0.0834 % — an order of magnitude inside the 0.5 % bar.  The
+  two long SQP batches read 0.0132–0.0134 % (cpu2).  The attribution leg's large
+  arm reads 0.0804 %.
+
+  TOTALS: 12 batches, 0 PINNED-CLEAN, 5 UNPROVEN-FRACTION, 12 UNPROVEN-EVIDENCE.
+  Both kinds are DISCLOSED rather than hidden, and neither touches the asserted
+  reading:
+    * EVIDENCE: the leg scripts snapshot once per ROUND (interior) or per CELL
+      (SQP) rather than between every consecutive timed run, so the tool reports
+      "N alternation snapshot(s) missing" for every batch.  It is a gap in the
+      RECORD, and it is the same gap W6 T6 recorded for the same reason.
+    * FRACTION: on the SHORT batches a single 10 ms /proc/stat tick is a large
+      fraction of the window — `sqpperf-walk-r1-g1-9` is 2.15 s of timed wall,
+      where 0.16 s of foreign task time reads as 7.4 %.  The tool's own
+      resolution note says exactly this.  The long batches at the same recipe
+      read 0.013–0.08 %.
+    * NO FOREIGN PROCESS WAS SEEN IN STATE `R` IN ANY SNAPSHOT OF ANY BATCH,
+      so no pause and no give-up was recorded, and nothing was ever signalled.
+    * Instructions at MKL_NUM_THREADS=1 are scheduling-invariant (CLAUDE.md §7):
+      a foreign process on another core changes WHEN the measured process runs,
+      not how many instructions it retires.  The three-round medians confirm it
+      — each arm's rounds agree to 0.02–0.17 % while the effect the reading
+      turns on is 1.38–1.40 %.
+
+THE COUNTER CHECK — THE ONE THING THAT COULD HAVE STOPPED THIS LEG
+--------------------------------------------------------------------------------
+An attached observer must change no trajectory, whatever payload it declared.
+Every attached/unattached pair is compared by `scripts/compare_replay.py` (the
+committed comparator) with NO `--residual-gate`: EXACT STRING EQUALITY on every
+column but `wall_s`, so counters, statuses AND residuals must all be
+byte-identical.
+
+THE POPULATION IS AN EXACT MANIFEST (W6 T6 fix1's rule, adopted here from the
+start): `comparator.py` LISTS every comparison this leg owes, a missing file is
+a REFUSAL, the run checks its own totals, and the tool's EXIT STATUS is the
+counter check's.
+
+  RESULT: 32 comparisons, 42 750 cell-comparisons, 0 DIFFERENCES.
+  The STOP condition did not fire and the gate did not need relaxing.
+
+FALSIFIED, not asserted: with two files removed in a scratch copy
+(`perf/ipmleg2/a-scalars-r2.txt` and
+`raw/sqpperf/walk/r1/a-scalars-f7_n20000_bound_warm.csv`) the run reports
+`ipmleg2: INCOMPLETE -- refused`, two named MANIFEST REFUSALs, totals 30/38 700,
+and EXITS 2.  The transcript is logs/43-manifest-falsification.txt.
+
+The 27 single-cell SQP runs write one BARE row each (`--internal-out` carries no
+header), so the comparator concatenates an arm's 27 rows under the corpus leg's
+own header before comparing — exactly what W6 T6's `merge_side` did.
+`raw/sqpperf/walk/schema-header.csv` is one UNTIMED public-leg run of the same
+binary, taken outside every batch and used for its header line alone.
+
+REPRODUCING EVERY TABLE
+--------------------------------------------------------------------------------
+  python3 comparator.py --root . --out -
+regenerates every figure `reading.md` quotes from `raw/` and `perf/`.  Nothing
+in that file is hand-transcribed.  sha256 of the tool is in
+`comparator.py.sha256`.  The counter check shells out to
+`scripts/compare_replay.py` in the repo; set HVEN_REPO if the checkout is not at
+/home/ghecht/Projects/hven.
+
+WHAT THIS LEG DOES NOT MEASURE
+--------------------------------------------------------------------------------
+  * the SQP corpus in `ssn` or `ipm` mode (the brief scopes the SQP check to
+    WALK, one round: that side was FLAT at T6 and the question is only whether
+    the mask makes it worse);
+  * the HS leg (unchanged by this task);
+  * anything on Apple or Windows (UNOBSERVED);
+  * any commit pair — there is none;
+  * a callback that does WORK.  Both observers here are the cheapest forms that
+    can be written, on purpose: what is measured is what ATTACHING costs.
+  * the residual's SPLIT between its named candidates.  §5 of `reading.md` says
+    what the leg can and cannot separate, and registers what is left.

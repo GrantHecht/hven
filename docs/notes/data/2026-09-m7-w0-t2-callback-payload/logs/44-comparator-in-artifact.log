@@ -1,0 +1,9 @@
+LEG: bash -o pipefail -c cd /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w0-t2-callback-payload && python3 comparator.py --root . --out comparator.out; echo "COMPARATOR_RC=$?"; ls | tr "\n" " "
+PGREP_SEPARATE 2026-09-15T06:35:34Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-15T06:35:34Z
+COMPARATOR_RC=0
+comparator.out comparator.py comparator.py.sha256 discarded IDLE-PIDS.txt IDLE-PROOF.md idle_proof.py idle_proof.py.sha256 logs perf PROVENANCE.txt raw reading.md README.md scripts LEG_RC=0
+FOREGROUND_END 2026-09-15T06:35:35Z
+WRAPPER_EXIT=0

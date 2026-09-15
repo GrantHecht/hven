@@ -1,0 +1,18 @@
+LEG: bash -o pipefail -c 
+cd /home/ghecht/Projects/hven/.scratch/m7t2
+env MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 build-release/bench/hven_sqp_corpus --engine walk \
+    --cells f7_n1000_bound_neutral --csv art/raw/sqpperf/walk/schema-header.csv \
+    > art/raw/sqpperf/walk/schema-header.stdout 2>&1
+rc=$?
+echo "HEADER_RUN_RC=$rc"
+grep -v "^#" art/raw/sqpperf/walk/schema-header.csv | head -1 | cut -c1-120
+exit $rc
+PGREP_SEPARATE 2026-09-15T06:24:24Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-15T06:24:24Z
+HEADER_RUN_RC=0
+cell_id,family,n_nodes,window,taxonomy,degenerate,status,factorizations,qp_minors,escapes,qp_subproblems,qp_fact_per_qp,
+LEG_RC=0
+FOREGROUND_END 2026-09-15T06:24:24Z
+WRAPPER_EXIT=0

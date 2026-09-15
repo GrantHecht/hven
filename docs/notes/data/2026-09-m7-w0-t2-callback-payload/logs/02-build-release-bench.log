@@ -1,0 +1,11 @@
+LEG: bash -o pipefail -c cd /home/ghecht/Projects/hven && cmake --build build -j 8 --target hven_sqp_corpus 2>&1 | tail -40
+PGREP_SEPARATE 2026-09-15T04:13:17Z
+PGREP_EMPTY
+PGREP_EMPTY (inside the lock)
+FOREGROUND_START 2026-09-15T04:13:17Z
+[1/3] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+[2/3] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[3/3] Linking CXX executable bench/hven_sqp_corpus
+LEG_RC=0
+FOREGROUND_END 2026-09-15T04:13:29Z
+WRAPPER_EXIT=0
