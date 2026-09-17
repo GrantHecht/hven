@@ -1503,6 +1503,40 @@ std::optional<IpqpSeed> build_ipqp_staged_seed(const WarmStartData &data, Index 
     return seed;
 }
 
+// M7 W0 T4: THE DISPROVED ENTRY'S SEED -- rung A's certified solution, in the
+// tier's own currency. `certified` is `certified_feasibility_fallback`'s return on
+// the DISPROVED arm, i.e. `elastic_project(..., carry_multipliers=true)`: already
+// projected out of the elastic space (the `ns` slack columns dropped) and carrying
+// the original subproblem's multipliers.
+//
+// THE DUAL BLOCKS ONLY (spec 5.1 amendment D, the same rule the engine's
+// cross-major carry obeys at the seed selection below): a new major is a new
+// linearization in a new step space and `IpqpBox` re-centres the window at every
+// entry, so `x`, `s` and `zeta` are zeroed rather than carried.
+// `.superpowers/w1-t7-report.md` FIX ROUND 2, item 1.
+//
+// kBaseWarm is the grade a signed bound price alone buys -- `build_ipqp_staged_seed`
+// assigns the same grade on the same evidence -- and `mu` is ABSENT (0.0): the walk
+// has no barrier parameter to hand over, so the 5.3 clamp reads the measured floor.
+IpqpSeed build_ipqp_disproval_seed(const QpSolution &certified, Index n, Index me, Index mi) {
+    IpqpSeed seed;
+    seed.x = Vec::Zero(n);
+    seed.s = Vec::Zero(mi);
+    seed.zeta = Vec::Zero(n);
+    seed.lambda_e = certified.lambda_e;
+    seed.lambda_i = certified.lambda_i;
+    // The signed price split the base-warm grade is named for. `elastic_project`
+    // has already forced a TR-pinned index's price to 0, which is what the next
+    // major wants: that price belonged to THIS major's window.
+    seed.zl = certified.z.size() == n ? Vec(certified.z.cwiseMax(0.0)) : Vec::Zero(n);
+    seed.zu = certified.z.size() == n ? Vec((-certified.z).cwiseMax(0.0)) : Vec::Zero(n);
+    seed.lambda_est_e = Vec::Zero(me);
+    seed.lambda_est_i = Vec::Zero(mi);
+    seed.mu = 0.0;
+    seed.grade = IpqpRestartGrade::kBaseWarm;
+    return seed;
+}
+
 // NlpEval::all_finite screens f/grad/cE/cI and NOT the Jacobians (sqp_solver.h's
 // NlpEval), which RestorationModel reads for its slack sigmas -- so a restoration
 // start candidate's STORED Je/Ji values are screened by this instead.
@@ -3880,6 +3914,9 @@ void SqpSolver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Assembly
     // THE SEED (spec 5.1 flow (b)): the staged payload seeds the FIRST tier entry and
     // is spent there; every later entry restarts from the engine's own carry, dropped
     // rather than refused when a block's size does not match (degrade cold).
+    // M7 W0 T4: the staging slot has a SECOND writer -- a disproved entry's certified
+    // solution, staged at route 5b below under `ipqp_reseed_after_disproval`. It
+    // arrives here by the same path and is gated by the same size check.
     const IpqpSeed *ipqp_seed = nullptr;
     IpqpSeed ipqp_carry_across_majors;
     if (ipqp_staged_seed_.has_value()) {
@@ -4049,6 +4086,18 @@ void SqpSolver::route_through_ipqp_tier(SolveState &st, MajorState &mj, Assembly
             opts_, std::min(delta, opts_.qp.tr_radius), out.counters, mj.row, fallback_report,
             fallback_verdict, ipqp_trace_, elastic_rung_tier());
         emit_trace_fallback_verdict(fallback_verdict);
+        // --- 5b. THE DISPROVED ENTRY'S RECOVERABLE STATE (M7 W0 T4) ---
+        // The escape above dropped the carry; a DISPROVAL then says the relaxation
+        // shut, so `qs` is a certified solution of THIS subproblem with carried
+        // multipliers. Offered to the next entry through the SAME staged-seed slot
+        // the warm currency uses -- no second entry point -- and subject to the same
+        // size gate there ("degrade cold" when a block does not match).
+        // The two other verdicts keep today's cold path: neither exhaustion nor a
+        // relaxed answer is a solution of the subproblem the tier was asked about.
+        if (opts_.ipqp_reseed_after_disproval &&
+            fallback_verdict.verdict == SqpFallbackVerdict::kDisproved) {
+            ipqp_staged_seed_ = build_ipqp_disproval_seed(qs, qp.n(), qp.me(), qp.mi());
+        }
         emit_ipqp_route_and_mode(IpqpTraceRouteTo::kWalk, IpqpTraceOutcome::kEscaped);
     }
 }
@@ -4288,6 +4337,11 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // inert there. `SqpDriverSsnMode.RestorationStaysOnTheWalkUnderKSsn` pins the line ABOVE
     // and is untouched by this one.
     ropts.elastic_rung_engine = ElasticRungEngine::kWalk;
+    // `ipqp_reseed_after_disproval` needs NO such line and deliberately does not get one
+    // (M7 W0 T4): it is read at ONE site, route 5b of the kIpm arm, which `ropts.qp_mode =
+    // kWalk` above already makes unreachable in the sub-driver. A reset here would be a
+    // second way of saying the same thing, and a reader would then have to work out which
+    // of the two is load-bearing.
     // THE RADIUS IS CARRIED, BUT NOT BELOW THE RESTART VALUE.
     // Carrying it is the right default -- it is what the driver
     // currently trusts the model over. But when the request came

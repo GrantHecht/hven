@@ -544,6 +544,43 @@ struct SqpOptions {
     /// @see docs/notes/2026-09-m7-w0-t3-design.md
     ElasticRungEngine elastic_rung_engine = ElasticRungEngine::kWalk;
 
+    /// ON A DISPROVAL, THE FALLBACK'S CERTIFIED SOLUTION SEEDS THE TIER'S NEXT
+    /// ENTRY (M7 W0 T4).
+    ///
+    /// The escape drops the tier's cross-major carry unconditionally (section
+    /// 6.1's rule: a point the tier could not certify does not seed the next
+    /// major). When rung A then DISPROVES the suspicion -- the relaxation shut,
+    /// so its answer IS the unrelaxed subproblem's -- the carry is already gone
+    /// and the next entry restarts cold, although a certified solution with
+    /// carried multipliers is sitting in the caller's hand. True offers that
+    /// solution's DUAL blocks to the next entry through the existing staged-seed
+    /// slot; false is today's cold restart.
+    ///
+    /// ONLY ON A DISPROVAL. A confirmed infeasibility (the exhaustion
+    /// certificate) and a relaxed answer both keep the cold path: neither is a
+    /// solution of the subproblem the tier was asked about.
+    ///
+    /// WHAT CARRIES IS THE DUAL BLOCKS ONLY -- `lambda_e`, `lambda_i` and the
+    /// signed bound price split into `zl`/`zu` -- exactly as the engine's own
+    /// cross-major carry does (spec 5.1 amendment D: across a major the duals
+    /// carry, the primal block does not). `x`, `s` and `zeta` are zeroed because
+    /// a new major is a new linearization in a new step space, and `IpqpBox`
+    /// re-centres the window at every entry. The grade is kBaseWarm, the grade a
+    /// signed bound price alone buys.
+    ///
+    /// DEFAULT FALSE, AND NOT BECAUSE THERE IS NO WIN. M7 W0 T4 measured both
+    /// states and the ON arm converges where OFF exhausts its budget (one tier
+    /// escape instead of three, the tier not retired, 8 QP minors against 22, the
+    /// same objective). The default is FALSE because of what that measurement is
+    /// ON: a CONSTRUCTED cell, built for the task because nothing in this
+    /// repository disproves at all, and the M7 exit criterion asks for a win on
+    /// the suite's TRAIN split. W2 re-reads it there. The reseed is also a
+    /// MITIGATION for a section 6.3 false positive rather than a fix for one --
+    /// narrowing the detector would be the better repair, and would shrink this
+    /// win with it.
+    /// @see docs/notes/data/2026-09-m7-w0-t4-reseed/
+    bool ipqp_reseed_after_disproval = false;
+
     /// The kIpm tier's own settings, forwarded verbatim onto the tier exactly
     /// as the SSN levers below are forwarded onto SsnOptions. Inert at
     /// `qp_mode != QpMode::kIpm` and read on every subproblem at kIpm -- see

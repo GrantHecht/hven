@@ -473,6 +473,7 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_bool(os, "crash_basis", o.crash_basis);
     kv_str(os, "qp_mode", enum_name(o.qp_mode));
     kv_str(os, "elastic_rung_engine", enum_name(o.elastic_rung_engine));
+    kv_bool(os, "ipqp_reseed_after_disproval", o.ipqp_reseed_after_disproval);
     kv_int(os, "ipqp.ipqp_max_iter", static_cast<long long>(o.ipqp.ipqp_max_iter));
     kv_int(os, "ipqp.ipqp_hard_iter_cap", static_cast<long long>(o.ipqp.ipqp_hard_iter_cap));
     kv_int(os, "ipqp.ipqp_max_factorizations",

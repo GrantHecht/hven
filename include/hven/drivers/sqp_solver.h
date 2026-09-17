@@ -1736,9 +1736,12 @@ class SqpSolver {
     void emit_trace_qp_mode(const QpModeTraceEvent &event) const;
     void emit_trace_fallback_verdict(const SqpFallbackVerdictTraceEvent &event) const;
     void emit_trace_sqp_major(const SqpMajorTraceEvent &event) const;
-    // The FIRST kIpm subproblem's seed, built from the staged currency's
-    // unflattened zL/zU/mu. Empty when nothing is staged, the mode is not kIpm,
-    // or the grade came out cold.
+    // The NEXT kIpm subproblem's seed, and the tier's one staging slot. Two
+    // writers: the staged currency's unflattened zL/zU/mu at solve entry (the
+    // FIRST subproblem's seed), and, under `ipqp_reseed_after_disproval`, rung
+    // A's certified solution on a disproval (M7 W0 T4). Empty when nothing is
+    // staged, the mode is not kIpm, or the grade came out cold. Spent at the
+    // next tier entry, whenever that is.
     std::optional<IpqpSeed> ipqp_staged_seed_;
     // The proximal level to EXPORT on this solve's SqpWarmStart, and the point it was
     // reached at (warm_start.h's `prox_sigma`/`prox_center_*` block). A member
