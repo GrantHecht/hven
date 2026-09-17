@@ -187,6 +187,9 @@ struct NLPAdapterCore {
     /// @param li Inequality multipliers, same rule.
     /// @throws std::invalid_argument on a multiplier block shorter than this
     ///         host's rows, a wrong shape, or a shifted pattern.
+    ///
+    /// EXACT-HESSIAN-SPECIFIC (M9 label): this identity counts eval_hess calls and is zero under
+    /// a first-order mode; do not budget curvature from it there.
     void eval_hessian_values(ConstEigenRef<Eigen::VectorXd> x, double obj_factor,
                              ConstEigenRef<Eigen::VectorXd> le, ConstEigenRef<Eigen::VectorXd> li);
 

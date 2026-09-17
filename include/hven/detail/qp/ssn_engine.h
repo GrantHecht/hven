@@ -504,6 +504,8 @@ struct SsnOptions {
     // identified face -- and they can disagree. Nothing is weakened when the face
     // solve is refused: finish_deferred_certification() then returns exactly the
     // shipped verdict at exactly the shipped cost.
+    // CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    // the model's second derivative -- a first-order mode re-derives or re-labels it).
     bool defer_certification = false;
 
     // HOW sigma IS SIZED. kLadder (the default) is the failure-reactive ladder

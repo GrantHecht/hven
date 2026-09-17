@@ -282,6 +282,8 @@ class AssemblyEvalSeam {
     void publish_matrix(const ClaimBlock &block, const SpMatRM &pattern, SpMatRM &out) const;
 
     /// The Lagrangian-Hessian shape: one eval_hess and nothing else.
+    /// EXACT-HESSIAN-SPECIFIC (M9 label): this identity counts eval_hess calls and is zero under
+    /// a first-order mode; do not budget curvature from it there.
     void assemble_hessian(const Vec &x, const Vec &lambda_e, const Vec &lambda_i, double obj_scale);
 
     /// The gradient-and-Jacobians shape: the accepted-trial derivative bill.

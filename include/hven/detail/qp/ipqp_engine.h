@@ -393,11 +393,15 @@ struct IpqpResult {
     /// FIVE WAYS TO GET HERE: four pair with an `ipqp_final_inertia_read` value
     /// (1 disagreed, 2 unusable evidence, 3 declined/budget-refused); the fifth is a
     /// MID-SOLVE evidence failure.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     bool certificate_downgraded = false;
 
     /// True iff section 2.2's evidence-failure policy was invoked ANYWHERE in this solve: some
     /// factorization SUCCEEDED but reported a state other than `kObserved`. Implies
     /// `certificate_downgraded`. Distinct from a FAILED factorization, which escapes at once.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     bool inertia_evidence_failed = false;
 
     /// True iff the item 4 read AGREED and, once every downgrade is applied,
@@ -442,6 +446,8 @@ struct IpqpResult {
     /// NOT the solve's high-water mark (`counters.ipqp_rho_demanded_max`) and NOT the ladder's
     /// memory (`counters.ipqp_rho_demanded_last`): it is the working value of the LAST step, so
     /// a solve that armed early and disarmed later reports `0.0` here and a nonzero max.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     double rho_mod = 0.0;
 
     // --- the face blocks (spec 2.3 item 2; the routing chain's input) -------

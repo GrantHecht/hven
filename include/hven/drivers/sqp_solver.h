@@ -432,6 +432,9 @@ void accumulate_ipqp_counters(IpqpCounters &total, const IpqpCounters &one);
 /// @param res   The tier's result.
 /// @param opts  The QpOptions the tier ran under -- its tolerances.
 /// @param iopts The IpqpOptions it ran under; `ipqp_converge_slack` is read.
+///
+/// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+/// the model's second derivative -- a first-order mode re-derives or re-labels it).
 bool ipqp_exit_is_a_usable_step(const IpqpResult &res, const QpOptions &opts,
                                 const IpqpOptions &iopts);
 
@@ -1621,6 +1624,10 @@ class SqpSolver {
     /// @param primal_delta_eff  The effective primal regularization.
     /// @param strategy          The globalization strategy, read for its state.
     /// @param hot               The hot handle to carry, if any.
+    ///
+    /// EXACT-HESSIAN-SPECIFIC (M9 label): this identity counts eval_hess calls and is zero under
+    /// a first-order mode; do not budget curvature from it there.
+    ///
     /// @return The warm start to attach to `SqpResult::warm_start`.
     /// @see docs/notes/2026-09-header-prose-archive.md §sqp_solver.h
     static SqpWarmStart make_warm_start(AssemblyEvalSeam &seam, const QpSolution *activity,

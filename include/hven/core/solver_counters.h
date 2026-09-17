@@ -256,10 +256,14 @@ struct SsnCounters {
 
     /// Exact face re-solves whose refined point was used as the step; see
     /// the tier-3 note above for the sum's meaning under both lever states.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     Index ssn_refinements = 0;
 
     /// Certifying exits where the face re-solve was REFUSED; see the tier-3
     /// note above. Driver-scale only (no SsnResult ever writes it).
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     Index ssn_refine_refused = 0;
 
     // INSTRUMENT ONLY, both driver-scale (no SsnResult writes either), and
@@ -276,11 +280,15 @@ struct SsnCounters {
 
     /// Factorizations refine_on_face itself paid, accepted or refused; see
     /// the instrument-only note above for why it is not the pair sum.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     Index ssn_refine_factorizations = 0;
 
     /// Strictly negative multipliers adopted from accepted refinements,
     /// summed over rows and refinements; NO TOLERANCE (`< 0.0`); see the
     /// instrument-only note above.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     Index ssn_refine_neg_duals = 0;
 
     // The sign sweep repairs rather than instruments: it is the one pair here
@@ -331,6 +339,10 @@ struct SsnCounters {
     Index ssn_escape_singular = 0;
     Index ssn_escape_no_contraction = 0;
     Index ssn_escape_infeasible_suspect = 0;
+    // `ssn_escape_indefinite` below is a curvature reading: the kernel's second-order
+    // verification was taken at the converged point and disagreed.
+    // CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    // the model's second derivative -- a first-order mode re-derives or re-labels it).
     Index ssn_escape_indefinite = 0;
     Index ssn_escape_gate_refused = 0;
 };
@@ -503,6 +515,8 @@ struct IpqpCounters {
     /// A high-water mark is NOT the level the solve ended at: the ladder retries a
     /// smaller shift at every iteration, so a solve routinely settles below its own
     /// peak. Structurally `0.0` on a convex subproblem, where the ladder never arms.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     double ipqp_rho_demanded_max = 0.0;
 
     /// The inertia-demanded modification at the LAST ladder rung this subproblem
@@ -513,6 +527,8 @@ struct IpqpCounters {
     /// categorical reading, and summing many subproblems' "last rho" would report
     /// a quantity with no meaning. Excludes `delta`'s own last value, which carries
     /// no field.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     double ipqp_rho_demanded_last = 0.0;
 
     /// Factorizations REJECTED on wrong OR evidence-invalid inertia (the section
@@ -523,6 +539,8 @@ struct IpqpCounters {
     /// ceiling-terminated factorization counts too. Excludes the required final
     /// read, whose outcome is `ipqp_final_inertia_read`, even when that read comes
     /// back wrong.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     Index ipqp_inertia_retries = 0;
 
     /// Iterations whose step was TAKEN with a nonzero inertia-demanded
@@ -530,6 +548,8 @@ struct IpqpCounters {
     /// ladder settles, so the iteration in which the ladder first demands a
     /// modification is counted. Excludes iterations whose step ran on the
     /// unmodified system, which is every iteration of every convex subproblem.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     Index ipqp_iters_at_elevated_rho = 0;
 
     /// LADDER RECLIMBS: iterations on which a `rho_dem_last / kIpqpLadderDown`
@@ -550,6 +570,8 @@ struct IpqpCounters {
     /// every inertia-demanded increase as such, and a PERTURBED-DRIVEN escalation
     /// -- which is not a statement about curvature and is visible instead through
     /// `ipqp_pivot_reroute_primal`.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     Index ipqp_ladder_reclimbs = 0;
 
     /// Ladder rungs taken because a PERTURBED-PIVOT report arrived while the
@@ -566,6 +588,8 @@ struct IpqpCounters {
     /// that never reports a perturbed pivot. Excludes a perturbed report received
     /// at `rho_dem == 0` (the ordinary dual route, counted nowhere), the rungs the
     /// fallback then takes, and every wrong-inertia rung.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     Index ipqp_pivot_reroute_primal = 0;
 
     /// Times the bounded primal re-route above GAVE UP and fell back to escalating
@@ -580,6 +604,8 @@ struct IpqpCounters {
     /// re-routes says the heuristic is guessing wrong often enough to replace.
     ///
     /// Structurally 0 wherever `ipqp_pivot_reroute_primal` is 0.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     Index ipqp_pivot_reroute_dual_fallback = 0;
 
     /// Iterations that ARMED the ladder (`rho_dem > 0` at the settled reading,
@@ -592,6 +618,8 @@ struct IpqpCounters {
     /// Structurally 0 on a convex subproblem. Excludes an armed iteration on which
     /// the gate did advance, an unarmed iteration either way, and any iteration
     /// whose step was not taken.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     Index ipqp_iters_ladder_armed_no_advance = 0;
 
     /// Outcome of the REQUIRED final unregularized inertia read on a certifying
@@ -623,6 +651,8 @@ struct IpqpCounters {
     /// solve when any earlier factorization could not report usable evidence, so
     /// `0` can pair with `certificate_downgraded == true`. The certificate is read
     /// off `certificate_downgraded`, never off this field alone.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     Index ipqp_final_inertia_read = 0;
 
     /// `(rho, delta)` schedule GATED decreases actually applied: +1 per gated
@@ -640,6 +670,8 @@ struct IpqpCounters {
     /// `(rho, delta)` schedule inertia-demanded increases. Excludes the
     /// initial `rho_0`/`delta_0` assignment at subproblem start (section
     /// 3.2), which is not an increase.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     Index ipqp_reg_increases = 0;
 
     /// Proximal-estimate (`zeta`/`lambda_est`) advances. Excludes the
@@ -814,6 +846,8 @@ struct IpqpCounters {
     /// the SSN warm grade. Excludes an inertia-gate failure mid-ladder
     /// (`ipqp_inertia_retries`, which retries rather than escaping) and an
     /// UNREADABLE reading, which is `ipqp_escape_numerical`.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     Index ipqp_escape_indefinite = 0;
 
     /// Escapes that stop the tier for a non-convergence reason other than budget,
@@ -823,6 +857,8 @@ struct IpqpCounters {
     /// "the reading was inertia-related": indefinite means a reading was taken and
     /// disagreed, numerical means no reading could be taken at all or the failure
     /// was not an inertia reading. Excludes an indefinite-certificate escape.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     Index ipqp_escape_numerical = 0;
 
     /// Escapes via `IpqpEscape::kInfeasibleSuspect` (section 6.3's
@@ -968,6 +1004,9 @@ static_assert(counters_offsets_increase(kOffsetsIpqpCounters, kIpqpCountersField
 /// consumer budgeting Hessian evaluations should use
 /// steps_accepted + restoration_iters + 1 as the unconditional upper bound.
 ///
+/// EXACT-HESSIAN-SPECIFIC (M9 label): this identity counts eval_hess calls and is zero under
+/// a first-order mode; do not budget curvature from it there.
+///
 /// BOTH ACCEPT/Reject counters are counted explicitly because the obvious identity
 /// IS FALSE. In general
 ///     major_iters = steps_accepted + rejected_steps + (kRestore rows),
@@ -1052,6 +1091,8 @@ struct SqpCounters {
     /// EXCLUDES the other three arms of the partition above -- in particular a rung B that
     /// disproves the suspicion on its own (its walk solves the original QP and returns
     /// kOptimal), which this counter cannot see and `ipqp_fallback_rung_b` counts instead.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     Index ipqp_suspicion_disproved = 0;
 
     /// Fallback entries that fell through to RUNG B, the cold walk: rung A was DECLINED by the

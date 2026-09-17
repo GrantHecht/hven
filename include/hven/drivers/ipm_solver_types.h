@@ -296,6 +296,8 @@ struct IpmOptions {
     /// matrix each iteration, with the same ladder escalating on top; delta_c
     /// is suppressed while a nested l1 restoration phase is active. Closed-set
     /// enum, declared in ipm_solver_fwd.h.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     InertiaModes inertia_mode = InertiaModes::classic;
 
     // --- QP solver ---
@@ -350,6 +352,8 @@ struct IpmOptions {
     /// needed Hessian perturbation -- saving a factorization known to fail
     /// on a persistently near-singular problem, while the remaining 1 in 4
     /// iterations re-probes for recovered inertia. Default true.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     bool fast_factor_alg = true;
     /// Force a fresh symbolic sparsity analysis on every solve. The
     /// analysis normally runs once per solver instance and is latched

@@ -1518,6 +1518,8 @@ class QpEngine {
     // +/-p inside the current working set. Steps to the nearest blocker along
     // the admissible sign and puts that blocker into `ws`. `ws` and `x` are
     // left untouched on kUnbounded and kDeclined.
+    // CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    // the model's second derivative -- a first-order mode re-derives or re-labels it).
     RideOutcome ride_negative_curvature(const QpProblem &qp, const DropRecord &dropped,
                                         QpCounters &counters, WalkSeen &seen, const Vec &p,
                                         const Vec &Aix, WorkingSet &ws, Vec &x) const;

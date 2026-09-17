@@ -275,6 +275,8 @@ struct IpqpOptions {
     /// reporting `kOptimal`. Default true. FALSE means every certificate is
     /// downgraded unconditionally -- an explicit, documented weakening for a
     /// caller who wants to skip the extra factorization, never a silent one.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     bool ipqp_require_final_inertia = true;
 };
 
@@ -542,6 +544,8 @@ struct SqpOptions {
     /// a win there is not the win on the suite's TRAIN split that the M7 exit
     /// criterion asks for. W2 re-reads the default on TRAIN.
     /// @see docs/notes/2026-09-m7-w0-t3-design.md
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     ElasticRungEngine elastic_rung_engine = ElasticRungEngine::kWalk;
 
     /// ON A DISPROVAL, THE FALLBACK'S CERTIFIED SOLUTION SEEDS THE TIER'S NEXT
@@ -612,6 +616,8 @@ struct SqpOptions {
     /// The saving is predictable to the unit: total factorizations drop by
     /// `SqpCounters::ssn.ssn_refinements` plus the driver's own trust-region gate
     /// refusals, and nothing else moves. Inert in both directions at kWalk.
+    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     bool ssn_certify_from_face = false;
 
     /// The three SSN rule levers. Forwarded verbatim onto the SsnOptions every
