@@ -1398,8 +1398,133 @@ struct SqpCounters {
     /// its feasibility model's `start_point()`, which is inside that model's box
     /// by construction, so nothing is folded in from it.
     ///
+    /// STATED AGAINST THE `x0` ARGUMENT: on a WARM ingest the count describes
+    /// the argument handed to `solve()` while the loop starts at `warm.x`, so
+    /// the two are the same point only on a cold solve (M7 W2 M4 fix1, the
+    /// sentence carried here at M7 W2 M1; `docs/counters.md` has the mechanism).
+    ///
     /// DECLARED LAST, after `polish_ignored`, for that field's own reason.
     Index start_point_clamps = 0;
+
+    // -----------------------------------------------------------------------
+    // THE SUBPROBLEM-EXIT GROUP (M7 W2 M1, signals S2 and S3). Five fields that
+    // say WHY a subproblem failed and what the driver did about it. Before them
+    // a capped subproblem and a broken factorization were one number in every
+    // consumer column: `map_status` folds `QpStatus::kMaxIter` and
+    // `QpStatus::kNumericalError` into the same `SolveStatus::kNumericalError`
+    // (src/drivers/sqp_solver.cpp), and `rejected_steps` conflates a routed
+    // failure with a strategy rejection BY DESIGN (see its note above).
+    //
+    // ALL FIVE ARE COUNTED AT ONE SITE -- the SUBPROBLEM FAILURE ROUTING block
+    // in `run_major`, which is the same block `map_status` reads its verdict
+    // from, so the counters and the returned status cannot disagree. The
+    // elastic ladder's own exhaustion exit does NOT reach that block and is not
+    // counted here; `elastic_activations` and the ladder's own fields describe
+    // it.
+    //
+    // DECLARED LAST, after `start_point_clamps`, for that field's own reason.
+    // -----------------------------------------------------------------------
+
+    /// @brief Subproblem exits with `QpStatus::kMaxIter` -- the subproblem spent
+    ///        its whole minor budget (M7 W2 M1).
+    ///
+    /// A BUDGET FACT, NOT A NUMERICAL ONE. The cap is `QpOptions::max_iter`
+    /// resolved for this subproblem -- the size-derived
+    /// `max(500, 5*(n + mi + #bounded))` at the shipped sentinel, or the
+    /// caller's own positive value -- and a solve that reaches it returns the
+    /// last iterate it walked to. That exit is reported as
+    /// `SolveStatus::kNumericalError` like every other subproblem failure, so
+    /// THIS COUNTER IS THE ONLY PLACE THE DISTINCTION SURVIVES into
+    /// `SqpResult::counters`; the per-major fact is on the row
+    /// (`SqpIterate::qp_status`).
+    ///
+    /// COUNTED WHERE THE DRIVER ACTS ON THE EXIT, which is the routing site --
+    /// so an attempt that `SqpOptions::qp_cap_retry` RESCUED is not counted
+    /// here at all: the retry replaced it as the major's answer before the
+    /// routing ran, and `qp_cap_retries` is what records it. The two together
+    /// are exact: `qp_maxiter_exits + qp_cap_retries` is the number of capped
+    /// subproblem ATTEMPTS this solve made, each counted once -- a retried
+    /// attempt in the second field, every other capped exit in the first, and a
+    /// retry that hit the doubled cap too in both (its own exit reaches the
+    /// routing site).
+    ///
+    /// WHICH KERNEL'S EXIT: whichever kernel answered the major, because the
+    /// routing site is common to all three. At the shipped default
+    /// (`qp_mode == QpMode::kWalk`) every one of them is the walk's; under
+    /// `kSsn`/`kIpm` a tier exit that reaches the same block is counted the same
+    /// way, which is the fold `map_status` already makes.
+    ///
+    /// FOLDED from the restoration sub-solve, on the `qp_minor_iters`
+    /// argument: it counts QP solves, and the sub-solve's subproblems are QP
+    /// solves this solve caused.
+    Index qp_maxiter_exits = 0;
+
+    /// @brief Subproblem exits with `QpStatus::kNumericalError` -- the
+    ///        subproblem's own linear algebra failed (M7 W2 M1).
+    ///
+    /// The complement of `qp_maxiter_exits` at the same site, with the same
+    /// per-exit counting, the same kernel scope and the same restoration fold.
+    /// `QpStatus::kInfeasible` is NOT counted by either field: it is consumed by
+    /// the elastic tier one block earlier and never reaches the routing site.
+    Index qp_numerical_exits = 0;
+
+    /// @brief Subproblem failures the driver ROUTED -- shrank the radius and
+    ///        retried -- rather than ending the solve on (M7 W2 M1).
+    ///
+    /// One per failure the routing gate admitted:
+    /// `qp_failures_in_a_row < SqpOptions::qp_failure_budget` and the failed
+    /// solve handed back a usable iterate (`qp_failure_is_retryable`). At the
+    /// shipped budget of 1 that gate admits the FIRST failure at an iterate and
+    /// refuses the second, so this field is the count of first failures and
+    /// `qp_maxiter_exits + qp_numerical_exits - qp_failures_routed` is the
+    /// number of failures that ended a solve or were refused as unusable.
+    ///
+    /// IT IS A SUBSET OF `rejected_steps`, which is incremented at the same
+    /// site and keeps its meaning unchanged: every routed failure is a major
+    /// spent shrinking the radius at an iterate that did not move.
+    ///
+    /// NOT FOLDED from the restoration sub-solve, on `rejected_steps`' own
+    /// argument: it describes what happened to the CALLER's iterate, and the
+    /// sub-solve's radius shrinks happen to a point in the feasibility
+    /// wrapper's variables.
+    Index qp_failures_routed = 0;
+
+    /// @brief The largest run of CONSECUTIVE routed subproblem failures this
+    ///        solve reached (M7 W2 M1).
+    ///
+    /// A PEAK, folded with `max` like `active_set_delta_peak`. The driver's own
+    /// `qp_failures_in_a_row` counts failures since the last `kOptimal`
+    /// subproblem and is cleared by one; this is its high-water mark. At the
+    /// shipped `qp_failure_budget == 1` it is 0 or 1 by construction -- the
+    /// gate admits no second consecutive failure -- so a value above 1 is
+    /// itself the statement that the budget was raised and was used.
+    ///
+    /// It counts ADMITTED failures, so the failure that ENDS the solve (the one
+    /// the gate refuses) is not in it: a solve that ends on its second
+    /// consecutive failure reports a peak of 1.
+    ///
+    /// NOT FOLDED from the restoration sub-solve, for `qp_failures_routed`'s
+    /// reason.
+    Index qp_failures_in_a_row_peak = 0;
+
+    /// @brief Capped subproblems re-solved ONCE at a doubled cap under
+    ///        `SqpOptions::qp_cap_retry` (M7 W2 M1).
+    ///
+    /// THE FIRED-COUNTER of that toggle, and identically 0 at its OFF state --
+    /// which is the whole of what it is for: a lever whose firing cannot be
+    /// read from `SqpResult::counters` does not ship (the W2 signals contract,
+    /// docs/notes/2026-09-m7-w2-a0-signals-design.md section 2 clause 4).
+    ///
+    /// One per RETRY ATTEMPTED, whatever its outcome: the retry's own minors
+    /// and factorizations fold into `qp_minor_iters` and `factorizations` like
+    /// any other subproblem's, and its exit -- if it too is a failure -- is
+    /// counted in the two exit fields above, so a solve with
+    /// `qp_cap_retries == 1` and `qp_maxiter_exits == 2` is one subproblem that
+    /// hit the cap, was given twice the budget, and hit that too.
+    ///
+    /// FOLDED from the restoration sub-solve, on `qp_maxiter_exits`' argument:
+    /// the sub-solve inherits the toggle and its retries are real work.
+    Index qp_cap_retries = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -1441,7 +1566,12 @@ struct SqpCounters {
     X(weak_active_peak, counter_never_absent)                                                      \
     X(near_active_peak, counter_never_absent)                                                      \
     X(polish_ignored, counter_never_absent)                                                        \
-    X(start_point_clamps, counter_never_absent)
+    X(start_point_clamps, counter_never_absent)                                                    \
+    X(qp_maxiter_exits, counter_never_absent)                                                      \
+    X(qp_numerical_exits, counter_never_absent)                                                    \
+    X(qp_failures_routed, counter_never_absent)                                                    \
+    X(qp_failures_in_a_row_peak, counter_never_absent)                                             \
+    X(qp_cap_retries, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =
@@ -1450,11 +1580,13 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 
 // PLUS TWO: `ssn` and `ipqp` are nested aggregates, each counted as ONE
 // initializer by the arity trick and serialized through its own table above, so
-// the table holds the 39 direct fields and the struct takes 41 initializers.
+// the table holds the 44 direct fields and the struct takes 46 initializers.
 // (37 -> 38 at M6 W5 T8.5, which appended `polish_ignored` after both nested
 // aggregates -- last in declaration order, so the table order below is still
 // the struct's and every pre-existing offset is unmoved. 38 -> 39 at M7 W2 M4,
-// which appended `start_point_clamps` the same way and for the same reason.)
+// which appended `start_point_clamps` the same way and for the same reason.
+// 39 -> 44 at M7 W2 M1, which appended the five-field subproblem-exit group the
+// same way and for the same reason.)
 static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
               "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "

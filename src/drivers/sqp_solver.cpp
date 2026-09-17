@@ -4527,6 +4527,16 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     st.out.counters.verdict_refine_steps += rs.counters.verdict_refine_steps;
     st.out.counters.suspect_escalations += rs.counters.suspect_escalations;
     st.out.counters.symbolic_analyses += rs.counters.symbolic_analyses;
+    // THE SUBPROBLEM-EXIT GROUP'S WORK HALF (M7 W2 M1) FOLDS, on the
+    // qp_minor_iters argument: all three count QP SOLVES, and the sub-solve's
+    // subproblems are QP solves this solve caused. Its ROUTING half --
+    // qp_failures_routed and qp_failures_in_a_row_peak -- does NOT fold, on
+    // rejected_steps' argument two paragraphs above: those two describe what
+    // happened to the CALLER's iterate, and a radius shrunk under the
+    // feasibility wrapper's own point is not that.
+    st.out.counters.qp_maxiter_exits += rs.counters.qp_maxiter_exits;
+    st.out.counters.qp_numerical_exits += rs.counters.qp_numerical_exits;
+    st.out.counters.qp_cap_retries += rs.counters.qp_cap_retries;
     st.out.counters.soc_steps += rs.counters.soc_steps;
     st.out.counters.soc_applied += rs.counters.soc_applied;
     st.out.counters.soc_qp_infeasible += rs.counters.soc_qp_infeasible;
@@ -5810,6 +5820,31 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         std::max(st.out.counters.near_active_peak, mj.row.near_active_rows);
 
     if (mj.qs.status != QpStatus::kOptimal) {
+        // THE EXIT, COUNTED FOR WHAT IT IS (M7 W2 M1, signal S2). `map_status`
+        // folds kMaxIter and kNumericalError into one SolveStatus, and
+        // `rejected_steps` conflates a routed failure with a strategy rejection
+        // by design -- so without these two fields a subproblem that ran out of
+        // minors and one whose factorization failed are the same number in
+        // every column a consumer can see. Counted HERE, at the site
+        // map_status' own verdict is read from, so the counters and the
+        // returned status cannot disagree -- which also means an attempt the
+        // cap retry above RESCUED is not counted here at all: the retry
+        // replaced it as this major's answer before this block ran, and
+        // `qp_cap_retries` is what records it. The pair is exact:
+        // qp_maxiter_exits + qp_cap_retries is the number of capped subproblem
+        // ATTEMPTS. kInfeasible reaches neither field: the elastic tier
+        // consumed it one block above.
+        switch (mj.qs.status) {
+        case QpStatus::kMaxIter:
+            ++st.out.counters.qp_maxiter_exits;
+            break;
+        case QpStatus::kNumericalError:
+            ++st.out.counters.qp_numerical_exits;
+            break;
+        case QpStatus::kOptimal:
+        case QpStatus::kInfeasible:
+            break;
+        }
         // SUBPROBLEM FAILURE ROUTING (see this header's note). A
         // failure that still handed back a usable iterate is a
         // property of THIS SUBPROBLEM AT THIS RADIUS, and the loop
@@ -5821,6 +5856,13 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         // is the accurate description of what happened to this trial.
         if (st.qp_failures_in_a_row == 0 && qp_failure_is_retryable(st.qp, mj.qs, opts_.feas_tol)) {
             ++st.qp_failures_in_a_row;
+            // S3, the two halves: the routed failures summed, and the longest
+            // run of them this solve reached. The peak is folded with max like
+            // active_set_delta_peak, and counts ADMITTED failures only -- the
+            // one the gate refuses is the exit, not a run.
+            ++st.out.counters.qp_failures_routed;
+            st.out.counters.qp_failures_in_a_row_peak =
+                std::max(st.out.counters.qp_failures_in_a_row_peak, st.qp_failures_in_a_row);
             ++st.rejections_at_iterate;
             ++st.out.counters.rejected_steps;
             // THE RADIUS FLOOR applies to a ROUTED failure

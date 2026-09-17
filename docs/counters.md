@@ -94,12 +94,14 @@ believe. This table says only what exists, where, and how many.
 | `QpCounters` | `core/solver_counters.h:30-200` | 20 | the walk (active-set) QP tier, `qp/` |
 | `SsnCounters` | `core/solver_counters.h:210-348` | 18 | the SSN QP tier, `qp/` |
 | `IpqpCounters` | `core/solver_counters.h:466-896` | 39 | the IPQP QP tier, `qp/` |
-| `SqpCounters` | `core/solver_counters.h:1048-1403` | 39 direct, plus the nested `ssn` and `ipqp` | the SQP driver, `drivers/` |
+| `SqpCounters` | `core/solver_counters.h:1048-1520` | 44 direct, plus the nested `ssn` and `ipqp` | the SQP driver, `drivers/` |
 | `SymmetricFactor::Counters` | `linear/symmetric_factor.h:646-682` | 5 | every sparse symmetric factor, `linear/` |
 
-116 fields across the four `core/` groups; `SqpCounters`' 39 do not include the
+121 fields across the four `core/` groups; `SqpCounters`' 44 do not include the
 two nested groups' 57, which it carries whole. (115 and 38 until M7 W2 M4, which
-appended `start_point_clamps`.)
+appended `start_point_clamps`; 116 and 39 until M7 W2 M1, which appended the
+five-field subproblem-exit group -- `qp_maxiter_exits`, `qp_numerical_exits`,
+`qp_failures_routed`, `qp_failures_in_a_row_peak` and `qp_cap_retries`.)
 
 THREE OF THESE ARE PINNED AGAINST A MACRO TABLE, not merely declared:
 `SsnCounters`, `IpqpCounters` and `SqpCounters` each carry an `X()` list used to
@@ -154,6 +156,17 @@ one of those three therefore cannot silently miss the trace.
   about the start point, on a warm one. Widening the projection to the resolved
   start point is registered, not done: it would have to run above the payload
   ingest, and the scaling rule already evaluates the model at `x0` below.
+
+  **THE SUBPROBLEM-EXIT GROUP SPLITS INTO A WORK HALF AND A ROUTING HALF, AND
+  THE RESTORATION SUB-SOLVE FOLDS ONLY THE FIRST** (M7 W2 M1).
+  `qp_maxiter_exits`, `qp_numerical_exits` and `qp_cap_retries` count QP SOLVES
+  and fold from the restoration sub-solve on `qp_minor_iters`' own argument.
+  `qp_failures_routed` and `qp_failures_in_a_row_peak` describe what happened to
+  the CALLER's iterate -- how many times the radius shrank under it without it
+  moving -- and do NOT fold, on `rejected_steps`' own argument, which is the
+  counter they are a subset of. A consumer summing "exits" against "routed"
+  across a solve that restored will therefore find more exits than routings, and
+  the difference is the sub-solve's own.
 
   THE INTERIOR-POINT ENGINE HAS NO AGGREGATE COUNTER STRUCT. Its countable
   quantities are loose fields on `IpmResult`. The KKT-analysis count this

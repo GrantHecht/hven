@@ -606,9 +606,10 @@ order, which `static_assert`s hold equal to the struct's declaration order** (an
 aggregate-arity count plus an `offsetof`-monotone check, not a `sizeof`). The
 tables are therefore the authoritative field list and are not duplicated here.
 
-Shape: the 39 direct fields, then `"ssn": { 18 fields }`, then
+Shape: the 44 direct fields, then `"ssn": { 18 fields }`, then
 `"ipqp": { 39 fields }`. **The direct block was 37 until M6 W5 T8.5** appended
-`polish_ignored` (below) and 38 until **M7 W2 M4** appended `start_point_clamps`
+`polish_ignored` (below), 38 until **M7 W2 M4** appended `start_point_clamps`
+(below) and 39 until **M7 W2 M1** appended the five-field subproblem-exit group
 (below); this section carried the 37 until W5 T9 fix2.
 
 `start_level_used` is an enum, written `cold\|seeded\|warm\|hot` — the schema's
@@ -654,7 +655,7 @@ key read `0` on exactly the solves the returned result and the ledger both read
 `1`; `docs/notes/2026-09-m6-w5-migration-guide.md` `## T8.5` §5's correction
 gives the window, and a trace taken inside it is unreliable on this key alone.
 
-**THE NEWEST DIRECT COUNTER (M7 W2 M4).**
+**THE DIRECT COUNTER M7 W2 M4 APPENDED.**
 
 | counter | type | source | meaning |
 |---|---|---|---|
@@ -670,6 +671,24 @@ the line is assigned at `src/drivers/sqp_solver.cpp:2666`, on the same frame and
 immediately above the emission, for the reason the line above it is. The two
 golden lines re-derived for it are `tests/sqp/test_trace_writer.cpp:3063` and
 `:3119`, marked "RE-DERIVED AT M7 W2 M4" at `:3041` and `:3097`.
+
+**THE NEWEST DIRECT COUNTERS (M7 W2 M1) — FIVE, APPENDED TOGETHER.**
+
+| counter | type | source | meaning |
+|---|---|---|---|
+| `qp_maxiter_exits` | integer | `SqpCounters::qp_maxiter_exits` | subproblem exits with `QpStatus::kMaxIter` — the subproblem spent its whole minor budget. A BUDGET fact, not a numerical one, and the only place the distinction survives into the result: the driver reports it as `SolveStatus::kNumericalError` like any other subproblem failure. Counted where the driver ACTS on the exit (the routing site), so an attempt `SqpOptions::qp_cap_retry` rescued is not here but in `qp_cap_retries`; the two sum to the number of capped subproblem ATTEMPTS |
+| `qp_numerical_exits` | integer | `SqpCounters::qp_numerical_exits` | subproblem exits with `QpStatus::kNumericalError` — the subproblem's own linear algebra failed. The complement of the field above at the same site. `QpStatus::kInfeasible` is in NEITHER: the elastic tier consumes it one block earlier |
+| `qp_failures_routed` | integer | `SqpCounters::qp_failures_routed` | subproblem failures the driver ROUTED — shrank the radius, reseeded from the failed solve's own working set and continued — rather than ending the solve on. A SUBSET of `rejected_steps`, which is incremented at the same site and keeps its meaning |
+| `qp_failures_in_a_row_peak` | integer | `SqpCounters::qp_failures_in_a_row_peak` | the longest run of CONSECUTIVE routed failures the solve reached, folded with `max`. 0 or 1 at the shipped `SqpOptions::qp_failure_budget == 1` by construction, so a value above 1 is itself the statement that the budget was raised and used. It counts ADMITTED failures, so the one that ENDS the solve is not in it |
+| `qp_cap_retries` | integer | `SqpCounters::qp_cap_retries` | capped subproblems re-solved ONCE at a doubled cap under `SqpOptions::qp_cap_retry` — the FIRED-COUNTER of that toggle, identically 0 at its OFF state. One per retry ATTEMPTED, whatever its outcome |
+
+All five are **LAST in the table and last in the struct**, appended after
+`start_point_clamps` for that field's own reason — so the counters object gains
+exactly five keys, between `start_point_clamps` and the `ssn` object, and
+nothing else moves. None carries a sentinel and none is in the `null` table
+above: every absence reading is simply 0. The two golden lines are re-derived
+ONCE for the five, not once per field, and both carry a "RE-DERIVED AT M7 W2 M1"
+note.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 
@@ -777,7 +796,7 @@ non-additive is v1.
 | `qp.mode` | W4 T1 | T2 (the `walk` / `ssn` mode strings); **T5 (the trailing `site` key)** |
 | `sqp.major` | **W4 T5** | added T2; T2 fix1 (the lower-snake enum spellings its `qp_status` / `verdict` keys share with `sqp.solve.end`); T3 (six activity fields, §6) |
 | `sqp.solve.begin` | **W4 T5** | added T2; T2 fix1 (the lower-snake enum spellings its `qp_mode` / `ws_algebra` keys carry) |
-| `sqp.solve.end` | **W4 T5** | added T2; **T2 fix1** (the lower-snake enum spellings, `StartLevel` `cold\|seeded\|warm\|hot` included, over core's PascalCase display form; and the three absence sentinels serializing as `null` — §5); T3 (four folds, through the counters tables); **T8.5** (`polish_ignored`, appended LAST in the counters object — §5); **T8.7** (the five trailing scaling fields — §4.2). The last two move the SAME TWO golden lines, `GoldenLineSqpSolveEndWithEveryCounterDistinct` and `GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull`; **M7 W2 M4** (`start_point_clamps`, appended LAST in the counters object — §5), which moves those same two golden lines and no other |
+| `sqp.solve.end` | **W4 T5** | added T2; **T2 fix1** (the lower-snake enum spellings, `StartLevel` `cold\|seeded\|warm\|hot` included, over core's PascalCase display form; and the three absence sentinels serializing as `null` — §5); T3 (four folds, through the counters tables); **T8.5** (`polish_ignored`, appended LAST in the counters object — §5); **T8.7** (the five trailing scaling fields — §4.2). The last two move the SAME TWO golden lines, `GoldenLineSqpSolveEndWithEveryCounterDistinct` and `GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull`; **M7 W2 M4** (`start_point_clamps`, appended LAST in the counters object — §5), which moves those same two golden lines and no other; **M7 W2 M1** (the five-field subproblem-exit group, appended LAST in the counters object — §5), which moves those same two golden lines ONCE, by five keys, and no other |
 | `ipm.iter` | **W4 T5** | added T4; T4 fix1 (`p_pivots` and `h_facs` null sentinels) |
 | `ipm.solve.begin` | **W4 T5** | added T4; **T8.7** (eight trailing keys, appended in ONE step so the line moves once — §4.12; `GoldenLineIpmSolveBegin`) |
 | `ipm.solve.end` | **W4 T5** | added T4; **T8.4** (the `SolveStatus` vocabulary in place of `ConvergenceFlags`', §4.13) |
