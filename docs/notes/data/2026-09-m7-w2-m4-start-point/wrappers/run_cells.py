@@ -148,7 +148,7 @@ def main():
             if key not in keys:
                 keys.append(key)
     path = os.path.join(args.out, "cells-{}.csv".format(args.tag))
-    with open(path, "w", newline="") as handle:
+    with open(path, "w", newline="\n") as handle:
         writer = csv.DictWriter(handle, fieldnames=keys, restval="")
         writer.writeheader()
         for row in rows:
