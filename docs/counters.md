@@ -5,6 +5,46 @@ currency against which tests and benchmarks are checked; wall-clock timings
 are informational only and are never used, on their own, to assert
 correctness or to gate a test or benchmark.
 
+## Curvature source labels
+
+Two one-line tags live in the headers, on declarations rather than in this page,
+and they are labels only -- no field, no enum, no behaviour. They discharge the
+cost-model half of the 2026-08-31 roadmap amendment
+(`docs/notes/2026-08-26-roadmap-m6-m8-draft.md:344-355`), which carries two
+constraints into M7 so the M9 first-order (Hessian-approximation) mode does not
+have to reopen M7's work: "every curvature-reading heuristic (ladder counters,
+rho demanded, the item-4 read, SSN certification tiers) is labelled with the
+curvature source it assumes -- no decision, a label", and "telemetry keyed on the
+bridge-lay `+1 eval_hess` identity is tagged exact-Hessian-specific".
+
+- `CURVATURE SOURCE: exact model Hessian (M9 label; ...)` marks a quantity whose
+  MEANING assumes H is the model's exact second derivative -- a counter that
+  reports a curvature reading or counts curvature-driven events, an option that
+  selects whether or how such a reading is taken, a result field carrying a
+  curvature verdict the driver branches on, or a predicate that decides from one.
+  Under a first-order mode these are re-derived or re-labelled, not merely
+  rescaled: a positive-definite approximation arms no inertia ladder, so the
+  ladder counters and `rho` demanded read zero for a reason that is not the
+  problem's.
+- `EXACT-HESSIAN-SPECIFIC (M9 label): ...` marks telemetry keyed on the bridge-lay
+  `+1 eval_hess` identity -- the relation `SqpCounters` states between
+  `steps_accepted` and the optimality phase's `eval_hess` calls, and the three
+  seam/adapter/driver comments that state the same shape. That identity counts
+  `eval_hess` calls and is zero under a first-order mode, so no cost model may
+  budget curvature acquisition from it there.
+
+The tags are NOT repeated on the mirrors of a labelled declaration -- trace event
+fields, console and CSV columns, `enum_names`, the X-macro rolls, the options
+dump -- nor on the linear-algebra primitive (`SymmetricFactor::inertia`,
+`InertiaEvidence`), which reports the signature of whatever matrix was factored
+and is true under any Hessian. The source is labelled once, where it is declared.
+
+To find every labelled site:
+
+```
+grep -rn "CURVATURE SOURCE:\|EXACT-HESSIAN-SPECIFIC" include/ src/
+```
+
 ## Rules
 
 - A counter increments by exactly the amount its owning header documents —
@@ -31,9 +71,9 @@ believe. This table says only what exists, where, and how many.
 | group | header, line range | fields | produced by |
 |---|---|---|---|
 | `QpCounters` | `core/solver_counters.h:30-200` | 20 | the walk (active-set) QP tier, `qp/` |
-| `SsnCounters` | `core/solver_counters.h:210-336` | 18 | the SSN QP tier, `qp/` |
-| `IpqpCounters` | `core/solver_counters.h:454-860` | 39 | the IPQP QP tier, `qp/` |
-| `SqpCounters` | `core/solver_counters.h:1009-1329` | 38 direct, plus the nested `ssn` and `ipqp` | the SQP driver, `drivers/` |
+| `SsnCounters` | `core/solver_counters.h:210-348` | 18 | the SSN QP tier, `qp/` |
+| `IpqpCounters` | `core/solver_counters.h:466-896` | 39 | the IPQP QP tier, `qp/` |
+| `SqpCounters` | `core/solver_counters.h:1048-1370` | 38 direct, plus the nested `ssn` and `ipqp` | the SQP driver, `drivers/` |
 | `SymmetricFactor::Counters` | `linear/symmetric_factor.h:646-682` | 5 | every sparse symmetric factor, `linear/` |
 
 115 fields across the four `core/` groups; `SqpCounters`' 38 do not include the
@@ -43,8 +83,8 @@ THREE OF THESE ARE PINNED AGAINST A MACRO TABLE, not merely declared:
 `SsnCounters`, `IpqpCounters` and `SqpCounters` each carry an `X()` list used to
 serialize them, and an aggregate-arity `static_assert` beside it fails to
 compile if a field is added without an entry in its declaration position
-(`core/detail/aggregate_arity.h`; the asserts are at `solver_counters.h:417`,
-`:906` and `:1382`, with the offset-order asserts beside them). A field added to
+(`core/detail/aggregate_arity.h`; the asserts are at `solver_counters.h:429`,
+`:942` and `:1423`, with the offset-order asserts beside them). A field added to
 one of those three therefore cannot silently miss the trace.
 
 ## Per-component status
@@ -75,7 +115,7 @@ one of those three therefore cannot silently miss the trace.
 - **`globalization/`** — produces none.
 - **`warmstart/`** — produces none.
 - **`drivers/`** — produces `SqpCounters`, the aggregate for a whole SQP solve,
-  reachable as `SqpResult::counters` (`drivers/sqp_solver_types.h:991`) and on
+  reachable as `SqpResult::counters` (`drivers/sqp_solver_types.h:997`) and on
   every `Ledger` driver record.
 
   THE INTERIOR-POINT ENGINE HAS NO AGGREGATE COUNTER STRUCT. Its countable
@@ -84,8 +124,8 @@ one of those three therefore cannot silently miss the trace.
   ACCESSOR WAS RETIRED at M6 W5 T8.4 (`drivers/ipm_solver.h:344` records the
   retirement) and the quantity is now two snapshot fields on the returned
   result, `IpmResult::kkt_analyses_total` and `::kkt_analyses_this_call`
-  (`drivers/ipm_solver_types.h:655`, `:657`), beside
-  `IpmResult::kkt_factor_counters` (`:660`), which is the linear layer's group
+  (`drivers/ipm_solver_types.h:659`, `:661`), beside
+  `IpmResult::kkt_factor_counters` (`:664`), which is the linear layer's group
   as of that solve. `kkt_analyses_total` is the LIFETIME count for the producing
   solver -- it moves once when the structure is first laid and once more at any
   solve entry that finds the model's structure epoch moved -- and

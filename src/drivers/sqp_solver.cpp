@@ -634,6 +634,10 @@ SqpKkt evaluate_kkt(const NlpModel &model, const Vec &x, const Vec &lambda_e, co
 QpProblem build_subproblem(const NlpModel &model, const NlpEval &ev, const Vec &x,
                            const Vec &lambda_e, const Vec &lambda_i, double obj_scale) {
     QpProblem qp;
+    // H is taken from the provider-laid arena here; the arena is ONE source of the engine's
+    // current Hessian (M9 constraint: nothing assumes H's sparsity is fixed by the model;
+    // heuristics read the handle, never the arena). A CONSTRAINT STATED, NOT A HANDLE BUILT:
+    // the 2026-08-31 amendment retracted the seam it would have been reserved by (H-5).
     model.eval_hess_in_place(x, obj_scale, lambda_e, lambda_i, qp.H);
     qp.H.makeCompressed();
     qp.g = obj_scale * ev.grad;

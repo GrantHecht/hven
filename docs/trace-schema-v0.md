@@ -631,7 +631,7 @@ aggregates so that every field offset the struct already had is unmoved — so t
 counters object gains exactly one key, between `near_active_peak` and the `ssn`
 object, and nothing else moves. Its absence reading is simply 0: it carries no
 sentinel and is not in the `null` table above. The table entry is
-`include/hven/core/solver_counters.h:1369` (the field at `:1328`); the two
+`include/hven/core/solver_counters.h:1410` (the field at `:1369`); the two
 golden lines re-derived for it are `tests/sqp/test_trace_writer.cpp:2950` and
 `:3003–3004` (the key straddles a string-literal break there), marked
 "RE-DERIVED AT M6 W5 T8.5" at `:2924` and `:2982`.
