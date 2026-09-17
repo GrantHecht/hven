@@ -60,6 +60,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_predictor.cpp
     test_problem_scaling.cpp
     test_qp_engine.cpp
+    test_qp_cap_levers.cpp
     test_qp_engine_border.cpp
     test_qp_engine_indefinite.cpp
     test_qp_engine_tr.cpp
