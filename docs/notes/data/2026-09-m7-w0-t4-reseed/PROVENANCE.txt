@@ -1,0 +1,127 @@
+M7 W0 T4 — THE DISPROVED ENTRY'S RESEED, BOTH TOGGLE STATES
+================================================================================
+CLAUDE.md §7 provenance stamp for every number in this directory. Read the leg's
+own header in the raw file: nothing here is stamped by a blanket claim, and the
+CONCURRENCY block below is per leg.
+
+WHAT THIS LEG IS
+--------------------------------------------------------------------------------
+ONE HEAD measured against ITSELF: two ARMS of the same binary differing only by
+`SqpOptions::ipqp_reseed_after_disproval` (false, the shipped default, and true).
+It is not a commit pair. The question it answers is §0 gap 5's, registered at the
+M6 W2 plan and carried into M7 as M7-5 / D10: on a DISPROVAL the tier's warm
+carry was already dropped at the escape, while rung A's closed-slack solution is
+a certified solution WITH carried multipliers — is recovering it worth anything?
+
+THE CELL, AND WHY IT HAD TO BE BUILT
+--------------------------------------------------------------------------------
+NO CELL IN THIS REPOSITORY DISPROVES. Read mechanically and retained in
+raw/no-cell-disproves.txt:
+
+  * docs/notes/data/2026-09-m6-w2-t7-corpus-sweep/reachability-sweep.csv — 1200
+    F7 cells, `ipqp_suspicion_disproved` = 0 on every row;
+  * docs/notes/data/2026-09-m6-w2-acceptance/kipm-counters-{release,debug}.csv
+    and replay/u0-reachability.csv — 0 on every row;
+  * docs/notes/data/2026-09-m6-close-gate/replay/head-{walk,ssn,ipm}.csv — the
+    U0 27-cell corpus has NO `ipqp_suspicion_disproved` column at schema 76, and
+    the column it does carry says why: `ipqp_escapes` and
+    `ipqp_escape_infeasible_suspect` BOTH SUM TO 0 in all three arms, so no cell
+    ever reaches the certified fallback at all;
+  * M6 W1 T7's calibration reads 0 disproved over the whole HS corpus (M6 ledger
+    `:2241`), and HS is TRAIN-embargoed until W1 H2 regardless.
+
+So the vehicle is constructed: `disproved_entry_qp()`
+(tests/sqp/support/disproved_entry_vehicle.h) — the ELASTIC QP's own shape
+(zero-curvature penalty columns priced rho*sigma, boxed [0, cap], joined into
+scaled equality rows) presented as a PRIMARY subproblem, with the rows CONSISTENT
+by construction. The shape comes from M7 W0 T3's finding, which measured the
+tier's §6.3 detector false-declining 3 of 5 rungs of an elastic QP that is
+feasible by construction.
+
+THE TREE — COMMIT-EXACT
+--------------------------------------------------------------------------------
+repo             /home/ghecht/Projects/hven, branch m7
+commit           39746705438c404026dbd9d690c992c43987404a
+                 ("test(sqp): M7 W0 T4 -- a disproving driver fixture: the
+                 disproved-entry charge PINNED (Q-S3 (a)); the reseed observed
+                 under the toggle")
+working tree     CLEAN at measurement time. The measurement script records
+                 `git rev-parse HEAD`, `git describe --always --dirty` AND
+                 `git status --porcelain` in the raw log's own header, so the
+                 artifact carries the tree identity rather than only this stamp.
+config           Release (build/) and Debug (build-debug/), clang 22.1.8 via the
+                 repo toolchain, Ninja, MKL (sequential), uniform flag regime.
+
+THE MACHINE AND THE PROTOCOL
+--------------------------------------------------------------------------------
+host             Linux 7.2.4-200.fc44.x86_64, x86-64
+threads          MKL_NUM_THREADS=1, OMP_NUM_THREADS=1, SqpOptions.common.threads=1
+pinning          taskset -c 2 — ONE pinned core
+concurrency      MIXED, and the split is per leg — see CONCURRENCY, PER LEG.
+date             2026-09-16
+
+WHAT IS ASSERTED AND WHAT IS NOT
+--------------------------------------------------------------------------------
+ASSERTED: counters and statuses. Every counter column in
+  raw/both-states-3reps.log is byte-identical across THREE replicates and
+  identical between Debug and Release.
+NOT MEASURED AT ALL: wall clock. The measurement's CSV has no wall column, so
+  there is nothing in this directory that could be misread as a timing.
+INFORMATIONAL: the instruction counts in perf/. They are reported because they
+  are the reader's intuition for the counter ratios; no claim in reading.md rests
+  on them.
+
+CONCURRENCY, PER LEG (CLAUDE.md §7)
+--------------------------------------------------------------------------------
+SOLO -- alone inside one hold of `flock /tmp/box-build.lock`, pinned `taskset -c
+2`, MKL_NUM_THREADS=1, OMP_NUM_THREADS=1. The hven-bench harness lane takes the
+same lock for its CUTEst TRAIN sweeps, so holding it IS the guarantee that lane
+is between sweeps and idle:
+
+  * the Release build and both Release suites      raw/gates/release-*.log
+  * the Debug build and both Debug suites          raw/gates/debug-*.log
+  * the three-replicate measurement, Release       raw/both-states-3reps.log
+  * the measurement, Debug                         raw/debug-both-states.log
+  * the `perf stat` instruction pass               perf/both-states-perf.log
+  * the U0 27-cell three-arm replay                raw/gates/replay-*.log
+  * the install smoke and the export contract      raw/gates/install-smoke.log,
+                                                   raw/gates/export-contract.log
+  * the >600 s Debug test, run ALONE and DETACHED  raw/gates/debug-continuation-alone.log
+  * the same-path P-SYM arms, both configs         raw/psym-same-path/
+  * the commit-exact replay re-take                raw/gates/replay-restamp.log
+
+All of the above ran in ONE transcript per leg with the box protocol's
+`PGREP_EMPTY` / `FOREGROUND_START` / `FOREGROUND_END` markers and the leg's exit
+code; the wrapper is fold-proven (a stubbed `exit 9` propagates as `WRAPPER_RC 9`,
+.scratch/m7t4/logs/foldproof-{fail,pass}.log).
+
+CO-RUN, DECLARED -- the harness lane held the box lock and these ran OUTSIDE it,
+so they co-ran with its cells:
+
+  * the development compile checks and the exploratory probes (nothing from them
+    is quoted anywhere; every number in this directory comes from the SOLO set);
+  * the clang-format gate (raw/gates/clang-format.log) -- a text comparison with
+    no solver in it at all, run `nice -n 19`.
+
+  terms: MKL_NUM_THREADS=1 and OMP_NUM_THREADS=1 in this process; the foreign
+  lane's placement was NOT controlled, so this is not the "one process per pinned
+  PHYSICAL core" discipline §7 defines for a measured co-run and nothing here is
+  offered as one. NO WALL-CLOCK AND NO INSTRUCTION COUNT FROM A CO-RUN LEG IS
+  QUOTED.
+
+THE REPLAY'S BINARY STAMP, AND WHY THERE ARE TWO ARMS OF IT
+--------------------------------------------------------------------------------
+The gate leg's replay arm produced CSVs stamped `# binary: 0be12ec390c5-dirty`,
+which is NOT the tree they were produced from. `bench/CMakeLists.txt:85-90` names
+this trap in its own comment: the stamp is captured at CONFIGURE time, so a tree
+configured earlier and REBUILT later emits the stale string. The code under test
+was the clean 39746705 the gate's step 1 had just rebuilt -- the header change
+forces `bench_corpus.cpp.o` to recompile -- but the embedded string was `build/`'s
+configure-time one.
+
+The remedy that comment gives is to re-configure first, so the replay was RE-TAKEN
+that way (raw/gates/replay-restamp.log): stamp `39746705438c`, schema 76,
+`budget_table_hash 0x357aee91dee27391`. Both arms are kept and the re-take
+additionally compares the two against each other. THE RE-TAKEN ARM IS THE
+AUTHORITY; the stale-stamped one is retained rather than deleted because its
+numbers are what the gate leg actually saw.

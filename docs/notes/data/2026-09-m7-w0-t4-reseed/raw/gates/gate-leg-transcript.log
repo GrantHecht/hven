@@ -1,0 +1,284 @@
+PGREP_EMPTY (checked in its own command before this leg; only the self-match)
+FOREGROUND_START gate 2026-09-16T23:24:02-04:00
+
+===== STEP 1/9 Release build (all targets) =====
+ninja: Entering directory `build'
+[1/40] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/seam_native.cpp.o
+[2/40] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/recipes.cpp.o
+[3/40] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/seam_registry.cpp.o
+[4/40] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/expected_table.cpp.o
+[5/40] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig.dir/traces_interior_point.cpp.o
+[6/40] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig.dir/traces_sqp.cpp.o
+[7/40] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig.dir/fail_by_design_control.cpp.o
+[8/40] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_report.dir/traces_sqp.cpp.o
+[9/40] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_report.dir/traces_interior_point.cpp.o
+[10/40] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_report.dir/fail_by_design_control.cpp.o
+[11/40] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_audit.dir/audit/pardiso_recorder.cpp.o
+[12/40] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_report.dir/report_main.cpp.o
+[13/40] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_audit.dir/audit/test_audit_shim.cpp.o
+[14/40] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/drivers/trace.cpp.o
+[15/40] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/drivers/sqp_options.cpp.o
+[16/40] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/trace_support.cpp.o
+[17/40] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/sqp/test_ipqp_seams.cpp.o
+[18/40] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_engine.cpp.o
+[19/40] Building CXX object bench/CMakeFiles/hven_sqp_bench.dir/bench_scale.cpp.o
+[20/40] Linking CXX executable tests/hven_tests
+[21/40] Building CXX object bench/CMakeFiles/hven_sqp_f7_cold.dir/bench_f7_cold.cpp.o
+[22/40] Building CXX object bench/CMakeFiles/hven_sqp_tau_bar_sweep_probe.dir/tau_bar_sweep_probe.cpp.o
+[23/40] Linking CXX executable tests/hven_ipqp_seam_tests
+[24/40] Linking CXX executable tests/golden_rig/hven_golden_rig
+[25/40] Building CXX object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o
+[26/40] Linking CXX executable tests/model/hven_model_tests
+[27/40] Linking CXX executable tests/golden_rig/hven_golden_rig_report
+[28/40] Linking CXX executable tests/golden_rig/hven_golden_rig_audit
+[29/40] Linking CXX executable bench/hven_sqp_snopt_f7
+[30/40] Linking CXX executable bench/hven_sqp_bench
+[31/40] Linking CXX executable bench/hven_sqp_f7_cold
+[32/40] Linking CXX executable bench/hven_sqp_tau_bar_sweep_probe
+[33/40] Building CXX object bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+[34/40] Building CXX object bench/CMakeFiles/hven_sqp_ssn_safeguard_probe.dir/ssn_safeguard_probe.cpp.o
+[35/40] Linking CXX executable bench/hven_sqp_crossover
+[36/40] Linking CXX executable bench/hven_sqp_ssn_safeguard_probe
+[37/40] Building CXX object bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+[38/40] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+[39/40] Building CXX object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o
+[40/40] Linking CXX executable tests/interior/hven_interior_tests
+
+===== STEP 2/9 Release suites =====
+
+  YOU HAVE 2 DISABLED TESTS
+
+[----------] Global test environment tear-down
+[==========] 134 tests from 17 test suites ran. (386 ms total)
+[  PASSED  ] 134 tests.
+
+===== STEP 3/9 Debug build (all targets) =====
+ninja: Entering directory `build-debug'
+[0/1] Re-running CMake...
+-- ccache found: /usr/bin/ccache
+-- Floating-point mode: SAFER_FAST
+-- IEEE 754 compliance: SAFER_FAST (fast-math except finite-math-only)
+-- libiomp5.so
+-- MKL_INTERFACE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a
+-- MKL_SEQTHR_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a
+-- MKL_CORE_LIBRARY = /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a
+-- MKL_TBB_LIBRARY = 
+-- MKL_OMP_LIBRARY = /opt/intel/oneapi/compiler/latest/lib/libiomp5.so
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- SNOPT found at /home/ghecht/Software/snopt7 (/home/ghecht/Software/snopt7/lib/libsnopt7_cpp.so); SNOPT bench + gate test enabled
+-- Configuring done (1.6s)
+-- Generating done (0.1s)
+-- Build files have been written to: /home/ghecht/Projects/hven/build-debug
+[1/106] Building CXX object CMakeFiles/hven.dir/src/drivers/trace.cpp.o
+[2/106] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o
+[3/106] Building CXX object CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+[4/106] Building CXX object CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+[5/106] Building CXX object CMakeFiles/hven.dir/src/drivers/console_trace_sink.cpp.o
+[6/106] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+[7/106] Building CXX object CMakeFiles/hven.dir/src/drivers/assembly_eval_seam.cpp.o
+[8/106] Building CXX object CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o
+/home/ghecht/Projects/hven/src/drivers/sqp_solver.cpp:4667:13: warning: enumeration values 'kAcceptable', 'kStalled', and 'kDiverging' not handled in switch [-Wswitch]
+ 4667 |     switch (rs.status) {
+      |             ^~~~~~~~~
+1 warning generated.
+[9/106] Building CXX object CMakeFiles/hven.dir/src/qp/ssn_engine.cpp.o
+[10/106] Building CXX object CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o
+[11/106] Building CXX object CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o
+[12/106] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/drivers/sqp_options.cpp.o
+[13/106] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/seam_native.cpp.o
+[14/106] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/seam_registry.cpp.o
+[15/106] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/recipes.cpp.o
+[16/106] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/expected_table.cpp.o
+[17/106] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig.dir/traces_sqp.cpp.o
+[18/106] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/drivers/trace.cpp.o
+[19/106] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig.dir/traces_interior_point.cpp.o
+[20/106] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_report.dir/traces_sqp.cpp.o
+[21/106] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_report.dir/traces_interior_point.cpp.o
+[22/106] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig.dir/fail_by_design_control.cpp.o
+[23/106] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_report.dir/fail_by_design_control.cpp.o
+[24/106] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_report.dir/report_main.cpp.o
+[25/106] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_audit.dir/audit/pardiso_recorder.cpp.o
+[26/106] Building CXX object CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+[27/106] Linking CXX static library libhven.a
+[28/106] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_audit.dir/audit/test_audit_shim.cpp.o
+[29/106] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/sqp/test_ipqp_seams.cpp.o
+[30/106] Building CXX object tests/golden_rig/CMakeFiles/hven_golden_rig_support.dir/trace_support.cpp.o
+[31/106] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+[32/106] Building CXX object tests/CMakeFiles/hven_ipqp_seam_tests.dir/__/src/qp/ipqp_engine.cpp.o
+[33/106] Building CXX object bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+[34/106] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o
+[35/106] Linking CXX executable bench/hven_sqp_corpus
+[36/106] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_console_sink.cpp.o
+[37/106] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+/home/ghecht/Projects/hven/tests/drivers/test_callback.cpp:528:57: warning: 'eval_grad' is deprecated: use eval_grad_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  528 |                     e.x, e.lambda_e, e.lambda_i, e.z, m.eval_grad(e.x), m.eval_jac_e(e.x),
+      |                                                         ^
+/home/ghecht/Projects/hven/include/hven/model/nlp_model.h:83:7: note: 'eval_grad' has been explicitly marked deprecated here
+   83 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/tests/drivers/test_callback.cpp:528:75: warning: 'eval_jac_e' is deprecated: use eval_jac_e_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  528 |                     e.x, e.lambda_e, e.lambda_i, e.z, m.eval_grad(e.x), m.eval_jac_e(e.x),
+      |                                                                           ^
+/home/ghecht/Projects/hven/include/hven/model/nlp_model.h:111:7: note: 'eval_jac_e' has been explicitly marked deprecated here
+  111 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/tests/drivers/test_callback.cpp:529:23: warning: 'eval_jac_i' is deprecated: use eval_jac_i_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  529 |                     m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+      |                       ^
+/home/ghecht/Projects/hven/include/hven/model/nlp_model.h:115:7: note: 'eval_jac_i' has been explicitly marked deprecated here
+  115 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/tests/drivers/test_callback.cpp:529:42: warning: 'eval_ce' is deprecated: use eval_ce_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  529 |                     m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+      |                                          ^
+/home/ghecht/Projects/hven/include/hven/model/nlp_model.h:87:7: note: 'eval_ce' has been explicitly marked deprecated here
+   87 |     [[deprecated(
+      |       ^
+/home/ghecht/Projects/hven/tests/drivers/test_callback.cpp:529:58: warning: 'eval_ci' is deprecated: use eval_ci_in_place; deprecated in M6 W5; removal is a separate declared break [-Wdeprecated-declarations]
+  529 |                     m.eval_jac_i(e.x), m.eval_ce(e.x), m.eval_ci(e.x), m.lower(), m.upper(), {});
+      |                                                          ^
+/home/ghecht/Projects/hven/include/hven/model/nlp_model.h:91:7: note: 'eval_ci' has been explicitly marked deprecated here
+   91 |     [[deprecated(
+      |       ^
+5 warnings generated.
+[38/106] Building CXX object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_0_cxx.cxx.o
+[39/106] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o
+[40/106] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o
+[41/106] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_print_tables.cpp.o
+[42/106] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+[43/106] Building CXX object tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o
+[44/106] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o
+[45/106] Building CXX object tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o
+[46/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_activity_telemetry.cpp.o
+[47/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_assembly_eval_seam.cpp.o
+[48/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_b1_gate.cpp.o
+[49/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_continuation.cpp.o
+[50/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_disproved_entry.cpp.o
+[51/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_elastic_rung_vehicle.cpp.o
+[52/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+[53/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_funnel.cpp.o
+[54/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o
+[55/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_refine_ab.cpp.o
+/home/ghecht/Projects/hven/tests/sqp/test_eqp_refine_ab.cpp:141:13: warning: 4 enumeration values not handled in switch: 'kAcceptable', 'kStalled', 'kDiverging'... [-Wswitch]
+  141 |     switch (s) {
+      |             ^
+1 warning generated.
+[56/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o
+/home/ghecht/Projects/hven/tests/sqp/test_hs_battery.cpp:239:13: warning: 4 enumeration values not handled in switch: 'kAcceptable', 'kStalled', 'kDiverging'... [-Wswitch]
+  239 |     switch (s) {
+      |             ^
+1 warning generated.
+[57/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_certification.cpp.o
+[58/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_counters.cpp.o
+[59/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o
+[60/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_math.cpp.o
+[61/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_engine.cpp.o
+[62/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_acceptance.cpp.o
+[63/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o
+[64/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_options.cpp.o
+[65/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_nlp_kkt_check.cpp.o
+[66/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_warm_restart.cpp.o
+[67/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ledger.cpp.o
+[68/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_trace.cpp.o
+[69/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_mesh_transfer.cpp.o
+[70/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_parametric_families.cpp.o
+[71/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_problem_scaling.cpp.o
+[72/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o
+[73/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_mode_sites.cpp.o
+[74/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_problems.cpp.o
+[75/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_smoke.cpp.o
+[76/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o
+[77/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ssn_engine.cpp.o
+[78/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o
+[79/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+[80/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o
+[81/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start.cpp.o
+[82/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start_battery.cpp.o
+[83/106] Building CXX object bench/CMakeFiles/hven_sqp_bench.dir/bench_scale.cpp.o
+[84/106] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o
+[85/106] Building CXX object bench/CMakeFiles/hven_sqp_f7_cold.dir/bench_f7_cold.cpp.o
+[86/106] Linking CXX executable tests/hven_tests
+[87/106] Linking CXX executable tests/hven_ipqp_seam_tests
+[88/106] Building CXX object bench/CMakeFiles/hven_sqp_tau_bar_sweep_probe.dir/tau_bar_sweep_probe.cpp.o
+[89/106] Linking CXX executable tests/golden_rig/hven_golden_rig
+[90/106] Linking CXX executable tests/golden_rig/hven_golden_rig_report
+[91/106] Linking CXX executable tests/golden_rig/hven_golden_rig_audit
+[92/106] Linking CXX executable tests/model/hven_model_tests
+[93/106] Building CXX object bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+[94/106] Linking CXX executable tests/interior/hven_interior_tests
+[95/106] Linking CXX executable tests/drivers/hven_drivers_tests
+[96/106] Linking CXX executable bench/hven_sqp_bench
+[97/106] Linking CXX executable bench/hven_sqp_f7_cold
+[98/106] Linking CXX executable bench/hven_sqp_snopt_f7
+[99/106] Building CXX object bench/CMakeFiles/hven_sqp_ssn_safeguard_probe.dir/ssn_safeguard_probe.cpp.o
+[100/106] Building CXX object bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+[101/106] Linking CXX executable bench/hven_sqp_tau_bar_sweep_probe
+[102/106] Linking CXX executable bench/hven_sqp_ssn_safeguard_probe
+[103/106] Linking CXX executable bench/hven_sqp_crossover
+[104/106] Linking CXX executable bench/hven_sqp_ipqp_e1_arm
+[105/106] Linking CXX executable tests/sqp/hven_sqp_tests
+
+===== STEP 4/9 Debug suites (the >600 s Continuation test excluded; it runs alone, detached) =====
+
+  YOU HAVE 2 DISABLED TESTS
+
+[----------] Global test environment tear-down
+[==========] 134 tests from 17 test suites ran. (1798 ms total)
+[  PASSED  ] 134 tests.
+
+===== STEP 5/9 the measurement, Release, three replicates =====
+state,max_iter,retire_after,status,majors,escapes,suspect,disproved,relaxed,rung_b,retired_after,entries_cold,entries_base,entries_full,restart_repairs,qp_minor_iters,factorizations,ipqp_iters,ipqp_facts,elastic_activations,elastic_escalations,f
+off,1,3,max_iter,1,1,1,1,0,0,0,1,0,0,0,8,15,5,5,1,0,-17.98
+off,2,3,max_iter,2,2,2,2,0,0,0,2,0,0,0,14,21,10,10,2,0,-41.979999984
+off,3,3,max_iter,3,3,3,3,0,0,3,3,0,0,0,16,27,15,15,3,0,-49.979999984
+off,6,3,max_iter,6,3,3,3,0,0,3,3,0,0,0,22,27,15,15,3,0,-49.98
+state,max_iter,retire_after,status,majors,escapes,suspect,disproved,relaxed,rung_b,retired_after,entries_cold,entries_base,entries_full,restart_repairs,qp_minor_iters,factorizations,ipqp_iters,ipqp_facts,elastic_activations,elastic_escalations,f
+on,1,3,max_iter,1,1,1,1,0,0,0,1,0,0,0,8,15,5,5,1,0,-17.98
+on,2,3,max_iter,2,1,1,1,0,0,0,1,1,0,1,8,22,10,11,1,0,-41.7892692874
+on,3,3,optimal,3,1,1,1,0,0,0,1,1,1,2,8,27,13,15,1,0,-49.98
+on,6,3,optimal,3,1,1,1,0,0,0,1,1,1,2,8,27,13,15,1,0,-49.98
+
+===== STEP 6/9 the measurement, Debug =====
+state,max_iter,retire_after,status,majors,escapes,suspect,disproved,relaxed,rung_b,retired_after,entries_cold,entries_base,entries_full,restart_repairs,qp_minor_iters,factorizations,ipqp_iters,ipqp_facts,elastic_activations,elastic_escalations,f
+off,1,3,max_iter,1,1,1,1,0,0,0,1,0,0,0,8,15,5,5,1,0,-17.98
+off,2,3,max_iter,2,2,2,2,0,0,0,2,0,0,0,14,21,10,10,2,0,-41.979999984
+off,3,3,max_iter,3,3,3,3,0,0,3,3,0,0,0,16,27,15,15,3,0,-49.979999984
+off,6,3,max_iter,6,3,3,3,0,0,3,3,0,0,0,22,27,15,15,3,0,-49.98
+state,max_iter,retire_after,status,majors,escapes,suspect,disproved,relaxed,rung_b,retired_after,entries_cold,entries_base,entries_full,restart_repairs,qp_minor_iters,factorizations,ipqp_iters,ipqp_facts,elastic_activations,elastic_escalations,f
+on,1,3,max_iter,1,1,1,1,0,0,0,1,0,0,0,8,15,5,5,1,0,-17.98
+on,2,3,max_iter,2,1,1,1,0,0,0,1,1,0,1,8,22,10,11,1,0,-41.7892692874
+on,3,3,optimal,3,1,1,1,0,0,0,1,1,1,2,8,27,13,15,1,0,-49.98
+on,6,3,optimal,3,1,1,1,0,0,0,1,1,1,2,8,27,13,15,1,0,-49.98
+
+===== STEP 7/9 instructions (perf stat), solo inside this lock hold =====
+# M7 W0 T4 -- perf stat -e instructions:u, one process per cell. INFORMATIONAL.
+# host: Linux 7.2.4-200.fc44.x86_64 x86_64; MKL_NUM_THREADS=1; OMP_NUM_THREADS=1; taskset -c 2
+# hven commit: 39746705438c404026dbd9d690c992c43987404a; describe: 39746705
+cell,instructions
+baseline_no_test,13707567
+reseed_off,38651316
+reseed_on,31437901
+pins_all,53440244
+
+===== STEP 8/9 the U0 27-cell three-arm replay, under the DEFAULT =====
+-- walk
+=== T4-walk === cells compared: 27  columns compared: 75  differences: 0
+-- ssn
+=== T4-ssn === cells compared: 27  columns compared: 75  differences: 0
+-- ipm
+=== T4-ipm === cells compared: 27  columns compared: 75  differences: 0
+
+===== STEP 9/9 install smoke + export contract =====
+install smoke: both solvers converged through one generic consumer; 19 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.scratch/m7t4/smoke/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.scratch/m7t4/smoke/hven-configure.log
+export check: targets=/home/ghecht/Projects/hven/.scratch/m7t4/smoke/hven-build/CMakeFiles/Export/61f1e425b542d5760b5cf5972e12310b/hvenTargets.cmake align=32
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32
+
+===== GATE COMPLETE =====
+FOREGROUND_END gate 2026-09-16T23:57:28-04:00 rc=0
+WRAPPER_RC gate 0

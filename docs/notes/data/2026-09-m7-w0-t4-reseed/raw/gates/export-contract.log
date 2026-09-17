@@ -1,0 +1,6 @@
+== checking export contract: /home/ghecht/Projects/hven/.scratch/m7t4/smoke/hven-build/CMakeFiles/Export/61f1e425b542d5760b5cf5972e12310b/hvenTargets.cmake (platform=linux)
+-- platform macro set OK for linux
+-- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32

@@ -1,0 +1,539 @@
+P-SYM tool sha256 (runner):   2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM tool sha256 (captures): 2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM maps: object-map=none symbol-map=none exceptions=none
+
+SYMBOLS     CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o: COVERAGE FINDINGS
+              LOCAL-FAMILY  .L.str: 162 before, 163 after
+DIFFERS     CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 35938 lines vs 35946 -- instructions were added or removed
+PER-SYMBOL  CMakeFiles/hven.dir/src/drivers/sqp_options.cpp.o: PERSYM 705 identical, 0 noise-only, 2 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 3369 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::dump_options(hven::solvers::SqpOptions const&, std::basic_ostream<char, std::char_traits<char> >&)
+                            STRUCTURAL: normalized listing is 417 lines vs 425 -- instructions were added or removed
+              DIFFERS       hven::solvers::sqp_preset(std::basic_string_view<char, std::char_traits<char> >)
+                            STRUCTURAL: normalized listing is 218 lines vs 219 -- instructions were added or removed
+NOISE-ONLY  CMakeFiles/hven.dir/src/drivers/sqp_print.cpp.o
+            COUNTS 31116 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+SYMBOLS     CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o: COVERAGE FINDINGS
+              ONLY-AFTER    void Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >::_init1<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::CwiseUnaryOp<Eigen::internal::scalar_opposite_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const>, Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::CwiseUnaryOp<Eigen::internal::scalar_opposite_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> >(Eigen::DenseBase<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::CwiseUnaryOp<Eigen::internal::scalar_opposite_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> > const&)
+              ONLY-AFTER    hven::solvers::(anonymous namespace)::build_ipqp_disproval_seed(hven::solvers::QpSolution const&, long, long, long)
+              ONLY-AFTER    void Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >::_init1<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const>, Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> >(Eigen::DenseBase<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> > const&)
+              ONLY-AFTER    Eigen::Matrix<double, -1, 1, 0, -1, 1>& Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >::_set_noalias<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::CwiseUnaryOp<Eigen::internal::scalar_opposite_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> >(Eigen::DenseBase<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::CwiseUnaryOp<Eigen::internal::scalar_opposite_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> > const&)
+              ONLY-AFTER    _ZNSt8optionalIN4hven7solvers8IpqpSeedEEaSIS2_Qaaaaaant9is_same_vIS_IT_ENSt12remove_cvrefITL0__E4typeEEntaa11is_scalar_vIS5_E9is_same_vIS5_NSt5decayIS9_E4typeEE18is_constructible_vIS5_S9_E15is_assignable_vIRS5_S9_EEERS3_OS5_
+              ONLY-AFTER    Eigen::Matrix<double, -1, 1, 0, -1, 1>::Matrix<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> >(Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> const&)
+              ONLY-AFTER    Eigen::Matrix<double, -1, 1, 0, -1, 1>& Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >::_set_noalias<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> >(Eigen::DenseBase<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> > const&)
+              ONLY-AFTER    Eigen::Matrix<double, -1, 1, 0, -1, 1>::Matrix<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::CwiseUnaryOp<Eigen::internal::scalar_opposite_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> >(Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::CwiseUnaryOp<Eigen::internal::scalar_opposite_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> const&)
+              ONLY-AFTER    void std::_Optional_base<hven::solvers::IpqpSeed, false, false>::_M_construct<hven::solvers::IpqpSeed>(hven::solvers::IpqpSeed&&)
+              LOCAL-FAMILY  GCC_except_table: 304 before, 307 after
+DIFFERS     CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 116095 lines vs 116479 -- instructions were added or removed
+PER-SYMBOL  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o: PERSYM 3401 identical, 0 noise-only, 6 differing, 0 only-before, 9 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 3 rank-tagged, 0 section moves, 11077 relocation records compared (0 through the symbol map), 3 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::(anonymous namespace)::assert_ssn_warm_grade_window(hven::solvers::IpqpResult const&, hven::solvers::SsnStart const&, hven::solvers::SolveOverrides const&, hven::solvers::QpOptions const&)
+                              UNCLASSIFIED  - 	jmp    1b9c1 ;LEN=5
+                                            + 	jmp    1bdc1 ;LEN=5
+                            COUNTS 211 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::invoke_iteration_callback(hven::solvers::IterationEvent const&)
+                              UNCLASSIFIED  - 	jmp    1576b ;LEN=2
+                                            + 	jmp    15b6b ;LEN=2
+                            COUNTS 46 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::solve_impl_body(hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget, std::unique_ptr<hven::solvers::GlobalizationStrategy, std::default_delete<hven::solvers::GlobalizationStrategy> >)::$_0::operator()(long) const
+                              UNCLASSIFIED  - 	jmp    1a7d1 ;LEN=2
+                                            + 	jmp    1abd1 ;LEN=2
+                            COUNTS 110 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::run_major(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, hven::solvers::SqpWarmStart const&, hven::solvers::SolveBudget, long)::$_2::operator()(hven::solvers::SqpIterate) const
+                              UNCLASSIFIED  - 	jmp    196c2 ;LEN=5
+                                            + 	jmp    19ac2 ;LEN=5
+                              UNCLASSIFIED  - 	jmp    196c2 ;LEN=2
+                                            + 	jmp    19ac2 ;LEN=2
+                            COUNTS 295 insns; CHANGED 2; UNCLASSIFIED 2; DELTAS
+              DIFFERS       hven::solvers::(anonymous namespace)::assert_ipqp_hand_off_window(hven::solvers::IpqpBox const&, hven::solvers::IpqpResult const&)
+                              UNCLASSIFIED  - 	jmp    13238 ;LEN=2
+                                            + 	jmp    132d8 ;LEN=2
+                            COUNTS 243 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              DIFFERS       hven::solvers::SqpSolver::route_through_ipqp_tier(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, long, bool, hven::solvers::SolveOverrides const&)
+                            STRUCTURAL: normalized listing is 970 lines vs 1003 -- instructions were added or removed
+              ONLY-AFTER    void Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >::_init1<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::CwiseUnaryOp<Eigen::internal::scalar_opposite_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const>, Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::CwiseUnaryOp<Eigen::internal::scalar_opposite_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> >(Eigen::DenseBase<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::CwiseUnaryOp<Eigen::internal::scalar_opposite_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> > const&)
+              ONLY-AFTER    hven::solvers::(anonymous namespace)::build_ipqp_disproval_seed(hven::solvers::QpSolution const&, long, long, long)
+              ONLY-AFTER    void Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >::_init1<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const>, Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> >(Eigen::DenseBase<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> > const&)
+              ONLY-AFTER    Eigen::Matrix<double, -1, 1, 0, -1, 1>& Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >::_set_noalias<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::CwiseUnaryOp<Eigen::internal::scalar_opposite_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> >(Eigen::DenseBase<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::CwiseUnaryOp<Eigen::internal::scalar_opposite_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> > const&)
+              ONLY-AFTER    _ZNSt8optionalIN4hven7solvers8IpqpSeedEEaSIS2_Qaaaaaant9is_same_vIS_IT_ENSt12remove_cvrefITL0__E4typeEEntaa11is_scalar_vIS5_E9is_same_vIS5_NSt5decayIS9_E4typeEE18is_constructible_vIS5_S9_E15is_assignable_vIRS5_S9_EEERS3_OS5_
+              ONLY-AFTER    Eigen::Matrix<double, -1, 1, 0, -1, 1>::Matrix<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> >(Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> const&)
+              ONLY-AFTER    Eigen::Matrix<double, -1, 1, 0, -1, 1>& Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >::_set_noalias<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> >(Eigen::DenseBase<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> > const&)
+              ONLY-AFTER    Eigen::Matrix<double, -1, 1, 0, -1, 1>::Matrix<Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::CwiseUnaryOp<Eigen::internal::scalar_opposite_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> >(Eigen::CwiseBinaryOp<Eigen::internal::scalar_max_op<double, double, 0>, Eigen::CwiseUnaryOp<Eigen::internal::scalar_opposite_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> const> const, Eigen::CwiseNullaryOp<Eigen::internal::scalar_constant_op<double>, Eigen::Matrix<double, -1, 1, 0, -1, 1> > const> const&)
+              ONLY-AFTER    void std::_Optional_base<hven::solvers::IpqpSeed, false, false>::_M_construct<hven::solvers::IpqpSeed>(hven::solvers::IpqpSeed&&)
+NOISE-ONLY  CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o
+            COUNTS 36079 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+DIFFERS     CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 87232 lines vs 87233 -- instructions were added or removed
+PER-SYMBOL  CMakeFiles/hven.dir/src/qp/ipqp_engine.cpp.o: PERSYM 2470 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 8264 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+NOISE-ONLY  CMakeFiles/hven.dir/src/warmstart/continuation.cpp.o
+            COUNTS 80066 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/__/__/bench/ipm_corpus_leg.cpp.o
+            COUNTS 81211 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_activity_telemetry.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 118494 lines vs 118495 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_activity_telemetry.cpp.o: PERSYM 3586 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 21 rank-tagged, 0 section moves, 13381 relocation records compared (0 through the symbol map), 4 global-var-init keyed by identity (17 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_assembly_eval_seam.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 110398 lines vs 110399 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_assembly_eval_seam.cpp.o: PERSYM 2760 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 25 rank-tagged, 0 section moves, 13235 relocation records compared (0 through the symbol map), 25 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_b1_gate.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 143239 lines vs 143240 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_b1_gate.cpp.o: PERSYM 4145 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 27 rank-tagged, 0 section moves, 17062 relocation records compared (0 through the symbol map), 4 global-var-init keyed by identity (23 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_continuation.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 112270 lines vs 112271 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_continuation.cpp.o: PERSYM 2688 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 20 rank-tagged, 0 section moves, 14199 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (18 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 230775 lines vs 230776 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o: PERSYM 5319 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 116 rank-tagged, 0 section moves, 30655 relocation records compared (0 through the symbol map), 3 global-var-init keyed by identity (113 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 112713 lines vs 112714 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o: PERSYM 3268 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 12 rank-tagged, 0 section moves, 11985 relocation records compared (0 through the symbol map), 12 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_elastic_rung_vehicle.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 76037 lines vs 76038 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_elastic_rung_vehicle.cpp.o: PERSYM 2165 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 5 rank-tagged, 0 section moves, 7493 relocation records compared (0 through the symbol map), 5 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_refine_ab.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 138263 lines vs 138264 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_eqp_refine_ab.cpp.o: PERSYM 4301 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 8 rank-tagged, 0 section moves, 14266 relocation records compared (0 through the symbol map), 8 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 118389 lines vs 118390 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_battery.cpp.o: PERSYM 3616 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 17 rank-tagged, 0 section moves, 12997 relocation records compared (0 through the symbol map), 17 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 157755 lines vs 157756 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_hs_sweeps.cpp.o: PERSYM 4682 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 14 rank-tagged, 0 section moves, 17391 relocation records compared (0 through the symbol map), 4 global-var-init keyed by identity (10 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_acceptance.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 194112 lines vs 194113 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_acceptance.cpp.o: PERSYM 5394 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 19 rank-tagged, 0 section moves, 21437 relocation records compared (0 through the symbol map), 19 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 133049 lines vs 133050 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_dispatch.cpp.o: PERSYM 3861 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 29 rank-tagged, 0 section moves, 16128 relocation records compared (0 through the symbol map), 4 global-var-init keyed by identity (25 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_options.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 20839 lines vs 20840 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_options.cpp.o: PERSYM 345 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 18 rank-tagged, 0 section moves, 3905 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (16 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_trace.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 127457 lines vs 127458 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_trace.cpp.o: PERSYM 3714 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 14 rank-tagged, 0 section moves, 14807 relocation records compared (0 through the symbol map), 4 global-var-init keyed by identity (10 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_warm_restart.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 76972 lines vs 76973 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ipqp_warm_restart.cpp.o: PERSYM 1877 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 21 rank-tagged, 0 section moves, 8841 relocation records compared (0 through the symbol map), 21 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ledger.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 79731 lines vs 79732 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ledger.cpp.o: PERSYM 2270 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 5 rank-tagged, 0 section moves, 7873 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (3 unresolved)
+              DIFFERS       (anonymous namespace)::Ledger_DriverSolveRecordsWallSeconds_Test::TestBody()
+                            STRUCTURAL: normalized listing is 760 lines vs 761 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_mesh_transfer.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 88827 lines vs 88828 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_mesh_transfer.cpp.o: PERSYM 2350 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 9 rank-tagged, 0 section moves, 9462 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (7 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_nlp_kkt_check.cpp.o
+            COUNTS 20508 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_parametric_families.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 119216 lines vs 119217 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_parametric_families.cpp.o: PERSYM 3188 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 26 rank-tagged, 0 section moves, 14075 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (24 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 153242 lines vs 153243 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o: PERSYM 3936 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 26 rank-tagged, 0 section moves, 17902 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (24 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_problem_scaling.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 126 alignment-pad lines vs 127 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 98253 lines vs 98264 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_problem_scaling.cpp.o: PERSYM 2429 identical, 0 noise-only, 9 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 29 rank-tagged, 0 section moves, 12140 relocation records compared (0 through the symbol map), 29 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+              DIFFERS       hven::solvers::ProblemScalingOffPath_SettingTheRuleWithoutTheToggleChangesNothing_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1471 lines vs 1472 -- instructions were added or removed
+              DIFFERS       hven::solvers::ProblemScalingRoundTrip_AScaledSolveReportsOnTheCallersScale_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1396 lines vs 1398 -- instructions were added or removed
+              DIFFERS       hven::solvers::ProblemScalingRoundTrip_TheBoundPricesAreTheReMeasurementsNotADivideBack_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1322 lines vs 1323 -- instructions were added or removed
+              DIFFERS       hven::solvers::ProblemScalingHistory_AnUnscaledSolvesHistoryIsUntouched_Test::TestBody()
+                            STRUCTURAL: normalized listing is 699 lines vs 700 -- instructions were added or removed
+              DIFFERS       hven::solvers::ProblemScalingOffPath_TheDefaultIsOffAndReportsTheIdentity_Test::TestBody()
+                            STRUCTURAL: normalized listing is 808 lines vs 809 -- instructions were added or removed
+              DIFFERS       hven::solvers::ProblemScalingAcceptance_Hs25IsMeasuredWithScalingOn_Test::TestBody()
+                            STRUCTURAL: normalized listing is 817 lines vs 818 -- instructions were added or removed
+              DIFFERS       hven::solvers::ProblemScalingRoundTrip_TheMultipliersAreTheCallersNotTheEngines_Test::TestBody()
+                            STRUCTURAL: normalized listing is 884 lines vs 885 -- instructions were added or removed
+              DIFFERS       hven::solvers::ProblemScalingWarmStart_AScaledSolvesExportIsAcceptedByAnUnscaledSolve_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1088 lines vs 1089 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_mode_sites.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 104233 lines vs 104234 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_mode_sites.cpp.o: PERSYM 3271 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 8 rank-tagged, 0 section moves, 10981 relocation records compared (0 through the symbol map), 4 global-var-init keyed by identity (4 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_problems.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 127087 lines vs 127088 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_problems.cpp.o: PERSYM 3368 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 20 rank-tagged, 0 section moves, 14777 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (18 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_smoke.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 113237 lines vs 113238 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_scale_smoke.cpp.o: PERSYM 3192 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 8 rank-tagged, 0 section moves, 11815 relocation records compared (0 through the symbol map), 8 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 145327 lines vs 145329 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o: PERSYM 4129 identical, 0 noise-only, 2 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 29 rank-tagged, 0 section moves, 17904 relocation records compared (0 through the symbol map), 29 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+              DIFFERS       SqpDriverRadius_RejectsUnusableFloors_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1447 lines vs 1448 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1104 alignment-pad lines vs 1103 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 403378 lines vs 403457 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o: PERSYM 8046 identical, 0 noise-only, 44 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 5 with unequal trailing alignment padding, 0 duplicate copies identical, 172 rank-tagged, 0 section moves, 63418 relocation records compared (0 through the symbol map), 172 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       SqpDriverContract_RejectsUnusableOptionsAndStartPoints_Test::TestBody()
+                            STRUCTURAL: normalized listing is 2606 lines vs 2607 -- instructions were added or removed
+              DIFFERS       SqpDriverElasticSeed_ABlockThatNeverFIREDIsW1sLadderWhateverItsFieldsSay_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1863 lines vs 1865 -- instructions were added or removed
+              DIFFERS       SqpDriverGlobalization_SubproblemInfeasibilityEndsTheSolveThroughTheElasticTier_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1803 lines vs 1804 -- instructions were added or removed
+              DIFFERS       SqpDriverElasticSeed_GeometricActivityEARNSItsMinorIterationsWhereTheGeometryIsThere_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1553 lines vs 1556 -- instructions were added or removed
+              DIFFERS       SqpDriverElasticSeed_TheWorkingSetIsClassifiedAgainstTheWINDOWCLAMPEDBounds_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1361 lines vs 1363 -- instructions were added or removed
+              DIFFERS       SqpDriverElasticSeed_TheFirstRungsPenaltyIsFlooredAtTodaysStartAndPlacedByTheEvidence_Test::TestBody()
+                            STRUCTURAL: normalized listing is 914 lines vs 916 -- instructions were added or removed
+              DIFFERS       SqpDriverContract_ConvergedStartSolvesNoSubproblems_Test::TestBody()
+                            STRUCTURAL: normalized listing is 758 lines vs 759 -- instructions were added or removed
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+              DIFFERS       QpEngineStructuralViolation_T6bAFeasibleElasticCopyIsNoLongerCertifiedInfeasible_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1253 lines vs 1254 -- instructions were added or removed
+              DIFFERS       QpEngineStructuralViolation_T6bTheStiffFamilyClosesInBothAlgebras_Test::TestBody()
+                            STRUCTURAL: normalized listing is 914 lines vs 916 -- instructions were added or removed
+              DIFFERS       SqpDriverCertifiedFallback_P2ClosedSlacksDisproveTheSuspicionAndCarryTheMultipliers_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1282 lines vs 1283 -- instructions were added or removed
+              DIFFERS       QpEngineStructuralViolation_T6bTheGENUINELYBlockedSiblingStaysKOptimalAndOPEN_Test::TestBody()
+                            STRUCTURAL: normalized listing is 643 lines vs 645 -- instructions were added or removed
+              DIFFERS       SqpDriverContract_NonFiniteStartPointIsRejected_Test::TestBody()
+                            STRUCTURAL: normalized listing is 852 lines vs 853 -- instructions were added or removed
+              DIFFERS       QpEngineStructuralViolation_T6bTheInequalityBranchClosesWithItsResidueOnTheSafeSide_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1282 lines vs 1285 -- instructions were added or removed
+              DIFFERS       SqpDriverElasticSeed_T6bTheLadderAboveLambda1e6ClosesToo_Test::TestBody()
+                            STRUCTURAL: normalized listing is 593 lines vs 594 -- instructions were added or removed
+              DIFFERS       QpEngineStructuralViolation_T6bTheStiffWALKSOwnPathologyAboveTheShippedDualMuIsUNCHANGED_Test::TestBody()
+                            STRUCTURAL: normalized listing is 542 lines vs 543 -- instructions were added or removed
+              DIFFERS       SqpDriverElasticSeed_T6bCoversTheBandWhereThePlacementMarginIsUnachievable_Test::TestBody()
+                            STRUCTURAL: normalized listing is 792 lines vs 793 -- instructions were added or removed
+              DIFFERS       QpEngineStructuralViolation_T7TheFeasibleCensusHalfOverTheFULLDualMuSet_Test::TestBody()
+                            STRUCTURAL: normalized listing is 961 lines vs 962 -- instructions were added or removed
+              DIFFERS       SqpDriverCertifiedFallback_P1TheEvidencePlacesRungAsFirstRungBetweenTheFloorAndTheCeiling_Test::TestBody()
+                            STRUCTURAL: normalized listing is 2572 lines vs 2577 -- instructions were added or removed
+              DIFFERS       SqpDriverCertifiedFallback_P4bTheCeilingDeclineIsGONEUnderThePlacementBound_Test::TestBody()
+                            STRUCTURAL: normalized listing is 2088 lines vs 2090 -- instructions were added or removed
+              DIFFERS       SqpDriverCertifiedFallback_P3AnExhaustedLadderCertifiesInfeasibleWithItsReportAttached_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1389 lines vs 1391 -- instructions were added or removed
+              DIFFERS       SqpDriverCertifiedFallback_P3TheEscapeBranchCONSUMESTheAttachedLadderRatherThanRerunningIt_Test::TestBody()
+                            STRUCTURAL: normalized listing is 618 lines vs 619 -- instructions were added or removed
+              DIFFERS       SqpDriverCertifiedFallback_P7TheVerdictReadsNothingFromTheEvidenceBeyondItsThreeInputs_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1770 lines vs 1773 -- instructions were added or removed
+              DIFFERS       SqpDriverCertifiedFallback_P5AnUnfiredEvidenceBlockNeverEntersRungAAtAll_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1200 lines vs 1202 -- instructions were added or removed
+              DIFFERS       SqpDriverCertifiedFallback_ANegativeOrNaNWindowIsREFUSEDAtBothPublicEntryPoints_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1109 lines vs 1111 -- instructions were added or removed
+              DIFFERS       SqpDriverElasticSeed_TheWorkingSetSeedIsSolutionIdenticalAndEarnsItsMinorIterations_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1660 lines vs 1662 -- instructions were added or removed
+              DIFFERS       SqpDriverElasticSeed_ADefaultConstructedEvidenceBlockIsW1sLadderExactly_Test::TestBody()
+                            STRUCTURAL: normalized listing is 789 lines vs 791 -- instructions were added or removed
+              DIFFERS       SqpDriverElasticSeed_T6bAClimbingConsistentLadderClosesAtEveryRung_Test::TestBody()
+                            STRUCTURAL: normalized listing is 689 lines vs 690 -- instructions were added or removed
+              DIFFERS       SqpDriverContract_ColdCeilingSkipsTheWarmResolutionProbeEntirely_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1445 lines vs 1447 -- instructions were added or removed
+              DIFFERS       SqpDriverElasticSeed_T6bTheBandsHIGHRungsRemainAPREEXISTINGResidue_Test::TestBody()
+                            STRUCTURAL: normalized listing is 464 lines vs 465 -- instructions were added or removed
+              DIFFERS       SqpDriverCertifiedFallback_P4OnAPrimedEngineCostsTheAnalysisRungADisplaces_Test::TestBody()
+                            STRUCTURAL: normalized listing is 834 lines vs 836 -- instructions were added or removed
+              DIFFERS       SqpDriverCertifiedFallback_P4ARefusedRungAReturnsTheColdWalkCounterForCounter_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1933 lines vs 1936 -- instructions were added or removed
+              DIFFERS       SqpDriverContract_WarmResolutionProbeIsValuesOnlyNeverFetchesAGradient_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1372 lines vs 1374 -- instructions were added or removed
+              DIFFERS       SqpDriverCertifiedFallback_TheFallbackVerdictEventDescribesEVERYEntryIncludingTheUnfiredOne_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1501 lines vs 1503 -- instructions were added or removed
+              DIFFERS       SqpDriverCertifiedFallback_P2bOpenButReducedSlacksReturnKOptimalWithMultipliersZEROED_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1317 lines vs 1319 -- instructions were added or removed
+              DIFFERS       SqpDriverElasticSeed_AnEvidenceNormAboveTheLaddersCeilingIsCAPPEDAtIt_Test::TestBody()
+                            STRUCTURAL: normalized listing is 2109 lines vs 2113 -- instructions were added or removed
+              DIFFERS       SqpDriverEvalEconomics_HsSweepPoisonedHs40MatchesTheBaseProblemAtPZero_Test::TestBody()
+                            STRUCTURAL: normalized listing is 382 lines vs 383 -- instructions were added or removed
+              DIFFERS       SqpDriverCertifiedFallback_P6NoEvidenceContentMakesTheFallbackThrow_Test::TestBody()
+                            STRUCTURAL: normalized listing is 893 lines vs 894 -- instructions were added or removed
+              DIFFERS       SqpDriverCertifiedFallback_T3ARefusalWhoseWalkCertifiesInfeasibleCostsTwoActivations_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1224 lines vs 1226 -- instructions were added or removed
+              DIFFERS       SqpDriverContract_MisSizedCallbackReturnsAreRejectedByName_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1930 lines vs 1932 -- instructions were added or removed
+              DIFFERS       SqpDriverContract_SeededCeilingSkipsTheWarmResolutionProbeEntirely_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1179 lines vs 1180 -- instructions were added or removed
+              DIFFERS       SqpDriverCertifiedFallback_ADeclinedRungAAboveTheFloorIsRETRIEDThereExactlyOnce_Test::TestBody()
+                            STRUCTURAL: normalized listing is 2151 lines vs 2154 -- instructions were added or removed
+              DIFFERS       SqpDriverElasticSeed_TheDegradedPathIsSAFEOnFixturesWhereGeometryNamesNothing_Test::TestBody()
+                            STRUCTURAL: normalized listing is 949 lines vs 951 -- instructions were added or removed
+              DIFFERS       SqpDriverSsnMode_TheLedgerCarriesTheSsnColumnsAndTheyAgreeWithTheCounters_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1146 lines vs 1147 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 108999 lines vs 109036 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o: PERSYM 2640 identical, 0 noise-only, 30 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 2 with unequal trailing alignment padding, 0 duplicate copies identical, 34 rank-tagged, 0 section moves, 13205 relocation records compared (0 through the symbol map), 34 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       SqpWarmCurrency_APayloadAppliesToItsOwnCallAndTheOneAfterIsCold_Test::TestBody()
+                            STRUCTURAL: normalized listing is 659 lines vs 660 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_TheHandOverRefusesANegativeLowerBoundPriceNamingTheTagAndTheBlock_Test::TestBody()
+                            STRUCTURAL: normalized listing is 974 lines vs 975 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_AWarmResolveOnAUsedDriverAnswersExactlyWhatAFreshDriverAnswers_Test::TestBody()
+                            STRUCTURAL: normalized listing is 772 lines vs 774 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_SolveEntryRefusesAPayloadAtTheWrongSizes_Test::TestBody()
+                            STRUCTURAL: normalized listing is 754 lines vs 755 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_TheHandOverRefusesACoreThatDisagreesWithItself_Test::TestBody()
+                            STRUCTURAL: normalized listing is 443 lines vs 444 -- instructions were added or removed
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_ARefusedPayloadLeavesNothingBehindForTheNextSolve_Test::TestBody()
+                            STRUCTURAL: normalized listing is 717 lines vs 718 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_TheHandOverRefusesAMalformedPolishPayloadNamingTheTag_Test::TestBody()
+                            STRUCTURAL: normalized listing is 597 lines vs 598 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_PassingTheSameValueTwiceFromColdIsBitIdentical_Test::TestBody()
+                            STRUCTURAL: normalized listing is 759 lines vs 761 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_ASolveThatThrewIsNotACompletedSolve_Test::TestBody()
+                            STRUCTURAL: normalized listing is 547 lines vs 548 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_InteriorPointExportCrossesOverIntoTheSqpEngine_Test::TestBody()
+                            STRUCTURAL: normalized listing is 2552 lines vs 2553 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_APolishMuUnderTheShippedCeilingIsStillAdopted_Test::TestBody()
+                            STRUCTURAL: normalized listing is 630 lines vs 631 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_ExportCarriesTheSolutionAtDeclaredWidthsAndTheBridgesKey_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1329 lines vs 1330 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_ASecondSolveOnOneDriverAnswersExactlyWhatAFreshDriverAnswers_Test::TestBody()
+                            STRUCTURAL: normalized listing is 600 lines vs 602 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_ACoreOnlyValueEntersAtTheSeededLevel_Test::TestBody()
+                            STRUCTURAL: normalized listing is 649 lines vs 650 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_KIpmRefusesAStampMismatchLikeKWalk_Test::TestBody()
+                            STRUCTURAL: normalized listing is 839 lines vs 840 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_TheNativeAndPayloadOverloadsAreSelectedByArgumentType_Test::TestBody()
+                            STRUCTURAL: normalized listing is 691 lines vs 693 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_TheHandOverRefusesANonFiniteBlock_Test::TestBody()
+                            STRUCTURAL: normalized listing is 566 lines vs 567 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_APolishTaggedValueRoutesThroughTheCrossoverBridge_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1241 lines vs 1243 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_TheHandOverRefusesANegativeUpperBoundPriceNamingTheTagAndTheBlock_Test::TestBody()
+                            STRUCTURAL: normalized listing is 973 lines vs 974 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_KIpmRefusesAWrongSizedPayloadLikeKWalk_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1210 lines vs 1212 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_SolveEntryRefusesAStagedValueUnderAnotherStampNamingBothDigests_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1279 lines vs 1280 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_AZeroValuedPriceBlockIsStillAccepted_Test::TestBody()
+                            STRUCTURAL: normalized listing is 583 lines vs 584 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_APolishMuAboveTheShippedCeilingIsClampedOutOfAdoption_Test::TestBody()
+                            STRUCTURAL: normalized listing is 865 lines vs 867 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_ASolveThatThrewLeavesAnEarlierExportStanding_Test::TestBody()
+                            STRUCTURAL: normalized listing is 811 lines vs 812 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_ExportTracksTheLastCompletedSolve_Test::TestBody()
+                            STRUCTURAL: normalized listing is 535 lines vs 536 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_AFreshDriverCannotExport_Test::TestBody()
+                            STRUCTURAL: normalized listing is 329 lines vs 330 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::solve_fixture_cold(hven::solvers::NlpModel const&)
+                            STRUCTURAL: normalized listing is 127 lines vs 128 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_ADeclarationWithAnExtraRowIsStaleAndIsRefused_Test::TestBody()
+                            STRUCTURAL: normalized listing is 922 lines vs 923 -- instructions were added or removed
+              DIFFERS       SqpWarmCurrency_AForeignExtensionTagIsSkippedSilently_Test::TestBody()
+                            STRUCTURAL: normalized listing is 646 lines vs 647 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ssn_engine.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 164904 lines vs 164906 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_ssn_engine.cpp.o: PERSYM 2890 identical, 0 noise-only, 2 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 63 rank-tagged, 0 section moves, 25677 relocation records compared (0 through the symbol map), 63 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       SsnEngineLocal_DriverSurfaceIsDeclaredButInert_Test::TestBody()
+                            STRUCTURAL: normalized listing is 640 lines vs 641 -- instructions were added or removed
+              DIFFERS       SsnEngineLocal_FbTolDerivationAndItsBound_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1099 lines vs 1100 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 204623 lines vs 204625 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_trace_writer.cpp.o: PERSYM 5062 identical, 0 noise-only, 2 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 89 rank-tagged, 0 section moves, 28223 relocation records compared (0 through the symbol map), 4 global-var-init keyed by identity (85 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+              DIFFERS       hven::solvers::(anonymous namespace)::SqpConsole_ACountingSinkSeesTheSameEventsWithPrintingOnAndOff_Test::TestBody()::$_0::operator()[abi:cxx11](int, bool) const
+                            STRUCTURAL: normalized listing is 364 lines vs 365 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 201027 lines vs 201036 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start.cpp.o: PERSYM 4829 identical, 0 noise-only, 4 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 56 rank-tagged, 0 section moves, 28043 relocation records compared (0 through the symbol map), 4 global-var-init keyed by identity (52 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::WarmStart_SeededGateRejectsIncompatibleAndNonFiniteObjects_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1085 lines vs 1087 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::WarmStart_SeededRefusesFunnelTrustRegionAndFullStepState_Test::TestBody()
+                            STRUCTURAL: normalized listing is 2792 lines vs 2795 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::WarmStart_NonFiniteObjectResolvesColdEvenWithAMatchingHash_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1384 lines vs 1387 -- instructions were added or removed
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start_battery.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 104619 lines vs 104620 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_warm_start_battery.cpp.o: PERSYM 2581 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 7 rank-tagged, 0 section moves, 11592 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (5 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 435528 lines vs 435529 -- instructions were added or removed
+PER-SYMBOL  tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o: PERSYM 10280 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 221 rank-tagged, 0 section moves, 62250 relocation records compared (0 through the symbol map), 101 global-var-init keyed by identity (120 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 123966 lines vs 123967 -- instructions were added or removed
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o: PERSYM 3127 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 35 rank-tagged, 0 section moves, 17446 relocation records compared (0 through the symbol map), 35 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 119260 lines vs 119261 -- instructions were added or removed
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o: PERSYM 3720 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 7 rank-tagged, 0 section moves, 12199 relocation records compared (0 through the symbol map), 7 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_console_sink.cpp.o
+            COUNTS 25796 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+DIFFERS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 126495 lines vs 126503 -- instructions were added or removed
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o: PERSYM 3687 identical, 0 noise-only, 6 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 20 rank-tagged, 0 section moves, 14737 relocation records compared (0 through the symbol map), 20 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       Options_SqpSetOptionsIsTransactional_Test::TestBody()
+                            STRUCTURAL: normalized listing is 886 lines vs 887 -- instructions were added or removed
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+              DIFFERS       Options_SqpPresetsReturnFullValues_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1027 lines vs 1030 -- instructions were added or removed
+              DIFFERS       Options_SqpValidateRefusesTheCommonFieldsAndWhatItAlwaysRefused_Test::TestBody()
+                            STRUCTURAL: normalized listing is 953 lines vs 954 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::sqp_default()
+                            STRUCTURAL: normalized listing is 120 lines vs 121 -- instructions were added or removed
+              DIFFERS       Options_SqpSetOptionsDuringASolveThrowsLogicError_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1045 lines vs 1046 -- instructions were added or removed
+DIFFERS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 15689 lines vs 15697 -- instructions were added or removed
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options_dump.cpp.o: PERSYM 401 identical, 14 noise-only, 7 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 10 rank-tagged, 0 section moves, 1977 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (10 unresolved)
+              NOISE-ONLY    (anonymous namespace)::OptionsDump_IpmDumpHeadIsVerbatim_Test::TestBody()
+                            COUNTS 233 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +4(x1)
+              DIFFERS       (anonymous namespace)::OptionsDump_SqpDumpsOneLinePerField_Test::TestBody()
+                            STRUCTURAL: normalized listing is 194 lines vs 195 -- instructions were added or removed
+              NOISE-ONLY    __cxx_global_var_init[#2]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +4(x3)
+              NOISE-ONLY    __cxx_global_var_init[#4]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +4(x3)
+              NOISE-ONLY    (anonymous namespace)::OptionsDump_ReadsTheValueItWasGiven_Test::TestBody()
+                            COUNTS 443 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS +4(x4)
+              NOISE-ONLY    __cxx_global_var_init[#6]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +4(x3)
+              DIFFERS       (anonymous namespace)::OptionsDump_EnumsPrintEnumeratorNames_Test::TestBody()
+                            STRUCTURAL: normalized listing is 1319 lines vs 1320 -- instructions were added or removed
+              NOISE-ONLY    __cxx_global_var_init[#8]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +4(x3)
+              DIFFERS       (anonymous namespace)::OptionsDump_WritesIntoAStreamTheCallerIsAlreadyUsing_Test::TestBody()
+                            STRUCTURAL: normalized listing is 365 lines vs 367 -- instructions were added or removed
+              DIFFERS       (anonymous namespace)::OptionsDump_APoisonedStreamProducesTheSameBytes_Test::TestBody()
+                            STRUCTURAL: normalized listing is 960 lines vs 962 -- instructions were added or removed
+              NOISE-ONLY    __cxx_global_var_init[#1]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +4(x3)
+              DIFFERS       (anonymous namespace)::OptionsDump_NoTrailingWhitespace_Test::TestBody()
+                            STRUCTURAL: normalized listing is 984 lines vs 985 -- instructions were added or removed
+              DIFFERS       std::locale::locale<(anonymous namespace)::GroupingPunct>(std::locale const&, (anonymous namespace)::GroupingPunct*)
+                              UNCLASSIFIED  - 	jmp    6c33 ;LEN=2
+                                            + 	jmp    6c53 ;LEN=2
+                            COUNTS 86 insns; CHANGED 1; UNCLASSIFIED 1; DELTAS
+              NOISE-ONLY    __cxx_global_var_init[#3]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +4(x3)
+              NOISE-ONLY    __cxx_global_var_init[#5]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +4(x3)
+              NOISE-ONLY    (anonymous namespace)::OptionsDump_IsDeterministic_Test::TestBody()
+                            COUNTS 205 insns; CHANGED 2; UNCLASSIFIED 0; DELTAS +4(x2)
+              NOISE-ONLY    __cxx_global_var_init[#7]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +4(x3)
+              NOISE-ONLY    __cxx_global_var_init[#9]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +4(x3)
+              NOISE-ONLY    (anonymous namespace)::OptionsDump_IpmDumpsOneLinePerField_Test::TestBody()
+                            COUNTS 198 insns; CHANGED 1; UNCLASSIFIED 0; DELTAS +4(x1)
+              NOISE-ONLY    __cxx_global_var_init[#10]
+                            COUNTS 115 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +4(x3)
+              DIFFERS       (anonymous namespace)::OptionsDump_SqpDumpsTheCommonDefaults_Test::TestBody()
+                            STRUCTURAL: normalized listing is 382 lines vs 383 -- instructions were added or removed
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_print_tables.cpp.o
+            COUNTS 7991 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+DIFFERS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 139789 lines vs 139790 -- instructions were added or removed
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o: PERSYM 3877 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 29 rank-tagged, 0 section moves, 17172 relocation records compared (0 through the symbol map), 29 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 34 alignment-pad lines vs 35 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 54126 lines vs 54130 -- instructions were added or removed
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o: PERSYM 1441 identical, 0 noise-only, 3 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 10 rank-tagged, 0 section moves, 7784 relocation records compared (0 through the symbol map), 10 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+              DIFFERS       Threads_ZeroLeavesEveryFactorAtTheBackendDefault_Test::TestBody()
+                            STRUCTURAL: normalized listing is 2006 lines vs 2007 -- instructions were added or removed
+              DIFFERS       Threads_ANegativeThreadCountIsRefusedByTheDriverConstructor_Test::TestBody()
+                            STRUCTURAL: normalized listing is 883 lines vs 884 -- instructions were added or removed
+DIFFERS     tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 57087 lines vs 57088 -- instructions were added or removed
+PER-SYMBOL  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o: PERSYM 1548 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 16 rank-tagged, 0 section moves, 7754 relocation records compared (0 through the symbol map), 16 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 163416 lines vs 163417 -- instructions were added or removed
+PER-SYMBOL  bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o: PERSYM 4437 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 4 rank-tagged, 0 section moves, 16864 relocation records compared (0 through the symbol map), 4 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+            COUNTS 81211 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+DIFFERS     bench/CMakeFiles/hven_sqp_bench.dir/bench_scale.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 74951 lines vs 74952 -- instructions were added or removed
+PER-SYMBOL  bench/CMakeFiles/hven_sqp_bench.dir/bench_scale.cpp.o: PERSYM 2051 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 6926 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     bench/CMakeFiles/hven_sqp_f7_cold.dir/bench_f7_cold.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 65486 lines vs 65487 -- instructions were added or removed
+PER-SYMBOL  bench/CMakeFiles/hven_sqp_f7_cold.dir/bench_f7_cold.cpp.o: PERSYM 1821 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 6118 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     bench/CMakeFiles/hven_sqp_tau_bar_sweep_probe.dir/tau_bar_sweep_probe.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 91158 lines vs 91159 -- instructions were added or removed
+PER-SYMBOL  bench/CMakeFiles/hven_sqp_tau_bar_sweep_probe.dir/tau_bar_sweep_probe.cpp.o: PERSYM 2869 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 4 rank-tagged, 0 section moves, 9511 relocation records compared (0 through the symbol map), 4 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 91870 lines vs 91871 -- instructions were added or removed
+PER-SYMBOL  bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o: PERSYM 2695 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 8864 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+DIFFERS     bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            STRUCTURAL: normalized listing is 170179 lines vs 170180 -- instructions were added or removed
+PER-SYMBOL  bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o: PERSYM 4949 identical, 0 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 4 rank-tagged, 0 section moves, 17157 relocation records compared (0 through the symbol map), 4 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpOptions::SqpOptions()
+                            STRUCTURAL: normalized listing is 60 lines vs 61 -- instructions were added or removed
+ARCHIVE     libhven.a differs -- see its member objects above; archive
+            metadata (member timestamps, symbol index) is not instructions
+ONLY-AFTER  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_disproved_entry.cpp.o (no object in the before arm accounts for it)
+
+P-SYM: 143 objects — 87 byte-identical, 8 differing within the accepted noise class, 47 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 47 compared per symbol, 0 objects passed per symbol, 1 after-arm objects unaccounted for; symbols — 347697 matched (0 through the symbol map), 0 only-before, 9 only-after, 0 excepted, 0 collisions, 2485 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 12102 matched by count, 2 differing (108614 before-arm and 108618 after-arm symbols accounted by family); relocations — 734338 records compared (0 through the symbol map)
+P-SYM: FAIL — differences outside the accepted noise class

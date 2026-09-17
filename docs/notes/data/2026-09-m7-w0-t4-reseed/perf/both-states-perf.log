@@ -1,0 +1,8 @@
+# M7 W0 T4 -- perf stat -e instructions:u, one process per cell. INFORMATIONAL.
+# host: Linux 7.2.4-200.fc44.x86_64 x86_64; MKL_NUM_THREADS=1; OMP_NUM_THREADS=1; taskset -c 2
+# hven commit: 39746705438c404026dbd9d690c992c43987404a; describe: 39746705
+cell,instructions
+baseline_no_test,13707567
+reseed_off,38651316
+reseed_on,31437901
+pins_all,53440244
