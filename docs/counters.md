@@ -10,7 +10,7 @@ correctness or to gate a test or benchmark.
 Two one-line tags live in the headers, on declarations rather than in this page,
 and they are labels only -- no field, no enum, no behaviour. They discharge the
 cost-model half of the 2026-08-31 roadmap amendment
-(`docs/notes/2026-08-26-roadmap-m6-m8-draft.md:344-355`), which carries two
+(`docs/notes/2026-08-26-roadmap-m6-m8-draft.md:342-362`), which carries two
 constraints into M7 so the M9 first-order (Hessian-approximation) mode does not
 have to reopen M7's work: "every curvature-reading heuristic (ladder counters,
 rho demanded, the item-4 read, SSN certification tiers) is labelled with the
@@ -18,14 +18,35 @@ curvature source it assumes -- no decision, a label", and "telemetry keyed on th
 bridge-lay `+1 eval_hess` identity is tagged exact-Hessian-specific".
 
 - `CURVATURE SOURCE: exact model Hessian (M9 label; ...)` marks a quantity whose
-  MEANING assumes H is the model's exact second derivative -- a counter that
-  reports a curvature reading or counts curvature-driven events, an option that
-  selects whether or how such a reading is taken, a result field carrying a
-  curvature verdict the driver branches on, or a predicate that decides from one.
+  MEANING assumes H is the model's exact second derivative. Four kinds carry it,
+  stated as applied rather than as a principle:
+  - A COUNTER that reports a curvature reading or counts curvature-driven events.
+    Ladder counters are in even where a rung's TRIGGER is a perturbed-pivot report
+    rather than a wrong inertia (`ipqp_pivot_reroute_primal`, `_dual_fallback`):
+    what a rung MOVES is `rho_dem`, the curvature modification, and a first-order
+    mode re-derives the ladder wholesale. `ipqp_ladder_reclimbs`' "not a statement
+    about curvature" is about that trigger, not about what the ladder reads.
+  - A MIXED-CAUSE counter is in when one of its causes IS a curvature reading and
+    that branch is the one a first-order mode would misread: `ipqp_escape_numerical`
+    counts a factorization failure, a non-finite iterate AND an unreadable inertia
+    read, and it is the third that changes meaning. A partition over causes none of
+    which is a reading -- `ipqp_escapes`, `ipqp_to_*` -- stays out.
+  - An OPTION that selects WHETHER or HOW such a reading is taken, a positive
+    control included (`SsnOptions::safeguards`: `kBare` runs no inertia gate at
+    all). NOT an option that selects an ENGINE: `qp_mode` and
+    `elastic_rung_engine` are deliberately unlabelled, because every kernel reads
+    curvature on its own exit -- the walk probes zero-multiplier drops and rides
+    negative curvature exactly as the tier reads its final inertia -- so an engine
+    selector asserts nothing about H, and the readings it routes to are labelled
+    where they happen.
+  - A RESULT FIELD carrying a curvature verdict the driver branches on, and the
+    PREDICATE that decides from one.
+
   Under a first-order mode these are re-derived or re-labelled, not merely
-  rescaled: a positive-definite approximation arms no inertia ladder, so the
-  ladder counters and `rho` demanded read zero for a reason that is not the
-  problem's.
+  rescaled: under a positive-definite family, e.g., no inertia ladder ever arms,
+  so the ladder counters and `rho` demanded read zero for a reason that is not the
+  problem's. M9a has not chosen the family -- an indefinite SR1 would arm the
+  ladder -- so that is an illustration, not a premise.
 - `EXACT-HESSIAN-SPECIFIC (M9 label): ...` marks telemetry keyed on the bridge-lay
   `+1 eval_hess` identity -- the relation `SqpCounters` states between
   `steps_accepted` and the optimality phase's `eval_hess` calls, and the three
@@ -115,7 +136,7 @@ one of those three therefore cannot silently miss the trace.
 - **`globalization/`** — produces none.
 - **`warmstart/`** — produces none.
 - **`drivers/`** — produces `SqpCounters`, the aggregate for a whole SQP solve,
-  reachable as `SqpResult::counters` (`drivers/sqp_solver_types.h:997`) and on
+  reachable as `SqpResult::counters` (`drivers/sqp_solver_types.h:1056`) and on
   every `Ledger` driver record.
 
   THE INTERIOR-POINT ENGINE HAS NO AGGREGATE COUNTER STRUCT. Its countable
