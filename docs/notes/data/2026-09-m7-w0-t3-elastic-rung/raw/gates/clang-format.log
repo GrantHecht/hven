@@ -1,0 +1,93 @@
+# clang-format gate, M7 W0 T3 fix round 1
+# commit: 40ef105f9e6c606750f35a203a736c68a2f6cbc6
+# clang-format: clang-format version 22.1.8 (Fedora 22.1.8-4.fc44)
+# rule: NO NEW violations. Both arms are the SAME command over the SAME file set,
+#       run at the fix HEAD and at the T3 landing 3d3145a8.
+
+# files checked: 403
+
+== HEAD 40ef105f ==
+VIOLATION docs/notes/data/2026-08-21-m4-task3-legs/ab_probe.cpp
+VIOLATION docs/notes/data/2026-08-21-m4-task3-legs/ab_probe_modes.cpp
+VIOLATION docs/notes/data/2026-08-22-m4-transcribe-attribution/identity_probe.cpp
+VIOLATION docs/notes/data/2026-08-24-m4-task9-gate/identity_probe.cpp
+VIOLATION docs/notes/data/2026-08-m6-e1-acquisition/generator/e1_generate.cpp
+VIOLATION docs/notes/data/2026-09-m6-w2-acceptance/probes/kipm-counter-probe.cpp
+VIOLATION docs/notes/data/2026-09-m6-w2-acceptance/probes/u0-reachability-probe.cpp
+VIOLATION docs/notes/data/2026-09-m6-w5-t8-runtime/attribution-interior/t84/scripts/probe.cpp
+VIOLATION docs/notes/data/2026-09-m6-w5-t8-runtime/attribution-interior/t84/scripts/probe2.cpp
+VIOLATION docs/notes/data/m4-ipm-wall-leg/ipm_time.cpp
+VIOLATION docs/notes/data/m4-ipm-wall-leg/layout_time.cpp
+VIOLATION include/hven/detail/globalization/acceptance_strategy.h
+VIOLATION include/hven/detail/globalization/filter_acceptance.h
+VIOLATION include/hven/detail/globalization/globalization_mechanism.h
+VIOLATION include/hven/detail/globalization/modern_merit.h
+VIOLATION include/hven/detail/globalization/monitored_governor.h
+VIOLATION include/hven/detail/globalization/proximal_restoration.h
+VIOLATION include/hven/detail/globalization/restoration.h
+VIOLATION include/hven/detail/globalization/soc.h
+VIOLATION include/hven/detail/globalization/sqp/globalization.h
+VIOLATION include/hven/detail/globalization/switching_acceptance.h
+VIOLATION include/hven/detail/globalization/watchdog.h
+VIOLATION include/hven/detail/interior/sizing_specs.h
+VIOLATION include/hven/detail/interior/typedefs/super_scalar_traits.h
+VIOLATION include/hven/detail/interior/utils/memory_management.h
+VIOLATION include/hven/detail/interior/utils/thread_pool.h
+VIOLATION src/interior/utils/get_core_count.cpp
+VIOLATION src/model/non_linear_program.cpp
+VIOLATION tests/interior/test_filter_acceptance.cpp
+VIOLATION tests/interior/test_funnel_acceptance.cpp
+VIOLATION tests/interior/test_l1_restoration.cpp
+VIOLATION tests/interior/test_merit_rules.cpp
+VIOLATION tests/interior/test_monitored_governor.cpp
+VIOLATION tests/interior/test_recovery_dispatch_gate.cpp
+VIOLATION tests/interior/test_watchdog.cpp
+VIOLATION tests/sqp/test_warm_start_battery.cpp
+violations at HEAD: 36
+
+== BASE 3d3145a8 (the T3 landing), same command, same file set ==
+# files checked: 403
+VIOLATION docs/notes/data/2026-08-21-m4-task3-legs/ab_probe.cpp
+VIOLATION docs/notes/data/2026-08-21-m4-task3-legs/ab_probe_modes.cpp
+VIOLATION docs/notes/data/2026-08-22-m4-transcribe-attribution/identity_probe.cpp
+VIOLATION docs/notes/data/2026-08-24-m4-task9-gate/identity_probe.cpp
+VIOLATION docs/notes/data/2026-08-m6-e1-acquisition/generator/e1_generate.cpp
+VIOLATION docs/notes/data/2026-09-m6-w2-acceptance/probes/kipm-counter-probe.cpp
+VIOLATION docs/notes/data/2026-09-m6-w2-acceptance/probes/u0-reachability-probe.cpp
+VIOLATION docs/notes/data/2026-09-m6-w5-t8-runtime/attribution-interior/t84/scripts/probe.cpp
+VIOLATION docs/notes/data/2026-09-m6-w5-t8-runtime/attribution-interior/t84/scripts/probe2.cpp
+VIOLATION docs/notes/data/m4-ipm-wall-leg/ipm_time.cpp
+VIOLATION docs/notes/data/m4-ipm-wall-leg/layout_time.cpp
+VIOLATION include/hven/detail/globalization/acceptance_strategy.h
+VIOLATION include/hven/detail/globalization/filter_acceptance.h
+VIOLATION include/hven/detail/globalization/globalization_mechanism.h
+VIOLATION include/hven/detail/globalization/modern_merit.h
+VIOLATION include/hven/detail/globalization/monitored_governor.h
+VIOLATION include/hven/detail/globalization/proximal_restoration.h
+VIOLATION include/hven/detail/globalization/restoration.h
+VIOLATION include/hven/detail/globalization/soc.h
+VIOLATION include/hven/detail/globalization/sqp/globalization.h
+VIOLATION include/hven/detail/globalization/switching_acceptance.h
+VIOLATION include/hven/detail/globalization/watchdog.h
+VIOLATION include/hven/detail/interior/sizing_specs.h
+VIOLATION include/hven/detail/interior/typedefs/super_scalar_traits.h
+VIOLATION include/hven/detail/interior/utils/memory_management.h
+VIOLATION include/hven/detail/interior/utils/thread_pool.h
+VIOLATION src/interior/utils/get_core_count.cpp
+VIOLATION src/model/non_linear_program.cpp
+VIOLATION tests/interior/test_filter_acceptance.cpp
+VIOLATION tests/interior/test_funnel_acceptance.cpp
+VIOLATION tests/interior/test_l1_restoration.cpp
+VIOLATION tests/interior/test_merit_rules.cpp
+VIOLATION tests/interior/test_monitored_governor.cpp
+VIOLATION tests/interior/test_recovery_dispatch_gate.cpp
+VIOLATION tests/interior/test_watchdog.cpp
+VIOLATION tests/sqp/test_warm_start_battery.cpp
+violations at 3d3145a8: 36
+
+== the gate ==
+violations at 3d3145a8: 36
+violations at HEAD:     36
+NEW violations: 0 []
+violations removed: 0 []
+GATE: PASS -- no new violations

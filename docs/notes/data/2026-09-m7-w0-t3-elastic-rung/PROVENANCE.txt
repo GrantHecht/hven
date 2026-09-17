@@ -23,14 +23,34 @@ the last node's control block. Identical, constant Jacobian rows; residuals
 differing by 2sb at every point; so the LINEARIZED subproblem is inconsistent at
 every iterate by construction and the tier's §6.3 detector suspects it.
 
-THE TREE
+THE TREE — COMMIT-EXACT (re-taken 2026-09-16, fix round 1)
 --------------------------------------------------------------------------------
 repo             /home/ghecht/Projects/hven, branch m7
-base commit      60256f50 (the step-2a close) plus this task's uncommitted
-                 working tree at measurement time; the code landed as the
-                 `feat(sqp)` commit named in the report.
-config           Release (build/), clang/LLVM via the repo toolchain, MKL
-                 (sequential), uniform flag regime (CLAUDE.md §7).
+commit           40ef105f9e6c606750f35a203a736c68a2f6cbc6
+                 ("docs/test: M7 W0 T3 fix1 — the comment and design
+                 corrections (Minors 3–7)")
+working tree     CLEAN at measurement time. `git describe --always --dirty`
+                 printed `40ef105f` — no `-dirty` suffix — and that string is
+                 recorded in the header of raw/both-states-3reps.log by the
+                 measurement script itself, so the artifact's own raw file
+                 carries the tree identity rather than only this stamp.
+config           Release (build/), clang 22.1.8 via the repo toolchain, Ninja,
+                 MKL (sequential), uniform flag regime (CLAUDE.md §7).
+
+WHY THERE IS A SECOND MEASUREMENT, AND WHAT IT CHANGED
+--------------------------------------------------------------------------------
+The FIRST measurement (2026-09-15) was taken on commit 60256f50 plus this task's
+UNCOMMITTED working tree — the code landed afterwards as the `feat(sqp)` commit.
+That is not a commit-exact stamp and CLAUDE.md §7 requires one (sol's review,
+Important 4). So the whole measurement was RE-TAKEN on 2026-09-16 at the commit
+named above, under the same protocol: 8 cells (2 engines × 4 sizes) × 3
+replicates, plus one `perf stat` process per cell.
+
+EVERY COUNTER COLUMN IS BYTE-IDENTICAL BETWEEN THE TWO MEASUREMENTS. Both files
+are kept: raw/both-states-3reps.log is the 2026-09-16 re-take (the authority),
+raw/2026-09-15-both-states-3reps.log is the original. Only `wall_s` and the
+instruction counts move, by ~0.3% and ~0.1% respectively, and both are
+INFORMATIONAL. The perf logs are kept the same way.
 
 THE MACHINE AND THE PROTOCOL
 --------------------------------------------------------------------------------
@@ -40,20 +60,30 @@ pinning          taskset -c 2 — ONE pinned core
 concurrency      SOLO. Every leg ran alone under flock /tmp/box-build.lock.
                  This is NOT a co-run: §7's serial rule is honoured in full, so
                  the wall numbers here are quotable as wall numbers.
-date             2026-09-15
+date             2026-09-15 (first), 2026-09-16 (the commit-exact re-take)
 
 WHAT IS ASSERTED AND WHAT IS NOT
 --------------------------------------------------------------------------------
 ASSERTED: counters. Every counter column in raw/both-states-3reps.log is
-  byte-identical across THREE replicates, and identical between Debug and
-  Release on the two sizes Debug sweeps (raw/step2a-debug.log).
+  byte-identical across THREE replicates, byte-identical to the 2026-09-15
+  measurement, and identical between Debug and Release on the two sizes Debug
+  sweeps (raw/debug-both-states.log).
 INFORMATIONAL: wall_s, and the instruction counts in perf/. They are reported
   because they are the reader's intuition for the counter ratios; no claim in
-  reading.md rests on them alone.
+  reading.md rests on them alone. perf/perf-raw.txt is `perf stat`'s own output,
+  byte-verbatim.
 
-THE BUDGET
+THE BUDGET, AND WHAT ONE MAJOR DOES AND DOES NOT BUY
 --------------------------------------------------------------------------------
-max_iter = 1. ONE major per cell = one tier escape, one fallback entry, one
-ladder, from the same start point at every size — bounded (CLAUDE.md §8) and
+max_iter = 1: ONE major per cell, one tier escape and one PRIMARY fallback entry,
+from the same start point at every size — bounded (CLAUDE.md §8) and
 like-for-like across sizes. An unbounded run does not finish N = 100 in 540 s
 and would price the SOLVE rather than the RUNG.
+
+It is NOT "one ladder per cell" on both arms, and an earlier version of this file
+said it was (sol's review, Minor 5; corrected 2026-09-16). The WALK arm is one
+ladder: `elastic_activations = 1`, six rungs, five of them escalations. The TIER
+arm is three activations and five rungs — three of its five rungs DECLINE, so the
+driver re-enters — with `elastic_floor_retries = 1`, `ipqp_fallback_rung_b = 1`
+and `elastic_from_ipqp_escape = 2` at every size. The raw log carries all of
+those columns per cell.

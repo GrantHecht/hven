@@ -1,14 +1,29 @@
 # M7 W0 T3 — the reading
 
 Provenance: `PROVENANCE.txt`. Counters asserted, wall and instructions informational.
-Raw: `raw/both-states-3reps.log` (three replicates, byte-identical counters),
-`perf/both-states-perf.log` (one process per cell), `raw/step2a-debug.log` (Debug).
+
+RE-TAKEN 2026-09-16 (fix round 1) at commit `40ef105f` with a clean tree, because the first
+measurement's stamp was not commit-exact. EVERY COUNTER COLUMN IS BYTE-IDENTICAL to the first
+measurement; the table below is unchanged, and both files are kept.
+
+Raw: `raw/both-states-3reps.log` (the re-take: three replicates, byte-identical counters),
+`raw/2026-09-15-both-states-3reps.log` (the first measurement), `perf/both-states-perf.log` and
+`perf/perf-raw.txt` (one process per cell; `perf stat`'s own output, byte-verbatim),
+`raw/debug-both-states.log` (Debug, both arms, two sizes), `raw/step2a-debug.log` (step 2a's
+walk-only Debug log). The decline diagnostic and the budget probe are
+`raw/decline-diagnostic.log` and `raw/ipqp-max-iter-*.{csv,diff}`; the gate transcripts are
+under `raw/gates/`; the same-path P-SYM arm is `raw/psym-same-path/`.
 
 ## 1. The table
 
 `rung facts` is the ELASTIC LADDER's own factorizations, attributed by an identity that is
 validated where its answer is known (see §4). `rung minors` is the ladder's own minor
 iterations, summed off the `qp.mode` line each rung emits at site `elastic_rung`.
+
+The rung COUNT is not a ladder count: the walk's six rungs are ONE activation
+(`elastic_activations = 1`, five escalations), while the tier's five are THREE activations
+(two escalations, one floor retry, one rung-B entry), because three of its rungs decline. The
+raw log carries every one of those columns per cell.
 
 | engine | N | n | rungs | rung minors | rung facts | declined rungs | rung B | wall s | instructions |
 |---|---|---|---|---|---|---|---|---|---|
@@ -48,12 +63,24 @@ four-arm entry partition absorbs it exactly as designed, and the certificate is 
 synthesized by the DRIVER from the ladder's slack l1, never by the tier), but the rung the
 toggle exists to provide is declined more often than it is taken.
 
-**Why.** Diagnosed on a throwaway build that attached the trace sink to the elastic engine
-(two lines; reverted — see §5): every one of those declines is
-`IpqpEscape::kInfeasibleSuspect`. The elastic QP is **feasible by construction**, so each is
-by definition a FALSE POSITIVE of the §6.3 detector. Raising `ipqp_max_iter` to 200 and to
-600 changes not one counter, so this is not a budget effect; each declining rung spends ~20
-iterations and escapes.
+**Why, and the evidence is retained** (`raw/decline-diagnostic.log`, fix round 1). A throwaway
+build — reverted, never committed; the recipe is §5 — gave the ELASTIC engine a sink of its
+own, so every event it records is that engine's and nothing is attributed by event ordering.
+Per cell, at N = 100, 200, 400 and 800 alike:
+
+    declined_rungs = 3   elastic_engine_escapes = 3   all three kInfeasibleSuspect
+    (plus the PRIMARY tier's own single kInfeasibleSuspect escape, which is the
+     escape that routed the major to the fallback in the first place)
+
+and on the walk arm `elastic_engine_escapes = 0` at every size, because the elastic engine is
+never constructed. The elastic QP is **feasible by construction**, so each of those three is
+by definition a FALSE POSITIVE of the §6.3 detector.
+
+**Not a budget effect, and that is retained too** (`raw/ipqp-max-iter-*.csv`, `*.diff`): the
+same cell run at the shipped size-derived `ipqp_max_iter`, at 200 and at 600 gives three
+files whose counter columns diff EMPTY — "NO COUNTER MOVED" in all three pairings, the
+decline diagnostic included. Each declining rung spends ~20 iterations and escapes whatever
+budget it is given.
 
 This is exactly the failure mode the design page's §(iii) predicted in advance: the detector
 fires "in exactly the regime — a rank-deficient curvature block wanting a large `rho_dem` —
@@ -89,15 +116,27 @@ The elastic engine's escape REASON. The driver deliberately does not attach the 
 it: the `ipqp.*` schema's `solve` id is per-instance, so two engines emitting into one stream
 would make that id ambiguous. The contract-level fact — that a rung declined — IS observable
 (the `qp.mode` line's outcome, counted as `declined rungs` above and asserted in the suite).
-The REASON required a two-line diagnostic build:
+The REASON required a diagnostic build, in two places:
 
+    // src/drivers/sqp_solver.cpp, file scope:
+    TraceSink *g_m7t3_elastic_diag_sink = nullptr;
     // in SqpSolver::elastic_ipqp_engine(), after construction:
-    elastic_ipqp_engine_->attach_trace(ipqp_trace_);
+    if (g_m7t3_elastic_diag_sink != nullptr) {
+        elastic_ipqp_engine_->attach_trace(g_m7t3_elastic_diag_sink);
+    }
 
-with a sink recording `on_ipqp_escape`. Under `max_iter = 1` the first escape event is the
-primary tier's and the rest are the elastic engine's. Reproducing the §3 finding is that
-patch plus one run. **Registered**: an escape census for the elastic engine that does not
-collide with the primary tier's stream is an M7 W2 item, not this task's.
+    // tests/sqp/test_elastic_rung_vehicle.cpp: a sink recording on_ipqp_escape,
+    // set into that slot around each solve (plus an HVEN_M7T3_IPQP_MAX_ITER
+    // override for the budget probe).
+
+A SLOT rather than the driver's own sink, deliberately: it gives the elastic engine a stream
+nobody else writes to, so the classification needs no ordering argument. The patch was applied,
+run, and REVERTED; `raw/post-revert-verify.log` re-reads every cell on the restored tree and
+the counters reproduce exactly. Its output is `raw/decline-diagnostic.log`.
+
+**Registered, still**: an escape census for the elastic engine that is observable at the
+BOUNDARY — without a patched build — and that does not collide with the primary tier's
+per-instance `solve` id, is an M7 W2 item, not this task's.
 
 ## 6. The disposition
 

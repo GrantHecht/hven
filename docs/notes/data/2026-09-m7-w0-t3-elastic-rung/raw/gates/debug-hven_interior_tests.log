@@ -1,0 +1,1296 @@
+Running main() from /home/ghecht/Projects/hven/build-debug/_deps/googletest-src/googletest/src/gtest_main.cc
+[==========] Running 510 tests from 90 test suites.
+[----------] Global test environment set-up.
+[----------] 17 tests from SwitchingAcceptance
+[ RUN      ] SwitchingAcceptance.LazyInitCapturesThetaZero
+[       OK ] SwitchingAcceptance.LazyInitCapturesThetaZero (0 ms)
+[ RUN      ] SwitchingAcceptance.LazyInitOnlyOnceUntilReset
+[       OK ] SwitchingAcceptance.LazyInitOnlyOnceUntilReset (0 ms)
+[ RUN      ] SwitchingAcceptance.ResetRearmsLazyInit
+[       OK ] SwitchingAcceptance.ResetRearmsLazyInit (0 ms)
+[ RUN      ] SwitchingAcceptance.ThetaMaxCeilingRejectsRegardless
+[       OK ] SwitchingAcceptance.ThetaMaxCeilingRejectsRegardless (0 ms)
+[ RUN      ] SwitchingAcceptance.MembershipRejectsFTypeTrial
+[       OK ] SwitchingAcceptance.MembershipRejectsFTypeTrial (0 ms)
+[ RUN      ] SwitchingAcceptance.MembershipRejectsFTypeTrialArmijoWouldFail
+[       OK ] SwitchingAcceptance.MembershipRejectsFTypeTrialArmijoWouldFail (0 ms)
+[ RUN      ] SwitchingAcceptance.MembershipRejectsHTypeTrialProgressWouldPass
+[       OK ] SwitchingAcceptance.MembershipRejectsHTypeTrialProgressWouldPass (0 ms)
+[ RUN      ] SwitchingAcceptance.MembershipRejectsHTypeTrialProgressWouldFail
+[       OK ] SwitchingAcceptance.MembershipRejectsHTypeTrialProgressWouldFail (0 ms)
+[ RUN      ] SwitchingAcceptance.SwitchingHoldsFTypeArmijoAccepts
+[       OK ] SwitchingAcceptance.SwitchingHoldsFTypeArmijoAccepts (0 ms)
+[ RUN      ] SwitchingAcceptance.SwitchingHoldsFTypeArmijoRejects
+[       OK ] SwitchingAcceptance.SwitchingHoldsFTypeArmijoRejects (0 ms)
+[ RUN      ] SwitchingAcceptance.NonDescentForcesHType
+[       OK ] SwitchingAcceptance.NonDescentForcesHType (0 ms)
+[ RUN      ] SwitchingAcceptance.InequalityFailsForcesHType
+[       OK ] SwitchingAcceptance.InequalityFailsForcesHType (0 ms)
+[ RUN      ] SwitchingAcceptance.ThetaAboveMinAlwaysHType
+[       OK ] SwitchingAcceptance.ThetaAboveMinAlwaysHType (0 ms)
+[ RUN      ] SwitchingAcceptance.HTypeAcceptedRegistersBookkeeping
+[       OK ] SwitchingAcceptance.HTypeAcceptedRegistersBookkeeping (0 ms)
+[ RUN      ] SwitchingAcceptance.HTypeRejectedSkipsBookkeeping
+[       OK ] SwitchingAcceptance.HTypeRejectedSkipsBookkeeping (0 ms)
+[ RUN      ] SwitchingAcceptance.DrivesGenericPath
+[       OK ] SwitchingAcceptance.DrivesGenericPath (0 ms)
+[ RUN      ] SwitchingAcceptance.RestorationHookThrows
+[       OK ] SwitchingAcceptance.RestorationHookThrows (0 ms)
+[----------] 17 tests from SwitchingAcceptance (0 ms total)
+
+[----------] 3 tests from WatchdogStateArm
+[ RUN      ] WatchdogStateArm.ExactBoundary
+[       OK ] WatchdogStateArm.ExactBoundary (0 ms)
+[ RUN      ] WatchdogStateArm.MuChangeResetsBeforeArming
+[       OK ] WatchdogStateArm.MuChangeResetsBeforeArming (0 ms)
+[ RUN      ] WatchdogStateArm.AcceptedIterationResetsConsecutiveCount
+[       OK ] WatchdogStateArm.AcceptedIterationResetsConsecutiveCount (0 ms)
+[----------] 3 tests from WatchdogStateArm (0 ms total)
+
+[----------] 3 tests from WatchdogStateTrial
+[ RUN      ] WatchdogStateTrial.ProgressDisarms
+[       OK ] WatchdogStateTrial.ProgressDisarms (0 ms)
+[ RUN      ] WatchdogStateTrial.WindowExhaustionReverts
+[       OK ] WatchdogStateTrial.WindowExhaustionReverts (0 ms)
+[ RUN      ] WatchdogStateTrial.MuChangeWhileArmedResetsEntirely
+[       OK ] WatchdogStateTrial.MuChangeWhileArmedResetsEntirely (0 ms)
+[----------] 3 tests from WatchdogStateTrial (0 ms total)
+
+[----------] 1 test from ExtendedBacktrackGuards
+[ RUN      ] ExtendedBacktrackGuards.DisabledDeclines
+[       OK ] ExtendedBacktrackGuards.DisabledDeclines (0 ms)
+[----------] 1 test from ExtendedBacktrackGuards (0 ms total)
+
+[----------] 2 tests from ExtendedBacktrackLadder
+[ RUN      ] ExtendedBacktrackLadder.ContinuesFromLiveAlphaAndHonorsCap
+[       OK ] ExtendedBacktrackLadder.ContinuesFromLiveAlphaAndHonorsCap (0 ms)
+[ RUN      ] ExtendedBacktrackLadder.AcceptsAndStopsEarly
+[       OK ] ExtendedBacktrackLadder.AcceptsAndStopsEarly (0 ms)
+[----------] 2 tests from ExtendedBacktrackLadder (0 ms total)
+
+[----------] 4 tests from ChainedRecoveryOrdering
+[ RUN      ] ChainedRecoveryOrdering.SocResolvesFirst
+[       OK ] ChainedRecoveryOrdering.SocResolvesFirst (0 ms)
+[ RUN      ] ChainedRecoveryOrdering.ExtendedResolvesWhenSocDeclines
+[       OK ] ChainedRecoveryOrdering.ExtendedResolvesWhenSocDeclines (0 ms)
+[ RUN      ] ChainedRecoveryOrdering.BothDeclineIsUnresolved
+[       OK ] ChainedRecoveryOrdering.BothDeclineIsUnresolved (0 ms)
+[ RUN      ] ChainedRecoveryOrdering.NotifyStepAcceptedPropagatesToBothLinks
+[       OK ] ChainedRecoveryOrdering.NotifyStepAcceptedPropagatesToBothLinks (0 ms)
+[----------] 4 tests from ChainedRecoveryOrdering (0 ms total)
+
+[----------] 6 tests from WatchdogRecoveryDecorator
+[ RUN      ] WatchdogRecoveryDecorator.DelegatesWhileNotArmed
+[       OK ] WatchdogRecoveryDecorator.DelegatesWhileNotArmed (0 ms)
+[ RUN      ] WatchdogRecoveryDecorator.ArmsRelaxesThenReverts
+[       OK ] WatchdogRecoveryDecorator.ArmsRelaxesThenReverts (0 ms)
+[ RUN      ] WatchdogRecoveryDecorator.ProgressDisarmsAndDelegatesBack
+[       OK ] WatchdogRecoveryDecorator.ProgressDisarmsAndDelegatesBack (0 ms)
+[ RUN      ] WatchdogRecoveryDecorator.NotifyStepAcceptedResetsArmingCounter
+[       OK ] WatchdogRecoveryDecorator.NotifyStepAcceptedResetsArmingCounter (0 ms)
+[ RUN      ] WatchdogRecoveryDecorator.ResetPropagatesToInner
+[       OK ] WatchdogRecoveryDecorator.ResetPropagatesToInner (0 ms)
+[ RUN      ] WatchdogRecoveryDecorator.NullInnerThrowsAtConstruction
+[       OK ] WatchdogRecoveryDecorator.NullInnerThrowsAtConstruction (0 ms)
+[----------] 6 tests from WatchdogRecoveryDecorator (0 ms total)
+
+[----------] 11 tests from NLPMultiplierSeedingTest
+[ RUN      ] NLPMultiplierSeedingTest.SeededSolveMatchesUnseededSolution
+[       OK ] NLPMultiplierSeedingTest.SeededSolveMatchesUnseededSolution (123 ms)
+[ RUN      ] NLPMultiplierSeedingTest.SeedSizeMismatchThrowsAndTheNextSolveIsUnaffected
+[       OK ] NLPMultiplierSeedingTest.SeedSizeMismatchThrowsAndTheNextSolveIsUnaffected (1 ms)
+[ RUN      ] NLPMultiplierSeedingTest.NegativeIqSeedIsClamped
+[       OK ] NLPMultiplierSeedingTest.NegativeIqSeedIsClamped (1 ms)
+[ RUN      ] NLPMultiplierSeedingTest.TheUnseededPathBuildsNoPayload
+[       OK ] NLPMultiplierSeedingTest.TheUnseededPathBuildsNoPayload (1 ms)
+[ RUN      ] NLPMultiplierSeedingTest.SeededSolveOptimizeReachesOptPhase
+[       OK ] NLPMultiplierSeedingTest.SeededSolveOptimizeReachesOptPhase (5 ms)
+[ RUN      ] NLPMultiplierSeedingTest.SeededSolveWithMakeConstraintFixedVarConverges
+[       OK ] NLPMultiplierSeedingTest.SeededSolveWithMakeConstraintFixedVarConverges (1 ms)
+[ RUN      ] NLPMultiplierSeedingTest.ADecliningProblemSolvesColdThroughTheWrapper
+[       OK ] NLPMultiplierSeedingTest.ADecliningProblemSolvesColdThroughTheWrapper (1 ms)
+[ RUN      ] NLPMultiplierSeedingTest.NaNSeedThrows
+[       OK ] NLPMultiplierSeedingTest.NaNSeedThrows (0 ms)
+[ RUN      ] NLPMultiplierSeedingTest.OversizedSeedIsCapped
+[       OK ] NLPMultiplierSeedingTest.OversizedSeedIsCapped (1 ms)
+[ RUN      ] NLPMultiplierSeedingTest.OversizedIqSeedIsCapped
+[       OK ] NLPMultiplierSeedingTest.OversizedIqSeedIsCapped (1 ms)
+[ RUN      ] NLPMultiplierSeedingTest.FixedVariableConstraintRowStaysOutOfTheReportedMultipliers
+[       OK ] NLPMultiplierSeedingTest.FixedVariableConstraintRowStaysOutOfTheReportedMultipliers (1 ms)
+[----------] 11 tests from NLPMultiplierSeedingTest (141 ms total)
+
+[----------] 9 tests from NlpProblemModelTest
+[ RUN      ] NlpProblemModelTest.RowKindsDecideTheNativeBlocksAndTheirSigns
+[       OK ] NlpProblemModelTest.RowKindsDecideTheNativeBlocksAndTheirSigns (0 ms)
+[ RUN      ] NlpProblemModelTest.MultiplierShapesMapBothWays
+[       OK ] NlpProblemModelTest.MultiplierShapesMapBothWays (0 ms)
+[ RUN      ] NlpProblemModelTest.EmptyMultiplierBlockIsRefusedSiteNamedWhenRowsAreHosted
+[       OK ] NlpProblemModelTest.EmptyMultiplierBlockIsRefusedSiteNamedWhenRowsAreHosted (0 ms)
+[ RUN      ] NlpProblemModelTest.TheDeclaredLowerTriangleBecomesTheNativeUpperTriangle
+[       OK ] NlpProblemModelTest.TheDeclaredLowerTriangleBecomesTheNativeUpperTriangle (0 ms)
+[ RUN      ] NlpProblemModelTest.LargeFiniteBoundsStayBoundsAndInfinitiesStayUnbounded
+[       OK ] NlpProblemModelTest.LargeFiniteBoundsStayBoundsAndInfinitiesStayUnbounded (0 ms)
+[ RUN      ] NlpProblemModelTest.TheTwoBlocksShareOneCallbackPerIterate
+[       OK ] NlpProblemModelTest.TheTwoBlocksShareOneCallbackPerIterate (0 ms)
+[ RUN      ] NlpProblemModelTest.TheStartPointIsTheOriginProjectedOntoTheVariableBounds
+[       OK ] NlpProblemModelTest.TheStartPointIsTheOriginProjectedOntoTheVariableBounds (0 ms)
+[ RUN      ] NlpProblemModelTest.VariableBoundsAreValidatedAtConstruction
+[       OK ] NlpProblemModelTest.VariableBoundsAreValidatedAtConstruction (0 ms)
+[ RUN      ] NlpProblemModelTest.TheInPlaceOverrideAndTheDefaultDelegationAgreeExactly
+[       OK ] NlpProblemModelTest.TheInPlaceOverrideAndTheDefaultDelegationAgreeExactly (0 ms)
+[----------] 9 tests from NlpProblemModelTest (0 ms total)
+
+[----------] 7 tests from NlpAdapterHostTest
+[ RUN      ] NlpAdapterHostTest.APatternThatShiftsBetweenEvaluationsIsRefusedByName
+[       OK ] NlpAdapterHostTest.APatternThatShiftsBetweenEvaluationsIsRefusedByName (0 ms)
+[ RUN      ] NlpAdapterHostTest.AModelWhosePatternDriftsAfterTranscriptionIsRefused
+[       OK ] NlpAdapterHostTest.AModelWhosePatternDriftsAfterTranscriptionIsRefused (0 ms)
+[ RUN      ] NlpAdapterHostTest.AnUncompressedMatrixReturnIsRefusedFromEachEntryPoint
+[       OK ] NlpAdapterHostTest.AnUncompressedMatrixReturnIsRefusedFromEachEntryPoint (0 ms)
+[ RUN      ] NlpAdapterHostTest.TranscriptionSpendsOneStartPointAndThreeDerivativeCalls
+[       OK ] NlpAdapterHostTest.TranscriptionSpendsOneStartPointAndThreeDerivativeCalls (0 ms)
+[ RUN      ] NlpAdapterHostTest.AWrongLengthGradientIsRefusedAndNamesBothCounts
+[       OK ] NlpAdapterHostTest.AWrongLengthGradientIsRefusedAndNamesBothCounts (0 ms)
+[ RUN      ] NlpAdapterHostTest.AShortEqualityMultiplierBlockIsRefusedBeforeItIsSliced
+[       OK ] NlpAdapterHostTest.AShortEqualityMultiplierBlockIsRefusedBeforeItIsSliced (0 ms)
+[ RUN      ] NlpAdapterHostTest.AnEmptyMultiplierBlockIsNotReadAsAllZeroAtTheHessianOwner
+[       OK ] NlpAdapterHostTest.AnEmptyMultiplierBlockIsNotReadAsAllZeroAtTheHessianOwner (0 ms)
+[----------] 7 tests from NlpAdapterHostTest (0 ms total)
+
+[----------] 6 tests from ObjectiveScaleReporting
+[ RUN      ] ObjectiveScaleReporting.TheReportedObjectiveAndMultipliersDoNotMoveWithTheScale
+[       OK ] ObjectiveScaleReporting.TheReportedObjectiveAndMultipliersDoNotMoveWithTheScale (13 ms)
+[ RUN      ] ObjectiveScaleReporting.AnActiveBoundMultiplierDoesNotMoveWithTheScale
+[       OK ] ObjectiveScaleReporting.AnActiveBoundMultiplierDoesNotMoveWithTheScale (4 ms)
+[ RUN      ] ObjectiveScaleReporting.ASeededMultiplierIsInstalledOnTheSolversScale
+[       OK ] ObjectiveScaleReporting.ASeededMultiplierIsInstalledOnTheSolversScale (10 ms)
+[ RUN      ] ObjectiveScaleReporting.ANegativeScaleIsRefusedByValidate
+[       OK ] ObjectiveScaleReporting.ANegativeScaleIsRefusedByValidate (3 ms)
+[ RUN      ] ObjectiveScaleReporting.AnUnconstrainedCallReportsNoConstraintBlocks
+[       OK ] ObjectiveScaleReporting.AnUnconstrainedCallReportsNoConstraintBlocks (4 ms)
+[ RUN      ] ObjectiveScaleReporting.TheScaleACallRanAtIsTheScaleItsOutputsAreReportedOn
+[       OK ] ObjectiveScaleReporting.TheScaleACallRanAtIsTheScaleItsOutputsAreReportedOn (5 ms)
+[----------] 6 tests from ObjectiveScaleReporting (41 ms total)
+
+[----------] 3 tests from ProxRestoZeta
+[ RUN      ] ProxRestoZeta.SetOnceFromEntryMu
+[       OK ] ProxRestoZeta.SetOnceFromEntryMu (0 ms)
+[ RUN      ] ProxRestoZeta.FrozenAcrossIterationsNotRecomputedFromLiveMu
+[       OK ] ProxRestoZeta.FrozenAcrossIterationsNotRecomputedFromLiveMu (0 ms)
+[ RUN      ] ProxRestoZeta.FreshEntryRecomputesIndependentlyNotBlended
+[       OK ] ProxRestoZeta.FreshEntryRecomputesIndependentlyNotBlended (0 ms)
+[----------] 3 tests from ProxRestoZeta (0 ms total)
+
+[----------] 5 tests from ProxRestoScaling
+[ RUN      ] ProxRestoScaling.BelowOneMagnitudeGetsUnitScaling
+[       OK ] ProxRestoScaling.BelowOneMagnitudeGetsUnitScaling (0 ms)
+[ RUN      ] ProxRestoScaling.AboveOneMagnitudeGetsInverseScaling
+[       OK ] ProxRestoScaling.AboveOneMagnitudeGetsInverseScaling (0 ms)
+[ RUN      ] ProxRestoScaling.NegativeAboveOneMagnitudeUsesAbsoluteValue
+[       OK ] ProxRestoScaling.NegativeAboveOneMagnitudeUsesAbsoluteValue (0 ms)
+[ RUN      ] ProxRestoScaling.ZeroCenterLandsInUnitScalingBranchNoDivideByZeroTrap
+[       OK ] ProxRestoScaling.ZeroCenterLandsInUnitScalingBranchNoDivideByZeroTrap (0 ms)
+[ RUN      ] ProxRestoScaling.UnitMagnitudeBoundaryGetsUnitScaling
+[       OK ] ProxRestoScaling.UnitMagnitudeBoundaryGetsUnitScaling (0 ms)
+[----------] 5 tests from ProxRestoScaling (0 ms total)
+
+[----------] 4 tests from ProxRestoThreeVectorFixture
+[ RUN      ] ProxRestoThreeVectorFixture.DiagonalHandComputed
+[       OK ] ProxRestoThreeVectorFixture.DiagonalHandComputed (0 ms)
+[ RUN      ] ProxRestoThreeVectorFixture.ObjectiveHandComputed
+[       OK ] ProxRestoThreeVectorFixture.ObjectiveHandComputed (0 ms)
+[ RUN      ] ProxRestoThreeVectorFixture.GradientAccumulatesIntoExistingGradOut
+[       OK ] ProxRestoThreeVectorFixture.GradientAccumulatesIntoExistingGradOut (0 ms)
+[ RUN      ] ProxRestoThreeVectorFixture.ObjectiveIsZeroAtTheSnapshotItself
+[       OK ] ProxRestoThreeVectorFixture.ObjectiveIsZeroAtTheSnapshotItself (0 ms)
+[----------] 4 tests from ProxRestoThreeVectorFixture (0 ms total)
+
+[----------] 3 tests from ProxRestoEntryPermitted
+[ RUN      ] ProxRestoEntryPermitted.NearFeasibleGuardBoundary
+[       OK ] ProxRestoEntryPermitted.NearFeasibleGuardBoundary (0 ms)
+[ RUN      ] ProxRestoEntryPermitted.BudgetExhaustionAfterMaxEntries
+[       OK ] ProxRestoEntryPermitted.BudgetExhaustionAfterMaxEntries (0 ms)
+[ RUN      ] ProxRestoEntryPermitted.ZeroBudgetAlwaysRefuses
+[       OK ] ProxRestoEntryPermitted.ZeroBudgetAlwaysRefuses (0 ms)
+[----------] 3 tests from ProxRestoEntryPermitted (0 ms total)
+
+[----------] 2 tests from ProxRestoLifecycle
+[ RUN      ] ProxRestoLifecycle.EnterActivatesExitDeactivates
+[       OK ] ProxRestoLifecycle.EnterActivatesExitDeactivates (0 ms)
+[ RUN      ] ProxRestoLifecycle.ReenteringAfterExitIsActiveAgain
+[       OK ] ProxRestoLifecycle.ReenteringAfterExitIsActiveAgain (0 ms)
+[----------] 2 tests from ProxRestoLifecycle (0 ms total)
+
+[----------] 1 test from ProxRestoReset
+[ RUN      ] ProxRestoReset.ClearsAllState
+[       OK ] ProxRestoReset.ClearsAllState (0 ms)
+[----------] 1 test from ProxRestoReset (0 ms total)
+
+[----------] 1 test from ProxRestoReference
+[ RUN      ] ProxRestoReference.ReturnsTheEntryPointPassedIn
+[       OK ] ProxRestoReference.ReturnsTheEntryPointPassedIn (0 ms)
+[----------] 1 test from ProxRestoReference (0 ms total)
+
+[----------] 2 tests from ProxRestoDiagnostics
+[ RUN      ] ProxRestoDiagnostics.NeverEnteredReportsZeroZero
+[       OK ] ProxRestoDiagnostics.NeverEnteredReportsZeroZero (0 ms)
+[ RUN      ] ProxRestoDiagnostics.ReportsEntriesAndIterationsInMode
+[       OK ] ProxRestoDiagnostics.ReportsEntriesAndIterationsInMode (0 ms)
+[----------] 2 tests from ProxRestoDiagnostics (0 ms total)
+
+[----------] 28 tests from RecoveryDispatchGate
+[ RUN      ] RecoveryDispatchGate.PredicateTruthTable
+[       OK ] RecoveryDispatchGate.PredicateTruthTable (0 ms)
+[ RUN      ] RecoveryDispatchGate.StubAcceptanceDrivesHook
+[       OK ] RecoveryDispatchGate.StubAcceptanceDrivesHook (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateAcceptsFunnelWithMaxSoc
+[       OK ] RecoveryDispatchGate.ValidateAcceptsFunnelWithMaxSoc (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateAcceptsFunnelWithLsExtendedIters
+[       OK ] RecoveryDispatchGate.ValidateAcceptsFunnelWithLsExtendedIters (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateAcceptsFilterWithMaxSoc
+[       OK ] RecoveryDispatchGate.ValidateAcceptsFilterWithMaxSoc (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateAcceptsFilterWithLsExtendedIters
+[       OK ] RecoveryDispatchGate.ValidateAcceptsFilterWithLsExtendedIters (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateRejectsNegativeMaxFeasRest
+[       OK ] RecoveryDispatchGate.ValidateRejectsNegativeMaxFeasRest (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateAcceptsZeroMaxFeasRest
+[       OK ] RecoveryDispatchGate.ValidateAcceptsZeroMaxFeasRest (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateAcceptsRestorationWithClassicMerit
+[       OK ] RecoveryDispatchGate.ValidateAcceptsRestorationWithClassicMerit (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateAcceptsRestorationWithFilterMonitored
+[       OK ] RecoveryDispatchGate.ValidateAcceptsRestorationWithFilterMonitored (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateAcceptsClassicMeritWithMaxSoc
+[       OK ] RecoveryDispatchGate.ValidateAcceptsClassicMeritWithMaxSoc (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateAcceptsMeritWithMaxSoc
+[       OK ] RecoveryDispatchGate.ValidateAcceptsMeritWithMaxSoc (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateAcceptsFunnelWithWatchdog
+[       OK ] RecoveryDispatchGate.ValidateAcceptsFunnelWithWatchdog (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateAcceptsFilterWithWatchdog
+[       OK ] RecoveryDispatchGate.ValidateAcceptsFilterWithWatchdog (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateRejectsFunnelWithClassicAdaptiveGovernor
+[       OK ] RecoveryDispatchGate.ValidateRejectsFunnelWithClassicAdaptiveGovernor (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateRejectsFilterWithClassicAdaptiveGovernor
+[       OK ] RecoveryDispatchGate.ValidateRejectsFilterWithClassicAdaptiveGovernor (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateAcceptsFunnelWithMonitoredGovernor
+[       OK ] RecoveryDispatchGate.ValidateAcceptsFunnelWithMonitoredGovernor (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateAcceptsFilterWithMonitoredGovernor
+[       OK ] RecoveryDispatchGate.ValidateAcceptsFilterWithMonitoredGovernor (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateAcceptsFunnelWithNeverMonotone
+[       OK ] RecoveryDispatchGate.ValidateAcceptsFunnelWithNeverMonotone (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateAcceptsFilterWithNeverMonotone
+[       OK ] RecoveryDispatchGate.ValidateAcceptsFilterWithNeverMonotone (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateRejectsNeverMonotoneWithMonitoredGovernor
+[       OK ] RecoveryDispatchGate.ValidateRejectsNeverMonotoneWithMonitoredGovernor (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateAcceptsClassicMeritWithClassicAdaptiveGovernor
+[       OK ] RecoveryDispatchGate.ValidateAcceptsClassicMeritWithClassicAdaptiveGovernor (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateAcceptsMeritWithClassicAdaptiveGovernor
+[       OK ] RecoveryDispatchGate.ValidateAcceptsMeritWithClassicAdaptiveGovernor (0 ms)
+[ RUN      ] RecoveryDispatchGate.ValidateAcceptsClassicMeritWithMonitoredGovernor
+[       OK ] RecoveryDispatchGate.ValidateAcceptsClassicMeritWithMonitoredGovernor (0 ms)
+[ RUN      ] RecoveryDispatchGate.FunnelSelectionConstructsFunnelAcceptance
+[       OK ] RecoveryDispatchGate.FunnelSelectionConstructsFunnelAcceptance (0 ms)
+[ RUN      ] RecoveryDispatchGate.FilterSelectionConstructsFilterAcceptance
+[       OK ] RecoveryDispatchGate.FilterSelectionConstructsFilterAcceptance (0 ms)
+[ RUN      ] RecoveryDispatchGate.MonitoredSelectionConstructsMonitoredGovernor
+[       OK ] RecoveryDispatchGate.MonitoredSelectionConstructsMonitoredGovernor (0 ms)
+[ RUN      ] RecoveryDispatchGate.MeritPenaltyRuleSelectionReachesTheStrategy
+[       OK ] RecoveryDispatchGate.MeritPenaltyRuleSelectionReachesTheStrategy (1 ms)
+[----------] 28 tests from RecoveryDispatchGate (4 ms total)
+
+[----------] 1 test from SocTrigger
+[ RUN      ] SocTrigger.FiresOnlyOnANonImprovingFirstTrialRejection
+[       OK ] SocTrigger.FiresOnlyOnANonImprovingFirstTrialRejection (0 ms)
+[----------] 1 test from SocTrigger (0 ms total)
+
+[----------] 1 test from SocContinue
+[ RUN      ] SocContinue.StopsAtTheCapAndOnAStagnatingViolation
+[       OK ] SocContinue.StopsAtTheCapAndOnAStagnatingViolation (0 ms)
+[----------] 1 test from SocContinue (0 ms total)
+
+[----------] 3 tests from SocRunLoop
+[ RUN      ] SocRunLoop.AnAcceptedCorrectionRetriesAndStopsEarly
+[       OK ] SocRunLoop.AnAcceptedCorrectionRetriesAndStopsEarly (0 ms)
+[ RUN      ] SocRunLoop.RejectionsRunToTheCapCarryingTheViolationForward
+[       OK ] SocRunLoop.RejectionsRunToTheCapCarryingTheViolationForward (0 ms)
+[ RUN      ] SocRunLoop.AStagnatingViolationStopsBelowTheCap
+[       OK ] SocRunLoop.AStagnatingViolationStopsBelowTheCap (0 ms)
+[----------] 3 tests from SocRunLoop (0 ms total)
+
+[----------] 14 tests from SocRecovery
+[ RUN      ] SocRecovery.DisabledDeclinesWithoutEvaluatingAnything
+[       OK ] SocRecovery.DisabledDeclinesWithoutEvaluatingAnything (0 ms)
+[ RUN      ] SocRecovery.ATriggerRefusalCostsNoEvaluation
+[       OK ] SocRecovery.ATriggerRefusalCostsNoEvaluation (0 ms)
+[ RUN      ] SocRecovery.AnAcceptedCorrectionCommitsTheCorrectedStep
+[       OK ] SocRecovery.AnAcceptedCorrectionCommitsTheCorrectedStep (0 ms)
+[ RUN      ] SocRecovery.TheCorrectedDirectionSolvesTheCorrectedRightHandSide
+[       OK ] SocRecovery.TheCorrectedDirectionSolvesTheCorrectedRightHandSide (0 ms)
+[ RUN      ] SocRecovery.DeclinedCorrectionsRunToTheCapAndRestoreTheStepLengths
+[       OK ] SocRecovery.DeclinedCorrectionsRunToTheCapAndRestoreTheStepLengths (0 ms)
+[ RUN      ] SocRecovery.AStagnatingCorrectionStopsBelowTheCap
+[       OK ] SocRecovery.AStagnatingCorrectionStopsBelowTheCap (0 ms)
+[ RUN      ] SocRecovery.ARejectionWithoutAnInfeasibilityReadingStopsTheLoop
+[       OK ] SocRecovery.ARejectionWithoutAnInfeasibilityReadingStopsTheLoop (0 ms)
+[ RUN      ] SocRecovery.AnUnevaluableSeedDeclinesAndLogsTheMessage
+[       OK ] SocRecovery.AnUnevaluableSeedDeclinesAndLogsTheMessage (0 ms)
+[ RUN      ] SocRecovery.AnUnevaluableSeedOfUnknownTypeDeclinesAndLogsTheSentinel
+[       OK ] SocRecovery.AnUnevaluableSeedOfUnknownTypeDeclinesAndLogsTheSentinel (0 ms)
+[ RUN      ] SocRecovery.AnUnevaluableAccumulationPointEndsTheLoopAndLogsTheMessage
+[       OK ] SocRecovery.AnUnevaluableAccumulationPointEndsTheLoopAndLogsTheMessage (0 ms)
+[ RUN      ] SocRecovery.AnUnevaluableAccumulationPointOfUnknownTypeLogsTheSentinel
+[       OK ] SocRecovery.AnUnevaluableAccumulationPointOfUnknownTypeLogsTheSentinel (0 ms)
+[ RUN      ] SocRecovery.ResetIsAStatelessNoOp
+[       OK ] SocRecovery.ResetIsAStatelessNoOp (0 ms)
+[ RUN      ] SocRecovery.ANegativeTrialResidualIsZeroedByTheSlackReset
+[       OK ] SocRecovery.ANegativeTrialResidualIsZeroedByTheSlackReset (0 ms)
+[ RUN      ] SocRecovery.AnEqualityOnlyProblemSkipsTheFractionToBoundaryScaling
+[       OK ] SocRecovery.AnEqualityOnlyProblemSkipsTheFractionToBoundaryScaling (0 ms)
+[----------] 14 tests from SocRecovery (3 ms total)
+
+[----------] 11 tests from SolverInterfaceAdapter
+[ RUN      ] SolverInterfaceAdapter.PrimaryTemplateIsInspectableForAnUnregisteredType
+[       OK ] SolverInterfaceAdapter.PrimaryTemplateIsInspectableForAnUnregisteredType (0 ms)
+[ RUN      ] SolverInterfaceAdapter.RegisteredTypesReportRegistered
+[       OK ] SolverInterfaceAdapter.RegisteredTypesReportRegistered (0 ms)
+[ RUN      ] SolverInterfaceAdapter.ConstrainedPartialSpecializationSelectsOnItsConstraint
+[       OK ] SolverInterfaceAdapter.ConstrainedPartialSpecializationSelectsOnItsConstraint (0 ms)
+[ RUN      ] SolverInterfaceAdapter.RegisteredFamilyMemberIsStoredAsItself
+[       OK ] SolverInterfaceAdapter.RegisteredFamilyMemberIsStoredAsItself (0 ms)
+[ RUN      ] SolverInterfaceAdapter.RegisteredConstraintOnlyTypeEntersTheConstraintInterface
+[       OK ] SolverInterfaceAdapter.RegisteredConstraintOnlyTypeEntersTheConstraintInterface (0 ms)
+[ RUN      ] SolverInterfaceAdapter.RegisteredScalarObjectiveIsStoredAsItself
+[       OK ] SolverInterfaceAdapter.RegisteredScalarObjectiveIsStoredAsItself (0 ms)
+[ RUN      ] SolverInterfaceAdapter.MixinDeclaredConstraintOnlyTypeStillEntersTheConstraintInterface
+[       OK ] SolverInterfaceAdapter.MixinDeclaredConstraintOnlyTypeStillEntersTheConstraintInterface (0 ms)
+[ RUN      ] SolverInterfaceAdapter.MixinDeclaredObjectiveOnlyTypeStillEntersTheObjectiveInterface
+[       OK ] SolverInterfaceAdapter.MixinDeclaredObjectiveOnlyTypeStillEntersTheObjectiveInterface (0 ms)
+[ RUN      ] SolverInterfaceAdapter.AdapterMissingAnInstallStillServesTheOneItHas
+[       OK ] SolverInterfaceAdapter.AdapterMissingAnInstallStillServesTheOneItHas (0 ms)
+[ RUN      ] SolverInterfaceAdapter.SurfaceProbesMatchWhatTheModelsRequire
+[       OK ] SolverInterfaceAdapter.SurfaceProbesMatchWhatTheModelsRequire (0 ms)
+[ RUN      ] SolverInterfaceAdapter.CopyingAnInterfacePreservesTheStoredDynamicType
+[       OK ] SolverInterfaceAdapter.CopyingAnInterfacePreservesTheStoredDynamicType (0 ms)
+[----------] 11 tests from SolverInterfaceAdapter (0 ms total)
+
+[----------] 8 tests from StructureEpochGating
+[ RUN      ] StructureEpochGating.APartitionRenegotiationBetweenSolvesForcesAFreshAnalysis
+[       OK ] StructureEpochGating.APartitionRenegotiationBetweenSolvesForcesAFreshAnalysis (2 ms)
+[ RUN      ] StructureEpochGating.ASecondSolveAgainstUnmovedStructuresRunsNoFreshAnalysis
+[       OK ] StructureEpochGating.ASecondSolveAgainstUnmovedStructuresRunsNoFreshAnalysis (2 ms)
+[ RUN      ] StructureEpochGating.AWholeSolveRunsNoFullKktPatternHash
+[       OK ] StructureEpochGating.AWholeSolveRunsNoFullKktPatternHash (1 ms)
+[ RUN      ] StructureEpochGating.TheEpochStopsVouchingForThePatternAcrossARelay
+[       OK ] StructureEpochGating.TheEpochStopsVouchingForThePatternAcrossARelay (2 ms)
+[ RUN      ] StructureEpochGating.ASolveThatHandsOutTheKktMatrixVerifiesThePatternThroughout
+[       OK ] StructureEpochGating.ASolveThatHandsOutTheKktMatrixVerifiesThePatternThroughout (3 ms)
+[ RUN      ] StructureEpochGating.TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCall
+[       OK ] StructureEpochGating.TheVerdictOnTheGuardIsTakenOnceAtEntryAndHeldForTheCall (2 ms)
+[ RUN      ] StructureEpochGating.AnEarlyCallbackArmedFromInsideTheLateCallbackVerifiesFromThatHandOutOn
+[       OK ] StructureEpochGating.AnEarlyCallbackArmedFromInsideTheLateCallbackVerifiesFromThatHandOutOn (3 ms)
+[ RUN      ] StructureEpochGating.AnEarlyCallbackThatScalesAStoredCoefficientMovesTheStepItProduces
+[       OK ] StructureEpochGating.AnEarlyCallbackThatScalesAStoredCoefficientMovesTheStepItProduces (3 ms)
+[----------] 8 tests from StructureEpochGating (19 ms total)
+
+[----------] 2 tests from EarlyCallbackViews
+[ RUN      ] EarlyCallbackViews.TheThreeVectorsAreTheModelsOwnNumbersAtThisIterationsEvaluation
+[       OK ] EarlyCallbackViews.TheThreeVectorsAreTheModelsOwnNumbersAtThisIterationsEvaluation (1 ms)
+[ RUN      ] EarlyCallbackViews.TheEarlyAndLateViewsOfOneIterationAreTheSameIterate
+[       OK ] EarlyCallbackViews.TheEarlyAndLateViewsOfOneIterationAreTheSameIterate (1 ms)
+[----------] 2 tests from EarlyCallbackViews (2 ms total)
+
+[----------] 1 test from KktVectorLayout
+[ RUN      ] KktVectorLayout.TheConstTwinsThirteenAccessorsNameTheSameBlocksAsKKTVectors
+[       OK ] KktVectorLayout.TheConstTwinsThirteenAccessorsNameTheSameBlocksAsKKTVectors (0 ms)
+[----------] 1 test from KktVectorLayout (0 ms total)
+
+[----------] 15 tests from IpmTrace
+[ RUN      ] IpmTrace.IterCountEqualsTheReportedIterationsAndTheCallbackInvocations
+[       OK ] IpmTrace.IterCountEqualsTheReportedIterationsAndTheCallbackInvocations (3 ms)
+[ RUN      ] IpmTrace.EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder
+[       OK ] IpmTrace.EveryIterLineIsTheRecordTheCallbackSawInTheSameOrder (3 ms)
+[ RUN      ] IpmTrace.TheLastIterLineEqualsTheLastRecordTheCallbackSaw
+[       OK ] IpmTrace.TheLastIterLineEqualsTheLastRecordTheCallbackSaw (3 ms)
+[ RUN      ] IpmTrace.TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProximalMode
+[       OK ] IpmTrace.TheTwoProximalShiftsAreNullOnTheClassicPathAndNumbersUnderProximalMode (6 ms)
+[ RUN      ] IpmTrace.AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolveDoesNot
+[       OK ] IpmTrace.AConvergedSolveLeavesThroughTheConvergeCheckSiteAndAMaxItersSolveDoesNot (5 ms)
+[ RUN      ] IpmTrace.ThePerturbedPivotCountIsTheBackendsOwnAndNeverAFabricatedZero
+[       OK ] IpmTrace.ThePerturbedPivotCountIsTheBackendsOwnAndNeverAFabricatedZero (3 ms)
+[ RUN      ] IpmTrace.SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine
+[       OK ] IpmTrace.SolveWritesExactlyOnePairPerEntryPointAndBracketsEveryIterLine (3 ms)
+[ RUN      ] IpmTrace.SolveBeginCarriesHs071sDimensionsCensusAndSettings
+[       OK ] IpmTrace.SolveBeginCarriesHs071sDimensionsCensusAndSettings (3 ms)
+[ RUN      ] IpmTrace.SolveOptimizeReportsTwoPhasesAndNumbersItsIterLinesByPhase
+[       OK ] IpmTrace.SolveOptimizeReportsTwoPhasesAndNumbersItsIterLinesByPhase (4 ms)
+[ RUN      ] IpmTrace.SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits
+[       OK ] IpmTrace.SolveEndReportsTheDriversOwnStatusOnTwoDifferentExits (5 ms)
+[ RUN      ] IpmTrace.ARefusedCallWritesNoLineAtAll
+[       OK ] IpmTrace.ARefusedCallWritesNoLineAtAll (1 ms)
+[ RUN      ] IpmTrace.AttachingASinkMovesNoResultField
+[       OK ] IpmTrace.AttachingASinkMovesNoResultField (5 ms)
+[ RUN      ] IpmTrace.DetachingMidLifetimeStopsTheStreamAndChangesNothingElse
+[       OK ] IpmTrace.DetachingMidLifetimeStopsTheStreamAndChangesNothingElse (4 ms)
+[ RUN      ] IpmTrace.SeqIsContiguousAcrossAnSqpSolveThenAnIpmSolveOnOneSinkAtDepthZero
+[       OK ] IpmTrace.SeqIsContiguousAcrossAnSqpSolveThenAnIpmSolveOnOneSinkAtDepthZero (4 ms)
+[ RUN      ] IpmTrace.SolveBeginCarriesTheEightFieldsTheConsoleTableNeeds
+[       OK ] IpmTrace.SolveBeginCarriesTheEightFieldsTheConsoleTableNeeds (3 ms)
+[----------] 15 tests from IpmTrace (59 ms total)
+
+[----------] 8 tests from IpmLedger
+[ RUN      ] IpmLedger.OneRecordPerSolveCarryingThatCallsOwnCounters
+[       OK ] IpmLedger.OneRecordPerSolveCarryingThatCallsOwnCounters (3 ms)
+[ RUN      ] IpmLedger.FactorizationsAndAnalysesArePerCallNotLifetime
+[       OK ] IpmLedger.FactorizationsAndAnalysesArePerCallNotLifetime (3 ms)
+[ RUN      ] IpmLedger.ThePerCallDeltaSurvivesAReAnalysisInsideTheCall
+[       OK ] IpmLedger.ThePerCallDeltaSurvivesAReAnalysisInsideTheCall (3 ms)
+[ RUN      ] IpmLedger.AMultiPhaseCallCountsOnlyThePhasesThatRan
+[       OK ] IpmLedger.AMultiPhaseCallCountsOnlyThePhasesThatRan (4 ms)
+[ RUN      ] IpmLedger.ACallbackThatThrowsAfterWorkBeganWritesNoRecord
+[       OK ] IpmLedger.ACallbackThatThrowsAfterWorkBeganWritesNoRecord (4 ms)
+[ RUN      ] IpmLedger.AttachResetsTheCounterAndADetachStopsRecording
+[       OK ] IpmLedger.AttachResetsTheCounterAndADetachStopsRecording (5 ms)
+[ RUN      ] IpmLedger.ARefusedCallRecordsNothingAndConsumesNoLabel
+[       OK ] IpmLedger.ARefusedCallRecordsNothingAndConsumesNoLabel (3 ms)
+[ RUN      ] IpmLedger.TheSummaryTableIsEmptyWithoutRecordsAndHasARowPerRecordWithThem
+[       OK ] IpmLedger.TheSummaryTableIsEmptyWithoutRecordsAndHasARowPerRecordWithThem (3 ms)
+[----------] 8 tests from IpmLedger (33 ms total)
+
+[----------] 3 tests from IpmPhaseEvents
+[ RUN      ] IpmPhaseEvents.TheLineCountIsTheDeclaredArithmeticOnThreePhaseShapes
+[       OK ] IpmPhaseEvents.TheLineCountIsTheDeclaredArithmeticOnThreePhaseShapes (11 ms)
+[ RUN      ] IpmPhaseEvents.TheOrderIsAnalysisThenTheBracketWithTheExitInsideIt
+[       OK ] IpmPhaseEvents.TheOrderIsAnalysisThenTheBracketWithTheExitInsideIt (4 ms)
+[ RUN      ] IpmPhaseEvents.TheExitEventEmbedsTheReportTheSolveReturns
+[       OK ] IpmPhaseEvents.TheExitEventEmbedsTheReportTheSolveReturns (4 ms)
+[----------] 3 tests from IpmPhaseEvents (20 ms total)
+
+[----------] 3 tests from IpmDeferral
+[ RUN      ] IpmDeferral.AHookInstalledFromInsideAFactorTimeMessageReachesTheNEXTSolve
+[       OK ] IpmDeferral.AHookInstalledFromInsideAFactorTimeMessageReachesTheNEXTSolve (1 ms)
+[ RUN      ] IpmDeferral.TheSolveIsBitwiseUnchangedByASinkThatSetsAHookMidSolve
+[       OK ] IpmDeferral.TheSolveIsBitwiseUnchangedByASinkThatSetsAHookMidSolve (5 ms)
+[ RUN      ] IpmDeferral.TheLastWriteWinsWhenASinkAndACallbackBothSetInOneSolve
+[       OK ] IpmDeferral.TheLastWriteWinsWhenASinkAndACallbackBothSetInOneSolve (4 ms)
+[----------] 3 tests from IpmDeferral (11 ms total)
+
+[----------] 2 tests from IpmMessageSink
+[ RUN      ] IpmMessageSink.ARetryAfterAThrowingFactorTimeSinkIsBitwiseAFreshSolve
+[       OK ] IpmMessageSink.ARetryAfterAThrowingFactorTimeSinkIsBitwiseAFreshSolve (4 ms)
+[ RUN      ] IpmMessageSink.AMultiIterationRetryAfterAThrowingRowSinkIsBitwiseAFreshSolve
+[       OK ] IpmMessageSink.AMultiIterationRetryAfterAThrowingRowSinkIsBitwiseAFreshSolve (9 ms)
+[----------] 2 tests from IpmMessageSink (14 ms total)
+
+[----------] 5 tests from IpmConsole
+[ RUN      ] IpmConsole.PrintLevelZeroWritesTheTableAndTenWritesNothing
+[       OK ] IpmConsole.PrintLevelZeroWritesTheTableAndTenWritesNothing (5 ms)
+[ RUN      ] IpmConsole.TheConsoleDoesNotDisplaceAUserSink
+[       OK ] IpmConsole.TheConsoleDoesNotDisplaceAUserSink (9 ms)
+[ RUN      ] IpmConsole.AttachTraceDuringASolveIsRefusedAndTheConsoleRunsOnUnbroken
+[       OK ] IpmConsole.AttachTraceDuringASolveIsRefusedAndTheConsoleRunsOnUnbroken (9 ms)
+[ RUN      ] IpmConsole.ASinkThatDetachesItselfInsideOnIpmIterThrowsRatherThanCrashing
+[       OK ] IpmConsole.ASinkThatDetachesItselfInsideOnIpmIterThrowsRatherThanCrashing (1 ms)
+[ RUN      ] IpmConsole.TheWideLayoutIsTheSolversOwnOptionAndReachesItsConsole
+[       OK ] IpmConsole.TheWideLayoutIsTheSolversOwnOptionAndReachesItsConsole (3 ms)
+[----------] 5 tests from IpmConsole (29 ms total)
+
+[----------] 39 tests from IpmWarmStart
+[ RUN      ] IpmWarmStart.AFreshSolverHasNoCompletedSolveAndNoResultToExportFrom
+[       OK ] IpmWarmStart.AFreshSolverHasNoCompletedSolveAndNoResultToExportFrom (0 ms)
+[ RUN      ] IpmWarmStart.ASolveThatThrewIsNotACompletedSolve
+[       OK ] IpmWarmStart.ASolveThatThrewIsNotACompletedSolve (0 ms)
+[ RUN      ] IpmWarmStart.ExportIsStampedAndDeclaredWidthOnAnEliminatingProblem
+[       OK ] IpmWarmStart.ExportIsStampedAndDeclaredWidthOnAnEliminatingProblem (1 ms)
+[ RUN      ] IpmWarmStart.TheStampIsCapturedAtSolveCompletionNotAtExport
+[       OK ] IpmWarmStart.TheStampIsCapturedAtSolveCompletionNotAtExport (1 ms)
+[ RUN      ] IpmWarmStart.TheSizeRefusalNamesTheBlockAndBothCountsAtSolveEntry
+[       OK ] IpmWarmStart.TheSizeRefusalNamesTheBlockAndBothCountsAtSolveEntry (1 ms)
+[ RUN      ] IpmWarmStart.TheHandOverRefusesANonFiniteBlock
+[       OK ] IpmWarmStart.TheHandOverRefusesANonFiniteBlock (1 ms)
+[ RUN      ] IpmWarmStart.ARefusedPayloadLeavesNothingBehindForTheNextSolve
+[       OK ] IpmWarmStart.ARefusedPayloadLeavesNothingBehindForTheNextSolve (1 ms)
+[ RUN      ] IpmWarmStart.ARelayBetweenExportAndSolvingRefusesAtSolveEntry
+[       OK ] IpmWarmStart.ARelayBetweenExportAndSolvingRefusesAtSolveEntry (1 ms)
+[ RUN      ] IpmWarmStart.ARebindToADifferentStructureRefusesAtSolveEntry
+[       OK ] IpmWarmStart.ARebindToADifferentStructureRefusesAtSolveEntry (2 ms)
+[ RUN      ] IpmWarmStart.APayloadSurvivesAnIdenticalStampRelayAndIsTheSolveStart
+[       OK ] IpmWarmStart.APayloadSurvivesAnIdenticalStampRelayAndIsTheSolveStart (1 ms)
+[ RUN      ] IpmWarmStart.APayloadAppliesToItsOwnCallAndTheNextSolveIsCold
+[       OK ] IpmWarmStart.APayloadAppliesToItsOwnCallAndTheNextSolveIsCold (1 ms)
+[ RUN      ] IpmWarmStart.PassingTheSamePayloadTwiceFromColdGivesBitIdenticalFirstIterates
+[       OK ] IpmWarmStart.PassingTheSamePayloadTwiceFromColdGivesBitIdenticalFirstIterates (3 ms)
+[ RUN      ] IpmWarmStart.AnExportPayloadRoundTripStartsAtTheExportingSolvesTerminalPoint
+[       OK ] IpmWarmStart.AnExportPayloadRoundTripStartsAtTheExportingSolvesTerminalPoint (1 ms)
+[ RUN      ] IpmWarmStart.ValuesAtEliminatedVariablesAreIgnoredOnApplication
+[       OK ] IpmWarmStart.ValuesAtEliminatedVariablesAreIgnoredOnApplication (2 ms)
+[ RUN      ] IpmWarmStart.MakeConstraintExportDropsTheTreatmentsInternalFixingRow
+[       OK ] IpmWarmStart.MakeConstraintExportDropsTheTreatmentsInternalFixingRow (1 ms)
+[ RUN      ] IpmWarmStart.AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings
+[       OK ] IpmWarmStart.AnEliminatingExportStagesIntoAFreshEngineWithTheSameSettings (3 ms)
+[ RUN      ] IpmWarmStart.AnExportUnderOneTreatmentStagesAndAppliesUnderAnother
+[       OK ] IpmWarmStart.AnExportUnderOneTreatmentStagesAndAppliesUnderAnother (3 ms)
+[ RUN      ] IpmWarmStart.ThePointFormAndTheSeedFormAreTheSameArgument
+[       OK ] IpmWarmStart.ThePointFormAndTheSeedFormAreTheSameArgument (3 ms)
+[ RUN      ] IpmWarmStart.AnEmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver
+[       OK ] IpmWarmStart.AnEmptyPrimalWithNonEmptyBoundDualsIsRefusedAtHandOver (1 ms)
+[ RUN      ] IpmWarmStart.ExportCarriesThePolishTagOnABoundedProblem
+[       OK ] IpmWarmStart.ExportCarriesThePolishTagOnABoundedProblem (1 ms)
+[ RUN      ] IpmWarmStart.ExportCarriesNoExtensionWhenTheProblemHasNoFiniteBounds
+[       OK ] IpmWarmStart.ExportCarriesNoExtensionWhenTheProblemHasNoFiniteBounds (1 ms)
+[ RUN      ] IpmWarmStart.ARelayThatEmptiesTheBoundSetLeavesNoBoundStoryOnTheSameInstance
+[       OK ] IpmWarmStart.ARelayThatEmptiesTheBoundSetLeavesNoBoundStoryOnTheSameInstance (2 ms)
+[ RUN      ] IpmWarmStart.ARestorationActiveExitExportsTheCoreWithoutThePolishTag
+[       OK ] IpmWarmStart.ARestorationActiveExitExportsTheCoreWithoutThePolishTag (1 ms)
+[ RUN      ] IpmWarmStart.ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToTheEntryFloor
+[       OK ] IpmWarmStart.ARestorationEntryZeroesTheEqualityMultipliersAndRaisesMuToTheEntryFloor (1 ms)
+[ RUN      ] IpmWarmStart.ABoundedOptimalExitUnderTheSamePresetKeepsThePolishTag
+[       OK ] IpmWarmStart.ABoundedOptimalExitUnderTheSamePresetKeepsThePolishTag (1 ms)
+[ RUN      ] IpmWarmStart.ThePolishPayloadSurvivesTheCurrencysOwnRoundTripVerbatim
+[       OK ] IpmWarmStart.ThePolishPayloadSurvivesTheCurrencysOwnRoundTripVerbatim (1 ms)
+[ RUN      ] IpmWarmStart.TheHandOverRefusesAMalformedPayloadUnderTheKnownTagNamingIt
+[       OK ] IpmWarmStart.TheHandOverRefusesAMalformedPayloadUnderTheKnownTagNamingIt (2 ms)
+[ RUN      ] IpmWarmStart.EveryTruncationOfThePolishPayloadRefusesAtTheHandOverNamingTheOffset
+[       OK ] IpmWarmStart.EveryTruncationOfThePolishPayloadRefusesAtTheHandOverNamingTheOffset (3 ms)
+[ RUN      ] IpmWarmStart.TheHandOverRefusesAPolishBlockThatIsNotAtTheDeclaredWidth
+[       OK ] IpmWarmStart.TheHandOverRefusesAPolishBlockThatIsNotAtTheDeclaredWidth (2 ms)
+[ RUN      ] IpmWarmStart.TheHandOverRefusesANegativeLowerBoundPriceNamingTheTagAndTheBlock
+[       OK ] IpmWarmStart.TheHandOverRefusesANegativeLowerBoundPriceNamingTheTagAndTheBlock (3 ms)
+[ RUN      ] IpmWarmStart.TheHandOverRefusesANegativeUpperBoundPriceNamingTheTagAndTheBlock
+[       OK ] IpmWarmStart.TheHandOverRefusesANegativeUpperBoundPriceNamingTheTagAndTheBlock (2 ms)
+[ RUN      ] IpmWarmStart.AZeroValuedPriceBlockIsStillAcceptedAndSolves
+[       OK ] IpmWarmStart.AZeroValuedPriceBlockIsStillAcceptedAndSolves (3 ms)
+[ RUN      ] IpmWarmStart.TheHandOverRefusesThePolishTagCarriedTwiceNamingTheEntry
+[       OK ] IpmWarmStart.TheHandOverRefusesThePolishTagCarriedTwiceNamingTheEntry (2 ms)
+[ RUN      ] IpmWarmStart.AForeignExtensionTagIsIgnoredAtTheHandOverAndAtSolve
+[       OK ] IpmWarmStart.AForeignExtensionTagIsIgnoredAtTheHandOverAndAtSolve (3 ms)
+[ RUN      ] IpmWarmStart.ThePolishPairSeedsTheBoundDualsAndACoreOnlyValueDoesNot
+[       OK ] IpmWarmStart.ThePolishPairSeedsTheBoundDualsAndACoreOnlyValueDoesNot (4 ms)
+[ RUN      ] IpmWarmStart.ACoreOnlyWarmStartOnABoundedProblemStillConverges
+[       OK ] IpmWarmStart.ACoreOnlyWarmStartOnABoundedProblemStillConverges (3 ms)
+[ RUN      ] IpmWarmStart.TheBridgeEqualsTheCrossoverHandedTheSolvesOwnRawBlocks
+[       OK ] IpmWarmStart.TheBridgeEqualsTheCrossoverHandedTheSolvesOwnRawBlocks (1 ms)
+[ RUN      ] IpmWarmStart.TheBridgeRefusesTheStampOfADifferentStructure
+[       OK ] IpmWarmStart.TheBridgeRefusesTheStampOfADifferentStructure (1 ms)
+[ RUN      ] IpmWarmStart.AnUnchangedEpochResolveAnswersExactlyWhatAFreshEngineAnswers
+[       OK ] IpmWarmStart.AnUnchangedEpochResolveAnswersExactlyWhatAFreshEngineAnswers (4 ms)
+[----------] 39 tests from IpmWarmStart (89 ms total)
+
+[----------] 17 tests from KktFactorizationTest
+[ RUN      ] KktFactorizationTest.ComputeReportsTheInertiaTheEngineReads
+[       OK ] KktFactorizationTest.ComputeReportsTheInertiaTheEngineReads (0 ms)
+[ RUN      ] KktFactorizationTest.RefactorizeReusesTheSymbolicAndTracksNewValues
+[       OK ] KktFactorizationTest.RefactorizeReusesTheSymbolicAndTracksNewValues (0 ms)
+[ RUN      ] KktFactorizationTest.AnAssumedPatternSkipsTheGuardAndReportsTheSameInertia
+[       OK ] KktFactorizationTest.AnAssumedPatternSkipsTheGuardAndReportsTheSameInertia (0 ms)
+[ RUN      ] KktFactorizationTest.SolveReturnsTheNewtonDirectionForTheAssembledSystem
+[       OK ] KktFactorizationTest.SolveReturnsTheNewtonDirectionForTheAssembledSystem (0 ms)
+[ RUN      ] KktFactorizationTest.RefactorizeBeforeAnySymbolicAnalysisThrows
+[       OK ] KktFactorizationTest.RefactorizeBeforeAnySymbolicAnalysisThrows (0 ms)
+[ RUN      ] KktFactorizationTest.RefactorizeAgainstADifferentPatternThrows
+[       OK ] KktFactorizationTest.RefactorizeAgainstADifferentPatternThrows (0 ms)
+[ RUN      ] KktFactorizationTest.ReleaseDropsTheBufferAndTheFactorization
+[       OK ] KktFactorizationTest.ReleaseDropsTheBufferAndTheFactorization (0 ms)
+[ RUN      ] KktFactorizationTest.ReconfigureRebuildsTheFactorAndDropsTheAnalysis
+[       OK ] KktFactorizationTest.ReconfigureRebuildsTheFactorAndDropsTheAnalysis (0 ms)
+[ RUN      ] KktFactorizationTest.SettingTheSameThreadCountKeepsTheAnalysis
+[       OK ] KktFactorizationTest.SettingTheSameThreadCountKeepsTheAnalysis (0 ms)
+[ RUN      ] KktFactorizationTest.ChangingTheThreadCountKeepsTheAnalysisToo
+[       OK ] KktFactorizationTest.ChangingTheThreadCountKeepsTheAnalysisToo (0 ms)
+[ RUN      ] KktFactorizationTest.InertiaEvidenceIsUnavailableBeforeAnyFactorization
+[       OK ] KktFactorizationTest.InertiaEvidenceIsUnavailableBeforeAnyFactorization (0 ms)
+[ RUN      ] KktFactorizationTest.InertiaEvidenceAgreesWithTheCachedIntsAfterASuccessfulFactorization
+[       OK ] KktFactorizationTest.InertiaEvidenceAgreesWithTheCachedIntsAfterASuccessfulFactorization (0 ms)
+[ RUN      ] KktFactorizationTest.InertiaEvidenceFollowsTheLastFactorization
+[       OK ] KktFactorizationTest.InertiaEvidenceFollowsTheLastFactorization (0 ms)
+[ RUN      ] KktFactorizationTest.ReleaseAndReconfigureClearTheInertiaEvidence
+[       OK ] KktFactorizationTest.ReleaseAndReconfigureClearTheInertiaEvidence (0 ms)
+[ RUN      ] KktFactorizationTest.AThreadCountChangedAfterTranscriptionStillSolves
+[       OK ] KktFactorizationTest.AThreadCountChangedAfterTranscriptionStillSolves (1 ms)
+[ RUN      ] KktFactorizationTest.MklRejectsBackendMessageOutput
+[       OK ] KktFactorizationTest.MklRejectsBackendMessageOutput (0 ms)
+[ RUN      ] KktFactorizationTest.MklRejectsAnUndocumentedPivotingStrategyCode
+[       OK ] KktFactorizationTest.MklRejectsAnUndocumentedPivotingStrategyCode (0 ms)
+[----------] 17 tests from KktFactorizationTest (3 ms total)
+
+[----------] 2 tests from L1RestoSlackInit
+[ RUN      ] L1RestoSlackInit.TruthTablePositiveNegativeZeroResiduals
+[       OK ] L1RestoSlackInit.TruthTablePositiveNegativeZeroResiduals (0 ms)
+[ RUN      ] L1RestoSlackInit.ZeroResidualEdgeExactValues
+[       OK ] L1RestoSlackInit.ZeroResidualEdgeExactValues (0 ms)
+[----------] 2 tests from L1RestoSlackInit (0 ms total)
+
+[----------] 1 test from L1RestoEntryMu
+[ RUN      ] L1RestoEntryMu.MaxOfOuterMuAndInfinityNormResiduals
+[       OK ] L1RestoEntryMu.MaxOfOuterMuAndInfinityNormResiduals (0 ms)
+[----------] 1 test from L1RestoEntryMu (0 ms total)
+
+[----------] 2 tests from L1RestoDenseOracle
+[ RUN      ] L1RestoDenseOracle.EqualityChannelCondensationMatchesEnlargedSolve
+[       OK ] L1RestoDenseOracle.EqualityChannelCondensationMatchesEnlargedSolve (0 ms)
+[ RUN      ] L1RestoDenseOracle.InequalityChannelCondensationMatchesEnlargedSolve
+[       OK ] L1RestoDenseOracle.InequalityChannelCondensationMatchesEnlargedSolve (0 ms)
+[----------] 2 tests from L1RestoDenseOracle (0 ms total)
+
+[----------] 1 test from L1RestoLiveEta
+[ RUN      ] L1RestoLiveEta.ObjectiveDeltaAcrossMuIsProximalTermOnly
+[       OK ] L1RestoLiveEta.ObjectiveDeltaAcrossMuIsProximalTermOnly (0 ms)
+[----------] 1 test from L1RestoLiveEta (0 ms total)
+
+[----------] 1 test from L1RestoScaling
+[ RUN      ] L1RestoScaling.DrSquaredTruthTable
+[       OK ] L1RestoScaling.DrSquaredTruthTable (0 ms)
+[----------] 1 test from L1RestoScaling (0 ms total)
+
+[----------] 2 tests from L1RestoFractionToBoundary
+[ RUN      ] L1RestoFractionToBoundary.PrimalAndDualCapsMatchTauRule
+[       OK ] L1RestoFractionToBoundary.PrimalAndDualCapsMatchTauRule (0 ms)
+[ RUN      ] L1RestoFractionToBoundary.CapNeverExceedsUnity
+[       OK ] L1RestoFractionToBoundary.CapNeverExceedsUnity (0 ms)
+[----------] 2 tests from L1RestoFractionToBoundary (0 ms total)
+
+[----------] 3 tests from L1RestoStepApplication
+[ RUN      ] L1RestoStepApplication.ApplyMovesSlacksAndUpdatesPivots
+[       OK ] L1RestoStepApplication.ApplyMovesSlacksAndUpdatesPivots (0 ms)
+[ RUN      ] L1RestoStepApplication.TrialResidualShiftIsAlphaBlendedSlackDifference
+[       OK ] L1RestoStepApplication.TrialResidualShiftIsAlphaBlendedSlackDifference (0 ms)
+[ RUN      ] L1RestoStepApplication.TrialObjectiveBlendsSlacksAndProximalTerm
+[       OK ] L1RestoStepApplication.TrialObjectiveBlendsSlacksAndProximalTerm (0 ms)
+[----------] 3 tests from L1RestoStepApplication (0 ms total)
+
+[----------] 2 tests from L1RestoRecenter
+[ RUN      ] L1RestoRecenter.ClosedFormBothChannelsAtNewMuAndResiduals
+[       OK ] L1RestoRecenter.ClosedFormBothChannelsAtNewMuAndResiduals (0 ms)
+[ RUN      ] L1RestoRecenter.ResetClearsRecenterCount
+[       OK ] L1RestoRecenter.ResetClearsRecenterCount (0 ms)
+[----------] 2 tests from L1RestoRecenter (0 ms total)
+
+[----------] 3 tests from L1RestoEntryPermitted
+[ RUN      ] L1RestoEntryPermitted.NearFeasibleGuardBoundary
+[       OK ] L1RestoEntryPermitted.NearFeasibleGuardBoundary (0 ms)
+[ RUN      ] L1RestoEntryPermitted.BudgetExhaustionCountsNestedEntries
+[       OK ] L1RestoEntryPermitted.BudgetExhaustionCountsNestedEntries (0 ms)
+[ RUN      ] L1RestoEntryPermitted.ZeroBudgetAlwaysRefuses
+[       OK ] L1RestoEntryPermitted.ZeroBudgetAlwaysRefuses (0 ms)
+[----------] 3 tests from L1RestoEntryPermitted (0 ms total)
+
+[----------] 2 tests from L1RestoIdentity
+[ RUN      ] L1RestoIdentity.IsNestedTrue
+[       OK ] L1RestoIdentity.IsNestedTrue (0 ms)
+[ RUN      ] L1RestoIdentity.ProximalTrioThrowsForNestedMode
+[       OK ] L1RestoIdentity.ProximalTrioThrowsForNestedMode (0 ms)
+[----------] 2 tests from L1RestoIdentity (0 ms total)
+
+[----------] 1 test from L1RestoLifecycle
+[ RUN      ] L1RestoLifecycle.EnterActivatesExitDeactivates
+[       OK ] L1RestoLifecycle.EnterActivatesExitDeactivates (0 ms)
+[----------] 1 test from L1RestoLifecycle (0 ms total)
+
+[----------] 1 test from L1RestoReset
+[ RUN      ] L1RestoReset.ClearsAllElasticState
+[       OK ] L1RestoReset.ClearsAllElasticState (0 ms)
+[----------] 1 test from L1RestoReset (0 ms total)
+
+[----------] 2 tests from L1RestoDiagnostics
+[ RUN      ] L1RestoDiagnostics.NeverEnteredReportsZeroZero
+[       OK ] L1RestoDiagnostics.NeverEnteredReportsZeroZero (0 ms)
+[ RUN      ] L1RestoDiagnostics.ReportsEntriesAndIterationsInMode
+[       OK ] L1RestoDiagnostics.ReportsEntriesAndIterationsInMode (0 ms)
+[----------] 2 tests from L1RestoDiagnostics (0 ms total)
+
+[----------] 1 test from L1RestoConstants
+[ RUN      ] L1RestoConstants.BoundMultResetThresholdDefault
+[       OK ] L1RestoConstants.BoundMultResetThresholdDefault (0 ms)
+[----------] 1 test from L1RestoConstants (0 ms total)
+
+[----------] 5 tests from WmnoRule
+[ RUN      ] WmnoRule.DescentAcceptsPenaltyUnchanged
+[       OK ] WmnoRule.DescentAcceptsPenaltyUnchanged (0 ms)
+[ RUN      ] WmnoRule.PenaltyBumpThenAccept
+[       OK ] WmnoRule.PenaltyBumpThenAccept (0 ms)
+[ RUN      ] WmnoRule.MeritIncreaseRejects
+[       OK ] WmnoRule.MeritIncreaseRejects (0 ms)
+[ RUN      ] WmnoRule.FeasibleCurrentNoPenaltyUpdate
+[       OK ] WmnoRule.FeasibleCurrentNoPenaltyUpdate (0 ms)
+[ RUN      ] WmnoRule.PenaltyTrajectoryMonotone
+[       OK ] WmnoRule.PenaltyTrajectoryMonotone (0 ms)
+[----------] 5 tests from WmnoRule (0 ms total)
+
+[----------] 4 tests from FlexRule
+[ RUN      ] FlexRule.RegionIIAcceptsAndRaisesPiL
+[       OK ] FlexRule.RegionIIAcceptsAndRaisesPiL (0 ms)
+[ RUN      ] FlexRule.ObjectiveDecreaseAcceptsKeepsPiL
+[       OK ] FlexRule.ObjectiveDecreaseAcceptsKeepsPiL (0 ms)
+[ RUN      ] FlexRule.BothWorseRejects
+[       OK ] FlexRule.BothWorseRejects (0 ms)
+[ RUN      ] FlexRule.PiUpperRaisedWhenChiExceeds
+[       OK ] FlexRule.PiUpperRaisedWhenChiExceeds (0 ms)
+[----------] 4 tests from FlexRule (0 ms total)
+
+[----------] 2 tests from ModernMerit
+[ RUN      ] ModernMerit.ResetClearsPenaltyState
+[       OK ] ModernMerit.ResetClearsPenaltyState (0 ms)
+[ RUN      ] ModernMerit.DrivesGenericPath
+[       OK ] ModernMerit.DrivesGenericPath (0 ms)
+[----------] 2 tests from ModernMerit (0 ms total)
+
+[----------] 11 tests from ModernMeritRestoration
+[ RUN      ] ModernMeritRestoration.SmallestKnownTracksAcceptsNotRejects
+[       OK ] ModernMeritRestoration.SmallestKnownTracksAcceptsNotRejects (0 ms)
+[ RUN      ] ModernMeritRestoration.ExitBoundaryAtRatioTimesSmallestKnown
+[       OK ] ModernMeritRestoration.ExitBoundaryAtRatioTimesSmallestKnown (0 ms)
+[ RUN      ] ModernMeritRestoration.ReferenceArgumentIgnored
+[       OK ] ModernMeritRestoration.ReferenceArgumentIgnored (0 ms)
+[ RUN      ] ModernMeritRestoration.ResetReBasesTrackerToInfinity
+[       OK ] ModernMeritRestoration.ResetReBasesTrackerToInfinity (0 ms)
+[ RUN      ] ModernMeritRestoration.StashFreezeRestore
+[       OK ] ModernMeritRestoration.StashFreezeRestore (0 ms)
+[ RUN      ] ModernMeritRestoration.ExitTestReadsStashedTrackerInPhase
+[       OK ] ModernMeritRestoration.ExitTestReadsStashedTrackerInPhase (0 ms)
+[ RUN      ] ModernMeritRestoration.ResetMidPhasePreservesStash
+[       OK ] ModernMeritRestoration.ResetMidPhasePreservesStash (0 ms)
+[ RUN      ] ModernMeritRestoration.ResetOutsidePhaseDropsStash
+[       OK ] ModernMeritRestoration.ResetOutsidePhaseDropsStash (0 ms)
+[ RUN      ] ModernMeritRestoration.EntryBeforeAnyAcceptStashesInfinity
+[       OK ] ModernMeritRestoration.EntryBeforeAnyAcceptStashesInfinity (0 ms)
+[ RUN      ] ModernMeritRestoration.DoubleEntryThrows
+[       OK ] ModernMeritRestoration.DoubleEntryThrows (0 ms)
+[ RUN      ] ModernMeritRestoration.ExitWithoutEntryThrows
+[       OK ] ModernMeritRestoration.ExitWithoutEntryThrows (0 ms)
+[----------] 11 tests from ModernMeritRestoration (0 ms total)
+
+[----------] 1 test from MonGovErrorNorm
+[ RUN      ] MonGovErrorNorm.MonitorErrorIsSumOfSquaredResiduals
+[       OK ] MonGovErrorNorm.MonitorErrorIsSumOfSquaredResiduals (0 ms)
+[----------] 1 test from MonGovErrorNorm (0 ms total)
+
+[----------] 4 tests from MonGovMonitorWindow
+[ RUN      ] MonGovMonitorWindow.FewerThanFourRefsAlwaysSufficient
+[       OK ] MonGovMonitorWindow.FewerThanFourRefsAlwaysSufficient (0 ms)
+[ RUN      ] MonGovMonitorWindow.SufficientDecreaseBoundary
+[       OK ] MonGovMonitorWindow.SufficientDecreaseBoundary (0 ms)
+[ RUN      ] MonGovMonitorWindow.NonmonotoneAnyReferenceSatisfies
+[       OK ] MonGovMonitorWindow.NonmonotoneAnyReferenceSatisfies (0 ms)
+[ RUN      ] MonGovMonitorWindow.ReferenceListFifoCapAtFour
+[       OK ] MonGovMonitorWindow.ReferenceListFifoCapAtFour (0 ms)
+[----------] 4 tests from MonGovMonitorWindow (0 ms total)
+
+[----------] 2 tests from MonGovHandoff
+[ RUN      ] MonGovHandoff.MuIsPointEightTimesAvgComp
+[       OK ] MonGovHandoff.MuIsPointEightTimesAvgComp (0 ms)
+[ RUN      ] MonGovHandoff.DecideSwitchesToMonotoneOnMonitorFailure
+[       OK ] MonGovHandoff.DecideSwitchesToMonotoneOnMonitorFailure (0 ms)
+[----------] 2 tests from MonGovHandoff (0 ms total)
+
+[----------] 3 tests from MonGovFiaccoMcCormick
+[ RUN      ] MonGovFiaccoMcCormick.SequenceHandComputed
+[       OK ] MonGovFiaccoMcCormick.SequenceHandComputed (0 ms)
+[ RUN      ] MonGovFiaccoMcCormick.FloorClampsTinyMu
+[       OK ] MonGovFiaccoMcCormick.FloorClampsTinyMu (0 ms)
+[ RUN      ] MonGovFiaccoMcCormick.GateBlocksAdvanceUntilSubproblemConverged
+[       OK ] MonGovFiaccoMcCormick.GateBlocksAdvanceUntilSubproblemConverged (0 ms)
+[----------] 3 tests from MonGovFiaccoMcCormick (0 ms total)
+
+[----------] 1 test from MonGovReentry
+[ RUN      ] MonGovReentry.ReturnsToFreeWhenErrorReentersBand
+[       OK ] MonGovReentry.ReturnsToFreeWhenErrorReentersBand (0 ms)
+[----------] 1 test from MonGovReentry (0 ms total)
+
+[----------] 2 tests from MonGovMuEvent
+[ RUN      ] MonGovMuEvent.StayingFreeDoesNotFire
+[       OK ] MonGovMuEvent.StayingFreeDoesNotFire (0 ms)
+[ RUN      ] MonGovMuEvent.HoldingMonotoneDoesNotFire
+[       OK ] MonGovMuEvent.HoldingMonotoneDoesNotFire (0 ms)
+[----------] 2 tests from MonGovMuEvent (0 ms total)
+
+[----------] 1 test from MonGovReset
+[ RUN      ] MonGovReset.ClearsAllState
+[       OK ] MonGovReset.ClearsAllState (0 ms)
+[----------] 1 test from MonGovReset (0 ms total)
+
+[----------] 1 test from MonGovDelegation
+[ RUN      ] MonGovDelegation.FreeModeForwardsToDelegateVerbatim
+[       OK ] MonGovDelegation.FreeModeForwardsToDelegateVerbatim (0 ms)
+[----------] 1 test from MonGovDelegation (0 ms total)
+
+[----------] 2 tests from MonGovSequence
+[ RUN      ] MonGovSequence.SufficientProgressVerdictFlipsWithPassedCurrent
+[       OK ] MonGovSequence.SufficientProgressVerdictFlipsWithPassedCurrent (0 ms)
+[ RUN      ] MonGovSequence.FiaccoMcCormickGateAdvancesOnSatisfyingCall
+[       OK ] MonGovSequence.FiaccoMcCormickGateAdvancesOnSatisfyingCall (0 ms)
+[----------] 2 tests from MonGovSequence (0 ms total)
+
+[----------] 4 tests from MonGovMonotoneSchedule
+[ RUN      ] MonGovMonotoneSchedule.AdvancesAndFlagsTheEventWhenTheSubproblemIsSolved
+[       OK ] MonGovMonotoneSchedule.AdvancesAndFlagsTheEventWhenTheSubproblemIsSolved (0 ms)
+[ RUN      ] MonGovMonotoneSchedule.HoldsMuWhileTheSubproblemIsUnsolved
+[       OK ] MonGovMonotoneSchedule.HoldsMuWhileTheSubproblemIsUnsolved (0 ms)
+[ RUN      ] MonGovMonotoneSchedule.AFlooredMuIsHeldRatherThanReAdvanced
+[       OK ] MonGovMonotoneSchedule.AFlooredMuIsHeldRatherThanReAdvanced (0 ms)
+[ RUN      ] MonGovMonotoneSchedule.EveryGovernorRunsTheSameSharedSchedule
+[       OK ] MonGovMonotoneSchedule.EveryGovernorRunsTheSameSharedSchedule (0 ms)
+[----------] 4 tests from MonGovMonotoneSchedule (0 ms total)
+
+[----------] 2 tests from NLPRowClassificationTest
+[ RUN      ] NLPRowClassificationTest.ClassifiesAllRowKindsAndCounts
+[       OK ] NLPRowClassificationTest.ClassifiesAllRowKindsAndCounts (0 ms)
+[ RUN      ] NLPRowClassificationTest.RejectsInvertedAndNaNAndInfiniteEqualityBounds
+[       OK ] NLPRowClassificationTest.RejectsInvertedAndNaNAndInfiniteEqualityBounds (0 ms)
+[----------] 2 tests from NLPRowClassificationTest (0 ms total)
+
+[----------] 3 tests from NLPAdapterCoreTest
+[ RUN      ] NLPAdapterCoreTest.ValidSetupPopulatesTables
+[       OK ] NLPAdapterCoreTest.ValidSetupPopulatesTables (0 ms)
+[ RUN      ] NLPAdapterCoreTest.RejectsBadSizesAndStructures
+[       OK ] NLPAdapterCoreTest.RejectsBadSizesAndStructures (0 ms)
+[ RUN      ] NLPAdapterCoreTest.HessianOwnerFallsBackToEqThenObjective
+[       OK ] NLPAdapterCoreTest.HessianOwnerFallsBackToEqThenObjective (0 ms)
+[----------] 3 tests from NLPAdapterCoreTest (0 ms total)
+
+[----------] 6 tests from NLPAdapterAssemblyTest
+[ RUN      ] NLPAdapterAssemblyTest.KktMatchesDenseReferenceAndCallbacksAreCounted
+[       OK ] NLPAdapterAssemblyTest.KktMatchesDenseReferenceAndCallbacksAreCounted (0 ms)
+[ RUN      ] NLPAdapterAssemblyTest.ShortEqualityMultiplierBlockIsRefusedBeforeItIsRead
+[       OK ] NLPAdapterAssemblyTest.ShortEqualityMultiplierBlockIsRefusedBeforeItIsRead (0 ms)
+[ RUN      ] NLPAdapterAssemblyTest.ShortNonEmptyEqualityMultiplierBlockIsRefusedBeforeItIsRead
+[       OK ] NLPAdapterAssemblyTest.ShortNonEmptyEqualityMultiplierBlockIsRefusedBeforeItIsRead (0 ms)
+[ RUN      ] NLPAdapterAssemblyTest.NoObjectiveChainUsesZeroObjFactorConsumeOnce
+[       OK ] NLPAdapterAssemblyTest.NoObjectiveChainUsesZeroObjFactorConsumeOnce (0 ms)
+[ RUN      ] NLPAdapterAssemblyTest.AbortedAssemblyDoesNotLeakStalePendingRecords
+[       OK ] NLPAdapterAssemblyTest.AbortedAssemblyDoesNotLeakStalePendingRecords (0 ms)
+[ RUN      ] NLPAdapterAssemblyTest.RangeRowScattersDuplicatedJacobianAndComposedLambdaHessian
+[       OK ] NLPAdapterAssemblyTest.RangeRowScattersDuplicatedJacobianAndComposedLambdaHessian (0 ms)
+[----------] 6 tests from NLPAdapterAssemblyTest (1 ms total)
+
+[----------] 11 tests from NlpAggregateEngineContract
+[ RUN      ] NlpAggregateEngineContract.EveryRequestReproducesTheEntryPointItReplaces
+[       OK ] NlpAggregateEngineContract.EveryRequestReproducesTheEntryPointItReplaces (0 ms)
+[ RUN      ] NlpAggregateEngineContract.ShapesFiveAndSevenLeaveTheirZeroArenasEmpty
+[       OK ] NlpAggregateEngineContract.ShapesFiveAndSevenLeaveTheirZeroArenasEmpty (0 ms)
+[ RUN      ] NlpAggregateEngineContract.AnEqualityOnlyModelEvaluatesValuesThroughTheContract
+[       OK ] NlpAggregateEngineContract.AnEqualityOnlyModelEvaluatesValuesThroughTheContract (0 ms)
+[ RUN      ] NlpAggregateEngineContract.AnInequalityOnlyModelEvaluatesValuesThroughTheContract
+[       OK ] NlpAggregateEngineContract.AnInequalityOnlyModelEvaluatesValuesThroughTheContract (0 ms)
+[ RUN      ] NlpAggregateEngineContract.AnUnmappedRequestIsRefusedAtTheEngineEntry
+[       OK ] NlpAggregateEngineContract.AnUnmappedRequestIsRefusedAtTheEngineEntry (0 ms)
+[ RUN      ] NlpAggregateEngineContract.ALegalLagrangianHessianRequestIsRefusedByName
+[       OK ] NlpAggregateEngineContract.ALegalLagrangianHessianRequestIsRefusedByName (0 ms)
+[ RUN      ] NlpAggregateEngineContract.ALegalGradientAndJacobiansRequestIsRefusedByName
+[       OK ] NlpAggregateEngineContract.ALegalGradientAndJacobiansRequestIsRefusedByName (0 ms)
+[ RUN      ] NlpAggregateEngineContract.ALegalConstraintJacobiansOnlyRequestIsRefusedByName
+[       OK ] NlpAggregateEngineContract.ALegalConstraintJacobiansOnlyRequestIsRefusedByName (0 ms)
+[ RUN      ] NlpAggregateEngineContract.TheFullKktShapeStillRunsAfterTheExplicitArm
+[       OK ] NlpAggregateEngineContract.TheFullKktShapeStillRunsAfterTheExplicitArm (0 ms)
+[ RUN      ] NlpAggregateEngineContract.AShortGradientViewIsRefusedByTheProvider
+[       OK ] NlpAggregateEngineContract.AShortGradientViewIsRefusedByTheProvider (0 ms)
+[ RUN      ] NlpAggregateEngineContract.ADoublyInvalidCallReportsTheLaidWidthFirst
+[       OK ] NlpAggregateEngineContract.ADoublyInvalidCallReportsTheLaidWidthFirst (0 ms)
+[----------] 11 tests from NlpAggregateEngineContract (2 ms total)
+
+[----------] 5 tests from NlpAggregateEngineEpoch
+[ RUN      ] NlpAggregateEngineEpoch.EveryRelayBumpsAndTheBumpPrecedesTheNewStructures
+[       OK ] NlpAggregateEngineEpoch.EveryRelayBumpsAndTheBumpPrecedesTheNewStructures (0 ms)
+[ RUN      ] NlpAggregateEngineEpoch.AnEvaluationNeverRunsUnderAStaleEpoch
+[       OK ] NlpAggregateEngineEpoch.AnEvaluationNeverRunsUnderAStaleEpoch (0 ms)
+[ RUN      ] NlpAggregateEngineEpoch.ARejectedReconfigurationThatRelaidBumpsToo
+[       OK ] NlpAggregateEngineEpoch.ARejectedReconfigurationThatRelaidBumpsToo (0 ms)
+[ RUN      ] NlpAggregateEngineEpoch.ARejectionThatTouchedNoLayoutDoesNotBump
+[       OK ] NlpAggregateEngineEpoch.ARejectionThatTouchedNoLayoutDoesNotBump (0 ms)
+[ RUN      ] NlpAggregateEngineEpoch.AnInvalidStagedRecordCannotBreakARenegotiation
+[       OK ] NlpAggregateEngineEpoch.AnInvalidStagedRecordCannotBreakARenegotiation (0 ms)
+[----------] 5 tests from NlpAggregateEngineEpoch (1 ms total)
+
+[----------] 4 tests from NlpAggregateEngineKey
+[ RUN      ] NlpAggregateEngineKey.TheKeySurvivesTheSparsityAnalysis
+[       OK ] NlpAggregateEngineKey.TheKeySurvivesTheSparsityAnalysis (0 ms)
+[ RUN      ] NlpAggregateEngineKey.DroppingStagedBoundsDoesNotMoveTheKeyUntilTheNextLay
+[       OK ] NlpAggregateEngineKey.DroppingStagedBoundsDoesNotMoveTheKeyUntilTheNextLay (0 ms)
+[ RUN      ] NlpAggregateEngineKey.ABoundThatFixesAVariableKeysDifferentlyFromOneThatDoesNot
+[       OK ] NlpAggregateEngineKey.ABoundThatFixesAVariableKeysDifferentlyFromOneThatDoesNot (0 ms)
+[ RUN      ] NlpAggregateEngineKey.StagingABoundThenConfiguringATreatmentDoesNotMoveTheBoundDigest
+[       OK ] NlpAggregateEngineKey.StagingABoundThenConfiguringATreatmentDoesNotMoveTheBoundDigest (0 ms)
+[----------] 4 tests from NlpAggregateEngineKey (0 ms total)
+
+[----------] 9 tests from NlpAggregateEngineLayout
+[ RUN      ] NlpAggregateEngineLayout.TheSameDeclarationLaysTheSameLayoutTwice
+[       OK ] NlpAggregateEngineLayout.TheSameDeclarationLaysTheSameLayoutTwice (0 ms)
+[ RUN      ] NlpAggregateEngineLayout.TheStructuralKeyIsTheSameBeforeAndAfterSparsityAnalysis
+[       OK ] NlpAggregateEngineLayout.TheStructuralKeyIsTheSameBeforeAndAfterSparsityAnalysis (0 ms)
+[ RUN      ] NlpAggregateEngineLayout.ARelayIsFullyVisibleThroughASecondDeclarationRead
+[       OK ] NlpAggregateEngineLayout.ARelayIsFullyVisibleThroughASecondDeclarationRead (0 ms)
+[ RUN      ] NlpAggregateEngineLayout.MutatingTheMasterListsAfterALayIsRefusedByName
+[       OK ] NlpAggregateEngineLayout.MutatingTheMasterListsAfterALayIsRefusedByName (0 ms)
+[ RUN      ] NlpAggregateEngineLayout.AFailedRelayNeverLeavesAMixedDeclaration
+[       OK ] NlpAggregateEngineLayout.AFailedRelayNeverLeavesAMixedDeclaration (0 ms)
+[ RUN      ] NlpAggregateEngineLayout.AFailedRelayAfterTheMasterListsMovedIsRefusedNotServed
+[       OK ] NlpAggregateEngineLayout.AFailedRelayAfterTheMasterListsMovedIsRefusedNotServed (0 ms)
+[ RUN      ] NlpAggregateEngineLayout.TheMasterListGuardFiresAfterTheCopyIsAlreadyDischarged
+[       OK ] NlpAggregateEngineLayout.TheMasterListGuardFiresAfterTheCopyIsAlreadyDischarged (0 ms)
+[ RUN      ] NlpAggregateEngineLayout.AnAggregateThatWasNeverLaidIsNotCheckedAgainstALayout
+[       OK ] NlpAggregateEngineLayout.AnAggregateThatWasNeverLaidIsNotCheckedAgainstALayout (0 ms)
+[ RUN      ] NlpAggregateEngineLayout.TheEvaluationThreadCountDecidesNoPartOfTheLayout
+[       OK ] NlpAggregateEngineLayout.TheEvaluationThreadCountDecidesNoPartOfTheLayout (1 ms)
+[----------] 9 tests from NlpAggregateEngineLayout (3 ms total)
+
+[----------] 4 tests from NlpAggregateEnginePartitions
+[ RUN      ] NlpAggregateEnginePartitions.ARenegotiationReportsWhatItAdoptedAndRelays
+[       OK ] NlpAggregateEnginePartitions.ARenegotiationReportsWhatItAdoptedAndRelays (6 ms)
+[ RUN      ] NlpAggregateEnginePartitions.NoClaimIsRenumberedByARenegotiation
+[       OK ] NlpAggregateEnginePartitions.NoClaimIsRenumberedByARenegotiation (18 ms)
+[ RUN      ] NlpAggregateEnginePartitions.TheRightHandSideIsBitStableAcrossPartitionCounts
+[       OK ] NlpAggregateEnginePartitions.TheRightHandSideIsBitStableAcrossPartitionCounts (14 ms)
+[ RUN      ] NlpAggregateEnginePartitions.ANonPositivePartitionCountIsRefused
+[       OK ] NlpAggregateEnginePartitions.ANonPositivePartitionCountIsRefused (0 ms)
+[----------] 4 tests from NlpAggregateEnginePartitions (40 ms total)
+
+[----------] 4 tests from NlpAggregateEngineBinding
+[ RUN      ] NlpAggregateEngineBinding.TheAnalysisBindsTheTablesAndTheEntryChecksTheView
+[       OK ] NlpAggregateEngineBinding.TheAnalysisBindsTheTablesAndTheEntryChecksTheView (0 ms)
+[ RUN      ] NlpAggregateEngineBinding.ARelayDropsTheBindingBecauseItDropsTheOffsets
+[       OK ] NlpAggregateEngineBinding.ARelayDropsTheBindingBecauseItDropsTheOffsets (0 ms)
+[ RUN      ] NlpAggregateEngineBinding.SolverCoefficientBlocksAgainstPieceClaims
+[       OK ] NlpAggregateEngineBinding.SolverCoefficientBlocksAgainstPieceClaims (0 ms)
+[ RUN      ] NlpAggregateEngineBinding.RePatterningTheAnalysedMatrixIsCaughtAsAStaleTable
+[       OK ] NlpAggregateEngineBinding.RePatterningTheAnalysedMatrixIsCaughtAsAStaleTable (0 ms)
+[----------] 4 tests from NlpAggregateEngineBinding (0 ms total)
+
+[----------] 4 tests from NlpAggregateEngineCandidate
+[ RUN      ] NlpAggregateEngineCandidate.TheEntriesAssignRatherThanAccumulate
+[       OK ] NlpAggregateEngineCandidate.TheEntriesAssignRatherThanAccumulate (0 ms)
+[ RUN      ] NlpAggregateEngineCandidate.TheSurfaceIsInDeclarationSpaceWhateverTheTreatment
+[       OK ] NlpAggregateEngineCandidate.TheSurfaceIsInDeclarationSpaceWhateverTheTreatment (0 ms)
+[ RUN      ] NlpAggregateEngineCandidate.TheProbePairsTheEpochWithTheValuesAtThePoint
+[       OK ] NlpAggregateEngineCandidate.TheProbePairsTheEpochWithTheValuesAtThePoint (0 ms)
+[ RUN      ] NlpAggregateEngineCandidate.TheScorerExclusionSetIsComputableFromTheDeclarationAlone
+[       OK ] NlpAggregateEngineCandidate.TheScorerExclusionSetIsComputableFromTheDeclarationAlone (0 ms)
+[----------] 4 tests from NlpAggregateEngineCandidate (1 ms total)
+
+[----------] 5 tests from NlpAggregateEngineDeclaration
+[ RUN      ] NlpAggregateEngineDeclaration.ItDescribesTheStructuresOnHandAndIsStoredState
+[       OK ] NlpAggregateEngineDeclaration.ItDescribesTheStructuresOnHandAndIsStoredState (0 ms)
+[ RUN      ] NlpAggregateEngineDeclaration.ObjectivePiecesAloneMakeADeclarationPieceSourced
+[       OK ] NlpAggregateEngineDeclaration.ObjectivePiecesAloneMakeADeclarationPieceSourced (0 ms)
+[ RUN      ] NlpAggregateEngineDeclaration.APieceSourcedDeclarationStillFailsOnABadRowSum
+[       OK ] NlpAggregateEngineDeclaration.APieceSourcedDeclarationStillFailsOnABadRowSum (0 ms)
+[ RUN      ] NlpAggregateEngineDeclaration.StagingABoundChangesNothingUntilItIsMaterialized
+[       OK ] NlpAggregateEngineDeclaration.StagingABoundChangesNothingUntilItIsMaterialized (0 ms)
+[ RUN      ] NlpAggregateEngineDeclaration.DeclaredRowIdentitiesSurviveATreatmentReconfiguration
+[       OK ] NlpAggregateEngineDeclaration.DeclaredRowIdentitiesSurviveATreatmentReconfiguration (0 ms)
+[----------] 5 tests from NlpAggregateEngineDeclaration (0 ms total)
+
+[----------] 1 test from NlpAggregateEngineCapabilities
+[ RUN      ] NlpAggregateEngineCapabilities.TheValuesFastPathIsDeclaredAndDirectScatterIsNot
+[       OK ] NlpAggregateEngineCapabilities.TheValuesFastPathIsDeclaredAndDirectScatterIsNot (0 ms)
+[----------] 1 test from NlpAggregateEngineCapabilities (0 ms total)
+
+[----------] 1 test from NlpAggregateConsumerViews
+[ RUN      ] NlpAggregateConsumerViews.BuildersAddressExactlyTheLegacySegments
+[       OK ] NlpAggregateConsumerViews.BuildersAddressExactlyTheLegacySegments (0 ms)
+[----------] 1 test from NlpAggregateConsumerViews (0 ms total)
+
+[----------] 6 tests from AcceptanceDiagnostics
+[ RUN      ] AcceptanceDiagnostics.DefaultIsNoop
+[       OK ] AcceptanceDiagnostics.DefaultIsNoop (0 ms)
+[ RUN      ] AcceptanceDiagnostics.FakeStrategyOverrideIsInvoked
+[       OK ] AcceptanceDiagnostics.FakeStrategyOverrideIsInvoked (0 ms)
+[ RUN      ] AcceptanceDiagnostics.FunnelReportsWidth
+[       OK ] AcceptanceDiagnostics.FunnelReportsWidth (0 ms)
+[ RUN      ] AcceptanceDiagnostics.DiagFunnelUninitializedWidthSentinel
+[       OK ] AcceptanceDiagnostics.DiagFunnelUninitializedWidthSentinel (0 ms)
+[ RUN      ] AcceptanceDiagnostics.FilterReportsSizeAndResets
+[       OK ] AcceptanceDiagnostics.FilterReportsSizeAndResets (0 ms)
+[ RUN      ] AcceptanceDiagnostics.ADefaultResultCarriesTheSentinels
+[       OK ] AcceptanceDiagnostics.ADefaultResultCarriesTheSentinels (0 ms)
+[----------] 6 tests from AcceptanceDiagnostics (0 ms total)
+
+[----------] 2 tests from NlpAdapterAllocationTest
+[ RUN      ] NlpAdapterAllocationTest.TheCounterSeesEachInterposedAllocator
+[       OK ] NlpAdapterAllocationTest.TheCounterSeesEachInterposedAllocator (0 ms)
+[ RUN      ] NlpAdapterAllocationTest.AWarmAssemblyAllocatesNothing
+[       OK ] NlpAdapterAllocationTest.AWarmAssemblyAllocatesNothing (0 ms)
+[----------] 2 tests from NlpAdapterAllocationTest (0 ms total)
+
+[----------] 4 tests from ClassicMeritRestoration
+[ RUN      ] ClassicMeritRestoration.RelativeFloorBoundary
+[       OK ] ClassicMeritRestoration.RelativeFloorBoundary (0 ms)
+[ RUN      ] ClassicMeritRestoration.ToleranceFloorWaivesRelativeWhenRefTiny
+[       OK ] ClassicMeritRestoration.ToleranceFloorWaivesRelativeWhenRefTiny (0 ms)
+[ RUN      ] ClassicMeritRestoration.FloorTracksSettingsEconTol
+[       OK ] ClassicMeritRestoration.FloorTracksSettingsEconTol (0 ms)
+[ RUN      ] ClassicMeritRestoration.TheGenericAcceptanceQuestionIsRefusedNotAnswered
+[       OK ] ClassicMeritRestoration.TheGenericAcceptanceQuestionIsRefusedNotAnswered (0 ms)
+[----------] 4 tests from ClassicMeritRestoration (0 ms total)
+
+[----------] 25 tests from FilterAcceptance
+[ RUN      ] FilterAcceptance.FilterEmptyBeforeFirstAccept
+[       OK ] FilterAcceptance.FilterEmptyBeforeFirstAccept (0 ms)
+[ RUN      ] FilterAcceptance.AcceptableToCurrentThetaMarginAccepts
+[       OK ] FilterAcceptance.AcceptableToCurrentThetaMarginAccepts (0 ms)
+[ RUN      ] FilterAcceptance.AcceptableToCurrentPhiMarginAccepts
+[       OK ] FilterAcceptance.AcceptableToCurrentPhiMarginAccepts (0 ms)
+[ RUN      ] FilterAcceptance.AcceptableToCurrentBothMarginsFailRejects
+[       OK ] FilterAcceptance.AcceptableToCurrentBothMarginsFailRejects (0 ms)
+[ RUN      ] FilterAcceptance.AcceptableToCurrentThetaBoundaryInclusive
+[       OK ] FilterAcceptance.AcceptableToCurrentThetaBoundaryInclusive (0 ms)
+[ RUN      ] FilterAcceptance.BarrierCeilingRejectsLargeIncrease
+[       OK ] FilterAcceptance.BarrierCeilingRejectsLargeIncrease (0 ms)
+[ RUN      ] FilterAcceptance.BarrierCeilingPassesModerateIncrease
+[       OK ] FilterAcceptance.BarrierCeilingPassesModerateIncrease (0 ms)
+[ RUN      ] FilterAcceptance.BarrierCeilingBasvalScalesWithReference
+[       OK ] FilterAcceptance.BarrierCeilingBasvalScalesWithReference (0 ms)
+[ RUN      ] FilterAcceptance.AugmentStoresExactMarginedPair
+[       OK ] FilterAcceptance.AugmentStoresExactMarginedPair (0 ms)
+[ RUN      ] FilterAcceptance.FilterEntryBlocksDominatedTrial
+[       OK ] FilterAcceptance.FilterEntryBlocksDominatedTrial (0 ms)
+[ RUN      ] FilterAcceptance.FilterEntryAllowsTrialBelowInOneCoordinate
+[       OK ] FilterAcceptance.FilterEntryAllowsTrialBelowInOneCoordinate (0 ms)
+[ RUN      ] FilterAcceptance.FilterDominanceBoundaryInclusive
+[       OK ] FilterAcceptance.FilterDominanceBoundaryInclusive (0 ms)
+[ RUN      ] FilterAcceptance.AugmentPrunesDominatedEntries
+[       OK ] FilterAcceptance.AugmentPrunesDominatedEntries (0 ms)
+[ RUN      ] FilterAcceptance.AugmentKeepsNonDominatedEntries
+[       OK ] FilterAcceptance.AugmentKeepsNonDominatedEntries (0 ms)
+[ RUN      ] FilterAcceptance.FTypeAcceptDoesNotAugment
+[       OK ] FilterAcceptance.FTypeAcceptDoesNotAugment (0 ms)
+[ RUN      ] FilterAcceptance.ThetaMaxCeilingRejectsBeforeFilter
+[       OK ] FilterAcceptance.ThetaMaxCeilingRejectsBeforeFilter (0 ms)
+[ RUN      ] FilterAcceptance.MultipleFilterRejectionsBeforeAcceptCountOnce
+[       OK ] FilterAcceptance.MultipleFilterRejectionsBeforeAcceptCountOnce (0 ms)
+[ RUN      ] FilterAcceptance.ArmijoLastRejectionZeroesStreakOnAccept
+[       OK ] FilterAcceptance.ArmijoLastRejectionZeroesStreakOnAccept (0 ms)
+[ RUN      ] FilterAcceptance.AttributionFailsBothHTypeZeroesStreak
+[       OK ] FilterAcceptance.AttributionFailsBothHTypeZeroesStreak (0 ms)
+[ RUN      ] FilterAcceptance.AttributionFailsMembershipOnlyHTypeIncrementsStreak
+[       OK ] FilterAcceptance.AttributionFailsMembershipOnlyHTypeIncrementsStreak (0 ms)
+[ RUN      ] FilterAcceptance.AttributionFailsBothFTypeZeroesStreak
+[       OK ] FilterAcceptance.AttributionFailsBothFTypeZeroesStreak (0 ms)
+[ RUN      ] FilterAcceptance.AttributionFailsMembershipOnlyFTypeIncrementsStreak
+[       OK ] FilterAcceptance.AttributionFailsMembershipOnlyFTypeIncrementsStreak (0 ms)
+[ RUN      ] FilterAcceptance.FiveFilterCausedIterationsClearFilter
+[       OK ] FilterAcceptance.FiveFilterCausedIterationsClearFilter (0 ms)
+[ RUN      ] FilterAcceptance.ResetCapNeverExceeded
+[       OK ] FilterAcceptance.ResetCapNeverExceeded (0 ms)
+[ RUN      ] FilterAcceptance.ResetClearsEverythingAndReArms
+[       OK ] FilterAcceptance.ResetClearsEverythingAndReArms (0 ms)
+[----------] 25 tests from FilterAcceptance (0 ms total)
+
+[----------] 10 tests from FilterRestoration
+[ RUN      ] FilterRestoration.ExitAllClausesPassRelativeFloorDominates
+[       OK ] FilterRestoration.ExitAllClausesPassRelativeFloorDominates (0 ms)
+[ RUN      ] FilterRestoration.ExitRelativeFloorRejects
+[       OK ] FilterRestoration.ExitRelativeFloorRejects (0 ms)
+[ RUN      ] FilterRestoration.ExitToleranceFloorWaivesRelativeWhenRefTiny
+[       OK ] FilterRestoration.ExitToleranceFloorWaivesRelativeWhenRefTiny (0 ms)
+[ RUN      ] FilterRestoration.ExitTinyInjectedTolDoesNotWaive
+[       OK ] FilterRestoration.ExitTinyInjectedTolDoesNotWaive (0 ms)
+[ RUN      ] FilterRestoration.ExitStashedFilterRejectsOtherwisePassingTrial
+[       OK ] FilterRestoration.ExitStashedFilterRejectsOtherwisePassingTrial (0 ms)
+[ RUN      ] FilterRestoration.StashRestoreRoundTrip
+[       OK ] FilterRestoration.StashRestoreRoundTrip (0 ms)
+[ RUN      ] FilterRestoration.EntryWithoutInterveningExitThrows
+[       OK ] FilterRestoration.EntryWithoutInterveningExitThrows (0 ms)
+[ RUN      ] FilterRestoration.ExitWithoutPrecedingEntryThrows
+[       OK ] FilterRestoration.ExitWithoutPrecedingEntryThrows (0 ms)
+[ RUN      ] FilterRestoration.ResetDuringFeasibilityPreservesStash
+[       OK ] FilterRestoration.ResetDuringFeasibilityPreservesStash (0 ms)
+[ RUN      ] FilterRestoration.ResetOutsidePhaseClearsLeftoverStash
+[       OK ] FilterRestoration.ResetOutsidePhaseClearsLeftoverStash (0 ms)
+[----------] 10 tests from FilterRestoration (0 ms total)
+
+[----------] 28 tests from FunnelAcceptance
+[ RUN      ] FunnelAcceptance.InitWidthMultiplierBranch
+[       OK ] FunnelAcceptance.InitWidthMultiplierBranch (0 ms)
+[ RUN      ] FunnelAcceptance.InitWidthFloorBranch
+[       OK ] FunnelAcceptance.InitWidthFloorBranch (0 ms)
+[ RUN      ] FunnelAcceptance.WidthUninitializedBeforeFirstCall
+[       OK ] FunnelAcceptance.WidthUninitializedBeforeFirstCall (0 ms)
+[ RUN      ] FunnelAcceptance.TrialInsideFunnelSufficientDecreaseAccepts
+[       OK ] FunnelAcceptance.TrialInsideFunnelSufficientDecreaseAccepts (0 ms)
+[ RUN      ] FunnelAcceptance.TrialOutsideFunnelRejectsAndLeavesWidth
+[       OK ] FunnelAcceptance.TrialOutsideFunnelRejectsAndLeavesWidth (0 ms)
+[ RUN      ] FunnelAcceptance.SufficientDecreaseBoundaryPasses
+[       OK ] FunnelAcceptance.SufficientDecreaseBoundaryPasses (0 ms)
+[ RUN      ] FunnelAcceptance.SufficientDecreaseBoundaryFailsJustAbove
+[       OK ] FunnelAcceptance.SufficientDecreaseBoundaryFailsJustAbove (0 ms)
+[ RUN      ] FunnelAcceptance.WidthUpdateFloorDominates
+[       OK ] FunnelAcceptance.WidthUpdateFloorDominates (0 ms)
+[ RUN      ] FunnelAcceptance.WidthUpdateConvexCombinationDominates
+[       OK ] FunnelAcceptance.WidthUpdateConvexCombinationDominates (0 ms)
+[ RUN      ] FunnelAcceptance.WidthUpdateTrialAboveCurrentUsesFloor
+[       OK ] FunnelAcceptance.WidthUpdateTrialAboveCurrentUsesFloor (0 ms)
+[ RUN      ] FunnelAcceptance.WidthUpdateReWidensWhenCurrentIterateOutsideFunnel
+[       OK ] FunnelAcceptance.WidthUpdateReWidensWhenCurrentIterateOutsideFunnel (0 ms)
+[ RUN      ] FunnelAcceptance.FTypeAcceptLeavesWidthUnchanged
+[       OK ] FunnelAcceptance.FTypeAcceptLeavesWidthUnchanged (0 ms)
+[ RUN      ] FunnelAcceptance.MembershipRejectsFTypeTrialOutsideFunnel
+[       OK ] FunnelAcceptance.MembershipRejectsFTypeTrialOutsideFunnel (0 ms)
+[ RUN      ] FunnelAcceptance.ResetReDerivesWidthFromNewThetaZero
+[       OK ] FunnelAcceptance.ResetReDerivesWidthFromNewThetaZero (0 ms)
+[ RUN      ] FunnelAcceptance.WidthMonotoneNonIncreasingAcrossSequence
+[       OK ] FunnelAcceptance.WidthMonotoneNonIncreasingAcrossSequence (0 ms)
+[ RUN      ] FunnelAcceptance.ExitTestBothHalvesPass
+[       OK ] FunnelAcceptance.ExitTestBothHalvesPass (0 ms)
+[ RUN      ] FunnelAcceptance.ExitTestMembershipHalfRejects
+[       OK ] FunnelAcceptance.ExitTestMembershipHalfRejects (0 ms)
+[ RUN      ] FunnelAcceptance.ExitTestRelativeHalfRejects
+[       OK ] FunnelAcceptance.ExitTestRelativeHalfRejects (0 ms)
+[ RUN      ] FunnelAcceptance.ExitTestRelativeBoundaryInclusive
+[       OK ] FunnelAcceptance.ExitTestRelativeBoundaryInclusive (0 ms)
+[ RUN      ] FunnelAcceptance.NotifySwitchToFeasibilityStashesWidth
+[       OK ] FunnelAcceptance.NotifySwitchToFeasibilityStashesWidth (0 ms)
+[ RUN      ] FunnelAcceptance.NotifySwitchToOptimalityReBasesRestoredWidth
+[       OK ] FunnelAcceptance.NotifySwitchToOptimalityReBasesRestoredWidth (0 ms)
+[ RUN      ] FunnelAcceptance.NotifySwitchToOptimalityAllowsReWidening
+[       OK ] FunnelAcceptance.NotifySwitchToOptimalityAllowsReWidening (0 ms)
+[ RUN      ] FunnelAcceptance.ExitTestReadsStashedWidthInPhase
+[       OK ] FunnelAcceptance.ExitTestReadsStashedWidthInPhase (0 ms)
+[ RUN      ] FunnelAcceptance.ResetMidPhasePreservesStashedWidth
+[       OK ] FunnelAcceptance.ResetMidPhasePreservesStashedWidth (0 ms)
+[ RUN      ] FunnelAcceptance.ResetOutsidePhaseDropsStashedWidth
+[       OK ] FunnelAcceptance.ResetOutsidePhaseDropsStashedWidth (0 ms)
+[ RUN      ] FunnelAcceptance.EntryBeforeFirstCallStashesInfinityExitStaysWide
+[       OK ] FunnelAcceptance.EntryBeforeFirstCallStashesInfinityExitStaysWide (0 ms)
+[ RUN      ] FunnelAcceptance.DoubleEntryThrows
+[       OK ] FunnelAcceptance.DoubleEntryThrows (0 ms)
+[ RUN      ] FunnelAcceptance.ExitWithoutEntryThrows
+[       OK ] FunnelAcceptance.ExitWithoutEntryThrows (0 ms)
+[----------] 28 tests from FunnelAcceptance (0 ms total)
+
+[----------] 1 test from InteriorPointSolverPresetsTest
+[ RUN      ] InteriorPointSolverPresetsTest.PresetGateClassicMatchesFreshDefaultSettings
+[       OK ] InteriorPointSolverPresetsTest.PresetGateClassicMatchesFreshDefaultSettings (0 ms)
+[----------] 1 test from InteriorPointSolverPresetsTest (0 ms total)
+
+[----------] 29 tests from IpmSolverEntry
+[ RUN      ] IpmSolverEntry.Hs071ConvergesToKnownOptimum
+[       OK ] IpmSolverEntry.Hs071ConvergesToKnownOptimum (2 ms)
+[ RUN      ] IpmSolverEntry.Hs071BoundDualsMatchActiveLowerBound
+[       OK ] IpmSolverEntry.Hs071BoundDualsMatchActiveLowerBound (2 ms)
+[ RUN      ] IpmSolverEntry.RosenbrockConvergesToKnownOptimum
+[       OK ] IpmSolverEntry.RosenbrockConvergesToKnownOptimum (1 ms)
+[ RUN      ] IpmSolverEntry.EqualityMultiplierHasIpoptSign
+[       OK ] IpmSolverEntry.EqualityMultiplierHasIpoptSign (1 ms)
+[ RUN      ] IpmSolverEntry.LowerBoundedRowActiveWithNegativeIpoptMultiplier
+[       OK ] IpmSolverEntry.LowerBoundedRowActiveWithNegativeIpoptMultiplier (1 ms)
+[ RUN      ] IpmSolverEntry.RangeRowActiveAtUpperWithPositiveIpoptMultiplier
+[       OK ] IpmSolverEntry.RangeRowActiveAtUpperWithPositiveIpoptMultiplier (1 ms)
+[ RUN      ] IpmSolverEntry.FreeRowDroppedFromTranscriptionReadsZeroMultiplier
+[       OK ] IpmSolverEntry.FreeRowDroppedFromTranscriptionReadsZeroMultiplier (1 ms)
+[ RUN      ] IpmSolverEntry.FixedVariableSolvesExactlyAtItsFixedValue
+[       OK ] IpmSolverEntry.FixedVariableSolvesExactlyAtItsFixedValue (1 ms)
+[ RUN      ] IpmSolverEntry.FixedVariableTreatmentIsRecordedOnSolveResult
+[       OK ] IpmSolverEntry.FixedVariableTreatmentIsRecordedOnSolveResult (2 ms)
+[ RUN      ] IpmSolverEntry.ZIsDeclaredWidthAndZeroAtAnEliminatedCoordinate
+[       OK ] IpmSolverEntry.ZIsDeclaredWidthAndZeroAtAnEliminatedCoordinate (1 ms)
+[ RUN      ] IpmSolverEntry.SeededSolveConverges
+[       OK ] IpmSolverEntry.SeededSolveConverges (1 ms)
+[ RUN      ] IpmSolverEntry.TwoSolvesFromTheSameStartPointAgree
+[       OK ] IpmSolverEntry.TwoSolvesFromTheSameStartPointAgree (2 ms)
+[ RUN      ] IpmSolverEntry.AStartPointOfTheWrongSizeIsRefused
+[       OK ] IpmSolverEntry.AStartPointOfTheWrongSizeIsRefused (0 ms)
+[ RUN      ] IpmSolverEntry.NonFiniteStartingMultipliersThrow
+[       OK ] IpmSolverEntry.NonFiniteStartingMultipliersThrow (0 ms)
+[ RUN      ] IpmSolverEntry.PartitionCountAndQpThreadCountAreSetIndependently
+[       OK ] IpmSolverEntry.PartitionCountAndQpThreadCountAreSetIndependently (1 ms)
+[ RUN      ] IpmSolverEntry.AFaultedTranscriptionCommitsNothingAndRetriesCleanly
+[       OK ] IpmSolverEntry.AFaultedTranscriptionCommitsNothingAndRetriesCleanly (1 ms)
+[ RUN      ] IpmSolverEntry.ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvaluation
+[       OK ] IpmSolverEntry.ASecondSolveTranscribesNothingAndSpendsNoFurtherSetupEvaluation (1 ms)
+[ RUN      ] IpmSolverEntry.TheReportedKktResidualsAreTheOnesTheConvergenceTestGated
+[       OK ] IpmSolverEntry.TheReportedKktResidualsAreTheOnesTheConvergenceTestGated (3 ms)
+[ RUN      ] IpmSolverEntry.TheReportedKktResidualsDescribeTheIterateTheResultDescribes
+[       OK ] IpmSolverEntry.TheReportedKktResidualsDescribeTheIterateTheResultDescribes (3 ms)
+[ RUN      ] IpmSolverEntry.TheKktResidualsOfAResultNoSolveHasWrittenAreUnmeasured
+[       OK ] IpmSolverEntry.TheKktResidualsOfAResultNoSolveHasWrittenAreUnmeasured (0 ms)
+[ RUN      ] IpmSolverEntry.TheProgramsPartitionCountIsWhatEvaluationsSee
+[       OK ] IpmSolverEntry.TheProgramsPartitionCountIsWhatEvaluationsSee (1 ms)
+[ RUN      ] IpmSolverEntry.TheIterationCapIsTheRecordedStopReason
+[       OK ] IpmSolverEntry.TheIterationCapIsTheRecordedStopReason (1 ms)
+[ RUN      ] IpmSolverEntry.AConvergedSolveRecordsNoStopReason
+[       OK ] IpmSolverEntry.AConvergedSolveRecordsNoStopReason (2 ms)
+[ RUN      ] IpmSolverEntry.AMultiPhaseCapIsLabelledByThePhaseThatHitIt
+[       OK ] IpmSolverEntry.AMultiPhaseCapIsLabelledByThePhaseThatHitIt (3 ms)
+[ RUN      ] IpmSolverEntry.AConvergenceOnTheCapIterationRecordsNoStopReason
+[       OK ] IpmSolverEntry.AConvergenceOnTheCapIterationRecordsNoStopReason (5 ms)
+[ RUN      ] IpmSolverEntry.OneIterationShortOfConvergenceRecordsTheCap
+[       OK ] IpmSolverEntry.OneIterationShortOfConvergenceRecordsTheCap (5 ms)
+[ RUN      ] IpmSolverEntry.TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory
+[       OK ] IpmSolverEntry.TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory (5 ms)
+[ RUN      ] IpmSolverEntry.TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory
+[       OK ] IpmSolverEntry.TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory (5 ms)
+[ RUN      ] IpmSolverEntry.TheProbeBarrierOracleSolvesHs071OnItsOwnBarrierSchedule
+[       OK ] IpmSolverEntry.TheProbeBarrierOracleSolvesHs071OnItsOwnBarrierSchedule (7 ms)
+[----------] 29 tests from IpmSolverEntry (73 ms total)
+
+[----------] 1 test from WorkerOptions
+[ RUN      ] WorkerOptions.JetPreparationEquivalent
+[       OK ] WorkerOptions.JetPreparationEquivalent (1 ms)
+[----------] 1 test from WorkerOptions (1 ms total)
+
+[----------] 3 tests from InteriorPointSolverSettingsTest
+[ RUN      ] InteriorPointSolverSettingsTest.NaNRejectedBySiteNamedSetters
+[       OK ] InteriorPointSolverSettingsTest.NaNRejectedBySiteNamedSetters (0 ms)
+[ RUN      ] InteriorPointSolverSettingsTest.InfRejectedByGreaterThanSetters
+[       OK ] InteriorPointSolverSettingsTest.InfRejectedByGreaterThanSetters (0 ms)
+[ RUN      ] InteriorPointSolverSettingsTest.NaNRejectedByValidateForEveryHelperFamily
+[       OK ] InteriorPointSolverSettingsTest.NaNRejectedByValidateForEveryHelperFamily (0 ms)
+[----------] 3 tests from InteriorPointSolverSettingsTest (1 ms total)
+
+[----------] 2 tests from IpmPhases
+[ RUN      ] IpmPhases.TheFiveRetiredJobModesAreFivePhaseSequences
+[       OK ] IpmPhases.TheFiveRetiredJobModesAreFivePhaseSequences (0 ms)
+[ RUN      ] IpmPhases.TheEmptySequenceIsRefusedByValidate
+[       OK ] IpmPhases.TheEmptySequenceIsRefusedByValidate (0 ms)
+[----------] 2 tests from IpmPhases (0 ms total)
+
+[----------] 4 tests from IpmPhaseSemantics
+[ RUN      ] IpmPhaseSemantics.SolveOptimizeSolveSkipsTheTrailingSoeOnlyWhenOptConverged
+[       OK ] IpmPhaseSemantics.SolveOptimizeSolveSkipsTheTrailingSoeOnlyWhenOptConverged (2 ms)
+[ RUN      ] IpmPhaseSemantics.OptimizeSolveSkipsTheTrailingSoeOnlyWhenOptConverged
+[       OK ] IpmPhaseSemantics.OptimizeSolveSkipsTheTrailingSoeOnlyWhenOptConverged (2 ms)
+[ RUN      ] IpmPhaseSemantics.SolveOptimizeAlwaysRunsBothPhases
+[       OK ] IpmPhaseSemantics.SolveOptimizeAlwaysRunsBothPhases (2 ms)
+[ RUN      ] IpmPhaseSemantics.SolveAndOptimizeEachRunExactlyOnePhase
+[       OK ] IpmPhaseSemantics.SolveAndOptimizeEachRunExactlyOnePhase (2 ms)
+[----------] 4 tests from IpmPhaseSemantics (9 ms total)
+
+[----------] 18 tests from IpmStopReason
+[ RUN      ] IpmStopReason.NoSolveHasHappenedYet
+[       OK ] IpmStopReason.NoSolveHasHappenedYet (0 ms)
+[ RUN      ] IpmStopReason.AStalledFeasibilityStageIsRecordedAsSuch
+[       OK ] IpmStopReason.AStalledFeasibilityStageIsRecordedAsSuch (7 ms)
+[ RUN      ] IpmStopReason.WithDefaultDivergenceThresholdsTheSameFixtureDiverges
+[       OK ] IpmStopReason.WithDefaultDivergenceThresholdsTheSameFixtureDiverges (1 ms)
+[ RUN      ] IpmStopReason.ARestorationLocalInfeasibilityIsRecordedAsSuch
+[       OK ] IpmStopReason.ARestorationLocalInfeasibilityIsRecordedAsSuch (3 ms)
+[ RUN      ] IpmStopReason.TheLocallyInfeasibleDoorFiresItsRowOnBothStreams
+[       OK ] IpmStopReason.TheLocallyInfeasibleDoorFiresItsRowOnBothStreams (4 ms)
+[ RUN      ] IpmStopReason.TheDoorsMarkerFollowsItsOwnIterLineOnALiveSolve
+[       OK ] IpmStopReason.TheDoorsMarkerFollowsItsOwnIterLineOnALiveSolve (5 ms)
+[ RUN      ] IpmStopReason.AStallOnTheCapIterationKeepsTheStallLabel
+[       OK ] IpmStopReason.AStallOnTheCapIterationKeepsTheStallLabel (27 ms)
+[ RUN      ] IpmStopReason.TheStalledDoorStillPrintsNoSolutionFoundAndCarriesItsMessage
+[       OK ] IpmStopReason.TheStalledDoorStillPrintsNoSolutionFoundAndCarriesItsMessage (15 ms)
+[ RUN      ] IpmStopReason.TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarriesItsMessage
+[       OK ] IpmStopReason.TheLocallyInfeasibleDoorStillPrintsNoSolutionFoundAndCarriesItsMessage (6 ms)
+[ RUN      ] IpmStopReason.TheInterruptDoorStillPrintsNoSolutionFoundAndCarriesItsMessage
+[       OK ] IpmStopReason.TheInterruptDoorStillPrintsNoSolutionFoundAndCarriesItsMessage (1 ms)
+[ RUN      ] IpmStopReason.OnlyResolutionEverProducesStalledOrInterrupted
+[       OK ] IpmStopReason.OnlyResolutionEverProducesStalledOrInterrupted (16 ms)
+[ RUN      ] IpmStopReason.TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasibility
+[       OK ] IpmStopReason.TheProximalArmLeavesRestorationWhereTheL1ArmDeclaresInfeasibility (7 ms)
+[ RUN      ] IpmStopReason.TheProximalArmReEntersRestorationOnlyAfterLeavingIt
+[       OK ] IpmStopReason.TheProximalArmReEntersRestorationOnlyAfterLeavingIt (16 ms)
+[ RUN      ] IpmStopReason.AnUnevaluableStepAtAnAcceptableIterateExitsAtTheAcceptableLevel
+[       OK ] IpmStopReason.AnUnevaluableStepAtAnAcceptableIterateExitsAtTheAcceptableLevel (1 ms)
+[ RUN      ] IpmStopReason.AnUnevaluableStepAtAnUnacceptableIterateAbortsWithTheLatchedError
+[       OK ] IpmStopReason.AnUnevaluableStepAtAnUnacceptableIterateAbortsWithTheLatchedError (1 ms)
+[ RUN      ] IpmStopReason.AnUnevaluableStepWithRestorationAvailableEntersItThroughTheRecoveryChain
+[       OK ] IpmStopReason.AnUnevaluableStepWithRestorationAvailableEntersItThroughTheRecoveryChain (1 ms)
+[ RUN      ] IpmStopReason.TheLagrangianMeritVariantAbsorbsUnevaluableTrials
+[       OK ] IpmStopReason.TheLagrangianMeritVariantAbsorbsUnevaluableTrials (1 ms)
+[ RUN      ] IpmStopReason.TheL1MeritVariantAbsorbsUnevaluableTrials
+[       OK ] IpmStopReason.TheL1MeritVariantAbsorbsUnevaluableTrials (1 ms)
+[----------] 18 tests from IpmStopReason (121 ms total)
+
+[----------] Global test environment tear-down
+[==========] 510 tests from 90 test suites ran. (745 ms total)
+[  PASSED  ] 510 tests.

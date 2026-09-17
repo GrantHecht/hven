@@ -1,0 +1,10 @@
+# ipqp_max_iter = 200 (the option's own default is 0 = size-derived); tier arm; commit 40ef105f9e6c606750f35a203a736c68a2f6cbc6
+engine,N,n,me,mi,status,certified,majors,entries,rungs,rung_minors,rung_max_minors,rung_dnf,rung_facts,facts_attributed,solve_minors,solve_facts,escalations,ceiling_hits,floor_retries,rung_b,disproved,tier_iters,tier_facts,analyses,wall_s
+DIAG,tier,100,declined_rungs=3,driver_stream_escapes=1,elastic_engine_escapes=3,elastic[0]=infeasible_suspect,elastic[1]=infeasible_suspect,elastic[2]=infeasible_suspect,driver[0]=infeasible_suspect,ipqp_max_iter_opt=200
+tier,100,500,302,100,max_iter,0,1,2,5,71,20,3,73,1,73,84,2,0,1,1,0,10,10,3,0.048615
+DIAG,tier,200,declined_rungs=3,driver_stream_escapes=1,elastic_engine_escapes=3,elastic[0]=infeasible_suspect,elastic[1]=infeasible_suspect,elastic[2]=infeasible_suspect,driver[0]=infeasible_suspect,ipqp_max_iter_opt=200
+tier,200,1000,602,200,max_iter,0,1,2,5,69,20,3,71,1,71,82,2,0,1,1,0,10,10,3,0.090958
+DIAG,tier,400,declined_rungs=3,driver_stream_escapes=1,elastic_engine_escapes=3,elastic[0]=infeasible_suspect,elastic[1]=infeasible_suspect,elastic[2]=infeasible_suspect,driver[0]=infeasible_suspect,ipqp_max_iter_opt=200
+tier,400,2000,1202,400,max_iter,0,1,2,5,71,20,3,73,1,73,84,2,0,1,1,0,10,10,3,0.185561
+DIAG,tier,800,declined_rungs=3,driver_stream_escapes=1,elastic_engine_escapes=3,elastic[0]=infeasible_suspect,elastic[1]=infeasible_suspect,elastic[2]=infeasible_suspect,driver[0]=infeasible_suspect,ipqp_max_iter_opt=200
+tier,800,4000,2402,800,max_iter,0,1,2,5,73,20,3,75,1,75,86,2,0,1,1,0,10,10,3,0.382526
