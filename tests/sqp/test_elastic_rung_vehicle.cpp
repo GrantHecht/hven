@@ -92,10 +92,20 @@ std::vector<Index> sizes_for_this_process() {
 // cell is INFEASIBLE by construction, so an unbounded run spends its whole
 // budget on majors that each re-enter the fallback and then on restoration --
 // 40 majors at N = 100 does not finish in 540 s, which prices the SOLVE and not
-// the RUNG. At one major each size runs exactly one tier escape, one fallback
-// entry and one ladder, from the same start point: the like-for-like comparison
-// the "does rung A's cost grow with N?" question needs. It also satisfies
-// CLAUDE.md section 8's "no unbounded cells" outright.
+// the RUNG. At one major each size runs exactly one tier escape and one primary
+// fallback entry, from the same start point: the like-for-like comparison the
+// "does rung A's cost grow with N?" question needs. It also satisfies CLAUDE.md
+// section 8's "no unbounded cells" outright.
+//
+// WHAT "ONE MAJOR" DOES NOT BUY, corrected 2026-09-16 (fix round 1, sol's
+// Minor 5): it is NOT one ladder per cell on both arms. The WALK arm is one
+// ladder -- `elastic_activations = 1`, six rungs, five of them escalations. The
+// TIER arm is not: three of its five rungs DECLINE, so the driver re-enters, and
+// the counters read `elastic_activations = 3`, 5 rungs, 2 escalations,
+// `elastic_floor_retries = 1`, `ipqp_fallback_rung_b = 1` and
+// `elastic_from_ipqp_escape = 2` at every size. That asymmetry is a finding, not
+// an artefact of the budget, and the printed row below carries every one of
+// those columns so a reader counts rather than assumes.
 constexpr int kMaxIter = 1;
 
 SqpOptions vehicle_options(ElasticRungEngine rung = ElasticRungEngine::kWalk) {

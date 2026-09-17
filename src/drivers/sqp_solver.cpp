@@ -1689,11 +1689,12 @@ void SqpSolver::set_options(SqpOptions o) {
 
     // (3) COMMIT. Nothing below can throw.
     engine_ = std::move(fresh);
-    // Both lazy tiers hold their own COPY of the QpOptions taken at first use,
-    // so dropping them is both necessary (a stale copy would outlive the
-    // replacement) and sufficient (there is no other cached option state on
-    // them). `ipqp_trace_` stays on the driver and re-applies at the next
-    // first-use construction.
+    // All THREE lazy engines below hold their own COPY of the QpOptions taken at
+    // first use, so dropping them is both necessary (a stale copy would outlive
+    // the replacement) and sufficient (there is no other cached option state on
+    // them). The count moved from two to three at M7 W0 T3, which added the
+    // elastic ladder's own tier instance. `ipqp_trace_` stays on the driver and
+    // re-applies at the next first-use construction.
     ssn_engine_.reset();
     ipqp_engine_.reset();
     elastic_ipqp_engine_.reset();

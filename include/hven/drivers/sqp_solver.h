@@ -1699,8 +1699,10 @@ class SqpSolver {
     // --- The console composition (M6 W5 T8.7) ---
     //
     // ON THE DRIVER, NOT ON AN ENGINE, and that matters: `set_options` drops
-    // both lazy engines, so anything held there would be rebuilt behind the
-    // caller's back. Neither sink type is copyable or movable and neither is
+    // every lazy engine -- all THREE of them since M7 W0 T3 added the elastic
+    // ladder's own tier instance (`ssn_engine_`, `ipqp_engine_`,
+    // `elastic_ipqp_engine_`) -- so anything held there would be rebuilt behind
+    // the caller's back. Neither sink type is copyable or movable and neither is
     // `SqpSolver`, so the pointers `fanout_` holds into this object are stable.
     //
     // Both are REBUILT at every solve entry from `opts_.common.print_level`,

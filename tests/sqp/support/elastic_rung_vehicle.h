@@ -38,12 +38,33 @@
 // suspect, and the suspicion is what routes the major to the certified fallback
 // whose rung A is the elastic ladder.
 //
-// WHY THE LAST NODE'S CONTROLS. They carry a box (|u| <= kControlBound) and no
-// other equality, so each of the two rows is individually SATISFIABLE within the
-// box for `b <= nc * kControlBound` -- the pair is contradictory without either
-// row being separately unreachable, and node 0's state block (which the initial-
-// condition rows already pin) is left alone, so the inconsistency is not
-// confounded with a rank deficiency against an existing row.
+// WHY THE LAST NODE'S CONTROLS. They carry a box (|u| <= kControlBound), so each
+// of the two rows is individually SATISFIABLE within the box for
+// `b <= nc * kControlBound` -- the pair is contradictory without either row being
+// separately unreachable -- and node 0's state block (which the initial-condition
+// rows already pin) is left alone.
+//
+// THE INDEPENDENCE ARGUMENT, CORRECTED 2026-09-16 (fix round 1, sol's Minor 4).
+// An earlier version of this comment said the last node's controls appear in "no
+// other equality". THAT IS FALSE: the LAST defect block does use them -- its
+// `d/du_{k+1} = -(h/2) C` entries are written at scale_problems.h:763-765 with
+// `b1` the last node's offset. The independence that actually holds is one step
+// further in, and it is stronger:
+//
+//   * the last node's STATE columns appear in exactly one equality block, the
+//     last defect block (state column `b1 + i` is written only there,
+//     scale_problems.h:758 and :761);
+//   * within that block the state coefficients are lower triangular in i, with
+//     diagonal `1 + (h/2) kTheta >= 1` (kTheta = 1, h > 0) and subdiagonal
+//     `-(h/2) kSigma` -- hence INVERTIBLE;
+//   * so any linear combination of the existing equality rows whose support is
+//     confined to the last node's CONTROLS must carry zero weight on that block
+//     (its state coefficients cannot cancel against rows that do not touch those
+//     columns), and no other equality row touches the last node's controls at all.
+//
+// Therefore the appended control-only row is not in the row space of the existing
+// equalities, and the inconsistency this vehicle measures is the appended PAIR's
+// own, not a rank deficiency against the chain.
 //
 // THE NLP IS GLOBALLY INFEASIBLE BY CONSTRUCTION, and that is the point: the
 // solve ends kInfeasible after the ladder exhausts and restoration runs. The
