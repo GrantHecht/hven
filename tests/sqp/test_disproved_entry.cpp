@@ -27,6 +27,7 @@
 // THE COUNTERS ARE THE ASSERTION (CLAUDE.md section 7); the CSV the measurement
 // test prints is the T4 artifact's raw input and asserts nothing by itself.
 
+#include <cmath>
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -123,6 +124,15 @@ struct CellRun {
     Reader trace;
 };
 
+/// The SHIPPED retirement threshold, READ FROM THE OPTIONS STRUCT rather than
+/// written out (fix round 1, Minor 1). Every pin below that means "the shipped
+/// K" passes this rather than a literal, so a change to
+/// `IpqpOptions::ipqp_retire_after` cannot leave
+/// `ThreeConsecutiveDisprovalsRetireTheTierAtTheShippedThreshold` quietly
+/// passing at a threshold that is no longer shipped. The premise test asserts
+/// what the pins assume it to be.
+const Index kShippedRetireAfter = IpqpOptions{}.ipqp_retire_after;
+
 /// One solve of the shipped cell. `max_iter`, `retire_after` and `reseed` are the
 /// only knobs any test below turns; everything else is the shipped default.
 CellRun run_cell(Index max_iter, Index retire_after, bool reseed) {
@@ -146,7 +156,33 @@ CellRun run_cell(Index max_iter, Index retire_after, bool reseed) {
 // ---------------------------------------------------------------------------
 
 TEST(SqpDriverDisprovedEntry, TheVehicleEscapesInfeasibleSuspectOnAConsistentSubproblem) {
-    const CellRun r = run_cell(/*max_iter=*/1, /*retire_after=*/3, /*reseed=*/false);
+    // THE TWO PREMISES THE PINS BELOW ARE WRITTEN AGAINST, asserted where they are
+    // stated rather than assumed (fix round 1, Minors 1 and 2).
+    //
+    // (i) The shipped K. Every "shipped threshold" pin in this file reads
+    //     `kShippedRetireAfter`, but the NUMBERS those pins expect -- three majors,
+    //     three escapes, retirement AT major 3 -- were derived at K = 3. If the
+    //     shipped default moves, this line fails first and says so, instead of a
+    //     counter pin failing with a number and no reason.
+    ASSERT_EQ(kShippedRetireAfter, 3)
+        << "IpqpOptions::ipqp_retire_after moved; the charge pins in this file were "
+           "derived at K = 3 and must be re-derived at the new threshold";
+
+    // (ii) The vehicle's own "inside every window" premise. Its header claims the
+    //      consistent witness (x_k = target, s = 0) is inside EVERY window the
+    //      driver can build, i.e. |target| < tr_init <= box. `disproved_entry_qp`
+    //      validates only the second half -- it cannot see the DRIVER's radius --
+    //      so the first half is pinned here, against the default `run_cell` leaves
+    //      alone. Without it the tier's suspicion could become TRUE inside the
+    //      window and the disproval below would be about nothing.
+    const DisprovedEntryCell cell;
+    EXPECT_LT(std::abs(cell.target), SqpOptions{}.tr_init)
+        << "the witness must be reachable inside the FIRST subproblem's window";
+    EXPECT_LE(SqpOptions{}.tr_init, cell.box)
+        << "... and the window must not exceed the box the vehicle validates against";
+
+    const CellRun r =
+        run_cell(/*max_iter=*/1, /*retire_after=*/kShippedRetireAfter, /*reseed=*/false);
 
     // THE ESCAPE IS THE SUSPICION, not another class: the routing chain branches
     // on `escape_reason`, and only kInfeasibleSuspect reaches the certified
@@ -212,7 +248,8 @@ TEST(SqpDriverDisprovedEntry, OneDisprovalChargesTheTallyAndAtKEqualsOneRetiresT
 
     // ... and at the shipped K = 3 the same single disproval charges without
     // retiring, which is the other half of the same statement.
-    const CellRun three = run_cell(/*max_iter=*/1, /*retire_after=*/3, /*reseed=*/false);
+    const CellRun three =
+        run_cell(/*max_iter=*/1, /*retire_after=*/kShippedRetireAfter, /*reseed=*/false);
     ASSERT_EQ(three.sol.counters.ipqp_suspicion_disproved, 1) << "fixture premise";
     EXPECT_EQ(three.sol.counters.ipqp.ipqp_tier_retired_after, 0)
         << "one charge is not three: the tally advanced, retirement did not fire";
@@ -223,20 +260,24 @@ TEST(SqpDriverDisprovedEntry, ThreeConsecutiveDisprovalsRetireTheTierAtTheShippe
     // the tally: three majors, three tier entries, three escapes, three
     // disprovals, and retirement at major 3. If a disproval did NOT charge, the
     // tally would never reach 3 and this value would be 0.
-    const CellRun r = run_cell(/*max_iter=*/3, /*retire_after=*/3, /*reseed=*/false);
-    EXPECT_EQ(r.sol.counters.major_iters, 3);
-    EXPECT_EQ(r.sol.counters.ipqp.ipqp_escapes, 3);
-    EXPECT_EQ(r.sol.counters.ipqp.ipqp_escape_infeasible_suspect, 3);
-    EXPECT_EQ(r.sol.counters.ipqp_suspicion_disproved, 3);
-    EXPECT_EQ(r.trace.disproved, 3);
+    // ONE MAJOR PER CHARGE, so the budget IS the threshold: K majors, K escapes,
+    // K disprovals, retirement at major K. Written against `kShippedRetireAfter`
+    // throughout rather than against the literal 3 (fix round 1, Minor 1).
+    const CellRun r = run_cell(/*max_iter=*/kShippedRetireAfter,
+                               /*retire_after=*/kShippedRetireAfter, /*reseed=*/false);
+    EXPECT_EQ(r.sol.counters.major_iters, kShippedRetireAfter);
+    EXPECT_EQ(r.sol.counters.ipqp.ipqp_escapes, kShippedRetireAfter);
+    EXPECT_EQ(r.sol.counters.ipqp.ipqp_escape_infeasible_suspect, kShippedRetireAfter);
+    EXPECT_EQ(r.sol.counters.ipqp_suspicion_disproved, kShippedRetireAfter);
+    EXPECT_EQ(r.trace.disproved, kShippedRetireAfter);
     EXPECT_EQ(r.trace.relaxed + r.trace.exhausted + r.trace.rung_b, 0)
         << "every entry disproved -- no other verdict feeds this tally";
-    EXPECT_EQ(r.sol.counters.ipqp.ipqp_tier_retired_after, 3);
+    EXPECT_EQ(r.sol.counters.ipqp.ipqp_tier_retired_after, kShippedRetireAfter);
     EXPECT_NE(r.sol.status, SolveStatus::kInfeasible);
 
-    // AND THE CARRY WAS DROPPED AT EVERY ONE OF THEM: all three entries started
-    // cold, which is the state (a) exists to recover.
-    EXPECT_EQ(r.trace.cold, 3);
+    // AND THE CARRY WAS DROPPED AT EVERY ONE OF THEM: every entry started cold,
+    // which is the state (a) exists to recover.
+    EXPECT_EQ(r.trace.cold, kShippedRetireAfter);
     EXPECT_EQ(r.trace.base, 0);
     EXPECT_EQ(r.trace.full, 0);
     EXPECT_EQ(r.sol.counters.ipqp.ipqp_restart_repairs, 0);
@@ -253,7 +294,8 @@ TEST(SqpDriverDisprovedEntry, TheDefaultIsOffAndOffIsTodaysColdRestart) {
     // ... and an explicit `false` is the same run as the default: this is the
     // OFF arm of the pair below, written out so the ON arm's numbers have a
     // stated baseline rather than an implied one.
-    const CellRun off = run_cell(/*max_iter=*/3, /*retire_after=*/3, /*reseed=*/false);
+    const CellRun off =
+        run_cell(/*max_iter=*/3, /*retire_after=*/kShippedRetireAfter, /*reseed=*/false);
     EXPECT_EQ(off.trace.cold, 3);
     EXPECT_EQ(off.trace.base + off.trace.full, 0);
     EXPECT_EQ(off.sol.counters.ipqp_suspicion_disproved, 3);
@@ -262,7 +304,8 @@ TEST(SqpDriverDisprovedEntry, TheDefaultIsOffAndOffIsTodaysColdRestart) {
 }
 
 TEST(SqpDriverDisprovedEntry, TheReseedMakesTheNextEntryBaseWarmAndTheTierStopsEscaping) {
-    const CellRun on = run_cell(/*max_iter=*/3, /*retire_after=*/3, /*reseed=*/true);
+    const CellRun on =
+        run_cell(/*max_iter=*/3, /*retire_after=*/kShippedRetireAfter, /*reseed=*/true);
 
     // THE OBSERVATION THE TOGGLE OWNS: entry 1 is cold (nothing staged yet),
     // entry 2 is BASE-warm -- the disproved entry's certified solution, whose
@@ -288,7 +331,8 @@ TEST(SqpDriverDisprovedEntry, TheReseedMakesTheNextEntryBaseWarmAndTheTierStopsE
     // THE SAME ANSWER, NOT A DIFFERENT ONE: the OFF arm reaches the same
     // objective with more work and no certificate, so the win is the path, not
     // the point.
-    const CellRun off = run_cell(/*max_iter=*/3, /*retire_after=*/3, /*reseed=*/false);
+    const CellRun off =
+        run_cell(/*max_iter=*/3, /*retire_after=*/kShippedRetireAfter, /*reseed=*/false);
     EXPECT_LT(on.sol.counters.qp_minor_iters, off.sol.counters.qp_minor_iters);
     EXPECT_NEAR(on.sol.f, off.sol.f, 1.0e-6);
 }
@@ -342,7 +386,7 @@ void measure_state(bool reseed) {
                "elastic_escalations,f\n",
                stdout);
     for (const Index max_iter : {1, 2, 3, 6}) {
-        const CellRun r = run_cell(max_iter, /*retire_after=*/3, reseed);
+        const CellRun r = run_cell(max_iter, /*retire_after=*/kShippedRetireAfter, reseed);
         ASSERT_GE(r.sol.counters.ipqp_suspicion_disproved, 1)
             << "the cell must disprove at all, or the row below is about nothing";
         std::fputs(

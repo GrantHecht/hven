@@ -44,9 +44,12 @@
 //
 // THE ROWS ARE CONSISTENT BY CONSTRUCTION: `x_k = target, s = 0` satisfies every
 // one of them, and with `|target| < tr_init <= box` that witness is inside every
-// window the driver can build. So a `kInfeasibleSuspect` escape on this
-// subproblem is a FALSE POSITIVE by construction, and rung A's elastic copy
-// closes its slacks on it -- which is what `ipqp_suspicion_disproved` counts.
+// window the driver can build. HALF OF THAT IS VALIDATED HERE and half cannot be:
+// `disproved_entry_qp` refuses `|target| >= box`, but `tr_init` is the DRIVER's
+// radius and no vehicle can see it, so it is asserted by the premise test
+// (`SqpDriverDisprovedEntry.TheVehicleEscapesInfeasibleSuspectOnAConsistentSubproblem`). So a
+// `kInfeasibleSuspect` escape on this subproblem is a FALSE POSITIVE by construction, and rung A's
+// elastic copy closes its slacks on it -- which is what `ipqp_suspicion_disproved` counts.
 //
 // WHY THE DETECTOR FIRES, in the terms of its own two conjuncts
 // (src/qp/ipqp_engine.cpp's `primal_flat_on_floor` and the growth test): the

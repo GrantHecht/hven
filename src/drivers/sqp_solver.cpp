@@ -4337,11 +4337,8 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // inert there. `SqpDriverSsnMode.RestorationStaysOnTheWalkUnderKSsn` pins the line ABOVE
     // and is untouched by this one.
     ropts.elastic_rung_engine = ElasticRungEngine::kWalk;
-    // `ipqp_reseed_after_disproval` needs NO such line and deliberately does not get one
-    // (M7 W0 T4): it is read at ONE site, route 5b of the kIpm arm, which `ropts.qp_mode =
-    // kWalk` above already makes unreachable in the sub-driver. A reset here would be a
-    // second way of saying the same thing, and a reader would then have to work out which
-    // of the two is load-bearing.
+    // `ipqp_reseed_after_disproval` needs no such line (M7 W0 T4): `ropts.qp_mode = kWalk`
+    // above already makes its one site -- route 5b of the kIpm arm -- unreachable here.
     // THE RADIUS IS CARRIED, BUT NOT BELOW THE RESTART VALUE.
     // Carrying it is the right default -- it is what the driver
     // currently trusts the model over. But when the request came

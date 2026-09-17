@@ -568,16 +568,10 @@ struct SqpOptions {
     /// re-centres the window at every entry. The grade is kBaseWarm, the grade a
     /// signed bound price alone buys.
     ///
-    /// DEFAULT FALSE, AND NOT BECAUSE THERE IS NO WIN. M7 W0 T4 measured both
-    /// states and the ON arm converges where OFF exhausts its budget (one tier
-    /// escape instead of three, the tier not retired, 8 QP minors against 22, the
-    /// same objective). The default is FALSE because of what that measurement is
-    /// ON: a CONSTRUCTED cell, built for the task because nothing in this
-    /// repository disproves at all, and the M7 exit criterion asks for a win on
-    /// the suite's TRAIN split. W2 re-reads it there. The reseed is also a
-    /// MITIGATION for a section 6.3 false positive rather than a fix for one --
-    /// narrowing the detector would be the better repair, and would shrink this
-    /// win with it.
+    /// DEFAULT FALSE: measured on a constructed cell only, which is not the
+    /// TRAIN win the M7 exit criterion asks for. The measurement, the reason the
+    /// cell had to be constructed, and the caveat that this MITIGATES a section
+    /// 6.3 false positive rather than fixing one are all in the artifact.
     /// @see docs/notes/data/2026-09-m7-w0-t4-reseed/
     bool ipqp_reseed_after_disproval = false;
 
