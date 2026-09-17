@@ -1,6 +1,13 @@
-# M7 W0 T3 fix1 -- the DEBUG replicate of the vehicle cells (two sizes, both states).
-# commit: 40ef105f9e6c606750f35a203a736c68a2f6cbc6; describe: 40ef105f-dirty
-# MKL_NUM_THREADS=1; OMP_NUM_THREADS=1; taskset -c 2; solo under the box lock; build-debug/
+# M7 W0 T3 fix round 2 -- the DEBUG replicate of the vehicle cells (two sizes, both toggle states),
+# RE-RUN ON A CLEAN TREE. The fix-round-1 copy of this log was stamped 40ef105f-dirty; it is kept
+# beside this one as debug-both-states.dirty.log, and PROVENANCE.txt names what the dirt was.
+# commit: 0d35838684c0696cbb5b725ab2c1a4eaee0956b3; describe: 0d358386
+# git status --porcelain at the start of this leg: []   (empty brackets = clean tree)
+# MKL_NUM_THREADS=1; OMP_NUM_THREADS=1; taskset -c 2; build-debug/ built from this commit.
+# CO-RUN DECLARED (CLAUDE.md section 7): the hven-bench harness lane was running its own CUTEst
+# cells on this box during this leg, outside the box lock and outside this implementer's control.
+# Only COUNTERS are read from this log, at MKL_NUM_THREADS=1, where they are scheduling-invariant;
+# the wall_s column is informational and NO wall number from this leg is quoted anywhere.
 Running main() from /home/ghecht/Projects/hven/build-debug/_deps/googletest-src/googletest/src/gtest_main.cc
 Note: Google Test filter = M7T3ElasticRungVehicle.*
 [==========] Running 3 tests from 1 test suite.
@@ -9,17 +16,17 @@ Note: Google Test filter = M7T3ElasticRungVehicle.*
 [ RUN      ] M7T3ElasticRungVehicle.TheAddedPairIsContradictoryAtEveryPoint
 [       OK ] M7T3ElasticRungVehicle.TheAddedPairIsContradictoryAtEveryPoint (5 ms)
 [ RUN      ] M7T3ElasticRungVehicle.TheTierRungIsImmuneToTheDriversTrustRegionRadius
-[       OK ] M7T3ElasticRungVehicle.TheTierRungIsImmuneToTheDriversTrustRegionRadius (1551 ms)
+[       OK ] M7T3ElasticRungVehicle.TheTierRungIsImmuneToTheDriversTrustRegionRadius (1543 ms)
 [ RUN      ] M7T3ElasticRungVehicle.TheConstructedCellFiresTheElasticRungAndPricesBothEngines
 # M7 W0 T3 -- rung A's cost, BOTH engines (counters asserted, wall informational)
 engine,N,n,me,mi,status,certified,majors,entries,rungs,rung_minors,rung_max_minors,rung_dnf,rung_facts,facts_attributed,solve_minors,solve_facts,escalations,ceiling_hits,floor_retries,rung_b,disproved,tier_iters,tier_facts,analyses,wall_s
-walk,100,500,302,100,max_iter,0,1,1,6,312,302,0,184,1,312,194,5,0,0,0,0,10,10,2,11.601067
-walk,200,1000,602,200,max_iter,0,1,1,6,612,602,0,484,1,612,494,5,0,0,0,0,10,10,2,25.358140
-tier,100,500,302,100,max_iter,0,1,2,5,71,20,3,73,1,73,84,2,0,1,1,0,10,10,3,0.771183
-tier,200,1000,602,200,max_iter,0,1,2,5,69,20,3,71,1,71,82,2,0,1,1,0,10,10,3,1.566064
-[       OK ] M7T3ElasticRungVehicle.TheConstructedCellFiresTheElasticRungAndPricesBothEngines (39303 ms)
-[----------] 3 tests from M7T3ElasticRungVehicle (40860 ms total)
+walk,100,500,302,100,max_iter,0,1,1,6,312,302,0,184,1,312,194,5,0,0,0,0,10,10,2,11.523403
+walk,200,1000,602,200,max_iter,0,1,1,6,612,602,0,484,1,612,494,5,0,0,0,0,10,10,2,25.255085
+tier,100,500,302,100,max_iter,0,1,2,5,71,20,3,73,1,73,84,2,0,1,1,0,10,10,3,0.768564
+tier,200,1000,602,200,max_iter,0,1,2,5,69,20,3,71,1,71,82,2,0,1,1,0,10,10,3,1.562110
+[       OK ] M7T3ElasticRungVehicle.TheConstructedCellFiresTheElasticRungAndPricesBothEngines (39115 ms)
+[----------] 3 tests from M7T3ElasticRungVehicle (40664 ms total)
 
 [----------] Global test environment tear-down
-[==========] 3 tests from 1 test suite ran. (40860 ms total)
+[==========] 3 tests from 1 test suite ran. (40664 ms total)
 [  PASSED  ] 3 tests.

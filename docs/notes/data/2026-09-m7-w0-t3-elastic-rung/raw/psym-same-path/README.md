@@ -95,9 +95,26 @@ the whole of the difference:
   `IpqpEngine::solve`. Same instruction COUNT before and after (24 522), same
   frame (`sub $0xca0,%rsp` in both). 17 changed instruction pairs, all inside
   the probe's initialisation window (`0x3c1`–`0x480(%rsp)`): 8 are
-  displacement-only, the other 9 are equivalent-store re-selections
-  (`vmovaps`↔`vmovups`, a `movq $0`→`movl $0` pair) in the same window, with 3
-  instructions re-ordered. No call, no branch and no other symbol moves.
+  displacement-only and the other 9 are equivalent-store re-selections in the
+  same window (`vmovaps`↔`vmovups`, one `movq $0`→`movl $0`, and one
+  `data16 … nopw`→`nopw` padding line). Three further instructions appear only in
+  the before arm and three only in the after arm, and the fix-round-1 summary
+  called that "3 instructions re-ordered", which undersells it — here is the
+  whole of it (corrected 2026-09-16, fix round 2):
+
+      REMOVED  vmovups %ymm0,0x43b(%rsp)      ADDED  vmovupd %ymm0,0x443(%rsp)
+      REMOVED  vmovupd (%rcx),%ymm0           ADDED  vmovdqu %ymm3,0x430(%rsp)
+      REMOVED  xchg %ax,%ax                   ADDED  movq $0x0,0x3d0(%rsp)
+
+  Two of each pair are the SAME stores at a displacement 8 bytes higher
+  (`0x43b`→`0x443`, and the `%ymm3` store `0x428`→`0x430` whose partner sits in
+  the changed-pair list above) that the sequence alignment put in the
+  added/removed buckets rather than in the changed-pair bucket. The two that are
+  genuinely asymmetric are the ones the field explains: a two-byte `xchg %ax,%ax`
+  PADDING nop dropped, and a `movq $0x0,0x3d0(%rsp)` ADDED — an eight-byte zero
+  store, i.e. the new member being zero-initialised in the probe. Every one of
+  them is inside the probe window; no call, no branch, and no other symbol moves.
+  The Debug arm shows the same event without the scheduling noise (below).
 * **Debug** — 2 469 symbols identical, 2 differ, and Debug says it outright
   because it does not inline:
   * `SqpOptions::SqpOptions()` — emitted in THIS object because of the probe —

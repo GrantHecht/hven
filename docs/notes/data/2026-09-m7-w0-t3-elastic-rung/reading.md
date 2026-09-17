@@ -9,10 +9,19 @@ measurement; the table below is unchanged, and both files are kept.
 Raw: `raw/both-states-3reps.log` (the re-take: three replicates, byte-identical counters),
 `raw/2026-09-15-both-states-3reps.log` (the first measurement), `perf/both-states-perf.log` and
 `perf/perf-raw.txt` (one process per cell; `perf stat`'s own output, byte-verbatim),
-`raw/debug-both-states.log` (Debug, both arms, two sizes), `raw/step2a-debug.log` (step 2a's
+`raw/debug-both-states.log` (Debug, both arms, two sizes, re-run on a clean tree in fix round 2;
+the fix-round-1 copy is beside it as `*.dirty.log`), `raw/step2a-debug.log` (step 2a's
 walk-only Debug log). The decline diagnostic and the budget probe are
-`raw/decline-diagnostic.log` and `raw/ipqp-max-iter-*.{csv,diff}`; the gate transcripts are
-under `raw/gates/`; the same-path P-SYM arm is `raw/psym-same-path/`.
+`raw/decline-diagnostic.log` and `raw/ipqp-max-iter-*.{csv,diff}`, each declaring in its own
+header that it CO-RAN with the hven-bench lane and that only counters are read from it; the gate
+transcripts are under `raw/gates/` (with a README giving each one's window and tree state); the
+same-path P-SYM arm is `raw/psym-same-path/`; `raw/sizeof-sqp-options.txt` shows
+`sizeof(SqpOptions)` 376 → 384 and `raw/diagnostic-patch-revert.md5.txt` shows the diagnostic
+patch left nothing behind.
+
+WHICH NUMBERS ARE SOLO. Every wall and instruction number quoted below comes from a leg that
+ran alone under the box lock; the four legs that co-ran are read for COUNTERS and an escape
+CLASSIFICATION only. `PROVENANCE.txt`'s CONCURRENCY block names both sets leg by leg.
 
 ## 1. The table
 

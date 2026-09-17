@@ -1,6 +1,10 @@
 M7 W0 T3 — THE TIER-SOLVED ELASTIC RUNG vs THE WALK, ON A CONSTRUCTED F7 FAMILY
 ================================================================================
-CLAUDE.md §7 provenance stamp for every number in this directory.
+CLAUDE.md §7 provenance stamp for every number in this directory. The MEASURED
+TABLE — reading.md §1, and every number quoted from it — was taken SOLO; three
+later diagnostic legs CO-RAN with a foreign lane and are declared as such under
+CONCURRENCY below. Nothing in this file is stamped by a blanket claim: read the
+leg's own header in the raw file.
 
 WHAT THIS LEG IS
 --------------------------------------------------------------------------------
@@ -57,17 +61,54 @@ THE MACHINE AND THE PROTOCOL
 host             Linux 7.2.4-200.fc44.x86_64, x86-64
 threads          MKL_NUM_THREADS=1, OMP_NUM_THREADS=1, SqpOptions.common.threads=1
 pinning          taskset -c 2 — ONE pinned core
-concurrency      SOLO. Every leg ran alone under flock /tmp/box-build.lock.
-                 This is NOT a co-run: §7's serial rule is honoured in full, so
-                 the wall numbers here are quotable as wall numbers.
-date             2026-09-15 (first), 2026-09-16 (the commit-exact re-take)
+concurrency      MIXED, and the split is per leg — see CONCURRENCY, PER LEG.
+date             2026-09-15 (first), 2026-09-16 (the commit-exact re-take, and
+                 the fix-round-2 clean-tree re-run of the Debug arm)
+
+CONCURRENCY, PER LEG (CLAUDE.md §7; corrected 2026-09-16, fix round 2)
+--------------------------------------------------------------------------------
+An earlier version of this file said "SOLO. Every leg ran alone … This is NOT a
+co-run" of the whole directory. That was true of the legs whose numbers are
+QUOTED and false of three later diagnostic legs, and §7 requires the co-run to be
+declared in the artifact it produces rather than only in a report. Both halves,
+named:
+
+SOLO — alone under flock /tmp/box-build.lock, pinned with `taskset -c 2`,
+MKL_NUM_THREADS=1, OMP_NUM_THREADS=1, with an empty pre-leg `pgrep` check:
+
+  * the three-replicate measurement          raw/both-states-3reps.log
+  * the per-cell `perf stat` pass            perf/both-states-perf.log, perf/perf-raw.txt
+  * Release hven_sqp_tests, hven_drivers_tests   raw/gates/release-*.log
+  * the four Debug suites                    raw/gates/debug-*.log
+  * (2026-09-15) the first measurement and its perf pass
+
+EVERY WALL-CLOCK AND INSTRUCTION NUMBER IN THIS DIRECTORY COMES FROM THAT SET.
+
+CO-RUN — the hven-bench harness lane was running its own cells on this box,
+outside the box lock and outside this implementer's control, while these ran:
+
+  * the decline diagnostic                   raw/decline-diagnostic.log
+  * the `ipqp_max_iter` budget probe         raw/ipqp-max-iter-*.csv / *.diff
+  * the post-revert verification             raw/post-revert-verify.log
+  * the fix-round-2 clean-tree Debug arm     raw/debug-both-states.log
+
+  terms: MKL_NUM_THREADS=1 and OMP_NUM_THREADS=1 in this process; `taskset -c 2`
+  on this process only — the foreign lane's placement was NOT controlled, so this
+  is not the "one process per pinned PHYSICAL core" discipline §7 defines for a
+  measured co-run and nothing here is offered as one. What is read from these
+  legs is COUNTERS, STATUSES and an escape CLASSIFICATION, which are
+  scheduling-invariant at one MKL thread. NO WALL NUMBER AND NO INSTRUCTION COUNT
+  FROM THESE FOUR LEGS IS QUOTED ANYWHERE. The check that matters was made and
+  passed: every counter column these legs print is byte-identical to the SOLO
+  measurement's.
 
 WHAT IS ASSERTED AND WHAT IS NOT
 --------------------------------------------------------------------------------
 ASSERTED: counters. Every counter column in raw/both-states-3reps.log is
   byte-identical across THREE replicates, byte-identical to the 2026-09-15
   measurement, and identical between Debug and Release on the two sizes Debug
-  sweeps (raw/debug-both-states.log).
+  sweeps (raw/debug-both-states.log — re-run on a CLEAN tree in fix round 2; see
+  THE DEBUG ARM'S STAMP below).
 INFORMATIONAL: wall_s, and the instruction counts in perf/. They are reported
   because they are the reader's intuition for the counter ratios; no claim in
   reading.md rests on them alone. perf/perf-raw.txt is `perf stat`'s own output,
@@ -87,3 +128,35 @@ arm is three activations and five rungs — three of its five rungs DECLINE, so 
 driver re-enters — with `elastic_floor_retries = 1`, `ipqp_fallback_rung_b = 1`
 and `elastic_from_ipqp_escape = 2` at every size. The raw log carries all of
 those columns per cell.
+
+THE DEBUG ARM'S STAMP, AND WHAT THE DIRT WAS (fix round 2, 2026-09-16)
+--------------------------------------------------------------------------------
+The fix-round-1 copy of the Debug arm's log carried
+`describe: 40ef105f-dirty`, while this file and the README called it "at the same
+commit". Both statements cannot stand, so the leg was RE-RUN on a clean tree and
+the dirty log is kept beside it as raw/debug-both-states.dirty.log rather than
+deleted.
+
+WHAT THE DIRT WAS, from the retained timeline rather than from inference. The
+fix-round-1 comment/doc commit 40ef105f landed at 21:33:39. The Debug build and
+the four Debug suites ran 21:41:34–21:42:21, with no edit to the tree between
+those two times: THOSE FOUR LOGS ARE FROM A CLEAN TREE AT 40ef105f, and they
+carry no stamp of their own only because the suites print none. This file —
+PROVENANCE.txt, a TRACKED artifact file — was then rewritten at 21:42:27, and the
+Debug vehicle arm started 29 seconds later at 21:42:56 and stamped itself
+`-dirty` for exactly that reason. No source file, header, test or build input was
+modified in that window (their mtimes are all 21:28–21:29, i.e. the edits that
+40ef105f already contained), so the binary under test was the commit's own; the
+dirt was artifact PROSE.
+
+THE RE-RUN, precisely. raw/debug-both-states.log is stamped
+`commit: 0d35838684c0696cbb5b725ab2c1a4eaee0956b3`, `describe: 0d358386` (no
+`-dirty`), and `git status --porcelain` EMPTY — the leg records that check at its
+own start, so the claim is checkable from the log rather than from this
+paragraph. That is the fix-round-1 EVIDENCE commit, one commit past the 40ef105f
+the Release table was measured at; the difference between them is artifact files
+only and NO source, so `build-debug/` rebuilt to "ninja: no work to do" and the
+binary under test is the same code. Its counter columns are byte-identical to the
+superseded log's and to the Release re-take's on both sizes and both toggle
+states. The leg CO-RAN with the hven-bench lane and says so in its header; only
+counters are read from it.
