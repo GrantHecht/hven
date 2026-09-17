@@ -73,6 +73,7 @@ set(HVEN_SQP_TEST_SOURCES
     test_sqp_restoration.cpp
     test_sqp_warm_currency.cpp
     test_ssn_engine.cpp
+    test_start_point_projection.cpp
     test_trace_writer.cpp
     test_types.cpp
     test_warm_start.cpp
