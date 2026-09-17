@@ -291,6 +291,20 @@ void validate(const SqpOptions &opts) {
     // UNCONDITIONALLY, at every mode, exactly as they were: a field is
     // out of range whether or not this solve will read it.
 
+    // THE START-POINT PROJECTION (M7 W2 M4), in declaration position.
+    //
+    // `project_start_point` is a BOOL and has NO refusable value: both states
+    // are honoured, both are meaningful, and neither can be ill-formed. There
+    // is no companion field it can contradict either -- it reads the model's
+    // own declared box and nothing on this struct. So this entry is a stated
+    // line rather than a predicate, which is what the W2 per-toggle contract
+    // (docs/notes/2026-09-m7-w2-a0-signals-design.md section 2, clause 2) asks
+    // for: the field is accounted for HERE, in its declaration position, so
+    // that the next field added beside it is written with a predicate rather
+    // than added to a struct whose validator never mentioned its neighbour.
+    // Inventing an always-true test to fill the slot would be dead code that
+    // proves nothing and would have to be read as if it did.
+
     // The two CommonOptions fields (M6 W5 T8.3). Neither is read by this engine
     // yet -- T8.7 reads print_level, T8.8 reads threads -- but both are part of
     // the value a caller hands over and both are checked here, so an
@@ -505,6 +519,7 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_bool(os, "enable_scaling", o.enable_scaling);
     kv_dbl(os, "scaling_max_gradient", o.scaling_max_gradient);
     kv_dbl(os, "scaling_factor_limit", o.scaling_factor_limit);
+    kv_bool(os, "project_start_point", o.project_start_point);
     kv_int(os, "common.threads", o.common.threads);
     kv_int(os, "common.print_level", o.common.print_level);
     kv_str(os, "common.start_level", enum_name(o.common.start_level));

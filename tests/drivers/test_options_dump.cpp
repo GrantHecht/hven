@@ -54,7 +54,7 @@ using hven::solvers::SqpOptions;
 //
 // IpmOptions' 63 on Linux/Windows are 61 scalars/enums, plus `common` (ONE
 // initializer, the nested CommonOptions) and `phases` (the one sequence).
-// SqpOptions' 25 count `qp`, `ipqp` and `common` as one each.
+// SqpOptions' 28 count `qp`, `ipqp` and `common` as one each.
 //
 // IPMOPTIONS' FIELD COUNT IS PLATFORM-DEPENDENT and this is not a rounding
 // detail: `accel_pivot_tolerance` and `accel_zero_tolerance` are declared
@@ -69,7 +69,7 @@ constexpr std::size_t kIpmOptionsFields = 65;
 #else
 constexpr std::size_t kIpmOptionsFields = 63;
 #endif
-constexpr std::size_t kSqpOptionsFields = 27;
+constexpr std::size_t kSqpOptionsFields = 28;
 constexpr std::size_t kIpqpOptionsFields = 22;
 constexpr std::size_t kQpOptionsFields = 9;
 constexpr std::size_t kCommonOptionsFields = 3;
@@ -114,7 +114,9 @@ static_assert(sizeof(SqpOptions) == 384,
               "above. 376 -> 384 at M7 W0 T3, which added the `elastic_rung_engine` enum; "
               "UNCHANGED at M7 W0 T4, whose `ipqp_reseed_after_disproval` bool fits the "
               "padding that enum left (observed, not assumed -- axis 1 above is what "
-              "noticed the new field).");
+              "noticed the new field); UNCHANGED again at M7 W2 M4, whose "
+              "`project_start_point` bool sits in the padding ahead of `common` "
+              "(observed at that task, on this platform, the same way).");
 static_assert(sizeof(IpqpOptions) == 152, "IpqpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(QpOptions) == 72, "QpOptions' layout moved on Linux x86-64.");
 static_assert(sizeof(CommonOptions) == 12, "CommonOptions' layout moved on Linux x86-64.");
@@ -126,17 +128,18 @@ static_assert(sizeof(CommonOptions) == 12, "CommonOptions' layout moved on Linux
 // IpmOptions: 62 own lines (the 63 fields less `common`, which is nested) plus
 // CommonOptions' 3 = 65 -- and 67 on an Accelerate build, where the two
 // `accel_*` fields exist and the dump prints them.
-// SqpOptions: 24 own lines (the 27 fields less `qp`, `ipqp` and `common`) plus
-// QpOptions' 9, IpqpOptions' 22 and CommonOptions' 3 = 58. (22 own lines and 56
+// SqpOptions: 25 own lines (the 28 fields less `qp`, `ipqp` and `common`) plus
+// QpOptions' 9, IpqpOptions' 22 and CommonOptions' 3 = 59. (22 own lines and 56
 // before M7 W0 T3 added `elastic_rung_engine`; 23 and 57 before M7 W0 T4 added
-// `ipqp_reseed_after_disproval`.)
+// `ipqp_reseed_after_disproval`; 24 and 58 before M7 W2 M4 added
+// `project_start_point`.)
 // ---------------------------------------------------------------------------
 #ifdef USE_ACCELERATE_SPARSE
 constexpr int kIpmDumpLines = 67;
 #else
 constexpr int kIpmDumpLines = 65;
 #endif
-constexpr int kSqpDumpLines = 58;
+constexpr int kSqpDumpLines = 59;
 
 int count_lines(const std::string &text) {
     int n = 0;

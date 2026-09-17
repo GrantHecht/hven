@@ -601,9 +601,10 @@ order, which `static_assert`s hold equal to the struct's declaration order** (an
 aggregate-arity count plus an `offsetof`-monotone check, not a `sizeof`). The
 tables are therefore the authoritative field list and are not duplicated here.
 
-Shape: the 38 direct fields, then `"ssn": { 18 fields }`, then
+Shape: the 39 direct fields, then `"ssn": { 18 fields }`, then
 `"ipqp": { 39 fields }`. **The direct block was 37 until M6 W5 T8.5** appended
-`polish_ignored` (below); this section carried the old count until W5 T9 fix2.
+`polish_ignored` (below) and 38 until **M7 W2 M4** appended `start_point_clamps`
+(below); this section carried the 37 until W5 T9 fix2.
 
 `start_level_used` is an enum, written `cold\|seeded\|warm\|hot` — the schema's
 lower-snake alphabet, not core's PascalCase display spelling.
@@ -626,21 +627,41 @@ written and the section did not follow it:
 |---|---|---|---|
 | `polish_ignored` | integer | `SqpCounters::polish_ignored` | a warm-start PAYLOAD's polish extension was dropped rather than used: the seed resolved MULTIPLIERS-ONLY, so the extension — whose bound duals and inequality values are stated at the EXPORTER's point — was IGNORED and COUNTED, and the solve stands at `x0`. 0 or 1 in practice (one payload per solve); always 0 on the NATIVE `SqpWarmStart` route, 0 on a cold solve, and 0 on a full payload, whose extension IS consumed |
 
-It is **LAST in the table and last in the struct**, declared after both nested
-aggregates so that every field offset the struct already had is unmoved — so the
+It was **LAST in the table and last in the struct** until M7 W2 M4 appended
+`start_point_clamps` after it (below), declared after both nested aggregates so
+that every field offset the struct already had is unmoved — so the
 counters object gains exactly one key, between `near_active_peak` and the `ssn`
 object, and nothing else moves. Its absence reading is simply 0: it carries no
 sentinel and is not in the `null` table above. The table entry is
-`include/hven/core/solver_counters.h:1410` (the field at `:1369`); the two
-golden lines re-derived for it are `tests/sqp/test_trace_writer.cpp:2950` and
-`:3003–3004` (the key straddles a string-literal break there), marked
-"RE-DERIVED AT M6 W5 T8.5" at `:2924` and `:2982`.
+`include/hven/core/solver_counters.h:1443` (the field at `:1369`); the two
+golden lines re-derived for it are `tests/sqp/test_trace_writer.cpp:3057` and
+`:3113`, marked "RE-DERIVED AT M6 W5 T8.5" at `:3023` and `:3089`. (Those five
+line numbers moved at M7 W2 M4, which added the field below and re-derived the
+same two lines.)
 
 **THE VALUE ON THE LINE IS THE DRIVER'S, ASSIGNED IMMEDIATELY BEFORE THE
-EMISSION** (`src/drivers/sqp_solver.cpp:2481`, T8.5 fix1). Before that fix the
+EMISSION** (`src/drivers/sqp_solver.cpp:2654`, T8.5 fix1; the line moved at
+M7 W2 M4). Before that fix the
 key read `0` on exactly the solves the returned result and the ledger both read
 `1`; `docs/notes/2026-09-m6-w5-migration-guide.md` `## T8.5` §5's correction
 gives the window, and a trace taken inside it is unreliable on this key alone.
+
+**THE NEWEST DIRECT COUNTER (M7 W2 M4).**
+
+| counter | type | source | meaning |
+|---|---|---|---|
+| `start_point_clamps` | integer | `SqpCounters::start_point_clamps` | how many components of the caller's `x0` lay **strictly outside** the declared variable box at the solve's entry (`x_j < l_j` or `x_j > u_j`, a fixed variable off its value counted once) — counted before anything moves the point, so the reading is a property of the START POINT and not of the repair. Written only under `SqpOptions::project_start_point`; identically 0 at that toggle's OFF state, and 0 at ON on every `x0` already inside its box |
+
+It is **LAST in the table and last in the struct**, appended after
+`polish_ignored` for that field's own reason — so the counters object gains
+exactly one key, between `polish_ignored` and the `ssn` object, and nothing
+else moves. Its absence reading is simply 0: it carries no sentinel and is not
+in the `null` table above. The table entry is
+`include/hven/core/solver_counters.h:1444` (the field at `:1402`); the value on
+the line is assigned at `src/drivers/sqp_solver.cpp:2666`, on the same frame and
+immediately above the emission, for the reason the line above it is. The two
+golden lines re-derived for it are `tests/sqp/test_trace_writer.cpp:3057` and
+`:3113`, marked "RE-DERIVED AT M7 W2 M4" at `:3035` and `:3091`.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 
@@ -748,7 +769,7 @@ non-additive is v1.
 | `qp.mode` | W4 T1 | T2 (the `walk` / `ssn` mode strings); **T5 (the trailing `site` key)** |
 | `sqp.major` | **W4 T5** | added T2; T2 fix1 (the lower-snake enum spellings its `qp_status` / `verdict` keys share with `sqp.solve.end`); T3 (six activity fields, §6) |
 | `sqp.solve.begin` | **W4 T5** | added T2; T2 fix1 (the lower-snake enum spellings its `qp_mode` / `ws_algebra` keys carry) |
-| `sqp.solve.end` | **W4 T5** | added T2; **T2 fix1** (the lower-snake enum spellings, `StartLevel` `cold\|seeded\|warm\|hot` included, over core's PascalCase display form; and the three absence sentinels serializing as `null` — §5); T3 (four folds, through the counters tables); **T8.5** (`polish_ignored`, appended LAST in the counters object — §5); **T8.7** (the five trailing scaling fields — §4.2). The last two move the SAME TWO golden lines, `GoldenLineSqpSolveEndWithEveryCounterDistinct` and `GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull` |
+| `sqp.solve.end` | **W4 T5** | added T2; **T2 fix1** (the lower-snake enum spellings, `StartLevel` `cold\|seeded\|warm\|hot` included, over core's PascalCase display form; and the three absence sentinels serializing as `null` — §5); T3 (four folds, through the counters tables); **T8.5** (`polish_ignored`, appended LAST in the counters object — §5); **T8.7** (the five trailing scaling fields — §4.2). The last two move the SAME TWO golden lines, `GoldenLineSqpSolveEndWithEveryCounterDistinct` and `GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull`; **M7 W2 M4** (`start_point_clamps`, appended LAST in the counters object — §5), which moves those same two golden lines and no other |
 | `ipm.iter` | **W4 T5** | added T4; T4 fix1 (`p_pivots` and `h_facs` null sentinels) |
 | `ipm.solve.begin` | **W4 T5** | added T4; **T8.7** (eight trailing keys, appended in ONE step so the line moves once — §4.12; `GoldenLineIpmSolveBegin`) |
 | `ipm.solve.end` | **W4 T5** | added T4; **T8.4** (the `SolveStatus` vocabulary in place of `ConvergenceFlags`', §4.13) |

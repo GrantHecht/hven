@@ -1367,6 +1367,39 @@ struct SqpCounters {
     /// DECLARED LAST, after the two nested aggregates, so that every field
     /// offset this struct already had is unmoved.
     Index polish_ignored = 0;
+
+    /// @brief How many components of the caller's `x0` lay STRICTLY OUTSIDE the
+    ///        declared variable box at this solve's entry (M7 W2 M4).
+    ///
+    /// THE DEFINITION IS THE PROPERTY OF THE POINT, NOT OF THE REPAIR:
+    /// `x_j < l_j` or `x_j > u_j`, counted before anything moves the point, with
+    /// a fixed variable (`l_j == u_j`) sitting off its value counted ONCE. It is
+    /// deliberately NOT "components the engine moved": the two agree on the SQP
+    /// engine's clamp, which moves exactly the outside ones, and they do not
+    /// agree on an interior push, which moves in-box coordinates too -- so a
+    /// count defined as "moved" would mean different things on the two engines
+    /// and could not be compared across a row. Defined this way, the IPM twin
+    /// (registered, not built -- see `SqpOptions::project_start_point` and
+    /// `IpmSolver::push_initial_point_interior`) would report the same number
+    /// for the same start point.
+    ///
+    /// A COMPONENT COUNT, not a distance: it says how many coordinates were
+    /// outside `[l, u]`, and says nothing about how far. A caller who set `x0`
+    /// deliberately just outside a bound reads this to find out that the solve
+    /// did not start where it said.
+    ///
+    /// Written only under `SqpOptions::project_start_point`. At the toggle's OFF
+    /// state nothing writes here and the field is identically 0 -- which is also
+    /// what it reads at ON on every `x0` already inside its own box, and the two
+    /// zeros mean the same thing: the solve started at the point the caller
+    /// named.
+    ///
+    /// SCOPED TO THIS SOLVE'S OWN ENTRY. The restoration sub-solve starts from
+    /// its feasibility model's `start_point()`, which is inside that model's box
+    /// by construction, so nothing is folded in from it.
+    ///
+    /// DECLARED LAST, after `polish_ignored`, for that field's own reason.
+    Index start_point_clamps = 0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -1407,7 +1440,8 @@ struct SqpCounters {
     X(active_set_delta_peak, counter_never_absent)                                                 \
     X(weak_active_peak, counter_never_absent)                                                      \
     X(near_active_peak, counter_never_absent)                                                      \
-    X(polish_ignored, counter_never_absent)
+    X(polish_ignored, counter_never_absent)                                                        \
+    X(start_point_clamps, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =
@@ -1416,10 +1450,11 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 
 // PLUS TWO: `ssn` and `ipqp` are nested aggregates, each counted as ONE
 // initializer by the arity trick and serialized through its own table above, so
-// the table holds the 38 direct fields and the struct takes 40 initializers.
+// the table holds the 39 direct fields and the struct takes 41 initializers.
 // (37 -> 38 at M6 W5 T8.5, which appended `polish_ignored` after both nested
 // aggregates -- last in declaration order, so the table order below is still
-// the struct's and every pre-existing offset is unmoved.)
+// the struct's and every pre-existing offset is unmoved. 38 -> 39 at M7 W2 M4,
+// which appended `start_point_clamps` the same way and for the same reason.)
 static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
               "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "

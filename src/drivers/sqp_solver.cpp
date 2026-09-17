@@ -2513,6 +2513,62 @@ SqpResult SqpSolver::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &bridge
     // caller who supplies a bridge directly had its box validated when the
     // bridge laid.
 
+    // THE OUT-OF-BOX START POINT (M7 W2 M4), under
+    // `SqpOptions::project_start_point` and nowhere else.
+    //
+    // WHY HERE. It is after the two argument refusals -- so a NaN `x0` is still
+    // refused rather than projected, which it could not be anyway -- and above
+    // the `begin` line, so the whole solve, its trace and its counters describe
+    // ONE point: the one the loop below actually stands on. Below this block
+    // `*x0_used` is that point and the caller's own vector is not read again.
+    //
+    // THE RULE is `min(max(x, l), u)` componentwise, which is the rule
+    // `NlpProblemModel::start_point()` already applies to the origin
+    // (src/model/nlp_problem_model.cpp) -- the same operation on a different
+    // input, not a second notion of "inside the box". It is spelled here rather
+    // than called there because that member projects a FIXED value (the origin),
+    // takes no point and belongs to one model class, while the box this needs is
+    // the seam's materialized `lower()`/`upper()` pair. A fixed variable
+    // (l == u) lands exactly on its value by construction; an infinite bound is
+    // a no-op, because max(x, -inf) and min(x, +inf) are x.
+    //
+    // OFF IS BYTE-IDENTICAL BY CONSTRUCTION: at false nothing below runs. At
+    // true with every component already inside its box the count is 0 and the
+    // ORIGINAL vector is what the body receives -- no copy is substituted -- so
+    // an in-box solve cannot differ from the same solve with the toggle off,
+    // not even by an allocation.
+    Index start_point_clamps = 0;
+    Vec x0_projected;
+    const Vec *x0_used = &x0;
+    if (opts_.project_start_point) {
+        const Vec &lo = seam.lower();
+        const Vec &up = seam.upper();
+        if (lo.size() != n || up.size() != n) {
+            throw std::logic_error(fmt::format(
+                "SqpSolver::solve: the seam's materialized box is {} / {} rows against n = {}; the "
+                "start-point projection reads the box the seam laid, and it is n-sized by "
+                "construction",
+                lo.size(), up.size(), n));
+        }
+        // THE COUNT IS A PROPERTY OF THE POINT, spelled as its own definition
+        // rather than read off the repair: `SqpCounters::start_point_clamps` is
+        // "components STRICTLY OUTSIDE the declared box", so that the IPM's
+        // interior push -- which moves in-box coordinates too -- can carry a
+        // twin that means the same thing. On THIS engine's clamp the two
+        // readings coincide, because min(max(x, l), u) moves exactly the
+        // outside components; `x0` is finite here, so neither comparison can be
+        // a NaN ordering.
+        for (Index i = 0; i < n; ++i) {
+            if (x0[i] < lo[i] || x0[i] > up[i]) {
+                ++start_point_clamps;
+            }
+        }
+        if (start_point_clamps > 0) {
+            x0_projected = x0.cwiseMax(lo).cwiseMin(up);
+            x0_used = &x0_projected;
+        }
+    }
+
     // ONE strategy per solve() call, so funnel state never leaks between
     // solves and solve() stays repeatable. See SqpOptions::make_strategy.
     std::unique_ptr<GlobalizationStrategy> strategy =
@@ -2578,7 +2634,7 @@ SqpResult SqpSolver::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &bridge
     if (ipqp_trace_ != nullptr) {
         ipqp_trace_->on_sqp_solve_begin(make_solve_begin_event(opts_, seam));
     }
-    SqpResult out = solve_impl_body(seam, bridge, x0, warm, budget, std::move(strategy));
+    SqpResult out = solve_impl_body(seam, bridge, *x0_used, warm, budget, std::move(strategy));
     // THE POLISH-IGNORED COUNT, BEFORE THE TRACE READS IT (M6 W5 T8.5 fix1).
     //
     // The count is `consume_payload`'s, taken one frame ABOVE this one, so no
@@ -2596,6 +2652,18 @@ SqpResult SqpSolver::solve_impl(AssemblyEvalSeam &seam, NlpModelAssembly &bridge
     // funnel's guarantee -- every public overload, the non-finite-start exit
     // included -- is unweakened.
     out.counters.polish_ignored = payload_polish_ignored_;
+    // THE CLAMP COUNT, on this frame and above the emission, for the reason the
+    // line above is (M7 W2 M4). The number is this frame's local, so no exit
+    // inside `solve_impl_body` can write it, and the `sqp.solve.end` event
+    // below carries the WHOLE counters object -- assigning here is what makes
+    // the returned result and the stream agree on it. Every exit of the body is
+    // covered, the NON-FINITE ITERATE exit included, which is the one exit a
+    // projected start point is most likely to have avoided.
+    //
+    // `record_solve`, one frame above, does not touch this field: unlike
+    // `polish_ignored` it has no driver member to read, because the count is
+    // made here and consumed here.
+    out.counters.start_point_clamps = start_point_clamps;
     if (ipqp_trace_ != nullptr) {
         // THE SCALING BLOCK (M6 W5 T8.7) rides the closing line, read off the
         // solution the caller is about to receive. It is the console trailer's

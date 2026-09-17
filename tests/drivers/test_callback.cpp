@@ -2013,7 +2013,8 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     X(active_set_delta_peak)                                                                       \
     X(weak_active_peak)                                                                            \
     X(near_active_peak)                                                                            \
-    X(polish_ignored)
+    X(polish_ignored)                                                                              \
+    X(start_point_clamps)
 
 // The 18 fields of SsnCounters and the 39 of IpqpCounters, the two nested
 // groups SqpCounters carries.
@@ -2083,7 +2084,8 @@ void expect_same_counters(const hven::solvers::SqpCounters &a,
     // The drift pin: Linux x86-64 clang. A new counter field moves this and the
     // list above must grow with it.
 #if defined(__linux__) && defined(__x86_64__)
-    static_assert(sizeof(hven::solvers::SqpCounters) == 760,
+    // 760 -> 768 at M7 W2 M4, which appended `start_point_clamps`.
+    static_assert(sizeof(hven::solvers::SqpCounters) == 768,
                   "SqpCounters gained or lost a field -- extend "
                   "HVEN_T2_SQP_COUNTER_FIELDS so the mask comparison still "
                   "covers every counter");

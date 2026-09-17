@@ -667,6 +667,53 @@ struct SqpOptions {
     /// is unbounded.
     double scaling_factor_limit = 1e12;
 
+    /// THE OUT-OF-BOX START POINT: project it, or take it verbatim (M7 W2 M4).
+    ///
+    /// `solve()` checks `x0`'s SIZE and its FINITENESS and has never checked its
+    /// BOX. FALSE -- what this engine does today -- therefore means the start
+    /// point is TAKEN VERBATIM: an out-of-box `x0` is not refused, it is
+    /// evaluated where it stands. On a model whose objective or constraints are
+    /// undefined outside the box that first evaluation is non-finite, and the
+    /// solve RETURNS a `kNumericalError` status in zero majors -- the NON-FINITE
+    /// ITERATE exit, doing exactly what it was written to do, on a point no rule
+    /// of the problem admits. It is a reported status, not a boundary refusal,
+    /// which is why it reads to every consumer as "the solver failed".
+    ///
+    /// TRUE: after the size and finiteness refusals and BEFORE the first
+    /// evaluation, `x0` is clamped onto the declared box -- `min(max(x, l), u)`,
+    /// componentwise, which is the rule `NlpProblemModel::start_point()` already
+    /// applies to the origin -- and the number of components that lay STRICTLY
+    /// OUTSIDE the box is reported as `SqpCounters::start_point_clamps` (that
+    /// counter's own comment says why it is defined on the POINT rather than on
+    /// the repair; on this engine's clamp the two counts coincide). A fixed variable
+    /// (`l == u`) lands exactly on its value; an infinite bound moves nothing;
+    /// a point already inside its box is untouched, component for component, and
+    /// the solve is byte-identical to the same solve with this field false.
+    ///
+    /// WHAT IT DOES NOT DO. It does not weaken the finiteness refusal -- an `x0`
+    /// with a NaN or an infinity is still `std::invalid_argument`, because a NaN
+    /// has no projection. It does not touch the NON-FINITE ITERATE exit, which
+    /// keeps the case its own comment names: a point that is IN the box and still
+    /// un-evaluable. And it never moves a point the caller placed inside its
+    /// bounds, so it changes no solve that was well-posed to begin with.
+    ///
+    /// SCOPE -- IT PROJECTS THE `x0` ARGUMENT, and a WARM solve's start point is
+    /// not that argument. `prepare_solve` starts a solve at `warm.x` whenever a
+    /// warm object is ingested and at `x0` otherwise, so on the warm route the
+    /// point projected here is not the point the loop begins from. That includes
+    /// the MULTIPLIERS-ONLY seed, whose `warm.x` is a copy of `x0` taken one
+    /// frame above this projection -- so a caller combining that payload form
+    /// with an out-of-box `x0` gets the raw point even at true. Every cold solve,
+    /// which is the case this option was measured on, is covered. Widening it to
+    /// the resolved start point is registered, not done here: it would have to
+    /// run above the payload ingest, which is a second decision about a second
+    /// contract.
+    ///
+    /// NOT a curvature source (docs/counters.md): it selects where the solve
+    /// starts, not whether or how any second-order reading is taken.
+    /// @see docs/notes/2026-09-m7-w2-sqp-cutest-read.md section M4
+    bool project_start_point = false;
+
     /// The options both engines share (drivers/common_options.h), at the SQP
     /// engine's own defaults -- `threads = 0` ("leave the backend alone", which
     /// is what this engine has always done; the process-wide MKL_NUM_THREADS pin

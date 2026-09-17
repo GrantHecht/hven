@@ -446,10 +446,11 @@ void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b
     HVEN_EXPECT_SAME(a, b, ipqp_read_barrier_noise_sides);
 }
 
-// EVERY field of SqpCounters -- all 40, the two nested blocks through the
-// helpers above.
+// EVERY field of SqpCounters -- all 41, the two nested blocks through the
+// helpers above. (40 and 38 direct until M7 W2 M4 appended
+// `start_point_clamps`.)
 void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
-    static_assert(sizeof(SqpCounters) == 38 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
+    static_assert(sizeof(SqpCounters) == 39 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
                   "SqpCounters changed size: add the new field to expect_counters_identical "
                   "and update this assertion.");
     HVEN_EXPECT_SAME(a, b, major_iters);
@@ -490,6 +491,7 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     HVEN_EXPECT_SAME(a, b, weak_active_peak);
     HVEN_EXPECT_SAME(a, b, near_active_peak);
     HVEN_EXPECT_SAME(a, b, polish_ignored);
+    HVEN_EXPECT_SAME(a, b, start_point_clamps);
     expect_ssn_counters_identical(a.ssn, b.ssn);
     expect_ipqp_counters_identical(a.ipqp, b.ipqp);
 }

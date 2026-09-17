@@ -94,11 +94,12 @@ believe. This table says only what exists, where, and how many.
 | `QpCounters` | `core/solver_counters.h:30-200` | 20 | the walk (active-set) QP tier, `qp/` |
 | `SsnCounters` | `core/solver_counters.h:210-348` | 18 | the SSN QP tier, `qp/` |
 | `IpqpCounters` | `core/solver_counters.h:466-896` | 39 | the IPQP QP tier, `qp/` |
-| `SqpCounters` | `core/solver_counters.h:1048-1370` | 38 direct, plus the nested `ssn` and `ipqp` | the SQP driver, `drivers/` |
+| `SqpCounters` | `core/solver_counters.h:1048-1403` | 39 direct, plus the nested `ssn` and `ipqp` | the SQP driver, `drivers/` |
 | `SymmetricFactor::Counters` | `linear/symmetric_factor.h:646-682` | 5 | every sparse symmetric factor, `linear/` |
 
-115 fields across the four `core/` groups; `SqpCounters`' 38 do not include the
-two nested groups' 57, which it carries whole.
+116 fields across the four `core/` groups; `SqpCounters`' 39 do not include the
+two nested groups' 57, which it carries whole. (115 and 38 until M7 W2 M4, which
+appended `start_point_clamps`.)
 
 THREE OF THESE ARE PINNED AGAINST A MACRO TABLE, not merely declared:
 `SsnCounters`, `IpqpCounters` and `SqpCounters` each carry an `X()` list used to
