@@ -1,0 +1,19 @@
+date_utc:        2026-09-17T21:02:59+00:00
+host:            Linux 7.2.4-200.fc44.x86_64  16 logical cores
+cpu:             AMD Ryzen 7 5800X3D 8-Core Processor
+compiler:        clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+cmake:           cmake version 4.3.0
+hven commit:     003b5d89a76f3c69ab3e2a4cb17757ffbc51f8b5
+hven branch:     m7
+hven tree state: 1 modified paths (0 = clean)
+harness commit:  3968f3fbffc8e29d1c2aae4e06bee3d93758fc6b (READ ONLY; not modified)
+harness pin:     3904a477771524b85b34678fb7d2ff55dd4768f1 (the stamp these binaries carry, and it is FALSE for them -- see section 2)
+MKL threads:     MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 in every cell process
+wall ceiling:    300 s per cell (sets/cutest-nlp.json run_terms.budget_wall_s)
+budget-iters:    0 (the engine's own SqpOptions::max_iter = 100)
+arm off header sha256:  d7a7245ad8d037cfd0565e0ab356ed1cdc3003c9489c439f6485da3e586957fe
+arm off default:        bool project_start_point = false;
+arm off cell sha256:    9aa32048438439c5811c1e10f0d1c30a36157e0442108365bd492be4c6861a4f
+arm on header sha256:  85beb5bd5006e16909264b975fe51ec612c3f1548e212d16f813416308102f42
+arm on default:        bool project_start_point = true;
+arm on cell sha256:    9bcd0ad0d8f952e1dede9a43025a18129b44c0f30eba779b1df9c29ad8f6b56a
