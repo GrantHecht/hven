@@ -83,6 +83,25 @@ legs did not RETURN inside a 300 s cap of their own; under contention that is a
 candidate and never a measurement, and it is marked as one at each of the three
 cells that use it.
 
+**EVERY `file:line` ON THIS PAGE IS AT HEAD `24c8f7b6`; THE BINARY IS AT PIN
+`3904a477` (fix1).** 48 commits and a 383-line delta in `src/drivers/sqp_solver.cpp`
+separate them (W0 T1–T7), so a reader diffing the pin finds `map_status` at
+`:6021`, not `:6268`. **Every mechanism this page cites is present and unchanged
+between the two**, checked rather than assumed, and the check is in the review
+(`.superpowers/m7-w2-a-sqp-read-review-fable.md` item 1) and re-run here:
+`map_status` and `qp_failure_is_retryable` are BYTE-IDENTICAL pin to HEAD
+(`git show <pin>:…` against `sed -n` at HEAD, both bodies diff-empty); the
+restoration RESUME test is at pin `:4397` and the retry gate at pin `:5507`, the
+same statements; `src/qp/qp_engine.cpp`, `include/hven/qp/qp_types.h` and
+`src/model/nlp_problem_model.cpp` are unchanged in their entirety, so
+`latch_still_holds` is at `:1816` and `schur_cap = 128` at `:139` at BOTH
+commits; `include/hven/detail/qp/qp_engine.h`'s whole pin→HEAD delta is four
+lines, two W0 T7 curvature-source COMMENT blocks, leaving `kQpMaxIterFloor = 500`
+and `kQpMaxIterCoeff = 5` at `:385-386` at both; the box note is at pin `:2390`;
+and `IpmSolver::push_initial_point_interior`'s body (`ipm_solver.cpp:491-543`)
+and `NlpProblemModel::start_point()`'s (`:462-468`) are byte-identical at both,
+although their files are not.
+
 **What could not be measured, and why.** The engine's per-major evidence exists
 — `SqpResult::history` carries `qp_status`, `qp_minor_iters`, `qp_factorizations`,
 `verdict`, `tr_radius`, `violation_l1` and `elastic_applied` per row
@@ -128,11 +147,11 @@ bounded quantity is `major_iters + restoration_iters`"
 |---|---|---|---|---|---|---|
 | `ACOPP118` | 344 / 608 | **error** `numerical_error` | 5 / 10 497 / 11 233 | **M1.** Majors 1–3 accepted, `f` 128 439 → 128 700 → **129 648.674** and stationarity 4.4e3 → 675 → **25.1**; majors 4 and 5 each spend **exactly 4 710** minors — the subproblem's own cap, twice — and the second ends the solve | `optimal` 129 660.686 · `optimal` 129 660.686 · `optimal` 129 660.686 | every other lane converges, and so was this one: the engine gave up 0.01 % from `f*` because a subproblem ran out of minors |
 | `ACOPP57` | 128 / 274 | **error** `numerical_error` | 5 / 3 658 / 114 | **M1**, the same shape: `f` 41 063 → 41 661 → **41 737.5431**, stationarity 4.8e3 → 139 → **0.639**, then **1 795** minors twice | `optimal` 41 737.787 · `optimal` 41 737.787 · `optimal` 41 737.787 | the cleanest case on the set: three quadratic-looking majors, then the cap. `n = schur_cap` here, so M3 never engages and 3 658 minors cost only 114 factorizations |
-| `ACOPR118` | 344 / 726 | **dnf_wall** | — | **M3, its row-pattern variant.** One major alone costs **10 548 factorizations** and **3 115 symbolic analyses** — the K0 pattern rebuilt three thousand times in one subproblem — for 5 300 minors, and ends with the step rejected at `f` 131 322, ‖c_e‖ 1.297 (`raw/ACOPR118-default-b1.log`) | `optimal` (acceptable) 129 660.687 · `optimal` 129 660.687 · `optimal` 129 660.687 | the IPM lane reaches the same answer in 696 factorizations TOTAL. This is the widest linear-algebra gap on the set |
+| `ACOPR118` | 344 / 726 | **dnf_wall** | — | **M1 + M3's row-pattern variant.** One major alone costs **10 548 factorizations** and **3 115 symbolic analyses** — the K0 pattern rebuilt three thousand times in one subproblem — for **5 300** minors, which is `5 × 1 060`: the first subproblem is a CAPPED one (M1's shape, `rejected_steps = 1`, `steps_accepted = 0`, no elastic entry) carrying M3's price. 6 of its 5 300 minors were bordered. It ends with the step rejected at `f` 131 322, ‖c_e‖ 1.297 (`raw/ACOPR118-default-b1.log`) | `optimal` (acceptable) 129 660.687 · `optimal` 129 660.687 · `optimal` 129 660.687 | the IPM lane reaches the same answer in 696 factorizations TOTAL. This is the widest linear-algebra gap on the set |
 | `ACOPR57` | 128 / 331 | **error** `numerical_error` | 13 / 9 714 / 4 159 | **M1**, with M3's row-change variant behind it: 8 accepted steps reach `f` 41 737.785 (`f*` to 6 digits) at stationarity 1.02, and 428 symbolic analyses say the pattern was rebuilt all through | `dnf_budget` 41 737.787 · `optimal` 41 737.787 · `optimal` 41 737.787 | the IPM lane does not finish either (500 iters); `sqp-ssn` DOES solve this cell, in 25 majors and 1 907 factorizations |
 | `BIGBANK` | 2 230 / 1 112 | **dnf_wall** | — | **M3, accumulated.** Major 1 completes and its step is ACCEPTED — 1 039 factorizations for 1 038 minors, `f` −6 559.6, ‖c_e‖ 6.4e-13 (`raw/BIGBANK-default-b1.log`). At ~1 000 factorizations of a 2 230-variable KKT per major and up to 100 majors, the ceiling is the aggregate, not one subproblem | `optimal` −4 205 693 · `dnf_budget` · `dnf_budget` | the IPM lane solves it in **48** factorizations. IPOPT and SNOPT both fail it, so this is a hard problem — but not for hven's other engine |
 | `BRITGAS` | 450 / 360 | **error** `numerical_error` | 2 / 9 000 / 9 265 | **M1 at the FIRST iterate.** Major 1's subproblem spends **4 500** minors = `5 × 900` and fails; major 2 spends **4 500** again; the solve ends having never moved from `x0` (`f` 0, ‖c_e‖ 2). 40 of 9 000 minors bordered — M3 at its most extreme | `optimal` −9.74e-08 · `dnf_budget` · `optimal` 0 | SNOPT solves it in 12 majors and 793 minors. hven's SQP engine never took a step |
-| `DALLASM` | 196 / 151 | **error** `numerical_error` | 3 / 6 663 / 4 917 | **M1 + M2.** `steps_accepted = 0`: the returned `f` = 6.197e+07 is the start point's, not a blow-up (`raw/DALLASM-default-b{1,2,0}.log` — `f` moves only 61 971 711 → 61 974 566 → 61 974 881 across three majors, all of it restoration's). One elastic activation and 2 restoration iterations | `optimal` −48 198.19 · `optimal` −48 198.19 · `optimal` −48 198.19 | three lanes agree on −48 198; the SQP lane never left the neighbourhood of `x0` |
+| `DALLASM` | 196 / 151 | **error** `numerical_error` | 3 / 6 663 / 4 917 | **M1 + M2.** `steps_accepted = 0`: the returned `f` = 6.197e+07 is the start point's to five significant figures, not a blow-up (`raw/DALLASM-default-b{1,2,0}.log` — `f` moves only 61 971 711 → 61 974 566 → 61 974 881 across three majors, a relative move of 5e-5, all of it restoration's). One elastic activation and 2 restoration iterations | `optimal` −48 198.19 · `optimal` −48 198.19 · `optimal` −48 198.19 | three lanes agree on −48 198; the SQP lane never left the neighbourhood of `x0` |
 | `MSS2` | 756 / 703 | **dnf_wall** | — | **M3.** Major 1 alone did not return inside a 300 s cap of this page's own, under a co-run (`raw/MSS2-default-b1.log`, `LEG_RC=124`) — a candidate, not a measurement, but it bounds where the ceiling goes: the FIRST subproblem | `dnf_budget` −6.93 · `error` · `error` | no lane answers this problem. It is the one wall cell whose difficulty is corroborated on every lane |
 | `MSS3` | 2 070 / 1 981 | **dnf_wall** | — | **M3**, same reading as `MSS2` (`raw/MSS3-default-b1.log`, `LEG_RC=124`) | `dnf_wall` · `dnf_wall` · `dnf_budget` | three of four lanes DNF. Not an SQP-specific finding |
 | `NET3` | 464 / 521 | **error** `numerical_error` | 0 / 0 / 0 | **M4.** CUTEst's declared `x0` is outside its own box on 41 of 464 components and `f` is NaN there; the driver's NON-FINITE ITERATE exit fires before the first subproblem | `dnf_budget` 5 859 392 · `error` · `error` | no lane solves NET3. The SQP lane is the only one that never starts |
@@ -172,7 +191,10 @@ that would separate them is named with them.
 
 **Cells: 9** — ACOPP118, ACOPP57, ACOPR57, BRITGAS, DALLASM, READING6,
 STEENBRB, STEENBRC, STEENBRG. Every `numerical_error` cell that reached a
-subproblem at all exits through this one gate.
+subproblem at all exits through this one gate. A tenth cell shows the same shape
+without reaching the exit: `ACOPR118`'s first subproblem is capped too (5 300
+minors = `5 × 1 060`, `rejected_steps = 1`), but the 300 s ceiling fell before a
+second failure could — §1's row and §M3.
 
 **The mechanism, in two halves.**
 
@@ -570,16 +592,29 @@ honoured".
 
 **The interior-point lane never sees it** because it pushes every bounded
 coordinate strictly inside before the first evaluation —
-`x[i] = max(x[i], l + p)` with `p = bound_push · max(1,|l|)`
-(`src/drivers/ipm_solver.cpp:491-543`, `IpmOptions::bound_push = 1e-3`,
-`include/hven/drivers/ipm_solver_types.h:240-254`). SNOPT and IPOPT both do the
-same — the ledger's H3-addendum entry says so where it registers this question
-for W2, and IPOPT's lane adapter says it of itself ("IPOPT 'should never see
-those points' because it pushes the start point strictly inside the bounds",
-quoted in `hven-bench/runs/2026-09-m7-h4-external/README.md`). So do their
-results: `NET3/snopt` `PointCannotBeImproved`,
-`STEENBRD/snopt` **`Optimal` at 9 030.08**, `STEENBRE/snopt` **`Optimal` at
-27 458.82** (`four-lane-table.md`).
+`x[i] = max(x[i], l + p)` with `p = bound_push · max(1,|l|)`, capped for a
+two-sided variable at `bound_interval_push · (u − l)`
+(`src/drivers/ipm_solver.cpp:491-543`, `IpmOptions::bound_push = 1e-3` and
+`bound_interval_push = 1e-2`, `include/hven/drivers/ipm_solver_types.h:240-254`).
+
+**The other two lanes: the premise, at the strength of its evidence (fix1).** For
+IPOPT it is DOCUMENTED and hven's own header names the mechanism: the two options
+above are transcriptions of "Ipopt's `bound_push`" and "Ipopt's `bound_frac`,
+same default" (`ipm_solver_types.h:242-254`), so IPOPT's initialisation moves a
+bounded coordinate strictly inside by construction — and IPOPT's lane adapter
+says it of itself in the round's own artifact ("IPOPT 'should never see those
+points' because it pushes the start point strictly inside the bounds", quoted in
+`hven-bench/runs/2026-09-m7-h4-external/README.md`). **For SNOPT the evidence
+here is EMPIRICAL and is stated as such:** no SNOPT documentation is cited on
+this page and no SNOPT source exists on this box, so what is claimed is only what
+was OBSERVED on this set — `STEENBRD/snopt` **`Optimal` at 9 030.08** and
+`STEENBRE/snopt` **`Optimal` at 27 458.82**, from the same declaration that gives
+hven's SQP lane a NaN at iteration 0 (`four-lane-table.md`). A solver that
+evaluated the declared `x0` verbatim could not have produced those rows.
+(`NET3/snopt` is `PointCannotBeImproved`, so the set does not claim SNOPT
+*solves* an out-of-box start, only that it gets past one.) That observation is
+sufficient for the recommendation below, which rests on hven's own contract and
+not on what any other solver does.
 
 **PROJECT OR REFUSE — the argument, both ways.**
 
@@ -674,8 +709,16 @@ The same budget ladder as §M2's, on YORKNET:
 (`raw/YORKNET-default-b{3,8,14}.log` against `run-A`.) **The objective and all
 four declared residuals are identical to the last digit at 2, 7, 13 and 18
 restoration iterations**, while the factorization count climbs by roughly 2 200
-per iteration. Sixteen further iterations and forty thousand further
-factorizations moved nothing. Where `STEENBRC`'s restoration went somewhere bad,
+per iteration and `symbolic_analyses` by **exactly 2** per iteration — 6 → 16 →
+28 → 38 against restoration iterations 2 → 7 → 13 → 18 — the K0 pattern being
+rebuilt twice for every elastic entry. Sixteen further iterations and forty
+thousand further factorizations moved nothing.
+
+(A caveat the page owes itself: "identical to the last digit" is an OBSERVATION
+across four processes, not a guarantee. CLAUDE.md §7 exempts residual-class
+columns from cross-process byte equality, so a last-digit drift on one of them
+would have been legal — and would not have touched the reading, which is that
+the objective and the violation did not move at all.) Where `STEENBRC`'s restoration went somewhere bad,
 YORKNET's went nowhere at all — and the two failures are opposite, which is why
 one fix will not serve both.
 
@@ -683,16 +726,46 @@ M3 supplies the price: `n = 312`, so the latch is reachable, and
 `border_refine_steps` is 140 against 50 241 minors — **0.3 % of minors bordered,
 the lowest ratio on the set.**
 
-**Why the phase ended where it did still cannot be read from what this round
-retains.** The ladder settles that restoration made no progress; it does not
-settle which of the two uncertified arms fired. `st.resto.status` is derived from
-the sub-solve's `rs.status` in a switch at `:4668-4712`, and `kInfeasible`
-arrives there either because the sub-solve raised a restoration request of its
-own, which nothing can service ("nested restoration is not allowed … the
-feasibility problem is itself stuck", `:4681-4687`), or because the sub-solve
-reported its own stall. Neither the status nor any counter records which.
-**What would separate them:** the sub-solve's own status on the result, or one
-`sqp.major` line. Neither is in any artifact this round produced.
+**How this exit is reached is not a choice between arms — it is one arm, and the
+open question is WHICH REQUEST SOURCE fed it (corrected at fix1).** The page's
+first version offered a two-arm dichotomy; the code has one.
+
+*The route is forced.* The parent's switch on the sub-solve's status
+(`:4668-4712`) has exactly ONE uncertified `kInfeasible` arm, at `:4680-4686`
+(`rs.status == kInfeasible`). Inside the sub-solve that status can arise on this
+path only from the REFUSED REQUEST exit (`:4188-4198`): a restoration solve
+raising a restoration request of its own, with `allow_restoration_` false. It
+cannot arrive from a subproblem — `map_status`'s
+`QpStatus::kInfeasible → SolveStatus::kInfeasible` arm (`:6270-6271`) is
+UNREACHABLE, because the elastic requester is "the ONLY consumer of
+`QpStatus::kInfeasible` in the driver" (`:5628-5632`), and
+`include/hven/core/solver_status.h:40-41` says the same from the other side: "no
+subproblem status propagates into kInfeasible at all". So YORKNET's row means
+exactly this: **the feasibility sub-problem asked for a restoration of its own,
+and nothing is allowed to service one.**
+
+*What is open is which of hven's THREE REQUEST SOURCES raised it.*
+`solver_status.h:60-66` names them — the funnel's own restoration signature
+(`:6012`), the elastic tier's exhaustion (`:5687`, fed by the ladder's
+synthesized `kInfeasible` + `SqpFallbackVerdict::kExhausted` at `:1396-1401` and
+the `StepVerdict::kRestore` the row takes at `:5661-5665`), and the radius floor
+(`:5765` on a routed subproblem failure, `:5983` on a judged rejection).
+
+*And the counters already exclude one of the three.* Both radius-floor sites
+increment `rejected_steps` BEFORE requesting (`:5756-5757`, `:5972-5973`), and
+YORKNET's parent row reads `rejected_steps = 0` — the sub-solve's own verdict
+counters are deliberately not folded into the parent (`:4445-4453`), so that zero
+is the parent's own. **The radius floor did not raise the outer request.** The
+funnel's signature and the ladder's exhaustion remain, and they are the two that
+BOTH leave `StepVerdict::kRestore`, so `solver_status.h:60-66`'s verdict test
+separates the floor from the pair and not the pair from each other.
+
+*What would separate them,* and it is S7 at trace depth 1: the sub-solve's last
+history row — its `verdict` for the floor, and `elastic_applied` /
+`qp_status` on the same row to split exhaustion from signature
+(`include/hven/drivers/sqp_solver_types.h:778-900`; the ladder path sets
+`elastic_applied = true` at `:5657`). Nothing in any artifact this round produced
+carries a sub-solve history row.
 
 **The proposed fix, and its owner.** The driver's restoration and elastic paths,
 jointly with M2 and M3 — YORKNET is those two mechanisms compounding, not a sixth
@@ -722,13 +795,14 @@ recorded it.
 
 ## 3. The proposed W2 order — a recommendation for the settler, not a decision
 
-Ordered by evidence-per-unit-risk rather than by cells: the first two change
+Ordered by evidence-per-unit-risk rather than by cells: the first three change
 nothing about a solve that is already working, and the last two change
 trajectories and cost a declared re-derivation of the pinned corpora.
 
 | # | the change | cells it could move | risk to the pinned corpora |
 |---|---|---|---|
 | **1** | **The signals** (§5): the counters and the history/trace route that would have let this page be a measurement rather than a reading | 0 directly | **none** — additive counters and an additive publication surface; the replay CSVs' schema is a comparator's, and a new counter that no pinned column reads moves nothing |
+| **1b** | **A `tr_init` arm on the A4-0 options vehicle** (added at fix1, the reviewer's item 5) — NO CODE, an options label on the TRAIN 23 | 0 directly, but it is the probe M3's design needs | **none** — it is a label, exactly like `sqp-ssn` and `sqp-ipm`; it changes no default and no pinned row |
 | **2** | **M4, the out-of-box start point** | 3 (NET3, STEENBRD, STEENBRE; realistically 2) | **none if it is right** — an in-box `x0` is untouched, so the three replay CSVs and the corpus suite coming back UNMOVED *is* the gate |
 | **3** | **M1, the label and the failure budget** (pieces 1 and 2) | 3–5 (ACOPP57 and ACOPP118 are at stationarity 0.64 and 25 when the engine gives up; ACOPR57, BRITGAS, READING6 behind them) | **high** — the failure budget changes trajectories on any cell that ever fails a subproblem. A declared re-derivation of `head-{walk,ssn,ipm}.csv` should be budgeted, not hoped against |
 | **4** | **M2, the restoration resume** | 3 (STEENBRB, STEENBRC, STEENBRG) | **high**, and it is a DESIGN question before it is a change — §M2 gives three shapes and argues against all three; it wants the settler's ruling first |
@@ -748,6 +822,28 @@ effect still cannot be read.
 the largest on the list, and the A4-0 sweep is currently measuring the two
 alternatives to `kWalk` on this exact set. Whatever that sweep concludes is an
 input to M3 and not to any of the other four.
+
+*Why (1b) is on the list at all, and why it is free.* `SqpOptions::tr_init` is
+**1.0** — an ABSOLUTE initial radius (`include/hven/drivers/sqp_solver_types.h:388`),
+on a set the engine runs unscaled. It bears on three of the five mechanisms at
+once, and on the one this page could not settle:
+
+- **M3.** An l-infinity box of ±1 pins every variable whose natural scale exceeds
+  1, and a pinned variable is what takes the border stack past `schur_cap = 128`.
+  §M3's second candidate — "the trust region pins variables the problem does not"
+  — is exactly this, and a `tr_init` arm is the measurement that decides between
+  it and "the cap is simply fixed at 128" **without designing either fix**.
+- **M1.** The subproblems that run to their minor cap do so at Δ = 1 on cells
+  whose violation at the start point is 2 (BRITGAS) to 10 000 (STEENBRC): the
+  first subproblem cannot reach a feasible point inside its own box, which is a
+  plausible reason for the walk to exhaust a size-derived budget.
+- **M2.** The restoration phase restarts at
+  `max(tr_min, kRestoreRadiusFactor · tr_init)` (`src/drivers/sqp_solver.cpp:6288-6291`),
+  so the excursion §M2 measures is taken at a radius `tr_init` sets.
+
+It is a one-field label on a lane that already runs labels, its rows are
+counters, and it says something before any of (3), (4) or (5) is designed. That
+is why it is in the zero-risk tier rather than behind M3.
 
 ---
 
@@ -775,15 +871,21 @@ visible hard failure under a non-default mode and it is the A4-0 sweep's finding
 to report, not this page's; it is named here only so that "4 of 23 under `kSsn`"
 is not read as strictly better than "2 of 23".
 
-**Scaling is not what separates the two hven lanes.** The SQP lane runs with
+**NLP scaling is not what separates the two hven lanes.** The SQP lane runs with
 `enable_scaling = false` (`run-A/options/*-hven-sqp.txt`), and it is fair to ask
-whether STEENBR's ‖c_e(x0)‖ of 2 000 to 10 000 is a scaling problem. But the
-interior-point lane's own dump reads `qp_scaling = 0` and `obj_scale = 1`
-(`run-A/options/*-hven-ipm.txt`) — it applies no NLP scaling either — and it
-solves 15 of 23 including all three STEENBR cells the SQP lane blows up on.
-**Whatever the SQP engine needs on this set, the IPM lane demonstrates that NLP
-scaling is not necessary for it.** `enable_scaling = true` remains a lever worth
-measuring; it is not the explanation.
+whether STEENBR's ‖c_e(x0)‖ of 2 000 to 10 000 is a scaling problem. But **the
+interior-point engine has no NLP-scaling option at all** — `IpmOptions` exposes
+no gradient- or constraint-scaling rule, only `obj_scale`, which the dump reads
+as `1` (`include/hven/drivers/ipm_solver_types.h:336`,
+`run-A/options/*-hven-ipm.txt`) — and it solves 15 of 23 including all three
+STEENBR cells the SQP lane blows up on. **Whatever the SQP engine needs on this
+set, the IPM lane demonstrates that NLP scaling is not necessary for it.**
+`enable_scaling = true` remains a lever worth measuring; it is not the
+explanation. *(Corrected at fix1: the first version read the IPM dump's
+`qp_scaling = 0` as "no NLP scaling". It is not an NLP setting at all — it is
+the MKL Pardiso MPS matrix-scaling flag, `iparm[10]`, a linear-solver option
+(`ipm_solver_types.h:312-316`). The conclusion is unchanged and now rests on the
+absence of the option rather than on the wrong one.)*
 
 **The tier's §6.3 infeasibility-suspicion detector is not firing here.**
 `suspect_escalations` is **0** on every one of the 15 cells with rows
@@ -848,7 +950,10 @@ file and line so the settler can place it.
    `budget_iters` column. The correction moves the round's "the hven lanes ran
    under a ceiling six times tighter than IPOPT's" from conservative to *more*
    conservative on one of the two lanes: thirty times, not six. **Harness-side,
-   and this is the A4-0 lane's file, not this task's to edit.**
+   and this is the A4-0 lane's file, not this task's to edit — and it is now
+   CLOSED there** (`hven-bench` `3968f3f`, 2026-09-17, an APPEND-ONLY correction
+   record under a new "CORRECTIONS (append-only)" heading; the README's original
+   text is not edited, on the same discipline `notices/` is held to).
 3. **`SolveStatus` has no way to say "the subproblem ran out of minors".**
    `src/drivers/sqp_solver.cpp:6268-6277`. §M1(a). The fact exists on the history
    row's `qp_status` and reaches no consumer surface.
