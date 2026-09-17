@@ -140,6 +140,21 @@ one of those three therefore cannot silently miss the trace.
   reachable as `SqpResult::counters` (`drivers/sqp_solver_types.h:1056`) and on
   every `Ledger` driver record.
 
+  **`SqpCounters::start_point_clamps` IS STATED AGAINST THE `x0` ARGUMENT, AND
+  ON A WARM SOLVE THAT IS NOT WHERE THE LOOP BEGINS** (M7 W2 M4 fix1). The
+  counter says how many components of the `x0` handed to `solve()` lay strictly
+  outside the declared box, and `SqpOptions::project_start_point` projects that
+  same vector. But `prepare_solve` starts a solve at `warm.x` whenever a warm
+  object is ingested, and for the MULTIPLIERS-ONLY payload form `warm.x` is a
+  copy of `x0` taken one frame ABOVE the projection -- so on that route a
+  non-zero count at `project_start_point == true` reports an argument that was
+  clamped while the loop began at the unclamped point. **Every COLD solve is
+  free of this**, which is every solve the M4 measurement covers. The reading is
+  therefore exact on a cold solve and is a statement about the ARGUMENT, not
+  about the start point, on a warm one. Widening the projection to the resolved
+  start point is registered, not done: it would have to run above the payload
+  ingest, and the scaling rule already evaluates the model at `x0` below.
+
   THE INTERIOR-POINT ENGINE HAS NO AGGREGATE COUNTER STRUCT. Its countable
   quantities are loose fields on `IpmResult`. The KKT-analysis count this
   section used to name as `IpmSolver::kkt_analysis_count()` is among them: that

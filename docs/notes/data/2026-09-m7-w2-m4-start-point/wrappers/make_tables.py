@@ -112,14 +112,29 @@ def main():
     on_opt = sum(1 for p in problems if outcome_of(on.get(p, {})) == "optimal")
     off_err = {p for p in problems if outcome_of(off.get(p, {})) == "error"}
     on_err = {p for p in problems if outcome_of(on.get(p, {})) == "error"}
-    new_err = sorted(on_err - off_err)
+    # A CELL THAT WAS `dnf_wall` ON THE OTHER ARM IS NOT A NEW ERROR IN THE
+    # COUNTER CURRENCY (M4 fix1, F-4). `dnf_wall` is a wall-DEPENDENT outcome and
+    # a DNF CONDITION, never a measurement, so a transition into or out of it is
+    # reported in the CENSORED class -- the same rule the comparator applies to
+    # a field difference. It still fails the "other cells unmoved" clause on its
+    # own; it is simply not counted twice, once as a counter fact it is not.
+    censored_side = {p for p in problems
+                     if "dnf_wall" in (outcome_of(off.get(p, {})), outcome_of(on.get(p, {})))}
+    new_err = sorted((on_err - off_err) - censored_side)
+    new_err_censored = sorted((on_err - off_err) & censored_side)
     print("- optimal count: OFF **{}**, ON **{}**  ({})".format(
         off_opt, on_opt, "OK" if on_opt >= off_opt else "FAILS the rule"))
-    print("- new errors at ON: **{}** {}  ({})".format(
+    print("- new errors at ON, counter currency: **{}** {}  ({})".format(
         len(new_err), new_err, "OK" if not new_err else "FAILS the rule"))
+    print("- plus, in the CENSORED class (a dnf_wall on one arm, reported apart"
+          " and not counted as a new error): {} {}".format(
+              len(new_err_censored), new_err_censored))
     print("- other cells moved: **{}**  ({})".format(
         len(others_moved), "OK" if not others_moved else "FAILS the rule"))
     print("- repeat disagreements: OFF {}, ON {}".format(len(off_rep), len(on_rep)))
+    # SAWPATH-class transitions are NOT in `new_err`, but they ARE in
+    # `others_moved`/the censored list, so the "other cells unmoved" clause
+    # still sees them. The verdict is unchanged by the reclassification.
     verdict = (on_opt >= off_opt) and not new_err and not others_moved
     print("\n**DEFAULT = {}**".format("ON (true)" if verdict else "OFF (false)"))
     return 0

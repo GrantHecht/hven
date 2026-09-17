@@ -148,8 +148,15 @@ def main():
             if key not in keys:
                 keys.append(key)
     path = os.path.join(args.out, "cells-{}.csv".format(args.tag))
-    with open(path, "w", newline="\n") as handle:
-        writer = csv.DictWriter(handle, fieldnames=keys, restval="")
+    # LF, AND IT TAKES BOTH HALVES. `newline=""` (or `"\n"`) only tells the text
+    # layer not to TRANSLATE what the writer emits; `csv.DictWriter`'s own
+    # `lineterminator` defaults to "\r\n" and is what actually puts the CR on
+    # the line. Setting only the first, which M4's commit 5 did, changes nothing
+    # -- a re-run still writes CRLF and `git diff --check` still reports
+    # trailing whitespace on every row. Both are set here.
+    with open(path, "w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=keys, restval="",
+                                lineterminator="\n")
         writer.writeheader()
         for row in rows:
             writer.writerow(row)

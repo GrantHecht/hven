@@ -155,7 +155,8 @@ Cells whose only difference involves a `dnf_wall` (CENSORED): 1
 ## The decision
 
 - optimal count: OFF **2**, ON **1**  (FAILS the rule)
-- new errors at ON: **3** ['SAWPATH', 'YORKNET', 'ZAMB2-8']  (FAILS the rule)
+- new errors at ON, counter currency: **2** ['YORKNET', 'ZAMB2-8']  (FAILS the rule)
+- plus, in the CENSORED class (a dnf_wall on one arm, reported apart and not counted as a new error): 1 ['SAWPATH']
 - other cells moved: **3**  (FAILS the rule)
 - repeat disagreements: OFF 0, ON 0
 

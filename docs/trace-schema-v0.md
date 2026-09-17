@@ -153,12 +153,17 @@ trailer has no other source: no event carried them before that task, so a
 console pinned against `format_iteration_table` could not have reproduced its
 last line. The emitter is `src/drivers/trace_writer.cpp:892–896`, filled at
 `src/drivers/sqp_solver.cpp:2487–2489` off the solution the caller is about to
-receive. The golden lines are `tests/sqp/test_trace_writer.cpp:2970`
+receive. The golden lines are `tests/sqp/test_trace_writer.cpp:3023`
 (`GoldenLineSqpSolveEndWithEveryCounterDistinct`, re-derivation comment at
-`:2932`) and `:3023` (`GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull`),
+`:3029`) and `:3087` (`GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull`),
 whose default block — `active` false with all three factors at 1.0 — is the
 INACTIVE report's identity, so a reader never has to branch on `active` to use
-the numbers.
+the numbers. (**These three line numbers were STALE BEFORE M4** — they read
+`:2970`, `:2932` and `:3023` against a file whose tests already stood at `:3017`
+and `:3073` at `279f31d0`, so they were roughly fifty lines out before this
+task touched anything. M4 fix1 re-read them rather than leave a wrong cite in a
+section it was editing; the staleness is not M4's and is recorded here so no
+reader has to work that out.)
 
 Written on every NORMAL exit. **A solve that leaves by an exception writes its
 `begin` and no `end`** — the honest record of one. A caller that intends to keep
@@ -634,10 +639,13 @@ counters object gains exactly one key, between `near_active_peak` and the `ssn`
 object, and nothing else moves. Its absence reading is simply 0: it carries no
 sentinel and is not in the `null` table above. The table entry is
 `include/hven/core/solver_counters.h:1443` (the field at `:1369`); the two
-golden lines re-derived for it are `tests/sqp/test_trace_writer.cpp:3057` and
-`:3113`, marked "RE-DERIVED AT M6 W5 T8.5" at `:3023` and `:3089`. (Those five
+golden lines re-derived for it are `tests/sqp/test_trace_writer.cpp:3063` and
+`:3119`, marked "RE-DERIVED AT M6 W5 T8.5" at `:3029` and `:3095`. (Those five
 line numbers moved at M7 W2 M4, which added the field below and re-derived the
-same two lines.)
+same two lines. **M4 fix1 corrected the three into `test_trace_writer.cpp`,
+which M4 had written six lines short** -- they were read before M4's own last
+edits to that file and not re-read after. All line numbers in this block and the
+next are as of `003b5d89`, where each cited file last changed.)
 
 **THE VALUE ON THE LINE IS THE DRIVER'S, ASSIGNED IMMEDIATELY BEFORE THE
 EMISSION** (`src/drivers/sqp_solver.cpp:2654`, T8.5 fix1; the line moved at
@@ -660,8 +668,8 @@ in the `null` table above. The table entry is
 `include/hven/core/solver_counters.h:1444` (the field at `:1402`); the value on
 the line is assigned at `src/drivers/sqp_solver.cpp:2666`, on the same frame and
 immediately above the emission, for the reason the line above it is. The two
-golden lines re-derived for it are `tests/sqp/test_trace_writer.cpp:3057` and
-`:3113`, marked "RE-DERIVED AT M7 W2 M4" at `:3035` and `:3091`.
+golden lines re-derived for it are `tests/sqp/test_trace_writer.cpp:3063` and
+`:3119`, marked "RE-DERIVED AT M7 W2 M4" at `:3041` and `:3097`.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

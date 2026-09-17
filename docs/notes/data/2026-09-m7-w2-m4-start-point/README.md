@@ -129,14 +129,15 @@ because the engine never got past the first evaluation to find out.**
 ## 7. Every other cell — and the finding that decides this page
 
 **FOUR cells outside the three targets moved, and one of them was a converged
-solve.**
+solve.** Three moved in the counter currency; the fourth, SAWPATH, moved only
+across the wall ceiling and is reported apart, per §3.
 
 | cell | OFF | ON | what changed |
 |---|---|---|---|
 | **ZAMB2-8** | **`optimal`**, f = −0.152 935 927 | **`error`** (`numerical_error`), f = −0.082 078 613 | 8 803 → 7 825 factorizations, 11 → 2 majors. **A CONVERGED CELL IS LOST.** |
 | **YORKNET** | `infeasible` (uncertified), f = 110 670.30 | **`error`**, f = 110 481.70 | 52 180 → 22 165 factorizations, 19 → 1 elastic activations, 18 → 2 restoration iterations |
 | **ACOPP57** | `error`, f = 41 737.54 | `error`, f = 41 063.26 | 114 → **3 726** factorizations, 5 → 3 majors — a 33× cost increase for a worse KKT residual (0.64 → 4 819.87) |
-| **SAWPATH** | `dnf_wall` (censored at 300 s) | `error`, f = 1 470.55 | it now FINISHES inside the ceiling, with an error. CENSORED-class, reported apart |
+| **SAWPATH** | `dnf_wall` (censored at 300 s) | `error`, f = 1 470.55 | it now FINISHES inside the ceiling, with an error. **CENSORED-class and NOT a counter fact**: `dnf_wall` is a wall-DEPENDENT outcome and this page's own rule (§3) reports a transition into or out of it apart from a moved counter. It is counted in the "other cells moved" clause, which it fails on its own, and NOT in the "new errors" clause, whose two members are YORKNET and ZAMB2-8 |
 
 **THE CHECK THE BRIEF ASKS FOR — is any MOVED cell an IN-BOX cell? NO, and that
 is provable rather than observed.** `SqpSolver::solve_impl` substitutes the
@@ -149,7 +150,18 @@ include `STEENBRC` at 32 137 factorizations and `DALLASM` at 53 s, so the
 binaries agree to the last digit wherever the clamp does not fire.
 
 **So the finding is not a defect in the clamp. It is that the premise was
-incomplete: SEVEN of the 23 TRAIN cells declare an out-of-box `x0`, not three.**
+incomplete: AT LEAST SEVEN of the 23 TRAIN cells declare an out-of-box `x0`, not
+three.**
+
+**AT LEAST, and the bound is one-sided for a reason worth stating.** Seven is the
+number of cells whose asserted columns MOVED, and a cell moves only if it was
+clamped — but the converse does not hold. Seven other cells are `dnf_wall` at
+BOTH arms; they emit no asserted columns at all, so a clamp on one of them would
+be invisible here. And the harness at its pin prints no clamp column
+(`run_sqp`'s `side.*` keys are hand-enumerated and predate the counter), so
+`start_point_clamps` — which would answer this directly, for every cell, without
+a solve — was not readable on these rows. **Seven is a floor on the true count,
+not the count**, and the settler's re-pin is what turns it into one.
 The read found three because it was looking for cells whose objective is NaN
 there; a start point can be outside its box and perfectly evaluable, and on four
 such cells the declared point — outside the box though it is — is a BETTER place
@@ -164,8 +176,8 @@ and the other cells unmoved.** All three clauses fail, and not marginally:
 | clause | measured | verdict |
 |---|---|---|
 | ≥ the same optimal count | OFF **2** → ON **1** (ZAMB2-8 lost) | **FAILS** |
-| no new errors | **3** new: SAWPATH, YORKNET, ZAMB2-8 | **FAILS** |
-| the other cells unmoved | **3** non-target cells moved in counters, plus SAWPATH in the censored class | **FAILS** |
+| no new errors | **2** new in the counter currency: YORKNET, ZAMB2-8 — **plus SAWPATH in the CENSORED class** | **FAILS** |
+| the other cells unmoved | **3** non-target cells moved in counters (ACOPP57, YORKNET, ZAMB2-8), plus SAWPATH in the censored class | **FAILS** |
 
 ### **DEFAULT = OFF (`project_start_point = false`).**
 
