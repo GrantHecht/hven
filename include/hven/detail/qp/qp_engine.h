@@ -1364,6 +1364,8 @@ class QpEngine {
     // none), leaving `ws` exactly as it found it. COST WHEN NOTHING IS WEAKLY
     // ACTIVE IS ZERO: an empty candidate list returns before any linear
     // algebra runs.
+    // CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    // the model's second derivative -- a first-order mode re-derives or re-labels it).
     bool probe_zero_multiplier_drops(const QpProblem &qp, const Vec &shift, const Vec &lambda_i,
                                      const Vec &z, WorkingSet &ws, detail::KktFactor &kkt,
                                      EliminatedFace &face, BorderState &border,

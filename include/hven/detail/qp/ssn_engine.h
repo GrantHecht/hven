@@ -436,6 +436,8 @@ enum class SsnSafeguards {
 struct SsnOptions {
     // Which iteration to run. kFull is the shipped default; kBare is the
     // positive control (see SsnSafeguards).
+    // CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    // the model's second derivative -- a first-order mode re-derives or re-labels it).
     SsnSafeguards safeguards = SsnSafeguards::kFull;
 
     // The escalation threshold, on ATTEMPTS rather than on accepted steps -- an
@@ -772,6 +774,8 @@ class SsnEngine {
     // way. `out` MUST be the SsnResult the deferring solve wrote.
     //
     // Returns true iff the certificate stands.
+    // CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
+    // the model's second derivative -- a first-order mode re-derives or re-labels it).
     bool finish_deferred_certification(SsnResult *out);
 
     // DROPS THE PENDING EVIDENCE UNREAD. Legitimate on exactly one path: the

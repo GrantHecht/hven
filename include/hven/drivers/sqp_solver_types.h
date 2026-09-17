@@ -544,8 +544,6 @@ struct SqpOptions {
     /// a win there is not the win on the suite's TRAIN split that the M7 exit
     /// criterion asks for. W2 re-reads the default on TRAIN.
     /// @see docs/notes/2026-09-m7-w0-t3-design.md
-    /// CURVATURE SOURCE: exact model Hessian (M9 label; the quantity this reads assumes H is
-    /// the model's second derivative -- a first-order mode re-derives or re-labels it).
     ElasticRungEngine elastic_rung_engine = ElasticRungEngine::kWalk;
 
     /// ON A DISPROVAL, THE FALLBACK'S CERTIFIED SOLUTION SEEDS THE TIER'S NEXT
