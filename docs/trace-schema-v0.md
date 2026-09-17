@@ -223,7 +223,7 @@ whole depth-1 solve, and a reader joining on `seq` must expect it.
 | `outcome` | string `optimal\|routed\|escaped` | the map below |
 | `facts` | string | opaque, always `""` |
 | `iters` | integer | this invocation's own minor count |
-| `site` | string `dispatch\|ssn_warm_grade\|fallback_rung_b\|elastic_rung\|soc_resolve` | which CALL SITE ran it (M6 W4 T5) |
+| `site` | string `dispatch\|ssn_warm_grade\|fallback_rung_b\|elastic_rung\|soc_resolve\|cap_retry` | which CALL SITE ran it (M6 W4 T5; `cap_retry` added at M7 W2 M1) |
 
 **THE OUTCOME MAP, per kernel** — three kernels report three different objects:
 
@@ -249,6 +249,7 @@ an emit of its own or an explicit `// trace: qp.mode silent -- <reason>` marker.
 | `fallback_rung_b` | `certified_feasibility_fallback`'s cold walk, at both return sites | `== unfired entries + ipqp_fallback_rung_b` — the first term is a STREAM quantity, the `fallback.verdict` lines reading `unfired`, not a counter; §4.11 gives it in counters |
 | `elastic_rung` | `run_elastic_ladder`'s walk, ONCE PER RUNG | `== elastic_activations + elastic_escalations` |
 | `soc_resolve` | the second-order correction's re-solve | `== soc_steps` |
+| `cap_retry` | the cap retry's walk re-solve (M7 W2 M1), under `SqpOptions::qp_cap_retry` only | `== qp_cap_retries` |
 
 `elastic_rung` is why `site` exists: a ladder's climb is UNBOUNDED per major, so
 no per-major reading can reconcile the walk invocations a solve made. (HS10 at
@@ -793,7 +794,7 @@ non-additive is v1.
 | `ipqp.certify` | W4 T1 | — |
 | `ipqp.escape` | W4 T1 | — |
 | `fallback.verdict` | W4 T1 | — |
-| `qp.mode` | W4 T1 | T2 (the `walk` / `ssn` mode strings); **T5 (the trailing `site` key)** |
+| `qp.mode` | W4 T1 | T2 (the `walk` / `ssn` mode strings); **T5 (the trailing `site` key)**; **M7 W2 M1** (`site` gains the value `cap_retry` — a new ENUMERATOR on an existing key, not a new key: no line's SHAPE moves, and the two `qp.mode` golden lines are untouched because neither writes that value) |
 | `sqp.major` | **W4 T5** | added T2; T2 fix1 (the lower-snake enum spellings its `qp_status` / `verdict` keys share with `sqp.solve.end`); T3 (six activity fields, §6) |
 | `sqp.solve.begin` | **W4 T5** | added T2; T2 fix1 (the lower-snake enum spellings its `qp_mode` / `ws_algebra` keys carry) |
 | `sqp.solve.end` | **W4 T5** | added T2; **T2 fix1** (the lower-snake enum spellings, `StartLevel` `cold\|seeded\|warm\|hot` included, over core's PascalCase display form; and the three absence sentinels serializing as `null` — §5); T3 (four folds, through the counters tables); **T8.5** (`polish_ignored`, appended LAST in the counters object — §5); **T8.7** (the five trailing scaling fields — §4.2). The last two move the SAME TWO golden lines, `GoldenLineSqpSolveEndWithEveryCounterDistinct` and `GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull`; **M7 W2 M4** (`start_point_clamps`, appended LAST in the counters object — §5), which moves those same two golden lines and no other; **M7 W2 M1** (the five-field subproblem-exit group, appended LAST in the counters object — §5), which moves those same two golden lines ONCE, by five keys, and no other |

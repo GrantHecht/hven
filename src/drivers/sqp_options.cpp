@@ -305,6 +305,28 @@ void validate(const SqpOptions &opts) {
     // Inventing an always-true test to fill the slot would be dead code that
     // proves nothing and would have to be read as if it did.
 
+    // THE SUBPROBLEM-FAILURE BUDGET (M7 W2 M1), in declaration position. An
+    // `Index`, so the direct form applies rather than this file's
+    // negation-of-acceptance idiom's NaN reason -- but it is written in the
+    // negated form anyway, as the contract asks, so that the predicate READS as
+    // the acceptance condition it denies. A budget of 0 would refuse the first
+    // retry this engine has always taken, i.e. silently change the shipped
+    // behaviour through a value rather than through the field's own meaning,
+    // and a negative is not a count at all.
+    if (!(opts.qp_failure_budget >= 1)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: qp_failure_budget ({}) must be >= 1; it is the number of CONSECUTIVE "
+            "subproblem failures the driver may route at one iterate, and 1 is the shipped "
+            "behaviour (route the first, end the solve on the second). 0 would refuse the "
+            "first retry, which is a behaviour change spelled as a budget",
+            opts.qp_failure_budget));
+    }
+
+    // THE CAP RETRY (M7 W2 M1), in declaration position and on
+    // `project_start_point`'s terms above: `qp_cap_retry` is a BOOL with no
+    // refusable value and no companion field it can contradict, so its entry is
+    // this stated line rather than an always-true predicate.
+
     // The two CommonOptions fields (M6 W5 T8.3). Neither is read by this engine
     // yet -- T8.7 reads print_level, T8.8 reads threads -- but both are part of
     // the value a caller hands over and both are checked here, so an
@@ -520,6 +542,8 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_dbl(os, "scaling_max_gradient", o.scaling_max_gradient);
     kv_dbl(os, "scaling_factor_limit", o.scaling_factor_limit);
     kv_bool(os, "project_start_point", o.project_start_point);
+    kv_int(os, "qp_failure_budget", static_cast<long long>(o.qp_failure_budget));
+    kv_bool(os, "qp_cap_retry", o.qp_cap_retry);
     kv_int(os, "common.threads", o.common.threads);
     kv_int(os, "common.print_level", o.common.print_level);
     kv_str(os, "common.start_level", enum_name(o.common.start_level));

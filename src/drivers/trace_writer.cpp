@@ -244,6 +244,8 @@ const char *to_json(QpModeSite v) {
         return "elastic_rung";
     case QpModeSite::kSocResolve:
         return "soc_resolve";
+    case QpModeSite::kCapRetry:
+        return "cap_retry";
     }
     return "unknown";
 }

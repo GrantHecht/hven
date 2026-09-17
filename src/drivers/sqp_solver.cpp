@@ -1727,15 +1727,23 @@ void SqpSolver::set_options(SqpOptions o) {
 
     // (3) COMMIT. Nothing below can throw.
     engine_ = std::move(fresh);
-    // All THREE lazy engines below hold their own COPY of the QpOptions taken at
+    // All FOUR lazy engines below hold their own COPY of the QpOptions taken at
     // first use, so dropping them is both necessary (a stale copy would outlive
     // the replacement) and sufficient (there is no other cached option state on
     // them). The count moved from two to three at M7 W0 T3, which added the
-    // elastic ladder's own tier instance. `ipqp_trace_` stays on the driver and
+    // elastic ladder's own tier instance, and to four at M7 W2 M1, which added
+    // the cap retry's. `ipqp_trace_` stays on the driver and
     // re-applies at the next first-use construction.
     ssn_engine_.reset();
     ipqp_engine_.reset();
     elastic_ipqp_engine_.reset();
+    // AND THE CAP-RETRY'S OWN WALK ENGINE (M7 W2 M1), on exactly the same
+    // terms: it holds a COPY of the QpOptions taken at first use, with one
+    // field -- max_iter -- deliberately different, so a stale copy would
+    // outlive the replacement and would retry at the OLD tolerances. The cap it
+    // was built at is reset with it so the next first use re-derives one.
+    cap_retry_engine_.reset();
+    cap_retry_engine_cap_ = 0;
     // NOEXCEPT BY CONSTRUCTION, which is why it is safe here AFTER the engine
     // swap rather than fused with it (lane review M1): SqpOptions is an
     // aggregate of scalars, enums, QpOptions and std::function/std::vector
@@ -5704,6 +5712,90 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
     st.out.counters.suspect_escalations += mj.qs.counters.suspect_escalations;
     st.out.counters.symbolic_analyses += mj.qs.counters.symbolic_analyses;
 
+    // THE CAP RETRY (M7 W2 M1, mechanism M1(3)), BEHIND `SqpOptions::
+    // qp_cap_retry` AND OFF BY DEFAULT. A `kMaxIter` exit says the subproblem
+    // ran out of MINORS, not that its arithmetic failed -- and the driver
+    // reports both as SolveStatus::kNumericalError (see map_status). So before
+    // a capped subproblem is treated as a failure at all, it is given the
+    // escape hatch QpOptions::max_iter's own header names: ONE re-solve of the
+    // SAME subproblem at the SAME radius with twice the cap.
+    //
+    // HERE, AND NOT AT THE ROUTING SITE BELOW, because everything between the
+    // two describes THIS MAJOR'S ANSWER -- the row's qp_status and minor
+    // count, the activity census, the seed for the next major. Retrying after
+    // those had been written would leave the row describing a solve the driver
+    // then replaced. The capped attempt's own work is already folded in above,
+    // so the two attempts' minors and factorizations both land in the
+    // aggregates, which is what makes the retry's cost readable.
+    //
+    // THE FOUR CONJUNCTS, each one load-bearing:
+    //   - the toggle, read first so that at the default nothing below it runs
+    //     and `cap_retry_engine_` is never constructed;
+    //   - `walk_owns_this_qp`: the retry is a WALK solve, so it fires only on a
+    //     subproblem the walk itself answered. A tier exit carries its own
+    //     budget (IpqpOptions::ipqp_max_iter, ipqp_hard_iter_cap) and
+    //     re-solving it here would change the KERNEL that answered the major,
+    //     not its budget;
+    //   - the status, which is the whole subject: a kNumericalError exit is not
+    //     a budget fact and is not retried at a raised budget;
+    //   - `qp_failure_is_retryable`, the SAME test the routing gate below uses,
+    //     so a capped solve whose iterate is unusable takes the ordinary exit it
+    //     takes today rather than seeding a retry with it.
+    //
+    // THE SEED IS THE WORKING SET, NOT THE POINT: `seed.x` is zeroed for the
+    // reason every other seeding site in this driver zeroes it (see WARM
+    // SEEDING, and qp_engine.h's own note that the window is centred on the
+    // clamped seed primal) -- carrying the capped solve's step would re-centre
+    // the trust region on it and hand the retry a larger feasible set than this
+    // major was granted. What the retry inherits is the working set the capped
+    // walk had to walk to, which is exactly what the cap denied it the minors
+    // to exploit.
+    //
+    // ONCE, BY CONSTRUCTION: this is straight-line code, not a loop, so one
+    // major can retry at most one subproblem. A doubled cap reached a second
+    // time is an ordinary failure and is routed below exactly as today.
+    if (opts_.qp_cap_retry && mj.walk_owns_this_qp && mj.qs.status == QpStatus::kMaxIter &&
+        qp_failure_is_retryable(st.qp, mj.qs, opts_.feas_tol)) {
+        // The cap THIS subproblem was solved under, from the engine's own
+        // derivation rather than a second copy of it: the sentinel resolves to
+        // max(kQpMaxIterFloor, kQpMaxIterCoeff * (n + mi + #bounded)) and a
+        // caller's positive value wins outright, so doubling the resolved value
+        // means "twice what this solve was actually given" under either.
+        const Index cap = detail::effective_qp_max_iter(st.qp, opts_.qp.max_iter);
+        QpSolution retry_seed = mj.qs;
+        retry_seed.x.setZero(); // never re-center the radius; see WARM SEEDING
+        QpSolution retried = cap_retry_engine(2 * cap).solve(st.qp, retry_seed, overrides);
+        // THE RETRY ANNOUNCES ITSELF, like every other kernel invocation in
+        // this driver (M6 W4 T5's contract, held in place by the source scan in
+        // tests/sqp/test_qp_mode_sites.cpp). Its own site, on `kSocResolve`'s
+        // precedent -- that is also a walk RE-SOLVE with a site of its own --
+        // so a reader can tell a retry's minors from the attempt's.
+        if (ipqp_trace_ != nullptr) {
+            QpModeTraceEvent mev;
+            mev.mode = IpqpTraceQpMode::kWalk;
+            mev.outcome = trace_outcome_of(retried.status);
+            mev.iters = retried.counters.minor_iters;
+            mev.site = QpModeSite::kCapRetry;
+            emit_trace_qp_mode(mev);
+        }
+        ++st.out.counters.qp_cap_retries;
+        // The retry's work folds in exactly like the attempt's above, field for
+        // field. `k0_reused` is deliberately NOT re-read: start_level_used
+        // describes what the FIRST subproblem of this solve observed on the
+        // engine the caller's hot handle was offered to, and this is a
+        // different engine.
+        st.out.counters.qp_minor_iters += retried.counters.minor_iters;
+        st.out.counters.factorizations += retried.counters.factorizations;
+        st.out.counters.eqp_refine_steps += retried.counters.eqp_refine_steps;
+        st.out.counters.border_refine_steps += retried.counters.border_refine_steps;
+        st.out.counters.verdict_refine_steps += retried.counters.verdict_refine_steps;
+        st.out.counters.suspect_escalations += retried.counters.suspect_escalations;
+        st.out.counters.symbolic_analyses += retried.counters.symbolic_analyses;
+        // THE RETRY IS THIS MAJOR'S ANSWER from here down, whatever it says:
+        // the row, the census, the routing and map_status all read `mj.qs`.
+        mj.qs = std::move(retried);
+    }
+
     // THE ELASTIC TIER. See this header's ELASTIC TIER note
     // for every design choice below; only the mechanics are here.
     // This is the ONLY consumer of QpStatus::kInfeasible in the
@@ -5854,7 +5946,16 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         // consulted at all, because there is no certified step to
         // judge -- so `row.verdict` keeps its kReject default, which
         // is the accurate description of what happened to this trial.
-        if (st.qp_failures_in_a_row == 0 && qp_failure_is_retryable(st.qp, mj.qs, opts_.feas_tol)) {
+        //
+        // THE BUDGET (M7 W2 M1, mechanism M1(2)). `qp_failures_in_a_row <
+        // opts_.qp_failure_budget` is the gate `== 0` used to be, and at the
+        // shipped budget of 1 it is that expression exactly: the first failure
+        // at an iterate is routed, the second ends the solve. A higher budget
+        // buys more shrink-and-retry passes at ONE iterate and nothing else --
+        // the radius floor below still converts a shrink that would cross
+        // `tr_min` into a restoration request, at every budget.
+        if (st.qp_failures_in_a_row < opts_.qp_failure_budget &&
+            qp_failure_is_retryable(st.qp, mj.qs, opts_.feas_tol)) {
             ++st.qp_failures_in_a_row;
             // S3, the two halves: the routed failures summed, and the longest
             // run of them this solve reached. The peak is folded with max like
@@ -6461,6 +6562,35 @@ IpqpEngine &SqpSolver::elastic_ipqp_engine() {
         // `solve` id is per-instance -- two engines would emit colliding ids into one stream.
     }
     return *elastic_ipqp_engine_;
+}
+
+QpEngine &SqpSolver::cap_retry_engine(Index cap) {
+    // REBUILT WHEN THE CAP MOVES, which within one solve it does not: the
+    // derivation reads n, mi and the count of really-bounded columns, and none
+    // of the three changes between the majors of a solve. Across solves on one
+    // driver, or between a solve and its restoration sub-solve's own driver, it
+    // can -- so the cap the instance was built at is remembered and compared
+    // rather than assumed.
+    if (cap_retry_engine_ == nullptr || cap_retry_engine_cap_ != cap) {
+        // Every field is `opts_.qp` verbatim but `max_iter`, so the retry reads
+        // the same tolerance pair and the same regularization pair as the solve
+        // it is retrying -- the elastic rung tier's own construction, with one
+        // field changed instead of that one's `tr_radius`. A POSITIVE value is
+        // an EXPLICIT ABSOLUTE cap by QpOptions::max_iter's own precedence rule,
+        // so it wins outright over the size-derived sentinel.
+        QpOptions retry_qp = opts_.qp;
+        retry_qp.max_iter = cap;
+        cap_retry_engine_ = std::make_unique<QpEngine>(retry_qp, opts_.common.threads);
+        cap_retry_engine_cap_ = cap;
+        // NO LEDGER, deliberately, and on the lazy tiers' own precedent: the
+        // record labels are a per-DRIVER sequence keyed off the PRIMARY
+        // engine's solve counter, so a second QpEngine writing into the same
+        // prefix would interleave a second `<prefix>_qp_N` series with it. The
+        // retry's work is published where the rest of this task's evidence is
+        // -- SqpCounters::qp_cap_retries, and the minors and factorizations it
+        // folds into the aggregates.
+    }
+    return *cap_retry_engine_;
 }
 
 IpqpEngine *SqpSolver::elastic_rung_tier() {

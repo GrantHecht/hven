@@ -714,6 +714,95 @@ struct SqpOptions {
     /// @see docs/notes/2026-09-m7-w2-sqp-cutest-read.md section M4
     bool project_start_point = false;
 
+    /// THE CONSECUTIVE-SUBPROBLEM-FAILURE BUDGET (M7 W2 M1).
+    ///
+    /// How many failures IN A ROW the driver may route -- shrink the radius,
+    /// reseed from the failed solve's own working set and continue -- at one
+    /// iterate before the next one ends the solve. A subproblem that fails but
+    /// hands back a usable iterate is a property of THAT SUBPROBLEM AT THAT
+    /// RADIUS, and the same subproblem at half the radius is a different
+    /// problem; this field says how many times the driver may make that
+    /// argument before it stops.
+    ///
+    /// DEFAULT 1, WHICH IS THIS ENGINE'S BEHAVIOUR BEFORE THE FIELD EXISTED:
+    /// the gate was `qp_failures_in_a_row == 0` and is now
+    /// `qp_failures_in_a_row < qp_failure_budget`, so at 1 the FIRST failure at
+    /// an iterate is routed and the second ends the solve, exactly as before,
+    /// and no solve moves. Must be >= 1: a budget of 0 would refuse the first
+    /// retry this engine has always taken, which is a behaviour change nobody
+    /// asked for spelled as a validation value -- `validate()` refuses it.
+    ///
+    /// The counter is cleared by a `kOptimal` subproblem, so the budget is per
+    /// RUN of consecutive failures, not per solve; the run this solve reached is
+    /// `SqpCounters::qp_failures_in_a_row_peak` and the total routed is
+    /// `SqpCounters::qp_failures_routed`.
+    ///
+    /// WHAT IT DOES NOT CHANGE. The radius floor still applies to a routed
+    /// failure exactly as to a judged rejection: a shrink that would cross
+    /// `tr_min` raises a restoration request instead, at any budget, so raising
+    /// this does not let the radius walk below its floor. The retryability test
+    /// is unchanged (a failed solve that returned an unusable iterate ends the
+    /// solve at any budget), and `rejected_steps` still counts every routed
+    /// failure.
+    ///
+    /// NOT a curvature source (docs/counters.md): it selects how many times a
+    /// subproblem is re-posed, not whether or how a second-order reading is
+    /// taken.
+    /// @see docs/notes/2026-09-m7-w2-sqp-cutest-read.md section M1
+    Index qp_failure_budget = 1;
+
+    /// THE CAP RETRY (M7 W2 M1): re-solve a subproblem that spent its whole
+    /// minor budget, ONCE, at twice the cap.
+    ///
+    /// `QpStatus::kMaxIter` means the subproblem ran out of MINORS, not that its
+    /// arithmetic failed -- and the driver reports both as
+    /// `SolveStatus::kNumericalError`. At true, a subproblem the WALK answered
+    /// with `kMaxIter`, whose returned iterate is usable
+    /// (`qp_failure_is_retryable`), is re-solved ONCE before it is treated as a
+    /// failure at all: the same subproblem, the same trust-region radius, warm
+    /// from the capped solve's own WORKING SET, with an explicit
+    /// `QpOptions::max_iter` of twice the cap that solve resolved. If the retry
+    /// converges the major proceeds as though the subproblem had simply taken
+    /// longer; if it hits the doubled cap too, the ordinary failure routing runs
+    /// on it, and a second capped subproblem is a failure exactly as today.
+    ///
+    /// DEFAULT FALSE, and off means the retry is never attempted and no second
+    /// engine is constructed -- the solve is byte-identical to the same solve
+    /// before this field existed.
+    ///
+    /// THE SEED IS THE WORKING SET, NOT THE POINT, and that is the engine's
+    /// contract rather than a choice: `QpEngine` centres the trust-region window
+    /// on the seed's primal, and every seeding site in this driver zeroes
+    /// `seed.x` for that reason -- carrying the capped solve's step would
+    /// re-centre the region on it and hand the retry a larger feasible set than
+    /// the major was given. What the retry inherits is the working set the
+    /// capped walk had to walk to, which is the information the cap denied it
+    /// the minors to use.
+    ///
+    /// SCOPED TO THE WALK. It fires only on a subproblem the walk itself
+    /// answered, so at the shipped `qp_mode == QpMode::kWalk` it covers every
+    /// subproblem, and under `kSsn`/`kIpm` a tier exit is left alone: the tiers
+    /// carry their own budgets (`IpqpOptions::ipqp_max_iter`,
+    /// `ipqp_hard_iter_cap`), and re-solving a tier's subproblem on the walk
+    /// would change the kernel that answered the major, not its budget.
+    ///
+    /// WHAT IT COSTS WHEN IT DOES NOT HELP: one more walk of at most the cap
+    /// again, folded into `qp_minor_iters` and `factorizations` like any other
+    /// subproblem's, plus the retry engine's own first factorization -- it has
+    /// no border-stack history of its own. `SqpCounters::qp_cap_retries` counts
+    /// the attempts and `qp_maxiter_exits` counts both exits, so the cost is
+    /// readable from the result.
+    ///
+    /// It is a BOOL with no refusable value, so `validate()` carries no
+    /// predicate for it: an exception that cannot be thrown is dead code
+    /// (CLAUDE.md section 4). Both states are accepted, and the dump carries the
+    /// line.
+    ///
+    /// NOT a curvature source (docs/counters.md): it selects how many minors a
+    /// subproblem may spend, not whether or how a second-order reading is taken.
+    /// @see docs/notes/2026-09-m7-w2-sqp-cutest-read.md section M1
+    bool qp_cap_retry = false;
+
     /// The options both engines share (drivers/common_options.h), at the SQP
     /// engine's own defaults -- `threads = 0` ("leave the backend alone", which
     /// is what this engine has always done; the process-wide MKL_NUM_THREADS pin

@@ -1583,6 +1583,29 @@ class SqpSolver {
     // certified fallback and the walk route's own kInfeasible consumer alike.
     IpqpEngine *elastic_rung_tier();
 
+    // THE CAP-RETRY'S OWN WALK ENGINE (M7 W2 M1), constructed on first use and
+    // only under `qp_cap_retry`, and A SECOND QpEngine INSTANCE for one reason:
+    // `QpOptions::max_iter` is read from the engine's OWN options copy, fixed at
+    // its construction, and `SolveOverrides` carries no per-solve cap. So the
+    // only way to re-solve a capped subproblem at a raised cap without inventing
+    // a new entry point is an engine whose options say so -- exactly the
+    // construction `elastic_ipqp_engine()` uses for its own one changed field.
+    // Every OTHER field is `opts_.qp` verbatim, so the retry reads the same
+    // tolerance pair and the same regularization pair as the solve it is
+    // retrying, and it runs the ordinary 3-argument warm `solve()` -- no new
+    // engine seam, no new overload.
+    //
+    // `cap` IS THE ABSOLUTE CAP THE RETRY IS GIVEN (a positive value, which
+    // `QpOptions::max_iter`'s own precedence rule makes win outright over the
+    // size-derived sentinel). The instance is rebuilt if a later retry asks for
+    // a different one; within a solve it never does, because the derivation
+    // reads dimensions that do not change between majors.
+    //
+    // AT THE SHIPPED DEFAULT (`qp_cap_retry == false`) THIS IS NEVER CALLED and
+    // nothing is constructed -- no second backend session, exactly as the
+    // elastic rung's toggle promises at ITS default.
+    QpEngine &cap_retry_engine(Index cap);
+
     // The IpqpOptions ONE subproblem is solved under: forwarded, not derived,
     // with one exception. `ipqp_hoist_symbolic` is forced false for one entry
     // when the model's structure epoch has moved since the analysis the engine
@@ -1702,6 +1725,14 @@ class SqpSolver {
     // QpOptions carry an infinite trust-region radius. Null unless a rung has
     // actually been solved by the tier.
     std::unique_ptr<IpqpEngine> elastic_ipqp_engine_;
+    // The cap-retry's own walk engine (M7 W2 M1); see `cap_retry_engine()` for
+    // why it is a second instance and why its QpOptions carry an explicit
+    // `max_iter`. Null unless a capped subproblem has actually been retried.
+    std::unique_ptr<QpEngine> cap_retry_engine_;
+    // The absolute cap `cap_retry_engine_` was built with, so a request for a
+    // different one rebuilds rather than silently running at the old cap.
+    // Meaningless while the pointer is null.
+    Index cap_retry_engine_cap_ = 0;
 
     // --- The console composition (M6 W5 T8.7) ---
     //

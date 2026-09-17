@@ -63,7 +63,14 @@ enum class IpqpTraceOutcome { kOptimal, kRouted, kEscaped };
 /// per major. The other four run INSIDE a dispatch arm that has already written
 /// its line, so a stream is read as "one dispatch line per major, plus whatever
 /// the arm then paid".
-enum class QpModeSite { kDispatch, kSsnWarmGrade, kFallbackRungB, kElasticRung, kSocResolve };
+enum class QpModeSite {
+    kDispatch,
+    kSsnWarmGrade,
+    kFallbackRungB,
+    kElasticRung,
+    kSocResolve,
+    kCapRetry,
+};
 
 /// @brief One completed predictor+corrector pair (schema `ipqp.iter`).
 struct IpqpTraceIterEvent {
@@ -149,7 +156,7 @@ struct IpqpTraceEscapeEvent {
 /// by `site`, so the stream reconciles against invocation counts rather than
 /// against majors alone.
 ///
-/// THE FIVE SITES, and what each one costs a reader (`QpModeSite`):
+/// THE SIX SITES, and what each one costs a reader (`QpModeSite`):
 ///
 ///   * `kDispatch` -- the major's own dispatch: the walk invocation, the kSsn
 ///     arm, and the kIpm arm's routing chain. ONE PER MAJOR THAT SOLVED A QP; a
@@ -165,6 +172,11 @@ struct IpqpTraceEscapeEvent {
 ///     the reason the count identity for this site is written against
 ///     `elastic_activations + elastic_escalations` rather than against majors.
 ///   * `kSocResolve` -- the second-order correction's walk re-solve.
+///   * `kCapRetry` -- the cap retry's walk re-solve (M7 W2 M1), made once per
+///     capped subproblem under `SqpOptions::qp_cap_retry` and NEVER at that
+///     toggle's default: it is the same subproblem at the same radius on an
+///     engine whose `QpOptions::max_iter` is twice the cap, so its line's
+///     `iters` is the retry's own minor count. `== SqpCounters::qp_cap_retries`.
 ///
 /// The restoration sub-solve is NOT a site: it is a whole nested SQP solve and
 /// writes its own stream, dispatch lines included, at depth 1.

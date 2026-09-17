@@ -161,6 +161,12 @@ void expect_site_identities(const SiteRun &r) {
     // One walk per correction ATTEMPT, which is what soc_steps counts.
     EXPECT_EQ(at(r.sites, "soc_resolve"), r.counters.soc_steps) << "soc_resolve == soc_steps";
 
+    // One walk per cap RETRY (M7 W2 M1). Exact, and identically 0 == 0 on every
+    // cell in the table below, which all run at `qp_cap_retry`'s default of
+    // false: the NON-VACUOUS reading of this site lives with the lever, in
+    // tests/sqp/test_qp_cap_levers.cpp, where a capped fixture turns it on.
+    EXPECT_EQ(at(r.sites, "cap_retry"), r.counters.qp_cap_retries) << "cap_retry == qp_cap_retries";
+
     // THE DISPATCH SITE IS BOUNDED, NOT EXACT, and the bound is the reading: a
     // major that solves a QP writes at least its own arm's line, and at most two
     // -- the handing arm's and the walk's, when an arm hands off.
