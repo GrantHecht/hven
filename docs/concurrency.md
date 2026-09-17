@@ -297,7 +297,8 @@ On Apple this class is a no-op and stores nothing anywhere —
   bandwidth and for MKL's own internals; CLAUDE.md §7 makes a co-run's wall-clock
   informational and never quotable against a serial timing. This contract is
   about *results*, not about speed, and it promises nothing about how long N
-  concurrent solves take.
+  concurrent solves take. `docs/measurement.md` is where that rule, the serial
+  rule it follows from and the declared co-run protocol are written out.
 - **`common.threads > 1` in this shape.** A count above 1 is the backend's own
   parallelism *inside* one solve. That is a supported setting and a different
   subject; it is outside the N×1 contract this page states, and the pin does not
