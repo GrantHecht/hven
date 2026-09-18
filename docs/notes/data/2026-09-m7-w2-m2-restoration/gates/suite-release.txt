@@ -1,0 +1,40 @@
+          Start 2652: WarmStart.CrossoverLooseIpIterateDoesNotOverInfer
+2649/2665 Test #2650: WarmStart.CrossoverActivityInferenceRecoversTheCollocationActiveSet ............................................   Passed    0.01 sec
+          Start 2653: WarmStart.CrossoverActivityRepairBakeOffRecordsTheRejectedCandidate
+2650/2665 Test #2651: WarmStart.CrossoverActivityInferenceHoldsUnderMeshRefinement ...................................................   Passed    0.01 sec
+          Start 2654: WarmStart.CrossoverAllZeroDualsInferNothingAndStillResolveSeeded
+2651/2665 Test #2652: WarmStart.CrossoverLooseIpIterateDoesNotOverInfer ..............................................................   Passed    0.01 sec
+          Start 2655: WarmStart.CrossoverExtremeDualAgainstALargeResidualIsRefused
+2652/2665 Test #2653: WarmStart.CrossoverActivityRepairBakeOffRecordsTheRejectedCandidate ............................................   Passed    0.01 sec
+          Start 2656: WarmStart.CrossoverBoundActivityIsInferredAtCollocationScale
+2653/2665 Test #2655: WarmStart.CrossoverExtremeDualAgainstALargeResidualIsRefused ...................................................   Passed    0.01 sec
+          Start 2657: WarmStart.CrossoverFalseActiveGuardDegradesAtTheOperativeBarrierLevel
+2654/2665 Test #2656: WarmStart.CrossoverBoundActivityIsInferredAtCollocationScale ...................................................   Passed    0.01 sec
+          Start 2658: WarmStartProxCarry.TheCarryIsHashGatedAndIsNeverEmittedByAWalkSolve
+2655/2665 Test #2654: WarmStart.CrossoverAllZeroDualsInferNothingAndStillResolveSeeded ...............................................   Passed    0.01 sec
+          Start 2659: WarmStartBattery.Corpus
+2656/2665 Test #2657: WarmStart.CrossoverFalseActiveGuardDegradesAtTheOperativeBarrierLevel ..........................................   Passed    0.02 sec
+          Start 2660: WarmStartBattery.ZeroMajorStepKeepsTheWarmStartChain
+2657/2665 Test #2658: WarmStartProxCarry.TheCarryIsHashGatedAndIsNeverEmittedByAWalkSolve ............................................   Passed    0.02 sec
+          Start 2661: WarmStartBattery.CrossoverChainOnTheBridgeFamilyBeatsCold
+2658/2665 Test #2660: WarmStartBattery.ZeroMajorStepKeepsTheWarmStartChain ...........................................................   Passed    0.01 sec
+          Start 2662: SnoptBridgeGate.ColdSolveLandsOnTheManufacturedOptimum
+2659/2665 Test #2662: SnoptBridgeGate.ColdSolveLandsOnTheManufacturedOptimum .........................................................   Passed    0.01 sec
+          Start 2663: SnoptBridgeGate.AccuracyTracksTheRequestedToleranceWithNoFloor
+2660/2665 Test #2663: SnoptBridgeGate.AccuracyTracksTheRequestedToleranceWithNoFloor .................................................   Passed    0.02 sec
+          Start 2664: SnoptBridgeGate.RowTranscriptionMatchesTheModelAtTheSolution
+2661/2665 Test #2664: SnoptBridgeGate.RowTranscriptionMatchesTheModelAtTheSolution ...................................................   Passed    0.01 sec
+          Start 2665: SnoptBridgeGate.WarmBasisReSolveLandsOnTheOptimumAtTheNewParameter
+2662/2665 Test #2665: SnoptBridgeGate.WarmBasisReSolveLandsOnTheOptimumAtTheNewParameter .............................................   Passed    0.01 sec
+2663/2665 Test #2659: WarmStartBattery.Corpus ........................................................................................   Passed    0.66 sec
+2664/2665 Test #2661: WarmStartBattery.CrossoverChainOnTheBridgeFamilyBeatsCold ......................................................   Passed    1.60 sec
+2665/2665 Test #1631: M7T3ElasticRungVehicle.TheConstructedCellFiresTheElasticRungAndPricesBothEngines ...............................   Passed   42.59 sec
+
+100% tests passed, 0 tests failed out of 2663
+
+Total Test time (real) = 102.08 sec
+
+The following tests did not run:
+	420 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1632 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1633 - EqpRefinementAb.FullBattery (Disabled)
