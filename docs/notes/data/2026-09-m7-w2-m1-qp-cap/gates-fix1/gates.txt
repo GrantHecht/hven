@@ -1,0 +1,202 @@
+M7 W2 M1 FIX ROUND 1 -- THE GATES FOR THE WORDING FIXES AND THE INCLUDE REMOVAL
+
+Two P-SYM rounds, both configs each, plus the Release suite after each, every leg
+inside `flock /tmp/box-build.lock` with no timeout. Below is each leg's VERBATIM
+wrapper stdout, in the order it ran. The full compare and classification files
+are beside this one.
+
+  ROUND A -- the comment-only wording fixes (LOW-2, LOW-4).
+    before 3653d27c (the replay re-take commit; source-identical to the pre-fix
+    HEAD 9400690e, which it changes only under docs/notes/), after 6e2d53c9.
+    EXPECTED AND OBSERVED: no object with an unclassified difference, and the
+    library byte-identical. The one object that moves at all is the edited test
+    TU, in the NOISE class, whose 143 changed instructions are all line-number
+    immediates -- DELTAS +2(x2) +6(x141), exactly the two comment insertions of
+    2 and 4 lines shifting the gtest assertion line numbers below them. In Debug
+    a further 59 objects move with ZERO changed instructions: DWARF line tables
+    that cite the edited header's line numbers.
+
+  ROUND B -- the three unused includes dropped from test_qp_cap_levers.cpp.
+    before 6e2d53c9, after 783fd855. The edited test TU is the ONE object that
+    moves, in both configs, and its 250 changed instructions are all DELTAS
+    -3(x250) -- the three removed lines shifting every gtest line number below
+    them by three. Every library object and every other TU is byte-identical,
+    which is the claim this round owes.
+
+  A NOTE ON THE CLASSIFIER'S "DIFFERING OBJECTS: 0". `classify_psym.py` reads
+  P-SYM's DIFFERS lines; an object P-SYM puts in the accepted NOISE class is not
+  one, so the class-A/class-B split is empty in both rounds. The object that
+  moves in round B IS the source this round changed -- class A in substance --
+  and the line above states its delta, which is what a reader needs.
+
+================================================================
+=== VERBATIM: .scratch/m7w2m1/logs/psym-fix1-Release.log
+================================================================
+FOREGROUND_START psym-fix1-Release 2026-09-18T06:53:14-04:00
+PSYM config=Release  after=6e2d53c957cb5a4ac89830ccc447edbf7042b717 (m7)  before=3653d27c
+tree restored to m7 6e2d53c9
+PSYM_COMPARE_RC=0  (0 is EXPECTED here: the edits are comment-only)
+P-SYM tool sha256 (runner):   2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM tool sha256 (captures): 2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM maps: object-map=none symbol-map=none exceptions=none
+
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_cap_levers.cpp.o
+            COUNTS 25887 insns; CHANGED 143; UNCLASSIFIED 0; DELTAS +2(x2) +6(x141)
+
+P-SYM: 146 objects — 145 byte-identical, 1 differing within the accepted noise class, 0 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 0 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 68410 matched (0 through the symbol map), 0 only-before, 0 only-after, 0 excepted, 0 collisions, 46 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 595 matched by count, 0 differing (77909 before-arm and 77909 after-arm symbols accounted by family); relocations — 0 records compared (0 through the symbol map)
+P-SYM: PASS — read the DELTAS summaries above before accepting (see this script's header)
+FOREGROUND_END psym-fix1-Release 2026-09-18T06:56:57-04:00 rc=0
+WRAPPER_RC psym-fix1-Release rc=0
+
+================================================================
+=== VERBATIM: .scratch/m7w2m1/logs/psym-fix1-Debug.log
+================================================================
+FOREGROUND_START psym-fix1-Debug 2026-09-18T06:57:19-04:00
+PSYM config=Debug  after=6e2d53c957cb5a4ac89830ccc447edbf7042b717 (m7)  before=3653d27c
+tree restored to m7 6e2d53c9
+PSYM_COMPARE_RC=0  (0 is EXPECTED here: the edits are comment-only)
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_console_sink.cpp.o
+            COUNTS 25802 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o
+            COUNTS 112018 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o
+            COUNTS 124608 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_threads.cpp.o
+            COUNTS 48843 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o
+            COUNTS 51088 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_corpus.dir/bench_corpus.cpp.o
+            COUNTS 145875 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_corpus.dir/ipm_corpus_leg.cpp.o
+            COUNTS 81211 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_bench.dir/bench_scale.cpp.o
+            COUNTS 66874 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_f7_cold.dir/bench_f7_cold.cpp.o
+            COUNTS 58219 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_tau_bar_sweep_probe.dir/tau_bar_sweep_probe.cpp.o
+            COUNTS 79693 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+            COUNTS 81169 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+NOISE-ONLY  bench/CMakeFiles/hven_sqp_ipqp_e1_arm.dir/ipqp_e1_arm.cpp.o
+            COUNTS 150554 insns; CHANGED 0; UNCLASSIFIED 0; DELTAS
+ARCHIVE     libhven.a differs -- see its member objects above; archive
+            metadata (member timestamps, symbol index) is not instructions
+
+P-SYM: 146 objects — 85 byte-identical, 60 differing within the accepted noise class, 0 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 0 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 351588 matched (0 through the symbol map), 0 only-before, 0 only-after, 0 excepted, 0 collisions, 2524 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 12221 matched by count, 0 differing (110427 before-arm and 110427 after-arm symbols accounted by family); relocations — 0 records compared (0 through the symbol map)
+P-SYM: PASS — read the DELTAS summaries above before accepting (see this script's header)
+FOREGROUND_END psym-fix1-Debug 2026-09-18T07:08:34-04:00 rc=0
+WRAPPER_RC psym-fix1-Debug rc=0
+
+================================================================
+=== VERBATIM: .scratch/m7w2m1/logs/suite-fix1.log
+================================================================
+FOREGROUND_START suite-fix1 2026-09-18T07:08:56-04:00
+=== HEAD 6e2d53c9  dirty-files=0 ===
+[182/183] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_solver.cpp.o
+[183/183] Linking CXX executable tests/sqp/hven_sqp_tests
+=== RELEASE SUITE ===
+2649/2658 Test #2650: WarmStart.CrossoverFalseActiveGuardDegradesAtTheOperativeBarrierLevel ..........................................   Passed    0.02 sec
+          Start 2653: WarmStartBattery.ZeroMajorStepKeepsTheWarmStartChain
+2650/2658 Test #2651: WarmStartProxCarry.TheCarryIsHashGatedAndIsNeverEmittedByAWalkSolve ............................................   Passed    0.02 sec
+          Start 2654: WarmStartBattery.CrossoverChainOnTheBridgeFamilyBeatsCold
+2651/2658 Test #2653: WarmStartBattery.ZeroMajorStepKeepsTheWarmStartChain ...........................................................   Passed    0.01 sec
+          Start 2655: SnoptBridgeGate.ColdSolveLandsOnTheManufacturedOptimum
+2652/2658 Test #2655: SnoptBridgeGate.ColdSolveLandsOnTheManufacturedOptimum .........................................................   Passed    0.01 sec
+          Start 2656: SnoptBridgeGate.AccuracyTracksTheRequestedToleranceWithNoFloor
+2653/2658 Test #2656: SnoptBridgeGate.AccuracyTracksTheRequestedToleranceWithNoFloor .................................................   Passed    0.02 sec
+          Start 2657: SnoptBridgeGate.RowTranscriptionMatchesTheModelAtTheSolution
+2654/2658 Test #2657: SnoptBridgeGate.RowTranscriptionMatchesTheModelAtTheSolution ...................................................   Passed    0.01 sec
+          Start 2658: SnoptBridgeGate.WarmBasisReSolveLandsOnTheOptimumAtTheNewParameter
+2655/2658 Test #2658: SnoptBridgeGate.WarmBasisReSolveLandsOnTheOptimumAtTheNewParameter .............................................   Passed    0.01 sec
+2656/2658 Test #2652: WarmStartBattery.Corpus ........................................................................................   Passed    0.66 sec
+2657/2658 Test #2654: WarmStartBattery.CrossoverChainOnTheBridgeFamilyBeatsCold ......................................................   Passed    1.59 sec
+2658/2658 Test #1628: M7T3ElasticRungVehicle.TheConstructedCellFiresTheElasticRungAndPricesBothEngines ...............................   Passed   42.31 sec
+
+100% tests passed, 0 tests failed out of 2656
+
+Total Test time (real) = 102.00 sec
+
+The following tests did not run:
+	420 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1629 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1630 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END suite-fix1 2026-09-18T07:12:24-04:00 rc=0
+WRAPPER_RC suite-fix1 rc=0
+
+================================================================
+=== VERBATIM: .scratch/m7w2m1/logs/psym-fix1b-Release.log
+================================================================
+FOREGROUND_START psym-fix1b-Release 2026-09-18T07:42:44-04:00
+PSYM config=Release  after=783fd855f40bd32cb8bd3f5b096cc563aedd72e1 (m7)  before=6e2d53c9
+tree restored to m7 783fd855
+PSYM_COMPARE_RC=0  (0 is EXPECTED here: the edits are comment-only)
+P-SYM tool sha256 (runner):   2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM tool sha256 (captures): 2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM maps: object-map=none symbol-map=none exceptions=none
+
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_cap_levers.cpp.o
+            COUNTS 25887 insns; CHANGED 250; UNCLASSIFIED 0; DELTAS -3(x250)
+
+P-SYM: 146 objects — 145 byte-identical, 1 differing within the accepted noise class, 0 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 0 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 68410 matched (0 through the symbol map), 0 only-before, 0 only-after, 0 excepted, 0 collisions, 46 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 595 matched by count, 0 differing (77909 before-arm and 77909 after-arm symbols accounted by family); relocations — 0 records compared (0 through the symbol map)
+P-SYM: PASS — read the DELTAS summaries above before accepting (see this script's header)
+FOREGROUND_END psym-fix1b-Release 2026-09-18T07:45:01-04:00 rc=0
+WRAPPER_RC psym-fix1b-Release rc=0
+
+================================================================
+=== VERBATIM: .scratch/m7w2m1/logs/psym-fix1b-Debug.log
+================================================================
+FOREGROUND_START psym-fix1b-Debug 2026-09-18T07:45:01-04:00
+PSYM config=Debug  after=783fd855f40bd32cb8bd3f5b096cc563aedd72e1 (m7)  before=6e2d53c9
+tree restored to m7 783fd855
+PSYM_COMPARE_RC=0  (0 is EXPECTED here: the edits are comment-only)
+P-SYM tool sha256 (runner):   2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM tool sha256 (captures): 2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM maps: object-map=none symbol-map=none exceptions=none
+
+NOISE-ONLY  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_cap_levers.cpp.o
+            COUNTS 33350 insns; CHANGED 250; UNCLASSIFIED 0; DELTAS -3(x250)
+
+P-SYM: 146 objects — 145 byte-identical, 1 differing within the accepted noise class, 0 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 0 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 351588 matched (0 through the symbol map), 0 only-before, 0 only-after, 0 excepted, 0 collisions, 2524 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 12221 matched by count, 0 differing (110427 before-arm and 110427 after-arm symbols accounted by family); relocations — 0 records compared (0 through the symbol map)
+P-SYM: PASS — read the DELTAS summaries above before accepting (see this script's header)
+FOREGROUND_END psym-fix1b-Debug 2026-09-18T07:47:04-04:00 rc=0
+WRAPPER_RC psym-fix1b-Debug rc=0
+
+================================================================
+=== VERBATIM: .scratch/m7w2m1/logs/suite-fix1b.log
+================================================================
+FOREGROUND_START suite-fix1b 2026-09-18T07:47:04-04:00
+=== HEAD 783fd855  dirty-files=0 ===
+[1/2] Building CXX object tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_qp_cap_levers.cpp.o
+[2/2] Linking CXX executable tests/sqp/hven_sqp_tests
+=== RELEASE SUITE ===
+          Start 1079: VariableBoundCensusTable.ClassifiesEveryKindOfBoundedVariable
+          Start 1086: DeclaredDiagnostics.TwoSidedBoundUsesCanonicalSplit
+2650/2658 Test #1048: FanOut.ANullHalfIsSkippedRatherThanDereferenced ................................................................   Passed    0.01 sec
+2651/2658 Test #1076: PrintTables.PredictorOutcomeNamesEveryEnumerator ...............................................................   Passed    0.00 sec
+          Start 1078: PrintTables.StepVerdictNamesEveryEnumeratorAndFallsBackOnNoneOfThem
+          Start 1051: Options.CommonDefaultsAreEachEnginesOwn
+2652/2658 Test #1079: VariableBoundCensusTable.ClassifiesEveryKindOfBoundedVariable ..................................................   Passed    0.01 sec
+2653/2658 Test #1086: DeclaredDiagnostics.TwoSidedBoundUsesCanonicalSplit ............................................................   Passed    0.00 sec
+          Start  420: FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas
+          Start 1629: EqpRefinementAb.FootprintRuleProbe
+2654/2658 Test #1629: EqpRefinementAb.FootprintRuleProbe .............................................................................***Not Run (Disabled)   0.00 sec
+          Start 1630: EqpRefinementAb.FullBattery
+2655/2658 Test #1630: EqpRefinementAb.FullBattery ....................................................................................***Not Run (Disabled)   0.00 sec
+2656/2658 Test #1078: PrintTables.StepVerdictNamesEveryEnumeratorAndFallsBackOnNoneOfThem ............................................   Passed    0.00 sec
+2657/2658 Test #1051: Options.CommonDefaultsAreEachEnginesOwn ........................................................................   Passed    0.00 sec
+2658/2658 Test  #420: FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas .........................................***Skipped   0.00 sec
+
+100% tests passed, 0 tests failed out of 2656
+
+Total Test time (real) =  80.61 sec
+
+The following tests did not run:
+	420 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1629 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1630 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END suite-fix1b 2026-09-18T07:48:27-04:00 rc=0
+WRAPPER_RC suite-fix1b rc=0

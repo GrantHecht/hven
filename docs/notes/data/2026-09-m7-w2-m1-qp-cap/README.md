@@ -295,6 +295,26 @@ behind it, and the evidence it should not be the default is in this directory;
 turning it on without new evidence would be a change of this reading, not a
 tuning choice.
 
+### 7c. What else fix round 1 changed, and the gate that says it changed nothing
+
+Two wording corrections in the tree, no token of code (review LOW-2, LOW-4): the
+cap retry's row convention, which `tests/sqp/test_qp_cap_levers.cpp` had
+INVERTED — the retry replaces `mj.qs` before the row is written, so the ROW
+carries the retry's minors and the capped attempt's live only in the aggregate —
+and "capped subproblem ATTEMPTS this solve made", which
+`include/hven/core/solver_counters.h` and `docs/trace-schema-v0.md` now scope to
+"the capped subproblem exits that reached the routing site", the SOC re-solve and
+the elastic rungs reaching neither field. A third commit drops three includes
+`test_qp_cap_levers.cpp` does not use.
+
+`gates-fix1/` is the gate for all three, P-SYM in both configs twice over: the
+comment-only round leaves every library object and every other TU byte-identical
+(the one object that moves is the edited test TU, and its 143 changed
+instructions are the gtest line-number immediates the inserted comment lines
+shift, `+2` twice and `+6` 141 times); the include round moves that same TU and
+nothing else, by `-3` 250 times. The Release suite is **2656 / 2656** after each.
+No measurement in this directory is touched by any of it.
+
 ## 8. Files
 
 | file | what |
@@ -308,6 +328,7 @@ tuning choice.
 | `replay-shipped/` | the U0 replay re-run at the SHIPPED defaults, re-taken clean at fix round 1, and `comparison.txt`, the six comparisons that came back 27/75/0 |
 | `replay{,-shipped}/wrapper-stdout.txt` | the re-take legs' VERBATIM stdout — the `=== HEAD … dirty-files=0 ===` line, the build's own sha256s, and the leg's own 27/75/0 ×3 |
 | `replay-retake-fix1.txt` | why the two sets were re-taken, and the re-taken bytes against the superseded ones, column by column |
+| `gates-fix1/` | fix round 1's own gate: P-SYM in both configs for the comment-only round and again for the include round, each leg's verbatim wrapper stdout, and the Release suite after each |
 | `hs/` | the hs TRAIN split (21 cells), both arms, with `table.txt` and every cell's raw stdout |
 | `gates-shipped/` | the same gates re-run at the SHIPPED commit `3f2f6e35`, including the P-SYM classification, which is identical in both configs |
 | `PROVENANCE.txt` | toolchain, hardware, date, commit, and each arm's header sha256 + its two default literals |

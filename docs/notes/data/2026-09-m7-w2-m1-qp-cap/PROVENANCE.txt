@@ -71,3 +71,23 @@ the rows:        unchanged in every asserted column. replay-retake-fix1.txt is t
 gates/gates.txt: the wrapper's own `=== HEAD 4d27fb02  dirty-files=0 ===` line, recovered
                  verbatim from .scratch/m7w2m1/logs/gates.log:2 and prepended, so the
                  OFF-default gates transcript is no longer only a hand summary.
+
+=== FIX ROUND 1, THE TREE-SIDE HALF (2026-09-18) ===
+what:            review LOW-2 and LOW-4, comment and prose only (the cap retry's row
+                 convention, and "capped subproblem ATTEMPTS" scoped to the exits that
+                 reach the routing site), commit 6e2d53c9; then three unused includes
+                 dropped from tests/sqp/test_qp_cap_levers.cpp, commit 783fd855.
+gate:            gates-fix1/. P-SYM in BOTH configs, TWICE -- once for the comment-only
+                 round (before 3653d27c, after 6e2d53c9) and once for the include round
+                 (before 6e2d53c9, after 783fd855) -- plus the Release suite after each.
+                 0 objects with an unclassified difference in all four runs; the library
+                 and every TU but the edited test one byte-identical. That TU's changes
+                 are line-number immediates only: +2(x2) +6(x141) for the comment round,
+                 -3(x250) for the include round, in both configs. In Debug the comment
+                 round also moves 59 objects with ZERO changed instructions -- DWARF line
+                 tables citing the edited header.
+suites:          Release 2656/2656 rc 0 at 6e2d53c9 and again at 783fd855.
+box:             every leg inside `flock /tmp/box-build.lock` with no timeout, markers
+                 inside the lock, interleaved leg by leg with the harness lane's CUTEst
+                 preset sweep, which held the lock for its own cells throughout. Nothing
+                 foreign was signalled.
