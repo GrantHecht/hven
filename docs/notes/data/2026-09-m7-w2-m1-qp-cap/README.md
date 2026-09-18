@@ -248,6 +248,26 @@ latter BOTH against the M6 close pin and against the former, and every one of th
 six comparisons is **27 cells / 75 columns / 0 differences**. No U0 cell routes a
 subproblem failure either, which is the same reason the hs split does not move.
 
+**Both replay sets were RE-TAKEN at fix round 1, and nothing they say changed.**
+The CSVs the first take committed carried a false `binary:` stamp: that field is
+resolved at CONFIGURE time (`bench/CMakeLists.txt:81-95`, whose own comment names
+the trap), and the legs reused a build directory configured while the M1 edits
+were still uncommitted — so the CSVs said `-dirty` about binaries that had in
+fact run at a clean, committed tree. A stale stamp is re-taken, not waived, so
+each set was run again from a build directory removed and re-configured inside
+the leg: `replay/` from a git worktree detached at the OFF-default head
+`4d27fb02`, `replay-shipped/` from the main tree at `9400690e`, whose library
+bytes are the shipped commit's (`git diff --name-only 3f2f6e35 9400690e` touches
+`docs/notes/**` only, and the clean build's `libhven.a` sha256 equals the
+superseded leg's own). Each leg's verbatim stdout is beside its CSVs as
+`wrapper-stdout.txt`, dirty-file count and all, and both reproduce 27/75/0 ×3
+against the M6 close pin. `replay-retake-fix1.txt` is the machine-written
+comparison against the superseded bytes: **75 of 76 data columns identical in
+every one of the 27 × 3 × 2 rows**, the single mover being `wall_s`, which is
+informational (CLAUDE.md §7) and asserted nowhere here. `comparison.txt` is the
+superseded leg's own output and is kept as it was written; its §B is re-derived
+on the re-taken bytes in `replay-retake-fix1.txt` §3, with the same answer.
+
 What DID break is four in-tree pins, each declared here and in the commit that
 carries it (CLAUDE.md §7):
 
@@ -283,9 +303,11 @@ tuning choice.
 | `cells-{budget,retry,both}-r{1,2}.csv` | the three arms, twice each |
 | `tables.txt` | the identity check, the repeat agreement, the outcome tables, the per-lever verdicts |
 | `raw/<tag>/<PROBLEM>.txt` | every cell's own stdout, verbatim, with its wall and rc |
-| `gates/` | both suites, the long test alone, the replay, the smokes, the export line, and the P-SYM classification in both configs |
-| `replay/head-{walk,ssn,ipm}.csv` | the U0 replay at the OFF-default HEAD (27/75/0 against the M6 close CSVs) |
-| `replay-shipped/` | the U0 replay re-run at the SHIPPED defaults, and `comparison.txt`, the six comparisons that came back 27/75/0 |
+| `gates/` | both suites, the long test alone, the replay, the smokes, the export line, and the P-SYM classification in both configs — its first line is the wrapper's own `=== HEAD … dirty-files=0 ===`, recovered verbatim from the wrapper log at fix round 1 |
+| `replay/head-{walk,ssn,ipm}.csv` | the U0 replay at the OFF-default HEAD (27/75/0 against the M6 close CSVs), re-taken clean at fix round 1 |
+| `replay-shipped/` | the U0 replay re-run at the SHIPPED defaults, re-taken clean at fix round 1, and `comparison.txt`, the six comparisons that came back 27/75/0 |
+| `replay{,-shipped}/wrapper-stdout.txt` | the re-take legs' VERBATIM stdout — the `=== HEAD … dirty-files=0 ===` line, the build's own sha256s, and the leg's own 27/75/0 ×3 |
+| `replay-retake-fix1.txt` | why the two sets were re-taken, and the re-taken bytes against the superseded ones, column by column |
 | `hs/` | the hs TRAIN split (21 cells), both arms, with `table.txt` and every cell's raw stdout |
 | `gates-shipped/` | the same gates re-run at the SHIPPED commit `3f2f6e35`, including the P-SYM classification, which is identical in both configs |
 | `PROVENANCE.txt` | toolchain, hardware, date, commit, and each arm's header sha256 + its two default literals |

@@ -28,3 +28,46 @@ arm retry cell sha256:    fe8abd759ae6cd5362fa6b3cbdb94cf2e779277d7b25e826bbda92
 arm both header sha256:  3ddca7ffc3b67e56b270cca2ed1387dcd4ace1582d7251ef10e0fa276101c849
 arm both defaults:       Index qp_failure_budget = 3;  bool qp_cap_retry = true;
 arm both cell sha256:    5bdb4b0dd4e80113bbef286d2d2087de6660f84a8005cd7467a636baad349ba1
+
+=== FIX ROUND 1 (2026-09-18): THE TWO REPLAY SETS, RE-TAKEN CLEAN ===
+why:             review finding MEDIUM-1. `HVEN_SQP_CORPUS_GIT_DESCRIBE` resolves at
+                 CONFIGURE time (bench/CMakeLists.txt:81-95, and its own comment names
+                 this trap). The first take reused a bench build directory that had been
+                 configured while the M1 edits were still uncommitted, so `replay/` stamped
+                 `ff5bf143e852-dirty` and `replay-shipped/` stamped `1334884a371e-dirty`
+                 -- both FALSE about binaries that in fact ran at a clean, committed tree
+                 (the wrapper logs' own dirty-file counts were 0). A stale stamp is
+                 re-taken, not waived (the T3/T4 precedent).
+what was re-taken: `replay/` and `replay-shipped/`, each a fresh U0 27-cell three-arm
+                 replay from a build directory REMOVED AND RE-CONFIGURED INSIDE THE LEG
+                 (wrappers/retake_replay.sh), under the shared box lock with no timeout,
+                 `MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 taskset -c 2` as before. The
+                 seven-CSV cell measurement was NOT re-run; it is not in question.
+replay/:         built from a git worktree detached at 4d27fb02 (the OFF-default head)
+                 under .scratch/m7w2m1/wt-off, removed after the leg. dirty-files=0.
+                 stamp now `4d27fb022b88`.  leg stdout: replay/wrapper-stdout.txt
+                 libhven.a sha256:       5aba2c68667639fd1e7ed69a85df7b82c4b657f9801495fc1f05ffd07d203d8e
+                 hven_sqp_corpus sha256: a12e18e33521c2582625bb0523969b77d92180708f1b216b34b9b121e571f331
+replay-shipped/: built from the main tree at HEAD 9400690e, dirty-files=0.
+                 stamp now `9400690ec1a0`.  leg stdout: replay-shipped/wrapper-stdout.txt
+                 libhven.a sha256:       c3af7c1e2674eb363db359522df4de44b6652982bd2a4ac2cb06de54e8875824
+                 hven_sqp_corpus sha256: 7d9d41f21c95113942ef86e0a5ef36aaca9205f67f1bb3a2dfbcf69f0a1a47ee
+                 THE LIBRARY BYTES ARE THE SHIPPED COMMIT'S, PROVED TWO WAYS: `git diff
+                 --name-only 3f2f6e35 9400690e` touches docs/notes/** only, and this clean
+                 build's libhven.a sha256 EQUALS the one the superseded leg's own build
+                 directory still holds (c3af7c1e...), whose hven_sqp_corpus sha256
+                 5e16804a... is the one gates-shipped/gates.txt and
+                 replay-shipped/comparison.txt record. Only the corpus BINARY differs, by
+                 exactly the configure-time stamp string baked into it -- which is the
+                 defect being fixed.
+the rows:        unchanged in every asserted column. replay-retake-fix1.txt is the
+                 machine-written comparison against the superseded bytes: 27 rows x 3
+                 engines x 2 sets, 75 of 76 data columns identical, the single mover
+                 `wall_s` (informational, CLAUDE.md section 7, asserted nowhere here), plus
+                 the three header lines that must move (stamp, invocation path, generation
+                 timestamp). Both legs reproduce 27 cells / 75 columns / 0 differences
+                 against the M6 close pin, and the OFF-vs-shipped B comparison re-derives
+                 the same 27/75/0 x3 on the re-taken bytes.
+gates/gates.txt: the wrapper's own `=== HEAD 4d27fb02  dirty-files=0 ===` line, recovered
+                 verbatim from .scratch/m7w2m1/logs/gates.log:2 and prepended, so the
+                 OFF-default gates transcript is no longer only a hand summary.

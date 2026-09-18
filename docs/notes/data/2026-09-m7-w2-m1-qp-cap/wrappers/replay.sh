@@ -6,14 +6,15 @@ set -uo pipefail
 R=/home/ghecht/Projects/hven
 S=$R/.scratch/m7w2m1
 BIN=${HVEN_M1_REPLAY_BIN:-$S/rel/bench/hven_sqp_corpus}
-D=$S/replay
+D=${HVEN_M1_REPLAY_OUT:-$S/replay}
+TAG=${HVEN_M1_REPLAY_TAG:-head}
 mkdir -p "$D" "$S/logs"
 CELLS="$(grep -v '^#' "$R/docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt" | tr -d '\n')"
 worst=0
 for eng in walk ssn ipm; do
   MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 taskset -c 2 \
     "$BIN" --engine "$eng" --cells "$CELLS" --csv "$D/head-$eng.csv" \
-    > "$S/logs/replay-head-$eng.out" 2>&1
+    > "$S/logs/replay-$TAG-$eng.out" 2>&1
   rc=$?
   worst=$((worst | rc))
   echo "ran head-$eng rc=$rc (worst $worst)"

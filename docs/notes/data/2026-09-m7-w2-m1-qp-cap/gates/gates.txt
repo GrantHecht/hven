@@ -1,3 +1,8 @@
+[M7 W2 M1 fix round 1: the line below is RECOVERED VERBATIM from the wrapper's own
+ stdout, .scratch/m7w2m1/logs/gates.log:2 -- wrappers/stage_gates.sh:8 prints it
+ INSIDE the lock, and the first take's committed transcript kept only the hand
+ summary that follows it. Nothing else in this file is changed.]
+=== HEAD 4d27fb02  dirty-files=0 ===
 M7 W2 M1 -- the measurement-independent gates, at HEAD 4d27fb02 (clean)
 
 === RELEASE SUITE (stage1) ===
