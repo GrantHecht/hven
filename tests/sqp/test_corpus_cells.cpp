@@ -2617,7 +2617,18 @@ const std::vector<ExpectedExitRow> &expected_interior_exit_rows() {
     static const std::vector<ExpectedExitRow> kRows{
         {"f7_n1000_bound_neutral/MakeParameter/cap1", "max_iter", "iteration_cap"},
         {"hs071_x1_fixed/MakeParameter/cap1", "max_iter", "iteration_cap"},
-        {"infeas2_spike/MakeParameter/stalled", "stalled", "stage_stalled"},
+        // RE-DERIVED at M7 W2 D1 (2026-09-18): the stop reason was
+        // `stage_stalled` and is `restoration_locally_infeasible`. The status
+        // is still `stalled`. Under the shipped default (filter over the
+        // monitored governor) this cell's restoration episode is classified
+        // locally infeasible where the pre-event default left it near-feasible,
+        // so the phase leaves by a different labelled door -- the same flip
+        // `make_stall_solver` shows in tests/interior/test_ipm_stop_reason.cpp,
+        // on a different problem. This row tracks the SHIPPED default, because
+        // that is what the bench artifact is a census of; the stage-stalled
+        // door keeps its own coverage in the unit suite, which pins the
+        // pre-event pair for exactly that reason.
+        {"infeas2_spike/MakeParameter/stalled", "stalled", "restoration_locally_infeasible"},
         {"infeas2_stationary/MakeParameter/resto_infeasible", "stalled",
          "restoration_locally_infeasible"},
         {"f7_n1000_bound_neutral/MakeParameter/solve_optimize", "optimal", "none"},

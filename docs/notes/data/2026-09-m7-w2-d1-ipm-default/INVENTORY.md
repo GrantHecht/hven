@@ -305,6 +305,8 @@ belongs beside the IPM stall-termination item already registered in the W2
 A4-1 close, which has `NET3` as its reproducer. Nothing about it is acted on
 in this task.
 
+| S8 | `CorpusCells.InteriorBaselineRescoresOffline`'s expected-exit table (`test_corpus_cells.cpp`) | found when the baseline was re-captured, not by the suite: `infeas2_spike/MakeParameter/stalled` reports `restoration_locally_infeasible` where the table expects `stage_stalled` (the status is still `stalled`). The SAME restoration-classification flip as S5-S7, on a different problem, reached through the bench leg rather than a unit fixture. | **RE-DERIVED** to `restoration_locally_infeasible`. The bench artifact is a census of the SHIPPED default and must track it; the stage-stalled door keeps its coverage in the unit suite, which pins the pre-event pair for exactly that reason. |
+
 **What did NOT fail, and is worth recording because the inventory feared it
 might.** Every other §2.B file passed at the shipped default: the trace tests,
 the warm-start tests (preset and non-preset arms alike), epoch gating, objective
@@ -317,24 +319,33 @@ family as S3/S4 — passed unpinned: `opt_bar_mode` is still consulted through t
 monitored governor's `classic_adaptive` delegate, so that option still selects
 something at the shipped default and its test still has a question to ask.
 
-## 9. The leg's exit status, stated rather than hidden
+## 9. The corpus grew, and it did not ride this event
 
-`stage_legs.sh` exits 1, and the reason is neither a value that moved nor the new
-`# levers:` header (the byte check strips `#` lines before comparing).
+The first two captures used `--engine interior --cells all`, as the committed
+baseline's own invocation did, and came back with **85** data rows against the
+baseline's 43. The 42 extra are the F7 corpus's whole `path`-window family under
+all three fixed-variable treatments (`f7_n800_path_*` through
+`f7_n20000_path_*`, plus the two `*_path_neutral_control` cells). Those cells
+dual-bind as an `NLPProblem` now and did not when the baseline was taken, so
+`--cells all` returns more than it did then. **The growth predates this task and
+is independent of it:** it appears identically under the pre-event default pin,
+which restores the old defaults and nothing else.
 
-The committed baseline has **43 data rows**. The capture at this HEAD has **85**.
-The 42 extra are the whole `path`-window family of the F7 corpus — `f7_n800_path_*`,
-`f7_n1000_path_*`, `f7_n2000_path_*`, `f7_n5000_path_*`, `f7_n10000_path_*`,
-`f7_n20000_path_*` and the two `*_path_neutral_control` cells — each under all
-three fixed-variable treatments. They dual-bind as an `NLPProblem` now and did
-not when the baseline was captured, so `--cells all` returns more cells than it
-did then. **This growth predates this task and is independent of it:** it shows
-up identically in the pre-event-pinned capture, which restores the old defaults
-and nothing else.
+Both tools said so and both were right to — `scripts/compare_replay.py` returns
+1 on 42 `UNMATCHED CELLS`, and a byte check compares 86 lines against 44 —
+and neither was a difference in a compared value: on the 43 cells the files
+share, the comparator reported 43 cells x 30 columns, 0 differences, twice.
 
-Both tools report it as a failure and both are right to:
-`scripts/compare_replay.py` returns 1 when either file carries a cell the other
-does not (`UNMATCHED CELLS`, 42 of them), and the `cmp` byte check compares 86
-lines against 44. **Neither is a difference in a compared value.** On the 43
-cells the two files share, the comparator reports **43 cells × 30 columns,
-0 differences**, twice — and that is the OFF proof, unaffected by the extra rows.
+**The re-derived baseline is captured at the baseline's own cell scope instead**,
+with the eleven cells spelled out. A default event and a corpus growth are two
+changes, and CLAUDE.md's rule against mixing a move with a restructure applies to
+an artifact as much as to code: putting them in one diff would leave neither
+legible. At that scope the leg is clean — 43 rows, the pinned arm **byte-identical
+to the previous file outside `wall_s`**, the shipped arm 89 differences, both arms
+deterministic over two captures.
+
+**Registered, not acted on:** `--cells all` and the interior artifact's expected
+cell list (`tests/sqp/test_corpus_cells.cpp`'s `expected_interior_cells()`, still
+eleven) have drifted apart by fourteen cells. Whoever widens the artifact owns
+re-deriving that list, its 43-row count assertions and the composition prose in
+the file's T8.4 banner.
