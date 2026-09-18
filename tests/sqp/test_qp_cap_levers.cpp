@@ -306,12 +306,18 @@ TEST(QpCapRetry, ADoubledCapThatSufficesRecoversTheSolve) {
     // `qp_maxiter_exits` -- that field counts the exits the driver ACTED on,
     // and the retry replaced this one as the major's answer before the routing
     // ran -- so the pair's invariant is what says a cap was reached at all:
-    // `qp_maxiter_exits + qp_cap_retries` is the number of capped ATTEMPTS.
+    // `qp_maxiter_exits + qp_cap_retries` is the number of capped subproblem
+    // exits that reached the routing site -- not every capped subproblem the
+    // solve ran, since the SOC re-solve and the elastic rungs never reach it.
     EXPECT_GE(out.counters.qp_cap_retries, 1);
     EXPECT_GE(out.counters.qp_maxiter_exits + out.counters.qp_cap_retries, 1);
     // The retry's minors are REAL WORK and are folded in like any subproblem's:
-    // the first major's own row records only the capped attempt, so the
-    // aggregate must exceed the rows' sum by at least the retry's own minors.
+    // the retried major's own ROW carries the RETRY's minor count, because the
+    // retry replaces `mj.qs` before the row is written
+    // (src/drivers/sqp_solver.cpp:5795 against :5888-5892), so the CAPPED
+    // attempt's minors live only in the aggregate and the aggregate must exceed
+    // the rows' sum by at least them. It is the SOC convention INVERTED: SOC
+    // keeps the primary solve on the row and folds its re-solve in.
     Index rows = 0;
     for (const SqpIterate &row : out.history) {
         rows += row.qp_minor_iters;

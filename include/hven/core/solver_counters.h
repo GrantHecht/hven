@@ -1442,11 +1442,15 @@ struct SqpCounters {
     /// so an attempt that `SqpOptions::qp_cap_retry` RESCUED is not counted
     /// here at all: the retry replaced it as the major's answer before the
     /// routing ran, and `qp_cap_retries` is what records it. The two together
-    /// are exact: `qp_maxiter_exits + qp_cap_retries` is the number of capped
-    /// subproblem ATTEMPTS this solve made, each counted once -- a retried
+    /// are exact for the capped subproblem exits that REACHED THE ROUTING SITE:
+    /// `qp_maxiter_exits + qp_cap_retries`, each counted once -- a retried
     /// attempt in the second field, every other capped exit in the first, and a
     /// retry that hit the doubled cap too in both (its own exit reaches the
-    /// routing site).
+    /// routing site). It is NOT a census of every capped subproblem the solve
+    /// ran: the SOC re-solve and the elastic ladder's rungs never reach this
+    /// site -- a non-`kOptimal` SOC simply means "SOC not applied", and an
+    /// unusable rung leaves through the restoration seed -- so a capped one of
+    /// either is in NEITHER field.
     ///
     /// WHICH KERNEL'S EXIT: whichever kernel answered the major, because the
     /// routing site is common to all three. At the shipped default
