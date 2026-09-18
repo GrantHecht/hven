@@ -190,19 +190,26 @@ void hven::solvers::validate(const IpmOptions &o) {
     // funnel/filter are designed to operate above a monotone barrier safeguard
     // (this is a factual dependency statement, not a convergence-guarantee
     // claim — neither strategy is proven to converge with or without it).
-    // classic_adaptive (the default governor) is free-mode only, so pairing it
-    // with funnel/filter silently drops that safeguard unless the user
-    // explicitly opts in via never_monotone. classic_merit/merit are
-    // unaffected by this guard in every combination (bit-identity for the
-    // default path; merit + monitored is allowed opt-in, same as merit +
+    // classic_adaptive is free-mode only, so pairing it with funnel/filter
+    // silently drops that safeguard unless the user explicitly opts in via
+    // never_monotone. classic_merit/merit are unaffected by this guard in every
+    // combination (merit + monitored is allowed opt-in, same as merit +
     // classic_adaptive).
+    //
+    // M7 W2 D1 (2026-09-18) INVERTED THIS GUARD'S TYPICAL READER. The default
+    // is now filter OVER monitored -- precisely the pair this comment used to
+    // describe as the opt-in -- so the combination that reaches the throw below
+    // is one a caller built by moving the governor BACK to classic_adaptive
+    // while leaving the strategy alone. The rule is unchanged; which side of it
+    // the stock value sits on is not, and the message says so rather than
+    // calling classic_adaptive "the default".
     if ((o.acceptance_strategy == AcceptanceStrategies::funnel ||
          o.acceptance_strategy == AcceptanceStrategies::filter) &&
         o.barrier_governor == BarrierGovernors::classic_adaptive && !o.never_monotone)
         throw std::invalid_argument(
             fmt::format("acceptance_strategy={} is designed to operate above the monotone barrier "
-                        "safeguard, which barrier_governor=classic_adaptive (the default) does not "
-                        "provide: set barrier_governor=monitored, or set never_monotone=True to "
+                        "safeguard, which barrier_governor=classic_adaptive does not provide: set "
+                        "barrier_governor=monitored (the default), or set never_monotone=True to "
                         "explicitly accept adaptive-only operation",
                         acceptance_strategy_name(o.acceptance_strategy)));
 
@@ -405,7 +412,7 @@ namespace {
 // Important 1). The declaration promises that the same value dumps the same
 // bytes in any process. Composing a line with `os << name << " = " << v` breaks
 // that promise the moment the caller hands over a stream it has configured:
-// `std::hex` turns `max_iters = 500` into `max_iters = 1f4`, `showpos` and
+// `std::hex` turns `max_iters = 1000` into `max_iters = 3e8`, `showpos` and
 // `uppercase` and `scientific` each rewrite a field, a non-zero `width()` pads
 // the first insertion with the caller's `fill()`, and a stream imbued with a
 // locale whose numpunct groups digits inserts separators into every integer.

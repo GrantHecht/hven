@@ -102,8 +102,15 @@ enum class PDStepStrategies { kPrimSlackEqSplitIq, kAllMinimum, kPrimSlackSplitE
 /// accepted or the previous one stays in force.
 struct IpmOptions {
     // --- Iteration limits ---
-    /// @brief Main iteration cap per phase. Default 500.
-    int max_iters = 500;
+    /// @brief Main iteration cap per phase. Default 1000.
+    ///
+    /// M7 W2 D1 (2026-09-18), the declared IPM-default event: 500 -> 1000. The
+    /// old value is not a value this cap was ever measured at in-tree -- every
+    /// bench leg pins its own -- and 500 against the reference solvers' 3000 was
+    /// not a like-for-like budget. At 1000 the CUTEst TRAIN set converts two
+    /// more cells and no cell's answer changes; see
+    /// docs/notes/data/2026-09-m7-w2-d1-ipm-default/.
+    int max_iters = 1000;
     /// @brief Classic backtracking ladder cap per rejected trial. Default 2.
     int max_ls_iters = 2;
     /// Number of consecutive trailing iterates that must ALL sit inside the
@@ -190,23 +197,33 @@ struct IpmOptions {
     /// Default kPrimSlackEqSplitIq.
     PDStepStrategies pd_step_strategy = PDStepStrategies::kPrimSlackEqSplitIq;
 
-    // --- Step-acceptance strategy (opt-in modernized merit) ---
-    /// classic_merit (the default) is the fused backtracking merit line
-    /// search; merit selects the modernized merit family, whose penalty rule
-    /// is merit_penalty_rule (read only under merit). Both enums live in
-    /// ipm_solver_fwd.h.
-    AcceptanceStrategies acceptance_strategy = AcceptanceStrategies::classic_merit;
+    // --- Step-acceptance strategy ---
+    /// filter (the default since M7 W2 D1, 2026-09-18) is the filter
+    /// acceptance test; classic_merit -- the default BEFORE that event -- is
+    /// the fused backtracking merit line search; merit selects the modernized
+    /// merit family, whose penalty rule is merit_penalty_rule (read only under
+    /// merit). All three enums live in ipm_solver_fwd.h.
+    ///
+    /// The default pairs with barrier_governor == monitored below, and the two
+    /// moved together as one declared re-derivation: filter is designed to
+    /// operate above a monotone safeguard, and validate() refuses it over the
+    /// free-only governor without an explicit opt-in. The pre-event pair is
+    /// still reachable, and bit-identically so, as ipm_preset("classic") with
+    /// max_iters = 500 -- pinned by
+    /// tests/interior/test_ipm_solver_presets.cpp.
+    AcceptanceStrategies acceptance_strategy = AcceptanceStrategies::filter;
     /// Merit penalty rule for the generic merit family; only read when
     /// acceptance_strategy == merit. Default wmno.
     MeritPenaltyRules merit_penalty_rule = MeritPenaltyRules::wmno;
 
-    // --- Barrier-parameter governor (opt-in monitored free<->monotone) ---
-    /// classic_adaptive (the default) is the PROBE/LOQO free-mode barrier
-    /// update; monitored selects the free<->monotone governor, which composes
-    /// a classic_adaptive delegate and so pairs with any acceptance_strategy.
-    /// validate() rejects funnel or filter over classic_adaptive unless
+    // --- Barrier-parameter governor ---
+    /// monitored (the default since M7 W2 D1, 2026-09-18) is the
+    /// free<->monotone governor, which composes a classic_adaptive delegate and
+    /// so pairs with any acceptance_strategy; classic_adaptive -- the default
+    /// BEFORE that event -- is the PROBE/LOQO free-mode barrier update on its
+    /// own. validate() rejects funnel or filter over classic_adaptive unless
     /// never_monotone is set. Enum in ipm_solver_fwd.h.
-    BarrierGovernors barrier_governor = BarrierGovernors::classic_adaptive;
+    BarrierGovernors barrier_governor = BarrierGovernors::monitored;
 
     /// Expert escape hatch mirroring Ipopt's never-monotone-mode: explicitly
     /// accepts running funnel/filter above the classic_adaptive (free-only)
@@ -214,6 +231,12 @@ struct IpmOptions {
     /// Contradictory when combined with barrier_governor == monitored (the
     /// monitored governor already provides the monotone fallback) —
     /// validate() rejects that combination.
+    ///
+    /// SINCE M7 W2 D1 THAT REFUSAL BITES A VALUE THAT LEAVES THE GOVERNOR
+    /// ALONE: monitored is now the default, so never_monotone = true on an
+    /// otherwise default IpmOptions is rejected. Setting the hatch means
+    /// setting barrier_governor = classic_adaptive alongside it, which is what
+    /// the hatch was always for and is now written rather than inherited.
     bool never_monotone = false;
 
     /// off (the default) constructs no RestorationStrategy at all, and every
@@ -674,7 +697,9 @@ struct IpmResult : SolveResult {
 /// tols <= their respective acceptable tols <= their respective divergence
 /// tols), the two combination guards (acceptance_strategy funnel or filter with
 /// barrier_governor == classic_adaptive and !never_monotone; never_monotone with
-/// barrier_governor == monitored), and the two fields that moved into `common`
+/// barrier_governor == monitored -- and since M7 W2 D1 the SECOND of those two
+/// is the one an otherwise default value can trip, because monitored is now the
+/// default governor), and the two fields that moved into `common`
 /// (threads must be positive, print_level non-negative -- the same conditions
 /// qp_threads_ and print_level_ faced).
 ///
