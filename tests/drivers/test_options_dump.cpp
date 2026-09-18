@@ -216,9 +216,15 @@ TEST(OptionsDump, EnumsPrintEnumeratorNames) {
 
 // Declaration order, doubles at {:.17g}, bools as words: the head of the IPM
 // dump verbatim, which is the cheapest way to pin the format itself.
+//
+// `max_iters = 1000` is a DECLARED re-derivation (M7 W2 D1, 2026-09-18): the
+// default was 500 until that event, and this line is one of exactly two places
+// in the tree where the 500 -> 1000 half of it is observable -- every bench leg
+// pins its own cap, so no committed measurement moved with it. See
+// docs/notes/data/2026-09-m7-w2-d1-ipm-default/.
 TEST(OptionsDump, IpmDumpHeadIsVerbatim) {
     const std::string text = dump_to_string(IpmOptions{});
-    EXPECT_EQ(text.substr(0, std::string("max_iters = 500\n"
+    EXPECT_EQ(text.substr(0, std::string("max_iters = 1000\n"
                                          "max_ls_iters = 2\n"
                                          "max_acc_iters = 50\n"
                                          "max_refac = 15\n"
@@ -228,7 +234,7 @@ TEST(OptionsDump, IpmDumpHeadIsVerbatim) {
                                          "max_feas_rest = 2\n"
                                          "kkt_tol = 9.9999999999999995e-07\n")
                                  .size()),
-              "max_iters = 500\n"
+              "max_iters = 1000\n"
               "max_ls_iters = 2\n"
               "max_acc_iters = 50\n"
               "max_refac = 15\n"
