@@ -111,3 +111,30 @@ copied verbatim to `export-contract.txt` beside this file.
 The table above is NOT rewritten: it recorded what was true when it was written.
 This record is the append the outstanding line asked for, and with it the
 measurement is complete -- all six gate segments plus G6b, green.
+
+--- APPENDED 2026-09-18, BY THE WRITING ROUND (the page/README/report task).
+--- NOTHING ABOVE THIS LINE IS EDITED: it recorded what was true when it was
+--- written, and the wait it describes is left on the record rather than tidied.
+
+G6b EXPORT CONTRACT: **CLOSED, rc 0.** The re-run recorded as OUTSTANDING above
+landed at 2026-09-18T19:29:01-04:00, alone inside its own `flock
+/tmp/box-build.lock` acquisition taken with no timeout and no fallback -- it had
+been queued since 19:00 behind the other lane's 1800 s re-pin cell, which is what
+"no timeout and no fallback" costs and buys. It was NOT re-launched by this
+round: the process already queued is the one that ran, and its transcript is
+copied verbatim to `export-contract.txt` beside this file.
+
+    scripts/check_export_contract.sh \
+      <prefix>/lib64/cmake/hven/hvenTargets.cmake linux 32
+
+    -- platform macro set OK for linux
+    -- EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+    -- INTERFACE_COMPILE_OPTIONS OK: absent
+    -- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+    == export contract OK for platform=linux, align=32
+    EXPORT_CONTRACT_RC=0
+
+With this the measurement is complete: the six gate segments above, plus G6b,
+all green. As the paragraph above already says, no number in this artifact
+depended on G6b either way -- the check reads a generated CMake file and asserts
+the alignment the export advertises.
