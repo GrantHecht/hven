@@ -299,3 +299,16 @@ Four rules, all easy to get wrong:
    default, the control is the read's pin, and STEENBRC's factorization count
    differs between them because M1 moved it.
 4. **No wall-clock number here is a measurement.**
+
+---
+
+## 9. How this file itself landed, since a reader will check
+
+This README was written by the round that wrote the design page, after the
+measurements were complete. **Its first version is committed inside `7e0c6691`**
+— the retiring measurement implementer's commit closing the export-contract gate
+— because it was staged in the shared index when that commit was made, so it sits
+under a message that does not describe it. Nothing was rewritten to tidy that up.
+The later edits are `01d24747`, and `97b02ef9` removes a duplicated G6b record
+that the same shared-index confusion produced in `gates/gates.txt`, with its
+reason written into that file. The design page is `ebc882d9`.
