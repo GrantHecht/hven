@@ -324,10 +324,11 @@ TEST(RecoveryDispatchGate, ValidateAcceptsFilterWithWatchdog) {
 
 // Settings::validate()'s barrier_governor/never_monotone truth table (see the
 // guard's comment in ipm_solver.cpp): funnel/filter with barrier_governor=
-// classic_adaptive (the default) and never_monotone=false rejects; either
-// opt-in (barrier_governor=monitored, or never_monotone=true) accepts; the two
-// opt-ins together are a direct contradiction and reject; classic_merit/merit
-// are unaffected in every combination.
+// classic_adaptive (monitored is the default since M7 W2 D1, 2026-09-18) and
+// never_monotone=false rejects; either opt-in (barrier_governor=monitored, or
+// never_monotone=true) accepts; the two opt-ins together are a direct
+// contradiction and reject; classic_merit/merit are unaffected in every
+// combination.
 
 TEST(RecoveryDispatchGate, ValidateRejectsFunnelWithClassicAdaptiveGovernor) {
     IpmOptions settings;
