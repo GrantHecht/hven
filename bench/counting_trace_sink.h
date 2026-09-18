@@ -68,6 +68,16 @@ class CountingTraceSink final : public TraceSink {
         case QpModeSite::kSocResolve:
             ++soc_resolve;
             break;
+        // M7 W2 M1 added this site with SqpOptions::qp_cap_retry, which ships
+        // false, so nothing in this bench reaches it; the switch was left
+        // unhandled and -Wswitch has warned on every build since. Folded into
+        // the unnamed pool rather than given a counter of its own: unnamed_events()
+        // is what proves "attached and reached" for a site no named column
+        // reports, and promoting it to a column is the job of whichever task
+        // first measures the retry lever.
+        case QpModeSite::kCapRetry:
+            ++other_;
+            break;
         }
     }
 

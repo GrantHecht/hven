@@ -50,6 +50,7 @@
 class RecoveryDispatchGate_FunnelSelectionConstructsFunnelAcceptance_Test;
 class RecoveryDispatchGate_FilterSelectionConstructsFilterAcceptance_Test;
 class RecoveryDispatchGate_MonitoredSelectionConstructsMonitoredGovernor_Test;
+class RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test;
 class RecoveryDispatchGate_MeritPenaltyRuleSelectionReachesTheStrategy_Test;
 class FeasibilitySwitch_ProximalSwitchConstructsRestorationAndWrapsRecovery_Test;
 class FeasibilitySwitch_OffModeConstructsNoRestoration_Test;
@@ -883,6 +884,8 @@ class IpmSolver {
     friend class ::RecoveryDispatchGate_FunnelSelectionConstructsFunnelAcceptance_Test;
     friend class ::RecoveryDispatchGate_FilterSelectionConstructsFilterAcceptance_Test;
     friend class ::RecoveryDispatchGate_MonitoredSelectionConstructsMonitoredGovernor_Test;
+    friend class ::
+        RecoveryDispatchGate_ClassicAdaptiveSelectionConstructsClassicAdaptiveGovernor_Test;
     friend class ::RecoveryDispatchGate_MeritPenaltyRuleSelectionReachesTheStrategy_Test;
 
     IpmOptions opts_;

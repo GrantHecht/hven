@@ -153,6 +153,7 @@ using hven::solvers::FixedVariableTreatments;
 using hven::solvers::corpus::interior_base_variant;
 using hven::solvers::corpus::interior_csv_header;
 using hven::solvers::corpus::interior_exit_variants;
+using hven::solvers::corpus::interior_globalization_stamp;
 using hven::solvers::corpus::interior_treatment_from_tag;
 using hven::solvers::corpus::interior_treatment_tag;
 using hven::solvers::corpus::interior_treatments;
