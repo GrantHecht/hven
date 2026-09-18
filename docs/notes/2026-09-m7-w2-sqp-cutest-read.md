@@ -141,6 +141,13 @@ README's summary of them is not. It matters here twice: the SQP lane ran under a
 ceiling **five times tighter than the IPM lane's** and **thirty times tighter
 than IPOPT's**, and that ceiling is shared with the restoration phase — "the
 bounded quantity is `major_iters + restoration_iters`"
+
+> **2026-09-18, W2 D1.** `IpmOptions::max_iters`' default became **1000** that
+> day, in the declared IPM-default event
+> (`docs/notes/data/2026-09-m7-w2-d1-ipm-default/`). The 500 quoted above, and
+> the "five times tighter" it derives, are what this read measured and are left
+> as they were; against the shipped default today the SQP lane's 100 is **ten**
+> times tighter. Nothing else in this read moves: its rows are SQP-lane rows.
 (`include/hven/drivers/sqp_solver_types.h:250-253`).
 
 | cell | `n` / `m` | outcome | majors / minors / facts | mechanism | ipm · ipopt · snopt | what the contrast says |

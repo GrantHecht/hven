@@ -182,3 +182,18 @@ one of those three therefore cannot silently miss the trace.
   `kkt_analyses_this_call` is how much of that happened in the call being
   reported. Snapshots rather than accessors, so they describe the solve that
   produced them and cannot go stale behind a caller's back.
+
+## What the shipped IPM default makes live (M7 W2 D1, 2026-09-18)
+
+`IpmOptions`' defaults moved that day — `acceptance_strategy` `classic_merit`
+-> `filter`, `barrier_governor` `classic_adaptive` -> `monitored`, `max_iters`
+500 -> 1000 — as one declared re-derivation event
+(`docs/notes/data/2026-09-m7-w2-d1-ipm-default/`). Nothing in this page's
+contract changes; what changes is which of the interior-point engine's
+diagnostics a STOCK solve populates. `IpmResult::last_filter_size`,
+`::last_filter_resets`, `::last_monotone_switches` and `::last_monotone_iters`
+each carry a `-1` sentinel meaning "the selected strategy or governor is not the
+one that reports this", and on a default-configured solve all four used to sit
+at that sentinel. They no longer do. A consumer reading `-1` from one of them is
+now reading a deliberate non-default configuration, and one reading `-1` off a
+run recorded before 2026-09-18 is reading the old default.

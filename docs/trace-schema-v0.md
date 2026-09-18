@@ -373,7 +373,7 @@ counters without also filtering on `entered_rung_a`.
 | `mi` | integer | the solver's inequality rows |
 | `vars_free`, `vars_lower_only`, `vars_upper_only`, `vars_ranged`, `vars_fixed` | integer | the SAME five keys, same order, same arithmetic as `sqp.solve.begin` — one census, one spelling |
 | `phases` | integer | phase steps this entry point REQUESTED; a conditional step later skipped still counts |
-| `max_iters`, `max_acc_iters` | integer | the per-phase cap, and the ACCEPTABLE run length |
+| `max_iters`, `max_acc_iters` | integer | the per-phase cap, and the ACCEPTABLE run length. `max_iters`' library default became 1000 at M7 W2 D1 (2026-09-18, the declared IPM-default event); a trace recorded before that date and carrying no explicit cap was taken at 500 |
 | `kkt_tol`, `econ_tol`, `icon_tol`, `bar_tol`, `init_mu`, `obj_scale` | double | settings captured for this call |
 | `inertia_mode` | string `classic\|proximal_regularization` | |
 | `restoration_mode` | string `off\|proximal_switch\|l1_nested` | |

@@ -406,6 +406,17 @@ build directory and whether it was empty at configure; the effective compile fla
 from the build's own `compile_commands.json` rather than from the configuration**; and the
 binaries' checksums (`…/2026-09-m6-w6-attached-cost/PROVENANCE.txt:37-92`).
 
+**And the option fields the run's TRAJECTORY depends on, whether or not the leg set them**
+(M7 W2 D1, 2026-09-18). The list above names toolchain, hardware and flags and no solver
+option, and that gap has a cost: when the IPM default event moved
+`IpmOptions::acceptance_strategy` and `::barrier_governor`, not one committed artifact in
+the tree recorded which values it had been measured under — the dependence was recoverable
+only from the producing driver's source. A leg stamps the fields it SETS, as the interior
+leg always did for its caps and tolerances, and now also the ones it INHERITS from the
+library default, marked as inherited (`bench/ipm_corpus_leg.h`,
+`interior_globalization_stamp()`). An artifact that says "a row is reproducible from this
+file alone" has to mean it.
+
 **The harness.** `hven-bench` carries the same block plus its own sha and the hven sha it
 pins — "every artifact stamped (toolchain, hardware, date, hven sha + harness sha)"
 (`docs/notes/2026-09-m7-brief.md:60-64`). It "pins hven by `find_package(hven)` against an
