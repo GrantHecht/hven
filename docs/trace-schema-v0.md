@@ -607,11 +607,12 @@ order, which `static_assert`s hold equal to the struct's declaration order** (an
 aggregate-arity count plus an `offsetof`-monotone check, not a `sizeof`). The
 tables are therefore the authoritative field list and are not duplicated here.
 
-Shape: the 44 direct fields, then `"ssn": { 18 fields }`, then
+Shape: the 49 direct fields, then `"ssn": { 18 fields }`, then
 `"ipqp": { 39 fields }`. **The direct block was 37 until M6 W5 T8.5** appended
 `polish_ignored` (below), 38 until **M7 W2 M4** appended `start_point_clamps`
-(below) and 39 until **M7 W2 M1** appended the five-field subproblem-exit group
-(below); this section carried the 37 until W5 T9 fix2.
+(below), 39 until **M7 W2 M1** appended the five-field subproblem-exit group
+(below) and 44 until **M7 W2 M2** appended the five-field restoration excursion
+record (below); this section carried the 37 until W5 T9 fix2.
 
 `start_level_used` is an enum, written `cold\|seeded\|warm\|hot` — the schema's
 lower-snake alphabet, not core's PascalCase display spelling.
@@ -673,7 +674,7 @@ immediately above the emission, for the reason the line above it is. The two
 golden lines re-derived for it are `tests/sqp/test_trace_writer.cpp:3063` and
 `:3119`, marked "RE-DERIVED AT M7 W2 M4" at `:3041` and `:3097`.
 
-**THE NEWEST DIRECT COUNTERS (M7 W2 M1) — FIVE, APPENDED TOGETHER.**
+**THE DIRECT COUNTERS M7 W2 M1 APPENDED — FIVE, APPENDED TOGETHER.**
 
 | counter | type | source | meaning |
 |---|---|---|---|
@@ -690,6 +691,30 @@ nothing else moves. None carries a sentinel and none is in the `null` table
 above: every absence reading is simply 0. The two golden lines are re-derived
 ONCE for the five, not once per field, and both carry a "RE-DERIVED AT M7 W2 M1"
 note.
+
+**THE NEWEST DIRECT COUNTERS (M7 W2 M2) — FIVE, APPENDED TOGETHER, AND THE
+FIRST `double`s IN THE DIRECT BLOCK.**
+
+| counter | type | source | meaning |
+|---|---|---|---|
+| `restoration_entries` | integer | `SqpCounters::restoration_entries` | restoration phases that RAN and were MEASURED — the resume arm and the not-feasible-enough arm. NOT `restoration_iters`, which counts the sub-solve's majors: one entry of sixteen iterations reads `1` here and `16` there. The three refusals (nested, the once-per-solve cap, no budget) and the non-finite exit move nothing |
+| `restoration_h_in` | number | `SqpCounters::restoration_h_in` | the l1 constraint violation `sum \|c_e\| + sum max(0, c_i)` at the iterate that REQUESTED the last measured entry — not at the seed the phase may have started from |
+| `restoration_h_out` | number | `SqpCounters::restoration_h_out` | the same quantity at the point that entry RETURNED, and the exact value the resume test compares against `SqpOptions::feas_tol`. So `restoration_h_out <= feas_tol` iff that entry resumed |
+| `restoration_f_in` | number | `SqpCounters::restoration_f_in` | the objective at the requesting iterate. An ABSOLUTE, never a ratio: a ratio is undefined near `f_in = 0` and meaningless across a sign change |
+| `restoration_f_out` | number | `SqpCounters::restoration_f_out` | the objective at the returned point — with `restoration_f_in`, the excursion the phase made. On the resume arm it is the `f` the solve carries forward, so the next `sqp.major` line's `f` is this value |
+
+All five are **LAST in the table and last in the struct**, appended after
+`qp_cap_retries` for that group's own reason — so the counters object gains
+exactly five keys, between `qp_cap_retries` and the `ssn` object, and nothing
+else moves. **The four `double`s are written by the same `key_value(…, double,
+…)` overload the two nested blocks' doubles already use**, `{:.17g}` with the
+`"nan"`/`"inf"` spellings rule 3 defines, so the emitter is unchanged.
+
+None carries a sentinel and none is in the `null` table above: all five read `0`
+on a solve that never restored, and **the absence reading is
+`restoration_entries == 0`** rather than a value in the other four, which have
+legal `0.0` observations. The two golden lines are re-derived ONCE for the five,
+not once per field, and both carry a "RE-DERIVED AT M7 W2 M2" note.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 
@@ -797,7 +822,7 @@ non-additive is v1.
 | `qp.mode` | W4 T1 | T2 (the `walk` / `ssn` mode strings); **T5 (the trailing `site` key)**; **M7 W2 M1** (`site` gains the value `cap_retry` — a new ENUMERATOR on an existing key, not a new key: no line's SHAPE moves, and the two `qp.mode` golden lines are untouched because neither writes that value) |
 | `sqp.major` | **W4 T5** | added T2; T2 fix1 (the lower-snake enum spellings its `qp_status` / `verdict` keys share with `sqp.solve.end`); T3 (six activity fields, §6) |
 | `sqp.solve.begin` | **W4 T5** | added T2; T2 fix1 (the lower-snake enum spellings its `qp_mode` / `ws_algebra` keys carry) |
-| `sqp.solve.end` | **W4 T5** | added T2; **T2 fix1** (the lower-snake enum spellings, `StartLevel` `cold\|seeded\|warm\|hot` included, over core's PascalCase display form; and the three absence sentinels serializing as `null` — §5); T3 (four folds, through the counters tables); **T8.5** (`polish_ignored`, appended LAST in the counters object — §5); **T8.7** (the five trailing scaling fields — §4.2). The last two move the SAME TWO golden lines, `GoldenLineSqpSolveEndWithEveryCounterDistinct` and `GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull`; **M7 W2 M4** (`start_point_clamps`, appended LAST in the counters object — §5), which moves those same two golden lines and no other; **M7 W2 M1** (the five-field subproblem-exit group, appended LAST in the counters object — §5), which moves those same two golden lines ONCE, by five keys, and no other |
+| `sqp.solve.end` | **W4 T5** | added T2; **T2 fix1** (the lower-snake enum spellings, `StartLevel` `cold\|seeded\|warm\|hot` included, over core's PascalCase display form; and the three absence sentinels serializing as `null` — §5); T3 (four folds, through the counters tables); **T8.5** (`polish_ignored`, appended LAST in the counters object — §5); **T8.7** (the five trailing scaling fields — §4.2). The last two move the SAME TWO golden lines, `GoldenLineSqpSolveEndWithEveryCounterDistinct` and `GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull`; **M7 W2 M4** (`start_point_clamps`, appended LAST in the counters object — §5), which moves those same two golden lines and no other; **M7 W2 M1** (the five-field subproblem-exit group, appended LAST in the counters object — §5), which moves those same two golden lines ONCE, by five keys, and no other; **M7 W2 M2** (the five-field restoration excursion record, appended LAST in the counters object — §5), which moves those same two golden lines ONCE, by five keys, and no other |
 | `ipm.iter` | **W4 T5** | added T4; T4 fix1 (`p_pivots` and `h_facs` null sentinels) |
 | `ipm.solve.begin` | **W4 T5** | added T4; **T8.7** (eight trailing keys, appended in ONE step so the line moves once — §4.12; `GoldenLineIpmSolveBegin`) |
 | `ipm.solve.end` | **W4 T5** | added T4; **T8.4** (the `SolveStatus` vocabulary in place of `ConvergenceFlags`', §4.13) |

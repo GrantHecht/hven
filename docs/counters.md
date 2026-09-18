@@ -94,14 +94,18 @@ believe. This table says only what exists, where, and how many.
 | `QpCounters` | `core/solver_counters.h:30-200` | 20 | the walk (active-set) QP tier, `qp/` |
 | `SsnCounters` | `core/solver_counters.h:210-348` | 18 | the SSN QP tier, `qp/` |
 | `IpqpCounters` | `core/solver_counters.h:466-896` | 39 | the IPQP QP tier, `qp/` |
-| `SqpCounters` | `core/solver_counters.h:1048-1520` | 44 direct, plus the nested `ssn` and `ipqp` | the SQP driver, `drivers/` |
+| `SqpCounters` | `core/solver_counters.h:1048-1638` | 49 direct, plus the nested `ssn` and `ipqp` | the SQP driver, `drivers/` |
 | `SymmetricFactor::Counters` | `linear/symmetric_factor.h:646-682` | 5 | every sparse symmetric factor, `linear/` |
 
-121 fields across the four `core/` groups; `SqpCounters`' 44 do not include the
+126 fields across the four `core/` groups; `SqpCounters`' 49 do not include the
 two nested groups' 57, which it carries whole. (115 and 38 until M7 W2 M4, which
 appended `start_point_clamps`; 116 and 39 until M7 W2 M1, which appended the
 five-field subproblem-exit group -- `qp_maxiter_exits`, `qp_numerical_exits`,
-`qp_failures_routed`, `qp_failures_in_a_row_peak` and `qp_cap_retries`.)
+`qp_failures_routed`, `qp_failures_in_a_row_peak` and `qp_cap_retries`; 121 and
+44 until M7 W2 M2, which appended the five-field restoration excursion record --
+`restoration_entries`, `restoration_h_in`, `restoration_h_out`,
+`restoration_f_in` and `restoration_f_out`, the first `double`s the SQP driver's
+own direct block has ever carried.)
 
 THREE OF THESE ARE PINNED AGAINST A MACRO TABLE, not merely declared:
 `SsnCounters`, `IpqpCounters` and `SqpCounters` each carry an `X()` list used to
@@ -167,6 +171,40 @@ one of those three therefore cannot silently miss the trace.
   counter they are a subset of. A consumer summing "exits" against "routed"
   across a solve that restored will therefore find more exits than routings, and
   the difference is the sub-solve's own.
+
+  **THE RESTORATION EXCURSION RECORD IS A PER-ENTRY READING, OVERWRITTEN, AND
+  ITS ABSENCE IS READ OFF ITS OWN COUNT** (M7 W2 M2, the A0 signals page's S5).
+  `restoration_entries` counts the restoration phases that RAN and were
+  MEASURED -- the resume arm and the not-feasible-enough arm. The four
+  absolutes beside it, `restoration_h_in`/`_h_out`/`_f_in`/`_f_out`, describe
+  the LAST such entry and are overwritten by each one, on
+  `ipqp_rho_demanded_last`'s precedent: the entry violation of two phases does
+  not add up to anything. Four rules a consumer needs and cannot read off the
+  names:
+
+  * **The absence reading is `restoration_entries == 0`, not a sentinel in the
+    four.** They default to `0.0`, and `0.0` is a legal observed violation and a
+    legal observed objective, so the count is what says whether a reading
+    exists.
+  * **The `in` half is the REQUESTING iterate**, `x_k` -- not the seed the phase
+    may have started from (`SqpIterate::restoration_seed_used`). The excursion
+    being measured is the caller's iterate's.
+  * **They are the ENGINE's units** -- the caller's unless
+    `SqpOptions::enable_scaling` is on -- because `h_out` is the very number the
+    resume test compares against `feas_tol`, and a record with one half in each
+    space would report a scale factor as an excursion. `restoration_h_out <=
+    feas_tol` therefore says the entry RESUMED, and nothing else has to be read
+    to tell the two arms apart.
+  * **Absolutes, never ratios.** An objective ratio is undefined at `f_in` near
+    zero and meaningless across a sign change, and the TRAIN cells in
+    restoration's neighbourhood include negative objectives.
+
+  THE THREE REFUSALS AND THE NON-FINITE EXIT WRITE NOTHING. A nested
+  restoration, the once-per-solve cap and a spent budget never enter the phase;
+  the non-finite exit entered it and measured nothing, and the driver's rule
+  there is that nothing unmeasured may be reported as evidence. Nothing folds
+  from the restoration sub-solve either: nested restoration is refused, so its
+  own record is structurally empty.
 
   THE INTERIOR-POINT ENGINE HAS NO AGGREGATE COUNTER STRUCT. Its countable
   quantities are loose fields on `IpmResult`. The KKT-analysis count this

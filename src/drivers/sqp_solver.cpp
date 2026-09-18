@@ -4247,6 +4247,29 @@ void SqpSolver::solve_with_walk(SolveState &st, MajorState &mj, const SqpWarmSta
 // call sites: `row.restoration_seed_used` is set INSIDE and must be in the row
 // that is emitted.
 // ---------------------------------------------------------------------------
+
+namespace {
+
+// THE EXCURSION RECORD (M7 W2 M2, signal S5). Counters only: it is read by
+// nothing in the engine and changes no trajectory.
+//
+// ONE CALL PER MEASURED ENTRY, at each of the two arms that measured the
+// restored point on the caller's own model. The four absolutes are OVERWRITTEN
+// and the count is incremented, on `ipqp_rho_demanded_last`'s precedent -- see
+// SqpCounters for why the record is absolutes rather than ratios, which arm
+// each field describes, and why the refusals and the non-finite exit write
+// nothing here.
+void record_restoration_excursion(SqpCounters &c, double h_in, double h_out, double f_in,
+                                  double f_out) {
+    ++c.restoration_entries;
+    c.restoration_h_in = h_in;
+    c.restoration_h_out = h_out;
+    c.restoration_f_in = f_in;
+    c.restoration_f_out = f_out;
+}
+
+} // namespace
+
 SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, MajorState &mj,
                                                            AssemblyEvalSeam &seam,
                                                            NlpModelAssembly &bridge, Index iter,
@@ -4306,6 +4329,21 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // A no-op, and a copy elided, when the solve is unscaled.
     NlpEval resto_ev = st.ev;
     seam.to_caller_scale(resto_ev);
+    // THE EXCURSION RECORD'S ENTRY HALF (M7 W2 M2, signal S5), taken HERE --
+    // before the seed guard below can replace `resto_ev`, and off `st.ev`
+    // rather than off the mapped copy.
+    //
+    // OFF `st.ev`, i.e. in the ENGINE's units, because the record's other half
+    // is `h_r`/`ev_r.f` at the restored point, which are engine-unit too, and a
+    // record whose two halves were in different spaces would report an
+    // excursion that is partly a scale factor. The two coincide unless
+    // `enable_scaling` is on, and SqpCounters says which units the record is in.
+    //
+    // AT THE REQUESTING ITERATE, not at the seed the phase may start from: the
+    // excursion this record measures is the one the CALLER's iterate made. It
+    // costs one O(me + mi) pass and no model query.
+    const double excursion_h_in = constraint_violation_l1(st.ev);
+    const double excursion_f_in = st.ev.f;
     // THE START, ADOPTED ONLY ON MEASURED EVIDENCE (W2 T4): the phase starts
     // at an offered candidate iff h THERE is below h at the entry, both read
     // off the CALLER-scale bundles the wrapper is built from (header note).
@@ -4545,6 +4583,11 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     st.out.counters.qp_maxiter_exits += rs.counters.qp_maxiter_exits;
     st.out.counters.qp_numerical_exits += rs.counters.qp_numerical_exits;
     st.out.counters.qp_cap_retries += rs.counters.qp_cap_retries;
+    // THE EXCURSION RECORD DOES NOT FOLD AND CANNOT (M7 W2 M2): this sub-solve
+    // runs with `allow_restoration_` false, so its own `restoration_entries` is
+    // structurally 0 and its four absolutes are untouched defaults. Folding a
+    // guaranteed zero would only suggest it might not be one -- the
+    // full-step-mode counters' argument, a few lines below.
     st.out.counters.soc_steps += rs.counters.soc_steps;
     st.out.counters.soc_applied += rs.counters.soc_applied;
     st.out.counters.soc_qp_infeasible += rs.counters.soc_qp_infeasible;
@@ -4661,6 +4704,11 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     const double h_r = constraint_violation_l1(ev_r);
 
     if (h_r <= opts_.feas_tol) {
+        // THE EXCURSION RECORD, WRITTEN BEFORE THE MOVE BELOW takes `ev_r`
+        // apart (M7 W2 M2, signal S5). This is the RESUME arm, so `h_out` is
+        // inside `feas_tol` by the test above and `f_out` is the objective the
+        // solve now carries forward.
+        record_restoration_excursion(st.out.counters, excursion_h_in, h_r, excursion_f_in, ev_r.f);
         // RESUME. The order here is the header note's order.
         st.x = x_r;
         st.ev = std::move(ev_r);
@@ -4708,6 +4756,14 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // (four lines -- tests/sqp/test_sqp_restoration.cpp does exactly
     // that) rather than reading it off a bool bolted on
     // here.
+    //
+    // AND THE EXCURSION RECORD IS WRITTEN HERE TOO (M7 W2 M2, signal S5), on
+    // the same terms as the resume arm's: this is the phase's other MEASURED
+    // outcome, `h_out` is above `feas_tol` by the test above, and `f_out` is
+    // the objective of the point this exit reports. Written before the switch
+    // below, which decides only how the exit is SPELLED and not what was
+    // measured.
+    record_restoration_excursion(st.out.counters, excursion_h_in, h_r, excursion_f_in, ev_r.f);
     st.x = x_r;
     // The point being reported is now the RESTORED point, which
     // no in-loop QpSolution (qs/seed) was ever solved at -- see

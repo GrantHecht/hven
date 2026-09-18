@@ -1974,7 +1974,7 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     EXPECT_EQ(std::bit_cast<std::uint64_t>(a.field), std::bit_cast<std::uint64_t>(b.field))        \
         << #field
 
-// The 38 fields of SqpCounters, in declaration order.
+// The 49 direct fields of SqpCounters, in declaration order.
 #define HVEN_T2_SQP_COUNTER_FIELDS(X)                                                              \
     X(major_iters)                                                                                 \
     X(qp_minor_iters)                                                                              \
@@ -2019,7 +2019,12 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     X(qp_numerical_exits)                                                                          \
     X(qp_failures_routed)                                                                          \
     X(qp_failures_in_a_row_peak)                                                                   \
-    X(qp_cap_retries)
+    X(qp_cap_retries)                                                                              \
+    X(restoration_entries)                                                                         \
+    X(restoration_h_in)                                                                            \
+    X(restoration_h_out)                                                                           \
+    X(restoration_f_in)                                                                            \
+    X(restoration_f_out)
 
 // The 18 fields of SsnCounters and the 39 of IpqpCounters, the two nested
 // groups SqpCounters carries.
@@ -2090,8 +2095,10 @@ void expect_same_counters(const hven::solvers::SqpCounters &a,
     // list above must grow with it.
 #if defined(__linux__) && defined(__x86_64__)
     // 760 -> 768 at M7 W2 M4, which appended `start_point_clamps`; 768 -> 808
-    // at M7 W2 M1, which appended the five-field subproblem-exit group.
-    static_assert(sizeof(hven::solvers::SqpCounters) == 808,
+    // at M7 W2 M1, which appended the five-field subproblem-exit group; 808 ->
+    // 848 at M7 W2 M2, which appended the five-field restoration excursion
+    // record (one Index and four doubles, 8 bytes each).
+    static_assert(sizeof(hven::solvers::SqpCounters) == 848,
                   "SqpCounters gained or lost a field -- extend "
                   "HVEN_T2_SQP_COUNTER_FIELDS so the mask comparison still "
                   "covers every counter");

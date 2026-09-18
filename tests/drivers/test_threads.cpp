@@ -446,12 +446,14 @@ void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b
     HVEN_EXPECT_SAME(a, b, ipqp_read_barrier_noise_sides);
 }
 
-// EVERY field of SqpCounters -- all 46, the two nested blocks through the
+// EVERY field of SqpCounters -- all 51, the two nested blocks through the
 // helpers above. (40 and 38 direct until M7 W2 M4 appended
 // `start_point_clamps`; 41 and 39 until M7 W2 M1 appended the five-field
-// subproblem-exit group.)
+// subproblem-exit group; 46 and 44 until M7 W2 M2 appended the five-field
+// restoration excursion record, whose four doubles are 8 bytes apiece like
+// every Index before them, so the arithmetic below is unchanged in form.)
 void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
-    static_assert(sizeof(SqpCounters) == 44 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
+    static_assert(sizeof(SqpCounters) == 49 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
                   "SqpCounters changed size: add the new field to expect_counters_identical "
                   "and update this assertion.");
     HVEN_EXPECT_SAME(a, b, major_iters);
@@ -498,6 +500,11 @@ void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     HVEN_EXPECT_SAME(a, b, qp_failures_routed);
     HVEN_EXPECT_SAME(a, b, qp_failures_in_a_row_peak);
     HVEN_EXPECT_SAME(a, b, qp_cap_retries);
+    HVEN_EXPECT_SAME(a, b, restoration_entries);
+    HVEN_EXPECT_BITS(a, b, restoration_h_in);
+    HVEN_EXPECT_BITS(a, b, restoration_h_out);
+    HVEN_EXPECT_BITS(a, b, restoration_f_in);
+    HVEN_EXPECT_BITS(a, b, restoration_f_out);
     expect_ssn_counters_identical(a.ssn, b.ssn);
     expect_ipqp_counters_identical(a.ipqp, b.ipqp);
 }

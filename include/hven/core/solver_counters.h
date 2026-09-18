@@ -1531,6 +1531,110 @@ struct SqpCounters {
     /// FOLDED from the restoration sub-solve, on `qp_maxiter_exits`' argument:
     /// the sub-solve inherits the toggle and its retries are real work.
     Index qp_cap_retries = 0;
+
+    /// @brief Restoration phases that RAN and were measured -- the entries the
+    ///        four excursion fields below describe (M7 W2 M2, signal S5).
+    ///
+    /// One per `enter_restoration` call that ran the feasibility sub-solve AND
+    /// could measure its returned point on the caller's own model: the RESUME
+    /// arm and the not-feasible-enough arm, which are the two the four fields
+    /// below are written at. The three REFUSALS never enter the phase at all (a
+    /// nested restoration, the once-per-solve cap, and no budget left to
+    /// restore with), and the NON-FINITE exit -- where the restored point or
+    /// its KKT measurement is not finite -- ran the phase but measured nothing,
+    /// so it moves neither this count nor the four fields, on the driver's own
+    /// rule at that exit: nothing was measured, so nothing may be reported as
+    /// evidence.
+    ///
+    /// NOT `restoration_iters`, which counts the sub-solve's MAJORS. One entry
+    /// of sixteen iterations reports `restoration_entries == 1` and
+    /// `restoration_iters == 16`, and the ratio of the two is the only way to
+    /// read how many phases a `restoration_iters` of 16 was spread over.
+    ///
+    /// NOT FOLDED from the restoration sub-solve: a nested restoration is
+    /// refused, so a sub-solve's own count is structurally 0 and folding it
+    /// would add nothing to anything.
+    ///
+    /// AND IT IS THE ABSENCE READING FOR THE FOUR FIELDS BELOW. They default to
+    /// `0.0`, which is a legal observed value for three of them (a violation of
+    /// exactly 0, an objective of exactly 0), so a reader asks this field, not
+    /// them, whether a reading exists: `restoration_entries == 0` means the
+    /// four hold none.
+    Index restoration_entries = 0;
+
+    /// @brief The l1 constraint violation at the iterate that REQUESTED the
+    ///        last restoration entry (M7 W2 M2, signal S5).
+    ///
+    /// `h_in` of the excursion record. The quantity is the globalization's own
+    /// h -- `sum |c_e| + sum max(0, c_i)`, `sqp_solver.h`'s
+    /// `constraint_violation_l1` -- read at `x_k`, the point the request was
+    /// raised at, BEFORE anything of the phase has run.
+    ///
+    /// OVERWRITTEN per entry rather than summed or folded, on
+    /// `ipqp_rho_demanded_last`'s own precedent: it is a per-solve categorical
+    /// reading, and summing several phases' entry violations would report a
+    /// quantity with no meaning. A solve with `restoration_entries == 2`
+    /// therefore describes its SECOND phase here and says so through that
+    /// count; the per-entry series is the registered `sqp.restoration` trace
+    /// event's, not this field's.
+    ///
+    /// NOT the point the phase STARTED from, which may be a seed candidate the
+    /// entry guard preferred (`SqpIterate::restoration_seed_used`). The
+    /// excursion this record measures is the one the CALLER's iterate made, so
+    /// both `in` fields are read at the requesting iterate whether or not a
+    /// seed was taken.
+    ///
+    /// IN THE ENGINE'S OWN UNITS, which are the caller's unless
+    /// `SqpOptions::enable_scaling` is on -- the units the resume test
+    /// `h_out <= SqpOptions::feas_tol` is taken in, so that the record is
+    /// stated in the units of the decision it describes.
+    ///
+    /// NOT FOLDED from the restoration sub-solve, for `restoration_entries`'
+    /// reason.
+    double restoration_h_in = 0.0;
+
+    /// @brief The l1 constraint violation at the point the last restoration
+    ///        entry RETURNED (M7 W2 M2, signal S5).
+    ///
+    /// `h_out` of the record: the same quantity as `restoration_h_in`, at the
+    /// restored point, and the exact value the resume test compares against
+    /// `SqpOptions::feas_tol`. So `restoration_h_out <= feas_tol` iff that
+    /// entry took the RESUME arm, and a reader can tell the two arms apart
+    /// without a second field.
+    ///
+    /// Same overwrite rule, same units, same non-fold as `restoration_h_in`.
+    double restoration_h_out = 0.0;
+
+    /// @brief The objective at the iterate that REQUESTED the last restoration
+    ///        entry (M7 W2 M2, signal S5).
+    ///
+    /// `f_in` of the record, read at `x_k` beside `restoration_h_in`.
+    ///
+    /// AN ABSOLUTE, NOT A RATIO, and deliberately: an objective ratio is
+    /// undefined at `f_in` near 0 and meaningless across a sign change, and the
+    /// objectives this record is aimed at include negative ones. A consumer
+    /// that wants a ratio forms it and owns its domain; this field reports what
+    /// was observed.
+    ///
+    /// Same overwrite rule, same units, same non-fold as `restoration_h_in`.
+    double restoration_f_in = 0.0;
+
+    /// @brief The objective at the point the last restoration entry RETURNED
+    ///        (M7 W2 M2, signal S5).
+    ///
+    /// `f_out` of the record. With `restoration_f_in` it is the EXCURSION the
+    /// A-SQP read's section M2 measured and could not see from the currency: a
+    /// restoration that buys feasibility at eleven orders of objective reports
+    /// it here, on a phase that produces no history row by contract
+    /// (`SqpIterate`'s note).
+    ///
+    /// ON THE RESUME ARM this is the `f` the solve carries forward -- the
+    /// restored point becomes the iterate -- so the next history row's `f` is
+    /// this value. On the other arm it is the `f` of the point the result
+    /// reports.
+    ///
+    /// Same overwrite rule, same units, same non-fold as `restoration_h_in`.
+    double restoration_f_out = 0.0;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -1577,7 +1681,12 @@ struct SqpCounters {
     X(qp_numerical_exits, counter_never_absent)                                                    \
     X(qp_failures_routed, counter_never_absent)                                                    \
     X(qp_failures_in_a_row_peak, counter_never_absent)                                             \
-    X(qp_cap_retries, counter_never_absent)
+    X(qp_cap_retries, counter_never_absent)                                                        \
+    X(restoration_entries, counter_never_absent)                                                   \
+    X(restoration_h_in, counter_never_absent)                                                      \
+    X(restoration_h_out, counter_never_absent)                                                     \
+    X(restoration_f_in, counter_never_absent)                                                      \
+    X(restoration_f_out, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =
@@ -1586,13 +1695,17 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 
 // PLUS TWO: `ssn` and `ipqp` are nested aggregates, each counted as ONE
 // initializer by the arity trick and serialized through its own table above, so
-// the table holds the 44 direct fields and the struct takes 46 initializers.
+// the table holds the 49 direct fields and the struct takes 51 initializers.
 // (37 -> 38 at M6 W5 T8.5, which appended `polish_ignored` after both nested
 // aggregates -- last in declaration order, so the table order below is still
 // the struct's and every pre-existing offset is unmoved. 38 -> 39 at M7 W2 M4,
 // which appended `start_point_clamps` the same way and for the same reason.
 // 39 -> 44 at M7 W2 M1, which appended the five-field subproblem-exit group the
-// same way and for the same reason.)
+// same way and for the same reason. 44 -> 49 at M7 W2 M2, which appended the
+// five-field restoration excursion record the same way and for the same reason
+// -- and which is where the table first carries `double` entries outside the
+// two nested aggregates; they are 8-byte members like every `Index` above them,
+// so the offsets stay monotone and the check below is unchanged.)
 static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
               "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "

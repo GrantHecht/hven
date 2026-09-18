@@ -1881,4 +1881,138 @@ TEST(SqpDriverRestorationSeed, TheSeedsEvaluationIsCountedExactlyOnce) {
     EXPECT_GT(model.n_jac_e, 0);
 }
 
+// =========================================================================
+// THE RESTORATION EXCURSION RECORD (M7 W2 M2, the A0 signals page's S5).
+// =========================================================================
+//
+// FIVE COUNTERS AND NO BEHAVIOUR: `restoration_entries` plus the four
+// absolutes `(h_in, h_out, f_in, f_out)` of the LAST measured entry. The
+// A-SQP read's section M2 measured a restoration that bought feasibility at
+// eleven orders of objective and showed that NO counter said so -- the phase
+// produces no history row by contract, and `restoration_iters` is a count.
+// These four are that reading, and the tests below pin them AGAINST EVIDENCE
+// THE RECORD DOES NOT PRODUCE: the requesting row's own `violation_l1` and
+// `f`, the value the funnel is re-based on, the row at the restored point, and
+// a certificate's independently recomputed h. A record that agreed only with
+// itself would pin nothing.
+
+TEST(SqpDriverRestorationExcursion, TheResumeArmRecordsTheCallersOwnExcursion) {
+    StalledValleyModel model;
+    SqpOptions opts;
+    opts.tr_init = 8.0; // SqpDriverRestoration.RestorationRecoversAndResumes' options
+    opts.max_iter = 60;
+    FunnelLog log;
+    record_funnel_into(opts, &log);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
+
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
+    ASSERT_EQ(log.resumes.size(), 1u) << "fixture premise: exactly one RESUME";
+    EXPECT_EQ(sol.counters.restoration_entries, 1)
+        << "one phase ran and was measured, whatever its iteration count";
+    EXPECT_GT(sol.counters.restoration_iters, 0);
+
+    // THE ENTRY HALF IS THE REQUESTING ITERATE'S OWN MEASUREMENT. Row 4 is the
+    // row that carries the kRestore verdict (the sibling test pins that), and
+    // its `violation_l1` and `f` are computed by the driver from the SAME
+    // bundle this record reads -- so the agreement is exact, not approximate,
+    // and a record taken at the wrong point (the seed, or the restored point)
+    // would break it.
+    ASSERT_GE(sol.history.size(), 6u);
+    ASSERT_EQ(sol.history[4].verdict, StepVerdict::kRestore);
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_h_in, sol.history[4].violation_l1);
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_f_in, sol.history[4].f);
+    EXPECT_GT(sol.counters.restoration_h_in, opts.feas_tol)
+        << "the phase was entered at an INFEASIBLE point -- that is what h_in is for";
+
+    // THE EXIT HALF IS THE NUMBER THE RESUME DECISION WAS MADE ON. `h_out` is
+    // the `h_r` the test `h_r <= feas_tol` read and the value the funnel was
+    // re-based with, so the record and the decision cannot disagree.
+    EXPECT_LE(sol.counters.restoration_h_out, opts.feas_tol);
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_h_out, log.resumes[0]);
+    // And `f_out` is the objective the solve CARRIES FORWARD: the restored
+    // point becomes the iterate, so the first row after the resume reports it.
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_f_out, sol.history[5].f);
+    // THE EXCURSION THIS FIXTURE MADE, recorded rather than asserted as a
+    // bound: it is a recovery, and a benign one.
+    ::testing::Test::RecordProperty(
+        "excursion", fmt::format("entries={} h {:.10g} -> {:.10g}  f {:.10g} -> {:.10g}",
+                                 sol.counters.restoration_entries, sol.counters.restoration_h_in,
+                                 sol.counters.restoration_h_out, sol.counters.restoration_f_in,
+                                 sol.counters.restoration_f_out));
+}
+
+TEST(SqpDriverRestorationExcursion, TheTerminalArmRecordsThePointItReports) {
+    InfeasibleCircleLineModel model;
+    SqpOptions opts;
+    opts.max_iter = 200;
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
+
+    ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
+    ASSERT_TRUE(sol.infeasibility_certified) << "fixture premise: the CERTIFIED terminal arm";
+    EXPECT_EQ(sol.counters.restoration_entries, 1);
+
+    // h_out ABOVE feas_tol is what says this entry took the other arm -- no
+    // second field is needed to tell the two apart.
+    EXPECT_GT(sol.counters.restoration_h_out, opts.feas_tol);
+    // AND IT IS THE h AT THE POINT THE RESULT REPORTS, recomputed from the
+    // model by the certificate helper and not by the engine.
+    const SubgradientCertificate c = check_certificate(model, sol, opts.feas_tol);
+    EXPECT_NEAR(sol.counters.restoration_h_out, c.h, 1e-12);
+    // `f_out` is the objective of that same reported point -- on this arm the
+    // result's own `f` (the solve is unscaled, so no map stands between them).
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_f_out, sol.f);
+    // The entry half is the requesting row's, which on a terminal exit is the
+    // LAST row: the phase pushes none of its own.
+    ASSERT_FALSE(sol.history.empty());
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_h_in, sol.history.back().violation_l1);
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_f_in, sol.history.back().f);
+}
+
+TEST(SqpDriverRestorationExcursion, ARefusedSecondRequestLeavesTheFirstEntrysRecord) {
+    RunawayValleyModel model;
+    SqpOptions opts;
+    opts.tr_init = 8.0; // SqpDriverRestoration.SecondRequestIsCappedAndReported' options
+    opts.max_iter = 60;
+    FunnelLog log;
+    record_funnel_into(opts, &log);
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
+
+    ASSERT_EQ(sol.status, SolveStatus::kInfeasible);
+    ASSERT_EQ(log.resumes.size(), 1u) << "fixture premise: one serviced request, one refused";
+    // THE CAP EXIT RAN NO PHASE AND MEASURED NOTHING, so it moves neither the
+    // count nor the four absolutes: this solve requested restoration TWICE and
+    // reports ONE entry.
+    EXPECT_EQ(sol.counters.restoration_entries, 1);
+    // And the record is still the SERVICED entry's -- which resumed, so its
+    // h_out is inside feas_tol even though the solve ends kInfeasible. A
+    // reader that inferred the exit from the record alone would be wrong, and
+    // that is the point of `infeasibility_certified` being the field that says
+    // which exit this is.
+    EXPECT_LE(sol.counters.restoration_h_out, opts.feas_tol);
+    EXPECT_DOUBLE_EQ(sol.counters.restoration_h_out, log.resumes[0]);
+    EXPECT_FALSE(sol.infeasibility_certified);
+}
+
+TEST(SqpDriverRestorationExcursion, ACleanSolveHoldsNoReading) {
+    const HsProblem p = make_hs(1);
+    SqpOptions opts;
+    opts.max_iter = 60;
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(*p.model);
+
+    ASSERT_EQ(sol.status, SolveStatus::kOptimal);
+    ASSERT_EQ(sol.counters.restoration_iters, 0) << "fixture premise: the phase never ran";
+    // THE ABSENCE READING IS THE COUNT, and the four absolutes hold their
+    // defaults -- which is why the count and not a sentinel is what a consumer
+    // asks: 0.0 is a legal observed violation and a legal observed objective.
+    EXPECT_EQ(sol.counters.restoration_entries, 0);
+    EXPECT_EQ(sol.counters.restoration_h_in, 0.0);
+    EXPECT_EQ(sol.counters.restoration_h_out, 0.0);
+    EXPECT_EQ(sol.counters.restoration_f_in, 0.0);
+    EXPECT_EQ(sol.counters.restoration_f_out, 0.0);
+}
+
 HVEN_SUPPRESS_DEPRECATED_END
