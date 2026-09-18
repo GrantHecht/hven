@@ -1,0 +1,216 @@
+FOREGROUND_START legs-d1c 2026-09-18T08:58:55-04:00
+=== HEAD 806ca757  dirty-files=0 ===
+corpus binary sha256: d2984f285bf971b71ccc9e30de4de422c97bbf18a9f327cc6e99460d16b27db0
+libhven.a    sha256: a2840d3a5eaff83cc1a4a23beecce2661edba7a466cc98324e9b3540fc5d92a1
+
+=== (1) INTERIOR LEG under the PRE-EVENT DEFAULT PIN (twice, for determinism) ===
+pinned capture 1 rc=0  rows=86
+pinned capture 2 rc=0  rows=86
+--- the pinned stamp line the leg wrote ---
+# levers: acceptance_strategy=classic_merit barrier_governor=classic_adaptive (LIBRARY DEFAULTS, not set by this leg) pre_d1_default_pin=on
+
+=== (2) INTERIOR LEG at the SHIPPED DEFAULT (twice, for determinism) ===
+shipped capture 1 rc=0  rows=86
+shipped capture 2 rc=0  rows=86
+--- the shipped stamp line the leg wrote ---
+# levers: acceptance_strategy=filter barrier_governor=monitored (LIBRARY DEFAULTS, not set by this leg) pre_d1_default_pin=off
+
+=== THE OFF PROOF: pinned capture vs the COMMITTED baseline ===
+=== COMMITTED interior baseline vs W2 D1 PRE-EVENT-PINNED capture 1 === cells compared: 43  columns compared: 30  differences: 0  UNMATCHED CELLS: ['f7_n10000_path_neutral/MakeConstraint', 'f7_n10000_path_neutral/MakeParameter', 'f7_n10000_path_neutral/RelaxBounds', 'f7_n10000_path_physics/MakeConstraint', 'f7_n10000_path_physics/MakeParameter', 'f7_n10000_path_physics/RelaxBounds', 'f7_n1000_path_neutral/MakeConstraint', 'f7_n1000_path_neutral/MakeParameter', 'f7_n1000_path_neutral/RelaxBounds', 'f7_n1000_path_physics/MakeConstraint', 'f7_n1000_path_physics/MakeParameter', 'f7_n1000_path_physics/RelaxBounds', 'f7_n20000_path_neutral/MakeConstraint', 'f7_n20000_path_neutral/MakeParameter', 'f7_n20000_path_neutral/RelaxBounds', 'f7_n20000_path_physics/MakeConstraint', 'f7_n20000_path_physics/MakeParameter', 'f7_n20000_path_physics/RelaxBounds', 'f7_n2000_path_neutral/MakeConstraint', 'f7_n2000_path_neutral/MakeParameter', 'f7_n2000_path_neutral/RelaxBounds', 'f7_n2000_path_physics/MakeConstraint', 'f7_n2000_path_physics/MakeParameter', 'f7_n2000_path_physics/RelaxBounds', 'f7_n5000_path_neutral/MakeConstraint', 'f7_n5000_path_neutral/MakeParameter', 'f7_n5000_path_neutral/RelaxBounds', 'f7_n5000_path_physics/MakeConstraint', 'f7_n5000_path_physics/MakeParameter', 'f7_n5000_path_physics/RelaxBounds', 'f7_n750_path_neutral_control/MakeConstraint', 'f7_n750_path_neutral_control/MakeParameter', 'f7_n750_path_neutral_control/RelaxBounds', 'f7_n800_path_neutral/MakeConstraint', 'f7_n800_path_neutral/MakeParameter', 'f7_n800_path_neutral/RelaxBounds', 'f7_n800_path_physics/MakeConstraint', 'f7_n800_path_physics/MakeParameter', 'f7_n800_path_physics/RelaxBounds', 'f7_n825_path_neutral_control/MakeConstraint', 'f7_n825_path_neutral_control/MakeParameter', 'f7_n825_path_neutral_control/RelaxBounds']
+  CMP_RC=1
+=== COMMITTED interior baseline vs W2 D1 PRE-EVENT-PINNED capture 2 === cells compared: 43  columns compared: 30  differences: 0  UNMATCHED CELLS: ['f7_n10000_path_neutral/MakeConstraint', 'f7_n10000_path_neutral/MakeParameter', 'f7_n10000_path_neutral/RelaxBounds', 'f7_n10000_path_physics/MakeConstraint', 'f7_n10000_path_physics/MakeParameter', 'f7_n10000_path_physics/RelaxBounds', 'f7_n1000_path_neutral/MakeConstraint', 'f7_n1000_path_neutral/MakeParameter', 'f7_n1000_path_neutral/RelaxBounds', 'f7_n1000_path_physics/MakeConstraint', 'f7_n1000_path_physics/MakeParameter', 'f7_n1000_path_physics/RelaxBounds', 'f7_n20000_path_neutral/MakeConstraint', 'f7_n20000_path_neutral/MakeParameter', 'f7_n20000_path_neutral/RelaxBounds', 'f7_n20000_path_physics/MakeConstraint', 'f7_n20000_path_physics/MakeParameter', 'f7_n20000_path_physics/RelaxBounds', 'f7_n2000_path_neutral/MakeConstraint', 'f7_n2000_path_neutral/MakeParameter', 'f7_n2000_path_neutral/RelaxBounds', 'f7_n2000_path_physics/MakeConstraint', 'f7_n2000_path_physics/MakeParameter', 'f7_n2000_path_physics/RelaxBounds', 'f7_n5000_path_neutral/MakeConstraint', 'f7_n5000_path_neutral/MakeParameter', 'f7_n5000_path_neutral/RelaxBounds', 'f7_n5000_path_physics/MakeConstraint', 'f7_n5000_path_physics/MakeParameter', 'f7_n5000_path_physics/RelaxBounds', 'f7_n750_path_neutral_control/MakeConstraint', 'f7_n750_path_neutral_control/MakeParameter', 'f7_n750_path_neutral_control/RelaxBounds', 'f7_n800_path_neutral/MakeConstraint', 'f7_n800_path_neutral/MakeParameter', 'f7_n800_path_neutral/RelaxBounds', 'f7_n800_path_physics/MakeConstraint', 'f7_n800_path_physics/MakeParameter', 'f7_n800_path_physics/RelaxBounds', 'f7_n825_path_neutral_control/MakeConstraint', 'f7_n825_path_neutral_control/MakeParameter', 'f7_n825_path_neutral_control/RelaxBounds']
+  CMP_RC=1
+--- byte claim outside wall_s (columns 1-30 of 31) ---
+pinned capture 1: BYTE DIFFERENCE outside wall_s
+7a8,13
+> f7_n1000_path_neutral/MakeParameter,F7,1000,path,neutral,optimal,15,-1.018524269e+00,2.309232159e-12,4.376688537e-12,1.072365412e-16,0.000000000e+00,15,15,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:15,5000,3000,1000,5000,2.309232159e-12,1.072365412e-16,0.000000000e+00,4.376688537e-12
+> f7_n1000_path_neutral/MakeConstraint,F7,1000,path,neutral,optimal,15,-1.018524269e+00,2.309232159e-12,4.376688537e-12,1.072365412e-16,0.000000000e+00,15,15,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:15,5000,3000,1000,5000,2.309232159e-12,1.072365412e-16,0.000000000e+00,4.376688537e-12
+> f7_n1000_path_neutral/RelaxBounds,F7,1000,path,neutral,optimal,15,-1.018524269e+00,2.309232159e-12,4.376688537e-12,1.072365412e-16,0.000000000e+00,15,15,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:15,5000,3000,1000,5000,2.309232159e-12,1.072365412e-16,0.000000000e+00,4.376688537e-12
+> f7_n1000_path_physics/MakeParameter,F7,1000,path,physics,optimal,18,-1.018524269e+00,1.378153977e-12,2.950784419e-12,1.063475853e-16,0.000000000e+00,18,18,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:18,5000,3000,1000,5000,1.378153977e-12,1.063475853e-16,0.000000000e+00,2.950784419e-12
+> f7_n1000_path_physics/MakeConstraint,F7,1000,path,physics,optimal,18,-1.018524269e+00,1.378153977e-12,2.950784419e-12,1.063475853e-16,0.000000000e+00,18,18,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:18,5000,3000,1000,5000,1.378153977e-12,1.063475853e-16,0.000000000e+00,2.950784419e-12
+> f7_n1000_path_physics/RelaxBounds,F7,1000,path,physics,optimal,18,-1.018524269e+00,1.378153977e-12,2.950784419e-12,1.063475853e-16,0.000000000e+00,18,18,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:18,5000,3000,1000,5000,1.378153977e-12,1.063475853e-16,0.000000000e+00,2.950784419e-12
+13a20,25
+> f7_n2000_path_neutral/MakeParameter,F7,2000,path,neutral,optimal,16,-1.017535863e+00,7.511728403e-13,2.098177509e-12,2.057433933e-16,0.000000000e+00,16,16,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:16,10000,6000,2000,10000,7.511728403e-13,2.057433933e-16,0.000000000e+00,2.098177509e-12
+> f7_n2000_path_neutral/MakeConstraint,F7,2000,path,neutral,optimal,16,-1.017535863e+00,7.511728403e-13,2.098177509e-12,2.057433933e-16,0.000000000e+00,16,16,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:16,10000,6000,2000,10000,7.511728403e-13,2.057433933e-16,0.000000000e+00,2.098177509e-12
+> f7_n2000_path_neutral/RelaxBounds,F7,2000,path,neutral,optimal,16,-1.017535863e+00,7.511728403e-13,2.098177509e-12,2.057433933e-16,0.000000000e+00,16,16,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:16,10000,6000,2000,10000,7.511728403e-13,2.057433933e-16,0.000000000e+00,2.098177509e-12
+> f7_n2000_path_physics/MakeParameter,F7,2000,path,physics,optimal,21,-1.017535863e+00,2.766502625e-12,4.918013682e-12,1.080522433e-16,0.000000000e+00,21,21,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:21,10000,6000,2000,10000,2.766502625e-12,1.080522433e-16,0.000000000e+00,4.918013682e-12
+> f7_n2000_path_physics/MakeConstraint,F7,2000,path,physics,optimal,21,-1.017535863e+00,2.766502625e-12,4.918013682e-12,1.080522433e-16,0.000000000e+00,21,21,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:21,10000,6000,2000,10000,2.766502625e-12,1.080522433e-16,0.000000000e+00,4.918013682e-12
+> f7_n2000_path_physics/RelaxBounds,F7,2000,path,physics,optimal,21,-1.017535863e+00,2.766502625e-12,4.918013682e-12,1.080522433e-16,0.000000000e+00,21,21,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:21,10000,6000,2000,10000,2.766502625e-12,1.080522433e-16,0.000000000e+00,4.918013682e-12
+19a32,37
+> f7_n5000_path_neutral/MakeParameter,F7,5000,path,neutral,optimal,17,-1.016943441e+00,1.056472702e-12,2.496300480e-12,1.106668824e-16,0.000000000e+00,17,17,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:17,25000,15000,5000,25000,1.056472702e-12,1.106668824e-16,0.000000000e+00,2.496300480e-12
+> f7_n5000_path_neutral/MakeConstraint,F7,5000,path,neutral,optimal,17,-1.016943441e+00,1.056472702e-12,2.496300480e-12,1.106668824e-16,0.000000000e+00,17,17,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:17,25000,15000,5000,25000,1.056472702e-12,1.106668824e-16,0.000000000e+00,2.496300480e-12
+> f7_n5000_path_neutral/RelaxBounds,F7,5000,path,neutral,optimal,17,-1.016943441e+00,1.056472702e-12,2.496300480e-12,1.106668824e-16,0.000000000e+00,17,17,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:17,25000,15000,5000,25000,1.056472702e-12,1.106668824e-16,0.000000000e+00,2.496300480e-12
+> f7_n5000_path_physics/MakeParameter,F7,5000,path,physics,optimal,18,-1.016943441e+00,1.947135901e-12,3.757597381e-12,1.310381349e-16,0.000000000e+00,18,18,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:18,25000,15000,5000,25000,1.947135901e-12,1.310381349e-16,0.000000000e+00,3.757597381e-12
+> f7_n5000_path_physics/MakeConstraint,F7,5000,path,physics,optimal,18,-1.016943441e+00,1.947135901e-12,3.757597381e-12,1.310381349e-16,0.000000000e+00,18,18,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:18,25000,15000,5000,25000,1.947135901e-12,1.310381349e-16,0.000000000e+00,3.757597381e-12
+> f7_n5000_path_physics/RelaxBounds,F7,5000,path,physics,optimal,18,-1.016943441e+00,1.947135901e-12,3.757597381e-12,1.310381349e-16,0.000000000e+00,18,18,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:18,25000,15000,5000,25000,1.947135901e-12,1.310381349e-16,0.000000000e+00,3.757597381e-12
+25a44,49
+> f7_n10000_path_neutral/MakeParameter,F7,10000,path,neutral,optimal,16,-1.016746067e+00,3.678302561e-12,6.211739325e-12,3.628990435e-16,0.000000000e+00,16,16,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:16,50000,30000,10000,50000,3.678302561e-12,3.628990435e-16,0.000000000e+00,6.211739325e-12
+> f7_n10000_path_neutral/MakeConstraint,F7,10000,path,neutral,optimal,16,-1.016746067e+00,3.678302561e-12,6.211739325e-12,3.628990435e-16,0.000000000e+00,16,16,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:16,50000,30000,10000,50000,3.678302561e-12,3.628990435e-16,0.000000000e+00,6.211739325e-12
+> f7_n10000_path_neutral/RelaxBounds,F7,10000,path,neutral,optimal,16,-1.016746067e+00,3.678302561e-12,6.211739325e-12,3.628990435e-16,0.000000000e+00,16,16,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:16,50000,30000,10000,50000,3.678302561e-12,3.628990435e-16,0.000000000e+00,6.211739325e-12
+> f7_n10000_path_physics/MakeParameter,F7,10000,path,physics,optimal,22,-1.016746068e+00,9.583905776e-13,2.357455680e-12,1.399274689e-16,0.000000000e+00,22,22,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:22,50000,30000,10000,50000,9.583905776e-13,1.399274689e-16,0.000000000e+00,2.357455680e-12
+> f7_n10000_path_physics/MakeConstraint,F7,10000,path,physics,optimal,22,-1.016746068e+00,9.583905776e-13,2.357455680e-12,1.399274689e-16,0.000000000e+00,22,22,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:22,50000,30000,10000,50000,9.583905776e-13,1.399274689e-16,0.000000000e+00,2.357455680e-12
+> f7_n10000_path_physics/RelaxBounds,F7,10000,path,physics,optimal,22,-1.016746068e+00,9.583905776e-13,2.357455680e-12,1.399274689e-16,0.000000000e+00,22,22,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:22,50000,30000,10000,50000,9.583905776e-13,1.399274689e-16,0.000000000e+00,2.357455680e-12
+31a56,73
+> f7_n20000_path_neutral/MakeParameter,F7,20000,path,neutral,optimal,16,-1.016647393e+00,2.621735533e-12,4.714904832e-12,8.088363884e-16,0.000000000e+00,16,16,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:16,100000,60000,20000,100000,2.621735533e-12,8.088363884e-16,0.000000000e+00,4.714904832e-12
+> f7_n20000_path_neutral/MakeConstraint,F7,20000,path,neutral,optimal,16,-1.016647393e+00,2.621735533e-12,4.714904832e-12,8.088363884e-16,0.000000000e+00,16,16,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:16,100000,60000,20000,100000,2.621735533e-12,8.088363884e-16,0.000000000e+00,4.714904832e-12
+> f7_n20000_path_neutral/RelaxBounds,F7,20000,path,neutral,optimal,16,-1.016647393e+00,2.621735533e-12,4.714904832e-12,8.088363884e-16,0.000000000e+00,16,16,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:16,100000,60000,20000,100000,2.621735533e-12,8.088363884e-16,0.000000000e+00,4.714904832e-12
+> f7_n20000_path_physics/MakeParameter,F7,20000,path,physics,optimal,21,-1.016647393e+00,2.515386959e-12,4.564187025e-12,7.447857752e-16,0.000000000e+00,21,21,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:21,100000,60000,20000,100000,2.515386959e-12,7.447857752e-16,0.000000000e+00,4.564187025e-12
+> f7_n20000_path_physics/MakeConstraint,F7,20000,path,physics,optimal,21,-1.016647393e+00,2.515386959e-12,4.564187025e-12,7.447857752e-16,0.000000000e+00,21,21,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:21,100000,60000,20000,100000,2.515386959e-12,7.447857752e-16,0.000000000e+00,4.564187025e-12
+> f7_n20000_path_physics/RelaxBounds,F7,20000,path,physics,optimal,21,-1.016647393e+00,2.515386959e-12,4.564187025e-12,7.447857752e-16,0.000000000e+00,21,21,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:21,100000,60000,20000,100000,2.515386959e-12,7.447857752e-16,0.000000000e+00,4.564187025e-12
+> f7_n800_path_neutral/MakeParameter,F7,800,path,neutral,optimal,15,-1.019018960e+00,1.947688360e-12,3.848327107e-12,1.556034560e-16,0.000000000e+00,15,15,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:15,4000,2400,800,4000,1.947688360e-12,1.556034560e-16,0.000000000e+00,3.848327107e-12
+> f7_n800_path_neutral/MakeConstraint,F7,800,path,neutral,optimal,15,-1.019018960e+00,1.947688360e-12,3.848327107e-12,1.556034560e-16,0.000000000e+00,15,15,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:15,4000,2400,800,4000,1.947688360e-12,1.556034560e-16,0.000000000e+00,3.848327107e-12
+> f7_n800_path_neutral/RelaxBounds,F7,800,path,neutral,optimal,15,-1.019018960e+00,1.947688360e-12,3.848327107e-12,1.556034560e-16,0.000000000e+00,15,15,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:15,4000,2400,800,4000,1.947688360e-12,1.556034560e-16,0.000000000e+00,3.848327107e-12
+> f7_n800_path_physics/MakeParameter,F7,800,path,physics,optimal,18,-1.019018960e+00,1.564287895e-12,3.214458044e-12,1.583824874e-16,0.000000000e+00,18,18,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:18,4000,2400,800,4000,1.564287895e-12,1.583824874e-16,0.000000000e+00,3.214458044e-12
+> f7_n800_path_physics/MakeConstraint,F7,800,path,physics,optimal,18,-1.019018960e+00,1.564287895e-12,3.214458044e-12,1.583824874e-16,0.000000000e+00,18,18,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:18,4000,2400,800,4000,1.564287895e-12,1.583824874e-16,0.000000000e+00,3.214458044e-12
+pinned capture 2: BYTE DIFFERENCE outside wall_s
+7a8,13
+> f7_n1000_path_neutral/MakeParameter,F7,1000,path,neutral,optimal,15,-1.018524269e+00,2.309232159e-12,4.376688537e-12,1.072365412e-16,0.000000000e+00,15,15,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:15,5000,3000,1000,5000,2.309232159e-12,1.072365412e-16,0.000000000e+00,4.376688537e-12
+> f7_n1000_path_neutral/MakeConstraint,F7,1000,path,neutral,optimal,15,-1.018524269e+00,2.309232159e-12,4.376688537e-12,1.072365412e-16,0.000000000e+00,15,15,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:15,5000,3000,1000,5000,2.309232159e-12,1.072365412e-16,0.000000000e+00,4.376688537e-12
+> f7_n1000_path_neutral/RelaxBounds,F7,1000,path,neutral,optimal,15,-1.018524269e+00,2.309232159e-12,4.376688537e-12,1.072365412e-16,0.000000000e+00,15,15,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:15,5000,3000,1000,5000,2.309232159e-12,1.072365412e-16,0.000000000e+00,4.376688537e-12
+> f7_n1000_path_physics/MakeParameter,F7,1000,path,physics,optimal,18,-1.018524269e+00,1.378153977e-12,2.950784419e-12,1.063475853e-16,0.000000000e+00,18,18,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:18,5000,3000,1000,5000,1.378153977e-12,1.063475853e-16,0.000000000e+00,2.950784419e-12
+> f7_n1000_path_physics/MakeConstraint,F7,1000,path,physics,optimal,18,-1.018524269e+00,1.378153977e-12,2.950784419e-12,1.063475853e-16,0.000000000e+00,18,18,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:18,5000,3000,1000,5000,1.378153977e-12,1.063475853e-16,0.000000000e+00,2.950784419e-12
+> f7_n1000_path_physics/RelaxBounds,F7,1000,path,physics,optimal,18,-1.018524269e+00,1.378153977e-12,2.950784419e-12,1.063475853e-16,0.000000000e+00,18,18,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:18,5000,3000,1000,5000,1.378153977e-12,1.063475853e-16,0.000000000e+00,2.950784419e-12
+13a20,25
+> f7_n2000_path_neutral/MakeParameter,F7,2000,path,neutral,optimal,16,-1.017535863e+00,7.511728403e-13,2.098177509e-12,2.057433933e-16,0.000000000e+00,16,16,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:16,10000,6000,2000,10000,7.511728403e-13,2.057433933e-16,0.000000000e+00,2.098177509e-12
+> f7_n2000_path_neutral/MakeConstraint,F7,2000,path,neutral,optimal,16,-1.017535863e+00,7.511728403e-13,2.098177509e-12,2.057433933e-16,0.000000000e+00,16,16,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:16,10000,6000,2000,10000,7.511728403e-13,2.057433933e-16,0.000000000e+00,2.098177509e-12
+> f7_n2000_path_neutral/RelaxBounds,F7,2000,path,neutral,optimal,16,-1.017535863e+00,7.511728403e-13,2.098177509e-12,2.057433933e-16,0.000000000e+00,16,16,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:16,10000,6000,2000,10000,7.511728403e-13,2.057433933e-16,0.000000000e+00,2.098177509e-12
+> f7_n2000_path_physics/MakeParameter,F7,2000,path,physics,optimal,21,-1.017535863e+00,2.766502625e-12,4.918013682e-12,1.080522433e-16,0.000000000e+00,21,21,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:21,10000,6000,2000,10000,2.766502625e-12,1.080522433e-16,0.000000000e+00,4.918013682e-12
+> f7_n2000_path_physics/MakeConstraint,F7,2000,path,physics,optimal,21,-1.017535863e+00,2.766502625e-12,4.918013682e-12,1.080522433e-16,0.000000000e+00,21,21,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:21,10000,6000,2000,10000,2.766502625e-12,1.080522433e-16,0.000000000e+00,4.918013682e-12
+> f7_n2000_path_physics/RelaxBounds,F7,2000,path,physics,optimal,21,-1.017535863e+00,2.766502625e-12,4.918013682e-12,1.080522433e-16,0.000000000e+00,21,21,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:21,10000,6000,2000,10000,2.766502625e-12,1.080522433e-16,0.000000000e+00,4.918013682e-12
+19a32,37
+> f7_n5000_path_neutral/MakeParameter,F7,5000,path,neutral,optimal,17,-1.016943441e+00,1.056472702e-12,2.496300480e-12,1.106668824e-16,0.000000000e+00,17,17,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:17,25000,15000,5000,25000,1.056472702e-12,1.106668824e-16,0.000000000e+00,2.496300480e-12
+> f7_n5000_path_neutral/MakeConstraint,F7,5000,path,neutral,optimal,17,-1.016943441e+00,1.056472702e-12,2.496300480e-12,1.106668824e-16,0.000000000e+00,17,17,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:17,25000,15000,5000,25000,1.056472702e-12,1.106668824e-16,0.000000000e+00,2.496300480e-12
+> f7_n5000_path_neutral/RelaxBounds,F7,5000,path,neutral,optimal,17,-1.016943441e+00,1.056472702e-12,2.496300480e-12,1.106668824e-16,0.000000000e+00,17,17,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:17,25000,15000,5000,25000,1.056472702e-12,1.106668824e-16,0.000000000e+00,2.496300480e-12
+> f7_n5000_path_physics/MakeParameter,F7,5000,path,physics,optimal,18,-1.016943441e+00,1.947135901e-12,3.757597381e-12,1.310381349e-16,0.000000000e+00,18,18,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:18,25000,15000,5000,25000,1.947135901e-12,1.310381349e-16,0.000000000e+00,3.757597381e-12
+> f7_n5000_path_physics/MakeConstraint,F7,5000,path,physics,optimal,18,-1.016943441e+00,1.947135901e-12,3.757597381e-12,1.310381349e-16,0.000000000e+00,18,18,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:18,25000,15000,5000,25000,1.947135901e-12,1.310381349e-16,0.000000000e+00,3.757597381e-12
+> f7_n5000_path_physics/RelaxBounds,F7,5000,path,physics,optimal,18,-1.016943441e+00,1.947135901e-12,3.757597381e-12,1.310381349e-16,0.000000000e+00,18,18,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:18,25000,15000,5000,25000,1.947135901e-12,1.310381349e-16,0.000000000e+00,3.757597381e-12
+25a44,49
+> f7_n10000_path_neutral/MakeParameter,F7,10000,path,neutral,optimal,16,-1.016746067e+00,3.678302561e-12,6.211739325e-12,3.628990435e-16,0.000000000e+00,16,16,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:16,50000,30000,10000,50000,3.678302561e-12,3.628990435e-16,0.000000000e+00,6.211739325e-12
+> f7_n10000_path_neutral/MakeConstraint,F7,10000,path,neutral,optimal,16,-1.016746067e+00,3.678302561e-12,6.211739325e-12,3.628990435e-16,0.000000000e+00,16,16,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:16,50000,30000,10000,50000,3.678302561e-12,3.628990435e-16,0.000000000e+00,6.211739325e-12
+> f7_n10000_path_neutral/RelaxBounds,F7,10000,path,neutral,optimal,16,-1.016746067e+00,3.678302561e-12,6.211739325e-12,3.628990435e-16,0.000000000e+00,16,16,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:16,50000,30000,10000,50000,3.678302561e-12,3.628990435e-16,0.000000000e+00,6.211739325e-12
+> f7_n10000_path_physics/MakeParameter,F7,10000,path,physics,optimal,22,-1.016746068e+00,9.583905776e-13,2.357455680e-12,1.399274689e-16,0.000000000e+00,22,22,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:22,50000,30000,10000,50000,9.583905776e-13,1.399274689e-16,0.000000000e+00,2.357455680e-12
+> f7_n10000_path_physics/MakeConstraint,F7,10000,path,physics,optimal,22,-1.016746068e+00,9.583905776e-13,2.357455680e-12,1.399274689e-16,0.000000000e+00,22,22,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:22,50000,30000,10000,50000,9.583905776e-13,1.399274689e-16,0.000000000e+00,2.357455680e-12
+> f7_n10000_path_physics/RelaxBounds,F7,10000,path,physics,optimal,22,-1.016746068e+00,9.583905776e-13,2.357455680e-12,1.399274689e-16,0.000000000e+00,22,22,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:22,50000,30000,10000,50000,9.583905776e-13,1.399274689e-16,0.000000000e+00,2.357455680e-12
+31a56,73
+> f7_n20000_path_neutral/MakeParameter,F7,20000,path,neutral,optimal,16,-1.016647393e+00,2.621735533e-12,4.714904832e-12,8.088363884e-16,0.000000000e+00,16,16,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:16,100000,60000,20000,100000,2.621735533e-12,8.088363884e-16,0.000000000e+00,4.714904832e-12
+> f7_n20000_path_neutral/MakeConstraint,F7,20000,path,neutral,optimal,16,-1.016647393e+00,2.621735533e-12,4.714904832e-12,8.088363884e-16,0.000000000e+00,16,16,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:16,100000,60000,20000,100000,2.621735533e-12,8.088363884e-16,0.000000000e+00,4.714904832e-12
+> f7_n20000_path_neutral/RelaxBounds,F7,20000,path,neutral,optimal,16,-1.016647393e+00,2.621735533e-12,4.714904832e-12,8.088363884e-16,0.000000000e+00,16,16,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:16,100000,60000,20000,100000,2.621735533e-12,8.088363884e-16,0.000000000e+00,4.714904832e-12
+> f7_n20000_path_physics/MakeParameter,F7,20000,path,physics,optimal,21,-1.016647393e+00,2.515386959e-12,4.564187025e-12,7.447857752e-16,0.000000000e+00,21,21,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:21,100000,60000,20000,100000,2.515386959e-12,7.447857752e-16,0.000000000e+00,4.564187025e-12
+> f7_n20000_path_physics/MakeConstraint,F7,20000,path,physics,optimal,21,-1.016647393e+00,2.515386959e-12,4.564187025e-12,7.447857752e-16,0.000000000e+00,21,21,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:21,100000,60000,20000,100000,2.515386959e-12,7.447857752e-16,0.000000000e+00,4.564187025e-12
+> f7_n20000_path_physics/RelaxBounds,F7,20000,path,physics,optimal,21,-1.016647393e+00,2.515386959e-12,4.564187025e-12,7.447857752e-16,0.000000000e+00,21,21,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:21,100000,60000,20000,100000,2.515386959e-12,7.447857752e-16,0.000000000e+00,4.564187025e-12
+> f7_n800_path_neutral/MakeParameter,F7,800,path,neutral,optimal,15,-1.019018960e+00,1.947688360e-12,3.848327107e-12,1.556034560e-16,0.000000000e+00,15,15,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:15,4000,2400,800,4000,1.947688360e-12,1.556034560e-16,0.000000000e+00,3.848327107e-12
+> f7_n800_path_neutral/MakeConstraint,F7,800,path,neutral,optimal,15,-1.019018960e+00,1.947688360e-12,3.848327107e-12,1.556034560e-16,0.000000000e+00,15,15,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:15,4000,2400,800,4000,1.947688360e-12,1.556034560e-16,0.000000000e+00,3.848327107e-12
+> f7_n800_path_neutral/RelaxBounds,F7,800,path,neutral,optimal,15,-1.019018960e+00,1.947688360e-12,3.848327107e-12,1.556034560e-16,0.000000000e+00,15,15,1,0,0,RelaxBounds,none,1,1,kOptimize:optimal:15,4000,2400,800,4000,1.947688360e-12,1.556034560e-16,0.000000000e+00,3.848327107e-12
+> f7_n800_path_physics/MakeParameter,F7,800,path,physics,optimal,18,-1.019018960e+00,1.564287895e-12,3.214458044e-12,1.583824874e-16,0.000000000e+00,18,18,1,0,0,MakeParameter,none,1,1,kOptimize:optimal:18,4000,2400,800,4000,1.564287895e-12,1.583824874e-16,0.000000000e+00,3.214458044e-12
+> f7_n800_path_physics/MakeConstraint,F7,800,path,physics,optimal,18,-1.019018960e+00,1.564287895e-12,3.214458044e-12,1.583824874e-16,0.000000000e+00,18,18,1,0,0,MakeConstraint,none,1,1,kOptimize:optimal:18,4000,2400,800,4000,1.564287895e-12,1.583824874e-16,0.000000000e+00,3.214458044e-12
+
+=== THE DECLARED RE-DERIVATION: shipped capture vs the COMMITTED baseline (differences EXPECTED) ===
+=== COMMITTED interior baseline vs W2 D1 SHIPPED-DEFAULT capture 1 === cells compared: 43  columns compared: 30  differences: 89  UNMATCHED CELLS: ['f7_n10000_path_neutral/MakeConstraint', 'f7_n10000_path_neutral/MakeParameter', 'f7_n10000_path_neutral/RelaxBounds', 'f7_n10000_path_physics/MakeConstraint', 'f7_n10000_path_physics/MakeParameter', 'f7_n10000_path_physics/RelaxBounds', 'f7_n1000_path_neutral/MakeConstraint', 'f7_n1000_path_neutral/MakeParameter', 'f7_n1000_path_neutral/RelaxBounds', 'f7_n1000_path_physics/MakeConstraint', 'f7_n1000_path_physics/MakeParameter', 'f7_n1000_path_physics/RelaxBounds', 'f7_n20000_path_neutral/MakeConstraint', 'f7_n20000_path_neutral/MakeParameter', 'f7_n20000_path_neutral/RelaxBounds', 'f7_n20000_path_physics/MakeConstraint', 'f7_n20000_path_physics/MakeParameter', 'f7_n20000_path_physics/RelaxBounds', 'f7_n2000_path_neutral/MakeConstraint', 'f7_n2000_path_neutral/MakeParameter', 'f7_n2000_path_neutral/RelaxBounds', 'f7_n2000_path_physics/MakeConstraint', 'f7_n2000_path_physics/MakeParameter', 'f7_n2000_path_physics/RelaxBounds', 'f7_n5000_path_neutral/MakeConstraint', 'f7_n5000_path_neutral/MakeParameter', 'f7_n5000_path_neutral/RelaxBounds', 'f7_n5000_path_physics/MakeConstraint', 'f7_n5000_path_physics/MakeParameter', 'f7_n5000_path_physics/RelaxBounds', 'f7_n750_path_neutral_control/MakeConstraint', 'f7_n750_path_neutral_control/MakeParameter', 'f7_n750_path_neutral_control/RelaxBounds', 'f7_n800_path_neutral/MakeConstraint', 'f7_n800_path_neutral/MakeParameter', 'f7_n800_path_neutral/RelaxBounds', 'f7_n800_path_physics/MakeConstraint', 'f7_n800_path_physics/MakeParameter', 'f7_n800_path_physics/RelaxBounds', 'f7_n825_path_neutral_control/MakeConstraint', 'f7_n825_path_neutral_control/MakeParameter', 'f7_n825_path_neutral_control/RelaxBounds']
+    f7_n2000_bound_physics/MakeConstraint iter_num                           A=5  B=12
+    f7_n2000_bound_physics/MakeConstraint kkt_inf                            A=2.433700878e-10  B=2.504458279e-09
+    f7_n2000_bound_physics/MakeConstraint barr_inf                           A=3.733486557e-11  B=3.748041055e-10
+    f7_n2000_bound_physics/MakeConstraint econ_inf                           A=1.168101089e-16  B=1.089533310e-16
+    f7_n2000_bound_physics/MakeConstraint factorizations                     A=5  B=12
+    f7_n2000_bound_physics/MakeConstraint solves                             A=5  B=12
+    f7_n2000_bound_physics/MakeConstraint phases                             A=kOptimize:optimal:5  B=kOptimize:optimal:12
+    f7_n2000_bound_physics/MakeConstraint stationarity                       A=2.433700878e-10  B=2.504458279e-09
+    f7_n2000_bound_physics/MakeConstraint feasibility_e                      A=1.168101089e-16  B=1.089533310e-16
+    f7_n2000_bound_physics/MakeConstraint complementarity                    A=3.733486557e-11  B=3.748041055e-10
+    f7_n2000_bound_physics/MakeParameter iter_num                           A=5  B=12
+    f7_n2000_bound_physics/MakeParameter kkt_inf                            A=2.433700878e-10  B=2.504458279e-09
+    f7_n2000_bound_physics/MakeParameter barr_inf                           A=3.733486557e-11  B=3.748041055e-10
+    f7_n2000_bound_physics/MakeParameter econ_inf                           A=1.168101089e-16  B=1.089533310e-16
+    f7_n2000_bound_physics/MakeParameter factorizations                     A=5  B=12
+    f7_n2000_bound_physics/MakeParameter solves                             A=5  B=12
+    f7_n2000_bound_physics/MakeParameter phases                             A=kOptimize:optimal:5  B=kOptimize:optimal:12
+    f7_n2000_bound_physics/MakeParameter stationarity                       A=2.433700878e-10  B=2.504458279e-09
+    f7_n2000_bound_physics/MakeParameter feasibility_e                      A=1.168101089e-16  B=1.089533310e-16
+    f7_n2000_bound_physics/MakeParameter complementarity                    A=3.733486557e-11  B=3.748041055e-10
+    f7_n2000_bound_physics/RelaxBounds iter_num                           A=5  B=12
+    f7_n2000_bound_physics/RelaxBounds kkt_inf                            A=2.433700878e-10  B=2.504458279e-09
+    f7_n2000_bound_physics/RelaxBounds barr_inf                           A=3.733486557e-11  B=3.748041055e-10
+    f7_n2000_bound_physics/RelaxBounds econ_inf                           A=1.168101089e-16  B=1.089533310e-16
+    f7_n2000_bound_physics/RelaxBounds factorizations                     A=5  B=12
+    f7_n2000_bound_physics/RelaxBounds solves                             A=5  B=12
+    f7_n2000_bound_physics/RelaxBounds phases                             A=kOptimize:optimal:5  B=kOptimize:optimal:12
+    f7_n2000_bound_physics/RelaxBounds stationarity                       A=2.433700878e-10  B=2.504458279e-09
+    f7_n2000_bound_physics/RelaxBounds feasibility_e                      A=1.168101089e-16  B=1.089533310e-16
+    f7_n2000_bound_physics/RelaxBounds complementarity                    A=3.733486557e-11  B=3.748041055e-10
+    f7_n5000_bound_physics/MakeConstraint iter_num                           A=5  B=6
+    f7_n5000_bound_physics/MakeConstraint kkt_inf                            A=2.466487686e-10  B=1.814405187e-10
+    f7_n5000_bound_physics/MakeConstraint barr_inf                           A=3.783082487e-11  B=2.809416937e-11
+    f7_n5000_bound_physics/MakeConstraint econ_inf                           A=1.096120960e-16  B=1.097566253e-16
+    f7_n5000_bound_physics/MakeConstraint factorizations                     A=5  B=6
+    f7_n5000_bound_physics/MakeConstraint solves                             A=5  B=6
+    f7_n5000_bound_physics/MakeConstraint phases                             A=kOptimize:optimal:5  B=kOptimize:optimal:6
+    f7_n5000_bound_physics/MakeConstraint stationarity                       A=2.466487686e-10  B=1.814405187e-10
+    f7_n5000_bound_physics/MakeConstraint feasibility_e                      A=1.096120960e-16  B=1.097566253e-16
+    f7_n5000_bound_physics/MakeConstraint complementarity                    A=3.783082487e-11  B=2.809416937e-11
+    f7_n5000_bound_physics/MakeParameter iter_num                           A=5  B=6
+    f7_n5000_bound_physics/MakeParameter kkt_inf                            A=2.466487686e-10  B=1.814405187e-10
+    f7_n5000_bound_physics/MakeParameter barr_inf                           A=3.783082487e-11  B=2.809416937e-11
+    f7_n5000_bound_physics/MakeParameter econ_inf                           A=1.096120960e-16  B=1.097566253e-16
+    f7_n5000_bound_physics/MakeParameter factorizations                     A=5  B=6
+    f7_n5000_bound_physics/MakeParameter solves                             A=5  B=6
+    f7_n5000_bound_physics/MakeParameter phases                             A=kOptimize:optimal:5  B=kOptimize:optimal:6
+    f7_n5000_bound_physics/MakeParameter stationarity                       A=2.466487686e-10  B=1.814405187e-10
+    f7_n5000_bound_physics/MakeParameter feasibility_e                      A=1.096120960e-16  B=1.097566253e-16
+    f7_n5000_bound_physics/MakeParameter complementarity                    A=3.783082487e-11  B=2.809416937e-11
+    f7_n5000_bound_physics/RelaxBounds iter_num                           A=5  B=6
+    f7_n5000_bound_physics/RelaxBounds kkt_inf                            A=2.466487686e-10  B=1.814405187e-10
+    f7_n5000_bound_physics/RelaxBounds barr_inf                           A=3.783082487e-11  B=2.809416937e-11
+    f7_n5000_bound_physics/RelaxBounds econ_inf                           A=1.096120960e-16  B=1.097566253e-16
+    f7_n5000_bound_physics/RelaxBounds factorizations                     A=5  B=6
+    f7_n5000_bound_physics/RelaxBounds solves                             A=5  B=6
+    f7_n5000_bound_physics/RelaxBounds phases                             A=kOptimize:optimal:5  B=kOptimize:optimal:6
+    f7_n5000_bound_physics/RelaxBounds stationarity                       A=2.466487686e-10  B=1.814405187e-10
+    f7_n5000_bound_physics/RelaxBounds feasibility_e                      A=1.096120960e-16  B=1.097566253e-16
+    f7_n5000_bound_physics/RelaxBounds complementarity                    A=3.783082487e-11  B=2.809416937e-11
+    hs071_x1_fixed/MakeParameter/solve_optimize iter_num                           A=19  B=13
+    hs071_x1_fixed/MakeParameter/solve_optimize kkt_inf                            A=6.725227498e-11  B=4.685353035e-10
+    hs071_x1_fixed/MakeParameter/solve_optimize barr_inf                           A=2.209420442e-12  B=3.063464936e-10
+    hs071_x1_fixed/MakeParameter/solve_optimize econ_inf                           A=5.752553989e-11  B=3.263522785e-11
+    hs071_x1_fixed/MakeParameter/solve_optimize icon_inf                           A=6.068399180e-11  B=0.000000000e+00
+    hs071_x1_fixed/MakeParameter/solve_optimize factorizations                     A=19  B=13
+    hs071_x1_fixed/MakeParameter/solve_optimize solves                             A=19  B=13
+    hs071_x1_fixed/MakeParameter/solve_optimize phases                             A=kSolve:optimal:7|kOptimize:optimal:12  B=kSolve:optimal:7|kOptimize:optimal:6
+    hs071_x1_fixed/MakeParameter/solve_optimize stationarity                       A=6.725227498e-11  B=4.685353035e-10
+    hs071_x1_fixed/MakeParameter/solve_optimize feasibility_e                      A=5.752553989e-11  B=3.263522785e-11
+    hs071_x1_fixed/MakeParameter/solve_optimize feasibility_i                      A=5.668354675e-11  B=0.000000000e+00
+    hs071_x1_fixed/MakeParameter/solve_optimize complementarity                    A=3.130596350e-11  B=2.850358094e-10
+    infeas2_spike/MakeParameter/stalled iter_num                           A=141  B=123
+    infeas2_spike/MakeParameter/stalled kkt_inf                            A=0.000000000e+00  B=3.725290298e-09
+    infeas2_spike/MakeParameter/stalled econ_inf                           A=3.791662080e+17  B=6.250000000e-02
+    infeas2_spike/MakeParameter/stalled factorizations                     A=142  B=123
+    infeas2_spike/MakeParameter/stalled solves                             A=142  B=123
+    infeas2_spike/MakeParameter/stalled stop_reason                        A=stage_stalled  B=restoration_locally_infeasible
+    infeas2_spike/MakeParameter/stalled phases                             A=kSolve:stalled:141  B=kSolve:stalled:123
+    infeas2_spike/MakeParameter/stalled feasibility_e                      A=3.791662080e+17  B=nan
+    infeas2_spike/MakeParameter/stalled feasibility_i                      A=0.000000000e+00  B=nan
+    infeas2_spike/MakeParameter/stalled complementarity                    A=0.000000000e+00  B=nan
+    infeas2_stationary/MakeParameter/resto_infeasible iter_num                           A=25  B=22
+    infeas2_stationary/MakeParameter/resto_infeasible obj_val                            A=2.653226544e-04  B=-1.553262757e-04
+    infeas2_stationary/MakeParameter/resto_infeasible kkt_inf                            A=2.750577544e-13  B=8.326672685e-17
+    infeas2_stationary/MakeParameter/resto_infeasible econ_inf                           A=4.107825191e-14  B=4.707345624e-14
+    infeas2_stationary/MakeParameter/resto_infeasible factorizations                     A=30  B=27
+    infeas2_stationary/MakeParameter/resto_infeasible solves                             A=25  B=22
+    infeas2_stationary/MakeParameter/resto_infeasible phases                             A=kOptimize:stalled:25  B=kOptimize:stalled:22
+  CMP_RC=1  (non-zero is the event; the gate is that the two shipped captures agree)
+=== SHIPPED capture 1 vs SHIPPED capture 2 (determinism) === cells compared: 85  columns compared: 30  differences: 0
+  CMP_RC=0
+=== PINNED capture 1 vs PINNED capture 2 (determinism) === cells compared: 85  columns compared: 30  differences: 0
+  CMP_RC=0
+
+=== (3) THE CONTROL: U0 27-cell three-arm replay vs the M6 close pin ===
+ran head-walk rc=0
+ran head-ssn rc=0
+ran head-ipm rc=0
+=== M6 CLOSE HEAD-walk vs M7 W2 D1 HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ssn vs M7 W2 D1 HEAD-ssn === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ipm vs M7 W2 D1 HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+LEGS_WORST_RC=1
+FOREGROUND_END legs-d1c 2026-09-18T09:05:26-04:00 rc=1
+WRAPPER_RC legs-d1c rc=1
