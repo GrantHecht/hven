@@ -23,12 +23,9 @@
 //
 // Names carry a `QpCap` prefix: this suite's TUs share a link unit.
 
-#include <algorithm>
-#include <limits>
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <utility>
 #include <vector>
 
 #include <Eigen/Core>
