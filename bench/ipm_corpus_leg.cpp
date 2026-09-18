@@ -9,8 +9,10 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include <fmt/format.h>
@@ -512,6 +514,31 @@ void configure_interior_solver(IpmSolver &ipm, FixedVariableTreatments treatment
     // make_nlp_program() instead. The PHASE SEQUENCE is a field now too, set
     // from the variant's entry rather than by which entry point is called.
     IpmOptions o = ipm.options();
+
+    // THE PRE-EVENT DEFAULT PIN (M7 W2 D1, 2026-09-18), a declared probe and
+    // never a product path. With HVEN_LEG_IPM_PRE_D1_DEFAULTS set in the
+    // environment, the three fields the declared IPM-default event moved are
+    // written back to the values IpmOptions{} carried before it:
+    //
+    //     acceptance_strategy   filter    -> classic_merit
+    //     barrier_governor      monitored -> classic_adaptive
+    //     max_iters             1000      -> 500
+    //
+    // The first two are exactly ipm_preset("classic")'s values for them; the
+    // third is not a preset field. Written HERE, ABOVE the levers and the
+    // variant overrides, so every explicit lever still wins exactly as it did --
+    // in particular this leg's own max_iters lever (200) overwrites the 500 on
+    // the very next lines, which is precisely what the committed baseline ran.
+    // What the pin restores is the DEFAULTS and nothing else, which is what
+    // makes this arm's CSV the "old default still reachable" evidence:
+    // byte-identical to bench/baselines/2026-09-t8-ipm-leg/interior_baseline.csv
+    // outside wall_s. See docs/notes/data/2026-09-m7-w2-d1-ipm-default/.
+    if (std::getenv("HVEN_LEG_IPM_PRE_D1_DEFAULTS") != nullptr) {
+        o.acceptance_strategy = AcceptanceStrategies::classic_merit;
+        o.barrier_governor = BarrierGovernors::classic_adaptive;
+        o.max_iters = 500;
+    }
+
     o.phases = phases_for(variant.entry);
     o.common.threads = levers.qp_threads;
     o.common.print_level = levers.print_level;
@@ -929,6 +956,43 @@ std::string interior_row_key(const InteriorRow &row) {
         return fmt::format("{}/{}", row.cell_id, row.fixed_treatment);
     }
     return fmt::format("{}/{}/{}", row.cell_id, row.fixed_treatment, row.variant);
+}
+
+std::string interior_globalization_stamp() {
+    // The value configure_interior_solver() starts from, with the pin applied
+    // exactly as that function applies it -- so this line reports what the run
+    // actually used rather than what the struct declares.
+    const bool pinned = std::getenv("HVEN_LEG_IPM_PRE_D1_DEFAULTS") != nullptr;
+    IpmOptions o;
+    if (pinned) {
+        o.acceptance_strategy = AcceptanceStrategies::classic_merit;
+        o.barrier_governor = BarrierGovernors::classic_adaptive;
+        o.max_iters = 500;
+    }
+
+    // Read the two enumerator spellings off dump_options() rather than
+    // switching on the enums a second time: the printer is the one place in the
+    // library that names these values, and a renumbering or a rename must not
+    // be able to make this header disagree with a recorded options dump.
+    std::ostringstream dump;
+    dump_options(o, dump);
+    const std::string text = dump.str();
+    const auto field = [&text](std::string_view name) {
+        const std::string key = std::string(name) + " = ";
+        std::istringstream lines(text);
+        std::string line;
+        while (std::getline(lines, line)) {
+            if (line.rfind(key, 0) == 0) {
+                return line.substr(key.size());
+            }
+        }
+        return std::string("<absent>");
+    };
+
+    return fmt::format("acceptance_strategy={} barrier_governor={} "
+                       "(LIBRARY DEFAULTS, not set by this leg) pre_d1_default_pin={}",
+                       field("acceptance_strategy"), field("barrier_governor"),
+                       pinned ? "on" : "off");
 }
 
 std::string interior_csv_header() {

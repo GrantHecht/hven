@@ -2316,6 +2316,11 @@ void write_interior_provenance_head(std::ostream &os, int argc, char **argv,
     os << fmt::format("# levers: kkt_tol={:.9e} econ_tol={:.9e} icon_tol={:.9e} barr_tol={:.9e}\n",
                       levers.kkt_tol, levers.econ_tol, levers.icon_tol, levers.barr_tol);
     os << fmt::format("# levers: bound_relax_factor={:.9e}\n", levers.bound_relax_factor);
+    // M7 W2 D1 (2026-09-18): the two globalization fields this leg does NOT
+    // set, stamped because they decide the trajectory and the header above
+    // claims a row is reproducible from this file alone. See
+    // interior_globalization_stamp() in bench/ipm_corpus_leg.h.
+    os << fmt::format("# levers: {}\n", interior_globalization_stamp());
 }
 
 // THE SINGLE-ROW MODE'S header (M6 W5 T8.9r). One base row, so the leg's

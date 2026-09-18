@@ -389,6 +389,23 @@ InteriorRow run_interior_single_row(std::string_view cell_id, FixedVariableTreat
 /// gets no third segment, so the 33 base keys are what they always were.
 std::string interior_row_key(const InteriorRow &row);
 
+/// @brief The GLOBALIZATION fields this leg leaves at the library default,
+///        rendered for the artifact's provenance header. Not newline
+///        terminated.
+///
+/// M7 W2 D1 (2026-09-18). The leg's `# levers:` stamp exists so that, as the
+/// committed baseline's own header puts it, "a row is reproducible from this
+/// file alone" -- and that claim was false while `acceptance_strategy` and
+/// `barrier_governor` decided the trajectory and appeared in no line of the
+/// file. InteriorLevers cannot express them (there is no member, deliberately:
+/// the leg does not choose them, it inherits them), so they are read off a
+/// default-constructed IpmOptions here, through the same dump_options() printer
+/// that spells every other recorded option value, and stamped as what they are.
+///
+/// Reports the state of the pre-event default pin too, because a reader of the
+/// artifact must be able to tell an inherited default from a pinned one.
+std::string interior_globalization_stamp();
+
 /// @brief The leg's CSV column header, newline terminated.
 std::string interior_csv_header();
 
