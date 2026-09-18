@@ -17,6 +17,14 @@ import re
 import subprocess
 import sys
 
+# FIX ROUND 1 NOTE (2026-09-18, MEDIUM-1): this list is a PER-TASK INPUT, not
+# a constant to carry forward from whichever brief last edited this file. It
+# must be set from THIS task's own `git diff --name-only -- include/`. Left
+# here at M1/M4's SQP list -- the value it held when this script produced
+# compare-{Release,Debug}.txt's classification for M7 W2 D1 -- because this
+# file is the tool that ran and is kept verbatim; M7 W2 D1's classification
+# against its own three headers is in classification-{Release,Debug}.corrected.txt
+# and the append beneath the original transcript in classification-{Release,Debug}.txt.
 HEADERS = ("include/hven/core/solver_counters.h",
            "include/hven/drivers/sqp_solver_types.h",
            "include/hven/drivers/sqp_solver.h")

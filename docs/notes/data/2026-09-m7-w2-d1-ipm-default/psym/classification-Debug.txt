@@ -92,3 +92,61 @@ DIFFERING OBJECTS: 7
       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_nlp_model.cpp.o
       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_parametric_families.cpp.o
       tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_predictor.cpp.o
+
+===========================================================================
+APPENDED BY HAND, FIX ROUND 1, 2026-09-18 -- the classification above was
+produced against the WRONG HEADER LIST. Append-only; it supersedes neither
+the classifier's verbatim output above nor its own content, but is the one
+to read for the correct picture. See the matching, longer correction in
+`psym/classification-Release.txt` for the full defect description; this
+record states the Debug-specific facts only.
+
+THE DEFECT. `wrappers/classify_psym.py`'s `HEADERS` constant read M1/M4's SQP
+list (`include/hven/core/solver_counters.h`, `include/hven/drivers/
+sqp_solver_types.h`, `include/hven/drivers/sqp_solver.h`) -- none of which
+this task edited. The three it DID edit are
+`include/hven/detail/drivers/ipm_solver_presets.h`,
+`include/hven/drivers/ipm_solver.h` and
+`include/hven/drivers/ipm_solver_types.h`.
+
+THE RECLASSIFICATION, pure Python against the existing compare-Debug.txt and
+the existing psym-build ninja dep log -- no rebuild, no lock -- with
+`HEADERS` set to the three lines above, `--changed-sources` unchanged.
+Committed verbatim as `psym/classification-Debug.corrected.txt`. THE RESULT
+STANDS: **7 differing objects = 5 class A + 2 class B, 0 unexplained** -- the
+same partition as the wrong-header run, because Debug had no UNEXPLAINED
+object under either header list (unity_0 and unity_2 land in class B by
+both routes) and every class-A object is still source this task changed.
+
+THE NEGATIVE CONTROL IS MIS-SPECIFIED IN THE TEXT ABOVE, independent of which
+header list is used: "101" counted byte-identical objects that include the
+SQP headers, not this task's changed headers. Reclassified against the three
+IPM headers, the properly specified negative control in Debug is **15**, not
+101:
+    CMakeFiles/hven.dir/src/drivers/ipm_options.cpp.o
+    CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+    CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+    CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+    CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+    bench/CMakeFiles/hven_sqp_crossover.dir/bench_crossover.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_callback.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_concurrency.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_options.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_solve_result.cpp.o
+    tests/drivers/CMakeFiles/hven_drivers_tests.dir/test_warm_protocol.cpp.o
+    tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_1_cxx.cxx.o
+    tests/interior/CMakeFiles/hven_interior_tests.dir/Unity/unity_3_cxx.cxx.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_crossover_legs.cpp.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_warm_currency.cpp.o
+`ipm_options.cpp.o` is source this task changed and is class A in Release
+(where it DOES differ), but in Debug it is byte-identical -- the negative
+control is over the differing SET for the config at hand, and Debug's
+differing set does not include it. The other fourteen are includers,
+byte-identical because none materialises a default-constructed `IpmOptions`
+inline in a way this change's three literals reach.
+
+THE RESULT, restated correctly: **Debug 7 differing objects = 5 class A + 2
+class B, 0 unexplained**, negative control **15** byte-identical includers
+of this task's three changed headers. README sections 3 and 4 are corrected
+in place with a one-line "corrected in fix1" mark.
+===========================================================================

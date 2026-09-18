@@ -164,3 +164,115 @@ optimiser decision, which is exactly why it appears in one config and not the
 other -- and why it is noise about form rather than a difference in what the
 code does.
 ===========================================================================
+
+===========================================================================
+APPENDED BY HAND, FIX ROUND 1, 2026-09-18 -- the classification above (both
+the classifier's verbatim run and the 2026-09-18 unity_3 record beneath it)
+was produced against the WRONG HEADER LIST. This record is append-only; it
+supersedes neither the classifier's verbatim output nor the unity_3 record
+above, both of which are kept exactly as run/written, but it is the one to
+read for the correct picture.
+
+THE DEFECT. `wrappers/classify_psym.py`'s `HEADERS` constant, at the time
+both runs above were made, read M1/M4's SQP list:
+    include/hven/core/solver_counters.h
+    include/hven/drivers/sqp_solver_types.h
+    include/hven/drivers/sqp_solver.h
+This task edited none of those three. `git diff --name-only 33f68b1e 5bf6760c
+-- include/` names the three it DID edit:
+    include/hven/detail/drivers/ipm_solver_presets.h
+    include/hven/drivers/ipm_solver.h
+    include/hven/drivers/ipm_solver_types.h
+`HEADERS` is a per-task input to the script, not a constant to inherit from
+the previous brief that used it, and it was not updated for this task.
+
+THE RECLASSIFICATION, pure Python against the existing compare-Release.txt
+and the existing psym-build ninja dep log -- no rebuild, no lock -- with
+`HEADERS` set to the three lines above and every other argument (including
+`--changed-sources`) held exactly as `chain_psym.sh` invoked them. Committed
+verbatim as `psym/classification-Release.corrected.txt`. THE RESULT STANDS:
+17 differing objects = 6 class A + 11 class B, 0 unexplained -- the same
+partition the wrong-header run reported, because every object the wrong list
+placed in class A is still source this task changed, and (see below) the
+object the wrong list could not place at all turns out to belong in class B
+by the SAME route the wrong list used to place ten other objects there, once
+the headers it is actually checked against are the ones this task edited.
+
+THE UNITY_3 RECORD'S TWO STATED CAUSES ARE BOTH WRONG, and the real cause is
+simpler: the wrong header list. (1) "A class-A path match can never match a
+unity TU" is not what blocked it -- class A was never on the table for any
+unity TU, by construction (a unity TU's "source" is a generated aggregate,
+matched against no `--changed-sources` entry), and unity_0, unity_1 and
+unity_2 landed in class B under the SAME wrong-header run, so being a unity
+TU did not block THEM from a class-B verdict either. (2) "P-SYM left an
+instruction UNCLASSIFIED and the classifier propagates that" is not how the
+tool works: `classify_psym.py` never reads UNCLASSIFIED/CHANGED/COUNTS lines
+at all -- only `DIFFERS <object>` lines (to build the differing-object list)
+and the ninja dep log (to test header inclusion). Re-run with the correct
+three IPM headers, `unity_3_cxx.cxx.o`'s dep-log entry lists
+`ipm_solver.h` and `ipm_solver_types.h` directly, and it lands in CLASS B
+automatically, by the classifier's own header-match logic, with no by-hand
+resolution needed at all. The 2026-09-18 record above did the right thing by
+the wrong list it had; a correct list needed no such record.
+
+THE NEGATIVE CONTROL IS MIS-SPECIFIED IN THE TEXT ABOVE, independent of which
+header list is used. "93" counted objects that include the SQP headers
+(`HEADERS` as it stood) and are byte-identical -- not, as the classifier's own
+docstring, this file's earlier text, README section 3 and commit 5bf6760c all
+say, "objects that ALSO include one of THOSE [this task's changed] headers."
+Reclassified against the three IPM headers, the properly specified negative
+control in Release is **5**, not 93:
+    CMakeFiles/hven.dir/src/drivers/ipm_solver.cpp.o
+    CMakeFiles/hven.dir/src/drivers/ipm_solver_globalization.cpp.o
+    CMakeFiles/hven.dir/src/model/nlp_adapter.cpp.o
+    CMakeFiles/hven.dir/src/model/non_linear_program.cpp.o
+    tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_corpus_cells.cpp.o
+Still a control -- five includers of the moved struct, byte-identical because
+none of the five materialises a default-constructed `IpmOptions` -- just an
+order of magnitude smaller than quoted, and the quoted 93 measures inclusion
+of a header set this task did not touch.
+
+THE DELTA DESCRIPTION IN THE 2026-09-18 RECORD IS NOT WHAT
+`psym/compare-Release.txt:904-968` (the unity_3 PER-SYMBOL block) SHOWS. That
+record describes "a constant store widened from xmm0 to ymm0 -- same
+instruction, wider register, no call, no branch, no ordering moved" as if it
+covered the whole delta; it is an accurate description of only ONE of the
+ten differing symbols, offered as the illustrative example. Counted directly
+from the PER-SYMBOL block (`PERSYM 212 identical, ... 10 differing`): of the
+ten, **7 are STRUCTURAL** ("instructions were added or removed" --
+`ExtendedBacktrackLadder_ContinuesFromLiveAlphaAndHonorsCap_Test`,
+`ChainedRecoveryOrdering_SocResolvesFirst_Test`,
+`ExtendedBacktrackGuards_DisabledDeclines_Test`,
+`WatchdogRecoveryDecorator_DelegatesWhileNotArmed_Test`,
+`ChainedRecoveryOrdering_ExtendedResolvesWhenSocDeclines_Test`,
+`ChainedRecoveryOrdering_BothDeclineIsUnresolved_Test`,
+`WatchdogRecoveryDecorator_ArmsRelaxesThenReverts_Test`), and 3 are
+instruction-content changes with no count change --
+`WatchdogRecoveryDecorator_ProgressDisarmsAndDelegatesBack_Test` (726 insns,
+113 changed), `WatchdogRecoveryDecorator_NotifyStepAcceptedResetsArmingCounter_Test`
+(791 insns, 114 changed), and
+`ExtendedBacktrackLadder_AcceptsAndStopsEarly_Test` (801 insns, **691
+changed** -- most of the symbol), which is where the illustrative xmm0/ymm0
+pair and the changed immediates (`movl $0x3` -> `movl $0x1`) and re-laid
+stores (`movl ... 0x2e8` -> `movb ... 0x2e4`) actually live. Ordering DID move
+for the seven structural symbols (that is what "instructions were added or
+removed" means); it did not move for the three non-structural ones. All ten
+are still the same underlying cause the 2026-09-18 record names correctly --
+the inline materialisation of `InertSolverContext`'s default-constructed
+`IpmOptions`, which three moved default initialisers changed the image and
+layout of -- and all ten are class B, benign, and consistent with every other
+unity TU's class-B membership in this classification.
+
+WHY DEBUG NEEDED NO MATCHING CORRECTION ON THE DELTA: `classification-Debug.txt`
+carries the same header-list and negative-control defects (see the correction
+appended there) but no unity_3-shaped record, because Debug's own
+classifier run placed unity_0 and unity_2 in class B directly and had no
+UNEXPLAINED object to begin with.
+
+THE RESULT, restated correctly: **Release 17 differing objects = 6 class A +
+11 class B, 0 unexplained**, negative control **5** byte-identical includers
+of this task's three changed headers. README sections 3 and 4 are corrected
+in place with a one-line "corrected in fix1" mark; this record and the
+2026-09-18 record above it are both kept, append-only, as the history of how
+that number was reached.
+===========================================================================
