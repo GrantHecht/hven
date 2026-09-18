@@ -724,13 +724,28 @@ struct SqpOptions {
     /// problem; this field says how many times the driver may make that
     /// argument before it stops.
     ///
-    /// DEFAULT 1, WHICH IS THIS ENGINE'S BEHAVIOUR BEFORE THE FIELD EXISTED:
-    /// the gate was `qp_failures_in_a_row == 0` and is now
-    /// `qp_failures_in_a_row < qp_failure_budget`, so at 1 the FIRST failure at
-    /// an iterate is routed and the second ends the solve, exactly as before,
-    /// and no solve moves. Must be >= 1: a budget of 0 would refuse the first
-    /// retry this engine has always taken, which is a behaviour change nobody
-    /// asked for spelled as a validation value -- `validate()` refuses it.
+    /// DEFAULT 3, AND IT IS MEASURED RATHER THAN PRESUMED. The gate was
+    /// `qp_failures_in_a_row == 0` and is now
+    /// `qp_failures_in_a_row < qp_failure_budget`, so **1 IS THIS ENGINE'S
+    /// BEHAVIOUR BEFORE THE FIELD EXISTED** -- the first failure at an iterate
+    /// routed, the second ending the solve -- and setting it to 1 restores that
+    /// engine exactly, byte for byte. 3 is what the CUTEst TRAIN 23 reading
+    /// chose over 1 by the M7 rule, on its own arm, run twice:
+    /// `docs/notes/data/2026-09-m7-w2-m1-qp-cap/`. One more cell converges
+    /// (`READING6`, to the objective the IPM and SNOPT lanes reach), no new cell
+    /// errors, and the only cells whose counters move at all are the nine that
+    /// fail a subproblem.
+    ///
+    /// WHAT THE THIRD FAILURE COSTS WHEN IT DOES NOT HELP: two more majors on a
+    /// cell that was going to fail anyway, and their subproblems are the
+    /// expensive ones. On that TRAIN split `BRITGAS` went from 9 265 to 93 749
+    /// factorizations and, informationally, from 22 s to 275 s of a 300 s cell
+    /// ceiling. A caller who must bound the work per solve bounds it with
+    /// `max_iter` and the QP's own cap, or sets this back to 1.
+    ///
+    /// Must be >= 1: a budget of 0 would refuse the first retry this engine has
+    /// always taken, which is a behaviour change nobody asked for spelled as a
+    /// validation value -- `validate()` refuses it.
     ///
     /// The counter is cleared by a `kOptimal` subproblem, so the budget is per
     /// RUN of consecutive failures, not per solve; the run this solve reached is
@@ -749,7 +764,7 @@ struct SqpOptions {
     /// subproblem is re-posed, not whether or how a second-order reading is
     /// taken.
     /// @see docs/notes/2026-09-m7-w2-sqp-cutest-read.md section M1
-    Index qp_failure_budget = 1;
+    Index qp_failure_budget = 3;
 
     /// THE CAP RETRY (M7 W2 M1): re-solve a subproblem that spent its whole
     /// minor budget, ONCE, at twice the cap.

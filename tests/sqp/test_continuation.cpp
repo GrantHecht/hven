@@ -1147,6 +1147,17 @@ TEST(Continuation, ProbeBudgetBoundsAFailingProposal) {
         // testing the PROBE BUDGET, which is what this test is about, on the
         // failure they were pinned against.
         opts.qp.max_iter = 500;
+        // THE SAME CORRECTION, ONE TASK LATER (M7 W2 M1). This line is NEW for
+        // the same reason the one above is: the failure-routing gate's budget
+        // was 1 when this fixture's numbers were pinned, and the CUTEst TRAIN
+        // reading raised the SHIPPED default to 3
+        // (docs/notes/data/2026-09-m7-w2-m1-qp-cap/). At 3 the failing proposal
+        // costs 5 majors / 2002 minors instead of 3 / 1002 -- two more
+        // shrink-and-retry passes at the same iterate -- which would move every
+        // "cap-pinned" number below and the M6-vs-OFF minor comparisons with
+        // them. This fixture is about the PROBE BUDGET, not about the routing
+        // gate, so it writes the gate out at the value it was pinned against.
+        opts.qp_failure_budget = 1;
         return opts;
     };
     const auto make_continuation_options = [](int probe_budget) {

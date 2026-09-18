@@ -3463,6 +3463,14 @@ TEST(SqpDriverQpFailure, RepeatedQpNumericalErrorStillPropagates) {
         opts.tr_max = 100.0;
         opts.max_iter = 40;
         opts.qp.ws_algebra = algebra;
+        // THE OLD GATE, WRITTEN OUT (M7 W2 M1). This fixture pins the
+        // mechanism the ONE-retry gate has: the second consecutive failure at an
+        // iterate ends the solve. The SHIPPED default is now
+        // `qp_failure_budget = 3` (the CUTEst TRAIN reading,
+        // docs/notes/data/2026-09-m7-w2-m1-qp-cap/), which routes two more, so
+        // the budget is written out here rather than defaulted -- the pins below
+        // are unchanged and are still the statement about the mechanism.
+        opts.qp_failure_budget = 1;
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(model);
 
@@ -3483,6 +3491,45 @@ TEST(SqpDriverQpFailure, RepeatedQpNumericalErrorStillPropagates) {
         // iterate.
         EXPECT_TRUE(sol.history.back().qp_solved);
     }
+}
+
+// THE SHIPPED BUDGET'S OWN ROW (M7 W2 M1), AND WHAT THE TWO EXTRA RETRIES BUY
+// ON THIS VERY FIXTURE. The test above writes `qp_failure_budget = 1` out
+// because it pins the ONE-retry mechanism: two failures in a row at one iterate
+// and the solve ends. This one leaves the field DEFAULTED, so it is the
+// statement of what the engine does out of the box after the CUTEst TRAIN
+// reading raised the default to 3 (docs/notes/data/2026-09-m7-w2-m1-qp-cap/) --
+// and on the SAME model the answer is not "the same exit three rows later": the
+// solve REACHES `kOptimal`. The failures are a property of the subproblem at
+// its radius, and TwinSaddle's third shrink is small enough to pose a
+// subproblem the kernel can answer, which is the whole argument for a budget
+// above 1, observed at unit scale.
+TEST(SqpDriverQpFailure, TheShippedBudgetRoutesMoreAndThisFixtureThenSolves) {
+    TwinSaddleModel model(3);
+    SqpOptions opts;
+    opts.tr_init = 4.0;
+    opts.tr_max = 100.0;
+    opts.max_iter = 40;
+    ASSERT_EQ(opts.qp_failure_budget, 3) << "the shipped default this test exists to pin";
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
+
+    EXPECT_EQ(sol.status, SolveStatus::kOptimal);
+    ASSERT_EQ(sol.history.size(), 5u);
+    // The routing half of M1's counter group reads the budget directly: the
+    // consecutive run this solve reached is what the raised budget admitted, and
+    // it is above the 1 the old gate allowed -- which is the non-vacuous part.
+    EXPECT_GT(sol.counters.qp_failures_in_a_row_peak, 1);
+    EXPECT_LE(sol.counters.qp_failures_in_a_row_peak, opts.qp_failure_budget);
+    EXPECT_EQ(sol.counters.qp_failures_routed, sol.counters.qp_failures_in_a_row_peak);
+    EXPECT_EQ(sol.counters.qp_numerical_exits, sol.counters.qp_failures_routed)
+        << "every failure here is a kNumericalError, and at kOptimal none of them ended "
+           "the solve, so the exits and the routings are the same set";
+    EXPECT_EQ(sol.counters.qp_maxiter_exits, 0);
+    EXPECT_EQ(sol.counters.qp_cap_retries, 0) << "the cap retry ships OFF";
+    // Every routed failure is also a rejection, exactly as at a budget of 1.
+    EXPECT_GE(sol.counters.rejected_steps, sol.counters.qp_failures_routed);
+    EXPECT_GT(sol.counters.steps_accepted, 0) << "the solve moved, which is the point";
 }
 
 // THE kMaxIter REVISIT (Task 6's ledger item). Task 6 mapped a QP kMaxIter
@@ -3541,6 +3588,14 @@ TEST(SqpDriverQpFailure, RepeatedQpMaxIterStillPropagates) {
     SqpOptions opts;
     opts.max_iter = 60;
     opts.qp.max_iter = 3;
+    // THE OLD GATE, WRITTEN OUT (M7 W2 M1). This fixture pins the
+    // mechanism the ONE-retry gate has: the second consecutive failure at an
+    // iterate ends the solve. The SHIPPED default is now
+    // `qp_failure_budget = 3` (the CUTEst TRAIN reading,
+    // docs/notes/data/2026-09-m7-w2-m1-qp-cap/), which routes two more, so
+    // the budget is written out here rather than defaulted -- the pins below
+    // are unchanged and are still the statement about the mechanism.
+    opts.qp_failure_budget = 1;
     SqpSolver driver(opts);
     const SqpResult sol = driver.solve(*hs.model);
 
@@ -3663,6 +3718,14 @@ TEST(SqpDriverQpFailure, RoutedFailuresCountTowardTheRestorationGate) {
         opts.max_iter = 60;
         opts.qp.max_iter = 2;
         opts.qp.ws_algebra = algebra;
+        // THE OLD GATE, WRITTEN OUT (M7 W2 M1). This fixture pins the
+        // mechanism the ONE-retry gate has: the second consecutive failure at an
+        // iterate ends the solve. The SHIPPED default is now
+        // `qp_failure_budget = 3` (the CUTEst TRAIN reading,
+        // docs/notes/data/2026-09-m7-w2-m1-qp-cap/), which routes two more, so
+        // the budget is written out here rather than defaulted -- the pins below
+        // are unchanged and are still the statement about the mechanism.
+        opts.qp_failure_budget = 1;
         SqpSolver driver(opts);
         const SqpResult sol = driver.solve(*hs.model);
 

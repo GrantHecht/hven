@@ -166,6 +166,12 @@ TEST(QpCapCounters, TheCappedExitIsCountedApartFromANumericalOne) {
 
     SqpOptions o = base_options();
     o.qp.max_iter = 1; // an EXPLICIT absolute cap; qp_types.h's precedence rule
+    // AND AN EXPLICIT BUDGET OF 1, WHICH IS THE ENGINE BEFORE M7 W2 M1. The
+    // SHIPPED budget is 3 (the TRAIN reading, sqp_solver_types.h); this test
+    // pins what the field's OFF value reproduces, so it writes it out rather
+    // than depending on the default, and `TheDefaultIsThreeAndOneIsTheOldGate`
+    // below pins the default itself.
+    o.qp_failure_budget = 1;
     BoxPullModel model;
     SqpSolver driver(o);
     const SqpResult out = driver.solve(model, cold_start());
@@ -198,28 +204,46 @@ TEST(QpCapCounters, TheCappedExitIsCountedApartFromANumericalOne) {
 // Lever 1 -- the consecutive-failure budget
 // ---------------------------------------------------------------------------
 
-TEST(QpCapBudget, TheDefaultIsTodaysGateExactly) {
-    // OFF IS 1, AND 1 IS TODAY: the same solve as the counters pin above, with
-    // the field written out explicitly rather than left defaulted.
-    SqpOptions o = base_options();
-    o.qp.max_iter = 1;
-    o.qp_failure_budget = 1;
+TEST(QpCapBudget, TheDefaultIsThreeAndOneIsTheOldGate) {
+    // THE SHIPPED DEFAULT IS 3, chosen on the CUTEst TRAIN 23 by the M7 rule
+    // (docs/notes/data/2026-09-m7-w2-m1-qp-cap/), and this is the pin on the
+    // literal as well as on what it does: a defaulted solve must be the solve
+    // an explicit 3 gives, and an explicit 1 must be the engine before the field
+    // existed -- two majors, one routed failure -- on the same capped fixture.
+    EXPECT_EQ(SqpOptions{}.qp_failure_budget, 3);
+
     BoxPullModel model;
-    SqpSolver explicit_default(o);
-    const SqpResult a = explicit_default.solve(model, cold_start());
 
     SqpOptions d = base_options();
     d.qp.max_iter = 1;
     SqpSolver defaulted(d);
-    const SqpResult b = defaulted.solve(model, cold_start());
+    const SqpResult a = defaulted.solve(model, cold_start());
+
+    SqpOptions three = d;
+    three.qp_failure_budget = 3;
+    SqpSolver written(three);
+    const SqpResult b = written.solve(model, cold_start());
 
     EXPECT_EQ(a.status, b.status);
     EXPECT_EQ(a.counters.major_iters, b.counters.major_iters);
     EXPECT_EQ(a.counters.qp_failures_routed, b.counters.qp_failures_routed);
     EXPECT_EQ(a.f, b.f);
+    EXPECT_EQ(a.counters.qp_failures_routed, 3);
+
+    SqpOptions one = d;
+    one.qp_failure_budget = 1;
+    SqpSolver old_gate(one);
+    const SqpResult c = old_gate.solve(model, cold_start());
+
+    EXPECT_EQ(c.status, SolveStatus::kNumericalError);
+    EXPECT_EQ(c.counters.major_iters, 2);
+    EXPECT_EQ(c.counters.qp_failures_routed, 1);
+    EXPECT_EQ(c.counters.qp_failures_in_a_row_peak, 1);
 }
 
 TEST(QpCapBudget, ABudgetOfThreeRoutesThreeFailuresAndThenExits) {
+    // THE SHIPPED DEFAULT'S OWN ROW, written out: this is what a capped
+    // subproblem costs at 3, and the test above pins that the default gives it.
     SqpOptions o = base_options();
     o.qp.max_iter = 1;
     o.qp_failure_budget = 3;
@@ -305,6 +329,7 @@ TEST(QpCapRetry, ADoubledCapThatStillDoesNotSufficeFailsAsTodayAndSaysSo) {
     SqpOptions o = base_options();
     o.qp.max_iter = 1; // 2 * 1 is still below what the subproblem needs
     o.qp_cap_retry = true;
+    o.qp_failure_budget = 1; // lever 2 ALONE, against the pre-M1 routing gate
     BoxPullModel model;
     SqpSolver driver(o);
     const SqpResult out = driver.solve(model, cold_start());

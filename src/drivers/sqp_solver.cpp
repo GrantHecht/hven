@@ -5948,10 +5948,12 @@ SqpSolver::MajorOutcome SqpSolver::run_major(SolveState &st, MajorState &mj, Ass
         // is the accurate description of what happened to this trial.
         //
         // THE BUDGET (M7 W2 M1, mechanism M1(2)). `qp_failures_in_a_row <
-        // opts_.qp_failure_budget` is the gate `== 0` used to be, and at the
-        // shipped budget of 1 it is that expression exactly: the first failure
-        // at an iterate is routed, the second ends the solve. A higher budget
-        // buys more shrink-and-retry passes at ONE iterate and nothing else --
+        // opts_.qp_failure_budget` is the gate `== 0` used to be, and at a
+        // budget of 1 it is that expression exactly: the first failure at an
+        // iterate is routed, the second ends the solve. The SHIPPED budget is 3,
+        // measured on the CUTEst TRAIN 23
+        // (docs/notes/data/2026-09-m7-w2-m1-qp-cap/). A higher budget buys more
+        // shrink-and-retry passes at ONE iterate and nothing else --
         // the radius floor below still converts a shrink that would cross
         // `tr_min` into a restoration request, at every budget.
         if (st.qp_failures_in_a_row < opts_.qp_failure_budget &&

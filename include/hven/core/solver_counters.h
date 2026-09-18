@@ -1474,10 +1474,12 @@ struct SqpCounters {
     /// One per failure the routing gate admitted:
     /// `qp_failures_in_a_row < SqpOptions::qp_failure_budget` and the failed
     /// solve handed back a usable iterate (`qp_failure_is_retryable`). At the
-    /// shipped budget of 1 that gate admits the FIRST failure at an iterate and
-    /// refuses the second, so this field is the count of first failures and
+    /// shipped budget of 3 that gate admits up to three failures IN A ROW at one
+    /// iterate and refuses the fourth, and
     /// `qp_maxiter_exits + qp_numerical_exits - qp_failures_routed` is the
-    /// number of failures that ended a solve or were refused as unusable.
+    /// number of failures that ended a solve or were refused as unusable. At a
+    /// budget of 1 -- the engine before M7 W2 M1 -- it is the count of first
+    /// failures.
     ///
     /// IT IS A SUBSET OF `rejected_steps`, which is incremented at the same
     /// site and keeps its meaning unchanged: every routed failure is a major
@@ -1494,10 +1496,10 @@ struct SqpCounters {
     ///
     /// A PEAK, folded with `max` like `active_set_delta_peak`. The driver's own
     /// `qp_failures_in_a_row` counts failures since the last `kOptimal`
-    /// subproblem and is cleared by one; this is its high-water mark. At the
-    /// shipped `qp_failure_budget == 1` it is 0 or 1 by construction -- the
-    /// gate admits no second consecutive failure -- so a value above 1 is
-    /// itself the statement that the budget was raised and was used.
+    /// subproblem and is cleared by one; this is its high-water mark. It is
+    /// bounded by `SqpOptions::qp_failure_budget` by construction, so at the
+    /// shipped budget of 3 it is 0, 1, 2 or 3, and at a budget of 1 -- the
+    /// engine before M7 W2 M1 -- it is 0 or 1.
     ///
     /// It counts ADMITTED failures, so the failure that ENDS the solve (the one
     /// the gate refuses) is not in it: a solve that ends on its second

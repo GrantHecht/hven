@@ -1100,8 +1100,18 @@ void check_full_step_lever_on_the_sound_warm_arms() {
     // control saying the repair did not disturb the equality-only third.
     EXPECT_EQ(26, problem("HS10").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(40, problem("HS10").cell[kArmWarm][kOn][kOn].majors);
-    EXPECT_EQ(21, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
-    EXPECT_EQ(28, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
+    // RE-DERIVED, M7 W2 M1 (a DECLARED break, CLAUDE.md section 7): 21/28 ->
+    // 23/30. The shipped `SqpOptions::qp_failure_budget` moved from 1 to 3 on
+    // the CUTEst TRAIN reading (docs/notes/data/2026-09-m7-w2-m1-qp-cap/), and
+    // HS15's warm arm is the one cell in this corpus that routes a subproblem
+    // failure at all: two more failures are now routed at the iterate that used
+    // to end the chain, so the arm performs two more majors -- both of them full
+    // steps -- before the elastic tier engages as it did before. NOTHING ELSE IN
+    // THE CORPUS MOVES, which is the control that says this is the routing gate
+    // and not a trajectory change: HS10, HS26, HS33, HS40 and HS77 hold at their
+    // Task-7b values, and every cold arm is untouched.
+    EXPECT_EQ(23, problem("HS15").cell[kArmWarm][kOn][kOn].full_step_majors);
+    EXPECT_EQ(30, problem("HS15").cell[kArmWarm][kOn][kOn].majors);
     EXPECT_EQ(12, problem("HS26").cell[kArmWarm][kOn][kOn].full_step_majors);
     EXPECT_EQ(29, problem("HS26").cell[kArmWarm][kOn][kOn].majors);
     EXPECT_EQ(12, problem("HS33").cell[kArmWarm][kOn][kOn].full_step_majors);
@@ -1261,9 +1271,23 @@ void check_soc_costs_what_it_costs() {
     // EXACTLY on this backend -- the fork is confined to the denominator.
     // The origin's quoted 23/3719 = 0.62 % is unaffected at its own precision
     // by the -2 total here (23/3717 = 0.62 % also).
+    // APPLE/ACCELERATE IS **UNOBSERVED** UNDER M7 W2 M1 AND THE PIN IS NOT
+    // ADJUSTED (CLAUDE.md section 6: a value not observed on real Mac hardware
+    // is never interpolated). The MKL arm below moved 3719 -> 3737 when the
+    // shipped `qp_failure_budget` became 3; the -2 recorded here is an HS26
+    // fork in the DENOMINATOR that has nothing to do with this task, so the
+    // arithmetic "3717 + 18" is a guess and is deliberately not made. If this
+    // assertion fails on the Mac lane reading 3735, that is the expected +18 on
+    // HS15's warm arm and the pin should be re-derived BY THE OBSERVATION;
+    // any other value is a finding.
     EXPECT_EQ(3717, total_minors) << corpus_table();
 #else
-    EXPECT_EQ(3719, total_minors) << corpus_table();
+    // RE-DERIVED, M7 W2 M1 (a DECLARED break): 3719 -> 3737, +18, all of it
+    // HS15's warm arm (92 -> 110) for the reason given at the engagement pins
+    // above -- two more routed failures, two more majors. The SOC numerator does
+    // not move (23 and 4 are unchanged two blocks up), so 23/3737 = 0.62 % still
+    // rounds as the note quotes it.
+    EXPECT_EQ(3737, total_minors) << corpus_table();
 #endif
 }
 
