@@ -7,6 +7,9 @@ retry arm rescues nothing, roughly doubles the minor spend on every cell whose
 subproblems reach the cap, and moves a cell OUTSIDE that list (`ZAMB2-8`, an
 already-optimal cell), which is the clause it fails. `tables.txt` applies the
 rule; the lines here restate its output, they are not a second judgement.
+**The hs TRAIN split was read too** (§7a, added on review): all 21 cells are
+bit-identical between the two arms, so the second TRAIN family neither supports
+nor opposes the budget -- it simply never reaches the gate.
 
 ## 1. What is measured
 
@@ -218,14 +221,53 @@ lines in `tables.txt` are its output.
 
 **The shipped defaults are `qp_failure_budget = 3` and `qp_cap_retry = false`.**
 
-Shipping a non-OFF default MOVES TRAJECTORIES, and that is a DECLARED
-re-derivation, not a silent one (CLAUDE.md §7): the U0 27-cell replay's
-`replay/head-{walk,ssn,ipm}.csv` in this directory were taken at the
-counters-and-levers HEAD, where both levers were at their OFF state and the
-replay reproduced the M6 close CSVs 27/75/0 on all three arms. `replay-shipped/`
-carries the same three arms re-run at the shipped defaults, and
-`replay-shipped/comparison.txt` is the declared break: what moved, on which
-cells, and the arms that did not move at all.
+### 7a. The hs TRAIN split, read because the in-tree HS15 sweep moved
+
+Shipping the default broke four in-tree pins (below), and one of them --
+`HsSweepCorpus.Corpus` -- is an hs problem. The A0 contract's TRAIN read covers
+BOTH TRAIN families, so the hs half was measured before the default shipped,
+through this same rig: `sets/hs-27.json`'s **21 TRAIN cells** under `split-v1`,
+the OFF arm and the budget arm, one run each, alone under the box lock.
+
+**Every hs TRAIN cell is bit-identical between the arms, and all 21 are
+`optimal` on both** (`hs/table.txt`, `hs/cells-hs-{off,budget}.csv`). The reason
+is mechanical and worth stating: these cells solve from a COLD start at default
+options and never route a subproblem failure, so the gate the budget widens is
+never reached. The in-tree sweep's HS15 row moves because it is a **warm** arm
+of a continuation sweep, which does route one. The hs family therefore clears
+the rule's bar -- same optimal count, no new error -- without evidence for the
+lever: the CUTEst read is what carries it.
+
+### 7b. What shipping the default re-derived, declared
+
+Shipping a non-OFF default was expected to move trajectories, and the U0 27-cell
+replay was budgeted for a re-derivation. **It did not need one.** `replay/` here
+is the replay at the OFF-default HEAD and `replay-shipped/` is the same three
+arms re-run at the shipped defaults; `replay-shipped/comparison.txt` compares the
+latter BOTH against the M6 close pin and against the former, and every one of the
+six comparisons is **27 cells / 75 columns / 0 differences**. No U0 cell routes a
+subproblem failure either, which is the same reason the hs split does not move.
+
+What DID break is four in-tree pins, each declared here and in the commit that
+carries it (CLAUDE.md §7):
+
+1. **`HsSweepCorpus.Corpus`, re-derived.** HS15's warm arm 21/28 → **23/30**
+   full-step majors / majors, and the corpus total **3719 → 3737** minors — all
+   +18 of it HS15's warm arm (92 → 110). Nothing else in the corpus moves, which
+   is the control saying this is the routing gate and not a trajectory change.
+2. **That test's Accelerate arm is UNOBSERVED and was NOT adjusted.** It stays at
+   3717 with a comment saying 3735 would be the expected +18 and that only an
+   observation on real Mac hardware may write it (CLAUDE.md §6: never
+   interpolate an Apple value).
+3. **`Continuation.ProbeBudgetBoundsAFailingProposal` writes the gate out at 1.**
+   At 3 its failing proposal costs 5 majors / 2002 minors rather than the pinned
+   3 / 1002, and its M6-vs-OFF minor comparisons flip. The fixture is about the
+   PROBE budget, so it pins the routing gate it was measured against — the same
+   escape-hatch move M6 W6's own marked correction makes one line above it.
+4. **The three `SqpDriverQpFailure` fixtures do the same**, for the same reason:
+   they pin the ONE-retry mechanism, not the default. A new fixture beside them
+   leaves the field defaulted, and on the same model the raised budget does not
+   merely exit three rows later — the solve reaches `kOptimal`.
 
 The cap retry stays in the tree at `false`. It is a two-line opt-in with a
 counter (`qp_cap_retries`) and a trace site (`qp.mode` `site = "cap_retry"`)
@@ -243,6 +285,8 @@ tuning choice.
 | `raw/<tag>/<PROBLEM>.txt` | every cell's own stdout, verbatim, with its wall and rc |
 | `gates/` | both suites, the long test alone, the replay, the smokes, the export line, and the P-SYM classification in both configs |
 | `replay/head-{walk,ssn,ipm}.csv` | the U0 replay at the OFF-default HEAD (27/75/0 against the M6 close CSVs) |
-| `replay-shipped/` | the U0 replay re-run at the SHIPPED defaults, with the declared re-derivation's comparison |
+| `replay-shipped/` | the U0 replay re-run at the SHIPPED defaults, and `comparison.txt`, the six comparisons that came back 27/75/0 |
+| `hs/` | the hs TRAIN split (21 cells), both arms, with `table.txt` and every cell's raw stdout |
+| `gates-shipped/` | the same gates re-run at the SHIPPED commit `3f2f6e35`, including the P-SYM classification, which is identical in both configs |
 | `PROVENANCE.txt` | toolchain, hardware, date, commit, and each arm's header sha256 + its two default literals |
 | `wrappers/` | every script that produced the above |

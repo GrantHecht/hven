@@ -16,6 +16,7 @@ echo "harness commit:  $(git -C /home/ghecht/Projects/hven-bench rev-parse HEAD)
 echo "harness pin:     3904a477771524b85b34678fb7d2ff55dd4768f1 (the stamp these binaries carry, and it is FALSE for them -- see section 2)"
 echo "MKL threads:     MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 in every cell process"
 echo "wall ceiling:    300 s per cell (sets/cutest-nlp.json run_terms.budget_wall_s)"
+echo "hs leg ceiling:  600 s per cell (sets/hs-27.json run_terms.budget_wall_s); the hs TRAIN split is 21 of that set's 27 under split-v1, and no hs cell runs a second"
 echo "budget-iters:    0 (the engine's own SqpOptions::max_iter = 100)"
 for a in off budget retry both; do
   if [ -f "$S/install-$a/include/hven/drivers/sqp_solver_types.h" ]; then
