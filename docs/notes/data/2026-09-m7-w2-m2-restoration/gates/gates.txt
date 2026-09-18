@@ -75,10 +75,39 @@ task's own install prefix with `linux 32` --
     scripts/check_export_contract.sh \
       <prefix>/lib64/cmake/hven/hvenTargets.cmake linux 32
 
--- and at the moment this artifact was committed that re-run was STILL QUEUED
-behind the other lane's 1800 s cell, which is what taking the lock with no
-timeout and no fallback means. ITS RESULT IS THEREFORE NOT CLAIMED HERE, in the
-table above or anywhere else. It lands as `export-contract.txt` beside this
-file; until that file exists, this gate is OUTSTANDING and nothing in this
-artifact depends on it. The check reads a generated CMake file and asserts the
-alignment the export advertises; it touches no measurement on this page.
+-- and at the moment the rest of this artifact was committed that re-run was
+STILL QUEUED behind the other lane's 1800 s cell, which is what taking the lock
+with no timeout and no fallback means. It was recorded as OUTSTANDING there
+rather than claimed, and the wait is left on the record rather than tidied away.
+
+IT HAS SINCE LANDED, and it is `export-contract.txt` beside this file, verbatim:
+it ran at 19:29:00 and reports **`export contract OK for platform=linux,
+align=32`**, rc 0 -- platform macro set, `EIGEN_MAX_ALIGN_BYTES` exported 32
+against computed 32, no `INTERFACE_COMPILE_OPTIONS`, and
+`INTERFACE_INCLUDE_DIRECTORIES` appearing exactly once. The check reads a
+generated CMake file and asserts the alignment the export advertises; no
+measurement on this page depended on it either way.
+
+--- APPENDED 2026-09-18, BY THE WRITING ROUND (the page/README/report task) ---
+
+G6b EXPORT CONTRACT: **CLOSED, rc 0.** The re-run this file recorded as
+OUTSTANDING landed at 2026-09-18T19:29:01-04:00, alone inside its own
+`flock /tmp/box-build.lock` acquisition taken with no timeout and no fallback --
+it had been queued since 19:00 behind the other lane's 1800 s re-pin cell, which
+is what "no timeout and no fallback" costs and buys. It was NOT re-launched by
+this round; the process already queued is the one that ran, and its transcript is
+copied verbatim to `export-contract.txt` beside this file.
+
+    scripts/check_export_contract.sh \
+      <prefix>/lib64/cmake/hven/hvenTargets.cmake linux 32
+
+    platform macro set OK for linux
+    EIGEN_MAX_ALIGN_BYTES OK: exported=32 computed=32
+    INTERFACE_COMPILE_OPTIONS OK: absent
+    INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+    == export contract OK for platform=linux, align=32
+    EXPORT_CONTRACT_RC=0
+
+The table above is NOT rewritten: it recorded what was true when it was written.
+This record is the append the outstanding line asked for, and with it the
+measurement is complete -- all six gate segments plus G6b, green.
