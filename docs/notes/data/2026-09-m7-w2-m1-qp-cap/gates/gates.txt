@@ -1,0 +1,32 @@
+M7 W2 M1 -- the measurement-independent gates, at HEAD 4d27fb02 (clean)
+
+=== RELEASE SUITE (stage1) ===
+100% tests passed, 0 tests failed out of 2655
+Total Test time (real) =  80.82 sec
+
+=== DEBUG SUITE (the >600 s test excluded) ===
+100% tests passed, 0 tests failed out of 2654
+Total Test time (real) = 346.17 sec
+
+=== THE >600 s DEBUG TEST, ALONE ===
+1/1 Test #1483: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  673.38 sec
+100% tests passed, 0 tests failed out of 1
+
+=== U0 27-CELL THREE-ARM REPLAY, smoke, export ===
+=== M6 CLOSE HEAD-walk vs M7 W2 M1 HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+=== M6 CLOSE HEAD-ssn vs M7 W2 M1 HEAD-ssn === cells compared: 27  columns compared: 75  differences: 0
+=== M6 CLOSE HEAD-ipm vs M7 W2 M1 HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0
+REPLAY_RC=0
+install smoke: both solvers converged through one generic consumer; 19 standalone-include TUs compiled and linked
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.scratch/m7w2m1/smoke-default/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.scratch/m7w2m1/smoke-default/hven-configure.log
+SMOKE_DEFAULT_RC=0
+install smoke: both solvers converged through one generic consumer; 19 standalone-include TUs compiled and linked
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.scratch/m7w2m1/smoke-clang/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.scratch/m7w2m1/smoke-clang/hven-configure.log
+SMOKE_CLANG_RC=0
+align=32  targets=/home/ghecht/Projects/hven/.scratch/m7w2m1/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake
+== checking export contract: /home/ghecht/Projects/hven/.scratch/m7w2m1/smoke-clang/hven-install/lib64/cmake/hven/hvenTargets.cmake (platform=linux)
+== export contract OK for platform=linux, align=32
+EXPORT_RC=0
+GATES_WORST=0
