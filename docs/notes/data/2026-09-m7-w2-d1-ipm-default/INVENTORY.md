@@ -237,3 +237,104 @@ No preset is tuned. `soc_recovery_l1` is untouched (its NET3 divergence is
 registered separately). No stall detector. No harness change — the harness re-pin
 is the next task and takes this HEAD. Apple/Accelerate values are UNOBSERVED and
 are never adjusted here; the macOS lane reports them.
+
+---
+
+## 8. FOUND BY THE SUITE, NOT BY THIS INVENTORY (appended after the first full gate run)
+
+Seven tests failed at the shipped default, identically in Release and Debug.
+None of them was a NEW pin: every one is a pin §2 of this inventory listed and
+CLASSIFIED WRONGLY, or listed only as a named hazard without carrying the
+disposition through. They are set out here with what the inventory said, why
+that was not enough, and the disposition each got — the same two choices T1-T6
+faced.
+
+**Why the inventory missed them, in one sentence per cause.**
+
+* **Cause A — "re-derived by re-running" is not a disposition, it is a
+  deferral.** §2.B put fifteen files in one bucket and said the suite would be
+  their evidence. That is true and it is how the seven were caught, but it meant
+  the inventory shipped without saying, per fixture, WHICH of the two
+  dispositions each would take — so the cost of the event looked smaller on
+  paper than it was. Six of the seven are in that bucket.
+* **Cause B — a named hazard was not followed to its fixture.** §2.B flagged
+  `test_ipm_stop_reason.cpp`'s stop-reason tuning and
+  `test_ipm_solver_entry.cpp`'s `opt_ls_mode` comparisons in prose, and
+  predicted the exact failure mode of the second ("those comparisons risk
+  becoming vacuous rather than failing"). It did not then open the fixtures and
+  name the tests. A hazard named but not resolved to a file:line is a note, not
+  an inventory row.
+* **Cause C — one file was outside every grep.**
+  `tests/drivers/test_solve_result.cpp`'s `IpmPhases.EachPhaseCarriesItsOwnVerdict`
+  was reached (it is in §2.B's list) but its hard-coded `max_iters = 10` was read
+  as an EXPLICIT parameterisation — §2.C's "safe by construction" class — when it
+  is the opposite: a cap is only explicit about its own value, and what it
+  asserts is a property of the trajectory it is capping. **The general lesson,
+  and it is the one worth carrying to the next default event: a hard-coded
+  iteration cap is not a pinned option, it is a pinned TRAJECTORY.**
+
+| # | test | what moved | disposition |
+|---|---|---|---|
+| S1 | `IpmSolverEntry.AMultiPhaseCapIsLabelledByThePhaseThatHitIt` (`test_ipm_solver_entry.cpp`) | the cap was 10. Measured uncapped at the shipped default, this HS071 two-phase pair runs to callback terminal indices **5** (kSolve) and **7** (kOptimize); under the old default the optimality phase ran past index 9. At 10 neither phase now hits the cap, so the test asserted a cap verdict the solve never reached. | **RE-DERIVED: 10 → 7.** The mechanism (a cap is labelled by the phase that hit it) is not globalization-specific, so the test stays on the SHIPPED default and the instrument is retuned. 7 is the only value that works and the two existing assertions are what pin it: `<= 7` for the optimality phase to run out, `> 6` for the feasibility phase to end on its own verdict at 5. |
+| S2 | `IpmPhases.EachPhaseCarriesItsOwnVerdict` (`test_solve_result.cpp`) | the same fixture measured the other way: `phases[].iterations` are **6** and **8** at the shipped default; `max_iters = 10` stopped neither phase. | **RE-DERIVED: 10 → 7**, same argument, same only-value-that-works (the second phase needs 8, the first needs 6). |
+| S3 | `IpmSolverEntry.TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory` | the two arms returned **byte-identical** objective traces. `opt_ls_mode` selects WITHIN the classic-merit line-search family and is read only on the path classic merit drives; under `filter` it selects nothing. The test's own failure message is the diagnosis verbatim: "the option selected nothing". | **PINNED to the pre-event pair** (`classic_merit` over `classic_adaptive`) **on BOTH arms.** The mechanism under test is the classic-merit family, which the old default exercised. Both arms, deliberately: pinning only the variant would compare two acceptance strategies and pass for the wrong reason. |
+| S4 | `IpmSolverEntry.TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory` | identical to S3. | **PINNED**, same helper, same reason. |
+| S5 | `IpmStopReason.AStalledFeasibilityStageIsRecordedAsSuch` | `last_stop_reason()` is `kRestorationLocallyInfeasible` where the test expects `kStageStalled`. The status still resolves to `kStalled` and the terminal-index assertion still holds — what changed is which labelled door the fixture leaves by. | **PINNED to the pre-event pair in `make_stall_solver`.** See the note below. |
+| S6 | `IpmStopReason.AStallOnTheCapIterationKeepsTheStallLabel` | same fixture, same flip, caught at its `ASSERT_EQ` premise. | **PINNED** (same builder). |
+| S7 | `IpmStopReason.TheStalledDoorStillPrintsNoSolutionFoundAndCarriesItsMessage` | same fixture, same flip. | **PINNED** (same builder). |
+
+**S5-S7, and why it is a pin rather than a re-tune.** `make_stall_solver` is a
+tuned instrument, and its own pre-existing comment says what the tuning is for:
+"the loosened tolerances keep that episode's exit the near-feasible one rather
+than a local-infeasibility declaration". That balance — four tolerances against
+one restoration episode on a power-spike problem — is what lets the stage go on
+to run out of iterations and leave through `kStageStalled`. Under filter over the
+monitored governor the balance does not hold and the episode is classified
+locally infeasible instead. Re-deriving would mean re-tuning four tolerances to
+chase a new trajectory: that is re-deriving the INSTRUMENT, not the measurement,
+and the door under test would be reached by luck rather than by construction.
+The pre-event pair is written on the builder instead — the trajectory every pin
+in that file was measured on. Five other tests share the builder and passed
+before the pin; they were written against the same trajectory and now say so.
+
+**Registered, not fixed — a datum for the IPM stall detector.** That the
+restoration episode's near-feasible test flips to a local-infeasibility
+declaration on this problem under the monitored governor is a real observation
+about restoration's classification, not a test defect. It is recorded here and
+belongs beside the IPM stall-termination item already registered in the W2
+A4-1 close, which has `NET3` as its reproducer. Nothing about it is acted on
+in this task.
+
+**What did NOT fail, and is worth recording because the inventory feared it
+might.** Every other §2.B file passed at the shipped default: the trace tests,
+the warm-start tests (preset and non-preset arms alike), epoch gating, objective
+scale reporting, multiplier seeding, KKT factorization, the callback and
+warm-protocol suites with their bitwise arm-vs-arm comparisons, concurrency's
+determinism cells, both crossover legs, and the install smoke's cold and warm
+HS071 solves through the installed package. `IpmSolverEntry.TheProbeBarrierOracle
+SolvesHs071OnItsOwnBarrierSchedule` — the third variant comparison in the same
+family as S3/S4 — passed unpinned: `opt_bar_mode` is still consulted through the
+monitored governor's `classic_adaptive` delegate, so that option still selects
+something at the shipped default and its test still has a question to ask.
+
+## 9. The leg's exit status, stated rather than hidden
+
+`stage_legs.sh` exits 1, and the reason is neither a value that moved nor the new
+`# levers:` header (the byte check strips `#` lines before comparing).
+
+The committed baseline has **43 data rows**. The capture at this HEAD has **85**.
+The 42 extra are the whole `path`-window family of the F7 corpus — `f7_n800_path_*`,
+`f7_n1000_path_*`, `f7_n2000_path_*`, `f7_n5000_path_*`, `f7_n10000_path_*`,
+`f7_n20000_path_*` and the two `*_path_neutral_control` cells — each under all
+three fixed-variable treatments. They dual-bind as an `NLPProblem` now and did
+not when the baseline was captured, so `--cells all` returns more cells than it
+did then. **This growth predates this task and is independent of it:** it shows
+up identically in the pre-event-pinned capture, which restores the old defaults
+and nothing else.
+
+Both tools report it as a failure and both are right to:
+`scripts/compare_replay.py` returns 1 when either file carries a cell the other
+does not (`UNMATCHED CELLS`, 42 of them), and the `cmp` byte check compares 86
+lines against 44. **Neither is a difference in a compared value.** On the 43
+cells the two files share, the comparator reports **43 cells × 30 columns,
+0 differences**, twice — and that is the OFF proof, unaffected by the extra rows.

@@ -1742,7 +1742,22 @@ TEST(IpmSolverEntry, AConvergedSolveRecordsNoStopReason) {
 // fix round's search budget; the verdict's per-CALL lifetime is registered for
 // T8.4's per-phase results.
 TEST(IpmSolverEntry, AMultiPhaseCapIsLabelledByThePhaseThatHitIt) {
-    constexpr int kCap = 10;
+    // RE-DERIVED at M7 W2 D1 (2026-09-18), the declared IPM-default event: the
+    // cap was 10, and it is 7. Nothing about the MECHANISM moved -- a cap is
+    // still labelled by the phase that hit it -- but the cap is an instrument,
+    // and it has to be tuned to the trajectory it is measuring. Under the old
+    // default (classic merit over the free-only governor) this HS071 pair ran
+    // kSolve to terminal index 8-or-less and kOptimize past 9, so 10 stopped
+    // the optimality phase and nothing else. Under the shipped default (filter
+    // over the monitored governor) the same pair runs to terminal indices 5 and
+    // 7, measured uncapped, so a cap of 10 stopped neither phase and this test
+    // was asserting a verdict the solve no longer reached.
+    //
+    // 7 is the ONLY value that works, and the two conditions that pin it are
+    // the two assertions below: the cap must be <= 7 for the optimality phase
+    // to run out (it converges AT index 7), and > 6 for the feasibility phase
+    // to end on its own verdict at index 5 with room to spare.
+    constexpr int kCap = 7;
     const auto program = hven::solvers::make_nlp_program(std::make_shared<Hs071Problem>());
     hven::solvers::IpmSolver solver;
     hven::solvers::IpmResult result;
@@ -1982,6 +1997,28 @@ void expect_reaches_the_known_optimum(const VariantRun &run, const char *what) {
     EXPECT_FALSE(run.objective_trace.empty()) << what;
 }
 
+// THE PRE-EVENT GLOBALIZATION PAIR (M7 W2 D1, 2026-09-18), for the two
+// opt_ls_mode variant tests below and for nothing else in this file.
+//
+// opt_ls_mode selects WITHIN the classic-merit line-search family: it is read
+// only on the path the classic merit acceptance strategy drives. The shipped
+// default is `filter` over the monitored governor, under which no classic
+// ladder runs and the option selects nothing -- the two arms then come back
+// with byte-identical objective traces, and the tests' own failure message
+// said exactly that: "the option selected nothing". That is not a defect in the
+// option; it is a fixture asking a question that only has an answer under the
+// acceptance strategy the option belongs to.
+//
+// So both arms of each comparison pin classic_merit over classic_adaptive --
+// the pre-event default pair, and ipm_preset("classic")'s values for these two
+// fields -- and the comparison stays a comparison of line searches. Written on
+// BOTH arms deliberately: pinning only the variant would make the test compare
+// two different acceptance strategies and pass for the wrong reason.
+void pin_pre_d1_globalization(hven::solvers::IpmOptions &o) {
+    o.acceptance_strategy = hven::solvers::AcceptanceStrategies::classic_merit;
+    o.barrier_governor = hven::solvers::BarrierGovernors::classic_adaptive;
+}
+
 } // namespace
 } // namespace ipm_option_variants
 
@@ -1989,9 +2026,12 @@ void expect_reaches_the_known_optimum(const VariantRun &run, const char *what) {
 // opt_ls_mode, never by a default: the shipped default is kAugLang.
 TEST(IpmSolverEntry, TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory) {
     using hven::solvers::LineSearchModes;
-    const auto base = ipm_option_variants::run_hs071([](hven::solvers::IpmOptions &) {});
-    const auto lang = ipm_option_variants::run_hs071(
-        [](hven::solvers::IpmOptions &o) { o.opt_ls_mode = LineSearchModes::kLang; });
+    const auto base = ipm_option_variants::run_hs071(
+        [](hven::solvers::IpmOptions &o) { ipm_option_variants::pin_pre_d1_globalization(o); });
+    const auto lang = ipm_option_variants::run_hs071([](hven::solvers::IpmOptions &o) {
+        ipm_option_variants::pin_pre_d1_globalization(o);
+        o.opt_ls_mode = LineSearchModes::kLang;
+    });
 
     ipm_option_variants::expect_reaches_the_known_optimum(base, "the default (kAugLang) arm");
     ipm_option_variants::expect_reaches_the_known_optimum(lang, "the kLang arm");
@@ -2004,9 +2044,12 @@ TEST(IpmSolverEntry, TheLagrangianMeritLineSearchSolvesHs071OnItsOwnTrajectory) 
 // same cold run.
 TEST(IpmSolverEntry, TheL1MeritLineSearchSolvesHs071OnItsOwnTrajectory) {
     using hven::solvers::LineSearchModes;
-    const auto base = ipm_option_variants::run_hs071([](hven::solvers::IpmOptions &) {});
-    const auto l1 = ipm_option_variants::run_hs071(
-        [](hven::solvers::IpmOptions &o) { o.opt_ls_mode = LineSearchModes::kL1; });
+    const auto base = ipm_option_variants::run_hs071(
+        [](hven::solvers::IpmOptions &o) { ipm_option_variants::pin_pre_d1_globalization(o); });
+    const auto l1 = ipm_option_variants::run_hs071([](hven::solvers::IpmOptions &o) {
+        ipm_option_variants::pin_pre_d1_globalization(o);
+        o.opt_ls_mode = LineSearchModes::kL1;
+    });
 
     ipm_option_variants::expect_reaches_the_known_optimum(l1, "the kL1 arm");
     EXPECT_NE(l1.objective_trace, base.objective_trace)
