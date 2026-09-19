@@ -127,3 +127,14 @@ as it was". That is true OF THAT COMMIT'S DIFF -- it deletes nothing -- but not
 of the file's history: the implementer had already rewritten that paragraph in
 `7e0c6691` to point at the landed transcript. The message cannot be amended, so
 the correction is recorded here instead.
+
+--- APPENDED 2026-09-18, BY THE PAGE FIX ROUND (review F6) ---
+
+THE TWO DURATIONS IN THE TABLE ABOVE ARE INFORMATIONAL, not measurements.
+G2's "669.98 s" and G3's "(102.08 s)" are ctest's own wall-clock report,
+recorded because the transcript carried them; under CLAUDE.md section 7 a
+wall-clock number is quotable only from a serialized suite run alone on the
+machine and asserted as such, and these are not. They assert nothing and are
+compared against nothing. The label the README and PROVENANCE carry
+artifact-wide applies to them; it is written out here so the transcript cannot
+be read on its own as a timing claim. Nothing above this line is edited.

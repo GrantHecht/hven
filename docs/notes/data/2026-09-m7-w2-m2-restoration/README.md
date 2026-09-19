@@ -144,7 +144,12 @@ carries the part that is sound for it. Machine-written, full text in
 * **(iii)** is every other cell, against
   `docs/notes/data/2026-09-m7-w2-m1-qp-cap/cells-budget-r1.csv` — the 23 CUTEst
   cells at precisely the shipped default this ladder is built at, already in the
-  tree.
+  tree. **That CSV's own `hven_pin_sha=3904a477…` stamp is FALSE and is never
+  quoted** — M1's README says so in its own words (`2026-09-m7-w2-m1-qp-cap/
+  README.md`, "THE PIN STAMP IN THESE BINARIES IS FALSE AND IS NEVER QUOTED":
+  `cmake/hven_pin.cmake` sets `HVEN_PIN_SHA` unconditionally). A reader of the
+  CSV alone would take (iii) for a comparison against the READ's pin; it is not.
+  (Appended by the page fix round, review F6.)
 
 ## 4. The control at `3904a477`, and the one number that is declared rather than reconciled
 
