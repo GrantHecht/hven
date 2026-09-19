@@ -220,13 +220,51 @@ QpSolution elastic_project(const ElasticQp &e, const QpProblem &qp, const QpSolu
 }
 
 RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, const NlpEval &ev)
+    : RestorationModel(model, x_entry, ev, x_entry, 0.0) {}
+
+RestorationModel::RestorationModel(const NlpModel &model, const Vec &x_entry, const NlpEval &ev,
+                                   const Vec &x_centre, double proximity)
     : model_(model), nx_(model.n()), me_(model.me()), mi_(model.mi()) {
     if (x_entry.size() != nx_) {
         throw std::invalid_argument(
             fmt::format("RestorationModel: x_entry has size {}, expected {} (= model.n())",
                         x_entry.size(), nx_));
     }
+    // THE PROXIMITY TERM'S VALIDATION IS AT THIS BOUNDARY TOO, not only at
+    // SqpOptions::validate: this wrapper is constructible by anyone holding an
+    // NlpModel, and a centre of the wrong length or a negative/non-finite
+    // weight would otherwise be discovered as an Eigen assert in Debug and as
+    // nothing at all in Release (CLAUDE.md section 4).
+    if (!(proximity >= 0.0) || !std::isfinite(proximity)) {
+        throw std::invalid_argument(
+            fmt::format("RestorationModel: proximity ({}) must be a finite value >= 0 (0 = OFF, "
+                        "the shipped state)",
+                        proximity));
+    }
+    if (proximity > 0.0 && x_centre.size() != nx_) {
+        throw std::invalid_argument(
+            fmt::format("RestorationModel: x_centre has size {}, expected {} (= model.n()); it is "
+                        "the requesting iterate the proximity term is centred on",
+                        x_centre.size(), nx_));
+    }
     n_ = nx_ + 2 * me_ + mi_;
+
+    // COMPUTED ONCE, FROM DATA ALREADY IN HAND, and only when the term is on:
+    // at the shipped OFF nothing is stored and nothing is copied. d_i =
+    // min(1, 1/|x_{k,i}|) is the interior-point lane's own per-coordinate
+    // scaling (detail/globalization/proximal_restoration.h): a coordinate with
+    // |x_{k,i}| <= 1 is unscaled, a larger one shrinks in proportion to the
+    // centre's magnitude so the proximal curvature stays bounded near a large
+    // centre, and |x_{k,i}| == 0 takes the first branch without a division.
+    if (proximity > 0.0) {
+        zeta_ = proximity;
+        centre_ = x_centre;
+        d_ = Vec::Ones(nx_);
+        for (Index i = 0; i < nx_; ++i) {
+            const double a = std::abs(centre_(i));
+            d_(i) = a > 1.0 ? 1.0 / a : 1.0;
+        }
+    }
 
     sigma_e_ = Vec::Ones(me_);
     for (Index k = 0; k < me_; ++k) {
@@ -279,6 +317,20 @@ const Vec &RestorationModel::slack_scale_e() const { return sigma_e_; }
 
 const Vec &RestorationModel::slack_scale_i() const { return sigma_i_; }
 
+double RestorationModel::proximity() const { return zeta_; }
+
+double RestorationModel::proximity_residual_inf(const Vec &x) const {
+    if (zeta_ == 0.0) {
+        return 0.0;
+    }
+    double r = 0.0;
+    const Index m = std::min<Index>(nx_, x.size());
+    for (Index i = 0; i < m; ++i) {
+        r = std::max(r, std::abs(zeta_ * d_(i) * d_(i) * (x(i) - centre_(i))));
+    }
+    return r;
+}
+
 double RestorationModel::eval_f(const Vec &y) const {
     double s = 0.0;
     for (Index k = 0; k < me_; ++k) {
@@ -287,14 +339,33 @@ double RestorationModel::eval_f(const Vec &y) const {
     for (Index j = 0; j < mi_; ++j) {
         s += sigma_i_(j) * y(nx_ + 2 * me_ + j);
     }
+    // THE PROXIMITY TERM, BRANCHED OUT AT OFF (class note): at zeta == 0 this
+    // function is the linear violation sum that has always shipped, to the byte.
+    if (zeta_ > 0.0) {
+        double p = 0.0;
+        for (Index i = 0; i < nx_; ++i) {
+            const double t = d_(i) * (y(i) - centre_(i));
+            p += t * t;
+        }
+        s += 0.5 * zeta_ * p;
+    }
     return s;
 }
 
-Vec RestorationModel::eval_grad(const Vec &) const {
+Vec RestorationModel::eval_grad(const Vec &y) const {
     Vec g = Vec::Zero(n_);
     g.segment(nx_, me_) = sigma_e_;
     g.segment(nx_ + me_, me_) = sigma_e_;
     g.segment(nx_ + 2 * me_, mi_) = sigma_i_;
+    // AND ITS GRADIENT, on the x-block alone -- the slacks enter the term not at
+    // all, so their coefficients above are untouched at every weight. At
+    // zeta == 0 the x-block stays the structural zero the class note's
+    // stationarity argument rests on, and `y` is not read.
+    if (zeta_ > 0.0) {
+        for (Index i = 0; i < nx_; ++i) {
+            g(i) = zeta_ * d_(i) * d_(i) * (y(i) - centre_(i));
+        }
+    }
     return g;
 }
 
@@ -322,15 +393,28 @@ Vec RestorationModel::eval_ci(const Vec &y) const {
     return c;
 }
 
-SpMatRM RestorationModel::eval_hess(const Vec &y, double, const Vec &lambda_e,
+SpMatRM RestorationModel::eval_hess(const Vec &y, double obj_scale, const Vec &lambda_e,
                                     const Vec &lambda_i) const {
     SpMatRM inner;
     model_.eval_hess_in_place(original_x(y), 0.0, lambda_e, lambda_i, inner);
     std::vector<Eigen::Triplet<double>> t;
-    t.reserve(static_cast<std::size_t>(inner.nonZeros()));
+    t.reserve(static_cast<std::size_t>(inner.nonZeros()) +
+              (zeta_ > 0.0 ? static_cast<std::size_t>(nx_) : std::size_t{0}));
     for (Index i = 0; i < nx_; ++i) {
         for (SpMatRM::InnerIterator it(inner, i); it; ++it) {
             t.emplace_back(it.row(), it.col(), it.value());
+        }
+    }
+    // THE PROXIMITY TERM'S OWN CURVATURE, and it is the ONE thing on this
+    // wrapper that `obj_scale` reaches (header note). Emitted for EVERY original
+    // coordinate whenever the term is on -- never skipped on a zero value or a
+    // zero obj_scale -- because nlp_model.h's STRUCTURAL PATTERN INVARIANCE
+    // precondition makes the pattern a property of the model and not of the
+    // arguments. setFromTriplets SUMS duplicates, so a diagonal entry the inner
+    // model already emitted is added to rather than replaced.
+    if (zeta_ > 0.0) {
+        for (Index i = 0; i < nx_; ++i) {
+            t.emplace_back(i, i, obj_scale * zeta_ * d_(i) * d_(i));
         }
     }
     SpMatRM H(n_, n_);

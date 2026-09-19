@@ -327,6 +327,24 @@ void validate(const SqpOptions &opts) {
     // refusable value and no companion field it can contradict, so its entry is
     // this stated line rather than an always-true predicate.
 
+    // THE RESTORATION PROXIMITY WEIGHT (M7 W2 M2b), in declaration position and
+    // in this file's negation-of-acceptance idiom, which here does two jobs:
+    // `!(w >= 0.0)` refuses a negative AND a NaN, and the finiteness test
+    // refuses `+inf`. An infinite weight is not "the term, very heavy": it makes
+    // the wrapper's objective +inf at every point but the centre, so the
+    // sub-solve would be comparing infinities rather than minimizing anything.
+    // 0.0 IS ACCEPTED and is the shipped value -- it is the term's OFF state,
+    // not an ill-formed one.
+    if (!(opts.restoration_proximity >= 0.0) || !std::isfinite(opts.restoration_proximity)) {
+        throw std::invalid_argument(fmt::format(
+            "SqpSolver: restoration_proximity ({}) must be a finite value >= 0; it is the "
+            "coefficient zeta on the restoration feasibility wrapper's 1/2 zeta ||D (x - "
+            "x_k)||^2 proximity term, 0 is OFF (the shipped value, the wrapper that has "
+            "always shipped), and an infinite weight makes that objective +inf everywhere "
+            "but at the requesting iterate",
+            opts.restoration_proximity));
+    }
+
     // The two CommonOptions fields (M6 W5 T8.3). Neither is read by this engine
     // yet -- T8.7 reads print_level, T8.8 reads threads -- but both are part of
     // the value a caller hands over and both are checked here, so an
@@ -544,6 +562,7 @@ void dump_options(const SqpOptions &o, std::ostream &os) {
     kv_bool(os, "project_start_point", o.project_start_point);
     kv_int(os, "qp_failure_budget", static_cast<long long>(o.qp_failure_budget));
     kv_bool(os, "qp_cap_retry", o.qp_cap_retry);
+    kv_dbl(os, "restoration_proximity", o.restoration_proximity);
     kv_int(os, "common.threads", o.common.threads);
     kv_int(os, "common.print_level", o.common.print_level);
     kv_str(os, "common.start_level", enum_name(o.common.start_level));

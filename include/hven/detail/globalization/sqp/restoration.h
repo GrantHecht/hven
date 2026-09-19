@@ -70,6 +70,43 @@ inline constexpr double kRestorationSlackBound = 1e20;
 /// or a small Jacobian row would shrink the column entry and inflate the slack
 /// variable, trading this conditioning problem for its mirror image.
 ///
+/// THE PROXIMITY TERM (M7 W2 M2b), PRESENT ONLY AT zeta > 0. With
+/// `SqpOptions::restoration_proximity = zeta > 0` the objective above gains
+///
+///     + (zeta/2) * ||D (x - x_k)||^2,   D = diag(d_i), d_i = min(1, 1/|x_{k,i}|)
+///
+/// over the ORIGINAL x-block only (every slack's coefficient is 0), with `x_k`
+/// the REQUESTING ITERATE handed in beside `x_entry`. `D` is computed ONCE at
+/// construction from data already in hand -- O(n), no model query -- and the
+/// term is the interior-point lane's, transcribed: see
+/// detail/globalization/l1_restoration.h, whose nested-l1 restoration carries
+/// `rho*sum(n+p) + (eta(mu)/2)*|D_R (x - x_R)|^2`. What it buys is the one
+/// piece of information the feasibility problem is missing -- that `x` should
+/// stay near the point that asked for the phase.
+///
+/// WHY `x_k` AND NOT THE WRAPPER'S OWN CONSTRUCTION POINT. The phase's seed
+/// guard may build the wrapper at an offered candidate (`x_entry != x_k`), and
+/// the excursion this term prices is the CALLER'S iterate's -- the same point
+/// the S5 excursion record's entry half is taken at (core/solver_counters.h)
+/// and the same point the certificate's residual is measured from. Centring on
+/// the construction point instead would make the term measure a displacement
+/// from a point the caller never asked about. The two coincide whenever the
+/// seed guard does not fire, which is every cell measured in
+/// docs/notes/data/2026-09-m7-w2-m2-restoration/. ONE CONSEQUENCE, STATED HERE
+/// BECAUSE IT IS A REAL ONE: at zeta > 0 AND a fired seed guard the wrapper's
+/// objective at its own start point is h(x_entry) + P(x_entry) rather than
+/// h(x_entry) -- the exactness of the l1 reformulation is untouched (the term is
+/// part of the objective being minimized, not of the violation being measured),
+/// but the "objective at the start point IS h" identity holds only at zeta = 0
+/// or an unfired guard.
+///
+/// AT zeta == 0 THE TERM IS BRANCHED OUT, NOT ADDED AS ZERO, in all three of
+/// `eval_f`, `eval_grad` and `eval_hess`. A zero triplet would still enter the
+/// Hessian's pattern and move the sub-solve's symbolic analysis, so the OFF
+/// state is a CODE SHAPE and not merely an arithmetic identity -- that is what
+/// makes `SqpOptions::restoration_proximity = 0` the wrapper that shipped
+/// before the field existed.
+///
 /// LIFETIME: holds a REFERENCE to the wrapped model, which must outlive it; the
 /// driver constructs one on the stack for the duration of one restoration.
 class RestorationModel final : public NlpModel {
@@ -77,7 +114,18 @@ class RestorationModel final : public NlpModel {
     /// @param ev Must be eval_nlp(model, x_entry) -- the entry point's
     /// evaluation, already in hand, from which both the sigmas and the start
     /// point's slacks are read without a single extra model call.
+    ///
+    /// THE zeta = 0 WRAPPER, i.e. the one that ships: it delegates to the
+    /// constructor below with the centre set to `x_entry`, which that overload
+    /// then never reads.
     RestorationModel(const NlpModel &model, const Vec &x_entry, const NlpEval &ev);
+
+    /// @param x_centre The REQUESTING ITERATE `x_k` the proximity term is
+    /// centred on (class note); read only at `proximity > 0`, and must have
+    /// model.n() entries.
+    /// @param proximity `zeta >= 0`; 0 is OFF and is the shipped value.
+    RestorationModel(const NlpModel &model, const Vec &x_entry, const NlpEval &ev,
+                     const Vec &x_centre, double proximity);
 
     Index n() const override;
     Index me() const override;
@@ -89,27 +137,58 @@ class RestorationModel final : public NlpModel {
     const Vec &slack_scale_e() const;
     const Vec &slack_scale_i() const;
 
+    /// The proximity weight `zeta` this wrapper was built with; 0 == OFF.
+    double proximity() const;
+
+    /// `zeta * ||D^2 (x - x_k)||_inf` at the ORIGINAL x-block of @p y -- the
+    /// infinity norm of the proximity term's own gradient, which at a
+    /// wrapper-stationary point is exactly `||J^T lambda - z_sub||_inf` with
+    /// `z_sub` uncorrected: the gap between "stationary for h + P" and
+    /// "stationary for h". The driver's infeasibility certificate gates on it
+    /// (drivers/sqp_solver_types.h, SqpResult::infeasibility_certified).
+    /// Identically 0.0 at `zeta == 0`, computed without a model query at any
+    /// zeta, O(n).
+    double proximity_residual_inf(const Vec &x) const;
+
     double eval_f(const Vec &y) const override;
 
-    /// CONSTANT gradient: the objective is LINEAR with no x-block at all. That
-    /// zero x-block is what makes a stationary point of this problem a
-    /// stationary point of h rather than of some trade-off against f.
-    Vec eval_grad(const Vec &) const override;
+    /// CONSTANT gradient AT zeta == 0, and that is the shipped state: the
+    /// objective is then LINEAR with no x-block at all, and that zero x-block is
+    /// what makes a stationary point of this problem a stationary point of h
+    /// rather than of some trade-off against f. At zeta > 0 the x-block is
+    /// `zeta D^2 (x - x_k)` and the stationarity claim changes with it -- what a
+    /// stationary point of the wrapper is then stationary for is `h + P`, which
+    /// is why the driver re-checks `proximity_residual_inf` before it certifies
+    /// anything (class note, and SqpResult::infeasibility_certified). The
+    /// argument is named at both weights because the vector depends on it at
+    /// one of them.
+    Vec eval_grad(const Vec &y) const override;
 
     Vec eval_ce(const Vec &y) const override;
 
     Vec eval_ci(const Vec &y) const override;
 
-    /// obj_scale IS DELIBERATELY IGNORED HERE, and that is exact rather than a
-    /// shortcut: hess = obj_scale*hess(f) + sum lambda*hess(c), and hess(f) is
-    /// IDENTICALLY ZERO for a linear objective. What remains is the wrapped
-    /// model's own constraint Hessian -- model_.eval_hess(x, 0.0, .), the SAME
-    /// call with the objective switched off. The slack block contributes
-    /// nothing (slacks enter linearly), so the augmented Hessian is the
-    /// original's entries in an n_-square frame with no new nonzeros -- the
+    /// obj_scale IS DELIBERATELY IGNORED AT zeta == 0, and that is exact rather
+    /// than a shortcut: hess = obj_scale*hess(f) + sum lambda*hess(c), and
+    /// hess(f) is IDENTICALLY ZERO for a linear objective. What remains is the
+    /// wrapped model's own constraint Hessian -- model_.eval_hess(x, 0.0, .),
+    /// the SAME call with the objective switched off. The slack block
+    /// contributes nothing (slacks enter linearly), so the augmented Hessian is
+    /// the original's entries in an n_-square frame with no new nonzeros -- the
     /// elastic tier's H-extension, satisfying QpProblem::validate's upper-
     /// triangle rule for the same reason (no entry moves).
-    SpMatRM eval_hess(const Vec &y, double, const Vec &lambda_e,
+    ///
+    /// AT zeta > 0 BOTH HALVES OF THAT PARAGRAPH CHANGE (M7 W2 M2b). `hess(f)`
+    /// is `zeta D^2`, a positive diagonal on the x-block, so `obj_scale` is
+    /// named and APPLIED to it -- nlp_model.h's contract is
+    /// `obj_scale*hess(f) + sum lambda*hess(c)`, and this term is part of
+    /// `f` -- and the augmented Hessian gains up to `nx_` diagonal entries,
+    /// which is a change to the sub-solve's SPARSITY PATTERN and hence to its
+    /// symbolic analysis. Those entries are emitted UNCONDITIONALLY at
+    /// zeta > 0, for every original coordinate, whatever `obj_scale` or the
+    /// multipliers are: nlp_model.h's STRUCTURAL PATTERN INVARIANCE precondition
+    /// forbids a pattern that depends on the arguments a model is called with.
+    SpMatRM eval_hess(const Vec &y, double obj_scale, const Vec &lambda_e,
                       const Vec &lambda_i) const override;
 
     /// [ Je(x) | diag(sigmaE) | -diag(sigmaE) | 0 ]
@@ -127,6 +206,13 @@ class RestorationModel final : public NlpModel {
     Index nx_ = 0, me_ = 0, mi_ = 0, n_ = 0;
     Vec sigma_e_, sigma_i_;
     Vec lower_, upper_, start_;
+    /// THE PROXIMITY TERM'S THREE PIECES, all empty/zero at the shipped OFF.
+    /// `d_` is the d_i of the class note, squared nowhere: the squares are taken
+    /// where they are used, so the one stored vector is the one the class note
+    /// names. `centre_` is a COPY of `x_k`, not a reference: the driver's own
+    /// `st.x` is moved from on the resume arm while this wrapper is still alive.
+    double zeta_ = 0.0;
+    Vec centre_, d_;
 };
 
 } // namespace hven::solvers

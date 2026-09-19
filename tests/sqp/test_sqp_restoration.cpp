@@ -35,6 +35,7 @@
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -631,6 +632,314 @@ TEST(RestorationModel, ScalesSlackColumnsToTheirJacobianRow) {
 }
 
 // =========================================================================
+// THE PROXIMITY TERM (M7 W2 M2b) -- the wrapper's half.
+//
+// `SqpOptions::restoration_proximity = zeta` puts
+// `(zeta/2) ||D (x - x_k)||^2` on the feasibility wrapper's OBJECTIVE, with
+// `d_i = min(1, 1/|x_{k,i}|)` and `x_k` the requesting iterate. The design page
+// is docs/notes/2026-09-m7-w2-m2-restoration-design.md section 3; the three
+// tests below are its test plan's items 1 and 2.
+// =========================================================================
+
+// ITEM 1 -- THE TERM IN ISOLATION, against hand-computed values, with d_i
+// exercised at all three of the IPM lane's branches (|x_k,i| == 0, < 1, > 1)
+// and at zeta == 0.
+TEST(RestorationModelProximity, IsTheHandComputedTermAtEveryScalingBranch) {
+    CircleInequalityModel model; // n = 2, me = 0, mi = 1
+    Vec x_entry(2);
+    x_entry << 2.0, 2.0;
+    const NlpEval ev = eval_nlp(model, x_entry);
+
+    // THE THREE BRANCHES ON ONE CENTRE IS IMPOSSIBLE AT n = 2, so the branches
+    // are read one pair at a time and the |x| == 0 branch gets its own centre.
+    {
+        Vec centre(2);
+        centre << 0.0, 0.5; // branch 1 (|x| == 0, no division) and branch 2 (< 1)
+        const RestorationModel r(model, x_entry, ev, centre, 3.0);
+        EXPECT_DOUBLE_EQ(r.proximity(), 3.0);
+        // d = (1, 1) -- min(1, 1/|x|) is 1 below 1 and AT the zero, where the
+        // first branch is what keeps 1/0 out of the arithmetic.
+        Vec y = r.start_point();
+        y(0) = 1.0; // x - centre = ( 1.0, -0.5 ) at d = (1, 1)
+        y(1) = 0.0;
+        // READ AS A DIFFERENCE between two points sharing a slack block, so the
+        // slack sum cancels and what is asserted is the TERM. P is NOT zero at
+        // the start point here: the centre is not the construction point, which
+        // is the fired-seed-guard case the sibling test below pins.
+        const double p_start = 0.5 * 3.0 * ((2.0 - 0.0) * (2.0 - 0.0) + (2.0 - 0.5) * (2.0 - 0.5));
+        const double p_y = 0.5 * 3.0 * (1.0 * 1.0 + 0.5 * 0.5);
+        EXPECT_DOUBLE_EQ(r.eval_f(y) - r.eval_f(r.start_point()), p_y - p_start);
+        EXPECT_DOUBLE_EQ(r.eval_f(r.start_point()), constraint_violation_l1(ev) + p_start);
+
+        const Vec g = r.eval_grad(y);
+        EXPECT_DOUBLE_EQ(g(0), 3.0 * 1.0 * 1.0 * (1.0 - 0.0));
+        EXPECT_DOUBLE_EQ(g(1), 3.0 * 1.0 * 1.0 * (0.0 - 0.5));
+        EXPECT_DOUBLE_EQ(g(2), r.slack_scale_i()(0)) << "the slack block is untouched by the term";
+
+        // AND THE RESIDUAL THE CERTIFICATE GATES ON is the same vector's
+        // infinity norm, at the ORIGINAL x-block.
+        EXPECT_DOUBLE_EQ(r.proximity_residual_inf(y.head(2)),
+                         std::max(std::abs(g(0)), std::abs(g(1))));
+    }
+    {
+        Vec centre(2);
+        centre << 4.0, 2.0; // branch 3, twice: d = (0.25, 0.5)
+        const RestorationModel r(model, x_entry, ev, centre, 2.0);
+        Vec y = r.start_point();
+        y(0) = 0.0; // x - centre = (-4, -2)
+        y(1) = 0.0;
+        const double d0 = 0.25, d1 = 0.5;
+        const double p_y = 0.5 * 2.0 * ((d0 * -4.0) * (d0 * -4.0) + (d1 * -2.0) * (d1 * -2.0));
+        const double p_start = 0.5 * 2.0 * ((d0 * (2.0 - 4.0)) * (d0 * (2.0 - 4.0)) + 0.0 * 0.0);
+        EXPECT_DOUBLE_EQ(r.eval_f(y) - r.eval_f(r.start_point()), p_y - p_start);
+        const Vec g = r.eval_grad(y);
+        EXPECT_DOUBLE_EQ(g(0), 2.0 * d0 * d0 * (-4.0));
+        EXPECT_DOUBLE_EQ(g(1), 2.0 * d1 * d1 * (-2.0));
+
+        // THE CURVATURE IS THE TERM'S OWN SECOND DERIVATIVE, zeta*d_i^2 on the
+        // x-block diagonal and nothing anywhere else -- and it is the one thing
+        // on this wrapper `obj_scale` reaches.
+        const Vec lambda_i = Vec::Zero(1);
+        const Vec lambda_e = Vec::Zero(0);
+        const Eigen::MatrixXd H = Eigen::MatrixXd(r.eval_hess(y, 1.0, lambda_e, lambda_i));
+        EXPECT_DOUBLE_EQ(H(0, 0), 2.0 * d0 * d0);
+        EXPECT_DOUBLE_EQ(H(1, 1), 2.0 * d1 * d1);
+        EXPECT_DOUBLE_EQ(H(0, 1), 0.0);
+        for (Index i = 2; i < r.n(); ++i) {
+            EXPECT_DOUBLE_EQ(H(i, i), 0.0) << "no slack carries curvature";
+        }
+        const Eigen::MatrixXd H_half = Eigen::MatrixXd(r.eval_hess(y, 0.5, lambda_e, lambda_i));
+        EXPECT_DOUBLE_EQ(H_half(0, 0), 0.5 * 2.0 * d0 * d0)
+            << "obj_scale multiplies hess(f), and the proximity term IS part of f";
+    }
+    { // zeta == 0: the term is not there at all, whatever the centre says
+        Vec centre(2);
+        centre << 4.0, 2.0;
+        const RestorationModel r(model, x_entry, ev, centre, 0.0);
+        EXPECT_DOUBLE_EQ(r.proximity(), 0.0);
+        Vec y = r.start_point();
+        y(0) = 0.0;
+        y(1) = 0.0;
+        EXPECT_DOUBLE_EQ(r.eval_f(y), r.eval_f(r.start_point()));
+        EXPECT_DOUBLE_EQ(r.eval_grad(y)(0), 0.0);
+        EXPECT_DOUBLE_EQ(r.eval_grad(y)(1), 0.0);
+        EXPECT_DOUBLE_EQ(r.proximity_residual_inf(y.head(2)), 0.0);
+    }
+    // THE BOUNDARY REFUSES WHAT SqpOptions::validate REFUSES, at the wrapper's
+    // own door: this class is constructible by anyone holding an NlpModel.
+    Vec centre(2);
+    centre << 1.0, 1.0;
+    EXPECT_THROW(RestorationModel(model, x_entry, ev, centre, -1.0), std::invalid_argument);
+    EXPECT_THROW(
+        RestorationModel(model, x_entry, ev, centre, std::numeric_limits<double>::quiet_NaN()),
+        std::invalid_argument);
+    EXPECT_THROW(
+        RestorationModel(model, x_entry, ev, centre, std::numeric_limits<double>::infinity()),
+        std::invalid_argument);
+    EXPECT_THROW(RestorationModel(model, x_entry, ev, Vec::Ones(3), 1.0), std::invalid_argument);
+    // ...and a WRONG-SIZED centre at the OFF state is not an error, because the
+    // vector is never read there. Stated as a test so the asymmetry is
+    // deliberate rather than discovered.
+    EXPECT_NO_THROW(RestorationModel(model, x_entry, ev, Vec::Ones(3), 0.0));
+}
+
+// ITEM 2 -- THE OFF PROOF IN CODE, NOT ONLY IN ARITHMETIC. At zeta == 0 the
+// three evaluators must return today's values AND today's sparsity pattern: a
+// zero triplet would still enter the pattern and move the sub-solve's symbolic
+// analysis, so the OFF state has to be a BRANCH rather than an added zero. The
+// pattern is compared entry by entry, and the zeta > 0 arm shows what the
+// branch is hiding -- exactly nx_ new diagonal entries.
+TEST(RestorationModelProximity, AtZeroItIsTheWrapperThatShips) {
+    InfeasibleCircleLineModel model; // n = 2, me = 2, mi = 0: an inner Hessian with
+    Vec x_entry(2);                  // a diagonal the term would otherwise hide in
+    x_entry << 2.0, 2.0;
+    const NlpEval ev = eval_nlp(model, x_entry);
+    Vec centre(2);
+    centre << -3.0, 7.0; // DELIBERATELY far from x_entry: at OFF it must not matter
+
+    const RestorationModel ships(model, x_entry, ev);            // the 3-argument wrapper
+    const RestorationModel off(model, x_entry, ev, centre, 0.0); // the same thing, spelled long
+    const RestorationModel on(model, x_entry, ev, centre, 0.5);
+
+    Vec y = ships.start_point();
+    y(0) = 0.25;
+    y(1) = -1.5;
+    const Vec lambda_e = Vec::Constant(2, 0.5);
+    const Vec lambda_i = Vec(0);
+
+    EXPECT_DOUBLE_EQ(off.eval_f(y), ships.eval_f(y));
+    const Vec g_off = off.eval_grad(y);
+    const Vec g_ships = ships.eval_grad(y);
+    ASSERT_EQ(g_off.size(), g_ships.size());
+    for (Index i = 0; i < g_ships.size(); ++i) {
+        EXPECT_DOUBLE_EQ(g_off(i), g_ships(i)) << "gradient entry " << i;
+    }
+
+    const SpMatRM H_ships = ships.eval_hess(y, 1.0, lambda_e, lambda_i);
+    const SpMatRM H_off = off.eval_hess(y, 1.0, lambda_e, lambda_i);
+    const SpMatRM H_on = on.eval_hess(y, 1.0, lambda_e, lambda_i);
+
+    ASSERT_EQ(H_off.nonZeros(), H_ships.nonZeros());
+    for (Index k = 0; k < H_ships.nonZeros(); ++k) {
+        EXPECT_EQ(H_off.innerIndexPtr()[k], H_ships.innerIndexPtr()[k]) << "pattern entry " << k;
+        EXPECT_DOUBLE_EQ(H_off.valuePtr()[k], H_ships.valuePtr()[k]) << "value entry " << k;
+    }
+    for (Index r = 0; r <= H_ships.rows(); ++r) {
+        EXPECT_EQ(H_off.outerIndexPtr()[r], H_ships.outerIndexPtr()[r]) << "row pointer " << r;
+    }
+
+    // AND THE ON ARM IS WHAT THE BRANCH IS KEEPING OUT. This model's inner
+    // Hessian already carries both diagonal entries, so the term ADDS to them
+    // rather than extending the pattern -- setFromTriplets sums duplicates --
+    // which is the harder of the two cases to get right.
+    EXPECT_EQ(H_on.nonZeros(), H_ships.nonZeros())
+        << "the pattern is unchanged HERE because the inner diagonal already exists; the "
+           "sibling test below is the case where it grows";
+    const Eigen::MatrixXd D_on = Eigen::MatrixXd(H_on);
+    const Eigen::MatrixXd D_ships = Eigen::MatrixXd(H_ships);
+    const double d0 = 1.0 / 3.0; // min(1, 1/|-3|)
+    const double d1 = 1.0 / 7.0; // min(1, 1/|7|)
+    // Written as a SUM rather than as a difference: the term is three orders
+    // below the inner entry here, and `(a + x) - a` is not `x` in floating
+    // point at that ratio -- so the assertion is built the way the code builds
+    // the value (setFromTriplets sums the duplicate) and is exact.
+    EXPECT_DOUBLE_EQ(D_on(0, 0), D_ships(0, 0) + 0.5 * d0 * d0);
+    EXPECT_DOUBLE_EQ(D_on(1, 1), D_ships(1, 1) + 0.5 * d1 * d1);
+}
+
+// AND THE PATTERN REALLY DOES GROW when the inner Hessian has none of its own:
+// the same claim on a LINEAR model, whose Lagrangian Hessian is structurally
+// empty, where every one of the nx_ diagonal entries is new. That growth is a
+// change to the sub-solve's symbolic analysis and is the reason the OFF state
+// had to be a branch.
+namespace {
+// n = 2, one LINEAR equality, a linear objective: eval_hess is empty at every
+// argument, which is what makes it the right instrument here.
+class LinearPairModel final : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+    double eval_f(const Vec &x) const override { return x(0) + x(1); }
+    Vec eval_grad(const Vec &) const override { return Vec::Ones(2); }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(1);
+        c << x(0) + x(1) - 2.0;
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &, double, const Vec &, const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 1.0;
+        j.insert(0, 1) = 1.0;
+        j.makeCompressed();
+        return j;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -kInfBound);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, kInfBound);
+        return u;
+    }
+    Vec start_point() const override { return Vec::Constant(2, 3.0); }
+};
+} // namespace
+
+TEST(RestorationModelProximity, AtAPositiveWeightThePatternGainsTheDiagonal) {
+    LinearPairModel model;
+    Vec x_entry(2);
+    x_entry << 3.0, 3.0;
+    const NlpEval ev = eval_nlp(model, x_entry);
+    Vec centre(2);
+    centre << 2.0, 0.5; // d = (0.5, 1): one of each branch
+
+    const RestorationModel off(model, x_entry, ev);
+    const RestorationModel on(model, x_entry, ev, centre, 0.25);
+    const Vec y = off.start_point();
+    const Vec lambda_e = Vec::Constant(1, 0.7);
+    const Vec lambda_i = Vec(0);
+
+    const SpMatRM H_off = off.eval_hess(y, 1.0, lambda_e, lambda_i);
+    const SpMatRM H_on = on.eval_hess(y, 1.0, lambda_e, lambda_i);
+    EXPECT_EQ(H_off.nonZeros(), 0)
+        << "the model is linear: the OFF wrapper has no curvature at all";
+    EXPECT_EQ(H_on.nonZeros() - H_off.nonZeros(), 2)
+        << "one new diagonal entry per ORIGINAL variable, and none on the slacks";
+    const Eigen::MatrixXd D_on = Eigen::MatrixXd(H_on);
+    EXPECT_DOUBLE_EQ(D_on(0, 0), 0.25 * 0.5 * 0.5);
+    EXPECT_DOUBLE_EQ(D_on(1, 1), 0.25 * 1.0 * 1.0);
+
+    // THE ENTRIES ARE STRUCTURAL, not value-dependent: nlp_model.h's PATTERN
+    // INVARIANCE precondition forbids a pattern that moves with the arguments,
+    // so obj_scale = 0 must emit the same nonZeros as obj_scale = 1.
+    const SpMatRM H_zero_scale = on.eval_hess(y, 0.0, lambda_e, lambda_i);
+    EXPECT_EQ(H_zero_scale.nonZeros(), H_on.nonZeros());
+    EXPECT_DOUBLE_EQ(Eigen::MatrixXd(H_zero_scale)(0, 0), 0.0);
+}
+
+// THE SMOOTH-l1 IDENTITY'S zeta > 0 SIBLING (the brief's fixture list; the
+// design page's section 7 pin). The wrapper's objective at its own start point
+// is h(x_entry) at zeta = 0 AND at zeta > 0 whenever the centre is the
+// construction point -- which is every solve whose seed guard did not fire. When
+// the guard DOES fire the two differ by P(x_entry) exactly, and that is the
+// price of centring the term on the REQUESTING ITERATE (restoration.h's class
+// note, and the ruling recorded in the design page's section 11 item 8).
+TEST(RestorationModel, IsTheSmoothL1FeasibilityProblemAtAPositiveProximity) {
+    InfeasibleCircleLineModel eq;
+    Vec x_entry(2);
+    x_entry << 2.0, 2.0;
+    const NlpEval ev = eval_nlp(eq, x_entry);
+    const double zeta = 4.0;
+
+    { // THE UNFIRED GUARD: centre == construction point, and the identity holds
+        const RestorationModel r(eq, x_entry, ev, x_entry, zeta);
+        const Vec y0 = r.start_point();
+        EXPECT_DOUBLE_EQ(constraint_violation_l1(ev), 9.0);
+        EXPECT_DOUBLE_EQ(r.eval_f(y0), 9.0) << "P(x_entry) = 0 when the centre IS x_entry";
+        // The wrapper is still FEASIBLE at its start point -- the term is on the
+        // objective and touches no constraint.
+        EXPECT_LT(r.eval_ce(y0).lpNorm<Eigen::Infinity>(), 1e-12);
+        // ...and the x-block of the gradient is now zero for a REASON -- y0's
+        // x-block is the centre -- rather than structurally.
+        EXPECT_DOUBLE_EQ(r.eval_grad(y0)(0), 0.0);
+        EXPECT_DOUBLE_EQ(r.eval_grad(y0)(1), 0.0);
+        EXPECT_DOUBLE_EQ(r.proximity_residual_inf(y0.head(2)), 0.0);
+    }
+    { // THE FIRED GUARD: centre = the requesting iterate, construction at a seed
+        Vec x_k(2);
+        x_k << 3.0, 1.0;
+        const RestorationModel r(eq, x_entry, ev, x_k, zeta);
+        const Vec y0 = r.start_point();
+        const double d0 = 1.0 / 3.0, d1 = 1.0;
+        const double p0 =
+            0.5 * zeta *
+            ((d0 * (2.0 - 3.0)) * (d0 * (2.0 - 3.0)) + (d1 * (2.0 - 1.0)) * (d1 * (2.0 - 1.0)));
+        EXPECT_DOUBLE_EQ(r.eval_f(y0), 9.0 + p0)
+            << "the identity is a zeta = 0 fact, or an unfired-guard fact -- and this is the "
+               "exact, declared, amount by which it fails otherwise";
+        EXPECT_GT(p0, 0.0);
+        // WHAT DOES NOT MOVE: the reformulation's EXACTNESS. The term is part of
+        // the objective being minimized, not of the violation being measured, so
+        // the wrapper's constraints and its slack scaling are untouched.
+        EXPECT_LT(r.eval_ce(y0).lpNorm<Eigen::Infinity>(), 1e-12);
+        const RestorationModel ships(eq, x_entry, ev);
+        EXPECT_TRUE(
+            Eigen::MatrixXd(r.eval_jac_e(y0)).isApprox(Eigen::MatrixXd(ships.eval_jac_e(y0))));
+        EXPECT_TRUE(r.start_point().isApprox(ships.start_point()));
+    }
+}
+
+// =========================================================================
 // SqpDriverRestoration -- the phase.
 // =========================================================================
 
@@ -731,6 +1040,72 @@ TEST(SqpDriverRestoration, InfeasibleNlpCertifies) {
             "certificate", fmt::format("h={:.10g} stat={:.3g} le=({:.10g},{:.10g}) majors={}+{}",
                                        c.h, c.stationarity, sol.lambda_e(0), sol.lambda_e(1),
                                        sol.counters.major_iters, sol.counters.restoration_iters));
+    }
+}
+
+// THE CERTIFICATE GATE AT A POSITIVE PROXIMITY WEIGHT (M7 W2 M2b; the design
+// page's sections 3.4 and 11 question 1). Three arms on the fixture directly
+// above, which is the project's certified exit:
+//
+//   zeta = 0        -- the gate is `0.0 <= kkt_tol` and the certified exit is
+//                      the one that ships, asserted here at the field's OFF
+//                      value written EXPLICITLY, so the OFF half of the gate is
+//                      pinned rather than inherited;
+//   zeta tiny       -- the phase moves, the residual stays under kkt_tol, and
+//                      the certificate SURVIVES. This arm is what makes the
+//                      gate a test of the RESIDUAL: a mutant reading
+//                      `certified = (zeta == 0)` passes the other two and dies
+//                      here;
+//   zeta = 1e-2     -- the residual is above kkt_tol and the flag is REFUSED
+//                      while the status stays kInfeasible. What the refusal
+//                      withholds is the CLAIM.
+//
+// The quantity is the UNCORRECTED residual `||J^T lambda - z_sub||_inf`, which
+// `check_certificate` already computes and which needs NO change for any of
+// this -- that helper is byte-identical across the three arms, and the
+// correction the design page's first draft proposed (subtracting grad P from z)
+// would have made it identically zero at every wrapper-stationary point, i.e.
+// certified everything.
+TEST(SqpDriverRestorationProximity, TheCertificateIsGatedOnTheUncorrectedResidual) {
+    struct Arm {
+        double zeta;
+        bool certified;
+        const char *what;
+    };
+    for (const Arm arm : {Arm{0.0, true, "OFF -- the exit that ships"},
+                          Arm{1e-12, true, "on, but not doing any work at the returned point"},
+                          Arm{1e-2, false, "on and doing work -- the claim is withheld"}}) {
+        SCOPED_TRACE(fmt::format("zeta={:g} ({})", arm.zeta, arm.what));
+        InfeasibleCircleLineModel model;
+        SqpOptions opts;
+        opts.max_iter = 200;
+        opts.restoration_proximity = arm.zeta;
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
+
+        EXPECT_EQ(sol.status, SolveStatus::kInfeasible)
+            << "the STATUS is not what the term moves -- the flag is";
+        EXPECT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN";
+        EXPECT_EQ(sol.infeasibility_certified, arm.certified);
+
+        // AND THE GATE'S OWN QUANTITY, recomputed from the model by the same
+        // helper the certified exit has always been checked with.
+        const SubgradientCertificate c = check_certificate(model, sol, opts.feas_tol);
+        EXPECT_GT(c.h, opts.feas_tol) << "a certificate at a FEASIBLE point would be a "
+                                         "contradiction -- the h half is unmoved by the term";
+        if (arm.certified) {
+            EXPECT_LE(c.stationarity, opts.kkt_tol)
+                << "0 is a subgradient of h at the returned point";
+        } else {
+            EXPECT_GT(c.stationarity, opts.kkt_tol)
+                << "the returned point is stationary for h + P and NOT for h, and that gap is "
+                   "exactly what the driver refused to certify";
+        }
+        ::testing::Test::RecordProperty(
+            fmt::format("zeta_{:g}", arm.zeta),
+            fmt::format("certified={} stat={:.6g} h={:.6g} x=({:.8g},{:.8g}) majors={}+{}",
+                        sol.infeasibility_certified, c.stationarity, c.h, sol.x(0), sol.x(1),
+                        sol.counters.major_iters, sol.counters.restoration_iters));
     }
 }
 
@@ -2013,6 +2388,51 @@ TEST(SqpDriverRestorationExcursion, ACleanSolveHoldsNoReading) {
     EXPECT_EQ(sol.counters.restoration_h_out, 0.0);
     EXPECT_EQ(sol.counters.restoration_f_in, 0.0);
     EXPECT_EQ(sol.counters.restoration_f_out, 0.0);
+}
+
+// ---------------------------------------------------------------------------
+// THE OPTION ITSELF (M7 W2 M2b): validation and the dump line.
+// ---------------------------------------------------------------------------
+
+TEST(RestorationProximityOption, RefusesANegativeNanOrInfiniteWeightByNameAndValue) {
+    SqpOptions o;
+    o.restoration_proximity = -1.0;
+    try {
+        SqpSolver driver(o);
+        FAIL() << "a negative proximity weight was accepted";
+    } catch (const std::invalid_argument &e) {
+        const std::string what = e.what();
+        EXPECT_NE(what.find("restoration_proximity"), std::string::npos) << what;
+        EXPECT_NE(what.find("-1"), std::string::npos) << what;
+    }
+    o.restoration_proximity = std::numeric_limits<double>::quiet_NaN();
+    EXPECT_THROW(SqpSolver{o}, std::invalid_argument)
+        << "the !(w >= 0) form is what catches the NaN";
+    o.restoration_proximity = std::numeric_limits<double>::infinity();
+    EXPECT_THROW(SqpSolver{o}, std::invalid_argument)
+        << "+inf is not 'very heavy': it is +inf everywhere but the centre";
+    // AND 0 IS ACCEPTED -- it is the term's OFF state and the shipped value,
+    // not an ill-formed one.
+    o.restoration_proximity = 0.0;
+    EXPECT_NO_THROW(SqpSolver{o});
+    o.restoration_proximity = 1e-3;
+    EXPECT_NO_THROW(SqpSolver{o});
+}
+
+TEST(RestorationProximityOption, ShipsAtZeroAndCarriesADumpLineInDeclarationPosition) {
+    EXPECT_DOUBLE_EQ(SqpOptions{}.restoration_proximity, 0.0)
+        << "NO DEFAULT MOVES at M7 W2 M2b: the term lands OFF and its weight is uncalibrated";
+    SqpOptions o;
+    o.restoration_proximity = 0.25;
+    std::ostringstream os;
+    dump_options(o, os);
+    const std::string text = os.str();
+    EXPECT_NE(text.find("restoration_proximity = 0.25\n"), std::string::npos) << text;
+    // DECLARATION POSITION: after M1's pair and before the `common.` block,
+    // which is what the drift pin's line count in tests/drivers/
+    // test_options_dump.cpp is counting.
+    EXPECT_LT(text.find("qp_cap_retry"), text.find("restoration_proximity"));
+    EXPECT_LT(text.find("restoration_proximity"), text.find("common.threads"));
 }
 
 HVEN_SUPPRESS_DEPRECATED_END

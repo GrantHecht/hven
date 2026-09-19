@@ -4400,7 +4400,18 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
             mj.row.restoration_seed_used = true;
         }
     }
-    const RestorationModel feasibility(bridge.model(), *x_start, resto_ev);
+    // THE WRAPPER, AND THE PROXIMITY TERM'S CENTRE (M7 W2 M2b). The term is
+    // built at `opts_.restoration_proximity` -- 0 at the shipped default, where
+    // this is the three-argument wrapper that has always shipped -- and it is
+    // centred on `st.x`, THE REQUESTING ITERATE, which is not always
+    // `*x_start`: the seed guard above may have pointed the wrapper's
+    // construction point at an offered candidate. The excursion the term prices
+    // is the CALLER's iterate's, the same one S5's entry half was taken at a
+    // few statements above and the same one the certificate's residual is
+    // measured from, so all three read one point. See restoration.h's class
+    // note for what that costs when the guard does fire.
+    const RestorationModel feasibility(bridge.model(), *x_start, resto_ev, st.x,
+                                       opts_.restoration_proximity);
     SqpOptions ropts = opts_;
     // AND THE SUB-SOLVE RUNS UNSCALED, alongside the budget_mode and
     // qp_mode forcings just below and for the same kind of reason: the
@@ -4795,6 +4806,19 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // sits on a bound -- MEASURED: the box-blocked equality
     // fixture reports z = 0 and a residual of 1 where the
     // certificate calls for z = -1 and 0.
+    //
+    // AND THIS SUBSTITUTION IS UNCHANGED AT A POSITIVE PROXIMITY
+    // WEIGHT (M7 W2 M2b), which is the opposite of what the
+    // design page's first draft proposed and is the point of its
+    // section 3.4. `rs.z` is the price of the SAME box in the
+    // sub-problem whatever that sub-problem's objective is, so it
+    // is still a valid normal-cone element; what the added
+    // x-block costs is the CLAIM that a wrapper-stationary point
+    // is stationary for h, and that is taken out at the
+    // certificate's gate below rather than by correcting `z`
+    // here. Correcting it -- subtracting grad P -- would make the
+    // residual identically zero at every wrapper-stationary
+    // point, certifying everything and testing nothing.
     st.resto.kkt.z = feasibility.original_x(rs.z);
     st.resto.f = ev_r.f;
     // THE SHARED DECLARED DIAGNOSTICS AT THE RESTORED POINT, taken HERE because
@@ -4807,6 +4831,15 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // stationarity read here is the one the certificate is stated in.
     st.resto.diag = stash_declared_diagnostics(ev_r, st.resto.kkt, x_r, rs.lambda_i, seam.lower(),
                                                seam.upper());
+    // THE PROXIMITY TERM'S OWN RESIDUAL (M7 W2 M2b), read before the switch
+    // because the certified arm below gates on it. `zeta ||D^2 (x_r -
+    // x_k)||_inf` is, at a wrapper-stationary point, exactly the UNCORRECTED
+    // `||Je^T lambda_e + Ji^T lambda_i - z_sub||_inf` -- the gap between
+    // "stationary for h + P" and "stationary for h" -- and it costs O(n) and no
+    // Jacobian product. IDENTICALLY 0.0 at the shipped `restoration_proximity =
+    // 0`, so the gate below is then `0.0 <= kkt_tol`, which `validate()` makes
+    // true unconditionally: today's certificate, unchanged.
+    const double proximity_residual = feasibility.proximity_residual_inf(x_r);
     switch (rs.status) {
     case SolveStatus::kOptimal:
         // THE CERTIFIED EXIT, AND THE ONLY ONE: the feasibility
@@ -4816,8 +4849,23 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // is ever set, and it is set on nothing else -- see
         // sqp_solver_types.h's SqpResult note for why the status,
         // the counters and the history cannot carry this fact.
+        //
+        // AND AT A POSITIVE PROXIMITY WEIGHT THE SUB-SOLVE'S OWN
+        // kOptimal IS NO LONGER SUFFICIENT (M7 W2 M2b; the design
+        // page's section 3.4). The wrapper's objective is then
+        // `h + P`, so what its KKT test certified is stationarity
+        // of `h + P`, and a certificate of INFEASIBILITY may not
+        // be read off it: the substitution below -- z from the
+        // restoration problem -- stays exactly as it is, and what
+        // moves is THIS TEST. The residual re-checked here is the
+        // UNCORRECTED one; correcting z by subtracting grad P
+        // would make the residual identically zero at every
+        // wrapper-stationary point and certify nothing. The
+        // status is still kInfeasible either way -- what the
+        // refusal withholds is the CLAIM, which is what the flag
+        // is for.
         st.resto.status = SolveStatus::kInfeasible;
-        st.out.infeasibility_certified = true;
+        st.out.infeasibility_certified = proximity_residual <= opts_.kkt_tol;
         break;
     case SolveStatus::kInfeasible:
         // The sub-solve raised a restoration request of its own,

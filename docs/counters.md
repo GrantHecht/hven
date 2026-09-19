@@ -199,6 +199,15 @@ one of those three therefore cannot silently miss the trace.
     zero and meaningless across a sign change, and the TRAIN cells in
     restoration's neighbourhood include negative objectives.
 
+  **AT `SqpOptions::restoration_proximity > 0` THE RECORD'S MEANING IS
+  UNCHANGED AND THE SUB-SOLVE'S IS NOT** (M7 W2 M2b). The four absolutes are
+  `h` and `f` of the CALLER's model at the requesting and the returned iterate,
+  which is what they are at every weight. What the weight changes is the
+  feasibility wrapper's own objective -- `h + (zeta/2)||D(x - x_k)||^2` rather
+  than `h` -- so a depth-1 iteration event's `f` is no longer the violation at
+  that iterate, and `restoration_h_out <= feas_tol` still says the entry
+  RESUMED. The shipped weight is 0, at which none of this applies.
+
   THE THREE REFUSALS AND THE NON-FINITE EXIT WRITE NOTHING. A nested
   restoration, the once-per-solve cap and a spent budget never enter the phase;
   the non-finite exit entered it and measured nothing, and the driver's rule

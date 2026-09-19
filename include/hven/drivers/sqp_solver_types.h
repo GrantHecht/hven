@@ -818,6 +818,59 @@ struct SqpOptions {
     /// @see docs/notes/2026-09-m7-w2-sqp-cutest-read.md section M1
     bool qp_cap_retry = false;
 
+    /// THE RESTORATION PROXIMITY WEIGHT (M7 W2 M2b), `zeta` -- the coefficient
+    /// on the `1/2 zeta ||D (x - x_k)||^2` term the restoration phase's
+    /// feasibility wrapper carries in its OBJECTIVE, with `D = diag(d_i)`,
+    /// `d_i = min(1, 1/|x_{k,i}|)` and `x_k` the REQUESTING ITERATE.
+    ///
+    /// WHAT IT IS FOR. The feasibility wrapper's objective is the violation
+    /// alone, with NO x-block at all, so nothing in the sub-solve prices
+    /// distance from the point that asked for the phase: measured, the
+    /// restoration sub-solve walks `||x - x_k||_inf` from 0.13 to 9 999.9 while
+    /// its own trust radius doubles fourteen times, and returns a point inside
+    /// `feas_tol` at an objective of 1.8e14
+    /// (`docs/notes/data/2026-09-m7-w2-m2-restoration/ladder/STEENBRC.txt`).
+    /// This term is the price. It is transcribed from the interior-point lane's
+    /// NESTED l1 restoration -- `detail/globalization/l1_restoration.h`,
+    /// `rho*sum(n+p) + (eta(mu)/2)*|D_R (x - x_R)|^2` with
+    /// `rho = kRestoPenaltyParameter = 1e3` and `eta = sqrt(mu)` -- which is the
+    /// right analogue because the SQP wrapper IS an l1 elastic feasibility
+    /// problem. The IPM lane's reading of the same term is a WEAK regulariser,
+    /// three orders below the violation term.
+    ///
+    /// DEFAULT 0.0 = OFF, AND OFF IS A CODE SHAPE RATHER THAN AN ARITHMETIC
+    /// IDENTITY. At 0 the wrapper BRANCHES the term out of `eval_f`,
+    /// `eval_grad` and `eval_hess` -- it does not add zeros -- so the objective,
+    /// the gradient AND the augmented Hessian's sparsity pattern are the ones
+    /// that shipped before this field existed, which is what keeps the
+    /// sub-solve's symbolic analysis where it was. `detail/globalization/sqp/
+    /// restoration.h` states the same thing where the branch is.
+    ///
+    /// AT `zeta > 0` IT COSTS THE INFEASIBILITY CERTIFICATE, by design and not
+    /// as a side effect. `SqpResult::infeasibility_certified` is then set only
+    /// when `zeta ||D^2 (x_r - x_k)||_inf <= kkt_tol` -- the gap between
+    /// "stationary for h + P" and "stationary for h" -- so a phase that MOVED
+    /// does not certify. See that field's own note.
+    ///
+    /// NOT CALIBRATED: no default moves at this task. The weight this field
+    /// ships at is 0, and the candidate set, the pre-registered decision rule
+    /// and the leg that runs it are
+    /// `docs/notes/data/2026-09-m7-w2-m2b-proximity/`; the design page is
+    /// `docs/notes/2026-09-m7-w2-m2-restoration-design.md` (section 3 for the
+    /// term, 3.4 for the certificate, 3.5 for the calibration). A caller that
+    /// sets it is running an UNCALIBRATED lever.
+    ///
+    /// `validate()` refuses a negative value and a NaN (the `!(x >= 0)` form,
+    /// which catches both) and refuses a non-finite one: `+inf` would make the
+    /// wrapper's objective `+inf` at every point but the centre.
+    ///
+    /// NOT a curvature source (docs/counters.md): it adds a term to an
+    /// OBJECTIVE, and the `zeta D^2` block it puts on the wrapper's Hessian is
+    /// that term's own exact second derivative -- it selects neither whether nor
+    /// how any second-order reading is taken.
+    /// @see docs/notes/2026-09-m7-w2-m2-restoration-design.md section 3
+    double restoration_proximity = 0.0;
+
     /// The options both engines share (drivers/common_options.h), at the SQP
     /// engine's own defaults -- `threads = 0` ("leave the backend alone", which
     /// is what this engine has always done; the process-wide MKL_NUM_THREADS pin
@@ -861,7 +914,8 @@ struct SqpOptions {
 ///         ill-formed IpqpOptions field -- validated unconditionally, like the
 ///         scaling fields, since `qp_mode` is a value a caller may change later.
 ///         `QpMode::kQpModeCount` names no kernel and is refused -- plus a
-///         negative `common.threads` or `common.print_level`.
+///         negative `common.threads` or `common.print_level`, or a negative,
+///         NaN or infinite `restoration_proximity`.
 void validate(const SqpOptions &opts);
 
 /// @brief Returns a full SqpOptions value for a named preset.
@@ -1296,6 +1350,18 @@ struct SqpResult : SolveResult {
     ///
     /// READ IT AS A One-way guarantee: true means the certificate holds; false
     /// means NO CLAIM IS MADE about the model.
+    ///
+    /// AND AT `SqpOptions::restoration_proximity > 0` THE PHASE'S OWN KKT TEST
+    /// IS NO LONGER ENOUGH (M7 W2 M2b). The proximity term makes the wrapper's
+    /// stationarity condition `grad P + J^T lambda - z_sub = 0`, so a
+    /// wrapper-stationary point is stationary for `h + P` and the quantity the
+    /// certificate needs -- `||J^T lambda - z_sub||_inf`, with `z_sub`
+    /// UNCORRECTED -- is exactly `zeta ||D^2 (x_r - x_k)||_inf` there. The
+    /// driver therefore re-checks that residual explicitly against `kkt_tol`
+    /// and sets this flag only when it passes; at the shipped `zeta = 0` the
+    /// residual is identically 0 and the gate is today's test unchanged. The
+    /// practical consequence is stated rather than hidden: at any `zeta` heavy
+    /// enough to change a phase, a phase that MOVED does not certify.
     bool infeasibility_certified = false;
 
     /// The solve's exit state in warm_start.h's shape, for a LATER solve of a
