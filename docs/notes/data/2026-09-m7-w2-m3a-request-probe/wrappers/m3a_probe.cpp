@@ -1,3 +1,52 @@
+// M7 W2 M3a ADDENDUM F -- THE DEGENERATE-STALL PROBE: the addendum-E probe
+// below, verbatim but for ONE ARGUMENT, ONE PRINTED KEY and ONE NEW BLOCK, all
+// named here so a reader can diff against the binary addendum E ran and find
+// nothing else. The argument defaults to the E probe's behaviour EXACTLY, so a
+// leg that passes neither it nor E's two arguments is stage 1's own solve --
+// which is what makes RULE-F.md section 3.1's identity leg an identity check
+// rather than a fresh baseline.
+//
+//   * `--ledger on|off` (DEFAULT off) constructs a `hven::solvers::Ledger` and
+//     hands it to `SqpSolver::attach_ledger`. `off` is not "skip the reads": no
+//     Ledger object is constructed and attach_ledger is never called, so
+//     `SqpSolver::ledger_` stays nullptr and the driver takes the same branch it
+//     takes for every caller that never asked for one. Printed as the key
+//     `ledger`.
+//
+//   * the `LEDGER_BEGIN` ... `LEDGER_END` BLOCK, emitted AFTER `LADDER_END` and
+//     before `PROBE_END`. It is a block of its own precisely so the
+//     `PROBE_BEGIN` key block -- the thing RULE.md section 4's identity
+//     machinery compares against the committed rows -- gains exactly ONE key
+//     and nothing else.
+//
+// WHAT THE LEDGER IS, AND WHY IT IS REACHED THIS WAY. Addendum E's write-up
+// recorded that `QpCounters::schur_updates` and the whole degeneracy set are
+// "not reachable from SqpResult". THAT IS TRUE AND STAYS TRUE: `SqpCounters`
+// does not carry those fields. What it missed is a SECOND public surface --
+// `hven::solvers::Ledger` (core/ledger.h) is a public, read-only instrument;
+// `SqpSolver::attach_ledger` is a public method that ALSO forwards the same
+// Ledger to the driver's own QpEngine; and `Ledger::records()` hands back one
+// `SolveRecord` PER QP-ENGINE SOLVE, each carrying a whole `QpCounters`. The
+// harness's own M7 W2 C1 cost census already read the degeneracy set this way.
+//
+// ITS SCOPE, STATED HERE AND IN RULE-F.md SECTION 1.2 SO NO RECORD COUNT IS
+// MISREAD: attach_ledger attaches to the driver's MAIN WALK ENGINE and to
+// nothing else. The restoration phase's own sub-driver receives attach_trace
+// but NO attach_ledger (core/ledger.h says so), and the four lazily-built
+// engines (ipqp, elastic-ipqp, ssn, cap-retry) are never handed it either. So
+// `records().size()` is the number of solves the main walk engine made and is a
+// LOWER BOUND on the QP solves the whole solve performed.
+//
+// EVERY FIELD, NOT A CHOSEN SUBSET. `QpCounters` has exactly twenty fields and
+// all twenty are printed on every record, in declaration order, beside the
+// record's label, warm flag and terminal QpStatus. Two quantities RULE-F.md's
+// ruling names do NOT exist on this struct and are recorded as ABSENT rather
+// than substituted for: there is no negative-curvature field (the ride's own
+// blocking constraint is folded into `ws_adds`, by that field's own doc) and no
+// inertia field (`IpqpCounters::ipqp_final_inertia_read` is a different struct
+// describing a tier that does not run here). `suspect_escalations` is the one
+// escalation counter this struct carries and is printed like the rest.
+//
 // M7 W2 M3a ADDENDUM E -- THE QP-CAP EXPERIMENTS: the stage-1 probe below,
 // verbatim but for TWO ARGUMENTS and FIVE PRINTED KEYS, all named here so a
 // reader can diff against the binary stage 1 ran and find nothing else. Both
@@ -158,6 +207,7 @@
 // has returned.
 
 #include <cmath>
+#include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -168,6 +218,7 @@
 
 #include <Eigen/Core>
 
+#include <hven/core/ledger.h>
 #include <hven/drivers/solve_result.h>
 #include <hven/drivers/sqp_solver.h>
 #include <hven/drivers/sqp_solver_types.h>
@@ -224,6 +275,91 @@ const char *qp_status_name(hven::solvers::QpStatus s) {
     return "UNRECOGNIZED";
 }
 
+// ADDENDUM F -- THE PER-RECORD PRINT CAP, RULE-F.md section 5. A PRINT cap on
+// the artifact's size, NOT a measurement cap: the aggregates below are computed
+// over EVERY record whatever this does, and record 0 -- the only one any verdict
+// reads -- is always printed. Stage 1's majors and elastic activations put the
+// expected record count in the tens, so it is not expected to bind.
+constexpr int kMaxLedgerRecordsPrinted = 5000;
+
+// ADDENDUM F -- QpCounters' twenty fields in DECLARATION ORDER
+// (core/solver_counters.h:31). This list IS the struct's; nothing selects from
+// it, which is why it sits beside an extractor rather than beside twenty print
+// statements at each of the three sites that need it.
+const char *const kQpCounterFields[] = {"factorizations",
+                                        "schur_updates",
+                                        "minor_iters",
+                                        "eqp_refine_steps",
+                                        "border_refine_steps",
+                                        "verdict_refine_steps",
+                                        "suspect_escalations",
+                                        "k0_reused",
+                                        "symbolic_analyses",
+                                        "ws_adds",
+                                        "ws_drops",
+                                        "shift_adds",
+                                        "degenerate_steps",
+                                        "degenerate_run_max",
+                                        "ws_adds_bound",
+                                        "ws_drops_bound",
+                                        "distinct_ineq_added",
+                                        "distinct_bound_added",
+                                        "drop_ties",
+                                        "ratio_ties"};
+constexpr int kQpCounterFieldCount = 20;
+static_assert(sizeof(kQpCounterFields) / sizeof(kQpCounterFields[0]) == kQpCounterFieldCount,
+              "the name table and the extractor below must agree");
+
+// The two indices that are NOT summed when a leg's records are aggregated
+// (RULE-F.md section 4.2): `k0_reused` is a bool and folds as a COUNT of
+// records reading true, `degenerate_run_max` is a PEAK and folds with max.
+constexpr int kIdxK0Reused = 7;
+constexpr int kIdxDegenerateRunMax = 13;
+// The indices the two derived quantities and the verdict ratio are built from.
+constexpr int kIdxMinorIters = 2;
+constexpr int kIdxWsAdds = 9;
+constexpr int kIdxWsDrops = 10;
+constexpr int kIdxShiftAdds = 11;
+constexpr int kIdxDegenerateSteps = 12;
+
+void qp_counter_values(const hven::solvers::QpCounters &q, long long (&out)[kQpCounterFieldCount]) {
+    out[0] = static_cast<long long>(q.factorizations);
+    out[1] = static_cast<long long>(q.schur_updates);
+    out[2] = static_cast<long long>(q.minor_iters);
+    out[3] = static_cast<long long>(q.eqp_refine_steps);
+    out[4] = static_cast<long long>(q.border_refine_steps);
+    out[5] = static_cast<long long>(q.verdict_refine_steps);
+    out[6] = static_cast<long long>(q.suspect_escalations);
+    out[7] = q.k0_reused ? 1 : 0;
+    out[8] = static_cast<long long>(q.symbolic_analyses);
+    out[9] = static_cast<long long>(q.ws_adds);
+    out[10] = static_cast<long long>(q.ws_drops);
+    out[11] = static_cast<long long>(q.shift_adds);
+    out[12] = static_cast<long long>(q.degenerate_steps);
+    out[13] = static_cast<long long>(q.degenerate_run_max);
+    out[14] = static_cast<long long>(q.ws_adds_bound);
+    out[15] = static_cast<long long>(q.ws_drops_bound);
+    out[16] = static_cast<long long>(q.distinct_ineq_added);
+    out[17] = static_cast<long long>(q.distinct_bound_added);
+    out[18] = static_cast<long long>(q.drop_ties);
+    out[19] = static_cast<long long>(q.ratio_ties);
+}
+
+// `degenerate_steps / minor_iters` -- RULE-F.md section 4's ratio, formatted.
+// An undefined ratio is SAID rather than printed as a number: RULE-F.md section
+// 4's undefined case makes `minor_iters == 0` an UNDETERMINED cell, and a 0 here
+// would read as "no degeneracy" instead.
+std::string degenerate_fraction(const long long (&v)[kQpCounterFieldCount]) {
+    if (v[kIdxMinorIters] == 0) {
+        return "n/a (minor_iters = 0)";
+    }
+    char buf[64];
+    std::snprintf(buf, sizeof(buf), "%.17g",
+                  static_cast<double>(v[kIdxDegenerateSteps]) /
+                      static_cast<double>(v[kIdxMinorIters]));
+    return std::string(buf);
+}
+
 } // namespace
 
 int main(int argc, char **argv) {
@@ -247,6 +383,11 @@ int main(int argc, char **argv) {
     // RULE-E.md section 3's identity leg checks.
     bool qp_cap_retry = false;
     long long qp_max_iter = 0;
+    // THE ONE OPTION ADDENDUM F ADDS, and it is not a solver option at all: it
+    // attaches a PUBLIC READ-ONLY INSTRUMENT. `false` is the E probe's behaviour
+    // EXACTLY -- no Ledger is constructed and attach_ledger is never called --
+    // which is what RULE-F.md section 3.1's identity leg checks.
+    bool attach_ledger_flag = false;
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
         if (arg == "--problem" && i + 1 < argc) {
@@ -294,6 +435,14 @@ int main(int argc, char **argv) {
                                      "positive absolute cap\n");
                 return 2;
             }
+        } else if (arg == "--ledger" && i + 1 < argc) {
+            const std::string value = argv[++i];
+            if (value == "on") {
+                attach_ledger_flag = true;
+            } else if (value != "off") {
+                std::fprintf(stderr, "m3a_probe: --ledger takes on|off\n");
+                return 2;
+            }
         } else if (arg == "--callback" && i + 1 < argc) {
             const std::string value = argv[++i];
             if (value == "off") {
@@ -311,7 +460,7 @@ int main(int argc, char **argv) {
         std::fprintf(stderr,
                      "usage: m3a_probe --problem NAME [--budget-iters k] [--proximity zeta] "
                      "[--tr-init r] [--deadline s] [--callback on|off] "
-                     "[--qp-cap-retry on|off] [--qp-max-iter N]\n");
+                     "[--qp-cap-retry on|off] [--qp-max-iter N] [--ledger on|off]\n");
         return 2;
     }
 
@@ -353,6 +502,17 @@ int main(int argc, char **argv) {
         options.qp.max_iter = static_cast<Index>(qp_max_iter);
 
         hven::solvers::SqpSolver solver(options);
+        // ADDENDUM F. `--ledger off` does NOT merely skip the reads below: no
+        // Ledger object is constructed and attach_ledger is never called, so the
+        // driver's `ledger_` stays nullptr and it takes the same branch it takes
+        // for every caller that never asked for one. That is what makes
+        // RULE-F.md section 3.2's neutrality check a real A/B rather than an
+        // appeal to the contract.
+        std::unique_ptr<hven::solvers::Ledger> ledger;
+        if (attach_ledger_flag) {
+            ledger = std::make_unique<hven::solvers::Ledger>();
+            solver.attach_ledger(ledger.get(), "f");
+        }
         std::vector<Row> rows;
         bool deadline_fired = false;
         if (attach_callback) {
@@ -397,6 +557,10 @@ int main(int argc, char **argv) {
         // arm produced it. `off` and `0` are the shipped defaults.
         kvs("qp_cap_retry", qp_cap_retry ? "on" : "off");
         kvi("qp_max_iter", qp_max_iter);
+        // ADDENDUM F's one new key in this block. Everything else it prints
+        // lives in the LEDGER block after LADDER_END, which is not part of the
+        // key block any identity check compares.
+        kvs("ledger", attach_ledger_flag ? "on" : "off");
         kv("deadline_seconds", attach_callback ? deadline_seconds : 0.0);
         kvi("deadline_fired", deadline_fired ? 1 : 0);
         kvi("n", static_cast<long long>(model->n()));
@@ -602,6 +766,123 @@ int main(int argc, char **argv) {
                         row.f_event, row.radius, row.step_norm, f_main, h_main, dx, prox_rel);
         }
         std::printf("LADDER_END\n");
+
+        // ADDENDUM F -- THE QP LEDGER BLOCK (RULE-F.md sections 1.3, 4.2).
+        //
+        // It sits AFTER LADDER_END and before PROBE_END, in a block of its own,
+        // so the PROBE_BEGIN key block gains exactly one key (`ledger`) and the
+        // identity and neutrality checks of RULE-F.md section 3 compare the same
+        // key set stage 1 and addendum E compared.
+        //
+        // THREE VIEWS OF THE SAME RECORDS, none of them a selection: the FIRST
+        // record in full (the only one any verdict reads), the AGGREGATE over
+        // every record, and the per-record table. All twenty QpCounters fields
+        // appear in each.
+        std::printf("LEDGER_BEGIN\n");
+        kvi("ledger_attached", ledger ? 1 : 0);
+        if (ledger == nullptr) {
+            kvs("ledger_note", "no Ledger was constructed and attach_ledger was never called");
+            std::printf("LEDGER_END\n");
+        } else {
+            const std::vector<hven::solvers::SolveRecord> &qp_records = ledger->records();
+            const long long record_count = static_cast<long long>(qp_records.size());
+            kvi("ledger_qp_records", record_count);
+            // The DRIVER-level record, for completeness: one per public solve()
+            // call. It carries SqpCounters, which the PROBE_BEGIN block already
+            // prints from SqpResult, so only its count and status are taken here.
+            kvi("ledger_sqp_records", static_cast<long long>(ledger->sqp_records().size()));
+            if (!ledger->sqp_records().empty()) {
+                kvs("ledger_sqp_status",
+                    hven::solvers::to_string(ledger->sqp_records().front().status));
+            }
+            kvi("ledger_records_print_cap", kMaxLedgerRecordsPrinted);
+            const long long printed =
+                record_count < static_cast<long long>(kMaxLedgerRecordsPrinted)
+                    ? record_count
+                    : static_cast<long long>(kMaxLedgerRecordsPrinted);
+            kvi("ledger_records_printed", printed);
+            kvi("ledger_records_print_truncated", printed < record_count ? 1 : 0);
+
+            // --- THE FIRST RECORD, in full. RULE-F.md section 4 takes its
+            // verdict from this record of the tr_init = inf legs and from
+            // nothing else. An absent record is SAID, not defaulted: a row of
+            // zeroes would read as a measurement.
+            std::printf("LEDGER_FIRST_BEGIN\n");
+            if (qp_records.empty()) {
+                kvs("first_record", "n/a (no QP-engine record)");
+            } else {
+                const hven::solvers::SolveRecord &r0 = qp_records.front();
+                kvs("first_label", r0.label);
+                kvi("first_warm", r0.warm ? 1 : 0);
+                kvs("first_qp_record_status", qp_status_name(r0.status));
+                long long v[kQpCounterFieldCount];
+                qp_counter_values(r0.counters, v);
+                for (int i = 0; i < kQpCounterFieldCount; ++i) {
+                    std::printf("first_%s=%lld\n", kQpCounterFields[i], v[i]);
+                }
+                // The three DERIVED quantities, marked derived by their names
+                // and by RULE-F.md sections 1.4 and 4.1. `ws_net_change` is
+                // `W - S` by the walk counters' documented net identity -- the
+                // sizes themselves are not fields -- and carries that identity's
+                // one documented start-repair exception.
+                kvs("first_degenerate_fraction", degenerate_fraction(v));
+                kvi("first_ws_adds_minus_drops", v[kIdxWsAdds] - v[kIdxWsDrops]);
+                kvi("first_ws_net_change", v[kIdxWsAdds] - v[kIdxWsDrops] + v[kIdxShiftAdds]);
+            }
+            std::printf("LEDGER_FIRST_END\n");
+
+            // --- THE AGGREGATE, over EVERY record, print cap or not. Sums,
+            // with the two exceptions RULE-F.md section 4.2 fixes: k0_reused is
+            // a bool and folds as a COUNT of records reading true,
+            // degenerate_run_max is a PEAK and folds with max.
+            std::printf("LEDGER_AGG_BEGIN\n");
+            long long agg[kQpCounterFieldCount] = {0};
+            for (const hven::solvers::SolveRecord &r : qp_records) {
+                long long v[kQpCounterFieldCount];
+                qp_counter_values(r.counters, v);
+                for (int i = 0; i < kQpCounterFieldCount; ++i) {
+                    if (i == kIdxDegenerateRunMax) {
+                        agg[i] = v[i] > agg[i] ? v[i] : agg[i];
+                    } else {
+                        agg[i] += v[i];
+                    }
+                }
+            }
+            for (int i = 0; i < kQpCounterFieldCount; ++i) {
+                std::printf("agg_%s=%lld\n", kQpCounterFields[i], agg[i]);
+            }
+            kvs("agg_k0_reused_meaning", "a COUNT of records reading true, not a sum of bools");
+            kvs("agg_degenerate_run_max_meaning", "a PEAK over records, folded with max");
+            kvs("agg_degenerate_fraction", degenerate_fraction(agg));
+            std::printf("LEDGER_AGG_END\n");
+
+            // --- THE PER-RECORD TABLE. One line per record up to the print
+            // cap, in the driver's own emission order; the label carries the
+            // driver's sequence number so the ordering is read rather than
+            // inferred.
+            std::printf("LEDGER_RECORDS_BEGIN\n");
+            std::printf("index,label,warm,status");
+            for (int i = 0; i < kQpCounterFieldCount; ++i) {
+                std::printf(",%s", kQpCounterFields[i]);
+            }
+            std::printf(",ws_adds_minus_drops,ws_net_change,degenerate_fraction\n");
+            for (long long k = 0; k < printed; ++k) {
+                const hven::solvers::SolveRecord &r = qp_records[static_cast<std::size_t>(k)];
+                long long v[kQpCounterFieldCount];
+                qp_counter_values(r.counters, v);
+                std::printf("%lld,%s,%d,%s", k, r.label.c_str(), r.warm ? 1 : 0,
+                            qp_status_name(r.status));
+                for (int i = 0; i < kQpCounterFieldCount; ++i) {
+                    std::printf(",%lld", v[i]);
+                }
+                std::printf(",%lld,%lld,%s\n", v[kIdxWsAdds] - v[kIdxWsDrops],
+                            v[kIdxWsAdds] - v[kIdxWsDrops] + v[kIdxShiftAdds],
+                            degenerate_fraction(v).c_str());
+            }
+            std::printf("LEDGER_RECORDS_END\n");
+            std::printf("LEDGER_END\n");
+        }
+
         std::printf("PROBE_END\n");
         return 0;
     } catch (const std::exception &e) {
