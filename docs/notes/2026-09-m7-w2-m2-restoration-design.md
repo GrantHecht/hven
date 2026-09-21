@@ -1111,3 +1111,161 @@ guard may set to an offered candidate rather than to `x_k`. A term centred on
 centring on `*x_start`** — the same point the σ scaling and the start slacks are
 read from — and pins the decision with a fixture that exercises a fired seed
 guard at `ζ > 0`. The two coincide on every cell in this artifact.
+
+---
+
+## Outcome (M2b) — appended 2026-09-20, after the term landed and the ζ calibration ran
+
+**Append-only.** Nothing above this line is altered. This section is the page's
+own record of what happened when the design it argues for was built and
+measured, written against the artifact
+`docs/notes/data/2026-09-m7-w2-m2b-proximity/` (35 legs, 2026-09-18), the code
+commit `577719a0`, the settler's ruling `cb8b88c7`, and the review that ordered
+fix round 1 (`.superpowers/m7-w2-m2b-review-sol.md`). A reader who arrives at
+any line above should read that line together with the correction here.
+
+### 0. The status line
+
+**§0's "Nothing here is implemented" is superseded.** Shape (i) — the proximity
+term — IS implemented, on branch `m7`:
+
+* `SqpOptions::restoration_proximity`, a public `double` defaulting to `0.0`
+  (OFF), `577719a0`;
+* the term in `RestorationModel`'s objective, gradient and Hessian, branched out
+  entirely at `ζ = 0`;
+* the certificate gate of §3.4, in its exact form (see §3 below);
+* the options triple moved `kSqpOptionsFields` 30 → 31, `kSqpDumpLines` 61 → 62,
+  `sizeof(SqpOptions)` 400 → **416** — not the 408 the brief estimated; the
+  compiler-observed value is the pin.
+
+Shapes (ii) and (iii) remain unbuilt, as §10 recommended.
+
+### 1. The centre: the page's recommendation was OVERRIDDEN
+
+§3.2 and §11's registered item 8 recommend centring the term on `*x_start`, the
+wrapper's construction point. **The settler ruled for `x_k`, the REQUESTING
+iterate** (2026-09-18; argued in `577719a0`'s message): the excursion the term
+prices is the caller's, and `x_k` is also the point S5's excursion record is
+taken at and the point the certificate's residual is measured from, so all three
+read ONE point. The page's own argument for `*x_start` — that it keeps the
+start-objective identity — is answered in §2.
+
+### 2. The start-objective identity is now CONDITIONAL
+
+§3's "the wrapper's objective at its own start point is exactly `h(x_entry)`"
+(the line near §3's transcription, and the fixture pin
+`RestorationModel.IsTheSmoothL1FeasibilityProblem`) holds at `ζ = 0` **and at
+`ζ > 0` only when the seed guard did not fire**. When it fires, `x_entry ≠ x_k`
+and the wrapper's start objective is `h(x_entry) + P(x_entry)` exactly. That is
+the declared price of §1's ruling; it is pinned as a fixture rather than
+discovered, and it is the reason the artifact labels its `f_event` column at
+`ζ > 0` as `h + P` (artifact README §7 caveat 1). The reformulation's EXACTNESS
+is untouched — the term is on the objective being minimized, not on the
+violation being measured.
+
+### 3. The certificate: equivalence holds at EXACT stationarity only
+
+§3.4, and the two places that repeat it (§10's list of what must be ruled on
+before the term is written, and §11's question 1), say that gating on
+`‖Jᵀλ − z_sub‖∞` and gating on `ζ‖D²(x_r − x_k)‖∞ = ‖∇P‖∞` are the same test,
+so the cheaper one may be used. **That equivalence is true
+only at an EXACTLY stationary point of the wrapper, and a sub-solve returns
+`kOptimal` at a FINITE tolerance.** Write the wrapper's x-block residual at the
+returned point as
+
+    e = ∇P + Jᵀλ − z_sub,   ‖e‖∞ ≤ kkt_tol.
+
+What the certificate needs is `‖e − ∇P‖∞`, not `‖∇P‖∞`. Testing `‖∇P‖∞ ≤
+kkt_tol` bounds the required residual only by `2·kkt_tol`, and the two terms can
+reinforce, so a point whose true residual is ABOVE tolerance can be certified.
+The first implementation took the cheap form and therefore **could certify
+falsely at `ζ > 0`**; the review found it and fix round 1 replaced it with the
+residual computed EXPLICITLY, `O(nnz(J))`, at the one site that sets the flag.
+The proxy is not kept as a fast path. At the shipped `ζ = 0` the two coincide
+exactly (`∇P ≡ 0`), which is why the OFF behaviour is unchanged — proved by the
+OFF identity and the U0 replay, not argued.
+
+The rest of §3.4 stands as written: `z_sub` is NOT corrected (subtracting `∇P`
+would make the residual identically zero at every wrapper-stationary point and
+certify everything), `check_certificate` does not move, and the certified exit
+becomes practically unavailable on any phase that actually moves — which the
+artifact then measured (README finding 1: the smallest observed lower bound on
+the residual is 4.72 × `kkt_tol`, and `infeasibility_certified` is 0 on all 35
+legs).
+
+### 4. The expected-effect table (§5) against what was measured
+
+§5's column (i) is a set of predictions about `ζ > 0`. Measured
+(`tables/summary.md`, and the per-cell tables):
+
+| cell | §5's column (i) said | what the four arms did |
+|---|---|---|
+| STEENBRC / STEENBRG | "the runaway is priced … the trajectory changes, so the outcome is an empirical question" | the trajectory changes and the phase FREEZES: one restoration major at members 2–4, `h` 41 800 → 41 795 (41 797 / 41 800 at 3 and 4), `infeasible` under every member |
+| STEENBRB | as STEENBRC | as STEENBRC: `h` 19 800 → 19 791 at member 2, `infeasible` under every member |
+| ZAMB2-8 | "at risk, and the bar … the corrected candidate set leaves it admissible by more than an order at member 2" | **member 2 does NOT survive.** It exits `infeasible`, stopping at `h_out = 1.378e-06` against `feas_tol = 1e-06`. Members 1 and 3 still reach `optimal` at the same local minimum but at a different cost; member 4 also exits `infeasible` |
+| YORKNET | "inert: `dx_inf = 0` at all 18 iterations … no returned value differs" | the POINT is inert as predicted — `h_out == h_in` to the last digit at every ζ — but the WORK counters move (the phase runs 18–34 depth-1 rows depending on the arm). "Inert" was right about the answer and wrong about the cost |
+| BRITGAS | "very likely inert — the whole excursion is 0.031 … many orders from touching it" | **not inert.** It is `numerical_error` at ζ = 0 and at members 1–2, and `infeasible` at members 3 and 4: the term changed its exit ARM |
+| READING6 | unmoved | unmoved, and unmoved *by construction*: `h_k = 0`, so its ζ is 0 under every member and its four ON legs are the same solve as its screen leg |
+
+### 5. The TRAIN readings (§6's bar)
+
+§6's bar is STEENBRB → `optimal` at 9 075.855 with ZAMB2-8, READING6, BRITGAS and
+YORKNET unmoved. **No candidate produces a single `optimal` on STEENBRB**, and
+the only cell unmoved by all four is READING6, which is unmoved by construction.
+The bar is unmet by every pre-registered weight. §6's own reading — "not
+predictable from the ladder, and must be measured … it is the bar, not a
+forecast" — was the right label; the measurement came back negative.
+
+### 6. The recommendation to adopt (§10) is REFUTED as a default move
+
+§10 recommends adopting shape (i) as M2's fix. **The calibration refutes that
+for every pre-registered weight**, and the settler ruled accordingly: the
+default stays `0.0`, there is no M2c, and the option ships dormant. What survives
+is §10's diagnosis — the wrapper's objective has no x-block, so nothing prices
+distance from the requesting iterate — and the code, which is proven OFF. What is
+refuted is the SHAPE: an absolute quadratic proximity weight, at any of four
+magnitudes spanning six orders, centred on `x_k`, does not convert these cells;
+it freezes the phase instead of steering it.
+
+The option's own disposition — keep it as M3's interaction arm, or remove the
+public surface — is REGISTERED for M3's close, on M3's evidence. The review
+preferred removal now; the settler ruled it stays for the duration, because `m7`
+ships nothing until M7 closes and a revert-then-reintroduce would re-derive the
+same pins twice.
+
+### 7. The member-2 preview (§11 question 2) against the actual screen
+
+§11 question 2's worked preview — run on the ladder's `dx_inf`, substituting
+`prox_rel ≈ dx_inf²` and reading all three clauses cumulatively — selects
+**member 2**. The leg's own pre-registered rule, applied by script to the screen
+arm's measured `prox_rel`, selected **member 1**
+(`verdict.txt`: "the smallest member clearing every clause by the pre-registered
+factor of 10"). The preview is therefore not this leg's answer and is quoted
+nowhere as one; RULE.md §4 says so in advance. And member 1, the selected
+member, was then **refuted by the ON arms**: it is the PROVISIONAL SCREEN
+RECOMMENDATION, rejected by the pre-registered TRAIN evidence.
+
+### 8. The trust-region fallback (§11, ruled 5) against what the settler chose
+
+§11's ruling 5 registers an explicit excursion cap (`ropts.tr_max`, or a
+`‖x − x_k‖ ≤ Δ_resto` constraint) as the fallback "for the case where the
+calibration leg finds no admissible ζ". The calibration found none. **The
+settler did not take that fallback.** The artifact's finding 2 identified a
+different and earlier variable: every restoration on these cells is requested by
+a QP infeasibility inside the window `min(st.delta, opts_.qp.tr_radius)`, and on
+STEENBRB and YORKNET that request comes from the FIRST subproblem at `x0`, where
+the window is `tr_init = 1.0`. So M3 receives a staged `tr_init` probe instead.
+
+That probe is a HYPOTHESIS — `tr_init` is the next discriminating variable, and
+the evidence does not establish it as a root cause. The trust-region cap of
+ruling 5 remains registered and unbuilt; it is not withdrawn, and if the
+`tr_init` probe comes back negative it is still the fallback this page named.
+
+### 9. Instrument gap carried forward
+
+The probe does not print the restoration sub-solve's own status, so "the
+sub-solve reached `kOptimal` on `h + P`" is an inference on the STEENBR and
+ZAMB2-8 rows (sound, but not an observation); only YORKNET's arm is proved, and
+it is proved by the certificate flag rather than by the status. One probe key
+(`rs.status` through the S5 record, or a counter for the nested refusal) would
+make "which arm exited" an observation on every row. It is registered to M3.

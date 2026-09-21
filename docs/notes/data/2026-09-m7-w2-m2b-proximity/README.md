@@ -314,3 +314,89 @@ byte-identically.
    restoration entered): its four ON legs are the same solve as its screen leg,
    and its role is to be unmoved.
 5. **HOLDOUT was not run**; every cell here is TRAIN.
+
+---
+
+## 8. Corrections (fix1) — appended 2026-09-20
+
+**Append-only.** Nothing above this line is altered, and `verdict.txt`,
+`RULE.md`, `off-identity.txt`, the `rows/`, the `tables/` and the `gates/`
+transcripts stay exactly as they were written. These are the corrections the
+review of the artifact commit (`.superpowers/m7-w2-m2b-review-sol.md`) found
+owed, adjudicated by the settler and recorded here so that a reader of the text
+above reads it with them.
+
+### (i) "not a recommendation" bends the nomenclature — the honest wording
+
+§3's sentence "The screen's verdict is recorded here as what it is — a screen
+result that the ON rows contradict — and **not as a recommendation**" is not the
+pre-registered wording. RULE.md §6 says the selected member is recorded AS a
+recommendation, and `verdict.txt` says exactly that, verbatim, and stays
+verbatim.
+
+**The correct statement is: member 1 was the PROVISIONAL SCREEN RECOMMENDATION,
+and it was rejected by the pre-registered ON/TRAIN evidence.** Nothing numerical
+moves with the wording: the screen selected member 1 under the rule as written,
+the four ON arms were run because the rule required them, and all four fail the
+TRAIN bar. What was wrong was to deny that the screen had recommended anything;
+what the screen produced was a recommendation that the next pre-registered step
+overturned, which is the rule working rather than the rule being reinterpreted.
+
+### (ii) STEENBRB and YORKNET have NO depth-0 rows — the supporting sentence is false
+
+Finding 2's bullet claims that STEENBRB and YORKNET "show a depth-0 row 0 with
+`radius = 1` and `step_norm = 0`". **No such rows exist.** Both cells' first
+recorded rows are DEPTH 1, and their step norms are 1 (STEENBRB) and 131.08
+(YORKNET). The sentence is withdrawn.
+
+**The conclusion it was offered in support of survives, on the evidence that was
+always the real basis for it**: `x_k_source = start_point` in
+`rows/screen/STEENBRB.txt` and `rows/screen/YORKNET.txt` — the phase was
+requested at the START POINT — together with the code path, which shows that
+`st.delta` is initialised from `tr_init = 1.0`, so the window the first
+subproblem is solved in IS `tr_init`. Nothing in finding 2's conclusion rests on
+the withdrawn sentence.
+
+### (iii) The trust radius is M3's HYPOTHESIS, not an established root cause
+
+Finding 2 and the settler's own summary of it read more strongly than the
+evidence supports. **The corrected statement**: `tr_init` is the NEXT
+DISCRIMINATING VARIABLE, and M3's probe is a hypothesis test. What the evidence
+DOES establish is (a) that the request is raised inside the
+`min(st.delta, opts_.qp.tr_radius)` window, (b) that on STEENBRB and YORKNET that
+window is `tr_init` because the request comes at major 0, and (c) that the
+proximity term cannot affect the parent QP that raises the request — it lives
+only inside the restoration wrapper's objective. It does NOT establish that a
+different `tr_init` converts these cells; **no leg in this artifact varies
+`tr_init`.** "Root cause moves to M3" overstates it; "the discriminating
+variable, and the experiment to run, move to M3" is the claim the rows support.
+
+### (iv) `sizeof(SqpOptions)` is 416, against the brief's 408 estimate
+
+The task brief predicted `sizeof(SqpOptions)` 400 → 408. The observed value is
+**416**: the 8-aligned `double` cannot fit after the byte at offset 384, lands
+at 392, moves the `common` block to 400–412, and the struct rounds up to 416.
+The brief's 408 was an estimate; the compiler-observed value, read off
+`tests/drivers/test_options_dump.cpp`'s own `static_assert`, is the pin. The
+live triple is `kSqpOptionsFields` **31**, `kSqpDumpLines` **62**,
+`sizeof(SqpOptions)` **416** — and it is what makes P-SYM's exit 1 expected.
+
+### (v) The ON-path certificate gate was WRONG in the code this artifact was taken on
+
+Finding 1 reasons about the gate at `src/drivers/sqp_solver.cpp:4868`. In the
+code at the artifact commit that gate read `‖∇P‖∞ ≤ kkt_tol` — a PROXY for the
+residual §3.4 of the design page specifies — and at a finite-tolerance `kOptimal`
+the proxy can pass while the real residual `‖Jᵀλ − z_sub‖∞` exceeds `kkt_tol`.
+It is fixed in fix round 1: the residual is computed explicitly, and the proxy is
+not kept as a fast path. The line numbers this README cites are the artifact
+commit's and have moved since.
+
+**Finding 1's conclusions are unaffected, and here is why.** The refusals it
+reports are refusals — the flag is 0 — and a proxy that is too PERMISSIVE cannot
+manufacture one. The residual lower bounds in its table are bounds on `‖∇P‖∞`,
+and the exact residual is at least `‖∇P‖∞ − kkt_tol`; the smallest entry in that
+table is 4.72 × `kkt_tol`, so every row stays above tolerance by at least 3.72 ×
+`kkt_tol` under the exact rule. The YORKNET argument is likewise unaffected: at
+`dx_inf = 0` both the proxy and the exact residual would have passed had the
+`kOptimal` arm been taken, and the flag is 0, so the arm taken is the nested
+refusal.
