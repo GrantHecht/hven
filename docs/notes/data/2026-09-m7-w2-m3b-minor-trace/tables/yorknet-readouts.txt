@@ -1,0 +1,67 @@
+==============================================================================
+CELL YORKNET -- RULE.md section 5's DESCRIPTIVE READ-OUTS
+These are NOT verdicts and none of them can change the outcome.
+==============================================================================
+5.1 the first minor at which progress stops
+    m_stop (last pass with dx_inf > step_tol) = 176   m_stop/N = 0.068750
+    last minor with dx_inf > 0            = 176
+    sum of dx_inf over the passes AFTER m_stop = 0
+    passes that moved the iterate: 70 of 2560   passes with no step_tol: 1
+
+5.2 admissions per identity, over ADD passes
+    distinct identities 95   admissions 1287   mean 13.547   median 1   max 1193
+    top 10: bound291x1193, bound15x1, bound16x1, bound18x1, bound19x1, bound20x1, bound21x1, bound22x1, bound33x1, bound54x1
+    bound identities 95 (declared distinct_bound_added 95), bound admissions 1287 (declared ws_adds_bound 1287) -> AGREE
+
+5.3 are the admitted bounds fixed or near-fixed?
+    at each pass's own step_tol: {'ORDINARY': 1287}
+    at opt_tol = 1e-09:          {'ORDINARY': 1287}
+    decision_tol values observed in the trace: [1e-09]
+    bound_gap min 3.83  max inf  infinite on 51 passes
+    bound_gap deciles: 3.83  9.34  9.34  9.34  9.34  9.34  9.34  9.34  9.34  9.34  inf
+
+5.4 the multiplier at drop against the drop tolerance
+    ALL DROPS          n=1232
+        |mu|      min 1.31592e+06  median 1.4895e+07  max 1.18594e+11
+        |mu| deciles: 1.316e+06  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.186e+11
+        |mu|/tol  min 1.31592e+15  median 1.4895e+16  max 1.18594e+20
+        |mu|/best min 1  median 1  max 1
+        drop_candidates min 19 median 19 max 34   drop_tied max 5
+    route dantzig      n=1232
+        |mu|      min 1.31592e+06  median 1.4895e+07  max 1.18594e+11
+        |mu| deciles: 1.316e+06  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.49e+07  1.186e+11
+        |mu|/tol  min 1.31592e+15  median 1.4895e+16  max 1.18594e+20
+        |mu|/best min 1  median 1  max 1
+        drop_candidates min 19 median 19 max 34   drop_tied max 5
+
+5.5 ratio-test tie multiplicity over ADD passes
+    histogram {1: 1235, 2: 4, 3: 3, 5: 1, 6: 1, 7: 1, 8: 1, 9: 2, 10: 1, 11: 1, 15: 1, 20: 1, 21: 2, 22: 2, 23: 2, 25: 1, 28: 2, 29: 2, 31: 1, 38: 1, 40: 1, 41: 1, 42: 1, 43: 1, 44: 1, 46: 1, 47: 1, 49: 2, 54: 1, 58: 2, 59: 1, 63: 1, 64: 1, 65: 2, 66: 1, 68: 1, 88: 1, 89: 1, 90: 1}   share with ratio_tied>1 0.040404   max 90
+    ADD passes with ratio_tied>1: 52   the record's ratio_ties = 52  -> AGREE
+
+5.6 the incoming (warm) working set
+    signature 0   size 0   warm 0
+    RULE.md 5.6: this task traces ONE QP per cell, so the comparison against later majors is DECLINED BY SCOPE, not a gap.
+
+5.7 the action and drop-route histograms
+    unset                0
+    start_repair         1
+    post_probe_restart   0
+    drop_dantzig         1232
+    drop_zero_probe      0
+    suspect_escalation   0
+    terminal             0
+    ride_stepped         0
+    ride_unbounded       0
+    add                  1287
+    move_only            40
+    routes {'none': 1328, 'dantzig': 1232}   blocks {'none': 41, 'bound': 2519}
+
+5.8 the working-set size trajectory
+    first 0  last 57  min 0  max 82
+    deciles 0  56  56  56  56  57  57  57  57  57  82
+    passes where ws_size_out != ws_size_in: 2520   passes with shift_adds>0: 0
+
+5.9 the uncapped ratio test
+    ADD passes 1287   with raw_ratio > 1: 0
+    raw_ratio <= 1: min -0  median -0  max 1
+    deciles -0  -0  -0  -0  -0  -0  -0  -0  -0  -0  1
