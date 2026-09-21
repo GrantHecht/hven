@@ -607,15 +607,19 @@ order, which `static_assert`s hold equal to the struct's declaration order** (an
 aggregate-arity count plus an `offsetof`-monotone check, not a `sizeof`). The
 tables are therefore the authoritative field list and are not duplicated here.
 
-Shape: the 49 direct fields, then `"ssn": { 18 fields }`, then
+Shape: the 50 direct fields, then `"ssn": { 18 fields }`, then
 `"ipqp": { 39 fields }`. **The direct block was 37 until M6 W5 T8.5** appended
 `polish_ignored` (below), 38 until **M7 W2 M4** appended `start_point_clamps`
 (below), 39 until **M7 W2 M1** appended the five-field subproblem-exit group
-(below) and 44 until **M7 W2 M2** appended the five-field restoration excursion
-record (below); this section carried the 37 until W5 T9 fix2.
+(below), 44 until **M7 W2 M2** appended the five-field restoration excursion
+record (below) and 49 until **M7 W2 M3a** appended `restoration_sub_status` to
+that record (below); this section carried the 37 until W5 T9 fix2.
 
-`start_level_used` is an enum, written `cold\|seeded\|warm\|hot` — the schema's
-lower-snake alphabet, not core's PascalCase display spelling.
+**TWO of the direct fields are enums, written as strings.** `start_level_used`
+is written `cold\|seeded\|warm\|hot`, and `restoration_sub_status` takes
+`to_json(SolveStatus)` — the same spelling the `sqp.solve.end` line's own
+`status` key uses, so one line cannot spell two statuses two ways. Both are in
+the schema's lower-snake alphabet, not core's PascalCase display spelling.
 
 **Three counters carry a documented ABSENCE SENTINEL and serialize as `null`**
 through the tables' own predicate column. The counter and the bench CSV keep the
@@ -715,6 +719,27 @@ on a solve that never restored, and **the absence reading is
 `restoration_entries == 0`** rather than a value in the other four, which have
 legal `0.0` observations. The two golden lines are re-derived ONCE for the five,
 not once per field, and both carry a "RE-DERIVED AT M7 W2 M2" note.
+
+**THE SIXTH FIELD OF THAT RECORD (M7 W2 M3a) — ONE, AND THE BLOCK'S SECOND
+ENUM.**
+
+| counter | type | source | meaning |
+|---|---|---|---|
+| `restoration_sub_status` | string | `SqpCounters::restoration_sub_status` | the feasibility SUB-SOLVE's own terminal status at the last measured entry, read before the parent decides how its own exit is spelled: `optimal` (the sub-solve converged — the only value a RESUME or a CERTIFIED infeasibility exit is reachable from), `infeasible` (the feasibility problem itself raised a restoration request nothing can service, so the parent makes no claim about the model), `max_iter`, `interrupted` or `numerical_error` |
+
+It is **LAST in the table and last in the struct**, appended after
+`restoration_f_out` for that group's own reason — so the counters object gains
+exactly one key, between `restoration_f_out` and the `ssn` object, and nothing
+else moves. It is written through a `key_value(…, SolveStatus, …)` overload
+added beside the `StartLevel` one, forwarding to the same `to_json(SolveStatus)`
+the end line's `status` key already used, so no other key's bytes move.
+
+It carries **no sentinel** and is not in the `null` table above: `SolveStatus`
+has no "never entered" value, so the field takes the record's own absence rule
+instead — its default is the enum's zero, `optimal`, which is a legal observed
+value, and **the absence reading is `restoration_entries == 0`**, exactly as it
+is for the four `double`s. The two golden lines are re-derived ONCE for it, and
+both carry a "RE-DERIVED AT M7 W2 M3a" note.
 
 ## 6. The mode-selection telemetry on `sqp.major`
 

@@ -1974,7 +1974,7 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     EXPECT_EQ(std::bit_cast<std::uint64_t>(a.field), std::bit_cast<std::uint64_t>(b.field))        \
         << #field
 
-// The 49 direct fields of SqpCounters, in declaration order.
+// The 50 direct fields of SqpCounters, in declaration order.
 #define HVEN_T2_SQP_COUNTER_FIELDS(X)                                                              \
     X(major_iters)                                                                                 \
     X(qp_minor_iters)                                                                              \
@@ -2024,7 +2024,8 @@ void expect_same_scalars(const std::vector<Seen> &a, const std::vector<Seen> &b)
     X(restoration_h_in)                                                                            \
     X(restoration_h_out)                                                                           \
     X(restoration_f_in)                                                                            \
-    X(restoration_f_out)
+    X(restoration_f_out)                                                                           \
+    X(restoration_sub_status)
 
 // The 18 fields of SsnCounters and the 39 of IpqpCounters, the two nested
 // groups SqpCounters carries.
@@ -2097,8 +2098,11 @@ void expect_same_counters(const hven::solvers::SqpCounters &a,
     // 760 -> 768 at M7 W2 M4, which appended `start_point_clamps`; 768 -> 808
     // at M7 W2 M1, which appended the five-field subproblem-exit group; 808 ->
     // 848 at M7 W2 M2, which appended the five-field restoration excursion
-    // record (one Index and four doubles, 8 bytes each).
-    static_assert(sizeof(hven::solvers::SqpCounters) == 848,
+    // record (one Index and four doubles, 8 bytes each); 848 -> 856 at M7 W2
+    // M3a, which appended `restoration_sub_status` to that record -- a 4-byte
+    // `SolveStatus` last in the struct, which the struct's own 8-byte
+    // alignment then pads to a full slot.
+    static_assert(sizeof(hven::solvers::SqpCounters) == 856,
                   "SqpCounters gained or lost a field -- extend "
                   "HVEN_T2_SQP_COUNTER_FIELDS so the mask comparison still "
                   "covers every counter");

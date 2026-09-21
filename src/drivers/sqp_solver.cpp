@@ -4259,13 +4259,21 @@ namespace {
 // SqpCounters for why the record is absolutes rather than ratios, which arm
 // each field describes, and why the refusals and the non-finite exit write
 // nothing here.
+//
+// THE SUB-SOLVE'S OWN STATUS RIDES WITH THEM (M7 W2 M3a). It is taken from the
+// sub-driver's result at the SAME point the absolutes are -- before the parent
+// decides how its own exit is spelled -- so the record describes what the
+// phase DID rather than what the caller was told about it. See the field for
+// why: the parent spells two different sub-solve outcomes `kInfeasible`
+// identically, and M2b had to infer which arm each of its rows took.
 void record_restoration_excursion(SqpCounters &c, double h_in, double h_out, double f_in,
-                                  double f_out) {
+                                  double f_out, SolveStatus sub_status) {
     ++c.restoration_entries;
     c.restoration_h_in = h_in;
     c.restoration_h_out = h_out;
     c.restoration_f_in = f_in;
     c.restoration_f_out = f_out;
+    c.restoration_sub_status = sub_status;
 }
 
 } // namespace
@@ -4721,7 +4729,8 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // apart (M7 W2 M2, signal S5). This is the RESUME arm, so `h_out` is
         // inside `feas_tol` by the test above and `f_out` is the objective the
         // solve now carries forward.
-        record_restoration_excursion(st.out.counters, excursion_h_in, h_r, excursion_f_in, ev_r.f);
+        record_restoration_excursion(st.out.counters, excursion_h_in, h_r, excursion_f_in, ev_r.f,
+                                     rs.status);
         // RESUME. The order here is the header note's order.
         st.x = x_r;
         st.ev = std::move(ev_r);
@@ -4776,7 +4785,8 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // the objective of the point this exit reports. Written before the switch
     // below, which decides only how the exit is SPELLED and not what was
     // measured.
-    record_restoration_excursion(st.out.counters, excursion_h_in, h_r, excursion_f_in, ev_r.f);
+    record_restoration_excursion(st.out.counters, excursion_h_in, h_r, excursion_f_in, ev_r.f,
+                                 rs.status);
     st.x = x_r;
     // The point being reported is now the RESTORED point, which
     // no in-loop QpSolution (qs/seed) was ever solved at -- see

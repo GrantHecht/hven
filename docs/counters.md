@@ -94,10 +94,10 @@ believe. This table says only what exists, where, and how many.
 | `QpCounters` | `core/solver_counters.h:30-200` | 20 | the walk (active-set) QP tier, `qp/` |
 | `SsnCounters` | `core/solver_counters.h:210-348` | 18 | the SSN QP tier, `qp/` |
 | `IpqpCounters` | `core/solver_counters.h:466-896` | 39 | the IPQP QP tier, `qp/` |
-| `SqpCounters` | `core/solver_counters.h:1048-1638` | 49 direct, plus the nested `ssn` and `ipqp` | the SQP driver, `drivers/` |
+| `SqpCounters` | `core/solver_counters.h:1048-1683` | 50 direct, plus the nested `ssn` and `ipqp` | the SQP driver, `drivers/` |
 | `SymmetricFactor::Counters` | `linear/symmetric_factor.h:646-682` | 5 | every sparse symmetric factor, `linear/` |
 
-126 fields across the four `core/` groups; `SqpCounters`' 49 do not include the
+127 fields across the four `core/` groups; `SqpCounters`' 50 do not include the
 two nested groups' 57, which it carries whole. (115 and 38 until M7 W2 M4, which
 appended `start_point_clamps`; 116 and 39 until M7 W2 M1, which appended the
 five-field subproblem-exit group -- `qp_maxiter_exits`, `qp_numerical_exits`,
@@ -105,7 +105,26 @@ five-field subproblem-exit group -- `qp_maxiter_exits`, `qp_numerical_exits`,
 44 until M7 W2 M2, which appended the five-field restoration excursion record --
 `restoration_entries`, `restoration_h_in`, `restoration_h_out`,
 `restoration_f_in` and `restoration_f_out`, the first `double`s the SQP driver's
-own direct block has ever carried.)
+own direct block has ever carried; 126 and 49 until M7 W2 M3a appended
+`restoration_sub_status` to that same record -- the feasibility sub-solve's own
+terminal status at the last measured entry, the block's second enum after
+`start_level_used` and the only field in it narrower than 8 bytes.)
+
+**The aggregate is no longer "`Index` fields (and one `bool`)" alone**, and has
+not been since M7 W2 M2: `SqpCounters` carries four `double`s and, since M7 W2
+M3a, two enums (`start_level_used`, a `StartLevel`, and `restoration_sub_status`,
+a `SolveStatus`). A CATEGORICAL reading is a legitimate counter here when it is
+per-solve and overwritten rather than accumulated -- `ipqp_rho_demanded_last`
+and `ipqp_final_inertia_read` are the precedent -- and each one's serializer
+overload lives beside the others in `src/drivers/trace_writer.cpp`.
+
+**`restoration_sub_status` carries no absence sentinel, deliberately.**
+`SolveStatus` has no "never entered" value, so rather than invent one the field
+follows the rule the four restoration absolutes already set: its default is the
+enum's zero, `kOptimal`, which is a legal observed value, and **the absence
+reading for the whole record is `restoration_entries == 0`**. A consumer that
+reads the status without the count reads "the feasibility sub-solve converged"
+off a solve that never ran one.
 
 THREE OF THESE ARE PINNED AGAINST A MACRO TABLE, not merely declared:
 `SsnCounters`, `IpqpCounters` and `SqpCounters` each carry an `X()` list used to

@@ -440,6 +440,19 @@ void key_value(std::string &s, bool &first, const char *k, StartLevel v, bool ab
     }
 }
 
+// THE TABLE'S SECOND ENUM (M7 W2 M3a, `restoration_sub_status`). It spells its
+// value through the SAME `to_json(SolveStatus)` the `sqp.solve.end` line's own
+// `status` key uses, so one solve's two status spellings cannot drift apart,
+// and it honours the predicate for the StartLevel overload's reason.
+void key_value(std::string &s, bool &first, const char *k, SolveStatus v, bool absent) {
+    key(s, first, k);
+    if (absent) {
+        s += "null";
+    } else {
+        append_string(s, to_json(v));
+    }
+}
+
 std::string counters_object(const SqpCounters &c) {
     std::string b;
     bool first = true;

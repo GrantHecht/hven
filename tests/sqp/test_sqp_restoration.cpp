@@ -2302,6 +2302,11 @@ TEST(SqpDriverRestorationExcursion, TheResumeArmRecordsTheCallersOwnExcursion) {
     // And `f_out` is the objective the solve CARRIES FORWARD: the restored
     // point becomes the iterate, so the first row after the resume reports it.
     EXPECT_DOUBLE_EQ(sol.counters.restoration_f_out, sol.history[5].f);
+    // AND THE SUB-SOLVE'S OWN VERDICT (M7 W2 M3a). A RESUME is reachable from
+    // one sub-solve outcome only: the feasibility problem was solved, and the
+    // point it returned is inside `feas_tol`. Pinning it here is what makes
+    // the field's OTHER values evidence rather than decoration.
+    EXPECT_EQ(sol.counters.restoration_sub_status, SolveStatus::kOptimal);
     // THE EXCURSION THIS FIXTURE MADE, recorded rather than asserted as a
     // bound: it is a recovery, and a benign one.
     ::testing::Test::RecordProperty(
@@ -2337,6 +2342,12 @@ TEST(SqpDriverRestorationExcursion, TheTerminalArmRecordsThePointItReports) {
     ASSERT_FALSE(sol.history.empty());
     EXPECT_DOUBLE_EQ(sol.counters.restoration_h_in, sol.history.back().violation_l1);
     EXPECT_DOUBLE_EQ(sol.counters.restoration_f_in, sol.history.back().f);
+    // AND THE ARM IS NAMED, NOT INFERRED (M7 W2 M3a). A CERTIFIED terminal
+    // exit is reachable from the sub-solve's own `kOptimal` and from nothing
+    // else -- the gate that sets `infeasibility_certified` hangs off that
+    // switch arm -- so this pin and the `ASSERT_TRUE` above are two readings
+    // of one fact, taken from opposite ends of the phase.
+    EXPECT_EQ(sol.counters.restoration_sub_status, SolveStatus::kOptimal);
 }
 
 TEST(SqpDriverRestorationExcursion, ARefusedSecondRequestLeavesTheFirstEntrysRecord) {
@@ -2363,6 +2374,9 @@ TEST(SqpDriverRestorationExcursion, ARefusedSecondRequestLeavesTheFirstEntrysRec
     EXPECT_LE(sol.counters.restoration_h_out, opts.feas_tol);
     EXPECT_DOUBLE_EQ(sol.counters.restoration_h_out, log.resumes[0]);
     EXPECT_FALSE(sol.infeasibility_certified);
+    // The sub-status is the SERVICED entry's too: the refusal ran no sub-solve,
+    // so there is no second status for it to overwrite this one with.
+    EXPECT_EQ(sol.counters.restoration_sub_status, SolveStatus::kOptimal);
 }
 
 TEST(SqpDriverRestorationExcursion, ACleanSolveHoldsNoReading) {
@@ -2382,6 +2396,68 @@ TEST(SqpDriverRestorationExcursion, ACleanSolveHoldsNoReading) {
     EXPECT_EQ(sol.counters.restoration_h_out, 0.0);
     EXPECT_EQ(sol.counters.restoration_f_in, 0.0);
     EXPECT_EQ(sol.counters.restoration_f_out, 0.0);
+    // AND THE SUB-STATUS HOLDS ITS DEFAULT, WHICH IS `kOptimal` AND MEANS
+    // NOTHING (M7 W2 M3a). The enum has no "never entered" value, so the field
+    // follows the four absolutes' own rule rather than inventing one: its
+    // default is a legal observed value, and `restoration_entries == 0` above
+    // is what says no reading exists. A consumer that read this key without
+    // the count would read "the feasibility sub-solve converged" off a solve
+    // that never ran one.
+    EXPECT_EQ(sol.counters.restoration_sub_status, SolveStatus::kOptimal);
+}
+
+// M7 W2 M3a. THE FIELD IS NOT A CONSTANT, and this is the fixture that says so:
+// ONE model, ONE restoration phase, TWO different sub-solve outcomes, told apart
+// by this key and by nothing else the counters carry.
+//
+// `InfeasibleCircleLineModel` is the certified fixture above. Given room, its
+// feasibility sub-solve CONVERGES -- that is what makes the certificate gate
+// reachable at all. Given a budget of five majors for the whole solve, the
+// parent lends the sub-solve what is left (`ropts.max_iter = eff_max_iter -
+// spent`, sqp_solver.cpp) and the sub-solve spends it: it returns `kMaxIter`
+// from the same call site, at the same arm of the phase, having measured a
+// point the parent then reports.
+//
+// WHAT WAS UNOBSERVABLE BEFORE. The parent's own status is NOT this reading: it
+// spells the sub-solve's `kOptimal`-but-still-infeasible arm and the sub-solve's
+// own `kInfeasible` arm identically (`kInfeasible`), which is why M7 W2 M2b had
+// to infer its rows' arms from row shape. Here the two solves differ in the
+// parent status too -- but the pin that matters is that the RECORD names the
+// sub-solve's verdict, and the two records differ.
+TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConvergedOne) {
+    InfeasibleCircleLineModel model;
+
+    SqpOptions roomy;
+    roomy.max_iter = 200;
+    const SqpResult converged = SqpSolver(roomy).solve(model);
+    ASSERT_EQ(converged.status, SolveStatus::kInfeasible);
+    ASSERT_EQ(converged.counters.restoration_entries, 1);
+
+    SqpOptions cramped;
+    cramped.max_iter = 5;
+    const SqpResult cut_off = SqpSolver(cramped).solve(model);
+    ASSERT_EQ(cut_off.counters.restoration_entries, 1)
+        << "fixture premise: the phase RAN and was measured on this budget too";
+
+    // THE TWO READINGS, AND THEY DISAGREE.
+    EXPECT_EQ(converged.counters.restoration_sub_status, SolveStatus::kOptimal);
+    EXPECT_EQ(cut_off.counters.restoration_sub_status, SolveStatus::kMaxIter);
+    EXPECT_NE(converged.counters.restoration_sub_status, cut_off.counters.restoration_sub_status);
+
+    // AND EACH AGREES WITH THE EXIT IT IMPLIES. The certificate gate hangs off
+    // the sub-solve's `kOptimal` arm, so a cut-off sub-solve cannot certify --
+    // and this is a REFUSAL BY ARM, not a refusal by residual.
+    EXPECT_TRUE(converged.infeasibility_certified);
+    EXPECT_FALSE(cut_off.infeasibility_certified);
+    EXPECT_EQ(cut_off.status, SolveStatus::kMaxIter);
+
+    // The record is the not-feasible-enough arm's on BOTH solves: neither
+    // resumed, and `h_out` above `feas_tol` is what says so.
+    EXPECT_GT(converged.counters.restoration_h_out, roomy.feas_tol);
+    EXPECT_GT(cut_off.counters.restoration_h_out, cramped.feas_tol);
+    // The sub-solve did real work before the budget ended it -- a phase that
+    // returned at once would make the pin above a statement about nothing.
+    EXPECT_GT(cut_off.counters.restoration_iters, 1);
 }
 
 // ---------------------------------------------------------------------------

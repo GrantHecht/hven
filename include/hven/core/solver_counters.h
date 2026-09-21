@@ -13,6 +13,7 @@
 #include <type_traits>
 
 #include <hven/core/detail/aggregate_arity.h>
+#include <hven/core/solver_status.h>
 #include <hven/core/start_level.h>
 
 namespace hven::solvers {
@@ -392,6 +393,7 @@ struct SsnCounters {
 inline bool counter_never_absent(Index) { return false; }
 inline bool counter_never_absent(double) { return false; }
 inline bool counter_never_absent(StartLevel) { return false; }
+inline bool counter_never_absent(SolveStatus) { return false; }
 
 /// `+infinity` as "never measured" (`ipqp_alpha_p_min`, `ipqp_alpha_d_min`).
 inline bool counter_absent_at_pos_inf(double v) {
@@ -1635,6 +1637,50 @@ struct SqpCounters {
     ///
     /// Same overwrite rule, same units, same non-fold as `restoration_h_in`.
     double restoration_f_out = 0.0;
+
+    /// @brief The feasibility SUB-SOLVE's own terminal status at the last
+    ///        measured restoration entry (M7 W2 M3a).
+    ///
+    /// `sub_status` of the excursion record: the `SqpResult::status` the nested
+    /// restoration driver returned, read BEFORE the parent decides how its own
+    /// exit is spelled. It is the field that tells the phase's exit ARMS apart
+    /// directly rather than by inference:
+    ///
+    ///   `kOptimal`         the sub-solve converged on the feasibility problem.
+    ///                      The parent then either RESUMES (when
+    ///                      `restoration_h_out <= SqpOptions::feas_tol`) or
+    ///                      reports `kInfeasible` and puts the certificate gate
+    ///                      to the returned point -- so on this value, and only
+    ///                      on it, `SqpResult::infeasibility_certified` carries
+    ///                      a decision rather than a structural `false`.
+    ///   `kInfeasible`      the feasibility problem ITSELF raised a restoration
+    ///                      request, which nothing can service (a nested
+    ///                      restoration is refused). The parent reports
+    ///                      `kInfeasible` and makes NO CLAIM about the model.
+    ///   `kMaxIter`         the sub-solve spent the majors the parent lent it.
+    ///   `kInterrupted`     the caller's callback stopped the sub-solve.
+    ///   `kNumericalError`  the sub-solve failed numerically.
+    ///
+    /// WHY IT IS HERE. M7 W2 M2b could not say which of those arms its
+    /// `kInfeasible` rows took: the parent's status is arm-faithful only up to
+    /// the two `kInfeasible` arms, which it spells identically, and the row
+    /// shape had to be read for the difference
+    /// (`docs/notes/data/2026-09-m7-w2-m2b-proximity/README.md`, finding 1 and
+    /// its "what the evidence does not support"). This field is the
+    /// observation that inference stood in for.
+    ///
+    /// OVERWRITTEN per entry, NOT folded, and written at exactly the two arms
+    /// the four absolutes above are written at -- the same `record` call. The
+    /// three REFUSALS and the NON-FINITE exit write nothing here either, for
+    /// their own reasons, so the record stays one record.
+    ///
+    /// AND IT CARRIES NO SENTINEL. Its default is the enum's zero, `kOptimal`,
+    /// which is a LEGAL OBSERVED VALUE and therefore not a reading of absence
+    /// -- exactly as `0.0` is for three of the four absolutes above. THE
+    /// ABSENCE READING IS `restoration_entries == 0`, for this field as for
+    /// them: a solve that never restored reports `kOptimal` here and means
+    /// nothing by it.
+    SolveStatus restoration_sub_status = SolveStatus::kOptimal;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -1686,7 +1732,8 @@ struct SqpCounters {
     X(restoration_h_in, counter_never_absent)                                                      \
     X(restoration_h_out, counter_never_absent)                                                     \
     X(restoration_f_in, counter_never_absent)                                                      \
-    X(restoration_f_out, counter_never_absent)
+    X(restoration_f_out, counter_never_absent)                                                     \
+    X(restoration_sub_status, counter_never_absent)
 
 /// @brief `HVEN_SQP_COUNTERS_FIELDS`' entry count -- the DIRECT fields only.
 inline constexpr std::size_t kSqpCountersFieldCount =
@@ -1695,7 +1742,7 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 
 // PLUS TWO: `ssn` and `ipqp` are nested aggregates, each counted as ONE
 // initializer by the arity trick and serialized through its own table above, so
-// the table holds the 49 direct fields and the struct takes 51 initializers.
+// the table holds the 50 direct fields and the struct takes 52 initializers.
 // (37 -> 38 at M6 W5 T8.5, which appended `polish_ignored` after both nested
 // aggregates -- last in declaration order, so the table order below is still
 // the struct's and every pre-existing offset is unmoved. 38 -> 39 at M7 W2 M4,
@@ -1705,7 +1752,12 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 // five-field restoration excursion record the same way and for the same reason
 // -- and which is where the table first carries `double` entries outside the
 // two nested aggregates; they are 8-byte members like every `Index` above them,
-// so the offsets stay monotone and the check below is unchanged.)
+// so the offsets stay monotone and the check below is unchanged. 49 -> 50 at
+// M7 W2 M3a, which appended `restoration_sub_status` to that record the same
+// way and for the same reason. It is the SECOND enum in the table, after
+// `start_level_used`, and the first field NARROWER than 8 bytes: a 4-byte
+// `SolveStatus` last in the struct, which the struct's own 8-byte alignment
+// then pads, so the offsets stay monotone and `sizeof` moves 848 -> 856.)
 static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
               "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "
