@@ -203,27 +203,27 @@ which is the gap, in one line.
 construction and the call. That half remains true by construction, as the block
 comment above those tests says in as many words.
 
-### One target or two
+### One target, two, or three
 
 The sentence under "The shape" below says `HVEN_TESTING` is defined "target-wide,
 on exactly one CMake target". **That is stale, and has been since the IPQP tier
-seam landed: there are TWO** (recorded 2026-09-14, M6 W6 T4; plan §0 J.4, A15).
-`tests/CMakeLists.txt:244-246` says so in its own words — "EXACTLY TWO TARGETS IN
-THIS TREE DEFINE HVEN_TESTING — this one and hven_ipqp_seam_tests below" — and
-the two definition sites are `tests/CMakeLists.txt:248`
-(`hven_fault_injection_tests`) and `:329` (`hven_ipqp_seam_tests`).
+seam landed. There are now THREE** (two recorded 2026-09-14, M6 W6 T4, plan §0
+J.4, A15; the third added 2026-09-21, M7 W2 M3b). `tests/CMakeLists.txt` says so
+in its own words — "EXACTLY THREE TARGETS IN THIS TREE DEFINE HVEN_TESTING" —
+and the three definition sites are `hven_fault_injection_tests`,
+`hven_ipqp_seam_tests` and `hven_qp_walk_seam_tests`.
 
-Nothing about the convention moves with the count. Both are standalone
-executables, both recompile the sources they instrument a second time, and
-**neither links `hven::hven`** — which is the property that matters, because it
+Nothing about the convention moves with the count. All three are standalone
+executables, all three recompile the sources they instrument a second time, and
+**none links `hven::hven`** — which is the property that matters, because it
 is what keeps the production library and every ordinary test binary untouched by
-the macro. Read the paragraph below as "on exactly two CMake targets", with
-`hven_ipqp_seam_tests`'s own section further down for what the second one
-instruments and why it needs no deviation.
+the macro. Read the paragraph below as "on exactly three CMake targets", with
+`hven_ipqp_seam_tests`'s and `hven_qp_walk_seam_tests`'s own sections further
+down for what each of them instruments and why neither needs a deviation.
 
-Two targets is also not two more *deviations*: the sanctioned-deviation count
-above is two, both in `pardiso_session.cpp`, and `hven_ipqp_seam_tests`'s hook
-sits in an Apache-2.0 file this repository wrote.
+Three targets is also not three more *deviations*: the sanctioned-deviation
+count above is two, both in `pardiso_session.cpp`, and both the IPQP tier seam's
+hook and the walk seam's hooks sit in Apache-2.0 files this repository wrote.
 
 ## The shape
 
@@ -624,6 +624,153 @@ is the CMP, not the number).
 `nm -C libhven.a` reports no `IpqpInertia*` symbol. The production library and
 `hven_sqp_tests` are therefore exactly what they would be if this seam did not
 exist.
+
+## A third seam, on the ACTIVE-SET WALK: the per-minor observer
+
+`hven/detail/qp/qp_walk_trace.h` is the same convention applied to
+`QpEngine`'s primal active-set walk, and it is the READ-ONLY variant of it
+throughout — there is no injector in this file and nothing in it can change a
+decision. It declares, entirely under `#ifdef HVEN_TESTING` and in
+`hven::solvers::detail::testing`:
+
+- `QpWalkObserver` — `active`, `solves`, `capture_solve`, `max_records`,
+  `truncated`, `records`, plus the per-solve block (`capturing`, `solve_index`,
+  `warm`, `n`, `me`, `mi`, `max_iter`, `incoming_ws_signature`,
+  `incoming_ws_size`, `exit_status`) and the `current` record pointer. Static,
+  like every other observer on this seam, because the engine is reached through
+  a deep call chain and a fixture reads what it recorded after the solve
+  returns.
+- `QpWalkMinorRecord` — ONE MINOR ITERATION: the minor index; which branch of
+  the walk it took (`QpWalkAction`, which enumerates every `continue`, every
+  `break` and the fall-through step, so a reader never has to infer an action
+  from the fields around it); the constraint's identity and SIDE; for a drop,
+  the ROUTE (`QpWalkDropRoute`: the Dantzig multiplier rule or §4b's
+  zero-multiplier probe); `alpha`, `p_inf`, `dx_inf` and the loop's own
+  `step_tol`; the ratio test's UNCAPPED minimum and its exact multiplicity;
+  the multiplier that drove a drop with the tolerance it was compared against,
+  the best violation in the candidate set and the candidate/tie counts;
+  whether the step was a negative-curvature RIDE; whether the loop counted the
+  pass as degenerate; how many rows `refresh_shifts` admitted inside the pass;
+  the working-set SIZE and a 64-bit ORDER-INDEPENDENT SIGNATURE before and
+  after; and two cheap norms of the iterate the pass began at.
+- `QpWalkMinorScope` — an RAII scope declared at the top of the loop body whose
+  DESTRUCTOR emits the record. One declaration therefore covers every exit the
+  body has, and a path added later cannot silently stop recording. It holds the
+  `QpCounters` by CONST reference — it differences `shift_adds` across the pass
+  — so "this scope cannot touch a counter" is a property of the type rather
+  than a promise in a comment.
+- `qp_walk_ws_signature` / `qp_walk_ws_size` / `qp_walk_token` / `qp_walk_mix`
+  — the signature is the sum of SplitMix64-mixed member tokens, which is
+  order-independent because addition is commutative and members are unique. A
+  token carries the identity in its high bits and the SIDE in its low three, so
+  a row `k` never collides with a variable `k` and a variable at its lower bound
+  is a different member from the same variable at its upper one. That last
+  property is what makes a lower/upper ping-pong visible as a signature change
+  rather than as a fixed point.
+
+**Why it is needed.** `QpEngine` has no trace sink at all. Its finest public
+instrument is the per-SOLVE `Ledger` record — one `QpCounters` per subproblem —
+so the finest public granularity is the subproblem and never the minor. M7 W2
+M3a addendum F read exactly that instrument on STEENBRB and YORKNET at
+`tr_init = inf` and found the first QP spending its whole iteration cap (4680
+and 2560 minors) in what the counters describe as long degenerate active-set
+churn. Its formal verdict was MIXED and **cycling proper — a working set
+revisited — was not shown**, because SIX different mechanisms produce those same
+counters and a per-solve aggregate cannot separate them: zero-multiplier probes
+(which `ws_drops` merges with Dantzig drops), an immediate drop and re-add of
+the bound just admitted, lower/upper tolerance ping-pong on one fixed or
+near-fixed variable, a long crawl through DIFFERENT sets built from the same few
+variables, negative-curvature ride blockers (folded into `ws_adds` by that
+field's own doc), and a warm working-set hand-off between majors replaying the
+same stall. Separating them needs the per-minor record; the addendum registered
+the instrument, in these words, as "an `HVEN_TESTING`-gated per-minor
+working-set signature on CLAUDE.md §8's test-seam convention".
+
+**Where the hooks go, and why there are seven of them.** All of them are in
+`src/qp/qp_engine.cpp`, an Apache-2.0 file this repository wrote: the walk loop
+(the scope, the action of each branch, and the ordinary step's own reading),
+`drop_worst`, `probe_zero_multiplier_drops`, `ride_negative_curvature` and
+`ratio_test`. There is no ONE function every fact passes through — that is what
+distinguishes this seam from `evidence_for_read`, where one hook was enough —
+because the facts are produced at four different decision sites and the
+functions' signatures are production surface this seam does not touch. The four
+outside the loop write through `QpWalkObserver::current`, which the scope sets
+and clears, so a hook can never dereference a null record or write into a pass
+that is not being recorded.
+
+**It needs no deviation, and adds no `notices/` entry.** No session file is
+touched and nothing MPL-derived is involved, so the two sanctioned
+inside-the-session-file deviations listed above are still the only two. CLAUDE.md
+§6's boundary preference is satisfied on its own terms rather than waived: the
+facts recorded here — which branch a minor took, which side of which constraint
+it acted on, by which drop route, and what the working set was at that moment —
+live inside one iteration of one loop and leave no trace outside the function
+producing them. That is the case §6 names when it says a fact a boundary
+observation cannot reach is a reason to deviate from the boundary, not a reason
+to look away; here the "deviation" is only that the hook is deeper inside an
+Apache-2.0 file, which is not a deviation at all.
+
+**Why the `#include` is in `qp_engine.h` rather than in `qp_engine.cpp`.**
+Stated here because it is unusual and because a future reader will otherwise
+move it. `src/qp/qp_engine.cpp` carries an `assert()` ABOVE the walk loop, and
+`assert` materializes `__LINE__` as an immediate operand in a Debug object. An
+`#include` at the top of that TU would move that immediate and cost the
+production Debug object its BYTE identity — a difference P-SYM classifies
+correctly as `__LINE__`-class noise, but one that would make "the production
+object is byte-identical" true in Release and false in Debug. Including from the
+header the TU already includes adds no line to the TU, so the claim is exact in
+both configurations. `qp_engine.h` itself contains no `assert`, no `throw` and
+no other `__LINE__`-bearing construct, and every `#ifdef HVEN_TESTING` block in
+the `.cpp` sits BELOW that `assert`, so nothing shifts. The cost of the wider
+inclusion is zero by construction: without `HVEN_TESTING` the header's entire
+body is `#ifdef`-ed away.
+
+**The target**: `hven_qp_walk_seam_tests` (`tests/CMakeLists.txt`), a standalone
+executable on exactly the same terms as the two above — it recompiles the walk's
+own sources plus the transitive closure they need (`qp_engine.cpp`,
+`kkt_calls.cpp`, `kkt_factorization.cpp`, `dense_symmetric_factor.cpp`,
+`ledger.cpp`, `pattern_hash.cpp`, `enum_names.cpp`, and the platform's session +
+adapter TUs) with `HVEN_TESTING` defined target-wide, and does **not** link
+`hven::hven`. Its tests live in `tests/qp/test_qp_walk_seam.cpp` and it is
+registered with `gtest_discover_tests` like every other ctest executable.
+
+**What the tests have to prove, and it is not "the observer records
+something".** Three things, on six cases — three fixtures (a degenerate vertex
+with a zero multiplier, a linearly DEPENDENT working set, and a 24-variable
+box-and-rows problem) each run cold and again from a deliberately WRONG seeded
+working set, because a cold walk on these problems only ever ADDS and every
+assertion about a drop would otherwise pass vacuously:
+
+1. **NEUTRALITY.** With the observer attached, the returned status, x,
+   `lambda_e`, `lambda_i`, `z`, `bound_state`, `ineq_active`, `tr_active` and
+   every `QpCounters` field are identical to the unattached run — the floats
+   compared as BIT PATTERNS, and the counters both field by field (so a failure
+   names the quantity) and by `memcmp` over the whole object (so a field the
+   list forgets cannot slip through). Asserted on the warm RE-SOLVE as well,
+   because an observer that perturbed border state would show up there and
+   nowhere else. This is the whole licence for using the instrument to take a
+   measurement whose identity gate is a committed counter row.
+2. **FAITHFULNESS** against the loop's own public counters: exactly one record
+   per `minor_iters`, numbered from zero, none of them `kUnset`; the
+   `degenerate` flags summing to `degenerate_steps`; additions to `ws_adds` and
+   `ws_adds_bound`; drops to `ws_drops` and `ws_drops_bound`; `ratio_tied > 1`
+   to `ratio_ties`; `drop_tied > 1` to `drop_ties`; `kSuspectEscalation` to
+   `suspect_escalations`. The working set one minor ends with is the set the
+   next begins with, and the SIZE ARITHMETIC of each pass is asserted exactly —
+   with the homotopy's own `shift_adds` term in it, since `refresh_shifts` is
+   the other way the set grows and an inequality would have hidden that.
+3. **THE SIGNATURE** is order-independent, side-sensitive and
+   identity-sensitive, with the empty set hashing to zero, so "nothing pinned"
+   is not a hash of nothing.
+
+**Cost to the production build: measured zero, stated three ways.** The claim
+this seam makes about `libhven.a` is not one property but three, and M7 W2 M3b's
+gate evidence records each separately for BOTH configurations: the production
+`qp_engine.cpp.o` is SYMBOL-level identical (no symbol added, removed or changed
+in its disassembly), RELOCATION-level identical (no relocation target renamed),
+and BYTE-identical to the object built from the commit before this seam landed.
+`nm -C libhven.a` reports no `QpWalk*` symbol. The production library and every
+ordinary test binary are exactly what they would be if this seam did not exist.
 
 ## Alternatives considered and rejected
 

@@ -241,10 +241,11 @@ endif()
 # adapter TU that guards its one call site with `#ifdef HVEN_TESTING`, to the
 # MKL session TU that records the two did-the-write-execute flags under the
 # same guard, and to this target's own test_fault_injection.cpp, which reads
-# and resets them. EXACTLY TWO TARGETS IN THIS TREE DEFINE HVEN_TESTING -- this
-# one and hven_ipqp_seam_tests below -- and both are standalone executables
-# that do not link hven::hven, which is what keeps the production library and
-# every ordinary test binary untouched by it. See the block comment above.
+# and resets them. EXACTLY THREE TARGETS IN THIS TREE DEFINE HVEN_TESTING --
+# this one, hven_ipqp_seam_tests below and hven_qp_walk_seam_tests below it --
+# and all three are standalone executables that do not link hven::hven, which
+# is what keeps the production library and every ordinary test binary untouched
+# by it. See the block comment above.
 target_compile_definitions(hven_fault_injection_tests PRIVATE HVEN_TESTING=1)
 
 target_include_directories(hven_fault_injection_tests PRIVATE
@@ -321,11 +322,12 @@ endif()
 # Target-wide, not per-source-file: the injector and the observer in
 # hven/detail/qp/ipqp_fault_injection.h must be visible both to the tier TU
 # that guards its one call site with `#ifdef HVEN_TESTING` and to this target's
-# own test source, which arms and reads them. This is the SECOND and last
-# target in this tree that defines HVEN_TESTING (hven_fault_injection_tests
-# above is the first); both are standalone executables that do not link
-# hven::hven, which is the property that matters -- see the block comment above
-# and the one above the fault-injection target.
+# own test source, which arms and reads them. This is the SECOND of the three
+# targets in this tree that define HVEN_TESTING (hven_fault_injection_tests
+# above is the first, hven_qp_walk_seam_tests below is the third); all three
+# are standalone executables that do not link hven::hven, which is the property
+# that matters -- see the block comment above and the one above the
+# fault-injection target.
 target_compile_definitions(hven_ipqp_seam_tests PRIVATE HVEN_TESTING=1)
 
 target_include_directories(hven_ipqp_seam_tests PRIVATE
@@ -341,6 +343,81 @@ endif()
 target_compile_options(hven_ipqp_seam_tests PRIVATE ${COMPILE_FLAGS})
 
 gtest_discover_tests(hven_ipqp_seam_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
+
+################################################################################
+# QP WALK seam tests (docs/testing.md: the same HVEN_TESTING convention the two
+# targets above use, applied to the PRIMAL ACTIVE-SET WALK). A SEPARATE,
+# standalone executable that recompiles the walk's own sources -- plus the
+# transitive closure they need to link -- a SECOND time, with HVEN_TESTING
+# defined ONLY on that second copy's compile.
+#
+# WHAT IT COVERS AND WHY NOTHING ELSE CAN. `QpEngine` has no trace sink: its
+# finest public instrument is one `QpCounters` per SOLVE, handed out through
+# the `Ledger`. Which BRANCH of the walk a given minor took, which constraint
+# and which SIDE of it the branch acted on, by which of the two drop ROUTES,
+# and what the working SET was at that moment are facts that live inside one
+# iteration of one loop and leave no trace outside it -- exactly the case
+# CLAUDE.md §6 says a boundary observation cannot reach. M7 W2 M3a addendum F
+# needed all four to tell six different degeneracy mechanisms apart and could
+# not get them, and recorded the gap.
+#
+# The hooks are in `src/qp/qp_engine.cpp`, an Apache-2.0 file this repository
+# wrote; §6's boundary preference is satisfied with NO deviation, no session
+# file is touched, and nothing MPL-derived is involved, so this target adds no
+# `notices/` entry.
+#
+# This target does NOT link hven::hven, for the same two reasons neither of the
+# targets above does: it is what keeps the production library's own compiled
+# objects untouched by HVEN_TESTING, and both this target's freshly-compiled
+# sources and libhven.a's own define the same symbols.
+#
+# THERE ARE NOW THREE TARGETS IN THIS TREE THAT DEFINE HVEN_TESTING -- the two
+# above and this one. The property that matters is unchanged and holds of all
+# three: each is a standalone executable that does not link hven::hven.
+################################################################################
+
+add_executable(hven_qp_walk_seam_tests
+    ${HVEN_SRC_DIR}/core/enum_names.cpp
+    ${HVEN_SRC_DIR}/core/ledger.cpp
+    ${HVEN_SRC_DIR}/core/pattern_hash.cpp
+    ${HVEN_SRC_DIR}/interior/kkt_factorization.cpp
+    ${HVEN_SRC_DIR}/kkt/kkt_calls.cpp
+    ${HVEN_SRC_DIR}/linear/dense_symmetric_factor.cpp
+    ${HVEN_SRC_DIR}/qp/qp_engine.cpp
+    qp/test_qp_walk_seam.cpp
+)
+
+if(NOT APPLE)
+    target_sources(hven_qp_walk_seam_tests PRIVATE
+        ${HVEN_SRC_DIR}/linear/pardiso_session.cpp
+        ${HVEN_SRC_DIR}/linear/symmetric_factor_mkl.cpp
+    )
+else()
+    target_sources(hven_qp_walk_seam_tests PRIVATE
+        ${HVEN_SRC_DIR}/linear/accelerate_session.cpp
+        ${HVEN_SRC_DIR}/linear/symmetric_factor_accelerate.cpp
+    )
+endif()
+
+# Target-wide, not per-source-file: the observer in
+# hven/detail/qp/qp_walk_trace.h must be visible both to the walk TU that
+# guards its hooks with `#ifdef HVEN_TESTING` and to this target's own test
+# source, which arms and reads it.
+target_compile_definitions(hven_qp_walk_seam_tests PRIVATE HVEN_TESTING=1)
+
+target_include_directories(hven_qp_walk_seam_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+target_link_libraries(hven_qp_walk_seam_tests PRIVATE
+    Eigen3::Eigen fmt::fmt-header-only Threads::Threads GTest::gtest_main
+)
+target_include_directories(hven_qp_walk_seam_tests PRIVATE ${INCLUDE_DIRS})
+target_link_libraries(hven_qp_walk_seam_tests PRIVATE ${LINK_LIBS})
+if(APPLE)
+    target_link_libraries(hven_qp_walk_seam_tests PRIVATE AccelerateSparse::AccelerateSparse)
+endif()
+target_compile_options(hven_qp_walk_seam_tests PRIVATE ${COMPILE_FLAGS})
+
+gtest_discover_tests(hven_qp_walk_seam_tests DISCOVERY_MODE ${HVEN_GTEST_DISCOVERY_MODE})
 
 ################################################################################
 # The golden-numerics rig: the harness, the seam adapters, the traces, the

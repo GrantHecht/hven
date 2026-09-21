@@ -359,6 +359,11 @@
 #include <hven/detail/kkt/schur_complement.h>
 #include <hven/detail/qp/eqp_solve.h>
 #include <hven/detail/qp/qp_problem.h>
+// The walk's READ-ONLY test seam (docs/testing.md; CLAUDE.md §8). It compiles
+// to NOTHING without HVEN_TESTING, and it is included HERE rather than in
+// src/qp/qp_engine.cpp so that that TU gains no line and its one `assert`'s
+// __LINE__ immediate cannot move -- see qp_walk_trace.h's own note.
+#include <hven/detail/qp/qp_walk_trace.h>
 #include <hven/detail/qp/working_set.h>
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>

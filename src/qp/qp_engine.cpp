@@ -609,8 +609,22 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     const Index eff_max_iter = detail::effective_qp_max_iter(qp_in, opts_.max_iter);
 
     QpStatus status = crossed_bounds ? QpStatus::kInfeasible : QpStatus::kMaxIter;
+#ifdef HVEN_TESTING
+    // THE WALK'S READ-ONLY TEST SEAM (docs/testing.md; declarations in
+    // qp_walk_trace.h, which compiles to nothing without HVEN_TESTING).
+    // `ws` here is the set the first pass starts from: the seed ingest and the
+    // seeding refresh_shifts are both above.
+    detail::testing::QpWalkObserver::begin_solve(warm, n, me, mi, eff_max_iter, ws);
+#endif
     for (Index iter = 0; !crossed_bounds && iter < eff_max_iter; ++iter) {
         ++counters.minor_iters;
+#ifdef HVEN_TESTING
+        // One declaration covers every exit this loop body has: the record is
+        // emitted by this object's DESTRUCTOR, so a `continue`, a `break` and
+        // the fall-through all record, and a path added later cannot silently
+        // stop recording.
+        detail::testing::QpWalkMinorScope walk_obs(ws, x, counters, iter);
+#endif
 
         // Stamp addition numbers on whatever joined the working set since
         // the last iteration, BEFORE anything this iteration changes it,
@@ -631,6 +645,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // section 4c's ride to handle.
         if (iter == 0 && verdict == detail::InertiaVerdict::kWrong &&
             repair_temporary_vertex(qp, ws, x, kkt, face, *border_, counters, eff_opts)) {
+#ifdef HVEN_TESTING
+            walk_obs.record().action = detail::testing::QpWalkAction::kStartRepair;
+#endif
             degenerate_run = 0; // observation only -- x moved onto bounds
             // Pinning moved x onto bounds, which can violate general
             // rows; the homotopy picks them up exactly as at a start
@@ -650,12 +667,25 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         last_drop = DropRecord{};
 
         const double step_tol = eff_opts.feas_tol * std::max(1.0, x.lpNorm<Eigen::Infinity>());
+#ifdef HVEN_TESTING
+        walk_obs.record().step_tol = step_tol;
+        walk_obs.record().p_inf = p.lpNorm<Eigen::Infinity>();
+#endif
         if (p.lpNorm<Eigen::Infinity>() <= step_tol) {
             // A KKT point of the current working set: snap onto it, then
             // let the multipliers decide.
             x = eqp.x;
             refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
+#ifdef HVEN_TESTING
+            // Claimed here and overridden below by whichever branch of the
+            // classification actually runs: reaching this line means the pass
+            // was a KKT point of the current working set.
+            walk_obs.record().action = detail::testing::QpWalkAction::kDropDantzig;
+#endif
             if (!drop_worst(qp, shift, lambda_i, z, ws, last_drop, counters)) {
+#ifdef HVEN_TESTING
+                walk_obs.record().action = detail::testing::QpWalkAction::kTerminal;
+#endif
                 // Nothing left to leave the working set, so this point is
                 // final. Classify it: a STRUCTURAL violation in either
                 // block, else a runaway free component, else a TRUSTED
@@ -714,6 +744,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         repair_temporary_vertex(qp, ws, x, kkt, face, *border_, counters,
                                                 eff_opts)) {
                         post_probe_restart_spent = true;
+#ifdef HVEN_TESTING
+                        walk_obs.record().action = detail::testing::QpWalkAction::kPostProbeRestart;
+#endif
                         // Pinning moved x onto bounds, exactly as at the
                         // start-of-solve repair: general rows may now be
                         // violated and the homotopy picks them up.
@@ -739,6 +772,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         // -- 4c's ride is vacuous for a zero-multiplier
                         // drop.
                         probe_drop_made = true;
+#ifdef HVEN_TESTING
+                        walk_obs.record().action = detail::testing::QpWalkAction::kDropZeroProbe;
+#endif
                         continue;
                     }
                     // SECTION 4b's SUSPECT-STALL GATE. `verdict` describes
@@ -769,6 +805,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                             // past needs_refactorization); without it the
                             // escalated delta would never reach K0 there.
                             ++counters.suspect_escalations;
+#ifdef HVEN_TESTING
+                            walk_obs.record().action =
+                                detail::testing::QpWalkAction::kSuspectEscalation;
+#endif
                             eff_opts.primal_delta *= detail::kSuspectDeltaFactor;
                             if (border_.use_count() > 1) {
                                 border_ = std::make_shared<BorderState>();
@@ -811,6 +851,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // returned above.
                 const RideOutcome outcome =
                     ride_negative_curvature(qp, dropped, counters, seen, p, Aix, ws, x);
+#ifdef HVEN_TESTING
+                if (outcome != RideOutcome::kDeclined) {
+                    walk_obs.record().action = outcome == RideOutcome::kStepped
+                                                   ? detail::testing::QpWalkAction::kRideStepped
+                                                   : detail::testing::QpWalkAction::kRideUnbounded;
+                    walk_obs.record().ride = outcome == RideOutcome::kStepped;
+                }
+#endif
                 if (outcome == RideOutcome::kUnbounded) {
                     // Nothing blocks: genuinely unbounded. Same verdict and
                     // same semantics (final iterate reported, multipliers
@@ -842,9 +890,30 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             ++counters.degenerate_steps;
             ++degenerate_run;
             counters.degenerate_run_max = std::max(counters.degenerate_run_max, degenerate_run);
+#ifdef HVEN_TESTING
+            walk_obs.record().degenerate = true;
+#endif
         } else {
             degenerate_run = 0;
         }
+#ifdef HVEN_TESTING
+        {
+            detail::testing::QpWalkMinorRecord &r = walk_obs.record();
+            r.action = kind == BlockKind::kNone ? detail::testing::QpWalkAction::kMoveOnly
+                                                : detail::testing::QpWalkAction::kAdd;
+            r.alpha = alpha;
+            r.dx_inf = alpha * p.lpNorm<Eigen::Infinity>();
+            if (kind != BlockKind::kNone) {
+                r.block = kind == BlockKind::kBound ? detail::testing::QpWalkBlock::kBound
+                                                    : detail::testing::QpWalkBlock::kIneq;
+                r.block_index = block_idx;
+                if (kind == BlockKind::kBound) {
+                    r.block_side = block_state;
+                    r.bound_gap = qp.upper(block_idx) - qp.lower(block_idx);
+                }
+            }
+        }
+#endif
         if (kind != BlockKind::kNone) {
             ++counters.ws_adds;
             if (kind == BlockKind::kBound) {
@@ -865,6 +934,9 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         }
         refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
     }
+#ifdef HVEN_TESTING
+    detail::testing::QpWalkObserver::end_solve(static_cast<int>(status));
+#endif
 
     // Commit the hot-start reuse cache iff this solve reached a genuine KKT
     // point (INVALIDATION POLICY). kMaxIter/kInfeasible/kNumericalError
@@ -1647,6 +1719,23 @@ bool QpEngine::probe_zero_multiplier_drops(const QpProblem &qp, const Vec &shift
         const detail::InertiaVerdict verdict =
             probe_inertia(qp, ws, kkt, face, border, counters, opts);
         if (verdict == detail::InertiaVerdict::kWrong) {
+#ifdef HVEN_TESTING
+            // The seam's per-minor record of the OTHER drop route -- the one
+            // QpCounters::ws_drops merges with the Dantzig rule's.
+            detail::testing::qp_walk_note([&](detail::testing::QpWalkMinorRecord &r) {
+                r.drop_route = detail::testing::QpWalkDropRoute::kZeroProbe;
+                r.block = c.is_ineq ? detail::testing::QpWalkBlock::kIneq
+                                    : detail::testing::QpWalkBlock::kBound;
+                r.block_index = c.idx;
+                if (!c.is_ineq) {
+                    r.block_side = held;
+                    r.bound_gap = qp.upper(c.idx) - qp.lower(c.idx);
+                }
+                r.decision_multiplier = c.is_ineq ? std::abs(lambda_i(c.idx)) : std::abs(z(c.idx));
+                r.decision_tol = opts.opt_tol;
+                r.drop_candidates = static_cast<Index>(cands.size());
+            });
+#endif
             dropped = DropRecord{};
             dropped.active = true;
             dropped.is_ineq = c.is_ineq;
@@ -2021,6 +2110,27 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
         ++counters.drop_ties; // observation only -- see QpCounters
     }
 
+#ifdef HVEN_TESTING
+    // The seam's per-minor record of WHY this constraint left: the Dantzig
+    // violation that picked it, the tolerance a candidate had to clear, the
+    // best violation in the set, and the candidate/tie counts behind
+    // QpCounters::drop_ties. Read-only -- nothing above or below depends on it.
+    detail::testing::qp_walk_note([&](detail::testing::QpWalkMinorRecord &r) {
+        r.drop_route = detail::testing::QpWalkDropRoute::kDantzig;
+        r.block = pick->is_ineq ? detail::testing::QpWalkBlock::kIneq
+                                : detail::testing::QpWalkBlock::kBound;
+        r.block_index = pick->idx;
+        if (!pick->is_ineq) {
+            r.block_side = ws.bound_state()[static_cast<std::size_t>(pick->idx)];
+            r.bound_gap = qp.upper(pick->idx) - qp.lower(pick->idx);
+        }
+        r.decision_multiplier = pick->violation;
+        r.best_multiplier = best_viol;
+        r.decision_tol = opts_.opt_tol;
+        r.drop_candidates = static_cast<Index>(cands.size());
+        r.drop_tied = in_window;
+    });
+#endif
     dropped = DropRecord{};
     dropped.active = true;
     dropped.is_ineq = pick->is_ineq;
@@ -2138,6 +2248,23 @@ QpEngine::RideOutcome QpEngine::ride_negative_curvature(const QpProblem &qp,
         x(block_idx) =
             (block_state == BoundState::kAtUpper) ? qp.upper(block_idx) : qp.lower(block_idx);
     }
+#ifdef HVEN_TESTING
+    // The blocker a RIDE admitted. QpCounters folds it into ws_adds with every
+    // other addition (that field's own doc says so), which is one of the six
+    // mechanisms M3a addendum F could not separate.
+    detail::testing::qp_walk_note([&](detail::testing::QpWalkMinorRecord &r) {
+        r.block = kind == BlockKind::kBound ? detail::testing::QpWalkBlock::kBound
+                                            : detail::testing::QpWalkBlock::kIneq;
+        r.block_index = block_idx;
+        r.alpha = alpha;
+        r.p_inf = dir.lpNorm<Eigen::Infinity>();
+        r.dx_inf = alpha * dir.lpNorm<Eigen::Infinity>();
+        if (kind == BlockKind::kBound) {
+            r.block_side = block_state;
+            r.bound_gap = qp.upper(block_idx) - qp.lower(block_idx);
+        }
+    });
+#endif
     return RideOutcome::kStepped;
 }
 
@@ -2198,6 +2325,16 @@ double QpEngine::ratio_test(const QpProblem &qp, const WorkingSet &ws, const Vec
     if (kind != BlockKind::kNone && tied > 1) {
         ++counters.ratio_ties; // observation only -- see QpCounters
     }
+#ifdef HVEN_TESTING
+    // The seam's per-minor reading of the ratio test: the UNCAPPED minimum and
+    // its exact multiplicity, before the cap-at-unit clamp below can hide
+    // either. Read-only; `best`, `tied` and `kind` are not touched.
+    detail::testing::qp_walk_note([&](detail::testing::QpWalkMinorRecord &r) {
+        r.raw_ratio = best;
+        r.ratio_tied = kind == BlockKind::kNone ? 0 : tied;
+        r.ratio_capped = cap_at_unit;
+    });
+#endif
 
     if (!cap_at_unit) {
         return best; // infinite exactly when kind == kNone
