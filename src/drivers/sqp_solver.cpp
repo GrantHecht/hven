@@ -4268,40 +4268,6 @@ void record_restoration_excursion(SqpCounters &c, double h_in, double h_out, dou
     c.restoration_f_out = f_out;
 }
 
-// THE SUBGRADIENT CERTIFICATE'S OWN RESIDUAL (M7 W2 M2b, fix round 1):
-// `||Je^T lambda_e + Ji^T lambda_i - z||_inf` at the restored point, with NO
-// grad f term -- that absence is what makes it a certificate of INFEASIBILITY
-// rather than of optimality -- and with `z` the restoration sub-problem's own
-// bound price, UNCORRECTED (enter_restoration's note where the substitution is
-// made). It is the quantity tests/sqp/test_sqp_restoration.cpp's
-// `check_certificate` recomputes from the model, and the design page's section
-// 3.4 states the rule.
-//
-// COMPUTED, NOT INFERRED, AND THAT IS THE WHOLE POINT OF THIS FUNCTION. The
-// first implementation gated on `||grad P||_inf` instead, on the identity that
-// the two coincide at an EXACTLY stationary point of the wrapper. A sub-solve
-// returns kOptimal at a FINITE tolerance, so what it delivers is
-// `grad P + J^T lambda - z = e` with `||e||_inf <= kkt_tol`, and the quantity
-// the certificate needs is `e - grad P`: bounding `||grad P||_inf` bounds it
-// only by `2*kkt_tol`, and the two terms can reinforce, so a point whose true
-// residual is ABOVE tolerance could be certified. A certificate that can be
-// false is not a certificate.
-//
-// COST: one sparse transpose-product per constraint block, O(nnz(J)), on a
-// bundle the caller already holds -- no model query, so no eval counter moves,
-// and at most once per solve (the phase runs once).
-double subgradient_certificate_residual_inf(const NlpEval &ev, const Vec &lambda_e,
-                                            const Vec &lambda_i, const Vec &z) {
-    Vec r = -z;
-    if (ev.Je.rows() > 0) {
-        r += ev.Je.transpose() * lambda_e;
-    }
-    if (ev.Ji.rows() > 0) {
-        r += ev.Ji.transpose() * lambda_i;
-    }
-    return r.lpNorm<Eigen::Infinity>();
-}
-
 } // namespace
 
 SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, MajorState &mj,
@@ -4441,9 +4407,11 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // `*x_start`: the seed guard above may have pointed the wrapper's
     // construction point at an offered candidate. The excursion the term prices
     // is the CALLER's iterate's, the same one S5's entry half was taken at a
-    // few statements above and the same one the certificate's residual is
-    // measured from, so all three read one point. See restoration.h's class
-    // note for what that costs when the guard does fire.
+    // few statements above, so those two read one point. The certificate's
+    // residual is NOT a third reading of it: that is evaluated at the RESTORED
+    // point, and `st.x` enters it only through this displacement. See
+    // restoration.h's class note for what the centre costs when the guard does
+    // fire.
     const RestorationModel feasibility(bridge.model(), *x_start, resto_ev, st.x,
                                        opts_.restoration_proximity);
     SqpOptions ropts = opts_;
@@ -4865,32 +4833,6 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
     // stationarity read here is the one the certificate is stated in.
     st.resto.diag = stash_declared_diagnostics(ev_r, st.resto.kkt, x_r, rs.lambda_i, seam.lower(),
                                                seam.upper());
-    // THE CERTIFICATE'S RESIDUAL (M7 W2 M2b; the exact form landed in fix round
-    // 1), read before the switch because the certified arm below gates on it.
-    // `||J^T lambda - z_sub||_inf` at the restored point, COMPUTED -- see
-    // subgradient_certificate_residual_inf above for why the `||grad P||_inf`
-    // proxy this replaced can certify falsely at a finite tolerance, and why no
-    // fast path on it is kept.
-    //
-    // IN THE MODEL'S OWN UNITS, and the map is not a precaution. `ev_r` is an
-    // ENGINE-scale bundle -- the seam took it -- while `rs.lambda_*` and
-    // `st.resto.kkt.z` price the RAW model this restoration's wrapper was built
-    // over (`ropts.enable_scaling = false`, and the wrapper wraps
-    // `bridge.model()`), so a row-scaled Jacobian here would price the rows in a
-    // space the multipliers are not in. `to_caller_scale` is exact (positive
-    // finite row factors) and a no-op on an unscaled solve, and it is taken on a
-    // COPY: `ev_r` itself is engine-unit BY CONTRACT for `st.resto.f`, `h_r` and
-    // the S5 excursion record, all of which are already taken above.
-    //
-    // AT THE SHIPPED `restoration_proximity = 0` THIS IS THE SUB-SOLVE'S OWN
-    // TEST, re-read: `grad P` is identically zero there, so the wrapper's
-    // x-block stationarity residual -- which its kOptimal bounded by `kkt_tol`
-    // -- IS this quantity. The OFF behaviour is therefore unchanged, and it is
-    // proved by the OFF identity and the U0 replay rather than argued.
-    NlpEval certificate_ev = ev_r;
-    seam.to_caller_scale(certificate_ev);
-    const double certificate_residual = subgradient_certificate_residual_inf(
-        certificate_ev, rs.lambda_e, rs.lambda_i, st.resto.kkt.z);
     switch (rs.status) {
     case SolveStatus::kOptimal:
         // THE CERTIFIED EXIT, AND THE ONLY ONE: the feasibility
@@ -4908,15 +4850,39 @@ SqpSolver::RestorationOutcome SqpSolver::enter_restoration(SolveState &st, Major
         // of `h + P`, and a certificate of INFEASIBILITY may not
         // be read off it: the substitution above -- z from the
         // restoration problem -- stays exactly as it is, and what
-        // moves is THIS TEST. The residual re-checked here is the
+        // moves is THIS TEST. The residual re-checked there is the
         // UNCORRECTED one; correcting z by subtracting grad P
         // would make the residual identically zero at every
         // wrapper-stationary point and certify nothing. The
         // status is still kInfeasible either way -- what the
         // refusal withholds is the CLAIM, which is what the flag
         // is for.
+        //
+        // AT `restoration_proximity == 0` NOTHING IS RECOMPUTED, BY
+        // CONSTRUCTION (fix round 2). The gate below returns true
+        // without reading a bundle at all, so the shipped default
+        // takes the pre-M2b path exactly -- not "the same answer
+        // with margin". The lambda's body is where the engine->caller
+        // map lives, and it runs only at zeta > 0: `ev_r` is an
+        // ENGINE-scale bundle -- the seam took it -- while
+        // `rs.lambda_*` and `st.resto.kkt.z` price the RAW model this
+        // restoration's wrapper was built over
+        // (`ropts.enable_scaling = false`, and the wrapper wraps
+        // `bridge.model()`), so a row-scaled Jacobian would price the
+        // rows in a space the multipliers are not in. The map divides
+        // by positive finite row factors, which recovers the caller's
+        // frame TO ROUNDING and not bit for bit, and it is taken on a
+        // COPY: `ev_r` itself is engine-unit BY CONTRACT for
+        // `st.resto.f`, `h_r` and the S5 excursion record, all of
+        // which are already taken above.
         st.resto.status = SolveStatus::kInfeasible;
-        st.out.infeasibility_certified = certificate_residual <= opts_.kkt_tol;
+        st.out.infeasibility_certified =
+            feasibility_subsolve_certifies(opts_.restoration_proximity, opts_.kkt_tol, rs.lambda_e,
+                                           rs.lambda_i, st.resto.kkt.z, [&ev_r, &seam] {
+                                               NlpEval certificate_ev = ev_r;
+                                               seam.to_caller_scale(certificate_ev);
+                                               return certificate_ev;
+                                           });
         break;
     case SolveStatus::kInfeasible:
         // The sub-solve raised a restoration request of its own,

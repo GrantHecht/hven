@@ -2721,4 +2721,229 @@ TEST(SqpDriverRestorationProximity, TheRefusalsNameTheFieldTheValueAndTheRemedy)
     }
 }
 
+// =========================================================================
+// FIX ROUND 2 (M7 W2 M2b) -- the OFF path made unchanged BY CONSTRUCTION, and
+// the production centre falsified rather than restated.
+// =========================================================================
+
+// THE OFF PATH TAKES NO FLOPS AND READS NO BUNDLE (fix round 2, the review's
+// remaining Important 1). Fix round 1 computed the certificate's residual
+// unconditionally, from a COPY of the engine-scale bundle divided back through
+// the row factors. That conversion is dimensionally right but is NOT floating-
+// point identity, so on a SCALED solve the recomputed number can differ in its
+// last bits from the raw one the sub-solve actually tested -- and at zeta = 0,
+// where the pre-M2b code certified on the sub-solve's own kOptimal alone, a
+// last-bit difference at the tolerance boundary could REFUSE a certificate that
+// used to be issued. Margin in the measured evidence is not a proof of that
+// boundary.
+//
+// So the OFF path no longer recomputes anything: `feasibility_subsolve_certifies`
+// returns true at zeta == 0 without touching the bundle. This test is the
+// STRUCTURAL guarantee of that, and it does not read like a comment: the bundle
+// handed to the gate is POISONED with NaN, so any route through
+// `subgradient_certificate_residual_inf` yields NaN, and `NaN <= kkt_tol` is
+// false. A gate that reads the bundle at zeta == 0 fails the first arm; a gate
+// that stops reading it at zeta > 0 fails the second.
+TEST(SqpDriverRestorationProximity, TheZeroWeightGateNeverReadsTheBundle) {
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double kkt_tol = 1e-8;
+
+    Vec lambda_e(1), lambda_i, z(2);
+    lambda_e << 3.0;
+    z << 6.0, 0.0;
+
+    // Je = [2 0], so J^T lambda = (6, 0) and the CLEAN bundle's residual is
+    // exactly 0 -- the one number that makes the third arm's `true` mean "the
+    // residual was computed and passed" rather than "nothing was checked".
+    NlpEval clean;
+    clean.Je.resize(1, 2);
+    clean.Je.insert(0, 0) = 2.0;
+    clean.Je.makeCompressed();
+
+    NlpEval poisoned = clean;
+    poisoned.Je.coeffRef(0, 0) = nan;
+
+    Index reads = 0;
+    const auto poisoned_bundle = [&reads, &poisoned]() {
+        ++reads;
+        return poisoned;
+    };
+    const auto clean_bundle = [&reads, &clean]() {
+        ++reads;
+        return clean;
+    };
+
+    EXPECT_TRUE(
+        feasibility_subsolve_certifies(0.0, kkt_tol, lambda_e, lambda_i, z, poisoned_bundle))
+        << "at the shipped weight the sub-solve's own kOptimal IS the certificate";
+    EXPECT_EQ(0, reads) << "the OFF path must not read, copy or rescale the bundle at all -- a "
+                           "gate that routes zeta = 0 through the residual would have read it "
+                           "here, and would then have refused on the NaN";
+
+    EXPECT_FALSE(
+        feasibility_subsolve_certifies(1e-30, kkt_tol, lambda_e, lambda_i, z, poisoned_bundle))
+        << "at ANY positive weight the residual is what decides, and a NaN residual is not "
+           "<= kkt_tol";
+    EXPECT_EQ(1, reads) << "the ON path reads the bundle exactly once";
+
+    EXPECT_TRUE(feasibility_subsolve_certifies(1e-30, kkt_tol, lambda_e, lambda_i, z, clean_bundle))
+        << "and the ON path is the RESIDUAL, not a blanket refusal: this bundle's is 0";
+    EXPECT_EQ(2, reads);
+}
+
+// AND THE PIN THAT GOES WITH IT: a SCALED solve whose certified exit is
+// asserted at an EXPLICIT zeta = 0 (fix round 2). The structural test above
+// proves the gate's dispatch; this proves the shipped configuration the
+// dispatch protects -- non-trivial row factors, two orders apart, on the
+// fixture whose whole point is that the engine and caller scales order its
+// offers oppositely. If the OFF path ever routes through the rescaled copy
+// again, this is where a boundary refusal on a real scaled solve shows up.
+TEST(SqpDriverRestorationProximity, TheZeroWeightCertifiesOnAScaledSolve) {
+    BoxWatchingSpreadModel model;
+    SqpOptions opts;
+    opts.max_iter = 60;
+    opts.enable_scaling = true;
+    opts.restoration_proximity = 0.0; // EXPLICIT: this is the field's OFF value
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
+
+    // THE FIXTURE'S PREMISE: scaling RAN, and the factors are not all 1.
+    ASSERT_TRUE(sol.scaling.active) << "an unscaled solve would test nothing here";
+    EXPECT_NEAR(sol.scaling.row_min, 0.01, 1e-12);
+    EXPECT_NEAR(sol.scaling.row_max, 1.0, 1e-12);
+    ASSERT_LT(sol.scaling.row_min, sol.scaling.row_max) << "the factors must be NON-TRIVIAL";
+
+    ASSERT_EQ(SolveStatus::kInfeasible, sol.status);
+    ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN";
+    EXPECT_TRUE(sol.infeasibility_certified)
+        << "a scaled OFF solve certifies exactly as it did before the proximity term existed";
+    EXPECT_NEAR(sol.x(0), 1.0, 1e-9);
+    EXPECT_NEAR(sol.x(1), 0.0, 1e-9);
+}
+
+// THE PRODUCTION CENTRE, FALSIFIED (fix round 2, the review's Important 3). The
+// sibling fixture above drives the real seed guard and then checks the `h + P`
+// identity on a wrapper the TEST constructs with `x_k`; that restates the
+// wiring rather than observing it, so a production regression to centring on
+// `*x_start` -- the candidate the guard moved the start to -- would not fail it.
+//
+// THIS ONE READS THE CENTRE OUT OF WHAT PRODUCTION RETURNED, with no seam and no
+// private access. A kOptimal sub-solve leaves its own x-block stationarity
+// residual
+//
+//     e(c) = grad P_c(x_r) + J(x_r)^T lambda - z,    ||e(c)||_inf <= kkt_tol
+//
+// where `c` is the centre the wrapper was built with. `x_r`, `lambda` and `z`
+// are all REPORTED fields, so `e(c)` is computable from outside for any
+// candidate centre -- and only the true centre makes it small. The verdict is
+// therefore two-sided: `e(x_k)` at tolerance, and `e` at every point the guard
+// could have started from instead an order of magnitude ABOVE it. `*x_start` is
+// one of those points, so a regression to it fails here.
+//
+// THE WEIGHT IS DELIBERATELY HEAVY AND THE SEPARATION IS THE FIXTURE'S PREMISE.
+// `e(c) - e(x_k)` is `zeta * D^2 * (x_k - c)` componentwise, so the fixture
+// discriminates only in proportion to `zeta` and to how far the offered
+// candidates actually sit from the requesting iterate. On this suite's seeded
+// fixtures that distance is small -- MEASURED: at the symmetric start (2, 2) the
+// nearest admissible candidate is 1.2e-10 away and no weight separates it -- so
+// the start is CHOSEN by a premise the test itself checks (the nearest
+// admissible candidate at least `kCentreMinSeparation` away) rather than
+// assumed, and a start that fails the premise is passed over instead of
+// producing a hollow pass. Measured in Debug at `zeta = 64`: nearest candidate
+// 7.6e-06 / 3.8e-06 / 1.9e-06 for s1 = 1.5 / 1.99 / 1.9, giving a smallest
+// wrong-centre residual of 4.9e-04 / 2.4e-04 / 1.2e-04 against a `kkt_tol` of
+// 1e-06 -- and a right-centre residual of 2.9e-15.
+namespace {
+constexpr double kCentreZeta = 64.0;
+constexpr double kCentreMinSeparation = 1e-6;
+} // namespace
+
+TEST(SqpDriverRestorationProximity, TheProductionCentreIsTheRequestingIterateNotTheSeed) {
+    bool judged = false;
+    for (const double s1 : {1.5, 1.99, 1.9}) {
+        SCOPED_TRACE(fmt::format("start = (2, {:g})", s1));
+        WatchedCircleLineModel model(2.0, s1);
+        SqpOptions opts;
+        opts.max_iter = 200;
+        opts.restoration_proximity = kCentreZeta;
+        SqpSolver driver(opts);
+        const SqpResult sol = driver.solve(model);
+
+        // THE PREMISE THAT MAKES THE TWO CENTRES DISTINGUISHABLE AT ALL: the
+        // guard FIRED, so the wrapper's construction point is NOT the requesting
+        // iterate, and the phase ran once from it.
+        if (seeded_rows(sol) != 1 || sol.counters.restoration_entries != 1 ||
+            sol.counters.restoration_iters < 1) {
+            continue;
+        }
+        const Vec *x_k = recover_requesting_iterate(model.points, sol.counters.restoration_h_in,
+                                                    sol.counters.restoration_f_in, 2.0, s1);
+        if (x_k == nullptr) {
+            continue;
+        }
+        EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
+
+        // `s = J^T lambda - z` at the RETURNED point, from the driver's own
+        // reported multipliers and bound price: the certificate's own vector,
+        // before any proximity gradient is added back to it.
+        const InfeasibleCircleLineModel plain(2.0, s1);
+        Vec s = -sol.z;
+        s += Eigen::MatrixXd(plain.eval_jac_e(sol.x)).transpose() * sol.lambda_e;
+        if (plain.mi() > 0) {
+            s += Eigen::MatrixXd(plain.eval_jac_i(sol.x)).transpose() * sol.lambda_i;
+        }
+        const auto wrapper_residual = [&](const Vec &centre) {
+            double r = 0.0;
+            for (Index i = 0; i < sol.x.size(); ++i) {
+                const double a = std::abs(centre(i));
+                const double d = a > 1.0 ? 1.0 / a : 1.0;
+                r = std::max(r, std::abs(s(i) + kCentreZeta * d * d * (sol.x(i) - centre(i))));
+            }
+            return r;
+        };
+
+        Index rivals = 0;
+        double closest_rival = std::numeric_limits<double>::infinity();
+        double nearest_candidate = std::numeric_limits<double>::infinity();
+        for (const Vec &x_c : model.points) {
+            const double dist = (x_c - *x_k).lpNorm<Eigen::Infinity>();
+            if (dist <= 0.0) {
+                continue; // the requesting iterate itself is not a rival centre
+            }
+            const NlpEval ev = eval_nlp(plain, x_c);
+            if (!(constraint_violation_l1(ev) < sol.counters.restoration_h_in)) {
+                continue; // not a point the guard's own test would have started from
+            }
+            ++rivals;
+            closest_rival = std::min(closest_rival, wrapper_residual(x_c));
+            nearest_candidate = std::min(nearest_candidate, dist);
+        }
+        if (rivals < 1 || nearest_candidate < kCentreMinSeparation) {
+            continue; // this start cannot separate the two centres; try the next
+        }
+
+        // THE VERDICT, two-sided.
+        const double at_x_k = wrapper_residual(*x_k);
+        EXPECT_LE(at_x_k, opts.kkt_tol)
+            << "the returned point IS stationary for the wrapper centred on the REQUESTING "
+               "iterate -- which is what a kOptimal sub-solve on that wrapper means, and is the "
+               "half a regression to `*x_start` would break";
+        EXPECT_GT(closest_rival, 10.0 * opts.kkt_tol)
+            << "and it is NOT stationary for a wrapper centred on any candidate the guard could "
+               "have started from -- `*x_start` among them";
+        ::testing::Test::RecordProperty(
+            "centre", fmt::format("s1={:g} zeta={:g} at_x_k={:.4g} closest_rival={:.4g} "
+                                  "nearest_candidate={:.4g} rivals={} kkt_tol={:g}",
+                                  s1, kCentreZeta, at_x_k, closest_rival, nearest_candidate, rivals,
+                                  opts.kkt_tol));
+        judged = true;
+        break;
+    }
+    EXPECT_TRUE(judged) << "no start in {1.5, 1.99, 1.9} fired the seed guard with an admissible "
+                           "candidate at least "
+                        << kCentreMinSeparation
+                        << " from the requesting iterate; the centre cannot be read off a "
+                           "production run whose two candidate centres coincide";
+}
+
 HVEN_SUPPRESS_DEPRECATED_END

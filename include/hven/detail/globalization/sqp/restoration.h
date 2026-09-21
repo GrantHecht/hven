@@ -87,9 +87,11 @@ inline constexpr double kRestorationSlackBound = 1e20;
 /// WHY `x_k` AND NOT THE WRAPPER'S OWN CONSTRUCTION POINT. The phase's seed
 /// guard may build the wrapper at an offered candidate (`x_entry != x_k`), and
 /// the excursion this term prices is the CALLER'S iterate's -- the same point
-/// the S5 excursion record's entry half is taken at (core/solver_counters.h)
-/// and the same point the certificate's residual is measured from. Centring on
-/// the construction point instead would make the term measure a displacement
+/// the S5 excursion record's entry half is taken at (core/solver_counters.h).
+/// (The certificate's residual is a different reading: it is evaluated at the
+/// RESTORED point `x_r`, and `x_k` enters it only through this displacement.)
+/// Centring on the construction point instead would make the term measure a
+/// displacement
 /// from a point the caller never asked about. The two coincide whenever the
 /// seed guard does not fire, which is every cell measured in
 /// docs/notes/data/2026-09-m7-w2-m2-restoration/. ONE CONSEQUENCE, STATED HERE
@@ -204,5 +206,52 @@ class RestorationModel final : public NlpModel {
     double zeta_ = 0.0;
     Vec centre_, d_;
 };
+
+/// @brief The infeasibility certificate's residual at a restored point,
+/// `||Je^T lambda_e + Ji^T lambda_i - z||_inf`.
+///
+/// A subgradient of `h`, not of the Lagrangian: there is NO `grad f` term --
+/// that absence is what makes it a certificate of infeasibility -- and `z` is
+/// the restoration sub-problem's own bound price, UNCORRECTED. Subtracting
+/// `grad P` from it would make this identically zero at every
+/// wrapper-stationary point, i.e. certify everything.
+///
+/// `ev` must be in the units `lambda_e`, `lambda_i` and `z` price. Cost:
+/// O(nnz(J)) on a bundle the caller already holds -- no model query, so no
+/// eval counter moves.
+double subgradient_certificate_residual_inf(const NlpEval &ev, const Vec &lambda_e,
+                                            const Vec &lambda_i, const Vec &z);
+
+/// @brief The certificate's GATE at a kOptimal feasibility sub-solve: may that
+/// sub-solve's verdict be read as a certificate of infeasibility for `h`?
+///
+/// AT `proximity == 0` THE ANSWER IS YES WITHOUT READING ANYTHING, and that is
+/// the point of this function's shape rather than an optimization. The
+/// wrapper's objective is then the violation alone, so the sub-solve's own KKT
+/// test -- taken in the raw frame it ran in -- IS
+/// `||J^T lambda - z||_inf <= kkt_tol`. Re-deriving that number here would put
+/// a scale round-trip and a fresh summation order between the shipped default
+/// and its answer, and at the tolerance boundary two roundings of one quantity
+/// need not agree. `make_caller_scale_bundle` is therefore NOT CALLED at the
+/// shipped weight; tests/sqp/test_sqp_restoration.cpp pins that by handing this
+/// a bundle it must not touch.
+///
+/// AT `proximity > 0` (EXPERIMENTAL) the sub-solve certified stationarity of
+/// `h + P`, which is not the claim, so the residual is recomputed from the
+/// bundle the callable returns. That bundle is the engine-scale one mapped back
+/// to the caller's frame, which agrees with the raw frame TO ROUNDING and not
+/// bit for bit; a raw re-evaluation is deliberately not taken, because it would
+/// move eval counters on an exit path for an ulp-level gain on an option that
+/// carries no calibrated value.
+template <typename MakeCallerScaleBundle>
+bool feasibility_subsolve_certifies(double proximity, double kkt_tol, const Vec &lambda_e,
+                                    const Vec &lambda_i, const Vec &z,
+                                    MakeCallerScaleBundle &&make_caller_scale_bundle) {
+    if (proximity == 0.0) {
+        return true;
+    }
+    const NlpEval ev = make_caller_scale_bundle();
+    return subgradient_certificate_residual_inf(ev, lambda_e, lambda_i, z) <= kkt_tol;
+}
 
 } // namespace hven::solvers

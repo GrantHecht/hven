@@ -458,4 +458,31 @@ const Vec &RestorationModel::upper() const { return upper_; }
 
 Vec RestorationModel::start_point() const { return start_; }
 
+// COMPUTED, NOT INFERRED, AND THAT IS THE WHOLE POINT OF THIS FUNCTION (M7 W2
+// M2b, fix round 1). The first implementation gated the certificate on
+// `||grad P||_inf` instead, on the identity that the two coincide at an EXACTLY
+// stationary point of the wrapper. A sub-solve returns kOptimal at a FINITE
+// tolerance, so what it delivers is `grad P + J^T lambda - z = e` with
+// `||e||_inf <= kkt_tol`, and the quantity the certificate needs is
+// `e - grad P`: bounding `||grad P||_inf` bounds it only by `2*kkt_tol`, and
+// the two terms can reinforce, so a point whose true residual is ABOVE
+// tolerance could be certified. A certificate that can be false is not a
+// certificate. The header states the rule; the design page's section 3.4 states
+// why the correction the first draft proposed is refused.
+//
+// It is the quantity tests/sqp/test_sqp_restoration.cpp's `check_certificate`
+// recomputes from the model, which is what makes that helper an independent
+// oracle rather than a restatement.
+double subgradient_certificate_residual_inf(const NlpEval &ev, const Vec &lambda_e,
+                                            const Vec &lambda_i, const Vec &z) {
+    Vec r = -z;
+    if (ev.Je.rows() > 0) {
+        r += ev.Je.transpose() * lambda_e;
+    }
+    if (ev.Ji.rows() > 0) {
+        r += ev.Ji.transpose() * lambda_i;
+    }
+    return r.lpNorm<Eigen::Infinity>();
+}
+
 } // namespace hven::solvers

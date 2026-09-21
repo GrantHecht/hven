@@ -1372,11 +1372,19 @@ struct SqpResult : SolveResult {
     /// cheaper test can therefore certify a point whose real residual is above
     /// tolerance, and it is not used -- not even as a fast path.
     ///
-    /// At the shipped `zeta = 0` the residual is the sub-solve's own x-block
-    /// stationarity, which its kOptimal already bounded, so the gate is today's
-    /// test unchanged. The practical consequence is stated rather than hidden:
-    /// at any `zeta` heavy enough to change a phase, a phase that MOVED does not
-    /// certify.
+    /// AT THE SHIPPED `zeta = 0` NOTHING IS RECOMPUTED AT ALL. `grad P` is
+    /// identically zero there, so the residual IS the sub-solve's own x-block
+    /// stationarity, which its kOptimal already bounded IN THE RAW FRAME IT RAN
+    /// IN -- and the driver therefore returns that verdict without reading a
+    /// bundle, rather than re-deriving the same number through a scale
+    /// round-trip whose last bits need not agree. The OFF path is the pre-M2b
+    /// path by construction.
+    ///
+    /// The practical consequence at `zeta > 0` is stated rather than hidden: at
+    /// any weight heavy enough to change a phase, a phase that MOVED does not
+    /// certify. The recomputed residual is taken in the caller's frame recovered
+    /// from the engine-scaled bundle, which agrees with the raw frame to
+    /// ROUNDING and not bit for bit.
     bool infeasibility_certified = false;
 
     /// The solve's exit state in warm_start.h's shape, for a LATER solve of a
