@@ -140,16 +140,6 @@ class RestorationModel final : public NlpModel {
     /// The proximity weight `zeta` this wrapper was built with; 0 == OFF.
     double proximity() const;
 
-    /// `zeta * ||D^2 (x - x_k)||_inf` at the ORIGINAL x-block of @p y -- the
-    /// infinity norm of the proximity term's own gradient, which at a
-    /// wrapper-stationary point is exactly `||J^T lambda - z_sub||_inf` with
-    /// `z_sub` uncorrected: the gap between "stationary for h + P" and
-    /// "stationary for h". The driver's infeasibility certificate gates on it
-    /// (drivers/sqp_solver_types.h, SqpResult::infeasibility_certified).
-    /// Identically 0.0 at `zeta == 0`, computed without a model query at any
-    /// zeta, O(n).
-    double proximity_residual_inf(const Vec &x) const;
-
     double eval_f(const Vec &y) const override;
 
     /// CONSTANT gradient AT zeta == 0, and that is the shipped state: the
@@ -158,10 +148,10 @@ class RestorationModel final : public NlpModel {
     /// rather than of some trade-off against f. At zeta > 0 the x-block is
     /// `zeta D^2 (x - x_k)` and the stationarity claim changes with it -- what a
     /// stationary point of the wrapper is then stationary for is `h + P`, which
-    /// is why the driver re-checks `proximity_residual_inf` before it certifies
-    /// anything (class note, and SqpResult::infeasibility_certified). The
-    /// argument is named at both weights because the vector depends on it at
-    /// one of them.
+    /// is why the driver computes `||J^T lambda - z_sub||_inf` EXPLICITLY before
+    /// it certifies anything, rather than reading the claim off the sub-solve's
+    /// own kOptimal (SqpResult::infeasibility_certified). The argument is named
+    /// at both weights because the vector depends on it at one of them.
     Vec eval_grad(const Vec &y) const override;
 
     Vec eval_ce(const Vec &y) const override;

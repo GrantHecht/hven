@@ -319,18 +319,6 @@ const Vec &RestorationModel::slack_scale_i() const { return sigma_i_; }
 
 double RestorationModel::proximity() const { return zeta_; }
 
-double RestorationModel::proximity_residual_inf(const Vec &x) const {
-    if (zeta_ == 0.0) {
-        return 0.0;
-    }
-    double r = 0.0;
-    const Index m = std::min<Index>(nx_, x.size());
-    for (Index i = 0; i < m; ++i) {
-        r = std::max(r, std::abs(zeta_ * d_(i) * d_(i) * (x(i) - centre_(i))));
-    }
-    return r;
-}
-
 double RestorationModel::eval_f(const Vec &y) const {
     double s = 0.0;
     for (Index k = 0; k < me_; ++k) {

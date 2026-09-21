@@ -848,17 +848,22 @@ struct SqpOptions {
     ///
     /// AT `zeta > 0` IT COSTS THE INFEASIBILITY CERTIFICATE, by design and not
     /// as a side effect. `SqpResult::infeasibility_certified` is then set only
-    /// when `zeta ||D^2 (x_r - x_k)||_inf <= kkt_tol` -- the gap between
-    /// "stationary for h + P" and "stationary for h" -- so a phase that MOVED
-    /// does not certify. See that field's own note.
+    /// when the EXPLICITLY computed `||J^T lambda - z_sub||_inf <= kkt_tol` --
+    /// the gap between "stationary for h + P" and "stationary for h" -- so a
+    /// phase that MOVED does not certify. See that field's own note for why the
+    /// cheaper `zeta ||D^2 (x_r - x_k)||_inf` test is NOT used.
     ///
-    /// NOT CALIBRATED: no default moves at this task. The weight this field
-    /// ships at is 0, and the candidate set, the pre-registered decision rule
-    /// and the leg that runs it are
+    /// EXPERIMENTAL, AND UNCALIBRATED. No calibrated value exists: the
+    /// pre-registered candidate set was `{h_k/(n*rho), h_k/rho, h_k/n, h_k}` and
+    /// EVERY member failed the TRAIN bar -- the term freezes the restoration
+    /// phase rather than steering it -- so the default stayed 0 and no default
+    /// event followed. The rule, the 35 legs and the ruling are
     /// `docs/notes/data/2026-09-m7-w2-m2b-proximity/`; the design page is
     /// `docs/notes/2026-09-m7-w2-m2-restoration-design.md` (section 3 for the
-    /// term, 3.4 for the certificate, 3.5 for the calibration). A caller that
-    /// sets it is running an UNCALIBRATED lever.
+    /// term, 3.4 for the certificate, 3.5 for the calibration, "Outcome (M2b)"
+    /// for what was measured). Whether this field stays public is decided at
+    /// M3's close, on M3's evidence. A caller that sets it is running an
+    /// uncalibrated, experimental lever.
     ///
     /// `validate()` refuses a negative value and a NaN (the `!(x >= 0)` form,
     /// which catches both) and refuses a non-finite one: `+inf` would make the
@@ -1354,14 +1359,24 @@ struct SqpResult : SolveResult {
     /// AND AT `SqpOptions::restoration_proximity > 0` THE PHASE'S OWN KKT TEST
     /// IS NO LONGER ENOUGH (M7 W2 M2b). The proximity term makes the wrapper's
     /// stationarity condition `grad P + J^T lambda - z_sub = 0`, so a
-    /// wrapper-stationary point is stationary for `h + P` and the quantity the
-    /// certificate needs -- `||J^T lambda - z_sub||_inf`, with `z_sub`
-    /// UNCORRECTED -- is exactly `zeta ||D^2 (x_r - x_k)||_inf` there. The
-    /// driver therefore re-checks that residual explicitly against `kkt_tol`
-    /// and sets this flag only when it passes; at the shipped `zeta = 0` the
-    /// residual is identically 0 and the gate is today's test unchanged. The
-    /// practical consequence is stated rather than hidden: at any `zeta` heavy
-    /// enough to change a phase, a phase that MOVED does not certify.
+    /// wrapper-stationary point is stationary for `h + P`. The driver therefore
+    /// computes `||J^T lambda - z_sub||_inf` -- with `z_sub` UNCORRECTED --
+    /// EXPLICITLY at the restored point, O(nnz(J)), and sets this flag only when
+    /// it is `<= kkt_tol`.
+    ///
+    /// EXPLICITLY, AND NOT VIA `zeta ||D^2 (x_r - x_k)||_inf`. The two coincide
+    /// at an EXACTLY stationary point of the wrapper, but a sub-solve returns
+    /// kOptimal at a FINITE tolerance: with `e = grad P + J^T lambda - z_sub`
+    /// and `||e||_inf <= kkt_tol`, the certificate needs `||e - grad P||_inf`,
+    /// which `||grad P||_inf <= kkt_tol` bounds only by `2*kkt_tol`. The
+    /// cheaper test can therefore certify a point whose real residual is above
+    /// tolerance, and it is not used -- not even as a fast path.
+    ///
+    /// At the shipped `zeta = 0` the residual is the sub-solve's own x-block
+    /// stationarity, which its kOptimal already bounded, so the gate is today's
+    /// test unchanged. The practical consequence is stated rather than hidden:
+    /// at any `zeta` heavy enough to change a phase, a phase that MOVED does not
+    /// certify.
     bool infeasibility_certified = false;
 
     /// The solve's exit state in warm_start.h's shape, for a LATER solve of a

@@ -33,6 +33,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <limits>
 #include <memory>
 #include <sstream>
@@ -675,11 +676,6 @@ TEST(RestorationModelProximity, IsTheHandComputedTermAtEveryScalingBranch) {
         EXPECT_DOUBLE_EQ(g(0), 3.0 * 1.0 * 1.0 * (1.0 - 0.0));
         EXPECT_DOUBLE_EQ(g(1), 3.0 * 1.0 * 1.0 * (0.0 - 0.5));
         EXPECT_DOUBLE_EQ(g(2), r.slack_scale_i()(0)) << "the slack block is untouched by the term";
-
-        // AND THE RESIDUAL THE CERTIFICATE GATES ON is the same vector's
-        // infinity norm, at the ORIGINAL x-block.
-        EXPECT_DOUBLE_EQ(r.proximity_residual_inf(y.head(2)),
-                         std::max(std::abs(g(0)), std::abs(g(1))));
     }
     {
         Vec centre(2);
@@ -723,7 +719,6 @@ TEST(RestorationModelProximity, IsTheHandComputedTermAtEveryScalingBranch) {
         EXPECT_DOUBLE_EQ(r.eval_f(y), r.eval_f(r.start_point()));
         EXPECT_DOUBLE_EQ(r.eval_grad(y)(0), 0.0);
         EXPECT_DOUBLE_EQ(r.eval_grad(y)(1), 0.0);
-        EXPECT_DOUBLE_EQ(r.proximity_residual_inf(y.head(2)), 0.0);
     }
     // THE BOUNDARY REFUSES WHAT SqpOptions::validate REFUSES, at the wrapper's
     // own door: this class is constructible by anyone holding an NlpModel.
@@ -913,7 +908,6 @@ TEST(RestorationModel, IsTheSmoothL1FeasibilityProblemAtAPositiveProximity) {
         // x-block is the centre -- rather than structurally.
         EXPECT_DOUBLE_EQ(r.eval_grad(y0)(0), 0.0);
         EXPECT_DOUBLE_EQ(r.eval_grad(y0)(1), 0.0);
-        EXPECT_DOUBLE_EQ(r.proximity_residual_inf(y0.head(2)), 0.0);
     }
     { // THE FIRED GUARD: centre = the requesting iterate, construction at a seed
         Vec x_k(2);
@@ -2433,6 +2427,298 @@ TEST(RestorationProximityOption, ShipsAtZeroAndCarriesADumpLineInDeclarationPosi
     // test_options_dump.cpp is counting.
     EXPECT_LT(text.find("qp_cap_retry"), text.find("restoration_proximity"));
     EXPECT_LT(text.find("restoration_proximity"), text.find("common.threads"));
+}
+
+// =========================================================================
+// FIX ROUND 1 (M7 W2 M2b) -- the certificate's finite-tolerance boundary, the
+// seed guard driven end to end, and the refusals' message content.
+// =========================================================================
+namespace {
+
+// The fixture model, WATCHING every point its values are asked for -- which is
+// how the requesting iterate and the seed the phase actually started from are
+// recovered from outside the driver. Only `eval_f`/`eval_ce` are hooked: those
+// two are what every values-or-full query on this model goes through, and the
+// derivative-only refresh the seed guard's MEASURED arm takes is deliberately
+// not counted as a new point.
+class WatchedCircleLineModel final : public InfeasibleCircleLineModel {
+  public:
+    explicit WatchedCircleLineModel(double s0 = 2.0, double s1 = 2.0)
+        : InfeasibleCircleLineModel(s0, s1) {}
+
+    double eval_f(const Vec &x) const override {
+        points.push_back(x);
+        return InfeasibleCircleLineModel::eval_f(x);
+    }
+    Vec eval_ce(const Vec &x) const override {
+        points.push_back(x);
+        return InfeasibleCircleLineModel::eval_ce(x);
+    }
+
+    mutable std::vector<Vec> points;
+};
+
+// THE PROXIMITY TERM'S OWN GRADIENT NORM, `zeta ||D^2 (x - x_k)||_inf`, lives
+// HERE and no longer in the wrapper: fix round 1 removed
+// `RestorationModel::proximity_residual_inf`, because the driver must not have
+// a cheap almost-right quantity within reach of the certificate. The test keeps
+// it, because the fixture below has to ASSERT that this is the quantity the old
+// gate would have passed.
+double proximity_gradient_inf(double zeta, const Vec &x, const Vec &x_k) {
+    double r = 0.0;
+    for (Index i = 0; i < x.size(); ++i) {
+        const double a = std::abs(x_k(i));
+        const double d = a > 1.0 ? 1.0 / a : 1.0;
+        r = std::max(r, std::abs(zeta * d * d * (x(i) - x_k(i))));
+    }
+    return r;
+}
+
+// The REQUESTING ITERATE `x_k`, recovered from the S5 excursion record: it is
+// the watched point whose h AND f both equal the record's entry half
+// (core/solver_counters.h -- `restoration_h_in`/`restoration_f_in` are taken at
+// the requesting iterate, before the seed guard can move the start). Searched
+// from the back so that the match nearest the request wins. Re-evaluated
+// through an UNWATCHED model so the search does not extend the list it walks.
+const Vec *recover_requesting_iterate(const std::vector<Vec> &pts, double h_in, double f_in,
+                                      double s0, double s1) {
+    const InfeasibleCircleLineModel plain(s0, s1);
+    for (std::size_t k = pts.size(); k-- > 0;) {
+        const NlpEval ev = eval_nlp(plain, pts[k]);
+        const double h = constraint_violation_l1(ev);
+        if (std::abs(h - h_in) <= 1e-12 * std::max(1.0, std::abs(h_in)) &&
+            std::abs(ev.f - f_in) <= 1e-12 * std::max(1.0, std::abs(f_in))) {
+            return &pts[k];
+        }
+    }
+    return nullptr;
+}
+
+// THE CANCELLATION FIXTURE'S TWO NUMBERS, and why they are these rather than
+// round ones. The fixture needs a point where the proxy `||grad P||_inf` sits
+// BELOW `kkt_tol` while the exact residual `||J^T lambda - z_sub||_inf` sits
+// ABOVE it, and the gap between them is the sub-solve's own terminal residual
+// `e`, which on this fixture is 3.5805e-07 and does NOT go to zero (that is why
+// the OTHER certificate fixture, whose sub-solve converges to 4.9e-11, cannot
+// see this defect at any weight).
+//
+// MEASURED, on both configurations, by a sweep over (zeta, kkt_tol) whose
+// transcript is in `gates-fix1/` and whose two axes behave differently:
+// `kkt_tol` does not move this fixture's trajectory at all in this range -- it
+// only moves the threshold -- while `zeta` does, and at most weights Debug and
+// Release then take different restoration paths. `zeta = 1.5e-06` is one of the
+// weights at which they do NOT: it leaves the path alone, so the two configs
+// agree to 1e-12 on the residual.
+//
+//     ||grad P||_inf  = 4.5482e-07   (the OLD gate's quantity)
+//     ||J^T l - z||   = 8.1287e-07   (Release) / 8.1278e-07 (Debug)
+//
+// `kkt_tol` is then placed at the MIDPOINT of that window, 6.3e-07, which gives
+// the two premises a margin of 28% and 29% respectively. Both are asserted
+// below, so a fixture that drifts out of its window FAILS here instead of
+// silently testing nothing.
+constexpr double kCancellationZeta = 1.5e-6;
+constexpr double kCancellationKktTol = 6.3e-7;
+
+} // namespace
+
+// THE FINITE-TOLERANCE CANCELLATION FIXTURE (fix round 1; the review's critical
+// finding). The first implementation gated `infeasibility_certified` on
+// `||grad P||_inf <= kkt_tol`, on the identity that at an EXACTLY stationary
+// point of the wrapper that norm IS `||J^T lambda - z_sub||_inf`. A sub-solve
+// returns kOptimal at a FINITE tolerance, so what it delivers is
+//
+//     e = grad P + J^T lambda - z_sub,   ||e||_inf <= kkt_tol,
+//
+// and the certificate needs `||e - grad P||_inf`, which the proxy bounds only
+// by `2*kkt_tol`. This fixture is a point where the two really do separate: the
+// proxy is BELOW kkt_tol and the exact residual is ABOVE it, so the old
+// expression certifies a point that is not a certified infeasible stationary
+// point of `h`. It FAILS on the pre-fix code (measured once, transcript in
+// `gates-fix1/`) and passes on the exact rule.
+//
+// The seeded variant of the fixture is used because its restoration sub-solve
+// terminates with a real residual -- 3.5805e-07 -- rather than at machine
+// precision: with `e` negligible the proxy and the exact residual coincide and
+// no separation exists at ANY weight, which is exactly why the first round's
+// three-arm fixture could not see the defect.
+TEST(SqpDriverRestorationProximity, TheProxyWouldCertifyWhereTheExactResidualRefuses) {
+    WatchedCircleLineModel model(2.0, 1.999999);
+    SqpOptions opts;
+    opts.max_iter = 200;
+    opts.kkt_tol = kCancellationKktTol;
+    opts.restoration_proximity = kCancellationZeta;
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
+
+    ASSERT_EQ(SolveStatus::kInfeasible, sol.status);
+    ASSERT_GE(sol.counters.restoration_iters, 1) << "the phase must have RUN";
+    ASSERT_EQ(1, sol.counters.restoration_entries) << "one measured excursion to read x_k from";
+
+    const Vec *x_k = recover_requesting_iterate(model.points, sol.counters.restoration_h_in,
+                                                sol.counters.restoration_f_in, 2.0, 1.999999);
+    ASSERT_NE(nullptr, x_k) << "the requesting iterate must be recoverable from the S5 record";
+
+    // THE FIXTURE'S TWO PREMISES, MEASURED HERE rather than assumed, so that a
+    // drift out of the window fails this test instead of hollowing it out.
+    const double proxy = proximity_gradient_inf(kCancellationZeta, sol.x, *x_k);
+    const SubgradientCertificate c = check_certificate(model, sol, opts.feas_tol);
+    EXPECT_LE(proxy, opts.kkt_tol)
+        << "premise 1: the OLD proxy passes here (" << proxy << " vs " << opts.kkt_tol << ")";
+    EXPECT_GT(c.stationarity, opts.kkt_tol)
+        << "premise 2: the EXACT residual does not (" << c.stationarity << ")";
+    EXPECT_GT(c.h, opts.feas_tol) << "and the point is genuinely infeasible";
+
+    // THE VERDICT. The old expression sets this true; the exact rule refuses.
+    EXPECT_FALSE(sol.infeasibility_certified)
+        << "the returned point is NOT a certified infeasible stationary point of h: its exact "
+           "subgradient residual is "
+        << c.stationarity << " against a kkt_tol of " << opts.kkt_tol;
+
+    ::testing::Test::RecordProperty(
+        "cancellation", fmt::format("zeta={:g} proxy={:.6g} exact={:.6g} kkt_tol={:g} certified={}",
+                                    kCancellationZeta, proxy, c.stationarity, opts.kkt_tol,
+                                    sol.infeasibility_certified));
+}
+
+// THE SEED GUARD, DRIVEN END TO END AT zeta > 0 (fix round 1; the review's
+// "that test constructs the two points directly"). The sibling fixture
+// `RestorationModel.IsTheSmoothL1FeasibilityProblemAtAPositiveProximity` pins
+// the `h + P` start objective on HAND-MADE points. This one makes the driver's
+// own guard fire, recovers the requesting iterate from the S5 record and the
+// candidates the guard could have taken from the watched points, and pins the
+// identity on those.
+//
+// WHAT IT ASSERTS, and why it quantifies rather than guesses. The guard takes
+// an offered candidate iff h there is below h at the entry; which candidate was
+// offered is a property of the route (elastic ladder vs radius floor) and is
+// build-arithmetic-dependent on this knife-edge fixture, so the test asserts
+// the identity over EVERY watched point that the guard's own test admits. For
+// any such point the wrapper's start objective is h + P with P > 0 -- never h
+// -- and that is the declared price of centring on `x_k`
+// (detail/globalization/sqp/restoration.h's class note).
+TEST(SqpDriverRestorationProximity, TheSeedGuardFiresAndTheStartObjectiveIsHPlusP) {
+    WatchedCircleLineModel model(2.0, 1.999999);
+    SqpOptions opts;
+    opts.max_iter = 200;
+    opts.restoration_proximity = 0.25;
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
+
+    // END TO END: the REAL guard fired, on the row that raised the request.
+    ASSERT_EQ(1, seeded_rows(sol)) << "the fixture's premise: one request, and it took a candidate";
+    const SqpIterate *row = seeded_row(sol);
+    ASSERT_NE(nullptr, row);
+    ASSERT_GE(sol.counters.restoration_iters, 1) << "and the phase RAN from the taken candidate";
+    ASSERT_EQ(1, sol.counters.restoration_entries);
+
+    const Vec *x_k = recover_requesting_iterate(model.points, sol.counters.restoration_h_in,
+                                                sol.counters.restoration_f_in, 2.0, 1.999999);
+    ASSERT_NE(nullptr, x_k);
+
+    const InfeasibleCircleLineModel plain(2.0, 1.999999);
+    const double h_in = sol.counters.restoration_h_in;
+    Index candidates = 0;
+    for (const Vec &x_entry : model.points) {
+        const NlpEval ev = eval_nlp(plain, x_entry);
+        const double h_entry = constraint_violation_l1(ev);
+        if (!(h_entry < h_in)) {
+            continue; // not a point the guard's own test would have taken
+        }
+        ++candidates;
+        // THE SHIPPED (zeta = 0) WRAPPER: the objective at its own start point
+        // IS h(x_entry) -- the smooth-l1 identity, unconditional.
+        const RestorationModel off(plain, x_entry, ev);
+        EXPECT_DOUBLE_EQ(off.eval_f(off.start_point()), h_entry);
+
+        // THE zeta > 0 WRAPPER THE DRIVER BUILDS, centred on the REQUESTING
+        // iterate: the same objective plus exactly P(x_entry).
+        const RestorationModel on(plain, x_entry, ev, *x_k, opts.restoration_proximity);
+        double p = 0.0;
+        for (Index i = 0; i < x_entry.size(); ++i) {
+            const double a = std::abs((*x_k)(i));
+            const double d = a > 1.0 ? 1.0 / a : 1.0;
+            const double t = d * (x_entry(i) - (*x_k)(i));
+            p += t * t;
+        }
+        p *= 0.5 * opts.restoration_proximity;
+        EXPECT_GT(p, 0.0) << "a candidate the guard took is not the requesting iterate";
+        EXPECT_DOUBLE_EQ(on.eval_f(on.start_point()), h_entry + p)
+            << "the start-objective identity is a zeta = 0 fact, or an unfired-guard fact";
+        // AND THE EXACTNESS OF THE REFORMULATION IS UNTOUCHED: the term is on
+        // the objective being minimized, not on the violation being measured.
+        EXPECT_LT(on.eval_ce(on.start_point()).lpNorm<Eigen::Infinity>(), 1e-12);
+    }
+    EXPECT_GE(candidates, 1) << "the guard fired, so at least one better-measuring point exists";
+}
+
+// THE REFUSALS' MESSAGE CONTENT (fix round 1). CLAUDE.md section 4 requires a
+// library refusal to fold the diagnostic into the exception it throws; a test
+// that only checks the TYPE cannot tell a useful message from an empty one.
+// Both boundaries are checked: the options door and the wrapper's own.
+TEST(SqpDriverRestorationProximity, TheRefusalsNameTheFieldTheValueAndTheRemedy) {
+    auto message_of = [](const std::function<void()> &f) -> std::string {
+        try {
+            f();
+        } catch (const std::invalid_argument &e) {
+            return e.what();
+        } catch (const std::exception &e) {
+            return std::string("<wrong exception type: ") + e.what() + ">";
+        }
+        return "<no exception>";
+    };
+    auto says = [](const std::string &msg, const char *needle) {
+        EXPECT_NE(std::string::npos, msg.find(needle))
+            << "the message does not mention '" << needle << "':\n"
+            << msg;
+    };
+
+    for (const double bad : {-1.0, std::numeric_limits<double>::quiet_NaN(),
+                             std::numeric_limits<double>::infinity()}) {
+        SCOPED_TRACE(fmt::format("options, zeta={}", bad));
+        const std::string msg = message_of([bad] {
+            SqpOptions opts;
+            opts.restoration_proximity = bad;
+            SqpSolver driver(opts);
+        });
+        says(msg, "restoration_proximity"); // the FIELD
+        says(msg, "finite");                // what is wrong
+        says(msg, ">= 0");                  // the admissible set
+        says(msg, "0 is OFF");              // the remedy
+    }
+    { // and the value itself is in the message, not just the rule it broke
+        const std::string msg = message_of([] {
+            SqpOptions opts;
+            opts.restoration_proximity = -2.5;
+            SqpSolver driver(opts);
+        });
+        says(msg, "-2.5");
+    }
+
+    CircleInequalityModel model;
+    Vec x_entry(2);
+    x_entry << 2.0, 2.0;
+    const NlpEval ev = eval_nlp(model, x_entry);
+    Vec centre(2);
+    centre << 1.0, 1.0;
+    for (const double bad : {-1.0, std::numeric_limits<double>::quiet_NaN(),
+                             std::numeric_limits<double>::infinity()}) {
+        SCOPED_TRACE(fmt::format("wrapper, zeta={}", bad));
+        const std::string msg = message_of(
+            [&] { static_cast<void>(RestorationModel(model, x_entry, ev, centre, bad)); });
+        says(msg, "RestorationModel");
+        says(msg, "proximity");
+        says(msg, ">= 0");
+        says(msg, "0 = OFF");
+    }
+    { // the WRONG-SIZED CENTRE says both sizes and what the centre is for
+        const std::string msg = message_of(
+            [&] { static_cast<void>(RestorationModel(model, x_entry, ev, Vec::Ones(3), 1.0)); });
+        says(msg, "x_centre");
+        says(msg, "size 3");
+        says(msg, "expected 2");
+        says(msg, "requesting iterate");
+    }
 }
 
 HVEN_SUPPRESS_DEPRECATED_END
