@@ -1,0 +1,19 @@
+M7 W2 M3a ADDENDUM E -- THE FIRST QP SUBPROBLEM, leg by leg
+
+Machine-written by wrappers/summarise_m3a.py from rows/e/ and the committed
+stage-1 controls. Every column is a key the probe printed verbatim, except
+`minors/cap`, DERIVED = first_qp_minor_iters / the cell's derived per-major
+cap, which is itself read off that cell's control row (see verdict-E.txt).
+The stage-1 controls did not print the five addendum-E keys and are marked
+absent rather than filled.
+
+cell     leg             argument                              qp_cap_retry  qp_max_iter   deadline_fired first_qp_solved first_qp_status elastic_applied first_qp_plain_status first_qp_verdict tr_radius tr_binding rest_seed_used first_qp_minor_iters first_qp_factorizations minors/cap 
+STEENBRB control @trinf  (stage-1 control)                     n/a (absent)  n/a (absent)  0              1               max_iter        0               max_iter              Reject           inf       0          0              n/a (absent)         n/a (absent)            --         
+STEENBRB identity        (both new options at their defaults)  off           0             0              1               max_iter        0               max_iter              Reject           inf       0          0              4680                 5                       1          
+STEENBRB E1              --qp-cap-retry on                     on            0             0              1               max_iter        0               max_iter              Reject           inf       0          0              9360                 5                       2          
+STEENBRB E2              --qp-max-iter 46800                   off           46800         1              1               max_iter        0               max_iter              Reject           inf       0          0              46800                5                       10         
+
+YORKNET  control @trinf  (stage-1 control)                     n/a (absent)  n/a (absent)  0              1               max_iter        0               max_iter              Reject           inf       0          0              n/a (absent)         n/a (absent)            --         
+YORKNET  E1              --qp-cap-retry on                     on            0             0              1               max_iter        0               max_iter              Reject           inf       0          0              5120                 10240                   2          
+YORKNET  E2              --qp-max-iter 25600                   off           25600         1              1               max_iter        0               max_iter              Reject           inf       0          0              25600                51186                   10         
+
