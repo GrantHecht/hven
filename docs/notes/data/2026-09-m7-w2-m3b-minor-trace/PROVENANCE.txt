@@ -168,3 +168,106 @@ sanctioned inside-the-session-file deviation was created.
 NO DEFAULT WAS CHANGED BY THIS TASK -- not `tr_init`, not `QpOptions::max_iter`,
 not `opt_tol`, not `feas_tol`, not `primal_delta`, not `dual_mu`. RULE.md
 section 0 said before any leg that no verdict could license one, and none does.
+
+
+==============================================================================
+FIX ROUND 1 (2026-09-21) -- THE RE-TRACE UNDER RULE-G.md
+==============================================================================
+Everything above describes the M3b measurement and is UNCHANGED. Nothing in
+this addendum edits a pin: M3b's rows/, traces/, gates/, gates-trace/,
+tables/, verdict.txt, fold-walk.txt, RULE.md and its wrappers are byte-for-byte
+as committed. The fix-round artifacts live in PARALLEL directories.
+
+THE STAMP (CLAUDE.md section 7)
+-------------------------------
+repository      hven, branch m7 (NOT PUSHED)
+commit measured 34ba7069  "data(m7): M7 W2 M3b fix1 -- the discriminating probe
+                and its re-trace chain" -- the tree carrying fix round 1's seam
+                fields and hooks (542db548), its fixtures (8fce7fdb),
+                docs/testing.md (63c2a277), the F2 tooling (35294210), the gate
+                runner (31774717), the gate transcripts (d00f52e8), RULE-G.md
+                (f916e82d) and the probe plus chain (34ba7069). All four legs
+                ran on a CLEAN tree at that commit; the chain prints
+                `HEAD 34ba7069  dirty-files=0` on its second line
+                (logs/chain-trace-fix1.log) and refuses to start otherwise.
+pre-registered  RULE-G.md at f916e82d, committed BEFORE the probe was built and
+                BEFORE any leg, the identity legs included.
+date            2026-09-21, America/New_York (the re-trace chain: 15:30:09 ->
+                15:31:37; wall-clock INFORMATIONAL ONLY)
+toolchain       clang version 22.1.8 (Fedora 22.1.8-4.fc44),
+                target x86_64-redhat-linux-gnu; CMake + Ninja; C++20; Release
+host            fedora, AMD Ryzen 7 5800X3D 8-Core Processor, 8 physical cores
+backend         Intel MKL (oneapi, lp64, /opt/intel/oneapi/mkl/latest)
+alignment       EIGEN_MAX_ALIGN_BYTES resolved to 32, harvested off hven's own
+                target properties by the probe project, which REFUSES to
+                configure without it
+
+APPLE / ACCELERATE: UNOBSERVED. No leg here ran on Mac hardware and no Apple
+value appears in this addendum, interpolated or otherwise.
+
+HOLDOUT: NOT RUN. STEENBRB and YORKNET are both TRAIN.
+
+THE PROBE (fix round 1's own; M3b's stays as evidence and was not rebuilt)
+-------------------------------------------------------------------------
+    fix1_probe sha256
+      fa6aaa47bb0f2b05dcd4f9ac81a087cbfb2c084cfccc4f912079a82b84e377fa
+    42 hven sources recompiled with HVEN_TESTING=1, hven::hven NOT linked
+    QpWalkObserver symbols in the probe: 23; in the library: none
+
+    The no-hven-link check is FIXED here relative to M3b's chain, which
+    grepped `CMakeFiles/<target>.dir/link.txt` -- a path only the Makefile
+    generator writes. Under Ninja that grep exited nonzero because the FILE
+    was missing and the chain printed a vacuous PASS. chain_trace_fix1.sh
+    locates the link description wherever the generator put it and REFUSES
+    when it finds none; it found build.ninja (4 714 bytes) and read the line.
+
+    ONE PROBE BINARY, FOUR LEGS, NO SUPERSEDED LEGS.
+
+THE FOUR LEGS (rows-fix1/, gates-trace-fix1/, traces-fix1/)
+-----------------------------------------------------------
+    STEENBRB@identity-G, YORKNET@identity-G   --trace off   (THEY GATE)
+    STEENBRB@trace-G,    YORKNET@trace-G      --trace on
+
+    Same terms as M3b's four: `--tr-init inf`, default options otherwise,
+    `--stop-after-first-qp on`, `--ledger on`, MKL_NUM_THREADS=1,
+    OMP_NUM_THREADS=1, `taskset -c 2`, one `flock /tmp/box-build.lock` hold
+    per leg with a separate pgrep before the lock, a 300 s solver deadline
+    inside `timeout 900`. SERIAL: one solve at a time, alone on the machine.
+
+    Every leg passed RULE-G.md section 2.1's identity gate against M3a's
+    committed rows/f/<cell>@F-trinf.txt record 0 -- 21 fields (20 QpCounters
+    plus the status), DIFFERING 0 -- and section 2.2's integrity conditions,
+    `allocation_failed` included.
+
+    traces-fix1/STEENBRB@trace-G.csv sha256
+      e82a2c3b71903646c1c4e372ccd5ca8c49fcbc630a9f786607007ac2d9b1d8f1
+    traces-fix1/YORKNET@trace-G.csv sha256
+      b7217814e5ee7db3358b48b86f68e3da5aa45b25e9b40a78f6ae9f20aba6250d
+
+    Both hashes are the ones the chain recorded at leg time
+    (logs/chain-trace-fix1.log) and both were re-checked after the copy into
+    this directory. 4 680 and 2 560 records, 74 columns.
+
+THE DISCLOSED SMOKE, AGAIN
+--------------------------
+Before the chain was detached the probe was configured, built and run ONCE on
+STEENBRB under the box lock, in the foreground, with a separate prior pgrep.
+That run is NOT the measurement, is NOT committed here, and no number in this
+addendum is one of its numbers -- the chain re-measured everything. RULE-G.md
+was already committed at f916e82d before that build.
+
+WHAT IS NOT HERE, STILL
+-----------------------
+NO FILE UNDER src/ OR include/ WAS TOUCHED BY THE ANALYSIS. Fix round 1's code
+change is instrument-only and wholly `HVEN_TESTING`-gated; `notices/` was not
+touched, no MPL-derived session file is involved, and no new sanctioned
+inside-the-session-file deviation was created.
+
+NO DEFAULT WAS CHANGED. RULE-G.md section 0 said before any leg that no outcome
+could license one, and none does. The remedy mapping in README.md's
+"Re-trace (G)" is a RECOMMENDATION and is binding on nothing.
+
+TWO FACTS DELIBERATELY NOT MEASURED, and marked ABSENT in the rule rather than
+approximated: rank / independence evidence for the released constraint, and the
+predicted post-drop inertia of the drop candidates not chosen. Each needs an
+extra factorization per candidate per pass; the observer performs none.

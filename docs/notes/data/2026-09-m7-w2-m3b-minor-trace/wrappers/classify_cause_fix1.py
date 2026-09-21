@@ -862,6 +862,48 @@ def outside_the_rule(cell, raws, typed, t0, a_idx, d_idx, out):
               d0["stat_free_inf"] / max(d0["stat_scale"], 1.0),
               d0["active_res_inf"] / max(d0["x_inf"], 1.0)))
     p()
+    p("(f) SECTION 4b's ITER-0 TEMPORARY-VERTEX START REPAIR -- DID IT RUN, AND")
+    p("    DID IT CERTIFY A SECOND-ORDER-CONSISTENT WORKING SET?")
+    p("    The guard is `iter == 0 && verdict == kWrong && repair_temporary_vertex(...)`")
+    p("    (qp_engine.cpp ~:660), and the repair pins free variables at bounds in")
+    p("    order of most negative Hessian diagonal, probing the inertia after each,")
+    p("    until the verdict is kOk -- and REVERTS ENTIRELY if it never is")
+    p("    (qp_engine.cpp ~:2002-2062). This matters because every")
+    p("    inertia-controlling working-set method in the literature starts from a")
+    p("    second-order-consistent working set, and this is the machinery hven")
+    p("    already has for reaching one.")
+    r0 = typed[0]
+    ran = r0["action"] == "start_repair"
+    p("    minor 0: action={}  inertia_verdict={} ({})  observed ({}, {})  "
+      "expected ({}, {})".format(
+          r0["action"], r0["inertia_verdict"],
+          {0: "kOk", 1: "kSuspect", 2: "kWrong", -1: "no verdict site ran"}.get(
+              r0["inertia_verdict"], "?"),
+          r0["inertia_pos"], r0["inertia_neg"], r0["inertia_expected_pos"],
+          r0["inertia_expected_neg"]))
+    p("    pass_factorizations on that pass: {}".format(r0["pass_factorizations"]))
+    if ran:
+        p("    OBSERVED: the repair RAN and returned true -- the recorded action is")
+        p("    `start_repair`, which only the guard's third conjunct can produce.")
+    elif r0["inertia_verdict"] == 2:
+        p("    OBSERVED: the verdict at iter 0 is kWrong and the action is NOT")
+        p("    `start_repair`.")
+        p("    INFERRED (from the guard, which is a conjunction): the first two")
+        p("    conjuncts held, so `repair_temporary_vertex` WAS CALLED and returned")
+        p("    FALSE -- it could not certify a kOk working set by pinning variables at")
+        p("    bounds, so it reverted its pins and the walk began from a working set")
+        p("    the engine itself had just judged wrong.")
+    else:
+        p("    The guard's second conjunct does not hold, so the repair was not reached.")
+    p("    excess at minor 0 = {}   excess at minor 1 = {}".format(
+        r0["inertia_neg"] - r0["inertia_expected_neg"],
+        typed[1]["inertia_neg"] - typed[1]["inertia_expected_neg"] if len(typed) > 1 else "-"))
+    p("    later repairs in the walk: start_repair {}  post_probe_restart {}  "
+      "suspect_escalation {}".format(
+          sum(1 for r in typed if r["action"] == "start_repair"),
+          sum(1 for r in typed if r["action"] == "post_probe_restart"),
+          sum(1 for r in typed if r["action"] == "suspect_escalation")))
+    p()
 
 
 # ---------------------------------------------------------------------------

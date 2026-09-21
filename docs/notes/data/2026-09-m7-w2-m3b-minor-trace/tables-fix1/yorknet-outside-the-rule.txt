@@ -139,3 +139,20 @@ WORK, and they are reported here, separately, for exactly that.
     LHS/RHS = -1.74431e+08   signs DISAGREE
     state D stat_free_inf/max(stat_scale,1) = 3.73776e-16;  active_res_inf/max(x_inf,1) = 0.000126707
 
+(f) SECTION 4b's ITER-0 TEMPORARY-VERTEX START REPAIR -- DID IT RUN, AND
+    DID IT CERTIFY A SECOND-ORDER-CONSISTENT WORKING SET?
+    The guard is `iter == 0 && verdict == kWrong && repair_temporary_vertex(...)`
+    (qp_engine.cpp ~:660), and the repair pins free variables at bounds in
+    order of most negative Hessian diagonal, probing the inertia after each,
+    until the verdict is kOk -- and REVERTS ENTIRELY if it never is
+    (qp_engine.cpp ~:2002-2062). This matters because every
+    inertia-controlling working-set method in the literature starts from a
+    second-order-consistent working set, and this is the machinery hven
+    already has for reaching one.
+    minor 0: action=start_repair  inertia_verdict=2 (kWrong)  observed (311, 257)  expected (312, 256)
+    pass_factorizations on that pass: 1
+    OBSERVED: the repair RAN and returned true -- the recorded action is
+    `start_repair`, which only the guard's third conjunct can produce.
+    excess at minor 0 = 1   excess at minor 1 = 0
+    later repairs in the walk: start_repair 1  post_probe_restart 0  suspect_escalation 0
+
