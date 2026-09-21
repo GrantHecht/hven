@@ -251,3 +251,85 @@ NO DEFAULT WAS CHANGED BY THIS ADDENDUM -- not qp_cap_retry, not
 QpOptions::max_iter, not tr_init, not restoration_proximity, not qp.tr_radius,
 not feas_tol. Both options exercised here ship OFF / at the sentinel and still
 do.
+
+===========================================================================
+ADDENDUM F -- THE DEGENERATE-STALL PROBE
+===========================================================================
+
+RULE-F.md was committed at 229d63de, BEFORE any F leg ran, the identity leg
+included. The probe and both checks landed at bb29174f; the rows, the chain
+transcript and the two gate reports at 94ca4116; the fold, verdict-F.txt and the
+three F tables at 2cf26017.
+
+THE LIBRARY IS THE SAME ONE STAGE 1 AND ADDENDUM E MEASURED ON. It was NOT
+rebuilt and NOT reinstalled for the F legs: chainF.sh re-checks
+
+  libhven.a sha256  c79f404fd377f7ecdefc8ab016a71d65a8cba026a498b4f1f65ce303a72d5cd3
+
+and REFUSES to run if it has moved.
+
+THE PROBE WAS REBUILT and its sha256 differs from stage 1's and from addendum
+E's BY CONSTRUCTION -- it gained one argument (`--ledger on|off`), one printed
+key (`ledger`) and one block (LEDGER_BEGIN..LEDGER_END, emitted after
+LADDER_END):
+
+  stage 1 probe sha256   ba6a1a74698311f6aaf493e6a815f716f1fe5ba7a3df990756f6660acffac3f3
+  addendum E probe sha256 37d13d765d02fc41d0d801532edbf5f1a7e32e5e322ff61296941be041ebfcc1
+  ADDENDUM F probe sha256 882e9d80cae63ab265d3f7f68ce91cf22e85c4309882d405c0405d3b1e244543
+
+THE IDENTITY LEG IS THE PROOF THE DIFFERENCE IS INERT AT THE DEFAULT.
+`STEENBRB@identity-F` ran the rebuilt binary at `--tr-init inf --ledger off` --
+the E probe's behaviour exactly, since `off` constructs no Ledger and never
+calls attach_ledger -- and reproduced the COMMITTED rows/stage1/STEENBRB@trinf.txt
+on all 50 shared keys and the whole ladder block, byte for byte, with
+NEAR_ULP_TOLERATED=0. See identity-f.txt.
+
+A SECOND, DIFFERENT CHECK COVERS THE ATTACHED LEDGER. RULE-F.md section 3.2's
+NEUTRALITY check compares each of the four `--ledger on` legs against its OWN
+committed stage-1 twin -- @trinf against @trinf, @tr1 against @tr1 -- on every
+shared key and the whole ladder: 50 keys on the inf arms, 52 on the tr1 arms, 0
+differing, NEAR_ULP_TOLERATED=0. NO SOLVER COUNTER MOVED WITH THE LEDGER
+ATTACHED. Had one moved, RULE-F.md section 3.2 made that a STOP and a finding
+about hven, and the gating leg's check ran BEFORE the other three legs so the
+stop would have been a stop. See neutral-first-f.txt and neutrality-f.txt.
+
+MEASUREMENT CONDITIONS, unchanged from stage 1 and addendum E: one leg per
+process, serial, ALONE under flock /tmp/box-build.lock with no timeout and no
+fallback, released per leg; a pgrep check for a foreign cell binary as a separate
+prior command and again inside each hold; MKL_NUM_THREADS=1, OMP_NUM_THREADS=1;
+taskset -c 2; a 300 s SOLVER deadline enforced by the probe's callback inside a
+900 s outer `timeout 900`. Nothing co-ran. Wall-clock is informational only
+(CLAUDE.md section 7). HOLDOUT was never run; both cells are TRAIN.
+
+Chain F: pid 2308391, setsid-detached at HEAD bb29174f with a clean tree,
+2026-09-21T08:33:44 -> 08:38:43 -04:00. IDENTITY_F_RC=0, NEUTRAL_FIRST_RC=0,
+NEUTRALITY_F_RC=0, LEGS_F_WORST=0, five legs rc=0, deadline_fired=0 on all five.
+No leg CENSORED, none TRUNCATED.
+
+THE F TABLES AND verdict-F.txt ARE MACHINE-WRITTEN: summarise_m3a.py's fold_f()
+folds rows/f/ and the four committed stage-1 twins into tables/f-first-qp.txt,
+tables/f-records.txt, tables/f-neutrality.txt and verdict-F.txt. No number in
+them is transcribed by hand, and RULE-F.md section 4's predicates are coded once,
+in that file, from the rule as committed at 229d63de. The fold RE-RUNS both of
+section 3's checks itself, on the COMMITTED rows, as an independent re-check of
+the chain's own reports. The stage-1 and E folds are untouched: re-running the
+script leaves verdict.txt, verdict-E.txt, tables/stage1-*.txt and tables/e-*.txt
+byte-identical, checked by sha256 before and after.
+
+NOTHING BUILT HERE CARRIES HVEN_BENCH_PIN_SHA -- the harness CMake is never
+entered -- so no row from this probe is ever cited as a harness row, and
+/home/ghecht/Projects/hven-bench stayed READ-ONLY to this addendum as it was to
+stage 1 and addendum E.
+
+WHAT IS NOT HERE, FOR THE ADDENDUM
+----------------------------------
+NO LEG BEYOND THE FIVE was ever started, and none will be: confirming CYCLING
+PROPER -- the same working SET revisited, as against a long degenerate crawl --
+is not reachable from any public surface, since QpEngine has no trace sink and
+its only instrument is the per-SOLVE Ledger record. That needs a REGISTERED
+INSTRUMENT with its own pre-registered rule, not another leg on this one.
+
+NO FILE UNDER src/ OR include/ WAS TOUCHED by this addendum, and notices/ was
+not touched. NO DEFAULT WAS CHANGED -- not tr_init, not QpOptions::max_iter, not
+qp_cap_retry, not restoration_proximity, not qp.tr_radius, not feas_tol -- and
+RULE-F.md section 0 stated before the legs that no verdict could license one.

@@ -483,6 +483,136 @@ change.
 
 ---
 
+## Addendum F — the F legs: what was the walk DOING for those minors?
+
+Addendum E left one number standing: the first QP subproblem consumed 4680 and
+2560 minor iterations at the shipped cap on STEENBRB and YORKNET, ten times that
+at the raised cap, and came back `max_iter` every time. Addendum F asks what
+those minors were spent on.
+
+**The rule was committed first**, at `229d63de`, before any leg including the
+identity leg: `RULE-F.md`. Its hypothesis:
+
+> **H-DEG.** The first QP's tens of thousands of minor iterations on STEENBRB
+> and YORKNET at `tr_init = inf` are a DEGENERATE STALL of the active-set walk,
+> not a long genuine walk.
+
+hven documents both the mechanism and the absence of a remedy: "Linearly
+dependent working sets do not break the loop... **No anti-cycling rule is
+implemented; a degenerate stall is bounded by max_iter**"
+(`include/hven/detail/qp/qp_engine.h`, the `--- Degeneracy ---` note).
+
+### The instrument, and the correction to what addendum E said about it
+
+Addendum E's closing sections recorded that `QpCounters::schur_updates` and the
+whole degeneracy set are "not reachable from `SqpResult`". **That is true and
+stays true** — `SqpCounters` genuinely does not carry those fields, and nothing
+in `verdict-E.txt` is wrong.
+
+What it missed is a SECOND public surface. `hven::solvers::Ledger`
+(`include/hven/core/ledger.h`) is a public, read-only instrument;
+`SqpSolver::attach_ledger` is a public method that also forwards the same Ledger
+to the driver's own `QpEngine`; and `Ledger::records()` hands back one
+`SolveRecord` **per QP-engine solve**, each carrying a whole `QpCounters`. The
+harness's own M7 W2 C1 cost census already read the degeneracy set this way.
+
+**Its scope, pre-registered** (`RULE-F.md` §1.2): `attach_ledger` attaches to the
+driver's MAIN WALK ENGINE and to nothing else. The restoration phase's
+sub-driver receives `attach_trace` but no `attach_ledger` (ledger.h says so), and
+the four lazily-built engines are never handed it. So a record count is a LOWER
+BOUND on the solve's QP solves — which matters on the `tr_init = 1` legs, where a
+restoration phase runs.
+
+**All twenty `QpCounters` fields are printed on every record**, in declaration
+order. Two quantities the ruling named do not exist on that struct and are
+recorded ABSENT rather than substituted for: there is **no negative-curvature
+field** (the ride's own blocking constraint is folded into `ws_adds`, by that
+field's own doc) and **no inertia field** (`IpqpCounters`' is a different struct
+describing a tier that does not run here). `suspect_escalations` is the one
+escalation counter and is printed like the rest.
+
+### The two gates, and the one that mattered
+
+The probe gained one argument, `--ledger on|off`, **default off** = addendum E's
+behaviour exactly (no `Ledger` is constructed and `attach_ledger` is never
+called). Two different things had to be proved:
+
+- **IDENTITY** — `--ledger off` reproduces the committed
+  `rows/stage1/STEENBRB@trinf.txt` on all 50 shared keys and the whole ladder,
+  `NEAR_ULP_TOLERATED=0`. The new argument is inert at its default.
+- **NEUTRALITY** — each `--ledger on` leg equals **its own** committed stage-1
+  twin on every shared key (50 on the `@trinf` arms, 52 on the `@tr1` arms),
+  ladder included, 0 differing. **No solver counter moved with the ledger
+  attached.** The first measured leg's check gated the other three, so the STOP
+  would have been a stop rather than a note appended afterwards.
+
+### The verdict: MIXED on both cells
+
+`RULE-F.md` §4 fixed, before any leg: DEGENERATE_STALL iff
+`degenerate_steps / minor_iters >= 0.5` **and** `degenerate_run_max >= 1000`;
+GENUINE_WALK iff the ratio `< 0.1`; otherwise MIXED.
+
+| cell | first QP at `tr_init = inf` | minors | degenerate | ratio | run max | verdict |
+|---|---|---:|---:|---:|---:|---|
+| STEENBRB | `f_qp_0` `max_iter` | 4680 | 2319 | 0.495513 | 2310 | **MIXED** |
+| YORKNET | `f_qp_0` `max_iter` | 2560 | 1257 | 0.491016 | 1191 | **MIXED** |
+
+Both ratios sit just **below** the 0.5 bar while both run maxima sit far
+**above** the 1000 bar, so DEGENERATE_STALL's conjunction is false and
+GENUINE_WALK's 0.1 is nowhere near met. The rule's third row governs. Nothing is
+relabelled to reach a cleaner word, and **no verdict licenses a default change**
+— none was made.
+
+### Outside the verdict
+
+`verdict-F.txt` carries a clearly separated section that licenses no verdict and
+no default change. In brief:
+
+**The rule's 0.5 bar was set on a denominator that cannot reach it**, a design
+error the settler declared on reading the rows. Checked against the headers
+rather than assumed: `minor_iters` increments once per pass of the walk loop
+(`src/qp/qp_engine.cpp:613`, fixed as a relied-on contract by `qp_engine.h`'s
+COUNTER SEMANTICS note), while `degenerate_steps` counts only passes that ADDED a
+blocking constraint, and `degenerate_run_max` is not broken by a drop iteration
+at all. In a pure add/drop alternation half the passes are drops, so the ratio
+cannot exceed about 0.5 by construction. From the rows:
+`ws_adds + ws_drops` = 4667 vs 4680 minors on STEENBRB, 2519 vs 2560 on YORKNET.
+
+**The descriptive numbers the rule pre-registered as non-verdict read-outs.**
+`degenerate_steps / ws_adds` is 0.9893 and 0.9767. The net working-set change is
++21 and +55 over thousands of admissions. One unbroken degenerate run covers 2310
+of 2319 and 1191 of 1257 degenerate steps. The loudest number is admission
+multiplicity: **23 distinct variables admitted 2344 times** on STEENBRB, 95
+admitted 1287 times on YORKNET. Machine-checked, not asserted:
+`ws_adds == ws_adds_bound` on all 22 records and every leg prints `mi = 0`, so
+every admission is a bound pin.
+
+**The later majors repeat it.** YORKNET's records 1–3 are BYTE-IDENTICAL to one
+another on all nineteen `QpCounters` fields but `symbolic_analyses` — three
+consecutive majors performing the same stall, with **two** distinct variables
+admitted 1279 times each.
+
+**The contrast with `tr_init = 1`**, same cells, same binary, same terms: the
+first QP ends `infeasible` after 827 / 397 minors with a longest degenerate run
+of 3 / 48, against `max_iter` after 4680 / 2560 with runs of 2310 / 1191.
+
+**What would confirm cycling proper** — the same working SET revisited — and why
+admission multiplicity does not: it is equally consistent with a long degenerate
+crawl over many sets drawn from the same few variables. Checked, not assumed:
+`QpEngine` has no trace sink at all, and its only instrument is the per-SOLVE
+Ledger record this addendum read, so the finest public QP granularity is the
+subproblem and never the minor. Confirming it needs a registered instrument — an
+`HVEN_TESTING`-gated per-minor working-set signature on CLAUDE.md §8's test-seam
+convention — or an offline replay of one subproblem. Either is its own task with
+its own pre-registered rule.
+
+**What this ranks for the settler, deciding nothing.** An **anti-cycling rule for
+the active-set walk** is the lead candidate, from the OPEN literature only
+(Bland's, or a perturbation / EXPAND-style scheme) and **never from SNOPT
+source**. Start/crash quality stays live on the `tr_init = 1` contrast. Cap policy
+ranks last: addendum E already showed a 10× cap changes nothing, and the stall is
+not a budget shortage.
+
 ## Files
 
 ```
@@ -510,5 +640,19 @@ tables/e-first-qp.txt               the first QP subproblem, leg by leg -- machi
 tables/e-solve-counters.txt         the whole-solve counters, leg by leg -- machine-written
 wrappers/identity_e.py              the addendum-E identity checker
 wrappers/chainE.sh                  the E chain
+RULE-F.md                           addendum F's pre-registered rule (229d63de, before any F leg)
+verdict-F.txt                       RULE-F.md section 4 applied, plus the outside-the-verdict
+                                    section -- machine-written
+identity-f.txt                      the identity gate (RULE-F.md section 3.1)
+neutral-first-f.txt                 the gating leg's neutrality check (section 3.2)
+neutrality-f.txt                    all four measured legs' neutrality check
+rows/f/<TAG>.txt                    the 5 raw F legs, unedited, each with its LEDGER block
+                                    (all 5 stderr files were empty and are not committed)
+logs/chainF.log                     the F chain transcript, lock markers and wall (informational)
+tables/f-first-qp.txt               record 0 of every measured leg, all 20 QpCounters fields
+tables/f-records.txt                EVERY ledger record of every measured leg
+tables/f-neutrality.txt             the two checks, leg by leg -- machine-written
+wrappers/identity_f.py              the addendum-F identity AND neutrality checker
+wrappers/chainF.sh                  the F chain
 gates/                              task A's six-gate chain (committed at 3caf8d50)
 ```
