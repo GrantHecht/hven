@@ -1,0 +1,170 @@
+M7 W2 M3b -- THE FIRST-QP PER-MINOR TRACE: THE INSTRUMENT, ITS GATES, THE FOUR
+LEGS, THE CLASSIFIER FOLD AND THE VERDICT
+==============================================================================
+
+THE STAMP (CLAUDE.md section 7)
+-------------------------------
+repository      hven, branch m7 (NOT PUSHED)
+commit measured 71665022  "data(m7): M7 W2 M3b task B -- the chain's five
+                misplaced quote escapes, fixed before any leg ran" -- the tree
+                that carries task A's instrument and hooks (01a956a7 ...
+                e891041e), task A's gate transcripts (e241161d), RULE.md
+                (d35f70f8), the trace probe and the identity checker
+                (4e1095db) and the chain's quoting fix (71665022), and nothing
+                else.
+                All four legs ran on a CLEAN tree at that commit; the chain
+                prints `HEAD 71665022  dirty-files=0` on its second line
+                (logs/chain-trace.log) and refuses to start otherwise.
+parent chain    M7 W2 M3a (../2026-09-m7-w2-m3a-request-probe/), whose
+                addendum F produced the committed rows this task's identity
+                gate compares against.
+date            2026-09-21, America/New_York
+                (the trace chain: 13:13:03 -> 13:14:30)
+artifact date   2026-09-21, America/New_York (this directory; no leg re-run)
+toolchain       clang version 22.1.8 (Fedora 22.1.8-4.fc44),
+                target x86_64-redhat-linux-gnu; CMake + Ninja; C++20; Release
+host            fedora, AMD Ryzen 7 5800X3D 8-Core Processor, 8 physical cores
+backend         Intel MKL (oneapi, lp64, /opt/intel/oneapi/mkl/latest)
+alignment       EIGEN_MAX_ALIGN_BYTES resolved to 32 and harvested off hven's
+                own target properties by the probe project, which REFUSES to
+                configure if the harvest comes back without it
+
+APPLE / ACCELERATE: UNOBSERVED. No leg here ran on Mac hardware and no Apple
+value appears in this artifact, interpolated or otherwise.
+
+HOLDOUT: NOT RUN. Both cells named here -- STEENBRB and YORKNET -- are TRAIN.
+
+
+THE MEASUREMENT TERMS (CLAUDE.md section 7, declared in the artifact they
+produced, and stated again in wrappers/chain_trace_m3b.sh's header)
+-----------------------------------------------------------------------------
+NO CO-RUN. Each of the four legs ran ALONE: one cell per process, serial,
+`MKL_NUM_THREADS=1 OMP_NUM_THREADS=1`, `taskset -c 2` (one physical core), a
+300 s SOLVER deadline enforced by the probe in its own iteration callback
+inside a 900 s OUTER `timeout`, and its OWN hold of /tmp/box-build.lock with
+no timeout and no fallback, released before the next leg. A `pgrep` guard ran
+as a SEPARATE PRIOR COMMAND and a `PGREP_EMPTY` marker was written inside the
+lock before every leg and before the build; the guard never fired
+(logs/chain-trace.log, `PGREP_BEFORE_LOCK` / `PGREP_EMPTY` on all five
+segments). `deadline_fired=0` on all four legs: no leg is TRUNCATED. All four
+exited rc=0 (`WRAPPER_RC ... rc=0`), so no leg is CENSORED and no row is
+missing.
+
+WALL IS INFORMATIONAL. The chain ran in 87 s wall and no number in this
+artifact is a timing claim. WHAT IS ASSERTED is counters, statuses and the
+per-minor trace records -- the deterministic per-process columns.
+
+
+WHAT PRODUCED EACH NUMBER
+-------------------------
+THE INSTRUMENT (include/hven/detail/qp/qp_walk_trace.h and the hooks in
+src/qp/qp_engine.cpp) is TASK A's, landed at 01a956a7 ... e891041e and gated
+before any leg of task B ran. It compiles to NOTHING without `HVEN_TESTING`.
+Its six-gate evidence is in gates/ with gates/README.md naming each gate's
+exit status; the production-library claim it supports is the narrowed one
+stated there -- Release byte-identical 42/42, Debug 39/42 with the three
+movers identical in text, in symbols and in every relocation outside
+`.rela.debug_line`.
+
+THE PROBE is a STANDALONE executable. It does not link `hven::hven`: it
+`add_subdirectory`s the hven tree with tests and bench OFF and then recompiles
+hven's OWN sources -- the list read off the `hven` target's `SOURCES` property,
+42 of them -- with `HVEN_TESTING=1` target-wide. The chain checks and records
+all three properties at prepare time (logs/chain-trace.log):
+
+    m3b_probe sha256
+      25e2ebb42bb13bbc8fd053f6015130e9b5b0b7f129fdefad63ebe14a32e31609
+    link.txt names no libhven.a and no -lhven
+    QpWalkObserver symbols in the probe: 19; in the library: none
+
+    ONE PROBE BINARY, FOUR LEGS, NO SUPERSEDED LEGS: no row in this directory
+    was re-taken with a second binary.
+
+THE FOUR LEGS (rows/, gates-trace/, traces/):
+
+    STEENBRB@identity, YORKNET@identity   --trace off
+    STEENBRB@trace,    YORKNET@trace      --trace on
+
+    Both cells at `--tr-init inf`, default options otherwise,
+    `--stop-after-first-qp on` (a callback stop after major 0), `--ledger on`.
+    The two IDENTITY legs run the same binary with the observer UNARMED and
+    are what shows the trace argument is inert; the two TRACE legs carry the
+    observer and write the CSVs.
+
+THE IDENTITY GATE (RULE.md section 2.1) is the gate, and it is a comparison
+against M3a's COMMITTED bytes, not against RULE.md's transcription of them:
+wrappers/check_identity_m3b.py reads
+`../2026-09-m7-w2-m3a-request-probe/rows/f/<cell>@F-trinf.txt` and compares it
+key by key with the leg's own row. 21 fields on each trace leg -- the 20
+`QpCounters` fields plus the record status -- DIFFERING 0 on both
+(gates-trace/gate-*.txt). Trace integrity (section 2.2) is green on both:
+4680 and 2560 records against the same `minor_iters`, `truncated=0`,
+`exit=max_iter`, `warm=0`, `solve_index=0`, `solves_seen=1`.
+
+THE CHECKER IS STRUCTURALLY NON-VACUOUS AND WAS FOLD-PROVEN BEFORE THE LEGS:
+gates-trace/identity-folds.txt, 15 folds, 0 failed -- 2 accept and 13 refuse,
+including a 19-of-20-key comparison, a one-field difference, a status
+difference, a short trace, an `unset` action, a truncated observer, a warm
+solve and a missing file.
+
+THE CLASSIFIER IS MACHINE-WRITTEN AND WAS FOLD-PROVEN BEFORE IT SAW A REAL
+TRACE: wrappers/classify_walk_m3b.py codes RULE.md sections 3, 4 and 5 once,
+from the rule as committed at d35f70f8, and delegates section 2 to the checker
+above. fold-walk.txt is the transcript of section 6's nine pre-registered
+synthetic traces, run as twelve cases (section 6's rows 8 and 9 each name two
+conditions and both are exercised): 12 folds, 0 failed, 8 DISTINCT classes
+returned. verdict.txt and tables/*-predicates.txt, *-readouts.txt,
+*-admissions.txt are its output; no number in them is transcribed by hand.
+
+tables/outside-the-rule.txt is produced by wrappers/extra_readouts_m3b.py and
+is NOT part of the rule. It answers four questions the settler asked AFTER
+RULE.md was committed, it says so in its own header, and nothing in it can
+change the outcome the rule returned.
+
+THE TRACES ARE COMMITTED WHOLE -- traces/STEENBRB@trace.csv (4680 records) and
+traces/YORKNET@trace.csv (2560 records), one record per minor iteration. They
+are the evidence, not a summary of it, and every table in this directory is
+recomputable from them with the two committed scripts.
+
+    STEENBRB@trace.csv sha256
+      c963bc8980e93397b76d6fb2ac9fac5a98cb364d193456b9e7040cbacf18b6dd
+    YORKNET@trace.csv sha256
+      97f77c0c61464eb7fc71e7608fc3612cf6209c4293a25f321390a800ebba76ff
+
+    The YORKNET hash is the one the chain itself recorded at leg time
+    (logs/chain-trace.log, last lines); both were re-checked after the copy
+    into this directory.
+
+THE HARNESS TREE. /home/ghecht/Projects/hven-bench stayed READ-ONLY: the
+probe compiles the same three harness sources M3a's did, out of that tree, and
+the harness's own CMake is never entered. Nothing built here carries
+`HVEN_BENCH_PIN_SHA`, so NO ROW FROM THIS PROBE IS EVER CITED AS A HARNESS ROW.
+CUTEst is an EXTERNAL tool (owner ruling, 2026-09-15): found under
+~/Software/cutest, neither vendored nor built here.
+
+
+WHAT IS NOT HERE
+----------------
+ONE QP PER CELL. This task traces the FIRST subproblem of the driver's solve
+and stops there (`--stop-after-first-qp on`). RULE.md section 5.6's comparison
+of the incoming warm signature against later majors' is therefore DECLINED BY
+SCOPE, not a gap; the one signature is recorded (0, size 0 -- the cold first
+subproblem) so a later task can compare against it.
+
+NO SECOND CHAIN. No leg beyond the four was run for this artifact. The
+UNREGISTERED SMOKE that preceded them -- one STEENBRB solve under the lock,
+taken while the chain script was being finished -- is disclosed in
+.superpowers/m7-w2-m3b-report.md with its numbers; its outputs are
+.scratch/m7w2m3b/out/smoke-STEENBRB.txt and
+.scratch/m7w2m3b/trace/smoke-STEENBRB.csv, they are NOT committed here, and no
+number in this directory is one of its numbers. The chain re-measured
+everything it had shown.
+
+NO FILE UNDER src/ OR include/ WAS TOUCHED BY TASK B, and `notices/` was not
+touched by task A or task B: the seam lives in an Apache-2.0 file this
+repository wrote, no MPL-derived session file is involved, and no new
+sanctioned inside-the-session-file deviation was created.
+
+NO DEFAULT WAS CHANGED BY THIS TASK -- not `tr_init`, not `QpOptions::max_iter`,
+not `opt_tol`, not `feas_tol`, not `primal_delta`, not `dual_mu`. RULE.md
+section 0 said before any leg that no verdict could license one, and none does.
