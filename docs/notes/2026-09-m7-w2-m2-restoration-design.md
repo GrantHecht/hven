@@ -1269,3 +1269,49 @@ ZAMB2-8 rows (sound, but not an observation); only YORKNET's arm is proved, and
 it is proved by the certificate flag rather than by the status. One probe key
 (`rs.status` through the S5 record, or a counter for the nested refusal) would
 make "which arm exited" an observation on every row. It is registered to M3.
+
+### Corrections (fix2) — appended 2026-09-21, append-only
+
+Two statements in the Outcome section above are corrected here rather than
+edited in place; both were found by the scoped re-review of fix round 1.
+
+**(a) The certificate's residual is evaluated AT `x_r`, not "measured from"
+`x_k`.** §1 above says `x_k` is "the point the certificate's residual is
+measured from, so all three read ONE point". The residual
+`‖Jᵀλ − z_sub‖∞` is evaluated at the RESTORED point `x_r`; `x_k` enters it only
+through the proximity displacement `x_r − x_k` inside `∇P`, and only at
+`ζ > 0`. Two readings share `x_k` — the term's centre and S5's entry half — not
+three. The ruling of §1 is unaffected: the reason to centre on the requesting
+iterate is that the excursion the term prices is the caller's. The same wording
+has been corrected at its two other homes,
+`detail/globalization/sqp/restoration.h`'s class note and the driver's comment
+at the wrapper's construction.
+
+**(b) "The OFF behaviour is unchanged" is now true BY CONSTRUCTION.** §3 above
+ends "at the shipped `ζ = 0` the two coincide exactly (`∇P ≡ 0`), which is why
+the OFF behaviour is unchanged — proved by the OFF identity and the U0 replay".
+That was evidence with margin, not a proof of the boundary. Fix round 1
+recomputed the residual on EVERY exit, from a copy of the engine-scale bundle
+divided back through the row factors; that conversion is dimensionally right but
+is not floating-point identity, so on a SCALED solve the recomputed number can
+differ in its last bits from the raw one the sub-solve tested in — and at
+`ζ = 0`, where the pre-M2b code certified on the sub-solve's own `kOptimal`
+alone, a last-bit difference at the tolerance boundary could REFUSE a
+certificate that used to be issued.
+
+Fix round 2 removes the possibility instead of bounding it. The gate is
+`feasibility_subsolve_certifies` (`detail/globalization/sqp/restoration.h`):
+at `ζ == 0` exactly it returns "certified" **without reading, copying or
+rescaling any bundle**, so the OFF path is the pre-M2b path — no added flops and
+no second rounding of one quantity. Two fixtures hold it there: a structural one
+that hands the gate a NaN-poisoned bundle at `ζ = 0` and requires certification
+(a gate that routed through the residual would refuse on the NaN), and a pin on
+a genuinely SCALED infeasible solve at an explicit `ζ = 0` whose certified exit
+is asserted.
+
+At `ζ > 0` the recomputation stays, and its frame is now stated honestly rather
+than called exact: the residual is taken in the caller's frame RECOVERED from
+the engine-scaled bundle, which agrees with a raw re-evaluation to ROUNDING and
+not bit for bit. A true raw re-evaluation was considered and REJECTED — it would
+move eval counters on an exit path for an ulp-level gain on an option that
+carries no calibrated value and is marked EXPERIMENTAL.
