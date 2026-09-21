@@ -312,29 +312,38 @@ expect_nonzero "P3: the same comparison against --expect-differing 1 (R2) -- a d
 # classifier it would have been harvested by nothing, counted as 0 differing,
 # and printed in the NEGATIVE CONTROL under "are byte-identical". Under this
 # copy it is a mover, so a declaration of 0 must now FAIL.
+# The object injected is `qp_engine.cpp.o`, whose SOURCE this round changed, so
+# that once it is harvested it is CLASS A and the classifier's R4 has nothing to
+# say about it -- the only thing left to decide the fold is whether the harvest
+# saw it at all.
 {
     head -4 "$CMP_SRC"
-    echo "NOISE-ONLY  CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o"
-    echo "RELOCATIONS CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o (the instruction stream is within the accepted noise class,"
+    echo "NOISE-ONLY  CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o"
+    echo "RELOCATIONS CMakeFiles/hven.dir/src/qp/qp_engine.cpp.o (the instruction stream is within the accepted noise class,"
     echo "            but one relocation target is renamed)"
     tail -n +5 "$CMP_SRC"
 } > "$TMP/cmp-reloc.txt"
 expect_nonzero "P3: THE REGISTERED DEFECT -- a NOISE-ONLY object with a RELOCATIONS line is now HARVESTED, so a declared 0 fails" \
     classify "$TMP/cmp-reloc.txt" 0
 
-expect_zero "P3: and declaring that one mover accepts it -- the harvest counts it as exactly one object, not two" \
+expect_zero "P3: and declaring that one mover accepts it -- the harvest counts it as exactly one object, not two, and classifies it" \
     classify "$TMP/cmp-reloc.txt" 1
 
-# The contrast that shows the fix is load-bearing: M3a's own classifier, run on
-# the same doctored comparison, harvests NOTHING and reports zero movers -- and
-# its R2 then refuses for the OPPOSITE reason (it demands movers), which is not
-# the same thing as catching the object. The proof is in its output: the object
-# does not appear in its differing set at all.
-expect_nonzero "P3: CONTRAST -- M3a's classifier on the same file harvests the RELOCATIONS object as nothing" \
-    bash -c "python3 -B '$M3A/wrappers/classify_psym_fix1.py' --compare '$TMP/cmp-reloc.txt' \
-             --build '$BUILD' --changed-sources $CHANGED_SOURCES \
-             --changed-headers include/hven/core/solver_counters.h include/hven/core/solver_status.h \
-             --min-negative-control 1 | grep -q 'trace_writer.cpp.o' && exit 1 || exit 0"
+# THE CONTRAST THAT SHOWS THE FIX IS LOAD-BEARING, stated as a two-sided
+# comparison on the SAME file rather than as an absence: M3a's classifier
+# harvests NO differing object from it (its own R2 says so in those words),
+# while this round's harvests exactly one.
+expect_zero "P3: CONTRAST -- M3a's classifier reports NO differing object on that same file; this round's reports exactly one" \
+    bash -c "old=\$(python3 -B '$M3A/wrappers/classify_psym_fix1.py' --compare '$TMP/cmp-reloc.txt' \
+                 --build '$BUILD' --changed-sources $CHANGED_SOURCES \
+                 --changed-headers include/hven/core/solver_counters.h include/hven/core/solver_status.h \
+                 --min-negative-control 1 2>&1);
+             echo \"\$old\" | grep -q 'names no DIFFERS object' || { echo \"OLD DID NOT REPORT AN EMPTY HARVEST: \$old\"; exit 1; };
+             new=\$(python3 -B '$CLASSIFIER' --compare '$TMP/cmp-reloc.txt' --build '$BUILD' \
+                 --changed-sources $CHANGED_SOURCES --changed-headers $CHANGED_HEADERS \
+                 --expect-differing 0 --min-negative-control 1 2>&1);
+             echo \"\$new\" | grep -q 'names 1 differing object' || { echo \"NEW DID NOT HARVEST ONE: \$new\"; exit 1; };
+             exit 0"
 
 : > "$TMP/cmp-empty.txt"
 expect_nonzero "P3: R1 -- a comparison with no 'P-SYM: ' summary line" \
