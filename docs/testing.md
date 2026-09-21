@@ -543,6 +543,61 @@ reading of an already-computed factorization, not about a backend call. A
 layer's seam header depend on a consumer above it. The CONVENTION is the shared
 thing, and it is followed exactly.
 
+**The per-thread contract (FIX-ROUND 1).** Every piece of `QpWalkObserver`
+state has THREAD storage duration. The reason is not tidiness: with
+process-global state, two overlapping instrumented `QpEngine::run` calls share
+one arming flag, one solve counter, one record buffer and one current-record
+pointer, so one solve can push into the other's buffer, disarm the other's
+capture, or leave `current` pointing at a stack record belonging to the other.
+That is an unsynchronized data race, which is undefined behaviour, and undefined
+behaviour is not something the hooks' own read-only discipline can recover — so
+before this change the honest answer to "can a hook alter a CONCURRENT solve's
+behaviour?" was **yes**. Per-thread storage makes it no. `QpEngine`'s own header
+contract (one engine is used sequentially) is what makes per-thread the right
+granularity: an engine is never shared across threads, so a thread's observer
+describes exactly the solves that thread ran.
+
+What that obliges a fixture to do: **arming, `reset()` and reading `records` are
+all per-thread**, and a thread that captures must copy its records out before it
+exits — the storage is gone when the thread ends, and no other thread can reach
+it. `QpWalkSeam.TwoEnginesOnTwoThreadsOneArmedOneNot`,
+`...TwoEnginesOnTwoThreadsBothArmed` and `...ArmingOnOneThreadIsInvisibleOnAnother`
+run the case: two engines, two threads, problems of deliberately different widths
+(24 variables against 2), each thread's answer compared bit for bit against its
+OWN single-threaded unobserved baseline, each thread's solve counter required to
+read 1 (a shared one would read 2), and each armed thread's trace required to be
+complete and to contain only records its own problem could have produced.
+
+**There is no ThreadSanitizer preset in this tree.** `CMakePresets.json` carries
+`linux-clang-release`, `linux-clang-debug`, `linux-clang-coverage`,
+`macos-clang-release` and `windows-clang-release`, and nothing under `cmake/`
+adds `-fsanitize=thread`. The fixtures therefore run under the ordinary two
+configurations and assert the OBSERVABLE consequences of separation rather than
+a sanitizer verdict. Said here rather than left to be inferred by a reader who
+expects one.
+
+**One record per pass, QUALIFIED.** The scope's destructor emits on every exit
+the loop body has, so the count of records equals the count of passes ENTERED —
+for a capture that was not TRUNCATED (`max_records` reached:
+`QpWalkObserver::truncated`) and in which every record's storage was
+successfully allocated (`QpWalkObserver::allocation_failed`). Both flags are
+reported, and a measurement that asserts the per-pass correspondence must check
+both. The earlier unqualified wording was wrong in exactly those two cases.
+
+**Registered, not fixed here: every OTHER observer and injector on this seam
+still carries the process-global pattern.** Checked as part of FIX-ROUND 1 and
+recorded so it is not rediscovered as a surprise. `IpqpInertiaEvidenceInjector`,
+`IpqpInertiaReadObserver`, `IpqpFirstIterateObserver` and `IpqpStepObserver`
+(`hven/detail/qp/ipqp_fault_injection.h`), and `FactorizeFaultInjector`,
+`AnalyzeFaultInjector`, `InertiaQueryFaultInjector`, `PardisoIparmObserver` and
+`ThreadCountObserver` (`hven/detail/linear/fault_injection.h`), all declare their
+state as `static inline` with no `thread_local` and no synchronization. None of
+their fixtures runs two instrumented solves concurrently today, so none is
+racing in practice; the exposure is identical in kind to the one fixed here and
+would become real the moment a concurrent fixture is written against any of
+them. Deliberately left alone in this round — a behaviour-neutral storage-class
+change to five fault injectors is its own task with its own P-SYM evidence.
+
 **It needs no deviation, and adds no `notices/` entry.** The hook is ONE
 function (`evidence_for_read`) in `src/qp/ipqp_engine.cpp` — an Apache-2.0 file
 this repository wrote — at the single line where the tier reads
@@ -634,12 +689,14 @@ decision. It declares, entirely under `#ifdef HVEN_TESTING` and in
 `hven::solvers::detail::testing`:
 
 - `QpWalkObserver` — `active`, `solves`, `capture_solve`, `max_records`,
-  `truncated`, `records`, plus the per-solve block (`capturing`, `solve_index`,
-  `warm`, `n`, `me`, `mi`, `max_iter`, `incoming_ws_signature`,
-  `incoming_ws_size`, `exit_status`) and the `current` record pointer. Static,
-  like every other observer on this seam, because the engine is reached through
-  a deep call chain and a fixture reads what it recorded after the solve
-  returns.
+  `truncated`, `allocation_failed`, `records`, plus the per-solve block
+  (`capturing`, `solve_index`, `warm`, `n`, `me`, `mi`, `max_iter`,
+  `incoming_ws_signature`, `incoming_ws_size`, `exit_status`), the `current`
+  record pointer and the `eqp` scratch (`QpWalkEqpEvidence`). Static, like every
+  other observer on this seam, because the engine is reached through a deep call
+  chain and a fixture reads what it recorded after the solve returns — and, since
+  FIX-ROUND 1, **`thread_local`**, for the reason set out under "The per-thread
+  contract" below.
 - `QpWalkMinorRecord` — ONE MINOR ITERATION: the minor index; which branch of
   the walk it took (`QpWalkAction`, which enumerates every `continue`, every
   `break` and the fall-through step, so a reader never has to infer an action
@@ -652,13 +709,42 @@ decision. It declares, entirely under `#ifdef HVEN_TESTING` and in
   whether the step was a negative-curvature RIDE; whether the loop counted the
   pass as degenerate; how many rows `refresh_shifts` admitted inside the pass;
   the working-set SIZE and a 64-bit ORDER-INDEPENDENT SIGNATURE before and
-  after; and two cheap norms of the iterate the pass began at.
+  after; and two cheap norms of the iterate the pass began at. FIX-ROUND 1 adds
+  the fields that separate WHY from WHAT: the MAIN pass's inertia verdict with
+  the backend's own triple, its derived-zero flag, its perturbed-pivot count and
+  the gate's expected inertia; which linear-algebra path produced the direction
+  (`QpWalkEqpPath`), whether border mode was entered, whether K0 was rebuilt
+  afresh, whether the stack was latched or marked for rebuild, the live border
+  dimension and the call's own refinement count; per-pass counter deltas;
+  whether §4c's curvature gate was reached and whether it fired, with the
+  quotient, its threshold, and pTHp and pTp separately; a GRANULAR ride outcome
+  (`QpWalkRideOutcome`, which names the retained-nullspace veto, the flat-slope
+  veto and the descent-vs-release-feasibility disagreement that
+  `QpEngine::RideOutcome` folds into one `kDeclined`) with the slope, the
+  leaving component and both tolerances; on a post-drop pass the released
+  constraint's identity and side, `p[released]`, the signed component along it,
+  and g^T p; the Dantzig rule's candidate set (`QpWalkDropCandidate`, identities
+  and violations only — a predicted post-drop inertia per candidate would need
+  one extra factorization each and is deliberately NOT computed); the effective
+  primal/dual regularization; and the unregularized free-block stationarity
+  residual with its scale and the active-row/equality/pinned-bound residual.
+  None of it factorizes or solves anything: it is read from values the loop
+  already holds, or computed by a mat-vec into storage the loop never reads.
 - `QpWalkMinorScope` — an RAII scope declared at the top of the loop body whose
   DESTRUCTOR emits the record. One declaration therefore covers every exit the
   body has, and a path added later cannot silently stop recording. It holds the
-  `QpCounters` by CONST reference — it differences `shift_adds` across the pass
-  — so "this scope cannot touch a counter" is a property of the type rather
-  than a promise in a comment.
+  `QpCounters` by CONST reference — it differences `shift_adds` and, since
+  FIX-ROUND 1, `factorizations`, `eqp_refine_steps`, `border_refine_steps`,
+  `verdict_refine_steps` and `schur_updates` across the pass — so "this scope
+  cannot touch a counter" is a property of the type rather than a promise in a
+  comment. Its `push_back` is wrapped in a `try`/`catch`: a throwing allocation
+  inside a destructor during unwinding would call `std::terminate`, so the
+  failure is swallowed and reported through `QpWalkObserver::allocation_failed`
+  rather than allowed to end a solve that would otherwise have completed. Its
+  `snapshot_eqp()` copies the `eqp` scratch into the record the instant the
+  walk's OWN `eqp_candidate` returns, before §4b's zero-multiplier probe can
+  re-enter the same verdict site for a hypothetical working set and overwrite
+  it.
 - `qp_walk_ws_signature` / `qp_walk_ws_size` / `qp_walk_token` / `qp_walk_mix`
   — the signature is the sum of SplitMix64-mixed member tokens, which is
   order-independent because addition is commutative and members are unique. A
@@ -686,11 +772,15 @@ same stall. Separating them needs the per-minor record; the addendum registered
 the instrument, in these words, as "an `HVEN_TESTING`-gated per-minor
 working-set signature on CLAUDE.md §8's test-seam convention".
 
-**Where the hooks go, and why there are seven of them.** All of them are in
+**Where the hooks go, and why there is no single one.** All of them are in
 `src/qp/qp_engine.cpp`, an Apache-2.0 file this repository wrote: the walk loop
-(the scope, the action of each branch, and the ordinary step's own reading),
-`drop_worst`, `probe_zero_multiplier_drops`, `ride_negative_curvature` and
-`ratio_test`. There is no ONE function every fact passes through — that is what
+(the scope, the action of each branch, the ordinary step's own reading, and —
+since FIX-ROUND 1 — the verdict snapshot, the regularization, the residuals, the
+released constraint and the curvature gate), `drop_worst`,
+`probe_zero_multiplier_drops`, `ride_negative_curvature`, `ride_sign`,
+`ratio_test`, and the four EQP-candidate sites (`eliminated_candidate`,
+`border_candidate`, `border_solve_or_fall_back`, `border_inertia_verdict`) plus
+`rebuild_k0`. There is no ONE function every fact passes through — that is what
 distinguishes this seam from `evidence_for_read`, where one hook was enough —
 because the facts are produced at four different decision sites and the
 functions' signatures are production surface this seam does not touch. The four
@@ -753,10 +843,25 @@ assertion about a drop would otherwise pass vacuously:
    every `QpCounters` field are identical to the unattached run — the floats
    compared as BIT PATTERNS, and the counters both field by field (so a failure
    names the quantity) and by `memcmp` over the whole object (so a field the
-   list forgets cannot slip through). Asserted on the warm RE-SOLVE as well,
-   because an observer that perturbed border state would show up there and
-   nowhere else. This is the whole licence for using the instrument to take a
+   list forgets cannot slip through). Asserted on the warm RE-SOLVE as well —
+   over every multiplier, the status and the membership, not x and the counters
+   alone — because an observer that perturbed border state would show up there
+   and nowhere else. Asserted again under CONCURRENCY, per the per-thread
+   contract above. This is the whole licence for using the instrument to take a
    measurement whose identity gate is a committed counter row.
+
+   The whole-object `memcmp` arm ignores PADDING, and that is a repair rather
+   than a relaxation. Padding is not part of a counter's value, is not required
+   to be carried by memberwise assignment, and is not required to agree between
+   two objects built on different stacks — which is exactly what the concurrency
+   fixtures compare. The padding offsets are determined at RUNTIME, by poisoning
+   two buffers with different bytes and default-initializing a `QpCounters` in
+   each: the offsets that still differ are the ones no field owns. The
+   forgotten-field power is unchanged and is itself asserted — the non-vacuity
+   test drives the masked comparison and additionally requires the mask to be
+   neither empty (which would mean the arm is back to comparing stack residue)
+   nor most of the object. Before this, the arm passed by luck of stack layout;
+   it demonstrably failed once the two sides came from different stacks.
 2. **FAITHFULNESS** against the loop's own public counters: exactly one record
    per `minor_iters`, numbered from zero, none of them `kUnset`; the
    `degenerate` flags summing to `degenerate_steps`; additions to `ws_adds` and
@@ -789,6 +894,18 @@ arms built in one build directory at one absolute path with `CCACHE_DISABLE=1`.
   addend and differ only in the offset they point at, because the `.debug_line`
   programme they index into grew. P-SYM likewise reports 0 differing objects.
   **The Debug byte difference is debug information and nothing else.**
+
+**FIX-ROUND 1 re-derives all of the above**, because it changes
+`src/qp/qp_engine.cpp` and grows `qp_walk_trace.h` again. Its declaration and
+its transcripts are in
+`docs/notes/data/2026-09-m7-w2-m3b-minor-trace/gates-fix1/`, and the form of the
+Debug claim changes: instead of "identical instructions, identical symbols and
+identical relocations", which is evidence for "debug information only" without
+being closed over the bytes it does not look at, the check hashes EVERY
+NON-DEBUG SECTION of every library object before and after and FAILS on any
+difference. That fails closed — a changed `.rodata`, unwind datum or padding
+byte cannot pass it — and it is run as a guard over all 42 objects in BOTH
+configurations, not only over the Debug movers.
 
 `nm -C libhven.a` reports no `QpWalk*` symbol and no `detail::testing` symbol in
 either configuration. The numbers above are the derivation in
