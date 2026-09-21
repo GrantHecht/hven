@@ -822,6 +822,46 @@ def outside_the_rule(cell, raws, typed, t0, a_idx, d_idx, out):
         p("    drop_candidates over the whole walk: {}".format(
             dict(sorted(Counter(r["drop_candidates"] for r in alld).items()))))
     p()
+    p("(e) THE EXACT-ARITHMETIC DROP IDENTITY, CHECKED -- INFERRED, WITH ITS")
+    p("    PREMISES STATED. For an EXACT, UNREGULARIZED, FULL-RANK KKT system, and")
+    p("    with x an exact KKT point of the PRE-DROP working set, releasing a")
+    p("    constraint whose multiplier is z_i gives the next EQP direction p the")
+    p("    identity  z_i * (a_i' p) = -p'Hp.  This is NOT part of RULE-G.md and")
+    p("    decides nothing; it is reported because it is computable from recorded")
+    p("    fields and it is the narrowed form of the claim the M3b report")
+    p("    overstated. drop_worst (qp_engine.cpp ~:2247) stores the VIOLATION, and")
+    p("    for a bound held at its LOWER bound the violation is -z_i, so")
+    p("    z_i = -decision_multiplier there.")
+    p("    THE PREMISES, one by one:")
+    p("      exact arithmetic      VIOLATED -- primal_delta and dual_mu are the")
+    p("                            EFFECTIVE regularization printed in 7.7, and the")
+    p("                            solve is finite-precision.")
+    p("      full row rank         UNMEASURED -- RULE-G.md section 0 marks rank")
+    p("                            evidence for the released constraint ABSENT and")
+    p("                            it is not computed here.")
+    p("      x an exact KKT point  CHECKABLE -- state D's stat_free_inf and")
+    p("      of the PRE-DROP set   active_res_inf, printed in 7.7, are how close it")
+    p("                            is. Primal feasibility of the active set is the")
+    p("                            half that can fail while stationarity holds.")
+    if D and A:
+        d0, a0 = D[0], A[0]
+        side = d0["block_side"]
+        z = -d0["decision_multiplier"] if side == "lower" else d0["decision_multiplier"]
+        lhs = z * a0["p_released"]
+        rhs = -a0["p_hp"] if present(a0["p_hp"]) else float("nan")
+        p("    released {}:{}:{}   violation = {}   z_i = {}".format(
+            d0["block"], d0["block_index"], side, fmt(d0["decision_multiplier"]), fmt(z)))
+        p("    a_i' p (= p_released) = {}".format(fmt(a0["p_released"])))
+        p("    LHS  z_i * a_i'p = {}".format(fmt(lhs)))
+        p("    RHS  -p'Hp       = {}".format(fmt(rhs)))
+        if present(rhs) and rhs != 0.0:
+            p("    LHS/RHS = {:.6g}   signs {}".format(
+                lhs / rhs, "AGREE" if (lhs > 0) == (rhs > 0) else "DISAGREE"))
+        p("    state D stat_free_inf/max(stat_scale,1) = {:.6g};  "
+          "active_res_inf/max(x_inf,1) = {:.6g}".format(
+              d0["stat_free_inf"] / max(d0["stat_scale"], 1.0),
+              d0["active_res_inf"] / max(d0["x_inf"], 1.0)))
+    p()
 
 
 # ---------------------------------------------------------------------------

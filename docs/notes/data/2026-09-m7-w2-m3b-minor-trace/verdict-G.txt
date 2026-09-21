@@ -1,0 +1,280 @@
+M7 W2 M3b FIX ROUND 1 -- VERDICT-G: RULE-G.md's CAUSE classifier over the
+re-trace of the same two first QPs.
+
+RULE-G.md was pre-registered at f916e82d, BEFORE any leg ran, identity legs
+included. The outcome below is whatever the rule returns. No bar was moved,
+no predicate relaxed, and NO OUTCOME HERE LICENSES A BEHAVIOUR CHANGE, A
+DEFAULT CHANGE OR A LINE OF CODE (RULE-G.md sections 0 and 8).
+
+RULE.md beside it STANDS UNCHANGED and CYCLING_PROPER has precedence as the
+statement of WHAT the walk is doing; this file says only WHY.
+
+NEUTRALITY (RULE-G 2.3) -- the attached-vs-unattached and concurrent
+  fixtures, required `Passed` in every configuration's transcript
+    suite-release.txt      QpWalkSeam.AttachingTheObserverChangesNoCounterAndNoAnswer Passed
+    suite-release.txt      QpWalkSeam.TheObserverIsNeutralOnAWarmRESOLVETOO           Passed
+    suite-release.txt      QpWalkSeam.TwoEnginesOnTwoThreadsOneArmedOneNot            Passed
+    suite-release.txt      QpWalkSeam.TwoEnginesOnTwoThreadsBothArmed                 Passed
+    suite-release.txt      QpWalkSeam.ArmingOnOneThreadIsInvisibleOnAnother           Passed
+    suite-debug.txt        QpWalkSeam.AttachingTheObserverChangesNoCounterAndNoAnswer Passed
+    suite-debug.txt        QpWalkSeam.TheObserverIsNeutralOnAWarmRESOLVETOO           Passed
+    suite-debug.txt        QpWalkSeam.TwoEnginesOnTwoThreadsOneArmedOneNot            Passed
+    suite-debug.txt        QpWalkSeam.TwoEnginesOnTwoThreadsBothArmed                 Passed
+    suite-debug.txt        QpWalkSeam.ArmingOnOneThreadIsInvisibleOnAnother           Passed
+  OK -- 5 fixtures x 2 transcript(s), all Passed
+
+==============================================================================
+CELL STEENBRB
+==============================================================================
+IDENTITY GATE  M3a=STEENBRB@F-trinf.txt  probe=STEENBRB@trace-G.txt
+  fields compared: 21  (20 QpCounters fields + the record status)
+    first_factorizations                          5
+    first_schur_updates                        4849
+    first_minor_iters                          4680
+    first_eqp_refine_steps                        0
+    first_border_refine_steps                 18904
+    first_verdict_refine_steps                    0
+    first_suspect_escalations                     0
+    first_k0_reused                               0
+    first_symbolic_analyses                       1
+    first_ws_adds                              2344
+    first_ws_drops                             2323
+    first_shift_adds                              0
+    first_degenerate_steps                     2319
+    first_degenerate_run_max                   2310
+    first_ws_adds_bound                        2344
+    first_ws_drops_bound                       2323
+    first_distinct_ineq_added                     0
+    first_distinct_bound_added                   23
+    first_drop_ties                               0
+    first_ratio_ties                              0
+    first_qp_record_status                 max_iter
+  DIFFERING: 0 -- the rebuilt HVEN_TESTING binary reproduces M3a's committed record 0 on all 20 fields and the status
+TRACE INTEGRITY  STEENBRB@trace-G.csv
+  records=4680  minor_iters=4680  truncated=0  exit=max_iter  warm=0  solve_index=0  incoming_ws_size=0  solves_seen=1
+  OK -- one record per pass, nothing truncated, the cold first subproblem, exited on the cap
+  allocation_failed=0 (RULE-G 2.2's addition to the M3b checker's conditions)
+  section 3: t0=59  |T|=4621  |T|/N=0.987393  (bars: |T| >= 100, |T|/N >= 0.50)
+             R(m) fails at 59 index(es); the last is 60
+             two-state shape: True  (alternating=True, other actions=none)
+
+  OUTCOME: RIDE_VETOED
+  form: STATE (the tail's two states, each a single repeated value; section 5's homogeneity HOLDS)
+  state-A passes: 2310 (the outcome is the value they all carry, reported with its repetition count)
+    INDEFINITE_IGNORED                 does not hold  share 0.0000
+    CURVATURE_GATE_SILENT              does not hold  share 0.0000
+    RIDE_VETOED                        HOLDS          share 1.0000
+    NUMERICAL_DIRECTION                does not hold  share 0.0000
+    INERTIA_AS_EXPECTED_UNEXPLAINED    does not hold  share 0.0000
+    MIXED (the residue)                does not hold
+  THE DOMINANT VETO, NAMED (section 4.3): sign_disagreement_veto  on 2310 of 2310 state-A passes (share 1.0000)
+
+-- section 7, the PRE-REGISTERED descriptive read-outs. None of these is a
+   verdict and none can change an outcome (RULE-G.md section 7). ---------
+
+  7.0 Do the fields FIX ROUND 1 ADDED also repeat with period 2 over T?
+      (section 3 defines the tail on F0 alone precisely so that this is a
+      finding and not an assumption.)
+      44 of 45 added fields repeat with period 2 over T.
+      DOES NOT REPEAT: pass_schur_updates           distinct values over T: {'1': 4620, '0': 1}
+
+  7.1 Inertia, on state A and state D, with the expectation beside it.
+      state A  observed (441, 135, 0)  expected (463, 113)  state=observed  verdict=2
+               zero is DERIVED (dim - pos - neg; not an observation that there are none)   perturbed_pivots=0   excess negative = 22
+      state D  observed (441, 135, 0)  expected (462, 114)  state=observed  verdict=2
+               zero is DERIVED (dim - pos - neg; not an observation that there are none)   perturbed_pivots=0   excess negative = 21
+
+  7.2 Curvature, on state A, and section 4.2's entailment check.
+      p_hp=2.0257050863392578e-05  p_sq=303603237.27978069
+      curvature=6.6722117474409598e-14  curvature_tol=1.0367209430584953e-07  fired=True
+      the gate FIRED, so section 4.2's entailment has no antecedent here
+
+  7.3 The released constraint, on state A.
+      released bound:189:lower
+      p[released] sign negative   magnitude 14568.88377705458
+      released_directional = 14568.88377705458
+
+  7.4 / 7.5 The slope, the four numbers, and the ride outcome by name.
+      ride_outcome     = sign_disagreement_veto
+      ride_sign_chosen = 0
+      slope  (g'p) = -0.0020907628058921546     slope_tol  = 5.1956033866539307e-06
+      leaves       = -14568.88377705458         leaves_tol = 1.7424214107952777e-08
+      which comparison decided it: slope vs slope_tol gives the descending sign 1; 
+      then sign*leaves = -14568.88377705458 against -leaves_tol = -1.7424214107952777e-08 -> FEASIBILITY VETO
+      the ride outcome over ALL state-A passes: {'sign_disagreement_veto': 2310}
+
+  7.6 The linear algebra, on both states.
+      state A  eqp_path=border_schur  border_attempted=True  border_dim=21  eqp_call_refine_steps=3
+               k0_rebuilt=False  border_latched=False  needs_refactorization=False
+               per-pass counters: factorizations=0 eqp_refine=0 border_refine=3 verdict_refine=0 schur_updates=1
+      state D  eqp_path=border_schur  border_attempted=True  border_dim=22  eqp_call_refine_steps=5
+               k0_rebuilt=False  border_latched=False  needs_refactorization=False
+               per-pass counters: factorizations=0 eqp_refine=0 border_refine=5 verdict_refine=0 schur_updates=0
+
+  7.7 Residuals and the EFFECTIVE regularization, on both states.
+      state A  stat_free_inf=0.023170925259819342     stat_scale=3454.4269791953266       ratio=6.7076e-06
+               active_res_inf=1.0075645633378372e-05  x_inf=913.56091549925702          ratio=1.1029e-08
+               primal_delta=1e-08  dual_mu=1e-08  (EFFECTIVE)
+      state D  stat_free_inf=0.023170925259819342     stat_scale=3454.4269791953266       ratio=6.7076e-06
+               active_res_inf=1.0075645633378372e-05  x_inf=913.56091549925702          ratio=1.1029e-08
+               primal_delta=1e-08  dual_mu=1e-08  (EFFECTIVE)
+
+  7.8 The drop rule's candidate set, on state D.
+      drop_candidates=10  drop_tied=1  candidates_recorded=8
+      decision_multiplier=0.0011748355559042523  best_multiplier=0.0011748355559042523
+        rank 1  bound:189:lower          violation 0.0011748355559042523   <- CHOSEN
+        rank 2  bound:205:lower          violation 0.0011748354775633629
+        rank 3  bound:83:lower           violation 0.00067650139953912003
+        rank 4  bound:158:lower          violation 0.00023808055483698354
+        rank 5  bound:210:lower          violation 8.7407906772085653e-05
+        rank 6  bound:348:lower          violation 4.575274949658592e-05
+        rank 7  bound:29:lower           violation 1.475643741599697e-05
+        rank 8  bound:376:lower          violation 1.3145903517752799e-05
+      the chosen candidate's RANK BY VIOLATION: 1 (the Dantzig rule makes this 1 by construction -- reported so that it is checked, not assumed)
+      ABSENT, restated on the spot (RULE-G.md section 0): no post-drop inertia is
+      predicted for any candidate, and no rank evidence exists for the released
+      bound. Nothing here adjudicates the review's cause (1); it describes it.
+
+  7.9 The tail itself.
+      t0=59  |T|=4621  |T|/N=0.987393  N=4680
+      action histogram over T: {('drop_dantzig', '-'): 2311, ('add', 'post_drop'): 2310}
+      period 2, two-state shape: True   state A passes 2310   state D passes 2311
+      the repeated identity: state A re-admits bound:189:lower with alpha=-0 (ws_sig 223057516508574445 -> 14864884868504189174)
+                            state D releases bound:189:lower (ws_sig 14864884868504189174 -> 223057516508574445)
+      section 5 homogeneity, field by field:
+        state A: 16 of 16 fields homogeneous
+        state D: 16 of 16 fields homogeneous
+
+==============================================================================
+CELL YORKNET
+==============================================================================
+IDENTITY GATE  M3a=YORKNET@F-trinf.txt  probe=YORKNET@trace-G.txt
+  fields compared: 21  (20 QpCounters fields + the record status)
+    first_factorizations                       5106
+    first_schur_updates                      144684
+    first_minor_iters                          2560
+    first_eqp_refine_steps                        0
+    first_border_refine_steps                     9
+    first_verdict_refine_steps                    0
+    first_suspect_escalations                     0
+    first_k0_reused                               0
+    first_symbolic_analyses                       1
+    first_ws_adds                              1287
+    first_ws_drops                             1232
+    first_shift_adds                              0
+    first_degenerate_steps                     1257
+    first_degenerate_run_max                   1191
+    first_ws_adds_bound                        1287
+    first_ws_drops_bound                       1232
+    first_distinct_ineq_added                     0
+    first_distinct_bound_added                   95
+    first_drop_ties                              12
+    first_ratio_ties                             52
+    first_qp_record_status                 max_iter
+  DIFFERING: 0 -- the rebuilt HVEN_TESTING binary reproduces M3a's committed record 0 on all 20 fields and the status
+TRACE INTEGRITY  YORKNET@trace-G.csv
+  records=2560  minor_iters=2560  truncated=0  exit=max_iter  warm=0  solve_index=0  incoming_ws_size=0  solves_seen=1
+  OK -- one record per pass, nothing truncated, the cold first subproblem, exited on the cap
+  allocation_failed=0 (RULE-G 2.2's addition to the M3b checker's conditions)
+  section 3: t0=177  |T|=2383  |T|/N=0.930859  (bars: |T| >= 100, |T|/N >= 0.50)
+             R(m) fails at 177 index(es); the last is 178
+             two-state shape: True  (alternating=True, other actions=none)
+
+  OUTCOME: NUMERICAL_DIRECTION
+  form: STATE (the tail's two states, each a single repeated value; section 5's homogeneity HOLDS)
+  state-A passes: 1191 (the outcome is the value they all carry, reported with its repetition count)
+    INDEFINITE_IGNORED                 does not hold  share 0.0000
+    CURVATURE_GATE_SILENT              does not hold  share 0.0000
+    RIDE_VETOED                        does not hold  share 0.0000
+    NUMERICAL_DIRECTION                HOLDS          share 1.0000
+    INERTIA_AS_EXPECTED_UNEXPLAINED    does not hold  share 0.0000
+    MIXED (the residue)                does not hold
+  THE SUB-REASONS THAT HOLD (section 4.4; every one that holds is named, the outcome is one):
+    RESIDUAL                 HOLDS
+    REFINEMENT_SATURATED     does not hold
+    RANK_OR_ZERO             does not hold
+    UNOBSERVED_INERTIA       does not hold
+    stat_free_inf/max(stat_scale,1) = 0.407635  against the bar 1e-06
+    active_res_inf/max(x_inf,1)     = 0.000126707  against the bar 1e-06
+
+-- section 7, the PRE-REGISTERED descriptive read-outs. None of these is a
+   verdict and none can change an outcome (RULE-G.md section 7). ---------
+
+  7.0 Do the fields FIX ROUND 1 ADDED also repeat with period 2 over T?
+      (section 3 defines the tail on F0 alone precisely so that this is a
+      finding and not an assumption.)
+      45 of 45 added fields repeat with period 2 over T.
+      Every one of them repeats.
+
+  7.1 Inertia, on state A and state D, with the expectation beside it.
+      state A  observed (256, 256, 0)  expected (256, 256)  state=observed  verdict=0
+               zero is DERIVED (dim - pos - neg; not an observation that there are none)   perturbed_pivots=0   excess negative = 0
+      state D  observed (255, 256, 0)  expected (255, 256)  state=observed  verdict=0
+               zero is DERIVED (dim - pos - neg; not an observation that there are none)   perturbed_pivots=0   excess negative = 0
+
+  7.2 Curvature, on state A, and section 4.2's entailment check.
+      p_hp=3.7929431113745138  p_sq=23212.970727152086
+      curvature=0.00016339757439740054  curvature_tol=1.49399995803833e-10  fired=False
+      ENTAILMENT (4.2): fired==False must give p_hp > curvature_tol*p_sq: 3.7929431113745138 > 3.4680177292310197e-06 is True
+
+  7.3 The released constraint, on state A.
+      released bound:291:lower
+      p[released] sign negative   magnitude 44.41796875
+      released_directional = 44.41796875
+
+  7.4 / 7.5 The slope, the four numbers, and the ride outcome by name.
+      ride_outcome     = not_attempted
+      ride_sign_chosen = 0
+      slope  (g'p) = 2309.8564868938493         slope_tol  = ABSENT(nan)
+      leaves       = ABSENT(nan)                leaves_tol = ABSENT(nan)
+      the ride outcome over ALL state-A passes: {'not_attempted': 1191}
+
+  7.6 The linear algebra, on both states.
+      state A  eqp_path=eliminated  border_attempted=True  border_dim=-1  eqp_call_refine_steps=0
+               k0_rebuilt=True  border_latched=True  needs_refactorization=True
+               per-pass counters: factorizations=2 eqp_refine=0 border_refine=0 verdict_refine=0 schur_updates=56
+      state D  eqp_path=eliminated  border_attempted=True  border_dim=-1  eqp_call_refine_steps=0
+               k0_rebuilt=True  border_latched=True  needs_refactorization=True
+               per-pass counters: factorizations=2 eqp_refine=0 border_refine=0 verdict_refine=0 schur_updates=57
+
+  7.7 Residuals and the EFFECTIVE regularization, on both states.
+      state A  stat_free_inf=703807.81804016174       stat_scale=1726562.9814192213       ratio=0.407635
+               active_res_inf=0.019156471716399892    x_inf=151.18681370725051          ratio=0.000126707
+               primal_delta=1e-08  dual_mu=1e-08  (EFFECTIVE)
+      state D  stat_free_inf=5.567407416551106e-09    stat_scale=14895027.940413455       ratio=3.73776e-16
+               active_res_inf=0.019156471716399892    x_inf=151.18681370725051          ratio=0.000126707
+               primal_delta=1e-08  dual_mu=1e-08  (EFFECTIVE)
+
+  7.8 The drop rule's candidate set, on state D.
+      drop_candidates=19  drop_tied=1  candidates_recorded=8
+      decision_multiplier=14895027.940413455  best_multiplier=14895027.940413455
+        rank 1  bound:291:lower          violation 14895027.940413455   <- CHOSEN
+        rank 2  bound:55:lower           violation 13200404.289480176
+        rank 3  bound:289:lower          violation 12819201.528086547
+        rank 4  bound:177:lower          violation 1315860.3537601682
+        rank 5  bound:33:upper           violation 355455.82385900203
+        rank 6  bound:166:lower          violation 345526.9845779498
+        rank 7  bound:49:lower           violation 345272.70575959643
+        rank 8  bound:88:lower           violation 345272.70575959631
+      the chosen candidate's RANK BY VIOLATION: 1 (the Dantzig rule makes this 1 by construction -- reported so that it is checked, not assumed)
+      ABSENT, restated on the spot (RULE-G.md section 0): no post-drop inertia is
+      predicted for any candidate, and no rank evidence exists for the released
+      bound. Nothing here adjudicates the review's cause (1); it describes it.
+
+  7.9 The tail itself.
+      t0=177  |T|=2383  |T|/N=0.930859  N=2560
+      action histogram over T: {('drop_dantzig', '-'): 1192, ('add', 'post_drop'): 1191}
+      period 2, two-state shape: True   state A passes 1191   state D passes 1192
+      the repeated identity: state A re-admits bound:291:lower with alpha=-0 (ws_sig 15077628046709894555 -> 16810987215800583597)
+                            state D releases bound:291:lower (ws_sig 16810987215800583597 -> 15077628046709894555)
+      section 5 homogeneity, field by field:
+        state A: 16 of 16 fields homogeneous
+        state D: 16 of 16 fields homogeneous
+
+==============================================================================
+SUMMARY -- the rule is applied PER CELL. There is no cross-cell aggregation
+and no outcome that depends on both cells agreeing (RULE-G.md section 1); if
+they disagree, both outcomes stand.
+  STEENBRB     RIDE_VETOED                        rc=0
+  YORKNET      NUMERICAL_DIRECTION                rc=0
+==============================================================================
