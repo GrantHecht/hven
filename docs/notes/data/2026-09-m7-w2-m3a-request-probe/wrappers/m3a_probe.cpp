@@ -1,3 +1,48 @@
+// M7 W2 M3a ADDENDUM E -- THE QP-CAP EXPERIMENTS: the stage-1 probe below,
+// verbatim but for TWO ARGUMENTS and FIVE PRINTED KEYS, all named here so a
+// reader can diff against the binary stage 1 ran and find nothing else. Both
+// arguments default to the SHIPPED value, so a leg that passes neither is
+// stage 1's own solve -- which is what makes RULE-E.md section 3's identity leg
+// an identity check rather than a fresh baseline.
+//
+//   * `--qp-cap-retry on|off` (default off) sets `SqpOptions::qp_cap_retry`,
+//     RULE-E.md's E1 arm: re-solve a subproblem the WALK answered with
+//     QpStatus::kMaxIter ONCE, at twice the cap that solve resolved, warm from
+//     the capped solve's own WORKING SET. Default false, and off means no retry
+//     is attempted and no second engine is constructed. Printed as the key
+//     `qp_cap_retry`.
+//
+//   * `--qp-max-iter N` (default 0 = THE SENTINEL, the shipped default) sets
+//     `SqpOptions::qp.max_iter`, RULE-E.md's E2 arm. A POSITIVE value is an
+//     EXPLICIT, ABSOLUTE cap that wins outright at any size; the sentinel
+//     derives the cap from the subproblem's own size. RULE-E.md section 1 states
+//     the scope difference this creates against E1 -- an absolute cap applies to
+//     EVERY QP solve in the solve, not only the first. Printed as the key
+//     `qp_max_iter`.
+//
+//   * `qp_cap_retries` -- `SqpCounters::qp_cap_retries`, one per retry
+//     ATTEMPTED whatever its outcome. Read it with `qp_maxiter_exits`: capped
+//     exits are counted at the ROUTING SITE, so an attempt the retry RESCUED is
+//     in `qp_cap_retries` alone, every other capped exit is in
+//     `qp_maxiter_exits` alone, and a retry that hit the doubled cap too is in
+//     BOTH (solver_counters.h:1435-1535).
+//
+//   * `first_qp_minor_iters` and `first_qp_factorizations` --
+//     `SqpIterate::qp_minor_iters` and `SqpIterate::qp_factorizations` on
+//     `history[0]`, both meaningful iff `qp_solved` and printed as
+//     `n/a (qp_solved = 0)` otherwise, exactly as the first-QP group's other
+//     keys are. These are what answer "how many minors did the first QP
+//     actually need". On an `elastic_applied` row they describe the ELASTIC
+//     solve, for the same reason `first_qp_status` does -- the row's whole qp_*
+//     group is overwritten -- so they are read beside `first_qp_elastic_applied`
+//     and never without it.
+//
+// `QpCounters::schur_updates` is NOT on `SqpCounters` and is therefore not
+// reachable from `SqpResult`. RULE-E.md section 4 records it as ABSENT rather
+// than substituting a neighbouring counter for it; the Schur/border quantities
+// this probe can reach are `factorizations`, `symbolic_analyses` and
+// `border_refine_steps`, all already printed below.
+//
 // M7 W2 M3a -- THE RESTORATION REQUEST PROBE: M2b's probe
 // (docs/notes/data/2026-09-m7-w2-m2b-proximity/wrappers/m2b_probe.cpp), verbatim
 // but for FOUR additions, all named here so a reader can diff the two files and
@@ -196,6 +241,12 @@ int main(int argc, char **argv) {
     // solver deadline.
     double tr_init = 1.0;
     double deadline_seconds = 300.0;
+    // THE TWO OPTIONS ADDENDUM E ADDS. `false` and `0` are the SHIPPED defaults
+    // -- `qp_cap_retry` is off and `qp.max_iter` is the size-derived sentinel --
+    // so a leg passing neither argument is stage 1's own solve, which is what
+    // RULE-E.md section 3's identity leg checks.
+    bool qp_cap_retry = false;
+    long long qp_max_iter = 0;
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
         if (arg == "--problem" && i + 1 < argc) {
@@ -223,6 +274,26 @@ int main(int argc, char **argv) {
                 std::fprintf(stderr, "m3a_probe: --proximity takes a finite value >= 0\n");
                 return 2;
             }
+        } else if (arg == "--qp-cap-retry" && i + 1 < argc) {
+            const std::string value = argv[++i];
+            if (value == "on") {
+                qp_cap_retry = true;
+            } else if (value != "off") {
+                std::fprintf(stderr, "m3a_probe: --qp-cap-retry takes on|off\n");
+                return 2;
+            }
+        } else if (arg == "--qp-max-iter" && i + 1 < argc) {
+            // 0 is the SENTINEL and the shipped default (size-derived); a
+            // POSITIVE value is an explicit absolute cap. A negative value is
+            // refused here rather than passed through as a second spelling of
+            // the sentinel -- RULE-E.md's E2 arm sets one literal integer and a
+            // typo must not silently become the default.
+            qp_max_iter = std::atoll(argv[++i]);
+            if (qp_max_iter < 0) {
+                std::fprintf(stderr, "m3a_probe: --qp-max-iter takes 0 (the shipped sentinel) or a "
+                                     "positive absolute cap\n");
+                return 2;
+            }
         } else if (arg == "--callback" && i + 1 < argc) {
             const std::string value = argv[++i];
             if (value == "off") {
@@ -239,7 +310,8 @@ int main(int argc, char **argv) {
     if (problem_name.empty()) {
         std::fprintf(stderr,
                      "usage: m3a_probe --problem NAME [--budget-iters k] [--proximity zeta] "
-                     "[--tr-init r] [--deadline s] [--callback on|off]\n");
+                     "[--tr-init r] [--deadline s] [--callback on|off] "
+                     "[--qp-cap-retry on|off] [--qp-max-iter N]\n");
         return 2;
     }
 
@@ -275,6 +347,10 @@ int main(int argc, char **argv) {
         // THE ONE OPTION M3a VARIES. At the default 1.0 this assignment is a
         // no-op by value, which is what keeps the control leg an identity check.
         options.tr_init = tr_init;
+        // THE TWO ADDENDUM E VARIES. At `false` and `0` both assignments are
+        // no-ops by value, for the same reason: they ARE the shipped defaults.
+        options.qp_cap_retry = qp_cap_retry;
+        options.qp.max_iter = static_cast<Index>(qp_max_iter);
 
         hven::solvers::SqpSolver solver(options);
         std::vector<Row> rows;
@@ -317,6 +393,10 @@ int main(int argc, char **argv) {
         kvs("callback", attach_callback ? "on" : "off");
         kv("proximity", proximity);
         kv("tr_init", tr_init);
+        // ADDENDUM E's two arguments, printed as keys so every row says which
+        // arm produced it. `off` and `0` are the shipped defaults.
+        kvs("qp_cap_retry", qp_cap_retry ? "on" : "off");
+        kvi("qp_max_iter", qp_max_iter);
         kv("deadline_seconds", attach_callback ? deadline_seconds : 0.0);
         kvi("deadline_fired", deadline_fired ? 1 : 0);
         kvi("n", static_cast<long long>(model->n()));
@@ -346,6 +426,12 @@ int main(int argc, char **argv) {
         kvi("qp_numerical_exits", static_cast<long long>(c.qp_numerical_exits));
         kvi("qp_failures_routed", static_cast<long long>(c.qp_failures_routed));
         kvi("qp_failures_in_a_row_peak", static_cast<long long>(c.qp_failures_in_a_row_peak));
+        // ADDENDUM E. Counted at the ROUTING SITE alongside qp_maxiter_exits: a
+        // capped attempt the retry RESCUED is HERE and not there; a retry that
+        // hit the doubled cap too is in both (solver_counters.h:1435-1535).
+        // Identically 0 at the shipped OFF state, which is the whole of what a
+        // fired-counter is for.
+        kvi("qp_cap_retries", static_cast<long long>(c.qp_cap_retries));
         kvi("border_refine_steps", static_cast<long long>(c.border_refine_steps));
         // THE PRECONDITION OF `first_qp_plain_status`'s INFERENCE, printed so it
         // is checked rather than assumed: at this lane's `default` options
@@ -376,13 +462,15 @@ int main(int argc, char **argv) {
             kvs("first_qp_tr_radius", "n/a (empty history)");
             kvs("first_qp_tr_binding", "n/a (empty history)");
             kvs("first_qp_restoration_seed_used", "n/a (empty history)");
+            kvs("first_qp_minor_iters", "n/a (empty history)");
+            kvs("first_qp_factorizations", "n/a (empty history)");
         } else {
             const hven::solvers::SqpIterate &h0 = result.history.front();
             kvi("first_qp_solved", h0.qp_solved ? 1 : 0);
             // `qp_status` is meaningful iff `qp_solved`; an unsolved row's value
             // is the enum's default and is NOT reported as a reading.
-            kvs("first_qp_status", h0.qp_solved ? qp_status_name(h0.qp_status)
-                                                : "n/a (qp_solved = 0)");
+            kvs("first_qp_status",
+                h0.qp_solved ? qp_status_name(h0.qp_status) : "n/a (qp_solved = 0)");
             kvi("first_qp_elastic_applied", h0.elastic_applied ? 1 : 0);
             std::string plain;
             if (!h0.qp_solved) {
@@ -399,6 +487,19 @@ int main(int argc, char **argv) {
             kv("first_qp_tr_radius", h0.tr_radius);
             kvi("first_qp_tr_binding", h0.tr_binding ? 1 : 0);
             kvi("first_qp_restoration_seed_used", h0.restoration_seed_used ? 1 : 0);
+            // ADDENDUM E -- RULE-E.md section 4's "how many minors did the first
+            // QP actually need". Both are meaningful iff `qp_solved`, on the
+            // same contract as `qp_status` above, and on an `elastic_applied`
+            // row they describe the ELASTIC solve because the row's whole qp_*
+            // group is overwritten: read them beside
+            // `first_qp_elastic_applied`, never without it.
+            if (h0.qp_solved) {
+                kvi("first_qp_minor_iters", static_cast<long long>(h0.qp_minor_iters));
+                kvi("first_qp_factorizations", static_cast<long long>(h0.qp_factorizations));
+            } else {
+                kvs("first_qp_minor_iters", "n/a (qp_solved = 0)");
+                kvs("first_qp_factorizations", "n/a (qp_solved = 0)");
+            }
         }
 
         // THE LADDER. `x_k` is the REQUESTING ITERATE, and finding it takes two
