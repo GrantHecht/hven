@@ -2821,14 +2821,15 @@ TEST(SqpDriverRestorationProximity, TheZeroWeightCertifiesOnAScaledSolve) {
     EXPECT_NEAR(sol.x(1), 0.0, 1e-9);
 }
 
-// THE PRODUCTION CENTRE, FALSIFIED (fix round 2, the review's Important 3). The
-// sibling fixture above drives the real seed guard and then checks the `h + P`
-// identity on a wrapper the TEST constructs with `x_k`; that restates the
-// wiring rather than observing it, so a production regression to centring on
-// `*x_start` -- the candidate the guard moved the start to -- would not fail it.
+// THE PRODUCTION CENTRE, FALSIFIED (fix round 2, the review's Important 3; the
+// fixture rebuilt in fix round 2b). The sibling fixture above drives the real
+// seed guard and then checks the `h + P` identity on a wrapper the TEST
+// constructs with `x_k`; that restates the wiring rather than observing it, so
+// a production regression to centring on `*x_start` -- the candidate the guard
+// moved the start to -- would not fail it.
 //
-// THIS ONE READS THE CENTRE OUT OF WHAT PRODUCTION RETURNED, with no seam and no
-// private access. A kOptimal sub-solve leaves its own x-block stationarity
+// THIS ONE READS THE CENTRE OUT OF WHAT PRODUCTION RETURNED, with no seam and
+// no private access. A kOptimal sub-solve leaves its own x-block stationarity
 // residual
 //
 //     e(c) = grad P_c(x_r) + J(x_r)^T lambda - z,    ||e(c)||_inf <= kkt_tol
@@ -2840,110 +2841,264 @@ TEST(SqpDriverRestorationProximity, TheZeroWeightCertifiesOnAScaledSolve) {
 // could have started from instead an order of magnitude ABOVE it. `*x_start` is
 // one of those points, so a regression to it fails here.
 //
-// THE WEIGHT IS DELIBERATELY HEAVY AND THE SEPARATION IS THE FIXTURE'S PREMISE.
-// `e(c) - e(x_k)` is `zeta * D^2 * (x_k - c)` componentwise, so the fixture
-// discriminates only in proportion to `zeta` and to how far the offered
-// candidates actually sit from the requesting iterate. On this suite's seeded
-// fixtures that distance is small -- MEASURED: at the symmetric start (2, 2) the
-// nearest admissible candidate is 1.2e-10 away and no weight separates it -- so
-// the start is CHOSEN by a premise the test itself checks (the nearest
-// admissible candidate at least `kCentreMinSeparation` away) rather than
-// assumed, and a start that fails the premise is passed over instead of
-// producing a hollow pass. Measured in Debug at `zeta = 64`: nearest candidate
-// 7.6e-06 / 3.8e-06 / 1.9e-06 for s1 = 1.5 / 1.99 / 1.9, giving a smallest
-// wrong-centre residual of 4.9e-04 / 2.4e-04 / 1.2e-04 against a `kkt_tol` of
-// 1e-06 -- and a right-centre residual of 2.9e-15.
+// WHY THE FIXTURE IS PURPOSE-BUILT, AND NOT ONE OF THIS FILE'S CIRCLE/LINE
+// STARTS. `e(c) - e(x_k)` is `zeta * D^2 * (x_k - c)` componentwise, so the
+// verdict discriminates only in proportion to the SEPARATION between the
+// requesting iterate and the candidate centres. On a seeded circle/line start
+// that separation is whatever a knife-edge route happens to offer: restoration
+// is requested there only once the solve has stalled at an infeasible
+// stationary point, where every offer -- and every later point of the
+// restoration phase itself -- sits within microns of `x_k`. Fix round 2 chose
+// its start by SCANNING for one that separated, measured the scan in Debug, and
+// the scan then found nothing in Release (the circle/line route is a known
+// Debug/Release bifurcation), so the premise failed and the test could render
+// no verdict at all. The separation is now O(1) BY CONSTRUCTION:
+//
+//   * THE REQUEST IS AT MAJOR 0, at the start point, so `x_k` is known at
+//     design time and is asserted against the S5 record rather than recovered
+//     by search.
+//   * THE OFFER IS THE REJECTED TRIAL AT THE FULL RADIUS. `tr_min` is raised to
+//     5 against a `tr_init` of 8, so the FIRST rejection crosses the floor
+//     (8 * kTrShrinkFactor = 4 < 5) and the radius never collapses: the
+//     candidate the guard is handed is the major-0 trial, `tr_init` away from
+//     `x_k` in x1 and 2.06 away in x0.
+//   * THE TRIAL MEASURES BETTER AND IS STILL REFUSED, which is what makes the
+//     guard fire on it. `h` falls (1.65 -> 0.425, so the guard takes it) while
+//     `f` rises by 4088 against a predicted decrease of 8, so Eq. (11)'s Armijo
+//     test refuses the step -- an f-TYPE rejection, since `pred_df = 8` clears
+//     `kFunnelDelta * h_old^2 = 2.72`.
+//   * AND THE RESTORATION PHASE STAYS AWAY. The proximity weight is 0.2 against
+//     an h-slope of 0.8 at `x_k`, so the wrapper's minimizer is at x0 = -1,
+//     TWO away from `x_k`, and the phase runs from the seed to it without
+//     coming back: every point it evaluates keeps |x0 - 1| >= 1.93.
+//
+// MEASURED IN BOTH CONFIGURATIONS (Debug and Release, clang++, MKL; every run
+// records them as a test property, and the fix-round-2b transcripts carry them):
+// the ten evaluated points are the SAME ten in both, so
+//
+//     nearest admissible candidate   1.9375        (both)
+//     smallest wrong-centre residual 3.8750e-01    (both)
+//     right-centre residual          1.1102e-16 Debug / 1.6653e-16 Release
+//
+// The wrong-centre side clears its own `10 * kkt_tol` bar by 3.875e+04, and the
+// 100x margin below is ASSERTED rather than merely observed. The two configs
+// agreeing point-for-point is the property fix round 2 lacked: its start was
+// chosen by a Debug-only scan of a route that bifurcates.
 namespace {
-constexpr double kCentreZeta = 64.0;
-constexpr double kCentreMinSeparation = 1e-6;
+constexpr double kCentreZeta = 0.2;
+// The separation premise, asserted rather than scanned: the fixture's own
+// construction puts the nearest admissible candidate at 1.9375.
+constexpr double kCentreMinSeparation = 1.0;
+// And the wrong-centre verdict's margin over the bar it is asserted against.
+constexpr double kCentreWrongCentreMargin = 100.0;
+
+// THE FIXTURE ITSELF.
+//
+//     min  x1 + x1^4   s.t.  cE(x) = 0.1 (x0 + 3)^2 + 0.05 = 0,   x_start = (1, 0)
+//
+// cE is bounded below by 0.05, so the NLP is INFEASIBLE and the solve ends in
+// restoration; h(x) = cE(x) depends on x0 alone, with h(x_start) = 1.65.
+//
+// MAJOR 0, HAND-DERIVED (every number above comes from here).
+//   J = (0.2 (x0 + 3), 0) = (0.8, 0) at the start, so the linearized equality
+//   forces p0 = -1.65/0.8 = -2.0625 and leaves p1 to the objective. The
+//   Lagrangian Hessian is sigma * diag(0, 12 x1^2) + lambda * diag(0.2, 0),
+//   which is ZERO at the start (x1 = 0, lambda = 0), so the subproblem is an LP
+//   in p1 and p1 saturates the radius at -8.
+//     trial      x = (-1.0625, -8),  h = 0.42539  (< 1.65: the guard TAKES it)
+//     pred_df    = -g^T p = 8        (>= 0.999 * 1.65^2 = 2.7198: f-TYPE)
+//     actual_df  = 0 - 4088 = -4088  (< 1e-4 * 8: Eq. (11) REFUSES)
+//   so the verdict is kReject, rejections_at_iterate becomes 1, and
+//   shrink_hits_floor(8) is true because 8 * 0.5 = 4 < tr_min = 5. The floor
+//   site raises the request and offers the trial it just refused.
+//
+// THE RESTORATION PHASE, hand-derived the same way. The wrapper minimizes
+// cE(x) + (zeta/2) ||D (x - x_k)||^2 with D = I (both components of x_k are <= 1
+// in modulus), i.e. 0.1 (x0+3)^2 + 0.05 + 0.1 [(x0-1)^2 + x1^2], whose minimizer
+// is x* = ((zeta - 6a)/(2a + zeta), 0) = (-1, 0) at a = 0.1, zeta = 0.2 -- two
+// away from `x_k`, where h = 0.45 is still far above feas_tol. The phase reaches
+// it in three majors through (-0.9375, 0), so the closest it ever comes to `x_k`
+// is 1.9375, and the solve exits kInfeasible UNCERTIFIED: at a displacement of
+// two the uncorrected residual is `zeta * 2 = 0.4`, which is what M2b's gate
+// refuses (see the EXPECT_FALSE below).
+class SeparatedRestorationModel : public NlpModel {
+  public:
+    Index n() const override { return 2; }
+    Index me() const override { return 1; }
+    Index mi() const override { return 0; }
+
+    double eval_f(const Vec &x) const override {
+        const double t = x(1);
+        return t + t * t * t * t;
+    }
+    Vec eval_grad(const Vec &x) const override {
+        Vec g(2);
+        g << 0.0, 1.0 + 4.0 * x(1) * x(1) * x(1);
+        return g;
+    }
+    Vec eval_ce(const Vec &x) const override {
+        Vec c(1);
+        c << kSepA * (x(0) + kSepShift) * (x(0) + kSepShift) + kSepFloor;
+        return c;
+    }
+    Vec eval_ci(const Vec &) const override { return Vec(0); }
+    SpMatRM eval_hess(const Vec &x, double obj_scale, const Vec &lambda_e,
+                      const Vec &) const override {
+        SpMatRM h(2, 2);
+        h.insert(0, 0) = 2.0 * kSepA * lambda_e(0);
+        h.insert(1, 1) = obj_scale * 12.0 * x(1) * x(1);
+        h.makeCompressed();
+        return h;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_e(const Vec &x) const override {
+        Eigen::SparseMatrix<double, Eigen::RowMajor> j(1, 2);
+        j.insert(0, 0) = 2.0 * kSepA * (x(0) + kSepShift);
+        j.insert(0, 1) = 0.0;
+        j.makeCompressed();
+        return j;
+    }
+    Eigen::SparseMatrix<double, Eigen::RowMajor> eval_jac_i(const Vec &) const override {
+        return Eigen::SparseMatrix<double, Eigen::RowMajor>(0, 2);
+    }
+    const Vec &lower() const override {
+        static const Vec l = Vec::Constant(2, -kInfBound);
+        return l;
+    }
+    const Vec &upper() const override {
+        static const Vec u = Vec::Constant(2, kInfBound);
+        return u;
+    }
+    Vec start_point() const override {
+        Vec x(2);
+        x << 1.0, 0.0;
+        return x;
+    }
+
+    static constexpr double kSepA = 0.1;
+    static constexpr double kSepShift = 3.0;
+    static constexpr double kSepFloor = 0.05;
+};
+
+// The same model, WATCHING: `eval_f` and `eval_ce` are what every values-or-full
+// query goes through, so the recorded list contains every point the solve --
+// the restoration phase included -- ever measured. Recovered from outside the
+// driver exactly as WatchedCircleLineModel's list is.
+class WatchedSeparatedRestorationModel final : public SeparatedRestorationModel {
+  public:
+    double eval_f(const Vec &x) const override {
+        points.push_back(x);
+        return SeparatedRestorationModel::eval_f(x);
+    }
+    Vec eval_ce(const Vec &x) const override {
+        points.push_back(x);
+        return SeparatedRestorationModel::eval_ce(x);
+    }
+
+    mutable std::vector<Vec> points;
+};
 } // namespace
 
 TEST(SqpDriverRestorationProximity, TheProductionCentreIsTheRequestingIterateNotTheSeed) {
-    bool judged = false;
-    for (const double s1 : {1.5, 1.99, 1.9}) {
-        SCOPED_TRACE(fmt::format("start = (2, {:g})", s1));
-        WatchedCircleLineModel model(2.0, s1);
-        SqpOptions opts;
-        opts.max_iter = 200;
-        opts.restoration_proximity = kCentreZeta;
-        SqpSolver driver(opts);
-        const SqpResult sol = driver.solve(model);
+    WatchedSeparatedRestorationModel model;
+    SqpOptions opts;
+    opts.max_iter = 200;
+    // THE FLOOR, RAISED: this is what makes the offered candidate O(1) from the
+    // requesting iterate instead of a collapsed radius away from it.
+    opts.tr_init = 8.0;
+    opts.tr_min = 5.0;
+    opts.restoration_proximity = kCentreZeta;
+    SqpSolver driver(opts);
+    const SqpResult sol = driver.solve(model);
 
-        // THE PREMISE THAT MAKES THE TWO CENTRES DISTINGUISHABLE AT ALL: the
-        // guard FIRED, so the wrapper's construction point is NOT the requesting
-        // iterate, and the phase ran once from it.
-        if (seeded_rows(sol) != 1 || sol.counters.restoration_entries != 1 ||
-            sol.counters.restoration_iters < 1) {
-            continue;
-        }
-        const Vec *x_k = recover_requesting_iterate(model.points, sol.counters.restoration_h_in,
-                                                    sol.counters.restoration_f_in, 2.0, s1);
-        if (x_k == nullptr) {
-            continue;
-        }
-        EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
+    // THE PREMISE THAT MAKES THE TWO CENTRES DISTINGUISHABLE AT ALL: the guard
+    // FIRED, so the wrapper's construction point is NOT the requesting iterate,
+    // and the phase ran once from it.
+    ASSERT_EQ(1, seeded_rows(sol)) << "the fixture's premise: the guard took the offered trial";
+    ASSERT_EQ(1, sol.counters.restoration_entries);
+    ASSERT_GE(sol.counters.restoration_iters, 1);
+    const SqpIterate *row = seeded_row(sol);
+    ASSERT_NE(nullptr, row);
+    EXPECT_EQ(StepVerdict::kReject, row->verdict)
+        << "kReject on the REQUESTING row is the radius floor's own signature";
+    EXPECT_EQ(SolveStatus::kInfeasible, sol.status);
+    // AND THE CLAIM IS WITHHELD, which is this separation's own corollary and a
+    // second reading of it: what the sub-solve's kOptimal certifies is
+    // stationarity of `h + P`, and `||grad P||_inf = zeta * 2 = 0.4` here
+    // against a `kkt_tol` of 1e-6, so the M2b gate refuses the certificate
+    // while the status stays kInfeasible (solver_status.h's two shapes). A
+    // fixture whose two centres genuinely separate CANNOT also certify, and
+    // this line says so rather than leaving the reader to wonder.
+    EXPECT_FALSE(sol.infeasibility_certified)
+        << "at an O(1) proximity displacement the UNCORRECTED residual is zeta * 2, so the "
+           "M2b gate refuses the claim -- the separation and the refusal are one fact";
 
-        // `s = J^T lambda - z` at the RETURNED point, from the driver's own
-        // reported multipliers and bound price: the certificate's own vector,
-        // before any proximity gradient is added back to it.
-        const InfeasibleCircleLineModel plain(2.0, s1);
-        Vec s = -sol.z;
-        s += Eigen::MatrixXd(plain.eval_jac_e(sol.x)).transpose() * sol.lambda_e;
-        if (plain.mi() > 0) {
-            s += Eigen::MatrixXd(plain.eval_jac_i(sol.x)).transpose() * sol.lambda_i;
-        }
-        const auto wrapper_residual = [&](const Vec &centre) {
-            double r = 0.0;
-            for (Index i = 0; i < sol.x.size(); ++i) {
-                const double a = std::abs(centre(i));
-                const double d = a > 1.0 ? 1.0 / a : 1.0;
-                r = std::max(r, std::abs(s(i) + kCentreZeta * d * d * (sol.x(i) - centre(i))));
-            }
-            return r;
-        };
+    // AND `x_k` IS THE START POINT, because the request is at major 0 -- pinned
+    // against the S5 record's entry half rather than recovered by search.
+    const SeparatedRestorationModel plain;
+    const Vec x_k = plain.start_point();
+    const NlpEval ev_k = eval_nlp(plain, x_k);
+    ASSERT_NEAR(constraint_violation_l1(ev_k), sol.counters.restoration_h_in, 1e-12)
+        << "the excursion record's entry half is h at the START point: the request is major 0's";
+    ASSERT_NEAR(ev_k.f, sol.counters.restoration_f_in, 1e-12);
 
-        Index rivals = 0;
-        double closest_rival = std::numeric_limits<double>::infinity();
-        double nearest_candidate = std::numeric_limits<double>::infinity();
-        for (const Vec &x_c : model.points) {
-            const double dist = (x_c - *x_k).lpNorm<Eigen::Infinity>();
-            if (dist <= 0.0) {
-                continue; // the requesting iterate itself is not a rival centre
-            }
-            const NlpEval ev = eval_nlp(plain, x_c);
-            if (!(constraint_violation_l1(ev) < sol.counters.restoration_h_in)) {
-                continue; // not a point the guard's own test would have started from
-            }
-            ++rivals;
-            closest_rival = std::min(closest_rival, wrapper_residual(x_c));
-            nearest_candidate = std::min(nearest_candidate, dist);
+    // `s = J^T lambda - z` at the RETURNED point, from the driver's own reported
+    // multipliers and bound price: the certificate's own vector, before any
+    // proximity gradient is added back to it.
+    Vec s = -sol.z;
+    s += Eigen::MatrixXd(plain.eval_jac_e(sol.x)).transpose() * sol.lambda_e;
+    const auto wrapper_residual = [&](const Vec &centre) {
+        double r = 0.0;
+        for (Index i = 0; i < sol.x.size(); ++i) {
+            const double a = std::abs(centre(i));
+            const double d = a > 1.0 ? 1.0 / a : 1.0;
+            r = std::max(r, std::abs(s(i) + kCentreZeta * d * d * (sol.x(i) - centre(i))));
         }
-        if (rivals < 1 || nearest_candidate < kCentreMinSeparation) {
-            continue; // this start cannot separate the two centres; try the next
-        }
+        return r;
+    };
 
-        // THE VERDICT, two-sided.
-        const double at_x_k = wrapper_residual(*x_k);
-        EXPECT_LE(at_x_k, opts.kkt_tol)
-            << "the returned point IS stationary for the wrapper centred on the REQUESTING "
-               "iterate -- which is what a kOptimal sub-solve on that wrapper means, and is the "
-               "half a regression to `*x_start` would break";
-        EXPECT_GT(closest_rival, 10.0 * opts.kkt_tol)
-            << "and it is NOT stationary for a wrapper centred on any candidate the guard could "
-               "have started from -- `*x_start` among them";
-        ::testing::Test::RecordProperty(
-            "centre", fmt::format("s1={:g} zeta={:g} at_x_k={:.4g} closest_rival={:.4g} "
-                                  "nearest_candidate={:.4g} rivals={} kkt_tol={:g}",
-                                  s1, kCentreZeta, at_x_k, closest_rival, nearest_candidate, rivals,
-                                  opts.kkt_tol));
-        judged = true;
-        break;
+    Index rivals = 0;
+    double closest_rival = std::numeric_limits<double>::infinity();
+    double nearest_candidate = std::numeric_limits<double>::infinity();
+    for (const Vec &x_c : model.points) {
+        const double dist = (x_c - x_k).lpNorm<Eigen::Infinity>();
+        if (dist <= 0.0) {
+            continue; // the requesting iterate itself is not a rival centre
+        }
+        const NlpEval ev = eval_nlp(plain, x_c);
+        if (!(constraint_violation_l1(ev) < sol.counters.restoration_h_in)) {
+            continue; // not a point the guard's own test would have started from
+        }
+        ++rivals;
+        closest_rival = std::min(closest_rival, wrapper_residual(x_c));
+        nearest_candidate = std::min(nearest_candidate, dist);
     }
-    EXPECT_TRUE(judged) << "no start in {1.5, 1.99, 1.9} fired the seed guard with an admissible "
-                           "candidate at least "
-                        << kCentreMinSeparation
-                        << " from the requesting iterate; the centre cannot be read off a "
-                           "production run whose two candidate centres coincide";
+
+    // THE SEPARATION PREMISE, ASSERTED. Fix round 2 SKIPPED a start that failed
+    // this and moved on; the fixture is now built so that failing it is a
+    // regression in the fixture, which must be re-derived and declared.
+    ASSERT_GE(rivals, 1);
+    ASSERT_GE(nearest_candidate, kCentreMinSeparation)
+        << "the fixture's construction puts every admissible candidate O(1) from the requesting "
+           "iterate; a nearer one means the phase or the floor moved";
+
+    // THE VERDICT, two-sided.
+    const double at_x_k = wrapper_residual(x_k);
+    EXPECT_LE(at_x_k, opts.kkt_tol)
+        << "the returned point IS stationary for the wrapper centred on the REQUESTING "
+           "iterate -- which is what a kOptimal sub-solve on that wrapper means, and is the "
+           "half a regression to `*x_start` would break";
+    EXPECT_GT(closest_rival, 10.0 * opts.kkt_tol)
+        << "and it is NOT stationary for a wrapper centred on any candidate the guard could "
+           "have started from -- `*x_start` among them";
+    // AND THE MARGIN IS THE ASSERTION, not an observation left in a comment: a
+    // fixture that drifts to where the two centres barely differ fails HERE.
+    EXPECT_GE(closest_rival, kCentreWrongCentreMargin * 10.0 * opts.kkt_tol)
+        << "the wrong-centre side must clear its bar by " << kCentreWrongCentreMargin << "x";
+    ::testing::Test::RecordProperty("centre",
+                                    fmt::format("zeta={:g} at_x_k={:.4e} closest_rival={:.4e} "
+                                                "nearest_candidate={:.4e} rivals={} kkt_tol={:g}",
+                                                kCentreZeta, at_x_k, closest_rival,
+                                                nearest_candidate, rivals, opts.kkt_tol));
 }
 
 HVEN_SUPPRESS_DEPRECATED_END
