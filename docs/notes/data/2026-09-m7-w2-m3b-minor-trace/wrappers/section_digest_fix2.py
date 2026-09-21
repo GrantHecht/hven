@@ -1,0 +1,146 @@
+#!/usr/bin/env python3
+"""Print one line per ELF section, in SECTION-HEADER ORDER:
+
+    <name>\t<sh_type>\t<sh_flags>\t<sh_size>\t<sh_link>\t<sh_info>\t<sh_addralign>\t<sh_entsize>\t<sha256 of the section's bytes>
+
+WHY NOT `readelf -x`, WHICH WOULD ALSO WORK. A Debug object in this tree carries
+about 8 500 sections (COMDAT groups, one per inline function), so a per-section
+`readelf` would be ~17 000 process spawns for ONE object. This reads the section
+header table once and hashes straight out of the file: same information, one
+file read.
+
+IT CARRIES THE HEADER FIELDS, NOT ONLY THE BYTES, and deliberately. A section
+whose contents are unchanged but whose `sh_flags`, `sh_link`, `sh_info`,
+`sh_entsize` or alignment moved IS a changed object, and a contents-only digest
+would call it identical. `sh_offset` and `sh_addr` are NOT carried: an offset
+shifts whenever anything earlier in the file changes size, which is exactly what
+a debug-only change does, so carrying it would make every debug-only difference
+look like a non-debug one.
+
+A NOBITS section (`.bss`) has no file bytes; its digest is taken over the empty
+string, which is the same on both sides, and its `sh_size` is carried, so a
+changed `.bss` SIZE is still caught.
+
+Exits non-zero, with nothing on stdout, on anything it cannot parse: a
+truncated file, a non-ELF file, an unsupported class, an unsupported data
+encoding, a section header table that points outside the file, or a section
+whose name offset is out of range or unterminated. The caller treats a non-zero
+exit as a REFUSAL, never as agreement -- this script is one arm of a fail-closed
+check and it has no "assume it is fine" path.
+
+FIX ROUND 2 closed two "assume it is fine" paths the review found. Neither could
+be reached by the compiler objects this check is run on -- they are little-endian
+ELF64 with well-formed name tables -- but a fail-closed script that guesses on a
+malformed input is not fail-closed, and the cost of refusing instead is two
+comparisons:
+
+  * EI_DATA. Version 1 read `endian = "<" if ei_data == 1 else ">"`, so ANY value
+    other than 1, including 0 (ELFDATANONE) and any corrupt byte, was silently
+    treated as big-endian and the whole header would then be unpacked from
+    garbage. Only ELFDATA2LSB (1) and ELFDATA2MSB (2) are defined; anything else
+    is now a refusal.
+  * THE SECTION-NAME OFFSET. Version 1 did `names.find(b"\x00", h["name"])` and,
+    on `-1`, sliced to the end of the table -- so a name offset past the end of
+    `.shstrtab` produced an EMPTY name and an unterminated one produced the
+    table's whole tail. Either would then be COMPARED, and two objects could
+    agree on a name neither of them really has. Both are now refusals.
+"""
+import hashlib
+import struct
+import sys
+
+
+def main(path):
+    with open(path, "rb") as fh:
+        data = fh.read()
+    if len(data) < 64 or data[:4] != b"\x7fELF":
+        sys.stderr.write("not an ELF file: {}\n".format(path))
+        return 2
+    ei_class, ei_data = data[4], data[5]
+    if ei_class != 2:
+        sys.stderr.write("only ELF64 is supported (EI_CLASS={})\n".format(ei_class))
+        return 2
+    # ELFDATA2LSB = 1, ELFDATA2MSB = 2. Anything else (ELFDATANONE, or a
+    # corrupt byte) is REFUSED rather than assumed to be big-endian: unpacking
+    # every header field from a guessed encoding is exactly the "assume it is
+    # fine" path this script must not have.
+    if ei_data not in (1, 2):
+        sys.stderr.write("unsupported ELF data encoding (EI_DATA={})\n".format(ei_data))
+        return 2
+    endian = "<" if ei_data == 1 else ">"
+
+    # Elf64_Ehdr: e_shoff at 0x28, e_shentsize at 0x3A, e_shnum at 0x3C,
+    # e_shstrndx at 0x3E.
+    e_shoff = struct.unpack_from(endian + "Q", data, 0x28)[0]
+    e_shentsize = struct.unpack_from(endian + "H", data, 0x3A)[0]
+    e_shnum = struct.unpack_from(endian + "H", data, 0x3C)[0]
+    e_shstrndx = struct.unpack_from(endian + "H", data, 0x3E)[0]
+    if e_shentsize != 64:
+        sys.stderr.write("unexpected e_shentsize {}\n".format(e_shentsize))
+        return 2
+
+    def shdr(i):
+        off = e_shoff + i * e_shentsize
+        if off + e_shentsize > len(data):
+            raise ValueError("section header {} is past end of file".format(i))
+        (sh_name, sh_type, sh_flags, sh_addr, sh_offset, sh_size, sh_link, sh_info,
+         sh_addralign, sh_entsize) = struct.unpack_from(endian + "IIQQQQIIQQ", data, off)
+        return dict(name=sh_name, type=sh_type, flags=sh_flags, addr=sh_addr,
+                    offset=sh_offset, size=sh_size, link=sh_link, info=sh_info,
+                    addralign=sh_addralign, entsize=sh_entsize)
+
+    # e_shnum == 0 means the real count is in section 0's sh_size (ELF's large
+    # section-count escape, which every object in this tree actually uses).
+    if e_shnum == 0:
+        e_shnum = shdr(0)["size"]
+    if e_shstrndx == 0xFFFF:
+        e_shstrndx = shdr(0)["link"]
+
+    strtab = shdr(e_shstrndx)
+    if strtab["offset"] + strtab["size"] > len(data):
+        sys.stderr.write("section name table is past end of file\n")
+        return 2
+    names = data[strtab["offset"]:strtab["offset"] + strtab["size"]]
+
+    SHT_NOBITS = 8
+    out = []
+    for i in range(e_shnum):
+        h = shdr(i)
+        # THE NAME OFFSET IS VALIDATED, NOT TRUSTED. Out of range gave an
+        # empty name in version 1 and an unterminated string gave the whole
+        # tail of the table; either would have been compared as if it were the
+        # section's real name.
+        if h["name"] >= len(names):
+            sys.stderr.write(
+                "section {} has a name offset {} past the end of the name table ({})\n".format(
+                    i, h["name"], len(names)))
+            return 2
+        end = names.find(b"\x00", h["name"])
+        if end < 0:
+            sys.stderr.write(
+                "section {} has an UNTERMINATED name at offset {}\n".format(i, h["name"]))
+            return 2
+        name = names[h["name"]:end].decode("utf-8", "replace")
+        if h["type"] == SHT_NOBITS:
+            body = b""
+        else:
+            if h["offset"] + h["size"] > len(data):
+                sys.stderr.write("section {} ({}) is past end of file\n".format(i, name))
+                return 2
+            body = data[h["offset"]:h["offset"] + h["size"]]
+        out.append("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(
+            name, h["type"], h["flags"], h["size"], h["link"], h["info"],
+            h["addralign"], h["entsize"], hashlib.sha256(body).hexdigest()))
+    sys.stdout.write("\n".join(out) + "\n")
+    return 0
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        sys.stderr.write("usage: section_digest_fix1.py <object>\n")
+        sys.exit(2)
+    try:
+        sys.exit(main(sys.argv[1]))
+    except Exception as exc:  # fail closed: no output, non-zero exit
+        sys.stderr.write("REFUSED: {}\n".format(exc))
+        sys.exit(2)
