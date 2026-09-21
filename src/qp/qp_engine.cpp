@@ -633,8 +633,22 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         probe.refresh(ws);
 
         detail::InertiaVerdict verdict = detail::InertiaVerdict::kOk;
+#ifdef HVEN_TESTING
+        // Cleared BEFORE the call, so a pass that reaches no verdict site
+        // records ABSENCE rather than the previous pass's evidence.
+        detail::testing::qp_walk_reset_eqp();
+#endif
         const EqpResult eqp =
             eqp_candidate(qp, ws, kkt, face, *border_, counters, verdict, eff_opts);
+#ifdef HVEN_TESTING
+        // Snapshotted IMMEDIATELY: section 4b's zero-multiplier probe re-enters
+        // the same verdict site for HYPOTHETICAL working sets later in this very
+        // pass, and what it writes must not be read as this pass's main verdict.
+        walk_obs.snapshot_eqp();
+        walk_obs.record().inertia_verdict = static_cast<int>(verdict);
+        walk_obs.record().primal_delta = eff_opts.primal_delta;
+        walk_obs.record().dual_mu = eff_opts.dual_mu;
+#endif
 
         // INERTIA GATE / TEMPORARY-VERTEX START REPAIR (section 4b). Only
         // at the start: a trustworthy wrong inertia here means the seed
@@ -670,6 +684,61 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 #ifdef HVEN_TESTING
         walk_obs.record().step_tol = step_tol;
         walk_obs.record().p_inf = p.lpNorm<Eigen::Infinity>();
+        {
+            // THE SEAM'S DISCRIMINATING READ-OUT (FIX-ROUND 1). Everything in
+            // this block is computed into the observer's own record from state
+            // the loop already holds, by mat-vecs at worst. It performs NO
+            // factorization and NO linear solve, touches no engine state and no
+            // counter, and nothing below reads any of it.
+            detail::testing::QpWalkMinorRecord &r = walk_obs.record();
+            r.p_sq = p.squaredNorm();
+
+            // The UNREGULARIZED first-order residual over the free block, at
+            // the iterate this pass started from, with the multipliers `price`
+            // just produced. `stat_scale` is the largest term that went into it.
+            double stat_scale = 1.0;
+            r.stat_free_inf =
+                detail::free_block_stationarity(qp, x, ws, lambda_e, lambda_i, stat_scale);
+            r.stat_scale = stat_scale;
+
+            // How far the iterate sits off the constraints the EQP holds at
+            // EQUALITY: the equality rows, the WORKING inequality rows (read off
+            // the maintained Aix rather than recomputed), and the pinned bounds.
+            double res = 0.0;
+            if (qp.me() > 0) {
+                res = std::max(res, (qp.Ae * x - qp.be).lpNorm<Eigen::Infinity>());
+            }
+            for (const Index row : ws.active_ineq()) {
+                res = std::max(res, std::abs(Aix(row) - qp.bi(row)));
+            }
+            for (Index i = 0; i < qp.n(); ++i) {
+                const BoundState st = ws.bound_state()[static_cast<std::size_t>(i)];
+                if (st == BoundState::kAtUpper) {
+                    res = std::max(res, std::abs(x(i) - qp.upper(i)));
+                } else if (st == BoundState::kAtLower || st == BoundState::kFixed) {
+                    res = std::max(res, std::abs(x(i) - qp.lower(i)));
+                }
+            }
+            r.active_res_inf = res;
+
+            // THE CONSTRAINT THE PREVIOUS PASS RELEASED, on every post-drop
+            // pass whether or not section 4c's ride is reached below: without
+            // it "the direction points back through the bound just released"
+            // has to be inferred from the add that follows.
+            r.post_drop = dropped.active;
+            if (dropped.active) {
+                r.released_block = dropped.is_ineq ? detail::testing::QpWalkBlock::kIneq
+                                                   : detail::testing::QpWalkBlock::kBound;
+                r.released_index = dropped.idx;
+                r.released_side = dropped.from;
+                r.p_released = dropped.is_ineq ? qp.Ai.row(dropped.idx).dot(p) : p(dropped.idx);
+                r.released_directional = dropped_directional(qp, dropped, p);
+                // g^T p with g = Hx + g: the SLOPE section 4c's ride_sign reads.
+                // Recorded here rather than only inside the ride, so a pass whose
+                // curvature gate never fired still reports it.
+                r.ride_slope = (qp.H.selfadjointView<Eigen::Upper>() * x + qp.g).dot(p);
+            }
+        }
 #endif
         if (p.lpNorm<Eigen::Infinity>() <= step_tol) {
             // A KKT point of the current working set: snap onto it, then
@@ -842,6 +911,21 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         if (dropped.active) {
             const double curvature =
                 p.dot(qp.H.selfadjointView<Eigen::Upper>() * p) / p.squaredNorm();
+#ifdef HVEN_TESTING
+            // The seam's record of section 4c's GATE: the quotient the loop
+            // just computed, the threshold it is about to be compared against,
+            // and the quotient's numerator taken separately so "the direction
+            // is not a negative-curvature one" is decidable without
+            // reconstructing it. The numerator is recomputed into observer
+            // storage rather than lifted out of the expression above: the
+            // loop's own arithmetic is left exactly as it was.
+            {
+                detail::testing::QpWalkMinorRecord &r = walk_obs.record();
+                r.curvature = curvature;
+                r.curvature_tol = curvature_tol;
+                r.p_hp = p.dot(qp.H.selfadjointView<Eigen::Upper>() * p);
+            }
+#endif
             if (curvature <= curvature_tol) {
                 // The EQP just solved is unbounded below along +/-p within
                 // this working set, so its "solution" is a saddle. Ride
@@ -849,6 +933,11 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 // which case fall through to the ordinary step.
                 // p.squaredNorm() is nonzero here: the negligible case
                 // returned above.
+#ifdef HVEN_TESTING
+                // The gate FIRED: the ride was actually offered this direction,
+                // which is the fact an ordinary zero-step add cannot establish.
+                walk_obs.record().curvature_fired = true;
+#endif
                 const RideOutcome outcome =
                     ride_negative_curvature(qp, dropped, counters, seen, p, Aix, ws, x);
 #ifdef HVEN_TESTING
@@ -857,7 +946,14 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                                                    ? detail::testing::QpWalkAction::kRideStepped
                                                    : detail::testing::QpWalkAction::kRideUnbounded;
                     walk_obs.record().ride = outcome == RideOutcome::kStepped;
+                    walk_obs.record().ride_outcome =
+                        outcome == RideOutcome::kStepped
+                            ? detail::testing::QpWalkRideOutcome::kStepped
+                            : detail::testing::QpWalkRideOutcome::kUnbounded;
                 }
+                // kDeclined leaves the outcome to the two hooks inside
+                // ride_negative_curvature and ride_sign, which are the only
+                // places the THREE refusals are distinguishable at all.
 #endif
                 if (outcome == RideOutcome::kUnbounded) {
                     // Nothing blocks: genuinely unbounded. Same verdict and
@@ -1464,6 +1560,17 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
         // expected (0, 0, 0) inertia: every variable is pinned, so there
         // is no free direction for negative curvature to live in.
         verdict = detail::InertiaVerdict::kOk;
+#ifdef HVEN_TESTING
+        // The seam's record of WHICH system this pass's direction came out of.
+        // A 0x0 one has no backend evidence at all, which is why the state
+        // stays ABSENT rather than being filled with an observed (0, 0, 0).
+        detail::testing::qp_walk_note_eqp([](detail::testing::QpWalkEqpEvidence &s) {
+            s.path = detail::testing::QpWalkEqpPath::kEmptySystem;
+            s.expected_pos = 0;
+            s.expected_neg = 0;
+            s.refine_steps = 0;
+        });
+#endif
         Vec xf(qp.n());
         for (Index i = 0; i < qp.n(); ++i) {
             xf(i) = (ws.bound_state()[static_cast<std::size_t>(i)] == BoundState::kAtUpper)
@@ -1485,6 +1592,21 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
     // n_working, 0) -- the reduced form of the gate in section 4b.
     verdict = detail::inertia_verdict(kkt.factor.inertia(), ws.num_free(),
                                       qp.me() + static_cast<Index>(ws.active_ineq().size()));
+#ifdef HVEN_TESTING
+    // The seam's record of the ELIMINATED path's own verdict evidence: the
+    // backend's triple for the bound-eliminated K, and the expectation the gate
+    // compared it against. Read from the same values the line above reads --
+    // nothing is recomputed and nothing is factorized.
+    {
+        const Index expected_neg_e = qp.me() + static_cast<Index>(ws.active_ineq().size());
+        detail::testing::qp_walk_note_inertia(kkt.factor.inertia(), ws.num_free(), expected_neg_e);
+        const Index steps = res.refine_steps;
+        detail::testing::qp_walk_note_eqp([steps](detail::testing::QpWalkEqpEvidence &s) {
+            s.path = detail::testing::QpWalkEqpPath::kEliminated;
+            s.refine_steps = steps;
+        });
+    }
+#endif
     return res;
 }
 
@@ -1492,6 +1614,18 @@ EqpResult QpEngine::border_candidate(const QpProblem &qp, const WorkingSet &ws,
                                      detail::KktFactor &kkt, EliminatedFace &face,
                                      BorderState &border, QpCounters &counters,
                                      detail::InertiaVerdict &verdict, const QpOptions &opts) const {
+#ifdef HVEN_TESTING
+    // The seam's record that BORDER MODE was entered at all: an eliminated
+    // path recorded together with this flag is border mode FALLING BACK, which
+    // is a different fact from the engine being configured for elimination.
+    {
+        const bool latched_now = border.latched;
+        detail::testing::qp_walk_note_eqp([latched_now](detail::testing::QpWalkEqpEvidence &s) {
+            s.border_attempted = true;
+            s.latched = latched_now;
+        });
+    }
+#endif
     // LATCHED: bordering has been abandoned for this working-set shape
     // (see border_solve_or_fall_back). Do not sync -- the whole point is
     // that every border added here would be discarded unused, and adding
@@ -1543,6 +1677,16 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
                                               BorderState &border, QpCounters &counters,
                                               detail::InertiaVerdict &verdict, bool rebuilt,
                                               const QpOptions &opts) const {
+#ifdef HVEN_TESTING
+    // The seam's record of the border stack as this call FOUND it: "marked for
+    // rebuild" is the fact the review asked for, and it is only observable
+    // here, before the branch below acts on it.
+    {
+        const bool marked = border.schur->needs_refactorization();
+        detail::testing::qp_walk_note_eqp(
+            [marked](detail::testing::QpWalkEqpEvidence &s) { s.needs_refactorization = marked; });
+    }
+#endif
     if (border.schur->needs_refactorization()) {
         // Rebuilding re-derives K0 from the CURRENT working set, folding
         // the working ROWS that triggered it back into K0. It cannot do
@@ -1596,6 +1740,22 @@ EqpResult QpEngine::border_solve_or_fall_back(const QpProblem &qp, const Working
                                            border.ledger, ws, opts);
         // TOTAL steps, mandatory first one included (solver_counters.h).
         counters.border_refine_steps += res.refine_steps;
+#ifdef HVEN_TESTING
+        // The seam's record that the direction THIS pass used came through the
+        // BORDER/SCHUR path, with the live stack's dimension and this call's
+        // own refinement count. Placed after the solve so a throw cannot leave
+        // a path recorded for a solve that never returned.
+        {
+            const Index dim_now = border.schur->dim();
+            const Index steps = res.refine_steps;
+            detail::testing::qp_walk_note_eqp(
+                [dim_now, steps](detail::testing::QpWalkEqpEvidence &s) {
+                    s.path = detail::testing::QpWalkEqpPath::kBorderSchur;
+                    s.border_dim = dim_now;
+                    s.refine_steps = steps;
+                });
+        }
+#endif
         return res;
     } catch (const std::runtime_error &) {
         if (!border.schur->needs_refactorization()) {
@@ -1642,6 +1802,14 @@ detail::InertiaVerdict QpEngine::border_inertia_verdict(const QpProblem &qp,
     // in one place.
     const Index extra_neg = neg_c;
     const Index extra_pos = dim - neg_c;
+#ifdef HVEN_TESTING
+    // The seam's record of the BORDER path's verdict evidence: K0's own
+    // backend triple and the expectation C's Haynsworth contribution has
+    // already been backed out of -- exactly the two numbers the line below
+    // compares, read rather than recomputed.
+    detail::testing::qp_walk_note_inertia(border.kkt.factor.inertia(), expected_pos - extra_pos,
+                                          expected_neg - extra_neg);
+#endif
     return detail::inertia_verdict(border.kkt.factor.inertia(), expected_pos - extra_pos,
                                    expected_neg - extra_neg);
 }
@@ -1909,6 +2077,13 @@ bool QpEngine::latch_still_holds(const WorkingSet &ws) const {
 
 void QpEngine::rebuild_k0(const QpProblem &qp, const WorkingSet &ws, BorderState &border,
                           QpCounters &counters, const QpOptions &opts) const {
+#ifdef HVEN_TESTING
+    // The seam's record that K0 was FACTORIZED AFRESH on this pass, as opposed
+    // to a retained K0 that only had borders synced onto it. One hook here
+    // covers every call site the walk has.
+    detail::testing::qp_walk_note_eqp(
+        [](detail::testing::QpWalkEqpEvidence &s) { s.k0_rebuilt = true; });
+#endif
     KktAssembly k0 = assemble_kkt_full(qp, ws, opts);
     std::vector<Index> k0_rows = ws.active_ineq();
     // The analysis decision (QpCounters::symbolic_analyses): decided BEFORE
@@ -2129,6 +2304,35 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
         r.decision_tol = opts_.opt_tol;
         r.drop_candidates = static_cast<Index>(cands.size());
         r.drop_tied = in_window;
+
+        // THE CANDIDATE SET ITSELF (FIX-ROUND 1), largest violation first, up
+        // to the record's fixed capacity. The Dantzig rule picks by violation
+        // ALONE, with no regard for whether the post-drop subspace admits a
+        // usable direction -- so which OTHER constraints it could have released
+        // is a candidate cause, and the identities and violations are the part
+        // of that observable WITHOUT the extra factorization a predicted
+        // post-drop inertia would need. Sorted on a COPY of the indices:
+        // `cands` itself is untouched and the pick above is already made.
+        std::vector<std::size_t> order(cands.size());
+        for (std::size_t k = 0; k < order.size(); ++k) {
+            order[k] = k;
+        }
+        std::stable_sort(order.begin(), order.end(), [&](std::size_t a, std::size_t b) {
+            return cands[a].violation > cands[b].violation;
+        });
+        const std::size_t keep =
+            std::min(order.size(), detail::testing::QpWalkMinorRecord::kMaxRecordedCandidates);
+        for (std::size_t k = 0; k < keep; ++k) {
+            const Candidate &c = cands[order[k]];
+            detail::testing::QpWalkDropCandidate &slot = r.candidates[k];
+            slot.block = c.is_ineq ? detail::testing::QpWalkBlock::kIneq
+                                   : detail::testing::QpWalkBlock::kBound;
+            slot.index = c.idx;
+            slot.side =
+                c.is_ineq ? BoundState::kFree : ws.bound_state()[static_cast<std::size_t>(c.idx)];
+            slot.violation = c.violation;
+        }
+        r.candidates_recorded = static_cast<Index>(keep);
     });
 #endif
     dropped = DropRecord{};
@@ -2198,6 +2402,29 @@ int QpEngine::ride_sign(const QpProblem &qp, const DropRecord &dropped, const Ve
     } else if (slope > slope_tol) {
         sign = -1;
     }
+#ifdef HVEN_TESTING
+    // The OTHER TWO of section 4c's three refusals, and the four numbers that
+    // separate them: a FLAT slope (no descending sign exists) is not the same
+    // failure as descent and release-feasibility DISAGREEING, and kDeclined
+    // says neither. The classification duplicates the test on the next line
+    // READ-ONLY -- it does not replace it, and nothing below reads it.
+    {
+        const bool flat = sign == 0;
+        const bool disagree = !flat && static_cast<double>(sign) * leaves < -leaves_tol;
+        detail::testing::qp_walk_note([&](detail::testing::QpWalkMinorRecord &r) {
+            r.ride_slope = slope;
+            r.ride_slope_tol = slope_tol;
+            r.ride_leaves = leaves;
+            r.ride_leaves_tol = leaves_tol;
+            r.ride_sign_chosen = (flat || disagree) ? 0 : sign;
+            if (flat) {
+                r.ride_outcome = detail::testing::QpWalkRideOutcome::kSlopeFlatVeto;
+            } else if (disagree) {
+                r.ride_outcome = detail::testing::QpWalkRideOutcome::kSignDisagreementVeto;
+            }
+        });
+    }
+#endif
     // FEASIBILITY vetoes it: the descending sign must not step back into
     // the constraint the drop rule just released.
     if (sign == 0 || static_cast<double>(sign) * leaves < -leaves_tol) {
@@ -2216,6 +2443,14 @@ QpEngine::RideOutcome QpEngine::ride_negative_curvature(const QpProblem &qp,
                                                         const Vec &p, const Vec &Aix,
                                                         WorkingSet &ws, Vec &x) const {
     if (!ride_stays_in_working_set(qp, ws, p)) {
+#ifdef HVEN_TESTING
+        // The FIRST of section 4c's three refusals: `p` leaves the RETAINED
+        // working set's nullspace. QpEngine::RideOutcome folds all three into
+        // kDeclined, so this is the only place this one is observable.
+        detail::testing::qp_walk_note([](detail::testing::QpWalkMinorRecord &r) {
+            r.ride_outcome = detail::testing::QpWalkRideOutcome::kNullspaceVeto;
+        });
+#endif
         return RideOutcome::kDeclined;
     }
     const int sign = ride_sign(qp, dropped, p, x);

@@ -41,13 +41,54 @@
 // working set at the same point" is decidable from the trace. Once per solve it
 // records the INCOMING (warm) working set's signature and size.
 //
+// WHAT FIX-ROUND 1 ADDED, and why. The first trace answered WHAT the walk does
+// — an exact zero-motion period-2 tail on both cells — and could not answer
+// WHY, because four different causes produce that same tail: an indefinite
+// reduced Hessian the ordinary add/drop path never consults the verdict about;
+// a curvature gate that stays silent because the computed direction is not the
+// negative-curvature one; §4c's ride vetoed (by the retained-set nullspace
+// test, by a flat slope, or by descent and release-feasibility disagreeing);
+// and a numerically wrong direction. Telling them apart needs, per pass: the
+// MAIN inertia verdict with the backend's own triple and the gate's
+// expectation; which linear-algebra path produced the direction and whether its
+// factorization was fresh, updated or marked for rebuild; whether the curvature
+// gate was reached and whether it fired, with pᵀHp and pᵀp separately; a
+// GRANULAR ride outcome naming the branch taken; on a post-drop pass the
+// released constraint's identity, `p` along it, the sign the ride chose and
+// gᵀp; the drop rule's candidate set (identities and violations); the effective
+// regularization; and the unregularized stationarity and active-row residuals.
+// The candidates' PREDICTED POST-DROP INERTIA and rank evidence for the
+// released constraint would each need an extra factorization, so they are
+// deliberately NOT recorded and are marked absent in the rule instead.
+//
 // IT IS RECORD-ONLY. Nothing here mutates the walk: no decision, no counter, no
-// floating-point operation of the solver's own arithmetic. The norms and the
-// signature it computes are computed from state the loop already holds, into
-// storage the loop never reads. `tests/qp/test_qp_walk_seam.cpp` proves that as
-// a TEST rather than as a claim: with the observer attached, every `QpCounters`
-// field and the solution the engine returns are bit-identical to the unattached
-// run on three fixtures, one of them degenerate.
+// floating-point operation of the solver's own arithmetic, and no factorization
+// and no linear SOLVE. The norms, residuals and signatures it computes are
+// computed from state the loop already holds — or by a mat-vec into storage the
+// loop never reads. `tests/qp/test_qp_walk_seam.cpp` proves that as a TEST
+// rather than as a claim: with the observer attached, every `QpCounters` field
+// and the solution the engine returns are bit-identical to the unattached run
+// on six cases, two of them degenerate.
+//
+// AND IT IS PER-THREAD. Every piece of observer state below has THREAD storage
+// duration, so two instrumented `QpEngine::run` calls on two threads cannot
+// share a capture, a solve counter, a record buffer or a current-record
+// pointer. That is what makes "record-only" true under concurrency as well as
+// in sequence: with process-global state the two would race, and a data race is
+// undefined behaviour, which is not a property any amount of read-only
+// discipline can recover. `QpWalkSeam.TwoEnginesOnTwoThreads*` runs the case.
+// The consequence for a fixture: arming, `reset()` and reading `records` are
+// all per-thread, and a thread that captures must copy its records out before
+// it exits.
+//
+// ONE RECORD PER PASS, QUALIFIED. The per-minor scope's destructor emits on
+// every exit the loop body has, so the count of records equals the count of
+// passes entered — for a capture that was NOT truncated (`max_records` not
+// reached: `QpWalkObserver::truncated`) and in which every record's storage was
+// successfully allocated (`QpWalkObserver::allocation_failed`). Both are
+// reported, and a measurement that asserts the per-pass correspondence must
+// check both flags. An allocation failure is caught inside the destructor and
+// recorded rather than propagated, so it cannot terminate the solve.
 //
 // IT COMPILES TO NOTHING without `HVEN_TESTING`, so including it from a normal
 // build of any TU is provably inert. `HVEN_TESTING` is defined ONLY target-wide
@@ -98,6 +139,7 @@
 #include <hven/core/solver_counters.h>
 #include <hven/core/types.h>
 #include <hven/detail/qp/working_set.h>
+#include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>
 
 namespace hven::solvers::detail::testing {
@@ -140,6 +182,57 @@ enum class QpWalkBlock : int { kNone = 0, kIneq = 1, kBound = 2 };
 /// HOW a constraint left the working set. The distinction `QpCounters::ws_drops`
 /// cannot make — it counts both routes as one number.
 enum class QpWalkDropRoute : int { kNone = 0, kDantzig = 1, kZeroProbe = 2 };
+
+/// WHICH LINEAR-ALGEBRA PATH produced this pass's EQP candidate. The three are
+/// materially different systems, not three spellings of one: the bordered
+/// Schur solve reads K0's backend inertia plus the border stack's Haynsworth
+/// contribution, the eliminated path factorizes the bound-eliminated K outright,
+/// and the empty system is factorized by nobody.
+enum class QpWalkEqpPath : int {
+    kNone = 0,
+    /// Every variable pinned, no rows: a 0x0 system, no factorization at all.
+    kEmptySystem = 1,
+    /// `eliminated_candidate` — one fresh factorization of the reduced K.
+    kEliminated = 2,
+    /// `solve_bordered_eqp` through the live Schur complement.
+    kBorderSchur = 3,
+};
+
+/// The backend's own `InertiaEvidence::State`, widened to carry ABSENCE. `-1`
+/// (`kAbsent`) means no verdict site ran on this pass, which is not the same
+/// fact as a backend that could not report (`kUnavailable`).
+enum class QpWalkInertiaState : int {
+    kAbsent = -1,
+    kObserved = 0,
+    kQueryFailed = 1,
+    kUnavailable = 2,
+};
+
+/// WHY §4c's negative-curvature ride did or did not move the iterate. The
+/// engine's own `RideOutcome` has three values and folds every refusal into
+/// `kDeclined`; the review's FIX-ROUND finding is precisely that "the ride did
+/// not step" and "the ride was vetoed for reason R" are different facts and the
+/// first cannot stand in for the second. These are the branches
+/// `ride_negative_curvature` and `ride_sign` actually have.
+enum class QpWalkRideOutcome : int {
+    /// The pass was not a post-drop pass, or the curvature gate did not fire,
+    /// so `ride_negative_curvature` was never called.
+    kNotAttempted = 0,
+    /// `ride_stays_in_working_set` was false: `p` leaves the RETAINED working
+    /// set's nullspace, so riding it would violate a constraint still held.
+    kNullspaceVeto = 1,
+    /// `ride_sign` found no strictly descending sign — `|gᵀp|` inside
+    /// `slope_tol`. A flat direction has no descending sign and declines.
+    kSlopeFlatVeto = 2,
+    /// `ride_sign` found a descending sign, and FEASIBILITY vetoed it: that
+    /// sign steps back into the constraint the drop rule just released.
+    kSignDisagreementVeto = 3,
+    /// A sign was chosen and the uncapped ratio test found NOTHING blocking:
+    /// the engine's `kUnbounded`.
+    kUnbounded = 4,
+    /// A sign was chosen, a blocker was found, and the iterate moved.
+    kStepped = 5,
+};
 
 /// SplitMix64's finalizer, used only to spread constraint tokens before they
 /// are summed into an order-independent signature. Nothing depends on its
@@ -190,6 +283,21 @@ inline Index qp_walk_ws_size(const WorkingSet &ws) {
     }
     return size;
 }
+
+/// ONE MEMBER of the Dantzig drop rule's candidate set: a constraint whose
+/// multiplier violates its sign condition by more than `opt_tol`, i.e. one the
+/// rule COULD have released on this pass. Recorded because the rule picks by
+/// LARGEST VIOLATION alone, with no regard for whether the post-drop subspace
+/// admits a usable direction — the review's still-plausible cause (1) — and the
+/// identities and violations are the part of that candidate set observable
+/// WITHOUT the extra factorization a predicted post-drop inertia would need.
+struct QpWalkDropCandidate {
+    QpWalkBlock block = QpWalkBlock::kNone;
+    Index index = -1;
+    /// The side a BOUND candidate is currently pinned at; `kFree` for a row.
+    BoundState side = BoundState::kFree;
+    double violation = std::numeric_limits<double>::quiet_NaN();
+};
 
 /// ONE MINOR ITERATION of the walk. An aggregate, so its members are bare
 /// `snake_case` (CLAUDE.md §4). Every quantity that a branch does not produce
@@ -277,52 +385,252 @@ struct QpWalkMinorRecord {
     /// in", which is what a recurrence has to match for CYCLING PROPER.
     double x_inf = kAbsent;
     double x_l1 = kAbsent;
+
+    // =====================================================================
+    // FIX-ROUND 1 (M7 W2 M3b): THE DISCRIMINATING FIELDS.
+    //
+    // Everything above answers WHAT the walk did. Everything below exists to
+    // separate WHY, and only that: the first trace established an exact
+    // zero-motion period-2 tail and then could not say whether the reduced
+    // Hessian was indefinite and ignored, whether the curvature gate stayed
+    // silent on the computed direction, whether §4c's ride was vetoed and by
+    // which of its three refusals, or whether the direction was simply
+    // numerically wrong. Each field below is read from a value the loop had
+    // already computed, or from a mat-vec taken into observer storage the loop
+    // never reads. NOTHING here performs a factorization or a linear SOLVE,
+    // touches engine state, or touches a counter.
+    // =====================================================================
+
+    // ---- the MAIN pass's inertia verdict, and the evidence behind it -------
+    //
+    // "Main" is load-bearing: `probe_zero_multiplier_drops` calls the same
+    // verdict site again for HYPOTHETICAL working sets, so these are snapshotted
+    // out of `QpWalkObserver::eqp` immediately after the walk loop's own
+    // `eqp_candidate` returns, before any probe can overwrite the scratch.
+    /// `detail::InertiaVerdict` as an int (0 kOk / 1 kSuspect / 2 kWrong);
+    /// `-1` when no verdict site ran.
+    int inertia_verdict = -1;
+    QpWalkInertiaState inertia_state = QpWalkInertiaState::kAbsent;
+    /// The backend's own triple. `-1` is ABSENT, and is what the backend
+    /// reports for a state other than `kObserved` — never a substituted zero.
+    Index inertia_pos = -1;
+    Index inertia_neg = -1;
+    Index inertia_zero = -1;
+    /// True when `inertia_zero` was DERIVED as dim − pos − neg (MKL) rather
+    /// than reported natively (Accelerate). A derived zero of 0 is not an
+    /// observation that there are no zero eigenvalues.
+    bool inertia_zero_derived = false;
+    /// Pardiso's perturbed-pivot count, `-1` when the backend has no such
+    /// counter (Accelerate) — the OPTIONAL's absence, never zero-filled.
+    Index inertia_perturbed = -1;
+    /// What the gate EXPECTED, which is the other half of a verdict: `kWrong`
+    /// alone does not say in which direction, or by how much.
+    Index inertia_expected_pos = -1;
+    Index inertia_expected_neg = -1;
+
+    // ---- how the direction was produced -------------------------------------
+    QpWalkEqpPath eqp_path = QpWalkEqpPath::kNone;
+    /// True iff `border_candidate` was entered at all (so a `kEliminated` path
+    /// with this set is a border-mode FALL-BACK, not the elimination mode).
+    bool border_attempted = false;
+    /// True iff `rebuild_k0` ran during this pass's main candidate call: the
+    /// factorization is FRESH rather than an update over a retained K0.
+    bool k0_rebuilt = false;
+    /// True iff bordering was LATCHED off for this working-set shape.
+    bool border_latched = false;
+    /// `SchurComplement::needs_refactorization()` as `border_solve_or_fall_back`
+    /// found it — "marked for rebuild" on entry to the solve.
+    bool border_needs_refactorization = false;
+    /// The live border stack's dimension at the solve; `-1` when none was used.
+    Index border_dim = -1;
+    /// THE MAIN CALL's own `EqpResult::refine_steps` (border: total, including
+    /// the mandatory first; eliminated: extra beyond it, identically 0).
+    Index eqp_call_refine_steps = -1;
+
+    // ---- what the WHOLE pass cost, by counter difference --------------------
+    //
+    // Differenced across the pass exactly as `shift_adds` is, so these include
+    // the probe's and the verdict site's calls as well as the main one. Read
+    // from a `const QpCounters &`: the scope cannot write a counter.
+    Index pass_factorizations = 0;
+    Index pass_eqp_refine_steps = 0;
+    Index pass_border_refine_steps = 0;
+    Index pass_verdict_refine_steps = 0;
+    Index pass_schur_updates = 0;
+
+    // ---- §4c's curvature gate, and the direction it judged -----------------
+    /// True iff the previous pass's drop armed the gate (`dropped.active`), so
+    /// the curvature test was REACHED. False means §4c never looked.
+    bool post_drop = false;
+    /// True iff the gate FIRED (`curvature <= curvature_tol`), i.e. the ride
+    /// was actually offered the direction.
+    bool curvature_fired = false;
+    /// The loop's own quotient `pᵀHp / pᵀp`, and the threshold it was compared
+    /// against (`kCurvatureTolFactor * hessian_scale(qp)`).
+    double curvature = kAbsent;
+    double curvature_tol = kAbsent;
+    /// The quotient's two halves, recorded separately so "the direction is not
+    /// a negative-curvature one" is decidable without reconstructing them.
+    /// Computed into observer storage; the loop's own expression is untouched.
+    double p_hp = kAbsent;
+    double p_sq = kAbsent;
+
+    // ---- §4c's ride: which branch, and the numbers that chose it -----------
+    QpWalkRideOutcome ride_outcome = QpWalkRideOutcome::kNotAttempted;
+    /// `ride_sign`'s return: +1, −1, or 0 for "no admissible sign".
+    int ride_sign_chosen = 0;
+    /// `gᵀp` at the pass's starting iterate with `g = Hx + g`, i.e. the SLOPE
+    /// `ride_sign` reads, and the tolerance it is judged flat against.
+    double ride_slope = kAbsent;
+    double ride_slope_tol = kAbsent;
+    /// `-dropped_directional(qp, dropped, p)`: how far `+p` moves AWAY from the
+    /// constraint just released, and its own tolerance. Together with the slope
+    /// these are the whole of `ride_sign`'s decision.
+    double ride_leaves = kAbsent;
+    double ride_leaves_tol = kAbsent;
+
+    // ---- the constraint the PREVIOUS pass released -------------------------
+    //
+    // Present on every post-drop pass, whether or not the ride fired: it is
+    // what makes "the direction points back through the bound just released"
+    // checkable per pass rather than inferred from the add that follows.
+    QpWalkBlock released_block = QpWalkBlock::kNone;
+    Index released_index = -1;
+    /// The side the released BOUND was held at before the drop.
+    BoundState released_side = BoundState::kFree;
+    /// `p[released_index]` for a bound; `Ai.row(released_index) · p` for a row.
+    double p_released = kAbsent;
+    /// `dropped_directional(qp, dropped, p)` — the signed component of `p`
+    /// along the released constraint's own INWARD direction.
+    double released_directional = kAbsent;
+
+    // ---- the drop rule's candidate set (identities and violations only) -----
+    //
+    // The post-drop inertia of the candidates NOT picked would need one extra
+    // factorization each and is deliberately NOT computed: the rule marks it
+    // ABSENT rather than approximating it.
+    static constexpr std::size_t kMaxRecordedCandidates = 8;
+    /// Up to `kMaxRecordedCandidates` candidates, largest violation first.
+    QpWalkDropCandidate candidates[kMaxRecordedCandidates]{};
+    /// How many of the `drop_candidates` are actually stored above.
+    Index candidates_recorded = 0;
+
+    // ---- regularization and residuals (read-only, no extra solve) ----------
+    /// The EFFECTIVE regularization this pass solved at — `eff_opts`, not
+    /// `opts_`: §4b's suspect ladder escalates `primal_delta` per solve.
+    double primal_delta = kAbsent;
+    double dual_mu = kAbsent;
+    /// `detail::free_block_stationarity` at the pass's STARTING iterate `x`
+    /// with the multipliers `price` just produced: the UNREGULARIZED first-order
+    /// residual `Hx + g + Aeᵀλe + Aiᵀλi` over the free block, and the largest
+    /// term that went into it (its scale).
+    double stat_free_inf = kAbsent;
+    double stat_scale = kAbsent;
+    /// `max` over the EQUALITY rows of `|Ae·x − be|`, over the WORKING
+    /// inequality rows of `|Ai·x − bi|` (read off the maintained `Aix`), and
+    /// over the PINNED variables of `|x_i − bound_i|`: how far the iterate sits
+    /// off the constraints the EQP holds at equality.
+    double active_res_inf = kAbsent;
+};
+
+/// WHAT ONE CALL OF THE EQP CANDIDATE SITE REPORTED ABOUT ITSELF. A scratch
+/// slot rather than a field on the record, because `probe_zero_multiplier_drops`
+/// re-enters the same site for HYPOTHETICAL working sets: the walk loop
+/// snapshots this into its own record the instant its own call returns, and
+/// whatever a probe writes afterwards lands here and is discarded.
+struct QpWalkEqpEvidence {
+    QpWalkEqpPath path = QpWalkEqpPath::kNone;
+    QpWalkInertiaState state = QpWalkInertiaState::kAbsent;
+    Index n_pos = -1;
+    Index n_neg = -1;
+    Index n_zero = -1;
+    bool zero_is_derived = false;
+    Index perturbed_pivots = -1;
+    Index expected_pos = -1;
+    Index expected_neg = -1;
+    Index refine_steps = -1;
+    bool border_attempted = false;
+    bool k0_rebuilt = false;
+    bool latched = false;
+    bool needs_refactorization = false;
+    Index border_dim = -1;
 };
 
 /// THE OBSERVER. Static, like every other observer on this seam, because the
 /// engine is reached through a deep call chain and a fixture needs to read what
-/// it recorded after the solve returns.
+/// it recorded after the solve returns — and, since FIX-ROUND 1, THREAD_LOCAL.
+///
+/// WHY THREAD_LOCAL (the review's Critical finding). Process-global mutable
+/// state with no synchronization is a DATA RACE the moment two instrumented
+/// `QpEngine::run` calls overlap: two solves would share one `solves` counter,
+/// one `capturing` flag, one `records` vector and one `current` pointer, so one
+/// solve could push into the other's buffer, disarm the other's capture, or
+/// leave `current` dangling at the other's stack record. That is undefined
+/// behaviour, and undefined behaviour is not "record-only" — which made the
+/// answer to "can any hook alter a CONCURRENT solve's behaviour?" yes.
+///
+/// With thread storage duration every one of those is per-thread: a capture on
+/// one thread can neither see nor disturb a solve on another, armed or not, and
+/// `QpEngine`'s own header contract (sequential use of ONE engine) is what
+/// makes per-thread the right granularity — an engine is never shared across
+/// threads, so a thread's observer describes exactly the solves that thread ran.
+///
+/// THE CONTRACT A FIXTURE MUST HONOUR: arming, `reset()`, and READING
+/// `records` are all per-thread. A thread that arms the observer must also read
+/// (or copy out) its records BEFORE it exits; another thread cannot read them,
+/// and after the thread ends the storage is gone.
 struct QpWalkObserver {
-    static inline bool active = false;
+    static inline thread_local bool active = false;
 
-    /// How many `QpEngine::run` calls have begun since `reset()`.
-    static inline Index solves = 0;
+    /// How many `QpEngine::run` calls have begun ON THIS THREAD since
+    /// `reset()`.
+    static inline thread_local Index solves = 0;
     /// Which solve to record; `-1` records every one. M7 W2 M3b's measurement
     /// wants the FIRST subproblem of a driver solve and nothing else.
-    static inline Index capture_solve = -1;
+    static inline thread_local Index capture_solve = -1;
     /// A hard ceiling on `records`, so an observer left armed over a long run
     /// cannot grow without bound. `truncated` says whether it bit.
-    static inline std::size_t max_records = 1000000;
-    static inline bool truncated = false;
+    static inline thread_local std::size_t max_records = 1000000;
+    static inline thread_local bool truncated = false;
+    /// Set when a record could not be stored because its allocation THREW.
+    /// See `QpWalkMinorScope::~QpWalkMinorScope`: the throw is swallowed and
+    /// reported here rather than propagating out of a destructor, so an
+    /// out-of-memory condition cannot terminate a solve that would otherwise
+    /// have completed. A capture with this flag set is INCOMPLETE.
+    static inline thread_local bool allocation_failed = false;
 
-    static inline std::vector<QpWalkMinorRecord> records;
+    static inline thread_local std::vector<QpWalkMinorRecord> records;
 
     // ---- per-solve, for the solve being recorded ---------------------------
     /// True while a recorded solve is in progress.
-    static inline bool capturing = false;
+    static inline thread_local bool capturing = false;
     /// The 0-based index of the solve the fields below describe.
-    static inline Index solve_index = -1;
+    static inline thread_local Index solve_index = -1;
     /// `QpEngine::run`'s own `warm` argument.
-    static inline bool warm = false;
-    static inline Index n = 0;
-    static inline Index me = 0;
-    static inline Index mi = 0;
+    static inline thread_local bool warm = false;
+    static inline thread_local Index n = 0;
+    static inline thread_local Index me = 0;
+    static inline thread_local Index mi = 0;
     /// `detail::effective_qp_max_iter`'s resolved cap for this solve.
-    static inline Index max_iter = 0;
+    static inline thread_local Index max_iter = 0;
     /// The INCOMING working set — after the seed ingest and the seeding
     /// `refresh_shifts`, i.e. exactly the set the walk's first pass starts from.
-    static inline std::uint64_t incoming_ws_signature = 0;
-    static inline Index incoming_ws_size = 0;
+    static inline thread_local std::uint64_t incoming_ws_signature = 0;
+    static inline thread_local Index incoming_ws_size = 0;
     /// The status the recorded solve's walk loop left (`kTerminal`'s verdict,
     /// or `kMaxIter` when the cap was reached). `-1` until the loop ends.
-    static inline int exit_status = -1;
+    static inline thread_local int exit_status = -1;
 
     /// The record the current pass is filling, or `nullptr`. The hooks in
     /// `drop_worst`, `ratio_test`, `probe_zero_multiplier_drops` and
     /// `ride_negative_curvature` write through this rather than being handed a
     /// record, because those functions' signatures are production surface and
     /// this seam does not touch them.
-    static inline QpWalkMinorRecord *current = nullptr;
+    static inline thread_local QpWalkMinorRecord *current = nullptr;
+
+    /// The scratch the EQP candidate site reports into. Cleared by the walk
+    /// loop before its own call and snapshotted immediately after it.
+    static inline thread_local QpWalkEqpEvidence eqp{};
 
     static void reset() {
         active = false;
@@ -330,6 +638,7 @@ struct QpWalkObserver {
         capture_solve = -1;
         max_records = 1000000;
         truncated = false;
+        allocation_failed = false;
         records.clear();
         capturing = false;
         solve_index = -1;
@@ -342,6 +651,7 @@ struct QpWalkObserver {
         incoming_ws_size = 0;
         exit_status = -1;
         current = nullptr;
+        eqp = QpWalkEqpEvidence{};
     }
 
     /// Called once per `QpEngine::run`, before the walk loop. Returns nothing:
@@ -363,6 +673,7 @@ struct QpWalkObserver {
         incoming_ws_signature = qp_walk_ws_signature(ws);
         incoming_ws_size = qp_walk_ws_size(ws);
         exit_status = -1;
+        eqp = QpWalkEqpEvidence{};
     }
 
     /// Called once per `QpEngine::run`, after the walk loop.
@@ -387,7 +698,12 @@ class QpWalkMinorScope {
     /// precisely so that "this scope cannot touch a counter" is a property of
     /// the type rather than a promise in a comment.
     QpWalkMinorScope(const WorkingSet &ws, const Vec &x, const QpCounters &counters, Index minor)
-        : ws_(ws), counters_(counters), shift_adds_base_(counters.shift_adds) {
+        : ws_(ws), counters_(counters), shift_adds_base_(counters.shift_adds),
+          factorizations_base_(counters.factorizations),
+          eqp_refine_base_(counters.eqp_refine_steps),
+          border_refine_base_(counters.border_refine_steps),
+          verdict_refine_base_(counters.verdict_refine_steps),
+          schur_updates_base_(counters.schur_updates) {
         armed_ = QpWalkObserver::capturing;
         if (!armed_) {
             return;
@@ -410,21 +726,66 @@ class QpWalkMinorScope {
         }
         QpWalkObserver::current = nullptr;
         rec_.shift_adds = counters_.shift_adds - shift_adds_base_;
+        rec_.pass_factorizations = counters_.factorizations - factorizations_base_;
+        rec_.pass_eqp_refine_steps = counters_.eqp_refine_steps - eqp_refine_base_;
+        rec_.pass_border_refine_steps = counters_.border_refine_steps - border_refine_base_;
+        rec_.pass_verdict_refine_steps = counters_.verdict_refine_steps - verdict_refine_base_;
+        rec_.pass_schur_updates = counters_.schur_updates - schur_updates_base_;
         rec_.ws_size_out = qp_walk_ws_size(ws_);
         rec_.ws_sig_out = qp_walk_ws_signature(ws_);
         if (QpWalkObserver::records.size() >= QpWalkObserver::max_records) {
             QpWalkObserver::truncated = true;
             return;
         }
-        QpWalkObserver::records.push_back(rec_);
+        // THE ONLY THROWING OPERATION IN THIS DESTRUCTOR, and it is caught
+        // HERE rather than allowed to escape: a `push_back` that throws during
+        // stack unwinding would call `std::terminate`, which would make the
+        // observer capable of ending a solve that would otherwise have
+        // finished. Swallowed and reported through `allocation_failed`, so the
+        // seam's neutrality claim holds even when the allocator fails.
+        try {
+            QpWalkObserver::records.push_back(rec_);
+        } catch (...) {
+            QpWalkObserver::allocation_failed = true;
+        }
     }
 
     QpWalkMinorRecord &record() { return rec_; }
+
+    /// Copies the EQP candidate site's scratch into this pass's record. Called
+    /// by the walk loop the instant ITS OWN `eqp_candidate` returns, so a later
+    /// probe call on the same pass cannot overwrite what the main call said.
+    void snapshot_eqp() {
+        if (!armed_) {
+            return;
+        }
+        const QpWalkEqpEvidence &e = QpWalkObserver::eqp;
+        rec_.eqp_path = e.path;
+        rec_.inertia_state = e.state;
+        rec_.inertia_pos = e.n_pos;
+        rec_.inertia_neg = e.n_neg;
+        rec_.inertia_zero = e.n_zero;
+        rec_.inertia_zero_derived = e.zero_is_derived;
+        rec_.inertia_perturbed = e.perturbed_pivots;
+        rec_.inertia_expected_pos = e.expected_pos;
+        rec_.inertia_expected_neg = e.expected_neg;
+        rec_.eqp_call_refine_steps = e.refine_steps;
+        rec_.border_attempted = e.border_attempted;
+        rec_.k0_rebuilt = e.k0_rebuilt;
+        rec_.border_latched = e.latched;
+        rec_.border_needs_refactorization = e.needs_refactorization;
+        rec_.border_dim = e.border_dim;
+    }
 
   private:
     const WorkingSet &ws_;
     const QpCounters &counters_;
     Index shift_adds_base_ = 0;
+    Index factorizations_base_ = 0;
+    Index eqp_refine_base_ = 0;
+    Index border_refine_base_ = 0;
+    Index verdict_refine_base_ = 0;
+    Index schur_updates_base_ = 0;
     QpWalkMinorRecord rec_{};
     bool armed_ = false;
 };
@@ -436,6 +797,54 @@ template <typename Fn> inline void qp_walk_note(Fn &&fn) {
     if (QpWalkObserver::current != nullptr) {
         fn(*QpWalkObserver::current);
     }
+}
+
+/// Writes `fn` into the EQP candidate site's SCRATCH. Gated on `capturing`
+/// rather than on `current`, because the verdict site's own hooks run inside
+/// calls that a pass has not yet claimed a record for.
+template <typename Fn> inline void qp_walk_note_eqp(Fn &&fn) {
+    if (QpWalkObserver::capturing) {
+        fn(QpWalkObserver::eqp);
+    }
+}
+
+/// Clears the scratch. The walk loop calls this immediately BEFORE its own
+/// `eqp_candidate`, so a pass that reaches no verdict site records ABSENCE
+/// rather than the previous pass's evidence.
+inline void qp_walk_reset_eqp() {
+    if (QpWalkObserver::capturing) {
+        QpWalkObserver::eqp = QpWalkEqpEvidence{};
+    }
+}
+
+/// Copies one factorization's own inertia evidence and the gate's expectation
+/// into the scratch. Written as an explicit switch rather than a cast so the
+/// trace's encoding does not depend on the declaration order of a backend enum
+/// this file does not own. ABSENT stays `-1`: a state other than `kObserved`
+/// carries no counts, and an optional perturbed-pivot count that is not present
+/// (Accelerate) is never filled with a zero.
+inline void qp_walk_note_inertia(const hven::linear::InertiaEvidence &e, Index expected_pos,
+                                 Index expected_neg) {
+    qp_walk_note_eqp([&](QpWalkEqpEvidence &s) {
+        switch (e.state) {
+        case hven::linear::InertiaEvidence::State::kObserved:
+            s.state = QpWalkInertiaState::kObserved;
+            s.n_pos = e.n_pos;
+            s.n_neg = e.n_neg;
+            s.n_zero = e.n_zero;
+            break;
+        case hven::linear::InertiaEvidence::State::kQueryFailed:
+            s.state = QpWalkInertiaState::kQueryFailed;
+            break;
+        case hven::linear::InertiaEvidence::State::kUnavailable:
+            s.state = QpWalkInertiaState::kUnavailable;
+            break;
+        }
+        s.zero_is_derived = e.zero_is_derived;
+        s.perturbed_pivots = e.perturbed_pivots.has_value() ? *e.perturbed_pivots : Index{-1};
+        s.expected_pos = expected_pos;
+        s.expected_neg = expected_neg;
+    });
 }
 
 } // namespace hven::solvers::detail::testing
