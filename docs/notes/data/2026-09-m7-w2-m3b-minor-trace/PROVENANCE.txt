@@ -271,3 +271,81 @@ TWO FACTS DELIBERATELY NOT MEASURED, and marked ABSENT in the rule rather than
 approximated: rank / independence evidence for the released constraint, and the
 predicted post-drop inertia of the drop candidates not chosen. Each needs an
 extra factorization per candidate per pass; the observer performs none.
+
+
+==============================================================================
+FIX ROUND 2 (2026-09-21) -- THE SIX GATES, GATES-ONLY, NO RE-TRACE
+==============================================================================
+Everything above describes the M3b measurement and fix round 1's re-trace and
+is UNCHANGED. This addendum adds no rows, no traces and no verdict: RULE.md,
+RULE-G.md and every committed rows/, traces/, verdict.txt and fold-walk.txt
+under gates/ and gates-fix1/ stand byte-for-byte as committed. The fix round 2
+artifacts live in gates-fix2/, parallel to gates/ and gates-fix1/.
+
+THE STAMP (CLAUDE.md section 7)
+-------------------------------
+repository      hven, branch m7 (NOT PUSHED)
+commit measured 29073877  "data(m7): M7 W2 M3b fix2 -- this round's gate
+                runner, the repaired chain, the ELF digest's two new refusals,
+                and the declaration DERIVED FROM THIS ROUND'S OWN DIFF" -- the
+                tree carrying fix round 2's S1+S2 seam and fixture changes
+                (d178b0ea), docs/testing.md (33c4df66), the README
+                corrections and re-trace health warning (ca1bdbdc), and the
+                gate runner plus the pre-run declaration (29073877). The
+                detached chain (pid 2652959, setsid, ppid 1) ran the six
+                gates on a CLEAN tree at that commit; the chain prints
+                `HEAD 29073877  dirty-files=0` on gates.txt's and chain.txt's
+                second/header line and refuses to start otherwise. A
+                recursive grep for `-dirty` over every raw transcript under
+                .scratch/m7w2m3bfix2/ finds nothing.
+pre-registered  gates-fix2/psym-derivation-fix2.txt, committed at 29073877
+                BEFORE the chain was detached, deriving its expectations
+                against THIS round's own f61199bd..HEAD diff (not carried
+                over from an earlier round's measured shape).
+date            2026-09-21, America/New_York (the gates chain:
+                16:56:31 -> 17:29:26; wall-clock INFORMATIONAL ONLY)
+toolchain       Clang 22.1.8 (Fedora 22.1.8-4.fc44) C++ compiler,
+                GNU 16.2.1 C compiler, target x86_64-redhat-linux-gnu;
+                CMake + Ninja; C++20; both Debug and Release configurations
+host            fedora, AMD Ryzen 7 5800X3D 8-Core Processor, 8 physical cores
+backend         Intel MKL (oneapi, lp64, /opt/intel/oneapi/mkl/latest)
+alignment       EIGEN_MAX_ALIGN_BYTES resolved to 32 (install smoke +
+                export contract gate, G6)
+
+APPLE / ACCELERATE: UNOBSERVED. No leg here ran on Mac hardware and no Apple
+value appears in this addendum, interpolated or otherwise.
+
+HOLDOUT: NOT RUN. No cell in this round's evidence is HOLDOUT.
+
+THE SIX GATES, ALL GREEN, EVERY NUMBER EQUAL TO ITS PRE-RUN DECLARATION
+-------------------------------------------------------------------------
+G1 Debug suite 2698/0 failed; G2 the long test alone 1/1; G3 Release suite
+2699/0 failed; G4 U0 replay 27 cells / 75 columns / 0 differences x3 (walk,
+ssn, ipm); G5 P-SYM Release/Debug DIFFERING 0 = 0 + 0, UNEXPLAINED 0, negative
+control 72/71, sections Release 42/42 byte-identical, Debug 41/42
+byte-identical + exactly 1 DEBUG-ONLY (`qp_engine.cpp.o`), NON_DEBUG_MOVERS 0,
+REFUSED 0 both arms; G6 install smoke PASSED, export contract align 32,
+clang-format rc 0, `git diff --check` rc 0, DIRTY_FILES=0.
+`GATES_SUMMARY G1=0 G2=0 G3=0 G4=0 G5=0 G6=0`, `GATES_AGGREGATE rc=0 over
+[0 0 0 0 0 0]`, `CHAIN_SUMMARY gates=0 fold_proofs=0`. Fold proofs:
+`fold_proofs_m3b.sh` 46/0, `fold_proofs_psym_fix2.sh` 60/0 (PART 6's six new
+folds over the ELF digest's two new refusals -- unsupported `EI_DATA`, an
+out-of-range or unterminated section-name offset -- included). Full detail
+and the declared-vs-measured table: gates-fix2/README.md.
+
+NO RE-TRACE WAS TAKEN. This round changed no default, no pin and no trace
+value; S3's YORKNET corrections are textual, in README.md's "Corrections
+(fix2)" section and the re-trace section's own new health warning. S1's
+single-read change does not move the committed trace columns: the traces
+were taken on MKL, whose `inertia()` accessor rereads cached session fields,
+so their inertia columns already equal the walk's own evidence before and
+after this round's change.
+
+REGISTERED, NOT DONE HERE: a TSan preset for the seam and concurrent-solve
+suites (S2), and a regularization-aware, rank-revealing audit of one tail
+post-drop system (S3's registered follow-up observation).
+
+NO FILE UNDER src/ OR include/ OUTSIDE THE HVEN_TESTING SEAM WAS TOUCHED.
+`notices/` was not touched by this round; no MPL-derived session file is
+involved, and no new sanctioned inside-the-session-file deviation was
+created. NO DEFAULT WAS CHANGED.
