@@ -1,0 +1,89 @@
+GATES_START 2026-09-20T16:59:34-04:00
+=== HEAD ef6284f8  dirty-files=0 ===
+FOREGROUND_START G1-debug 2026-09-20T20:36:45-04:00
+Total Test time (real) = 351.56 sec
+
+The following tests did not run:
+	420 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1631 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1632 - EqpRefinementAb.FullBattery (Disabled)
+FOREGROUND_END G1-debug 2026-09-20T20:43:56-04:00 rc=0
+WRAPPER_RC G1-debug rc=0
+FOREGROUND_START G2-debug-long 2026-09-20T20:44:26-04:00
+Test project /home/ghecht/Projects/hven/.scratch/m7w2m2b/gates-dbg
+    Start 1486: Continuation.ProbeBudgetBoundsAFailingProposal
+1/1 Test #1486: Continuation.ProbeBudgetBoundsAFailingProposal ...   Passed  688.09 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) = 688.14 sec
+FOREGROUND_END G2-debug-long 2026-09-20T20:55:54-04:00 rc=0
+WRAPPER_RC G2-debug-long rc=0
+FOREGROUND_START G3-release 2026-09-20T20:56:19-04:00
+Total Test time (real) = 102.35 sec
+
+The following tests did not run:
+	420 - FailByDesignControl.ControlsArePresentForWhicheverOldSeamsThisBuildHas (Skipped)
+	1632 - EqpRefinementAb.FootprintRuleProbe (Disabled)
+	1633 - EqpRefinementAb.FullBattery (Disabled)
+--- THE GATE BUILD'S LIBRARY, against the one the 35 legs ran on
+fed6243691970e4d3433e0818abaf9bb28cd2f9a1e9c84366fb5dfa84a9d93fc  /home/ghecht/Projects/hven/.scratch/m7w2m2b/gates-rel/libhven.a
+fed6243691970e4d3433e0818abaf9bb28cd2f9a1e9c84366fb5dfa84a9d93fc  /home/ghecht/Projects/hven/.scratch/m7w2m2b/install/lib64/libhven.a
+FOREGROUND_END G3-release 2026-09-20T20:59:41-04:00 rc=0
+WRAPPER_RC G3-release rc=0
+FOREGROUND_START G4-replay 2026-09-20T21:14:41-04:00
+ran head-walk rc=0
+ran head-ssn rc=0
+ran head-ipm rc=0
+=== M6 CLOSE HEAD-walk vs M7 W2 M2b HEAD-walk === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ssn vs M7 W2 M2b HEAD-ssn === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+=== M6 CLOSE HEAD-ipm vs M7 W2 M2b HEAD-ipm === cells compared: 27  columns compared: 75  differences: 0
+  CMP_RC=0
+FOREGROUND_END G4-replay 2026-09-20T21:18:52-04:00 rc=0
+WRAPPER_RC G4-replay rc=0
+FOREGROUND_START G5-psym 2026-09-20T21:19:52-04:00
+=== P-SYM Release  after=ef6284f8417978fcf8486d50347f8a7f57943cd2  before=a494b7f5
+tree restored to m7 ef6284f8
+PSYM_COMPARE_RC=1 (1 is EXPECTED; the gate is the classification)
+CLASSIFY_RC_Release=0
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 52
+  class A -- SOURCE CHANGED by this task: 5
+  class B -- INCLUDERS of a changed header, source untouched: 47
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are byte-identical: 23
+=== P-SYM Debug  after=ef6284f8417978fcf8486d50347f8a7f57943cd2  before=a494b7f5
+tree restored to m7 ef6284f8
+PSYM_COMPARE_RC=1 (1 is EXPECTED; the gate is the classification)
+CLASSIFY_RC_Debug=0
+P-SYM: FAIL — differences outside the accepted noise class
+DIFFERING OBJECTS: 52
+  class A -- SOURCE CHANGED by this task: 5
+  class B -- INCLUDERS of a changed header, source untouched: 47
+  UNEXPLAINED: 0
+  NEGATIVE CONTROL -- objects that ALSO include one of those headers and are byte-identical: 23
+CLASSIFICATIONS BYTE-IDENTICAL BETWEEN CONFIGS
+FOREGROUND_END G5-psym 2026-09-20T21:41:44-04:00 rc=0
+WRAPPER_RC G5-psym rc=0
+FOREGROUND_START G6-smoke 2026-09-20T21:56:44-04:00
+INSTALL_SMOKE_RC=0
+install smoke: both solvers converged through one generic consumer; 19 standalone-include TUs compiled and linked
+== hven install smoke: PASSED
+HVEN_INSTALL_SMOKE_INSTALL_PREFIX=/home/ghecht/Projects/hven/.scratch/m7w2m2b/smoke-work/hven-install
+HVEN_INSTALL_SMOKE_CONFIGURE_LOG=/home/ghecht/Projects/hven/.scratch/m7w2m2b/smoke-work/hven-configure.log
+ALIGN_FROM_THIS_BUILDS_CONFIGURE_LOG=32
+-rw-r--r--. 1 ghecht ghecht 4314 Sep 20 21:56 /home/ghecht/Projects/hven/.scratch/m7w2m2b/smoke-work/hven-install/lib64/cmake/hven/hvenTargets.cmake
+EXPORT_CONTRACT_RC=0
+-- INTERFACE_COMPILE_OPTIONS OK: absent
+-- INTERFACE_INCLUDE_DIRECTORIES OK: appears exactly once
+== export contract OK for platform=linux, align=32
+--- clang-format on this task's authored files (the eight of 577719a0, less the .md)
+CLANG_FORMAT_RC=0
+DIFF_CHECK_RC=0
+DIRTY_FILES=0
+FOREGROUND_END G6-smoke 2026-09-20T21:57:24-04:00 rc=0
+WRAPPER_RC G6-smoke rc=0
+GATES_SUMMARY G1=0 G2=0 G3=0 G4=0 G5=0 G6=0
+GATES_END 2026-09-20T21:57:24-04:00
