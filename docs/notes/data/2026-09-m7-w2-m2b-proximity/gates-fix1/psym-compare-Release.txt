@@ -1,0 +1,198 @@
+P-SYM tool sha256 (runner):   2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM tool sha256 (captures): 2dd3717c2dddc2c8e287876f282d242acaa9696d03e4859728918002e18b002a
+P-SYM maps: object-map=none symbol-map=none exceptions=none
+
+SYMBOLS     CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o: COVERAGE FINDINGS
+              LOCAL-FAMILY  .LCPI: 145 before, 147 after
+DIFFERS     CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1637 alignment-pad lines vs 1643 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 70716 lines vs 71079 -- instructions were added or removed
+PER-SYMBOL  CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o: PERSYM 306 identical, 1 noise-only, 1 differing, 0 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 0 with unequal trailing alignment padding, 0 duplicate copies identical, 2 rank-tagged, 0 section moves, 4140 relocation records compared (0 through the symbol map), 2 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       hven::solvers::SqpSolver::enter_restoration(hven::solvers::SqpSolver::SolveState&, hven::solvers::SqpSolver::MajorState&, hven::solvers::AssemblyEvalSeam&, hven::solvers::NlpModelAssembly&, long, hven::solvers::SqpSolver::RestorationCandidate)
+                            PAD-ROUTE DECLINED: 73 alignment-pad lines vs 78 (752 -> 789 bytes); start 0x1f8a0 (mod 32 = 0) -> 0x1f8a0 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 2783 lines vs 3170 -- instructions were added or removed
+              NOISE-ONLY    hven::solvers::(anonymous namespace)::jacobian_values_finite(hven::solvers::NlpEval const&)
+                            COUNTS 641 insns; CHANGED 102; UNCLASSIFIED 0; DELTAS (pad-merged)
+            PAD-MERGED 57 alignment-pad lines vs 58 (583 -> 599 bytes, +16); 641 non-pad lines, 539 identical, 102 control-transfer targets shifted +16; 102 control-transfer target(s) resolved to the SAME instruction; start 0x22fb0 (mod 32 = 16) -> 0x236a0 (mod 32 = 0)
+SYMBOLS     CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o: COVERAGE FINDINGS
+              ONLY-BEFORE   hven::solvers::RestorationModel::proximity_residual_inf(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+              LOCAL-FAMILY  .LCPI: 26 before, 25 after
+DIFFERS     CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 957 alignment-pad lines vs 953 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 35363 lines vs 35279 -- instructions were added or removed
+PER-SYMBOL  CMakeFiles/hven.dir/src/globalization/sqp/soc_elastic_restoration.cpp.o: PERSYM 169 identical, 0 noise-only, 0 differing, 1 only-before, 0 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 0 rank-tagged, 0 section moves, 1574 relocation records compared (0 through the symbol map), 0 global-var-init keyed by identity (0 unresolved)
+              ONLY-BEFORE   hven::solvers::RestorationModel::proximity_residual_inf(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+SYMBOLS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o: COVERAGE FINDINGS
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<Eigen::Matrix<double, -1, 1, 0, -1, 1> const*>(Eigen::Matrix<double, -1, 1, 0, -1, 1> const* const&)
+              ONLY-AFTER    typeinfo for SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_0
+              ONLY-AFTER    typeinfo for SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_1
+              ONLY-AFTER    typeinfo for SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_2
+              ONLY-AFTER    typeinfo for SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_3
+              ONLY-AFTER    std::_Function_handler<void (), SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_3>::_M_invoke(std::_Any_data const&)
+              ONLY-AFTER    typeinfo for testing::internal::TestFactoryImpl<SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test>
+              ONLY-AFTER    typeinfo name for SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test
+              ONLY-AFTER    (anonymous namespace)::WatchedCircleLineModel::eval_f(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationProximity_TheProxyWouldCertifyWhereTheExactResidualRefuses_Test>::CreateTest()
+              ONLY-AFTER    std::_Function_handler<void (), SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_3>::_M_manager(std::_Any_data&, std::_Any_data const&, std::_Manager_operation)
+              ONLY-AFTER    (anonymous namespace)::WatchedCircleLineModel::~WatchedCircleLineModel()[D2]
+              ONLY-AFTER    vtable for SqpDriverRestorationProximity_TheProxyWouldCertifyWhereTheExactResidualRefuses_Test
+              ONLY-AFTER    SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperOpFailure<decltype(nullptr), Eigen::Matrix<double, -1, 1, 0, -1, 1> const*>(char const*, char const*, decltype(nullptr) const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const* const&, char const*)
+              ONLY-AFTER    typeinfo name for testing::internal::TestFactoryImpl<SqpDriverRestorationProximity_TheSeedGuardFiresAndTheStartObjectiveIsHPlusP_Test>
+              ONLY-AFTER    vtable for testing::internal::TestFactoryImpl<SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test>
+              ONLY-AFTER    SqpDriverRestorationProximity_TheProxyWouldCertifyWhereTheExactResidualRefuses_Test::~SqpDriverRestorationProximity_TheProxyWouldCertifyWhereTheExactResidualRefuses_Test()
+              ONLY-AFTER    typeinfo name for SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_0
+              ONLY-AFTER    typeinfo name for SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_1
+              ... and 42 more symbols present only in the after arm
+              LOCAL-FAMILY  .LCPI: 816 before, 866 after
+              LOCAL-FAMILY  .L.str: 486 before, 524 after
+              LOCAL-FAMILY  GCC_except_table: 448 before, 462 after
+DIFFERS     tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o (positional pairing did not hold; the PER-SYMBOL line below is the verdict)
+            PAD-ROUTE DECLINED: 1558 alignment-pad lines vs 1609 (0 -> 0 bytes) -- a non-pad line was added or removed (rule 2)
+            STRUCTURAL: normalized listing is 99093 lines vs 103227 -- instructions were added or removed
+PER-SYMBOL  tests/sqp/CMakeFiles/hven_sqp_tests.dir/test_sqp_restoration.cpp.o: PERSYM 824 identical, 26 noise-only, 12 differing, 0 only-before, 30 only-after, 0 excepted, 0 collisions, 0 matched through the symbol map, 1 with unequal trailing alignment padding, 0 duplicate copies identical, 4 rank-tagged, 0 section moves, 13271 relocation records compared (0 through the symbol map), 4 global-var-init keyed by identity (0 unresolved)
+              DIFFERS       _GLOBAL__sub_I_test_sqp_restoration.cpp
+                            STRUCTURAL: normalized listing is 3474 lines vs 3759 -- instructions were added or removed
+              NOISE-ONLY    SqpDriverRestorationSeed_TheExhaustedLadderSiteSeedsFromItsOwnStep_Test::TestBody()
+                            COUNTS 620 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS -6(x7)
+              NOISE-ONLY    SqpDriverRestoration_ExhaustedElasticTierEntersRestoration_Test::TestBody()
+                            COUNTS 879 insns; CHANGED 13; UNCLASSIFIED 0; DELTAS -6(x13)
+              NOISE-ONLY    SqpDriverRestorationSeed_AJacobianPoisonedCandidateIsRefusedNotTaken_Test::TestBody()
+                            COUNTS 569 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS -6(x4)
+              NOISE-ONLY    SqpDriverRestorationSeed_ANonFiniteEvaluationAtTheCandidateIsRefused_Test::TestBody()
+                            COUNTS 387 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS -6(x4)
+              DIFFERS       SqpDriverRestoration_RestorationRecoversAndResumes_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x1b97f(%rip),%rdx ;LEN=7
+                                            + 	lea    0x1ef1f(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x1b918(%rip),%rcx ;LEN=7
+                                            + 	lea    0x1eeb8(%rip),%rcx ;LEN=7
+                            COUNTS 2218 insns; CHANGED 27; UNCLASSIFIED 2; DELTAS -6(x25)
+              NOISE-ONLY    SqpDriverRestorationSeed_TheRadiusFloorSeedsFromTheRejectedTrial_Test::TestBody()
+                            COUNTS 454 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS -6(x5)
+              NOISE-ONLY    SqpDriverRestorationSeed_AWorseElasticCandidateIsRefusedOnTheSameModel_Test::TestBody()
+                            COUNTS 469 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS -6(x6)
+              NOISE-ONLY    SqpDriverRestorationSeed_TheSeedsEvaluationIsCountedExactlyOnce_Test::TestBody()
+                            COUNTS 452 insns; CHANGED 5; UNCLASSIFIED 0; DELTAS -6(x5)
+              NOISE-ONLY    RestorationModel_ScalesSlackColumnsToTheirJacobianRow_Test::TestBody()
+                            COUNTS 782 insns; CHANGED 8; UNCLASSIFIED 0; DELTAS +1(x8)
+              NOISE-ONLY    SqpDriverRadius_InfiniteInitialRadiusShrinksToTrMax_Test::TestBody()
+                            COUNTS 713 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS -6(x7)
+              DIFFERS       SqpDriverRestoration_SecondRequestIsCappedAndReported_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x17061(%rip),%rdx ;LEN=7
+                                            + 	lea    0x1a601(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x16ffa(%rip),%rcx ;LEN=7
+                                            + 	lea    0x1a59a(%rip),%rcx ;LEN=7
+                            COUNTS 850 insns; CHANGED 11; UNCLASSIFIED 2; DELTAS -6(x9)
+              NOISE-ONLY    SqpDriverRestorationSeed_TheTakenCandidateIsRecordedOnTheRequestingRow_Test::TestBody()
+                            COUNTS 611 insns; CHANGED 8; UNCLASSIFIED 0; DELTAS -6(x8)
+              DIFFERS       RestorationModelProximity_IsTheHandComputedTermAtEveryScalingBranch_Test::TestBody()
+                            PAD-ROUTE DECLINED: 1 alignment-pad lines vs 1 (5 -> 15 bytes); start 0x4180 (mod 32 = 0) -> 0x4180 (mod 32 = 0) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 3211 lines vs 2980 -- instructions were added or removed
+              DIFFERS       SqpDriverRestoration_ZeroStepIsAcceptedAsAKktPoint_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x15fb4(%rip),%rdx ;LEN=7
+                                            + 	lea    0x19554(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x15d8e(%rip),%rcx ;LEN=7
+                                            + 	lea    0x1932e(%rip),%rcx ;LEN=7
+                            COUNTS 776 insns; CHANGED 11; UNCLASSIFIED 2; DELTAS -6(x9)
+              DIFFERS       RestorationModelProximity_AtZeroItIsTheWrapperThatShips_Test::TestBody()
+                            PAD-ROUTE DECLINED: 81 alignment-pad lines vs 80 (876 -> 860 bytes); start 0x6fd0 (mod 32 = 16) -> 0x6ca0 (mod 32 = 0) -- a non-pad line differs somewhere other than a control-transfer target (rule 3)
+                            STRUCTURAL: normalized listing is 2797 lines vs 2796 -- instructions were added or removed
+              NOISE-ONLY    RestorationModel_DerivativesMatchFiniteDifferences_Test::TestBody()
+                            COUNTS 831 insns; CHANGED 3; UNCLASSIFIED 0; DELTAS +1(x3)
+              NOISE-ONLY    (anonymous namespace)::CircleInequalityModel::start_point() const
+                            COUNTS 87 insns; CHANGED 13; UNCLASSIFIED 0; DELTAS (pad-merged)
+            PAD-MERGED 7 alignment-pad lines vs 5 (64 -> 48 bytes, -16); 87 non-pad lines, 74 identical, 13 control-transfer targets shifted -16; 17 control-transfer target(s) resolved to the SAME instruction; start 0x2ad70 (mod 32 = 16) -> 0x2de60 (mod 32 = 0)
+              NOISE-ONLY    SqpDriverRestorationExcursion_TheTerminalArmRecordsThePointItReports_Test::TestBody()
+                            COUNTS 620 insns; CHANGED 9; UNCLASSIFIED 0; DELTAS -6(x9)
+              NOISE-ONLY    SqpDriverRestorationExcursion_ACleanSolveHoldsNoReading_Test::TestBody()
+                            COUNTS 517 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS -6(x7)
+              NOISE-ONLY    SqpDriverRestorationSeed_TheGuardAndThePhaseRunOnTheCallerScale_Test::TestBody()
+                            COUNTS 997 insns; CHANGED 13; UNCLASSIFIED 0; DELTAS -6(x13)
+              NOISE-ONLY    SqpDriverRestoration_TheSharedDiagnosticsOfACertifiedExitUseTheReturnedPrices_Test::TestBody()
+                            COUNTS 872 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS -6(x10)
+              DIFFERS       SqpDriverRestorationExcursion_ARefusedSecondRequestLeavesTheFirstEntrysRecord_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x5bb8(%rip),%rdx ;LEN=7
+                                            + 	lea    0x9158(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x5b51(%rip),%rcx ;LEN=7
+                                            + 	lea    0x90f1(%rip),%rcx ;LEN=7
+                            COUNTS 505 insns; CHANGED 8; UNCLASSIFIED 2; DELTAS -6(x6)
+              DIFFERS       SqpDriverRestorationExcursion_TheResumeArmRecordsTheCallersOwnExcursion_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x7a01(%rip),%rdx ;LEN=7
+                                            + 	lea    0xafa1(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x799a(%rip),%rcx ;LEN=7
+                                            + 	lea    0xaf3a(%rip),%rcx ;LEN=7
+                            COUNTS 940 insns; CHANGED 14; UNCLASSIFIED 2; DELTAS -6(x12)
+              NOISE-ONLY    RestorationModel_IsTheSmoothL1FeasibilityProblem_Test::TestBody()
+                            COUNTS 2103 insns; CHANGED 26; UNCLASSIFIED 0; DELTAS +1(x26)
+              NOISE-ONLY    RestorationProximityOption_RefusesANegativeNanOrInfiniteWeightByNameAndValue_Test::TestBody()
+                            COUNTS 765 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS -6(x7)
+              NOISE-ONLY    RestorationModelProximity_AtAPositiveWeightThePatternGainsTheDiagonal_Test::TestBody()
+                            COUNTS 2148 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS -5(x6)
+              NOISE-ONLY    SqpDriverRestoration_AlgebraModeDivergenceIsANonUniqueSubproblemOptimum_Test::TestBody()
+                            COUNTS 1132 insns; CHANGED 10; UNCLASSIFIED 0; DELTAS -6(x10)
+              NOISE-ONLY    SqpDriverRestoration_ExhaustedElasticTierEntersRestorationUnderEveryMode_Test::TestBody()
+                            COUNTS 863 insns; CHANGED 13; UNCLASSIFIED 0; DELTAS -6(x13)
+              NOISE-ONLY    SqpDriverRadius_RejectsUnusableFloors_Test::TestBody()
+                            COUNTS 1197 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS -6(x6)
+              NOISE-ONLY    RestorationProximityOption_ShipsAtZeroAndCarriesADumpLineInDeclarationPosition_Test::TestBody()
+                            COUNTS 665 insns; CHANGED 4; UNCLASSIFIED 0; DELTAS -6(x4)
+              NOISE-ONLY    SqpDriverRestorationProximity_TheCertificateIsGatedOnTheUncorrectedResidual_Test::TestBody()
+                            COUNTS 802 insns; CHANGED 7; UNCLASSIFIED 0; DELTAS -6(x7)
+              DIFFERS       SqpDriverRestoration_InfeasibleNlpCertifies_Test::TestBody()
+                            PAD-ROUTE DECLINED: 17 alignment-pad lines vs 18 (184 -> 200 bytes); start 0xdbc0 (mod 32 = 0) -> 0xd6f0 (mod 32 = 16) -- a non-pad line differs somewhere other than a control-transfer target (rule 3)
+                            STRUCTURAL: normalized listing is 1451 lines vs 1452 -- instructions were added or removed
+              NOISE-ONLY    SqpDriverRestorationSeed_TheSeedIsNotGatedOnTheQpMode_Test::TestBody()
+                            COUNTS 467 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS -6(x6)
+              DIFFERS       SqpDriverRadius_FloorRaisesTheRestorationRequest_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x120b2(%rip),%rdx ;LEN=7
+                                            + 	lea    0x15652(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x1204b(%rip),%rcx ;LEN=7
+                                            + 	lea    0x155eb(%rip),%rcx ;LEN=7
+                            COUNTS 1428 insns; CHANGED 18; UNCLASSIFIED 2; DELTAS -6(x16)
+              DIFFERS       RestorationModel_IsTheSmoothL1FeasibilityProblemAtAPositiveProximity_Test::TestBody()
+                            PAD-ROUTE DECLINED: 13 alignment-pad lines vs 14 (123 -> 134 bytes); start 0xc210 (mod 32 = 16) -> 0xbed0 (mod 32 = 16) -- a non-pad line was added or removed (rule 2)
+                            STRUCTURAL: normalized listing is 1739 lines vs 1624 -- instructions were added or removed
+              DIFFERS       SqpDriverRestoration_RestorationIsIdleOnCleanProblems_Test::TestBody()
+                              UNCLASSIFIED  - 	lea    0x17fef(%rip),%rdx ;LEN=7
+                                            + 	lea    0x1b58f(%rip),%rdx ;LEN=7
+                              UNCLASSIFIED  - 	lea    0x17f15(%rip),%rcx ;LEN=7
+                                            + 	lea    0x1b4b5(%rip),%rcx ;LEN=7
+                            COUNTS 1452 insns; CHANGED 9; UNCLASSIFIED 2; DELTAS -6(x7)
+              NOISE-ONLY    SqpDriverRestorationSeed_AZeroElasticStepIsNotACandidate_Test::TestBody()
+                            COUNTS 466 insns; CHANGED 6; UNCLASSIFIED 0; DELTAS -6(x6)
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test>::~TestFactoryImpl()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test>::CreateTest()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationProximity_TheSeedGuardFiresAndTheStartObjectiveIsHPlusP_Test>::CreateTest()
+              ONLY-AFTER    std::_Function_handler<void (), SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_0>::_M_invoke(std::_Any_data const&)
+              ONLY-AFTER    (anonymous namespace)::WatchedCircleLineModel::eval_f(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+              ONLY-AFTER    std::_Function_handler<void (), SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_0>::_M_manager(std::_Any_data&, std::_Any_data const&, std::_Manager_operation)
+              ONLY-AFTER    SqpDriverRestorationProximity_TheSeedGuardFiresAndTheStartObjectiveIsHPlusP_Test::~SqpDriverRestorationProximity_TheSeedGuardFiresAndTheStartObjectiveIsHPlusP_Test()
+              ONLY-AFTER    std::_Function_handler<void (), SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_2>::_M_manager(std::_Any_data&, std::_Any_data const&, std::_Manager_operation)
+              ONLY-AFTER    std::_Function_handler<void (), SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_1>::_M_invoke(std::_Any_data const&)
+              ONLY-AFTER    SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()
+              ONLY-AFTER    (anonymous namespace)::WatchedCircleLineModel::~WatchedCircleLineModel()[D0]
+              ONLY-AFTER    (anonymous namespace)::WatchedCircleLineModel::~WatchedCircleLineModel()[D2]
+              ONLY-AFTER    testing::AssertionResult testing::internal::CmpHelperOpFailure<decltype(nullptr), Eigen::Matrix<double, -1, 1, 0, -1, 1> const*>(char const*, char const*, decltype(nullptr) const&, Eigen::Matrix<double, -1, 1, 0, -1, 1> const* const&, char const*)
+              ONLY-AFTER    SqpDriverRestorationProximity_TheProxyWouldCertifyWhereTheExactResidualRefuses_Test::TestBody()
+              ONLY-AFTER    SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_5::operator()(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, char const*) const
+              ONLY-AFTER    SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_4::operator()[abi:cxx11](std::function<void ()> const&) const
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > std::operator+<char, std::char_traits<char>, std::allocator<char> >(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, char const*)
+              ONLY-AFTER    std::_Function_handler<void (), SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_2>::_M_invoke(std::_Any_data const&)
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationProximity_TheProxyWouldCertifyWhereTheExactResidualRefuses_Test>::CreateTest()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationProximity_TheProxyWouldCertifyWhereTheExactResidualRefuses_Test>::~TestFactoryImpl()
+              ONLY-AFTER    SqpDriverRestorationProximity_TheSeedGuardFiresAndTheStartObjectiveIsHPlusP_Test::TestBody()
+              ONLY-AFTER    testing::internal::TestFactoryImpl<SqpDriverRestorationProximity_TheSeedGuardFiresAndTheStartObjectiveIsHPlusP_Test>::~TestFactoryImpl()
+              ONLY-AFTER    SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::~SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test()
+              ONLY-AFTER    std::_Function_handler<void (), SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_1>::_M_manager(std::_Any_data&, std::_Any_data const&, std::_Manager_operation)
+              ONLY-AFTER    SqpDriverRestorationProximity_TheProxyWouldCertifyWhereTheExactResidualRefuses_Test::~SqpDriverRestorationProximity_TheProxyWouldCertifyWhereTheExactResidualRefuses_Test()
+              ONLY-AFTER    std::_Function_handler<void (), SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_3>::_M_invoke(std::_Any_data const&)
+              ONLY-AFTER    std::_Function_handler<void (), SqpDriverRestorationProximity_TheRefusalsNameTheFieldTheValueAndTheRemedy_Test::TestBody()::$_3>::_M_manager(std::_Any_data&, std::_Any_data const&, std::_Manager_operation)
+              ONLY-AFTER    (anonymous namespace)::recover_requesting_iterate(std::vector<Eigen::Matrix<double, -1, 1, 0, -1, 1>, std::allocator<Eigen::Matrix<double, -1, 1, 0, -1, 1> > > const&, double, double, double, double)
+              ONLY-AFTER    std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > testing::PrintToString<Eigen::Matrix<double, -1, 1, 0, -1, 1> const*>(Eigen::Matrix<double, -1, 1, 0, -1, 1> const* const&)
+              ONLY-AFTER    (anonymous namespace)::WatchedCircleLineModel::eval_ce(Eigen::Matrix<double, -1, 1, 0, -1, 1> const&) const
+ARCHIVE     libhven.a differs -- see its member objects above; archive
+            metadata (member timestamps, symbol index) is not instructions
+
+P-SYM: 146 objects — 142 byte-identical, 0 differing within the accepted noise class, 3 with unclassified differences, 0 matched by basename after a path move, 0 missing
+P-SYM coverage: 0 objects matched through the object map, 3 compared per symbol, 0 objects passed per symbol, 0 after-arm objects unaccounted for; symbols — 68607 matched (0 through the symbol map), 1 only-before, 62 only-after, 0 excepted, 0 collisions, 48 rank-tagged, 0 stale exceptions, 0 stale map entries; compiler-local label families — 590 matched by count, 5 differing (78405 before-arm and 78508 after-arm symbols accounted by family); relocations — 18985 records compared (0 through the symbol map)
+P-SYM: FAIL — differences outside the accepted noise class
