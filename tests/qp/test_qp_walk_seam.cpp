@@ -27,9 +27,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <condition_variable>
 #include <cstddef>
 #include <cstring>
 #include <limits>
+#include <mutex>
 #include <new>
 #include <string>
 #include <thread>
@@ -97,8 +99,15 @@ QpProblem degenerate_qp() {
 /// tridiagonal Hessian, a linear term that pulls the solution outside the box,
 /// and two general rows. It exists so neutrality is not proved only on
 /// two-variable problems.
-QpProblem many_minor_qp() {
-    constexpr Index kN = 24;
+///
+/// PARAMETERIZED IN `kN` (fix round 2) and in nothing else: every coefficient
+/// is the same function of `i` it always was, and the two row right-hand sides
+/// are the same constants, so `many_minor_qp_n(24)` is the 24-variable problem
+/// this file has always built, coefficient for coefficient. The width is a
+/// parameter because the concurrency fixtures below need solves LONG enough for
+/// two threads released together to actually overlap inside `QpEngine::run`,
+/// and a 24-variable walk is not reliably that.
+QpProblem many_minor_qp_n(Index kN) {
     QpProblem qp;
     Eigen::MatrixXd Hd = Eigen::MatrixXd::Zero(kN, kN);
     for (Index i = 0; i < kN; ++i) {
@@ -128,6 +137,15 @@ QpProblem many_minor_qp() {
     return qp;
 }
 
+QpProblem many_minor_qp() { return many_minor_qp_n(24); }
+
+/// The two problems the CONCURRENCY fixtures run, wide enough that a solve is
+/// milliseconds rather than microseconds and the overlap window the start gate
+/// opens is a real one. Their widths differ, which is what makes "this thread's
+/// own trace" checkable by constraint index alone.
+QpProblem concurrent_wide_qp() { return many_minor_qp_n(96); }
+QpProblem concurrent_narrow_qp() { return many_minor_qp_n(48); }
+
 /// A working set that is WRONG on purpose: every variable pinned at its lower
 /// bound, no row active. On these fixtures the optimum has neither property,
 /// so the walk has to DROP its way out — which is how the drop paths of this
@@ -155,6 +173,12 @@ const Case kCases[] = {
     {"degenerate@wrong-seed", &degenerate_qp, true},
     {"many_minor@wrong-seed", &many_minor_qp, true},
 };
+
+/// The CONCURRENCY fixtures' own two cases, kept OUT of `kCases` so that the
+/// neutrality, faithfulness and signature fixtures keep running exactly the six
+/// cases they have always run. Both are wrong-seeded, so both walks DROP.
+const Case kConcurrentWide{"concurrent_wide@wrong-seed", &concurrent_wide_qp, true};
+const Case kConcurrentNarrow{"concurrent_narrow@wrong-seed", &concurrent_narrow_qp, true};
 
 QpSolution run_case(const Case &c, const QpProblem &qp, QpEngine &engine) {
     if (!c.seeded) {
@@ -198,9 +222,15 @@ QpSolution run_case(const Case &c, const QpProblem &qp, QpEngine &engine) {
 /// pair; without this mask the arm compares stack residue, which is a flake
 /// rather than a gate (it fires at the seven bytes after `k0_reused`).
 ///
-/// If the mask comes out EMPTY — a toolchain that zero-fills a
-/// default-initialized object — the comparison degrades to the strict
-/// byte-for-byte form it had before. Never weaker, only less arbitrary.
+/// IF THE MASK COMES OUT EMPTY — a toolchain that zero-fills a
+/// default-initialized object — `memcmp_ignoring_padding` is arithmetically the
+/// strict byte-for-byte comparison, so nothing is weakened. But the suite does
+/// NOT then quietly run in that mode: the non-vacuity fixture requires
+/// `padded > 0` and FAILS, because on such a toolchain the mask's derivation has
+/// stopped being a measurement of padding and the whole-object arm's behaviour
+/// would no longer be the one argued for here. Refusing is deliberate; an
+/// earlier wording of this comment said "degrades", which contradicted that
+/// fixture (fix round 2).
 const std::vector<bool> &counters_padding_mask() {
     static const std::vector<bool> mask = [] {
         alignas(QpCounters) unsigned char lo[sizeof(QpCounters)];
@@ -305,9 +335,57 @@ struct ThreadResult {
     bool active_seen_at_entry = false;
 };
 
+/// A TWO-PARTY START GATE. Hand-rolled from a mutex and a condition variable
+/// rather than taken from `<barrier>`, so the fixture depends on nothing beyond
+/// the threading primitives this file already uses.
+///
+/// WHY IT IS HERE (the review's Important 2). Without it the two workers are
+/// merely CREATED close together, and a valid scheduler may run them one after
+/// the other: each pre-fix worker could then reset, solve, copy out and reset
+/// again before the other started, and every assertion below would pass on the
+/// broken observer. The gate makes both threads block until both have built
+/// their problem and constructed their engine, and releases them together, so
+/// the thing under test — two `QpEngine::run` calls IN FLIGHT AT ONCE — is what
+/// actually runs.
+///
+/// WHAT IT STILL CANNOT PROMISE, said plainly rather than left to be inferred.
+/// The defect this fixture is written against is a DATA RACE on process-global
+/// observer state. A data race is undefined behaviour, and no ordinary
+/// assertion can promise a particular symptom from one: on the PRE-fix observer
+/// these fixtures are probabilistically red, not deterministically red. The
+/// gate plus solves sized in milliseconds makes overlap the overwhelmingly
+/// likely case rather than an accident of scheduling; a sanitizer verdict is
+/// what would make it a certainty, and THERE IS NO ThreadSanitizer PRESET IN
+/// THIS TREE (`CMakePresets.json` carries linux-clang-{release,debug,coverage},
+/// macos-clang-release and windows-clang-release, and nothing under `cmake/`
+/// adds `-fsanitize=thread`). Adding one, and running this suite and the
+/// concurrent-solve suites under it, is REGISTERED for the milestone close in
+/// `docs/testing.md`; it is deliberately not done in this round.
+/// `QpWalkSeam.ArmingOnOneThreadIsInvisibleOnAnother` below is the
+/// DETERMINISTIC arm of the same claim and does not depend on any of this.
+class StartGate {
+  public:
+    void arrive_and_wait() {
+        std::unique_lock<std::mutex> lk(m_);
+        if (++arrived_ == 2) {
+            open_ = true;
+            cv_.notify_all();
+            return;
+        }
+        cv_.wait(lk, [this] { return open_; });
+    }
+
+  private:
+    std::mutex m_;
+    std::condition_variable cv_;
+    int arrived_ = 0;
+    bool open_ = false;
+};
+
 /// The body each thread of the concurrency fixtures runs: arm (or do not arm)
-/// THIS thread's observer, build its own problem, solve it, and copy out.
-void run_one_thread(const Case &c, bool arm, ThreadResult &out) {
+/// THIS thread's observer, build its own problem, construct its engine, wait at
+/// the start gate for the other thread, and only then solve and copy out.
+void run_one_thread(const Case &c, bool arm, ThreadResult &out, StartGate &gate) {
     // What this thread saw BEFORE it armed anything. With process-global state
     // the other thread's arming would be visible here.
     out.active_seen_at_entry = Obs::active;
@@ -315,6 +393,9 @@ void run_one_thread(const Case &c, bool arm, ThreadResult &out) {
     Obs::active = arm;
     const QpProblem qp = c.build();
     QpEngine engine{QpOptions{}};
+    // EVERYTHING EXPENSIVE THAT IS NOT THE SOLVE HAPPENS ABOVE THIS LINE, so
+    // what the gate releases into is `QpEngine::run` and not problem assembly.
+    gate.arrive_and_wait();
     const QpSolution sol = run_case(c, qp, engine);
     out.sol = sol;
     std::memcpy(&out.counters, &sol.counters, sizeof(QpCounters));
@@ -440,13 +521,23 @@ TEST(QpWalkSeam, TheObserverIsNeutralOnAWarmRESOLVETOO) {
 // thread's answer is bit-identical to its own single-threaded unobserved run,
 // each thread's solve COUNTER is its own (a shared one would read 2), and each
 // armed thread's trace is complete and contains only its own records.
+//
+// FIX ROUND 2 forces the overlap they are about. Both threads now block at a
+// `StartGate` until both have built their problem and their engine, and they
+// run problems of 96 and 48 variables rather than 24 and 2, so the solve the
+// gate releases them into lasts long enough for the two `QpEngine::run` calls
+// to be in flight together. The honest limit, restated because it is easy to
+// read past: the PRE-fix defect is a data race, redness under a data race is
+// probabilistic without a sanitizer, and this tree has no TSan preset. These
+// two fixtures make the racing case HAPPEN; the third one below is the
+// deterministic arm and needs no scheduling luck at all.
 
 TEST(QpWalkSeam, TwoEnginesOnTwoThreadsOneArmedOneNot) {
-    // Deliberately different widths (24 variables against 2) so a record from
+    // Deliberately different widths (96 variables against 48) so a record from
     // the wrong thread is detectable by its constraint index alone, and both
     // seeded wrong so both walks actually DROP.
-    const Case &wide = kCases[5];   // many_minor@wrong-seed, n = 24
-    const Case &narrow = kCases[3]; // simple_box@wrong-seed, n = 2
+    const Case &wide = kConcurrentWide;
+    const Case &narrow = kConcurrentNarrow;
 
     ObserverGuard guard;
     const QpSolution wide_base = baseline_for(wide);
@@ -454,8 +545,9 @@ TEST(QpWalkSeam, TwoEnginesOnTwoThreadsOneArmedOneNot) {
 
     ThreadResult wide_out;
     ThreadResult narrow_out;
-    std::thread a([&] { run_one_thread(wide, /*arm=*/true, wide_out); });
-    std::thread b([&] { run_one_thread(narrow, /*arm=*/false, narrow_out); });
+    StartGate gate;
+    std::thread a([&] { run_one_thread(wide, /*arm=*/true, wide_out, gate); });
+    std::thread b([&] { run_one_thread(narrow, /*arm=*/false, narrow_out, gate); });
     a.join();
     b.join();
 
@@ -487,13 +579,13 @@ TEST(QpWalkSeam, TwoEnginesOnTwoThreadsOneArmedOneNot) {
 
     // The armed thread's trace is complete and entirely its own; the unarmed
     // thread recorded nothing at all.
-    expect_complete_own_capture(wide_out, 24);
+    expect_complete_own_capture(wide_out, 96);
     EXPECT_TRUE(narrow_out.records.empty()) << "an unarmed thread recorded something";
 }
 
 TEST(QpWalkSeam, TwoEnginesOnTwoThreadsBothArmed) {
-    const Case &wide = kCases[5];   // many_minor@wrong-seed, n = 24
-    const Case &narrow = kCases[4]; // degenerate@wrong-seed, n = 2
+    const Case &wide = kConcurrentWide;
+    const Case &narrow = kConcurrentNarrow;
 
     ObserverGuard guard;
     const QpSolution wide_base = baseline_for(wide);
@@ -501,8 +593,9 @@ TEST(QpWalkSeam, TwoEnginesOnTwoThreadsBothArmed) {
 
     ThreadResult wide_out;
     ThreadResult narrow_out;
-    std::thread a([&] { run_one_thread(wide, /*arm=*/true, wide_out); });
-    std::thread b([&] { run_one_thread(narrow, /*arm=*/true, narrow_out); });
+    StartGate gate;
+    std::thread a([&] { run_one_thread(wide, /*arm=*/true, wide_out, gate); });
+    std::thread b([&] { run_one_thread(narrow, /*arm=*/true, narrow_out, gate); });
     a.join();
     b.join();
 
@@ -520,8 +613,8 @@ TEST(QpWalkSeam, TwoEnginesOnTwoThreadsBothArmed) {
     EXPECT_EQ(narrow_base.bound_state, narrow_out.sol.bound_state);
 
     // BOTH traces are complete and neither holds a record of the other's walk.
-    expect_complete_own_capture(wide_out, 24);
-    expect_complete_own_capture(narrow_out, 2);
+    expect_complete_own_capture(wide_out, 96);
+    expect_complete_own_capture(narrow_out, 48);
     EXPECT_NE(wide_out.records.size(), narrow_out.records.size())
         << "the two walks were chosen to differ in length; equal sizes would "
            "make the separation claim untestable";
@@ -842,6 +935,93 @@ TEST(QpWalkSeam, EveryPassRecordsTheMainVerdictAndThePathThatProducedIt) {
         }
         EXPECT_TRUE(saw_evidence) << "no pass reported backend inertia evidence at all";
     }
+}
+
+// THE SINGLE-READ PROPERTY (fix round 2), and what can and cannot be asserted
+// about it here.
+//
+// The hooks at the two verdict sites in `qp_engine.cpp` now read
+// `factor.inertia()` ONCE, into a local, and hand that same object to
+// `detail::inertia_verdict` and to `qp_walk_note_inertia`. Before this round
+// each site called the accessor twice, once per consumer. That matters because
+// `inertia()` is not the same kind of call on both backends: on MKL it rereads
+// fields the session already cached, while on Accelerate it makes a genuine,
+// independently fallible `SparseGetInertia` call
+// (`src/linear/symmetric_factor_accelerate.cpp`). A RECORD-ONLY seam may not
+// add a backend query, and evidence read a second time is not provably the
+// evidence that decided the verdict.
+//
+// THE COUNT OF BACKEND INERTIA QUERIES IS NOT OBSERVABLE FROM ANY EXISTING SEAM
+// IN THIS TREE, so there is no fixture here that compares it attached against
+// unattached. Said plainly rather than papered over: the seam's inertia-query
+// hook is `InertiaQueryFaultInjector`
+// (`hven/detail/linear/fault_injection.h`), which SUBSTITUTES a return code and
+// carries no counter, and it is Accelerate-only; nothing else on the linear
+// seam counts calls. Inventing a counting seam is out of scope for a fix round
+// and is not what the convention asks for. The property is therefore asserted
+// BY CONSTRUCTION, and the construction is checkable by reading eleven lines:
+// each of the two sites contains exactly one textual `inertia()` call inside
+// its `#ifdef HVEN_TESTING` arm, the `#else` arm is the production statement
+// verbatim, and neither arm is reachable from the other.
+//
+// WHAT THIS FIXTURE DOES ADD is the premise the "no re-trace" ruling rests on:
+// on the backend this build links, the accessor answers the SAME THING TWICE,
+// so the inertia columns of the traces taken under the old two-call form are
+// equal to the evidence those walks' own verdicts were computed from. That is a
+// measurement on this platform and is explicitly not a claim about Accelerate,
+// where the second call is a real query that can fail on its own.
+TEST(QpWalkSeam, TheBackendsInertiaAccessorAnswersTheSameThingTwiceOnThisPlatform) {
+    // A symmetric INDEFINITE 4x4, so the triple under test is not the trivial
+    // all-positive one: tridiag(-1, 2, -1) with the last two diagonal entries
+    // negated has both signs represented.
+    hven::Mat dense = hven::Mat::Zero(4, 4);
+    for (Index i = 0; i < 4; ++i) {
+        dense(i, i) = (i < 2) ? 2.0 : -2.0;
+        if (i + 1 < 4) {
+            dense(i, i + 1) = -1.0;
+            dense(i + 1, i) = -1.0;
+        }
+    }
+    std::vector<Eigen::Triplet<double>> triplets;
+    for (Index i = 0; i < 4; ++i) {
+        for (Index j = i; j < 4; ++j) {
+            if (i == j || dense(i, j) != 0.0) {
+                triplets.emplace_back(static_cast<int>(i), static_cast<int>(j), dense(i, j));
+            }
+        }
+    }
+    hven::SpMatRM A(4, 4);
+    A.setFromTriplets(triplets.begin(), triplets.end());
+    A.makeCompressed();
+
+    hven::linear::SymmetricFactor factor{hven::linear::SymmetricFactor::Options{}};
+    factor.analyze(A);
+    const auto outcome = factor.factorize(A);
+    ASSERT_EQ(outcome.status, hven::linear::FactorizeOutcome::Status::kOk);
+
+    const hven::linear::InertiaEvidence first = factor.inertia();
+    const hven::linear::InertiaEvidence second = factor.inertia();
+    ASSERT_EQ(static_cast<int>(hven::linear::InertiaEvidence::State::kObserved),
+              static_cast<int>(first.state))
+        << "this platform's backend did not report inertia at all: the premise below is untested";
+    EXPECT_EQ(static_cast<int>(first.state), static_cast<int>(second.state));
+    EXPECT_EQ(first.n_pos, second.n_pos);
+    EXPECT_EQ(first.n_neg, second.n_neg);
+    EXPECT_EQ(first.n_zero, second.n_zero);
+    EXPECT_EQ(first.zero_is_derived, second.zero_is_derived);
+    EXPECT_EQ(first.perturbed_pivots.has_value(), second.perturbed_pivots.has_value());
+    if (first.perturbed_pivots.has_value() && second.perturbed_pivots.has_value()) {
+        EXPECT_EQ(*first.perturbed_pivots, *second.perturbed_pivots);
+    }
+    // NON-VACUITY: the matrix really is indefinite, so a triple that agreed
+    // only because it was all zeros would not pass here.
+    EXPECT_GT(first.n_pos, 0);
+    EXPECT_GT(first.n_neg, 0);
+    // And the accessor agrees with the factorization's own returned evidence,
+    // which is the other object the engine could have read.
+    EXPECT_EQ(static_cast<int>(outcome.inertia.state), static_cast<int>(first.state));
+    EXPECT_EQ(outcome.inertia.n_pos, first.n_pos);
+    EXPECT_EQ(outcome.inertia.n_neg, first.n_neg);
 }
 
 TEST(QpWalkSeam, ThePerPassCounterDeltasAreNonNegativeAndBoundedByTheSolvesTotals) {

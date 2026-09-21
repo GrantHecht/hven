@@ -741,8 +741,16 @@ class QpWalkMinorScope {
         // HERE rather than allowed to escape: a `push_back` that throws during
         // stack unwinding would call `std::terminate`, which would make the
         // observer capable of ending a solve that would otherwise have
-        // finished. Swallowed and reported through `allocation_failed`, so the
-        // seam's neutrality claim holds even when the allocator fails.
+        // finished. Swallowed and reported through `allocation_failed`.
+        //
+        // WHAT THAT BUYS, NARROWLY (fix round 2). It is a claim about THIS
+        // `push_back` and nothing wider. Other observer-only work allocates
+        // too -- the stationarity and active-row temporaries at the walk loop's
+        // residual hooks, and the copied-and-sorted candidate vector at the
+        // drop rule's -- and a `bad_alloc` thrown there propagates out of the
+        // solve the way any other allocation failure in the engine would. The
+        // seam is neutral on a failure of the RECORD STORE; it is not a
+        // general no-throw guarantee over every temporary the hooks build.
         try {
             QpWalkObserver::records.push_back(rec_);
         } catch (...) {

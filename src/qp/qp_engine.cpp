@@ -1590,22 +1590,36 @@ EqpResult QpEngine::eliminated_candidate(const QpProblem &qp, const WorkingSet &
     // solve_eqp leaves `kkt` holding the factorization of the
     // bound-ELIMINATED K, whose expected inertia is (n_free, me +
     // n_working, 0) -- the reduced form of the gate in section 4b.
-    verdict = detail::inertia_verdict(kkt.factor.inertia(), ws.num_free(),
-                                      qp.me() + static_cast<Index>(ws.active_ineq().size()));
 #ifdef HVEN_TESTING
+    // SINGLE READ (fix round 2). `inertia()` is not universally a cheap reread
+    // of cached session fields: on MKL it is, but Accelerate's accessor makes a
+    // genuine, independently fallible `SparseGetInertia` call. A record-only
+    // seam may not add one, and evidence read a second time is not provably the
+    // evidence that decided the verdict. So the walk's own read happens ONCE,
+    // into a local, and the verdict and the trace consume that same object.
+    // The two statements below are the production statement above the `#else`,
+    // split only by which expression supplies the evidence; nothing is
+    // reordered, hoisted out of, or re-evaluated on the production path, which
+    // is the `#else` arm verbatim.
+    const hven::linear::InertiaEvidence eliminated_inertia = kkt.factor.inertia();
+    verdict = detail::inertia_verdict(eliminated_inertia, ws.num_free(),
+                                      qp.me() + static_cast<Index>(ws.active_ineq().size()));
     // The seam's record of the ELIMINATED path's own verdict evidence: the
     // backend's triple for the bound-eliminated K, and the expectation the gate
-    // compared it against. Read from the same values the line above reads --
-    // nothing is recomputed and nothing is factorized.
+    // compared it against. The SAME object the line above compared -- not a
+    // second query, and nothing recomputed or factorized.
     {
         const Index expected_neg_e = qp.me() + static_cast<Index>(ws.active_ineq().size());
-        detail::testing::qp_walk_note_inertia(kkt.factor.inertia(), ws.num_free(), expected_neg_e);
+        detail::testing::qp_walk_note_inertia(eliminated_inertia, ws.num_free(), expected_neg_e);
         const Index steps = res.refine_steps;
         detail::testing::qp_walk_note_eqp([steps](detail::testing::QpWalkEqpEvidence &s) {
             s.path = detail::testing::QpWalkEqpPath::kEliminated;
             s.refine_steps = steps;
         });
     }
+#else
+    verdict = detail::inertia_verdict(kkt.factor.inertia(), ws.num_free(),
+                                      qp.me() + static_cast<Index>(ws.active_ineq().size()));
 #endif
     return res;
 }
@@ -1803,15 +1817,20 @@ detail::InertiaVerdict QpEngine::border_inertia_verdict(const QpProblem &qp,
     const Index extra_neg = neg_c;
     const Index extra_pos = dim - neg_c;
 #ifdef HVEN_TESTING
-    // The seam's record of the BORDER path's verdict evidence: K0's own
-    // backend triple and the expectation C's Haynsworth contribution has
-    // already been backed out of -- exactly the two numbers the line below
-    // compares, read rather than recomputed.
-    detail::testing::qp_walk_note_inertia(border.kkt.factor.inertia(), expected_pos - extra_pos,
+    // SINGLE READ (fix round 2), for the reason given at the eliminated path's
+    // own verdict site: one `inertia()` call, one object, both consumers. The
+    // seam's record of the BORDER path's verdict evidence is therefore K0's own
+    // backend triple AS COMPARED, with the expectation C's Haynsworth
+    // contribution has already been backed out of. The `#else` arm is the
+    // production statement, unchanged.
+    const hven::linear::InertiaEvidence k0_inertia = border.kkt.factor.inertia();
+    detail::testing::qp_walk_note_inertia(k0_inertia, expected_pos - extra_pos,
                                           expected_neg - extra_neg);
-#endif
+    return detail::inertia_verdict(k0_inertia, expected_pos - extra_pos, expected_neg - extra_neg);
+#else
     return detail::inertia_verdict(border.kkt.factor.inertia(), expected_pos - extra_pos,
                                    expected_neg - extra_neg);
+#endif
 }
 
 detail::InertiaVerdict QpEngine::probe_inertia(const QpProblem &qp, const WorkingSet &ws,
