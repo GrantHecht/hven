@@ -1,0 +1,63 @@
+============================================================================
+THIS IS A RECORD, NOT A PRE-REGISTERED PASS.
+The per-configuration expected mover shape asserted below was WRITTEN AFTER
+THE CAPTURE WAS SEEN. It is not evidence that the round predicted its own
+result; the round's ONE declared shape (DIFFERING 12 = class A 9 + class B 3,
+the same in both configurations) was WRONG, its G5 FAILED, and that failure
+stands as recorded in `gates-fix1/gates.txt` and in this directory's README.
+What is shown here is the CORRECTED RULE -- per-configuration shapes, equal
+class B sets, UNEXPLAINED 0 in both, and a class A symmetric difference
+confined to sources this round changed -- run over the SAME classification
+files the failed chain produced. Nothing was rebuilt, re-captured or
+re-compared to produce it.
+============================================================================
+PSYM_ASSERT_ONLY_START 2026-09-21T10:57:08-04:00
+root=/home/ghecht/Projects/hven
+HEAD 79c31263  dirty-files=0
+captures compare this HEAD against BASE=11b066e8
+
+-- INPUTS (read-only; this script writes nothing but its own stdout)
+   /home/ghecht/Projects/hven/.scratch/m7w2m3a/gates-fix1/psym/classification-Release.txt
+     sha256 757383dd987a850f3243e7b79076102bf8758118093b47d12958d6ea17ed90b3
+   /home/ghecht/Projects/hven/.scratch/m7w2m3a/gates-fix1/psym/classification-Debug.txt
+     sha256 c266f4865d39a0edceaac2075860dacec0ea0e541fd92bdaed852684406f1588
+   gate_asserts_v2.sh sha256 4a904024eada90473471662900c6af940d22d64b5952f7e0a2d40022c4f4b150
+
+-- THE DECLARED PER-CONFIGURATION SHAPE
+   Release  DIFFERING 10 = class A 7 + class B 3
+   Debug    DIFFERING 11 = class A 8 + class B 3
+   compare rc Release=1 Debug=1; classify rc Release=0 Debug=0
+   min negative control = 1
+   changed sources: src/core/enum_names.cpp src/drivers/sqp_solver.cpp src/drivers/trace_writer.cpp tests/drivers/test_callback.cpp tests/drivers/test_solve_status.cpp tests/drivers/test_threads.cpp tests/sqp/test_sqp_restoration.cpp tests/sqp/test_trace_writer.cpp 
+
+-- PER-CONFIGURATION
+ASSERT OK   P-SYM Release compare rc = 1
+ASSERT OK   P-SYM Release classify rc = 0
+ASSERT OK   P-SYM Release differing = 10 (>= 1)
+ASSERT OK   P-SYM Release class A + class B = 10
+ASSERT OK   P-SYM Release unexplained = 0
+ASSERT OK   P-SYM Release negative control = 107 (>= 1)
+ASSERT OK   P-SYM Release differing (declared) = 10
+ASSERT OK   P-SYM Release class A (declared) = 7
+ASSERT OK   P-SYM Release class B (declared) = 3
+ASSERT OK   P-SYM Debug compare rc = 1
+ASSERT OK   P-SYM Debug classify rc = 0
+ASSERT OK   P-SYM Debug differing = 11 (>= 1)
+ASSERT OK   P-SYM Debug class A + class B = 11
+ASSERT OK   P-SYM Debug unexplained = 0
+ASSERT OK   P-SYM Debug negative control = 106 (>= 1)
+ASSERT OK   P-SYM Debug differing (declared) = 11
+ASSERT OK   P-SYM Debug class A (declared) = 8
+ASSERT OK   P-SYM Debug class B (declared) = 3
+
+-- CROSS-CONFIGURATION
+ASSERT OK   P-SYM cross-config: class B sets equal (3 object(s))
+ASSERT OK   P-SYM cross-config: Release unexplained = 0 (count and list)
+ASSERT OK   P-SYM cross-config: Debug unexplained = 0 (count and list)
+ASSERT OK   P-SYM cross-config: Release class A (7) all changed-source
+ASSERT OK   P-SYM cross-config: Debug class A (8) all changed-source
+ASSERT OK   P-SYM cross-config: class A differs on 'CMakeFiles/hven.dir/src/drivers/trace_writer.cpp.o' -- source changed by this
+            round, so it is allowed to compile identically in one configuration
+
+PSYM_ASSERT_ONLY_RC=0
+PSYM_ASSERT_ONLY_END 2026-09-21T10:57:08-04:00
