@@ -562,11 +562,30 @@ all per-thread**, and a thread that captures must copy its records out before it
 exits — the storage is gone when the thread ends, and no other thread can reach
 it. `QpWalkSeam.TwoEnginesOnTwoThreadsOneArmedOneNot`,
 `...TwoEnginesOnTwoThreadsBothArmed` and `...ArmingOnOneThreadIsInvisibleOnAnother`
-run the case: two engines, two threads, problems of deliberately different widths
-(24 variables against 2), each thread's answer compared bit for bit against its
-OWN single-threaded unobserved baseline, each thread's solve counter required to
-read 1 (a shared one would read 2), and each armed thread's trace required to be
-complete and to contain only records its own problem could have produced.
+run the case: two engines, two threads, problems of deliberately different widths,
+each thread's answer compared bit for bit against its OWN single-threaded
+unobserved baseline, each thread's solve counter required to read 1 (a shared one
+would read 2), and each armed thread's trace required to be complete and to
+contain only records its own problem could have produced.
+
+**FIX-ROUND 2 forces the overlap those two fixtures are about.** As written in
+FIX-ROUND 1 they only CREATED two threads close together, and a valid scheduler
+may run them one after the other — each pre-fix worker resetting, solving,
+copying out and resetting again before the other starts, with every assertion
+passing on the broken observer. Both threads now block at a two-party start gate
+until both have built their problem and constructed their engine, and the
+problems are 96 and 48 variables rather than 24 and 2, so the solve the gate
+releases them into lasts long enough (milliseconds, in both configurations) for
+the two `QpEngine::run` calls to be in flight together.
+
+**What that still cannot promise, stated plainly.** The defect is a DATA RACE on
+process-global state. A data race is undefined behaviour, and no ordinary
+assertion can promise a particular symptom from one: on the PRE-fix observer
+these two fixtures are probabilistically red, not deterministically red. The
+gate makes the racing case HAPPEN; it does not make the consequence of the race
+deterministic. `...ArmingOnOneThreadIsInvisibleOnAnother` is the deterministic
+arm of the same claim — thread creation orders the main thread's arming before
+the worker's read — and it depends on no scheduling luck at all.
 
 **There is no ThreadSanitizer preset in this tree.** `CMakePresets.json` carries
 `linux-clang-release`, `linux-clang-debug`, `linux-clang-coverage`,
@@ -574,7 +593,12 @@ complete and to contain only records its own problem could have produced.
 adds `-fsanitize=thread`. The fixtures therefore run under the ordinary two
 configurations and assert the OBSERVABLE consequences of separation rather than
 a sanitizer verdict. Said here rather than left to be inferred by a reader who
-expects one.
+expects one. **REGISTERED for the milestone close (FIX-ROUND 2): add a TSan
+preset and run this seam's suite and the concurrent-solve suites under it.**
+Deliberately not done in this round — a new preset is a build-configuration
+change with its own gate evidence, and it is the only thing that would turn the
+two fixtures above from probabilistically red into certainly red on a
+regression.
 
 **One record per pass, QUALIFIED.** The scope's destructor emits on every exit
 the loop body has, so the count of records equals the count of passes ENTERED —
@@ -597,6 +621,32 @@ racing in practice; the exposure is identical in kind to the one fixed here and
 would become real the moment a concurrent fixture is written against any of
 them. Deliberately left alone in this round — a behaviour-neutral storage-class
 change to five fault injectors is its own task with its own P-SYM evidence.
+
+**THE VERDICT SITES READ THEIR EVIDENCE ONCE (FIX-ROUND 2).** Both of them —
+`eliminated_candidate`'s and `border_inertia_verdict`'s — used to call
+`factor.inertia()` twice on a pass: once for the production verdict and once for
+the trace. On MKL that is a reread of fields the session already cached, but
+Accelerate's accessor makes a genuine, independently fallible `SparseGetInertia`
+call, so the second call was a BACKEND QUERY the seam had added, and the trace
+could in principle record evidence other than the evidence the gate compared. It
+is now one call into a local that both consumers read, inside the
+`#ifdef HVEN_TESTING` arm, with the `#else` arm carrying the production
+statement verbatim. **The COUNT of backend inertia queries is not observable
+from any existing seam in this tree** — `InertiaQueryFaultInjector` substitutes
+a return code and carries no counter, and it is Accelerate-only — so that count
+is not asserted by a fixture; the single-read property is asserted BY
+CONSTRUCTION, and the construction is two `#ifdef` arms with one textual
+`inertia()` call each. Inventing a counting seam for it was considered and
+rejected as out of proportion to the claim.
+
+What IS asserted, by
+`QpWalkSeam.TheBackendsInertiaAccessorAnswersTheSameThingTwiceOnThisPlatform`,
+is the premise the traces taken under the old two-call form rest on: on the
+backend this build links, two successive `inertia()` calls on one factorization
+agree in every field, so those traces' inertia columns equal the evidence their
+walks' verdicts were computed from and no re-trace is owed. That is a
+measurement on THIS platform and is explicitly not a claim about Accelerate,
+where the second call is a real query that can fail on its own.
 
 **It needs no deviation, and adds no `notices/` entry.** The hook is ONE
 function (`evidence_for_read`) in `src/qp/ipqp_engine.cpp` — an Apache-2.0 file
@@ -740,7 +790,13 @@ decision. It declares, entirely under `#ifdef HVEN_TESTING` and in
   comment. Its `push_back` is wrapped in a `try`/`catch`: a throwing allocation
   inside a destructor during unwinding would call `std::terminate`, so the
   failure is swallowed and reported through `QpWalkObserver::allocation_failed`
-  rather than allowed to end a solve that would otherwise have completed. Its
+  rather than allowed to end a solve that would otherwise have completed. That
+  is a claim about THE RECORD STORE AND NOTHING WIDER (narrowed in FIX-ROUND 2):
+  other observer-only work allocates too — the residual hooks' temporaries and
+  the drop rule's copied-and-sorted candidate vector — and a `bad_alloc` thrown
+  there propagates like any other allocation failure in the engine. The seam is
+  neutral on a failure of the record store; it makes no general no-throw promise
+  over every temporary a hook builds. Its
   `snapshot_eqp()` copies the `eqp` scratch into the record the instant the
   walk's OWN `eqp_candidate` returns, before §4b's zero-multiplier probe can
   re-enter the same verdict site for a hypothetical working set and overwrite
