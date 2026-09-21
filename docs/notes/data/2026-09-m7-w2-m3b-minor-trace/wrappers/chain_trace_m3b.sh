@@ -112,8 +112,8 @@ fi
 # SEGMENT 1 -- the CHECKER'S OWN FOLD PROOFS, before any leg it gates.
 # No lock: this runs no solver and builds nothing.
 # --------------------------------------------------------------------------
-echo "--- CHECKER FOLD PROOFS (RULE.md section 6'"'"'s non-vacuity requirement,"
-echo "--- applied to the ABORT checker; the classifier'"'"'s own folds come with it)"
+echo "--- CHECKER FOLD PROOFS (RULE.md section 6's non-vacuity requirement,"
+echo "--- applied to the ABORT checker; the classifier's own folds come with it)"
 python3 "$ART/wrappers/check_identity_m3b.py" --selftest > "$S/out/identity-folds.txt" 2>&1
 FOLD_RC=$?
 tail -20 "$S/out/identity-folds.txt"
@@ -187,7 +187,7 @@ exit $w
 # gate_leg TAG CELL [TRACE_CSV] -- RULE.md section 2, against M3a's COMMITTED row.
 gate_leg() {
   tag=$1; cell=$2; tracecsv=$3
-  echo "--- RULE.md section 2 on $tag (M3a'"'"'s committed rows/f/${cell}@F-trinf.txt is the gate)"
+  echo "--- RULE.md section 2 on $tag (M3a's committed rows/f/${cell}@F-trinf.txt is the gate)"
   if [ -n "$tracecsv" ]; then
     python3 "$ART/wrappers/check_identity_m3b.py" \
       --m3a-row "$M3A/rows/f/${cell}@F-trinf.txt" \
@@ -214,13 +214,13 @@ for spec in "STEENBRB@identity:STEENBRB" "YORKNET@identity:YORKNET"; do
     exit 5
   fi
   if ! gate_leg "$tag" "$cell"; then
-    echo "CHAIN_TRACE_ABORTED: identity leg $tag did NOT reproduce M3a'"'"'s record 0."
+    echo "CHAIN_TRACE_ABORTED: identity leg $tag did NOT reproduce M3a's record 0."
     echo "  RULE.md section 2.1 aborts. No trace legs, and no verdict from this chain."
     echo "CHAIN_TRACE_END $(date -Is)"
     exit 6
   fi
 done
-echo "=== BOTH IDENTITY LEGS GREEN. The rebuilt HVEN_TESTING binary reproduces M3a'"'"'s"
+echo "=== BOTH IDENTITY LEGS GREEN. The rebuilt HVEN_TESTING binary reproduces M3a's"
 echo "=== committed record 0 on both cells, with no observer armed. The trace legs follow."
 
 TRACE_RC=0
