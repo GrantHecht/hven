@@ -714,16 +714,23 @@ Apache-2.0 file, which is not a deviation at all.
 Stated here because it is unusual and because a future reader will otherwise
 move it. `src/qp/qp_engine.cpp` carries an `assert()` ABOVE the walk loop, and
 `assert` materializes `__LINE__` as an immediate operand in a Debug object. An
-`#include` at the top of that TU would move that immediate and cost the
-production Debug object its BYTE identity — a difference P-SYM classifies
-correctly as `__LINE__`-class noise, but one that would make "the production
-object is byte-identical" true in Release and false in Debug. Including from the
-header the TU already includes adds no line to the TU, so the claim is exact in
-both configurations. `qp_engine.h` itself contains no `assert`, no `throw` and
-no other `__LINE__`-bearing construct, and every `#ifdef HVEN_TESTING` block in
-the `.cpp` sits BELOW that `assert`, so nothing shifts. The cost of the wider
+`#include` at the top of that TU would move that immediate, so the production
+Debug object would differ in its INSTRUCTION STREAM — a difference P-SYM
+classifies correctly as `__LINE__`-class noise, but a text difference all the
+same. Including from the header the TU already includes adds no line to the TU,
+and every `#ifdef HVEN_TESTING` block in the `.cpp` sits BELOW that `assert`, so
+the instruction stream cannot move. `qp_engine.h` itself contains no `assert`,
+no `throw` and no other `__LINE__`-bearing construct. The cost of the wider
 inclusion is zero by construction: without `HVEN_TESTING` the header's entire
 body is `#ifdef`-ed away.
+
+**What the placement does NOT buy, measured rather than assumed.** It does not
+make the Debug object byte-identical, and an earlier draft of this section said
+it did. `qp_engine.h` gains a line, so the DWARF line programme of every inline
+function defined below the insertion point moves, and the three production
+objects that include that header differ in bytes for that reason alone. The
+measurement is in `docs/notes/data/2026-09-m7-w2-m3b-minor-trace/gates/psym-derivation.txt`
+and the narrowed claim is the one below.
 
 **The target**: `hven_qp_walk_seam_tests` (`tests/CMakeLists.txt`), a standalone
 executable on exactly the same terms as the two above — it recompiles the walk's
@@ -763,14 +770,31 @@ assertion about a drop would otherwise pass vacuously:
    identity-sensitive, with the empty set hashing to zero, so "nothing pinned"
    is not a hash of nothing.
 
-**Cost to the production build: measured zero, stated three ways.** The claim
-this seam makes about `libhven.a` is not one property but three, and M7 W2 M3b's
-gate evidence records each separately for BOTH configurations: the production
-`qp_engine.cpp.o` is SYMBOL-level identical (no symbol added, removed or changed
-in its disassembly), RELOCATION-level identical (no relocation target renamed),
-and BYTE-identical to the object built from the commit before this seam landed.
-`nm -C libhven.a` reports no `QpWalk*` symbol. The production library and every
-ordinary test binary are exactly what they would be if this seam did not exist.
+**Cost to the production build: measured, and stated as three separate
+properties because they do not all hold in both configurations.** All 42 objects
+of `libhven.a` were compared against the commit before this seam landed, both
+arms built in one build directory at one absolute path with `CCACHE_DISABLE=1`.
+
+* **Release** — all 42 objects are **BYTE-identical**, so the instruction,
+  relocation and symbol properties hold trivially. P-SYM reports 0 differing
+  objects over its 146-object capture universe.
+* **Debug** — 39 of 42 are byte-identical. The three that are not are exactly
+  the production TUs that include `qp_engine.h` (`qp_engine.cpp`,
+  `sqp_solver.cpp`, `ipqp_engine.cpp`), and for each of them, measured one
+  property at a time: the **instruction stream is identical** (118072, 118293
+  and 87238 disassembly lines), the **symbol table is identical** (3963, 4334
+  and 3027 entries), and the **relocation records are identical** — on two of
+  them outright, and on `qp_engine.cpp.o` outside `.rela.debug_line`, where the
+  3033 differing records have the same symbol, the same type and the same
+  addend and differ only in the offset they point at, because the `.debug_line`
+  programme they index into grew. P-SYM likewise reports 0 differing objects.
+  **The Debug byte difference is debug information and nothing else.**
+
+`nm -C libhven.a` reports no `QpWalk*` symbol and no `detail::testing` symbol in
+either configuration. The numbers above are the derivation in
+`docs/notes/data/2026-09-m7-w2-m3b-minor-trace/gates/psym-derivation.txt`, which
+was written before the gate chain ran and is what that chain's declared
+expectations were transcribed from.
 
 ## Alternatives considered and rejected
 

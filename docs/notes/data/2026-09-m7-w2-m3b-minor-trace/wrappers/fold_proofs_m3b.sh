@@ -1,50 +1,55 @@
 #!/usr/bin/env bash
-# M7 W2 M3a FIX ROUND 1 -- THE FOLD PROOFS (task A's `fold_proofs.sh` beside
-# this file, copied and re-pointed at the fix round's OWN runner, classifier and
-# changed-header list). `fold_proofs.sh` is NOT edited: it produced the
-# committed `gates/fold-proofs.txt` and must stay reproducible.
+# M7 W2 M3b TASK A -- THE FOLD PROOFS FOR THE WHOLE GATE RUNNER.
 #
-# WHAT IS RE-POINTED, AND NOTHING ELSE IS: the wrapper-identity list now names
-# `gates-fix1.sh`, `classify_psym_fix1.py` and this file; the classifier under
-# test is the fix round's copy; and the declared header list is this round's
-# TWO headers rather than task A's one. `gate_asserts.sh` is UNCHANGED by fix1
-# and its refusals are re-proven here anyway, because a transcript that proves
-# only the new parts leaves the reader to assume the rest.
+# It is M7 W2 M3a fix round 1's `fold_proofs_fix1.sh`, copied and re-pointed at
+# THIS round's runner, asserts and classifier. M3a's copies are NOT edited: they
+# produced committed transcripts and must stay reproducible from the code that
+# wrote them.
 #
-# Every refusal added to `gates-fix1.sh` / `gate_asserts.sh` / `classify_psym_fix1.py`
-# is exercised ONCE here against a DELIBERATELY BROKEN INPUT, and must exit
-# non-zero. A refusal that has never refused anything is a comment, not a gate
-# -- which is precisely what the first round's runner turned out to be. The
-# transcript of one run is committed as `gates-fix<N>/fold-proofs.txt`.
+# WHAT IS RE-POINTED: the wrapper-identity list names `gates-m3b.sh`,
+# `gate_asserts_m3b.sh`, `classify_psym_m3b.py` and this file; the classifier
+# under test is this round's copy; the declared header list is this round's two
+# headers; and every classifier call now carries the round's DECLARED differing
+# count, which this round's classifier requires.
 #
-# FIX ROUND 2 closes two gaps the re-review named in this file itself.
+# WHAT IS NEW IN SUBSTANCE, and it is four folds in the `assert_psym` block:
+# version 3 of the asserts derives `compare`'s expected exit code from the
+# DECLARED mover count instead of fixing it at 1, because this round declares
+# ZERO movers. Both halves are pinned -- a declared 0 whose `compare` exited 1
+# is refused, a declared 0 whose `compare` exited 0 with a nonzero negative
+# control is accepted, a declared 0 with a ZERO negative control is refused
+# (nothing was compared), and a declared 0 met by one real mover is refused.
+# `fold_proofs_psym_m3b.sh` beside this file carries the rest of that argument,
+# including M3a's own folds re-run against version 3.
 #
-#   * THE TRANSCRIPT'S RUNNER SHA MUST BE THE LANDED RUNNER'S. Fix round 1's
-#     transcript recorded a `gates.sh` sha256 that no committed version has --
-#     it was taken before the last edit. This version prints, for each wrapper,
-#     BOTH the worktree digest and `git show HEAD:<path> | sha256sum`, so the
-#     transcript proves on its own face that it ran against what landed. Run it
-#     on a CLEAN tree, after the wrapper commit, and cite that commit.
-#   * THE LAST TWO FOLDS MUST RUN THE RUNNER'S CODE. Fix round 1 proved "the
-#     aggregate carries rc5" and "G6 propagates a failed sub-gate" by
-#     re-creating the arithmetic here, which proves only that this file can add.
-#     `gates-fix1.sh` now calls `gates_aggregate` and `accumulate_rc` from
-#     `gate_asserts.sh`, and the folds below call those same functions.
+# Every refusal is exercised ONCE here against a DELIBERATELY BROKEN INPUT and
+# must exit non-zero. A refusal that has never refused anything is a comment,
+# not a gate. The M2b/M3a fix-round histories below are kept because they say
+# WHY each refusal exists.
+#
+#   * THE TRANSCRIPT'S RUNNER SHA MUST BE THE LANDED RUNNER'S. This version
+#     prints, for each wrapper, BOTH the worktree digest and
+#     `git show HEAD:<path> | sha256sum`, so the transcript proves on its own
+#     face that it ran against what landed. Run it on a CLEAN tree, after the
+#     wrapper commit, and cite that commit.
+#   * THE LAST TWO FOLDS MUST RUN THE RUNNER'S CODE, not a re-creation of its
+#     arithmetic: `gates-m3b.sh` calls `gates_aggregate` and `accumulate_rc`
+#     from `gate_asserts_m3b.sh`, and the folds below call those same functions.
 #
 # It starts no solve and builds nothing: the one leg that needs a configured
 # tree (`ctest --no-tests=error`) runs CTest over a filter that matches no test,
 # which is the wrong-binary incident's own shape.
 #
-# Usage: bash fold_proofs_fix1.sh [BUILD_DIR_FOR_THE_CTEST_AND_NINJA_LEGS]
+# Usage: bash fold_proofs_m3b.sh [BUILD_DIR_FOR_THE_CTEST_AND_NINJA_LEGS]
 set -o pipefail
 ROOT=/home/ghecht/Projects/hven
-ART=$ROOT/docs/notes/data/2026-09-m7-w2-m3a-request-probe
-BUILD=${1:-$ROOT/build-debug}
-TMP=$(mktemp -d "${TMPDIR:-/tmp}/m3a-fold-XXXXXX") || exit 90
+ART=$ROOT/docs/notes/data/2026-09-m7-w2-m3b-minor-trace
+BUILD=${1:-$ROOT/.scratch/m7w2m3b/dbg}
+TMP=$(mktemp -d "${TMPDIR:-/tmp}/m3b-fold-XXXXXX") || exit 90
 trap 'rm -rf "$TMP"' EXIT
 
-# shellcheck source=gate_asserts.sh
-. "$ART/wrappers/gate_asserts.sh" || exit 90
+# shellcheck source=gate_asserts_m3b.sh
+. "$ART/wrappers/gate_asserts_m3b.sh" || exit 90
 
 fails=0
 n=0
@@ -86,8 +91,8 @@ echo "root=$ROOT build=$BUILD"
 echo "HEAD $(git -C "$ROOT" rev-parse HEAD)  dirty-files=$(git -C "$ROOT" status --porcelain | wc -l)"
 echo "-- wrapper identity: WORKTREE digest vs the digest of the SAME path AT HEAD."
 echo "-- They must agree, or this transcript did not exercise what landed."
-for f in gates-fix1.sh gate_asserts.sh classify_psym_fix1.py fold_proofs_fix1.sh; do
-    rel="docs/notes/data/2026-09-m7-w2-m3a-request-probe/wrappers/$f"
+for f in gates-m3b.sh gate_asserts_m3b.sh classify_psym_m3b.py fold_proofs_m3b.sh; do
+    rel="docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers/$f"
     w=$(sha256sum "$ART/wrappers/$f" | cut -d' ' -f1)
     c=$(git -C "$ROOT" show "HEAD:$rel" 2> /dev/null | sha256sum | cut -d' ' -f1)
     if [ "$w" = "$c" ]; then
@@ -99,42 +104,49 @@ for f in gates-fix1.sh gate_asserts.sh classify_psym_fix1.py fold_proofs_fix1.sh
 done
 echo
 
-CLS="python3 -B $ART/wrappers/classify_psym_fix1.py"
-HDRS="include/hven/core/solver_counters.h include/hven/core/solver_status.h"
+CLS="python3 -B $ART/wrappers/classify_psym_m3b.py"
+HDRS="include/hven/detail/qp/qp_engine.h include/hven/detail/qp/qp_walk_trace.h"
+# Every classifier call now carries the round's DECLARED differing count: it is
+# a required argument (M7 W2 M3b), and the folds below vary it deliberately.
+EXPECT0="--expect-differing 0"
+EXPECT1="--expect-differing 1"
 
 # ---- classify_psym.py --------------------------------------------------
 : > "$TMP/empty.txt"
 # shellcheck disable=SC2086
 expect_nonzero "classifier R1: an EMPTY comparison file" \
-    $CLS --compare "$TMP/empty.txt" --build "$BUILD" --changed-headers $HDRS
+    $CLS --compare "$TMP/empty.txt" --build "$BUILD" --changed-headers $HDRS $EXPECT0
 
 printf 'usage: psym_compare.sh compare BEFORE AFTER\n' > "$TMP/malformed.txt"
 # shellcheck disable=SC2086
 expect_nonzero "classifier R1: a MALFORMED comparison (a usage error, no P-SYM summary)" \
-    $CLS --compare "$TMP/malformed.txt" --build "$BUILD" --changed-headers $HDRS
+    $CLS --compare "$TMP/malformed.txt" --build "$BUILD" --changed-headers $HDRS $EXPECT0
 
 # shellcheck disable=SC2086
 expect_nonzero "classifier R1: a comparison file that does not exist" \
-    $CLS --compare "$TMP/no-such-file.txt" --build "$BUILD" --changed-headers $HDRS
+    $CLS --compare "$TMP/no-such-file.txt" --build "$BUILD" --changed-headers $HDRS $EXPECT0
 
 printf 'P-SYM: OK - no differences\n' > "$TMP/vacuous.txt"
+# R2 IS NOW A DECLARED-COUNT COMPARISON (M7 W2 M3b), so the same file is
+# refused against a declaration of 1 and ACCEPTED against a declaration of 0 --
+# which is this round's own claim and must be expressible.
 # shellcheck disable=SC2086
-expect_nonzero "classifier R2: a summary line and NO differing object (the vacuous pass)" \
-    $CLS --compare "$TMP/vacuous.txt" --build "$BUILD" --changed-headers $HDRS
+expect_nonzero "classifier R2: a summary line and NO differing object, against a DECLARED 1" \
+    $CLS --compare "$TMP/vacuous.txt" --build "$BUILD" --changed-headers $HDRS $EXPECT1
 
 printf 'P-SYM: FAIL\nDIFFERS     CMakeFiles/hven.dir/src/drivers/sqp_solver.cpp.o (x)\n' > "$TMP/one.txt"
 # shellcheck disable=SC2086
 expect_nonzero "classifier: a changed-header list that disagrees with the declared one" \
-    $CLS --compare "$TMP/one.txt" --build "$BUILD" --changed-headers include/hven/drivers/sqp_solver_types.h
+    $CLS --compare "$TMP/one.txt" --build "$BUILD" --changed-headers include/hven/drivers/sqp_solver_types.h $EXPECT1
 
 printf 'P-SYM: FAIL\nDIFFERS     CMakeFiles/hven.dir/src/nowhere/not_a_real_object.cpp.o (x)\n' > "$TMP/unexpl.txt"
 # shellcheck disable=SC2086
 expect_nonzero "classifier R4: a differing object with neither changed source nor changed header" \
-    $CLS --compare "$TMP/unexpl.txt" --build "$BUILD" --changed-headers $HDRS
+    $CLS --compare "$TMP/unexpl.txt" --build "$BUILD" --changed-headers $HDRS $EXPECT1
 
 # shellcheck disable=SC2086
 expect_nonzero "classifier R3: a negative control below the required minimum" \
-    $CLS --compare "$TMP/one.txt" --build "$BUILD" --changed-headers $HDRS \
+    $CLS --compare "$TMP/one.txt" --build "$BUILD" --changed-headers $HDRS $EXPECT1 \
     --changed-sources src/drivers/sqp_solver.cpp --min-negative-control 999999
 
 # ---- gate_asserts.sh: the ctest assertions -----------------------------
@@ -209,8 +221,20 @@ expect_nonzero "assert_psym: a nonzero UNEXPLAINED" \
     assert_psym Release "$(psym_file 52 5 44 3 23)" 1 0 1 52 5 44
 expect_nonzero "assert_psym: a ZERO negative control" \
     assert_psym Release "$(psym_file 52 5 47 0 0)" 1 0 1 52 5 47
-expect_nonzero "assert_psym: zero movers (the vacuous comparison, seen from the runner)" \
+# VERSION 3 (M7 W2 M3b). Version 2 refused a zero-mover classification
+# outright, because it hard-coded `compare rc == 1`. Version 3 derives the
+# expected rc from the declared count, so the two folds below pin BOTH halves:
+# a declared 0 whose `compare` exited 1 is a contradiction and is refused, and
+# a declared 0 whose `compare` exited 0 with a nonzero negative control is this
+# round's own capture and is accepted.
+expect_nonzero "assert_psym: a DECLARED 0 whose compare exited 1 -- the comparison found what the declaration denies" \
     assert_psym Release "$(psym_file 0 0 0 0 23)" 1 0 1 0 0 0
+expect_zero "assert_psym: a DECLARED 0 whose compare exited 0, with a nonzero negative control" \
+    assert_psym Release "$(psym_file 0 0 0 0 23)" 0 0 1 0 0 0
+expect_nonzero "assert_psym: a DECLARED 0 with a ZERO negative control -- nothing was compared" \
+    assert_psym Release "$(psym_file 0 0 0 0 0)" 0 0 1 0 0 0
+expect_nonzero "assert_psym: a DECLARED 0 met by ONE real mover" \
+    assert_psym Release "$(psym_file 1 1 0 0 23)" 1 0 1 0 0 0
 # FIX ROUND 2: the DECLARED mover shape. Each of the three counts is wrong in
 # turn while the classification stays internally consistent -- the shape the
 # first round's floor would have accepted without a word.

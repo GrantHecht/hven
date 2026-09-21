@@ -69,15 +69,24 @@
 // plainly, because it is unusual: `src/qp/qp_engine.cpp` carries an `assert()`
 // ABOVE the walk loop, and `assert` materializes `__LINE__` as an immediate
 // operand in a Debug object. An `#include` added at the top of that TU would
-// move that immediate and cost the production Debug object its BYTE identity —
-// a difference P-SYM would correctly classify as `__LINE__`-class noise, but
-// one that would make "the production object is byte-identical" untrue in one
-// configuration and true in the other. Including from the header this TU
-// already includes adds no line to the TU at all, so the byte-identity claim is
-// exact in BOTH configurations. `qp_engine.h` itself contains no `assert`, no
-// `throw` and no other `__LINE__`-bearing construct, so nothing shifts there
-// either. The cost of the wider inclusion is zero by construction: without
-// `HVEN_TESTING` this file's entire body is `#ifdef`-ed away.
+// move that immediate, so the production Debug object would differ in its
+// INSTRUCTION STREAM — a difference P-SYM would correctly classify as
+// `__LINE__`-class noise, but a text difference all the same. Including from
+// the header this TU already includes adds no line to the TU at all, and every
+// `#ifdef HVEN_TESTING` block below is under the walk loop, so the instruction
+// stream cannot move. `qp_engine.h` itself contains no `assert`, no `throw` and
+// no other `__LINE__`-bearing construct. The cost of the wider inclusion is
+// zero by construction: without `HVEN_TESTING` this file's entire body is
+// `#ifdef`-ed away.
+//
+// WHAT THAT PLACEMENT DOES NOT BUY, measured rather than assumed: it does NOT
+// make the Debug object byte-identical. This header gains a line, so the DWARF
+// line programme of every inline function defined below it moves, and the three
+// production TUs that include it differ in bytes for that reason alone — with
+// identical instructions, identical symbol tables, and identical relocation
+// records outside `.rela.debug_line`. Release is byte-identical outright, all
+// 42 library objects. The measurement is
+// docs/notes/data/2026-09-m7-w2-m3b-minor-trace/gates/psym-derivation.txt.
 
 #ifdef HVEN_TESTING
 

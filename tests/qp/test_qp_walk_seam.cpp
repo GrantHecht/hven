@@ -27,6 +27,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <limits>
 #include <type_traits>
 #include <vector>
 
@@ -551,4 +552,42 @@ TEST(QpWalkSeam, TheRecordCapIsHonouredAndReported) {
     engine.solve(many_minor_qp());
     EXPECT_EQ(1u, Obs::records.size());
     EXPECT_TRUE(Obs::truncated);
+}
+
+// --- (4) THE NEUTRALITY CHECK'S OWN NON-VACUITY --------------------------
+
+TEST(QpWalkSeam, TheNeutralityComparisonWouldCatchAMoveIfThereWereOne) {
+    // A gate that cannot fail is not a gate. `expect_same_counters` and
+    // `same_bits` are what the neutrality test rests on, and both are asserted
+    // here to REJECT a difference -- the field-by-field arm, the whole-object
+    // `memcmp` arm (which is the one that would carry a field the named list
+    // forgets), and the bit comparison on the returned vectors.
+    ObserverGuard guard;
+    Obs::active = true;
+    QpEngine engine{QpOptions{}};
+    const QpSolution sol = engine.solve(many_minor_qp());
+    ASSERT_GT(sol.counters.minor_iters, 0);
+
+    QpCounters bumped = sol.counters;
+    ++bumped.minor_iters;
+    EXPECT_NE(0, std::memcmp(&sol.counters, &bumped, sizeof(QpCounters)))
+        << "the whole-object arm cannot see a one-count difference";
+    EXPECT_NE(sol.counters.minor_iters, bumped.minor_iters);
+
+    // A field the NAMED list does carry, moved by the smallest possible
+    // amount, and a field it carries as a bool.
+    QpCounters flipped = sol.counters;
+    flipped.k0_reused = !flipped.k0_reused;
+    EXPECT_NE(0, std::memcmp(&sol.counters, &flipped, sizeof(QpCounters)));
+
+    // And the float comparison: one ULP, and a sign flip on a zero.
+    Vec a = sol.x;
+    ASSERT_GT(a.size(), 0);
+    Vec b = a;
+    b(0) = std::nextafter(b(0), std::numeric_limits<double>::infinity());
+    EXPECT_FALSE(same_bits(a, b, "one ulp"));
+    Vec zero_pos = Vec::Zero(1);
+    Vec zero_neg = Vec::Constant(1, -0.0);
+    EXPECT_FALSE(same_bits(zero_pos, zero_neg, "signed zero"));
+    EXPECT_TRUE(same_bits(a, a, "self"));
 }

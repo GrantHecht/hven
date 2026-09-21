@@ -1,14 +1,27 @@
-# THE GATE RUNNER'S REFUSALS, VERSION 2 -- written by M7 W2 M3a FIX ROUND 1's
-# settlement round, after the round's own G5 FAILED and the failure turned out
-# to be half a wrong declaration and half a WRONG RULE.
+# THE GATE RUNNER'S REFUSALS, VERSION 3 -- M7 W2 M3b's copy of version 2, which
+# M7 W2 M3a FIX ROUND 1's settlement round wrote after that round's own G5
+# FAILED. Versions 1 and 2 live in M3a's `wrappers/` and are NOT edited: they
+# produced committed transcripts, and a gate's evidence must stay reproducible
+# from the code that produced it.
 #
-# `gate_asserts.sh` beside this file is version 1 and is NOT edited: it produced
-# the committed `gates/` (task A) and `gates-fix1/` (this round) transcripts,
-# and a gate's evidence must stay reproducible from the code that produced it.
-# This file is a copy of it with the P-SYM section replaced. Everything else --
-# `assert_eq`, `assert_ge`, `assert_ctest`, `assert_replay`, `assert_capture`,
-# `assert_capture_pair`, `accumulate_rc`, `gates_aggregate` -- is carried over
-# BYTE FOR BYTE and is unchanged in behaviour.
+# VERSION 3 CHANGES EXACTLY ONE THING, in `assert_psym`: the expected exit code
+# of `psym_compare.sh compare` is DERIVED FROM THE DECLARED MOVER COUNT rather
+# than fixed at 1. Version 2 hard-coded 1 because every round written until now
+# moved something; this round's whole claim is that the production library
+# moved NOTHING, and under that claim a `compare` that exits 1 is the failure.
+# Everything else -- `assert_eq`, `assert_ge`, `assert_ctest`, `assert_replay`,
+# `psym_set`, `source_changed`, `assert_capture`, `assert_capture_pair`,
+# `accumulate_rc`, `gates_aggregate`, `assert_psym_cross_config` -- is carried
+# over BYTE FOR BYTE and is unchanged in behaviour. The version-2 history below
+# is kept because it says WHY each refusal exists.
+#
+# THE ZERO-MOVER CLAIM IS NOT WEAKER FOR BEING ZERO, and this is the reason the
+# change is safe: what would make a false zero pass is a capture that compared
+# nothing, and three independent things stand against that -- `assert_capture`
+# (a non-empty manifest on each arm), `assert_capture_pair` (the two arms
+# enumerate the same number of objects) and the classifier's own NEGATIVE
+# CONTROL, which counts the objects that DO include a changed header and are
+# identical anyway. A declaration of 0 with a negative control of 0 fails.
 #
 # ===========================================================================
 # WHAT WENT WRONG IN M7 W2 M3a FIX ROUND 1, AND WHAT CHANGES HERE
@@ -221,11 +234,21 @@ source_changed() {
 # shape of both configurations is what version 1's runner did, and it is wrong
 # for the reason set out at the top of this file.
 #
-# `compare` must exit 1 (byte-identity is not on offer for a round with movers,
-# and a 0 would mean the capture compared nothing); the classifier must exit 0;
-# the movers must be fully accounted for by class A plus class B; UNEXPLAINED
-# must be 0; the negative control must be nonzero, or "explained by a changed
-# header" explains nothing; and the shape must be the declared one.
+# `compare`'s expected exit code is DERIVED FROM THE DECLARATION rather than
+# fixed at 1 (VERSION 3, M7 W2 M3b): 1 when the round declares movers, and 0
+# when it declares none. Version 2 hard-coded 1 with the reason "byte-identity
+# is not on offer for a round with movers, and a 0 would mean the capture
+# compared nothing" -- true of every round written so far and false of a round
+# whose whole claim is that the production library did not move. The
+# capture-compared-nothing worry is answered where it belongs and always was:
+# `assert_capture` (a non-empty manifest), `assert_capture_pair` (equal object
+# counts on the two arms) and the classifier's own NEGATIVE CONTROL, which is
+# what makes "0 differing" mean "the header was seen and changed nothing".
+#
+# The classifier must exit 0; the movers must be fully accounted for by class A
+# plus class B; UNEXPLAINED must be 0; the negative control must be nonzero, or
+# "explained by a changed header" explains nothing; and the shape must be the
+# declared one.
 assert_psym() {
     local cfg="$1" cls="$2" cmp_rc="$3" cls_rc="$4" min_control="$5" rc=0
     local want_differing="$6" want_a="$7" want_b="$8"
@@ -234,7 +257,9 @@ assert_psym() {
         echo "ASSERT FAIL P-SYM $cfg: $cls is missing or empty"
         return 1
     fi
-    assert_eq "P-SYM $cfg compare rc" "$cmp_rc" "1" || rc=1
+    local want_cmp_rc=1
+    [ "$want_differing" = "0" ] && want_cmp_rc=0
+    assert_eq "P-SYM $cfg compare rc (declared ${want_differing} mover(s))" "$cmp_rc" "$want_cmp_rc" || rc=1
     assert_eq "P-SYM $cfg classify rc" "$cls_rc" "0" || rc=1
     differing=$(psym_field "$cls" '^DIFFERING OBJECTS:') || differing=""
     a=$(psym_field "$cls" '^  class A') || a=""
@@ -245,7 +270,9 @@ assert_psym() {
         echo "ASSERT FAIL P-SYM $cfg: the classification is missing one of its five counts"
         return 1
     fi
-    assert_ge "P-SYM $cfg differing" "$differing" "1" || rc=1
+    if [ "$want_differing" != "0" ]; then
+        assert_ge "P-SYM $cfg differing" "$differing" "1" || rc=1
+    fi
     assert_eq "P-SYM $cfg class A + class B" "$((a + b))" "$differing" || rc=1
     assert_eq "P-SYM $cfg unexplained" "$unexpl" "0" || rc=1
     assert_ge "P-SYM $cfg negative control" "$control" "$min_control" || rc=1
