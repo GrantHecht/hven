@@ -283,6 +283,27 @@ def structural_refusals(cell, path, probe):
     return msgs
 
 
+# THE ONE SPELLING NORMALIZATION, declared before any census leg was read and
+# applied to the RESIDUAL CLASS ONLY.
+#
+# The smoke leg printed `f=-nan` where the harness's committed row carries
+# `nan`, on the three cells whose model cannot be evaluated at x0. BOTH ARE
+# NaN: what differs is the sign bit, which the two writers print differently
+# (this probe's `printf("%.17g")` against the harness's own CSV writer) and
+# which is not a value -- IEEE leaves the sign of a produced NaN unspecified
+# and no arithmetic here reads it. Reporting that as a counter-class difference
+# would file three FINDINGS against HEAD for a formatter's choice.
+#
+# It is a SPELLING normalization, not a numeric tolerance: `nan` still differs
+# from every finite value and from `inf`, and the fold proofs exercise both
+# directions. Counters, statuses and integer keys are untouched by it.
+NAN_TOKENS = {"nan", "-nan", "+nan"}
+
+
+def canonical_residual(text):
+    return "nan" if text.strip().lower() in NAN_TOKENS else text
+
+
 def near_ulp(a, b):
     try:
         x, y = float(a), float(b)
@@ -362,6 +383,10 @@ def compare_cell(cell, rows_dir, results_rows, counters_rows):
         compared += 1
         a, b = kv[pk], src[s][hc]
         if a == b:
+            return
+        if canonical_residual(a) == canonical_residual(b):
+            lines.append(f"{cell:10s} NaN SPELLING ACCEPTED {pk}: {a} vs {b} -- both are NaN; "
+                         f"the sign bit of a NaN is not a value")
             return
         ok, gap = near_ulp(a, b)
         if ok:

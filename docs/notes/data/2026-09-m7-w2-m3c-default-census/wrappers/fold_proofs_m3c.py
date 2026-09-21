@@ -154,6 +154,20 @@ fold("a nan objective against the pin's nan -- a BYTE fact, PASS", 0,
      {"STEENBRD": "PASS"},
      lambda d: write(d, "STEENBRD", synth_row("STEENBRD")), cells=["STEENBRD"])
 
+fold("a -nan objective against the pin's nan -- both are NaN, PASS", 0,
+     {"STEENBRE": "PASS"},
+     lambda d: write(d, "STEENBRE", synth_row("STEENBRE", tweaks={"f": "-nan"})),
+     cells=["STEENBRE"])
+
+fold("a nan objective against a FINITE pin value -- still DIFFERS", 1,
+     {"STEENBRB": "DIFFERS"},
+     lambda d: write(d, "STEENBRB", synth_row("STEENBRB", tweaks={"f": "nan"})))
+
+fold("an inf objective against the pin's nan -- NOT the same token, DIFFERS", 1,
+     {"STEENBRE": "DIFFERS"},
+     lambda d: write(d, "STEENBRE", synth_row("STEENBRE", tweaks={"f": "inf"})),
+     cells=["STEENBRE"])
+
 fold("no leg row at all -- CENSORED is never agreement", 2, {"STEENBRB": "REFUSED"},
      lambda d: None)
 
