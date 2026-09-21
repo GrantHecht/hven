@@ -4266,6 +4266,14 @@ namespace {
 // phase DID rather than what the caller was told about it. See the field for
 // why: the parent spells two different sub-solve outcomes `kInfeasible`
 // identically, and M2b had to infer which arm each of its rows took.
+//
+// IT ARRIVES AS A `SolveStatus` AND IS STORED AS A `RestorationSubStatus`
+// (fix1): the counter's enum is the sub-solve's vocabulary plus the `kNotRun`
+// that is its default, and `to_restoration_sub_status` is the total map
+// between them. The conversion is HERE, at the one write site, so that the
+// counter cannot be set from anywhere that has not measured an entry -- the
+// only way to spell a value other than `kNotRun` onto this field is to have a
+// sub-solve's status in hand.
 void record_restoration_excursion(SqpCounters &c, double h_in, double h_out, double f_in,
                                   double f_out, SolveStatus sub_status) {
     ++c.restoration_entries;
@@ -4273,7 +4281,7 @@ void record_restoration_excursion(SqpCounters &c, double h_in, double h_out, dou
     c.restoration_h_out = h_out;
     c.restoration_f_in = f_in;
     c.restoration_f_out = f_out;
-    c.restoration_sub_status = sub_status;
+    c.restoration_sub_status = to_restoration_sub_status(sub_status);
 }
 
 } // namespace

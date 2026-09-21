@@ -2100,8 +2100,8 @@ void expect_same_counters(const hven::solvers::SqpCounters &a,
     // 848 at M7 W2 M2, which appended the five-field restoration excursion
     // record (one Index and four doubles, 8 bytes each); 848 -> 856 at M7 W2
     // M3a, which appended `restoration_sub_status` to that record -- a 4-byte
-    // `SolveStatus` last in the struct, which the struct's own 8-byte
-    // alignment then pads to a full slot.
+    // enum (`RestorationSubStatus` as of M3a fix1, `SolveStatus` before it, the
+    // SAME width) last in the struct, padded to a full slot by its alignment.
     static_assert(sizeof(hven::solvers::SqpCounters) == 856,
                   "SqpCounters gained or lost a field -- extend "
                   "HVEN_T2_SQP_COUNTER_FIELDS so the mask comparison still "

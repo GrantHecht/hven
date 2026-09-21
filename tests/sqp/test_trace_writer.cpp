@@ -652,6 +652,37 @@ const char *spec_spelling(hven::solvers::SolveStatus v) {
     return kUnspelled;
 }
 
+// M7 W2 M3a fix1. THE COUNTER'S TEN, in an independent copy like every other
+// alphabet here: `not_run` plus SolveStatus's nine, spelled EXACTLY as the
+// overload above spells them -- written out again rather than forwarded,
+// because a forwarding "spec" would agree with the writer by construction and
+// pin nothing.
+const char *spec_spelling(hven::solvers::RestorationSubStatus v) {
+    switch (v) {
+    case hven::solvers::RestorationSubStatus::kNotRun:
+        return "\"not_run\"";
+    case hven::solvers::RestorationSubStatus::kOptimal:
+        return "\"optimal\"";
+    case hven::solvers::RestorationSubStatus::kAcceptable:
+        return "\"acceptable\"";
+    case hven::solvers::RestorationSubStatus::kMaxIter:
+        return "\"max_iter\"";
+    case hven::solvers::RestorationSubStatus::kInfeasible:
+        return "\"infeasible\"";
+    case hven::solvers::RestorationSubStatus::kStalled:
+        return "\"stalled\"";
+    case hven::solvers::RestorationSubStatus::kDiverging:
+        return "\"diverging\"";
+    case hven::solvers::RestorationSubStatus::kNumericalError:
+        return "\"numerical_error\"";
+    case hven::solvers::RestorationSubStatus::kBudgetExhausted:
+        return "\"budget_exhausted\"";
+    case hven::solvers::RestorationSubStatus::kInterrupted:
+        return "\"interrupted\"";
+    }
+    return kUnspelled;
+}
+
 const char *spec_spelling(InertiaModes v) {
     switch (v) {
     case InertiaModes::classic:
@@ -1034,6 +1065,29 @@ TEST(JsonLinesTraceSink, EveryEnumeratorHasItsSpecSpelling) {
     start_level(StartLevel::kSeeded);
     start_level(StartLevel::kWarm);
     start_level(StartLevel::kHot);
+
+    // M7 W2 M3a fix1's alphabet: the counters object's SECOND enum, all TEN
+    // values including the `not_run` that is the reason the enum exists. Driven
+    // through the same end event, so this covers the `key_value` overload the
+    // field's own type selects.
+    const auto sub_status = [](hven::solvers::RestorationSubStatus v) {
+        SqpCounters counters;
+        counters.restoration_sub_status = v;
+        std::ostringstream os;
+        JsonLinesTraceSink s(os);
+        s.on_sqp_solve_end(SqpSolveEndTraceEvent{SolveStatus::kOptimal, 0, counters});
+        EXPECT_EQ(raw_field(os.str(), "restoration_sub_status"), spec_spelling(v));
+    };
+    sub_status(hven::solvers::RestorationSubStatus::kNotRun);
+    sub_status(hven::solvers::RestorationSubStatus::kOptimal);
+    sub_status(hven::solvers::RestorationSubStatus::kAcceptable);
+    sub_status(hven::solvers::RestorationSubStatus::kMaxIter);
+    sub_status(hven::solvers::RestorationSubStatus::kInfeasible);
+    sub_status(hven::solvers::RestorationSubStatus::kStalled);
+    sub_status(hven::solvers::RestorationSubStatus::kDiverging);
+    sub_status(hven::solvers::RestorationSubStatus::kNumericalError);
+    sub_status(hven::solvers::RestorationSubStatus::kBudgetExhausted);
+    sub_status(hven::solvers::RestorationSubStatus::kInterrupted);
 
     // W4 T4: the interior-point driver's three alphabets. `SolveStatus` is
     // that driver's own exit status; the two mode selectors shape the run.
@@ -2536,8 +2590,8 @@ void expect_counter_field(const std::string &line, const char *k, StartLevel v, 
     EXPECT_EQ(raw_field(line, k), spec_spelling(v)) << k;
 }
 
-void expect_counter_field(const std::string &line, const char *k, hven::solvers::SolveStatus v,
-                          bool) {
+void expect_counter_field(const std::string &line, const char *k,
+                          hven::solvers::RestorationSubStatus v, bool) {
     EXPECT_EQ(raw_field(line, k), spec_spelling(v)) << k;
 }
 
@@ -2983,11 +3037,13 @@ void assign_distinct(StartLevel &field, Index &next) {
     ++next;
 }
 // An enum has no distinct integer to take, so it takes a value that is NOT its
-// default -- `kOptimal` is `restoration_sub_status`'s default, and a golden
-// line that could not tell the filled counters from the empty ones at this key
-// would pin nothing here.
-void assign_distinct(hven::solvers::SolveStatus &field, Index &next) {
-    field = hven::solvers::SolveStatus::kBudgetExhausted;
+// default -- `kNotRun` is `restoration_sub_status`'s default (it was `kOptimal`
+// until M7 W2 M3a fix1 gave the field an enum with a not-run zero), and a
+// golden line that could not tell the filled counters from the empty ones at
+// this key would pin nothing here. `kBudgetExhausted` was a non-default value
+// under BOTH enums, so this line's bytes did not move with the type.
+void assign_distinct(hven::solvers::RestorationSubStatus &field, Index &next) {
+    field = hven::solvers::RestorationSubStatus::kBudgetExhausted;
     ++next;
 }
 
@@ -3174,14 +3230,18 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
     // instead. A `null` on any of the five would be this line's way of claiming
     // a sentinel the counters deliberately do not have.
     //
-    // RE-DERIVED AT M7 W2 M3a for the SIXTH field of that record,
-    // `restoration_sub_status`, and it reads `"optimal"` here for the SAME
-    // reason and with the same force: `SolveStatus` has no "never entered"
-    // value, so the field takes the enum's zero as its default, that zero is a
-    // legal observed value, and the absence reading stays
-    // `restoration_entries == 0`. A `null` here would claim a sentinel this
-    // counter does not have, and an `"optimal"` READ WITHOUT THE COUNT claims a
-    // converged feasibility sub-solve on a solve that ran none.
+    // AND RE-DERIVED ONCE MORE AT M7 W2 M3a fix1, FOR THE OPPOSITE REASON.
+    // The record's sixth field, `restoration_sub_status`, read `"optimal"`
+    // here when it shipped: it was a bare `SolveStatus`, whose zero is
+    // `kOptimal`, and its absence was left to `restoration_entries == 0` on the
+    // four absolutes' rule. But `"optimal"` READ WITHOUT THE COUNT claims a
+    // converged feasibility sub-solve on a solve that ran none, and unlike the
+    // four `double`s this field HAD a value to spare. It now carries
+    // `RestorationSubStatus`, whose zero is `kNotRun`, so THIS line -- the
+    // defaults line, the one a never-restored solve emits -- reads
+    // `"not_run"`. That is the only byte that moved, here or anywhere on the
+    // trace. A `null` would still be wrong: `not_run` is a VALUE of this
+    // counter, not a sentinel the stream maps.
     const SqpCounters c;
     std::ostringstream os;
     JsonLinesTraceSink sink(os);
@@ -3206,7 +3266,7 @@ TEST(JsonLinesTraceSink, GoldenLineSqpSolveEndWritesTheAbsenceSentinelsAsNull) {
         "er_exits\":0,\"qp_numerical_exits\":0,\"qp_failures_routed\":0,\"qp_failures_in_a_row_pe"
         "ak\":0,\"qp_cap_retries\":0,\"restoration_entries\":0,\"restoration_h_in\":0,\"restorati"
         "on_h_out\":0,\"restoration_f_in\":0,\"restoration_f_out\":0,\"restoration_sub_status\":"
-        "\"optimal\",\"ssn\":{\"ssn_iters\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_pro"
+        "\"not_run\",\"ssn\":{\"ssn_iters\":0,\"ssn_bulk_flips\":0,\"ssn_backtracks\":0,\"ssn_pro"
         "x_updates\":0,\"ssn_escapes\":0,\"ssn_uncertain_peak\":0,\"ssn_refinements\":0,\"ssn_ref"
         "ine_refused\":0,\"ssn_refine_factorizations\":0,\"ssn_refine_neg_duals\":0,\"ssn_sign_sw"
         "ept\":0,\"ssn_sign_sweep_max\":0,\"ssn_escape_budget\":0,\"ssn_escape_singular\":0,\"ssn"

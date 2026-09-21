@@ -452,9 +452,9 @@ void expect_ipqp_counters_identical(const IpqpCounters &a, const IpqpCounters &b
 // subproblem-exit group; 46 and 44 until M7 W2 M2 appended the five-field
 // restoration excursion record, whose four doubles are 8 bytes apiece like
 // every Index before them, so the arithmetic below is unchanged in form; 51 and
-// 49 until M7 W2 M3a appended `restoration_sub_status`, a 4-byte SolveStatus
-// last in the struct that the struct's own 8-byte alignment pads to a full
-// slot, so the arithmetic below is unchanged in form for THAT reason instead.)
+// 49 until M7 W2 M3a appended `restoration_sub_status`, a 4-byte enum last in
+// the struct that its 8-byte alignment pads to a full slot (`SolveStatus` then,
+// `RestorationSubStatus` and the same width since M3a fix1), so unchanged.)
 void expect_counters_identical(const SqpCounters &a, const SqpCounters &b) {
     static_assert(sizeof(SqpCounters) == 50 * 8 + sizeof(SsnCounters) + sizeof(IpqpCounters),
                   "SqpCounters changed size: add the new field to expect_counters_identical "

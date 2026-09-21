@@ -358,6 +358,13 @@ const char *to_json(WorkingSetLinearAlgebra v) {
 // traces do not move.
 const char *to_json(SolveStatus v) { return to_string(v); }
 
+// AND THE COUNTER'S OWN TEN (M7 W2 M3a fix1), forwarding for the same reason
+// the three above do: `to_string(RestorationSubStatus)` already spells them in
+// the schema's lower snake, and it spells its nine status values EXACTLY as
+// `to_string(SolveStatus)` spells the same names, so a second table here could
+// only drift the two apart.
+const char *to_json(RestorationSubStatus v) { return to_string(v); }
+
 const char *to_json(InertiaModes v) {
     switch (v) {
     case InertiaModes::classic:
@@ -440,11 +447,13 @@ void key_value(std::string &s, bool &first, const char *k, StartLevel v, bool ab
     }
 }
 
-// THE TABLE'S SECOND ENUM (M7 W2 M3a, `restoration_sub_status`). It spells its
-// value through the SAME `to_json(SolveStatus)` the `sqp.solve.end` line's own
-// `status` key uses, so one solve's two status spellings cannot drift apart,
-// and it honours the predicate for the StartLevel overload's reason.
-void key_value(std::string &s, bool &first, const char *k, SolveStatus v, bool absent) {
+// THE TABLE'S SECOND ENUM (M7 W2 M3a, `restoration_sub_status`). Its nine
+// status spellings are `to_json(SolveStatus)`'s, byte for byte -- a consumer
+// compares this key against the end line's `status` without a translation
+// table -- and its tenth is the `not_run` the counter's own enum carries for
+// the solves that never restored. It honours the predicate for the StartLevel
+// overload's reason.
+void key_value(std::string &s, bool &first, const char *k, RestorationSubStatus v, bool absent) {
     key(s, first, k);
     if (absent) {
         s += "null";

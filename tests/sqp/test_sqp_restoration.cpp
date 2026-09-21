@@ -2302,11 +2302,14 @@ TEST(SqpDriverRestorationExcursion, TheResumeArmRecordsTheCallersOwnExcursion) {
     // And `f_out` is the objective the solve CARRIES FORWARD: the restored
     // point becomes the iterate, so the first row after the resume reports it.
     EXPECT_DOUBLE_EQ(sol.counters.restoration_f_out, sol.history[5].f);
-    // AND THE SUB-SOLVE'S OWN VERDICT (M7 W2 M3a). A RESUME is reachable from
-    // one sub-solve outcome only: the feasibility problem was solved, and the
-    // point it returned is inside `feas_tol`. Pinning it here is what makes
-    // the field's OTHER values evidence rather than decoration.
-    EXPECT_EQ(sol.counters.restoration_sub_status, SolveStatus::kOptimal);
+    // AND THE SUB-SOLVE'S OWN VERDICT (M7 W2 M3a). On THIS fixture the phase
+    // both converged and returned a point inside `feas_tol`, so the record
+    // names `kOptimal`. It is NOT the resume's cause: the parent takes that
+    // decision on `h_out <= feas_tol` alone, above, before it looks at this
+    // status at all (fix1 corrected the note that said otherwise). Pinning it
+    // here is what makes the field's OTHER values evidence rather than
+    // decoration.
+    EXPECT_EQ(sol.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
     // THE EXCURSION THIS FIXTURE MADE, recorded rather than asserted as a
     // bound: it is a recovery, and a benign one.
     ::testing::Test::RecordProperty(
@@ -2347,7 +2350,7 @@ TEST(SqpDriverRestorationExcursion, TheTerminalArmRecordsThePointItReports) {
     // else -- the gate that sets `infeasibility_certified` hangs off that
     // switch arm -- so this pin and the `ASSERT_TRUE` above are two readings
     // of one fact, taken from opposite ends of the phase.
-    EXPECT_EQ(sol.counters.restoration_sub_status, SolveStatus::kOptimal);
+    EXPECT_EQ(sol.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
 }
 
 TEST(SqpDriverRestorationExcursion, ARefusedSecondRequestLeavesTheFirstEntrysRecord) {
@@ -2376,7 +2379,7 @@ TEST(SqpDriverRestorationExcursion, ARefusedSecondRequestLeavesTheFirstEntrysRec
     EXPECT_FALSE(sol.infeasibility_certified);
     // The sub-status is the SERVICED entry's too: the refusal ran no sub-solve,
     // so there is no second status for it to overwrite this one with.
-    EXPECT_EQ(sol.counters.restoration_sub_status, SolveStatus::kOptimal);
+    EXPECT_EQ(sol.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
 }
 
 TEST(SqpDriverRestorationExcursion, ACleanSolveHoldsNoReading) {
@@ -2396,14 +2399,15 @@ TEST(SqpDriverRestorationExcursion, ACleanSolveHoldsNoReading) {
     EXPECT_EQ(sol.counters.restoration_h_out, 0.0);
     EXPECT_EQ(sol.counters.restoration_f_in, 0.0);
     EXPECT_EQ(sol.counters.restoration_f_out, 0.0);
-    // AND THE SUB-STATUS HOLDS ITS DEFAULT, WHICH IS `kOptimal` AND MEANS
-    // NOTHING (M7 W2 M3a). The enum has no "never entered" value, so the field
-    // follows the four absolutes' own rule rather than inventing one: its
-    // default is a legal observed value, and `restoration_entries == 0` above
-    // is what says no reading exists. A consumer that read this key without
-    // the count would read "the feasibility sub-solve converged" off a solve
-    // that never ran one.
-    EXPECT_EQ(sol.counters.restoration_sub_status, SolveStatus::kOptimal);
+    // AND THE SUB-STATUS SAYS SO ITSELF (M7 W2 M3a, corrected in fix1). It is
+    // the one field of this record that CAN: the four absolutes above have no
+    // spare value -- `0.0` is a legal violation and a legal objective -- so
+    // their absence is the count, while this field's own enum carries a
+    // `kNotRun` zero and spends it here. It shipped as a bare `SolveStatus`
+    // defaulting to `kOptimal`, which made this line read "the feasibility
+    // sub-solve converged" on a solve that never ran one; that is what fix1
+    // withdrew. THE ASSERTION IS THE WHOLE POINT OF THE CHANGE.
+    EXPECT_EQ(sol.counters.restoration_sub_status, RestorationSubStatus::kNotRun);
 }
 
 // M7 W2 M3a. THE FIELD IS NOT A CONSTANT, and this is the fixture that says so:
@@ -2440,8 +2444,8 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
         << "fixture premise: the phase RAN and was measured on this budget too";
 
     // THE TWO READINGS, AND THEY DISAGREE.
-    EXPECT_EQ(converged.counters.restoration_sub_status, SolveStatus::kOptimal);
-    EXPECT_EQ(cut_off.counters.restoration_sub_status, SolveStatus::kMaxIter);
+    EXPECT_EQ(converged.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
+    EXPECT_EQ(cut_off.counters.restoration_sub_status, RestorationSubStatus::kMaxIter);
     EXPECT_NE(converged.counters.restoration_sub_status, cut_off.counters.restoration_sub_status);
 
     // AND EACH AGREES WITH THE EXIT IT IMPLIES. The certificate gate hangs off
@@ -2458,6 +2462,83 @@ TEST(SqpDriverRestorationExcursion, TheSubStatusTellsACutOffSubSolveFromAConverg
     // The sub-solve did real work before the budget ended it -- a phase that
     // returned at once would make the pin above a statement about nothing.
     EXPECT_GT(cut_off.counters.restoration_iters, 1);
+}
+
+// M7 W2 M3a fix1. THE PARENT'S STATUS DISCRIMINATES NONE OF THE THREE, and this
+// fixture is that statement made three times at ONE parent status.
+//
+// The fixture above tells two sub-solve outcomes apart, but its two solves
+// differ in the PARENT's status too (`infeasible` against `max_iter`), so a
+// reader could take the parent's status for the discriminator and be right by
+// accident. The review asked for the same reading at a FIXED parent status.
+// Here every solve ends `kMaxIter` and the three records read `not_run`,
+// `optimal` and `max_iter` -- so the field is carrying information that exists
+// nowhere else on the result.
+//
+// AND THE FIRST ARM IS THE ONE FIX1 ADDED (the settler's withdrawal of "default
+// kOptimal + restoration_entries == 0"). `RunawayValleyModel` on a five-major
+// budget REQUESTS restoration -- its last row carries `kRestore` -- and is
+// REFUSED for want of majors, which is one of the record's three refusals: the
+// phase never ran, nothing was measured, and the record says `not_run` rather
+// than a legal success value. Under the shipped-then-withdrawn representation
+// this solve reported `optimal` for a feasibility sub-solve it never started,
+// AT A PARENT STATUS THAT LOOKS EXACTLY LIKE THE ARM BELOW IT.
+TEST(SqpDriverRestorationExcursion, TheSubStatusDiscriminatesAtOneParentStatus) {
+    // ARM 1 -- requested, refused for budget, NEVER RAN.
+    RunawayValleyModel valley_refused;
+    SqpOptions refused;
+    refused.tr_init = 8.0;
+    refused.max_iter = 5;
+    const SqpResult never_ran = SqpSolver(refused).solve(valley_refused);
+    ASSERT_EQ(never_ran.status, SolveStatus::kMaxIter);
+    ASSERT_FALSE(never_ran.history.empty());
+    ASSERT_EQ(never_ran.history.back().verdict, StepVerdict::kRestore)
+        << "fixture premise: the request WAS raised on the last major -- the absence "
+           "below is a refused phase, not an uneventful solve";
+    ASSERT_EQ(never_ran.counters.restoration_entries, 0)
+        << "fixture premise: the refusal ran no phase and measured nothing";
+    EXPECT_EQ(never_ran.counters.restoration_iters, 0);
+    EXPECT_EQ(never_ran.counters.restoration_sub_status, RestorationSubStatus::kNotRun);
+
+    // ARM 2 -- the SAME model and the SAME options but five more majors: the
+    // phase runs, converges, and the parent RESUMES on `h_out <= feas_tol`;
+    // the solve then spends the rest of its budget and ends at the same status
+    // as arm 1.
+    RunawayValleyModel valley_resumed;
+    SqpOptions resumed;
+    resumed.tr_init = 8.0;
+    resumed.max_iter = 10;
+    const SqpResult sub_optimal = SqpSolver(resumed).solve(valley_resumed);
+    ASSERT_EQ(sub_optimal.status, SolveStatus::kMaxIter);
+    ASSERT_EQ(sub_optimal.counters.restoration_entries, 1);
+    EXPECT_EQ(sub_optimal.counters.restoration_sub_status, RestorationSubStatus::kOptimal);
+    EXPECT_LE(sub_optimal.counters.restoration_h_out, resumed.feas_tol)
+        << "this entry RESUMED, and h_out is the number that decision was taken on";
+
+    // ARM 3 -- a phase that ran and was CUT OFF, at the same parent status
+    // again. `InfeasibleCircleLineModel` on five majors: the sub-solve spends
+    // the majors the parent lends it and returns `kMaxIter` with h still above
+    // feas_tol, so the parent reports that status as its own.
+    InfeasibleCircleLineModel circle;
+    SqpOptions cramped;
+    cramped.max_iter = 5;
+    const SqpResult sub_cut_off = SqpSolver(cramped).solve(circle);
+    ASSERT_EQ(sub_cut_off.status, SolveStatus::kMaxIter);
+    ASSERT_EQ(sub_cut_off.counters.restoration_entries, 1);
+    EXPECT_EQ(sub_cut_off.counters.restoration_sub_status, RestorationSubStatus::kMaxIter);
+    EXPECT_GT(sub_cut_off.counters.restoration_h_out, cramped.feas_tol);
+    EXPECT_FALSE(sub_cut_off.infeasibility_certified)
+        << "the certificate gate hangs off the sub-solve's kOptimal arm";
+
+    // THE POINT, STATED AS AN ASSERTION. One parent status, three records.
+    EXPECT_EQ(never_ran.status, sub_optimal.status);
+    EXPECT_EQ(never_ran.status, sub_cut_off.status);
+    EXPECT_NE(never_ran.counters.restoration_sub_status,
+              sub_optimal.counters.restoration_sub_status);
+    EXPECT_NE(never_ran.counters.restoration_sub_status,
+              sub_cut_off.counters.restoration_sub_status);
+    EXPECT_NE(sub_optimal.counters.restoration_sub_status,
+              sub_cut_off.counters.restoration_sub_status);
 }
 
 // ---------------------------------------------------------------------------

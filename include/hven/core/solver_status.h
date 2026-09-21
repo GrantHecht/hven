@@ -15,6 +15,8 @@
 // drivers/solve_status.h is resolve_ipm_phase_status(), a statement about ONE
 // engine's exits rather than about the vocabulary.
 
+#include <type_traits>
+
 namespace hven::solvers {
 
 /// @brief The verdict on ONE QP subproblem solve.
@@ -87,6 +89,48 @@ enum class SolveStatus {
     kNumericalError = 6,
     kBudgetExhausted = 7,
     kInterrupted = 8,
+};
+
+/// @brief A restoration SUB-SOLVE's own terminal status AS A COUNTER, with an
+///        explicit "never ran" zero (M7 W2 M3a fix1).
+///
+/// SolveStatus's nine values plus kNotRun, which is the DEFAULT and the whole
+/// reason this enum exists. `SqpCounters::restoration_sub_status` is a field on
+/// a record that most solves never write: the first draft of it was a bare
+/// SolveStatus defaulting to the enum's zero, `kOptimal`, with absence read off
+/// `restoration_entries == 0` -- and a never-restored solve then PRINTS
+/// `optimal` on its trace, which is a legal success value doing duty as an
+/// absence. The review called that a consumer hazard and it is one: a reader
+/// who takes this key without the count reads "the feasibility sub-solve
+/// converged" off a solve that never ran one. Here the zero says so itself.
+///
+/// THE OTHER NINE ARE SolveStatus's, ONE FOR ONE, under the same names and the
+/// same spellings (`to_string` below is `to_string(SolveStatus)`'s alphabet
+/// plus `not_run`), and `to_restoration_sub_status` is the TOTAL map from the
+/// one enum to the other. It is total -- every SolveStatus has an image here --
+/// rather than carrying only the five a feasibility sub-solve can actually
+/// return, because a partial map would need a default arm or an invented
+/// image for the four it omitted, and both are how a silent mistranslation
+/// gets in. WHICH FIVE ARE REACHABLE is stated where it belongs, on the
+/// counter's own note in `core/solver_counters.h`: kOptimal, kInfeasible,
+/// kMaxIter, kInterrupted and kNumericalError. The remaining four are here for
+/// the map's totality and have never been observed on this field.
+enum class RestorationSubStatus : std::underlying_type_t<SolveStatus> {
+    /// NO restoration sub-solve was measured on this solve. The default, and
+    /// the only value that is not a reading. Equivalent to
+    /// `restoration_entries == 0`, which stays the record-wide absence reading
+    /// for the four `double` absolutes beside it -- they have no spare value to
+    /// spend on a sentinel and this enum does.
+    kNotRun = 0,
+    kOptimal = 1,
+    kAcceptable = 2,
+    kMaxIter = 3,
+    kInfeasible = 4,
+    kStalled = 5,
+    kDiverging = 6,
+    kNumericalError = 7,
+    kBudgetExhausted = 8,
+    kInterrupted = 9,
 };
 
 /// @brief Why the interior-point engine's last phase left its iteration loop.
@@ -176,6 +220,24 @@ enum class IpmKktFactorStatus {
 /// @return A static string, never null.
 /// @throws std::invalid_argument if @p status is not one of the nine.
 const char *to_string(SolveStatus status);
+
+/// @brief Maps a restoration sub-status to its lower-case snake name.
+/// @param status The sub-status.
+/// @return A static string, never null. `not_run` for @c kNotRun; otherwise
+///         EXACTLY what to_string(SolveStatus) spells for the same name.
+/// @throws std::invalid_argument if @p status is not one of the ten.
+const char *to_string(RestorationSubStatus status);
+
+/// @brief The TOTAL map from a sub-solve's status to the counter's vocabulary.
+///
+/// Every SolveStatus has an image; kNotRun is the one value this map never
+/// produces, because it means "no sub-solve ran" and the caller of this
+/// function is holding one that did.
+///
+/// @param status The status the restoration sub-solve returned.
+/// @return Its counterpart, name for name.
+/// @throws std::invalid_argument if @p status is not one of the nine.
+RestorationSubStatus to_restoration_sub_status(SolveStatus status);
 
 /// @brief Maps a message kind to its lower-case snake name.
 /// @param kind The kind.

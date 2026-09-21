@@ -393,7 +393,7 @@ struct SsnCounters {
 inline bool counter_never_absent(Index) { return false; }
 inline bool counter_never_absent(double) { return false; }
 inline bool counter_never_absent(StartLevel) { return false; }
-inline bool counter_never_absent(SolveStatus) { return false; }
+inline bool counter_never_absent(RestorationSubStatus) { return false; }
 
 /// `+infinity` as "never measured" (`ipqp_alpha_p_min`, `ipqp_alpha_d_min`).
 inline bool counter_absent_at_pos_inf(double v) {
@@ -1639,20 +1639,22 @@ struct SqpCounters {
     double restoration_f_out = 0.0;
 
     /// @brief The feasibility SUB-SOLVE's own terminal status at the last
-    ///        measured restoration entry (M7 W2 M3a).
+    ///        measured restoration entry, or `kNotRun` (M7 W2 M3a).
     ///
     /// `sub_status` of the excursion record: the `SqpResult::status` the nested
-    /// restoration driver returned, read BEFORE the parent decides how its own
-    /// exit is spelled. It is the field that tells the phase's exit ARMS apart
-    /// directly rather than by inference:
+    /// restoration driver returned, mapped through
+    /// `to_restoration_sub_status` and read BEFORE the parent decides how its
+    /// own exit is spelled. It is the field that tells the phase's exit ARMS
+    /// apart directly rather than by inference:
     ///
+    ///   `kNotRun`          NO restoration sub-solve was measured on this
+    ///                      solve. The DEFAULT, and the only value here that is
+    ///                      not a reading (M7 W2 M3a fix1 -- see below).
     ///   `kOptimal`         the sub-solve converged on the feasibility problem.
-    ///                      The parent then either RESUMES (when
-    ///                      `restoration_h_out <= SqpOptions::feas_tol`) or
-    ///                      reports `kInfeasible` and puts the certificate gate
-    ///                      to the returned point -- so on this value, and only
-    ///                      on it, `SqpResult::infeasibility_certified` carries
-    ///                      a decision rather than a structural `false`.
+    ///                      On this value, and only on it, the parent puts the
+    ///                      CERTIFICATE gate to the returned point, so
+    ///                      `SqpResult::infeasibility_certified` carries a
+    ///                      decision rather than a structural `false`.
     ///   `kInfeasible`      the feasibility problem ITSELF raised a restoration
     ///                      request, which nothing can service (a nested
     ///                      restoration is refused). The parent reports
@@ -1660,6 +1662,24 @@ struct SqpCounters {
     ///   `kMaxIter`         the sub-solve spent the majors the parent lent it.
     ///   `kInterrupted`     the caller's callback stopped the sub-solve.
     ///   `kNumericalError`  the sub-solve failed numerically.
+    ///
+    /// Those five and `kNotRun` are what this field has ever held. The enum
+    /// carries SolveStatus's remaining four (`kAcceptable`, `kStalled`,
+    /// `kDiverging`, `kBudgetExhausted`) so that the map into it is TOTAL and
+    /// needs no default arm; the SQP engine reports the first three on no exit
+    /// at all, and the sub-solve runs with `budget_mode` forced false.
+    ///
+    /// WHAT IT DOES NOT SAY IS WHETHER THE PARENT RESUMED (M7 W2 M3a fix1).
+    /// The resume decision is `restoration_h_out <= SqpOptions::feas_tol` and
+    /// NOTHING ELSE -- `enter_restoration` takes it before it looks at the
+    /// sub-solve's status at all -- so a sub-solve that returned a feasible
+    /// enough point with `kMaxIter` or `kInterrupted` resumes exactly as a
+    /// `kOptimal` one does. It is CERTIFICATION that requires `kOptimal`. An
+    /// earlier draft of this note said the resume was reachable from `kOptimal`
+    /// alone, which was a statement about the documentation and not about the
+    /// code. (Whether resume SHOULD be gated on the sub-status is an open
+    /// engine question, registered with the M7 W2 M3a artifact; this field
+    /// describes today's behaviour and changes none of it.)
     ///
     /// WHY IT IS HERE. M7 W2 M2b could not say which of those arms its
     /// `kInfeasible` rows took: the parent's status is arm-faithful only up to
@@ -1674,13 +1694,16 @@ struct SqpCounters {
     /// three REFUSALS and the NON-FINITE exit write nothing here either, for
     /// their own reasons, so the record stays one record.
     ///
-    /// AND IT CARRIES NO SENTINEL. Its default is the enum's zero, `kOptimal`,
-    /// which is a LEGAL OBSERVED VALUE and therefore not a reading of absence
-    /// -- exactly as `0.0` is for three of the four absolutes above. THE
-    /// ABSENCE READING IS `restoration_entries == 0`, for this field as for
-    /// them: a solve that never restored reports `kOptimal` here and means
-    /// nothing by it.
-    SolveStatus restoration_sub_status = SolveStatus::kOptimal;
+    /// AND ITS ABSENCE IS ITS OWN VALUE, unlike the four absolutes above. They
+    /// have no spare reading to spend -- `0.0` is a legal violation and a legal
+    /// objective -- so absence for THEM stays `restoration_entries == 0`. This
+    /// field is an enum with a value to spare, so it spends it: `kNotRun` is
+    /// the default, it is what a never-restored solve reports here, and it is
+    /// what the trace spells `not_run`. The first draft defaulted to the
+    /// enum's zero `kOptimal` and left absence to the count, which made a clean
+    /// solve print `optimal` for a sub-solve it never ran; the review called
+    /// that a consumer hazard and the settler withdrew it.
+    RestorationSubStatus restoration_sub_status = RestorationSubStatus::kNotRun;
 };
 
 #define HVEN_SQP_COUNTERS_FIELDS(X)                                                                \
@@ -1756,8 +1779,12 @@ inline constexpr std::size_t kSqpCountersFieldCount =
 // M7 W2 M3a, which appended `restoration_sub_status` to that record the same
 // way and for the same reason. It is the SECOND enum in the table, after
 // `start_level_used`, and the first field NARROWER than 8 bytes: a 4-byte
-// `SolveStatus` last in the struct, which the struct's own 8-byte alignment
-// then pads, so the offsets stay monotone and `sizeof` moves 848 -> 856.)
+// `RestorationSubStatus` last in the struct, which the struct's own 8-byte
+// alignment then pads, so the offsets stay monotone and `sizeof` moves
+// 848 -> 856. Its type was a bare `SolveStatus` until M7 W2 M3a fix1 replaced
+// it with the ten-valued enum that has an explicit `kNotRun` -- the SAME
+// underlying type and therefore the SAME width, so that re-derivation moved
+// `sizeof` no further and no pre-existing offset at all.)
 static_assert(::hven::detail::kAggregateArity<SqpCounters> == kSqpCountersFieldCount + 2,
               "SqpCounters and HVEN_SQP_COUNTERS_FIELDS disagree: give the new field an X() entry "
               "in its declaration position, or -- if it is a new NESTED aggregate -- give it a "

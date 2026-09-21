@@ -113,18 +113,31 @@ terminal status at the last measured entry, the block's second enum after
 **The aggregate is no longer "`Index` fields (and one `bool`)" alone**, and has
 not been since M7 W2 M2: `SqpCounters` carries four `double`s and, since M7 W2
 M3a, two enums (`start_level_used`, a `StartLevel`, and `restoration_sub_status`,
-a `SolveStatus`). A CATEGORICAL reading is a legitimate counter here when it is
-per-solve and overwritten rather than accumulated -- `ipqp_rho_demanded_last`
-and `ipqp_final_inertia_read` are the precedent -- and each one's serializer
-overload lives beside the others in `src/drivers/trace_writer.cpp`.
+a `RestorationSubStatus`). A CATEGORICAL reading is a legitimate counter here
+when it is per-solve and overwritten rather than accumulated --
+`ipqp_rho_demanded_last` and `ipqp_final_inertia_read` are the precedent -- and
+each one's serializer overload lives beside the others in
+`src/drivers/trace_writer.cpp`.
 
-**`restoration_sub_status` carries no absence sentinel, deliberately.**
-`SolveStatus` has no "never entered" value, so rather than invent one the field
-follows the rule the four restoration absolutes already set: its default is the
-enum's zero, `kOptimal`, which is a legal observed value, and **the absence
-reading for the whole record is `restoration_entries == 0`**. A consumer that
-reads the status without the count reads "the feasibility sub-solve converged"
-off a solve that never ran one.
+**`restoration_sub_status` carries an EXPLICIT not-run value**, and is the first
+counter here that can say "absent" in its own vocabulary. `SolveStatus` has no
+"never entered" value, so the field takes a dedicated enum that does:
+`RestorationSubStatus` (`core/solver_status.h`) is `kNotRun = 0` -- the default,
+spelled `not_run` on the trace -- followed by one enumerator per `SolveStatus`
+value, under the same names and the same spellings, with the total map
+`to_restoration_sub_status` between them. The four `double` absolutes beside it
+keep `restoration_entries == 0` as their absence reading, because `0.0` is a
+legal violation and a legal objective and they have no spare value to spend;
+this field had one and spends it.
+
+*(M7 W2 M3a fix1 re-derivation.* The field shipped as a bare `SolveStatus`
+defaulting to the enum's zero, `kOptimal`, with absence left to the count. That
+made a never-restored solve report `optimal` for a sub-solve it never ran -- a
+legal success value doing duty as an absence, which the review called a consumer
+hazard. The settler withdrew it. The replacement has the SAME underlying type
+and therefore the same width, so no pin below moves: 50 fields, `sizeof` 856,
+and the only trace byte that changes is this key's own value on a solve that
+never restored, which now reads `"not_run"` instead of `"optimal"`.)
 
 THREE OF THESE ARE PINNED AGAINST A MACRO TABLE, not merely declared:
 `SsnCounters`, `IpqpCounters` and `SqpCounters` each carry an `X()` list used to
@@ -226,6 +239,19 @@ one of those three therefore cannot silently miss the trace.
   than `h` -- so a depth-1 iteration event's `f` is no longer the violation at
   that iterate, and `restoration_h_out <= feas_tol` still says the entry
   RESUMED. The shipped weight is 0, at which none of this applies.
+
+  **THE RECORD'S SIXTH FIELD SAYS ITS OWN ABSENCE** (M7 W2 M3a, corrected in
+  fix1). `restoration_sub_status` is the sub-solve's terminal status at that
+  same last entry, overwritten by each one on the four absolutes' rule -- and,
+  unlike them, it defaults to a value that is not a reading: `kNotRun`, spelled
+  `not_run`. The first bullet above is therefore a statement about the four
+  `double`s and not about the whole record. Two things it does NOT say, and
+  both are read off `restoration_h_out` instead: whether the entry RESUMED (the
+  parent takes that decision on `h_out <= feas_tol` alone, before it inspects
+  the sub-status at all, so a feasible enough point returned with `max_iter` or
+  `interrupted` resumes exactly as an `optimal` one does), and whether the
+  solve holds a CERTIFICATE (that one does require the sub-solve's `kOptimal`,
+  and `SqpResult::infeasibility_certified` is what reports it).
 
   THE THREE REFUSALS AND THE NON-FINITE EXIT WRITE NOTHING. A nested
   restoration, the once-per-solve cap and a spent budget never enter the phase;

@@ -617,8 +617,9 @@ that record (below); this section carried the 37 until W5 T9 fix2.
 
 **TWO of the direct fields are enums, written as strings.** `start_level_used`
 is written `cold\|seeded\|warm\|hot`, and `restoration_sub_status` takes
-`to_json(SolveStatus)` — the same spelling the `sqp.solve.end` line's own
-`status` key uses, so one line cannot spell two statuses two ways. Both are in
+`to_json(RestorationSubStatus)` — `not_run` plus, for its nine status values,
+EXACTLY the spellings `to_json(SolveStatus)` gives the `sqp.solve.end` line's
+own `status` key, so one line cannot spell two statuses two ways. Both are in
 the schema's lower-snake alphabet, not core's PascalCase display spelling.
 
 **Three counters carry a documented ABSENCE SENTINEL and serialize as `null`**
@@ -725,14 +726,27 @@ ENUM.**
 
 | counter | type | source | meaning |
 |---|---|---|---|
-| `restoration_sub_status` | string | `SqpCounters::restoration_sub_status` | the feasibility SUB-SOLVE's own terminal status at the last measured entry, read before the parent decides how its own exit is spelled: `optimal` (the sub-solve converged — the only value a RESUME or a CERTIFIED infeasibility exit is reachable from), `infeasible` (the feasibility problem itself raised a restoration request nothing can service, so the parent makes no claim about the model), `max_iter`, `interrupted` or `numerical_error` |
+| `restoration_sub_status` | string | `SqpCounters::restoration_sub_status` | the feasibility SUB-SOLVE's own terminal status at the last measured entry, read before the parent decides how its own exit is spelled — or `not_run`, which is the DEFAULT and says no restoration sub-solve was measured on this solve. The readings: `optimal` (the sub-solve converged — the only value a CERTIFIED infeasibility exit is reachable from), `infeasible` (the feasibility problem itself raised a restoration request nothing can service, so the parent makes no claim about the model), `max_iter`, `interrupted` or `numerical_error`. **A RESUME is not reachable from `optimal` alone**: the parent resumes on `restoration_h_out <= feas_tol` and nothing else, before it inspects this status at all, so a sub-solve that returned a feasible enough point with `max_iter` or `interrupted` resumes exactly as an `optimal` one does. The other four `SolveStatus` spellings (`acceptable`, `stalled`, `diverging`, `budget_exhausted`) exist in the alphabet so the map into it is total, and have never been observed here |
 
 It is **LAST in the table and last in the struct**, appended after
 `restoration_f_out` for that group's own reason — so the counters object gains
 exactly one key, between `restoration_f_out` and the `ssn` object, and nothing
-else moves. It is written through a `key_value(…, SolveStatus, …)` overload
-added beside the `StartLevel` one, forwarding to the same `to_json(SolveStatus)`
-the end line's `status` key already used, so no other key's bytes move.
+else moves. It is written through a `key_value(…, RestorationSubStatus, …)`
+overload added beside the `StartLevel` one, so no other key's bytes move.
+
+**RE-DERIVED ONCE AT M7 W2 M3a fix1, AND DECLARED.** The key shipped carrying a
+bare `SolveStatus` whose zero — `optimal` — was also its default, so a solve
+that never restored wrote `"restoration_sub_status":"optimal"` onto its
+`sqp.solve.end` line. That is a legal success value standing in for an absence;
+the review called it a consumer hazard and the settler withdrew it. The value on
+such a line is now `"not_run"`. **This is the only byte that moves**: the key's
+name, position and type (string) are unchanged, every other key is untouched,
+and on a solve that DID restore the spelling is what it always was. Both golden
+lines in `tests/sqp/test_trace_writer.cpp` were re-derived: the all-distinct one
+is UNCHANGED (its `assign_distinct` picks `budget_exhausted`, a non-default value
+under either enum) and the defaults one moves `"optimal"` → `"not_run"` at this
+one key. Section 8's additive-key rule governs the original append; this
+correction is a VALUE change on one key of one line, declared here.
 
 It carries **no sentinel** and is not in the `null` table above: `SolveStatus`
 has no "never entered" value, so the field takes the record's own absence rule
