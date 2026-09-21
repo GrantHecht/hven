@@ -269,10 +269,22 @@ expect_nonzero "assert_capture_pair: an arm with no manifest at all" \
 expect_zero "assert_capture_pair: two arms of the same size are accepted" \
     assert_capture_pair "$TMP/cap-good" "$TMP/cap-good"
 
-expect_nonzero "assert_same_classification: the two configs disagree" \
-    assert_same_classification "$(psym_file 52 5 47 0 23)" "$(psym_file 51 5 46 0 23)"
-expect_zero "assert_same_classification: identical files are accepted" \
-    assert_same_classification "$(psym_file 52 5 47 0 23)" "$(psym_file 52 5 47 0 23)"
+# `assert_same_classification` (version 1) DOES NOT EXIST in version 2 or 3:
+# M3a fix round 1's settlement replaced it with `assert_psym_cross_config`,
+# because requiring the two configurations' classifications to be byte-identical
+# forbids a fact that is allowed to be true (a changed source may compile
+# identically in one configuration and not in the other). The two folds that
+# stood here exercised the retired function; the rule that replaced it is
+# fold-proven in full -- all four of its clauses, on real captures, in both
+# directions -- by `fold_proofs_psym_m3b.sh` beside this file. What is kept here
+# is the one shape THIS round's runner actually passes it: two classifications
+# with empty class A and class B sets, which is what a zero-mover round hands
+# it, and which must be ACCEPTED rather than refused for want of content.
+# shellcheck disable=SC2086
+expect_zero "assert_psym_cross_config: two EMPTY-set classifications (a zero-mover round's own pair) are accepted" \
+    assert_psym_cross_config "$(psym_file 0 0 0 0 23)" "$(psym_file 0 0 0 0 23)" -- src/qp/qp_engine.cpp
+expect_nonzero "assert_psym_cross_config: an empty changed-source list is refused even for a zero-mover pair" \
+    assert_psym_cross_config "$(psym_file 0 0 0 0 23)" "$(psym_file 0 0 0 0 23)" --
 
 # ---- ctest --no-tests=error --------------------------------------------
 if [ -f "$BUILD/CTestTestfile.cmake" ]; then
