@@ -141,3 +141,113 @@ NO DEFAULT WAS CHANGED BY THIS TASK -- not `tr_init`, not
 lane's `default` label (hven's own defaults plus `common.threads = 1` and
 `common.print_level = 10`) with only `SqpOptions::tr_init` varied, and the
 library at 396e3a36 ships exactly the defaults it shipped at e7ef78b0.
+
+
+==============================================================================
+ADDENDUM E -- THE QP-CAP EXPERIMENTS (the 5 E legs)
+==============================================================================
+
+THE STAMP
+---------
+commit measured 09160ae0  "data(m7): M7 W2 M3a addendum E -- the probe's two
+                cap arguments and five new keys, the identity checker and the
+                E chain" -- the tree that carries everything stage 1 carried,
+                plus RULE-E.md (ade36329), the stage-1 rows and fold
+                (b663b834, 6bc75ee9) and the rebuilt probe.
+                Every E leg ran on a CLEAN tree at that commit; the chain
+                prints `HEAD 09160ae0  dirty-files=0` at its head
+                (logs/chainE.log line 2) and refuses to start otherwise.
+date            2026-09-21, America/New_York
+                (chain E: 07:51:22 -> 08:11:28)
+toolchain, host, backend, alignment: UNCHANGED from stage 1 above. Same box,
+                same day, same install.
+
+APPLE / ACCELERATE: UNOBSERVED. No E leg ran on Mac hardware.
+HOLDOUT: NOT RUN. STEENBRB and YORKNET are TRAIN.
+
+THE MEASUREMENT TERMS
+---------------------
+UNCHANGED from stage 1 and restated in RULE-E.md section 6: NO CO-RUN, one
+leg per process, serial, `MKL_NUM_THREADS=1 OMP_NUM_THREADS=1`,
+`taskset -c 2`, each leg its OWN hold of /tmp/box-build.lock with no timeout
+and no fallback, a `pgrep` guard as a separate prior command and a
+`PGREP_EMPTY` marker inside the lock before every leg (the guard never fired:
+logs/chainE.log, all 5 legs). 300 s SOLVER deadline enforced by the probe in
+its own iteration callback, inside a 900 s OUTER `timeout`.
+
+WALL IS INFORMATIONAL. The per-leg `wall_s` in logs/chainE.log is printed
+"(INFORMATIONAL)" and is quoted as a measurement nowhere. Two E legs' wall
+exceeds 300 s because the solver deadline fires only when the iteration
+callback is next reached; that is a budget, not a timing, and neither number
+supports any claim in this artifact.
+
+TRUNCATED AND CENSORED, as they fell: all 5 legs exited rc=0, so NO leg is
+CENSORED and no row is missing (`LEGS_E_WORST=0`). BOTH E2 legs printed
+`deadline_fired=1` and are TRUNCATED -- their counters are reported and they
+carry NO VERDICT (RULE-E.md section 5). The two E1 legs and the identity leg
+printed `deadline_fired=0`.
+
+WHAT PRODUCED EACH NUMBER
+-------------------------
+THE 5 E LEGS (rows/e/, tables/e-*.txt, verdict-E.txt) -- the SAME hven
+install as stage 1, and a REBUILT m3a_probe:
+
+    hven install      .../.scratch/m7w2m3a/install, from 396e3a36 -- UNCHANGED
+      lib64/libhven.a
+        c79f404fd377f7ecdefc8ab016a71d65a8cba026a498b4f1f65ce303a72d5cd3
+        (re-checked by chainE.sh at prepare, which refuses a mismatch and does
+        NOT rebuild the library: logs/chainE.log line 4)
+    m3a_probe, stage 1
+        ba6a1a74698311f6aaf493e6a815f716f1fe5ba7a3df990756f6660acffac3f3
+    m3a_probe, addendum E
+        37d13d765d02fc41d0d801532edbf5f1a7e32e5e322ff61296941be041ebfcc1
+        (logs/chainE.log line 3, recorded at prepare and carried by all 5 legs)
+
+    THE TWO BINARIES DIFFER BY CONSTRUCTION -- the E probe adds
+    `--qp-cap-retry on|off`, `--qp-max-iter N` and five printed keys
+    (`qp_cap_retry`, `qp_max_iter`, `qp_cap_retries`, `first_qp_minor_iters`,
+    `first_qp_factorizations`) -- and THE IDENTITY LEG IS THE PROOF THAT THE
+    DIFFERENCE IS INERT AT THE DEFAULTS. `STEENBRB@identity`, run BEFORE any
+    E leg with both new options at their defaults, is byte-identical to the
+    committed rows/stage1/STEENBRB@trinf.txt on all 50 shared keys and on the
+    whole excursion ladder, `NEAR_ULP_TOLERATED=0`, `IDENTITY_E_WORST=0`
+    (identity-e.txt; wrappers/identity_e.py; the five keys above are the only
+    additions and are excluded BY NAME by RULE-E.md section 3, committed
+    before the leg ran). An identity failure would have ABORTED the chain
+    before any E leg; it did not fire.
+
+    NO ROW IN rows/stage1/ WAS RE-TAKEN with the E binary. The controls for
+    the E legs are the COMMITTED stage-1 @trinf rows (RULE-E.md section 2),
+    read as files by the fold.
+
+    Nothing built here carries `HVEN_BENCH_PIN_SHA` -- the harness CMake is
+    never entered -- so NO ROW FROM THIS PROBE IS EVER CITED AS A HARNESS ROW,
+    and /home/ghecht/Projects/hven-bench stayed read-only to this addendum as
+    it did to stage 1. The three harness sources and their content hashes are
+    UNCHANGED from the stage-1 stamp above.
+
+THE E TABLES AND verdict-E.txt ARE MACHINE-WRITTEN: wrappers/summarise_m3a.py's
+fold_e() folds rows/e/ and the two committed stage-1 controls into
+tables/e-first-qp.txt, tables/e-solve-counters.txt and verdict-E.txt. No number
+in them is transcribed by hand, and RULE-E.md section 5's predicates are coded
+once, in that file, from the rule as committed at ade36329. The stage-1 fold is
+untouched: re-running the script leaves verdict.txt and tables/stage1-*.txt
+byte-identical to 6bc75ee9.
+
+THE TWO E2 CAPS ARE PRE-REGISTERED as literal integers in RULE-E.md section 1
+(46800 and 25600), committed before any leg ran; the fold independently derives
+each cell's per-major quotient (4680, 2560) from that cell's own control row and
+checks that the argument is exactly ten times it.
+
+WHAT IS NOT HERE, FOR THE ADDENDUM
+----------------------------------
+NO LEG BEYOND THE FIVE was ever started. RULE-E.md section 5's failure path
+applies: H-QP is recorded as NOT SUPPORTED on these cells at these caps -- and
+NOT REFUTED either, both E2 legs being TRUNCATED -- and the addendum stops. It
+is not re-tested at a larger cap, not widened to other cells, not re-run at a
+wider budget.
+
+NO DEFAULT WAS CHANGED BY THIS ADDENDUM -- not qp_cap_retry, not
+QpOptions::max_iter, not tr_init, not restoration_proximity, not qp.tr_radius,
+not feas_tol. Both options exercised here ship OFF / at the sentinel and still
+do.

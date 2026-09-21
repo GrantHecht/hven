@@ -280,6 +280,209 @@ qualifying radius, and running it anyway would be exactly the post-hoc widening
 
 ---
 
+## Addendum E — the E legs: does the first QP finish if it is given the minors?
+
+**The result, in plain language: no, it does not — and the rule does not let us
+say so in its own word.** Given ten times the minor budget stage 1 refused it,
+the first QP subproblem on both cells still came back `max_iter`, still moved the
+iterate not at all, and the solve still ended the same way. But both of those
+legs ran into the 300 s solver deadline, and `RULE-E.md` §5 says a TRUNCATED leg
+yields **no verdict** — so `REFUTED`, the label those two legs would otherwise
+have carried, is withheld. The two legs that *did* finish (the `qp_cap_retry`
+arm, at twice the cap) are simply **not SUPPORTED**: same `max_iter`, same
+`steps_accepted = 0`.
+
+So the recorded outcome is: **H-QP is not supported on these cells at these caps,
+and it is not refuted either.** The addendum stops there — no larger cap, no
+other cells, no wider budget, no relaxed predicate (`RULE-E.md` §5's failure
+path). **No default is changed**, and a SUPPORTED verdict would not have licensed
+one either.
+
+This is a *different* hypothesis from stage 1's. The radius hypothesis stays
+CLOSED by `RULE.md` §5.5, and [`verdict.txt`](verdict.txt) and "The verdict
+table" above stand exactly as committed at `6bc75ee9`.
+
+### What ran
+
+Five legs, one at a time, each its own hold of `/tmp/box-build.lock`, pinned to
+one physical core at `MKL_NUM_THREADS=1`, all at `--tr-init inf` with ζ = 0 and
+exactly one option off its default:
+
+| leg | argument | outcome |
+|---|---|---|
+| `STEENBRB@identity` | (both new options at their defaults) | the §3 gate — **IDENTICAL** to the committed `rows/stage1/STEENBRB@trinf.txt` |
+| `STEENBRB@E1` | `--qp-cap-retry on` | complete, not SUPPORTED |
+| `YORKNET@E1` | `--qp-cap-retry on` | complete, not SUPPORTED |
+| `STEENBRB@E2` | `--qp-max-iter 46800` | TRUNCATED — counters reported, no verdict |
+| `YORKNET@E2` | `--qp-max-iter 25600` | TRUNCATED — counters reported, no verdict |
+
+The identity leg is the gate on the *rebuilt* probe: it gained two arguments and
+five printed keys, and a leg with neither argument had to reproduce stage 1
+before any E leg was allowed to run. It did — 50 shared keys and the whole
+excursion ladder byte-identical, `NEAR_ULP_TOLERATED=0`, the only new keys being
+the five `RULE-E.md` §3 excluded by name ([`identity-e.txt`](identity-e.txt), and
+the fold re-checks it independently in [`verdict-E.txt`](verdict-E.txt)).
+
+Machine-written read-outs: [`verdict-E.txt`](verdict-E.txt),
+[`tables/e-first-qp.txt`](tables/e-first-qp.txt),
+[`tables/e-solve-counters.txt`](tables/e-solve-counters.txt). Raw rows in
+[`rows/e/`](rows/e), transcript in [`logs/chainE.log`](logs/chainE.log). All five
+stderr files were empty and are not committed.
+
+### The observation the verdict does not carry
+
+**OBSERVED**, from the two TRUNCATED legs' own `history[0]` fields — which were
+**complete before the deadline fired**, and the row says so rather than us
+assuming it (`first_qp_solved = 1`; `first_qp_minor_iters` equal to the cap
+*exactly*, i.e. the subproblem ran its whole budget and returned; a later major
+present in `history`):
+
+- STEENBRB@E2: first QP `max_iter` after **46 800** minors — 10 × its own derived
+  per-major cap of 4680 — on **5** factorizations.
+- YORKNET@E2: first QP `max_iter` after **25 600** minors — 10 × 2560 — on
+  **51 186** factorizations.
+
+and from the two legs that are not truncated at all:
+
+- STEENBRB@E1 and YORKNET@E1: first QP `max_iter` at **2 ×** the cap (9360 and
+  5120), with `qp_cap_retries = 4` and `qp_maxiter_exits = 4` on both. By
+  `RULE-E.md` §4's accounting — cap exits are counted at the routing site, so a
+  retry that *rescued* a subproblem would not appear there — those two equal,
+  non-zero counters read as: every capped subproblem was retried at twice the
+  budget and hit the doubled cap too. **No retry rescued anything.**
+
+`steps_accepted = 0` on all four legs: the iterate never moves, on either cell,
+at any of these caps.
+
+Wall-clock is informational and supports nothing here: it is in
+`logs/chainE.log` marked `(INFORMATIONAL)` and is quoted as a measurement
+nowhere. (The E2 legs' processes outlived the 300 s solver deadline, which the
+probe enforces in its iteration callback and which therefore fires only when a
+callback is reached.)
+
+### The new lead: why does an active-set walk spend 46 800 minors and never converge?
+
+This is the question the E legs hand on. Everything below is from the **public
+headers** and from the harness's own cost census; observed and inferred are
+labelled, and no source outside those was read.
+
+**DOCUMENTED (the header says it in as many words).** `qp_engine.h`'s own
+"Degeneracy" section, `include/hven/detail/qp/qp_engine.h:333-338`:
+
+> Linearly dependent working sets do not break the loop: the delta/mu
+> regularization keeps the KKT matrix factorizable, and the dependent rows split
+> the multiplier between them. **No anti-cycling rule is implemented; a
+> degenerate stall is bounded by `max_iter`.**
+
+That is the shipped contract, and it is a complete explanation of the *shape* we
+see — a walk that runs to its cap — without being evidence that this particular
+walk is stalling rather than working.
+
+**DOCUMENTED, on the nonconvex side.** The walk does *not* assume a convex QP,
+and it is not silently mis-handling an indefinite Hessian: `qp_engine.h:8-16`
+states "`H` need not be positive semidefinite", §4b (`:129-176`) is an **inertia
+gate** that refuses to certify `kOptimal` at a second-order-inconsistent point
+(reporting `kNumericalError` instead) and escalates `primal_delta` a decade at a
+time on a suspect reading, and §4c (`:177-208`) is a **negative-curvature ride**
+to the nearest blocking constraint, with an engine-internal `kUnbounded` outcome
+when nothing blocks. There is no `QpStatus::kUnbounded`
+(`include/hven/core/solver_status.h:20-26` has exactly `kOptimal`, `kMaxIter`,
+`kInfeasible`, `kNumericalError`); an unbounded-looking answer is folded into
+`kNumericalError` by the `unbounded_artifact_scale()` guard
+(`qp_engine.h:210-226`, `:424-435`). **None of that fires here**: the first QP
+returns `kMaxIter`, not `kNumericalError`, on every E leg.
+
+**WHAT THE SURFACE CANNOT SHOW, and this is the finding of the lead.** The
+counters that would discriminate *cycling / degenerate stalling* from *a long but
+genuine walk* exist — `degenerate_steps`, `degenerate_run_max`, `drop_ties`,
+`ratio_ties`, `ws_adds`, `ws_drops`, `schur_updates`
+(`include/hven/core/solver_counters.h:111-200`, `:33`) — but every one of them
+lives on **`QpCounters` only**. `solver_counters.h:988-993` aggregates just
+`qp_minor_iters` and `factorizations` onto `SqpCounters` (plus
+`eqp_refine_steps`, `border_refine_steps`, `verdict_refine_steps`,
+`suspect_escalations`, `symbolic_analyses`, re-declared at `:1128-1164`), and
+`SqpIterate` carries only `qp_minor_iters` / `qp_factorizations` per row
+(`include/hven/drivers/sqp_solver_types.h:1061-1063`). **From `SqpResult` alone —
+which is all this probe can see — "many genuine EQP re-solves" and "cycling
+through ties and zero-length pivots" are indistinguishable.** That is a
+measurement gap, not a null result.
+
+**The 5-vs-51 186 factorization contrast, OBSERVED.** At the same cap and the
+same QP status, STEENBRB@E2 spends 5 factorizations over 46 800 minors while
+YORKNET@E2 spends 51 186 over 25 600 — 2.0 per minor. The rows carry a second
+column that splits the two the same way: `border_refine_steps` is **843 016** on
+STEENBRB@E2 and **9** on every YORKNET leg. So on STEENBRB the Schur border stack
+is carrying the walk, and on YORKNET it is essentially never used.
+
+**INFERRED**, using the harness census's vocabulary
+(`/home/ghecht/Projects/hven-bench/docs/w2-c1-sqp-cost-census.md`, read-only;
+its chain B covers STEENBRB but **never ran YORKNET**, never measured YORKNET's
+pin peak, and never varies `tr_radius` at all — so it does not contain these
+numbers and cannot be cited as explaining them). The census's regimes are: pin
+peak above `schur_cap = 128` ⇒ bordering "unavailable at any price" and
+≈1 factorization per minor; pin peak far under ⇒ ≪1; and one intermediate,
+conditioning-guard-driven regime at ≈1.78 (READING6, fixed by relaxing
+`schur_cond_max`). Against that:
+
+- STEENBRB's census pin peak is **337**, far above the cap, and its census
+  default arm refactorizes ≈1.00 per minor — yet **at `tr_init = inf` the same
+  cell spends 5 factorizations on 46 800 minors**. The natural inference is that
+  the trust-region window's own bound rows are a large part of what pins
+  STEENBRB past `schur_cap`: remove the window and the pin count falls under the
+  cap, so bordering becomes available and the walk runs almost refactorization-
+  free. **This is an inference.** `pinned` is not printed by any counter this
+  probe can reach, and the census itself lists "the depth at each refactorization
+  trigger" and "which of the four triggers fires" among its never-counted open
+  questions.
+- YORKNET at ≈2.0 factorizations per minor with `border_refine_steps = 9` matches
+  **none** of the census's three regimes (it is above even READING6's 1.78), and
+  YORKNET's pin peak has never been measured. Candidates, all uninstrumented from
+  here: the pin-count latch, the depth test `dim() > schur_cap`, the conditioning
+  guard `schur_cond_max`, or `nearly_singular()`. **Not guessed at further.**
+
+### The single cheapest next discriminating measurement (the settler rules; nothing was run)
+
+**Two legs, no new solver behaviour, no hven source change** — a three-line
+addition to this directory's own probe so it prints the three reachable
+`SqpCounters` fields it does not currently print (`suspect_escalations`,
+`eqp_refine_steps`, `verdict_refine_steps`), then the two `@trinf` controls
+re-run under the same terms:
+
+```
+# after adding the three kvi() lines to wrappers/m3a_probe.cpp and rebuilding
+# it against the SAME install (the chain refuses a library-sha mismatch):
+flock /tmp/box-build.lock env MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 \
+  taskset -c 2 timeout 900 \
+  /home/ghecht/Projects/hven/.scratch/m7w2m3a/probebuild/m3a_probe \
+  --problem STEENBRB --tr-init inf --deadline 300
+flock /tmp/box-build.lock env MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 \
+  taskset -c 2 timeout 900 \
+  /home/ghecht/Projects/hven/.scratch/m7w2m3a/probebuild/m3a_probe \
+  --problem YORKNET  --tr-init inf --deadline 300
+```
+
+(run from `/home/ghecht/Projects/hven-bench`, which stays read-only; each leg its
+own lock hold, `pgrep` guard first, a fresh pre-registered rule before it runs.)
+
+What it discriminates: `suspect_escalations > 0` says the inertia gate's
+suspect-stall ladder is firing inside these subproblems — the walk is repeatedly
+re-regularizing a KKT system whose inertia it cannot read, which is a mechanism
+for the minors; `suspect_escalations == 0` rules that mechanism out and leaves
+the documented `qp_engine.h:333-338` gap — a degenerate stall bounded only by
+`max_iter` — as the standing candidate. It is cheap because both legs are the
+already-measured `@trinf` configuration (stage 1 ran them in 31.6 s and 97.3 s of
+informational wall) and neither can truncate.
+
+**What it will not settle**, and should be said in the same breath: the
+decisive counters (`degenerate_steps`, `degenerate_run_max`, `drop_ties`,
+`ratio_ties`, `ws_adds`/`ws_drops`, `schur_updates`, and the pin depth) are not
+reachable from `SqpResult` at all. Making them reachable — aggregating them onto
+`SqpCounters`, or mirroring them onto the `SqpIterate` row — is **engine work for
+the settler to rank**, not a measurement, and this addendum proposes no such
+change.
+
+---
+
 ## Files
 
 ```
@@ -296,6 +499,16 @@ wrappers/m3a_probe.cpp              the instrument
 wrappers/probe-CMakeLists.txt       the install-only build (the harness CMake is never entered)
 wrappers/chain1.sh                  the stage-1 chain
 wrappers/identity_m3a.py            the control-identity checker
-wrappers/summarise_m3a.py           the fold that writes tables/ and verdict.txt
+wrappers/summarise_m3a.py           the fold that writes tables/, verdict.txt and verdict-E.txt
+RULE-E.md                           addendum E's pre-registered rule (ade36329, before any E leg)
+verdict-E.txt                       RULE-E.md section 5 applied -- machine-written
+identity-e.txt                      the rebuilt probe's identity gate (RULE-E.md section 3)
+rows/e/<CELL>@<tag>.txt             the 5 raw E legs, unedited
+                                    (all 5 stderr files were empty and are not committed)
+logs/chainE.log                     the E chain transcript, lock markers and wall (informational)
+tables/e-first-qp.txt               the first QP subproblem, leg by leg -- machine-written
+tables/e-solve-counters.txt         the whole-solve counters, leg by leg -- machine-written
+wrappers/identity_e.py              the addendum-E identity checker
+wrappers/chainE.sh                  the E chain
 gates/                              task A's six-gate chain (committed at 3caf8d50)
 ```
