@@ -1,11 +1,25 @@
 #!/usr/bin/env bash
-# M7 W2 M2b FIX ROUND 1 -- THE FOLD PROOFS.
+# M7 W2 M2b FIX ROUNDS 1-2 -- THE FOLD PROOFS.
 #
 # Every refusal added to `gates.sh` / `gate_asserts.sh` / `classify_psym.py`
-# this round is exercised ONCE here against a DELIBERATELY BROKEN INPUT, and
-# must exit non-zero. A refusal that has never refused anything is a comment,
-# not a gate -- which is precisely what the first round's runner turned out to
-# be. The transcript of one run is committed as `gates-fix1/fold-proofs.txt`.
+# is exercised ONCE here against a DELIBERATELY BROKEN INPUT, and must exit
+# non-zero. A refusal that has never refused anything is a comment, not a gate
+# -- which is precisely what the first round's runner turned out to be. The
+# transcript of one run is committed as `gates-fix<N>/fold-proofs.txt`.
+#
+# FIX ROUND 2 closes two gaps the re-review named in this file itself.
+#
+#   * THE TRANSCRIPT'S RUNNER SHA MUST BE THE LANDED RUNNER'S. Fix round 1's
+#     transcript recorded a `gates.sh` sha256 that no committed version has --
+#     it was taken before the last edit. This version prints, for each wrapper,
+#     BOTH the worktree digest and `git show HEAD:<path> | sha256sum`, so the
+#     transcript proves on its own face that it ran against what landed. Run it
+#     on a CLEAN tree, after the wrapper commit, and cite that commit.
+#   * THE LAST TWO FOLDS MUST RUN THE RUNNER'S CODE. Fix round 1 proved "the
+#     aggregate carries rc5" and "G6 propagates a failed sub-gate" by
+#     re-creating the arithmetic here, which proves only that this file can add.
+#     `gates.sh` now calls `gates_aggregate` and `accumulate_rc` from
+#     `gate_asserts.sh`, and the folds below call those same functions.
 #
 # It starts no solve and builds nothing: the one leg that needs a configured
 # tree (`ctest --no-tests=error`) runs CTest over a filter that matches no test,
@@ -59,9 +73,20 @@ expect_zero() {
 
 echo "FOLD_PROOFS_START $(date -Is)"
 echo "root=$ROOT build=$BUILD"
-echo "classify_psym.py sha256 $(sha256sum "$ART/wrappers/classify_psym.py" | cut -d' ' -f1)"
-echo "gate_asserts.sh   sha256 $(sha256sum "$ART/wrappers/gate_asserts.sh" | cut -d' ' -f1)"
-echo "gates.sh          sha256 $(sha256sum "$ART/wrappers/gates.sh" | cut -d' ' -f1)"
+echo "HEAD $(git -C "$ROOT" rev-parse HEAD)  dirty-files=$(git -C "$ROOT" status --porcelain | wc -l)"
+echo "-- wrapper identity: WORKTREE digest vs the digest of the SAME path AT HEAD."
+echo "-- They must agree, or this transcript did not exercise what landed."
+for f in gates.sh gate_asserts.sh classify_psym.py fold_proofs.sh; do
+    rel="docs/notes/data/2026-09-m7-w2-m2b-proximity/wrappers/$f"
+    w=$(sha256sum "$ART/wrappers/$f" | cut -d' ' -f1)
+    c=$(git -C "$ROOT" show "HEAD:$rel" 2> /dev/null | sha256sum | cut -d' ' -f1)
+    if [ "$w" = "$c" ]; then
+        printf '%-18s sha256 %s  (worktree == HEAD)\n' "$f" "$w"
+    else
+        printf '%-18s sha256 %s  *** DIFFERS FROM HEAD: %s ***\n' "$f" "$w" "$c"
+        fails=$((fails + 1))
+    fi
+done
 echo
 
 CLS="python3 -B $ART/wrappers/classify_psym.py"
@@ -165,19 +190,50 @@ psym_file() { # differing A B unexplained control -> file on stdout
 }
 
 expect_nonzero "assert_psym: a compare rc of 0 (nothing was compared)" \
-    assert_psym Release "$(psym_file 52 5 47 0 23)" 0 0 1
+    assert_psym Release "$(psym_file 52 5 47 0 23)" 0 0 1 52 5 47
 expect_nonzero "assert_psym: a classifier rc of 1" \
-    assert_psym Release "$(psym_file 52 5 47 0 23)" 1 1 1
+    assert_psym Release "$(psym_file 52 5 47 0 23)" 1 1 1 52 5 47
 expect_nonzero "assert_psym: movers not accounted for by class A + class B" \
-    assert_psym Release "$(psym_file 52 5 40 0 23)" 1 0 1
+    assert_psym Release "$(psym_file 52 5 40 0 23)" 1 0 1 52 5 40
 expect_nonzero "assert_psym: a nonzero UNEXPLAINED" \
-    assert_psym Release "$(psym_file 52 5 44 3 23)" 1 0 1
+    assert_psym Release "$(psym_file 52 5 44 3 23)" 1 0 1 52 5 44
 expect_nonzero "assert_psym: a ZERO negative control" \
-    assert_psym Release "$(psym_file 52 5 47 0 0)" 1 0 1
+    assert_psym Release "$(psym_file 52 5 47 0 0)" 1 0 1 52 5 47
 expect_nonzero "assert_psym: zero movers (the vacuous comparison, seen from the runner)" \
-    assert_psym Release "$(psym_file 0 0 0 0 23)" 1 0 1
-expect_zero "assert_psym: the GOOD shape is accepted" \
-    assert_psym Release "$(psym_file 52 5 47 0 23)" 1 0 1
+    assert_psym Release "$(psym_file 0 0 0 0 23)" 1 0 1 0 0 0
+# FIX ROUND 2: the DECLARED mover shape. Each of the three counts is wrong in
+# turn while the classification stays internally consistent -- the shape the
+# first round's floor would have accepted without a word.
+expect_nonzero "assert_psym: the right shape at the WRONG declared differing count" \
+    assert_psym Release "$(psym_file 52 5 47 0 23)" 1 0 1 51 5 47
+expect_nonzero "assert_psym: the declared class A does not match" \
+    assert_psym Release "$(psym_file 52 5 47 0 23)" 1 0 1 52 6 47
+expect_nonzero "assert_psym: the declared class B does not match (a header reached an includer)" \
+    assert_psym Release "$(psym_file 52 5 47 0 23)" 1 0 1 52 5 46
+expect_zero "assert_psym: the GOOD shape at the DECLARED counts is accepted" \
+    assert_psym Release "$(psym_file 52 5 47 0 23)" 1 0 1 52 5 47
+
+# ---- gate_asserts.sh: the stale/partial P-SYM capture -------------------
+mkdir -p "$TMP/cap-good" "$TMP/cap-empty" "$TMP/cap-short"
+printf 'a.o\nb.o\nc.o\n' > "$TMP/cap-good/.psym-manifest"
+: > "$TMP/cap-empty/.psym-manifest"
+printf 'a.o\nb.o\n' > "$TMP/cap-short/.psym-manifest"
+
+expect_nonzero "assert_capture: a capture that EXITED NONZERO (the first round discarded this rc)" \
+    assert_capture "after-Release" 1 "$TMP/cap-good"
+expect_nonzero "assert_capture: a snapshot directory that does not exist" \
+    assert_capture "after-Release" 0 "$TMP/cap-no-such-dir"
+expect_nonzero "assert_capture: an EMPTY manifest (the truncate-then-refuse window)" \
+    assert_capture "after-Release" 0 "$TMP/cap-empty"
+expect_zero "assert_capture: a good capture is accepted" \
+    assert_capture "after-Release" 0 "$TMP/cap-good"
+
+expect_nonzero "assert_capture_pair: two arms of DIFFERENT size (one capture was partial)" \
+    assert_capture_pair "$TMP/cap-short" "$TMP/cap-good"
+expect_nonzero "assert_capture_pair: an arm with no manifest at all" \
+    assert_capture_pair "$TMP/cap-no-such-dir" "$TMP/cap-good"
+expect_zero "assert_capture_pair: two arms of the same size are accepted" \
+    assert_capture_pair "$TMP/cap-good" "$TMP/cap-good"
 
 expect_nonzero "assert_same_classification: the two configs disagree" \
     assert_same_classification "$(psym_file 52 5 47 0 23)" "$(psym_file 51 5 46 0 23)"
@@ -194,23 +250,37 @@ else
 fi
 
 # ---- the aggregate and the G6 accumulation ------------------------------
-n=$((n + 1))
-agg=$(( 0 | 0 | 0 | 0 | 1 | 0 ))
-if [ "$agg" -ne 0 ]; then
-    printf 'FOLD %02d  REFUSED (rc=%d)  the final aggregate carries rc5 (G1..G4,G6 green, G5 red)\n' "$n" "$agg"
-else
-    printf 'FOLD %02d  *** DID NOT REFUSE ***  the final aggregate dropped rc5\n' "$n"
-    fails=$((fails + 1))
-fi
+#
+# FIX ROUND 2: these call `gates.sh`'s OWN aggregation helpers, not a re-created
+# copy of the arithmetic. `gates.sh` ends with `gates_aggregate "$rc1" ... "$rc6"`
+# and G6 accumulates with `rc=$(accumulate_rc "$rc" "$sub")`, so a regression in
+# either is a regression in the code these folds run.
 
-n=$((n + 1))
-g6rc=0; for sub in 0 0 1 0; do [ "$sub" -eq 0 ] || g6rc=1; done
-if [ "$g6rc" -ne 0 ]; then
-    printf 'FOLD %02d  REFUSED (rc=%d)  G6 propagates a failed sub-gate through the later green ones\n' "$n" "$g6rc"
-else
-    printf 'FOLD %02d  *** DID NOT REFUSE ***  G6 swallowed a failed sub-gate\n' "$n"
-    fails=$((fails + 1))
-fi
+expect_nonzero "gates_aggregate: the final aggregate carries rc5 (G1..G4,G6 green, G5 red)" \
+    gates_aggregate 0 0 0 0 1 0
+expect_nonzero "gates_aggregate: a failing G1 alone fails the chain" \
+    gates_aggregate 1 0 0 0 0 0
+expect_nonzero "gates_aggregate: an UNSET return code is a refusal, not a zero" \
+    gates_aggregate 0 0 0 0 "" 0
+expect_zero "gates_aggregate: six green segments aggregate to 0" \
+    gates_aggregate 0 0 0 0 0 0
+
+# THE SEQUENCING IS THIS FILE'S; THE ARITHMETIC IS THE RUNNER'S. `accumulate_rc`
+# is called exactly as G6 calls it, once per sub-gate, in order.
+fold_g6_accumulation() {
+    local rc=0 sub
+    for sub in "$@"; do
+        rc=$(accumulate_rc "$rc" "$sub")
+    done
+    echo "G6 accumulation over [$*] -> $rc"
+    return "$rc"
+}
+expect_nonzero "accumulate_rc: G6 carries a failed sub-gate through the later green ones" \
+    fold_g6_accumulation 0 0 1 0
+expect_nonzero "accumulate_rc: a failure in the LAST sub-gate is not lost either" \
+    fold_g6_accumulation 0 0 0 1
+expect_zero "accumulate_rc: an all-green G6 accumulates to 0" \
+    fold_g6_accumulation 0 0 0 0
 
 echo
 echo "FOLD_PROOFS_TOTAL=$n  FOLD_PROOFS_FAILED=$fails"
