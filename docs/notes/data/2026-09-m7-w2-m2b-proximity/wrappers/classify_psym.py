@@ -10,6 +10,28 @@ that every differing object either has changed source or includes a changed
 header -- and the NEGATIVE CONTROL, that objects which also include those
 headers and are byte-identical exist, so the differing set is not "everything
 that sees the header".
+
+FIX ROUND 1 (M7 W2 M2b, review finding "the classifier can pass vacuously").
+The first round's classifier returned failure ONLY for unexplained objects, so
+an EMPTY or MALFORMED comparison -- the file the compare step failed to write,
+or wrote a usage error into -- returned 0 and the gate read green over nothing
+at all. That is the same class of defect as the wrong-binary incident this
+task's own report declares (a green rc over zero tests). Three refusals now
+stand between a broken input and a green exit, each of them FOLD-PROVEN in
+`gates-fix1/fold-proofs.txt`:
+
+  R1  no `P-SYM: ` summary line in the comparison  -> MALFORMED, exit 3
+  R2  zero `DIFFERS` objects in the comparison     -> VACUOUS,   exit 4
+  R3  negative control below `--min-negative-control` (default 1), i.e. the
+      differing set IS "everything that sees the header" and the classification
+      explains nothing                             -> exit 5
+  R4  (pre-existing) any unexplained object        -> exit 1
+
+R2 is deliberately unconditional rather than a flag: every use of this script in
+this artifact runs it on a comparison that MUST have movers (the options struct
+grew), so "no movers" here is always either a failed capture or a failed
+compare. A future task whose P-SYM run is legitimately clean does not need a
+classifier at all -- it has byte-identity.
 """
 import argparse
 import os
@@ -17,12 +39,19 @@ import re
 import subprocess
 import sys
 
-# THIS TASK'S OWN CHANGED HEADER LIST, and it is exactly the two headers
-# `577719a0` edits under `include/`: the restoration wrapper's declaration and
+# THIS TASK'S OWN CHANGED HEADER LIST, and it is exactly the two headers this
+# task edits under `include/`: the restoration wrapper's declaration and
 # `SqpOptions`/`SqpResult`. M2's copy of this script carried ONE header
 # (`core/solver_counters.h`) because that is what M2 touched; copying its list
 # here would have credited this task's differing objects to a header it never
 # edited, and copying M1's would have done the same in the other direction.
+#
+# FIX ROUND 1 edits the SAME two headers (the certificate's doc on
+# `SqpResult::infeasibility_certified` and on `SqpOptions::restoration_proximity`;
+# the removed `proximity_residual_inf` declaration on the wrapper), so the list
+# is unchanged -- and `--changed-headers` now makes that a CHECKED fact rather
+# than a claim: the runner passes `git diff --name-only <base> -- include/` and
+# this script refuses if the two lists disagree.
 HEADERS = (
     "include/hven/detail/globalization/sqp/restoration.h",
     "include/hven/drivers/sqp_solver_types.h",
@@ -70,9 +99,36 @@ def main():
     ap.add_argument("--compare", required=True)
     ap.add_argument("--build", required=True)
     ap.add_argument("--changed-sources", nargs="*", default=[])
+    ap.add_argument("--changed-headers", nargs="*", default=None,
+                    help="the round's header list, normally `git diff --name-only <base> "
+                         "-- include/`; must equal this script's declared HEADERS")
+    ap.add_argument("--min-negative-control", type=int, default=1)
     args = ap.parse_args()
 
+    if args.changed_headers is not None:
+        got = tuple(sorted(args.changed_headers))
+        want = tuple(sorted(HEADERS))
+        if got != want:
+            print("REFUSED: the round's changed-header list is {} but this script declares {}"
+                  .format(list(got), list(want)))
+            return 2
+
+    if not os.path.isfile(args.compare):
+        print("REFUSED: no comparison file at {}".format(args.compare))
+        return 3
+
     objs, summary = differing_objects(args.compare)
+    if not summary:
+        print("REFUSED (R1): {} carries no `P-SYM: ` summary line -- the comparison is empty or "
+              "malformed, and a classification of nothing is not a pass".format(args.compare))
+        return 3
+    if not objs:
+        print("REFUSED (R2): {} reports the summary {!r} but names no DIFFERS object -- this "
+              "task's comparison MUST have movers (the options struct grew), so an empty "
+              "differing set is a failed capture, not a clean one"
+              .format(args.compare, summary))
+        return 4
+
     deps = dep_map(args.build)
     print(summary)
     print("DIFFERING OBJECTS: {}".format(len(objs)))
@@ -110,7 +166,17 @@ def main():
           "and are byte-identical: {}".format(len(control)))
     for o in sorted(control)[:80]:
         print("      " + o)
-    return 1 if unexplained else 0
+
+    if unexplained:
+        print("REFUSED (R4): {} differing objects are explained by neither a changed source nor a "
+              "changed header".format(len(unexplained)))
+        return 1
+    if len(control) < args.min_negative_control:
+        print("REFUSED (R3): the negative control is {} (< {}) -- the differing set is "
+              "'everything that sees the header' and this classification explains nothing"
+              .format(len(control), args.min_negative_control))
+        return 5
+    return 0
 
 
 if __name__ == "__main__":
