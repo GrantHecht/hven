@@ -24,10 +24,16 @@
 # CENSORED, this chain ABORTS and no raised-radius leg runs.
 #
 # MODES:
-#   prepare  install hven Release from the clean tree, build the probe against
-#            the INSTALL (never through the harness CMake), and run ONE short
-#            smoke leg. Run in the FOREGROUND under the lock.
+#   prepare  install hven Release from the clean tree and build the probe
+#            against the INSTALL (never through the harness CMake).
+#   smoke    two short legs that prove the binary runs and prints the new keys:
+#            ZAMB2-8 at the shipped tr_init in full, and ZAMB2-8 at +inf capped
+#            at one major -- enough to prove the `inf` argument parses all the
+#            way into SqpOptions without buying a second full solve.
 #   stage1   the twelve legs. DETACHED.
+#
+# `prepare` and `smoke` are SEPARATE lock holds, and separate foreground calls,
+# so neither approaches the lane's 600 s foreground bound.
 set -o pipefail
 
 ROOT=/home/ghecht/Projects/hven
@@ -46,7 +52,7 @@ LADDER="tr1e1:10 tr1e2:1e2 tr1e3:1e3 tr1e4:1e4 trinf:inf"
 CELLS="STEENBRB YORKNET"
 
 # --------------------------------------------------------------------------
-# prepare: one lock hold -- install, probe build, smoke.
+# prepare: one lock hold -- install hven, then build the probe against it.
 # --------------------------------------------------------------------------
 if [ "$MODE" = prepare ]; then
   mkdir -p "$S/logs" "$S/out/stage1"
@@ -95,15 +101,6 @@ cmake --build "$S/probebuild" --target m3a_probe -j "$(nproc)" > "$S/logs/probe-
   || { grep -E "error:|FAILED" "$S/logs/probe-build.log" | head -20; exit 92; }
 echo "--- PROBE SHA256"
 sha256sum "$S/probebuild/m3a_probe" | tee "$S/probe-sha256.txt"
-echo "--- SMOKE: ZAMB2-8 at the shipped tr_init, and at +inf"
-cd "$BENCH" || exit 93
-for r in 1 inf; do
-  MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 taskset -c 2 timeout 900 \
-    "$S/probebuild/m3a_probe" --problem ZAMB2-8 --tr-init "$r" > "$S/logs/smoke-tr$r.txt" 2>&1
-  echo "    tr_init=$r rc=$?"
-  grep -E "^(problem|proximity|tr_init|deadline_seconds|deadline_fired|status|restoration_entries|restoration_sub_status|elastic_from_ipqp_escape|x_k_source|history_rows|first_qp_)" \
-    "$S/logs/smoke-tr$r.txt" | sed "s/^/      /"
-done
 echo "FOREGROUND_END m3a-prepare $(date -Is) rc=0"
 '
   rc=$?
@@ -112,10 +109,54 @@ echo "FOREGROUND_END m3a-prepare $(date -Is) rc=0"
 fi
 
 # --------------------------------------------------------------------------
+# smoke: one lock hold, two short legs. Proves the binary runs, that `inf`
+# parses through to SqpOptions, and that every new key prints.
+# --------------------------------------------------------------------------
+if [ "$MODE" = smoke ]; then
+  mkdir -p "$S/logs"
+  echo "PGREP_BEFORE_LOCK: $(pgrep -x hven_bench_cell | tr '\n' ' ')"
+  flock /tmp/box-build.lock bash -c '
+set -o pipefail
+S=/home/ghecht/Projects/hven/.scratch/m7w2m3a
+echo "FOREGROUND_START m3a-smoke $(date -Is)"
+foreign=$(pgrep -x hven_bench_cell | tr "\n" " ")
+if [ -n "$foreign" ]; then
+  echo "ABORTED: a foreign cell binary is alive while this run holds the lock: $foreign"
+  exit 95
+fi
+echo "PGREP_EMPTY m3a-smoke: no foreign cell binary under my lock"
+cd /home/ghecht/Projects/hven-bench || exit 93
+echo "probe sha256: $(sha256sum "$S/probebuild/m3a_probe")"
+w=0
+run() { # tag, then the probe arguments
+  tag=$1; shift
+  t0=$(date +%s.%N)
+  MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 taskset -c 2 timeout 900 \
+    "$S/probebuild/m3a_probe" "$@" > "$S/logs/smoke-$tag.txt" 2>&1
+  rc=$?
+  t1=$(date +%s.%N)
+  printf "SMOKE %-8s rc=%-3s wall_s=%.1f (INFORMATIONAL)  args: %s\n" "$tag" "$rc" "$(echo "$t1 - $t0" | bc)" "$*"
+  [ "$rc" = 0 ] || { head -5 "$S/logs/smoke-$tag.txt"; return 1; }
+  grep -E "^(problem|proximity|tr_init|deadline_seconds|deadline_fired|status|major_iters|restoration_entries|restoration_sub_status|elastic_from_ipqp_escape|x_k_source|history_rows|first_qp_)" \
+    "$S/logs/smoke-$tag.txt" | sed "s/^/      /"
+  grep -q "^PROBE_END$" "$S/logs/smoke-$tag.txt" || { echo "      NO PROBE_END -- the block is truncated"; return 1; }
+  return 0
+}
+run tr1   --problem ZAMB2-8 --tr-init 1   || w=1
+run trinf --problem ZAMB2-8 --tr-init inf --budget-iters 1 || w=1
+echo "FOREGROUND_END m3a-smoke $(date -Is) rc=$w"
+exit $w
+'
+  rc=$?
+  echo "WRAPPER_RC m3a-smoke rc=${rc}"
+  exit $rc
+fi
+
+# --------------------------------------------------------------------------
 # stage1: twelve legs, ONE LOCK HOLD PER LEG.
 # --------------------------------------------------------------------------
 if [ "$MODE" != stage1 ]; then
-  echo "usage: chain1.sh [prepare|stage1]"
+  echo "usage: chain1.sh [prepare|smoke|stage1]"
   exit 2
 fi
 
