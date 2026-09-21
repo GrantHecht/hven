@@ -1,0 +1,311 @@
+CHAIN_TRACE_START 2026-09-21T15:30:09-04:00
+=== HEAD 34ba7069  dirty-files=0 ===
+PGREP_BEFORE_LOCK prepare: 
+FOREGROUND_START prepare 2026-09-21T15:30:09-04:00
+PGREP_EMPTY prepare: no foreign cell binary under my lock
+--- THE BUILD THIS PROBE IS: hven's OWN SOURCES, RECOMPILED WITH HVEN_TESTING,
+--- and hven::hven NOT LINKED (CLAUDE.md section 8's seam convention).
+-- hven: EIGEN_MAX_ALIGN_BYTES resolved to 32 for the active SIMD flags
+-- fix1_probe: hven directory CMAKE_CXX_FLAGS =  -DMKL_LP64 -m64
+-- fix1_probe: recompiling 42 hven source(s) with HVEN_TESTING=1
+--- PROBE SHA256
+fa6aaa47bb0f2b05dcd4f9ac81a087cbfb2c084cfccc4f912079a82b84e377fa  /home/ghecht/Projects/hven/.scratch/m7w2m3bfix1/probebuild/fix1_probe
+--- NO hven::hven IN THE LINK (the seam convention's own property, checked)
+the link line (from build.ninja, 4714 bytes) names no libhven.a and no -lhven
+--- THE OBSERVER IS IN THIS BINARY (and is in no production one)
+QpWalkObserver symbols: 23
+--- USAGE LINE
+usage: m3b_probe --problem NAME [--tr-init r] [--deadline s] [--trace on|off] [--trace-out PATH] [--stop-after-first-qp on|off] [--ledger on|off]
+FOREGROUND_END prepare 2026-09-21T15:30:33-04:00 rc=0
+WRAPPER_RC prepare rc=0
+--- CHECKER FOLD PROOFS (RULE.md section 6's non-vacuity requirement,
+--- applied to the ABORT checker; the classifier's own folds come with it)
+          REFUSED (R6): RULE.md section 2.2 ABORTS the leg
+FOLD 10  REFUSED  want=5 got=5  trace: an `unset` action
+          PROBLEM: 5 record(s) carry the `unset` action, which is an instrumentation bug
+          REFUSED (R6): RULE.md section 2.2 ABORTS the leg
+FOLD 11  REFUSED  want=5 got=5  trace: truncated=1
+          PROBLEM: the observer reports truncated=1
+          REFUSED (R6): RULE.md section 2.2 ABORTS the leg
+FOLD 12  REFUSED  want=5 got=5  trace: the walk exited optimal, not max_iter
+          PROBLEM: the walk exited optimal -- RULE.md section 2.2 requires max_iter
+          REFUSED (R6): RULE.md section 2.2 ABORTS the leg
+FOLD 13  REFUSED  want=5 got=5  trace: a WARM traced solve
+          PROBLEM: the traced solve reports warm=1 -- this must be the cold first subproblem
+          REFUSED (R6): RULE.md section 2.2 ABORTS the leg
+FOLD 14  REFUSED  want=5 got=5  trace: records belonging to another solve
+          PROBLEM: 5 record(s) do not belong to solve 0
+          REFUSED (R6): RULE.md section 2.2 ABORTS the leg
+FOLD 15  REFUSED  want=5 got=5  trace: a trace file that does not exist
+          REFUSED (R6): no trace at /tmp/tmpy153tnt4/nope.csv
+
+IDENTITY_FOLDS_TOTAL=15  IDENTITY_FOLDS_FAILED=0
+IDENTITY_FOLDS_RC=0
+PGREP_BEFORE_LOCK STEENBRB@identity-G: 
+FOREGROUND_START leg-STEENBRB@identity-G 2026-09-21T15:30:33-04:00
+PGREP_EMPTY leg-STEENBRB@identity-G: no foreign cell binary under my lock
+LEG STEENBRB@identity-G    rc=0   wall_s=7.2 (INFORMATIONAL ONLY)
+    tr_init=inf
+    trace=off
+    stop_after_first_qp=on
+    stopped_after_first_qp=1
+    callback_events=2
+    deadline_fired=0
+    n=468
+    me=108
+    mi=0
+    status=interrupted
+    major_iters=1
+    restoration_iters=0
+    qp_minor_iters=4680
+    qp_maxiter_exits=1
+    ledger_qp_records=1
+    first_label=f_qp_0
+    first_warm=0
+    first_qp_record_status=max_iter
+    first_minor_iters=4680
+    first_ws_adds=2344
+    first_ws_drops=2323
+    first_degenerate_steps=2319
+    first_degenerate_run_max=2310
+    first_distinct_bound_added=23
+    first_drop_ties=0
+    first_ratio_ties=0
+    trace_solves_seen=1
+    trace_records=0
+    trace_truncated=0
+    trace_incoming_ws_size=0
+    trace_written=0
+FOREGROUND_END leg-STEENBRB@identity-G 2026-09-21T15:30:40-04:00 rc=0
+WRAPPER_RC leg-STEENBRB@identity-G rc=0
+--- RULE.md section 2 on STEENBRB@identity-G (M3a's committed rows/f/STEENBRB@F-trinf.txt is the gate)
+IDENTITY GATE  M3a=STEENBRB@F-trinf.txt  probe=STEENBRB@identity-G.txt
+  fields compared: 21  (20 QpCounters fields + the record status)
+    first_factorizations                          5
+    first_schur_updates                        4849
+    first_minor_iters                          4680
+    first_eqp_refine_steps                        0
+    first_border_refine_steps                 18904
+    first_verdict_refine_steps                    0
+    first_suspect_escalations                     0
+    first_k0_reused                               0
+    first_symbolic_analyses                       1
+    first_ws_adds                              2344
+    first_ws_drops                             2323
+    first_shift_adds                              0
+    first_degenerate_steps                     2319
+    first_degenerate_run_max                   2310
+    first_ws_adds_bound                        2344
+    first_ws_drops_bound                       2323
+    first_distinct_ineq_added                     0
+    first_distinct_bound_added                   23
+    first_drop_ties                               0
+    first_ratio_ties                              0
+    first_qp_record_status                 max_iter
+  DIFFERING: 0 -- the rebuilt HVEN_TESTING binary reproduces M3a's committed record 0 on all 20 fields and the status
+GATE_RC STEENBRB@identity-G = 0
+PGREP_BEFORE_LOCK YORKNET@identity-G: 
+FOREGROUND_START leg-YORKNET@identity-G 2026-09-21T15:30:40-04:00
+PGREP_EMPTY leg-YORKNET@identity-G: no foreign cell binary under my lock
+LEG YORKNET@identity-G     rc=0   wall_s=24.5 (INFORMATIONAL ONLY)
+    tr_init=inf
+    trace=off
+    stop_after_first_qp=on
+    stopped_after_first_qp=1
+    callback_events=2
+    deadline_fired=0
+    n=312
+    me=256
+    mi=0
+    status=interrupted
+    major_iters=1
+    restoration_iters=0
+    qp_minor_iters=2560
+    qp_maxiter_exits=1
+    ledger_qp_records=1
+    first_label=f_qp_0
+    first_warm=0
+    first_qp_record_status=max_iter
+    first_minor_iters=2560
+    first_ws_adds=1287
+    first_ws_drops=1232
+    first_degenerate_steps=1257
+    first_degenerate_run_max=1191
+    first_distinct_bound_added=95
+    first_drop_ties=12
+    first_ratio_ties=52
+    trace_solves_seen=1
+    trace_records=0
+    trace_truncated=0
+    trace_incoming_ws_size=0
+    trace_written=0
+FOREGROUND_END leg-YORKNET@identity-G 2026-09-21T15:31:05-04:00 rc=0
+WRAPPER_RC leg-YORKNET@identity-G rc=0
+--- RULE.md section 2 on YORKNET@identity-G (M3a's committed rows/f/YORKNET@F-trinf.txt is the gate)
+IDENTITY GATE  M3a=YORKNET@F-trinf.txt  probe=YORKNET@identity-G.txt
+  fields compared: 21  (20 QpCounters fields + the record status)
+    first_factorizations                       5106
+    first_schur_updates                      144684
+    first_minor_iters                          2560
+    first_eqp_refine_steps                        0
+    first_border_refine_steps                     9
+    first_verdict_refine_steps                    0
+    first_suspect_escalations                     0
+    first_k0_reused                               0
+    first_symbolic_analyses                       1
+    first_ws_adds                              1287
+    first_ws_drops                             1232
+    first_shift_adds                              0
+    first_degenerate_steps                     1257
+    first_degenerate_run_max                   1191
+    first_ws_adds_bound                        1287
+    first_ws_drops_bound                       1232
+    first_distinct_ineq_added                     0
+    first_distinct_bound_added                   95
+    first_drop_ties                              12
+    first_ratio_ties                             52
+    first_qp_record_status                 max_iter
+  DIFFERING: 0 -- the rebuilt HVEN_TESTING binary reproduces M3a's committed record 0 on all 20 fields and the status
+GATE_RC YORKNET@identity-G = 0
+=== BOTH IDENTITY LEGS GREEN. The rebuilt HVEN_TESTING binary reproduces M3a's
+=== committed record 0 on both cells, with no observer armed. The trace legs follow.
+PGREP_BEFORE_LOCK STEENBRB@trace-G: 
+FOREGROUND_START leg-STEENBRB@trace-G 2026-09-21T15:31:05-04:00
+PGREP_EMPTY leg-STEENBRB@trace-G: no foreign cell binary under my lock
+LEG STEENBRB@trace-G       rc=0   wall_s=7.3 (INFORMATIONAL ONLY)
+    tr_init=inf
+    trace=on
+    stop_after_first_qp=on
+    stopped_after_first_qp=1
+    callback_events=2
+    deadline_fired=0
+    n=468
+    me=108
+    mi=0
+    status=interrupted
+    major_iters=1
+    restoration_iters=0
+    qp_minor_iters=4680
+    qp_maxiter_exits=1
+    ledger_qp_records=1
+    first_label=f_qp_0
+    first_warm=0
+    first_qp_record_status=max_iter
+    first_minor_iters=4680
+    first_ws_adds=2344
+    first_ws_drops=2323
+    first_degenerate_steps=2319
+    first_degenerate_run_max=2310
+    first_distinct_bound_added=23
+    first_drop_ties=0
+    first_ratio_ties=0
+    trace_solves_seen=1
+    trace_records=4680
+    trace_truncated=0
+    trace_incoming_ws_size=0
+    trace_exit_status=max_iter
+    trace_written=1
+FOREGROUND_END leg-STEENBRB@trace-G 2026-09-21T15:31:12-04:00 rc=0
+WRAPPER_RC leg-STEENBRB@trace-G rc=0
+--- RULE.md section 2 on STEENBRB@trace-G (M3a's committed rows/f/STEENBRB@F-trinf.txt is the gate)
+IDENTITY GATE  M3a=STEENBRB@F-trinf.txt  probe=STEENBRB@trace-G.txt
+  fields compared: 21  (20 QpCounters fields + the record status)
+    first_factorizations                          5
+    first_schur_updates                        4849
+    first_minor_iters                          4680
+    first_eqp_refine_steps                        0
+    first_border_refine_steps                 18904
+    first_verdict_refine_steps                    0
+    first_suspect_escalations                     0
+    first_k0_reused                               0
+    first_symbolic_analyses                       1
+    first_ws_adds                              2344
+    first_ws_drops                             2323
+    first_shift_adds                              0
+    first_degenerate_steps                     2319
+    first_degenerate_run_max                   2310
+    first_ws_adds_bound                        2344
+    first_ws_drops_bound                       2323
+    first_distinct_ineq_added                     0
+    first_distinct_bound_added                   23
+    first_drop_ties                               0
+    first_ratio_ties                              0
+    first_qp_record_status                 max_iter
+  DIFFERING: 0 -- the rebuilt HVEN_TESTING binary reproduces M3a's committed record 0 on all 20 fields and the status
+TRACE INTEGRITY  STEENBRB@trace-G.csv
+  records=4680  minor_iters=4680  truncated=0  exit=max_iter  warm=0  solve_index=0  incoming_ws_size=0  solves_seen=1
+  OK -- one record per pass, nothing truncated, the cold first subproblem, exited on the cap
+GATE_RC STEENBRB@trace-G = 0
+    trace rows: 4680  bytes: 3209384
+e82a2c3b71903646c1c4e372ccd5ca8c49fcbc630a9f786607007ac2d9b1d8f1  /home/ghecht/Projects/hven/.scratch/m7w2m3bfix1/trace/STEENBRB@trace-G.csv
+PGREP_BEFORE_LOCK YORKNET@trace-G: 
+FOREGROUND_START leg-YORKNET@trace-G 2026-09-21T15:31:12-04:00
+PGREP_EMPTY leg-YORKNET@trace-G: no foreign cell binary under my lock
+LEG YORKNET@trace-G        rc=0   wall_s=24.3 (INFORMATIONAL ONLY)
+    tr_init=inf
+    trace=on
+    stop_after_first_qp=on
+    stopped_after_first_qp=1
+    callback_events=2
+    deadline_fired=0
+    n=312
+    me=256
+    mi=0
+    status=interrupted
+    major_iters=1
+    restoration_iters=0
+    qp_minor_iters=2560
+    qp_maxiter_exits=1
+    ledger_qp_records=1
+    first_label=f_qp_0
+    first_warm=0
+    first_qp_record_status=max_iter
+    first_minor_iters=2560
+    first_ws_adds=1287
+    first_ws_drops=1232
+    first_degenerate_steps=1257
+    first_degenerate_run_max=1191
+    first_distinct_bound_added=95
+    first_drop_ties=12
+    first_ratio_ties=52
+    trace_solves_seen=1
+    trace_records=2560
+    trace_truncated=0
+    trace_incoming_ws_size=0
+    trace_exit_status=max_iter
+    trace_written=1
+FOREGROUND_END leg-YORKNET@trace-G 2026-09-21T15:31:37-04:00 rc=0
+WRAPPER_RC leg-YORKNET@trace-G rc=0
+--- RULE.md section 2 on YORKNET@trace-G (M3a's committed rows/f/YORKNET@F-trinf.txt is the gate)
+IDENTITY GATE  M3a=YORKNET@F-trinf.txt  probe=YORKNET@trace-G.txt
+  fields compared: 21  (20 QpCounters fields + the record status)
+    first_factorizations                       5106
+    first_schur_updates                      144684
+    first_minor_iters                          2560
+    first_eqp_refine_steps                        0
+    first_border_refine_steps                     9
+    first_verdict_refine_steps                    0
+    first_suspect_escalations                     0
+    first_k0_reused                               0
+    first_symbolic_analyses                       1
+    first_ws_adds                              1287
+    first_ws_drops                             1232
+    first_shift_adds                              0
+    first_degenerate_steps                     1257
+    first_degenerate_run_max                   1191
+    first_ws_adds_bound                        1287
+    first_ws_drops_bound                       1232
+    first_distinct_ineq_added                     0
+    first_distinct_bound_added                   95
+    first_drop_ties                              12
+    first_ratio_ties                             52
+    first_qp_record_status                 max_iter
+  DIFFERING: 0 -- the rebuilt HVEN_TESTING binary reproduces M3a's committed record 0 on all 20 fields and the status
+TRACE INTEGRITY  YORKNET@trace-G.csv
+  records=2560  minor_iters=2560  truncated=0  exit=max_iter  warm=0  solve_index=0  incoming_ws_size=0  solves_seen=1
+  OK -- one record per pass, nothing truncated, the cold first subproblem, exited on the cap
+GATE_RC YORKNET@trace-G = 0
+    trace rows: 2560  bytes: 1624261
+b7217814e5ee7db3358b48b86f68e3da5aa45b25e9b40a78f6ae9f20aba6250d  /home/ghecht/Projects/hven/.scratch/m7w2m3bfix1/trace/YORKNET@trace-G.csv
+CHAIN_TRACE_SUMMARY prepare=0 folds=0 traces=0
+CHAIN_TRACE_END 2026-09-21T15:31:37-04:00
