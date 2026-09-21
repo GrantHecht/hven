@@ -590,6 +590,22 @@ fail-closed on the skip.
 
 ## Re-trace (G)
 
+> ### READ THIS BEFORE ANY OF IT (added fix2)
+>
+> **Fixing this `tr_init = inf` first-QP behaviour addresses LITTLE of the
+> shipped default-option failures directly.** Everything below is a trace of the
+> first QP at an INFINITE trust region, which is the configuration that makes
+> the walk's own pathology visible. It is not the configuration the solver
+> ships. At the default radius the QPs are DIFFERENT finite-box subproblems —
+> every bound, every blocker and the whole trajectory change — and they
+> terminate `infeasible` rather than exhausting the iteration cap. What happens
+> next is what the shipped failures actually are: STEENBRB fails through an
+> objective-blind restoration excursion, and YORKNET's restoration sub-solve
+> returns `infeasible` without moving (M2 / M3a). Better QP robustness may help
+> shared code paths eventually, but **nothing in this re-trace shows that
+> repairing the walk repairs either default failure, and "remove the window" is
+> not a sufficient basis for a remedy.**
+
 Pre-registered rule: [`RULE-G.md`](RULE-G.md), committed at `f916e82d` **before
 any leg of the re-trace ran, the identity legs included**. Machine-written
 verdict: [`verdict-G.txt`](verdict-G.txt). Non-vacuity transcript:
@@ -884,6 +900,196 @@ The remedies in rows 1 and 2 of STEENBRB's list are **not** indicated for
 YORKNET: its inertia is right and its ride is correctly not attempted. Applying
 an inertia-controlling method here would be work spent on a condition this cell
 does not have.
+
+---
+
+## Corrections (fix2)
+
+The scoped re-review of fix round 1 (`.superpowers/m7-w2-m3b-fix1-review-sol.md`,
+FIX-ROUND, 0 critical) raised three Important findings and three minors. The
+settler accepted all of them. **Both formal verdicts STAND as returned** —
+`CYCLING_PROPER` ×2 from `RULE.md`, and `RULE-G.md`'s outputs — and neither
+`RULE.md` nor `RULE-G.md` is edited: a pre-registered rule's bytes are the pin,
+and a defect in one is recorded, never repaired after the fact.
+
+### C9 — `NUMERICAL_DIRECTION` is the RULE'S OUTPUT for YORKNET, not a finding about its CAUSE
+
+`RULE-G.md` returns `NUMERICAL_DIRECTION` on YORKNET and that output is retained
+as the pre-registered rule's formal result. **It must not be carried into the
+ledger as an established cause**, because the arm that produced it does not
+carry the meaning the fix1 report gave it. Four separate reasons, each
+independently sufficient:
+
+1. **It is measured at the wrong point.** `active_res_inf` is taken at the
+   pass's STARTING `x` (`qp_engine.cpp` ~:704), not at the EQP solution. A
+   quantity evaluated before the direction exists says nothing about the
+   accuracy of that direction.
+2. **Its normalization is not a backward-error normalization.** Dividing by
+   `max(x_inf, 1)` omits row and right-hand-side scale entirely.
+3. **The equations themselves carry `−dual_mu·I`** (`eqp_solve.h`), so a
+   non-zero residual against the UNREGULARIZED rows is the regularization's own
+   footprint as much as it is error.
+4. **The `1.27e-4` level holds throughout the walk**, not just in the tail, so
+   it cannot explain why bound 291 is immediately re-entered. It is persistent
+   primal drift, and it is not peculiar to the passes under study.
+
+**WITHDRAWN: `RULE-G.md`'s `1e-6` bar for the ACTIVE-ROW arm has an unsound
+derivation.** `n²ε` with "modest growth" is a heuristic, not a bound, and
+`active_res_inf / max(x_inf, 1)` is not the quantity such a bound would apply
+to. The file itself is unedited; the withdrawal is recorded here and in the
+report. The STATIONARITY arm's confound stands as fix1 described it, but the
+wording is made precise: the released variable becomes FREE and its former bound
+multiplier is therefore omitted, so the old bound-stationarity imbalance
+reappears inside the free-block residual evaluated at the old iterate. The
+released multiplier does not literally enter `free_block_stationarity` — `z` is
+not one of its arguments.
+
+**WHAT YORKNET'S ROWS DO SUPPORT**, and it is a short list:
+
+* the regularized KKT's inertia is **exactly as expected** — this cell has no
+  inertia problem and generic inertia-correction work would be spent on a
+  condition it does not have;
+* `pᵀHp = 3.7929 > 0` on the computed direction;
+* the exact identity is violated **in sign**: `z_i·p_i = +6.616e8` where
+  `−pᵀHp = −3.7929`;
+* and that identity's **full-row-rank premise is FALSE BY DIMENSION**: `n = 312`,
+  `me = 256`, 57 working constraints ⇒ **313 rows on 312 columns**. Global full
+  row rank is impossible for the pre-drop set. Only `dual_mu` keeps the system
+  nonsingular, which is also why correct inertia does not restore the missing
+  premise.
+
+**REGISTERED — the single next observation, as its own task.** A
+regularization-aware, RANK-REVEALING audit of ONE tail post-drop system: form
+the retained active Jacobian, report its numerical rank and smallest singular
+value, and report `C_A·x_eqp − d − dual_mu·λ_A`. That one audit separates the
+live alternatives — regularization-and-multiplier-scale, eliminated-solve
+accuracy, and a drop that releases no numerically meaningful degree of freedom —
+and no anti-cycling or Dantzig-policy change should be adopted before it.
+
+### C10 — STEENBRB: the CONTROL-FLOW label is right, the MATHEMATICAL frame was not
+
+`RIDE_VETOED` with `sign_disagreement_veto` as the dominant reason is the
+correct label under `RULE-G.md`, and it stands. But **"a negative-curvature ride
+was vetoed" is the wrong frame** for what the numbers say. The computed
+direction has tiny **POSITIVE** curvature: `pᵀHp = 2.0257e-05`,
+`pᵀp = 3.0360e+08`, quotient `6.672e-14`, against a curvature tolerance of
+`1.0367e-07`. The gate therefore treats **"not sufficiently positive"** as
+ride-worthy. The evidence says: the inertia test reports negative directions
+somewhere in the system, the EQP direction that is actually computed is almost
+flat but positively curved, and the ride heuristic offers that unsuitable
+direction before feasibility vetoes it. **The veto may be protecting the
+solver**, and changing the ride's sign logic is not indicated. What is indicated
+is recovering or projecting an actual feasible negative-curvature direction.
+
+### C11 — the constant `(441, 135)` triple is K0's, and the "excess" is an algebraic verdict
+
+Not stale, and not a fresh per-working-set measurement either. On the border
+path the printed observed triple is the **retained sparse `K0` factor's**
+inertia; the dense Schur complement's current Haynsworth contribution is backed
+out of the EXPECTED counts instead (`qp_engine.cpp` ~:1768), so the shared
+helper compares K0's own numbers. Two consequences the fix1 text did not draw:
+
+* at **minor 0**, where the border dimension is zero, `(441, 135)` against
+  `(468, 108)` is a direct statement about the **cold equality-constrained
+  KKT**: 27 excess negatives before any bordering exists;
+* the later **"21–22 excess"** is the engine's verdict about the full bordered
+  system, reached **algebraically**, not by factorizing each working set afresh.
+
+### C12 — the iter-0 repair: called, returned false, and the reason was NOT recorded
+
+The inference stands and is restated as what it is — **a code-reading
+inference**, not an observation. At `qp_engine.cpp` ~:660, `iter == 0` and
+`verdict == kWrong` both held; a repair that succeeded would have recorded
+`kStartRepair` and continued, and the pass instead records `add`. So
+`repair_temporary_vertex` was called and returned false. **False can mean only
+two things**: it exhausted usable pins while still wrong, or it met a
+non-`kWrong`, non-`kOk` verdict — principally `kSuspect` — and reverted
+(~:2038). **There is no repair pin budget and no 128-pin repair cap**; the "128"
+in the fix1 text belongs to a different mechanism. One-sided bounds are usable
+(~:1967) and are not themselves a failure. Since all 468 STEENBRB variables
+count as genuinely bounded under the same `1e20` convention, an early `kSuspect`
+is the more plausible of the two — but **the stop reason was not recorded, and
+nothing in this artifact establishes it.** Instrumenting and repairing
+`repair_temporary_vertex` — every attempted pin, verdict, evidence state,
+Schur/latch state and the exact stop reason — is the cause-level next step for
+this cell.
+
+### C13 — NARROWED: "the sign of `gᵀp` is the whole difference"
+
+It separates the **2 313 sign-disagreement vetoes from the 2 rides that
+stepped**, and that much is exact in
+[`tables-fix1/steenbrb-outside-the-rule.txt`](tables-fix1/steenbrb-outside-the-rule.txt).
+It is **not** the whole difference across all outcomes: the **7 nullspace
+vetoes** occur BEFORE sign selection is reached at all.
+
+### C14 — the minors
+
+1. **NARROWED — "the seam's neutrality claim holds even when the allocator
+   fails."** True of the RECORD STORE and of nothing wider. The scope's
+   destructor catches its own `push_back`, which is the only throwing operation
+   in the destructor; other observer-only work allocates too (the residual
+   hooks' temporaries, the drop rule's copied-and-sorted candidate vector) and a
+   throw there propagates like any other allocation failure in the engine.
+   Corrected at the site, in `qp_walk_trace.h` and in `docs/testing.md`.
+2. **QUALIFIED — "mutually exclusive by construction."** The cause
+   classifier's outcomes are mutually exclusive **under the producer's
+   invariants**, not as literally disjoint predicates over every CSV shape a
+   reader could hand it. The classifier's own fold deliberately constructs a
+   trace on which 4.1 and 4.2 overlap, and it REFUSES that trace with
+   `MULTIPLE` — so the committed evidence is protected by a refusal, which is
+   the right design, but the unqualified phrase overstated it.
+3. **FIXED — the ELF section digest now REFUSES two malformed shapes it used to
+   guess at.** An unsupported `EI_DATA` was treated as big-endian (so every
+   header field would then be unpacked from a guessed encoding), and a
+   section-name offset that is out of range or unterminated produced an empty
+   name or the name table's whole tail, either of which would then have been
+   COMPARED. Both are refusals in `wrappers/section_digest_fix2.py`, with folds
+   in `wrappers/fold_proofs_psym_fix2.sh` PART 6 — including the control that
+   the fix1 and fix2 digests are byte-identical on a well-formed object, so the
+   refusals are the only change. Neither shape occurs in the compiler objects
+   this check is run on, which is why the independent `objcopy` arm made it
+   immaterial to the measured evidence.
+4. **FIXED — the padding-mask comment contradicted the fixture.** It said an
+   empty mask "degrades to the strict byte-for-byte form"; the non-vacuity
+   fixture requires `padded > 0` and would FAIL on such a toolchain. Refusing is
+   deliberate, and the comment now says so.
+
+### C15 — the seam reads its inertia evidence ONCE (and no re-trace is owed)
+
+Both verdict sites used to call `factor.inertia()` twice on a pass — once for
+the production verdict, once for the trace. On MKL that is a reread of cached
+session fields, but Accelerate's accessor makes a genuine, independently
+fallible `SparseGetInertia` call, so a record-only seam was adding a BACKEND
+QUERY, and in principle the trace could record evidence other than the evidence
+the gate compared. Both sites now read once into a local that both consumers
+share, inside the `#ifdef HVEN_TESTING` arm, with the `#else` arm carrying the
+production statement verbatim.
+
+**THE COMMITTED TRACES ARE NOT RE-TAKEN, and here is why that is sound.** They
+were taken on **MKL**, whose `inertia()` rereads cached session fields rather
+than querying the backend, so the second call returned exactly what the first
+did and **their inertia columns equal the evidence each walk's own verdict was
+computed from**. That premise is now a measured fixture rather than an assertion
+(`QpWalkSeam.TheBackendsInertiaAccessorAnswersTheSameThingTwiceOnThisPlatform`).
+The COUNT of backend inertia queries is not observable from any existing seam in
+this tree — the inertia-query fault injector substitutes a return code, carries
+no counter, and is Accelerate-only — so the single-read property is asserted BY
+CONSTRUCTION, stated as such, rather than by inventing a counting seam.
+
+### C16 — the concurrency fixtures now force the overlap they are about
+
+Fix round 1's two concurrent-solve fixtures only CREATED the threads close
+together, and a valid scheduler could run them one after the other, letting both
+"must read 1" assertions pass on the broken observer. They now block at a
+two-party start gate until both threads have built their problem and constructed
+their engine, and the problems are 96 and 48 variables rather than 24 and 2, so
+the solve they are released into lasts milliseconds in both configurations and
+the two `QpEngine::run` calls really are in flight together. **The honest limit
+is stated in the fixture and in `docs/testing.md`**: the pre-fix defect is a
+DATA RACE, redness under a data race is probabilistic without a sanitizer, and
+this tree has no TSan preset. `...ArmingOnOneThreadIsInvisibleOnAnother` remains
+the deterministic arm. **REGISTERED for the milestone close: add a TSan preset
+and run this seam's suite and the concurrent-solve suites under it.**
 
 ---
 
