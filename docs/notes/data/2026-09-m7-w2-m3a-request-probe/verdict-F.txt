@@ -1,0 +1,220 @@
+M7 W2 M3a ADDENDUM F -- THE VERDICT: RULE-F.md section 4, applied to the
+four measured F legs.
+
+Machine-written by wrappers/summarise_m3a.py from rows/f/ and from the four
+COMMITTED stage-1 twins in rows/stage1/. No number below is transcribed by
+hand. RULE-F.md was committed at 229d63de, BEFORE any F leg ran, and is
+applied here AS WRITTEN -- no predicate is relaxed, widened, re-labelled or
+re-read in the light of what the legs said.
+
+THIS RE-TESTS NEITHER EARLIER HYPOTHESIS (RULE-F.md section 0). The radius
+hypothesis stays CLOSED by RULE.md section 5.5 and H-QP stays closed by
+RULE-E.md section 5; verdict.txt and verdict-E.txt stand exactly as
+committed. The hypothesis under test here is:
+
+  H-DEG  The first QP's tens of thousands of minor iterations on STEENBRB
+         and YORKNET at tr_init = inf are a DEGENERATE STALL of the
+         active-set walk, not a long genuine walk.
+
+THE PREDICATES, as the rule states them, on the FIRST QP-LEDGER RECORD of
+each cell's tr_init = inf leg and on nothing else:
+  DEGENERATE_STALL iff degenerate_steps / minor_iters >= 0.5
+                   AND degenerate_run_max >= 1000
+  GENUINE_WALK     iff degenerate_steps / minor_iters <  0.1
+  MIXED            anything else -- reported WITH the numbers
+  UNDETERMINED     minor_iters == 0, or no record at all
+
+CENSORED LEGS: none. All 5 legs produced a row.
+TRUNCATED LEGS (deadline_fired=1): none
+
+THE TWO CHECKS ON THE REBUILT PROBE (RULE-F.md section 3), re-run by this
+fold on the COMMITTED rows -- an independent re-check of the same files the
+chain's own reports (identity-f.txt, neutral-first-f.txt, neutrality-f.txt)
+cover. Compared: every shared key but `ledger` and the time-valued names,
+and the whole ladder block, as STRINGS.
+  STEENBRB@identity-F    vs STEENBRB@trinf.txt      50 keys, 0 differing; ladder 0 differing   IDENTICAL
+  STEENBRB@F-trinf       vs STEENBRB@trinf.txt      50 keys, 0 differing; ladder 0 differing   IDENTICAL
+  STEENBRB@F-tr1         vs STEENBRB@tr1.txt        52 keys, 0 differing; ladder 0 differing   IDENTICAL
+  YORKNET@F-trinf        vs YORKNET@trinf.txt       50 keys, 0 differing; ladder 0 differing   IDENTICAL
+  YORKNET@F-tr1          vs YORKNET@tr1.txt         52 keys, 0 differing; ladder 0 differing   IDENTICAL
+  NEAR_ULP_TOLERATED=0   F_CHECK_WORST=0
+  NO SOLVER COUNTER MOVED WITH THE LEDGER ATTACHED. RULE-F.md section
+  3.2's STOP does not fire, and the verdicts below may be taken.
+
+THE VERDICT TABLE (RULE-F.md section 4), on record 0 of each cell's
+tr_init = inf leg. `ratio` is degenerate_steps / minor_iters.
+------------------------------------------------------------------------------
+cell      leg               record   QpStatus  minor_iters degen_steps ratio     run_max  VERDICT         
+STEENBRB  STEENBRB@F-trinf  f_qp_0   max_iter  4680        2319        0.495513  2310     MIXED           
+YORKNET   YORKNET@F-trinf   f_qp_0   max_iter  2560        1257        0.491016  1191     MIXED           
+
+WHAT THE RULE RETURNS
+------------------------------------------------------------------------------
+  STEENBRB   MIXED
+  YORKNET    MIXED
+
+VERDICT: MIXED ON BOTH CELLS.
+
+H-DEG is NEITHER SUPPORTED NOR REFUTED as the rule states it. On both
+cells the degeneracy ratio sits just BELOW the 0.5 bar while
+degenerate_run_max sits far ABOVE the 1000 bar, so the conjunction
+DEGENERATE_STALL asks for is false and the GENUINE_WALK threshold of
+0.1 is nowhere near met. RULE-F.md section 4's third row governs:
+'MIXED -- reported WITH the numbers'. The numbers are above and in
+tables/f-first-qp.txt; nothing is relabelled to reach a cleaner word.
+
+NO DEFAULT IS CHANGED BY THIS ADDENDUM UNDER ANY OUTCOME (RULE-F.md
+section 0), and no verdict licenses one. No file under src/ or include/ is
+touched by it at all.
+
+==============================================================================
+OUTSIDE THE VERDICT -- AND NOT ONE
+==============================================================================
+
+Everything above this line is RULE-F.md applied as written. Everything
+below it is DESCRIPTIVE. It licenses NO verdict, NO default change and NO
+re-labelling of the two MIXED cells; RULE-F.md section 4.1 pre-registered
+these read-outs as non-verdict read-outs precisely so they could be
+reported without becoming one.
+
+1. THE SETTLER'S OWN DECLARED ERROR IN THE RULE'S DESIGN.
+
+   The 0.5 bar was set on a denominator that cannot reach it. Checked
+   against the headers rather than assumed:
+
+   * `minor_iters` increments ONCE PER PASS of the walk loop --
+     `++counters.minor_iters` is the first statement inside
+     `for (Index iter = 0; ...; ++iter)` in src/qp/qp_engine.cpp:613, and
+     detail/qp/qp_engine.h's COUNTER SEMANTICS note fixes it as a relied-on
+     contract. A DROP iteration is a pass and counts.
+   * `degenerate_steps` counts 'minor iterations that ADDED A BLOCKING
+     CONSTRAINT while moving the iterate by no more than the loop's own
+     step tolerance' (solver_counters.h). A pass that only DROPS adds
+     nothing and is therefore never a degenerate step, however stuck the
+     iterate is.
+   * `degenerate_run_max` is 'the longest consecutive run of degenerate
+     steps... A run is broken by a minor on which the iterate MOVED, and by
+     nothing else: ... a drop iteration and a zero-multiplier probe do not'
+     break it (solver_counters.h). So the RUN counter spans the drops the
+     RATIO's denominator charges for.
+
+   CONSEQUENCE: in a pure add/drop alternation at a stuck iterate, half the
+   passes are drops, so degenerate_steps / minor_iters cannot exceed about
+   0.5 BY CONSTRUCTION. The bar was set at the ceiling. That is a defect in
+   the rule, declared here by the settler; it is NOT a reason to move the
+   bar after the fact, and the MIXED verdicts above stand.
+
+   THE ARITHMETIC, from the rows: on record 0, ws_adds + ws_drops against
+   minor_iters --
+     STEENBRB@F-trinf       2344 +   2323 =   4667   vs minor_iters   4680   (13 passes were neither)
+     STEENBRB@F-tr1          587 +    225 =    812   vs minor_iters    827   (15 passes were neither)
+     YORKNET@F-trinf        1287 +   1232 =   2519   vs minor_iters   2560   (41 passes were neither)
+     YORKNET@F-tr1           346 +     45 =    391   vs minor_iters    397   (6 passes were neither)
+
+2. THE DESCRIPTIVE READ-OUTS (RULE-F.md section 4.1), record 0 of each leg.
+
+leg                 ws_adds  ws_drops  net   degen/adds  run_max  drop_ties ratio_ties distinct_ineq distinct_bound adds/distinct 
+----------------------------------------------------------------------------------------------------------------------------------
+STEENBRB@F-trinf    2344     2323      21    0.9893      2310     0         0          0             23             101.9         
+STEENBRB@F-tr1      587      225       362   0.0307      3        19        10         0             428            1.4           
+YORKNET@F-trinf     1287     1232      55    0.9767      1191     12        52         0             95             13.5          
+YORKNET@F-tr1       346      45        301   0.4653      48       27        101        0             304            1.1           
+
+
+   CHECKED, not asserted: ws_adds == ws_adds_bound on ALL of the 22 records
+   above, and every leg prints mi = 0.
+
+   `distinct_ineq_added` is 0 on every leg because BOTH cells have mi = 0
+   (the probe prints mi; STEENBRB and YORKNET are equality-constrained with
+   bounds), so every admission is a VARIABLE-BOUND pin -- ws_adds ==
+   ws_adds_bound on every record above, which is that fact checked.
+   `adds/distinct` is then ADMISSION MULTIPLICITY on the bound side, the
+   quantity solver_counters.h defines as ws_adds_bound / distinct_bound_added:
+   the mean number of times a touched variable was admitted. RE-admissions
+   are that number minus one.
+
+   A few distinct constraints re-admitted many times is what cycling looks
+   like. It is NOT proof of cycling: admission multiplicity says a variable
+   came back, not that the WHOLE WORKING SET came back. See item 4.
+
+2b. DO THE LATER MAJORS REPEAT THE SAME STALL? Every record of the two
+    tr_init = inf legs, not record 0 alone (full table: tables/f-records.txt).
+
+leg                 record   warm  status    minors  degen   run_max  adds   drops  net   distinct_bound adds/distinct 
+-----------------------------------------------------------------------------------------------------------------------
+STEENBRB@F-trinf    f_qp_0   0     max_iter  4680    2319    2310     2344   2323   21    23             101.9         
+STEENBRB@F-trinf    f_qp_1   1     max_iter  4680    2314    2304     2339   2322   17    29             80.7          
+STEENBRB@F-trinf    f_qp_2   1     max_iter  4680    2310    2289     2332   2318   14    31             75.2          
+STEENBRB@F-trinf    f_qp_3   1     max_iter  4680    2332    2324     2334   2335   -1    8              291.8         
+    records 1..3 on this leg are NOT BYTE-IDENTICAL to one another on all
+    19 QpCounters fields but symbolic_analyses.
+
+YORKNET@F-trinf     f_qp_0   0     max_iter  2560    1257    1191     1287   1232   55    95             13.5          
+YORKNET@F-trinf     f_qp_1   1     max_iter  2560    1279    1277     1279   1279   0     2              639.5         
+YORKNET@F-trinf     f_qp_2   1     max_iter  2560    1279    1277     1279   1279   0     2              639.5         
+YORKNET@F-trinf     f_qp_3   1     max_iter  2560    1279    1277     1279   1279   0     2              639.5         
+    records 1..3 on this leg are BYTE-IDENTICAL to one another on all
+    19 QpCounters fields but symbolic_analyses.
+
+    Every record on both legs ends max_iter at exactly the same minor count,
+    which is the per-major cap: the walk is re-entered each major and stalls
+    again. The ledger records the MAIN WALK ENGINE only, so a tr_init = 1
+    leg's restoration subproblems are absent by construction (RULE-F.md
+    section 1.2) -- that is a scope fact, not a gap in this table.
+
+3. THE tr_init = 1 CONTRAST, same cells, same binary, same terms.
+
+   STEENBRB  tr_init = 1  : first QP infeasible         827 minors,    18 degenerate, run max 3    
+             tr_init = inf: first QP max_iter          4680 minors,  2319 degenerate, run max 2310 
+   YORKNET   tr_init = 1  : first QP infeasible         397 minors,   161 degenerate, run max 48   
+             tr_init = inf: first QP max_iter          2560 minors,  1257 degenerate, run max 1191 
+
+   The same cell, the same start point, one option apart: with the trust
+   window the first QP takes a short walk and ends with a verdict; without
+   it the walk does not move and ends on the cap.
+
+4. WHAT WOULD CONFIRM CYCLING PROPER, AND WHAT IS NOT REACHABLE TODAY.
+
+   Cycling proper is THE SAME WORKING SET REVISITED. Nothing above
+   establishes that: `distinct_bound_added` counts distinct VARIABLES ever
+   admitted, so a multiplicity of k says each touched variable came back
+   about k times, which is equally consistent with a long degenerate CRAWL
+   over a combinatorially large family of sets drawn from the same few
+   variables.
+
+   The distinguishing observation is a per-minor identity of the working
+   SET -- a hash or a signature per pass, and a repeat detector over it.
+   NOT REACHABLE FROM ANY PUBLIC SURFACE TODAY, checked rather than assumed:
+   QpEngine has NO trace sink at all (no attach_trace, no emit site in
+   src/qp/qp_engine.cpp), and its ONLY instrument is the per-SOLVE Ledger
+   record this addendum read. The finest public QP granularity is the
+   subproblem, never the minor.
+
+   So confirming it needs a REGISTERED INSTRUMENT, not another leg: an
+   HVEN_TESTING-gated per-minor working-set signature on CLAUDE.md section
+   8's test-seam convention, or an offline replay of one subproblem. Either
+   is its own task with its own pre-registered rule. THIS ADDENDUM RUNS NO
+   MORE LEGS.
+
+5. WHAT THIS RANKS, FOR THE SETTLER -- AND IT RANKS, IT DOES NOT DECIDE.
+
+   RULE-F.md section 0's three candidates, with what the numbers say about
+   each and nothing more:
+
+   * AN ANTI-CYCLING RULE FOR THE ACTIVE-SET WALK -- the LEAD candidate.
+     hven states it has none ('No anti-cycling rule is implemented; a
+     degenerate stall is bounded by max_iter', detail/qp/qp_engine.h), and
+     the first QP at tr_init = inf spends essentially every pass adding or
+     dropping a bound without moving. OPEN LITERATURE ONLY: a documented
+     textbook rule (Bland's) or a perturbation / EXPAND-style scheme. NEVER
+     FROM SNOPT SOURCE -- CLAUDE.md section 6's firewall is absolute and
+     applies to this line as to every other.
+   * START / CRASH QUALITY -- the tr_init = 1 contrast in item 3 is a fact
+     about where the walk BEGINS, so a better initial working set is a live
+     alternative rather than a ruled-out one.
+   * CAP POLICY -- addendum E already showed a 10x cap changes nothing
+     (verdict-E.txt), and item 1 shows the stall is not a budget shortage.
+     Ranked LAST on this evidence.
+
+   Which of the three to fund is the settler's call, not this fold's.
+

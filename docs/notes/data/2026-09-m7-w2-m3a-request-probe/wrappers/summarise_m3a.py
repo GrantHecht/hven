@@ -4,6 +4,9 @@
 Reads rows/stage1/<CELL>@<tag>.txt and writes tables/ and verdict.txt, and --
 when rows/e/ exists -- applies RULE-E.md section 5 to the addendum-E legs and
 writes verdict-E.txt, tables/e-first-qp.txt and tables/e-solve-counters.txt.
+ADDENDUM F appends a THIRD, independent fold: it writes verdict-F.txt and
+tables/f-*.txt. Re-running must leave verdict.txt, verdict-E.txt and the
+stage-1 and E tables byte-identical (RULE-F.md section 6).
 The stage-1 fold below is untouched by the addendum: re-running this script
 must leave verdict.txt and tables/stage1-*.txt byte-identical.
 NO NUMBER IN THE ARTIFACT IS TRANSCRIBED BY HAND: every cell of every table
@@ -427,6 +430,9 @@ def main() -> None:
     # RULE-E.md section 7 item 4. Writes only NEW files; nothing above is
     # re-opened for writing.
     fold_e(art, tables_dir)
+
+    # RULE-F.md section 6 item 4. Writes only NEW files, on the same terms.
+    fold_f(art, tables_dir)
 
 
 # ===========================================================================
@@ -884,6 +890,618 @@ def fold_e(art: str, tables_dir: str) -> None:
         sw("")
     with open(os.path.join(tables_dir, "e-solve-counters.txt"), "w") as handle:
         handle.write("\n".join(t2) + "\n")
+
+    sys.stdout.write("\n".join(out) + "\n")
+
+
+
+# ===========================================================================
+# ADDENDUM F -- THE DEGENERATE-STALL PROBE.
+#
+# RULE-F.md was committed at 229d63de, BEFORE any F leg ran (the identity leg
+# included). Everything below applies it AS WRITTEN. Nothing in this block
+# touches the stage-1 or E folds: verdict.txt, verdict-E.txt and the
+# stage1-*/e-* tables are not re-opened for writing, and re-running this script
+# must leave all five byte-identical.
+#
+# It writes verdict-F.txt, tables/f-first-qp.txt, tables/f-records.txt and
+# tables/f-neutrality.txt. No number in any of them is transcribed by hand.
+# ===========================================================================
+
+# RULE-F.md section 2's table: leg tag -> (cell, the committed stage-1 twin).
+F_LEGS = [
+    ("STEENBRB@identity-F", "STEENBRB", "STEENBRB@trinf.txt", "identity"),
+    ("STEENBRB@F-trinf", "STEENBRB", "STEENBRB@trinf.txt", "measured"),
+    ("STEENBRB@F-tr1", "STEENBRB", "STEENBRB@tr1.txt", "measured"),
+    ("YORKNET@F-trinf", "YORKNET", "YORKNET@trinf.txt", "measured"),
+    ("YORKNET@F-tr1", "YORKNET", "YORKNET@tr1.txt", "measured"),
+]
+# RULE-F.md section 4: the verdict is taken on record 0 of these legs alone.
+F_VERDICT_LEGS = [("STEENBRB", "STEENBRB@F-trinf"), ("YORKNET", "YORKNET@F-trinf")]
+F_STALL_RATIO = 0.5
+F_STALL_RUN = 1000
+F_WALK_RATIO = 0.1
+# RULE-F.md section 3.1's exclusion list, BY NAME, plus RULE.md section 4's
+# time-valued list carried over. Nothing else is excluded from a comparison.
+F_NEW_KEYS = {"ledger"}
+F_TIME_KEYS = {"wall_seconds", "elapsed", "elapsed_seconds"}
+F_RESIDUAL_KEYS = {
+    "f", "stationarity", "feasibility_e", "feasibility_i", "complementarity",
+    "restoration_h_in", "restoration_h_out", "restoration_f_in",
+    "restoration_f_out", "requesting_h", "requesting_f",
+}
+F_NEAR_ULP_REL = 1.0e-12
+# QpCounters' twenty fields in DECLARATION ORDER, the probe's own table.
+F_FIELDS = ["factorizations", "schur_updates", "minor_iters", "eqp_refine_steps",
+            "border_refine_steps", "verdict_refine_steps", "suspect_escalations",
+            "k0_reused", "symbolic_analyses", "ws_adds", "ws_drops", "shift_adds",
+            "degenerate_steps", "degenerate_run_max", "ws_adds_bound",
+            "ws_drops_bound", "distinct_ineq_added", "distinct_bound_added",
+            "drop_ties", "ratio_ties"]
+
+
+def read_f_row(path: str) -> dict:
+    """read_row() for an F row, plus the LEDGER block.
+
+    The key block STOPS at LADDER_BEGIN, so the LEDGER block's own `=` lines
+    are never folded into the key set -- RULE-F.md section 3.1 says that block
+    is not part of the key block. The ledger is returned under '_first',
+    '_agg' and '_records'.
+    """
+    keys: dict = {}
+    ladder: list = []
+    first: dict = {}
+    agg: dict = {}
+    records: list = []
+    state = "keys"
+    header: list = []
+    with open(path, "r") as handle:
+        for line in handle:
+            line = line.rstrip("\n")
+            if line == "LADDER_BEGIN":
+                state = "ladder"
+                continue
+            if line == "LADDER_END":
+                state = "after"
+                continue
+            if line == "LEDGER_FIRST_BEGIN":
+                state = "first"
+                continue
+            if line == "LEDGER_AGG_BEGIN":
+                state = "agg"
+                continue
+            if line == "LEDGER_RECORDS_BEGIN":
+                state = "records"
+                header = []
+                continue
+            if line in ("LEDGER_FIRST_END", "LEDGER_AGG_END", "LEDGER_RECORDS_END"):
+                state = "after"
+                continue
+            if state == "ladder":
+                ladder.append(line)
+                continue
+            if state == "records":
+                if not header:
+                    header = line.split(",")
+                else:
+                    records.append(dict(zip(header, line.split(","))))
+                continue
+            if "=" not in line or line.startswith("PROBE_"):
+                continue
+            key, value = line.split("=", 1)
+            if state == "keys":
+                keys[key] = value
+            elif state == "first":
+                first[key[len("first_"):] if key.startswith("first_") else key] = value
+            elif state == "agg":
+                agg[key[len("agg_"):] if key.startswith("agg_") else key] = value
+    keys["_ladder"] = ladder
+    keys["_first"] = first
+    keys["_agg"] = agg
+    keys["_records"] = records
+    return keys
+
+
+def f_near_ulp(a: str, b: str):
+    """RULE.md section 4's declared fallback, carried over unchanged."""
+    try:
+        x, y = float(a), float(b)
+    except (TypeError, ValueError):
+        return False, None
+    if x != x or y != y:
+        return False, None
+    if x in (float("inf"), float("-inf")) or y in (float("inf"), float("-inf")):
+        return False, None
+    gap = abs(x - y)
+    return gap <= F_NEAR_ULP_REL * max(1.0, abs(x), abs(y)), gap
+
+
+def f_compare(new: dict, old: dict):
+    """One leg against its committed twin. Returns (n_shared, diffs, tolerated,
+    ladder_diffs, only_new). The compared set is every shared key but the ones
+    RULE-F.md section 3.1 excludes BY NAME, plus the whole ladder block."""
+    nk = {k: v for k, v in new.items() if not k.startswith("_")}
+    ok_ = {k: v for k, v in old.items() if not k.startswith("_")}
+    shared = (set(nk) & set(ok_)) - F_NEW_KEYS - F_TIME_KEYS
+    diffs, tolerated = [], 0
+    for key in sorted(shared):
+        a, b = nk[key], ok_[key]
+        if a == b:
+            continue
+        if key in F_RESIDUAL_KEYS:
+            accepted, gap = f_near_ulp(a, b)
+            if accepted:
+                tolerated += 1
+                continue
+        diffs.append((key, a, b))
+    la, lb = new.get("_ladder", []), old.get("_ladder", [])
+    ladder_diffs = []
+    if len(la) != len(lb):
+        ladder_diffs.append(("<ladder line count>", str(len(la)), str(len(lb))))
+    else:
+        for i, (x, y) in enumerate(zip(la, lb)):
+            if x != y:
+                ladder_diffs.append(("ladder line %d" % i, x, y))
+    return len(shared), diffs, tolerated, ladder_diffs, sorted(set(nk) - set(ok_))
+
+
+def f_i(row: dict, name: str) -> int:
+    return int(row[name])
+
+
+def f_ratio(num: int, den: int) -> str:
+    return "n/a (minor_iters = 0)" if den == 0 else "%.6f" % (float(num) / float(den))
+
+
+def f_verdict(first: dict):
+    """RULE-F.md section 4, applied as written and in its stated order."""
+    if not first or "minor_iters" not in first:
+        return "UNDETERMINED (no ledger record)", None, None
+    minors = f_i(first, "minor_iters")
+    degen = f_i(first, "degenerate_steps")
+    run = f_i(first, "degenerate_run_max")
+    if minors == 0:
+        return "UNDETERMINED (the first ledger record has no minor iterations)", None, run
+    ratio = float(degen) / float(minors)
+    if ratio >= F_STALL_RATIO and run >= F_STALL_RUN:
+        return "DEGENERATE_STALL", ratio, run
+    if ratio < F_WALK_RATIO:
+        return "GENUINE_WALK", ratio, run
+    return "MIXED", ratio, run
+
+
+def fold_f(art: str, tables_dir: str) -> None:
+    rows_dir = os.path.join(art, "rows", "f")
+    if not os.path.isdir(rows_dir):
+        return
+
+    legs: dict = {}
+    missing: list = []
+    for tag, _cell, _twin, _kind in F_LEGS:
+        path = os.path.join(rows_dir, "%s.txt" % tag)
+        if not os.path.exists(path):
+            missing.append(tag)
+            continue
+        legs[tag] = read_f_row(path)
+    twins: dict = {}
+    for tag, _cell, twin, _kind in F_LEGS:
+        path = os.path.join(art, "rows", "stage1", twin)
+        if os.path.exists(path):
+            twins[tag] = read_f_row(path)
+
+    out: list = []
+    w = out.append
+    w("M7 W2 M3a ADDENDUM F -- THE VERDICT: RULE-F.md section 4, applied to the")
+    w("four measured F legs.")
+    w("")
+    w("Machine-written by wrappers/summarise_m3a.py from rows/f/ and from the four")
+    w("COMMITTED stage-1 twins in rows/stage1/. No number below is transcribed by")
+    w("hand. RULE-F.md was committed at 229d63de, BEFORE any F leg ran, and is")
+    w("applied here AS WRITTEN -- no predicate is relaxed, widened, re-labelled or")
+    w("re-read in the light of what the legs said.")
+    w("")
+    w("THIS RE-TESTS NEITHER EARLIER HYPOTHESIS (RULE-F.md section 0). The radius")
+    w("hypothesis stays CLOSED by RULE.md section 5.5 and H-QP stays closed by")
+    w("RULE-E.md section 5; verdict.txt and verdict-E.txt stand exactly as")
+    w("committed. The hypothesis under test here is:")
+    w("")
+    w("  H-DEG  The first QP's tens of thousands of minor iterations on STEENBRB")
+    w("         and YORKNET at tr_init = inf are a DEGENERATE STALL of the")
+    w("         active-set walk, not a long genuine walk.")
+    w("")
+    w("THE PREDICATES, as the rule states them, on the FIRST QP-LEDGER RECORD of")
+    w("each cell's tr_init = inf leg and on nothing else:")
+    w("  DEGENERATE_STALL iff degenerate_steps / minor_iters >= %.1f" % F_STALL_RATIO)
+    w("                   AND degenerate_run_max >= %d" % F_STALL_RUN)
+    w("  GENUINE_WALK     iff degenerate_steps / minor_iters <  %.1f" % F_WALK_RATIO)
+    w("  MIXED            anything else -- reported WITH the numbers")
+    w("  UNDETERMINED     minor_iters == 0, or no record at all")
+    w("")
+    if missing:
+        w("CENSORED LEGS (no row, never filled): %s" % ", ".join(missing))
+    else:
+        w("CENSORED LEGS: none. All %d legs produced a row." % len(F_LEGS))
+    trunc = [t for t in legs if legs[t].get("deadline_fired") == "1"]
+    w("TRUNCATED LEGS (deadline_fired=1): %s" % (", ".join(trunc) if trunc else "none"))
+    w("")
+
+    # --- the two checks, RE-RUN here on the COMMITTED files -----------------
+    w("THE TWO CHECKS ON THE REBUILT PROBE (RULE-F.md section 3), re-run by this")
+    w("fold on the COMMITTED rows -- an independent re-check of the same files the")
+    w("chain's own reports (identity-f.txt, neutral-first-f.txt, neutrality-f.txt)")
+    w("cover. Compared: every shared key but `ledger` and the time-valued names,")
+    w("and the whole ladder block, as STRINGS.")
+    ntab: list = []
+    nw = ntab.append
+    nw("M7 W2 M3a ADDENDUM F -- tables/f-neutrality.txt")
+    nw("")
+    nw("RULE-F.md section 3: the IDENTITY leg proves --ledger is inert at its")
+    nw("default; each NEUTRALITY leg proves the ATTACHED ledger moved no solver")
+    nw("counter, status, f or feasibility on that leg's own committed twin.")
+    nw("")
+    nhdr = [("leg", 22), ("kind", 10), ("twin", 22), ("keys", 6), ("differing", 11),
+            ("ladder", 8), ("near-ulp", 10), ("verdict", 18)]
+    nw("".join(fmt(n, wd) for n, wd in nhdr))
+    nw("-" * sum(wd for _n, wd in nhdr))
+    check_worst = 0
+    total_tol = 0
+    for tag, _cell, twin, kind in F_LEGS:
+        if tag not in legs or tag not in twins:
+            nw("".join(fmt(v, wd) for v, (_n, wd) in
+                       zip([tag, kind, twin, "-", "-", "-", "-", "MISSING"], nhdr)))
+            check_worst = 1
+            continue
+        if legs[tag].get("deadline_fired") == "1":
+            nw("".join(fmt(v, wd) for v, (_n, wd) in
+                       zip([tag, kind, twin, "-", "-", "-", "-", "WITHHELD (TRUNC)"], nhdr)))
+            continue
+        nshared, diffs, tol, ldiffs, only_new = f_compare(legs[tag], twins[tag])
+        total_tol += tol
+        bad = bool(diffs or ldiffs)
+        check_worst = max(check_worst, 1 if bad else 0)
+        nw("".join(fmt(str(v), wd) for v, (_n, wd) in
+                   zip([tag, kind, twin, nshared, len(diffs), len(ldiffs), tol,
+                        "DIFFERS -- STOP" if bad else "IDENTICAL"], nhdr)))
+        for key, a, b in diffs + ldiffs:
+            nw("    DIFF %s: f=%s  stage1=%s" % (key, a, b))
+        if only_new:
+            nw("    keys only in the F probe (not in the shared set): %s"
+               % ", ".join(only_new))
+        w("  %-22s vs %-22s %3d keys, %d differing; ladder %d differing   %s"
+          % (tag, twin, nshared, len(diffs), len(ldiffs),
+             "DIFFERS -- STOP" if bad else "IDENTICAL"))
+    nw("")
+    nw("NEAR_ULP_TOLERATED=%d" % total_tol)
+    nw("F_CHECK_WORST=%d" % check_worst)
+    with open(os.path.join(tables_dir, "f-neutrality.txt"), "w") as handle:
+        handle.write("\n".join(ntab) + "\n")
+    w("  NEAR_ULP_TOLERATED=%d   F_CHECK_WORST=%d" % (total_tol, check_worst))
+    if check_worst == 0:
+        w("  NO SOLVER COUNTER MOVED WITH THE LEDGER ATTACHED. RULE-F.md section")
+        w("  3.2's STOP does not fire, and the verdicts below may be taken.")
+    else:
+        w("  A SOLVER COUNTER MOVED WITH THE LEDGER ATTACHED -- RULE-F.md section")
+        w("  3.2's STOP. That is a FINDING ABOUT hven; no H-DEG verdict is taken.")
+    w("")
+
+    # --- the verdict table --------------------------------------------------
+    w("THE VERDICT TABLE (RULE-F.md section 4), on record 0 of each cell's")
+    w("tr_init = inf leg. `ratio` is degenerate_steps / minor_iters.")
+    w("-" * 78)
+    vhdr = [("cell", 10), ("leg", 18), ("record", 9), ("QpStatus", 10),
+            ("minor_iters", 12), ("degen_steps", 12), ("ratio", 10),
+            ("run_max", 9), ("VERDICT", 16)]
+    w("".join(fmt(n, wd) for n, wd in vhdr))
+    verdicts: dict = {}
+    for cell, tag in F_VERDICT_LEGS:
+        if tag not in legs:
+            verdicts[cell] = "UNDETERMINED (CENSORED -- no row)"
+            w("".join(fmt(str(v), wd) for v, (_n, wd) in
+                      zip([cell, tag, "-", "-", "-", "-", "-", "-",
+                           "UNDETERMINED"], vhdr)))
+            continue
+        if legs[tag].get("deadline_fired") == "1":
+            verdicts[cell] = "NO VERDICT (TRUNCATED)"
+            w("".join(fmt(str(v), wd) for v, (_n, wd) in
+                      zip([cell, tag, "0", "-", "-", "-", "-", "-",
+                           "NO VERDICT (TRUNC)"], vhdr)))
+            continue
+        first = legs[tag]["_first"]
+        verdict, ratio, run = f_verdict(first)
+        verdicts[cell] = verdict
+        w("".join(fmt(str(v), wd) for v, (_n, wd) in
+                  zip([cell, tag, first.get("label", "-"),
+                       first.get("qp_record_status", "-"),
+                       first.get("minor_iters", "-"),
+                       first.get("degenerate_steps", "-"),
+                       "%.6f" % ratio if ratio is not None else "-",
+                       str(run) if run is not None else "-", verdict], vhdr)))
+    w("")
+    w("WHAT THE RULE RETURNS")
+    w("-" * 78)
+    for cell, _tag in F_VERDICT_LEGS:
+        w("  %-10s %s" % (cell, verdicts.get(cell, "UNDETERMINED (no leg)")))
+    w("")
+    labels = sorted({verdicts.get(c, "") for c, _t in F_VERDICT_LEGS})
+    if labels == ["MIXED"]:
+        w("VERDICT: MIXED ON BOTH CELLS.")
+        w("")
+        w("H-DEG is NEITHER SUPPORTED NOR REFUTED as the rule states it. On both")
+        w("cells the degeneracy ratio sits just BELOW the 0.5 bar while")
+        w("degenerate_run_max sits far ABOVE the 1000 bar, so the conjunction")
+        w("DEGENERATE_STALL asks for is false and the GENUINE_WALK threshold of")
+        w("0.1 is nowhere near met. RULE-F.md section 4's third row governs:")
+        w("'MIXED -- reported WITH the numbers'. The numbers are above and in")
+        w("tables/f-first-qp.txt; nothing is relabelled to reach a cleaner word.")
+    else:
+        w("VERDICT: %s" % " / ".join("%s = %s" % (c, verdicts.get(c, "-"))
+                                     for c, _t in F_VERDICT_LEGS))
+    w("")
+    w("NO DEFAULT IS CHANGED BY THIS ADDENDUM UNDER ANY OUTCOME (RULE-F.md")
+    w("section 0), and no verdict licenses one. No file under src/ or include/ is")
+    w("touched by it at all.")
+    w("")
+
+    # --- the first-QP table -------------------------------------------------
+    t1: list = []
+    tw = t1.append
+    tw("M7 W2 M3a ADDENDUM F -- tables/f-first-qp.txt")
+    tw("")
+    tw("Record 0 of every measured leg: all TWENTY QpCounters fields in")
+    tw("declaration order, the record's own label/warm/QpStatus, and RULE-F.md")
+    tw("section 1.4's three DERIVED quantities. Nothing here is selected; the")
+    tw("probe prints the struct and this table prints what it printed.")
+    tw("")
+    tw("ws_net_change = ws_adds - ws_drops + shift_adds IS `W - S`, the working-")
+    tw("set size at exit minus at entry, BY THE WALK COUNTERS' DOCUMENTED NET")
+    tw("IDENTITY -- SolveRecord carries no size field. It carries that identity's")
+    tw("one documented exception: the temporary-vertex start repair writes")
+    tw("ws.bound_state() directly without touching QpCounters, so on a solve that")
+    tw("ran it the identity is off by the pins it left standing, and no counter")
+    tw("says whether it ran.")
+    tw("")
+    fhdr = [("field", 24)] + [(t, 20) for t, _c, _w, k in F_LEGS if k == "measured"]
+    tw("".join(fmt(n, wd) for n, wd in fhdr))
+    tw("-" * sum(wd for _n, wd in fhdr))
+    measured = [t for t, _c, _w, k in F_LEGS if k == "measured" and t in legs]
+    for name in ["label", "warm", "qp_record_status"] + F_FIELDS:
+        vals = [name] + [legs[t]["_first"].get(name, "-") for t in measured]
+        tw("".join(fmt(str(v), wd) for v, (_n, wd) in zip(vals, fhdr)))
+    tw("-" * sum(wd for _n, wd in fhdr))
+    for name in ["degenerate_fraction", "ws_adds_minus_drops", "ws_net_change"]:
+        vals = ["(derived) " + name] + [legs[t]["_first"].get(name, "-") for t in measured]
+        tw("".join(fmt(str(v), wd) for v, (_n, wd) in zip(vals, fhdr)))
+    # Two further derived readings RULE-F.md section 4.1 asks for, computed here
+    # rather than in the probe because they divide one printed field by another.
+    for label, num, den in [("degen/ws_adds", "degenerate_steps", "ws_adds"),
+                            ("run_max/degen_steps", "degenerate_run_max", "degenerate_steps"),
+                            ("ws_adds/distinct_bound", "ws_adds", "distinct_bound_added"),
+                            ("adds+drops vs minors", None, None)]:
+        vals = ["(derived) " + label]
+        for t in measured:
+            first = legs[t]["_first"]
+            if num is None:
+                vals.append("%s vs %s" % (f_i(first, "ws_adds") + f_i(first, "ws_drops"),
+                                          f_i(first, "minor_iters")))
+            else:
+                d = f_i(first, den)
+                vals.append("n/a (0)" if d == 0 else "%.4f" % (float(f_i(first, num)) / d))
+        tw("".join(fmt(str(v), wd) for v, (_n, wd) in zip(vals, fhdr)))
+    with open(os.path.join(tables_dir, "f-first-qp.txt"), "w") as handle:
+        handle.write("\n".join(t1) + "\n")
+
+    # --- the all-records table ---------------------------------------------
+    t2: list = []
+    rw = t2.append
+    rw("M7 W2 M3a ADDENDUM F -- tables/f-records.txt")
+    rw("")
+    rw("EVERY QP-ledger record of every measured leg, not record 0 alone, so a")
+    rw("reader can see whether a later major repeats the same stall from the same")
+    rw("start. The ledger's SCOPE (RULE-F.md section 1.2): attach_ledger attaches")
+    rw("to the driver's MAIN WALK ENGINE only -- the restoration sub-driver and")
+    rw("the four lazy engines write nothing -- so a record count is a LOWER BOUND")
+    rw("on the solve's QP solves, and that matters on the tr_init = 1 legs where a")
+    rw("restoration phase runs.")
+    rw("")
+    cols = ["index", "label", "warm", "status"] + F_FIELDS + \
+           ["ws_adds_minus_drops", "ws_net_change", "degenerate_fraction"]
+    for tag in measured:
+        rows = legs[tag]["_records"]
+        rw("=== %s   (%s records; ledger_qp_records=%s, print-truncated=%s)"
+           % (tag, len(rows), legs[tag].get("ledger_qp_records", "?"),
+              legs[tag].get("ledger_records_print_truncated", "?")))
+        rw(",".join(cols))
+        for rec in rows:
+            rw(",".join(rec.get(c, "") for c in cols))
+        rw("")
+    with open(os.path.join(tables_dir, "f-records.txt"), "w") as handle:
+        handle.write("\n".join(t2) + "\n")
+
+    # --- OUTSIDE THE VERDICT ------------------------------------------------
+    w("=" * 78)
+    w("OUTSIDE THE VERDICT -- AND NOT ONE")
+    w("=" * 78)
+    w("")
+    w("Everything above this line is RULE-F.md applied as written. Everything")
+    w("below it is DESCRIPTIVE. It licenses NO verdict, NO default change and NO")
+    w("re-labelling of the two MIXED cells; RULE-F.md section 4.1 pre-registered")
+    w("these read-outs as non-verdict read-outs precisely so they could be")
+    w("reported without becoming one.")
+    w("")
+    w("1. THE SETTLER'S OWN DECLARED ERROR IN THE RULE'S DESIGN.")
+    w("")
+    w("   The 0.5 bar was set on a denominator that cannot reach it. Checked")
+    w("   against the headers rather than assumed:")
+    w("")
+    w("   * `minor_iters` increments ONCE PER PASS of the walk loop --")
+    w("     `++counters.minor_iters` is the first statement inside")
+    w("     `for (Index iter = 0; ...; ++iter)` in src/qp/qp_engine.cpp:613, and")
+    w("     detail/qp/qp_engine.h's COUNTER SEMANTICS note fixes it as a relied-on")
+    w("     contract. A DROP iteration is a pass and counts.")
+    w("   * `degenerate_steps` counts 'minor iterations that ADDED A BLOCKING")
+    w("     CONSTRAINT while moving the iterate by no more than the loop's own")
+    w("     step tolerance' (solver_counters.h). A pass that only DROPS adds")
+    w("     nothing and is therefore never a degenerate step, however stuck the")
+    w("     iterate is.")
+    w("   * `degenerate_run_max` is 'the longest consecutive run of degenerate")
+    w("     steps... A run is broken by a minor on which the iterate MOVED, and by")
+    w("     nothing else: ... a drop iteration and a zero-multiplier probe do not'")
+    w("     break it (solver_counters.h). So the RUN counter spans the drops the")
+    w("     RATIO's denominator charges for.")
+    w("")
+    w("   CONSEQUENCE: in a pure add/drop alternation at a stuck iterate, half the")
+    w("   passes are drops, so degenerate_steps / minor_iters cannot exceed about")
+    w("   0.5 BY CONSTRUCTION. The bar was set at the ceiling. That is a defect in")
+    w("   the rule, declared here by the settler; it is NOT a reason to move the")
+    w("   bar after the fact, and the MIXED verdicts above stand.")
+    w("")
+    w("   THE ARITHMETIC, from the rows: on record 0, ws_adds + ws_drops against")
+    w("   minor_iters --")
+    for tag in measured:
+        first = legs[tag]["_first"]
+        a, d, m = f_i(first, "ws_adds"), f_i(first, "ws_drops"), f_i(first, "minor_iters")
+        w("     %-20s %6d + %6d = %6d   vs minor_iters %6d   (%d passes were neither)"
+          % (tag, a, d, a + d, m, m - a - d))
+    w("")
+    w("2. THE DESCRIPTIVE READ-OUTS (RULE-F.md section 4.1), record 0 of each leg.")
+    w("")
+    dhdr = [("leg", 20), ("ws_adds", 9), ("ws_drops", 10), ("net", 6),
+            ("degen/adds", 12), ("run_max", 9), ("drop_ties", 10),
+            ("ratio_ties", 11), ("distinct_ineq", 14), ("distinct_bound", 15),
+            ("adds/distinct", 14)]
+    w("".join(fmt(n, wd) for n, wd in dhdr))
+    w("-" * sum(wd for _n, wd in dhdr))
+    for tag in measured:
+        first = legs[tag]["_first"]
+        a, d = f_i(first, "ws_adds"), f_i(first, "ws_drops")
+        db = f_i(first, "distinct_bound_added")
+        w("".join(fmt(str(v), wd) for v, (_n, wd) in zip(
+            [tag, a, d, a - d,
+             "%.4f" % (float(f_i(first, "degenerate_steps")) / a) if a else "n/a (0)",
+             first["degenerate_run_max"], first["drop_ties"], first["ratio_ties"],
+             first["distinct_ineq_added"], db,
+             "%.1f" % (float(a) / db) if db else "n/a (0)"], dhdr)))
+    w("")
+    bound_only = all(rec["ws_adds"] == rec["ws_adds_bound"]
+                     for t in measured for rec in legs[t]["_records"])
+    nrec = sum(len(legs[t]["_records"]) for t in measured)
+    w("")
+    w("   CHECKED, not asserted: ws_adds == ws_adds_bound on %s of the %d records"
+      % ("ALL" if bound_only else "NOT all", nrec))
+    w("   above, and every leg prints mi = %s."
+      % ", ".join(sorted({legs[t]["mi"] for t in measured})))
+    w("")
+    w("   `distinct_ineq_added` is 0 on every leg because BOTH cells have mi = 0")
+    w("   (the probe prints mi; STEENBRB and YORKNET are equality-constrained with")
+    w("   bounds), so every admission is a VARIABLE-BOUND pin -- ws_adds ==")
+    w("   ws_adds_bound on every record above, which is that fact checked.")
+    w("   `adds/distinct` is then ADMISSION MULTIPLICITY on the bound side, the")
+    w("   quantity solver_counters.h defines as ws_adds_bound / distinct_bound_added:")
+    w("   the mean number of times a touched variable was admitted. RE-admissions")
+    w("   are that number minus one.")
+    w("")
+    w("   A few distinct constraints re-admitted many times is what cycling looks")
+    w("   like. It is NOT proof of cycling: admission multiplicity says a variable")
+    w("   came back, not that the WHOLE WORKING SET came back. See item 4.")
+    w("")
+    w("2b. DO THE LATER MAJORS REPEAT THE SAME STALL? Every record of the two")
+    w("    tr_init = inf legs, not record 0 alone (full table: tables/f-records.txt).")
+    w("")
+    rhdr = [("leg", 20), ("record", 9), ("warm", 6), ("status", 10), ("minors", 8),
+            ("degen", 8), ("run_max", 9), ("adds", 7), ("drops", 7), ("net", 6),
+            ("distinct_bound", 15), ("adds/distinct", 14)]
+    w("".join(fmt(n, wd) for n, wd in rhdr))
+    w("-" * sum(wd for _n, wd in rhdr))
+    for _cell, tag in F_VERDICT_LEGS:
+        if tag not in legs:
+            continue
+        for rec in legs[tag]["_records"]:
+            db = int(rec["distinct_bound_added"])
+            w("".join(fmt(str(v), wd) for v, (_n, wd) in zip(
+                [tag, rec["label"], rec["warm"], rec["status"], rec["minor_iters"],
+                 rec["degenerate_steps"], rec["degenerate_run_max"], rec["ws_adds"],
+                 rec["ws_drops"], rec["ws_net_change"], db,
+                 "%.1f" % (float(rec["ws_adds"]) / db) if db else "n/a (0)"], rhdr)))
+        tail = legs[tag]["_records"][1:]
+        cols = [c for c in F_FIELDS if c != "symbolic_analyses"]
+        same = bool(tail) and all(
+            all(r[c] == tail[0][c] for c in cols) for r in tail)
+        w("    records 1..%d on this leg are %sBYTE-IDENTICAL to one another on all"
+          % (len(legs[tag]["_records"]) - 1, "" if same else "NOT "))
+        w("    %d QpCounters fields but symbolic_analyses." % len(cols))
+        w("")
+    w("    Every record on both legs ends max_iter at exactly the same minor count,")
+    w("    which is the per-major cap: the walk is re-entered each major and stalls")
+    w("    again. The ledger records the MAIN WALK ENGINE only, so a tr_init = 1")
+    w("    leg's restoration subproblems are absent by construction (RULE-F.md")
+    w("    section 1.2) -- that is a scope fact, not a gap in this table.")
+    w("")
+    w("3. THE tr_init = 1 CONTRAST, same cells, same binary, same terms.")
+    w("")
+    for cell, inf_tag in F_VERDICT_LEGS:
+        one_tag = "%s@F-tr1" % cell
+        if inf_tag not in legs or one_tag not in legs:
+            continue
+        fi, fo = legs[inf_tag]["_first"], legs[one_tag]["_first"]
+        w("   %-9s tr_init = 1  : first QP %-16s %5s minors, %5s degenerate, run max %-5s"
+          % (cell, fo["qp_record_status"], fo["minor_iters"],
+             fo["degenerate_steps"], fo["degenerate_run_max"]))
+        w("   %-9s tr_init = inf: first QP %-16s %5s minors, %5s degenerate, run max %-5s"
+          % ("", fi["qp_record_status"], fi["minor_iters"],
+             fi["degenerate_steps"], fi["degenerate_run_max"]))
+    w("")
+    w("   The same cell, the same start point, one option apart: with the trust")
+    w("   window the first QP takes a short walk and ends with a verdict; without")
+    w("   it the walk does not move and ends on the cap.")
+    w("")
+    w("4. WHAT WOULD CONFIRM CYCLING PROPER, AND WHAT IS NOT REACHABLE TODAY.")
+    w("")
+    w("   Cycling proper is THE SAME WORKING SET REVISITED. Nothing above")
+    w("   establishes that: `distinct_bound_added` counts distinct VARIABLES ever")
+    w("   admitted, so a multiplicity of k says each touched variable came back")
+    w("   about k times, which is equally consistent with a long degenerate CRAWL")
+    w("   over a combinatorially large family of sets drawn from the same few")
+    w("   variables.")
+    w("")
+    w("   The distinguishing observation is a per-minor identity of the working")
+    w("   SET -- a hash or a signature per pass, and a repeat detector over it.")
+    w("   NOT REACHABLE FROM ANY PUBLIC SURFACE TODAY, checked rather than assumed:")
+    w("   QpEngine has NO trace sink at all (no attach_trace, no emit site in")
+    w("   src/qp/qp_engine.cpp), and its ONLY instrument is the per-SOLVE Ledger")
+    w("   record this addendum read. The finest public QP granularity is the")
+    w("   subproblem, never the minor.")
+    w("")
+    w("   So confirming it needs a REGISTERED INSTRUMENT, not another leg: an")
+    w("   HVEN_TESTING-gated per-minor working-set signature on CLAUDE.md section")
+    w("   8's test-seam convention, or an offline replay of one subproblem. Either")
+    w("   is its own task with its own pre-registered rule. THIS ADDENDUM RUNS NO")
+    w("   MORE LEGS.")
+    w("")
+    w("5. WHAT THIS RANKS, FOR THE SETTLER -- AND IT RANKS, IT DOES NOT DECIDE.")
+    w("")
+    w("   RULE-F.md section 0's three candidates, with what the numbers say about")
+    w("   each and nothing more:")
+    w("")
+    w("   * AN ANTI-CYCLING RULE FOR THE ACTIVE-SET WALK -- the LEAD candidate.")
+    w("     hven states it has none ('No anti-cycling rule is implemented; a")
+    w("     degenerate stall is bounded by max_iter', detail/qp/qp_engine.h), and")
+    w("     the first QP at tr_init = inf spends essentially every pass adding or")
+    w("     dropping a bound without moving. OPEN LITERATURE ONLY: a documented")
+    w("     textbook rule (Bland's) or a perturbation / EXPAND-style scheme. NEVER")
+    w("     FROM SNOPT SOURCE -- CLAUDE.md section 6's firewall is absolute and")
+    w("     applies to this line as to every other.")
+    w("   * START / CRASH QUALITY -- the tr_init = 1 contrast in item 3 is a fact")
+    w("     about where the walk BEGINS, so a better initial working set is a live")
+    w("     alternative rather than a ruled-out one.")
+    w("   * CAP POLICY -- addendum E already showed a 10x cap changes nothing")
+    w("     (verdict-E.txt), and item 1 shows the stall is not a budget shortage.")
+    w("     Ranked LAST on this evidence.")
+    w("")
+    w("   Which of the three to fund is the settler's call, not this fold's.")
+    w("")
+
+    with open(os.path.join(art, "verdict-F.txt"), "w") as handle:
+        handle.write("\n".join(out) + "\n")
 
     sys.stdout.write("\n".join(out) + "\n")
 

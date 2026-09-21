@@ -1,0 +1,48 @@
+M7 W2 M3a ADDENDUM F -- tables/f-first-qp.txt
+
+Record 0 of every measured leg: all TWENTY QpCounters fields in
+declaration order, the record's own label/warm/QpStatus, and RULE-F.md
+section 1.4's three DERIVED quantities. Nothing here is selected; the
+probe prints the struct and this table prints what it printed.
+
+ws_net_change = ws_adds - ws_drops + shift_adds IS `W - S`, the working-
+set size at exit minus at entry, BY THE WALK COUNTERS' DOCUMENTED NET
+IDENTITY -- SolveRecord carries no size field. It carries that identity's
+one documented exception: the temporary-vertex start repair writes
+ws.bound_state() directly without touching QpCounters, so on a solve that
+ran it the identity is off by the pins it left standing, and no counter
+says whether it ran.
+
+field                   STEENBRB@F-trinf    STEENBRB@F-tr1      YORKNET@F-trinf     YORKNET@F-tr1       
+--------------------------------------------------------------------------------------------------------
+label                   f_qp_0              f_qp_0              f_qp_0              f_qp_0              
+warm                    0                   0                   0                   0                   
+qp_record_status        max_iter            infeasible          max_iter            infeasible          
+factorizations          5                   705                 5106                512                 
+schur_updates           4849                333                 144684              8239                
+minor_iters             4680                827                 2560                397                 
+eqp_refine_steps        0                   0                   0                   0                   
+border_refine_steps     18904               514                 9                   11                  
+verdict_refine_steps    0                   0                   0                   0                   
+suspect_escalations     0                   0                   0                   0                   
+k0_reused               0                   0                   0                   0                   
+symbolic_analyses       1                   1                   1                   1                   
+ws_adds                 2344                587                 1287                346                 
+ws_drops                2323                225                 1232                45                  
+shift_adds              0                   0                   0                   0                   
+degenerate_steps        2319                18                  1257                161                 
+degenerate_run_max      2310                3                   1191                48                  
+ws_adds_bound           2344                587                 1287                346                 
+ws_drops_bound          2323                225                 1232                45                  
+distinct_ineq_added     0                   0                   0                   0                   
+distinct_bound_added    23                  428                 95                  304                 
+drop_ties               0                   19                  12                  27                  
+ratio_ties              0                   10                  52                  101                 
+--------------------------------------------------------------------------------------------------------
+(derived) degenerate_fraction0.49551282051282053 0.0217654171704957690.49101562500000001 0.40554156171284633 
+(derived) ws_adds_minus_drops21                  362                 55                  301                 
+(derived) ws_net_change 21                  362                 55                  301                 
+(derived) degen/ws_adds 0.9893              0.0307              0.9767              0.4653              
+(derived) run_max/degen_steps0.9961              0.1667              0.9475              0.2981              
+(derived) ws_adds/distinct_bound101.9130            1.3715              13.5474             1.1382              
+(derived) adds+drops vs minors4667 vs 4680        812 vs 827          2519 vs 2560        391 vs 397          

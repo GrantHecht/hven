@@ -1,0 +1,21 @@
+M7 W2 M3a ADDENDUM F -- tables/f-neutrality.txt
+
+RULE-F.md section 3: the IDENTITY leg proves --ledger is inert at its
+default; each NEUTRALITY leg proves the ATTACHED ledger moved no solver
+counter, status, f or feasibility on that leg's own committed twin.
+
+leg                   kind      twin                  keys  differing  ladder  near-ulp  verdict           
+-----------------------------------------------------------------------------------------------------------
+STEENBRB@identity-F   identity  STEENBRB@trinf.txt    50    0          0       0         IDENTICAL         
+    keys only in the F probe (not in the shared set): first_qp_factorizations, first_qp_minor_iters, ledger, qp_cap_retries, qp_cap_retry, qp_max_iter
+STEENBRB@F-trinf      measured  STEENBRB@trinf.txt    50    0          0       0         IDENTICAL         
+    keys only in the F probe (not in the shared set): first_qp_factorizations, first_qp_minor_iters, ledger, qp_cap_retries, qp_cap_retry, qp_max_iter
+STEENBRB@F-tr1        measured  STEENBRB@tr1.txt      52    0          0       0         IDENTICAL         
+    keys only in the F probe (not in the shared set): first_qp_factorizations, first_qp_minor_iters, ledger, qp_cap_retries, qp_cap_retry, qp_max_iter
+YORKNET@F-trinf       measured  YORKNET@trinf.txt     50    0          0       0         IDENTICAL         
+    keys only in the F probe (not in the shared set): first_qp_factorizations, first_qp_minor_iters, ledger, qp_cap_retries, qp_cap_retry, qp_max_iter
+YORKNET@F-tr1         measured  YORKNET@tr1.txt       52    0          0       0         IDENTICAL         
+    keys only in the F probe (not in the shared set): first_qp_factorizations, first_qp_minor_iters, ledger, qp_cap_retries, qp_cap_retry, qp_max_iter
+
+NEAR_ULP_TOLERATED=0
+F_CHECK_WORST=0
