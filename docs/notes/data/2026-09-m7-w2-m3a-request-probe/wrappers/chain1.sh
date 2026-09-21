@@ -262,5 +262,16 @@ for cell in $CELLS; do
 done
 
 echo "LEGS_WORST=$worst  (1 means at least one leg was CENSORED; see its LEG line)"
+# fix1 (settler adjudication R2): this chain used to RECORD `worst` and then
+# exit 0 regardless, so a censored ladder leg was visible in the log and
+# invisible to anything reading the exit status. A recorded failure that does
+# not reach the caller is not a reported failure. It does now.
+if [ "$worst" != 0 ]; then
+  echo "CHAIN1_INCOMPLETE: at least one raised-radius leg was CENSORED -- its row was"
+  echo "  never filled, so the ladder this chain was run to produce has a hole in it."
+  echo "  The controls and the identity gate passed; the rows that DO exist stand."
+  echo "CHAIN1_END $(date -Is)"
+  exit 6
+fi
 echo "CHAIN1_END $(date -Is)"
 exit 0

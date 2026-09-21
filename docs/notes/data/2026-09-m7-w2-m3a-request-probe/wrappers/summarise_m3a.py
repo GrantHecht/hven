@@ -126,7 +126,7 @@ def fmt(value: str, width: int) -> str:
     return value.ljust(width)
 
 
-def main() -> None:
+def main() -> int:
     art = sys.argv[1] if len(sys.argv) > 1 else "."
     rows_dir = os.path.join(art, "rows", "stage1")
     tables_dir = os.path.join(art, "tables")
@@ -432,7 +432,15 @@ def main() -> None:
     fold_e(art, tables_dir)
 
     # RULE-F.md section 6 item 4. Writes only NEW files, on the same terms.
-    fold_f(art, tables_dir)
+    #
+    # AND ITS RETURN CODE IS THIS SCRIPT'S (M7 W2 M3a fix1, R2). The F fold
+    # re-runs RULE-F.md section 3's identity and neutrality checks on the
+    # committed rows; until fix1 it PRINTED a STOP on a failure and then went on
+    # to compute an H-DEG verdict anyway, and this script exited 0 whatever it
+    # found. A check whose failure changes nothing is not a check. The fold now
+    # stops where the STOP is -- no verdict table is computed, no verdict is
+    # written -- and hands the failure out through the process's exit status.
+    return fold_f(art, tables_dir)
 
 
 # ===========================================================================
@@ -1070,10 +1078,10 @@ def f_verdict(first: dict):
     return "MIXED", ratio, run
 
 
-def fold_f(art: str, tables_dir: str) -> None:
+def fold_f(art: str, tables_dir: str) -> int:
     rows_dir = os.path.join(art, "rows", "f")
     if not os.path.isdir(rows_dir):
-        return
+        return 0
 
     legs: dict = {}
     missing: list = []
@@ -1183,6 +1191,33 @@ def fold_f(art: str, tables_dir: str) -> None:
         w("  A SOLVER COUNTER MOVED WITH THE LEDGER ATTACHED -- RULE-F.md section")
         w("  3.2's STOP. That is a FINDING ABOUT hven; no H-DEG verdict is taken.")
     w("")
+
+    # THE STOP IS A STOP (M7 W2 M3a fix1, R2). Until fix1 the two branches above
+    # differed only in what they PRINTED: the fold went on to compute the verdict
+    # table either way, wrote verdict-F.txt either way, and exited 0 either way.
+    # A reader could therefore be handed an H-DEG verdict taken from legs whose
+    # identity or neutrality check had failed -- the exact reading RULE-F.md
+    # section 3 forbids. Now the fold RETURNS HERE: no verdict is computed, the
+    # transcript ends at the STOP, and the non-zero return reaches the process's
+    # exit status. f-neutrality.txt is written above and stands as the evidence
+    # of WHICH pair failed and on which keys.
+    if check_worst != 0:
+        w("=" * 78)
+        w("THE FOLD STOPS HERE -- NO H-DEG VERDICT IS COMPUTED")
+        w("=" * 78)
+        w("")
+        w("RULE-F.md section 3 makes the identity and neutrality checks a")
+        w("PRECONDITION of the verdict, not a report beside it. One of them")
+        w("failed above, so this fold computes no verdict table, writes no")
+        w("verdict, and exits non-zero. The failing pair and its differing keys")
+        w("are in the table above and in tables/f-neutrality.txt.")
+        w("")
+        w("Nothing here is a judgement about H-DEG. It is the refusal to make")
+        w("one on evidence whose own precondition did not hold.")
+        with open(os.path.join(art, "verdict-F.txt"), "w") as handle:
+            handle.write("\n".join(out) + "\n")
+        sys.stdout.write("\n".join(out) + "\n")
+        return 3
 
     # --- the verdict table --------------------------------------------------
     w("THE VERDICT TABLE (RULE-F.md section 4), on record 0 of each cell's")
@@ -1349,11 +1384,30 @@ def fold_f(art: str, tables_dir: str) -> None:
     w("     break it (solver_counters.h). So the RUN counter spans the drops the")
     w("     RATIO's denominator charges for.")
     w("")
-    w("   CONSEQUENCE: in a pure add/drop alternation at a stuck iterate, half the")
-    w("   passes are drops, so degenerate_steps / minor_iters cannot exceed about")
-    w("   0.5 BY CONSTRUCTION. The bar was set at the ceiling. That is a defect in")
-    w("   the rule, declared here by the settler; it is NOT a reason to move the")
-    w("   bar after the fact, and the MIXED verdicts above stand.")
+    w("   CONSEQUENCE: in a STEADY add/drop alternation at a stuck iterate, half")
+    w("   the passes are drops, so degenerate_steps / minor_iters sits NEAR 0.5 --")
+    w("   the bar was set at the value the quantity it measures converges to, and")
+    w("   a bar at a near-asymptote decides nothing. That is a defect in the rule,")
+    w("   declared here by the settler; it is NOT a reason to move the bar after")
+    w("   the fact, and the MIXED verdicts above stand.")
+    w("")
+    w("   AND 0.5 IS NOT A CEILING. An earlier draft of this item said the ratio")
+    w("   'cannot exceed about 0.5 BY CONSTRUCTION'; that was WRONG and is")
+    w("   withdrawn here (M7 W2 M3a fix1, R4). Nothing forces adds and drops to")
+    w("   alternate one for one: a run with NET ADDITIONS spends more than half")
+    w("   its passes adding, and every such pass at a stuck iterate is a")
+    w("   degenerate step. The rows themselves show the adds share already ABOVE")
+    w("   0.5 on EVERY measured leg, the two verdict legs included --")
+    for tag in measured:
+        first = legs[tag]["_first"]
+        a, m = f_i(first, "ws_adds"), f_i(first, "minor_iters")
+        w("     %-20s ws_adds / minor_iters = %6d / %6d = %s"
+          % (tag, a, m, ("%.5f" % (float(a) / m)) if m else "n/a (0)"))
+    w("   -- so a walk that added without dropping would carry the ratio past the")
+    w("   bar. What the counters DO make unreachable is nothing; what they make")
+    w("   UNLIKELY, on a churning walk, is a ratio far above 0.5. The correct")
+    w("   reading of the two MIXED cells is therefore that the bar was badly")
+    w("   chosen, not that the cells fell short of a ceiling.")
     w("")
     w("   THE ARITHMETIC, from the rows: on record 0, ws_adds + ws_drops against")
     w("   minor_iters --")
@@ -1422,13 +1476,23 @@ def fold_f(art: str, tables_dir: str) -> None:
                  rec["degenerate_steps"], rec["degenerate_run_max"], rec["ws_adds"],
                  rec["ws_drops"], rec["ws_net_change"], db,
                  "%.1f" % (float(rec["ws_adds"]) / db) if db else "n/a (0)"], rhdr)))
+        # ALL TWENTY FIELDS, symbolic_analyses INCLUDED (M7 W2 M3a fix1, R4).
+        # The first draft excluded it by name, on the assumption that a re-entered
+        # walk would re-analyse and that the exclusion was therefore needed to
+        # make the comparison meaningful. The review checked the rows instead:
+        # YORKNET's records 1..3 agree on that field too, so the exclusion
+        # UNDERSTATED the agreement it was there to report. The comparison is now
+        # over the whole struct, and the count below is 20 rather than 19.
         tail = legs[tag]["_records"][1:]
-        cols = [c for c in F_FIELDS if c != "symbolic_analyses"]
+        cols = list(F_FIELDS)
         same = bool(tail) and all(
             all(r[c] == tail[0][c] for c in cols) for r in tail)
-        w("    records 1..%d on this leg are %sBYTE-IDENTICAL to one another on all"
+        w("    records 1..%d on this leg are %sBYTE-IDENTICAL to one another on ALL"
           % (len(legs[tag]["_records"]) - 1, "" if same else "NOT "))
-        w("    %d QpCounters fields but symbolic_analyses." % len(cols))
+        w("    %d QpCounters fields, symbolic_analyses INCLUDED." % len(cols))
+        if not same:
+            differing = sorted({c for r in tail for c in cols if r[c] != tail[0][c]})
+            w("    The fields they differ on: %s." % ", ".join(differing))
         w("")
     w("    Every record on both legs ends max_iter at exactly the same minor count,")
     w("    which is the per-major cap: the walk is re-entered each major and stalls")
@@ -1454,7 +1518,23 @@ def fold_f(art: str, tables_dir: str) -> None:
     w("   window the first QP takes a short walk and ends with a verdict; without")
     w("   it the walk does not move and ends on the cap.")
     w("")
+    w("   WHAT THIS CONTRAST IS NOT (M7 W2 M3a fix1, R4). It is NOT evidence about")
+    w("   the START of the walk. `tr_init` enters the subproblem as the l-infinity")
+    w("   window `min(st.delta, qp.tr_radius)` -- it changes the QP's own BOUNDS,")
+    w("   and therefore its feasible set, its blocking constraints and its whole")
+    w("   trajectory, not merely the working set the walk begins from. The two")
+    w("   rows above are two DIFFERENT subproblems, so the difference between them")
+    w("   cannot be attributed to start/crash quality rather than to the geometry")
+    w("   the window imposes. An earlier draft read it as 'a fact about where the")
+    w("   walk begins'; that reading is withdrawn.")
+    w("")
     w("4. WHAT WOULD CONFIRM CYCLING PROPER, AND WHAT IS NOT REACHABLE TODAY.")
+    w("")
+    w("   THE WHOLE OF THIS ITEM IS SUBORDINATE TO THE MIXED VERDICT ABOVE. The")
+    w("   most the rows support as a DESCRIPTION is: LONG DEGENERATE ACTIVE-SET")
+    w("   CHURN -- thousands of near-zero-length admissions interleaved with drops")
+    w("   while the iterate does not move. CYCLING PROPER IS NOT SHOWN, and no")
+    w("   word below upgrades the verdict.")
     w("")
     w("   Cycling proper is THE SAME WORKING SET REVISITED. Nothing above")
     w("   establishes that: `distinct_bound_added` counts distinct VARIABLES ever")
@@ -1462,6 +1542,26 @@ def fold_f(art: str, tables_dir: str) -> None:
     w("   about k times, which is equally consistent with a long degenerate CRAWL")
     w("   over a combinatorially large family of sets drawn from the same few")
     w("   variables.")
+    w("")
+    w("   SIX MECHANISMS THESE ROWS CANNOT EXCLUDE (M7 W2 M3a fix1, R4; the")
+    w("   review's own list, kept because each one would produce these same")
+    w("   counters and each calls for a different remedy):")
+    w("")
+    w("     (1) ZERO-MULTIPLIER PROBES. `ws_drops` merges a probe-driven drop with")
+    w("         a Dantzig drop, so a walk spending its passes probing looks")
+    w("         exactly like one dropping on a price test.")
+    w("     (2) IMMEDIATE DANTZIG DROP AND RE-ADD of the bound just admitted --")
+    w("         a two-cycle, which no counter here can tell from a long orbit.")
+    w("     (3) LOWER/UPPER TOLERANCE PING-PONG on one fixed or near-fixed")
+    w("         variable: the side is not counted, so both sides read as ADDS of")
+    w("         the same variable.")
+    w("     (4) A LONG CRAWL through DIFFERENT working sets composed from the same")
+    w("         few variables -- high admission multiplicity, no repeat.")
+    w("     (5) NEGATIVE-CURVATURE RIDE BLOCKERS, which are folded into `ws_adds`")
+    w("         and are not degenerate stalling at all.")
+    w("     (6) WARM WORKING-SET HAND-OFF between majors replaying the same")
+    w("         stalled walk -- item 2b is consistent with this and does not")
+    w("         establish it.")
     w("")
     w("   The distinguishing observation is a per-minor identity of the working")
     w("   SET -- a hash or a signature per pass, and a repeat detector over it.")
@@ -1490,12 +1590,20 @@ def fold_f(art: str, tables_dir: str) -> None:
     w("     textbook rule (Bland's) or a perturbation / EXPAND-style scheme. NEVER")
     w("     FROM SNOPT SOURCE -- CLAUDE.md section 6's firewall is absolute and")
     w("     applies to this line as to every other.")
-    w("   * START / CRASH QUALITY -- the tr_init = 1 contrast in item 3 is a fact")
-    w("     about where the walk BEGINS, so a better initial working set is a live")
-    w("     alternative rather than a ruled-out one.")
-    w("   * CAP POLICY -- addendum E already showed a 10x cap changes nothing")
-    w("     (verdict-E.txt), and item 1 shows the stall is not a budget shortage.")
-    w("     Ranked LAST on this evidence.")
+    w("   * START / CRASH QUALITY -- a live alternative, and NOT ruled out. Note")
+    w("     what does NOT support it either: item 3's tr_init = 1 contrast is not")
+    w("     evidence about the walk's START, because changing tr_init changes the")
+    w("     QP's bounds and its whole trajectory and not only its initial working")
+    w("     set (item 3's own withdrawal, M7 W2 M3a fix1). This candidate is")
+    w("     ranked here on the general argument that a better initial working set")
+    w("     could shorten a degenerate walk, not on a measurement in this")
+    w("     artifact.")
+    w("   * CAP POLICY -- ranked LAST, on two readings and their limits. Addendum")
+    w("     E measured that AT 10x THE CAP each completed FIRST QP still returned")
+    w("     max_iter; its legs were TRUNCATED and carry no whole-leg E2 verdict")
+    w("     (verdict-E.txt), so 'a 10x cap changes nothing' is a statement about")
+    w("     the first QP and about nothing else (M7 W2 M3a fix1, R3). Item 1 adds")
+    w("     that the ratio and run readings do not look like a budget shortage.")
     w("")
     w("   Which of the three to fund is the settler's call, not this fold's.")
     w("")
@@ -1504,7 +1612,8 @@ def fold_f(art: str, tables_dir: str) -> None:
         handle.write("\n".join(out) + "\n")
 
     sys.stdout.write("\n".join(out) + "\n")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

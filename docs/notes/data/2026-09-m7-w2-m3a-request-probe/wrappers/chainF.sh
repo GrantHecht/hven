@@ -262,5 +262,31 @@ nt_rc=${PIPESTATUS[0]}
 echo "NEUTRALITY_F_RC=$nt_rc"
 
 echo "LEGS_F_WORST=$worst  (1 means at least one leg was CENSORED; see its LEG line)"
+
+# fix1 (settler adjudication R2): this chain used to RECORD both `nt_rc` and
+# `worst` and then exit 0 regardless. The gating neutrality check aborts on its
+# own (exit 7), but the FULL four-leg fold -- the one the addendum's neutrality
+# claim actually rests on -- was folded, printed, and then dropped on the floor.
+# A recorded failure that does not reach the caller is not a reported failure.
+# The two conditions get distinct codes so the log and the status agree.
+fail=0
+if [ "$nt_rc" != 0 ]; then
+  echo "CHAINF_FAILED: A SOLVER COUNTER MOVED WITH THE LEDGER ATTACHED on at least one"
+  echo "  of the four measured legs. That is a FINDING ABOUT hven -- a public,"
+  echo "  documented-inert instrument perturbing a solve -- and RULE-F.md section 3.2"
+  echo "  says the addendum STOPS on it. No H-DEG verdict is taken from these legs."
+  echo "  The differing keys are in the neutrality report above."
+  fail=8
+fi
+if [ "$worst" != 0 ]; then
+  echo "CHAINF_INCOMPLETE: at least one measured leg was CENSORED -- its row was never"
+  echo "  filled, so the four-leg neutrality fold this chain was run to produce has a"
+  echo "  hole in it, and no claim is made over the missing cell."
+  [ "$fail" = 0 ] && fail=9
+fi
+if [ "$fail" != 0 ]; then
+  echo "CHAINF_END $(date -Is)"
+  exit $fail
+fi
 echo "CHAINF_END $(date -Is)"
 exit 0

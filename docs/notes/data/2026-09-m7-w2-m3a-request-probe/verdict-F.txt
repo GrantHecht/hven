@@ -98,11 +98,29 @@ reported without becoming one.
      break it (solver_counters.h). So the RUN counter spans the drops the
      RATIO's denominator charges for.
 
-   CONSEQUENCE: in a pure add/drop alternation at a stuck iterate, half the
-   passes are drops, so degenerate_steps / minor_iters cannot exceed about
-   0.5 BY CONSTRUCTION. The bar was set at the ceiling. That is a defect in
-   the rule, declared here by the settler; it is NOT a reason to move the
-   bar after the fact, and the MIXED verdicts above stand.
+   CONSEQUENCE: in a STEADY add/drop alternation at a stuck iterate, half
+   the passes are drops, so degenerate_steps / minor_iters sits NEAR 0.5 --
+   the bar was set at the value the quantity it measures converges to, and
+   a bar at a near-asymptote decides nothing. That is a defect in the rule,
+   declared here by the settler; it is NOT a reason to move the bar after
+   the fact, and the MIXED verdicts above stand.
+
+   AND 0.5 IS NOT A CEILING. An earlier draft of this item said the ratio
+   'cannot exceed about 0.5 BY CONSTRUCTION'; that was WRONG and is
+   withdrawn here (M7 W2 M3a fix1, R4). Nothing forces adds and drops to
+   alternate one for one: a run with NET ADDITIONS spends more than half
+   its passes adding, and every such pass at a stuck iterate is a
+   degenerate step. The rows themselves show the adds share already ABOVE
+   0.5 on EVERY measured leg, the two verdict legs included --
+     STEENBRB@F-trinf     ws_adds / minor_iters =   2344 /   4680 = 0.50085
+     STEENBRB@F-tr1       ws_adds / minor_iters =    587 /    827 = 0.70979
+     YORKNET@F-trinf      ws_adds / minor_iters =   1287 /   2560 = 0.50273
+     YORKNET@F-tr1        ws_adds / minor_iters =    346 /    397 = 0.87154
+   -- so a walk that added without dropping would carry the ratio past the
+   bar. What the counters DO make unreachable is nothing; what they make
+   UNLIKELY, on a churning walk, is a ratio far above 0.5. The correct
+   reading of the two MIXED cells is therefore that the bar was badly
+   chosen, not that the cells fell short of a ceiling.
 
    THE ARITHMETIC, from the rows: on record 0, ws_adds + ws_drops against
    minor_iters --
@@ -146,15 +164,16 @@ STEENBRB@F-trinf    f_qp_0   0     max_iter  4680    2319    2310     2344   232
 STEENBRB@F-trinf    f_qp_1   1     max_iter  4680    2314    2304     2339   2322   17    29             80.7          
 STEENBRB@F-trinf    f_qp_2   1     max_iter  4680    2310    2289     2332   2318   14    31             75.2          
 STEENBRB@F-trinf    f_qp_3   1     max_iter  4680    2332    2324     2334   2335   -1    8              291.8         
-    records 1..3 on this leg are NOT BYTE-IDENTICAL to one another on all
-    19 QpCounters fields but symbolic_analyses.
+    records 1..3 on this leg are NOT BYTE-IDENTICAL to one another on ALL
+    20 QpCounters fields, symbolic_analyses INCLUDED.
+    The fields they differ on: border_refine_steps, degenerate_run_max, degenerate_steps, distinct_bound_added, factorizations, schur_updates, ws_adds, ws_adds_bound, ws_drops, ws_drops_bound.
 
 YORKNET@F-trinf     f_qp_0   0     max_iter  2560    1257    1191     1287   1232   55    95             13.5          
 YORKNET@F-trinf     f_qp_1   1     max_iter  2560    1279    1277     1279   1279   0     2              639.5         
 YORKNET@F-trinf     f_qp_2   1     max_iter  2560    1279    1277     1279   1279   0     2              639.5         
 YORKNET@F-trinf     f_qp_3   1     max_iter  2560    1279    1277     1279   1279   0     2              639.5         
-    records 1..3 on this leg are BYTE-IDENTICAL to one another on all
-    19 QpCounters fields but symbolic_analyses.
+    records 1..3 on this leg are BYTE-IDENTICAL to one another on ALL
+    20 QpCounters fields, symbolic_analyses INCLUDED.
 
     Every record on both legs ends max_iter at exactly the same minor count,
     which is the per-major cap: the walk is re-entered each major and stalls
@@ -173,7 +192,23 @@ YORKNET@F-trinf     f_qp_3   1     max_iter  2560    1279    1277     1279   127
    window the first QP takes a short walk and ends with a verdict; without
    it the walk does not move and ends on the cap.
 
+   WHAT THIS CONTRAST IS NOT (M7 W2 M3a fix1, R4). It is NOT evidence about
+   the START of the walk. `tr_init` enters the subproblem as the l-infinity
+   window `min(st.delta, qp.tr_radius)` -- it changes the QP's own BOUNDS,
+   and therefore its feasible set, its blocking constraints and its whole
+   trajectory, not merely the working set the walk begins from. The two
+   rows above are two DIFFERENT subproblems, so the difference between them
+   cannot be attributed to start/crash quality rather than to the geometry
+   the window imposes. An earlier draft read it as 'a fact about where the
+   walk begins'; that reading is withdrawn.
+
 4. WHAT WOULD CONFIRM CYCLING PROPER, AND WHAT IS NOT REACHABLE TODAY.
+
+   THE WHOLE OF THIS ITEM IS SUBORDINATE TO THE MIXED VERDICT ABOVE. The
+   most the rows support as a DESCRIPTION is: LONG DEGENERATE ACTIVE-SET
+   CHURN -- thousands of near-zero-length admissions interleaved with drops
+   while the iterate does not move. CYCLING PROPER IS NOT SHOWN, and no
+   word below upgrades the verdict.
 
    Cycling proper is THE SAME WORKING SET REVISITED. Nothing above
    establishes that: `distinct_bound_added` counts distinct VARIABLES ever
@@ -181,6 +216,26 @@ YORKNET@F-trinf     f_qp_3   1     max_iter  2560    1279    1277     1279   127
    about k times, which is equally consistent with a long degenerate CRAWL
    over a combinatorially large family of sets drawn from the same few
    variables.
+
+   SIX MECHANISMS THESE ROWS CANNOT EXCLUDE (M7 W2 M3a fix1, R4; the
+   review's own list, kept because each one would produce these same
+   counters and each calls for a different remedy):
+
+     (1) ZERO-MULTIPLIER PROBES. `ws_drops` merges a probe-driven drop with
+         a Dantzig drop, so a walk spending its passes probing looks
+         exactly like one dropping on a price test.
+     (2) IMMEDIATE DANTZIG DROP AND RE-ADD of the bound just admitted --
+         a two-cycle, which no counter here can tell from a long orbit.
+     (3) LOWER/UPPER TOLERANCE PING-PONG on one fixed or near-fixed
+         variable: the side is not counted, so both sides read as ADDS of
+         the same variable.
+     (4) A LONG CRAWL through DIFFERENT working sets composed from the same
+         few variables -- high admission multiplicity, no repeat.
+     (5) NEGATIVE-CURVATURE RIDE BLOCKERS, which are folded into `ws_adds`
+         and are not degenerate stalling at all.
+     (6) WARM WORKING-SET HAND-OFF between majors replaying the same
+         stalled walk -- item 2b is consistent with this and does not
+         establish it.
 
    The distinguishing observation is a per-minor identity of the working
    SET -- a hash or a signature per pass, and a repeat detector over it.
@@ -209,12 +264,20 @@ YORKNET@F-trinf     f_qp_3   1     max_iter  2560    1279    1277     1279   127
      textbook rule (Bland's) or a perturbation / EXPAND-style scheme. NEVER
      FROM SNOPT SOURCE -- CLAUDE.md section 6's firewall is absolute and
      applies to this line as to every other.
-   * START / CRASH QUALITY -- the tr_init = 1 contrast in item 3 is a fact
-     about where the walk BEGINS, so a better initial working set is a live
-     alternative rather than a ruled-out one.
-   * CAP POLICY -- addendum E already showed a 10x cap changes nothing
-     (verdict-E.txt), and item 1 shows the stall is not a budget shortage.
-     Ranked LAST on this evidence.
+   * START / CRASH QUALITY -- a live alternative, and NOT ruled out. Note
+     what does NOT support it either: item 3's tr_init = 1 contrast is not
+     evidence about the walk's START, because changing tr_init changes the
+     QP's bounds and its whole trajectory and not only its initial working
+     set (item 3's own withdrawal, M7 W2 M3a fix1). This candidate is
+     ranked here on the general argument that a better initial working set
+     could shorten a degenerate walk, not on a measurement in this
+     artifact.
+   * CAP POLICY -- ranked LAST, on two readings and their limits. Addendum
+     E measured that AT 10x THE CAP each completed FIRST QP still returned
+     max_iter; its legs were TRUNCATED and carry no whole-leg E2 verdict
+     (verdict-E.txt), so 'a 10x cap changes nothing' is a statement about
+     the first QP and about nothing else (M7 W2 M3a fix1, R3). Item 1 adds
+     that the ratio and run readings do not look like a budget shortage.
 
    Which of the three to fund is the settler's call, not this fold's.
 

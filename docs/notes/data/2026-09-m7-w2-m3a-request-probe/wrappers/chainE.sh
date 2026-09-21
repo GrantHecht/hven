@@ -225,5 +225,16 @@ for spec in "STEENBRB@E1" "YORKNET@E1" "STEENBRB@E2" "YORKNET@E2"; do
 done
 
 echo "LEGS_E_WORST=$worst  (1 means at least one leg was CENSORED; see its LEG line)"
+# fix1 (settler adjudication R2): this chain used to RECORD `worst` and then
+# exit 0 regardless, so a censored E leg was visible in the log and invisible to
+# anything reading the exit status. A recorded failure that does not reach the
+# caller is not a reported failure. It does now.
+if [ "$worst" != 0 ]; then
+  echo "CHAINE_INCOMPLETE: at least one E leg was CENSORED -- its row was never filled,"
+  echo "  so the four-leg E table this chain was run to produce has a hole in it. The"
+  echo "  identity gate passed; the rows that DO exist stand."
+  echo "CHAINE_END $(date -Is)"
+  exit 6
+fi
 echo "CHAINE_END $(date -Is)"
 exit 0

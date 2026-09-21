@@ -323,11 +323,37 @@ stage 1 and addendum E.
 
 WHAT IS NOT HERE, FOR THE ADDENDUM
 ----------------------------------
-NO LEG BEYOND THE FIVE was ever started, and none will be: confirming CYCLING
+NO REGISTERED LEG BEYOND THE FIVE was run, and none will be: confirming CYCLING
 PROPER -- the same working SET revisited, as against a long degenerate crawl --
 is not reachable from any public surface, since QpEngine has no trace sink and
 its only instrument is the per-SOLVE Ledger record. That needs a REGISTERED
 INSTRUMENT with its own pre-registered rule, not another leg on this one.
+
+CORRECTED IN FIX ROUND 1 (R5). This paragraph read "NO LEG BEYOND THE FIVE was
+ever started", which was FALSE AS WRITTEN and is withdrawn. ONE MORE SOLVE RAN ON
+THIS BOX FOR THIS ADDENDUM: a hand-run `--ledger on` / `--ledger off` A/B on
+ZAMB2-8, an UNREGISTERED INSTRUMENT SMOKE taken while the probe was being built.
+Commit bb29174f's own message disclosed it and quoted its numbers; this file did
+not, and the two could not both be read literally.
+
+  * IT HAS NO LOCK, PGREP OR FOREGROUND TRANSCRIPT. None was taken. The box
+    protocol's markers are what a registered leg produces and this was not run as
+    one. Stated, not excused.
+  * ITS VALUES SET NOTHING. No RULE reads it, no predicate is derived from it, no
+    threshold in RULE-F.md came from it, and no number in verdict-F.txt,
+    tables/f-*.txt or README.md is one of its numbers. RULE-F.md was committed at
+    08:27:43 and the smoke's own output files were written from 08:32:10 to
+    08:32:51 -- AFTER the rule -- so the thresholds were fixed before these
+    numbers existed. That ordering is read off filesystem mtimes bracketed by two
+    git commit timestamps (229d63de at 08:27:43, bb29174f at 08:33:28) and by
+    CHAINF_START at 08:33:44; shell history is not evidence and is not cited. An
+    mtime is mutable metadata, so this is the best evidence available rather than
+    a transcript -- and if a reader declines it, the honest fallback is that the
+    order cannot be SHOWN, only that the rule's commit and the disclosure commit
+    bracket the smoke's files.
+  * THE FILES THEMSELVES ARE NOW COMMITTED, as they were found and with their
+    mtimes, at fix1/zamb-smoke/ (six files plus a README.txt that says what they
+    are). Nothing about them is reconstructed.
 
 NO FILE UNDER src/ OR include/ WAS TOUCHED by this addendum, and notices/ was
 not touched. NO DEFAULT WAS CHANGED -- not tr_init, not QpOptions::max_iter, not

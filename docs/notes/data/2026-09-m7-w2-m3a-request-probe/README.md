@@ -90,11 +90,15 @@ CENSORED**, so no verdict in the table is UNDETERMINED.
 
 **It shows**, as counters and statuses:
 
-- The major-0 restoration request on these two cells **is** tied to the l∞ window.
-  At `tr_init ≥ 1e3` it is gone on both cells and no restoration phase runs at
-  all. On STEENBRB the *parent* QP's own status changes with the window too —
-  from `kInfeasible` (inferred, at `tr_init` 1, 10 and `1e2`) to `kMaxIter` at
-  `1e3` and above.
+- The major-0 restoration request on these two cells **is** tied to the l∞
+  window, and the two cells lose it at DIFFERENT radii (made exact in fix round
+  1, R6): **STEENBRB's major-0 request disappears at `1e2`**; **YORKNET's
+  disappears already at `10`**. Losing the major-0 request is not the same thing
+  as losing restoration — on YORKNET a phase still runs, from a LATER major, at
+  both `10` and `1e2`. It is at **`1e3` and above** that no restoration phase
+  runs at all, on either cell. On STEENBRB the *parent* QP's own status changes
+  with the window too — from `kInfeasible` (inferred, at `tr_init` 1, 10 and
+  `1e2`) to `kMaxIter` at `1e3` and above.
 - Removing the window **does not** give either cell a better answer. STEENBRB
   ends `numerical_error` at every radius; YORKNET's status *falls* from
   `infeasible` to `numerical_error` at `1e3` and above.
@@ -160,7 +164,12 @@ inferred are labelled throughout.
 - `qp_minor_iters` is exactly `4 × 4680 = 18720` on STEENBRB at `1e4`/`+inf` and
   exactly `4 × 2560 = 10240` on YORKNET at `1e3`/`1e4`/`+inf`, with
   `qp_maxiter_exits == major_iters` and no restoration and no elastic minors
-  mixed in. Every major in those legs spent its entire minor budget.
+  mixed in. Every major in those legs spent its entire minor budget. **Those SIX
+  legs are the whole of it** (fix round 1, R6, against any broader reading of
+  "at `tr_init ≥ 1e3`"): **STEENBRB at `1e3` is NOT one of them** — it runs 6
+  majors, 20368 minors, **one accepted step**, and one genuine numerical QP exit
+  (`qp_numerical_exits = 1`), so on that leg neither "every major spends the cap"
+  nor "`steps_accepted = 0`" holds. `tables/stage1-qp-counters.txt` is the row.
 - `elastic_activations` collapses with the radius: STEENBRB 1, 1, 1, 0, 0, 0 and
   YORKNET 19, 20, 2, 0, 0, 0 down the ladder. Above `1e2` the elastic tier is
   never reached on either cell, because the parent QP returns `kMaxIter` rather
@@ -282,15 +291,23 @@ qualifying radius, and running it anyway would be exactly the post-hoc widening
 
 ## Addendum E — the E legs: does the first QP finish if it is given the minors?
 
-**The result, in plain language: no, it does not — and the rule does not let us
-say so in its own word.** Given ten times the minor budget stage 1 refused it,
-the first QP subproblem on both cells still came back `max_iter`, still moved the
-iterate not at all, and the solve still ended the same way. But both of those
-legs ran into the 300 s solver deadline, and `RULE-E.md` §5 says a TRUNCATED leg
-yields **no verdict** — so `REFUTED`, the label those two legs would otherwise
-have carried, is withheld. The two legs that *did* finish (the `qp_cap_retry`
-arm, at twice the cap) are simply **not SUPPORTED**: same `max_iter`, same
-`steps_accepted = 0`.
+**The result, in plain language: at 10× the cap, each completed first QP still
+returned `max_iter`; the truncated legs carry no E2 verdict.** That is the whole
+of what the E2 legs say. Both of them ran into the 300 s solver deadline before
+their solve ended, and `RULE-E.md` §5 says a TRUNCATED leg yields **no verdict**
+— so `REFUTED` is withheld, and so is any statement about what those legs' whole
+solves would have done. What survives the truncation is a reading about the
+FIRST QP only, and it is a reading the rows carry directly: on both cells the
+first subproblem was already closed — a later ladder row proves it — and it
+closed at exactly its 10× cap, having moved the iterate not at all. The two legs
+that *did* finish (the `qp_cap_retry` arm, at twice the cap) are simply **not
+SUPPORTED**: same `max_iter`, same `steps_accepted = 0`.
+
+*(Corrected in fix round 1, R3. This paragraph opened "no, it does not" — a
+categorical answer to H-QP given one sentence before the same paragraph withheld
+`REFUTED`. Whatever the rule then said, the reader had already been handed the
+verdict. Every whole-leg statement about the 10× arm is narrowed to the first QP
+wherever it appears below.)*
 
 So the recorded outcome is: **H-QP is not supported on these cells at these caps,
 and it is not refuted either.** The addendum stops there — no larger cap, no
@@ -351,8 +368,11 @@ and from the two legs that are not truncated at all:
   non-zero counters read as: every capped subproblem was retried at twice the
   budget and hit the doubled cap too. **No retry rescued anything.**
 
-`steps_accepted = 0` on all four legs: the iterate never moves, on either cell,
-at any of these caps.
+`steps_accepted = 0` on all four legs: the iterate had moved on neither cell at
+the point each leg ended. On the two E1 legs that is a whole-solve reading, since
+those legs ran to their own exit; on the two TRUNCATED E2 legs it is a reading
+taken where the deadline fired and says nothing about the solve those legs did
+not finish (narrowed in fix round 1, R3).
 
 Wall-clock is informational and supports nothing here: it is in
 `logs/chainE.log` marked `(INFORMATIONAL)` and is quoted as a measurement
@@ -546,6 +566,43 @@ called). Two different things had to be proved:
   attached.** The first measured leg's check gated the other three, so the STOP
   would have been a stop rather than a note appended afterwards.
 
+**And both checkers were vacuous in shape, which fix round 1 fixed** (R2). They
+compared only the INTERSECTION of the two key sets, treated a key present in the
+committed row and missing from the new one as informational, and compared only
+the ladder columns present in both headers — so a malformed or empty "new" file
+could have reported `IDENTICAL`. The reports above are not withdrawn: the
+hardened checkers were **re-run on the same committed rows** and return the same
+verdicts with the same counts and `0` removals against the originals
+([`fix1/`](fix1/)). What changed is that the machinery now REFUSES a file whose
+`PROBE_BEGIN`/`PROBE_END` sentinels, key set (pinned by name and cardinality) or
+ladder header is not exactly what it must be — each refusal fold-proven once on a
+deliberately broken copy ([`fix1/refusal-proofs.txt`](fix1/refusal-proofs.txt)) —
+and the chains and the fold now carry a failure out through their own exit
+status instead of recording it and exiting 0.
+
+### The unregistered ZAMB2-8 instrument smoke (fix round 1, R5)
+
+**One more solve ran on this box for this addendum than the five legs above**,
+and `PROVENANCE.txt` said otherwise until fix1. While the probe was being built,
+a `--ledger on` / `--ledger off` A/B was run BY HAND on ZAMB2-8 to see that the
+new argument worked; commit `bb29174f`'s message disclosed it and quoted its
+numbers. It was an **unregistered instrument smoke**: no rule covers it, **no
+value of it sets anything** — not a threshold in `RULE-F.md`, not a number in
+`verdict-F.txt` or any table — and **it has no lock, PGREP or foreground
+transcript**, because none was taken.
+
+The order is readable from what exists rather than from memory:
+`RULE-F.md` was committed at **08:27:43**, the smoke's own output files were
+written between **08:32:10 and 08:32:51**, the disclosing commit landed at
+**08:33:28**, and the first F leg started at **08:33:44**. So the rule's
+thresholds were fixed before the smoke's numbers existed. That ordering rests on
+filesystem mtimes bracketed by two git commit timestamps — shell history is not
+evidence and is not cited — and an mtime is mutable metadata, so if a reader
+declines it the honest fallback is that the order cannot be *shown* from a
+transcript, only bracketed by the two commits. The six files are committed as
+found, with their mtimes, at
+[`fix1/zamb-smoke/`](fix1/zamb-smoke/); nothing about them is reconstructed.
+
 ### The verdict: MIXED on both cells
 
 `RULE-F.md` §4 fixed, before any leg: DEGENERATE_STALL iff
@@ -568,15 +625,25 @@ relabelled to reach a cleaner word, and **no verdict licenses a default change**
 `verdict-F.txt` carries a clearly separated section that licenses no verdict and
 no default change. In brief:
 
-**The rule's 0.5 bar was set on a denominator that cannot reach it**, a design
-error the settler declared on reading the rows. Checked against the headers
-rather than assumed: `minor_iters` increments once per pass of the walk loop
-(`src/qp/qp_engine.cpp:613`, fixed as a relied-on contract by `qp_engine.h`'s
-COUNTER SEMANTICS note), while `degenerate_steps` counts only passes that ADDED a
-blocking constraint, and `degenerate_run_max` is not broken by a drop iteration
-at all. In a pure add/drop alternation half the passes are drops, so the ratio
-cannot exceed about 0.5 by construction. From the rows:
-`ws_adds + ws_drops` = 4667 vs 4680 minors on STEENBRB, 2519 vs 2560 on YORKNET.
+**The rule's 0.5 bar was a poor bar**, a design error the settler declared on
+reading the rows. Checked against the headers rather than assumed: `minor_iters`
+increments once per pass of the walk loop (`src/qp/qp_engine.cpp:613`, fixed as a
+relied-on contract by `qp_engine.h`'s COUNTER SEMANTICS note), while
+`degenerate_steps` counts only passes that ADDED a blocking constraint, and
+`degenerate_run_max` is not broken by a drop iteration at all. In a **steady**
+add/drop alternation half the passes are drops, so the ratio sits **near** 0.5 —
+the bar was set at the value the quantity converges to, and a bar at a
+near-asymptote decides nothing. From the rows: `ws_adds + ws_drops` = 4667 vs
+4680 minors on STEENBRB, 2519 vs 2560 on YORKNET.
+
+*(Corrected in fix round 1, R4.* This paragraph said the ratio "cannot exceed
+about 0.5 by construction". **That is false and is withdrawn.** Nothing makes
+adds and drops alternate one for one, and a run with net additions spends more
+than half its passes adding; `ws_adds / minor_iters` is already **0.50085** on
+STEENBRB and **0.50273** on YORKNET, above the bar on the very legs whose
+degeneracy ratio fell below it. 0.5 is a near-asymptote for add/drop churn, not a
+ceiling. The MIXED verdicts stand either way — the bar is not moved after the
+fact.)*
 
 **The descriptive numbers the rule pre-registered as non-verdict read-outs.**
 `degenerate_steps / ws_adds` is 0.9893 and 0.9767. The net working-set change is
@@ -588,13 +655,33 @@ admitted 1287 times on YORKNET. Machine-checked, not asserted:
 every admission is a bound pin.
 
 **The later majors repeat it.** YORKNET's records 1–3 are BYTE-IDENTICAL to one
-another on all nineteen `QpCounters` fields but `symbolic_analyses` — three
-consecutive majors performing the same stall, with **two** distinct variables
-admitted 1279 times each.
+another on **all twenty** `QpCounters` fields, `symbolic_analyses` included —
+three consecutive majors performing the same stall, with **two** distinct
+variables admitted 1279 times each. (Corrected in fix round 1, R4: the fold
+excluded `symbolic_analyses` from that comparison by name, which understated the
+agreement it was reporting. The comparison is now over the whole struct, and
+STEENBRB's records — which are NOT identical — now name the fields they differ
+on.)
 
 **The contrast with `tr_init = 1`**, same cells, same binary, same terms: the
 first QP ends `infeasible` after 827 / 397 minors with a longest degenerate run
-of 3 / 48, against `max_iter` after 4680 / 2560 with runs of 2310 / 1191.
+of 3 / 48, against `max_iter` after 4680 / 2560 with runs of 2310 / 1191. **This
+is not evidence about the walk's START** (fix round 1, R4): `tr_init` enters the
+subproblem as the l∞ window `min(st.delta, qp.tr_radius)`, so it changes the QP's
+own bounds, its blocking constraints and its whole trajectory — the two rows are
+two different subproblems, not one subproblem started twice.
+
+**What the rows support as a description, and what they do not.** The reading
+these numbers carry is **long degenerate active-set churn**; **cycling proper is
+not shown**, and everything in this section is subordinate to the MIXED verdict
+above. Six mechanisms would produce these same counters and the rows cannot
+exclude any of them (fix round 1, R4, listed in full in `verdict-F.txt` §4):
+zero-multiplier probes, which `ws_drops` merges with Dantzig drops; an immediate
+Dantzig drop and re-add of the bound just admitted; lower/upper tolerance
+ping-pong on one fixed or near-fixed variable; a long crawl through different
+sets composed from the same few variables; negative-curvature ride blockers,
+folded into `ws_adds`; and a warm working-set hand-off between majors replaying
+the same stalled walk.
 
 **What would confirm cycling proper** — the same working SET revisited — and why
 admission multiplicity does not: it is equally consistent with a long degenerate
@@ -608,10 +695,15 @@ its own pre-registered rule.
 
 **What this ranks for the settler, deciding nothing.** An **anti-cycling rule for
 the active-set walk** is the lead candidate, from the OPEN literature only
-(Bland's, or a perturbation / EXPAND-style scheme) and **never from SNOPT
-source**. Start/crash quality stays live on the `tr_init = 1` contrast. Cap policy
-ranks last: addendum E already showed a 10× cap changes nothing, and the stall is
-not a budget shortage.
+(an EXPAND-style working-feasibility tolerance is the best-fit candidate once the
+per-minor mechanism is identified; a lexicographic perturbation if an exact
+repeated working set is ever confirmed; Bland-type least-index handling alone is
+**not** the lead here) and **never from SNOPT source**. **Start/crash quality**
+stays live — but not on the `tr_init = 1` contrast, which is not evidence about
+the start (see above); it is live because nothing here rules it out. **Cap
+policy** ranks last: at 10× the cap each completed first QP still returned
+`max_iter` (the E2 legs were truncated and carry no whole-leg verdict), and the
+ratio and run readings do not look like a budget shortage.
 
 ## Files
 
@@ -655,4 +747,56 @@ tables/f-neutrality.txt             the two checks, leg by leg -- machine-writte
 wrappers/identity_f.py              the addendum-F identity AND neutrality checker
 wrappers/chainF.sh                  the F chain
 gates/                              task A's six-gate chain (committed at 3caf8d50)
+
+FIX ROUND 1 (2026-09-21) -- nothing above is edited away; these are ADDITIONS.
+fix1/refusal-proofs.txt             each hardened refusal fold-proven once on a
+                                    deliberately broken COPY of a committed row
+fix1/identity-stage1.txt            the HARDENED checkers re-run on the COMMITTED
+fix1/identity-e.txt                 rows -- no solver, same verdicts, each with
+fix1/identity-f.txt                 its diff against the original beside it
+fix1/neutral-first-f.txt
+fix1/neutrality-f.txt
+fix1/zamb-smoke/                    the unregistered ZAMB2-8 instrument smoke's own
+                                    six files, copied as found with their mtimes,
+                                    plus a README.txt (R5)
+gates-fix1/                         the fix round's own six-gate chain
 ```
+
+## Corrections (fix1) — appended 2026-09-21
+
+The Codex `sol` review of this artifact returned **FIX-ROUND with 0 critical**
+findings; the settler adjudicated six items (R1–R6) and every one is applied
+here. **No leg was re-run and no new leg was run**: the committed rows, the
+`RULE*.md` files and all three formal verdicts stand exactly as they were —
+stage 1's "no qualifying radius pair", E's "no leg SUPPORTED, no cell REFUTED",
+and F's MIXED × 2. What changed is **what this artifact CLAIMS** and **what its
+machinery REFUSES**. Every withdrawn or narrowed claim, in one list:
+
+| # | withdrawn or narrowed | now |
+|---|---|---|
+| R1 | *(code, not this artifact)* `SqpCounters::restoration_sub_status` defaulted to `SolveStatus::kOptimal`, with absence read off `restoration_entries == 0` | a dedicated `RestorationSubStatus` with an explicit `kNotRun = 0`, spelled `not_run` on the trace. A never-restored solve no longer prints `optimal` for a sub-solve it never ran |
+| R1 | *(code)* the header and `docs/trace-schema-v0.md` said a RESUME is reachable from the sub-solve's `optimal` alone | corrected **to the code, which is unchanged**: the parent resumes on `restoration_h_out <= feas_tol` before it inspects the sub-status at all. Only CERTIFICATION requires `optimal` |
+| R2 | the three identity/neutrality checkers could pass **vacuously** (intersection-only key comparison, missing old keys informational, ladder columns compared only where both headers had them); the chains recorded failures and exited 0; the fold printed a STOP and computed a verdict anyway | structural refusals (sentinels, pinned key sets, exact ladder header, `only_old` fatal), each fold-proven; chains and fold exit non-zero; the fold **stops** with no verdict computed |
+| R3 | "The result, in plain language: **no, it does not**" — a categorical answer to H-QP in the same breath as withholding `REFUTED` | "at 10× the cap, each completed first QP still returned `max_iter`; the truncated legs carry no E2 verdict". Every whole-leg statement about the 10× arm is narrowed to the first QP |
+| R4 | "`degenerate_steps / minor_iters` **cannot exceed** about 0.5 by construction" | **false, withdrawn.** 0.5 is a near-asymptote for steady add/drop churn, not a ceiling; net additions push past it, and `ws_adds / minor_iters` is already 0.50085 and 0.50273 on the two verdict legs. The bar was badly chosen; the MIXED verdicts stand |
+| R4 | YORKNET's records 1–3 match "on all nineteen `QpCounters` fields but `symbolic_analyses`" | **all twenty**, `symbolic_analyses` included. The exclusion understated the agreement |
+| R4 | the `tr_init = 1` contrast is "a fact about where the walk **begins**" | withdrawn: `tr_init` changes the QP's bounds and its whole trajectory, so the contrast is **not** direct evidence about start/crash quality |
+| R4 | the descriptive diagnosis | kept strictly subordinate to MIXED: "long degenerate active-set churn; **cycling proper is not shown**", with the **six** mechanisms the rows cannot exclude listed in `verdict-F.txt` §4 |
+| R5 | "**NO LEG BEYOND THE FIVE was ever started**" | withdrawn: one hand-run, unregistered ZAMB2-8 instrument smoke did run, with no lock/PGREP transcript. Its values set nothing; its files are committed as found |
+| R6 | "the major-0 request goes away at every radius from `1e2` up" | exact per cell: **STEENBRB at `1e2`**, **YORKNET already at `10`** (with restoration still running from a later major at `10` and `1e2`; all restoration gone at `1e3`) |
+| R6 | any reading of "at `tr_init ≥ 1e3` every major spends the cap and `steps_accepted = 0`" | holds for **YORKNET at `1e3`/`1e4`/`+inf` and STEENBRB at `1e4`/`+inf` only**. STEENBRB at `1e3` has 6 majors, one accepted step and one genuine numerical QP exit |
+
+**The probe source is NOT updated for R1's new enum, deliberately.**
+`wrappers/m3a_probe.cpp` is evidence pinned to the surface at `11b066e8` — the
+commit every committed row was taken on — and the rows print
+`restoration_sub_status=optimal` where today's library would print `not_run` on
+a solve that never restored. Re-compiling the probe against the corrected enum
+would make the committed rows unreproducible from the committed instrument. The
+engine task that takes this work forward copies the probe and adapts it there.
+
+**Registered as an open ENGINE question, not answered here:** *should the parent's
+resume be gated on the restoration sub-solve's status?* Today it is not — a
+feasible-enough point returned with `max_iter` or `interrupted` resumes exactly
+as an `optimal` one does. fix1 changed the documentation to match the code and
+changed no behaviour. Deciding the question is a behavioural change with its own
+task.
