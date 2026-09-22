@@ -86,7 +86,7 @@
 # =========================================================================
 set -o pipefail
 ROOT=/home/ghecht/Projects/hven
-S=$ROOT/.scratch/m7w2m5gates
+S=$ROOT/.scratch/m7w2m5gates2
 G=$S/gates
 # THE LINE ABOVE IS THE ROUND'S ONE DEFINITION OF ITS SCRATCH TREE, AND THE ONLY
 # LITERAL NAMING IT ANYWHERE IN THE CHAIN. That property is M4 fix round 1's,
@@ -122,19 +122,27 @@ ASSERTS=$ART/wrappers/gate_asserts_m3b.sh
 # ---- THIS ROUND'S EXPECTED COUNTS -------------------------------------------
 # Derived and cross-checked in `gates/psym-derivation-m5.txt`; see the header.
 #
-# RE-DECLARED FOR THE ARM B1 REDO (2026-09-22). The first declaration -- 2730
-# Debug / 2731 Release, for the head `ced56152` -- was DECLARED AND NEVER
-# MEASURED: its chain was stopped six minutes in, inside G1, when the settler's
-# amendments A1-A12 superseded the design it gated. Nothing downstream may quote
-# it. These numbers are this round's own, re-derived twice from the redo's head,
-# and the derivation file is rewritten rather than appended to, because a
-# declaration that was never run is not a pin and re-declaring it is not a pin
-# mutation. The BASE is unchanged: still this task's own base, so the claim the
-# gate carries is still "the whole M5 degeneracy experiment leaves the
+# RE-DECLARED A SECOND TIME, FOR RUN 2 (2026-09-22, the cond(R) round).
+#
+# HISTORY, SO NEITHER EARLIER NUMBER CAN BE QUOTED BY ACCIDENT:
+#   * 2730 / 2731, head `ced56152` -- DECLARED AND NEVER MEASURED. Its chain was
+#     stopped six minutes in, inside G1, when the settler's amendments A1-A12
+#     superseded the design it gated. Not a pin, not evidence.
+#   * 2731 / 2732, head `0c6709ce` -- DECLARED AND MEASURED. RUN 1 is GREEN and
+#     its record is `gates/README.md`; that record stands and is the record for
+#     THAT head. It is NOT this run's declaration.
+#   * 2732 / 2733, THIS RUN, head `2ca21aa0` and the declaration commit above
+#     it -- the cond(R) round adds exactly ONE `TEST()` block and changes no
+#     existing test.
+#
+# The BASE is unchanged across all three: still this task's own base, so the
+# claim the gate carries is still "the whole M5 degeneracy experiment leaves the
 # production library byte-identical to the tree with no degeneracy arm in it".
+# RUN 2's scratch tree is a NEW literal so run 1's transcripts, which are
+# committed evidence, are never written over.
 BEFORE=${BEFORE:-f255bae9}
-EXPECT_DEBUG_TESTS=${EXPECT_DEBUG_TESTS:-2731}
-EXPECT_RELEASE_TESTS=${EXPECT_RELEASE_TESTS:-2732}
+EXPECT_DEBUG_TESTS=${EXPECT_DEBUG_TESTS:-2732}
+EXPECT_RELEASE_TESTS=${EXPECT_RELEASE_TESTS:-2733}
 EXPECT_LONG_TESTS=1
 EXPECT_REPLAY_CELLS=27
 EXPECT_REPLAY_COLUMNS=75
