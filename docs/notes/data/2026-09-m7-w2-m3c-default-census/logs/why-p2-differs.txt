@@ -1,0 +1,86 @@
+M7 W2 M3c PASS 2 -- WHY THE IDENTITY GATE STOPPED EVERY CELL
+============================================================
+OFFLINE forensics. No solver ran to produce anything below; every line is
+read out of artefacts that already existed.
+
+THE FACT TO EXPLAIN. RULE-P2.md §5.1 asks the pass-2 leg to reproduce the
+COMMITTED pass-1 row for the same cell. Nine of ten cells differ on BYTE
+fields (counters), and the tenth, ACOPP57, agrees on every byte field the
+pass-2 instrument prints and differs only in the last digits of its residuals.
+
+(1) IS THE PASS-2 BINARY NON-DETERMINISTIC ACROSS PROCESSES?  NO.
+    The pass-2 smoke and the pass-2 chain leg are two separate processes of
+    the same binary on ACOPP57. Their floats:
+      f              smoke=41737.543107411104         leg=41737.543107411104         IDENTICAL
+      stationarity   smoke=0.63864002870769243        leg=0.63864002870769243        IDENTICAL
+      feasibility_e  smoke=0.00011385871678168402     leg=0.00011385871678168402     IDENTICAL
+    Bit-identical. The observer's 2 000 000-record store is allocated in both,
+    so heap-address sensitivity inside MKL (CLAUDE.md §7) is NOT what moved
+    these numbers: it would have moved them between these two processes too.
+
+(2) ARE THESE CELLS REPRODUCIBLE ACROSS PROCESSES AND BINARIES AT ALL?  YES.
+    Pass 1's own identity gate (logs/identity-EI.txt) compared this task's
+    pass-1 probe -- a different binary, a different process, a different day --
+    against the harness's committed rows at the pin aeebdccc:
+      IDENTITY_PASS=12
+      IDENTITY_DIFFERS=0
+      IDENTITY_COMPARABLE=12
+      IDENTITY_VERDICT=ALL_COMPARABLE_CELLS_IDENTICAL
+    "0 near-ulp accepted" means even the residual-class fields were BYTE
+    equal. So the cells are bit-reproducible across processes and across
+    binaries built under the hven target's own flag regime.
+
+    (1) and (2) together locate the cause in the PASS-2 BINARY ITSELF, not in
+    the machine, the scheduling, the observer's memory, or the problems.
+
+(3) WHAT IS DIFFERENT ABOUT THE PASS-2 BINARY.  Two observed differences.
+
+    (3a) THE COMPILE FLAGS ARE NOT THE SAME REGIME. The installed library
+    the pass-1 probe linked, and the second compilation of the same 42
+    sources that the pass-2 probe links, are not built the same way:
+
+      The compile of src/qp/qp_engine.cpp, read out of each build.ninja.
+
+      INSTALL (the library the pass-1 probe linked):
+        FLAGS   -DMKL_LP64 -m64 -O3 -DNDEBUG -std=c++20 -fPIC -Wabsolute-value -pthread -mllvm -inline-threshold=225 -O3 -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 -march=native -mtune=native -ffast-math -fno-finite-math-only -fopenmp=libiomp5 -Xclang -fno-pch-timestamp
+        DEFINES -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_DEFAULT_ARENA_SIZE=256 -DHVEN_DEFAULT_QP_THREADS=8 -DHVEN_VERSION_STRING=\"0.1.0\"
+
+      PASS 2 (the second compilation the pass-2 probe links):
+        FLAGS   -O3 -DNDEBUG -std=c++20 -DMKL_LP64 -m64 -pthread -O3 -fomit-frame-pointer -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32 -march=native -mtune=native -ffast-math -fno-finite-math-only -fopenmp
+        DEFINES -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0 -DHVEN_DEFAULT_ARENA_SIZE=256 -DHVEN_DEFAULT_QP_THREADS=8 -DHVEN_TESTING=1 -DHVEN_VERSION_STRING=\"0.1.0\"
+
+      FLAGS only in the INSTALL build: -fPIC -Wabsolute-value -mllvm -inline-threshold=225 -fopenmp=libiomp5 -Xclang -fno-pch-timestamp
+      FLAGS only in the PASS-2 build : -fopenmp
+      DEFINES only in the INSTALL build: (none)
+      DEFINES only in the PASS-2 build : -DHVEN_TESTING=1
+
+    `-mllvm -inline-threshold=225` changes inlining, and under `-ffast-math`
+    inlining changes where the compiler is free to contract and reassociate
+    floating point. `-fopenmp=libiomp5` against `-fopenmp` selects a different
+    OpenMP runtime for MKL to bind to. Either is enough to move a result in
+    its last bits; CLAUDE.md §7's own flag-unification ruling exists because
+    flag moves move pins.
+
+    (3b) `HVEN_TESTING=1` IS DEFINED TARGET-WIDE on the pass-2 recompile, which
+    is what arms the walk seam. The seam is designed to be record-only, and
+    M3b C15 made both verdict sites read their inertia evidence once into a
+    shared local -- but "record-only" has never been checked against a
+    WHOLE-RUN default-options trajectory on these cells, only against a first
+    QP.
+
+    WHICH OF (3a) AND (3b) ACTUALLY MOVED THE NUMBERS IS NOT DETERMINED HERE,
+    and cannot be without building and running again, which this dispatch is
+    not permitted to do. The discriminating experiment is small and is named
+    in the README: rebuild the pass-2 probe twice under the hven target's
+    EXACT flags -- once with HVEN_TESTING and once without -- and re-run
+    DALLASM (58 s) and ACOPP57 (2 s). If the no-HVEN_TESTING build reproduces
+    the pass-1 row and the HVEN_TESTING build does not, the seam is not
+    record-only on the default path; if both reproduce it, the flags were the
+    whole of it and the instrument is repaired by fixing the recompile.
+
+(4) WHAT THE SMOKE ACTUALLY PROVED, AND WHAT IT DID NOT.
+    The pass-2 smoke checked eight INTEGER counters on ONE cell and reported
+    the seam neutral. It did not compare f, stationarity or feasibility_e --
+    and all three already differed from the pass-1 row in that very
+    transcript. The evidence that the binary had moved was in the smoke, and
+    the smoke was not asked the question that would have surfaced it.
