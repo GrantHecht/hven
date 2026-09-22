@@ -1,0 +1,150 @@
+M7 W2 M3c — the DEFAULT-PATH failure census: PROVENANCE
+=======================================================
+
+Every value below is read from a transcript this task committed, or from the
+host it ran on, on 2026-09-21. A value not OBSERVED anywhere is recorded as
+UNOBSERVED and is never guessed, interpolated or zero-filled (CLAUDE.md §6).
+
+Wall-clock figures in the chain logs are INFORMATIONAL ONLY (CLAUDE.md §7).
+The deadlines are STOPS, not measurements.
+
+
+TREE
+----
+repository                 /home/ghecht/Projects/hven, branch m7
+hven HEAD the pass-1 legs ran at
+                           8e4c21a7, dirty-files=0   (logs/chain-census.log:2)
+hven HEAD the pass-2B legs ran at
+                           eb30ab4e, dirty-files=1   (logs/chain-p2b.log:2)
+                           the one dirty file is wrappers/readouts_p2.py, an
+                           untracked read-out script that was never run
+no file under src/ or include/ was changed by any commit of this task
+
+
+HARNESS PIN
+-----------
+the rows every identity gate compares against
+                           aeebdccc   (logs/chain-census.log; RULE.md §4)
+scoreboard the cells come from
+                           /home/ghecht/Projects/hven-bench/runs/
+                           2026-09-m7-w2-h-repin/four-lane-table.md  (READ-ONLY)
+
+
+BINARIES
+--------
+installed libhven.a pass 1 linked, sha256
+    18a71b727533e9231fbdeb4e6bf0c9bb2d77aad6ab886a0f2e5729f1169eee10
+    at .scratch/m7w2m3c/install/lib64/libhven.a
+    QpWalkObserver symbols in it: 0        (logs/prepare-p2.txt)
+
+P2A arm A archive (the install build's own compile commands, replayed byte for
+byte), sha256
+    18a71b727533e9231fbdeb4e6bf0c9bb2d77aad6ab886a0f2e5729f1169eee10
+    — IDENTICAL to the installed libhven.a; all 42 objects and the PCH
+      byte-identical too                    (logs/harvest-diff-p2a.txt)
+    install PCH sha256 22d70c6fdb1af0be2f23c4e5e07f2dc3618fce5dbf4bde632999b5989f1b2015
+
+P2A arm A probe (seam NOT compiled in), sha256
+    7adb8f5f96d740a99e7a4ee4f490c2fba8d38baeb89dc322d0749c45e63429d5
+    at .scratch/m7w2m3c/p2a/armA/m3c_p2a_probe_armA   (logs/binaries-p2a.txt)
+
+P2A arm B / arm C probe — THE INSTRUMENT THAT PRODUCED EVERY PASS-2B TRACE
+(arm B is the binary, arm C is that binary ARMED at --capture-solve -1), sha256
+    cad3cbf6aaa2c771ce42e2f9059378e70049b4e7e4e7981ef85f1add5a8d808a
+    at .scratch/m7w2m3c/p2a/armB/m3c_p2a_probe_armB
+    (logs/binaries-p2a.txt; logs/chain-p2b.log:3;
+     traces-p2b/SHA256-all-traces-p2b.txt)
+
+PASS 2's own probe, whose ten legs RULE-P2 §5.1 STOPPED, sha256
+    48c4fdea48c43ed27982d2b55a8eadf3fe7054a9030c23c244a4d552bec23bfd
+    (traces-p2/SHA256-all-traces.txt)
+
+the ten PASS-2B full flat traces      traces-p2b/SHA256-all-traces-p2b.txt
+                                      (sha256 + size for each; the files
+                                      themselves stay in scratch, 217 MB)
+
+
+TOOLCHAIN
+---------
+C++ compiler, the one the install build and every P2A/P2B arm was built with
+                           /usr/bin/clang++
+                           clang version 22.1.8 (Fedora 22.1.8-4.fc44)
+                           Target: x86_64-redhat-linux-gnu
+compiler launcher          /usr/bin/ccache  (replayed, space-preserving)
+archiver / ranlib          /usr/bin/llvm-ar, /usr/bin/llvm-ranlib
+CMake                      4.3.0
+C compiler version         UNOBSERVED (no C TU is compiled into libhven.a)
+Fortran (CUTEst)           UNOBSERVED (libcutest_double.so is consumed
+                           prebuilt from /home/ghecht/Software/cutest/lib)
+
+the hven compile line, verbatim from the install build's own Ninja edge
+(logs/harvest-diff-p2a.txt; arms B/C add -DHVEN_TESTING=1 and re-point the
+PCH path, which are the ONLY two declared differences):
+
+  /usr/bin/ccache /usr/bin/clang++
+    -DEIGEN_DONT_PARALLELIZE -DEIGEN_INITIALIZE_MATRICES_BY_ZERO
+    -DEIGEN_MAX_ALIGN_BYTES=32 -DFMT_HEADER_ONLY -DFMT_USE_LOCALE=0
+    -DHVEN_DEFAULT_ARENA_SIZE=256 -DHVEN_DEFAULT_QP_THREADS=8
+    -DHVEN_VERSION_STRING=\"0.1.0\" -DMKL_LP64
+    -I<hven>/include -I/opt/intel/oneapi/mkl/latest/include
+    -I<hven>/src/interior/utils
+    -isystem <hven>/dep/eigen -isystem <hven>/dep/fmt/include
+    -m64 -O3 -DNDEBUG -std=c++20 -fPIC -Wabsolute-value -pthread
+    -mllvm -inline-threshold=225 -O3 -fomit-frame-pointer
+    -fno-stack-protector -fno-asynchronous-unwind-tables -falign-loops=32
+    -march=native -mtune=native -ffast-math -fno-finite-math-only
+    -fopenmp=libiomp5 -Xclang -fno-pch-timestamp
+
+linear algebra backend     Intel oneMKL, static LP64 + libiomp5, from
+                           /opt/intel/oneapi/mkl/latest -> /opt/intel/oneapi/mkl/2026.1
+                           (libmkl_intel_lp64.a, libmkl_intel_thread.a,
+                            libmkl_core.a, libiomp5.so)
+CUTEst                     /home/ghecht/Software/cutest/lib/libcutest_double.so
+                           (external, never vendored, never linked into hven)
+
+
+HOST
+----
+kernel                     Linux 7.2.4-200.fc44.x86_64 x86_64
+distribution               Fedora 44
+CPU                        AMD Ryzen 7 5800X3D 8-Core Processor
+                           16 logical CPUs, 2 threads per core
+hostname                   (unset; transient "fedora")
+RAM                        UNOBSERVED (not read by any transcript this task wrote)
+
+
+THE TERMS EVERY LEG RAN UNDER
+-----------------------------
+one solver process at a time, serial, under flock /tmp/box-build.lock held per
+leg and released between legs; a pgrep for a foreign cell binary as its own
+command before the lock AND inside it; set -o pipefail everywhere.
+
+  MKL_NUM_THREADS=1   OMP_NUM_THREADS=1   taskset -c 2
+  DEFAULT options throughout: --tr-init is never passed, so the field is not
+    assigned at all and every row prints tr_init_touched=0
+  --capture-solve -1, --max-records 2000000
+  solver deadline 600 s (300 s for SAWPATH, the value pass 1 ran it at),
+    enforced by the probe's iteration callback
+  outer stop timeout 900 per leg; a killed leg is CENSORED and never filled
+
+CHAINS (all detached, setsid, own session)
+  pass 1    pid 2702409   2026-09-21T17:56:43 -> 19:42:07
+  pass 2    pid 2726285   2026-09-21T20:10:09 -> (STOPPED by RULE-P2 §5.1)
+  P2A       pid 2742224   2026-09-21T21:28:19 -> 21:31:12   OUTCOME 1
+  pass 2B   pid 2743689   2026-09-21T21:33:58 -> 21:53:51   REPRODUCES 10/10
+
+An earlier pass-2 launch, pid 2725505, was stopped after one minute by the
+implementer who started it (word-split leg list; no cell affected, no row
+wrong); its log is kept as logs/chain-p2-aborted-wordsplit.log.
+
+
+WHAT DID NOT RUN
+----------------
+HOLDOUT                    never run
+/home/ghecht/Projects/hven-bench
+                           READ-ONLY; its CMake was never entered
+SNOPT source               never read (firewall absolute); only the SNOPT
+                           lane's committed result rows were read
+PIQP source                never read
+no solver process ran to produce the mapping, the slices, the read-outs, the
+verdict, the census's pass-2 section or this file.
