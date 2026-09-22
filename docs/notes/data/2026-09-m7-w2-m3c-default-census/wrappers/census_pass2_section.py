@@ -230,6 +230,20 @@ def census_section(ro, vd, mp, gates, terms, out):
       "solve traced on them: %s.\n\n"
       % (tot["CYCLE"], nsolves, tot["LONG WALK"], tot["SOMETHING ELSE"],
          len(all_cycle), ncells, ", ".join("`%s`" % c for c in all_cycle)))
+    w("**What those labels are, and are not.** The %d / %d / %d split is the "
+      "answer under the DECLARED OPERATIONAL READINGS of §6.1's three defects "
+      "D1–D3 (below). §6.1's own text does not decide those readings, and they "
+      "were chosen AFTER the traces existed; each one is printed beside its "
+      "STRICT reading on every solve in [`verdict-p2.txt`](../verdict-p2.txt). "
+      "So the split is a **transparent post-hoc operational classification, "
+      "not a fully pre-registered verdict.** Everything upstream of §6.1 — the "
+      "selection, the observer↔ledger mapping, the leg terms and the identity "
+      "gate — WAS pre-registered and ran unchanged, and the underlying "
+      "measurements (the periods, the tails, the shares and the exact-zero "
+      "motion sums in the table above) do not move under any of the readings: "
+      "what the readings decide is which of §6.1's three NAMES those "
+      "measurements get.\n\n"
+      % (tot["CYCLE"], tot["LONG WALK"], tot["SOMETHING ELSE"]))
 
     w("### What a `CYCLE` row means here, precisely\n\n")
     w("On a `CYCLE` row the walk's WHOLE recorded state repeats exactly: on "
@@ -388,6 +402,16 @@ def census_section(ro, vd, mp, gates, terms, out):
       "the winner is 2, which it is on %d of the %d solves. RULE-G's own "
       "period-2 answer is printed beside it on every solve.\n\n"
       % (sum(1 for r in vd if r["period"] == "2"), nsolves))
+    w("Two qualifications, both against this round's own reading. The strict "
+      "inherited detector is **not blind**: on the %d solves whose winning "
+      "period IS 2 it returns the same tail, so read strictly D1 would still "
+      "have measured those %d cases — what it cannot see is the four "
+      "higher-period ones. (The \"would have measured nothing\" statement "
+      "belongs to D2 alone, below.) And the `p ∈ [1, 64]` bound is itself "
+      "POST-DATA and arbitrary; it is stated rather than defended, and every "
+      "observed winning period — 2, 4, 6 — is far inside it.\n\n"
+      % (sum(1 for r in vd if r["period"] == "2"),
+         sum(1 for r in vd if r["period"] == "2")))
     w("### D2 — §6.1's `dx_inf == 0` conjunct is unreachable read strictly\n\n"
       "A DROP pass takes no step and the probe writes `nan` into `dx_inf` and "
       "`alpha` alike; on a drop/add cycle that is HALF the passes. Read "
@@ -399,9 +423,12 @@ def census_section(ro, vd, mp, gates, terms, out):
       "passes that record no step at all, and the read-out naming which "
       "actions those are. Both numbers, `zero_motion_operative` and "
       "`zero_motion_strict`, are printed on every solve; under the strict "
-      "reading all 19 `CYCLE` rows would read `SOMETHING ELSE` and the rule "
-      "would have measured nothing. (The recorded value is `-0`; `-0.0 == "
-      "0.0` is exact, not a tolerance.)\n\n")
+      "reading all %d `CYCLE` rows would read `SOMETHING ELSE` and §6.1's "
+      "`CYCLE` arm would have measured nothing — **this unreachability is "
+      "D2's alone**, and says nothing about D1, whose strict period-2 "
+      "detector would still have found the period-2 cases. (The recorded "
+      "value is `-0`; `-0.0 == 0.0` is exact, not a tolerance.)\n\n"
+      % tot["CYCLE"])
     w("### D3 — §6.1's `LONG WALK` clause is ambiguous\n\n"
       "\"no periodic tail, or a tail with non-zero motion: Σ‖Δx‖∞ > 0 over the "
       "tail and the working set does not repeat\" parses either "
@@ -430,7 +457,11 @@ def census_section(ro, vd, mp, gates, terms, out):
       "a restoration-sub-driver solve on the same cell. The counter shape "
       "pass 1 called INFERRED — `degenerate_steps ≈ minors/2`, `ws_adds ≈ "
       "ws_drops ≈ minors/2` — is now OBSERVED to be that cycle, on traces "
-      "that reproduce the census rows byte for byte.\n\n"
+      "that reproduce the census rows byte for byte. What is SETTLED is the "
+      "measurement: exactly periodic suffixes, their periods, their shares, "
+      "and Σ|Δx|∞ exactly 0 over them. The three NAMES those measurements "
+      "carry are §6.1's, under the operational readings declared above — a "
+      "post-hoc operational classification.\n\n"
       % (tot["CYCLE"], nsolves, len(all_cycle), ncells))
     w("**NOT SETTLED.** Why the walk re-admits the constraint it just dropped "
       "is not measured here: the drop rule's multiplier sign and the ratio "
@@ -510,6 +541,18 @@ def readme_block(ro, vd, mp, gates, terms, out):
                       if nl else ""))
         w("| `%s` | %s | %s |\n" % (cell, story.get(cell, "see the table"),
                                     ans))
+    w("**The three labels, and what they rest on.** The whole-population split "
+      "is **%d `CYCLE` / %d `LONG WALK` / %d `SOMETHING ELSE` under the "
+      "declared operational readings of `RULE-P2.md` §6.1 (defects D1–D3 "
+      "below)** — readings §6.1's own text does not decide, chosen after the "
+      "traces existed and printed beside the strict readings on every solve "
+      "in `verdict-p2.txt`. It is a **transparent post-hoc operational "
+      "classification, not a fully pre-registered verdict.** The chain before "
+      "§6.1 — selection, mapping, leg terms, identity gate — was "
+      "pre-registered and ran unchanged, and the measurements underneath the "
+      "labels (the periods, the tails, the shares, Σ|Δx|∞ exactly 0) are the "
+      "same whichever reading is applied.\n\n"
+      % (tot["CYCLE"], tot["LONG WALK"], tot["SOMETHING ELSE"]))
     w("\n**OBSERVED vs INFERRED.** Everything in the middle column is "
       "OBSERVED, from rows that reproduce the harness's committed rows at the "
       "pin on all 24 compared fields. Everything in the right column is "
@@ -541,10 +584,15 @@ def readme_block(ro, vd, mp, gates, terms, out):
       "reaches the trust-region floor and essentially every `Reject` is a "
       "routed QP failure. |\n")
     w("| D1 | `RULE-P2.md` §6.1 | \"a tail\" is never defined, and the "
-      "inherited detector is period-2 only. Four solves cycle at period 4 or "
-      "6 and it sees nothing. |\n")
+      "inherited detector is period-2 only. Read strictly it would still have "
+      "found the %d period-2 tails; what it cannot see is the four solves "
+      "that cycle at period 4 or 6. The `p ≤ 64` search applied instead is "
+      "post-data. |\n"
+      % sum(1 for r in vd if r["period"] == "2"))
     w("| D2 | `RULE-P2.md` §6.1 | `dx_inf == 0` on every tail pass is "
-      "unreachable read strictly: drop passes record no `dx_inf` at all. |\n")
+      "unreachable read strictly: drop passes record no `dx_inf` at all, so "
+      "the `CYCLE` arm could never fire and **this** is the defect that would "
+      "have measured nothing. Both numbers printed per solve. |\n")
     w("| D3 | `RULE-P2.md` §6.1 | the `LONG WALK` clause parses two ways and "
       "\"does not repeat\" is undefined. Changed no answer here. |\n")
     w("\nA fourth `RULE-P2` defect, of §5.1: two of its fourteen named byte "
@@ -602,6 +650,11 @@ def recommendation(ro, vd, mp, gates, terms, out):
         r"\{0: \d+\}", i(d, "tail_inertia_excess_neg_hist", "")))
     n_bound_only = sum(1 for d in dicts
                        if "'bound'" in i(d, "tail_readmitted_modal_identity", ""))
+    # which SELECTED solves pay no factorization at all in their tail -- read
+    # out of the same per-solve read-outs the table below prints, never typed.
+    zero_fac = [(c, sv) for (c, sv, _k, d) in ro
+                if n(d, "OUTSIDE_RULE_tail_factorizations") == 0]
+    n_zero_fac = len(zero_fac)
 
     w("\n---\n\n")
     w("## Engine change ⇒ cells it plausibly converts — a RECOMMENDATION to "
@@ -619,8 +672,12 @@ def recommendation(ro, vd, mp, gates, terms, out):
       "(7 cells whose terminator is `QP_CAP_BUDGET`), and is implicated in "
       "`BRITGAS`, `SAWPATH` and `YORKNET` (3 more). Pass 1 listed the same ten "
       "as INFERRED; pass 2 makes them OBSERVED.*\n\n")
-    w("**OBSERVED.** %d of %d traced solves end in an exactly periodic, "
-      "zero-motion tail; one more (`ACOPR57` solve 16) ends in an exactly "
+    w("**OBSERVED** (the counts carry §6.1's labels under the operational "
+      "readings declared in the census's D1–D3 — a post-hoc operational "
+      "classification; the periods, tails and motion sums underneath them do "
+      "not depend on the reading). %d of %d traced solves end in an exactly "
+      "periodic, zero-motion tail; one more (`ACOPR57` solve 16) ends in an "
+      "exactly "
       "periodic tail that moves and returns. The tail starts EARLY — its "
       "start minor over the %d solves runs %d … %d — so **%d of the %d "
       "recorded minors in the traced solves, %.1f%%, are spent after the "
@@ -667,7 +724,7 @@ def recommendation(ro, vd, mp, gates, terms, out):
       "solve. Pass 1's finding R3 is that essentially every `Reject` verdict "
       "in these histories is a ROUTED QP FAILURE rather than a merit "
       "rejection. Pass 2 shows those same solves were provably stalled for "
-      "82–99.9%% of their minors before the cap was reached.\n\n")
+      "82–99.9% of their minors before the cap was reached.\n\n")
     w("**INFERRED.** That a distinct exit reason — \"the walk repeated a "
       "working set with zero motion\" — would let the driver do something "
       "better than shrink and retry. It is a CHEAP change to measure and it "
@@ -676,11 +733,18 @@ def recommendation(ro, vd, mp, gates, terms, out):
 
     w("### Candidate B — the SCHUR REBUILD cost of the cycle\n\n")
     w("*Would convert: nothing by itself. Would remove a large constant "
-      "factor from every cell in candidate A, and it is the reason those "
-      "cells are also slow.*\n\n")
-    w("**OBSERVED, and this is new in pass 2.** The per-pass cost of a "
-      "cycling minor is not uniform, and the traces split the population in "
-      "two:\n\n")
+      "factor from the candidate-A solves WHOSE TAIL RUNS THE `eliminated` "
+      "PATH — most of them, but not all: %d of the %d selected solves pay "
+      "ZERO tail factorizations.*\n\n" % (n_zero_fac, nsolves))
+    w("**OBSERVED — and it is NOT a new cost REGIME.** W2's C1 SQP cost "
+      "census already said, in its opening paragraph and again in its "
+      "ranking, that in the expensive regime every minor pays a full KKT "
+      "refactorization, and nothing here changes C1's "
+      "correctness-before-cost ranking. **What pass 2 adds** is narrower and "
+      "still useful: it attaches that cost to the exact PERIODIC TAIL, and it "
+      "separates the tail's two paths — `eliminated`, one sparse "
+      "factorization per pass, from `border_schur`, zero factorizations in "
+      "the tail:\n\n")
     w("| solve | tail passes | factorizations in the tail | Schur updates | "
       "border refines | `eqp_path` in the tail |\n|---|---|---|---|---|---|\n")
     for (c, s, k, d) in ro:
@@ -693,7 +757,14 @@ def recommendation(ro, vd, mp, gates, terms, out):
       "pays one Schur update and one border refine and NO factorization. "
       "`ACOPP118` spends 20 501 factorizations on 19 917 minors; `BRITGAS` "
       "spends 93 749 on 92 309. `DALLASM` solve 1 is the extreme: 2 "
-      "factorizations and ~102 Schur updates per tail pass.\n\n")
+      "factorizations and ~102 Schur updates per tail pass. **Which selected "
+      "solves pay nothing:** %s — %d of the %d, every one of them on "
+      "`border_schur`. (`ACOPR57` solve 16 is the mixed row: 1 675 "
+      "`border_schur` passes and 335 `eliminated`.) So candidate B is a claim "
+      "about the `eliminated` tails, not about every cell in candidate "
+      "A.\n\n"
+      % (", ".join("`%s` solve %d" % cs for cs in zero_fac), n_zero_fac,
+         nsolves))
     w("**INFERRED, and NOT established.** That the `eliminated` path is "
       "avoidable on these working sets, or that keeping the border stack "
       "alive would be correct there. The trace records `border_latched` and "
@@ -704,16 +775,22 @@ def recommendation(ro, vd, mp, gates, terms, out):
 
     w("### Candidate C — `project_start_point` for the three non-finite-start "
       "cells\n\n")
-    w("*Would plausibly convert: `STEENBRD`, `STEENBRE`; would not convert "
-      "`NET3` (3 cells in the class, 2 candidates). Unchanged from pass 1 — "
-      "pass 2 traced none of them, because they build no subproblem at "
-      "all.*\n\n")
+    w("*Would plausibly convert: `STEENBRD`, `STEENBRE`. `NET3` is UNTESTED "
+      "here rather than excluded (3 cells in the class). Unchanged from "
+      "pass 1 — pass 2 traced none of them, because they build no subproblem "
+      "at all.*\n\n")
     w("**OBSERVED.** All three die at major 0 with `f(x0) = NaN`, an empty "
       "ledger and zero factorizations. `STEENBRD` and `STEENBRE` are solved "
       "to optimality by hven's OWN IPM engine on the same model through the "
-      "same bridge, and by SNOPT; `NET3` defeats all four lanes. The option "
+      "same bridge, and by SNOPT; `NET3` is solved by no lane. The option "
       "exists, is shipped OFF, and every leg's `OPTIONS` block proves it OFF."
       "\n\n")
+    w("**NOT a categorical exclusion of `NET3`.** That every lane fails "
+      "`NET3` is a reason to expect less of it; it is NOT a demonstration "
+      "that projecting the start point cannot get past the immediate NaN, "
+      "which nothing here tested. The three-step measurement below applies to "
+      "`NET3` exactly as it does to the other two, and it is the thing that "
+      "would decide it.\n\n")
     w("**INFERRED, explicitly not established.** That the start point lies "
       "outside the declared box and that the projection is what the IPM's "
       "interior push supplies. **NOT KNOWN:** which of `f`, `grad`, `cE`, "
@@ -749,10 +826,44 @@ def recommendation(ro, vd, mp, gates, terms, out):
       "passes records `drop_tied = 8`: eight candidates tie on the drop "
       "rule's own criterion, and the same one is chosen every pass, and the "
       "walk cycles on it. Everywhere else in this population `drop_tied` is "
-      "`1`. **INFERRED:** that a different tie-break would leave the cycle. "
+      "`1`. **What that is evidence FOR:** that a tie-break is worth TESTING "
+      "on this cell — an eight-way tie resolved the same way on every one of "
+      "2 538 drops is a live degree of freedom. It is **not** evidence that "
+      "another choice escapes the cycle; nothing here varied the tie-break. "
       "**NOT KNOWN:** what the eight tied candidates are — the trace records "
       "the COUNT and the chosen identity, not the tied set's members.\n\n")
 
+    w("### The NEXT EXPERIMENT this census recommends — and it is a "
+      "recommendation, deciding nothing\n\n")
+    w("The cheapest decisive next step after this census is **one "
+      "pre-registered, `HVEN_TESTING`-only ANTI-CYCLING ARM**, run on the "
+      "same ten default-option cells traced here. The settler has adopted it "
+      "as the recommended next step; it selects no remedy and licenses no "
+      "production change, and like every candidate above it is its own task "
+      "with its own pre-registered rule and its own gates.\n\n")
+    w("* **The arm.** An EXPAND-style working-feasibility tolerance is the "
+      "closest paper-level device: it converts a zero blocking ratio into a "
+      "positive step for degenerate active-set iterations (Gill, Murray, "
+      "Saunders and Wright, *A practical anti-cycling procedure for linearly "
+      "constrained optimization*). A lexicographic / symbolic-perturbation "
+      "rule is the stronger EXACT anti-cycling alternative and is the natural "
+      "second arm. Neither is a promised cure: cycling examples are known "
+      "even for EXPAND (Hall and McKinnon), which is exactly why this is an "
+      "experiment and not a design.\n")
+    w("* **What it is judged on, in this order.** (1) Does the selected "
+      "recurrence DISAPPEAR on the traced solve — no exactly-periodic "
+      "zero-motion suffix under the same read-out — and what does the QP exit "
+      "with? (2) Then the whole-SQP outcome on the cell: status, feasibility, "
+      "stationarity, and whether a step is ACCEPTED. A QP that stops cycling "
+      "and still returns nothing the driver can use is a NEGATIVE result and "
+      "must be reported as one.\n")
+    w("* **The control.** An UNARMED build of the same seam, to show the "
+      "instrument is compile-neutral on the ten cells before anything armed "
+      "is believed — the same discipline RULE-P2A imposed on this round, "
+      "which is the only reason pass 2B's rows are usable.\n")
+    w("* **What it must not do.** Touch HOLDOUT (this census never ran it), "
+      "or change a default. The arm is test-only until an experiment with its "
+      "own rule says otherwise.\n\n")
     w("### What NOT to build from this census\n\n")
     w("* **Trust-region floor work and merit/filter acceptance work** — "
       "pass 1's finding R3 stands: `F3_TR_AT_FLOOR` is false on every cell "

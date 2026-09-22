@@ -528,8 +528,10 @@ the flag's real case: `h_in == h_out == 48491.383947016526`, bit for bit, after
 radius anywhere is `0.0125`, against a floor test at `2e-10`), and
 `F4_REJECTION_STALL` is `false` on every cell too. F4's reason is worth stating
 because it is a finding rather than a null: on these cells
-`judged_rejections = rejected_steps − qp_failures_routed` is **0** on nine of the
-twelve and 2 on the other three. **Essentially every `Reject` verdict in these
+`judged_rejections = rejected_steps − qp_failures_routed` is **0** on 13 of
+the 15 cells with a row and 2 on the other 2 (`ACOPR118`=2, `ACOPR57`=2); over
+the 12 of those that BUILT A SUBPROBLEM at all — the three
+`START_POINT_NONFINITE` cells never ran a QP — it is **0** on 10 and 2 on 2. **Essentially every `Reject` verdict in these
 histories is a ROUTED QP FAILURE, not a merit-function rejection.** The
 globalization strategy is barely being consulted; the subproblem is where these
 solves die. That is an OBSERVED fact about the population and it is the single
@@ -748,6 +750,8 @@ Pass 2's first run was STOPPED on all ten cells by RULE-P2 §5.1's identity gate
 
 **19 of 21 traced solves are `CYCLE`. 1 is `LONG WALK`. 1 is `SOMETHING ELSE`.** 8 of the 10 traced cells answer `CYCLE` on every solve traced on them: `ACOPP57`, `DALLASM`, `ACOPP118`, `STEENBRC`, `STEENBRG`, `YORKNET`, `SAWPATH`, `BRITGAS`.
 
+**What those labels are, and are not.** The 19 / 1 / 1 split is the answer under the DECLARED OPERATIONAL READINGS of §6.1's three defects D1–D3 (below). §6.1's own text does not decide those readings, and they were chosen AFTER the traces existed; each one is printed beside its STRICT reading on every solve in [`verdict-p2.txt`](../verdict-p2.txt). So the split is a **transparent post-hoc operational classification, not a fully pre-registered verdict.** Everything upstream of §6.1 — the selection, the observer↔ledger mapping, the leg terms and the identity gate — WAS pre-registered and ran unchanged, and the underlying measurements (the periods, the tails, the shares and the exact-zero motion sums in the table above) do not move under any of the readings: what the readings decide is which of §6.1's three NAMES those measurements get.
+
 ### What a `CYCLE` row means here, precisely
 
 On a `CYCLE` row the walk's WHOLE recorded state repeats exactly: on `ACOPP57` solve 3, 1776 of the 1795 passes are a period-2 suffix in which the same bound is dropped by the Dantzig rule and immediately re-admitted, `dx_inf` is `-0` on every add pass and absent on every drop pass, and Σ|Δx|∞ over the tail is **exactly 0**. Its re-admission share is 1.0 — all of the tail's add passes re-admit the SAME constraint, `('bound', 8, 'lower')` — and its candidate set is literally one set, seen 888 times.
@@ -778,9 +782,11 @@ The full per-solve read-outs are machine-written in [`readouts-p2b.md`](readouts
 
 The only pre-registered tail in the inherited instruments is `RULE-G.md` §3's, a PERIOD-2 repeat detector. §6.1's own word is "PERIODIC", with no period named. A period-2-only detector cannot answer the question §6.1 asks, and on this population it demonstrably does not: on `STEENBRC` solve 0, `STEENBRG` solve 0, `YORKNET` solve 145 and `ACOPR57` solve 16 it finds a two-record tail where a period-4 or period-6 detector finds one covering 85–97% of the solve. **The reading applied** is RULE-G's own construction with its `2` replaced by a search over p ∈ [1, 64], taking the p that maximises the tail, ties to the smallest p — so it degenerates EXACTLY to RULE-G's tail whenever the winner is 2, which it is on 16 of the 21 solves. RULE-G's own period-2 answer is printed beside it on every solve.
 
+Two qualifications, both against this round's own reading. The strict inherited detector is **not blind**: on the 16 solves whose winning period IS 2 it returns the same tail, so read strictly D1 would still have measured those 16 cases — what it cannot see is the four higher-period ones. (The "would have measured nothing" statement belongs to D2 alone, below.) And the `p ∈ [1, 64]` bound is itself POST-DATA and arbitrary; it is stated rather than defended, and every observed winning period — 2, 4, 6 — is far inside it.
+
 ### D2 — §6.1's `dx_inf == 0` conjunct is unreachable read strictly
 
-A DROP pass takes no step and the probe writes `nan` into `dx_inf` and `alpha` alike; on a drop/add cycle that is HALF the passes. Read literally — every tail pass carries a PRESENT `dx_inf` equal to 0 — the `CYCLE` arm can never fire on any real trace, which is a defect and not a measurement. **The reading applied**: "exact zero motion on every tail pass" means NO tail pass moved the iterate — no present `dx_inf` is non-zero and their sum is exactly 0 — with the absent ones being passes that record no step at all, and the read-out naming which actions those are. Both numbers, `zero_motion_operative` and `zero_motion_strict`, are printed on every solve; under the strict reading all 19 `CYCLE` rows would read `SOMETHING ELSE` and the rule would have measured nothing. (The recorded value is `-0`; `-0.0 == 0.0` is exact, not a tolerance.)
+A DROP pass takes no step and the probe writes `nan` into `dx_inf` and `alpha` alike; on a drop/add cycle that is HALF the passes. Read literally — every tail pass carries a PRESENT `dx_inf` equal to 0 — the `CYCLE` arm can never fire on any real trace, which is a defect and not a measurement. **The reading applied**: "exact zero motion on every tail pass" means NO tail pass moved the iterate — no present `dx_inf` is non-zero and their sum is exactly 0 — with the absent ones being passes that record no step at all, and the read-out naming which actions those are. Both numbers, `zero_motion_operative` and `zero_motion_strict`, are printed on every solve; under the strict reading all 19 `CYCLE` rows would read `SOMETHING ELSE` and §6.1's `CYCLE` arm would have measured nothing — **this unreachability is D2's alone**, and says nothing about D1, whose strict period-2 detector would still have found the period-2 cases. (The recorded value is `-0`; `-0.0 == 0.0` is exact, not a tolerance.)
 
 ### D3 — §6.1's `LONG WALK` clause is ambiguous
 
@@ -790,7 +796,7 @@ A DROP pass takes no step and the probe writes `nan` into `dx_inf` and `alpha` a
 
 ## What pass 2 settles, and what it does not
 
-**SETTLED, OBSERVED.** The capped QPs at DEFAULT options ARE the zero-motion cycle M3b traced at `tr_init = +inf`. It is not an artefact of that configuration, it is not confined to the first QP, and it is not confined to one cell: it is 19 of 21 traced solves across 8 of the 10 traced cells, including both a main-walk solve and a restoration-sub-driver solve on the same cell. The counter shape pass 1 called INFERRED — `degenerate_steps ≈ minors/2`, `ws_adds ≈ ws_drops ≈ minors/2` — is now OBSERVED to be that cycle, on traces that reproduce the census rows byte for byte.
+**SETTLED, OBSERVED.** The capped QPs at DEFAULT options ARE the zero-motion cycle M3b traced at `tr_init = +inf`. It is not an artefact of that configuration, it is not confined to the first QP, and it is not confined to one cell: it is 19 of 21 traced solves across 8 of the 10 traced cells, including both a main-walk solve and a restoration-sub-driver solve on the same cell. The counter shape pass 1 called INFERRED — `degenerate_steps ≈ minors/2`, `ws_adds ≈ ws_drops ≈ minors/2` — is now OBSERVED to be that cycle, on traces that reproduce the census rows byte for byte. What is SETTLED is the measurement: exactly periodic suffixes, their periods, their shares, and Σ|Δx|∞ exactly 0 over them. The three NAMES those measurements carry are §6.1's, under the operational readings declared above — a post-hoc operational classification.
 
 **NOT SETTLED.** Why the walk re-admits the constraint it just dropped is not measured here: the drop rule's multiplier sign and the ratio test's choice are recorded per pass, but no experiment in this census varies either. Nor is it measured what an anti-cycling rule would do — no remedy was built, run or selected, and RULE-P2 §8 forbids this section from licensing one.
 

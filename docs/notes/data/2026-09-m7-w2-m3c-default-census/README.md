@@ -48,7 +48,18 @@ after its legs** — a pre-registered rule's bytes are the pin.
    (`tables/mapping-p2b.txt`); §3 stage 2 selected 21 solves mechanically and
    their slices are in `traces-p2b/`; §6's read-outs are machine-written in
    `tables/readouts-p2b.md` and §6.1's three-way answer, per traced solve, is
-   in `verdict-p2.txt`. **19 `CYCLE`, 1 `LONG WALK`, 1 `SOMETHING ELSE`.**
+   in `verdict-p2.txt`. **19 `CYCLE`, 1 `LONG WALK`, 1 `SOMETHING ELSE` —
+   under the DECLARED OPERATIONAL READINGS of `RULE-P2.md` §6.1's defects
+   D1–D3, chosen after the traces existed and printed beside the strict
+   readings: a transparent post-hoc operational classification, not a fully
+   pre-registered verdict.** The measurements under the labels — the periods,
+   the tails, the shares, Σ|Δx|∞ exactly 0 — do not depend on the reading.
+7. **FIX ROUND 1** (Codex sol's review: 0 critical, 5 important). The identity
+   gate was HARDENED and replayed offline over the rows already taken; the
+   §6.1 labels were reframed as above; three recommendation overclaims and two
+   arithmetic/typographic errors were corrected; a process breach was
+   declared. No leg was re-run and no solver ran — see the two sections at the
+   end of this file.
 
 ---
 
@@ -201,6 +212,8 @@ logs/why-p2-differs.txt          the offline forensics that located the cause in
 logs/harvest-diff-p2a.txt        the replay's per-TU command-line proof and its structural checks
 logs/gate-p2a.txt                P2A's identity gate, its folds, and RULE-P2A section 6's outcome
 logs/gate-p2b.txt                the SAME gate over the ten re-taken legs: REPRODUCES 10 / 10
+logs/gate-p2a-v2.txt             FIX ROUND 1: the HARDENED gate, replayed OFFLINE over the six committed P2A rows -- 6/6, OUTCOME 1
+logs/gate-p2b-v2.txt             FIX ROUND 1: the same hardened gate over the ten committed P2B rows -- REPRODUCES 10 / 10
 logs/chain-p2a.log               P2A's six legs
 logs/chain-p2b.log               the re-take's ten legs
 logs/binaries-p2a.txt            the two arm binaries' sha256
@@ -228,6 +241,88 @@ evidence, and are not read either.
 
 ---
 
+## Fix round 1 — what the review changed, and what it did not
+
+Codex sol reviewed the round and returned **FIX-ROUND 1: 0 critical, 5
+important**. No committed row, trace, slice or verdict changed, no rule file
+was edited, no leg was re-run, no solver ran, and nothing under `src/` or
+`include/` was touched. What changed:
+
+1. **The identity gate is now structurally REFUSING** (`wrappers/gate_p2a.py`).
+   The version that ran the legs compared the two rows' shared field set and
+   called a leg a reproduction whenever that set was non-empty and carried no
+   difference — so it could have passed on ONE surviving field, and a missing
+   field or a conflicting duplicate key was reported but did not fail. Three
+   refusals were added, each fold-proved alone on constructed inputs before any
+   row is read: **R-EXPECT** (a pinned 58-name expected set, intersected per
+   cell with the committed pass-1 row's own keys; any expected field the leg
+   does not print REFUSES), **R-FLOOR** (fewer than 58 compared fields
+   REFUSES), **R-DUP** (a key repeated inside one row with conflicting values
+   REFUSES, even when the row's last value would have agreed). An expected
+   field the PASS-1 ROW itself lacks stays ABSENT and is not required of the
+   leg; such a cell then falls below the floor and is refused there, which is
+   the conservative direction.
+   The hardened gate was then replayed OFFLINE over the rows already taken —
+   `logs/gate-p2a-v2.txt` (6/6, OUTCOME 1) and `logs/gate-p2b-v2.txt`
+   (REPRODUCES 10 / 10), both with 15 folds PASS and 0 FAIL. **Every per-field
+   verdict, every near-ulp count and every arm outcome in the replays is
+   identical to the originals**: the hardening changes what the gate refuses,
+   not what it found. `logs/gate-p2a.txt` and `logs/gate-p2b.txt` are NOT
+   edited — they are what the pre-hardening checker printed at the time.
+2. **The §6.1 labels are reframed** as what they are: 19 / 1 / 1 under the
+   declared operational readings of `RULE-P2.md` §6.1's defects D1–D3, chosen
+   after the traces existed, printed beside the strict readings — a transparent
+   post-hoc operational classification, not a fully pre-registered verdict. The
+   numbers do not change, and neither does the pre-registered chain upstream of
+   §6.1. The review's own two corrections are carried: D2's strict reading
+   makes `CYCLE` unreachable (that is the arm that would have measured
+   nothing), while D1's strict period-2 detector would still have found the 16
+   period-2 cases.
+3. **Three recommendation overclaims corrected.** Candidate B is not a new cost
+   REGIME — W2's C1 cost census already named one full refactorization per
+   minor in the expensive regime — and it does not cover every cell in
+   candidate A: four of the 21 selected solves pay ZERO tail factorizations
+   (`ACOPP57` solves 3 and 6, `DALLASM` solve 7, `ACOPR57` solve 4, all
+   `border_schur`). Candidate C does not exclude `NET3` categorically: that
+   every lane fails it is not a demonstration that start projection cannot get
+   past the immediate NaN, which nothing here tested. Candidate E's
+   `drop_tied = 8` is evidence that a tie-break is worth TESTING on `YORKNET`,
+   not that another choice escapes the cycle.
+4. **Two arithmetic/typographic errors.** The judged-rejection split was
+   hand-written and wrong; it is now COUNTED by the generator, over both
+   populations a reader could mean (0 on 13 of the 15 cells with a row; 0 on 10
+   of the 12 that built a subproblem at all, 2 on the other two). A doubled
+   percent sign in candidate A′ is fixed.
+5. **The next experiment** the review named is written into the recommendation
+   as the settler-adopted next step — a pre-registered, `HVEN_TESTING`-only
+   anti-cycling arm on the same ten cells, with an unarmed control. It decides
+   nothing and licenses nothing.
+
+## Process breach — five commits carry a prohibited model-attribution trailer
+
+**The rule.** This task's brief and the owner's standing ruling are absolute:
+commits carry **NO model attribution trailer of any kind**.
+
+**The breach.** Five commits of this task carry
+`Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`:
+
+`4e2afcd0`, `1f536068`, `176da6cf`, `12bdf94c`, `940a2194`
+
+— the second implementer's round. **They are NOT rewritten**: this round's own
+rule is that landed commits are never rewritten, and a silent history rewrite
+would be a worse breach than the one it hid. Of the task's 25 commits before
+fix round 1, those five are the only ones that carry it; every commit after
+`940a2194`, and every fix-round-1 commit, carries none. The settler's ledger
+line records the breach, and the settler records their own miss beside it: the
+hand-back said "no model trailer" and it was not checked until the review.
+
+**What it does not touch.** No row, trace, slice, verdict, rule or figure
+depends on a commit message. The breach is a process fact about this task's
+history, disclosed here because a census that hides how it was made is not
+evidence.
+
+---
+
 ## What the census ANSWERS, in plain language
 
 Two passes, twenty cells, 21 traced solves. The short version: **at the options hven actually ships, the SQP lane's failing cells die inside the QP walk, and the walk is cycling.**
@@ -244,6 +339,8 @@ Two passes, twenty cells, 21 traced solves. The short version: **at the options 
 | `YORKNET` | one capped 5 080-minor main-engine solve, 19 elastic activations, then restoration runs 18 iterations and returns `infeasible` with h unchanged bit for bit | **YES** — 2 of 2 traced solves are `CYCLE`, period 2/4, tail 89–100% of the passes, Σ|Δx|∞ exactly 0. One of them (solve 145) is a NOT-LEDGERED solve — the restoration sub-driver's or a lazy engine's, which the public ledger never sees. |
 | `SAWPATH` | the 300 s wall, inside ONE major that has already spent 77 037 minors; its restoration sub-solve ends `numerical_error` | **YES** — 2 of 2 traced solves are `CYCLE`, period 2, tail 91–97% of the passes, Σ|Δx|∞ exactly 0. One of them (solve 10) is a NOT-LEDGERED solve — the restoration sub-driver's or a lazy engine's, which the public ledger never sees. |
 | `BRITGAS` | the budget is spent over majors 0–2, then major 3's subproblem returns `infeasible`, the elastic ladder runs and returns unusable, and the RESTORATION exit ends the solve `numerical_error` (pass-1 finding R2: the class name says budget, the mechanism is the restoration exit) | **YES** — 3 of 3 traced solves are `CYCLE`, period 2, tail 82–95% of the passes, Σ|Δx|∞ exactly 0. One of them (solve 11) is a NOT-LEDGERED solve — the restoration sub-driver's or a lazy engine's, which the public ledger never sees. |
+**The three labels, and what they rest on.** The whole-population split is **19 `CYCLE` / 1 `LONG WALK` / 1 `SOMETHING ELSE` under the declared operational readings of `RULE-P2.md` §6.1 (defects D1–D3 below)** — readings §6.1's own text does not decide, chosen after the traces existed and printed beside the strict readings on every solve in `verdict-p2.txt`. It is a **transparent post-hoc operational classification, not a fully pre-registered verdict.** The chain before §6.1 — selection, mapping, leg terms, identity gate — was pre-registered and ran unchanged, and the measurements underneath the labels (the periods, the tails, the shares, Σ|Δx|∞ exactly 0) are the same whichever reading is applied.
+
 
 **OBSERVED vs INFERRED.** Everything in the middle column is OBSERVED, from rows that reproduce the harness's committed rows at the pin on all 24 compared fields. Everything in the right column is OBSERVED too, from traces whose own rows reproduce those same pass-1 rows BYTE for byte on all 58 shared fields. What is INFERRED is named as such wherever it appears, and the biggest inference pass 1 carried — "the counter shape looks like a cycle" — is exactly the one pass 2 converted into an observation.
 
@@ -259,8 +356,8 @@ A pre-registered rule's bytes are the pin. Seven defects were found by APPLYING 
 | R2 | `RULE.md` §5.2 #4 | fires on `BRITGAS`, whose exit is the restoration path and not the failure budget. Label stands; mechanism printed beside it. |
 | R3a | `RULE.md` F2 | the h-band degenerates to `0 >= 0` when `h_in == 0`, which is `SAWPATH`. The pair is printed rather than the ratio. |
 | R3 | `RULE.md` F3, F4 | dead on the whole population: no cell reaches the trust-region floor and essentially every `Reject` is a routed QP failure. |
-| D1 | `RULE-P2.md` §6.1 | "a tail" is never defined, and the inherited detector is period-2 only. Four solves cycle at period 4 or 6 and it sees nothing. |
-| D2 | `RULE-P2.md` §6.1 | `dx_inf == 0` on every tail pass is unreachable read strictly: drop passes record no `dx_inf` at all. |
+| D1 | `RULE-P2.md` §6.1 | "a tail" is never defined, and the inherited detector is period-2 only. Read strictly it would still have found the 16 period-2 tails; what it cannot see is the four solves that cycle at period 4 or 6. The `p ≤ 64` search applied instead is post-data. |
+| D2 | `RULE-P2.md` §6.1 | `dx_inf == 0` on every tail pass is unreachable read strictly: drop passes record no `dx_inf` at all, so the `CYCLE` arm could never fire and **this** is the defect that would have measured nothing. Both numbers printed per solve. |
 | D3 | `RULE-P2.md` §6.1 | the `LONG WALK` clause parses two ways and "does not repeat" is undefined. Changed no answer here. |
 
 A fourth `RULE-P2` defect, of §5.1: two of its fourteen named byte fields are not printed by the pass-2 probe and are reported ABSENT rather than as agreement.
@@ -275,7 +372,7 @@ A fourth `RULE-P2` defect, of §5.1: two of its fourteen named byte fields are n
 
 *Would plausibly convert, or at least stop wasting: `ACOPP57`, `ACOPP118`, `ACOPR57`, `DALLASM`, `STEENBRB`, `STEENBRC`, `STEENBRG` (7 cells whose terminator is `QP_CAP_BUDGET`), and is implicated in `BRITGAS`, `SAWPATH` and `YORKNET` (3 more). Pass 1 listed the same ten as INFERRED; pass 2 makes them OBSERVED.*
 
-**OBSERVED.** 19 of 21 traced solves end in an exactly periodic, zero-motion tail; one more (`ACOPR57` solve 16) ends in an exactly periodic tail that moves and returns. The tail starts EARLY — its start minor over the 21 solves runs 0 … 1570 — so **101752 of the 109489 recorded minors in the traced solves, 92.9%, are spent after the walk has already begun repeating itself.** Those solves account for 109489 of the 362599 minors the ten cells spend in total. The MODAL re-admitted constraint of the tail is a BOUND on 21 of the 21 solves and an inequality row on none of them.
+**OBSERVED** (the counts carry §6.1's labels under the operational readings declared in the census's D1–D3 — a post-hoc operational classification; the periods, tails and motion sums underneath them do not depend on the reading). 19 of 21 traced solves end in an exactly periodic, zero-motion tail; one more (`ACOPR57` solve 16) ends in an exactly periodic tail that moves and returns. The tail starts EARLY — its start minor over the 21 solves runs 0 … 1570 — so **101752 of the 109489 recorded minors in the traced solves, 92.9%, are spent after the walk has already begun repeating itself.** Those solves account for 109489 of the 362599 minors the ten cells spend in total. The MODAL re-admitted constraint of the tail is a BOUND on 21 of the 21 solves and an inequality row on none of them.
 
 **OBSERVED, and it CONSTRAINS the remedy rather than supporting one.** The engine's own inertia test reports NO excess negatives anywhere in the tail on 14 of the 21 solves. **An inertia-CONTROLLING remedy would not fire on most of this population**, because by the engine's own algebraic verdict the working set is not the problem it is looking for. Where the tail excess is non-zero it is small and constant (`ACOPP57`'s −6/−5, `ACOPR57` solve 16's −19/−18/0, the ±1 alternation on `STEENBRC`/`STEENBRG`/`BRITGAS`), and M3b C11 says those are ALGEBRAIC verdicts about the bordered system, not fresh factorizations. An ANTI-STALL remedy keyed on repetition — the working-set signature repeating with no motion — fires on every one of the 19 `CYCLE` solves by construction.
 
@@ -287,15 +384,15 @@ A fourth `RULE-P2` defect, of §5.1: two of its fourteen named byte fields are n
 
 *Would convert: probably nothing on its own. Would make every cell in candidate A legible to the driver and to the next census.*
 
-**OBSERVED.** A capped walk returns `max_iter` today, and the driver routes it as one more consecutive failure until the budget ends the solve. Pass 1's finding R3 is that essentially every `Reject` verdict in these histories is a ROUTED QP FAILURE rather than a merit rejection. Pass 2 shows those same solves were provably stalled for 82–99.9%% of their minors before the cap was reached.
+**OBSERVED.** A capped walk returns `max_iter` today, and the driver routes it as one more consecutive failure until the budget ends the solve. Pass 1's finding R3 is that essentially every `Reject` verdict in these histories is a ROUTED QP FAILURE rather than a merit rejection. Pass 2 shows those same solves were provably stalled for 82–99.9% of their minors before the cap was reached.
 
 **INFERRED.** That a distinct exit reason — "the walk repeated a working set with zero motion" — would let the driver do something better than shrink and retry. It is a CHEAP change to measure and it commits to no numerical remedy. **NOT KNOWN:** what the driver should do differently on such an exit; this census does not design one.
 
 ### Candidate B — the SCHUR REBUILD cost of the cycle
 
-*Would convert: nothing by itself. Would remove a large constant factor from every cell in candidate A, and it is the reason those cells are also slow.*
+*Would convert: nothing by itself. Would remove a large constant factor from the candidate-A solves WHOSE TAIL RUNS THE `eliminated` PATH — most of them, but not all: 4 of the 21 selected solves pay ZERO tail factorizations.*
 
-**OBSERVED, and this is new in pass 2.** The per-pass cost of a cycling minor is not uniform, and the traces split the population in two:
+**OBSERVED — and it is NOT a new cost REGIME.** W2's C1 SQP cost census already said, in its opening paragraph and again in its ranking, that in the expensive regime every minor pays a full KKT refactorization, and nothing here changes C1's correctness-before-cost ranking. **What pass 2 adds** is narrower and still useful: it attaches that cost to the exact PERIODIC TAIL, and it separates the tail's two paths — `eliminated`, one sparse factorization per pass, from `border_schur`, zero factorizations in the tail:
 
 | solve | tail passes | factorizations in the tail | Schur updates | border refines | `eqp_path` in the tail |
 |---|---|---|---|---|---|
@@ -321,15 +418,17 @@ A fourth `RULE-P2` defect, of §5.1: two of its fourteen named byte fields are n
 | `BRITGAS` solve 4 | 5727 | 5727 | 0 | 0 | {'eliminated': 5727} |
 | `BRITGAS` solve 11 | 11074 | 11074 | 0 | 0 | {'eliminated': 11074} |
 
-On the `eliminated` rows the walk pays **one full sparse KKT factorization for every wasted minor**; on the `border_schur` rows it pays one Schur update and one border refine and NO factorization. `ACOPP118` spends 20 501 factorizations on 19 917 minors; `BRITGAS` spends 93 749 on 92 309. `DALLASM` solve 1 is the extreme: 2 factorizations and ~102 Schur updates per tail pass.
+On the `eliminated` rows the walk pays **one full sparse KKT factorization for every wasted minor**; on the `border_schur` rows it pays one Schur update and one border refine and NO factorization. `ACOPP118` spends 20 501 factorizations on 19 917 minors; `BRITGAS` spends 93 749 on 92 309. `DALLASM` solve 1 is the extreme: 2 factorizations and ~102 Schur updates per tail pass. **Which selected solves pay nothing:** `ACOPP57` solve 3, `ACOPP57` solve 6, `DALLASM` solve 7, `ACOPR57` solve 4 — 4 of the 21, every one of them on `border_schur`. (`ACOPR57` solve 16 is the mixed row: 1 675 `border_schur` passes and 335 `eliminated`.) So candidate B is a claim about the `eliminated` tails, not about every cell in candidate A.
 
 **INFERRED, and NOT established.** That the `eliminated` path is avoidable on these working sets, or that keeping the border stack alive would be correct there. The trace records `border_latched` and `border_dim = -1` on exactly those passes; what those states mean for the engine's own correctness is not read out here and no hven source was changed to find out. **NOT KNOWN:** whether the rebuild is a consequence of the cycle or a contributor to it.
 
 ### Candidate C — `project_start_point` for the three non-finite-start cells
 
-*Would plausibly convert: `STEENBRD`, `STEENBRE`; would not convert `NET3` (3 cells in the class, 2 candidates). Unchanged from pass 1 — pass 2 traced none of them, because they build no subproblem at all.*
+*Would plausibly convert: `STEENBRD`, `STEENBRE`. `NET3` is UNTESTED here rather than excluded (3 cells in the class). Unchanged from pass 1 — pass 2 traced none of them, because they build no subproblem at all.*
 
-**OBSERVED.** All three die at major 0 with `f(x0) = NaN`, an empty ledger and zero factorizations. `STEENBRD` and `STEENBRE` are solved to optimality by hven's OWN IPM engine on the same model through the same bridge, and by SNOPT; `NET3` defeats all four lanes. The option exists, is shipped OFF, and every leg's `OPTIONS` block proves it OFF.
+**OBSERVED.** All three die at major 0 with `f(x0) = NaN`, an empty ledger and zero factorizations. `STEENBRD` and `STEENBRE` are solved to optimality by hven's OWN IPM engine on the same model through the same bridge, and by SNOPT; `NET3` is solved by no lane. The option exists, is shipped OFF, and every leg's `OPTIONS` block proves it OFF.
+
+**NOT a categorical exclusion of `NET3`.** That every lane fails `NET3` is a reason to expect less of it; it is NOT a demonstration that projecting the start point cannot get past the immediate NaN, which nothing here tested. The three-step measurement below applies to `NET3` exactly as it does to the other two, and it is the thing that would decide it.
 
 **INFERRED, explicitly not established.** That the start point lies outside the declared box and that the projection is what the IPM's interior push supplies. **NOT KNOWN:** which of `f`, `grad`, `cE`, `cI` is non-finite — the driver's gate conjoins all four into one bool. The census's own three-step measurement for this is written out in `tables/census.md`; it is cheap and touches no QP code.
 
@@ -345,7 +444,16 @@ On the `eliminated` rows the walk pays **one full sparse KKT factorization for e
 
 *Would plausibly touch: `YORKNET` (1 cell). Newly suggested by the traces, and small.*
 
-**OBSERVED.** On `YORKNET` solve 7 every one of the 2 538 tail drop passes records `drop_tied = 8`: eight candidates tie on the drop rule's own criterion, and the same one is chosen every pass, and the walk cycles on it. Everywhere else in this population `drop_tied` is `1`. **INFERRED:** that a different tie-break would leave the cycle. **NOT KNOWN:** what the eight tied candidates are — the trace records the COUNT and the chosen identity, not the tied set's members.
+**OBSERVED.** On `YORKNET` solve 7 every one of the 2 538 tail drop passes records `drop_tied = 8`: eight candidates tie on the drop rule's own criterion, and the same one is chosen every pass, and the walk cycles on it. Everywhere else in this population `drop_tied` is `1`. **What that is evidence FOR:** that a tie-break is worth TESTING on this cell — an eight-way tie resolved the same way on every one of 2 538 drops is a live degree of freedom. It is **not** evidence that another choice escapes the cycle; nothing here varied the tie-break. **NOT KNOWN:** what the eight tied candidates are — the trace records the COUNT and the chosen identity, not the tied set's members.
+
+### The NEXT EXPERIMENT this census recommends — and it is a recommendation, deciding nothing
+
+The cheapest decisive next step after this census is **one pre-registered, `HVEN_TESTING`-only ANTI-CYCLING ARM**, run on the same ten default-option cells traced here. The settler has adopted it as the recommended next step; it selects no remedy and licenses no production change, and like every candidate above it is its own task with its own pre-registered rule and its own gates.
+
+* **The arm.** An EXPAND-style working-feasibility tolerance is the closest paper-level device: it converts a zero blocking ratio into a positive step for degenerate active-set iterations (Gill, Murray, Saunders and Wright, *A practical anti-cycling procedure for linearly constrained optimization*). A lexicographic / symbolic-perturbation rule is the stronger EXACT anti-cycling alternative and is the natural second arm. Neither is a promised cure: cycling examples are known even for EXPAND (Hall and McKinnon), which is exactly why this is an experiment and not a design.
+* **What it is judged on, in this order.** (1) Does the selected recurrence DISAPPEAR on the traced solve — no exactly-periodic zero-motion suffix under the same read-out — and what does the QP exit with? (2) Then the whole-SQP outcome on the cell: status, feasibility, stationarity, and whether a step is ACCEPTED. A QP that stops cycling and still returns nothing the driver can use is a NEGATIVE result and must be reported as one.
+* **The control.** An UNARMED build of the same seam, to show the instrument is compile-neutral on the ten cells before anything armed is believed — the same discipline RULE-P2A imposed on this round, which is the only reason pass 2B's rows are usable.
+* **What it must not do.** Touch HOLDOUT (this census never ran it), or change a default. The arm is test-only until an experiment with its own rule says otherwise.
 
 ### What NOT to build from this census
 
