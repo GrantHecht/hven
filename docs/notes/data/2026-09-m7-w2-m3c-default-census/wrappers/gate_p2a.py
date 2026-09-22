@@ -179,6 +179,12 @@ def main():
     ap.add_argument("--leg-dir", required=True, help="where the arm rows were written")
     ap.add_argument("--cells", required=True, help="comma-separated cell names")
     ap.add_argument("--arms", default="A,B,C")
+    ap.add_argument("--rule-outcome", default="on", choices=["on", "off"],
+                    help="print RULE-P2A section 6's three-arm outcome block. `off` is for a "
+                         "run that is NOT the three-arm experiment (the pass-2 re-take under "
+                         "arm C's build): there the per-leg verdicts are the whole answer and "
+                         "an arm comparison would be a category error. The per-leg gate, the "
+                         "field set, the classes and the folds are untouched by this flag.")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
@@ -251,6 +257,25 @@ def main():
                 verdicts[(arm, cell)] = "DIFFERS"
             emit()
 
+    if args.rule_outcome == "off":
+        emit("=" * 74)
+        emit("PER-LEG VERDICTS (RULE-P2A section 6's ARM outcome is not printed: this run is")
+        emit("not the three-arm experiment, so an arm comparison would be a category error)")
+        emit("=" * 74)
+        for arm in arms:
+            for cell in cells:
+                emit(f"  {arm}-{cell:<10} {verdicts.get((arm, cell), 'MISSING')}")
+        vals = [verdicts.get((a, c), "MISSING") for a in arms for c in cells]
+        emit(f"  REPRODUCES {vals.count('REPRODUCES')} / {len(vals)}   "
+             f"DIFFERS {vals.count('DIFFERS')}   CENSORED {vals.count('CENSORED')}   "
+             f"REFUSED {vals.count('REFUSED')}   MISSING {vals.count('MISSING')}")
+        emit()
+        emit("  A cell that DIFFERS is a STOP for that cell: its traces are not read as traces")
+        emit("  of the pass-1 row, and nothing about it is relabelled.")
+        emit("  Nothing above licenses a behaviour change, a default change, or a line of code.")
+        with open(args.out, "w") as fh:
+            fh.write("\n".join(lines) + "\n")
+        return 0
     emit("=" * 74)
     emit("RULE-P2A section 6 -- THE PRE-REGISTERED OUTCOME, applied mechanically")
     emit("=" * 74)
