@@ -90,6 +90,19 @@ set -o pipefail
 ROOT=/home/ghecht/Projects/hven
 S=$ROOT/.scratch/m7w2m4fix1gates
 G=$S/gates
+# THE INNER SEGMENTS TAKE THIS PATH FROM THE ENVIRONMENT, AND THE FILE REFUSES
+# ITSELF IF ANY OF THEM CARRIES ONE (FIX ROUND 1's own first chain, 2026-09-22).
+# M4's copy of this script wrote each gate segment as a single-quoted heredoc
+# beginning `S=$ROOT/.scratch/m7w2m4gates`, and re-pointing only the OUTER
+# assignment left six inner literals naming the PREVIOUS round's scratch tree.
+# The segments then built and wrote there while the asserts read here, so G1-G4
+# had nothing to read and the fold proofs refused on a tree that was never
+# created. That is the SAME error class this round's G5 repair is about -- a
+# declaration CARRIED instead of derived -- committed in the act of fixing it.
+# The repair is that no inner segment names a path at all: they read
+# `${GATES_SCRATCH:?}`, an unset value is a refusal, and `check_segment` below
+# REFUSES any segment that names a scratch path again, before a build runs.
+export GATES_SCRATCH="$S"
 ART=$ROOT/docs/notes/data/2026-09-m7-w2-m3b-minor-trace
 M4W=$ROOT/docs/notes/data/2026-09-m7-w2-m4-anticycling-arm/wrappers
 CLASSIFIER=$M4W/classify_psym_m4.py
@@ -132,6 +145,7 @@ echo "GATES_START $(date -Is)"
 cd "$ROOT" || exit 90
 echo "=== HEAD $(git rev-parse --short HEAD)  dirty-files=$(git status --porcelain | wc -l) ==="
 [ -z "$(git status --porcelain)" ] || { echo "REFUSED: the tree is not clean"; exit 2; }
+echo "=== GATES_SCRATCH=$GATES_SCRATCH ==="
 echo "=== BEFORE=$BEFORE  EXPECT_DEBUG_TESTS=$EXPECT_DEBUG_TESTS  EXPECT_RELEASE_TESTS=$EXPECT_RELEASE_TESTS ==="
 
 # THE ROUND'S CHANGED SURFACE, DERIVED FROM GIT rather than typed: the header
@@ -148,6 +162,27 @@ echo "=== CHANGED SOURCES: $CHANGED_SOURCES"
 
 # shellcheck source=gate_asserts_m3b.sh
 . "$ASSERTS" || exit 90
+
+# A GATE SEGMENT MAY NOT NAME A SCRATCH PATH OF ITS OWN. Every segment below is
+# a single-quoted heredoc, so a path written into one is a LITERAL that a copy
+# of this file carries into the next round -- which is exactly what happened to
+# this round's first chain: the outer `S=` was re-pointed, the six inner ones
+# were not, and four gates built and wrote into the PREVIOUS round's tree while
+# their asserts read this one's. Segments take the path from `GATES_SCRATCH`
+# now, and this refuses before any build if one names a path again.
+check_segment() {
+  local f="$1"
+  local hits
+  hits=$(grep -n 'scratch' "$f")
+  if [ -n "$hits" ]; then
+      echo "REFUSED: the gate segment $f names a scratch path of its own."
+      echo "         Segments read GATES_SCRATCH so that a copied runner cannot"
+      echo "         carry the previous round's tree into this one:"
+      echo "$hits"
+      exit 2
+  fi
+  echo "SEGMENT_OK $f: names no scratch path of its own"
+}
 
 run_locked() { # label, then the command
   local label="$1"; shift
@@ -171,7 +206,7 @@ run_locked() { # label, then the command
 # --- G1: Debug -------------------------------------------------------------
 cat > "$S/g1.sh" <<'INNER'
 set -o pipefail
-ROOT=/home/ghecht/Projects/hven; S=$ROOT/.scratch/m7w2m4gates; G=$S/gates
+ROOT=/home/ghecht/Projects/hven; S=${GATES_SCRATCH:?}; G=$S/gates
 rm -rf "$S/gates-dbg"
 cmake -S "$ROOT" -B "$S/gates-dbg" -G Ninja -DCMAKE_BUILD_TYPE=Debug \
   -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DHVEN_BUILD_TESTS=ON > "$G/configure-debug.log" 2>&1 || exit 91
@@ -180,24 +215,26 @@ MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 ctest --test-dir "$S/gates-dbg" -j4 --no-tes
   -E "Continuation.ProbeBudgetBoundsAFailingProposal" --output-on-failure > "$G/suite-debug.log" 2>&1
 rc=$?; tail -6 "$G/suite-debug.log"; exit $rc
 INNER
+check_segment "$S/g1.sh"
 run_locked G1-debug bash "$S/g1.sh"; rc1=$?
 assert_ctest "G1 Debug suite" "$G/suite-debug.log" "$EXPECT_DEBUG_TESTS" || rc1=1
 
 # --- G2: the long test, ALONE ---------------------------------------------
 cat > "$S/g2.sh" <<'INNER'
 set -o pipefail
-ROOT=/home/ghecht/Projects/hven; S=$ROOT/.scratch/m7w2m4gates; G=$S/gates
+ROOT=/home/ghecht/Projects/hven; S=${GATES_SCRATCH:?}; G=$S/gates
 MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 ctest --test-dir "$S/gates-dbg" --no-tests=error \
   -R "^Continuation.ProbeBudgetBoundsAFailingProposal$" --output-on-failure > "$G/suite-debug-long.log" 2>&1
 rc=$?; tail -8 "$G/suite-debug-long.log"; exit $rc
 INNER
+check_segment "$S/g2.sh"
 run_locked G2-debug-long bash "$S/g2.sh"; rc2=$?
 assert_ctest "G2 long test" "$G/suite-debug-long.log" "$EXPECT_LONG_TESTS" || rc2=1
 
 # --- G3: Release ----------------------------------------------------------
 cat > "$S/g3.sh" <<'INNER'
 set -o pipefail
-ROOT=/home/ghecht/Projects/hven; S=$ROOT/.scratch/m7w2m4gates; G=$S/gates
+ROOT=/home/ghecht/Projects/hven; S=${GATES_SCRATCH:?}; G=$S/gates
 rm -rf "$S/gates-rel"
 cmake -S "$ROOT" -B "$S/gates-rel" -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DHVEN_BUILD_TESTS=ON -DHVEN_BUILD_BENCH=ON \
@@ -208,13 +245,14 @@ MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 ctest --test-dir "$S/gates-rel" -j4 --no-tes
 rc=$?; tail -6 "$G/suite-release.log"
 exit $rc
 INNER
+check_segment "$S/g3.sh"
 run_locked G3-release bash "$S/g3.sh"; rc3=$?
 assert_ctest "G3 Release suite" "$G/suite-release.log" "$EXPECT_RELEASE_TESTS" || rc3=1
 
 # --- G4: the replay -------------------------------------------------------
 cat > "$S/g4.sh" <<'INNER'
 set -o pipefail
-ROOT=/home/ghecht/Projects/hven; S=$ROOT/.scratch/m7w2m4gates; G=$S/gates
+ROOT=/home/ghecht/Projects/hven; S=${GATES_SCRATCH:?}; G=$S/gates
 BIN=$S/gates-rel/bench/hven_sqp_corpus
 D=$G/replay; mkdir -p "$D"; : > "$D/comparison.txt"
 CELLS="$(grep -v '^#' "$ROOT/docs/notes/data/2026-08-m6-w1-acceptance/u0-replay-cells.txt" | tr -d '\n')"
@@ -233,6 +271,7 @@ for eng in walk ssn ipm; do
 done
 exit $worst
 INNER
+check_segment "$S/g4.sh"
 run_locked G4-replay bash "$S/g4.sh"; rc4=$?
 assert_replay "$G/replay/comparison.txt" "$EXPECT_REPLAY_CELLS" "$EXPECT_REPLAY_COLUMNS" \
   "$EXPECT_REPLAY_DIFFS" "$EXPECT_REPLAY_ENGINES" || rc4=1
@@ -240,7 +279,7 @@ assert_replay "$G/replay/comparison.txt" "$EXPECT_REPLAY_CELLS" "$EXPECT_REPLAY_
 # --- G5: P-SYM, both configs ---------------------------------------------
 cat > "$S/g5.sh" <<'INNER'
 set -uo pipefail
-ROOT=/home/ghecht/Projects/hven; S=$ROOT/.scratch/m7w2m4gates; G=$S/gates
+ROOT=/home/ghecht/Projects/hven; S=${GATES_SCRATCH:?}; G=$S/gates
 BD=$S/psym-build; OUT=$G/psym
 # The section digest lives beside the checker in the scratch copy, for the same
 # reason the classifier does: the `before` arm below checks out $BEFORE, at
@@ -361,6 +400,7 @@ assert_psym_cross_config "$OUT/classification-Release.txt" "$OUT/classification-
 echo "G5_ASSERT_RC=$rc"
 exit $rc
 INNER
+check_segment "$S/g5.sh"
 run_locked G5-psym bash "$S/g5.sh" "$BEFORE" "$CHANGED_SOURCES" "$CHANGED_HEADERS" \
   "$MIN_NEGATIVE_CONTROL" "$EXPECT_PSYM_DIFFERING" "$EXPECT_PSYM_CLASS_A" \
   "$EXPECT_PSYM_CLASS_B" "$EXPECT_DEBUG_ONLY_RELEASE" "$EXPECT_DEBUG_ONLY_DEBUG"; rc5=$?
@@ -368,7 +408,7 @@ run_locked G5-psym bash "$S/g5.sh" "$BEFORE" "$CHANGED_SOURCES" "$CHANGED_HEADER
 # --- G6: smoke, export contract, format, whitespace ------------------------
 cat > "$S/g6.sh" <<'INNER'
 set -o pipefail
-ROOT=/home/ghecht/Projects/hven; S=$ROOT/.scratch/m7w2m4gates; G=$S/gates
+ROOT=/home/ghecht/Projects/hven; S=${GATES_SCRATCH:?}; G=$S/gates
 CHANGED="$1"; ASSERTS="$2"
 cd "$ROOT" || exit 90
 # THE ACCUMULATION IS THE RUNNER'S OWN FUNCTION (fix round 2), so the fold that
@@ -402,6 +442,7 @@ echo "DIRTY_FILES=$dirty"
 echo "G6_ASSERT_RC=$rc"
 exit "$rc"
 INNER
+check_segment "$S/g6.sh"
 CHANGED_CXX=$(git diff --name-only "$BEFORE..$HEAD_AT_START" -- 'include/*.h' 'src/*.cpp' 'tests/*.cpp' | tr '\n' ' ')
 echo "=== CHANGED C++ FOR CLANG-FORMAT: $CHANGED_CXX"
 run_locked G6-smoke bash "$S/g6.sh" "$CHANGED_CXX" "$ASSERTS"; rc6=$?
