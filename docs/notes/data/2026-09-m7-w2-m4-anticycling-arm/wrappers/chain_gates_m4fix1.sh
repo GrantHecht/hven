@@ -40,9 +40,22 @@
 # WALL IS INFORMATIONAL. Nothing this chain prints is a timing claim.
 set -o pipefail
 ROOT=/home/ghecht/Projects/hven
-S=$ROOT/.scratch/m7w2m4fix1gates
 W=$ROOT/docs/notes/data/2026-09-m7-w2-m4-anticycling-arm/wrappers
 M3B=$ROOT/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers
+
+# THIS CHAIN DOES NOT NAME THE SCRATCH TREE. It ASKS the gate runner, which
+# holds the round's single definition, and refuses an answer it cannot use.
+# Two files that each spell the same path out is the carried-path error class
+# one level up -- they agree until someone re-points one of them, which is
+# precisely how this round's first chain died. Derived, not carried.
+[ -r "$W/gates-m4fix1.sh" ] || { echo "REFUSED: the gate runner is not readable: $W/gates-m4fix1.sh"; exit 3; }
+S=$(bash "$W/gates-m4fix1.sh" --print-scratch) \
+  || { echo "REFUSED: the gate runner would not print its scratch tree"; exit 3; }
+case "$S" in
+  "$ROOT"/.scratch/?*) : ;;
+  *) echo "REFUSED: the gate runner's scratch tree is not under $ROOT/.scratch: '$S'"; exit 3 ;;
+esac
+export GATES_SCRATCH="$S"
 mkdir -p "$S/gates" "$S/logs"
 LOG=$S/logs/chain.log
 exec > "$LOG" 2>&1
@@ -76,7 +89,7 @@ echo "GATES_M4FIX1_RC=$gates_rc"
 pgrep -x hven_bench_cell > /dev/null && echo "NOTE: a foreign cell binary is alive before the fold-proof lock"
 flock /tmp/box-build.lock bash -c '
   set -o pipefail
-  ROOT=/home/ghecht/Projects/hven; S=$ROOT/.scratch/m7w2m4fix1gates
+  ROOT=/home/ghecht/Projects/hven; S=${GATES_SCRATCH:?}
   M3B=$ROOT/docs/notes/data/2026-09-m7-w2-m3b-minor-trace/wrappers
   echo "FOREGROUND_START fold-proofs $(date -Is)"
   foreign=$(pgrep -x hven_bench_cell | tr "\n" " ")

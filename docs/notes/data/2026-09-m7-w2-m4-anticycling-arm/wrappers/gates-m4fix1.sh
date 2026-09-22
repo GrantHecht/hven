@@ -90,19 +90,38 @@ set -o pipefail
 ROOT=/home/ghecht/Projects/hven
 S=$ROOT/.scratch/m7w2m4fix1gates
 G=$S/gates
-# THE INNER SEGMENTS TAKE THIS PATH FROM THE ENVIRONMENT, AND THE FILE REFUSES
-# ITSELF IF ANY OF THEM CARRIES ONE (FIX ROUND 1's own first chain, 2026-09-22).
-# M4's copy of this script wrote each gate segment as a single-quoted heredoc
-# beginning `S=$ROOT/.scratch/m7w2m4gates`, and re-pointing only the OUTER
-# assignment left six inner literals naming the PREVIOUS round's scratch tree.
-# The segments then built and wrote there while the asserts read here, so G1-G4
-# had nothing to read and the fold proofs refused on a tree that was never
-# created. That is the SAME error class this round's G5 repair is about -- a
-# declaration CARRIED instead of derived -- committed in the act of fixing it.
-# The repair is that no inner segment names a path at all: they read
-# `${GATES_SCRATCH:?}`, an unset value is a refusal, and `check_segment` below
-# REFUSES any segment that names a scratch path again, before a build runs.
+# THE LINE ABOVE IS THE ROUND'S ONE DEFINITION OF ITS SCRATCH TREE, AND THE ONLY
+# LITERAL NAMING IT ANYWHERE IN THE CHAIN.
+#
+# Run 1 (pid 2911680, REFUSED): M4's copy of this script wrote each gate segment
+# as a single-quoted heredoc beginning `S=$ROOT/.scratch/m7w2m4gates`, and
+# re-pointing only the OUTER assignment left six inner literals naming the
+# PREVIOUS round's tree. The segments built and wrote there while the asserts
+# read here, so G1-G4 had nothing to read. Segments name no path at all now:
+# they read `${GATES_SCRATCH:?}`, and an unset value is a refusal.
+#
+# Run 2 (pid 2950851, REFUSED): the guard that was supposed to catch a
+# re-introduced literal was `grep -n 'scratch'` over the segment's whole text,
+# and it fired on a COMMENT in `g5.sh` that used the WORD. G5 and G6 never ran.
+# `assert_segment_scratch` below replaces it with an assertion on the VALUE the
+# segment resolves, and its residual textual check strips comments first.
+#
+# And `chain_gates_m4fix1.sh` no longer repeats this path: it asks for it with
+# `--print-scratch`. Two files that each name the same tree is the carried-path
+# class one level up.
 export GATES_SCRATCH="$S"
+
+# --- THE TWO NON-RUNNING MODES, ANSWERED BEFORE ANY OUTPUT IS REDIRECTED -----
+# `--print-scratch` makes this file the single source of the scratch path for
+# every sibling that needs it. `--preflight-only` writes and checks the six gate
+# segments and stops before the first leg, so the pre-flight can be RUN and its
+# output READ -- and pasted into the commit that lands it -- without spending a
+# Debug suite to find out whether it passes.
+PREFLIGHT_ONLY=0
+case "${1:-}" in
+  --print-scratch)  printf '%s\n' "$S"; exit 0 ;;
+  --preflight-only) PREFLIGHT_ONLY=1; shift ;;
+esac
 ART=$ROOT/docs/notes/data/2026-09-m7-w2-m3b-minor-trace
 M4W=$ROOT/docs/notes/data/2026-09-m7-w2-m4-anticycling-arm/wrappers
 CLASSIFIER=$M4W/classify_psym_m4.py
@@ -140,11 +159,22 @@ EXPECT_DEBUG_ONLY_DEBUG=${EXPECT_DEBUG_ONLY_DEBUG:-1}
 
 mkdir -p "$G" "$S/logs"
 LOG=$S/logs/gates-m4fix1.log
-exec >"$LOG" 2>&1
+# THE PRE-FLIGHT SPEAKS TO THE TERMINAL. A real run's transcript is the log; a
+# `--preflight-only` run exists to be READ by the person about to commit it, so
+# it is not redirected and it does not overwrite the previous run's log.
+[ "$PREFLIGHT_ONLY" -eq 1 ] || exec >"$LOG" 2>&1
 echo "GATES_START $(date -Is)"
 cd "$ROOT" || exit 90
 echo "=== HEAD $(git rev-parse --short HEAD)  dirty-files=$(git status --porcelain | wc -l) ==="
-[ -z "$(git status --porcelain)" ] || { echo "REFUSED: the tree is not clean"; exit 2; }
+# THE CLEAN-TREE REFUSAL IS THE RUN'S, NOT THE PRE-FLIGHT'S. A pre-flight is run
+# precisely when the repair it checks is still uncommitted, so refusing on a
+# dirty tree there would make the check unrunnable exactly when it is needed.
+# The real chain still refuses, and says so here so the exemption is not silent.
+if [ "$PREFLIGHT_ONLY" -eq 1 ]; then
+  echo "=== PREFLIGHT_ONLY: the clean-tree refusal is NOT applied in this mode; the chain still applies it ==="
+else
+  [ -z "$(git status --porcelain)" ] || { echo "REFUSED: the tree is not clean"; exit 2; }
+fi
 echo "=== GATES_SCRATCH=$GATES_SCRATCH ==="
 echo "=== BEFORE=$BEFORE  EXPECT_DEBUG_TESTS=$EXPECT_DEBUG_TESTS  EXPECT_RELEASE_TESTS=$EXPECT_RELEASE_TESTS ==="
 
@@ -163,25 +193,64 @@ echo "=== CHANGED SOURCES: $CHANGED_SOURCES"
 # shellcheck source=gate_asserts_m3b.sh
 . "$ASSERTS" || exit 90
 
-# A GATE SEGMENT MAY NOT NAME A SCRATCH PATH OF ITS OWN. Every segment below is
-# a single-quoted heredoc, so a path written into one is a LITERAL that a copy
-# of this file carries into the next round -- which is exactly what happened to
-# this round's first chain: the outer `S=` was re-pointed, the six inner ones
-# were not, and four gates built and wrote into the PREVIOUS round's tree while
-# their asserts read this one's. Segments take the path from `GATES_SCRATCH`
-# now, and this refuses before any build if one names a path again.
-check_segment() {
-  local f="$1"
-  local hits
-  hits=$(grep -n 'scratch' "$f")
-  if [ -n "$hits" ]; then
-      echo "REFUSED: the gate segment $f names a scratch path of its own."
-      echo "         Segments read GATES_SCRATCH so that a copied runner cannot"
-      echo "         carry the previous round's tree into this one:"
-      echo "$hits"
-      exit 2
+# A GATE SEGMENT IS JUDGED BY THE DIRECTORY IT RESOLVES, NOT BY ITS PROSE.
+#
+# Every segment below is a single-quoted heredoc whose SECOND line is its whole
+# prologue: `ROOT=...; S=${GATES_SCRATCH:?}; G=$S/gates`. This evaluates THAT
+# LINE in a subshell, with `GATES_SCRATCH` set exactly as the segment will see
+# it, and asserts that the `$S` and `$G` the segment will really write to are
+# this chain's own. It is a POSITIVE assertion, so a segment that names no path
+# at all and still resolves somewhere else -- an unset export, a typo in it --
+# fails too. Run 1's guard could only say "I found nothing bad".
+#
+# The residual textual check keeps the part that is genuinely about paths: a
+# literal `.scratch/` in the segment's CODE, plus any re-assignment of S or G
+# after the prologue. COMMENTS ARE STRIPPED BEFORE EITHER LOOKS. Run 2 of this
+# chain was refused because a comment in `g5.sh` contained the WORD `scratch`;
+# a sentence about a path is not a path, and a grep for a word cannot tell them
+# apart.
+assert_segment_scratch() {
+  local f="$1" line probe got_s got_g code hits reassign rc=0
+  if [ ! -s "$f" ]; then
+    echo "SEGMENT REFUSED $f: was not written, or is empty"
+    return 1
   fi
-  echo "SEGMENT_OK $f: names no scratch path of its own"
+  line=$(sed -n '2p' "$f")
+  case "$line" in
+    *'S=${GATES_SCRATCH'*) : ;;
+    *) echo "SEGMENT REFUSED $f: line 2 is not the GATES_SCRATCH prologue: $line"
+       return 1 ;;
+  esac
+  # THE VALUES THE SEGMENT WILL ACTUALLY USE, obtained by running its own line.
+  probe=$(GATES_SCRATCH="$GATES_SCRATCH" bash -c "$line"'; printf "%s\n%s\n" "$S" "$G"' 2>&1) || {
+    echo "SEGMENT REFUSED $f: its prologue would not evaluate: $probe"
+    return 1
+  }
+  got_s=$(printf '%s\n' "$probe" | sed -n '1p')
+  got_g=$(printf '%s\n' "$probe" | sed -n '2p')
+  if [ "$got_s" != "$GATES_SCRATCH" ]; then
+    echo "SEGMENT REFUSED $f: resolves S='$got_s'; this chain's is '$GATES_SCRATCH'"
+    rc=1
+  fi
+  if [ "$got_g" != "$GATES_SCRATCH/gates" ]; then
+    echo "SEGMENT REFUSED $f: resolves G='$got_g'; this chain's is '$GATES_SCRATCH/gates'"
+    rc=1
+  fi
+  code=$(sed -e 's/^[[:space:]]*#.*$//' "$f")
+  hits=$(printf '%s\n' "$code" | grep -n '\.scratch/')
+  if [ -n "$hits" ]; then
+    echo "SEGMENT REFUSED $f: its CODE names a .scratch/ path of its own:"
+    echo "$hits"
+    rc=1
+  fi
+  reassign=$(printf '%s\n' "$code" | sed '1,2d' | grep -nE '(^|[;[:space:]])[SG]=')
+  if [ -n "$reassign" ]; then
+    echo "SEGMENT REFUSED $f: it re-assigns S or G after its prologue:"
+    echo "$reassign"
+    rc=1
+  fi
+  [ $rc -eq 0 ] && echo "SEGMENT_OK $f: resolves S=$got_s  G=$got_g"
+  return $rc
 }
 
 run_locked() { # label, then the command
@@ -203,6 +272,16 @@ run_locked() { # label, then the command
   return $rc
 }
 
+# ===========================================================================
+# ALL SIX SEGMENTS ARE WRITTEN FIRST, AND ALL SIX ARE CHECKED, BEFORE ANY LEG
+# RUNS. Run 2 of this chain wrote and checked each segment immediately above
+# its own leg, so it spent 26 minutes -- a Debug suite, a 673 s test, a Release
+# suite and the replay -- before discovering that `g5.sh` would be refused. A
+# pre-flight that can only be reached by paying for the legs in front of it is
+# not a pre-flight. Nothing below writes to the build trees; `emit_segments`
+# only writes the six `.sh` files.
+# ===========================================================================
+emit_segments() {
 # --- G1: Debug -------------------------------------------------------------
 cat > "$S/g1.sh" <<'INNER'
 set -o pipefail
@@ -215,9 +294,6 @@ MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 ctest --test-dir "$S/gates-dbg" -j4 --no-tes
   -E "Continuation.ProbeBudgetBoundsAFailingProposal" --output-on-failure > "$G/suite-debug.log" 2>&1
 rc=$?; tail -6 "$G/suite-debug.log"; exit $rc
 INNER
-check_segment "$S/g1.sh"
-run_locked G1-debug bash "$S/g1.sh"; rc1=$?
-assert_ctest "G1 Debug suite" "$G/suite-debug.log" "$EXPECT_DEBUG_TESTS" || rc1=1
 
 # --- G2: the long test, ALONE ---------------------------------------------
 cat > "$S/g2.sh" <<'INNER'
@@ -227,9 +303,6 @@ MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 ctest --test-dir "$S/gates-dbg" --no-tests=e
   -R "^Continuation.ProbeBudgetBoundsAFailingProposal$" --output-on-failure > "$G/suite-debug-long.log" 2>&1
 rc=$?; tail -8 "$G/suite-debug-long.log"; exit $rc
 INNER
-check_segment "$S/g2.sh"
-run_locked G2-debug-long bash "$S/g2.sh"; rc2=$?
-assert_ctest "G2 long test" "$G/suite-debug-long.log" "$EXPECT_LONG_TESTS" || rc2=1
 
 # --- G3: Release ----------------------------------------------------------
 cat > "$S/g3.sh" <<'INNER'
@@ -245,9 +318,6 @@ MKL_NUM_THREADS=1 OMP_NUM_THREADS=1 ctest --test-dir "$S/gates-rel" -j4 --no-tes
 rc=$?; tail -6 "$G/suite-release.log"
 exit $rc
 INNER
-check_segment "$S/g3.sh"
-run_locked G3-release bash "$S/g3.sh"; rc3=$?
-assert_ctest "G3 Release suite" "$G/suite-release.log" "$EXPECT_RELEASE_TESTS" || rc3=1
 
 # --- G4: the replay -------------------------------------------------------
 cat > "$S/g4.sh" <<'INNER'
@@ -271,10 +341,6 @@ for eng in walk ssn ipm; do
 done
 exit $worst
 INNER
-check_segment "$S/g4.sh"
-run_locked G4-replay bash "$S/g4.sh"; rc4=$?
-assert_replay "$G/replay/comparison.txt" "$EXPECT_REPLAY_CELLS" "$EXPECT_REPLAY_COLUMNS" \
-  "$EXPECT_REPLAY_DIFFS" "$EXPECT_REPLAY_ENGINES" || rc4=1
 
 # --- G5: P-SYM, both configs ---------------------------------------------
 cat > "$S/g5.sh" <<'INNER'
@@ -400,10 +466,6 @@ assert_psym_cross_config "$OUT/classification-Release.txt" "$OUT/classification-
 echo "G5_ASSERT_RC=$rc"
 exit $rc
 INNER
-check_segment "$S/g5.sh"
-run_locked G5-psym bash "$S/g5.sh" "$BEFORE" "$CHANGED_SOURCES" "$CHANGED_HEADERS" \
-  "$MIN_NEGATIVE_CONTROL" "$EXPECT_PSYM_DIFFERING" "$EXPECT_PSYM_CLASS_A" \
-  "$EXPECT_PSYM_CLASS_B" "$EXPECT_DEBUG_ONLY_RELEASE" "$EXPECT_DEBUG_ONLY_DEBUG"; rc5=$?
 
 # --- G6: smoke, export contract, format, whitespace ------------------------
 cat > "$S/g6.sh" <<'INNER'
@@ -442,7 +504,50 @@ echo "DIRTY_FILES=$dirty"
 echo "G6_ASSERT_RC=$rc"
 exit "$rc"
 INNER
-check_segment "$S/g6.sh"
+}
+
+# ===========================================================================
+# THE PRE-FLIGHT. Write all six, judge all six, and stop here if any one of
+# them would write somewhere other than this chain's own tree.
+# ===========================================================================
+emit_segments || { echo "REFUSED: a gate segment could not be written"; exit 2; }
+preflight_rc=0
+for seg in g1 g2 g3 g4 g5 g6; do
+  assert_segment_scratch "$S/$seg.sh" || preflight_rc=1
+done
+if [ "$preflight_rc" -ne 0 ]; then
+  echo "REFUSED: the pre-flight rejected a gate segment. NO LEG HAS RUN."
+  exit 2
+fi
+echo "=== PREFLIGHT_OK: 6 segments written and asserted against GATES_SCRATCH, before the first leg ==="
+if [ "$PREFLIGHT_ONLY" -eq 1 ]; then
+  echo "PREFLIGHT_ONLY: stopping before G1. No leg was run and no build tree was touched."
+  exit 0
+fi
+
+# --- G1: Debug -------------------------------------------------------------
+run_locked G1-debug bash "$S/g1.sh"; rc1=$?
+assert_ctest "G1 Debug suite" "$G/suite-debug.log" "$EXPECT_DEBUG_TESTS" || rc1=1
+
+# --- G2: the long test, ALONE ---------------------------------------------
+run_locked G2-debug-long bash "$S/g2.sh"; rc2=$?
+assert_ctest "G2 long test" "$G/suite-debug-long.log" "$EXPECT_LONG_TESTS" || rc2=1
+
+# --- G3: Release ----------------------------------------------------------
+run_locked G3-release bash "$S/g3.sh"; rc3=$?
+assert_ctest "G3 Release suite" "$G/suite-release.log" "$EXPECT_RELEASE_TESTS" || rc3=1
+
+# --- G4: the replay -------------------------------------------------------
+run_locked G4-replay bash "$S/g4.sh"; rc4=$?
+assert_replay "$G/replay/comparison.txt" "$EXPECT_REPLAY_CELLS" "$EXPECT_REPLAY_COLUMNS" \
+  "$EXPECT_REPLAY_DIFFS" "$EXPECT_REPLAY_ENGINES" || rc4=1
+
+# --- G5: P-SYM, both configs ---------------------------------------------
+run_locked G5-psym bash "$S/g5.sh" "$BEFORE" "$CHANGED_SOURCES" "$CHANGED_HEADERS" \
+  "$MIN_NEGATIVE_CONTROL" "$EXPECT_PSYM_DIFFERING" "$EXPECT_PSYM_CLASS_A" \
+  "$EXPECT_PSYM_CLASS_B" "$EXPECT_DEBUG_ONLY_RELEASE" "$EXPECT_DEBUG_ONLY_DEBUG"; rc5=$?
+
+# --- G6: smoke, export contract, format, whitespace ------------------------
 CHANGED_CXX=$(git diff --name-only "$BEFORE..$HEAD_AT_START" -- 'include/*.h' 'src/*.cpp' 'tests/*.cpp' | tr '\n' ' ')
 echo "=== CHANGED C++ FOR CLANG-FORMAT: $CHANGED_CXX"
 run_locked G6-smoke bash "$S/g6.sh" "$CHANGED_CXX" "$ASSERTS"; rc6=$?
