@@ -1,0 +1,23 @@
+  FOLD 1  a zero-motion period-2 tail returns CYCLE                PASS   got='CYCLE' want='CYCLE'
+  FOLD 1  ...with the period read off the F0 state                 PASS   got=2 want=2
+  FOLD 1  ...and STRICT zero motion does NOT hold (D2 is real)     PASS   got=False want=False
+  FOLD 1  ...while the OPERATIVE reading does                      PASS   got=True want=True
+  FOLD 1  ...and D2's strict reading would have said otherwise     PASS   got='SOMETHING ELSE' want='SOMETHING ELSE'
+  FOLD 2  a moving, never-repeating tail returns LONG WALK         PASS   got='LONG WALK' want='LONG WALK'
+  FOLD 2  ...and no periodic suffix was found                      PASS   got=None want=None
+  FOLD 2  ...and the sum of motion is the sum of the steps         PASS   got=20.0 want=20.0
+  FOLD 3  an exactly periodic tail that MOVES returns SOMETHING ELSE PASS   got='SOMETHING ELSE' want='SOMETHING ELSE'
+  FOLD 3  ...and its period is found although it is not 2          PASS   got=3 want=3
+  FOLD 3  ...and RULE-G's period-2 finder sees no such tail        PASS   got=True want=True
+  FOLD 4  at a winning period of 2 the tail IS RULE-G's tail       PASS   got=(2, True) want=(2, True)
+  FOLD 5  IMMEDIATE_READD is absent from the precedence            PASS   got=False want=False
+  FOLD 5  ...and the five surviving arms are M3b's own, in order   PASS   got=['CYCLING_PROPER', 'SIDE_PING_PONG', 'ZERO_PROBE_CHURN', 'NEGATIVE_CURVATURE_BLOCKERS', 'DEGENERATE_CRAWL'] want=['CYCLING_PROPER', 'SIDE_PING_PONG', 'ZERO_PROBE_CHURN', 'NEGATIVE_CURVATURE_BLOCKERS', 'DEGENERATE_CRAWL']
+  FOLD 5  RULE-G's cause classifier is never called                PASS   got=False want=False
+  FOLD 6  the tail's share is records/N and never exceeds 1        PASS   got=True want=True
+  FOLD 7  no recorded candidates means no distinct candidate set   PASS   got=0 want=0
+  FOLD 8  a header belonging to another solve is flagged as such   PASS   got=False want=False
+  FOLD 8  ...and is accepted when it is this solve's               PASS   got=True want=True
+  FOLD 9  a later solve starting in the earlier cycle is EQUAL     PASS   got=True want=True
+  FOLD 9  a cell with ONE capped solve DECLINES, never guesses     PASS   got=True want=True
+
+SELFTEST GREEN (0 failures)
