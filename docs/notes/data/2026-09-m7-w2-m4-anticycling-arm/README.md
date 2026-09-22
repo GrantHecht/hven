@@ -88,14 +88,18 @@ which §9 itself instructed us to say.
 
 ---
 
-## The four process findings
+## The five process findings
+
+*(The fifth was added by FIX ROUND 1, whose own gate chain committed the same
+error class finding 1 names — one level up. See `gates-fix1/README.md`.)*
 
 ### 1. A copied classifier must DERIVE, never CARRY, its declaration
 
 Task A's gate G5 failed against its own machinery because the copied P-SYM
 classifier carried the *previous* task's header list instead of deriving one from
 this task's `base..head`. This is the **third** instance of one error class — M7
-W2 M3a fix1 was the first, M3b fix1 the second. The full account, including what
+W2 M3a fix1 was the first, M3b fix1 the second, and FIX ROUND 1's own gate
+runner became the **fourth** (finding 5). The full account, including what
 G5 measured successfully anyway (the production library is byte-for-byte
 unmoved by the arm), is `gates/README.md`; it is carried here so the class is
 visible from the task's own front page. The repaired classifier has no literal
@@ -226,6 +230,51 @@ as it should have been, the gate would have passed two legs whose walks differ,
 and this table is the reason that would not have been a mistake worth relying on.
 *(Observed, POST-HOC; nothing in RULE.md pre-registered a per-record comparison,
 and no verdict rests on it.)*
+
+### 5. A runner checks every path it hands ITSELF — and a guard over TEXT cannot test a property about VALUES
+
+*Added by FIX ROUND 1 (2026-09-22). Its evidence is `gates-fix1/README.md` and
+the two `WHY.md` files beside it.*
+
+Finding 1 is about a declaration carried from the previous task. FIX ROUND 1's
+own gate chain — the chain that exists to re-prove this round's production
+neutrality — committed the same class one level up, and then committed a second
+class in the act of guarding against the first.
+
+**The fourth instance of the carried class.** `gates-m4fix1.sh` is M4's
+`gates-m4.sh`, copied and re-pointed. The copy re-pointed the OUTER `S=` and
+left **six inner literals naming M4's scratch tree**, so four gates built, ran
+and wrote into the previous round's tree while their asserts read this one's.
+The rule finding 1 states for a sibling script is not enough: **a runner checks
+every path it hands a sibling AND every path it hands ITSELF.** One `S` defined
+once; every segment asserting that the directory it resolves is the chain's own;
+fail-closed **before the first leg**, not after thirty minutes of building. Run
+1's captures also overwrote M4's *scratch* P-SYM capture directories; M4's
+committed evidence under `gates/` is untouched, and the raw files are preserved
+in `gates-fix1/run1-refused/psym-raw/`.
+
+**The second class.** The guard added to stop that was `grep -n 'scratch'` over
+the whole segment, and it fired on a **comment** — refusing a segment whose
+actual prologue was correct, after two more gates' worth of wall. Two things
+were wrong at once and are worth separating:
+
+* **The test was textual where the property is a value.** "Where does this
+  segment write?" is a question about the directory the segment *resolves*, not
+  about which words appear in its prose. A `grep` for a word cannot tell a path
+  from a sentence about a path.
+* **The test was negative where the property is positive.** It could only say
+  "I found nothing bad". A guard that says *"this resolves to my tree"* is
+  strictly stronger: it also catches a segment that names no path at all and
+  still resolves elsewhere, which the negative form passes.
+
+The repair asserts the value — the segment's own prologue is evaluated with
+`GATES_SCRATCH` set as the segment will see it, and the resolved `$S` and `$G`
+must equal the declared tree and its `gates/` — strips comments before any
+residual textual check, judges all six segments in a pre-flight before the first
+leg, and leaves the round **one** scratch literal rather than two that happen to
+agree. Three chains ran; the declaration governing them was committed before the
+first and never edited. Re-running a gate after repairing its runner is not
+re-measuring an experiment.
 
 ---
 
@@ -376,6 +425,7 @@ as "the only other declared difference". The replay adds a THIRD:
 | `rows/` | all 22 rows the chain wrote (10 OFF controls + 3 cells × 4 arms) |
 | `logs/` | `chain.log`, the four gate transcripts, every `.err` (all empty), `armcheck.txt`, `passed-cells.txt`, `stopped-arms.txt`, `refusal.txt`, and Task B's `gate-smoke.txt`, `binary-m4.txt`, `harvest-diff-m4.txt` |
 | `gates/` | Task A's gate record and its README, plus this close-out's `neutral-posthoc-no-traceout-{E,L,L+}.txt` and `default-unchanged.txt` |
+| `gates-fix1/` | FIX ROUND 1's gate record: the declaration committed before the first chain, run 3's transcripts, its declared-vs-measured table, and the two refused chains beside it |
 | `traces-m4/` | 69 per-solve slices of the neutrality traces (every RECURRENT solve, and every first-divergence solve, under every arm that has it), `SHA256-slices-m4.txt`, and `SHA256-parent-traces-m4.txt` for the 22 flat traces, which are 247 MB and are **not** committed |
 | `wrappers/` | the probe, the replay build, the gate, the chain, the classifiers, and this close-out's `readouts_driver_m4.py` and `table_arm_m4.py` |
 | `rows-smoke/` | the §3.3 smoke row |
