@@ -1,0 +1,112 @@
+M7 W2 M4 FIX ROUND 1 -- THE GATE EXPECTATIONS, DERIVED AND COMMITTED
+BEFORE THE CHAIN WAS DETACHED. Nothing in this file was adjusted after
+seeing what it rejected.
+
+derived-at 2026-09-22T09:20:59-04:00
+branch     m7
+HEAD       7074c9e14de43e8d9b0f58017524adfe7cb81e8b   (7074c9e1)
+dirty      3 file(s) -- the derivation's own,
+           committed by the commit this file lands in
+BEFORE     f5205770   (M7 W2 M3c's close; M4's own base)
+
+== WHY BEFORE IS M4's BASE AND NOT THIS ROUND'S ==========================
+The claim this gate carries is not 'the fix round moved nothing'. It is
+'the WHOLE anti-cycling arm, as corrected, leaves the production library
+byte-identical to the tree that has no arm in it'. f5205770..HEAD is that
+comparison, and it keeps the declared shape comparable object for object
+with what M4 declared and measured. Between M4's head and this round's
+base nothing outside docs/notes/data/** changed, which is shown below.
+
+== THE CHANGED SURFACE ===================================================
+$ git diff --name-only f5205770..HEAD
+    include/hven/detail/qp/qp_anti_cycling_arm.h
+    include/hven/detail/qp/qp_walk_trace.h
+    src/qp/qp_engine.cpp
+    tests/CMakeLists.txt
+    tests/qp/test_qp_anti_cycling_arm.cpp
+    (plus docs/notes/data/** only -- full list:)
+    NON-DATA: include/hven/detail/qp/qp_anti_cycling_arm.h
+    NON-DATA: include/hven/detail/qp/qp_walk_trace.h
+    NON-DATA: src/qp/qp_engine.cpp
+    NON-DATA: tests/CMakeLists.txt
+    NON-DATA: tests/qp/test_qp_anti_cycling_arm.cpp
+
+$ git diff --name-only dfcf048b..HEAD  (M4's close .. this round's head),
+  restricted to anything that can reach a production object:
+    include/hven/detail/qp/qp_anti_cycling_arm.h
+    src/qp/qp_engine.cpp
+    tests/ (test targets only):
+    tests/qp/test_qp_anti_cycling_arm.cpp
+
+== WHERE THIS ROUND'S OWN HUNKS SIT IN src/qp/qp_engine.cpp ==============
+That TU's one assert() is at line 447. A hunk above it would move a
+__LINE__ immediate and the Debug INSTRUCTION stream with it. The hunks:
+    @@ -631,8 +631,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+    @@ -1076,15 +1078,12 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
+    @@ -2374,12 +2373,18 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
+    @@ -2601,8 +2606,19 @@ QpEngine::RideOutcome QpEngine::ride_negative_curvature(const QpProblem &qp,
+    @@ -2644,6 +2660,19 @@ namespace {
+    @@ -2672,11 +2701,15 @@ struct ArmCandidate {
+    @@ -2684,7 +2717,8 @@ std::vector<ArmCandidate> arm_candidates(const QpProblem &qp, const WorkingSet &
+    @@ -2703,13 +2737,14 @@ std::vector<ArmCandidate> arm_candidates(const QpProblem &qp, const WorkingSet &
+    -> the lowest-numbered hunk starts at line 631, well below 447.
+
+== TEST COUNTS ===========================================================
+ctest -N on this round's own configured Debug tree: 2717
+  Release = 2717 - 2 = 2715   (a CTest summary counts the 1 SKIPPED test
+  Debug   = 2717 - 3 = 2714    but not the 2 DISABLED ones; Debug also
+                               excludes the >600 s test, which G2 runs)
+CROSS-CHECK against M4's own met declaration (2709 Debug / 2710 Release):
+  this round adds exactly 5 TEST() blocks and changes none in place --
+  QpAntiCyclingArm goes 11 -> 16 fixtures -- so 2709+5=2714, 2710+5=2715.
+  The two derivations agree.
+  The five: ArmEsKthIterationRunsAtTheExpandedToleranceAndTheResetFollowsIt,
+            ArmEsResetCountsANontrivialReProjection,
+            ArmEsFloorStepOnTheNegativeCurvatureRideIsNotRePinned,
+            ArmEsNegligiblePivotParameterDecidesWhichConstraintsCanBlock,
+            AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt
+  (one pre-existing fixture is RENAMED, not added:
+   ArmEsResetSequenceIsReachableAndReProjectsTheIterate ->
+   ArmEsResetSequenceIsReachableAndRestartsTheTolerance, and
+   TheSwitchIsOffByDefaultAndItsParametersAreThePapersOwn ->
+   ...AreThePaperDerivedOnes.)
+
+== THE P-SYM MOVER SHAPE: ZERO, IN BOTH CONFIGURATIONS ===================
+  Release   DIFFERING 0 = class A 0 + class B 0
+  Debug     DIFFERING 0 = class A 0 + class B 0
+  psym_compare.sh compare must exit 0, not 1.
+  min negative control: 1 (objects that DO include a changed header and
+  are byte-identical anyway -- what stops a false zero from a capture
+  that compared nothing).
+
+== THE DECLARED DEBUG-ONLY SHAPE =========================================
+  Release 0   -- nothing may differ at all, in any section, in any of the
+                 42 library objects
+  Debug   1   -- src/qp/qp_engine.cpp.o, and ONLY in debug sections
+  A second Debug object, any Release object, or a difference in a
+  NON-debug section all FAIL.
+
+== THE CLASSIFIER ========================================================
+classify_psym_m4.py -- M4's repair, which DERIVES its changed-header list
+from <base>..<head> and carries no literal. M4's chain ran M3b's copy,
+which carried M3b's list, and G5 FAILED against its own machinery.
+The runner still derives its own list independently and hands it over as
+--changed-headers, so two derivations disagreeing is still a refusal.
+Runner-derived list:
+    include/hven/detail/qp/qp_anti_cycling_arm.h
+    include/hven/detail/qp/qp_walk_trace.h
+
+== THE SIX GATES, AS DECLARED ============================================
+  G1  Debug suite, 2714 tests, 0 failed
+  G2  the one >600 s Debug test ALONE, 1 test, 0 failed
+  G3  Release suite, 2715 tests, 0 failed
+  G4  U0 replay vs the M6 close pin: 27 cells x 75 columns x 3 engines,
+      0 differences
+  G5  P-SYM both configurations: DIFFERING 0 = A 0 + B 0; DEBUG_ONLY
+      Release 0 / Debug 1 (qp_engine.cpp.o); negative control >= 1
+  G6  install smoke, export contract (align 32), clang-format,
+      git diff --check, DIRTY_FILES=0
+  fold proofs: FOLD_PROOFS_FAILED=0
+
+WALL IS INFORMATIONAL. Nothing in this file or in the chain it governs is
+a timing claim.
