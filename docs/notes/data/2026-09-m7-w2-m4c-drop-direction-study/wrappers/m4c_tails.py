@@ -26,10 +26,49 @@ import os
 import sys
 from collections import OrderedDict
 
-M4B = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                   "..", "..", "docs", "notes", "data",
-                   "2026-09-m7-w2-m4b-expand-on-the-ten", "wrappers")
-sys.path.insert(0, os.path.abspath(M4B))
+# [fix1] RELOCATABLE IMPORT of `classify_cause_fix1` (imported UNMODIFIED).
+# The original line joined a repository-RELATIVE tail onto an ABSOLUTE
+# directory and computed `<...>/docs/notes/data/docs/notes/data/<...>`, which
+# exists nowhere; the module was only ever found because the author's working
+# copy happened to sit beside it.  Two resolutions are tried, both derived from
+# `__file__`: the SIBLING artifact directory under the same `docs/notes/data/`
+# parent, then the same path under the repository root, found by walking up
+# until a `.git` entry appears -- `os.path.exists`, not `isdir`, because that
+# entry is a FILE in a git worktree and a DIRECTORY in a main checkout.  If
+# neither carries the module the script REFUSES, naming every place it looked,
+# rather than importing whatever happens to be on `sys.path`.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_M4B_REL = os.path.join("docs", "notes", "data",
+                        "2026-09-m7-w2-m4b-expand-on-the-ten", "wrappers")
+
+
+def _repo_root(start):
+    """The nearest ancestor of `start` carrying a `.git` entry, or None."""
+    d = start
+    while True:
+        if os.path.exists(os.path.join(d, ".git")):
+            return d
+        up = os.path.dirname(d)
+        if up == d:
+            return None
+        d = up
+
+
+_M4B_TRIED = [os.path.abspath(os.path.join(
+    _HERE, "..", "..", "2026-09-m7-w2-m4b-expand-on-the-ten", "wrappers"))]
+_ROOT = _repo_root(_HERE)
+if _ROOT is not None:
+    _M4B_TRIED.append(os.path.join(_ROOT, _M4B_REL))
+for _cand in _M4B_TRIED:
+    if os.path.isfile(os.path.join(_cand, "classify_cause_fix1.py")):
+        sys.path.insert(0, _cand)
+        break
+else:
+    sys.exit("m4c_tails.py: cannot find `classify_cause_fix1.py` (the trace "
+             "reader this study imports unmodified).  Looked in:\n  "
+             + "\n  ".join(_M4B_TRIED)
+             + "\nRun this script from a checkout that still carries "
+               "docs/notes/data/2026-09-m7-w2-m4b-expand-on-the-ten/wrappers/.")
 import classify_cause_fix1 as cc  # noqa: E402
 
 PERIOD_CAP = 64
@@ -227,11 +266,26 @@ def arms(u):
     h["b_dim_D"] = u["kkt_rows_D"] > u["n"]
     h["b_perturbed"] = u["inertia_perturbed"] > 0
     # (c) the engine's own inertia gate says the system carries more negative
-    #     directions than the working set accounts for.
+    #     directions than the working set accounts for.  `c_neg_excess` is the
+    #     ONLY predicate of class (c) -- see `classify` below.
     h["c_neg_excess"] = u["neg_excess"] is not None and u["neg_excess"] > 0
+    # [fix1] NOT a class predicate (review minor 3): a RECORDED DIAGNOSTIC
+    # only.  It is the engine's own adverse verdict, and it fires on units
+    # whose inertia excess is NEGATIVE (ACOPR57, ACOPP57), which REPORT.md
+    # sec. 6 item 4 declines to interpret -- so it names no mechanism.  Making
+    # it a class-(c) predicate would relabel ACOPP57's 1 777 residual units and
+    # is refused.  The key keeps the `c_` spelling it was PINNED with in
+    # `tails.json`; that prefix is a frozen artifact name, not a claim of class
+    # membership.
     h["c_verdict_wrong"] = u["inertia_verdict"] == 2
-    # (e) descriptive: the iterate is off the face its own EQP holds at
-    #     equality, and by how much relative to the dual regularization.
+    # (e) has NO predicate of its own: it is the RESIDUAL class, the
+    #     unconditional fallback after (a)-(d) (see `classify`).  The two arms
+    #     below are DESCRIPTIVE readings printed for the units that land there
+    #     -- how far the iterate sits off the face its own EQP holds at
+    #     equality, and whether the active set is exactly square.  Neither is
+    #     required for the label, and neither says anything about the
+    #     DIRECTION: every core unit's direction crosses the released bound
+    #     (`released_directional > 0`, 100 051 / 100 051).
     h["e_off_face"] = (u["active_res_inf"] is not None
                        and u["step_tol_D"] is not None
                        and u["active_res_inf"] > 10.0 * u["step_tol_D"])
@@ -247,6 +301,13 @@ def classify(u):
     (c) because it is an integer PROOF of dependency while (c) is the engine's
     own gate reading, which M3b C11 says is an algebraic verdict about the
     bordered system rather than a fresh per-working-set factorization.
+
+    [fix1] (e) is the RESIDUAL class: it is returned UNCONDITIONALLY when no
+    earlier arm holds, and neither `e_off_face` nor `e_square` is required for
+    it.  Its label is "residual / unclassified after (a)-(d), often off the
+    retained face" -- NOT a direction mechanism.  The only class predicate of
+    (c) is `c_neg_excess`; `c_verdict_wrong` is a recorded diagnostic and
+    participates in no class (review minor 3).
     """
     h = arms(u)
     if h["d_no_direction"]:
@@ -295,10 +356,16 @@ def main():
                 continue
             tail = rs[t0:]
             units = []
+            # [fix1] A.action, carried BESIDE the unit rather than inside it:
+            # the CORE predicate below now asserts it explicitly (review minor
+            # 2) while the per-unit record `tails.json` was pinned with keeps
+            # exactly the fields it had.
+            add_actions = []
             for i in range(len(tail) - 1):
                 if (tail[i]["action"] in DROP
                         and tail[i + 1]["post_drop"] == "1"):
                     units.append(unit_of(tail[i], tail[i + 1], n, me))
+                    add_actions.append(tail[i + 1]["action"])
             if not units:
                 allrows.append(OrderedDict(
                     cell=cell, solve=k, N=N, period=p, t0=t0, tail=tl,
@@ -311,8 +378,9 @@ def main():
             # drop released, through the ordinary ratio test) -- the object the
             # brief asks about -- falling back to the last unit when the tail
             # has no core unit at all.
-            _core = [u for u in units
-                     if u["added"] == u["released"] and u["add_route"] == "none"]
+            _core = [u for u, act in zip(units, add_actions)
+                     if act in ADD and u["added"] == u["released"]
+                     and u["add_route"] == "none"]
             rep = _core[-1] if _core else units[-1]
             cls, harms, why = classify(rep)
             row = OrderedDict(cell=cell, solve=k, N=N, period=p, t0=t0,
@@ -333,10 +401,13 @@ def main():
                         ac[k] = ac.get(k, 0) + 1
             row["unit_classes"] = uc
             row["unit_arm_counts"] = ac
-            # the CORE subset: the post-drop pass immediately re-adds exactly
-            # the identity the drop released, through the ordinary ratio test.
-            core = [u for u in units
-                    if u["added"] == u["released"] and u["add_route"] == "none"]
+            # the CORE subset: the post-drop pass is an ADD (`A.action ==
+            # "add"`, asserted rather than inferred from the blocker fields --
+            # review minor 2) which immediately re-admits exactly the identity
+            # the drop released, through the ordinary ratio test.
+            core = [u for u, act in zip(units, add_actions)
+                    if act in ADD and u["added"] == u["released"]
+                    and u["add_route"] == "none"]
             row["core_readd_units"] = len(core)
             cc2 = {}
             for u in core:

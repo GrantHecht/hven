@@ -193,9 +193,18 @@ printed per solve in `.scratch/m7w2m4c/out/tables.md` §A):
 | `a_abs` / `a_rel` | `|λ|/opt_tol < 10` / `|λ| < ε·stat_scale` (the multiplier is below the rounding level of the gradient terms it cancels) |
 | `b_dim_A` / `b_dim_D` | `me + ws_size > n` **after** / **before** the drop — the dependency proof |
 | `b_perturbed` | Pardiso reported perturbed pivots on the pass |
-| `c_neg_excess` / `c_verdict_wrong` | `inertia_neg > inertia_expected_neg` / the engine's own verdict is `kWrong` |
+| `c_neg_excess` | `inertia_neg > inertia_expected_neg` — **the only predicate of class (c)** |
+| `c_verdict_wrong` **`[fix1]`** | the engine's own verdict is `kWrong`. **A RECORDED DIAGNOSTIC, NOT A CLASS PREDICATE.** It was advertised as one in the first issue of this report and never caused a label; it is withdrawn from the advertised predicates rather than promoted, because it fires on units whose inertia excess is *negative* (ACOPR57, ACOPP57) — the adverse verdict §6 item 4 declines to interpret — and promoting it would relabel ACOPP57's 1 777 residual units. Its key keeps the `c_` spelling it was pinned with in `tails.json`; that prefix is a frozen artifact name, not a claim of class membership. |
 | `e_off_face` | `active_res_inf > 10 · step_tol` — the iterate is off the face its own EQP holds at equality |
 | `e_square` | `me + ws_size == n` exactly — no remaining degrees of freedom at all |
+
+**`[fix1]` Class (e) has no predicate.** Neither `e_off_face` nor `e_square` is
+required for the label: (e) is returned **unconditionally** when no earlier arm
+holds. The two arms above are descriptive readings printed for the units that
+land there. Its name is **"residual / unclassified after (a)–(d), often off the
+retained face"** — it is **not** a direction mechanism. Every core unit's
+direction crosses the released bound (`released_directional > 0`, 100 051 /
+100 051, §2); it is `α = 0` that leaves the variable in place (§1.1).
 
 **The precedence, declared: `d → a → b_dim → c → b_perturbed → e`.** It is
 **POST-HOC** — the arms and their order were chosen after the distributions were
@@ -246,7 +255,12 @@ and the violations it picks are enormous: median `|λ|` of 6.6e+13 to 4.5e+15 ul
 of the gradient scale. **These are not tolerance calls — they are well-determined
 numbers computed for an ill-posed question.**
 
-**(e) — 20.5 %, the verdict on ACOPP57 (marginally) and BRITGAS.** The
+**(e) — RESIDUAL / UNCLASSIFIED after (a)–(d), often off the retained face —
+20.5 %, the verdict on ACOPP57 (marginally) and BRITGAS. `[fix1]`** *(The first
+issue of this report named this class "the direction leaves the released
+variable in place". That name is withdrawn: it is a residual class, not a
+direction mechanism. All 100 051 core directions cross the released bound; what
+leaves the variable in place is `α = 0`, §1.1.)* The
 dependency proof does not fire (`me+|W| ≤ n`), the inertia is as expected, `|λ|`
 is far above any rounding level and `|p_released|` far above `1e-12`. What the
 records do show on 82.5 % of all core units is that **the iterate sits off the
@@ -263,13 +277,17 @@ space of the active set is `{0}` and the "EQP direction" can only be a
 regularized feasibility correction — it has no descent content to agree or
 disagree with a multiplier about.
 
-**(c) — 8.4 % of core units, ALL of them BRITGAS (solves 4, 6, 8, 10).**
+**(c) — THE ENGINE'S NEGATIVE-INERTIA-EXCESS SIGNAL — 8.4 % of core units, ALL
+of them BRITGAS (solves 4, 6, 8, 10). `[fix1]`** *(Named "indefinite reduced
+Hessian" in the first issue of this report. Withdrawn: the post-drop reduced
+Hessian's inertia was never recorded — §6 item 2 says so explicitly — so the
+class names the signal that WAS recorded, and nothing beyond it.)*
 `inertia_neg` exceeds `inertia_expected_neg` by `+1` or `+2` with the engine's
 verdict `kWrong`. *(SAWPATH solve 7 carries a `+1` excess too, but its active
 set is over-determined by `+5`, so precedence classifies it (b); the overlap is
 printed in `tables.md` §A and §B rather than hidden.)* On BRITGAS solve 4 the post-drop direction is `‖p‖∞ = 2.5e+10`
 with `active_res_inf = 3.1e-15` — a genuinely unbounded-looking ray inside a
-working set the inertia gate says is indefinite, and §4c's curvature gate does
+working set the inertia gate flags with a negative-inertia excess `[fix1]`, and §4c's curvature gate does
 not fire on it (`curvature_fired = 0`), so the ride is never offered the
 direction. **Subject to C11**: on the `border_schur` path this excess is K0's
 triple against a Haynsworth-adjusted expectation, not a fresh factorization of
@@ -277,7 +295,11 @@ the post-drop reduced Hessian, so it is the engine's own indefiniteness signal
 read exactly as the engine reads it — evidence toward (c), not a measurement of
 the reduced Hessian on the released subspace.
 
-**(a) — 2.5 %, YORKNET alone, and it is unambiguous.** `|λ| = 2.9802322387695312e-08`
+**(a) — 2.5 %, YORKNET alone. `[fix1]` The READING is unambiguous; "false drop"
+is a HYPOTHESIS pending arm (a)'s intervention in M5, not an established fact.**
+What the records show is a drop triggered by a noise-level cancellation residue
+under an absolute test; that the absolute test is what *causes* the drop is the
+inference §7 flags and the M5 experiment settles. `|λ| = 2.9802322387695312e-08`
 — which is exactly `2⁻²⁵` — against `stat_scale = 1.6e+11`. That is **8.3e-04
 ulps of the gradient scale**: three orders of magnitude *below* one rounding
 unit of the numbers it is the cancellation of. `drop_tied = 8` and the recorded
@@ -377,20 +399,32 @@ independent.** The classical remedy is not a step-length rule at all: it is to
 **maintain the working set as a linearly INDEPENDENT subset of the active set**,
 which is how the working set is *defined* in Gill, Murray & Wright, *Practical
 Optimization* (Academic Press, 1981), Chapter 5 on linearly constrained
-optimization, and in Nocedal & Wright, *Numerical Optimization*, 2nd ed.
-(Springer, 2006), §16.5 — whose active-set algorithm admits a blocking constraint
-only when doing so keeps the working-set gradients independent, and whose
-degeneracy discussion at the close of §16.5 is precisely about what to do when a
-blocking constraint is dependent on those already held. hven does the opposite by
+optimization.
+
+**`[fix1]` The three citations, corrected — the first issue of this section
+overstated two of them.** Gill & Wong, "Methods for convex and general quadratic
+programming", *Mathematical Programming Computation* **7** (2015) 71–112, is the
+one that states the remedy in the form this mechanism needs: the working set is
+formulated as linearly INDEPENDENT, dependency is decided by a **KKT-based
+dependency test**, and a dependent blocker is handled by a **multiplier-aware
+exchange** — *not* by "drop the largest dependency coefficient", which no cited
+paper prescribes. Nocedal & Wright, *Numerical Optimization*, 2nd ed. (Springer,
+2006), §16.5 is about the **exact** method: with an independent starting working
+set and an exact null-space direction, a genuine blocking constraint is
+*automatically* independent — that is what Exercise 16.15 asks the reader to
+prove. It prescribes **nothing** for the regularized case, where a blocker can
+exist only because `aᵀp` leaked off zero, and the earlier reading of it as "admits
+a blocking constraint only when doing so keeps the gradients independent" is
+withdrawn. Fletcher — "Degeneracy in the presence of roundoff errors", *Linear
+Algebra and its Applications* **106** (1988) 149–183, and "Resolving degeneracy in
+quadratic programming", *Annals of Operations Research* **46/47** (1993) — supports
+a **dedicated degeneracy procedure** over the tied/dependent constraints, rather
+than a perturbation of the step.
+
+hven does the opposite by
 design (`qp_engine.h:335`–`:338`), leaning on `primal_delta`/`dual_mu` to keep the
 dependent KKT factorizable — which keeps the *linear algebra* alive and destroys
-the *multiplier's meaning*, exactly as `qp_engine.h:1509` predicts. Fletcher's
-treatment is the one that speaks to the degenerate-vertex case directly:
-"Degeneracy in the presence of roundoff errors", *Linear Algebra and its
-Applications* **106** (1988) 149–183, and "Resolving degeneracy in quadratic
-programming", *Annals of Operations Research* **46/47** (1993), which resolve the
-tie by a **degeneracy subproblem over the tied/dependent constraints** rather than
-by perturbing the step. Gill, Murray, Saunders & Wright's EXPAND
+the *multiplier's meaning*, exactly as `qp_engine.h:1509` predicts. Gill, Murray, Saunders & Wright's EXPAND
 (*Mathematical Programming* **45** (1989) 437–474) is explicitly *not* the match
 here — and M4b proved it empirically: EXPAND's whole content is a limited
 acceptance of infeasibility and a working feasibility tolerance that expands over
@@ -404,14 +438,17 @@ remedy is a **scaled (relative) optimality tolerance on the pricing test**:
 declare `λ_i` non-optimal only when `|λ_i| > ε_opt · s` with `s` the scale of the
 terms the multiplier is formed from, rather than against an absolute constant.
 This is standard in Gill, Murray & Wright (1981) §8's treatment of termination
-and dual tolerances and in Nocedal & Wright §16.5's degeneracy discussion, and
-GMSW (1989) §2 makes the same point about the role of tolerances at a degenerate
-vertex. **hven already implements exactly this form one function away** —
+and dual tolerances, and GMSW (1989) §2 makes the same point about the role of
+tolerances at a degenerate vertex. *(`[fix1]` The earlier appeal to Nocedal &
+Wright §16.5 here is dropped with the correction above: §16.5 is about the exact
+method and prescribes no tolerance policy.)* **hven already implements exactly this form one function away** —
 `free_block_is_stationary(residual, scale, opts)` tests `residual <= opt_tol *
 scale` (`qp_engine.h:572`) — so the remedy for (a) is an internal-consistency fix,
 not an import.
 
-**For (c), BRITGAS's minority mechanism** — an indefinite reduced Hessian — the
+**For (c), BRITGAS's minority mechanism** — the engine's negative-inertia-excess
+signal `[fix1]`, which is evidence toward, and not a measurement of, an indefinite
+post-drop reduced Hessian (§6 item 2) — the
 literature answer is an **inertia-controlling** factorization that refuses to form
 a working set whose reduced Hessian has the wrong inertia in the first place
 (Gill, Murray, Saunders & Wright's inertia-controlling framework for indefinite
@@ -431,23 +468,56 @@ uses — `viol > opt_tol · max(1, ‖Hx‖∞, ‖g‖∞, ‖Aeᵀλe‖∞, �
 alone** under M4b's `RULE.md` §6 read-outs, reading one number: the count of core
 drop→same-identity-re-add units in the recurrent tails. The prediction is sharp
 and falsifiable: YORKNET's `|λ| = 2⁻²⁵` against `stat_scale = 1.6e+11` fails the
-scaled test by twelve orders of magnitude, so **the drop is never made, all 2 538
-core units vanish, and either the solve leaves the tail or it stalls somewhere
-else** — and the eight bit-identical tied candidates say the same thing eight
-times, so the result cannot be a single-constraint accident. If the tail survives,
-(a) is refuted on the only cell it was ever claimed for. Cost: one arm, one cell,
-one pair of legs.
+scaled test by twelve orders of magnitude — and the eight bit-identical tied
+candidates say the same thing eight times, so the result cannot be a
+single-constraint accident.
+
+**`[fix1]` The prediction is split into an OFFLINE and a DYNAMIC claim** (M5
+amendment A6; the first issue of this section conflated them). *OFFLINE*, replayed
+over the traces already in hand with no solver at all: **all 2 538 recorded core
+drops fail the scaled test**. That is computable now and is a pre-registered check
+of the read-out. *DYNAMICALLY*, the altered run **cannot** promise a core count of
+zero, because the trajectory diverges after the very first refused drop and the
+solve may reach a different recurrent tail. Refutation therefore means the **same
+candidate identity is still dropped** under the arm, or the **same matched
+recurrence** (tail signature set) persists — a different tail surviving is *not* a
+refutation and is reported as "diagnosis untested by this trajectory". Cost: one
+arm, one cell, one pair of legs.
 
 **Then run (b): the same shape, one order harder.** An `HVEN_TESTING` arm that
 refuses to admit a blocking constraint which is linearly dependent on the current
-working set — the classical independent-working-set rule — with the dependency
-tested by one triangular solve against the retained factor per candidate add, and
-the *diagnostic* half recording, per tail drop, the post-drop inertia and rank
-evidence `qp_walk_trace.h:513`–`:522` deliberately omits (one extra factorization
-per drop pass, affordable on a traced run and on a traced run only). Read out the
+working set — the classical independent-working-set rule — with the *diagnostic*
+half recording, per tail drop, the post-drop inertia and rank evidence
+`qp_walk_trace.h:513`–`:522` deliberately omits (one extra factorization per drop
+pass, affordable on a traced run and on a traced run only). Read out the
 same core-unit count on the seven cells (b) is the verdict for. **This is the
 intervention §6 item 7 says is missing**, and it is the only thing that can turn
-68.5 % of co-occurrence into a cause. It is named here and **not proposed**:
+68.5 % of co-occurrence into a cause.
+
+**`[fix1]` Its design was amended before it was built**
+(`.superpowers/m7-w2-m5-armb-amendments.md` A1–A7), because the shape named in the
+first issue of this section — "one triangular solve against the retained factor"
+per candidate — cannot test what it claims to. That factor's `−μI` block is
+*precisely* what makes dependent rows factorizable, so a solve against it need not
+reveal the rank of the unregularized active-row matrix (A1): the rank oracle is
+instead a rank-revealing QR of the **unregularized** rows `R = [Ae; A_W; eᵢ]` at a
+**pre-declared** `dependency_tol`, with the regularized factor kept only for the
+inertia diagnostic. The invariant is **rank**, `rank(R) = me + |W| ≤ n` after every
+mutation — the row count is necessary and not sufficient, so the integer screen
+survives only as a free pre-check (A2). One shared `admit_if_independent` predicate
+covers **every** membership-mutating site, not just blocking constraints — ordinary
+add, ride add, seed ingestion, shift additions, zero-probe restoration, repair pins
+— with a dependent seed repaired at entry and a dependent MANDATORY row (equality,
+fixed bound) refused with a diagnostic rather than pretended away (A3). **No
+exchange is attempted in M5**: the intervention is a pass-over of dependent
+candidates in ratio order, and Gill & Wong's multiplier-aware exchange is
+registered as the production design item — the "largest dependency coefficient"
+rule of the first issue is withdrawn as theorem-free (A4). The leak is measured
+with normalized `aᵀp`, the retained rows' own `|A_W p|`, the dependency
+coefficients, and a `μ` sweep, because a single `aᵀp` observation does not
+establish an order (A5). Arm (a)'s prediction is split offline/dynamic as above
+(A6), and the neutrality report adds feasibility and stationarity against each
+leg's own tolerances, with no "production-ready" wording anywhere (A7). It is named here and **not proposed**:
 whether such a rule is sound, safe or implementable is established by nothing in
 this report, and nothing in this report licenses a line under `src/` or
 `include/`.
