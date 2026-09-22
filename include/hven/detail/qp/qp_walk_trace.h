@@ -687,6 +687,57 @@ struct QpWalkMinorRecord {
     /// violated at the iterate the walk moved to. `0` when nothing was passed
     /// over or nothing is violated.
     double add_b1_passed_violation = kAbsent;
+
+    // ---- PER ADD: THE AMENDED DESIGN (settler amendments A2, A5, A8-A11) ---
+    //
+    // The oracle is the rank-revealing QR of the UNREGULARIZED active rows
+    // (A1), so these columns are about THAT decomposition and the leak
+    // measurement A5 strengthens. All of them are absent on a pass where arm
+    // b1 did not run.
+    /// `me + |W|` and `rank(R)` on the set the pass decided against. THE
+    /// INVARIANT IS `add_b1_rank == add_b1_rank_rows <= dep_n` (A2); the row
+    /// count `add_b1_rows_after - dep_n <= 0` above is necessary, not
+    /// sufficient, and is kept as the free integer witness it is.
+    Index add_b1_rank_rows = -1;
+    Index add_b1_rank = -1;
+    /// Rank-revealing QR decompositions this pass paid for -- amendment A11's
+    /// declared cost, per pass rather than only per solve.
+    Index add_b1_qr_builds = -1;
+    /// AMENDMENT A8's THREE-MECHANISM SPLIT, per pass: pass-overs where the
+    /// integer screen ALSO fired, and pass-overs the QR reached with the
+    /// screen silent. (The third mechanism, the ENTRY REPAIR, is per solve
+    /// and lives in the counters, not in a minor's row.)
+    Index add_b1_screen_qr_passed = -1;
+    Index add_b1_qr_only_passed = -1;
+    /// `1` when the arm DISARMED on this pass (A9: the incoming working set
+    /// was rank-deficient away from solve entry). Production's choice stands
+    /// on this pass and on every pass after it in this solve, and the cell's
+    /// b1 verdict is UNSUPPORTED.
+    int add_b1_disarmed = -1;
+    /// AMENDMENT A5's PASS-LEVEL DENOMINATORS: `max |A_W p|` over the
+    /// RETAINED rows -- what the rows already in the working set are
+    /// themselves leaking -- and `mu * ||lambda_W||_inf`, the bound §B.0
+    /// derives for that leak.
+    double add_b1_max_retained_leak = kAbsent;
+    double add_b1_leak_bound = kAbsent;
+    /// AMENDMENT A5's PER-CANDIDATE COLUMNS, for the FIRST constraint the arm
+    /// passed over on this pass (the one whose refusal moved the choice):
+    /// `a^T p`, the scale-free `a^T p / (||a|| ||p||)`, the ratio
+    /// `a^T p / (mu ||lambda_W||_inf)` that says whether the blocking IS the
+    /// regularization leak, the projection residual that called it dependent,
+    /// and `|a^T p - v^T (R p)|` -- whether the candidate's derivative is
+    /// RECONSTRUCTED by the retained rows' own leaks through the dependency
+    /// coefficients `v`.
+    double add_b1_passed_a_dot_p = kAbsent;
+    double add_b1_passed_a_dot_p_norm = kAbsent;
+    double add_b1_passed_leak_ratio = kAbsent;
+    double add_b1_passed_residual = kAbsent;
+    double add_b1_passed_coeff_residual = kAbsent;
+    /// AMENDMENT A10: passed-over constraints on this pass whose post-step
+    /// violation EXCEEDED the pre-registered leak bound. A nonzero value is a
+    /// FINDING -- the candidate was not merely leaking -- and makes that
+    /// solve's b1 verdict UNSUPPORTED.
+    Index add_b1_leak_bound_exceeded = -1;
 };
 
 /// WHAT ONE CALL OF THE EQP CANDIDATE SITE REPORTED ABOUT ITSELF. A scratch

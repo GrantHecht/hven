@@ -36,11 +36,15 @@
 //       not.
 //   (7) The switch is PER-THREAD — with two solves genuinely IN FLIGHT AT
 //       ONCE, released by a two-party barrier.
-//   (8) ARM B1 ENDS A CYCLING WALK its integer screen calls dependent, changes
-//       nothing in bits where it passes nothing over, and CARRIES A HAZARD
-//       that is asserted rather than described: a passed-over bound leaves the
-//       iterate outside its box and the engine certifies it anyway. The block
-//       above those fixtures lists all seven claims.
+//   (8) ARM B1, ON THE AMENDED DESIGN (settler amendments A1-A12): a
+//       rank-revealing QR of the UNREGULARIZED active rows is the sole
+//       dependency oracle, the invariant is RANK, one shared predicate covers
+//       every mutation site, and the seed set is repaired at entry. It ends a
+//       cycling walk, changes nothing in bits where it passes nothing over,
+//       and CARRIES A HAZARD that is asserted rather than described: a
+//       passed-over bound leaves the iterate outside its box and the engine
+//       certifies it anyway. The block above those fixtures lists every
+//       claim.
 //
 // THE CYCLING FIXTURE IS M4's, EXTENDED. Its three-variable cycling block is
 // `tests/qp/test_qp_anti_cycling_arm.cpp`'s period-2 problem verbatim (found
@@ -773,19 +777,20 @@ TEST(QpDegeneracyArm, AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt) {
 //        iteration cap and b1 reaches the problem's own optimum, checked
 //        against the QP's KKT conditions recomputed here.
 //   (8b) b1 CHANGES NOTHING WHERE IT PASSES NOTHING OVER, in bits.
-//   (8c) THE NUMERIC TEST'S TOLERANCE SITS ON THE FLOOR IT MUST CLEAR. The
-//        residual populations separate by five orders -- R5's separation check
-//        answered YES -- but the dependent population sits AT `dual_mu`, and
-//        the pre-registered `dependency_tol = kRideNullspaceTol = 1e-8` IS
-//        `dual_mu`, so it classifies that whole population as independent and
-//        converts nothing. One order above the floor the same test converts.
-//        Asserted, not described; it is this round's one amendment candidate.
+//   (8c) THE ENTRY REPAIR (amendment A3) REMOVES A DEPENDENT SEED MEMBER, in
+//        the declared order, and the invariant holds from there on.
+//   (8c') THE mu SWEEP (amendment A5): the leak ratio stays inside a band
+//        declared before the numbers, and the sweep REFUTES the unqualified
+//        "the leak is O(mu)" reading below `dual_mu = 1e-8`, where the leak
+//        saturates on the rounding floor instead.
 //   (8d) THE HAZARD, DECLARED AND ASSERTED: passing over a blocking BOUND
 //        lets the walk step OUT OF ITS BOX, and the engine certifies the
 //        result `kOptimal` anyway. The arm records the violation; the engine
 //        has no guard against it. This is a FINDING about the pre-registered
 //        rule, not a bug in its implementation, and it is asserted here so it
-//        cannot quietly stop being true.
+//        cannot quietly stop being true. AMENDMENT A10's bound FAILS on that
+//        excursion, and not for the reason A10 expected: the incoming set was
+//        independent throughout.
 //   (8e) THE ARM'S OWN SELF-CHECK never fires: its re-enumeration of the ratio
 //        test's candidates begins with production's blocker on every pass of
 //        every fixture here.
@@ -845,18 +850,46 @@ TEST(QpDegeneracyArm, ArmB1EndsTheCyclingWalkAndReachesTheProblemsOwnOptimum) {
     // sufficient for a global minimum.
     EXPECT_TRUE(is_a_kkt_point(qp, on.solution, 1e-6));
 
-    // WHAT THE ARM DID, in its own counters.
+    // WHAT THE ARM DID, in its own counters, AND BY WHICH OF AMENDMENT A8's
+    // THREE MECHANISMS. A8 predicted that under the amended design the
+    // conversion would move from the pass-over to the ENTRY REPAIR; the three
+    // counters below are what decides that, and they are asserted rather than
+    // narrated so the answer cannot quietly change.
     EXPECT_GT(Deg::indep_passes, 0);
-    EXPECT_GT(Deg::indep_candidates_passed_over, 0) << "nothing was passed over: the arm is inert";
-    EXPECT_GT(Deg::indep_screen_dependent, 0);
-    EXPECT_GT(Deg::indep_no_blocker_passes, 0)
-        << "the conversion here is a pass on which EVERY candidate was dependent";
     EXPECT_EQ(Deg::indep_enumeration_mismatches, 0);
     EXPECT_EQ(Deg::indep_test_failures, 0);
-    // THE HARD INVARIANT (settler ruling R6): `me + |W| - n <= 0` after every
-    // add the arm admitted.
-    EXPECT_EQ(Deg::indep_invariant_violations, 0);
-    EXPECT_LE(Deg::indep_rows_minus_n_max, 0);
+    const Index acted = Deg::indep_entry_members_removed + Deg::indep_screen_and_qr_dependent +
+                        Deg::indep_qr_only_dependent;
+    EXPECT_GT(acted, 0) << "no mechanism acted: the arm is inert on the fixture it converts";
+    // THE INVARIANT, AS AMENDMENT A2 REDEFINES IT: rank, not row count. Zero
+    // violations means the entry repair held the invariant across the whole
+    // walk and the arm never had to disarm.
+    EXPECT_EQ(Deg::indep_rank_violations, 0);
+    EXPECT_EQ(Deg::indep_refused_mandatory_dependent, 0);
+    EXPECT_EQ(Deg::indep_rank_deficit_max, 0);
+    // AMENDMENT A10's BOUND held on every pass-over this walk made.
+    EXPECT_EQ(Deg::indep_leak_bound_exceeded, 0);
+    EXPECT_GT(Deg::indep_qr_builds, 0) << "the oracle never ran";
+    // AND WHICH MECHANISM ACTED, MEASURED RATHER THAN PREDICTED. Amendment A8
+    // expected the conversion to MOVE from the pass-over to the ENTRY REPAIR,
+    // on the reasoning that the predecessor's screen-positive candidates with
+    // residual 0.667-1.0 proved a rank-deficient incoming set. IT DID NOT
+    // MOVE, and the reason is visible in the same counters: the entry repair
+    // removes NOTHING here and `indep_rank_deficit_max` is 0 over the whole
+    // walk, so no incoming set was ever deficient. The predecessor's
+    // disagreement was an artifact of the REGULARIZED oracle alone -- with
+    // the unregularized QR those same candidates project with residual 0 and
+    // the screen and the oracle agree, exactly as A8 argued they must under
+    // the invariant. Measured on this fixture: 3 pass-overs, all
+    // screen-and-QR, 0 QR-only, 0 entry removals, 3 decompositions, 5 minors.
+    EXPECT_EQ(Deg::indep_entry_members_removed, 0)
+        << "the seed set was dependent here: this fixture's reading has changed";
+    EXPECT_GT(Deg::indep_screen_and_qr_dependent, 0)
+        << "the conversion is the pass-over's, and the pass-over is gone";
+    EXPECT_EQ(Deg::indep_qr_only_dependent, 0);
+    EXPECT_GT(Deg::indep_candidates_passed_over, 0);
+    EXPECT_GT(Deg::indep_no_blocker_passes, 0)
+        << "the conversion here is a pass on which EVERY candidate was dependent";
 
     // The scan's own columns are filled on every pass the arm ran.
     const auto recs = b1_records(on.records);
@@ -867,6 +900,13 @@ TEST(QpDegeneracyArm, ArmB1EndsTheCyclingWalkAndReachesTheProblemsOwnOptimum) {
         EXPECT_GE(r.add_b1_tie_size, 1);
         EXPECT_EQ(r.add_b1_mismatch, 0);
         EXPECT_EQ(r.dep_n, qp.n());
+        // A2's READING, per pass: the rank IS the row count and the rows fit
+        // in R^n. This is the invariant itself, asserted on every pass the arm
+        // decided, not only in the summary counter.
+        EXPECT_EQ(r.add_b1_rank, r.add_b1_rank_rows);
+        EXPECT_LE(r.add_b1_rank_rows, qp.n());
+        EXPECT_GE(r.add_b1_qr_builds, 0);
+        EXPECT_EQ(r.add_b1_disarmed, 0);
         if (r.add_b1_switched == 1) {
             ++switched;
             EXPECT_GE(r.add_b1_passed_over, 1);
@@ -902,83 +942,19 @@ TEST(QpDegeneracyArm, ArmB1IsBitIdenticalWhereItPassesNothingOver) {
     EXPECT_EQ(Deg::indep_enumeration_mismatches, 0);
     // The dependency test DID run and DID cost a factorization: this is not
     // the vacuous case where the arm never looked.
+    //
+    // AND THE ORACLE GENUINELY RAN: this is not the vacuous case where the arm
+    // never looked. It asks for `indep_dep_tests` rather than
+    // `indep_qr_builds` DELIBERATELY -- on this problem the working set is
+    // empty on the passes that matter, and an empty set spans nothing, so
+    // every candidate is independent of it WITHOUT a decomposition. Demanding
+    // a decomposition here would be demanding arithmetic that has no question
+    // to answer.
     EXPECT_GT(Deg::indep_candidates_examined, 0);
-    EXPECT_GT(Deg::indep_factorizations, 0);
+    EXPECT_GT(Deg::indep_dep_tests, 0);
+    EXPECT_EQ(Deg::indep_rank_violations, 0);
+    EXPECT_EQ(Deg::indep_entry_members_removed, 0);
     expect_same_solution(plain, armed);
-}
-
-TEST(QpDegeneracyArm, ArmB1sNumericToleranceSitsExactlyOnTheRegularizationFloorItMustClear) {
-    DegArmGuard guard;
-    const QpProblem qp = period2_cycle_qp();
-    const QpOptions opts = cycling_opts();
-
-    // THE SAME ARM WITH THE INTEGER SCREEN OFF. What is left is B.2's numeric
-    // test alone, at `dependency_tol = kRideNullspaceTol = 1e-8` -- the number
-    // the settler's ruling R5 pre-registered, together with the requirement
-    // that the screen-positive and screen-negative residual populations
-    // SEPARATE by at least three orders around it.
-    Deg::reset();
-    Deg::arm = DegArm::kIndependentAdd;
-    Deg::params.integer_screen = false;
-    const Walk numeric_only = observed_walk(qp, opts);
-
-    // (i) THE POPULATIONS SEPARATE, AND BY MORE THAN R5 ASKS. Every residual
-    //     is either at the regularization floor or of order one; nothing sits
-    //     in between, so the statistic is bimodal and the check R5 wanted is
-    //     answered YES on this fixture.
-    Index residuals = 0;
-    Index at_floor = 0;
-    Index order_one = 0;
-    double floor_max = 0.0;
-    for (const auto &r : numeric_only.records) {
-        if (std::isnan(r.add_dep_residual)) {
-            continue;
-        }
-        ++residuals;
-        if (r.add_dep_residual < 1e-6) {
-            ++at_floor;
-            floor_max = std::max(floor_max, r.add_dep_residual);
-        } else if (r.add_dep_residual > 1e-2) {
-            ++order_one;
-        } else {
-            ADD_FAILURE() << "a residual between the two populations: " << r.add_dep_residual
-                          << " -- the bimodality this fixture reads off has gone away";
-        }
-    }
-    EXPECT_GT(at_floor, 50);
-    EXPECT_GE(order_one, 3);
-    EXPECT_EQ(residuals, at_floor + order_one);
-
-    // (ii) AND THE TOLERANCE IS ON THE WRONG SIDE OF THE FLOOR. The lower
-    //      population sits at `dual_mu` itself -- B.2's own derivation says
-    //      the residual of a genuinely dependent row through a mu-regularized
-    //      factor is of order `mu*||v||/||a||`, and with `||v|| ~ ||a||` that
-    //      IS `dual_mu` -- so a tolerance EQUAL to `dual_mu` classifies the
-    //      dependent population as independent, by a relative hair.
-    QpOptions defaults;
-    EXPECT_NEAR(floor_max, defaults.dual_mu, 0.01 * defaults.dual_mu);
-    EXPECT_GT(floor_max, Deg::params.dependency_tol)
-        << "the floor no longer straddles the tolerance; this fixture's reading is stale";
-    EXPECT_EQ(Deg::indep_numeric_dependent, 0);
-    EXPECT_EQ(Deg::indep_candidates_passed_over, 0);
-    EXPECT_EQ(static_cast<int>(numeric_only.solution.status), static_cast<int>(QpStatus::kMaxIter))
-        << "at the pre-registered tolerance the numeric test alone converts nothing";
-
-    // (iii) MOVED ONE ORDER ABOVE THE FLOOR -- which is what
-    //       `dependency_tol` is exposed for -- THE SAME TEST CONVERTS. The
-    //       screen is still off, so this is the numeric test doing the work
-    //       and nothing else.
-    Deg::reset();
-    Deg::arm = DegArm::kIndependentAdd;
-    Deg::params.integer_screen = false;
-    Deg::params.dependency_tol = 1e-7;
-    const Walk moved = observed_walk(qp, opts);
-    EXPECT_GT(Deg::indep_numeric_dependent, 0);
-    EXPECT_GT(Deg::indep_candidates_passed_over, 0);
-    EXPECT_EQ(static_cast<int>(moved.solution.status), static_cast<int>(QpStatus::kOptimal));
-    EXPECT_LT(moved.minors, 20);
-    EXPECT_TRUE(is_a_kkt_point(qp, moved.solution, 1e-6));
-    EXPECT_EQ(Deg::indep_enumeration_mismatches, 0);
 }
 
 TEST(QpDegeneracyArm, ArmB1CanLeaveTheIterateOutsideItsBoxAndTheEngineCertifiesAnyway) {
@@ -1012,6 +988,28 @@ TEST(QpDegeneracyArm, ArmB1CanLeaveTheIterateOutsideItsBoxAndTheEngineCertifiesA
         }
     }
     EXPECT_EQ(column_max, Deg::indep_max_passed_violation);
+    // AMENDMENT A10's PRE-REGISTERED BOUND, AND IT FAILS HERE -- WHICH IS THE
+    // POINT. A10 declared: a passed-over constraint's post-step violation is
+    // bounded by `(mu*||lambda_W||_inf + eps*||a||*||p||) * alpha * 10`, or
+    // the pass-over was WRONG. Measured on this fixture: ONE pass-over
+    // exceeds that bound, at a violation of 5.59e-03. A10 also predicted the
+    // REASON would be a rank-deficient incoming set; it is not. The counters
+    // say `indep_rank_violations == 0` and `indep_rank_deficit_max == 0`, so
+    // the set was independent, the candidate was genuinely dependent on it
+    // (screen and QR agreeing), and the direction still leaked through it by
+    // far more than `mu*||lambda_W||` can account for -- because this
+    // fixture's working set is ILL-CONDITIONED BY CONSTRUCTION (the scale
+    // carrier), and `A_W p = mu*lambda` bounds `A_W p`, not what `p` itself
+    // can reach through a badly conditioned `A_W`.
+    //
+    // SO THE FINDING IS A10's OWN: on a cell like this one the b1 verdict is
+    // UNSUPPORTED, and the INFEASIBLE-EXIT category the rule proposes is what
+    // the result has to be reported under.
+    EXPECT_EQ(Deg::indep_rank_violations, 0);
+    EXPECT_EQ(Deg::indep_rank_deficit_max, 0);
+    EXPECT_EQ(Deg::indep_refused_mandatory_dependent, 0);
+    EXPECT_EQ(Deg::indep_leak_bound_exceeded, 1)
+        << "A10's bound no longer flags this excursion; the finding has changed";
     // The engine's own certification does NOT catch it -- stated as an
     // assertion so that a future guard which DID catch it would fail here and
     // be noticed rather than silently changing what this arm means.
@@ -1033,14 +1031,30 @@ TEST(QpDegeneracyArm, ArmB1sColumnsAndCountersStayAbsentWhenItIsNotArmed) {
             EXPECT_EQ(r.add_b1_no_blocker, -1);
             EXPECT_EQ(r.add_b1_mismatch, -1);
             EXPECT_EQ(r.add_b1_rows_after, -1);
+            EXPECT_EQ(r.add_b1_rank, -1);
+            EXPECT_EQ(r.add_b1_rank_rows, -1);
+            EXPECT_EQ(r.add_b1_qr_builds, -1);
+            EXPECT_EQ(r.add_b1_screen_qr_passed, -1);
+            EXPECT_EQ(r.add_b1_qr_only_passed, -1);
+            EXPECT_EQ(r.add_b1_disarmed, -1);
+            EXPECT_EQ(r.add_b1_leak_bound_exceeded, -1);
+            EXPECT_TRUE(std::isnan(r.add_b1_max_retained_leak));
+            EXPECT_TRUE(std::isnan(r.add_b1_leak_bound));
+            EXPECT_TRUE(std::isnan(r.add_b1_passed_a_dot_p));
+            EXPECT_TRUE(std::isnan(r.add_b1_passed_a_dot_p_norm));
+            EXPECT_TRUE(std::isnan(r.add_b1_passed_leak_ratio));
+            EXPECT_TRUE(std::isnan(r.add_b1_passed_residual));
+            EXPECT_TRUE(std::isnan(r.add_b1_passed_coeff_residual));
             EXPECT_TRUE(std::isnan(r.add_b1_passed_violation));
             EXPECT_TRUE(std::isnan(r.add_dep_residual));
             EXPECT_EQ(r.add_dep_verdict, -1);
         }
         EXPECT_EQ(Deg::indep_passes, 0);
         EXPECT_EQ(Deg::indep_candidates_examined, 0);
-        EXPECT_EQ(Deg::indep_factorizations, 0);
-        EXPECT_EQ(Deg::indep_dep_solves, 0);
+        EXPECT_EQ(Deg::indep_qr_builds, 0);
+        EXPECT_EQ(Deg::indep_dep_tests, 0);
+        EXPECT_EQ(Deg::indep_entry_members_removed, 0);
+        EXPECT_EQ(Deg::indep_rank_violations, 0);
     }
 }
 
@@ -1068,6 +1082,130 @@ TEST(QpDegeneracyArm, ArmB1sEnumerationAgreesWithProductionsRatioTestOnEveryPass
         }
     }
     EXPECT_GT(passes, 0);
+}
+
+TEST(QpDegeneracyArm, ArmB1sEntryRepairRemovesDependentSeedMembersAndHoldsTheInvariant) {
+    DegArmGuard guard;
+    // A SEED WORKING SET THAT IS DEPENDENT BEFORE THE WALK TAKES A SINGLE
+    // STEP. Two variables, both pinned, plus one inequality row active: three
+    // rows in R^2. Amendment A3's entry repair is the only thing in the arm
+    // that can see this, because no ADD site is ever asked about a member the
+    // seed brought in.
+    const QpProblem qp = convex_qp(2, 2, {1.0, 0.0, 0.0, 1.0}, {-1.0, -1.0}, 1, {1.0, 1.0}, {4.0});
+    const QpOptions opts = cycling_opts();
+
+    QpSolution seed;
+    seed.x = Vec::Zero(2);
+    seed.bound_state = {BoundState::kAtLower, BoundState::kAtLower};
+    seed.ineq_active = {1};
+
+    Deg::reset();
+    Deg::arm = DegArm::kIndependentAdd;
+    Obs::reset();
+    Obs::active = true;
+    QpEngine engine{opts};
+    const QpSolution armed = engine.solve(qp, seed);
+    Obs::active = false;
+
+    // THE REPAIR RAN, AND IT REMOVED EXACTLY THE MEMBERS THE ORDER SAYS IT
+    // SHOULD. The canonical order is rows, then pinned bounds ascending, and
+    // the repair keeps the EARLIER member of a dependent pair, so the row and
+    // the first pin survive and the SECOND pin -- dependent on the two of them
+    // together -- is the one that goes.
+    EXPECT_EQ(Deg::indep_entry_members_removed, 1);
+    EXPECT_EQ(Deg::indep_refused_mandatory_dependent, 0);
+    // AND THE INVARIANT HELD FROM THERE ON. Nothing disarmed, no incoming set
+    // was ever deficient again, and the walk finished on the problem's own
+    // optimum -- so the repair did not cost the answer.
+    EXPECT_EQ(Deg::indep_rank_violations, 0);
+    // AND THE HIGH-WATER DEFICIT IS THE ENTRY READING ITSELF -- 1, the one
+    // the repair then removed. `indep_rank_deficit_max` is a high-water mark
+    // over every set the oracle read, and the seed set BEFORE the repair is
+    // one of them; asserting 0 here would be asserting that the fixture's own
+    // premise never existed. What must be zero is `indep_rank_violations`,
+    // which counts deficient sets found AWAY from entry -- the ones A9
+    // disarms on -- and it is.
+    EXPECT_EQ(Deg::indep_rank_deficit_max, 1);
+    EXPECT_EQ(static_cast<int>(armed.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_TRUE(is_a_kkt_point(qp, armed, 1e-6));
+
+    // AND UNARMED THE SAME SEED IS INGESTED WHOLE: the repair is the arm's,
+    // not the engine's, which is what makes it an experiment rather than a
+    // change.
+    Deg::reset();
+    QpEngine plain_engine{opts};
+    const QpSolution plain = plain_engine.solve(qp, seed);
+    EXPECT_EQ(Deg::indep_entry_members_removed, 0);
+    EXPECT_EQ(static_cast<int>(plain.status), static_cast<int>(QpStatus::kOptimal));
+    Obs::reset();
+}
+
+TEST(QpDegeneracyArm, ArmB1sLeakRatioUnderTheMuSweepAmendmentA5Asks) {
+    DegArmGuard guard;
+    // AMENDMENT A5's mu SWEEP, and what it licenses. §B.0 derives the leak
+    // `a^T p = mu * y^T lambda_W` for a dependent candidate, and a SINGLE
+    // observation of `a^T p` cannot establish an order in mu (the Codex
+    // review's item 6). So the same fixture is run at
+    // `dual_mu \in {1e-6, 1e-8, 1e-10}` and the RATIO
+    // `a^T p / (mu ||lambda_W||_inf)` is read off each run.
+    //
+    // THE BAND IS DECLARED HERE, BEFORE THE NUMBERS: if the leak really is
+    // O(mu), the ratio is scale-free and must stay inside
+    // [1e-3, 1e+3] across three orders of mu -- three orders of slack against
+    // four orders of sweep. A ratio that tracks 1/mu instead REFUTES the O(mu)
+    // reading on this fixture, and that is reported as a finding rather than
+    // retuned.
+    const QpProblem qp = period2_cycle_qp();
+    std::vector<double> ratios;
+    std::vector<double> leaks;
+    for (const double mu : {1e-6, 1e-8, 1e-10}) {
+        QpOptions opts = cycling_opts();
+        opts.dual_mu = mu;
+        Deg::reset();
+        Deg::arm = DegArm::kIndependentAdd;
+        const Walk on = observed_walk(qp, opts);
+        double ratio = std::numeric_limits<double>::quiet_NaN();
+        double leak = std::numeric_limits<double>::quiet_NaN();
+        for (const auto &r : on.records) {
+            if (!std::isnan(r.add_b1_passed_leak_ratio)) {
+                ratio = r.add_b1_passed_leak_ratio;
+                leak = r.add_b1_passed_a_dot_p;
+                break;
+            }
+        }
+        ASSERT_FALSE(std::isnan(ratio))
+            << "no pass-over at dual_mu = " << mu << ": the sweep has nothing to read";
+        ratios.push_back(ratio);
+        leaks.push_back(leak);
+    }
+    ASSERT_EQ(ratios.size(), 3u);
+
+    // (i) THE DECLARED BAND HOLDS. Measured: -0.486 at mu = 1e-6, -3.11 at
+    //     1e-8, -310.9 at 1e-10, all inside [1e-3, 1e+3] in magnitude.
+    for (std::size_t k = 0; k < ratios.size(); ++k) {
+        EXPECT_GT(std::abs(ratios[k]), 1e-3) << "ratio " << k << " left the declared band";
+        EXPECT_LT(std::abs(ratios[k]), 1e+3) << "ratio " << k << " left the declared band";
+    }
+
+    // (ii) AND THE SWEEP REFUTES THE UNQUALIFIED "O(mu)" READING, WHICH IS
+    //      WHY A5 ASKED FOR IT. Above the floor the leak DOES move with mu:
+    //      1.46e-06 at mu = 1e-6 against 9.33e-08 at 1e-8. Below it the leak
+    //      does not move at all -- 9.3276692556e-08 at mu = 1e-8 and
+    //      9.3277051744e-08 at 1e-10, agreeing to five figures across a
+    //      hundredfold change in mu. So at small mu the blocking is NOT the
+    //      regularization leak of §B.0(i); it is §B.0(ii) and (iii), the
+    //      iterate's own residual against its working set and the rounding
+    //      floor of the dot product, neither of which mu touches.
+    //
+    //      THE CONSEQUENCE FOR THE RULE: "the observed blocking is the leak"
+    //      is a statement that has to be checked per cell against these
+    //      columns, not asserted from the regularization's derivation. The
+    //      ratio to `mu*||lambda||` is only meaningful where the leak still
+    //      tracks mu.
+    EXPECT_GT(std::abs(leaks[0]), 5.0 * std::abs(leaks[1]))
+        << "the leak no longer moves with mu above the floor";
+    EXPECT_LT(std::abs(leaks[1] - leaks[2]), 1e-2 * std::abs(leaks[1]))
+        << "the leak no longer saturates below the floor; the finding has changed";
 }
 
 TEST(QpDegeneracyArm, ArmB1sSwitchIsPerThreadWithBothSolvesInFlight) {

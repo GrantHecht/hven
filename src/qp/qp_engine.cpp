@@ -610,19 +610,37 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 
     QpStatus status = crossed_bounds ? QpStatus::kInfeasible : QpStatus::kMaxIter;
 #ifdef HVEN_TESTING
+    // M7 W2 M5's DEGENERACY ARMS (qp_degeneracy_arm.h). Clears the published
+    // stationarity scale so this solve's first drop can never be judged
+    // against the PREVIOUS solve's scale, re-arms an arm a previous solve
+    // disarmed, and stamps the solve so no cached decomposition can be reused
+    // across two problems; it arms nothing and starts nothing.
+    detail::testing::QpDegeneracyArmState::begin_solve();
+    // ARM B1's ENTRY REPAIR (amendment A3), AND IT RUNS BEFORE THE OBSERVER
+    // OPENS THIS SOLVE, deliberately. `ws` at this point is the set the walk
+    // would start from -- the seed ingest and the seeding `refresh_shifts` are
+    // both above -- and the repair is the last thing that can change it. Taking
+    // the observer's seed snapshot AFTER the repair is what makes the trace's
+    // starting working set the set the walk actually starts from; a snapshot
+    // taken before it would describe a set no pass ever runs on. Unarmed this
+    // does nothing at all, so the ORDER of the three seam calls below is the
+    // only thing that changes for an unarmed run, and none of them reads the
+    // others' state. Armed, it establishes the INVARIANT every later verdict
+    // is conditional on -- and when it cannot (the mandatory rows are
+    // themselves dependent) it disarms, so the solve below runs production's
+    // statements from here on.
+    if (detail::testing::QpDegeneracyArmState::independent_add_on()) {
+        detail::testing::b1_entry_repair(qp, ws);
+    }
     // THE WALK'S READ-ONLY TEST SEAM (docs/testing.md; declarations in
     // qp_walk_trace.h, which compiles to nothing without HVEN_TESTING).
-    // `ws` here is the set the first pass starts from: the seed ingest and the
-    // seeding refresh_shifts are both above.
+    // `ws` here is the set the first pass starts from: the seed ingest, the
+    // seeding refresh_shifts and arm B1's entry repair are all above.
     detail::testing::QpWalkObserver::begin_solve(warm, n, me, mi, eff_max_iter, ws);
     // M7 W2 M4's ANTI-CYCLING ARMS (qp_anti_cycling_arm.h). With no arm armed
     // this starts nothing and every hook below runs production's statements.
     // Armed, it begins EXPAND's first expanding sequence (§4.2) for this solve.
     detail::testing::QpAntiCycleArmState::begin_solve();
-    // M7 W2 M5's DEGENERACY ARMS (qp_degeneracy_arm.h). Clears the published
-    // stationarity scale so this solve's first drop can never be judged
-    // against the PREVIOUS solve's scale; it arms nothing and starts nothing.
-    detail::testing::QpDegeneracyArmState::begin_solve();
     // M7 W2 M5's POST-DROP INERTIA DIAGNOSTIC owns its OWN factor and its OWN
     // face, and never the engine's. That is the whole of why it is bit-neutral
     // on every algebra path rather than only on the eliminated one: the
@@ -1162,16 +1180,22 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         detail::testing::QpB1Outcome b1;
         if (detail::testing::QpDegeneracyArmState::independent_add_on() &&
             kind != BlockKind::kNone) {
-            // The LOCAL factor is the post-drop diagnostic's own, and the two
-            // can never contend for it: the drop branch `continue`s, so a pass
-            // that reaches this line took no drop. Created lazily here for the
-            // same reason it is there -- a run that arms nothing constructs no
-            // backend factor.
-            if (!diag_kkt) {
-                diag_kkt = std::make_unique<detail::KktFactor>(threads_);
-            }
-            b1 = detail::testing::b1_select_blocker(qp, ws, x, Aix, p, eff_opts, *diag_kkt,
-                                                    kind == BlockKind::kIneq, block_idx);
+            // THE ORACLE IS THE ARM'S OWN (amendment A1): a dense
+            // rank-revealing QR of the UNREGULARIZED active rows, built inside
+            // `b1_select_blocker` from `qp` and `ws` alone. No `KktFactor` is
+            // constructed, borrowed or passed in here, on any algebra path --
+            // which is a stronger neutrality claim than the superseded design
+            // could make, since that one shared the post-drop diagnostic's
+            // local factor.
+            //
+            // `eff_opts.dual_mu` and the working multipliers the pass just
+            // priced are handed in rather than re-derived, because A5's leak
+            // columns are expressed in units of `mu*||lambda_W||_inf` and two
+            // derivations of the same quantity can drift.
+            b1 = detail::testing::b1_select_blocker(
+                qp, ws, x, Aix, p, eff_opts.dual_mu,
+                detail::testing::b1_working_multiplier_inf(qp, ws, lambda_e, lambda_i),
+                kind == BlockKind::kIneq, block_idx);
             if (b1.switched) {
                 kind = !b1.has_blocker ? BlockKind::kNone
                        : b1.is_ineq    ? BlockKind::kIneq
@@ -1277,6 +1301,29 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 r.add_dep_residual = b1.chosen_dep_residual;
                 r.add_dep_verdict = b1.chosen_verdict;
                 r.dep_n = qp.n();
+                // AMENDMENT A2's READING, A8's THREE-MECHANISM SPLIT and
+                // A11's COST, per pass.
+                r.add_b1_rank_rows = b1.rows;
+                r.add_b1_rank = b1.rank;
+                r.add_b1_qr_builds = b1.qr_builds;
+                r.add_b1_screen_qr_passed = b1.screen_and_qr_passed;
+                r.add_b1_qr_only_passed = b1.qr_only_passed;
+                r.add_b1_disarmed = b1.disarmed ? 1 : 0;
+                // AMENDMENT A5's STRENGTHENED LEAK COLUMNS, for the candidate
+                // the arm ADMITTED plus the pass's own denominators. The
+                // per-candidate columns describe the chosen candidate; the
+                // pass-level ones (`max |A_W p|`, `mu*||lambda_W||_inf`) are
+                // what every candidate on the pass is read against.
+                r.add_b1_max_retained_leak = b1.max_retained_leak;
+                r.add_b1_leak_bound = b1.leak_bound;
+                if (!b1.passed.empty()) {
+                    const detail::testing::QpB1Candidate &first = b1.passed.front();
+                    r.add_b1_passed_a_dot_p = first.a_dot_p;
+                    r.add_b1_passed_a_dot_p_norm = first.a_dot_p_normalized;
+                    r.add_b1_passed_leak_ratio = first.leak_ratio;
+                    r.add_b1_passed_coeff_residual = first.coeff_residual;
+                    r.add_b1_passed_residual = first.dep_residual;
+                }
                 if (b1.switched) {
                     r.add_b1_prod_index = b1.prod_idx;
                     r.add_b1_prod_is_ineq = b1.prod_is_ineq ? 1 : 0;
@@ -1333,16 +1380,28 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             using Adeg = detail::testing::QpDegeneracyArmState;
             detail::testing::QpWalkMinorRecord &r = walk_obs.record();
             if (kind != BlockKind::kNone) {
+                // THE INTEGER WITNESS, kept because it is free and because a
+                // positive value is a PROOF. It is no longer the invariant --
+                // amendment A2 made that `rank(R) == me + |W|`, which
+                // `admit_if_independent` reads off the decomposition on the
+                // NEXT pass and which disarms the solve under A9 if it fails.
+                // Recording the count here and the rank there is deliberate:
+                // the count after an add is decidable without a factorization,
+                // and the rank is not.
                 const Index rows_after = qp.me() + detail::testing::qp_walk_ws_size(ws);
                 r.add_b1_rows_after = rows_after;
                 Adeg::indep_rows_minus_n_max =
                     std::max(Adeg::indep_rows_minus_n_max, rows_after - qp.n());
-                if (rows_after > qp.n()) {
-                    ++Adeg::indep_invariant_violations;
-                }
             }
-            const double viol = detail::testing::b1_passed_over_violation(qp, x, b1.passed);
+            // THE PASSED-OVER CONSTRAINTS' VIOLATION at the iterate the walk
+            // actually moved to, and AMENDMENT A10's PRE-REGISTERED BOUND on
+            // it, applied per constraint. A violation the leak cannot account
+            // for means the pass-over was WRONG, which is a finding about the
+            // rule; it is counted, not absorbed.
+            Index exceeded = 0;
+            const double viol = detail::testing::b1_passed_over_violation(qp, x, b1, &exceeded);
             r.add_b1_passed_violation = viol;
+            r.add_b1_leak_bound_exceeded = exceeded;
             Adeg::indep_max_passed_violation = std::max(Adeg::indep_max_passed_violation, viol);
         }
 #endif
@@ -1551,6 +1610,28 @@ void QpEngine::refresh_shifts(const QpProblem &qp, const Vec &x, const Vec &ai_r
         const double s = Aix(j) - qp.bi(j);
         shift(j) = (s > row_tolerance(row_scale, lambda_i(j), opts)) ? s : 0.0;
         if (shift(j) > 0.0 && !in_working(ws, j)) {
+#ifdef HVEN_TESTING
+            // ARM B1 AT THE SHIFT ADD SITE (amendment A3, site 4 of six).
+            //
+            // The homotopy puts every row carrying a positive shift into the
+            // working set, and it does so with no ratio test and no
+            // independence question asked -- which is one of the ways a
+            // dependent row enters in the first place. Under the arm a
+            // dependent shift row is NOT added. Nothing else changes: the
+            // shift stays positive, so the row is offered again on the next
+            // refresh, and `counters.shift_adds` counts additions MADE, so a
+            // refusal leaves it where it was rather than counting an add that
+            // did not happen.
+            if (detail::testing::QpDegeneracyArmState::independent_add_on()) {
+                const detail::testing::QpB1Admission adm = detail::testing::admit_if_independent(
+                    qp, ws, detail::testing::b1_site_rank(), /*is_ineq=*/true, j,
+                    detail::testing::QpB1Site::kShiftAdd);
+                if (!adm.admit && adm.rank_ok) {
+                    ++detail::testing::QpDegeneracyArmState::indep_shift_refusals;
+                    continue;
+                }
+            }
+#endif
             ws.add_ineq(j);
             ++counters.shift_adds; // observation only -- see QpCounters
             mark_ineq_seen(seen, counters, j);
@@ -2280,6 +2361,32 @@ bool QpEngine::probe_zero_multiplier_drops(const QpProblem &qp, const Vec &shift
         // restore put back; latch_still_holds re-decides from the current
         // pin count). The only observable consequence is a few extra
         // schur_updates.
+#ifdef HVEN_TESTING
+        // ARM B1 AT THE ZERO-PROBE'S RESTORATION (amendment A3, site 5 of
+        // six) -- AND THIS ONE IS CHECK-ONLY, DELIBERATELY.
+        //
+        // The statement below puts BACK a member the probe removed for a
+        // trial. Refusing it would not change an ADD RULE; it would change the
+        // probe's contract, and the walk would silently lose a constraint it
+        // never decided to drop. So the predicate is asked, its verdict is
+        // COUNTED, and the restoration proceeds either way. What stands behind
+        // this site is amendment A2's rank check at the next predicate call:
+        // if the restoration really did leave the set dependent, the next add
+        // site reads it and A9 disarms the solve.
+        //
+        // It is also declared UNCOVERED-BY-FIXTURE in `qp_degeneracy_arm.h`:
+        // reaching it deliberately needs a probe that removes a member and
+        // then rejects the reduced set, which a constructed QP does not
+        // produce reliably.
+        if (detail::testing::QpDegeneracyArmState::independent_add_on()) {
+            const detail::testing::QpB1Admission adm = detail::testing::admit_if_independent(
+                qp, ws, detail::testing::b1_site_rank(), c.is_ineq, c.idx,
+                detail::testing::QpB1Site::kProbeRestore);
+            if (!adm.admit && adm.rank_ok) {
+                ++detail::testing::QpDegeneracyArmState::indep_probe_restore_dependent;
+            }
+        }
+#endif
         if (c.is_ineq) {
             ws.add_ineq(c.idx);
         } else {
@@ -2310,6 +2417,29 @@ bool QpEngine::pin_at_best_bound(const QpProblem &qp, WorkingSet &ws, Vec &x, co
     if (!lo_ok && !up_ok) {
         return false;
     }
+#ifdef HVEN_TESTING
+    // ARM B1 AT THE REPAIR PINS (amendment A3, site 6 of six).
+    //
+    // `repair_temporary_vertex` pins variables until the inertia gate is
+    // satisfied, and a pin is a unit row joining the working set with no
+    // independence question asked. Under the arm a pin whose unit row is
+    // dependent on the set is REFUSED -- and the refusal needs no new path,
+    // because `false` here already means "nothing to pin against" and the
+    // caller's own loop moves on to the next variable in its order.
+    //
+    // Declared UNCOVERED-BY-FIXTURE in `qp_degeneracy_arm.h`: the repair fires
+    // on a trustworthy WRONG inertia verdict at iteration 0, which a
+    // constructed QP does not produce on demand.
+    if (detail::testing::QpDegeneracyArmState::independent_add_on()) {
+        const detail::testing::QpB1Admission adm = detail::testing::admit_if_independent(
+            qp, ws, detail::testing::b1_site_rank(), /*is_ineq=*/false, i,
+            detail::testing::QpB1Site::kRepairPin);
+        if (!adm.admit && adm.rank_ok) {
+            ++detail::testing::QpDegeneracyArmState::indep_repair_pin_refusals;
+            return false;
+        }
+    }
+#endif
     const auto si = static_cast<std::size_t>(i);
     const double tol = opts_.feas_tol * std::max(1.0, std::abs(x(i)));
     // Already sitting on a bound: pin it exactly where it is, so a warm
@@ -2925,6 +3055,37 @@ QpEngine::RideOutcome QpEngine::ride_negative_curvature(const QpProblem &qp,
     if (kind == BlockKind::kNone) {
         return RideOutcome::kUnbounded;
     }
+#ifdef HVEN_TESTING
+    // ARM B1 AT THE RIDE'S ADD SITE (amendment A3, site 2 of six).
+    //
+    // IT IS ASKED HERE, BEFORE THE RIDE MUTATES ANYTHING. `x`, the counters
+    // and the working set are all still untouched at this line, so a refusal
+    // leaves no half-applied ride behind -- it returns `kDeclined`, a verdict
+    // production already has and already handles (the caller falls through to
+    // the ordinary step). That is why this hook refuses by DECLINING rather
+    // than by skipping the two mutation statements below: skipping them would
+    // leave `x` moved along a direction whose blocker never joined, which is
+    // not a rule anyone pre-registered.
+    //
+    // THE RIDE TAKES ITS BLOCKER FROM THE SAME `ratio_test` the ordinary add
+    // path uses, so an independence rule that covered one and not the other
+    // would be a rule with a hole in exactly the place section 4c's ride
+    // exists to reach.
+    if (detail::testing::QpDegeneracyArmState::independent_add_on()) {
+        const detail::testing::QpB1Admission adm = detail::testing::admit_if_independent(
+            qp, ws, detail::testing::b1_site_rank(), kind == BlockKind::kIneq, block_idx,
+            detail::testing::QpB1Site::kRideAdd);
+        if (!adm.admit && adm.rank_ok) {
+            // NO `ride_outcome` IS WRITTEN HERE. The three values that enum
+            // carries are production's own three refusals, and a fourth
+            // reason wearing one of their labels would corrupt every existing
+            // read-out of it. The refusal is recorded where it belongs: in the
+            // arm's own counter.
+            ++detail::testing::QpDegeneracyArmState::indep_ride_refusals;
+            return RideOutcome::kDeclined;
+        }
+    }
+#endif
 
     x += alpha * dir;
     ++counters.ws_adds; // observation only -- see QpCounters

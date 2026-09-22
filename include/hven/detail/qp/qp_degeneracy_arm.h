@@ -149,6 +149,25 @@
 //
 // --- B.2  THE NUMERIC DEPENDENCY TEST, AND ITS TOLERANCE --------------------
 //
+// *** SUPERSEDED IN ITS ORACLE BY AMENDMENT A1, AND THE SUPERSESSION IS A
+// *** MEASUREMENT, NOT A PREFERENCE. What B.2 proposed -- and what was built
+// *** and gated at `3899bad6` -- was a back-solve through a delta/mu
+// *** REGULARIZED local KKT factor. The Codex review of M4b/M4c (item 4)
+// *** objected that the `-mu I` block is exactly what makes a dependent row
+// *** factorizable, so one solve against that factor need not test the rank
+// *** of the UNREGULARIZED active-row matrix at all. The implementer then
+// *** MEASURED it: with the integer screen off, on M4's period-2 QP, the
+// *** representation residual was bimodal at 1.0000000272292198e-08 (99
+// *** candidates) and order one (3 candidates) -- the dependent population
+// *** sitting exactly ON `dual_mu = 1e-8`, which is also the pre-registered
+// *** tolerance, so the test classified all 99 as independent by a relative
+// *** hair and converted nothing. THE PARAGRAPHS BELOW ARE KEPT AS THE RECORD
+// *** OF WHAT WAS PROPOSED AND WHY IT FAILED; the oracle actually built is
+// *** the rank-revealing QR of `R^T` described at `QpB1Rank`, and the
+// *** tolerance is the same pre-declared `1e-8`, now applied to a statistic
+// *** that has no `mu` floor under it.
+//
+//
 // hven retains no QR or LQ factor of `A_W`; what it retains is the factor of
 // the REGULARIZED KKT matrix
 //
@@ -211,6 +230,19 @@
 // blocker most nearly reproduces, so the exchanged set is the best-conditioned
 // of the admissible swaps.
 //
+// *** AND THE REFERENCE FOR THAT RULE IS SWAPPED BY AMENDMENT A4. The review's
+// *** item 5 is that "largest dependency coefficient" is not theorem-backed:
+// *** Gill & Wong, "Methods for convex and general quadratic programming",
+// *** *Math. Prog. Comp.* 7 (2015) §4 formulate the working set as linearly
+// *** independent throughout and give a MULTIPLIER-AWARE exchange with the
+// *** sign conditions that make the swap admissible, and Fletcher (1988, 1993)
+// *** supports a dedicated degeneracy PROCEDURE rather than an unqualified
+// *** largest-coefficient swap. The registered production design item is
+// *** therefore Gill & Wong's exchange -- never removing a mandatory equality
+// *** or fixed bound, recording the dependency vector, the multiplier and sign
+// *** conditions, the removed member, feasibility after the exchange, and the
+// *** proof that the new set is independent -- and NOT the paragraph above.
+//
 // IF NO SUCH MEMBER EXISTS — the screen-only case, where `me + |W| + 1 > n`
 // fired but the numeric test found no usable coefficient vector (for instance
 // because the blocker is dependent on the EQUALITY rows, which the walk may
@@ -247,6 +279,98 @@
 //
 // IF EITHER TURNS OUT TO BE FALSE, the brief's instruction is explicit: STOP
 // and write why, and DO NOT build a different rule silently.
+//
+// ===========================================================================
+// THE AMENDED DESIGN (settler amendments A1-A12, 2026-09-22) -- WHAT IS
+// ACTUALLY BUILT BELOW, AND WHICH MUTATION SITE IS COVERED HOW
+// ===========================================================================
+//
+// The rulings R1-R7 above were amended after the Codex review of M4b/M4c.
+// A1-A12 OVERRIDE R2, R5 and R6 where they conflict; R1, R3, R4 and R7 stand.
+// What the code below implements, in one list:
+//
+//   A1  THE ORACLE IS A RANK-REVEALING QR OF THE UNREGULARIZED ACTIVE ROWS,
+//       built once per pass, with the PRE-DECLARED relative-residual
+//       tolerance `dependency_tol = 1e-8` and the dependency coefficients `v`
+//       from the same decomposition. The regularized-factor oracle of B.2 is
+//       gone. See `QpB1Rank`.
+//   A2  THE INVARIANT IS RANK: `rank(R) == me + |W| <= n`, read off that same
+//       decomposition at that same tolerance. The row count `me + |W| - n` is
+//       necessary but NOT sufficient and is kept only as the free integer
+//       witness it is. See `b1_invariant_holds`.
+//   A3  ONE SHARED PREDICATE, `admit_if_independent`, at EVERY add site the
+//       walk has, plus an ENTRY REPAIR that makes the seed set independent
+//       before the first pass, plus a REFUSAL (disarm and proceed unarmed)
+//       when the MANDATORY rows are themselves dependent.
+//   A4  NO EXCHANGE IN M5. b2 is registered with Gill & Wong (2015)'s
+//       multiplier-aware exchange as its reference.
+//   A5  THE LEAK MEASUREMENT IS STRENGTHENED: normalized `a^T p`, the worst
+//       retained-row leak, the ratio to `mu*||lambda_W||_inf`, the
+//       coefficients, and the `|a^T p - v^T (R p)|` comparison -- plus a mu
+//       SWEEP in the fixtures, which is what licenses any "O(mu)" claim.
+//   A8  THE SCREEN NEVER REFUSES ALONE. Under A2's invariant the screen and
+//       the QR cannot disagree, so the screen is a free pre-check and the
+//       three mechanisms (entry removals / screen-and-QR pass-overs / QR-only
+//       pass-overs) are counted apart.
+//   A9  A RANK-DEFICIENT SET FOUND AWAY FROM ENTRY DISARMS THE SOLVE and the
+//       solve continues unarmed; that cell's verdict is UNSUPPORTED. It is
+//       not a global stop.
+//  A10  A PASSED-OVER CONSTRAINT'S POST-STEP VIOLATION IS BOUNDED BY THE LEAK
+//       or the pass-over was wrong; the bound is pre-registered in
+//       `b1_leak_bound_holds` and every failure is counted.
+//  A11  THE QR IS BUILT ONCE PER PASS and reused wherever a mutation goes
+//       through the predicate; the build count is a declared counter.
+//
+// --- SITE COVERAGE: THE SIX MUTATION SITES, AND HOW EACH IS COVERED --------
+//
+// A3 requires the predicate at every add site. The six sites the walk has in
+// `src/qp/qp_engine.cpp`, and what the arm does at each:
+//
+//   1. ORDINARY BLOCKER ADD (`QpEngine::run`). COVERED, and it is the arm's
+//      primary rule: the candidates are taken in ratio order and the first
+//      INDEPENDENT one blocks (R3/R4). A refusal here means "take the next
+//      candidate", not "decline the addition".
+//   2. RIDE ADD (`ride_negative_curvature`). COVERED. A dependent blocker
+//      makes the ride DECLINE -- a path production already has, reached
+//      BEFORE the ride mutates `x` or the working set, so the arm never
+//      leaves a half-applied ride behind.
+//   3. SEED INGESTION (`ingest_seed_working_set`). COVERED BY THE ENTRY
+//      REPAIR, which is A3's own prescription for the seed and which decides
+//      every seed member through this same predicate. Hooking the ingestion
+//      statement itself would decide the same members in the same order with
+//      no access to the mandatory-first rule the repair needs.
+//   4. SHIFT ADDITIONS (`refresh_shifts`). COVERED: a dependent shift row is
+//      not added, and the refusal is counted. The shift stays positive, so
+//      the homotopy's own bookkeeping is untouched and the row is offered
+//      again on the next refresh.
+//   5. ZERO-PROBE RESTORATION (`probe_zero_multiplier_drops`). CHECK-ONLY,
+//      DELIBERATELY. This site puts BACK a member the probe removed for a
+//      trial; refusing it would not change an ADD RULE, it would change the
+//      probe's contract -- the walk would silently lose a constraint it never
+//      decided to drop. The predicate is asked and its verdict recorded
+//      (`indep_probe_restore_dependent`), and A2's rank check at the next
+//      predicate call is what catches a set the restoration made deficient.
+//   6. REPAIR PINS (`pin_at_best_bound`, from `repair_temporary_vertex`).
+//      COVERED: a pin whose unit row is dependent is refused, which the
+//      caller already handles -- it is the same `false` the function returns
+//      for a variable unbounded on both sides, and the repair moves on to the
+//      next variable in its own order.
+//
+// AND A SEVENTH MUTATION IS RULED OUT OF SCOPE EXPLICITLY. `refine_on_face`
+// transcribes a CALLER-SUPPLIED face into a working set for one exact solve.
+// It does not run the walk, it takes no ratio test and it reaches no add
+// rule; its working set is an argument, not a decision. An arm that rewrote
+// it would be changing what the caller asked for rather than what the walk
+// chose. It is named here so the omission is a ruling and not an oversight.
+//
+// --- WHAT THE ARM STILL CANNOT SEE ----------------------------------------
+//
+// Sites 5 and 6 are hard to reach deliberately from a unit fixture: both are
+// inside repair paths that fire on inertia verdicts a constructed QP does not
+// reliably produce. They are declared UNCOVERED-BY-FIXTURE here, as A3
+// anticipates, and what stands behind them is A2's rank check -- asked at the
+// NEXT predicate call on that solve, which will disarm under A9 if either
+// site left the set deficient.
 //
 // ===========================================================================
 // THE DIAGNOSTIC HALF (trace-only, both arms, OFF by default)
@@ -290,12 +414,11 @@
 #include <limits>
 #include <vector>
 
+#include <Eigen/QR>
+
 #include <hven/core/types.h>
-#include <hven/detail/kkt/kkt_assembly.h>
-#include <hven/detail/kkt/kkt_calls.h>
 #include <hven/detail/qp/qp_problem.h>
 #include <hven/detail/qp/working_set.h>
-#include <hven/qp/qp_types.h>
 
 namespace hven::solvers::detail::testing {
 
@@ -357,6 +480,33 @@ struct QpDegeneracyParams {
     /// first unexamined candidate is then taken UNREFUSED, so truncating can
     /// only move the arm back toward production, never further from it.
     Index max_dep_tests_per_pass = 0;
+};
+
+/// THE WORKING-SET MUTATION SITES THE WALK HAS, as amendment A3 enumerates
+/// them and as they stand in `src/qp/qp_engine.cpp` at this commit. The value
+/// is what a disarm, a refusal or a trace column NAMES, so a read-out can say
+/// WHERE the arm acted rather than only that it did.
+///
+/// SITES 1-4 and 6 REFUSE; SITE 5 IS CHECK-ONLY; `refine_on_face` IS OUT OF
+/// SCOPE. The reasons are in the UNCOVERED SITES block further down.
+enum class QpB1Site : int {
+    kNone = -1,
+    /// `QpEngine::run`'s ordinary blocker add -- the ratio test's own
+    /// decision, and the only site where a refusal means "take the NEXT
+    /// candidate" rather than "decline this addition".
+    kOrdinaryAdd = 0,
+    /// `ride_negative_curvature`'s add.
+    kRideAdd = 1,
+    /// `ingest_seed_working_set` -- covered by the ENTRY REPAIR, which is the
+    /// order-aware form A3 asks for, and which decides every seed member
+    /// through this same predicate.
+    kSeedEntry = 2,
+    /// `refresh_shifts`'s shift additions.
+    kShiftAdd = 3,
+    /// `probe_zero_multiplier_drops`'s restoration. CHECK-ONLY.
+    kProbeRestore = 4,
+    /// `pin_at_best_bound`, called from `repair_temporary_vertex`.
+    kRepairPin = 5,
 };
 
 /// THE SWITCH, THE SHARED SCALE AND THE ARMS' PER-SOLVE STATE. Static and
@@ -436,21 +586,32 @@ struct QpDegeneracyArmState {
     static inline thread_local Index indep_candidates_examined = 0;
     /// Candidates the test called DEPENDENT and the arm therefore PASSED OVER.
     static inline thread_local Index indep_candidates_passed_over = 0;
-    /// Back-solves taken (one per candidate whose numeric test ran).
-    static inline thread_local Index indep_dep_solves = 0;
-    /// Local factorizations built for the dependency test -- the cost, in the
-    /// currency CLAUDE.md section 7 asserts. At most ONE per pass, and none at
-    /// all on a pass whose candidates never reach the numeric test.
-    static inline thread_local Index indep_factorizations = 0;
-    /// Assemblies, factorizations or back-solves that THREW. Counted, never
-    /// absorbed: a candidate whose test could not be taken is left
-    /// UNREFUSED, so a backend fault can only move the arm back toward
+    /// Candidate rows put through the QR oracle (one projection each).
+    static inline thread_local Index indep_dep_tests = 0;
+    /// RANK-REVEALING QR DECOMPOSITIONS OF `Rᵀ` BUILT -- the cost, in the
+    /// currency CLAUDE.md section 7 asserts, and amendment A11's declared
+    /// counter. ONE per pass under the amended design (A1), plus one per
+    /// ACCEPTED member on the rare solve whose entry repair runs, plus one
+    /// wherever a site mutates the working set without going through
+    /// `admit_if_independent` and the next predicate call finds the cached
+    /// decomposition stale.
+    static inline thread_local Index indep_qr_builds = 0;
+    /// Decompositions or projections that THREW. Counted, never absorbed: a
+    /// candidate whose test could not be taken is left UNREFUSED, so a
+    /// backend or allocation fault can only move the arm back toward
     /// production.
     static inline thread_local Index indep_test_failures = 0;
-    /// Dependent verdicts by the INTEGER screen and by the NUMERIC test,
-    /// counted apart so a leg can say which one is doing the work.
-    static inline thread_local Index indep_screen_dependent = 0;
-    static inline thread_local Index indep_numeric_dependent = 0;
+    /// THE THREE MECHANISMS, COUNTED APART (amendment A8). The QR is the
+    /// oracle at all three; the integer screen is a free pre-check that, under
+    /// A2's invariant, is implied by it, and the arm NEVER refuses on the
+    /// screen alone. A leg's table says which mechanism acted by reading
+    /// these three against each other.
+    ///   (1) seed members the ENTRY REPAIR removed;
+    static inline thread_local Index indep_entry_members_removed = 0;
+    ///   (2) dependent verdicts where the screen ALSO fired;
+    static inline thread_local Index indep_screen_and_qr_dependent = 0;
+    ///   (3) dependent verdicts the QR reached with the screen silent.
+    static inline thread_local Index indep_qr_only_dependent = 0;
     /// Passes on which the arm MOVED the blocker off production's choice.
     static inline thread_local Index indep_blocker_switched = 0;
     /// Passes on which EVERY candidate was dependent, so the arm admitted
@@ -465,23 +626,84 @@ struct QpDegeneracyArmState {
     /// two enumerations disagree, so the arm REFUSES to act on that pass
     /// (production's choice stands, bit for bit) and counts it here.
     static inline thread_local Index indep_enumeration_mismatches = 0;
-    /// THE HARD INVARIANT (settler ruling R6): `me + |W| - n` after every add
-    /// b1 made. A POSITIVE value stops the arm. The max is kept, and
-    /// `Index` min means "no add was made under the arm".
+    /// THE HARD INVARIANT, AS AMENDMENT A2 REDEFINES IT: not the row count
+    /// `me + |W| - n <= 0` (necessary, NOT sufficient -- the Codex review's
+    /// item 2) but `rank(R) == me + |W| <= n`, read off the SAME
+    /// decomposition at the SAME tolerance. `me + |W| - n` is still kept,
+    /// because a positive value is an integer PROOF of a violation and is
+    /// free; `Index` min means "the arm never read the set".
     static inline thread_local Index indep_rows_minus_n_max = std::numeric_limits<Index>::min();
-    /// Adds under the arm whose post-add `me + |W| - n` was positive.
-    static inline thread_local Index indep_invariant_violations = 0;
+    /// The largest `me + |W| - rank(R)` the arm ever read: zero on a run that
+    /// held the invariant throughout.
+    static inline thread_local Index indep_rank_deficit_max = 0;
+    /// Working sets the arm found RANK-DEFICIENT away from solve entry --
+    /// amendment A9's `arm_rank_violation`. Each one DISARMS the arm for the
+    /// rest of that solve (the solve continues, unarmed, and its verdict is
+    /// UNSUPPORTED); it is not a global stop.
+    static inline thread_local Index indep_rank_violations = 0;
+    /// Solves the arm REFUSED because the MANDATORY rows (equalities and
+    /// fixed bounds) were themselves dependent at entry -- A3's
+    /// `armed_refused_mandatory_dependent`. The solve proceeds UNARMED and
+    /// that cell's row says so.
+    static inline thread_local Index indep_refused_mandatory_dependent = 0;
+    /// TRUE once this solve has disarmed, with the site that disarmed it. The
+    /// flag gates `independent_add_on()`, so every hook below returns to
+    /// production's statements for the rest of the solve.
+    static inline thread_local bool indep_disarmed = false;
+    static inline thread_local int indep_disarm_site = -1;
+    /// REFUSALS AT THE NON-ORDINARY MUTATION SITES (A3), counted apart from
+    /// the ratio test's pass-overs because they are different acts: the ratio
+    /// test moves to the NEXT candidate, these decline an addition outright.
+    static inline thread_local Index indep_ride_refusals = 0;
+    static inline thread_local Index indep_shift_refusals = 0;
+    static inline thread_local Index indep_repair_pin_refusals = 0;
+    /// The zero-multiplier probe's RESTORATION is a CHECK-ONLY site (see the
+    /// UNCOVERED SITES block below): a dependent verdict there is recorded and
+    /// never acted on, because refusing to put back a member the probe removed
+    /// for a trial would change the probe's contract rather than the add rule.
+    static inline thread_local Index indep_probe_restore_dependent = 0;
+    /// AMENDMENT A10's PRE-REGISTERED BOUND, failed: a passed-over
+    /// constraint whose post-step violation exceeded
+    /// `(mu*||lambda_W||_inf + eps*||a||*||p||) * alpha * 10`. A nonzero value
+    /// is a FINDING -- the candidate was not merely leaking -- and makes that
+    /// solve's b1 verdict UNSUPPORTED.
+    static inline thread_local Index indep_leak_bound_exceeded = 0;
     /// The largest post-step violation over every constraint the arm passed
     /// over, measured at the iterate the walk actually moved to.
     static inline thread_local double indep_max_passed_violation = 0.0;
+    /// THE SOLVE STAMP the cached decomposition carries, so a cache can never
+    /// be reused across two solves that happen to present the same working-set
+    /// SIGNATURE on two DIFFERENT problems. Bumped by `begin_solve()`.
+    static inline thread_local Index indep_solve_generation = 0;
 
     static bool scaled_drop_on() {
         return arm == QpDegeneracyArm::kScaledDrop || arm == QpDegeneracyArm::kBoth;
     }
+    /// ARM B IS ARMED ON THIS THREAD AND HAS NOT DISARMED ITSELF. Every hook
+    /// site asks THIS, not the switch, so amendment A9's disarm-and-continue
+    /// returns the whole rest of the solve to production's statements with one
+    /// flag rather than with a branch per site.
     static bool independent_add_on() {
+        return !indep_disarmed &&
+               (arm == QpDegeneracyArm::kIndependentAdd || arm == QpDegeneracyArm::kBoth);
+    }
+    /// The SWITCH, ignoring the disarm -- what a read-out asks when it wants
+    /// to know whether this solve was MEANT to be armed.
+    static bool independent_add_armed() {
         return arm == QpDegeneracyArm::kIndependentAdd || arm == QpDegeneracyArm::kBoth;
     }
     static bool any_on() { return arm != QpDegeneracyArm::kOff; }
+
+    /// AMENDMENT A9's DISARM. Records the site, stops the arm for the rest of
+    /// THIS solve, and lets the solve run on unarmed. Idempotent: the FIRST
+    /// site to disarm is the one recorded, because it is the one that
+    /// explains the rest.
+    static void disarm(int site) {
+        if (!indep_disarmed) {
+            indep_disarmed = true;
+            indep_disarm_site = site;
+        }
+    }
 
     /// Full reset, INCLUDING the switches and the parameters. A fixture calls
     /// this between cases.
@@ -504,17 +726,27 @@ struct QpDegeneracyArmState {
         indep_passes = 0;
         indep_candidates_examined = 0;
         indep_candidates_passed_over = 0;
-        indep_dep_solves = 0;
-        indep_factorizations = 0;
+        indep_dep_tests = 0;
+        indep_qr_builds = 0;
         indep_test_failures = 0;
-        indep_screen_dependent = 0;
-        indep_numeric_dependent = 0;
+        indep_entry_members_removed = 0;
+        indep_screen_and_qr_dependent = 0;
+        indep_qr_only_dependent = 0;
         indep_blocker_switched = 0;
         indep_no_blocker_passes = 0;
         indep_budget_truncations = 0;
         indep_enumeration_mismatches = 0;
         indep_rows_minus_n_max = std::numeric_limits<Index>::min();
-        indep_invariant_violations = 0;
+        indep_rank_deficit_max = 0;
+        indep_rank_violations = 0;
+        indep_refused_mandatory_dependent = 0;
+        indep_disarmed = false;
+        indep_disarm_site = -1;
+        indep_ride_refusals = 0;
+        indep_shift_refusals = 0;
+        indep_repair_pin_refusals = 0;
+        indep_probe_restore_dependent = 0;
+        indep_leak_bound_exceeded = 0;
         indep_max_passed_violation = 0.0;
     }
 
@@ -524,7 +756,18 @@ struct QpDegeneracyArmState {
     /// counters alone — a caller measuring a whole SQP solve wants the totals
     /// over every subproblem, and a fixture that wants one solve's numbers
     /// calls `reset_counters()` itself.
-    static void begin_solve() { stat_scale = std::numeric_limits<double>::quiet_NaN(); }
+    ///
+    /// IT ALSO RE-ARMS. Amendment A9's disarm is per SOLVE: a rank violation
+    /// in one subproblem says nothing about the next one, and a disarm that
+    /// persisted would silently turn an armed leg into an unarmed one after
+    /// its first bad set. The COUNTERS of the disarm survive -- they are what
+    /// the read-out reports -- and only the flag is cleared.
+    static void begin_solve() {
+        stat_scale = std::numeric_limits<double>::quiet_NaN();
+        indep_disarmed = false;
+        indep_disarm_site = -1;
+        ++indep_solve_generation;
+    }
 
     /// Publishes the pass's stationarity scale. Called from the walk loop's
     /// own residual hook with the value `free_block_stationarity` just
@@ -586,25 +829,32 @@ struct QpDegeneracyArmState {
 //
 // WHAT THE ARM MAY AND MAY NOT TOUCH. It re-decides WHICH constraint blocks
 // and, with it, the step. It touches no floating-point datum of the problem,
-// no working-set mutation the loop does not already perform, and no engine
-// state at all: the dependency test runs on a LOCAL `KktFactor` handed in by
-// the caller (the one the post-drop inertia diagnostic owns), never on the
-// walk's own `kkt` and never on the live Schur border stack. When the arm
-// passes nothing over, the caller leaves production's blocker and production's
-// step untouched, so ARM-ON-BUT-NOTHING-DEPENDENT IS BIT-IDENTICAL TO
-// PRODUCTION BY CONSTRUCTION rather than by arithmetic that happens to agree.
+// no working-set mutation the loop does not already perform, and NO ENGINE
+// STATE AT ALL -- and under amendment A1 that last claim is stronger than it
+// was, because the oracle is no longer a KKT factor of any kind. It is a
+// dense QR of the problem's own constraint rows, built in the arm's own
+// stack frame from `qp` and `ws`. The engine's `kkt`, its face and the live
+// Schur border stack are not read, not written and not even reachable from
+// the oracle, on every algebra path, by construction rather than by care.
+// When the arm passes nothing over, the caller leaves production's blocker
+// and production's step untouched, so ARM-ON-BUT-NOTHING-DEPENDENT IS
+// BIT-IDENTICAL TO PRODUCTION BY CONSTRUCTION rather than by arithmetic that
+// happens to agree.
 //
-// THE COST, DECLARED (settler ruling R2). ONE assemble+factorize per pass on
-// which at least one candidate reaches the numeric test, plus ONE back-solve
-// and one sparse gather per candidate examined. That is a heavier cost class
-// than the "one triangular solve against the RETAINED factor" B.2 describes,
-// and the reason is B.4's first open question: on the SCHUR-BORDER path --
-// hven's default `ws_algebra` -- the retained object is a live, incrementally
-// updated Schur complement, and a solve through it is not a pure read. A local
-// factor is what makes the test path-independent and state-neutral on EVERY
-// algebra path. The production cost target stays the retained-factor solve and
-// is registered as a design item, not built here. Wall-clock is informational
-// (CLAUDE.md section 7); the counters above are the asserted currency.
+// THE COST, DECLARED (A1 and A11). ONE dense rank-revealing QR of `R^T` per
+// pass -- `O(n * (me+|W|)^2)` with an `n x (me+|W|)` matrix materialized --
+// plus one orthogonal projection per candidate examined and one least-squares
+// solve per candidate the oracle calls dependent. That is a heavier cost
+// class than the "one triangular solve against the RETAINED factor" B.2
+// described, and heavier again than the local KKT factorization the
+// superseded build paid; A1 accepts it because it is the only oracle that
+// answers the question asked -- the rank of the UNREGULARIZED rows -- and
+// because this is an EXPERIMENT whose cost is a declared counter, not a
+// shipped path. A cell that cannot finish inside its leg's deadline under
+// this cost is CENSORED and reported as TRUNCATED. The production cost
+// target stays the retained-factor solve and is registered as a design item,
+// not built here. Wall-clock is informational (CLAUDE.md section 7);
+// `indep_qr_builds` is the asserted currency.
 
 /// ONE candidate of arm b1's ratio-ordered scan, carrying its own verdict.
 struct QpB1Candidate {
@@ -619,11 +869,27 @@ struct QpB1Candidate {
     double a_dot_p = 0.0;
     /// `-1` not tested / `0` independent / `1` dependent.
     int verdict = -1;
-    /// `‖a_F − C_Fᵀ v‖∞ / ‖a_F‖∞` from the back-solve (B.2). NaN when the
-    /// numeric test did not run.
+    /// `‖a − Q Qᵀ a‖₂ / ‖a‖₂` from the rank-revealing QR of `Rᵀ` (A1). NaN
+    /// when the oracle did not run.
     double dep_residual = std::numeric_limits<double>::quiet_NaN();
-    /// True when the INTEGER screen fired for this candidate's set.
+    /// True when the INTEGER screen fired for this candidate's set. A
+    /// PRE-CHECK: it never refuses on its own (A8).
     bool by_screen = false;
+    // ---- AMENDMENT A5's STRENGTHENED LEAK MEASUREMENT --------------------
+    /// `‖a‖₂`, and the NORMALIZED derivative `aᵀp / (‖a‖₂‖p‖₂)` -- the
+    /// quantity that is comparable across rows of different scale, which a
+    /// bare `aᵀp` is not (the Codex review's item 6).
+    double a_norm = 0.0;
+    double a_dot_p_normalized = std::numeric_limits<double>::quiet_NaN();
+    /// `aᵀp / (μ‖λ_W‖∞)`: the leak in units of the bound B.0 derives for it.
+    /// A dependent candidate whose blocking IS the regularization leak has
+    /// this of order one. NaN when `μ‖λ_W‖∞` is zero.
+    double leak_ratio = std::numeric_limits<double>::quiet_NaN();
+    /// `|aᵀp − vᵀ(R p)|` with `a = Rᵀv` from the same decomposition: whether
+    /// the candidate's derivative IS reconstructed by the retained rows' own
+    /// leaks. Small means "this blocking is the retained rows' leak, seen
+    /// through the dependency". NaN when the coefficients were not taken.
+    double coeff_residual = std::numeric_limits<double>::quiet_NaN();
 };
 
 /// WHAT ONE PASS OF ARM B1 DECIDED.
@@ -657,19 +923,25 @@ struct QpB1Outcome {
     Index prod_idx = -1;
     /// Every candidate passed over, for the post-step violation read-out.
     std::vector<QpB1Candidate> passed;
-};
-
-/// THE LOCAL PER-PASS FACTOR, built at most once per pass and only if a
-/// candidate actually reaches the numeric test.
-struct QpB1Factor {
-    bool tried = false;
-    bool ok = false;
-    KktAssembly assembly;
-    /// full variable index -> free index, `-1` for a pinned variable.
-    std::vector<Index> full_to_free;
-    Index n_free = 0;
-    Index me = 0;
-    Index n_working = 0;
+    // ---- THE AMENDED DESIGN'S PER-PASS READ-OUTS -------------------------
+    /// `me + |W|` and `rank(R)` on the set this pass decided against (A2),
+    /// and the decompositions this pass paid for (A11).
+    Index rows = 0;
+    Index rank = 0;
+    Index qr_builds = 0;
+    /// A8's three-mechanism split, for THIS pass: pass-overs where the screen
+    /// also fired, and pass-overs the QR reached alone. (The third mechanism,
+    /// the entry repair, is per solve and is a counter only.)
+    Index screen_and_qr_passed = 0;
+    Index qr_only_passed = 0;
+    /// A5: `max |A_W p|` over the RETAINED rows, `μ‖λ_W‖∞`, and `‖p‖₂` --
+    /// the three numbers the per-candidate leak columns are read against.
+    double max_retained_leak = std::numeric_limits<double>::quiet_NaN();
+    double leak_bound = std::numeric_limits<double>::quiet_NaN();
+    double p_norm = std::numeric_limits<double>::quiet_NaN();
+    /// A9: the arm disarmed on this pass, so production's choice stands and
+    /// every pass after it in this solve is production's too.
+    bool disarmed = false;
 };
 
 /// `me + |W|`: equality rows, working inequality rows, and one unit row per
@@ -744,147 +1016,416 @@ inline std::vector<QpB1Candidate> b1_candidates(const QpProblem &qp, const Worki
     return out;
 }
 
-/// Builds the pass's LOCAL eliminated-form factor, once, lazily. Returns
-/// false and counts a failure if assembly or factorization throws -- a
-/// hypothetical set is exactly where either is entitled to fail, and a
-/// diagnostic may never end a solve that would otherwise have finished.
-inline bool b1_build_factor(const QpProblem &qp, const WorkingSet &ws, const QpOptions &opts,
-                            KktFactor &kkt, QpB1Factor &fac) {
-    if (fac.tried) {
-        return fac.ok;
+/// THE ACTIVE-ROW MATRIX `R`, TRANSPOSED AND DENSE (amendment A1).
+///
+/// `R = [Ae ; A_W ; e_i for each pinned i]`, `me + |W|` rows in R^n, and
+/// UNREGULARIZED -- that is the whole point of A1. The transpose is what is
+/// built, because the decomposition below wants `R^T` (n x rows) and because
+/// the question the oracle asks is about the RANGE of `R^T`, i.e. the row
+/// space of `R`.
+///
+/// ROW ORDER IS CANONICAL AND DECLARED: equality rows in index order, then
+/// working inequality rows in ascending index order (`WorkingSet` keeps
+/// `active_ineq()` sorted), then pinned bounds in ascending variable order.
+/// The set retains NO ingestion order, so this canonical order is the
+/// surrogate the entry repair reverses; see `b1_entry_repair`.
+inline Mat b1_active_rows_transposed(const QpProblem &qp, const WorkingSet &ws) {
+    const Index rows = b1_dependency_rows(qp, ws);
+    Mat Rt = Mat::Zero(qp.n(), rows);
+    Index r = 0;
+    for (Index e = 0; e < qp.me(); ++e, ++r) {
+        for (SpMatRM::InnerIterator it(qp.Ae, e); it; ++it) {
+            Rt(it.col(), r) = it.value();
+        }
     }
-    fac.tried = true;
+    for (const Index j : ws.active_ineq()) {
+        for (SpMatRM::InnerIterator it(qp.Ai, j); it; ++it) {
+            Rt(it.col(), r) = it.value();
+        }
+        ++r;
+    }
+    for (Index i = 0; i < qp.n(); ++i) {
+        if (ws.bound_state()[static_cast<std::size_t>(i)] != BoundState::kFree) {
+            Rt(i, r) = 1.0;
+            ++r;
+        }
+    }
+    return Rt;
+}
+
+/// `R p` -- every retained row's leak, in the canonical row order above.
+/// Amendment A5 asks for `max |A_W p|` over the RETAINED rows; this vector is
+/// that max's argument and also the `R p` the dependency coefficients are
+/// checked against (`|a^T p - v^T (R p)|`).
+inline Vec b1_active_rows_times(const QpProblem &qp, const WorkingSet &ws, const Vec &p) {
+    const Index rows = b1_dependency_rows(qp, ws);
+    Vec out = Vec::Zero(rows);
+    Index r = 0;
+    for (Index e = 0; e < qp.me(); ++e, ++r) {
+        double s = 0.0;
+        for (SpMatRM::InnerIterator it(qp.Ae, e); it; ++it) {
+            s += it.value() * p(it.col());
+        }
+        out(r) = s;
+    }
+    for (const Index j : ws.active_ineq()) {
+        double s = 0.0;
+        for (SpMatRM::InnerIterator it(qp.Ai, j); it; ++it) {
+            s += it.value() * p(it.col());
+        }
+        out(r) = s;
+        ++r;
+    }
+    for (Index i = 0; i < qp.n(); ++i) {
+        if (ws.bound_state()[static_cast<std::size_t>(i)] != BoundState::kFree) {
+            out(r) = p(i);
+            ++r;
+        }
+    }
+    return out;
+}
+
+/// `‖λ_W‖∞` over the WORKING rows -- the equality multipliers and the
+/// multipliers of the inequality rows actually in the working set, and
+/// nothing else. It is the denominator of amendment A5's leak ratio and the
+/// first term of A10's bound, taken from the multipliers the walk itself just
+/// priced rather than re-derived.
+inline double b1_working_multiplier_inf(const QpProblem &qp, const WorkingSet &ws,
+                                        const Vec &lambda_e, const Vec &lambda_i) {
+    double m = 0.0;
+    for (Index r = 0; r < qp.me() && r < lambda_e.size(); ++r) {
+        m = std::max(m, std::abs(lambda_e(r)));
+    }
+    for (const Index j : ws.active_ineq()) {
+        if (j < lambda_i.size()) {
+            m = std::max(m, std::abs(lambda_i(j)));
+        }
+    }
+    return m;
+}
+
+/// ONE CANDIDATE ROW, DENSE. `a = A_i(idx,:)` for an inequality row and
+/// `a = e_idx` for a bound.
+inline Vec b1_candidate_row(const QpProblem &qp, bool is_ineq, Index idx) {
+    Vec a = Vec::Zero(qp.n());
+    if (is_ineq) {
+        for (SpMatRM::InnerIterator it(qp.Ai, idx); it; ++it) {
+            a(it.col()) = it.value();
+        }
+    } else {
+        a(idx) = 1.0;
+    }
+    return a;
+}
+
+/// THE RANK ORACLE (amendment A1): a dense RANK-REVEALING QR of `R^T`, with
+/// the working-set signature that says whether it is still current.
+///
+/// WHY A QR OF THE UNREGULARIZED ROWS AND NOT THE KKT FACTOR. The superseded
+/// design tested a candidate by back-solving through a delta/mu-REGULARIZED
+/// local KKT factor. The Codex review's item 4 and amendment A1 reject that,
+/// and the predecessor's own measurement is why: with the screen off, on M4's
+/// period-2 QP, the representation residual through that factor was BIMODAL
+/// at 1.0000000272e-08 and order one -- i.e. the dependent population sat
+/// exactly ON `dual_mu = 1e-8`, because the `-mu I` block is precisely what
+/// makes a dependent row factorizable. A tolerance derived from the same `mu`
+/// therefore cannot separate the two populations except by a relative hair.
+/// The QR of the UNREGULARIZED rows has no such floor: a dependent row's
+/// residual is at the rounding level of the rows themselves.
+///
+/// THE COST, DECLARED (A1). `O(n * rows^2)` per decomposition, dense, with an
+/// `n x rows` matrix materialized. ONE decomposition per pass in the ordinary
+/// case (A11), counted in `indep_qr_builds`. On a cell where this is too
+/// expensive to finish inside the leg's deadline the cell is CENSORED and
+/// reported as TRUNCATED -- never quietly skipped. Wall-clock is
+/// informational; the build count is the asserted currency.
+struct QpB1Rank {
+    bool built = false;
+    bool ok = false;
+    /// `me + |W|` at the decomposition, and `rank(R)` read at
+    /// `dependency_tol`.
+    Index rows = 0;
+    Index n = 0;
+    Index rank = 0;
+    Eigen::ColPivHouseholderQR<Mat> qr;
+    /// THE SIGNATURE. A cached decomposition is reused only for the EXACT
+    /// working set it was taken on -- this is A11's "reuse that pass's QR"
+    /// made decidable rather than assumed, so a mutation at a site that does
+    /// not go through the predicate can never be tested against a stale
+    /// factor.
+    std::vector<Index> sig_ineq;
+    std::vector<BoundState> sig_bound;
+    /// The solve this decomposition was taken in. Two DIFFERENT problems can
+    /// present the same working-set signature, so the signature alone is not
+    /// enough to license a reuse; the stamp is.
+    Index generation = -1;
+
+    bool matches(const QpProblem &qp, const WorkingSet &ws) const {
+        return built && generation == QpDegeneracyArmState::indep_solve_generation && n == qp.n() &&
+               sig_ineq == ws.active_ineq() && sig_bound == ws.bound_state();
+    }
+};
+
+/// THE ONE CACHED DECOMPOSITION A SOLVE SHARES ACROSS ITS MUTATION SITES
+/// (amendment A11). `admit_if_independent` rebuilds it whenever the signature
+/// or the solve stamp says it is stale, which is exactly "reuse that pass's QR
+/// when the mutation went through the predicate, rebuild where it did not" --
+/// decided by comparison rather than by an assumption about call order.
+///
+/// It is `thread_local` for the same reason every other piece of this state
+/// is: an engine is used sequentially by one thread, and two instrumented
+/// solves on two threads must not share a factor.
+inline QpB1Rank &b1_site_rank() {
+    static thread_local QpB1Rank rk;
+    return rk;
+}
+
+/// Builds the decomposition if the cached one is not the current set's.
+/// Returns false, counted, when it throws -- a candidate whose test could not
+/// be taken is left UNREFUSED.
+inline bool b1_rank_refresh(const QpProblem &qp, const WorkingSet &ws, QpB1Rank &rk) {
+    if (rk.matches(qp, ws)) {
+        return rk.ok;
+    }
+    rk.built = true;
+    rk.ok = false;
+    rk.n = qp.n();
+    rk.rows = b1_dependency_rows(qp, ws);
+    rk.sig_ineq = ws.active_ineq();
+    rk.sig_bound = ws.bound_state();
+    rk.generation = QpDegeneracyArmState::indep_solve_generation;
+    if (rk.rows == 0) {
+        // THE EMPTY WORKING SET IS NOT A DECOMPOSITION. It spans nothing, so
+        // every nonzero candidate is independent of it by definition, and
+        // `ColPivHouseholderQR` is entitled to reject a matrix with no columns
+        // (its column-norm sweep reduces an empty row vector, which Eigen's
+        // Debug asserts catch). Answered without arithmetic, and NOT counted
+        // as a build, because none was taken.
+        rk.rank = 0;
+        rk.ok = true;
+        return true;
+    }
     try {
-        fac.assembly = assemble_kkt(qp, ws, opts);
-        (void)factorize_checked(kkt, fac.assembly.K);
+        const Mat Rt = b1_active_rows_transposed(qp, ws);
+        rk.qr.compute(Rt);
+        rk.qr.setThreshold(QpDegeneracyArmState::params.dependency_tol);
+        rk.rank = rk.qr.rank();
     } catch (...) {
         ++QpDegeneracyArmState::indep_test_failures;
-        fac.ok = false;
         return false;
     }
-    ++QpDegeneracyArmState::indep_factorizations;
-    fac.n_free = static_cast<Index>(fac.assembly.free_of_full.size());
-    fac.me = qp.me();
-    fac.n_working = static_cast<Index>(ws.active_ineq().size());
-    fac.full_to_free.assign(static_cast<std::size_t>(qp.n()), -1);
-    for (Index k = 0; k < fac.n_free; ++k) {
-        fac.full_to_free[static_cast<std::size_t>(
-            fac.assembly.free_of_full[static_cast<std::size_t>(k)])] = k;
-    }
-    fac.ok = true;
+    ++QpDegeneracyArmState::indep_qr_builds;
+    rk.ok = true;
     return true;
 }
 
-/// THE DEPENDENCY TEST OF B.1 AND B.2, on ONE candidate.
+/// THE DEPENDENCY STATISTIC (A1): the RELATIVE PROJECTION RESIDUAL of `a` on
+/// the row space of `R`,
 ///
-/// THE REDUCTION THE ELIMINATED FORM MAKES, and why it is the right question.
-/// `assemble_kkt` eliminates the pinned variables, so the factored system's
-/// constraint block is `C_F` = the equality and working-inequality rows
-/// restricted to the FREE columns; the pinned variables' unit rows are gone.
-/// That is exactly right for this test: `a = A_Wᵀ y` with `A_W` including the
-/// unit rows holds iff `a_F ∈ range(C_Fᵀ)`, because the unit rows contribute
-/// nothing on free components and can match ANY values on the pinned ones.
+///        ||a - Q Q^T a||_2 / ||a||_2 ,
 ///
-/// ONE BACK-SOLVE with `[a_F ; 0 ; 0]` returns `[u ; v_e ; v_w]` satisfying
-/// `(H_FF + δI) u + C_Fᵀ v = a_F`, so `C_Fᵀ v` is the best representation of
-/// `a_F` the working set offers and the residual `‖a_F − C_Fᵀ v‖∞ / ‖a_F‖∞`
-/// is B.2's statistic, formed by ONE sparse gather over `Ae` and the working
-/// rows of `Ai` -- taken DIRECTLY rather than inferred from `‖u‖`.
+/// where `Q` is the first `rank(R)` columns of the decomposition's orthogonal
+/// factor and therefore an orthonormal basis of `range(R^T)`. Because `Q` is
+/// orthogonal the residual is just the tail of `Q^T a` below the rank, so no
+/// basis is ever materialized.
 ///
-/// THE SCREEN DOES NOT SHORT-CIRCUIT THE SOLVE, deliberately (settler ruling
-/// R5). The screen decides the VERDICT when it fires, but the numeric residual
-/// is still taken and recorded, because R5's pre-registered separation check
-/// needs the residual distribution on exactly the cells where the screen fires
-/// -- a tolerance that is never exercised cannot be checked against data. The
-/// two are reported apart (`by_screen`, and the two counters).
-inline void b1_dependency_test(const QpProblem &qp, const WorkingSet &ws, const QpOptions &opts,
-                               KktFactor &kkt, QpB1Factor &fac, QpB1Candidate &c) {
-    const QpDegeneracyParams &prm = QpDegeneracyArmState::params;
-    const bool screen = prm.integer_screen && (b1_dependency_rows(qp, ws) + 1 > qp.n());
-    c.by_screen = screen;
-    if (!b1_build_factor(qp, ws, opts, kkt, fac)) {
-        // The numeric test is unavailable. The screen still decides when it
-        // fired; otherwise the candidate is left UNREFUSED (`-1`), which the
-        // caller treats as "do not intervene".
-        c.verdict = screen ? 1 : -1;
-        if (screen) {
-            ++QpDegeneracyArmState::indep_screen_dependent;
-        }
-        return;
+/// `> dependency_tol` ==> INDEPENDENT. A zero row is dependent on anything
+/// and returns 0 without a projection.
+inline double b1_projection_residual(const QpB1Rank &rk, const Vec &a) {
+    const double an = a.norm();
+    if (!(an > 0.0)) {
+        return 0.0;
     }
-    const Index dim = fac.n_free + fac.me + fac.n_working;
-    Vec a_f = Vec::Zero(dim);
-    double a_inf = 0.0;
-    if (c.is_ineq) {
-        for (SpMatRM::InnerIterator it(qp.Ai, c.idx); it; ++it) {
-            const Index k = fac.full_to_free[static_cast<std::size_t>(it.col())];
-            if (k >= 0) {
-                a_f(k) = it.value();
-                a_inf = std::max(a_inf, std::abs(it.value()));
-            }
-        }
-    } else {
-        // A bound candidate is FREE by construction (the enumeration skips
-        // every non-free variable), so its unit row has a free component.
-        const Index k = fac.full_to_free[static_cast<std::size_t>(c.idx)];
-        if (k >= 0) {
-            a_f(k) = 1.0;
-            a_inf = 1.0;
-        }
+    if (rk.rows == 0 || rk.rank == 0) {
+        return 1.0;
     }
-    if (!(a_inf > 0.0)) {
-        // The row lives entirely on pinned variables, so it IS a combination
-        // of their unit rows: dependent, with no solve and no tolerance.
-        c.verdict = 1;
-        c.dep_residual = 0.0;
-        ++QpDegeneracyArmState::indep_screen_dependent;
-        return;
+    const Vec q = rk.qr.householderQ().transpose() * a;
+    double tail = 0.0;
+    for (Index k = rk.rank; k < rk.n; ++k) {
+        tail += q(k) * q(k);
     }
-    Vec y;
-    try {
-        y = solve_vec(kkt, a_f);
-    } catch (...) {
-        ++QpDegeneracyArmState::indep_test_failures;
-        c.verdict = screen ? 1 : -1;
-        if (screen) {
-            ++QpDegeneracyArmState::indep_screen_dependent;
-        }
-        return;
+    return std::sqrt(tail) / an;
+}
+
+/// THE DEPENDENCY COEFFICIENTS `v` with `a = R^T v` (amendment A5), taken
+/// from the same decomposition. On an independent `a` this is the
+/// least-squares fit and is reported for what it is; on a dependent `a` it is
+/// the representation A5 wants to check the leak against.
+inline Vec b1_dependency_coefficients(const QpB1Rank &rk, const Vec &a) {
+    if (rk.rows == 0) {
+        return Vec::Zero(0);
     }
-    ++QpDegeneracyArmState::indep_dep_solves;
-    Vec t = Vec::Zero(qp.n());
-    for (Index r = 0; r < fac.me; ++r) {
-        const double vr = y(fac.n_free + r);
-        if (vr == 0.0) {
-            continue;
-        }
-        for (SpMatRM::InnerIterator it(qp.Ae, r); it; ++it) {
-            t(it.col()) += vr * it.value();
-        }
+    return rk.qr.solve(a);
+}
+
+/// WHAT THE SHARED PREDICATE DECIDED ABOUT ONE CANDIDATE ROW.
+struct QpB1Admission {
+    /// The site may proceed with the addition.
+    bool admit = true;
+    /// `-1` not tested / `0` independent / `1` dependent.
+    int verdict = -1;
+    double residual = std::numeric_limits<double>::quiet_NaN();
+    /// The INTEGER screen fired for the set this add would create. It is a
+    /// free PRE-CHECK and never a refusal on its own (A8).
+    bool by_screen = false;
+    /// The invariant held on the INCOMING set. False means the arm has just
+    /// disarmed (A9) and the caller is back on production's statements.
+    bool rank_ok = true;
+};
+
+/// THE INVARIANT CHECK (amendments A2 and A9), on the CURRENT working set.
+///
+/// `rank(R) == me + |W| <= n`. A violation away from solve entry is
+/// `arm_rank_violation`: it is recorded, it DISARMS the arm for the rest of
+/// this solve, and the solve continues unarmed. It is not a stop, and the
+/// cell's verdict is UNSUPPORTED.
+inline bool b1_invariant_holds(const QpProblem &qp, const QpB1Rank &rk) {
+    using Adeg = QpDegeneracyArmState;
+    const Index deficit = rk.rows - rk.rank;
+    Adeg::indep_rows_minus_n_max = std::max(Adeg::indep_rows_minus_n_max, rk.rows - qp.n());
+    Adeg::indep_rank_deficit_max = std::max(Adeg::indep_rank_deficit_max, deficit);
+    return deficit <= 0 && rk.rows <= qp.n();
+}
+
+/// THE SHARED PREDICATE (amendment A3). ONE function, asked at EVERY add site
+/// the walk has, so the rule cannot differ between them and so a new site
+/// added later has one obvious thing to call.
+///
+/// IT ASKS THE INVARIANT FIRST. A3's entry repair exists so that the incoming
+/// set is independent; if it is not -- which can only mean a site mutated the
+/// set without the predicate -- then the QR's verdict about a CANDIDATE is
+/// answering the wrong question (the dependency is among the OLD rows), which
+/// is exactly what the predecessor's 0.667-to-1.0 residuals on
+/// screen-positive candidates were. A9 rules that case: record, disarm,
+/// continue.
+///
+/// THE SCREEN IS A PRE-CHECK, NOT A VERDICT (A8). Under the invariant the two
+/// cannot disagree: `me + |W| = n` makes the rows span R^n, so every
+/// candidate projects with residual 0 and the QR says DEPENDENT too; below
+/// `n` the screen is silent and the QR alone decides. It is recorded because
+/// the three-mechanism split A8 asks for needs it.
+inline QpB1Admission admit_if_independent(const QpProblem &qp, const WorkingSet &ws, QpB1Rank &rk,
+                                          bool is_ineq, Index idx, QpB1Site site) {
+    using Adeg = QpDegeneracyArmState;
+    const QpDegeneracyParams &prm = Adeg::params;
+    QpB1Admission out;
+    if (!b1_rank_refresh(qp, ws, rk)) {
+        return out; // untestable: ADMIT, never refuse on a test that failed
     }
-    const std::vector<Index> &aw = ws.active_ineq();
-    for (Index k = 0; k < fac.n_working; ++k) {
-        const double vk = y(fac.n_free + fac.me + k);
-        if (vk == 0.0) {
-            continue;
-        }
-        for (SpMatRM::InnerIterator it(qp.Ai, aw[static_cast<std::size_t>(k)]); it; ++it) {
-            t(it.col()) += vk * it.value();
-        }
+    if (!b1_invariant_holds(qp, rk)) {
+        ++Adeg::indep_rank_violations;
+        Adeg::disarm(static_cast<int>(site));
+        out.rank_ok = false;
+        return out;
     }
-    double res = 0.0;
-    for (Index k = 0; k < fac.n_free; ++k) {
-        const Index full = fac.assembly.free_of_full[static_cast<std::size_t>(k)];
-        res = std::max(res, std::abs(a_f(k) - t(full)));
-    }
-    c.dep_residual = res / a_inf;
-    const bool numeric_dependent = c.dep_residual <= prm.dependency_tol;
-    c.verdict = (screen || numeric_dependent) ? 1 : 0;
-    if (c.verdict == 1) {
-        if (screen) {
-            ++QpDegeneracyArmState::indep_screen_dependent;
+    out.by_screen = prm.integer_screen && (rk.rows + 1 > qp.n());
+    const Vec a = b1_candidate_row(qp, is_ineq, idx);
+    out.residual = b1_projection_residual(rk, a);
+    ++Adeg::indep_dep_tests;
+    const bool dependent = out.residual <= prm.dependency_tol;
+    out.verdict = dependent ? 1 : 0;
+    out.admit = !dependent;
+    if (dependent) {
+        if (out.by_screen) {
+            ++Adeg::indep_screen_and_qr_dependent;
         } else {
-            ++QpDegeneracyArmState::indep_numeric_dependent;
+            ++Adeg::indep_qr_only_dependent;
+        }
+    }
+    return out;
+}
+
+/// THE ENTRY REPAIR (amendment A3), run once per solve on the seed working
+/// set, before the walk's first pass.
+///
+/// WHAT IT DOES. If the seed set is already independent -- the ordinary case,
+/// and ONE decomposition to establish it -- nothing happens at all. If it is
+/// not, the arm rebuilds it: the MANDATORY rows first (equality rows and
+/// FIXED bounds, which it may never remove), then every non-mandatory member
+/// in canonical order, each admitted only if the QR calls it independent of
+/// what has been accepted so far. A member that is not is REMOVED from the
+/// working set and counted.
+///
+/// "REVERSE INGESTION ORDER", DECLARED HONESTLY. A3 asks for removal in
+/// reverse ingestion order. `WorkingSet` retains NO ingestion order --
+/// `active_ineq()` is kept sorted and `bound_state()` is indexed by variable
+/// -- so the arm uses the CANONICAL order of `b1_active_rows_transposed` as
+/// the surrogate and keeps the EARLIER member of a dependent pair, which is
+/// removal in reverse canonical order. The deviation is declared here rather
+/// than papered over, and it is the same order the oracle's own row layout
+/// uses, so nothing downstream has to reconcile two orders.
+///
+/// THE MANDATORY-DEPENDENT PATH. If the mandatory rows are themselves
+/// dependent, no repair can reach the invariant: the arm REFUSES that solve
+/// (`indep_refused_mandatory_dependent`), disarms, and the solve proceeds
+/// UNARMED. That cell's row says so, and its verdict is UNSUPPORTED.
+///
+/// THE COST. One decomposition when the seed is already independent; on the
+/// repairing path one more per ACCEPTED member, all counted in
+/// `indep_qr_builds`.
+///
+/// x IS NOT MOVED. Removing a pin leaves the variable exactly where it sits
+/// and merely stops the walk from treating it as fixed, so the repair cannot
+/// introduce an infeasibility of its own.
+inline void b1_entry_repair(const QpProblem &qp, WorkingSet &ws) {
+    using Adeg = QpDegeneracyArmState;
+    QpB1Rank rk;
+    if (!b1_rank_refresh(qp, ws, rk)) {
+        return; // untestable: leave the seed alone
+    }
+    if (b1_invariant_holds(qp, rk)) {
+        return; // already independent -- the ordinary case, one decomposition
+    }
+
+    // The MANDATORY skeleton: equality rows (implicit in `qp.me()`) and FIXED
+    // bounds. Everything else starts out.
+    WorkingSet acc(ws.n(), ws.mi());
+    for (Index i = 0; i < qp.n(); ++i) {
+        const auto si = static_cast<std::size_t>(i);
+        if (ws.bound_state()[si] == BoundState::kFixed) {
+            acc.bound_state()[si] = BoundState::kFixed;
+        }
+    }
+    QpB1Rank ak;
+    if (!b1_rank_refresh(qp, acc, ak)) {
+        return;
+    }
+    if (ak.rows - ak.rank > 0 || ak.rows > qp.n()) {
+        ++Adeg::indep_refused_mandatory_dependent;
+        Adeg::disarm(static_cast<int>(QpB1Site::kSeedEntry));
+        return;
+    }
+
+    const std::vector<Index> seed_rows = ws.active_ineq();
+    for (const Index j : seed_rows) {
+        const Vec a = b1_candidate_row(qp, /*is_ineq=*/true, j);
+        const bool dependent = b1_projection_residual(ak, a) <= Adeg::params.dependency_tol;
+        if (dependent) {
+            ws.drop_ineq(j);
+            ++Adeg::indep_entry_members_removed;
+            continue;
+        }
+        acc.add_ineq(j);
+        if (!b1_rank_refresh(qp, acc, ak)) {
+            return;
+        }
+    }
+    for (Index i = 0; i < qp.n(); ++i) {
+        const auto si = static_cast<std::size_t>(i);
+        const BoundState st = ws.bound_state()[si];
+        if (st == BoundState::kFree || st == BoundState::kFixed) {
+            continue;
+        }
+        const Vec a = b1_candidate_row(qp, /*is_ineq=*/false, i);
+        const bool dependent = b1_projection_residual(ak, a) <= Adeg::params.dependency_tol;
+        if (dependent) {
+            ws.bound_state()[si] = BoundState::kFree;
+            ++Adeg::indep_entry_members_removed;
+            continue;
+        }
+        acc.bound_state()[si] = st;
+        if (!b1_rank_refresh(qp, acc, ak)) {
+            return;
         }
     }
 }
@@ -897,21 +1438,32 @@ inline void b1_dependency_test(const QpProblem &qp, const WorkingSet &ws, const 
 /// does not, the two enumerations disagree about what the ratio test even
 /// considers, the arm's read-out would be meaningless, and the arm REFUSES the
 /// pass (`ran = false`, `mismatch = true`, nothing changed).
+///
+/// THE ORACLE IS BUILT HERE, ONCE (amendment A1): one rank-revealing QR of
+/// `Rᵀ` for the pass, reused across every candidate the scan examines. The
+/// pass has already taken its drop (the drop branch `continue`s above this
+/// site), so the set it decomposes is the set the ratio test just ran on.
+///
+/// `dual_mu` and `lambda_w_inf` are the pass's own regularization parameter
+/// and the infinity norm of its working multipliers, passed in rather than
+/// re-derived, because amendment A5's leak columns are expressed in units of
+/// `μ‖λ_W‖∞` and a second derivation could drift from the one the walk used.
 inline QpB1Outcome b1_select_blocker(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
-                                     const Vec &Aix, const Vec &p, const QpOptions &opts,
-                                     KktFactor &kkt, bool prod_is_ineq, Index prod_idx) {
-    const QpDegeneracyParams &prm = QpDegeneracyArmState::params;
+                                     const Vec &Aix, const Vec &p, double dual_mu,
+                                     double lambda_w_inf, bool prod_is_ineq, Index prod_idx) {
+    using Adeg = QpDegeneracyArmState;
+    const QpDegeneracyParams &prm = Adeg::params;
     QpB1Outcome o;
     o.prod_is_ineq = prod_is_ineq;
     o.prod_idx = prod_idx;
     std::vector<QpB1Candidate> cands = b1_candidates(qp, ws, x, Aix, p);
     if (cands.empty() || cands.front().is_ineq != prod_is_ineq || cands.front().idx != prod_idx) {
-        ++QpDegeneracyArmState::indep_enumeration_mismatches;
+        ++Adeg::indep_enumeration_mismatches;
         o.mismatch = true;
         return o;
     }
     o.ran = true;
-    ++QpDegeneracyArmState::indep_passes;
+    ++Adeg::indep_passes;
     const double best = cands.front().step;
     for (const QpB1Candidate &c : cands) {
         if (c.step == best) {
@@ -919,41 +1471,93 @@ inline QpB1Outcome b1_select_blocker(const QpProblem &qp, const WorkingSet &ws, 
         }
     }
 
-    QpB1Factor fac;
+    // AMENDMENT A5's per-pass denominators, taken ONCE: the retained rows'
+    // own leaks `R p`, their worst, the leak bound `μ‖λ_W‖∞`, and `‖p‖₂`.
+    const Vec Rp = b1_active_rows_times(qp, ws, p);
+    o.max_retained_leak = Rp.size() > 0 ? Rp.cwiseAbs().maxCoeff() : 0.0;
+    o.leak_bound = dual_mu * lambda_w_inf;
+    o.p_norm = p.norm();
+
+    const Index qr_before = Adeg::indep_qr_builds;
+    QpB1Rank &rk = b1_site_rank();
     const QpB1Candidate *pick = nullptr;
     std::size_t next = 0;
     for (std::size_t k = 0; k < cands.size(); ++k) {
         if (prm.max_dep_tests_per_pass > 0 && o.examined >= prm.max_dep_tests_per_pass) {
             o.truncated = true;
-            ++QpDegeneracyArmState::indep_budget_truncations;
+            ++Adeg::indep_budget_truncations;
             break;
         }
-        b1_dependency_test(qp, ws, opts, kkt, fac, cands[k]);
+        QpB1Candidate &c = cands[k];
+        const QpB1Admission adm =
+            admit_if_independent(qp, ws, rk, c.is_ineq, c.idx, QpB1Site::kOrdinaryAdd);
+        if (!adm.rank_ok) {
+            // AMENDMENT A9. The INCOMING set is rank-deficient, so no verdict
+            // about a CANDIDATE means anything: the dependency is among the
+            // rows already there. The arm has disarmed itself; production's
+            // choice stands, untouched, for this pass and every pass after it
+            // in this solve.
+            o.disarmed = true;
+            o.rows = rk.rows;
+            o.rank = rk.rank;
+            o.qr_builds = Adeg::indep_qr_builds - qr_before;
+            o.switched = false;
+            return o;
+        }
+        c.verdict = adm.verdict;
+        c.dep_residual = adm.residual;
+        c.by_screen = adm.by_screen;
+        // A5's columns, on every candidate the oracle looked at.
+        const Vec a = b1_candidate_row(qp, c.is_ineq, c.idx);
+        c.a_norm = a.norm();
+        const double den = c.a_norm * o.p_norm;
+        c.a_dot_p_normalized =
+            den > 0.0 ? c.a_dot_p / den : std::numeric_limits<double>::quiet_NaN();
+        c.leak_ratio = o.leak_bound > 0.0 ? c.a_dot_p / o.leak_bound
+                                          : std::numeric_limits<double>::quiet_NaN();
+        if (adm.verdict == 1 && rk.ok) {
+            // "IS THE CANDIDATE'S DERIVATIVE RECONSTRUCTED BY THE RETAINED
+            // ROWS' LEAKS?" -- A5's question, answered by the coefficients
+            // from the same decomposition: `a = Rᵀv` gives `aᵀp = vᵀ(R p)`
+            // exactly in exact arithmetic, so the gap IS the answer.
+            const Vec v = b1_dependency_coefficients(rk, a);
+            if (v.size() == Rp.size()) {
+                c.coeff_residual = std::abs(c.a_dot_p - v.dot(Rp));
+            }
+        }
         ++o.examined;
         next = k + 1;
-        if (cands[k].verdict != 1) {
+        if (adm.admit) {
             // INDEPENDENT (`0`) or UNTESTABLE (`-1`): admitted. An untestable
             // candidate is admitted deliberately -- a test that could not be
             // taken may not refuse a constraint.
             pick = &cands[k];
             break;
         }
-        o.passed.push_back(cands[k]);
+        if (c.by_screen) {
+            ++o.screen_and_qr_passed;
+        } else {
+            ++o.qr_only_passed;
+        }
+        o.passed.push_back(c);
         ++o.passed_over;
     }
+    o.rows = rk.rows;
+    o.rank = rk.rank;
+    o.qr_builds = Adeg::indep_qr_builds - qr_before;
     if (pick == nullptr && o.truncated && next < cands.size()) {
         // The budget ran out. Take the first UNEXAMINED candidate unrefused,
         // so a truncation can only move the arm back toward production.
         pick = &cands[next];
     }
-    QpDegeneracyArmState::indep_candidates_examined += o.examined;
-    QpDegeneracyArmState::indep_candidates_passed_over += o.passed_over;
+    Adeg::indep_candidates_examined += o.examined;
+    Adeg::indep_candidates_passed_over += o.passed_over;
     if (pick == nullptr) {
         // EVERY candidate is dependent. Admit nothing and take the full step
         // -- `ratio_test`'s `cap_at_unit` convention with no blocker left.
         o.has_blocker = false;
         o.alpha = 1.0;
-        ++QpDegeneracyArmState::indep_no_blocker_passes;
+        ++Adeg::indep_no_blocker_passes;
     } else {
         o.has_blocker = true;
         o.is_ineq = pick->is_ineq;
@@ -978,23 +1582,55 @@ inline QpB1Outcome b1_select_blocker(const QpProblem &qp, const WorkingSet &ws, 
     // dependent, by construction rather than by arithmetic.
     o.switched = o.passed_over > 0;
     if (o.switched) {
-        ++QpDegeneracyArmState::indep_blocker_switched;
+        ++Adeg::indep_blocker_switched;
     }
     return o;
+}
+
+/// AMENDMENT A10's PRE-REGISTERED BOUND, on ONE passed-over constraint.
+///
+/// A pass-over is justified by the claim that the candidate blocked only
+/// because the direction LEAKED through it. If that is what happened, the
+/// violation the step then commits is bounded by the leak itself:
+///
+///     violation  <=  (μ‖λ_W‖∞ + ε‖a‖₂‖p‖₂) · α · 10
+///
+/// with the factor of 10 declared in advance. A LARGER violation means the
+/// candidate was not merely leaking -- it was a real blocking constraint the
+/// arm refused -- which is a FINDING, and that solve's b1 verdict is
+/// UNSUPPORTED rather than CONVERTED.
+inline bool b1_leak_bound_holds(double violation, double leak_bound, double a_norm, double p_norm,
+                                double alpha) {
+    const double eps = std::numeric_limits<double>::epsilon();
+    const double bound = (leak_bound + eps * a_norm * p_norm) * std::abs(alpha) * 10.0;
+    return violation <= bound;
 }
 
 /// The largest amount by which the constraints the arm passed over are
 /// violated at the iterate the walk actually moved to. Zero when nothing was
 /// passed over, and zero when every passed-over constraint is still satisfied.
-inline double b1_passed_over_violation(const QpProblem &qp, const Vec &x_new,
-                                       const std::vector<QpB1Candidate> &passed) {
+///
+/// IT ALSO APPLIES AMENDMENT A10's PRE-REGISTERED BOUND, per constraint, and
+/// counts every failure: a violation larger than the leak can account for is
+/// a finding about the RULE, not a number to report and move past. `exceeded`
+/// receives this pass's count.
+inline double b1_passed_over_violation(const QpProblem &qp, const Vec &x_new, const QpB1Outcome &o,
+                                       Index *exceeded) {
     double worst = 0.0;
-    for (const QpB1Candidate &c : passed) {
+    Index bad = 0;
+    for (const QpB1Candidate &c : o.passed) {
         const double v = c.is_ineq
                              ? qp.Ai.row(c.idx).dot(x_new) - qp.bi(c.idx)
                              : (c.state == BoundState::kAtUpper ? x_new(c.idx) - qp.upper(c.idx)
                                                                 : qp.lower(c.idx) - x_new(c.idx));
         worst = std::max(worst, v);
+        if (v > 0.0 && !b1_leak_bound_holds(v, o.leak_bound, c.a_norm, o.p_norm, o.alpha)) {
+            ++bad;
+            ++QpDegeneracyArmState::indep_leak_bound_exceeded;
+        }
+    }
+    if (exceeded != nullptr) {
+        *exceeded = bad;
     }
     return worst;
 }
@@ -1031,6 +1667,13 @@ inline double b1_passed_over_violation(const QpProblem &qp, const Vec &x_new,
 //      which set the NEXT EQP is solved over, so the pass must either re-solve
 //      or carry a direction whose face no longer exists. Either choice is a
 //      change to the walk's pass structure, i.e. a production change.
+//
+// AMENDMENT A4 DROPS b2 OUTRIGHT FOR M5 AND FIXES ITS REFERENCE: the
+// registered item is Gill & Wong (2015) §4's MULTIPLIER-AWARE exchange, with
+// its sign conditions and its prohibition on removing mandatory rows -- not
+// B.3's "largest dependency coefficient", which the review's item 5 showed is
+// not theorem-backed. The three implementability reasons above stand
+// unchanged and are why the item is registered rather than built.
 //
 // SO IT IS REGISTERED: the exchange is a PRODUCTION design item, alongside
 // B.2's "one triangular solve against the retained factor" cost target. b1 is
