@@ -177,7 +177,7 @@ both cells.** Each is UNSUPPORTED under A10 and flagged INFEASIBLE-EXIT under
 feasible — so on these two the flag is an arm effect and says so in
 `verdict.txt`'s `+OFF` column.
 
-**And AMENDMENT 1's `cond(R)` does NOT explain `READING6`.** The pre-registered
+**And AMENDMENT 1's QR pivot-spread proxy does NOT explain `READING6`.** The pre-registered
 reading beside every exceedance is the QR's own conditioning. On `READING6` the
 per-solve high-water mark is **`indep_max_cond_r` = 2.94** — a *well-conditioned*
 active set — beside 188 exceedances and a 6.24 violation. The ill-conditioning
@@ -186,7 +186,7 @@ story that C4 pre-registered as the likely explanation is available on
 but it is **not available on `READING6`**, and the rule's own words apply: it
 EXPLAINS an exceedance where it is large and NEVER EXCUSES one — the solve stays
 UNSUPPORTED either way. A reader should take the opposite reading too: a small
-`cond(R)` does not make an exceedance benign. Separately, `STEENBRG` under b1
+QR pivot-spread proxy does not make an exceedance benign. Separately, `STEENBRG` under b1
 shows **2839 exceedances whose largest violation is 3.78e−12** — A10's bound is
 relative, so it can be exceeded at an absolutely negligible violation, and an
 exceedance count on its own is not a magnitude. *(OBSERVED.)*
@@ -305,6 +305,16 @@ cannot see a violated BOX — which is precisely the blind spot C7 names below.
 The only box reading available is the arm's own
 `indep_max_passed_violation`, and it is in `tables/arm.md` §6.
 
+The Codex M5 review (FIX-ROUND (4), Important 3) reads this same absence the
+same way and its wording is adopted here rather than paraphrased away: "C4's
+per-add observations and independent box infeasibility recomputation are
+missing from the probe, limiting registered causal attribution." Concretely,
+this artifact can bound a cell's worst passed-over violation and its per-solve
+conditioning high-water mark, but it cannot correlate ONE exceedance with THAT
+pass's own conditioning or candidate decomposition — the per-add columns that
+would license that correlation are not in the flat trace (see "Corrections
+after review (fix1)" below).
+
 ---
 
 ## 6. The registered items
@@ -320,7 +330,12 @@ The only box reading available is the arm's own
    box. On the scale-carrier fixture it returned `kOptimal` at a point
    **5.59e−03 outside its box**. It is **not contingent on the arm**: an engine
    that certifies a point it has not checked is a property of the engine, which
-   the arm merely made visible.
+   the arm merely made visible. **Dispatched as its own production task, E4**
+   (`.superpowers/m7-w2-e4-certificate-brief.md`); the Codex M5 review confirms
+   the finding independently from the code, at `qp_engine.cpp:1661` (the
+   structural-violation check, which reads `Ae`/`Ai` but not simple bounds),
+   `:956` and `:990`. Not fixed in this directory; see "Corrections after
+   review (fix1)" below.
 2. **The production exchange — REGISTERED AND UNBUILT (A4/C5).** Gill & Wong,
    *Math. Prog. Comp.* **7** (2015) §4's multiplier-aware exchange, **not**
    "release the largest dependency coefficient", which the Codex review showed
@@ -329,7 +344,11 @@ The only box reading available is the arm's own
 3. **Rank-deficient MANDATORY rows — a new ENGINE question, raised by Q1.**
    On `SMBANK` (29/29 solves) and `SAWPATH` (11/11) the equality rows plus fixed
    bounds are linearly dependent on every subproblem. Registered as an engine-level
-   question, with the caveat on its inference stated in Q1.
+   question, with the caveat on its inference stated in Q1. **Discharged for
+   five of the six mandatory-refusal cells by the M5r offline Jacobian check
+   (`docs/notes/data/2026-09-m7-w2-m5r-equality-rank/`); `SAWPATH` reads
+   differently. See "Corrections after review (fix1)" below for the
+   mapping.**
 4. **Arm b1's own precondition is the finding, not a nuisance.** Any future
    independence-based add rule inherits the same entry condition, so the
    question in item 3 is on its critical path: an arm that may not touch the
@@ -344,7 +363,7 @@ The only box reading available is the arm's own
 | [`RULE.md`](RULE.md) | the pre-registered rule, with AMENDMENT 1. Committed before the first leg, **frozen**, not edited by this read-out |
 | [`verdict.txt`](verdict.txt) | RULE.md §§4, 5, 7 and 8 applied mechanically, with the precedence declared before the table |
 | [`tables/tails-m5.json`](tables/tails-m5.json) | `m4c_tails.py`'s own output for all 28 arm traces and the four OFF traces this round ran it on, so §8's core-unit table is auditable without re-running anything |
-| [`tables/arm.md`](tables/arm.md) | every read-out §6 asks for that this probe exports: the compared fields, arm A's five counters, b1's counters, the three-mechanism split, the rank invariant, the exceedances-against-`cond(R)` column, which site acted, the core-unit counts, neutrality, and A11's cost |
+| [`tables/arm.md`](tables/arm.md) | every read-out §6 asks for that this probe exports: the compared fields, arm A's five counters, b1's counters, the three-mechanism split, the rank invariant, the exceedances-against-the-QR-pivot-spread-proxy column, which site acted, the core-unit counts, neutrality, and A11's cost |
 | `rows/` | the 28 surviving leg rows, as the chain wrote them |
 | `rows-off/` | M4's thirteen committed OFF rows, COPIED with their manifest and re-verified by the chain's STEP 0 — never re-run |
 | `logs/` | the chain transcript, A6's offline transcript, and the OFF-trace pin check |
@@ -356,3 +375,88 @@ The only box reading available is the arm's own
 
 Nothing under `src/`, `include/` or `tests/` was touched by the chain or by this
 read-out, and no solver ran to produce any file in §§1–7 above.
+
+---
+
+## Corrections after review (fix1)
+
+This section is M7 W2 M5's fix round 1 (`.superpowers/m7-w2-m5-fix1-brief.md`),
+against the Codex M5 review (`.superpowers/m7-w2-m5-review-sol.md`, verdict
+FIX-ROUND (4)). It is **docs and comment-only**: no line under `src/`,
+`include/` or `tests/` changes behavior, and `RULE.md` is untouched — frozen,
+as §1 above already says. Every adjudication below is the settler's, made
+after reading the review in full; nothing here is a re-argument of it.
+
+| review item | adjudication | change |
+|---|---|---|
+| Critical 1 — C7's optimality certificate does not check the returned iterate's bound feasibility | ACCEPTED. Production defect, not contingent on either arm. | §6 item 1 above now points to the dispatched fix task, **E4** (`.superpowers/m7-w2-e4-certificate-brief.md`), and cites the reviewer's own confirmation from the code at `qp_engine.cpp:1661`, `:956`, `:990`. Not fixed in this directory. |
+| Critical 2 — b1's no-independent-blocker full-step fallback is refuted (`READING6`, `ZAMB2-8`) | ACCEPTED. **Arm b1 is RETIRED as an instrument.** No redesign this round; the production answer is an independent working set with a multiplier-aware exchange (Gill & Wong 2015 §4), already registered as §6 item 2 above and NOT this ratio-order/full-step rule. | A RETIRED notice naming all four defects (full-step fallback; `refresh_shifts` before `begin_solve()`'s reset; seed entry repair bypassing the shared predicate; temporary pin restoration outside the predicate) was added as a comment block at the top of arm b1's header in `include/hven/detail/qp/qp_degeneracy_arm.h` (immediately after the `ARM B1` banner). Every M5 row for arm b1 and arm a+b1 reads as UNSUPPORTED per RULE.md — already the case under A9 (9/11 and 11/13 disarmed) and the two HARM findings; this is a restatement, not a new verdict. |
+| Important 3 — C4's per-add columns and independent box-infeasibility recomputation are absent from the probe | ACCEPTED as a recorded instrument gap, already declared in §5 above. | Appended the reviewer's own wording to §5's existing paragraph: this absence "limit[s] registered causal attribution" — one cannot correlate a particular exceedance with that pass's own conditioning or candidate decomposition from this artifact. |
+| Important 4 — the mandatory-refusal counters show numerical RRQR dependence, not yet demonstrated rank deficiency | DISCHARGED for five of the six cells by the M5r offline Jacobian check; the sixth reads differently. | See the mapping immediately below. §6 item 3 above now points here. |
+| Fix item 4 — if b1 is remeasured, expose per-add conditioning/leak and independently recompute feasibility | N/A. b1 is retired, not remeasured, this round. | No change. |
+| Minor 1 — temporary pin restoration is an unlisted mutation outside the shared predicate (`qp_engine.cpp:2530`) | Folded into the Critical 2 disposition above; it is one of the four named defects. | Named in the RETIRED header comment (previous row). |
+| Minor 2 — `cond(R)` should consistently read as a QR pivot-spread proxy | ACCEPTED. | Renamed the four prose occurrences in `README.md` and the one section heading in `tables/arm.md` to "QR pivot-spread proxy" / "the QR-pivot-spread-proxy column". `RULE.md` (frozen) and the pinned counter names (`add_b1_cond_r`, `indep_max_cond_r`) are unchanged. |
+| Minor 3 — the file-level fixture description at `test_qp_degeneracy_arm.cpp:20` is stale (still says the refused-drop fixture reaches `kOptimal`) | ACCEPTED. | Corrected item (2) of "WHAT THIS FILE HAS TO PROVE" (comment-only) to say the armed solve reports `kNumericalError`, matching the test body (`ArmAScaledDropRefusesTheDropAndEndsTheRecurrence`), and to state why: the refused multiplier is real, not cancellation residue. |
+| Minor 4 / hygiene — the read-out agent's pre-hand-back amendment; "two chains stopped" | Recorded below, no source or RULE.md change. | See "Process notes" below. |
+
+### The mandatory-rows mapping (Important 4)
+
+The M5r offline Jacobian check (`docs/notes/data/2026-09-m7-w2-m5r-equality-rank/`,
+`.superpowers/m7-w2-m5r-report.md`) landed after the reviewer read this tree and
+discharges most of Important 4 directly, by evaluating `A_e` — not inferring it
+from refusal counters:
+
+* **CONFIRMED, exact linear dependence, on all five network cells** —
+  `rank(A_e) < m_e` with deficits **1 / 1 / 12 / 14 / 14** on
+  `SMBANK` / `DALLASM` / `STEENBRB` / `STEENBRC` / `STEENBRG`, agreeing across
+  all three thresholds (Eigen's default, 1e-10, and 1e-8 — M5's own
+  `dependency_tol`), agreeing on the row-equilibrated read, and cross-checked
+  by an independent numpy SVD (0 disagreements on `SMBANK`/`STEENBRB`). Every
+  row is CUTEst-linear, so the deficiency is present in every linearization
+  the solver ever builds on these cells, not only at `x0`.
+* **REFUTED as exact dependence, confirmed as scaling, on `SAWPATH`.**
+  `A_e` is full rank at machine precision (578/578, QR = SVD, `cond(R)` ≈
+  6.0e10). At M5's arm's 1e-8 relative cut 575/578 rows read dependent, which
+  is why the arm's refusal fired every solve — but the cause is badly scaled,
+  ill-conditioned rows (norms 1.41 to 6.0e10, no spectral gap), not linear
+  redundancy. `SAWPATH` is therefore a **different** engine question — a
+  relative dependence test run on badly scaled rows — from the other five,
+  which are a genuine rank-deficient equality Jacobian.
+* **Per-subproblem coverage remains registered, and only for the NONLINEAR
+  cells `MSS2` (325-row deficiency) and `MSS3` (946-row deficiency).** M5r
+  ran once, at `x0` (and a projected/perturbed point), with no solver; for the
+  five LINEAR network cells the rows do not move across linearizations, so a
+  single evaluation settles the question. `MSS2`/`MSS3` are nonlinear and
+  outside M5's six cells, so their per-subproblem behavior is not evaluated
+  here and stays an open item.
+* The OPEN item M5r itself registers — why the mandatory-dependent refusal
+  fired on only 5/8, 5/23, 6/22 and 6/23 of `DALLASM`/`STEENBRB`/`STEENBRC`/
+  `STEENBRG`'s solves, when the rows are deficient on every linearization —
+  is **not** resolved by this fix round; M5r could not decide it without a
+  solver, and none ran.
+
+The reviewer's fix item 2 ("complete the equality-rank probe with
+equilibration, tolerance sensitivity, fixed-bound decomposition, and
+per-subproblem coverage") is discharged by the above, except for that
+registered per-subproblem residual on the nonlinear cells.
+
+### Process notes (Minor 4 / hygiene)
+
+* **The read-out agent's pre-hand-back amendment** is recorded here as a
+  declared process exception to CLAUDE.md §8's no-amend norm, not a rewrite of
+  it: the superseded sha is not in history, and the amendment itself is
+  disclosed in the read-out's own record. No further action this round.
+* **"Two chains stopped."** The review prompt asked whether two chains being
+  stopped by their owners was adequately recorded; the reviewer could
+  substantiate only one. The settler's record agrees there was only one: the
+  superseded regularized-oracle measurement chain at head `ced56152`
+  (pid `3024935`), stopped six minutes in inside its own G1, before the
+  settler's amendments A1–A12 superseded that design — and that chain WAS the
+  gate chain for that (superseded) head, not a second, separate stop. "Two
+  chains stopped" over-counts one event as two; the correct count is **one**.
+* **The probe-preparation transcript's five dirty files.** Adopting the
+  reviewer's own phrasing: the probe preparation transcript records five
+  dirty files at build time. They were wrapper/smoke artifacts, subsequently
+  committed, not source changes, and the probe binary and the committed rows
+  are pinned by sha256 regardless. Provenance is adequate; "the build
+  invocation itself was clean" would be too strong a claim and is not made.

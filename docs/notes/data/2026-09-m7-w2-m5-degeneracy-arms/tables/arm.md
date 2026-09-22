@@ -190,7 +190,7 @@ restore (check-only), 5 repair pin.
 | `ZAMB2-8` | `b1` | 10 | 0 | 0 | **0** | **0** | 0.00 | (not disarmed at harvest) |
 | `ZAMB2-8` | `a+b1` | 10 | 0 | 0 | **0** | **0** | 0.00 | (not disarmed at harvest) |
 
-## 6. AMENDMENT 1's exceedances-against-`cond(R)` column (C4)
+## 6. AMENDMENT 1's exceedances-against-the-QR-pivot-spread-proxy column (C4)
 
 A READING, never a verdict.  Every row with `indep_leak_bound_exceeded > 0`
 keeps UNSUPPORTED whatever `indep_max_cond_r` says.  `nan` means NO
