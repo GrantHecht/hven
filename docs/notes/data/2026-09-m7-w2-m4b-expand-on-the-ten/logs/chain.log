@@ -1,0 +1,91 @@
+CHAIN_START 2026-09-22T08:13:59-04:00
+HEAD 61e621b6  dirty-files=0
+RULE  /home/ghecht/Projects/hven/docs/notes/data/2026-09-m7-w2-m4b-expand-on-the-ten/RULE.md
+EXE   /home/ghecht/Projects/hven/.scratch/m7w2m4/arm/build/m4_arm_probe
+EXE_SHA256 c1be17d2d47e7930440450d72d233da56a8fc374bceb68062baea924fe50a720
+PIN_BINARY OK -- the M4 probe, unrebuilt
+--- the ten COPIED OFF rows, against their own manifest
+PIN_OFF_ROWS OK -- 10 rows verified
+PIN_OFF_ROWS_ARE_M4S OK -- all ten byte-identical to M4's committed rows
+--- the cell roster, checked before any leg
+all 10 cell names are in the 35-name roster
+
+=========== ARM E OVER THE TEN (RULE.md section 10.1 step 2)
+LEG_START E-ACOPP57 2026-09-22T08:14:00-04:00 deadline=600s
+PGREP_EMPTY E-ACOPP57: no foreign cell binary under my lock
+FOREGROUND_START E-ACOPP57 2026-09-22T08:14:00-04:00
+FOREGROUND_END E-ACOPP57 2026-09-22T08:14:01-04:00 rc=0
+LEG_END E-ACOPP57 2026-09-22T08:14:01-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=7248  major_iters=7
+LEG_START E-DALLASM 2026-09-22T08:14:01-04:00 deadline=600s
+PGREP_EMPTY E-DALLASM: no foreign cell binary under my lock
+FOREGROUND_START E-DALLASM 2026-09-22T08:14:01-04:00
+FOREGROUND_END E-DALLASM 2026-09-22T08:14:34-04:00 rc=0
+LEG_END E-DALLASM 2026-09-22T08:14:34-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=10720  major_iters=5
+LEG_START E-STEENBRB 2026-09-22T08:14:34-04:00 deadline=600s
+PGREP_EMPTY E-STEENBRB: no foreign cell binary under my lock
+FOREGROUND_START E-STEENBRB 2026-09-22T08:14:34-04:00
+FOREGROUND_END E-STEENBRB 2026-09-22T08:15:32-04:00 rc=0
+LEG_END E-STEENBRB 2026-09-22T08:15:32-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=20470  major_iters=5
+LEG_START E-ACOPP118 2026-09-22T08:15:32-04:00 deadline=600s
+PGREP_EMPTY E-ACOPP118: no foreign cell binary under my lock
+FOREGROUND_START E-ACOPP118 2026-09-22T08:15:32-04:00
+FOREGROUND_END E-ACOPP118 2026-09-22T08:16:15-04:00 rc=0
+LEG_END E-ACOPP118 2026-09-22T08:16:15-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=19842  major_iters=7
+LEG_START E-ACOPR57 2026-09-22T08:16:15-04:00 deadline=600s
+PGREP_EMPTY E-ACOPR57: no foreign cell binary under my lock
+FOREGROUND_START E-ACOPR57 2026-09-22T08:16:15-04:00
+FOREGROUND_END E-ACOPR57 2026-09-22T08:16:45-04:00 rc=0
+LEG_END E-ACOPR57 2026-09-22T08:16:45-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=13857  major_iters=15
+LEG_START E-STEENBRC 2026-09-22T08:16:45-04:00 deadline=600s
+PGREP_EMPTY E-STEENBRC: no foreign cell binary under my lock
+FOREGROUND_START E-STEENBRC 2026-09-22T08:16:45-04:00
+FOREGROUND_END E-STEENBRC 2026-09-22T08:18:50-04:00 rc=0
+LEG_END E-STEENBRC 2026-09-22T08:18:50-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=29498  major_iters=5
+LEG_START E-STEENBRG 2026-09-22T08:18:50-04:00 deadline=600s
+PGREP_EMPTY E-STEENBRG: no foreign cell binary under my lock
+FOREGROUND_START E-STEENBRG 2026-09-22T08:18:50-04:00
+FOREGROUND_END E-STEENBRG 2026-09-22T08:21:02-04:00 rc=0
+LEG_END E-STEENBRG 2026-09-22T08:21:02-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=30084  major_iters=6
+LEG_START E-YORKNET 2026-09-22T08:21:02-04:00 deadline=600s
+PGREP_EMPTY E-YORKNET: no foreign cell binary under my lock
+FOREGROUND_START E-YORKNET 2026-09-22T08:21:02-04:00
+FOREGROUND_END E-YORKNET 2026-09-22T08:23:22-04:00 rc=0
+LEG_END E-YORKNET 2026-09-22T08:23:22-04:00 rc=0
+    status=infeasible  deadline_fired=0  qp_minor_iters=67259  major_iters=1
+LEG_START E-SAWPATH 2026-09-22T08:23:22-04:00 deadline=300s
+PGREP_EMPTY E-SAWPATH: no foreign cell binary under my lock
+FOREGROUND_START E-SAWPATH 2026-09-22T08:23:22-04:00
+FOREGROUND_END E-SAWPATH 2026-09-22T08:29:49-04:00 rc=0
+LEG_END E-SAWPATH 2026-09-22T08:29:49-04:00 rc=0
+    status=interrupted  deadline_fired=1  qp_minor_iters=59600  major_iters=1
+LEG_START E-BRITGAS 2026-09-22T08:29:49-04:00 deadline=600s
+PGREP_EMPTY E-BRITGAS: no foreign cell binary under my lock
+FOREGROUND_START E-BRITGAS 2026-09-22T08:29:49-04:00
+FOREGROUND_END E-BRITGAS 2026-09-22T08:33:40-04:00 rc=0
+LEG_END E-BRITGAS 2026-09-22T08:33:40-04:00 rc=0
+    status=numerical_error  deadline_fired=0  qp_minor_iters=70436  major_iters=4
+
+=========== SUMMARY
+rows written:
+    E-ACOPP118.txt
+    E-ACOPP57.txt
+    E-ACOPR57.txt
+    E-BRITGAS.txt
+    E-DALLASM.txt
+    E-SAWPATH.txt
+    E-STEENBRB.txt
+    E-STEENBRC.txt
+    E-STEENBRG.txt
+    E-YORKNET.txt
+traces written: 10
+CENSORED cells: 0
+TRUNCATED (deadline_fired=1):
+    /home/ghecht/Projects/hven/.scratch/m7w2m4b/rows/E-SAWPATH.txt
+CHAIN_END 2026-09-22T08:33:40-04:00

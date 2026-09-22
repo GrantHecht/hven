@@ -1,0 +1,163 @@
+M7 W2 M4b -- THE 131 TRACE SLICES THE READ-OUT DRIVER WROTE, WITH THEIR sha256,
+AND THE DECLARED RULE FOR WHICH OF THEM ARE COMMITTED.
+
+`wrappers/readouts_driver_m4b.py` sliced every solve in the RECURRENT union of
+the two arms, plus each cell's first-divergence solve, out of the twenty flat
+traces: 131 slices, 352 MB.  Committing all of them would put 352 MB of
+generated CSV into this repository for a directory whose predecessor committed
+25 MB.
+
+THE RULE, DECLARED HERE RATHER THAN APPLIED SILENTLY
+----------------------------------------------------
+COMMITTED: every slice of `ACOPP57`, under both arms -- ten files, 8.5 MB.
+    That is the cell the task's decision-relevant read is taken on (README
+    section 4), the cell whose E row is byte-identical to its OFF control, and
+    the cell whose `arm_pivot_switches` is 0.  Its records are the evidence the
+    report's central claim stands on, so they are in the repository.
+NOT COMMITTED: the other 121.  They are NOT deleted evidence: their sha256 are
+    listed below, their parents' sha256 are in SHA256-parent-traces-m4b.txt, and
+    re-running
+
+        wrappers/readouts_driver_m4b.py <off-trace-dir> <E-trace-dir> \
+            <slice-dir> <out.md>
+
+    against the pinned parents reproduces every one of them byte for byte.  No
+    number in any table of this directory was read from a slice that is not
+    either committed here or reproducible that way.
+
+Every slice names its own source flat trace in its `# slice_source=` header.
+
+sha256 of ALL 131 SLICES the driver wrote.  A line marked [COMMITTED] is a file
+in this directory; the rest are regenerable as above.
+
+              66daf752f43a915f347a2d6c78561be5679d9278aa95b7be73aed03ce212291a  E-ACOPP118-solve0.csv
+              fa221353fbea70e0470d53b9bef5bf6b8e1f994244e6aacf71e354807386d1a3  E-ACOPP118-solve3.csv
+              ed50c3b8276ed9c37867f0159fdb4e506c5fe38bc464c72af94a226154ecf675  E-ACOPP118-solve4.csv
+              98a9d54a9227ad9c1e5ab033cfe218718dca97e0bd4030c99b5351fa2b63fd66  E-ACOPP118-solve5.csv
+              0998b5c4f4a99046ea776651e16a42db6546066b10bed019060ce3a037f044ed  E-ACOPP118-solve6.csv
+[COMMITTED]  402fcd706f752fdbd01a839ff293de9a90cac7d52527b7b51125f7a4062dde19  E-ACOPP57-solve0.csv
+[COMMITTED]  3bca623756e69c1d64777bf7e8e6d502ba2498c9f87fd1eece162709f1a45ac8  E-ACOPP57-solve3.csv
+[COMMITTED]  be88aba83991463adf92d0362b475ad0bc5434bbff658a427901aabda003e123  E-ACOPP57-solve4.csv
+[COMMITTED]  1411635d9c8d19b94024b37c6c39556ebdfcc46f6133ec64b6c34a6bb73ce678  E-ACOPP57-solve5.csv
+[COMMITTED]  336888525fb943e8796e39b043fe6343fd32210a8715372e7c09cfeacca170a2  E-ACOPP57-solve6.csv
+              cc418b95d2102ce8ee0edc0d159f21c05a176b1f0bd933f68d69863767e50067  E-ACOPR57-solve0.csv
+              d4af75e81ce44b9688451d30c0da44d34f11a285ad36399126e2db1854fb6ede  E-ACOPR57-solve11.csv
+              f2d2642880bbfd01ddadc0b2be889fabb2b6363ca1f4c4535ac377a079d1026c  E-ACOPR57-solve13.csv
+              1fff481091a8469c37d56740ffb0f31aba5b27e13e220e8423cd7342a284e7e5  E-ACOPR57-solve14.csv
+              c22d9f6b171a2ae977df3b10870d79d3ac92758d0c7d6f98fcb975e8d2ac4669  E-ACOPR57-solve15.csv
+              3204b029e53f0eb3419f081c54f2ae1479a60dac0b838a204aaf8206b25d7188  E-ACOPR57-solve16.csv
+              0ae5f64d6c0df51850ae9279f6c923fcd4fd8779cbab1a8fdc867fa6560f9170  E-ACOPR57-solve4.csv
+              9567d7e4df494bdcea4f31eac7ffecde47c2c324ce791af2de02a13ad25d2397  E-BRITGAS-solve0.csv
+              fc6def4c5a09e29d2fedd021cc52e76c22eb9a21a284e1a58441e3d8fc2fc114  E-BRITGAS-solve10.csv
+              d1324bdf4e230bbfdfdff538f44a6bd5fba40721ac0f4d83feae3b6df9469d11  E-BRITGAS-solve1.csv
+              ce3994b50245915151542dfd08543dcb32c536652e848b43d9caf2f5fe6d60d4  E-BRITGAS-solve2.csv
+              72bd9efba75c88d3cc4ef4bd1c4b232c783d952aa8770bd11b620dace7ba37e2  E-BRITGAS-solve4.csv
+              c764396e889d8d6d833864a766927cf44e2318676c6e1a813fceb840938f2000  E-BRITGAS-solve5.csv
+              93410ee775637d0a2c37c4f81199d3bc942859013c7b8d7e8ba86df6be908921  E-BRITGAS-solve6.csv
+              bc9bb440b29f33d57d62132449ffde76595b73bd7f9c46f4d95e7bbc5e2ccc88  E-BRITGAS-solve7.csv
+              c1931e596c1865978af864432b85d4e67ab4e58bd06abbf582ab4b264e505582  E-BRITGAS-solve8.csv
+              4d59f7c2b759fa046e3eaf0c1583e2f2e1bcca6d5bd64f0e431997d111c49f22  E-BRITGAS-solve9.csv
+              da963d3823f4fb539d4feb0366e7e4ebd9bfec6ec46f40da3c20ad99d3987963  E-DALLASM-solve0.csv
+              4b01c8bc9a2f3b234e76df80ffa45d63f9da88b22e9fa66bf11450f605ea0eaa  E-DALLASM-solve1.csv
+              5613cff9daab445dd8f90087fb7d1c3b19a163da8998fdd33361bb3a2c21387f  E-DALLASM-solve3.csv
+              4369ea0f40266654d6669d71fe9f6a7729474837c0fd5a13afca9aa77ae320de  E-DALLASM-solve4.csv
+              c9410e62e954ba391a468dc157b3dcc7d76e687668642f24b355a021fa1a64eb  E-DALLASM-solve5.csv
+              a36468f32ee9e0c2f923fed9e664f503ec71e7bb1d9ade4cbafdfe4a563b3838  E-DALLASM-solve6.csv
+              4f7f0a0484eff7814449e49b9d79099530012c4c53fa5169e1e6de86c878d32f  E-DALLASM-solve7.csv
+              3f22313f0b1b36e6ad9384916cba028741c80cc7426ee9ff01bb79c5812e0654  E-DALLASM-solve8.csv
+              0f28a92be506fa2fdb79cdd2306851cd3c9b62b3079f0d299ab896d4502825d9  E-DALLASM-solve9.csv
+              0b2401581840d480660424fd7d6e7d50df038a9396ae70716fccd8411bab398f  E-SAWPATH-solve0.csv
+              9ecc545263d9fb054d0b7a6f90f4db6daed24c5c1298e03995c85f5482d9bda8  E-SAWPATH-solve6.csv
+              32cdbc1d81fc2c62a0080d95875b95b07a1263e2f35b58828e1da97a5487b2af  E-SAWPATH-solve7.csv
+              bcf28f46029e85f9b58a49bda0c705022076438cac5590e9bf09da881c100e63  E-SAWPATH-solve8.csv
+              dbb29d066e95fc2754d0091d2f76a2e568875226f0c5aa13ca9ae6c1741df518  E-SAWPATH-solve9.csv
+              80e29dbf63e633f7af75a8970da0ed4d05bd9f4171c452c6714e7656fe6929ef  E-STEENBRB-solve0.csv
+              78129df14c58265d9350baad0b21a3378e20f387123431cf0923fbca5022e86b  E-STEENBRB-solve13.csv
+              d301b4f26a09b4185f78fe04fa5e3acd9f795d0dcd0579c36af6c6e319d125c7  E-STEENBRB-solve14.csv
+              a05458db2a32d8aba363f979dcfdfbabe354a2d1ade973b093b4245d5764ed80  E-STEENBRB-solve15.csv
+              34266549171e71a383abcf32cfef640a12b46f82fb461affea97ed45d1e34a97  E-STEENBRB-solve16.csv
+              7a7ce31ecb67746c376e81047dc4ddf47c0058a01d97d67294ef9be1010dc661  E-STEENBRC-solve0.csv
+              95021b28892d314c5c27e835778e8109f5a190489dc3a6a662bd016971e2d72e  E-STEENBRC-solve21.csv
+              08a8d768629222642598d05a6eecc3a9def13996ab04f8efbf72bced18fa7bb1  E-STEENBRC-solve22.csv
+              33d9e3191243020b2ef3a90585b360f47f15e23a30d399cb3c4142ae25f677a5  E-STEENBRC-solve23.csv
+              ac90679c455921ae9d900ee216aecf93a941490a400c55943650ed89fd19d99f  E-STEENBRC-solve24.csv
+              b889a200575f2825d1cb886e02a460c53de0ff4f0e8d8a3e7867fda2f5af4746  E-STEENBRC-solve6.csv
+              ff31e4bee1ebe34a41fcedbed7a26c8b65e54ac1328950a8c63e3ea29355477d  E-STEENBRC-solve7.csv
+              574e99a85f3cc0c86ae5fca7a7ef95a69d56aa6b9dc57281fce3d6b931813693  E-STEENBRG-solve0.csv
+              85aa929073832a27c93f43f5ff4452b209fd8ab814f0ce899b7cd2a0857e2d24  E-STEENBRG-solve22.csv
+              225ae9e4200bb5a65e2cdb96334e2724c3337fd4cf19904e62ec0e794495c7c4  E-STEENBRG-solve23.csv
+              c5168f6dac8423aaa1afc83dc2e40f7c58f396f5ad8a385176d7dfa204beff2c  E-STEENBRG-solve24.csv
+              82aca7066abc0b7984ffe273dca3d8065c762393b7511d1bfa06e6e7ac6b0c79  E-STEENBRG-solve25.csv
+              62a925d396b55189e5796fc65684bdf84edd6c04f1f21274bdb01b700a7ce804  E-STEENBRG-solve6.csv
+              2b370bd22cb4ca0786528262e2d5517c7cbded56a883ff1434cd7214db0c03f8  E-STEENBRG-solve7.csv
+              b140c7ab01b77a91411ef43935490e3f5fb138b75dd48facbd89ed4ee56c6d52  E-YORKNET-solve0.csv
+              8b4a4951abe38928fb2e9717a44edda67b3024e94e919619c10c73849e5fdf3f  E-YORKNET-solve145.csv
+              6f3cff0296a1c930dc6116fc66e5c9c27160ce76ba7028e38953d731e4d76faf  E-YORKNET-solve7.csv
+              8554ee3d1ecc128c1a79e1b58f4a9a35b53014a758711d84367efe2048b1c72c  off-ACOPP118-solve0.csv
+              c9406ff2fc5f97f5af3b49a23f8dfce1d8225728663a90b463e6b556d78133b1  off-ACOPP118-solve3.csv
+              b7951e3b12d6f2c914d0a0bc44792bc955c6e076b13f9033d91d00bbc6e3b75f  off-ACOPP118-solve4.csv
+              de34f1cd2cf1cc6db5bf509428407f59c54427a15fdfbc0309bc49e5f3547a8c  off-ACOPP118-solve5.csv
+              68f2da510efeb425249289d906254500ed4f0a7a8119a1399e9e3060e352ed85  off-ACOPP118-solve6.csv
+[COMMITTED]  bb200c4e7b1d57e705d09039ed708341c425f295b6b983572494ac70d5cf9a85  off-ACOPP57-solve0.csv
+[COMMITTED]  5d226d894f94f94728ed6fbe649490ded9120236c8530842060915313267d766  off-ACOPP57-solve3.csv
+[COMMITTED]  23341e22f3afabf99ca3648bec56866e5ae51e2805915b1345498d31fd625dc8  off-ACOPP57-solve4.csv
+[COMMITTED]  820f252793759e808d0292ba11cd37bd5a33247b47d24afd67d035a136f000b7  off-ACOPP57-solve5.csv
+[COMMITTED]  9378eef285cefa044b4f2c6f5185c309e0e81f7526a221fc74da6023ae6e7e91  off-ACOPP57-solve6.csv
+              1c121454550573d4b7ef127fb4e2389db46169436d0c67a0729bbeef542e5362  off-ACOPR57-solve0.csv
+              bcd31b2e5bf3f102906c6523eb1b22ecc95b2a15f5e2a786b5030967a3e4eef6  off-ACOPR57-solve11.csv
+              217685b05d8f2de0b43faa505142b24401f1e0d9795ef07d55838332f04288ba  off-ACOPR57-solve13.csv
+              12410d82e2afc61c949608b80cefb1df76ef43c14c198eece3ff3831744aa7c1  off-ACOPR57-solve14.csv
+              c22b567fe08a8726a63d8d074d5744cb7c5a467f9dca10b07a65f4c91d9802c8  off-ACOPR57-solve15.csv
+              02d920418f50521da6175003b9b8afe2257e47ac9305e63b34f1e921d4213c0f  off-ACOPR57-solve16.csv
+              19de177b9a223f01a1e10f146806b2d510a6e264cf0a26ceab2a65b4af7c26c2  off-ACOPR57-solve4.csv
+              1c42901efe103705c64be74930a210a17e542d312d9e40ffdf10375420c6eb02  off-BRITGAS-solve0.csv
+              7fa0a75c3897252c73a67d08b630487e781bc872dad5b34f634168ca7d14630e  off-BRITGAS-solve10.csv
+              55432b506810c577ee5eb1abfeb4bf76c1951c1a833031f56c767e7a8a15f4be  off-BRITGAS-solve11.csv
+              d807f40a6f8ba997e0ece0511ceaf668cbbcd6b5bc9d65885533c1a801104a0b  off-BRITGAS-solve1.csv
+              94110817ec540297210cb9a063c43507b38737bb84903d19c961bb6046a7ae54  off-BRITGAS-solve2.csv
+              5a37dea5fbfb93135e682e2d9929184706071e1fd9f28809f22864d4e0e1e593  off-BRITGAS-solve4.csv
+              51ae89e2be61e3cb5d8211579c5f5231329a7d861916daa5956dfc5413313268  off-BRITGAS-solve5.csv
+              bdf72d3195b43cda6cd3abef6dd2dec6a58e4b6be473ed4497faf622e1eded97  off-BRITGAS-solve6.csv
+              a951da4a405355819b925746e0851282d4bbae076cb5cc8ba4f62912fbfef0fe  off-BRITGAS-solve7.csv
+              af3aec5884d625237d6b1f6b39cbd5b57fa91e3e353210c7e7d321e0be90a43c  off-BRITGAS-solve8.csv
+              db3fa315bfc3237ae2c144577f6f041ee194de692874c3facd790525eaa5d060  off-BRITGAS-solve9.csv
+              0ea1b02d01a218f582eb8bbe410d0cbcbeeaab75a86273a273a8d71037f4e488  off-DALLASM-solve0.csv
+              3e3d8717fb364c6319de1af8067a258b26cf07c46ba9afc0720c95bbf38b22e6  off-DALLASM-solve1.csv
+              fbd373cce73b723a1a2f339bf01c95aabcf4ba832fcea42c5aa4a571de364b7a  off-DALLASM-solve3.csv
+              6e828f24ac0f5295c017bc9c470e2245a89567bea64723b4b357c72ec98f2837  off-DALLASM-solve4.csv
+              f55761f07c63a9b2b021ebf5e57b1343a66e1ab6b0fafe5f08f5b3d45e344980  off-DALLASM-solve5.csv
+              a3e5cc9b98156d5ef687db18da2b4f7c4bb2e3087b323e4db2044a40705a3332  off-DALLASM-solve6.csv
+              def3c07ee6f857583c35f0b7281a394f895593d9d63e4c5758e9054f5b13dbdd  off-DALLASM-solve7.csv
+              5589896e611d9c1da87b9ccbc710326d0aa0c3124d6df00627b2a1e90b25eae7  off-SAWPATH-solve0.csv
+              1c0a627f976ca3ca145c21cd3e2a54a5d3f3353325c0252c8f865d8a275cf88c  off-SAWPATH-solve10.csv
+              a6cd2e313debfe8c6a48e0158aca5f586906eb90e8a5450759d8e112be225b29  off-SAWPATH-solve6.csv
+              71e43c69c900fdc06c7a2a2dcd294b55a5571a5feba83a3bf1e7fc43cf594f8d  off-SAWPATH-solve7.csv
+              df392187ff0858ea15d9adde5b84e6c560d5950507f8dc690a549828adffae95  off-SAWPATH-solve8.csv
+              e4a6b1b04c3920205058689a6b7167570ab33174e1fe3702cf49a1ec9a758d72  off-SAWPATH-solve9.csv
+              a95dd5e1a8faf8adab4118408c288cedad5b10b3d07d0b7763f9deefed036d87  off-STEENBRB-solve0.csv
+              8e072f5dffd7f0cc456913517357189c4e56709ad9265b205e5ca652953aef03  off-STEENBRB-solve13.csv
+              bde5bf645f1794032e1d63a2f3a4f0beb05c66da6abe0aef9bb304db320c2d7c  off-STEENBRB-solve14.csv
+              042c53571b5ab4a779425e27e8cc8706948f758a9604fa0403df8aedd36f1e55  off-STEENBRB-solve15.csv
+              3884dbeca627536876bae903b2396b890e513c4ed2a63f2f0a7774957761417b  off-STEENBRB-solve16.csv
+              a92ec829053c99f7cb55f93f327efadda98d19630faea25f6814b80558656749  off-STEENBRC-solve0.csv
+              a9bc9d689d6a960f75003225f00dc49c44821032044330be41da272d3cd1fc06  off-STEENBRC-solve21.csv
+              4ded86cd4a8a7781645eb87e27fc218a7271352ebc0367cd93d810d43486289f  off-STEENBRC-solve22.csv
+              378112e575d497c030fd36b69a810564fd25612f5f7c7751594a9a84f376f833  off-STEENBRC-solve23.csv
+              1d2a50eb47d229e36716a70e9b8e30238e4629e10a5d8c9b9c825e6bcaf4621c  off-STEENBRC-solve24.csv
+              41401e8f13063b917eb162a7ed7fe493692329d2d24085be81554949dff83aec  off-STEENBRC-solve25.csv
+              54af8468b5822cd38db5c0758b360e53f907ed5534095b71db5538a1abd50f79  off-STEENBRC-solve26.csv
+              91c90d6a8c72a3bcada6ac7a4960f582c11d34bd8e7886efad1d8bdb46b522d1  off-STEENBRC-solve27.csv
+              2b9ae63071533857499a0b2cd8bbed44832b400e79bd093160a4a70345d179b0  off-STEENBRC-solve6.csv
+              a91f7c203bcd34209d709b093880bff627e99ec39af42782a74fdc34f0ed6834  off-STEENBRC-solve7.csv
+              00366ac4b333d40e158ed9896a59a2a258e299b48a95a4282ba024b82ec1080f  off-STEENBRG-solve0.csv
+              c08e051f237e160d57dabad6ebb6afa2ea7cafc8afa7ccacb3741ef37759496f  off-STEENBRG-solve22.csv
+              74269451d9690824ff1f56d90d5d53df3d9a57afad0c9bcc3ae70cd4edf67585  off-STEENBRG-solve23.csv
+              5036c1fecf1d8c4833e1326925b958980dd8ad1112c9690a7ac254ecc434adbc  off-STEENBRG-solve24.csv
+              ddd0cc7cbe9100b79ce002557ea80d34da3bfe3dc4138b8116bd4d166ea43b09  off-STEENBRG-solve25.csv
+              e8f94e495b6d225eedb4b4c9ce0780e110389ead951b6301bb8dec2708836da9  off-STEENBRG-solve26.csv
+              e4e0b0b828deea1955d6beb50c946548214d579416868a142b4cc0c73dfc2702  off-STEENBRG-solve27.csv
+              6fa61e69f3fafc5242634ed6ca5e0119b164c07a296bfe02ee2134cfc9fa8b6c  off-STEENBRG-solve6.csv
+              8341baf240c30576bc41af0ade5b02f0d63f8f905bfbb3dcabb485e4b1bfb8e9  off-STEENBRG-solve7.csv
+              4aa1437c639e9fe1ba675e5ecb9a6c9849d56462a059774156d8caf6564f5809  off-YORKNET-solve0.csv
+              c99551bb0c95642abb9da83488ad8fffb31b168f5beafb0a00d9ab7a257a7ce6  off-YORKNET-solve145.csv
+              63cf5bb45fbba882528e2560046f02fdef09e8f14772c12014cd008d85f91409  off-YORKNET-solve7.csv
