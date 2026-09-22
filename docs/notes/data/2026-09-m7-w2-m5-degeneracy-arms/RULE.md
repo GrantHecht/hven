@@ -13,6 +13,17 @@ what was cleared rather than what is asked. **No leg had run when this file was
 committed.** After the first leg the rule is FROZEN — a change is a successor
 rule, never an edit.
 
+**AMENDMENT 1, 2026-09-22, STILL BEFORE THE FIRST LEG.** C4's `cond(R)` was
+found NOT REACHABLE from the boundary by any probe that does not touch
+`include/`; the settler ruled that it be BUILT. It was, at `2ca21aa0`, as two
+`HVEN_TESTING`-only readings — `add_b1_cond_r` per add and `indep_max_cond_r`
+per solve — and the head carrying them is gated green in `gates-run2/`. §5.1
+and §6 name them and say what each licenses: `cond(R)` **EXPLAINS** an
+exceedance of A10's bound and **NEVER EXCUSES** one; the solve stays
+UNSUPPORTED. This is an AMENDMENT, not a successor rule, because no leg has
+run: the rule still freezes at the first leg, and nothing written before this
+amendment is rewritten by it.
+
 **THE THREE CLEARINGS THAT ADD OR REFUSE SOMETHING, so a reader meets them
 before the sections that carry them:**
 
@@ -347,6 +358,51 @@ its own tolerances. `cond(R)` is a DIAGNOSTIC, never an excuse — a large
 ill-conditioning case or whether some are not; that comparison is a reading the
 tables support, not a prediction this rule makes.
 
+**AMENDMENT 1 (before any leg) — C4's STATISTIC IS BUILT, AND THESE ARE ITS
+TWO NAMES.** When the paragraphs above were written, `cond(R)` was named but
+not reachable: the landed arm recorded no conditioning column, and the one
+`thread_local` decomposition is overwritten at the next mutation, so no probe
+could produce it without touching `include/`. The settler ruled that it be
+BUILT rather than substituted for or declared owed. It was, at `2ca21aa0`, as
+exactly two `HVEN_TESTING`-only readings and nothing else:
+
+* **`add_b1_cond_r`** — PER ADD, on the walk-trace record
+  (`include/hven/detail/qp/qp_walk_trace.h`). `|R(0,0)| / |R(k−1,k−1)|` at the
+  decomposition's own rank `k`, off `matrixQR()`'s diagonal, taken in
+  `b1_rank_refresh` on the SAME rank-revealing QR the dependency test already
+  built. It is free; nothing is factorized for it. This is the number printed
+  BESIDE `add_b1_leak_bound_exceeded` on the pass that raised it.
+* **`indep_max_cond_r`** — PER SOLVE, in the arm's counters
+  (`include/hven/detail/qp/qp_degeneracy_arm.h`). The high-water mark over
+  every decomposition that solve took, harvested before disarm. This is the
+  per-solve column of §6's exceedances-against-`cond(R)` table.
+
+**THREE CASES, SAID RATHER THAN FLOORED**, so a reader is never handed a
+number that hides its own absence: rank 0 ⇒ NaN on the counter / `kAbsent` on
+the record — NO DECOMPOSITION WAS TAKEN, which an empty working set does not
+need and which is NOT a well-conditioned set reporting 1; an exact zero
+trailing accepted pivot ⇒ `+inf`, a rank-deficient set reporting itself, not a
+value to clamp; otherwise the ratio, which is `>= 1` by the pivoting order.
+
+**WHAT EACH ONE LICENSES, IN THE WORDS BOTH HEADERS ALSO CARRY.**
+`add_b1_cond_r` and `indep_max_cond_r` **EXPLAIN** an exceedance of A10's
+bound — `A_W p = μ λ_W` bounds `A_W p`, not what `p` reaches THROUGH an
+ill-conditioned `A_W`, so a large value beside an exceedance says the
+amplification had somewhere to come from. **NEITHER EVER EXCUSES ONE.** An
+exceedance keeps that solve's b1 verdict **UNSUPPORTED** whatever these two
+numbers say, and no value of either restores a verdict, promotes a cell, or
+qualifies §7's rank order. They are diagnostics on a hazard, not a defence of
+it. Neither is a production statement: both are `HVEN_TESTING`-only, both are
+absent from the production library, and the gate that proves it is
+`gates-run2/`.
+
+**WHY THIS IS AN AMENDMENT AND NOT A SUCCESSOR RULE.** No leg has run. This
+rule is not frozen; it freezes at the first leg. The amendment adds two NAMES
+and their semantics to a read-out this rule already pre-registered in substance
+at `0047c593` — it does not change what is measured, what an exceedance costs,
+or any verdict. Nothing above it is rewritten, and the C4 text it amends stands
+as committed.
+
 **AND ON THE FIXTURE THE BOUND FAILS — NOT FOR A10's REASON.** A10 expected the
 5.59e-03 excursion to be the rank-deficient-incoming case. It is not:
 `indep_rank_violations = 0` and `indep_rank_deficit_max = 0`, so the set was
@@ -437,6 +493,15 @@ M4 `RULE.md` §6's predicates **by reference**, unchanged, plus:
   constraint's full `aᵀp` decomposition (§5.1). The per-arm table carries an
   exceedances-against-`cond(R)` column so the ill-conditioning reading is one a
   reader takes from the numbers rather than one this rule asserts;
+  **AMENDMENT 1 (before any leg): the two names are `add_b1_cond_r` (per add,
+  on the trace record) and `indep_max_cond_r` (per solve, the high-water mark,
+  harvested before disarm), built at `2ca21aa0` as `HVEN_TESTING`-only
+  readings off the QR the pass already took. The read-out prints
+  `add_b1_cond_r` beside every `add_b1_leak_bound_exceeded` and carries
+  `indep_max_cond_r` as the per-solve column; NaN/`kAbsent` means NO
+  DECOMPOSITION WAS TAKEN and is printed as absent, never as 1 and never
+  floored. Both EXPLAIN an exceedance and NEITHER EXCUSES one — the solve stays
+  UNSUPPORTED. §5.1's AMENDMENT 1 block is the full statement;**
 * `counters.shift_adds` against OFF (§5.1);
 * per drop pass, under its own switch, the post-drop inertia through the local
   factor — ONE extra assemble+factorize per drop pass, declared.
