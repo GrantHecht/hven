@@ -143,7 +143,7 @@ def compare_field(a, b):
 
 
 def gate(p1_text, p2_text, expected=None, min_shared=MIN_SHARED, strict=False,
-         exclude_prefixes=()):
+         exclude_prefixes=(), exclude_labels=()):
     """The whole gate for one leg. Returns a dict of everything it found.
 
     M7 W2 M4 adds `strict`. In STRICT mode a `WITHIN` -- a residual-class field
@@ -177,9 +177,24 @@ def gate(p1_text, p2_text, expected=None, min_shared=MIN_SHARED, strict=False,
         # controls are untouched.
         return any(k == pre or k.startswith(pre + "_") for pre in exclude_prefixes)
 
-    compared = [k for k in common if not is_wall_clock(k) and not excluded_by_name(k)]
+    def excluded_label(k):
+        # M4 CLOSE-OUT, POST-HOC and OPT-IN ONLY. AMENDMENT 1 excluded the arm's
+        # own `arm`/`arm_*` keys as LEG labels and missed one: `trace_out` is the
+        # path the leg wrote its trace to, and it carries the arm name, so it
+        # differs on every neutrality leg for a reason that is not about the
+        # walk. This is EXACTLY an exclusion of the same kind -- but the M4
+        # transcripts were produced WITHOUT it, and a gate silently loosened
+        # after seeing what it rejected is not a gate. It is therefore OFF by
+        # default and reached only through --exclude-label, so the committed
+        # transcripts stay reproducible by this file at its default settings.
+        return k in exclude_labels
+
+    compared = [k for k in common
+                if not is_wall_clock(k) and not excluded_by_name(k)
+                and not excluded_label(k)]
     excluded = [k for k in common if is_wall_clock(k)]
     excluded_by_prefix = [k for k in common if excluded_by_name(k)]
+    excluded_labels = [k for k in common if excluded_label(k)]
     rows, differs, near_ulp = [], [], 0
     for k in compared:
         klass, verdict, delta = compare_field(f1[k], f2[k])
@@ -206,6 +221,7 @@ def gate(p1_text, p2_text, expected=None, min_shared=MIN_SHARED, strict=False,
         "compared": compared,
         "excluded_wall_clock": excluded,
         "excluded_by_prefix": excluded_by_prefix,
+        "excluded_labels": excluded_labels,
         "absent_in_leg": sorted(set(f1) - set(f2)),
         "only_in_leg": sorted(set(f2) - set(f1)),
         "duplicates": dups,
@@ -336,6 +352,45 @@ def folds(emit):
     check("the class rule: '0' byte, '0.5' residual, 'not_run' byte",
           (k1, k2, k3) == ("byte", "residual", "byte"))
 
+    # -- M4 CLOSE-OUT: the `trace_out` LABEL exclusion, OPT-IN, proved in both
+    # -- directions on constructed inputs. The point of these three is that the
+    # -- DEFAULT is unchanged, so the committed M4 transcripts remain this
+    # -- file's own output at its own defaults.
+    emit("    -- M4 close-out: the `trace_out` label exclusion (--exclude-label), OPT-IN")
+    lbl_keys = BASE_KEYS | frozenset(("trace_out",))
+    lbl_ref = BASE.replace("PROBE_END",
+                           "trace_out=/t/traces/off-READING6.csv\nPROBE_END")
+    lbl_leg = BASE.replace("PROBE_END",
+                           "trace_out=/t/traces/E-READING6.csv\nPROBE_END")
+    r_def = gate(lbl_ref, lbl_leg, expected=lbl_keys, min_shared=BASE_N,
+                 strict=True)
+    check("BY DEFAULT a differing `trace_out` STOPS the leg",
+          not r_def["reproduces"] and r_def["differs"] == ["trace_out"]
+          and not r_def["excluded_labels"],
+          "this is the behaviour the committed M4 transcripts were produced "
+          "with, and it is unchanged")
+    r_lbl = gate(lbl_ref, lbl_leg, expected=lbl_keys, min_shared=BASE_N,
+                 strict=True, exclude_labels=("trace_out",))
+    check("WITH --exclude-label trace_out the leg reproduces and the exclusion "
+          "is REPORTED",
+          r_lbl["reproduces"] and r_lbl["excluded_labels"] == ["trace_out"]
+          and "trace_out" not in r_lbl["compared"])
+    r_lbl_bad = gate(lbl_ref,
+                     lbl_leg.replace("major_iters=7", "major_iters=8"),
+                     expected=lbl_keys, min_shared=BASE_N, strict=True,
+                     exclude_labels=("trace_out",))
+    check("and with it a REAL difference beside the excluded label still STOPS",
+          not r_lbl_bad["reproduces"] and r_lbl_bad["differs"] == ["major_iters"])
+    r_exact = gate(
+        lbl_ref.replace("trace_out=", "trace_output="),
+        lbl_leg.replace("trace_out=", "trace_output="),
+        expected=BASE_KEYS | frozenset(("trace_output",)), min_shared=BASE_N,
+        strict=True, exclude_labels=("trace_out",))
+    check("the label rule is EXACT and does not eat `trace_output`",
+          not r_exact["reproduces"] and r_exact["differs"] == ["trace_output"]
+          and not r_exact["excluded_labels"],
+          "a label exclusion names one field; it is not a prefix")
+
     # -- FIX ROUND 1 (settler adjudication X1): the three new REFUSALS, each
     # -- proved ALONE, on constructed inputs, before any leg is read.
     emit("    -- fix round 1 (X1): the refusals that make the gate non-vacuous")
@@ -408,6 +463,10 @@ def main():
     ap.add_argument("--exclude-prefix", action="append", default=[],
                     help="exclude fields named X or beginning X_ (RULE.md AMENDMENT 1, "
                          "section 5.5a). Repeatable. The exclusion is PRINTED per leg")
+    ap.add_argument("--exclude-label", action="append", default=[],
+                    help="exclude the field named EXACTLY X. POST-HOC, OPT-IN, "
+                         "and never a default: the M4 close-out's `trace_out` "
+                         "exclusion. The exclusion is PRINTED.")
     ap.add_argument("--strict", action="store_true",
                     help="a WITHIN is a DIFFERENCE (RULE.md section 5.5's neutrality bar)")
     ap.add_argument("--out", required=True)
@@ -465,7 +524,8 @@ def main():
             with open(leg) as fh:
                 t2 = fh.read()
             r = gate(t1, t2, min_shared=args.min_shared, strict=args.strict,
-                     exclude_prefixes=tuple(args.exclude_prefix))
+                     exclude_prefixes=tuple(args.exclude_prefix),
+                     exclude_labels=tuple(args.exclude_label))
             emit(f"  fields compared (the intersection, every member): {len(r['compared'])}"
                  f"   (declared minimum: {r['min_shared']})")
             emit(f"  EXPECTED of this leg (manifest AND in the pass-1 row): "
@@ -492,6 +552,17 @@ def main():
                 fr, _dr = parse_row(t1)
                 for k in sorted(r["excluded_by_prefix"]):
                     emit(f"      {k:<32} reference={fr.get(k, '(absent)'):<22} leg={fl.get(k, '(absent)')}")
+            if args.exclude_label:
+                emit(f"  fields excluded BY EXACT NAME as LEG LABELS "
+                     f"(--exclude-label {args.exclude_label}; POST-HOC, off by "
+                     f"default; they name the FILE the leg wrote, not the solve, "
+                     f"and are REPORTED below, never discarded): "
+                     f"{','.join(r['excluded_labels']) if r['excluded_labels'] else '(none)'}")
+                fl2, _d2 = parse_row(t2)
+                fr2, _d3 = parse_row(t1)
+                for k in sorted(r["excluded_labels"]):
+                    emit(f"      {k:<32} reference={fr2.get(k, '(absent)')}")
+                    emit(f"      {'':<32} leg=      {fl2.get(k, '(absent)')}")
             if r["duplicates"]:
                 emit(f"  DUPLICATE KEYS in a row (reported, not silently folded): "
                      f"{','.join(r['duplicates'])}")
