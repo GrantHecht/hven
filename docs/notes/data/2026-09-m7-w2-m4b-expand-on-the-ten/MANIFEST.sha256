@@ -1,8 +1,21 @@
-M7 W2 M4b -- sha256 of every file committed in this directory.
-Regenerated last, after every table, transcript and slice was final.
-The twenty PARENT flat traces are not committed; their sha256 are in
-traces-m4b/SHA256-parent-traces-m4b.txt.  The 121 uncommitted slices' sha256
-are in traces-m4b/SLICES.txt.  No solver ran to produce this file.
+# M7 W2 M4b -- sha256 of every file committed in this directory.
+# Regenerated last, after every table, transcript and slice was final.
+# The twenty PARENT flat traces are not committed; their sha256 are in
+# traces-m4b/SHA256-parent-traces-m4b.txt.  The 121 uncommitted slices' sha256
+# are in traces-m4b/SLICES.txt.  No solver ran to produce this file.
+#
+# [fix1] 2026-09-22, M4c fix round 1 (review .superpowers/m7-w2-m4bc-review-sol.md,
+# M4b minors 1 and 4).  TWO DECLARED EDITS to this directory, and nothing else:
+#   (1) minor 4 -- the five prose lines above are now '#'-comments, so a standard
+#       `sha256sum -c MANIFEST.sha256` runs WARNING-FREE.  No hash was touched by
+#       that change.
+#   (2) minor 1 -- README.md section 4.3's first and third bullets were narrowed
+#       from a universal step-length claim to THIS floor/snap recurrence.  The
+#       ./README.md line below is RE-DERIVED from the edited file and declared
+#       here rather than silently refreshed (CLAUDE.md section 7).  Its previous
+#       value was
+#       3376ac158668dfdbe7effe0ae2c533de8aaadd5922ac54f304fdcefd68ae2088.
+# No solver ran, nothing was rebuilt, and no other file in this directory changed.
 
 e49ce8dc3092ba65b3dffd4fd91fbac61eaea09ca29371ddf50ead644e9792a9  ./logs/chain.log
 1c08e4453ea3d5c5beba7ee673fd306ba4685896c2ffbbd239587c4d4ac0f340  ./logs/compare-E-vs-off-no-traceout.txt
@@ -19,7 +32,7 @@ e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./logs/E-STEEN
 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./logs/E-YORKNET.err
 42cc769f2142861b2b53616d0a6326e445e9e1891e7effe3bc2495b460548262  ./logs/pin-off-rows.txt
 a60aea2596d44813a7fb546607438195003715676676561df226267cee137566  ./logs/pin-off-traces.txt
-3376ac158668dfdbe7effe0ae2c533de8aaadd5922ac54f304fdcefd68ae2088  ./README.md
+47cb718080345bfd41f5c178c4ee0284bfa2c54cde4da0cf967696afefd420b8  ./README.md
 38014cdebd9dc643672c47934aee0c85caaeca05a9aa34658ab95c709c0e6078  ./rows/E-ACOPP118.txt
 ba2b69526909ad96c514eba293ddde3c19fe0fecec6b8b274cff6dcea6b8cca5  ./rows/E-ACOPP57.txt
 7a698d9652952f880cf1b184706e9d856e23274a30d9316f3447475d859f178d  ./rows/E-ACOPR57.txt

@@ -255,8 +255,13 @@ that existed at the start of minor 1781 is gone by the start of minor 1782.
 *The sentences in this subsection are inferences. The observations they rest on
 are §§4.1–4.2; nothing below is read directly off a record.*
 
-* **A ratio-test-only anti-cycling rule cannot break this recurrence in this
-  engine.** The re-add *is* via the ratio test, so a ratio-test rule is
+* **A ratio-test-only anti-cycling rule cannot break THIS floor/snap recurrence
+  in this engine.** *(Read narrowly. `[fix1]` What the evidence establishes is
+  the result for E's floor, and more generally for perturbations small enough
+  that the next pass still takes the same KKT-snap branch with the same blocker.
+  It is NOT a proof of impossibility for every conceivable step-length rule: a
+  materially larger step could reach a different branch or a different blocker,
+  and nothing here tested one.)* The re-add *is* via the ratio test, so a ratio-test rule is
   addressing the right mechanism — and E *is* such a rule, and it does floor the
   step, and the iterate does move. The floor's displacement nevertheless
   survives exactly one pass: the next pass is a drop pass, every drop pass in
@@ -270,9 +275,10 @@ are §§4.1–4.2; nothing below is read directly off a record.*
   that *"the state is a function of the working SET"* applies directly and
   literally here: `x` is re-derived from the working set on every drop pass, so
   a perturbation applied to `x` alone — which is all a step-length rule can
-  apply — cannot persist across one. A rule that changes **which** constraint
-  enters or leaves can; a rule that changes only **how far** the iterate moves
-  cannot.
+  apply — cannot persist across one *when the next pass takes the same KKT-snap
+  branch*, which is the case on every drop pass in these traces `[fix1]`. A rule
+  that changes **which** constraint enters or leaves can; a rule that changes
+  only **how far** the iterate moves cannot, within that scope.
 * **`ACOPP57` is the controlled case for exactly that distinction.**
   `arm_pivot_switches = 0` there: E's largest-pivot second pass never once chose
   a different constraint from the one production would have chosen. So on that
