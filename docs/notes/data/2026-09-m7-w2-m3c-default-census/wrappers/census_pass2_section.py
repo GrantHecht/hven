@@ -381,12 +381,13 @@ def census_section(ro, vd, mp, gates, terms, out):
       "answer the question §6.1 asks, and on this population it demonstrably "
       "does not: on `STEENBRC` solve 0, `STEENBRG` solve 0, `YORKNET` solve "
       "145 and `ACOPR57` solve 16 it finds a two-record tail where a period-4 "
-      "or period-6 detector finds one covering 85–97% of the solve. **The "
+      "or period-6 detector finds one covering 85–97%% of the solve. **The "
       "reading applied** is RULE-G's own construction with its `2` replaced by "
       "a search over p ∈ [1, 64], taking the p that maximises the tail, ties "
       "to the smallest p — so it degenerates EXACTLY to RULE-G's tail whenever "
-      "the winner is 2, which it is on 17 of the 21 solves. RULE-G's own "
-      "period-2 answer is printed beside it on every solve.\n\n")
+      "the winner is 2, which it is on %d of the %d solves. RULE-G's own "
+      "period-2 answer is printed beside it on every solve.\n\n"
+      % (sum(1 for r in vd if r["period"] == "2"), nsolves))
     w("### D2 — §6.1's `dx_inf == 0` conjunct is unreachable read strictly\n\n"
       "A DROP pass takes no step and the probe writes `nan` into `dx_inf` and "
       "`alpha` alike; on a drop/add cycle that is HALF the passes. Read "
