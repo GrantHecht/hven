@@ -25,8 +25,15 @@
 //       fixture whose OFF walk records NO ratio tie, NO drop tie and NO
 //       degenerate step, both arms reproduce the OFF run bit for bit.
 //   (4) EXPAND's RESET path (§4.3) is reachable and is exercised, rather than
-//       being a branch the fixtures describe and never enter.
-//   (5) The switch is PER-THREAD, like the observer's.
+//       being a branch the fixtures describe and never enter -- including its
+//       SEQUENCING (the K-th iteration runs at the expanded tolerance and the
+//       reset follows it) and step (1)'s nontrivial re-projection count.
+//   (5) The switch is PER-THREAD, like the observer's -- both across a
+//       finished thread and between two solves IN FLIGHT AT ONCE.
+//   (6) ARM E's `alpha_min` FLOOR is honoured on BOTH of the walk's add paths,
+//       the ordinary one and the negative-curvature RIDE's.
+//   (7) §4.5's negligible-pivot tolerance is READ: the default is hven's own
+//       engine threshold and a non-default value changes what can block.
 //
 // THE CYCLING FIXTURES WERE FOUND, NOT DESIGNED. Both were located by a
 // randomized search over small convex QPs (H = M Mᵀ, so positive SEMIdefinite
@@ -42,10 +49,12 @@
 #include <algorithm>
 #include <bit>
 #include <cmath>
+#include <condition_variable>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <limits>
+#include <mutex>
 #include <thread>
 #include <vector>
 
@@ -399,8 +408,27 @@ void expect_same_counters(const QpCounters &a, const QpCounters &b) {
     EXPECT_EQ(a.factorizations, b.factorizations);
     EXPECT_EQ(a.schur_updates, b.schur_updates);
     // AND THE WHOLE OBJECT, so a field this list does not name cannot move
-    // unnoticed.
-    EXPECT_EQ(std::memcmp(&a, &b, sizeof(QpCounters)), 0)
+    // unnoticed -- MINUS THE BYTES NO FIELD OWNS.
+    //
+    // WHY THE HOLE IS CUT (FIX ROUND 1). `QpCounters` carries one `bool`,
+    // `k0_reused`, among `Index` fields, so the compiler pads after it; and a
+    // `QpSolution` is DEFAULT-initialized, so whatever was on the stack
+    // survives into the bytes no member owns. Padding is not a counter. Two
+    // solutions produced the same way usually carry the same garbage there and
+    // the same-thread fixtures never noticed; the CROSS-THREAD fixture at the
+    // end of this file notices every time, with every counter equal. The two
+    // ranges are derived from the struct with `offsetof` rather than typed, so
+    // a field added later falls inside one of them and is still covered.
+    constexpr std::size_t kOwnedThrough = offsetof(QpCounters, k0_reused) + sizeof(bool);
+    constexpr std::size_t kOwnedFrom = offsetof(QpCounters, symbolic_analyses);
+    static_assert(kOwnedFrom >= kOwnedThrough,
+                  "the two owned ranges must not overlap: k0_reused is followed by "
+                  "symbolic_analyses in QpCounters, and the bytes between them are padding");
+    const auto *pa = reinterpret_cast<const unsigned char *>(&a);
+    const auto *pb = reinterpret_cast<const unsigned char *>(&b);
+    EXPECT_EQ(std::memcmp(pa, pb, kOwnedThrough), 0)
+        << "two QpCounters differ somewhere the named fields above do not cover";
+    EXPECT_EQ(std::memcmp(pa + kOwnedFrom, pb + kOwnedFrom, sizeof(QpCounters) - kOwnedFrom), 0)
         << "two QpCounters differ somewhere the named fields above do not cover";
 }
 
@@ -468,7 +496,8 @@ void expect_the_armed_walk_escapes(const QpProblem &qp, Arm arm, const Walk &off
     const Walk on = observed_walk(qp, capped(kCycleCap));
     const Index min_steps = Ac::min_steps;
     const Index pivot_switches = Ac::pivot_switches;
-    const Index lex_switches = Ac::lex_drop_switches + Ac::lex_ratio_switches;
+    const Index lex_drop_switches = Ac::lex_drop_switches;
+    const Index lex_ratio_switches = Ac::lex_ratio_switches;
     Ac::reset();
 
     // THE PREDICATE, and the one thing it must not be read as. A converged
@@ -496,7 +525,21 @@ void expect_the_armed_walk_escapes(const QpProblem &qp, Arm arm, const Walk &off
     if (arm == Arm::kExpand) {
         EXPECT_GT(min_steps + pivot_switches, 0);
     } else {
-        EXPECT_GT(lex_switches, 0);
+        // AND WHICH SIDE DID IT, ASSERTED RATHER THAN SUMMED (FIX ROUND 1,
+        // review Minor 2). The round's claim about ARM L on these two
+        // trajectories is not "the arm switched something" but "the DROP side
+        // switched NOTHING and the escape is entirely the RATIO side". A sum
+        // cannot say that, and the sum is what the first version asserted.
+        // NOTE THE SCOPE: `lex_drop_switches == 0` is a fact about THESE TWO
+        // FIXTURE TRAJECTORIES, not about hven's drop rule in general -- on
+        // field cells L records 13 drop switches on READING6 and 31 on
+        // ZAMB2-8 (this round's `tables/arm.md`).
+        EXPECT_EQ(lex_drop_switches, 0)
+            << "the lexicographic DROP rule moved a choice on this fixture; the round's "
+               "read-out of these two trajectories says it does not";
+        EXPECT_GT(lex_ratio_switches, 0)
+            << "the lexicographic RATIO re-tie moved no choice, so the escape cannot be "
+               "credited to the arm";
     }
 }
 
@@ -506,7 +549,7 @@ void expect_the_armed_walk_escapes(const QpProblem &qp, Arm arm, const Walk &off
 // (1) OFF IS PRODUCTION
 // ===========================================================================
 
-TEST(QpAntiCyclingArm, TheSwitchIsOffByDefaultAndItsParametersAreThePapersOwn) {
+TEST(QpAntiCyclingArm, TheSwitchIsOffByDefaultAndItsParametersAreThePaperDerivedOnes) {
     ArmGuard guard;
     Ac::reset();
     EXPECT_EQ(static_cast<int>(Ac::arm), static_cast<int>(Arm::kOff));
@@ -521,8 +564,17 @@ TEST(QpAntiCyclingArm, TheSwitchIsOffByDefaultAndItsParametersAreThePapersOwn) {
     EXPECT_DOUBLE_EQ(Ac::params.tau(), (Ac::params.delta_max() - Ac::params.delta_0()) /
                                            static_cast<double>(Ac::params.expand_k));
     EXPECT_GT(Ac::params.tau(), 0.0);
-    // ARM L's default is the BRIEFED tie-break form, not Bland's full rule.
+    // ARM L's default is the BRIEFED tie-break form, not the full-pricing
+    // Bland-STYLE analogue.
     EXPECT_FALSE(Ac::params.lex_full_pricing);
+    // AND §4.5's `t` IS hven's OWN ENGINE THRESHOLD, at the default (FIX
+    // ROUND 1, review Important 5). The arm READS this field now, so the
+    // default has to BE production's threshold rather than merely resemble it:
+    // `src/qp/qp_engine.cpp` ties the two literals together with a
+    // `static_assert`, and this is the same fact asserted from outside, where
+    // a reader of the fixtures can see it.
+    EXPECT_DOUBLE_EQ(Ac::params.negligible_pivot, hven::solvers::detail::kEngineDenomTol);
+    EXPECT_DOUBLE_EQ(Ac::params.reset_nontrivial, 3.7e-11);
     // And `begin_minor()` is inert unless ARM E is armed.
     EXPECT_FALSE(Ac::begin_minor());
     EXPECT_EQ(Ac::expand_iter, 0);
@@ -650,7 +702,104 @@ TEST(QpAntiCyclingArm, NeitherArmChangesAWalkWithNoTieAndNoZeroRatio) {
 // (4) EXPAND'S RESET PATH IS REACHED
 // ===========================================================================
 
-TEST(QpAntiCyclingArm, ArmEsResetSequenceIsReachableAndReProjectsTheIterate) {
+/// EXPAND §4.3's SEQUENCING, asserted on the state machine itself (FIX ROUND
+/// 1, review Important 1). The paper runs K iterations at the EXPANDING
+/// tolerances delta_1 .. delta_K and resets AFTER the K-th; the first
+/// implementation signalled the reset from inside the same call that produced
+/// delta_K, so the K-th minor ran at delta_0. This fixture is written against
+/// the state machine rather than against a walk because that is where the
+/// sequence is decidable exactly: what delta the K-th iteration RAN at is not
+/// recoverable from a solve's counters.
+TEST(QpAntiCyclingArm, ArmEsKthIterationRunsAtTheExpandedToleranceAndTheResetFollowsIt) {
+    ArmGuard guard;
+    Ac::reset();
+    Ac::arm = Arm::kExpand;
+    const Index kK = 3; // small, so the boundary is reachable by hand
+    Ac::params.expand_k = kK;
+    const double tau = Ac::params.tau();
+    Ac::begin_solve();
+    EXPECT_EQ(Ac::expand_iter, 0);
+    EXPECT_DOUBLE_EQ(Ac::delta, Ac::params.delta_0());
+
+    // THE K ITERATIONS OF THE SEQUENCE. Each expands, none asks for a reset,
+    // and the K-th ends at the LARGEST tolerance of the sequence.
+    double want = Ac::params.delta_0();
+    for (Index k = 1; k <= kK; ++k) {
+        SCOPED_TRACE(k);
+        EXPECT_FALSE(Ac::begin_minor()) << "the reset was signalled at iteration " << k << " of "
+                                        << kK << ", before that iteration ran";
+        want += tau;
+        EXPECT_EQ(Ac::expand_iter, k);
+        EXPECT_DOUBLE_EQ(Ac::delta, want);
+        EXPECT_EQ(Ac::resets, 0);
+    }
+    EXPECT_DOUBLE_EQ(Ac::delta, Ac::params.delta_0() + 3.0 * tau)
+        << "iteration K did not run at delta_K";
+
+    // AND THE RESET IS DUE AT ITERATION K+1, before its ratio test -- and the
+    // call that signals it must NOT also expand, or the sequence would have
+    // run K+1 tolerances.
+    EXPECT_TRUE(Ac::begin_minor()) << "the sequence ran past its length K without a reset";
+    EXPECT_EQ(Ac::expand_iter, kK) << "the signalling call expanded the sequence as well";
+    EXPECT_DOUBLE_EQ(Ac::delta, want);
+
+    // §4.3 step (3): a NEW sequence begins here, and this minor is its FIRST,
+    // so it runs at delta_1 = delta_0 + tau.
+    Ac::note_reset();
+    EXPECT_EQ(Ac::resets, 1);
+    EXPECT_EQ(Ac::expand_iter, 1);
+    want = Ac::params.delta_0() + tau;
+    EXPECT_DOUBLE_EQ(Ac::delta, want);
+
+    // AND THE NEW SEQUENCE IS K LONG TOO: K-1 more expansions, then the next
+    // reset. A reset that cost the sequence an iteration would show up here.
+    for (Index k = 2; k <= kK; ++k) {
+        SCOPED_TRACE(k);
+        EXPECT_FALSE(Ac::begin_minor());
+        want += tau;
+        EXPECT_EQ(Ac::expand_iter, k);
+        EXPECT_DOUBLE_EQ(Ac::delta, want);
+    }
+    EXPECT_TRUE(Ac::begin_minor());
+    EXPECT_EQ(Ac::resets, 1) << "note_reset() is the caller's, not begin_minor()'s";
+}
+
+/// §4.3 step (1) COUNTED A NONTRIVIAL RE-PROJECTION, which is the part of the
+/// reset the previous fixture's name used to claim and no fixture asserted
+/// (FIX ROUND 1, review Important 1). A reset re-projects every PINNED
+/// variable lying within delta_f of its bound exactly onto it, and counts the
+/// adjustments larger than eps^(2/3) as "nontrivial". Under ARM E such a
+/// variable exists by construction: an `alpha_min` FLOOR step deliberately
+/// leaves its blocker off its bound by up to tau, and with a short sequence
+/// the next reset arrives before the walk has erased that displacement.
+TEST(QpAntiCyclingArm, ArmEsResetCountsANontrivialReProjection) {
+    ArmGuard guard;
+    const QpProblem qp = period4_cycle_qp();
+    Ac::reset();
+    Ac::arm = Arm::kExpand;
+    // K = 1: every minor after the first opens with a reset, so a floor step
+    // taken at minor m is seen by the reset at minor m+1. tau is then
+    // 0.49 * delta_master = 4.9e-10, which is both ABOVE `reset_nontrivial`
+    // (3.7e-11, so the displacement counts) and BELOW `delta_master` (1e-9, so
+    // the re-projection window sees it at all).
+    Ac::params.expand_k = 1;
+    const Walk on = observed_walk(qp, capped(kCycleCap));
+    const Index resets = Ac::resets;
+    const Index nontrivial = Ac::reset_nontrivial_moves;
+    const Index min_steps = Ac::min_steps;
+    const Index unpinned = Ac::unpinned_adds;
+    Ac::reset();
+
+    EXPECT_GT(min_steps, 0) << "no floor step was taken, so nothing was left off a bound";
+    EXPECT_GT(unpinned, 0) << "no add was left unpinned, so no displacement survived the add";
+    EXPECT_GT(resets, 0) << "EXPAND section 4.3's reset never ran";
+    EXPECT_GT(nontrivial, 0)
+        << "every re-projection at a reset moved a variable by at most eps^(2/3): section "
+           "4.3 step (1)'s nontrivial count is a branch no fixture entered";
+    EXPECT_GT(on.minors, 0);
+}
+
+TEST(QpAntiCyclingArm, ArmEsResetSequenceIsReachableAndRestartsTheTolerance) {
     ArmGuard guard;
     const QpProblem qp = period4_cycle_qp();
     Ac::reset();
@@ -699,4 +848,299 @@ TEST(QpAntiCyclingArm, ArmingOnOneThreadIsInvisibleOnAnother) {
     EXPECT_EQ(static_cast<int>(armed_other_thread.status), static_cast<int>(QpStatus::kOptimal))
         << "the other thread's arm did not take";
     expect_same_answer(sequential_off, unarmed_this_thread);
+}
+
+// ===========================================================================
+// (6) THE RIDE'S ADD PATH HONOURS THE FLOOR TOO
+// ===========================================================================
+
+namespace {
+
+using Action = hven::solvers::detail::testing::QpWalkAction;
+using Block = hven::solvers::detail::testing::QpWalkBlock;
+
+/// A QP in the engine's own terms: a dense symmetric `H` given in full (the
+/// INDEFINITE Hessians below are not `M Mᵀ` and cannot be written through
+/// `convex_qp`), a linear term, `mi` rows `Ai x <= bi`, and the box
+/// `0 <= x <= 2`.
+QpProblem dense_qp(Index n, const std::vector<double> &h_rowmajor, const std::vector<double> &g,
+                   Index mi, const std::vector<double> &a_rowmajor, const std::vector<double> &b) {
+    Eigen::MatrixXd Hd(n, n);
+    for (Index r = 0; r < n; ++r) {
+        for (Index c = 0; c < n; ++c) {
+            Hd(r, c) = h_rowmajor[static_cast<std::size_t>(r * n + c)];
+        }
+    }
+    Eigen::MatrixXd Aid(mi, n);
+    for (Index r = 0; r < mi; ++r) {
+        for (Index c = 0; c < n; ++c) {
+            Aid(r, c) = a_rowmajor[static_cast<std::size_t>(r * n + c)];
+        }
+    }
+    QpProblem qp;
+    qp.H = Hd.triangularView<Eigen::Upper>().toDenseMatrix().sparseView();
+    qp.g = Vec(n);
+    for (Index i = 0; i < n; ++i) {
+        qp.g(i) = g[static_cast<std::size_t>(i)];
+    }
+    qp.Ae.resize(0, n);
+    qp.be = Vec(0);
+    qp.Ai = Aid.sparseView();
+    qp.bi = Vec(mi);
+    for (Index r = 0; r < mi; ++r) {
+        qp.bi(r) = b[static_cast<std::size_t>(r)];
+    }
+    qp.lower = Vec::Zero(n);
+    qp.upper = Vec::Constant(n, 2.0);
+    return qp;
+}
+
+/// THE RIDE FIXTURE, FOUND THE SAME WAY THE CYCLING ONES WERE. An INDEFINITE
+/// three-variable QP over three rows and the box `0 <= x <= 2`, located by a
+/// randomized search for a walk that (a) enters section 4c's negative-curvature
+/// RIDE and steps, (b) has the ride block on a BOUND, and (c) adds no bound
+/// anywhere else — so the one unpinned add the fixture measures can only be the
+/// ride's. The search is not committed; the problem it found is.
+QpProblem ride_floor_qp() {
+    return dense_qp(3, {0.5, 2.0, -1.0, 2.0, 2.0, 1.5, -1.0, 1.5, 0.5}, {-1.0, 0.0, 2.0}, 3,
+                    {1.5, -0.5, 1.5, 0.0, 2.0, -0.5, 1.0, 1.5, 1.5}, {1.0, 0.5, 1.0});
+}
+
+} // namespace
+
+/// ARM E's `alpha_min` FLOOR IS HONOURED ON THE RIDE'S ADD PATH (FIX ROUND 1,
+/// review Important 2). The negative-curvature ride reaches its blocking
+/// constraint through the SAME `ratio_test` the ordinary add path uses, so
+/// armed with E it can be handed a floor step there too; the first
+/// implementation then re-pinned that blocker exactly, undoing the positive
+/// move the floor exists to create. Both paths now ask ONE predicate
+/// (`QpAntiCycleArmState::expand_skips_exact_repin()`), and this fixture is
+/// what would notice them diverging again: before the fix it measured
+/// `arm_unpinned_adds = 0` against `arm_min_steps = 1`.
+TEST(QpAntiCyclingArm, ArmEsFloorStepOnTheNegativeCurvatureRideIsNotRePinned) {
+    ArmGuard guard;
+    const QpProblem qp = ride_floor_qp();
+    Ac::reset();
+    Ac::arm = Arm::kExpand;
+    // A CONSTRUCTED tau, and it is constructed deliberately. At the default
+    // parameters tau is ~4.9e-14 and only a degenerate (exactly-zero) blocking
+    // step is below it, which is not a situation this small walk reaches on its
+    // ride. `delta_master = 1e-2` with `expand_k = 1` makes tau 4.9e-3, so the
+    // ride's own blocking step is below the floor and Case 2 of §4.1 is the
+    // case that runs. Nothing about the SHARED-PREDICATE claim depends on the
+    // size of tau; what depends on it is reaching the branch at all.
+    Ac::params.delta_master = 1e-2;
+    Ac::params.expand_k = 1;
+
+    Obs::reset();
+    Obs::active = true;
+    QpEngine engine{capped(60)};
+    const QpSolution sol = engine.solve(qp);
+    Index ride_stepped = 0;
+    Index ride_bound_adds = 0;
+    Index ordinary_bound_adds = 0;
+    for (const auto &r : Obs::records) {
+        if (r.action == Action::kRideStepped) {
+            ++ride_stepped;
+        }
+        if (r.block != Block::kBound) {
+            continue;
+        }
+        if (r.action == Action::kRideStepped) {
+            ++ride_bound_adds;
+        } else if (r.action == Action::kAdd) {
+            ++ordinary_bound_adds;
+        }
+    }
+    const Index min_steps = Ac::min_steps;
+    const Index unpinned_adds = Ac::unpinned_adds;
+    Obs::active = false;
+    Obs::reset();
+    Ac::reset();
+
+    // NON-VACUITY FIRST. Every one of these would let the claim below pass on
+    // a walk that never rode, never blocked on a bound there, or never took a
+    // floor step at all.
+    ASSERT_EQ(static_cast<int>(sol.status), static_cast<int>(QpStatus::kOptimal));
+    ASSERT_EQ(ride_stepped, 1) << "section 4c's ride never stepped: this fixture is not about "
+                                  "the ride any more";
+    ASSERT_EQ(ride_bound_adds, 1) << "the ride did not block on a BOUND, so no re-pin was at "
+                                     "stake on its add path";
+    ASSERT_EQ(ordinary_bound_adds, 0)
+        << "the walk added a bound OUTSIDE the ride, so an unpinned add below could be that "
+           "one rather than the ride's";
+    ASSERT_EQ(min_steps, 1) << "the ride's step was not the alpha_min FLOOR";
+
+    // THE CLAIM. The walk's ONE bound add is the ride's, the walk's ONE floor
+    // step is that add's, and the blocker was LEFT OFF its bound -- the same
+    // treatment §4.1 Cases 2/3 get on the ordinary path.
+    EXPECT_EQ(unpinned_adds, 1)
+        << "the ride re-pinned its blocking bound exactly after a floor step, which undoes the "
+           "positive move alpha_min exists to create";
+    EXPECT_EQ(unpinned_adds, min_steps) << "a floor step was taken that no add left unpinned";
+}
+
+// ===========================================================================
+// (7) §4.5's `t` IS READ
+// ===========================================================================
+
+/// `negligible_pivot` DECIDES ELIGIBILITY (FIX ROUND 1, review Important 5).
+/// The field used to be printed by the probe as a realized parameter and never
+/// read; the arms always used `detail::kEngineDenomTol`. It is read now, and
+/// the two halves of that are asserted here: at the DEFAULT the arm's
+/// candidate set is production's (the default IS that constant, asserted in the
+/// defaults fixture above and by a `static_assert` in `src/qp/qp_engine.cpp`),
+/// and at a NON-default value the eligible set really changes.
+TEST(QpAntiCyclingArm, ArmEsNegligiblePivotParameterDecidesWhichConstraintsCanBlock) {
+    ArmGuard guard;
+    const QpProblem qp = period2_cycle_qp();
+    const QpOptions opts = capped(kCycleCap);
+
+    // AT THE DEFAULT: constraints block, and the walk adds them.
+    Ac::reset();
+    Ac::arm = Arm::kExpand;
+    const QpSolution at_default = plain_solve(qp, opts);
+    Ac::reset();
+    ASSERT_GT(at_default.counters.ws_adds, 0)
+        << "the default-parameter walk adds nothing, so raising the threshold could not "
+           "take anything away";
+
+    // AT A THRESHOLD ABOVE EVERY FINITE PIVOT: §4.5 calls every component of
+    // `p` negligible, no constraint is eligible to block, and the walk adds
+    // NOTHING. The value is 1e300 and not something modest BY MEASUREMENT:
+    // this fixture's `H` has rank one, so the regularized EQP on a singular
+    // face returns directions whose components run past 1e6, and a threshold
+    // chosen to look reasonable leaves candidates eligible. A threshold no
+    // finite double pivot can exceed makes the claim about the PARAMETER
+    // rather than about this problem's conditioning.
+    Ac::reset();
+    Ac::arm = Arm::kExpand;
+    Ac::params.negligible_pivot = 1e300;
+    const QpSolution at_huge = plain_solve(qp, opts);
+    const Index min_steps = Ac::min_steps;
+    const Index pivot_switches = Ac::pivot_switches;
+    Ac::reset();
+
+    EXPECT_EQ(at_huge.counters.ws_adds, 0)
+        << "a constraint blocked although every pivot is below the negligible-pivot threshold: "
+           "the arm is not reading its own parameter";
+    EXPECT_EQ(min_steps, 0) << "a floor step was taken with no blocking constraint";
+    EXPECT_EQ(pivot_switches, 0) << "the second pass selected a constraint it had ruled out";
+}
+
+// ===========================================================================
+// (8) TWO SOLVES IN FLIGHT AT ONCE, ONE ARMED AND ONE NOT
+// ===========================================================================
+
+namespace {
+
+/// A TWO-PARTY START GATE, hand-rolled from a mutex and a condition variable
+/// exactly as `test_qp_walk_seam.cpp`'s is and for the same reason: without it
+/// the two workers are merely CREATED close together and a valid scheduler may
+/// run them one after the other, which is what
+/// `ArmingOnOneThreadIsInvisibleOnAnother` above already proves.
+class ArmStartGate {
+  public:
+    void arrive_and_wait() {
+        std::unique_lock<std::mutex> lk(m_);
+        if (++arrived_ == 2) {
+            open_ = true;
+            cv_.notify_all();
+            return;
+        }
+        cv_.wait(lk, [this] { return open_; });
+    }
+
+  private:
+    std::mutex m_;
+    std::condition_variable cv_;
+    int arrived_ = 0;
+    bool open_ = false;
+};
+
+} // namespace
+
+/// THE SWITCH IS PER-THREAD WHILE TWO SOLVES OVERLAP (FIX ROUND 1, review
+/// Minor 1). The sequential fixture above joins the armed worker before the
+/// unarmed solve starts, so it proves that arming does not PERSIST across a
+/// finished thread — not that an armed solve cannot reach into an unarmed one
+/// running beside it. Here both threads build their problem and construct
+/// their engine, wait at the gate, and are released together, so what overlaps
+/// is `QpEngine::run` itself. The unarmed thread's answer must be its solo
+/// unarmed answer, bit for bit, and the armed thread's arm must have taken.
+///
+/// WHAT IT CANNOT PROMISE, said plainly: the defect it is written against is a
+/// data race on process-global state, which is undefined behaviour, so no
+/// assertion can promise a symptom from one. The gate makes overlap the
+/// overwhelmingly likely case rather than an accident of scheduling; a
+/// ThreadSanitizer verdict would make it a certainty and this tree has no such
+/// preset (`docs/testing.md` registers adding one).
+TEST(QpAntiCyclingArm, AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt) {
+    ArmGuard guard;
+    // TWO DIFFERENT PROBLEMS, ONE PER THREAD, and the choice is not cosmetic.
+    // The ARMED thread takes the period-2 cycling QP, because an arm must have
+    // something to do for "the arm took" to mean anything. The UNARMED thread
+    // takes the NON-DEGENERATE QP, because the claim on that side is
+    // BIT-IDENTITY against a solo run and a degenerate rank-one walk is not a
+    // sound subject for one across threads: MKL's kernels are address-
+    // sensitive (CLAUDE.md §7), two heaps give two alignments, and a walk
+    // sitting on a degenerate vertex turns a last-digit difference into a
+    // different pivot. MEASURED, not assumed -- the cycling QP run this way
+    // differs from its solo self in `QpCounters`, at a DIFFERENT byte on
+    // different runs, with no arm involved on that thread at all.
+    const QpOptions opts = capped(kCycleCap);
+    const QpOptions quiet_opts;
+
+    // THE SOLO UNARMED ANSWER, taken first and on this thread.
+    Ac::reset();
+    const QpSolution solo_unarmed = plain_solve(non_degenerate_qp(), quiet_opts);
+
+    ArmStartGate gate;
+    QpSolution armed_out;
+    QpSolution unarmed_out;
+    Index armed_switches = 0;
+    Index unarmed_switches = 0;
+    bool armed_saw_an_arm_at_entry = false;
+    bool unarmed_saw_an_arm_at_entry = false;
+
+    std::thread armed([&] {
+        armed_saw_an_arm_at_entry = Ac::any_on();
+        Ac::reset();
+        Ac::arm = Arm::kExpand;
+        const QpProblem mine = period2_cycle_qp();
+        QpEngine engine{opts};
+        // EVERYTHING EXPENSIVE THAT IS NOT THE SOLVE IS ABOVE THIS LINE.
+        gate.arrive_and_wait();
+        armed_out = engine.solve(mine);
+        armed_switches = Ac::min_steps + Ac::pivot_switches;
+        Ac::reset();
+    });
+    std::thread unarmed([&] {
+        unarmed_saw_an_arm_at_entry = Ac::any_on();
+        Ac::reset();
+        const QpProblem mine = non_degenerate_qp();
+        QpEngine engine{quiet_opts};
+        gate.arrive_and_wait();
+        unarmed_out = engine.solve(mine);
+        unarmed_switches = Ac::min_steps + Ac::pivot_switches + Ac::lex_drop_switches +
+                           Ac::lex_ratio_switches + Ac::unpinned_adds + Ac::resets;
+        Ac::reset();
+    });
+    armed.join();
+    unarmed.join();
+    Ac::reset();
+
+    // Neither thread saw the other's switch on the way in.
+    EXPECT_FALSE(armed_saw_an_arm_at_entry);
+    EXPECT_FALSE(unarmed_saw_an_arm_at_entry);
+    // THE ARM TOOK on the thread that armed it -- otherwise the unarmed
+    // thread's bit-identity below would be a statement about two unarmed runs.
+    EXPECT_EQ(static_cast<int>(armed_out.status), static_cast<int>(QpStatus::kOptimal))
+        << "the armed thread's arm did not take";
+    EXPECT_GT(armed_switches, 0) << "the armed thread's arm changed no decision";
+    // AND THE UNARMED THREAD IS ITS SOLO SELF, bit for bit, with every arm
+    // counter on it at zero.
+    expect_same_answer(solo_unarmed, unarmed_out);
+    EXPECT_EQ(unarmed_switches, 0)
+        << "the unarmed thread recorded arm activity while an armed solve ran beside it";
 }

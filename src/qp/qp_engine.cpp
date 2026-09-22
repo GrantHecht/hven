@@ -631,8 +631,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
 
         // ARM E, EXPAND §4.2: `delta_k <- delta_{k-1} + tau` ((4.2)) at the
         // START of every minor, and §4.3's RESET once the expanding sequence
-        // has run its K iterations. `begin_minor()` returns false for every
-        // arm but E, and for E it returns true only at the end of a sequence.
+        // has RUN its K iterations -- so the K-th minor runs at delta_K and the
+        // reset falls at the (K+1)-th, which is §4.3's own order and was the
+        // review's Important 1. `begin_minor()` returns false for every arm but
+        // E, and for E it returns true only after a sequence has completed.
         if (detail::testing::QpAntiCycleArmState::begin_minor()) {
             using Ac = detail::testing::QpAntiCycleArmState;
             // §4.3 step (1): "every nonbasic variable that lies within delta_f
@@ -1076,15 +1078,12 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             // `x <- x + mu e_r` with |mu| <= delta, which is both an error of
             // order delta in the constraints and, at a degenerate vertex,
             // exactly what makes the drop/re-add pair move the iterate by
-            // nothing at all. The guard is written so that the statement below
-            // is PRODUCTION'S, unchanged, token for token.
-            const bool expand_leaves_it_off_its_bound =
-                detail::testing::QpAntiCycleArmState::expand_on() &&
-                detail::testing::QpAntiCycleArmState::last_step_was_floor;
-            if (expand_leaves_it_off_its_bound) {
-                ++detail::testing::QpAntiCycleArmState::unpinned_adds;
-            }
-            if (!expand_leaves_it_off_its_bound)
+            // nothing at all. THE QUESTION IS ASKED OF THE ONE SHARED
+            // PREDICATE (`qp_anti_cycling_arm.h`) that the RIDE's add path
+            // below asks too, so the two cannot answer it differently. The
+            // guard is written so that the statement below is PRODUCTION'S,
+            // unchanged, token for token.
+            if (!detail::testing::QpAntiCycleArmState::expand_skips_exact_repin())
 #endif
                 x(block_idx) = (block_state == BoundState::kAtUpper) ? qp.upper(block_idx)
                                                                      : qp.lower(block_idx);
@@ -2374,12 +2373,18 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
     // is what licenses one order over two index spaces (inequality rows and
     // variable bounds).
     //
-    // THE FORM THAT RUNS BY DEFAULT IS THE TIE-BREAK, not Bland's rule: the
-    // order decides only among the Dantzig TIE WINDOW. That is strictly weaker
-    // than the theorem above, which needs the least index over the whole
-    // eligible set; `lex_full_pricing` selects that stronger form and is OFF
-    // by default. The gap is declared in qp_anti_cycling_arm.h and in the
-    // round's RULE.md; nothing here is reported as a finiteness guarantee.
+    // THE FORM THAT RUNS BY DEFAULT IS THE TIE-BREAK, not the least-index
+    // choice: the order decides only among the Dantzig TIE WINDOW. That is
+    // strictly weaker than the rule above, which needs the least index over the
+    // whole eligible set; `lex_full_pricing` selects that stronger form and is
+    // OFF by default. AND NEITHER FORM IS BLAND'S RULE (FIX ROUND 1, review
+    // Important 3): the full-pricing form is a BLAND-STYLE ANALOGUE of the two
+    // least-index choices, and Bland's finiteness theorem -- stated for a
+    // simplex BASIS moving by a single pivot -- does NOT cover this walk, which
+    // has a working set over two index spaces, an EQP re-solve and a snap every
+    // minor, a negative-curvature ride and recovery branches. The gap is
+    // declared in qp_anti_cycling_arm.h and in the round's README; nothing here
+    // is reported as a finiteness guarantee.
     if (detail::testing::QpAntiCycleArmState::lex_on()) {
         using Ac = detail::testing::QpAntiCycleArmState;
         const Candidate *lex = nullptr;
@@ -2601,8 +2606,19 @@ QpEngine::RideOutcome QpEngine::ride_negative_curvature(const QpProblem &qp,
         ws.add_ineq(block_idx);
     } else {
         ws.bound_state()[static_cast<std::size_t>(block_idx)] = block_state;
-        x(block_idx) =
-            (block_state == BoundState::kAtUpper) ? qp.upper(block_idx) : qp.lower(block_idx);
+#ifdef HVEN_TESTING
+        // ARM E, §4.1's Cases 2 and 3 ON THE RIDE (FIX ROUND 1, review
+        // Important 2). The ride reaches its blocker through the SAME
+        // `ratio_test` the ordinary add path uses, so armed with E it can be
+        // handed an `alpha_min` FLOOR step here exactly as that path can; and
+        // re-pinning the blocker exactly would undo the positive move the
+        // floor exists to create. The predicate is the one the ordinary path
+        // asks, not a copy of it. The guard is written so that the statement
+        // below is PRODUCTION'S, unchanged, token for token.
+        if (!detail::testing::QpAntiCycleArmState::expand_skips_exact_repin())
+#endif
+            x(block_idx) =
+                (block_state == BoundState::kAtUpper) ? qp.upper(block_idx) : qp.lower(block_idx);
     }
 #ifdef HVEN_TESTING
     // The blocker a RIDE admitted. QpCounters folds it into ws_adds with every
@@ -2644,6 +2660,19 @@ namespace {
 using AcState = detail::testing::QpAntiCycleArmState;
 using AcKey = detail::testing::QpAntiCycleArmState::LexKey;
 
+/// EXPAND §4.5's `t` DEFAULTS TO hven's OWN engine threshold, BY CONSTRUCTION
+/// (FIX ROUND 1, review Important 5). `QpAntiCycleParams::negligible_pivot` is
+/// now READ by `arm_candidates` below, so it has to be true, and not merely
+/// documented, that a default-parameter arm considers exactly the constraints
+/// production considers. `qp_anti_cycling_arm.h` cannot name
+/// `detail::kEngineDenomTol` in its initializer -- `qp_engine.h` includes that
+/// header, through `qp_walk_trace.h`, ABOVE its own declaration of the constant
+/// -- so the two literals are tied together HERE instead, where both are
+/// visible, and a future edit to either one fails the build.
+static_assert(detail::testing::QpAntiCycleParams{}.negligible_pivot == detail::kEngineDenomTol,
+              "ARM E's default negligible-pivot tolerance must BE hven's own engine threshold: "
+              "at the default the arms' candidate set is production's candidate set");
+
 /// `QpEngine::BlockKind`'s three values, re-declared here because that enum is
 /// a PRIVATE nested type of `QpEngine` and these helpers are free functions.
 /// Declaring a friend, or moving the helpers into the class, would mean
@@ -2672,11 +2701,15 @@ struct ArmCandidate {
 /// scan order (inequality rows ascending, then bounds ascending), with the two
 /// extra steps and the pivot attached.
 ///
-/// The eligibility tests are PRODUCTION'S, verbatim -- the working-set skip and
-/// the `kEngineDenomTol` negligible-pivot test (EXPAND §4.5's `t`, which hven
-/// already has and which is therefore not duplicated) -- so neither arm can
-/// block on a constraint production would not have considered. What an arm may
-/// do is choose a DIFFERENT one of them, and take a different step.
+/// The eligibility tests are PRODUCTION'S at the DEFAULT parameters -- the
+/// working-set skip, and the negligible-pivot test against EXPAND §4.5's `t`,
+/// which the arm reads from `QpAntiCycleParams::negligible_pivot` and whose
+/// default is `detail::kEngineDenomTol` by the `static_assert` below. So at the
+/// default neither arm can block on a constraint production would not have
+/// considered; what an arm may do is choose a DIFFERENT one of them, and take
+/// a different step. A leg that sets a NON-default `t` is deliberately changing
+/// the eligible set, which is §4.5's own parameter doing §4.5's own job (FIX
+/// ROUND 1, review Important 5: the field used to be printed and ignored).
 std::vector<ArmCandidate> arm_candidates(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
                                          const Vec &Aix, const Vec &p, double delta) {
     std::vector<ArmCandidate> out;
@@ -2684,7 +2717,8 @@ std::vector<ArmCandidate> arm_candidates(const QpProblem &qp, const WorkingSet &
         const Vec Aip = qp.Ai * p;
         const auto &aw = ws.active_ineq();
         for (Index j = 0; j < qp.mi(); ++j) {
-            if (std::binary_search(aw.begin(), aw.end(), j) || Aip(j) <= detail::kEngineDenomTol) {
+            if (std::binary_search(aw.begin(), aw.end(), j) ||
+                Aip(j) <= AcState::params.negligible_pivot) {
                 continue;
             }
             ArmCandidate c;
@@ -2703,13 +2737,14 @@ std::vector<ArmCandidate> arm_candidates(const QpProblem &qp, const WorkingSet &
             continue;
         }
         ArmCandidate c;
-        if (p(i) > detail::kEngineDenomTol && qp.upper(i) < detail::kEngineInfBound) {
+        if (p(i) > AcState::params.negligible_pivot && qp.upper(i) < detail::kEngineInfBound) {
             c.state = BoundState::kAtUpper;
             c.prod_step = std::max(0.0, qp.upper(i) - x(i)) / p(i);
             c.step_exact = (qp.upper(i) - x(i)) / p(i);
             c.step_relaxed = (qp.upper(i) + delta - x(i)) / p(i);
             c.key = AcKey{i, 1, 1};
-        } else if (p(i) < -detail::kEngineDenomTol && qp.lower(i) > -detail::kEngineInfBound) {
+        } else if (p(i) < -AcState::params.negligible_pivot &&
+                   qp.lower(i) > -detail::kEngineInfBound) {
             c.state = BoundState::kAtLower;
             // The SIGNED-ZERO site the census named: with x(i) exactly on its
             // lower bound this is `min(0, 0)/negative` == -0.0, which neither

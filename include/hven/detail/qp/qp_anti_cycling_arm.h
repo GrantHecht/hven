@@ -55,7 +55,18 @@
 // (§4.1's pseudo-code, and §8.1's `alpha_blk = max{alpha_min, alpha_2}` for
 // the linearly-constrained/QP context this walk is); and a RESET that
 // re-projects the iterate onto its working bounds and restarts the tolerance
-// when the expanding sequence reaches its length K (§4.3).
+// once the expanding sequence has RUN its K iterations (§4.3).
+//
+// THE PLACE OF THE RESET IN THE SEQUENCE (FIX ROUND 1, review Important 1).
+// §4.3 is entered "when k = K", AFTER the K-th iteration of the expanding
+// sequence has taken its step at the K-th (largest) tolerance: the sequence
+// delta_1 .. delta_K is what the K iterations RUN at, and the reset that
+// re-projects and restarts follows the last of them. The first implementation
+// signalled the reset from inside the same call that produced delta_K, so the
+// caller reset BEFORE the K-th ratio test and the K-th iteration ran at
+// delta_0 — one iteration early. `begin_minor()` below now signals on the
+// count of iterations ALREADY RUN, so iteration K runs at delta_K and the
+// reset happens at iteration K+1.
 //
 // WHAT BREAKS THE CYCLE HERE, STATED HONESTLY. In the simplex setting EXPAND's
 // anti-cycling guarantee comes from `alpha >= alpha_min > 0`, which makes the
@@ -92,9 +103,19 @@
 // rule, whose finiteness needs the least-index choice over the WHOLE eligible
 // pricing set, not merely over the set that ties for the Dantzig maximum.
 // `lex_full_pricing` (default FALSE, i.e. the tie-break form) extends the drop
-// rule to the full eligible set and is the form the classical argument
-// actually covers. Which form ran is recorded per leg; no result below is
-// reported as a finiteness guarantee.
+// rule to the full eligible set. Which form ran is recorded per leg; no result
+// below is reported as a finiteness guarantee.
+//
+// AND NEITHER FORM IS BLAND'S RULE (FIX ROUND 1, review Important 3). The
+// full-pricing form is a BLAND-STYLE ANALOGUE of the rule's two least-index
+// choices, not the rule Bland's finiteness theorem is stated for, and the
+// theorem does NOT cover it. That proof is about a simplex BASIS moving to an
+// adjacent basis by a single pivot. This walk has a working SET over two index
+// spaces (inequality rows and variable bound sides), re-solves an EQP and
+// snaps onto the face minimizer every minor, has a negative-curvature ride,
+// and has recovery branches -- none of which the cycle argument is about. What
+// the arm implements is the analogous pair of least-index choices; what it
+// does NOT carry over is the finiteness guarantee.
 //
 // NO DATA IS PERTURBED BY EITHER ARM. ARM L reorders decisions and touches no
 // floating-point value of the problem. ARM E changes the ratio test's
@@ -121,8 +142,14 @@ namespace hven::solvers::detail::testing {
 /// form specialized by a zero parameter.
 enum class QpAntiCycleArm : int { kOff = 0, kExpand = 1, kLexicographic = 2 };
 
-/// ARM E's parameters, every one of them the paper's own, with the paper's
-/// own recommendation as the default where the paper gives one.
+/// ARM E's parameters: PAPER-DERIVED AND ADAPTED, not the paper's own
+/// throughout (FIX ROUND 1, review Minor 3). `delta_0_factor`,
+/// `delta_max_factor`, `expand_k`, the `tau` they imply and `reset_nontrivial`
+/// are the paper's choices at the paper's own recommended values;
+/// `delta_master` DELIBERATELY replaces the paper's ~1e-6 with hven's
+/// `feas_tol` default (its own note below says why); and `negligible_pivot`
+/// defaults to hven's existing engine threshold rather than to a second one of
+/// the paper's. SEVEN fields, and the probe exposes seven arguments for them.
 struct QpAntiCycleParams {
     /// §4.2, "the 'master' feasibility tolerance" delta_f. The paper derives
     /// delta_f = eps^(3/8) and reports 1e-6 for eps = 1e-16. hven's own
@@ -143,10 +170,19 @@ struct QpAntiCycleParams {
     /// before resetting". The paper reports K = 10000 for eps = 1e-16.
     Index expand_k = 10000;
     /// §4.5's `t`: the tolerance below which a component of `p` is
-    /// "negligible" and the constraint cannot block. hven's walk already has
-    /// one -- `detail::kEngineDenomTol` -- and ARM E uses THAT rather than a
-    /// second one, so the set of constraints the two arms can block on is the
-    /// production set. This field records the choice; it is not read.
+    /// "negligible" and the constraint cannot block.
+    ///
+    /// IT IS READ (FIX ROUND 1, review Important 5). Both arms' candidate
+    /// sweep tests eligibility against THIS field, so a leg that sets it gets
+    /// the eligibility it asked for rather than a printed value the code
+    /// ignores. Its DEFAULT is hven's own engine threshold
+    /// `detail::kEngineDenomTol`, BY CONSTRUCTION: `src/qp/qp_engine.cpp`
+    /// carries a `static_assert` that the two are equal, so at the default the
+    /// set of constraints an arm can block on is production's set exactly and
+    /// no landed row is touched by the field becoming live. The literal is
+    /// repeated here rather than referenced because `qp_engine.h` includes this
+    /// file (through `qp_walk_trace.h`) ABOVE its own declaration of that
+    /// constant; the `static_assert` is what makes the repetition safe.
     double negligible_pivot = 1e-12;
     /// §4.3 step (1)'s "nontrivial" adjustment threshold, eps^(2/3) ~ 3.7e-11,
     /// used only to COUNT how many re-projections at a reset actually moved
@@ -155,9 +191,11 @@ struct QpAntiCycleParams {
 
     /// ARM L only. FALSE (the default) is the briefed TIE-BREAK form: the
     /// lexicographic order decides only among `drop_worst`'s Dantzig tie
-    /// window. TRUE is Bland's rule proper: the least-index candidate over the
-    /// whole eligible set, which is the form the classical finiteness argument
-    /// covers. Recorded per leg.
+    /// window. TRUE is the BLAND-STYLE ANALOGUE of the least-index entering
+    /// choice: the least-index candidate over the whole eligible set. It is an
+    /// analogue, not Bland's rule -- this walk is not a simplex basis and the
+    /// finiteness theorem does not cover it (this file's header says why).
+    /// Recorded per leg.
     bool lex_full_pricing = false;
 
     /// §4.2's tau = (delta_K - delta_0)/K, derived rather than typed.
@@ -252,26 +290,71 @@ struct QpAntiCycleArmState {
     }
 
     /// §4.2's per-iteration expansion, called at the top of every minor:
-    /// `delta_k <- delta_{k-1} + tau` ((4.2)). Returns TRUE when the
-    /// expanding sequence has reached its length K and the caller must run
-    /// §4.3's reset.
+    /// `delta_k <- delta_{k-1} + tau` ((4.2)). Returns TRUE when the expanding
+    /// sequence has ALREADY RUN its K iterations, so §4.3's reset is due BEFORE
+    /// this minor rather than before the K-th one.
+    ///
+    /// THE ORDER, AND WHY IT IS THIS ONE (FIX ROUND 1, review Important 1).
+    /// §4.3 is entered "when k = K", i.e. after the K-th iteration of the
+    /// expanding sequence has taken its step: the K iterations run at
+    /// delta_1 .. delta_K and the reset follows the last of them. So the test
+    /// is on `expand_iter` -- the number of iterations this sequence has
+    /// already run -- taken BEFORE this minor's own increment. At
+    /// `expand_iter == K` the K-th has run, the caller resets, and this minor
+    /// is the first of the new sequence. Testing AFTER the increment, which is
+    /// what the first implementation did, resets one minor early and runs the
+    /// K-th iteration at delta_0.
     static bool begin_minor() {
         if (!expand_on()) {
             return false;
         }
+        if (expand_iter >= params.expand_k || delta >= params.delta_max()) {
+            return true; // the caller resets; note_reset() restarts the sequence
+        }
         ++expand_iter;
         delta += params.tau();
-        if (expand_iter >= params.expand_k || delta >= params.delta_max()) {
-            return true;
-        }
         return false;
+    }
+
+    /// §4.1's Cases 2 and 3 AT AN ADD, ASKED BY BOTH ADD PATHS. TRUE when the
+    /// step the ratio test just returned was the `alpha_min` FLOOR and the
+    /// blocking bound must therefore be left violated by at most tau rather
+    /// than re-pinned exactly (§3.3: the re-pin is an extra, unmodelled step of
+    /// size up to delta, and at a degenerate vertex it is exactly what makes
+    /// the drop/re-add pair move the iterate by nothing at all). It also
+    /// COUNTS the event, so the count and the decision cannot disagree.
+    ///
+    /// IT IS ONE FUNCTION BECAUSE THERE ARE TWO ADD PATHS (FIX ROUND 1, review
+    /// Important 2). `QpEngine::run`'s ordinary add and
+    /// `QpEngine::ride_negative_curvature`'s add both pin a blocking bound,
+    /// both reach that bound through the same `ratio_test`, and the first
+    /// implementation honoured the floor at the first and re-pinned at the
+    /// second -- so ARM E could return a floor step on the ride and have it
+    /// undone. Asking ONE function at both sites is what stops the two
+    /// diverging again. It lives here, and not as a free function in
+    /// `src/qp/qp_engine.cpp`, because a definition there would have to sit
+    /// ABOVE that TU's one `assert()` to precede the first call site, which
+    /// would move a `__LINE__` immediate in the Debug object's INSTRUCTION
+    /// stream and break the round's declared debug-only shape.
+    static bool expand_skips_exact_repin() {
+        const bool skip = expand_on() && last_step_was_floor;
+        if (skip) {
+            ++unpinned_adds;
+        }
+        return skip;
     }
 
     /// §4.3 step (3): "the feasibility tolerance is reinitialized to delta_0,
     /// and a new expanding sequence begins."
+    ///
+    /// The minor at whose top this runs IS the first minor of that new
+    /// sequence, so §4.2's `delta_1 = delta_0 + tau` is applied HERE rather
+    /// than deferred to the next `begin_minor()` -- that call belongs to the
+    /// new sequence's SECOND minor. The reset therefore costs the sequence no
+    /// iteration: K minors run per sequence, at delta_1 .. delta_K, always.
     static void note_reset() {
-        delta = params.delta_0();
-        expand_iter = 0;
+        delta = params.delta_0() + params.tau();
+        expand_iter = 1;
         ++resets;
     }
 
