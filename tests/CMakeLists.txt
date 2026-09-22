@@ -385,6 +385,7 @@ add_executable(hven_qp_walk_seam_tests
     ${HVEN_SRC_DIR}/linear/dense_symmetric_factor.cpp
     ${HVEN_SRC_DIR}/qp/qp_engine.cpp
     qp/test_qp_walk_seam.cpp
+    qp/test_qp_anti_cycling_arm.cpp
 )
 
 if(NOT APPLE)

@@ -615,6 +615,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // `ws` here is the set the first pass starts from: the seed ingest and the
     // seeding refresh_shifts are both above.
     detail::testing::QpWalkObserver::begin_solve(warm, n, me, mi, eff_max_iter, ws);
+    // M7 W2 M4's ANTI-CYCLING ARMS (qp_anti_cycling_arm.h). With no arm armed
+    // this starts nothing and every hook below runs production's statements.
+    // Armed, it begins EXPAND's first expanding sequence (§4.2) for this solve.
+    detail::testing::QpAntiCycleArmState::begin_solve();
 #endif
     for (Index iter = 0; !crossed_bounds && iter < eff_max_iter; ++iter) {
         ++counters.minor_iters;
@@ -624,6 +628,45 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
         // the fall-through all record, and a path added later cannot silently
         // stop recording.
         detail::testing::QpWalkMinorScope walk_obs(ws, x, counters, iter);
+
+        // ARM E, EXPAND §4.2: `delta_k <- delta_{k-1} + tau` ((4.2)) at the
+        // START of every minor, and §4.3's RESET once the expanding sequence
+        // has run its K iterations. `begin_minor()` returns false for every
+        // arm but E, and for E it returns true only at the end of a sequence.
+        if (detail::testing::QpAntiCycleArmState::begin_minor()) {
+            using Ac = detail::testing::QpAntiCycleArmState;
+            // §4.3 step (1): "every nonbasic variable that lies within delta_f
+            // of a bound is moved exactly onto the bound", counting the
+            // adjustments larger than eps^(2/3) as "nontrivial". A variable
+            // PINNED in this walk's working set is the active-set analogue of
+            // a nonbasic variable; the free ones are what the EQP solves for.
+            for (Index i = 0; i < n; ++i) {
+                const BoundState st = ws.bound_state()[static_cast<std::size_t>(i)];
+                double b = 0.0;
+                if (st == BoundState::kAtUpper) {
+                    b = qp.upper(i);
+                } else if (st == BoundState::kAtLower || st == BoundState::kFixed) {
+                    b = qp.lower(i);
+                } else {
+                    continue;
+                }
+                const double moved = std::abs(x(i) - b);
+                if (moved <= Ac::params.delta_master) {
+                    if (moved > Ac::params.reset_nontrivial) {
+                        ++Ac::reset_nontrivial_moves;
+                    }
+                    x(i) = b;
+                }
+            }
+            // §4.3 step (2) -- "the basic variables are recomputed in terms of
+            // the newly adjusted nonbasic variables" -- is exactly what the
+            // EQP solve a few lines below does from the re-projected iterate,
+            // so no separate recomputation is needed. The shifts are refreshed
+            // because x moved, the same way every other x-moving branch of
+            // this loop refreshes them.
+            refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
+            Ac::note_reset(); // §4.3 step (3): delta <- delta_0, new sequence
+        }
 #endif
 
         // Stamp addition numbers on whatever joined the working set since
@@ -1025,8 +1068,26 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             ws.add_ineq(block_idx);
         } else if (kind == BlockKind::kBound) {
             ws.bound_state()[static_cast<std::size_t>(block_idx)] = block_state;
-            x(block_idx) =
-                (block_state == BoundState::kAtUpper) ? qp.upper(block_idx) : qp.lower(block_idx);
+#ifdef HVEN_TESTING
+            // ARM E, §4.1's Cases 2 and 3: when the step taken was the
+            // `alpha_min` FLOOR the blocking variable is DELIBERATELY left
+            // violating its bound (by at most tau), and §3.3 is the reason --
+            // moving it onto the bound here is an extra, unmodelled step
+            // `x <- x + mu e_r` with |mu| <= delta, which is both an error of
+            // order delta in the constraints and, at a degenerate vertex,
+            // exactly what makes the drop/re-add pair move the iterate by
+            // nothing at all. The guard is written so that the statement below
+            // is PRODUCTION'S, unchanged, token for token.
+            const bool expand_leaves_it_off_its_bound =
+                detail::testing::QpAntiCycleArmState::expand_on() &&
+                detail::testing::QpAntiCycleArmState::last_step_was_floor;
+            if (expand_leaves_it_off_its_bound) {
+                ++detail::testing::QpAntiCycleArmState::unpinned_adds;
+            }
+            if (!expand_leaves_it_off_its_bound)
+#endif
+                x(block_idx) = (block_state == BoundState::kAtUpper) ? qp.upper(block_idx)
+                                                                     : qp.lower(block_idx);
         }
         refresh_shifts(qp, x, ai_row_norm1, lambda_i, ws, Aix, shift, counters, seen, eff_opts);
     }
@@ -2305,6 +2366,47 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
     }
 
 #ifdef HVEN_TESTING
+    // ARM L, the drop half. Bland, "New finite pivoting rules for the simplex
+    // method", Mathematics of Operations Research 2 (1977) 103-107: fix ONE
+    // total order on the constraint index set and always take the smallest
+    // eligible index; a cycle would have to re-enter its own largest-index
+    // constraint, which the rule forbids. The order need only be FIXED, which
+    // is what licenses one order over two index spaces (inequality rows and
+    // variable bounds).
+    //
+    // THE FORM THAT RUNS BY DEFAULT IS THE TIE-BREAK, not Bland's rule: the
+    // order decides only among the Dantzig TIE WINDOW. That is strictly weaker
+    // than the theorem above, which needs the least index over the whole
+    // eligible set; `lex_full_pricing` selects that stronger form and is OFF
+    // by default. The gap is declared in qp_anti_cycling_arm.h and in the
+    // round's RULE.md; nothing here is reported as a finiteness guarantee.
+    if (detail::testing::QpAntiCycleArmState::lex_on()) {
+        using Ac = detail::testing::QpAntiCycleArmState;
+        const Candidate *lex = nullptr;
+        Ac::LexKey best_key{};
+        for (const auto &c : cands) {
+            if (!Ac::params.lex_full_pricing && c.violation < best_viol - tie_window) {
+                continue;
+            }
+            Ac::LexKey key{c.idx, 0, c.is_ineq ? 0 : 1};
+            if (!c.is_ineq) {
+                key.side = ws.bound_state()[static_cast<std::size_t>(c.idx)] == BoundState::kAtUpper
+                               ? 1
+                               : 0;
+            }
+            if (lex == nullptr || key < best_key) {
+                lex = &c;
+                best_key = key;
+            }
+        }
+        if (lex != nullptr) {
+            if (lex != pick) {
+                ++Ac::lex_drop_switches;
+            }
+            pick = lex;
+        }
+    }
+
     // The seam's per-minor record of WHY this constraint left: the Dantzig
     // violation that picked it, the tolerance a candidate had to clear, the
     // best violation in the set, and the candidate/tie counts behind
@@ -2522,9 +2624,269 @@ QpEngine::RideOutcome QpEngine::ride_negative_curvature(const QpProblem &qp,
     return RideOutcome::kStepped;
 }
 
+#ifdef HVEN_TESTING
+// ===========================================================================
+// M7 W2 M4's TWO ANTI-CYCLING ARMS, entirely inside this `#ifdef` so a
+// production translation unit sees no token of them. Both are OFF by default;
+// the switch and the parameters are in
+// `include/hven/detail/qp/qp_anti_cycling_arm.h`, which states what each arm
+// is, which paper it comes from, and what it is NOT claimed to prove.
+//
+// Every rule below carries the citation of the rule it transcribes:
+//   EXPAND = Gill, Murray, Saunders and Wright, "A practical anti-cycling
+//   procedure for linearly constrained optimization", Mathematical
+//   Programming 45 (1989) 437-474;
+//   Bland = Bland, "New finite pivoting rules for the simplex method",
+//   Mathematics of Operations Research 2 (1977) 103-107.
+// ===========================================================================
+namespace {
+
+using AcState = detail::testing::QpAntiCycleArmState;
+using AcKey = detail::testing::QpAntiCycleArmState::LexKey;
+
+/// `QpEngine::BlockKind`'s three values, re-declared here because that enum is
+/// a PRIVATE nested type of `QpEngine` and these helpers are free functions.
+/// Declaring a friend, or moving the helpers into the class, would mean
+/// editing `qp_engine.h` -- which would move the DWARF line programme of every
+/// inline function below the edit in the three production objects that include
+/// it, for no gain. The two call sites translate, and the translation is
+/// exhaustive.
+enum class ArmBlock : int { kNone = 0, kIneq = 1, kBound = 2 };
+
+/// One candidate of the ratio test, carrying everything BOTH arms need: the
+/// step production itself would compute, the "textbook" exact step of EXPAND
+/// (3.1)'s `step` function, the relaxed step of its first pass (3.2), the
+/// pivot element (3.3a) selects on, and ARM L's lexicographic key.
+struct ArmCandidate {
+    bool is_ineq = false;
+    Index idx = -1;
+    BoundState state = BoundState::kFree; ///< the side a BOUND would be pinned at
+    double prod_step = 0.0;               ///< production's own ratio, clamps included
+    double step_exact = 0.0;              ///< EXPAND (3.1): the step to the EXACT bound
+    double step_relaxed = 0.0;            ///< EXPAND (3.2): the step to the bound widened by delta
+    double pivot = 0.0;                   ///< |p_r|, the pivot element
+    AcKey key{};
+};
+
+/// EVERY CONSTRAINT PRODUCTION'S RATIO TEST WOULD CONSIDER, in production's own
+/// scan order (inequality rows ascending, then bounds ascending), with the two
+/// extra steps and the pivot attached.
+///
+/// The eligibility tests are PRODUCTION'S, verbatim -- the working-set skip and
+/// the `kEngineDenomTol` negligible-pivot test (EXPAND §4.5's `t`, which hven
+/// already has and which is therefore not duplicated) -- so neither arm can
+/// block on a constraint production would not have considered. What an arm may
+/// do is choose a DIFFERENT one of them, and take a different step.
+std::vector<ArmCandidate> arm_candidates(const QpProblem &qp, const WorkingSet &ws, const Vec &x,
+                                         const Vec &Aix, const Vec &p, double delta) {
+    std::vector<ArmCandidate> out;
+    if (qp.mi() > 0) {
+        const Vec Aip = qp.Ai * p;
+        const auto &aw = ws.active_ineq();
+        for (Index j = 0; j < qp.mi(); ++j) {
+            if (std::binary_search(aw.begin(), aw.end(), j) || Aip(j) <= detail::kEngineDenomTol) {
+                continue;
+            }
+            ArmCandidate c;
+            c.is_ineq = true;
+            c.idx = j;
+            c.pivot = Aip(j);
+            c.prod_step = std::max(0.0, qp.bi(j) - Aix(j)) / Aip(j);
+            c.step_exact = (qp.bi(j) - Aix(j)) / Aip(j);
+            c.step_relaxed = (qp.bi(j) + delta - Aix(j)) / Aip(j);
+            c.key = AcKey{j, 0, 0};
+            out.push_back(c);
+        }
+    }
+    for (Index i = 0; i < qp.n(); ++i) {
+        if (ws.bound_state()[static_cast<std::size_t>(i)] != BoundState::kFree) {
+            continue;
+        }
+        ArmCandidate c;
+        if (p(i) > detail::kEngineDenomTol && qp.upper(i) < detail::kEngineInfBound) {
+            c.state = BoundState::kAtUpper;
+            c.prod_step = std::max(0.0, qp.upper(i) - x(i)) / p(i);
+            c.step_exact = (qp.upper(i) - x(i)) / p(i);
+            c.step_relaxed = (qp.upper(i) + delta - x(i)) / p(i);
+            c.key = AcKey{i, 1, 1};
+        } else if (p(i) < -detail::kEngineDenomTol && qp.lower(i) > -detail::kEngineInfBound) {
+            c.state = BoundState::kAtLower;
+            // The SIGNED-ZERO site the census named: with x(i) exactly on its
+            // lower bound this is `min(0, 0)/negative` == -0.0, which neither
+            // beats nor is beaten by a +0.0 earlier in the scan, so the just-
+            // released bound blocks at a zero step and is re-pinned.
+            c.prod_step = std::min(0.0, qp.lower(i) - x(i)) / p(i);
+            c.step_exact = (qp.lower(i) - x(i)) / p(i);
+            c.step_relaxed = (qp.lower(i) - delta - x(i)) / p(i);
+            c.key = AcKey{i, 0, 1};
+        } else {
+            continue;
+        }
+        c.is_ineq = false;
+        c.idx = i;
+        c.pivot = std::abs(p(i));
+        out.push_back(c);
+    }
+    return out;
+}
+
+/// ARM E — the EXPAND procedure of §4.1, transcribed.
+///
+///   (first pass)   `(alpha_1, r_1) <- ratio_test(x, p, l - delta e, u + delta e, t)`
+///                  — EXPAND §4.1's pseudo-code line 1, which is Harris's (3.2).
+///   (second pass)  `r <- arg max |p_j|` over `j` with `step(x_j, p_j, l_j, u_j) <= alpha_1`,
+///                  `alpha_2 <- step(x_r, p_r, l_r, u_r)` — (3.3a) and (3.3b).
+///   (floor)        `alpha_min <- tau/|p_r|`; `alpha <- max{alpha_2, alpha_min}`
+///                  — EXPAND §4.1's last two pseudo-code lines, and §8.1's
+///                  `alpha_blk = max{alpha_min, alpha_2}` for the linearly
+///                  constrained / QP context this walk is.
+///
+/// `alpha_min > 0` strictly, so ARM E NEVER returns the zero step production's
+/// signed-zero ratio returns, and a constraint whose exact step is zero or
+/// negative is handled by §4.1's Cases 2 and 3 rather than by a re-pin.
+double expand_ratio_test(const QpProblem &qp, const WorkingSet &ws, const Vec &x, const Vec &Aix,
+                         const Vec &p, ArmBlock &kind, Index &block_idx, BoundState &block_state,
+                         bool cap_at_unit, QpCounters &counters) {
+    kind = ArmBlock::kNone;
+    AcState::last_step_was_floor = false;
+    const std::vector<ArmCandidate> cands = arm_candidates(qp, ws, x, Aix, p, AcState::delta);
+    if (cands.empty()) {
+        return std::numeric_limits<double>::infinity();
+    }
+
+    // FIRST PASS (3.2). alpha_1 is an UPPER BOUND on the allowable step: a
+    // step of alpha_1 cannot violate any individual bound by more than delta.
+    double alpha1 = std::numeric_limits<double>::infinity();
+    for (const ArmCandidate &c : cands) {
+        alpha1 = std::min(alpha1, c.step_relaxed);
+    }
+
+    // SECOND PASS (3.3a): the largest pivot among the constraints whose EXACT
+    // step does not exceed alpha_1. Production's own pick and its tie count
+    // are computed in the same sweep, so `pivot_switches` measures how often
+    // the arm actually moved the choice and `counters.ratio_ties` keeps
+    // meaning what it means on the OFF leg.
+    const ArmCandidate *pick = nullptr;
+    const ArmCandidate *prod_pick = nullptr;
+    double prod_best = std::numeric_limits<double>::infinity();
+    Index tied = 0;
+    for (const ArmCandidate &c : cands) {
+        if (c.prod_step < prod_best) {
+            prod_best = c.prod_step;
+            prod_pick = &c;
+            tied = 1;
+        } else if (c.prod_step == prod_best) {
+            ++tied;
+        }
+        if (c.step_exact <= alpha1 && (pick == nullptr || c.pivot > pick->pivot)) {
+            pick = &c;
+        }
+    }
+    if (pick == nullptr) {
+        // Unreachable: the candidate attaining alpha_1 has step_exact <
+        // step_relaxed == alpha_1, because delta > 0 and its pivot is
+        // non-negligible. Kept so that a future change to either step cannot
+        // make this function return an uninitialized pick.
+        return std::numeric_limits<double>::infinity();
+    }
+
+    const double alpha2 = pick->step_exact;                       // (3.3b)
+    const double alpha_min = AcState::params.tau() / pick->pivot; // §4.1
+    double alpha = std::max(alpha2, alpha_min);
+    if (alpha > alpha2) {
+        // §4.1 Cases 2 and 3: the blocking constraint moves a total distance
+        // of tau and ends the minor violating its bound by at most delta.
+        AcState::last_step_was_floor = true;
+        ++AcState::min_steps;
+    }
+
+    kind = pick->is_ineq ? ArmBlock::kIneq : ArmBlock::kBound;
+    block_idx = pick->idx;
+    if (!pick->is_ineq) {
+        block_state = pick->state;
+    }
+    if (tied > 1) {
+        ++counters.ratio_ties; // observation only -- see QpCounters
+    }
+    if (prod_pick != nullptr &&
+        (prod_pick->is_ineq != pick->is_ineq || prod_pick->idx != pick->idx)) {
+        ++AcState::pivot_switches;
+    }
+
+    detail::testing::qp_walk_note([&](detail::testing::QpWalkMinorRecord &r) {
+        r.raw_ratio = alpha;
+        r.ratio_tied = tied;
+        r.ratio_capped = cap_at_unit;
+    });
+
+    // hven's own cap-at-unit convention, applied to the arm's step exactly as
+    // production applies it to its own.
+    if (!cap_at_unit) {
+        return alpha;
+    }
+    if (alpha > 1.0 + detail::kEngineStepTieTol) {
+        kind = ArmBlock::kNone; // the full step is interior: nothing joins
+    }
+    return std::min(1.0, alpha);
+}
+
+/// ARM L applied to the ratio test. Among every constraint that ATTAINS the
+/// minimum ratio production just computed -- signed zeros included, since
+/// `-0.0 == 0.0` compares true -- take the lexicographically smallest
+/// `(index, side, block)`. Bland (1977) requires only that the order be FIXED;
+/// this one is index-major, which is deliberately not production's block-major
+/// scan order, since a rule that reproduced that order would change nothing.
+void lex_retie_ratio(const QpProblem &qp, const WorkingSet &ws, const Vec &x, const Vec &Aix,
+                     const Vec &p, double best, ArmBlock &kind, Index &block_idx,
+                     BoundState &block_state) {
+    if (kind == ArmBlock::kNone) {
+        return;
+    }
+    const std::vector<ArmCandidate> cands = arm_candidates(qp, ws, x, Aix, p, 0.0);
+    const ArmCandidate *pick = nullptr;
+    for (const ArmCandidate &c : cands) {
+        if (c.prod_step != best) {
+            continue;
+        }
+        if (pick == nullptr || c.key < pick->key) {
+            pick = &c;
+        }
+    }
+    if (pick == nullptr) {
+        return;
+    }
+    const ArmBlock new_kind = pick->is_ineq ? ArmBlock::kIneq : ArmBlock::kBound;
+    if (new_kind != kind || pick->idx != block_idx) {
+        ++AcState::lex_ratio_switches;
+    }
+    kind = new_kind;
+    block_idx = pick->idx;
+    if (!pick->is_ineq) {
+        block_state = pick->state;
+    }
+}
+
+} // namespace
+#endif // HVEN_TESTING
+
 double QpEngine::ratio_test(const QpProblem &qp, const WorkingSet &ws, const Vec &x, const Vec &Aix,
                             const Vec &p, BlockKind &kind, Index &block_idx,
                             BoundState &block_state, bool cap_at_unit, QpCounters &counters) {
+#ifdef HVEN_TESTING
+    // ARM E takes the whole ratio test: the two-pass EXPAND procedure is not
+    // production's single pass with a parameter changed, and writing it as one
+    // would make the OFF path a specialization rather than the production code
+    // itself. With no arm on, control never reaches here.
+    if (AcState::expand_on()) {
+        ArmBlock arm_kind = ArmBlock::kNone;
+        const double arm_alpha = expand_ratio_test(qp, ws, x, Aix, p, arm_kind, block_idx,
+                                                   block_state, cap_at_unit, counters);
+        kind = arm_kind == ArmBlock::kIneq    ? BlockKind::kIneq
+               : arm_kind == ArmBlock::kBound ? BlockKind::kBound
+                                              : BlockKind::kNone;
+        return arm_alpha;
+    }
+#endif
     double best = std::numeric_limits<double>::infinity();
     kind = BlockKind::kNone;
     Index tied = 0;
@@ -2580,6 +2942,19 @@ double QpEngine::ratio_test(const QpProblem &qp, const WorkingSet &ws, const Vec
         ++counters.ratio_ties; // observation only -- see QpCounters
     }
 #ifdef HVEN_TESTING
+    // ARM L, the ratio-test half: re-decide the TIE -- and only the tie --
+    // by the fixed lexicographic order. `best` is the uncapped minimum, so the
+    // re-tie happens before hven's cap-at-unit convention below, exactly where
+    // production made its own choice.
+    if (AcState::lex_on()) {
+        ArmBlock arm_kind = kind == BlockKind::kIneq    ? ArmBlock::kIneq
+                            : kind == BlockKind::kBound ? ArmBlock::kBound
+                                                        : ArmBlock::kNone;
+        lex_retie_ratio(qp, ws, x, Aix, p, best, arm_kind, block_idx, block_state);
+        kind = arm_kind == ArmBlock::kIneq    ? BlockKind::kIneq
+               : arm_kind == ArmBlock::kBound ? BlockKind::kBound
+                                              : BlockKind::kNone;
+    }
     // The seam's per-minor reading of the ratio test: the UNCAPPED minimum and
     // its exact multiplicity, before the cap-at-unit clamp below can hide
     // either. Read-only; `best`, `tied` and `kind` are not touched.

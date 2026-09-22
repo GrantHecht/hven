@@ -138,6 +138,12 @@
 
 #include <hven/core/solver_counters.h>
 #include <hven/core/types.h>
+// M7 W2 M4's ANTI-CYCLING EXPERIMENT, whose per-thread switch lives beside
+// this observer's arming and on the same conventions. Included from INSIDE
+// this file's own `#ifdef HVEN_TESTING` rather than from `qp_engine.h`, so no
+// production translation unit gains a line; see that file's own header note
+// for why it is a separate file and not more of this one.
+#include <hven/detail/qp/qp_anti_cycling_arm.h>
 #include <hven/detail/qp/working_set.h>
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>
