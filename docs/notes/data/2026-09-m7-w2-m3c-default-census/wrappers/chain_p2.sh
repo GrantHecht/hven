@@ -28,22 +28,33 @@ echo "=== probe sha256: $(cat "$S/probe-sha256.txt")"
 
 # RULE-P2.md section 3, stage 1: the ten cells, cheapest first (pass-1 wall,
 # INFORMATIONAL -- it orders the legs and asserts nothing).
-# The three-field tuple is: cell, solver deadline, why that deadline.
+#
+# `cell:deadline` and NOTHING ELSE on the token. The first form of this list
+# carried a third, PROSE field, and `for spec in $LEGS` word-split it: every word
+# of the prose became a leg of its own, each refused by the probe in
+# milliseconds and each printing a `CENSORED <word>` line that a reader could
+# take for a real censored cell. No cell was affected and no row was wrong, but a
+# log that can be misread is a defect, so the chain was stopped and relaunched
+# with the prose moved OUT of the split.
+#
+# SAWPATH's 300 s is not a preference: pass 1 ran that group-W cell at 300 s and
+# RULE-P2.md section 5's identity gate compares this leg against THAT row, so a
+# different stop would be comparing two different solves.
 LEGS="
-ACOPP57:600:group E
-DALLASM:600:group E
-STEENBRB:600:group E
-ACOPP118:600:group E
-ACOPR57:600:group E
-STEENBRC:600:group E
-STEENBRG:600:group E
-YORKNET:600:group I
-SAWPATH:300:group W -- pass 1 ran it at 300 s and the identity gate compares against that row
-BRITGAS:600:group E
+ACOPP57:600
+DALLASM:600
+STEENBRB:600
+ACOPP118:600
+ACOPR57:600
+STEENBRC:600
+STEENBRG:600
+YORKNET:600
+SAWPATH:300
+BRITGAS:600
 "
 
 leg() {
-    cell=$1; deadline=$2; why=$3
+    cell=$1; deadline=$2
     echo
     echo "PGREP_BEFORE_LOCK $cell: $(pgrep -a -f 'hven_bench_cell|m3c_probe|m3c_p2_probe|hven_sqp_corpus' | grep -v 'eval \|pgrep' | head -3)"
     flock "$LOCK" bash -c '
@@ -90,16 +101,18 @@ leg() {
       echo "FOREGROUND_END leg-$cell $(date -Is) rc=$rc"
       exit $rc
     '
-    echo "WRAPPER_RC leg-$cell rc=$?  ($why)"
+    echo "WRAPPER_RC leg-$cell rc=$?"
 }
 
 for spec in $LEGS; do
     [ -z "$spec" ] && continue
     cell=${spec%%:*}
-    rest=${spec#*:}
-    deadline=${rest%%:*}
-    why=${rest#*:}
-    leg "$cell" "$deadline" "$why"
+    deadline=${spec##*:}
+    # REFUSE a malformed token rather than handing it to the probe: this is the
+    # guard the word-split defect above earned.
+    case "$cell" in ""|*[!A-Z0-9_]*) echo "REFUSED: malformed leg token '$spec'"; exit 96;; esac
+    case "$deadline" in ""|*[!0-9]*) echo "REFUSED: malformed deadline in '$spec'"; exit 96;; esac
+    leg "$cell" "$deadline"
 done
 
 echo
