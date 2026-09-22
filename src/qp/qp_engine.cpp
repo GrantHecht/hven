@@ -619,6 +619,25 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
     // this starts nothing and every hook below runs production's statements.
     // Armed, it begins EXPAND's first expanding sequence (§4.2) for this solve.
     detail::testing::QpAntiCycleArmState::begin_solve();
+    // M7 W2 M5's DEGENERACY ARMS (qp_degeneracy_arm.h). Clears the published
+    // stationarity scale so this solve's first drop can never be judged
+    // against the PREVIOUS solve's scale; it arms nothing and starts nothing.
+    detail::testing::QpDegeneracyArmState::begin_solve();
+    // M7 W2 M5's POST-DROP INERTIA DIAGNOSTIC owns its OWN factor and its OWN
+    // face, and never the engine's. That is the whole of why it is bit-neutral
+    // on every algebra path rather than only on the eliminated one: the
+    // measurement is taken by calling `eliminated_candidate` directly on a
+    // LOCAL `KktFactor` and a LOCAL `EliminatedFace`, so `kkt`, `face` and the
+    // live border stack are untouched, and the pass's counters are saved and
+    // restored around the call. Created LAZILY, so a run that never arms the
+    // diagnostic constructs no backend factor at all -- and `make_unique` here
+    // rather than a member or a new `#include`, because `qp_engine.h` already
+    // brings in <memory> (`border_` is a shared_ptr) and an include added at
+    // the top of THIS file would move the `__LINE__` immediate of the
+    // `assert()` above, which is exactly the instruction-stream move the seam's
+    // placement rules exist to avoid.
+    std::unique_ptr<detail::KktFactor> diag_kkt;
+    EliminatedFace diag_face;
 #endif
     for (Index iter = 0; !crossed_bounds && iter < eff_max_iter; ++iter) {
         ++counters.minor_iters;
@@ -745,6 +764,16 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
             r.stat_free_inf =
                 detail::free_block_stationarity(qp, x, ws, lambda_e, lambda_i, stat_scale);
             r.stat_scale = stat_scale;
+            // M7 W2 M5, ARM A: the SAME scale, published for the drop rule.
+            // `drop_worst` multiplies `opt_tol` by this rather than deriving a
+            // second scale of its own -- the internal-consistency argument the
+            // arm rests on is that its threshold IS the quantity
+            // `free_block_stationarity` computes, so it has to be that value
+            // and not a recomputation of it. The one approximation (this is
+            // the scale at the pass's STARTING iterate, while `drop_worst`
+            // runs after the KKT-point branch snaps `x = eqp.x`) is bounded
+            // and declared in qp_degeneracy_arm.h.
+            detail::testing::QpDegeneracyArmState::publish_scale(stat_scale);
 
             // How far the iterate sits off the constraints the EQP holds at
             // EQUALITY: the equality rows, the WORKING inequality rows (read off
@@ -945,6 +974,94 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                 }
                 break;
             }
+#ifdef HVEN_TESTING
+            // =================================================================
+            // M7 W2 M5's DIAGNOSTIC HALF, post-drop. The working set here has
+            // the drop APPLIED -- it is exactly the set the next pass solves
+            // over -- so both readings below describe the subspace the drop
+            // just opened, which is the object M4c §6 items 1 and 2 say the
+            // existing columns cannot reach.
+            // =================================================================
+            {
+                using Adeg = detail::testing::QpDegeneracyArmState;
+                // (1) THE INTEGER DEPENDENCY SCREEN (§B.1), free. Equality
+                // rows are always in the KKT and each pinned bound removes one
+                // degree of freedom exactly as a row does, so `me + |W|` rows
+                // in R^n with `me + |W| > n` is an integer PROOF of linear
+                // dependence -- sufficient, never necessary, so a 0 verdict is
+                // "not proved dependent" and never "independent".
+                const Index dep_rows = qp.me() + detail::testing::qp_walk_ws_size(ws);
+                detail::testing::qp_walk_note([&](detail::testing::QpWalkMinorRecord &r) {
+                    r.dep_rows_after_drop = dep_rows;
+                    r.dep_n = qp.n();
+                    r.dep_screen_after_drop = dep_rows > qp.n() ? 1 : 0;
+                });
+
+                // (2) THE POST-DROP INERTIA AND RANK EVIDENCE, gated, and the
+                // ONE thing in this round that is not free: one extra
+                // ASSEMBLE+FACTORIZE per drop pass, on a traced run only.
+                //
+                // WHY IT IS BIT-NEUTRAL. `eliminated_candidate` is called
+                // DIRECTLY rather than through `eqp_candidate`, because
+                // `eqp_candidate` branches on `opts_.ws_algebra` -- the ENGINE
+                // MEMBER, which no local options copy can override -- and the
+                // border path would touch the live, incrementally updated
+                // Schur stack. The direct call touches a LOCAL factor and a
+                // LOCAL face and never `border_`; the counters it moves are
+                // saved and restored; and the observer's EQP scratch is saved,
+                // read and restored, so this pass's own recorded evidence (the
+                // MAIN call's, snapshotted long before this point) cannot be
+                // overwritten. Nothing the walk reads afterwards is touched.
+                //
+                // WHAT IT BUYS OVER THE EXISTING COLUMNS: the reading is the
+                // bound-ELIMINATED K's own backend triple against
+                // `(n_free, me + n_working)`, on EVERY configuration -- never
+                // K0's triple against a Haynsworth-adjusted expectation, which
+                // M4c §6 item 4 names as a limit of what the shipped trace can
+                // say.
+                if (Adeg::diag_post_drop_inertia && detail::testing::QpWalkObserver::capturing) {
+                    if (!diag_kkt) {
+                        diag_kkt = std::make_unique<detail::KktFactor>(threads_);
+                    }
+                    const QpCounters saved_counters = counters;
+                    const detail::testing::QpWalkEqpEvidence saved_eqp =
+                        detail::testing::QpWalkObserver::eqp;
+                    detail::testing::QpWalkObserver::eqp = detail::testing::QpWalkEqpEvidence{};
+                    detail::InertiaVerdict diag_verdict = detail::InertiaVerdict::kOk;
+                    bool diag_ok = true;
+                    try {
+                        (void)eliminated_candidate(qp, ws, *diag_kkt, diag_face, counters,
+                                                   diag_verdict, eff_opts);
+                    } catch (...) {
+                        // SWALLOWED AND COUNTED. A diagnostic may not end a
+                        // solve that would otherwise have finished, and a
+                        // hypothetical working set is exactly where an
+                        // assembly or factorization is entitled to fail.
+                        diag_ok = false;
+                        ++Adeg::diag_factorization_failures;
+                    }
+                    const detail::testing::QpWalkEqpEvidence diag_ev =
+                        detail::testing::QpWalkObserver::eqp;
+                    detail::testing::QpWalkObserver::eqp = saved_eqp;
+                    counters = saved_counters;
+                    ++Adeg::diag_factorizations;
+                    if (diag_ok) {
+                        detail::testing::qp_walk_note([&](detail::testing::QpWalkMinorRecord &r) {
+                            r.post_drop_factorized = true;
+                            r.post_drop_verdict = static_cast<int>(diag_verdict);
+                            r.post_drop_inertia_state = diag_ev.state;
+                            r.post_drop_inertia_pos = diag_ev.n_pos;
+                            r.post_drop_inertia_neg = diag_ev.n_neg;
+                            r.post_drop_inertia_zero = diag_ev.n_zero;
+                            r.post_drop_inertia_zero_derived = diag_ev.zero_is_derived;
+                            r.post_drop_inertia_perturbed = diag_ev.perturbed_pivots;
+                            r.post_drop_expected_pos = diag_ev.expected_pos;
+                            r.post_drop_expected_neg = diag_ev.expected_neg;
+                        });
+                    }
+                }
+            }
+#endif
             continue;
         }
 
@@ -1052,6 +1169,45 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                     r.block_side = block_state;
                     r.bound_gap = qp.upper(block_idx) - qp.lower(block_idx);
                 }
+            }
+            // =============================================================
+            // M7 W2 M5's DIAGNOSTIC HALF, per ADD. In exact arithmetic on an
+            // unregularized KKT a constraint linearly DEPENDENT on the working
+            // set has `a^T p == 0` exactly -- `p` lies in the working set's
+            // null space -- so it cannot block and `kEngineDenomTol` would
+            // screen it out. It blocks here anyway on 68.5 % of M4c's core
+            // units, and these three numbers are what decide WHY:
+            //
+            //   `add_a_dot_p`     the blocker's own a^T p;
+            //   `add_leak_bound`  `dual_mu * ||lambda||inf`, the size of the
+            //                     leak the regularized second block row
+            //                     `A_W p = mu * lambda` opens through a
+            //                     dependent row;
+            //   `add_round_floor` `eps * ||a||2 * ||p||2`, below which a^T p
+            //                     says nothing at all.
+            //
+            // A reader compares them; this hook claims nothing. Everything
+            // here is a dot product or a norm over state the loop already
+            // holds -- no factorization and no solve.
+            if (kind != BlockKind::kNone) {
+                const double a_dot_p =
+                    kind == BlockKind::kBound ? p(block_idx) : qp.Ai.row(block_idx).dot(p);
+                const double a_norm = kind == BlockKind::kBound ? 1.0 : qp.Ai.row(block_idx).norm();
+                double lam_inf = 0.0;
+                if (lambda_e.size() > 0) {
+                    lam_inf = std::max(lam_inf, lambda_e.lpNorm<Eigen::Infinity>());
+                }
+                if (lambda_i.size() > 0) {
+                    lam_inf = std::max(lam_inf, lambda_i.lpNorm<Eigen::Infinity>());
+                }
+                const Index dep_rows = qp.me() + detail::testing::qp_walk_ws_size(ws);
+                r.add_a_dot_p = a_dot_p;
+                r.add_leak_bound = eff_opts.dual_mu * lam_inf;
+                r.add_round_floor = std::numeric_limits<double>::epsilon() * a_norm * p.norm();
+                r.add_dep_rows = dep_rows;
+                // The screen is asked of the set WITH the blocker in it, which
+                // is the set the add would create: `me + |W| + 1 > n`.
+                r.add_dep_screen = dep_rows + 1 > qp.n() ? 1 : 0;
             }
         }
 #endif
@@ -2311,6 +2467,31 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
         double angle = 0.0; // violation / ||constraint gradient||
     };
 
+#ifdef HVEN_TESTING
+    // M7 W2 M5, ARM A -- THE SCALED DROP TOLERANCE. M4c §4.2 read YORKNET's
+    // whole recurrent tail as this file's own documented asymmetry firing: the
+    // two tests below compare a GRADIENT RESIDUAL against `opt_tol`
+    // ABSOLUTELY, while `free_block_stationarity` / `free_block_is_stationary`
+    // one header away compare the same class of residual RELATIVELY and say
+    // why in their own comment. Under the arm the two tests below become
+    // `viol > opt_tol * scale`, with `scale` the value THAT function just
+    // computed for this pass -- shared through the arm state, never
+    // re-derived. Papers: GMW (1981) §8.3, N&W 2nd ed. §16.5, GMSW (1989) §2.
+    //
+    // THE GUARDS ARE ADDITIVE. Every production statement below is left token
+    // for token as it was; the arm can only remove a candidate the absolute
+    // test already admitted, and with the arm off no guard is evaluated at
+    // all. The COUNT and the DECISION are the same call
+    // (`QpDegeneracyArmState::admits`), asked at both sweeps, so the two can
+    // neither diverge from each other nor disagree between the row block and
+    // the bound block.
+    using Adeg = detail::testing::QpDegeneracyArmState;
+    const bool arm_a_on = Adeg::scaled_drop_on();
+    const double arm_a_scale = arm_a_on ? Adeg::drop_scale() : 1.0;
+    const double arm_a_tol = opts_.opt_tol * arm_a_scale;
+    const Index arm_a_refused_base = Adeg::scaled_candidates_refused;
+    double arm_a_pass_max_ratio = 0.0;
+#endif
     std::vector<Candidate> cands;
     for (Index row : ws.active_ineq()) {
         if (shift(row) > 0.0) {
@@ -2320,6 +2501,12 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
         if (viol <= opts_.opt_tol) {
             continue;
         }
+#ifdef HVEN_TESTING
+        if (arm_a_on && !Adeg::admits(viol, arm_a_tol, arm_a_scale)) {
+            arm_a_pass_max_ratio = std::max(arm_a_pass_max_ratio, viol / arm_a_scale);
+            continue;
+        }
+#endif
         const double nrm = qp.Ai.row(row).norm();
         cands.push_back({true, row, viol, viol / std::max(nrm, detail::kEngineDenomTol)});
     }
@@ -2334,9 +2521,46 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
             continue; // kFree has no multiplier, kFixed is not sign-constrained
         }
         if (viol > opts_.opt_tol) {
+#ifdef HVEN_TESTING
+            if (arm_a_on && !Adeg::admits(viol, arm_a_tol, arm_a_scale)) {
+                arm_a_pass_max_ratio = std::max(arm_a_pass_max_ratio, viol / arm_a_scale);
+                continue;
+            }
+#endif
             cands.push_back({false, i, viol, viol}); // ||e_i|| == 1
         }
     }
+#ifdef HVEN_TESTING
+    // The arm's per-pass read-out, recorded whether or not an arm is armed:
+    // an OFF trace carries the scale and the scaled tolerance the arm WOULD
+    // have used, which is what makes an OFF/ON comparison a comparison of one
+    // decision rather than of two differently instrumented runs. The refusal
+    // COUNT is DIFFERENCED off the arm's own cumulative counter rather than
+    // tallied a second time here, so a candidate can only be counted by the
+    // call that refused it.
+    {
+        const Index refused_here = Adeg::scaled_candidates_refused - arm_a_refused_base;
+        // `drop_prevented_by_scale` is the arm's whole claim on YORKNET: not
+        // that a different constraint was released, but that the release did
+        // not happen. It needs BOTH halves -- an empty candidate set AND at
+        // least one refusal -- because an empty set with no refusal is simply
+        // a KKT point.
+        const bool prevented = cands.empty() && refused_here > 0;
+        if (prevented) {
+            ++Adeg::scaled_drops_prevented;
+        }
+        const double published = Adeg::stat_scale;
+        detail::testing::qp_walk_note([&](detail::testing::QpWalkMinorRecord &r) {
+            r.drop_scale = published;
+            r.drop_scaled_tol = opts_.opt_tol * published;
+            r.drop_refused_by_scale = refused_here;
+            if (refused_here > 0) {
+                r.drop_max_refused_ratio = arm_a_pass_max_ratio;
+            }
+            r.drop_prevented_by_scale = prevented;
+        });
+    }
+#endif
     if (cands.empty()) {
         return false;
     }
@@ -2460,6 +2684,12 @@ bool QpEngine::drop_worst(const QpProblem &qp, const Vec &shift, const Vec &lamb
         }
         r.candidates_recorded = static_cast<Index>(keep);
     });
+    if (arm_a_on) {
+        // Counted on the branch that KEEPS the drop, never before it: the
+        // function returns `true` from here on, so a drop counted here is a
+        // drop the arm made.
+        ++Adeg::scaled_drops_made;
+    }
 #endif
     dropped = DropRecord{};
     dropped.active = true;

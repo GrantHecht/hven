@@ -144,6 +144,12 @@
 // production translation unit gains a line; see that file's own header note
 // for why it is a separate file and not more of this one.
 #include <hven/detail/qp/qp_anti_cycling_arm.h>
+// M7 W2 M5's DEGENERACY EXPERIMENT, whose per-thread switch, shared
+// stationarity scale and diagnostic switch live beside this observer's arming
+// and on the same conventions. Included from INSIDE this file's own
+// `#ifdef HVEN_TESTING` for the same reason M4's arm file is: no production
+// translation unit gains a line.
+#include <hven/detail/qp/qp_degeneracy_arm.h>
 #include <hven/detail/qp/working_set.h>
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>
@@ -537,6 +543,110 @@ struct QpWalkMinorRecord {
     /// over the PINNED variables of `|x_i − bound_i|`: how far the iterate sits
     /// off the constraints the EQP holds at equality.
     double active_res_inf = kAbsent;
+
+    // =====================================================================
+    // M7 W2 M5 (the DEGENERACY ARMS): NEW COLUMNS ONLY.
+    //
+    // Nothing above is removed, renamed or repurposed. Everything below is
+    // ABSENT unless the branch that owns it ran, on this record's own
+    // convention (NaN for a float, `-1` for an index or a tri-state, `kNone`
+    // for a classification), so "the arm did not look" is distinguishable
+    // from "the arm looked and found zero".
+    //
+    // THE ONE GROUP THAT IS NOT FREE is the post-drop inertia: it costs ONE
+    // EXTRA ASSEMBLE+FACTORIZE per drop pass and runs only under
+    // `QpDegeneracyArmState::diag_post_drop_inertia`. Everything else here is
+    // an addition, a dot product already in hand, or a norm.
+    // =====================================================================
+
+    // ---- ARM A: the drop rule's SCALE and what it refused ------------------
+    /// The stationarity scale the drop was judged against on this pass — the
+    /// `scale` output of the SAME `free_block_stationarity` call whose
+    /// residual is `stat_free_inf` above, published through
+    /// `QpDegeneracyArmState::stat_scale`. Recorded on every pass that reaches
+    /// the drop rule, armed or not, so an OFF trace carries the number the arm
+    /// WOULD have used.
+    double drop_scale = kAbsent;
+    /// `opt_tol * drop_scale`: the threshold arm A applies where production
+    /// applies `opt_tol` alone.
+    double drop_scaled_tol = kAbsent;
+    /// How many candidates on THIS pass the absolute test admitted and the
+    /// scaled test refused. Nonzero only when arm A is armed.
+    Index drop_refused_by_scale = 0;
+    /// The largest `|λ|/scale` among the candidates refused on this pass.
+    double drop_max_refused_ratio = kAbsent;
+    /// True when the arm emptied a candidate set the absolute test would have
+    /// left non-empty — the drop was NOT MADE, which is the arm's whole claim.
+    bool drop_prevented_by_scale = false;
+
+    // ---- THE INTEGER DEPENDENCY SCREEN (§B.1), free --------------------------
+    /// `me + |W|` AFTER this pass's drop, and `n`. `me + |W| > n` is an
+    /// integer PROOF that the active constraint matrix is linearly dependent;
+    /// it is SUFFICIENT and not necessary, so a `0` verdict is "not proved
+    /// dependent", never "independent".
+    Index dep_rows_after_drop = -1;
+    Index dep_n = -1;
+    /// `-1` absent / `0` not proved dependent / `1` dependent by counting.
+    int dep_screen_after_drop = -1;
+
+    // ---- THE POST-DROP INERTIA AND RANK EVIDENCE (gated, one extra
+    //      factorization) ----------------------------------------------------
+    //
+    // `qp_walk_trace.h`'s own FIX-ROUND 1 note says these "would each need an
+    // extra factorization, so they are deliberately NOT recorded and are marked
+    // absent in the rule instead". M5 lifts that omission UNDER A SWITCH and
+    // pays the declared cost, because M4c §6 item 2 is explicit that class (c)
+    // "can never be settled on the released subspace specifically" without it.
+    //
+    // THE READING IS PATH-INDEPENDENT BY CONSTRUCTION: the diagnostic forces
+    // the ELIMINATED algebra on a LOCAL factor and a LOCAL face, so what it
+    // reports is the bound-eliminated K's own backend triple against
+    // `(n_free, me + n_working)` — never K0's triple against a
+    // Haynsworth-adjusted expectation, which M4c §6 item 4 names as a limit of
+    // the existing columns.
+    bool post_drop_factorized = false;
+    /// `detail::InertiaVerdict` as an int (0 kOk / 1 kSuspect / 2 kWrong);
+    /// `-1` when the diagnostic did not run or threw.
+    int post_drop_verdict = -1;
+    QpWalkInertiaState post_drop_inertia_state = QpWalkInertiaState::kAbsent;
+    Index post_drop_inertia_pos = -1;
+    Index post_drop_inertia_neg = -1;
+    Index post_drop_inertia_zero = -1;
+    bool post_drop_inertia_zero_derived = false;
+    Index post_drop_inertia_perturbed = -1;
+    Index post_drop_expected_pos = -1;
+    Index post_drop_expected_neg = -1;
+
+    // ---- PER ADD: the blocker's aᵀp and what could explain it (§B.0) --------
+    /// The BLOCKING constraint's own `aᵀp`: `p(block_index)` for a bound
+    /// (`a = e_i`), `Ai.row(block_index)·p` for a row. In exact arithmetic on
+    /// an unregularized KKT this is EXACTLY ZERO for a constraint linearly
+    /// dependent on the working set, so its magnitude is the whole of "how did
+    /// a dependent constraint block?".
+    double add_a_dot_p = kAbsent;
+    /// `dual_mu * ‖λ‖∞` over the working multipliers: the size of the leak
+    /// `A_W p = μ λ` that regularization opens through dependent rows.
+    double add_leak_bound = kAbsent;
+    /// `ε · ‖a‖₂ · ‖p‖₂`: the rounding floor below which `aᵀp` says nothing.
+    double add_round_floor = kAbsent;
+    /// `me + |W|` BEFORE the add, and the integer screen for the set WITH the
+    /// blocker in it (`me + |W| + 1 > n`): `-1` absent / `0` not proved
+    /// dependent / `1` dependent by counting.
+    Index add_dep_rows = -1;
+    int add_dep_screen = -1;
+
+    // ---- PER ADD: ARM B's NUMERIC test (declared; ABSENT until arm B lands) -
+    //
+    // A column that reads absent is the honest record of a test that did not
+    // run. These stay absent on every trace this dispatch produces.
+    /// `‖a − A_Wᵀ v‖∞ / ‖a‖∞` from §B.2's single back-solve.
+    double add_dep_residual = kAbsent;
+    /// `-1` absent / `0` independent / `1` dependent by the numeric test.
+    int add_dep_verdict = -1;
+    /// The working-set member the exchange swapped out, and the dependency
+    /// coefficient that chose it. `-1`/absent when no exchange was made.
+    Index add_exchanged_index = -1;
+    double add_exchange_coefficient = kAbsent;
 };
 
 /// WHAT ONE CALL OF THE EQP CANDIDATE SITE REPORTED ABOUT ITSELF. A scratch
