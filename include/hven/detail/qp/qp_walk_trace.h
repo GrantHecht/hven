@@ -150,6 +150,10 @@
 // `#ifdef HVEN_TESTING` for the same reason M4's arm file is: no production
 // translation unit gains a line.
 #include <hven/detail/qp/qp_degeneracy_arm.h>
+// M7 W2 E4 fix round 1's CERTIFICATE SEAM, included from inside this file's
+// own `#ifdef HVEN_TESTING` for the same reason: no production translation unit
+// gains a line.
+#include <hven/detail/qp/qp_certificate_seam.h>
 #include <hven/detail/qp/working_set.h>
 #include <hven/linear/symmetric_factor.h>
 #include <hven/qp/qp_types.h>

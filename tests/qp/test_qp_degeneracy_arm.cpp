@@ -1080,13 +1080,241 @@ TEST(QpDegeneracyArm, TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds) {
             EXPECT_NEAR(s.x(0), 2.0, 1e-6);
             EXPECT_NEAR(s.x(1), 0.0, 1e-6);
             EXPECT_NEAR(s.x(2), 0.5, 1e-6);
-            // Inside the box to the tolerance class the predicate uses: the
-            // larger of feas_tol * scale and dual_mu * |z| (|z| = 3 and 5 here).
-            // Measured: exactly 0 on all four solves -- a pinned bound is
-            // held exactly, so this fixture certifies ON the bound.
+            // ON the bound, exactly: a pinned bound is held exactly, so the
+            // measured violation is +0.0 to the bit on all four solves. This
+            // fixture certifies ON the bound; the inside-the-margin case is
+            // the certificate seam's (below).
+            const double viol = box_violation(qp, s.x);
+            EXPECT_EQ(std::bit_cast<std::uint64_t>(viol), std::uint64_t{0})
+                << "violation " << viol << " is not exactly +0.0";
+            // And, separately, inside the tolerance class the predicate uses:
+            // the larger of feas_tol * scale and dual_mu * |z| (|z| = 3, 5).
             const double tol = std::max(opts.feas_tol * 2.0, mu * 5.0);
-            EXPECT_LE(box_violation(qp, s.x), tol);
+            EXPECT_LE(viol, tol);
             EXPECT_TRUE(is_a_kkt_point(qp, s, 1e-6));
+        }
+    }
+}
+
+namespace {
+
+using Cert = hven::solvers::detail::testing::QpCertificateSeam;
+
+/// Every certificate-seam fixture starts disarmed and leaves the seam so.
+struct CertSeamGuard {
+    CertSeamGuard() {
+        Obs::reset();
+        Deg::reset();
+        Cert::reset();
+    }
+    ~CertSeamGuard() {
+        Cert::reset();
+        Deg::reset();
+        Obs::reset();
+    }
+};
+
+/// A strictly convex QP whose optimum is x = (0, 0, 0.5): x0 at its LOWER
+/// bound 0 (z0 = +5), x1 at its UPPER bound 0 (z1 = -5), x2 interior. Every
+/// violated bound is 0 and ||x||inf stays 0.5 for every point the fixtures
+/// present, so each bound's row_scale = max(1, |bound|, ||x||inf) is exactly 1
+/// and v = lower - x or x - upper is computed exactly.
+QpProblem certificate_box_qp() {
+    QpProblem qp;
+    const Index n = 3;
+    qp.H = Eigen::MatrixXd::Identity(n, n).sparseView();
+    qp.g = Vec(n);
+    qp.g << 5.0, -5.0, -0.5;
+    qp.Ae.resize(0, n);
+    qp.be = Vec(0);
+    qp.Ai.resize(0, n);
+    qp.bi = Vec(0);
+    qp.lower = Vec(n);
+    qp.lower << 0.0, -1.0, -1.0;
+    qp.upper = Vec(n);
+    qp.upper << 1.0, 0.0, 1.0;
+    return qp;
+}
+
+enum class CertSide : int { kLower = 0, kUpper = 1 };
+
+const char *cert_side_name(CertSide side) { return side == CertSide::kLower ? "lower" : "upper"; }
+
+const char *cert_algebra_name(WorkingSetLinearAlgebra a) {
+    return a == WorkingSetLinearAlgebra::kSchurBorder ? "kSchurBorder" : "kRefactorize";
+}
+
+/// The pair a fixture presents: the analytic optimum and its multipliers,
+/// with ONE bound violated by exactly `v` on `side`.
+void cert_presented(CertSide side, double v, Vec &x, Vec &z) {
+    x = Vec(3);
+    x << 0.0, 0.0, 0.5;
+    z = Vec(3);
+    z << 5.0, -5.0, 0.0;
+    if (side == CertSide::kLower) {
+        x(0) = -v; // lower(0) - x(0) = v, exactly
+    } else {
+        x(1) = v; // x(1) - upper(1) = v, exactly
+    }
+}
+
+/// THE PREDICATE'S TWO THRESHOLDS for a bound with row_scale 1 and multiplier
+/// `zval`, written with the production expressions' own operation order
+/// (QpEngine::row_tolerance, QpEngine::violation_is_structural), so each is
+/// the certificate's value to the bit rather than an approximation of it.
+struct CertThresholds {
+    double margin;        ///< v <= margin: tolerated, condition (a)
+    double residue_floor; ///< past the margin, structural iff v >= this
+};
+
+CertThresholds cert_thresholds(double feas_tol, double dual_mu, double zval) {
+    const double row_scale = 1.0;
+    const double t =
+        std::max(feas_tol * row_scale,
+                 std::min(dual_mu * std::abs(zval), detail::kInfeasibilityAbsorbTol * row_scale));
+    return {detail::kInfeasibilityMarginFactor * t,
+            detail::kStructuralResidualFrac * dual_mu * std::abs(zval)};
+}
+
+/// Presents (x, z) to the certificate of one fresh solve and returns it.
+QpSolution present_to_certificate(const QpProblem &qp, const QpOptions &opts, const Vec &x,
+                                  const Vec &z) {
+    Cert::reset();
+    Cert::x = x;
+    Cert::z = z;
+    Cert::armed = true;
+    QpSolution s = plain_solve(qp, opts);
+    Cert::armed = false;
+    return s;
+}
+
+/// One presented case, asserted: the seam was reached exactly once, under the
+/// options the thresholds were computed from; a tolerated point comes back
+/// kOptimal carrying the presented pair to the bit; a refused one comes back
+/// kInfeasible carrying the presented x with every multiplier cleared.
+void expect_certificate_verdict(const QpProblem &qp, const QpOptions &opts, CertSide side, double v,
+                                bool want_infeasible, const char *label) {
+    SCOPED_TRACE(::testing::Message() << label << " side=" << cert_side_name(side) << " v=" << v);
+    Vec x;
+    Vec z;
+    cert_presented(side, v, x, z);
+    const QpSolution s = present_to_certificate(qp, opts, x, z);
+    ASSERT_EQ(Cert::presentations, 1) << "the certificate never read the presented pair";
+    EXPECT_EQ(Cert::eff_dual_mu, opts.dual_mu);
+    EXPECT_EQ(Cert::eff_feas_tol, opts.feas_tol);
+    EXPECT_EQ(box_violation(qp, s.x), v) << "the returned x is not the presented one";
+    EXPECT_TRUE(same_bits(s.x, x, "x"));
+    if (want_infeasible) {
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kInfeasible));
+        EXPECT_EQ(s.z.lpNorm<Eigen::Infinity>(), 0.0);
+        EXPECT_EQ(s.lambda_i.lpNorm<Eigen::Infinity>(), 0.0);
+    } else {
+        EXPECT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+        EXPECT_TRUE(same_bits(s.z, z, "z"));
+    }
+}
+
+} // namespace
+
+TEST(QpDegeneracyArm, CertificateSeamIsInertUnarmedOnTheFixtureQp) {
+    CertSeamGuard guard;
+    // THE SEAM'S OWN NEUTRALITY on the problem the two fixtures below use:
+    // unarmed, the certificate is handed nothing, and the solve certifies the
+    // analytic optimum ON both bounds, exactly.
+    const QpProblem qp = certificate_box_qp();
+    for (const WorkingSetLinearAlgebra algebra :
+         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+        for (const double mu : {1e-8, 1e-4}) {
+            SCOPED_TRACE(::testing::Message()
+                         << "algebra=" << cert_algebra_name(algebra) << " dual_mu=" << mu);
+            QpOptions opts = cycling_opts();
+            opts.ws_algebra = algebra;
+            opts.dual_mu = mu;
+            const QpSolution s = plain_solve(qp, opts);
+            EXPECT_EQ(Cert::presentations, 0);
+            ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+            EXPECT_EQ(s.bound_state[0], BoundState::kAtLower);
+            EXPECT_EQ(s.bound_state[1], BoundState::kAtUpper);
+            EXPECT_EQ(s.bound_state[2], BoundState::kFree);
+            EXPECT_EQ(std::bit_cast<std::uint64_t>(box_violation(qp, s.x)), std::uint64_t{0});
+            EXPECT_NEAR(s.x(2), 0.5, 1e-6);
+        }
+    }
+}
+
+TEST(QpDegeneracyArm, CertificateToleratesABoundViolationInsideAndOnTheStructuralMargin) {
+    CertSeamGuard guard;
+    // E4's TOLERANCE-PRESERVING HALF (Codex E4 review, Important 1). A point
+    // OUTSIDE its box by a positive v that the rows' own structural test
+    // tolerates must still certify kOptimal: strictly INSIDE the margin
+    // (v = margin / 2) and ON it (v = margin, which condition (a)'s `<=`
+    // admits). Both sides of the box, both working-set algebras, and two
+    // dual_mu: 1e-8, where dual_mu * |z| = 5e-8 sets the margin, and 1e-4,
+    // where dual_mu * |z| = 5e-4 is capped at kInfeasibilityAbsorbTol. A
+    // predicate that refused any positive v fails every case here.
+    const QpProblem qp = certificate_box_qp();
+    for (const WorkingSetLinearAlgebra algebra :
+         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+        for (const double mu : {1e-8, 1e-4}) {
+            SCOPED_TRACE(::testing::Message()
+                         << "algebra=" << cert_algebra_name(algebra) << " dual_mu=" << mu);
+            QpOptions opts = cycling_opts();
+            opts.ws_algebra = algebra;
+            opts.dual_mu = mu;
+            const CertThresholds th = cert_thresholds(opts.feas_tol, mu, 5.0);
+            ASSERT_GT(th.margin, 0.0);
+            for (const CertSide side : {CertSide::kLower, CertSide::kUpper}) {
+                expect_certificate_verdict(qp, opts, side, 0.5 * th.margin, false, "inside");
+                expect_certificate_verdict(qp, opts, side, th.margin, false, "on-margin");
+            }
+        }
+    }
+}
+
+TEST(QpDegeneracyArm, CertificateRefusesABoundViolationOutsideTheStructuralMargin) {
+    CertSeamGuard guard;
+    // THE BOUNDARY, stated: past the margin a violation is structural iff it
+    // also reaches kStructuralResidualFrac * dual_mu * |z| (the residue the
+    // regularization could own), and a structural one exits kInfeasible.
+    //   dual_mu 1e-8: the floor (5e-10) is below the margin (5e-7), so the
+    //     first double past the margin is already refused.
+    //   dual_mu 1e-4: the floor (5e-5) is above the margin (1e-5), so the
+    //     first double past the margin and the last one below the floor are
+    //     still TOLERATED, and the floor itself is refused.
+    // Plus a far-outside point (100x the larger threshold) in both. Both
+    // sides, both algebras.
+    const QpProblem qp = certificate_box_qp();
+    for (const WorkingSetLinearAlgebra algebra :
+         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+        for (const double mu : {1e-8, 1e-4}) {
+            SCOPED_TRACE(::testing::Message()
+                         << "algebra=" << cert_algebra_name(algebra) << " dual_mu=" << mu);
+            QpOptions opts = cycling_opts();
+            opts.ws_algebra = algebra;
+            opts.dual_mu = mu;
+            const CertThresholds th = cert_thresholds(opts.feas_tol, mu, 5.0);
+            const double past_margin = std::nextafter(th.margin, 1.0);
+            const double far = 100.0 * std::max(th.margin, th.residue_floor);
+            // Which regime each dual_mu is in is ASSERTED, so the two
+            // branches below cannot silently collapse into one.
+            if (mu == 1e-8) {
+                ASSERT_LE(th.residue_floor, th.margin);
+            } else {
+                ASSERT_GT(th.residue_floor, past_margin);
+            }
+            for (const CertSide side : {CertSide::kLower, CertSide::kUpper}) {
+                if (th.residue_floor <= past_margin) {
+                    expect_certificate_verdict(qp, opts, side, past_margin, true, "past-margin");
+                } else {
+                    expect_certificate_verdict(qp, opts, side, past_margin, false,
+                                               "past-margin-below-floor");
+                    expect_certificate_verdict(qp, opts, side,
+                                               std::nextafter(th.residue_floor, 0.0), false,
+                                               "just-below-floor");
+                    expect_certificate_verdict(qp, opts, side, th.residue_floor, true, "at-floor");
+                }
+                expect_certificate_verdict(qp, opts, side, far, true, "far-outside");
+            }
         }
     }
 }

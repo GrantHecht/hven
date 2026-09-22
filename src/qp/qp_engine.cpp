@@ -994,6 +994,10 @@ QpSolution QpEngine::run(const QpProblem &qp_in, const QpSolution *seed, bool wa
                         // (norm1 = 1, multiplier z(i)) under the rows' own test,
                         // against `qp`'s box, so the TR window is included. A
                         // structural violation is the primal-infeasible exit.
+#ifdef HVEN_TESTING
+                        // Certificate seam: an armed fixture presents (x, z).
+                        detail::testing::qp_certificate_present(x, z, eff_opts);
+#endif
                         const double xmag = x.lpNorm<Eigen::Infinity>();
                         double bound_worst = 0.0;
                         for (Index i = 0; i < n; ++i) {
