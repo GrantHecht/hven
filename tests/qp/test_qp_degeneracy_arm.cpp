@@ -42,9 +42,9 @@
 //       every mutation site, and the seed set is repaired at entry. It ends a
 //       cycling walk, changes nothing in bits where it passes nothing over,
 //       and CARRIES A HAZARD that is asserted rather than described: a
-//       passed-over bound leaves the iterate outside its box and the engine
-//       certifies it anyway. The block above those fixtures lists every
-//       claim.
+//       passed-over bound leaves the iterate outside its box. Since M7 W2 E4
+//       the engine's certificate reads the box and refuses it (kInfeasible).
+//       The block above those fixtures lists every claim.
 //
 // THE CYCLING FIXTURE IS M4's, EXTENDED. Its three-variable cycling block is
 // `tests/qp/test_qp_anti_cycling_arm.cpp`'s period-2 problem verbatim (found
@@ -774,8 +774,10 @@ TEST(QpDegeneracyArm, AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt) {
 //
 //   (8a) b1 TERMINATES THE CYCLING WALK. On M4's period-2 QP -- the SAME
 //        problem, without the scale carrier -- the OFF walk cycles to the
-//        iteration cap and b1 reaches the problem's own optimum, checked
-//        against the QP's KKT conditions recomputed here.
+//        iteration cap and b1 stops within 1e-6 of the problem's own optimum.
+//        Since M7 W2 E4 that end point is NOT certified: its pass-over leaves
+//        x(2) 9.3e-08 below its bound, 100x feas_tol, and the certificate's
+//        bound half exits kInfeasible there.
 //   (8b) b1 CHANGES NOTHING WHERE IT PASSES NOTHING OVER, in bits.
 //   (8c) THE ENTRY REPAIR (amendment A3) REMOVES A DEPENDENT SEED MEMBER, in
 //        the declared order, and the invariant holds from there on.
@@ -784,11 +786,12 @@ TEST(QpDegeneracyArm, AnArmedSolveDoesNotReachIntoAnUnarmedOneRunningBesideIt) {
 //        "the leak is O(mu)" reading below `dual_mu = 1e-8`, where the leak
 //        saturates on the rounding floor instead.
 //   (8d) THE HAZARD, DECLARED AND ASSERTED: passing over a blocking BOUND
-//        lets the walk step OUT OF ITS BOX, and the engine certifies the
-//        result `kOptimal` anyway. The arm records the violation; the engine
-//        has no guard against it. This is a FINDING about the pre-registered
-//        rule, not a bug in its implementation, and it is asserted here so it
-//        cannot quietly stop being true. AMENDMENT A10's bound FAILS on that
+//        lets the walk step OUT OF ITS BOX. Until M7 W2 E4 the engine then
+//        certified the result `kOptimal`; the certificate now reads the
+//        returned x against its own box and exits `kInfeasible` instead. The
+//        excursion is a FINDING about the pre-registered rule, not a bug in
+//        its implementation, and it is asserted here so it cannot quietly stop
+//        being true. AMENDMENT A10's bound FAILS on that
 //        excursion, and not for the reason A10 expected: the incoming set was
 //        independent throughout.
 //   (8e) THE ARM'S OWN SELF-CHECK never fires: its re-enumeration of the ratio
@@ -822,7 +825,7 @@ b1_records(const std::vector<hven::solvers::detail::testing::QpWalkMinorRecord> 
 
 } // namespace
 
-TEST(QpDegeneracyArm, ArmB1EndsTheCyclingWalkAndReachesTheProblemsOwnOptimum) {
+TEST(QpDegeneracyArm, ArmB1EndsTheCyclingWalkNearTheOptimumButOutsideItsBox) {
     DegArmGuard guard;
     // M4's period-2 QP ITSELF -- no scale carrier. Arm A's fixture needed the
     // carrier to move the drop rule's SCALE; b1 acts on the working set's
@@ -843,12 +846,21 @@ TEST(QpDegeneracyArm, ArmB1EndsTheCyclingWalkAndReachesTheProblemsOwnOptimum) {
     Deg::arm = DegArm::kIndependentAdd;
     const Walk on = observed_walk(qp, opts);
 
-    EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(QpStatus::kOptimal));
     EXPECT_LT(on.minors, 20) << "the recurrence is gone only if the walk is short";
-    // THE ANSWER IS CHECKED AGAINST THE PROBLEM, not against what the engine
-    // says about itself: for a convex QP the KKT conditions are necessary AND
-    // sufficient for a global minimum.
-    EXPECT_TRUE(is_a_kkt_point(qp, on.solution, 1e-6));
+    // THE END POINT, READ AGAINST THE PROBLEM (M7 W2 E4). Until E4 this walk
+    // was certified kOptimal and passed the KKT check below at 1e-6. The
+    // pass-over leaks x(2) -- FREE, so z(2) = 0 and no regularization owns the
+    // residue -- to 9.33e-08 below its lower bound, which is two orders past
+    // the engine's own feas_tol = 1e-9. The certificate's bound half now reads
+    // that and exits kInfeasible, with the iterate returned and the
+    // multipliers cleared; the point itself is unchanged and still lies within
+    // 1e-6 of the box, which is how the looser check here used to pass it.
+    EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(QpStatus::kInfeasible));
+    const double leak = box_violation(qp, on.solution.x);
+    EXPECT_GT(leak, 10.0 * opts.feas_tol) << "the leak is inside feas_tol; the finding has changed";
+    EXPECT_LT(leak, 1e-6);
+    EXPECT_EQ(on.solution.bound_state[2], BoundState::kFree);
+    EXPECT_NEAR(qp.lower(2) - on.solution.x(2), leak, 0.0) << "the leak moved to another bound";
 
     // WHAT THE ARM DID, in its own counters, AND BY WHICH OF AMENDMENT A8's
     // THREE MECHANISMS. A8 predicted that under the amended design the
@@ -957,16 +969,18 @@ TEST(QpDegeneracyArm, ArmB1IsBitIdenticalWhereItPassesNothingOver) {
     expect_same_solution(plain, armed);
 }
 
-TEST(QpDegeneracyArm, ArmB1CanLeaveTheIterateOutsideItsBoxAndTheEngineCertifiesAnyway) {
+TEST(QpDegeneracyArm, ArmB1CanLeaveTheIterateOutsideItsBoxAndTheCertificateRefusesIt) {
     DegArmGuard guard;
     // THE HAZARD IS THE RULE'S, NOT THE IMPLEMENTATION'S. R3's rule is "if no
     // independent blocker exists, take the full step and record every
     // passed-over constraint's post-step violation". A passed-over BOUND is a
     // bound the walk then steps through, and nothing downstream puts the
-    // iterate back: `refresh_shifts` is about inequality ROWS, and the
-    // certification branch reads the working set's own residual. So the walk
-    // can report `kOptimal` at a point outside its box, and the only record of
-    // it is the arm's own.
+    // iterate back: `refresh_shifts` is about inequality ROWS. Before M7 W2 E4
+    // the certification branch read only the rows, so this walk reported
+    // `kOptimal` at a point outside its box (M5's C7, Codex M5 review Critical
+    // 1). THE CERTIFICATE NOW READS THE BOX: the same walk, unchanged step for
+    // step, ends `kInfeasible`, and the returned x -- the kInfeasible exit's
+    // evidence -- carries the violation.
     const QpProblem qp = scale_carrier_cycle_qp();
     const QpOptions opts = cycling_opts();
 
@@ -974,8 +988,16 @@ TEST(QpDegeneracyArm, ArmB1CanLeaveTheIterateOutsideItsBoxAndTheEngineCertifiesA
     Deg::arm = DegArm::kIndependentAdd;
     const Walk on = observed_walk(qp, opts);
 
-    ASSERT_EQ(static_cast<int>(on.solution.status), static_cast<int>(QpStatus::kOptimal));
+    EXPECT_EQ(static_cast<int>(on.solution.status), static_cast<int>(QpStatus::kInfeasible))
+        << "the certificate passed a point outside its own box";
+    // THE kInfeasible SHAPE: the final iterate is returned and every multiplier
+    // is cleared, exactly as on the row-infeasible exit.
+    EXPECT_EQ(on.solution.lambda_i.lpNorm<Eigen::Infinity>(), 0.0);
+    EXPECT_EQ(on.solution.z.lpNorm<Eigen::Infinity>(), 0.0);
+    // THE WALK ITSELF DID NOT MOVE: the certificate is a pure predicate on the
+    // returned point, so the step that left the box is the M5-measured one.
     const double viol = box_violation(qp, on.solution.x);
+    EXPECT_NEAR(viol, 5.59e-3, 5e-6) << "the excursion is not the one M5 measured";
     EXPECT_GT(viol, opts.opt_tol) << "the hazard this fixture exists to hold on to has gone away";
     // AND THE ARM SAW IT: the counter and the column both carry the number,
     // and they agree with what the returned point actually violates.
@@ -1010,10 +1032,58 @@ TEST(QpDegeneracyArm, ArmB1CanLeaveTheIterateOutsideItsBoxAndTheEngineCertifiesA
     EXPECT_EQ(Deg::indep_refused_mandatory_dependent, 0);
     EXPECT_EQ(Deg::indep_leak_bound_exceeded, 1)
         << "A10's bound no longer flags this excursion; the finding has changed";
-    // The engine's own certification does NOT catch it -- stated as an
-    // assertion so that a future guard which DID catch it would fail here and
-    // be noticed rather than silently changing what this arm means.
+    // And the point is not a KKT point of the problem, recomputed here: the
+    // refusal is correct, not merely conservative.
     EXPECT_FALSE(is_a_kkt_point(qp, on.solution, 1e-6));
+}
+
+TEST(QpDegeneracyArm, TheCertificatesBoundHalfPassesASolvedQpWithActiveBounds) {
+    DegArmGuard guard;
+    // THE OTHER SIDE OF E4's PREDICATE: a strictly convex QP whose optimum
+    // sits on BOTH sides of its box (x0 = 2 at its upper bound, x1 = 0 at its
+    // lower bound, x2 = 0.5 interior), solved with nothing armed, on both
+    // working-set algebras and at two regularization levels. Every solve must
+    // still certify kOptimal, at the analytic optimum, with the two bounds
+    // pinned and x inside its box to the rows' own tolerance class -- the
+    // check reads a bound through `violation_is_structural`, so a residue the
+    // regularization owns (at most dual_mu * |z|) is not a violation.
+    QpProblem qp;
+    const Index n = 3;
+    qp.H = Eigen::MatrixXd::Identity(n, n).sparseView();
+    qp.g = Vec(n);
+    qp.g << -5.0, 5.0, -0.5;
+    qp.Ae.resize(0, n);
+    qp.be = Vec(0);
+    qp.Ai.resize(0, n);
+    qp.bi = Vec(0);
+    qp.lower = Vec::Zero(n);
+    qp.upper = Vec::Constant(n, 2.0);
+
+    for (const WorkingSetLinearAlgebra algebra :
+         {WorkingSetLinearAlgebra::kSchurBorder, WorkingSetLinearAlgebra::kRefactorize}) {
+        for (const double mu : {1e-8, 1e-4}) {
+            QpOptions opts = cycling_opts();
+            opts.ws_algebra = algebra;
+            opts.dual_mu = mu;
+            const QpSolution s = plain_solve(qp, opts);
+            SCOPED_TRACE(::testing::Message()
+                         << "algebra=" << static_cast<int>(algebra) << " dual_mu=" << mu);
+            ASSERT_EQ(static_cast<int>(s.status), static_cast<int>(QpStatus::kOptimal));
+            EXPECT_EQ(s.bound_state[0], BoundState::kAtUpper);
+            EXPECT_EQ(s.bound_state[1], BoundState::kAtLower);
+            EXPECT_EQ(s.bound_state[2], BoundState::kFree);
+            EXPECT_NEAR(s.x(0), 2.0, 1e-6);
+            EXPECT_NEAR(s.x(1), 0.0, 1e-6);
+            EXPECT_NEAR(s.x(2), 0.5, 1e-6);
+            // Inside the box to the tolerance class the predicate uses: the
+            // larger of feas_tol * scale and dual_mu * |z| (|z| = 3 and 5 here).
+            // Measured: exactly 0 on all four solves -- a pinned bound is
+            // held exactly, so this fixture certifies ON the bound.
+            const double tol = std::max(opts.feas_tol * 2.0, mu * 5.0);
+            EXPECT_LE(box_violation(qp, s.x), tol);
+            EXPECT_TRUE(is_a_kkt_point(qp, s, 1e-6));
+        }
+    }
 }
 
 TEST(QpDegeneracyArm, ArmB1sColumnsAndCountersStayAbsentWhenItIsNotArmed) {
@@ -1251,7 +1321,9 @@ TEST(QpDegeneracyArm, ArmB1sSwitchIsPerThreadWithBothSolvesInFlight) {
     EXPECT_GT(loud_passed, 0) << "the armed thread was supposed to pass something over";
     EXPECT_EQ(quiet_passed, 0) << "the unarmed thread counted a pass-over it never made";
     EXPECT_EQ(quiet_examined, 0) << "the unarmed thread ran a dependency test it never armed";
-    EXPECT_EQ(static_cast<int>(loud_result.status), static_cast<int>(QpStatus::kOptimal));
+    // The armed thread's walk is (8a)'s, so it ends where (8a) ends: outside
+    // its box by the pass-over's leak, refused by the certificate (M7 W2 E4).
+    EXPECT_EQ(static_cast<int>(loud_result.status), static_cast<int>(QpStatus::kInfeasible));
     expect_same_solution(solo, quiet_result);
 }
 
