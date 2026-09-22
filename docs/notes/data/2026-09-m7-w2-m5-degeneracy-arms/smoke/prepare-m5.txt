@@ -1,0 +1,98 @@
+FOREGROUND_START m5-prepare 2026-09-22T14:10:09-04:00
+PGREP_EMPTY m5-prepare: no foreign cell binary under my lock
+=== HEAD ae4d716b  dirty-files=5
+--- the copied wrappers against their originals
+    replay_build_m5.py == replay_build_m4.py  7403158b6df12e3b206922e7979880e17be14c856692dc445d2d3329c5076610
+    gate_m5.py == gate_m4.py  de56f6af8a5c6dab2de407abee17cbc553b4858cbf0ea7580a62e6af5b1d2293
+    m4c_tails.py == m4c_tails.py  91d400362bbc0f8b46c314cd6ac72558a531f3ddb7e2d01ddeaeaa0c22702daa
+--- the install archive against M3c's recorded pin
+RECORDED_LIB_SHA256=18a71b727533e9231fbdeb4e6bf0c9bb2d77aad6ab886a0f2e5729f1169eee10
+MEASURED_LIB_SHA256=18a71b727533e9231fbdeb4e6bf0c9bb2d77aad6ab886a0f2e5729f1169eee10
+the archive is M3c's own, byte for byte
+--- THE HEADER-TREE DELTA, DERIVED (never typed), both ways
+    install-relative (f5205770..HEAD): hven/detail/qp/qp_anti_cycling_arm.h hven/detail/qp/qp_degeneracy_arm.h hven/detail/qp/qp_walk_trace.h
+    this round's own  (f255bae9..HEAD): hven/detail/qp/qp_degeneracy_arm.h hven/detail/qp/qp_walk_trace.h
+    the round's 2 header(s) are inside the install-relative 3
+--- THE REPLAY BUILD (arm B == -DHVEN_TESTING=1 and nothing else)
+    sha256 18a71b727533e9231fbdeb4e6bf0c9bb2d77aad6ab886a0f2e5729f1169eee10  the installed libhven.a
+    archives byte-identical: False
+
+--- THE SEAM (RULE-P2A section 3.4 #2): QpWalkObserver symbols in this arm's archive
+    count: 23
+    as required: 0 on arm A, >= 1 on arm B. Both directions are asserted.
+
+--- THE THIRD DECLARED DIFFERENCE: the probe-side header view
+    source  : /home/ghecht/Projects/hven/include
+    install : /home/ghecht/Projects/hven/.scratch/m7w2m3c/install/include
+    declared to differ in: ['hven/detail/qp/qp_anti_cycling_arm.h', 'hven/detail/qp/qp_degeneracy_arm.h', 'hven/detail/qp/qp_walk_trace.h']
+    measured difference   : ['hven/detail/qp/qp_anti_cycling_arm.h', 'hven/detail/qp/qp_degeneracy_arm.h', 'hven/detail/qp/qp_walk_trace.h']
+    the two trees agree on all 128 other header(s); the difference is exactly this round's own
+
+
+--- THE PROBE'S OWN TUs, replayed from pass 1's probe build tree
+  PROBE TU m3c_probe.cpp
+      declared differences: source file, object path, dep file, -DHVEN_TESTING=1, -I/home/ghecht/Projects/hven/include
+      no residual difference
+  BRIDGE   cutest_model.cpp
+      declared difference: -I/home/ghecht/Projects/hven/include
+      no residual difference
+  BRIDGE   cutest_source.cpp
+      declared difference: -I/home/ghecht/Projects/hven/include
+      no residual difference
+  BRIDGE   nlp_model_triplet_view.cpp
+      declared difference: -I/home/ghecht/Projects/hven/include
+      no residual difference
+    4 probe-side objects produced
+
+--- THE LINK (RULE-P2A section 3.4 #3)
+    : && /usr/bin/clang++ -DMKL_LP64 -m64 -O3 -DNDEBUG -Wl,-rpath,/home/ghecht/Software/cutest/lib -Xlinker --dependency-file=CMakeFiles/m3c_probe.dir/link.d CMakeFiles/m3c_probe.dir/m3c_p2_probe.cpp.o CMakeFiles/m3c_probe.dir/home/ghecht/Projects/hven-bench/lanes/cutest/cutest_model.cpp.o CMakeFiles/m3c_probe.dir/home/ghecht/Projects/hven-bench/lanes/cutest/cutest_source.cpp.o CMakeFiles/m3c_probe.dir/home/ghecht/Projects/hven-bench/lanes/hven/nlp_model_triplet_view.cpp.o -o m5_arm_probe  -Wl,-rpath,/opt/intel/oneapi/mkl/latest/lib:/opt/intel/oneapi/compiler/latest/lib:/home/ghecht/Software/cutest/lib  /home/ghecht/Projects/hven/.scratch/m7w2m5arm/build/libhven_p2a_armB.a  /home/ghecht/Software/cutest/lib/libcutest_double.so  -Wl,--start-group  /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_lp64.a  /opt/intel/oneapi/mkl/latest/lib/libmkl_intel_thread.a  /opt/intel/oneapi/mkl/latest/lib/libmkl_core.a  /opt/intel/oneapi/compiler/latest/lib/libiomp5.so  -Wl,--end-group  -ldl  -lm && :
+    the link names this arm's own replayed archive and NOT the installed libhven.a
+    non-vacuity: the same test DOES match a constructed line naming the installed path
+    binary /home/ghecht/Projects/hven/.scratch/m7w2m5arm/build/m5_arm_probe
+    sha256 eac445c0256e1b0af739f98e91a5d1cce586fedfa41562b7fb08684b145b43d4
+    QpWalkObserver symbols in the binary: 23 (the probe's own TU defines them in every arm; see RULE-P2A section 1)
+ARM B BUILD OK
+
+ARM_B_BINARY=/home/ghecht/Projects/hven/.scratch/m7w2m5arm/build/m5_arm_probe
+--- THE BINARY
+eac445c0256e1b0af739f98e91a5d1cce586fedfa41562b7fb08684b145b43d4  /home/ghecht/Projects/hven/.scratch/m7w2m5arm/build/m5_arm_probe
+--- USAGE LINE (the binary runs)
+usage: m5_arm_probe --problem NAME [--tr-init r] [--deadline s] [--capture-solve K|-1] [--max-records N] [--trace on|off] [--trace-out PATH] [--stop-after-first-qp on|off] [--ledger on|off] [--arm off|a|b1|a+b1] [--dependency-tol t] [--integer-screen on|off] [--max-dep-tests N] [--diag-inertia on|off]
+--- ARGUMENT REFUSALS, EXERCISED (a checker never seen to refuse is not a checker)
+refused as it should (unknown cell): m5_arm_probe: NOT_A_CELL is not in the cutest-nlp-35 roster
+refused as it should (trace without an out path): m5_arm_probe: --trace on requires --trace-out PATH
+refused as it should (an arm label that is not one of the four): m5_arm_probe: --arm takes off|a|b1|a+b1
+refused as it should (M4's arm label, which this probe does NOT carry): m5_arm_probe: --arm takes off|a|b1|a+b1
+refused as it should (a bare `a+` that is not `a+b1`): m5_arm_probe: --arm takes off|a|b1|a+b1
+refused as it should (a non-positive dependency tolerance): m5_arm_probe: --dependency-tol takes a finite value > 0
+refused as it should (a negative dependency-test ceiling): m5_arm_probe: --max-dep-tests takes a value >= 0 (0 is UNBOUNDED, the pre-registered rule)
+refused as it should (the inertia diagnostic asked for on an UNARMED run): m5_arm_probe: --diag-inertia on with --arm off would add a factorization per drop pass to an UNARMED run, which is what the OFF controls exist to rule out
+ARGUMENT_REFUSALS_EXERCISED=8
+--- THE FOUR ARM LABELS ARE ACCEPTED, and a+b1 is grepped as a FIXED STRING
+    --arm off -> arm=off
+    --arm a -> arm=a
+    --arm b1 -> arm=b1
+    --arm a+b1 -> arm=a+b1
+--- THE ARM IS REACHABLE AND THE BINARY SAYS SO (arm_compiled_in must be 1)
+ARM_COMPILED_IN=1 -- the switch is reachable from outside src/ and include/
+--- AMENDMENT 1's TWO KEYS ARE PRINTED, and the per-solve one is a HARVEST
+    indep_max_cond_r=98906723.966360703
+    indep_leak_bound_exceeded=1
+    scaled_candidates_refused=0
+
+=========== THE SMOKE: ACOPP57 at --arm off against M3c's COMMITTED ROW
+RULE.md section 8 step 1. The reference is M3c's pass-1 row, produced by a
+binary with NO arm and NO observer compiled into it. The bar is EVERY
+field the two rows share, and this round adds one: ZERO near-ulp
+acceptances -- the reproduction must be by BYTES, not by tolerance.
+FOREGROUND_START smoke-off-ACOPP57 2026-09-22T14:10:42-04:00
+FOREGROUND_END smoke-off-ACOPP57 2026-09-22T14:10:43-04:00 rc=0
+GATE_SMOKE_RC=0
+  off-ACOPP57    REPRODUCES
+  fields compared (the intersection, every member): 58   (declared minimum: 58)
+  near-ulp acceptances (passed by tolerance, not by bytes): 0
+  VERDICT: REPRODUCES the committed pass-1 row on every compared field, with every expected field present, no conflicting duplicate, and 58 >= 58 fields compared
+NEAR_ULP_ACCEPTANCES=0
+SMOKE OK -- every shared field reproduces BY BYTES, with 0 near-ulp acceptances
+=== M5 PREPARE OK 2026-09-22T14:10:43-04:00
+FOREGROUND_END m5-prepare 2026-09-22T14:10:43-04:00 rc=0
